@@ -278,8 +278,8 @@ track touches chrome only, never the floor, and never blocks the floor slices.
     dwell clock is 4–9 s and a conversation is longer than that. Ambience still always loses — it
     loses by waiting instead of by leaving.
 
-    Two geometry findings, both from the capture, and neither of them fixed — see § 6 rules 28
-    and 29 and the debts in § 8. Cost, in full: one derivation module, one extracted component,
+    Two geometry findings, both from the capture, and neither of them fixed — see § 6 rules 29
+    and 30 and the debts in § 8. Cost, in full: one derivation module, one extracted component,
     one hook parameter, and two verbs that stopped deriving their own mark twice.
 
 **There is no slice 13 yet, and that is deliberate.** The list above was written one slice at
@@ -304,7 +304,7 @@ grew figures that are not you (26–27), helpers written from your point of view
 asked questions about somebody else. The through-line for all three: **the room looking right
 is evidence about the room looking right, and nothing else.**
 
-Rules 28–29 close that loop from the other end: both are back in a screenshot, and both are
+Rules 29–30 close that loop from the other end: both are back in a screenshot, and both are
 about a **figure standing somewhere no figure stood before**. Slices 1–11 only ever put a
 standing body on a mark derived for _you_, and you leave again; slice 12 puts a colleague on a
 prop mark and then hangs chrome off them. The general form: **a position that has only ever been
@@ -499,43 +499,73 @@ occupied briefly has only ever been tested briefly.**
     every mark against **every** seat including yours. The general form, for the next mark
     family that is not about you: re-read whose point of view each geometry helper was written
     from before reusing it for somebody else.
+    The helper now takes the point of view as a parameter — `isStandableTile(mark,
+{ excludeSeatId })` — which is the right shape for it, and slice 12 needed the same question
+    asked a **third** way that the parameter cannot answer. `isStandableTile` validates against
+    `FLOOR_SEATS` whoever it is asked for, so it knows where everybody **works**; it has no idea a
+    body is stood at the printer, and it still believes that body is at the desk it left. So a
+    mark derived _around_ somebody's live position has to re-ask both halves of the face test
+    about the position itself, which is `figuresClear` in `officeFloorMovement.js`. It currently
+    rejects nothing: the only offset in `APPROACH_OFFSETS` that shares a screen column with the
+    target is `{1, 1}`, and two tiles of depth is 56 px against a 48 px figure. That is the
+    constraint being encoded before the layout needs it rather than dead code — the ladder is what
+    makes "there is nowhere to stand" an answer the room gives. The distinction worth carrying:
+    `excludeSeatId` says _whose chair to ignore_, and a live position is a body **no chair
+    describes**.
 
-    Slice 12 needed the same test run the other way, and it is worth seeing why it is a
-    _different_ test rather than the same one reused. `isStandableTile` validates against
-    `FLOOR_SEATS`, so it knows where everybody **works** — it has no idea a body is stood at the
-    printer, and it still believes that body is at the desk it left. So a mark derived _around_
-    somebody's live position has to re-ask both halves of the face test about the position
-    itself, which is `figuresClear` in `officeFloorMovement.js`. It currently rejects nothing:
-    the only offset in `APPROACH_OFFSETS` that shares a screen column with the target is
-    `{1, 1}`, and two tiles of depth is 56 px against a 48 px figure. That is the constraint
-    being encoded before the layout needs it rather than dead code — the ladder is what makes
-    "there is nowhere to stand" an answer the room gives.
+28. **Counter-scale the layout size, not just the paint.** Rule 7 keeps text readable by
+    `scale(1 / stageScale)`, but a `width: 15rem; max-width: 60vw` box then becomes
+    `120vw` on a phone at `MIN_SCALE` (0.5) and clips off every edge speaker (Chad's arrival
+    intro lost the left half of every line). Divide the authored width by
+    `--floor-inverse-scale` so the _on-screen_ size stays ~15 rem / ≤60 vw, and bias edge
+    speakers with `bubbleAlignForTile` (`start` / `end`) so the balloon slides toward
+    screen centre. Captions / CC (`archislop:office-captions`) hide spoken balloons when
+    voice is playing — the room stays readable for anyone who can hear.
 
-28. **A counter-scaled bubble fits beside a desk and not in the middle of the room.** § 6 rule 12
+    One thing the bias has to be asked about the right tile: it is a function of **where the
+    speaker is standing**, not of where they sit. `FloorDeskSpeech` aligns off its anchor, so a
+    colleague away from their desk (slice 12) is biased by the tile they are on. Measured:
+    `bubbleAlignForTile` gives `start` for Chad's desk (2, 5) and `center` for the whiteboard
+    (8, 4) he wanders to, so aligning by the chair would shift the balloon 42 % to the right and
+    move its tail to 18 % — pointing the tail at nobody.
+
+    That near-miss is worth keeping for a second reason: the wrong answer would have shifted the
+    balloon far enough to _accidentally_ clear the head it covers in rule 29, which is how a
+    placement bug masks an occlusion bug. Two wrongs looking like a right is exactly what a
+    capture cannot tell you and a measurement can.
+
+29. **A counter-scaled bubble fits beside a desk and not in the middle of the room.** § 6 rule 12
     said this about a _small_ room; the pod is the opposite problem and gives the same answer for
-    the same arithmetic. A `FloorBubble` is 264 px — 2.4 screen columns — and its tail is pinned
-    at `left: 50%`, so rule 13's requirement (keep the speaker's column) fixes where it can go.
-    Talking to somebody at their desk covers **nobody**, measured; talking to the same person
-    standing at the whiteboard mark covers **Ulrich's head**, two columns screen-left. Nothing
-    changed about the bubble: every desk mark slice 8 ever exercised happens to sit near an edge
-    of the floor plate, and a prop mark is central _by construction_, because central is what
-    makes a prop somewhere people gather.
+    the same arithmetic. A `FloorBubble` is 264 px — 2.4 screen columns — so anchored on somebody
+    central it reaches two columns either side of them. Talking to somebody at their desk covers
+    **nobody**, measured; talking to the same person standing at the whiteboard mark covers
+    **Ulrich's head**, two columns screen-left. Nothing changed about the bubble: every desk mark
+    slice 8 ever exercised happens to sit near an edge of the floor plate, and a prop mark is
+    central _by construction_, because central is what makes a prop somewhere people gather.
 
     | talking to Chad                             | bubble box                | clears the speaker    | covers                                    |
     | ------------------------------------------- | ------------------------- | --------------------- | ----------------------------------------- |
     | at his desk (2, 5), `--over-seat`           | 334.7…599.1 × 248.9…323.3 | yes                   | nobody                                    |
     | at the whiteboard (8, 4), `--over-standing` | 726.2…990.6 × 421…495.4   | 8.6 px above his head | `refine`'s head (730…763.8 × 417.7…451.6) |
 
-    **Left as it is, and the reason is that every fix is worse.** Rule 15's actual requirement —
-    the balloon must not cover _the speaker_ — is met with 8.6 px to spare, and the speaker is
-    also the one glowing. A bigger `--over-standing` lift needs +78 px to clear the row behind,
-    which is 2.8 tiles of depth and reads as detached rather than as speech. Parking it on a
-    fixed depth line (rule 13's mechanism, `liftToDepth`) works for the glass room because the
-    room _has_ a back row to sit above; the pod's equivalent line is most of the way up the
-    stage. Moving the column breaks the tail. Narrowing the bubble reopens the geometry of every
-    other surface that uses it. So this is recorded rather than repaired — see § 8.
+    **Recorded rather than repaired, and the mechanism a repair would use already exists.** Rule
+    15's actual requirement — the balloon must not cover _the speaker_ — is met with 8.6 px to
+    spare, and the speaker is also the one glowing. The two lift-based fixes are both worse: a
+    bigger `--over-standing` needs +78 px to clear the row behind, which is 2.8 tiles of depth and
+    reads as detached rather than as speech, and parking it on a fixed depth line (rule 13's
+    `liftToDepth`) works for the glass room only because that room _has_ a back row to sit above,
+    where the pod's equivalent line is most of the way up the stage.
 
-29. **A body standing at a prop eats that prop's clicks, and it bites hardest where there was
+    The promising one is **sideways**, and rule 28 built it: `--align-start` / `--align-end` shift
+    the balloon ±42 % _and move the tail with it_ (`left: 18%` / `82%`), so a shifted bubble still
+    points at its speaker. A `start` bias at the whiteboard moves the left edge from 726 to ~837
+    and clears Ulrich outright. What is missing is not the mechanism but the **question**:
+    `bubbleAlignForTile` biases on where the speaker is on the _stage_, which is the right answer
+    for the clipping bug it was written for and returns `center` here (744 / 1210 = 0.62). Biasing
+    on _which side has somebody's head in it_ instead is a placement-policy change to a component
+    four surfaces share, so it wants its own slice and its own captures — see § 8.
+
+30. **A body standing at a prop eats that prop's clicks, and it bites hardest where there was
     least to spare.** The printer answers 16 of 441 sampled points normally (rule 22's story is
     how it got that back). With somebody loitering at it, that is **7 of 441** — their head and
     shoulders sit exactly on its lower-front face, because a prop mark is by definition a tile
@@ -644,7 +674,7 @@ The other habit worth keeping is **driving a random-seeded surface through the h
 than around it**. Ambient life picks who gets up with `Math.random`, so the slice 12 harness
 overrode it (`?rand=`) and nothing else: 0.7 puts Chad at the whiteboard, 0.5 puts Dave at the
 printer. Both are needed — 0.7 alone picks an office-tier colleague with social verbs, and 0.5 is
-the one that lands somebody on the tightest prop box in the room, which is where rule 29 showed
+the one that lands somebody on the tightest prop box in the room, which is where rule 30 showed
 up. Note that the default 0 picks Ulrich, who is _team_ tier and has no Slop Chat™ at all, so a
 seed that looks like the obvious one makes the whole verb path invisible.
 
@@ -674,8 +704,10 @@ whoever is not looking at it — a new card needs a line here, in the same posit
 `x ? <X /> : null` here rather than another branch in the view component),
 `FloorPersonButton` (**the** clickable figure — one definition of § 6 rule 23's 34 × 48 box, and
 where any new place a person can be clicked belongs),
-`useFloorWander` + `FloorWanderer` (ambient traffic, and since slice 12 a figure you can select
-where it stands — mind § 6 rules 26–29),
+`useFloorAway` (everybody out of their chair, for either reason — a moment has them, or they got
+up on their own; the two answers have to agree, so one hook gives both) + `useFloorWander` +
+`FloorWanderer` (ambient traffic, and since slice 12 a figure you can select
+where it stands — mind § 6 rules 26–27 and 30),
 `useFloorPropUse` (what happens when you get there, once), `useFloorPresence`
 (where you
 are standing — view state, like the peek it absorbed), `useFloorActivity` (presence plus the
@@ -684,8 +716,8 @@ deriving one), `useFloorTalk` (a conversation's composer, not its
 dialogue), `FloorTalk` + `FloorTalkCard`, `useFloorKeyboard` (Escape ladder + arrow stepping),
 `useFloorAutoPan`, `FloorTopBar`, `FloorCardSlot`, `FloorScenes`,
 `FloorSeat`, `FloorFigure`, `FloorBubble` (counter-scaled speech), `FloorDeskSpeech` (a line
-above somebody at their own desk, or at the tile they are standing on — mind §6 rules 15, 20
-and 28), `FloorPanel` (counter-scaled panel
+above somebody at their own desk, or at the tile they are standing on — mind §6 rules 15, 20,
+28 and 29), `FloorPanel` (counter-scaled panel
 pinned to a tile — mind §6 rule 12), `FloorWalker` + `useWalkAnimation` (WAAPI path
 walking), `FloorPlayer` (you, walking, wherever you are not at your own desk), `FloorScene`
 (set pieces), `FloorMeeting` + `FloorMeetingCard` (the glass room, and why its chrome is a
@@ -748,7 +780,7 @@ Three candidates, none designed:
   one that is not floor work at all: today the floor is reachable from the desk dock, and the
   mode toggle has never had a deliberate home or a keyboard shortcut. Small, self-contained, and
   the one candidate a person who has never read § 6 could take.
-- **Bubble placement for a speaker who is not against a wall** (§ 6 rule 28). The finding is
+- **Bubble placement for a speaker who is not against a wall** (§ 6 rule 29). The finding is
   measured and the four obvious fixes are each recorded as worse, which is exactly the shape of
   problem that wants its own slice rather than a patch inside somebody else's. It would touch
   every surface that uses `FloorBubble` and needs re-validating against rules 6, 12, 13, 15 and
@@ -775,11 +807,11 @@ which is a content question rather than a geometry one.
   who is speaking (`colleagueVoiceLine`), so it wants a `FloorLiveRegion` and about four
   strings, not a design.
 - **A speech bubble over somebody standing in the middle of the room covers a bystander's head**
-  (§ 6 rule 28). Measured, and left as it is on purpose: rule 15's real requirement (do not cover
+  (§ 6 rule 29). Measured, and left as it is on purpose: rule 15's real requirement (do not cover
   _the speaker_) is met with 8.6 px to spare, and each of the four available fixes breaks
   something rules 13, 15 or 20 established. It is the only known case of the room drawing
   something wrong, so it is also a candidate slice in its own right — see above.
-- **A body standing at a prop eats that prop's clicks** (§ 6 rule 29): the printer goes from 16 of
+- **A body standing at a prop eats that prop's clicks** (§ 6 rule 30): the printer goes from 16 of
   441 sampled points to 7 while somebody loiters at it. Correct physics and self-limiting
   (heading for their tile walks them home), so nothing to fix — but if a future slice makes a
   fourth prop usable, that prop's coverage should be measured **with somebody standing at it**,

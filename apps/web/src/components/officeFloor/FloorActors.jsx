@@ -43,13 +43,13 @@ import FloorWanderer from './FloorWanderer.jsx';
  *   talkLine?: string,
  *   presence?: any,
  *   onPresenceArrive?: () => void,
- *   playerRef?: { current: HTMLElement | null }
+ *   playerRef?: { current: HTMLElement | null },
+ *   showSpokenText?: boolean
  * }} props `selectedId` / `speakingId` / `onSelect` are the stage's own names for
  *   the same three things, because since slice 12 a figure on the stage can be
  *   selected whether it is in a chair or stood at the printer, and it should not
- *   matter to the caller which one it is talking to. Destructured without
- *   defaults on purpose: every optional field here
- *   is either truthiness-tested a line later or forwarded to a component that
+ *   matter to the caller which one it is talking to. Otherwise destructured
+ *   without defaults on purpose: every optional field here
  *   defaults it itself (`FloorScenes` already defaults all three of its own), so
  *   `= null` would buy nothing but a branch each — and thirteen of them is how
  *   this component was born over its complexity budget.
@@ -72,11 +72,18 @@ export function FloorActors({
   talkLine,
   presence,
   onPresenceArrive,
-  playerRef
+  playerRef,
+  showSpokenText = true
 }) {
   return (
     <>
-      <FloorScenes coffee={coffee} battle={battle} scale={scale} sceneHandlers={sceneHandlers} />
+      <FloorScenes
+        coffee={coffee}
+        battle={battle}
+        scale={scale}
+        sceneHandlers={sceneHandlers}
+        showSpokenText={showSpokenText}
+      />
 
       {/* Somebody who has got up for a minute. Still deliberately absent from
           `floorAnnouncement`: ambient traffic is the one class of event on this
@@ -96,7 +103,9 @@ export function FloorActors({
         />
       ) : null}
 
-      {meeting ? <FloorMeeting meeting={meeting} copy={copy} scale={scale} /> : null}
+      {meeting ? (
+        <FloorMeeting meeting={meeting} copy={copy} scale={scale} showSpokenText={showSpokenText} />
+      ) : null}
       {peek ? <FloorPeek peek={peek} scale={scale} /> : null}
       {talk ? <FloorTalk talk={talk} line={talkLine} scale={scale} /> : null}
 

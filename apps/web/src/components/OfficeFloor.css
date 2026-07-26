@@ -502,11 +502,15 @@
 .office-floor-bubble {
   position: relative;
   /* Stays the same size on screen however far the stage is zoomed out —
-     otherwise the line is ~6 px tall on a phone. */
+     otherwise the line is ~6 px tall on a phone. Layout width is divided by
+     the inverse so AFTER scale() the balloon is still ~15 rem / ≤60 vw —
+     without that, at MIN_SCALE (0.5) a 60 vw box becomes 120 vw and clips
+     off every edge speaker (§ 6 rule 27). */
   transform: scale(var(--floor-inverse-scale, 1));
   transform-origin: bottom center;
-  width: 15rem;
-  max-width: 60vw;
+  width: calc(15rem / var(--floor-inverse-scale, 1));
+  max-width: calc(min(60vw, 22rem) / var(--floor-inverse-scale, 1));
+  max-height: calc(min(42vh, 16rem) / var(--floor-inverse-scale, 1));
   margin-bottom: 0.4rem;
   padding: 0.55rem 0.7rem 0.6rem;
   border-radius: 14px;
@@ -514,7 +518,23 @@
   background: var(--office-surface-bg, #fff);
   box-shadow: var(--control-shadow);
   text-align: left;
+  overflow-x: hidden;
+  overflow-y: auto;
   animation: office-floor-bubble-in 180ms ease-out;
+}
+
+/* Edge speakers: slide the balloon toward screen centre so a left-desk intro
+   (Chad, Ticket Bot, Gary) is not half off the phone. */
+.office-floor-bubble--align-start {
+  transform: translateX(42%) scale(var(--floor-inverse-scale, 1));
+  transform-origin: bottom left;
+  animation-name: office-floor-bubble-in-start;
+}
+
+.office-floor-bubble--align-end {
+  transform: translateX(-42%) scale(var(--floor-inverse-scale, 1));
+  transform-origin: bottom right;
+  animation-name: office-floor-bubble-in-end;
 }
 
 /* The tail: a small rotated square pinned under the bubble, pointing at them. */
@@ -531,10 +551,32 @@
   border-bottom: 1px solid var(--control-border);
 }
 
+.office-floor-bubble--align-start::after {
+  left: 18%;
+}
+
+.office-floor-bubble--align-end::after {
+  left: 82%;
+}
+
 @keyframes office-floor-bubble-in {
   from {
     opacity: 0;
     transform: scale(calc(var(--floor-inverse-scale, 1) * 0.92));
+  }
+}
+
+@keyframes office-floor-bubble-in-start {
+  from {
+    opacity: 0;
+    transform: translateX(42%) scale(calc(var(--floor-inverse-scale, 1) * 0.92));
+  }
+}
+
+@keyframes office-floor-bubble-in-end {
+  from {
+    opacity: 0;
+    transform: translateX(-42%) scale(calc(var(--floor-inverse-scale, 1) * 0.92));
   }
 }
 
@@ -831,8 +873,9 @@
   transform: translate(-50%, calc(-1 * var(--floor-panel-lift, 132px)))
     scale(var(--floor-inverse-scale, 1));
   transform-origin: bottom center;
-  width: 19rem;
-  max-width: 70vw;
+  /* Same pre-scale width math as `.office-floor-bubble` (§ 6 rule 27). */
+  width: calc(19rem / var(--floor-inverse-scale, 1));
+  max-width: calc(min(70vw, 24rem) / var(--floor-inverse-scale, 1));
   padding: 0.6rem 0.75rem;
   border-radius: 14px;
   border: 1px solid var(--control-border);

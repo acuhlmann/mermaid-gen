@@ -1,23 +1,21 @@
 // @vitest-environment jsdom
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { act, fireEvent, render, screen } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import OfficeFloor from '../src/components/OfficeFloor.jsx';
 import {
-  _resetOfficeViewModeForTests,
-  getOfficeViewMode,
-  sitDown,
-  standUp
-} from '../src/state/officeViewModeStore.js';
+  enableFloorDialogueCaptions,
+  renderFloor,
+  resetOfficeFloorTestState,
+  WALK_BY_FIXTURE
+} from './helpers/officeFloorTestUtils.jsx';
+import { getOfficeViewMode, sitDown, standUp } from '../src/state/officeViewModeStore.js';
 
-/** Stand up first, then mount — the store is module-level, so the floor is up. */
-function renderFloor(props = {}) {
-  standUp();
-  return render(<OfficeFloor {...props} />);
-}
+beforeEach(() => {
+  enableFloorDialogueCaptions();
+});
 
 afterEach(() => {
-  cleanup();
-  _resetOfficeViewModeForTests();
+  resetOfficeFloorTestState();
 });
 
 describe('office view mode', () => {
@@ -87,12 +85,7 @@ describe('OfficeFloor', () => {
 });
 
 describe('OfficeFloor walk-bys (slice 2)', () => {
-  const WALK_BY = {
-    id: 'walk-1',
-    colleagueId: 'greybeard',
-    body: 'We tried that in 2009. It is still in the mainframe.',
-    actionPrompt: 'Add the legacy system'
-  };
+  const WALK_BY = WALK_BY_FIXTURE;
 
   it('walks the colleague over and shows what they said', () => {
     renderFloor({ walkBy: WALK_BY });
@@ -124,7 +117,7 @@ describe('OfficeFloor walk-bys (slice 2)', () => {
     expect(onAdoptPrompt).toHaveBeenCalledWith('Add the legacy system', 'greybeard');
 
     fireEvent.click(screen.getByRole('button', { name: /Wave off/i }));
-    expect(onDismissWalkBy).toHaveBeenCalledWith('walk-1');
+    expect(onDismissWalkBy).toHaveBeenCalledWith(WALK_BY.id);
   });
 
   it('walks them back to their desk after the moment clears', () => {

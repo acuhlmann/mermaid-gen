@@ -209,7 +209,12 @@ Three things make the orientation more than a static list:
   fetcher (`officeSpeechClient.js`).
 - **Name yourself in the intro.** The welcome step embeds the editable **name badge**
   (`NameTag`, see Day One below). Spoken copy stays voice-first; a **Transcript (CC)**
-  toggle at reception reveals text for users who cannot listen.
+  toggle at reception, on the isometric arrival / floor bar, and in the Inbox ambience
+  controls reveals text for users who cannot listen (or want to read along). Off by
+  default so the floor is not buried under balloons when voice is playing; a silent TTS
+  beat still falls back to the bubble so the line is never lost. The preference is shared
+  (`archislop:office-captions`) across the card tour, isometric arrival, and ambient
+  floor speech.
 - **Language at reception — and on the desk.** The orientation welcome step includes the
   compact **IntroLocaleToggle** so locale is chosen before check-in. After check-in, the same
   control lives in the desk actions menu as **Language pack** (IT TICKET), next to Concentration,

@@ -17,10 +17,17 @@ import FloorScene from './FloorScene.jsx';
  *   coffee?: any,
  *   battle?: any,
  *   scale: number,
- *   sceneHandlers?: Record<string, any>
+ *   sceneHandlers?: Record<string, any>,
+ *   showSpokenText?: boolean
  * }} props
  */
-export function FloorScenes({ coffee = null, battle = null, scale, sceneHandlers = {} }) {
+export function FloorScenes({
+  coffee = null,
+  battle = null,
+  scale,
+  sceneHandlers = {},
+  showSpokenText = true
+}) {
   return (
     <>
       {coffee ? (
@@ -33,6 +40,7 @@ export function FloorScenes({ coffee = null, battle = null, scale, sceneHandlers
           onAccept={sceneHandlers.onAcceptCoffee}
           onDecline={sceneHandlers.onDeclineCoffee}
           onDone={sceneHandlers.onCoffeeDone}
+          showSpokenText={showSpokenText}
         />
       ) : null}
       {battle ? (
@@ -46,6 +54,7 @@ export function FloorScenes({ coffee = null, battle = null, scale, sceneHandlers
           onDecline={sceneHandlers.onDeclineBattle}
           onVote={sceneHandlers.onVoteBattle}
           onDone={sceneHandlers.onBattleDone}
+          showSpokenText={showSpokenText}
         />
       ) : null}
     </>

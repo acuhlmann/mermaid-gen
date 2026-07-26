@@ -3,23 +3,30 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import FloorArrival from '../src/components/officeFloor/FloorArrival.jsx';
 import { readOfficeDirectorySeen } from '../src/utils/officeAmbienceStorage.js';
+import { setOfficeCaptions } from '../src/state/officeMomentStore.js';
+
+const playMock = vi.fn(() => Promise.resolve({ spoken: false }));
 
 // The narrator hits Cloud TTS; the ceremony's pacing is what we're testing.
 vi.mock('../src/hooks/useIntroNarrator.js', () => ({
   useIntroNarrator: () => ({
     speakingId: null,
-    play: () => Promise.resolve({ spoken: false }),
+    play: (...args) => playMock(...args),
     stop: () => {}
   })
 }));
 
 beforeEach(() => {
   localStorage.clear();
+  playMock.mockReset();
+  playMock.mockImplementation(() => Promise.resolve({ spoken: false }));
+  setOfficeCaptions(false);
 });
 
 afterEach(() => {
   cleanup();
   localStorage.clear();
+  setOfficeCaptions(false);
 });
 
 describe('FloorArrival (isometric first run)', () => {
@@ -29,10 +36,17 @@ describe('FloorArrival (isometric first run)', () => {
     expect(screen.getByTestId('office-floor-arrival')).toBeTruthy();
     expect(screen.getByText(/RECEPTION/)).toBeTruthy();
     expect(screen.getByRole('button', { name: /Check in/i })).toBeTruthy();
+    // Spatial narration for whoever is not looking at the floor (slice 10 parity).
+    expect(screen.getByTestId('office-floor-narration').textContent).toMatch(/At reception/);
     // You are standing at reception, so your desk is empty.
     expect(screen.getByTestId('office-floor-arrival-player')).toBeTruthy();
     const yourSeat = document.querySelector('[data-seat="you"]');
     expect(yourSeat?.dataset.vacant).toBe('true');
+  });
+
+  it('offers a CC toggle so voice-only users can hide balloons', () => {
+    render(<FloorArrival />);
+    expect(screen.getByTestId('intro-transcript-button')).toBeTruthy();
   });
 
   it('does not speak before the check-in gesture', () => {
@@ -49,7 +63,31 @@ describe('FloorArrival (isometric first run)', () => {
     await waitFor(() => {
       expect(document.querySelector('.office-floor-person.is-speaking')).toBeTruthy();
     });
+    expect(screen.getByTestId('office-floor-narration').textContent).toMatch(/Linda/);
+    // Silent TTS falls back to the bubble so the line is never lost.
     expect(screen.getByText(/I'm Linda, from People Ops/)).toBeTruthy();
+  });
+
+  it('hides spoken balloons when voice works and captions stay off', async () => {
+    playMock.mockImplementation(() => Promise.resolve({ spoken: true }));
+    render(<FloorArrival />);
+    fireEvent.click(screen.getByRole('button', { name: /Check in/i }));
+
+    await waitFor(() => {
+      expect(document.querySelector('.office-floor-person.is-speaking')).toBeTruthy();
+    });
+    expect(screen.queryByText(/I'm Linda, from People Ops/)).toBeNull();
+  });
+
+  it('shows balloons when captions are turned on even while voice plays', async () => {
+    playMock.mockImplementation(() => Promise.resolve({ spoken: true }));
+    setOfficeCaptions(true);
+    render(<FloorArrival />);
+    fireEvent.click(screen.getByRole('button', { name: /Check in/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/I'm Linda, from People Ops/)).toBeTruthy();
+    });
   });
 
   it('treats the cast as scenery during the ceremony', () => {

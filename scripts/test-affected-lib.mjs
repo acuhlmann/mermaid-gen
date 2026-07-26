@@ -24,6 +24,34 @@ export const WIRE_TEST_FILES = [
 ];
 
 /**
+ * Full isometric-mode regression set. Pulled when floor source changes even if
+ * basename mirror misses a sibling test file. Keep in sync with
+ * `docs/agents/isometric-floor-tests.md`.
+ */
+export const ISOMETRIC_FLOOR_BLAST_TESTS = [
+  'apps/web/test/officeFloor.test.jsx',
+  'apps/web/test/officeFloorAccess.test.jsx',
+  'apps/web/test/officeFloorArrival.test.jsx',
+  'apps/web/test/officeFloorContracts.test.js',
+  'apps/web/test/officeFloorMeeting.test.jsx',
+  'apps/web/test/officeFloorMovement.test.js',
+  'apps/web/test/officeFloorModuleInventory.test.js',
+  'apps/web/test/officeFloorPeek.test.jsx',
+  'apps/web/test/officeFloorPlan.test.js',
+  'apps/web/test/officeFloorProps.test.jsx',
+  'apps/web/test/officeFloorPropsTable.test.js',
+  'apps/web/test/officeFloorReach.test.js',
+  'apps/web/test/officeFloorRoam.test.jsx',
+  'apps/web/test/officeFloorScene.test.jsx',
+  'apps/web/test/officeFloorStyles.test.js',
+  'apps/web/test/officeFloorTalk.test.jsx',
+  'apps/web/test/officeFloorWander.test.jsx',
+  'apps/web/test/officeLayerFloorRenderer.test.jsx',
+  'apps/web/test/officeDeskWork.test.js',
+  'apps/web/test/useWalkAnimation.test.jsx'
+];
+
+/**
  * Prefix → extra tests beyond the basename mirror rule.
  * Keep in sync with `docs/agent-blast-radius.md`.
  * @type {Array<{ match: RegExp, tests: string[] }>}
@@ -87,6 +115,11 @@ export const BLAST_RADIUS_RULES = [
   {
     match: /apps\/web\/src\/utils\/officeCast\.js|apps\/web\/src\/i18n\/locales\/office\./,
     tests: ['apps/web/test/officeLocale.test.js', 'apps/web/test/officeDirectory.test.jsx']
+  },
+  {
+    match:
+      /apps\/web\/src\/(components\/(OfficeFloor|officeFloor|OfficeLayer)|utils\/officeFloor|utils\/officeDeskWork|utils\/officeSceneCast|hooks\/useStageScale\.js|state\/officeViewModeStore)/,
+    tests: ISOMETRIC_FLOOR_BLAST_TESTS
   },
   {
     match:

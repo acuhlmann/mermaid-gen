@@ -20,8 +20,9 @@ import FloorLiveRegion from './officeFloor/FloorLiveRegion.jsx';
 import FloorStage from './officeFloor/FloorStage.jsx';
 import FloorTopBar from './officeFloor/FloorTopBar.jsx';
 import { floorAnnouncement } from './officeFloor/floorAnnouncement.js';
+import { createOfficeFloorBridge } from './officeFloor/officeFloorBridge.js';
 import { useFloorActivity } from './officeFloor/useFloorActivity.js';
-import { useFloorWander } from './officeFloor/useFloorWander.js';
+import { useFloorAway } from './officeFloor/useFloorAway.js';
 import { useFloorAutoPan } from './officeFloor/useFloorAutoPan.js';
 import { useFloorKeyboard } from './officeFloor/useFloorKeyboard.js';
 import { useFloorWalker } from './officeFloor/useFloorWalker.js';
@@ -29,10 +30,15 @@ import { useStageScale } from '../hooks/useStageScale.js';
 import { reachTileFor, whereaboutsOf } from '../utils/officeFloorReach.js';
 import { YOU_SEAT_ID, peekTileFor } from '../utils/officeFloorPlan.js';
 import { isOfficeColleagueId, officeChromeCopy, officeSenderInfo } from '../utils/officeCast.js';
-import { awayFromDeskIds } from '../utils/officeSceneCast.js';
+import { shouldShowSpokenText } from '../utils/officeCaptions.js';
 import { tierOf } from '../utils/castTiers.js';
 import { resolveUserName, subscribe as subscribeUserName } from '../state/userIdentityStore.js';
 import { getOfficeViewMode, subscribe as subscribeViewMode } from '../state/officeViewModeStore.js';
+import {
+  getOfficeSnapshot,
+  setOfficeCaptions,
+  subscribe as subscribeOffice
+} from '../state/officeMomentStore.js';
 import { useUiCopy } from '../i18n/useUiLocale.js';
 import { formatLocale } from '../i18n/formatLocale.js';
 
@@ -126,40 +132,35 @@ function usePersonDetails(selectedId, copy, away) {
  * machine: 'looking' is simply having arrived somewhere you went on purpose.
  */
 /**
- * @param {{
- *   onMessage?: (colleagueId: string) => void,
- *   walkBy?: { id: string, colleagueId: string, body: string, actionPrompt?: string } | null,
- *   onAdoptPrompt?: (prompt: string, colleagueId: string) => void,
- *   onDismissWalkBy?: (id: string) => void,
- *   imHistory?: Array<{ colleagueId: string, body: string, outbound?: boolean }>,
- *   onTalkGreet?: (colleagueId: string) => Promise<void> | void,
- *   onTalkReply?: (colleagueId: string, body: string) => Promise<void> | void,
- *   onTalkingChange?: (colleagueId: string | null) => void,
- *   onGetCoffee?: () => Promise<boolean> | boolean,
- *   coffee?: any, battle?: any, sceneHandlers?: any,
- *   meeting?: any, meetingHandlers?: any
- * }} props
+ * @param {{ bridge: import('./officeFloor/officeFloorBridge.js').OfficeFloorBridge }} props
  */
-function OfficeFloorView({
-  onMessage,
-  walkBy,
-  onAdoptPrompt,
-  onDismissWalkBy,
-  imHistory = [],
-  onTalkGreet,
-  onTalkReply,
-  onTalkingChange,
-  onGetCoffee,
-  coffee = null,
-  battle = null,
-  sceneHandlers = {},
-  meeting = null,
-  meetingHandlers = {}
-}) {
+function OfficeFloorView({ bridge }) {
+  const {
+    imHistory = [],
+    walkBy,
+    onMessage,
+    onTalkGreet,
+    onTalkReply,
+    onTalkingChange,
+    onGetCoffee,
+    onAdoptPrompt,
+    onDismissWalkBy,
+    coffee = null,
+    battle = null,
+    sceneHandlers = {},
+    meeting = null,
+    meetingHandlers = {}
+  } = bridge;
   // Subscribes this component to locale changes; the copy itself comes from the
   // office bundle below, exactly like DeskActionsDock.
   useUiCopy();
   const copy = officeChromeCopy().floor;
+  const directory = officeChromeCopy().directory;
+  const officeSnap = useSyncExternalStore(subscribeOffice, getOfficeSnapshot, getOfficeSnapshot);
+  const showSpokenText = shouldShowSpokenText({
+    captions: officeSnap.captions,
+    voiceActive: officeSnap.narration
+  });
 
   const viewportRef = useRef(null);
   const scale = useStageScale(viewportRef);
@@ -181,27 +182,12 @@ function OfficeFloorView({
   useFloorKeyboard({ presence, origin, goHome, walkTo: activity.walkTo });
   useFloorAutoPan(viewportRef, presence, scale);
 
-  /*
-   * Whoever a real moment already has. Computed once because two things need
-   * it and they must agree: the stage empties their desks, and ambience must
-   * not send somebody a scene is already using — that would be the same person
-   * twice, which § 6 rule 5 exists to prevent.
-   */
-  const awayIds = awayFromDeskIds({
+  /* Everybody who is out of their chair, for either reason (`useFloorAway`). */
+  const { awayIds, wanderer, handleWanderArrive, wandererRef, floorState } = useFloorAway({
     coffee,
     battle,
     meeting,
     standing: presence,
-    playerId: YOU_SEAT_ID
-  });
-
-  const {
-    wanderer,
-    handleArrive: handleWanderArrive,
-    figureRef: wandererRef
-  } = useFloorWander({
-    suspended: Boolean(meeting),
-    busyIds: awayIds,
     // Where you are or are heading. One rule for two cases: walking over to use
     // a prop, and free-roaming onto the mark it is used from.
     avoidTile: origin,
@@ -213,11 +199,8 @@ function OfficeFloorView({
   /*
    * Where somebody is, when it is not their own chair (slice 12). One question,
    * two consumers that must agree: the card decides which verbs to offer from it
-   * and the stage puts their speech bubble where their mouth is. Computed here
-   * rather than inside `useFloorActivity` because the wanderer's trip is the
-   * answer and it depends on `origin`, which comes out of that hook.
+   * and the stage puts their speech bubble where their mouth is.
    */
-  const floorState = { wanderer, awayIds };
   const person = usePersonDetails(selectedId, copy, whereaboutsOf(selectedId, floorState));
   const talk = talkView(activity.talk, floorState);
 
@@ -247,7 +230,16 @@ function OfficeFloorView({
 
       {/* The peek and talk cards each carry their own way back, so the bar's
           copy of it would be a second button with the same label. */}
-      <FloorTopBar copy={copy} standing={activity.standingFree} onGoHome={goHome} />
+      <FloorTopBar
+        copy={copy}
+        standing={activity.standingFree}
+        onGoHome={goHome}
+        captions={officeSnap.captions}
+        captionsLabel={directory.transcriptLabel}
+        captionsOnLabel={directory.transcriptOnLabel}
+        captionsTitle={directory.transcriptTitle}
+        onToggleCaptions={() => setOfficeCaptions(!officeSnap.captions)}
+      />
 
       <div className="office-floor-viewport" ref={viewportRef}>
         <FloorStage
@@ -257,6 +249,7 @@ function OfficeFloorView({
           onSelect={handleSelect}
           walker={walker}
           walkerDeparting={departing}
+          walkerHideBody={!showSpokenText}
           onWalkerAdopt={onAdoptPrompt}
           onWalkerDismiss={onDismissWalkBy}
           onWalkerDeparted={handleDeparted}
@@ -268,10 +261,7 @@ function OfficeFloorView({
           // the coffee machine is not yours to press from it.
           onUseProp={meeting ? null : activity.startUseProp}
           activePropKind={activity.activePropKind}
-          // § 6 rule 5 again: the desk stays, its owner doesn't — and somebody
-          // who has wandered off is away for exactly the same reason somebody
-          // in a coffee scene is.
-          vacantIds={wanderer ? [...awayIds, wanderer.seatId] : awayIds}
+          vacantIds={awayIds}
           speakingId={activity.speakingId}
         >
           <FloorActors
@@ -295,6 +285,7 @@ function OfficeFloorView({
             presence={presence}
             onPresenceArrive={activity.handleArrive}
             playerRef={activity.playerRef}
+            showSpokenText={showSpokenText}
           />
         </FloorStage>
       </div>
@@ -324,23 +315,31 @@ function OfficeFloorView({
 
 /**
  * Mount point. Renders nothing at all in desktop screen mode, so the floor
- * costs one store subscription while you are working. Office state arrives as
- * props: `OfficeLayer` owns the store subscription for both renderers.
- *
- * Everything below is forwarded to `OfficeFloorView` untouched.
+ * costs one store subscription while you are working. Office state arrives via
+ * `bridge` from `OfficeLayer`, which owns the store subscription for both
+ * renderers.
  *
  * @param {{
- *   onMessage?: (colleagueId: string) => void,
+ *   bridge?: import('./officeFloor/officeFloorBridge.js').OfficeFloorBridge,
+ *   imHistory?: Array<{ colleagueId: string, body: string, outbound?: boolean }>,
  *   walkBy?: { id: string, colleagueId: string, body: string, actionPrompt?: string } | null,
+ *   onMessage?: (colleagueId: string) => void,
+ *   onTalkGreet?: (colleagueId: string) => Promise<void> | void,
+ *   onTalkReply?: (colleagueId: string, body: string) => Promise<void> | void,
+ *   onTalkingChange?: (colleagueId: string | null) => void,
+ *   onGetCoffee?: () => Promise<boolean> | boolean,
  *   onAdoptPrompt?: (prompt: string, colleagueId: string) => void,
  *   onDismissWalkBy?: (id: string) => void,
- *   onGetCoffee?: () => Promise<boolean> | boolean,
- *   coffee?: any, battle?: any, sceneHandlers?: any,
- *   meeting?: any, meetingHandlers?: any
- * }} props
+ *   coffee?: unknown,
+ *   battle?: unknown,
+ *   sceneHandlers?: Record<string, unknown>,
+ *   meeting?: unknown,
+ *   meetingHandlers?: Record<string, unknown>
+ * }} props Legacy flat props are still accepted for tests; `bridge` wins when both are set.
  */
-export default function OfficeFloor(props) {
+export default function OfficeFloor({ bridge: bridgeProp, ...legacy }) {
   const mode = useSyncExternalStore(subscribeViewMode, getOfficeViewMode, getOfficeViewMode);
   if (mode !== 'floor') return null;
-  return <OfficeFloorView {...props} />;
+  const bridge = bridgeProp ?? createOfficeFloorBridge(legacy);
+  return <OfficeFloorView bridge={bridge} />;
 }

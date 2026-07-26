@@ -32,6 +32,7 @@ import { formatLocale } from '../../i18n/formatLocale.js';
 import {
   MEETING_BUBBLE_DEPTH,
   MEETING_PLAYER_TILE,
+  bubbleAlignForTile,
   depthOf,
   liftToDepth,
   meetingSeating,
@@ -94,6 +95,9 @@ function MeetingBubble({ speakerId, text, tile, scale, copy }) {
   const { name, title } = actorInfo(speakerId, copy);
   const above = liftToDepth(tile, MEETING_BUBBLE_DEPTH);
   const { left, top } = projectIso(above.x, above.y);
+  // Keep the speaker's screen column for the tail, but bias away from the
+  // stage edge the same way desk speech does (§ 6 rule 27).
+  const align = bubbleAlignForTile(tile);
   return (
     <div
       className="office-floor-walker"
@@ -101,7 +105,7 @@ function MeetingBubble({ speakerId, text, tile, scale, copy }) {
       style={{ left, top, zIndex: BUBBLE_Z }}
     >
       <div className="office-floor-walker-anchor">
-        <FloorBubble name={name} title={title} scale={scale}>
+        <FloorBubble name={name} title={title} scale={scale} align={align}>
           {text}
         </FloorBubble>
       </div>
@@ -120,10 +124,11 @@ function MeetingBubble({ speakerId, text, tile, scale, copy }) {
  *     transcript: Array<{ speakerId: string, text: string }>
  *   },
  *   copy: Record<string, any>,
- *   scale?: number
+ *   scale?: number,
+ *   showSpokenText?: boolean
  * }} props `copy` is `officeChromeCopy().floor`.
  */
-export function FloorMeeting({ meeting, copy, scale = 1 }) {
+export function FloorMeeting({ meeting, copy, scale = 1, showSpokenText = true }) {
   const seating = meetingSeating(meeting.attendees, meeting.facilitatorId);
   const lastBeat = meeting.transcript[meeting.transcript.length - 1] ?? null;
   // Whoever spoke last holds the floor — the same rule the call window's seat
@@ -157,7 +162,7 @@ export function FloorMeeting({ meeting, copy, scale = 1 }) {
         copy={copy}
       />
 
-      {bubbleTile && lastBeat?.text ? (
+      {showSpokenText && bubbleTile && lastBeat?.text ? (
         <MeetingBubble
           speakerId={speakingId}
           text={lastBeat.text}

@@ -5,6 +5,7 @@ import OfficeFloor from '../src/components/OfficeFloor.jsx';
 import FloorWanderer from '../src/components/officeFloor/FloorWanderer.jsx';
 import { useFloorWander } from '../src/components/officeFloor/useFloorWander.js';
 import { officeChromeCopy } from '../src/utils/officeCast.js';
+import { renderFloor } from './helpers/officeFloorTestUtils.jsx';
 import { wanderTripsFor, wanderingSeatIds } from '../src/utils/officeFloorWander.js';
 import { approachTileFor, propTileFor } from '../src/utils/officeFloorMovement.js';
 import {
@@ -85,7 +86,7 @@ describe('who wanders is an answer the room gives', () => {
         // The same tile you stand on to use the thing — one definition of
         // "somebody could stand here and be seen", not a second one.
         expect(trip.mark).toEqual(propTileFor(trip.kind));
-        expect(isStandableTile(trip.mark)).toBe(true);
+        expect(isStandableTile(trip.mark, { excludeSeatId: id })).toBe(true);
       }
     }
   });
@@ -307,8 +308,7 @@ describe('somebody who is not at their desk', () => {
 
   /** The floor with Chad stood at the prop his ladder picks. */
   function floorWithWanderer(props = {}) {
-    standUp();
-    const view = render(<OfficeFloor {...props} />);
+    const view = renderFloor(props);
     act(() => vi.advanceTimersByTime(9_000));
     const figure = screen.getByTestId('office-floor-wanderer');
     expect(figure.dataset.wanderer).toBe(CHAD);

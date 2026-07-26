@@ -17,6 +17,7 @@
  * printer is not at their desk, and a bubble over the chair they left points at
  * nobody. Posture follows position for exactly rule 20's reason: somebody away
  * from their desk has no seat lift to clear, whatever their desk would imply.
+ * Rule 28's horizontal bias follows position too, for the same reason.
  *
  * Shared by the arrival ceremony (each colleague introducing themselves), desk
  * peeking (what they say over their shoulder) and floor conversation.
@@ -24,7 +25,7 @@
 
 import FloorBubble from './FloorBubble.jsx';
 import { officeSenderInfo } from '../../utils/officeCast.js';
-import { projectIso, seatFor } from '../../utils/officeFloorPlan.js';
+import { bubbleAlignForTile, projectIso, seatFor } from '../../utils/officeFloorPlan.js';
 
 /** Above the signage layer, same as the walker's bubble at your desk. */
 const BUBBLE_Z = 9600;
@@ -55,16 +56,26 @@ function anchorFor(castId, tile) {
  *   line: string,
  *   scale?: number,
  *   testId?: string,
- *   tile?: { x: number, y: number } | null
+ *   tile?: { x: number, y: number } | null,
+ *   hideBody?: boolean
  * }} props `tile` overrides their seat — where they are actually standing.
  */
-export function FloorDeskSpeech({ castId, line, scale = 1, testId, tile }) {
+export function FloorDeskSpeech({ castId, line, scale = 1, testId, tile, hideBody = false }) {
   const anchor = anchorFor(castId, tile);
   if (!anchor || !line) return null;
+  if (hideBody) return null;
 
   const sender = officeSenderInfo(castId);
   const { left, top } = projectIso(anchor.tile.x, anchor.tile.y);
   const lift = anchor.lift;
+  /*
+   * Off the **anchor**, not off their seat. Rule 28's bias exists to slide an
+   * edge speaker's balloon back toward screen centre, and where somebody is
+   * standing is the only position that answers that — Chad's desk is a `start`
+   * tile and the whiteboard he is stood at is a `center` one, so aligning by the
+   * chair he left would shove the balloon the wrong way across the room.
+   */
+  const align = bubbleAlignForTile(anchor.tile);
 
   return (
     <div
@@ -73,7 +84,12 @@ export function FloorDeskSpeech({ castId, line, scale = 1, testId, tile }) {
       style={{ left, top, zIndex: BUBBLE_Z }}
     >
       <div className={`office-floor-walker-anchor ${lift}`}>
-        <FloorBubble name={sender?.name ?? castId} title={sender?.title} scale={scale}>
+        <FloorBubble
+          name={sender?.name ?? castId}
+          title={sender?.title}
+          scale={scale}
+          align={align}
+        >
           {line}
         </FloorBubble>
       </div>

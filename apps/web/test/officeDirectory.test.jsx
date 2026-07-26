@@ -15,6 +15,7 @@ import {
   getOfficeDirectoryUi,
   requestOfficeDirectoryOpen
 } from '../src/state/officeDirectoryUiStore.js';
+import { setOfficeCaptions } from '../src/state/officeMomentStore.js';
 
 const playMock = vi.fn(() => Promise.resolve({ spoken: true, source: 'cloud' }));
 const stopMock = vi.fn();
@@ -38,13 +39,16 @@ function renderDirectory(props = {}) {
 }
 
 function enableTranscript() {
-  fireEvent.click(screen.getByTestId('intro-transcript-button'));
+  // Prefer the store over a toggle click — captions are shared app-wide, so a
+  // click would flip whatever a sibling suite left behind.
+  act(() => setOfficeCaptions(true));
 }
 
 beforeEach(() => {
   window.localStorage.clear();
   _resetUserIdentityForTests();
   _resetOfficeDirectoryUiForTests();
+  setOfficeCaptions(false);
   playMock.mockClear();
   stopMock.mockClear();
   playMock.mockImplementation(() => Promise.resolve({ spoken: true, source: 'cloud' }));
