@@ -27,6 +27,13 @@
  *    not calmer than one walking there — it is unexplained. Slice 10 made
  *    reduced motion a decision; this is the first slice to decide *against*
  *    doing something at all.
+ *
+ * Slice 12 added a fourth, and it is the same rule wearing the opposite face:
+ * `holdId` **stops the clock** while you have their card open or are stood in
+ * front of them talking. Ambience still loses — it loses by waiting instead of
+ * by leaving. Without it a conversation you crossed the room for gets four to
+ * nine seconds before the other party wanders off mid-sentence, and the card you
+ * are reading describes somebody who has gone.
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -86,17 +93,25 @@ function departure(busy, avoid) {
  * @param {{
  *   suspended?: boolean,
  *   busyIds?: string[],
- *   avoidTile?: { x: number, y: number } | null
+ *   avoidTile?: { x: number, y: number } | null,
+ *   holdId?: string | null
  * }} options `busyIds` is `awayFromDeskIds` — whoever a real moment already has.
  *   `avoidTile` is where *you* are or are heading, which is one rule covering
  *   two cases: walking up to use a prop, and free-roaming onto its mark.
+ *   `holdId` is whoever you have engaged — their card is open, or you are
+ *   talking to them — and they stay where they are until you are done.
  * @returns {{
  *   wanderer: WanderTrip | null,
  *   handleArrive: () => void,
  *   figureRef: { current: HTMLElement | null }
  * }}
  */
-export function useFloorWander({ suspended = false, busyIds = [], avoidTile = null } = {}) {
+export function useFloorWander({
+  suspended = false,
+  busyIds = [],
+  avoidTile = null,
+  holdId = null
+} = {}) {
   const [wanderer, setWanderer] = useState(null);
   const departures = useRef(0);
   /** The walking element, so an interrupted trip can be turned round in place. */
@@ -158,12 +173,22 @@ export function useFloorWander({ suspended = false, busyIds = [], avoidTile = nu
     return () => clearTimeout(timer);
   }, [suspended, wanderer]);
 
+  /*
+   * You have their card open, or you are stood in front of them talking. Nobody
+   * walks away from you mid-sentence — the dwell clock does not start until you
+   * are finished, and then it starts fresh, so leaving is what sends them back.
+   * The hold is on the *card* as well as the conversation so that the verbs a
+   * card is offering cannot go stale while you read them, and so that a keyboard
+   * user's focus is not pulled out from under them by a figure that unmounts.
+   */
+  const held = Boolean(wanderer) && wanderer.seatId === holdId;
+
   // Standing at the machine: count down to going back.
   useEffect(() => {
-    if (wanderer?.phase !== 'dwell') return undefined;
+    if (wanderer?.phase !== 'dwell' || held) return undefined;
     const timer = setTimeout(goHome, jitter(DWELL_MS));
     return () => clearTimeout(timer);
-  }, [wanderer, goHome]);
+  }, [wanderer, held, goHome]);
 
   /*
    * Ambience always loses. A meeting or a scene is already drawing this person

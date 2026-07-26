@@ -238,7 +238,51 @@ track touches chrome only, never the floor, and never blocks the floor slices.
     the branches § 8 had been asking it to shed, since the wiring pushed it to 16 and the
     stage's six conditional actors moved out to `FloorActors`.
 
-**There is no slice 12 yet, and that is deliberate.** The list above was written one slice at
+12. ~~**Reaching somebody who is not at their desk**~~ — ✅ **shipped**: the verbs follow the
+    person. A colleague standing at a prop is now a figure you can click, with a card that says
+    where they are and a **💬 Go and talk** that walks you to a mark beside _them_ rather than
+    beside the chair they left. Slice 11 is what made this urgent rather than theoretical:
+    `FloorSeat` renders no button for a vacant seat, so anybody away from their desk had been
+    unselectable since slice 4 — unnoticed, because a scene is rare and carries its own chrome
+    and a walk-by comes to you with its own actions. Ambient life put somebody out of their
+    chair every twenty seconds, and the failure was silent.
+
+    **One person, one hit target, and it travels with them.** The button is not copied onto the
+    empty chair; it moves to wherever the body is (`FloorPersonButton`, now shared by `FloorSeat`
+    and `FloorWanderer`, so § 6 rule 23's 34 × 48 invariant has one definition instead of two).
+    That is what keeps somebody out of the tab order twice, and it is why clicking their vacant
+    chair still does what it did before — you walk over there, which now _reads_ correctly,
+    because their body is visibly elsewhere with their name on it.
+
+    **Only a settled figure is anywhere.** Mid-stride there is no button at all and no mark:
+    clicking a moving target is a coin flip, and a mark derived from a tile they have not reached
+    is a mark they will not be at. `whereaboutsOf` gives three answers — in their chair (the
+    static case every earlier slice assumed), settled on a tile, or _away with no tile_ — and the
+    third covers both a walker and anybody a moment has claimed, because a set piece or a meeting
+    is already drawing them with chrome of its own (§ 6 rule 5). Slice 9's rule finishes the
+    sentence: the verb the room cannot honour is **absent**, and the card carries a line about
+    where they are instead. That is the honest form of the "unavailable and says so" § 8 warned
+    about — the note says so, not a dead button.
+
+    **Nothing new derived, again.** `reachTileFor` is `approachTileFor` with an `at`, so every
+    § 6 rule that places a mark beside a chair is placing this one. Peeking is the one verb that
+    goes away outright — you cannot look over an absent shoulder — while Slop Chat™ stays, which
+    is rule 2's labelled conventional path outliving the diegetic one exactly as intended.
+
+    **Narration did not have to reopen.** § 8 predicted this slice would reverse slice 11's "no,
+    ambient traffic has nothing to say", and it did not need to: the answer to "where is
+    everybody" belongs on the **target's own label** ("Ticket Bot Dave — IT Helpdesk — Tier 1
+    (of 1), The printer"), because a thing you can click has to say what it is, whereas a live
+    region that reads out every trip to the printer is still one people turn off. One new
+    behaviour did fall out: **whoever you have engaged waits for you** (`holdId`), because the
+    dwell clock is 4–9 s and a conversation is longer than that. Ambience still always loses — it
+    loses by waiting instead of by leaving.
+
+    Two geometry findings, both from the capture, and neither of them fixed — see § 6 rules 29
+    and 30 and the debts in § 8. Cost, in full: one derivation module, one extracted component,
+    one hook parameter, and two verbs that stopped deriving their own mark twice.
+
+**There is no slice 13 yet, and that is deliberate.** The list above was written one slice at
 a time, each defined when it was picked up rather than planned in advance — so "continue with
 slice _n_" only means something once somebody has chosen what _n_ is. § 8 has the candidates,
 a recommendation, and the debts that argue for one over another. Pick from there, write the
@@ -259,6 +303,12 @@ about, a surface could be perfectly marked up and still say nothing (24–25) �
 grew figures that are not you (26–27), helpers written from your point of view started being
 asked questions about somebody else. The through-line for all three: **the room looking right
 is evidence about the room looking right, and nothing else.**
+
+Rules 29–30 close that loop from the other end: both are back in a screenshot, and both are
+about a **figure standing somewhere no figure stood before**. Slices 1–11 only ever put a
+standing body on a mark derived for _you_, and you leave again; slice 12 puts a colleague on a
+prop mark and then hangs chrome off them. The general form: **a position that has only ever been
+occupied briefly has only ever been tested briefly.**
 
 1. **Monitors sit to the screen-left of a desk, never centred on it.** A centred monitor is
    ~26 px wide and eclipses the 34 px head behind it — every seated character vanishes. The
@@ -449,6 +499,20 @@ is evidence about the room looking right, and nothing else.**
     every mark against **every** seat including yours. The general form, for the next mark
     family that is not about you: re-read whose point of view each geometry helper was written
     from before reusing it for somebody else.
+    The helper now takes the point of view as a parameter — `isStandableTile(mark,
+{ excludeSeatId })` — which is the right shape for it, and slice 12 needed the same question
+    asked a **third** way that the parameter cannot answer. `isStandableTile` validates against
+    `FLOOR_SEATS` whoever it is asked for, so it knows where everybody **works**; it has no idea a
+    body is stood at the printer, and it still believes that body is at the desk it left. So a
+    mark derived _around_ somebody's live position has to re-ask both halves of the face test
+    about the position itself, which is `figuresClear` in `officeFloorMovement.js`. It currently
+    rejects nothing: the only offset in `APPROACH_OFFSETS` that shares a screen column with the
+    target is `{1, 1}`, and two tiles of depth is 56 px against a 48 px figure. That is the
+    constraint being encoded before the layout needs it rather than dead code — the ladder is what
+    makes "there is nowhere to stand" an answer the room gives. The distinction worth carrying:
+    `excludeSeatId` says _whose chair to ignore_, and a live position is a body **no chair
+    describes**.
+
 28. **Counter-scale the layout size, not just the paint.** Rule 7 keeps text readable by
     `scale(1 / stageScale)`, but a `width: 15rem; max-width: 60vw` box then becomes
     `120vw` on a phone at `MIN_SCALE` (0.5) and clips off every edge speaker (Chad's arrival
@@ -457,6 +521,68 @@ is evidence about the room looking right, and nothing else.**
     speakers with `bubbleAlignForTile` (`start` / `end`) so the balloon slides toward
     screen centre. Captions / CC (`archislop:office-captions`) hide spoken balloons when
     voice is playing — the room stays readable for anyone who can hear.
+
+    One thing the bias has to be asked about the right tile: it is a function of **where the
+    speaker is standing**, not of where they sit. `FloorDeskSpeech` aligns off its anchor, so a
+    colleague away from their desk (slice 12) is biased by the tile they are on. Measured:
+    `bubbleAlignForTile` gives `start` for Chad's desk (2, 5) and `center` for the whiteboard
+    (8, 4) he wanders to, so aligning by the chair would shift the balloon 42 % to the right and
+    move its tail to 18 % — pointing the tail at nobody.
+
+    That near-miss is worth keeping for a second reason: the wrong answer would have shifted the
+    balloon far enough to _accidentally_ clear the head it covers in rule 29, which is how a
+    placement bug masks an occlusion bug. Two wrongs looking like a right is exactly what a
+    capture cannot tell you and a measurement can.
+
+29. **A counter-scaled bubble fits beside a desk and not in the middle of the room.** § 6 rule 12
+    said this about a _small_ room; the pod is the opposite problem and gives the same answer for
+    the same arithmetic. A `FloorBubble` is 264 px — 2.4 screen columns — so anchored on somebody
+    central it reaches two columns either side of them. Talking to somebody at their desk covers
+    **nobody**, measured; talking to the same person standing at the whiteboard mark covers
+    **Ulrich's head**, two columns screen-left. Nothing changed about the bubble: every desk mark
+    slice 8 ever exercised happens to sit near an edge of the floor plate, and a prop mark is
+    central _by construction_, because central is what makes a prop somewhere people gather.
+
+    | talking to Chad                             | bubble box                | clears the speaker    | covers                                    |
+    | ------------------------------------------- | ------------------------- | --------------------- | ----------------------------------------- |
+    | at his desk (2, 5), `--over-seat`           | 334.7…599.1 × 248.9…323.3 | yes                   | nobody                                    |
+    | at the whiteboard (8, 4), `--over-standing` | 726.2…990.6 × 421…495.4   | 8.6 px above his head | `refine`'s head (730…763.8 × 417.7…451.6) |
+
+    **Recorded rather than repaired, and the mechanism a repair would use already exists.** Rule
+    15's actual requirement — the balloon must not cover _the speaker_ — is met with 8.6 px to
+    spare, and the speaker is also the one glowing. The two lift-based fixes are both worse: a
+    bigger `--over-standing` needs +78 px to clear the row behind, which is 2.8 tiles of depth and
+    reads as detached rather than as speech, and parking it on a fixed depth line (rule 13's
+    `liftToDepth`) works for the glass room only because that room _has_ a back row to sit above,
+    where the pod's equivalent line is most of the way up the stage.
+
+    The promising one is **sideways**, and rule 28 built it: `--align-start` / `--align-end` shift
+    the balloon ±42 % _and move the tail with it_ (`left: 18%` / `82%`), so a shifted bubble still
+    points at its speaker. A `start` bias at the whiteboard moves the left edge from 726 to ~837
+    and clears Ulrich outright. What is missing is not the mechanism but the **question**:
+    `bubbleAlignForTile` biases on where the speaker is on the _stage_, which is the right answer
+    for the clipping bug it was written for and returns `center` here (744 / 1210 = 0.62). Biasing
+    on _which side has somebody's head in it_ instead is a placement-policy change to a component
+    four surfaces share, so it wants its own slice and its own captures — see § 8.
+
+30. **A body standing at a prop eats that prop's clicks, and it bites hardest where there was
+    least to spare.** The printer answers 16 of 441 sampled points normally (rule 22's story is
+    how it got that back). With somebody loitering at it, that is **7 of 441** — their head and
+    shoulders sit exactly on its lower-front face, because a prop mark is by definition a tile
+    with a clear view of the prop and paints later than it. Physically this is correct and you
+    should not want it otherwise: you cannot click through a person, and clicking the person is
+    what you did. It is also self-limiting, since heading for their tile walks them home
+    (slice 11's second yield). Recorded because rule 22's lesson was about a _new_ clickable
+    thing colliding with the cast's boxes, and this is the moving version of it — the collision
+    arrives and leaves on a timer, so no capture taken at the wrong moment shows it.
+
+    Two sampling notes, both learned here. The coarse 21 × 21-over-the-whole-box scan is
+    **reproducible to the cell** across repeated reads (five reads, identical tallies) — the idle
+    bob does not move the answer, so a difference between two runs is a real difference. And that
+    scan and a fine scan of the box's middle third can disagree completely and both be right: a
+    prop's art sits near the bottom of its 260 px view box (`PROP_VIEW.minY` is −200), so the
+    box's _centre_ is empty air above the object and reaches the floor for all three usable props,
+    with or without anybody standing there.
 
 Note on rule 10: "no mark may share `x − y` with a desk" is the integer shorthand, and it
 does not survive fractional marks — the glass room is a diagonal strip in column space, so
@@ -533,6 +659,25 @@ sample into floor / person / prop: that single number ("3313 of 3600 samples rea
 is the only measure of how much of the room free roam actually has, and it is how you tell a
 hit-box fix from a hit-box rearrangement.
 
+Slice 12 added the missing half of that: **a baseline out of the same build, by asking for
+reduced motion.** Slice 11 decided no ambient trip ever starts under reduced motion, so
+`newPage({ reducedMotion: 'reduce' })` gives you a floor with nobody up — from the code you are
+testing, with no stash and therefore no risk of the stash changing the stage scale and making
+every measurement incomparable. It reproduced slice 10's numbers exactly (floor 3449 / prop 50 /
+person 101 of 3600), which is also a check that the harness itself has not drifted. With somebody
+up and about it is 3441 / 50 / 109: eight cells move from floor to person, because a standing
+figure occupies cells the seated one had given to its desk. That is the whole cost of the room's
+first permanent stage-level hit target, and every one of the sixteen person boxes plus the
+wanderer's still measured 33.8 × 47.8 and reached itself 441 times out of 441.
+
+The other habit worth keeping is **driving a random-seeded surface through the harness rather
+than around it**. Ambient life picks who gets up with `Math.random`, so the slice 12 harness
+overrode it (`?rand=`) and nothing else: 0.7 puts Chad at the whiteboard, 0.5 puts Dave at the
+printer. Both are needed — 0.7 alone picks an office-tier colleague with social verbs, and 0.5 is
+the one that lands somebody on the tightest prop box in the room, which is where rule 30 showed
+up. Note that the default 0 picks Ulrich, who is _team_ tier and has no Slop Chat™ at all, so a
+seed that looks like the obvious one makes the whole verb path invisible.
+
 One CSS finding worth keeping, since it is the reason usable props do not swallow the floor:
 `pointer-events: visiblePainted` **has to land on the SVG shapes, not the `<svg>` root**. The
 root is an HTML-flow box, where Chrome treats an SVG-only value as `auto` and hands back the
@@ -542,7 +687,7 @@ is `pointer-events: none` on the button _and_ the `<svg>`, re-enabled on `.offic
 
 ## 7. The bench (for whatever comes next)
 
-Slices 1–11 have shipped. Anything new on the floor should be built out of the
+Slices 1–12 have shipped. Anything new on the floor should be built out of the
 pieces below rather than beside them — and should read §2 (binding rules) and §6 (geometry
 constraints) first, because every one of those cost a screenshot to find. Verification
 recipe is in §6; repo commands are in `CLAUDE.md` (`npm run check:affected`,
@@ -557,15 +702,22 @@ the ones you can use — mind § 6 rule 23 before making anything else on the st
 whoever is not looking at it — a new card needs a line here, in the same position),
 `FloorActors` (every figure on the stage that is not seated; a new actor is one more
 `x ? <X /> : null` here rather than another branch in the view component),
-`useFloorWander` + `FloorWanderer` (ambient traffic — mind § 6 rules 26–27),
+`FloorPersonButton` (**the** clickable figure — one definition of § 6 rule 23's 34 × 48 box, and
+where any new place a person can be clicked belongs),
+`useFloorAway` (everybody out of their chair, for either reason — a moment has them, or they got
+up on their own; the two answers have to agree, so one hook gives both) + `useFloorWander` +
+`FloorWanderer` (ambient traffic, and since slice 12 a figure you can select
+where it stands — mind § 6 rules 26–27 and 30),
 `useFloorPropUse` (what happens when you get there, once), `useFloorPresence`
 (where you
 are standing — view state, like the peek it absorbed), `useFloorActivity` (presence plus the
-reasons you went there, as one object), `useFloorTalk` (a conversation's composer, not its
+reasons you went there, as one object; the two social verbs are _handed_ their mark rather than
+deriving one), `useFloorTalk` (a conversation's composer, not its
 dialogue), `FloorTalk` + `FloorTalkCard`, `useFloorKeyboard` (Escape ladder + arrow stepping),
 `useFloorAutoPan`, `FloorTopBar`, `FloorCardSlot`, `FloorScenes`,
 `FloorSeat`, `FloorFigure`, `FloorBubble` (counter-scaled speech), `FloorDeskSpeech` (a line
-above somebody at their own desk — mind §6 rule 15), `FloorPanel` (counter-scaled panel
+above somebody at their own desk, or at the tile they are standing on — mind §6 rules 15, 20,
+28 and 29), `FloorPanel` (counter-scaled panel
 pinned to a tile — mind §6 rule 12), `FloorWalker` + `useWalkAnimation` (WAAPI path
 walking), `FloorPlayer` (you, walking, wherever you are not at your own desk), `FloorScene`
 (set pieces), `FloorMeeting` + `FloorMeetingCard` (the glass room, and why its chrome is a
@@ -573,7 +725,9 @@ card), `FloorPeek` + `FloorPeekCard` (desk peeking), `FloorArrival` (the ceremon
 
 **Data**: layout, routing and mark derivation in `apps/web/src/utils/officeFloorPlan.js`;
 where you may walk, who you may walk up to and which props you may walk over to use in
-`apps/web/src/utils/officeFloorMovement.js`; who gets up on their own and where they go in
+`apps/web/src/utils/officeFloorMovement.js`; **where somebody is when it is not their own chair,
+and whether the room will send you to them**, in `apps/web/src/utils/officeFloorReach.js`;
+who gets up on their own and where they go in
 `apps/web/src/utils/officeFloorWander.js`; what using a prop does in
 `apps/web/src/utils/officeFloorProps.js`; the cast's fictional
 workload in `apps/web/src/utils/officeDeskWork.js`; who is away from their desk in
@@ -599,6 +753,14 @@ written for the one walker the floor had, and two of them say so in their own co
 only ever be one definition of standing room — but read whose eyes each one is looking
 through first, and assert the difference (§ 6 rules 26–27).
 
+A sixth, added by slice 12: **a verb should be offered and executed off the same derivation.**
+`usePersonDetails` used to ask the room for a mark to decide whether to render _Go and talk_, and
+`useFloorActivity.startTalk` then asked again to find out where to walk — harmless while the
+answer was a pure function of the layout, and a bug the moment it became a function of where
+somebody is standing. The card now returns the **tile** rather than a boolean, `canTalk` is that
+tile existing, and pressing the button walks to the tile that licensed it. The general rule for a
+verb whose availability the room decides: derive once, and pass the answer to whoever acts on it.
+
 Still open, and what to do next: §8.
 
 ## 8. Where to take this next
@@ -607,42 +769,34 @@ Nothing here is designed yet. The ordering below is a recommendation, not a queu
 
 ### The next slice
 
-**Reaching somebody who is not at their desk is the one to do next**, and slice 11 is what
-made it urgent rather than theoretical.
+Nothing is recommended over the others yet, and the reason is worth stating: slice 12 cleared
+the one item that was _getting worse with waiting_, and nothing on the list below is. Slices 10
+and 12 were both easy calls because ambient life had made a standing gap actively louder. What
+remains is a set of genuine choices, so pick on appetite rather than on urgency.
 
-The mechanism is old: `FloorSeat` renders **no button at all** for a vacant seat, so anybody
-away from their desk is unselectable — no person card, no _Go and talk_, no peek. That has
-been true since slice 4, when a coffee break first emptied two chairs, and it went unnoticed
-because a scene is rare and has its own chrome, and a walk-by comes to you carrying its own
-actions. Ambient life changed the arithmetic: somebody is now out of their chair roughly every
-twenty seconds, so "the person I wanted is briefly not clickable" went from an edge case to
-the common one. Worse, it is silent — you click their chair and nothing happens, which reads
-as the floor being broken rather than as them being away.
+Three candidates, none designed:
 
-The obvious fix — make the figure on the stage selectable wherever it is standing — is real
-work rather than a one-liner, and § 6 is exactly why:
+- **Where the "stand up" affordance lives in desktop chrome.** The oldest open item and the only
+  one that is not floor work at all: today the floor is reachable from the desk dock, and the
+  mode toggle has never had a deliberate home or a keyboard shortcut. Small, self-contained, and
+  the one candidate a person who has never read § 6 could take.
+- **Bubble placement for a speaker who is not against a wall** (§ 6 rule 29). The finding is
+  measured and the four obvious fixes are each recorded as worse, which is exactly the shape of
+  problem that wants its own slice rather than a patch inside somebody else's. It would touch
+  every surface that uses `FloorBubble` and needs re-validating against rules 6, 12, 13, 15 and
+  20 — so it is real work, and it is also the only known way the room draws something wrong.
+- **The screen-world skin** (§ 4), which has not been touched since it was written. It is a
+  parallel track by design, blocks nothing, and is the only item here that would make desktop
+  mode feel like part of the same fiction rather than the thing you leave to see the fiction.
 
-- It is a **new clickable thing on the stage**, so it owes the hit-coverage scan (§ 6 rules
-  22–23) before anybody believes it works. A walking figure moves through other people's boxes
-  by design, which is the first genuinely moving hit target this floor has had.
-- It has to decide what a **moving** target means for a pointer. Clicking somebody mid-stride
-  is a coin flip; the honest answer is probably that only a _settled_ figure is clickable
-  (a wanderer dwelling, a scene participant stood at their mark), which is a rule the derived
-  marks can express.
-- `approachTileFor` is computed from somebody's **desk**, so _Go and talk_ aims at a chair
-  they are not in. Either the mark follows them, or the verb is unavailable while they are
-  away and says so — and "unavailable and says so" contradicts slice 9's own rule that a
-  control the room cannot honour should not render.
-- Narration (§ 6 rule 24) currently says nothing about ambient traffic on purpose. If the cast
-  becomes reachable while wandering, "where is everybody" becomes a question a screen-reader
-  user can no longer answer from the room, and the region's silence needs revisiting — this is
-  the first candidate that would reopen a decision slice 10 closed.
-
-The alternatives considered and not chosen, kept so nobody re-derives them: **a second
-wanderer at a time** (§ 8's original sketch imagined "two people end up at the whiteboard";
-one at a time was chosen deliberately and should stay until something wants the collision
-rules), and **where the mode toggle lives in desktop chrome** (the "stand up" affordance + a
-keyboard shortcut — small, still genuinely open, but chrome work rather than floor work).
+Considered and not chosen, kept so nobody re-derives them: **a second wanderer at a time**
+(§ 8's original sketch imagined "two people end up at the whiteboard"; one at a time was chosen
+deliberately and should stay until something wants the collision rules), and **making scene
+participants and meeting attendees reachable too** — slice 12 deliberately stops at somebody
+whom nothing has claimed. A colleague in a coffee break or in the glass room is already being
+drawn by a surface with its own chrome, and § 6 rule 5 does not allow two of anybody; walking up
+to interrupt them would mean deciding what a conversation does to a scene that is mid-script,
+which is a content question rather than a geometry one.
 
 ### Debts the shipped slices left behind
 
@@ -652,12 +806,25 @@ keyboard shortcut — small, still genuinely open, but chrome work rather than f
   off. This is the newest debt and the cheapest to clear: the ceremony already knows exactly
   who is speaking (`colleagueVoiceLine`), so it wants a `FloorLiveRegion` and about four
   strings, not a design.
-- **The floor is English-only, and slice 10 made it slightly worse.** The `office.*.js` locale
-  bundles (en-AU / zh-CN / zh-TW) have no `floor` key at all — every slice from 3 onward has
-  put its copy in `officeCast.js` only, so this is a standing gap rather than one slice's
-  oversight, and `floor.narration` is now part of it. It is invisible because the merge falls
-  back to English. Localizing it is a real chunk of copy (arrival, peek, talk, meeting, props,
-  zones, narration) and should be its own pass.
+- **A speech bubble over somebody standing in the middle of the room covers a bystander's head**
+  (§ 6 rule 29). Measured, and left as it is on purpose: rule 15's real requirement (do not cover
+  _the speaker_) is met with 8.6 px to spare, and each of the four available fixes breaks
+  something rules 13, 15 or 20 established. It is the only known case of the room drawing
+  something wrong, so it is also a candidate slice in its own right — see above.
+- **A body standing at a prop eats that prop's clicks** (§ 6 rule 30): the printer goes from 16 of
+  441 sampled points to 7 while somebody loiters at it. Correct physics and self-limiting
+  (heading for their tile walks them home), so nothing to fix — but if a future slice makes a
+  fourth prop usable, that prop's coverage should be measured **with somebody standing at it**,
+  not only empty.
+- **The floor is English-only, and slices 10 and 12 each made it slightly worse.** The
+  `office.*.js` locale bundles (en-AU / zh-CN / zh-TW) have no `floor` key at all — every slice
+  from 3 onward has put its copy in `officeCast.js` only, so this is a standing gap rather than
+  one slice's oversight, and `floor.narration` and `floor.away` are now part of it. It is
+  invisible because the merge falls back to English. Localizing it is a real chunk of copy
+  (arrival, peek, talk, meeting, props, zones, narration, whereabouts) and should be its own
+  pass. Note one wart it would want to fix: `floor.away` and `floor.narration` both compose prop
+  names into sentences from `props.items[kind].name`, which is capitalised ("The printer"), so
+  every such sentence is punctuated around a capital rather than reading through it.
 - **The name chip is still a hover affordance on a 34 px target.** Rule 23 shrank the button to
   the figure, which is right for clicking and slightly worse for _reading names_: you now have
   to be on the figure rather than anywhere in a name-width box. Nobody has complained because
@@ -679,13 +846,16 @@ keyboard shortcut — small, still genuinely open, but chrome work rather than f
   the editor forever), but it is a choice nobody made explicitly, and it is worth knowing
   before anybody wonders why the office is always calm for the first five seconds.
 - **Complexity warnings** (thresholds, so CI stays green): `FloorCardSlot` 16, `FloorStage` 14,
-  `useFloorActivity` 14, `FloorWalker` 13, against a max of 12. `OfficeFloorView` came off this
-  list in slice 11 — its stage actors moved to `FloorActors` — and the general lesson is worth
-  more than the individual numbers: **most of these are default parameters**, which ESLint
-  counts one apiece. `floorAnnouncement` went from 28 to 11 mostly by dropping seven `= null`
-  defaults on fields that are read for truthiness, and `FloorActors` was born at 16 for the
-  same reason. Check that before restructuring anything. `FloorCardSlot`'s if-chain is the
-  ordering rule the file exists to express and should be left alone.
+  `useFloorActivity` 14, `FloorWalker` 13, `FloorScene` 21, against a max of 12. `OfficeFloorView`
+  came off this list in slice 11 — its stage actors moved to `FloorActors` — and slice 12 had to
+  work to keep it off: the wiring took it to 18 before `talkView` moved the whereabouts
+  projection out. The general lesson is worth more than the individual numbers: **most of these
+  are default parameters**, which ESLint counts one apiece. `floorAnnouncement` went from 28 to 11
+  mostly by dropping seven `= null` defaults on fields that are read for truthiness; `FloorActors`
+  was born at 16 for the same reason; and slice 12 got `FloorPersonCard` and `FloorWanderer` back
+  under budget purely by dropping `= false` from props that are truthiness-tested a few lines
+  later and always passed. Check that before restructuring anything. `FloorCardSlot`'s if-chain is
+  the ordering rule the file exists to express and should be left alone.
 
 ### Answered, kept for the reasoning
 
@@ -694,10 +864,21 @@ keyboard shortcut — small, still genuinely open, but chrome work rather than f
 - ~~Camera/controls detail~~ — answered by slice 7, and the answer is that there is no camera
   to control: the stage fits the viewport, so tap-to-walk and tap-to-talk are both just taps
   on the same stage, distinguished by whether they land on a person. Zoom levels stay out.
-- ~~Should ambient movement be narrated~~ — answered by slice 11, and the answer is no:
-  ambient traffic is the one class of event on this floor with nothing to say. A live region
-  that reads out every trip to the printer is a live region people turn off, and then it is
-  not there for the walk-by that mattered. Note the next slice above may reopen this.
+- ~~Should ambient movement be narrated~~ — answered by slice 11, **and slice 12 did not reopen
+  it after all.** The answer is still no: ambient traffic is the one class of event on this floor
+  with nothing to say, and a live region that reads out every trip to the printer is one people
+  turn off — and then it is not there for the walk-by that mattered. § 8 expected making the cast
+  reachable to force the question, on the grounds that "where is everybody" would stop being
+  answerable from the room. What it missed is that the answer belongs on the **target**, not in
+  the region: a figure you can click has to say what it is, so the button's own label carries the
+  place ("…, The printer"). Narration reports what is _happening_; a control reports what it _is_.
+  That distinction is the reusable part.
+- ~~What a moving figure means for a pointer~~ — answered by slice 12, and the answer is that only
+  a **settled** figure is clickable at all. Clicking somebody mid-stride is a coin flip and a mark
+  derived from a tile they have not reached is a mark they will not be at, so both legs of a trip
+  render the plain slice 11 figure with no button. The corollary is the more useful half: because
+  only a settled figure has a position, "are they reachable" and "are they clickable" are the same
+  question, asked once in `whereaboutsOf`.
 - ~~How many wander at once~~ — answered by slice 11, and the answer is one. The brief is a
   room that breathes, not one that bustles; one walker is one `useWalkAnimation` whose
   interactions with everything else are countable; and ten eligible colleagues on a ~20 s

@@ -17,8 +17,8 @@ import { useCallback, useEffect, useMemo } from 'react';
 import { useFloorPresence } from './useFloorPresence.js';
 import { useFloorPropUse } from './useFloorPropUse.js';
 import { useFloorTalk } from './useFloorTalk.js';
-import { approachTileFor, propTileFor } from '../../utils/officeFloorMovement.js';
-import { YOU_SEAT_ID, peekTileFor, seatFor } from '../../utils/officeFloorPlan.js';
+import { propTileFor } from '../../utils/officeFloorMovement.js';
+import { YOU_SEAT_ID, seatFor } from '../../utils/officeFloorPlan.js';
 
 /**
  * `phase` names differ because the cards read as sentences: looking / talking /
@@ -112,9 +112,17 @@ export function useFloorActivity({
     return home ? { x: home.x, y: home.y } : null;
   }, [presence]);
 
+  /*
+   * The two social verbs are handed their mark rather than deriving one, which
+   * since slice 12 is the only correct arrangement: the person card decides
+   * whether to *offer* a verb by asking the room for a mark, and where somebody
+   * is standing is not a question this hook can answer — `whereaboutsOf` needs
+   * the wanderer, and the wanderer needs `origin`, which comes from here. Ask
+   * twice and the two answers can differ, which is a verb aimed at a chair its
+   * occupant has left. One derivation, one consumer.
+   */
   const startPeek = useCallback(
-    (id) => {
-      const mark = peekTileFor(id);
+    (id, mark) => {
       if (!mark) return;
       onEngage?.();
       peekAt(id, mark);
@@ -123,8 +131,7 @@ export function useFloorActivity({
   );
 
   const startTalk = useCallback(
-    (id) => {
-      const mark = approachTileFor(id);
+    (id, mark) => {
       if (!mark) return;
       onEngage?.();
       talkTo(id, mark);

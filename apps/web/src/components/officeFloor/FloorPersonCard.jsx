@@ -9,7 +9,10 @@ import { PersonaFace } from '../personaFaces/index.jsx';
 
 /**
  * @param {{
- *   person: { id: string, name: string, title: string, blurb: string, tier: string | null },
+ *   person: {
+ *     id: string, name: string, title: string, blurb: string,
+ *     tier: string | null, awayNote?: string
+ *   },
  *   copy: Record<string, any>,
  *   canMessage: boolean,
  *   canPeek?: boolean,
@@ -20,16 +23,20 @@ import { PersonaFace } from '../personaFaces/index.jsx';
  *   onSitDown: () => void,
  *   onClose: () => void
  * }} props `canPeek` is false wherever there is nowhere to stand — leadership
- *   sit behind glass, and Gary has no desk (`peekTileFor`). `canTalk` asks a
+ *   sit behind glass, Gary has no desk (`peekTileFor`), and since slice 12
+ *   anybody away from theirs has no shoulder to look over. `canTalk` asks a
  *   different question and gets a different answer: Gary has nowhere to sit but
- *   is perfectly easy to walk up to (`approachTileFor`).
+ *   is perfectly easy to walk up to, and so is somebody stood at the printer
+ *   (`reachTileFor`). Neither takes a default — both are truthiness-tested below
+ *   and always passed, so a `= false` would be a branch ESLint counts and
+ *   nothing else (§ 8's note on the complexity warnings).
  */
 export function FloorPersonCard({
   person,
   copy,
   canMessage,
-  canPeek = false,
-  canTalk = false,
+  canPeek,
+  canTalk,
   onMessage,
   onPeek,
   onTalk,
@@ -89,6 +96,13 @@ export function FloorPersonCard({
         </div>
       </div>
       {person.blurb ? <p className="office-floor-card-blurb">{person.blurb}</p> : null}
+      {/* Where they are, when it is not where they sit (slice 12). This is the
+          card's share of the work the live region deliberately does not do: the
+          verbs below already reflect the answer — a peek needs a shoulder to
+          look over, and there isn't one — and slice 9's rule says a control the
+          room cannot honour should not render, so something has to explain the
+          buttons that are missing without being a disabled button itself. */}
+      {person.awayNote ? <p className="office-floor-card-away">{person.awayNote}</p> : null}
       <div className="office-floor-card-actions">
         {isYou ? (
           <button type="button" className="office-floor-card-action" onClick={onSitDown}>
@@ -108,8 +122,9 @@ export function FloorPersonCard({
               </button>
             ))}
             {/* Leadership and your own team get a line instead of a verb —
-                but only when there is no verb left to offer. */}
-            {verbs.length === 0 ? (
+                but only when there is no verb left to offer, and only when
+                being out of their chair is not already the explanation. */}
+            {verbs.length === 0 && !person.awayNote ? (
               <span className="office-floor-card-note">
                 {person.tier === 'senior' ? copy.seniorNote : copy.teamNote}
               </span>
