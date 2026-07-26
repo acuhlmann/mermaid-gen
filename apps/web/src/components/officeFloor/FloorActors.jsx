@@ -35,13 +35,20 @@ import FloorWanderer from './FloorWanderer.jsx';
  *   wanderer?: any,
  *   onWandererArrive?: () => void,
  *   wandererRef?: { current: HTMLElement | null },
+ *   selectedId?: string | null,
+ *   speakingId?: string | null,
+ *   onSelect?: (id: string) => void,
  *   peek?: { colleagueId: string, phase: string } | null,
- *   talk?: { colleagueId: string, phase: string } | null,
+ *   talk?: { colleagueId: string, phase: string, at?: { x: number, y: number } | null } | null,
  *   talkLine?: string,
  *   presence?: any,
  *   onPresenceArrive?: () => void,
  *   playerRef?: { current: HTMLElement | null }
- * }} props Destructured without defaults on purpose. Every optional field here
+ * }} props `selectedId` / `speakingId` / `onSelect` are the stage's own names for
+ *   the same three things, because since slice 12 a figure on the stage can be
+ *   selected whether it is in a chair or stood at the printer, and it should not
+ *   matter to the caller which one it is talking to. Destructured without
+ *   defaults on purpose: every optional field here
  *   is either truthiness-tested a line later or forwarded to a component that
  *   defaults it itself (`FloorScenes` already defaults all three of its own), so
  *   `= null` would buy nothing but a branch each — and thirteen of them is how
@@ -57,6 +64,9 @@ export function FloorActors({
   wanderer,
   onWandererArrive,
   wandererRef,
+  selectedId,
+  speakingId,
+  onSelect,
   peek,
   talk,
   talkLine,
@@ -68,13 +78,22 @@ export function FloorActors({
     <>
       <FloorScenes coffee={coffee} battle={battle} scale={scale} sceneHandlers={sceneHandlers} />
 
-      {/* Somebody who has got up for a minute. Deliberately absent from
+      {/* Somebody who has got up for a minute. Still deliberately absent from
           `floorAnnouncement`: ambient traffic is the one class of event on this
           floor with nothing to say, and a live region that reads out every trip
           to the printer is a live region people turn off — and then it is not
-          there for the walk-by that mattered. */}
+          there for the walk-by that mattered. Slice 12 made them *selectable*,
+          which is not the same as newsworthy: what they are is on the button. */}
       {wanderer ? (
-        <FloorWanderer wanderer={wanderer} onArrive={onWandererArrive} elementRef={wandererRef} />
+        <FloorWanderer
+          wanderer={wanderer}
+          copy={copy}
+          onArrive={onWandererArrive}
+          elementRef={wandererRef}
+          selected={selectedId === wanderer.seatId}
+          speaking={speakingId === wanderer.seatId}
+          onSelect={onSelect}
+        />
       ) : null}
 
       {meeting ? <FloorMeeting meeting={meeting} copy={copy} scale={scale} /> : null}

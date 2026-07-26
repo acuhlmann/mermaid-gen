@@ -16,7 +16,10 @@
 import {
   FLOOR_PROPS,
   YOU_SEAT_ID,
+  boxesOverlap,
+  figureBox,
   floorSeatIds,
+  headBox,
   isStandableTile,
   pathCrossesGlass,
   seatFor,
@@ -118,6 +121,50 @@ const APPROACH_OFFSETS = [
 ];
 
 /**
+ * Two standing figures must not cover each other's face — § 6 rule 10 in its
+ * honest form, asked about a body `isStandableTile` cannot see.
+ *
+ * That helper's face test walks `FLOOR_SEATS`, so it knows where everybody
+ * *works*; somebody who has got up and gone to the printer is not in it, and is
+ * not at the desk it thinks they are at either. § 6 rule 27 recorded this
+ * asymmetry from the other side (a mark handed to a wanderer inherits the
+ * assumption that *you* are the one walking); this is the same gap approached
+ * from ours, and the reason an `at` mark cannot simply trust standability.
+ *
+ * @param {{ x: number, y: number }} mark
+ * @param {{ x: number, y: number }} at
+ */
+function figuresClear(mark, at) {
+  const standing = { seated: false };
+  return (
+    !boxesOverlap(figureBox(mark, standing), headBox(at, standing)) &&
+    !boxesOverlap(figureBox(at, standing), headBox(mark, standing))
+  );
+}
+
+/**
+ * Every gate one candidate mark has to pass.
+ *
+ * @param {{ x: number, y: number }} mark
+ * @param {{ x: number, y: number }} them where they are
+ * @param {{ x: number, y: number }} from where you start
+ * @param {boolean} away true when `them` is a body on the floor rather than a
+ *   seat, which is the one gate standability cannot supply
+ */
+function isApproachMarkClear(mark, them, from, away) {
+  if (!isStandableTile(mark)) return false;
+  // Standability knows where everybody works, not who is stood in the room.
+  if (away && !figuresClear(mark, them)) return false;
+  // You have to be able to *get* there…
+  if (pathCrossesGlass(walkPathBetween(from, mark, YOU_SEAT_ID))) return false;
+  // …and be able to talk to them once you have. Without this the ladder's
+  // outer offsets reach *past* the leadership wall and hand you a mark two
+  // tiles in front of the glass, which is not a conversation — it is you
+  // mouthing at the CEO through a window.
+  return !pathCrossesGlass([mark, them]);
+}
+
+/**
  * Where you stand to talk to somebody, or `null` if you cannot get to them.
  *
  * Reachability is from **your own desk**, the same static question
@@ -127,26 +174,30 @@ const APPROACH_OFFSETS = [
  * all (Gary lives at the fridge), because a conversation needs somewhere to
  * stand, not something to look at.
  *
+ * Since slice 12 the *target* need not be at their desk either. Pass `at` and
+ * the ladder runs from wherever they are actually stood, which is what stops
+ * _Go and talk_ aiming at a chair its occupant has left — the walk still starts
+ * from your own desk, because the question the person card asks is "may I be
+ * offered this", not "where am I right now".
+ *
  * @param {string} seatId
+ * @param {{ at?: { x: number, y: number } | null }} [options] `at` is where they
+ *   are standing when that is not their own desk (`whereaboutsOf`).
  * @returns {{ x: number, y: number } | null}
  */
-export function approachTileFor(seatId) {
+export function approachTileFor(seatId, options) {
   const seat = seatFor(seatId);
   if (!seat || seat.id === YOU_SEAT_ID) return null;
   const you = seatFor(YOU_SEAT_ID);
   if (!you) return null;
 
+  const at = options?.at;
+  const them = at ?? { x: seat.x, y: seat.y };
+  const from = { x: you.x, y: you.y };
+
   for (const { dx, dy } of APPROACH_OFFSETS) {
-    const mark = { x: seat.x + dx, y: seat.y + dy };
-    if (!isStandableTile(mark)) continue;
-    // You have to be able to *get* there…
-    if (pathCrossesGlass(walkPathBetween({ x: you.x, y: you.y }, mark, YOU_SEAT_ID))) continue;
-    // …and be able to talk to them once you have. Without this the ladder's
-    // outer offsets reach *past* the leadership wall and hand you a mark two
-    // tiles in front of the glass, which is not a conversation — it is you
-    // mouthing at the CEO through a window.
-    if (pathCrossesGlass([mark, { x: seat.x, y: seat.y }])) continue;
-    return mark;
+    const mark = { x: them.x + dx, y: them.y + dy };
+    if (isApproachMarkClear(mark, them, from, Boolean(at))) return mark;
   }
   return null;
 }

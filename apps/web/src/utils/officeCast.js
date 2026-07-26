@@ -1410,6 +1410,16 @@ export const OFFICE_CHROME_COPY = {
     messageTitle: 'Open Slop Chat™ with them',
     seniorNote: 'Not without a calendar invite.',
     teamNote: 'On your team — brief them from the canvas.',
+    // Somebody who is not in their chair (slice 12). `atLabel` is what a figure
+    // stood at the printer is *called*, which is where "where is everybody"
+    // gets answered: an ambient trip is still not worth announcing (slice 11),
+    // but a target you can click has to say what it is. Prop names come from
+    // `props.items[kind].name`, the same lookup `narration` uses.
+    away: {
+      atLabel: '{who}, {prop}',
+      atProp: 'Away from their desk: {prop}.',
+      elsewhere: 'Away from their desk.'
+    },
     // Walking over for a word. The same Slop Chat™ thread either way — it is
     // rendered in the room instead of in a window (ADR-0011 rule 1).
     talk: {

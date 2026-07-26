@@ -1,12 +1,21 @@
 /**
- * A colleague who has got up for a minute (slice 11).
+ * A colleague who has got up for a minute (slice 11), and — since slice 12 —
+ * somebody you can walk up to while they are up.
  *
- * The quietest actor on the floor: a figure, a path, and nothing else. No
- * bubble, no card, no click target — an ambient wanderer is scenery that moves,
- * and giving it an affordance would make it a feature (`office-parody.md` § 11).
- * You can still walk up to them where they are stood, because *that* goes
- * through the person card and their own seat, which is where their identity
- * lives.
+ * Still the quietest actor on the floor: no bubble of its own, no card, nothing
+ * written anywhere. An ambient wanderer is scenery that moves, and giving it
+ * *content* would make it a feature (`office-parody.md` § 11). What it now has
+ * is an **identity**, which is a different thing: while they are stood at the
+ * machine their figure is the same `FloorPersonButton` their chair renders, so
+ * selecting them, talking to them and glowing at them all work exactly where
+ * they are standing instead of only where they normally sit.
+ *
+ * **Only while they are settled.** Mid-stride there is no button at all: a
+ * moving hit target is a coin flip, and a mark derived from a tile they have not
+ * reached is a mark they will not be at (`whereaboutsOf`). The swap is also why
+ * the button and the plain figure are two branches rather than one with a
+ * conditional wrapper — a settled figure is not walking, so it wants the idle
+ * animation and the chip, and a travelling one wants neither.
  *
  * Third caller of `useWalkAnimation`, after `FloorWalker` (a colleague coming
  * to bother you) and `FloorPlayer` (you). The three share about ten lines —
@@ -17,26 +26,64 @@
 
 import { useRef } from 'react';
 import FloorFigure from './FloorFigure.jsx';
+import FloorPersonButton from './FloorPersonButton.jsx';
 import { useWalkAnimation } from './useWalkAnimation.js';
 import { depthOf, walkPathBetween } from '../../utils/officeFloorPlan.js';
 import { officeSenderInfo } from '../../utils/officeCast.js';
+import { formatLocale } from '../../i18n/formatLocale.js';
+
+/**
+ * What they are called to anybody not looking at the room. The place is in here
+ * rather than in the live region on purpose: slice 11 decided ambient traffic is
+ * not worth announcing and slice 12 does not reopen that, but a *target* has to
+ * say what it is, and "at the whiteboard" is the difference between a name you
+ * can act on and a name that has moved.
+ */
+function awayLabel(sender, seatId, propKind, copy) {
+  const name = sender?.name ?? seatId;
+  const who = sender?.title ? `${name} — ${sender.title}` : name;
+  // Non-optional on `copy` the way `floorAnnouncement` is, and for the same
+  // reason: a floor bundle without `props.items` has already broken the stage.
+  const place = copy.props.items[propKind]?.name;
+  if (!place) return who;
+  return formatLocale(copy.away.atLabel, { who, prop: place });
+}
 
 /**
  * @param {{
  *   wanderer: {
  *     seatId: string,
+ *     kind?: string,
  *     from: { x: number, y: number },
  *     to: { x: number, y: number },
  *     phase: 'out' | 'dwell' | 'home',
  *     leg: number
  *   },
+ *   copy: Record<string, any>,
  *   onArrive?: () => void,
- *   elementRef?: { current: HTMLElement | null }
+ *   elementRef?: { current: HTMLElement | null },
+ *   selected?: boolean,
+ *   speaking?: boolean,
+ *   onSelect?: ((id: string) => void) | null
  * }} props `elementRef` lets the hook read where they actually got to when a
  *   trip is turned round mid-stride (`liveTileOf`), exactly as free roam does
- *   for you.
+ *   for you. `onSelect` is what makes them reachable; without it they are the
+ *   slice 11 wanderer, which is what the arrival ceremony still wants.
+ *
+ *   `selected` and `speaking` take no defaults: both are forwarded to
+ *   `FloorPersonButton`, which defaults them itself, so a default here would buy
+ *   nothing but a branch each — and this component has a complexity budget to
+ *   keep (§ 8's note that most of these warnings *are* the default parameters).
  */
-export function FloorWanderer({ wanderer, onArrive, elementRef }) {
+export function FloorWanderer({
+  wanderer,
+  copy,
+  onArrive,
+  elementRef,
+  selected,
+  speaking,
+  onSelect
+}) {
   const ownRef = useRef(null);
   const ref = elementRef ?? ownRef;
   const { seatId, from, to, leg } = wanderer;
@@ -48,6 +95,8 @@ export function FloorWanderer({ wanderer, onArrive, elementRef }) {
   });
 
   const sender = officeSenderInfo(seatId);
+  const accent = sender?.accentColor ?? 'var(--accent)';
+  const settled = wanderer.phase === 'dwell';
 
   return (
     <div
@@ -55,17 +104,26 @@ export function FloorWanderer({ wanderer, onArrive, elementRef }) {
       className="office-floor-walker"
       data-testid="office-floor-wanderer"
       data-wanderer={seatId}
+      data-settled={settled ? 'true' : undefined}
       /* +5 like every other travelling figure, so they pass in front of the
          desk they are walking past rather than through it. */
       style={{ zIndex: depthOf(tile.x, tile.y) + 5 }}
     >
-      <div className="office-floor-walker-anchor">
-        <FloorFigure
+      {settled && onSelect ? (
+        <FloorPersonButton
           id={seatId}
-          accent={sender?.accentColor ?? 'var(--accent)'}
-          walking={!arrived}
+          name={sender?.name ?? seatId}
+          label={awayLabel(sender, seatId, wanderer.kind, copy)}
+          accent={accent}
+          selected={selected}
+          speaking={speaking}
+          onSelect={onSelect}
         />
-      </div>
+      ) : (
+        <div className="office-floor-walker-anchor">
+          <FloorFigure id={seatId} accent={accent} walking={!arrived} />
+        </div>
+      )}
     </div>
   );
 }

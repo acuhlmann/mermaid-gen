@@ -518,7 +518,11 @@ the backburnered multi-human future is [`multi-human-office.md`](multi-human-off
   LLM** in persona voice, under a generous per-session reactive cap, degrading in character
   when exhausted ("gotta run, sprint planning 🏃"), never with an error. Carve-outs by
   character design: Ticket Bot Dave stays 100% canned (being a bot is the bit); battles and
-  coffee scenes stay canned theater.
+  coffee scenes stay canned theater. Note the split is about **who started it**, not about where
+  somebody is standing: a colleague who has ambiently wandered to the printer costs nothing while
+  they are loitering, and walking up to talk to them (isometric slice 12) is ordinary reactive
+  spend through the same `imSomeone` path — you crossed the room for it, which is what makes
+  reactive spend self-limiting.
 - **Context contract.** Reactive calls carry: token-capped per-character thread memory; the
   **office log** (a rolling client-built digest of runs, pitches, meetings, notable
   moments — what makes six voices one office); deliverable context (source, labels, last-run

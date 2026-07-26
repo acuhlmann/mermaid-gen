@@ -663,6 +663,20 @@
   color: var(--text);
 }
 
+/*
+ * Where somebody is, when it is not their chair (slice 12). A status line rather
+ * than prose: it explains the verbs that are *not* on this card, which slice 9's
+ * rule says must be absent rather than disabled — so it has to read as a fact
+ * about the room and not as an apology for a missing button.
+ */
+.office-floor-card-away {
+  margin: 0.45rem 0 0;
+  font-size: 0.74rem;
+  line-height: 1.35;
+  font-weight: 600;
+  color: var(--muted);
+}
+
 .office-floor-card-actions {
   margin-top: 0.7rem;
   display: flex;

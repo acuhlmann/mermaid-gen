@@ -8,22 +8,9 @@
  * a canvas — focus rings, tooltips, and hit targets come for free.
  */
 
-import FloorFigure from './FloorFigure.jsx';
+import FloorPersonButton from './FloorPersonButton.jsx';
 import { DeskFurniture } from './isoArt.jsx';
 import { PROP_VIEW, PROP_VIEW_BOX, depthOf, projectIso } from '../../utils/officeFloorPlan.js';
-
-/** Modifier soup, kept out of the JSX so the markup stays readable. */
-function personClassName({ seated, selected, isYou, speaking }) {
-  return [
-    'office-floor-person',
-    seated && 'is-seated',
-    selected && 'is-selected',
-    isYou && 'is-you',
-    speaking && 'is-speaking'
-  ]
-    .filter(Boolean)
-    .join(' ');
-}
 
 const ART_STYLE = {
   left: PROP_VIEW.minX,
@@ -90,23 +77,25 @@ export function FloorSeat({
     >
       {seat.desk ? <SeatArt part="chair" you={isYou} /> : null}
 
-      {/* Up and about (walking over to you): the furniture stays, the person
-          doesn't — an empty desk is exactly what should be there. */}
+      {/* Up and about: the furniture stays, the person doesn't — an empty desk
+          is exactly what should be there. Their *button* goes with them rather
+          than staying behind on the chair, which is what keeps one person to one
+          hit target however many places they can be (slice 12). */}
       {vacant ? null : (
-        <button
-          type="button"
-          className={personClassName({ seated: seat.desk, selected, isYou, speaking })}
-          style={{ '--floor-accent': accent }}
-          aria-label={label}
-          aria-pressed={selected}
-          title={label}
+        <FloorPersonButton
+          id={seat.id}
+          name={name}
+          label={label}
+          accent={accent}
+          seated={seat.desk}
+          selected={selected}
+          isYou={isYou}
+          speaking={speaking}
+          idleIndex={idleIndex}
           /* During the arrival ceremony the cast is scenery, not a menu. */
           disabled={!interactive}
-          onClick={() => onSelect(seat.id)}
-        >
-          <span className="office-floor-person-name">{name}</span>
-          <FloorFigure id={seat.id} accent={accent} isYou={isYou} idleIndex={idleIndex} />
-        </button>
+          onSelect={onSelect}
+        />
       )}
 
       {seat.desk ? <SeatArt part="desk" you={isYou} look={look} /> : null}

@@ -26,7 +26,7 @@ import { useFloorAutoPan } from './officeFloor/useFloorAutoPan.js';
 import { useFloorKeyboard } from './officeFloor/useFloorKeyboard.js';
 import { useFloorWalker } from './officeFloor/useFloorWalker.js';
 import { useStageScale } from '../hooks/useStageScale.js';
-import { approachTileFor } from '../utils/officeFloorMovement.js';
+import { reachTileFor, whereaboutsOf } from '../utils/officeFloorReach.js';
 import { YOU_SEAT_ID, peekTileFor } from '../utils/officeFloorPlan.js';
 import { isOfficeColleagueId, officeChromeCopy, officeSenderInfo } from '../utils/officeCast.js';
 import { awayFromDeskIds } from '../utils/officeSceneCast.js';
@@ -34,13 +34,48 @@ import { tierOf } from '../utils/castTiers.js';
 import { resolveUserName, subscribe as subscribeUserName } from '../state/userIdentityStore.js';
 import { getOfficeViewMode, subscribe as subscribeViewMode } from '../state/officeViewModeStore.js';
 import { useUiCopy } from '../i18n/useUiLocale.js';
+import { formatLocale } from '../i18n/formatLocale.js';
+
+/**
+ * Where they are, in a sentence — empty when they are sitting where the floor
+ * plan says they sit, which is the answer almost every time.
+ */
+function awayNoteFor(away, copy) {
+  if (!away) return '';
+  if (!away.tile || !away.propKind) return copy.away.elsewhere;
+  const prop = copy.props.items[away.propKind]?.name ?? away.propKind;
+  return formatLocale(copy.away.atProp, { prop });
+}
+
+/**
+ * The talk view with **where they are** attached, so the speech bubble lands over
+ * their head rather than over the chair they left (§ 6 rule 20 generalized).
+ *
+ * A function rather than three lines inline because it is the same projection
+ * `usePersonDetails` makes and the two must agree — and because the view
+ * component has a complexity budget it came off § 8's list to earn.
+ *
+ * @param {{ colleagueId: string, phase: string } | null} talk
+ * @param {{ wanderer: unknown, awayIds: string[] }} floorState
+ */
+function talkView(talk, floorState) {
+  if (!talk) return null;
+  const where = whereaboutsOf(talk.colleagueId, floorState);
+  return where?.tile ? { ...talk, at: where.tile } : talk;
+}
 
 /**
  * Everything the person card needs about whoever is selected — including
  * whether Slop Chat™ is on offer, which only the office tier gets. `'you'` is
  * in no cast bank, so the player's row comes from the floor copy + name badge.
+ *
+ * The two walking verbs return their **mark**, not a boolean: since slice 12 the
+ * answer depends on where the person is standing, and a verb that is offered on
+ * one derivation and executed on another can aim at a chair its occupant has
+ * left. `canPeek` / `canTalk` are that mark existing, and pressing the button
+ * walks to the same tile that licensed it.
  */
-function usePersonDetails(selectedId, copy) {
+function usePersonDetails(selectedId, copy, away) {
   const userName = useSyncExternalStore(subscribeUserName, resolveUserName, resolveUserName);
 
   return useMemo(() => {
@@ -57,23 +92,32 @@ function usePersonDetails(selectedId, copy) {
     }
     const sender = officeSenderInfo(selectedId);
     const tier = tierOf(selectedId);
+    // The tier decides whether there is anything to say; the room decides
+    // whether you can get close enough to say it. Two independent gates, which
+    // agree by accident rather than by construction.
+    const social = tier === 'office' && isOfficeColleagueId(selectedId);
+    // Pure geometry: there has to be somewhere to stand that is not inside
+    // the furniture, behind glass, or in front of the screen you came to read
+    // — and somebody to stand behind. You cannot look over an absent shoulder,
+    // so a peek is the one verb being away takes off the card outright.
+    const peekTile = away ? null : peekTileFor(selectedId);
+    const talkTile = social ? reachTileFor(selectedId, away) : null;
     return {
       id: selectedId,
       name: sender?.name ?? selectedId,
       title: sender?.title ?? '',
       blurb: sender?.blurb ?? '',
       tier,
-      canMessage: tier === 'office' && isOfficeColleagueId(selectedId),
-      // Pure geometry: there has to be somewhere to stand that is not inside
-      // the furniture, behind glass, or in front of the screen you came to read.
-      canPeek: peekTileFor(selectedId) !== null,
-      // Two independent gates, and they agree by accident rather than by
-      // construction: the tier decides whether there is anything to say,
-      // the room decides whether you can get close enough to say it.
-      canTalk:
-        tier === 'office' && isOfficeColleagueId(selectedId) && approachTileFor(selectedId) !== null
+      // Slop Chat™ reaches them wherever they are: rule 2's labelled
+      // conventional path outliving the diegetic one is the rule working.
+      canMessage: social,
+      peekTile,
+      canPeek: peekTile !== null,
+      talkTile,
+      canTalk: talkTile !== null,
+      awayNote: awayNoteFor(away, copy)
     };
-  }, [selectedId, userName, copy]);
+  }, [selectedId, userName, copy, away]);
 }
 
 /**
@@ -120,7 +164,6 @@ function OfficeFloorView({
   const viewportRef = useRef(null);
   const scale = useStageScale(viewportRef);
   const [selectedId, setSelectedId] = useState(null);
-  const person = usePersonDetails(selectedId, copy);
   const { walker, departing, handleDeparted } = useFloorWalker(walkBy);
   const handleClosePerson = useCallback(() => setSelectedId(null), []);
 
@@ -133,7 +176,7 @@ function OfficeFloorView({
     onGetCoffee,
     onEngage: handleClosePerson
   });
-  const { presence, peek, talk, conversation, prop, propUse, origin, goHome } = activity;
+  const { presence, peek, conversation, prop, propUse, origin, goHome } = activity;
 
   useFloorKeyboard({ presence, origin, goHome, walkTo: activity.walkTo });
   useFloorAutoPan(viewportRef, presence, scale);
@@ -161,8 +204,22 @@ function OfficeFloorView({
     busyIds: awayIds,
     // Where you are or are heading. One rule for two cases: walking over to use
     // a prop, and free-roaming onto the mark it is used from.
-    avoidTile: origin
+    avoidTile: origin,
+    // Whoever you have engaged stays put: nobody wanders off out of a
+    // conversation you crossed the room for, or out from under an open card.
+    holdId: activity.talk?.colleagueId ?? selectedId
   });
+
+  /*
+   * Where somebody is, when it is not their own chair (slice 12). One question,
+   * two consumers that must agree: the card decides which verbs to offer from it
+   * and the stage puts their speech bubble where their mouth is. Computed here
+   * rather than inside `useFloorActivity` because the wanderer's trip is the
+   * answer and it depends on `origin`, which comes out of that hook.
+   */
+  const floorState = { wanderer, awayIds };
+  const person = usePersonDetails(selectedId, copy, whereaboutsOf(selectedId, floorState));
+  const talk = talkView(activity.talk, floorState);
 
   const handleSelect = useCallback((id) => {
     setSelectedId((current) => (current === id ? null : id));
@@ -227,6 +284,11 @@ function OfficeFloorView({
             wanderer={wanderer}
             onWandererArrive={handleWanderArrive}
             wandererRef={wandererRef}
+            // A figure on the stage is selectable whether it is in a chair or
+            // stood at the printer, so the wanderer takes the stage's own three.
+            selectedId={selectedId}
+            speakingId={activity.speakingId}
+            onSelect={handleSelect}
             peek={peek}
             talk={talk}
             talkLine={activity.talkLine}
@@ -249,8 +311,11 @@ function OfficeFloorView({
         person={person}
         onGoHome={goHome}
         onMessage={onMessage}
-        onPeek={activity.startPeek}
-        onTalk={activity.startTalk}
+        // The mark that licensed the verb is the mark you walk to — see
+        // `usePersonDetails`. `id` is always the selected person; only their own
+        // card can press these, and a missing mark is a no-op at the other end.
+        onPeek={(id) => activity.startPeek(id, person?.peekTile)}
+        onTalk={(id) => activity.startTalk(id, person?.talkTile)}
         onClosePerson={handleClosePerson}
       />
     </div>
