@@ -1,12 +1,13 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import OfficeFloor from '../src/components/OfficeFloor.jsx';
 import {
   _resetOfficeViewModeForTests,
   getOfficeViewMode,
   standUp
 } from '../src/state/officeViewModeStore.js';
+import { setOfficeCaptions, setOfficeNarration } from '../src/state/officeMomentStore.js';
 
 /** The shape useMeetingPlayback exposes — the floor only ever reads it. */
 const PLAYING = {
@@ -27,9 +28,17 @@ function renderFloor(props = {}) {
   return render(<OfficeFloor {...props} />);
 }
 
+beforeEach(() => {
+  // These suites assert on-screen dialogue. Captions on keeps balloons visible
+  // even when the shared narration preference defaults to voice-first.
+  setOfficeCaptions(true);
+  setOfficeNarration(true);
+});
+
 afterEach(() => {
   cleanup();
   _resetOfficeViewModeForTests();
+  setOfficeCaptions(false);
 });
 
 describe('meetings in the glass room (slice 5)', () => {

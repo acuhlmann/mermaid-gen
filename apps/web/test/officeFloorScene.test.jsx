@@ -1,9 +1,10 @@
 // @vitest-environment jsdom
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import OfficeFloor from '../src/components/OfficeFloor.jsx';
 import { awayFromDeskIds, sceneParticipants } from '../src/utils/officeSceneCast.js';
 import { _resetOfficeViewModeForTests, standUp } from '../src/state/officeViewModeStore.js';
+import { setOfficeCaptions, setOfficeNarration } from '../src/state/officeMomentStore.js';
 
 const COFFEE = {
   id: 'coffee-1',
@@ -31,9 +32,17 @@ function renderFloor(props = {}) {
   return render(<OfficeFloor {...props} />);
 }
 
+beforeEach(() => {
+  // Scene suites assert dialogue text; captions on keeps balloons visible
+  // under the shared voice-first narration default.
+  setOfficeCaptions(true);
+  setOfficeNarration(true);
+});
+
 afterEach(() => {
   cleanup();
   _resetOfficeViewModeForTests();
+  setOfficeCaptions(false);
 });
 
 describe('sceneParticipants', () => {

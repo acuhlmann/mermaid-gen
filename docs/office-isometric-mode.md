@@ -449,6 +449,14 @@ is evidence about the room looking right, and nothing else.**
     every mark against **every** seat including yours. The general form, for the next mark
     family that is not about you: re-read whose point of view each geometry helper was written
     from before reusing it for somebody else.
+28. **Counter-scale the layout size, not just the paint.** Rule 7 keeps text readable by
+    `scale(1 / stageScale)`, but a `width: 15rem; max-width: 60vw` box then becomes
+    `120vw` on a phone at `MIN_SCALE` (0.5) and clips off every edge speaker (Chad's arrival
+    intro lost the left half of every line). Divide the authored width by
+    `--floor-inverse-scale` so the _on-screen_ size stays ~15 rem / ≤60 vw, and bias edge
+    speakers with `bubbleAlignForTile` (`start` / `end`) so the balloon slides toward
+    screen centre. Captions / CC (`archislop:office-captions`) hide spoken balloons when
+    voice is playing — the room stays readable for anyone who can hear.
 
 Note on rule 10: "no mark may share `x − y` with a desk" is the integer shorthand, and it
 does not survive fractional marks — the glass room is a diagonal strip in column space, so

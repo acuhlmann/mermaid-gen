@@ -1242,6 +1242,9 @@ export const OFFICE_CHROME_COPY = {
     narrationLabel: 'Narration',
     narrationTitle:
       'Speak walk-bys, meetings, cubicle battles, and coffee chat aloud — emails and IMs stay silent',
+    captionsLabel: 'Captions (CC)',
+    captionsTitle:
+      'Show spoken dialogue as text on the floor — leave off when you can hear the voice',
     closeAria: 'Close inbox',
     back: '← Back',
     emptyLine: 'Inbox zero. HR finds this suspicious. Enjoy it while it lasts.',

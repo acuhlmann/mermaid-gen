@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import OfficeFloor from '../src/components/OfficeFloor.jsx';
 import {
   _resetOfficeViewModeForTests,
@@ -8,6 +8,7 @@ import {
   sitDown,
   standUp
 } from '../src/state/officeViewModeStore.js';
+import { setOfficeCaptions } from '../src/state/officeMomentStore.js';
 
 /** Stand up first, then mount — the store is module-level, so the floor is up. */
 function renderFloor(props = {}) {
@@ -15,9 +16,15 @@ function renderFloor(props = {}) {
   return render(<OfficeFloor {...props} />);
 }
 
+beforeEach(() => {
+  // Walk-by dialogue asserts need captions — narration defaults to voice-first.
+  setOfficeCaptions(true);
+});
+
 afterEach(() => {
   cleanup();
   _resetOfficeViewModeForTests();
+  setOfficeCaptions(false);
 });
 
 describe('office view mode', () => {
