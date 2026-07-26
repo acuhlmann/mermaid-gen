@@ -4,26 +4,35 @@ Playbook for the Silicon Valley character program: how one named character gets 
 the office cast. Proven out twice with Jack Barker — first as a senior stakeholder (fidelity ≈
 4.2/5 sustained), then by **inheriting The VP's team seat** (2026-07-25): Barker is now the sixth
 radial advisor, simplifying diagrams in his own voice (re-tuned to ≈3.95–4.0/5 on the extended
-harness, which added the harder advisor-suggestions probe). Use this for the remaining characters —
-Richard, Erlich, Russ, Jared — and any future guest cast.
+harness, which added the harder advisor-suggestions probe). The cast map below is **locked**
+(2026-07-26 program plan) — one character per agent session, in the risk/dependency order listed.
 
 ## Status board
 
-| Character      | Target seat / tier              | Status                                                                         |
-| -------------- | ------------------------------- | ------------------------------------------------------------------------------ |
-| Jack Barker    | team — 6th advisor (`barker`)   | ✅ Shipped — advisor seat (ex-`exec`), meetings, emails, TTS, face, desk       |
-| Richard H.     | team — `refine` (the engineer)  | ⬜ Future — user-cast. He IS the builder; see [Endgame](#endgame-the-sv-team)  |
-| Erlich Bachman | team — `innovate` (CIO)         | ⬜ Future — user-cast. Chief Innovation Officer was already his job            |
-| Russ Hanneman  | team — `goMad`                  | ⬜ Future — user-cast. Highest-risk voice (profanity, chaos)                   |
-| Jared Dunn     | team — `critique` (the auditor) | ⬜ Future — user-cast. Anxious compliance energy, has notes                    |
-| Gilfoyle       | office (battle surfaces)        | ⬜ Optional — pair with Dinesh; their bickering IS the content                 |
-| Dinesh         | office (battle surfaces)        | ⬜ Optional — pair with Gilfoyle                                               |
-| `explain` seat | team — the Wise Architect       | ⬜ Unassigned — no SV character cast yet (see [Endgame](#endgame-the-sv-team)) |
+| Character         | Target seat / tier                     | Status                                                                        |
+| ----------------- | -------------------------------------- | ----------------------------------------------------------------------------- |
+| Jack Barker       | team+senior — 6th advisor (`barker`)   | ✅ Shipped — advisor seat (ex-`exec`), meetings, emails, TTS, face, desk      |
+| Erlich Bachman    | team — `innovate`                      | ⬜ Session 2 — seat inheritance; courageous pivots, incubator swagger         |
+| Bertram Gilfoyle  | team — `refine` → `gilfoyle`           | ⬜ Session 3 — engineer pod; battle-eligible (dual-home)                      |
+| Dinesh Chugtai    | team — **new** `dinesh` (refine-class) | ⬜ Session 4 — seventh seat; new wire mode cloned from refine budgets         |
+| Jared Dunn        | team — `critique` → `jared`            | ⬜ Session 5 — findings-only Auditor; anxious compliance                      |
+| Russ Hanneman     | team — `goMad`                         | ⬜ Session 6 — highest content-policy risk (innuendo, not profanity)          |
+| Richard Hendricks | team — `explain` → `richard`           | ⬜ Session 7 — comment-only Wise Architect (no transform powers — ADR-0010)   |
+| Gavin Belson      | senior — `cto` → `belson`              | ⬜ Session 8 — full named replication of the CTO seat; retires Marcus         |
+| Marcus            | senior — `cto`                         | 🚮 Retires when Belson lands — currently a Belson _homage_, not a replication |
+
+Session 1 (this doc pass) locked the map; the fidelity harness (§3) is generalized — one profile
+per character, reused every session. Each character session ends with registry/TTS/locale tests
+green,
+`npm run precommit`, live smoke, and the fidelity report in the PR body.
 
 Note: **the user is basically Richard** — the fiction casts you as the anxious builder the office
-keeps interrupting. Richard-as-refine-advisor doesn't break that; the seat is your alter ego
-giving you advice, which is very Richard. No skinnable-seat machinery is needed: each character
-replaces the generic persona id wholesale, the way Barker replaced `exec`.
+keeps interrupting. Richard-the-advisor (`explain`) is your alter-ego Wise Architect giving
+comment-only advice, not a second "you" — which is very Richard. No skinnable-seat machinery is
+needed: each character replaces the generic persona id wholesale, the way Barker replaced `exec`.
+**Dual-home comedy:** Gilfoyle and Dinesh stay eligible for cubicle battles / office distraction
+set pieces (same pattern as Barker living in senior + advisor). Team seats stay non-claimable as
+Acting roles.
 
 ## The method (voice card → harness → wire-in)
 
@@ -32,17 +41,26 @@ card; the harness proves it; the wire-in is a mechanical drill whose size depend
 
 ### 1. Pick the tier (decides the touch list)
 
-- **team** (Richard→refine, Erlich→innovate, Russ→goMad, Jared→critique): the character INHERITS
-  an existing advisor seat — the generic persona id is retired and the character id takes over
-  everything the seat touched, including the transform/analyze behavior and the wire enum. This is
-  the seat-inheritance drill below; Barker proved it on the `exec` seat. ~40 files, mostly
-  mechanical, plus real prompt-craft on the behavior blocks.
-- **senior** (a future guest exec): steering meetings + ≤1 canned email/session. Smallest surface,
-  richest dialogue. Add to `SENIOR_MEETING_VOICES` + `SENIOR_STAKEHOLDERS` + `MEETING_SENIOR_POOL`
-  - `SENIOR_EMAIL_TEMPLATES`.
-- **office** (Gilfoyle, Dinesh): emails, IMs, walk-bys, coffee, **cubicle battles**. Bigger drill:
-  `OFFICE_COLLEAGUES` (server + client), the `OFFICE_{WALKBY,EMAIL,IM}_LLM_CAST` arrays, canned
-  template banks, `canJoinMeetings`. Pick this when the character lives in the day-to-day.
+- **team** (Erlich→innovate, Gilfoyle→refine, Jared→critique, Russ→goMad, Richard→explain): the
+  character INHERITS an existing advisor seat — the generic persona id is retired and the
+  character id takes over everything the seat touched, including the transform/analyze behavior
+  and the wire enum. This is the seat-inheritance drill below; Barker proved it on the `exec`
+  seat. ~40 files, mostly mechanical, plus real prompt-craft on the behavior blocks.
+  - **Dinesh is the exception:** a NEW seventh mode, not an inheritance — clone refine's
+    budgets/temps (`*_MAX_NODES`, `TRANSFORM_MODE_MODEL`), distinct persona id, plus his own
+    XP/radial/hotkey/mascot rows, so both engineer seats coexist on the floor (desk next to
+    Gilfoyle in `apps/web/src/utils/officeFloorPlan.js`).
+- **senior** (Gavin Belson → the `cto` seat): steering meetings + ≤1 canned email/session.
+  Smallest surface, richest dialogue. Add to `SENIOR_MEETING_VOICES` + `SENIOR_STAKEHOLDERS` +
+  `MEETING_SENIOR_POOL` + `SENIOR_EMAIL_TEMPLATES`. Belson is a full named replication, not a
+  blurb rename: the drill additionally retires Marcus — sweep the `cto` display id everywhere the
+  seat-inheritance list (§4b) touches senior trappings.
+- **office** (the invented colleagues — Pam, Linda, Chad, Dave, Gary, Ulrich — stay as-is):
+  emails, IMs, walk-bys, coffee, **cubicle battles**. Bigger drill: `OFFICE_COLLEAGUES` (server +
+  client), the `OFFICE_{WALKBY,EMAIL,IM}_LLM_CAST` arrays, canned template banks,
+  `canJoinMeetings`. Gilfoyle/Dinesh don't need this tier — they get battle eligibility as a
+  dual-home add-on to their team seats (existing cubicle-battle casting arrays; no new battle
+  infrastructure).
 
 ### 2. Write the voice card (server, the core artifact)
 
@@ -63,7 +81,8 @@ template. Lessons burned in:
   JSON, visible-label references) themselves.
 - **Team seats: keep the seat's behavior spec, change only the voice.** The seat's contract
   (Barker: subtractive-only suggestions, ~1 in 5 deliberately too far, ~1 in 3 pure comment;
-  refine: always actionable; critique: findings only; goMad: escalation with diagram-type roulette)
+  refine: always actionable; critique: findings only; goMad: escalation with diagram-type
+  roulette; explain: comment-only pattern/lore — never mutates the canvas)
   lives in the persona block — port the skeleton verbatim, re-skin the voice, keep temperatures
   and ratios. The wire validators (`mermaidTransformPolicy.ts` etc.) enforce the same budgets by
   mode id, so renaming the mode renames the budget with it.
@@ -73,13 +92,15 @@ template. Lessons burned in:
 
 ### 3. Tune against the fidelity harness
 
-`node scripts/barker-fidelity.mjs [--no-judge]` generates meeting beats, interjection reactions,
+`node scripts/barker-fidelity.mjs [characterId] [--no-judge]` (named for the first replication)
+generates meeting beats, interjection reactions,
 an email, and advisor-seat suggestions through the real prompt builders, then LLM-judges 1–5 on
 recognizability, voice mechanics, catchphrase budget, in-world fit. It needs an LLM key in `.env`
 (a few cents per run) and is deliberately not in `npm test`.
 
-The script is Barker-tuned: generalize by parameterizing the speaker id, attendee list, and the
-rubric paragraph at the top (or copy it per character — fine for a handful of runs). Iterate the
+The script is generalized: each character gets a profile in `CHARACTER_PROFILES` at the top of
+the script (speaker id, attendee list, rubric wording, `seniorEmail`/`advisor` surface flags —
+tune the meeting card first with `advisor: false`, flip it on after the seat wire-in). Iterate the
 card until ≥4/5 **sustained over two consecutive runs** (generation temp is 0.95 — single runs are
 noisy; don't chase one judge's nitpick, watch for repeat complaints across runs). Barker's seat
 run plateaued at ≈3.95–4.0: once judge notes start contradicting each other across runs (asks for
@@ -166,7 +187,7 @@ For team seats add: `slopitect.{en-AU,zh-CN,zh-TW}.js` (persona block, tagline, 
 3. Live smoke: `npm run dev`, Call-a-meeting picker → seat the character → interject once. Route
    level: `POST /api/office/meeting` with the id in `attendees`, `POST /api/office/speak` for TTS.
    Team seats also: radial menu → run their transform/analyze on a real diagram.
-4. `node scripts/barker-fidelity.mjs` (or its successor) — final report goes in the PR description.
+4. `node scripts/barker-fidelity.mjs <characterId>` — final report goes in the PR description.
 
 ## Guardrails that apply to every character
 
@@ -183,16 +204,30 @@ For team seats add: `slopitect.{en-AU,zh-CN,zh-TW}.js` (persona block, tagline, 
 
 ## Endgame: the SV team
 
-The destination, as cast by the user: **Richard → `refine`** (the engineer), **Erlich →
-`innovate`** (Chief Innovation Officer), **Russ → `goMad`**, **Jared → `critique`** (the auditor),
-**Barker → the sixth seat** (shipped). One character at a time, each a seat-inheritance drill
-(§4b): retire the generic persona id, port the behavior skeleton, re-voice, tune against the
-harness. Gilfoyle + Dinesh stay optional office-tier work (battle surfaces, not seats).
+The destination is the locked cast map in the [Status board](#status-board) (program plan,
+2026-07-26): **Russ → `goMad`**, **Erlich → `innovate`**, **Gilfoyle → `refine` → `gilfoyle`**,
+**Dinesh → new seventh seat `dinesh`** (refine-class clone; floor desk next to Gilfoyle), **Jared →
+`critique` → `jared`**, **Richard → `explain` → `richard`**, **Barker → the sixth seat** (shipped),
+**Gavin Belson → senior `cto` → `belson`**. One character per agent session, each a
+seat-inheritance drill (§4b) — retire the generic persona id, port the behavior skeleton,
+re-voice, tune against the harness — except the two flagged exceptions: Dinesh is a new mode
+cloned from refine, and Belson is the senior drill (§4a) plus the Marcus retirement sweep.
 
-Open questions to decide when the next seat lands:
+Hard decisions baked in (do not re-litigate per session):
 
-- **`explain` (the Wise Architect)** has no SV casting yet. Candidates: drop the seat when the
-  four above are shipped, or cast a guest (Jian-Yang? Monica? — Monica fits the sage voice best).
-- **Richard vs the user** — the fiction already casts the user as the anxious builder. If
-  Richard-the-advisor feels redundant, Richard can instead narrate the "you" seat (floor tile,
-  meeting presenter label). Decide with a prototype, not a refactor.
+- **Seventh engineer seat for Dinesh** — add wire mode `dinesh` to `TransformModeSchema` (and
+  policies) as a refine clone: same node budgets/temps, distinct persona id,
+  XP/radial/hotkey/mascot. Floor seat next to Gilfoyle in `apps/web/src/utils/officeFloorPlan.js`.
+- **Richard stays on `explain`** — comment-only; does not gain invent-transform powers. Helpful +
+  funny via pattern-naming and anxious over-explaining, not canvas mutation. His genius reads as
+  over-specific insight, not a second Innovate.
+- **Gavin Belson is a full named replication** of the CTO senior seat (retire the Marcus/`cto`
+  display id to `belson`), fidelity-harnessed like Barker — larger than a blurb rename.
+- **Kept as-is (not this program):** Pam (SAFe ceremony), Linda (weaponized HR cheerfulness),
+  Chad, Dave, Gary, Ulrich, Sasha, Diane. Gary's "Fridge Czar" bit is optional later polish.
+
+Open question (unchanged; does not block the program):
+
+- **Public deploy naming** — keep HBO names locally; before the named cast ships to the public
+  Cloud Run deployment, decide real names vs legally-distinct aliases (Marcus was the
+  legally-distinct homage; Belson ends that compromise).

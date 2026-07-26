@@ -57,12 +57,12 @@ leadership pinging your desk.
 
 ### Senior stakeholders
 
-| id       | Name        | Title                          | Emoji | Bit                                                                           |
-| -------- | ----------- | ------------------------------ | ----- | ----------------------------------------------------------------------------- |
-| `barker` | Jack Barker | CEO — Success Theater          | 🧘    | **Named Silicon Valley replication** — also the 6th radial advisor (see note) |
-| `ciso`   | Sasha       | CISO — The Department of No    | 🔐    | Everything is an attack surface; runs the phishing sims                       |
-| `cto`    | Marcus      | CTO — Ships Keynotes, Not Code | 🚀    | Visionary word salad; wants the diagram to pulse; no IDE since 2016           |
-| `cfo`    | Diane       | CFO — The Budget Is a No       | 🧮    | Every box is a cost center; asks what the diagram costs per month             |
+| id       | Name        | Title                          | Emoji | Bit                                                                                                                                                           |
+| -------- | ----------- | ------------------------------ | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `barker` | Jack Barker | CEO — Success Theater          | 🧘    | **Named Silicon Valley replication** — also the 6th radial advisor (see note)                                                                                 |
+| `ciso`   | Sasha       | CISO — The Department of No    | 🔐    | Everything is an attack surface; runs the phishing sims                                                                                                       |
+| `cto`    | Marcus      | CTO — Ships Keynotes, Not Code | 🚀    | Visionary word salad; wants the diagram to pulse; no IDE since 2016. **Slated:** replaced by a full Gavin Belson replication (`belson`) — see the Barker note |
+| `cfo`    | Diane       | CFO — The Budget Is a No       | 🧮    | Every box is a cost center; asks what the diagram costs per month                                                                                             |
 
 > **The Barker experiment.** `barker` is a deliberate replication of Jack Barker from HBO's
 > _Silicon Valley_ — the first test of how faithfully a named TV character can live in this cast.
@@ -73,10 +73,13 @@ leadership pinging your desk.
 > (final sustained score ≈ 4.2/5). In July 2026 he **inherited The VP's team seat** (the retired
 > `exec` id): he is now the sixth radial advisor, boiling diagrams down for the board in his own
 > voice, while keeping his senior-tier trappings (steering meetings, one rare email). Status:
-> **local experiment** — if this cast ever ships to the public deployment, decide first whether he
-> keeps the real name or moves to a legally-distinct alias (the way Marcus is a Gavin Belson
-> _homage_, not Gavin Belson). The full program status, the seat-inheritance drill, and the
-> remaining casting (Richard, Erlich, Russ, Jared) live in
+> **local experiment** — if this cast ever ships to the public deployment, decide first whether
+> the named cast keeps the real names or moves to legally-distinct aliases. The program is locked
+> for the full SV roster: Erlich → `innovate`, Gilfoyle → `refine` (→ `gilfoyle`), Dinesh → a new
+> seventh engineer seat (`dinesh`, refine-class), Jared → `critique` (→ `jared`), Russ → `goMad`,
+> Richard → `explain` (→ `richard`, comment-only), and a full **Gavin Belson** replication
+> replacing Marcus (`cto` → `belson`). Program status (the single source of truth for what's
+> left), the seat-inheritance drill, and the fidelity harness live in
 > [docs/recipes/replicate-tv-character.md](recipes/replicate-tv-character.md).
 
 ### Shipped colleagues (v1)
