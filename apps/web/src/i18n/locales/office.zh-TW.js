@@ -782,6 +782,8 @@ export const OFFICE_ZH_TW = {
         '辦公室環境音 — 鍵盤聲、滑鼠點擊、紙張、椅子吱呀、印表機、電話、飲水機、咖啡機、自動販賣機、電梯',
       narrationLabel: '朗讀',
       narrationTitle: '朗讀路過發言、會議、隔間爭論和咖啡閒聊 — 郵件和即時訊息保持靜音',
+      captionsLabel: '字幕 (CC)',
+      captionsTitle: '在樓層上顯示語音內容為文字 — 能聽見聲音時可以關掉以騰出畫面',
       closeAria: '關閉收件匣',
       back: '← 返回',
       emptyLine: '收件匣清空。HR 覺得這很可疑。好好珍惜。',

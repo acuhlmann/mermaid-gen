@@ -29,10 +29,16 @@ import { useStageScale } from '../hooks/useStageScale.js';
 import { approachTileFor } from '../utils/officeFloorMovement.js';
 import { YOU_SEAT_ID, peekTileFor } from '../utils/officeFloorPlan.js';
 import { isOfficeColleagueId, officeChromeCopy, officeSenderInfo } from '../utils/officeCast.js';
+import { shouldShowSpokenText } from '../utils/officeCaptions.js';
 import { awayFromDeskIds } from '../utils/officeSceneCast.js';
 import { tierOf } from '../utils/castTiers.js';
 import { resolveUserName, subscribe as subscribeUserName } from '../state/userIdentityStore.js';
 import { getOfficeViewMode, subscribe as subscribeViewMode } from '../state/officeViewModeStore.js';
+import {
+  getOfficeSnapshot,
+  setOfficeCaptions,
+  subscribe as subscribeOffice
+} from '../state/officeMomentStore.js';
 import { useUiCopy } from '../i18n/useUiLocale.js';
 
 /**
@@ -116,6 +122,12 @@ function OfficeFloorView({
   // office bundle below, exactly like DeskActionsDock.
   useUiCopy();
   const copy = officeChromeCopy().floor;
+  const directory = officeChromeCopy().directory;
+  const officeSnap = useSyncExternalStore(subscribeOffice, getOfficeSnapshot, getOfficeSnapshot);
+  const showSpokenText = shouldShowSpokenText({
+    captions: officeSnap.captions,
+    voiceActive: officeSnap.narration
+  });
 
   const viewportRef = useRef(null);
   const scale = useStageScale(viewportRef);
@@ -190,7 +202,16 @@ function OfficeFloorView({
 
       {/* The peek and talk cards each carry their own way back, so the bar's
           copy of it would be a second button with the same label. */}
-      <FloorTopBar copy={copy} standing={activity.standingFree} onGoHome={goHome} />
+      <FloorTopBar
+        copy={copy}
+        standing={activity.standingFree}
+        onGoHome={goHome}
+        captions={officeSnap.captions}
+        captionsLabel={directory.transcriptLabel}
+        captionsOnLabel={directory.transcriptOnLabel}
+        captionsTitle={directory.transcriptTitle}
+        onToggleCaptions={() => setOfficeCaptions(!officeSnap.captions)}
+      />
 
       <div className="office-floor-viewport" ref={viewportRef}>
         <FloorStage
@@ -200,6 +221,7 @@ function OfficeFloorView({
           onSelect={handleSelect}
           walker={walker}
           walkerDeparting={departing}
+          walkerHideBody={!showSpokenText}
           onWalkerAdopt={onAdoptPrompt}
           onWalkerDismiss={onDismissWalkBy}
           onWalkerDeparted={handleDeparted}
@@ -233,6 +255,7 @@ function OfficeFloorView({
             presence={presence}
             onPresenceArrive={activity.handleArrive}
             playerRef={activity.playerRef}
+            showSpokenText={showSpokenText}
           />
         </FloorStage>
       </div>

@@ -69,6 +69,24 @@ export function projectIso(x, y) {
 }
 
 /**
+ * Horizontal bias for a speech bubble so edge speakers do not clip off the
+ * stage. A counter-scaled bubble is ~60vw wide; centred on someone at the left
+ * of the room it eats half the viewport. `start` shifts the balloon toward
+ * screen-centre from a left-edge speaker, `end` the mirror for the right.
+ *
+ * @param {{ x: number, y: number }} tile
+ * @returns {'start' | 'center' | 'end'}
+ */
+export function bubbleAlignForTile(tile) {
+  if (!tile || !Number.isFinite(tile.x) || !Number.isFinite(tile.y)) return 'center';
+  const { left } = projectIso(tile.x, tile.y);
+  const ratio = left / STAGE_W;
+  if (ratio < 0.34) return 'start';
+  if (ratio > 0.66) return 'end';
+  return 'center';
+}
+
+/**
  * `projectIso` backwards: a point on the stage to the (fractional) tile under
  * it. Two callers need this and both are about *you* rather than the layout —
  * turning a click on the floor into somewhere to walk, and reading a walker's

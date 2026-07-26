@@ -18,23 +18,31 @@
 
 import FloorBubble from './FloorBubble.jsx';
 import { officeSenderInfo } from '../../utils/officeCast.js';
-import { projectIso, seatFor } from '../../utils/officeFloorPlan.js';
+import { bubbleAlignForTile, projectIso, seatFor } from '../../utils/officeFloorPlan.js';
 
 /** Above the signage layer, same as the walker's bubble at your desk. */
 const BUBBLE_Z = 9600;
 
 /**
- * @param {{ castId: string, line: string, scale?: number, testId?: string }} props
+ * @param {{
+ *   castId: string,
+ *   line: string,
+ *   scale?: number,
+ *   testId?: string,
+ *   hideBody?: boolean
+ * }} props
  */
-export function FloorDeskSpeech({ castId, line, scale = 1, testId }) {
+export function FloorDeskSpeech({ castId, line, scale = 1, testId, hideBody = false }) {
   const seat = seatFor(castId);
-  if (!seat || !line) return null;
+  if (!seat || (!line && !hideBody)) return null;
+  if (hideBody) return null;
 
   const sender = officeSenderInfo(castId);
   const { left, top } = projectIso(seat.x, seat.y);
   const lift = seat.desk
     ? 'office-floor-walker-anchor--over-seat'
     : 'office-floor-walker-anchor--over-standing';
+  const align = bubbleAlignForTile(seat);
 
   return (
     <div
@@ -43,7 +51,12 @@ export function FloorDeskSpeech({ castId, line, scale = 1, testId }) {
       style={{ left, top, zIndex: BUBBLE_Z }}
     >
       <div className={`office-floor-walker-anchor ${lift}`}>
-        <FloorBubble name={sender?.name ?? castId} title={sender?.title} scale={scale}>
+        <FloorBubble
+          name={sender?.name ?? castId}
+          title={sender?.title}
+          scale={scale}
+          align={align}
+        >
           {line}
         </FloorBubble>
       </div>

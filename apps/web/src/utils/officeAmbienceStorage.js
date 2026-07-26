@@ -8,6 +8,8 @@
 export const OFFICE_FOCUS_TIME_STORAGE_KEY = 'archislop:office-focus-time';
 export const OFFICE_SOUNDSCAPE_STORAGE_KEY = 'archislop:office-soundscape';
 export const OFFICE_NARRATION_STORAGE_KEY = 'archislop:office-narration';
+/** Captions / CC for spoken office lines (arrival + floor bubbles). Opt-in. */
+export const OFFICE_CAPTIONS_STORAGE_KEY = 'archislop:office-captions';
 export const OFFICE_MEETING_DOCKED_STORAGE_KEY = 'archislop:office-meeting-docked';
 export const OFFICE_CADENCE_STORAGE_KEY = 'archislop:office-cadence';
 export const OFFICE_WELCOME_STORAGE_KEY = 'archislop:office-welcomed';
@@ -96,6 +98,32 @@ export function writeOfficeNarrationEnabled(enabled) {
       window.localStorage.removeItem(OFFICE_NARRATION_STORAGE_KEY);
     } else {
       window.localStorage.setItem(OFFICE_NARRATION_STORAGE_KEY, '0');
+    }
+  } catch {
+    // Ignore quota / privacy errors.
+  }
+}
+
+/**
+ * @returns {boolean} True when the user wants spoken dialogue as on-screen text
+ * (CC). Defaults OFF — voice-first, matching the Meet-the-Office card tour.
+ */
+export function readOfficeCaptionsEnabled() {
+  if (typeof window === 'undefined') return false;
+  try {
+    return window.localStorage.getItem(OFFICE_CAPTIONS_STORAGE_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
+export function writeOfficeCaptionsEnabled(enabled) {
+  if (typeof window === 'undefined') return;
+  try {
+    if (enabled) {
+      window.localStorage.setItem(OFFICE_CAPTIONS_STORAGE_KEY, '1');
+    } else {
+      window.localStorage.removeItem(OFFICE_CAPTIONS_STORAGE_KEY);
     }
   } catch {
     // Ignore quota / privacy errors.

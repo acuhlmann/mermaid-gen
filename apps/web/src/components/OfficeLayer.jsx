@@ -33,6 +33,7 @@ import {
   pushOfficeEmail,
   pushOfficeImReply,
   setOfficeFocusTime,
+  setOfficeCaptions,
   setOfficeNarration,
   setOfficeSoundscape,
   subscribe,
@@ -624,9 +625,11 @@ export default function OfficeLayer({
         focusTime={snapshot.focusTime}
         soundscape={snapshot.soundscape}
         narration={snapshot.narration}
+        captions={snapshot.captions}
         onToggleFocusTime={setOfficeFocusTime}
         onToggleSoundscape={setOfficeSoundscape}
         onToggleNarration={setOfficeNarration}
+        onToggleCaptions={setOfficeCaptions}
         onMarkRead={handleMarkRead}
         onMarkAllRead={markAllOfficeEmailsRead}
         onAdoptPrompt={handleAdopt}

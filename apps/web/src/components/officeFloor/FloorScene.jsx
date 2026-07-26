@@ -27,7 +27,13 @@ import { COFFEE_BREAK_DURATION_MS, COFFEE_LINE_PACE_MS } from '../CoffeeBreakOve
 import { officeChromeCopy, officeSenderInfo } from '../../utils/officeCast.js';
 import { formatLocale } from '../../i18n/formatLocale.js';
 import { sceneParticipants } from '../../utils/officeSceneCast.js';
-import { BATTLE_TILES, COFFEE_TILES, depthOf, projectIso } from '../../utils/officeFloorPlan.js';
+import {
+  BATTLE_TILES,
+  COFFEE_TILES,
+  bubbleAlignForTile,
+  depthOf,
+  projectIso
+} from '../../utils/officeFloorPlan.js';
 
 /** A battle with narration off still needs an end; matches the coffee timer. */
 const BATTLE_SILENT_DURATION_MS = 18_000;
@@ -53,6 +59,7 @@ const SPEAKING_Z = 9600;
 function SceneActor({ castId, tile, line, scale }) {
   const { left, top } = projectIso(tile.x, tile.y);
   const sender = officeSenderInfo(castId);
+  const align = bubbleAlignForTile(tile);
   return (
     <div
       className="office-floor-walker"
@@ -61,7 +68,12 @@ function SceneActor({ castId, tile, line, scale }) {
     >
       <div className="office-floor-walker-anchor">
         {line ? (
-          <FloorBubble name={sender?.name ?? castId} title={sender?.title} scale={scale}>
+          <FloorBubble
+            name={sender?.name ?? castId}
+            title={sender?.title}
+            scale={scale}
+            align={align}
+          >
             {line}
           </FloorBubble>
         ) : null}
@@ -169,7 +181,8 @@ function BattleVerdict({ scene, participants, votedFor, copy, tiles, scale, onVo
  *   onAccept?: () => void,
  *   onDecline?: () => void,
  *   onVote?: (id: string, sideId: string) => void,
- *   onDone?: () => void
+ *   onDone?: () => void,
+ *   showSpokenText?: boolean
  * }} props
  */
 export function FloorScene({
@@ -181,7 +194,8 @@ export function FloorScene({
   onAccept,
   onDecline,
   onVote,
-  onDone
+  onDone,
+  showSpokenText = true
 }) {
   const isBattle = kind === 'battle';
   const spec = SCENE_KINDS[kind] ?? SCENE_KINDS.coffee;
@@ -219,13 +233,16 @@ export function FloorScene({
       {participants.map((castId, index) => {
         const verdict = votedFor === castId ? scene.verdicts?.[castId] : null;
         const speaking = currentLine?.speakerId === castId ? currentLine.text : null;
+        const line = verdict ?? speaking;
+        // Verdict panels stay readable; spoken beats respect CC when voice is on.
+        const shown = verdict || (line && showSpokenText) ? line : null;
         return (
           <SceneActor
             key={castId}
             castId={castId}
             tile={tiles[index % tiles.length]}
             scale={scale}
-            line={verdict ?? speaking}
+            line={shown}
           />
         );
       })}

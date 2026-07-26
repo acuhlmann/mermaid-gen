@@ -12,19 +12,26 @@
  * the staging changes, so this is a second *renderer* of the orientation rather
  * than a second orientation (ADR-0011). `OfficeDirectory` stays mounted for
  * replays from the level panel, and stays the fallback for anyone who skips.
+ *
+ * Spoken copy stays voice-first (docs/office-parody.md): captions / CC default
+ * off so the floor is not buried under balloons; turn CC on to read along, and
+ * a silent TTS beat always falls back to the bubble so the line is never lost.
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import FloorDeskSpeech from './FloorDeskSpeech.jsx';
 import FloorPlayer from './FloorPlayer.jsx';
 import FloorStage from './FloorStage.jsx';
+import IntroTranscriptButton from '../IntroTranscriptButton.jsx';
 import NameTag from '../NameTag.jsx';
 import { useIntroNarrator } from '../../hooks/useIntroNarrator.js';
 import { useStageScale } from '../../hooks/useStageScale.js';
 import { OFFICE_COLLEAGUES, officeChromeCopy, officeSenderInfo } from '../../utils/officeCast.js';
+import { shouldShowSpokenText } from '../../utils/officeCaptions.js';
 import { OFFICE_NARRATION_GAP_MS } from '../../utils/officeNarration.js';
 import { writeOfficeDirectorySeen } from '../../utils/officeAmbienceStorage.js';
 import { RECEPTION_TILE, YOU_SEAT_ID, seatFor } from '../../utils/officeFloorPlan.js';
+import { getOfficeSnapshot, setOfficeCaptions, subscribe } from '../../state/officeMomentStore.js';
 import { useUiCopy } from '../../i18n/useUiLocale.js';
 
 const COLLEAGUE_IDS = Object.keys(OFFICE_COLLEAGUES);
@@ -102,14 +109,22 @@ export default function FloorArrival({ onComplete, onSkipToBuild, getSessionId }
   const chrome = officeChromeCopy();
   const copy = chrome.floor;
   const arrival = copy.arrival;
+  const directory = chrome.directory;
 
   const viewportRef = useRef(null);
   const scale = useStageScale(viewportRef);
   const { play, stop } = useIntroNarrator({ getSessionId });
+  const captions = useSyncExternalStore(
+    subscribe,
+    () => getOfficeSnapshot().captions,
+    () => getOfficeSnapshot().captions
+  );
 
   /** 'reception' → 'welcome' → 'colleagues' → 'walking' */
   const [phase, setPhase] = useState('reception');
   const [index, setIndex] = useState(-1);
+  /** True while the current beat is actually being spoken aloud. */
+  const [voiceActive, setVoiceActive] = useState(false);
   const runRef = useRef(0);
 
   const finish = useCallback(
@@ -134,6 +149,7 @@ export default function FloorArrival({ onComplete, onSkipToBuild, getSessionId }
   const handleClockIn = useCallback(() => {
     runRef.current += 1;
     stop();
+    setVoiceActive(false);
     setPhase('walking');
   }, [stop]);
 
@@ -145,9 +161,13 @@ export default function FloorArrival({ onComplete, onSkipToBuild, getSessionId }
     let cancelled = false;
 
     const speak = async (id, speakerId, text) => {
+      // Optimistic: hide the balloon while voice is in flight. A silent result
+      // flips this back off so the line is still readable when TTS fails.
+      setVoiceActive(true);
       const result = await play(id, { speakerId, text });
       if (cancelled || generation !== runRef.current) return false;
       if (result?.cancelled) return false;
+      setVoiceActive(Boolean(result?.spoken));
       await sleep(result?.spoken ? OFFICE_NARRATION_GAP_MS : SILENT_BEAT_MS, controller.signal);
       return !cancelled && generation === runRef.current;
     };
@@ -174,11 +194,14 @@ export default function FloorArrival({ onComplete, onSkipToBuild, getSessionId }
     return () => {
       cancelled = true;
       controller.abort();
+      setVoiceActive(false);
     };
   }, [phase, index, play, chrome.directory]);
 
   const { id: speakingId, line: speakingLine } = resolveSpeaker(phase, index, chrome.directory);
   const lastColleague = phase === 'colleagues' && index >= COLLEAGUE_IDS.length - 1;
+  const showBubble =
+    Boolean(speakingId && speakingLine) && shouldShowSpokenText({ captions, voiceActive });
 
   return (
     <div className="office-floor office-floor--arrival" data-testid="office-floor-arrival">
@@ -188,14 +211,23 @@ export default function FloorArrival({ onComplete, onSkipToBuild, getSessionId }
           <h2 className="office-floor-title">{arrival.title}</h2>
           <p className="office-floor-subtitle">{arrival.subtitle}</p>
         </div>
-        <button
-          type="button"
-          className="office-floor-sit"
-          data-testid="office-floor-arrival-skip"
-          onClick={handleSkip}
-        >
-          {arrival.skip}
-        </button>
+        <div className="office-floor-bar-actions">
+          <IntroTranscriptButton
+            enabled={captions}
+            label={directory.transcriptLabel}
+            enabledLabel={directory.transcriptOnLabel}
+            title={directory.transcriptTitle}
+            onToggle={() => setOfficeCaptions(!captions)}
+          />
+          <button
+            type="button"
+            className="office-floor-sit"
+            data-testid="office-floor-arrival-skip"
+            onClick={handleSkip}
+          >
+            {arrival.skip}
+          </button>
+        </div>
       </header>
 
       <div className="office-floor-viewport" ref={viewportRef}>
@@ -212,7 +244,7 @@ export default function FloorArrival({ onComplete, onSkipToBuild, getSessionId }
             walking={phase === 'walking'}
             onSeated={() => finish({ startDeskTour: true })}
           />
-          {speakingId && speakingLine ? (
+          {showBubble ? (
             <FloorDeskSpeech castId={speakingId} line={speakingLine} scale={scale} />
           ) : null}
         </FloorStage>

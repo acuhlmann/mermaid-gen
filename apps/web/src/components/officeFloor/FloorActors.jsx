@@ -40,7 +40,8 @@ import FloorWanderer from './FloorWanderer.jsx';
  *   talkLine?: string,
  *   presence?: any,
  *   onPresenceArrive?: () => void,
- *   playerRef?: { current: HTMLElement | null }
+ *   playerRef?: { current: HTMLElement | null },
+ *   showSpokenText?: boolean
  * }} props Destructured without defaults on purpose. Every optional field here
  *   is either truthiness-tested a line later or forwarded to a component that
  *   defaults it itself (`FloorScenes` already defaults all three of its own), so
@@ -62,11 +63,18 @@ export function FloorActors({
   talkLine,
   presence,
   onPresenceArrive,
-  playerRef
+  playerRef,
+  showSpokenText = true
 }) {
   return (
     <>
-      <FloorScenes coffee={coffee} battle={battle} scale={scale} sceneHandlers={sceneHandlers} />
+      <FloorScenes
+        coffee={coffee}
+        battle={battle}
+        scale={scale}
+        sceneHandlers={sceneHandlers}
+        showSpokenText={showSpokenText}
+      />
 
       {/* Somebody who has got up for a minute. Deliberately absent from
           `floorAnnouncement`: ambient traffic is the one class of event on this
@@ -77,7 +85,9 @@ export function FloorActors({
         <FloorWanderer wanderer={wanderer} onArrive={onWandererArrive} elementRef={wandererRef} />
       ) : null}
 
-      {meeting ? <FloorMeeting meeting={meeting} copy={copy} scale={scale} /> : null}
+      {meeting ? (
+        <FloorMeeting meeting={meeting} copy={copy} scale={scale} showSpokenText={showSpokenText} />
+      ) : null}
       {peek ? <FloorPeek peek={peek} scale={scale} /> : null}
       {talk ? <FloorTalk talk={talk} line={talkLine} scale={scale} /> : null}
 

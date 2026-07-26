@@ -3,16 +3,19 @@
  * pattern as errorToastStore.js. Holds everything the OfficeLayer chrome
  * renders: the email inbox, IM ping stack, active walk-by, coffee-break scene,
  * pending meeting invite, the Focus Time (DND) flag, Soundscape, and Narration
- * (walk-bys + meetings spoken aloud; emails stay silent).
+ * (walk-bys + meetings spoken aloud; emails stay silent), and Captions / CC
+ * (show spoken dialogue as on-screen text when voice is playing).
  *
  * The useOfficeAmbience hook is the only producer; components subscribe via
  * useSyncExternalStore(subscribe, getOfficeSnapshot).
  */
 
 import {
+  readOfficeCaptionsEnabled,
   readOfficeFocusTime,
   readOfficeNarrationEnabled,
   readOfficeSoundscapeEnabled,
+  writeOfficeCaptionsEnabled,
   writeOfficeFocusTime,
   writeOfficeNarrationEnabled,
   writeOfficeSoundscapeEnabled
@@ -36,6 +39,8 @@ function initialState() {
     focusTime: readOfficeFocusTime(),
     soundscape: readOfficeSoundscapeEnabled(),
     narration: readOfficeNarrationEnabled(),
+    /** Opt-in CC for spoken lines (arrival + floor bubbles). */
+    captions: readOfficeCaptionsEnabled(),
     /** @type {Array<{id: string, colleagueId: string, subject: string, body: string, actionPrompt?: string, createdAt: number, read: boolean}>} */
     emails: [],
     unreadCount: 0,
@@ -123,6 +128,11 @@ export function setOfficeSoundscape(enabled) {
 export function setOfficeNarration(enabled) {
   writeOfficeNarrationEnabled(Boolean(enabled));
   update({ narration: Boolean(enabled) });
+}
+
+export function setOfficeCaptions(enabled) {
+  writeOfficeCaptionsEnabled(Boolean(enabled));
+  update({ captions: Boolean(enabled) });
 }
 
 /** True when any interruptive office surface is currently on screen. */
