@@ -10,6 +10,11 @@ import {
   setOfficeDirectoryOpen,
   subscribeOfficeDirectoryUi
 } from '../state/officeDirectoryUiStore.js';
+import {
+  getOfficeSnapshot,
+  setOfficeCaptions,
+  subscribe as subscribeOffice
+} from '../state/officeMomentStore.js';
 import { useIntroNarrator } from '../hooks/useIntroNarrator.js';
 import { formatLocale } from '../i18n/formatLocale.js';
 import { useUiCopy } from '../i18n/useUiLocale.js';
@@ -316,7 +321,11 @@ export default function OfficeDirectory({
   const [tourPhase, setTourPhase] = useState('idle');
   const [colleagueIndex, setColleagueIndex] = useState(-1);
   const [autoPlaying, setAutoPlaying] = useState(false);
-  const [showTranscript, setShowTranscript] = useState(false);
+  const showTranscript = useSyncExternalStore(
+    subscribeOffice,
+    () => getOfficeSnapshot().captions,
+    () => getOfficeSnapshot().captions
+  );
   const userName = useSyncExternalStore(subscribeUserName, resolveUserName, resolveUserName);
   const { controls, locale, setLocale } = useUiCopy();
   const directoryUi = useSyncExternalStore(
@@ -348,7 +357,6 @@ export default function OfficeDirectory({
     setTourPhase('idle');
     setColleagueIndex(-1);
     setAutoPlaying(false);
-    setShowTranscript(false);
     setOpen(true);
     setTourOpen(directoryUi.mode === 'tour');
   }, [directoryUi.openNonce, directoryUi.mode, stop]);
@@ -368,7 +376,6 @@ export default function OfficeDirectory({
     setTourPhase('idle');
     setColleagueIndex(-1);
     setAutoPlaying(false);
-    setShowTranscript(false);
     writeOfficeDirectorySeen();
     firstRunRef.current = false;
     setTourOpen(null);
@@ -509,7 +516,7 @@ export default function OfficeDirectory({
           onStartTour={startTour}
           onBeginDeskTour={beginDeskTour}
           showTranscript={showTranscript}
-          onToggleTranscript={() => setShowTranscript((value) => !value)}
+          onToggleTranscript={() => setOfficeCaptions(!showTranscript)}
           localeToolbar={
             <IntroLocaleToggle
               locale={locale}
@@ -530,7 +537,6 @@ export default function OfficeDirectory({
             setTourPhase('idle');
             setColleagueIndex(-1);
             setAutoPlaying(false);
-            setShowTranscript(false);
             setTourOpen(true);
           }}
         />

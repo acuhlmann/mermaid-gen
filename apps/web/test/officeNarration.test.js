@@ -13,8 +13,11 @@ import {
 } from '../src/utils/officeNarration.js';
 import { OFFICE_SPEAKER_IDS, OFFICE_TTS_RATE_SCALE } from '@archislop/shared';
 import {
+  OFFICE_CAPTIONS_STORAGE_KEY,
   OFFICE_NARRATION_STORAGE_KEY,
+  readOfficeCaptionsEnabled,
   readOfficeNarrationEnabled,
+  writeOfficeCaptionsEnabled,
   writeOfficeNarrationEnabled
 } from '../src/utils/officeAmbienceStorage.js';
 
@@ -336,5 +339,15 @@ describe('office narration storage', () => {
     writeOfficeNarrationEnabled(true);
     expect(readOfficeNarrationEnabled()).toBe(true);
     expect(window.localStorage.getItem(OFFICE_NARRATION_STORAGE_KEY)).toBeNull();
+  });
+
+  it('defaults captions OFF and only persists the opt-in', () => {
+    expect(readOfficeCaptionsEnabled()).toBe(false);
+    writeOfficeCaptionsEnabled(true);
+    expect(readOfficeCaptionsEnabled()).toBe(true);
+    expect(window.localStorage.getItem(OFFICE_CAPTIONS_STORAGE_KEY)).toBe('1');
+    writeOfficeCaptionsEnabled(false);
+    expect(readOfficeCaptionsEnabled()).toBe(false);
+    expect(window.localStorage.getItem(OFFICE_CAPTIONS_STORAGE_KEY)).toBeNull();
   });
 });

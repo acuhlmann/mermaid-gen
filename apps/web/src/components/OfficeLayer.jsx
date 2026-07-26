@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
 import CallMeetingPicker from './CallMeetingPicker.jsx';
 import CoffeeBreakOverlay from './CoffeeBreakOverlay.jsx';
@@ -7,6 +7,7 @@ import MeetingInviteToast from './MeetingInviteToast.jsx';
 import MeetingOverlay from './MeetingOverlay.jsx';
 import OfficeBattleOverlay from './OfficeBattleOverlay.jsx';
 import OfficeFloor from './OfficeFloor.jsx';
+import { createOfficeFloorBridge } from './officeFloor/officeFloorBridge.js';
 import OfficeImPing from './OfficeImPing.jsx';
 import OfficeInboxDock from './OfficeInboxDock.jsx';
 import OfficeMessenger from './OfficeMessenger.jsx';
@@ -33,6 +34,7 @@ import {
   pushOfficeEmail,
   pushOfficeImReply,
   setOfficeFocusTime,
+  setOfficeCaptions,
   setOfficeNarration,
   setOfficeSoundscape,
   subscribe,
@@ -577,27 +579,21 @@ export default function OfficeLayer({
     getDeskSlotElement
   );
 
-  return (
-    <div className="office-layer">
-      {deskActionsAnchorReady && deskSlot ? createPortal(deskDock, deskSlot) : null}
-      {/* Renderer #2 of the same office state (ADR-0011). Renders null at your
-          desk; office windows below still float above it when you stand up. */}
-      <OfficeFloor
-        onMessage={handleFloorMessage}
-        imHistory={snapshot.imHistory}
-        onTalkGreet={handleTalkGreet}
-        onTalkReply={handleTalkReply}
-        onTalkingChange={setFloorTalkingTo}
-        // ADR-0011 rule 2: the coffee machine on the floor pours the same break
-        // the desk dock's labelled "Get coffee" pours. One verb, two ways to
-        // reach it — the diegetic one is the bonus, never the only path.
-        onGetCoffee={desk.getCoffee}
-        walkBy={snapshot.walkBy}
-        onAdoptPrompt={handleAdopt}
-        onDismissWalkBy={dismissOfficeWalkBy}
-        coffee={snapshot.coffee}
-        battle={snapshot.battle}
-        sceneHandlers={{
+  const officeFloorBridge = useMemo(
+    () =>
+      createOfficeFloorBridge({
+        imHistory: snapshot.imHistory,
+        walkBy: snapshot.walkBy,
+        onMessage: handleFloorMessage,
+        onTalkGreet: handleTalkGreet,
+        onTalkReply: handleTalkReply,
+        onTalkingChange: setFloorTalkingTo,
+        onGetCoffee: desk.getCoffee,
+        onAdoptPrompt: handleAdopt,
+        onDismissWalkBy: dismissOfficeWalkBy,
+        coffee: snapshot.coffee,
+        battle: snapshot.battle,
+        sceneHandlers: {
           narrateLine: snapshot.narration ? narrateLine : undefined,
           prefetchLine: snapshot.narration ? prefetchLine : undefined,
           onAcceptCoffee: acceptOfficeCoffee,
@@ -607,15 +603,41 @@ export default function OfficeLayer({
           onDeclineBattle: dismissOfficeBattle,
           onVoteBattle: handleBattleVote,
           onBattleDone: handleBattleDone
-        }}
-        // Pacing, narration and minutes stay in useMeetingPlayback above, so the
-        // glass room only reads state — no double narration to guard against.
-        meeting={meeting}
-        meetingHandlers={{
+        },
+        meeting,
+        meetingHandlers: {
           onInterject: interject,
           onLeave: handleMeetingDismiss
-        }}
-      />
+        }
+      }),
+    [
+      snapshot.imHistory,
+      snapshot.walkBy,
+      snapshot.coffee,
+      snapshot.battle,
+      snapshot.narration,
+      handleFloorMessage,
+      handleTalkGreet,
+      handleTalkReply,
+      desk.getCoffee,
+      handleAdopt,
+      narrateLine,
+      prefetchLine,
+      handleCoffeeDone,
+      handleBattleVote,
+      handleBattleDone,
+      meeting,
+      interject,
+      handleMeetingDismiss
+    ]
+  );
+
+  return (
+    <div className="office-layer">
+      {deskActionsAnchorReady && deskSlot ? createPortal(deskDock, deskSlot) : null}
+      {/* Renderer #2 of the same office state (ADR-0011). Renders null at your
+          desk; office windows below still float above it when you stand up. */}
+      <OfficeFloor bridge={officeFloorBridge} />
       <OfficeInboxDock
         showTrigger={false}
         openSignal={inboxOpenSignal}
@@ -624,9 +646,11 @@ export default function OfficeLayer({
         focusTime={snapshot.focusTime}
         soundscape={snapshot.soundscape}
         narration={snapshot.narration}
+        captions={snapshot.captions}
         onToggleFocusTime={setOfficeFocusTime}
         onToggleSoundscape={setOfficeSoundscape}
         onToggleNarration={setOfficeNarration}
+        onToggleCaptions={setOfficeCaptions}
         onMarkRead={handleMarkRead}
         onMarkAllRead={markAllOfficeEmailsRead}
         onAdoptPrompt={handleAdopt}

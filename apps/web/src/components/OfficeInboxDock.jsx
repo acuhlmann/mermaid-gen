@@ -11,10 +11,11 @@ import FloatingWindow, { FloatingWindowDragHandle } from './FloatingWindow.jsx';
 /**
  * The corporate inbox (docs/office-parody.md): an envelope button with an
  * unread badge, opening a popover with the email list, a reading pane,
- * the Focus Time / Soundscape / Narration toggles (compact toolbar under the
- * title), and the "Call a meeting" shortcut. Pure props — OfficeLayer owns
- * the store subscription. Narration covers walk-bys and meetings only;
- * emails stay silent (nobody reads your inbox out loud).
+ * the Focus Time / Soundscape / Narration / Captions toggles (compact toolbar
+ * under the title), and the "Call a meeting" shortcut. Pure props — OfficeLayer
+ * owns the store subscription. Narration covers walk-bys and meetings only;
+ * emails stay silent (nobody reads your inbox out loud). Captions (CC) shows
+ * spoken dialogue as on-screen text when voice is playing.
  *
  * "Call a meeting" opens the people/group picker (seeded with selected
  * senders + email subjects as the topic) rather than instantly summoning a
@@ -28,9 +29,11 @@ export default function OfficeInboxDock({
   focusTime,
   soundscape,
   narration,
+  captions,
   onToggleFocusTime,
   onToggleSoundscape,
   onToggleNarration,
+  onToggleCaptions,
   onMarkRead,
   onMarkAllRead,
   onAdoptPrompt,
@@ -205,6 +208,14 @@ export default function OfficeInboxDock({
                   onChange={() => onToggleNarration?.(!narration)}
                 />
                 <span>{copy.inbox.narrationLabel}</span>
+              </label>
+              <label className="office-focus-toggle" title={copy.inbox.captionsTitle}>
+                <input
+                  type="checkbox"
+                  checked={Boolean(captions)}
+                  onChange={() => onToggleCaptions?.(!captions)}
+                />
+                <span>{copy.inbox.captionsLabel}</span>
               </label>
             </div>
           </FloatingWindowDragHandle>

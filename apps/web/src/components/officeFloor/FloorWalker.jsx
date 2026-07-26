@@ -19,13 +19,14 @@ import { formatLocale } from '../../i18n/formatLocale.js';
 const SPEAKING_Z = 9500;
 
 /** What they came over to say, with the same actions as the desk-mode card. */
-function WalkerBubble({ walkBy, sender, scale, onAdopt, onDismiss }) {
+function WalkerBubble({ walkBy, sender, scale, onAdopt, onDismiss, hideBody }) {
   const chrome = officeChromeCopy();
   return (
     <FloorBubble
       name={sender.name}
       title={sender.title}
       scale={scale}
+      hideBody={hideBody}
       onDismiss={() => onDismiss?.(walkBy.id)}
       dismissLabel={formatLocale(chrome.walkby.dismissAria, { name: sender.name })}
       footer={
@@ -50,6 +51,7 @@ function WalkerBubble({ walkBy, sender, scale, onAdopt, onDismiss }) {
  *   walkBy: { id: string, colleagueId: string, body: string, actionPrompt?: string },
  *   departing?: boolean,
  *   scale?: number,
+ *   hideBody?: boolean,
  *   onAdopt?: (prompt: string, colleagueId: string) => void,
  *   onDismiss?: (id: string) => void,
  *   onDeparted?: () => void
@@ -59,6 +61,7 @@ export function FloorWalker({
   walkBy,
   departing = false,
   scale = 1,
+  hideBody = false,
   onAdopt,
   onDismiss,
   onDeparted
@@ -95,6 +98,7 @@ export function FloorWalker({
             walkBy={walkBy}
             sender={sender}
             scale={scale}
+            hideBody={hideBody}
             onAdopt={onAdopt}
             onDismiss={onDismiss}
           />

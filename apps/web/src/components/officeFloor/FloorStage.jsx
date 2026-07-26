@@ -45,6 +45,7 @@ function seatDisplay(seat, copy) {
  *   onSelect: (id: string) => void,
  *   walker?: { id: string, colleagueId: string } | null,
  *   walkerDeparting?: boolean,
+ *   walkerHideBody?: boolean,
  *   onWalkerAdopt?: (prompt: string, colleagueId: string) => void,
  *   onWalkerDismiss?: (id: string) => void,
  *   onWalkerDeparted?: () => void,
@@ -67,6 +68,7 @@ export function FloorStage({
   onSelect,
   walker = null,
   walkerDeparting = false,
+  walkerHideBody = false,
   onWalkerAdopt,
   onWalkerDismiss,
   onWalkerDeparted,
@@ -126,6 +128,7 @@ export function FloorStage({
             walkBy={walker}
             departing={walkerDeparting}
             scale={scale}
+            hideBody={walkerHideBody}
             onAdopt={onWalkerAdopt}
             onDismiss={onWalkerDismiss}
             onDeparted={onWalkerDeparted}

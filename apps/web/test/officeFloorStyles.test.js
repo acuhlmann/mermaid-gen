@@ -87,6 +87,28 @@ describe('indicators that actually render', () => {
   });
 });
 
+describe('counter-scaled balloons stay on screen (§ 6 rule 28)', () => {
+  it('divides bubble layout width by the inverse scale', () => {
+    /*
+     * Without this, at MIN_SCALE (0.5) a `max-width: 60vw` box is painted at
+     * 120 vw and clips every left-desk intro (Chad) off the phone.
+     */
+    const bubble = ruleBody('.office-floor-bubble');
+    expect(bubble).toMatch(/width:\s*calc\(15rem\s*\/\s*var\(--floor-inverse-scale/);
+    expect(bubble).toMatch(/max-width:\s*calc\(min\(60vw/);
+  });
+
+  it('divides panel layout width the same way', () => {
+    const panel = ruleBody('.office-floor-panel');
+    expect(panel).toMatch(/width:\s*calc\(19rem\s*\/\s*var\(--floor-inverse-scale/);
+  });
+
+  it('biases edge speakers toward screen centre', () => {
+    expect(ruleBody('.office-floor-bubble--align-start')).toMatch(/translateX\(42%\)/);
+    expect(ruleBody('.office-floor-bubble--align-end')).toMatch(/translateX\(-42%\)/);
+  });
+});
+
 describe('reduced motion covers the whole floor', () => {
   /**
    * Every selector that switches an animation *on*, split out of its list.

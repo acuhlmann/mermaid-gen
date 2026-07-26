@@ -762,6 +762,9 @@ export const OFFICE_EN_AU = {
       narrationLabel: 'Narration',
       narrationTitle:
         'Speak walk-bys, meetings, cubicle battles, and coffee chat aloud — emails and IMs stay silent',
+      captionsLabel: 'Captions (CC)',
+      captionsTitle:
+        'Show spoken dialogue as text on the floor — leave off when you can hear the voice',
       emptyLine: "Inbox zero. HR reckons that's suss. Enjoy it while it lasts.",
       selectEmailAria: 'Select email from {name} for a meeting',
       callMeetingFromSelectionTitle: 'Pick who to pull in about the selected email thread',
