@@ -31,13 +31,43 @@ import { formatLocale } from '../../i18n/formatLocale.js';
 /** @typedef {{ key: string, text: string }} FloorAnnouncement */
 
 /**
+ * The three reasons you walk somewhere, in card-slot order, each with the line
+ * for going and the line for being there.
+ *
+ * A table rather than three branches because the branches were identical apart
+ * from their wording — and because a fourth reason to walk somewhere should
+ * cost a row here, the same way slice 9 wanted it to cost one projection in
+ * `useFloorActivity` rather than another state machine.
+ */
+const WALKED_TO = [
+  { kind: 'talk', going: 'walkingTo', there: 'standingWith' },
+  { kind: 'peek', going: 'walkingToDesk', there: 'standingAtDesk' },
+  { kind: 'prop', going: 'walkingToProp', there: 'standingAtProp' }
+];
+
+/**
  * `key` is the identity of the *event*, not of the sentence. Free roam can walk
  * you from one tile to another with no change of phase and therefore no change
  * of wording, and a live region only speaks when its text mutates — so the
  * region needs to be told "this is a new one" independently of what it says.
  */
-function announce(key, template, vars) {
-  return { key, text: vars ? formatLocale(template ?? '', vars) : (template ?? '') };
+function announce(key, template, vars = {}) {
+  return { key, text: formatLocale(template, vars) };
+}
+
+/**
+ * Who or what you went there for, and how to name it in a sentence. The one
+ * thing slice 9 had to generalize — an intent's subject need not be a person —
+ * is the only difference between the three rows of `WALKED_TO`.
+ */
+function subjectOf(view, copy) {
+  if (view.propKind) {
+    return {
+      id: view.propKind,
+      vars: { prop: copy.props.items[view.propKind]?.name ?? view.propKind }
+    };
+  }
+  return { id: view.colleagueId, vars: { name: nameOf(view.colleagueId) } };
 }
 
 function nameOf(colleagueId) {
@@ -55,52 +85,24 @@ function nameOf(colleagueId) {
  *   walkBy?: { id: string, colleagueId: string } | null,
  *   walkerDeparting?: boolean
  * }} state `copy` is `officeChromeCopy().floor`; the rest is what
- *   `OfficeFloorView` already holds, passed rather than re-derived.
+ *   `OfficeFloorView` already holds, passed rather than re-derived. Taken as
+ *   one object and destructured without defaults on purpose: every field is
+ *   read for truthiness, so turning `undefined` into `null` would buy nothing
+ *   but eight more branches through a function whose whole job is to pick one.
  * @returns {FloorAnnouncement}
  */
-export function floorAnnouncement({
-  copy,
-  meeting = null,
-  talk = null,
-  peek = null,
-  prop = null,
-  presence = null,
-  walkBy = null,
-  walkerDeparting = false
-}) {
-  const lines = copy?.narration ?? {};
+export function floorAnnouncement(state) {
+  const { copy, meeting, talk, peek, prop, presence, walkBy, walkerDeparting } = state;
+  const lines = copy.narration;
 
   if (meeting) return announce('meeting', lines.inMeeting);
 
-  if (talk) {
-    const arrived = talk.phase === 'talking';
-    return announce(
-      `talk:${talk.colleagueId}:${talk.phase}`,
-      arrived ? lines.standingWith : lines.walkingTo,
-      {
-        name: nameOf(talk.colleagueId)
-      }
-    );
-  }
-
-  if (peek) {
-    const arrived = peek.phase === 'looking';
-    return announce(
-      `peek:${peek.colleagueId}:${peek.phase}`,
-      arrived ? lines.standingAtDesk : lines.walkingToDesk,
-      { name: nameOf(peek.colleagueId) }
-    );
-  }
-
-  if (prop) {
-    const arrived = prop.phase === 'using';
-    return announce(
-      `prop:${prop.propKind}:${prop.phase}`,
-      arrived ? lines.standingAtProp : lines.walkingToProp,
-      {
-        prop: copy?.props?.items?.[prop.propKind]?.name ?? prop.propKind
-      }
-    );
+  for (const { kind, going, there } of WALKED_TO) {
+    const view = { talk, peek, prop }[kind];
+    if (!view) continue;
+    const { id, vars } = subjectOf(view, copy);
+    const walking = view.phase === 'walking';
+    return announce(`${kind}:${id}:${view.phase}`, lines[walking ? going : there], vars);
   }
 
   /*
@@ -118,8 +120,9 @@ export function floorAnnouncement({
   }
 
   if (presence) {
-    const walking = presence.phase === 'walking';
-    if (!walking) return announce(`roam:${presence.key}:standing`, lines.standingFloor);
+    if (presence.phase !== 'walking') {
+      return announce(`roam:${presence.key}:standing`, lines.standingFloor);
+    }
     return announce(
       `roam:${presence.key}:walking`,
       presence.homeward ? lines.walkingHome : lines.walkingFloor

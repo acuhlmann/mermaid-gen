@@ -42,10 +42,15 @@ export function FloorLiveRegion({ message, eventKey }) {
   const [text, setText] = useState('');
   const announced = useRef(null);
 
+  /*
+   * An effect rather than a derivation during render, and deliberately: an
+   * announcement *is* a DOM side effect, and flipping the pad while rendering
+   * would re-run on every unrelated re-render and speak the same sentence
+   * again. The `eventKey` guard is what keeps this to one write per event.
+   */
   useEffect(() => {
     if (eventKey === announced.current) return;
     announced.current = eventKey;
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- (reason: an announcement *is* a DOM side effect; flipping the pad during render would re-run on every unrelated re-render and speak the same sentence again)
     setText((current) => {
       // Nothing to say clears the region outright; padding emptiness would put
       // a stray space where a screen reader expects silence.
