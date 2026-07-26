@@ -40,6 +40,7 @@ export const ISOMETRIC_FLOOR_BLAST_TESTS = [
   'apps/web/test/officeFloorPlan.test.js',
   'apps/web/test/officeFloorProps.test.jsx',
   'apps/web/test/officeFloorPropsTable.test.js',
+  'apps/web/test/officeFloorReach.test.js',
   'apps/web/test/officeFloorRoam.test.jsx',
   'apps/web/test/officeFloorScene.test.jsx',
   'apps/web/test/officeFloorStyles.test.js',

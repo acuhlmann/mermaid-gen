@@ -14,6 +14,9 @@ import {
   FLOOR_ZONES,
   VISITOR_TILE,
   YOU_SEAT_ID,
+  boxesOverlap,
+  figureBox,
+  headBox,
   isOnFloor,
   isStandableTile,
   pathCrossesGlass,
@@ -201,6 +204,70 @@ describe('approachTileFor', () => {
   it('has no mark for you, or for a stranger', () => {
     expect(approachTileFor(YOU_SEAT_ID)).toBeNull();
     expect(approachTileFor('nobody')).toBeNull();
+  });
+});
+
+describe('approachTileFor, aimed at somebody who has left their desk (slice 12)', () => {
+  /** Everywhere a colleague can end up standing that is not their own chair. */
+  const AWAY_TILES = () => usablePropKinds().map((kind) => ({ kind, tile: propTileFor(kind) }));
+
+  it('finds a mark at every place somebody can wander to', () => {
+    /*
+     * The reason the verb can follow them at all. If a prop mark ever loses its
+     * approach the room stops offering _Go and talk_ to whoever is stood there,
+     * which is correct behaviour and a silent loss of reach — so it is pinned.
+     */
+    const marks = AWAY_TILES().map(({ kind, tile }) => [
+      kind,
+      approachTileFor('intern', { at: tile })
+    ]);
+    for (const [kind, mark] of marks) {
+      expect(mark, `nowhere to stand to talk to somebody at the ${kind}`).toBeTruthy();
+    }
+    expect(marks).toHaveLength(3);
+  });
+
+  it('stands you beside them rather than on them, and clears their face', () => {
+    /*
+     * § 6 rule 27 from the other side. `isStandableTile` validates against
+     * `FLOOR_SEATS`, so it knows where everybody *works* — it has no idea
+     * somebody is stood at the printer, and it thinks they are still at the desk
+     * they left. Both halves of the face test therefore have to be re-asked
+     * about the body itself, in both directions.
+     */
+    const standing = { seated: false };
+    for (const { kind, tile } of AWAY_TILES()) {
+      const mark = approachTileFor('intern', { at: tile });
+      expect(isStandableTile(mark), kind).toBe(true);
+      expect(mark, kind).not.toEqual(tile);
+      expect(pathCrossesGlass([mark, tile]), kind).toBe(false);
+      expect(pathCrossesGlass(walkPathBetween(HOME, mark, YOU_SEAT_ID)), kind).toBe(false);
+      expect(
+        boxesOverlap(figureBox(mark, standing), headBox(tile, standing)),
+        `you cover the face of somebody at the ${kind}`
+      ).toBe(false);
+      expect(
+        boxesOverlap(figureBox(tile, standing), headBox(mark, standing)),
+        `somebody at the ${kind} covers yours`
+      ).toBe(false);
+    }
+  });
+
+  it('is the seat mark when no position is given, so old callers are unchanged', () => {
+    for (const id of approachableSeatIds()) {
+      expect(approachTileFor(id, {}), id).toEqual(approachTileFor(id));
+      const seat = seatFor(id);
+      expect(approachTileFor(id, { at: { x: seat.x, y: seat.y } }), id).toEqual(
+        approachTileFor(id)
+      );
+    }
+  });
+
+  it('still refuses somebody whose position you cannot reach', () => {
+    // A position, not a licence: the fishbowl seals itself for a body standing
+    // in it exactly as it does for one sitting in it (§ 6 rule 17).
+    const cfo = seatFor('cfo');
+    expect(approachTileFor('intern', { at: { x: cfo.x, y: cfo.y } })).toBeNull();
   });
 });
 

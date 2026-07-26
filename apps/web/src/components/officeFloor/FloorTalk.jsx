@@ -22,10 +22,15 @@ import { officeImQuickReplies, officeSenderInfo } from '../../utils/officeCast.j
  * The newest thing they said, over their head.
  *
  * @param {{
- *   talk: { colleagueId: string, phase: 'walking' | 'talking' },
+ *   talk: {
+ *     colleagueId: string,
+ *     phase: 'walking' | 'talking',
+ *     at?: { x: number, y: number } | null
+ *   },
  *   line: string,
  *   scale?: number
- * }} props
+ * }} props `at` is where they are standing when that is not their own desk
+ *   (slice 12) — a bubble over the chair somebody left points at nobody.
  */
 export function FloorTalk({ talk, line, scale = 1 }) {
   if (talk.phase !== 'talking' || !line) return null;
@@ -35,6 +40,7 @@ export function FloorTalk({ talk, line, scale = 1 }) {
       castId={talk.colleagueId}
       line={line}
       scale={scale}
+      tile={talk.at ?? null}
       testId="office-floor-talk-line"
     />
   );

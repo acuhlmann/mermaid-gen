@@ -33,6 +33,7 @@ Do not copy `standUp(); render(<OfficeFloor />)` into new suites — extend the 
 | ------------------------------------ | ----------------------------------------------------- |
 | `officeFloorPlan.test.js`            | Pure geometry: projection, marks, glass, peek roster  |
 | `officeFloorMovement.test.js`        | Where you may walk, approach/peek/prop marks          |
+| `officeFloorReach.test.js`           | Where somebody is when away, and whether it is a mark |
 | `officeFloorContracts.test.js`       | **ADR-0011 executable rules** (narration, props, POV) |
 | `officeFloorModuleInventory.test.js` | Bench components + test files still exist             |
 | `officeFloorPropsTable.test.js`      | `officeFloorProps.js` ↔ `propTileFor` alignment       |
@@ -58,6 +59,7 @@ Do not copy `standUp(); render(<OfficeFloor />)` into new suites — extend the 
 3. **Coffee is the only prop with a desk verb** — `officeFloorPropsTable.test.js` + contracts.
 4. **Wander marks use walker POV** — `isStandableTile(mark, { excludeSeatId })` in contracts + wander suite.
 5. **One live region on the floor** — `officeFloorAccess.test.jsx` counts `[aria-live]`.
+6. **Only a settled figure is reachable** — `officeFloorContracts.test.js` + `officeFloorReach.test.js`: a walker and anybody a moment has claimed get no mark, so the verb does not render.
 
 ## Adding a new floor slice
 

@@ -8,6 +8,8 @@
 import { describe, expect, it } from 'vitest';
 import { floorAnnouncement } from '../src/components/officeFloor/floorAnnouncement.js';
 import { FLOOR_PROP_USES, propUseFor } from '../src/utils/officeFloorProps.js';
+import { reachTileFor, whereaboutsOf } from '../src/utils/officeFloorReach.js';
+import { approachTileFor, propTileFor } from '../src/utils/officeFloorMovement.js';
 import { officeChromeCopy, officeSenderInfo } from '../src/utils/officeCast.js';
 import { isStandableTile, seatFor, YOU_SEAT_ID } from '../src/utils/officeFloorPlan.js';
 import { wanderTripsFor, wanderingSeatIds } from '../src/utils/officeFloorWander.js';
@@ -69,6 +71,48 @@ describe('geometry POV — isStandableTile excludeSeatId (§6 rule 27)', () => {
         );
       }
     }
+  });
+});
+
+describe('only a settled figure is reachable (slice 12)', () => {
+  /*
+   * The invariant, stated once: a verb the room cannot honour must not render,
+   * and the room's answer is a **mark**. Everything downstream — whether
+   * `FloorWanderer` draws a button, whether the person card offers _Go and
+   * talk_ — is that mark existing, so this is the only place the rule needs to
+   * hold.
+   */
+  const trip = (phase) => ({
+    seatId: 'intern',
+    kind: 'printer',
+    to: propTileFor('printer'),
+    phase
+  });
+
+  it('gives a mark for somebody stood still, and none for somebody mid-stride', () => {
+    const settled = whereaboutsOf('intern', { wanderer: trip('dwell') });
+    expect(settled.tile).toEqual(propTileFor('printer'));
+    expect(reachTileFor('intern', settled)).toBeTruthy();
+
+    for (const phase of ['out', 'home']) {
+      const walking = whereaboutsOf('intern', { wanderer: trip(phase) });
+      expect(walking.tile, phase).toBeNull();
+      expect(reachTileFor('intern', walking), phase).toBeNull();
+    }
+  });
+
+  it('never offers a second way to reach somebody a moment already owns', () => {
+    // A scene or the glass room is drawing them with chrome of its own, and
+    // § 6 rule 5 does not allow two of anybody.
+    const claimed = whereaboutsOf('intern', { awayIds: ['intern'] });
+    expect(reachTileFor('intern', claimed)).toBeNull();
+  });
+
+  it('aims at where they are, not at the chair they left', () => {
+    const settled = whereaboutsOf('intern', { wanderer: trip('dwell') });
+    expect(reachTileFor('intern', settled)).not.toEqual(reachTileFor('intern', null));
+    // And somebody who has not moved still gets the plain seat approach.
+    expect(reachTileFor('intern', null)).toEqual(approachTileFor('intern'));
   });
 });
 
