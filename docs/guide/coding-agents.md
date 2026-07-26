@@ -25,6 +25,7 @@ Operator guide for Claude Code, Cursor, Copilot, and other agents editing **arch
 | ---------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Not sure / many areas                          | `npm run check:affected` (diff-scoped; **Prettier** + **verify:boundaries** when `apps/web` changes + server **strict** islands when `apps/server` changes) |
 | `apps/server` or `apps/web` (tests only)       | `npm run test:affected` (skips slow Anything integration unless the diff touches `anything*`)                                                               |
+| Isometric floor only (`OfficeFloor`, geometry) | `npm run test:floor`                                                                                                                                        |
 | `packages/shared` only                         | `npm run check:fast`                                                                                                                                        |
 | Default local gate                             | `npm run check` (boundaries, typecheck, lint, test, **wire**)                                                                                               |
 | **Before opening a PR** (matches CI)           | `npm run check:full`                                                                                                                                        |
