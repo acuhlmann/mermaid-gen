@@ -12,7 +12,7 @@ import type { ContentType } from '@archislop/shared';
 
 const VARIANT_ICONS: Record<string, string> = {
   refine: '✨',
-  innovate: '💡',
+  erlich: '🕶',
   goMad: '🎲',
   critique: '🔍',
   explain: '📖',

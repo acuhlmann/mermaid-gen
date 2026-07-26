@@ -24,8 +24,8 @@ function DeskPeopleCluster({
         personas={[
           { variant: 'refine', onClick: () => runTransform('refine', { useDiagramFocus: true }) },
           {
-            variant: 'innovate',
-            onClick: () => runTransform('innovate', { useDiagramFocus: true })
+            variant: 'erlich',
+            onClick: () => runTransform('erlich', { useDiagramFocus: true })
           },
           {
             variant: 'goMad',

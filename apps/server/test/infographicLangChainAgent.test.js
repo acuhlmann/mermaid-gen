@@ -199,9 +199,9 @@ test('applyTransformIntent routes through the dispatcher pattern (mode-specific 
         contentType: 'infographic',
         diagramSource:
           'infographic list-row-simple-horizontal-arrow\n  data\n    lists\n      - label Step 1\n      - label Step 2',
-        reason: 'innovate'
+        reason: 'erlich'
       });
-      return { messages: [{ role: 'assistant', content: 'Innovated.' }] };
+      return { messages: [{ role: 'assistant', content: 'Erlichd.' }] };
     }
   });
 
@@ -212,14 +212,14 @@ test('applyTransformIntent routes through the dispatcher pattern (mode-specific 
     createAgentImpl: () => fakeAgent
   });
 
-  await service.applyTransformIntent({ mode: 'innovate', modelProfile: 'fast' });
+  await service.applyTransformIntent({ mode: 'erlich', modelProfile: 'fast' });
   assert.equal(stateStore.getSlot('infographic').revisionId, 2);
   const userMsg = capturedMessages?.find((m) => (m?.role || m?.kwargs?.role) === 'user');
   const text =
     typeof userMsg?.content === 'string'
       ? userMsg.content
       : (userMsg?.kwargs?.content ?? '').toString();
-  assert.match(text, /INNOVATE|Chief Innovation Officer/);
+  assert.match(text, /ERLICH|Erlich Bachman/);
 });
 
 test('repair instruction includes the original user request', async () => {

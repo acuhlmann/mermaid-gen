@@ -104,7 +104,7 @@ describe('useAdvisorOrchestrator', () => {
   function mockPersonaPick(persona) {
     // Mirrors ADVISOR_ORDER: your team only. `barker` is senior tier and is not
     // in the proactive rotation (castTiers.js).
-    const order = ['refine', 'innovate', 'goMad', 'critique', 'explain'];
+    const order = ['refine', 'erlich', 'goMad', 'critique', 'explain'];
     const idx = order.indexOf(persona);
     vi.spyOn(Math, 'random').mockReturnValue((idx + 0.01) / order.length);
   }

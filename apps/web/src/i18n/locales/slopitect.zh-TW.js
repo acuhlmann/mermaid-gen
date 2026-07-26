@@ -21,12 +21,12 @@ export const SLOPITECT_ZH_TW = {
       entryLine: '正在設計下一步…',
       exitLine: '交付了一塊有用的磚 🧰'
     },
-    innovate: {
-      name: '首席創新官',
-      title: '首席顛覆官',
-      tagline: '圍繞當前主題的大膽動作。',
-      entryLine: '顛覆性轉折來了…',
-      exitLine: '已顛覆 🚀'
+    erlich: {
+      name: 'Erlich Bachman',
+      title: '創辦人 — 駭客旅舍',
+      tagline: '大膽轉向，由我親自昇華。',
+      entryLine: '我問你一個問題…',
+      exitLine: '已昇華。不客氣 🕶'
     },
     goMad: {
       name: '爛圖建築師',
@@ -59,7 +59,7 @@ export const SLOPITECT_ZH_TW = {
   },
   VARIANT_TAGLINES: {
     refine: '爛圖建築師：工程師擴展構建',
-    innovate: '爛圖建築師：首席創新官提出大膽方案',
+    erlich: '爛圖建築師：Erlich Bachman 提出大膽方案',
     goMad: '爛圖建築師：天才放飛 🚨',
     critique: '爛圖建築師：協同設計合規評審',
     explain: '爛圖建築師：協同設計故事會',
@@ -68,7 +68,7 @@ export const SLOPITECT_ZH_TW = {
   },
   VARIANT_BOOT_HEADLINES: {
     refine: '正在設計下一個有用步驟…',
-    innovate: '首席創新官正在推銷大膽轉折…',
+    erlich: 'Erlich Bachman 正在親自昇華…',
     goMad: '砰！爛圖建築師來了',
     critique: '協同設計評審即將開始',
     explain: '協同設計故事會 — 圍過來',
@@ -76,7 +76,7 @@ export const SLOPITECT_ZH_TW = {
   },
   ACTION_PERSONA_SHORT_NAMES: {
     refine: '工程師',
-    innovate: '創新官',
+    erlich: 'Erlich',
     explain: '架構師'
   },
   ...SLOPITECT_GAMIFICATION_ZH_TW

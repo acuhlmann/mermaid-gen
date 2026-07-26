@@ -4,7 +4,7 @@ import { PersonaFace } from './personaFaces/index.jsx';
 
 const VARIANT_CLASS = {
   refine: 'is-refine',
-  innovate: 'is-innovate',
+  erlich: 'is-erlich',
   goMad: 'is-go-mad',
   critique: 'is-critique',
   explain: 'is-explain'

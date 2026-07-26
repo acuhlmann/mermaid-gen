@@ -45,7 +45,7 @@ advisor seat) and `SENIOR_STAKEHOLDERS` (his tier), and `ciso` in `OFFICE_COLLEA
 
 | Tier       | Who                                                      | How they reach you                                                                                                                                     |
 | ---------- | -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **team**   | refine, innovate, goMad, critique, explain               | Proactive roundtable (`ADVISOR_ORDER`) + the agent actions. Your collaborators.                                                                        |
+| **team**   | refine, erlich, goMad, critique, explain                 | Proactive roundtable (`ADVISOR_ORDER`) + the agent actions. Your collaborators.                                                                        |
 | **senior** | barker (Jack), ciso (Sasha), cto (Marcus), cfo (Diane)   | Steering meetings + ≤1 high-stakes email/session. Never ambient pings. Barker also holds the 6th radial seat — summoned only, never in the roundtable. |
 | **office** | intern, scrumMaster, helpdesk, facilities, hr, greybeard | Emails, IMs, walk-bys, coffee, battles. The floor around you.                                                                                          |
 
@@ -75,7 +75,8 @@ leadership pinging your desk.
 > voice, while keeping his senior-tier trappings (steering meetings, one rare email). Status:
 > **local experiment** — if this cast ever ships to the public deployment, decide first whether
 > the named cast keeps the real names or moves to legally-distinct aliases. The program is locked
-> for the full SV roster: Erlich → `innovate`, Gilfoyle → `refine` (→ `gilfoyle`), Dinesh → a new
+> for the full SV roster: Erlich → `innovate` (→ `erlich`, shipped 2026-07-27), Gilfoyle →
+> `refine` (→ `gilfoyle`), Dinesh → a new
 > seventh engineer seat (`dinesh`, refine-class), Jared → `critique` (→ `jared`), Russ → `goMad`,
 > Richard → `explain` (→ `richard`, comment-only), and a full **Gavin Belson** replication
 > replacing Marcus (`cto` → `belson`). Program status (the single source of truth for what's

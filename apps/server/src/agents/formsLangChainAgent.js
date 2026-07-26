@@ -105,8 +105,8 @@ export function buildFormsTransformUserContent({ mode, currentDoc, goMadDepth, a
   const modeInstructions = {
     refine:
       'Refine the current form — keep the same intake step but sharpen the copy, tighten the layout, and make the absurdity land harder. Keep the fields and structure.',
-    innovate:
-      'Innovate on the current form — same bureaucratic subject, a different form structure or gimmick. You may restructure freely.',
+    erlich:
+      'Elevate the current form — same bureaucratic subject, a different form structure or gimmick worthy of a visionary. You may restructure freely.',
     goMad: `Go mad on this form — escalate the bureaucracy (depth ${goMadDepth ?? 1}). More sections, more mandatory attestations, more self-cancelling rules, nested sub-forms via Cards and Tabs. Still a working, submittable form.`,
     barker:
       'Take the liberty of executing the requested change tightly. No additions beyond the implied scope.'

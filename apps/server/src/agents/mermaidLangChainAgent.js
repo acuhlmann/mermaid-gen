@@ -335,7 +335,7 @@ export function buildDiagramMutationSystemMessage() {
  * first agent turn — so common foot-guns (style A,B,C; reserved words; ER attr order; classDef on
  * [*]) are warned against on initial generation, not only after a parse failure.
  *
- * For modes that may switch diagram type (innovate / goMad), the rules are marked advisory so the
+ * For modes that may switch diagram type (erlich / goMad), the rules are marked advisory so the
  * agent doesn't anchor on the wrong type.
  *
  * Exported for tests.
@@ -348,7 +348,7 @@ export function buildSyntaxGuidanceSystemMessage({ stateStore, mode }) {
   const detected = inferDiagramType(source);
   if (!detected) return null;
   const rulePack = getRulePack(detected);
-  const mayChangeType = mode === 'innovate' || mode === 'goMad';
+  const mayChangeType = mode === 'erlich' || mode === 'goMad';
   const lead = mayChangeType
     ? `Active diagram type: ${detected}. The rules below apply IF you keep this type. If you switch types (allowed in this mode), the rules below no longer apply — use the target type's syntax instead.`
     : `Active diagram type: ${detected}. Apply these rules when generating the patch (don't wait for a parser failure):`;
@@ -883,7 +883,7 @@ export function createMermaidLangChainAgent({
   /** Prompt-bar Go (`applyIntent`) and generic `invoke` — does not use transform/Go Mad sampling. */
   const getDefaultAgent = cache.getDefaultAgent;
 
-  /** Shape buttons Refine / Innovate / Go Mad / Align — hotter tiers apply only to Go Mad via `goMadTransformModelOptions`. */
+  /** Shape buttons Refine / Erlich / Go Mad / Align — hotter tiers apply only to Go Mad via `goMadTransformModelOptions`. */
   function getTransformAgent(mode, profile = 'fast', goMadDepth) {
     const safeMode = isTransformMode(mode) ? mode : 'refine';
     return cache.getTransformAgent(safeMode, profile, goMadDepth);
@@ -1001,7 +1001,7 @@ ${prompt}${focusScope}`,
             mode,
             profile: normalizeModelProfile(modelProfile),
             modelLabel: resolveModelLabel(modelProfile),
-            // Hot Go Mad (and Innovate at temp 0.82) agents can produce prose-without-patch or
+            // Hot Go Mad (and Erlich at temp 0.82) agents can produce prose-without-patch or
             // high-entropy token soup at deeper tiers. Fall back to the stable fast non-transform
             // agent for the patch_retry turn so we're not just rolling the same dice twice.
             stableAgent: getDefaultAgent('fast'),

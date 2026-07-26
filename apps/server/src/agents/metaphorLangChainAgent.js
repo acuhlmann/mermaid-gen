@@ -88,8 +88,8 @@ function buildTransformUserContent({ mode, currentDsl, goMadDepth }) {
   const modeInstructions = {
     refine:
       'Refine the current metaphor — improve labels, balance magnitudes, tighten the spatial story. Keep the same metaphor type.',
-    innovate:
-      'Innovate on the current metaphor — try a different metaphor type or a fresh angle on the subject. You may switch metaphors.',
+    erlich:
+      'Elevate the current metaphor — try a different metaphor type or a fresh angle on the subject, bolder than anyone asked for. You may switch metaphors.',
     goMad: `Go mad on this metaphor — push the spatial story further (depth ${goMadDepth ?? 1}). Exaggerate, recombine, surprise.`,
     barker:
       'Take the liberty of executing the requested change tightly. No additions beyond the implied scope.'

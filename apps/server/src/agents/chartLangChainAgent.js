@@ -103,8 +103,8 @@ export function buildChartTransformUserContent({
   const modeInstructions = {
     refine:
       'Refine the current chart — improve mark choice, encoding clarity, color accessibility, and data ordering. Keep the same data and chart family unless a small swap clearly serves the story.',
-    innovate:
-      'Innovate on the current chart — try a different mark/encoding combination or reshape the data presentation. You may switch chart families.',
+    erlich:
+      'Elevate the current chart — try a different mark/encoding combination or reshape the data presentation with founder-grade boldness. You may switch chart families.',
     goMad: `Go mad on this chart — push the data viz further (depth ${goMadDepth ?? 1}). Layered marks, faceted views, exaggerated encodings.`,
     barker:
       'Take the liberty of executing the requested change tightly. No additions beyond the implied scope.'

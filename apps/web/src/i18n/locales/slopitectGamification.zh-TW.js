@@ -12,17 +12,19 @@ export const SLOPITECT_GAMIFICATION_ZH_TW = {
       '再加一塊。對的那一塊。',
       '日積月累，自然成形。'
     ],
-    innovate: [
-      '如果我們把這個再推進一步呢？',
-      '這裡藏著一個更大膽的形狀。',
-      '故意多走半步。',
-      '同一個主題，換個新角度。',
-      '重新框架，再重新繪製。',
-      '兩個想法，一張畫布——試試看。',
-      '推邊界案例，看看會掉出什麼。',
-      '顛覆，或被顛覆。',
-      '這裡可以放一個飛輪。',
-      '這感覺像 B 輪融資的氣場。'
+    erlich: [
+      '這張圖基本上是我發明的。',
+      '我問你一個問題。',
+      '改變世界就是這麼做的。',
+      '這裡藏著一個更大膽的形狀。永遠都有。對我來說。',
+      '就當這是我親自昇華過的。',
+      '願景是一份全職工作。我的。',
+      '只揮大棒。我從不輕推。',
+      '這個轉向是顯而易見的。對我而言。',
+      '不客氣，提前說。',
+      '歷史會引用這場會議。',
+      '所有重要的人都是我帶出來的。',
+      '顛覆，或被顛覆——我選擇顛覆。顯然。'
     ],
     goMad: [
       '如果這個東西有十二個呢',
@@ -87,7 +89,7 @@ export const SLOPITECT_GAMIFICATION_ZH_TW = {
   PHASE_CEREMONIES: {
     analyze: {
       refine: '閱讀圖表中……',
-      innovate: '評估轉型範圍……',
+      erlich: '正在尋找更大膽的形狀……',
       goMad: '用眼神掃描爛圖 👀',
       critique: '打開 JIRA……',
       explain: '沉思圖表中……',
@@ -95,7 +97,7 @@ export const SLOPITECT_GAMIFICATION_ZH_TW = {
     },
     analyze_stream: {
       refine: '草擬下一步中……',
-      innovate: '衝入董事會室……',
+      erlich: '正在為轉向做主題演講……',
       goMad: '對著它大吼 📣',
       critique: '起草調查結果……',
       explain: '撰寫史詩……',
@@ -103,7 +105,7 @@ export const SLOPITECT_GAMIFICATION_ZH_TW = {
     },
     intent: {
       refine: '對齊意圖……',
-      innovate: '對齊意圖……',
+      erlich: '正在對齊願景……',
       goMad: '跳過會議',
       critique: '引用 SOC 2 控制項',
       explain: '對齊意圖……',
@@ -111,7 +113,7 @@ export const SLOPITECT_GAMIFICATION_ZH_TW = {
     },
     agent_run: {
       refine: '工程化下一個部分……',
-      innovate: '提案大膽行動……',
+      erlich: '正在親自昇華……',
       goMad: '對你的主題發瘋中',
       critique: '歸檔工單……',
       explain: '為架構添加注解……',
@@ -119,7 +121,7 @@ export const SLOPITECT_GAMIFICATION_ZH_TW = {
     },
     transform: {
       refine: '添加有用的部分……',
-      innovate: '重塑版面配置……',
+      erlich: '正在昇華版面配置……',
       goMad: '添加美妙奇異的事物 🔥',
       critique: '紅筆標註版面配置中……',
       explain: '追溯重塑過程……',
@@ -127,7 +129,7 @@ export const SLOPITECT_GAMIFICATION_ZH_TW = {
     },
     run_started: {
       refine: '啟動中……',
-      innovate: '啟動中……',
+      erlich: '我問你一個問題……',
       goMad: '好了現在等等 🪖',
       critique: '稽查員進場……',
       explain: '清清喉嚨……',
@@ -135,7 +137,7 @@ export const SLOPITECT_GAMIFICATION_ZH_TW = {
     },
     planning: {
       refine: '起草差異清單……',
-      innovate: '起草差異清單……',
+      erlich: '正在起草主題演講……',
       goMad: '對圖表丟飛鏢 🎯',
       critique: '建構發現大綱……',
       explain: '起草章節計畫……',
@@ -143,7 +145,7 @@ export const SLOPITECT_GAMIFICATION_ZH_TW = {
     },
     syntax_fixer: {
       refine: '修復語法……',
-      innovate: '修復語法……',
+      erlich: '正在修復語法，才華洋溢……',
       goMad: '用膠帶把它黏回去',
       critique: '修復語法——稽核軌跡已更新……',
       explain: '潤飾粗糙段落……',
@@ -151,7 +153,7 @@ export const SLOPITECT_GAMIFICATION_ZH_TW = {
     },
     syntax_repair: {
       refine: '再次修復語法……',
-      innovate: '再次修復語法……',
+      erlich: '再次修復語法，依然才華洋溢……',
       goMad: '再多一點膠帶',
       critique: '重新開啟語法發現……',
       explain: '修訂粗糙草稿……',
@@ -159,7 +161,7 @@ export const SLOPITECT_GAMIFICATION_ZH_TW = {
     },
     style: {
       refine: '調整調色盤……',
-      innovate: '重塑樣式以提升衝擊力……',
+      erlich: '正在為主題演講重塑樣式……',
       goMad: '混亂配色方案 🔥',
       critique: '標記對比度違規……',
       explain: '講述這種色調的歷史……',
@@ -167,7 +169,7 @@ export const SLOPITECT_GAMIFICATION_ZH_TW = {
     },
     patch_retry: {
       refine: '等待 CAB 核准……',
-      innovate: '等待 CAB 核准……',
+      erlich: '等待董事會核准……',
       goMad: '賄賂 CAB',
       critique: '等待重新審查簽核……',
       explain: '再做一輪……',
@@ -175,7 +177,7 @@ export const SLOPITECT_GAMIFICATION_ZH_TW = {
     },
     invoke: {
       refine: '修補正式環境 🛠',
-      innovate: '出貨了 🚀',
+      erlich: '正在昇華 🕶',
       goMad: '點燃大樓 🔥',
       critique: '記錄生成工單……',
       explain: '敘述草稿……',
@@ -183,7 +185,7 @@ export const SLOPITECT_GAMIFICATION_ZH_TW = {
     },
     invoke_fallback: {
       refine: '緊急修補飛行中……',
-      innovate: '緊急修補飛行中……',
+      erlich: '轉向飛行中……',
       goMad: '我們轉型了',
       critique: '歸檔備用發現……',
       explain: '優雅地結束本章……',
@@ -191,7 +193,7 @@ export const SLOPITECT_GAMIFICATION_ZH_TW = {
     },
     repair_1: {
       refine: '緊急修補飛行中……',
-      innovate: '緊急修補飛行中……',
+      erlich: '願景修復飛行中……',
       goMad: '更多安全帽！ 🪖🪖',
       critique: '升級至 P1 修復……',
       explain: '倒回羊皮紙……',
@@ -199,7 +201,7 @@ export const SLOPITECT_GAMIFICATION_ZH_TW = {
     },
     repair_2: {
       refine: '第二次緊急修補飛行中……',
-      innovate: '第二次緊急修補飛行中……',
+      erlich: '第二次願景修復飛行中……',
       goMad: '更更多安全帽 🪖🪖🪖',
       critique: '二次升級——仍不合規……',
       explain: '修訂註腳……',
@@ -252,10 +254,10 @@ export const SLOPITECT_GAMIFICATION_ZH_TW = {
       title: '👷 首席工程師',
       subtitle: '十次有效擴充已出貨。場地歸你了。'
     },
-    innovate: {
-      id: 'serialDisruptor',
-      title: '⚡ 連環創新者',
-      subtitle: '十次大膽的主題轉型。C 級高管的料。'
+    erlich: {
+      id: 'tenPercentLegend',
+      title: '🕶 百分之十的傳奇',
+      subtitle: '已親自昇華十次大膽轉向。孵化器認可。'
     },
     goMad: {
       id: 'distinguishedChaos',
@@ -350,10 +352,10 @@ export const SLOPITECT_GAMIFICATION_ZH_TW = {
       title: '👷 首席工程師',
       subtitle: '十次有效擴充已出貨。場地歸你了。'
     },
-    innovate: {
-      id: 'serialDisruptor',
-      title: '⚡ 連環創新者',
-      subtitle: '十次大膽的主題轉型。C 級高管的料。'
+    erlich: {
+      id: 'tenPercentLegend',
+      title: '🕶 百分之十的傳奇',
+      subtitle: '已親自昇華十次大膽轉向。孵化器認可。'
     },
     goMad: {
       id: 'distinguishedChaos',

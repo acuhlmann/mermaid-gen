@@ -17,7 +17,7 @@ const SURFACE_LATCH_MS = 1200;
 
 const VARIANT_CLASS = {
   refine: 'is-refine',
-  innovate: 'is-innovate',
+  erlich: 'is-erlich',
   goMad: 'is-go-mad',
   critique: 'is-critique',
   explain: 'is-explain',
@@ -26,7 +26,7 @@ const VARIANT_CLASS = {
 
 const ACTION_LABEL = {
   refine: 'Refine',
-  innovate: 'Innovate',
+  erlich: 'Erlich',
   goMad: 'Go Mad',
   critique: 'Critique',
   explain: 'Explain',

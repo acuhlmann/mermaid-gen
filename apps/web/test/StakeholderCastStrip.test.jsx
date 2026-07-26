@@ -3,7 +3,7 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import StakeholderCastStrip from '../src/components/StakeholderCastStrip.jsx';
 
-const CAST = ['refine', 'innovate', 'goMad', 'barker', 'critique', 'explain'];
+const CAST = ['refine', 'erlich', 'goMad', 'barker', 'critique', 'explain'];
 
 describe('StakeholderCastStrip', () => {
   afterEach(() => cleanup());
@@ -13,7 +13,7 @@ describe('StakeholderCastStrip', () => {
     expect(screen.getByText('Your Team')).toBeTruthy();
     expect(screen.getByLabelText(/Jack Barker is one of 6 teammates/i)).toBeTruthy();
     expect(screen.getByTitle('THE Engineer')).toBeTruthy();
-    expect(screen.getByTitle('Chief Innovation Officer')).toBeTruthy();
+    expect(screen.getByTitle('Erlich Bachman')).toBeTruthy();
   });
 
   it('renders nothing for a single-persona cast', () => {

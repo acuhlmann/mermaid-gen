@@ -21,12 +21,12 @@ export const SLOPITECT_EN_AU = {
       entryLine: 'Engineering the next step…',
       exitLine: 'Shipped a useful bit 🧰'
     },
-    innovate: {
-      name: 'Chief Innovation Officer',
-      title: 'Disruptor at Large',
-      tagline: 'Courageous moves on the subject at hand. Have a crack.',
-      entryLine: 'Pivot incoming…',
-      exitLine: 'Disrupted 🚀'
+    erlich: {
+      name: 'Erlich Bachman',
+      title: 'Founder, Hacker Hostel',
+      tagline: 'Courageous pivots, graciously elevated. Have a crack.',
+      entryLine: 'Let me ask you this…',
+      exitLine: 'Elevated. You’re welcome 🕶'
     },
     goMad: {
       name: 'THE SLOPITECT',
@@ -59,7 +59,7 @@ export const SLOPITECT_EN_AU = {
   },
   VARIANT_TAGLINES: {
     refine: 'Slopitect: THE Engineer extends the build',
-    innovate: 'Slopitect: CIO pitches the bold move',
+    erlich: 'Slopitect: Erlich Bachman pitches the bold move',
     goMad: 'Slopitect: GENIUS LOOSE 🚨',
     critique: 'Slopitect: Co-Design compliance review',
     explain: 'Slopitect: Co-Design story time',
@@ -68,7 +68,7 @@ export const SLOPITECT_EN_AU = {
   },
   VARIANT_BOOT_HEADLINES: {
     refine: 'Engineering the next useful step…',
-    innovate: 'CIO pitching the bold pivot…',
+    erlich: 'Erlich Bachman is graciously elevating…',
     goMad: 'BONK! THE SLOPITECT IS HERE',
     critique: 'CO-DESIGN REVIEW INCOMING',
     explain: 'Co-Design story time — gather round',
@@ -76,7 +76,7 @@ export const SLOPITECT_EN_AU = {
   },
   ACTION_PERSONA_SHORT_NAMES: {
     refine: 'Engineer',
-    innovate: 'Innovator',
+    erlich: 'Erlich',
     explain: 'Architect'
   },
   ...SLOPITECT_GAMIFICATION_EN_AU

@@ -1,6 +1,6 @@
 import { countMermaidGraphElements, inferMermaidTopKeyword } from './mermaidGraphMetrics.js';
 
-const TRANSFORM_MODES = new Set(['refine', 'innovate', 'goMad', 'barker']);
+const TRANSFORM_MODES = new Set(['refine', 'erlich', 'goMad', 'barker']);
 
 const BARKER_MAX_NODES = 8;
 const BARKER_MAX_EDGES = 10;
@@ -107,17 +107,17 @@ export function validateMermaidTransformConstraint(opts: {
     return { ok: true };
   }
 
-  if (mode === 'innovate') {
+  if (mode === 'erlich') {
     if (afterGraph.nodes > beforeGraph.nodes + 10) {
       return {
         ok: false,
-        error: `Innovate may add at most 10 nodes (had ${beforeGraph.nodes}, now ${afterGraph.nodes}).`
+        error: `Erlich may add at most 10 nodes (had ${beforeGraph.nodes}, now ${afterGraph.nodes}).`
       };
     }
     if (afterGraph.edges > beforeGraph.edges + 14) {
       return {
         ok: false,
-        error: `Innovate may add at most 14 edges (had ${beforeGraph.edges}, now ${afterGraph.edges}).`
+        error: `Erlich may add at most 14 edges (had ${beforeGraph.edges}, now ${afterGraph.edges}).`
       };
     }
     return { ok: true };

@@ -101,7 +101,7 @@ The endless-forms loop:
 
 Mode notes:
 - Refine: keep the same form but sharpen the copy, tighten the layout, make the absurdity land harder, and add a cross-reference if one is missing.
-- Innovate: same bureaucratic subject, a different form structure or gimmick.
+- Erlich: same bureaucratic subject, a different form structure or gimmick.
 - Go Mad: escalate the bureaucracy — more sections, more mandatory attestations, more self-cancelling rules and cross-references, nested sub-forms via Cards and Tabs.
 - Exec: make the requested change tightly.
 - Critique / Explain: respond in prose; do NOT call apply_forms_patch.

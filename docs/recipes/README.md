@@ -7,7 +7,7 @@ Step-by-step playbooks for recurring changes. Each recipe names the files to tou
 | [add-content-type-slot.md](add-content-type-slot.md)   | Adding a new diagram slot (`contentType`) end-to-end                                                   |
 | [add-mcp-tool.md](add-mcp-tool.md)                     | Exposing a new tool to external agents (Cursor/Claude/VS Code) over MCP                                |
 | [add-rule-pack.md](add-rule-pack.md)                   | Adding a new Mermaid or Infographic diagram-type rule pack                                             |
-| [add-intent-variant.md](add-intent-variant.md)         | Adding a new transform mode (like Refine / Innovate / Go Mad)                                          |
+| [add-intent-variant.md](add-intent-variant.md)         | Adding a new transform mode (like Refine / Erlich / Go Mad)                                            |
 | [add-agent-stream-event.md](add-agent-stream-event.md) | Wiring a new AG-UI custom event through emitter → route → web handler                                  |
 | [add-session-event.md](add-session-event.md)           | Adding a new collaboration event (presence/proposal/handshake-style) on the session-events SSE         |
 | [change-diagram-schema.md](change-diagram-schema.md)   | Changing Zod session/diagram/patch shapes in `packages/shared`                                         |

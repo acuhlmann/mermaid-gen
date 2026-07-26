@@ -14,8 +14,8 @@ test('refine instructions require keeping template', () => {
   assert.match(INFOGRAPHIC_TRANSFORM_INSTRUCTIONS.refine, /at most 2 new items/i);
 });
 
-test('innovate prefers current template first', () => {
-  assert.match(INFOGRAPHIC_TRANSFORM_INSTRUCTIONS.innovate, /CURRENT template/i);
+test('erlich prefers current template first', () => {
+  assert.match(INFOGRAPHIC_TRANSFORM_INSTRUCTIONS.erlich, /CURRENT template/i);
 });
 
 test('goMad tier 1 escalation keeps template', () => {

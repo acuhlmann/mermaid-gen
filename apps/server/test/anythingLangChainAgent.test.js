@@ -25,8 +25,8 @@ test('buildAnythingTransformUserContent prefers targeted edits for refine and ba
   }
 });
 
-test('buildAnythingTransformUserContent keeps full rewrites for innovate and goMad', () => {
-  for (const mode of ['innovate', 'goMad']) {
+test('buildAnythingTransformUserContent keeps full rewrites for erlich and goMad', () => {
+  for (const mode of ['erlich', 'goMad']) {
     const body = buildAnythingTransformUserContent({ mode, currentHtml: HTML });
     assert.match(body, /Call apply_anything_patch with the full HTML document\./);
     assert.doesNotMatch(body, /Prefer apply_anything_edit/);

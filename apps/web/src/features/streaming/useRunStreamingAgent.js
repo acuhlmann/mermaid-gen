@@ -19,9 +19,9 @@ import {
   playGoMadKlaxonLoop,
   playGoMadStreamStart,
   playGoMadTokenTick,
-  playInnovateStreamStart,
-  playInnovateSynthLoop,
-  playInnovateTokenTick,
+  playErlichStreamStart,
+  playErlichSynthLoop,
+  playErlichTokenTick,
   playPhaseChangePluck,
   playRefinePolishLoop,
   playRefineStreamStart,
@@ -138,7 +138,7 @@ export function useRunStreamingAgent({
         autoCloseActiveEntryIdRef.current = sectionId;
       }
       if (variant === 'goMad') tryAgentSound(playGoMadStreamStart);
-      else if (variant === 'innovate') tryAgentSound(playInnovateStreamStart);
+      else if (variant === 'erlich') tryAgentSound(playErlichStreamStart);
       else if (variant === 'refine') tryAgentSound(playRefineStreamStart);
       else tryAgentSound(playStreamStartChime);
       lastTokenSoundAtRef.current = 0;
@@ -171,11 +171,11 @@ export function useRunStreamingAgent({
           playFailureChime,
           playPhaseChangePluck,
           playRefineTokenTick,
-          playInnovateTokenTick,
+          playErlichTokenTick,
           playCritiqueTokenTick,
           playExplainTokenTick,
           playRefinePolishLoop,
-          playInnovateSynthLoop,
+          playErlichSynthLoop,
           playGoMadKlaxonLoop,
           playGoMadAirhornBlast,
           playCritiqueScribbleLoop,

@@ -77,13 +77,13 @@ describe('submitDiagramTransform', () => {
       };
 
       await submitDiagramTransform({
-        mode: 'innovate',
+        mode: 'erlich',
         revisionId: 0,
         diagramSource: 'flowchart TD\n  Start[Start] --> EndNode[End]'
       });
 
       const sent = JSON.parse(requestBody);
-      expect(sent.mode).toBe('innovate');
+      expect(sent.mode).toBe('erlich');
       expect(sent.revisionId).toBe(0);
       expect(sent.modelProfile).toBeUndefined();
     } finally {

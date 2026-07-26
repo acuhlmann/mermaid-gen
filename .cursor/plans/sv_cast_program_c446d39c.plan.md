@@ -10,7 +10,7 @@ todos:
     status: completed
   - id: erlich
     content: 'Session: Erlich inherits innovate (voice card, harness, seat-inheritance drill)'
-    status: pending
+    status: completed
   - id: gilfoyle
     content: 'Session: Gilfoyle inherits refine → gilfoyle id'
     status: pending
@@ -41,16 +41,16 @@ isProject: false
 
 Named-replication fidelity for every SV character (same bar as Jack Barker: voice card → fidelity harness ≥4/5 sustained → seat wire-in). Invented office comedy (Pam, Linda, Chad, Dave, Gary, Ulrich, Sasha, Diane) stays unless a session explicitly re-voices it.
 
-| Tier        | Seat / id             | Character         | Behavior contract (unchanged skeleton)                                                                                                                    |
-| ----------- | --------------------- | ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| team        | `goMad`               | Russ Hanneman     | Outrageous subject-rooted escalation; innuendo not explicit profanity                                                                                     |
-| team        | `innovate`            | Erlich Bachman    | Courageous structural pivots; incubator swagger                                                                                                           |
-| team        | `refine` → `gilfoyle` | Bertram Gilfoyle  | Always-actionable small incremental extensions                                                                                                            |
-| team        | **new** `dinesh`      | Dinesh Chugtai    | Refine-class engineer (clone refine budgets/temps); competitive one-upmanship voice; floor desk adjacent to Gilfoyle                                      |
-| team        | `critique` → `jared`  | Jared Dunn        | Findings-only Auditor; anxious compliance                                                                                                                 |
-| team        | `explain` → `richard` | Richard Hendricks | Wise Architect: comment-only pattern/lore (no autonomous “deep work” production — ADR-0010); genius reads as over-specific insight, not a second Innovate |
-| team+senior | `barker`              | Jack Barker       | Already shipped                                                                                                                                           |
-| senior      | `cto` → `belson`      | Gavin Belson      | Replaces Marcus; steering + ≤1 email/session; named replication (not homage)                                                                              |
+| Tier        | Seat / id             | Character         | Behavior contract (unchanged skeleton)                                                                                                                  |
+| ----------- | --------------------- | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| team        | `goMad`               | Russ Hanneman     | Outrageous subject-rooted escalation; innuendo not explicit profanity                                                                                   |
+| team        | `innovate` → `erlich` | Erlich Bachman    | Courageous structural pivots; incubator swagger — **shipped**                                                                                           |
+| team        | `refine` → `gilfoyle` | Bertram Gilfoyle  | Always-actionable small incremental extensions                                                                                                          |
+| team        | **new** `dinesh`      | Dinesh Chugtai    | Refine-class engineer (clone refine budgets/temps); competitive one-upmanship voice; floor desk adjacent to Gilfoyle                                    |
+| team        | `critique` → `jared`  | Jared Dunn        | Findings-only Auditor; anxious compliance                                                                                                               |
+| team        | `explain` → `richard` | Richard Hendricks | Wise Architect: comment-only pattern/lore (no autonomous “deep work” production — ADR-0010); genius reads as over-specific insight, not a second Erlich |
+| team+senior | `barker`              | Jack Barker       | Already shipped                                                                                                                                         |
+| senior      | `cto` → `belson`      | Gavin Belson      | Replaces Marcus; steering + ≤1 email/session; named replication (not homage)                                                                            |
 
 **Dual-home comedy:** Gilfoyle and Dinesh remain eligible for cubicle battles / office distraction set pieces (same pattern as Barker living in senior + advisor). Team seats stay non-claimable as Acting roles.
 
@@ -62,7 +62,7 @@ Named-replication fidelity for every SV character (same bar as Jack Barker: voic
 flowchart LR
   subgraph team [Team advisors]
     Russ[goMad Russ]
-    Erlich[innovate Erlich]
+    Erlich[erlich Erlich]
     Gilfoyle[gilfoyle refine-class]
     Dinesh[dinesh refine-class]
     Jared[critique Jared]
@@ -93,7 +93,8 @@ Canonical playbook: [`docs/recipes/replicate-tv-character.md`](docs/recipes/repl
 **Recommended session order** (risk / dependency):
 
 1. **Program lock** (this plan’s doc pass) — update recipe status board + Endgame to the table above; note seventh seat + Belson; no character wire yet.
-2. **Erlich → `innovate`** — medium voice risk; proves seat-inheritance again on a transform seat.
+2. **Erlich → `innovate` → `erlich`** ✅ — medium voice risk; proved seat-inheritance again on a
+   transform seat.
 3. **Gilfoyle → `refine`/`gilfoyle`** — establishes the engineer pod.
 4. **Dinesh seat** — new refine-class mode + floor adjacency + battle eligibility; depends on Gilfoyle existing so banter has a target.
 5. **Jared → `critique`** — analyze-path seat; anxious Auditor.
@@ -128,3 +129,32 @@ When you run `/to-spec` later: one GitHub epic issue for the program + one `read
 - Gilfoyle–Dinesh pod reads as a pair on the floor and still appears in occasional battles.
 - Marcus is gone from user-visible cast; Belson is unmistakably Belson in meetings/email.
 - Recipe status board is the single source of truth for “what’s left.”
+
+## Progress log
+
+- **2026-07-26 — Session 0 (doc-lock) ✅.** Recipe status board + Endgame and
+  `docs/office-parody.md` cast notes now reflect the locked map (7th engineer seat, Belson,
+  Richard=explain). Committed on main.
+- **2026-07-26 — Harness ✅.** `scripts/barker-fidelity.mjs` generalized: `CHARACTER_PROFILES`
+  registry, CLI `[characterId] [--no-judge] [--list]`, `seniorEmail`/`advisor` surface gates.
+  Barker rubric byte-identical post-refactor; judged regression run **4.20/5** (meeting 4.3,
+  interject 3.5/4.3, email 4.5, advisor 4.5).
+- **2026-07-27 — Session: Erlich ✅** on branch `feat/erlich-innovate-seat`. The `innovate` seat is
+  retired; `erlich` inherits it wholesale — wire enum (`TransformModeSchema`), both transform
+  policies, `OFFICE_SPEAKER_IDS`, all server persona/prompt blocks, TTS re-authored to male voices
+  (`Wavenet-I`/`-B`, Chirp3 `Fenrir`), and the full web surface (radial, hotkey `I`→`L`, XP
+  variant, mascot, floor desk, faces, chimes, ~34 recoloured CSS blocks purple `#9333ea` → orange
+  `#ea580c`) plus all four i18n bundles. Identity: **Erlich Bachman · Founder, Hacker Hostel · 🕶**.
+  - **Fidelity.** Meeting card (pre-drill): 4.17 → 4.00 → 4.33 → **4.58**. With the advisor probe
+    enabled: 4.19 → 4.25 → 4.31 → 4.31 → 3.63 → **4.50 → 4.31 (sustained ≥4 ×2)**.
+  - Two real card defects the harness caught, both fixed: (a) advisor examples written on the
+    harness's own pizza subject were parroted back verbatim — moved off-subject and given the
+    house "don't copy" guard; (b) at 3.63 Erlich _agreed_ with "ship it" ("minimum viable pizza"),
+    so the meeting card now makes endorsing velocity-over-vision flatly out of character.
+  - Verified: shared 337/337, server 598/598, web 1322/1322, both typechecks, `npm run precommit`
+    exit 0, and a live in-process transform (`mode: erlich`, accepted first-try, 0 repairs, shared
+    erlich policy `ok`).
+- **Next: Gilfoyle session** — inherits `refine` → `gilfoyle`, establishing the engineer pod.
+  Same drill: add his harness profile + `STAKEHOLDER_MEETING_VOICES.gilfoyle` card → tune to ≥4/5
+  over two consecutive runs → §4b seat-inheritance drill on `refine` → flip `advisor: true`, tune
+  the advisor card → tests, `npm run precommit`, live smoke, fidelity report in the PR body.

@@ -219,7 +219,7 @@ export const MEETING_GROUP_PRESETS = [
     id: 'team',
     labelKey: 'groupTeam',
     titleKey: 'groupTeamTitle',
-    resolve: () => ['refine', 'innovate', 'goMad', 'critique', 'explain']
+    resolve: () => ['refine', 'erlich', 'goMad', 'critique', 'explain']
   },
   {
     id: 'steering',

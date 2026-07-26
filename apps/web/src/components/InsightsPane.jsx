@@ -59,7 +59,7 @@ import { formatLocale } from '../i18n/formatLocale.js';
 
 const SLOPITECT_VARIANT_CLASS = {
   refine: 'is-variant-refine',
-  innovate: 'is-variant-innovate',
+  erlich: 'is-variant-erlich',
   goMad: 'is-variant-go-mad',
   critique: 'is-variant-critique',
   explain: 'is-variant-explain',
@@ -145,7 +145,7 @@ function IconRefine() {
   );
 }
 
-function IconInnovate() {
+function IconErlich() {
   return (
     <svg
       className="insights-svg-icon"
@@ -198,7 +198,7 @@ function isAccentuatedInsightVariant(variant) {
     variant === 'critique' ||
     variant === 'explain' ||
     variant === 'refine' ||
-    variant === 'innovate' ||
+    variant === 'erlich' ||
     variant === 'goMad' ||
     variant === 'barker'
   );
@@ -388,7 +388,7 @@ function EntryStatusIcon({ status, variant }) {
     if (variant === 'critique') return <IconCritique />;
     if (variant === 'explain') return <IconExplain />;
     if (variant === 'refine') return <IconRefine />;
-    if (variant === 'innovate') return <IconInnovate />;
+    if (variant === 'erlich') return <IconErlich />;
     if (variant === 'goMad') return <IconGoMad />;
     return <IconSparkles />;
   }
@@ -522,22 +522,22 @@ function explainHeadingToneClass(headingText) {
   return 'insights-tone-explain-neutral';
 }
 
-function innovateHeadingToneClass(headingText) {
+function erlichHeadingToneClass(headingText) {
   const h = headingText.toLowerCase();
   if (h.includes('idea') || h.includes('concept') || h.includes('proposal'))
-    return 'insights-tone-innovate-spark';
+    return 'insights-tone-erlich-spark';
   if (h.includes('alternative') || h.includes('option') || h.includes('stretch'))
-    return 'insights-tone-innovate-alt';
+    return 'insights-tone-erlich-alt';
   if (h.includes('experiment') || h.includes('wildcard') || h.includes('wild card'))
-    return 'insights-tone-innovate-play';
+    return 'insights-tone-erlich-play';
   if (h.includes('risk') || h.includes('tradeoff') || h.includes('trade-off'))
-    return 'insights-tone-innovate-tradeoff';
-  return 'insights-tone-innovate-neutral';
+    return 'insights-tone-erlich-tradeoff';
+  return 'insights-tone-erlich-neutral';
 }
 
 function headingToneClass(headingText, variant = 'general') {
   if (variant === 'explain') return explainHeadingToneClass(headingText);
-  if (variant === 'innovate') return innovateHeadingToneClass(headingText);
+  if (variant === 'erlich') return erlichHeadingToneClass(headingText);
   const h = headingText.toLowerCase();
   if (h.includes('strength')) return 'insights-tone-strengths';
   if (h.includes('weakness') || h.includes('limit')) return 'insights-tone-weaknesses';
@@ -569,14 +569,13 @@ function sectionHeadingIconClass(toneClass) {
     return 'insights-section-icon is-explain-takeaways';
   if (toneClass === 'insights-tone-explain-neutral')
     return 'insights-section-icon is-explain-neutral';
-  if (toneClass === 'insights-tone-innovate-spark')
-    return 'insights-section-icon is-innovate-spark';
-  if (toneClass === 'insights-tone-innovate-alt') return 'insights-section-icon is-innovate-alt';
-  if (toneClass === 'insights-tone-innovate-play') return 'insights-section-icon is-innovate-play';
-  if (toneClass === 'insights-tone-innovate-tradeoff')
-    return 'insights-section-icon is-innovate-tradeoff';
-  if (toneClass === 'insights-tone-innovate-neutral')
-    return 'insights-section-icon is-innovate-neutral';
+  if (toneClass === 'insights-tone-erlich-spark') return 'insights-section-icon is-erlich-spark';
+  if (toneClass === 'insights-tone-erlich-alt') return 'insights-section-icon is-erlich-alt';
+  if (toneClass === 'insights-tone-erlich-play') return 'insights-section-icon is-erlich-play';
+  if (toneClass === 'insights-tone-erlich-tradeoff')
+    return 'insights-section-icon is-erlich-tradeoff';
+  if (toneClass === 'insights-tone-erlich-neutral')
+    return 'insights-section-icon is-erlich-neutral';
   if (toneClass === 'insights-tone-gomad-a') return 'insights-section-icon is-gomad-a';
   if (toneClass === 'insights-tone-gomad-b') return 'insights-section-icon is-gomad-b';
   if (toneClass === 'insights-tone-gomad-c') return 'insights-section-icon is-gomad-c';
@@ -822,7 +821,7 @@ function leadOpenerExtraClass(variant, accentuateSections, openerUsedRef) {
   const map = {
     explain: 'insights-explain-opener',
     refine: 'insights-refine-opener',
-    innovate: 'insights-innovate-opener',
+    erlich: 'insights-erlich-opener',
     goMad: 'insights-gomad-opener'
   };
   const extra = map[variant];
@@ -1070,7 +1069,7 @@ function renderRichContent(
 function AccentSectionTitleIcon({ variant }) {
   if (variant === 'explain') return <IconExplain />;
   if (variant === 'refine') return <IconRefine />;
-  if (variant === 'innovate') return <IconInnovate />;
+  if (variant === 'erlich') return <IconErlich />;
   if (variant === 'goMad') return <IconGoMad />;
   return null;
 }
@@ -1630,7 +1629,7 @@ export default function InsightsPane({
                         variant === 'explain' && accentuateSections ? 'is-explain-prose' : '',
                         explainProseGibberish ? 'is-gibberish' : '',
                         variant === 'refine' && accentuateSections ? 'is-refine-prose' : '',
-                        variant === 'innovate' && accentuateSections ? 'is-innovate-prose' : '',
+                        variant === 'erlich' && accentuateSections ? 'is-erlich-prose' : '',
                         variant === 'goMad' && accentuateSections ? 'is-gomad-prose' : ''
                       ]
                         .filter(Boolean)
@@ -1661,7 +1660,7 @@ export default function InsightsPane({
                           'is-shimmer',
                           variant === 'goMad' ? 'is-gomad-caret' : '',
                           variant === 'refine' ? 'is-refine-caret' : '',
-                          variant === 'innovate' ? 'is-innovate-caret' : '',
+                          variant === 'erlich' ? 'is-erlich-caret' : '',
                           variant === 'critique' ? 'is-critique-caret' : '',
                           variant === 'explain' ? 'is-explain-caret' : ''
                         ]

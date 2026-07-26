@@ -1325,14 +1325,14 @@ flowchart TB
     expect(screen.queryByText('Technical actions')).toBeNull();
   });
 
-  it('uses Innovation label, opener, and innovate tones for headings', () => {
+  it('uses Innovation label, opener, and erlich tones for headings', () => {
     const { container } = render(
       <InsightsPane
         entries={[
           {
             id: 'e-inn',
-            title: 'Innovate — diagram',
-            variant: 'innovate',
+            title: 'Erlich — diagram',
+            variant: 'erlich',
             status: 'done',
             content: 'Lead.\n\n## Core ideas\n\n- Stretch.',
             technicalActions: []
@@ -1343,9 +1343,9 @@ flowchart TB
     );
 
     expect(screen.getByText('Innovation')).toBeTruthy();
-    expect(container.querySelector('.insights-innovate-opener')).toBeTruthy();
+    expect(container.querySelector('.insights-erlich-opener')).toBeTruthy();
     expect(
-      container.querySelector('.insights-prose-section.insights-tone-innovate-spark')
+      container.querySelector('.insights-prose-section.insights-tone-erlich-spark')
     ).toBeTruthy();
   });
 

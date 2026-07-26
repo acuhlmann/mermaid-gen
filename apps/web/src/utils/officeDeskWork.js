@@ -50,9 +50,9 @@ export const OFFICE_DESK_WORK = {
     look: 'terminal',
     line: 'One useful next step. Then the next one. It does add up, eventually.'
   },
-  innovate: {
+  erlich: {
     look: 'slides',
-    line: 'Do not look at slide nine yet. Slide nine is a flywheel.'
+    line: 'Do not look at slide nine yet. Slide nine is where I change everything.'
   },
   goMad: {
     look: 'tabs',

@@ -44,7 +44,7 @@ export const OFFICE_VOICE_PROFILES = {
   greybeard: { pitch: 0.62, rate: 0.82, volume: 0.8 },
   ciso: { pitch: 0.84, rate: 0.9, volume: 0.76 },
   refine: { pitch: 0.9, rate: 0.95, volume: 0.8 },
-  innovate: { pitch: 1.12, rate: 1.06, volume: 0.85 },
+  erlich: { pitch: 0.98, rate: 1.06, volume: 0.9 },
   goMad: { pitch: 1.28, rate: 1.16, volume: 0.9 },
   critique: { pitch: 0.7, rate: 0.88, volume: 0.8 },
   explain: { pitch: 0.94, rate: 0.92, volume: 0.8 },

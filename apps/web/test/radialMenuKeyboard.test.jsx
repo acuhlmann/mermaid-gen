@@ -23,11 +23,11 @@ const DESCRIPTOR = {
 const ACTIONS = [
   { id: 'refine', label: 'Refine', icon: 'R', variant: 'refine', persona: 'THE Engineer' },
   {
-    id: 'innovate',
-    label: 'Innovate',
+    id: 'erlich',
+    label: 'Erlich',
     icon: 'I',
-    variant: 'innovate',
-    persona: 'Chief Innovation Officer'
+    variant: 'erlich',
+    persona: 'Erlich Bachman'
   },
   { id: 'critique', label: 'Critique', icon: 'C', variant: 'critique', persona: 'The Auditor' }
 ];
@@ -116,7 +116,7 @@ describe('RadialActionMenu keyboard navigation', () => {
     // Native <button> Enter/Space synthesizes click — assert via direct click.
     fireEvent.click(buttons[1]);
     expect(onActionPick).toHaveBeenCalledWith(
-      expect.objectContaining({ id: 'innovate' }),
+      expect.objectContaining({ id: 'erlich' }),
       DESCRIPTOR
     );
   });

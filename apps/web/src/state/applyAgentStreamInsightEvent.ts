@@ -26,7 +26,7 @@ import {
 } from '../utils/formatTechnicalActionDetail.js';
 
 const AUTO_DIAGRAM_CHANGE_HIGHLIGHT_PENDING_TIMEOUT_MS = 10000;
-const AUTO_DIAGRAM_HIGHLIGHT_VARIANTS = new Set(['intent', 'refine', 'innovate', 'goMad']);
+const AUTO_DIAGRAM_HIGHLIGHT_VARIANTS = new Set(['intent', 'refine', 'erlich', 'goMad']);
 
 function normalizeInsightTextForDedup(text: string | undefined): string {
   return (text ?? '').replace(/\s+/g, ' ').trim();
@@ -129,11 +129,11 @@ export type InsightEventContext = {
   playFailureChime?: () => void;
   playPhaseChangePluck?: () => void;
   playRefineTokenTick?: () => void;
-  playInnovateTokenTick?: (audioCtx: AudioContext, idx: number) => void;
+  playErlichTokenTick?: (audioCtx: AudioContext, idx: number) => void;
   playCritiqueTokenTick?: () => void;
   playExplainTokenTick?: () => void;
   playRefinePolishLoop?: () => void;
-  playInnovateSynthLoop?: () => void;
+  playErlichSynthLoop?: () => void;
   playGoMadKlaxonLoop?: () => void;
   playGoMadAirhornBlast?: () => void;
   playCritiqueScribbleLoop?: () => void;
@@ -203,11 +203,11 @@ export function applyAgentStreamInsightEvent(
     playFailureChime,
     playPhaseChangePluck,
     playRefineTokenTick,
-    playInnovateTokenTick,
+    playErlichTokenTick,
     playCritiqueTokenTick,
     playExplainTokenTick,
     playRefinePolishLoop,
-    playInnovateSynthLoop,
+    playErlichSynthLoop,
     playGoMadKlaxonLoop,
     playGoMadAirhornBlast,
     playCritiqueScribbleLoop,
@@ -282,8 +282,8 @@ export function applyAgentStreamInsightEvent(
       } else if (typeof playGoMadKlaxonLoop === 'function') {
         tryAgentSound(playGoMadKlaxonLoop);
       }
-    } else if (variant === 'innovate' && typeof playInnovateSynthLoop === 'function') {
-      if (Math.random() < 0.5) tryAgentSound(playInnovateSynthLoop);
+    } else if (variant === 'erlich' && typeof playErlichSynthLoop === 'function') {
+      if (Math.random() < 0.5) tryAgentSound(playErlichSynthLoop);
     } else if (variant === 'refine' && typeof playRefinePolishLoop === 'function') {
       if (Math.random() < 0.45) tryAgentSound(playRefinePolishLoop);
     } else if (variant === 'explain' && typeof playExplainPageFlipLoop === 'function') {
@@ -417,10 +417,10 @@ export function applyAgentStreamInsightEvent(
         tryAgentSound((audioCtx) => playGoMadTokenTick(audioCtx, idx));
       } else if (variant === 'refine' && typeof playRefineTokenTick === 'function') {
         tryAgentSound(playRefineTokenTick);
-      } else if (variant === 'innovate' && playInnovateTokenTick) {
+      } else if (variant === 'erlich' && playErlichTokenTick) {
         const idx = goMadTokenTickIndexRef.current;
         goMadTokenTickIndexRef.current = idx + 1;
-        tryAgentSound((audioCtx) => playInnovateTokenTick(audioCtx, idx));
+        tryAgentSound((audioCtx) => playErlichTokenTick(audioCtx, idx));
       } else if (variant === 'critique' && typeof playCritiqueTokenTick === 'function') {
         tryAgentSound(playCritiqueTokenTick);
       } else if (variant === 'explain' && typeof playExplainTokenTick === 'function') {

@@ -44,9 +44,9 @@ describe('runGamificationStore', () => {
     s = applyCompletedRun(s, { variant: 'refine', now: 3000 }).state;
     expect(s.streakByVariant.refine).toBe(3);
     // Switching to a different variant resets the prior streak.
-    s = applyCompletedRun(s, { variant: 'innovate', now: 4000 }).state;
+    s = applyCompletedRun(s, { variant: 'erlich', now: 4000 }).state;
     expect(s.streakByVariant.refine).toBe(0);
-    expect(s.streakByVariant.innovate).toBe(1);
+    expect(s.streakByVariant.erlich).toBe(1);
   });
 
   it('emits a streak event when the same variant fires ≥ 2 in a row', () => {
@@ -60,7 +60,7 @@ describe('runGamificationStore', () => {
     let s = createInitialState();
     s = applyCompletedRun(s, { variant: 'refine', now: 1000 }).state;
     const { emissions, state } = applyCompletedRun(s, {
-      variant: 'innovate',
+      variant: 'erlich',
       now: 1000 + COMBO_WINDOW_MS - 1
     });
     expect(emissions.some((e) => e.kind === 'combo')).toBe(true);
@@ -74,7 +74,7 @@ describe('runGamificationStore', () => {
     let next = applyCompletedRun(s, { variant: 'refine', now: 2000 });
     expect(next.emissions.some((e) => e.kind === 'combo')).toBe(false);
     // Window expired:
-    next = applyCompletedRun(s, { variant: 'innovate', now: 1000 + COMBO_WINDOW_MS + 1 });
+    next = applyCompletedRun(s, { variant: 'erlich', now: 1000 + COMBO_WINDOW_MS + 1 });
     expect(next.emissions.some((e) => e.kind === 'combo')).toBe(false);
   });
 
@@ -98,7 +98,7 @@ describe('runGamificationStore', () => {
 
   it('unlocks Full-Stack Slopitect after 5 distinct variants in a session', () => {
     let s = createInitialState();
-    const variants = ['refine', 'innovate', 'goMad', 'critique', 'explain'];
+    const variants = ['refine', 'erlich', 'goMad', 'critique', 'explain'];
     let unlockedAt = -1;
     variants.forEach((v, idx) => {
       const r = applyCompletedRun(s, { variant: v, now: 1000 + idx * 10_000 });
@@ -195,7 +195,7 @@ describe('runGamificationStore', () => {
   it('unlocks Hat Trick when 3 distinct variants land inside the window', () => {
     let s = createInitialState();
     s = applyCompletedRun(s, { variant: 'refine', now: 0 }).state;
-    s = applyCompletedRun(s, { variant: 'innovate', now: 1000 }).state;
+    s = applyCompletedRun(s, { variant: 'erlich', now: 1000 }).state;
     const r = applyCompletedRun(s, { variant: 'critique', now: 2000 });
     expect(r.emissions.some((e) => e.id === 'hatTrick')).toBe(true);
   });
@@ -203,7 +203,7 @@ describe('runGamificationStore', () => {
   it('does not unlock Hat Trick when the window expires between variants', () => {
     let s = createInitialState();
     s = applyCompletedRun(s, { variant: 'refine', now: 0 }).state;
-    s = applyCompletedRun(s, { variant: 'innovate', now: HAT_TRICK_WINDOW_MS + 100 }).state;
+    s = applyCompletedRun(s, { variant: 'erlich', now: HAT_TRICK_WINDOW_MS + 100 }).state;
     const r = applyCompletedRun(s, { variant: 'critique', now: HAT_TRICK_WINDOW_MS + 200 });
     expect(r.emissions.some((e) => e.id === 'hatTrick')).toBe(false);
   });
@@ -223,7 +223,7 @@ describe('runGamificationStore', () => {
     let s = createInitialState();
     expect(s.lifetimeLlmCostUsd).toBe(0);
     s = applyCompletedRun(s, { variant: 'refine', now: 1, runCostUsd: 0.012 }).state;
-    s = applyCompletedRun(s, { variant: 'innovate', now: 2, runCostUsd: 0.008 }).state;
+    s = applyCompletedRun(s, { variant: 'erlich', now: 2, runCostUsd: 0.008 }).state;
     expect(s.lifetimeLlmCostUsd).toBeCloseTo(0.02, 5);
     const reloaded = loadFromStorage(serializeForStorage(s));
     expect(reloaded.lifetimeLlmCostUsd).toBeCloseTo(0.02, 5);

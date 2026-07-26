@@ -19,7 +19,7 @@
 export const OFFICE_SPEAKER_IDS = [
   // team
   'refine',
-  'innovate',
+  'erlich',
   'goMad',
   'critique',
   'explain',

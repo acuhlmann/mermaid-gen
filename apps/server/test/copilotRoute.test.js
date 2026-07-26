@@ -205,7 +205,7 @@ test('transform route applies a patch from the transform agent service', async (
       revisionId: 0,
       diagramSource: 'flowchart TD\n  Start[Start] --> EndNode[End]',
       contentType: 'mermaid',
-      mode: 'innovate'
+      mode: 'erlich'
     },
     stateStore,
     agentService
@@ -215,7 +215,7 @@ test('transform route applies a patch from the transform agent service', async (
   assert.equal(result.body.message, 'Added an extension.');
   assert.equal(result.body.patch.nextRevisionId, 1);
   assert.match(result.body.state.diagramSource, /Extended/);
-  assert.equal(result.body.metadata.agent, 'transform:innovate');
+  assert.equal(result.body.metadata.agent, 'transform:erlich');
 });
 
 test('transform route returns concise no-patch errors', async () => {

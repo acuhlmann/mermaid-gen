@@ -3,9 +3,9 @@ import { useDiagramHotkeys } from '../../hooks/useDiagramHotkeys.js';
 import { buildRadialActions } from '../../components/buildRadialActions.jsx';
 import {
   playCritiqueBoot,
+  playErlichBoot,
   playExplainBoot,
   playGoMadBoot,
-  playInnovateBoot,
   playRefineBoot
 } from '../../utils/agentChimes.js';
 
@@ -71,7 +71,7 @@ export function useRadialActionHandler({
       const runOpts = { focusTarget: descriptor };
       const variantForBoot =
         action.id === 'refine' ||
-        action.id === 'innovate' ||
+        action.id === 'erlich' ||
         action.id === 'goMad' ||
         action.id === 'critique' ||
         action.id === 'explain' ||
@@ -81,13 +81,13 @@ export function useRadialActionHandler({
       if (variantForBoot) {
         setBootSeq((prev) => ({ trigger: prev.trigger + 1, variant: variantForBoot }));
         if (variantForBoot === 'refine') tryAgentSound(playRefineBoot);
-        else if (variantForBoot === 'innovate') tryAgentSound(playInnovateBoot);
+        else if (variantForBoot === 'erlich') tryAgentSound(playErlichBoot);
         else if (variantForBoot === 'goMad') tryAgentSound(playGoMadBoot);
         else if (variantForBoot === 'critique') tryAgentSound(playCritiqueBoot);
         else if (variantForBoot === 'explain') tryAgentSound(playExplainBoot);
       }
       if (action.id === 'refine') runTransform('refine', runOpts);
-      else if (action.id === 'innovate') runTransform('innovate', runOpts);
+      else if (action.id === 'erlich') runTransform('erlich', runOpts);
       else if (action.id === 'goMad') runTransform('goMad', runOpts);
       else if (action.id === 'barker') runTransform('barker', runOpts);
       else if (action.id === 'critique') runAnalyze('critique', runOpts);

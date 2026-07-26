@@ -65,7 +65,7 @@ export function playRefineStreamStart(audioContextRef) {
   });
 }
 
-export function playInnovateStreamStart(audioContextRef) {
+export function playErlichStreamStart(audioContextRef) {
   playShortTone(audioContextRef, {
     type: 'sine',
     freqHz: 622,
@@ -265,8 +265,8 @@ export function playRefineBoot(audioContextRef) {
   );
 }
 
-/** Innovate boot: synthwave riser (sawtooth sweep up). */
-export function playInnovateBoot(audioContextRef) {
+/** Erlich boot: synthwave riser (sawtooth sweep up) — a visionary enters. */
+export function playErlichBoot(audioContextRef) {
   const context = getContext(audioContextRef);
   if (!context) return;
   const now = context.currentTime;
@@ -365,7 +365,7 @@ export function playRefineCompletion(audioContextRef) {
   ]);
 }
 
-export function playInnovateCompletion(audioContextRef) {
+export function playErlichCompletion(audioContextRef) {
   playToneSeq(audioContextRef, [
     { freq: 739.99, dur: 0.07, peak: 0.05, type: 'square' },
     { freq: 987.77, dur: 0.09, peak: 0.045, type: 'square' },
@@ -403,7 +403,7 @@ export function playRefineTokenTick(audioContextRef) {
   });
 }
 
-export function playInnovateTokenTick(audioContextRef, tickIndex = 0) {
+export function playErlichTokenTick(audioContextRef, tickIndex = 0) {
   const freqs = [880, 988, 1175, 1318];
   playShortTone(audioContextRef, {
     type: 'square',
@@ -577,8 +577,8 @@ export function playRefinePolishLoop(audioContextRef) {
   osc.stop(now + 0.24);
 }
 
-/** Innovate: synth zap — quick saw chirp. */
-export function playInnovateSynthLoop(audioContextRef) {
+/** Erlich: synth zap — quick saw chirp. */
+export function playErlichSynthLoop(audioContextRef) {
   const context = getContext(audioContextRef);
   if (!context) return;
   const now = context.currentTime;

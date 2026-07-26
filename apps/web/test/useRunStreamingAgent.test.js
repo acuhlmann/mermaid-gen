@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   playFailureChime,
   playGoMadStreamStart,
-  playInnovateStreamStart,
+  playErlichStreamStart,
   playRefineStreamStart,
   playStreamStartChime
 } from '../src/utils/agentChimes.js';
@@ -122,7 +122,7 @@ describe('useRunStreamingAgent', () => {
 
     for (const [variant, chime] of [
       ['goMad', playGoMadStreamStart],
-      ['innovate', playInnovateStreamStart],
+      ['erlich', playErlichStreamStart],
       ['refine', playRefineStreamStart]
     ]) {
       deps.tryAgentSound.mockClear();
