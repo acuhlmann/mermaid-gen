@@ -216,9 +216,14 @@ export const FLOOR_PROPS = [
   /*
    * Glass: the leadership row, then the two walls of the meeting room.
    *
-   * The leadership panel and its two returns enclose the `leadership` zone
-   * exactly (rect `[5.3, -0.5, 10.7, 1.0]`), with the floor plate's own back
-   * edge closing the fourth side. The front panel used to stop at x 9.8 while
+   * The leadership panel and its two returns enclose the whole leadership row,
+   * with the floor plate's own back edge closing the fourth side. The returns
+   * sit at x 5.3 and x 10.7 — **wider than the `leadership` zone rect**, whose
+   * far edge is 9.7, and that gap is the point rather than a mismatch: the
+   * tinted plate is signage, the glass is a barrier, and a barrier that only
+   * spanned the signage would be one you could walk around the end of. The
+   * strip between 9.7 and 10.7 is where the server rack stands. The front panel
+   * used to stop at x 9.8 while
    * the row runs x 6…10, which sealed the fishbowl only from the south — the
    * direction `PEEK_OFFSETS` happen to approach from. Free roam (slice 7) can
    * walk at the ends, and walked straight round the partition to stand beside
