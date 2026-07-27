@@ -478,6 +478,33 @@ export const OFFICE_EN_AU = {
   ],
   OFFICE_BATTLE_SCENES: [
     {
+      id: 'battle-commit-credit',
+      topic: 'Whose name goes on the fix',
+      lines: [
+        {
+          speakerId: 'dinesh',
+          text: "I found it, I fixed it, and the commit message says 'misc'. Misc. I am not a misc."
+        },
+        {
+          speakerId: 'gilfoyle',
+          text: 'The bug is closed. Nobody is going to read the message. Nobody read the ticket either.'
+        },
+        {
+          speakerId: 'dinesh',
+          text: "Someone will. In six months somebody opens the history, sees 'misc', and reckons it was you."
+        },
+        {
+          speakerId: 'gilfoyle',
+          text: 'That would require somebody to care who wrote it. I have never once wondered.'
+        }
+      ],
+      verdicts: {
+        dinesh:
+          'Amended, with my name on it. The history is accurate now. That is genuinely all I wanted.',
+        gilfoyle: "Message stays 'misc'. The bug is still closed. The universe remains indifferent."
+      }
+    },
+    {
       id: 'battle-tabs-spaces',
       topic: 'Tabs vs. spaces',
       lines: [

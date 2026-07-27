@@ -21,6 +21,13 @@ export const SLOPITECT_EN_AU = {
       entryLine: 'Someone left this unfinished.',
       exitLine: 'Fixed. It was wrong. 🦇'
     },
+    dinesh: {
+      name: 'Dinesh Chugtai',
+      title: 'Engineer, Uncredited',
+      tagline: 'The right fix. Give us a bit of credit.',
+      entryLine: 'Okay, so nobody else was going to say this.',
+      exitLine: 'Fixed. That was me 🙋'
+    },
     erlich: {
       name: 'Erlich Bachman',
       title: 'Founder, Hacker Hostel',
@@ -59,6 +66,7 @@ export const SLOPITECT_EN_AU = {
   },
   VARIANT_TAGLINES: {
     gilfoyle: 'Slopitect: Gilfoyle sorts out what’s wrong',
+    dinesh: 'Slopitect: Dinesh sorts it and cops the credit',
     erlich: 'Slopitect: Erlich Bachman pitches the bold move',
     goMad: 'Slopitect: GENIUS LOOSE 🚨',
     critique: 'Slopitect: Co-Design compliance review',
@@ -68,6 +76,7 @@ export const SLOPITECT_EN_AU = {
   },
   VARIANT_BOOT_HEADLINES: {
     gilfoyle: 'Gilfoyle found the defect…',
+    dinesh: 'Dinesh already found it…',
     erlich: 'Erlich Bachman is graciously elevating…',
     goMad: 'BONK! THE SLOPITECT IS HERE',
     critique: 'CO-DESIGN REVIEW INCOMING',
@@ -76,6 +85,7 @@ export const SLOPITECT_EN_AU = {
   },
   ACTION_PERSONA_SHORT_NAMES: {
     gilfoyle: 'Gilfoyle',
+    dinesh: 'Dinesh',
     erlich: 'Erlich',
     explain: 'Architect'
   },

@@ -68,6 +68,7 @@ describe('who wanders is an answer the room gives', () => {
   it('pins the roster, so a layout change cannot quietly grow it', () => {
     expect(wanderingSeatIds()).toEqual([
       'gilfoyle',
+      'dinesh',
       'erlich',
       'critique',
       'explain',
@@ -303,7 +304,7 @@ describe('somebody who is not at their desk', () => {
 
   beforeEach(() => {
     vi.useFakeTimers();
-    stubRandom(0.7);
+    stubRandom(0.75);
   });
 
   /** The floor with Chad stood at the prop his ladder picks. */

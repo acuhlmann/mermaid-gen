@@ -50,6 +50,10 @@ export const OFFICE_DESK_WORK = {
     look: 'terminal',
     line: 'I already fixed it. I have not told anyone. It has been a good day.'
   },
+  dinesh: {
+    look: 'tabs',
+    line: 'I fixed the thing from Tuesday. Nobody has mentioned it. It has been days.'
+  },
   erlich: {
     look: 'slides',
     line: 'Do not look at slide nine yet. Slide nine is where I change everything.'

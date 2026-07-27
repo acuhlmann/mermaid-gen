@@ -21,6 +21,13 @@ export const SLOPITECT_ZH_CN = {
       entryLine: '有人没把这个画完。',
       exitLine: '修好了。本来就是错的。🦇'
     },
+    dinesh: {
+      name: 'Dinesh Chugtai',
+      title: '工程师，无人署名',
+      tagline: '改得没错。请给个说法。',
+      entryLine: '好吧，反正没别人会说这句。',
+      exitLine: '修好了。是我修的 🙋'
+    },
     erlich: {
       name: 'Erlich Bachman',
       title: '创始人 — 黑客旅舍',
@@ -59,6 +66,7 @@ export const SLOPITECT_ZH_CN = {
   },
   VARIANT_TAGLINES: {
     gilfoyle: '烂图建筑师：Gilfoyle 修好有问题的地方',
+    dinesh: '烂图建筑师：Dinesh 修好它，顺便讨个说法',
     erlich: '烂图建筑师：Erlich Bachman 提出大胆方案',
     goMad: '烂图建筑师：天才放飞 🚨',
     critique: '烂图建筑师：协同设计合规评审',
@@ -68,6 +76,7 @@ export const SLOPITECT_ZH_CN = {
   },
   VARIANT_BOOT_HEADLINES: {
     gilfoyle: 'Gilfoyle 找到了缺陷…',
+    dinesh: 'Dinesh 早就找到了…',
     erlich: 'Erlich Bachman 正在亲自升华…',
     goMad: '砰！烂图建筑师来了',
     critique: '协同设计评审即将开始',
@@ -76,6 +85,7 @@ export const SLOPITECT_ZH_CN = {
   },
   ACTION_PERSONA_SHORT_NAMES: {
     gilfoyle: 'Gilfoyle',
+    dinesh: 'Dinesh',
     erlich: 'Erlich',
     explain: '架构师'
   },

@@ -129,6 +129,9 @@ describe('listMeetingDirectory', () => {
     expect(rows.some((row) => row.id === 'facilities' && row.tier === 'office')).toBe(true);
     expect(rows.some((row) => row.id === 'barker' && row.tier === 'senior')).toBe(true);
     expect(rows.some((row) => row.id === 'gilfoyle' && row.tier === 'team')).toBe(true);
+    // Both engineers are core team — Dinesh took a new seventh seat rather than
+    // inheriting one, so he must show up beside Gilfoyle, not instead of him.
+    expect(rows.some((row) => row.id === 'dinesh' && row.tier === 'team')).toBe(true);
   });
 });
 

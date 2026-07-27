@@ -78,6 +78,7 @@ export function useAnalyzeFlow({
         const syncedState = await syncDiagramOrThrow();
         const labels = {
           gilfoyle: controls.actions.gilfoyle,
+          dinesh: controls.actions.dinesh,
           erlich: controls.actions.erlich,
           goMad: controls.actions.goMad,
           barker: controls.actions.coDesign
@@ -118,6 +119,7 @@ export function useAnalyzeFlow({
       controls.actions.goMad,
       controls.actions.erlich,
       controls.actions.gilfoyle,
+      controls.actions.dinesh,
       goMadStreak,
       hasInteractedRef,
       loadingRef,

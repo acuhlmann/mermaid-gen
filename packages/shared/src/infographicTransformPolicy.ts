@@ -1,6 +1,6 @@
 import { parseInfographicTree } from './infographicDiff.js';
 
-const TRANSFORM_MODES = new Set(['gilfoyle', 'erlich', 'goMad', 'barker']);
+const TRANSFORM_MODES = new Set(['gilfoyle', 'dinesh', 'erlich', 'goMad', 'barker']);
 
 /** @param {string | null | undefined} template */
 export function templateFamilyFromTemplate(template: string | null | undefined) {
@@ -47,7 +47,9 @@ export function validateInfographicTransformConstraint(opts: {
   const afterCount = countTreeItems(after.items);
   const depth = Math.min(12, Math.max(1, Math.trunc(Number(opts.goMadDepth) || 1)));
 
-  if (mode === 'gilfoyle') {
+  // `dinesh` is a gilfoyle-class seat — identical item budget and template lock
+  // (docs/recipes/replicate-tv-character.md). Split only on a deliberate retune.
+  if (mode === 'gilfoyle' || mode === 'dinesh') {
     if (beforeTemplate && afterTemplate && beforeTemplate !== afterTemplate) {
       return {
         ok: false,

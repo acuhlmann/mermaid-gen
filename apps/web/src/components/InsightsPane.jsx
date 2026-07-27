@@ -59,6 +59,7 @@ import { formatLocale } from '../i18n/formatLocale.js';
 
 const SLOPITECT_VARIANT_CLASS = {
   gilfoyle: 'is-variant-gilfoyle',
+  dinesh: 'is-variant-dinesh',
   erlich: 'is-variant-erlich',
   goMad: 'is-variant-go-mad',
   critique: 'is-variant-critique',
@@ -145,6 +146,20 @@ function IconGilfoyle() {
   );
 }
 
+function IconDinesh() {
+  return (
+    <svg
+      className="insights-svg-icon"
+      viewBox="0 0 24 24"
+      width="16"
+      height="16"
+      aria-hidden="true"
+    >
+      <path fill="currentColor" d="M14.4 6L14 4H5v17h2v-7h5.6l.4 2h7V6z" />
+    </svg>
+  );
+}
+
 function IconErlich() {
   return (
     <svg
@@ -198,6 +213,7 @@ function isAccentuatedInsightVariant(variant) {
     variant === 'critique' ||
     variant === 'explain' ||
     variant === 'gilfoyle' ||
+    variant === 'dinesh' ||
     variant === 'erlich' ||
     variant === 'goMad' ||
     variant === 'barker'
@@ -388,6 +404,7 @@ function EntryStatusIcon({ status, variant }) {
     if (variant === 'critique') return <IconCritique />;
     if (variant === 'explain') return <IconExplain />;
     if (variant === 'gilfoyle') return <IconGilfoyle />;
+    if (variant === 'dinesh') return <IconDinesh />;
     if (variant === 'erlich') return <IconErlich />;
     if (variant === 'goMad') return <IconGoMad />;
     return <IconSparkles />;
@@ -821,6 +838,7 @@ function leadOpenerExtraClass(variant, accentuateSections, openerUsedRef) {
   const map = {
     explain: 'insights-explain-opener',
     gilfoyle: 'insights-gilfoyle-opener',
+    dinesh: 'insights-dinesh-opener',
     erlich: 'insights-erlich-opener',
     goMad: 'insights-gomad-opener'
   };
@@ -1069,6 +1087,7 @@ function renderRichContent(
 function AccentSectionTitleIcon({ variant }) {
   if (variant === 'explain') return <IconExplain />;
   if (variant === 'gilfoyle') return <IconGilfoyle />;
+  if (variant === 'dinesh') return <IconDinesh />;
   if (variant === 'erlich') return <IconErlich />;
   if (variant === 'goMad') return <IconGoMad />;
   return null;
@@ -1629,6 +1648,7 @@ export default function InsightsPane({
                         variant === 'explain' && accentuateSections ? 'is-explain-prose' : '',
                         explainProseGibberish ? 'is-gibberish' : '',
                         variant === 'gilfoyle' && accentuateSections ? 'is-gilfoyle-prose' : '',
+                        variant === 'dinesh' && accentuateSections ? 'is-dinesh-prose' : '',
                         variant === 'erlich' && accentuateSections ? 'is-erlich-prose' : '',
                         variant === 'goMad' && accentuateSections ? 'is-gomad-prose' : ''
                       ]
@@ -1660,6 +1680,7 @@ export default function InsightsPane({
                           'is-shimmer',
                           variant === 'goMad' ? 'is-gomad-caret' : '',
                           variant === 'gilfoyle' ? 'is-gilfoyle-caret' : '',
+                          variant === 'dinesh' ? 'is-dinesh-caret' : '',
                           variant === 'erlich' ? 'is-erlich-caret' : '',
                           variant === 'critique' ? 'is-critique-caret' : '',
                           variant === 'explain' ? 'is-explain-caret' : ''

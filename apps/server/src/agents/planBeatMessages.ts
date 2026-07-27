@@ -87,6 +87,8 @@ function modeIntentPlanBeat(mode: string | null, requestSnippet: string): string
   switch (mode) {
     case 'gilfoyle':
       return `Polishing the diagram for clarity and structure${req}.`;
+    case 'dinesh':
+      return `Making the change nobody else caught${req}.`;
     case 'erlich':
       return `Graciously elevating the diagram with a bolder shape${req}.`;
     case 'barker':

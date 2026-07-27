@@ -89,7 +89,7 @@ const INFOGRAPHIC_PATCH_REQUIRED_INSTRUCTION = `Your previous response did not a
 - Do not return prose only.
 - Do not mention tool names in your final user-facing summary.`;
 
-const INFOGRAPHIC_TRANSFORM_PERSONAS = new Set(['gilfoyle', 'erlich', 'goMad', 'barker']);
+const INFOGRAPHIC_TRANSFORM_PERSONAS = new Set(['gilfoyle', 'dinesh', 'erlich', 'goMad', 'barker']);
 
 async function withInfographicTransformContext(stateStore, context, fn) {
   stateStore.setTransformContext(context);
@@ -637,10 +637,7 @@ export function createInfographicLangChainAgent({
   }
 
   function getTransformAgent(mode, profile = 'fast', goMadDepth) {
-    const safeMode =
-      mode === 'gilfoyle' || mode === 'erlich' || mode === 'goMad' || mode === 'barker'
-        ? mode
-        : 'gilfoyle';
+    const safeMode = INFOGRAPHIC_TRANSFORM_PERSONAS.has(mode) ? mode : 'gilfoyle';
     return cache.getTransformAgent(safeMode, profile, goMadDepth);
   }
 

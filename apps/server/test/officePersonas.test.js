@@ -73,6 +73,23 @@ test('senior stakeholders are valid meeting speakers with real voice blocks', ()
   assert.match(gilfoylePrompt, /You are Bertram Gilfoyle from HBO's Silicon Valley/);
   assert.match(gilfoylePrompt, /speakerId "gilfoyle"/);
   assert.ok(STAKEHOLDER_MEETING_VOICES.gilfoyle.length > 40, 'gilfoyle needs a real voice card');
+  // Dinesh Chugtai took a NEW seventh seat rather than inheriting one, so both
+  // engineers must resolve independently and neither may shadow the other.
+  const dineshPrompt = buildMeetingSystemPrompt({
+    attendees: ['scrumMaster', 'dinesh', 'gilfoyle'],
+    facilitatorId: 'scrumMaster'
+  });
+  assert.match(dineshPrompt, /You are Dinesh Chugtai from HBO's Silicon Valley/);
+  assert.match(dineshPrompt, /speakerId "dinesh"/);
+  assert.match(dineshPrompt, /You are Bertram Gilfoyle from HBO's Silicon Valley/);
+  assert.ok(STAKEHOLDER_MEETING_VOICES.dinesh.length > 40, 'dinesh needs a real voice card');
+  assert.equal(isOfficeSpeaker('dinesh'), true);
+  assert.equal(isOfficeColleague('dinesh'), false);
+  assert.deepEqual(normalizeAttendees(['scrumMaster', 'dinesh', 'gilfoyle']), [
+    'scrumMaster',
+    'dinesh',
+    'gilfoyle'
+  ]);
   // The retired generic persona id must not linger anywhere in the speaker tables.
   assert.equal(isOfficeSpeaker('refine'), false);
   assert.equal(Object.hasOwn(STAKEHOLDER_MEETING_VOICES, 'refine'), false);

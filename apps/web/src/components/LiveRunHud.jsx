@@ -5,6 +5,7 @@ import { PersonaFace } from './personaFaces/index.jsx';
 
 const VARIANT_CLASS = {
   gilfoyle: 'is-gilfoyle',
+  dinesh: 'is-dinesh',
   erlich: 'is-erlich',
   goMad: 'is-go-mad',
   critique: 'is-critique',

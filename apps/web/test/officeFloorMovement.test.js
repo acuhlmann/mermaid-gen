@@ -156,6 +156,7 @@ describe('approachTileFor', () => {
     // that quietly strands a colleague fails here.
     expect(roster).toEqual([
       'gilfoyle',
+      'dinesh',
       'erlich',
       'critique',
       'explain',

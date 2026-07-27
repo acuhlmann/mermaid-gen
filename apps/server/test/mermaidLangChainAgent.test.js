@@ -73,6 +73,44 @@ test('transform mode picks increasing temperatures', () => {
       transformModeModelOptions('gilfoyle').temperature
   );
   assert.equal(transformModeModelOptions('barker').maxTokens, TRANSFORM_MODEL_LIMITS.maxTokens);
+  // dinesh is gilfoyle-class: cloned sampling, not merely "similar". If someone
+  // retunes one engineer, this is where the intent to diverge has to be stated.
+  assert.deepEqual(transformModeModelOptions('dinesh'), transformModeModelOptions('gilfoyle'));
+});
+
+test('dinesh transform prompt is its own voice on the gilfoyle contract', () => {
+  const dinesh = buildTransformUserContent({
+    mode: 'dinesh',
+    diagramSource: 'flowchart TD\n  A --> B',
+    focusScope: ''
+  });
+  assert.match(dinesh, /Transform mode: DINESH/);
+  assert.match(dinesh, /Dinesh Chugtai \(HBO's Silicon Valley\)/);
+  // Same seat contract as Gilfoyle: keep the type, small additive budget.
+  assert.match(dinesh, /Keep the SAME diagram type/);
+  assert.match(dinesh, /prefer 1–3 new nodes and 2–5 new edges/);
+  // Different voice: the credit bid is the structural signature.
+  assert.match(dinesh, /make sure the credit lands/);
+  assert.notEqual(
+    dinesh,
+    buildTransformUserContent({
+      mode: 'gilfoyle',
+      diagramSource: 'flowchart TD\n  A --> B',
+      focusScope: ''
+    })
+  );
+});
+
+test('inserting dinesh into the mode chain leaves the goMad fallback intact', () => {
+  // buildTransformUserContent's ternary chain ends on Go Mad, so an unrecognized
+  // mode has always landed there. Adding a branch in the middle must not capture it.
+  const unknown = buildTransformUserContent({
+    mode: 'nope',
+    diagramSource: 'flowchart TD\n  A --> B',
+    focusScope: ''
+  });
+  assert.match(unknown, /Transform mode: GO MAD/);
+  assert.doesNotMatch(unknown, /Transform mode: DINESH/);
 });
 
 test('goMadTransformModelOptions ramps temperature and topP with depth', () => {

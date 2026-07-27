@@ -12,6 +12,20 @@ export const SLOPITECT_GAMIFICATION_ZH_CN = {
       '这没问题。这有问题。',
       '黑暗对这张图没意见。我有。'
     ],
+    dinesh: [
+      '是我找出来的。我希望这一点被记下来。',
+      '没别人读过这个。我全读了。',
+      '那里迟早要出事。我最先说的。',
+      '我不是在辩解。我是在陈述事实。',
+      '好吧，就一件事。其实是四件。',
+      '顺便说一句，不客气。提前说的。',
+      'Gilfoyle 一眼都没看过。',
+      '对，其他分支我都查了。全部。',
+      '改对了总该有点反应吧。任何反应。',
+      '半年后有人打开这个，会怪到我头上。',
+      '这没问题。是我弄好的。记一下。',
+      '这事我以后还会再提。备案。'
+    ],
     erlich: [
       '这张图基本上是我发明的。',
       '我问你一个问题。',
@@ -88,6 +102,7 @@ export const SLOPITECT_GAMIFICATION_ZH_CN = {
   PHASE_CEREMONIES: {
     analyze: {
       gilfoyle: '正在读你留下的东西……',
+      dinesh: '正在全部读一遍。不像某些人……',
       erlich: '正在寻找更大胆的形态……',
       goMad: '打量那堆烂图 👀',
       critique: '打开JIRA中……',
@@ -96,6 +111,7 @@ export const SLOPITECT_GAMIFICATION_ZH_CN = {
     },
     analyze_stream: {
       gilfoyle: '正在定位缺陷……',
+      dinesh: '正在找出没人找到的那处……',
       erlich: '正在为转向做主题演讲……',
       goMad: '对着它大喊 📣',
       critique: '起草调查结果……',
@@ -104,6 +120,7 @@ export const SLOPITECT_GAMIFICATION_ZH_CN = {
     },
     intent: {
       gilfoyle: '正在解析你的意思……',
+      dinesh: '正在弄清你的意思……',
       erlich: '正在对齐愿景……',
       goMad: '跳过会议',
       critique: '引用SOC 2控制条款',
@@ -112,6 +129,7 @@ export const SLOPITECT_GAMIFICATION_ZH_CN = {
     },
     agent_run: {
       gilfoyle: '正在做出正确的改动……',
+      dinesh: '正在改。我改的……',
       erlich: '正在亲自升华……',
       goMad: '在你的主题上癫狂',
       critique: '归档工单……',
@@ -120,6 +138,7 @@ export const SLOPITECT_GAMIFICATION_ZH_CN = {
     },
     transform: {
       gilfoyle: '正在画出本来就成立的东西……',
+      dinesh: '正在补上所有人都跳过的那步……',
       erlich: '正在升华布局……',
       goMad: '添加美妙奇异的东西 🔥',
       critique: '红笔标注布局中……',
@@ -128,6 +147,7 @@ export const SLOPITECT_GAMIFICATION_ZH_CN = {
     },
     run_started: {
       gilfoyle: '行。',
+      dinesh: '好吧，那么……',
       erlich: '我问你一个问题……',
       goMad: '好了先停一下 🪖',
       critique: '检查员抵达中……',
@@ -136,6 +156,7 @@ export const SLOPITECT_GAMIFICATION_ZH_CN = {
     },
     planning: {
       gilfoyle: '正在列举有问题的地方……',
+      dinesh: '正在列出问题。是一张清单……',
       erlich: '正在起草主题演讲……',
       goMad: '对着图表扔飞镖 🎯',
       critique: '构建发现大纲……',
@@ -144,6 +165,7 @@ export const SLOPITECT_GAMIFICATION_ZH_CN = {
     },
     syntax_fixer: {
       gilfoyle: '正在修没人检查过的语法……',
+      dinesh: '又在修语法。还是我……',
       erlich: '正在修复语法，才华横溢……',
       goMad: '用胶带把它粘回去',
       critique: '修复语法——审计轨迹已更新……',
@@ -152,6 +174,7 @@ export const SLOPITECT_GAMIFICATION_ZH_CN = {
     },
     syntax_repair: {
       gilfoyle: '再修一次。很明显……',
+      dinesh: '又修了一遍，这事我会提的……',
       erlich: '再次修复语法，依然才华横溢……',
       goMad: '更多胶带',
       critique: '重新打开语法发现……',
@@ -160,6 +183,7 @@ export const SLOPITECT_GAMIFICATION_ZH_CN = {
     },
     style: {
       gilfoyle: '正在调色板。更暗……',
+      dinesh: '正在调配色。不会有人注意……',
       erlich: '正在为主题演讲重塑样式……',
       goMad: '混乱配色方案 🔥',
       critique: '标记对比度违规……',
@@ -168,6 +192,7 @@ export const SLOPITECT_GAMIFICATION_ZH_CN = {
     },
     patch_retry: {
       gilfoyle: '正在等流程。不出所料……',
+      dinesh: '等着。反正没人在等我……',
       erlich: '等待董事会批准……',
       goMad: '贿赂变更委员会',
       critique: '等待重新审查签核……',
@@ -176,6 +201,7 @@ export const SLOPITECT_GAMIFICATION_ZH_CN = {
     },
     invoke: {
       gilfoyle: '正在修补生产环境 🦇',
+      dinesh: '正在干实际的活 🙋',
       erlich: '正在升华 🕶',
       goMad: '让大楼燃起来 🔥',
       critique: '记录生成工单……',
@@ -184,6 +210,7 @@ export const SLOPITECT_GAMIFICATION_ZH_CN = {
     },
     invoke_fallback: {
       gilfoyle: '退回上一步。已记录……',
+      dinesh: '正在回退。不是我的错……',
       erlich: '转向进行中……',
       goMad: '我们转型了',
       critique: '归档备用发现……',
@@ -192,6 +219,7 @@ export const SLOPITECT_GAMIFICATION_ZH_CN = {
     },
     repair_1: {
       gilfoyle: '再修一次。又来了……',
+      dinesh: '正在修复。还是我……',
       erlich: '愿景修复进行中……',
       goMad: '更多安全帽！ 🪖🪖',
       critique: '升级至P1修复……',
@@ -200,6 +228,7 @@ export const SLOPITECT_GAMIFICATION_ZH_CN = {
     },
     repair_2: {
       gilfoyle: '第二次修复。我的反对意见已记录……',
+      dinesh: '第二次修复。这笔先记下……',
       erlich: '第二次愿景修复进行中……',
       goMad: '更更多安全帽 🪖🪖🪖',
       critique: '二次升级——仍不合规……',
@@ -248,6 +277,11 @@ export const SLOPITECT_GAMIFICATION_ZH_CN = {
       id: 'stackOwner',
       title: '🦇 这套系统是我的',
       subtitle: '10 次正确的改动。没人道谢。行。'
+    },
+    dinesh: {
+      id: 'creditWhereDue',
+      title: '🙋 功劳归属',
+      subtitle: '10 次正确的修复。终于有人注意到了。'
     },
     erlich: {
       id: 'tenPercentLegend',
@@ -345,6 +379,11 @@ export const SLOPITECT_GAMIFICATION_ZH_CN = {
       id: 'stackOwner',
       title: '🦇 这套系统是我的',
       subtitle: '10 次正确的改动。没人道谢。行。'
+    },
+    dinesh: {
+      id: 'creditWhereDue',
+      title: '🙋 功劳归属',
+      subtitle: '10 次正确的修复。终于有人注意到了。'
     },
     erlich: {
       id: 'tenPercentLegend',

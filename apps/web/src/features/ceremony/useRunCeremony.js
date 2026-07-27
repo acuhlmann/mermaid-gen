@@ -154,6 +154,7 @@ export function useRunCeremony({
       celebrationTimerRef.current = setTimeout(() => setCelebratingEntryId(null), dwellMs);
       if (variant === 'goMad') tryAgentSound(playGoMadCompletionChime);
       else if (variant === 'gilfoyle') tryAgentSound(playGilfoyleCompletion);
+      else if (variant === 'dinesh') tryAgentSound(playDineshCompletion);
       else if (variant === 'erlich') tryAgentSound(playErlichCompletion);
       else if (variant === 'critique') tryAgentSound(playCritiqueCompletion);
       else if (variant === 'explain') tryAgentSound(playExplainCompletion);
@@ -164,6 +165,7 @@ export function useRunCeremony({
         globalThis.matchMedia('(prefers-reduced-motion: reduce)').matches;
       const variantPalettes = {
         gilfoyle: ['#2563eb', '#60a5fa', '#bfdbfe', '#1d4ed8'],
+        dinesh: ['#7c3aed', '#a78bfa', '#ddd6fe', '#5b21b6'],
         erlich: ['#ea580c', '#fb923c', '#fed7aa', '#c2410c'],
         goMad: ['#f97316', '#ec4899', '#a855f7', '#22d3ee', '#fde047'],
         critique: ['#b91c1c', '#f97316', '#fde68a', '#7c2d12'],
@@ -189,7 +191,15 @@ export function useRunCeremony({
         tryAgentSound(playConfettiPop);
       }
 
-      const knownVariants = ['gilfoyle', 'erlich', 'goMad', 'critique', 'explain', 'barker'];
+      const knownVariants = [
+        'gilfoyle',
+        'dinesh',
+        'erlich',
+        'goMad',
+        'critique',
+        'explain',
+        'barker'
+      ];
       if (knownVariants.includes(variant)) {
         const now = Date.now();
         const inferredGoMadDepth = variant === 'goMad' ? goMadStreak + 1 : undefined;

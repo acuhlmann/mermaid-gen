@@ -41,6 +41,17 @@ export const VARIANT_PERSONAS = {
     xpAward: 25,
     xpStreakBonus: 5
   },
+  dinesh: {
+    name: 'Dinesh Chugtai',
+    title: 'Engineer, Uncredited',
+    tagline: 'The right fix. Please acknowledge it.',
+    avatarEmoji: '🙋',
+    entryLine: 'Okay, so nobody else was going to say this.',
+    exitLine: 'Fixed. That was me 🙋',
+    accentColorVar: '#7c3aed',
+    xpAward: 25,
+    xpStreakBonus: 5
+  },
   erlich: {
     name: 'Erlich Bachman',
     title: 'Founder, Hacker Hostel',
@@ -128,6 +139,20 @@ export const VARIANT_QUOTES = {
     'I fixed it. You are welcome to not thank me.',
     'This is fine. It is not fine.',
     'The darkness is fine with this diagram. I am not.'
+  ],
+  dinesh: [
+    'I found it. I would like that written down.',
+    'Nobody else read this. I read all of it.',
+    'That was going to break. I said so first.',
+    'I am not being defensive. I am being accurate.',
+    'Okay, so — one thing. Actually four things.',
+    'You’re welcome, by the way. In advance.',
+    'Gilfoyle has not looked at this once.',
+    'Yes, I checked the other branches. All of them.',
+    'A correct fix should get a reaction. Any reaction.',
+    'Someone opens this in six months and blames me.',
+    'This is fine. I made it fine. Noting that.',
+    'I will be raising this again later. For the record.'
   ],
   erlich: [
     'I practically invented this diagram.',
@@ -290,6 +315,7 @@ export function stakeholderTooltip(variant) {
 export const PHASE_CEREMONIES = {
   analyze: {
     gilfoyle: 'Reading what you left me…',
+    dinesh: 'Reading all of it. Unlike some people…',
     erlich: 'Spotting the bolder shape…',
     goMad: 'Eyeballing the slop 👀',
     critique: 'Opening JIRA…',
@@ -298,6 +324,7 @@ export const PHASE_CEREMONIES = {
   },
   analyze_stream: {
     gilfoyle: 'Locating the defect…',
+    dinesh: 'Finding the thing nobody found…',
     erlich: 'Keynoting the pivot…',
     goMad: 'Yelling at it 📣',
     critique: 'Drafting findings…',
@@ -306,6 +333,7 @@ export const PHASE_CEREMONIES = {
   },
   intent: {
     gilfoyle: 'Parsing what you meant…',
+    dinesh: 'Working out what you meant…',
     erlich: 'Aligning the vision…',
     goMad: 'Skipping the meeting',
     critique: 'Citing the SOC 2 controls',
@@ -314,6 +342,7 @@ export const PHASE_CEREMONIES = {
   },
   agent_run: {
     gilfoyle: 'Making the correct change…',
+    dinesh: 'Making the change. Mine…',
     erlich: 'Graciously elevating it…',
     goMad: 'GOING MAD ON YOUR TOPIC',
     critique: 'Filing tickets…',
@@ -322,6 +351,7 @@ export const PHASE_CEREMONIES = {
   },
   transform: {
     gilfoyle: 'Drawing what was already true…',
+    dinesh: 'Fixing the part everyone skipped…',
     erlich: 'Elevating the layout…',
     goMad: 'Adding wonderfully strange things 🔥',
     critique: 'Red-penning the layout…',
@@ -330,6 +360,7 @@ export const PHASE_CEREMONIES = {
   },
   run_started: {
     gilfoyle: 'Fine.',
+    dinesh: 'Okay, so…',
     erlich: 'Let me ask you this…',
     goMad: 'OK NOW HOLD ON 🪖',
     critique: 'Inspector inbound…',
@@ -338,6 +369,7 @@ export const PHASE_CEREMONIES = {
   },
   planning: {
     gilfoyle: 'Enumerating what is wrong…',
+    dinesh: 'Listing what is wrong. It is a list…',
     erlich: 'Drafting the keynote…',
     goMad: 'Throwing darts at the diagram 🎯',
     critique: 'Building the findings outline…',
@@ -346,6 +378,7 @@ export const PHASE_CEREMONIES = {
   },
   syntax_fixer: {
     gilfoyle: 'Fixing syntax nobody checked…',
+    dinesh: 'Fixing syntax. Again. Me…',
     erlich: 'Mending syntax, brilliantly…',
     goMad: 'Duct-taping it back together',
     critique: 'Fixing syntax — audit trail updated…',
@@ -354,6 +387,7 @@ export const PHASE_CEREMONIES = {
   },
   syntax_repair: {
     gilfoyle: 'Fixing it again. Obviously…',
+    dinesh: 'Fixing it again, and I will mention this…',
     erlich: 'Re-mending syntax, again brilliantly…',
     goMad: 'More duct tape',
     critique: 'Re-opening the syntax finding…',
@@ -362,6 +396,7 @@ export const PHASE_CEREMONIES = {
   },
   style: {
     gilfoyle: 'Tuning the palette. Darker…',
+    dinesh: 'Recolouring it. Nobody will notice…',
     erlich: 'Restyling for the keynote…',
     goMad: 'CHAOTIC COLOR SCHEMES 🔥',
     critique: 'Flagging contrast violations…',
@@ -370,6 +405,7 @@ export const PHASE_CEREMONIES = {
   },
   patch_retry: {
     gilfoyle: 'Waiting on process. Predictable…',
+    dinesh: 'Waiting. Nobody is waiting on me…',
     erlich: 'Awaiting the board’s approval…',
     goMad: 'Bribing the CAB',
     critique: 'Awaiting re-review sign-off…',
@@ -378,6 +414,7 @@ export const PHASE_CEREMONIES = {
   },
   invoke: {
     gilfoyle: 'Patching prod 🦇',
+    dinesh: 'Doing the actual work 🙋',
     erlich: 'Elevating it 🕶',
     goMad: 'Setting buildings on fire 🔥',
     critique: 'Logging the generation ticket…',
@@ -386,6 +423,7 @@ export const PHASE_CEREMONIES = {
   },
   invoke_fallback: {
     gilfoyle: 'Falling back. Noted…',
+    dinesh: 'Falling back. Not my fault…',
     erlich: 'Pivot in flight…',
     goMad: 'WE PIVOT',
     critique: 'Filing a fallback finding…',
@@ -394,6 +432,7 @@ export const PHASE_CEREMONIES = {
   },
   repair_1: {
     gilfoyle: 'Repairing it. Again…',
+    dinesh: 'Repairing it. Still me…',
     erlich: 'Vision repair in flight…',
     goMad: 'More hard hats! 🪖🪖',
     critique: 'Escalating to P1 repair…',
@@ -402,6 +441,7 @@ export const PHASE_CEREMONIES = {
   },
   repair_2: {
     gilfoyle: 'Second repair. My objection is documented…',
+    dinesh: 'Second repair. Noting this for later…',
     erlich: 'Second vision repair in flight…',
     goMad: 'EVEN MORE HARD HATS 🪖🪖🪖',
     critique: 'Second escalation — still non-compliant…',
@@ -411,7 +451,7 @@ export const PHASE_CEREMONIES = {
 };
 
 /**
- * @param {string} variant - one of gilfoyle/erlich/goMad/critique/explain/barker (or anything else → fallback).
+ * @param {string} variant - one of gilfoyle/dinesh/erlich/goMad/critique/explain/barker (or anything else → fallback).
  * @param {string} phaseId - canonical phase id from SSE.
  * @param {string} fallbackLabel - the literal label that the server sent; rendered as-is when no override.
  */
@@ -425,6 +465,7 @@ export function phaseCeremonyLabel(variant, phaseId, fallbackLabel) {
 
 export const VARIANT_TAGLINES = {
   gilfoyle: 'Slopitect: Gilfoyle fixes what is wrong',
+  dinesh: 'Slopitect: Dinesh fixes it and wants the credit',
   erlich: 'Slopitect: Erlich Bachman pitches the bold move',
   goMad: 'Slopitect: GENIUS LOOSE 🚨',
   critique: 'Slopitect: Co-Design compliance review',
@@ -435,6 +476,7 @@ export const VARIANT_TAGLINES = {
 
 export const VARIANT_BOOT_HEADLINES = {
   gilfoyle: 'Gilfoyle found the defect…',
+  dinesh: 'Dinesh already found it…',
   erlich: 'Erlich Bachman is graciously elevating…',
   goMad: 'BONK! THE SLOPITECT IS HERE',
   critique: 'CO-DESIGN REVIEW INCOMING',
@@ -565,6 +607,11 @@ export const VARIANT_MASTERY_ACHIEVEMENTS = {
     id: 'stackOwner',
     title: '🦇 THE STACK IS MINE',
     subtitle: '10 correct changes. Nobody thanked you. Fine.'
+  },
+  dinesh: {
+    id: 'creditWhereDue',
+    title: '🙋 CREDIT WHERE DUE',
+    subtitle: '10 correct fixes. Somebody finally noticed.'
   },
   erlich: {
     id: 'tenPercentLegend',
