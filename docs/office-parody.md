@@ -222,8 +222,8 @@ actual node). Store lifecycle mirrors coffee: invite → accept → vote → dis
 
 Two once-ever beats, gated by `archislop:office-welcomed` (`useOfficeWelcome`):
 
-1. **Linda's welcome email** — introduces the whole floor by name/role, plus the Focus Time /
-   Soundscape escape hatches, and greets the user by their chosen name (`{userName}`). Timed
+1. **Linda's welcome email** — introduces the whole floor by name/role, plus the desk menu
+   Focus / Noise / Voice escape hatches, and greets the user by their chosen name (`{userName}`). Timed
    ~1.5 s after the user's first pointer/key gesture (so the sound gate is open and the
    **"You've got mail!"** announce — speech synthesis, chime-only fallback — actually plays),
    with a 15 s no-interaction fallback.
@@ -313,13 +313,13 @@ desk verb — first-visit boot and the level panel's "Meet the team" CTA cover t
 
 **Zones on the desk**
 
-| Zone                | Fiction                      | Controls                                                                                              |
-| ------------------- | ---------------------------- | ----------------------------------------------------------------------------------------------------- |
-| Your seat           | Personal cognition           | Notebook (Thinking pane), Concentration (Rush job / Deep work → wire `fast` / `quality`)              |
-| Work surface        | The deliverable              | Work order, Desk tray (Deliverable format, Facilities, Shredder)                                      |
-| People around you   | Colleagues at adjacent desks | Your Team menu (teammates, Talk to team, Call a meeting, Headphones — distinct from inbox Focus Time) |
-| Get up              | Leave the chair              | Mail, IM, coffee, outbox (+ Stand up is a primary bottom-nav control)                                 |
-| Under the desk / IT | Cubicle plumbing             | Adjust workstation (contractors + code drawer), HR progression                                        |
+| Zone                | Fiction                      | Controls                                                                                        |
+| ------------------- | ---------------------------- | ----------------------------------------------------------------------------------------------- |
+| Your seat           | Personal cognition           | Notebook (Thinking pane), Concentration (Rush job / Deep work → wire `fast` / `quality`)        |
+| Work surface        | The deliverable              | Work order, Desk tray (Deliverable format, Facilities, Shredder)                                |
+| People around you   | Colleagues at adjacent desks | Your Team menu (teammates, Talk to team, Call a meeting, Headphones — distinct from desk Focus) |
+| Get up              | Leave the chair              | Mail, IM, outbox (+ Stand up is a primary bottom-nav control; coffee is on the floor)           |
+| Under the desk / IT | Cubicle plumbing             | Adjust workstation (contractors + code drawer), HR progression                                  |
 
 | Verb                        | Does                                                                                                                                                                                                                                                                                                  |
 | --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -331,22 +331,23 @@ desk verb — first-visit boot and the level panel's "Meet the team" CTA cover t
 | 📥 Check your mail          | Opens the inbox popover (`openSignal` counter prop)                                                                                                                                                                                                                                                   |
 | 📤 Ship from the Outbox     | Opens the headless Outbox export/share panel (`openSignal`) — no dedicated bottom-row icon                                                                                                                                                                                                            |
 | 💬 Open Slop Chat / Message | Messenger history / DM a teammate or colleague                                                                                                                                                                                                                                                        |
-| ☕ Get a coffee             | Pushes an unseen coffee scene and auto-accepts it — you walked over, there is no invite                                                                                                                                                                                                               |
 | ⚙️ Adjust your workstation  | Opens headless Settings (guest agents, code drawer) — concentration no longer lives here                                                                                                                                                                                                              |
 | 📈 Check my HR progression  | Toggles the level-up / People Ops scorecard (`LevelUpInfoPanel`) — always enabled; that panel also links to Meet the team                                                                                                                                                                             |
 
-**Mute distinction.** **Headphones** (in the Your Team roster menu) mutes the advisor roundtable. **Focus Time**
-(inbox) mutes office interruptions only — desk verbs still bypass it.
+**Mute distinction.** **Headphones** (in the Your Team roster menu) mutes the advisor roundtable. **Focus**
+(desk menu footer, below Concentration) mutes office interruptions only — desk verbs still bypass it.
 
 **Over-the-shoulder walk-bys are ambient only.** There is no "Walk the floor" desk verb — like
 real life, you cannot decide when somebody leans over your shoulder. The ambience director still
 delivers `walkby` moments; desk-mode chrome renders them as a big head dropping in from the top
-of the screen (`OfficeWalkBy`). When Narration is on and Captions / CC is off, the speech text is
-hidden (you hear them). The desk menu footer exposes the same Narration + Transcript (CC) toggles
-as the isometric floor / inbox (`archislop:office-narration`, `archislop:office-captions`).
+of the screen (`OfficeWalkBy`). When Voice is on and CC is off, the speech text is hidden (you
+hear them). The desk menu footer (below Concentration) exposes compact **Focus / Noise / Voice /
+CC** toggles (`archislop:office-focus-time`, `archislop:office-soundscape`,
+`archislop:office-narration`, `archislop:office-captions`). Coffee is a floor prop — stand up and
+walk to the machine.
 
 **Gating differs from the ambient director on purpose.** Verbs skip the random scheduler and
-**bypass Focus Time** (it mutes interruptions, not your own initiative). Coffee also bypasses a
+**bypass Focus Time** (it mutes interruptions, not your own initiative). Floor coffee also bypasses a
 streaming agent run — you can step away from a deliverable in progress. Other verbs still respect
 one-surface-at-a-time, an open meeting, and a streaming agent run. Blocked verbs stay visible and
 disabled with an in-fiction tooltip ("Deploy in progress — nobody leaves their desk." for
@@ -465,7 +466,7 @@ mirroring `officeCadence.js`) enforces a ~6 s quiet start, a 12–26 s warm-up g
 ~2 min (the room fades in), then a jittered 35–75 s cruise gap; the `useOfficeSoundscape`
 director holds while the tab is hidden or Focus Time is on and plays through App's sound gate
 (global sound toggle + user gesture). Defaults ON with a persisted opt-out toggle ("Soundscape")
-next to Focus Time in the inbox dock. Zero LLM, zero network.
+next to Focus in the desk menu footer. Zero LLM, zero network.
 
 **Room-tone bed.** Underneath those cues runs one continuous ~30 s seamless loop of open-plan
 office ambience — distant unintelligible conversation over a soft air-handling hum. The cues are
@@ -495,8 +496,8 @@ pitch/rate profiles in `officeNarration.js`; emails stay silent — nobody reads
 loud), meeting invites a **calendar bing-bong**, accepting a coffee break fires the espresso
 machine, entering a cubicle battle rings the **boxing bell**, and settling one lands a small
 **victory sting**. WG meeting beats are paced to the spoken line when Narration is on (fallback
-to the reading-pace timer when synthesis is muted or unavailable). The inbox dock's **Narration**
-toggle (defaults ON, persisted opt-out) sits next to Soundscape; Focus Time cancels in-flight
+to the reading-pace timer when synthesis is muted or unavailable). The desk menu's **Voice**
+toggle (defaults ON, persisted opt-out) sits next to Noise; Focus cancels in-flight
 speech.
 
 ## 7. Gamification
@@ -565,7 +566,7 @@ consumer). Reserved for later MCP-app parity: `office_moment` / `meeting_started
 | Office XP reducer                                                      | `applyOfficeEvent` in `apps/web/src/state/runGamificationStore.js`                                                                                                                                                                                                                                                                                                                                                                       |
 | Minutes → Thinking pane                                                | `officeMinutesToInsightEntry` in `apps/web/src/utils/appInsightHelpers.js`                                                                                                                                                                                                                                                                                                                                                               |
 | SFX                                                                    | `playMailChime` / `playYouveGotMail` / `playImPing` / `playFootsteps` / `playCalendarDing` / `playMeetingJoinBlip` / `playBattleBell` / `playVictoryDing` + soundscape cues (`playKeyboardClatter` / `playMouseClicks` / `playPaperShuffle` / `playDistantPrinter` / `playChairSqueak` / `playDeskPhone` / `playWaterCooler` / `playEspressoMachine` / `playVendingMachine` / `playElevatorDing`) in `apps/web/src/utils/agentChimes.js` |
-| Walk-by / meeting / battle / coffee narration                          | `apps/web/src/utils/officeNarration.js` + `POST /api/office/speak` (`apps/server/src/agents/officeTts.js` Chirp3-HD default with a Chirp3-HD → Neural2 → WaveNet → Web Speech fallback ladder; `OFFICE_TTS_VOICE_TIER` pins the ladder top); emails/IMs stay silent; inbox Narration toggle                                                                                                                                              |
+| Walk-by / meeting / battle / coffee narration                          | `apps/web/src/utils/officeNarration.js` + `POST /api/office/speak` (`apps/server/src/agents/officeTts.js` Chirp3-HD default with a Chirp3-HD → Neural2 → WaveNet → Web Speech fallback ladder; `OFFICE_TTS_VOICE_TIER` pins the ladder top); emails/IMs stay silent; desk menu Voice toggle                                                                                                                                              |
 | Narration roadmap (TTS follow-ups)                                     | [`docs/office-narration-roadmap.md`](office-narration-roadmap.md)                                                                                                                                                                                                                                                                                                                                                                        |
 | App integration                                                        | one `<OfficeLayer/>` mount next to `<ErrorToast/>` in `apps/web/src/App.jsx`                                                                                                                                                                                                                                                                                                                                                             |
 
@@ -648,7 +649,7 @@ the backburnered multi-human future is [`multi-human-office.md`](multi-human-off
     that argues about the user's actual diagram, and betting XP on the outcome before the first line
     lands.
 14. ~~**Walk-by / meeting narration (Web Speech)**~~ — ✅ shipped: per-cast pitch/rate profiles in
-    `officeNarration.js`; emails stay silent; inbox Narration toggle.
+    `officeNarration.js`; emails stay silent; desk menu Voice toggle.
 15. ~~**Google Cloud WaveNet TTS + overheard battles/coffee**~~ — ✅ shipped: `POST /api/office/speak`,
     `officeTts.js` WaveNet cast map, client prefers cloud MP3 with Web Speech fallback; cubicle
     battles and coffee scenes are spoken (emails/IMs stay silent). Voices since upgraded again to a

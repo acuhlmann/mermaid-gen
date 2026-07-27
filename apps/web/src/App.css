@@ -14116,22 +14116,16 @@ body.slopitect-rainbow-tint::before {
   border-top: 1px solid rgba(148, 163, 184, 0.22);
 }
 
-.desk-voice-pack {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 0.4rem;
-  padding: 0.15rem 0 0.25rem;
+/* Compact secondary toggles — below Concentration, not competing with verbs. */
+.desk-ambience-pack {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.2rem 0.45rem;
+  padding: 0.15rem 0 0.1rem;
 }
 
-.desk-voice-toggle {
-  font-size: 0.78rem;
-}
-
-.desk-transcript-button {
-  align-self: stretch;
-  justify-content: center;
-  width: 100%;
+.desk-ambience-toggle {
+  font-size: 0.72rem;
 }
 
 .concentration-control--menu {
@@ -17089,12 +17083,6 @@ body.slopitect-rainbow-tint::before {
   font-size: 13px;
   font-weight: 700;
   color: var(--text);
-}
-.office-inbox-toggles {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.25rem 0.35rem;
-  align-items: center;
 }
 .office-focus-toggle {
   display: inline-flex;

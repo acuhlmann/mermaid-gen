@@ -4,7 +4,6 @@ import { ArchiSlopMarkIcon } from './AppIcons.jsx';
 import ConcentrationControl from './ConcentrationControl.jsx';
 import DeskStandUpButton from './DeskStandUpButton.jsx';
 import IntroLocaleToggle from './IntroLocaleToggle.jsx';
-import IntroTranscriptButton from './IntroTranscriptButton.jsx';
 import { officeChromeCopy } from '../utils/officeCast.js';
 import { useUiCopy } from '../i18n/useUiLocale.js';
 import {
@@ -46,10 +45,10 @@ function computePortaledMenuStyle(anchorRect) {
 /**
  * Your desk (docs/office-parody.md § Desk verbs): the things *you* can decide
  * to do in the office, as opposed to the things the office does to you. The
- * ArchiSlop helmet stamp opens a flat verb menu with concentration + language
- * pack + captions at the bottom. Stand up is a primary bottom-nav control
- * beside the stamp — not buried in the menu. Walk-bys arrive on their own;
- * you cannot summon someone over your shoulder.
+ * ArchiSlop helmet stamp opens a flat verb menu with concentration first, then
+ * compact ambience toggles (Focus / Noise / Voice / CC), then language pack.
+ * Stand up is a primary bottom-nav control beside the stamp — not buried in
+ * the menu. Coffee lives on the isometric floor; walk-bys arrive on their own.
  *
  * Pure props: OfficeLayer owns the store subscription and wires the handlers
  * from useDeskActions. Verbs that cannot run right now stay visible but
@@ -59,7 +58,6 @@ function computePortaledMenuStyle(anchorRect) {
  * office windows (inbox, Slop Chat) that live outside .bottom-chrome.
  */
 export default function DeskActionsDock({
-  onGetCoffee,
   onStandUp,
   onSitDown,
   standing = false,
@@ -69,7 +67,6 @@ export default function DeskActionsDock({
   onOpenOutbox,
   onInviteAgent,
   blockedReason = null,
-  ambientBlockedReason = null,
   canOpenOutbox = false,
   unreadCount = 0,
   imUnreadCount = 0,
@@ -77,8 +74,12 @@ export default function DeskActionsDock({
   initialOpen = false,
   modelProfile = 'fast',
   onSelectModelProfile = null,
+  focusTime = false,
+  soundscape = true,
   captions = false,
   narration = true,
+  onToggleFocusTime = null,
+  onToggleSoundscape = null,
   onToggleCaptions = null,
   onToggleNarration = null
 }) {
@@ -91,8 +92,6 @@ export default function DeskActionsDock({
   const { locale, setLocale, controls } = useUiCopy();
   const chrome = officeChromeCopy();
   const copy = chrome.desk;
-  const directory = chrome.directory;
-  const inbox = chrome.inbox;
   const languagePack = controls.languagePack ?? {};
 
   useEffect(() => {
@@ -146,9 +145,6 @@ export default function DeskActionsDock({
   }, [open]);
 
   const blockedTitle = blockedReason ? (copy.blocked?.[blockedReason] ?? null) : null;
-  const ambientBlockedTitle = ambientBlockedReason
-    ? (copy.blocked?.[ambientBlockedReason] ?? null)
-    : null;
 
   const deskVerbs = [
     {
@@ -178,7 +174,6 @@ export default function DeskActionsDock({
       title: copy.slopChatTitle,
       badge: imUnreadCount > 0 ? (imUnreadCount > 9 ? '9+' : String(imUnreadCount)) : null
     },
-    { id: 'coffee', label: copy.coffee, emoji: '☕', run: onGetCoffee, ambient: true },
     {
       id: 'contractor',
       label: copy.onboardContractor,
@@ -197,16 +192,53 @@ export default function DeskActionsDock({
     }
   ];
 
+  const ambienceToggles = [
+    typeof onToggleFocusTime === 'function'
+      ? {
+          id: 'focus',
+          checked: Boolean(focusTime),
+          label: copy.focusTimeLabel,
+          title: copy.focusTimeTitle,
+          onChange: () => onToggleFocusTime(!focusTime)
+        }
+      : null,
+    typeof onToggleSoundscape === 'function'
+      ? {
+          id: 'soundscape',
+          checked: Boolean(soundscape),
+          label: copy.soundscapeLabel,
+          title: copy.soundscapeTitle,
+          onChange: () => onToggleSoundscape(!soundscape)
+        }
+      : null,
+    typeof onToggleNarration === 'function'
+      ? {
+          id: 'narration',
+          checked: Boolean(narration),
+          label: copy.narrationLabel,
+          title: copy.narrationTitle,
+          onChange: () => onToggleNarration(!narration)
+        }
+      : null,
+    typeof onToggleCaptions === 'function'
+      ? {
+          id: 'captions',
+          checked: Boolean(captions),
+          label: copy.captionsLabel,
+          title: copy.captionsTitle,
+          onChange: () => onToggleCaptions(!captions)
+        }
+      : null
+  ].filter(Boolean);
+
   const placementClass = placement === 'bottom' ? ' desk-actions--bottom' : '';
 
   const renderVerb = (verb) => {
-    const verbBlockedReason = verb.ambient ? ambientBlockedReason : blockedReason;
-    const verbBlockedTitle = verb.ambient ? ambientBlockedTitle : blockedTitle;
-    const disabled = verb.disabled || (!verb.alwaysEnabled && Boolean(verbBlockedReason));
+    const disabled = verb.disabled || (!verb.alwaysEnabled && Boolean(blockedReason));
     const title = verb.disabled
       ? verb.disabledTitle
       : disabled
-        ? verbBlockedTitle
+        ? blockedTitle
         : (verb.title ?? verb.label);
     return (
       <button
@@ -262,43 +294,30 @@ export default function DeskActionsDock({
           >
             {deskVerbs.map(renderVerb)}
             <div className="desk-actions-menu-footer" role="none">
-              {typeof onToggleNarration === 'function' || typeof onToggleCaptions === 'function' ? (
-                <div
-                  className="desk-voice-pack"
-                  role="group"
-                  aria-label={inbox.togglesAria}
-                  data-testid="desk-voice-pack"
-                >
-                  {typeof onToggleNarration === 'function' ? (
-                    <label
-                      className="office-focus-toggle desk-voice-toggle"
-                      title={inbox.narrationTitle}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={Boolean(narration)}
-                        onChange={() => onToggleNarration(!narration)}
-                      />
-                      <span>{inbox.narrationLabel}</span>
-                    </label>
-                  ) : null}
-                  {typeof onToggleCaptions === 'function' ? (
-                    <IntroTranscriptButton
-                      enabled={captions}
-                      label={directory.transcriptLabel}
-                      enabledLabel={directory.transcriptOnLabel}
-                      title={directory.transcriptTitle}
-                      onToggle={() => onToggleCaptions(!captions)}
-                      className="desk-transcript-button"
-                    />
-                  ) : null}
-                </div>
-              ) : null}
               <ConcentrationControl
                 variant="menu"
                 modelProfile={modelProfile}
                 onSelectModelProfile={onSelectModelProfile}
               />
+              {ambienceToggles.length > 0 ? (
+                <div
+                  className="desk-ambience-pack"
+                  role="group"
+                  aria-label={copy.ambienceAria}
+                  data-testid="desk-ambience-pack"
+                >
+                  {ambienceToggles.map((toggle) => (
+                    <label
+                      key={toggle.id}
+                      className="office-focus-toggle desk-ambience-toggle"
+                      title={toggle.title}
+                    >
+                      <input type="checkbox" checked={toggle.checked} onChange={toggle.onChange} />
+                      <span>{toggle.label}</span>
+                    </label>
+                  ))}
+                </div>
+              ) : null}
               <div
                 className="desk-language-pack"
                 role="group"

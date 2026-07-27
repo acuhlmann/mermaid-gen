@@ -71,7 +71,7 @@ export const OFFICE_ZH_CN = {
     id: 'welcome-email-hr',
     colleagueId: 'hr',
     subject: '欢迎加入，{userTitle}！🎉（工牌照片：待定）',
-    body: '欢迎来到这层楼！非常高兴你的加入。在强制入职培训（已改期，时间待定）之前，先认识几位同事：\n\n📅 Pam（敏捷教练）主持所有会议。真的是所有。\n🧃 Chad（我们的实习生）马上会给你发消息。他没有恶意。\n🖥️ 工单机器人 Dave 是 IT。请勿回复，请勿来电，请勿。\n🧹 Gary 掌管冰箱和恒温器。请对两者保持敬意。\n🧓 Ulrich 见过你的架构。在 2009 年。\n🔐 Sasha（我们的 CISO）已经开始怀疑你了。这是一种夸奖。\n\n我是 Linda — 人力运营！你的合规培训已经逾期了，这实属纪录。收件箱 📥、专注时间和办公室音景开关都在角落里，想让我们安静点随时可用。\n\n暖暖的问候，\nLinda'
+    body: '欢迎来到这层楼！非常高兴你的加入。在强制入职培训（已改期，时间待定）之前，先认识几位同事：\n\n📅 Pam（敏捷教练）主持所有会议。真的是所有。\n🧃 Chad（我们的实习生）马上会给你发消息。他没有恶意。\n🖥️ 工单机器人 Dave 是 IT。请勿回复，请勿来电，请勿。\n🧹 Gary 掌管冰箱和恒温器。请对两者保持敬意。\n🧓 Ulrich 见过你的架构。在 2009 年。\n🔐 Sasha（我们的 CISO）已经开始怀疑你了。这是一种夸奖。\n\n我是 Linda — 人力运营！你的合规培训已经逾期了，这实属纪录。想安静一点？工位菜单里有专注、音景和朗读 — 也可以站起来去咖啡机那边转转。\n\n暖暖的问候，\nLinda'
   },
   OFFICE_WELCOME_IM: {
     id: 'welcome-im-intern',
@@ -751,6 +751,15 @@ export const OFFICE_ZH_CN = {
       sectionSeat: '座位上',
       sectionGetUp: '起身',
       sectionUnderDesk: '桌子下面',
+      ambienceAria: '办公室声音与专注',
+      focusTimeLabel: '专注',
+      focusTimeTitle: '同事们(基本上)会尊重专注时间',
+      soundscapeLabel: '音景',
+      soundscapeTitle: '办公室环境音 — 键盘、打印机、咖啡机之类',
+      narrationLabel: '朗读',
+      narrationTitle: '朗读路过发言、会议和楼层闲聊 — 邮件保持静音',
+      captionsLabel: '字幕',
+      captionsTitle: '把语音显示成文字 — 听得见时可以关掉',
       blocked: {
         busy: '部署进行中 — 谁也别离开工位。',
         meeting: '你在开会。装得投入一点。',
@@ -807,16 +816,6 @@ export const OFFICE_ZH_CN = {
       title: '📥 收件箱',
       mailAnnounce: '您有新邮件！',
       mailAnnounceLang: 'zh-CN',
-      togglesAria: '收件箱氛围控制',
-      focusTimeLabel: '专注',
-      focusTimeTitle: '同事们(基本上)会尊重专注时间',
-      soundscapeLabel: '音景',
-      soundscapeTitle:
-        '办公室环境音 — 键盘声、鼠标点击、纸张、椅子吱呀、打印机、电话、饮水机、咖啡机、自动售货机、电梯',
-      narrationLabel: '朗读',
-      narrationTitle: '朗读路过发言、会议、隔间争论和咖啡闲聊 — 邮件和即时消息保持静音',
-      captionsLabel: '字幕 (CC)',
-      captionsTitle: '在楼层上显示语音内容为文字 — 能听见声音时可以关掉以腾出画面',
       closeAria: '关闭收件箱',
       back: '← 返回',
       emptyLine: '收件箱清零。HR 觉得这很可疑。且行且珍惜。',

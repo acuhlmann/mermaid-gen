@@ -564,7 +564,6 @@ export default function OfficeLayer({
       placement="bottom"
       unreadCount={snapshot.unreadCount}
       imUnreadCount={snapshot.imUnreadCount}
-      onGetCoffee={desk.getCoffee}
       onStandUp={standUp}
       onSitDown={sitDown}
       standing={onFloor}
@@ -574,13 +573,16 @@ export default function OfficeLayer({
       onOpenOutbox={onOpenOutbox}
       onInviteAgent={onInviteAgent}
       blockedReason={desk.blockedReason}
-      ambientBlockedReason={desk.ambientBlockedReason}
       canOpenOutbox={canOpenOutbox}
       initialOpen={deskMenuInitialOpen}
       modelProfile={modelProfile}
       onSelectModelProfile={onSelectModelProfile}
+      focusTime={snapshot.focusTime}
+      soundscape={snapshot.soundscape}
       captions={snapshot.captions}
       narration={snapshot.narration}
+      onToggleFocusTime={setOfficeFocusTime}
+      onToggleSoundscape={setOfficeSoundscape}
       onToggleCaptions={setOfficeCaptions}
       onToggleNarration={setOfficeNarration}
     />
@@ -656,13 +658,6 @@ export default function OfficeLayer({
         emails={snapshot.emails}
         unreadCount={snapshot.unreadCount}
         focusTime={snapshot.focusTime}
-        soundscape={snapshot.soundscape}
-        narration={snapshot.narration}
-        captions={snapshot.captions}
-        onToggleFocusTime={setOfficeFocusTime}
-        onToggleSoundscape={setOfficeSoundscape}
-        onToggleNarration={setOfficeNarration}
-        onToggleCaptions={setOfficeCaptions}
         onMarkRead={handleMarkRead}
         onMarkAllRead={markAllOfficeEmailsRead}
         onAdoptPrompt={handleAdopt}

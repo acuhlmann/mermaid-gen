@@ -553,7 +553,7 @@ export const OFFICE_WELCOME_EMAIL = {
   id: 'welcome-email-hr',
   colleagueId: 'hr',
   subject: 'Welcome aboard, {userTitle}! 🎉 (badge photo: “still processing,” forever)',
-  body: 'Welcome to the floor, {userName}! Officially thrilled. Legally obligated to say so. Emotionally buffering.\n\nYour mandate is refreshingly simple: ship deliverables. Diagrams, charts, 3D flythroughs of the org chart — you architect it, we align on the credit at the all-hands.\n\nA few faces before your orientation (rescheduled to a date that does not technically exist on any calendar product):\n\n📅 Pam (Agile Coach) runs the meetings. All of them. This email is, itself, a ceremony.\n🧃 Chad (our intern) will IM you in roughly eight seconds. He is “heads-down.” He is also reply-all.\n🖥️ Ticket Bot Dave is IT. Do not reply, do not call, do not make eye contact. DNS was involved.\n🧹 Gary owns the fridge and the thermostat. Both are load-bearing. Neither negotiates.\n🧓 Ulrich has seen your architecture before. In 2009. He’ll mention it. Softly. Forever.\n🔐 Sasha (our CISO) has already flagged you as an attack surface. She means it warmly.\n\nI’m Linda — People Ops. Your compliance training is already overdue, which is, genuinely, a company record. The inbox 📥, Focus Time, and Soundscape toggles live in the corner for when we become “a lot.”\n\nSynergistically yours,\nLinda\n\nP.S. Please sign Craig’s card. Craig knows who you are.'
+  body: 'Welcome to the floor, {userName}! Officially thrilled. Legally obligated to say so. Emotionally buffering.\n\nYour mandate is refreshingly simple: ship deliverables. Diagrams, charts, 3D flythroughs of the org chart — you architect it, we align on the credit at the all-hands.\n\nA few faces before your orientation (rescheduled to a date that does not technically exist on any calendar product):\n\n📅 Pam (Agile Coach) runs the meetings. All of them. This email is, itself, a ceremony.\n🧃 Chad (our intern) will IM you in roughly eight seconds. He is “heads-down.” He is also reply-all.\n🖥️ Ticket Bot Dave is IT. Do not reply, do not call, do not make eye contact. DNS was involved.\n🧹 Gary owns the fridge and the thermostat. Both are load-bearing. Neither negotiates.\n🧓 Ulrich has seen your architecture before. In 2009. He’ll mention it. Softly. Forever.\n🔐 Sasha (our CISO) has already flagged you as an attack surface. She means it warmly.\n\nI’m Linda — People Ops. Your compliance training is already overdue, which is, genuinely, a company record. Need quieter? Your desk menu has Focus, Noise, and Voice — and you can always stand up and walk to the coffee machine.\n\nSynergistically yours,\nLinda\n\nP.S. Please sign Craig’s card. Craig knows who you are.'
 };
 
 export const OFFICE_WELCOME_IM = {
@@ -1247,6 +1247,15 @@ export const OFFICE_CHROME_COPY = {
     thinkingShort: 'Notebook',
     thinkingRole: 'Thinking',
     thinkingTitle: 'Your notebook · notes, critiques, and run history',
+    ambienceAria: 'Office sound & focus',
+    focusTimeLabel: 'Focus',
+    focusTimeTitle: 'Colleagues (mostly) respect Focus Time',
+    soundscapeLabel: 'Noise',
+    soundscapeTitle: 'Ambient office noise — keyboards, printer, coffee machine, the usual',
+    narrationLabel: 'Voice',
+    narrationTitle: 'Speak walk-bys, meetings, and floor chat aloud — mail stays silent',
+    captionsLabel: 'CC',
+    captionsTitle: 'Show spoken lines as text when you cannot listen',
     blocked: {
       busy: 'Deploy in progress — nobody leaves their desk.',
       meeting: "You're in a meeting. Look engaged.",
@@ -1266,18 +1275,6 @@ export const OFFICE_CHROME_COPY = {
     dragHint: 'Drag to move',
     mailAnnounce: 'You’ve got mail!',
     mailAnnounceLang: 'en-US',
-    togglesAria: 'Inbox ambience controls',
-    focusTimeLabel: 'Focus Time',
-    focusTimeTitle: 'Colleagues (mostly) respect Focus Time',
-    soundscapeLabel: 'Soundscape',
-    soundscapeTitle:
-      'Ambient office noise — keyboards, mouse clicks, paper, chair squeaks, the printer, the desk phone, the watercooler, the espresso machine, the vending machine, the elevator',
-    narrationLabel: 'Narration',
-    narrationTitle:
-      'Speak walk-bys, meetings, cubicle battles, and coffee chat aloud — emails and IMs stay silent',
-    captionsLabel: 'Captions (CC)',
-    captionsTitle:
-      'Show spoken dialogue as text on the floor — leave off when you can hear the voice',
     closeAria: 'Close inbox',
     back: '← Back',
     emptyLine: 'Inbox zero. HR finds this suspicious. Enjoy it while it lasts.',

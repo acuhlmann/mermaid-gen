@@ -71,7 +71,7 @@ export const OFFICE_ZH_TW = {
     id: 'welcome-email-hr',
     colleagueId: 'hr',
     subject: '歡迎加入,{userTitle}!🎉(識別證照片:待定)',
-    body: '歡迎來到這層樓!很開心你的加入。在強制新人訓練(已改期,時間待定)之前,先認識幾位同事:\n\n📅 Pam(敏捷教練)主持所有會議。真的是所有。\n🧃 Chad(我們的實習生)馬上會敲你。他沒有惡意。\n🖥️ 工單機器人 Dave 是 IT。請勿回覆,請勿來電,請勿。\n🧹 Gary 掌管冰箱和恆溫器。請對兩者保持敬意。\n🧓 Ulrich 看過你的架構。在 2009 年。\n🔐 Sasha(我們的資安長)已經開始懷疑你了。這是一種讚美。\n\n我是 Linda — 人資營運!你的合規訓練已經逾期了,這實屬紀錄。收件匣 📥、專注時間和辦公室音景開關都在角落,想讓我們安靜點隨時可用。\n\n溫暖的問候,\nLinda'
+    body: '歡迎來到這層樓!很開心你的加入。在強制新人訓練(已改期,時間待定)之前,先認識幾位同事:\n\n📅 Pam(敏捷教練)主持所有會議。真的是所有。\n🧃 Chad(我們的實習生)馬上會敲你。他沒有惡意。\n🖥️ 工單機器人 Dave 是 IT。請勿回覆,請勿來電,請勿。\n🧹 Gary 掌管冰箱和恆溫器。請對兩者保持敬意。\n🧓 Ulrich 看過你的架構。在 2009 年。\n🔐 Sasha(我們的資安長)已經開始懷疑你了。這是一種讚美。\n\n我是 Linda — 人資營運!你的合規訓練已經逾期了,這實屬紀錄。想安靜一點?工位選單裡有專注、音景和朗讀 — 也可以站起來去咖啡機那邊轉轉。\n\n溫暖的問候,\nLinda'
   },
   OFFICE_WELCOME_IM: {
     id: 'welcome-im-intern',
@@ -751,6 +751,15 @@ export const OFFICE_ZH_TW = {
       sectionSeat: '座位上',
       sectionGetUp: '起身',
       sectionUnderDesk: '桌子下面',
+      ambienceAria: '辦公室聲音與專注',
+      focusTimeLabel: '專注',
+      focusTimeTitle: '同事們(大致上)會尊重專注時間',
+      soundscapeLabel: '音景',
+      soundscapeTitle: '辦公室環境音 — 鍵盤、印表機、咖啡機之類',
+      narrationLabel: '朗讀',
+      narrationTitle: '朗讀路過發言、會議和樓層閒聊 — 郵件保持靜音',
+      captionsLabel: '字幕',
+      captionsTitle: '把語音顯示成文字 — 聽得見時可以關掉',
       blocked: {
         busy: '部署進行中 — 誰也別離開工位。',
         meeting: '你在開會。裝得投入一點。',
@@ -807,16 +816,6 @@ export const OFFICE_ZH_TW = {
       title: '📥 收件匣',
       mailAnnounce: '您有新郵件!',
       mailAnnounceLang: 'zh-TW',
-      togglesAria: '收件匣氛圍控制',
-      focusTimeLabel: '專注',
-      focusTimeTitle: '同事們(大致上)會尊重專注時間',
-      soundscapeLabel: '音景',
-      soundscapeTitle:
-        '辦公室環境音 — 鍵盤聲、滑鼠點擊、紙張、椅子吱呀、印表機、電話、飲水機、咖啡機、自動販賣機、電梯',
-      narrationLabel: '朗讀',
-      narrationTitle: '朗讀路過發言、會議、隔間爭論和咖啡閒聊 — 郵件和即時訊息保持靜音',
-      captionsLabel: '字幕 (CC)',
-      captionsTitle: '在樓層上顯示語音內容為文字 — 能聽見聲音時可以關掉以騰出畫面',
       closeAria: '關閉收件匣',
       back: '← 返回',
       emptyLine: '收件匣清空。HR 覺得這很可疑。好好珍惜。',

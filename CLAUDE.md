@@ -2,6 +2,8 @@
 
 This file is for coding agents (Claude Code, Cursor, Copilot) opening a session in this repo. Humans should start at [`README.md`](README.md) and [`docs/guide/README.md`](docs/guide/README.md); operators at [`AGENTS.md`](AGENTS.md). For a concept→file index see [`STRUCTURE.md`](STRUCTURE.md); for terminology see [`GLOSSARY.md`](GLOSSARY.md); for common task templates see [`docs/recipes/`](docs/recipes/).
 
+[`AGENTS.md`](AGENTS.md) is the operator manual (commands, CLIs, Cursor Cloud). This file is the domain quick-reference (slots, ladders, wire habits). They are complementary, not duplicates — but **durable operational tips** (don't-touch paths, regenerate commands, verify loops) must land in **both**. Cursor often starts from `AGENTS.md`; Claude Code often starts here. Writing a tip into only one file leaves the other agent blind.
+
 > The product name is **archislop**. The directory and GitHub repo are still named `mermaid-gen` for legacy reasons. Treat `archislop` as canonical and don't rename anything unless asked.
 
 ## Repo layout in 10 lines

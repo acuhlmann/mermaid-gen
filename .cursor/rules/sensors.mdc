@@ -13,7 +13,7 @@ This repo follows Martin Fowler's "Sensors for Coding Agents" approach: every ar
 
 ## Before editing
 
-Read [`AGENTS.md`](../../AGENTS.md) and [`CLAUDE.md`](../../CLAUDE.md). Both are kept in sync for Claude Code and Cursor.
+Read [`AGENTS.md`](../../AGENTS.md) (operator manual) and [`CLAUDE.md`](../../CLAUDE.md) (domain quick-reference). Complementary roles, not byte-identical copies — but durable operational tips (don't-touch, regenerate commands, verify loops) must stay mirrored in both so Cursor and Claude Code see the same guardrails.
 
 ## After editing
 

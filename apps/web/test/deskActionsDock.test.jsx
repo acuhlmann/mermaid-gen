@@ -5,7 +5,6 @@ import DeskActionsDock from '../src/components/DeskActionsDock.jsx';
 
 function open(props = {}) {
   const handlers = {
-    onGetCoffee: vi.fn(),
     onStandUp: vi.fn(),
     onSitDown: vi.fn(),
     onCheckInbox: vi.fn(),
@@ -14,6 +13,8 @@ function open(props = {}) {
     onOpenOutbox: vi.fn(),
     onInviteAgent: vi.fn(),
     canOpenOutbox: true,
+    onToggleFocusTime: vi.fn(),
+    onToggleSoundscape: vi.fn(),
     onToggleCaptions: vi.fn(),
     onToggleNarration: vi.fn(),
     ...props
@@ -30,7 +31,6 @@ describe('DeskActionsDock', () => {
     render(
       <DeskActionsDock
         initialOpen
-        onGetCoffee={vi.fn()}
         onStandUp={vi.fn()}
         onCheckInbox={vi.fn()}
         onOpenSlopChat={vi.fn()}
@@ -46,7 +46,6 @@ describe('DeskActionsDock', () => {
   it('shows the ArchiSlop mark on the desk stamp', () => {
     render(
       <DeskActionsDock
-        onGetCoffee={vi.fn()}
         onStandUp={vi.fn()}
         onCheckInbox={vi.fn()}
         onOpenSlopChat={vi.fn()}
@@ -82,10 +81,12 @@ describe('DeskActionsDock', () => {
     expect(screen.getByRole('menuitem', { name: /Check your mail/ }).textContent).toContain('3');
   });
 
-  it('lists desk verbs in a flat menu with concentration and voice controls in the footer', () => {
+  it('lists desk verbs with concentration above compact ambience toggles', () => {
     open({
       modelProfile: 'fast',
       onSelectModelProfile: vi.fn(),
+      focusTime: false,
+      soundscape: true,
       captions: false,
       narration: true
     });
@@ -97,13 +98,9 @@ describe('DeskActionsDock', () => {
     expect(screen.queryByRole('menuitem', { name: /Open your notebook/ })).toBeNull();
     expect(screen.queryByRole('menuitem', { name: /Talk to your team/ })).toBeNull();
     expect(screen.queryByRole('menuitem', { name: /Call a meeting/ })).toBeNull();
+    expect(screen.queryByRole('menuitem', { name: /Get a coffee/ })).toBeNull();
     expect(screen.getByRole('menuitem', { name: /Ship from the Outbox/ })).toBeTruthy();
-    for (const label of [
-      'Open Slop Chat',
-      'Get a coffee',
-      'Onboard a contractor',
-      'Check my HR progression'
-    ]) {
+    for (const label of ['Open Slop Chat', 'Onboard a contractor', 'Check my HR progression']) {
       expect(screen.getByRole('menuitem', { name: new RegExp(label) })).toBeTruthy();
     }
     expect(screen.queryByRole('menuitem', { name: /Walk the floor/ })).toBeNull();
@@ -116,21 +113,35 @@ describe('DeskActionsDock', () => {
     expect(screen.getByText('Concentration')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Rush job' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Deep work' })).toBeTruthy();
+    const ambience = screen.getByTestId('desk-ambience-pack');
+    expect(ambience.compareDocumentPosition(concentration) & Node.DOCUMENT_POSITION_PRECEDING).toBe(
+      Node.DOCUMENT_POSITION_PRECEDING
+    );
+    expect(screen.getByLabelText('Focus')).toBeTruthy();
+    expect(screen.getByLabelText('Noise')).toBeTruthy();
+    expect(screen.getByLabelText('Voice')).toBeTruthy();
+    expect(screen.getByLabelText('CC')).toBeTruthy();
     expect(screen.getByTestId('desk-language-pack')).toBeTruthy();
     expect(screen.getByText('Language pack')).toBeTruthy();
     expect(screen.getByRole('radiogroup', { name: /language/i })).toBeTruthy();
     expect(screen.getByRole('radio', { name: /English/i })).toBeTruthy();
-    expect(screen.getByTestId('desk-voice-pack')).toBeTruthy();
-    expect(screen.getByTestId('intro-transcript-button')).toBeTruthy();
-    expect(screen.getByText('Narration')).toBeTruthy();
   });
 
-  it('toggles captions and narration from the desk menu footer', () => {
-    const handlers = open({ captions: false, narration: true });
-    fireEvent.click(screen.getByTestId('intro-transcript-button'));
-    expect(handlers.onToggleCaptions).toHaveBeenCalledWith(true);
-    fireEvent.click(screen.getByLabelText('Narration'));
+  it('toggles Focus, Noise, Voice, and CC from the desk menu footer', () => {
+    const handlers = open({
+      focusTime: false,
+      soundscape: true,
+      captions: false,
+      narration: true
+    });
+    fireEvent.click(screen.getByLabelText('Focus'));
+    expect(handlers.onToggleFocusTime).toHaveBeenCalledWith(true);
+    fireEvent.click(screen.getByLabelText('Noise'));
+    expect(handlers.onToggleSoundscape).toHaveBeenCalledWith(false);
+    fireEvent.click(screen.getByLabelText('Voice'));
     expect(handlers.onToggleNarration).toHaveBeenCalledWith(false);
+    fireEvent.click(screen.getByLabelText('CC'));
+    expect(handlers.onToggleCaptions).toHaveBeenCalledWith(true);
   });
 
   it('runs contractor verb and closes the menu', () => {
@@ -166,26 +177,11 @@ describe('DeskActionsDock', () => {
     expect(screen.queryByRole('menu')).toBeNull();
   });
 
-  it('runs the verb and closes the menu', () => {
-    const handlers = open();
-    fireEvent.click(screen.getByRole('menuitem', { name: /Get a coffee/ }));
-    expect(handlers.onGetCoffee).toHaveBeenCalledTimes(1);
-    expect(screen.queryByRole('menu')).toBeNull();
-  });
-
-  it('disables verbs with an in-fiction reason while blocked, but never inbox, contractor, or HR', () => {
-    open({ blockedReason: 'meeting', ambientBlockedReason: 'meeting' });
-    const coffee = screen.getByRole('menuitem', { name: /Get a coffee/ });
-    expect(coffee.disabled).toBe(true);
-    expect(coffee.getAttribute('title')).toMatch(/in a meeting/i);
+  it('never disables inbox, contractor, or HR while blocked', () => {
+    open({ blockedReason: 'meeting' });
     expect(screen.getByRole('menuitem', { name: /Check your mail/ }).disabled).toBe(false);
     expect(screen.getByRole('menuitem', { name: /Onboard a contractor/ }).disabled).toBe(false);
     expect(screen.getByRole('menuitem', { name: /Check my HR progression/ }).disabled).toBe(false);
-  });
-
-  it('keeps coffee available while a deliverable streams', () => {
-    open({ blockedReason: 'busy', ambientBlockedReason: null });
-    expect(screen.getByRole('menuitem', { name: /Get a coffee/ }).disabled).toBe(false);
   });
 
   it('blocks Outbox when there is nothing to ship', () => {

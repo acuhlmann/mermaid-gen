@@ -10,12 +10,10 @@ import FloatingWindow, { FloatingWindowDragHandle } from './FloatingWindow.jsx';
 
 /**
  * The corporate inbox (docs/office-parody.md): an envelope button with an
- * unread badge, opening a popover with the email list, a reading pane,
- * the Focus Time / Soundscape / Narration / Captions toggles (compact toolbar
- * under the title), and the "Call a meeting" shortcut. Pure props — OfficeLayer
- * owns the store subscription. Narration covers walk-bys and meetings only;
- * emails stay silent (nobody reads your inbox out loud). Captions (CC) shows
- * spoken dialogue as on-screen text when voice is playing.
+ * unread badge, opening a popover with the email list, a reading pane, and
+ * the "Call a meeting" shortcut. Pure props — OfficeLayer owns the store
+ * subscription. Ambience toggles (Focus / Noise / Voice / CC) live on the desk
+ * menu, not here — the inbox is mail only.
  *
  * "Call a meeting" opens the people/group picker (seeded with selected
  * senders + email subjects as the topic) rather than instantly summoning a
@@ -26,14 +24,7 @@ export default function OfficeInboxDock({
   openSignal = 0,
   emails,
   unreadCount,
-  focusTime,
-  soundscape,
-  narration,
-  captions,
-  onToggleFocusTime,
-  onToggleSoundscape,
-  onToggleNarration,
-  onToggleCaptions,
+  focusTime = false,
   onMarkRead,
   onMarkAllRead,
   onAdoptPrompt,
@@ -183,40 +174,6 @@ export default function OfficeInboxDock({
               >
                 ×
               </button>
-            </div>
-            <div className="office-inbox-toggles" role="group" aria-label={copy.inbox.togglesAria}>
-              <label className="office-focus-toggle" title={copy.inbox.focusTimeTitle}>
-                <input
-                  type="checkbox"
-                  checked={focusTime}
-                  onChange={() => onToggleFocusTime?.(!focusTime)}
-                />
-                <span>{copy.inbox.focusTimeLabel}</span>
-              </label>
-              <label className="office-focus-toggle" title={copy.inbox.soundscapeTitle}>
-                <input
-                  type="checkbox"
-                  checked={Boolean(soundscape)}
-                  onChange={() => onToggleSoundscape?.(!soundscape)}
-                />
-                <span>{copy.inbox.soundscapeLabel}</span>
-              </label>
-              <label className="office-focus-toggle" title={copy.inbox.narrationTitle}>
-                <input
-                  type="checkbox"
-                  checked={Boolean(narration)}
-                  onChange={() => onToggleNarration?.(!narration)}
-                />
-                <span>{copy.inbox.narrationLabel}</span>
-              </label>
-              <label className="office-focus-toggle" title={copy.inbox.captionsTitle}>
-                <input
-                  type="checkbox"
-                  checked={Boolean(captions)}
-                  onChange={() => onToggleCaptions?.(!captions)}
-                />
-                <span>{copy.inbox.captionsLabel}</span>
-              </label>
             </div>
           </FloatingWindowDragHandle>
           {selected ? (

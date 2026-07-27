@@ -1,6 +1,8 @@
 # AGENTS.md
 
-This file is a quick operator manual for coding agents working in this repository.
+This file is a quick operator manual for coding agents working in this repository (Cursor, Claude Code, Copilot, cloud agents).
+
+Domain depth (slots, validation ladders, wire-contract habits, where-to-put table) lives in [`CLAUDE.md`](CLAUDE.md). **Keep operational tips in both files** — don't-touch paths, regenerate commands, verify loops, safety rules. When you learn something durable while coding, update this file _and_ `CLAUDE.md` if another agent would miss it by reading only one.
 
 ## Project at a glance
 
@@ -26,6 +28,7 @@ This file is a quick operator manual for coding agents working in this repositor
 - Run web + server together: `npm run dev`
 - Run all tests: `npm test`
 - Build all packages: `npm run build`
+- Regenerate baked office audio: `./scripts/generate-office-audio.sh --dry-run` (cost first), then without the flag — see [`docs/audio-assets.md`](docs/audio-assets.md)
 - **Verify after edits** (pick the smallest loop that fits):
   - `npm run check:affected` — diff-scoped sensors (includes Prettier on changed files; **verify:boundaries** when `apps/web` changes; **test:affected** when `apps/server` or `apps/web` changes; matches what agents should run before push)
   - `npm run test:affected` — diff-scoped tests only (basename mirror + blast-radius rules; skips slow Anything child-process suite unless the diff touches `anything*`)
@@ -138,16 +141,28 @@ Production deploy notes (Cloud Run, billing credits, GitHub Actions CI, optional
 ## Documentation upkeep
 
 - **Keep human docs current** when you ship architectural changes, new agents/skills, new modes, new routes, or renamed top-level concepts. Smaller bug fixes and internal refactors usually don't need doc touches.
+- **Agent tip sync:** if you add a durable don't-touch, command, or safety tip while coding, mirror it in [`CLAUDE.md`](CLAUDE.md) (and vice versa). Domain paragraphs (validation ladders, slot model) stay in `CLAUDE.md` only — link from here if needed.
 - **Hub:** [`README.md`](README.md) — short intro, quick start bullets, doc index (no heavy Mermaid blocks; GitHub preview hangs on large diagrams).
 - **Guides:** [`docs/guide/`](docs/guide/) — detailed prose and diagrams on focused pages (agents, validation, MCP Apps table, endpoints, config). Update the relevant guide file; add a README index row if you add a new guide.
 - Write for readers, not parsers. Prefer prose and focused Mermaid diagrams over walls of config.
 - When in doubt, update docs in the same commit/PR as the code change so behavior and docs stay in lockstep.
+
+## Don't-touch list
+
+- `.agents/` — generated CopilotKit skill files, git-ignored. Refresh with `npm run setup:skills`.
+- `.env`, `.env.*` — never commit; ask the user if they need a new variable.
+- `scripts/deploy-*.sh` and `scripts/push-*-secret-cloud-run.sh` — production deploy / Secret Manager scripts. Don't run unless asked.
+- `apps/server/src/mcp/apps/*.js` (HTML strings) — paired with `session-events` bridges; if you change the HTML, also update the matching event handler and re-run the App's smoke flow.
+- `apps/server/bench-results/` — bench snapshots; don't hand-edit, regenerate via the bench script.
+- `apps/web/src/assets/audio/*.mp3` — baked ElevenLabs assets; don't hand-edit, regenerate via `./scripts/generate-office-audio.sh` (build-time only — never wire ElevenLabs into a route, CI, or a deploy script). See [`docs/audio-assets.md`](docs/audio-assets.md).
+- `package-lock.json`, `skills-lock.json` — never hand-edit.
 
 ## Safety and hygiene
 
 - Respect existing uncommitted user changes; do not revert unrelated diffs.
 - Avoid destructive git commands unless explicitly requested.
 - Keep docs and commands aligned with actual `package.json` scripts.
+- New baked audio assets go under `apps/web/src/assets/audio/` via `scripts/generate-office-audio.sh`, not by hand-editing `.mp3` files.
 
 ## Cursor Cloud specific instructions
 

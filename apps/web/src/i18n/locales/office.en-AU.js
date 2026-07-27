@@ -48,7 +48,7 @@ export const OFFICE_EN_AU = {
     id: 'welcome-email-hr',
     colleagueId: 'hr',
     subject: 'Welcome aboard, {userTitle}! 🎉 (badge photo: pending)',
-    body: 'Welcome to the floor! Stoked to have you. A few names before your mandatory orientation (rescheduled, TBD):\n\n📅 Pam (Agile Coach) runs the meetings. All of them.\n🧃 Chad (our intern) will IM you shortly. He means well.\n🖥️ Ticket Bot Dave is IT. Do not reply, do not call, do not.\n🧹 Gary owns the fridge and the thermostat. Respect both.\n🧓 Ulrich has seen your architecture before. In 2009.\n🔐 Sasha (our CISO) already reckons you’re suss. It’s a compliment.\n\nAnd I’m Linda — People Ops! Your compliance training is already overdue, which is honestly a record. The inbox 📥, Focus Time, and Office noise toggles live in the corner whenever you need us quieter.\n\nWarmly,\nLinda'
+    body: 'Welcome to the floor! Stoked to have you. A few names before your mandatory orientation (rescheduled, TBD):\n\n📅 Pam (Agile Coach) runs the meetings. All of them.\n🧃 Chad (our intern) will IM you shortly. He means well.\n🖥️ Ticket Bot Dave is IT. Do not reply, do not call, do not.\n🧹 Gary owns the fridge and the thermostat. Respect both.\n🧓 Ulrich has seen your architecture before. In 2009.\n🔐 Sasha (our CISO) already reckons you’re suss. It’s a compliment.\n\nAnd I’m Linda — People Ops! Your compliance training is already overdue, which is honestly a record. Need quieter? Your desk menu has Focus, Noise, and Voice — and you can always stand up and wander over to the coffee machine.\n\nWarmly,\nLinda'
   },
   OFFICE_WELCOME_IM: {
     id: 'welcome-im-intern',
@@ -744,7 +744,16 @@ export const OFFICE_EN_AU = {
       thinkingClose: 'Close ya notebook',
       sectionSeat: 'Ya seat',
       sectionGetUp: 'Get up',
-      sectionUnderDesk: 'Under the desk'
+      sectionUnderDesk: 'Under the desk',
+      ambienceAria: 'Office sound & focus',
+      focusTimeLabel: 'Focus',
+      focusTimeTitle: 'Colleagues (mostly) respect Focus Time',
+      soundscapeLabel: 'Noise',
+      soundscapeTitle: 'Ambient office racket — keyboards, printer, coffee machine, the usual',
+      narrationLabel: 'Voice',
+      narrationTitle: 'Speak walk-bys, meetings, and floor chat aloud — mail stays silent',
+      captionsLabel: 'CC',
+      captionsTitle: 'Show spoken lines as text when you cannot listen'
     },
     directory: {
       title: 'Meet the team',
@@ -789,16 +798,6 @@ export const OFFICE_EN_AU = {
     inbox: {
       mailAnnounce: 'You’ve got mail, mate!',
       mailAnnounceLang: 'en-AU',
-      togglesAria: 'Inbox ambience controls',
-      soundscapeLabel: 'Noise',
-      soundscapeTitle:
-        'Ambient office racket — keyboards, mouse clicks, paper, squeaky chairs, the printer, the phone, the coffee machine, the vending machine, the lift',
-      narrationLabel: 'Narration',
-      narrationTitle:
-        'Speak walk-bys, meetings, cubicle battles, and coffee chat aloud — emails and IMs stay silent',
-      captionsLabel: 'Captions (CC)',
-      captionsTitle:
-        'Show spoken dialogue as text on the floor — leave off when you can hear the voice',
       emptyLine: "Inbox zero. HR reckons that's suss. Enjoy it while it lasts.",
       selectEmailAria: 'Select email from {name} for a meeting',
       callMeetingFromSelectionTitle: 'Pick who to pull in about the selected email thread',

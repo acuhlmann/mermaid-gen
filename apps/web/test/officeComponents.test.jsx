@@ -42,7 +42,6 @@ describe('OfficeInboxDock', () => {
         emails={EMAILS}
         unreadCount={1}
         focusTime={false}
-        onToggleFocusTime={vi.fn()}
         onMarkRead={onMarkRead}
         onMarkAllRead={vi.fn()}
         onAdoptPrompt={vi.fn()}
@@ -63,7 +62,6 @@ describe('OfficeInboxDock', () => {
         emails={EMAILS}
         unreadCount={0}
         focusTime={false}
-        onToggleFocusTime={vi.fn()}
         onMarkRead={vi.fn()}
         onMarkAllRead={vi.fn()}
         onAdoptPrompt={onAdoptPrompt}
@@ -80,14 +78,12 @@ describe('OfficeInboxDock', () => {
     );
   });
 
-  it('toggles Focus Time and gates the Call a meeting button', () => {
-    const onToggleFocusTime = vi.fn();
+  it('gates Call a meeting when meetings are unavailable', () => {
     render(
       <OfficeInboxDock
         emails={[]}
         unreadCount={0}
         focusTime={false}
-        onToggleFocusTime={onToggleFocusTime}
         onMarkRead={vi.fn()}
         onMarkAllRead={vi.fn()}
         onAdoptPrompt={vi.fn()}
@@ -96,8 +92,10 @@ describe('OfficeInboxDock', () => {
       />
     );
     fireEvent.click(screen.getByRole('button', { name: /no unread/ }));
-    fireEvent.click(screen.getByLabelText(/Focus Time/i));
-    expect(onToggleFocusTime).toHaveBeenCalledWith(true);
+    expect(screen.queryByLabelText(/Focus/i)).toBeNull();
+    expect(screen.queryByLabelText(/Noise|Soundscape/i)).toBeNull();
+    expect(screen.queryByLabelText(/Voice|Narration/i)).toBeNull();
+    expect(screen.queryByLabelText(/CC|Captions/i)).toBeNull();
     expect(screen.getByRole('button', { name: /Call a meeting/ }).disabled).toBe(true);
   });
 
@@ -108,7 +106,6 @@ describe('OfficeInboxDock', () => {
         emails={[EMAILS[0]]}
         unreadCount={1}
         focusTime={false}
-        onToggleFocusTime={vi.fn()}
         onMarkRead={vi.fn()}
         onMarkAllRead={vi.fn()}
         onAdoptPrompt={vi.fn()}
@@ -132,7 +129,6 @@ describe('OfficeInboxDock', () => {
         emails={EMAILS}
         unreadCount={1}
         focusTime={false}
-        onToggleFocusTime={vi.fn()}
         onMarkRead={vi.fn()}
         onMarkAllRead={vi.fn()}
         onAdoptPrompt={vi.fn()}
@@ -158,7 +154,6 @@ describe('OfficeInboxDock', () => {
         emails={EMAILS}
         unreadCount={0}
         focusTime={false}
-        onToggleFocusTime={vi.fn()}
         onMarkRead={vi.fn()}
         onMarkAllRead={vi.fn()}
         onAdoptPrompt={vi.fn()}
@@ -174,88 +169,6 @@ describe('OfficeInboxDock', () => {
       topic: 'FRIDGE CLEANOUT FRIDAY',
       source: 'email'
     });
-  });
-
-  it('toggles the office soundscape', () => {
-    const onToggleSoundscape = vi.fn();
-    render(
-      <OfficeInboxDock
-        emails={[]}
-        unreadCount={0}
-        focusTime={false}
-        soundscape
-        narration
-        onToggleFocusTime={vi.fn()}
-        onToggleSoundscape={onToggleSoundscape}
-        onToggleNarration={vi.fn()}
-        onMarkRead={vi.fn()}
-        onMarkAllRead={vi.fn()}
-        onAdoptPrompt={vi.fn()}
-        onCallMeeting={vi.fn()}
-        canCallMeeting={false}
-      />
-    );
-    fireEvent.click(screen.getByRole('button', { name: /no unread/ }));
-    const toggle = screen.getByLabelText(/Soundscape/i);
-    expect(toggle.checked).toBe(true);
-    fireEvent.click(toggle);
-    expect(onToggleSoundscape).toHaveBeenCalledWith(false);
-  });
-
-  it('toggles walk-by / meeting narration (emails stay silent)', () => {
-    const onToggleNarration = vi.fn();
-    render(
-      <OfficeInboxDock
-        emails={[]}
-        unreadCount={0}
-        focusTime={false}
-        soundscape
-        narration
-        captions={false}
-        onToggleFocusTime={vi.fn()}
-        onToggleSoundscape={vi.fn()}
-        onToggleNarration={onToggleNarration}
-        onToggleCaptions={vi.fn()}
-        onMarkRead={vi.fn()}
-        onMarkAllRead={vi.fn()}
-        onAdoptPrompt={vi.fn()}
-        onCallMeeting={vi.fn()}
-        canCallMeeting={false}
-      />
-    );
-    fireEvent.click(screen.getByRole('button', { name: /no unread/ }));
-    const toggle = screen.getByLabelText(/^Narration$/i);
-    expect(toggle.checked).toBe(true);
-    fireEvent.click(toggle);
-    expect(onToggleNarration).toHaveBeenCalledWith(false);
-  });
-
-  it('toggles captions (CC) for spoken floor text', () => {
-    const onToggleCaptions = vi.fn();
-    render(
-      <OfficeInboxDock
-        emails={[]}
-        unreadCount={0}
-        focusTime={false}
-        soundscape
-        narration
-        captions={false}
-        onToggleFocusTime={vi.fn()}
-        onToggleSoundscape={vi.fn()}
-        onToggleNarration={vi.fn()}
-        onToggleCaptions={onToggleCaptions}
-        onMarkRead={vi.fn()}
-        onMarkAllRead={vi.fn()}
-        onAdoptPrompt={vi.fn()}
-        onCallMeeting={vi.fn()}
-        canCallMeeting={false}
-      />
-    );
-    fireEvent.click(screen.getByRole('button', { name: /no unread/ }));
-    const toggle = screen.getByLabelText(/Captions/i);
-    expect(toggle.checked).toBe(false);
-    fireEvent.click(toggle);
-    expect(onToggleCaptions).toHaveBeenCalledWith(true);
   });
 });
 
@@ -340,7 +253,6 @@ describe('office who-is-who chrome', () => {
         emails={EMAILS}
         unreadCount={1}
         focusTime={false}
-        onToggleFocusTime={vi.fn()}
         onMarkRead={vi.fn()}
         onMarkAllRead={vi.fn()}
         onAdoptPrompt={vi.fn()}

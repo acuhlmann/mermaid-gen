@@ -50,7 +50,7 @@ function cuePlayerFor(cue, random) {
  * useOfficeAmbience that ticks and asks the pure brain in officeSoundscape.js
  * when to play a room-tone cue. Holds while the tab is hidden, during Focus
  * Time (the whole office is muted), or when the user switched the soundscape
- * off in the inbox dock; `playChime` is App's sound gate (soundEnabled +
+ * off in the desk menu; `playChime` is App's sound gate (soundEnabled +
  * user gesture), so a muted app stays silent for free.
  *
  * Cues resolve through `cuePlayerFor`, which prefers a baked sample and falls
