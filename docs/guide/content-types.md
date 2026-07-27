@@ -12,7 +12,7 @@ The active content type defaults to `mermaid`. The mode picker — **Auto** plus
 
 ## Auto mode
 
-**Auto** is a seventh picker option (not a seventh slot). On **Go** / intent only, the client sends `contentType: "auto"`. The server runs a fast LLM classifier (`apps/server/src/agents/inferContentType.ts`), emits an AG-UI `CUSTOM` event `content_type` with the chosen slot, then dispatches the usual per-slot agent against that slot's current revision. The web client switches the mode picker to the resolved slot and keeps it there for Refine / Critique / follow-ups. Transform and analyze reject `auto` on the wire — they need a concrete canvas.
+**Auto** is a seventh picker option (not a seventh slot). On **Go** / intent only, the client sends `contentType: "auto"`. The server runs a fast LLM classifier (`apps/server/src/agents/inferContentType.ts`), emits an AG-UI `CUSTOM` event `content_type` with the chosen slot, then dispatches the usual per-slot agent against that slot's current revision. The web client switches the mode picker to the resolved slot and keeps it there for transform / Critique / follow-ups. Transform and analyze reject `auto` on the wire — they need a concrete canvas.
 
 Chart vs infographic guidance in the classifier matches the product boundary: **chart** for data-driven marks/encodings; **infographic** for narrative KPI / story layouts.
 
@@ -113,7 +113,7 @@ Server-side validation is deterministic (`parseAnythingHtml` shape check, `lintA
 - Validation: `validateAndPrepareAnythingPatch` in `apps/server/src/tools/anythingHtmlTool.js`.
 - Runtime check: `apps/server/src/tools/anythingRuntimeCheck.js` (+ `anythingRuntimeSandbox.js` child; agent patches only, `ANYTHING_RUNTIME_CHECK=0` to disable).
 - Single-shot fixer: `apps/server/src/agents/anythingSyntaxFixer.js` (before full agent repair turns).
-- Agent service: `apps/server/src/agents/anythingLangChainAgent.js` (intent/transform/analyze; no Style support). Mutations use `apply_anything_patch` (full rewrite) or `apply_anything_edit` (atomic search/replace blocks, preferred for Refine/Exec/Fix; same validation ladder either way).
+- Agent service: `apps/server/src/agents/anythingLangChainAgent.js` (intent/transform/analyze; no Style support). Mutations use `apply_anything_patch` (full rewrite) or `apply_anything_edit` (atomic search/replace blocks, preferred for Gilfoyle/Dinesh/Barker/Fix; same validation ladder either way).
 - Offline bench: `node apps/server/scripts/benchAnything.js --tag <label>` (see [Validation & repair](validation.md#offline-bench)).
 - The canvas disables pan/zoom in this mode — the iframe owns scrolling and interaction (same treatment as `metaphor3d`).
 - Anything mode persists in the mode picker, but `App.jsx` writes `diagramSource: ''` into the client diagram cache while Anything is active (large/untrusted HTML). After a server restart the slot is empty unless the user regenerates or restores from an insights entry.

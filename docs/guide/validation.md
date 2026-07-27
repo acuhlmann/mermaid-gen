@@ -120,7 +120,7 @@ Forms validation runs through `validateAndPrepareFormsPatch` (`apps/server/src/t
 
 ## Anything validation pipeline
 
-Anything validation runs through `validateAndPrepareAnythingPatch` (`apps/server/src/tools/anythingHtmlTool.js`). Both mutation tools funnel into it: `apply_anything_patch` (full-document rewrite) and `apply_anything_edit` (server-applied aider-style search/replace blocks, `apps/server/src/agents/_lib/searchReplaceEdits.js` — atomic, exact-match-or-fail, preferred for Refine/Exec/Fix). The edited result is validated exactly like a full rewrite; incremental edits never bypass a gate.
+Anything validation runs through `validateAndPrepareAnythingPatch` (`apps/server/src/tools/anythingHtmlTool.js`). Both mutation tools funnel into it: `apply_anything_patch` (full-document rewrite) and `apply_anything_edit` (server-applied aider-style search/replace blocks, `apps/server/src/agents/_lib/searchReplaceEdits.js` — atomic, exact-match-or-fail, preferred for Gilfoyle/Dinesh/Barker/Fix). The edited result is validated exactly like a full rewrite; incremental edits never bypass a gate.
 
 1. **Shape check** — `parseAnythingHtml` (shared): string, code-fence strip, size cap, contains at least one HTML tag. The `ANYTHING_HTML_MAX_LENGTH` budget applies to the agent-authored (marker-form) document — bytes injected for `@lib:` markers are exempt.
 2. **Policy lint** — `lintAnythingPolicy` (shared): reject external URLs, parent escape, nested frames, `javascript:` URLs, and other sandbox-contract violations.

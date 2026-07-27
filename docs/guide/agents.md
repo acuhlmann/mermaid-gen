@@ -33,7 +33,7 @@ flowchart TB
 flowchart TB
   subgraph mutation ["Mutation paths (diagram may change)"]
     I[Intent agent\nGo · Fix · syntax auto-fix · Copilot invoke]
-    T[Transform agent\nRefine · Erlich · Go Mad]
+    T[Transform agent\nGilfoyle · Dinesh · Erlich · Go Mad · Barker]
     I --> Tools[(get_diagram_state\napply_*_patch)]
     T --> Tools
   end
@@ -77,7 +77,7 @@ Validation and repair ladders: [Validation & repair](validation.md).
 1. User picks **Mode** (**Auto**, Diagram, Infographic, 3D, Chart, Forms, or Anything) from the AI corner controls; the UI persists the choice in `archislop:content-mode` and includes `contentType` in every subsequent request.
 2. User edits source or loads state; client syncs via `GET`/`POST /api/copilotkit/state` with `contentType`.
 3. **Go** and **Fix from critique** use the **intent** operation: `POST /api/copilotkit/agent-stream` with `operation: intent`, or `POST /api/copilotkit/intent` without streaming. The active `contentType` is forwarded. **Syntax auto-fix** for Mermaid and Anything tries the fast-path `POST /api/diagram/render-error` first (one fixer call, no agent loop) and only falls back to the intent operation on rejection.
-4. **Refine / Erlich / Go Mad / Barker** use `agent-stream` or `POST /api/copilotkit/transform` with `mode` and optional `goMadDepth`.
+4. **Gilfoyle / Dinesh / Erlich / Go Mad / Barker** use `agent-stream` or `POST /api/copilotkit/transform` with `mode` and optional `goMadDepth`.
 5. **Critique / Explain** use `analyze` or `agent-stream` with `operation: analyze`; responses patch insights only, not diagram state.
 6. **Style** is Mermaid or Chart only; the route rejects other `contentType` values with a 400.
 7. **Clear** resets to the starter diagram for the active mode via client + server state conventions.
