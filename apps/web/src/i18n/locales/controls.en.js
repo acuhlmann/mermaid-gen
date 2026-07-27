@@ -5,7 +5,8 @@ export const CONTROLS_EN = {
     definitionPersona: 'Quick Reference',
     definitionTitle: 'Quick Reference · What does this element mean?',
     // "Stakeholders" is the internal id; the fiction calls them your team (the
-    // senior tier only shows up in meetings — see castTiers.js).
+    // senior tier only shows up in meetings — see castTiers.js; Jack Barker is
+    // the dual-home exception).
     stakeholders: 'Your Team',
     stakeholdersTitle: 'Your Team · Tap to huddle',
     renderMode: 'Render as...',

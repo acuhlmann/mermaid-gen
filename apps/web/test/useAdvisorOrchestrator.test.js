@@ -3,13 +3,28 @@ import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   ADVISOR_IDLE_PAUSE_MS,
+  ADVISOR_ORDER,
+  advisorPickWeight,
+  pickWeightedPersona,
   pushProposalHistory,
   shouldDiscardForFocusChange,
   useAdvisorOrchestrator
 } from '../src/hooks/useAdvisorOrchestrator.js';
+import { CAST_TIERS } from '../src/utils/castTiers.js';
 import { ADVISOR_MUTED_STORAGE_KEY } from '../src/utils/advisorMuteStorage.js';
 
 const GAP_MS = 2200;
+
+/** Seeded PRNG so the rotation-frequency sweep is deterministic, never flaky. */
+function mulberry32(seed) {
+  let a = seed;
+  return () => {
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4_294_967_296;
+  };
+}
 
 function defaultParams(overrides = {}) {
   return {
@@ -35,6 +50,84 @@ describe('useAdvisorOrchestrator', () => {
 
     it('keeps viewport replies when the user first selects a node mid-fetch', () => {
       expect(shouldDiscardForFocusChange(null, 'selected:Auth')).toBe(false);
+    });
+  });
+
+  // Reachability ladder (docs/recipes/replicate-tv-character.md): Barker is on
+  // Your Team but throttled; pure seniors never join the proactive rotation.
+  describe('roundtable membership and pick weight', () => {
+    it('seats every team persona plus dual-home Barker', () => {
+      for (const id of CAST_TIERS.team) {
+        expect(ADVISOR_ORDER, `team persona ${id}`).toContain(id);
+      }
+      expect(ADVISOR_ORDER).toContain('barker');
+    });
+
+    it('keeps the summoned-only seniors out of the rotation', () => {
+      // Marcus/`cto` — Gavin Belson's seat once he lands — plus Sasha and Diane.
+      for (const id of ['cto', 'belson', 'ciso', 'cfo']) {
+        expect(ADVISOR_ORDER, `senior ${id}`).not.toContain(id);
+      }
+    });
+
+    it('throttles Barker to half a peer weight', () => {
+      expect(advisorPickWeight('barker')).toBe(0.5);
+      for (const id of CAST_TIERS.team) {
+        expect(advisorPickWeight(id), `peer ${id}`).toBe(1);
+      }
+    });
+
+    it('draws Barker about half as often as a peer across the roll space', () => {
+      const counts = Object.fromEntries(ADVISOR_ORDER.map((id) => [id, 0]));
+      const samples = 11_000;
+      for (let i = 0; i < samples; i += 1) {
+        counts[pickWeightedPersona(ADVISOR_ORDER, i / samples)] += 1;
+      }
+      // 5 peers at weight 1 + Barker at 0.5 → peers ≈ 2/11, Barker ≈ 1/11.
+      for (const id of CAST_TIERS.team) {
+        expect(counts[id] / samples, `peer ${id} share`).toBeCloseTo(2 / 11, 3);
+      }
+      expect(counts.barker / samples).toBeCloseTo(1 / 11, 3);
+    });
+
+    it('keeps the throttle after the repeat filter drops the previous speaker', () => {
+      const pool = ADVISOR_ORDER.filter((id) => id !== 'refine');
+      const counts = Object.fromEntries(pool.map((id) => [id, 0]));
+      const samples = 9000;
+      for (let i = 0; i < samples; i += 1) {
+        counts[pickWeightedPersona(pool, i / samples)] += 1;
+      }
+      expect(counts.barker / counts.erlich).toBeCloseTo(0.5, 2);
+    });
+
+    it('gives Barker ~10% of a long rotation against ~18% per peer', () => {
+      // Walks the real loop: each turn re-filters the previous speaker out, so
+      // the run frequency is the chain's stationary distribution rather than
+      // the raw weights — pi(j) ∝ w(j) * (total - w(j)). That lands Barker at
+      // 0.556x a peer, not a flat 0.5x. This is the "eventually surfaces Jack,
+      // but not every other bubble" smoke in deterministic form.
+      const turns = 120_000;
+      const counts = Object.fromEntries(ADVISOR_ORDER.map((id) => [id, 0]));
+      const nextRoll = mulberry32(0x5eed);
+      let previous = null;
+      let repeats = 0;
+      for (let i = 0; i < turns; i += 1) {
+        const pool = previous ? ADVISOR_ORDER.filter((id) => id !== previous) : ADVISOR_ORDER;
+        const picked = pickWeightedPersona(pool, nextRoll());
+        if (picked === previous) repeats += 1;
+        previous = picked;
+        counts[picked] += 1;
+      }
+      expect(repeats, 'never repeats the previous speaker').toBe(0);
+      for (const id of CAST_TIERS.team) {
+        expect(counts[id] / turns, `peer ${id} share`).toBeCloseTo(0.18, 2);
+      }
+      expect(counts.barker / turns).toBeCloseTo(0.1, 2);
+    });
+
+    it('never returns a persona from an empty pool', () => {
+      expect(pickWeightedPersona([], 0.5)).toBeNull();
+      expect(pickWeightedPersona(['refine'], 0.999999)).toBe('refine');
     });
   });
 
@@ -100,14 +193,42 @@ describe('useAdvisorOrchestrator', () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  /** Force pickNextPersona to return a specific persona (ADVISOR_ORDER index). */
+  /**
+   * Force pickNextPersona to return a specific persona by landing Math.random
+   * in the middle of that persona's cumulative-weight band (weights are not
+   * uniform — Barker is throttled to 0.5).
+   */
   function mockPersonaPick(persona) {
-    // Mirrors ADVISOR_ORDER: your team only. `barker` is senior tier and is not
-    // in the proactive rotation (castTiers.js).
-    const order = ['refine', 'erlich', 'goMad', 'critique', 'explain'];
-    const idx = order.indexOf(persona);
-    vi.spyOn(Math, 'random').mockReturnValue((idx + 0.01) / order.length);
+    const total = ADVISOR_ORDER.reduce((sum, id) => sum + advisorPickWeight(id), 0);
+    const before = ADVISOR_ORDER.slice(0, ADVISOR_ORDER.indexOf(persona)).reduce(
+      (sum, id) => sum + advisorPickWeight(id),
+      0
+    );
+    vi.spyOn(Math, 'random').mockReturnValue((before + advisorPickWeight(persona) / 2) / total);
   }
+
+  it('lets Barker take a proactive turn without being summoned', async () => {
+    mockPersonaPick('barker');
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        persona: 'barker',
+        suggestion: 'Three boxes. The board reads three boxes.',
+        highlightIds: []
+      })
+    });
+
+    const { result } = renderHook(() => useAdvisorOrchestrator(defaultParams()));
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(GAP_MS + 100);
+      await Promise.resolve();
+    });
+
+    // No promptNext / forced persona — the ambient loop picked him.
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body).persona).toBe('barker');
+    expect(result.current.activePersona).toBe('barker');
+  });
 
   it('surfaces suggestionKind from the API payload', async () => {
     mockPersonaPick('barker');
