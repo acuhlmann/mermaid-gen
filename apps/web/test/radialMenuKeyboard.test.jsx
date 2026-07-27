@@ -21,7 +21,7 @@ const DESCRIPTOR = {
 };
 
 const ACTIONS = [
-  { id: 'refine', label: 'Refine', icon: 'R', variant: 'refine', persona: 'THE Engineer' },
+  { id: 'gilfoyle', label: 'Refine', icon: 'R', variant: 'gilfoyle', persona: 'THE Engineer' },
   {
     id: 'erlich',
     label: 'Erlich',

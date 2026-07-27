@@ -543,10 +543,10 @@ occupied briefly has only ever been tested briefly.**
     slice 8 ever exercised happens to sit near an edge of the floor plate, and a prop mark is
     central _by construction_, because central is what makes a prop somewhere people gather.
 
-    | talking to Chad                             | bubble box                | clears the speaker    | covers                                    |
-    | ------------------------------------------- | ------------------------- | --------------------- | ----------------------------------------- |
-    | at his desk (2, 5), `--over-seat`           | 334.7…599.1 × 248.9…323.3 | yes                   | nobody                                    |
-    | at the whiteboard (8, 4), `--over-standing` | 726.2…990.6 × 421…495.4   | 8.6 px above his head | `refine`'s head (730…763.8 × 417.7…451.6) |
+    | talking to Chad                             | bubble box                | clears the speaker    | covers                                      |
+    | ------------------------------------------- | ------------------------- | --------------------- | ------------------------------------------- |
+    | at his desk (2, 5), `--over-seat`           | 334.7…599.1 × 248.9…323.3 | yes                   | nobody                                      |
+    | at the whiteboard (8, 4), `--over-standing` | 726.2…990.6 × 421…495.4   | 8.6 px above his head | `gilfoyle`'s head (730…763.8 × 417.7…451.6) |
 
     **Recorded rather than repaired, and the mechanism a repair would use already exists.** Rule
     15's actual requirement — the balloon must not cover _the speaker_ — is met with 8.6 px to

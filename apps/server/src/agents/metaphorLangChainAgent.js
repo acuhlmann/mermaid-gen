@@ -86,8 +86,8 @@ function buildIntentUserContent({ prompt, currentDsl, peerContext }) {
 
 function buildTransformUserContent({ mode, currentDsl, goMadDepth }) {
   const modeInstructions = {
-    refine:
-      'Refine the current metaphor — improve labels, balance magnitudes, tighten the spatial story. Keep the same metaphor type.',
+    gilfoyle:
+      'Fix what is actually wrong with the current metaphor — labels, unbalanced magnitudes, a loose spatial story. Keep the same metaphor type.',
     erlich:
       'Elevate the current metaphor — try a different metaphor type or a fresh angle on the subject, bolder than anyone asked for. You may switch metaphors.',
     goMad: `Go mad on this metaphor — push the spatial story further (depth ${goMadDepth ?? 1}). Exaggerate, recombine, surprise.`,
@@ -95,7 +95,7 @@ function buildTransformUserContent({ mode, currentDsl, goMadDepth }) {
       'Take the liberty of executing the requested change tightly. No additions beyond the implied scope.'
   };
   return [
-    modeInstructions[mode] ?? modeInstructions.refine,
+    modeInstructions[mode] ?? modeInstructions.gilfoyle,
     `Current metaphor DSL:\n\n\`\`\`json\n${currentDsl}\n\`\`\``,
     'Call apply_metaphor_patch with the full JSON DSL.'
   ].join('\n\n');

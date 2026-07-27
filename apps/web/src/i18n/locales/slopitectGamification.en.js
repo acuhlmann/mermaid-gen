@@ -45,7 +45,7 @@ export const SLOPITECT_GAMIFICATION_EN = {
     cleared: 'cleared',
     engineTitle: 'Slop Engine',
     engineLede:
-      'Every completed persona run pays XP — Refine, Erlich, Go Mad, Critique, Explain — across any diagram slot. Stack streaks, combos, and Go Mad depth to mint extra.',
+      'Every completed persona run pays XP — Gilfoyle, Erlich, Go Mad, Critique, Explain — across any diagram slot. Stack streaks, combos, and Go Mad depth to mint extra.',
     variantMetaSuffix: 'per streak',
     goMadDepthBonus: '· +35 depth ≥ 3',
     comboLine: 'chain two personas in a row inside 6s for +8 (+4 per extra link).',

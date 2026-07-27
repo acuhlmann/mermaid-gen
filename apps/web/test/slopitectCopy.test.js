@@ -20,7 +20,7 @@ import {
 
 describe('slopitectCopy', () => {
   it('has a ceremony label for every real phase id × all stakeholder variants', () => {
-    const stakeholderVariants = ['refine', 'erlich', 'goMad', 'critique', 'explain', 'barker'];
+    const stakeholderVariants = ['gilfoyle', 'erlich', 'goMad', 'critique', 'explain', 'barker'];
     const mutationPhases = [
       'analyze',
       'analyze_stream',
@@ -46,13 +46,13 @@ describe('slopitectCopy', () => {
 
   it('returns variant-specific labels for known phases', () => {
     expect(phaseCeremonyLabel('goMad', 'invoke', 'Generate')).toMatch(/fire/);
-    expect(phaseCeremonyLabel('refine', 'invoke', 'Generate')).toBe('Patching prod 🛠');
+    expect(phaseCeremonyLabel('gilfoyle', 'invoke', 'Generate')).toBe('Patching prod 🦇');
     expect(phaseCeremonyLabel('critique', 'analyze', 'Analyze')).toBe('Opening JIRA…');
   });
 
   it('falls back to canonical label when no override exists', () => {
     expect(phaseCeremonyLabel('explain', 'transform', 'Transform')).toBe('Tracing the reshape…');
-    expect(phaseCeremonyLabel('refine', 'totally-unknown-phase', 'Fallback')).toBe('Fallback');
+    expect(phaseCeremonyLabel('gilfoyle', 'totally-unknown-phase', 'Fallback')).toBe('Fallback');
     expect(phaseCeremonyLabel(undefined, 'analyze', 'Analyze')).toBe('Analyze');
   });
 
@@ -71,7 +71,7 @@ describe('slopitectCopy', () => {
   });
 
   it('returns a tagline for every variant', () => {
-    for (const v of ['refine', 'erlich', 'goMad', 'critique', 'explain', 'barker']) {
+    for (const v of ['gilfoyle', 'erlich', 'goMad', 'critique', 'explain', 'barker']) {
       expect(VARIANT_TAGLINES[v]).toBeTruthy();
       expect(VARIANT_BOOT_HEADLINES[v]).toBeTruthy();
     }
@@ -99,7 +99,7 @@ describe('slopitectCopy', () => {
   });
 
   it('has at least 3 quotes for every variant', () => {
-    for (const v of ['refine', 'erlich', 'goMad', 'critique', 'explain', 'barker']) {
+    for (const v of ['gilfoyle', 'erlich', 'goMad', 'critique', 'explain', 'barker']) {
       expect(VARIANT_QUOTES[v], `quotes for ${v}`).toBeDefined();
       expect(VARIANT_QUOTES[v].length).toBeGreaterThanOrEqual(3);
       for (const quote of VARIANT_QUOTES[v]) {
@@ -113,13 +113,13 @@ describe('slopitectCopy', () => {
     expect(quoteForRotation('goMad', 0)).toBe(VARIANT_QUOTES.goMad[0]);
     expect(quoteForRotation('goMad', VARIANT_QUOTES.goMad.length)).toBe(VARIANT_QUOTES.goMad[0]);
     expect(quoteForRotation('unknown', 0)).toBe('');
-    expect(typeof quoteForRotation('refine', NaN)).toBe('string');
+    expect(typeof quoteForRotation('gilfoyle', NaN)).toBe('string');
   });
 
-  it('names the refine persona THE Engineer with an engineer-flavored title', () => {
-    expect(VARIANT_PERSONAS.refine.name).toBe('THE Engineer');
-    expect(VARIANT_PERSONAS.refine.title.toLowerCase()).toMatch(/build|engineer|step/);
-    expect(stakeholderTooltip('refine')).toContain('THE Engineer');
+  it('names the gilfoyle persona Bertram Gilfoyle with an architect-flavored title', () => {
+    expect(VARIANT_PERSONAS.gilfoyle.name).toBe('Bertram Gilfoyle');
+    expect(VARIANT_PERSONAS.gilfoyle.title.toLowerCase()).toMatch(/architect|system/);
+    expect(stakeholderTooltip('gilfoyle')).toContain('Bertram Gilfoyle');
   });
 
   it('names the erlich persona Erlich Bachman', () => {
@@ -128,7 +128,7 @@ describe('slopitectCopy', () => {
   });
 
   it('exposes avatar emoji and entry/exit lines per persona', () => {
-    for (const v of ['refine', 'erlich', 'goMad', 'critique', 'explain', 'barker']) {
+    for (const v of ['gilfoyle', 'erlich', 'goMad', 'critique', 'explain', 'barker']) {
       const persona = VARIANT_PERSONAS[v];
       expect(persona.avatarEmoji, `avatar for ${v}`).toBeTruthy();
       expect(persona.entryLine, `entry for ${v}`).toBeTruthy();

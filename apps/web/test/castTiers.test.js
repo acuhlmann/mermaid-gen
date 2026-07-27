@@ -109,7 +109,7 @@ describe('normalizeMeetingRoster', () => {
       'facilities',
       'hr',
       'helpdesk',
-      'refine',
+      'gilfoyle',
       'critique',
       'explain',
       'barker'
@@ -118,7 +118,7 @@ describe('normalizeMeetingRoster', () => {
     expect(many.length).toBe(MEETING_ROSTER_MAX);
     expect(normalizeMeetingRoster(['intern'], { forceFacilitator: false })).toEqual([
       'intern',
-      'refine'
+      'gilfoyle'
     ]);
   });
 });
@@ -128,7 +128,7 @@ describe('listMeetingDirectory', () => {
     const rows = listMeetingDirectory();
     expect(rows.some((row) => row.id === 'facilities' && row.tier === 'office')).toBe(true);
     expect(rows.some((row) => row.id === 'barker' && row.tier === 'senior')).toBe(true);
-    expect(rows.some((row) => row.id === 'refine' && row.tier === 'team')).toBe(true);
+    expect(rows.some((row) => row.id === 'gilfoyle' && row.tier === 'team')).toBe(true);
   });
 });
 

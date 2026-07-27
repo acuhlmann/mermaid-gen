@@ -2,7 +2,7 @@ import { getVariantPersona, phaseCeremonyLabel } from '../utils/slopitectCopy.js
 import { PersonaFace } from './personaFaces/index.jsx';
 
 const VARIANT_CSS_CLASS = {
-  refine: 'is-variant-refine',
+  gilfoyle: 'is-variant-gilfoyle',
   erlich: 'is-variant-erlich',
   goMad: 'is-variant-go-mad',
   critique: 'is-variant-critique',

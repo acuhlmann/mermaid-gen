@@ -14,7 +14,7 @@ Pick by asking "does the user type the prompt?" — yes = intent; "does the serv
 
 1. **Name the mode.** Use a short camelCase identifier like `simplify` or `pitch`. This will land in `TransformModeSchema` and many switch statements.
 2. **Schema.** Add the literal to `packages/shared/src/diagramSchema.ts` (`TransformModeSchema`) so the server and web both validate it.
-3. **User-message builder.** Add a branch in `buildTransformUserContent` (search for `'refine'` / `'erlich'` / `'goMad'`). Compose a clear instruction including the current diagram, the desired flavor, and a numeric budget (nodes / edges).
+3. **User-message builder.** Add a branch in `buildTransformUserContent` (search for `'gilfoyle'` / `'erlich'` / `'goMad'`). Compose a clear instruction including the current diagram, the desired flavor, and a numeric budget (nodes / edges).
 4. **Sampling profile.** Add caps in `TRANSFORM_MODEL_LIMITS` (and `goMadTransformModelOptions(depth)` if it has a "depth" notion). Pick a starting `temperature` — Refine is ~0.42, Erlich ~0.82.
 5. **Web wiring.**
    - Add a button in `apps/web/src/App.jsx` (or the relevant action surface like `RadialActionMenu.jsx`).

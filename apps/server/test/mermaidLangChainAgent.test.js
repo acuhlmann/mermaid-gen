@@ -54,7 +54,7 @@ test('agent message conversion drops assistant replies that expose internal tool
 
 test('transform mode picks increasing temperatures', () => {
   assert.ok(
-    transformModeModelOptions('refine').temperature <
+    transformModeModelOptions('gilfoyle').temperature <
       transformModeModelOptions('erlich').temperature
   );
   assert.ok(
@@ -66,11 +66,11 @@ test('transform mode picks increasing temperatures', () => {
   assert.ok(transformModeModelOptions('goMad').topP >= TRANSFORM_MODEL_LIMITS.topP);
   assert.equal(transformModeModelOptions('goMad').maxTokens, GO_MAD_TRANSFORM_MAX_TOKENS);
   assert.ok(GO_MAD_TRANSFORM_MAX_TOKENS < TRANSFORM_MODEL_LIMITS.maxTokens);
-  // barker is the focused, subtractive mode — lower temperature than refine so
+  // barker is the focused, subtractive mode — lower temperature than gilfoyle so
   // Jack doesn't get creative and start adding boxes.
   assert.ok(
     transformModeModelOptions('barker').temperature <
-      transformModeModelOptions('refine').temperature
+      transformModeModelOptions('gilfoyle').temperature
   );
   assert.equal(transformModeModelOptions('barker').maxTokens, TRANSFORM_MODEL_LIMITS.maxTokens);
 });
@@ -146,9 +146,9 @@ test('buildTransformUserContent adds escalation for goMad depth >= 2', () => {
   assert.match(tier4, /≥3|THREE/i);
 });
 
-test('buildTransformUserContent ignores goMadDepth for refine', () => {
+test('buildTransformUserContent ignores goMadDepth for gilfoyle', () => {
   const text = buildTransformUserContent({
-    mode: 'refine',
+    mode: 'gilfoyle',
     diagramSource: 'flowchart TD\n  A --> B',
     focusScope: '',
     goMadDepth: 9
@@ -170,7 +170,7 @@ test('buildTransformUserContent emits barker policy that is subtractive only', (
 
 test('buildTransformUserContent threads advisorPrompt for scoped stakeholder accept', () => {
   const text = buildTransformUserContent({
-    mode: 'refine',
+    mode: 'gilfoyle',
     diagramSource: 'flowchart TD\n  A --> B',
     focusScope: '',
     advisorPrompt: 'Rename Cache to Redis'
@@ -462,7 +462,7 @@ test('buildSyntaxGuidanceSystemMessage injects rule pack for detected diagram ty
     diagramSource: 'sequenceDiagram\n  Alice->>Bob: hi',
     reason: 'seed'
   });
-  const msg = buildSyntaxGuidanceSystemMessage({ stateStore, mode: 'refine' });
+  const msg = buildSyntaxGuidanceSystemMessage({ stateStore, mode: 'gilfoyle' });
   assert.ok(msg);
   assert.equal(msg.role, 'system');
   assert.match(msg.content, /Active diagram type: sequenceDiagram/);
@@ -487,7 +487,7 @@ test('buildSyntaxGuidanceSystemMessage marks rules advisory for type-changing mo
 test('buildSyntaxGuidanceSystemMessage returns null when no diagram type is detectable', () => {
   const stateStore = createDiagramStateStore();
   // Default state has empty diagramSource.
-  const msg = buildSyntaxGuidanceSystemMessage({ stateStore, mode: 'refine' });
+  const msg = buildSyntaxGuidanceSystemMessage({ stateStore, mode: 'gilfoyle' });
   assert.equal(msg, null);
 });
 

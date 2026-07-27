@@ -8,7 +8,7 @@ describe('summarizeInsightNowStatus', () => {
       'Working on your request...'
     );
     expect(summarizeInsightNowStatus('Still working…')).toBe('Still working…');
-    expect(summarizeInsightNowStatus('Polishing the diagram…')).toBe('Polishing the diagram…');
+    expect(summarizeInsightNowStatus('Fixing what is wrong…')).toBe('Fixing what is wrong…');
   });
 
   it('strips embedded chart JSON and keeps prose', () => {
@@ -42,7 +42,7 @@ flowchart TD
 
     expect(
       summarizeInsightNowStatus(status, {
-        variant: 'refine',
+        variant: 'gilfoyle',
         phases: [{ id: 'agent_run', label: 'Tools' }]
       })
     ).toBe('Applying diagram patch…');
@@ -64,7 +64,7 @@ flowchart TD
     expect(
       summarizeInsightNowStatus(
         '{ "archislopVersion": 1 }',
-        { variant: 'refine', phases: [{ id: 'agent_run' }] },
+        { variant: 'gilfoyle', phases: [{ id: 'agent_run' }] },
         bundle.controls.insights
       )
     ).toBe('正在应用图表补丁…');

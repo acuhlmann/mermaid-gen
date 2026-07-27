@@ -70,7 +70,7 @@ export function createDiagramAgentCache({
     return agentCache.get(key);
   }
 
-  /** Refine / Erlich / Go Mad / Align / Barker agent. */
+  /** Gilfoyle / Erlich / Go Mad / Align / Barker agent. */
   function getTransformAgent(mode, profile = 'fast', goMadDepth) {
     const p = normalizeModelProfile(profile);
     const backend = resolveLlmBackend(env, p);

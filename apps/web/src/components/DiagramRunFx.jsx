@@ -10,7 +10,7 @@
 import { useUiCopy } from '../i18n/useUiLocale.js';
 
 const VARIANT_CLASS = {
-  refine: 'is-refine',
+  gilfoyle: 'is-gilfoyle',
   erlich: 'is-erlich',
   goMad: 'is-go-mad',
   critique: 'is-critique',
@@ -128,7 +128,7 @@ export default function DiagramRunFx({ variant, streaming = false, intensity = '
 
   return (
     <div className={className} aria-hidden="true" data-testid="diagram-run-fx">
-      {variant === 'refine' ? (
+      {variant === 'gilfoyle' ? (
         <>
           <div className="diagram-run-fx-polish-sweep" />
           <div className="diagram-run-fx-sparkle-field">

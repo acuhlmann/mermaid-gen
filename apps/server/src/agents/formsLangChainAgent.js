@@ -103,8 +103,8 @@ function describeCurrentForm(currentDoc) {
 
 export function buildFormsTransformUserContent({ mode, currentDoc, goMadDepth, advisorPrompt }) {
   const modeInstructions = {
-    refine:
-      'Refine the current form — keep the same intake step but sharpen the copy, tighten the layout, and make the absurdity land harder. Keep the fields and structure.',
+    gilfoyle:
+      'Fix what is actually wrong with the current form — keep the same intake step but sharpen the copy, tighten the layout, and make the absurdity land harder. Keep the fields and structure.',
     erlich:
       'Elevate the current form — same bureaucratic subject, a different form structure or gimmick worthy of a visionary. You may restructure freely.',
     goMad: `Go mad on this form — escalate the bureaucracy (depth ${goMadDepth ?? 1}). More sections, more mandatory attestations, more self-cancelling rules, nested sub-forms via Cards and Tabs. Still a working, submittable form.`,
@@ -112,7 +112,7 @@ export function buildFormsTransformUserContent({ mode, currentDoc, goMadDepth, a
       'Take the liberty of executing the requested change tightly. No additions beyond the implied scope.'
   };
   return [
-    modeInstructions[mode] ?? modeInstructions.refine,
+    modeInstructions[mode] ?? modeInstructions.gilfoyle,
     `Current forms document:\n\n\`\`\`json\n${currentDoc}\n\`\`\``,
     buildAdvisorSuggestionBlock(advisorPrompt),
     'Call apply_forms_patch with the full forms document JSON.'

@@ -59,7 +59,7 @@ describe('InsightsPane', () => {
           {
             id: 'entry-failed',
             title: 'Refine — diagram',
-            variant: 'refine',
+            variant: 'gilfoyle',
             status: 'failed',
             statusText: 'Syntax repair failed',
             failureDetail: 'Mermaid parse error near line 4',
@@ -117,7 +117,7 @@ describe('InsightsPane', () => {
           {
             id: 'entry-persona',
             title: 'Refine - diagram',
-            variant: 'refine',
+            variant: 'gilfoyle',
             status: 'running',
             statusText: 'Working on your request...',
             content: '',
@@ -126,17 +126,17 @@ describe('InsightsPane', () => {
             startedAt: Date.now() - 65_000
           }
         ]}
-        streakByVariant={{ refine: 3 }}
+        streakByVariant={{ gilfoyle: 3 }}
         celebratingEntryId={null}
       />
     );
 
     expect(screen.getByTestId('insights-pane-persona')).toBeTruthy();
     const entryPersona = screen.getByTestId('insights-entry-persona');
-    expect(within(entryPersona).getByText('THE Engineer')).toBeTruthy();
-    expect(within(entryPersona).getByText(/Builder of useful next steps/)).toBeTruthy();
+    expect(within(entryPersona).getByText('Bertram Gilfoyle')).toBeTruthy();
+    expect(within(entryPersona).getByText(/Systems Architect, Unimpressed/)).toBeTruthy();
     const liveMeta = screen.getByTestId('insights-pane-live-meta');
-    expect(within(liveMeta).getByText('Refine')).toBeTruthy();
+    expect(within(liveMeta).getByText('Gilfoyle')).toBeTruthy();
     expect(within(liveMeta).getByText('🔥 ×3')).toBeTruthy();
     expect(within(liveMeta).getByText('Phase 1')).toBeTruthy();
     expect(screen.getByTestId('insights-pane-persona-quote')).toBeTruthy();
@@ -175,7 +175,7 @@ describe('InsightsPane', () => {
           {
             id: 'entry-meta',
             title: 'Refine - diagram',
-            variant: 'refine',
+            variant: 'gilfoyle',
             status: 'running',
             statusText: 'Working on your request...',
             content: '',
@@ -229,7 +229,7 @@ describe('InsightsPane', () => {
           {
             id: 'entry-live',
             title: 'Refine — diagram',
-            variant: 'refine',
+            variant: 'gilfoyle',
             status: 'running',
             statusText: 'Working…',
             content: '',
@@ -257,7 +257,7 @@ describe('InsightsPane', () => {
           {
             id: 'entry-1',
             title: 'Refine - diagram',
-            variant: 'refine',
+            variant: 'gilfoyle',
             status: 'done',
             statusText: 'Done',
             content: 'Applied.',
@@ -488,7 +488,7 @@ flowchart TB
         entries={[
           {
             id: 'e1',
-            title: 'Refine',
+            title: 'Gilfoyle',
             status: 'done',
             content: '',
             technicalActions: [],
@@ -509,7 +509,7 @@ flowchart TB
         entries={[
           {
             id: 'e-dis',
-            title: 'Refine',
+            title: 'Gilfoyle',
             status: 'done',
             content: '',
             technicalActions: [],
@@ -534,8 +534,8 @@ flowchart TB
         entries={[
           {
             id: 'entry-plan',
-            title: 'Refine',
-            variant: 'refine',
+            title: 'Gilfoyle',
+            variant: 'gilfoyle',
             status: 'running',
             statusText: 'Polishing the diagram…',
             content: '',
@@ -979,7 +979,7 @@ flowchart TB
           {
             id: 'entry-chart-reject',
             title: 'Refine — chart',
-            variant: 'refine',
+            variant: 'gilfoyle',
             status: 'running',
             statusText: 'Repairing chart…',
             content: '',
@@ -1020,7 +1020,7 @@ flowchart TB
           {
             id: 'entry-syntax-fixer',
             title: 'Refine — chart',
-            variant: 'refine',
+            variant: 'gilfoyle',
             status: 'running',
             statusText: 'Repairing chart…',
             content: '',
@@ -1237,7 +1237,7 @@ flowchart TB
           {
             id: 'e-ref-chart',
             title: 'Refine — chart',
-            variant: 'refine',
+            variant: 'gilfoyle',
             status: 'running',
             statusText: 'Working…',
             content,
@@ -1279,14 +1279,14 @@ flowchart TB
     expect(screen.queryByText(/"tool":"get_diagram_state"/)).toBeNull();
   });
 
-  it('uses Refinement label, opener, and section cards for refine variant', () => {
+  it('uses Refinement label, opener, and section cards for gilfoyle variant', () => {
     const { container } = render(
       <InsightsPane
         entries={[
           {
             id: 'e-ref',
             title: 'Refine — diagram',
-            variant: 'refine',
+            variant: 'gilfoyle',
             status: 'done',
             content: 'Opening paragraph.\n\n## Strengths\n\n- Polished.',
             technicalActions: []
@@ -1297,19 +1297,19 @@ flowchart TB
     );
 
     expect(screen.getByText('Refinement')).toBeTruthy();
-    expect(container.querySelector('.insights-refine-opener')).toBeTruthy();
+    expect(container.querySelector('.insights-gilfoyle-opener')).toBeTruthy();
     expect(screen.getByRole('heading', { name: /Strengths/i })).toBeTruthy();
     expect(container.querySelector('.insights-prose-section.insights-tone-strengths')).toBeTruthy();
   });
 
-  it('folds completed technical steps behind a summary for refine variant', () => {
+  it('folds completed technical steps behind a summary for gilfoyle variant', () => {
     render(
       <InsightsPane
         entries={[
           {
             id: 'e-ref-tools',
             title: 'Refine — diagram',
-            variant: 'refine',
+            variant: 'gilfoyle',
             status: 'done',
             content: '## Summary\n\nDone.',
             technicalActions: [

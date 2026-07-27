@@ -55,7 +55,7 @@ export function playStreamStartChime(audioContextRef) {
   });
 }
 
-export function playRefineStreamStart(audioContextRef) {
+export function playGilfoyleStreamStart(audioContextRef) {
   playShortTone(audioContextRef, {
     type: 'triangle',
     freqHz: 440,
@@ -253,8 +253,8 @@ function playToneSeq(audioContextRef, notes, { type = 'triangle', stagger = 0.6 
   }
 }
 
-/** Refine boot: gentle ascending two-note chrome shine. */
-export function playRefineBoot(audioContextRef) {
+/** Gilfoyle boot: gentle ascending two-note chrome shine. */
+export function playGilfoyleBoot(audioContextRef) {
   playToneSeq(
     audioContextRef,
     [
@@ -358,7 +358,7 @@ export function playExplainBoot(audioContextRef) {
   );
 }
 
-export function playRefineCompletion(audioContextRef) {
+export function playGilfoyleCompletion(audioContextRef) {
   playToneSeq(audioContextRef, [
     { freq: 659.25, dur: 0.07, peak: 0.045 },
     { freq: 880.0, dur: 0.09, peak: 0.04 }
@@ -394,7 +394,7 @@ export function playExplainCompletion(audioContextRef) {
   ]);
 }
 
-export function playRefineTokenTick(audioContextRef) {
+export function playGilfoyleTokenTick(audioContextRef) {
   playShortTone(audioContextRef, {
     type: 'sine',
     freqHz: 1050,
@@ -557,8 +557,8 @@ export function playLevelUpFanfare(audioContextRef) {
  *  Triggered every ~4–7s during a run for additional flavor.
  *  ──────────────────────────────────────────────────────────────── */
 
-/** Refine: a short metallic buff/polish sweep. */
-export function playRefinePolishLoop(audioContextRef) {
+/** Gilfoyle: a short metallic buff/polish sweep. */
+export function playGilfoylePolishLoop(audioContextRef) {
   const context = getContext(audioContextRef);
   if (!context) return;
   const now = context.currentTime;

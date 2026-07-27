@@ -155,7 +155,7 @@ describe('floor layout', () => {
       expect(seatFor(id)?.zone).toBe('leadership');
     }
     expect(seatFor('facilities')?.desk).toBe(false);
-    expect(seatFor('refine')?.desk).toBe(true);
+    expect(seatFor('gilfoyle')?.desk).toBe(true);
   });
 });
 
@@ -347,23 +347,23 @@ describe('meeting seats (slice 5)', () => {
   });
 
   it('gives the facilitator the head of the table and keeps invite order after', () => {
-    const seating = meetingSeating(['refine', 'scrumMaster', 'critique'], 'scrumMaster');
-    expect(seating.map((seat) => seat.id)).toEqual(['scrumMaster', 'refine', 'critique']);
+    const seating = meetingSeating(['gilfoyle', 'scrumMaster', 'critique'], 'scrumMaster');
+    expect(seating.map((seat) => seat.id)).toEqual(['scrumMaster', 'gilfoyle', 'critique']);
     expect(seating[0].tile).toEqual(MEETING_SEATS[0]);
     expect(seating[1].tile).toEqual(MEETING_SEATS[1]);
   });
 
   it('seats whoever showed up when the facilitator is not in the room', () => {
-    const seating = meetingSeating(['refine', 'critique'], 'scrumMaster');
-    expect(seating.map((seat) => seat.id)).toEqual(['refine', 'critique']);
+    const seating = meetingSeating(['gilfoyle', 'critique'], 'scrumMaster');
+    expect(seating.map((seat) => seat.id)).toEqual(['gilfoyle', 'critique']);
   });
 
   it('drops duplicates and anyone past the last chair', () => {
     const crowd = [...CAST_TIERS.team, ...CAST_TIERS.senior, ...CAST_TIERS.office];
     expect(crowd.length).toBeGreaterThan(MEETING_SEATS.length);
     expect(meetingSeating(crowd)).toHaveLength(MEETING_SEATS.length);
-    expect(meetingSeating(['refine', 'refine', 'critique']).map((s) => s.id)).toEqual([
-      'refine',
+    expect(meetingSeating(['gilfoyle', 'gilfoyle', 'critique']).map((s) => s.id)).toEqual([
+      'gilfoyle',
       'critique'
     ]);
     expect(meetingSeating(undefined)).toEqual([]);
@@ -379,7 +379,7 @@ describe('peek marks (slice 6)', () => {
     // reach, and a layout change that silently drops somebody from it (or
     // hands you a way into the leadership fishbowl) should fail here.
     expect(peekableSeatIds()).toEqual([
-      'refine',
+      'gilfoyle',
       'erlich',
       'critique',
       'explain',

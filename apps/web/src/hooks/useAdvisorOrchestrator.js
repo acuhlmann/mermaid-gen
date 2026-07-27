@@ -20,7 +20,7 @@ import { getAdvisorVisibleLabels } from '../utils/advisorVisibleLabels.js';
  *
  * Reachability ladder (locked): docs/recipes/replicate-tv-character.md.
  */
-export const ADVISOR_ORDER = ['refine', 'erlich', 'goMad', 'critique', 'explain', 'barker'];
+export const ADVISOR_ORDER = ['gilfoyle', 'erlich', 'goMad', 'critique', 'explain', 'barker'];
 
 /**
  * Relative pick weight per persona — anything absent is a full-weight peer (1).

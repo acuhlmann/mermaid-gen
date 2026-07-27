@@ -229,7 +229,7 @@ export function createAnythingTools({ stateStore }) {
       name: 'apply_anything_edit',
       description:
         'Apply targeted search/replace edits to the CURRENT Anything-mode HTML document instead of ' +
-        'rewriting it. Preferred for small, scoped changes (Refine / Exec / Fix): faster, cheaper, ' +
+        'rewriting it. Preferred for small, scoped changes (Gilfoyle / Exec / Fix): faster, cheaper, ' +
         'and it cannot accidentally drop unrelated parts of the page. Each SEARCH block must be ' +
         'copied verbatim from the current document and match exactly once; edits apply in order and ' +
         'the whole call is atomic — if any block fails to match, nothing is applied. The edited ' +

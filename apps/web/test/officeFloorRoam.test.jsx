@@ -143,7 +143,7 @@ describe('free roam (slice 7)', () => {
     const meeting = {
       state: 'playing',
       title: 'Architecture Review Board',
-      attendees: ['scrumMaster', 'refine'],
+      attendees: ['scrumMaster', 'gilfoyle'],
       facilitatorId: 'scrumMaster',
       transcript: [],
       interjectionsLeft: 2

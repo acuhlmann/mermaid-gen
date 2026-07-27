@@ -89,7 +89,7 @@ const INFOGRAPHIC_PATCH_REQUIRED_INSTRUCTION = `Your previous response did not a
 - Do not return prose only.
 - Do not mention tool names in your final user-facing summary.`;
 
-const INFOGRAPHIC_TRANSFORM_PERSONAS = new Set(['refine', 'erlich', 'goMad', 'barker']);
+const INFOGRAPHIC_TRANSFORM_PERSONAS = new Set(['gilfoyle', 'erlich', 'goMad', 'barker']);
 
 async function withInfographicTransformContext(stateStore, context, fn) {
   stateStore.setTransformContext(context);
@@ -638,9 +638,9 @@ export function createInfographicLangChainAgent({
 
   function getTransformAgent(mode, profile = 'fast', goMadDepth) {
     const safeMode =
-      mode === 'refine' || mode === 'erlich' || mode === 'goMad' || mode === 'barker'
+      mode === 'gilfoyle' || mode === 'erlich' || mode === 'goMad' || mode === 'barker'
         ? mode
-        : 'refine';
+        : 'gilfoyle';
     return cache.getTransformAgent(safeMode, profile, goMadDepth);
   }
 
@@ -722,13 +722,13 @@ export function createInfographicLangChainAgent({
       const depth = mode === 'goMad' ? clampGoMadDepth(goMadDepth ?? 1) : null;
       return withInfographicTransformContext(stateStore, { mode, goMadDepth: depth }, async () => {
         let slot = stateStore.getSlot('infographic');
-        if (mode === 'refine' && slot.diagramSource?.trim()) {
+        if (mode === 'gilfoyle' && slot.diagramSource?.trim()) {
           const prepass = refineInfographicDsl(slot.diagramSource);
           if (prepass.applied.length > 0 && prepass.dsl !== slot.diagramSource) {
             const prepApplied = await stateStore.applyDiagramSource({
               contentType: 'infographic',
               diagramSource: prepass.dsl,
-              reason: 'refine-prepass'
+              reason: 'gilfoyle-prepass'
             });
             if (prepApplied.accepted) slot = prepApplied.state;
           }

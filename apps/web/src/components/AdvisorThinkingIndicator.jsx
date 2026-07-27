@@ -4,7 +4,7 @@ import StakeholderCastStrip from './StakeholderCastStrip.jsx';
 import { PersonaFace } from './personaFaces/index.jsx';
 
 const PERSONA_CLASS = {
-  refine: 'is-refine',
+  gilfoyle: 'is-gilfoyle',
   erlich: 'is-erlich',
   goMad: 'is-go-mad',
   critique: 'is-critique',

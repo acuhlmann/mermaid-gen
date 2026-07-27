@@ -65,8 +65,12 @@ describe('awayFromDeskIds', () => {
   });
 
   it('takes you out of your own chair for a meeting, and only then', () => {
-    const meeting = { attendees: ['scrumMaster', 'refine'] };
-    expect(awayFromDeskIds({ meeting, playerId: 'you' })).toEqual(['you', 'scrumMaster', 'refine']);
+    const meeting = { attendees: ['scrumMaster', 'gilfoyle'] };
+    expect(awayFromDeskIds({ meeting, playerId: 'you' })).toEqual([
+      'you',
+      'scrumMaster',
+      'gilfoyle'
+    ]);
     expect(awayFromDeskIds({ meeting: { attendees: undefined }, playerId: 'you' })).toEqual([
       'you'
     ]);
@@ -91,7 +95,7 @@ describe('coffee break on the floor', () => {
     expect(seat('greybeard')?.dataset.vacant).toBe('true');
     expect(seat('intern')?.dataset.vacant).toBe('true');
     // Everyone else is still working.
-    expect(seat('refine')?.dataset.vacant).toBeUndefined();
+    expect(seat('gilfoyle')?.dataset.vacant).toBeUndefined();
   });
 
   it('accepts and declines through the store handlers', () => {

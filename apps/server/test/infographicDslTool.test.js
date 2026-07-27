@@ -17,7 +17,7 @@ const VALID_LIST_ROW =
   '    - label Step 2\n' +
   '      desc Build';
 
-test('refine transform rejects template change', async () => {
+test('gilfoyle transform rejects template change', async () => {
   const switched =
     'infographic sequence-steps-simple\n' +
     'data\n' +
@@ -29,8 +29,8 @@ test('refine transform rejects template change', async () => {
   const result = await validateAndPrepareInfographicPatch({
     currentState: { revisionId: 0, diagramSource: VALID_LIST_ROW },
     proposedDiagramSource: switched,
-    reason: 'refine',
-    transformMode: 'refine'
+    reason: 'gilfoyle',
+    transformMode: 'gilfoyle'
   });
   assert.equal(result.accepted, false);
   assert.match(result.error, /keep template/i);

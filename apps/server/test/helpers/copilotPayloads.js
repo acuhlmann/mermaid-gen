@@ -15,7 +15,7 @@ export function intentPayload(overrides = {}) {
 
 export function transformPayload(overrides = {}) {
   return {
-    mode: 'refine',
+    mode: 'gilfoyle',
     revisionId: 0,
     diagramSource: 'flowchart TD\n  Start[Start] --> EndNode[End]',
     contentType: 'mermaid',

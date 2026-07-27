@@ -17,7 +17,7 @@ describe('HotkeyOverlay', () => {
     render(<HotkeyOverlay open onClose={vi.fn()} />);
     expect(screen.getByTestId('hotkey-overlay')).toBeTruthy();
     expect(screen.getByText('Keyboard shortcuts')).toBeTruthy();
-    expect(screen.getByText(/Refine/i)).toBeTruthy();
+    expect(screen.getByText(/Gilfoyle/i)).toBeTruthy();
     expect(screen.getByText(/Go Mad/i)).toBeTruthy();
   });
 

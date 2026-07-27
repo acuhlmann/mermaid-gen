@@ -3,7 +3,7 @@ import { getVariantPersona, quoteForRotation } from '../utils/slopitectCopy.js';
 import { PersonaFace } from './personaFaces/index.jsx';
 
 const VARIANT_CLASS = {
-  refine: 'is-refine',
+  gilfoyle: 'is-gilfoyle',
   erlich: 'is-erlich',
   goMad: 'is-go-mad',
   critique: 'is-critique',

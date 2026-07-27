@@ -31,7 +31,7 @@ describe('floorAnnouncement', () => {
     const everything = {
       copy,
       meeting: { state: 'playing' },
-      talk: { colleagueId: 'refine', phase: 'talking' },
+      talk: { colleagueId: 'gilfoyle', phase: 'talking' },
       peek: { colleagueId: 'intern', phase: 'looking' },
       prop: { propKind: 'printer', phase: 'using' },
       presence: { phase: 'standing', key: 3 },

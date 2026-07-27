@@ -36,7 +36,7 @@ function buildEnglishBundle() {
       CONSOLE_STAMP_LINES: slopitectEn.CONSOLE_STAMP_LINES,
       PROMPT_EASTER_EGGS: slopitectEn.PROMPT_EASTER_EGGS,
       ACTION_PERSONA_SHORT_NAMES: {
-        refine: 'Engineer',
+        gilfoyle: 'Gilfoyle',
         erlich: 'Erlich',
         explain: 'Architect'
       },

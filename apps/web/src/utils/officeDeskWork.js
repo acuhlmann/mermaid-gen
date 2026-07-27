@@ -46,9 +46,9 @@ export const DESK_WORK_LOOKS = Object.freeze([
 /** @type {Record<string, DeskWork>} */
 export const OFFICE_DESK_WORK = {
   // ── team ────────────────────────────────────────────────────────────────
-  refine: {
+  gilfoyle: {
     look: 'terminal',
-    line: 'One useful next step. Then the next one. It does add up, eventually.'
+    line: 'I already fixed it. I have not told anyone. It has been a good day.'
   },
   erlich: {
     look: 'slides',

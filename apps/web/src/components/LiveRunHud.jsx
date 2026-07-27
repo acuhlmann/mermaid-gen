@@ -4,7 +4,7 @@ import { useUiCopy } from '../i18n/useUiLocale.js';
 import { PersonaFace } from './personaFaces/index.jsx';
 
 const VARIANT_CLASS = {
-  refine: 'is-refine',
+  gilfoyle: 'is-gilfoyle',
   erlich: 'is-erlich',
   goMad: 'is-go-mad',
   critique: 'is-critique',

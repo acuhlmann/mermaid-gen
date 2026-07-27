@@ -85,7 +85,7 @@ function modeIntentPlanBeat(mode: string | null, requestSnippet: string): string
   if (mode === 'goMad') return null;
   const req = requestSnippet ? ` — ${requestSnippet}` : '';
   switch (mode) {
-    case 'refine':
+    case 'gilfoyle':
       return `Polishing the diagram for clarity and structure${req}.`;
     case 'erlich':
       return `Graciously elevating the diagram with a bolder shape${req}.`;

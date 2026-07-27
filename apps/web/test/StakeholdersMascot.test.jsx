@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import StakeholdersMascot from '../src/components/StakeholdersMascot.jsx';
 
 const TEST_PERSONAS = [
-  { variant: 'refine', onClick: vi.fn() },
+  { variant: 'gilfoyle', onClick: vi.fn() },
   { variant: 'erlich', onClick: vi.fn() },
   { variant: 'goMad', onClick: vi.fn() },
   { variant: 'barker', onClick: vi.fn() },
@@ -59,7 +59,7 @@ describe('StakeholdersMascot', () => {
   it('lists all stakeholder names in the roster when expanded (test mode)', () => {
     render(<StakeholdersMascot personas={TEST_PERSONAS} />);
     expect(screen.getByRole('menu', { name: 'Your team' })).toBeTruthy();
-    expect(screen.getByText('THE Engineer')).toBeTruthy();
+    expect(screen.getByText('Bertram Gilfoyle')).toBeTruthy();
     expect(screen.getByText('Erlich Bachman')).toBeTruthy();
     expect(screen.getByText('THE SLOPITECT')).toBeTruthy();
     expect(screen.getByText('Jack Barker')).toBeTruthy();
@@ -67,20 +67,20 @@ describe('StakeholdersMascot', () => {
     expect(screen.getByText('The Wise Architect')).toBeTruthy();
   });
 
-  it('exposes Engineer in the refine row tooltip', () => {
+  it('exposes Gilfoyle in the gilfoyle row tooltip', () => {
     const { container } = render(<StakeholdersMascot personas={TEST_PERSONAS} />);
-    const engineerRow = screen.getByText('THE Engineer').closest('.stakeholders-roster-row');
-    expect(engineerRow?.getAttribute('title')).toMatch(/Engineer/);
+    const gilfoyleRow = screen.getByText('Bertram Gilfoyle').closest('.stakeholders-roster-row');
+    expect(gilfoyleRow?.getAttribute('title')).toMatch(/Gilfoyle/);
     expect(container.querySelector('.stakeholders-roster')).toBeTruthy();
   });
 
   it('invokes persona onClick when anywhere on the roster row is clicked', () => {
     const onRefine = vi.fn();
     const personas = TEST_PERSONAS.map((p) =>
-      p.variant === 'refine' ? { ...p, onClick: onRefine } : p
+      p.variant === 'gilfoyle' ? { ...p, onClick: onRefine } : p
     );
     render(<StakeholdersMascot personas={personas} />);
-    fireEvent.click(screen.getByText('THE Engineer'));
+    fireEvent.click(screen.getByText('Bertram Gilfoyle'));
     expect(onRefine).toHaveBeenCalledTimes(1);
   });
 
@@ -161,7 +161,7 @@ describe('StakeholdersMascot', () => {
     render(
       <StakeholdersMascot
         personas={TEST_PERSONAS}
-        activeAdvisorVariant="refine"
+        activeAdvisorVariant="gilfoyle"
         thinkingPersona={null}
         bubbleProps={bubbleProps}
       />
@@ -172,7 +172,7 @@ describe('StakeholdersMascot', () => {
   });
 
   it('does not render the first-run spotlight without introProps', () => {
-    render(<StakeholdersMascot personas={TEST_PERSONAS} thinkingPersona="refine" />);
+    render(<StakeholdersMascot personas={TEST_PERSONAS} thinkingPersona="gilfoyle" />);
     expect(screen.queryByTestId('stakeholder-intro-spotlight')).toBeNull();
     // Surface still renders on its own outside the float stack.
     expect(screen.getByTestId('advisor-thinking-indicator')).toBeTruthy();
@@ -181,7 +181,7 @@ describe('StakeholdersMascot', () => {
   it('holds the last advisor surface briefly across handoff gaps', async () => {
     vi.useFakeTimers();
     const { rerender } = render(
-      <StakeholdersMascot personas={TEST_PERSONAS} thinkingPersona="refine" />
+      <StakeholdersMascot personas={TEST_PERSONAS} thinkingPersona="gilfoyle" />
     );
     expect(screen.getByTestId('advisor-thinking-indicator')).toBeTruthy();
 
@@ -204,7 +204,7 @@ describe('StakeholdersMascot', () => {
   it('keeps a real positioning box while the advisor surface is up (no display:contents)', () => {
     const { container } = render(
       <div className="prompt-actions prompt-actions--mobile">
-        <StakeholdersMascot personas={TEST_PERSONAS} thinkingPersona="refine" />
+        <StakeholdersMascot personas={TEST_PERSONAS} thinkingPersona="gilfoyle" />
       </div>
     );
     const wrap = container.querySelector('.stakeholders-mascot-wrap');
@@ -225,7 +225,7 @@ describe('StakeholdersMascot', () => {
     const { container } = render(
       <StakeholdersMascot
         personas={TEST_PERSONAS}
-        thinkingPersona="refine"
+        thinkingPersona="gilfoyle"
         introProps={introProps}
       />
     );

@@ -96,7 +96,7 @@ describe('AdvisorSpeechBubble', () => {
     render(
       <AdvisorSpeechBubble
         {...baseProps}
-        castVariants={['refine', 'erlich', 'barker', 'critique', 'explain', 'goMad']}
+        castVariants={['gilfoyle', 'erlich', 'barker', 'critique', 'explain', 'goMad']}
       />
     );
     expect(screen.getByText('Your Team')).toBeTruthy();

@@ -421,7 +421,7 @@ test('transform handler forwards the abortSignal to the agent service', async ()
       revisionId: 0,
       diagramSource: 'flowchart TD\n  Start[Start] --> EndNode[End]',
       contentType: 'mermaid',
-      mode: 'refine'
+      mode: 'gilfoyle'
     },
     stateStore,
     agentService,

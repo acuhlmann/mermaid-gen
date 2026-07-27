@@ -119,9 +119,9 @@ describe('desk peeking (slice 6)', () => {
     const meeting = {
       state: 'playing',
       title: 'Architecture Review Board',
-      attendees: ['scrumMaster', 'refine'],
+      attendees: ['scrumMaster', 'gilfoyle'],
       facilitatorId: 'scrumMaster',
-      transcript: [{ speakerId: 'refine', kind: 'substantive', text: 'The gateway is fine.' }],
+      transcript: [{ speakerId: 'gilfoyle', kind: 'substantive', text: 'The gateway is fine.' }],
       interjectionsLeft: 2
     };
     const view = renderFloor();

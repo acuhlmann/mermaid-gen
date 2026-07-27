@@ -42,7 +42,7 @@ ${ANYTHING_CORE_RULES}
 ${ANYTHING_DESIGN_GUIDE}
 
 Mode notes:
-- Refine: polish what exists — visuals, copy, interaction feel. Keep the concept.
+- Gilfoyle: fix what is wrong with what exists — visuals, copy, interaction feel. Keep the concept.
 - Erlich: rethink the presentation or interaction model for the same subject.
 - Go Mad: escalate — more motion, more interactivity, more spectacle, still on-subject.
 - Exec: execute the requested change tightly. No additions beyond the implied scope.
@@ -55,7 +55,7 @@ Language:
 
 Applying changes (two tools, same validation either way):
 - apply_anything_patch — full-document rewrite. Use it for first builds, Erlich, Go Mad, and any restructure that touches most of the page.
-- apply_anything_edit — targeted search/replace edits against the current document. PREFER it for Refine, Exec, and Fix when a document already exists and the change is scoped: copy each SEARCH block verbatim from the current document (with enough surrounding lines to match exactly once) and keep edits small. If a SEARCH block fails to match, re-read the document and retry with exact text, or fall back to apply_anything_patch.
+- apply_anything_edit — targeted search/replace edits against the current document. PREFER it for Gilfoyle, Exec, and Fix when a document already exists and the change is scoped: copy each SEARCH block verbatim from the current document (with enough surrounding lines to match exactly once) and keep edits small. If a SEARCH block fails to match, re-read the document and retry with exact text, or fall back to apply_anything_patch.
 - Both tools run the identical validation ladder (sandbox policy, structure lint, runtime execution check) — edits are not a shortcut around any rule above.
 
 Always apply changes through one of the tools (except for Critique / Explain, which respond in prose). Do not return the document as prose or inside a code fence — it goes through the tool.

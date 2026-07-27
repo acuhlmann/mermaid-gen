@@ -14,12 +14,12 @@ export const SLOPITECT_ZH_TW = {
     stakeholdersEmoji: '👥'
   },
   VARIANT_PERSONAS: {
-    refine: {
-      name: '工程師',
-      title: '有用下一步的建造者',
-      tagline: '一次一個謹慎、有用的擴展。',
-      entryLine: '正在設計下一步…',
-      exitLine: '交付了一塊有用的磚 🧰'
+    gilfoyle: {
+      name: 'Bertram Gilfoyle',
+      title: '系統架構師，毫無興趣',
+      tagline: '正確的改動。只說一次。',
+      entryLine: '有人沒把這個畫完。',
+      exitLine: '修好了。本來就是錯的。🦇'
     },
     erlich: {
       name: 'Erlich Bachman',
@@ -58,7 +58,7 @@ export const SLOPITECT_ZH_TW = {
     }
   },
   VARIANT_TAGLINES: {
-    refine: '爛圖建築師：工程師擴展構建',
+    gilfoyle: '爛圖建築師：Gilfoyle 修好有問題的地方',
     erlich: '爛圖建築師：Erlich Bachman 提出大膽方案',
     goMad: '爛圖建築師：天才放飛 🚨',
     critique: '爛圖建築師：協同設計合規評審',
@@ -67,7 +67,7 @@ export const SLOPITECT_ZH_TW = {
     fix: '爛圖建築師：現場工頭修復爛圖'
   },
   VARIANT_BOOT_HEADLINES: {
-    refine: '正在設計下一個有用步驟…',
+    gilfoyle: 'Gilfoyle 找到了缺陷…',
     erlich: 'Erlich Bachman 正在親自昇華…',
     goMad: '砰！爛圖建築師來了',
     critique: '協同設計評審即將開始',
@@ -75,7 +75,7 @@ export const SLOPITECT_ZH_TW = {
     barker: 'Jack Barker 正在越權代勞……'
   },
   ACTION_PERSONA_SHORT_NAMES: {
-    refine: '工程師',
+    gilfoyle: 'Gilfoyle',
     erlich: 'Erlich',
     explain: '架構師'
   },

@@ -33,13 +33,13 @@ test('advisor suggest accepts chart and anything content types', async () => {
   try {
     for (const contentType of ['chart', 'anything']) {
       const res = await postSuggest(port, {
-        persona: 'refine',
+        persona: 'gilfoyle',
         contentType,
         diagramSource: ''
       });
       assert.equal(res.status, 200, `${contentType} should pass schema`);
       const body = await res.json();
-      assert.equal(body.persona, 'refine');
+      assert.equal(body.persona, 'gilfoyle');
       assert.equal(body.suggestion, null);
     }
   } finally {

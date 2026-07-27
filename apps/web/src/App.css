@@ -987,7 +987,7 @@
   color: #b45309;
 }
 
-.insights-pane-live-meta.is-variant-refine .insights-pane-live-chip.is-action {
+.insights-pane-live-meta.is-variant-gilfoyle .insights-pane-live-chip.is-action {
   color: #1d4ed8;
   border-color: rgba(37, 99, 235, 0.28);
   background: rgba(37, 99, 235, 0.1);
@@ -1284,19 +1284,19 @@
   );
 }
 
-.insights-entry[data-variant='refine'] {
+.insights-entry[data-variant='gilfoyle'] {
   border-left: 3px solid rgba(37, 99, 235, 0.42);
   background: linear-gradient(145deg, rgba(239, 246, 255, 0.72), rgba(255, 255, 255, 0.88));
 }
 
-.insights-entry[data-variant='refine'].is-running {
+.insights-entry[data-variant='gilfoyle'].is-running {
   border-color: rgba(37, 99, 235, 0.38);
   box-shadow:
     0 8px 24px rgba(15, 23, 42, 0.08),
     0 0 0 1px rgba(37, 99, 235, 0.1);
 }
 
-.insights-entry[data-variant='refine'].is-running::before {
+.insights-entry[data-variant='gilfoyle'].is-running::before {
   background: linear-gradient(
     105deg,
     transparent 0%,
@@ -2791,7 +2791,7 @@
   padding: 0.15rem 0 0;
 }
 
-.insights-section.is-refine-content-lane,
+.insights-section.is-gilfoyle-content-lane,
 .insights-section.is-erlich-content-lane,
 .insights-section.is-gomad-content-lane {
   padding: 0.15rem 0 0;
@@ -2824,7 +2824,7 @@
   height: 15px;
 }
 
-.insights-section-title-refine {
+.insights-section-title-gilfoyle {
   display: flex;
   align-items: center;
   gap: 0.42rem;
@@ -2835,7 +2835,7 @@
   color: rgba(30, 64, 175, 0.92);
 }
 
-.insights-section-title-refine-icon {
+.insights-section-title-gilfoyle-icon {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2846,7 +2846,7 @@
   color: rgba(29, 78, 216, 0.95);
 }
 
-.insights-section-title-refine-icon .insights-svg-icon {
+.insights-section-title-gilfoyle-icon .insights-svg-icon {
   width: 15px;
   height: 15px;
 }
@@ -3282,7 +3282,7 @@
   background: linear-gradient(145deg, rgba(45, 212, 191, 0.55), rgba(13, 148, 136, 0.45));
 }
 
-.insights-entry-rich-text.is-refine-prose .insights-content-bullet .insights-bullet-icon {
+.insights-entry-rich-text.is-gilfoyle-prose .insights-content-bullet .insights-bullet-icon {
   border-radius: 2px;
   background: linear-gradient(145deg, rgba(96, 165, 250, 0.65), rgba(37, 99, 235, 0.5));
 }
@@ -3343,7 +3343,7 @@
   letter-spacing: -0.01em;
 }
 
-.insights-refine-opener {
+.insights-gilfoyle-opener {
   position: relative;
   margin-bottom: 0.55rem;
   padding: 0.55rem 0.55rem 0.58rem 0.72rem;
@@ -3354,7 +3354,7 @@
   animation: insights-explain-opener-in 0.65s ease-out backwards;
 }
 
-.insights-refine-opener::before {
+.insights-gilfoyle-opener::before {
   content: '';
   position: absolute;
   left: 0.38rem;
@@ -3365,7 +3365,7 @@
   background: linear-gradient(180deg, rgba(96, 165, 250, 0.95), rgba(37, 99, 235, 0.55));
 }
 
-.insights-refine-opener .insights-content-line:first-of-type,
+.insights-gilfoyle-opener .insights-content-line:first-of-type,
 .insights-erlich-opener .insights-content-line:first-of-type,
 .insights-gomad-opener .insights-content-line:first-of-type {
   font-size: 0.84rem;
@@ -3481,7 +3481,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .insights-explain-opener,
-  .insights-refine-opener,
+  .insights-gilfoyle-opener,
   .insights-erlich-opener {
     animation: none;
   }
@@ -7352,8 +7352,8 @@
   --slop-action-glow: rgba(37, 99, 235, 0.22);
 }
 
-.slop-action-button.is-refine,
-.radial-action-button.is-refine {
+.slop-action-button.is-gilfoyle,
+.radial-action-button.is-gilfoyle {
   --slop-action-accent: #2563eb;
   --slop-action-accent-2: #93c5fd;
   --slop-action-glow: rgba(37, 99, 235, 0.28);
@@ -10481,7 +10481,7 @@ button {
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .boot-sequence-overlay.is-refine .boot-sequence-flash {
+  .boot-sequence-overlay.is-gilfoyle .boot-sequence-flash {
     background: radial-gradient(
       circle at 50% 50%,
       rgba(37, 99, 235, 0.45),
@@ -10489,7 +10489,7 @@ button {
     );
     animation: slopitect-boot-flash-soft 420ms ease-out forwards;
   }
-  .boot-sequence-overlay.is-refine .boot-sequence-headline {
+  .boot-sequence-overlay.is-gilfoyle .boot-sequence-headline {
     color: #dbeafe;
     text-shadow: 0 0 24px rgba(37, 99, 235, 0.7);
     animation: slopitect-boot-headline 420ms ease-out forwards;
@@ -10755,7 +10755,7 @@ button {
 }
 
 /* ── Variant pane accents (subtle — avoid washing out streamed text) ── */
-.insights-pane.is-variant-refine {
+.insights-pane.is-variant-gilfoyle {
   border-left-color: rgba(37, 99, 235, 0.35);
 }
 .insights-pane.is-variant-erlich {
@@ -10849,7 +10849,7 @@ button {
   color: rgba(40, 30, 60, 0.58);
   line-height: 1.2;
 }
-.insights-entry-persona.is-variant-refine {
+.insights-entry-persona.is-variant-gilfoyle {
   border-left-color: #2563eb;
   background: linear-gradient(90deg, rgba(37, 99, 235, 0.1), rgba(255, 255, 255, 0.82));
 }
@@ -10976,7 +10976,7 @@ button {
   opacity: 0.7;
   font-variant-numeric: tabular-nums;
 }
-.slopitect-status-board.is-variant-refine {
+.slopitect-status-board.is-variant-gilfoyle {
   color: #1d4ed8;
   background: rgba(37, 99, 235, 0.08);
   border-color: rgba(37, 99, 235, 0.18);
@@ -11060,7 +11060,7 @@ button {
   align-items: center;
   gap: 8px;
 }
-.streak-hud-toast.is-variant-refine {
+.streak-hud-toast.is-variant-gilfoyle {
   background: linear-gradient(90deg, #2563eb, #60a5fa);
 }
 .streak-hud-toast.is-variant-erlich {
@@ -11280,7 +11280,7 @@ button {
  * Mobile / foldable note: the shell-level ::after overlays previously had
  * a `position: fixed; inset: 0` shape that covered the bottom chrome and
  * the thinking pane. Combined with `animation: slopitect-shell-shake` on
- * goMad and `slopitect-polish-sweep` on refine, weak compositors on
+ * goMad and `slopitect-polish-sweep` on gilfoyle, weak compositors on
  * foldables ended up dropping frames and the Thinking button + pane
  * visibly flickered every animation tick. We now (a) gate the heaviest
  * animations behind a desktop breakpoint, (b) cap the overlay area so
@@ -11324,7 +11324,7 @@ button {
       transform: translate(1px, 1px);
     }
   }
-  .app-shell[data-streaming='true'][data-live-variant='refine']::after {
+  .app-shell[data-streaming='true'][data-live-variant='gilfoyle']::after {
     content: '';
     position: fixed;
     inset: 0;
@@ -11341,7 +11341,7 @@ button {
     will-change: background-position;
   }
   @media (min-width: 1025px) {
-    .app-shell[data-streaming='true'][data-live-variant='refine']::after {
+    .app-shell[data-streaming='true'][data-live-variant='gilfoyle']::after {
       animation: slopitect-polish-sweep 3.2s linear infinite;
     }
   }
@@ -11526,7 +11526,7 @@ button {
   transition: width 480ms cubic-bezier(0.22, 0.61, 0.36, 1);
 }
 
-.xp-progress-bar.is-variant-refine .xp-progress-bar-fill {
+.xp-progress-bar.is-variant-gilfoyle .xp-progress-bar-fill {
   background: linear-gradient(90deg, #60a5fa, #2563eb);
 }
 .xp-progress-bar.is-variant-erlich .xp-progress-bar-fill {
@@ -12140,7 +12140,7 @@ button {
   font-size: 0.74rem;
 }
 
-.levelup-info-variant.is-refine {
+.levelup-info-variant.is-gilfoyle {
   background: linear-gradient(135deg, rgba(219, 234, 254, 0.7), rgba(255, 255, 255, 0.8));
 }
 .levelup-info-variant.is-erlich {
@@ -12407,7 +12407,7 @@ button {
   box-shadow: 0 6px 18px rgba(28, 96, 224, 0.32);
 }
 
-.streak-hud-toast.is-xp.is-variant-refine {
+.streak-hud-toast.is-xp.is-variant-gilfoyle {
   background: linear-gradient(135deg, #2563eb, #60a5fa);
 }
 .streak-hud-toast.is-xp.is-variant-erlich {
@@ -12575,7 +12575,7 @@ button {
   z-index: 20;
 }
 
-.diagram-run-fx.is-refine {
+.diagram-run-fx.is-gilfoyle {
   border: 1px solid rgba(37, 99, 235, 0.18);
 }
 .diagram-run-fx.is-erlich {
@@ -12593,7 +12593,7 @@ button {
   border: 1px solid rgba(13, 148, 136, 0.18);
 }
 
-/* Refine — chrome polish-sweep across the canvas */
+/* Gilfoyle — chrome polish-sweep across the canvas */
 .diagram-run-fx-polish-sweep {
   position: absolute;
   inset: 0;
@@ -12753,10 +12753,10 @@ button {
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .diagram-run-fx.is-refine .diagram-run-fx-polish-sweep {
+  .diagram-run-fx.is-gilfoyle .diagram-run-fx-polish-sweep {
     animation: slopitect-canvas-polish-sweep 2.6s linear infinite;
   }
-  .diagram-run-fx.is-refine .diagram-run-fx-sparkle {
+  .diagram-run-fx.is-gilfoyle .diagram-run-fx-sparkle {
     animation: slopitect-sparkle-drift 1.6s ease-out infinite;
   }
   .diagram-run-fx.is-erlich .diagram-run-fx-synthgrid {
@@ -12996,11 +12996,11 @@ button {
  * Selected-node "possession" effect — themes the selected SVG node
  * during streaming. Reuses the existing .is-diagram-selected class.
  * ────────────────────────────────────────────────────────────────── */
-.diagram-output[data-run-variant='refine'] .is-diagram-selected > rect,
-.diagram-output[data-run-variant='refine'] .is-diagram-selected > path,
-.diagram-output[data-run-variant='refine'] .is-diagram-selected > polygon,
-.diagram-output[data-run-variant='refine'] .is-diagram-selected > circle,
-.diagram-output[data-run-variant='refine'] .is-diagram-selected > ellipse {
+.diagram-output[data-run-variant='gilfoyle'] .is-diagram-selected > rect,
+.diagram-output[data-run-variant='gilfoyle'] .is-diagram-selected > path,
+.diagram-output[data-run-variant='gilfoyle'] .is-diagram-selected > polygon,
+.diagram-output[data-run-variant='gilfoyle'] .is-diagram-selected > circle,
+.diagram-output[data-run-variant='gilfoyle'] .is-diagram-selected > ellipse {
   stroke: #60a5fa !important;
   stroke-width: 3.6px !important;
   filter: drop-shadow(0 0 12px rgba(96, 165, 250, 0.55));
@@ -13185,10 +13185,10 @@ button {
 }
 
 /* Variant accents */
-.slopitect-companion.is-refine {
+.slopitect-companion.is-gilfoyle {
   border-color: rgba(59, 130, 246, 0.45);
 }
-.slopitect-companion.is-refine .slopitect-companion-avatar {
+.slopitect-companion.is-gilfoyle .slopitect-companion-avatar {
   border-color: rgba(96, 165, 250, 0.55);
   background: linear-gradient(135deg, rgba(96, 165, 250, 0.18), rgba(96, 165, 250, 0.04));
 }
@@ -13250,7 +13250,7 @@ button {
   .slopitect-companion.is-erlich.is-active .slopitect-companion-avatar {
     animation: slopitect-avatar-synth-pulse 1.8s ease-in-out infinite;
   }
-  .slopitect-companion.is-refine.is-active .slopitect-companion-avatar {
+  .slopitect-companion.is-gilfoyle.is-active .slopitect-companion-avatar {
     animation: slopitect-avatar-polish-sway 3.2s ease-in-out infinite;
   }
   .slopitect-companion.is-critique.is-active .slopitect-companion-avatar {
@@ -13427,7 +13427,7 @@ button {
   border: 1px solid rgba(255, 195, 0, 0.32);
 }
 
-.live-run-hud.is-refine {
+.live-run-hud.is-gilfoyle {
   border-color: rgba(96, 165, 250, 0.55);
 }
 .live-run-hud.is-erlich {
@@ -13495,7 +13495,7 @@ button {
 /* ──────────────────────────────────────────────────────────────────
  * Per-variant streaming carets (Go Mad caret already in place earlier).
  * ────────────────────────────────────────────────────────────────── */
-.insights-stream-caret.is-refine-caret {
+.insights-stream-caret.is-gilfoyle-caret {
   width: 3px;
   height: 1.15em;
   background: linear-gradient(180deg, #93c5fd, #2563eb);
@@ -13534,7 +13534,7 @@ button {
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .insights-stream-caret.is-refine-caret {
+  .insights-stream-caret.is-gilfoyle-caret {
     animation: insights-caret-blink 1.05s steps(2, end) infinite;
   }
   .insights-stream-caret.is-erlich-caret {
@@ -13624,7 +13624,7 @@ button {
     animation: slopitect-persona-reveal 420ms ease-out forwards;
     animation-delay: 300ms;
   }
-  .boot-sequence-overlay.is-refine .boot-sparkle {
+  .boot-sequence-overlay.is-gilfoyle .boot-sparkle {
     animation: slopitect-boot-sparkle 600ms ease-out forwards;
     animation-delay: 80ms;
   }

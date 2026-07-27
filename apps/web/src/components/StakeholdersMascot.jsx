@@ -16,7 +16,7 @@ const COLLAPSE_AFTER_MS = 6000;
 const SURFACE_LATCH_MS = 1200;
 
 const VARIANT_CLASS = {
-  refine: 'is-refine',
+  gilfoyle: 'is-gilfoyle',
   erlich: 'is-erlich',
   goMad: 'is-go-mad',
   critique: 'is-critique',
@@ -25,7 +25,7 @@ const VARIANT_CLASS = {
 };
 
 const ACTION_LABEL = {
-  refine: 'Refine',
+  gilfoyle: 'Gilfoyle',
   erlich: 'Erlich',
   goMad: 'Go Mad',
   critique: 'Critique',

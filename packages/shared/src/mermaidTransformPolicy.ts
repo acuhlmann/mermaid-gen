@@ -1,6 +1,6 @@
 import { countMermaidGraphElements, inferMermaidTopKeyword } from './mermaidGraphMetrics.js';
 
-const TRANSFORM_MODES = new Set(['refine', 'erlich', 'goMad', 'barker']);
+const TRANSFORM_MODES = new Set(['gilfoyle', 'erlich', 'goMad', 'barker']);
 
 const BARKER_MAX_NODES = 8;
 const BARKER_MAX_EDGES = 10;
@@ -85,7 +85,7 @@ export function validateMermaidTransformConstraint(opts: {
     return { ok: true };
   }
 
-  if (mode === 'refine') {
+  if (mode === 'gilfoyle') {
     if (beforeType !== 'diagram' && afterType !== 'diagram' && beforeType !== afterType) {
       return {
         ok: false,

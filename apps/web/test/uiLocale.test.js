@@ -5,13 +5,13 @@ import { resolveUiLocaleFromExplicitRequest } from '@archislop/shared';
 describe('ui locale bundles', () => {
   it('returns English controls by default', () => {
     const bundle = getUiLocaleBundle('en');
-    expect(bundle.controls.actions.refine).toBe('Refine');
+    expect(bundle.controls.actions.gilfoyle).toBe('Gilfoyle');
     expect(bundle.slopitect.PROMPT_ACTION_COPY.label).toBe('Weigh In');
   });
 
   it('returns simplified Chinese controls when locale is zh-CN', () => {
     const bundle = getUiLocaleBundle('zh-CN');
-    expect(bundle.controls.actions.refine).toBe('精修');
+    expect(bundle.controls.actions.gilfoyle).toBe('Gilfoyle');
     expect(bundle.controls.radial.drillDeeper).toBe('深入挖掘');
     expect(bundle.slopitect.PROMPT_ACTION_COPY.label).toBe('发表意见');
     expect(bundle.controls.advisorThinking.goMad).toBe('正在癫狂');
@@ -33,7 +33,7 @@ describe('ui locale bundles', () => {
 
   it('returns Aussie slang controls when locale is en-AU', () => {
     const bundle = getUiLocaleBundle('en-AU');
-    expect(bundle.controls.actions.refine).toBe('Polish');
+    expect(bundle.controls.actions.gilfoyle).toBe('Gilfoyle');
     expect(bundle.controls.actions.goMad).toBe('Go troppo');
     expect(bundle.controls.actions.stakeholders).toBe('The Mob');
     expect(bundle.controls.prompt.doIt).toBe('Have a go');
@@ -58,11 +58,13 @@ describe('ui locale bundles', () => {
       'Always over-engineer. The microservices love a good Co-Design session.'
     );
     expect(bundle.slopitect.LEVEL_PANEL.ladderTitle).toBeTruthy();
-    expect(bundle.slopitect.VARIANT_QUOTES.refine[0]).not.toBe('One useful next step at a time.');
+    expect(bundle.slopitect.VARIANT_QUOTES.gilfoyle[0]).not.toBe(
+      'That dependency exists. It was never written down.'
+    );
   });
 
   // Guards against the variant-mastery achievements being keyed by their `id`
-  // (masterPolisher, …) instead of the variant key (refine, …). Mis-keying
+  // (stackOwner, …) instead of the variant key (gilfoyle, …). Mis-keying
   // adds extra ACHIEVEMENTS entries on merge — inflating the trophy total and
   // leaving the mastery copy in English.
   it.each(['zh-CN', 'zh-TW', 'en-AU'])(
@@ -71,7 +73,7 @@ describe('ui locale bundles', () => {
       const en = getUiLocaleBundle('en').slopitect.ACHIEVEMENTS;
       const localized = getUiLocaleBundle(locale).slopitect.ACHIEVEMENTS;
       expect(Object.keys(localized).sort()).toEqual(Object.keys(en).sort());
-      for (const variant of ['refine', 'erlich', 'goMad', 'critique', 'explain', 'barker']) {
+      for (const variant of ['gilfoyle', 'erlich', 'goMad', 'critique', 'explain', 'barker']) {
         expect(localized[variant].id).toBe(en[variant].id);
         expect(localized[variant].subtitle).not.toBe(en[variant].subtitle);
       }
@@ -83,7 +85,7 @@ describe('ui locale bundles', () => {
     (locale) => {
       const en = getUiLocaleBundle('en').slopitect.PHASE_CEREMONIES;
       const localized = getUiLocaleBundle(locale).slopitect.PHASE_CEREMONIES;
-      const stakeholderVariants = ['refine', 'erlich', 'goMad', 'critique', 'explain', 'barker'];
+      const stakeholderVariants = ['gilfoyle', 'erlich', 'goMad', 'critique', 'explain', 'barker'];
       const mutationPhases = [
         'analyze',
         'analyze_stream',

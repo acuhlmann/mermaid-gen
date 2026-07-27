@@ -43,7 +43,7 @@ test('resolveOfficeTtsVoice defaults to Chirp3-HD names for every locale', () =>
   assert.equal(pam.languageCode, 'en-US');
   assert.equal(pam.engine, 'chirp3');
   assert.equal(resolveOfficeTtsVoice('greybeard', 'en-AU').name, 'en-AU-Chirp3-HD-Orus');
-  // Unknown speakers fall back to the refine persona, still on Chirp3-HD.
+  // Unknown speakers fall back to the gilfoyle persona, still on Chirp3-HD.
   assert.equal(resolveOfficeTtsVoice('nobody', 'en-US').name, 'en-US-Chirp3-HD-Puck');
 });
 
@@ -165,8 +165,8 @@ test('resolveOfficeTtsVoice applies the global rate scale', () => {
 test('scaling preserves relative character fingerprints', () => {
   for (const locale of Object.keys(_VOICES_BY_LANG)) {
     const rate = (id) => resolveOfficeTtsVoice(id, locale, {}).speakingRate;
-    assert.ok(rate('greybeard') < rate('refine'), `${locale}: greybeard should stay slowest`);
-    assert.ok(rate('refine') < rate('goMad'), `${locale}: goMad should stay fastest`);
+    assert.ok(rate('greybeard') < rate('gilfoyle'), `${locale}: greybeard should stay slowest`);
+    assert.ok(rate('gilfoyle') < rate('goMad'), `${locale}: goMad should stay fastest`);
     // The whole cast should now sit in a plausible real-time band.
     for (const id of OFFICE_SPEAKER_IDS) {
       assert.ok(rate(id) > 0.85 && rate(id) < 1.35, `${locale}/${id} rate out of band`);

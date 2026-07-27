@@ -216,7 +216,7 @@ test('transform/analyze stream payloads reject contentType auto', () => {
   assert.equal(
     AgentStreamPayloadSchema.safeParse({
       operation: 'transform',
-      mode: 'refine',
+      mode: 'gilfoyle',
       revisionId: 0,
       diagramSource: 'flowchart TD\n  A',
       contentType: 'auto'
@@ -320,7 +320,7 @@ test('modelProfile is optional and accepts fast or quality', () => {
     operation: 'transform',
     revisionId: 0,
     diagramSource: 'flowchart TD\n  A --> B',
-    mode: 'refine',
+    mode: 'gilfoyle',
     modelProfile: 'fast'
   });
   assert.equal(streamTransform.success, true);
@@ -585,10 +585,10 @@ test('sanitizeAgentStreamPayload keeps valid transformPersona', () => {
     revisionId: 0,
     diagramSource: '',
     settings: {},
-    transformPersona: 'refine'
+    transformPersona: 'gilfoyle'
   };
   const sanitized = sanitizeAgentStreamPayload(payload) as Record<string, unknown>;
-  assert.equal(sanitized.transformPersona, 'refine');
+  assert.equal(sanitized.transformPersona, 'gilfoyle');
 });
 
 test('ToolApplyResultSchema accepts a success envelope with state.revisionId', () => {

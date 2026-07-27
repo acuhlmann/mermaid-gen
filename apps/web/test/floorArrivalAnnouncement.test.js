@@ -31,7 +31,7 @@ describe('floorArrivalAnnouncement', () => {
       copy,
       phase: 'colleagues',
       colleagueIndex: 0,
-      speakingId: 'refine'
+      speakingId: 'gilfoyle'
     });
     const second = floorArrivalAnnouncement({
       copy,

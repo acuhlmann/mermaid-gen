@@ -3,7 +3,7 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import StakeholderCastStrip from '../src/components/StakeholderCastStrip.jsx';
 
-const CAST = ['refine', 'erlich', 'goMad', 'barker', 'critique', 'explain'];
+const CAST = ['gilfoyle', 'erlich', 'goMad', 'barker', 'critique', 'explain'];
 
 describe('StakeholderCastStrip', () => {
   afterEach(() => cleanup());
@@ -12,7 +12,7 @@ describe('StakeholderCastStrip', () => {
     render(<StakeholderCastStrip variants={CAST} activeVariant="barker" />);
     expect(screen.getByText('Your Team')).toBeTruthy();
     expect(screen.getByLabelText(/Jack Barker is one of 6 teammates/i)).toBeTruthy();
-    expect(screen.getByTitle('THE Engineer')).toBeTruthy();
+    expect(screen.getByTitle('Bertram Gilfoyle')).toBeTruthy();
     expect(screen.getByTitle('Erlich Bachman')).toBeTruthy();
   });
 
@@ -32,7 +32,7 @@ describe('StakeholderCastStrip', () => {
         onSelectVariant={onSelectVariant}
       />
     );
-    fireEvent.click(screen.getByRole('button', { name: /Ask THE Engineer for commentary/i }));
-    expect(onSelectVariant).toHaveBeenCalledWith('refine');
+    fireEvent.click(screen.getByRole('button', { name: /Ask Bertram Gilfoyle for commentary/i }));
+    expect(onSelectVariant).toHaveBeenCalledWith('gilfoyle');
   });
 });
