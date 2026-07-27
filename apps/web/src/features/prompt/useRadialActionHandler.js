@@ -3,6 +3,7 @@ import { useDiagramHotkeys } from '../../hooks/useDiagramHotkeys.js';
 import { buildRadialActions } from '../../components/buildRadialActions.jsx';
 import {
   playCritiqueBoot,
+  playDineshBoot,
   playErlichBoot,
   playExplainBoot,
   playGoMadBoot,
@@ -71,6 +72,7 @@ export function useRadialActionHandler({
       const runOpts = { focusTarget: descriptor };
       const variantForBoot =
         action.id === 'gilfoyle' ||
+        action.id === 'dinesh' ||
         action.id === 'erlich' ||
         action.id === 'goMad' ||
         action.id === 'critique' ||
@@ -81,12 +83,14 @@ export function useRadialActionHandler({
       if (variantForBoot) {
         setBootSeq((prev) => ({ trigger: prev.trigger + 1, variant: variantForBoot }));
         if (variantForBoot === 'gilfoyle') tryAgentSound(playGilfoyleBoot);
+        else if (variantForBoot === 'dinesh') tryAgentSound(playDineshBoot);
         else if (variantForBoot === 'erlich') tryAgentSound(playErlichBoot);
         else if (variantForBoot === 'goMad') tryAgentSound(playGoMadBoot);
         else if (variantForBoot === 'critique') tryAgentSound(playCritiqueBoot);
         else if (variantForBoot === 'explain') tryAgentSound(playExplainBoot);
       }
       if (action.id === 'gilfoyle') runTransform('gilfoyle', runOpts);
+      else if (action.id === 'dinesh') runTransform('dinesh', runOpts);
       else if (action.id === 'erlich') runTransform('erlich', runOpts);
       else if (action.id === 'goMad') runTransform('goMad', runOpts);
       else if (action.id === 'barker') runTransform('barker', runOpts);

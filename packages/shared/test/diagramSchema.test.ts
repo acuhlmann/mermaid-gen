@@ -18,6 +18,7 @@ import {
   OriginSchema,
   SessionDiagramStateSchema,
   StyleIntentSchema,
+  TransformModeSchema,
   ToolApplyResultSchema,
   applyMermaidStyleDirective,
   applyPatch,
@@ -589,6 +590,36 @@ test('sanitizeAgentStreamPayload keeps valid transformPersona', () => {
   };
   const sanitized = sanitizeAgentStreamPayload(payload) as Record<string, unknown>;
   assert.equal(sanitized.transformPersona, 'gilfoyle');
+});
+
+test('TransformModeSchema seats both engineers and the rest of the wire modes', () => {
+  // The wire enum is the contract both apps validate against; a new seat that
+  // never lands here 400s before the agent runs.
+  assert.deepEqual(TransformModeSchema.options, [
+    'gilfoyle',
+    'dinesh',
+    'erlich',
+    'goMad',
+    'barker'
+  ]);
+  assert.equal(
+    DiagramTransformIntentSchema.safeParse({
+      revisionId: 1,
+      diagramSource: 'flowchart TD\n  A --> B',
+      mode: 'dinesh'
+    }).success,
+    true
+  );
+  const intent = {
+    operation: 'intent',
+    prompt: 'hello',
+    revisionId: 0,
+    diagramSource: '',
+    settings: {},
+    transformPersona: 'dinesh'
+  };
+  const sanitized = sanitizeAgentStreamPayload(intent) as Record<string, unknown>;
+  assert.equal(sanitized.transformPersona, 'dinesh');
 });
 
 test('ToolApplyResultSchema accepts a success envelope with state.revisionId', () => {

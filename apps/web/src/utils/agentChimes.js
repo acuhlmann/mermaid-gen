@@ -65,6 +65,17 @@ export function playGilfoyleStreamStart(audioContextRef) {
   });
 }
 
+/** Dinesh: same family as Gilfoyle, a shade higher and quicker. */
+export function playDineshStreamStart(audioContextRef) {
+  playShortTone(audioContextRef, {
+    type: 'triangle',
+    freqHz: 494,
+    freqEndHz: 622,
+    durationSec: 0.09,
+    peakGain: 0.036
+  });
+}
+
 export function playErlichStreamStart(audioContextRef) {
   playShortTone(audioContextRef, {
     type: 'sine',
@@ -265,6 +276,19 @@ export function playGilfoyleBoot(audioContextRef) {
   );
 }
 
+/** Dinesh boot: Gilfoyle's two-note shine plus one extra note nobody asked for. */
+export function playDineshBoot(audioContextRef) {
+  playToneSeq(
+    audioContextRef,
+    [
+      { freq: 587.33, dur: 0.06, peak: 0.04 },
+      { freq: 880.0, dur: 0.07, peak: 0.038 },
+      { freq: 987.77, dur: 0.08, peak: 0.034 }
+    ],
+    { type: 'triangle', stagger: 0.5 }
+  );
+}
+
 /** Erlich boot: synthwave riser (sawtooth sweep up) — a visionary enters. */
 export function playErlichBoot(audioContextRef) {
   const context = getContext(audioContextRef);
@@ -365,6 +389,15 @@ export function playGilfoyleCompletion(audioContextRef) {
   ]);
 }
 
+/** Dinesh completion: the resolve, then one insistent repeat of the last note. */
+export function playDineshCompletion(audioContextRef) {
+  playToneSeq(audioContextRef, [
+    { freq: 739.99, dur: 0.06, peak: 0.045 },
+    { freq: 987.77, dur: 0.07, peak: 0.042 },
+    { freq: 987.77, dur: 0.08, peak: 0.034 }
+  ]);
+}
+
 export function playErlichCompletion(audioContextRef) {
   playToneSeq(audioContextRef, [
     { freq: 739.99, dur: 0.07, peak: 0.05, type: 'square' },
@@ -399,6 +432,15 @@ export function playGilfoyleTokenTick(audioContextRef) {
     type: 'sine',
     freqHz: 1050,
     durationSec: 0.022,
+    peakGain: 0.011
+  });
+}
+
+export function playDineshTokenTick(audioContextRef) {
+  playShortTone(audioContextRef, {
+    type: 'sine',
+    freqHz: 1180,
+    durationSec: 0.02,
     peakGain: 0.011
   });
 }
@@ -575,6 +617,18 @@ export function playGilfoylePolishLoop(audioContextRef) {
   gainNode.connect(context.destination);
   osc.start(now);
   osc.stop(now + 0.24);
+}
+
+/** Dinesh: a quick double-blip — the same point, made twice. */
+export function playDineshInsistLoop(audioContextRef) {
+  playToneSeq(
+    audioContextRef,
+    [
+      { freq: 1760, dur: 0.05, peak: 0.014 },
+      { freq: 1760, dur: 0.06, peak: 0.012 }
+    ],
+    { type: 'triangle', stagger: 0.6 }
+  );
 }
 
 /** Erlich: synth zap — quick saw chirp. */

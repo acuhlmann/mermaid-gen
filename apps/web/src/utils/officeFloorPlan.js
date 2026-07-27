@@ -175,8 +175,10 @@ export const FLOOR_SEATS = [
   // You, near the front of the room, facing your own monitor.
   { id: 'you', x: 7, y: 7, desk: true, zone: 'pod' },
 
-  // Your team — the five advisor personas at adjacent desks.
+  // Your team — the six advisor personas at adjacent desks. The two engineers
+  // sit next to each other, which is the entire joke.
   { id: 'gilfoyle', x: 6, y: 4, desk: true, zone: 'pod' },
+  { id: 'dinesh', x: 7, y: 4, desk: true, zone: 'pod' },
   { id: 'erlich', x: 4, y: 6, desk: true, zone: 'pod' },
   { id: 'critique', x: 8, y: 5, desk: true, zone: 'pod' },
   { id: 'explain', x: 5, y: 8, desk: true, zone: 'pod' },

@@ -10,24 +10,26 @@ Bachman inheriting the Chief Innovation Officer's team seat** (2026-07-27, `inno
 remaining sessions. Session 2 (2026-07-27) then landed the reachability half of Barker's seat: he
 is in the proactive roundtable at throttled weight. Proven a fourth time with **Bertram Gilfoyle
 inheriting the engineer seat** (Session 3, 2026-07-27, `refine` → `gilfoyle`) — the first
-inheritance where the retired id was a _generic verb_, which changes the sweep (§4b.0). The cast
+inheritance where the retired id was a _generic verb_, which changes the sweep (§4b.0). Proven a
+fifth time with **Dinesh Chugtai on a brand-new seventh seat** (Session 4, 2026-07-27, `dinesh`)
+— the first run that is _not_ an inheritance, so §4c is the drill it produced. The cast
 map and **reachability ladder** below are **locked** (2026-07-26 program plan; reachability
 2026-07-27) — one character per agent session, in the order listed.
-**Next up: Session 4, Dinesh gets a new seventh seat (`dinesh`, gilfoyle-class).**
+**Next up: Session 5, Jared Dunn inherits the `critique` seat (`critique` → `jared`).**
 
 ## Status board
 
-| Character         | Target seat / tier                       | Status                                                                                           |
-| ----------------- | ---------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| Jack Barker       | team+senior — 6th advisor (`barker`)     | ✅ Shipped — advisor seat + Session 2 throttled roundtable (part of team, less often than peers) |
-| Erlich Bachman    | team — `erlich` (ex-`innovate`)          | ✅ Shipped — seat inheritance; courageous pivots, incubator swagger                              |
-| Bertram Gilfoyle  | team — `gilfoyle` (ex-`refine`)          | ✅ Shipped — seat inheritance; deadpan verdicts, always actionable; battle-eligible (dual-home)  |
-| Dinesh Chugtai    | team — **new** `dinesh` (gilfoyle-class) | ⬜ **Session 4 (next)** — seventh seat; new wire mode cloned from gilfoyle budgets; core team    |
-| Jared Dunn        | team — `critique` → `jared`              | ⬜ Session 5 — findings-only Auditor; anxious compliance                                         |
-| Russ Hanneman     | team — `goMad`                           | ⬜ Session 6 — highest content-policy risk (innuendo, not profanity)                             |
-| Richard Hendricks | team — `explain` → `richard`             | ⬜ Session 7 — comment-only Wise Architect (no transform powers — ADR-0010)                      |
-| Gavin Belson      | senior — `cto` → `belson`                | ⬜ Session 8 — named CTO; scarcer than Barker; Jack reports to him; retires Marcus               |
-| Marcus            | senior — `cto`                           | 🚮 Retires when Belson lands — currently a Belson _homage_, not a replication                    |
+| Character         | Target seat / tier                       | Status                                                                                               |
+| ----------------- | ---------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| Jack Barker       | team+senior — 6th advisor (`barker`)     | ✅ Shipped — advisor seat + Session 2 throttled roundtable (part of team, less often than peers)     |
+| Erlich Bachman    | team — `erlich` (ex-`innovate`)          | ✅ Shipped — seat inheritance; courageous pivots, incubator swagger                                  |
+| Bertram Gilfoyle  | team — `gilfoyle` (ex-`refine`)          | ✅ Shipped — seat inheritance; deadpan verdicts, always actionable; battle-eligible (dual-home)      |
+| Dinesh Chugtai    | team — **new** `dinesh` (gilfoyle-class) | ✅ Shipped — new seventh seat (not an inheritance); correct fix + a bid for credit; battle dual-home |
+| Jared Dunn        | team — `critique` → `jared`              | ⬜ **Session 5 (next)** — findings-only Auditor; anxious compliance                                  |
+| Russ Hanneman     | team — `goMad`                           | ⬜ Session 6 — highest content-policy risk (innuendo, not profanity)                                 |
+| Richard Hendricks | team — `explain` → `richard`             | ⬜ Session 7 — comment-only Wise Architect (no transform powers — ADR-0010)                          |
+| Gavin Belson      | senior — `cto` → `belson`                | ⬜ Session 8 — named CTO; scarcer than Barker; Jack reports to him; retires Marcus                   |
+| Marcus            | senior — `cto`                           | 🚮 Retires when Belson lands — currently a Belson _homage_, not a replication                        |
 
 Session 0 locked the map; the fidelity harness (§3) is generalized — one profile per character,
 reused every session. Each character session ends with registry/TTS/locale tests green,
@@ -35,11 +37,11 @@ reused every session. Each character session ends with registry/TTS/locale tests
 
 ### Reachability ladder (locked — do not re-litigate)
 
-| Who                                                                                              | How you reach them                          | Frequency                                                                                                                                          |
-| ------------------------------------------------------------------------------------------------ | ------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Full-weight team advisors (Erlich, then Gilfoyle / Dinesh / Jared / Russ / Richard as they land) | Roundtable + radial / hotkey / mascot       | Peer weight in `pickNextPersona`                                                                                                                   |
-| **Jack Barker**                                                                                  | Same Your Team surfaces                     | **Throttled** — in `ADVISOR_ORDER` at `ADVISOR_PICK_WEIGHTS.barker` = 0.5 (~half as often as a peer). ≤1 senior email/session. No walk-by/IM spam. |
-| **Gavin Belson** (ex-Marcus)                                                                     | Steering meetings + ≤1 senior email/session | **Scarcer than Barker** — never proactive roundtable, never a team transform seat. Fiction: Barker reports to him.                                 |
+| Who                                                                                            | How you reach them                          | Frequency                                                                                                                                          |
+| ---------------------------------------------------------------------------------------------- | ------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Full-weight team advisors (Erlich, Gilfoyle, Dinesh; then Jared / Russ / Richard as they land) | Roundtable + radial / hotkey / mascot       | Peer weight in `pickNextPersona`                                                                                                                   |
+| **Jack Barker**                                                                                | Same Your Team surfaces                     | **Throttled** — in `ADVISOR_ORDER` at `ADVISOR_PICK_WEIGHTS.barker` = 0.5 (~half as often as a peer). ≤1 senior email/session. No walk-by/IM spam. |
+| **Gavin Belson** (ex-Marcus)                                                                   | Steering meetings + ≤1 senior email/session | **Scarcer than Barker** — never proactive roundtable, never a team transform seat. Fiction: Barker reports to him.                                 |
 
 ### Session 2 drill — Barker throttled roundtable (✅ shipped 2026-07-27)
 
@@ -52,10 +54,13 @@ test + doc sweep). What shipped, as the template for any future weight change:
    cumulative-weight walk over `ADVISOR_PICK_WEIGHTS` (peers 1, `barker` 0.5). Both helpers are
    exported so the throttle is asserted directly instead of through the timer loop.
    **Watch the repeat filter when you retune a weight:** `pickNextPersona` drops the previous
-   speaker first, so a single draw is exactly half (0.5/4.5 vs 1/4.5) but the _run_ frequency is
-   the chain's stationary distribution, `π(j) ∝ w(j)·(total − w(j))` — Barker lands at 10% of
-   turns against 18% per peer, i.e. 0.56× rather than a flat 0.5×. Still "about half as often",
-   and pinned by a 120k-turn seeded sweep in `useAdvisorOrchestrator.test.js`.
+   speaker first, so a single draw is exactly half but the _run_ frequency is the chain's
+   stationary distribution, `π(j) ∝ w(j)·(total − w(j))` — which lands Barker slightly above a
+   flat 0.5×. **Both numbers move every time the pool grows**, so the sweep in
+   `useAdvisorOrchestrator.test.js` is written as fractions of the live pool, not as literals:
+   with 6 peers + Barker at 0.5 (total 6.5) a single draw is 2/13 per peer vs 1/13, and the
+   120k-turn rotation is 5.5/36 (≈15%) per peer vs 3/36 (≈8%) for Barker, i.e. 0.545×. When
+   Session 5 seats Jared these shift again — recompute from `π`, don't nudge the literal.
 3. Belson / Marcus (`cto`), `ciso`, `cfo` stay OUT — a regression test pins that list.
 4. Senior email cap untouched; roster + radial ordering already had him findable-but-not-first
    (radial: after `goMad`, before `critique`; roster: last, under "Upstairs"), so no reorder.
@@ -85,10 +90,10 @@ card; the harness proves it; the wire-in is a mechanical drill whose size depend
   character id takes over everything the seat touched, including the transform/analyze behavior
   and the wire enum. This is the seat-inheritance drill below; Barker proved it on the `exec`
   seat. ~40 files, mostly mechanical, plus real prompt-craft on the behavior blocks.
-  - **Dinesh is the exception:** a NEW seventh mode, not an inheritance — clone `gilfoyle`'s
-    budgets/temps (`*_MAX_NODES`, `TRANSFORM_MODE_MODEL`), distinct persona id, plus his own
-    XP/radial/hotkey/mascot rows, so both engineer seats coexist on the floor (desk next to
-    Gilfoyle in `apps/web/src/utils/officeFloorPlan.js`).
+  - **Dinesh was the exception (shipped):** a NEW seventh mode, not an inheritance — clone
+    `gilfoyle`'s budgets/temps (`*_MAX_NODES`, `TRANSFORM_MODE_MODEL`), distinct persona id, plus
+    his own XP/radial/hotkey/mascot rows, so both engineer seats coexist on the floor (desk next
+    to Gilfoyle in `apps/web/src/utils/officeFloorPlan.js`). The drill is §4c.
 - **senior** (Gavin Belson → the `cto` seat): steering meetings + ≤1 canned email/session.
   Smallest surface, richest dialogue. Add to `SENIOR_MEETING_VOICES` + `SENIOR_STAKEHOLDERS` +
   `MEETING_SENIOR_POOL` + `SENIOR_EMAIL_TEMPLATES`. Belson is a full named replication, not a
@@ -238,6 +243,51 @@ seat. In priority order (the full worked example is the Barker/exec change itsel
    `simplifyingBarker`, mastery id) exists in all locale files or `uiLocale.test.js` fails.
 8. **Tests**: ~25 files reference the persona id in fixtures — sweep
    `grep -rn "oldId" apps/*/test` and update.
+
+### 4c. New-seat drill (team tier — Dinesh proved this)
+
+A new seat is **additive everywhere §4b is a rename**, which makes it mechanically easier but
+easier to leave half-wired: nothing breaks when you miss a surface, the character just silently
+doesn't appear there. Work the §4b list top to bottom and _add_ instead of replacing. What
+Session 4 learned that §4b does not cover:
+
+1. **Clone the budgets, don't re-derive them.** "gilfoyle-class" means the same node/edge caps,
+   the same diagram-type lock, the same 0.42 transform temperature. Because the two branches
+   were byte-identical, `mermaidTransformPolicy.ts` / `infographicTransformPolicy.ts` got
+   `mode === 'gilfoyle' || mode === 'dinesh'` with a comment saying to split only on a
+   deliberate retune — one branch beats two that must be kept in sync by hand. The constraint
+   strings stay generic ("Refine may add at most 4 nodes"), which is fine: the retry regex keys
+   off the phrase, never the persona.
+2. **Grep the peer, not the seat.** `grep -rn "'erlich'"` finds the _shape_ of a full team seat
+   across ~50 files — mode lists, `Set`s, class maps, chime branches, ceremony palettes. Every
+   place a peer id appears is a place the new id probably belongs. Do this before writing code;
+   it is the whole file list.
+3. **Roster-pin tests will fail, and that is the point.** Adding a desk changed
+   `peekableSeatIds()`, `approachTileFor`'s roster, and the wander roster — three pinned arrays
+   that exist precisely so a layout change cannot pass unnoticed. Update the pins. Where a test
+   picks from a roster by seeded index (the floor-wander `stubRandom`), the roster grew, so
+   re-derive the seed that still selects the same person rather than re-pinning the _outcome_.
+4. **Weighted-pick sweeps are arithmetic, not literals.** A seventh seat changes both Barker's
+   single-draw share and his stationary share (see the Session 2 note). Recompute from
+   `π(j) ∝ w(j)·(total − w(j))` and write the assertion as a fraction of the live pool.
+5. **Differentiate the voice structurally, or you have shipped a re-skin.** Identical budgets
+   make the two seats mechanically the same, so the card has to carry the whole difference:
+   Gilfoyle's signature is the fix PLUS a flat verdict, Dinesh's is the fix PLUS a bid for
+   credit, and Dinesh mixes in pure comments (~1 in 4) where Gilfoyle never does. Name the
+   failure mode explicitly in the card ("a suggestion that needs nothing back from the reader is
+   a FAILURE") the way §2 names Erlich's.
+6. **A rivalry needs a budget and a target.** The Gilfoyle score-keeping is the funniest thing
+   about the seat and the fastest way to make every bubble identical — cap it at one reference
+   per few replies, and state where it lands (the work and Gilfoyle, never the user).
+7. **Battle dual-home is one canned scene, not infrastructure.** `OFFICE_BATTLE_SCENES` is plain
+   data with `speakerId`s; casting the pair is the whole feature. Mirror the scene into
+   `office.{en-AU,zh-CN,zh-TW}.js` with the ids aligned or `officeLocale.test.js` fails.
+8. **New copy keys need every locale even when the character is new.** `VARIANT_PERSONAS`,
+   `VARIANT_QUOTES`, all 15 `PHASE_CEREMONIES` rows, the tagline, the boot headline, and the
+   mastery entry (which appears **twice** — `VARIANT_MASTERY_ACHIEVEMENTS` and the merged
+   `ACHIEVEMENTS`) exist in `slopitect*.{en-AU,zh-CN,zh-TW}.js`, plus `controls.*` action label,
+   hotkey line, `advisorThinking` line, and `nowStatus` key. `uiLocale.test.js` asserts the zh
+   subtitles differ from English, so untranslated copy-paste fails.
 
 ### 5. i18n mirrors (easy to forget — `officeLocale.test.js` / `uiLocale.test.js` guard it)
 

@@ -66,3 +66,28 @@ test('goMad tier 3 requires family change', () => {
   if (result.ok) throw new Error('expected not ok');
   assert.match(result.error, /switch template family/i);
 });
+
+/* Dinesh clones the gilfoyle item budget and template lock (same branch). */
+test('dinesh shares the gilfoyle item budget and template lock', () => {
+  const oneMore = BASE + '\n    - label Step 3\n' + '      desc Ship';
+  assert.equal(
+    validateInfographicTransformConstraint({
+      transformMode: 'dinesh',
+      beforeSource: BASE,
+      afterSource: oneMore
+    }).ok,
+    true
+  );
+
+  const templateSwitch = BASE.replace(
+    'list-row-simple-horizontal-arrow',
+    'sequence-steps-simple'
+  ).replace('lists', 'sequences');
+  const result = validateInfographicTransformConstraint({
+    transformMode: 'dinesh',
+    beforeSource: BASE,
+    afterSource: templateSwitch
+  });
+  if (result.ok) throw new Error('expected not ok');
+  assert.match(result.error, /keep template/i);
+});

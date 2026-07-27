@@ -43,11 +43,11 @@ The cast is split into **three tiers** (`apps/web/src/utils/castTiers.js` — `C
 `tierOf`). The tier is a tag, not a data move: `barker` lives in both `VARIANT_PERSONAS` (his
 advisor seat) and `SENIOR_STAKEHOLDERS` (his tier), and `ciso` in `OFFICE_COLLEAGUES`.
 
-| Tier       | Who                                                               | How they reach you                                                                                                                                               |
-| ---------- | ----------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **team**   | gilfoyle, erlich, goMad, critique, explain (+ `barker` dual-home) | Proactive roundtable (`ADVISOR_ORDER`) + agent actions. Full-weight peers; Barker at **throttled** pick weight (`ADVISOR_PICK_WEIGHTS.barker` = 0.5).            |
-| **senior** | barker (Jack), ciso (Sasha), cto (Marcus → Belson), cfo (Diane)   | Steering meetings + ≤1 high-stakes email/session. Never ambient walk-bys/IMs. Belson (when shipped) scarcer than Barker — never roundtable; Jack reports to him. |
-| **office** | intern, scrumMaster, helpdesk, facilities, hr, greybeard          | Emails, IMs, walk-bys, coffee, battles. The floor around you.                                                                                                    |
+| Tier       | Who                                                                       | How they reach you                                                                                                                                                                                   |
+| ---------- | ------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **team**   | gilfoyle, dinesh, erlich, goMad, critique, explain (+ `barker` dual-home) | Proactive roundtable (`ADVISOR_ORDER`) + agent actions. Full-weight peers; Barker at **throttled** pick weight (`ADVISOR_PICK_WEIGHTS.barker` = 0.5) — ≈8% of a long rotation against ≈15% per peer. |
+| **senior** | barker (Jack), ciso (Sasha), cto (Marcus → Belson), cfo (Diane)           | Steering meetings + ≤1 high-stakes email/session. Never ambient walk-bys/IMs. Belson (when shipped) scarcer than Barker — never roundtable; Jack reports to him.                                     |
+| **office** | intern, scrumMaster, helpdesk, facilities, hr, greybeard                  | Emails, IMs, walk-bys, coffee, battles. The floor around you.                                                                                                                                        |
 
 Boundary rules worth keeping: senior stakeholders are excluded from
 `OFFICE_{WALKBY,EMAIL,IM}_LLM_CAST` and from the canned day-to-day banks — their one ambient
@@ -95,6 +95,25 @@ leadership pinging your desk.
 > _as_ him (Dave "Gilfoyle-adjacent", Ulrich "Gilfoyle-calm") were re-worded so the real character
 > is the only Gilfoyle on the floor. He stays a full-weight roundtable peer — the throttle is
 > Barker's alone.
+
+> **Dinesh takes a new seventh seat (Session 4, 2026-07-27).** The fourth named replication and
+> the first that is **not** an inheritance: **Dinesh Chugtai** got a brand-new wire mode
+> (`dinesh` in `TransformModeSchema`) cloned from Gilfoyle's budgets and temperatures — same
+> diagram-type lock, same ~4 node / 6 edge ceiling, same 0.42 transform temperature — so both
+> engineers sit on the floor at once instead of one replacing the other. Because the budgets are
+> identical by design, the two share a single branch in `mermaidTransformPolicy.ts` /
+> `infographicTransformPolicy.ts`; split it only on a deliberate retune. Everything else is his
+> own: radial action, hotkey `D`, mascot row, persona face, XP variant, chime family, violet
+> accent, and the desk at (7, 4) directly beside Gilfoyle's — which is the entire joke. The voice
+> diverges where it matters: where Gilfoyle is a flat verdict on the state the work was left in,
+> Dinesh is the correct fix **plus a bid for credit**, and unlike Gilfoyle he mixes in pure
+> comments (~1 in 4). Two playbook lessons applied: a character with a real-world specialty needs
+> an explicit topic refusal (he may love Java on his own time, but the seat is subject-agnostic),
+> and the needling is aimed — it lands on the work and on Gilfoyle, never on the user, who is the
+> one person he actually wants to impress. Cards live in `STAKEHOLDER_MEETING_VOICES.dinesh` and
+> `ADVISOR_PERSONAS.dinesh`; harness profile: `node scripts/barker-fidelity.mjs dinesh`. The
+> battle dual-home landed as one canned scene, `battle-commit-credit` — the two of them arguing
+> over whose name goes on the fix.
 
 ### Shipped colleagues (v1)
 

@@ -489,6 +489,32 @@ export const OFFICE_ZH_CN = {
   ],
   OFFICE_BATTLE_SCENES: [
     {
+      id: 'battle-commit-credit',
+      topic: '这个修复算谁的',
+      lines: [
+        {
+          speakerId: 'dinesh',
+          text: '是我发现的，我修的，提交信息里写着"杂项"。杂项。我不是杂项。我有名字，工牌上就印着。'
+        },
+        {
+          speakerId: 'gilfoyle',
+          text: '缺陷已经关了。没人会看提交信息。工单都没人看，那玩意儿还有标题呢。'
+        },
+        {
+          speakerId: 'dinesh',
+          text: '会有人看的。半年后有人翻记录，看到"杂项"，就会以为是你干的。这才是真正的结果。'
+        },
+        {
+          speakerId: 'gilfoyle',
+          text: '那得先有人在乎是谁写的。我一次都没想过。挺省心的。你也该试试。'
+        }
+      ],
+      verdicts: {
+        dinesh: '改好了，署我的名。记录现在准确了。我要的就这个。真的就只是这个。',
+        gilfoyle: '信息还是"杂项"。缺陷照样是关的。宇宙依旧漠不关心，这本来就是我的立场。'
+      }
+    },
+    {
       id: 'battle-tabs-spaces',
       topic: 'Tab 还是空格',
       lines: [

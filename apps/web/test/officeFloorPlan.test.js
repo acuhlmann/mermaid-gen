@@ -380,6 +380,7 @@ describe('peek marks (slice 6)', () => {
     // hands you a way into the leadership fishbowl) should fail here.
     expect(peekableSeatIds()).toEqual([
       'gilfoyle',
+      'dinesh',
       'erlich',
       'critique',
       'explain',

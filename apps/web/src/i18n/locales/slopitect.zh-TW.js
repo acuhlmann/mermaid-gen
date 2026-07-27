@@ -21,6 +21,13 @@ export const SLOPITECT_ZH_TW = {
       entryLine: '有人沒把這個畫完。',
       exitLine: '修好了。本來就是錯的。🦇'
     },
+    dinesh: {
+      name: 'Dinesh Chugtai',
+      title: '工程師，無人署名',
+      tagline: '改得沒錯。請給個說法。',
+      entryLine: '好吧，反正沒別人會說這句。',
+      exitLine: '修好了。是我修的 🙋'
+    },
     erlich: {
       name: 'Erlich Bachman',
       title: '創辦人 — 駭客旅舍',
@@ -59,6 +66,7 @@ export const SLOPITECT_ZH_TW = {
   },
   VARIANT_TAGLINES: {
     gilfoyle: '爛圖建築師：Gilfoyle 修好有問題的地方',
+    dinesh: '爛圖建築師：Dinesh 修好它，順便討個說法',
     erlich: '爛圖建築師：Erlich Bachman 提出大膽方案',
     goMad: '爛圖建築師：天才放飛 🚨',
     critique: '爛圖建築師：協同設計合規評審',
@@ -68,6 +76,7 @@ export const SLOPITECT_ZH_TW = {
   },
   VARIANT_BOOT_HEADLINES: {
     gilfoyle: 'Gilfoyle 找到了缺陷…',
+    dinesh: 'Dinesh 早就找到了…',
     erlich: 'Erlich Bachman 正在親自昇華…',
     goMad: '砰！爛圖建築師來了',
     critique: '協同設計評審即將開始',
@@ -76,6 +85,7 @@ export const SLOPITECT_ZH_TW = {
   },
   ACTION_PERSONA_SHORT_NAMES: {
     gilfoyle: 'Gilfoyle',
+    dinesh: 'Dinesh',
     erlich: 'Erlich',
     explain: '架構師'
   },

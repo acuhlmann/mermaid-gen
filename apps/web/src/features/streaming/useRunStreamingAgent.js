@@ -24,6 +24,9 @@ import {
   playErlichTokenTick,
   playPhaseChangePluck,
   playGilfoylePolishLoop,
+  playDineshInsistLoop,
+  playDineshStreamStart,
+  playDineshTokenTick,
   playGilfoyleStreamStart,
   playGilfoyleTokenTick,
   playStreamStartChime,
@@ -140,6 +143,7 @@ export function useRunStreamingAgent({
       if (variant === 'goMad') tryAgentSound(playGoMadStreamStart);
       else if (variant === 'erlich') tryAgentSound(playErlichStreamStart);
       else if (variant === 'gilfoyle') tryAgentSound(playGilfoyleStreamStart);
+      else if (variant === 'dinesh') tryAgentSound(playDineshStreamStart);
       else tryAgentSound(playStreamStartChime);
       lastTokenSoundAtRef.current = 0;
       goMadTokenTickIndexRef.current = 0;
@@ -171,10 +175,12 @@ export function useRunStreamingAgent({
           playFailureChime,
           playPhaseChangePluck,
           playGilfoyleTokenTick,
+          playDineshTokenTick,
           playErlichTokenTick,
           playCritiqueTokenTick,
           playExplainTokenTick,
           playGilfoylePolishLoop,
+          playDineshInsistLoop,
           playErlichSynthLoop,
           playGoMadKlaxonLoop,
           playGoMadAirhornBlast,

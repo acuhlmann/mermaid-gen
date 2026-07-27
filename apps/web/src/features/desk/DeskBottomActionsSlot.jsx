@@ -27,6 +27,10 @@ function DeskPeopleCluster({
             onClick: () => runTransform('gilfoyle', { useDiagramFocus: true })
           },
           {
+            variant: 'dinesh',
+            onClick: () => runTransform('dinesh', { useDiagramFocus: true })
+          },
+          {
             variant: 'erlich',
             onClick: () => runTransform('erlich', { useDiagramFocus: true })
           },

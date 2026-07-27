@@ -17,6 +17,7 @@ const SURFACE_LATCH_MS = 1200;
 
 const VARIANT_CLASS = {
   gilfoyle: 'is-gilfoyle',
+  dinesh: 'is-dinesh',
   erlich: 'is-erlich',
   goMad: 'is-go-mad',
   critique: 'is-critique',
@@ -26,6 +27,7 @@ const VARIANT_CLASS = {
 
 const ACTION_LABEL = {
   gilfoyle: 'Gilfoyle',
+  dinesh: 'Dinesh',
   erlich: 'Erlich',
   goMad: 'Go Mad',
   critique: 'Critique',

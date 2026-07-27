@@ -1,6 +1,6 @@
 import { countMermaidGraphElements, inferMermaidTopKeyword } from './mermaidGraphMetrics.js';
 
-const TRANSFORM_MODES = new Set(['gilfoyle', 'erlich', 'goMad', 'barker']);
+const TRANSFORM_MODES = new Set(['gilfoyle', 'dinesh', 'erlich', 'goMad', 'barker']);
 
 const BARKER_MAX_NODES = 8;
 const BARKER_MAX_EDGES = 10;
@@ -85,7 +85,10 @@ export function validateMermaidTransformConstraint(opts: {
     return { ok: true };
   }
 
-  if (mode === 'gilfoyle') {
+  // `dinesh` is a gilfoyle-class seat: same node/edge budget, same diagram-type
+  // lock (docs/recipes/replicate-tv-character.md). Two engineers, one budget —
+  // split this branch only if their budgets are ever deliberately retuned apart.
+  if (mode === 'gilfoyle' || mode === 'dinesh') {
     if (beforeType !== 'diagram' && afterType !== 'diagram' && beforeType !== afterType) {
       return {
         ok: false,

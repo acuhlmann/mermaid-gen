@@ -1017,6 +1017,12 @@
   background: rgba(13, 148, 136, 0.1);
 }
 
+.insights-pane-live-meta.is-variant-dinesh .insights-pane-live-chip.is-action {
+  color: #5b21b6;
+  border-color: rgba(124, 58, 237, 0.28);
+  background: rgba(124, 58, 237, 0.1);
+}
+
 .insights-pane-live-meta.is-variant-barker .insights-pane-live-chip.is-action {
   color: #854d0e;
   border-color: rgba(202, 138, 4, 0.28);
@@ -2792,6 +2798,7 @@
 }
 
 .insights-section.is-gilfoyle-content-lane,
+.insights-section.is-dinesh-content-lane,
 .insights-section.is-erlich-content-lane,
 .insights-section.is-gomad-content-lane {
   padding: 0.15rem 0 0;
@@ -2847,6 +2854,33 @@
 }
 
 .insights-section-title-gilfoyle-icon .insights-svg-icon {
+  width: 15px;
+  height: 15px;
+}
+
+.insights-section-title-dinesh {
+  display: flex;
+  align-items: center;
+  gap: 0.42rem;
+  text-transform: none;
+  letter-spacing: -0.02em;
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: rgba(91, 33, 182, 0.92);
+}
+
+.insights-section-title-dinesh-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 0.45rem;
+  background: rgba(124, 58, 237, 0.12);
+  color: rgba(91, 33, 182, 0.95);
+}
+
+.insights-section-title-dinesh-icon .insights-svg-icon {
   width: 15px;
   height: 15px;
 }
@@ -3287,6 +3321,11 @@
   background: linear-gradient(145deg, rgba(96, 165, 250, 0.65), rgba(37, 99, 235, 0.5));
 }
 
+.insights-entry-rich-text.is-dinesh-prose .insights-content-bullet .insights-bullet-icon {
+  border-radius: 2px;
+  background: linear-gradient(145deg, rgba(167, 139, 250, 0.7), rgba(124, 58, 237, 0.5));
+}
+
 .insights-entry-rich-text.is-erlich-prose .insights-content-bullet .insights-bullet-icon {
   border-radius: 999px;
   background: linear-gradient(145deg, rgba(251, 146, 60, 0.75), rgba(234, 88, 12, 0.55));
@@ -3365,7 +3404,30 @@
   background: linear-gradient(180deg, rgba(96, 165, 250, 0.95), rgba(37, 99, 235, 0.55));
 }
 
+.insights-dinesh-opener {
+  position: relative;
+  margin-bottom: 0.55rem;
+  padding: 0.55rem 0.55rem 0.58rem 0.72rem;
+  border-radius: 0.72rem;
+  background: linear-gradient(125deg, rgba(237, 233, 254, 0.82), rgba(255, 255, 255, 0.92));
+  border: 1px solid rgba(124, 58, 237, 0.16);
+  box-shadow: 0 6px 18px rgba(124, 58, 237, 0.06);
+  animation: insights-explain-opener-in 0.65s ease-out backwards;
+}
+
+.insights-dinesh-opener::before {
+  content: '';
+  position: absolute;
+  left: 0.38rem;
+  top: 0.55rem;
+  bottom: 0.55rem;
+  width: 3px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(167, 139, 250, 0.95), rgba(124, 58, 237, 0.55));
+}
+
 .insights-gilfoyle-opener .insights-content-line:first-of-type,
+.insights-dinesh-opener .insights-content-line:first-of-type,
 .insights-erlich-opener .insights-content-line:first-of-type,
 .insights-gomad-opener .insights-content-line:first-of-type {
   font-size: 0.84rem;
@@ -3482,6 +3544,7 @@
 @media (prefers-reduced-motion: reduce) {
   .insights-explain-opener,
   .insights-gilfoyle-opener,
+  .insights-dinesh-opener,
   .insights-erlich-opener {
     animation: none;
   }
@@ -7388,6 +7451,13 @@
   --slop-action-glow: rgba(13, 148, 136, 0.3);
 }
 
+.slop-action-button.is-dinesh,
+.radial-action-button.is-dinesh {
+  --slop-action-accent: #7c3aed;
+  --slop-action-accent-2: #a78bfa;
+  --slop-action-glow: rgba(124, 58, 237, 0.28);
+}
+
 .slop-action-button.is-barker,
 .radial-action-button.is-barker {
   --slop-action-accent: #ca8a04;
@@ -10781,6 +10851,9 @@ button {
 .insights-pane.is-variant-explain {
   border-left-color: rgba(13, 148, 136, 0.35);
 }
+.insights-pane.is-variant-dinesh {
+  border-left-color: rgba(124, 58, 237, 0.35);
+}
 .insights-pane.is-variant-barker {
   border-left-color: rgba(202, 138, 4, 0.35);
 }
@@ -10868,6 +10941,10 @@ button {
 .insights-entry-persona.is-variant-explain {
   border-left-color: #0d9488;
   background: linear-gradient(90deg, rgba(13, 148, 136, 0.1), rgba(255, 255, 255, 0.82));
+}
+.insights-entry-persona.is-variant-dinesh {
+  border-left-color: #7c3aed;
+  background: linear-gradient(90deg, rgba(124, 58, 237, 0.1), rgba(255, 255, 255, 0.82));
 }
 .insights-entry-persona.is-variant-barker {
   border-left-color: #ca8a04;
@@ -13502,6 +13579,13 @@ button {
   border-radius: 1px;
   box-shadow: 0 0 6px rgba(96, 165, 250, 0.6);
 }
+.insights-stream-caret.is-dinesh-caret {
+  width: 3px;
+  height: 1.15em;
+  background: linear-gradient(180deg, #c4b5fd, #7c3aed);
+  border-radius: 1px;
+  box-shadow: 0 0 6px rgba(167, 139, 250, 0.6);
+}
 .insights-stream-caret.is-erlich-caret {
   width: 4px;
   height: 1.15em;
@@ -13534,7 +13618,8 @@ button {
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .insights-stream-caret.is-gilfoyle-caret {
+  .insights-stream-caret.is-gilfoyle-caret,
+  .insights-stream-caret.is-dinesh-caret {
     animation: insights-caret-blink 1.05s steps(2, end) infinite;
   }
   .insights-stream-caret.is-erlich-caret {

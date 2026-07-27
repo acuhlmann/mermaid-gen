@@ -7,6 +7,7 @@ import {
   buildAdvisorSystemPrompt,
   buildAdvisorUserPrompt,
   createAdvisorChatModel,
+  isAdvisorPersona,
   parseAdvisorReply,
   resolveAdvisorModelId
 } from '../src/agents/advisorPrompts.js';
@@ -108,6 +109,20 @@ test('buildAdvisorSystemPrompt dumb-down reaches toddler and babble ladder', () 
   });
   assert.match(babble, /baby who cannot speak yet/i);
   assert.match(babble, /BABBLE MODE/);
+});
+
+test('dinesh is a distinct advisor seat, not a gilfoyle alias', () => {
+  assert.equal(isAdvisorPersona('dinesh'), true);
+  const dinesh = buildAdvisorSystemPrompt('dinesh', 'mermaid');
+  assert.match(dinesh, /You are Dinesh Chugtai from HBO's Silicon Valley/);
+  // Structural signature: the fix plus a bid for credit. Without it he reads as
+  // a second Gilfoyle rather than the other engineer.
+  assert.match(dinesh, /PLUS a bid for credit/);
+  // The seat is subject-agnostic; the Java joke must not become the topic.
+  assert.match(dinesh, /do not drag languages, frameworks, compilers/);
+  // Unlike Gilfoyle he mixes in pure comments, so the envelope must allow both.
+  assert.match(dinesh, /Comment ratio: about 1 in 4/);
+  assert.notEqual(dinesh, buildAdvisorSystemPrompt('gilfoyle', 'mermaid'));
 });
 
 test('buildAdvisorSystemPrompt includes chart and anything mode appendices', () => {

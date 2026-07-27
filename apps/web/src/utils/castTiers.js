@@ -19,7 +19,7 @@
  */
 
 export const CAST_TIERS = {
-  team: ['gilfoyle', 'erlich', 'goMad', 'critique', 'explain'],
+  team: ['gilfoyle', 'dinesh', 'erlich', 'goMad', 'critique', 'explain'],
   senior: ['ciso', 'cto', 'cfo', 'barker'],
   office: ['intern', 'scrumMaster', 'helpdesk', 'facilities', 'hr', 'greybeard']
 };

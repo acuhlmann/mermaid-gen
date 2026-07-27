@@ -26,7 +26,13 @@ import {
 } from '../utils/formatTechnicalActionDetail.js';
 
 const AUTO_DIAGRAM_CHANGE_HIGHLIGHT_PENDING_TIMEOUT_MS = 10000;
-const AUTO_DIAGRAM_HIGHLIGHT_VARIANTS = new Set(['intent', 'gilfoyle', 'erlich', 'goMad']);
+const AUTO_DIAGRAM_HIGHLIGHT_VARIANTS = new Set([
+  'intent',
+  'gilfoyle',
+  'dinesh',
+  'erlich',
+  'goMad'
+]);
 
 function normalizeInsightTextForDedup(text: string | undefined): string {
   return (text ?? '').replace(/\s+/g, ' ').trim();
@@ -129,10 +135,12 @@ export type InsightEventContext = {
   playFailureChime?: () => void;
   playPhaseChangePluck?: () => void;
   playGilfoyleTokenTick?: () => void;
+  playDineshTokenTick?: () => void;
   playErlichTokenTick?: (audioCtx: AudioContext, idx: number) => void;
   playCritiqueTokenTick?: () => void;
   playExplainTokenTick?: () => void;
   playGilfoylePolishLoop?: () => void;
+  playDineshInsistLoop?: () => void;
   playErlichSynthLoop?: () => void;
   playGoMadKlaxonLoop?: () => void;
   playGoMadAirhornBlast?: () => void;
@@ -203,10 +211,12 @@ export function applyAgentStreamInsightEvent(
     playFailureChime,
     playPhaseChangePluck,
     playGilfoyleTokenTick,
+    playDineshTokenTick,
     playErlichTokenTick,
     playCritiqueTokenTick,
     playExplainTokenTick,
     playGilfoylePolishLoop,
+    playDineshInsistLoop,
     playErlichSynthLoop,
     playGoMadKlaxonLoop,
     playGoMadAirhornBlast,
@@ -286,6 +296,8 @@ export function applyAgentStreamInsightEvent(
       if (Math.random() < 0.5) tryAgentSound(playErlichSynthLoop);
     } else if (variant === 'gilfoyle' && typeof playGilfoylePolishLoop === 'function') {
       if (Math.random() < 0.45) tryAgentSound(playGilfoylePolishLoop);
+    } else if (variant === 'dinesh' && typeof playDineshInsistLoop === 'function') {
+      if (Math.random() < 0.45) tryAgentSound(playDineshInsistLoop);
     } else if (variant === 'explain' && typeof playExplainPageFlipLoop === 'function') {
       if (Math.random() < 0.45) tryAgentSound(playExplainPageFlipLoop);
     } else if (variant === 'critique' && typeof playCritiqueScribbleLoop === 'function') {
@@ -417,6 +429,8 @@ export function applyAgentStreamInsightEvent(
         tryAgentSound((audioCtx) => playGoMadTokenTick(audioCtx, idx));
       } else if (variant === 'gilfoyle' && typeof playGilfoyleTokenTick === 'function') {
         tryAgentSound(playGilfoyleTokenTick);
+      } else if (variant === 'dinesh' && typeof playDineshTokenTick === 'function') {
+        tryAgentSound(playDineshTokenTick);
       } else if (variant === 'erlich' && playErlichTokenTick) {
         const idx = goMadTokenTickIndexRef.current;
         goMadTokenTickIndexRef.current = idx + 1;

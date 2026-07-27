@@ -54,6 +54,15 @@ export const PERSONA_FACE_TRAITS = {
     accessory: 'none',
     expression: 'neutral'
   },
+  dinesh: {
+    skin: 'tan',
+    hair: 'short',
+    hairColor: 'black',
+    facialHair: 'none',
+    glasses: 'round',
+    accessory: 'none',
+    expression: 'tired'
+  },
   erlich: {
     skin: 'light',
     hair: 'long',

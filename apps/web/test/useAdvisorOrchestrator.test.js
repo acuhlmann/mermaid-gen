@@ -83,11 +83,12 @@ describe('useAdvisorOrchestrator', () => {
       for (let i = 0; i < samples; i += 1) {
         counts[pickWeightedPersona(ADVISOR_ORDER, i / samples)] += 1;
       }
-      // 5 peers at weight 1 + Barker at 0.5 → peers ≈ 2/11, Barker ≈ 1/11.
+      // 6 peers at weight 1 + Barker at 0.5 → total 6.5, so peers = 2/13 and
+      // Barker = 1/13. (Was 2/11 and 1/11 before Dinesh took the seventh seat.)
       for (const id of CAST_TIERS.team) {
-        expect(counts[id] / samples, `peer ${id} share`).toBeCloseTo(2 / 11, 3);
+        expect(counts[id] / samples, `peer ${id} share`).toBeCloseTo(2 / 13, 3);
       }
-      expect(counts.barker / samples).toBeCloseTo(1 / 11, 3);
+      expect(counts.barker / samples).toBeCloseTo(1 / 13, 3);
     });
 
     it('keeps the throttle after the repeat filter drops the previous speaker', () => {
@@ -100,12 +101,14 @@ describe('useAdvisorOrchestrator', () => {
       expect(counts.barker / counts.erlich).toBeCloseTo(0.5, 2);
     });
 
-    it('gives Barker ~10% of a long rotation against ~18% per peer', () => {
+    it('gives Barker ~8% of a long rotation against ~15% per peer', () => {
       // Walks the real loop: each turn re-filters the previous speaker out, so
       // the run frequency is the chain's stationary distribution rather than
-      // the raw weights — pi(j) ∝ w(j) * (total - w(j)). That lands Barker at
-      // 0.556x a peer, not a flat 0.5x. This is the "eventually surfaces Jack,
-      // but not every other bubble" smoke in deterministic form.
+      // the raw weights — pi(j) ∝ w(j) * (total - w(j)). With 6 peers + Barker
+      // at 0.5 the total is 6.5, so a peer weighs 1 * 5.5 = 5.5 and Barker
+      // 0.5 * 6 = 3 out of 36 — 0.545x a peer, not a flat 0.5x. This is the
+      // "eventually surfaces Jack, but not every other bubble" smoke in
+      // deterministic form.
       const turns = 120_000;
       const counts = Object.fromEntries(ADVISOR_ORDER.map((id) => [id, 0]));
       const nextRoll = mulberry32(0x5eed);
@@ -120,9 +123,9 @@ describe('useAdvisorOrchestrator', () => {
       }
       expect(repeats, 'never repeats the previous speaker').toBe(0);
       for (const id of CAST_TIERS.team) {
-        expect(counts[id] / turns, `peer ${id} share`).toBeCloseTo(0.18, 2);
+        expect(counts[id] / turns, `peer ${id} share`).toBeCloseTo(5.5 / 36, 2);
       }
-      expect(counts.barker / turns).toBeCloseTo(0.1, 2);
+      expect(counts.barker / turns).toBeCloseTo(3 / 36, 2);
     });
 
     it('never returns a persona from an empty pool', () => {

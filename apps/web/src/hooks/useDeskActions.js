@@ -32,6 +32,7 @@ export const DESK_IM_CAST = [
   'hr',
   'greybeard',
   'gilfoyle',
+  'dinesh',
   'critique',
   'explain'
 ];

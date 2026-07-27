@@ -37,6 +37,7 @@ function buildEnglishBundle() {
       PROMPT_EASTER_EGGS: slopitectEn.PROMPT_EASTER_EGGS,
       ACTION_PERSONA_SHORT_NAMES: {
         gilfoyle: 'Gilfoyle',
+        dinesh: 'Dinesh',
         erlich: 'Erlich',
         explain: 'Architect'
       },

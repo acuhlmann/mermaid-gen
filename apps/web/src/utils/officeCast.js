@@ -219,7 +219,7 @@ export const MEETING_GROUP_PRESETS = [
     id: 'team',
     labelKey: 'groupTeam',
     titleKey: 'groupTeamTitle',
-    resolve: () => ['gilfoyle', 'erlich', 'goMad', 'critique', 'explain']
+    resolve: () => ['gilfoyle', 'dinesh', 'erlich', 'goMad', 'critique', 'explain']
   },
   {
     id: 'steering',
@@ -899,6 +899,34 @@ export const OFFICE_COFFEE_SCENES = [
  * theater — zero LLM, works offline, never mean.
  */
 export const OFFICE_BATTLE_SCENES = [
+  {
+    id: 'battle-commit-credit',
+    topic: 'Whose name goes on the fix',
+    lines: [
+      {
+        speakerId: 'dinesh',
+        text: "I found it, I fixed it, and the commit message says 'misc'. Misc. I am not a misc. I have a name and it is on my badge."
+      },
+      {
+        speakerId: 'gilfoyle',
+        text: 'The bug is closed. Nobody is going to read the message. Nobody read the ticket, and that one had a title.'
+      },
+      {
+        speakerId: 'dinesh',
+        text: "Someone will. In six months somebody opens the history, sees 'misc', and assumes it was you. That is the actual outcome here."
+      },
+      {
+        speakerId: 'gilfoyle',
+        text: 'That would require somebody to care who wrote it. I have never once wondered. It is restful. You should try it.'
+      }
+    ],
+    verdicts: {
+      dinesh:
+        'Amended, with my name on it. The history is accurate now. That is all I wanted. That is genuinely all I wanted.',
+      gilfoyle:
+        "Message stays 'misc'. The bug is still closed. The universe remains indifferent, which was my position from the start."
+    }
+  },
   {
     id: 'battle-tabs-spaces',
     topic: 'Tabs vs. spaces',

@@ -97,6 +97,15 @@ export function buildRadialActions({
       personaTitle: actionPersonaTitle('gilfoyle')
     },
     {
+      id: 'dinesh',
+      label: a.dinesh,
+      icon: <ActionPersonaIcon variant="dinesh" />,
+      variant: 'dinesh',
+      persona: actionPersonaName('dinesh'),
+      personaEmoji: actionPersonaEmoji('dinesh'),
+      personaTitle: actionPersonaTitle('dinesh')
+    },
+    {
       id: 'erlich',
       label: a.erlich,
       icon: <ActionPersonaIcon variant="erlich" />,
