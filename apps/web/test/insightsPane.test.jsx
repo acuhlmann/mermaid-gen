@@ -136,7 +136,7 @@ describe('InsightsPane', () => {
     expect(within(entryPersona).getByText('Bertram Gilfoyle')).toBeTruthy();
     expect(within(entryPersona).getByText(/Systems Architect, Unimpressed/)).toBeTruthy();
     const liveMeta = screen.getByTestId('insights-pane-live-meta');
-    expect(within(liveMeta).getByText('Gilfoyle')).toBeTruthy();
+    expect(within(liveMeta).getByText('Refine')).toBeTruthy();
     expect(within(liveMeta).getByText('🔥 ×3')).toBeTruthy();
     expect(within(liveMeta).getByText('Phase 1')).toBeTruthy();
     expect(screen.getByTestId('insights-pane-persona-quote')).toBeTruthy();
