@@ -440,12 +440,53 @@ A second, sound-only cadence: sporadic synthesized cues — the desk textures **
 plus the set pieces **distant printer**, **chair squeak** (with caster roll), **desk phone**
 (nobody answers), **watercooler glugs**, **espresso machine**, **vending machine** (coin, spiral
 motor, thunk), and **elevator ding** (nobody gets out) — never back-to-back — in
-`agentChimes.js`, all quieter than any event chime. The pure brain (`officeSoundscape.js`,
+`agentChimes.js`, all quieter than any event chime.
+
+**Sampled where synthesis loses.** Seven of those ten cues — keyboard, paper, printer, chair,
+watercooler, espresso, vending — now play baked recordings from
+`apps/web/src/assets/audio/cue-*.mp3` (139 KB for the set) via `officeCueSamples.js`. They are the
+broadband mechanical and textural ones, where oscillators read as synth buzz rather than as a room.
+The other three keep their synthesized versions **on purpose**: the elevator ding, the desk phone
+ring and the mouse click _are_ tones, and synthesis is the right tool for a bell.
+
+Sampling is best-effort, never load-bearing. `playCueSample` reports whether it played and
+`cuePlayerFor` falls back to the synthesized cue whenever it did not — while the buffer is still
+decoding (the first play of each cue always falls back, and warms the sample for the next one), if
+the asset is missing, or where Web Audio is unavailable. A cue is never dropped waiting on a
+download. Each asset is peak-normalized to −3 dBFS, so its playback gain is just the hand-tuned
+synth `peakGain` divided by 0.708 — the sampled cue peaks exactly where its predecessor did, which
+keeps the balance against the event chimes that was already tuned by ear. Per play, rate and gain
+jitter slightly and the set pieces are panned randomly across the room (desk textures stay centred,
+because they happen at _your_ desk) — that random placement is most of what stops a repeated sample
+sounding like a repeated sample.
+
+The pure brain (`officeSoundscape.js`,
 mirroring `officeCadence.js`) enforces a ~6 s quiet start, a 12–26 s warm-up gap for the first
 ~2 min (the room fades in), then a jittered 35–75 s cruise gap; the `useOfficeSoundscape`
 director holds while the tab is hidden or Focus Time is on and plays through App's sound gate
 (global sound toggle + user gesture). Defaults ON with a persisted opt-out toggle ("Soundscape")
-next to Focus Time in the inbox dock. Zero LLM, zero assets, zero network.
+next to Focus Time in the inbox dock. Zero LLM, zero network.
+
+**Room-tone bed.** Underneath those cues runs one continuous ~30 s seamless loop of open-plan
+office ambience — distant unintelligible conversation over a soft air-handling hum. The cues are
+_events_ in the room; the bed is the room. It is the layer's **only binary asset**
+(`apps/web/src/assets/audio/office-room-tone.mp3`, 240 KB, stereo — the loop has real width and
+collapsing it to mono flattens the room), generated once at build time and committed; see
+[`docs/audio-assets.md`](audio-assets.md). Still zero LLM and — after one cache-hit fetch — zero
+network, so the office keeps working offline.
+
+`useOfficeRoomTone` owns the lifecycle and `officeRoomTone.js` owns the playback. The director is
+declarative, not event-driven: one `sync()` reads whether the room should be audible (Soundscape
+on, Focus Time off, tab visible, sound gate open) and makes reality match. It runs on every store
+change — so Focus Time and the Soundscape toggle mute the bed _instantly_ rather than waiting out
+a tick — on `visibilitychange`, and on a 5 s tick that self-heals the one transition nothing
+notifies us about: the sound gate opening when the user first interacts with the page. For that
+last case `playChime` now reports whether it let the call through, so muting the app mid-session
+also stops a bed that is already looping. The bed fades in over 3 s, fades out over 1.2 s, and
+**ducks to a third of its level while a colleague is speaking** so narration stays intelligible.
+
+Level lives in one constant, `ROOM_TONE_GAIN` in `officeRoomTone.js` — the bed is mixed to sit
+under the cues (which peak at 0.006–0.014), present but never competing.
 
 Event SFX on top of the room tone: the session's first email plays **"You've got mail!"**
 (speech synthesis via the localized `mailAnnounce` line; plain chime fallback), walk-bys get

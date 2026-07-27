@@ -2,7 +2,9 @@
  * Short Web Audio cues for agent lifecycle. Caller gates with soundEnabled + user gesture.
  */
 
-function getContext(audioContextRef) {
+/** Shared lazily-created AudioContext. Also used by officeRoomTone.js so the
+ * continuous bed and the discrete cues live on one context. */
+export function getContext(audioContextRef) {
   const AudioContextCtor = globalThis.AudioContext || globalThis.webkitAudioContext;
   if (!AudioContextCtor) return null;
   const ctx = audioContextRef.current ?? new AudioContextCtor();

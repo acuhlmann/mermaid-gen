@@ -398,14 +398,18 @@ export function ArchiSlop() {
     }
   }, [slopitect.CONSOLE_STAMP_LINES]);
 
+  // Returns whether the gate let the call through. One-shot chimes ignore this;
+  // the continuous room-tone bed needs it, since a gate that closes mid-session
+  // has to stop a loop that is already playing (useOfficeRoomTone).
   const tryAgentSound = useCallback(
     (playFn) => {
-      if (!soundEnabled || !hasInteractedRef.current) return;
+      if (!soundEnabled || !hasInteractedRef.current) return false;
       try {
         playFn(audioContextRef);
       } catch {
         // Ignore audio issues (autoplay restrictions, unsupported browser, etc).
       }
+      return true;
     },
     [soundEnabled, audioContextRef, hasInteractedRef]
   );

@@ -54,3 +54,10 @@ Integrator & operator references:
 - `apps/web` — React + Vite + CopilotKit UI
 - `apps/server` — Express, CopilotKit routes, LangChain agents, MCP
 - `packages/shared` — Zod schemas, sanitizers, AG-UI/A2UI types
+
+## Credits
+
+The office room-tone bed (`apps/web/src/assets/audio/office-room-tone.mp3`) was generated with
+[ElevenLabs](https://elevenlabs.io) sound effects. Baked at build time and committed — ElevenLabs
+is not a runtime dependency. Generated under the free tier, which is licensed for **non-commercial
+use with attribution**; see [`docs/audio-assets.md`](docs/audio-assets.md).

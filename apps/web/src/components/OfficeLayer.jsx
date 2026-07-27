@@ -15,6 +15,7 @@ import OfficeWalkBy from './OfficeWalkBy.jsx';
 import { useDeskActions } from '../hooks/useDeskActions.js';
 import { meetingMinutes, useMeetingPlayback } from '../hooks/useMeetingPlayback.js';
 import { useOfficeAmbience } from '../hooks/useOfficeAmbience.js';
+import { useOfficeRoomTone } from '../hooks/useOfficeRoomTone.js';
 import { useOfficeRunReactions } from '../hooks/useOfficeRunReactions.js';
 import { useOfficeSoundscape } from '../hooks/useOfficeSoundscape.js';
 import { useOfficeWelcome } from '../hooks/useOfficeWelcome.js';
@@ -65,6 +66,7 @@ import {
   prefetchOfficeLine,
   speakOfficeLine
 } from '../utils/officeNarration.js';
+import { duckRoomTone, unduckRoomTone } from '../utils/officeRoomTone.js';
 import { threadTranscriptFor } from '../utils/officeImThreads.js';
 import { getDeskSlotElement, subscribeDeskSlotElement } from '../state/deskSlotStore.js';
 import {
@@ -154,12 +156,15 @@ export default function OfficeLayer({
       // speech, not the global soundscape mute. Still prime the audio context
       // when the sound gate is open so cloud TTS can play on mobile.
       playChime?.(() => {});
+      // Pull the room-tone bed down so a colleague talking over it stays
+      // intelligible; it comes back up when the line finishes either way.
+      duckRoomTone();
       return speakOfficeLine({
         speakerId,
         text,
         lang,
         fetchCloudAudio
-      });
+      }).finally(unduckRoomTone);
     },
     [playChime, fetchCloudAudio]
   );
@@ -235,6 +240,7 @@ export default function OfficeLayer({
   // vending machine, the elevator) — its own sparse cadence, muted by Focus
   // Time and the dock's Soundscape toggle.
   useOfficeSoundscape({ playChime });
+  useOfficeRoomTone({ playChime });
 
   // First-run onboarding: Linda's welcome email + Chad's IM, once ever.
   // Paused while Meet the Office is open so it doesn't compete with the tour.
