@@ -478,7 +478,7 @@ export function isSlotCustomized(slot) {
 
 /**
  * True when the sibling slot has newer diagram work for the same carried topic (e.g. after
- * Refine/Erlich in the other mode). Drives auto-intent on mode switch so the user need not
+ * Gilfoyle/Erlich in the other mode). Drives auto-intent on mode switch so the user need not
  * press Go to translate peer edits.
  */
 export function isPeerSlotAhead({ contentMode, session, candidate, sourceMode = null }) {

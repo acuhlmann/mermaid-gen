@@ -45,14 +45,14 @@ export const HAIR_COLORS = {
 /** @type {Record<string, PersonaFaceTraits>} */
 export const PERSONA_FACE_TRAITS = {
   // ── team ────────────────────────────────────────────────────────────────
-  refine: {
+  gilfoyle: {
     skin: 'olive',
-    hair: 'short',
-    hairColor: 'brown',
-    facialHair: 'stubble',
+    hair: 'long',
+    hairColor: 'black',
+    facialHair: 'beard',
     glasses: 'none',
-    accessory: 'hardhat',
-    expression: 'smile'
+    accessory: 'none',
+    expression: 'neutral'
   },
   erlich: {
     skin: 'light',

@@ -6,7 +6,7 @@
  *   - `label` — visible label on the mesh
  */
 
-/** Mutation-mode instruction (intent / transform refine / fix). */
+/** Mutation-mode instruction (intent / transform gilfoyle / fix). */
 export function buildMetaphorFocusScopeInstructions(focusNode) {
   if (!focusNode?.id || focusNode.selectionKind !== 'metaphor-item') return '';
   const label = focusNode.label ? ` (“${focusNode.label}”)` : '';

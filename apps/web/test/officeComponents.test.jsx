@@ -280,7 +280,7 @@ describe('CallMeetingPicker', () => {
     const payload = onConfirm.mock.calls[0][0];
     expect(payload.attendees[0]).toBe('scrumMaster');
     expect(payload.attendees).toEqual(
-      expect.arrayContaining(['refine', 'erlich', 'goMad', 'critique', 'explain'])
+      expect.arrayContaining(['gilfoyle', 'erlich', 'goMad', 'critique', 'explain'])
     );
     expect(payload.topic).toBe('FRIDGE CLEANOUT FRIDAY');
   });

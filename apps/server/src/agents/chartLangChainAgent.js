@@ -101,8 +101,8 @@ export function buildChartTransformUserContent({
   focusScope
 }) {
   const modeInstructions = {
-    refine:
-      'Refine the current chart — improve mark choice, encoding clarity, color accessibility, and data ordering. Keep the same data and chart family unless a small swap clearly serves the story.',
+    gilfoyle:
+      'Fix what is actually wrong with the current chart — mark choice, encoding clarity, color accessibility, and data ordering. Keep the same data and chart family unless a small swap clearly serves the story.',
     erlich:
       'Elevate the current chart — try a different mark/encoding combination or reshape the data presentation with founder-grade boldness. You may switch chart families.',
     goMad: `Go mad on this chart — push the data viz further (depth ${goMadDepth ?? 1}). Layered marks, faceted views, exaggerated encodings.`,
@@ -110,7 +110,7 @@ export function buildChartTransformUserContent({
       'Take the liberty of executing the requested change tightly. No additions beyond the implied scope.'
   };
   return [
-    modeInstructions[mode] ?? modeInstructions.refine,
+    modeInstructions[mode] ?? modeInstructions.gilfoyle,
     focusScope,
     `Current chart DSL:\n\n\`\`\`json\n${currentDsl}\n\`\`\``,
     buildAdvisorSuggestionBlock(advisorPrompt),

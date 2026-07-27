@@ -1,16 +1,16 @@
 /** Aussie slang gamification overrides — deep-merged onto the English slopitect bundle. */
 export const SLOPITECT_GAMIFICATION_EN_AU = {
   VARIANT_QUOTES: {
-    refine: [
-      'One useful next step at a time, mate.',
-      'Small piece, well-fitted. Fair dinkum.',
-      'Extending the idea — gently, yeah?',
-      "What belongs here that isn't here yet?",
-      'A step is missing between these two.',
-      'Tightening the joint, not the whole frame.',
-      "Build on what's working.",
-      'One more block. The right one.',
-      'Adds up over time. No worries.'
+    gilfoyle: [
+      'That dependency exists. Nobody wrote it down.',
+      'One box is doing two jobs. Someone noticed. Me.',
+      'A step is missing between these two. Obviously.',
+      'Nobody named that edge. Gutless.',
+      'The vague box is the load-bearing one. It always is.',
+      'I have opinions about this. They are correct.',
+      'I fixed it. No need to thank me, mate.',
+      'This is fine. It is not fine.',
+      'The darkness is fine with this diagram. I am not.'
     ],
     erlich: [
       'I practically invented this diagram.',
@@ -87,7 +87,7 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
   },
   PHASE_CEREMONIES: {
     analyze: {
-      refine: 'Reading the diagram…',
+      gilfoyle: 'Reading what you left me…',
       erlich: 'Spotting the bolder shape…',
       goMad: 'Eyeballing the slop 👀',
       critique: 'Opening JIRA…',
@@ -95,7 +95,7 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
       barker: 'Admiring the story…'
     },
     analyze_stream: {
-      refine: 'Sketching the next step…',
+      gilfoyle: 'Locating the defect…',
       erlich: 'Keynoting the pivot…',
       goMad: 'Yelling at it 📣',
       critique: 'Drafting findings…',
@@ -103,7 +103,7 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
       barker: 'Boiling it down for the board…'
     },
     intent: {
-      refine: 'Aligning intent…',
+      gilfoyle: 'Parsing what you meant…',
       erlich: 'Aligning the vision…',
       goMad: 'Skipping the meeting',
       critique: 'Citing the SOC 2 controls',
@@ -111,7 +111,7 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
       barker: 'Aligning the triangles…'
     },
     agent_run: {
-      refine: 'Engineering the next piece…',
+      gilfoyle: 'Making the correct change…',
       erlich: 'Graciously elevating it…',
       goMad: 'GOING TROPPO ON YOUR TOPIC',
       critique: 'Filing tickets…',
@@ -119,7 +119,7 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
       barker: 'Taking the liberty…'
     },
     transform: {
-      refine: 'Adding the useful bit…',
+      gilfoyle: 'Drawing what was already true…',
       erlich: 'Elevating the layout…',
       goMad: 'Adding wonderfully strange things 🔥',
       critique: 'Red-penning the layout…',
@@ -127,7 +127,7 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
       barker: 'Killing the darlings, warmly…'
     },
     run_started: {
-      refine: 'Kicking off…',
+      gilfoyle: 'Fine.',
       erlich: 'Let me ask you this…',
       goMad: 'OK NOW HOLD ON 🪖',
       critique: 'Inspector inbound…',
@@ -135,7 +135,7 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
       barker: 'I don’t know about you, but I am excited…'
     },
     planning: {
-      refine: 'Drafting deltas…',
+      gilfoyle: 'Enumerating what is wrong…',
       erlich: 'Drafting the keynote…',
       goMad: 'Throwing darts at the diagram 🎯',
       critique: 'Building the findings outline…',
@@ -143,7 +143,7 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
       barker: 'Drafting the one-pager…'
     },
     syntax_fixer: {
-      refine: 'Mending syntax…',
+      gilfoyle: 'Fixing syntax nobody checked…',
       erlich: 'Mending syntax, brilliantly…',
       goMad: 'Duct-taping it back together',
       critique: 'Fixing syntax — audit trail updated…',
@@ -151,7 +151,7 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
       barker: 'Tightening the deck…'
     },
     syntax_repair: {
-      refine: 'Re-mending syntax…',
+      gilfoyle: 'Fixing it again. Obviously…',
       erlich: 'Re-mending syntax, again brilliantly…',
       goMad: 'More duct tape',
       critique: 'Re-opening the syntax finding…',
@@ -159,7 +159,7 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
       barker: 'Re-drafting the deck…'
     },
     style: {
-      refine: 'Tuning the palette…',
+      gilfoyle: 'Tuning the palette. Darker…',
       erlich: 'Restyling for the keynote…',
       goMad: 'CHAOTIC COLOUR SCHEMES 🔥',
       critique: 'Flagging contrast violations…',
@@ -167,7 +167,7 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
       barker: 'One brand colour only.'
     },
     patch_retry: {
-      refine: 'Awaiting CAB approval…',
+      gilfoyle: 'Waiting on process. Predictable…',
       erlich: 'Awaiting the board’s approval…',
       goMad: 'Bribing the CAB',
       critique: 'Awaiting re-review sign-off…',
@@ -175,7 +175,7 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
       barker: 'Asking the board for a redraft…'
     },
     invoke: {
-      refine: 'Patching prod 🛠',
+      gilfoyle: 'Patching prod 🦇',
       erlich: 'Elevating it 🕶',
       goMad: 'Setting buildings on fire 🔥',
       critique: 'Logging the generation ticket…',
@@ -183,7 +183,7 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
       barker: 'Taking the liberty 🧘'
     },
     invoke_fallback: {
-      refine: 'Hotfix in flight…',
+      gilfoyle: 'Falling back. Noted…',
       erlich: 'Pivot in flight…',
       goMad: 'WE PIVOT',
       critique: 'Filing a fallback finding…',
@@ -191,7 +191,7 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
       barker: 'Rerouting the one-pager…'
     },
     repair_1: {
-      refine: 'Hotfix in flight…',
+      gilfoyle: 'Repairing it. Again…',
       erlich: 'Vision repair in flight…',
       goMad: 'More hard hats! 🪖🪖',
       critique: 'Escalating to P1 repair…',
@@ -199,7 +199,7 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
       barker: 'Sliding the timeline, warmly 🗓️'
     },
     repair_2: {
-      refine: 'Second hotfix in flight…',
+      gilfoyle: 'Second repair. My objection is documented…',
       erlich: 'Second vision repair in flight…',
       goMad: 'EVEN MORE HARD HATS 🪖🪖🪖',
       critique: 'Second escalation — still non-compliant…',
@@ -244,10 +244,10 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
     { level: 12, xp: 2900, title: 'Slopitect, Lord of Synergy', short: 'Lvl 12', flair: '🔮' }
   ],
   VARIANT_MASTERY_ACHIEVEMENTS: {
-    refine: {
-      id: 'masterPolisher',
-      title: '👷 MASTER ENGINEER',
-      subtitle: '10 useful extensions shipped. The site is yours, mate.'
+    gilfoyle: {
+      id: 'stackOwner',
+      title: '🦇 THE STACK IS MINE',
+      subtitle: '10 correct changes. Nobody said ta. Fine.'
     },
     erlich: {
       id: 'tenPercentLegend',
@@ -341,10 +341,10 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
       title: '🥊 HOLY WAR REFEREE',
       subtitle: 'Settled three cubicle barneys. Tabs, spaces and the thermostat all rate you.'
     },
-    refine: {
-      id: 'masterPolisher',
-      title: '👷 MASTER ENGINEER',
-      subtitle: '10 useful extensions shipped. The site is yours, mate.'
+    gilfoyle: {
+      id: 'stackOwner',
+      title: '🦇 THE STACK IS MINE',
+      subtitle: '10 correct changes. Nobody said ta. Fine.'
     },
     erlich: {
       id: 'tenPercentLegend',

@@ -4,7 +4,7 @@ import { resolveAdvisorAcceptOperation } from '../src/utils/advisorAcceptRouting
 describe('resolveAdvisorAcceptOperation', () => {
   it('routes transform personas when a diagram exists', () => {
     expect(resolveAdvisorAcceptOperation('barker', true)).toBe('transform');
-    expect(resolveAdvisorAcceptOperation('refine', true)).toBe('transform');
+    expect(resolveAdvisorAcceptOperation('gilfoyle', true)).toBe('transform');
   });
 
   it('routes critique and explain to analyze, not intent', () => {

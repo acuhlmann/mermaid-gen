@@ -91,7 +91,7 @@ describe('useAdvisorOrchestrator', () => {
     });
 
     it('keeps the throttle after the repeat filter drops the previous speaker', () => {
-      const pool = ADVISOR_ORDER.filter((id) => id !== 'refine');
+      const pool = ADVISOR_ORDER.filter((id) => id !== 'gilfoyle');
       const counts = Object.fromEntries(pool.map((id) => [id, 0]));
       const samples = 9000;
       for (let i = 0; i < samples; i += 1) {
@@ -127,7 +127,7 @@ describe('useAdvisorOrchestrator', () => {
 
     it('never returns a persona from an empty pool', () => {
       expect(pickWeightedPersona([], 0.5)).toBeNull();
-      expect(pickWeightedPersona(['refine'], 0.999999)).toBe('refine');
+      expect(pickWeightedPersona(['gilfoyle'], 0.999999)).toBe('gilfoyle');
     });
   });
 
@@ -136,7 +136,7 @@ describe('useAdvisorOrchestrator', () => {
     fetchMock = vi.fn().mockResolvedValue({
       ok: true,
       json: async () => ({
-        persona: 'refine',
+        persona: 'gilfoyle',
         suggestion: 'Rename A — clearer.',
         highlightIds: ['A']
       })
@@ -426,7 +426,7 @@ describe('useAdvisorOrchestrator', () => {
       return Promise.resolve({
         ok: true,
         json: async () => ({
-          persona: 'refine',
+          persona: 'gilfoyle',
           suggestion: text,
           highlightIds: ['A']
         })
@@ -480,7 +480,7 @@ describe('useAdvisorOrchestrator', () => {
   });
 
   it('promptNext triggers a new fetch and clears activePersona on dismiss', async () => {
-    mockPersonaPick('refine');
+    mockPersonaPick('gilfoyle');
     const { result } = renderHook(() => useAdvisorOrchestrator(defaultParams()));
 
     await act(async () => {
@@ -488,7 +488,7 @@ describe('useAdvisorOrchestrator', () => {
       await Promise.resolve();
     });
     expect(result.current.suggestion).toBeTruthy();
-    expect(result.current.activePersona).toBe('refine');
+    expect(result.current.activePersona).toBe('gilfoyle');
 
     act(() => {
       result.current.dismiss();
@@ -524,7 +524,7 @@ describe('useAdvisorOrchestrator', () => {
   });
 
   it('promptNext with persona forces that stakeholder in the request body', async () => {
-    mockPersonaPick('refine');
+    mockPersonaPick('gilfoyle');
     const { result } = renderHook(() => useAdvisorOrchestrator(defaultParams()));
 
     await act(async () => {
@@ -615,7 +615,7 @@ describe('useAdvisorOrchestrator', () => {
   });
 
   it('promptNext during an in-flight fetch does not trigger failure backoff (Wise Architect cast switch)', async () => {
-    mockPersonaPick('refine');
+    mockPersonaPick('gilfoyle');
     let resolveFirst;
     const firstHang = new Promise((resolve) => {
       resolveFirst = resolve;
@@ -648,7 +648,7 @@ describe('useAdvisorOrchestrator', () => {
       await vi.advanceTimersByTimeAsync(GAP_MS + 100);
       await Promise.resolve();
     });
-    expect(result.current.thinkingPersona).toBe('refine');
+    expect(result.current.thinkingPersona).toBe('gilfoyle');
 
     act(() => {
       result.current.promptNext({ persona: 'explain' });
@@ -668,7 +668,7 @@ describe('useAdvisorOrchestrator', () => {
 
   it('pushProposalHistory keeps index when browsing and a new suggestion arrives', () => {
     const entry = (text) => ({
-      persona: 'refine',
+      persona: 'gilfoyle',
       suggestion: text,
       suggestionKind: 'suggestion',
       highlightIds: []
@@ -900,7 +900,7 @@ describe('useAdvisorOrchestrator', () => {
   });
 
   it('does not wipe a thinking fetch when hover focus flickers', async () => {
-    mockPersonaPick('refine');
+    mockPersonaPick('gilfoyle');
     let resolveFetch;
     fetchMock.mockImplementation(
       () =>
@@ -909,7 +909,7 @@ describe('useAdvisorOrchestrator', () => {
             resolve({
               ok: true,
               json: async () => ({
-                persona: 'refine',
+                persona: 'gilfoyle',
                 suggestion: 'Rename the gateway node.',
                 highlightIds: ['A']
               })
@@ -940,7 +940,7 @@ describe('useAdvisorOrchestrator', () => {
       await vi.advanceTimersByTimeAsync(GAP_MS + 100);
       await Promise.resolve();
     });
-    expect(result.current.thinkingPersona).toBe('refine');
+    expect(result.current.thinkingPersona).toBe('gilfoyle');
 
     // Pointer travel over nodes while the LLM is thinking — must not cancel.
     rerender({ focusKey: 'hover:A', focusSource: 'hover' });
@@ -948,7 +948,7 @@ describe('useAdvisorOrchestrator', () => {
       await vi.advanceTimersByTimeAsync(700);
       await Promise.resolve();
     });
-    expect(result.current.thinkingPersona).toBe('refine');
+    expect(result.current.thinkingPersona).toBe('gilfoyle');
     expect(result.current.suggestion).toBeNull();
 
     rerender({ focusKey: 'hover:B', focusSource: 'hover' });
@@ -956,7 +956,7 @@ describe('useAdvisorOrchestrator', () => {
       await vi.advanceTimersByTimeAsync(700);
       await Promise.resolve();
     });
-    expect(result.current.thinkingPersona).toBe('refine');
+    expect(result.current.thinkingPersona).toBe('gilfoyle');
 
     await act(async () => {
       resolveFetch();
@@ -965,7 +965,7 @@ describe('useAdvisorOrchestrator', () => {
     });
 
     expect(result.current.suggestion).toBe('Rename the gateway node.');
-    expect(result.current.activePersona).toBe('refine');
+    expect(result.current.activePersona).toBe('gilfoyle');
     expect(result.current.thinkingPersona).toBeNull();
   });
 
@@ -1011,7 +1011,7 @@ describe('useAdvisorOrchestrator', () => {
   });
 
   it('keeps thinking visible when selection debounce fires during an in-flight fetch', async () => {
-    mockPersonaPick('refine');
+    mockPersonaPick('gilfoyle');
     let resolveFetch;
     fetchMock.mockImplementation(
       () =>
@@ -1020,7 +1020,7 @@ describe('useAdvisorOrchestrator', () => {
             resolve({
               ok: true,
               json: async () => ({
-                persona: 'refine',
+                persona: 'gilfoyle',
                 suggestion: 'Tighten the gateway label.',
                 highlightIds: ['Gateway']
               })
@@ -1047,7 +1047,7 @@ describe('useAdvisorOrchestrator', () => {
       await vi.advanceTimersByTimeAsync(GAP_MS + 100);
       await Promise.resolve();
     });
-    expect(result.current.thinkingPersona).toBe('refine');
+    expect(result.current.thinkingPersona).toBe('gilfoyle');
 
     rerender({ focusKey: 'selected:Gateway', focusSource: 'selected' });
 
@@ -1055,7 +1055,7 @@ describe('useAdvisorOrchestrator', () => {
       await vi.advanceTimersByTimeAsync(60 + 50);
       await Promise.resolve();
     });
-    expect(result.current.thinkingPersona).toBe('refine');
+    expect(result.current.thinkingPersona).toBe('gilfoyle');
 
     await act(async () => {
       resolveFetch();
@@ -1118,7 +1118,7 @@ describe('useAdvisorOrchestrator', () => {
   });
 
   it('does not clear thinking on a brief loading pause flicker', async () => {
-    mockPersonaPick('refine');
+    mockPersonaPick('gilfoyle');
     let resolveFetch;
     fetchMock.mockImplementation(
       () =>
@@ -1127,7 +1127,7 @@ describe('useAdvisorOrchestrator', () => {
             resolve({
               ok: true,
               json: async () => ({
-                persona: 'refine',
+                persona: 'gilfoyle',
                 suggestion: 'Still here after the flicker.',
                 highlightIds: ['A']
               })
@@ -1144,14 +1144,14 @@ describe('useAdvisorOrchestrator', () => {
       await vi.advanceTimersByTimeAsync(GAP_MS + 100);
       await Promise.resolve();
     });
-    expect(result.current.thinkingPersona).toBe('refine');
+    expect(result.current.thinkingPersona).toBe('gilfoyle');
 
     rerender({ pause: true });
     await act(async () => {
       await vi.advanceTimersByTimeAsync(100);
       await Promise.resolve();
     });
-    expect(result.current.thinkingPersona).toBe('refine');
+    expect(result.current.thinkingPersona).toBe('gilfoyle');
 
     rerender({ pause: false });
     await act(async () => {
@@ -1164,7 +1164,7 @@ describe('useAdvisorOrchestrator', () => {
   });
 
   it('surfaces the speech bubble when the reply lands while still paused', async () => {
-    mockPersonaPick('refine');
+    mockPersonaPick('gilfoyle');
     let resolveFetch;
     fetchMock.mockImplementation(
       () =>
@@ -1173,7 +1173,7 @@ describe('useAdvisorOrchestrator', () => {
             resolve({
               ok: true,
               json: async () => ({
-                persona: 'refine',
+                persona: 'gilfoyle',
                 suggestion: 'Keep me after loading owns the canvas.',
                 highlightIds: ['A']
               })
@@ -1190,7 +1190,7 @@ describe('useAdvisorOrchestrator', () => {
       await vi.advanceTimersByTimeAsync(GAP_MS + 100);
       await Promise.resolve();
     });
-    expect(result.current.thinkingPersona).toBe('refine');
+    expect(result.current.thinkingPersona).toBe('gilfoyle');
 
     // Loading/streaming flips pause true while the advisor fetch is still in flight.
     rerender({ pause: true });
@@ -1201,7 +1201,7 @@ describe('useAdvisorOrchestrator', () => {
     });
 
     expect(result.current.suggestion).toBe('Keep me after loading owns the canvas.');
-    expect(result.current.activePersona).toBe('refine');
+    expect(result.current.activePersona).toBe('gilfoyle');
     expect(result.current.thinkingPersona).toBeNull();
 
     // Sustained pause must not wipe a landed proposal (only blocks new ticks).
@@ -1213,7 +1213,7 @@ describe('useAdvisorOrchestrator', () => {
   });
 
   it('keeps an in-flight proposal across a brief document.hidden flicker', async () => {
-    mockPersonaPick('refine');
+    mockPersonaPick('gilfoyle');
     let resolveFetch;
     fetchMock.mockImplementation(
       () =>
@@ -1222,7 +1222,7 @@ describe('useAdvisorOrchestrator', () => {
             resolve({
               ok: true,
               json: async () => ({
-                persona: 'refine',
+                persona: 'gilfoyle',
                 suggestion: 'Survived the mobile visibility flicker.',
                 highlightIds: ['A']
               })
@@ -1236,7 +1236,7 @@ describe('useAdvisorOrchestrator', () => {
       await vi.advanceTimersByTimeAsync(GAP_MS + 100);
       await Promise.resolve();
     });
-    expect(result.current.thinkingPersona).toBe('refine');
+    expect(result.current.thinkingPersona).toBe('gilfoyle');
 
     await act(async () => {
       Object.defineProperty(document, 'hidden', { configurable: true, get: () => true });
@@ -1244,7 +1244,7 @@ describe('useAdvisorOrchestrator', () => {
       await Promise.resolve();
     });
     // In-flight thinking must survive — wiping here was the mobile "flash then gone" path.
-    expect(result.current.thinkingPersona).toBe('refine');
+    expect(result.current.thinkingPersona).toBe('gilfoyle');
 
     await act(async () => {
       Object.defineProperty(document, 'hidden', { configurable: true, get: () => false });

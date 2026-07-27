@@ -11,7 +11,7 @@ test('emitServerMutationPlanBeats emits diagram-focused server beats', () => {
   emitServerMutationPlanBeats({
     emit,
     stateStore,
-    mode: 'refine',
+    mode: 'gilfoyle',
     messages: [{ role: 'user', content: 'User request:\nAdd a cache layer' }],
     focusNode: { id: 'Cache', label: 'Cache', selectionKind: 'node' },
     contentType: 'mermaid'

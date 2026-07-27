@@ -13,10 +13,10 @@ import { setOfficeCaptions, setOfficeNarration } from '../src/state/officeMoment
 const PLAYING = {
   state: 'playing',
   title: 'Architecture Review Board (steering)',
-  attendees: ['scrumMaster', 'refine', 'cfo'],
+  attendees: ['scrumMaster', 'gilfoyle', 'cfo'],
   facilitatorId: 'scrumMaster',
   transcript: [
-    { speakerId: 'refine', kind: 'substantive', text: 'The gateway is the bottleneck.' },
+    { speakerId: 'gilfoyle', kind: 'substantive', text: 'The gateway is the bottleneck.' },
     { speakerId: 'cfo', kind: 'substantive', text: 'What does the gateway cost per quarter?' }
   ],
   completed: false,

@@ -9,7 +9,7 @@ const HTML = '<!doctype html><html><head></head><body><h1>Launch Plan</h1></body
 
 test('buildAnythingTransformUserContent includes advisor prompt', () => {
   const body = buildAnythingTransformUserContent({
-    mode: 'refine',
+    mode: 'gilfoyle',
     currentHtml: HTML,
     advisorPrompt: 'Make Start button more obvious'
   });
@@ -17,8 +17,8 @@ test('buildAnythingTransformUserContent includes advisor prompt', () => {
   assert.match(body, /Start button/);
 });
 
-test('buildAnythingTransformUserContent prefers targeted edits for refine and barker', () => {
-  for (const mode of ['refine', 'barker']) {
+test('buildAnythingTransformUserContent prefers targeted edits for gilfoyle and barker', () => {
+  for (const mode of ['gilfoyle', 'barker']) {
     const body = buildAnythingTransformUserContent({ mode, currentHtml: HTML });
     assert.match(body, /apply_anything_edit/, `${mode} should prefer apply_anything_edit`);
     assert.match(body, /Fall back to apply_anything_patch/);

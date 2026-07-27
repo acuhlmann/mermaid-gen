@@ -11,7 +11,7 @@ import { useUiCopy } from '../i18n/useUiLocale.js';
 import type { ContentType } from '@archislop/shared';
 
 const VARIANT_ICONS: Record<string, string> = {
-  refine: '✨',
+  gilfoyle: '✨',
   erlich: '🕶',
   goMad: '🎲',
   critique: '🔍',

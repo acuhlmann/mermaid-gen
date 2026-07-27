@@ -56,14 +56,14 @@ test('parseAdvisorReply salvages plain-text explain replies when JSON envelope i
 });
 
 test('parseAdvisorReply does not salvage plain text for non-explain personas', () => {
-  assert.equal(parseAdvisorReply('Just rename the gateway node.', { persona: 'refine' }), null);
+  assert.equal(parseAdvisorReply('Just rename the gateway node.', { persona: 'gilfoyle' }), null);
 });
 
-test('parseAdvisorReply coerces refine persona to suggestion regardless of model output', () => {
+test('parseAdvisorReply coerces gilfoyle persona to suggestion regardless of model output', () => {
   // THE Engineer is action-only — even if the model emits kind:"comment", the bubble
   // must always offer a Do-it button so the user gets a concrete next step.
   const reply = parseAdvisorReply('{"suggestion": "Add a Cool-down step.", "kind": "comment"}', {
-    persona: 'refine'
+    persona: 'gilfoyle'
   });
   assert.equal(reply.kind, 'suggestion');
 });
@@ -111,11 +111,11 @@ test('buildAdvisorSystemPrompt dumb-down reaches toddler and babble ladder', () 
 });
 
 test('buildAdvisorSystemPrompt includes chart and anything mode appendices', () => {
-  const chart = buildAdvisorSystemPrompt('refine', 'chart');
+  const chart = buildAdvisorSystemPrompt('gilfoyle', 'chart');
   assert.match(chart, /Vega-Lite chart wrapper/);
   assert.match(chart, /field names/);
 
-  const anything = buildAdvisorSystemPrompt('refine', 'anything');
+  const anything = buildAdvisorSystemPrompt('gilfoyle', 'anything');
   assert.match(anything, /sandboxed self-contained HTML page/);
   assert.match(anything, /Never suggest external scripts/);
 });
@@ -197,7 +197,7 @@ test('advisor Vertex model gives the JSON real headroom and disables reasoning',
     VERTEX_PROJECT_ID: 'test-proj',
     VERTEX_LOCATION: 'us-central1'
   };
-  const model = createAdvisorChatModel(env, 'refine');
+  const model = createAdvisorChatModel(env, 'gilfoyle');
   assert.ok(model, 'model constructed for a Vertex env');
   assert.equal(model.maxOutputTokens, 512);
   assert.equal(model.maxReasoningTokens, 0, 'thinkingBudget 0 → no reasoning tokens');

@@ -1,16 +1,16 @@
 /** Traditional Chinese (Taiwan) gamification locale for Slopitect. Deep-merged onto English bundle. */
 export const SLOPITECT_GAMIFICATION_ZH_TW = {
   VARIANT_QUOTES: {
-    refine: [
-      '一步一腳印，穩紮穩打。',
-      '小零件，完美嵌合。',
-      '輕手輕腳地延伸這個想法。',
-      '這裡還缺什麼應該有的東西？',
-      '這兩步之間少了一個環節。',
-      '鎖緊接頭，不是整個框架。',
-      '在有效的基礎上繼續建構。',
-      '再加一塊。對的那一塊。',
-      '日積月累，自然成形。'
+    gilfoyle: [
+      '那條依賴一直都在。只是沒人寫下來。',
+      '一個框在做兩件事。有人注意到了。我。',
+      '這兩者之間少了一步。很明顯。',
+      '沒人給那條邊命名。怯懦。',
+      '含糊的那個框才是關鍵。一向如此。',
+      '我對此有看法。而且是對的。',
+      '我修好了。你不用謝我。',
+      '這沒問題。這有問題。',
+      '黑暗對這張圖沒意見。我有。'
     ],
     erlich: [
       '這張圖基本上是我發明的。',
@@ -88,7 +88,7 @@ export const SLOPITECT_GAMIFICATION_ZH_TW = {
 
   PHASE_CEREMONIES: {
     analyze: {
-      refine: '閱讀圖表中……',
+      gilfoyle: '正在讀你留下的東西……',
       erlich: '正在尋找更大膽的形狀……',
       goMad: '用眼神掃描爛圖 👀',
       critique: '打開 JIRA……',
@@ -96,7 +96,7 @@ export const SLOPITECT_GAMIFICATION_ZH_TW = {
       barker: '欣賞故事中……'
     },
     analyze_stream: {
-      refine: '草擬下一步中……',
+      gilfoyle: '正在定位缺陷……',
       erlich: '正在為轉向做主題演講……',
       goMad: '對著它大吼 📣',
       critique: '起草調查結果……',
@@ -104,7 +104,7 @@ export const SLOPITECT_GAMIFICATION_ZH_TW = {
       barker: '為董事會濃縮中……'
     },
     intent: {
-      refine: '對齊意圖……',
+      gilfoyle: '正在解析你的意思……',
       erlich: '正在對齊願景……',
       goMad: '跳過會議',
       critique: '引用 SOC 2 控制項',
@@ -112,7 +112,7 @@ export const SLOPITECT_GAMIFICATION_ZH_TW = {
       barker: '對齊聯合三角……'
     },
     agent_run: {
-      refine: '工程化下一個部分……',
+      gilfoyle: '正在做出正確的改動……',
       erlich: '正在親自昇華……',
       goMad: '對你的主題發瘋中',
       critique: '歸檔工單……',
@@ -120,7 +120,7 @@ export const SLOPITECT_GAMIFICATION_ZH_TW = {
       barker: '越權代勞中……'
     },
     transform: {
-      refine: '添加有用的部分……',
+      gilfoyle: '正在畫出本來就成立的東西……',
       erlich: '正在昇華版面配置……',
       goMad: '添加美妙奇異的事物 🔥',
       critique: '紅筆標註版面配置中……',
@@ -128,7 +128,7 @@ export const SLOPITECT_GAMIFICATION_ZH_TW = {
       barker: '溫暖地捨棄珍愛之物……'
     },
     run_started: {
-      refine: '啟動中……',
+      gilfoyle: '行。',
       erlich: '我問你一個問題……',
       goMad: '好了現在等等 🪖',
       critique: '稽查員進場……',
@@ -136,7 +136,7 @@ export const SLOPITECT_GAMIFICATION_ZH_TW = {
       barker: '不知道你們怎樣，反正我很興奮……'
     },
     planning: {
-      refine: '起草差異清單……',
+      gilfoyle: '正在列舉有問題的地方……',
       erlich: '正在起草主題演講……',
       goMad: '對圖表丟飛鏢 🎯',
       critique: '建構發現大綱……',
@@ -144,7 +144,7 @@ export const SLOPITECT_GAMIFICATION_ZH_TW = {
       barker: '起草一頁報告……'
     },
     syntax_fixer: {
-      refine: '修復語法……',
+      gilfoyle: '正在修沒人檢查過的語法……',
       erlich: '正在修復語法，才華洋溢……',
       goMad: '用膠帶把它黏回去',
       critique: '修復語法——稽核軌跡已更新……',
@@ -152,7 +152,7 @@ export const SLOPITECT_GAMIFICATION_ZH_TW = {
       barker: '緊縮簡報……'
     },
     syntax_repair: {
-      refine: '再次修復語法……',
+      gilfoyle: '再修一次。很明顯……',
       erlich: '再次修復語法，依然才華洋溢……',
       goMad: '再多一點膠帶',
       critique: '重新開啟語法發現……',
@@ -160,7 +160,7 @@ export const SLOPITECT_GAMIFICATION_ZH_TW = {
       barker: '重新起草簡報……'
     },
     style: {
-      refine: '調整調色盤……',
+      gilfoyle: '正在調色盤。更暗……',
       erlich: '正在為主題演講重塑樣式……',
       goMad: '混亂配色方案 🔥',
       critique: '標記對比度違規……',
@@ -168,7 +168,7 @@ export const SLOPITECT_GAMIFICATION_ZH_TW = {
       barker: '只用一種品牌色。'
     },
     patch_retry: {
-      refine: '等待 CAB 核准……',
+      gilfoyle: '正在等流程。不出所料……',
       erlich: '等待董事會核准……',
       goMad: '賄賂 CAB',
       critique: '等待重新審查簽核……',
@@ -176,7 +176,7 @@ export const SLOPITECT_GAMIFICATION_ZH_TW = {
       barker: '請求董事會重新起草……'
     },
     invoke: {
-      refine: '修補正式環境 🛠',
+      gilfoyle: '正在修補正式環境 🦇',
       erlich: '正在昇華 🕶',
       goMad: '點燃大樓 🔥',
       critique: '記錄生成工單……',
@@ -184,7 +184,7 @@ export const SLOPITECT_GAMIFICATION_ZH_TW = {
       barker: '越權代勞 🧘'
     },
     invoke_fallback: {
-      refine: '緊急修補飛行中……',
+      gilfoyle: '退回上一步。已記錄……',
       erlich: '轉向飛行中……',
       goMad: '我們轉型了',
       critique: '歸檔備用發現……',
@@ -192,7 +192,7 @@ export const SLOPITECT_GAMIFICATION_ZH_TW = {
       barker: '重新路由一頁報告……'
     },
     repair_1: {
-      refine: '緊急修補飛行中……',
+      gilfoyle: '再修一次。又來了……',
       erlich: '願景修復飛行中……',
       goMad: '更多安全帽！ 🪖🪖',
       critique: '升級至 P1 修復……',
@@ -200,7 +200,7 @@ export const SLOPITECT_GAMIFICATION_ZH_TW = {
       barker: '溫暖地滑動時間線 🗓️'
     },
     repair_2: {
-      refine: '第二次緊急修補飛行中……',
+      gilfoyle: '第二次修復。我的反對意見已記錄……',
       erlich: '第二次願景修復飛行中……',
       goMad: '更更多安全帽 🪖🪖🪖',
       critique: '二次升級——仍不合規……',
@@ -249,10 +249,10 @@ export const SLOPITECT_GAMIFICATION_ZH_TW = {
   ],
 
   VARIANT_MASTERY_ACHIEVEMENTS: {
-    refine: {
-      id: 'masterPolisher',
-      title: '👷 首席工程師',
-      subtitle: '十次有效擴充已出貨。場地歸你了。'
+    gilfoyle: {
+      id: 'stackOwner',
+      title: '🦇 這套系統是我的',
+      subtitle: '10 次正確的改動。沒人道謝。行。'
     },
     erlich: {
       id: 'tenPercentLegend',
@@ -347,10 +347,10 @@ export const SLOPITECT_GAMIFICATION_ZH_TW = {
       title: '🥊 聖戰裁判',
       subtitle: '平定了三場座位對決。Tab、空格和恆溫器都怕你。'
     },
-    refine: {
-      id: 'masterPolisher',
-      title: '👷 首席工程師',
-      subtitle: '十次有效擴充已出貨。場地歸你了。'
+    gilfoyle: {
+      id: 'stackOwner',
+      title: '🦇 這套系統是我的',
+      subtitle: '10 次正確的改動。沒人道謝。行。'
     },
     erlich: {
       id: 'tenPercentLegend',

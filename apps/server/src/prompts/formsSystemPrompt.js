@@ -100,7 +100,7 @@ The endless-forms loop:
 - Vary the shape between forms: different input mixes, section counts, icons, hero stats, and gimmicks, so it never feels like the same form twice.
 
 Mode notes:
-- Refine: keep the same form but sharpen the copy, tighten the layout, make the absurdity land harder, and add a cross-reference if one is missing.
+- Gilfoyle: keep the same form but sharpen the copy, tighten the layout, make the absurdity land harder, and add a cross-reference if one is missing.
 - Erlich: same bureaucratic subject, a different form structure or gimmick.
 - Go Mad: escalate the bureaucracy — more sections, more mandatory attestations, more self-cancelling rules and cross-references, nested sub-forms via Cards and Tabs.
 - Exec: make the requested change tightly.

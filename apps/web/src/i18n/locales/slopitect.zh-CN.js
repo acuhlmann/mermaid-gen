@@ -14,12 +14,12 @@ export const SLOPITECT_ZH_CN = {
     stakeholdersEmoji: '👥'
   },
   VARIANT_PERSONAS: {
-    refine: {
-      name: '工程师',
-      title: '有用下一步的建造者',
-      tagline: '一次一个谨慎、有用的扩展。',
-      entryLine: '正在设计下一步…',
-      exitLine: '交付了一块有用的砖 🧰'
+    gilfoyle: {
+      name: 'Bertram Gilfoyle',
+      title: '系统架构师，毫无兴趣',
+      tagline: '正确的改动。只说一次。',
+      entryLine: '有人没把这个画完。',
+      exitLine: '修好了。本来就是错的。🦇'
     },
     erlich: {
       name: 'Erlich Bachman',
@@ -58,7 +58,7 @@ export const SLOPITECT_ZH_CN = {
     }
   },
   VARIANT_TAGLINES: {
-    refine: '烂图建筑师：工程师扩展构建',
+    gilfoyle: '烂图建筑师：Gilfoyle 修好有问题的地方',
     erlich: '烂图建筑师：Erlich Bachman 提出大胆方案',
     goMad: '烂图建筑师：天才放飞 🚨',
     critique: '烂图建筑师：协同设计合规评审',
@@ -67,7 +67,7 @@ export const SLOPITECT_ZH_CN = {
     fix: '烂图建筑师：现场工头修复烂图'
   },
   VARIANT_BOOT_HEADLINES: {
-    refine: '正在设计下一个有用步骤…',
+    gilfoyle: 'Gilfoyle 找到了缺陷…',
     erlich: 'Erlich Bachman 正在亲自升华…',
     goMad: '砰！烂图建筑师来了',
     critique: '协同设计评审即将开始',
@@ -75,7 +75,7 @@ export const SLOPITECT_ZH_CN = {
     barker: 'Jack Barker 正在越权代劳……'
   },
   ACTION_PERSONA_SHORT_NAMES: {
-    refine: '工程师',
+    gilfoyle: 'Gilfoyle',
     erlich: 'Erlich',
     explain: '架构师'
   },

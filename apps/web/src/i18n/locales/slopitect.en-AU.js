@@ -14,12 +14,12 @@ export const SLOPITECT_EN_AU = {
     stakeholdersEmoji: '👥'
   },
   VARIANT_PERSONAS: {
-    refine: {
-      name: 'THE Engineer',
-      title: 'Builder of useful next steps',
-      tagline: 'One careful, useful extension at a time. No worries.',
-      entryLine: 'Engineering the next step…',
-      exitLine: 'Shipped a useful bit 🧰'
+    gilfoyle: {
+      name: 'Bertram Gilfoyle',
+      title: 'Systems Architect, Unimpressed',
+      tagline: 'The correct change. Stated once. No worries either way.',
+      entryLine: 'Someone left this unfinished.',
+      exitLine: 'Fixed. It was wrong. 🦇'
     },
     erlich: {
       name: 'Erlich Bachman',
@@ -58,7 +58,7 @@ export const SLOPITECT_EN_AU = {
     }
   },
   VARIANT_TAGLINES: {
-    refine: 'Slopitect: THE Engineer extends the build',
+    gilfoyle: 'Slopitect: Gilfoyle sorts out what’s wrong',
     erlich: 'Slopitect: Erlich Bachman pitches the bold move',
     goMad: 'Slopitect: GENIUS LOOSE 🚨',
     critique: 'Slopitect: Co-Design compliance review',
@@ -67,7 +67,7 @@ export const SLOPITECT_EN_AU = {
     fix: 'Slopitect: site foreman fixing the slop'
   },
   VARIANT_BOOT_HEADLINES: {
-    refine: 'Engineering the next useful step…',
+    gilfoyle: 'Gilfoyle found the defect…',
     erlich: 'Erlich Bachman is graciously elevating…',
     goMad: 'BONK! THE SLOPITECT IS HERE',
     critique: 'CO-DESIGN REVIEW INCOMING',
@@ -75,7 +75,7 @@ export const SLOPITECT_EN_AU = {
     barker: 'Jack Barker is taking the liberty…'
   },
   ACTION_PERSONA_SHORT_NAMES: {
-    refine: 'Engineer',
+    gilfoyle: 'Gilfoyle',
     erlich: 'Erlich',
     explain: 'Architect'
   },

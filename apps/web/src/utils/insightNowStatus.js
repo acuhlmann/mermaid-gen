@@ -68,7 +68,7 @@ function fallbackNowStatus(entry = {}, copy) {
   }
 
   const variant = entry.variant;
-  if (variant === 'refine') return nowStatus.polishing ?? 'Polishing the diagram…';
+  if (variant === 'gilfoyle') return nowStatus.polishing ?? 'Fixing what is wrong…';
   if (variant === 'erlich') return nowStatus.restructuring ?? 'Restructuring the diagram…';
   if (variant === 'critique') return nowStatus.reviewing ?? 'Reviewing the diagram…';
   if (variant === 'explain') return nowStatus.explaining ?? 'Explaining the diagram…';

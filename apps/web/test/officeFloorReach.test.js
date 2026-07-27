@@ -54,16 +54,16 @@ describe('whereaboutsOf', () => {
   it('gives somebody a moment has claimed no tile either', () => {
     // A coffee mark and a chair in the glass room are both somewhere; neither is
     // somewhere this module derives an approach to.
-    expect(whereaboutsOf('intern', { awayIds: ['intern', 'refine'] })).toEqual({
+    expect(whereaboutsOf('intern', { awayIds: ['intern', 'gilfoyle'] })).toEqual({
       tile: null,
       propKind: null
     });
   });
 
   it('is about the person asked for, not about whoever happens to be up', () => {
-    const state = { wanderer: trip('dwell', 'refine'), awayIds: [] };
+    const state = { wanderer: trip('dwell', 'gilfoyle'), awayIds: [] };
     expect(whereaboutsOf('intern', state)).toBeNull();
-    expect(whereaboutsOf('refine', state)?.tile).toEqual(PRINTER());
+    expect(whereaboutsOf('gilfoyle', state)?.tile).toEqual(PRINTER());
   });
 });
 

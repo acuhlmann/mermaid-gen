@@ -23,7 +23,7 @@ const CHART_DSL = JSON.stringify({
 
 test('buildChartTransformUserContent includes advisor prompt', () => {
   const body = buildChartTransformUserContent({
-    mode: 'refine',
+    mode: 'gilfoyle',
     currentDsl: CHART_DSL,
     advisorPrompt: 'Facet by region'
   });

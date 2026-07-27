@@ -58,7 +58,7 @@ import { INSIGHTS_HEADER_COMPACT_MAX_PX } from '../utils/layoutBreakpoints.js';
 import { formatLocale } from '../i18n/formatLocale.js';
 
 const SLOPITECT_VARIANT_CLASS = {
-  refine: 'is-variant-refine',
+  gilfoyle: 'is-variant-gilfoyle',
   erlich: 'is-variant-erlich',
   goMad: 'is-variant-go-mad',
   critique: 'is-variant-critique',
@@ -128,7 +128,7 @@ function IconExplain() {
   );
 }
 
-function IconRefine() {
+function IconGilfoyle() {
   return (
     <svg
       className="insights-svg-icon"
@@ -197,7 +197,7 @@ function isAccentuatedInsightVariant(variant) {
   return (
     variant === 'critique' ||
     variant === 'explain' ||
-    variant === 'refine' ||
+    variant === 'gilfoyle' ||
     variant === 'erlich' ||
     variant === 'goMad' ||
     variant === 'barker'
@@ -387,7 +387,7 @@ function EntryStatusIcon({ status, variant }) {
   if (status === 'done') {
     if (variant === 'critique') return <IconCritique />;
     if (variant === 'explain') return <IconExplain />;
-    if (variant === 'refine') return <IconRefine />;
+    if (variant === 'gilfoyle') return <IconGilfoyle />;
     if (variant === 'erlich') return <IconErlich />;
     if (variant === 'goMad') return <IconGoMad />;
     return <IconSparkles />;
@@ -820,7 +820,7 @@ function leadOpenerExtraClass(variant, accentuateSections, openerUsedRef) {
   if (!accentuateSections || openerUsedRef.current) return '';
   const map = {
     explain: 'insights-explain-opener',
-    refine: 'insights-refine-opener',
+    gilfoyle: 'insights-gilfoyle-opener',
     erlich: 'insights-erlich-opener',
     goMad: 'insights-gomad-opener'
   };
@@ -1068,7 +1068,7 @@ function renderRichContent(
 
 function AccentSectionTitleIcon({ variant }) {
   if (variant === 'explain') return <IconExplain />;
-  if (variant === 'refine') return <IconRefine />;
+  if (variant === 'gilfoyle') return <IconGilfoyle />;
   if (variant === 'erlich') return <IconErlich />;
   if (variant === 'goMad') return <IconGoMad />;
   return null;
@@ -1628,7 +1628,7 @@ export default function InsightsPane({
                         accentuateSections ? 'is-analyze-prose' : '',
                         variant === 'explain' && accentuateSections ? 'is-explain-prose' : '',
                         explainProseGibberish ? 'is-gibberish' : '',
-                        variant === 'refine' && accentuateSections ? 'is-refine-prose' : '',
+                        variant === 'gilfoyle' && accentuateSections ? 'is-gilfoyle-prose' : '',
                         variant === 'erlich' && accentuateSections ? 'is-erlich-prose' : '',
                         variant === 'goMad' && accentuateSections ? 'is-gomad-prose' : ''
                       ]
@@ -1659,7 +1659,7 @@ export default function InsightsPane({
                           'insights-stream-caret',
                           'is-shimmer',
                           variant === 'goMad' ? 'is-gomad-caret' : '',
-                          variant === 'refine' ? 'is-refine-caret' : '',
+                          variant === 'gilfoyle' ? 'is-gilfoyle-caret' : '',
                           variant === 'erlich' ? 'is-erlich-caret' : '',
                           variant === 'critique' ? 'is-critique-caret' : '',
                           variant === 'explain' ? 'is-explain-caret' : ''

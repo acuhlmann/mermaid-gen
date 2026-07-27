@@ -9,9 +9,9 @@ import {
 const DSL =
   'infographic list-row-simple-horizontal-arrow\n' + 'data\n' + '  lists\n' + '    - label A';
 
-test('refine instructions require keeping template', () => {
-  assert.match(INFOGRAPHIC_TRANSFORM_INSTRUCTIONS.refine, /KEEP the exact same/i);
-  assert.match(INFOGRAPHIC_TRANSFORM_INSTRUCTIONS.refine, /at most 2 new items/i);
+test('gilfoyle instructions require keeping template', () => {
+  assert.match(INFOGRAPHIC_TRANSFORM_INSTRUCTIONS.gilfoyle, /KEEP the exact same/i);
+  assert.match(INFOGRAPHIC_TRANSFORM_INSTRUCTIONS.gilfoyle, /at most 2 new items/i);
 });
 
 test('erlich prefers current template first', () => {
@@ -31,7 +31,7 @@ test('goMad tier 3 escalation requires family switch', () => {
 
 test('buildInfographicTransformUserContent includes advisor prompt', () => {
   const body = buildInfographicTransformUserContent({
-    mode: 'refine',
+    mode: 'gilfoyle',
     currentDsl: DSL,
     advisorPrompt: 'Rename A → Acquire'
   });

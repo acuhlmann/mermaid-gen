@@ -16,7 +16,7 @@ describe('runGamificationStore', () => {
   it('starts empty with zero runs per variant', () => {
     const s = createInitialState();
     expect(s.totalRuns).toBe(0);
-    expect(s.runsByVariant.refine).toBe(0);
+    expect(s.runsByVariant.gilfoyle).toBe(0);
     expect(s.runsByVariant.goMad).toBe(0);
     expect(s.lastVariant).toBeNull();
     expect(s.xp).toBe(0);
@@ -27,10 +27,10 @@ describe('runGamificationStore', () => {
 
   it('emits xp on a single completed run', () => {
     const s = createInitialState();
-    const { state, emissions } = applyCompletedRun(s, { variant: 'refine', now: 1000 });
+    const { state, emissions } = applyCompletedRun(s, { variant: 'gilfoyle', now: 1000 });
     expect(state.totalRuns).toBe(1);
-    expect(state.runsByVariant.refine).toBe(1);
-    expect(state.streakByVariant.refine).toBe(1);
+    expect(state.runsByVariant.gilfoyle).toBe(1);
+    expect(state.streakByVariant.gilfoyle).toBe(1);
     expect(emissions.some((e) => e.kind === 'xp' && e.amount === 25)).toBe(true);
     // First-ever run unlocks the firstSlop achievement banner.
     expect(emissions.some((e) => e.kind === 'achievement' && e.id === 'firstSlop')).toBe(true);
@@ -39,26 +39,26 @@ describe('runGamificationStore', () => {
 
   it('tracks consecutive same-variant streaks and resets on switch', () => {
     let s = createInitialState();
-    s = applyCompletedRun(s, { variant: 'refine', now: 1000 }).state;
-    s = applyCompletedRun(s, { variant: 'refine', now: 2000 }).state;
-    s = applyCompletedRun(s, { variant: 'refine', now: 3000 }).state;
-    expect(s.streakByVariant.refine).toBe(3);
+    s = applyCompletedRun(s, { variant: 'gilfoyle', now: 1000 }).state;
+    s = applyCompletedRun(s, { variant: 'gilfoyle', now: 2000 }).state;
+    s = applyCompletedRun(s, { variant: 'gilfoyle', now: 3000 }).state;
+    expect(s.streakByVariant.gilfoyle).toBe(3);
     // Switching to a different variant resets the prior streak.
     s = applyCompletedRun(s, { variant: 'erlich', now: 4000 }).state;
-    expect(s.streakByVariant.refine).toBe(0);
+    expect(s.streakByVariant.gilfoyle).toBe(0);
     expect(s.streakByVariant.erlich).toBe(1);
   });
 
   it('emits a streak event when the same variant fires ≥ 2 in a row', () => {
     let s = createInitialState();
-    s = applyCompletedRun(s, { variant: 'refine', now: 1000 }).state;
-    const { emissions } = applyCompletedRun(s, { variant: 'refine', now: 2000 });
+    s = applyCompletedRun(s, { variant: 'gilfoyle', now: 1000 }).state;
+    const { emissions } = applyCompletedRun(s, { variant: 'gilfoyle', now: 2000 });
     expect(emissions.some((e) => e.kind === 'streak' && e.streak === 2)).toBe(true);
   });
 
   it('emits a combo when a different variant fires within the window', () => {
     let s = createInitialState();
-    s = applyCompletedRun(s, { variant: 'refine', now: 1000 }).state;
+    s = applyCompletedRun(s, { variant: 'gilfoyle', now: 1000 }).state;
     const { emissions, state } = applyCompletedRun(s, {
       variant: 'erlich',
       now: 1000 + COMBO_WINDOW_MS - 1
@@ -69,9 +69,9 @@ describe('runGamificationStore', () => {
 
   it('does not emit a combo when same variant or window expired', () => {
     let s = createInitialState();
-    s = applyCompletedRun(s, { variant: 'refine', now: 1000 }).state;
+    s = applyCompletedRun(s, { variant: 'gilfoyle', now: 1000 }).state;
     // Same variant: streak, not combo.
-    let next = applyCompletedRun(s, { variant: 'refine', now: 2000 });
+    let next = applyCompletedRun(s, { variant: 'gilfoyle', now: 2000 });
     expect(next.emissions.some((e) => e.kind === 'combo')).toBe(false);
     // Window expired:
     next = applyCompletedRun(s, { variant: 'erlich', now: 1000 + COMBO_WINDOW_MS + 1 });
@@ -98,7 +98,7 @@ describe('runGamificationStore', () => {
 
   it('unlocks Full-Stack Slopitect after 5 distinct variants in a session', () => {
     let s = createInitialState();
-    const variants = ['refine', 'erlich', 'goMad', 'critique', 'explain'];
+    const variants = ['gilfoyle', 'erlich', 'goMad', 'critique', 'explain'];
     let unlockedAt = -1;
     variants.forEach((v, idx) => {
       const r = applyCompletedRun(s, { variant: v, now: 1000 + idx * 10_000 });
@@ -114,7 +114,7 @@ describe('runGamificationStore', () => {
     let s = createInitialState();
     let crossedAt = -1;
     for (let i = 0; i < 11; i += 1) {
-      const r = applyCompletedRun(s, { variant: 'refine', now: 1000 + i * 100 });
+      const r = applyCompletedRun(s, { variant: 'gilfoyle', now: 1000 + i * 100 });
       s = r.state;
       if (r.emissions.some((e) => e.kind === 'prestige')) {
         crossedAt = i;
@@ -127,11 +127,11 @@ describe('runGamificationStore', () => {
   it('persists totals, xp, and achievements but resets session state on load', () => {
     let s = createInitialState();
     s = applyCompletedRun(s, { variant: 'goMad', now: 1, goMadDepth: 3 }).state;
-    s = applyCompletedRun(s, { variant: 'refine', now: 2 }).state;
+    s = applyCompletedRun(s, { variant: 'gilfoyle', now: 2 }).state;
     const json = serializeForStorage(s);
     const reloaded = loadFromStorage(json);
     expect(reloaded.totalRuns).toBe(2);
-    expect(reloaded.runsByVariant.refine).toBe(1);
+    expect(reloaded.runsByVariant.gilfoyle).toBe(1);
     expect(reloaded.runsByVariant.goMad).toBe(1);
     expect(reloaded.achievements?.slopitectCertified).toBe(true);
     expect(reloaded.xp).toBe(s.xp);
@@ -147,14 +147,14 @@ describe('runGamificationStore', () => {
   it('migrates legacy v1 records with xp=0 default', () => {
     const legacy = JSON.stringify({
       v: 1,
-      runsByVariant: { refine: 3 },
+      runsByVariant: { gilfoyle: 3 },
       totalRuns: 3,
       achievements: { firstSlop: true }
     });
     const reloaded = loadFromStorage(legacy);
     expect(reloaded).not.toBeNull();
     expect(reloaded.totalRuns).toBe(3);
-    expect(reloaded.runsByVariant.refine).toBe(3);
+    expect(reloaded.runsByVariant.gilfoyle).toBe(3);
     expect(reloaded.achievements?.firstSlop).toBe(true);
     expect(reloaded.xp).toBe(0);
     expect(reloaded.level).toBe(1);
@@ -171,7 +171,7 @@ describe('runGamificationStore', () => {
     let lastEmissions = [];
     // Pump enough runs to cross the Lvl 2 threshold (50 XP) and observe levelUp.
     for (let i = 0; i < 4; i += 1) {
-      const r = applyCompletedRun(s, { variant: 'refine', now: 1000 + i * 100 });
+      const r = applyCompletedRun(s, { variant: 'gilfoyle', now: 1000 + i * 100 });
       s = r.state;
       lastEmissions = r.emissions;
       if (lastEmissions.some((e) => e.kind === 'levelUp')) break;
@@ -183,9 +183,9 @@ describe('runGamificationStore', () => {
 
   it('streak bonus stacks into the XP award', () => {
     let s = createInitialState();
-    const first = applyCompletedRun(s, { variant: 'refine', now: 1 });
+    const first = applyCompletedRun(s, { variant: 'gilfoyle', now: 1 });
     s = first.state;
-    const second = applyCompletedRun(s, { variant: 'refine', now: 2 });
+    const second = applyCompletedRun(s, { variant: 'gilfoyle', now: 2 });
     const firstXp = first.emissions.find((e) => e.kind === 'xp');
     const secondXp = second.emissions.find((e) => e.kind === 'xp');
     expect(secondXp.amount).toBeGreaterThan(firstXp.amount);
@@ -194,7 +194,7 @@ describe('runGamificationStore', () => {
 
   it('unlocks Hat Trick when 3 distinct variants land inside the window', () => {
     let s = createInitialState();
-    s = applyCompletedRun(s, { variant: 'refine', now: 0 }).state;
+    s = applyCompletedRun(s, { variant: 'gilfoyle', now: 0 }).state;
     s = applyCompletedRun(s, { variant: 'erlich', now: 1000 }).state;
     const r = applyCompletedRun(s, { variant: 'critique', now: 2000 });
     expect(r.emissions.some((e) => e.id === 'hatTrick')).toBe(true);
@@ -202,7 +202,7 @@ describe('runGamificationStore', () => {
 
   it('does not unlock Hat Trick when the window expires between variants', () => {
     let s = createInitialState();
-    s = applyCompletedRun(s, { variant: 'refine', now: 0 }).state;
+    s = applyCompletedRun(s, { variant: 'gilfoyle', now: 0 }).state;
     s = applyCompletedRun(s, { variant: 'erlich', now: HAT_TRICK_WINDOW_MS + 100 }).state;
     const r = applyCompletedRun(s, { variant: 'critique', now: HAT_TRICK_WINDOW_MS + 200 });
     expect(r.emissions.some((e) => e.id === 'hatTrick')).toBe(false);
@@ -212,7 +212,7 @@ describe('runGamificationStore', () => {
     let s = createInitialState();
     let unlockedAt = -1;
     for (let i = 0; i < SLOP_MARATHON_SESSION_THRESHOLD; i += 1) {
-      const r = applyCompletedRun(s, { variant: 'refine', now: i * 1000 });
+      const r = applyCompletedRun(s, { variant: 'gilfoyle', now: i * 1000 });
       s = r.state;
       if (r.emissions.some((e) => e.id === 'slopMarathon')) unlockedAt = i;
     }
@@ -222,7 +222,7 @@ describe('runGamificationStore', () => {
   it('accumulates lifetime LLM cost estimates across completed runs', () => {
     let s = createInitialState();
     expect(s.lifetimeLlmCostUsd).toBe(0);
-    s = applyCompletedRun(s, { variant: 'refine', now: 1, runCostUsd: 0.012 }).state;
+    s = applyCompletedRun(s, { variant: 'gilfoyle', now: 1, runCostUsd: 0.012 }).state;
     s = applyCompletedRun(s, { variant: 'erlich', now: 2, runCostUsd: 0.008 }).state;
     expect(s.lifetimeLlmCostUsd).toBeCloseTo(0.02, 5);
     const reloaded = loadFromStorage(serializeForStorage(s));
@@ -231,7 +231,7 @@ describe('runGamificationStore', () => {
 
   it('reconciles lifetime LLM cost from persisted insight entry totals', () => {
     const state = applyCompletedRun(createInitialState(), {
-      variant: 'refine',
+      variant: 'gilfoyle',
       now: 1,
       runCostUsd: 0.01
     }).state;
@@ -252,7 +252,7 @@ describe('runGamificationStore', () => {
     expect(s.advisorLlmCostUsd).toBeCloseTo(0.001, 6);
     expect(s.lifetimeLlmCostUsd).toBeCloseTo(0.001, 6);
     // A completed run must not wipe the separately-tracked advisor tally.
-    s = applyCompletedRun(s, { variant: 'refine', now: 1, runCostUsd: 0.01 }).state;
+    s = applyCompletedRun(s, { variant: 'gilfoyle', now: 1, runCostUsd: 0.01 }).state;
     expect(s.advisorLlmCostUsd).toBeCloseTo(0.001, 6);
     expect(s.lifetimeLlmCostUsd).toBeCloseTo(0.011, 6);
     // Persistence round-trips the advisor tally.

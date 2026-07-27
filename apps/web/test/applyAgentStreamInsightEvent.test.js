@@ -198,7 +198,7 @@ describe('applyAgentStreamInsightEvent model_call', () => {
     const ctx = createCtx({
       triggerCompletionDelight,
       patchInsightEntry,
-      variant: 'refine',
+      variant: 'gilfoyle',
       agentCostEstimates: {
         enabled: true,
         pricingUrl: 'https://cloud.google.com/vertex-ai/generative-ai/pricing',
@@ -220,7 +220,7 @@ describe('applyAgentStreamInsightEvent model_call', () => {
       message: 'Done'
     });
     expect(streamAcc.estimatedCostUsd).toBeCloseTo(0.3, 5);
-    expect(triggerCompletionDelight).toHaveBeenCalledWith('sec-1', 'refine', {
+    expect(triggerCompletionDelight).toHaveBeenCalledWith('sec-1', 'gilfoyle', {
       runCostUsd: expect.closeTo(0.3, 5)
     });
   });

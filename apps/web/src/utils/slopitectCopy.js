@@ -30,13 +30,13 @@ export function slopitectShortName(variant) {
 }
 
 export const VARIANT_PERSONAS = {
-  refine: {
-    name: 'THE Engineer',
-    title: 'Builder of useful next steps',
-    tagline: 'One careful, useful extension at a time.',
-    avatarEmoji: '👷',
-    entryLine: 'Engineering the next step…',
-    exitLine: 'Shipped a useful bit 🧰',
+  gilfoyle: {
+    name: 'Bertram Gilfoyle',
+    title: 'Systems Architect, Unimpressed',
+    tagline: 'The correct change. Stated once.',
+    avatarEmoji: '🦇',
+    entryLine: 'Someone left this unfinished.',
+    exitLine: 'Fixed. It was wrong. 🦇',
     accentColorVar: '--accent',
     xpAward: 25,
     xpStreakBonus: 5
@@ -118,16 +118,16 @@ export const STAKEHOLDERS_MUTE_COPY = {
  * Pure flavor — enterprise-architecture parody.
  */
 export const VARIANT_QUOTES = {
-  refine: [
-    'One useful next step at a time.',
-    'Small piece, well-fitted.',
-    'Extending the idea — gently.',
-    'What belongs here that isn’t here yet?',
-    'A step is missing between these two.',
-    'Tightening the joint, not the whole frame.',
-    'Build on what’s working.',
-    'One more block. The right one.',
-    'Adds up over time.'
+  gilfoyle: [
+    'That dependency exists. It was never written down.',
+    'One box is doing two jobs. Someone noticed. Me.',
+    'A step is missing between these two. Obviously.',
+    'Nobody named that edge. Cowardice.',
+    'The vague box is the load-bearing one. It always is.',
+    'I have opinions about this. They are correct.',
+    'I fixed it. You are welcome to not thank me.',
+    'This is fine. It is not fine.',
+    'The darkness is fine with this diagram. I am not.'
   ],
   erlich: [
     'I practically invented this diagram.',
@@ -289,7 +289,7 @@ export function stakeholderTooltip(variant) {
  */
 export const PHASE_CEREMONIES = {
   analyze: {
-    refine: 'Reading the diagram…',
+    gilfoyle: 'Reading what you left me…',
     erlich: 'Spotting the bolder shape…',
     goMad: 'Eyeballing the slop 👀',
     critique: 'Opening JIRA…',
@@ -297,7 +297,7 @@ export const PHASE_CEREMONIES = {
     barker: 'Admiring the story…'
   },
   analyze_stream: {
-    refine: 'Sketching the next step…',
+    gilfoyle: 'Locating the defect…',
     erlich: 'Keynoting the pivot…',
     goMad: 'Yelling at it 📣',
     critique: 'Drafting findings…',
@@ -305,7 +305,7 @@ export const PHASE_CEREMONIES = {
     barker: 'Boiling it down for the board…'
   },
   intent: {
-    refine: 'Aligning intent…',
+    gilfoyle: 'Parsing what you meant…',
     erlich: 'Aligning the vision…',
     goMad: 'Skipping the meeting',
     critique: 'Citing the SOC 2 controls',
@@ -313,7 +313,7 @@ export const PHASE_CEREMONIES = {
     barker: 'Aligning the triangles…'
   },
   agent_run: {
-    refine: 'Engineering the next piece…',
+    gilfoyle: 'Making the correct change…',
     erlich: 'Graciously elevating it…',
     goMad: 'GOING MAD ON YOUR TOPIC',
     critique: 'Filing tickets…',
@@ -321,7 +321,7 @@ export const PHASE_CEREMONIES = {
     barker: 'Taking the liberty…'
   },
   transform: {
-    refine: 'Adding the useful bit…',
+    gilfoyle: 'Drawing what was already true…',
     erlich: 'Elevating the layout…',
     goMad: 'Adding wonderfully strange things 🔥',
     critique: 'Red-penning the layout…',
@@ -329,7 +329,7 @@ export const PHASE_CEREMONIES = {
     barker: 'Killing the darlings, warmly…'
   },
   run_started: {
-    refine: 'Kicking off…',
+    gilfoyle: 'Fine.',
     erlich: 'Let me ask you this…',
     goMad: 'OK NOW HOLD ON 🪖',
     critique: 'Inspector inbound…',
@@ -337,7 +337,7 @@ export const PHASE_CEREMONIES = {
     barker: 'I don’t know about you, but I am excited…'
   },
   planning: {
-    refine: 'Drafting deltas…',
+    gilfoyle: 'Enumerating what is wrong…',
     erlich: 'Drafting the keynote…',
     goMad: 'Throwing darts at the diagram 🎯',
     critique: 'Building the findings outline…',
@@ -345,7 +345,7 @@ export const PHASE_CEREMONIES = {
     barker: 'Drafting the one-pager…'
   },
   syntax_fixer: {
-    refine: 'Mending syntax…',
+    gilfoyle: 'Fixing syntax nobody checked…',
     erlich: 'Mending syntax, brilliantly…',
     goMad: 'Duct-taping it back together',
     critique: 'Fixing syntax — audit trail updated…',
@@ -353,7 +353,7 @@ export const PHASE_CEREMONIES = {
     barker: 'Tightening the deck…'
   },
   syntax_repair: {
-    refine: 'Re-mending syntax…',
+    gilfoyle: 'Fixing it again. Obviously…',
     erlich: 'Re-mending syntax, again brilliantly…',
     goMad: 'More duct tape',
     critique: 'Re-opening the syntax finding…',
@@ -361,7 +361,7 @@ export const PHASE_CEREMONIES = {
     barker: 'Re-drafting the deck…'
   },
   style: {
-    refine: 'Tuning the palette…',
+    gilfoyle: 'Tuning the palette. Darker…',
     erlich: 'Restyling for the keynote…',
     goMad: 'CHAOTIC COLOR SCHEMES 🔥',
     critique: 'Flagging contrast violations…',
@@ -369,7 +369,7 @@ export const PHASE_CEREMONIES = {
     barker: 'One brand color only.'
   },
   patch_retry: {
-    refine: 'Awaiting CAB approval…',
+    gilfoyle: 'Waiting on process. Predictable…',
     erlich: 'Awaiting the board’s approval…',
     goMad: 'Bribing the CAB',
     critique: 'Awaiting re-review sign-off…',
@@ -377,7 +377,7 @@ export const PHASE_CEREMONIES = {
     barker: 'Asking the board for a redraft…'
   },
   invoke: {
-    refine: 'Patching prod 🛠',
+    gilfoyle: 'Patching prod 🦇',
     erlich: 'Elevating it 🕶',
     goMad: 'Setting buildings on fire 🔥',
     critique: 'Logging the generation ticket…',
@@ -385,7 +385,7 @@ export const PHASE_CEREMONIES = {
     barker: 'Taking the liberty 🧘'
   },
   invoke_fallback: {
-    refine: 'Hotfix in flight…',
+    gilfoyle: 'Falling back. Noted…',
     erlich: 'Pivot in flight…',
     goMad: 'WE PIVOT',
     critique: 'Filing a fallback finding…',
@@ -393,7 +393,7 @@ export const PHASE_CEREMONIES = {
     barker: 'Rerouting the one-pager…'
   },
   repair_1: {
-    refine: 'Hotfix in flight…',
+    gilfoyle: 'Repairing it. Again…',
     erlich: 'Vision repair in flight…',
     goMad: 'More hard hats! 🪖🪖',
     critique: 'Escalating to P1 repair…',
@@ -401,7 +401,7 @@ export const PHASE_CEREMONIES = {
     barker: 'Sliding the timeline, warmly 🗓️'
   },
   repair_2: {
-    refine: 'Second hotfix in flight…',
+    gilfoyle: 'Second repair. My objection is documented…',
     erlich: 'Second vision repair in flight…',
     goMad: 'EVEN MORE HARD HATS 🪖🪖🪖',
     critique: 'Second escalation — still non-compliant…',
@@ -411,7 +411,7 @@ export const PHASE_CEREMONIES = {
 };
 
 /**
- * @param {string} variant - one of refine/erlich/goMad/critique/explain/barker (or anything else → fallback).
+ * @param {string} variant - one of gilfoyle/erlich/goMad/critique/explain/barker (or anything else → fallback).
  * @param {string} phaseId - canonical phase id from SSE.
  * @param {string} fallbackLabel - the literal label that the server sent; rendered as-is when no override.
  */
@@ -424,7 +424,7 @@ export function phaseCeremonyLabel(variant, phaseId, fallbackLabel) {
 }
 
 export const VARIANT_TAGLINES = {
-  refine: 'Slopitect: THE Engineer extends the build',
+  gilfoyle: 'Slopitect: Gilfoyle fixes what is wrong',
   erlich: 'Slopitect: Erlich Bachman pitches the bold move',
   goMad: 'Slopitect: GENIUS LOOSE 🚨',
   critique: 'Slopitect: Co-Design compliance review',
@@ -434,7 +434,7 @@ export const VARIANT_TAGLINES = {
 };
 
 export const VARIANT_BOOT_HEADLINES = {
-  refine: 'Engineering the next useful step…',
+  gilfoyle: 'Gilfoyle found the defect…',
   erlich: 'Erlich Bachman is graciously elevating…',
   goMad: 'BONK! THE SLOPITECT IS HERE',
   critique: 'CO-DESIGN REVIEW INCOMING',
@@ -561,10 +561,10 @@ export function levelForXp(totalXp) {
 /** Per-variant total-run milestones that unlock a "specialist" achievement. */
 export const VARIANT_MASTERY_THRESHOLD = 10;
 export const VARIANT_MASTERY_ACHIEVEMENTS = {
-  refine: {
-    id: 'masterPolisher',
-    title: '👷 MASTER ENGINEER',
-    subtitle: '10 useful extensions shipped. The site is yours.'
+  gilfoyle: {
+    id: 'stackOwner',
+    title: '🦇 THE STACK IS MINE',
+    subtitle: '10 correct changes. Nobody thanked you. Fine.'
   },
   erlich: {
     id: 'tenPercentLegend',

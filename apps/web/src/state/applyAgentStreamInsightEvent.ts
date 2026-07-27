@@ -26,7 +26,7 @@ import {
 } from '../utils/formatTechnicalActionDetail.js';
 
 const AUTO_DIAGRAM_CHANGE_HIGHLIGHT_PENDING_TIMEOUT_MS = 10000;
-const AUTO_DIAGRAM_HIGHLIGHT_VARIANTS = new Set(['intent', 'refine', 'erlich', 'goMad']);
+const AUTO_DIAGRAM_HIGHLIGHT_VARIANTS = new Set(['intent', 'gilfoyle', 'erlich', 'goMad']);
 
 function normalizeInsightTextForDedup(text: string | undefined): string {
   return (text ?? '').replace(/\s+/g, ' ').trim();
@@ -128,11 +128,11 @@ export type InsightEventContext = {
   playDraftTick?: () => void;
   playFailureChime?: () => void;
   playPhaseChangePluck?: () => void;
-  playRefineTokenTick?: () => void;
+  playGilfoyleTokenTick?: () => void;
   playErlichTokenTick?: (audioCtx: AudioContext, idx: number) => void;
   playCritiqueTokenTick?: () => void;
   playExplainTokenTick?: () => void;
-  playRefinePolishLoop?: () => void;
+  playGilfoylePolishLoop?: () => void;
   playErlichSynthLoop?: () => void;
   playGoMadKlaxonLoop?: () => void;
   playGoMadAirhornBlast?: () => void;
@@ -202,11 +202,11 @@ export function applyAgentStreamInsightEvent(
     playDraftTick,
     playFailureChime,
     playPhaseChangePluck,
-    playRefineTokenTick,
+    playGilfoyleTokenTick,
     playErlichTokenTick,
     playCritiqueTokenTick,
     playExplainTokenTick,
-    playRefinePolishLoop,
+    playGilfoylePolishLoop,
     playErlichSynthLoop,
     playGoMadKlaxonLoop,
     playGoMadAirhornBlast,
@@ -284,8 +284,8 @@ export function applyAgentStreamInsightEvent(
       }
     } else if (variant === 'erlich' && typeof playErlichSynthLoop === 'function') {
       if (Math.random() < 0.5) tryAgentSound(playErlichSynthLoop);
-    } else if (variant === 'refine' && typeof playRefinePolishLoop === 'function') {
-      if (Math.random() < 0.45) tryAgentSound(playRefinePolishLoop);
+    } else if (variant === 'gilfoyle' && typeof playGilfoylePolishLoop === 'function') {
+      if (Math.random() < 0.45) tryAgentSound(playGilfoylePolishLoop);
     } else if (variant === 'explain' && typeof playExplainPageFlipLoop === 'function') {
       if (Math.random() < 0.45) tryAgentSound(playExplainPageFlipLoop);
     } else if (variant === 'critique' && typeof playCritiqueScribbleLoop === 'function') {
@@ -415,8 +415,8 @@ export function applyAgentStreamInsightEvent(
         const idx = goMadTokenTickIndexRef.current;
         goMadTokenTickIndexRef.current = idx + 1;
         tryAgentSound((audioCtx) => playGoMadTokenTick(audioCtx, idx));
-      } else if (variant === 'refine' && typeof playRefineTokenTick === 'function') {
-        tryAgentSound(playRefineTokenTick);
+      } else if (variant === 'gilfoyle' && typeof playGilfoyleTokenTick === 'function') {
+        tryAgentSound(playGilfoyleTokenTick);
       } else if (variant === 'erlich' && playErlichTokenTick) {
         const idx = goMadTokenTickIndexRef.current;
         goMadTokenTickIndexRef.current = idx + 1;

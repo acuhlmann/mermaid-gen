@@ -11,12 +11,12 @@ export const TRANSFORM_MODEL_LIMITS = Object.freeze({
 export const GO_MAD_TRANSFORM_MAX_TOKENS = 1400;
 
 const TRANSFORM_MODE_MODEL = Object.freeze({
-  refine: { temperature: 0.42 },
+  gilfoyle: { temperature: 0.42 },
   erlich: { temperature: 0.82 },
   barker: { temperature: 0.35 }
 });
 
-const TRANSFORM_MODES = Object.freeze(['refine', 'erlich', 'goMad', 'barker']);
+const TRANSFORM_MODES = Object.freeze(['gilfoyle', 'erlich', 'goMad', 'barker']);
 
 export function isTransformMode(value) {
   return typeof value === 'string' && TRANSFORM_MODES.includes(value);
@@ -265,7 +265,7 @@ export function goMadTransformModelOptions(depthRaw) {
  * @param {unknown} [goMadDepth] tier when mode is goMad (defaults to 1)
  */
 export function transformModeModelOptions(mode, goMadDepth) {
-  const key = isTransformMode(mode) ? mode : 'refine';
+  const key = isTransformMode(mode) ? mode : 'gilfoyle';
   if (key === 'goMad') {
     return goMadTransformModelOptions(goMadDepth ?? 1);
   }
@@ -324,12 +324,13 @@ export function buildTransformUserContent({
   advisorPrompt
 }) {
   const policy =
-    mode === 'refine'
-      ? `Transform mode: REFINE — THE Engineer incrementally extends the diagram with the next useful piece.
+    mode === 'gilfoyle'
+      ? `Transform mode: GILFOYLE — Bertram Gilfoyle (HBO's Silicon Valley) fixes what is actually wrong with the diagram, one correct change at a time.
 - Keep the SAME diagram type. Build on what is there; do NOT restructure, rename in bulk, or invent a new top-level shape.
 - Add ONE small useful extension or slight modification that obviously belongs: the missing step in the flow, a parent grouping the user implied, a named relationship that was hanging unlabeled, splitting a single too-broad node into two specific ones.
-- Subject-anchored: speak in whatever the diagram's actual subject is (recipe, org chart, biology, planning, software). Do NOT default to enterprise/cloud vocabulary unless the diagram is already enterprise/cloud — read the labels first.
-- Budget: prefer 1–3 new nodes and 2–5 new edges. If the diagram already says enough, tighten ONE label instead. Keep it readable; small wins compound.`
+- Subject-anchored: speak in whatever the diagram's actual subject is (recipe, org chart, biology, planning, software). Do NOT default to enterprise/cloud/infrastructure vocabulary unless the diagram is already that — read the labels first.
+- Budget: prefer 1–3 new nodes and 2–5 new edges. If the diagram already says enough, tighten ONE label instead. Keep it readable; small wins compound.
+- Voice for any prose you emit after the patch: flat, terminal, unimpressed. State what was wrong and what you changed, in short declaratives ("The dependency was always there. It's drawn now."). No enthusiasm, no hedging, no exclamation points, no praise. Contempt lands on the work, never on the user. Short.`
       : mode === 'erlich'
         ? `Transform mode: ERLICH — Erlich Bachman (HBO's Silicon Valley) graciously elevates the diagram with the bold pivot only he could see, on the visible subject.
 - Stay ON THE SUBJECT of the visible labels. Do NOT default to enterprise/SaaS/cloud vocabulary unless the diagram is enterprise/SaaS/cloud — read the labels first and speak in their world.

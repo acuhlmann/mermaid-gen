@@ -24,7 +24,7 @@ describe('useDiagramHotkeys', () => {
     render(<Harness enabled descriptor={desc} onAction={onAction} onToggleHelp={vi.fn()} />);
 
     for (const [key, id] of [
-      ['r', 'refine'],
+      ['r', 'gilfoyle'],
       ['l', 'erlich'],
       ['m', 'goMad'],
       ['c', 'critique'],
@@ -41,7 +41,7 @@ describe('useDiagramHotkeys', () => {
     const onAction = vi.fn();
     render(<Harness enabled descriptor={{ id: 'n' }} onAction={onAction} onToggleHelp={vi.fn()} />);
     fireEvent.keyDown(window, { key: 'R' });
-    expect(onAction).toHaveBeenCalledWith({ id: 'refine' }, { id: 'n' });
+    expect(onAction).toHaveBeenCalledWith({ id: 'gilfoyle' }, { id: 'n' });
   });
 
   it('does NOT fire when enabled is false', () => {

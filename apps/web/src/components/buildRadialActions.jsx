@@ -88,13 +88,13 @@ export function buildRadialActions({
       modeOptions: selectableRenderModes(contentMode, contentModeOptions)
     },
     {
-      id: 'refine',
-      label: a.refine,
-      icon: <ActionPersonaIcon variant="refine" />,
-      variant: 'refine',
-      persona: actionPersonaName('refine'),
-      personaEmoji: actionPersonaEmoji('refine'),
-      personaTitle: actionPersonaTitle('refine')
+      id: 'gilfoyle',
+      label: a.gilfoyle,
+      icon: <ActionPersonaIcon variant="gilfoyle" />,
+      variant: 'gilfoyle',
+      persona: actionPersonaName('gilfoyle'),
+      personaEmoji: actionPersonaEmoji('gilfoyle'),
+      personaTitle: actionPersonaTitle('gilfoyle')
     },
     {
       id: 'erlich',

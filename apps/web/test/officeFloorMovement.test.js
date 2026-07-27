@@ -155,7 +155,7 @@ describe('approachTileFor', () => {
     // Pins the derivation the way slice 6 pins the peek roster: a layout change
     // that quietly strands a colleague fails here.
     expect(roster).toEqual([
-      'refine',
+      'gilfoyle',
       'erlich',
       'critique',
       'explain',

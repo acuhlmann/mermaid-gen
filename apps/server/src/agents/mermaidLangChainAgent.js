@@ -883,9 +883,9 @@ export function createMermaidLangChainAgent({
   /** Prompt-bar Go (`applyIntent`) and generic `invoke` — does not use transform/Go Mad sampling. */
   const getDefaultAgent = cache.getDefaultAgent;
 
-  /** Shape buttons Refine / Erlich / Go Mad / Align — hotter tiers apply only to Go Mad via `goMadTransformModelOptions`. */
+  /** Shape buttons Gilfoyle / Erlich / Go Mad / Align — hotter tiers apply only to Go Mad via `goMadTransformModelOptions`. */
   function getTransformAgent(mode, profile = 'fast', goMadDepth) {
-    const safeMode = isTransformMode(mode) ? mode : 'refine';
+    const safeMode = isTransformMode(mode) ? mode : 'gilfoyle';
     return cache.getTransformAgent(safeMode, profile, goMadDepth);
   }
 

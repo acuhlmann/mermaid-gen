@@ -65,7 +65,7 @@ describe('PlanBeatCard', () => {
       <ul>
         <PlanBeatCard
           beat={{ text, source: 'agent' }}
-          variant="refine"
+          variant="gilfoyle"
           index={0}
           contentType="anything"
         />
@@ -188,7 +188,7 @@ flowchart LR
       <ul>
         <PlanBeatCard
           beat={{ text, source: 'agent' }}
-          variant="refine"
+          variant="gilfoyle"
           index={0}
           contentType="anything"
         />

@@ -19,7 +19,7 @@ const GO_MAD_EXOTIC_TEMPLATES = [
 ];
 
 export const INFOGRAPHIC_TRANSFORM_INSTRUCTIONS = {
-  refine: `Transform mode: REFINE — THE Engineer incrementally extends the infographic with the next useful piece.
+  gilfoyle: `Transform mode: GILFOYLE — Bertram Gilfoyle (HBO's Silicon Valley) fixes what is actually wrong with the infographic, one correct change at a time.
 - KEEP the exact same \`infographic <template>\` line and the same main data field (\`lists\`, \`sequences\`, \`compares\`, \`values\`, \`nodes\`, \`items\`, or \`root\`).
 - Add ONE useful item that obviously belongs (or, if the story is complete, tighten ONE label / desc / icon that improves clarity). Stay on whatever the infographic's actual subject is — recipes, biology, planning, software, etc.
 - You may add at most 2 new items total; prefer 1 if 1 is enough.
@@ -49,7 +49,7 @@ export const INFOGRAPHIC_TRANSFORM_INSTRUCTIONS = {
 
 /** Stakeholder intent routed through applyIntent (advisor "Do it") — softer than full transform. */
 export const INFOGRAPHIC_INTENT_PERSONA_INSTRUCTIONS = {
-  refine: `Persona: REFINE (THE Engineer). Keep the current template and data field. Honor the user's wording with surgical label/structure tweaks; add at most 1 item if it obviously belongs.`,
+  gilfoyle: `Persona: GILFOYLE (Bertram Gilfoyle, systems architect). Keep the current template and data field. Honor the user's wording with surgical label/structure tweaks; add at most 1 item if it obviously belongs.`,
   erlich: `Persona: ERLICH (Erlich Bachman, Hacker Hostel founder). Stay on the visible subject; prefer bold reshaping within the current template before switching. At most one template change if clearly justified for THIS subject.`,
   goMad: `Persona: GO MAD (Slopitect). Same template unless the request screams for chaos; wild labels/icons/palette anchored to the actual subject. Valid DSL only.`,
   barker: `Persona: BARKER (Jack Barker, CEO — Success Theater). Subtractive only — shorten labels, merge/drop items, keep template. Target 3–5 items.`,
@@ -106,7 +106,7 @@ export function buildInfographicTransformUserContent({
   advisorPrompt
 }) {
   const directive =
-    INFOGRAPHIC_TRANSFORM_INSTRUCTIONS[mode] ?? INFOGRAPHIC_TRANSFORM_INSTRUCTIONS.refine;
+    INFOGRAPHIC_TRANSFORM_INSTRUCTIONS[mode] ?? INFOGRAPHIC_TRANSFORM_INSTRUCTIONS.gilfoyle;
   const depthValue =
     mode === 'goMad' ? Math.min(12, Math.max(1, Math.trunc(Number(goMadDepth) || 1))) : 0;
   const depthLine = mode === 'goMad' && goMadDepth ? `\nGo Mad depth: ${depthValue} of 12.` : '';

@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 
 const ACTION_KEYS = {
-  r: 'refine',
+  r: 'gilfoyle',
   l: 'erlich',
   m: 'goMad',
   c: 'critique',

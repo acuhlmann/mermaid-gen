@@ -67,7 +67,7 @@ describe('who wanders is an answer the room gives', () => {
 
   it('pins the roster, so a layout change cannot quietly grow it', () => {
     expect(wanderingSeatIds()).toEqual([
-      'refine',
+      'gilfoyle',
       'erlich',
       'critique',
       'explain',
@@ -151,7 +151,7 @@ describe('the trip machine', () => {
     expect(seen.wanderer).toBeNull();
 
     act(() => vi.advanceTimersByTime(9_000));
-    expect(seen.wanderer?.seatId).toBe('refine');
+    expect(seen.wanderer?.seatId).toBe('gilfoyle');
     expect(seen.wanderer?.phase).toBe('out');
 
     arrive();
@@ -177,11 +177,11 @@ describe('the trip machine', () => {
   it('clears whoever a scene claims mid-trip, rather than walking them back', () => {
     const { seen, view, Probe } = harness();
     act(() => vi.advanceTimersByTime(9_000));
-    expect(seen.wanderer?.seatId).toBe('refine');
+    expect(seen.wanderer?.seatId).toBe('gilfoyle');
 
     // A coffee scene starts and wants Refine: two of him is what § 6 rule 5
     // exists to prevent, and the scene is already drawing one.
-    act(() => view.rerender(<Probe busyIds={['refine']} />));
+    act(() => view.rerender(<Probe busyIds={['gilfoyle']} />));
     expect(seen.wanderer).toBeNull();
   });
 
@@ -195,7 +195,7 @@ describe('the trip machine', () => {
     expect(seen.wanderer.phase).toBe('out');
     act(() => view.rerender(<Probe avoidTile={mark} />));
     expect(seen.wanderer.phase).toBe('home');
-    expect(seen.wanderer.to).toEqual({ x: seatFor('refine').x, y: seatFor('refine').y });
+    expect(seen.wanderer.to).toEqual({ x: seatFor('gilfoyle').x, y: seatFor('gilfoyle').y });
 
     // Walked home rather than cleared: nothing else is drawing them, so they
     // have to actually leave rather than vanish.
@@ -236,12 +236,12 @@ describe('the floor with somebody up and about', () => {
   it('empties their desk while they are out and fills it again after', () => {
     standUp();
     const view = render(<OfficeFloor />);
-    const seat = () => view.container.querySelector('[data-seat="refine"]');
+    const seat = () => view.container.querySelector('[data-seat="gilfoyle"]');
 
     expect(seat()?.dataset.vacant).toBeUndefined();
 
     act(() => vi.advanceTimersByTime(9_000));
-    expect(screen.getByTestId('office-floor-wanderer').dataset.wanderer).toBe('refine');
+    expect(screen.getByTestId('office-floor-wanderer').dataset.wanderer).toBe('gilfoyle');
     // § 6 rule 5: the furniture stays, the person doesn't.
     expect(seat()).toBeTruthy();
     expect(seat()?.dataset.vacant).toBe('true');
@@ -274,9 +274,9 @@ describe('the floor with somebody up and about', () => {
     const view = render(<OfficeFloor />);
     act(() => vi.advanceTimersByTime(9_000));
 
-    const desk = seatFor('refine');
-    const trip = wanderTripsFor('refine')[0];
-    expect(view.container.querySelector('[data-wanderer="refine"]')).toBeTruthy();
+    const desk = seatFor('gilfoyle');
+    const trip = wanderTripsFor('gilfoyle')[0];
+    expect(view.container.querySelector('[data-wanderer="gilfoyle"]')).toBeTruthy();
     // Started at the desk they vacated, ended at a real prop mark.
     expect(trip.mark).toEqual(propTileFor(trip.kind));
     expect(desk.desk).toBe(true);

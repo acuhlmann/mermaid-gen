@@ -5,7 +5,7 @@ import {
   playFailureChime,
   playGoMadStreamStart,
   playErlichStreamStart,
-  playRefineStreamStart,
+  playGilfoyleStreamStart,
   playStreamStartChime
 } from '../src/utils/agentChimes.js';
 
@@ -123,7 +123,7 @@ describe('useRunStreamingAgent', () => {
     for (const [variant, chime] of [
       ['goMad', playGoMadStreamStart],
       ['erlich', playErlichStreamStart],
-      ['refine', playRefineStreamStart]
+      ['gilfoyle', playGilfoyleStreamStart]
     ]) {
       deps.tryAgentSound.mockClear();
       await act(async () => {
@@ -145,9 +145,9 @@ describe('useRunStreamingAgent', () => {
     await act(async () => {
       await result.current.runStreamingAgent({
         operation: 'transform',
-        payload: { prompt: 'refine' },
+        payload: { prompt: 'gilfoyle' },
         title: 'Refine',
-        variant: 'refine',
+        variant: 'gilfoyle',
         diagramUndoBaseline: { revisionId: 3 }
       });
     });
@@ -193,7 +193,7 @@ describe('useRunStreamingAgent', () => {
         operation: 'transform',
         payload: { prompt: 'big diagram' },
         title: 'Refine',
-        variant: 'refine'
+        variant: 'gilfoyle'
       });
     });
 

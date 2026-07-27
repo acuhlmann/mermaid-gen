@@ -45,7 +45,7 @@ test('senior stakeholders are valid meeting speakers with real voice blocks', ()
   assert.ok(STAKEHOLDER_MEETING_VOICES.barker.length > 40, 'barker needs a real voice card');
   // Seated seniors must be introduced by name, not by bare id, in the script prompt.
   const prompt = buildMeetingSystemPrompt({
-    attendees: ['scrumMaster', 'cfo', 'refine'],
+    attendees: ['scrumMaster', 'cfo', 'gilfoyle'],
     facilitatorId: 'scrumMaster'
   });
   assert.match(prompt, /Diane \(CFO/);
@@ -54,16 +54,28 @@ test('senior stakeholders are valid meeting speakers with real voice blocks', ()
   // Jack Barker (Silicon Valley replication experiment): the card heading is the bare id
   // (stakeholder voices have no name/title label), but the voice card itself names him.
   const barkerPrompt = buildMeetingSystemPrompt({
-    attendees: ['scrumMaster', 'barker', 'refine'],
+    attendees: ['scrumMaster', 'barker', 'gilfoyle'],
     facilitatorId: 'scrumMaster'
   });
   assert.match(barkerPrompt, /You are Jack Barker from HBO's Silicon Valley, the CEO/);
   assert.match(barkerPrompt, /speakerId "barker"/);
-  assert.deepEqual(normalizeAttendees(['scrumMaster', 'barker', 'refine']), [
+  assert.deepEqual(normalizeAttendees(['scrumMaster', 'barker', 'gilfoyle']), [
     'scrumMaster',
     'barker',
-    'refine'
+    'gilfoyle'
   ]);
+  // Bertram Gilfoyle inherited the team `refine` seat — same table-driven path as Barker,
+  // but his card sits with the team stakeholders because the seat is a transform seat.
+  const gilfoylePrompt = buildMeetingSystemPrompt({
+    attendees: ['scrumMaster', 'gilfoyle', 'critique'],
+    facilitatorId: 'scrumMaster'
+  });
+  assert.match(gilfoylePrompt, /You are Bertram Gilfoyle from HBO's Silicon Valley/);
+  assert.match(gilfoylePrompt, /speakerId "gilfoyle"/);
+  assert.ok(STAKEHOLDER_MEETING_VOICES.gilfoyle.length > 40, 'gilfoyle needs a real voice card');
+  // The retired generic persona id must not linger anywhere in the speaker tables.
+  assert.equal(isOfficeSpeaker('refine'), false);
+  assert.equal(Object.hasOwn(STAKEHOLDER_MEETING_VOICES, 'refine'), false);
 });
 
 test('moment system prompt carries the voice, strict-JSON rule, and kind rules', () => {
@@ -189,11 +201,11 @@ test('normalizeAttendees dedupes, drops unknowns, and enforces seat bounds', () 
     ['scrumMaster', 'barker', 'intern', 'greybeard', 'critique']
   );
   // A steering-meeting roster (facilitator + seniors + a team presenter) must survive.
-  assert.deepEqual(normalizeAttendees(['scrumMaster', 'cto', 'cfo', 'refine']), [
+  assert.deepEqual(normalizeAttendees(['scrumMaster', 'cto', 'cfo', 'gilfoyle']), [
     'scrumMaster',
     'cto',
     'cfo',
-    'refine'
+    'gilfoyle'
   ]);
 });
 

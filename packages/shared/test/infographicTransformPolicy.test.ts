@@ -11,13 +11,13 @@ const BASE =
   '    - label Step 2\n' +
   '      desc Build';
 
-test('refine rejects template change', () => {
+test('gilfoyle rejects template change', () => {
   const after = BASE.replace('list-row-simple-horizontal-arrow', 'sequence-steps-simple').replace(
     'lists',
     'sequences'
   );
   const result = validateInfographicTransformConstraint({
-    transformMode: 'refine',
+    transformMode: 'gilfoyle',
     beforeSource: BASE,
     afterSource: after
   });
@@ -25,10 +25,10 @@ test('refine rejects template change', () => {
   assert.match(result.error, /keep template/i);
 });
 
-test('refine allows label polish and one new item', () => {
+test('gilfoyle allows label polish and one new item', () => {
   const after = BASE + '\n    - label Step 3\n' + '      desc Ship';
   const result = validateInfographicTransformConstraint({
-    transformMode: 'refine',
+    transformMode: 'gilfoyle',
     beforeSource: BASE,
     afterSource: after.replace('Step 1', 'Step One')
   });

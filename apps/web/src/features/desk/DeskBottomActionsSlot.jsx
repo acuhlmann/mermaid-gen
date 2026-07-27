@@ -22,7 +22,10 @@ function DeskPeopleCluster({
     <div className="desk-people-group">
       <StakeholdersMascot
         personas={[
-          { variant: 'refine', onClick: () => runTransform('refine', { useDiagramFocus: true }) },
+          {
+            variant: 'gilfoyle',
+            onClick: () => runTransform('gilfoyle', { useDiagramFocus: true })
+          },
           {
             variant: 'erlich',
             onClick: () => runTransform('erlich', { useDiagramFocus: true })

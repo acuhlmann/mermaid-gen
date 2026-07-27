@@ -29,7 +29,7 @@ export function contentUpdatesTitle(variant, copy) {
   const c = insightsCopy(copy);
   if (variant === 'critique') return c.contentAnalysis;
   if (variant === 'explain') return c.contentExplanation;
-  if (variant === 'refine') return c.contentRefinement;
+  if (variant === 'gilfoyle') return c.contentRefinement;
   if (variant === 'erlich') return c.contentInnovation;
   if (variant === 'goMad') return c.contentMadMode;
   return c.contentUpdates;
@@ -40,7 +40,7 @@ export function hidePhaseIds(variant, streamDebugEnabled) {
   return (
     variant === 'critique' ||
     variant === 'explain' ||
-    variant === 'refine' ||
+    variant === 'gilfoyle' ||
     variant === 'erlich' ||
     variant === 'goMad' ||
     variant === 'barker'
@@ -49,7 +49,7 @@ export function hidePhaseIds(variant, streamDebugEnabled) {
 
 export function accentContentLaneClass(variant) {
   if (variant === 'explain') return 'is-explain-content-lane';
-  if (variant === 'refine') return 'is-refine-content-lane';
+  if (variant === 'gilfoyle') return 'is-gilfoyle-content-lane';
   if (variant === 'erlich') return 'is-erlich-content-lane';
   if (variant === 'goMad') return 'is-gomad-content-lane';
   return '';
@@ -57,7 +57,7 @@ export function accentContentLaneClass(variant) {
 
 export function accentSectionTitleClass(variant) {
   if (variant === 'explain') return 'insights-section-title-explain';
-  if (variant === 'refine') return 'insights-section-title-refine';
+  if (variant === 'gilfoyle') return 'insights-section-title-gilfoyle';
   if (variant === 'erlich') return 'insights-section-title-erlich';
   if (variant === 'goMad') return 'insights-section-title-gomad';
   return '';
@@ -65,7 +65,7 @@ export function accentSectionTitleClass(variant) {
 
 export function accentSectionTitleIconWrapClass(variant) {
   if (variant === 'explain') return 'insights-section-title-explain-icon';
-  if (variant === 'refine') return 'insights-section-title-refine-icon';
+  if (variant === 'gilfoyle') return 'insights-section-title-gilfoyle-icon';
   if (variant === 'erlich') return 'insights-section-title-erlich-icon';
   if (variant === 'goMad') return 'insights-section-title-gomad-icon';
   return '';

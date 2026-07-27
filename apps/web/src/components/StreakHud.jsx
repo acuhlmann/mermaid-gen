@@ -1,7 +1,7 @@
 import { useUiCopy } from '../i18n/useUiLocale.js';
 
 const VARIANT_CLASS = {
-  refine: 'is-variant-refine',
+  gilfoyle: 'is-variant-gilfoyle',
   erlich: 'is-variant-erlich',
   goMad: 'is-variant-go-mad',
   critique: 'is-variant-critique',

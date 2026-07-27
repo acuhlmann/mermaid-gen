@@ -63,7 +63,7 @@ const VOICES_BY_LANG = {
     hr: { name: 'en-US-Wavenet-H', languageCode: 'en-US', speakingRate: 1.02, pitch: 3.0 },
     greybeard: { name: 'en-US-Wavenet-I', languageCode: 'en-US', speakingRate: 0.82, pitch: -5.0 },
     ciso: { name: 'en-US-Wavenet-A', languageCode: 'en-US', speakingRate: 0.92, pitch: -1.5 },
-    refine: { name: 'en-US-Wavenet-D', languageCode: 'en-US', speakingRate: 0.95, pitch: -1.0 },
+    gilfoyle: { name: 'en-US-Wavenet-D', languageCode: 'en-US', speakingRate: 0.9, pitch: -2.5 },
     erlich: { name: 'en-US-Wavenet-I', languageCode: 'en-US', speakingRate: 1.08, pitch: 1.0 },
     goMad: { name: 'en-US-Wavenet-J', languageCode: 'en-US', speakingRate: 1.14, pitch: 3.5 },
     critique: { name: 'en-US-Wavenet-B', languageCode: 'en-US', speakingRate: 0.88, pitch: -3.5 },
@@ -80,7 +80,7 @@ const VOICES_BY_LANG = {
     hr: { name: 'en-AU-Wavenet-C', languageCode: 'en-AU', speakingRate: 1.02, pitch: 2.5 },
     greybeard: { name: 'en-AU-Wavenet-B', languageCode: 'en-AU', speakingRate: 0.82, pitch: -4.5 },
     ciso: { name: 'en-AU-Wavenet-D', languageCode: 'en-AU', speakingRate: 0.92, pitch: -1.5 },
-    refine: { name: 'en-AU-Wavenet-B', languageCode: 'en-AU', speakingRate: 0.95, pitch: -1.0 },
+    gilfoyle: { name: 'en-AU-Wavenet-B', languageCode: 'en-AU', speakingRate: 0.9, pitch: -2.5 },
     erlich: { name: 'en-AU-Wavenet-B', languageCode: 'en-AU', speakingRate: 1.08, pitch: 1.0 },
     goMad: { name: 'en-AU-Wavenet-D', languageCode: 'en-AU', speakingRate: 1.14, pitch: 3.0 },
     critique: { name: 'en-AU-Wavenet-D', languageCode: 'en-AU', speakingRate: 0.88, pitch: -3.5 },
@@ -112,7 +112,7 @@ const VOICES_BY_LANG = {
       pitch: -4.0
     },
     ciso: { name: 'cmn-CN-Wavenet-C', languageCode: 'cmn-CN', speakingRate: 0.92, pitch: -1.5 },
-    refine: { name: 'cmn-CN-Wavenet-B', languageCode: 'cmn-CN', speakingRate: 0.95, pitch: -1.0 },
+    gilfoyle: { name: 'cmn-CN-Wavenet-B', languageCode: 'cmn-CN', speakingRate: 0.9, pitch: -2.5 },
     erlich: { name: 'cmn-CN-Wavenet-B', languageCode: 'cmn-CN', speakingRate: 1.06, pitch: 1.0 },
     goMad: { name: 'cmn-CN-Wavenet-C', languageCode: 'cmn-CN', speakingRate: 1.12, pitch: 3.0 },
     critique: { name: 'cmn-CN-Wavenet-C', languageCode: 'cmn-CN', speakingRate: 0.88, pitch: -3.0 },
@@ -144,7 +144,7 @@ const VOICES_BY_LANG = {
       pitch: -4.0
     },
     ciso: { name: 'cmn-TW-Wavenet-C', languageCode: 'cmn-TW', speakingRate: 0.92, pitch: -1.5 },
-    refine: { name: 'cmn-TW-Wavenet-B', languageCode: 'cmn-TW', speakingRate: 0.95, pitch: -1.0 },
+    gilfoyle: { name: 'cmn-TW-Wavenet-B', languageCode: 'cmn-TW', speakingRate: 0.9, pitch: -2.5 },
     erlich: { name: 'cmn-TW-Wavenet-B', languageCode: 'cmn-TW', speakingRate: 1.06, pitch: 1.0 },
     goMad: { name: 'cmn-TW-Wavenet-C', languageCode: 'cmn-TW', speakingRate: 1.12, pitch: 3.0 },
     critique: { name: 'cmn-TW-Wavenet-C', languageCode: 'cmn-TW', speakingRate: 0.88, pitch: -3.0 },
@@ -177,7 +177,7 @@ const NEURAL2_VOICE_NAMES = {
     hr: 'en-US-Neural2-H',
     greybeard: 'en-US-Neural2-I',
     ciso: 'en-US-Neural2-A',
-    refine: 'en-US-Neural2-D',
+    gilfoyle: 'en-US-Neural2-D',
     erlich: 'en-US-Neural2-I',
     goMad: 'en-US-Neural2-J',
     critique: 'en-US-Neural2-A',
@@ -194,7 +194,7 @@ const NEURAL2_VOICE_NAMES = {
     hr: 'en-AU-Neural2-C',
     greybeard: 'en-AU-Neural2-B',
     ciso: 'en-AU-Neural2-D',
-    refine: 'en-AU-Neural2-B',
+    gilfoyle: 'en-AU-Neural2-B',
     erlich: 'en-AU-Neural2-B',
     goMad: 'en-AU-Neural2-D',
     critique: 'en-AU-Neural2-D',
@@ -223,7 +223,7 @@ const NEURAL2_VOICE_NAMES = {
  */
 const CHIRP3_VOICE_ROSTER = {
   // team
-  refine: 'Puck',
+  gilfoyle: 'Puck',
   erlich: 'Fenrir',
   goMad: 'Fenrir',
   critique: 'Charon',
@@ -354,7 +354,7 @@ export function resolveOfficeTtsVoiceTier(env = process.env) {
  *
  * @param {OfficeTtsEngine} engine
  * @param {string} locale
- * @param {string} key resolved speaker key (already fell back to 'refine')
+ * @param {string} key resolved speaker key (already fell back to 'gilfoyle')
  * @param {OfficeTtsVoice} base prosody row from VOICES_BY_LANG
  * @param {NodeJS.ProcessEnv} env
  * @returns {OfficeTtsVoice | null}
@@ -400,7 +400,7 @@ function voiceForEngine(engine, locale, key, base, env) {
 export function resolveOfficeTtsVoiceCandidates(speakerId, lang, env = process.env) {
   const locale = normalizeOfficeTtsLang(lang);
   const table = VOICES_BY_LANG[locale] ?? VOICES_BY_LANG['en-US'];
-  const key = table[speakerId] ? speakerId : 'refine';
+  const key = table[speakerId] ? speakerId : 'gilfoyle';
   const base = table[key] ?? DEFAULT_VOICE;
   const ladder = TIER_LADDER[resolveOfficeTtsVoiceTier(env)] ?? TIER_LADDER.chirp3;
   /** @type {OfficeTtsVoice[]} */

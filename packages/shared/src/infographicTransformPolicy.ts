@@ -1,6 +1,6 @@
 import { parseInfographicTree } from './infographicDiff.js';
 
-const TRANSFORM_MODES = new Set(['refine', 'erlich', 'goMad', 'barker']);
+const TRANSFORM_MODES = new Set(['gilfoyle', 'erlich', 'goMad', 'barker']);
 
 /** @param {string | null | undefined} template */
 export function templateFamilyFromTemplate(template: string | null | undefined) {
@@ -47,7 +47,7 @@ export function validateInfographicTransformConstraint(opts: {
   const afterCount = countTreeItems(after.items);
   const depth = Math.min(12, Math.max(1, Math.trunc(Number(opts.goMadDepth) || 1)));
 
-  if (mode === 'refine') {
+  if (mode === 'gilfoyle') {
     if (beforeTemplate && afterTemplate && beforeTemplate !== afterTemplate) {
       return {
         ok: false,

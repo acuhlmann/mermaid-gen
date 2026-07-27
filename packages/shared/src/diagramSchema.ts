@@ -161,9 +161,9 @@ export const IntentSettingsSchema = z
   // wrap as `() => ({})` so it accepts.
   .default(() => ({}) as never);
 
-export const TransformModeSchema = z.enum(['refine', 'erlich', 'goMad', 'barker']);
+export const TransformModeSchema = z.enum(['gilfoyle', 'erlich', 'goMad', 'barker']);
 
-/** When set (refine|erlich|goMad|barker), intent edits follow stakeholder transform constraints. */
+/** When set (gilfoyle|erlich|goMad|barker), intent edits follow stakeholder transform constraints. */
 export const TransformPersonaSchema = TransformModeSchema;
 
 export const DiagramIntentSchema = z

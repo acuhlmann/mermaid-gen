@@ -6,7 +6,7 @@ import {
   playErlichBoot,
   playExplainBoot,
   playGoMadBoot,
-  playRefineBoot
+  playGilfoyleBoot
 } from '../../utils/agentChimes.js';
 
 /**
@@ -70,7 +70,7 @@ export function useRadialActionHandler({
       closeRadialMenu();
       const runOpts = { focusTarget: descriptor };
       const variantForBoot =
-        action.id === 'refine' ||
+        action.id === 'gilfoyle' ||
         action.id === 'erlich' ||
         action.id === 'goMad' ||
         action.id === 'critique' ||
@@ -80,13 +80,13 @@ export function useRadialActionHandler({
           : null;
       if (variantForBoot) {
         setBootSeq((prev) => ({ trigger: prev.trigger + 1, variant: variantForBoot }));
-        if (variantForBoot === 'refine') tryAgentSound(playRefineBoot);
+        if (variantForBoot === 'gilfoyle') tryAgentSound(playGilfoyleBoot);
         else if (variantForBoot === 'erlich') tryAgentSound(playErlichBoot);
         else if (variantForBoot === 'goMad') tryAgentSound(playGoMadBoot);
         else if (variantForBoot === 'critique') tryAgentSound(playCritiqueBoot);
         else if (variantForBoot === 'explain') tryAgentSound(playExplainBoot);
       }
-      if (action.id === 'refine') runTransform('refine', runOpts);
+      if (action.id === 'gilfoyle') runTransform('gilfoyle', runOpts);
       else if (action.id === 'erlich') runTransform('erlich', runOpts);
       else if (action.id === 'goMad') runTransform('goMad', runOpts);
       else if (action.id === 'barker') runTransform('barker', runOpts);

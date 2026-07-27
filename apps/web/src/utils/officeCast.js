@@ -202,7 +202,7 @@ export function officeSenderInfo(id) {
 /** Steering-meeting seats: senior stakeholders the team presents to. */
 export const MEETING_SENIOR_POOL = ['ciso', 'cto', 'cfo', 'barker'];
 /** Team members who can be sent upstairs to defend the diagram. */
-export const MEETING_PRESENTER_POOL = ['refine', 'critique', 'explain'];
+export const MEETING_PRESENTER_POOL = ['gilfoyle', 'critique', 'explain'];
 export const MEETING_FACILITATOR = 'scrumMaster';
 /** Matches packages/shared MEETING_MAX_ATTENDEES / the /meeting route. */
 export const MEETING_ROSTER_MAX = 8;
@@ -219,7 +219,7 @@ export const MEETING_GROUP_PRESETS = [
     id: 'team',
     labelKey: 'groupTeam',
     titleKey: 'groupTeamTitle',
-    resolve: () => ['refine', 'erlich', 'goMad', 'critique', 'explain']
+    resolve: () => ['gilfoyle', 'erlich', 'goMad', 'critique', 'explain']
   },
   {
     id: 'steering',
@@ -323,7 +323,7 @@ export function pickMeetingAttendees(random = Math.random) {
     const index = Math.floor(random() * seniors.length);
     seats.push(seniors.splice(index, 1)[0]);
   }
-  const presenter = pickRandomFrom(MEETING_PRESENTER_POOL, random) ?? 'refine';
+  const presenter = pickRandomFrom(MEETING_PRESENTER_POOL, random) ?? 'gilfoyle';
   seats.push(presenter);
   return seats;
 }

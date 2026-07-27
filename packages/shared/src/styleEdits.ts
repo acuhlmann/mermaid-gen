@@ -1,6 +1,6 @@
 /**
  * Server-built style edit cards (AG-UI CUSTOM artifact `style_edits`).
- * Parses numbered/bullet lines from critique/style/refine prose — no model-authored UI JSON.
+ * Parses numbered/bullet lines from critique/style/gilfoyle prose — no model-authored UI JSON.
  */
 
 import { z } from 'zod';

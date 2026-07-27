@@ -93,7 +93,7 @@ export function useStyleEdits({
         }
 
         await submitIntentWithPrompt(stylePrompt, {
-          variantOverride: 'refine',
+          variantOverride: 'gilfoyle',
           skipLoadingGuard: true
         });
       } catch (err) {

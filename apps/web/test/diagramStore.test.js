@@ -49,7 +49,7 @@ describe('submitDiagramTransform', () => {
 
       await expect(
         submitDiagramTransform({
-          mode: 'refine',
+          mode: 'gilfoyle',
           revisionId: 0,
           diagramSource: 'flowchart TD\n  Start[Start] --> EndNode[End]'
         })
@@ -59,7 +59,7 @@ describe('submitDiagramTransform', () => {
     }
   });
 
-  it('posts refine transform payload', async () => {
+  it('posts gilfoyle transform payload', async () => {
     const originalFetch = globalThis.fetch;
     let requestBody;
     try {
@@ -70,7 +70,7 @@ describe('submitDiagramTransform', () => {
           async json() {
             return {
               state: { revisionId: 1 },
-              metadata: { agent: 'transform:refine' }
+              metadata: { agent: 'transform:gilfoyle' }
             };
           }
         };
@@ -106,7 +106,7 @@ describe('submitDiagramTransform', () => {
       };
 
       await submitDiagramTransform({
-        mode: 'refine',
+        mode: 'gilfoyle',
         revisionId: 0,
         diagramSource: 'flowchart TD\n  A --> B',
         modelProfile: 'quality'

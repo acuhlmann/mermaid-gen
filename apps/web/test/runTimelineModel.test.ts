@@ -13,7 +13,7 @@ import {
   phaseIdLabel
 } from '../src/components/runTimelineModel.js';
 
-const STAKEHOLDER_VARIANTS = ['refine', 'erlich', 'goMad', 'critique', 'explain', 'barker'];
+const STAKEHOLDER_VARIANTS = ['gilfoyle', 'erlich', 'goMad', 'critique', 'explain', 'barker'];
 
 const SLOT_PREFIXES = ['chart', 'anything', 'metaphor', 'forms'] as const;
 

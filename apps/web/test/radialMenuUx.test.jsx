@@ -29,7 +29,7 @@ const OTHER_DESCRIPTOR = {
 };
 
 const MOCK_ACTIONS = [
-  { id: 'refine', label: 'Refine', icon: 'R', variant: 'refine', persona: 'THE Engineer' },
+  { id: 'gilfoyle', label: 'Refine', icon: 'R', variant: 'gilfoyle', persona: 'THE Engineer' },
   { id: 'explain', label: 'Explain', icon: 'i', variant: 'explain', persona: 'The Wise Architect' }
 ];
 
@@ -223,7 +223,7 @@ describe('radial menu popover survives the hover-close grace period', () => {
       behavior: 'expandStakeholders',
       persona: 'Stakeholders'
     },
-    { id: 'refine', label: 'Refine', icon: 'R', variant: 'refine', persona: 'THE Engineer' }
+    { id: 'gilfoyle', label: 'Refine', icon: 'R', variant: 'gilfoyle', persona: 'THE Engineer' }
   ];
 
   function renderMenuWithSpies() {
@@ -315,7 +315,7 @@ describe('radial slop prompt survives the hover-close grace period', () => {
       behavior: 'showExplanation',
       persona: 'Quick Reference'
     },
-    { id: 'refine', label: 'Refine', icon: 'R', variant: 'refine', persona: 'THE Engineer' }
+    { id: 'gilfoyle', label: 'Refine', icon: 'R', variant: 'gilfoyle', persona: 'THE Engineer' }
   ];
 
   function renderSlopPromptMenu(overrides = {}) {
@@ -421,7 +421,7 @@ describe('radial render mode picker', () => {
         }
       ]
     },
-    { id: 'refine', label: 'Refine', icon: 'R', variant: 'refine', persona: 'THE Engineer' }
+    { id: 'gilfoyle', label: 'Refine', icon: 'R', variant: 'gilfoyle', persona: 'THE Engineer' }
   ];
 
   function renderRenderModeMenu(overrides = {}) {
@@ -507,7 +507,7 @@ describe('explainer popover follow-ups (Wise Architect)', () => {
       behavior: 'showExplanation',
       persona: 'Quick Reference'
     },
-    { id: 'refine', label: 'Refine', icon: 'R', variant: 'refine', persona: 'THE Engineer' }
+    { id: 'gilfoyle', label: 'Refine', icon: 'R', variant: 'gilfoyle', persona: 'THE Engineer' }
   ];
 
   it('attributes the answer to the Wise Architect in the popover head', () => {
@@ -710,7 +710,7 @@ describe('radial popover drag handle', () => {
       behavior: 'expandStakeholders',
       persona: 'Stakeholders'
     },
-    { id: 'refine', label: 'Refine', icon: 'R', variant: 'refine', persona: 'THE Engineer' }
+    { id: 'gilfoyle', label: 'Refine', icon: 'R', variant: 'gilfoyle', persona: 'THE Engineer' }
   ];
 
   it('exposes the explainer head as a drag handle', () => {

@@ -18,7 +18,7 @@
  */
 export const OFFICE_SPEAKER_IDS = [
   // team
-  'refine',
+  'gilfoyle',
   'erlich',
   'goMad',
   'critique',
