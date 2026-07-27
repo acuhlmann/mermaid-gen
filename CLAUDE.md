@@ -70,6 +70,7 @@ Every session carries **six independent diagram slots** — `mermaid` (Mermaid t
 | Health probe                           | `curl http://localhost:\$PORT/api/health`                                                                  |
 | Mermaid offline bench                  | `node apps/server/scripts/benchMermaid.js --tag <label>`                                                   |
 | Anything offline bench                 | `node apps/server/scripts/benchAnything.js --tag <label>`                                                  |
+| Regenerate baked office audio          | `./scripts/generate-office-audio.sh --dry-run` (cost first), then without the flag                         |
 
 `npm run check` includes `verify:deps` (override/singleton npm pins), `format:check`, `lint` for all three workspaces, and the rest of the sensor stack, plus `typecheck:strict` — full-strict typechecking of the files listed in each app's `tsconfig.strict.json` (the ADR-0006 "strict islands"; add a `.ts`/`.tsx` path there to opt it into strict, and a regression fails CI). Lint messages go through a custom formatter (`packages/eslint-config/formatter.cjs`) that appends a per-rule "Agent guidance" footer with the canonical fix and suppression syntax — read it before suppressing. `@typescript-eslint`'s `recommended` rules now fire as warnings on every `.ts`/`.tsx` file, so converting `.js`→`.ts` ([recipe](docs/recipes/convert-js-leaf-to-ts.md)) gains both Factory and ts-eslint guidance. Thresholds (`max-lines`, `complexity`, …) ship as warnings; ADR-0005 monoliths are pre-suppressed in `packages/eslint-config/legacy-monoliths.js`. A `.husky/pre-commit` hook runs `lint-staged` (Prettier on staged files). `.husky/pre-push` runs `npm run check:affected`. Architecture rules now live in `.dependency-cruiser.cjs` (replaces the older regex-based boundary script); each rule's `comment` field is the agent-readable fix. See [`docs/agents/sensors.md`](docs/agents/sensors.md) for the full sensor map.
 
@@ -80,6 +81,7 @@ Every session carries **six independent diagram slots** — `mermaid` (Mermaid t
 - `scripts/deploy-*.sh` and `scripts/push-*-secret-cloud-run.sh` — production deploy / Secret Manager scripts. Don't run unless asked.
 - `apps/server/src/mcp/apps/*.js` (HTML strings) — these are paired with `session-events` bridges; if you change the HTML, also update the matching event handler and re-run the App's smoke flow.
 - `apps/server/bench-results/` — bench snapshots; don't hand-edit, regenerate via the bench script.
+- `apps/web/src/assets/audio/*.mp3` — baked ElevenLabs assets; don't hand-edit, regenerate via `./scripts/generate-office-audio.sh` (build-time only — never wire ElevenLabs into a route, CI, or a deploy script). See [`docs/audio-assets.md`](docs/audio-assets.md).
 - `package-lock.json`, `skills-lock.json` — never hand-edit.
 
 ## File-size budgets (work in progress)
@@ -116,6 +118,7 @@ Three backends: **DeepSeek**, **OpenRouter**, **Vertex** (Gemini). Selection is 
 | A new React component            | `apps/web/src/components/`                                              |
 | A new web utility                | `apps/web/src/utils/`                                                   |
 | A new web state slice            | `apps/web/src/state/`                                                   |
+| A baked audio asset              | `apps/web/src/assets/audio/` via `scripts/generate-office-audio.sh`     |
 | A new React hook                 | `apps/web/src/hooks/`                                                   |
 
 ## Agent skills

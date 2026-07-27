@@ -117,6 +117,20 @@ export const BLAST_RADIUS_RULES = [
     tests: ['apps/web/test/officeLocale.test.js', 'apps/web/test/officeDirectory.test.jsx']
   },
   {
+    // Office audio. agentChimes.js has no test of its own, so basename matching
+    // finds nothing for it — yet both sampled-audio modules import its shared
+    // getContext, and the baked assets are what the cue/bed players decode.
+    match:
+      /apps\/web\/src\/(utils\/(agentChimes|officeRoomTone|officeCueSamples|officeSoundscape)|hooks\/(useOfficeRoomTone|useOfficeSoundscape))|apps\/web\/src\/assets\/audio\//,
+    tests: [
+      'apps/web/test/officeRoomTone.test.js',
+      'apps/web/test/useOfficeRoomTone.test.jsx',
+      'apps/web/test/officeCueSamples.test.js',
+      'apps/web/test/officeSoundscape.test.js',
+      'apps/web/test/useOfficeSoundscape.test.jsx'
+    ]
+  },
+  {
     match:
       /apps\/web\/src\/(components\/(OfficeFloor|officeFloor|OfficeLayer)|utils\/officeFloor|utils\/officeDeskWork|utils\/officeSceneCast|hooks\/useStageScale\.js|state\/officeViewModeStore)/,
     tests: ISOMETRIC_FLOOR_BLAST_TESTS

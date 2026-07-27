@@ -118,3 +118,35 @@ All paths below are relative to `apps/web/src/assets/audio/`.
 
 **Total: 379 KB, 510 credits.** The `elevator`, `phone` and `mouse` cues are deliberately absent —
 they are tones, and stay synthesized in `agentChimes.js`.
+
+## Status and outstanding work
+
+_Last updated 2026-07-27._
+
+**Quota ledger.** 1,130 of the month's 10,000 credits were spent producing the current inventory:
+510 on the assets that shipped, and 620 on exploration that did not (two rejected bed variants at
+300 each, plus 20 in probes). Regenerating everything in the manifest costs 510. Assume roughly
+**8,900 credits were left in the July 2026 window**; the allowance resets monthly, so check before
+planning a large batch rather than trusting this number.
+
+**Open, in rough order of value:**
+
+1. **`ROOM_TONE_GAIN` has never been tuned by ear in the running app.** It is `0.09` in
+   `officeRoomTone.js`, derived so the bed sits under cues peaking 0.006–0.014, and approved from
+   an offline mix that got the _relative_ balance right. Absolute presence against a real system
+   volume is a different judgement. Costs nothing to change — one constant, no regeneration.
+2. **Per-room beds.** One bed currently plays everywhere. The isometric floor has rooms, so a
+   meeting-room or kitchen tone would make moving through the office change what you hear. 300
+   credits each; `officeRoomTone.js` would need to swap buffers on a crossfade rather than
+   assuming a single asset.
+3. **A second variant for the highest-weight cues.** `keyboard` has weight 4 in
+   `officeSoundscape.js` — it fires roughly four times more often than any set piece, so it is
+   the first sample that will wear thin. Rate/gain jitter and panning delay that, they do not
+   prevent it. A second `cue-keyboard-b.mp3` picked at random would; 30 credits.
+4. **Nothing verifies a regenerated asset automatically.** The loop-seam and level checks under
+   "Verifying a new asset" are a manual ritual. If beds get regenerated often, fold them into the
+   generator as a post-step that fails loudly.
+
+**Deliberately not done:** no runtime ElevenLabs calls, no key in deploy scripts, no Opus/Ogg
+variants (MP3 is universally supported and the size difference did not justify format negotiation
+at one bed — revisit if per-room beds land and the total climbs past ~1 MB).

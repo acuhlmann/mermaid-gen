@@ -582,7 +582,14 @@ consumer). Reserved for later MCP-app parity: `office_moment` / `meeting_started
 5. **The Re-org** — stakeholder titles/accents reshuffle for one session; the org chart renders as
    an actual Mermaid diagram in-canvas.
 6. ~~**Office soundscape**~~ — ✅ shipped: keyboard clatter, distant printer, espresso machine
-   (see §6 "Soundscape").
+   (see §6 "Soundscape"). **Extended 2026-07-27** with a continuous room-tone bed and baked
+   ElevenLabs samples for the seven cues synthesis loses on (see §6 and
+   [`docs/audio-assets.md`](audio-assets.md)). Outstanding: `ROOM_TONE_GAIN` has been balanced
+   against the cues on paper and approved from a rendered mix, but never tuned by ear in the
+   running app — that is a one-constant change in `officeRoomTone.js`. Natural next steps, in
+   rough order of value: per-room beds so the isometric floor changes character as you move
+   (meeting room, kitchen — 300 credits each), and a second variant for the highest-weight cues
+   (`keyboard` fires ~4× more often than anything else, so it wears first).
 7. **Seasonal events** — Q4 budget freeze (Auditor rampant), Hackathon week (SLOPITECT rampant),
    "no-meeting Wednesday" (meetings double).
 8. **Multiplayer watercooler** — real external MCP agents (System B) join coffee breaks alongside

@@ -115,6 +115,23 @@ Run: `npm run check:fast` when only shared changed; `npm run check` otherwise.
 
 `test:affected` pulls `ISOMETRIC_FLOOR_BLAST_TESTS` when the diff touches the paths above (see `scripts/test-affected-lib.mjs`). Add new floor tests to that list and the agent doc.
 
+## Office audio (baked assets + playback)
+
+| Layer                       | Location                                                                                                                                                                                      |
+| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Baked assets                | [`apps/web/src/assets/audio/`](../apps/web/src/assets/audio/) — generated, never hand-edited                                                                                                  |
+| Generator                   | [`scripts/generate-office-audio.sh`](../scripts/generate-office-audio.sh) (build-time only; `--dry-run` prints credit cost)                                                                   |
+| Continuous bed              | [`apps/web/src/utils/officeRoomTone.js`](../apps/web/src/utils/officeRoomTone.js), [`hooks/useOfficeRoomTone.js`](../apps/web/src/hooks/useOfficeRoomTone.js)                                 |
+| Sampled cues                | [`apps/web/src/utils/officeCueSamples.js`](../apps/web/src/utils/officeCueSamples.js), resolved by `cuePlayerFor` in [`useOfficeSoundscape.js`](../apps/web/src/hooks/useOfficeSoundscape.js) |
+| Synth cues + shared context | [`apps/web/src/utils/agentChimes.js`](../apps/web/src/utils/agentChimes.js) (exports `getContext`)                                                                                            |
+| Sound gate                  | `tryAgentSound` in [`apps/web/src/ArchiSlop.jsx`](../apps/web/src/ArchiSlop.jsx) — **returns whether it let the call through**; the bed depends on that to stop when muted mid-session        |
+| Docs                        | [`docs/audio-assets.md`](audio-assets.md) (pipeline + licensing), [`docs/office-parody.md`](office-parody.md) §6                                                                              |
+
+Two coupling traps worth knowing before you touch this:
+
+- **Changing the cue peak ceiling rebalances every cue.** Assets are peak-normalized to −3 dBFS and `officeCueSamples.js` derives each playback gain as the old synth `peakGain` ÷ 0.708. Change `CUE_TARGET_PEAK_DB` in the generator and you must update that gain table too, or every cue silently shifts level.
+- **`agentChimes.js` has no test of its own**, so basename matching finds nothing for it. The blast-radius rule covers it explicitly — along with the `.mp3` assets themselves, since a regenerated asset is a behaviour change.
+
 ## Verification commands (quick reference)
 
 | Scope                         | Command                                                                 |
