@@ -45,7 +45,7 @@ advisor seat) and `SENIOR_STAKEHOLDERS` (his tier), and `ciso` in `OFFICE_COLLEA
 
 | Tier       | Who                                                             | How they reach you                                                                                                                                               |
 | ---------- | --------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **team**   | refine, erlich, goMad, critique, explain (+ `barker` dual-home) | Proactive roundtable (`ADVISOR_ORDER`) + agent actions. Full-weight peers; Barker at **throttled** pick weight (SV recipe Session 2).                            |
+| **team**   | refine, erlich, goMad, critique, explain (+ `barker` dual-home) | Proactive roundtable (`ADVISOR_ORDER`) + agent actions. Full-weight peers; Barker at **throttled** pick weight (`ADVISOR_PICK_WEIGHTS.barker` = 0.5).            |
 | **senior** | barker (Jack), ciso (Sasha), cto (Marcus → Belson), cfo (Diane) | Steering meetings + ≤1 high-stakes email/session. Never ambient walk-bys/IMs. Belson (when shipped) scarcer than Barker — never roundtable; Jack reports to him. |
 | **office** | intern, scrumMaster, helpdesk, facilities, hr, greybeard        | Emails, IMs, walk-bys, coffee, battles. The floor around you.                                                                                                    |
 
@@ -71,9 +71,10 @@ leadership pinging your desk.
 > `apps/server/src/agents/advisorPrompts.js`) were tuned against `scripts/barker-fidelity.mjs`
 > (final sustained score ≈ 4.2/5). In July 2026 he **inherited The VP's team seat** (the retired
 > `exec` id): sixth radial advisor, board-deck simplify, senior trappings (steering meetings, one
-> rare email). **Reachability (locked 2026-07-27):** he is part of Your Team and should appear in
-> the proactive roundtable at **throttled** weight — partly accessible, less often than peer
-> advisors — not summoned-only. He does not get office walk-by/IM spam. Fiction: he reports to
+> rare email). **Reachability (locked 2026-07-27; shipped in Session 2):** he is part of Your Team
+> and appears in the proactive roundtable at **throttled** weight — `ADVISOR_PICK_WEIGHTS.barker`
+> = 0.5, so roughly half as often as a peer advisor — not summoned-only. He does not get office
+> walk-by/IM spam. Fiction: he reports to
 > **Gavin Belson** (`belson`, Session 8), who stays harder to reach (senior-only; never
 > roundtable). Status: **local experiment** — before public deploy, decide real names vs
 > legally-distinct aliases. Locked roster: Erlich → `erlich` (shipped), Gilfoyle → `gilfoyle`,

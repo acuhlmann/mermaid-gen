@@ -16,7 +16,7 @@ todos:
     status: completed
   - id: barker-access
     content: 'Session 2 code: Barker throttled roundtable (ADVISOR_ORDER + ~0.5 pick weight) — not this doc pass'
-    status: pending
+    status: completed
   - id: gilfoyle
     content: 'Session: Gilfoyle inherits refine → gilfoyle id (team engineer; battle-eligible)'
     status: pending
@@ -69,15 +69,15 @@ flowchart TB
 
 ## Audit: conversation vs project
 
-| Conclusion                                      | Plan       | Project docs                                   | Code today                                         |
-| ----------------------------------------------- | ---------- | ---------------------------------------------- | -------------------------------------------------- |
-| Core SV crew on Your Team                       | Yes        | Yes                                            | Partial                                            |
-| Barker dual-home advisor                        | Yes        | Yes                                            | Shipped; **not** in roundtable yet                 |
-| Barker partly accessible (throttled)            | **Locked** | ✅ Recipe Session 2 + office-parody + GLOSSARY | Excluded from `ADVISOR_ORDER` until Session 2 code |
-| Belson harder to reach than Barker              | **Locked** | ✅ Contrasted with Barker in docs              | Marcus = CTO homage                                |
-| Erlich shipped                                  | Yes        | Yes                                            | Yes                                                |
-| Gilfoyle + Dinesh both team engineers + battles | Yes        | Yes                                            | Not yet                                            |
-| Jared / Russ / Richard map                      | Yes        | Yes                                            | Not yet                                            |
+| Conclusion                                      | Plan       | Project docs                                   | Code today                                        |
+| ----------------------------------------------- | ---------- | ---------------------------------------------- | ------------------------------------------------- |
+| Core SV crew on Your Team                       | Yes        | Yes                                            | Partial                                           |
+| Barker dual-home advisor                        | Yes        | Yes                                            | Shipped; in the roundtable since Session 2        |
+| Barker partly accessible (throttled)            | **Locked** | ✅ Recipe Session 2 + office-parody + GLOSSARY | ✅ `ADVISOR_ORDER` + `ADVISOR_PICK_WEIGHTS` = 0.5 |
+| Belson harder to reach than Barker              | **Locked** | ✅ Contrasted with Barker in docs              | Marcus = CTO homage                               |
+| Erlich shipped                                  | Yes        | Yes                                            | Yes                                               |
+| Gilfoyle + Dinesh both team engineers + battles | Yes        | Yes                                            | Not yet                                           |
+| Jared / Russ / Richard map                      | Yes        | Yes                                            | Not yet                                           |
 
 ---
 
@@ -125,17 +125,17 @@ Recipe stays the status board. Next agent should land docs with (or before) the 
 
 - Keep progress log / todos in sync (agents read both plan + recipe).
 
-### Implementation hint for Barker-access session (when an agent runs it)
+### Barker-access session — shipped 2026-07-27
 
-- Add `barker` to `ADVISOR_ORDER` in `useAdvisorOrchestrator.js`.
-- Change `pickNextPersona` to weighted selection (peers weight 1, Barker ~0.5) — or equivalent skip so he speaks less often than Erlich/Gilfoyle/etc.
-- Do **not** put Belson in `ADVISOR_ORDER` or give him a team transform seat.
-- Keep Barker’s senior email cap; keep Belson senior-only outlets.
-- Optional: minor roster/radial ordering so Jack is findable but not first.
+- `barker` appended to `ADVISOR_ORDER` in `useAdvisorOrchestrator.js`.
+- `pickNextPersona` now walks cumulative weight via the exported `pickWeightedPersona(pool, roll)` over `ADVISOR_PICK_WEIGHTS` (peers 1, Barker 0.5); the ratio holds after the no-repeat filter.
+- Belson / `cto` / `ciso` / `cfo` stay out — pinned by a regression test.
+- Senior email cap untouched; roster + radial ordering already had Jack findable but not first, so no reorder.
+- `castTiers.js` untouched (single-tier `senior` tag; `ADVISOR_ORDER` owns roundtable membership).
 
 ### Session order
 
-1. **Barker accessibility** (small — docs + throttle wire)
+1. ~~**Barker accessibility** (small — docs + throttle wire)~~ ✅
 2. Gilfoyle → `gilfoyle`
 3. Dinesh → new seat
 4. Jared → `jared`
@@ -176,4 +176,5 @@ Later: `/to-spec` → epic + `ready-for-agent` children.
 - **2026-07-27 — Plan audit.** Cast map already in docs; gap was Barker access.
 - **2026-07-27 — Reachability locked.** Barker throttled team presence; Belson harder to reach (Jack reports to Gavin).
 - **2026-07-27 — Docs pass ✅.** Recipe status board + Session 2 drill, office-parody §3, GLOSSARY cast tiers updated. **No Barker code this pass.**
-- **Next agent session:** Session 2 code (Barker in `ADVISOR_ORDER` at ~0.5 weight) or Session 3 Gilfoyle.
+- **2026-07-27 — Session 2 ✅.** Barker in `ADVISOR_ORDER` at 0.5 pick weight (`pickWeightedPersona`); seniors still excluded; docs flipped to shipped.
+- **Next agent session:** Session 3 — Gilfoyle inherits `refine`.

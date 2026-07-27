@@ -6,6 +6,9 @@
  * - `senior` — executives the team presents to. They take steering-meeting
  *   seats and may send one rare high-stakes email per session, but never join
  *   the ambient day-to-day casts (emails/IMs/walk-bys).
+ *   Exception: `barker` is dual-home, so he also rotates through the
+ *   roundtable at throttled weight — ADVISOR_ORDER / ADVISOR_PICK_WEIGHTS in
+ *   ../hooks/useAdvisorOrchestrator.js own that membership, not this table.
  * - `office` — the ambient floor: colleagues doing their own thing who
  *   occasionally notice your work.
  *

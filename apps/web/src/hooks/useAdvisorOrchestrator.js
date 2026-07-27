@@ -10,12 +10,29 @@ import { writeAdvisorMuted } from '../utils/advisorMuteStorage.js';
 import { getAdvisorVisibleLabels } from '../utils/advisorVisibleLabels.js';
 
 /**
- * The proactive roundtable is YOUR TEAM (castTiers.js `team` tier). `barker`
- * is deliberately absent — Jack Barker is senior tier: you meet him in
- * steering meetings, not over your shoulder. The Barker transform still runs
- * on demand via the "Prep for the CEO" action.
+ * The proactive roundtable is YOUR TEAM (castTiers.js `team` tier) plus Jack
+ * Barker, who is dual-home team+senior: he sits in the rotation but at
+ * **throttled** pick weight, so he reads as part of the team without turning
+ * every other bubble into a board-deck note. Pure seniors — Marcus/`cto` (and
+ * Gavin Belson when he lands), `ciso`, `cfo` — stay out entirely: you meet
+ * them in steering meetings, not over your shoulder. Barker's transform also
+ * still runs on demand via the "Prep for the CEO" action.
+ *
+ * Reachability ladder (locked): docs/recipes/replicate-tv-character.md.
  */
-const ADVISOR_ORDER = ['refine', 'erlich', 'goMad', 'critique', 'explain'];
+export const ADVISOR_ORDER = ['refine', 'erlich', 'goMad', 'critique', 'explain', 'barker'];
+
+/**
+ * Relative pick weight per persona — anything absent is a full-weight peer (1).
+ * Barker at 0.5 speaks about half as often as Erlich or the engineers.
+ */
+export const ADVISOR_PICK_WEIGHTS = { barker: 0.5 };
+
+/** @param {string} persona */
+export function advisorPickWeight(persona) {
+  return ADVISOR_PICK_WEIGHTS[persona] ?? 1;
+}
+
 export const ADVISOR_IDLE_PAUSE_MS = 10 * 60 * 1000;
 const ACTIVITY_THROTTLE_MS = 1000;
 const SHOW_MS = 10_000;
@@ -84,10 +101,30 @@ function reportAdvisorUsage(onUsageRef, payload) {
   });
 }
 
+/**
+ * Weighted draw over `pool`, walking cumulative weight so a 0.5-weight persona
+ * lands half as often as a peer. `roll` is a uniform sample in [0, 1).
+ *
+ * @param {string[]} pool
+ * @param {number} roll
+ * @returns {string | null}
+ */
+export function pickWeightedPersona(pool, roll) {
+  if (pool.length === 0) return null;
+  const total = pool.reduce((sum, persona) => sum + advisorPickWeight(persona), 0);
+  if (!(total > 0)) return pool[0];
+  let remaining = roll * total;
+  for (const persona of pool) {
+    remaining -= advisorPickWeight(persona);
+    if (remaining < 0) return persona;
+  }
+  // Float dust at roll ≈ 1 — the last band is the right answer.
+  return pool[pool.length - 1];
+}
+
 function pickNextPersona(previous) {
   const pool = previous ? ADVISOR_ORDER.filter((p) => p !== previous) : ADVISOR_ORDER;
-  const index = Math.floor(Math.random() * pool.length);
-  return pool[index] ?? ADVISOR_ORDER[0];
+  return pickWeightedPersona(pool, Math.random()) ?? ADVISOR_ORDER[0];
 }
 
 function isHidden() {
