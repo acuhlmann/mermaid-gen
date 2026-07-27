@@ -29,28 +29,32 @@ Do not copy `standUp(); render(<OfficeFloor />)` into new suites — extend the 
 
 ## Test file map
 
-| File                                 | What it guards                                        |
-| ------------------------------------ | ----------------------------------------------------- |
-| `officeFloorPlan.test.js`            | Pure geometry: projection, marks, glass, peek roster  |
-| `officeFloorMovement.test.js`        | Where you may walk, approach/peek/prop marks          |
-| `officeFloorReach.test.js`           | Where somebody is when away, and whether it is a mark |
-| `officeFloorContracts.test.js`       | **ADR-0011 executable rules** (narration, props, POV) |
-| `officeFloorModuleInventory.test.js` | Bench components + test files still exist             |
-| `officeFloorPropsTable.test.js`      | `officeFloorProps.js` ↔ `propTileFor` alignment       |
-| `officeLayerFloorRenderer.test.jsx`  | Desk overlay **or** floor scene — never both          |
-| `officeFloor.test.jsx`               | Substrate, person cards, walk-bys, mode toggle        |
-| `officeFloorArrival.test.jsx`        | First-run ceremony on the floor                       |
-| `officeFloorAccess.test.jsx`         | Live region, `floorAnnouncement`, reduced motion      |
-| `officeFloorRoam.test.jsx`           | Free roam click + keyboard                            |
-| `officeFloorTalk.test.jsx`           | Floor as second renderer of IM thread                 |
-| `officeFloorPeek.test.jsx`           | Desk peeking marks and fiction                        |
-| `officeFloorProps.test.jsx`          | Usable props + `getCoffee` verb                       |
-| `officeFloorScene.test.jsx`          | Coffee + battle set pieces                            |
-| `officeFloorMeeting.test.jsx`        | Glass room meeting renderer                           |
-| `officeFloorWander.test.jsx`         | Ambient wander roster + yields                        |
-| `officeFloorStyles.test.js`          | CSS facts (hit box, focus, reduced motion)            |
-| `useWalkAnimation.test.jsx`          | Walk interrupts + `liveTileOf` read-back              |
-| `officeDeskWork.test.js`             | Fictional desk workloads for peek                     |
+| File                                 | What it guards                                                             |
+| ------------------------------------ | -------------------------------------------------------------------------- |
+| `officeFloorPlan.test.js`            | Pure geometry: projection, marks, glass, peek roster                       |
+| `officeFloorMovement.test.js`        | Where you may walk, approach/peek/prop marks                               |
+| `officeFloorReach.test.js`           | Where somebody is when away, and whether it is a mark                      |
+| `officeFloorContracts.test.js`       | **ADR-0011 executable rules** (narration, props, POV)                      |
+| `officeFloorModuleInventory.test.js` | Bench components + test files still exist                                  |
+| `officeFloorPropsTable.test.js`      | `officeFloorProps.js` ↔ `propTileFor` alignment                            |
+| `officeLayerFloorRenderer.test.jsx`  | Desk overlay **or** floor scene — never both                               |
+| `officeFloor.test.jsx`               | Substrate, person cards, walk-bys, mode toggle                             |
+| `officeFloorArrival.test.jsx`        | First-run ceremony on the floor                                            |
+| `officeFloorAccess.test.jsx`         | Live region, `floorAnnouncement`, reduced motion                           |
+| `officeFloorRoam.test.jsx`           | Free roam click + keyboard                                                 |
+| `officeFloorTalk.test.jsx`           | Floor as second renderer of IM thread; voice-first bubble hide when CC off |
+| `useFloorSpokenText.test.js`         | Voice-first narration hook: CC off + spoken → hide bubble                  |
+| `officeCaptions.test.js`             | `shouldShowSpokenText` policy (captions × voiceActive)                     |
+| `officeWalkBy.test.jsx`              | Desk-mode shoulder lean-in + voice-first caption hide                      |
+| `deskActionsDock.test.jsx`           | Stand up primary control; Walk the floor removed from menu                 |
+| `officeFloorPeek.test.jsx`           | Desk peeking marks and fiction                                             |
+| `officeFloorProps.test.jsx`          | Usable props + `getCoffee` verb                                            |
+| `officeFloorScene.test.jsx`          | Coffee + battle set pieces                                                 |
+| `officeFloorMeeting.test.jsx`        | Glass room meeting renderer                                                |
+| `officeFloorWander.test.jsx`         | Ambient wander roster + yields                                             |
+| `officeFloorStyles.test.js`          | CSS facts (hit box, focus, reduced motion)                                 |
+| `useWalkAnimation.test.jsx`          | Walk interrupts + `liveTileOf` read-back                                   |
+| `officeDeskWork.test.js`             | Fictional desk workloads for peek                                          |
 
 ## Rules encoded as tests (add here when you learn new ones)
 

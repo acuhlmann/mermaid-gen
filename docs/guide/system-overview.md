@@ -58,11 +58,11 @@ flowchart TB
   MCP -.->|"handshake · proposal events"| SE
 ```
 
-| Channel             | Path                                                  | Used for                                                                     |
-| ------------------- | ----------------------------------------------------- | ---------------------------------------------------------------------------- |
-| **Built-in agents** | `/api/copilotkit/*` (REST + `agent-stream` AG-UI SSE) | Go, Refine, Critique, Fix, style, CopilotKit clients                         |
-| **Collaboration**   | `GET /api/copilotkit/session-events`                  | Handshakes, proposals, presence, focus, reactions, attributed insights       |
-| **External agents** | `GET/POST /mcp`                                       | Join room, register, propose edits, insights; MCP Apps for human approval UI |
+| Channel             | Path                                                  | Used for                                                                                        |
+| ------------------- | ----------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| **Built-in agents** | `/api/copilotkit/*` (REST + `agent-stream` AG-UI SSE) | Go, Gilfoyle, Dinesh, Erlich, Barker, Go Mad, Critique, Explain, Fix, style, CopilotKit clients |
+| **Collaboration**   | `GET /api/copilotkit/session-events`                  | Handshakes, proposals, presence, focus, reactions, attributed insights                          |
+| **External agents** | `GET/POST /mcp`                                       | Join room, register, propose edits, insights; MCP Apps for human approval UI                    |
 
 **Custom routes** (`apps/server/src/routes/copilot.ts`) power the main UI.
 

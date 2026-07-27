@@ -49,13 +49,13 @@ flowchart TB
 
 ## When to use which approach
 
-| Goal                                                       | Use                                                               | Avoid                                                                   |
-| ---------------------------------------------------------- | ----------------------------------------------------------------- | ----------------------------------------------------------------------- |
-| Stream Go / Refine / Critique from the **web toolbar**     | AG-UI `agent-stream`                                              | MCP (external agents cannot call intent/transform directly)             |
-| Interactive **Fix selected** after Critique in the browser | A2UI via [`architecture-a2ui.md`](architecture-a2ui.md)           | Raw model-generated UI JSON                                             |
-| Human approves **guest agent** join or diagram edit        | Web handshake dialog + proposal cards **or** MCP Apps `resolve_*` | Expecting `propose_diagram_edit` to auto-apply                          |
-| **Cursor + browser** open at once                          | Web for actions; `open_web_companion` for context                 | Relying on MCP App Approve buttons in Cursor (often read-only)          |
-| Third-party **CopilotKit** client                          | CopilotKit runtime on `/api/copilotkit` (AG-UI)                   | Reimplementing custom SSE unless you need ArchiSlop-specific operations |
+| Goal                                                                                         | Use                                                               | Avoid                                                                   |
+| -------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| Stream Go / Gilfoyle / Dinesh / Erlich / Barker / Go Mad / Critique from the **web toolbar** | AG-UI `agent-stream`                                              | MCP (external agents cannot call intent/transform directly)             |
+| Interactive **Fix selected** after Critique in the browser                                   | A2UI via [`architecture-a2ui.md`](architecture-a2ui.md)           | Raw model-generated UI JSON                                             |
+| Human approves **guest agent** join or diagram edit                                          | Web handshake dialog + proposal cards **or** MCP Apps `resolve_*` | Expecting `propose_diagram_edit` to auto-apply                          |
+| **Cursor + browser** open at once                                                            | Web for actions; `open_web_companion` for context                 | Relying on MCP App Approve buttons in Cursor (often read-only)          |
+| Third-party **CopilotKit** client                                                            | CopilotKit runtime on `/api/copilotkit` (AG-UI)                   | Reimplementing custom SSE unless you need ArchiSlop-specific operations |
 
 ## AG-UI (built-in agent streaming)
 

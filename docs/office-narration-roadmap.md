@@ -18,7 +18,7 @@
 | Meeting invites    | No (calendar chime only)                                                      | You read the toast                                      |
 | Soundscape         | N/A (non-verbal SFX)                                                          | Stays Web Audio synthesized cues                        |
 
-Toggle: desk menu **Voice** (default on). Global sound gate + first-gesture policy still apply on mobile Safari/Chrome.
+Toggle: desk menu **Voice** (default on). **Transcript (CC)** (`archislop:office-captions`, default off) reveals spoken text when voice is playing — shared across the card tour, isometric floor, desk walk-bys, and inbox footer. When CC is off and TTS succeeds, speech bubbles hide (`shouldShowSpokenText` in `apps/web/src/utils/officeCaptions.js`; floor wiring in `officeFloor/useFloorSpokenText.js`). A silent or failed TTS beat falls back to the bubble so the line is never lost. Global sound gate + first-gesture policy still apply on mobile Safari/Chrome.
 
 **Cloud path:** `POST /api/office/speak` → `apps/server/src/agents/officeTts.js` (Chirp3-HD default for every locale, with a Chirp3-HD → Neural2 → WaveNet fallback ladder; in-memory cache). Kill switch `OFFICE_TTS=0`; tier switch `OFFICE_TTS_VOICE_TIER=neural2|wavenet`. Health exposes `officeTtsConfigured`. Client (`officeNarration.js`) prefers cloud MP3, falls back to Web Speech.
 
