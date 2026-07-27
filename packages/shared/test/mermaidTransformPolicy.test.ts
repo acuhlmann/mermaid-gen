@@ -57,6 +57,38 @@ test('barker allows label tighten on small diagrams', () => {
   assert.equal(result.ok, true);
 });
 
+test('erlich rejects runaway node growth', () => {
+  const extra =
+    '  F --> G1\n  G1 --> G2\n  G2 --> G3\n  G3 --> G4\n  G4 --> G5\n' +
+    '  G5 --> G6\n  G6 --> G7\n  G7 --> G8\n  G8 --> G9\n  G9 --> G10\n  G10 --> G11';
+  const after = `${BUSY_FLOW}\n${extra}`;
+  const result = validateMermaidTransformConstraint({
+    transformMode: 'erlich',
+    beforeSource: BUSY_FLOW,
+    afterSource: after
+  });
+  if (result.ok) throw new Error('expected not ok');
+  assert.match(result.error, /Erlich may add at most 10 nodes/i);
+});
+
+test('erlich accepts bold restructuring within node and edge budgets', () => {
+  const after =
+    'flowchart TD\n' +
+    '  A[Acquire] --> B[Build]\n' +
+    '  B --> C[Test]\n' +
+    '  C --> D[Ship]\n' +
+    '  D --> E[Operate]\n' +
+    '  E --> F[Retire]\n' +
+    '  F --> G[Vision]\n' +
+    '  G --> H[Disruption]';
+  const result = validateMermaidTransformConstraint({
+    transformMode: 'erlich',
+    beforeSource: BUSY_FLOW,
+    afterSource: after
+  });
+  assert.equal(result.ok, true);
+});
+
 test('isMermaidTransformConstraintError detects policy failures', () => {
   assert.equal(isMermaidTransformConstraintError('Executive simplify is subtractive only'), true);
   assert.equal(isMermaidTransformConstraintError('not valid mermaid'), false);

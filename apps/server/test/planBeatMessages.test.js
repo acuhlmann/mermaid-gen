@@ -56,3 +56,17 @@ test('emitServerMutationPlanBeats skips goMad intent line but keeps focus', () =
   assert.ok(!captured.some((e) => e.text.includes('Restructuring')));
   assert.ok(captured.some((e) => e.text.includes('Scoping')));
 });
+
+test('emitServerMutationPlanBeats frames erlich transforms with vision language', () => {
+  const captured = [];
+  const emit = (e) => captured.push(e);
+  emitServerMutationPlanBeats({
+    emit,
+    stateStore: { getSlot: () => ({ diagramSource: 'flowchart TD\n  A --> B' }) },
+    mode: 'erlich',
+    messages: [{ role: 'user', content: 'User request:\nMake it bolder' }],
+    contentType: 'mermaid'
+  });
+  assert.ok(captured.some((e) => e.text.includes('elevating')));
+  assert.ok(captured.some((e) => e.text.includes('vision')));
+});

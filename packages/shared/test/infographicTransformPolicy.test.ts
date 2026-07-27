@@ -66,3 +66,33 @@ test('goMad tier 3 requires family change', () => {
   if (result.ok) throw new Error('expected not ok');
   assert.match(result.error, /switch template family/i);
 });
+
+test('erlich rejects more than four new items', () => {
+  const after =
+    BASE +
+    '\n    - label Step 3\n      desc Vision\n' +
+    '    - label Step 4\n      desc Disruption\n' +
+    '    - label Step 5\n      desc Aviato\n' +
+    '    - label Step 6\n      desc Incubator\n' +
+    '    - label Step 7\n      desc Keynote';
+  const result = validateInfographicTransformConstraint({
+    transformMode: 'erlich',
+    beforeSource: BASE,
+    afterSource: after
+  });
+  if (result.ok) throw new Error('expected not ok');
+  assert.match(result.error, /Erlich may add at most 4 items/i);
+});
+
+test('erlich allows a bolder reshape within the item budget', () => {
+  const after =
+    BASE +
+    '\n    - label Step 3\n      desc Vision\n' +
+    '    - label Step 4\n      desc Disruption';
+  const result = validateInfographicTransformConstraint({
+    transformMode: 'erlich',
+    beforeSource: BASE,
+    afterSource: after.replace('Step 1', 'Aviato')
+  });
+  assert.equal(result.ok, true);
+});

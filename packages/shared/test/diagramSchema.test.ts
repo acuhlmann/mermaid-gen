@@ -422,6 +422,23 @@ test('analyze payload accepts extended focusNode for edges', () => {
   assert.equal(parsed.success, true);
 });
 
+test('transform payloads accept erlich and reject retired wire ids', () => {
+  const base = {
+    revisionId: 0,
+    diagramSource: 'flowchart TD\n  A --> B',
+    mode: 'erlich'
+  };
+  assert.equal(DiagramTransformIntentSchema.safeParse(base).success, true);
+
+  for (const retired of ['innovate', 'critique', 'explain', 'style']) {
+    assert.equal(
+      DiagramTransformIntentSchema.safeParse({ ...base, mode: retired }).success,
+      false,
+      `retired transform mode ${retired}`
+    );
+  }
+});
+
 test('transform payloads accept optional goMadDepth in valid range', () => {
   const base = {
     revisionId: 0,
