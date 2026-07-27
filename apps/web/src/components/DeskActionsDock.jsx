@@ -2,7 +2,9 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { ArchiSlopMarkIcon } from './AppIcons.jsx';
 import ConcentrationControl from './ConcentrationControl.jsx';
+import DeskStandUpButton from './DeskStandUpButton.jsx';
 import IntroLocaleToggle from './IntroLocaleToggle.jsx';
+import IntroTranscriptButton from './IntroTranscriptButton.jsx';
 import { officeChromeCopy } from '../utils/officeCast.js';
 import { useUiCopy } from '../i18n/useUiLocale.js';
 import {
@@ -45,8 +47,9 @@ function computePortaledMenuStyle(anchorRect) {
  * Your desk (docs/office-parody.md § Desk verbs): the things *you* can decide
  * to do in the office, as opposed to the things the office does to you. The
  * ArchiSlop helmet stamp opens a flat verb menu with concentration + language
- * pack at the bottom. Notebook and the code drawer live on the bottom chrome
- * and Thinking pane header.
+ * pack + captions at the bottom. Stand up is a primary bottom-nav control
+ * beside the stamp — not buried in the menu. Walk-bys arrive on their own;
+ * you cannot summon someone over your shoulder.
  *
  * Pure props: OfficeLayer owns the store subscription and wires the handlers
  * from useDeskActions. Verbs that cannot run right now stay visible but
@@ -57,8 +60,9 @@ function computePortaledMenuStyle(anchorRect) {
  */
 export default function DeskActionsDock({
   onGetCoffee,
-  onWalkTheFloor,
   onStandUp,
+  onSitDown,
+  standing = false,
   onCheckInbox,
   onOpenSlopChat,
   onCheckHrProgression,
@@ -72,7 +76,11 @@ export default function DeskActionsDock({
   placement = 'corner',
   initialOpen = false,
   modelProfile = 'fast',
-  onSelectModelProfile = null
+  onSelectModelProfile = null,
+  captions = false,
+  narration = true,
+  onToggleCaptions = null,
+  onToggleNarration = null
 }) {
   const [open, setOpen] = useState(initialOpen);
   const [anchorRect, setAnchorRect] = useState(/** @type {DOMRect | null} */ (null));
@@ -81,7 +89,10 @@ export default function DeskActionsDock({
   const menuRef = useRef(null);
   const menuZIndex = useOverlayLayer('desk-actions-menu', open);
   const { locale, setLocale, controls } = useUiCopy();
-  const copy = officeChromeCopy().desk;
+  const chrome = officeChromeCopy();
+  const copy = chrome.desk;
+  const directory = chrome.directory;
+  const inbox = chrome.inbox;
   const languagePack = controls.languagePack ?? {};
 
   useEffect(() => {
@@ -167,15 +178,6 @@ export default function DeskActionsDock({
       title: copy.slopChatTitle,
       badge: imUnreadCount > 0 ? (imUnreadCount > 9 ? '9+' : String(imUnreadCount)) : null
     },
-    {
-      id: 'standUp',
-      label: copy.standUp,
-      emoji: '🧍',
-      run: onStandUp,
-      alwaysEnabled: true,
-      title: copy.standUpTitle
-    },
-    { id: 'walk', label: copy.walk, emoji: '🚶', run: onWalkTheFloor, ambient: true },
     { id: 'coffee', label: copy.coffee, emoji: '☕', run: onGetCoffee, ambient: true },
     {
       id: 'contractor',
@@ -260,6 +262,38 @@ export default function DeskActionsDock({
           >
             {deskVerbs.map(renderVerb)}
             <div className="desk-actions-menu-footer" role="none">
+              {typeof onToggleNarration === 'function' || typeof onToggleCaptions === 'function' ? (
+                <div
+                  className="desk-voice-pack"
+                  role="group"
+                  aria-label={inbox.togglesAria}
+                  data-testid="desk-voice-pack"
+                >
+                  {typeof onToggleNarration === 'function' ? (
+                    <label
+                      className="office-focus-toggle desk-voice-toggle"
+                      title={inbox.narrationTitle}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={Boolean(narration)}
+                        onChange={() => onToggleNarration(!narration)}
+                      />
+                      <span>{inbox.narrationLabel}</span>
+                    </label>
+                  ) : null}
+                  {typeof onToggleCaptions === 'function' ? (
+                    <IntroTranscriptButton
+                      enabled={captions}
+                      label={directory.transcriptLabel}
+                      enabledLabel={directory.transcriptOnLabel}
+                      title={directory.transcriptTitle}
+                      onToggle={() => onToggleCaptions(!captions)}
+                      className="desk-transcript-button"
+                    />
+                  ) : null}
+                </div>
+              ) : null}
               <ConcentrationControl
                 variant="menu"
                 modelProfile={modelProfile}
@@ -317,6 +351,9 @@ export default function DeskActionsDock({
           </span>
         ) : null}
       </button>
+      {placement === 'bottom' ? (
+        <DeskStandUpButton standing={standing} onStandUp={onStandUp} onSitDown={onSitDown} />
+      ) : null}
       {portaledMenu}
     </div>
   );

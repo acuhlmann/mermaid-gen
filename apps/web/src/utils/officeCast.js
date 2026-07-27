@@ -1208,7 +1208,12 @@ export const OFFICE_CHROME_COPY = {
     onboardContractor: 'Onboard a contractor',
     onboardContractorTitle: 'Invite an external agent over MCP',
     standUp: 'Stand up and look around',
+    standUpShort: 'Stand up',
+    standUpRole: 'Floor',
     standUpTitle: 'Leave your screen for the floor — see the office you keep hearing',
+    sitDown: 'Back to your screen',
+    sitDownShort: 'Sit down',
+    sitDownTitle: 'Sit down and get back to the deliverable',
     thinking: 'Open your notebook',
     thinkingClose: 'Close your notebook',
     thinkingShort: 'Notebook',
@@ -1325,8 +1330,8 @@ export const OFFICE_CHROME_COPY = {
     callMeetingNoThreadTitle: 'Open the roster and grab whoever you need'
   },
   walkby: {
-    kindLabel: 'Walk-by · Over your shoulder',
-    preamble: 'Someone just appeared behind you and is reading your screen. Act natural.',
+    kindLabel: 'Over your shoulder',
+    preamble: 'Someone is reading your screen from behind. Act natural.',
     dismissAria: 'Wave off {name}'
   },
   coffee: {
