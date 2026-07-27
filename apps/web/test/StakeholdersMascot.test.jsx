@@ -56,6 +56,14 @@ describe('StakeholdersMascot', () => {
     expect(screen.getByRole('menuitem', { name: /Put headphones on/ }).disabled).toBe(false);
   });
 
+  it('lists personality verbs on roster chips, not duplicate names', () => {
+    render(<StakeholdersMascot personas={TEST_PERSONAS} />);
+    expect(screen.getByText('Refine')).toBeTruthy();
+    expect(screen.getByText('Innovate')).toBeTruthy();
+    expect(screen.getByText('Synergize')).toBeTruthy();
+    expect(screen.queryByText('Gilfoyle', { selector: '.stakeholders-roster-chip' })).toBeNull();
+  });
+
   it('lists all stakeholder names in the roster when expanded (test mode)', () => {
     render(<StakeholdersMascot personas={TEST_PERSONAS} />);
     expect(screen.getByRole('menu', { name: 'Your team' })).toBeTruthy();

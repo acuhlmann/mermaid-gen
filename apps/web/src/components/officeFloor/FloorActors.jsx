@@ -107,7 +107,9 @@ export function FloorActors({
         <FloorMeeting meeting={meeting} copy={copy} scale={scale} showSpokenText={showSpokenText} />
       ) : null}
       {peek ? <FloorPeek peek={peek} scale={scale} /> : null}
-      {talk ? <FloorTalk talk={talk} line={talkLine} scale={scale} /> : null}
+      {talk ? (
+        <FloorTalk talk={talk} line={talkLine} scale={scale} hideBody={!showSpokenText} />
+      ) : null}
 
       {/* One of you on the floor, whatever your reason for being up. */}
       {presence ? (

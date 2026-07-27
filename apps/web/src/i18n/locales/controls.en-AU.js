@@ -9,9 +9,9 @@ export const CONTROLS_EN_AU = {
     renderMode: 'Knock it out as...',
     renderModePersona: 'Mode Shifter',
     renderModeTitle: 'Mode Shifter · Re-render this selection in another mode',
-    gilfoyle: 'Gilfoyle',
-    dinesh: 'Dinesh',
-    erlich: 'Erlich',
+    gilfoyle: 'Refine',
+    dinesh: 'Refine',
+    erlich: 'Innovate',
     goMad: 'Go troppo',
     goMadder: 'Go madder',
     goMaddest: 'Go full mad',
@@ -33,8 +33,8 @@ export const CONTROLS_EN_AU = {
     unmuteAria: 'Take headphones off — unmute the mob',
     muteTitle: 'The mob is hovering · put headphones on',
     unmuteTitle: 'Headphones on · mob is muted · click to take them off',
-    prepForCeo: 'Prep for the CEO',
-    prepForCeoTitle: 'Prep for the CEO · Boil it down before it goes upstairs'
+    prepForCeo: 'Synergize',
+    prepForCeoTitle: 'Synergize · Boil it down before it goes upstairs'
   },
   prompt: {
     yourTopic: 'Your topic, mate',

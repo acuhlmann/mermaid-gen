@@ -13,7 +13,7 @@
  * person is selected, and — since slice 7 — where you are standing.
  */
 
-import { useCallback, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import FloorActors from './officeFloor/FloorActors.jsx';
 import FloorCardSlot from './officeFloor/FloorCardSlot.jsx';
 import FloorLiveRegion from './officeFloor/FloorLiveRegion.jsx';
@@ -157,10 +157,9 @@ function OfficeFloorView({ bridge }) {
   const copy = officeChromeCopy().floor;
   const directory = officeChromeCopy().directory;
   const officeSnap = useSyncExternalStore(subscribeOffice, getOfficeSnapshot, getOfficeSnapshot);
-  const showSpokenText = shouldShowSpokenText({
-    captions: officeSnap.captions,
-    voiceActive: officeSnap.narration
-  });
+  /** True while the current talk line is actually being spoken aloud. */
+  const [voiceActive, setVoiceActive] = useState(false);
+  const prevTalkLineRef = useRef('');
 
   const viewportRef = useRef(null);
   const scale = useStageScale(viewportRef);
@@ -203,6 +202,41 @@ function OfficeFloorView({ bridge }) {
    */
   const person = usePersonDetails(selectedId, copy, whereaboutsOf(selectedId, floorState));
   const talk = talkView(activity.talk, floorState);
+  const talkingColleagueId = talk?.phase === 'talking' ? talk.colleagueId : null;
+
+  // Voice-first floor talk: speak each inbound line, hide the bubble while
+  // voice is in flight, fall back to the balloon when TTS is muted or fails.
+  useEffect(() => {
+    if (!talkingColleagueId) {
+      prevTalkLineRef.current = '';
+      setVoiceActive(false);
+      return undefined;
+    }
+    const line = activity.talkLine;
+    if (!line || line === prevTalkLineRef.current) return undefined;
+    prevTalkLineRef.current = line;
+
+    const narrate = sceneHandlers?.narrateLine;
+    if (typeof narrate !== 'function') {
+      setVoiceActive(false);
+      return undefined;
+    }
+
+    let cancelled = false;
+    setVoiceActive(true);
+    void narrate({ speakerId: talkingColleagueId, text: line }).then((result) => {
+      if (!cancelled) setVoiceActive(Boolean(result?.spoken));
+    });
+    return () => {
+      cancelled = true;
+      setVoiceActive(false);
+    };
+  }, [talkingColleagueId, activity.talkLine, sceneHandlers]);
+
+  const showSpokenText = shouldShowSpokenText({
+    captions: officeSnap.captions,
+    voiceActive
+  });
 
   const handleSelect = useCallback((id) => {
     setSelectedId((current) => (current === id ? null : id));

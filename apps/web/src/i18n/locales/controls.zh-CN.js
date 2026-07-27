@@ -9,9 +9,9 @@ export const CONTROLS_ZH_CN = {
     renderMode: '渲染为…',
     renderModePersona: '模式切换',
     renderModeTitle: '模式切换 · 用另一种模式重新渲染所选内容',
-    gilfoyle: 'Gilfoyle',
-    dinesh: 'Dinesh',
-    erlich: 'Erlich',
+    gilfoyle: '精修',
+    dinesh: '精修',
+    erlich: '创新',
     goMad: '放飞',
     goMadder: '更疯',
     goMaddest: '最疯',
@@ -33,7 +33,7 @@ export const CONTROLS_ZH_CN = {
     unmuteTitle: '耳机已戴上 · 团队已静音 · 点击摘下',
     facilities: '找物业',
     facilitiesTitle: '呼叫物业 · 修好这坨烂图',
-    prepForCeo: '给 CEO 准备稿',
+    prepForCeo: '协同',
     prepForCeoTitle: '给 CEO 准备稿 · 送上楼前先熬干水分'
   },
   prompt: {

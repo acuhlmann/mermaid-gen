@@ -5,13 +5,13 @@ import { resolveUiLocaleFromExplicitRequest } from '@archislop/shared';
 describe('ui locale bundles', () => {
   it('returns English controls by default', () => {
     const bundle = getUiLocaleBundle('en');
-    expect(bundle.controls.actions.gilfoyle).toBe('Gilfoyle');
+    expect(bundle.controls.actions.gilfoyle).toBe('Refine');
     expect(bundle.slopitect.PROMPT_ACTION_COPY.label).toBe('Weigh In');
   });
 
   it('returns simplified Chinese controls when locale is zh-CN', () => {
     const bundle = getUiLocaleBundle('zh-CN');
-    expect(bundle.controls.actions.gilfoyle).toBe('Gilfoyle');
+    expect(bundle.controls.actions.gilfoyle).toBe('精修');
     expect(bundle.controls.radial.drillDeeper).toBe('深入挖掘');
     expect(bundle.slopitect.PROMPT_ACTION_COPY.label).toBe('发表意见');
     expect(bundle.controls.advisorThinking.goMad).toBe('正在癫狂');
@@ -33,7 +33,7 @@ describe('ui locale bundles', () => {
 
   it('returns Aussie slang controls when locale is en-AU', () => {
     const bundle = getUiLocaleBundle('en-AU');
-    expect(bundle.controls.actions.gilfoyle).toBe('Gilfoyle');
+    expect(bundle.controls.actions.gilfoyle).toBe('Refine');
     expect(bundle.controls.actions.goMad).toBe('Go troppo');
     expect(bundle.controls.actions.stakeholders).toBe('The Mob');
     expect(bundle.controls.prompt.doIt).toBe('Have a go');

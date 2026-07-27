@@ -28,11 +28,12 @@ import { officeImQuickReplies, officeSenderInfo } from '../../utils/officeCast.j
  *     at?: { x: number, y: number } | null
  *   },
  *   line: string,
- *   scale?: number
+ *   scale?: number,
+ *   hideBody?: boolean
  * }} props `at` is where they are standing when that is not their own desk
  *   (slice 12) — a bubble over the chair somebody left points at nobody.
  */
-export function FloorTalk({ talk, line, scale = 1 }) {
+export function FloorTalk({ talk, line, scale = 1, hideBody = false }) {
   if (talk.phase !== 'talking' || !line) return null;
 
   return (
@@ -42,6 +43,7 @@ export function FloorTalk({ talk, line, scale = 1 }) {
       scale={scale}
       tile={talk.at ?? null}
       testId="office-floor-talk-line"
+      hideBody={hideBody}
     />
   );
 }

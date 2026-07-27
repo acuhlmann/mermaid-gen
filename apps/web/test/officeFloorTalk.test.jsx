@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import OfficeFloor from '../src/components/OfficeFloor.jsx';
 import { approachTileFor } from '../src/utils/officeFloorMovement.js';
 import { projectIso } from '../src/utils/officeFloorPlan.js';
@@ -9,6 +9,7 @@ import {
   getOfficeViewMode,
   standUp
 } from '../src/state/officeViewModeStore.js';
+import { setOfficeCaptions, setOfficeNarration } from '../src/state/officeMomentStore.js';
 
 /**
  * Talking on the floor (slice 8). The conversation *is* the Slop Chat™ thread —
@@ -35,6 +36,14 @@ function imFrom(colleagueId, body, outbound = false) {
 afterEach(() => {
   cleanup();
   _resetOfficeViewModeForTests();
+  setOfficeCaptions(false);
+  setOfficeNarration(true);
+});
+
+beforeEach(() => {
+  localStorage.clear();
+  setOfficeCaptions(false);
+  setOfficeNarration(true);
 });
 
 describe('talking on the floor (slice 8)', () => {
@@ -68,7 +77,11 @@ describe('talking on the floor (slice 8)', () => {
 
   it('renders their newest line as a bubble over them, and glows them', async () => {
     const imHistory = [imFrom(CHAD, 'Quick one — is that the new architecture diagram?')];
-    const view = renderFloor({ imHistory, onTalkGreet: vi.fn() });
+    const view = renderFloor({
+      imHistory,
+      onTalkGreet: vi.fn(),
+      sceneHandlers: { narrateLine: vi.fn(() => Promise.resolve({ spoken: false })) }
+    });
     walkOverToTalk();
 
     const bubble = await screen.findByTestId('office-floor-talk-line');
@@ -76,6 +89,35 @@ describe('talking on the floor (slice 8)', () => {
     const speaking = view.container.querySelectorAll('.office-floor-person.is-speaking');
     expect(speaking).toHaveLength(1);
     expect(speaking[0].closest('[data-seat]')?.dataset.seat).toBe(CHAD);
+  });
+
+  it('speaks floor talk aloud and hides the bubble when CC is off and narration works', async () => {
+    const line = 'Quick one — is that the new architecture diagram?';
+    const imHistory = [imFrom(CHAD, line)];
+    const narrateLine = vi.fn(() => Promise.resolve({ spoken: true }));
+    renderFloor({
+      imHistory,
+      onTalkGreet: vi.fn(),
+      sceneHandlers: { narrateLine }
+    });
+    walkOverToTalk();
+
+    await waitFor(() => expect(narrateLine).toHaveBeenCalledWith({ speakerId: CHAD, text: line }));
+    await waitFor(() => expect(screen.queryByText(line)).toBeNull());
+  });
+
+  it('shows the bubble when captions are on even while narration speaks', async () => {
+    setOfficeCaptions(true);
+    const line = 'Quick one — is that the new architecture diagram?';
+    const imHistory = [imFrom(CHAD, line)];
+    renderFloor({
+      imHistory,
+      onTalkGreet: vi.fn(),
+      sceneHandlers: { narrateLine: vi.fn(() => Promise.resolve({ spoken: true })) }
+    });
+    walkOverToTalk();
+
+    expect(await screen.findByText(line)).toBeTruthy();
   });
 
   it('shows what they said, not what you said', () => {

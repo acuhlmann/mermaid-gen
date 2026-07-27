@@ -9,9 +9,9 @@ export const CONTROLS_ZH_TW = {
     renderMode: '渲染為…',
     renderModePersona: '模式切換',
     renderModeTitle: '模式切換 · 用另一種模式重新渲染所選內容',
-    gilfoyle: 'Gilfoyle',
-    dinesh: 'Dinesh',
-    erlich: 'Erlich',
+    gilfoyle: '精修',
+    dinesh: '精修',
+    erlich: '創新',
     goMad: '放飛',
     goMadder: '更瘋',
     goMaddest: '最瘋',
@@ -33,7 +33,7 @@ export const CONTROLS_ZH_TW = {
     unmuteTitle: '耳機已戴上 · 團隊已靜音 · 點擊摘下',
     facilities: '找物業',
     facilitiesTitle: '呼叫物業 · 修好這坨爛圖',
-    prepForCeo: '給 CEO 準備稿',
+    prepForCeo: '協同',
     prepForCeoTitle: '給 CEO 準備稿 · 送上樓前先熬乾水分'
   },
   prompt: {

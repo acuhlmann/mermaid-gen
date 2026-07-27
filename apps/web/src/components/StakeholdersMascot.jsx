@@ -26,17 +26,17 @@ const VARIANT_CLASS = {
 };
 
 const ACTION_LABEL = {
-  gilfoyle: 'Gilfoyle',
-  dinesh: 'Dinesh',
-  erlich: 'Erlich',
+  gilfoyle: 'Refine',
+  dinesh: 'Refine',
+  erlich: 'Innovate',
   goMad: 'Go Mad',
   critique: 'Critique',
   explain: 'Explain',
-  barker: 'Align'
+  barker: 'Synergize'
 };
 
 function resolveActionLabel(variant, controls) {
-  if (variant === 'barker') return controls.stakeholders.align;
+  if (variant === 'barker') return controls.actions.prepForCeo ?? ACTION_LABEL.barker;
   return controls.actions[variant] ?? ACTION_LABEL[variant] ?? variant;
 }
 
