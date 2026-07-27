@@ -44,7 +44,9 @@ describe('buildRadialActions', () => {
     // at runtime ACTION_PERSONA_SHORT_NAMES shortens it to "Dinesh".
     expect(dinesh.persona).toBe('Dinesh Chugtai');
     expect(dinesh.personaTitle).toContain('Engineer, Uncredited');
-    expect(dinesh.label).not.toBe(gilfoyle.label);
+    // Both seats share the Refine action label; persona fields carry the cast split.
+    expect(dinesh.label).toBe('Refine');
+    expect(gilfoyle.label).toBe('Refine');
     expect(dinesh.personaEmoji).not.toBe(gilfoyle.personaEmoji);
   });
 });
