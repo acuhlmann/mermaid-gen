@@ -32,6 +32,7 @@
  * @property {((colleagueId: string, body: string) => Promise<void> | void) | undefined} onTalkReply
  * @property {((colleagueId: string | null) => void) | undefined} onTalkingChange
  * @property {(() => Promise<boolean> | boolean) | undefined} onGetCoffee
+ * @property {((propKind: string) => void) | undefined} onPropCue
  * @property {((prompt: string, colleagueId: string) => void) | undefined} onAdoptPrompt
  * @property {((id: string) => void) | undefined} onDismissWalkBy
  * @property {unknown} coffee

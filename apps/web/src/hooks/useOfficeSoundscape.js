@@ -1,49 +1,10 @@
 import { useEffect, useRef } from 'react';
-import {
-  playChairSqueak,
-  playDeskPhone,
-  playDistantPrinter,
-  playElevatorDing,
-  playEspressoMachine,
-  playKeyboardClatter,
-  playMouseClicks,
-  playPaperShuffle,
-  playVendingMachine,
-  playWaterCooler
-} from '../utils/agentChimes.js';
-import { playCueSample } from '../utils/officeCueSamples.js';
+import { officeCueChime } from '../utils/officeCuePlayers.js';
 import { pickNextSoundscapeCue } from '../utils/officeSoundscape.js';
 import { getOfficeSnapshot } from '../state/officeMomentStore.js';
+import { getOfficeViewMode } from '../state/officeViewModeStore.js';
 
 export const SOUNDSCAPE_TICK_MS = 5_000;
-
-const SYNTH_CUE_PLAYERS = {
-  keyboard: playKeyboardClatter,
-  mouse: playMouseClicks,
-  paper: playPaperShuffle,
-  printer: playDistantPrinter,
-  chair: playChairSqueak,
-  phone: playDeskPhone,
-  watercooler: playWaterCooler,
-  espresso: playEspressoMachine,
-  vending: playVendingMachine,
-  elevator: playElevatorDing
-};
-
-/**
- * Sampled where a real recording beats synthesis, synthesized otherwise — and
- * synthesized anyway whenever the sample has not finished decoding, so a cue is
- * never dropped waiting on a download.
- *
- * @param {string} cue
- * @param {() => number} random
- */
-function cuePlayerFor(cue, random) {
-  return (audioContextRef) => {
-    if (playCueSample(cue, audioContextRef, random)) return;
-    SYNTH_CUE_PLAYERS[cue]?.(audioContextRef);
-  };
-}
 
 /**
  * Office soundscape director (docs/office-parody.md): a tiny sibling of
@@ -53,9 +14,10 @@ function cuePlayerFor(cue, random) {
  * off in the desk menu; `playChime` is App's sound gate (soundEnabled +
  * user gesture), so a muted app stays silent for free.
  *
- * Cues resolve through `cuePlayerFor`, which prefers a baked sample and falls
+ * Cues resolve through `officeCueChime`, which prefers a baked sample and falls
  * back to synthesis. The continuous bed underneath is a separate concern —
- * see useOfficeRoomTone.
+ * see useOfficeRoomTone. While you are at your desk the brain biases toward
+ * keyboard/mouse/paper; on the floor, kitchen and printer set pieces step up.
  *
  * @param {{ playChime?: (playFn: (ref: object) => void) => void, random?: () => number }} params
  */
@@ -75,17 +37,19 @@ export function useOfficeSoundscape(params) {
       const snapshot = getOfficeSnapshot();
       if (!snapshot.soundscape || snapshot.focusTime) return;
       const random = paramsRef.current.random ?? Math.random;
+      const atDesk = getOfficeViewMode() === 'desk';
       const cue = pickNextSoundscapeCue({
         now: Date.now(),
         sessionStartedAt,
         lastPlayedAt,
         lastCue,
+        atDesk,
         random
       });
       if (!cue) return;
       lastPlayedAt = Date.now();
       lastCue = cue;
-      paramsRef.current.playChime?.(cuePlayerFor(cue, random));
+      paramsRef.current.playChime?.(officeCueChime(cue, { random }));
     };
 
     const interval = setInterval(tick, SOUNDSCAPE_TICK_MS);

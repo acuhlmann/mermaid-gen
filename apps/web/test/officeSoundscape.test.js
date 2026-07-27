@@ -62,6 +62,30 @@ describe('pickNextSoundscapeCue', () => {
     ).not.toBeNull();
   });
 
+  it('biases toward desk textures while you are at your screen', () => {
+    const counts = { keyboard: 0, mouse: 0, paper: 0, other: 0 };
+    for (let i = 0; i < 500; i += 1) {
+      const cue = pickNextSoundscapeCue({ ...BASE, atDesk: true, random: Math.random });
+      if (cue === 'keyboard' || cue === 'mouse' || cue === 'paper') counts[cue] += 1;
+      else if (cue) counts.other += 1;
+    }
+    const textures = counts.keyboard + counts.mouse + counts.paper;
+    expect(textures).toBeGreaterThan(counts.other * 2);
+    expect(counts.keyboard).toBeGreaterThan(80);
+  });
+
+  it('gives kitchen and printer set pieces more air on the floor', () => {
+    let setPiecesAtDesk = 0;
+    let setPiecesOnFloor = 0;
+    for (let i = 0; i < 400; i += 1) {
+      const desk = pickNextSoundscapeCue({ ...BASE, atDesk: true, random: Math.random });
+      const floor = pickNextSoundscapeCue({ ...BASE, atDesk: false, random: Math.random });
+      if (desk && !['keyboard', 'mouse', 'paper'].includes(desk)) setPiecesAtDesk += 1;
+      if (floor && !['keyboard', 'mouse', 'paper'].includes(floor)) setPiecesOnFloor += 1;
+    }
+    expect(setPiecesOnFloor).toBeGreaterThan(setPiecesAtDesk);
+  });
+
   it('only returns known cues', () => {
     for (let i = 0; i < 200; i += 1) {
       const cue = pickNextSoundscapeCue({ ...BASE, random: Math.random });

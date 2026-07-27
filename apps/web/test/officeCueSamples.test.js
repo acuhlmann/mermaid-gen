@@ -112,6 +112,18 @@ describe('officeCueSamples', () => {
     expect(stubs.gains[0].gain.value).toBeLessThan(stubs.gains[1].gain.value);
   });
 
+  it('boosts gain and centres the pan when you are standing at the source', async () => {
+    playCueSample('printer', ref);
+    await settle();
+
+    playCueSample('printer', ref, () => 0.5, { near: true });
+    playCueSample('printer', ref, () => 0.5);
+
+    expect(stubs.gains[0].gain.value).toBeGreaterThan(stubs.gains[1].gain.value);
+    // Near plays skip the panner entirely so the source is in front of you.
+    expect(stubs.panners).toHaveLength(1);
+  });
+
   it('places set pieces across the room but keeps desk textures centred', async () => {
     playCueSample('printer', ref);
     playCueSample('keyboard', ref);

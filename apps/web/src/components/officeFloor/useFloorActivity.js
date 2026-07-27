@@ -61,6 +61,7 @@ function lastLineFrom(imHistory, colleagueId) {
  *   onTalkReply?: (colleagueId: string, body: string) => Promise<void> | void,
  *   onTalkingChange?: (colleagueId: string | null) => void,
  *   onGetCoffee?: () => Promise<boolean> | boolean,
+ *   onPropCue?: (propKind: string) => void,
  *   onEngage?: () => void
  * }} options `onEngage` fires when you set off somewhere with a reason — the
  *   person card that offered the verb has served its purpose.
@@ -72,6 +73,7 @@ export function useFloorActivity({
   onTalkReply,
   onTalkingChange,
   onGetCoffee,
+  onPropCue,
   onEngage
 }) {
   const { presence, playerRef, walkTo, peekAt, talkTo, reachFor, goHome, handleArrive } =
@@ -93,7 +95,8 @@ export function useFloorActivity({
   const propUse = useFloorPropUse({
     propKind: prop?.propKind ?? null,
     arrived: prop?.phase === 'using',
-    onGetCoffee
+    onGetCoffee,
+    onPropCue
   });
 
   // Renderer #1 needs to know who you are stood in front of, so it can hold

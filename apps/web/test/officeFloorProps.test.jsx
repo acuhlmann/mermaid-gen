@@ -42,6 +42,15 @@ describe('usable props (slice 9)', () => {
     await waitFor(() => expect(onGetCoffee).toHaveBeenCalledTimes(1));
   });
 
+  it('fires the printer cue sequence when you walk up to the printer', async () => {
+    const onPropCue = vi.fn();
+    renderFloor({ onPropCue, onGetCoffee: vi.fn().mockResolvedValue(true) });
+
+    fireEvent.click(screen.getByRole('button', { name: /Printer/i }));
+
+    await waitFor(() => expect(onPropCue).toHaveBeenCalledWith('printer'));
+  });
+
   it('walks you there and empties your own desk on the way', () => {
     const view = renderFloor({ onGetCoffee: vi.fn().mockResolvedValue(true) });
     expect(view.container.querySelector('[data-seat="you"]')?.dataset.vacant).toBeUndefined();

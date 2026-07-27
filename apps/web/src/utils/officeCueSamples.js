@@ -29,20 +29,28 @@ import watercoolerUrl from '../assets/audio/cue-watercooler.mp3';
  * cue peaks exactly where its predecessor did, preserving a mix that was
  * already balanced against the event chimes.
  *
+ * Desk textures (keyboard / paper) sit a notch louder than the original synth
+ * peaks — corporate-IT typing is the room's heartbeat and was getting lost
+ * under the bed. Set pieces stay at the synth-matched level for ambient plays;
+ * diegetic `near` plays (you're stood at the machine) multiply by NEAR_GAIN.
+ *
  * `spread` is how far across the stereo field the cue may be placed, randomly,
  * per play. Desk textures happen at *your* desk and stay centred; the set
  * pieces are somewhere else in the room, and moving them around is most of
  * what stops a repeated sample sounding like a repeated sample.
  */
 const SAMPLES = {
-  keyboard: { url: keyboardUrl, gain: 0.0162, spread: 0.15 },
-  paper: { url: paperUrl, gain: 0.0113, spread: 0.15 },
-  chair: { url: chairUrl, gain: 0.0085, spread: 0.25 },
+  keyboard: { url: keyboardUrl, gain: 0.028, spread: 0.15 },
+  paper: { url: paperUrl, gain: 0.018, spread: 0.15 },
+  chair: { url: chairUrl, gain: 0.012, spread: 0.25 },
   printer: { url: printerUrl, gain: 0.0099, spread: 0.7 },
   watercooler: { url: watercoolerUrl, gain: 0.0155, spread: 0.6 },
   espresso: { url: espressoUrl, gain: 0.0169, spread: 0.6 },
   vending: { url: vendingUrl, gain: 0.0169, spread: 0.7 }
 };
+
+/** Standing next to the source — louder, centred, not "down the hall". */
+const NEAR_GAIN = 2.2;
 
 /** Cues with a sampled version. The rest stay synthesized on purpose. */
 export const SAMPLED_CUES = Object.keys(SAMPLES);
@@ -94,9 +102,10 @@ function warm(cue, context) {
  * @param {string} cue
  * @param {{ current: AudioContext | null }} audioContextRef
  * @param {() => number} [random]
+ * @param {{ near?: boolean }} [options] `near` = standing at the source (louder, centred)
  * @returns {boolean} whether the sample played — false means "use the synth cue"
  */
-export function playCueSample(cue, audioContextRef, random = Math.random) {
+export function playCueSample(cue, audioContextRef, random = Math.random, options = {}) {
   const entry = SAMPLES[cue];
   if (!entry) return false;
   const context = getContext(audioContextRef);
@@ -108,18 +117,21 @@ export function playCueSample(cue, audioContextRef, random = Math.random) {
     return false;
   }
 
+  const near = Boolean(options?.near);
   try {
     const source = context.createBufferSource();
     source.buffer = buffer;
     source.playbackRate.value = 1 + (random() * 2 - 1) * RATE_JITTER;
 
     const gainNode = context.createGain();
-    gainNode.gain.value = entry.gain * (1 + (random() * 2 - 1) * GAIN_JITTER);
+    const base = entry.gain * (near ? NEAR_GAIN : 1);
+    gainNode.gain.value = base * (1 + (random() * 2 - 1) * GAIN_JITTER);
 
     let tail = gainNode;
-    if (entry.spread > 0 && typeof context.createStereoPanner === 'function') {
+    const spread = near ? 0 : entry.spread;
+    if (spread > 0 && typeof context.createStereoPanner === 'function') {
       const panner = context.createStereoPanner();
-      panner.pan.value = (random() * 2 - 1) * entry.spread;
+      panner.pan.value = (random() * 2 - 1) * spread;
       gainNode.connect(panner);
       tail = panner;
     }
@@ -136,4 +148,16 @@ export function playCueSample(cue, audioContextRef, random = Math.random) {
 export function _resetCueSamplesForTests() {
   buffers.clear();
   loading.clear();
+}
+
+/**
+ * Kick off decoding for every sampled cue. Call once the sound gate is open so
+ * the first diegetic play (printer, espresso) is a sample, not a synth fallback.
+ *
+ * @param {{ current: AudioContext | null }} audioContextRef
+ */
+export function warmAllCueSamples(audioContextRef) {
+  const context = getContext(audioContextRef);
+  if (!context) return;
+  for (const cue of Object.keys(SAMPLES)) warm(cue, context);
 }

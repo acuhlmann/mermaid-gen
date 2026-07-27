@@ -144,6 +144,7 @@ function OfficeFloorView({ bridge }) {
     onTalkReply,
     onTalkingChange,
     onGetCoffee,
+    onPropCue,
     onAdoptPrompt,
     onDismissWalkBy,
     coffee = null,
@@ -172,6 +173,7 @@ function OfficeFloorView({ bridge }) {
     onTalkReply,
     onTalkingChange,
     onGetCoffee,
+    onPropCue,
     onEngage: handleClosePerson
   });
   const { presence, peek, conversation, prop, propUse, origin, goHome } = activity;
@@ -343,6 +345,7 @@ function OfficeFloorView({ bridge }) {
  *   onTalkReply?: (colleagueId: string, body: string) => Promise<void> | void,
  *   onTalkingChange?: (colleagueId: string | null) => void,
  *   onGetCoffee?: () => Promise<boolean> | boolean,
+ *   onPropCue?: (propKind: string) => void,
  *   onAdoptPrompt?: (prompt: string, colleagueId: string) => void,
  *   onDismissWalkBy?: (id: string) => void,
  *   coffee?: unknown,

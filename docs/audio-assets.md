@@ -105,16 +105,16 @@ The free tier is **non-commercial use, with attribution**. Two consequences:
 
 All paths below are relative to `apps/web/src/assets/audio/`.
 
-| Asset                  | Kind | Length | Size   | Cost | Used by                                   |
-| ---------------------- | ---- | ------ | ------ | ---- | ----------------------------------------- |
-| `office-room-tone.mp3` | bed  | 30 s   | 240 KB | 300  | `officeRoomTone.js` — the soundscape bed  |
-| `cue-keyboard.mp3`     | cue  | 2.4 s  | 19 KB  | 30   | `officeCueSamples.js` — `keyboard` cue    |
-| `cue-paper.mp3`        | cue  | 1.6 s  | 13 KB  | 20   | `officeCueSamples.js` — `paper` cue       |
-| `cue-printer.mp3`      | cue  | 3.2 s  | 24 KB  | 30   | `officeCueSamples.js` — `printer` cue     |
-| `cue-chair.mp3`        | cue  | 1.5 s  | 12 KB  | 20   | `officeCueSamples.js` — `chair` cue       |
-| `cue-watercooler.mp3`  | cue  | 2.1 s  | 17 KB  | 30   | `officeCueSamples.js` — `watercooler` cue |
-| `cue-espresso.mp3`     | cue  | 3.9 s  | 31 KB  | 40   | `officeCueSamples.js` — `espresso` cue    |
-| `cue-vending.mp3`      | cue  | 2.5 s  | 20 KB  | 40   | `officeCueSamples.js` — `vending` cue     |
+| Asset                  | Kind | Length | Size   | Cost | Used by                                                                  |
+| ---------------------- | ---- | ------ | ------ | ---- | ------------------------------------------------------------------------ |
+| `office-room-tone.mp3` | bed  | 30 s   | 240 KB | 300  | `officeRoomTone.js` — the soundscape bed                                 |
+| `cue-keyboard.mp3`     | cue  | 2.4 s  | 19 KB  | 30   | `officeCueSamples.js` — ambient desk typing (biased while at desk)       |
+| `cue-paper.mp3`        | cue  | 1.6 s  | 13 KB  | 20   | ambient shuffle + diegetic follow-up after the printer                   |
+| `cue-printer.mp3`      | cue  | 3.2 s  | 24 KB  | 30   | ambient distant printer + diegetic when you walk up to the floor printer |
+| `cue-chair.mp3`        | cue  | 1.5 s  | 12 KB  | 20   | ambient + stand up / sit down                                            |
+| `cue-watercooler.mp3`  | cue  | 2.1 s  | 17 KB  | 30   | ambient only (cooler is scenery on the floor today — §6 rule 21)         |
+| `cue-espresso.mp3`     | cue  | 3.9 s  | 31 KB  | 40   | ambient + accepting a coffee break (floor machine or invite)             |
+| `cue-vending.mp3`      | cue  | 2.5 s  | 20 KB  | 40   | ambient set piece                                                        |
 
 **Total: 379 KB, 510 credits.** The `elevator`, `phone` and `mouse` cues are deliberately absent —
 they are tones, and stay synthesized in `agentChimes.js`.
@@ -135,15 +135,18 @@ planning a large batch rather than trusting this number.
    `officeRoomTone.js`, derived so the bed sits under cues peaking 0.006–0.014, and approved from
    an offline mix that got the _relative_ balance right. Absolute presence against a real system
    volume is a different judgement. Costs nothing to change — one constant, no regeneration.
-2. **Per-room beds.** One bed currently plays everywhere. The isometric floor has rooms, so a
+2. **Diegetic prop cues are wired for the printer and coffee; the water cooler is still
+   unreachable** on the isometric floor (§6 rule 21). If a standable mark is found for the cooler,
+   `cuesForProp('waterCooler')` already returns the watercooler sample — no second wiring pass.
+3. **Per-room beds.** One bed currently plays everywhere. The isometric floor has rooms, so a
    meeting-room or kitchen tone would make moving through the office change what you hear. 300
    credits each; `officeRoomTone.js` would need to swap buffers on a crossfade rather than
    assuming a single asset.
-3. **A second variant for the highest-weight cues.** `keyboard` has weight 4 in
-   `officeSoundscape.js` — it fires roughly four times more often than any set piece, so it is
-   the first sample that will wear thin. Rate/gain jitter and panning delay that, they do not
+4. **A second variant for the highest-weight cues.** `keyboard` has weight 7 in
+   `officeSoundscape.js` and an at-desk bias on top — it fires far more often than any set piece, so
+   it is the first sample that will wear thin. Rate/gain jitter and panning delay that, they do not
    prevent it. A second `cue-keyboard-b.mp3` picked at random would; 30 credits.
-4. **Nothing verifies a regenerated asset automatically.** The loop-seam and level checks under
+5. **Nothing verifies a regenerated asset automatically.** The loop-seam and level checks under
    "Verifying a new asset" are a manual ritual. If beds get regenerated often, fold them into the
    generator as a post-step that fails loudly.
 

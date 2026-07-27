@@ -33,15 +33,20 @@ import { propUseFor } from '../../utils/officeFloorProps.js';
  * @param {{
  *   propKind: string | null,
  *   arrived: boolean,
- *   onGetCoffee?: () => Promise<boolean> | boolean
+ *   onGetCoffee?: () => Promise<boolean> | boolean,
+ *   onPropCue?: (propKind: string) => void
  * }} options
  * @returns {{ phase: PropUsePhase }}
  */
-export function useFloorPropUse({ propKind, arrived, onGetCoffee }) {
+export function useFloorPropUse({ propKind, arrived, onGetCoffee, onPropCue }) {
   const [phase, setPhase] = useState('idle');
   /** Which prop we have already used, so arriving does not re-fire on render. */
   const used = useRef(null);
   const alive = useRef(true);
+  const onPropCueRef = useRef(onPropCue);
+  useEffect(() => {
+    onPropCueRef.current = onPropCue;
+  });
 
   useEffect(() => {
     alive.current = true;
@@ -73,6 +78,9 @@ export function useFloorPropUse({ propKind, arrived, onGetCoffee }) {
     if (!propKind || !arrived) return;
     if (used.current === propKind) return;
     used.current = propKind;
+    // Diegetic SFX before the verb — the printer should whir when you arrive,
+    // not after the gag line has already rendered.
+    onPropCueRef.current?.(propKind);
     const run = async () => {
       setPhase('working');
       let delivered = false;

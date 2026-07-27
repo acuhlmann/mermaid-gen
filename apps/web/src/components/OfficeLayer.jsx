@@ -44,7 +44,6 @@ import {
 import {
   playBattleBell,
   playCalendarDing,
-  playEspressoMachine,
   playFootsteps,
   playImPing,
   playMailChime,
@@ -52,6 +51,7 @@ import {
   playVictoryDing,
   playYouveGotMail
 } from '../utils/agentChimes.js';
+import { officeCueChime, playPropCues } from '../utils/officeCuePlayers.js';
 import { officeMinutesToInsightEntry } from '../utils/appInsightHelpers.js';
 import { fetchOfficeCloudAudio } from '../utils/officeSpeechClient.js';
 import {
@@ -255,8 +255,9 @@ export default function OfficeLayer({
   // first), pop on new IM, footsteps when a colleague walks up, calendar ding
   // on a meeting invite, the espresso machine when a coffee break is accepted,
   // the boxing bell when a cubicle battle opens (victory sting on the verdict),
-  // blip when a meeting starts playing. playChime is App's sound gate
-  // (soundEnabled + gesture).
+  // chair squeak when you stand up / sit down, blip when a meeting starts
+  // playing. playChime is App's sound gate (soundEnabled + gesture). Sampled
+  // cues prefer the baked assets (docs/audio-assets.md).
   const prevUnreadRef = useRef(snapshot.unreadCount);
   const prevPingCountRef = useRef(snapshot.imPings.length);
   const prevMeetingStateRef = useRef(null);
@@ -265,6 +266,7 @@ export default function OfficeLayer({
   const prevCoffeeAcceptedRef = useRef(Boolean(snapshot.coffee?.accepted));
   const prevBattleAcceptedRef = useRef(Boolean(snapshot.battle?.accepted));
   const prevBattleVotedRef = useRef(snapshot.battle?.votedFor ?? null);
+  const prevOnFloorRef = useRef(onFloor);
   const mailAnnouncedRef = useRef(false);
   useEffect(() => {
     if (snapshot.unreadCount > prevUnreadRef.current) {
@@ -304,7 +306,9 @@ export default function OfficeLayer({
   }, [snapshot.meetingInvite?.id, playChime]);
   useEffect(() => {
     const accepted = Boolean(snapshot.coffee?.accepted);
-    if (accepted && !prevCoffeeAcceptedRef.current) playChime?.(playEspressoMachine);
+    if (accepted && !prevCoffeeAcceptedRef.current) {
+      playChime?.(officeCueChime('espresso', { near: true }));
+    }
     prevCoffeeAcceptedRef.current = accepted;
   }, [snapshot.coffee?.accepted, playChime]);
   useEffect(() => {
@@ -318,11 +322,24 @@ export default function OfficeLayer({
     prevBattleVotedRef.current = votedFor;
   }, [snapshot.battle?.votedFor, playChime]);
   useEffect(() => {
+    if (onFloor !== prevOnFloorRef.current) {
+      playChime?.(officeCueChime('chair', { near: true }));
+    }
+    prevOnFloorRef.current = onFloor;
+  }, [onFloor, playChime]);
+  useEffect(() => {
     if (meeting?.state === 'playing' && prevMeetingStateRef.current !== 'playing') {
       playChime?.(playMeetingJoinBlip);
     }
     prevMeetingStateRef.current = meeting?.state ?? null;
   }, [meeting?.state, playChime]);
+
+  const handlePropCue = useCallback(
+    (propKind) => {
+      playPropCues(propKind, playChime);
+    },
+    [playChime]
+  );
 
   // A failed meeting fetch degrades in-fiction: the invite becomes a canned
   // cancellation email instead of an error toast.
@@ -603,6 +620,7 @@ export default function OfficeLayer({
         onTalkReply: handleTalkReply,
         onTalkingChange: setFloorTalkingTo,
         onGetCoffee: desk.getCoffee,
+        onPropCue: handlePropCue,
         onAdoptPrompt: handleAdopt,
         onDismissWalkBy: dismissOfficeWalkBy,
         coffee: snapshot.coffee,
@@ -634,6 +652,7 @@ export default function OfficeLayer({
       handleTalkGreet,
       handleTalkReply,
       desk.getCoffee,
+      handlePropCue,
       handleAdopt,
       narrateLine,
       prefetchLine,
