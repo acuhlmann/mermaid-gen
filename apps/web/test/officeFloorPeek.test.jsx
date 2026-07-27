@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import OfficeFloor from '../src/components/OfficeFloor.jsx';
 import { deskWorkFor } from '../src/utils/officeDeskWork.js';
 import {
@@ -8,6 +8,7 @@ import {
   getOfficeViewMode,
   standUp
 } from '../src/state/officeViewModeStore.js';
+import { setOfficeCaptions, setOfficeNarration } from '../src/state/officeMomentStore.js';
 
 /**
  * Without a WAAPI engine (jsdom) `useWalkAnimation` settles immediately, which
@@ -27,6 +28,14 @@ function walkOverTo(name) {
 afterEach(() => {
   cleanup();
   _resetOfficeViewModeForTests();
+  setOfficeCaptions(false);
+  setOfficeNarration(true);
+});
+
+beforeEach(() => {
+  localStorage.clear();
+  setOfficeCaptions(false);
+  setOfficeNarration(true);
 });
 
 describe('desk peeking (slice 6)', () => {
@@ -44,16 +53,30 @@ describe('desk peeking (slice 6)', () => {
     expect(view.container.querySelector('[data-seat="greybeard"]')?.dataset.vacant).toBeUndefined();
   });
 
-  it('says their line over their shoulder and glows the speaker', () => {
-    const view = renderFloor();
+  it('says their line over their shoulder and glows the speaker', async () => {
+    const view = renderFloor({
+      sceneHandlers: { narrateLine: vi.fn(() => Promise.resolve({ spoken: false })) }
+    });
     walkOverTo(/Ulrich/);
 
-    const bubble = screen.getByTestId('office-floor-peek-line');
+    const bubble = await screen.findByTestId('office-floor-peek-line');
     expect(bubble.textContent).toContain(deskWorkFor('greybeard').line);
     expect(bubble.textContent).toMatch(/Ulrich/);
     const speaking = view.container.querySelectorAll('.office-floor-person.is-speaking');
     expect(speaking).toHaveLength(1);
     expect(speaking[0].closest('[data-seat]')?.dataset.seat).toBe('greybeard');
+  });
+
+  it('speaks peek lines aloud and hides the bubble when CC is off and narration works', async () => {
+    const line = deskWorkFor('greybeard').line;
+    const narrateLine = vi.fn(() => Promise.resolve({ spoken: true }));
+    renderFloor({ sceneHandlers: { narrateLine } });
+    walkOverTo(/Ulrich/);
+
+    await waitFor(() =>
+      expect(narrateLine).toHaveBeenCalledWith({ speakerId: 'greybeard', text: line })
+    );
+    await waitFor(() => expect(screen.queryByText(line)).toBeNull());
   });
 
   it('captions what is on the screen in the card slot, not over the pod', () => {

@@ -114,6 +114,19 @@ leadership pinging your desk.
 > `ADVISOR_PERSONAS.dinesh`; harness profile: `node scripts/barker-fidelity.mjs dinesh`. The
 > battle dual-home landed as one canned scene, `battle-commit-credit` — the two of them arguing
 > over whose name goes on the fix.
+>
+> **The engineers get different instincts (2026-07-27).** Cloned budgets left the two seats doing
+> the same job in different accents, so each now has a **tendency** — what it reaches for first when
+> you ask for help. Jack Barker is the seat that makes your diagram _smaller_; both engineers make
+> it _bigger_, but not in the same way. **Gilfoyle draws what is already true and simply undrawn** —
+> the dependency nobody admitted, the box quietly doing two jobs; he invents nothing, the drawing
+> was lying and he corrected it. **Dinesh draws what has not survived contact yet** — the failure
+> branch nobody drew, the handoff with no owner, the trigger someone will misread; he is the one who
+> gets paged when the happy path ends. Which is the whole rivalry in one line: Gilfoyle thinks
+> Dinesh is drawing hypotheticals, and Dinesh knows Gilfoyle's "it was always there" is the thing
+> that woke him at 3am. It is a **tendency, not a rule** — both can still make any correct small
+> fix, and the hard node/edge caps stay shared in `mermaidTransformPolicy.ts`. See §1b of
+> [the recipe](recipes/replicate-tv-character.md) for the axis table and what it cost to measure.
 
 ### Shipped colleagues (v1)
 

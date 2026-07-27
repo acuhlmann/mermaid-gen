@@ -102,9 +102,9 @@ export function buildChartTransformUserContent({
 }) {
   const modeInstructions = {
     gilfoyle:
-      'Fix what is actually wrong with the current chart — mark choice, encoding clarity, color accessibility, and data ordering. Keep the same data and chart family unless a small swap clearly serves the story.',
+      'Fix what is actually wrong with the current chart — mark choice, encoding clarity, color accessibility, and data ordering. Reach first for what the data already says but the encoding hides: the ordering that reveals the real ranking, the truncated axis that overstates a gap, the encoding that misstates the comparison. Keep the same data and chart family unless a small swap clearly serves the story.',
     dinesh:
-      'Fix what is actually wrong with the current chart — mark choice, encoding clarity, color accessibility, and data ordering. Keep the same data and chart family unless a small swap clearly serves the story. The fix must be genuinely right; any prose you emit afterwards makes sure the credit for it lands.',
+      'Fix what is actually wrong with the current chart — mark choice, encoding clarity, color accessibility, and data ordering. Reach first for what the chart does not handle: missing or zero values, the unlabeled outlier, the category that gets cut off, the legend nobody can read at this size. Keep the same data and chart family unless a small swap clearly serves the story. The fix must be genuinely right; any prose you emit afterwards makes sure the credit for it lands.',
     erlich:
       'Elevate the current chart — try a different mark/encoding combination or reshape the data presentation with founder-grade boldness. You may switch chart families.',
     goMad: `Go mad on this chart — push the data viz further (depth ${goMadDepth ?? 1}). Layered marks, faceted views, exaggerated encodings.`,

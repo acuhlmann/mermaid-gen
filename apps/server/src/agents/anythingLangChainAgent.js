@@ -88,9 +88,9 @@ export function buildAnythingTransformUserContent({
 }) {
   const modeInstructions = {
     gilfoyle:
-      'Fix what is actually wrong with the current document — layout, typography, color, interaction feel, and copy. Keep the concept and structure.',
+      'Fix what is actually wrong with the current document — layout, typography, color, interaction feel, and copy. Reach first for what the page already implies but never shows: the state that exists and is never rendered, the control that looks interactive and is not, the copy naming something other than what it does. Keep the concept and structure.',
     dinesh:
-      'Fix what is actually wrong with the current document — layout, typography, color, interaction feel, and copy. Keep the concept and structure. The fix must be genuinely right; any prose you emit afterwards makes sure the credit for it lands.',
+      'Fix what is actually wrong with the current document — layout, typography, color, interaction feel, and copy. Reach first for what the page has not survived yet: the empty state, the error path, the long string that overflows, the interaction with no way back. Keep the concept and structure. The fix must be genuinely right; any prose you emit afterwards makes sure the credit for it lands.',
     erlich:
       'Elevate the current document — rethink the presentation or interaction model for the same subject, the way only a visionary founder could. You may restructure freely.',
     goMad: `Go mad on this document — escalate the spectacle (depth ${goMadDepth ?? 1}). More motion, more interactivity, bolder visuals, still on-subject and still self-contained.`,

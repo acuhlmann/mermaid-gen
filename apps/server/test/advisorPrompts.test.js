@@ -80,6 +80,43 @@ test('parseAdvisorReply tolerates malformed json and missing suggestion', () => 
   assert.equal(parseAdvisorReply('{"kind": "comment"}'), null);
 });
 
+// Regression: the always-comment seats used to say only `ALWAYS emit kind: "comment"`,
+// which the model read as "never emit the word suggestion" — it renamed the envelope
+// field to "comment" and every reply died in parseAdvisorReply's `!suggestion` branch,
+// so the seat silently never spoke. Each comment-capable card must re-anchor the field.
+test('comment-capable personas keep the text in the "suggestion" field', () => {
+  for (const persona of ['explain', 'dinesh', 'erlich']) {
+    const prompt = buildAdvisorSystemPrompt(persona, 'mermaid');
+    assert.match(
+      prompt,
+      /"suggestion" (field|FIELD)/,
+      `${persona} must state that comment text still goes in the "suggestion" field`
+    );
+  }
+});
+
+// Companion to the transform-side assertion in mermaidLangChainAgent.test.js: the
+// advisor bubble is the other surface where the two engineers would otherwise be
+// the same seat twice. Same divergence, same "tendency not rule" escape hatch.
+test('the engineer advisor cards reach for opposite kinds of addition', () => {
+  const gilfoyle = buildAdvisorSystemPrompt('gilfoyle', 'mermaid');
+  const dinesh = buildAdvisorSystemPrompt('dinesh', 'mermaid');
+
+  assert.match(gilfoyle, /REACH FOR FIRST — what is ALREADY TRUE/);
+  assert.doesNotMatch(gilfoyle, /has not survived contact/);
+
+  assert.match(dinesh, /REACH FOR FIRST — what has not survived contact/);
+  assert.doesNotMatch(dinesh, /ALREADY TRUE here/);
+
+  // Each card names the other seat so the model has the contrast, not just its half.
+  assert.match(gilfoyle, /Dinesh draws what might go wrong/);
+  assert.match(dinesh, /Gilfoyle draws what is already the case/);
+
+  for (const prompt of [gilfoyle, dinesh]) {
+    assert.match(prompt, /A tendency, not a rule/);
+  }
+});
+
 test('buildAdvisorSystemPrompt swaps to explainer voice for explain dumb-down', () => {
   const architectDumb = buildAdvisorSystemPrompt('explain', 'mermaid', {
     mode: 'dumb',

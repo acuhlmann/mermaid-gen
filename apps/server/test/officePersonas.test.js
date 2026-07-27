@@ -126,6 +126,26 @@ test('meeting system prompt seats only the attendees and names the facilitator',
   assert.ok(STAKEHOLDER_MEETING_VOICES.barker.includes('Success Theater made flesh'));
 });
 
+/*
+ * Ported from PR #233 (written before the refine->gilfoyle rename, so it conflicted
+ * and was never merged). Sessions 3-4 rewrote this file's fixtures and displaced the
+ * only erlich meeting-voice assertion in the repo; without this the incubator anchor
+ * could be dropped and nothing would fail.
+ */
+test('erlich meeting voice card anchors the Silicon Valley replication', () => {
+  assert.ok(STAKEHOLDER_MEETING_VOICES.erlich.includes('Erlich Bachman'));
+  assert.ok(STAKEHOLDER_MEETING_VOICES.erlich.includes('Aviato'));
+
+  const prompt = buildMeetingSystemPrompt({
+    attendees: ['scrumMaster', 'erlich', 'gilfoyle'],
+    facilitatorId: 'scrumMaster'
+  });
+  assert.match(prompt, /Erlich Bachman from HBO's Silicon Valley/);
+  assert.match(prompt, /speakerId "erlich"/);
+  assert.equal(isOfficeSpeaker('erlich'), true);
+  assert.equal(isOfficeColleague('erlich'), false);
+});
+
 test('parseMomentReply tolerates fenced JSON and clamps output', () => {
   const raw =
     '```json\n{"subject":"FRIDGE","body":"  The fridge WILL be cleaned. ","actionPrompt":""}\n```';

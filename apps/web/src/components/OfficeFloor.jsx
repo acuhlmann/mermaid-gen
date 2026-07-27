@@ -13,7 +13,7 @@
  * person is selected, and — since slice 7 — where you are standing.
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import { useCallback, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import FloorActors from './officeFloor/FloorActors.jsx';
 import FloorCardSlot from './officeFloor/FloorCardSlot.jsx';
 import FloorLiveRegion from './officeFloor/FloorLiveRegion.jsx';
@@ -22,6 +22,7 @@ import FloorTopBar from './officeFloor/FloorTopBar.jsx';
 import { floorAnnouncement } from './officeFloor/floorAnnouncement.js';
 import { createOfficeFloorBridge } from './officeFloor/officeFloorBridge.js';
 import { useFloorActivity } from './officeFloor/useFloorActivity.js';
+import { useFloorSpokenText } from './officeFloor/useFloorSpokenText.js';
 import { useFloorAway } from './officeFloor/useFloorAway.js';
 import { useFloorAutoPan } from './officeFloor/useFloorAutoPan.js';
 import { useFloorKeyboard } from './officeFloor/useFloorKeyboard.js';
@@ -30,7 +31,7 @@ import { useStageScale } from '../hooks/useStageScale.js';
 import { reachTileFor, whereaboutsOf } from '../utils/officeFloorReach.js';
 import { YOU_SEAT_ID, peekTileFor } from '../utils/officeFloorPlan.js';
 import { isOfficeColleagueId, officeChromeCopy, officeSenderInfo } from '../utils/officeCast.js';
-import { shouldShowSpokenText } from '../utils/officeCaptions.js';
+import { deskWorkFor } from '../utils/officeDeskWork.js';
 import { tierOf } from '../utils/castTiers.js';
 import { resolveUserName, subscribe as subscribeUserName } from '../state/userIdentityStore.js';
 import { getOfficeViewMode, subscribe as subscribeViewMode } from '../state/officeViewModeStore.js';
@@ -157,9 +158,6 @@ function OfficeFloorView({ bridge }) {
   const copy = officeChromeCopy().floor;
   const directory = officeChromeCopy().directory;
   const officeSnap = useSyncExternalStore(subscribeOffice, getOfficeSnapshot, getOfficeSnapshot);
-  /** True while the current talk line is actually being spoken aloud. */
-  const [voiceActive, setVoiceActive] = useState(false);
-  const prevTalkLineRef = useRef('');
 
   const viewportRef = useRef(null);
   const scale = useStageScale(viewportRef);
@@ -203,39 +201,22 @@ function OfficeFloorView({ bridge }) {
   const person = usePersonDetails(selectedId, copy, whereaboutsOf(selectedId, floorState));
   const talk = talkView(activity.talk, floorState);
   const talkingColleagueId = talk?.phase === 'talking' ? talk.colleagueId : null;
+  const peekColleagueId = peek?.phase === 'looking' ? peek.colleagueId : null;
+  const peekLine = peekColleagueId ? (deskWorkFor(peekColleagueId)?.line ?? '') : '';
+  const hasActiveSpeech =
+    Boolean(talkingColleagueId && activity.talkLine) ||
+    Boolean(peekColleagueId && peekLine) ||
+    Boolean(walker?.body && !departing) ||
+    Boolean(coffee?.accepted || battle?.accepted);
 
-  // Voice-first floor talk: speak each inbound line, hide the bubble while
-  // voice is in flight, fall back to the balloon when TTS is muted or fails.
-  useEffect(() => {
-    if (!talkingColleagueId) {
-      prevTalkLineRef.current = '';
-      setVoiceActive(false);
-      return undefined;
-    }
-    const line = activity.talkLine;
-    if (!line || line === prevTalkLineRef.current) return undefined;
-    prevTalkLineRef.current = line;
-
-    const narrate = sceneHandlers?.narrateLine;
-    if (typeof narrate !== 'function') {
-      setVoiceActive(false);
-      return undefined;
-    }
-
-    let cancelled = false;
-    setVoiceActive(true);
-    void narrate({ speakerId: talkingColleagueId, text: line }).then((result) => {
-      if (!cancelled) setVoiceActive(Boolean(result?.spoken));
-    });
-    return () => {
-      cancelled = true;
-      setVoiceActive(false);
-    };
-  }, [talkingColleagueId, activity.talkLine, sceneHandlers]);
-
-  const showSpokenText = shouldShowSpokenText({
+  const { showSpokenText, sceneHandlersWithVoice } = useFloorSpokenText({
     captions: officeSnap.captions,
-    voiceActive
+    sceneHandlers,
+    talkColleagueId: talkingColleagueId,
+    talkLine: activity.talkLine,
+    peekColleagueId,
+    walkBy: walker,
+    hasActiveSpeech
   });
 
   const handleSelect = useCallback((id) => {
@@ -303,7 +284,7 @@ function OfficeFloorView({ bridge }) {
             copy={copy}
             coffee={coffee}
             battle={battle}
-            sceneHandlers={sceneHandlers}
+            sceneHandlers={sceneHandlersWithVoice}
             meeting={meeting}
             wanderer={wanderer}
             onWandererArrive={handleWanderArrive}

@@ -285,12 +285,12 @@ export default function OfficeLayer({
       playChime?.(playFootsteps);
       // Over-the-shoulder: the colleague actually says the line. Emails never
       // get this treatment — inbox stays read-only by design.
-      if (snapshot.narration && walkBy?.body) {
+      if (snapshot.narration && walkBy?.body && !onFloor) {
         void narrateLine({ speakerId: walkBy.colleagueId, text: walkBy.body });
       }
     }
     prevWalkByIdRef.current = walkById;
-  }, [snapshot.walkBy, snapshot.narration, playChime, narrateLine]);
+  }, [snapshot.walkBy, snapshot.narration, onFloor, playChime, narrateLine]);
   useEffect(() => {
     const inviteId = snapshot.meetingInvite?.id ?? null;
     if (inviteId && inviteId !== prevInviteIdRef.current) playChime?.(playCalendarDing);

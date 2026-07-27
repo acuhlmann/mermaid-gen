@@ -101,6 +101,37 @@ test('dinesh transform prompt is its own voice on the gilfoyle contract', () => 
   );
 });
 
+/*
+ * The two engineers share budgets and temperature on purpose, so the ONLY thing
+ * keeping them from being one seat with two names is which move each reaches for
+ * first: Gilfoyle surfaces what is already true and undrawn, Dinesh covers what
+ * is missing and will break. Both still grow the diagram (Barker is the seat that
+ * shrinks it). Stated as a tendency in the prompt, so this asserts the framing is
+ * present and not swapped — not that the model always obeys it.
+ */
+test('the engineer seats reach for opposite kinds of addition', () => {
+  const args = { diagramSource: 'flowchart TD\n  A --> B', focusScope: '' };
+  const gilfoyle = buildTransformUserContent({ mode: 'gilfoyle', ...args });
+  const dinesh = buildTransformUserContent({ mode: 'dinesh', ...args });
+
+  assert.match(gilfoyle, /REACH FOR FIRST: what is ALREADY TRUE/);
+  assert.match(gilfoyle, /dependency that exists whether or not anyone admitted it/);
+  assert.doesNotMatch(gilfoyle, /failure branch nobody drew/);
+
+  assert.match(dinesh, /REACH FOR FIRST: what is MISSING and will break/);
+  assert.match(dinesh, /failure branch nobody drew/);
+  assert.doesNotMatch(dinesh, /dependency that exists whether or not anyone admitted it/);
+
+  // A tendency, not a rule — both leave the other kind of fix available.
+  for (const prompt of [gilfoyle, dinesh]) {
+    assert.match(prompt, /a tendency, not a rule/);
+  }
+
+  // Barker remains the opposite pole: he is the one who removes.
+  const barker = buildTransformUserContent({ mode: 'barker', ...args });
+  assert.match(barker, /Subtractive only/);
+});
+
 test('inserting dinesh into the mode chain leaves the goMad fallback intact', () => {
   // buildTransformUserContent's ternary chain ends on Go Mad, so an unrecognized
   // mode has always landed there. Adding a branch in the middle must not capture it.

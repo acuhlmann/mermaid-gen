@@ -12,28 +12,58 @@ is in the proactive roundtable at throttled weight. Proven a fourth time with **
 inheriting the engineer seat** (Session 3, 2026-07-27, `refine` → `gilfoyle`) — the first
 inheritance where the retired id was a _generic verb_, which changes the sweep (§4b.0). Proven a
 fifth time with **Dinesh Chugtai on a brand-new seventh seat** (Session 4, 2026-07-27, `dinesh`)
-— the first run that is _not_ an inheritance, so §4c is the drill it produced. The cast
+— the first run that is _not_ an inheritance, so §4c is the drill it produced. Sessions 2–4 all
+shipped **without a fidelity measurement** (no LLM key in those containers); a follow-up pass on
+2026-07-27 ran the harness against a local `.env`, confirmed Gilfoyle, re-tuned Dinesh onto the
+bar, and closed the deferred live smokes — see [Measured baselines](#measured-baselines). The same
+pass added **§1b, the tendency axis**: voice alone had left the two engineers doing one job in two
+accents, so each seat now also has a documented instinct for _what kind_ of change it reaches for.
+The cast
 map and **reachability ladder** below are **locked** (2026-07-26 program plan; reachability
 2026-07-27) — one character per agent session, in the order listed.
 **Next up: Session 5, Jared Dunn inherits the `critique` seat (`critique` → `jared`).**
 
 ## Status board
 
-| Character         | Target seat / tier                       | Status                                                                                               |
-| ----------------- | ---------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| Jack Barker       | team+senior — 6th advisor (`barker`)     | ✅ Shipped — advisor seat + Session 2 throttled roundtable (part of team, less often than peers)     |
-| Erlich Bachman    | team — `erlich` (ex-`innovate`)          | ✅ Shipped — seat inheritance; courageous pivots, incubator swagger                                  |
-| Bertram Gilfoyle  | team — `gilfoyle` (ex-`refine`)          | ✅ Shipped — seat inheritance; deadpan verdicts, always actionable; battle-eligible (dual-home)      |
-| Dinesh Chugtai    | team — **new** `dinesh` (gilfoyle-class) | ✅ Shipped — new seventh seat (not an inheritance); correct fix + a bid for credit; battle dual-home |
-| Jared Dunn        | team — `critique` → `jared`              | ⬜ **Session 5 (next)** — findings-only Auditor; anxious compliance                                  |
-| Russ Hanneman     | team — `goMad`                           | ⬜ Session 6 — highest content-policy risk (innuendo, not profanity)                                 |
-| Richard Hendricks | team — `explain` → `richard`             | ⬜ Session 7 — comment-only Wise Architect (no transform powers — ADR-0010)                          |
-| Gavin Belson      | senior — `cto` → `belson`                | ⬜ Session 8 — named CTO; scarcer than Barker; Jack reports to him; retires Marcus                   |
-| Marcus            | senior — `cto`                           | 🚮 Retires when Belson lands — currently a Belson _homage_, not a replication                        |
+| Character         | Target seat / tier                       | Status                                                                                                                                                          |
+| ----------------- | ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Jack Barker       | team+senior — 6th advisor (`barker`)     | ✅ Shipped — advisor seat + Session 2 throttled roundtable (part of team, less often than peers)                                                                |
+| Erlich Bachman    | team — `erlich` (ex-`innovate`)          | ✅ Shipped — seat inheritance; courageous pivots, incubator swagger                                                                                             |
+| Bertram Gilfoyle  | team — `gilfoyle` (ex-`refine`)          | ✅ Shipped — seat inheritance; deadpan verdicts, always actionable; battle-eligible (dual-home). Draws what is **already true** (§1b). Fidelity **4.50 / 4.38** |
+| Dinesh Chugtai    | team — **new** `dinesh` (gilfoyle-class) | ✅ Shipped — new seventh seat (not an inheritance); correct fix + a bid for credit; battle dual-home. Draws what **will break** (§1b). Fidelity **4.00 / 4.19** |
+| Jared Dunn        | team — `critique` → `jared`              | ⬜ **Session 5 (next)** — findings-only Auditor; anxious compliance                                                                                             |
+| Russ Hanneman     | team — `goMad`                           | ⬜ Session 6 — highest content-policy risk (innuendo, not profanity)                                                                                            |
+| Richard Hendricks | team — `explain` → `richard`             | ⬜ Session 7 — comment-only Wise Architect (no transform powers — ADR-0010)                                                                                     |
+| Gavin Belson      | senior — `cto` → `belson`                | ⬜ Session 8 — named CTO; scarcer than Barker; Jack reports to him; retires Marcus                                                                              |
+| Marcus            | senior — `cto`                           | 🚮 Retires when Belson lands — currently a Belson _homage_, not a replication                                                                                   |
 
 Session 0 locked the map; the fidelity harness (§3) is generalized — one profile per character,
 reused every session. Each character session ends with registry/TTS/locale tests green,
 `npm run precommit`, live smoke, and the fidelity report in the PR body.
+
+### Measured baselines
+
+Scores are `node scripts/barker-fidelity.mjs <id>` overall averages across the 4 judged surfaces,
+two consecutive runs, Vertex fast tier. **Treat these as the reference band, not a target to beat**
+— the axes are noisy above ~4.3 (see §3).
+
+| Character  | Runs            | Notes                                                                                                  |
+| ---------- | --------------- | ------------------------------------------------------------------------------------------------------ |
+| `gilfoyle` | **4.50 / 4.38** | Passed as shipped in Session 3 (4.50 / 4.63); unchanged by the §1b tendency split.                     |
+| `dinesh`   | **4.00 / 4.19** | As shipped **3.81 / 4.25**; re-tuned to **4.50 / 4.31**; §1b's tendency split settled him at ~4.0–4.2. |
+| `barker`   | ≈3.95–4.0       | Session 1 plateau; unchanged since (Session 2 was picker plumbing, no voice card touched).             |
+| `erlich`   | 4.50 / 4.31     | Carried over from the card iteration recorded in §2; not re-measured on 2026-07-27.                    |
+
+A session that cannot run the harness must say so in the PR (Sessions 2–4 correctly did) and leave
+the row blank rather than assert a score — but the row is then **not** done. Budget ~4 minutes and a
+few cents per run; two runs per candidate card, so a re-tune cycle is ~6 runs.
+
+Dinesh is the one seat deliberately parked **at** the bar rather than above it: the §1b tendency
+split is worth more than the last third of a point (see the reinforce-vs-compete finding there).
+Treat a `dinesh` run in the 3.9–4.3 band as expected, not as a regression to chase — his variance is
+almost entirely the advisor surface, where the 80-char cap makes the fix, the tendency and the
+credit bid compete. If you need headroom for a future change, buy it from that cap, not from his
+voice card.
 
 ### Reachability ladder (locked — do not re-litigate)
 
@@ -106,6 +136,60 @@ card; the harness proves it; the wire-in is a mechanical drill whose size depend
   dual-home add-on to their team seats (existing cubicle-battle casting arrays; no new battle
   infrastructure).
 
+### 1b. What the seat DOES to the diagram (the tendency axis)
+
+Voice alone does not make two seats different. Every transform seat also has a **tendency** — the
+kind of change it reaches for first when you ask it for help. Locked 2026-07-27:
+
+| Seat         | Reaches for first                                                                                           | Net effect      |
+| ------------ | ----------------------------------------------------------------------------------------------------------- | --------------- |
+| **Barker**   | what will not fit the slide                                                                                 | **shrinks** it  |
+| **Gilfoyle** | what is **already true and undrawn** — the dependency nobody admitted, the node quietly doing two jobs      | grows it        |
+| **Dinesh**   | what **has not survived contact** — the failure branch, unowned handoff, ambiguous trigger, biting ordering | grows it        |
+| **Erlich**   | the bolder shape nobody proposed                                                                            | restructures it |
+| **Go Mad**   | escalation rooted in the subject                                                                            | anything        |
+
+Both engineers grow the diagram; Barker is the only one who shrinks it. The two engineers are
+separated **only** by this axis — they deliberately share budgets, temperature and one policy
+branch, so without it they are one seat with two names. Gilfoyle invents nothing (the drawing is
+lying, he corrects it); Dinesh draws what happens when reality misbehaves, because he is the one
+who gets paged. Each card names the other seat so the model has the contrast, not just its half.
+
+**Write it as a tendency, never a rule.** Each card ends the block with "a tendency, not a rule you
+obey" plus an escape hatch to any other correct small fix. The hard caps stay in
+`mermaidTransformPolicy.ts` / `infographicTransformPolicy.ts`, which the two engineers still share.
+
+Two failure modes this introduced, both measured (see §3):
+
+- **A narrow pole loops on a thin diagram.** The harness fixture has one decision node, so Dinesh's
+  first cut ("what is missing") collapsed to _"Add 'No X' path"_ three times running, and the score
+  fell 4.31 → 3.81. The escape hatch has to say that a gap you already named counts as **covered**,
+  and the pole itself has to span several move types (branches, owners, orderings, labels) with an
+  explicit "VARY THE FIX, not only the bid".
+- **Content instructions crowd out voice.** Adding ~100 words of what-to-fix ahead of the card's
+  `STRUCTURE` block cost Dinesh a full point before any of it was wrong — the voice simply lost
+  salience. Keep the tendency block short (~50 words), and keep each rule adjacent to what it
+  governs (the "rotate the bid" rule belongs under the rotation list, not in the closing paragraph).
+
+**A tendency is free when it reinforces the seat's signature and costs fidelity when it doesn't.**
+This is the finding to carry into Sessions 5–8. Gilfoyle's signature is _a flat verdict on the state
+the work was left in_, and "what is already true and undrawn" IS a verdict — the two say the same
+thing, so his score never moved (4.50 → 4.50 / 4.38). Dinesh's signature is _a bid for credit_,
+which is orthogonal to "what will break": inside an 80-character suggestion the two compete for the
+same words, and he settled ~0.3–0.4 lower (4.50 / 4.31 before, straddling 4.0 after). **Before
+assigning a tendency, check whether it restates the seat's structural signature or competes with
+it.** If it competes, expect to pay, and decide deliberately: the differentiation is worth more than
+the last third of a fidelity point, because two seats scoring 4.4 that behave identically are one
+seat with two names. Levers if you want it back: put the tendency only on the transform surface
+(which has prose room and no character cap), or raise the per-seat `MAX 80 characters` cap in
+`COMMON_RULES` so the fix, the kind and the bid all fit.
+
+Surfaces to update when you change a tendency: `ADVISOR_PERSONAS` (advisorPrompts.js), the
+transform branch in `mermaidAnalysisPrompts.js`, `INFOGRAPHIC_TRANSFORM_INSTRUCTIONS` +
+`INFOGRAPHIC_TRANSFORM_PERSONAS`, the `modeInstructions` map in each of the anything / chart /
+forms / metaphor agents, and the `hotkeys.*` description in all four `controls.*` locales (that
+line is the user's only advance notice of what the seat will do).
+
 ### 2. Write the voice card (server, the core artifact)
 
 Add the entry in `apps/server/src/agents/officePersonas.js` (`STAKEHOLDER_MEETING_VOICES`,
@@ -141,6 +225,33 @@ template. Lessons burned in:
   and the seat is subject-agnostic, so the card needs an explicit refusal ("you are NOT an
   infrastructure bot: do not drag servers, uptime, encryption, latency, or 'the stack' into
   diagrams that are not about them") — otherwise every recipe diagram grows a cache layer.
+- **Never ration a signature that has no detachable prop.** The template's closing line ("at most
+  ONE prop per few replies and usually none — props, in order of preference: …") works for Gilfoyle
+  and Erlich because their props really are removable garnish (Satanism, Canada; Aviato, Jobs) —
+  delete them and the voice survives. Dinesh's card copied that line and filled it with three items
+  that were _already_ the mandatory `STRUCTURE` rotation, so the same card called the bid required
+  every reply **and** capped at "usually none". The model resolved the contradiction by never using
+  the capped slots and repeating the one uncapped slot, which the judge scores as a budget failure —
+  the axis punishes "zero flavor" and repetition exactly as hard as catchphrase salad, so it sat at
+  3/5 on every sample while `recog`/`voice`/`world` all read 4–5. **Test before you write the line:
+  is there a prop you could delete and still have the character?** If not, say so explicitly ("you
+  have NO detachable catchphrase — the bid IS your signature and never counts against a budget") and
+  ration _repetition_ instead ("do not reuse the same bid shape twice in a row").
+- **Off-subject examples protect the fix half of a line, not the signature half.** The parroting
+  guard above (move examples off the harness's subject) only re-anchors the part of the sample that
+  _has_ a subject. In a two-part line — concrete fix PLUS a trailing signature clause — the clause is
+  subject-independent, so it survives the subject swap and comes back verbatim: Dinesh's samples sat
+  on a bike-repair co-op, yet "Yes, I checked all of them" returned word-for-word on a pizza diagram.
+  Label the clause as shape rather than wording ("the trailing bid clause illustrates a SHAPE, not
+  supplying wording: never reuse one of these clauses verbatim").
+- **A comment-only seat must still be told which JSON field to fill.** `ALWAYS emit kind: "comment".
+Never kind: "suggestion".` reads to the model as _never emit the word "suggestion"_, so it renames
+  the envelope field to `"comment"` — and `parseAdvisorReply` drops any reply without a `suggestion`
+  field. The seat then never speaks, silently, at full LLM cost. Every comment-capable card carries
+  the re-anchor ("the text still goes in the `suggestion` field; `kind` is the only difference");
+  `explain` was missing it and was dead in the roundtable until 2026-07-27. Pinned by
+  `apps/server/test/advisorPrompts.test.js`. **Session 7 inherits this seat — verify it speaks before
+  blaming Richard's new voice card.**
 - Include: speech mechanics, values, a "would never" list, a catchphrase **budget** (max one per
   few lines), and how they treat others. The builders add the app rules (voice-not-topic, strict
   JSON, visible-label references) themselves.
@@ -194,6 +305,23 @@ the stable signal, `world`/`budget` swing with generation luck. Stop there.
 - `apps/web/src/utils/officeCast.js` — display card (`SENIOR_STAKEHOLDERS` or `OFFICE_COLLEAGUES`:
   name, title, blurb, avatarEmoji, accentColor) + tier extras (`MEETING_SENIOR_POOL`,
   `SENIOR_EMAIL_TEMPLATES`, or the office LLM-cast arrays + canned banks).
+
+### 4a-bis. Don't let a later session silently delete an earlier character's tests
+
+A hazard the program hit twice by 2026-07-27, worth one paragraph because it is invisible when it
+happens. Character sessions all edit the **same** small set of fixture files
+(`mermaidTransformPolicy.test.ts`, `infographicTransformPolicy.test.ts`, `planBeatMessages.test.js`,
+`officePersonas.test.js`, `diagramSchema.test.ts`). Sessions 3 and 4 rewrote the regions where PR
+#233 had added Erlich's only policy/plan-beat/meeting-voice coverage, so main ended up with **zero**
+`erlich` assertions in all four files while every test still passed — a widened Erlich budget or a
+dropped Aviato anchor would have gone unnoticed. Recovered 2026-07-27 (PR #233 closed as ported).
+
+When you finish a session, run `grep -rn "<previous character id>" apps/*/test packages/*/test` for
+**every** already-shipped character and confirm each still has: a policy-budget test, a wire-enum
+entry, and a meeting-voice assertion. Adding your character's tests next to theirs is the goal —
+replacing theirs is the failure. If an open PR touches these files, port it before it rots: a test
+PR written against the pre-rename world will conflict, and conflicts are usually resolved by taking
+whichever side is newer, which is exactly how the coverage got dropped.
 
 ### 4b. Seat-inheritance drill (team tier — Barker proved this)
 
@@ -276,9 +404,16 @@ Session 4 learned that §4b does not cover:
    credit, and Dinesh mixes in pure comments (~1 in 4) where Gilfoyle never does. Name the
    failure mode explicitly in the card ("a suggestion that needs nothing back from the reader is
    a FAILURE") the way §2 names Erlich's.
-6. **A rivalry needs a budget and a target.** The Gilfoyle score-keeping is the funniest thing
-   about the seat and the fastest way to make every bubble identical — cap it at one reference
-   per few replies, and state where it lands (the work and Gilfoyle, never the user).
+6. **A rivalry needs a target and a _shape_ — budget it per surface, not globally.** The Gilfoyle
+   score-keeping is the funniest thing about the seat and the fastest way to make every bubble
+   identical, so state where it lands (the work and Gilfoyle, never the user). But the original
+   "cap it at one reference per few replies" was measured wrong in the 2026-07-27 re-tune: a
+   multi-beat **meeting** does want one-per-scene, while on the **advisor** seat the rivalry is one
+   slot of the mandatory bid rotation and capping it there starved the rotation (see the
+   detachable-prop lesson in §2). What actually moved the score was specifying the shape: the jab is
+   Dinesh measuring _up_ at Gilfoyle and still going unnoticed, never a clean put-down from above —
+   "a jab that costs you nothing is his register, not yours." Both judge complaints ("too direct a
+   jab" and "needs more Gilfoyle") were the same defect, and the shape rule fixed both.
 7. **Battle dual-home is one canned scene, not infrastructure.** `OFFICE_BATTLE_SCENES` is plain
    data with `speakerId`s; casting the pair is the whole feature. Mirror the scene into
    `office.{en-AU,zh-CN,zh-TW}.js` with the ids aligned or `officeLocale.test.js` fails.
@@ -308,10 +443,35 @@ For team seats add: `slopitect.{en-AU,zh-CN,zh-TW}.js` (persona block, tagline, 
 2. `npm run precommit` — must exit 0 (format, typecheck, lint, boundaries, affected tests).
 3. Live smoke: `npm run dev`, Call-a-meeting picker → seat the character → interject once. Route
    level: `POST /api/office/meeting` with the id in `attendees`, `POST /api/office/speak` for TTS.
-   Team seats also: radial menu → run their transform/analyze on a real diagram.
-4. `node scripts/barker-fidelity.mjs <characterId>` — final report goes in the PR description.
-   Needs an LLM key in `.env`; a container without one cannot run it, so say so in the PR rather
-   than reporting a score you did not measure.
+   Team seats also: radial menu → run their transform/analyze on a real diagram. Route-level smoke
+   without a browser (what the 2026-07-27 pass used):
+
+   ```bash
+   # meeting + TTS (expects beats from the id; audio.audioBase64 non-empty; retired id 400s)
+   curl -sX POST localhost:4000/api/office/meeting -H 'content-type: application/json' \
+     -d '{"attendees":["scrumMaster","<id>","cto"],"diagramSource":"flowchart TD\n A --> B","visibleLabels":["A","B"]}'
+   curl -sX POST localhost:4000/api/office/speak -H 'content-type: application/json' \
+     -d '{"speakerId":"<id>","text":"one line"}'
+   # the advisor seat actually speaks (catches a card that never parses — see §2)
+   curl -sX POST localhost:4000/api/advisor/suggest -H 'content-type: application/json' \
+     -d '{"persona":"<id>","diagramSource":"flowchart TD\n A --> B","visibleLabels":["A","B"]}'
+   # transform: sync the source into the slot first, then send the returned revisionId
+   curl -sX POST localhost:4000/api/copilotkit/state -H 'x-session-id: smoke' -H 'content-type: application/json' \
+     -d '{"contentType":"mermaid","diagramSource":"flowchart TD\n A --> B"}'
+   curl -sX POST localhost:4000/api/copilotkit/transform -H 'x-session-id: smoke' -H 'content-type: application/json' \
+     -d '{"revisionId":1,"contentType":"mermaid","mode":"<id>","diagramSource":"flowchart TD\n A --> B"}'
+   ```
+
+   `/suggest` returning `{"suggestion": null}` is a **parse failure**, not an empty opinion — the
+   route falls back to null whenever `parseAdvisorReply` rejects the reply. Never read it as "the
+   seat had nothing to say"; run every seat in `ADVISOR_ORDER` through it once per session.
+
+4. `node scripts/barker-fidelity.mjs <characterId>` — final report goes in the PR description, and
+   the [Measured baselines](#measured-baselines) row gets the numbers. Needs an LLM key in `.env`;
+   a container without one cannot run it, so say so in the PR rather than reporting a score you did
+   not measure — then the character is **not** done, and the next session with a key owes the
+   measurement before starting its own character (that debt is what the 2026-07-27 pass paid off for
+   Sessions 2–4).
 
 ## Guardrails that apply to every character
 

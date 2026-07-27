@@ -33,10 +33,11 @@ import { deskWorkFor } from '../../utils/officeDeskWork.js';
  *
  * @param {{
  *   peek: { colleagueId: string, phase: 'walking' | 'looking' | 'returning' },
- *   scale?: number
+ *   scale?: number,
+ *   hideBody?: boolean
  * }} props
  */
-export function FloorPeek({ peek, scale = 1 }) {
+export function FloorPeek({ peek, scale = 1, hideBody = false }) {
   const work = deskWorkFor(peek.colleagueId);
   if (peek.phase !== 'looking' || !work) return null;
 
@@ -46,6 +47,7 @@ export function FloorPeek({ peek, scale = 1 }) {
       line={work.line}
       scale={scale}
       testId="office-floor-peek-line"
+      hideBody={hideBody}
     />
   );
 }

@@ -87,9 +87,9 @@ function buildIntentUserContent({ prompt, currentDsl, peerContext }) {
 function buildTransformUserContent({ mode, currentDsl, goMadDepth }) {
   const modeInstructions = {
     gilfoyle:
-      'Fix what is actually wrong with the current metaphor — labels, unbalanced magnitudes, a loose spatial story. Keep the same metaphor type.',
+      'Fix what is actually wrong with the current metaphor — labels, unbalanced magnitudes, a loose spatial story. Reach first for what the scene already claims but does not show: the magnitude that contradicts its own label, the relationship the arrangement implies and never draws. Keep the same metaphor type.',
     dinesh:
-      'Fix what is actually wrong with the current metaphor — labels, unbalanced magnitudes, a loose spatial story. Keep the same metaphor type. The fix must be genuinely right; any prose you emit afterwards makes sure the credit for it lands.',
+      'Fix what is actually wrong with the current metaphor — labels, unbalanced magnitudes, a loose spatial story. Reach first for what the scene leaves out and would fall over without: the missing counterweight, the element the metaphor quietly depends on, the piece that has nowhere to go when it fails. Keep the same metaphor type. The fix must be genuinely right; any prose you emit afterwards makes sure the credit for it lands.',
     erlich:
       'Elevate the current metaphor — try a different metaphor type or a fresh angle on the subject, bolder than anyone asked for. You may switch metaphors.',
     goMad: `Go mad on this metaphor — push the spatial story further (depth ${goMadDepth ?? 1}). Exaggerate, recombine, surprise.`,

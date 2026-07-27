@@ -110,10 +110,20 @@ vi.mock('../src/state/diagramStore.js', async (importOriginal) => {
   };
 });
 
-async function waitForControlsReady(buttonName = 'Gilfoyle') {
+// Both engineer seats render the same action label ("Refine"), so the row is
+// addressed by persona name rather than by accessible button name.
+async function waitForControlsReady(personaName = 'Bertram Gilfoyle') {
+  let row;
   await waitFor(() => {
-    expect(screen.getByRole('button', { name: buttonName }).disabled).toBe(false);
+    row = screen.getByText(personaName).closest('button');
+    expect(row?.disabled).toBe(false);
   });
+  return row;
+}
+
+async function clickRefine() {
+  const row = await waitForControlsReady();
+  fireEvent.click(row);
 }
 
 // Deliverable format now lives inside the Desk tray, alongside Facilities and
@@ -230,7 +240,9 @@ describe('App simplified controls', { timeout: 20_000 }, () => {
   it('cancels pending editor sync and streams transform after mock edit', async () => {
     render(<App />);
 
-    const refineButton = await screen.findByRole('button', { name: 'Gilfoyle' });
+    // Resolve the seat BEFORE the edit: the pending sync is only cancellable if
+    // the transform click lands before the editor debounce fires.
+    const refineButton = await waitForControlsReady();
     fireEvent.click(screen.getByText('Mock edit'));
     fireEvent.click(refineButton);
 
@@ -313,7 +325,7 @@ describe('App simplified controls', { timeout: 20_000 }, () => {
     window.history.replaceState({}, '', '/sessions/shared-room-1');
 
     render(<App />);
-    const refineButton = await screen.findByRole('button', { name: 'Gilfoyle' });
+    const refineButton = await waitForControlsReady();
     fireEvent.click(screen.getByText('Mock edit'));
     fireEvent.click(refineButton);
 
@@ -334,8 +346,7 @@ describe('App simplified controls', { timeout: 20_000 }, () => {
 
   it("Thinking segment Restore re-syncs the entry's after-snapshot to the canvas", async () => {
     render(<App />);
-    await waitForControlsReady('Gilfoyle');
-    fireEvent.click(screen.getByRole('button', { name: 'Gilfoyle' }));
+    await clickRefine();
 
     await screen.findByRole('button', { name: 'Restore' });
     await new Promise((resolve) => setTimeout(resolve, 0));
@@ -395,8 +406,7 @@ describe('App simplified controls', { timeout: 20_000 }, () => {
 
     render(<App />);
     pickContentMode('Forms');
-    const refineButton = await screen.findByRole('button', { name: 'Gilfoyle' });
-    fireEvent.click(refineButton);
+    await clickRefine();
 
     await screen.findByRole('button', { name: 'Restore' });
     const callsBefore = syncClientDiagramStateMock.mock.calls.length;
@@ -522,7 +532,7 @@ describe('App simplified controls', { timeout: 20_000 }, () => {
     });
 
     render(<App />);
-    await waitForControlsReady('Critique');
+    await waitForControlsReady('The Auditor');
 
     const critiqueButton = await screen.findByRole('button', { name: 'Critique' });
     fireEvent.click(critiqueButton);
@@ -584,7 +594,7 @@ describe('App simplified controls', { timeout: 20_000 }, () => {
     });
 
     render(<App />);
-    await waitForControlsReady('Critique');
+    await waitForControlsReady('The Auditor');
     fireEvent.click(await screen.findByRole('button', { name: 'Critique' }));
 
     const keepBox = await screen.findByRole('checkbox', { name: /Keep this change/i });
@@ -619,7 +629,7 @@ describe('App simplified controls', { timeout: 20_000 }, () => {
     });
 
     render(<App />);
-    await waitForControlsReady('Critique');
+    await waitForControlsReady('The Auditor');
     fireEvent.click(await screen.findByRole('button', { name: 'Critique' }));
 
     const keepBox = await screen.findByRole('checkbox', { name: /Alpha/i });
@@ -699,8 +709,7 @@ describe('App simplified controls', { timeout: 20_000 }, () => {
     fireEvent.click(await screen.findByRole('button', { name: /Your desk/i }));
     fireEvent.click(await screen.findByRole('button', { name: 'Deep work' }));
 
-    const refineButton = await screen.findByRole('button', { name: 'Gilfoyle' });
-    fireEvent.click(refineButton);
+    await clickRefine();
 
     await waitFor(() => expect(streamDiagramAgentMock).toHaveBeenCalled());
     expect(streamDiagramAgentMock).toHaveBeenCalledWith(
@@ -788,8 +797,7 @@ describe('App simplified controls', { timeout: 20_000 }, () => {
     });
 
     render(<App />);
-    await waitForControlsReady('Gilfoyle');
-    fireEvent.click(screen.getByRole('button', { name: 'Gilfoyle' }));
+    await clickRefine();
 
     await waitFor(() => expect(streamDiagramAgentMock).toHaveBeenCalled());
     await screen.findByText(/No diagram patch was applied/i);
@@ -848,7 +856,7 @@ describe('App simplified controls', { timeout: 20_000 }, () => {
         expect(document.querySelector('.app-shell')?.className).toContain('is-insights-open')
       );
 
-      fireEvent.click(screen.getByRole('button', { name: 'Gilfoyle' }));
+      await clickRefine();
       await waitFor(() =>
         expect(document.querySelector('.insights-entry.is-running')).not.toBeNull()
       );
@@ -902,8 +910,7 @@ describe('App simplified controls', { timeout: 20_000 }, () => {
     });
 
     render(<App />);
-    await waitForControlsReady('Gilfoyle');
-    fireEvent.click(screen.getByRole('button', { name: 'Gilfoyle' }));
+    await clickRefine();
 
     await waitFor(() => expect(streamDiagramAgentMock).toHaveBeenCalledTimes(1));
     await screen.findByText(/No diagram patch was applied/i);
@@ -995,7 +1002,7 @@ describe('App simplified controls', { timeout: 20_000 }, () => {
     streamDiagramAgentMock.mockClear();
 
     pickContentMode('Diagram');
-    await waitForControlsReady('Gilfoyle');
+    await waitForControlsReady();
 
     const intentCalls = streamDiagramAgentMock.mock.calls.filter(
       (c) => c[0]?.operation === 'intent'
