@@ -6,13 +6,16 @@ import DeskActionsDock from '../src/components/DeskActionsDock.jsx';
 function open(props = {}) {
   const handlers = {
     onGetCoffee: vi.fn(),
-    onWalkTheFloor: vi.fn(),
+    onStandUp: vi.fn(),
+    onSitDown: vi.fn(),
     onCheckInbox: vi.fn(),
     onOpenSlopChat: vi.fn(),
     onCheckHrProgression: vi.fn(),
     onOpenOutbox: vi.fn(),
     onInviteAgent: vi.fn(),
     canOpenOutbox: true,
+    onToggleCaptions: vi.fn(),
+    onToggleNarration: vi.fn(),
     ...props
   };
   render(<DeskActionsDock {...handlers} />);
@@ -28,7 +31,7 @@ describe('DeskActionsDock', () => {
       <DeskActionsDock
         initialOpen
         onGetCoffee={vi.fn()}
-        onWalkTheFloor={vi.fn()}
+        onStandUp={vi.fn()}
         onCheckInbox={vi.fn()}
         onOpenSlopChat={vi.fn()}
         onCheckHrProgression={vi.fn()}
@@ -44,7 +47,7 @@ describe('DeskActionsDock', () => {
     render(
       <DeskActionsDock
         onGetCoffee={vi.fn()}
-        onWalkTheFloor={vi.fn()}
+        onStandUp={vi.fn()}
         onCheckInbox={vi.fn()}
         onOpenSlopChat={vi.fn()}
         onCheckHrProgression={vi.fn()}
@@ -56,14 +59,36 @@ describe('DeskActionsDock', () => {
     expect(trigger.querySelector('.brand-helmet-svg')).toBeTruthy();
   });
 
+  it('exposes Stand up as a primary bottom-nav control, not a menu item', () => {
+    const handlers = open({ placement: 'bottom' });
+    const standUp = screen.getByTestId('desk-standup-button');
+    expect(standUp).toBeTruthy();
+    expect(screen.queryByRole('menuitem', { name: /Stand up and look around/ })).toBeNull();
+    expect(screen.queryByRole('menuitem', { name: /Walk the floor/ })).toBeNull();
+    fireEvent.click(standUp);
+    expect(handlers.onStandUp).toHaveBeenCalledTimes(1);
+  });
+
+  it('toggles sit-down on the primary control while standing', () => {
+    const handlers = open({ placement: 'bottom', standing: true });
+    fireEvent.click(screen.getByTestId('desk-standup-button'));
+    expect(handlers.onSitDown).toHaveBeenCalledTimes(1);
+    expect(handlers.onStandUp).not.toHaveBeenCalled();
+  });
+
   it('shows an unread badge on the desk button and inbox verb', () => {
     open({ unreadCount: 3 });
     expect(screen.getByRole('button', { name: /Your desk/i }).textContent).toContain('3');
     expect(screen.getByRole('menuitem', { name: /Check your mail/ }).textContent).toContain('3');
   });
 
-  it('lists desk verbs in a flat menu with concentration controls in the footer', () => {
-    open({ modelProfile: 'fast', onSelectModelProfile: vi.fn() });
+  it('lists desk verbs in a flat menu with concentration and voice controls in the footer', () => {
+    open({
+      modelProfile: 'fast',
+      onSelectModelProfile: vi.fn(),
+      captions: false,
+      narration: true
+    });
     const items = screen.getAllByRole('menuitem').map((el) => el.textContent);
     expect(items.join('\n')).not.toMatch(/Meet the Office/);
     expect(screen.queryByText('Get up')).toBeNull();
@@ -75,13 +100,14 @@ describe('DeskActionsDock', () => {
     expect(screen.getByRole('menuitem', { name: /Ship from the Outbox/ })).toBeTruthy();
     for (const label of [
       'Open Slop Chat',
-      'Walk the floor',
       'Get a coffee',
       'Onboard a contractor',
       'Check my HR progression'
     ]) {
       expect(screen.getByRole('menuitem', { name: new RegExp(label) })).toBeTruthy();
     }
+    expect(screen.queryByRole('menuitem', { name: /Walk the floor/ })).toBeNull();
+    expect(screen.queryByRole('menuitem', { name: /Stand up/ })).toBeNull();
     expect(screen.queryByRole('menuitem', { name: /Open code drawer/ })).toBeNull();
     expect(screen.queryByRole('menuitem', { name: /Message someone/ })).toBeNull();
     expect(screen.queryByRole('menuitem', { name: /Adjust your workstation/ })).toBeNull();
@@ -94,6 +120,17 @@ describe('DeskActionsDock', () => {
     expect(screen.getByText('Language pack')).toBeTruthy();
     expect(screen.getByRole('radiogroup', { name: /language/i })).toBeTruthy();
     expect(screen.getByRole('radio', { name: /English/i })).toBeTruthy();
+    expect(screen.getByTestId('desk-voice-pack')).toBeTruthy();
+    expect(screen.getByTestId('intro-transcript-button')).toBeTruthy();
+    expect(screen.getByText('Narration')).toBeTruthy();
+  });
+
+  it('toggles captions and narration from the desk menu footer', () => {
+    const handlers = open({ captions: false, narration: true });
+    fireEvent.click(screen.getByTestId('intro-transcript-button'));
+    expect(handlers.onToggleCaptions).toHaveBeenCalledWith(true);
+    fireEvent.click(screen.getByLabelText('Narration'));
+    expect(handlers.onToggleNarration).toHaveBeenCalledWith(false);
   });
 
   it('runs contractor verb and closes the menu', () => {
@@ -146,10 +183,9 @@ describe('DeskActionsDock', () => {
     expect(screen.getByRole('menuitem', { name: /Check my HR progression/ }).disabled).toBe(false);
   });
 
-  it('keeps coffee and walk available while a deliverable streams', () => {
+  it('keeps coffee available while a deliverable streams', () => {
     open({ blockedReason: 'busy', ambientBlockedReason: null });
     expect(screen.getByRole('menuitem', { name: /Get a coffee/ }).disabled).toBe(false);
-    expect(screen.getByRole('menuitem', { name: /Walk the floor/ }).disabled).toBe(false);
   });
 
   it('blocks Outbox when there is nothing to ship', () => {

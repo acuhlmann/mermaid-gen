@@ -712,6 +712,13 @@ export const OFFICE_ZH_TW = {
       codeDrawerTitle: '瞧瞧幕後的麵條程式碼',
       onboardContractor: '接入外部協作者',
       onboardContractorTitle: '透過 MCP 邀請外部代理',
+      standUp: '站起來四處看看',
+      standUpShort: '站起來',
+      standUpRole: '樓層',
+      standUpTitle: '離開螢幕，到樓層上看看你一直聽到的辦公室',
+      sitDown: '回到螢幕前',
+      sitDownShort: '坐下',
+      sitDownTitle: '坐下，繼續做交付物',
       thinking: '打開筆記本',
       thinkingClose: '關閉筆記本',
       thinkingTitle: '你的筆記本 · 筆記、評審和執行紀錄',
@@ -862,7 +869,8 @@ export const OFFICE_ZH_TW = {
       callMeetingNoThreadTitle: '打開名單，想叫誰叫誰'
     },
     walkby: {
-      kindLabel: '路過 · 從你肩膀上方',
+      kindLabel: '從你肩膀上方',
+      preamble: '有人從你身後盯著螢幕。裝自然一點。',
       dismissAria: '揮手送走 {name}'
     },
     coffee: {

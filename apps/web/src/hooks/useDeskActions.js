@@ -43,9 +43,10 @@ export const DESK_IM_CAST = [
  *
  * Gating differs from the ambient director on purpose: verbs **bypass Focus
  * Time** (it mutes interruptions, not your own initiative) and skip the random
- * scheduler entirely. Coffee and walk also bypass a streaming agent run — you
- * can step away from deliverables (colleagues may comment). Other verbs still
- * respect one-surface-at-a-time, an open meeting, and a streaming agent run.
+ * scheduler entirely. Coffee bypasses a streaming agent run — you can step
+ * away from deliverables (colleagues may still lean over your shoulder on
+ * their own schedule). Other verbs still respect one-surface-at-a-time, an
+ * open meeting, and a streaming agent run.
  * director backs off afterwards, but never spend its session caps.
  *
  * @param {{
@@ -142,9 +143,9 @@ export function useDeskActions(params) {
   );
 
   /**
-   * Wander the floor. With a diagram up someone comments on it (LLM within the
-   * desk budget, canned fallback); with a blank canvas you just overhear the
-   * watercooler instead.
+   * Wander the floor — kept for tests and any diegetic floor affordance that
+   * still wants an on-demand walk-by. The desk menu no longer exposes this:
+   * over-the-shoulder moments arrive only when the ambience director fires them.
    */
   const walkTheFloor = useCallback(
     () =>

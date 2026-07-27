@@ -1,75 +1,74 @@
+import { useSyncExternalStore } from 'react';
 import { officeChromeCopy, officeSenderInfo } from '../utils/officeCast.js';
 import { formatLocale } from '../i18n/formatLocale.js';
-import { useNarrowLayout } from '../hooks/useAppLayoutMedia.js';
+import { shouldShowSpokenText } from '../utils/officeCaptions.js';
+import { getOfficeSnapshot, subscribe } from '../state/officeMomentStore.js';
 import { PersonaFace } from './personaFaces/index.jsx';
-import FloatingWindow from './FloatingWindow.jsx';
-import OfficeMomentShell from './OfficeMomentShell.jsx';
 
 /**
- * Over-the-shoulder walk-by (docs/office-parody.md): a colleague slides in
- * from the screen edge, says one thing about the actual diagram, and leaves
- * (store TTL). Deliberately NOT AdvisorSpeechBubble — that component is
- * coupled to pin/history/dumb-down mechanics the walk-by doesn't want.
+ * Over-the-shoulder walk-by (docs/office-parody.md): a colleague's head drops
+ * in from above your screen — like someone actually leaning over your shoulder.
+ * You cannot summon them; the ambience director decides when they appear.
+ *
+ * Voice-first: when narration is speaking and captions are off, hide the
+ * speech text (you hear them behind you). Keep dismiss / Do it chrome so the
+ * interruption stays actionable.
  */
 export default function OfficeWalkBy({ walkBy, onDismiss, onAdoptPrompt }) {
-  const narrowLayout = useNarrowLayout();
+  const snapshot = useSyncExternalStore(subscribe, getOfficeSnapshot, getOfficeSnapshot);
   if (!walkBy) return null;
+
   const copy = officeChromeCopy();
   const sender = officeSenderInfo(walkBy.colleagueId);
+  const showText = shouldShowSpokenText({
+    captions: snapshot.captions,
+    voiceActive: snapshot.narration
+  });
+
   return (
-    <FloatingWindow
-      id="office-walkby"
-      open={Boolean(walkBy)}
-      group="officeChrome"
-      className="office-walkby-host"
-      kind="walkby"
-      senderId={walkBy.colleagueId}
-      defaultCorner={narrowLayout ? 'bottom-left' : 'bottom-left'}
-      defaultOffsetX={14}
-      defaultOffsetY={narrowLayout ? 240 : 130}
-      cascade={0}
+    <div
+      className="office-walkby-overlay"
       role="status"
       aria-live="polite"
+      data-testid="office-walkby"
+      data-floating-window="office-walkby"
     >
-      <OfficeMomentShell
-        className="office-moment-shell--walkby office-walkby"
-        kindClass="office-moment-kind--walkby"
-        kindLabel={copy.walkby.kindLabel}
-        dragHandleTitle="Drag to move"
-        headExtra={
-          <button
-            type="button"
-            className="office-walkby-dismiss office-moment-shell-dismiss"
-            aria-label={formatLocale(copy.walkby.dismissAria, { name: sender.name })}
-            onClick={() => onDismiss?.(walkBy.id)}
-          >
-            ×
-          </button>
-        }
-      >
-        {copy.walkby.preamble ? (
-          <p className="office-walkby-preamble">{copy.walkby.preamble}</p>
-        ) : null}
-        <div className="office-walkby-row">
-          <PersonaFace id={walkBy.colleagueId} size={40} className="office-walkby-avatar" />
-          <div className="office-walkby-bubble">
-            <div className="office-walkby-name">
-              {sender.name}
-              {sender.title ? <span className="office-walkby-title"> · {sender.title}</span> : null}
-            </div>
-            <p className="office-walkby-body">{walkBy.body}</p>
-            {walkBy.actionPrompt ? (
-              <button
-                type="button"
-                className="office-do-it"
-                onClick={() => onAdoptPrompt?.(walkBy.actionPrompt, walkBy.colleagueId)}
-              >
-                {copy.doIt}
-              </button>
-            ) : null}
-          </div>
+      <div className="office-walkby-shade" aria-hidden="true" />
+      <div className="office-walkby office-walkby--shoulder">
+        <button
+          type="button"
+          className="office-walkby-dismiss"
+          aria-label={formatLocale(copy.walkby.dismissAria, { name: sender.name })}
+          onClick={() => onDismiss?.(walkBy.id)}
+        >
+          ×
+        </button>
+        <div className="office-walkby-head" aria-hidden="true">
+          <PersonaFace id={walkBy.colleagueId} size={168} className="office-walkby-avatar" />
         </div>
-      </OfficeMomentShell>
-    </FloatingWindow>
+        <div className="office-walkby-presence">
+          <p className="office-walkby-kind" aria-hidden="true">
+            {copy.walkby.kindLabel}
+          </p>
+          <div className="office-walkby-name">
+            {sender.name}
+            {sender.title ? <span className="office-walkby-title"> · {sender.title}</span> : null}
+          </div>
+          {showText && copy.walkby.preamble ? (
+            <p className="office-walkby-preamble">{copy.walkby.preamble}</p>
+          ) : null}
+          {showText ? <p className="office-walkby-body">{walkBy.body}</p> : null}
+          {walkBy.actionPrompt ? (
+            <button
+              type="button"
+              className="office-do-it"
+              onClick={() => onAdoptPrompt?.(walkBy.actionPrompt, walkBy.colleagueId)}
+            >
+              {copy.doIt}
+            </button>
+          ) : null}
+        </div>
+      </div>
+    </div>
   );
 }

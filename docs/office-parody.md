@@ -273,7 +273,7 @@ desk verb — first-visit boot and the level panel's "Meet the team" CTA cover t
 | Your seat           | Personal cognition           | Notebook (Thinking pane), Concentration (Rush job / Deep work → wire `fast` / `quality`)              |
 | Work surface        | The deliverable              | Work order, Desk tray (Deliverable format, Facilities, Shredder)                                      |
 | People around you   | Colleagues at adjacent desks | Your Team menu (teammates, Talk to team, Call a meeting, Headphones — distinct from inbox Focus Time) |
-| Get up              | Leave the chair              | Mail, IM, walk, coffee, outbox                                                                        |
+| Get up              | Leave the chair              | Mail, IM, coffee, outbox (+ Stand up is a primary bottom-nav control)                                 |
 | Under the desk / IT | Cubicle plumbing             | Adjust workstation (contractors + code drawer), HR progression                                        |
 
 | Verb                        | Does                                                                                                                                                                                                                                                                                                  |
@@ -282,10 +282,10 @@ desk verb — first-visit boot and the level panel's "Meet the team" CTA cover t
 | 🎚️ Concentration            | Rush job / Deep work segment on Your seat (was Brain Fast/Quality in Settings). Wire value unchanged: `modelProfile: "fast" \| "quality"`                                                                                                                                                             |
 | 👥 Talk to your team        | `advisor.promptNext({})` — in the **Your Team** roster menu (not the desk stamp). Disabled (in-fiction `blocked.noTeam`) on a blank canvas or while streaming/thinking. Explicit click clears Focus Time mute and ambient backoffs so the verb never silently no-ops when the roundtable _can_ speak. |
 | 📅 Call a meeting           | Opens the people/group picker (same as inbox / Slop Chat) — also in the **Your Team** roster menu                                                                                                                                                                                                     |
+| 🧍 Stand up and look around | Primary bottom-nav control beside the desk stamp (`DeskStandUpButton`) — enters isometric floor mode. Not a menu item. While standing, the same control sits you back down                                                                                                                            |
 | 📥 Check your mail          | Opens the inbox popover (`openSignal` counter prop)                                                                                                                                                                                                                                                   |
 | 📤 Ship from the Outbox     | Opens the headless Outbox export/share panel (`openSignal`) — no dedicated bottom-row icon                                                                                                                                                                                                            |
 | 💬 Open Slop Chat / Message | Messenger history / DM a teammate or colleague                                                                                                                                                                                                                                                        |
-| 🚶 Walk the floor           | An on-demand walk-by (LLM within the desk budget, canned fallback); with a blank canvas you overhear a coffee/battle scene instead                                                                                                                                                                    |
 | ☕ Get a coffee             | Pushes an unseen coffee scene and auto-accepts it — you walked over, there is no invite                                                                                                                                                                                                               |
 | ⚙️ Adjust your workstation  | Opens headless Settings (guest agents, code drawer) — concentration no longer lives here                                                                                                                                                                                                              |
 | 📈 Check my HR progression  | Toggles the level-up / People Ops scorecard (`LevelUpInfoPanel`) — always enabled; that panel also links to Meet the team                                                                                                                                                                             |
@@ -293,13 +293,19 @@ desk verb — first-visit boot and the level panel's "Meet the team" CTA cover t
 **Mute distinction.** **Headphones** (in the Your Team roster menu) mutes the advisor roundtable. **Focus Time**
 (inbox) mutes office interruptions only — desk verbs still bypass it.
 
+**Over-the-shoulder walk-bys are ambient only.** There is no "Walk the floor" desk verb — like
+real life, you cannot decide when somebody leans over your shoulder. The ambience director still
+delivers `walkby` moments; desk-mode chrome renders them as a big head dropping in from the top
+of the screen (`OfficeWalkBy`). When Narration is on and Captions / CC is off, the speech text is
+hidden (you hear them). The desk menu footer exposes the same Narration + Transcript (CC) toggles
+as the isometric floor / inbox (`archislop:office-narration`, `archislop:office-captions`).
+
 **Gating differs from the ambient director on purpose.** Verbs skip the random scheduler and
-**bypass Focus Time** (it mutes interruptions, not your own initiative). Coffee and walk the floor
-also bypass a streaming agent run — you can step away from a deliverable in progress (colleagues may
-comment on your diagram if you wander). Other verbs still respect one-surface-at-a-time, an open
-meeting, and a streaming agent run. Blocked verbs stay visible and disabled with an in-fiction
-tooltip ("Deploy in progress — nobody leaves their desk." for deliverable-tied verbs), so the menu
-never silently no-ops.
+**bypass Focus Time** (it mutes interruptions, not your own initiative). Coffee also bypasses a
+streaming agent run — you can step away from a deliverable in progress. Other verbs still respect
+one-surface-at-a-time, an open meeting, and a streaming agent run. Blocked verbs stay visible and
+disabled with an in-fiction tooltip ("Deploy in progress — nobody leaves their desk." for
+deliverable-tied verbs), so the menu never silently no-ops.
 
 **Budget.** Verb-triggered LLM calls have their own cap (`DESK_LLM_CAP` = 3/session) and never
 spend the ambient `OFFICE_LLM_MOMENT_CAP`; asking for something yourself should not use up the

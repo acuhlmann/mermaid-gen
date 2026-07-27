@@ -69,6 +69,7 @@ import { threadTranscriptFor } from '../utils/officeImThreads.js';
 import { getDeskSlotElement, subscribeDeskSlotElement } from '../state/deskSlotStore.js';
 import {
   getOfficeViewMode,
+  sitDown,
   standUp,
   subscribe as subscribeOfficeViewMode
 } from '../state/officeViewModeStore.js';
@@ -558,8 +559,9 @@ export default function OfficeLayer({
       unreadCount={snapshot.unreadCount}
       imUnreadCount={snapshot.imUnreadCount}
       onGetCoffee={desk.getCoffee}
-      onWalkTheFloor={desk.walkTheFloor}
       onStandUp={standUp}
+      onSitDown={sitDown}
+      standing={onFloor}
       onCheckInbox={desk.checkInbox}
       onOpenSlopChat={handleOpenMessenger}
       onCheckHrProgression={onCheckHrProgression}
@@ -571,6 +573,10 @@ export default function OfficeLayer({
       initialOpen={deskMenuInitialOpen}
       modelProfile={modelProfile}
       onSelectModelProfile={onSelectModelProfile}
+      captions={snapshot.captions}
+      narration={snapshot.narration}
+      onToggleCaptions={setOfficeCaptions}
+      onToggleNarration={setOfficeNarration}
     />
   );
   const deskSlot = useSyncExternalStore(
