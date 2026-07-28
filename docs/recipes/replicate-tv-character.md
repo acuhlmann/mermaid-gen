@@ -62,7 +62,7 @@ two consecutive runs, Vertex fast tier. **Treat these as the reference band, not
 | `erlich`   | 4.50 / 4.31     | Carried over from the card iteration recorded in §2; not re-measured on 2026-07-27.                    |
 | `jared`    | **4.63 / 4.75** | Session 5 (2026-07-28); first analyze-path inheritance. Sustained well above bar.                      |
 | `russ`     | **4.81 / 5.00** | Session 6 (2026-07-28); DeepSeek fast tier. Sustained well above bar.                                  |
-| `richard`  | _(pending)_     | Session 7 (2026-07-28); fill after harness runs in this PR.                                            |
+| `richard`  | **4.75 / 4.63** | Session 7 (2026-07-28); DeepSeek fast tier. Sustained well above bar.                                  |
 
 A session that cannot run the harness must say so in the PR (Sessions 2–4 correctly did) and leave
 the row blank rather than assert a score — but the row is then **not** done. Budget ~4 minutes and a
