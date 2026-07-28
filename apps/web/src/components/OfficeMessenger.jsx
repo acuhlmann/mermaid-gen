@@ -3,6 +3,7 @@ import { officeChromeCopy, officeImQuickReplies, officeSenderInfo } from '../uti
 import { formatLocale } from '../i18n/formatLocale.js';
 import { groupImThreads } from '../utils/officeImThreads.js';
 import { PersonaFace } from './personaFaces/index.jsx';
+import VoiceMicButton from './VoiceMicButton.jsx';
 import FloatingWindow, { FloatingWindowDragHandle } from './FloatingWindow.jsx';
 import {
   FloatingWindowCloseButton,
@@ -126,6 +127,12 @@ function MessengerComposer({ chat, disabled, busy, targetName, onSend }) {
           maxLength={300}
           disabled={disabled}
         />
+        <VoiceMicButton
+          value={draft}
+          onChange={setDraft}
+          disabled={disabled}
+          className="office-messenger-mic overlay-button is-mic-toggle"
+        />
         <button type="submit" disabled={disabled || !draft.trim()}>
           {busy ? chat.sending : chat.send}
         </button>
@@ -228,8 +235,7 @@ export default function OfficeMessenger({
             onClick={() =>
               onCallMeeting?.({
                 seedAttendees: activeId ? [activeId] : [],
-                source: 'chat',
-                forceFacilitator: Boolean(activeId)
+                source: 'chat'
               })
             }
           >

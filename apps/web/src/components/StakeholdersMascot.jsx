@@ -211,15 +211,8 @@ export default function StakeholdersMascot({
       emoji: '👥',
       run: onTalkToTeam,
       disabled: !canTalkToTeam,
-      disabledTitle: deskCopy.blocked?.noTeam ?? deskCopy.blocked?.noAgenda
-    },
-    {
-      id: 'call-meeting',
-      label: deskCopy.meeting,
-      emoji: '📅',
-      run: onCallMeeting,
-      disabled: !canCallMeeting,
-      disabledTitle: deskCopy.blocked?.noAgenda
+      disabledTitle: deskCopy.blocked?.noTeam ?? deskCopy.blocked?.noAgenda,
+      row: 'toggle'
     },
     {
       id: 'headphones',
@@ -229,7 +222,17 @@ export default function StakeholdersMascot({
       alwaysEnabled: true,
       ariaPressed: isMuted,
       title: isMuted ? controls.actions.unmuteTitle : controls.actions.muteTitle,
-      ariaLabel: isMuted ? controls.actions.unmuteAria : controls.actions.muteAria
+      ariaLabel: isMuted ? controls.actions.unmuteAria : controls.actions.muteAria,
+      row: 'toggle'
+    },
+    {
+      id: 'call-meeting',
+      label: deskCopy.meeting,
+      emoji: '📅',
+      run: onCallMeeting,
+      disabled: !canCallMeeting,
+      disabledTitle: deskCopy.blocked?.noAgenda,
+      row: 'meeting'
     }
   ];
 
@@ -299,40 +302,90 @@ export default function StakeholdersMascot({
           <p className="stakeholders-roster-heading">
             {stakeholdersCopy.teamActionsHeading ?? 'Your team'}
           </p>
-          {teamActions.map((action) => {
-            const disabled = action.disabled && !action.alwaysEnabled;
-            const title = action.disabled ? action.disabledTitle : (action.title ?? action.label);
-            return (
-              <button
-                key={action.id}
-                type="button"
-                role="menuitem"
-                className={[
-                  'stakeholders-roster-row',
-                  'stakeholders-roster-team-action',
-                  'slop-action-button',
-                  action.id === 'headphones' && isMuted ? 'is-muted' : ''
-                ]
-                  .filter(Boolean)
-                  .join(' ')}
-                disabled={disabled}
-                aria-pressed={action.ariaPressed}
-                aria-label={action.ariaLabel ?? action.label}
-                title={title ?? action.label}
-                onClick={(event) => {
-                  event.stopPropagation();
-                  runTeamAction(action.run);
-                }}
-              >
-                <span className="stakeholders-roster-team-emoji" aria-hidden="true">
-                  {action.emoji}
-                </span>
-                <span className="stakeholders-roster-label">
-                  <span className="stakeholders-roster-name">{action.label}</span>
-                </span>
-              </button>
-            );
-          })}
+          <div className="stakeholders-team-actions">
+            <div
+              className="stakeholders-team-toggle-row"
+              role="group"
+              aria-label={deskCopy.teamToggleAria}
+            >
+              {teamActions
+                .filter((action) => action.row === 'toggle')
+                .map((action) => {
+                  const disabled = action.disabled && !action.alwaysEnabled;
+                  const title = action.disabled
+                    ? action.disabledTitle
+                    : (action.title ?? action.label);
+                  return (
+                    <button
+                      key={action.id}
+                      type="button"
+                      role="menuitem"
+                      className={[
+                        'stakeholders-roster-row',
+                        'stakeholders-roster-team-action',
+                        'stakeholders-roster-toggle-segment',
+                        'slop-action-button',
+                        action.id === 'headphones' && isMuted ? 'is-muted' : ''
+                      ]
+                        .filter(Boolean)
+                        .join(' ')}
+                      disabled={disabled}
+                      aria-pressed={action.ariaPressed}
+                      aria-label={action.ariaLabel ?? action.label}
+                      title={title ?? action.label}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        runTeamAction(action.run);
+                      }}
+                    >
+                      <span className="stakeholders-roster-team-emoji" aria-hidden="true">
+                        {action.emoji}
+                      </span>
+                      <span className="stakeholders-roster-label">
+                        <span className="stakeholders-roster-name">{action.label}</span>
+                      </span>
+                    </button>
+                  );
+                })}
+            </div>
+            {teamActions
+              .filter((action) => action.row === 'meeting')
+              .map((action) => {
+                const disabled = action.disabled && !action.alwaysEnabled;
+                const title = action.disabled
+                  ? action.disabledTitle
+                  : (action.title ?? action.label);
+                return (
+                  <button
+                    key={action.id}
+                    type="button"
+                    role="menuitem"
+                    className={[
+                      'stakeholders-roster-row',
+                      'stakeholders-roster-team-action',
+                      'stakeholders-roster-meeting-action',
+                      'slop-action-button'
+                    ]
+                      .filter(Boolean)
+                      .join(' ')}
+                    disabled={disabled}
+                    aria-label={action.ariaLabel ?? action.label}
+                    title={title ?? action.label}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      runTeamAction(action.run);
+                    }}
+                  >
+                    <span className="stakeholders-roster-team-emoji" aria-hidden="true">
+                      {action.emoji}
+                    </span>
+                    <span className="stakeholders-roster-label">
+                      <span className="stakeholders-roster-name">{action.label}</span>
+                    </span>
+                  </button>
+                );
+              })}
+          </div>
           <span className="stakeholders-roster-divider" role="presentation">
             {stakeholdersCopy.teammatesDivider ?? 'Teammates'}
           </span>

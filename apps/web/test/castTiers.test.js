@@ -89,16 +89,17 @@ describe('pickMeetingAttendees', () => {
 });
 
 describe('buildMeetingAttendeesFromColleagues', () => {
-  it('always includes the facilitator and dedupes senders', () => {
+  it('dedupes senders without auto-adding the facilitator', () => {
     const seats = buildMeetingAttendeesFromColleagues(['intern', 'greybeard', 'intern']);
-    expect(seats[0]).toBe(MEETING_FACILITATOR);
-    expect(seats).toEqual(['scrumMaster', 'intern', 'greybeard']);
+    expect(seats).toEqual(['intern', 'greybeard']);
+    expect(seats).not.toContain(MEETING_FACILITATOR);
   });
 
-  it('pads a single invitee so the huddle meets the seat floor', () => {
+  it('pads an empty roster to the huddle minimum without forcing Pam', () => {
     const seats = buildMeetingAttendeesFromColleagues([]);
-    expect(seats[0]).toBe(MEETING_FACILITATOR);
+    expect(seats).not.toContain(MEETING_FACILITATOR);
     expect(seats.length).toBeGreaterThanOrEqual(2);
+    expect(seats[0]).toBe('gilfoyle');
   });
 });
 

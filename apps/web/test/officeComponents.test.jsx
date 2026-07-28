@@ -191,11 +191,29 @@ describe('CallMeetingPicker', () => {
     fireEvent.click(screen.getByRole('button', { name: /Start meeting|Start huddle/ }));
     expect(onConfirm).toHaveBeenCalled();
     const payload = onConfirm.mock.calls[0][0];
-    expect(payload.attendees[0]).toBe('scrumMaster');
     expect(payload.attendees).toEqual(
       expect.arrayContaining(['gilfoyle', 'erlich', 'russ', 'jared', 'richard'])
     );
+    expect(payload.attendees).not.toContain('scrumMaster');
     expect(payload.topic).toBe('FRIDGE CLEANOUT FRIDAY');
+  });
+
+  it('includes Pam when the steering preset is chosen', () => {
+    const onConfirm = vi.fn();
+    render(
+      <CallMeetingPicker
+        open
+        seedAttendees={[]}
+        source="desk"
+        onConfirm={onConfirm}
+        onCancel={vi.fn()}
+      />
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Steering' }));
+    fireEvent.click(screen.getByRole('button', { name: /Start meeting|Start huddle/ }));
+    expect(onConfirm).toHaveBeenCalled();
+    const payload = onConfirm.mock.calls[0][0];
+    expect(payload.attendees[0]).toBe('scrumMaster');
   });
 
   it('lets the user cancel without starting', () => {
@@ -240,8 +258,7 @@ describe('OfficeMessenger call-to-talk', () => {
     fireEvent.click(screen.getByRole('button', { name: /Call to talk/i }));
     expect(onCallMeeting).toHaveBeenCalledWith({
       seedAttendees: ['intern'],
-      source: 'chat',
-      forceFacilitator: true
+      source: 'chat'
     });
   });
 });
@@ -412,8 +429,8 @@ describe('MeetingOverlay', () => {
       />
     );
     expect(screen.queryByText(/We had this diagram in 2009/)).toBeNull();
-    expect(screen.getByText('Ulrich')).toBeTruthy();
-    expect(screen.getByText(/turn on CC/i)).toBeTruthy();
+    expect(screen.getAllByText('Ulrich').length).toBeGreaterThan(0);
+    expect(screen.queryByText(/turn on CC/i)).toBeNull();
   });
 
   it('shows the transcript when captions are on even while voice plays', () => {
@@ -436,6 +453,7 @@ describe('MeetingOverlay', () => {
 
   it('shows minutes with Do selected / Do it all once the meeting ends', () => {
     const onAdoptAllPrompts = vi.fn();
+    const onClose = vi.fn();
     const ended = {
       ...PLAYING_MEETING,
       state: 'ended',
@@ -458,10 +476,12 @@ describe('MeetingOverlay', () => {
         onClose={vi.fn()}
         onAdoptPrompt={vi.fn()}
         onAdoptAllPrompts={onAdoptAllPrompts}
+        onClose={onClose}
       />
     );
     expect(screen.getByText('Meeting minutes')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Do it all' }));
     expect(onAdoptAllPrompts).toHaveBeenCalledWith(['Merge the Discovery and Research nodes']);
+    expect(onClose).toHaveBeenCalledTimes(1);
   });
 });

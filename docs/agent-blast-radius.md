@@ -102,6 +102,27 @@ Run: `npm run check:fast` when only shared changed; `npm run check` otherwise.
 
 `test:affected` pulls the integration + unit files above when desk chrome or concentration modules change (see `scripts/test-affected-lib.mjs`).
 
+## Office cast + meetings (roster helpers)
+
+| Layer              | Location                                                                                                                                                                                                            |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Cast + roster APIs | [`apps/web/src/utils/officeCast.js`](../apps/web/src/utils/officeCast.js) (`normalizeMeetingRoster`, `buildMeetingAttendeesFromColleagues`, `pickMeetingAttendees`, chrome copy)                                    |
+| Meeting UI         | [`MeetingOverlay.jsx`](../apps/web/src/components/MeetingOverlay.jsx), [`CallMeetingPicker.jsx`](../apps/web/src/components/CallMeetingPicker.jsx), [`OfficeLayer.jsx`](../apps/web/src/components/OfficeLayer.jsx) |
+| Unit               | [`apps/web/test/castTiers.test.js`](../apps/web/test/castTiers.test.js), [`apps/web/test/officeComponents.test.jsx`](../apps/web/test/officeComponents.test.jsx)                                                    |
+
+`test:affected` pulls `castTiers.test.js` and `officeComponents.test.jsx` when `officeCast.js` or office locale bundles change — basename mirror alone misses roster helpers.
+
+## Desk work order (SlopNextPrompt)
+
+| Layer       | Location                                                                                                          |
+| ----------- | ----------------------------------------------------------------------------------------------------------------- |
+| Prompt UI   | [`apps/web/src/components/SlopNextPrompt.jsx`](../apps/web/src/components/SlopNextPrompt.jsx)                     |
+| Desk row    | [`apps/web/src/features/desk/DeskBottomActionsSlot.jsx`](../apps/web/src/features/desk/DeskBottomActionsSlot.jsx) |
+| Unit        | [`apps/web/test/SlopNextPrompt.test.jsx`](../apps/web/test/SlopNextPrompt.test.jsx)                               |
+| Integration | [`apps/web/test/App.test.jsx`](../apps/web/test/App.test.jsx) (entry desk idle chrome — mic vs submit visibility) |
+
+`test:affected` pulls `App.test.jsx` when `SlopNextPrompt.jsx` changes — the basename mirror only runs `SlopNextPrompt.test.jsx`.
+
 ## Isometric floor (renderer #2)
 
 | Layer              | Location                                                                                                                                                                                                                                     |

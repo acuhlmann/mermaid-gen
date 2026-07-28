@@ -105,6 +105,20 @@ test('resolveAffectedTests adds isometric floor blast-radius tests for OfficeFlo
   assert.ok(plan.tests.includes('apps/web/test/officeLayerFloorRenderer.test.jsx'));
 });
 
+test('resolveAffectedTests adds office cast blast-radius tests for officeCast edits', () => {
+  const plan = resolveAffectedTests(['apps/web/src/utils/officeCast.js'], { root: ROOT });
+  assert.ok(plan.tests.includes('apps/web/test/castTiers.test.js'));
+  assert.ok(plan.tests.includes('apps/web/test/officeComponents.test.jsx'));
+});
+
+test('resolveAffectedTests adds desk prompt blast-radius tests for SlopNextPrompt edits', () => {
+  const plan = resolveAffectedTests(['apps/web/src/components/SlopNextPrompt.jsx'], {
+    root: ROOT
+  });
+  assert.ok(plan.tests.includes('apps/web/test/SlopNextPrompt.test.jsx'));
+  assert.ok(plan.tests.includes('apps/web/test/App.test.jsx'));
+});
+
 test('summarizeAffectedTestPlan is human-readable', () => {
   const summary = summarizeAffectedTestPlan(
     resolveAffectedTests(['packages/shared/src/diagramSchema.ts'], { root: ROOT })
