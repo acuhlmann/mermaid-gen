@@ -426,7 +426,7 @@ export default function OfficeLayer({
         seedAttendees,
         topic: typeof options?.topic === 'string' ? options.topic : '',
         source: options?.source === 'email' || options?.source === 'chat' ? options.source : 'desk',
-        forceFacilitator: options?.forceFacilitator !== false
+        forceFacilitator: options?.forceFacilitator === true
       });
     },
     [meeting]
@@ -743,7 +743,7 @@ export default function OfficeLayer({
         seedAttendees={meetingPicker?.seedAttendees ?? []}
         topic={meetingPicker?.topic ?? ''}
         source={meetingPicker?.source ?? 'desk'}
-        forceFacilitator={meetingPicker?.forceFacilitator !== false}
+        forceFacilitator={meetingPicker?.forceFacilitator === true}
         onConfirm={handleConfirmMeetingPicker}
         onCancel={handleCancelMeetingPicker}
       />

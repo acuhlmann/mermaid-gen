@@ -332,11 +332,10 @@ export function pickMeetingAttendees(random = Math.random) {
 
 /**
  * Build meeting seats from one or more colleague IDs (e.g. inbox senders or a
- * Slop Chat thread). Pam facilitates by default; roster is normalized to the
- * huddle min / group max the meeting route accepts.
+ * Slop Chat thread). Pam is not auto-added — the user picks her in the roster.
  */
 export function buildMeetingAttendeesFromColleagues(colleagueIds) {
-  return normalizeMeetingRoster(colleagueIds, { forceFacilitator: true });
+  return normalizeMeetingRoster(colleagueIds, { forceFacilitator: false });
 }
 
 /** Collapse selected email subjects into a short meeting topic (max 200 chars). */
@@ -1233,6 +1232,7 @@ export const OFFICE_CHROME_COPY = {
     inbox: 'Check your mail',
     meeting: 'Call a meeting',
     team: 'Talk to your team',
+    teamToggleAria: 'Talk to your team or mute with headphones',
     outbox: 'Ship from the Outbox',
     outboxTitle: 'Export or share the deliverable on your desk',
     codeDrawer: 'Spaghetti',
@@ -1317,6 +1317,7 @@ export const OFFICE_CHROME_COPY = {
     tierSenior: 'Leadership',
     tierOffice: 'The floor',
     facilitatorBadge: 'Facilitates',
+    selectedStripLabel: 'Selected',
     selectedCount: '{count} invited',
     selectedCountOne: '1 invited',
     maxHint: 'Room holds {max} — drop someone before adding more.',

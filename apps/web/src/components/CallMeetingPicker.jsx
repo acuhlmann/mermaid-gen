@@ -21,15 +21,15 @@ const TIER_LABEL_KEYS = {
 /**
  * People/group picker for calling a meeting — like grabbing colleagues on the
  * floor. Seeded from inbox senders, a Slop Chat thread, or an empty desk grab.
- * Pam facilitates by default when the roster is a group; the user can still
- * uncheck anyone except when that would empty the room.
+ * Pam is available in the directory but is not auto-added — only scheduled
+ * invites and the steering preset include her by default.
  */
 export default function CallMeetingPicker({
   open,
   seedAttendees = [],
   topic: seedTopic = '',
   source = 'desk',
-  forceFacilitator = true,
+  forceFacilitator = false,
   onConfirm,
   onCancel
 }) {
@@ -42,11 +42,7 @@ export default function CallMeetingPicker({
   useEffect(() => {
     if (!open) return;
     const seeded = seedAttendees.filter(Boolean);
-    const withFacilitator =
-      forceFacilitator && !seeded.includes(MEETING_FACILITATOR)
-        ? [MEETING_FACILITATOR, ...seeded]
-        : seeded;
-    setSelected(new Set(withFacilitator.slice(0, MEETING_ROSTER_MAX)));
+    setSelected(new Set(seeded.slice(0, MEETING_ROSTER_MAX)));
     setTopic(seedTopic ?? '');
     setKeepFacilitator(forceFacilitator);
   }, [open, seedAttendees, seedTopic, forceFacilitator]);
@@ -84,11 +80,7 @@ export default function CallMeetingPicker({
   const applyPreset = (preset) => {
     const members = preset.resolve?.() ?? [];
     setSelected(new Set(members.slice(0, MEETING_ROSTER_MAX)));
-    if (preset.id !== 'steering' && members.length <= 2) {
-      setKeepFacilitator(false);
-    } else {
-      setKeepFacilitator(true);
-    }
+    setKeepFacilitator(preset.id === 'steering');
   };
 
   const handleStart = () => {
@@ -168,6 +160,27 @@ export default function CallMeetingPicker({
           ))}
         </div>
 
+        {selectedCount > 0 ? (
+          <div className="office-meeting-picker-selected-strip" role="status" aria-live="polite">
+            <span className="office-meeting-picker-selected-label">{copy.selectedStripLabel}</span>
+            <div className="office-meeting-picker-selected-avatars">
+              {[...selected].map((id) => {
+                const sender = officeSenderInfo(id);
+                return (
+                  <span
+                    key={id}
+                    className="office-meeting-picker-selected-chip"
+                    title={sender.name}
+                  >
+                    <PersonaFace id={id} size={24} fallbackEmoji={sender.avatarEmoji} />
+                    <span className="office-meeting-picker-selected-name">{sender.name}</span>
+                  </span>
+                );
+              })}
+            </div>
+          </div>
+        ) : null}
+
         <div className="office-meeting-picker-directory" aria-label={copy.directoryAria}>
           {tiers.map((tier) => {
             const rows = directory.filter((row) => row.tier === tier);
@@ -189,10 +202,14 @@ export default function CallMeetingPicker({
                         >
                           <input
                             type="checkbox"
+                            className="office-meeting-picker-checkbox"
                             checked={checked}
                             disabled={disabled}
                             onChange={() => toggle(id)}
                           />
+                          <span className="office-meeting-picker-checkmark" aria-hidden="true">
+                            {checked ? '✓' : ''}
+                          </span>
                           <PersonaFace id={id} size={28} />
                           <span className="office-meeting-picker-person-meta">
                             <span className="office-meeting-picker-person-name">{sender.name}</span>

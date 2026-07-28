@@ -65,11 +65,11 @@ describe('SlopNextPrompt mobile chrome', () => {
     expect(props.onMicToggleClick).not.toHaveBeenCalled();
   });
 
-  it('hides desk idle chrome when the work order is empty and unfocused', () => {
+  it('shows the mic on desk even when the work order is empty and unfocused', () => {
     renderPrompt({ layout: 'desk', narrowLayout: true, prompt: '' });
     const panel = screen.getByTestId('slop-prompt-panel-desk');
-    expect(panel.className).toContain('is-desk-idle');
-    expect(screen.queryByRole('button', { name: 'Tap to dictate' })).toBeNull();
+    expect(panel.className).not.toContain('is-desk-idle');
+    expect(screen.getByRole('button', { name: 'Tap to dictate' })).toBeTruthy();
     expect(screen.queryByRole('button', { name: '>' })).toBeNull();
   });
 
