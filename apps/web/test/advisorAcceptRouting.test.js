@@ -9,7 +9,7 @@ describe('resolveAdvisorAcceptOperation', () => {
 
   it('routes critique and explain to analyze, not intent', () => {
     expect(resolveAdvisorAcceptOperation('jared', true)).toBe('analyze');
-    expect(resolveAdvisorAcceptOperation('explain', true)).toBe('analyze');
+    expect(resolveAdvisorAcceptOperation('richard', true)).toBe('analyze');
   });
 
   it('falls back to intent without a diagram', () => {

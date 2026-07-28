@@ -49,12 +49,12 @@ export const SLOPITECT_ZH_TW = {
       entryLine: '抱歉——我想先提一件事。',
       exitLine: '已提出。該有人負責了 📋'
     },
-    explain: {
-      name: '資深架構師',
-      title: '首席技術佈道師',
-      tagline: '協同設計故事會 — 圍過來。',
-      entryLine: '請想像…',
-      exitLine: '架構已講清 📜'
+    richard: {
+      name: 'Richard Hendricks',
+      title: '創始人 — 模式命名者',
+      tagline: '我覺得這個形狀有個名字……',
+      entryLine: '好——如果我讀得沒錯……',
+      exitLine: '命名完了。抱歉說太多了 🤓'
     },
     barker: {
       name: 'Jack Barker',
@@ -70,7 +70,7 @@ export const SLOPITECT_ZH_TW = {
     erlich: '爛圖建築師：Erlich Bachman 提出大膽方案',
     russ: '爛圖建築師：Russ Hanneman 把事情升級',
     jared: '爛圖建築師：Jared Dunn 提出一條發現',
-    explain: '爛圖建築師：協同設計故事會',
+    richard: '爛圖建築師：Richard 正在命名模式',
     barker: '爛圖建築師：成功劇場模式',
     fix: '爛圖建築師：現場工頭修復爛圖'
   },
@@ -80,14 +80,14 @@ export const SLOPITECT_ZH_TW = {
     erlich: 'Erlich Bachman 正在親自昇華…',
     russ: '三個逗號來了…',
     jared: 'Jared 有一件事要提…',
-    explain: '協同設計故事會 — 圍過來',
+    richard: 'Richard 又要過度解釋了…',
     barker: 'Jack Barker 正在越權代勞……'
   },
   ACTION_PERSONA_SHORT_NAMES: {
     gilfoyle: 'Gilfoyle',
     dinesh: 'Dinesh',
     erlich: 'Erlich',
-    explain: '架構師'
+    richard: 'Richard'
   },
   ...SLOPITECT_GAMIFICATION_ZH_TW
 };

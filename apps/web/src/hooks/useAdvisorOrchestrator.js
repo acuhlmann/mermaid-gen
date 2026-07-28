@@ -20,7 +20,7 @@ import { getAdvisorVisibleLabels } from '../utils/advisorVisibleLabels.js';
  *
  * Reachability ladder (locked): docs/recipes/replicate-tv-character.md.
  */
-export const ADVISOR_ORDER = ['gilfoyle', 'dinesh', 'erlich', 'russ', 'jared', 'explain', 'barker'];
+export const ADVISOR_ORDER = ['gilfoyle', 'dinesh', 'erlich', 'russ', 'jared', 'richard', 'barker'];
 
 /**
  * Relative pick weight per persona — anything absent is a full-weight peer (1).
@@ -517,8 +517,8 @@ export function useAdvisorOrchestrator(params) {
         const replyIds = Array.isArray(payload?.highlightIds) ? payload.highlightIds : [];
         const rawKind = typeof payload?.kind === 'string' ? payload.kind.toLowerCase() : '';
         // Belt-and-suspenders: even if the model leaked a "suggestion" for explain,
-        // we never want the Wise Architect's bubble to show a Do-it button.
-        const kind = persona === 'explain' || rawKind === 'comment' ? 'comment' : 'suggestion';
+        // we never want Richard's bubble to show a Do-it button.
+        const kind = persona === 'richard' || rawKind === 'comment' ? 'comment' : 'suggestion';
         const focusId = focusDescriptor?.id ? String(focusDescriptor.id) : null;
         if (!text) {
           setThinking(null);
@@ -814,7 +814,7 @@ export function useAdvisorOrchestrator(params) {
       }
       // If the in-flight fetch already landed for this same focus while we were
       // debouncing, do not wipe the bubble — a common regression path for the
-      // Wise Architect "is musing…" → vanished comment transition.
+      // Richard "is naming it…" → vanished comment transition.
       if (
         scheduledFocusKey === focusKeyRef.current &&
         scheduledFocusKey === suggestionFocusKeyRef.current &&
@@ -884,14 +884,14 @@ export function useAdvisorOrchestrator(params) {
   }, []);
 
   /**
-   * Re-fetch the Wise Architect's current observation at the next dumb-down level.
+   * Re-fetch Richard's current observation at the next dumb-down level.
    * Same progressive ladder as the radial "?" explainer (levels 1–6, then babble,
-   * then "I give up" dismisses). Only meaningful for `activePersona === 'explain'`.
+   * then "I give up" dismisses). Only meaningful for `activePersona === 'richard'`.
    */
   const dumbDown = useCallback(async () => {
     const persona = activePersona;
     const previous = suggestion;
-    if (persona !== 'explain' || !previous) return;
+    if (persona !== 'richard' || !previous) return;
     if (isDumbingDown) return;
 
     if (isLabelExplainGiveUpLevel(architectDumbLevel)) {

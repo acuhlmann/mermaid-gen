@@ -40,7 +40,7 @@ const AdvisorSuggestSchema = z.object({
   focusNode: FocusDescriptorSchema.optional(),
   lastSuggestions: z.array(z.string().max(400)).max(8).default([]),
   // "dumb" rephrases the architect's previous bubble in plain English. Only honored
-  // when persona === 'explain' (other personas ignore the flag at prompt-build time).
+  // when persona === 'richard' (other personas ignore the flag at prompt-build time).
   mode: z.enum(['dumb']).optional(),
   previousSuggestion: z.string().max(400).optional(),
   // Progressive simplification (1–6) — same ladder as the radial "?" explainer.
@@ -136,7 +136,7 @@ export function createAdvisorRouter() {
         !parsedReply &&
         payload.mode === 'dumb' &&
         payload.style === 'gibberish' &&
-        payload.persona === 'explain'
+        payload.persona === 'richard'
       ) {
         const seed =
           payload.focusNode?.label ||

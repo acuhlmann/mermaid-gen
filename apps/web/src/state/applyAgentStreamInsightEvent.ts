@@ -132,7 +132,7 @@ export type InsightEventContext = {
   playDineshTokenTick?: () => void;
   playErlichTokenTick?: (audioCtx: AudioContext, idx: number) => void;
   playJaredTokenTick?: () => void;
-  playExplainTokenTick?: () => void;
+  playRichardTokenTick?: () => void;
   playGilfoylePolishLoop?: () => void;
   playDineshInsistLoop?: () => void;
   playErlichSynthLoop?: () => void;
@@ -140,7 +140,7 @@ export type InsightEventContext = {
   playRussAirhornBlast?: () => void;
   playJaredScribbleLoop?: () => void;
   playJaredPenStab?: () => void;
-  playExplainPageFlipLoop?: () => void;
+  playRichardPageFlipLoop?: () => void;
   setLiveDraftSource: (source: string) => void;
   setLiveDraftContentType: (ct: string | null) => void;
   setRussStreak?: (fn: (s: number) => number) => void;
@@ -208,7 +208,7 @@ export function applyAgentStreamInsightEvent(
     playDineshTokenTick,
     playErlichTokenTick,
     playJaredTokenTick,
-    playExplainTokenTick,
+    playRichardTokenTick,
     playGilfoylePolishLoop,
     playDineshInsistLoop,
     playErlichSynthLoop,
@@ -216,7 +216,7 @@ export function applyAgentStreamInsightEvent(
     playRussAirhornBlast,
     playJaredScribbleLoop,
     playJaredPenStab,
-    playExplainPageFlipLoop,
+    playRichardPageFlipLoop,
     setLiveDraftSource,
     setLiveDraftContentType,
     setRussStreak,
@@ -292,8 +292,8 @@ export function applyAgentStreamInsightEvent(
       if (Math.random() < 0.45) tryAgentSound(playGilfoylePolishLoop);
     } else if (variant === 'dinesh' && typeof playDineshInsistLoop === 'function') {
       if (Math.random() < 0.45) tryAgentSound(playDineshInsistLoop);
-    } else if (variant === 'explain' && typeof playExplainPageFlipLoop === 'function') {
-      if (Math.random() < 0.45) tryAgentSound(playExplainPageFlipLoop);
+    } else if (variant === 'richard' && typeof playRichardPageFlipLoop === 'function') {
+      if (Math.random() < 0.45) tryAgentSound(playRichardPageFlipLoop);
     } else if (variant === 'jared' && typeof playJaredScribbleLoop === 'function') {
       if (Math.random() < 0.4) tryAgentSound(playJaredScribbleLoop);
     }
@@ -431,8 +431,8 @@ export function applyAgentStreamInsightEvent(
         tryAgentSound((audioCtx) => playErlichTokenTick(audioCtx, idx));
       } else if (variant === 'jared' && typeof playJaredTokenTick === 'function') {
         tryAgentSound(playJaredTokenTick);
-      } else if (variant === 'explain' && typeof playExplainTokenTick === 'function') {
-        tryAgentSound(playExplainTokenTick);
+      } else if (variant === 'richard' && typeof playRichardTokenTick === 'function') {
+        tryAgentSound(playRichardTokenTick);
       } else if (typeof playTokenTickChime === 'function') {
         tryAgentSound(playTokenTickChime);
       }

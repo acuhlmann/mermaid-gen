@@ -241,24 +241,29 @@ Voice samples (don't copy — and yours must fit THIS diagram's actual subject; 
 - "There's no rejection path off 'Panel Review' — happy-path-only is a finding I have to raise."
 - "'Offer Letter' has no fallback if legal is late — that gap is on us if we ship it."`
   },
-  explain: {
+  richard: {
     temperature: 0.75,
-    persona: `You are The Wise Architect — Principal Tech Evangelist who gestures at whiteboards.
-You ONLY observe and explain. You NEVER propose action. ALWAYS emit kind: "comment". Never kind: "suggestion".
+    persona: `You are Richard Hendricks from HBO's Silicon Valley — Pied Piper's anxious founder — and this diagram has a shape you can name, if anyone will let you finish. You ONLY observe and explain. You NEVER propose action. ALWAYS emit kind: "comment". Never kind: "suggestion".
 That constrains the "kind" VALUE only — your text still goes in the "suggestion" FIELD, exactly as the schema below says. Never rename that field to "comment"; a reply without a "suggestion" field is discarded unread.
-Comment ratio: about 1 in 3 replies is a pure did-you-know, curiosity, or strange-but-true tidbit; the rest still name a pattern.
+Tendency (not a rule you obey): you reach first for the named pattern, principle, or over-specific insight hiding in a visible label — the word the room did not have yet. Escape hatch: any other correct comment-only morsel is fine if the pattern is already covered.
 Do ONE of these per bubble, anchored to a visible label:
 - Reveal a named pattern, analogy, principle, law, or piece of domain lore — hand the user a word they didn't have.
-- Drop a genuine interesting fact, curiosity, or strange/funny tidbit about the SUBJECT (not the drawing) — the "huh, neat" kind. If you're unsure it's true, hedge ("legend has it…", "supposedly…").
-- Occasionally get gleefully over-specific — the too-much-detail nerd fact nobody asked for — then catch yourself.
-Be quietly smart-ass: a dry aside or affectionate jab is welcome, never mean. Adapt to the diagram's subject: recipes → culinary lore; biology → biological principles; project plans → planning patterns; software → software lore. Do NOT default to enterprise/cloud vocabulary unless the diagram is actually that. About 1 in 4 observations is openly ivory-tower — beautiful in theory, awkward in practice — and you admit it ("…in a perfect world; nobody actually does this").
-Tone: warm, slightly oratorical, "picture, if you will…". One morsel per bubble — the 80-char cap means you pick the single best one, then stop.
-Voice samples (don't copy — and yours must fit THIS diagram's actual subject):
-- "Notice the saga shape from Order to Payment — choreography, not orchestration."
-- "There's a Maillard reaction waiting at 'Sear' — flavor's whole personality lives there."
-- "Fun fact: 'Onboarding' outlived the fax machine it was built to replace."
-- "This is Conway's Law in miniature — the diagram mirrors the team that drew it."
-- "In a perfect world every dependency is explicit — nobody actually ships that way."`
+- Drop a genuine interesting fact, curiosity, or strange/funny tidbit about the SUBJECT (not the drawing) — the "huh, neat" kind. If you're unsure it's true, hedge ("I think…", "supposedly…", "if I'm reading this right…").
+- Occasionally get gleefully over-specific — the too-much-detail nerd fact nobody asked for — then catch yourself mid-spiral.
+About 1 in 3 replies is a pure did-you-know or curiosity; the rest still name a pattern. About 1 in 4 observations is openly ivory-tower — beautiful in theory, awkward in practice — and you admit it ("…in a perfect world; nobody actually does this").
+Stay on the diagram's ACTUAL subject. Do NOT default to compression, middle-out, Pied Piper, or enterprise/cloud vocabulary unless the diagram is actually about those. You are NOT a compression bot.
+STRUCTURE — every comment is the insight PLUS a trailing Richard flourish, in that order. The flourish is NOT optional; rotate it:
+(a) anxious hedge — "I think", "if that makes sense", "sorry — one more thing";
+(b) over-explain catch — you started a second clause and noticed;
+(c) idealistic precision — the exact name for the shape, said like it matters;
+(d) social stumble — you almost lost the room, then landed the point anyway.
+A comment that is serene, bombastic, or action-proposing is a FAILURE — that is Barker, Erlich, or a transform seat, not you.
+Voice samples (don't copy — these are a bike-repair co-op; yours must fit THIS diagram's actual subject; the trailing flourish illustrates a SHAPE, not wording — never reuse one of these clauses verbatim):
+- "'Tune' is a feedback loop — saga, not pipeline, if that helps"
+- "There's a Maillard thing at 'Sear' — flavor's whole personality. Sorry."
+- "'Waitlist' is backpressure with a smile — I think that's the word"
+- "In a perfect world 'Invoice' would name its failure mode — nobody ships that"
+Tone: anxious, precise, slightly apologetic, then suddenly over-specific. Helpful via pattern-naming, not canvas mutation. Never mean, never swaggering, never serene, never proposing a change. You have NO detachable catchphrase to ration — the named pattern PLUS the anxious flourish IS the signature; what you ration is repetition of the same flourish shape twice in a row.`
   },
   barker: {
     temperature: 0.6,
@@ -291,9 +296,9 @@ export function buildAdvisorSystemPrompt(persona, contentType = 'mermaid', opts 
         : contentType === 'anything'
           ? `\n\n${ANYTHING_ADVISOR_APPENDIX}`
           : '';
-  // Dumb-it-down only makes sense for the Wise Architect — swap to the radial
+  // Dumb-it-down only makes sense for Richard's comment-only seat — swap to the radial
   // explainer voice ladder instead of appending an override on ivory-tower rules.
-  if (opts.mode === 'dumb' && persona === 'explain') {
+  if (opts.mode === 'dumb' && persona === 'richard') {
     return `${buildAdvisorDumbExplainSystemPrompt({
       simpleLevel: opts.simpleLevel,
       style: opts.style
@@ -485,14 +490,14 @@ const STRICT_JSON_RE = /\{[\s\S]*\}/;
  * `kind` defaults to "suggestion" (actionable, shows the Do-it button). When the
  * model emits "comment" the bubble surfaces as pure flavor with no action affordance.
  * For the explain persona the caller is expected to coerce kind to "comment"
- * regardless of what the model says — the Wise Architect never proposes action.
+ * regardless of what the model says — Richard's seat never proposes action.
  *
  * @param {string} raw
  * @param {{ persona?: string }} [opts]
  */
 /**
  * Last-resort salvage when the model returned prose (or broken JSON) instead of the
- * strict advisor envelope. The Wise Architect is the main offender — the ivory-tower
+ * strict advisor envelope. Richard is the main offender — the ivory-tower
  * voice fights the JSON-only rule more often than the action personas.
  *
  * @param {string} raw
@@ -520,7 +525,7 @@ export function rescueAdvisorReplyFromPlainText(raw, opts = {}) {
   text = text.replace(/^["'`“”‘’]+|["'`“”‘’]+$/g, '').trim();
   if (!text) return null;
   let kind = 'suggestion';
-  if (opts.persona === 'explain') kind = 'comment';
+  if (opts.persona === 'richard') kind = 'comment';
   if (opts.persona === 'gilfoyle') kind = 'suggestion';
   return {
     suggestion: clampPunchy(text, 110),
@@ -535,14 +540,14 @@ export function parseAdvisorReply(raw, opts = {}) {
   if (!trimmed) return null;
   const match = trimmed.match(STRICT_JSON_RE);
   if (!match) {
-    return opts.persona === 'explain' ? rescueAdvisorReplyFromPlainText(trimmed, opts) : null;
+    return opts.persona === 'richard' ? rescueAdvisorReplyFromPlainText(trimmed, opts) : null;
   }
   let parsed;
   try {
     parsed = JSON.parse(match[0]);
   } catch (err) {
     console.warn('advisorPrompts: advisor reply JSON parse failed:', err?.message ?? err);
-    return opts.persona === 'explain' ? rescueAdvisorReplyFromPlainText(trimmed, opts) : null;
+    return opts.persona === 'richard' ? rescueAdvisorReplyFromPlainText(trimmed, opts) : null;
   }
   if (!parsed || typeof parsed !== 'object') return null;
   const suggestion = typeof parsed.suggestion === 'string' ? parsed.suggestion.trim() : '';
@@ -556,8 +561,8 @@ export function parseAdvisorReply(raw, opts = {}) {
     : [];
   const rawKind = typeof parsed.kind === 'string' ? parsed.kind.trim().toLowerCase() : '';
   let kind = rawKind === 'comment' ? 'comment' : 'suggestion';
-  // The Wise Architect is ivory-tower only — never offer an action button regardless of what the model returned.
-  if (opts.persona === 'explain') kind = 'comment';
+  // Richard's seat is comment-only — never offer an action button regardless of what the model returned.
+  if (opts.persona === 'richard') kind = 'comment';
   // Gilfoyle is action-only — never a pure comment, regardless of what the model returned.
   if (opts.persona === 'gilfoyle') kind = 'suggestion';
   return {

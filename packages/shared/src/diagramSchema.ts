@@ -218,7 +218,7 @@ export const DiagramAnalyzeSchema = z.object({
   revisionId: z.number().int().nonnegative(),
   diagramSource: z.string().min(1),
   contentType: ContentTypeSchema.default('mermaid'),
-  kind: z.enum(['jared', 'explain']),
+  kind: z.enum(['jared', 'richard']),
   focusNode: FocusNodeSchema.optional(),
   modelProfile: ModelProfileSchema.optional(),
   /** Stakeholder bubble text when analyze is triggered from advisor accept or Drill Deeper. */
@@ -291,7 +291,7 @@ export const AgentStreamPayloadSchema = z.discriminatedUnion('operation', [
     revisionId: z.number().int().nonnegative(),
     diagramSource: z.string().min(1),
     contentType: ContentTypeSchema.default('mermaid'),
-    kind: z.enum(['jared', 'explain']),
+    kind: z.enum(['jared', 'richard']),
     focusNode: FocusNodeSchema.optional(),
     modelProfile: ModelProfileSchema.optional(),
     advisorPrompt: z.string().max(400).optional()

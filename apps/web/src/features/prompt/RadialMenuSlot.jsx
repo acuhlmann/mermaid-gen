@@ -1,7 +1,7 @@
 import DiagramFullscreenOverlay from '../../components/DiagramFullscreenOverlay.jsx';
 import RadialActionMenu from '../../components/RadialActionMenu.jsx';
 import SlopNextPrompt from '../../components/SlopNextPrompt.jsx';
-import { playExplainBoot } from '../../utils/agentChimes.js';
+import { playRichardBoot } from '../../utils/agentChimes.js';
 
 /**
  * Fullscreen radial menu overlay with optional inline slop-next prompt.
@@ -94,9 +94,9 @@ export function RadialMenuSlot({
           if (!descriptor) return;
           setSelectedNode(descriptor);
           closeRadialMenu();
-          setBootSeq((prev) => ({ trigger: prev.trigger + 1, variant: 'explain' }));
-          tryAgentSound(playExplainBoot);
-          runAnalyze('explain', { focusTarget: descriptor });
+          setBootSeq((prev) => ({ trigger: prev.trigger + 1, variant: 'richard' }));
+          tryAgentSound(playRichardBoot);
+          runAnalyze('richard', { focusTarget: descriptor });
         }}
         onHoverHold={cancelMenuClose}
         onHoverRelease={scheduleMenuClose}

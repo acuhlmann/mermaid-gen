@@ -96,7 +96,7 @@ export function buildInfographicAnalyzeFocusInstructions(focusNode, kind) {
   if (!focusNode?.id || focusNode.selectionKind !== 'infographic-item') return '';
   const { role, summary, target } = describeSelection(focusNode);
 
-  if (kind === 'explain') {
+  if (kind === 'richard') {
     if (role === 'title' || role === 'top-level description') {
       return `\n\nSelection focus: The user selected ${summary} Lead with what this ${role} communicates in ## Explanation and ## Main message — its framing, scope, and any rhetorical effect on the rest of the diagram. Use ## Key data points and ## Takeaways to tie the body of the infographic back to this ${role}. Reference unrelated items only as supporting context.`;
     }

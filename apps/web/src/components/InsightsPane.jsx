@@ -63,7 +63,7 @@ const SLOPITECT_VARIANT_CLASS = {
   erlich: 'is-variant-erlich',
   russ: 'is-variant-russ',
   jared: 'is-variant-jared',
-  explain: 'is-variant-explain',
+  richard: 'is-variant-richard',
   barker: 'is-variant-barker'
 };
 
@@ -211,7 +211,7 @@ function IconRuss() {
 function isAccentuatedInsightVariant(variant) {
   return (
     variant === 'jared' ||
-    variant === 'explain' ||
+    variant === 'richard' ||
     variant === 'gilfoyle' ||
     variant === 'dinesh' ||
     variant === 'erlich' ||
@@ -402,7 +402,7 @@ function EntryStatusIcon({ status, variant }) {
   if (status === 'failed') return <IconAlert />;
   if (status === 'done') {
     if (variant === 'jared') return <IconCritique />;
-    if (variant === 'explain') return <IconExplain />;
+    if (variant === 'richard') return <IconExplain />;
     if (variant === 'gilfoyle') return <IconGilfoyle />;
     if (variant === 'dinesh') return <IconDinesh />;
     if (variant === 'erlich') return <IconErlich />;
@@ -553,7 +553,7 @@ function erlichHeadingToneClass(headingText) {
 }
 
 function headingToneClass(headingText, variant = 'general') {
-  if (variant === 'explain') return explainHeadingToneClass(headingText);
+  if (variant === 'richard') return explainHeadingToneClass(headingText);
   if (variant === 'erlich') return erlichHeadingToneClass(headingText);
   const h = headingText.toLowerCase();
   if (h.includes('strength')) return 'insights-tone-strengths';
@@ -836,7 +836,7 @@ function renderBodyLines(body, keyPrefix, useSectionTypography, embedOpts = null
 function leadOpenerExtraClass(variant, accentuateSections, openerUsedRef) {
   if (!accentuateSections || openerUsedRef.current) return '';
   const map = {
-    explain: 'insights-explain-opener',
+    richard: 'insights-explain-opener',
     gilfoyle: 'insights-gilfoyle-opener',
     dinesh: 'insights-dinesh-opener',
     erlich: 'insights-erlich-opener',
@@ -1085,7 +1085,7 @@ function renderRichContent(
 }
 
 function AccentSectionTitleIcon({ variant }) {
-  if (variant === 'explain') return <IconExplain />;
+  if (variant === 'richard') return <IconExplain />;
   if (variant === 'gilfoyle') return <IconGilfoyle />;
   if (variant === 'dinesh') return <IconDinesh />;
   if (variant === 'erlich') return <IconErlich />;
@@ -1449,12 +1449,12 @@ export default function InsightsPane({
 
             let analysisBody = null;
             const explainStructured =
-              variant === 'explain' && entry.explainSections?.sections?.length > 0 && !isRunning;
+              variant === 'richard' && entry.explainSections?.sections?.length > 0 && !isRunning;
             const explainDumbLevel = explainDumbLevelByEntryId?.[entry.id] ?? 0;
             const explainDumbLoading = explainDumbLoadingEntryId === entry.id;
             const explainDumbSurrendered = Boolean(explainDumbSurrenderedEntryIds?.[entry.id]);
             const showExplainDumbDown =
-              variant === 'explain' &&
+              variant === 'richard' &&
               rawStatus === 'done' &&
               (Boolean(displayContent?.trim()) || explainStructured) &&
               typeof onExplainDumbDown === 'function';
@@ -1645,7 +1645,7 @@ export default function InsightsPane({
                       className={[
                         'insights-entry-rich-text',
                         accentuateSections ? 'is-analyze-prose' : '',
-                        variant === 'explain' && accentuateSections ? 'is-explain-prose' : '',
+                        variant === 'richard' && accentuateSections ? 'is-richard-prose' : '',
                         explainProseGibberish ? 'is-gibberish' : '',
                         variant === 'gilfoyle' && accentuateSections ? 'is-gilfoyle-prose' : '',
                         variant === 'dinesh' && accentuateSections ? 'is-dinesh-prose' : '',
@@ -1683,7 +1683,7 @@ export default function InsightsPane({
                           variant === 'dinesh' ? 'is-dinesh-caret' : '',
                           variant === 'erlich' ? 'is-erlich-caret' : '',
                           variant === 'jared' ? 'is-jared-caret' : '',
-                          variant === 'explain' ? 'is-explain-caret' : ''
+                          variant === 'richard' ? 'is-richard-caret' : ''
                         ]
                           .filter(Boolean)
                           .join(' ')}

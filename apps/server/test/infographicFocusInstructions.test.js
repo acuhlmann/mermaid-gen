@@ -9,7 +9,7 @@ test('returns empty string when selection kind is not infographic-item', () => {
   assert.equal(buildInfographicFocusScopeInstructions(null), '');
   assert.equal(buildInfographicFocusScopeInstructions({ id: 'x' }), '');
   assert.equal(buildInfographicFocusScopeInstructions({ id: 'x', selectionKind: 'node' }), '');
-  assert.equal(buildInfographicAnalyzeFocusInstructions(null, 'explain'), '');
+  assert.equal(buildInfographicAnalyzeFocusInstructions(null, 'richard'), '');
 });
 
 test('item-label selection cites the indexed path and the visible label', () => {
@@ -88,7 +88,7 @@ test('explain analyze instructions lead with the selected item', () => {
       elementType: 'item-label',
       indexes: '2'
     },
-    'explain'
+    'richard'
   );
   assert.match(text, /Selection focus/);
   assert.match(text, /Lead with this specific item/);
@@ -122,7 +122,7 @@ test('explain on title centers framing/scope language', () => {
       elementType: 'title',
       indexes: ''
     },
-    'explain'
+    'richard'
   );
   assert.match(text, /Lead with what this title communicates/);
   assert.match(text, /framing, scope/);

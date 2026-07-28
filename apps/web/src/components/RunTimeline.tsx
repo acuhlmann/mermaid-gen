@@ -467,7 +467,7 @@ function PhaseSegment({
           runLive={runLive}
           now={now}
           showRawNames={showRawPhaseIds}
-          collapsed={variant !== 'explain' && !isActive && state === 'complete'}
+          collapsed={variant !== 'richard' && !isActive && state === 'complete'}
           planContentType={planContentType}
           previewReuseByBeatIndex={previewReuseByBeatIndex}
         />

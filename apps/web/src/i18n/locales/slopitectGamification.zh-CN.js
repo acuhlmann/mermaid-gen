@@ -66,22 +66,22 @@ export const SLOPITECT_GAMIFICATION_ZH_CN = {
       '如果有人值班负责这块，我想知道是谁。',
       '如果那个框有负责人，我会安心很多。'
     ],
-    explain: [
-      '请试着想象……',
-      '注意那很少有人看到的对称性。',
-      '这里有一个命名模式。一直都有。',
-      '你知道吗：每个图表都是一个关于世界的小理论。',
-      '图表是凝固的论证。',
+    richard: [
+      '好——如果我读得没错……',
+      '我觉得这个形状有个名字。',
+      '抱歉——关于那个框再说一句。',
+      '这是反馈环，不是流水线。我觉得。',
       '在完美的世界里，你不会这样画。',
-      '这是思想的形状，而非思想本身。',
-      '请允许我做个模糊的手势。',
-      '最少困惑的路就是向前走。',
-      '每个框都是伪装成名词的动词。',
-      '没人要的冷知识，来了。',
-      '据说这个有个名字。确实有。',
-      '让我过度解释恰好一个细节……',
-      '理论上很美，实践中很尴尬——我最喜欢这种。',
-      '奇怪但真实：这个形状比软件本身更古老。'
+      '你知道吗：每个图表都是一个关于世界的小理论。',
+      '我开始解释了，该停了。再加一句。',
+      '最少困惑的路就是向前——如果这有帮助。',
+      '没人要的冷知识，来了。抱歉。',
+      '据说这个模式比软件还老。',
+      '我不是在提议改动。我在命名它本来是什么。',
+      '如果这说得通。说得通。我觉得说得通。',
+      '理论上漂亮，实践上别扭——我最爱这种。',
+      '等等——这个标签在干两份活。这很重要。',
+      '据说这个有个名字。确实有。'
     ],
     barker: [
       '我已经越权代劳了。',
@@ -106,7 +106,7 @@ export const SLOPITECT_GAMIFICATION_ZH_CN = {
       erlich: '正在寻找更大胆的形态……',
       russ: '估个逗号价…',
       jared: '仔细读一遍……',
-      explain: '细思图表中……',
+      richard: '正在命名模式……',
       barker: '欣赏故事中……'
     },
     analyze_stream: {
@@ -115,7 +115,7 @@ export const SLOPITECT_GAMIFICATION_ZH_CN = {
       erlich: '正在为转向做主题演讲……',
       russ: '当成主题演讲…',
       jared: '写好这条发现……',
-      explain: '谱写史诗……',
+      richard: '故意过度解释……',
       barker: '为董事会浓缩中……'
     },
     intent: {
@@ -124,7 +124,7 @@ export const SLOPITECT_GAMIFICATION_ZH_CN = {
       erlich: '正在对齐愿景……',
       russ: '直接上三个逗号…',
       jared: '确认我理解对了……',
-      explain: '对齐意图……',
+      richard: '确认我理解对了……',
       barker: '对齐联合三角……'
     },
     agent_run: {
@@ -133,7 +133,7 @@ export const SLOPITECT_GAMIFICATION_ZH_CN = {
       erlich: '正在亲自升华……',
       russ: '正在升级你的主题 🍾',
       jared: '正式提出来……',
-      explain: '注解架构中……',
+      richard: '注解它本来是什么……',
       barker: '越权代劳中……'
     },
     transform: {
@@ -142,7 +142,7 @@ export const SLOPITECT_GAMIFICATION_ZH_CN = {
       erlich: '正在升华布局……',
       russ: '把主题说得更响 🍾',
       jared: '记下流程缺口……',
-      explain: '追溯重塑过程……',
+      richard: '仍不改图——只命名……',
       barker: '温暖地砍掉心头肉……'
     },
     run_started: {
@@ -151,7 +151,7 @@ export const SLOPITECT_GAMIFICATION_ZH_CN = {
       erlich: '我问你一个问题……',
       russ: '好了先停一下 🍾',
       jared: '抱歉——稍等一下……',
-      explain: '清嗓子中……',
+      richard: '好——那么……',
       barker: '不知道你们怎样，反正我很兴奋……'
     },
     planning: {
@@ -160,7 +160,7 @@ export const SLOPITECT_GAMIFICATION_ZH_CN = {
       erlich: '正在起草主题演讲……',
       russ: '用逗号给图表定价…',
       jared: '列出需要负责人的地方……',
-      explain: '起草章节计划……',
+      richard: '起草章节计划……',
       barker: '起草单页报告……'
     },
     syntax_fixer: {
@@ -169,7 +169,7 @@ export const SLOPITECT_GAMIFICATION_ZH_CN = {
       erlich: '正在修复语法，才华横溢……',
       russ: '用龙舌兰钱胶带粘…',
       jared: '在别人看到之前先改好……',
-      explain: '润色粗糙段落……',
+      richard: '润色粗糙段落……',
       barker: '精简幻灯片……'
     },
     syntax_repair: {
@@ -178,7 +178,7 @@ export const SLOPITECT_GAMIFICATION_ZH_CN = {
       erlich: '再次修复语法，依然才华横溢……',
       russ: '更多龙舌兰钱…',
       jared: '再改一次，抱歉……',
-      explain: '修订粗糙草稿……',
+      richard: '修订粗糙草稿……',
       barker: '重新起草幻灯片……'
     },
     style: {
@@ -187,7 +187,7 @@ export const SLOPITECT_GAMIFICATION_ZH_CN = {
       erlich: '正在为主题演讲重塑样式……',
       russ: '配色再响一点。显然 🍾',
       jared: '标出读不通的地方……',
-      explain: '讲述这种色调的历史……',
+      richard: '讲述这种色调的历史……',
       barker: '只用一种品牌色。'
     },
     patch_retry: {
@@ -196,7 +196,7 @@ export const SLOPITECT_GAMIFICATION_ZH_CN = {
       erlich: '等待董事会批准……',
       russ: '请变更委员会喝一轮…',
       jared: '等待中，有点担心……',
-      explain: '再做一轮……',
+      richard: '再做一轮……',
       barker: '请求董事会重新起草……'
     },
     invoke: {
@@ -205,7 +205,7 @@ export const SLOPITECT_GAMIFICATION_ZH_CN = {
       erlich: '正在升华 🕶',
       russ: '大声交货 🍾',
       jared: '按规矩来做……',
-      explain: '叙述草稿……',
+      richard: '在叙述，不在改图……',
       barker: '越权代劳 🧘'
     },
     invoke_fallback: {
@@ -214,7 +214,7 @@ export const SLOPITECT_GAMIFICATION_ZH_CN = {
       erlich: '转向进行中……',
       russ: '我们升级了',
       jared: '退回方案——还是要记下……',
-      explain: '优雅地结束本章……',
+      richard: '在螺旋前停下……',
       barker: '重新规划单页报告……'
     },
     repair_1: {
@@ -223,7 +223,7 @@ export const SLOPITECT_GAMIFICATION_ZH_CN = {
       erlich: '愿景修复进行中……',
       russ: '更多逗号！ 🍾🍾',
       jared: '这次是我的问题。在修……',
-      explain: '倒回羊皮纸……',
+      richard: '倒回羊皮纸……',
       barker: '温暖地推迟时间线 🗓️'
     },
     repair_2: {
@@ -232,7 +232,7 @@ export const SLOPITECT_GAMIFICATION_ZH_CN = {
       erlich: '第二次愿景修复进行中……',
       russ: '三个逗号能量 🍾🍾🍾',
       jared: '还是我的问题。再修……',
-      explain: '修订脚注……',
+      richard: '修订脚注……',
       barker: '为此成立委员会 🗓️🗓️'
     }
   },
@@ -298,10 +298,10 @@ export const SLOPITECT_GAMIFICATION_ZH_CN = {
       title: '📋 总得有人说出来',
       subtitle: '提出10条发现。每一条都有负责人。'
     },
-    explain: {
-      id: 'archivedStoryteller',
-      title: '🧙 典藏讲故事者',
-      subtitle: '已有10次解说被架构传说收录。'
+    richard: {
+      id: 'namedThePattern',
+      title: '🤓 命名了模式',
+      subtitle: '十次洞见已命名。没人让他停。'
     },
     barker: {
       id: 'conjoinedTriangles',
@@ -400,10 +400,10 @@ export const SLOPITECT_GAMIFICATION_ZH_CN = {
       title: '📋 总得有人说出来',
       subtitle: '提出10条发现。每一条都有负责人。'
     },
-    explain: {
-      id: 'archivedStoryteller',
-      title: '🧙 典藏讲故事者',
-      subtitle: '已有10次解说被架构传说收录。'
+    richard: {
+      id: 'namedThePattern',
+      title: '🤓 命名了模式',
+      subtitle: '十次洞见已命名。没人让他停。'
     },
     barker: {
       id: 'conjoinedTriangles',

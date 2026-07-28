@@ -21,7 +21,7 @@ const VARIANT_CLASS = {
   erlich: 'is-erlich',
   russ: 'is-russ',
   jared: 'is-jared',
-  explain: 'is-explain',
+  richard: 'is-richard',
   barker: 'is-barker'
 };
 
@@ -31,7 +31,7 @@ const ACTION_LABEL = {
   erlich: 'Innovate',
   russ: 'Russ',
   jared: 'Critique',
-  explain: 'Explain',
+  richard: 'Explain',
   barker: 'Synergize'
 };
 

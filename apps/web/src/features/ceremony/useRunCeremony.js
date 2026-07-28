@@ -7,7 +7,7 @@ import {
   playConfettiPop,
   playJaredCompletion,
   playErlichCompletion,
-  playExplainCompletion,
+  playRichardCompletion,
   playRussCompletionChime,
   playKonamiRainbow,
   playLevelUpFanfare,
@@ -157,7 +157,7 @@ export function useRunCeremony({
       else if (variant === 'dinesh') tryAgentSound(playDineshCompletion);
       else if (variant === 'erlich') tryAgentSound(playErlichCompletion);
       else if (variant === 'jared') tryAgentSound(playJaredCompletion);
-      else if (variant === 'explain') tryAgentSound(playExplainCompletion);
+      else if (variant === 'richard') tryAgentSound(playRichardCompletion);
       else tryAgentSound(playCompletionChimeTone);
 
       const reduceMotion =
@@ -169,7 +169,7 @@ export function useRunCeremony({
         erlich: ['#ea580c', '#fb923c', '#fed7aa', '#c2410c'],
         russ: ['#f97316', '#ec4899', '#a855f7', '#22d3ee', '#fde047'],
         jared: ['#b91c1c', '#f97316', '#fde68a', '#7c2d12'],
-        explain: ['#0d9488', '#22d3ee', '#ccfbf1', '#0f766e'],
+        richard: ['#0d9488', '#22d3ee', '#ccfbf1', '#0f766e'],
         barker: ['#ca8a04', '#facc15', '#fde68a', '#854d0e'],
         general: ['#58cc02', '#1cb0f6', '#ffc800', '#ff4b4b', '#ce82ff']
       };
@@ -191,7 +191,7 @@ export function useRunCeremony({
         tryAgentSound(playConfettiPop);
       }
 
-      const knownVariants = ['gilfoyle', 'dinesh', 'erlich', 'russ', 'jared', 'explain', 'barker'];
+      const knownVariants = ['gilfoyle', 'dinesh', 'erlich', 'russ', 'jared', 'richard', 'barker'];
       if (knownVariants.includes(variant)) {
         const now = Date.now();
         const inferredRussDepth = variant === 'russ' ? russStreak + 1 : undefined;

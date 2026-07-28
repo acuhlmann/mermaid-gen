@@ -78,10 +78,10 @@ describe('AdvisorSpeechBubble', () => {
     expect(screen.getByTestId('advisor-speech-bubble').getAttribute('data-kind')).toBe('comment');
   });
 
-  it('shows progressive Dumb it Down label for the Wise Architect', () => {
+  it('shows progressive Dumb it Down label for Richard', () => {
     render(
       <AdvisorSpeechBubble
-        persona="explain"
+        persona="richard"
         suggestion="Conway's Law in miniature."
         kind="comment"
         architectDumbLevel={2}
@@ -96,7 +96,7 @@ describe('AdvisorSpeechBubble', () => {
     render(
       <AdvisorSpeechBubble
         {...baseProps}
-        castVariants={['gilfoyle', 'erlich', 'barker', 'jared', 'explain', 'russ']}
+        castVariants={['gilfoyle', 'erlich', 'barker', 'jared', 'richard', 'russ']}
       />
     );
     expect(screen.getByText('Your Team')).toBeTruthy();

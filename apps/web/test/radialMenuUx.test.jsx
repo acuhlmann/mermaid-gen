@@ -30,7 +30,7 @@ const OTHER_DESCRIPTOR = {
 
 const MOCK_ACTIONS = [
   { id: 'gilfoyle', label: 'Refine', icon: 'R', variant: 'gilfoyle', persona: 'THE Engineer' },
-  { id: 'explain', label: 'Explain', icon: 'i', variant: 'explain', persona: 'The Wise Architect' }
+  { id: 'richard', label: 'Explain', icon: 'i', variant: 'richard', persona: 'Richard Hendricks' }
 ];
 
 /** Mirrors App.jsx radial menu open/close rules without the full shell. */

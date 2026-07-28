@@ -8,7 +8,7 @@ import {
 test('buildAnalyzeFocusInstructions centers explain on selected node', () => {
   const text = buildAnalyzeFocusInstructions(
     { id: 'flowchart-v2-Mars-0', label: 'Mars', selectionKind: 'node' },
-    'explain'
+    'richard'
   );
   assert.match(text, /Selection focus \(node\)/);
   assert.match(text, /Mars/);
@@ -39,7 +39,7 @@ test('buildAnalyzeFocusInstructions includes clicked label fragment when distinc
       selectionKind: 'node',
       clickedLabel: 'Beta'
     },
-    'explain'
+    'richard'
   );
   assert.match(text, /label fragment/);
   assert.match(text, /Beta/);

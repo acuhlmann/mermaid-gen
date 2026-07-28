@@ -49,12 +49,12 @@ export const SLOPITECT_EN_AU = {
       entryLine: 'Sorry — I just wanted to flag one thing.',
       exitLine: 'Raised. Someone should own it 📋'
     },
-    explain: {
-      name: 'The Wise Architect',
-      title: 'Principal Tech Evangelist',
-      tagline: 'Co-Design story time — gather round, mates.',
-      entryLine: 'Picture, if you will…',
-      exitLine: 'Architecture explained 📜'
+    richard: {
+      name: 'Richard Hendricks',
+      title: 'Founder — Pattern Namer',
+      tagline: 'I think this shape has a name…',
+      entryLine: 'Okay — so if I’m reading this right…',
+      exitLine: 'Named it. Sorry if that was a lot 🤓'
     },
     barker: {
       name: 'Jack Barker',
@@ -70,7 +70,7 @@ export const SLOPITECT_EN_AU = {
     erlich: 'Slopitect: Erlich Bachman pitches the bold move',
     russ: 'Slopitect: Russ Hanneman escalates it',
     jared: 'Slopitect: Jared Dunn raises one finding',
-    explain: 'Slopitect: Co-Design story time',
+    richard: 'Slopitect: Richard is naming the pattern',
     barker: 'Slopitect: Success Theater mode',
     fix: 'Slopitect: site foreman fixing the slop'
   },
@@ -80,14 +80,14 @@ export const SLOPITECT_EN_AU = {
     erlich: 'Erlich Bachman is graciously elevating…',
     russ: 'Tres commas just walked in…',
     jared: 'Jared has one thing to flag…',
-    explain: 'Co-Design story time — gather round',
+    richard: 'Richard is about to over-explain…',
     barker: 'Jack Barker is taking the liberty…'
   },
   ACTION_PERSONA_SHORT_NAMES: {
     gilfoyle: 'Gilfoyle',
     dinesh: 'Dinesh',
     erlich: 'Erlich',
-    explain: 'Architect'
+    richard: 'Richard'
   },
   ...SLOPITECT_GAMIFICATION_EN_AU
 };

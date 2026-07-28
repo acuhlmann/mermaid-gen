@@ -9,7 +9,7 @@ test('returns empty string when selection kind is not chart-mark', () => {
   assert.equal(buildChartFocusScopeInstructions(null), '');
   assert.equal(buildChartFocusScopeInstructions({ id: 'x' }), '');
   assert.equal(buildChartFocusScopeInstructions({ id: 'x', selectionKind: 'node' }), '');
-  assert.equal(buildChartAnalyzeFocusInstructions(null, 'explain'), '');
+  assert.equal(buildChartAnalyzeFocusInstructions(null, 'richard'), '');
 });
 
 test('mark selection cites datum index and visible label', () => {
@@ -48,7 +48,7 @@ test('analyze explain mode leads with the selected mark', () => {
       markType: 'bar',
       indexes: '0'
     },
-    'explain'
+    'richard'
   );
   assert.match(text, /Selection focus/);
   assert.match(text, /## Explanation/);

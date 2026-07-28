@@ -37,11 +37,11 @@ test('parseAdvisorReply preserves explicit comment kind', () => {
 });
 
 test('parseAdvisorReply coerces explain persona to comment regardless of model output', () => {
-  // Even when the model leaks an actionable-looking suggestion, the Wise Architect
+  // Even when the model leaks an actionable-looking suggestion, Richard
   // must never surface a Do-it button.
   const reply = parseAdvisorReply(
     '{"suggestion": "Rename Auth → Auth Gate.", "kind": "suggestion"}',
-    { persona: 'explain' }
+    { persona: 'richard' }
   );
   assert.equal(reply.kind, 'comment');
 });
@@ -49,7 +49,7 @@ test('parseAdvisorReply coerces explain persona to comment regardless of model o
 test('parseAdvisorReply salvages plain-text explain replies when JSON envelope is missing', () => {
   const reply = parseAdvisorReply(
     'Picture, if you will, a saga shape from Order to Payment — choreography, not orchestration.',
-    { persona: 'explain' }
+    { persona: 'richard' }
   );
   assert.ok(reply);
   assert.equal(reply.kind, 'comment');
@@ -85,7 +85,7 @@ test('parseAdvisorReply tolerates malformed json and missing suggestion', () => 
 // field to "comment" and every reply died in parseAdvisorReply's `!suggestion` branch,
 // so the seat silently never spoke. Each comment-capable card must re-anchor the field.
 test('comment-capable personas keep the text in the "suggestion" field', () => {
-  for (const persona of ['explain', 'dinesh', 'erlich']) {
+  for (const persona of ['richard', 'dinesh', 'erlich']) {
     const prompt = buildAdvisorSystemPrompt(persona, 'mermaid');
     assert.match(
       prompt,
@@ -117,18 +117,19 @@ test('the engineer advisor cards reach for opposite kinds of addition', () => {
   }
 });
 
-test('buildAdvisorSystemPrompt swaps to explainer voice for explain dumb-down', () => {
-  const architectDumb = buildAdvisorSystemPrompt('explain', 'mermaid', {
+test('buildAdvisorSystemPrompt swaps to explainer voice for richard dumb-down', () => {
+  const architectDumb = buildAdvisorSystemPrompt('richard', 'mermaid', {
     mode: 'dumb',
     simpleLevel: 1
   });
   assert.match(architectDumb, /grown-up who wants zero jargon/);
   assert.match(architectDumb, /DUMB-DOWN TASK/);
-  assert.doesNotMatch(architectDumb, /Principal Tech Evangelist/);
-  assert.doesNotMatch(architectDumb, /named pattern, analogy, principle/);
+  assert.doesNotMatch(architectDumb, /Richard Hendricks from HBO's Silicon Valley/);
+  assert.doesNotMatch(architectDumb, /named pattern, principle, or over-specific insight/);
 
-  const architectNormal = buildAdvisorSystemPrompt('explain', 'mermaid');
-  assert.match(architectNormal, /Principal Tech Evangelist/);
+  const architectNormal = buildAdvisorSystemPrompt('richard', 'mermaid');
+  assert.match(architectNormal, /Richard Hendricks from HBO's Silicon Valley/);
+  assert.match(architectNormal, /ALWAYS emit kind: "comment"/);
   assert.doesNotMatch(architectNormal, /DUMB-DOWN TASK/);
 
   const barkerDumb = buildAdvisorSystemPrompt('barker', 'mermaid', { mode: 'dumb' });
@@ -136,11 +137,11 @@ test('buildAdvisorSystemPrompt swaps to explainer voice for explain dumb-down', 
 });
 
 test('buildAdvisorSystemPrompt dumb-down reaches toddler and babble ladder', () => {
-  const toddler = buildAdvisorSystemPrompt('explain', 'mermaid', { mode: 'dumb', simpleLevel: 6 });
+  const toddler = buildAdvisorSystemPrompt('richard', 'mermaid', { mode: 'dumb', simpleLevel: 6 });
   assert.match(toddler, /toddler/i);
   assert.match(toddler, /Max 12 words/);
 
-  const babble = buildAdvisorSystemPrompt('explain', 'mermaid', {
+  const babble = buildAdvisorSystemPrompt('richard', 'mermaid', {
     mode: 'dumb',
     style: 'gibberish'
   });

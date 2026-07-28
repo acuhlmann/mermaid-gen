@@ -8,7 +8,7 @@ const VARIANT_CLASS = {
   erlich: 'is-erlich',
   russ: 'is-russ',
   jared: 'is-jared',
-  explain: 'is-explain'
+  richard: 'is-richard'
 };
 
 const QUOTE_ROTATION_MS = 3200;

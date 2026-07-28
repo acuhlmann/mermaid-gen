@@ -157,13 +157,13 @@ export function buildRadialActions({
       disabled: !canFixFromCritique
     },
     {
-      id: 'explain',
-      label: a.explain,
-      icon: <ActionPersonaIcon variant="explain" />,
-      variant: 'explain',
-      persona: actionPersonaName('explain'),
-      personaEmoji: actionPersonaEmoji('explain'),
-      personaTitle: actionPersonaTitle('explain')
+      id: 'richard',
+      label: a.richard,
+      icon: <ActionPersonaIcon variant="richard" />,
+      variant: 'richard',
+      persona: actionPersonaName('richard'),
+      personaEmoji: actionPersonaEmoji('richard'),
+      personaTitle: actionPersonaTitle('richard')
     }
   ];
 }

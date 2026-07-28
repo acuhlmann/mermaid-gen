@@ -45,7 +45,7 @@ advisor seat) and `SENIOR_STAKEHOLDERS` (his tier), and `ciso` in `OFFICE_COLLEA
 
 | Tier       | Who                                                                   | How they reach you                                                                                                                                                                                   |
 | ---------- | --------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **team**   | gilfoyle, dinesh, erlich, russ, jared, explain (+ `barker` dual-home) | Proactive roundtable (`ADVISOR_ORDER`) + agent actions. Full-weight peers; Barker at **throttled** pick weight (`ADVISOR_PICK_WEIGHTS.barker` = 0.5) — ≈8% of a long rotation against ≈15% per peer. |
+| **team**   | gilfoyle, dinesh, erlich, russ, jared, richard (+ `barker` dual-home) | Proactive roundtable (`ADVISOR_ORDER`) + agent actions. Full-weight peers; Barker at **throttled** pick weight (`ADVISOR_PICK_WEIGHTS.barker` = 0.5) — ≈8% of a long rotation against ≈15% per peer. |
 | **senior** | barker (Jack), ciso (Sasha), cto (Marcus → Belson), cfo (Diane)       | Steering meetings + ≤1 high-stakes email/session. Never ambient walk-bys/IMs. Belson (when shipped) scarcer than Barker — never roundtable; Jack reports to him.                                     |
 | **office** | intern, scrumMaster, helpdesk, facilities, hr, greybeard              | Emails, IMs, walk-bys, coffee, battles. The floor around you.                                                                                                                                        |
 
@@ -79,7 +79,7 @@ leadership pinging your desk.
 > roundtable). Status: **local experiment** — before public deploy, decide real names vs
 > legally-distinct aliases. Locked roster: Erlich → `erlich` (shipped), Gilfoyle → `gilfoyle` (shipped),
 > Dinesh → new seventh engineer seat (`dinesh`, gilfoyle-class, core team + battle dual-home),
-> Jared → `jared` (shipped), Russ → `russ` (shipped, ex-`goMad`), Richard → `richard` (comment-only), Belson replaces Marcus.
+> Jared → `jared` (shipped), Russ → `russ` (shipped, ex-`goMad`), Richard → `richard` (shipped, ex-`explain`, comment-only), Belson replaces Marcus.
 > Single source of truth for remaining sessions:
 > [docs/recipes/replicate-tv-character.md](recipes/replicate-tv-character.md).
 
@@ -149,6 +149,17 @@ leadership pinging your desk.
 > Silence as rare war story, mocks empty synergy-speak; innuendo not profanity. Cards live in
 > `STAKEHOLDER_MEETING_VOICES.russ` and `ADVISOR_PERSONAS.russ`; harness profile:
 > `node scripts/barker-fidelity.mjs russ`. Full-weight roundtable peer.
+
+> **Richard inherits the Explain seat (Session 7, 2026-07-28).** The seventh named replication and
+> another **analyze-path** inheritance: **Richard Hendricks** took over the retired generic
+> `explain` id — `DiagramAnalyzeSchema.kind`, advisor comment-only kind, radial Explain action
+> (label kept as the generic verb), hotkey `E`, mascot row, floor desk, TTS/narration, XP variant,
+> dumb-down ladder. The seat contract travelled unchanged (comment-only; never mutates the canvas;
+> ADR-0010; temp 0.75) and only the voice was re-skinned: anxious pattern-naming, hedge-then-precision,
+> over-explain catch. Cards live in `STAKEHOLDER_MEETING_VOICES.richard` and
+> `ADVISOR_PERSONAS.richard`; harness profile: `node scripts/barker-fidelity.mjs richard`.
+> Full-weight roundtable peer. The Explain _feature_ (structured sections, dumb-down, label "?")
+> keeps its product name — only the persona seat id moved.
 
 ### Shipped colleagues (v1)
 

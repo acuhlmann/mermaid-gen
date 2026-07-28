@@ -39,7 +39,7 @@ function buildEnglishBundle() {
         gilfoyle: 'Gilfoyle',
         dinesh: 'Dinesh',
         erlich: 'Erlich',
-        explain: 'Architect'
+        richard: 'Richard'
       },
       ...SLOPITECT_GAMIFICATION_EN
     },

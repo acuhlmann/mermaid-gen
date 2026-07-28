@@ -111,7 +111,7 @@ describe('normalizeMeetingRoster', () => {
       'helpdesk',
       'gilfoyle',
       'jared',
-      'explain',
+      'richard',
       'barker'
     ]);
     expect(many[0]).toBe('scrumMaster');

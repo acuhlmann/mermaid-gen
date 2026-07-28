@@ -17,7 +17,7 @@ export function buildMetaphorFocusScopeInstructions(focusNode) {
 export function buildMetaphorAnalyzeFocusInstructions(focusNode, kind) {
   if (!focusNode?.id || focusNode.selectionKind !== 'metaphor-item') return '';
   const label = focusNode.label ? ` (“${focusNode.label}”)` : '';
-  if (kind === 'explain') {
+  if (kind === 'richard') {
     return `\n\nSelection focus: The user selected metaphor item \`${focusNode.id}\`${label}. Lead with what this item communicates in the spatial story — its relative magnitude, position, and label. Tie the rest of the scene back to this item as supporting context.`;
   }
   return `\n\nSelection focus: The user selected metaphor item \`${focusNode.id}\`${label}. Prioritize whether this item earns its magnitude/position, whether the label is clear, and whether it should stay, merge, or be replaced. Address the whole scene only after covering this item.`;

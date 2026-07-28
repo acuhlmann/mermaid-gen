@@ -79,7 +79,7 @@ describe('ui locale bundles', () => {
         'erlich',
         'russ',
         'jared',
-        'explain',
+        'richard',
         'barker'
       ]) {
         expect(localized[variant].id).toBe(en[variant].id);
@@ -99,7 +99,7 @@ describe('ui locale bundles', () => {
         'erlich',
         'russ',
         'jared',
-        'explain',
+        'richard',
         'barker'
       ];
       const mutationPhases = [

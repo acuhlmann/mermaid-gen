@@ -1011,7 +1011,7 @@
   background: rgba(185, 28, 28, 0.08);
 }
 
-.insights-pane-live-meta.is-variant-explain .insights-pane-live-chip.is-action {
+.insights-pane-live-meta.is-variant-richard .insights-pane-live-chip.is-action {
   color: #0f766e;
   border-color: rgba(13, 148, 136, 0.28);
   background: rgba(13, 148, 136, 0.1);
@@ -1267,19 +1267,19 @@
    the keyframe from t=0, which read as a flicker. Keep the running duration
    stable through the whole run. */
 
-.insights-entry[data-variant='explain'] {
+.insights-entry[data-variant='richard'] {
   border-left: 3px solid rgba(13, 148, 136, 0.42);
   background: linear-gradient(145deg, rgba(240, 253, 250, 0.65), rgba(255, 255, 255, 0.88));
 }
 
-.insights-entry[data-variant='explain'].is-running {
+.insights-entry[data-variant='richard'].is-running {
   border-color: rgba(13, 148, 136, 0.38);
   box-shadow:
     0 8px 24px rgba(15, 23, 42, 0.08),
     0 0 0 1px rgba(13, 148, 136, 0.1);
 }
 
-.insights-entry[data-variant='explain'].is-running::before {
+.insights-entry[data-variant='richard'].is-running::before {
   background: linear-gradient(
     105deg,
     transparent 0%,
@@ -2793,7 +2793,7 @@
   text-transform: uppercase;
 }
 
-.insights-section.is-explain-content-lane {
+.insights-section.is-richard-content-lane {
   padding: 0.15rem 0 0;
 }
 
@@ -2804,7 +2804,7 @@
   padding: 0.15rem 0 0;
 }
 
-.insights-section-title-explain {
+.insights-section-title-richard {
   display: flex;
   align-items: center;
   gap: 0.42rem;
@@ -2815,7 +2815,7 @@
   color: rgba(15, 118, 110, 0.92);
 }
 
-.insights-section-title-explain-icon {
+.insights-section-title-richard-icon {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2826,7 +2826,7 @@
   color: rgba(13, 116, 106, 0.95);
 }
 
-.insights-section-title-explain-icon .insights-svg-icon {
+.insights-section-title-richard-icon .insights-svg-icon {
   width: 15px;
   height: 15px;
 }
@@ -3311,7 +3311,7 @@
   line-height: 1.58;
 }
 
-.insights-entry-rich-text.is-explain-prose .insights-content-bullet .insights-bullet-icon {
+.insights-entry-rich-text.is-richard-prose .insights-content-bullet .insights-bullet-icon {
   border-radius: 2px;
   background: linear-gradient(145deg, rgba(45, 212, 191, 0.55), rgba(13, 148, 136, 0.45));
 }
@@ -3936,8 +3936,8 @@
   white-space: nowrap;
 }
 
-.insights-entry-rich-text.is-explain-prose.is-gibberish,
-.insights-entry-rich-text.is-explain-prose.is-gibberish .insights-explain-section-body {
+.insights-entry-rich-text.is-richard-prose.is-gibberish,
+.insights-entry-rich-text.is-richard-prose.is-gibberish .insights-explain-section-body {
   font-family: 'Comic Sans MS', 'Chalkboard SE', 'Segoe UI', sans-serif;
   letter-spacing: 0.02em;
 }
@@ -5800,7 +5800,7 @@
     -webkit-overflow-scrolling: touch;
   }
 
-  .prompt-actions--mobile .advisor-speech-bubble.is-explain {
+  .prompt-actions--mobile .advisor-speech-bubble.is-richard {
     max-height: min(
       28rem,
       var(
@@ -7444,8 +7444,8 @@
   --slop-action-glow: rgba(185, 28, 28, 0.32);
 }
 
-.slop-action-button.is-explain,
-.radial-action-button.is-explain {
+.slop-action-button.is-richard,
+.radial-action-button.is-richard {
   --slop-action-accent: #0d9488;
   --slop-action-accent-2: #22d3ee;
   --slop-action-glow: rgba(13, 148, 136, 0.3);
@@ -10631,13 +10631,13 @@ button {
     animation: slopitect-clipboard-drop 460ms ease-out forwards;
   }
 
-  .boot-sequence-overlay.is-explain .boot-sequence-flash {
+  .boot-sequence-overlay.is-richard .boot-sequence-flash {
     background:
       linear-gradient(180deg, rgba(13, 148, 136, 0) 60%, rgba(13, 148, 136, 0.3) 100%),
       radial-gradient(circle at 50% 50%, rgba(250, 240, 200, 0.4), rgba(250, 240, 200, 0) 70%);
     animation: slopitect-scroll-unfurl 480ms ease-out forwards;
   }
-  .boot-sequence-overlay.is-explain .boot-sequence-headline {
+  .boot-sequence-overlay.is-richard .boot-sequence-headline {
     color: #ccfbf1;
     text-shadow: 0 0 18px rgba(13, 148, 136, 0.6);
     animation: slopitect-boot-headline 480ms ease-out forwards;
@@ -10848,7 +10848,7 @@ button {
 .insights-pane.is-variant-jared {
   border-left-color: rgba(185, 28, 28, 0.35);
 }
-.insights-pane.is-variant-explain {
+.insights-pane.is-variant-richard {
   border-left-color: rgba(13, 148, 136, 0.35);
 }
 .insights-pane.is-variant-dinesh {
@@ -10938,7 +10938,7 @@ button {
   border-left-color: #b91c1c;
   background: linear-gradient(90deg, rgba(185, 28, 28, 0.1), rgba(255, 251, 240, 0.9));
 }
-.insights-entry-persona.is-variant-explain {
+.insights-entry-persona.is-variant-richard {
   border-left-color: #0d9488;
   background: linear-gradient(90deg, rgba(13, 148, 136, 0.1), rgba(255, 255, 255, 0.82));
 }
@@ -11073,7 +11073,7 @@ button {
   background: rgba(185, 28, 28, 0.08);
   border-color: rgba(185, 28, 28, 0.2);
 }
-.slopitect-status-board.is-variant-explain {
+.slopitect-status-board.is-variant-richard {
   color: #0d9488;
   background: rgba(13, 148, 136, 0.08);
   border-color: rgba(13, 148, 136, 0.22);
@@ -11150,7 +11150,7 @@ button {
   background: linear-gradient(90deg, #b91c1c, #f97316);
   box-shadow: 0 6px 18px rgba(185, 28, 28, 0.32);
 }
-.streak-hud-toast.is-variant-explain {
+.streak-hud-toast.is-variant-richard {
   background: linear-gradient(90deg, #0d9488, #22d3ee);
 }
 .streak-hud-toast.is-combo {
@@ -11462,7 +11462,7 @@ button {
     box-shadow: inset 8px 0 0 rgba(185, 28, 28, 0.18);
     contain: strict;
   }
-  .app-shell[data-streaming='true'][data-live-variant='explain']::after {
+  .app-shell[data-streaming='true'][data-live-variant='richard']::after {
     content: '';
     position: fixed;
     inset: 0;
@@ -11615,7 +11615,7 @@ button {
 .xp-progress-bar.is-variant-jared .xp-progress-bar-fill {
   background: linear-gradient(90deg, #b91c1c, #f97316);
 }
-.xp-progress-bar.is-variant-explain .xp-progress-bar-fill {
+.xp-progress-bar.is-variant-richard .xp-progress-bar-fill {
   background: linear-gradient(90deg, #0d9488, #22d3ee);
 }
 
@@ -12229,7 +12229,7 @@ button {
 .levelup-info-variant.is-jared {
   background: linear-gradient(135deg, rgba(255, 247, 237, 0.82), rgba(255, 255, 255, 0.8));
 }
-.levelup-info-variant.is-explain {
+.levelup-info-variant.is-richard {
   background: linear-gradient(135deg, rgba(204, 251, 241, 0.72), rgba(255, 255, 255, 0.85));
 }
 
@@ -12496,7 +12496,7 @@ button {
 .streak-hud-toast.is-xp.is-variant-jared {
   background: linear-gradient(135deg, #b91c1c, #f97316);
 }
-.streak-hud-toast.is-xp.is-variant-explain {
+.streak-hud-toast.is-xp.is-variant-richard {
   background: linear-gradient(135deg, #0d9488, #22d3ee);
 }
 
@@ -12666,7 +12666,7 @@ button {
   border: 1px solid rgba(185, 28, 28, 0.22);
   box-shadow: inset 4px 0 0 rgba(185, 28, 28, 0.35);
 }
-.diagram-run-fx.is-explain {
+.diagram-run-fx.is-richard {
   border: 1px solid rgba(13, 148, 136, 0.18);
 }
 
@@ -12862,7 +12862,7 @@ button {
   .diagram-run-fx.is-jared .diagram-run-fx-stamp {
     animation: slopitect-stamp-pulse 2.2s ease-in-out infinite;
   }
-  .diagram-run-fx.is-explain .diagram-run-fx-pin {
+  .diagram-run-fx.is-richard .diagram-run-fx-pin {
     animation: slopitect-pin-drift 6s ease-in-out infinite;
   }
   .diagram-run-fx.is-russ.is-intensity-high .diagram-run-fx-glitch-layer {
@@ -13114,11 +13114,11 @@ button {
   filter: drop-shadow(0 0 10px rgba(185, 28, 28, 0.7));
 }
 
-.diagram-output[data-run-variant='explain'] .is-diagram-selected > rect,
-.diagram-output[data-run-variant='explain'] .is-diagram-selected > path,
-.diagram-output[data-run-variant='explain'] .is-diagram-selected > polygon,
-.diagram-output[data-run-variant='explain'] .is-diagram-selected > circle,
-.diagram-output[data-run-variant='explain'] .is-diagram-selected > ellipse {
+.diagram-output[data-run-variant='richard'] .is-diagram-selected > rect,
+.diagram-output[data-run-variant='richard'] .is-diagram-selected > path,
+.diagram-output[data-run-variant='richard'] .is-diagram-selected > polygon,
+.diagram-output[data-run-variant='richard'] .is-diagram-selected > circle,
+.diagram-output[data-run-variant='richard'] .is-diagram-selected > ellipse {
   stroke: #14b8a6 !important;
   stroke-width: 3.6px !important;
   filter: drop-shadow(0 0 14px rgba(20, 184, 166, 0.75));
@@ -13135,7 +13135,7 @@ button {
     transform-box: fill-box;
     transform-origin: center;
   }
-  .diagram-output[data-run-variant='explain'] .is-diagram-selected {
+  .diagram-output[data-run-variant='richard'] .is-diagram-selected {
     animation: slopitect-node-halo 1.4s ease-in-out infinite;
     transform-box: fill-box;
     transform-origin: center;
@@ -13299,10 +13299,10 @@ button {
   border-color: rgba(185, 28, 28, 0.55);
   background: linear-gradient(135deg, rgba(185, 28, 28, 0.22), rgba(154, 116, 30, 0.06));
 }
-.slopitect-companion.is-explain {
+.slopitect-companion.is-richard {
   border-color: rgba(20, 184, 166, 0.55);
 }
-.slopitect-companion.is-explain .slopitect-companion-avatar {
+.slopitect-companion.is-richard .slopitect-companion-avatar {
   border-color: rgba(20, 184, 166, 0.55);
   background: linear-gradient(135deg, rgba(20, 184, 166, 0.22), rgba(13, 148, 136, 0.06));
 }
@@ -13333,7 +13333,7 @@ button {
   .slopitect-companion.is-jared.is-active .slopitect-companion-avatar {
     animation: slopitect-avatar-nod 1.6s ease-in-out infinite;
   }
-  .slopitect-companion.is-explain.is-active .slopitect-companion-avatar {
+  .slopitect-companion.is-richard.is-active .slopitect-companion-avatar {
     animation: slopitect-avatar-float 3.8s ease-in-out infinite;
   }
   .slopitect-companion-bubble {
@@ -13517,7 +13517,7 @@ button {
 .live-run-hud.is-jared {
   border-color: rgba(185, 28, 28, 0.55);
 }
-.live-run-hud.is-explain {
+.live-run-hud.is-richard {
   border-color: rgba(20, 184, 166, 0.55);
 }
 
@@ -13610,7 +13610,7 @@ button {
   background: #b91c1c;
   clip-path: polygon(0 100%, 50% 0, 100% 100%);
 }
-.insights-stream-caret.is-explain-caret {
+.insights-stream-caret.is-richard-caret {
   width: 0.55em;
   height: 1.15em;
   background: #14b8a6;
@@ -13632,7 +13632,7 @@ button {
       insights-caret-blink 0.7s steps(2, end) infinite,
       slopitect-caret-jared-wobble 1.2s ease-in-out infinite;
   }
-  .insights-stream-caret.is-explain-caret {
+  .insights-stream-caret.is-richard-caret {
     animation: insights-caret-blink 0.6s steps(2, end) infinite;
   }
 }
@@ -13717,7 +13717,7 @@ button {
     animation: slopitect-boot-shades 520ms ease-out forwards;
     animation-delay: 60ms;
   }
-  .boot-sequence-overlay.is-explain .boot-scroll {
+  .boot-sequence-overlay.is-richard .boot-scroll {
     animation: slopitect-boot-scroll 580ms ease-out forwards;
     animation-delay: 80ms;
   }
@@ -15080,7 +15080,7 @@ body.slopitect-rainbow-tint::before {
   max-height: min(28rem, var(--advisor-float-max-h, 24rem));
 }
 
-.advisor-float-portal .advisor-speech-bubble.is-explain {
+.advisor-float-portal .advisor-speech-bubble.is-richard {
   max-height: min(32rem, var(--advisor-float-max-h, 28rem));
 }
 
@@ -15775,17 +15775,17 @@ body.slopitect-rainbow-tint::before {
   box-shadow: 4px 4px 8px rgba(15, 23, 42, 0.08);
 }
 
-.advisor-speech-bubble.is-explain .advisor-speech-footer {
+.advisor-speech-bubble.is-richard .advisor-speech-footer {
   flex-wrap: wrap;
   align-items: flex-start;
 }
 
-.advisor-speech-bubble.is-explain .advisor-speech-actions {
+.advisor-speech-bubble.is-richard .advisor-speech-actions {
   flex-wrap: wrap;
   max-width: 100%;
 }
 
-.advisor-speech-bubble.is-explain {
+.advisor-speech-bubble.is-richard {
   max-height: min(
     28rem,
     var(
@@ -15798,7 +15798,7 @@ body.slopitect-rainbow-tint::before {
   );
 }
 
-.advisor-speech-bubble.is-explain .advisor-speech-main {
+.advisor-speech-bubble.is-richard .advisor-speech-main {
   min-height: 0;
   width: 100%;
   max-width: min(32rem, calc(100vw - 2rem));
@@ -16169,7 +16169,7 @@ body.slopitect-rainbow-tint::before {
 }
 
 /* Wise Architect auxiliary actions — ghosty pills tinted with the teal accent.
-   These appear only for persona='explain' (architect never gets the primary Do-it). */
+   These appear only for persona='richard' (architect never gets the primary Do-it). */
 .advisor-speech-btn--dumb,
 .advisor-speech-btn--drill {
   padding: 0.28rem 0.62rem;

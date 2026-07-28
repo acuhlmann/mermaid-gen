@@ -153,7 +153,7 @@ export function useAdvisorShell({
       onDrillDeeper: () => {
         const suggestion = advisor.suggestion;
         advisor.dismiss();
-        void runAnalyze('explain', {
+        void runAnalyze('richard', {
           advisorPrompt: suggestion ?? '',
           advisorFocusDescriptor
         });

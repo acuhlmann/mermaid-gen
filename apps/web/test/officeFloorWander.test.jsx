@@ -71,7 +71,7 @@ describe('who wanders is an answer the room gives', () => {
       'dinesh',
       'erlich',
       'jared',
-      'explain',
+      'richard',
       'russ',
       'helpdesk',
       'scrumMaster',
