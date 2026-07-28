@@ -30,14 +30,47 @@ function office() {
   return activeOfficeBundle;
 }
 
+/**
+ * Day One orientation roster (FloorArrival + OfficeDirectory): Your Team minus
+ * Gilfoyle and Russ, plus Linda from People Ops. Office floor cast stays ambient
+ * but does not walk the intro. Keep ADR-0011 parity — both renderers share this.
+ */
+export const DAY_ONE_INTRO_IDS = Object.freeze([
+  'dinesh',
+  'erlich',
+  'jared',
+  'richard',
+  'barker',
+  'hr'
+]);
+
+/**
+ * Orientation self-intros for team advisors (radial entryLine/exitLine are
+ * different beats). officeSenderInfo merges these so FloorArrival /
+ * OfficeDirectory colleagueVoiceLine keep working.
+ */
+export const TEAM_INTRO_LINES = Object.freeze({
+  dinesh:
+    "Dinesh. Engineer. I'm the one who actually catches what everyone else missed — including Gilfoyle, who still has not thanked me. Your diagram looks unfinished. I already know which box. You're welcome in advance.",
+  erlich:
+    "Erlich Bachman. Founder. Incubator. Vision. Let me ask you this: is this diagram courageous, or is it merely… present? I can elevate it. You're welcome. Aviato energy, but quieter, for HR.",
+  jared:
+    "Hi — Jared. I just wanted to flag that onboarding is already a finding, and if it's alright, someone should own the handoff before we move on. I'm sorry. Also I'm glad you're here. Mostly the finding.",
+  richard:
+    "Okay — so if I'm reading this right, I'm Richard. I name patterns. I think this office has a shape. Sorry — that was a lot. I just… I care that the model is right.",
+  barker:
+    "I don't know about you, but I am excited. Jack Barker — CEO. I've taken the liberty of simplifying this introduction for the board. Great energy. We're a family here."
+});
+
 export const OFFICE_COLLEAGUES = {
   intern: {
     id: 'intern',
     name: 'Chad',
     title: 'The Intern (Unpaid, Strategic)',
-    blurb: 'Replies-all. Equity in vibes. Accidentally asks the only good question in the room.',
+    blurb:
+      'Reply-alls the apology for the reply-all. Equity in vibes. Accidentally asks the only good question.',
     introLine:
-      "Hey!! I'm Chad — unpaid, strategic, and statistically likely to reply-all about the stapler. Quick question about your diagram that might accidentally be the smartest thing anyone says today. Also: where is the stapler.",
+      "Hey!! I'm Chad — unpaid, strategic, and statistically likely to reply-all about the stapler, then reply-all apologizing for the reply-all. Quick question about your diagram that might accidentally be the smartest thing anyone says today. Also: where is the stapler. Asking for my onboarding doc / also my soul.",
     avatarEmoji: '🧃',
     accentColor: '#65a30d',
     emailFrom: 'chad.intern@archislop.corp',
@@ -49,9 +82,9 @@ export const OFFICE_COLLEAGUES = {
     name: 'Pam',
     title: 'Agile Coach — CSM, CSPO, SAFe 6.0',
     blurb:
-      'Everything is a ceremony. Will time-box your lunch. Facilitates your existential dread.',
+      'Everything is a ceremony. Will time-box your lunch. Facilitates your existential dread with great energy.',
     introLine:
-      "Hi! I'm Pam — CSM, CSPO, SAFe 6.0, and emotionally fluent in parking lots. This introduction is time-boxed for forty-five seconds of synergy. Great energy. Let's circle back.",
+      "Hi!! I'm Pam — CSM, CSPO, SAFe 6.0, and emotionally fluent in parking lots. This introduction is time-boxed for forty-five seconds of synergy. Amazing energy already. Love that for us. Let's circle back — and thank you so much for being here!!",
     avatarEmoji: '📅',
     accentColor: '#0ea5e9',
     emailFrom: 'pam.agile@archislop.corp',
@@ -101,9 +134,10 @@ export const OFFICE_COLLEAGUES = {
     id: 'greybeard',
     name: 'Ulrich',
     title: 'Staff Engineer Emeritus',
-    blurb: '“We tried that in 2009.” Maintains the mainframe. The mainframe maintains him.',
+    blurb:
+      '“We tried that in 2009.” Maintains the mainframe. The mainframe maintains him. Darker punchlines, same calm.',
     introLine:
-      'Ulrich. Staff Engineer Emeritus. We tried that in 2009. It ran on cron and fear. I maintain the mainframe nobody admits exists. The mainframe asked about you. I told it you were diagramming.',
+      'Ulrich. Staff Engineer Emeritus. We tried that in 2009. It ran on cron and fear. Took prod down for a week. Still running. I maintain the mainframe nobody admits exists. The mainframe asked about you. I told it you were diagramming. It sighed.',
     avatarEmoji: '🧓',
     accentColor: '#57534e',
     emailFrom: 'ulrich@mainframe.archislop.corp',
@@ -146,7 +180,7 @@ export const SENIOR_STAKEHOLDERS = {
     name: 'Gavin Belson',
     title: 'CTO — Makes the World a Better Place',
     blurb:
-      'Soft-spoken vision. Jack reports upstairs. Has not opened an IDE since the keynote demo.',
+      'Messianic vision with a temper. Jack reports upstairs. Has not opened an IDE since the keynote demo.',
     avatarEmoji: '🌐',
     accentColor: '#9f1239'
   },
@@ -172,12 +206,15 @@ export const SENIOR_STAKEHOLDERS = {
 function stakeholderSenderInfo(id) {
   const persona = getVariantPersona(id);
   const accent = persona?.accentColorVar ?? '--accent';
+  const localizedLine = office()?.TEAM_INTRO_LINES?.[id];
+  const introLine = localizedLine ?? TEAM_INTRO_LINES[id] ?? null;
   return {
     id,
     name: persona?.name ?? 'A Colleague',
     title: persona?.title ?? '',
     avatarEmoji: persona?.avatarEmoji ?? '👤',
-    accentColor: accent.startsWith('--') ? `var(${accent})` : accent
+    accentColor: accent.startsWith('--') ? `var(${accent})` : accent,
+    ...(introLine ? { introLine } : {})
   };
 }
 
@@ -196,7 +233,10 @@ export function officeSenderInfo(id) {
   const senior = SENIOR_STAKEHOLDERS[id];
   if (senior) {
     const localized = office()?.SENIOR_STAKEHOLDERS?.[id];
-    return localized ? { ...senior, ...localized } : senior;
+    const base = localized ? { ...senior, ...localized } : { ...senior };
+    const introLine = office()?.TEAM_INTRO_LINES?.[id] ?? TEAM_INTRO_LINES[id];
+    if (introLine && !base.introLine) base.introLine = introLine;
+    return base;
   }
   return stakeholderSenderInfo(id);
 }
@@ -527,9 +567,17 @@ export const SENIOR_EMAIL_TEMPLATES = [
     id: 'email-belson-world',
     colleagueId: 'belson',
     subject: 'I do not want to live in a world where {label} stays this small',
-    body: '{userName} — I have been sitting with {label}. Softly. Carefully. And I find I do not want to live in a world where this remains a diagram instead of a platform for human flourishing. Jack will take the liberty of a working group; I am simply clarifying the altitude. Enlarge the vision. Keep the logo.\n\nWarmly,\nGavin Belson',
+    body: '{userName} — I have been sitting with {label}. Softly. Carefully. And then less softly. I do not want to live in a world where this remains a fucking diagram instead of a platform for human flourishing. Jack will take the liberty of a working group; I am clarifying the altitude. Enlarge the vision. Keep the logo. Or explain to me why we fund hobbies.\n\nGavin Belson',
     actionPrompt:
       "Enlarge the diagram's vision — headline-level platform framing, not implementation detail"
+  },
+  {
+    id: 'email-belson-undersized',
+    colleagueId: 'belson',
+    subject: 'What the fuck is this altitude on {label}',
+    body: '{userName} — I reviewed {label}. Briefly. Then again, because I could not believe the first pass. This is undersized. Small thinking dressed as shipping. I do not raise my voice for sport — I raise it when the world we are supposed to make better looks like a weekend sketch. Enlarge it. Now. Jack already knows.\n\nGavin Belson',
+    actionPrompt:
+      'Raise the diagram to keynote altitude — fewer hobby details, more platform destiny'
   },
   {
     id: 'email-barker-liberty',
@@ -555,13 +603,13 @@ export const OFFICE_WELCOME_EMAIL = {
   id: 'welcome-email-hr',
   colleagueId: 'hr',
   subject: 'Welcome aboard, {userTitle}! 🎉 (badge photo: “still processing,” forever)',
-  body: 'Welcome to the floor, {userName}! Officially thrilled. Legally obligated to say so. Emotionally buffering.\n\nYour mandate is refreshingly simple: ship deliverables. Diagrams, charts, 3D flythroughs of the org chart — you architect it, we align on the credit at the all-hands.\n\nA few faces before your orientation (rescheduled to a date that does not technically exist on any calendar product):\n\n📅 Pam (Agile Coach) runs the meetings. All of them. This email is, itself, a ceremony.\n🧃 Chad (our intern) will IM you in roughly eight seconds. He is “heads-down.” He is also reply-all.\n🖥️ Ticket Bot Dave is IT. Do not reply, do not call, do not make eye contact. DNS was involved.\n🧹 Gary owns the fridge and the thermostat. Both are load-bearing. Neither negotiates.\n🧓 Ulrich has seen your architecture before. In 2009. He’ll mention it. Softly. Forever.\n🔐 Sasha (our CISO) has already flagged you as an attack surface. She means it warmly.\n\nI’m Linda — People Ops. Your compliance training is already overdue, which is, genuinely, a company record. Need quieter? Your desk menu has Focus, Noise, and Voice — and you can always stand up and walk to the coffee machine.\n\nSynergistically yours,\nLinda\n\nP.S. Please sign Craig’s card. Craig knows who you are.'
+  body: 'Welcome to the floor, {userName}! Officially thrilled. Legally obligated to say so. Emotionally buffering.\n\nYour mandate is refreshingly simple: ship deliverables. Diagrams, charts, 3D flythroughs of the org chart — you architect it, we align on the credit at the all-hands.\n\nA few faces from Your Team before orientation (rescheduled to a date that does not technically exist on any calendar product):\n\n🙋 Dinesh will catch the bug nobody else saw, then remind you he caught it.\n🕶 Erlich will ask if the diagram is courageous. Answer carefully.\n📋 Jared has already filed a finding about your onboarding handoff. Softly. Firmly.\n🤓 Richard thinks this office has a named pattern. He is probably right.\n🧘 Jack Barker is thrilled — and has taken the liberty of simplifying your first week for the board.\n\nGilfoyle and Russ are also on the floor. They will find you. They do not need an introduction.\n\nI’m Linda — People Ops. Your compliance training is already overdue, which is, genuinely, a company record. Need quieter? Your desk menu has Focus, Noise, and Voice — and you can always stand up and walk to the coffee machine.\n\nSynergistically yours,\nLinda\n\nP.S. Please sign Craig’s card. Craig knows who you are.'
 };
 
 export const OFFICE_WELCOME_IM = {
   id: 'welcome-im-intern',
   colleagueId: 'intern',
-  body: 'hey {userName}!! you must be the new {userTitle} — welcome to the sloppiest team in tech!! 🎉 heads up: the coffee machine has fourteen buttons and twelve are purely decorative (i pressed all of them). also gary WILL email you about the fridge, it’s not personal (it is). lmk if you need anything, tho fair warning i also don’t know how most things work yet. equity in vibes though!!'
+  body: 'hey {userName}!! you must be the new {userTitle} — welcome to the sloppiest team in tech!! 🎉 heads up: i reply-all’d the welcome thread by accident and then reply-all’d the apology. classic chad. also the coffee machine has fourteen buttons and twelve are purely decorative (i pressed all of them). gary WILL email you about the fridge, it’s not personal (it is). lmk if you need anything, tho fair warning i also don’t know how most things work yet. equity in vibes though!!'
 };
 
 /** Canned IM pings — short chat noise with slot fills. */
@@ -569,22 +617,22 @@ export const OFFICE_IM_TEMPLATES = [
   {
     id: 'im-intern-boxes',
     colleagueId: 'intern',
-    body: 'hey {userName}, quick q — is {label} supposed to have that many arrows? asking for my onboarding doc / also my soul'
+    body: 'hey {userName}, quick q — is {label} supposed to have that many arrows? asking for my onboarding doc / also my soul / also i already reply-all’d this to #general by accident sorry'
   },
   {
     id: 'im-intern-lunch',
     colleagueId: 'intern',
-    body: 'anyone else see the fridge email?? gary means business. like Series B business'
+    body: 'anyone else see the fridge email?? gary means business. like Series B business. i starred it. then unstarred it. then starred it again for the vibes'
   },
   {
     id: 'im-scrum-standup',
     colleagueId: 'scrumMaster',
-    body: "Friendly ping! You've been heads-down for a while — should we time-box this into a smaller existential crisis? 🙂"
+    body: "Friendly ping!! You've been heads-down for a while — should we time-box this into a smaller existential crisis? Amazing energy either way 🙂 Love that for us!!"
   },
   {
     id: 'im-scrum-retro',
     colleagueId: 'scrumMaster',
-    body: 'Adding "{label}" to the retro board as a discussion topic. Great energy! Parking-lotting the feelings.'
+    body: 'Adding "{label}" to the retro board as a discussion topic. Great energy!! Parking-lotting the feelings with so much care. Thank you for sharing!!'
   },
   {
     id: 'im-helpdesk-restart',
@@ -609,12 +657,12 @@ export const OFFICE_IM_TEMPLATES = [
   {
     id: 'im-greybeard-look',
     colleagueId: 'greybeard',
-    body: "Looked at {label}. We tried that in 2009. It's fine. Probably. The mainframe shrugged."
+    body: "Looked at {label}. We tried that in 2009. Took prod down for a week. It's fine. Probably. The mainframe shrugged. Then it logged you."
   },
   {
     id: 'im-greybeard-mainframe',
     colleagueId: 'greybeard',
-    body: 'The mainframe asked about you. I told it you were busy diagramming. It understood. It always understands.'
+    body: 'The mainframe asked about you. I told it you were busy diagramming. It understood. It always understands. It never forgets. Neither do I.'
   },
   {
     id: 'im-helpdesk-dns',
@@ -629,12 +677,12 @@ export const OFFICE_IM_TEMPLATES = [
   {
     id: 'im-intern-regex',
     colleagueId: 'intern',
-    body: 'wrote my first regex!! it matches everything. is that bad? it feels like a Series A'
+    body: 'wrote my first regex!! it matches everything including the compliance training linda sent and also my dignity. is that bad? it feels like a Series A'
   },
   {
     id: 'im-scrum-velocity',
     colleagueId: 'scrumMaster',
-    body: "Velocity check! You're averaging 4.2 boxes per hour — amazing! Let's not tell finance we measure this. Or sales. Or you. 🙂"
+    body: "Velocity check!! You're averaging 4.2 boxes per hour — amazing!! Let's not tell finance we measure this. Or sales. Or you. Or the parking lot 🙂 Thank you!!"
   },
   {
     id: 'im-facilities-elevator',
@@ -695,17 +743,17 @@ export const OFFICE_WALKBY_FALLBACKS = [
   {
     id: 'walkby-scrum',
     colleagueId: 'scrumMaster',
-    body: "Ooh, is that {label}? This wasn't on the sprint board — I've added it retroactively as a spike. Great energy. Parking lot pending."
+    body: "Ooh, is that {label}?! This wasn't on the sprint board — I've added it retroactively as a spike. Amazing energy. Parking lot pending. Thank you so much for the visibility!!"
   },
   {
     id: 'walkby-intern',
     colleagueId: 'intern',
-    body: 'whoa {userName}, {label} looks so Series A. did you make that with the AI? can I put it in my portfolio / pitch deck / both?'
+    body: 'whoa {userName}, {label} looks so Series A. did you make that with the AI? can I put it in my portfolio / pitch deck / both? also i may have reply-all’d a screenshot of it already sorry'
   },
   {
     id: 'walkby-greybeard',
     colleagueId: 'greybeard',
-    body: "{label}, huh. We had one of those in 2009. It's still running. Nobody knows where. The mainframe does."
+    body: "{label}, huh. We had one of those in 2009. It's still running. Nobody knows where. The mainframe does. It judges."
   },
   {
     id: 'walkby-facilities',
@@ -725,7 +773,7 @@ export const OFFICE_WALKBY_FALLBACKS = [
   {
     id: 'walkby-greybeard-orchestrator',
     colleagueId: 'greybeard',
-    body: "Careful with {label}. The last one of those became self-aware around 2011. We don't say 'orchestrator' out loud anymore. Or 'synergy'. Mostly."
+    body: "Careful with {label}. The last one of those became self-aware around 2011. We don't say 'orchestrator' out loud anymore. Or 'synergy'. Mostly. The mainframe preferred 'cron'."
   }
 ];
 
@@ -1179,14 +1227,14 @@ export const OFFICE_CHROME_COPY = {
     colleagueChapter: 'COLLEAGUE {current} OF {total}',
     unlockedLabel: '✨ CHARACTER UNLOCKED',
     tagline:
-      "You're the newest architect on the floor. The whiteboard is your deliverable. The interruptions are free.",
+      "You're the newest architect on the floor. Your Team will introduce themselves. Gilfoyle and Russ will find you later.",
     autoplayHint: 'Speaking…',
     rosterTagline:
-      'The cast that emails, IMs, and walks by while you work — tap ▶ and let them introduce themselves:',
+      'Your Team (minus the ones who skip orientation) — tap ▶ and let them introduce themselves:',
     greeting: 'Welcome aboard, {name}.',
     greetingRole: 'Architect',
-    expandLabel: '🏢 Meet the Office',
-    expandTitle: 'Who keeps interrupting me? (Spoiler: all of them.)',
+    expandLabel: '🏢 Meet the Team',
+    expandTitle: 'Day One intros — Your Team plus Linda from People Ops.',
     startLabel: 'Meet the team →',
     beginLabel: 'Begin Day One',
     skipToBuildLabel: 'Skip to canvas →',
@@ -1194,7 +1242,7 @@ export const OFFICE_CHROME_COPY = {
       'Close orientation and drop me on the canvas. No offense taken. (Some taken. Noted in your file.)',
     dismissLabel: 'Done',
     replayTourLabel: '↻ Replay intro',
-    closeAria: 'Close Meet the Office',
+    closeAria: 'Close Meet the Team',
     hearLabel: '▶ Hear intro',
     hearSpeakingLabel: 'Shh… they’re talking',
     hearTitle: 'Play this line in their actual voice — Google Cloud text-to-speech',
@@ -1203,7 +1251,7 @@ export const OFFICE_CHROME_COPY = {
     transcriptTitle: 'Show spoken dialogue as text — for when you cannot listen',
     welcomeVoiceSpeakerId: 'hr',
     welcomeVoiceLine:
-      "Welcome to the floor. I'm Linda, from People Ops. Pick up your badge, type your name, and I'll introduce the team. You are going to fit in beautifully.",
+      "Welcome to the floor. I'm Linda, from People Ops. Pick up your badge, type your name, and I'll introduce Your Team — Dinesh, Erlich, Jared, Richard, and Jack. Gilfoyle and Russ skip orientation. You are going to fit in beautifully.",
     nameTag: {
       hello: 'HELLO',
       subtitle: 'my name is',

@@ -8,7 +8,7 @@ import {
   OFFICE_DIRECTORY_STORAGE_KEY,
   OFFICE_USER_NAME_STORAGE_KEY
 } from '../src/utils/officeAmbienceStorage.js';
-import { OFFICE_COLLEAGUES } from '../src/utils/officeCast.js';
+import { DAY_ONE_INTRO_IDS, officeSenderInfo } from '../src/utils/officeCast.js';
 import { _resetUserIdentityForTests, setUserName } from '../src/state/userIdentityStore.js';
 import {
   _resetOfficeDirectoryUiForTests,
@@ -28,7 +28,7 @@ vi.mock('../src/hooks/useIntroNarrator.js', () => ({
   })
 }));
 
-const COLLEAGUE_COUNT = Object.keys(OFFICE_COLLEAGUES).length;
+const COLLEAGUE_COUNT = DAY_ONE_INTRO_IDS.length;
 
 function renderDirectory(props = {}) {
   return render(
@@ -80,7 +80,7 @@ describe('OfficeDirectory', () => {
     renderDirectory();
     expect(screen.queryByText(/newest architect/i)).toBeNull();
     enableTranscript();
-    expect(screen.getByText(/newest architect/i)).toBeTruthy();
+    expect(screen.getByText(/Your Team will introduce themselves/i)).toBeTruthy();
     expect(screen.getByText('Welcome aboard, Newbie.')).toBeTruthy();
     expect(screen.getByTestId('office-directory-hr-transcript')).toBeTruthy();
   });
@@ -95,7 +95,7 @@ describe('OfficeDirectory', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Meet the team →' }));
     await waitFor(() => expect(playMock).toHaveBeenCalled());
     expect(playMock.mock.calls[0][0]).toBe('welcome');
-    await waitFor(() => expect(playMock.mock.calls.some((c) => c[0] === 'intern')).toBe(true));
+    await waitFor(() => expect(playMock.mock.calls.some((c) => c[0] === 'dinesh')).toBe(true));
     expect(screen.getByTestId('office-directory-autoplay')).toBeTruthy();
     expect(screen.queryByTestId('intro-voice-button')).toBeNull();
   });
@@ -115,7 +115,7 @@ describe('OfficeDirectory', () => {
   it('does not duplicate colleague intro text in the transcript', () => {
     renderDirectory();
     enableTranscript();
-    const lindaLine = OFFICE_COLLEAGUES.hr.introLine;
+    const lindaLine = officeSenderInfo('hr').introLine;
     expect(screen.getAllByText(lindaLine).length).toBe(1);
   });
 
@@ -154,7 +154,7 @@ describe('OfficeDirectory', () => {
   it('reopens the full roster for returning users, with replay intro', () => {
     window.localStorage.setItem(OFFICE_DIRECTORY_STORAGE_KEY, '1');
     renderDirectory();
-    fireEvent.click(screen.getByRole('button', { name: /Meet the Office/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Meet the Team/ }));
     expect(screen.getByTestId('office-directory-roster')).toBeTruthy();
     expect(screen.getAllByTestId('intro-voice-button').length).toBe(COLLEAGUE_COUNT);
     fireEvent.click(screen.getByRole('button', { name: /Replay intro/ }));

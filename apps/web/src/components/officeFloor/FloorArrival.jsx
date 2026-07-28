@@ -8,10 +8,11 @@
  * into desktop screen mode.
  *
  * Content parity with the card tour is deliberate: same roster
- * (`OFFICE_COLLEAGUES`), same `introLine`s, same narrator, same pacing. Only
- * the staging changes, so this is a second *renderer* of the orientation rather
- * than a second orientation (ADR-0011). `OfficeDirectory` stays mounted for
- * replays from the level panel, and stays the fallback for anyone who skips.
+ * (`DAY_ONE_INTRO_IDS` — Your Team minus Gilfoyle/Russ, plus Linda/HR), same
+ * `introLine`s, same narrator, same pacing. Only the staging changes, so this
+ * is a second *renderer* of the orientation rather than a second orientation
+ * (ADR-0011). `OfficeDirectory` stays mounted for replays from the level
+ * panel, and stays the fallback for anyone who skips.
  *
  * Spoken copy stays voice-first (docs/office-parody.md): captions / CC default
  * off so the floor is not buried under balloons; turn CC on to read along, and
@@ -28,7 +29,7 @@ import IntroTranscriptButton from '../IntroTranscriptButton.jsx';
 import NameTag from '../NameTag.jsx';
 import { useIntroNarrator } from '../../hooks/useIntroNarrator.js';
 import { useStageScale } from '../../hooks/useStageScale.js';
-import { OFFICE_COLLEAGUES, officeChromeCopy, officeSenderInfo } from '../../utils/officeCast.js';
+import { DAY_ONE_INTRO_IDS, officeChromeCopy, officeSenderInfo } from '../../utils/officeCast.js';
 import { shouldShowSpokenText } from '../../utils/officeCaptions.js';
 import { OFFICE_NARRATION_GAP_MS } from '../../utils/officeNarration.js';
 import { writeOfficeDirectorySeen } from '../../utils/officeAmbienceStorage.js';
@@ -37,7 +38,7 @@ import { RECEPTION_TILE, YOU_SEAT_ID, seatFor } from '../../utils/officeFloorPla
 import { getOfficeSnapshot, setOfficeCaptions, subscribe } from '../../state/officeMomentStore.js';
 import { useUiCopy } from '../../i18n/useUiLocale.js';
 
-const COLLEAGUE_IDS = Object.keys(OFFICE_COLLEAGUES);
+const COLLEAGUE_IDS = DAY_ONE_INTRO_IDS;
 
 /** When TTS is offline, give the user time to read the line before advancing. */
 const SILENT_BEAT_MS = 2_400;

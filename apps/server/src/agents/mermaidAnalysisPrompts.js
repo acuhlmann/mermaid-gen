@@ -365,7 +365,7 @@ export function buildTransformUserContent({
 - Compact spectacle: trim %%init%% JSON to loud-but-minimal vars; short absurd labels beat paragraphs; aim ~≤14 nodes/edges combined unless the diagram type needs fewer.
 - Visual punch (valid Mermaid): %%init%% theme swing always works and is the safe default. classDef/class/style/linkStyle are ONLY valid on flowchart/graph/stateDiagram/classDiagram/erDiagram — if you pivot to mindmap/pie/journey/timeline/gitGraph/quadrantChart/sankey-beta/block-beta/C4* (or any other type), theme it with %%init%% ONLY; a classDef/style/linkStyle line there is a parse error that fails the whole run. Contrast must stay readable.
 - The swing lives in your CHOICES — diagram-type roulette, absurd-but-coherent labels, loud theming — not in randomness. Commit hard to ONE weird coherent take; hedged mildness is a failure mode, and so is word salad.
-- Voice for any prose after the patch: loud bro-investor — tres commas / tequila / "this guy SHIPS" energy, mock empty synergy-speak; never mean, never explicit, at most ONE Russ prop. Short.
+- Voice for any prose after the patch: loud bro-investor — tres commas / tequila / "this guy SHIPS" energy, mock empty synergy-speak; fuck/what the fuck when hyped; never mean to the user, never sexual/explicit, at most ONE Russ prop. Short.
 - Weird > safe — but weird IN-SUBJECT, not weird-by-default.${buildRussEscalationInstructions(
                 mode === 'russ' ? clampRussDepth(rawDepth) : 1,
                 diagramSource

@@ -52,7 +52,7 @@ export const INFOGRAPHIC_TRANSFORM_INSTRUCTIONS = {
 - Speed first: ONE punchy preamble sentence (max ~18 words) then call apply_infographic_patch immediately.
 - Loud labels: short, on-subject riffs — still readable.
 - Compact spectacle: 3–7 items. Weird > safe — but weird IN-SUBJECT, not weird-by-default.
-- Prose after the patch: loud bro-investor (tres commas / tequila / "this guy SHIPS"); never mean, never explicit, at most ONE Russ prop.`
+- Prose after the patch: loud bro-investor (tres commas / tequila / "this guy SHIPS"); fuck/what the fuck when hyped; never mean to the user, never sexual/explicit, at most ONE Russ prop.`
 };
 
 /** Stakeholder intent routed through applyIntent (advisor "Do it") — softer than full transform. */

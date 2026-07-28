@@ -61,6 +61,7 @@ test('senior stakeholders are valid meeting speakers with real voice blocks', ()
   });
   assert.match(belsonPrompt, /Gavin Belson \(CTO/);
   assert.match(belsonPrompt, /You are Gavin Belson from HBO's Silicon Valley/);
+  assert.match(belsonPrompt, /TWO GEARS|cold fury|fuck/i);
   assert.match(belsonPrompt, /speakerId "belson"/);
   assert.deepEqual(normalizeAttendees(['scrumMaster', 'belson', 'barker']), [
     'scrumMaster',
@@ -184,6 +185,10 @@ test('russ meeting voice card anchors the Silicon Valley replication', () => {
   assert.ok(STAKEHOLDER_MEETING_VOICES.russ.includes('Russ Hanneman'));
   assert.ok(STAKEHOLDER_MEETING_VOICES.russ.includes("HBO's Silicon Valley"));
   assert.ok(STAKEHOLDER_MEETING_VOICES.russ.includes('tres commas'));
+  assert.ok(
+    /fuck/i.test(STAKEHOLDER_MEETING_VOICES.russ),
+    'russ meeting voice should allow TV-Russ swearing'
+  );
   assert.ok(STAKEHOLDER_MEETING_VOICES.russ.length > 40, 'russ needs a real voice card');
   assert.equal(isOfficeSpeaker('russ'), true);
   assert.equal(isOfficeColleague('russ'), false);

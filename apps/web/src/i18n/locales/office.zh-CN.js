@@ -10,15 +10,15 @@ export const OFFICE_ZH_CN = {
   OFFICE_COLLEAGUES: {
     intern: {
       title: '实习生（无薪 · 战略级）',
-      blurb: '爱点“回复全部”。天真的问题偶尔一针见血。',
+      blurb: '会先全员回复，再全员回复道歉。天真的问题偶尔一针见血。',
       introLine:
-        '嗨！！我是 Chad——无薪、战略级，而且大概率会因为订书机议题全员回复。关于你的图有个小问题，说不定会是今天全场最聪明的一句。另外：订书机放哪儿了？'
+        '嗨！！我是 Chad——无薪、战略级，而且大概率会因为订书机议题全员回复，然后再全员回复道歉。关于你的图有个小问题，说不定会是今天全场最聪明的一句。另外：订书机放哪儿了？替我的入职文档问问，也替我的灵魂问问。'
     },
     scrumMaster: {
       title: '敏捷教练 — CSM、CSPO、SAFe 6.0',
-      blurb: '万事皆仪式。连午饭都要设时间盒。所有会议由她主持。',
+      blurb: '万事皆仪式。气氛好得过分。连午饭都要设时间盒。',
       introLine:
-        '嗨！我是 Pam——CSM、CSPO、SAFe 6.0，对停车场话术情感流利。这次自我介绍限时四十五秒协同能量。气氛很好。咱们回头再对齐。'
+        '嗨！！我是 Pam——CSM、CSPO、SAFe 6.0，对停车场话术情感流利。这次自我介绍限时四十五秒协同能量。气氛已经很好了。太爱我们了。咱们回头再对齐——非常感谢你在这里！！'
     },
     helpdesk: {
       name: '工单机器人 Dave',
@@ -41,9 +41,9 @@ export const OFFICE_ZH_CN = {
     },
     greybeard: {
       title: '资深工程师（荣休返聘）',
-      blurb: '“2009 年我们试过。”维护着那台大型机。建议好得让人不安。',
+      blurb: '“2009 年我们试过。”维护着那台大型机。冷笑话更冷。建议好得让人不安。',
       introLine:
-        'Ulrich。资深工程师（荣休返聘）。2009 年我们试过。靠 cron 和恐惧在跑。我维护着那台没人承认的大型机。大型机问起你了。我跟它说你在画图。'
+        'Ulrich。资深工程师（荣休返聘）。2009 年我们试过。靠 cron 和恐惧在跑。正式环境挂了一周。现在还在跑。我维护着那台没人承认的大型机。大型机问起你了。我跟它说你在画图。它叹了口气。'
     },
     ciso: {
       title: '首席信息安全官 — “不行部”',
@@ -55,7 +55,7 @@ export const OFFICE_ZH_CN = {
   SENIOR_STAKEHOLDERS: {
     belson: {
       title: 'CTO — 让世界变得更美好',
-      blurb: '轻声描绘愿景。Jack 向上汇报。上次打开 IDE 是在主题演讲彩排。'
+      blurb: '带火气的弥赛亚愿景。Jack 向上汇报。上次打开 IDE 是在主题演讲彩排。'
     },
     cfo: {
       title: 'CFO — 预算就是不行',
@@ -71,12 +71,12 @@ export const OFFICE_ZH_CN = {
     id: 'welcome-email-hr',
     colleagueId: 'hr',
     subject: '欢迎加入，{userTitle}！🎉（工牌照片：待定）',
-    body: '欢迎来到这层楼！非常高兴你的加入。在强制入职培训（已改期，时间待定）之前，先认识几位同事：\n\n📅 Pam（敏捷教练）主持所有会议。真的是所有。\n🧃 Chad（我们的实习生）马上会给你发消息。他没有恶意。\n🖥️ 工单机器人 Dave 是 IT。请勿回复，请勿来电，请勿。\n🧹 Gary 掌管冰箱和恒温器。请对两者保持敬意。\n🧓 Ulrich 见过你的架构。在 2009 年。\n🔐 Sasha（我们的 CISO）已经开始怀疑你了。这是一种夸奖。\n\n我是 Linda — 人力运营！你的合规培训已经逾期了，这实属纪录。想安静一点？工位菜单里有专注、音景和朗读 — 也可以站起来去咖啡机那边转转。\n\n暖暖的问候，\nLinda'
+    body: '欢迎来到这层楼！非常高兴你的加入。在入职引导（已改期，时间待定）之前，先认识 Your Team 的几张脸：\n\n🙋 Dinesh 会抓住别人没看见的 bug，然后提醒你是他抓到的。\n🕶 Erlich 会问这张图够不够有勇气。请慎重回答。\n📋 Jared 已经就你的入职交接提了发现。轻轻地。坚定地。\n🤓 Richard 觉得这间办公室有一个可命名的模式。他大概是对的。\n🧘 Jack Barker 很兴奋——并且已擅自把你的第一周简化成董事会版本。\n\nGilfoyle 和 Russ 也在这层楼。他们会自己找到你。不需要介绍。\n\n我是 Linda — 人力运营！你的合规培训已经逾期了，这实属纪录。想安静一点？工位菜单里有专注、音景和朗读 — 也可以站起来去咖啡机那边转转。\n\n暖暖的问候，\nLinda'
   },
   OFFICE_WELCOME_IM: {
     id: 'welcome-im-intern',
     colleagueId: 'intern',
-    body: '嗨！！你就是新来的{userTitle}吧 — 欢迎！！咖啡机有十四个按钮，十二个是装饰。另外 gary 一定会给你发冰箱邮件。别往心里去（要往心里去）'
+    body: '嗨！！你就是新来的{userTitle}吧 — 欢迎！！不小心把欢迎帖全员回复了，又全员回复道了歉。经典 Chad。咖啡机有十四个按钮，十二个是装饰。另外 gary 一定会给你发冰箱邮件。别往心里去（要往心里去）'
   },
   OFFICE_EMAIL_TEMPLATES: [
     {
@@ -218,8 +218,15 @@ export const OFFICE_ZH_CN = {
       id: 'email-belson-world',
       colleagueId: 'belson',
       subject: '我不想活在一个 {label} 永远这么小的世界里',
-      body: '{userName} — 我认真坐下来看了看 {label}。轻轻地。仔细地。我不想活在一个它只是一张图、而不是人类繁荣平台的世界里。Jack 会擅自成立工作组;我只是在澄清高度。放大愿景。保住 logo。\n\n温暖的问候,\nGavin Belson',
+      body: '{userName} — 我认真坐下来看了看 {label}。轻轻地。仔细地。然后没那么轻轻了。我不想活在一个它只是一张该死的图、而不是人类繁荣平台的世界里。Jack 会擅自成立工作组;我在澄清高度。放大愿景。保住 logo。否则解释一下我们为什么资助爱好。\n\nGavin Belson',
       actionPrompt: '放大整张图的愿景 — 标题级平台叙事,不要实现细节'
+    },
+    {
+      id: 'email-belson-undersized',
+      colleagueId: 'belson',
+      subject: '这他妈算什么高度 — {label}',
+      body: '{userName} — 我审了 {label}。很快。然后又审了一遍,因为我不敢相信第一遍。格局太小。用「上线」伪装的小思维。我不为了表演提高嗓门 — 只在本该让世界更好的东西看起来像周末草稿时提高嗓门。放大。现在。Jack 已经知道了。\n\nGavin Belson',
+      actionPrompt: '把图抬到主题演讲高度 — 少一点爱好细节,多一点平台命运'
     },
     {
       id: 'email-barker-liberty',
@@ -782,20 +789,20 @@ export const OFFICE_ZH_CN = {
       welcomeChapter: '人力资源',
       colleagueChapter: '同事 {current} / {total}',
       unlockedLabel: '✨ 解锁角色',
-      tagline: '你是这层楼最新的架构师。白板是你的交付物，打扰是免费的。',
+      tagline: '你是这层楼最新的架构师。Your Team 会自我介绍。Gilfoyle 和 Russ 稍后再找你。',
       autoplayHint: '正在说话…',
-      rosterTagline: '会发邮件、发消息、路过插话的同事们——点 ▶ 听他们自我介绍：',
+      rosterTagline: 'Your Team（跳过入职引导的那两位除外）——点 ▶ 听他们自我介绍：',
       greeting: '欢迎加入，{name}。',
       greetingRole: '架构师',
-      expandLabel: '🏢 认识办公室',
-      expandTitle: '到底是谁一直在打扰我？（剧透：全都是）',
+      expandLabel: '🏢 认识团队',
+      expandTitle: '第一天介绍 — Your Team 加上人力运营的 Linda。',
       startLabel: '认识团队 →',
       beginLabel: '开始第一天',
       skipToBuildLabel: '跳过引导 →',
       skipToBuildTitle: '关闭引导，直接进入画布。没有恶意。（有一点。已记入档案。）',
       dismissLabel: '完成',
       replayTourLabel: '↻ 重看开场',
-      closeAria: '关闭认识办公室',
+      closeAria: '关闭认识团队',
       hearLabel: '▶ 听介绍',
       hearSpeakingLabel: '嘘…他们在说话',
       hearTitle: '用他们的声音播放这句话 — Google Cloud 文字转语音',
@@ -804,7 +811,7 @@ export const OFFICE_ZH_CN = {
       transcriptTitle: '显示语音内容为文字 — 无法收听时使用',
       welcomeVoiceSpeakerId: 'hr',
       welcomeVoiceLine:
-        '欢迎来到这层楼。我是琳达，负责人力运营。领取工牌，写下你的名字，我来介绍团队。你会融入得很好的。',
+        '欢迎来到这层楼。我是琳达，负责人力运营。领取工牌，写下你的名字，我来介绍 Your Team——Dinesh、Erlich、Jared、Richard 和 Jack。Gilfoyle 和 Russ 跳过入职引导。你会融入得很好的。',
       nameTag: {
         hello: '你好',
         subtitle: '我叫',

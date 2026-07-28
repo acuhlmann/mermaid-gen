@@ -22,7 +22,7 @@ Proven a sixth time with **Jared Dunn inheriting the `critique` seat** (Session 
 `critique` → `jared`) — the first **analyze-path** inheritance (`DiagramAnalyzeSchema.kind`, not
 `TransformModeSchema`). Proven a seventh time with **Russ Hanneman inheriting the `goMad` seat**
 (Session 6, 2026-07-28, `goMad` → `russ`) — subject-rooted escalation with tres-commas / tequila /
-"this guy SHIPS" energy; content-policy-safe innuendo (not profanity); depth/streak wire field
+"this guy SHIPS" energy; TV-Russ swearing OK (`fuck` when hyped — never sexual/explicit); depth/streak wire field
 renamed `russDepth` / `russStreak`. Proven an eighth time with **Richard Hendricks inheriting
 the `explain` seat** (Session 7, 2026-07-28, `explain` → `richard`) — comment-only analyze-path
 inheritance (ADR-0010); anxious pattern-naming; dumb-down ladder travels with the seat. Proven a
@@ -277,9 +277,10 @@ Never kind: "suggestion".` reads to the model as _never emit the word "suggestio
   lives in the persona block — port the skeleton verbatim, re-skin the voice, keep temperatures
   and ratios. The wire validators (`mermaidTransformPolicy.ts` etc.) enforce the same budgets by
   mode id, so renaming the mode renames the budget with it.
-- Keep the app's comedy contract: never mean, never blocking. Russ's profanity becomes innuendo
-  ("this guy SHIPS" energy, tres commas, tequila, mocks synergy) — `MeetingScriptSchema` content
-  policy will catch explicit content anyway.
+- Keep the app's comedy contract: never mean to the user as a person, never blocking. Russ **does**
+  swear like the TV character (`fuck` / what the fuck when hyped) — bro swagger only, never
+  sexual/explicit. Belson may snap into cold fury with clipped swears when vision is undersized.
+  `MeetingScriptSchema` content policy still catches truly explicit content.
 
 ### 3. Tune against the fidelity harness
 

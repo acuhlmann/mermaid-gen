@@ -7,15 +7,16 @@
 export const OFFICE_EN_AU = {
   OFFICE_COLLEAGUES: {
     intern: {
-      blurb: 'Replies-all. Equity in vibes. Accidentally asks the only good question in the room.',
+      blurb:
+        'Reply-alls the apology for the reply-all. Equity in vibes. Accidentally asks the only good question.',
       introLine:
-        "Hey!! I'm Chad — unpaid, strategic, and statistically likely to reply-all about the stapler. Quick question about your diagram that might accidentally be the smartest thing anyone says today. Also: where is the stapler."
+        "Hey!! I'm Chad — unpaid, strategic, and statistically likely to reply-all about the stapler, then reply-all apologising for the reply-all. Quick question about your diagram that might accidentally be the smartest thing anyone says today. Also: where is the stapler. Asking for my onboarding doc / also my soul."
     },
     scrumMaster: {
       blurb:
-        'Everything is a ceremony. Will time-box your smoko. Facilitates your existential dread.',
+        'Everything is a ceremony. Will time-box your smoko. Facilitates your existential dread with great energy.',
       introLine:
-        "G'day! I'm Pam — CSM, CSPO, SAFe 6.0, and emotionally fluent in parking lots. This introduction is time-boxed for forty-five seconds of synergy. Great energy. Let's circle back."
+        "G'day!! I'm Pam — CSM, CSPO, SAFe 6.0, and emotionally fluent in parking lots. This introduction is time-boxed for forty-five seconds of synergy. Amazing energy already. Love that for us. Let's circle back — and thank you so much for being here!!"
     },
     helpdesk: {
       blurb: 'Closes tickets as duplicates of themselves. Works on his machine. DNS was involved.',
@@ -34,9 +35,10 @@ export const OFFICE_EN_AU = {
         "I'm Linda, People Ops. Your badge photo is processing, your compliance training is somehow already overdue, and Craig's birthday card still needs a warm generic message. You are going to fit in beautifully."
     },
     greybeard: {
-      blurb: '“We tried that in 2009.” Maintains the mainframe. The mainframe maintains him.',
+      blurb:
+        '“We tried that in 2009.” Maintains the mainframe. The mainframe maintains him. Darker punchlines, same calm.',
       introLine:
-        'Ulrich. Staff Engineer Emeritus. We tried that in 2009. It ran on cron and fear. I maintain the mainframe nobody admits exists. The mainframe asked about you. I told it you were diagramming.'
+        'Ulrich. Staff Engineer Emeritus. We tried that in 2009. It ran on cron and fear. Took prod down for a week. Still running. I maintain the mainframe nobody admits exists. The mainframe asked about you. I told it you were diagramming. It sighed.'
     },
     ciso: {
       blurb: "Everything's an attack surface — especially the arrows. Trust is a vulnerability.",
@@ -48,7 +50,7 @@ export const OFFICE_EN_AU = {
     id: 'welcome-email-hr',
     colleagueId: 'hr',
     subject: 'Welcome aboard, {userTitle}! 🎉 (badge photo: pending)',
-    body: 'Welcome to the floor! Stoked to have you. A few names before your mandatory orientation (rescheduled, TBD):\n\n📅 Pam (Agile Coach) runs the meetings. All of them.\n🧃 Chad (our intern) will IM you shortly. He means well.\n🖥️ Ticket Bot Dave is IT. Do not reply, do not call, do not.\n🧹 Gary owns the fridge and the thermostat. Respect both.\n🧓 Ulrich has seen your architecture before. In 2009.\n🔐 Sasha (our CISO) already reckons you’re suss. It’s a compliment.\n\nAnd I’m Linda — People Ops! Your compliance training is already overdue, which is honestly a record. Need quieter? Your desk menu has Focus, Noise, and Voice — and you can always stand up and wander over to the coffee machine.\n\nWarmly,\nLinda'
+    body: 'Welcome to the floor! Stoked to have you. A few faces from Your Team before orientation (rescheduled, TBD):\n\n🙋 Dinesh will catch the bug nobody else saw, then remind you he caught it.\n🕶 Erlich will ask if the diagram is courageous. Answer carefully.\n📋 Jared has already filed a finding about your onboarding handoff. Softly. Firmly.\n🤓 Richard thinks this office has a named pattern. He is probably right.\n🧘 Jack Barker is thrilled — and has taken the liberty of simplifying your first week for the board.\n\nGilfoyle and Russ are also on the floor. They will find you. They do not need an introduction.\n\nAnd I’m Linda — People Ops! Your compliance training is already overdue, which is honestly a record. Need quieter? Your desk menu has Focus, Noise, and Voice — and you can always stand up and wander over to the coffee machine.\n\nWarmly,\nLinda'
   },
   OFFICE_WELCOME_IM: {
     id: 'welcome-im-intern',
@@ -195,9 +197,17 @@ export const OFFICE_EN_AU = {
       id: 'email-belson-world',
       colleagueId: 'belson',
       subject: 'I do not want to live in a world where {label} stays this small',
-      body: '{userName} — I have been sitting with {label}. Softly. Carefully. And I find I do not want to live in a world where this remains a diagram instead of a platform for human flourishing. Jack will take the liberty of a working group; I am simply clarifying the altitude. Enlarge the vision. Keep the logo.\n\nWarmly,\nGavin Belson',
+      body: '{userName} — I have been sitting with {label}. Softly. Carefully. And then less softly. I do not want to live in a world where this remains a fucking diagram instead of a platform for human flourishing. Jack will take the liberty of a working group; I am clarifying the altitude. Enlarge the vision. Keep the logo. Or explain to me why we fund hobbies.\n\nGavin Belson',
       actionPrompt:
         "Enlarge the diagram's vision — headline-level platform framing, not implementation detail"
+    },
+    {
+      id: 'email-belson-undersized',
+      colleagueId: 'belson',
+      subject: 'What the fuck is this altitude on {label}',
+      body: '{userName} — I reviewed {label}. Briefly. Then again, because I could not believe the first pass. This is undersized. Small thinking dressed as shipping. I do not raise my voice for sport — I raise it when the world we are supposed to make better looks like a weekend sketch. Enlarge it. Now. Jack already knows.\n\nGavin Belson',
+      actionPrompt:
+        'Raise the diagram to keynote altitude — fewer hobby details, more platform destiny'
     },
     {
       id: 'email-barker-liberty',
@@ -763,14 +773,14 @@ export const OFFICE_EN_AU = {
       welcomeChapter: 'PEOPLE OPS',
       colleagueChapter: 'COLLEAGUE {current} OF {total}',
       unlockedLabel: '✨ CHARACTER UNLOCKED',
-      tagline: 'Your new floor. Your new colleagues. Their opinions come free of charge.',
+      tagline:
+        "You're the newest architect on the floor. Your Team will introduce themselves. Gilfoyle and Russ will find you later.",
       autoplayHint: 'Speaking…',
-      rosterTagline:
-        'The cast that emails, IMs, and walks by while you work — tap ▶ to hear an intro:',
+      rosterTagline: 'Your Team (minus the ones who skip orientation) — tap ▶ to hear an intro:',
       greeting: 'Welcome aboard, {name}.',
       greetingRole: 'Architect',
-      expandLabel: '🏢 Meet the Office',
-      expandTitle: 'Who keeps interrupting me? (Spoiler: all of them.)',
+      expandLabel: '🏢 Meet the Team',
+      expandTitle: 'Day One intros — Your Team plus Linda from People Ops.',
       startLabel: 'Meet the team →',
       beginLabel: 'Begin Day One',
       skipToBuildLabel: 'Skip to canvas →',
@@ -778,7 +788,7 @@ export const OFFICE_EN_AU = {
         'Close orientation and drop me on the canvas. No offence taken. (Some taken. Noted in your file.)',
       dismissLabel: 'Done',
       replayTourLabel: '↻ Replay intro',
-      closeAria: 'Close Meet the Office',
+      closeAria: 'Close Meet the Team',
       hearLabel: '▶ Hear intro',
       hearSpeakingLabel: 'Shh… they’re talking',
       hearTitle: 'Play this line in their actual voice — Google Cloud text-to-speech',
@@ -787,7 +797,7 @@ export const OFFICE_EN_AU = {
       transcriptTitle: 'Show spoken dialogue as text — for when you cannot listen',
       welcomeVoiceSpeakerId: 'hr',
       welcomeVoiceLine:
-        "Welcome to the floor. I'm Linda, from People Ops. Pick up your badge, type your name, and I'll introduce the team. You are going to fit in beautifully.",
+        "Welcome to the floor. I'm Linda, from People Ops. Pick up your badge, type your name, and I'll introduce Your Team — Dinesh, Erlich, Jared, Richard, and Jack. Gilfoyle and Russ skip orientation. You are going to fit in beautifully.",
       nameTag: {
         hello: 'HELLO',
         subtitle: 'my name is',

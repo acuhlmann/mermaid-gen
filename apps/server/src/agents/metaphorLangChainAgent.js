@@ -92,7 +92,7 @@ function buildTransformUserContent({ mode, currentDsl, russDepth }) {
       'Fix what is actually wrong with the current metaphor — labels, unbalanced magnitudes, a loose spatial story. Reach first for what the scene leaves out and would fall over without: the missing counterweight, the element the metaphor quietly depends on, the piece that has nowhere to go when it fails. Keep the same metaphor type. The fix must be genuinely right; any prose you emit afterwards makes sure the credit for it lands.',
     erlich:
       'Elevate the current metaphor — try a different metaphor type or a fresh angle on the subject, bolder than anyone asked for. You may switch metaphors.',
-    russ: `Escalate like Russ Hanneman — push the spatial story further (depth ${russDepth ?? 1}). Exaggerate, recombine, surprise. On-subject tres commas energy.`,
+    russ: `Escalate like Russ Hanneman — push the spatial story further (depth ${russDepth ?? 1}). Exaggerate, recombine, surprise. On-subject tres commas energy; swear when hyped; never mean to the user.`,
     barker:
       'Take the liberty of executing the requested change tightly. No additions beyond the implied scope.'
   };

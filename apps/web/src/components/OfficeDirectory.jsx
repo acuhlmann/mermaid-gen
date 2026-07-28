@@ -3,7 +3,7 @@ import {
   readOfficeDirectorySeen,
   writeOfficeDirectorySeen
 } from '../utils/officeAmbienceStorage.js';
-import { OFFICE_COLLEAGUES, officeChromeCopy, officeSenderInfo } from '../utils/officeCast.js';
+import { DAY_ONE_INTRO_IDS, officeChromeCopy, officeSenderInfo } from '../utils/officeCast.js';
 import { resolveUserName, subscribe as subscribeUserName } from '../state/userIdentityStore.js';
 import {
   getOfficeDirectoryUi,
@@ -25,7 +25,7 @@ import IntroTranscriptButton from './IntroTranscriptButton.jsx';
 import IntroVoiceButton from './IntroVoiceButton.jsx';
 import NameTag from './NameTag.jsx';
 
-const COLLEAGUE_IDS = Object.keys(OFFICE_COLLEAGUES);
+const COLLEAGUE_IDS = DAY_ONE_INTRO_IDS;
 
 /** When TTS is offline, give the user time to read the quote before advancing. */
 const SILENT_BEAT_MS = 2_400;
