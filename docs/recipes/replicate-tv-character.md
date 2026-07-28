@@ -37,7 +37,7 @@ map and **reachability ladder** below are **locked** (2026-07-26 program plan; r
 | Bertram Gilfoyle  | team — `gilfoyle` (ex-`refine`)          | ✅ Shipped — seat inheritance; deadpan verdicts, always actionable; battle-eligible (dual-home). Draws what is **already true** (§1b). Fidelity **4.50 / 4.38** |
 | Dinesh Chugtai    | team — **new** `dinesh` (gilfoyle-class) | ✅ Shipped — new seventh seat (not an inheritance); correct fix + a bid for credit; battle dual-home. Draws what **will break** (§1b). Fidelity **4.00 / 4.19** |
 | Jared Dunn        | team — `jared` (ex-`critique`)           | ✅ Shipped — seat inheritance; findings-only analyze seat; anxious compliance. First analyze-path inheritance. Fidelity **4.63 / 4.75**                         |
-| Russ Hanneman     | team — `russ` (ex-`goMad`)               | ✅ Shipped — seat inheritance; subject-rooted escalation; tres commas / tequila / SHIPS. Depth field `russDepth`. Fidelity **TBD in PR**                        |
+| Russ Hanneman     | team — `russ` (ex-`goMad`)               | ✅ Shipped — seat inheritance; subject-rooted escalation; tres commas / tequila / SHIPS. Depth field `russDepth`. Fidelity **4.81 / 5.00**                      |
 | Richard Hendricks | team — `explain` → `richard`             | ⬜ Session 7 — comment-only Wise Architect (no transform powers — ADR-0010)                                                                                     |
 | Gavin Belson      | senior — `cto` → `belson`                | ⬜ Session 8 — named CTO; scarcer than Barker; Jack reports to him; retires Marcus                                                                              |
 | Marcus            | senior — `cto`                           | 🚮 Retires when Belson lands — currently a Belson _homage_, not a replication                                                                                   |
@@ -52,14 +52,14 @@ Scores are `node scripts/barker-fidelity.mjs <id>` overall averages across the 4
 two consecutive runs, Vertex fast tier. **Treat these as the reference band, not a target to beat**
 — the axes are noisy above ~4.3 (see §3).
 
-| Character  | Runs                | Notes                                                                                                  |
-| ---------- | ------------------- | ------------------------------------------------------------------------------------------------------ |
-| `gilfoyle` | **4.50 / 4.38**     | Passed as shipped in Session 3 (4.50 / 4.63); unchanged by the §1b tendency split.                     |
-| `dinesh`   | **4.00 / 4.19**     | As shipped **3.81 / 4.25**; re-tuned to **4.50 / 4.31**; §1b's tendency split settled him at ~4.0–4.2. |
-| `barker`   | ≈3.95–4.0           | Session 1 plateau; unchanged since (Session 2 was picker plumbing, no voice card touched).             |
-| `erlich`   | 4.50 / 4.31         | Carried over from the card iteration recorded in §2; not re-measured on 2026-07-27.                    |
-| `jared`    | **4.63 / 4.75**     | Session 5 (2026-07-28); first analyze-path inheritance. Sustained well above bar.                      |
-| `russ`     | _(pending harness)_ | Session 6 (2026-07-28); fill after `node scripts/barker-fidelity.mjs russ`.                            |
+| Character  | Runs            | Notes                                                                                                  |
+| ---------- | --------------- | ------------------------------------------------------------------------------------------------------ |
+| `gilfoyle` | **4.50 / 4.38** | Passed as shipped in Session 3 (4.50 / 4.63); unchanged by the §1b tendency split.                     |
+| `dinesh`   | **4.00 / 4.19** | As shipped **3.81 / 4.25**; re-tuned to **4.50 / 4.31**; §1b's tendency split settled him at ~4.0–4.2. |
+| `barker`   | ≈3.95–4.0       | Session 1 plateau; unchanged since (Session 2 was picker plumbing, no voice card touched).             |
+| `erlich`   | 4.50 / 4.31     | Carried over from the card iteration recorded in §2; not re-measured on 2026-07-27.                    |
+| `jared`    | **4.63 / 4.75** | Session 5 (2026-07-28); first analyze-path inheritance. Sustained well above bar.                      |
+| `russ`     | **4.81 / 5.00** | Session 6 (2026-07-28); DeepSeek fast tier. Sustained well above bar.                                  |
 
 A session that cannot run the harness must say so in the PR (Sessions 2–4 correctly did) and leave
 the row blank rather than assert a score — but the row is then **not** done. Budget ~4 minutes and a
