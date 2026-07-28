@@ -69,7 +69,7 @@ describe('StakeholdersMascot', () => {
     expect(screen.getByRole('menu', { name: 'Your team' })).toBeTruthy();
     expect(screen.getByText('Bertram Gilfoyle')).toBeTruthy();
     expect(screen.getByText('Erlich Bachman')).toBeTruthy();
-    expect(screen.getByText('RUSS HANNEMAN')).toBeTruthy();
+    expect(screen.getByText('Russ Hanneman')).toBeTruthy();
     expect(screen.getByText('Jack Barker')).toBeTruthy();
     expect(screen.getByText('Jared Dunn')).toBeTruthy();
     expect(screen.getByText('The Wise Architect')).toBeTruthy();

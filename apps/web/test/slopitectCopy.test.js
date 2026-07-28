@@ -45,7 +45,7 @@ describe('slopitectCopy', () => {
   });
 
   it('returns variant-specific labels for known phases', () => {
-    expect(phaseCeremonyLabel('russ', 'invoke', 'Generate')).toMatch(/fire/);
+    expect(phaseCeremonyLabel('russ', 'invoke', 'Generate')).toMatch(/Shipping it loud/);
     expect(phaseCeremonyLabel('gilfoyle', 'invoke', 'Generate')).toBe('Patching prod 🦇');
     expect(phaseCeremonyLabel('jared', 'analyze', 'Analyze')).toBe('Reading it through carefully…');
   });
@@ -63,7 +63,9 @@ describe('slopitectCopy', () => {
     expect(phaseCeremonyLabel('barker', 'chart_transform', 'Transform')).toBe(
       'Killing the darlings, warmly…'
     );
-    expect(phaseCeremonyLabel('russ', 'anything_invoke', 'anything_invoke')).toMatch(/fire/);
+    expect(phaseCeremonyLabel('russ', 'anything_invoke', 'anything_invoke')).toMatch(
+      /Shipping it loud/
+    );
     expect(phaseCeremonyLabel('jared', 'forms_repair_3', 'forms_repair_3')).toMatch(/Still on me/);
     expect(phaseCeremonyLabel('explain', 'chart_style', 'Style')).toMatch(/history of this hue/);
   });

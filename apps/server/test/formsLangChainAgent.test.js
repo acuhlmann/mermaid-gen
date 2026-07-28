@@ -17,7 +17,7 @@ test('buildFormsTransformUserContent includes mode instructions and advisor prom
     russDepth: 3,
     advisorPrompt: 'Add a witness signature block'
   });
-  assert.match(body, /Go mad on this form/);
+  assert.match(body, /Escalate like Russ Hanneman/);
   assert.match(body, /depth 3/);
   assert.match(body, /witness signature/i);
   assert.match(body, /apply_forms_patch/);
