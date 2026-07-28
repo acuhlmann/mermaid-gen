@@ -95,6 +95,8 @@ function modeIntentPlanBeat(mode: string | null, requestSnippet: string): string
       return `Taking the liberty of boiling it down for the board${req}.`;
     case 'jared':
       return `Raising one careful finding${req}.`;
+    case 'richard':
+      return `Naming the pattern without changing the diagram${req}.`;
     case 'style':
       return `Updating visual theme and styling without changing structure${req}.`;
     case 'go':

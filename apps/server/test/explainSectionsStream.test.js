@@ -6,7 +6,7 @@ test('emitExplainSectionsBeforeFinal emits explain_sections artifact', () => {
   const out = [];
   const md = `## Explanation\n\nOverview.\n\n## Takeaways\n\nRemember.`;
   emitExplainSectionsBeforeFinal((e) => out.push(e), {
-    kind: 'explain',
+    kind: 'richard',
     analyzeText: md,
     contentType: 'mermaid'
   });

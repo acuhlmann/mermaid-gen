@@ -26,7 +26,7 @@ export const CONTROLS_EN = {
     fixTitle: 'Site Foreman · Fixing the slop',
     facilities: 'Facilities',
     facilitiesTitle: 'Call Facilities · fix the slop',
-    explain: 'Explain',
+    richard: 'Explain',
     clear: 'Clear',
     clearTitle: 'File a demolition permit · clear the desk and start fresh',
     demolish: 'Shredder',
@@ -283,7 +283,7 @@ export const CONTROLS_EN = {
     russ: 'Russ — subject-rooted escalation',
     barker: 'Barker — boil it down',
     jared: 'Jared — flag the process gap',
-    explain: 'Explain — what does this mean?',
+    richard: 'Richard — name the pattern',
     toggleHelp: 'Toggle this help',
     esc: 'Close menus / dialogs',
     arrows: 'Move focus across radial actions',
@@ -611,7 +611,7 @@ export const CONTROLS_EN = {
     erlich: 'is pitching',
     russ: 'is flexing commas',
     jared: 'is carefully flagging',
-    explain: 'is musing',
+    richard: 'is naming it',
     default: 'is thinking'
   },
   planBeat: {

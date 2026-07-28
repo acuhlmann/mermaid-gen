@@ -330,7 +330,7 @@ test('modelProfile is optional and accepts fast or quality', () => {
   const analyze = DiagramAnalyzeSchema.safeParse({
     revisionId: 0,
     diagramSource: 'flowchart TD\n  A --> B',
-    kind: 'explain',
+    kind: 'richard',
     modelProfile: 'quality'
   });
   assert.equal(analyze.success, true);
@@ -401,7 +401,7 @@ test('analyze payload accepts advisorPrompt for scoped stakeholder actions', () 
   const parsed = DiagramAnalyzeSchema.safeParse({
     revisionId: 0,
     diagramSource: 'flowchart LR\n  A --> B',
-    kind: 'explain',
+    kind: 'richard',
     advisorPrompt: 'The cache box is doing too much work.'
   });
   assert.equal(parsed.success, true);
@@ -412,7 +412,7 @@ test('analyze payload accepts extended focusNode for edges', () => {
   const parsed = DiagramAnalyzeSchema.safeParse({
     revisionId: 0,
     diagramSource: 'flowchart LR\n  A --> B',
-    kind: 'explain',
+    kind: 'richard',
     focusNode: {
       id: 'L_A_B_0',
       selectionKind: 'edge',
@@ -435,7 +435,7 @@ test('transform payloads accept erlich and reject retired wire ids', () => {
   };
   assert.equal(DiagramTransformIntentSchema.safeParse(base).success, true);
 
-  for (const retired of ['innovate', 'goMad', 'jared', 'explain', 'style']) {
+  for (const retired of ['innovate', 'goMad', 'jared', 'explain', 'richard', 'style']) {
     assert.equal(
       DiagramTransformIntentSchema.safeParse({ ...base, mode: retired }).success,
       false,

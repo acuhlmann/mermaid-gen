@@ -182,6 +182,24 @@ test('russ meeting voice card anchors the Silicon Valley replication', () => {
   assert.match(prompt, /speakerId "russ"/);
 });
 
+test('richard meeting voice card anchors the Silicon Valley replication', () => {
+  assert.ok(STAKEHOLDER_MEETING_VOICES.richard.includes('Richard Hendricks'));
+  assert.ok(STAKEHOLDER_MEETING_VOICES.richard.includes("HBO's Silicon Valley"));
+  assert.ok(STAKEHOLDER_MEETING_VOICES.richard.includes('anxious'));
+  assert.ok(STAKEHOLDER_MEETING_VOICES.richard.length > 40, 'richard needs a real voice card');
+  assert.equal(isOfficeSpeaker('richard'), true);
+  assert.equal(isOfficeColleague('richard'), false);
+  assert.equal(isOfficeSpeaker('explain'), false);
+  assert.equal(Object.hasOwn(STAKEHOLDER_MEETING_VOICES, 'explain'), false);
+
+  const prompt = buildMeetingSystemPrompt({
+    attendees: ['scrumMaster', 'richard', 'gilfoyle'],
+    facilitatorId: 'scrumMaster'
+  });
+  assert.match(prompt, /Richard Hendricks from HBO's Silicon Valley/);
+  assert.match(prompt, /speakerId "richard"/);
+});
+
 test('parseMomentReply tolerates fenced JSON and clamps output', () => {
   const raw =
     '```json\n{"subject":"FRIDGE","body":"  The fridge WILL be cleaned. ","actionPrompt":""}\n```';

@@ -61,7 +61,7 @@ export function useExplainDumbDown({
   const handleExplainDumbDown = useCallback(
     async (entryId) => {
       const entry = insightsEntriesRef.current.find((e) => e.id === entryId);
-      if (!entry || entry.variant !== 'explain' || (entry.status ?? 'running') !== 'done') return;
+      if (!entry || entry.variant !== 'richard' || (entry.status ?? 'running') !== 'done') return;
       if (explainDumbLoadingEntryId) return;
 
       const currentLevel = explainDumbLevelByEntryId[entryId] ?? 0;

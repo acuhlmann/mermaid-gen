@@ -85,13 +85,13 @@ export const VARIANT_PERSONAS = {
     xpAward: 25,
     xpStreakBonus: 5
   },
-  explain: {
-    name: 'The Wise Architect',
-    title: 'Principal Tech Evangelist',
-    tagline: 'Co-Design story time — gather round.',
-    avatarEmoji: '🧙',
-    entryLine: 'Picture, if you will…',
-    exitLine: 'Architecture explained 📜',
+  richard: {
+    name: 'Richard Hendricks',
+    title: 'Founder — Pattern Namer',
+    tagline: 'I think this shape has a name…',
+    avatarEmoji: '🤓',
+    entryLine: 'Okay — so if I’m reading this right…',
+    exitLine: 'Named it. Sorry if that was a lot 🤓',
     accentColorVar: '#0d9488',
     xpAward: 25,
     xpStreakBonus: 5
@@ -194,22 +194,22 @@ export const VARIANT_QUOTES = {
     'If someone is on call for this, I’d love to know who.',
     'I’d feel much better with an owner on that box.'
   ],
-  explain: [
-    'Picture, if you will…',
-    'Notice the symmetry few people see.',
-    'There is a named pattern here. There always is.',
+  richard: [
+    'Okay — so if I’m reading this right…',
+    'I think this shape has a name.',
+    'Sorry — one more thing about that box.',
+    'It’s a feedback loop, not a pipeline. I think.',
+    'In a perfect world you’d never draw it like this.',
     'Did you know: every diagram is a small theory of the world.',
-    'A diagram is a frozen argument.',
-    'In a perfect world, you’d never draw it like this.',
-    'This is the shape of an idea, not the idea.',
-    'Allow me to gesture vaguely.',
-    'The path of least confusion is forward.',
-    'Every box is a verb in disguise.',
-    'Fun fact nobody asked for, incoming.',
-    'Legend has it this has a name. It does.',
-    'Let me over-explain exactly one detail…',
+    'I started explaining and I should stop. One more clause.',
+    'The path of least confusion is forward — if that helps.',
+    'Fun fact nobody asked for, incoming. Sorry.',
+    'Supposedly this pattern is older than the software.',
+    'I’m not proposing a change. I’m naming what it already is.',
+    'If that makes sense. It does. I think it does.',
     'Beautiful in theory, awkward in practice — my favorite kind.',
-    'Strange but true: this shape is older than the software.'
+    'Wait — the label is doing two jobs. That matters.',
+    'Legend has it this has a name. It does.'
   ],
   barker: [
     'I’ve taken the liberty.',
@@ -319,7 +319,7 @@ export const PHASE_CEREMONIES = {
     erlich: 'Spotting the bolder shape…',
     russ: 'Eyeballing the valuation…',
     jared: 'Reading it through carefully…',
-    explain: 'Pondering the diagram…',
+    richard: 'Naming the pattern…',
     barker: 'Admiring the story…'
   },
   analyze_stream: {
@@ -328,7 +328,7 @@ export const PHASE_CEREMONIES = {
     erlich: 'Keynoting the pivot…',
     russ: 'Calling it a keynote…',
     jared: 'Writing up the finding…',
-    explain: 'Composing the saga…',
+    richard: 'Over-explaining on purpose…',
     barker: 'Boiling it down for the board…'
   },
   intent: {
@@ -337,7 +337,7 @@ export const PHASE_CEREMONIES = {
     erlich: 'Aligning the vision…',
     russ: 'Skipping straight to tres commas…',
     jared: 'Making sure I understood you…',
-    explain: 'Aligning intent…',
+    richard: 'Checking I understood…',
     barker: 'Aligning the triangles…'
   },
   agent_run: {
@@ -346,7 +346,7 @@ export const PHASE_CEREMONIES = {
     erlich: 'Graciously elevating it…',
     russ: 'ESCALATING YOUR TOPIC 🍾',
     jared: 'Raising it properly…',
-    explain: 'Annotating the architecture…',
+    richard: 'Annotating what it already is…',
     barker: 'Taking the liberty…'
   },
   transform: {
@@ -355,7 +355,7 @@ export const PHASE_CEREMONIES = {
     erlich: 'Elevating the layout…',
     russ: 'Making it louder — on subject 🍾',
     jared: 'Noting the process gap…',
-    explain: 'Tracing the reshape…',
+    richard: 'Still not changing it — naming it…',
     barker: 'Killing the darlings, warmly…'
   },
   run_started: {
@@ -364,7 +364,7 @@ export const PHASE_CEREMONIES = {
     erlich: 'Let me ask you this…',
     russ: 'OK NOW HOLD ON 🍾',
     jared: 'Sorry — one moment…',
-    explain: 'Clearing the throat…',
+    richard: 'Okay — so…',
     barker: 'I don’t know about you, but I am excited…'
   },
   planning: {
@@ -373,7 +373,7 @@ export const PHASE_CEREMONIES = {
     erlich: 'Drafting the keynote…',
     russ: 'Pricing the diagram in commas…',
     jared: 'Outlining what needs an owner…',
-    explain: 'Drafting the chapter plan…',
+    richard: 'Outlining the insight…',
     barker: 'Drafting the one-pager…'
   },
   syntax_fixer: {
@@ -382,7 +382,7 @@ export const PHASE_CEREMONIES = {
     erlich: 'Mending syntax, brilliantly…',
     russ: 'Taping it with tequila money…',
     jared: 'Correcting it before anyone sees…',
-    explain: 'Smoothing a rough passage…',
+    richard: 'Smoothing one rough clause…',
     barker: 'Tightening the deck…'
   },
   syntax_repair: {
@@ -391,7 +391,7 @@ export const PHASE_CEREMONIES = {
     erlich: 'Re-mending syntax, again brilliantly…',
     russ: 'More tequila money…',
     jared: 'Correcting it again, apologies…',
-    explain: 'Revising the rough draft…',
+    richard: 'Revising the footnote…',
     barker: 'Re-drafting the deck…'
   },
   style: {
@@ -400,7 +400,7 @@ export const PHASE_CEREMONIES = {
     erlich: 'Restyling for the keynote…',
     russ: 'LOUDER PALETTE. OBVIOUSLY 🍾',
     jared: 'Flagging what will not read…',
-    explain: 'On the history of this hue…',
+    richard: 'Noticing the hue has a history…',
     barker: 'One brand color only.'
   },
   patch_retry: {
@@ -409,7 +409,7 @@ export const PHASE_CEREMONIES = {
     erlich: 'Awaiting the board’s approval…',
     russ: 'Buying the CAB a round…',
     jared: 'Waiting, and worrying a little…',
-    explain: 'Taking another pass…',
+    richard: 'Taking another anxious pass…',
     barker: 'Asking the board for a redraft…'
   },
   invoke: {
@@ -418,7 +418,7 @@ export const PHASE_CEREMONIES = {
     erlich: 'Elevating it 🕶',
     russ: 'Shipping it loud 🍾',
     jared: 'Doing it properly…',
-    explain: 'Narrating the draft…',
+    richard: 'Narrating, not mutating…',
     barker: 'Taking the liberty 🧘'
   },
   invoke_fallback: {
@@ -427,7 +427,7 @@ export const PHASE_CEREMONIES = {
     erlich: 'Pivot in flight…',
     russ: 'WE ESCALATE',
     jared: 'Falling back — noting it anyway…',
-    explain: 'Closing the chapter gracefully…',
+    richard: 'Stopping before I spiral…',
     barker: 'Rerouting the one-pager…'
   },
   repair_1: {
@@ -436,7 +436,7 @@ export const PHASE_CEREMONIES = {
     erlich: 'Vision repair in flight…',
     russ: 'More commas! 🍾🍾',
     jared: 'This one is on me. Fixing it…',
-    explain: 'Rewinding the parchment…',
+    richard: 'Rewinding one clause…',
     barker: 'Sliding the timeline, warmly 🗓️'
   },
   repair_2: {
@@ -445,13 +445,13 @@ export const PHASE_CEREMONIES = {
     erlich: 'Second vision repair in flight…',
     russ: 'TRES COMMAS ENERGY 🍾🍾🍾',
     jared: 'Still on me. Fixing it again…',
-    explain: 'Revising the footnotes…',
+    richard: 'Still naming it, not changing it…',
     barker: 'Forming a committee about it 🗓️🗓️'
   }
 };
 
 /**
- * @param {string} variant - one of gilfoyle/dinesh/erlich/russ/jared/explain/barker (or anything else → fallback).
+ * @param {string} variant - one of gilfoyle/dinesh/erlich/russ/jared/richard/barker (or anything else → fallback).
  * @param {string} phaseId - canonical phase id from SSE.
  * @param {string} fallbackLabel - the literal label that the server sent; rendered as-is when no override.
  */
@@ -469,7 +469,7 @@ export const VARIANT_TAGLINES = {
   erlich: 'Slopitect: Erlich Bachman pitches the bold move',
   russ: 'Slopitect: Russ Hanneman escalates it',
   jared: 'Slopitect: Jared Dunn raises one finding',
-  explain: 'Slopitect: Co-Design story time',
+  richard: 'Slopitect: Richard is naming the pattern',
   barker: 'Slopitect: Success Theater mode',
   fix: 'Slopitect: site foreman fixing the slop'
 };
@@ -480,7 +480,7 @@ export const VARIANT_BOOT_HEADLINES = {
   erlich: 'Erlich Bachman is graciously elevating…',
   russ: 'Tres commas just walked in…',
   jared: 'Jared has one thing to flag…',
-  explain: 'Co-Design story time — gather round',
+  richard: 'Richard is about to over-explain…',
   barker: 'Jack Barker is taking the liberty…'
 };
 
@@ -628,10 +628,10 @@ export const VARIANT_MASTERY_ACHIEVEMENTS = {
     title: '📋 SOMEONE HAD TO SAY IT',
     subtitle: '10 findings raised. Every one of them had an owner.'
   },
-  explain: {
-    id: 'archivedStoryteller',
-    title: '🧙 ARCHIVED STORYTELLER',
-    subtitle: '10 explanations canonised in the architecture lore.'
+  richard: {
+    id: 'namedThePattern',
+    title: '🤓 NAMED THE PATTERN',
+    subtitle: '10 insights named. Nobody asked him to stop.'
   },
   barker: {
     id: 'conjoinedTriangles',

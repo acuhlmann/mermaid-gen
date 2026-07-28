@@ -15,7 +15,7 @@ const VARIANT_CLASS = {
   erlich: 'is-erlich',
   russ: 'is-russ',
   jared: 'is-jared',
-  explain: 'is-explain'
+  richard: 'is-richard'
 };
 
 /** Stable random-ish positions for falling hard-hats — no per-frame churn. */
@@ -206,7 +206,7 @@ export default function DiagramRunFx({ variant, streaming = false, intensity = '
         </>
       ) : null}
 
-      {variant === 'explain' ? (
+      {variant === 'richard' ? (
         <>
           <div className="diagram-run-fx-parchment-vignette" />
           {PIN_SLOTS.map((slot, i) => (

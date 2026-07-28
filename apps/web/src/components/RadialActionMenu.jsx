@@ -20,7 +20,7 @@ import { formatLocale } from '../i18n/formatLocale.js';
 import { getVariantPersona } from '../utils/slopitectCopy.js';
 import { overlayLayerStyle, useOverlayLayer } from '../hooks/useOverlayLayer.js';
 
-const WISE_ARCHITECT_EMOJI = getVariantPersona('explain').avatarEmoji || '🧙';
+const WISE_ARCHITECT_EMOJI = getVariantPersona('richard').avatarEmoji || '🧙';
 const STAKEHOLDERS_EMOJI = '👥';
 const RENDER_MODE_EMOJI = '🔄';
 

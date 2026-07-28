@@ -181,7 +181,7 @@ export const FLOOR_SEATS = [
   { id: 'dinesh', x: 7, y: 4, desk: true, zone: 'pod' },
   { id: 'erlich', x: 4, y: 6, desk: true, zone: 'pod' },
   { id: 'jared', x: 8, y: 5, desk: true, zone: 'pod' },
-  { id: 'explain', x: 5, y: 8, desk: true, zone: 'pod' },
+  { id: 'richard', x: 5, y: 8, desk: true, zone: 'pod' },
   { id: 'russ', x: 9, y: 6, desk: true, zone: 'pod' },
 
   // The floor.

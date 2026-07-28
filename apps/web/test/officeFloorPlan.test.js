@@ -383,7 +383,7 @@ describe('peek marks (slice 6)', () => {
       'dinesh',
       'erlich',
       'jared',
-      'explain',
+      'richard',
       'russ',
       'helpdesk',
       'scrumMaster',

@@ -29,7 +29,7 @@ describe('useDiagramHotkeys', () => {
       ['l', 'erlich'],
       ['m', 'russ'],
       ['c', 'jared'],
-      ['e', 'explain'],
+      ['e', 'richard'],
       ['b', 'barker']
     ]) {
       fireEvent.keyDown(window, { key });

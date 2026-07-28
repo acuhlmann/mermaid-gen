@@ -66,9 +66,9 @@ export const OFFICE_DESK_WORK = {
     look: 'tickets',
     line: 'Sorry — I saw you walk by and now I have to raise the open finding.'
   },
-  explain: {
+  richard: {
     look: 'slides',
-    line: 'Ah. Good. This one has a story, and the story begins in 1998.'
+    line: 'Okay — so if I’m reading this right, this box is doing two jobs.'
   },
 
   // ── senior ──────────────────────────────────────────────────────────────

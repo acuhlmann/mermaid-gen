@@ -6,7 +6,7 @@ const VARIANT_CLASS = {
   erlich: 'is-variant-erlich',
   russ: 'is-variant-russ',
   jared: 'is-variant-jared',
-  explain: 'is-variant-explain'
+  richard: 'is-variant-richard'
 };
 
 function formatVariantName(variant, actions) {

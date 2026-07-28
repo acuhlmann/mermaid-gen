@@ -9,7 +9,7 @@ export function emitExplainSectionsBeforeFinal(
   input: { kind?: string; analyzeText?: string; contentType?: string }
 ): void {
   if (typeof emit !== 'function') return;
-  if (input?.kind !== 'explain') return;
+  if (input?.kind !== 'richard') return;
   const text = input.analyzeText;
   if (typeof text !== 'string' || !text.trim()) return;
   // Explain artifacts require per-content-type heading tables (mermaid, infographic).

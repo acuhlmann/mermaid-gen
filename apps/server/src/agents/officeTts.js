@@ -68,7 +68,7 @@ const VOICES_BY_LANG = {
     erlich: { name: 'en-US-Wavenet-I', languageCode: 'en-US', speakingRate: 1.08, pitch: 1.0 },
     russ: { name: 'en-US-Wavenet-J', languageCode: 'en-US', speakingRate: 1.14, pitch: 3.5 },
     jared: { name: 'en-US-Wavenet-B', languageCode: 'en-US', speakingRate: 1.04, pitch: 1.6 },
-    explain: { name: 'en-US-Wavenet-C', languageCode: 'en-US', speakingRate: 0.92, pitch: 0.5 },
+    richard: { name: 'en-US-Wavenet-C', languageCode: 'en-US', speakingRate: 0.92, pitch: 0.5 },
     cto: { name: 'en-US-Wavenet-A', languageCode: 'en-US', speakingRate: 1.05, pitch: 1.0 },
     cfo: { name: 'en-US-Wavenet-F', languageCode: 'en-US', speakingRate: 0.9, pitch: -2.0 },
     barker: { name: 'en-US-Wavenet-C', languageCode: 'en-US', speakingRate: 0.9, pitch: -1.5 }
@@ -86,7 +86,7 @@ const VOICES_BY_LANG = {
     erlich: { name: 'en-AU-Wavenet-B', languageCode: 'en-AU', speakingRate: 1.08, pitch: 1.0 },
     russ: { name: 'en-AU-Wavenet-D', languageCode: 'en-AU', speakingRate: 1.14, pitch: 3.0 },
     jared: { name: 'en-AU-Wavenet-D', languageCode: 'en-AU', speakingRate: 1.04, pitch: 1.6 },
-    explain: { name: 'en-AU-Wavenet-C', languageCode: 'en-AU', speakingRate: 0.92, pitch: 0.5 },
+    richard: { name: 'en-AU-Wavenet-C', languageCode: 'en-AU', speakingRate: 0.92, pitch: 0.5 },
     cto: { name: 'en-AU-Wavenet-B', languageCode: 'en-AU', speakingRate: 1.05, pitch: 1.0 },
     cfo: { name: 'en-AU-Wavenet-A', languageCode: 'en-AU', speakingRate: 0.9, pitch: -2.0 },
     barker: { name: 'en-AU-Wavenet-B', languageCode: 'en-AU', speakingRate: 0.9, pitch: -1.5 }
@@ -119,7 +119,7 @@ const VOICES_BY_LANG = {
     erlich: { name: 'cmn-CN-Wavenet-B', languageCode: 'cmn-CN', speakingRate: 1.06, pitch: 1.0 },
     russ: { name: 'cmn-CN-Wavenet-C', languageCode: 'cmn-CN', speakingRate: 1.12, pitch: 3.0 },
     jared: { name: 'cmn-CN-Wavenet-C', languageCode: 'cmn-CN', speakingRate: 1.02, pitch: 1.4 },
-    explain: { name: 'cmn-CN-Wavenet-A', languageCode: 'cmn-CN', speakingRate: 0.92, pitch: 0.5 },
+    richard: { name: 'cmn-CN-Wavenet-A', languageCode: 'cmn-CN', speakingRate: 0.92, pitch: 0.5 },
     cto: { name: 'cmn-CN-Wavenet-B', languageCode: 'cmn-CN', speakingRate: 1.04, pitch: 1.0 },
     cfo: { name: 'cmn-CN-Wavenet-D', languageCode: 'cmn-CN', speakingRate: 0.9, pitch: -2.0 },
     barker: { name: 'cmn-CN-Wavenet-B', languageCode: 'cmn-CN', speakingRate: 0.9, pitch: -1.5 }
@@ -152,7 +152,7 @@ const VOICES_BY_LANG = {
     erlich: { name: 'cmn-TW-Wavenet-B', languageCode: 'cmn-TW', speakingRate: 1.06, pitch: 1.0 },
     russ: { name: 'cmn-TW-Wavenet-C', languageCode: 'cmn-TW', speakingRate: 1.12, pitch: 3.0 },
     jared: { name: 'cmn-TW-Wavenet-C', languageCode: 'cmn-TW', speakingRate: 1.02, pitch: 1.4 },
-    explain: { name: 'cmn-TW-Wavenet-A', languageCode: 'cmn-TW', speakingRate: 0.92, pitch: 0.5 },
+    richard: { name: 'cmn-TW-Wavenet-A', languageCode: 'cmn-TW', speakingRate: 0.92, pitch: 0.5 },
     cto: { name: 'cmn-TW-Wavenet-B', languageCode: 'cmn-TW', speakingRate: 1.04, pitch: 1.0 },
     cfo: { name: 'cmn-TW-Wavenet-A', languageCode: 'cmn-TW', speakingRate: 0.9, pitch: -2.0 },
     barker: { name: 'cmn-TW-Wavenet-B', languageCode: 'cmn-TW', speakingRate: 0.9, pitch: -1.5 }
@@ -186,7 +186,7 @@ const NEURAL2_VOICE_NAMES = {
     erlich: 'en-US-Neural2-I',
     russ: 'en-US-Neural2-J',
     jared: 'en-US-Neural2-A',
-    explain: 'en-US-Neural2-C',
+    richard: 'en-US-Neural2-C',
     cto: 'en-US-Neural2-A',
     cfo: 'en-US-Neural2-F',
     barker: 'en-US-Neural2-C'
@@ -204,7 +204,7 @@ const NEURAL2_VOICE_NAMES = {
     erlich: 'en-AU-Neural2-B',
     russ: 'en-AU-Neural2-D',
     jared: 'en-AU-Neural2-D',
-    explain: 'en-AU-Neural2-C',
+    richard: 'en-AU-Neural2-C',
     cto: 'en-AU-Neural2-B',
     cfo: 'en-AU-Neural2-A',
     barker: 'en-AU-Neural2-B'
@@ -234,7 +234,7 @@ const CHIRP3_VOICE_ROSTER = {
   erlich: 'Fenrir',
   russ: 'Fenrir',
   jared: 'Charon',
-  explain: 'Aoede',
+  richard: 'Aoede',
   // senior
   ciso: 'Charon',
   cto: 'Puck',

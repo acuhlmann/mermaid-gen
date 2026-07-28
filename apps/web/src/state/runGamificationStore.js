@@ -28,7 +28,7 @@ export const COMBO_KING_THRESHOLD = 5;
 export const STORAGE_KEY = 'archislop:slopitect-progress';
 const SCHEMA_VERSION = 3;
 
-const VARIANTS = ['gilfoyle', 'dinesh', 'erlich', 'russ', 'jared', 'explain', 'barker'];
+const VARIANTS = ['gilfoyle', 'dinesh', 'erlich', 'russ', 'jared', 'richard', 'barker'];
 
 export function createInitialState() {
   const runsByVariant = {};

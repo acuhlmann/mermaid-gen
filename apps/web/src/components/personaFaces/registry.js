@@ -90,14 +90,14 @@ export const PERSONA_FACE_TRAITS = {
     accessory: 'none',
     expression: 'neutral'
   },
-  explain: {
+  richard: {
     skin: 'porcelain',
-    hair: 'long',
-    hairColor: 'white',
-    facialHair: 'beard',
-    glasses: 'none',
+    hair: 'short',
+    hairColor: 'brown',
+    facialHair: 'none',
+    glasses: 'round',
     accessory: 'none',
-    expression: 'smile'
+    expression: 'tired'
   },
 
   // ── senior ──────────────────────────────────────────────────────────────

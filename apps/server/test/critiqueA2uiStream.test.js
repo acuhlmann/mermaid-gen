@@ -16,7 +16,7 @@ test('emitCritiqueA2uiBeforeFinal emits a2ui when jared analyze has actionable i
 test('emitCritiqueA2uiBeforeFinal skips non-jared analyze kinds', () => {
   const out = [];
   emitCritiqueA2uiBeforeFinal((e) => out.push(e), {
-    kind: 'explain',
+    kind: 'richard',
     analyzeText: '## Actionable\n\n- X\n'
   });
   assert.deepEqual(out, []);

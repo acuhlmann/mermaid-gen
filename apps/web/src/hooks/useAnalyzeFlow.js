@@ -169,7 +169,7 @@ export function useAnalyzeFlow({
         const syncedState = await syncDiagramOrThrow();
         const labels = {
           jared: controls.actions.jared,
-          explain: controls.actions.explain
+          richard: controls.actions.richard
         };
         await runStreamingAgent({
           operation: 'analyze',
@@ -209,7 +209,7 @@ export function useAnalyzeFlow({
     [
       contentMode,
       controls.actions.jared,
-      controls.actions.explain,
+      controls.actions.richard,
       hasInteractedRef,
       loadingRef,
       modelProfile,

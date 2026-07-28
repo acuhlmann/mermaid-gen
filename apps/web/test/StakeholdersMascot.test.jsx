@@ -9,7 +9,7 @@ const TEST_PERSONAS = [
   { variant: 'russ', onClick: vi.fn() },
   { variant: 'barker', onClick: vi.fn() },
   { variant: 'jared', onClick: vi.fn() },
-  { variant: 'explain', onClick: vi.fn() }
+  { variant: 'richard', onClick: vi.fn() }
 ];
 
 describe('StakeholdersMascot', () => {
@@ -72,7 +72,7 @@ describe('StakeholdersMascot', () => {
     expect(screen.getByText('Russ Hanneman')).toBeTruthy();
     expect(screen.getByText('Jack Barker')).toBeTruthy();
     expect(screen.getByText('Jared Dunn')).toBeTruthy();
-    expect(screen.getByText('The Wise Architect')).toBeTruthy();
+    expect(screen.getByText('Richard Hendricks')).toBeTruthy();
   });
 
   it('exposes Gilfoyle in the gilfoyle row tooltip', () => {
@@ -92,9 +92,9 @@ describe('StakeholdersMascot', () => {
     expect(onRefine).toHaveBeenCalledTimes(1);
   });
 
-  it('shows Wise Architect comment controls after thinking completes', () => {
+  it('shows Richard comment controls after thinking completes', () => {
     const bubbleProps = {
-      persona: 'explain',
+      persona: 'richard',
       suggestion: 'Consider the saga between Order and Payment.',
       kind: 'comment',
       onDismiss: vi.fn(),
@@ -104,8 +104,8 @@ describe('StakeholdersMascot', () => {
     const { rerender } = render(
       <StakeholdersMascot
         personas={TEST_PERSONAS}
-        activeAdvisorVariant="explain"
-        thinkingPersona="explain"
+        activeAdvisorVariant="richard"
+        thinkingPersona="richard"
       />
     );
     expect(screen.getByTestId('advisor-thinking-indicator')).toBeTruthy();
@@ -113,7 +113,7 @@ describe('StakeholdersMascot', () => {
     rerender(
       <StakeholdersMascot
         personas={TEST_PERSONAS}
-        activeAdvisorVariant="explain"
+        activeAdvisorVariant="richard"
         thinkingPersona={null}
         bubbleProps={bubbleProps}
       />
@@ -121,7 +121,7 @@ describe('StakeholdersMascot', () => {
     expect(screen.queryByTestId('advisor-thinking-indicator')).toBeNull();
     const bubble = screen.getByTestId('advisor-speech-bubble');
     expect(bubble).toBeTruthy();
-    expect(bubble.classList.contains('is-explain')).toBe(true);
+    expect(bubble.classList.contains('is-richard')).toBe(true);
     expect(screen.getByRole('button', { name: /Dumb it Down/i })).toBeTruthy();
     expect(screen.getByRole('button', { name: /Drill Deeper/i })).toBeTruthy();
     expect(screen.getByText(/Consider the saga/i)).toBeTruthy();
@@ -131,18 +131,18 @@ describe('StakeholdersMascot', () => {
     render(
       <StakeholdersMascot
         personas={TEST_PERSONAS}
-        activeAdvisorVariant="explain"
-        thinkingPersona="explain"
+        activeAdvisorVariant="richard"
+        thinkingPersona="richard"
       />
     );
     expect(screen.getByTestId('advisor-thinking-indicator')).toBeTruthy();
     expect(screen.queryByTestId('advisor-speech-bubble')).toBeNull();
-    expect(screen.getByText(/is musing/i)).toBeTruthy();
+    expect(screen.getByText(/is naming it/i)).toBeTruthy();
   });
 
   it('prefers the speech bubble once suggestion text is available', () => {
     const bubbleProps = {
-      persona: 'explain',
+      persona: 'richard',
       suggestion: 'Consider the saga between Order and Payment.',
       kind: 'comment',
       onDismiss: vi.fn()
@@ -150,8 +150,8 @@ describe('StakeholdersMascot', () => {
     render(
       <StakeholdersMascot
         personas={TEST_PERSONAS}
-        activeAdvisorVariant="explain"
-        thinkingPersona="explain"
+        activeAdvisorVariant="richard"
+        thinkingPersona="richard"
         bubbleProps={bubbleProps}
       />
     );

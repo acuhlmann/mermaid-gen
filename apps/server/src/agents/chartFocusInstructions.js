@@ -87,7 +87,7 @@ export function buildChartAnalyzeFocusInstructions(focusNode, kind) {
   if (!focusNode?.id || focusNode.selectionKind !== 'chart-mark') return '';
   const { role, summary, target } = describeSelection(focusNode);
 
-  if (kind === 'explain') {
+  if (kind === 'richard') {
     return `\n\nSelection focus: The user selected ${summary} Lead with what this ${role} communicates in ## Explanation and ## Main message. Use ## Key data points to quote its label/value verbatim, and ## Takeaways to draw conclusions tied to it. Mention other marks only as supporting context.`;
   }
 

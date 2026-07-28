@@ -2,7 +2,7 @@
 export const ADVISOR_TRANSFORM_MODES = new Set(['gilfoyle', 'dinesh', 'erlich', 'russ', 'barker']);
 
 /** Analyze kinds runnable via `runAnalyze` (diagram must be non-empty). */
-export const ADVISOR_ANALYZE_KINDS = new Set(['jared', 'explain']);
+export const ADVISOR_ANALYZE_KINDS = new Set(['jared', 'richard']);
 
 /**
  * Classifies advisor "Do it" persona into the correct agent operation.

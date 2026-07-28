@@ -16,7 +16,7 @@ function buildEntries(copy) {
     { keys: ['M'], label: copy.russ },
     { keys: ['B'], label: copy.barker },
     { keys: ['C'], label: copy.jared },
-    { keys: ['E'], label: copy.explain },
+    { keys: ['E'], label: copy.richard },
     { keys: ['?'], label: copy.toggleHelp },
     { keys: ['Esc'], label: copy.esc },
     { keys: ['↑', '↓', '←', '→'], label: copy.arrows },

@@ -21,7 +21,7 @@ export const CONTROLS_ZH_CN = {
     fix: '修复',
     fixPersona: '现场工头',
     fixTitle: '现场工头 · 修复这坨烂图',
-    explain: '讲解',
+    richard: '讲解',
     clear: '清空',
     clearTitle: '清空 · 申请拆除许可证，清掉工位重来',
     demolish: '碎纸机',
@@ -195,7 +195,7 @@ export const CONTROLS_ZH_CN = {
     russ: 'Russ — 主题升级',
     barker: 'Barker — 浓缩要点',
     jared: 'Jared — 标出流程缺口',
-    explain: '讲解 — 这是什么意思？',
+    richard: 'Richard — 命名模式',
     toggleHelp: '切换此帮助',
     esc: '关闭菜单 / 对话框',
     arrows: '在环形操作中移动焦点',
@@ -517,7 +517,7 @@ export const CONTROLS_ZH_CN = {
     erlich: '正在推销愿景',
     russ: '在秀逗号',
     jared: '正在谨慎地提出',
-    explain: '正在思索',
+    richard: '正在命名',
     default: '正在思考'
   },
   planBeat: {

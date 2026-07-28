@@ -303,7 +303,7 @@ describe('streamDiagramAgent', () => {
         streamDiagramAgent(
           {
             operation: 'analyze',
-            kind: 'explain',
+            kind: 'richard',
             revisionId: 0,
             diagramSource: 'flowchart TD\n  A --> B'
           },
@@ -333,7 +333,7 @@ describe('streamDiagramAgent', () => {
       const promise = streamDiagramAgent(
         {
           operation: 'analyze',
-          kind: 'explain',
+          kind: 'richard',
           revisionId: 0,
           diagramSource: 'flowchart TD\n  A --> B'
         },
@@ -376,7 +376,7 @@ describe('streamDiagramAgent', () => {
       await streamDiagramAgent(
         {
           operation: 'analyze',
-          kind: 'explain',
+          kind: 'richard',
           revisionId: 0,
           diagramSource: 'flowchart TD\n  A --> B'
         },
@@ -414,7 +414,7 @@ describe('streamDiagramAgent', () => {
         streamDiagramAgent(
           {
             operation: 'analyze',
-            kind: 'explain',
+            kind: 'richard',
             revisionId: 0,
             diagramSource: 'flowchart TD\n  A --> B'
           },

@@ -23,7 +23,7 @@ export const CONTROLS_EN_AU = {
     fixTitle: 'Site Foreman · Sorting this slop',
     facilities: 'Facilities',
     facilitiesTitle: 'Call Facilities · sort the slop',
-    explain: 'Explain',
+    richard: 'Explain',
     clear: 'Chuck it',
     clearTitle: 'File a demo permit · chuck it and start fresh',
     demolish: 'Shredder',
@@ -243,7 +243,7 @@ export const CONTROLS_EN_AU = {
     russ: 'Russ — subject-rooted escalation',
     barker: 'Barker — boil it down',
     jared: 'Jared — flag the process gap',
-    explain: 'Explain — what does this mean?',
+    richard: 'Richard — name the pattern',
     toggleHelp: 'Toggle this help',
     esc: 'Close menus / dialogs',
     arrows: 'Move focus across radial actions',
@@ -557,7 +557,7 @@ export const CONTROLS_EN_AU = {
     erlich: 'is pitching',
     russ: 'is flexing commas',
     jared: 'is carefully flagging',
-    explain: 'is musing',
+    richard: 'is naming it',
     default: 'is thinking'
   },
   planBeat: {

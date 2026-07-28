@@ -5,7 +5,7 @@ import {
   playJaredBoot,
   playDineshBoot,
   playErlichBoot,
-  playExplainBoot,
+  playRichardBoot,
   playRussBoot,
   playGilfoyleBoot
 } from '../../utils/agentChimes.js';
@@ -76,7 +76,7 @@ export function useRadialActionHandler({
         action.id === 'erlich' ||
         action.id === 'russ' ||
         action.id === 'jared' ||
-        action.id === 'explain' ||
+        action.id === 'richard' ||
         action.id === 'barker'
           ? action.id
           : null;
@@ -87,7 +87,7 @@ export function useRadialActionHandler({
         else if (variantForBoot === 'erlich') tryAgentSound(playErlichBoot);
         else if (variantForBoot === 'russ') tryAgentSound(playRussBoot);
         else if (variantForBoot === 'jared') tryAgentSound(playJaredBoot);
-        else if (variantForBoot === 'explain') tryAgentSound(playExplainBoot);
+        else if (variantForBoot === 'richard') tryAgentSound(playRichardBoot);
       }
       if (action.id === 'gilfoyle') runTransform('gilfoyle', runOpts);
       else if (action.id === 'dinesh') runTransform('dinesh', runOpts);
@@ -95,7 +95,7 @@ export function useRadialActionHandler({
       else if (action.id === 'russ') runTransform('russ', runOpts);
       else if (action.id === 'barker') runTransform('barker', runOpts);
       else if (action.id === 'jared') runAnalyze('jared', runOpts);
-      else if (action.id === 'explain') runAnalyze('explain', runOpts);
+      else if (action.id === 'richard') runAnalyze('richard', runOpts);
       else if (action.id === 'fix') handleFixFromCritique('all');
     },
     [

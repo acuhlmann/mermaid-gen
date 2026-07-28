@@ -373,7 +373,7 @@ export function playJaredBoot(audioContextRef) {
 }
 
 /** Explain boot: scroll-unfurl soft chime (two-note open fifth). */
-export function playExplainBoot(audioContextRef) {
+export function playRichardBoot(audioContextRef) {
   playToneSeq(
     audioContextRef,
     [
@@ -420,7 +420,7 @@ export function playJaredCompletion(audioContextRef) {
   );
 }
 
-export function playExplainCompletion(audioContextRef) {
+export function playRichardCompletion(audioContextRef) {
   // gentle plagal cadence
   playToneSeq(audioContextRef, [
     { freq: 523.25, dur: 0.09, peak: 0.04 },
@@ -466,7 +466,7 @@ export function playJaredTokenTick(audioContextRef) {
   });
 }
 
-export function playExplainTokenTick(audioContextRef) {
+export function playRichardTokenTick(audioContextRef) {
   playShortTone(audioContextRef, {
     type: 'sine',
     freqHz: 740,
@@ -697,7 +697,7 @@ export function playJaredScribbleLoop(audioContextRef) {
 }
 
 /** Explain: parchment page-flip — soft mid-frequency whoosh. */
-export function playExplainPageFlipLoop(audioContextRef) {
+export function playRichardPageFlipLoop(audioContextRef) {
   const context = getContext(audioContextRef);
   if (!context) return;
   const now = context.currentTime;

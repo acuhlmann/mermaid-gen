@@ -1061,7 +1061,7 @@ flowchart TB
           {
             id: 'e-exp',
             title: 'Explain — diagram',
-            variant: 'explain',
+            variant: 'richard',
             status: 'done',
             content: 'Plain prose.',
             technicalActions: []
@@ -1081,7 +1081,7 @@ flowchart TB
           {
             id: 'e-exp-rich',
             title: 'Explain — node',
-            variant: 'explain',
+            variant: 'richard',
             status: 'done',
             content:
               'Quick orientation before sections.\n\n## Explanation\nOverview text.\n\n## Main flows\nFlow bullet.\n\n## Key entities\nEntity note.\n\n## Takeaways\nRemember this.',
@@ -1120,7 +1120,7 @@ flowchart TB
           {
             id: 'e-exp-artifact',
             title: 'Explain — diagram',
-            variant: 'explain',
+            variant: 'richard',
             status: 'done',
             content: '## Explanation\n\nFallback prose.',
             explainSections: {
@@ -1152,7 +1152,7 @@ flowchart TB
           {
             id: 'e-exp-dumb',
             title: 'Explain — diagram',
-            variant: 'explain',
+            variant: 'richard',
             status: 'done',
             content: '## Explanation\n\nOverview text.',
             technicalActions: []
@@ -1176,7 +1176,7 @@ flowchart TB
           {
             id: 'e-exp-kid',
             title: 'Explain — diagram',
-            variant: 'explain',
+            variant: 'richard',
             status: 'done',
             content: '## Explanation\n\nOverview.',
             technicalActions: []
@@ -1199,7 +1199,7 @@ flowchart TB
           {
             id: 'e-exp-tools',
             title: 'Explain — diagram',
-            variant: 'explain',
+            variant: 'richard',
             status: 'done',
             content: '## Explanation\n\nDone.',
             technicalActions: [
@@ -1264,7 +1264,7 @@ flowchart TB
           {
             id: 'e-json',
             title: 'Explain — diagram',
-            variant: 'explain',
+            variant: 'richard',
             status: 'done',
             content,
             technicalActions: []

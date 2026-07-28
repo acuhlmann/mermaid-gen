@@ -66,22 +66,22 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
       "If someone is on call for this, I'd love to know who.",
       "I'd feel much better with an owner on that box."
     ],
-    explain: [
-      'Picture, if you will…',
-      'Notice the symmetry few people see.',
-      'There is a named pattern here. There always is.',
+    richard: [
+      'Okay — so if I’m reading this right…',
+      'I think this shape has a name.',
+      'Sorry — one more thing about that box.',
+      'It’s a feedback loop, not a pipeline. I think.',
+      'In a perfect world you’d never draw it like this.',
       'Did you know: every diagram is a small theory of the world.',
-      'A diagram is a frozen argument.',
-      "In a perfect world, you'd never draw it like this.",
-      'This is the shape of an idea, not the idea.',
-      'Allow me to gesture vaguely.',
-      'The path of least confusion is forward.',
-      'Every box is a verb in disguise.',
-      'Fun fact nobody asked for, incoming.',
-      'Legend has it this has a name. It does.',
-      'Let me over-explain exactly one detail…',
-      'Beautiful in theory, awkward in practice — my favourite kind.',
-      'Strange but true: this shape is older than the software.'
+      'I started explaining and I should stop. One more clause.',
+      'The path of least confusion is forward — if that helps.',
+      'Fun fact nobody asked for, incoming. Sorry.',
+      'Supposedly this pattern is older than the software.',
+      'I’m not proposing a change. I’m naming what it already is.',
+      'If that makes sense. It does. I think it does.',
+      'Beautiful in theory, awkward in practice — my favorite kind.',
+      'Wait — the label is doing two jobs. That matters.',
+      'Legend has it this has a name. It does.'
     ],
     barker: [
       'I’ve taken the liberty.',
@@ -106,7 +106,7 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
       erlich: 'Spotting the bolder shape…',
       russ: 'Eyeballing the valuation…',
       jared: 'Reading it through carefully…',
-      explain: 'Pondering the diagram…',
+      richard: 'Naming the pattern…',
       barker: 'Admiring the story…'
     },
     analyze_stream: {
@@ -115,7 +115,7 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
       erlich: 'Keynoting the pivot…',
       russ: 'Calling it a keynote…',
       jared: 'Writing up the finding…',
-      explain: 'Composing the saga…',
+      richard: 'Over-explaining on purpose…',
       barker: 'Boiling it down for the board…'
     },
     intent: {
@@ -124,7 +124,7 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
       erlich: 'Aligning the vision…',
       russ: 'Skipping straight to tres commas…',
       jared: 'Making sure I understood you…',
-      explain: 'Aligning intent…',
+      richard: 'Checking I understood…',
       barker: 'Aligning the triangles…'
     },
     agent_run: {
@@ -133,7 +133,7 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
       erlich: 'Graciously elevating it…',
       russ: 'ESCALATING YOUR TOPIC 🍾',
       jared: 'Raising it properly…',
-      explain: 'Annotating the architecture…',
+      richard: 'Annotating what it already is…',
       barker: 'Taking the liberty…'
     },
     transform: {
@@ -142,7 +142,7 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
       erlich: 'Elevating the layout…',
       russ: 'Making it louder — on subject 🍾',
       jared: 'Noting the process gap…',
-      explain: 'Tracing the reshape…',
+      richard: 'Still not changing it — naming it…',
       barker: 'Killing the darlings, warmly…'
     },
     run_started: {
@@ -151,7 +151,7 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
       erlich: 'Let me ask you this…',
       russ: 'OK NOW HOLD ON 🍾',
       jared: 'Sorry — one sec…',
-      explain: 'Clearing the throat…',
+      richard: 'Okay — so…',
       barker: 'I don’t know about you, but I am excited…'
     },
     planning: {
@@ -160,7 +160,7 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
       erlich: 'Drafting the keynote…',
       russ: 'Pricing the diagram in commas…',
       jared: 'Outlining what needs an owner…',
-      explain: 'Drafting the chapter plan…',
+      richard: 'Outlining the insight…',
       barker: 'Drafting the one-pager…'
     },
     syntax_fixer: {
@@ -169,7 +169,7 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
       erlich: 'Mending syntax, brilliantly…',
       russ: 'Taping it with tequila money…',
       jared: 'Correcting it before anyone sees…',
-      explain: 'Smoothing a rough passage…',
+      richard: 'Smoothing a rough passage…',
       barker: 'Tightening the deck…'
     },
     syntax_repair: {
@@ -178,7 +178,7 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
       erlich: 'Re-mending syntax, again brilliantly…',
       russ: 'More tequila money…',
       jared: 'Correcting it again, apologies…',
-      explain: 'Revising the rough draft…',
+      richard: 'Revising the rough draft…',
       barker: 'Re-drafting the deck…'
     },
     style: {
@@ -187,7 +187,7 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
       erlich: 'Restyling for the keynote…',
       russ: 'LOUDER PALETTE. OBVIOUSLY 🍾',
       jared: 'Flagging what will not read…',
-      explain: 'On the history of this hue…',
+      richard: 'On the history of this hue…',
       barker: 'One brand colour only.'
     },
     patch_retry: {
@@ -196,7 +196,7 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
       erlich: 'Awaiting the board’s approval…',
       russ: 'Buying the CAB a round…',
       jared: 'Waiting, and fretting a bit…',
-      explain: 'Taking another pass…',
+      richard: 'Taking another pass…',
       barker: 'Asking the board for a redraft…'
     },
     invoke: {
@@ -205,7 +205,7 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
       erlich: 'Elevating it 🕶',
       russ: 'Shipping it loud 🍾',
       jared: 'Doing it properly…',
-      explain: 'Narrating the draft…',
+      richard: 'Narrating, not mutating…',
       barker: 'Taking the liberty 🧘'
     },
     invoke_fallback: {
@@ -214,7 +214,7 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
       erlich: 'Pivot in flight…',
       russ: 'WE ESCALATE',
       jared: 'Falling back — noting it anyway…',
-      explain: 'Closing the chapter gracefully…',
+      richard: 'Stopping before I spiral…',
       barker: 'Rerouting the one-pager…'
     },
     repair_1: {
@@ -223,7 +223,7 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
       erlich: 'Vision repair in flight…',
       russ: 'More commas! 🍾🍾',
       jared: 'This one is on me. Fixing it…',
-      explain: 'Rewinding the parchment…',
+      richard: 'Rewinding the parchment…',
       barker: 'Sliding the timeline, warmly 🗓️'
     },
     repair_2: {
@@ -232,7 +232,7 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
       erlich: 'Second vision repair in flight…',
       russ: 'TRES COMMAS ENERGY 🍾🍾🍾',
       jared: 'Still on me. Fixing it again…',
-      explain: 'Revising the footnotes…',
+      richard: 'Revising the footnotes…',
       barker: 'Forming a committee about it 🗓️🗓️'
     }
   },
@@ -298,9 +298,9 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
       title: '📋 SOMEONE HAD TO SAY IT',
       subtitle: '10 findings raised. Every one of them had an owner. Good on ya.'
     },
-    explain: {
-      id: 'archivedStoryteller',
-      title: '🧙 ARCHIVED STORYTELLER',
+    richard: {
+      id: 'namedThePattern',
+      title: '🤓 NAMED THE PATTERN',
       subtitle: '10 explanations canonised in the architecture lore. Ripper yarns.'
     },
     barker: {
@@ -400,9 +400,9 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
       title: '📋 SOMEONE HAD TO SAY IT',
       subtitle: '10 findings raised. Every one of them had an owner. Good on ya.'
     },
-    explain: {
-      id: 'archivedStoryteller',
-      title: '🧙 ARCHIVED STORYTELLER',
+    richard: {
+      id: 'namedThePattern',
+      title: '🤓 NAMED THE PATTERN',
       subtitle: '10 explanations canonised in the architecture lore. Ripper yarns.'
     },
     barker: {

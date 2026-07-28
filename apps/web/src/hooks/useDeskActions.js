@@ -34,7 +34,7 @@ export const DESK_IM_CAST = [
   'gilfoyle',
   'dinesh',
   'jared',
-  'explain'
+  'richard'
 ];
 
 /**

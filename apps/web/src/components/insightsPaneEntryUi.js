@@ -28,7 +28,7 @@ export function statusLabel(entry, copy) {
 export function contentUpdatesTitle(variant, copy) {
   const c = insightsCopy(copy);
   if (variant === 'jared') return c.contentAnalysis;
-  if (variant === 'explain') return c.contentExplanation;
+  if (variant === 'richard') return c.contentExplanation;
   if (variant === 'gilfoyle' || variant === 'dinesh') return c.contentRefinement;
   if (variant === 'erlich') return c.contentInnovation;
   if (variant === 'russ') return c.contentRussMode;
@@ -39,7 +39,7 @@ export function hidePhaseIds(variant, streamDebugEnabled) {
   if (streamDebugEnabled) return false;
   return (
     variant === 'jared' ||
-    variant === 'explain' ||
+    variant === 'richard' ||
     variant === 'gilfoyle' ||
     variant === 'dinesh' ||
     variant === 'erlich' ||
@@ -49,7 +49,7 @@ export function hidePhaseIds(variant, streamDebugEnabled) {
 }
 
 export function accentContentLaneClass(variant) {
-  if (variant === 'explain') return 'is-explain-content-lane';
+  if (variant === 'richard') return 'is-richard-content-lane';
   if (variant === 'gilfoyle') return 'is-gilfoyle-content-lane';
   if (variant === 'dinesh') return 'is-dinesh-content-lane';
   if (variant === 'erlich') return 'is-erlich-content-lane';
@@ -58,7 +58,7 @@ export function accentContentLaneClass(variant) {
 }
 
 export function accentSectionTitleClass(variant) {
-  if (variant === 'explain') return 'insights-section-title-explain';
+  if (variant === 'richard') return 'insights-section-title-richard';
   if (variant === 'gilfoyle') return 'insights-section-title-gilfoyle';
   if (variant === 'dinesh') return 'insights-section-title-dinesh';
   if (variant === 'erlich') return 'insights-section-title-erlich';
@@ -67,7 +67,7 @@ export function accentSectionTitleClass(variant) {
 }
 
 export function accentSectionTitleIconWrapClass(variant) {
-  if (variant === 'explain') return 'insights-section-title-explain-icon';
+  if (variant === 'richard') return 'insights-section-title-richard-icon';
   if (variant === 'gilfoyle') return 'insights-section-title-gilfoyle-icon';
   if (variant === 'dinesh') return 'insights-section-title-dinesh-icon';
   if (variant === 'erlich') return 'insights-section-title-erlich-icon';

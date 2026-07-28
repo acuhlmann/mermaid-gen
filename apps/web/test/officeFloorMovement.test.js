@@ -159,7 +159,7 @@ describe('approachTileFor', () => {
       'dinesh',
       'erlich',
       'jared',
-      'explain',
+      'richard',
       'russ',
       'helpdesk',
       'scrumMaster',

@@ -98,7 +98,7 @@ describe('runGamificationStore', () => {
 
   it('unlocks Full-Stack Slopitect after 5 distinct variants in a session', () => {
     let s = createInitialState();
-    const variants = ['gilfoyle', 'erlich', 'russ', 'jared', 'explain'];
+    const variants = ['gilfoyle', 'erlich', 'russ', 'jared', 'richard'];
     let unlockedAt = -1;
     variants.forEach((v, idx) => {
       const r = applyCompletedRun(s, { variant: v, now: 1000 + idx * 10_000 });

@@ -9,7 +9,7 @@ const VARIANT_CLASS = {
   erlich: 'is-erlich',
   russ: 'is-russ',
   jared: 'is-jared',
-  explain: 'is-explain'
+  richard: 'is-richard'
 };
 
 function formatElapsed(ms) {

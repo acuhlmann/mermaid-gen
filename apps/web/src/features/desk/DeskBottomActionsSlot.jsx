@@ -40,7 +40,7 @@ function DeskPeopleCluster({
             onClick: () => runTransform('russ', { useDiagramFocus: true })
           },
           { variant: 'jared', onClick: () => runAnalyze('jared', { useDiagramFocus: true }) },
-          { variant: 'explain', onClick: () => runAnalyze('explain', { useDiagramFocus: true }) },
+          { variant: 'richard', onClick: () => runAnalyze('richard', { useDiagramFocus: true }) },
           {
             variant: 'barker',
             senior: true,

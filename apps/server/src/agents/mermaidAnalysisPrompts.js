@@ -215,7 +215,7 @@ export function buildAnalyzeFocusInstructions(focusNode, kind) {
   const link = `"${focusNode.edgeFrom}" → "${focusNode.edgeTo}"`;
 
   if (isEdgeFocus(focusNode)) {
-    if (kind === 'explain') {
+    if (kind === 'richard') {
       return `\n\nSelection focus (edge): The user selected the directed link ${link}.${edgeLabel}${edgeClicked} Lead with this relationship in ## Explanation, ## Main flows, and ## Key entities — what it means, what moves or depends along it, and how the two endpoints relate. Interpret label text literally in context. Use ## Takeaways for conclusions specific to this link. Mention the wider diagram only briefly as supporting context; avoid a generic whole-diagram essay that ignores this edge.`;
     }
     return `\n\nSelection focus (edge): The user selected the directed link ${link}.${edgeLabel}${edgeClicked} In ## Weaknesses and limits, ## Visual and style review, and ## Actionable improvements, prioritize this link and its endpoints (arrow clarity, label usefulness, direction, redundancy, missing guards). Address diagram-wide topics only after covering this edge. Keep ## Diagram type fit tied to how well this selected relationship reads. The ## Strengths section is optional — include only if there is something genuinely surprising about this link.`;
@@ -228,7 +228,7 @@ export function buildAnalyzeFocusInstructions(focusNode, kind) {
       : '';
   const role = focusNode.selectionKind === 'cluster' ? 'subgraph/cluster' : 'node';
 
-  if (kind === 'explain') {
+  if (kind === 'richard') {
     return `\n\nSelection focus (${role}): The user selected ${role} id "${focusNode.id}"${label}.${clicked} In ## Explanation, ## Main flows, and ## Key entities, foreground this ${role}: its role, connections, and how labels read in context. ## Takeaways should emphasize what matters about this selection. Mention other parts only as supporting context; do not center the whole response on unrelated nodes or edges.`;
   }
   return `\n\nSelection focus (${role}): The user selected ${role} id "${focusNode.id}"${label}.${clicked} In ## Weaknesses and limits, ## Visual and style review, and ## Actionable improvements, prioritize issues touching this ${role} and its immediate neighborhood before broader diagram-wide commentary. Keep ## Diagram type fit referenced to how this selection reads. The ## Strengths section is optional — include only if there is something genuinely surprising about this ${role}.`;

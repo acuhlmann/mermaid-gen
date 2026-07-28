@@ -17,7 +17,7 @@ const PERSONA_CLASS = {
   erlich: 'is-erlich',
   russ: 'is-russ',
   jared: 'is-jared',
-  explain: 'is-explain',
+  richard: 'is-richard',
   barker: 'is-barker'
 };
 
@@ -91,7 +91,7 @@ export default function AdvisorSpeechBubble({
   const accentStyle = accent.startsWith('--') ? `var(${accent})` : accent;
   const style = { '--advisor-accent': accentStyle };
   const isComment = kind === 'comment';
-  const isArchitect = persona === 'explain';
+  const isArchitect = persona === 'richard';
   const showArchitectActions = isArchitect && (onDumbDown || onDrillDeeper);
   const dumbChipLabel = labelExplainDumbChipLabel(architectDumbLevel);
   const dumbLoadingLabel = labelExplainDumbLoadingText(architectDumbLevel);

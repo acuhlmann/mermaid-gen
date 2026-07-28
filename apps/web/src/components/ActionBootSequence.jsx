@@ -7,7 +7,7 @@ const VARIANT_DURATION_MS = {
   erlich: 660,
   russ: 820,
   jared: 700,
-  explain: 700
+  richard: 700
 };
 const DEFAULT_DURATION_MS = 520;
 const REDUCED_DURATION_MS = 200;
@@ -18,7 +18,7 @@ const VARIANT_CSS_CLASS = {
   erlich: 'is-erlich',
   russ: 'is-russ',
   jared: 'is-jared',
-  explain: 'is-explain'
+  richard: 'is-richard'
 };
 
 /**
@@ -64,7 +64,7 @@ export default function ActionBootSequence({ trigger, variant }) {
       {playing.variant === 'russ' ? <div className="boot-bonk-flash" /> : null}
       {playing.variant === 'russ' ? <div className="boot-hardhat">🪖</div> : null}
       {playing.variant === 'jared' ? <div className="boot-clipboard">📋</div> : null}
-      {playing.variant === 'explain' ? <div className="boot-scroll">📜</div> : null}
+      {playing.variant === 'richard' ? <div className="boot-scroll">📜</div> : null}
       {playing.variant === 'gilfoyle' ? <div className="boot-sparkle">✨</div> : null}
       {playing.variant === 'dinesh' ? <div className="boot-hand">🙋</div> : null}
       {playing.variant === 'erlich' ? <div className="boot-shades">🕶</div> : null}
