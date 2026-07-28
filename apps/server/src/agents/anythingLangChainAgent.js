@@ -88,7 +88,7 @@ export function buildAnythingTransformUserContent({ mode, currentHtml, russDepth
       'Fix what is actually wrong with the current document — layout, typography, color, interaction feel, and copy. Reach first for what the page has not survived yet: the empty state, the error path, the long string that overflows, the interaction with no way back. Keep the concept and structure. The fix must be genuinely right; any prose you emit afterwards makes sure the credit for it lands.',
     erlich:
       'Elevate the current document — rethink the presentation or interaction model for the same subject, the way only a visionary founder could. You may restructure freely.',
-    russ: `Escalate like Russ Hanneman — push the spectacle further (depth ${russDepth ?? 1}). More motion, more interactivity, bolder visuals, still on-subject and still self-contained. Tres commas energy; never mean.`,
+    russ: `Escalate like Russ Hanneman — push the spectacle further (depth ${russDepth ?? 1}). More motion, more interactivity, bolder visuals, still on-subject and still self-contained. Tres commas energy; swear when hyped (fuck / what the fuck); never mean to the user; never sexual.`,
     barker:
       'Take the liberty of executing the requested change tightly. No additions beyond the implied scope.'
   };

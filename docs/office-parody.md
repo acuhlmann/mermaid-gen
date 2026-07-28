@@ -57,12 +57,12 @@ leadership pinging your desk.
 
 ### Senior stakeholders
 
-| id       | Name         | Title                                | Emoji | Bit                                                                                                                                                          |
-| -------- | ------------ | ------------------------------------ | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `barker` | Jack Barker  | CEO — Success Theater                | 🧘    | **Named Silicon Valley replication** — 6th radial advisor; dual-home team+senior; throttled roundtable (see note)                                            |
-| `ciso`   | Sasha        | CISO — The Department of No          | 🔐    | Everything is an attack surface; runs the phishing sims                                                                                                      |
-| `belson` | Gavin Belson | CTO — Makes the World a Better Place | 🌐    | **Named Silicon Valley replication** (Session 8; ex-Marcus/`cto`) — soft-spoken messianic vision; scarcer than Barker; Jack reports to him; never roundtable |
-| `cfo`    | Diane        | CFO — The Budget Is a No             | 🧮    | Every box is a cost center; asks what the diagram costs per month                                                                                            |
+| id       | Name         | Title                                | Emoji | Bit                                                                                                                                                                                                                                                          |
+| -------- | ------------ | ------------------------------------ | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `barker` | Jack Barker  | CEO — Success Theater                | 🧘    | **Named Silicon Valley replication** — 6th radial advisor; dual-home team+senior; throttled roundtable (see note)                                                                                                                                            |
+| `ciso`   | Sasha        | CISO — The Department of No          | 🔐    | Everything is an attack surface; runs the phishing sims                                                                                                                                                                                                      |
+| `belson` | Gavin Belson | CTO — Makes the World a Better Place | 🌐    | **Named Silicon Valley replication** (Session 8; ex-Marcus/`cto`) — messianic vision with a two-gear register (measured manifesto **or** cold fury / clipped swears when thinking is undersized); scarcer than Barker; Jack reports to him; never roundtable |
+| `cfo`    | Diane        | CFO — The Budget Is a No             | 🧮    | Every box is a cost center; asks what the diagram costs per month                                                                                                                                                                                            |
 
 > **The Barker experiment / SV program.** `barker` is a deliberate replication of Jack Barker from
 > HBO's _Silicon Valley_ — the first test of how faithfully a named TV character can live in this
@@ -146,7 +146,8 @@ leadership pinging your desk.
 > TTS/narration, XP variant, ceremony FX. The seat contract travelled unchanged (subject-rooted
 > escalation; type/template roulette by depth; hottest advisor temp 1.45; transform temp ramp
 > 0.95→1.15) and only the voice was re-skinned: tres commas, tequila, "this guy SHIPS", Radio
-> Silence as rare war story, mocks empty synergy-speak; innuendo not profanity. Cards live in
+> Silence as rare war story, mocks empty synergy-speak; TV-Russ swearing OK (`fuck` / what the
+> fuck when hyped) — bro swagger, never sexual/explicit, never mean to the user. Cards live in
 > `STAKEHOLDER_MEETING_VOICES.russ` and `ADVISOR_PERSONAS.russ`; harness profile:
 > `node scripts/barker-fidelity.mjs russ`. Full-weight roundtable peer.
 
@@ -165,21 +166,22 @@ leadership pinging your desk.
 > first **senior-only** one (§4a): **Gavin Belson** took over the retired Marcus/`cto` display id
 > as `belson` — `SENIOR_MEETING_VOICES`, `SENIOR_STAKEHOLDERS`, `MEETING_SENIOR_POOL`, senior email
 > bank, TTS/narration, persona face, floor leadership desk. No advisor seat, no roundtable, no
-> transform mode: scarcer than Barker by design; fiction: Jack reports to him. Voice card is soft-
-> spoken messianic corporate vision (altitude, manifesto cadence, enlarge-the-vision) rather than
-> the old Marcus homage. Harness profile: `node scripts/barker-fidelity.mjs belson` (`advisor:
+> transform mode: scarcer than Barker by design; fiction: Jack reports to him. Voice card is
+> two-gear Belson — measured messianic altitude **or** cold fury with clipped swears when the
+> vision is undersized (altitude, manifesto cadence, enlarge-the-vision) rather than the old
+> Marcus homage. Harness profile: `node scripts/barker-fidelity.mjs belson` (`advisor:
 false`, `seniorEmail: true`).
 
 ### Shipped colleagues (v1)
 
 | id            | Name            | Title                             | Emoji | Bit                                                                                                  |
 | ------------- | --------------- | --------------------------------- | ----- | ---------------------------------------------------------------------------------------------------- |
-| `intern`      | Chad            | The Intern (Unpaid, Strategic)    | 🧃    | Replies-all; naive questions that are accidentally profound ~1 in 5                                  |
-| `scrumMaster` | Pam             | Agile Coach — CSM, CSPO, SAFe 6.0 | 📅    | Everything is a ceremony; parking-lot enthusiast; facilitates every meeting                          |
+| `intern`      | Chad            | The Intern (Unpaid, Strategic)    | 🧃    | Reply-alls the apology for the reply-all; naive questions that are accidentally profound ~1 in 5     |
+| `scrumMaster` | Pam             | Agile Coach — CSM, CSPO, SAFe 6.0 | 📅    | Way-too-friendly facilitator cheese; everything is a ceremony; parking-lot enthusiast                |
 | `helpdesk`    | Ticket Bot Dave | IT Helpdesk — Tier 1 (of 1)       | 🖥️    | Closes tickets as duplicates of themselves; canned-email workhorse (zero LLM)                        |
 | `facilities`  | Gary            | Facilities & Fridge Czar          | 🧹    | ALL-CAPS fridge cleanouts; controls the thermostat with an iron fist                                 |
 | `hr`          | Linda           | People Ops Business Partner       | 📎    | Weaponized cheerfulness; 847-days-overdue trainings; Craig's birthday card                           |
-| `greybeard`   | Ulrich          | Staff Engineer Emeritus           | 🧓    | "We tried that in 2009"; maintains the mainframe nobody admits exists; unsettlingly good advice      |
+| `greybeard`   | Ulrich          | Staff Engineer Emeritus           | 🧓    | "We tried that in 2009"; darker mainframe punchlines; unsettlingly good advice                       |
 | `ciso`        | Sasha           | CISO — The Department of No       | 🔐    | Everything is an attack surface, especially the arrows; runs the phishing sims; "noted in your file" |
 
 ### How a character is drawn
@@ -272,11 +274,13 @@ Two once-ever beats, gated by `archislop:office-welcomed` (`useOfficeWelcome`):
 2. **Chad's welcome IM** ~8 s later (also on a first-name basis).
 
 The entry screen additionally mounts the **office directory** (`OfficeDirectory`): an
-interactive game-style **"Meet the Office"** orientation. **First run it is the entire
+interactive game-style **"Meet the Team"** orientation. **First run it is the entire
 app is** — nothing else mounts until the tour is dismissed or skipped — then the empty
 state, Day One badge, and the rest of the chrome appear. The cinematic flow is reception
 check-in → name badge with Linda's auto-voiced welcome → Meet the team
-auto-plays each colleague intro in order → Clock in, persisted via
+auto-plays each intro in `DAY_ONE_INTRO_IDS` order (Dinesh, Erlich, Jared, Richard,
+Barker, then Linda/HR — **not** Gilfoyle or Russ, and not the ambient office floor cast)
+→ Clock in, persisted via
 `archislop:office-directory-seen`; afterwards reopen via the **desk verb** once you
 have canvas content, so everybody can introduce themselves again anytime.
 While the directory is open it publishes pause state (`officeDirectoryUiStore`)

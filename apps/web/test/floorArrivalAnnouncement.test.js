@@ -19,10 +19,10 @@ describe('floorArrivalAnnouncement', () => {
       copy,
       phase: 'colleagues',
       colleagueIndex: 0,
-      speakingId: 'intern'
+      speakingId: 'dinesh'
     });
     expect(colleague.text).toMatch(/at their desk/);
-    expect(colleague.text).toContain('Chad');
+    expect(colleague.text).toContain('Dinesh');
     expect(colleague.text).not.toMatch(/forty tabs/);
   });
 
@@ -31,7 +31,7 @@ describe('floorArrivalAnnouncement', () => {
       copy,
       phase: 'colleagues',
       colleagueIndex: 0,
-      speakingId: 'gilfoyle'
+      speakingId: 'dinesh'
     });
     const second = floorArrivalAnnouncement({
       copy,

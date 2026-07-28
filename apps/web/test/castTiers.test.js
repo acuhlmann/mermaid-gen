@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { CAST_TIERS, tierOf } from '../src/utils/castTiers.js';
 import {
+  DAY_ONE_INTRO_IDS,
   MEETING_FACILITATOR,
   MEETING_PRESENTER_POOL,
   MEETING_ROSTER_MAX,
@@ -11,6 +12,7 @@ import {
   OFFICE_WALKBY_LLM_CAST,
   SENIOR_EMAIL_TEMPLATES,
   SENIOR_STAKEHOLDERS,
+  TEAM_INTRO_LINES,
   buildMeetingAttendeesFromColleagues,
   listMeetingDirectory,
   meetingTopicFromEmailSubjects,
@@ -27,6 +29,27 @@ describe('cast tiers', () => {
     expect(new Set(ALL_IDS).size).toBe(ALL_IDS.length);
     for (const id of ALL_IDS) expect(tierOf(id)).toBeTruthy();
     expect(tierOf('nobody')).toBeNull();
+  });
+
+  it('Day One intro is Your Team minus Gilfoyle/Russ plus Linda', () => {
+    expect([...DAY_ONE_INTRO_IDS]).toEqual([
+      'dinesh',
+      'erlich',
+      'jared',
+      'richard',
+      'barker',
+      'hr'
+    ]);
+    expect(DAY_ONE_INTRO_IDS).not.toContain('gilfoyle');
+    expect(DAY_ONE_INTRO_IDS).not.toContain('russ');
+    for (const id of DAY_ONE_INTRO_IDS) {
+      if (id === 'hr') {
+        expect(officeSenderInfo(id).introLine).toBeTruthy();
+      } else {
+        expect(TEAM_INTRO_LINES[id], `${id} team intro`).toBeTruthy();
+        expect(officeSenderInfo(id).introLine).toBe(TEAM_INTRO_LINES[id]);
+      }
+    }
   });
 
   it('covers every advisor persona, colleague, and invented exec', () => {

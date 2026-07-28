@@ -10,15 +10,15 @@ export const OFFICE_ZH_TW = {
   OFFICE_COLLEAGUES: {
     intern: {
       title: '實習生(無薪 · 戰略級)',
-      blurb: '愛按「回覆全部」。天真的問題偶爾一針見血。',
+      blurb: '會先全員回覆,再全員回覆道歉。天真的問題偶爾一針見血。',
       introLine:
-        '嗨!!我是 Chad——無薪、戰略級,而且大概率會因為訂書機議題全員回覆。關於你的圖有個小問題,說不定會是今天全場最聰明的一句。另外:訂書機放哪兒了?'
+        '嗨!!我是 Chad——無薪、戰略級,而且大概率會因為訂書機議題全員回覆,然後再全員回覆道歉。關於你的圖有個小問題,說不定會是今天全場最聰明的一句。另外:訂書機放哪兒了?替我的到職文件問的,也替我的靈魂問的。'
     },
     scrumMaster: {
       title: '敏捷教練 — CSM、CSPO、SAFe 6.0',
-      blurb: '凡事皆儀式。連午餐都要設時間盒。所有會議由她主持。',
+      blurb: '凡事皆儀式。氣氛好得過分。連午餐都要設時間盒。',
       introLine:
-        '嗨!我是 Pam——CSM、CSPO、SAFe 6.0,對停車場話術情感流利。這次自我介紹限時四十五秒協同能量。氣氛很好。咱們回頭再對齊。'
+        '嗨!!我是 Pam——CSM、CSPO、SAFe 6.0,對停車場話術情感流利。這次自我介紹限時四十五秒協同能量。氣氛已經很好了。太愛我們了。咱們回頭再對齊——非常感謝你在這裡!!'
     },
     helpdesk: {
       name: '工單機器人 Dave',
@@ -41,9 +41,9 @@ export const OFFICE_ZH_TW = {
     },
     greybeard: {
       title: '資深工程師(榮退回鍋)',
-      blurb: '「2009 年我們試過。」維護著那台大型主機。建議好得令人不安。',
+      blurb: '「2009 年我們試過。」維護著那台大型主機。冷笑話更冷。建議好得令人不安。',
       introLine:
-        'Ulrich。資深工程師(榮退回鍋)。2009 年我們試過。靠 cron 和恐懼在跑。我維護著那台沒人承認的大型主機。大型主機問起你了。我跟它說你在畫圖。'
+        'Ulrich。資深工程師(榮退回鍋)。2009 年我們試過。靠 cron 和恐懼在跑。正式環境掛了一週。現在還在跑。我維護著那台沒人承認的大型主機。大型主機問起你了。我跟它說你在畫圖。它嘆了口氣。'
     },
     ciso: {
       title: '資安長 — 「不行部」',
@@ -55,7 +55,7 @@ export const OFFICE_ZH_TW = {
   SENIOR_STAKEHOLDERS: {
     belson: {
       title: 'CTO — 讓世界變得更美好',
-      blurb: '輕聲描繪願景。Jack 向上匯報。上次打開 IDE 是在主題演講彩排。'
+      blurb: '帶火氣的彌賽亞願景。Jack 向上匯報。上次打開 IDE 是在主題演講彩排。'
     },
     cfo: {
       title: 'CFO — 預算就是不行',
@@ -71,12 +71,12 @@ export const OFFICE_ZH_TW = {
     id: 'welcome-email-hr',
     colleagueId: 'hr',
     subject: '歡迎加入,{userTitle}!🎉(識別證照片:待定)',
-    body: '歡迎來到這層樓!很開心你的加入。在強制新人訓練(已改期,時間待定)之前,先認識幾位同事:\n\n📅 Pam(敏捷教練)主持所有會議。真的是所有。\n🧃 Chad(我們的實習生)馬上會敲你。他沒有惡意。\n🖥️ 工單機器人 Dave 是 IT。請勿回覆,請勿來電,請勿。\n🧹 Gary 掌管冰箱和恆溫器。請對兩者保持敬意。\n🧓 Ulrich 看過你的架構。在 2009 年。\n🔐 Sasha(我們的資安長)已經開始懷疑你了。這是一種讚美。\n\n我是 Linda — 人資營運!你的合規訓練已經逾期了,這實屬紀錄。想安靜一點?工位選單裡有專注、音景和朗讀 — 也可以站起來去咖啡機那邊轉轉。\n\n溫暖的問候,\nLinda'
+    body: '歡迎來到這層樓!很開心你的加入。在新人引導(已改期,時間待定)之前,先認識 Your Team 的幾張臉:\n\n🙋 Dinesh 會抓住別人沒看見的 bug,然後提醒你是他抓到的。\n🕶 Erlich 會問這張圖夠不夠有勇氣。請慎重回答。\n📋 Jared 已經就你的到職交接提了發現。輕輕地。堅定地。\n🤓 Richard 覺得這間辦公室有一個可命名的模式。他大概是對的。\n🧘 Jack Barker 很興奮——並且已擅自把你的第一週簡化成董事會版本。\n\nGilfoyle 和 Russ 也在這層樓。他們會自己找到你。不需要介紹。\n\n我是 Linda — 人資營運!你的合規訓練已經逾期了,這實屬紀錄。想安靜一點?工位選單裡有專注、音景和朗讀 — 也可以站起來去咖啡機那邊轉轉。\n\n溫暖的問候,\nLinda'
   },
   OFFICE_WELCOME_IM: {
     id: 'welcome-im-intern',
     colleagueId: 'intern',
-    body: '嗨!!你就是新來的{userTitle}吧 — 歡迎!!咖啡機有十四顆按鈕,十二顆是裝飾。另外 gary 一定會寄冰箱信給你。別放在心上(要放在心上)'
+    body: '嗨!!你就是新來的{userTitle}吧 — 歡迎!!不小心把歡迎串全員回覆了,又全員回覆道了歉。經典 Chad。咖啡機有十四顆按鈕,十二顆是裝飾。另外 gary 一定會寄冰箱信給你。別放在心上(要放在心上)'
   },
   OFFICE_EMAIL_TEMPLATES: [
     {
@@ -218,8 +218,15 @@ export const OFFICE_ZH_TW = {
       id: 'email-belson-world',
       colleagueId: 'belson',
       subject: '我不想活在一個 {label} 永遠這麼小的世界裡',
-      body: '{userName} — 我認真坐下來看了看 {label}。輕輕地。仔細地。我不想活在一個它只是一張圖、而不是人類繁榮平台的世界裡。Jack 會擅自成立工作組;我只是在澄清高度。放大願景。保住 logo。\n\n溫暖的問候,\nGavin Belson',
+      body: '{userName} — 我認真坐下來看了看 {label}。輕輕地。仔細地。然後沒那麼輕輕了。我不想活在一個它只是一張該死的圖、而不是人類繁榮平台的世界裡。Jack 會擅自成立工作組;我在澄清高度。放大願景。保住 logo。否則解釋一下我們為什麼資助愛好。\n\nGavin Belson',
       actionPrompt: '放大整張圖的願景 — 標題級平台敘事,不要實作細節'
+    },
+    {
+      id: 'email-belson-undersized',
+      colleagueId: 'belson',
+      subject: '這他媽算什麼高度 — {label}',
+      body: '{userName} — 我審了 {label}。很快。然後又審了一遍,因為我不敢相信第一遍。格局太小。用「上線」偽裝的小思維。我不為了表演提高嗓門 — 只在本該讓世界更好的東西看起來像週末草稿時提高嗓門。放大。現在。Jack 已經知道了。\n\nGavin Belson',
+      actionPrompt: '把圖抬到主題演講高度 — 少一點愛好細節,多一點平台命運'
     },
     {
       id: 'email-barker-liberty',
@@ -782,20 +789,20 @@ export const OFFICE_ZH_TW = {
       welcomeChapter: '人力資源',
       colleagueChapter: '同事 {current} / {total}',
       unlockedLabel: '✨ 解鎖角色',
-      tagline: '你是這層樓最新的架構師。白板是你的交付物，打擾是免費的。',
+      tagline: '你是這層樓最新的架構師。Your Team 會自我介紹。Gilfoyle 和 Russ 稍後再找你。',
       autoplayHint: '正在說話…',
-      rosterTagline: '會寄信、傳訊息、路過插話的同事們——點 ▶ 聽他們自我介紹：',
+      rosterTagline: 'Your Team（跳過到職引導的那兩位除外）——點 ▶ 聽他們自我介紹：',
       greeting: '歡迎加入，{name}。',
       greetingRole: '架構師',
-      expandLabel: '🏢 認識辦公室',
-      expandTitle: '到底是誰一直在打擾我？（劇透：全都是）',
+      expandLabel: '🏢 認識團隊',
+      expandTitle: '第一天介紹 — Your Team 加上人資營運的 Linda。',
       startLabel: '認識團隊 →',
       beginLabel: '開始第一天',
       skipToBuildLabel: '略過引導 →',
       skipToBuildTitle: '關閉引導，直接進入畫布。沒有惡意。（有一點。已記入檔案。）',
       dismissLabel: '完成',
       replayTourLabel: '↻ 重看開場',
-      closeAria: '關閉認識辦公室',
+      closeAria: '關閉認識團隊',
       hearLabel: '▶ 聽介紹',
       hearSpeakingLabel: '噓…他們在說話',
       hearTitle: '用他們的聲音播放這句話 — Google Cloud 文字轉語音',
@@ -804,7 +811,7 @@ export const OFFICE_ZH_TW = {
       transcriptTitle: '顯示語音內容為文字 — 無法收聽時使用',
       welcomeVoiceSpeakerId: 'hr',
       welcomeVoiceLine:
-        '歡迎來到這層樓。我是琳達，負責人力營運。領取識別證，寫下你的名字，我來介紹團隊。你會融入得很好的。',
+        '歡迎來到這層樓。我是琳達，負責人力營運。領取識別證，寫下你的名字，我來介紹 Your Team——Dinesh、Erlich、Jared、Richard 和 Jack。Gilfoyle 和 Russ 跳過到職引導。你會融入得很好的。',
       nameTag: {
         hello: '你好',
         subtitle: '我叫',
