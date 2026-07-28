@@ -10,7 +10,7 @@ function actions(overrides = {}) {
   return buildRadialActions({
     controls: CONTROLS_EN,
     slopitect: { PROMPT_ACTION_COPY },
-    goMadStreak: 0,
+    russStreak: 0,
     contentMode: 'mermaid',
     contentModeOptions: [{ id: 'mermaid', label: 'Diagram' }],
     canFixFromCritique: false,

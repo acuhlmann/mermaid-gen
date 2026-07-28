@@ -64,7 +64,7 @@ function baseProps(overrides = {}) {
     advisorBubbleProps: null,
     stakeholderIntroProps: null,
     advisorPause: false,
-    goMadStreak: 0,
+    russStreak: 0,
     diagramSource: '',
     onCallMeeting: vi.fn(),
     handleSelectContentMode: vi.fn(),

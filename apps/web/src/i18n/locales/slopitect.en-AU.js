@@ -35,12 +35,12 @@ export const SLOPITECT_EN_AU = {
       entryLine: 'Let me ask you this…',
       exitLine: 'Elevated. You’re welcome 🕶'
     },
-    goMad: {
-      name: 'THE SLOPITECT',
-      title: 'Distinguished Chaos Fellow',
-      tagline: 'GENIUS LOOSE 🚨 Absolute unit.',
-      entryLine: 'THE SLOPITECT HAS ENTERED THE BUILDING',
-      exitLine: 'BUILT IT BACK BETTER 🛠'
+    russ: {
+      name: 'Russ Hanneman',
+      title: 'Tres Commas Investor',
+      tagline: 'This guy SHIPS. Absolute unit.',
+      entryLine: 'TRES COMMAS ENERGY — LET’S GO',
+      exitLine: 'THIS GUY SHIPS 🍾'
     },
     jared: {
       name: 'Jared Dunn',
@@ -68,7 +68,7 @@ export const SLOPITECT_EN_AU = {
     gilfoyle: 'Slopitect: Gilfoyle sorts out what’s wrong',
     dinesh: 'Slopitect: Dinesh sorts it and cops the credit',
     erlich: 'Slopitect: Erlich Bachman pitches the bold move',
-    goMad: 'Slopitect: GENIUS LOOSE 🚨',
+    russ: 'Slopitect: Russ Hanneman escalates it',
     jared: 'Slopitect: Jared Dunn raises one finding',
     explain: 'Slopitect: Co-Design story time',
     barker: 'Slopitect: Success Theater mode',
@@ -78,7 +78,7 @@ export const SLOPITECT_EN_AU = {
     gilfoyle: 'Gilfoyle found the defect…',
     dinesh: 'Dinesh already found it…',
     erlich: 'Erlich Bachman is graciously elevating…',
-    goMad: 'BONK! THE SLOPITECT IS HERE',
+    russ: 'Tres commas just walked in…',
     jared: 'Jared has one thing to flag…',
     explain: 'Co-Design story time — gather round',
     barker: 'Jack Barker is taking the liberty…'

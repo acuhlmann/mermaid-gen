@@ -4,7 +4,7 @@ const VARIANT_CLASS = {
   gilfoyle: 'is-variant-gilfoyle',
   dinesh: 'is-variant-dinesh',
   erlich: 'is-variant-erlich',
-  goMad: 'is-variant-go-mad',
+  russ: 'is-variant-russ',
   jared: 'is-variant-jared',
   explain: 'is-variant-explain'
 };

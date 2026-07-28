@@ -61,7 +61,7 @@ const SLOPITECT_VARIANT_CLASS = {
   gilfoyle: 'is-variant-gilfoyle',
   dinesh: 'is-variant-dinesh',
   erlich: 'is-variant-erlich',
-  goMad: 'is-variant-go-mad',
+  russ: 'is-variant-russ',
   jared: 'is-variant-jared',
   explain: 'is-variant-explain',
   barker: 'is-variant-barker'
@@ -191,7 +191,7 @@ function IconStopped() {
   );
 }
 
-function IconGoMad() {
+function IconRuss() {
   return (
     <svg
       className="insights-svg-icon"
@@ -215,7 +215,7 @@ function isAccentuatedInsightVariant(variant) {
     variant === 'gilfoyle' ||
     variant === 'dinesh' ||
     variant === 'erlich' ||
-    variant === 'goMad' ||
+    variant === 'russ' ||
     variant === 'barker'
   );
 }
@@ -406,7 +406,7 @@ function EntryStatusIcon({ status, variant }) {
     if (variant === 'gilfoyle') return <IconGilfoyle />;
     if (variant === 'dinesh') return <IconDinesh />;
     if (variant === 'erlich') return <IconErlich />;
-    if (variant === 'goMad') return <IconGoMad />;
+    if (variant === 'russ') return <IconRuss />;
     return <IconSparkles />;
   }
   return <IconThinking />;
@@ -564,11 +564,11 @@ function headingToneClass(headingText, variant = 'general') {
   return 'insights-tone-neutral';
 }
 
-const GO_MAD_SECTION_TONES = [
-  'insights-tone-gomad-a',
-  'insights-tone-gomad-b',
-  'insights-tone-gomad-c',
-  'insights-tone-gomad-d'
+const RUSS_SECTION_TONES = [
+  'insights-tone-russ-a',
+  'insights-tone-russ-b',
+  'insights-tone-russ-c',
+  'insights-tone-russ-d'
 ];
 
 function sectionHeadingIconClass(toneClass) {
@@ -593,10 +593,10 @@ function sectionHeadingIconClass(toneClass) {
     return 'insights-section-icon is-erlich-tradeoff';
   if (toneClass === 'insights-tone-erlich-neutral')
     return 'insights-section-icon is-erlich-neutral';
-  if (toneClass === 'insights-tone-gomad-a') return 'insights-section-icon is-gomad-a';
-  if (toneClass === 'insights-tone-gomad-b') return 'insights-section-icon is-gomad-b';
-  if (toneClass === 'insights-tone-gomad-c') return 'insights-section-icon is-gomad-c';
-  if (toneClass === 'insights-tone-gomad-d') return 'insights-section-icon is-gomad-d';
+  if (toneClass === 'insights-tone-russ-a') return 'insights-section-icon is-russ-a';
+  if (toneClass === 'insights-tone-russ-b') return 'insights-section-icon is-russ-b';
+  if (toneClass === 'insights-tone-russ-c') return 'insights-section-icon is-russ-c';
+  if (toneClass === 'insights-tone-russ-d') return 'insights-section-icon is-russ-d';
   return 'insights-section-icon is-neutral';
 }
 
@@ -840,7 +840,7 @@ function leadOpenerExtraClass(variant, accentuateSections, openerUsedRef) {
     gilfoyle: 'insights-gilfoyle-opener',
     dinesh: 'insights-dinesh-opener',
     erlich: 'insights-erlich-opener',
-    goMad: 'insights-gomad-opener'
+    russ: 'insights-russ-opener'
   };
   const extra = map[variant];
   if (!extra) return '';
@@ -1035,7 +1035,7 @@ function renderRichContent(
   }
 
   let sectionAnimIndex = 0;
-  let goMadSectionIx = 0;
+  let russSectionIx = 0;
   const openerUsedRef = { current: false };
   return chunks.flatMap((chunk, chunkIdx) => {
     if (chunk.type === 'lead') {
@@ -1050,9 +1050,9 @@ function renderRichContent(
     }
     let tone = 'insights-tone-neutral';
     if (accentuateSections) {
-      if (variant === 'goMad') {
-        tone = GO_MAD_SECTION_TONES[goMadSectionIx % GO_MAD_SECTION_TONES.length];
-        goMadSectionIx += 1;
+      if (variant === 'russ') {
+        tone = RUSS_SECTION_TONES[russSectionIx % RUSS_SECTION_TONES.length];
+        russSectionIx += 1;
       } else {
         tone = headingToneClass(chunk.heading, variant);
       }
@@ -1089,7 +1089,7 @@ function AccentSectionTitleIcon({ variant }) {
   if (variant === 'gilfoyle') return <IconGilfoyle />;
   if (variant === 'dinesh') return <IconDinesh />;
   if (variant === 'erlich') return <IconErlich />;
-  if (variant === 'goMad') return <IconGoMad />;
+  if (variant === 'russ') return <IconRuss />;
   return null;
 }
 
@@ -1650,7 +1650,7 @@ export default function InsightsPane({
                         variant === 'gilfoyle' && accentuateSections ? 'is-gilfoyle-prose' : '',
                         variant === 'dinesh' && accentuateSections ? 'is-dinesh-prose' : '',
                         variant === 'erlich' && accentuateSections ? 'is-erlich-prose' : '',
-                        variant === 'goMad' && accentuateSections ? 'is-gomad-prose' : ''
+                        variant === 'russ' && accentuateSections ? 'is-russ-prose' : ''
                       ]
                         .filter(Boolean)
                         .join(' ')}
@@ -1678,7 +1678,7 @@ export default function InsightsPane({
                         className={[
                           'insights-stream-caret',
                           'is-shimmer',
-                          variant === 'goMad' ? 'is-gomad-caret' : '',
+                          variant === 'russ' ? 'is-russ-caret' : '',
                           variant === 'gilfoyle' ? 'is-gilfoyle-caret' : '',
                           variant === 'dinesh' ? 'is-dinesh-caret' : '',
                           variant === 'erlich' ? 'is-erlich-caret' : '',

@@ -37,7 +37,7 @@ export function createDiagramStateStore(
   initialSession: SessionDiagramState = createInitialSessionState() as SessionDiagramState
 ) {
   let session = initialSession;
-  let transformContext: { mode: string; goMadDepth?: number } | null = null;
+  let transformContext: { mode: string; russDepth?: number } | null = null;
 
   function replaceSlot(contentType: ContentType, nextSlot: DiagramState) {
     session = { ...session, [contentType]: nextSlot };
@@ -170,7 +170,7 @@ export function createDiagramStateStore(
       proposedMermaidSource: diagramSource,
       reason,
       transformMode: ctx?.mode ?? null,
-      goMadDepth: ctx?.goMadDepth ?? null
+      russDepth: ctx?.russDepth ?? null
     } as Parameters<typeof validateAndPreparePatch>[0]);
 
     if (!prepared.accepted) {
@@ -213,7 +213,7 @@ export function createDiagramStateStore(
       proposedDiagramSource: diagramSource,
       reason,
       transformMode: ctx?.mode ?? null,
-      goMadDepth: ctx?.goMadDepth ?? null
+      russDepth: ctx?.russDepth ?? null
     } as Parameters<typeof validateAndPrepareInfographicPatch>[0]);
     if (!prepared.accepted) {
       return prepared;
@@ -596,7 +596,7 @@ export function createDiagramStateStore(
       return getSlot(contentType);
     },
 
-    setTransformContext(context: { mode: string; goMadDepth?: number } | null) {
+    setTransformContext(context: { mode: string; russDepth?: number } | null) {
       transformContext = context ?? null;
     },
 
@@ -609,7 +609,7 @@ export function createDiagramStateStore(
     },
 
     /** @deprecated use setTransformContext */
-    setInfographicTransformContext(context: { mode: string; goMadDepth?: number } | null) {
+    setInfographicTransformContext(context: { mode: string; russDepth?: number } | null) {
       transformContext = context ?? null;
     },
 

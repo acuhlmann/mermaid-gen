@@ -7,7 +7,7 @@ import { PersonaFace } from './personaFaces/index.jsx';
 import { resolveUserName } from '../state/userIdentityStore.js';
 import { requestOfficeDirectoryOpen } from '../state/officeDirectoryUiStore.js';
 
-const VARIANT_ROW_ORDER = ['gilfoyle', 'dinesh', 'erlich', 'goMad', 'jared', 'explain'];
+const VARIANT_ROW_ORDER = ['gilfoyle', 'dinesh', 'erlich', 'russ', 'jared', 'explain'];
 
 function pickNextTaunt(taunts, seed) {
   if (!taunts?.length) return '';
@@ -328,7 +328,7 @@ export default function LevelUpInfoPanel({
                   <span className="levelup-info-variant-meta">
                     +{persona.xpAward} {panel.baseXp ?? 'base'} · +{persona.xpStreakBonus}{' '}
                     {panel.variantMetaSuffix}
-                    {id === 'goMad' ? ` ${panel.goMadDepthBonus}` : ''}
+                    {id === 'russ' ? ` ${panel.russDepthBonus}` : ''}
                   </span>
                 </span>
                 <span

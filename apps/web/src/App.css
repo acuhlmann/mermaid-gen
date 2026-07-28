@@ -999,7 +999,7 @@
   background: rgba(249, 115, 22, 0.1);
 }
 
-.insights-pane-live-meta.is-variant-go-mad .insights-pane-live-chip.is-action {
+.insights-pane-live-meta.is-variant-russ .insights-pane-live-chip.is-action {
   color: #db2777;
   border-color: rgba(236, 72, 153, 0.35);
   background: rgba(236, 72, 153, 0.12);
@@ -1336,7 +1336,7 @@
   );
 }
 
-.insights-entry[data-variant='goMad'] {
+.insights-entry[data-variant='russ'] {
   border-left: 3px solid rgba(236, 72, 153, 0.52);
   background: linear-gradient(
     125deg,
@@ -1346,15 +1346,15 @@
   );
 }
 
-.insights-entry[data-variant='goMad'].is-running {
+.insights-entry[data-variant='russ'].is-running {
   border-color: rgba(236, 72, 153, 0.42);
   box-shadow:
     0 8px 24px rgba(15, 23, 42, 0.08),
     0 0 0 1px rgba(244, 63, 94, 0.14);
-  animation: insights-gomad-card-glow 2.8s ease-in-out infinite;
+  animation: insights-russ-card-glow 2.8s ease-in-out infinite;
 }
 
-.insights-entry[data-variant='goMad'].is-running::before {
+.insights-entry[data-variant='russ'].is-running::before {
   /* `background` shorthand resets background-size from the base rule back to
      `auto`, which clamps the gradient to the element width and makes the
      shimmer pop in/out instead of sweeping smoothly. Re-assert the size and
@@ -1373,7 +1373,7 @@
   animation: insights-card-shimmer 2.4s ease-in-out infinite;
 }
 
-@keyframes insights-gomad-card-glow {
+@keyframes insights-russ-card-glow {
   0%,
   100% {
     filter: hue-rotate(0deg);
@@ -1398,11 +1398,11 @@
   animation: insights-pop 420ms ease-out;
 }
 
-.insights-entry[data-variant='goMad'].is-celebrating {
-  animation: insights-gomad-celebrate 580ms cubic-bezier(0.34, 1.56, 0.64, 1);
+.insights-entry[data-variant='russ'].is-celebrating {
+  animation: insights-russ-celebrate 580ms cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-@keyframes insights-gomad-celebrate {
+@keyframes insights-russ-celebrate {
   0% {
     transform: scale(1) rotate(0deg);
   }
@@ -2800,7 +2800,7 @@
 .insights-section.is-gilfoyle-content-lane,
 .insights-section.is-dinesh-content-lane,
 .insights-section.is-erlich-content-lane,
-.insights-section.is-gomad-content-lane {
+.insights-section.is-russ-content-lane {
   padding: 0.15rem 0 0;
 }
 
@@ -2912,7 +2912,7 @@
   height: 15px;
 }
 
-.insights-section-title-gomad {
+.insights-section-title-russ {
   display: flex;
   align-items: center;
   gap: 0.42rem;
@@ -2923,7 +2923,7 @@
   color: rgba(157, 23, 77, 0.94);
 }
 
-.insights-section-title-gomad-icon {
+.insights-section-title-russ-icon {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2932,15 +2932,15 @@
   border-radius: 0.45rem;
   background: linear-gradient(145deg, rgba(251, 113, 133, 0.35), rgba(250, 204, 21, 0.28));
   color: rgba(131, 24, 67, 0.96);
-  animation: insights-gomad-icon-wiggle 1.35s ease-in-out infinite;
+  animation: insights-russ-icon-wiggle 1.35s ease-in-out infinite;
 }
 
-.insights-section-title-gomad-icon .insights-svg-icon {
+.insights-section-title-russ-icon .insights-svg-icon {
   width: 15px;
   height: 15px;
 }
 
-@keyframes insights-gomad-icon-wiggle {
+@keyframes insights-russ-icon-wiggle {
   0%,
   100% {
     transform: rotate(0deg);
@@ -2969,16 +2969,16 @@
   animation: insights-caret-blink 0.95s step-end infinite;
 }
 
-.insights-stream-caret.is-gomad-caret {
+.insights-stream-caret.is-russ-caret {
   width: 3px;
   border-radius: 1px;
   background: linear-gradient(180deg, #f472b6, #facc15);
   animation:
     insights-caret-blink 0.72s step-end infinite,
-    insights-gomad-caret-hue 2s linear infinite;
+    insights-russ-caret-hue 2s linear infinite;
 }
 
-@keyframes insights-gomad-caret-hue {
+@keyframes insights-russ-caret-hue {
   0% {
     filter: hue-rotate(0deg);
   }
@@ -3331,13 +3331,13 @@
   background: linear-gradient(145deg, rgba(251, 146, 60, 0.75), rgba(234, 88, 12, 0.55));
 }
 
-.insights-entry-rich-text.is-gomad-prose .insights-content-bullet .insights-bullet-icon {
+.insights-entry-rich-text.is-russ-prose .insights-content-bullet .insights-bullet-icon {
   border-radius: 3px;
   background: linear-gradient(145deg, rgba(251, 113, 133, 0.85), rgba(250, 204, 21, 0.65));
-  animation: insights-gomad-bullet-pulse 1.1s ease-in-out infinite;
+  animation: insights-russ-bullet-pulse 1.1s ease-in-out infinite;
 }
 
-@keyframes insights-gomad-bullet-pulse {
+@keyframes insights-russ-bullet-pulse {
   0%,
   100% {
     transform: scale(1);
@@ -3429,7 +3429,7 @@
 .insights-gilfoyle-opener .insights-content-line:first-of-type,
 .insights-dinesh-opener .insights-content-line:first-of-type,
 .insights-erlich-opener .insights-content-line:first-of-type,
-.insights-gomad-opener .insights-content-line:first-of-type {
+.insights-russ-opener .insights-content-line:first-of-type {
   font-size: 0.84rem;
   line-height: 1.52;
   letter-spacing: -0.01em;
@@ -3457,7 +3457,7 @@
   background: linear-gradient(180deg, rgba(251, 146, 60, 0.95), rgba(194, 65, 12, 0.55));
 }
 
-.insights-gomad-opener {
+.insights-russ-opener {
   position: relative;
   margin-bottom: 0.55rem;
   padding: 0.55rem 0.55rem 0.58rem 0.72rem;
@@ -3475,10 +3475,10 @@
     0 8px 22px rgba(236, 72, 153, 0.1);
   animation:
     insights-explain-opener-in 0.55s cubic-bezier(0.34, 1.3, 0.64, 1) backwards,
-    insights-gomad-opener-border 2.4s linear infinite;
+    insights-russ-opener-border 2.4s linear infinite;
 }
 
-.insights-gomad-opener::before {
+.insights-russ-opener::before {
   content: '';
   position: absolute;
   left: 0.32rem;
@@ -3487,10 +3487,10 @@
   width: 4px;
   border-radius: 999px;
   background: linear-gradient(180deg, #f472b6, #facc15, #a855f7);
-  animation: insights-gomad-opener-bar 2s ease-in-out infinite;
+  animation: insights-russ-opener-bar 2s ease-in-out infinite;
 }
 
-@keyframes insights-gomad-opener-border {
+@keyframes insights-russ-opener-border {
   0% {
     box-shadow:
       0 0 0 1px rgba(244, 63, 94, 0.25),
@@ -3516,7 +3516,7 @@
   }
 }
 
-@keyframes insights-gomad-opener-bar {
+@keyframes insights-russ-opener-bar {
   0%,
   100% {
     filter: hue-rotate(0deg);
@@ -3549,37 +3549,37 @@
     animation: none;
   }
 
-  .insights-gomad-opener {
+  .insights-russ-opener {
     animation: none;
     box-shadow:
       0 0 0 1px rgba(244, 63, 94, 0.22),
       0 8px 22px rgba(236, 72, 153, 0.08);
   }
 
-  .insights-gomad-opener::before {
+  .insights-russ-opener::before {
     animation: none;
     filter: none;
   }
 
-  .insights-entry-rich-text.is-gomad-prose .insights-content-bullet .insights-bullet-icon {
+  .insights-entry-rich-text.is-russ-prose .insights-content-bullet .insights-bullet-icon {
     animation: none;
   }
 
-  .insights-section-title-gomad-icon {
+  .insights-section-title-russ-icon {
     animation: none;
   }
 
-  .insights-stream-caret.is-gomad-caret {
+  .insights-stream-caret.is-russ-caret {
     animation: insights-caret-blink 0.95s step-end infinite;
     filter: none;
   }
 
-  .insights-entry[data-variant='goMad'].is-running {
+  .insights-entry[data-variant='russ'].is-running {
     animation: none;
     filter: none;
   }
 
-  .insights-entry[data-variant='goMad'].is-celebrating {
+  .insights-entry[data-variant='russ'].is-celebrating {
     animation: insights-pop 420ms ease-out;
   }
 }
@@ -3699,22 +3699,22 @@
   background: linear-gradient(135deg, rgba(255, 247, 237, 0.92), rgba(255, 255, 255, 0.76));
 }
 
-.insights-prose-section.insights-tone-gomad-a {
+.insights-prose-section.insights-tone-russ-a {
   border-left-color: rgba(236, 72, 153, 0.85);
   background: linear-gradient(135deg, rgba(253, 242, 248, 0.94), rgba(255, 255, 255, 0.72));
 }
 
-.insights-prose-section.insights-tone-gomad-b {
+.insights-prose-section.insights-tone-russ-b {
   border-left-color: rgba(6, 182, 212, 0.82);
   background: linear-gradient(135deg, rgba(236, 254, 255, 0.94), rgba(255, 255, 255, 0.72));
 }
 
-.insights-prose-section.insights-tone-gomad-c {
+.insights-prose-section.insights-tone-russ-c {
   border-left-color: rgba(250, 204, 21, 0.88);
   background: linear-gradient(135deg, rgba(254, 249, 195, 0.65), rgba(255, 255, 255, 0.76));
 }
 
-.insights-prose-section.insights-tone-gomad-d {
+.insights-prose-section.insights-tone-russ-d {
   border-left-color: rgba(168, 85, 247, 0.82);
   background: linear-gradient(135deg, rgba(243, 232, 255, 0.92), rgba(254, 249, 195, 0.35));
 }
@@ -4333,11 +4333,11 @@
   opacity: 1;
 }
 
-.insights-section-icon.is-gomad-a {
+.insights-section-icon.is-russ-a {
   background: rgba(236, 72, 153, 0.18);
 }
 
-.insights-section-icon.is-gomad-a::after {
+.insights-section-icon.is-russ-a::after {
   border-radius: 999px;
   background: linear-gradient(145deg, #ec4899, #f472b6);
   opacity: 1;
@@ -4345,11 +4345,11 @@
   height: 0.52rem;
 }
 
-.insights-section-icon.is-gomad-b {
+.insights-section-icon.is-russ-b {
   background: rgba(6, 182, 212, 0.16);
 }
 
-.insights-section-icon.is-gomad-b::after {
+.insights-section-icon.is-russ-b::after {
   border-radius: 2px;
   background: linear-gradient(145deg, #06b6d4, #22d3ee);
   opacity: 1;
@@ -4358,11 +4358,11 @@
   transform: rotate(12deg);
 }
 
-.insights-section-icon.is-gomad-c {
+.insights-section-icon.is-russ-c {
   background: rgba(250, 204, 21, 0.2);
 }
 
-.insights-section-icon.is-gomad-c::after {
+.insights-section-icon.is-russ-c::after {
   border-radius: 999px 999px 3px 999px;
   background: linear-gradient(145deg, #facc15, #f59e0b);
   opacity: 1;
@@ -4371,11 +4371,11 @@
   transform: rotate(-12deg);
 }
 
-.insights-section-icon.is-gomad-d {
+.insights-section-icon.is-russ-d {
   background: rgba(168, 85, 247, 0.18);
 }
 
-.insights-section-icon.is-gomad-d::after {
+.insights-section-icon.is-russ-d::after {
   width: 0;
   height: 0;
   border-radius: 0;
@@ -4610,7 +4610,7 @@
     opacity: 0.85;
   }
 
-  .insights-entry[data-variant='goMad'].is-running {
+  .insights-entry[data-variant='russ'].is-running {
     animation: none !important;
     filter: none !important;
   }
@@ -7429,8 +7429,8 @@
   --slop-action-glow: rgba(249, 115, 22, 0.32);
 }
 
-.slop-action-button.is-go-mad,
-.radial-action-button.is-go-mad {
+.slop-action-button.is-russ,
+.radial-action-button.is-russ {
   --slop-action-accent: #ec4899;
   --slop-action-accent-2: #f97316;
   --slop-action-ink: #1a1235;
@@ -7577,7 +7577,7 @@
     var(--control-shadow);
 }
 
-.slop-action-button.is-go-mad {
+.slop-action-button.is-russ {
   color: #1a1235;
   background:
     linear-gradient(135deg, rgba(255, 255, 255, 0.92), rgba(253, 186, 116, 0.76)),
@@ -7629,7 +7629,7 @@
   line-height: 1;
   text-shadow: 0 1px 1px rgba(0, 0, 0, 0.18);
   /* Compositor hint — keeps the icon on its own layer so ancestor
-     transforms (e.g. variant shell-shake during goMad) don't repaint
+     transforms (e.g. variant shell-shake during russ) don't repaint
      the whole button on every frame. */
   transform: translateZ(0);
 }
@@ -7663,9 +7663,9 @@
     animation: slop-action-sheen 950ms ease-out;
   }
 
-  .slop-action-button.is-go-mad .action-persona-icon,
-  .radial-action-button.is-go-mad .action-persona-icon {
-    animation: slop-action-gomad-jitter 0.72s ease-in-out infinite;
+  .slop-action-button.is-russ .action-persona-icon,
+  .radial-action-button.is-russ .action-persona-icon {
+    animation: slop-action-russ-jitter 0.72s ease-in-out infinite;
   }
 }
 
@@ -7678,7 +7678,7 @@
   }
 }
 
-@keyframes slop-action-gomad-jitter {
+@keyframes slop-action-russ-jitter {
   0%,
   100% {
     transform: rotate(-4deg) scale(1);
@@ -10579,14 +10579,14 @@ button {
     animation: slopitect-boot-headline 460ms ease-out forwards;
   }
 
-  .boot-sequence-overlay.is-go-mad .boot-sequence-flash {
+  .boot-sequence-overlay.is-russ .boot-sequence-flash {
     background:
       radial-gradient(circle at 50% 30%, rgba(236, 72, 153, 0.55), rgba(236, 72, 153, 0) 70%),
       repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.18) 0 2px, transparent 2px 4px);
     animation: slopitect-bonk-flash 520ms ease-out forwards;
     mix-blend-mode: screen;
   }
-  .boot-sequence-overlay.is-go-mad .boot-sequence-headline {
+  .boot-sequence-overlay.is-russ .boot-sequence-headline {
     color: #fff;
     background: linear-gradient(90deg, #f97316, #ec4899, #a855f7, #22d3ee);
     -webkit-background-clip: text;
@@ -10596,7 +10596,7 @@ button {
     text-shadow: none;
     filter: drop-shadow(0 0 16px rgba(236, 72, 153, 0.55));
   }
-  .boot-sequence-overlay.is-go-mad .boot-hardhat {
+  .boot-sequence-overlay.is-russ .boot-hardhat {
     position: absolute;
     top: calc(env(safe-area-inset-top) + 2.5rem);
     right: 1.25rem;
@@ -10831,14 +10831,14 @@ button {
 .insights-pane.is-variant-erlich {
   border-left-color: rgba(249, 115, 22, 0.35);
 }
-.insights-pane.is-variant-go-mad {
+.insights-pane.is-variant-russ {
   background-image:
     linear-gradient(rgba(253, 251, 255, 0.92), rgba(253, 251, 255, 0.92)),
     repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.04) 0 1px, transparent 1px 3px);
   border-left-color: rgba(236, 72, 153, 0.45);
   position: relative;
 }
-.insights-pane.is-variant-go-mad::before {
+.insights-pane.is-variant-russ::before {
   content: '';
   position: absolute;
   inset: 0;
@@ -10930,7 +10930,7 @@ button {
   border-left-color: #ea580c;
   background: linear-gradient(90deg, rgba(249, 115, 22, 0.12), rgba(255, 255, 255, 0.82));
 }
-.insights-entry-persona.is-variant-go-mad {
+.insights-entry-persona.is-variant-russ {
   border-left-color: #ec4899;
   background: linear-gradient(90deg, rgba(236, 72, 153, 0.14), rgba(255, 255, 255, 0.82));
 }
@@ -10979,8 +10979,8 @@ button {
   font-style: italic;
   color: rgba(40, 30, 60, 0.72);
 }
-.insights-pane.is-variant-go-mad .insights-pane-tagline,
-.insights-pane.is-variant-go-mad .insights-pane-persona-quote {
+.insights-pane.is-variant-russ .insights-pane-tagline,
+.insights-pane.is-variant-russ .insights-pane-persona-quote {
   color: #ec4899;
   font-weight: 700;
   font-style: normal;
@@ -11063,7 +11063,7 @@ button {
   background: rgba(249, 115, 22, 0.1);
   border-color: rgba(249, 115, 22, 0.22);
 }
-.slopitect-status-board.is-variant-go-mad {
+.slopitect-status-board.is-variant-russ {
   color: #ec4899;
   background: linear-gradient(90deg, rgba(236, 72, 153, 0.12), rgba(168, 85, 247, 0.12));
   border-color: rgba(236, 72, 153, 0.28);
@@ -11091,12 +11091,12 @@ button {
   }
 }
 @media (prefers-reduced-motion: no-preference) {
-  .slopitect-status-board.is-variant-go-mad .slopitect-status-board-label {
-    animation: slopitect-go-mad-wobble 0.85s ease-in-out infinite;
+  .slopitect-status-board.is-variant-russ .slopitect-status-board-label {
+    animation: slopitect-russ-wobble 0.85s ease-in-out infinite;
     display: inline-block;
   }
 }
-@keyframes slopitect-go-mad-wobble {
+@keyframes slopitect-russ-wobble {
   0%,
   100% {
     transform: rotate(-1deg);
@@ -11143,7 +11143,7 @@ button {
 .streak-hud-toast.is-variant-erlich {
   background: linear-gradient(90deg, #ea580c, #ec4899);
 }
-.streak-hud-toast.is-variant-go-mad {
+.streak-hud-toast.is-variant-russ {
   background: linear-gradient(90deg, #f97316, #ec4899, #a855f7);
 }
 .streak-hud-toast.is-variant-jared {
@@ -11357,7 +11357,7 @@ button {
  * Mobile / foldable note: the shell-level ::after overlays previously had
  * a `position: fixed; inset: 0` shape that covered the bottom chrome and
  * the thinking pane. Combined with `animation: slopitect-shell-shake` on
- * goMad and `slopitect-polish-sweep` on gilfoyle, weak compositors on
+ * russ and `slopitect-polish-sweep` on gilfoyle, weak compositors on
  * foldables ended up dropping frames and the Thinking button + pane
  * visibly flickered every animation tick. We now (a) gate the heaviest
  * animations behind a desktop breakpoint, (b) cap the overlay area so
@@ -11366,7 +11366,7 @@ button {
  *
  * Reduced-motion preference still disables the animation entirely. */
 @media (prefers-reduced-motion: no-preference) {
-  .app-shell[data-streaming='true'][data-live-variant='goMad']::after {
+  .app-shell[data-streaming='true'][data-live-variant='russ']::after {
     content: '';
     position: fixed;
     inset: 0;
@@ -11379,7 +11379,7 @@ button {
     will-change: transform;
   }
   @media (min-width: 1025px) {
-    .app-shell[data-streaming='true'][data-live-variant='goMad']::after {
+    .app-shell[data-streaming='true'][data-live-variant='russ']::after {
       animation: slopitect-shell-shake 0.55s ease-in-out infinite;
     }
   }
@@ -11475,7 +11475,7 @@ button {
 
 /* Keep the thinking pane and thinking toggle on their own GPU layers. Without
    this the variant ::after overlays (especially the `inset 0` rules on
-   critique / explain / goMad) trigger a full-window repaint on every paint
+   critique / explain / russ) trigger a full-window repaint on every paint
    tick, which on a foldable's lower-power compositor is what the user sees as
    flicker. */
 .insights-pane,
@@ -11609,7 +11609,7 @@ button {
 .xp-progress-bar.is-variant-erlich .xp-progress-bar-fill {
   background: linear-gradient(90deg, #fb923c, #ea580c, #ec4899);
 }
-.xp-progress-bar.is-variant-goMad .xp-progress-bar-fill {
+.xp-progress-bar.is-variant-russ .xp-progress-bar-fill {
   background: linear-gradient(90deg, #f97316, #ec4899, #a855f7);
 }
 .xp-progress-bar.is-variant-jared .xp-progress-bar-fill {
@@ -12223,7 +12223,7 @@ button {
 .levelup-info-variant.is-erlich {
   background: linear-gradient(135deg, rgba(255, 237, 213, 0.78), rgba(255, 255, 255, 0.8));
 }
-.levelup-info-variant.is-goMad {
+.levelup-info-variant.is-russ {
   background: linear-gradient(135deg, rgba(253, 242, 248, 0.85), rgba(254, 249, 195, 0.5));
 }
 .levelup-info-variant.is-jared {
@@ -12490,7 +12490,7 @@ button {
 .streak-hud-toast.is-xp.is-variant-erlich {
   background: linear-gradient(135deg, #ea580c, #ec4899);
 }
-.streak-hud-toast.is-xp.is-variant-go-mad {
+.streak-hud-toast.is-xp.is-variant-russ {
   background: linear-gradient(135deg, #f97316, #ec4899, #a855f7);
 }
 .streak-hud-toast.is-xp.is-variant-jared {
@@ -12658,7 +12658,7 @@ button {
 .diagram-run-fx.is-erlich {
   border: 1px solid rgba(249, 115, 22, 0.22);
 }
-.diagram-run-fx.is-go-mad {
+.diagram-run-fx.is-russ {
   border: 1px solid rgba(236, 72, 153, 0.32);
   box-shadow: inset 0 0 80px rgba(236, 72, 153, 0.12);
 }
@@ -12736,7 +12736,7 @@ button {
   right: 14%;
 }
 
-/* Go Mad — glitch + hard hats + flames */
+/* Russ — glitch + hard hats + flames */
 .diagram-run-fx-glitch-layer {
   position: absolute;
   inset: 0;
@@ -12845,15 +12845,15 @@ button {
   .diagram-run-fx.is-erlich .diagram-run-fx-zap-2 {
     animation-delay: 1.2s;
   }
-  .diagram-run-fx.is-go-mad .diagram-run-fx-glitch-layer {
+  .diagram-run-fx.is-russ .diagram-run-fx-glitch-layer {
     animation: slopitect-glitch-flicker 1.6s steps(2, end) infinite;
   }
-  .diagram-run-fx.is-go-mad .diagram-run-fx-hardhat {
+  .diagram-run-fx.is-russ .diagram-run-fx-hardhat {
     animation-name: slopitect-hardhat-fall;
     animation-timing-function: ease-in;
     animation-iteration-count: infinite;
   }
-  .diagram-run-fx.is-go-mad .diagram-run-fx-flame {
+  .diagram-run-fx.is-russ .diagram-run-fx-flame {
     animation: slopitect-flame-flicker 0.4s steps(2, end) infinite alternate;
   }
   .diagram-run-fx.is-jared .diagram-run-fx-squiggle {
@@ -12865,7 +12865,7 @@ button {
   .diagram-run-fx.is-explain .diagram-run-fx-pin {
     animation: slopitect-pin-drift 6s ease-in-out infinite;
   }
-  .diagram-run-fx.is-go-mad.is-intensity-high .diagram-run-fx-glitch-layer {
+  .diagram-run-fx.is-russ.is-intensity-high .diagram-run-fx-glitch-layer {
     animation-duration: 0.8s;
   }
 }
@@ -13093,11 +13093,11 @@ button {
   filter: drop-shadow(0 0 16px rgba(249, 115, 22, 0.75));
 }
 
-.diagram-output[data-run-variant='goMad'] .is-diagram-selected > rect,
-.diagram-output[data-run-variant='goMad'] .is-diagram-selected > path,
-.diagram-output[data-run-variant='goMad'] .is-diagram-selected > polygon,
-.diagram-output[data-run-variant='goMad'] .is-diagram-selected > circle,
-.diagram-output[data-run-variant='goMad'] .is-diagram-selected > ellipse {
+.diagram-output[data-run-variant='russ'] .is-diagram-selected > rect,
+.diagram-output[data-run-variant='russ'] .is-diagram-selected > path,
+.diagram-output[data-run-variant='russ'] .is-diagram-selected > polygon,
+.diagram-output[data-run-variant='russ'] .is-diagram-selected > circle,
+.diagram-output[data-run-variant='russ'] .is-diagram-selected > ellipse {
   stroke: #ec4899 !important;
   stroke-width: 4px !important;
   filter: drop-shadow(0 0 14px rgba(236, 72, 153, 0.85));
@@ -13125,7 +13125,7 @@ button {
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .diagram-output[data-run-variant='goMad'] .is-diagram-selected {
+  .diagram-output[data-run-variant='russ'] .is-diagram-selected {
     animation: slopitect-node-wobble 0.6s ease-in-out infinite alternate;
     transform-box: fill-box;
     transform-origin: center;
@@ -13277,16 +13277,16 @@ button {
   border-color: rgba(249, 115, 22, 0.55);
   background: linear-gradient(135deg, rgba(249, 115, 22, 0.25), rgba(236, 72, 153, 0.06));
 }
-.slopitect-companion.is-go-mad {
+.slopitect-companion.is-russ {
   border-color: rgba(236, 72, 153, 0.7);
   background: linear-gradient(135deg, rgba(40, 14, 40, 0.95), rgba(20, 18, 38, 0.95));
   box-shadow: 0 18px 60px rgba(236, 72, 153, 0.35);
 }
-.slopitect-companion.is-go-mad .slopitect-companion-avatar {
+.slopitect-companion.is-russ .slopitect-companion-avatar {
   border-color: rgba(236, 72, 153, 0.85);
   background: radial-gradient(circle, rgba(236, 72, 153, 0.6), rgba(168, 85, 247, 0.2));
 }
-.slopitect-companion.is-go-mad .slopitect-companion-name {
+.slopitect-companion.is-russ .slopitect-companion-name {
   background: linear-gradient(90deg, #f472b6, #facc15, #34d399, #60a5fa, #f472b6);
   -webkit-background-clip: text;
   background-clip: text;
@@ -13321,7 +13321,7 @@ button {
   .slopitect-companion.is-active .slopitect-companion-avatar {
     animation: slopitect-avatar-idle 2.4s ease-in-out infinite;
   }
-  .slopitect-companion.is-go-mad.is-active .slopitect-companion-avatar {
+  .slopitect-companion.is-russ.is-active .slopitect-companion-avatar {
     animation: slopitect-avatar-shake 0.5s ease-in-out infinite;
   }
   .slopitect-companion.is-erlich.is-active .slopitect-companion-avatar {
@@ -13510,7 +13510,7 @@ button {
 .live-run-hud.is-erlich {
   border-color: rgba(249, 115, 22, 0.55);
 }
-.live-run-hud.is-go-mad {
+.live-run-hud.is-russ {
   border-color: rgba(236, 72, 153, 0.7);
   background: linear-gradient(120deg, rgba(40, 14, 40, 0.96), rgba(20, 18, 38, 0.96));
 }
@@ -13528,7 +13528,7 @@ button {
       live-run-hud-breathe 2.6s ease-in-out infinite;
     animation-delay: 0s, 240ms;
   }
-  .live-run-hud.is-go-mad {
+  .live-run-hud.is-russ {
     animation:
       live-run-hud-slide-in 240ms cubic-bezier(0.2, 1.18, 0.6, 1.02),
       live-run-hud-shake 0.6s ease-in-out infinite;
@@ -13570,7 +13570,7 @@ button {
 }
 
 /* ──────────────────────────────────────────────────────────────────
- * Per-variant streaming carets (Go Mad caret already in place earlier).
+ * Per-variant streaming carets (Russ caret already in place earlier).
  * ────────────────────────────────────────────────────────────────── */
 .insights-stream-caret.is-gilfoyle-caret {
   width: 3px;
@@ -13721,7 +13721,7 @@ button {
     animation: slopitect-boot-scroll 580ms ease-out forwards;
     animation-delay: 80ms;
   }
-  .boot-sequence-overlay.is-go-mad .boot-bonk-flash {
+  .boot-sequence-overlay.is-russ .boot-bonk-flash {
     animation: slopitect-bonk-flash 380ms ease-out forwards;
     animation-delay: 60ms;
   }

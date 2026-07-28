@@ -1,5 +1,5 @@
 const RETRYABLE_OPERATIONS = new Set(['intent', 'transform']);
-const RETRYABLE_VARIANTS = new Set(['intent', 'gilfoyle', 'dinesh', 'erlich', 'goMad', 'barker']);
+const RETRYABLE_VARIANTS = new Set(['intent', 'gilfoyle', 'dinesh', 'erlich', 'russ', 'barker']);
 
 /**
  * Snapshot of a stream run so a failed insight can be re-submitted after sync.
@@ -38,7 +38,7 @@ export function buildInsightRetryDescriptor({
   } else {
     if (!payload?.mode) return null;
     descriptor.mode = payload.mode;
-    if (payload.goMadDepth != null) descriptor.goMadDepth = payload.goMadDepth;
+    if (payload.russDepth != null) descriptor.russDepth = payload.russDepth;
   }
   return descriptor;
 }

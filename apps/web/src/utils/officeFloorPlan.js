@@ -182,7 +182,7 @@ export const FLOOR_SEATS = [
   { id: 'erlich', x: 4, y: 6, desk: true, zone: 'pod' },
   { id: 'jared', x: 8, y: 5, desk: true, zone: 'pod' },
   { id: 'explain', x: 5, y: 8, desk: true, zone: 'pod' },
-  { id: 'goMad', x: 9, y: 6, desk: true, zone: 'pod' },
+  { id: 'russ', x: 9, y: 6, desk: true, zone: 'pod' },
 
   // The floor.
   { id: 'helpdesk', x: 2, y: 2, desk: true, zone: 'reception' },
@@ -622,7 +622,7 @@ function coversTheMonitor(mark, seat) {
  *
  * - **Glass** blocks only when the sight line properly *crosses* it. A radius
  *   test gets this wrong in both directions — the meeting-room wall runs
- *   parallel to goMad's mark half a tile away and blocks nothing, while the
+ *   parallel to russ's mark half a tile away and blocks nothing, while the
  *   leadership row's wall is exactly what stands between you and the CFO.
  * - **Furniture and colleagues** block by proximity to the line. The server
  *   rack is what makes the CEO unpeekable: there is a standable tile in front

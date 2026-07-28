@@ -15,7 +15,7 @@ import { selectionActionTitle, topicFromDescriptor } from '../../utils/appInsigh
  *   runStreamingAgent: Function;
  *   setActiveRequest: (value: string | null) => void;
  *   setError: (message: string) => void;
- *   setGoMadStreak: import('react').Dispatch<import('react').SetStateAction<number>>;
+ *   setRussStreak: import('react').Dispatch<import('react').SetStateAction<number>>;
  *   setLatestCritique: (value: object | null) => void;
  *   setLoading: (value: boolean) => void;
  *   streamingPreviewRef: import('react').MutableRefObject<boolean>;
@@ -32,7 +32,7 @@ export function useFixFromCritique({
   runStreamingAgent,
   setActiveRequest,
   setError,
-  setGoMadStreak,
+  setRussStreak,
   setLatestCritique,
   setLoading,
   streamingPreviewRef,
@@ -119,7 +119,7 @@ ${requirementsBlock}`;
       setLoading(true);
       setActiveRequest('fix');
       setError('');
-      setGoMadStreak(0);
+      setRussStreak(0);
 
       try {
         const syncedState = await syncDiagramOrThrow();
@@ -158,7 +158,7 @@ ${requirementsBlock}`;
       runStreamingAgent,
       setActiveRequest,
       setError,
-      setGoMadStreak,
+      setRussStreak,
       setLatestCritique,
       setLoading,
       streamingPreviewRef,

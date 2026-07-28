@@ -14,7 +14,7 @@ export async function validateAndPreparePatch({
   proposedMermaidSource,
   reason,
   transformMode = null,
-  goMadDepth = null
+  russDepth = null
 }) {
   const candidate = proposedMermaidSource?.trim();
 
@@ -104,7 +104,7 @@ export async function validateAndPreparePatch({
 
   const transformCheck = validateMermaidTransformConstraint({
     transformMode,
-    goMadDepth,
+    russDepth,
     beforeSource: currentState.diagramSource ?? '',
     afterSource: workingSource
   });

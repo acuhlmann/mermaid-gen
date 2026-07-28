@@ -66,7 +66,7 @@ const FENCED_BLOCK_PATTERN = /```([A-Za-z0-9_-]*)[^\S\n]*\n([\s\S]*?)```/g;
 
 /**
  * Some models emit the diagram as a fenced block in prose instead of calling
- * apply_mermaid_patch — the dominant failure of hot transform turns (Go Mad).
+ * apply_mermaid_patch — the dominant failure of hot transform turns (Russ).
  * Mirror of the prose-recovery extractors in the anything/chart/infographic/
  * metaphor agents: salvage that source so the caller can route it through the
  * normal validation pipeline instead of paying a full patch-retry model turn.
@@ -147,12 +147,12 @@ const INTENT_PROFILE_DEFAULTS = {
 
 import {
   TRANSFORM_MODEL_LIMITS,
-  GO_MAD_TRANSFORM_MAX_TOKENS,
+  RUSS_TRANSFORM_MAX_TOKENS,
   isTransformMode,
   buildFocusScopeInstructions,
   buildAnalyzeFocusInstructions,
-  clampGoMadDepth,
-  goMadTransformModelOptions,
+  clampRussDepth,
+  russTransformModelOptions,
   transformModeModelOptions,
   buildTransformUserContent,
   buildAdvisorSuggestionBlock,
@@ -165,12 +165,12 @@ import {
 
 export {
   TRANSFORM_MODEL_LIMITS,
-  GO_MAD_TRANSFORM_MAX_TOKENS,
+  RUSS_TRANSFORM_MAX_TOKENS,
   isTransformMode,
   buildFocusScopeInstructions,
   buildAnalyzeFocusInstructions,
-  clampGoMadDepth,
-  goMadTransformModelOptions,
+  clampRussDepth,
+  russTransformModelOptions,
   transformModeModelOptions,
   buildTransformUserContent
 } from './mermaidAnalysisPrompts.js';
@@ -335,7 +335,7 @@ export function buildDiagramMutationSystemMessage() {
  * first agent turn — so common foot-guns (style A,B,C; reserved words; ER attr order; classDef on
  * [*]) are warned against on initial generation, not only after a parse failure.
  *
- * For modes that may switch diagram type (erlich / goMad), the rules are marked advisory so the
+ * For modes that may switch diagram type (erlich / russ), the rules are marked advisory so the
  * agent doesn't anchor on the wrong type.
  *
  * Exported for tests.
@@ -348,7 +348,7 @@ export function buildSyntaxGuidanceSystemMessage({ stateStore, mode }) {
   const detected = inferDiagramType(source);
   if (!detected) return null;
   const rulePack = getRulePack(detected);
-  const mayChangeType = mode === 'erlich' || mode === 'goMad';
+  const mayChangeType = mode === 'erlich' || mode === 'russ';
   const lead = mayChangeType
     ? `Active diagram type: ${detected}. The rules below apply IF you keep this type. If you switch types (allowed in this mode), the rules below no longer apply — use the target type's syntax instead.`
     : `Active diagram type: ${detected}. Apply these rules when generating the patch (don't wait for a parser failure):`;
@@ -590,7 +590,7 @@ async function invokeWithRepair(
 
   if (requirePatch && !firstError) {
     // When the first agent turn produces prose without calling apply_mermaid_patch (or, worse,
-    // produces incoherent high-temperature token soup as Go Mad sometimes does at deeper tiers),
+    // produces incoherent high-temperature token soup as Russ sometimes does at deeper tiers),
     // re-running the same hot agent against the same prompt usually just produces the same
     // failure. Fall back to a stable agent (typically the fast non-transform agent at sane
     // temperature) when one was provided. This is the no-patch analogue of the syntax fixer.
@@ -685,7 +685,7 @@ async function invokeWithRepair(
   // Tool-less single-shot fixer using a cheap fast model. Independent of the intent/transform
   // model so repair runs on a small model regardless of caller profile. If the fixer accepts,
   // apply through the same patch pipeline (which re-validates and runs the sanitizer once more
-  // for safety) and short-circuit the agent loop. Transform-policy rejections (e.g. Go Mad
+  // for safety) and short-circuit the agent loop. Transform-policy rejections (e.g. Russ
   // tier ≥3 "switch diagram type") are semantic constraints the low-temperature syntax fixer
   // cannot satisfy — routing them there is guaranteed wasted budget, so those go straight to
   // the full-agent repair turn.
@@ -880,13 +880,13 @@ export function createMermaidLangChainAgent({
     middleware: createDiagramAgentMiddleware(env)
   });
 
-  /** Prompt-bar Go (`applyIntent`) and generic `invoke` — does not use transform/Go Mad sampling. */
+  /** Prompt-bar Go (`applyIntent`) and generic `invoke` — does not use transform/Russ sampling. */
   const getDefaultAgent = cache.getDefaultAgent;
 
-  /** Shape buttons Gilfoyle / Erlich / Go Mad / Align — hotter tiers apply only to Go Mad via `goMadTransformModelOptions`. */
-  function getTransformAgent(mode, profile = 'fast', goMadDepth) {
+  /** Shape buttons Gilfoyle / Erlich / Russ / Align — hotter tiers apply only to Russ via `russTransformModelOptions`. */
+  function getTransformAgent(mode, profile = 'fast', russDepth) {
     const safeMode = isTransformMode(mode) ? mode : 'gilfoyle';
-    return cache.getTransformAgent(safeMode, profile, goMadDepth);
+    return cache.getTransformAgent(safeMode, profile, russDepth);
   }
 
   const getAnalysisModel = cache.getAnalysisModel;
@@ -967,14 +967,14 @@ ${prompt}${focusScope}`,
       focusNode,
       modelProfile,
       emit,
-      goMadDepth,
+      russDepth,
       abortSignal,
       advisorPrompt
     }) {
-      const depth = mode === 'goMad' ? clampGoMadDepth(goMadDepth ?? 1) : null;
-      return withTransformContext(stateStore, { mode, goMadDepth: depth }, async () => {
+      const depth = mode === 'russ' ? clampRussDepth(russDepth ?? 1) : null;
+      return withTransformContext(stateStore, { mode, russDepth: depth }, async () => {
         const currentState = stateStore.getSlot('mermaid');
-        const transformAgent = getTransformAgent(mode, modelProfile, goMadDepth);
+        const transformAgent = getTransformAgent(mode, modelProfile, russDepth);
         const focusScope = buildFocusScopeInstructions(focusNode);
 
         return invokeMutation(
@@ -987,7 +987,7 @@ ${prompt}${focusScope}`,
                   mode,
                   diagramSource: currentState.diagramSource,
                   focusScope,
-                  goMadDepth,
+                  russDepth,
                   advisorPrompt
                 }),
                 currentState.lastUserPrompt,
@@ -1001,7 +1001,7 @@ ${prompt}${focusScope}`,
             mode,
             profile: normalizeModelProfile(modelProfile),
             modelLabel: resolveModelLabel(modelProfile),
-            // Hot Go Mad (and Erlich at temp 0.82) agents can produce prose-without-patch or
+            // Hot Russ (and Erlich at temp 0.82) agents can produce prose-without-patch or
             // high-entropy token soup at deeper tiers. Fall back to the stable fast non-transform
             // agent for the patch_retry turn so we're not just rolling the same dice twice.
             stableAgent: getDefaultAgent('fast'),

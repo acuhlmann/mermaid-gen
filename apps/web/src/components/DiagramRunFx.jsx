@@ -13,7 +13,7 @@ const VARIANT_CLASS = {
   gilfoyle: 'is-gilfoyle',
   dinesh: 'is-dinesh',
   erlich: 'is-erlich',
-  goMad: 'is-go-mad',
+  russ: 'is-russ',
   jared: 'is-jared',
   explain: 'is-explain'
 };
@@ -161,7 +161,7 @@ export default function DiagramRunFx({ variant, streaming = false, intensity = '
         </>
       ) : null}
 
-      {variant === 'goMad' ? (
+      {variant === 'russ' ? (
         <>
           <div className="diagram-run-fx-glitch-layer" />
           {HARD_HAT_LANES.map((lane, i) => (

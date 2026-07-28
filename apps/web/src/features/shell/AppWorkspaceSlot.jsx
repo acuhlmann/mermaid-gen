@@ -151,7 +151,7 @@ export function AppWorkspaceSlot({
   advisorBubbleProps,
   stakeholderIntroProps,
   advisorPause,
-  goMadStreak,
+  russStreak,
   onCallMeeting,
   handleSelectContentMode,
   latestCritique,
@@ -384,7 +384,7 @@ export function AppWorkspaceSlot({
         advisorBubbleProps={advisorBubbleProps}
         stakeholderIntroProps={stakeholderIntroProps}
         advisorPause={advisorPause}
-        goMadStreak={goMadStreak}
+        russStreak={russStreak}
         onCallMeeting={onCallMeeting}
         handleSelectContentMode={handleSelectContentMode}
         latestCritique={latestCritique}

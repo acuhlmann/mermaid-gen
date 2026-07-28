@@ -244,7 +244,7 @@ export function lifetimeLlmCostFlavor(usd: number): LifetimeLlmCostFlavor {
   if (safe < 5) {
     return {
       headline,
-      quip: 'Expense-report energy. Someone will ask which cost center owns "Go Mad."',
+      quip: 'Expense-report energy. Someone will ask which cost center owns "Russ."',
       severity: 'expense'
     };
   }

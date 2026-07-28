@@ -101,7 +101,7 @@ function describeCurrentForm(currentDoc) {
   return `"${parsed.doc.formTitle}"${code}`;
 }
 
-export function buildFormsTransformUserContent({ mode, currentDoc, goMadDepth, advisorPrompt }) {
+export function buildFormsTransformUserContent({ mode, currentDoc, russDepth, advisorPrompt }) {
   const modeInstructions = {
     gilfoyle:
       'Fix what is actually wrong with the current form — keep the same intake step but sharpen the copy, tighten the layout, and make the absurdity land harder. Reach first for what the form already presupposes but never asks: the question that assumes an answer it never collected, the field whose label names something other than what it takes. Keep the fields and structure.',
@@ -109,7 +109,7 @@ export function buildFormsTransformUserContent({ mode, currentDoc, goMadDepth, a
       'Fix what is actually wrong with the current form — keep the same intake step but sharpen the copy, tighten the layout, and make the absurdity land harder. Reach first for what the form does not let you survive: the required field with no honest answer, the dead end after submit, the "other" with nowhere to type it. Keep the fields and structure. The fix must be genuinely right; any prose you emit afterwards makes sure the credit for it lands.',
     erlich:
       'Elevate the current form — same bureaucratic subject, a different form structure or gimmick worthy of a visionary. You may restructure freely.',
-    goMad: `Go mad on this form — escalate the bureaucracy (depth ${goMadDepth ?? 1}). More sections, more mandatory attestations, more self-cancelling rules, nested sub-forms via Cards and Tabs. Still a working, submittable form.`,
+    russ: `Escalate like Russ Hanneman — escalate the bureaucracy (depth ${russDepth ?? 1}). More sections, more mandatory attestations, more self-cancelling rules, nested sub-forms via Cards and Tabs. Still a working, submittable form. Tres commas energy; never mean.`,
     barker:
       'Take the liberty of executing the requested change tightly. No additions beyond the implied scope.'
   };
@@ -262,7 +262,7 @@ export function createFormsLangChainAgent({
       focusNode,
       modelProfile,
       emit,
-      goMadDepth,
+      russDepth,
       abortSignal,
       advisorPrompt
     }) {
@@ -278,7 +278,7 @@ export function createFormsLangChainAgent({
             buildFormsTransformUserContent({
               mode,
               currentDoc: slot.diagramSource,
-              goMadDepth,
+              russDepth,
               advisorPrompt
             }),
             slot.lastUserPrompt,

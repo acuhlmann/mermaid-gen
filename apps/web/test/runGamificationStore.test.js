@@ -17,7 +17,7 @@ describe('runGamificationStore', () => {
     const s = createInitialState();
     expect(s.totalRuns).toBe(0);
     expect(s.runsByVariant.gilfoyle).toBe(0);
-    expect(s.runsByVariant.goMad).toBe(0);
+    expect(s.runsByVariant.russ).toBe(0);
     expect(s.lastVariant).toBeNull();
     expect(s.xp).toBe(0);
     expect(s.level).toBe(1);
@@ -78,27 +78,27 @@ describe('runGamificationStore', () => {
     expect(next.emissions.some((e) => e.kind === 'combo')).toBe(false);
   });
 
-  it('unlocks Slopitect Certified when goMadDepth ≥ 3', () => {
+  it('unlocks Slopitect Certified when russDepth ≥ 3', () => {
     let s = createInitialState();
-    let result = applyCompletedRun(s, { variant: 'goMad', now: 1000, goMadDepth: 1 });
+    let result = applyCompletedRun(s, { variant: 'russ', now: 1000, russDepth: 1 });
     expect(result.emissions.some((e) => e.id === 'slopitectCertified')).toBe(false);
-    result = applyCompletedRun(result.state, { variant: 'goMad', now: 2000, goMadDepth: 2 });
+    result = applyCompletedRun(result.state, { variant: 'russ', now: 2000, russDepth: 2 });
     expect(result.emissions.some((e) => e.id === 'slopitectCertified')).toBe(false);
-    result = applyCompletedRun(result.state, { variant: 'goMad', now: 3000, goMadDepth: 3 });
+    result = applyCompletedRun(result.state, { variant: 'russ', now: 3000, russDepth: 3 });
     expect(result.emissions.some((e) => e.id === 'slopitectCertified')).toBe(true);
   });
 
   it('unlocks Slopitect Certified only once', () => {
     let s = createInitialState();
-    let r = applyCompletedRun(s, { variant: 'goMad', now: 1, goMadDepth: 3 });
+    let r = applyCompletedRun(s, { variant: 'russ', now: 1, russDepth: 3 });
     expect(r.emissions.some((e) => e.id === 'slopitectCertified')).toBe(true);
-    r = applyCompletedRun(r.state, { variant: 'goMad', now: 2, goMadDepth: 4 });
+    r = applyCompletedRun(r.state, { variant: 'russ', now: 2, russDepth: 4 });
     expect(r.emissions.some((e) => e.id === 'slopitectCertified')).toBe(false);
   });
 
   it('unlocks Full-Stack Slopitect after 5 distinct variants in a session', () => {
     let s = createInitialState();
-    const variants = ['gilfoyle', 'erlich', 'goMad', 'jared', 'explain'];
+    const variants = ['gilfoyle', 'erlich', 'russ', 'jared', 'explain'];
     let unlockedAt = -1;
     variants.forEach((v, idx) => {
       const r = applyCompletedRun(s, { variant: v, now: 1000 + idx * 10_000 });
@@ -126,13 +126,13 @@ describe('runGamificationStore', () => {
 
   it('persists totals, xp, and achievements but resets session state on load', () => {
     let s = createInitialState();
-    s = applyCompletedRun(s, { variant: 'goMad', now: 1, goMadDepth: 3 }).state;
+    s = applyCompletedRun(s, { variant: 'russ', now: 1, russDepth: 3 }).state;
     s = applyCompletedRun(s, { variant: 'gilfoyle', now: 2 }).state;
     const json = serializeForStorage(s);
     const reloaded = loadFromStorage(json);
     expect(reloaded.totalRuns).toBe(2);
     expect(reloaded.runsByVariant.gilfoyle).toBe(1);
-    expect(reloaded.runsByVariant.goMad).toBe(1);
+    expect(reloaded.runsByVariant.russ).toBe(1);
     expect(reloaded.achievements?.slopitectCertified).toBe(true);
     expect(reloaded.xp).toBe(s.xp);
     expect(reloaded.level).toBe(levelForXp(s.xp).level);

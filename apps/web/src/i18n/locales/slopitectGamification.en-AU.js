@@ -40,19 +40,19 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
       'I mentored everyone who ever mattered.',
       'Disrupt or be disrupted — I choose disrupt. Obviously.'
     ],
-    goMad: [
-      'WHAT IF THERE WERE TWELVE OF THIS THING, MATE',
-      'ROTATE EVERYTHING 90° AND CALL IT INSIGHT',
-      'GIVE EACH BOX A RIVAL THAT DOES THE OPPOSITE',
-      'MERGE THE FIRST AND LAST STEP INTO A SECRET LOOP',
-      'REWRITE EVERY LABEL IN BACKWARDS LATIN',
-      'ADD A SECRET TUNNEL BETWEEN UNRELATED BOXES',
-      'WHAT IF THE WHOLE DIAGRAM WAS A PUB SONG',
-      'EVERY ARROW IS NOW A QUESTION',
-      'WHY IS THERE ONLY ONE DATABASE',
-      'I AM THE ARCHITECTURE NOW',
-      'THE DIAGRAM WAS THE MATES WE MADE',
-      'JUST WRAP IT IN A LAMBDA'
+    russ: [
+      'Tres commas or bust.',
+      'This guy SHIPS.',
+      'What if there were twelve of this thing?',
+      'Synergy is a two-comma word.',
+      'Tequila first. Then we escalate.',
+      'Rotate everything 90° and call it insight.',
+      'Give each box a rival that does the opposite.',
+      'Radio Silence taught me that — once.',
+      'I am the valuation now.',
+      'Keep it small? That’s how you stay at two commas.',
+      'Make it louder. On the subject.',
+      'VIP lane. Obviously.'
     ],
     jared: [
       "I just wanted to flag one thing, if that's alright.",
@@ -104,7 +104,7 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
       gilfoyle: 'Reading what you left me…',
       dinesh: 'Reading the lot. Unlike some people…',
       erlich: 'Spotting the bolder shape…',
-      goMad: 'Eyeballing the slop 👀',
+      russ: 'Eyeballing the valuation…',
       jared: 'Reading it through carefully…',
       explain: 'Pondering the diagram…',
       barker: 'Admiring the story…'
@@ -113,7 +113,7 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
       gilfoyle: 'Locating the defect…',
       dinesh: 'Finding the thing nobody found…',
       erlich: 'Keynoting the pivot…',
-      goMad: 'Yelling at it 📣',
+      russ: 'Calling it a keynote…',
       jared: 'Writing up the finding…',
       explain: 'Composing the saga…',
       barker: 'Boiling it down for the board…'
@@ -122,7 +122,7 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
       gilfoyle: 'Parsing what you meant…',
       dinesh: 'Working out what you meant…',
       erlich: 'Aligning the vision…',
-      goMad: 'Skipping the meeting',
+      russ: 'Skipping straight to tres commas…',
       jared: 'Making sure I understood you…',
       explain: 'Aligning intent…',
       barker: 'Aligning the triangles…'
@@ -131,7 +131,7 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
       gilfoyle: 'Making the correct change…',
       dinesh: 'Making the change. Mine…',
       erlich: 'Graciously elevating it…',
-      goMad: 'GOING TROPPO ON YOUR TOPIC',
+      russ: 'ESCALATING YOUR TOPIC 🍾',
       jared: 'Raising it properly…',
       explain: 'Annotating the architecture…',
       barker: 'Taking the liberty…'
@@ -140,7 +140,7 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
       gilfoyle: 'Drawing what was already true…',
       dinesh: 'Fixing the bit everyone skipped…',
       erlich: 'Elevating the layout…',
-      goMad: 'Adding wonderfully strange things 🔥',
+      russ: 'Making it louder — on subject 🍾',
       jared: 'Noting the process gap…',
       explain: 'Tracing the reshape…',
       barker: 'Killing the darlings, warmly…'
@@ -149,7 +149,7 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
       gilfoyle: 'Fine.',
       dinesh: 'Righto, so…',
       erlich: 'Let me ask you this…',
-      goMad: 'OK NOW HOLD ON 🪖',
+      russ: 'OK NOW HOLD ON 🍾',
       jared: 'Sorry — one sec…',
       explain: 'Clearing the throat…',
       barker: 'I don’t know about you, but I am excited…'
@@ -158,7 +158,7 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
       gilfoyle: 'Enumerating what is wrong…',
       dinesh: 'Listing what’s wrong. It’s a list…',
       erlich: 'Drafting the keynote…',
-      goMad: 'Throwing darts at the diagram 🎯',
+      russ: 'Pricing the diagram in commas…',
       jared: 'Outlining what needs an owner…',
       explain: 'Drafting the chapter plan…',
       barker: 'Drafting the one-pager…'
@@ -167,7 +167,7 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
       gilfoyle: 'Fixing syntax nobody checked…',
       dinesh: 'Fixing syntax. Again. Me…',
       erlich: 'Mending syntax, brilliantly…',
-      goMad: 'Duct-taping it back together',
+      russ: 'Taping it with tequila money…',
       jared: 'Correcting it before anyone sees…',
       explain: 'Smoothing a rough passage…',
       barker: 'Tightening the deck…'
@@ -176,7 +176,7 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
       gilfoyle: 'Fixing it again. Obviously…',
       dinesh: 'Fixing it again, and I will mention this…',
       erlich: 'Re-mending syntax, again brilliantly…',
-      goMad: 'More duct tape',
+      russ: 'More tequila money…',
       jared: 'Correcting it again, apologies…',
       explain: 'Revising the rough draft…',
       barker: 'Re-drafting the deck…'
@@ -185,7 +185,7 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
       gilfoyle: 'Tuning the palette. Darker…',
       dinesh: 'Recolouring it. Nobody will notice…',
       erlich: 'Restyling for the keynote…',
-      goMad: 'CHAOTIC COLOUR SCHEMES 🔥',
+      russ: 'LOUDER PALETTE. OBVIOUSLY 🍾',
       jared: 'Flagging what will not read…',
       explain: 'On the history of this hue…',
       barker: 'One brand colour only.'
@@ -194,7 +194,7 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
       gilfoyle: 'Waiting on process. Predictable…',
       dinesh: 'Waiting. Nobody’s waiting on me…',
       erlich: 'Awaiting the board’s approval…',
-      goMad: 'Bribing the CAB',
+      russ: 'Buying the CAB a round…',
       jared: 'Waiting, and fretting a bit…',
       explain: 'Taking another pass…',
       barker: 'Asking the board for a redraft…'
@@ -203,7 +203,7 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
       gilfoyle: 'Patching prod 🦇',
       dinesh: 'Doing the actual work 🙋',
       erlich: 'Elevating it 🕶',
-      goMad: 'Setting buildings on fire 🔥',
+      russ: 'Shipping it loud 🍾',
       jared: 'Doing it properly…',
       explain: 'Narrating the draft…',
       barker: 'Taking the liberty 🧘'
@@ -212,7 +212,7 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
       gilfoyle: 'Falling back. Noted…',
       dinesh: 'Falling back. Not my fault…',
       erlich: 'Pivot in flight…',
-      goMad: 'WE PIVOT',
+      russ: 'WE ESCALATE',
       jared: 'Falling back — noting it anyway…',
       explain: 'Closing the chapter gracefully…',
       barker: 'Rerouting the one-pager…'
@@ -221,7 +221,7 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
       gilfoyle: 'Repairing it. Again…',
       dinesh: 'Repairing it. Still me…',
       erlich: 'Vision repair in flight…',
-      goMad: 'More hard hats! 🪖🪖',
+      russ: 'More commas! 🍾🍾',
       jared: 'This one is on me. Fixing it…',
       explain: 'Rewinding the parchment…',
       barker: 'Sliding the timeline, warmly 🗓️'
@@ -230,7 +230,7 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
       gilfoyle: 'Second repair. My objection is documented…',
       dinesh: 'Second repair. Noting this for later…',
       erlich: 'Second vision repair in flight…',
-      goMad: 'EVEN MORE HARD HATS 🪖🪖🪖',
+      russ: 'TRES COMMAS ENERGY 🍾🍾🍾',
       jared: 'Still on me. Fixing it again…',
       explain: 'Revising the footnotes…',
       barker: 'Forming a committee about it 🗓️🗓️'
@@ -288,10 +288,10 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
       title: '🕶 TEN PERCENT LEGEND',
       subtitle: '10 bold pivots graciously elevated. The incubator approves, cobber.'
     },
-    goMad: {
-      id: 'distinguishedChaos',
-      title: '🪖 DISTINGUISHED CHAOS FELLOW',
-      subtitle: '10 mad runs. Frame the helmet. Fair dinkum.'
+    russ: {
+      id: 'tresCommas',
+      title: '🍾 TRES COMMAS CLUB',
+      subtitle: '10 escalations. The commas approve, cobber.'
     },
     jared: {
       id: 'carefulFinding',
@@ -390,10 +390,10 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
       title: '🕶 TEN PERCENT LEGEND',
       subtitle: '10 bold pivots graciously elevated. The incubator approves, cobber.'
     },
-    goMad: {
-      id: 'distinguishedChaos',
-      title: '🪖 DISTINGUISHED CHAOS FELLOW',
-      subtitle: '10 mad runs. Frame the helmet. Fair dinkum.'
+    russ: {
+      id: 'tresCommas',
+      title: '🍾 TRES COMMAS CLUB',
+      subtitle: '10 escalations. The commas approve, cobber.'
     },
     jared: {
       id: 'carefulFinding',
@@ -494,7 +494,7 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
     engineLede:
       'Every completed run pays XP. Stack streaks, combos and Go Troppo depth to mint extra.',
     variantMetaSuffix: 'per streak',
-    goMadDepthBonus: '· +35 depth ≥ 3',
+    russDepthBonus: '· +35 depth ≥ 3',
     comboLine: 'chain two personas in a row inside 6s for +8 (+4 per extra link).',
     comboChip: 'Combo',
     trophyTitle: 'Trophy Shelf',

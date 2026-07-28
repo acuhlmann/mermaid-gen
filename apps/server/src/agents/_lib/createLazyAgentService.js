@@ -122,7 +122,7 @@ export function createLazyAgentService({
           focusNode: payload.focusNode,
           modelProfile,
           emit,
-          goMadDepth: payload.goMadDepth,
+          russDepth: payload.russDepth,
           abortSignal: payload.abortSignal,
           ...pickExtras(payload, transformExtraFields)
         });

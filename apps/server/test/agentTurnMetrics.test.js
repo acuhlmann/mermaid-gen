@@ -17,7 +17,7 @@ test('recordAgentTurn emits structured line when enabled', () => {
   const out = recordAgentTurn(
     {
       contentType: 'chart',
-      mode: 'goMad',
+      mode: 'russ',
       model: 'qwen/qwen3-235b-a22b',
       profile: 'quality',
       durationMs: 1287.4,
@@ -33,7 +33,7 @@ test('recordAgentTurn emits structured line when enabled', () => {
   const parsed = JSON.parse(lines[0]);
   assert.equal(parsed.tag, 'agent_turn');
   assert.equal(parsed.contentType, 'chart');
-  assert.equal(parsed.mode, 'goMad');
+  assert.equal(parsed.mode, 'russ');
   assert.equal(parsed.durationMs, 1287);
   assert.equal(parsed.validator, 'sanitizer-rescue');
   assert.equal(parsed.sanitizerHits, 2);

@@ -1,7 +1,7 @@
 import { normalizeModelProfile, resolveLlmBackend, resolveModelId } from '../llmProvider.js';
 import {
-  clampGoMadDepth,
-  goMadTransformModelOptions,
+  clampRussDepth,
+  russTransformModelOptions,
   transformModeModelOptions
 } from '../mermaidAnalysisPrompts.js';
 
@@ -70,14 +70,14 @@ export function createDiagramAgentCache({
     return agentCache.get(key);
   }
 
-  /** Gilfoyle / Erlich / Go Mad / Align / Barker agent. */
-  function getTransformAgent(mode, profile = 'fast', goMadDepth) {
+  /** Gilfoyle / Erlich / Russ / Align / Barker agent. */
+  function getTransformAgent(mode, profile = 'fast', russDepth) {
     const p = normalizeModelProfile(profile);
     const backend = resolveLlmBackend(env, p);
     const modelId = resolveModelId(env, p, backend);
-    const madDepth = mode === 'goMad' ? clampGoMadDepth(goMadDepth) : null;
+    const madDepth = mode === 'russ' ? clampRussDepth(russDepth) : null;
     const key =
-      mode === 'goMad'
+      mode === 'russ'
         ? `transform:${mode}:${backend}:${modelId}:d${madDepth}`
         : `transform:${mode}:${backend}:${modelId}`;
     if (!agentCache.has(key)) {
@@ -145,7 +145,7 @@ export function createDiagramAgentCache({
     getCustomAgent,
     getAnalysisModel,
     // Re-exposed for callers that need the raw helper without re-importing.
-    goMadTransformModelOptions,
+    russTransformModelOptions,
     transformModeModelOptions
   };
 }

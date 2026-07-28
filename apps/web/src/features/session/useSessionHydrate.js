@@ -54,7 +54,7 @@ import { isConcreteContentMode } from '../../utils/renderModeAction.js';
  *   setCritiqueActionableSelected: (value: unknown) => void;
  *   setLiveDraftSource: (value: string) => void;
  *   setLiveDraftContentType: (value: string | null) => void;
- *   setGoMadStreak: (value: number) => void;
+ *   setRussStreak: (value: number) => void;
  *   setModelProfile: (value: string) => void;
  *   setContentMode: (value: string) => void;
  * }} deps
@@ -83,7 +83,7 @@ export function useSessionHydrate({
   setCritiqueActionableSelected,
   setLiveDraftSource,
   setLiveDraftContentType,
-  setGoMadStreak,
+  setRussStreak,
   setModelProfile,
   setContentMode
 }) {
@@ -341,7 +341,7 @@ export function useSessionHydrate({
           promptRef.current = '';
           setLiveDraftSource('');
           setLiveDraftContentType(null);
-          setGoMadStreak(0);
+          setRussStreak(0);
           sessionTopicRef.current = null;
           setSessionHasPeerContent(false);
           crossModeSyncRef.current = createEmptyCrossModeSyncMarkers();

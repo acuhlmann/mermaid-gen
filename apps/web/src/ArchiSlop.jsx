@@ -102,8 +102,8 @@ export function ArchiSlop() {
     setLatestCritique,
     critiqueActionableSelected,
     setCritiqueActionableSelected,
-    goMadStreak,
-    setGoMadStreak,
+    russStreak,
+    setRussStreak,
     gamification,
     setGamification,
     xpBarMobileOpen,
@@ -150,7 +150,7 @@ export function ArchiSlop() {
     slopPromptExpandedRef,
     slopPromptSourceRef,
     lastTokenSoundAtRef,
-    goMadTokenTickIndexRef,
+    russTokenTickIndexRef,
     sessionTopicRef,
     sessionHasPeerContent,
     setSessionHasPeerContent,
@@ -196,7 +196,7 @@ export function ArchiSlop() {
     setPrompt,
     setInsightsEntries,
     setCritiqueActionableSelected,
-    setGoMadStreak,
+    setRussStreak,
     setModelProfile
   });
 
@@ -430,7 +430,7 @@ export function ArchiSlop() {
     promptEasterEggs: slopitect.PROMPT_EASTER_EGGS,
     konamiAchievement: slopitect.KONAMI_ACHIEVEMENT,
     tryAgentSound,
-    goMadStreak,
+    russStreak,
     setGamification,
     setOfficeRunSignal,
     celebrationTimerRef
@@ -479,8 +479,8 @@ export function ArchiSlop() {
     costTrackingEnabled,
     critiqueActionableSelected,
     crossModeSyncRef,
-    goMadStreak,
-    goMadTokenTickIndexRef,
+    russStreak,
+    russTokenTickIndexRef,
     hasInteractedRef,
     insightsEntriesRef,
     lastDraftTickAtRef,
@@ -498,7 +498,7 @@ export function ArchiSlop() {
     setDeskPrompt,
     setError,
     setGamification,
-    setGoMadStreak,
+    setRussStreak,
     setInsightsEntries,
     setInsightsOpen,
     setLatestCritique,
@@ -538,7 +538,7 @@ export function ArchiSlop() {
     setClearConfirmOpen,
     setCritiqueActionableSelected,
     setError,
-    setGoMadStreak,
+    setRussStreak,
     setHoverDescriptor,
     setInsightsEntries,
     setLatestCritique,
@@ -682,7 +682,7 @@ export function ArchiSlop() {
     contentMode,
     contentModeOptions,
     controls,
-    goMadStreak,
+    russStreak,
     handleFixFromCritique,
     openRadialSlopPrompt,
     radialMenuVisible,
@@ -704,7 +704,7 @@ export function ArchiSlop() {
   const { liveStreamingEntry, liveVariant, ceremonyAnchor, agentThinkingChrome, runFx } =
     useLiveRunContext({
       gamification,
-      goMadStreak,
+      russStreak,
       insightsEntries,
       insightsMounted,
       insightsOpen,
@@ -923,7 +923,7 @@ export function ArchiSlop() {
           advisorBubbleProps={advisorBubbleProps}
           stakeholderIntroProps={stakeholderIntroProps}
           advisorPause={advisorPause}
-          goMadStreak={goMadStreak}
+          russStreak={russStreak}
           onCallMeeting={() => setCallMeetingSignal((n) => n + 1)}
           handleSelectContentMode={handleSelectContentMode}
           latestCritique={latestCritique}

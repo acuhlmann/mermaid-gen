@@ -187,7 +187,7 @@ describe('InsightsPane', () => {
           {
             id: 'entry-meta-3d',
             title: 'Go — 3D',
-            variant: 'goMad',
+            variant: 'russ',
             status: 'running',
             statusText: 'Working…',
             content: '',
@@ -199,7 +199,7 @@ describe('InsightsPane', () => {
           {
             id: 'entry-meta-chart',
             title: 'Go — chart',
-            variant: 'goMad',
+            variant: 'russ',
             status: 'running',
             statusText: 'Working…',
             content: '',
@@ -571,7 +571,7 @@ flowchart TB
           {
             id: 'entry-now',
             title: 'Go — chart',
-            variant: 'goMad',
+            variant: 'russ',
             status: 'running',
             statusText,
             content: '',
@@ -1349,14 +1349,14 @@ flowchart TB
     ).toBeTruthy();
   });
 
-  it('uses Mad mode label, opener, and cycles goMad section tones', () => {
+  it('uses Tres Commas mode label, opener, and cycles russ section tones', () => {
     const { container } = render(
       <InsightsPane
         entries={[
           {
             id: 'e-mad',
-            title: 'Go Mad — diagram',
-            variant: 'goMad',
+            title: 'Russ — diagram',
+            variant: 'russ',
             status: 'done',
             content:
               'Wild intro.\n\n## Block one\n\nA.\n\n## Block two\n\nB.\n\n## Block three\n\nC.',
@@ -1367,11 +1367,11 @@ flowchart TB
       />
     );
 
-    expect(screen.getByText('Mad mode')).toBeTruthy();
-    expect(container.querySelector('.insights-gomad-opener')).toBeTruthy();
-    expect(container.querySelector('.insights-tone-gomad-a')).toBeTruthy();
-    expect(container.querySelector('.insights-tone-gomad-b')).toBeTruthy();
-    expect(container.querySelector('.insights-tone-gomad-c')).toBeTruthy();
+    expect(screen.getByText('Tres Commas mode')).toBeTruthy();
+    expect(container.querySelector('.insights-russ-opener')).toBeTruthy();
+    expect(container.querySelector('.insights-tone-russ-a')).toBeTruthy();
+    expect(container.querySelector('.insights-tone-russ-b')).toBeTruthy();
+    expect(container.querySelector('.insights-tone-russ-c')).toBeTruthy();
   });
 
   it('renders actionable checkboxes and fix controls when critiqueActionableUi matches entry content', () => {
@@ -1468,7 +1468,7 @@ The chart uses the whiteboard theme.`;
           {
             id: 'entry-table',
             title: 'Go — chart',
-            variant: 'goMad',
+            variant: 'russ',
             status: 'running',
             statusText: 'Working…',
             content,

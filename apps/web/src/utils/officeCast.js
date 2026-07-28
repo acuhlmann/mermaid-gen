@@ -219,7 +219,7 @@ export const MEETING_GROUP_PRESETS = [
     id: 'team',
     labelKey: 'groupTeam',
     titleKey: 'groupTeamTitle',
-    resolve: () => ['gilfoyle', 'dinesh', 'erlich', 'goMad', 'jared', 'explain']
+    resolve: () => ['gilfoyle', 'dinesh', 'erlich', 'russ', 'jared', 'explain']
   },
   {
     id: 'steering',
@@ -303,7 +303,7 @@ export const OFFICE_WALKBY_LLM_CAST = [
   'explain'
 ];
 export const OFFICE_EMAIL_LLM_CAST = ['jared', 'scrumMaster', 'greybeard', 'hr', 'intern'];
-export const OFFICE_IM_LLM_CAST = ['intern', 'greybeard', 'scrumMaster', 'goMad'];
+export const OFFICE_IM_LLM_CAST = ['intern', 'greybeard', 'scrumMaster', 'russ'];
 
 export function pickRandomFrom(list, random = Math.random) {
   if (!Array.isArray(list) || list.length === 0) return null;

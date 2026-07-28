@@ -69,7 +69,7 @@ export function useArchiSlopSessionState({ controls }) {
     return cachedCritique?.text ? cachedCritique : null;
   });
   const [critiqueActionableSelected, setCritiqueActionableSelected] = useState([]);
-  const [goMadStreak, setGoMadStreak] = useState(0);
+  const [russStreak, setRussStreak] = useState(0);
   const [gamification, setGamification] = useState(() => {
     if (typeof window === 'undefined') return createInitialGamificationState();
     return readGamificationFromStorage(window.localStorage) ?? createInitialGamificationState();
@@ -112,7 +112,7 @@ export function useArchiSlopSessionState({ controls }) {
   const slopPromptExpandedRef = useRef(false);
   const slopPromptSourceRef = useRef(null);
   const lastTokenSoundAtRef = useRef(0);
-  const goMadTokenTickIndexRef = useRef(0);
+  const russTokenTickIndexRef = useRef(0);
   const sessionTopicRef = useRef(null);
   const [sessionHasPeerContent, setSessionHasPeerContent] = useState(false);
   const syncDiagramOrThrowRef = useRef(async () => {
@@ -172,8 +172,8 @@ export function useArchiSlopSessionState({ controls }) {
     setLatestCritique,
     critiqueActionableSelected,
     setCritiqueActionableSelected,
-    goMadStreak,
-    setGoMadStreak,
+    russStreak,
+    setRussStreak,
     gamification,
     setGamification,
     xpBarMobileOpen,
@@ -220,7 +220,7 @@ export function useArchiSlopSessionState({ controls }) {
     slopPromptExpandedRef,
     slopPromptSourceRef,
     lastTokenSoundAtRef,
-    goMadTokenTickIndexRef,
+    russTokenTickIndexRef,
     sessionTopicRef,
     sessionHasPeerContent,
     setSessionHasPeerContent,

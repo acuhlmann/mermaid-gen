@@ -7,8 +7,8 @@ export const TRANSFORM_MODEL_LIMITS = Object.freeze({
   maxTokens: 2400
 });
 
-/** Go Mad uses a lower completion cap so runs finish sooner and cost less; surprise lives in tone/type, not word count. */
-export const GO_MAD_TRANSFORM_MAX_TOKENS = 1400;
+/** Russ uses a lower completion cap so runs finish sooner and cost less; surprise lives in tone/type, not word count. */
+export const RUSS_TRANSFORM_MAX_TOKENS = 1400;
 
 const TRANSFORM_MODE_MODEL = Object.freeze({
   gilfoyle: { temperature: 0.42 },
@@ -19,25 +19,25 @@ const TRANSFORM_MODE_MODEL = Object.freeze({
   barker: { temperature: 0.35 }
 });
 
-const TRANSFORM_MODES = Object.freeze(['gilfoyle', 'dinesh', 'erlich', 'goMad', 'barker']);
+const TRANSFORM_MODES = Object.freeze(['gilfoyle', 'dinesh', 'erlich', 'russ', 'barker']);
 
 export function isTransformMode(value) {
   return typeof value === 'string' && TRANSFORM_MODES.includes(value);
 }
 
 /**
- * Base sampling for Go Mad tier 1; ramps gently with `goMadDepth` via
- * `goMadTransformModelOptions`. Chaos is PROMPT-driven (type roulette +
+ * Base sampling for Russ tier 1; ramps gently with `russDepth` via
+ * `russTransformModelOptions`. Chaos is PROMPT-driven (type roulette +
  * escalation tiers in `buildTransformUserContent`), not sampling-driven: the
  * earlier 1.48–1.7 range mostly produced invalid Mermaid and malformed tool
  * calls that burned the run budget in repair turns. The anything/chart/metaphor
- * modes run Go Mad at default temperature and escalate purely via prompt, and
+ * modes run Russ at default temperature and escalate purely via prompt, and
  * fail far less often — keep sampling in the range where tool calls stay
  * reliable and let the escalation text carry the madness.
  */
-const GO_MAD_TEMP_MIN = 0.95;
-const GO_MAD_TEMP_MAX = 1.15;
-const GO_MAD_TEMP_PER_DEPTH = 0.02;
+const RUSS_TEMP_MIN = 0.95;
+const RUSS_TEMP_MAX = 1.15;
+const RUSS_TEMP_PER_DEPTH = 0.02;
 
 export const ANALYSIS_SYSTEM_PROMPT = `You are ArchiSlop in read-only mode.
 CRITICAL:
@@ -235,19 +235,19 @@ export function buildAnalyzeFocusInstructions(focusNode, kind) {
 }
 
 /** @param {unknown} raw */
-export function clampGoMadDepth(raw) {
+export function clampRussDepth(raw) {
   if (raw == null || typeof raw !== 'number' || !Number.isFinite(raw)) return 1;
   return Math.min(12, Math.max(1, Math.trunc(raw)));
 }
 
 /**
- * Sampling for Go Mad transforms; hotter at deeper escalation tiers.
+ * Sampling for Russ transforms; hotter at deeper escalation tiers.
  * @param {unknown} depthRaw
  */
-export function goMadTransformModelOptions(depthRaw) {
-  const d = clampGoMadDepth(depthRaw);
-  const span = GO_MAD_TEMP_MAX - GO_MAD_TEMP_MIN;
-  const temperature = GO_MAD_TEMP_MIN + Math.min(span, (d - 1) * GO_MAD_TEMP_PER_DEPTH);
+export function russTransformModelOptions(depthRaw) {
+  const d = clampRussDepth(depthRaw);
+  const span = RUSS_TEMP_MAX - RUSS_TEMP_MIN;
+  const temperature = RUSS_TEMP_MIN + Math.min(span, (d - 1) * RUSS_TEMP_PER_DEPTH);
   const topP =
     d <= 2
       ? 0.94
@@ -259,18 +259,18 @@ export function goMadTransformModelOptions(depthRaw) {
   return {
     temperature,
     topP,
-    maxTokens: GO_MAD_TRANSFORM_MAX_TOKENS
+    maxTokens: RUSS_TRANSFORM_MAX_TOKENS
   };
 }
 
 /**
  * @param {string} mode
- * @param {unknown} [goMadDepth] tier when mode is goMad (defaults to 1)
+ * @param {unknown} [russDepth] tier when mode is russ (defaults to 1)
  */
-export function transformModeModelOptions(mode, goMadDepth) {
+export function transformModeModelOptions(mode, russDepth) {
   const key = isTransformMode(mode) ? mode : 'gilfoyle';
-  if (key === 'goMad') {
-    return goMadTransformModelOptions(goMadDepth ?? 1);
+  if (key === 'russ') {
+    return russTransformModelOptions(russDepth ?? 1);
   }
   return {
     temperature: TRANSFORM_MODE_MODEL[key].temperature,
@@ -279,7 +279,7 @@ export function transformModeModelOptions(mode, goMadDepth) {
   };
 }
 
-function buildGoMadEscalationInstructions(depth, diagramSource) {
+function buildRussEscalationInstructions(depth, diagramSource) {
   if (depth < 2) return '';
   const currentKeyword = inferMermaidTopKeyword(diagramSource);
   const tierHint =
@@ -298,7 +298,7 @@ function buildGoMadEscalationInstructions(depth, diagramSource) {
       : '';
 
   return `
-GO MAD escalation (tier ${depth}):
+RUSS escalation (tier ${depth}):
 ${tierHint}- Primary declaration MUST NOT stay "${currentKeyword}" — different diagram species (not rename-only).
 - Prefer uncommon families when they parse (gitGraph, journey, timeline, quadrantChart, pie, mindmap, block-beta, sankey-beta, requirement, C4*, sequence/state/er/zenUML).
 ${ultraTypes}${deepVisual}- Geek nonsense (RFC vibes, fake folklore) — short labels, still readable contrast.
@@ -317,13 +317,13 @@ export function buildAdvisorSuggestionBlock(advisorPrompt) {
 
 /**
  * User message body for transform operations (exported for tests).
- * @param {{ mode: string, diagramSource: string, focusScope: string, goMadDepth?: number, advisorPrompt?: string | null }} args
+ * @param {{ mode: string, diagramSource: string, focusScope: string, russDepth?: number, advisorPrompt?: string | null }} args
  */
 export function buildTransformUserContent({
   mode,
   diagramSource,
   focusScope,
-  goMadDepth: rawDepth,
+  russDepth: rawDepth,
   advisorPrompt
 }) {
   const policy =
@@ -358,15 +358,16 @@ export function buildTransformUserContent({
 - Keep classDef / linkStyle / %%init%% theme styling intact — preserve brand colors, just trim the noise.
 - Labels: shorten to executive-summary phrasing — verbs and nouns, no parentheticals, no "(optional)" / "(async)" asides. Adapt jargon to the diagram's subject (recipe → "menu items"; org → "functions"; software → "services").
 - Voice for any prose you emit after the patch: avuncular, serene, thrilled — boardroom wisdom wearing a cardigan ("I've taken the liberty…", "we're a family here", the Conjoined Triangles of Success). At most ONE Barker-ism. Short.`
-            : `Transform mode: GO MAD — THE SLOPITECT goes mad ON THE DIAGRAM'S ACTUAL SUBJECT.
+            : `Transform mode: RUSS — Russ Hanneman (HBO's Silicon Valley) escalates ON THE DIAGRAM'S ACTUAL SUBJECT.
 - Speed first: your FIRST assistant turn must call apply_mermaid_patch — no preamble, no reasoning essays. Skip get_diagram_state unless you truly suspect stale context.
-- SUBJECT-ROOTED CHAOS: your madness must be rooted in the diagram's actual subject. If the labels are recipes, go mad on recipes; if they're org charts, go mad on the org; if they're biology, go mad in biology terms. Defaulting to "blockchain / Kubernetes / lambdas / Web3 / microservices / DAOs" when the subject is NOT cloud infrastructure is a failure mode — earn the chaos from the actual visible labels.
+- SUBJECT-ROOTED CHAOS: your escalation must be rooted in the diagram's actual subject. If the labels are recipes, escalate recipes; if they're org charts, escalate the org; if they're biology, escalate in biology terms. Defaulting to "blockchain / Kubernetes / lambdas / Web3 / microservices / DAOs" when the subject is NOT cloud infrastructure is a failure mode — earn the swing from the actual visible labels.
 - Diagram-type roulette: prefer exotic renderable types — gitGraph, journey, timeline, quadrantChart, pie, mindmap, sankey-beta, block-beta, requirement, C4*, sequence/state/er. Plain flowchart/source → pivot hard unless one killer gag keeps it.
 - Compact spectacle: trim %%init%% JSON to loud-but-minimal vars; short absurd labels beat paragraphs; aim ~≤14 nodes/edges combined unless the diagram type needs fewer.
 - Visual punch (valid Mermaid): %%init%% theme swing always works and is the safe default. classDef/class/style/linkStyle are ONLY valid on flowchart/graph/stateDiagram/classDiagram/erDiagram — if you pivot to mindmap/pie/journey/timeline/gitGraph/quadrantChart/sankey-beta/block-beta/C4* (or any other type), theme it with %%init%% ONLY; a classDef/style/linkStyle line there is a parse error that fails the whole run. Contrast must stay readable.
-- The madness lives in your CHOICES — diagram-type roulette, absurd-but-coherent labels, loud theming — not in randomness. Commit hard to ONE weird coherent take; hedged mildness is a failure mode, and so is word salad.
-- Weird > safe — but weird IN-SUBJECT, not weird-by-default.${buildGoMadEscalationInstructions(
-                mode === 'goMad' ? clampGoMadDepth(rawDepth) : 1,
+- The swing lives in your CHOICES — diagram-type roulette, absurd-but-coherent labels, loud theming — not in randomness. Commit hard to ONE weird coherent take; hedged mildness is a failure mode, and so is word salad.
+- Voice for any prose after the patch: loud bro-investor — tres commas / tequila / "this guy SHIPS" energy, mock empty synergy-speak; never mean, never explicit, at most ONE Russ prop. Short.
+- Weird > safe — but weird IN-SUBJECT, not weird-by-default.${buildRussEscalationInstructions(
+                mode === 'russ' ? clampRussDepth(rawDepth) : 1,
                 diagramSource
               )}`;
 

@@ -9,7 +9,7 @@
   proactive advisor roundtable; speaks when summoned (radial, hotkey, mascot), plus steering
   meetings and his rare senior emails.
 - Update `docs/recipes/replicate-tv-character.md`: Barker ✅ team seat; future casting recorded —
-  Richard → refine (engineer), Erlich → innovate (Chief Innovation Officer), Russ → goMad,
+  Richard → refine (engineer), Erlich → innovate (Chief Innovation Officer), Russ → russ,
   Jared Dunn → critique (auditor). Gilfoyle/Dinesh stay office-tier candidates; `explain` seat
   unassigned in the endgame.
 - Scope: **Barker only** (user-confirmed). No other character replication in this change.
@@ -162,7 +162,7 @@ i18n (key parity guarded by `uiLocale.test.js`):
 ## Step 6 — docs
 
 - `docs/recipes/replicate-tv-character.md` — rewrite: status board (Barker ✅ team seat, 6th
-  advisor; Richard → refine, Erlich → innovate, Russ → goMad, Jared → critique marked future;
+  advisor; Richard → refine, Erlich → innovate, Russ → russ, Jared → critique marked future;
   Gilfoyle/Dinesh office pair; `explain` seat unassigned/TBD); the method gains a **"seat
   inheritance" drill** section (this change as the template: retire the generic id, character id
   takes the seat, behavior spec travels, wire enum renames with it); Endgame section replaced by

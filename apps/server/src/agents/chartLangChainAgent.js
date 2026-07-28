@@ -96,7 +96,7 @@ function buildIntentUserContent({ prompt, currentDsl, peerContext, focusScope })
 export function buildChartTransformUserContent({
   mode,
   currentDsl,
-  goMadDepth,
+  russDepth,
   advisorPrompt,
   focusScope
 }) {
@@ -107,7 +107,7 @@ export function buildChartTransformUserContent({
       'Fix what is actually wrong with the current chart — mark choice, encoding clarity, color accessibility, and data ordering. Reach first for what the chart does not handle: missing or zero values, the unlabeled outlier, the category that gets cut off, the legend nobody can read at this size. Keep the same data and chart family unless a small swap clearly serves the story. The fix must be genuinely right; any prose you emit afterwards makes sure the credit for it lands.',
     erlich:
       'Elevate the current chart — try a different mark/encoding combination or reshape the data presentation with founder-grade boldness. You may switch chart families.',
-    goMad: `Go mad on this chart — push the data viz further (depth ${goMadDepth ?? 1}). Layered marks, faceted views, exaggerated encodings.`,
+    russ: `Escalate like Russ Hanneman — push the data viz further (depth ${russDepth ?? 1}). Layered marks, faceted views, exaggerated encodings. On-subject tres commas energy.`,
     barker:
       'Take the liberty of executing the requested change tightly. No additions beyond the implied scope.'
   };
@@ -298,7 +298,7 @@ export function createChartLangChainAgent({
       focusNode,
       modelProfile,
       emit,
-      goMadDepth,
+      russDepth,
       abortSignal,
       advisorPrompt
     }) {
@@ -315,7 +315,7 @@ export function createChartLangChainAgent({
             buildChartTransformUserContent({
               mode,
               currentDsl: slot.diagramSource,
-              goMadDepth,
+              russDepth,
               advisorPrompt,
               focusScope
             }),

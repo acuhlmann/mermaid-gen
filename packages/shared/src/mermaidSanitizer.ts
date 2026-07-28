@@ -369,7 +369,7 @@ function repairInitDirective(source: string) {
 
 /**
  * Diagram types whose grammar has no `classDef` / `class` / `style` / `linkStyle` construct.
- * Go Mad's "type roulette + loud theming" prompt frequently pairs one of these (mindmap, pie,
+ * Russ's "type roulette + loud theming" prompt frequently pairs one of these (mindmap, pie,
  * journey, …) with a styling directive — the parser then rejects the whole diagram (e.g. a
  * top-level `classDef` line in a mindmap parses as a second root: "There can be only one root").
  * Stripping the orphan directive lets the diagram render unstyled instead of failing outright.

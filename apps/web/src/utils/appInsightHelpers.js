@@ -142,12 +142,12 @@ export function focusPayload(node) {
   };
 }
 
-/** Button label for repeated Go Mad (streak = completed Go Mad count since last reset). */
-export function goMadShapeLabel(streak) {
-  if (streak <= 0) return 'Go Mad';
-  if (streak === 1) return 'Go Madder';
-  if (streak === 2) return 'Go Maddest';
-  return 'Max madness';
+/** Button label for repeated Russ (streak = completed Russ count since last reset). */
+export function russShapeLabel(streak) {
+  if (streak <= 0) return 'Russ';
+  if (streak === 1) return 'This Guy Ships';
+  if (streak === 2) return 'Tres Commas';
+  return 'Radio Silence';
 }
 
 /** Title string for a per-selection action (canvas selection `kind` or API focus `selectionKind`). */

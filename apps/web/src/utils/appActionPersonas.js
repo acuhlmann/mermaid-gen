@@ -1,8 +1,8 @@
 import { getVariantPersona, slopitectShortName } from './slopitectCopy.js';
 
-/** CSS class suffix for an action variant — `goMad` ships as `go-mad` for kebab-case rules. */
+/** CSS class suffix for an action variant. */
 export function actionCssVariant(variant) {
-  return variant === 'goMad' ? 'go-mad' : variant;
+  return variant;
 }
 
 /** Short persona name for an action variant (strips a leading `The `, except for overrides). */

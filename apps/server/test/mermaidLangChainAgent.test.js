@@ -4,7 +4,7 @@ import {
   DEFAULT_OPENROUTER_MODEL_FAST,
   DEFAULT_OPENROUTER_MODEL_QUALITY,
   DEFAULT_VERTEX_MODEL_FAST,
-  GO_MAD_TRANSFORM_MAX_TOKENS,
+  RUSS_TRANSFORM_MAX_TOKENS,
   STREAM_ERROR_NO_MUTATION_REVISION,
   TRANSFORM_MODEL_LIMITS,
   buildDiagramMutationSystemMessage,
@@ -12,7 +12,7 @@ import {
   buildSyntaxGuidanceSystemMessage,
   buildSyntaxRepairInstruction,
   buildTransformUserContent,
-  clampGoMadDepth,
+  clampRussDepth,
   createMermaidLangChainAgent,
   emitIntentTransformStreamResult,
   extractMermaidFromAssistantResult,
@@ -24,7 +24,7 @@ import {
   shouldAttemptSyntaxRepair,
   toLangChainMessages,
   transformModeModelOptions,
-  goMadTransformModelOptions
+  russTransformModelOptions
 } from '../src/agents/mermaidLangChainAgent.js';
 import {
   forwardNormalizedAgentStreamEvent,
@@ -58,14 +58,14 @@ test('transform mode picks increasing temperatures', () => {
       transformModeModelOptions('erlich').temperature
   );
   assert.ok(
-    transformModeModelOptions('erlich').temperature < transformModeModelOptions('goMad').temperature
+    transformModeModelOptions('erlich').temperature < transformModeModelOptions('russ').temperature
   );
-  // Go Mad chaos is prompt-driven; sampling stays in the range where tool calls
-  // and Mermaid syntax remain reliable (see goMadTransformModelOptions).
-  assert.ok(transformModeModelOptions('goMad').temperature <= 1.2);
-  assert.ok(transformModeModelOptions('goMad').topP >= TRANSFORM_MODEL_LIMITS.topP);
-  assert.equal(transformModeModelOptions('goMad').maxTokens, GO_MAD_TRANSFORM_MAX_TOKENS);
-  assert.ok(GO_MAD_TRANSFORM_MAX_TOKENS < TRANSFORM_MODEL_LIMITS.maxTokens);
+  // Russ chaos is prompt-driven; sampling stays in the range where tool calls
+  // and Mermaid syntax remain reliable (see russTransformModelOptions).
+  assert.ok(transformModeModelOptions('russ').temperature <= 1.2);
+  assert.ok(transformModeModelOptions('russ').topP >= TRANSFORM_MODEL_LIMITS.topP);
+  assert.equal(transformModeModelOptions('russ').maxTokens, RUSS_TRANSFORM_MAX_TOKENS);
+  assert.ok(RUSS_TRANSFORM_MAX_TOKENS < TRANSFORM_MODEL_LIMITS.maxTokens);
   // barker is the focused, subtractive mode — lower temperature than gilfoyle so
   // Jack doesn't get creative and start adding boxes.
   assert.ok(
@@ -132,33 +132,33 @@ test('the engineer seats reach for opposite kinds of addition', () => {
   assert.match(barker, /Subtractive only/);
 });
 
-test('inserting dinesh into the mode chain leaves the goMad fallback intact', () => {
-  // buildTransformUserContent's ternary chain ends on Go Mad, so an unrecognized
+test('inserting dinesh into the mode chain leaves the russ fallback intact', () => {
+  // buildTransformUserContent's ternary chain ends on Russ, so an unrecognized
   // mode has always landed there. Adding a branch in the middle must not capture it.
   const unknown = buildTransformUserContent({
     mode: 'nope',
     diagramSource: 'flowchart TD\n  A --> B',
     focusScope: ''
   });
-  assert.match(unknown, /Transform mode: GO MAD/);
+  assert.match(unknown, /Transform mode: RUSS/);
   assert.doesNotMatch(unknown, /Transform mode: DINESH/);
 });
 
-test('goMadTransformModelOptions ramps temperature and topP with depth', () => {
-  const shallow = goMadTransformModelOptions(1);
-  const deep = goMadTransformModelOptions(12);
+test('russTransformModelOptions ramps temperature and topP with depth', () => {
+  const shallow = russTransformModelOptions(1);
+  const deep = russTransformModelOptions(12);
   assert.ok(deep.temperature > shallow.temperature);
   assert.ok(deep.temperature <= 1.2);
   assert.ok(deep.topP >= shallow.topP);
-  assert.equal(shallow.maxTokens, GO_MAD_TRANSFORM_MAX_TOKENS);
-  assert.equal(deep.maxTokens, GO_MAD_TRANSFORM_MAX_TOKENS);
+  assert.equal(shallow.maxTokens, RUSS_TRANSFORM_MAX_TOKENS);
+  assert.equal(deep.maxTokens, RUSS_TRANSFORM_MAX_TOKENS);
 });
 
-test('clampGoMadDepth coerces and clamps', () => {
-  assert.equal(clampGoMadDepth(undefined), 1);
-  assert.equal(clampGoMadDepth(2), 2);
-  assert.equal(clampGoMadDepth(99), 12);
-  assert.equal(clampGoMadDepth(1.7), 1);
+test('clampRussDepth coerces and clamps', () => {
+  assert.equal(clampRussDepth(undefined), 1);
+  assert.equal(clampRussDepth(2), 2);
+  assert.equal(clampRussDepth(99), 12);
+  assert.equal(clampRussDepth(1.7), 1);
 });
 
 test('inferMermaidTopKeyword skips init comments', () => {
@@ -169,60 +169,60 @@ test('inferMermaidTopKeyword skips init comments', () => {
   assert.equal(inferMermaidTopKeyword('sequenceDiagram\n  Alice->>Bob: hi'), 'sequenceDiagram');
 });
 
-test('buildTransformUserContent adds escalation for goMad depth >= 2', () => {
+test('buildTransformUserContent adds escalation for russ depth >= 2', () => {
   const src = 'flowchart TD\n  A --> B';
   const focus = '';
   const shallow = buildTransformUserContent({
-    mode: 'goMad',
+    mode: 'russ',
     diagramSource: src,
     focusScope: focus,
-    goMadDepth: 1
+    russDepth: 1
   });
-  assert.doesNotMatch(shallow, /GO MAD escalation/);
+  assert.doesNotMatch(shallow, /RUSS escalation/);
 
   const deep = buildTransformUserContent({
-    mode: 'goMad',
+    mode: 'russ',
     diagramSource: src,
     focusScope: focus,
-    goMadDepth: 2
+    russDepth: 2
   });
-  assert.match(deep, /GO MAD escalation \(tier 2\)/);
+  assert.match(deep, /RUSS escalation \(tier 2\)/);
   assert.match(deep, /MUST NOT stay "flowchart"/);
   assert.match(deep, /gitGraph/);
 
   const tier5 = buildTransformUserContent({
-    mode: 'goMad',
+    mode: 'russ',
     diagramSource: src,
     focusScope: focus,
-    goMadDepth: 5
+    russDepth: 5
   });
   assert.match(tier5, /one coherent geek joke/i);
 
   const tier6 = buildTransformUserContent({
-    mode: 'goMad',
+    mode: 'russ',
     diagramSource: src,
     focusScope: focus,
-    goMadDepth: 6
+    russDepth: 6
   });
   assert.match(tier6, /wrong-tool/i);
 
   const tier4 = buildTransformUserContent({
-    mode: 'goMad',
+    mode: 'russ',
     diagramSource: src,
     focusScope: focus,
-    goMadDepth: 4
+    russDepth: 4
   });
   assert.match(tier4, /≥3|THREE/i);
 });
 
-test('buildTransformUserContent ignores goMadDepth for gilfoyle', () => {
+test('buildTransformUserContent ignores russDepth for gilfoyle', () => {
   const text = buildTransformUserContent({
     mode: 'gilfoyle',
     diagramSource: 'flowchart TD\n  A --> B',
     focusScope: '',
-    goMadDepth: 9
+    russDepth: 9
   });
-  assert.doesNotMatch(text, /GO MAD escalation/);
+  assert.doesNotMatch(text, /RUSS escalation/);
 });
 
 test('buildTransformUserContent emits barker policy that is subtractive only', () => {
@@ -234,7 +234,7 @@ test('buildTransformUserContent emits barker policy that is subtractive only', (
   assert.match(text, /BARKER/);
   assert.match(text, /Subtractive only/i);
   assert.match(text, /SAME diagram type/i);
-  assert.doesNotMatch(text, /GO MAD escalation/);
+  assert.doesNotMatch(text, /RUSS escalation/);
 });
 
 test('buildTransformUserContent threads advisorPrompt for scoped stakeholder accept', () => {
@@ -249,7 +249,7 @@ test('buildTransformUserContent threads advisorPrompt for scoped stakeholder acc
   assert.match(text, /do not rewrite the whole diagram/i);
 });
 
-test('applyTransformIntent uses hotter transform model for goMad', async () => {
+test('applyTransformIntent uses hotter transform model for russ', async () => {
   const modelOptions = [];
 
   const fakeAgent = {
@@ -272,21 +272,19 @@ test('applyTransformIntent uses hotter transform model for goMad', async () => {
   });
 
   await service.applyTransformIntent({
-    mode: 'goMad',
-    goMadDepth: 3
+    mode: 'russ',
+    russDepth: 3
   });
 
   assert.ok(
-    modelOptions.some(
-      (options) => options.temperature === goMadTransformModelOptions(3).temperature
-    )
+    modelOptions.some((options) => options.temperature === russTransformModelOptions(3).temperature)
   );
   assert.ok(
     modelOptions.some(
-      (options) => options.temperature > transformModeModelOptions('goMad').temperature
+      (options) => options.temperature > transformModeModelOptions('russ').temperature
     )
   );
-  assert.ok(modelOptions.some((options) => options.maxTokens === GO_MAD_TRANSFORM_MAX_TOKENS));
+  assert.ok(modelOptions.some((options) => options.maxTokens === RUSS_TRANSFORM_MAX_TOKENS));
 });
 
 test('resolveOpenRouterModelId maps profiles and env overrides', () => {
@@ -548,9 +546,9 @@ test('buildSyntaxGuidanceSystemMessage marks rules advisory for type-changing mo
     reason: 'seed'
   });
   const erlichMsg = buildSyntaxGuidanceSystemMessage({ stateStore, mode: 'erlich' });
-  const goMadMsg = buildSyntaxGuidanceSystemMessage({ stateStore, mode: 'goMad' });
+  const russMsg = buildSyntaxGuidanceSystemMessage({ stateStore, mode: 'russ' });
   assert.match(erlichMsg.content, /no longer apply/);
-  assert.match(goMadMsg.content, /no longer apply/);
+  assert.match(russMsg.content, /no longer apply/);
 });
 
 test('buildSyntaxGuidanceSystemMessage returns null when no diagram type is detectable', () => {
@@ -742,7 +740,7 @@ test('exhausted repair loop reports the validator root cause, not model prose', 
 });
 
 test('transform patch_retry uses the stable fast agent, not the hot transform agent', async () => {
-  // Reproduce the Go Mad failure mode: hot agent emits prose-only on the first turn.
+  // Reproduce the Russ failure mode: hot agent emits prose-only on the first turn.
   // The patch_retry should land on the stable fast agent rather than rolling the same
   // high-temperature dice a second time.
   const stateStore = createDiagramStateStore();
@@ -774,13 +772,13 @@ test('transform patch_retry uses the stable fast agent, not the hot transform ag
     env: { OPENROUTER_API_KEY: 'test-key' },
     chatModelFactory: (_e, options) => {
       // Tag the fake model so createAgentImpl can route to the right fake agent.
-      const isGoMadHot = typeof options.temperature === 'number' && options.temperature > 1;
-      return { __profile: isGoMadHot ? 'hot' : 'stable' };
+      const isRussHot = typeof options.temperature === 'number' && options.temperature > 1;
+      return { __profile: isRussHot ? 'hot' : 'stable' };
     },
     createAgentImpl: (opts) => (opts.model?.__profile === 'hot' ? hotAgent : stableAgent)
   });
 
-  const result = await service.applyTransformIntent({ mode: 'goMad', goMadDepth: 4 });
+  const result = await service.applyTransformIntent({ mode: 'russ', russDepth: 4 });
 
   assert.equal(hotCalls, 1, 'hot agent should run exactly once (first turn)');
   assert.equal(stableCalls, 1, 'stable agent should handle the patch_retry');
@@ -875,7 +873,7 @@ test('transform retries once when the model returns prose without applying a pat
   });
 
   const result = await service.applyTransformIntent({
-    mode: 'goMad'
+    mode: 'russ'
   });
 
   assert.equal(callCount, 2);
@@ -1159,7 +1157,7 @@ test('rejected prose-mermaid recovery seeds the repair loop instead of a patch r
 });
 
 test('transform-policy rejection skips the syntax fixer and goes to agent repair', async () => {
-  const policyError = 'Go Mad tier 3: switch diagram type (still "flowchart").';
+  const policyError = 'Russ tier 3: switch diagram type (still "flowchart").';
   const resultMessages = [
     {
       role: 'assistant',
@@ -1196,8 +1194,8 @@ test('transform-policy rejection skips the syntax fixer and goes to agent repair
   });
 
   const result = await service.applyTransformIntent({
-    mode: 'goMad',
-    goMadDepth: 3,
+    mode: 'russ',
+    russDepth: 3,
     emit: (e) => events.push(e)
   });
 
@@ -1207,7 +1205,7 @@ test('transform-policy rejection skips the syntax fixer and goes to agent repair
   );
   // First turn + both repair attempts, no fixer call in between.
   assert.equal(turnCount, 3);
-  assert.match(result.message, /Go Mad tier 3/);
+  assert.match(result.message, /Russ tier 3/);
 });
 
 test('patch_retry validation failure seeds repair loop and climbs to quality', async () => {

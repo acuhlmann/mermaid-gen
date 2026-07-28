@@ -20,7 +20,7 @@ const baseProps = {
   isMaxLevel: false,
   prestigeShortLabel: 'Trainee',
   totalRuns: 4,
-  runsByVariant: { gilfoyle: 2, erlich: 1, goMad: 0, jared: 1, explain: 0 },
+  runsByVariant: { gilfoyle: 2, erlich: 1, russ: 0, jared: 1, explain: 0 },
   achievements: { firstSlop: true, hatTrick: true }
 };
 
@@ -63,7 +63,7 @@ describe('LevelUpInfoPanel', () => {
     expect(panel.querySelector('.levelup-info-progress-caption.is-max')).toBeTruthy();
   });
 
-  it('lists the variant XP rates with run counts and Go Mad depth bonus', () => {
+  it('lists the variant XP rates with run counts and Russ depth bonus', () => {
     render(<LevelUpInfoPanel {...baseProps} onClose={() => {}} />);
     const panel = screen.getByTestId('levelup-info-panel');
     // Per-persona base XP + streak bonus is exposed.

@@ -72,10 +72,10 @@ export const PERSONA_FACE_TRAITS = {
     accessory: 'none',
     expression: 'smirk'
   },
-  goMad: {
-    skin: 'porcelain',
+  russ: {
+    skin: 'tan',
     hair: 'long',
-    hairColor: 'auburn',
+    hairColor: 'brown',
     facialHair: 'none',
     glasses: 'none',
     accessory: 'none',

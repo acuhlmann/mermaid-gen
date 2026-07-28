@@ -5,7 +5,7 @@ import {
   actionPersonaName,
   actionPersonaTitle
 } from '../utils/appActionPersonas.js';
-import { goMadShapeLabel, selectableRenderModes } from '../utils/renderModeAction.js';
+import { russShapeLabel, selectableRenderModes } from '../utils/renderModeAction.js';
 
 /**
  * Radial menu action definitions for the diagram node toolbar.
@@ -13,7 +13,7 @@ import { goMadShapeLabel, selectableRenderModes } from '../utils/renderModeActio
  * @param {{
  *   controls: import('../i18n/useUiLocale.js').UiControls;
  *   slopitect: { PROMPT_ACTION_COPY: { label: string, roleTag: string, roleEmoji: string, title: string } };
- *   goMadStreak: number;
+ *   russStreak: number;
  *   contentMode: string;
  *   contentModeOptions: Array<{ id: string, label: string }>;
  *   canFixFromCritique: boolean;
@@ -22,7 +22,7 @@ import { goMadShapeLabel, selectableRenderModes } from '../utils/renderModeActio
 export function buildRadialActions({
   controls,
   slopitect,
-  goMadStreak,
+  russStreak,
   contentMode,
   contentModeOptions,
   canFixFromCritique
@@ -115,13 +115,13 @@ export function buildRadialActions({
       personaTitle: actionPersonaTitle('erlich')
     },
     {
-      id: 'goMad',
-      label: goMadShapeLabel(goMadStreak, a),
-      icon: <ActionPersonaIcon variant="goMad" />,
-      variant: 'go-mad',
-      persona: actionPersonaName('goMad'),
-      personaEmoji: actionPersonaEmoji('goMad'),
-      personaTitle: actionPersonaTitle('goMad')
+      id: 'russ',
+      label: russShapeLabel(russStreak, a),
+      icon: <ActionPersonaIcon variant="russ" />,
+      variant: 'russ',
+      persona: actionPersonaName('russ'),
+      personaEmoji: actionPersonaEmoji('russ'),
+      personaTitle: actionPersonaTitle('russ')
     },
     {
       id: 'barker',

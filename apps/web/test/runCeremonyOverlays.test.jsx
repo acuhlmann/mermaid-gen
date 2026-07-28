@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import RunCeremonyOverlays from '../src/components/RunCeremonyOverlays.jsx';
 
 describe('RunCeremonyOverlays', () => {
-  it('hides persona ceremony chrome over Thinking unless goMad', () => {
+  it('hides persona ceremony chrome over Thinking unless russ', () => {
     const { rerender } = render(
       <RunCeremonyOverlays
         anchor="insights"
@@ -21,8 +21,8 @@ describe('RunCeremonyOverlays', () => {
     rerender(
       <RunCeremonyOverlays
         anchor="insights"
-        bootSeq={{ trigger: 2, variant: 'goMad' }}
-        liveVariant="goMad"
+        bootSeq={{ trigger: 2, variant: 'russ' }}
+        liveVariant="russ"
         liveStreaming
         insightsOpen
       />

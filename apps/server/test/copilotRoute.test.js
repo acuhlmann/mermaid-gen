@@ -232,7 +232,7 @@ test('transform route returns concise no-patch errors', async () => {
       revisionId: 0,
       diagramSource: 'flowchart TD\n  Start[Start] --> EndNode[End]',
       contentType: 'mermaid',
-      mode: 'goMad'
+      mode: 'russ'
     },
     stateStore,
     agentService
@@ -244,7 +244,7 @@ test('transform route returns concise no-patch errors', async () => {
   assert.doesNotMatch(result.body.message, /break new ground/);
 });
 
-test('transform route forwards goMadDepth to applyTransformIntent', async () => {
+test('transform route forwards russDepth to applyTransformIntent', async () => {
   const stateStore = createDiagramStateStore();
   let received;
   const agentService = {
@@ -264,15 +264,15 @@ test('transform route forwards goMadDepth to applyTransformIntent', async () => 
       revisionId: 0,
       diagramSource: 'flowchart TD\n  Start[Start] --> EndNode[End]',
       contentType: 'mermaid',
-      mode: 'goMad',
-      goMadDepth: 4
+      mode: 'russ',
+      russDepth: 4
     },
     stateStore,
     agentService
   });
 
   assert.equal(result.status, 200);
-  assert.equal(received.goMadDepth, 4);
+  assert.equal(received.russDepth, 4);
 });
 
 test('analyze route returns text without mutating state', async () => {

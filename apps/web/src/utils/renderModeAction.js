@@ -110,16 +110,16 @@ export function buildRenderSelectionPrompt({
   ].join(' ');
 }
 
-/** Localized Go Mad button label by streak. */
-export function goMadShapeLabel(streak, actions) {
+/** Localized Russ button label by streak. */
+export function russShapeLabel(streak, actions) {
   const a = actions ?? {
-    goMad: 'Go Mad',
-    goMadder: 'Go Madder',
-    goMaddest: 'Go Maddest',
-    maxMadness: 'Max madness'
+    russ: 'Russ',
+    russHarder: 'This Guy Ships',
+    russHardest: 'Tres Commas',
+    maxRuss: 'Radio Silence'
   };
-  if (streak <= 0) return a.goMad;
-  if (streak === 1) return a.goMadder;
-  if (streak === 2) return a.goMaddest;
-  return a.maxMadness;
+  if (streak <= 0) return a.russ;
+  if (streak === 1) return a.russHarder;
+  if (streak === 2) return a.russHardest;
+  return a.maxRuss;
 }

@@ -137,7 +137,7 @@ export async function validateAndPrepareInfographicPatch({
   proposedDiagramSource,
   reason,
   transformMode = null,
-  goMadDepth = null
+  russDepth = null
 }) {
   if (typeof proposedDiagramSource !== 'string') {
     return { accepted: false, error: 'Infographic DSL must be a string.' };
@@ -229,7 +229,7 @@ export async function validateAndPrepareInfographicPatch({
 
   const transformCheck = validateInfographicTransformConstraint({
     transformMode,
-    goMadDepth,
+    russDepth,
     beforeSource: currentState.diagramSource ?? '',
     afterSource: diagramSource
   });

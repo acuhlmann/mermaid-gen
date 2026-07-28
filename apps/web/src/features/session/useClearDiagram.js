@@ -27,7 +27,7 @@ export function useClearDiagram({
   setClearConfirmOpen,
   setCritiqueActionableSelected,
   setError,
-  setGoMadStreak,
+  setRussStreak,
   setHoverDescriptor,
   setInsightsEntries,
   setLatestCritique,
@@ -54,7 +54,7 @@ export function useClearDiagram({
   const performClearDiagram = useCallback(async () => {
     setClearConfirmOpen(false);
     if (loadingRef.current || streamingPreviewRef.current) return;
-    setGoMadStreak(0);
+    setRussStreak(0);
     if (syncTimerRef.current) {
       clearTimeout(syncTimerRef.current);
       syncTimerRef.current = null;
@@ -126,7 +126,7 @@ export function useClearDiagram({
     setClearConfirmOpen,
     setCritiqueActionableSelected,
     setError,
-    setGoMadStreak,
+    setRussStreak,
     setHoverDescriptor,
     setInsightsEntries,
     setLatestCritique,

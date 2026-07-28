@@ -9,7 +9,7 @@ const DEFAULT_INSIGHTS_COPY = {
   contentExplanation: 'Explanation',
   contentRefinement: 'Refinement',
   contentInnovation: 'Innovation',
-  contentMadMode: 'Mad mode',
+  contentRussMode: 'Tres Commas mode',
   contentUpdates: 'Content updates'
 };
 
@@ -31,7 +31,7 @@ export function contentUpdatesTitle(variant, copy) {
   if (variant === 'explain') return c.contentExplanation;
   if (variant === 'gilfoyle' || variant === 'dinesh') return c.contentRefinement;
   if (variant === 'erlich') return c.contentInnovation;
-  if (variant === 'goMad') return c.contentMadMode;
+  if (variant === 'russ') return c.contentRussMode;
   return c.contentUpdates;
 }
 
@@ -43,7 +43,7 @@ export function hidePhaseIds(variant, streamDebugEnabled) {
     variant === 'gilfoyle' ||
     variant === 'dinesh' ||
     variant === 'erlich' ||
-    variant === 'goMad' ||
+    variant === 'russ' ||
     variant === 'barker'
   );
 }
@@ -53,7 +53,7 @@ export function accentContentLaneClass(variant) {
   if (variant === 'gilfoyle') return 'is-gilfoyle-content-lane';
   if (variant === 'dinesh') return 'is-dinesh-content-lane';
   if (variant === 'erlich') return 'is-erlich-content-lane';
-  if (variant === 'goMad') return 'is-gomad-content-lane';
+  if (variant === 'russ') return 'is-russ-content-lane';
   return '';
 }
 
@@ -62,7 +62,7 @@ export function accentSectionTitleClass(variant) {
   if (variant === 'gilfoyle') return 'insights-section-title-gilfoyle';
   if (variant === 'dinesh') return 'insights-section-title-dinesh';
   if (variant === 'erlich') return 'insights-section-title-erlich';
-  if (variant === 'goMad') return 'insights-section-title-gomad';
+  if (variant === 'russ') return 'insights-section-title-russ';
   return '';
 }
 
@@ -71,6 +71,6 @@ export function accentSectionTitleIconWrapClass(variant) {
   if (variant === 'gilfoyle') return 'insights-section-title-gilfoyle-icon';
   if (variant === 'dinesh') return 'insights-section-title-dinesh-icon';
   if (variant === 'erlich') return 'insights-section-title-erlich-icon';
-  if (variant === 'goMad') return 'insights-section-title-gomad-icon';
+  if (variant === 'russ') return 'insights-section-title-russ-icon';
   return '';
 }

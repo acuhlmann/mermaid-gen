@@ -435,7 +435,7 @@ test('transform payloads accept erlich and reject retired wire ids', () => {
   };
   assert.equal(DiagramTransformIntentSchema.safeParse(base).success, true);
 
-  for (const retired of ['innovate', 'jared', 'explain', 'style']) {
+  for (const retired of ['innovate', 'goMad', 'jared', 'explain', 'style']) {
     assert.equal(
       DiagramTransformIntentSchema.safeParse({ ...base, mode: retired }).success,
       false,
@@ -444,37 +444,37 @@ test('transform payloads accept erlich and reject retired wire ids', () => {
   }
 });
 
-test('transform payloads accept optional goMadDepth in valid range', () => {
+test('transform payloads accept optional russDepth in valid range', () => {
   const base = {
     revisionId: 0,
     diagramSource: 'flowchart TD\n  A --> B',
-    mode: 'goMad'
+    mode: 'russ'
   };
 
   const rest = DiagramTransformIntentSchema.safeParse(base);
   assert.equal(rest.success, true);
-  assert.equal(rest.data.goMadDepth, undefined);
+  assert.equal(rest.data.russDepth, undefined);
 
-  const depthOk = DiagramTransformIntentSchema.safeParse({ ...base, goMadDepth: 7 });
+  const depthOk = DiagramTransformIntentSchema.safeParse({ ...base, russDepth: 7 });
   assert.equal(depthOk.success, true);
-  assert.equal(depthOk.data.goMadDepth, 7);
+  assert.equal(depthOk.data.russDepth, 7);
 
   const stream = AgentStreamPayloadSchema.safeParse({
     operation: 'transform',
     ...base,
-    goMadDepth: 2
+    russDepth: 2
   });
   assert.equal(stream.success, true);
   // `stream.data` is the discriminated union; narrow before reading the
-  // transform-only `goMadDepth` field.
+  // transform-only `russDepth` field.
   if (stream.success && stream.data.operation === 'transform') {
-    assert.equal(stream.data.goMadDepth, 2);
+    assert.equal(stream.data.russDepth, 2);
   } else {
     assert.fail('expected transform variant');
   }
 
-  assert.equal(DiagramTransformIntentSchema.safeParse({ ...base, goMadDepth: 13 }).success, false);
-  assert.equal(DiagramTransformIntentSchema.safeParse({ ...base, goMadDepth: 0 }).success, false);
+  assert.equal(DiagramTransformIntentSchema.safeParse({ ...base, russDepth: 13 }).success, false);
+  assert.equal(DiagramTransformIntentSchema.safeParse({ ...base, russDepth: 0 }).success, false);
 });
 
 test('OriginSchema accepts external-agent shape', () => {
@@ -616,13 +616,7 @@ test('sanitizeAgentStreamPayload keeps valid transformPersona', () => {
 test('TransformModeSchema seats both engineers and the rest of the wire modes', () => {
   // The wire enum is the contract both apps validate against; a new seat that
   // never lands here 400s before the agent runs.
-  assert.deepEqual(TransformModeSchema.options, [
-    'gilfoyle',
-    'dinesh',
-    'erlich',
-    'goMad',
-    'barker'
-  ]);
+  assert.deepEqual(TransformModeSchema.options, ['gilfoyle', 'dinesh', 'erlich', 'russ', 'barker']);
   assert.equal(
     DiagramTransformIntentSchema.safeParse({
       revisionId: 1,

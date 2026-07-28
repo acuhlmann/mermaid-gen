@@ -15,7 +15,7 @@ const PERSONA_CLASS = {
   gilfoyle: 'is-gilfoyle',
   dinesh: 'is-dinesh',
   erlich: 'is-erlich',
-  goMad: 'is-go-mad',
+  russ: 'is-russ',
   jared: 'is-jared',
   explain: 'is-explain',
   barker: 'is-barker'

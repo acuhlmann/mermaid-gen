@@ -11,7 +11,7 @@ import { useCallback } from 'react';
  *   runStreamingAgent: Function;
  *   setActiveRequest: (value: string | null) => void;
  *   setError: (message: string) => void;
- *   setGoMadStreak: import('react').Dispatch<import('react').SetStateAction<number>>;
+ *   setRussStreak: import('react').Dispatch<import('react').SetStateAction<number>>;
  *   setLoading: (value: boolean) => void;
  *   streamingPreviewRef: import('react').MutableRefObject<boolean>;
  *   syncDiagramOrThrow: () => Promise<object>;
@@ -25,7 +25,7 @@ export function useRetryFailedInsight({
   runStreamingAgent,
   setActiveRequest,
   setError,
-  setGoMadStreak,
+  setRussStreak,
   setLoading,
   streamingPreviewRef,
   syncDiagramOrThrow
@@ -42,7 +42,7 @@ export function useRetryFailedInsight({
       setLoading(true);
       setActiveRequest(desc.operation === 'intent' ? 'intent' : `transform:${desc.mode}`);
       setError('');
-      if (desc.variant !== 'goMad') setGoMadStreak(0);
+      if (desc.variant !== 'russ') setRussStreak(0);
 
       try {
         const syncedState = await syncDiagramOrThrow();
@@ -78,7 +78,7 @@ export function useRetryFailedInsight({
             payload: {
               operation: 'transform',
               mode: desc.mode,
-              ...(desc.goMadDepth != null ? { goMadDepth: desc.goMadDepth } : {}),
+              ...(desc.russDepth != null ? { russDepth: desc.russDepth } : {}),
               ...sharedPayload
             },
             title: entry.title,
@@ -102,7 +102,7 @@ export function useRetryFailedInsight({
       runStreamingAgent,
       setActiveRequest,
       setError,
-      setGoMadStreak,
+      setRussStreak,
       setLoading,
       streamingPreviewRef,
       syncDiagramOrThrow

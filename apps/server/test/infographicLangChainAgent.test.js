@@ -296,7 +296,7 @@ test('stable agent fallback runs the next attempt with the fallback agent when f
     }
   };
   // The "stable" agent — calls the tool on its first invocation. The DSL must satisfy the
-  // goMad transform policy (tier ≥ 3 requires a template family switch — see
+  // russ transform policy (tier ≥ 3 requires a template family switch — see
   // packages/shared/src/infographicTransformPolicy.js), otherwise applyDiagramSource is
   // silently rejected and the assertion below would see the seed value.
   const stableAgent = {
@@ -333,7 +333,7 @@ test('stable agent fallback runs the next attempt with the fallback agent when f
     reason: 'seed'
   });
 
-  await service.applyTransformIntent({ mode: 'goMad', modelProfile: 'fast', goMadDepth: 5 });
+  await service.applyTransformIntent({ mode: 'russ', modelProfile: 'fast', russDepth: 5 });
 
   // Hot agent must have fired at least once before the stable fallback was used.
   const hotCalls = invocationLog.filter((e) => e.agent === 'hot');

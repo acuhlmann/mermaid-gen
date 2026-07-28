@@ -1,6 +1,6 @@
 import { parseInfographicTree } from './infographicDiff.js';
 
-const TRANSFORM_MODES = new Set(['gilfoyle', 'dinesh', 'erlich', 'goMad', 'barker']);
+const TRANSFORM_MODES = new Set(['gilfoyle', 'dinesh', 'erlich', 'russ', 'barker']);
 
 /** @param {string | null | undefined} template */
 export function templateFamilyFromTemplate(template: string | null | undefined) {
@@ -22,7 +22,7 @@ function countTreeItems(items: TreeCountNode[] | undefined): number {
  *
  * @param {{
  *   transformMode?: string | null,
- *   goMadDepth?: number | null,
+ *   russDepth?: number | null,
  *   beforeSource?: string,
  *   afterSource?: string
  * }} opts
@@ -30,7 +30,7 @@ function countTreeItems(items: TreeCountNode[] | undefined): number {
  */
 export function validateInfographicTransformConstraint(opts: {
   transformMode?: string | null;
-  goMadDepth?: number | null;
+  russDepth?: number | null;
   beforeSource?: string;
   afterSource?: string;
 }): { ok: true } | { ok: false; error: string } {
@@ -45,7 +45,7 @@ export function validateInfographicTransformConstraint(opts: {
   const afterFamily = templateFamilyFromTemplate(afterTemplate);
   const beforeCount = countTreeItems(before.items);
   const afterCount = countTreeItems(after.items);
-  const depth = Math.min(12, Math.max(1, Math.trunc(Number(opts.goMadDepth) || 1)));
+  const depth = Math.min(12, Math.max(1, Math.trunc(Number(opts.russDepth) || 1)));
 
   // `dinesh` is a gilfoyle-class seat — identical item budget and template lock
   // (docs/recipes/replicate-tv-character.md). Split only on a deliberate retune.
@@ -106,12 +106,12 @@ export function validateInfographicTransformConstraint(opts: {
     return { ok: true };
   }
 
-  if (mode === 'goMad') {
+  if (mode === 'russ') {
     if (depth <= 2) {
       if (beforeTemplate && afterTemplate && beforeTemplate !== afterTemplate) {
         return {
           ok: false,
-          error: `Go Mad tier ${depth}: keep template "${beforeTemplate}" — wild labels, icons, and palette only.`
+          error: `Russ tier ${depth}: keep template "${beforeTemplate}" — wild labels, icons, and palette only.`
         };
       }
       return { ok: true };
@@ -119,7 +119,7 @@ export function validateInfographicTransformConstraint(opts: {
     if (beforeFamily && afterFamily && beforeFamily === afterFamily) {
       return {
         ok: false,
-        error: `Go Mad tier ${depth}: switch template family (was "${beforeFamily}", still "${afterFamily}").`
+        error: `Russ tier ${depth}: switch template family (was "${beforeFamily}", still "${afterFamily}").`
       };
     }
     return { ok: true };
