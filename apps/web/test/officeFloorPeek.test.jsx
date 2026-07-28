@@ -120,7 +120,7 @@ describe('desk peeking (slice 6)', () => {
     renderFloor({ onMessage: vi.fn() });
 
     // Leadership sit behind glass; the card says so instead.
-    fireEvent.click(screen.getByRole('button', { name: /Marcus/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Gavin Belson/ }));
     expect(screen.queryByRole('button', { name: /Their screen/i })).toBeNull();
     expect(screen.getByText(/Not without a calendar invite/i)).toBeTruthy();
 

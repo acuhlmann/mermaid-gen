@@ -49,7 +49,7 @@ export const OFFICE_VOICE_PROFILES = {
   russ: { pitch: 1.28, rate: 1.16, volume: 0.9 },
   jared: { pitch: 1.1, rate: 1.0, volume: 0.8 },
   richard: { pitch: 0.94, rate: 0.92, volume: 0.8 },
-  cto: { pitch: 1.08, rate: 1.05, volume: 0.85 },
+  belson: { pitch: 0.95, rate: 0.98, volume: 0.85 },
   cfo: { pitch: 0.88, rate: 0.9, volume: 0.78 },
   barker: { pitch: 0.8, rate: 0.9, volume: 0.82 }
 };

@@ -14,13 +14,13 @@
  *
  * Tier membership is a tag, not a data move — `barker` lives in both
  * VARIANT_PERSONAS (advisor seat) and SENIOR_STAKEHOLDERS (senior tier), and
- * `ciso` in OFFICE_COLLEAGUES; only `cto`/`cfo` are defined fresh
- * (SENIOR_STAKEHOLDERS in officeCast.js).
+ * `ciso` in OFFICE_COLLEAGUES; only `belson`/`cfo` are defined fresh
+ * (SENIOR_STAKEHOLDERS in officeCast.js). Belson retired Marcus/`cto`.
  */
 
 export const CAST_TIERS = {
   team: ['gilfoyle', 'dinesh', 'erlich', 'russ', 'jared', 'richard'],
-  senior: ['ciso', 'cto', 'cfo', 'barker'],
+  senior: ['ciso', 'belson', 'cfo', 'barker'],
   office: ['intern', 'scrumMaster', 'helpdesk', 'facilities', 'hr', 'greybeard']
 };
 

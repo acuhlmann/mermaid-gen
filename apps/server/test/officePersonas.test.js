@@ -34,11 +34,14 @@ test('office colleague registry covers the v1 cast and stakeholders stay separat
 });
 
 test('senior stakeholders are valid meeting speakers with real voice blocks', () => {
-  for (const id of ['cto', 'cfo']) {
+  for (const id of ['belson', 'cfo']) {
     assert.equal(isOfficeSpeaker(id), true, `${id} should be able to take a seat`);
     assert.equal(isOfficeColleague(id), false, `${id} is not an ambient colleague`);
     assert.ok(SENIOR_MEETING_VOICES[id].voice.length > 40, `${id} needs a real voice block`);
   }
+  // Marcus/`cto` retired when Belson landed.
+  assert.equal(isOfficeSpeaker('cto'), false);
+  assert.equal(isOfficeSpeaker('marcus'), false);
   // Barker's voice card lives with the six stakeholder voices, not the invented execs.
   assert.equal(isOfficeSpeaker('barker'), true);
   assert.equal(isOfficeColleague('barker'), false);
@@ -51,6 +54,19 @@ test('senior stakeholders are valid meeting speakers with real voice blocks', ()
   assert.match(prompt, /Diane \(CFO/);
   assert.match(prompt, /speakerId "cfo"/);
   assert.match(prompt, /Senior attendees/);
+  // Gavin Belson (Silicon Valley named CTO replication): name+title label + voice card.
+  const belsonPrompt = buildMeetingSystemPrompt({
+    attendees: ['scrumMaster', 'belson', 'barker'],
+    facilitatorId: 'scrumMaster'
+  });
+  assert.match(belsonPrompt, /Gavin Belson \(CTO/);
+  assert.match(belsonPrompt, /You are Gavin Belson from HBO's Silicon Valley/);
+  assert.match(belsonPrompt, /speakerId "belson"/);
+  assert.deepEqual(normalizeAttendees(['scrumMaster', 'belson', 'barker']), [
+    'scrumMaster',
+    'belson',
+    'barker'
+  ]);
   // Jack Barker (Silicon Valley replication experiment): the card heading is the bare id
   // (stakeholder voices have no name/title label), but the voice card itself names him.
   const barkerPrompt = buildMeetingSystemPrompt({
@@ -295,9 +311,9 @@ test('normalizeAttendees dedupes, drops unknowns, and enforces seat bounds', () 
     'jared'
   ]);
   // A steering-meeting roster (facilitator + seniors + a team presenter) must survive.
-  assert.deepEqual(normalizeAttendees(['scrumMaster', 'cto', 'cfo', 'gilfoyle']), [
+  assert.deepEqual(normalizeAttendees(['scrumMaster', 'belson', 'cfo', 'gilfoyle']), [
     'scrumMaster',
-    'cto',
+    'belson',
     'cfo',
     'gilfoyle'
   ]);

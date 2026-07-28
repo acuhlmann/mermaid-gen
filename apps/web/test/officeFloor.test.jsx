@@ -41,7 +41,7 @@ describe('OfficeFloor', () => {
     // One from each tier, plus you.
     expect(screen.getByRole('button', { name: /Chad/ })).toBeTruthy();
     expect(screen.getByRole('button', { name: /Ulrich/ })).toBeTruthy();
-    expect(screen.getByRole('button', { name: /Marcus/ })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /Gavin Belson/ })).toBeTruthy();
     expect(screen.getByRole('button', { name: /^You/ })).toBeTruthy();
   });
 
@@ -70,7 +70,7 @@ describe('OfficeFloor', () => {
     const onMessage = vi.fn();
     renderFloor({ onMessage });
 
-    fireEvent.click(screen.getByRole('button', { name: /Marcus/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Gavin Belson/ }));
     expect(screen.getByText(/Not without a calendar invite/i)).toBeTruthy();
     expect(screen.queryByRole('button', { name: /Message/ })).toBeNull();
   });

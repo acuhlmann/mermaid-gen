@@ -53,9 +53,9 @@ export const OFFICE_ZH_CN = {
     }
   },
   SENIOR_STAKEHOLDERS: {
-    cto: {
-      title: 'CTO — 只发 keynote，不写代码',
-      blurb: '规模化愿景。引用自己的大会演讲。上次打开 IDE 是 2016 年。'
+    belson: {
+      title: 'CTO — 让世界变得更美好',
+      blurb: '轻声描绘愿景。Jack 向上汇报。上次打开 IDE 是在主题演讲彩排。'
     },
     cfo: {
       title: 'CFO — 预算就是不行',
@@ -215,11 +215,11 @@ export const OFFICE_ZH_CN = {
       body: '财务标记了一个名为“{label}”的资源。请确认它 (a) 必不可少,且 (b) 免费。如果无法兼得,请参见 (b)。\n\n预算就是不行,\nDiane'
     },
     {
-      id: 'email-cto-conference',
-      colleagueId: 'cto',
-      subject: '在某场主题演讲上见过一模一样的(想法?)',
-      body: '刚从 VisionaryConf 回来。有一页幻灯片和你的 {label} 几乎一样 — 只不过他们的会脉动,还带 AI 光环。我们的能脉动吗?把负责脉动的人拉进来。\n\n向前,\nMarcus',
-      actionPrompt: '加一个大胆的愿景元素,让整张图更有未来感'
+      id: 'email-belson-world',
+      colleagueId: 'belson',
+      subject: '我不想活在一个 {label} 永远这么小的世界里',
+      body: '{userName} — 我认真坐下来看了看 {label}。轻轻地。仔细地。我不想活在一个它只是一张图、而不是人类繁荣平台的世界里。Jack 会擅自成立工作组;我只是在澄清高度。放大愿景。保住 logo。\n\n温暖的问候,\nGavin Belson',
+      actionPrompt: '放大整张图的愿景 — 标题级平台叙事,不要实现细节'
     },
     {
       id: 'email-barker-liberty',

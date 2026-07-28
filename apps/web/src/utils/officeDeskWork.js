@@ -76,9 +76,9 @@ export const OFFICE_DESK_WORK = {
     look: 'terminal',
     line: 'Do not read that. You have now read it. Noted in your file.'
   },
-  cto: {
+  belson: {
     look: 'slides',
-    line: 'Keynote rehearsal. Do not tell anyone the live demo is a video.'
+    line: 'Keynote rehearsal. Softly: the live demo is a video. That is the vision.'
   },
   cfo: {
     look: 'spreadsheet',

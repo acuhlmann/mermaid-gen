@@ -27,7 +27,7 @@ import { _resetOfficeViewModeForTests, standUp } from '../src/state/officeViewMo
  * assertable with nothing but fake timers.
  */
 
-const LEADERSHIP = ['cto', 'cfo', 'ciso', 'barker'];
+const LEADERSHIP = ['belson', 'cfo', 'ciso', 'barker'];
 
 /** The floor's copy bundle, for the two tests that render an actor directly. */
 const FLOOR_COPY = () => officeChromeCopy().floor;
@@ -56,7 +56,7 @@ describe('who wanders is an answer the room gives', () => {
     for (const id of LEADERSHIP) {
       expect(wanderTripsFor(id), `${id} escaped the fishbowl`).toEqual([]);
     }
-    expect(wanderingSeatIds()).not.toContain('cto');
+    expect(wanderingSeatIds()).not.toContain('belson');
   });
 
   it('leaves out anybody with no desk to leave, and you', () => {

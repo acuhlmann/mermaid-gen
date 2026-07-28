@@ -132,21 +132,23 @@ export function isOfficeColleagueId(value) {
 }
 
 /**
- * The invented senior-stakeholder executives (castTiers.js `senior` tier).
+ * Senior-stakeholder executives (castTiers.js `senior` tier).
  * `barker` (Jack Barker) also holds the sixth advisor seat — his
  * VARIANT_PERSONAS row mirrors the entry below — and `ciso` (Sasha) is a
- * promoted colleague whose display data lives in OFFICE_COLLEAGUES. Keep
- * voices aligned with SENIOR_MEETING_VOICES / STAKEHOLDER_MEETING_VOICES in
+ * promoted colleague whose display data lives in OFFICE_COLLEAGUES. `belson`
+ * (Gavin Belson) is the named CTO replication (ex-Marcus/`cto`). Keep voices
+ * aligned with SENIOR_MEETING_VOICES / STAKEHOLDER_MEETING_VOICES in
  * apps/server/src/agents/officePersonas.js.
  */
 export const SENIOR_STAKEHOLDERS = {
-  cto: {
-    id: 'cto',
-    name: 'Marcus',
-    title: 'CTO — Ships Keynotes, Not Code',
-    blurb: 'Vision at scale. Quotes his own conference talk. Last opened an IDE in 2016.',
-    avatarEmoji: '🚀',
-    accentColor: '#7c3aed'
+  belson: {
+    id: 'belson',
+    name: 'Gavin Belson',
+    title: 'CTO — Makes the World a Better Place',
+    blurb:
+      'Soft-spoken vision. Jack reports upstairs. Has not opened an IDE since the keynote demo.',
+    avatarEmoji: '🌐',
+    accentColor: '#9f1239'
   },
   cfo: {
     id: 'cfo',
@@ -200,7 +202,7 @@ export function officeSenderInfo(id) {
 }
 
 /** Steering-meeting seats: senior stakeholders the team presents to. */
-export const MEETING_SENIOR_POOL = ['ciso', 'cto', 'cfo', 'barker'];
+export const MEETING_SENIOR_POOL = ['ciso', 'belson', 'cfo', 'barker'];
 /** Team members who can be sent upstairs to defend the diagram. */
 export const MEETING_PRESENTER_POOL = ['gilfoyle', 'jared', 'richard'];
 export const MEETING_FACILITATOR = 'scrumMaster';
@@ -523,11 +525,12 @@ export const SENIOR_EMAIL_TEMPLATES = [
     body: 'Finance flagged a resource called "{label}". Please confirm it is (a) essential, and (b) free. If it cannot be both, see (b).\n\nThe budget is a no,\nDiane'
   },
   {
-    id: 'email-cto-conference',
-    colleagueId: 'cto',
-    subject: 'Saw this exact thing at a keynote (thoughts?)',
-    body: 'Just got back from VisionaryConf. There was a slide almost identical to your {label} — except theirs pulsed and had an AI halo. Can ours pulse? Loop in whoever owns pulsing.\n\nOnwards,\nMarcus',
-    actionPrompt: 'Add a bold visionary element that makes the diagram feel futuristic'
+    id: 'email-belson-world',
+    colleagueId: 'belson',
+    subject: 'I do not want to live in a world where {label} stays this small',
+    body: '{userName} — I have been sitting with {label}. Softly. Carefully. And I find I do not want to live in a world where this remains a diagram instead of a platform for human flourishing. Jack will take the liberty of a working group; I am simply clarifying the altitude. Enlarge the vision. Keep the logo.\n\nWarmly,\nGavin Belson',
+    actionPrompt:
+      "Enlarge the diagram's vision — headline-level platform framing, not implementation detail"
   },
   {
     id: 'email-barker-liberty',
