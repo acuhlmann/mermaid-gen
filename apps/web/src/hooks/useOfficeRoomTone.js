@@ -1,6 +1,8 @@
 import { useEffect, useRef } from 'react';
-import { startRoomTone, stopRoomTone } from '../utils/officeRoomTone.js';
+import { onOfficeAudioGateOpen } from '../utils/officeAudioPrime.js';
+import { setRoomToneViewMode, startRoomTone, stopRoomTone } from '../utils/officeRoomTone.js';
 import { getOfficeSnapshot, subscribe } from '../state/officeMomentStore.js';
+import { getOfficeViewMode, subscribe as subscribeViewMode } from '../state/officeViewModeStore.js';
 
 export const ROOM_TONE_TICK_MS = 5_000;
 
@@ -21,7 +23,7 @@ function isHidden() {
  * that self-heals the one transition nothing notifies us about — the sound
  * gate opening when the user first interacts with the page.
  *
- * @param {{ playChime?: (playFn: (ref: object) => void) => boolean | void }} params
+ * @param {{ playChime?: (playFn: (ref: object) => void) => boolean | void, roomToneViewMode?: 'desk' | 'floor' }} params
  */
 export function useOfficeRoomTone(params) {
   const paramsRef = useRef(params);
@@ -30,6 +32,11 @@ export function useOfficeRoomTone(params) {
   });
 
   useEffect(() => {
+    const syncViewGain = () => {
+      const mode = paramsRef.current.roomToneViewMode ?? getOfficeViewMode();
+      setRoomToneViewMode(mode);
+    };
+
     const roomShouldBeAudible = () => {
       if (isHidden()) return false;
       const snapshot = getOfficeSnapshot();
@@ -49,14 +56,19 @@ export function useOfficeRoomTone(params) {
     };
 
     const unsubscribe = subscribe(sync);
+    const unsubscribeView = subscribeViewMode(syncViewGain);
+    const unsubscribeGate = onOfficeAudioGateOpen(sync);
     const interval = setInterval(sync, ROOM_TONE_TICK_MS);
     if (typeof document !== 'undefined') {
       document.addEventListener('visibilitychange', sync);
     }
+    syncViewGain();
     sync();
 
     return () => {
       unsubscribe();
+      unsubscribeView();
+      unsubscribeGate();
       clearInterval(interval);
       if (typeof document !== 'undefined') {
         document.removeEventListener('visibilitychange', sync);

@@ -20,8 +20,8 @@ describe('cuesForProp', () => {
     ]);
   });
 
-  it('leaves coffee to the accept SFX (floor auto-accepts the break)', () => {
-    expect(cuesForProp('coffeeMachine')).toEqual([]);
+  it('plays kitchen watercooler before espresso (floor auto-accepts the break)', () => {
+    expect(cuesForProp('coffeeMachine')).toEqual([{ cue: 'watercooler', near: true }]);
   });
 
   it('maps the water cooler even though it is scenery-only today', () => {

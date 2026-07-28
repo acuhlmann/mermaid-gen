@@ -41,6 +41,7 @@ import { useStyleEdits } from './hooks/useStyleEdits.js';
 import { useVoiceInput } from './hooks/useVoiceInput.js';
 import { useDeskSlotRef } from './hooks/useDeskSlotRef.js';
 import { buildContentModeOptions } from './utils/renderModeAction.js';
+import { primeOfficeAudio } from './utils/officeAudioPrime.js';
 
 export function ArchiSlop() {
   const { controls, slopitect, applyLocaleFromText, locale: uiLocale } = useUiCopy();
@@ -403,7 +404,9 @@ export function ArchiSlop() {
   // has to stop a loop that is already playing (useOfficeRoomTone).
   const tryAgentSound = useCallback(
     (playFn) => {
-      if (!soundEnabled || !hasInteractedRef.current) return false;
+      if (!soundEnabled) return false;
+      primeOfficeAudio(audioContextRef, hasInteractedRef);
+      if (!hasInteractedRef.current) return false;
       try {
         playFn(audioContextRef);
       } catch {
@@ -414,6 +417,21 @@ export function ArchiSlop() {
     [soundEnabled, audioContextRef, hasInteractedRef]
   );
   tryAgentSoundRef.current = tryAgentSound;
+
+  // Office soundscape waits on the same gesture gate as agent chimes. Prime on
+  // any deliberate UI interaction — stand up, check in, desk menu — not only on
+  // diagram generation.
+  useEffect(() => {
+    if (!soundEnabled) return undefined;
+    const prime = () => primeOfficeAudio(audioContextRef, hasInteractedRef);
+    const opts = { capture: true, once: true, passive: true };
+    document.addEventListener('pointerdown', prime, opts);
+    document.addEventListener('keydown', prime, opts);
+    return () => {
+      document.removeEventListener('pointerdown', prime, opts);
+      document.removeEventListener('keydown', prime, opts);
+    };
+  }, [soundEnabled, audioContextRef, hasInteractedRef]);
 
   const {
     bootSeq,
@@ -944,6 +962,10 @@ export function ArchiSlop() {
           onComplete={handleOfficeBootComplete}
           onSkipToBuild={focusTopicInput}
           getSessionId={() => activeSessionId}
+          playChime={tryAgentSound}
+          audioContextRef={audioContextRef}
+          hasInteractedRef={hasInteractedRef}
+          soundEnabled={soundEnabled}
         />
       ) : (
         <div className="office-directory-root-mount">

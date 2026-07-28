@@ -47,9 +47,9 @@ let warmedAll = false;
 export function cuesForProp(propKind) {
   switch (propKind) {
     case 'coffeeMachine':
-      // Floor coffee auto-accepts; OfficeLayer already plays espresso on accept.
-      // Playing here too would double. Ambient invites use the accept path only.
-      return [];
+      // Floor coffee auto-accepts; OfficeLayer plays espresso on accept. A
+      // watercooler glug first sells the kitchen without doubling the machine.
+      return [{ cue: 'watercooler', near: true }];
     case 'printer':
       // Motor first, then the one page that says "soon".
       return [

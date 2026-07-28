@@ -27,11 +27,13 @@ import { floorArrivalAnnouncement } from './floorArrivalAnnouncement.js';
 import IntroTranscriptButton from '../IntroTranscriptButton.jsx';
 import NameTag from '../NameTag.jsx';
 import { useIntroNarrator } from '../../hooks/useIntroNarrator.js';
+import { useOfficeAmbientAudio } from '../../hooks/useOfficeAmbientAudio.js';
 import { useStageScale } from '../../hooks/useStageScale.js';
 import { OFFICE_COLLEAGUES, officeChromeCopy, officeSenderInfo } from '../../utils/officeCast.js';
 import { shouldShowSpokenText } from '../../utils/officeCaptions.js';
 import { OFFICE_NARRATION_GAP_MS } from '../../utils/officeNarration.js';
 import { writeOfficeDirectorySeen } from '../../utils/officeAmbienceStorage.js';
+import { primeOfficeAudio } from '../../utils/officeAudioPrime.js';
 import { RECEPTION_TILE, YOU_SEAT_ID, seatFor } from '../../utils/officeFloorPlan.js';
 import { getOfficeSnapshot, setOfficeCaptions, subscribe } from '../../state/officeMomentStore.js';
 import { useUiCopy } from '../../i18n/useUiLocale.js';
@@ -103,10 +105,22 @@ function ArrivalPlayer({ walking, onSeated }) {
  * @param {{
  *   onComplete?: (options?: {startDeskTour?: boolean, skipDeskTour?: boolean}) => void,
  *   onSkipToBuild?: () => void,
- *   getSessionId?: () => string
+ *   getSessionId?: () => string,
+ *   playChime?: (playFn: (ref: object) => void) => boolean | void,
+ *   audioContextRef?: { current: AudioContext | null },
+ *   hasInteractedRef?: import('react').MutableRefObject<boolean>,
+ *   soundEnabled?: boolean
  * }} props
  */
-export default function FloorArrival({ onComplete, onSkipToBuild, getSessionId }) {
+export default function FloorArrival({
+  onComplete,
+  onSkipToBuild,
+  getSessionId,
+  playChime,
+  audioContextRef,
+  hasInteractedRef,
+  soundEnabled = true
+}) {
   useUiCopy();
   const chrome = officeChromeCopy();
   const copy = chrome.floor;
@@ -116,6 +130,13 @@ export default function FloorArrival({ onComplete, onSkipToBuild, getSessionId }
   const viewportRef = useRef(null);
   const scale = useStageScale(viewportRef);
   const { play, stop } = useIntroNarrator({ getSessionId });
+  useOfficeAmbientAudio({
+    playChime,
+    audioContextRef,
+    hasInteractedRef,
+    soundEnabled,
+    roomToneViewMode: 'floor'
+  });
   const captions = useSyncExternalStore(
     subscribe,
     () => getOfficeSnapshot().captions,
@@ -146,7 +167,12 @@ export default function FloorArrival({ onComplete, onSkipToBuild, getSessionId }
 
   // Checking in is the user gesture that unlocks speech — nothing speaks on a
   // cold mount, so a crawler can never burn the TTS budget.
-  const handleCheckIn = useCallback(() => setPhase('welcome'), []);
+  const handleCheckIn = useCallback(() => {
+    if (audioContextRef && hasInteractedRef) {
+      primeOfficeAudio(audioContextRef, hasInteractedRef);
+    }
+    setPhase('welcome');
+  }, [audioContextRef, hasInteractedRef]);
 
   const handleClockIn = useCallback(() => {
     runRef.current += 1;

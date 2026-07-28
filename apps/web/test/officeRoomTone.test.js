@@ -2,10 +2,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   ROOM_TONE_DUCK_GAIN,
-  ROOM_TONE_GAIN,
+  ROOM_TONE_GAIN_DESK,
+  ROOM_TONE_GAIN_FLOOR,
   _resetRoomToneForTests,
   duckRoomTone,
   isRoomTonePlaying,
+  setRoomToneViewMode,
   startRoomTone,
   stopRoomTone,
   unduckRoomTone
@@ -82,7 +84,7 @@ describe('officeRoomTone', () => {
     expect(source.loop).toBe(true);
     expect(source.start).toHaveBeenCalled();
     expect(stubs.gainParam.linearRampToValueAtTime).toHaveBeenCalledWith(
-      ROOM_TONE_GAIN,
+      ROOM_TONE_GAIN_DESK,
       expect.any(Number)
     );
     expect(isRoomTonePlaying()).toBe(true);
@@ -130,7 +132,20 @@ describe('officeRoomTone', () => {
 
     unduckRoomTone();
     expect(stubs.gainParam.linearRampToValueAtTime).toHaveBeenLastCalledWith(
-      ROOM_TONE_GAIN,
+      ROOM_TONE_GAIN_DESK,
+      expect.any(Number)
+    );
+  });
+
+  it('ramps the bed louder on the isometric floor than at the desk', async () => {
+    startRoomTone(audioContextRef);
+    await settle();
+    stubs.gainParam.linearRampToValueAtTime.mockClear();
+
+    setRoomToneViewMode('floor');
+
+    expect(stubs.gainParam.linearRampToValueAtTime).toHaveBeenLastCalledWith(
+      ROOM_TONE_GAIN_FLOOR,
       expect.any(Number)
     );
   });
