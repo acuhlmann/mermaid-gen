@@ -1168,6 +1168,10 @@ export const OFFICE_CHROME_COPY = {
   doIt: 'Do it',
   doSelected: 'Do selected',
   doItAll: 'Do it all',
+  windowMinimize: 'Minimize',
+  windowMinimizeTitle: 'Collapse to the title bar',
+  windowRestore: 'Restore',
+  windowRestoreTitle: 'Expand window',
   directory: {
     title: 'Meet the team',
     tourEyebrow: 'NEW HIRE ORIENTATION™',
@@ -1565,7 +1569,15 @@ export const OFFICE_CHROME_COPY = {
     dock: '🗕 Look at my screen',
     dockTitle: 'Shrink the meeting to a corner so you can work on the diagram',
     undock: '🗖 Back to the room',
-    undockTitle: 'Bring the meeting back to the centre of the screen'
+    undockTitle: 'Bring the meeting back to the centre of the screen',
+    minimize: 'Minimize',
+    minimizeTitle: 'Collapse to the title bar so the canvas stays visible',
+    restore: 'Restore',
+    restoreTitle: 'Expand the meeting window',
+    dragHint: 'Drag to move',
+    speakerViewHint: 'Listening — turn on CC in the desk menu to read along',
+    discussionToggle: 'Discussion notes',
+    discussionToggleHide: 'Hide discussion notes'
   }
 };
 

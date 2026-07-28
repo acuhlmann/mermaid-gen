@@ -16669,8 +16669,53 @@ body.slopitect-rainbow-tint::before {
 
 .office-messenger-titlebar.floating-window-drag-handle,
 .office-inbox-header.floating-window-drag-handle,
-.office-meeting-picker-header.floating-window-drag-handle {
+.office-meeting-picker-header.floating-window-drag-handle,
+.office-meeting-titlebar.floating-window-drag-handle {
   padding-left: 1.35rem;
+}
+
+.floating-window-minimize,
+.office-meeting-minimize,
+.office-inbox-minimize,
+.office-messenger-minimize {
+  appearance: none;
+  flex: 0 0 auto;
+  width: 1.65rem;
+  height: 1.65rem;
+  border: 1px solid var(--control-border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.floating-window-minimize:hover,
+.office-meeting-minimize:hover,
+.office-inbox-minimize:hover,
+.office-messenger-minimize:hover {
+  color: var(--text);
+  background: rgba(15, 23, 42, 0.05);
+}
+
+.floating-window-close {
+  appearance: none;
+  flex: 0 0 auto;
+  width: 1.65rem;
+  height: 1.65rem;
+  border: 1px solid var(--control-border);
+  border-radius: 8px;
+  background: transparent;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  color: var(--muted);
+}
+
+.floating-window-close:hover {
+  color: var(--danger);
+  background: rgba(220, 38, 38, 0.06);
 }
 
 .advisor-float-drag-handle {
@@ -17076,6 +17121,11 @@ body.slopitect-rainbow-tint::before {
   align-items: center;
   gap: 0.35rem;
   min-width: 0;
+}
+.office-inbox-popover.is-minimized,
+.office-messenger.is-minimized {
+  height: auto !important;
+  max-height: none !important;
 }
 .office-inbox-title {
   flex: 1 1 auto;
@@ -18798,22 +18848,9 @@ body.slopitect-rainbow-tint::before {
   color: var(--muted);
 }
 
-/* --- Meeting room --- */
-.office-meeting-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: var(--z-office-modal);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 16px;
-  background: var(--modal-backdrop-strong);
-  transition:
-    background 220ms ease,
-    padding 220ms ease;
-}
+/* --- Meeting room (floating window) --- */
 .office-meeting-room {
-  width: min(560px, 100%);
+  width: min(560px, calc(100vw - 28px));
   max-height: min(680px, calc(var(--app-vvh) - 32px));
   display: flex;
   flex-direction: column;
@@ -18821,37 +18858,42 @@ body.slopitect-rainbow-tint::before {
   background: var(--modal-card-bg);
   border-radius: var(--modal-card-radius);
   box-shadow: var(--modal-card-shadow);
+  border: 1px solid var(--control-border);
 }
 
-/* Docked: the meeting keeps running in a corner card while the user works on
-   the diagram. The backdrop stops painting AND stops catching pointer events —
-   without pointer-events:none the transparent full-screen layer would still
-   eat every click on the canvas underneath. The room re-enables them for
-   itself. */
-.office-meeting-backdrop.is-docked {
-  background: transparent;
-  pointer-events: none;
-  align-items: flex-end;
-  justify-content: flex-end;
-  padding: 12px;
-}
-.office-meeting-backdrop.is-docked .office-meeting-room {
-  pointer-events: auto;
-  width: min(360px, 100%);
+.office-meeting-room.is-docked {
+  width: min(360px, calc(100vw - 28px));
   max-height: min(420px, calc(var(--app-vvh) - 24px));
-  border: 1px solid var(--control-border);
-  /* Lift it clear of the bottom-right desk chrome (inbox, desk verbs). */
-  margin: 0 0 clamp(0px, calc(var(--app-vvh) - 620px), 96px) 0;
-  opacity: 0.97;
 }
-.office-meeting-backdrop.is-docked .office-meeting-room:hover,
-.office-meeting-backdrop.is-docked .office-meeting-room:focus-within {
-  opacity: 1;
+
+.office-meeting-room.is-minimized {
+  width: min(320px, calc(100vw - 28px));
+  max-height: none;
 }
-/* The seat row is the first thing to go when space is tight — the transcript
-   is what the user is actually reading. */
-.office-meeting-backdrop.is-docked .office-meeting-seats {
+
+.office-meeting-room.is-ended {
+  width: min(620px, calc(100vw - 28px));
+  max-height: min(78vh, calc(var(--app-vvh) - 24px));
+}
+
+.office-meeting-body {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1 1 auto;
+}
+
+.office-meeting-room.is-minimized .office-meeting-body {
   display: none;
+}
+
+.office-meeting-titlebar-actions,
+.office-inbox-header-actions,
+.office-messenger-titlebar-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
 }
 .office-meeting-dock {
   appearance: none;
@@ -18874,17 +18916,12 @@ body.slopitect-rainbow-tint::before {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
-@media (prefers-reduced-motion: reduce) {
-  .office-meeting-backdrop {
-    transition: none;
-  }
-}
 .office-meeting-titlebar {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  padding: 12px 14px;
+  padding: 10px 12px 10px 1.35rem;
   border-bottom: 1px solid var(--control-border);
 }
 .office-meeting-title {
@@ -18898,20 +18935,62 @@ body.slopitect-rainbow-tint::before {
   white-space: nowrap;
 }
 .office-meeting-leave {
-  appearance: none;
-  flex: 0 0 auto;
-  border: 1px solid var(--control-border);
-  background: transparent;
-  border-radius: 8px;
-  font-size: 12px;
-  padding: 5px 10px;
-  cursor: pointer;
   color: var(--danger);
+}
+.office-meeting-speaker-stage {
+  flex: 1 1 auto;
+  min-height: 200px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 20px 16px;
+}
+.office-meeting-speaker-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+}
+.office-meeting-speaker-tile.is-speaking .office-meeting-speaker-face {
+  border: 3px solid var(--accent);
+  border-radius: 50%;
+  padding: 4px;
+  box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent) 18%, transparent);
+}
+.office-meeting-speaker-name {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+}
+.office-meeting-speaker-role {
+  font-size: 12px;
+  color: var(--muted);
+}
+.office-meeting-speaker-hint {
+  margin: 0;
+  max-width: 28ch;
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--muted);
+  text-align: center;
+}
+.office-meeting-room.is-speaker-view .office-meeting-hand {
+  border-top: 0;
 }
 .office-meeting-seats {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   padding: 10px 14px 4px;
+}
+.office-meeting-seats--compact {
+  padding: 8px 12px 2px;
+}
+.office-meeting-room.is-docked .office-meeting-seats:not(.office-meeting-seats--compact) {
+  display: none;
 }
 .office-meeting-seat {
   display: inline-flex;
@@ -19033,11 +19112,59 @@ body.slopitect-rainbow-tint::before {
   cursor: default;
 }
 .office-meeting-minutes {
-  border-top: 1px solid var(--control-border);
-  padding: 12px 14px 14px;
-  max-height: min(42vh, 320px);
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
-  background: linear-gradient(180deg, rgba(14, 165, 233, 0.05), rgba(255, 255, 255, 0));
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 0;
+}
+.office-meeting-minutes-hero {
+  border-bottom: 1px solid var(--control-border);
+  padding: 14px 14px 12px;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--accent) 10%, white),
+    rgba(255, 255, 255, 0)
+  );
+}
+.office-meeting-minutes-actions-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 8px;
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--accent) 28%, transparent);
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 8px 24px rgba(14, 165, 233, 0.08);
+}
+.office-meeting-minutes-notes {
+  padding: 0 14px 14px;
+}
+.office-meeting-minutes-notes-toggle {
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  padding: 8px 0;
+}
+.office-meeting-minutes-notes-toggle::-webkit-details-marker {
+  display: none;
+}
+.office-meeting-minutes-notes-count {
+  margin-left: auto;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.06);
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
 }
 .office-meeting-minutes-head {
   display: flex;
@@ -20220,19 +20347,15 @@ body.slopitect-rainbow-tint::before {
       calc(100vw - 1rem - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px))
     );
   }
-  /* Phone: a corner card would be unreadable, so a docked meeting becomes a
-     bottom sheet instead — canvas visible above, meeting thumbable below. */
-  .office-meeting-backdrop.is-docked {
-    align-items: stretch;
-    justify-content: stretch;
-    padding: 0;
-  }
-  .office-meeting-backdrop.is-docked .office-meeting-room {
-    width: 100%;
-    margin: auto 0 0 0;
+  /* Phone: docked meeting uses a bottom-sheet footprint when dragged there. */
+  .office-meeting-room.is-docked:not(.is-minimized) {
+    width: min(100vw, 100%);
     max-height: min(46dvh, calc(var(--app-vvh) - 120px));
     border-radius: var(--modal-card-radius) var(--modal-card-radius) 0 0;
-    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .office-meeting-room.is-ended {
+    width: min(100vw - 16px, 100%);
+    max-height: min(72dvh, calc(var(--app-vvh) - 96px));
   }
 }
 

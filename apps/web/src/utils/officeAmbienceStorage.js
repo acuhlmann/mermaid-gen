@@ -11,6 +11,7 @@ export const OFFICE_NARRATION_STORAGE_KEY = 'archislop:office-narration';
 /** Captions / CC for spoken office lines (arrival + floor bubbles). Opt-in. */
 export const OFFICE_CAPTIONS_STORAGE_KEY = 'archislop:office-captions';
 export const OFFICE_MEETING_DOCKED_STORAGE_KEY = 'archislop:office-meeting-docked';
+export const OFFICE_MEETING_MINIMIZED_STORAGE_KEY = 'archislop:office-meeting-minimized';
 export const OFFICE_CADENCE_STORAGE_KEY = 'archislop:office-cadence';
 export const OFFICE_WELCOME_STORAGE_KEY = 'archislop:office-welcomed';
 export const OFFICE_DIRECTORY_STORAGE_KEY = 'archislop:office-directory-seen';
@@ -152,6 +153,32 @@ export function writeOfficeMeetingDocked(docked) {
       window.localStorage.setItem(OFFICE_MEETING_DOCKED_STORAGE_KEY, '1');
     } else {
       window.localStorage.removeItem(OFFICE_MEETING_DOCKED_STORAGE_KEY);
+    }
+  } catch {
+    // Ignore quota / privacy errors.
+  }
+}
+
+/**
+ * @returns {boolean} True when the user prefers the meeting window collapsed to
+ * its title bar (canvas fully visible underneath).
+ */
+export function readOfficeMeetingMinimized() {
+  if (typeof window === 'undefined') return false;
+  try {
+    return window.localStorage.getItem(OFFICE_MEETING_MINIMIZED_STORAGE_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
+export function writeOfficeMeetingMinimized(minimized) {
+  if (typeof window === 'undefined') return;
+  try {
+    if (minimized) {
+      window.localStorage.setItem(OFFICE_MEETING_MINIMIZED_STORAGE_KEY, '1');
+    } else {
+      window.localStorage.removeItem(OFFICE_MEETING_MINIMIZED_STORAGE_KEY);
     }
   } catch {
     // Ignore quota / privacy errors.
