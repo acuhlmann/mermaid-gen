@@ -110,14 +110,14 @@ export const PERSONA_FACE_TRAITS = {
     accessory: 'badge',
     expression: 'frown'
   },
-  cto: {
-    skin: 'deep',
-    hair: 'buzz',
-    hairColor: 'black',
-    facialHair: 'stubble',
+  belson: {
+    skin: 'light',
+    hair: 'short',
+    hairColor: 'brown',
+    facialHair: 'none',
     glasses: 'none',
-    accessory: 'none',
-    expression: 'smile'
+    accessory: 'tie',
+    expression: 'neutral'
   },
   cfo: {
     skin: 'porcelain',

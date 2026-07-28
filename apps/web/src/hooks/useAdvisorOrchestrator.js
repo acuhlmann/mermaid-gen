@@ -13,8 +13,8 @@ import { getAdvisorVisibleLabels } from '../utils/advisorVisibleLabels.js';
  * The proactive roundtable is YOUR TEAM (castTiers.js `team` tier) plus Jack
  * Barker, who is dual-home team+senior: he sits in the rotation but at
  * **throttled** pick weight, so he reads as part of the team without turning
- * every other bubble into a board-deck note. Pure seniors — Marcus/`cto` (and
- * Gavin Belson when he lands), `ciso`, `cfo` — stay out entirely: you meet
+ * every other bubble into a board-deck note. Pure seniors — Gavin Belson
+ * (`belson`, ex-Marcus/`cto`), `ciso`, `cfo` — stay out entirely: you meet
  * them in steering meetings, not over your shoulder. Barker's transform also
  * still runs on demand via the "Prep for the CEO" action.
  *

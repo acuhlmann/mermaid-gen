@@ -51,7 +51,8 @@ describe('cast tiers', () => {
       expect(info.avatarEmoji, `${id} emoji`).toBeTruthy();
       expect(info.accentColor, `${id} accent`).toBeTruthy();
     }
-    expect(officeSenderInfo('cto').name).toBe('Marcus');
+    expect(officeSenderInfo('belson').name).toBe('Gavin Belson');
+    expect(officeSenderInfo('cto')).toMatchObject({ id: 'cto' }); // retired — falls through to stakeholder stub
     expect(officeSenderInfo('cfo').name).toBe('Diane');
   });
 

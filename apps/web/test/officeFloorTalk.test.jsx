@@ -181,7 +181,7 @@ describe('talking on the floor (slice 8)', () => {
 
   it('offers no conversation to somebody behind glass', () => {
     renderFloor({ onTalkGreet: vi.fn() });
-    fireEvent.click(screen.getByRole('button', { name: /Marcus/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Gavin Belson/ }));
 
     expect(screen.queryByRole('button', { name: /Go and talk/i })).toBeNull();
     expect(screen.getByText(/Not without a calendar invite/i)).toBeTruthy();

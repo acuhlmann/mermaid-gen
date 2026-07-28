@@ -192,11 +192,12 @@ export const OFFICE_EN_AU = {
       body: 'Finance flagged a resource called "{label}". Please confirm it is (a) essential, and (b) free. If it can\'t be both, see (b).\n\nThe budget is a no,\nDiane'
     },
     {
-      id: 'email-cto-conference',
-      colleagueId: 'cto',
-      subject: 'Saw this exact thing at a keynote (thoughts?)',
-      body: 'Just back from VisionaryConf. There was a slide almost identical to your {label} — except theirs pulsed and had an AI halo. Can ours pulse? Loop in whoever owns pulsing.\n\nOnwards,\nMarcus',
-      actionPrompt: 'Add a bold visionary element that makes the diagram feel futuristic'
+      id: 'email-belson-world',
+      colleagueId: 'belson',
+      subject: 'I do not want to live in a world where {label} stays this small',
+      body: '{userName} — I have been sitting with {label}. Softly. Carefully. And I find I do not want to live in a world where this remains a diagram instead of a platform for human flourishing. Jack will take the liberty of a working group; I am simply clarifying the altitude. Enlarge the vision. Keep the logo.\n\nWarmly,\nGavin Belson',
+      actionPrompt:
+        "Enlarge the diagram's vision — headline-level platform framing, not implementation detail"
     },
     {
       id: 'email-barker-liberty',

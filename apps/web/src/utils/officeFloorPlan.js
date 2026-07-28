@@ -193,7 +193,7 @@ export const FLOOR_SEATS = [
   { id: 'facilities', x: 1, y: 6, desk: false, zone: 'kitchen' },
 
   // Leadership, in a glass row along the back wall. Four people, one window.
-  { id: 'cto', x: 6, y: 0, desk: true, zone: 'leadership' },
+  { id: 'belson', x: 6, y: 0, desk: true, zone: 'leadership' },
   { id: 'cfo', x: 7, y: 0, desk: true, zone: 'leadership' },
   { id: 'ciso', x: 8, y: 0, desk: true, zone: 'leadership' },
   { id: 'barker', x: 9, y: 0, desk: true, zone: 'leadership' }

@@ -46,7 +46,7 @@ advisor seat) and `SENIOR_STAKEHOLDERS` (his tier), and `ciso` in `OFFICE_COLLEA
 | Tier       | Who                                                                   | How they reach you                                                                                                                                                                                   |
 | ---------- | --------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **team**   | gilfoyle, dinesh, erlich, russ, jared, richard (+ `barker` dual-home) | Proactive roundtable (`ADVISOR_ORDER`) + agent actions. Full-weight peers; Barker at **throttled** pick weight (`ADVISOR_PICK_WEIGHTS.barker` = 0.5) — ≈8% of a long rotation against ≈15% per peer. |
-| **senior** | barker (Jack), ciso (Sasha), cto (Marcus → Belson), cfo (Diane)       | Steering meetings + ≤1 high-stakes email/session. Never ambient walk-bys/IMs. Belson (when shipped) scarcer than Barker — never roundtable; Jack reports to him.                                     |
+| **senior** | barker (Jack), ciso (Sasha), belson (Gavin), cfo (Diane)              | Steering meetings + ≤1 high-stakes email/session. Never ambient walk-bys/IMs. Belson scarcer than Barker — never roundtable; Jack reports to him.                                                    |
 | **office** | intern, scrumMaster, helpdesk, facilities, hr, greybeard              | Emails, IMs, walk-bys, coffee, battles. The floor around you.                                                                                                                                        |
 
 Boundary rules worth keeping: senior stakeholders are excluded from
@@ -57,12 +57,12 @@ leadership pinging your desk.
 
 ### Senior stakeholders
 
-| id       | Name        | Title                          | Emoji | Bit                                                                                                                                                                  |
-| -------- | ----------- | ------------------------------ | ----- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `barker` | Jack Barker | CEO — Success Theater          | 🧘    | **Named Silicon Valley replication** — 6th radial advisor; dual-home team+senior; throttled roundtable (see note)                                                    |
-| `ciso`   | Sasha       | CISO — The Department of No    | 🔐    | Everything is an attack surface; runs the phishing sims                                                                                                              |
-| `cto`    | Marcus      | CTO — Ships Keynotes, Not Code | 🚀    | Visionary word salad; wants the diagram to pulse; no IDE since 2016. **Slated:** full Gavin Belson replication (`belson`) — scarcer than Barker; Jack reports to him |
-| `cfo`    | Diane       | CFO — The Budget Is a No       | 🧮    | Every box is a cost center; asks what the diagram costs per month                                                                                                    |
+| id       | Name         | Title                                | Emoji | Bit                                                                                                                                                          |
+| -------- | ------------ | ------------------------------------ | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `barker` | Jack Barker  | CEO — Success Theater                | 🧘    | **Named Silicon Valley replication** — 6th radial advisor; dual-home team+senior; throttled roundtable (see note)                                            |
+| `ciso`   | Sasha        | CISO — The Department of No          | 🔐    | Everything is an attack surface; runs the phishing sims                                                                                                      |
+| `belson` | Gavin Belson | CTO — Makes the World a Better Place | 🌐    | **Named Silicon Valley replication** (Session 8; ex-Marcus/`cto`) — soft-spoken messianic vision; scarcer than Barker; Jack reports to him; never roundtable |
+| `cfo`    | Diane        | CFO — The Budget Is a No             | 🧮    | Every box is a cost center; asks what the diagram costs per month                                                                                            |
 
 > **The Barker experiment / SV program.** `barker` is a deliberate replication of Jack Barker from
 > HBO's _Silicon Valley_ — the first test of how faithfully a named TV character can live in this
@@ -75,12 +75,12 @@ leadership pinging your desk.
 > and appears in the proactive roundtable at **throttled** weight — `ADVISOR_PICK_WEIGHTS.barker`
 > = 0.5, so roughly half as often as a peer advisor — not summoned-only. He does not get office
 > walk-by/IM spam. Fiction: he reports to
-> **Gavin Belson** (`belson`, Session 8), who stays harder to reach (senior-only; never
+> **Gavin Belson** (`belson`, Session 8 — shipped), who stays harder to reach (senior-only; never
 > roundtable). Status: **local experiment** — before public deploy, decide real names vs
 > legally-distinct aliases. Locked roster: Erlich → `erlich` (shipped), Gilfoyle → `gilfoyle` (shipped),
 > Dinesh → new seventh engineer seat (`dinesh`, gilfoyle-class, core team + battle dual-home),
-> Jared → `jared` (shipped), Russ → `russ` (shipped, ex-`goMad`), Richard → `richard` (shipped, ex-`explain`, comment-only), Belson replaces Marcus.
-> Single source of truth for remaining sessions:
+> Jared → `jared` (shipped), Russ → `russ` (shipped, ex-`goMad`), Richard → `richard` (shipped, ex-`explain`, comment-only), Belson → `belson` (shipped; Marcus/`cto` retired).
+> Single source of truth:
 > [docs/recipes/replicate-tv-character.md](recipes/replicate-tv-character.md).
 
 > **Gilfoyle inherits the engineer seat (Session 3, 2026-07-27).** `gilfoyle` is the third named
@@ -160,6 +160,15 @@ leadership pinging your desk.
 > `ADVISOR_PERSONAS.richard`; harness profile: `node scripts/barker-fidelity.mjs richard`.
 > Full-weight roundtable peer. The Explain _feature_ (structured sections, dumb-down, label "?")
 > keeps its product name — only the persona seat id moved.
+
+> **Belson inherits the CTO seat (Session 8, 2026-07-28).** The eighth named replication and the
+> first **senior-only** one (§4a): **Gavin Belson** took over the retired Marcus/`cto` display id
+> as `belson` — `SENIOR_MEETING_VOICES`, `SENIOR_STAKEHOLDERS`, `MEETING_SENIOR_POOL`, senior email
+> bank, TTS/narration, persona face, floor leadership desk. No advisor seat, no roundtable, no
+> transform mode: scarcer than Barker by design; fiction: Jack reports to him. Voice card is soft-
+> spoken messianic corporate vision (altitude, manifesto cadence, enlarge-the-vision) rather than
+> the old Marcus homage. Harness profile: `node scripts/barker-fidelity.mjs belson` (`advisor:
+false`, `seniorEmail: true`).
 
 ### Shipped colleagues (v1)
 

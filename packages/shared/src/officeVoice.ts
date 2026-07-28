@@ -26,7 +26,7 @@ export const OFFICE_SPEAKER_IDS = [
   'richard',
   // senior
   'ciso',
-  'cto',
+  'belson',
   'cfo',
   'barker',
   // office

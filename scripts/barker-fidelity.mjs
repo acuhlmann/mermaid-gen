@@ -73,7 +73,7 @@ profane, never technical, never plainly at fault).`,
     pronounSubject: 'he',
     voiceMarkers: 'warm menace / excitement / aphorism / credit-taking',
     ism: 'Barker-ism',
-    attendees: ['scrumMaster', 'barker', 'cto', 'gilfoyle'],
+    attendees: ['scrumMaster', 'barker', 'belson', 'gilfoyle'],
     facilitator: 'scrumMaster',
     seniorEmail: true,
     advisor: true,
@@ -94,7 +94,7 @@ cruel, never profane).`,
     pronounSubject: 'he',
     voiceMarkers: 'bombast / self-aggrandizement / name-dropping / keynote cadence',
     ism: 'Erlich-ism',
-    attendees: ['scrumMaster', 'erlich', 'cto', 'gilfoyle'],
+    attendees: ['scrumMaster', 'erlich', 'belson', 'gilfoyle'],
     facilitator: 'scrumMaster',
     seniorEmail: false,
     advisor: true,
@@ -117,7 +117,7 @@ never genuinely humble, never profane, never cruel, never wrong about the fix it
     ism: 'Dinesh-ism',
     // Seated with Gilfoyle on purpose: the rivalry is the load-bearing dynamic,
     // and a card that only works in his absence has not been proven.
-    attendees: ['scrumMaster', 'dinesh', 'gilfoyle', 'cto'],
+    attendees: ['scrumMaster', 'dinesh', 'gilfoyle', 'belson'],
     facilitator: 'scrumMaster',
     seniorEmail: false,
     advisor: true,
@@ -137,7 +137,7 @@ enthusiastic, never hopeful, never congratulatory, never hedging, never profane)
     pronounSubject: 'he',
     voiceMarkers: 'deadpan flatness / unmarked sarcasm / verdict without heat / zero affect',
     ism: 'Gilfoyle-ism',
-    attendees: ['scrumMaster', 'gilfoyle', 'cto', 'jared'],
+    attendees: ['scrumMaster', 'gilfoyle', 'belson', 'jared'],
     facilitator: 'scrumMaster',
     seniorEmail: false,
     advisor: true,
@@ -162,7 +162,7 @@ never agreeing that a named gap is fine).`,
     ism: 'Jared-ism',
     // Seated with Gilfoyle so the anxious-care register has to hold next to flat
     // contempt: a card that only reads as "polite" in isolation has not been proven.
-    attendees: ['scrumMaster', 'jared', 'cto', 'gilfoyle'],
+    attendees: ['scrumMaster', 'jared', 'belson', 'gilfoyle'],
     facilitator: 'scrumMaster',
     seniorEmail: false,
     advisor: true,
@@ -185,7 +185,7 @@ never explicit/sexual, never profane — innuendo and swagger only).`,
     ism: 'Russ-ism',
     // Seated with Jared so the loud flex has to hold next to anxious care — a card that
     // only reads as "chaos" in isolation has not been proven.
-    attendees: ['scrumMaster', 'russ', 'cto', 'jared'],
+    attendees: ['scrumMaster', 'russ', 'belson', 'jared'],
     facilitator: 'scrumMaster',
     seniorEmail: false,
     advisor: true,
@@ -207,12 +207,35 @@ middle-out / Pied Piper into unrelated diagrams).`,
     voiceMarkers: 'anxious hedge / named pattern / over-explain catch / idealistic precision',
     ism: 'Richard-ism',
     // Seated with Russ so the anxious pattern-naming has to hold next to loud money flex.
-    attendees: ['scrumMaster', 'richard', 'cto', 'russ'],
+    attendees: ['scrumMaster', 'richard', 'belson', 'russ'],
     facilitator: 'scrumMaster',
     seniorEmail: false,
     advisor: true,
     advisorNote: 'comment-only pattern/lore seat / ex-explain',
     iterateHint: 'STAKEHOLDER_MEETING_VOICES.richard / ADVISOR_PERSONAS.richard'
+  },
+  belson: {
+    speakerId: 'belson',
+    shortName: 'Belson',
+    rubricSubject: `Gavin Belson from HBO's Silicon Valley (Hooli-class soft-spoken messianic
+CEO energy transplanted into the CTO seat: measured manifesto cadence, altitude over the room,
+"I don't want to live in a world where…" reframes, human flourishing / make-the-world-better
+optics beating substance, Jack Barker reports to him, asks for the headline never the code,
+pivot means keep the logo and enlarge the vision — never loud, never folksy like Barker, never
+technical, never mean to the person, never admitting fault, never profane).`,
+    foil: 'any generic visionary-CTO bot or Marcus homage',
+    pronounObject: 'him',
+    pronounSubject: 'he',
+    voiceMarkers: 'soft menace / manifesto cadence / altitude / enlarge-the-vision',
+    ism: 'Belson-ism',
+    // Seated with Barker so the colder altitude has to hold next to Success Theater —
+    // a card that only reads as "visionary" without Jack in the room has not been proven.
+    attendees: ['scrumMaster', 'belson', 'barker', 'gilfoyle'],
+    facilitator: 'scrumMaster',
+    seniorEmail: true,
+    advisor: false,
+    advisorNote: 'senior-only — never roundtable / never team transform',
+    iterateHint: 'SENIOR_MEETING_VOICES.belson'
   }
 };
 

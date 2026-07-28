@@ -25,10 +25,12 @@ Proven a sixth time with **Jared Dunn inheriting the `critique` seat** (Session 
 "this guy SHIPS" energy; content-policy-safe innuendo (not profanity); depth/streak wire field
 renamed `russDepth` / `russStreak`. Proven an eighth time with **Richard Hendricks inheriting
 the `explain` seat** (Session 7, 2026-07-28, `explain` → `richard`) — comment-only analyze-path
-inheritance (ADR-0010); anxious pattern-naming; dumb-down ladder travels with the seat. The cast
-map and **reachability ladder** below are **locked** (2026-07-26 program plan; reachability
-2026-07-27) — one character per agent session, in the order listed.
-**Next up: Session 8, Gavin Belson inherits the `cto` seat (retires Marcus).**
+inheritance (ADR-0010); anxious pattern-naming; dumb-down ladder travels with the seat. Proven a
+ninth time with **Gavin Belson inheriting the `cto` seat** (Session 8, 2026-07-28, `cto` →
+`belson`) — the first **senior-only** named replication (§4a + Marcus retirement); scarcer than
+Barker; Jack reports to him; never roundtable. The cast map and **reachability ladder** below are
+**locked** (2026-07-26 program plan; reachability 2026-07-27) — one character per agent session,
+in the order listed. **Program complete** (locked roster shipped).
 
 ## Status board
 
@@ -41,8 +43,8 @@ map and **reachability ladder** below are **locked** (2026-07-26 program plan; r
 | Jared Dunn        | team — `jared` (ex-`critique`)           | ✅ Shipped — seat inheritance; findings-only analyze seat; anxious compliance. First analyze-path inheritance. Fidelity **4.63 / 4.75**                         |
 | Russ Hanneman     | team — `russ` (ex-`goMad`)               | ✅ Shipped — seat inheritance; subject-rooted escalation; tres commas / tequila / SHIPS. Depth field `russDepth`. Fidelity **4.81 / 5.00**                      |
 | Richard Hendricks | team — `richard` (ex-`explain`)          | ✅ Shipped — seat inheritance; comment-only analyze; anxious pattern-naming (ADR-0010). Dumb-down travels with seat. Fidelity **4.75 / 4.63**                   |
-| Gavin Belson      | senior — `cto` → `belson`                | ⬜ Session 8 — named CTO; scarcer than Barker; Jack reports to him; retires Marcus                                                                              |
-| Marcus            | senior — `cto`                           | 🚮 Retires when Belson lands — currently a Belson _homage_, not a replication                                                                                   |
+| Gavin Belson      | senior — `belson` (ex-`cto` / Marcus)    | ✅ Shipped — senior-only named replication; scarcer than Barker; Jack reports to him; never roundtable. Retires Marcus. Fidelity **4.63 / 5.00**                |
+| Marcus            | senior — `cto`                           | 🚮 Retired (Session 8) — was a Belson homage; display id `cto` → `belson`                                                                                       |
 
 Session 0 locked the map; the fidelity harness (§3) is generalized — one profile per character,
 reused every session. Each character session ends with registry/TTS/locale tests green,
@@ -63,6 +65,7 @@ two consecutive runs, Vertex fast tier. **Treat these as the reference band, not
 | `jared`    | **4.63 / 4.75** | Session 5 (2026-07-28); first analyze-path inheritance. Sustained well above bar.                      |
 | `russ`     | **4.81 / 5.00** | Session 6 (2026-07-28); DeepSeek fast tier. Sustained well above bar.                                  |
 | `richard`  | **4.75 / 4.63** | Session 7 (2026-07-28); DeepSeek fast tier. Sustained well above bar.                                  |
+| `belson`   | **4.63 / 5.00** | Session 8 (2026-07-28); DeepSeek fast tier. Senior-only (meeting + email). Sustained well above bar.   |
 
 A session that cannot run the harness must say so in the PR (Sessions 2–4 correctly did) and leave
 the row blank rather than assert a score — but the row is then **not** done. Budget ~4 minutes and a
@@ -81,7 +84,7 @@ voice card.
 | -------------------------------------------------------------------------- | ------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Full-weight team advisors (Erlich, Gilfoyle, Dinesh, Jared, Russ, Richard) | Roundtable + radial / hotkey / mascot       | Peer weight in `pickNextPersona`                                                                                                                   |
 | **Jack Barker**                                                            | Same Your Team surfaces                     | **Throttled** — in `ADVISOR_ORDER` at `ADVISOR_PICK_WEIGHTS.barker` = 0.5 (~half as often as a peer). ≤1 senior email/session. No walk-by/IM spam. |
-| **Gavin Belson** (ex-Marcus)                                               | Steering meetings + ≤1 senior email/session | **Scarcer than Barker** — never proactive roundtable, never a team transform seat. Fiction: Barker reports to him.                                 |
+| **Gavin Belson** (ex-Marcus/`cto`)                                         | Steering meetings + ≤1 senior email/session | **Scarcer than Barker** — never proactive roundtable, never a team transform seat. Fiction: Barker reports to him.                                 |
 
 ### Session 2 drill — Barker throttled roundtable (✅ shipped 2026-07-27)
 
@@ -101,7 +104,7 @@ test + doc sweep). What shipped, as the template for any future weight change:
    with 6 peers + Barker at 0.5 (total 6.5) a single draw is 2/13 per peer vs 1/13, and the
    120k-turn rotation is 5.5/36 (≈15%) per peer vs 3/36 (≈8%) for Barker, i.e. 0.545×. When
    Session 5 seats Jared these shift again — recompute from `π`, don't nudge the literal.
-3. Belson / Marcus (`cto`), `ciso`, `cfo` stay OUT — a regression test pins that list.
+3. Belson (`belson`), `ciso`, `cfo` stay OUT — a regression test pins that list.
 4. Senior email cap untouched; roster + radial ordering already had him findable-but-not-first
    (radial: after `russ`, before `critique`; roster: last, under "Upstairs"), so no reorder.
 5. `castTiers.js` deliberately **not** changed — `barker` stays a single-tier `senior` tag
@@ -134,11 +137,11 @@ card; the harness proves it; the wire-in is a mechanical drill whose size depend
     `gilfoyle`'s budgets/temps (`*_MAX_NODES`, `TRANSFORM_MODE_MODEL`), distinct persona id, plus
     his own XP/radial/hotkey/mascot rows, so both engineer seats coexist on the floor (desk next
     to Gilfoyle in `apps/web/src/utils/officeFloorPlan.js`). The drill is §4c.
-- **senior** (Gavin Belson → the `cto` seat): steering meetings + ≤1 canned email/session.
-  Smallest surface, richest dialogue. Add to `SENIOR_MEETING_VOICES` + `SENIOR_STAKEHOLDERS` +
-  `MEETING_SENIOR_POOL` + `SENIOR_EMAIL_TEMPLATES`. Belson is a full named replication, not a
-  blurb rename: the drill additionally retires Marcus — sweep the `cto` display id everywhere the
-  seat-inheritance list (§4b) touches senior trappings.
+- **senior** (Gavin Belson → the `cto` seat, shipped as `belson`): steering meetings + ≤1 canned
+  email/session. Smallest surface, richest dialogue. Add to `SENIOR_MEETING_VOICES` +
+  `SENIOR_STAKEHOLDERS` + `MEETING_SENIOR_POOL` + `SENIOR_EMAIL_TEMPLATES`. Belson is a full named
+  replication, not a blurb rename: the drill additionally retires Marcus — sweep the `cto`
+  display id everywhere the seat-inheritance list (§4b) touches senior trappings.
 - **office** (the invented colleagues — Pam, Linda, Chad, Dave, Gary, Ulrich — stay as-is):
   emails, IMs, walk-bys, coffee, **cubicle battles**. Bigger drill: `OFFICE_COLLEAGUES` (server +
   client), the `OFFICE_{WALKBY,EMAIL,IM}_LLM_CAST` arrays, canned template banks,
@@ -461,7 +464,7 @@ For team seats add: `slopitect.{en-AU,zh-CN,zh-TW}.js` (persona block, tagline, 
    ```bash
    # meeting + TTS (expects beats from the id; audio.audioBase64 non-empty; retired id 400s)
    curl -sX POST localhost:4000/api/office/meeting -H 'content-type: application/json' \
-     -d '{"attendees":["scrumMaster","<id>","cto"],"diagramSource":"flowchart TD\n A --> B","visibleLabels":["A","B"]}'
+     -d '{"attendees":["scrumMaster","<id>","belson"],"diagramSource":"flowchart TD\n A --> B","visibleLabels":["A","B"]}'
    curl -sX POST localhost:4000/api/office/speak -H 'content-type: application/json' \
      -d '{"speakerId":"<id>","text":"one line"}'
    # the advisor seat actually speaks (catches a card that never parses — see §2)
@@ -507,9 +510,9 @@ The destination is the locked cast map in the [Status board](#status-board) (pro
 2026-07-26; reachability 2026-07-27): **Russ → `russ`** (shipped, ex-`goMad`), **Erlich → `erlich`** (shipped),
 **Gilfoyle → `gilfoyle`** (shipped), **Dinesh → new seventh seat `dinesh`** (gilfoyle-class; core team +
 battle dual-home), **Jared → `jared`** (shipped), **Richard → `richard`** (shipped, ex-`explain`), **Barker → sixth seat** (shipped,
-incl. Session 2 throttled roundtable), **Gavin Belson → `belson`** (scarcer senior; Jack reports to
-him). One character per agent run — seat-inheritance (§4b) except Dinesh (new mode) and Belson
-(senior §4a + Marcus retirement).
+incl. Session 2 throttled roundtable), **Gavin Belson → `belson`** (shipped, scarcer senior; Jack
+reports to him; Marcus/`cto` retired). One character per agent run — seat-inheritance (§4b) except
+Dinesh (new mode) and Belson (senior §4a + Marcus retirement).
 
 Hard decisions baked in (do not re-litigate per session):
 
@@ -521,8 +524,8 @@ Hard decisions baked in (do not re-litigate per session):
 - **Richard stays on `explain`** — comment-only; does not gain invent-transform powers. Helpful +
   funny via pattern-naming and anxious over-explaining, not canvas mutation. His genius reads as
   over-specific insight, not a second Erlich.
-- **Gavin Belson is a full named replication** of the CTO senior seat (retire the Marcus/`cto`
-  display id to `belson`), fidelity-harnessed like Barker — larger than a blurb rename.
+- **Gavin Belson is a full named replication** of the CTO senior seat (Marcus/`cto` display id
+  retired to `belson`, Session 8) — fidelity-harnessed like Barker; larger than a blurb rename.
 - **Kept as-is (not this program):** Pam (SAFe ceremony), Linda (weaponized HR cheerfulness),
   Chad, Dave, Gary, Ulrich, Sasha, Diane. Gary's "Fridge Czar" bit is optional later polish.
 
@@ -530,4 +533,4 @@ Open question (unchanged; does not block the program):
 
 - **Public deploy naming** — keep HBO names locally; before the named cast ships to the public
   Cloud Run deployment, decide real names vs legally-distinct aliases (Marcus was the
-  legally-distinct homage; Belson ends that compromise).
+  legally-distinct homage; Belson/`belson` ended that compromise in Session 8).

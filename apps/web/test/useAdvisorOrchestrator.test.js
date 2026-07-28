@@ -64,8 +64,8 @@ describe('useAdvisorOrchestrator', () => {
     });
 
     it('keeps the summoned-only seniors out of the rotation', () => {
-      // Marcus/`cto` — Gavin Belson's seat once he lands — plus Sasha and Diane.
-      for (const id of ['cto', 'belson', 'ciso', 'cfo']) {
+      // Gavin Belson (ex-Marcus/`cto`) plus Sasha and Diane — pure seniors stay out.
+      for (const id of ['belson', 'cto', 'ciso', 'cfo']) {
         expect(ADVISOR_ORDER, `senior ${id}`).not.toContain(id);
       }
     });
