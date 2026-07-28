@@ -40,7 +40,7 @@ map and **reachability ladder** below are **locked** (2026-07-26 program plan; r
 | Dinesh Chugtai    | team — **new** `dinesh` (gilfoyle-class) | ✅ Shipped — new seventh seat (not an inheritance); correct fix + a bid for credit; battle dual-home. Draws what **will break** (§1b). Fidelity **4.00 / 4.19** |
 | Jared Dunn        | team — `jared` (ex-`critique`)           | ✅ Shipped — seat inheritance; findings-only analyze seat; anxious compliance. First analyze-path inheritance. Fidelity **4.63 / 4.75**                         |
 | Russ Hanneman     | team — `russ` (ex-`goMad`)               | ✅ Shipped — seat inheritance; subject-rooted escalation; tres commas / tequila / SHIPS. Depth field `russDepth`. Fidelity **4.81 / 5.00**                      |
-| Richard Hendricks | team — `richard` (ex-`explain`)          | ✅ Shipped — seat inheritance; comment-only analyze; anxious pattern-naming (ADR-0010). Dumb-down travels with seat.                                            |
+| Richard Hendricks | team — `richard` (ex-`explain`)          | ✅ Shipped — seat inheritance; comment-only analyze; anxious pattern-naming (ADR-0010). Dumb-down travels with seat. Fidelity **4.75 / 4.63**                   |
 | Gavin Belson      | senior — `cto` → `belson`                | ⬜ Session 8 — named CTO; scarcer than Barker; Jack reports to him; retires Marcus                                                                              |
 | Marcus            | senior — `cto`                           | 🚮 Retires when Belson lands — currently a Belson _homage_, not a replication                                                                                   |
 
