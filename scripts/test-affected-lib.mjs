@@ -114,7 +114,22 @@ export const BLAST_RADIUS_RULES = [
   },
   {
     match: /apps\/web\/src\/utils\/officeCast\.js|apps\/web\/src\/i18n\/locales\/office\./,
-    tests: ['apps/web/test/officeLocale.test.js', 'apps/web/test/officeDirectory.test.jsx']
+    tests: [
+      'apps/web/test/castTiers.test.js',
+      'apps/web/test/officeComponents.test.jsx',
+      'apps/web/test/officeLocale.test.js',
+      'apps/web/test/officeDirectory.test.jsx'
+    ]
+  },
+  {
+    match:
+      /apps\/web\/src\/components\/(SlopNextPrompt|MeetingOverlay|CallMeetingPicker|StakeholdersMascot|OfficeMessenger|VoiceMicButton)|apps\/web\/src\/hooks\/useFieldVoiceInput/,
+    tests: [
+      'apps/web/test/SlopNextPrompt.test.jsx',
+      'apps/web/test/officeComponents.test.jsx',
+      'apps/web/test/App.test.jsx',
+      'apps/web/test/deskBottomActionsSlot.test.jsx'
+    ]
   },
   {
     // Office audio. agentChimes.js has no test of its own, so basename matching

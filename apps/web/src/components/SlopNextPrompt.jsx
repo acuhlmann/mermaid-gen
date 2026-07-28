@@ -95,13 +95,13 @@ export default function SlopNextPrompt({
       };
 
   const isEmptyPrompt = !(prompt ?? '').trim();
-  // Desk: always show the mic so voice-first users can dictate without typing first.
-  const hideDeskIdleChrome = false;
+  const hideDeskIdleChrome = isDesk && isEmptyPrompt && !busy && !inputFocused && !voiceListening;
   // Narrow desk: keep the placeholder fully visible on focus — no eyebrow /
   // primary until there's text. Mic still appears so voice-first works.
   const showDeskEyebrow = isDesk && (narrowLayout ? !isEmptyPrompt : !hideDeskIdleChrome);
-  const showDeskActionRow = !isDesk || !hideDeskIdleChrome;
-  const showDeskPrimary = !isDesk || !narrowLayout || !isEmptyPrompt;
+  // Desk always exposes the mic; submit/eyebrow still follow idle rules.
+  const showDeskActionRow = isDesk || !hideDeskIdleChrome;
+  const showDeskPrimary = !isDesk || (!hideDeskIdleChrome && (!narrowLayout || !isEmptyPrompt));
 
   function handleDeskInputFocus(event) {
     if (!isDesk || typeof window === 'undefined') return;
