@@ -4,8 +4,10 @@ import { useOfficeSoundscape } from './useOfficeSoundscape.js';
 import { primeOfficeAudio } from '../utils/officeAudioPrime.js';
 
 /**
- * Continuous room-tone bed plus sparse ambient cues. Shared by OfficeLayer and
- * FloorArrival so isometric views hear the office from the first gesture.
+ * Continuous room-tone bed plus sparse ambient cues. Mounted from ArchiSlop so
+ * the bed survives the floor-arrival → desk transition (OfficeLayer is not
+ * mounted during first-run boot). FloorArrival only primes the audio gate on
+ * check-in; it no longer owns a second director.
  *
  * @param {{
  *   playChime?: (playFn: (ref: object) => void) => boolean | void,

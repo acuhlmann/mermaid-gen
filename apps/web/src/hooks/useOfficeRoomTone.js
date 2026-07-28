@@ -6,6 +6,9 @@ import { getOfficeViewMode, subscribe as subscribeViewMode } from '../state/offi
 
 export const ROOM_TONE_TICK_MS = 5_000;
 
+/** Active `useOfficeRoomTone` mounts — only stop the bed when the last one unmounts. */
+let directorCount = 0;
+
 function isHidden() {
   return typeof document !== 'undefined' && document.hidden === true;
 }
@@ -32,6 +35,8 @@ export function useOfficeRoomTone(params) {
   });
 
   useEffect(() => {
+    directorCount += 1;
+
     const syncViewGain = () => {
       const mode = paramsRef.current.roomToneViewMode ?? getOfficeViewMode();
       setRoomToneViewMode(mode);
@@ -66,6 +71,7 @@ export function useOfficeRoomTone(params) {
     sync();
 
     return () => {
+      directorCount -= 1;
       unsubscribe();
       unsubscribeView();
       unsubscribeGate();
@@ -73,7 +79,12 @@ export function useOfficeRoomTone(params) {
       if (typeof document !== 'undefined') {
         document.removeEventListener('visibilitychange', sync);
       }
-      stopRoomTone();
+      if (directorCount === 0) stopRoomTone();
     };
   }, []);
+}
+
+/** @internal Reset between tests. */
+export function _resetRoomToneDirectorsForTests() {
+  directorCount = 0;
 }

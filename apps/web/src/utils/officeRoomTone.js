@@ -66,6 +66,18 @@ function decodeAudio(context, arrayBuffer) {
   });
 }
 
+/**
+ * Decode the bed during the user-gesture window so the first `startRoomTone`
+ * does not wait on fetch. Safe to call from `primeOfficeAudio`.
+ *
+ * @param {{ current: AudioContext | null }} audioContextRef
+ */
+export function warmRoomTone(audioContextRef) {
+  const context = getContext(audioContextRef);
+  if (!context) return;
+  void loadBuffer(context);
+}
+
 function loadBuffer(context) {
   if (bufferPromise) return bufferPromise;
   if (typeof fetch !== 'function') return Promise.resolve(null);

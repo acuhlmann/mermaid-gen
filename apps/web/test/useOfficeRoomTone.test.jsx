@@ -13,7 +13,8 @@ vi.mock('../src/utils/officeRoomTone.js', () => ({
   setRoomToneViewMode: vi.fn()
 }));
 
-const { ROOM_TONE_TICK_MS, useOfficeRoomTone } = await import('../src/hooks/useOfficeRoomTone.js');
+const { ROOM_TONE_TICK_MS, useOfficeRoomTone, _resetRoomToneDirectorsForTests } =
+  await import('../src/hooks/useOfficeRoomTone.js');
 const { _resetForTests, setOfficeFocusTime, setOfficeSoundscape } =
   await import('../src/state/officeMomentStore.js');
 
@@ -30,6 +31,7 @@ beforeEach(() => {
   vi.useFakeTimers();
   window.localStorage.clear();
   _resetForTests();
+  _resetRoomToneDirectorsForTests();
   startRoomTone.mockClear();
   stopRoomTone.mockClear();
 });
@@ -37,6 +39,7 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   _resetForTests();
+  _resetRoomToneDirectorsForTests();
   vi.useRealTimers();
   window.localStorage.clear();
 });
@@ -114,6 +117,20 @@ describe('useOfficeRoomTone', () => {
 
     unmount();
 
+    expect(stopRoomTone).toHaveBeenCalled();
+  });
+
+  it('does not stop the bed when another director is still mounted', () => {
+    const playChime = openGate();
+    const first = renderHook(() => useOfficeRoomTone({ playChime }));
+    const second = renderHook(() => useOfficeRoomTone({ playChime }));
+    stopRoomTone.mockClear();
+
+    first.unmount();
+
+    expect(stopRoomTone).not.toHaveBeenCalled();
+
+    second.unmount();
     expect(stopRoomTone).toHaveBeenCalled();
   });
 });

@@ -27,7 +27,6 @@ import { floorArrivalAnnouncement } from './floorArrivalAnnouncement.js';
 import IntroTranscriptButton from '../IntroTranscriptButton.jsx';
 import NameTag from '../NameTag.jsx';
 import { useIntroNarrator } from '../../hooks/useIntroNarrator.js';
-import { useOfficeAmbientAudio } from '../../hooks/useOfficeAmbientAudio.js';
 import { useStageScale } from '../../hooks/useStageScale.js';
 import { OFFICE_COLLEAGUES, officeChromeCopy, officeSenderInfo } from '../../utils/officeCast.js';
 import { shouldShowSpokenText } from '../../utils/officeCaptions.js';
@@ -130,13 +129,6 @@ export default function FloorArrival({
   const viewportRef = useRef(null);
   const scale = useStageScale(viewportRef);
   const { play, stop } = useIntroNarrator({ getSessionId });
-  useOfficeAmbientAudio({
-    playChime,
-    audioContextRef,
-    hasInteractedRef,
-    soundEnabled,
-    roomToneViewMode: 'floor'
-  });
   const captions = useSyncExternalStore(
     subscribe,
     () => getOfficeSnapshot().captions,
