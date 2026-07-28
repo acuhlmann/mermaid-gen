@@ -106,7 +106,7 @@ test('critique analyze instructions prioritize issues with the selected item', (
       elementType: 'item-label',
       indexes: '0'
     },
-    'critique'
+    'jared'
   );
   assert.match(text, /prioritize issues with this specific item/);
   assert.match(text, /## Weaknesses and limits/);

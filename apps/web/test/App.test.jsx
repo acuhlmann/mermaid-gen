@@ -532,7 +532,7 @@ describe('App simplified controls', { timeout: 20_000 }, () => {
     });
 
     render(<App />);
-    await waitForControlsReady('The Auditor');
+    await waitForControlsReady('Jared Dunn');
 
     const critiqueButton = await screen.findByRole('button', { name: 'Critique' });
     fireEvent.click(critiqueButton);
@@ -594,7 +594,7 @@ describe('App simplified controls', { timeout: 20_000 }, () => {
     });
 
     render(<App />);
-    await waitForControlsReady('The Auditor');
+    await waitForControlsReady('Jared Dunn');
     fireEvent.click(await screen.findByRole('button', { name: 'Critique' }));
 
     const keepBox = await screen.findByRole('checkbox', { name: /Keep this change/i });
@@ -629,7 +629,7 @@ describe('App simplified controls', { timeout: 20_000 }, () => {
     });
 
     render(<App />);
-    await waitForControlsReady('The Auditor');
+    await waitForControlsReady('Jared Dunn');
     fireEvent.click(await screen.findByRole('button', { name: 'Critique' }));
 
     const keepBox = await screen.findByRole('checkbox', { name: /Alpha/i });

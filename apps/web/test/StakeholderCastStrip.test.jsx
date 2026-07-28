@@ -3,7 +3,7 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import StakeholderCastStrip from '../src/components/StakeholderCastStrip.jsx';
 
-const CAST = ['gilfoyle', 'erlich', 'goMad', 'barker', 'critique', 'explain'];
+const CAST = ['gilfoyle', 'erlich', 'goMad', 'barker', 'jared', 'explain'];
 
 describe('StakeholderCastStrip', () => {
   afterEach(() => cleanup());

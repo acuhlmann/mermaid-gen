@@ -137,15 +137,15 @@ export type InsightEventContext = {
   playGilfoyleTokenTick?: () => void;
   playDineshTokenTick?: () => void;
   playErlichTokenTick?: (audioCtx: AudioContext, idx: number) => void;
-  playCritiqueTokenTick?: () => void;
+  playJaredTokenTick?: () => void;
   playExplainTokenTick?: () => void;
   playGilfoylePolishLoop?: () => void;
   playDineshInsistLoop?: () => void;
   playErlichSynthLoop?: () => void;
   playGoMadKlaxonLoop?: () => void;
   playGoMadAirhornBlast?: () => void;
-  playCritiqueScribbleLoop?: () => void;
-  playCritiquePenStab?: () => void;
+  playJaredScribbleLoop?: () => void;
+  playJaredPenStab?: () => void;
   playExplainPageFlipLoop?: () => void;
   setLiveDraftSource: (source: string) => void;
   setLiveDraftContentType: (ct: string | null) => void;
@@ -213,15 +213,15 @@ export function applyAgentStreamInsightEvent(
     playGilfoyleTokenTick,
     playDineshTokenTick,
     playErlichTokenTick,
-    playCritiqueTokenTick,
+    playJaredTokenTick,
     playExplainTokenTick,
     playGilfoylePolishLoop,
     playDineshInsistLoop,
     playErlichSynthLoop,
     playGoMadKlaxonLoop,
     playGoMadAirhornBlast,
-    playCritiqueScribbleLoop,
-    playCritiquePenStab,
+    playJaredScribbleLoop,
+    playJaredPenStab,
     playExplainPageFlipLoop,
     setLiveDraftSource,
     setLiveDraftContentType,
@@ -284,8 +284,8 @@ export function applyAgentStreamInsightEvent(
     if (typeof playPhaseChangePluck === 'function') {
       tryAgentSound(playPhaseChangePluck);
     }
-    if (variant === 'critique' && typeof playCritiquePenStab === 'function') {
-      tryAgentSound(playCritiquePenStab);
+    if (variant === 'jared' && typeof playJaredPenStab === 'function') {
+      tryAgentSound(playJaredPenStab);
     } else if (variant === 'goMad') {
       if (Math.random() < 0.18 && typeof playGoMadAirhornBlast === 'function') {
         tryAgentSound(playGoMadAirhornBlast);
@@ -300,8 +300,8 @@ export function applyAgentStreamInsightEvent(
       if (Math.random() < 0.45) tryAgentSound(playDineshInsistLoop);
     } else if (variant === 'explain' && typeof playExplainPageFlipLoop === 'function') {
       if (Math.random() < 0.45) tryAgentSound(playExplainPageFlipLoop);
-    } else if (variant === 'critique' && typeof playCritiqueScribbleLoop === 'function') {
-      if (Math.random() < 0.4) tryAgentSound(playCritiqueScribbleLoop);
+    } else if (variant === 'jared' && typeof playJaredScribbleLoop === 'function') {
+      if (Math.random() < 0.4) tryAgentSound(playJaredScribbleLoop);
     }
   } else if (evt.type === 'phase_end') {
     const endNow = Date.now();
@@ -435,8 +435,8 @@ export function applyAgentStreamInsightEvent(
         const idx = goMadTokenTickIndexRef.current;
         goMadTokenTickIndexRef.current = idx + 1;
         tryAgentSound((audioCtx) => playErlichTokenTick(audioCtx, idx));
-      } else if (variant === 'critique' && typeof playCritiqueTokenTick === 'function') {
-        tryAgentSound(playCritiqueTokenTick);
+      } else if (variant === 'jared' && typeof playJaredTokenTick === 'function') {
+        tryAgentSound(playJaredTokenTick);
       } else if (variant === 'explain' && typeof playExplainTokenTick === 'function') {
         tryAgentSound(playExplainTokenTick);
       } else if (typeof playTokenTickChime === 'function') {
@@ -766,11 +766,11 @@ export function applyAgentStreamInsightEvent(
     }
     if (typeof onFinal === 'function') {
       const finalText =
-        operation === 'analyze' && variant === 'critique'
+        operation === 'analyze' && variant === 'jared'
           ? resolveCritiqueAnalyzeFinalText(streamAcc.text, finalEvt.analyzeText)
           : streamAcc.text.trim() ||
             (typeof finalEvt.analyzeText === 'string' ? finalEvt.analyzeText.trim() : '');
-      if (operation === 'analyze' && variant === 'critique' && finalText) {
+      if (operation === 'analyze' && variant === 'jared' && finalText) {
         patchInsightEntry(sectionId, (entry) => ({ ...entry, content: finalText }));
       }
       onFinal({ evt: finalEvt, finalText, sectionId });

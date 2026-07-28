@@ -26,8 +26,8 @@ describe('insightRetryDescriptor', () => {
     expect(
       buildInsightRetryDescriptor({
         operation: 'analyze',
-        variant: 'critique',
-        payload: { kind: 'critique' }
+        variant: 'jared',
+        payload: { kind: 'jared' }
       })
     ).toBeNull();
   });

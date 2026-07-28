@@ -133,13 +133,13 @@ export function buildRadialActions({
       personaTitle: actionPersonaTitle('barker')
     },
     {
-      id: 'critique',
-      label: a.critique,
-      icon: <ActionPersonaIcon variant="critique" />,
-      variant: 'critique',
-      persona: actionPersonaName('critique'),
-      personaEmoji: actionPersonaEmoji('critique'),
-      personaTitle: actionPersonaTitle('critique')
+      id: 'jared',
+      label: a.jared,
+      icon: <ActionPersonaIcon variant="jared" />,
+      variant: 'jared',
+      persona: actionPersonaName('jared'),
+      personaEmoji: actionPersonaEmoji('jared'),
+      personaTitle: actionPersonaTitle('jared')
     },
     {
       id: 'fix',

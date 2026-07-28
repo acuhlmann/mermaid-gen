@@ -52,11 +52,11 @@ test('runAgentStream forwards to the slot service', async () => {
 
   const events = [];
   const result = await dispatcher.runAgentStream(
-    'critique',
+    'jared',
     { contentType: 'forms', prompt: 'review' },
     (ev) => events.push(ev)
   );
 
   assert.equal(result.message, 'forms:stream');
-  assert.deepEqual(events, [{ type: 'status', message: 'forms:critique' }]);
+  assert.deepEqual(events, [{ type: 'status', message: 'forms:jared' }]);
 });

@@ -350,8 +350,8 @@ export function playGoMadBoot(audioContextRef) {
   bonk.stop(now + 0.25);
 }
 
-/** Critique boot: clipboard slam + typewriter ding. */
-export function playCritiqueBoot(audioContextRef) {
+/** Jared boot: clipboard slam + typewriter ding. */
+export function playJaredBoot(audioContextRef) {
   const context = getContext(audioContextRef);
   if (!context) return;
   const now = context.currentTime;
@@ -408,7 +408,7 @@ export function playErlichCompletion(audioContextRef) {
   ]);
 }
 
-export function playCritiqueCompletion(audioContextRef) {
+export function playJaredCompletion(audioContextRef) {
   // red-pen ding then stamp
   playToneSeq(
     audioContextRef,
@@ -457,7 +457,7 @@ export function playErlichTokenTick(audioContextRef, tickIndex = 0) {
   });
 }
 
-export function playCritiqueTokenTick(audioContextRef) {
+export function playJaredTokenTick(audioContextRef) {
   playShortTone(audioContextRef, {
     type: 'triangle',
     freqHz: 660,
@@ -674,8 +674,8 @@ export function playGoMadKlaxonLoop(audioContextRef) {
   }
 }
 
-/** Critique: scratchy pen scribble (noise-like via fast fm). */
-export function playCritiqueScribbleLoop(audioContextRef) {
+/** Jared: scratchy pen scribble (noise-like via fast fm). */
+export function playJaredScribbleLoop(audioContextRef) {
   const context = getContext(audioContextRef);
   if (!context) return;
   const now = context.currentTime;
@@ -737,8 +737,8 @@ export function playGoMadAirhornBlast(audioContextRef) {
   }
 }
 
-/** Critique pen-stab on phase transitions — short percussive stab. */
-export function playCritiquePenStab(audioContextRef) {
+/** Jared pen-stab on phase transitions — short percussive stab. */
+export function playJaredPenStab(audioContextRef) {
   playShortTone(audioContextRef, {
     type: 'square',
     freqHz: 1800,

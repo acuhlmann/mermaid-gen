@@ -347,24 +347,24 @@ describe('meeting seats (slice 5)', () => {
   });
 
   it('gives the facilitator the head of the table and keeps invite order after', () => {
-    const seating = meetingSeating(['gilfoyle', 'scrumMaster', 'critique'], 'scrumMaster');
-    expect(seating.map((seat) => seat.id)).toEqual(['scrumMaster', 'gilfoyle', 'critique']);
+    const seating = meetingSeating(['gilfoyle', 'scrumMaster', 'jared'], 'scrumMaster');
+    expect(seating.map((seat) => seat.id)).toEqual(['scrumMaster', 'gilfoyle', 'jared']);
     expect(seating[0].tile).toEqual(MEETING_SEATS[0]);
     expect(seating[1].tile).toEqual(MEETING_SEATS[1]);
   });
 
   it('seats whoever showed up when the facilitator is not in the room', () => {
-    const seating = meetingSeating(['gilfoyle', 'critique'], 'scrumMaster');
-    expect(seating.map((seat) => seat.id)).toEqual(['gilfoyle', 'critique']);
+    const seating = meetingSeating(['gilfoyle', 'jared'], 'scrumMaster');
+    expect(seating.map((seat) => seat.id)).toEqual(['gilfoyle', 'jared']);
   });
 
   it('drops duplicates and anyone past the last chair', () => {
     const crowd = [...CAST_TIERS.team, ...CAST_TIERS.senior, ...CAST_TIERS.office];
     expect(crowd.length).toBeGreaterThan(MEETING_SEATS.length);
     expect(meetingSeating(crowd)).toHaveLength(MEETING_SEATS.length);
-    expect(meetingSeating(['gilfoyle', 'gilfoyle', 'critique']).map((s) => s.id)).toEqual([
+    expect(meetingSeating(['gilfoyle', 'gilfoyle', 'jared']).map((s) => s.id)).toEqual([
       'gilfoyle',
-      'critique'
+      'jared'
     ]);
     expect(meetingSeating(undefined)).toEqual([]);
   });
@@ -382,7 +382,7 @@ describe('peek marks (slice 6)', () => {
       'gilfoyle',
       'dinesh',
       'erlich',
-      'critique',
+      'jared',
       'explain',
       'goMad',
       'helpdesk',

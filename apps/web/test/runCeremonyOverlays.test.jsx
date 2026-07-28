@@ -8,8 +8,8 @@ describe('RunCeremonyOverlays', () => {
     const { rerender } = render(
       <RunCeremonyOverlays
         anchor="insights"
-        bootSeq={{ trigger: 1, variant: 'critique' }}
-        liveVariant="critique"
+        bootSeq={{ trigger: 1, variant: 'jared' }}
+        liveVariant="jared"
         liveStreaming
         insightsOpen
       />

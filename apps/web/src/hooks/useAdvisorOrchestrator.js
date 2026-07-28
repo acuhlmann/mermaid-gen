@@ -25,7 +25,7 @@ export const ADVISOR_ORDER = [
   'dinesh',
   'erlich',
   'goMad',
-  'critique',
+  'jared',
   'explain',
   'barker'
 ];

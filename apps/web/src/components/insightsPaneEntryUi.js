@@ -27,7 +27,7 @@ export function statusLabel(entry, copy) {
 
 export function contentUpdatesTitle(variant, copy) {
   const c = insightsCopy(copy);
-  if (variant === 'critique') return c.contentAnalysis;
+  if (variant === 'jared') return c.contentAnalysis;
   if (variant === 'explain') return c.contentExplanation;
   if (variant === 'gilfoyle' || variant === 'dinesh') return c.contentRefinement;
   if (variant === 'erlich') return c.contentInnovation;
@@ -38,7 +38,7 @@ export function contentUpdatesTitle(variant, copy) {
 export function hidePhaseIds(variant, streamDebugEnabled) {
   if (streamDebugEnabled) return false;
   return (
-    variant === 'critique' ||
+    variant === 'jared' ||
     variant === 'explain' ||
     variant === 'gilfoyle' ||
     variant === 'dinesh' ||

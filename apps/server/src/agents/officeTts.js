@@ -67,7 +67,7 @@ const VOICES_BY_LANG = {
     dinesh: { name: 'en-US-Wavenet-A', languageCode: 'en-US', speakingRate: 1.12, pitch: 2.4 },
     erlich: { name: 'en-US-Wavenet-I', languageCode: 'en-US', speakingRate: 1.08, pitch: 1.0 },
     goMad: { name: 'en-US-Wavenet-J', languageCode: 'en-US', speakingRate: 1.14, pitch: 3.5 },
-    critique: { name: 'en-US-Wavenet-B', languageCode: 'en-US', speakingRate: 0.88, pitch: -3.5 },
+    jared: { name: 'en-US-Wavenet-B', languageCode: 'en-US', speakingRate: 1.04, pitch: 1.6 },
     explain: { name: 'en-US-Wavenet-C', languageCode: 'en-US', speakingRate: 0.92, pitch: 0.5 },
     cto: { name: 'en-US-Wavenet-A', languageCode: 'en-US', speakingRate: 1.05, pitch: 1.0 },
     cfo: { name: 'en-US-Wavenet-F', languageCode: 'en-US', speakingRate: 0.9, pitch: -2.0 },
@@ -85,7 +85,7 @@ const VOICES_BY_LANG = {
     dinesh: { name: 'en-AU-Wavenet-B', languageCode: 'en-AU', speakingRate: 1.12, pitch: 2.4 },
     erlich: { name: 'en-AU-Wavenet-B', languageCode: 'en-AU', speakingRate: 1.08, pitch: 1.0 },
     goMad: { name: 'en-AU-Wavenet-D', languageCode: 'en-AU', speakingRate: 1.14, pitch: 3.0 },
-    critique: { name: 'en-AU-Wavenet-D', languageCode: 'en-AU', speakingRate: 0.88, pitch: -3.5 },
+    jared: { name: 'en-AU-Wavenet-D', languageCode: 'en-AU', speakingRate: 1.04, pitch: 1.6 },
     explain: { name: 'en-AU-Wavenet-C', languageCode: 'en-AU', speakingRate: 0.92, pitch: 0.5 },
     cto: { name: 'en-AU-Wavenet-B', languageCode: 'en-AU', speakingRate: 1.05, pitch: 1.0 },
     cfo: { name: 'en-AU-Wavenet-A', languageCode: 'en-AU', speakingRate: 0.9, pitch: -2.0 },
@@ -118,7 +118,7 @@ const VOICES_BY_LANG = {
     dinesh: { name: 'cmn-CN-Wavenet-B', languageCode: 'cmn-CN', speakingRate: 1.12, pitch: 2.4 },
     erlich: { name: 'cmn-CN-Wavenet-B', languageCode: 'cmn-CN', speakingRate: 1.06, pitch: 1.0 },
     goMad: { name: 'cmn-CN-Wavenet-C', languageCode: 'cmn-CN', speakingRate: 1.12, pitch: 3.0 },
-    critique: { name: 'cmn-CN-Wavenet-C', languageCode: 'cmn-CN', speakingRate: 0.88, pitch: -3.0 },
+    jared: { name: 'cmn-CN-Wavenet-C', languageCode: 'cmn-CN', speakingRate: 1.02, pitch: 1.4 },
     explain: { name: 'cmn-CN-Wavenet-A', languageCode: 'cmn-CN', speakingRate: 0.92, pitch: 0.5 },
     cto: { name: 'cmn-CN-Wavenet-B', languageCode: 'cmn-CN', speakingRate: 1.04, pitch: 1.0 },
     cfo: { name: 'cmn-CN-Wavenet-D', languageCode: 'cmn-CN', speakingRate: 0.9, pitch: -2.0 },
@@ -151,7 +151,7 @@ const VOICES_BY_LANG = {
     dinesh: { name: 'cmn-TW-Wavenet-B', languageCode: 'cmn-TW', speakingRate: 1.12, pitch: 2.4 },
     erlich: { name: 'cmn-TW-Wavenet-B', languageCode: 'cmn-TW', speakingRate: 1.06, pitch: 1.0 },
     goMad: { name: 'cmn-TW-Wavenet-C', languageCode: 'cmn-TW', speakingRate: 1.12, pitch: 3.0 },
-    critique: { name: 'cmn-TW-Wavenet-C', languageCode: 'cmn-TW', speakingRate: 0.88, pitch: -3.0 },
+    jared: { name: 'cmn-TW-Wavenet-C', languageCode: 'cmn-TW', speakingRate: 1.02, pitch: 1.4 },
     explain: { name: 'cmn-TW-Wavenet-A', languageCode: 'cmn-TW', speakingRate: 0.92, pitch: 0.5 },
     cto: { name: 'cmn-TW-Wavenet-B', languageCode: 'cmn-TW', speakingRate: 1.04, pitch: 1.0 },
     cfo: { name: 'cmn-TW-Wavenet-A', languageCode: 'cmn-TW', speakingRate: 0.9, pitch: -2.0 },
@@ -166,7 +166,7 @@ const VOICES_BY_LANG = {
  *
  * Mapping keeps each persona's WaveNet letter and gender where the Neural2
  * catalog allows: en-AU is 1:1; en-US has no Neural2-B, so helpdesk and
- * critique (both Wavenet-B males) move to other males (J / A). zh locales are
+ * jared (both Wavenet-B males) move to other males (J / A). zh locales are
  * absent by design — cmn-CN / cmn-TW have no Neural2 voices (cmn-TW has
  * nothing above WaveNet), so they always resolve from the WaveNet table.
  *
@@ -185,7 +185,7 @@ const NEURAL2_VOICE_NAMES = {
     dinesh: 'en-US-Neural2-A',
     erlich: 'en-US-Neural2-I',
     goMad: 'en-US-Neural2-J',
-    critique: 'en-US-Neural2-A',
+    jared: 'en-US-Neural2-A',
     explain: 'en-US-Neural2-C',
     cto: 'en-US-Neural2-A',
     cfo: 'en-US-Neural2-F',
@@ -203,7 +203,7 @@ const NEURAL2_VOICE_NAMES = {
     dinesh: 'en-AU-Neural2-B',
     erlich: 'en-AU-Neural2-B',
     goMad: 'en-AU-Neural2-D',
-    critique: 'en-AU-Neural2-D',
+    jared: 'en-AU-Neural2-D',
     explain: 'en-AU-Neural2-C',
     cto: 'en-AU-Neural2-B',
     cfo: 'en-AU-Neural2-A',
@@ -233,7 +233,7 @@ const CHIRP3_VOICE_ROSTER = {
   dinesh: 'Charon',
   erlich: 'Fenrir',
   goMad: 'Fenrir',
-  critique: 'Charon',
+  jared: 'Charon',
   explain: 'Aoede',
   // senior
   ciso: 'Charon',

@@ -7,7 +7,7 @@ import { PersonaFace } from './personaFaces/index.jsx';
 import { resolveUserName } from '../state/userIdentityStore.js';
 import { requestOfficeDirectoryOpen } from '../state/officeDirectoryUiStore.js';
 
-const VARIANT_ROW_ORDER = ['gilfoyle', 'dinesh', 'erlich', 'goMad', 'critique', 'explain'];
+const VARIANT_ROW_ORDER = ['gilfoyle', 'dinesh', 'erlich', 'goMad', 'jared', 'explain'];
 
 function pickNextTaunt(taunts, seed) {
   if (!taunts?.length) return '';

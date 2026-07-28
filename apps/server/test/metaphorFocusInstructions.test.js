@@ -22,5 +22,5 @@ test('buildMetaphorFocusScopeInstructions scopes to item id', () => {
 test('buildMetaphorAnalyzeFocusInstructions explain vs critique', () => {
   const focus = { id: 'cache', label: 'Cache', selectionKind: 'metaphor-item' };
   assert.match(buildMetaphorAnalyzeFocusInstructions(focus, 'explain'), /spatial story/);
-  assert.match(buildMetaphorAnalyzeFocusInstructions(focus, 'critique'), /magnitude/);
+  assert.match(buildMetaphorAnalyzeFocusInstructions(focus, 'jared'), /magnitude/);
 });

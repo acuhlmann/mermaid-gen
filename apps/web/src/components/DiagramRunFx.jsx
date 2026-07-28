@@ -14,7 +14,7 @@ const VARIANT_CLASS = {
   dinesh: 'is-dinesh',
   erlich: 'is-erlich',
   goMad: 'is-go-mad',
-  critique: 'is-critique',
+  jared: 'is-jared',
   explain: 'is-explain'
 };
 
@@ -186,7 +186,7 @@ export default function DiagramRunFx({ variant, streaming = false, intensity = '
         </>
       ) : null}
 
-      {variant === 'critique' ? (
+      {variant === 'jared' ? (
         <>
           <div className="diagram-run-fx-manila-vignette" />
           {[0, 1, 2, 3].map((i) => (

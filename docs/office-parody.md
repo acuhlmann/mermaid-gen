@@ -43,11 +43,11 @@ The cast is split into **three tiers** (`apps/web/src/utils/castTiers.js` — `C
 `tierOf`). The tier is a tag, not a data move: `barker` lives in both `VARIANT_PERSONAS` (his
 advisor seat) and `SENIOR_STAKEHOLDERS` (his tier), and `ciso` in `OFFICE_COLLEAGUES`.
 
-| Tier       | Who                                                                       | How they reach you                                                                                                                                                                                   |
-| ---------- | ------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **team**   | gilfoyle, dinesh, erlich, goMad, critique, explain (+ `barker` dual-home) | Proactive roundtable (`ADVISOR_ORDER`) + agent actions. Full-weight peers; Barker at **throttled** pick weight (`ADVISOR_PICK_WEIGHTS.barker` = 0.5) — ≈8% of a long rotation against ≈15% per peer. |
-| **senior** | barker (Jack), ciso (Sasha), cto (Marcus → Belson), cfo (Diane)           | Steering meetings + ≤1 high-stakes email/session. Never ambient walk-bys/IMs. Belson (when shipped) scarcer than Barker — never roundtable; Jack reports to him.                                     |
-| **office** | intern, scrumMaster, helpdesk, facilities, hr, greybeard                  | Emails, IMs, walk-bys, coffee, battles. The floor around you.                                                                                                                                        |
+| Tier       | Who                                                                    | How they reach you                                                                                                                                                                                   |
+| ---------- | ---------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **team**   | gilfoyle, dinesh, erlich, goMad, jared, explain (+ `barker` dual-home) | Proactive roundtable (`ADVISOR_ORDER`) + agent actions. Full-weight peers; Barker at **throttled** pick weight (`ADVISOR_PICK_WEIGHTS.barker` = 0.5) — ≈8% of a long rotation against ≈15% per peer. |
+| **senior** | barker (Jack), ciso (Sasha), cto (Marcus → Belson), cfo (Diane)        | Steering meetings + ≤1 high-stakes email/session. Never ambient walk-bys/IMs. Belson (when shipped) scarcer than Barker — never roundtable; Jack reports to him.                                     |
+| **office** | intern, scrumMaster, helpdesk, facilities, hr, greybeard               | Emails, IMs, walk-bys, coffee, battles. The floor around you.                                                                                                                                        |
 
 Boundary rules worth keeping: senior stakeholders are excluded from
 `OFFICE_{WALKBY,EMAIL,IM}_LLM_CAST` and from the canned day-to-day banks — their one ambient
@@ -79,7 +79,7 @@ leadership pinging your desk.
 > roundtable). Status: **local experiment** — before public deploy, decide real names vs
 > legally-distinct aliases. Locked roster: Erlich → `erlich` (shipped), Gilfoyle → `gilfoyle` (shipped),
 > Dinesh → new seventh engineer seat (`dinesh`, gilfoyle-class, core team + battle dual-home),
-> Jared → `jared`, Russ → `goMad`, Richard → `richard` (comment-only), Belson replaces Marcus.
+> Jared → `jared` (shipped), Russ → `goMad`, Richard → `richard` (comment-only), Belson replaces Marcus.
 > Single source of truth for remaining sessions:
 > [docs/recipes/replicate-tv-character.md](recipes/replicate-tv-character.md).
 
@@ -127,6 +127,17 @@ leadership pinging your desk.
 > that woke him at 3am. It is a **tendency, not a rule** — both can still make any correct small
 > fix, and the hard node/edge caps stay shared in `mermaidTransformPolicy.ts`. See §1b of
 > [the recipe](recipes/replicate-tv-character.md) for the axis table and what it cost to measure.
+
+> **Jared inherits the Auditor seat (Session 5, 2026-07-28).** The fifth named replication and the
+> first **analyze-path** inheritance: **Jared Dunn** took over the retired generic `critique` id —
+> `DiagramAnalyzeSchema.kind`, advisor analyze kind, radial Critique action (label kept as the
+> generic verb), hotkey `C`, mascot row, floor desk, TTS/narration, XP variant. The seat contract
+> travelled unchanged (findings-only; no diagram mutation; temp 0.5) and only the voice was
+> re-skinned: anxious earnestness, soft openers that never soften the finding, process and
+> accountability as religion. Cards live in `STAKEHOLDER_MEETING_VOICES.jared` and
+> `ADVISOR_PERSONAS.jared`; harness profile: `node scripts/barker-fidelity.mjs jared`. Full-weight
+> roundtable peer. The Critique _feature_ (A2UI checklist, Fix-from-critique, MCP critique-map)
+> keeps its product name — only the persona seat id moved.
 
 ### Shipped colleagues (v1)
 

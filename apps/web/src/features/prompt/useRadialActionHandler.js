@@ -2,7 +2,7 @@ import { useCallback, useMemo } from 'react';
 import { useDiagramHotkeys } from '../../hooks/useDiagramHotkeys.js';
 import { buildRadialActions } from '../../components/buildRadialActions.jsx';
 import {
-  playCritiqueBoot,
+  playJaredBoot,
   playDineshBoot,
   playErlichBoot,
   playExplainBoot,
@@ -75,7 +75,7 @@ export function useRadialActionHandler({
         action.id === 'dinesh' ||
         action.id === 'erlich' ||
         action.id === 'goMad' ||
-        action.id === 'critique' ||
+        action.id === 'jared' ||
         action.id === 'explain' ||
         action.id === 'barker'
           ? action.id
@@ -86,7 +86,7 @@ export function useRadialActionHandler({
         else if (variantForBoot === 'dinesh') tryAgentSound(playDineshBoot);
         else if (variantForBoot === 'erlich') tryAgentSound(playErlichBoot);
         else if (variantForBoot === 'goMad') tryAgentSound(playGoMadBoot);
-        else if (variantForBoot === 'critique') tryAgentSound(playCritiqueBoot);
+        else if (variantForBoot === 'jared') tryAgentSound(playJaredBoot);
         else if (variantForBoot === 'explain') tryAgentSound(playExplainBoot);
       }
       if (action.id === 'gilfoyle') runTransform('gilfoyle', runOpts);
@@ -94,7 +94,7 @@ export function useRadialActionHandler({
       else if (action.id === 'erlich') runTransform('erlich', runOpts);
       else if (action.id === 'goMad') runTransform('goMad', runOpts);
       else if (action.id === 'barker') runTransform('barker', runOpts);
-      else if (action.id === 'critique') runAnalyze('critique', runOpts);
+      else if (action.id === 'jared') runAnalyze('jared', runOpts);
       else if (action.id === 'explain') runAnalyze('explain', runOpts);
       else if (action.id === 'fix') handleFixFromCritique('all');
     },

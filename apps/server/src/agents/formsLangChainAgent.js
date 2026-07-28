@@ -124,7 +124,7 @@ export function buildFormsTransformUserContent({ mode, currentDoc, goMadDepth, a
 }
 
 export function buildFormsAnalyzeUserContent({ kind, currentDoc, advisorPrompt, lastUserPrompt }) {
-  const task = kind === 'critique' ? FORMS_CRITIQUE_TASK : FORMS_EXPLAIN_TASK;
+  const task = kind === 'jared' ? FORMS_CRITIQUE_TASK : FORMS_EXPLAIN_TASK;
   return appendProseLanguageInstruction(
     [
       task,

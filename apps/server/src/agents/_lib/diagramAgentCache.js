@@ -128,7 +128,7 @@ export function createDiagramAgentCache({
         chatModelFactory(env, {
           model: modelId,
           backend,
-          temperature: kind === 'critique' ? 0.52 : 0.42,
+          temperature: kind === 'jared' ? 0.52 : 0.42,
           maxTokens: 1800,
           maxOutputTokens: 1800
         })

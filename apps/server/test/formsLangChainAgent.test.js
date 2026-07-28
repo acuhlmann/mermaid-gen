@@ -25,7 +25,7 @@ test('buildFormsTransformUserContent includes mode instructions and advisor prom
 
 test('buildFormsAnalyzeUserContent includes critique task and advisor prompt', () => {
   const body = buildFormsAnalyzeUserContent({
-    kind: 'critique',
+    kind: 'jared',
     currentDoc: FORMS_DOC,
     advisorPrompt: 'Is the hero stat readable?',
     lastUserPrompt: 'review this form'

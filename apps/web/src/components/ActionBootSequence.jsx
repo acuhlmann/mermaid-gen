@@ -6,7 +6,7 @@ const VARIANT_DURATION_MS = {
   dinesh: 660,
   erlich: 660,
   goMad: 820,
-  critique: 700,
+  jared: 700,
   explain: 700
 };
 const DEFAULT_DURATION_MS = 520;
@@ -17,7 +17,7 @@ const VARIANT_CSS_CLASS = {
   dinesh: 'is-dinesh',
   erlich: 'is-erlich',
   goMad: 'is-go-mad',
-  critique: 'is-critique',
+  jared: 'is-jared',
   explain: 'is-explain'
 };
 
@@ -63,7 +63,7 @@ export default function ActionBootSequence({ trigger, variant }) {
       <div className="boot-sequence-flash" />
       {playing.variant === 'goMad' ? <div className="boot-bonk-flash" /> : null}
       {playing.variant === 'goMad' ? <div className="boot-hardhat">🪖</div> : null}
-      {playing.variant === 'critique' ? <div className="boot-clipboard">📋</div> : null}
+      {playing.variant === 'jared' ? <div className="boot-clipboard">📋</div> : null}
       {playing.variant === 'explain' ? <div className="boot-scroll">📜</div> : null}
       {playing.variant === 'gilfoyle' ? <div className="boot-sparkle">✨</div> : null}
       {playing.variant === 'dinesh' ? <div className="boot-hand">🙋</div> : null}

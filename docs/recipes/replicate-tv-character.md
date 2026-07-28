@@ -18,10 +18,12 @@ shipped **without a fidelity measurement** (no LLM key in those containers); a f
 bar, and closed the deferred live smokes — see [Measured baselines](#measured-baselines). The same
 pass added **§1b, the tendency axis**: voice alone had left the two engineers doing one job in two
 accents, so each seat now also has a documented instinct for _what kind_ of change it reaches for.
-The cast
+Proven a sixth time with **Jared Dunn inheriting the `critique` seat** (Session 5, 2026-07-28,
+`critique` → `jared`) — the first **analyze-path** inheritance (`DiagramAnalyzeSchema.kind`, not
+`TransformModeSchema`). The cast
 map and **reachability ladder** below are **locked** (2026-07-26 program plan; reachability
 2026-07-27) — one character per agent session, in the order listed.
-**Next up: Session 5, Jared Dunn inherits the `critique` seat (`critique` → `jared`).**
+**Next up: Session 6, Russ Hanneman inherits the `goMad` seat.**
 
 ## Status board
 
@@ -31,8 +33,8 @@ map and **reachability ladder** below are **locked** (2026-07-26 program plan; r
 | Erlich Bachman    | team — `erlich` (ex-`innovate`)          | ✅ Shipped — seat inheritance; courageous pivots, incubator swagger                                                                                             |
 | Bertram Gilfoyle  | team — `gilfoyle` (ex-`refine`)          | ✅ Shipped — seat inheritance; deadpan verdicts, always actionable; battle-eligible (dual-home). Draws what is **already true** (§1b). Fidelity **4.50 / 4.38** |
 | Dinesh Chugtai    | team — **new** `dinesh` (gilfoyle-class) | ✅ Shipped — new seventh seat (not an inheritance); correct fix + a bid for credit; battle dual-home. Draws what **will break** (§1b). Fidelity **4.00 / 4.19** |
-| Jared Dunn        | team — `critique` → `jared`              | ⬜ **Session 5 (next)** — findings-only Auditor; anxious compliance                                                                                             |
-| Russ Hanneman     | team — `goMad`                           | ⬜ Session 6 — highest content-policy risk (innuendo, not profanity)                                                                                            |
+| Jared Dunn        | team — `jared` (ex-`critique`)           | ✅ Shipped — seat inheritance; findings-only analyze seat; anxious compliance. First analyze-path inheritance. Fidelity **4.63 / 4.75**                         |
+| Russ Hanneman     | team — `goMad`                           | ⬜ **Session 6 (next)** — highest content-policy risk (innuendo, not profanity)                                                                                 |
 | Richard Hendricks | team — `explain` → `richard`             | ⬜ Session 7 — comment-only Wise Architect (no transform powers — ADR-0010)                                                                                     |
 | Gavin Belson      | senior — `cto` → `belson`                | ⬜ Session 8 — named CTO; scarcer than Barker; Jack reports to him; retires Marcus                                                                              |
 | Marcus            | senior — `cto`                           | 🚮 Retires when Belson lands — currently a Belson _homage_, not a replication                                                                                   |
@@ -53,6 +55,7 @@ two consecutive runs, Vertex fast tier. **Treat these as the reference band, not
 | `dinesh`   | **4.00 / 4.19** | As shipped **3.81 / 4.25**; re-tuned to **4.50 / 4.31**; §1b's tendency split settled him at ~4.0–4.2. |
 | `barker`   | ≈3.95–4.0       | Session 1 plateau; unchanged since (Session 2 was picker plumbing, no voice card touched).             |
 | `erlich`   | 4.50 / 4.31     | Carried over from the card iteration recorded in §2; not re-measured on 2026-07-27.                    |
+| `jared`    | **4.63 / 4.75** | Session 5 (2026-07-28); first analyze-path inheritance. Sustained well above bar.                      |
 
 A session that cannot run the harness must say so in the PR (Sessions 2–4 correctly did) and leave
 the row blank rather than assert a score — but the row is then **not** done. Budget ~4 minutes and a
@@ -67,11 +70,11 @@ voice card.
 
 ### Reachability ladder (locked — do not re-litigate)
 
-| Who                                                                                            | How you reach them                          | Frequency                                                                                                                                          |
-| ---------------------------------------------------------------------------------------------- | ------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Full-weight team advisors (Erlich, Gilfoyle, Dinesh; then Jared / Russ / Richard as they land) | Roundtable + radial / hotkey / mascot       | Peer weight in `pickNextPersona`                                                                                                                   |
-| **Jack Barker**                                                                                | Same Your Team surfaces                     | **Throttled** — in `ADVISOR_ORDER` at `ADVISOR_PICK_WEIGHTS.barker` = 0.5 (~half as often as a peer). ≤1 senior email/session. No walk-by/IM spam. |
-| **Gavin Belson** (ex-Marcus)                                                                   | Steering meetings + ≤1 senior email/session | **Scarcer than Barker** — never proactive roundtable, never a team transform seat. Fiction: Barker reports to him.                                 |
+| Who                                                                                           | How you reach them                          | Frequency                                                                                                                                          |
+| --------------------------------------------------------------------------------------------- | ------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Full-weight team advisors (Erlich, Gilfoyle, Dinesh, Jared; then Russ / Richard as they land) | Roundtable + radial / hotkey / mascot       | Peer weight in `pickNextPersona`                                                                                                                   |
+| **Jack Barker**                                                                               | Same Your Team surfaces                     | **Throttled** — in `ADVISOR_ORDER` at `ADVISOR_PICK_WEIGHTS.barker` = 0.5 (~half as often as a peer). ≤1 senior email/session. No walk-by/IM spam. |
+| **Gavin Belson** (ex-Marcus)                                                                  | Steering meetings + ≤1 senior email/session | **Scarcer than Barker** — never proactive roundtable, never a team transform seat. Fiction: Barker reports to him.                                 |
 
 ### Session 2 drill — Barker throttled roundtable (✅ shipped 2026-07-27)
 
@@ -141,13 +144,14 @@ card; the harness proves it; the wire-in is a mechanical drill whose size depend
 Voice alone does not make two seats different. Every transform seat also has a **tendency** — the
 kind of change it reaches for first when you ask it for help. Locked 2026-07-27:
 
-| Seat         | Reaches for first                                                                                           | Net effect      |
-| ------------ | ----------------------------------------------------------------------------------------------------------- | --------------- |
-| **Barker**   | what will not fit the slide                                                                                 | **shrinks** it  |
-| **Gilfoyle** | what is **already true and undrawn** — the dependency nobody admitted, the node quietly doing two jobs      | grows it        |
-| **Dinesh**   | what **has not survived contact** — the failure branch, unowned handoff, ambiguous trigger, biting ordering | grows it        |
-| **Erlich**   | the bolder shape nobody proposed                                                                            | restructures it |
-| **Go Mad**   | escalation rooted in the subject                                                                            | anything        |
+| Seat         | Reaches for first                                                                                             | Net effect                                      |
+| ------------ | ------------------------------------------------------------------------------------------------------------- | ----------------------------------------------- |
+| **Barker**   | what will not fit the slide                                                                                   | **shrinks** it                                  |
+| **Gilfoyle** | what is **already true and undrawn** — the dependency nobody admitted, the node quietly doing two jobs        | grows it                                        |
+| **Dinesh**   | what **has not survived contact** — the failure branch, unowned handoff, ambiguous trigger, biting ordering   | grows it                                        |
+| **Erlich**   | the bolder shape nobody proposed                                                                              | restructures it                                 |
+| **Jared**    | process and accountability gaps — who owns the step, what happens when it fails, whether the handoff is named | **findings only** (analyze; no canvas mutation) |
+| **Go Mad**   | escalation rooted in the subject                                                                              | anything                                        |
 
 Both engineers grow the diagram; Barker is the only one who shrinks it. The two engineers are
 separated **only** by this axis — they deliberately share budgets, temperature and one policy

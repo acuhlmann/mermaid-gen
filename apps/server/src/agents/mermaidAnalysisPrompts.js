@@ -62,7 +62,7 @@ const COMPACT_ANALYSIS_SOURCE_CHAR_THRESHOLD = 600;
 export function buildCritiqueTask(focusNode, focusScope, diagramSource) {
   const focused = Boolean(focusNode?.id);
   const tail = focused ? '' : focusScope;
-  const auditTone = `Audit voice: you are The Auditor — grumpy, formal, impatient. You do NOT lead with praise; affirmation is not your job. If the diagram has strengths, omit "Strengths" entirely unless there is something genuinely surprising worth a one-line nod. Make every negative point land; do not soften with "but otherwise great" or "overall solid".`;
+  const auditTone = `Audit voice: you are Jared Dunn from HBO's Silicon Valley — Pied Piper's Head of Business Development. Anxious, earnest, carefully corporate. You do NOT lead with praise; affirmation is not your job when there is a gap. If the diagram has strengths, omit "Strengths" entirely unless there is something genuinely surprising worth a one-line nod. Soften the OPENING of each finding, never the FINDING itself — no "but otherwise great" or "overall solid". Care for the company is the heat, not contempt.`;
   if (focused) {
     if ((diagramSource?.length ?? 0) <= COMPACT_ANALYSIS_SOURCE_CHAR_THRESHOLD) {
       return `Critique in read-only prose — do not rewrite or output Mermaid. Center every section on the diagram selection described in Selection focus above (prioritize that element and its neighborhood before unrelated diagram-wide notes).

@@ -67,7 +67,7 @@ test('senior stakeholders are valid meeting speakers with real voice blocks', ()
   // Bertram Gilfoyle inherited the team `refine` seat — same table-driven path as Barker,
   // but his card sits with the team stakeholders because the seat is a transform seat.
   const gilfoylePrompt = buildMeetingSystemPrompt({
-    attendees: ['scrumMaster', 'gilfoyle', 'critique'],
+    attendees: ['scrumMaster', 'gilfoyle', 'jared'],
     facilitatorId: 'scrumMaster'
   });
   assert.match(gilfoylePrompt, /You are Bertram Gilfoyle from HBO's Silicon Valley/);
@@ -122,6 +122,7 @@ test('meeting system prompt seats only the attendees and names the facilitator',
   assert.match(prompt, /speakerId "scrumMaster"/);
   assert.match(prompt, /speakerId "greybeard"/);
   assert.doesNotMatch(prompt, /speakerId "critique"/);
+  assert.doesNotMatch(prompt, /speakerId "jared"/);
   assert.match(prompt, /procedural beat from "scrumMaster"/);
   assert.ok(STAKEHOLDER_MEETING_VOICES.barker.includes('Success Theater made flesh'));
 });
@@ -144,6 +145,23 @@ test('erlich meeting voice card anchors the Silicon Valley replication', () => {
   assert.match(prompt, /speakerId "erlich"/);
   assert.equal(isOfficeSpeaker('erlich'), true);
   assert.equal(isOfficeColleague('erlich'), false);
+});
+
+test('jared meeting voice card anchors the Silicon Valley replication', () => {
+  assert.ok(STAKEHOLDER_MEETING_VOICES.jared.includes('Jared Dunn'));
+  assert.ok(STAKEHOLDER_MEETING_VOICES.jared.includes("HBO's Silicon Valley"));
+  assert.ok(STAKEHOLDER_MEETING_VOICES.jared.length > 40, 'jared needs a real voice card');
+  assert.equal(isOfficeSpeaker('jared'), true);
+  assert.equal(isOfficeColleague('jared'), false);
+  assert.equal(isOfficeSpeaker('critique'), false);
+  assert.equal(Object.hasOwn(STAKEHOLDER_MEETING_VOICES, 'critique'), false);
+
+  const prompt = buildMeetingSystemPrompt({
+    attendees: ['scrumMaster', 'jared', 'gilfoyle'],
+    facilitatorId: 'scrumMaster'
+  });
+  assert.match(prompt, /Jared Dunn from HBO's Silicon Valley/);
+  assert.match(prompt, /speakerId "jared"/);
 });
 
 test('parseMomentReply tolerates fenced JSON and clamps output', () => {
@@ -233,10 +251,13 @@ test('normalizeAttendees dedupes, drops unknowns, and enforces seat bounds', () 
   assert.deepEqual(normalizeAttendees(['scrumMaster', 'barker']), ['scrumMaster', 'barker']);
   assert.equal(normalizeAttendees(['scrumMaster']), null);
   // Group ceiling matches the /meeting route (8).
-  assert.deepEqual(
-    normalizeAttendees(['scrumMaster', 'barker', 'intern', 'greybeard', 'critique']),
-    ['scrumMaster', 'barker', 'intern', 'greybeard', 'critique']
-  );
+  assert.deepEqual(normalizeAttendees(['scrumMaster', 'barker', 'intern', 'greybeard', 'jared']), [
+    'scrumMaster',
+    'barker',
+    'intern',
+    'greybeard',
+    'jared'
+  ]);
   // A steering-meeting roster (facilitator + seniors + a team presenter) must survive.
   assert.deepEqual(normalizeAttendees(['scrumMaster', 'cto', 'cfo', 'gilfoyle']), [
     'scrumMaster',

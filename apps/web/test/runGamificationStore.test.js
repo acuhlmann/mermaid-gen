@@ -98,7 +98,7 @@ describe('runGamificationStore', () => {
 
   it('unlocks Full-Stack Slopitect after 5 distinct variants in a session', () => {
     let s = createInitialState();
-    const variants = ['gilfoyle', 'erlich', 'goMad', 'critique', 'explain'];
+    const variants = ['gilfoyle', 'erlich', 'goMad', 'jared', 'explain'];
     let unlockedAt = -1;
     variants.forEach((v, idx) => {
       const r = applyCompletedRun(s, { variant: v, now: 1000 + idx * 10_000 });
@@ -196,7 +196,7 @@ describe('runGamificationStore', () => {
     let s = createInitialState();
     s = applyCompletedRun(s, { variant: 'gilfoyle', now: 0 }).state;
     s = applyCompletedRun(s, { variant: 'erlich', now: 1000 }).state;
-    const r = applyCompletedRun(s, { variant: 'critique', now: 2000 });
+    const r = applyCompletedRun(s, { variant: 'jared', now: 2000 });
     expect(r.emissions.some((e) => e.id === 'hatTrick')).toBe(true);
   });
 
@@ -204,7 +204,7 @@ describe('runGamificationStore', () => {
     let s = createInitialState();
     s = applyCompletedRun(s, { variant: 'gilfoyle', now: 0 }).state;
     s = applyCompletedRun(s, { variant: 'erlich', now: HAT_TRICK_WINDOW_MS + 100 }).state;
-    const r = applyCompletedRun(s, { variant: 'critique', now: HAT_TRICK_WINDOW_MS + 200 });
+    const r = applyCompletedRun(s, { variant: 'jared', now: HAT_TRICK_WINDOW_MS + 200 });
     expect(r.emissions.some((e) => e.id === 'hatTrick')).toBe(false);
   });
 
@@ -281,9 +281,9 @@ describe('runGamificationStore', () => {
     let s = createInitialState();
     let unlockedAt = -1;
     for (let i = 0; i < 10; i += 1) {
-      const r = applyCompletedRun(s, { variant: 'critique', now: i * 1000 });
+      const r = applyCompletedRun(s, { variant: 'jared', now: i * 1000 });
       s = r.state;
-      if (r.emissions.some((e) => e.id === 'auditTribunal')) unlockedAt = i;
+      if (r.emissions.some((e) => e.id === 'carefulFinding')) unlockedAt = i;
     }
     expect(unlockedAt).toBe(9);
   });

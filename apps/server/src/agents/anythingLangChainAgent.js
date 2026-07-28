@@ -121,7 +121,7 @@ export function buildAnythingAnalyzeUserContent({
   lastUserPrompt
 }) {
   const task =
-    kind === 'critique'
+    kind === 'jared'
       ? 'Critique this HTML document in 3-5 short paragraphs. Call out: does the layout communicate the idea? Is the interaction discoverable? Any accessibility, contrast, or responsiveness issues? Does anything violate the sandbox contract (external URLs, storage, network)?'
       : `Explain this HTML document in 3-5 short paragraphs. Describe what the page shows, how the user interacts with it, and how the markup/CSS/JS pieces fit together.\n\n${WISE_ARCHITECT_EXPLAIN_VOICE}`;
   return appendProseLanguageInstruction(

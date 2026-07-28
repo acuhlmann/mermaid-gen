@@ -149,7 +149,7 @@ describe('InsightsPane', () => {
           {
             id: 'entry-critique',
             title: 'Critique - diagram',
-            variant: 'critique',
+            variant: 'jared',
             status: 'running',
             statusText: 'Auditing…',
             content: '',
@@ -641,7 +641,7 @@ flowchart TB
           {
             id: 'e-crit',
             title: 'Critique — diagram',
-            variant: 'critique',
+            variant: 'jared',
             status: 'done',
             content: '## Strengths\n\n- Good flow.\n\n## Weaknesses\n\n- Thin labels.',
             technicalActions: []
@@ -664,7 +664,7 @@ flowchart TB
           {
             id: 'e-bullet',
             title: 'Critique — diagram',
-            variant: 'critique',
+            variant: 'jared',
             status: 'done',
             content: '## Notes\n\n•\nMerged bullet sentence.',
             technicalActions: []
@@ -684,7 +684,7 @@ flowchart TB
           {
             id: 'e-phase',
             title: 'Critique — diagram',
-            variant: 'critique',
+            variant: 'jared',
             status: 'done',
             content: '',
             technicalActions: [],
@@ -711,7 +711,7 @@ flowchart TB
           {
             id: 'e-phase-dbg',
             title: 'Critique — diagram',
-            variant: 'critique',
+            variant: 'jared',
             status: 'done',
             content: '',
             technicalActions: [],
@@ -733,7 +733,7 @@ flowchart TB
           {
             id: 'e-tools',
             title: 'Critique — diagram',
-            variant: 'critique',
+            variant: 'jared',
             status: 'done',
             content: '## Summary\n\nDone.',
             technicalActions: [
@@ -1385,7 +1385,7 @@ flowchart TB
         entries={[
           {
             id: 'ent-act',
-            variant: 'critique',
+            variant: 'jared',
             status: 'done',
             title: 'Critique — diagram',
             content: critiqueText,
@@ -1426,7 +1426,7 @@ flowchart TB
         entries={[
           {
             id: 'ent-a2ui',
-            variant: 'critique',
+            variant: 'jared',
             status: 'done',
             title: 'Critique — diagram',
             content: critiqueText,

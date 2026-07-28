@@ -13,7 +13,7 @@ import {
   phaseIdLabel
 } from '../src/components/runTimelineModel.js';
 
-const STAKEHOLDER_VARIANTS = ['gilfoyle', 'erlich', 'goMad', 'critique', 'explain', 'barker'];
+const STAKEHOLDER_VARIANTS = ['gilfoyle', 'erlich', 'goMad', 'jared', 'explain', 'barker'];
 
 const SLOT_PREFIXES = ['chart', 'anything', 'metaphor', 'forms'] as const;
 
@@ -60,8 +60,8 @@ describe('phaseLabelResolution', () => {
     expect(resolvePhaseCeremonyRow(PHASE_CEREMONIES, 'chart_style')?.barker).toBe(
       'One brand color only.'
     );
-    expect(resolvePhaseCeremonyRow(PHASE_CEREMONIES, 'anything_repair_3')?.critique).toMatch(
-      /Second escalation/
+    expect(resolvePhaseCeremonyRow(PHASE_CEREMONIES, 'anything_repair_3')?.jared).toMatch(
+      /Still on me/
     );
   });
 

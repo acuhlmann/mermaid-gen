@@ -227,7 +227,7 @@ test('transform/analyze stream payloads reject contentType auto', () => {
   assert.equal(
     AgentStreamPayloadSchema.safeParse({
       operation: 'analyze',
-      kind: 'critique',
+      kind: 'jared',
       revisionId: 0,
       diagramSource: 'flowchart TD\n  A',
       contentType: 'auto'
@@ -435,7 +435,7 @@ test('transform payloads accept erlich and reject retired wire ids', () => {
   };
   assert.equal(DiagramTransformIntentSchema.safeParse(base).success, true);
 
-  for (const retired of ['innovate', 'critique', 'explain', 'style']) {
+  for (const retired of ['innovate', 'jared', 'explain', 'style']) {
     assert.equal(
       DiagramTransformIntentSchema.safeParse({ ...base, mode: retired }).success,
       false,
@@ -593,7 +593,7 @@ test('sanitizeAgentStreamPayload drops invalid transformPersona on intent', () =
     revisionId: 0,
     diagramSource: '',
     settings: {},
-    transformPersona: 'critique'
+    transformPersona: 'jared'
   };
   const sanitized = sanitizeAgentStreamPayload(payload) as Record<string, unknown>;
   assert.equal(sanitized.transformPersona, undefined);

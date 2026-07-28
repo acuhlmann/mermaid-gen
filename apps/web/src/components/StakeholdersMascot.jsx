@@ -20,7 +20,7 @@ const VARIANT_CLASS = {
   dinesh: 'is-dinesh',
   erlich: 'is-erlich',
   goMad: 'is-go-mad',
-  critique: 'is-critique',
+  jared: 'is-jared',
   explain: 'is-explain',
   barker: 'is-barker'
 };
@@ -30,7 +30,7 @@ const ACTION_LABEL = {
   dinesh: 'Refine',
   erlich: 'Innovate',
   goMad: 'Go Mad',
-  critique: 'Critique',
+  jared: 'Critique',
   explain: 'Explain',
   barker: 'Synergize'
 };

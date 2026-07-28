@@ -81,14 +81,14 @@ export const PERSONA_FACE_TRAITS = {
     accessory: 'none',
     expression: 'wide'
   },
-  critique: {
-    skin: 'tan',
-    hair: 'bob',
-    hairColor: 'black',
+  jared: {
+    skin: 'porcelain',
+    hair: 'short',
+    hairColor: 'brown',
     facialHair: 'none',
-    glasses: 'square',
-    accessory: 'badge',
-    expression: 'frown'
+    glasses: 'none',
+    accessory: 'none',
+    expression: 'neutral'
   },
   explain: {
     skin: 'porcelain',

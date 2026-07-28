@@ -129,7 +129,7 @@ export function buildChartAnalyzeUserContent({
   advisorPrompt,
   lastUserPrompt
 }) {
-  const task = kind === 'critique' ? CHART_CRITIQUE_TASK : CHART_EXPLAIN_TASK;
+  const task = kind === 'jared' ? CHART_CRITIQUE_TASK : CHART_EXPLAIN_TASK;
   return appendProseLanguageInstruction(
     [
       task,

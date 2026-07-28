@@ -71,7 +71,7 @@ function fallbackNowStatus(entry = {}, copy) {
   if (variant === 'gilfoyle') return nowStatus.polishing ?? 'Fixing what is wrong…';
   if (variant === 'dinesh') return nowStatus.fixingDinesh ?? 'Fixing what nobody else caught…';
   if (variant === 'erlich') return nowStatus.restructuring ?? 'Restructuring the diagram…';
-  if (variant === 'critique') return nowStatus.reviewing ?? 'Reviewing the diagram…';
+  if (variant === 'jared') return nowStatus.reviewing ?? 'Reviewing the diagram…';
   if (variant === 'explain') return nowStatus.explaining ?? 'Explaining the diagram…';
   if (variant === 'goMad') return nowStatus.goingOffScript ?? 'Going off-script…';
   if (variant === 'style') return nowStatus.updatingStyle ?? 'Updating visual style…';

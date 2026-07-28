@@ -8,12 +8,12 @@ describe('resolveAdvisorAcceptOperation', () => {
   });
 
   it('routes critique and explain to analyze, not intent', () => {
-    expect(resolveAdvisorAcceptOperation('critique', true)).toBe('analyze');
+    expect(resolveAdvisorAcceptOperation('jared', true)).toBe('analyze');
     expect(resolveAdvisorAcceptOperation('explain', true)).toBe('analyze');
   });
 
   it('falls back to intent without a diagram', () => {
-    expect(resolveAdvisorAcceptOperation('critique', false)).toBe('intent');
+    expect(resolveAdvisorAcceptOperation('jared', false)).toBe('intent');
     expect(resolveAdvisorAcceptOperation('barker', false)).toBe('intent');
   });
 });

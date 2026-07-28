@@ -110,7 +110,7 @@ describe('normalizeMeetingRoster', () => {
       'hr',
       'helpdesk',
       'gilfoyle',
-      'critique',
+      'jared',
       'explain',
       'barker'
     ]);

@@ -29,7 +29,7 @@ const ACTIONS = [
     variant: 'erlich',
     persona: 'Erlich Bachman'
   },
-  { id: 'critique', label: 'Critique', icon: 'C', variant: 'critique', persona: 'The Auditor' }
+  { id: 'jared', label: 'Critique', icon: 'C', variant: 'jared', persona: 'Jared Dunn' }
 ];
 
 function renderMenu(props = {}) {

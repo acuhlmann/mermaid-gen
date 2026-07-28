@@ -42,12 +42,12 @@ export const SLOPITECT_EN_AU = {
       entryLine: 'THE SLOPITECT HAS ENTERED THE BUILDING',
       exitLine: 'BUILT IT BACK BETTER 🛠'
     },
-    critique: {
-      name: 'The Auditor',
-      title: 'Compliance Inspector',
-      tagline: 'Co-Design review in session. Tear strips time.',
-      entryLine: 'Audit commenced.',
-      exitLine: 'Filed. Stamped. 🔴'
+    jared: {
+      name: 'Jared Dunn',
+      title: 'Head of Business Development',
+      tagline: 'One finding, raised with care. Tear strips optional.',
+      entryLine: 'Sorry — I just wanted to flag one thing.',
+      exitLine: 'Raised. Someone should own it 📋'
     },
     explain: {
       name: 'The Wise Architect',
@@ -69,7 +69,7 @@ export const SLOPITECT_EN_AU = {
     dinesh: 'Slopitect: Dinesh sorts it and cops the credit',
     erlich: 'Slopitect: Erlich Bachman pitches the bold move',
     goMad: 'Slopitect: GENIUS LOOSE 🚨',
-    critique: 'Slopitect: Co-Design compliance review',
+    jared: 'Slopitect: Jared Dunn raises one finding',
     explain: 'Slopitect: Co-Design story time',
     barker: 'Slopitect: Success Theater mode',
     fix: 'Slopitect: site foreman fixing the slop'
@@ -79,7 +79,7 @@ export const SLOPITECT_EN_AU = {
     dinesh: 'Dinesh already found it…',
     erlich: 'Erlich Bachman is graciously elevating…',
     goMad: 'BONK! THE SLOPITECT IS HERE',
-    critique: 'CO-DESIGN REVIEW INCOMING',
+    jared: 'Jared has one thing to flag…',
     explain: 'Co-Design story time — gather round',
     barker: 'Jack Barker is taking the liberty…'
   },

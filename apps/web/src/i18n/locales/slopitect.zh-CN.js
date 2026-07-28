@@ -42,12 +42,12 @@ export const SLOPITECT_ZH_CN = {
       entryLine: '烂图建筑师已进入现场',
       exitLine: '建得更好 🛠'
     },
-    critique: {
-      name: '审计员',
-      title: '合规检查官',
-      tagline: '协同设计评审进行中。',
-      entryLine: '审计开始。',
-      exitLine: '已归档。已盖章。 🔴'
+    jared: {
+      name: 'Jared Dunn',
+      title: '业务拓展负责人',
+      tagline: '一条发现，认真提出。',
+      entryLine: '抱歉——我想先提一件事。',
+      exitLine: '已提出。该有人负责了 📋'
     },
     explain: {
       name: '资深架构师',
@@ -69,7 +69,7 @@ export const SLOPITECT_ZH_CN = {
     dinesh: '烂图建筑师：Dinesh 修好它，顺便讨个说法',
     erlich: '烂图建筑师：Erlich Bachman 提出大胆方案',
     goMad: '烂图建筑师：天才放飞 🚨',
-    critique: '烂图建筑师：协同设计合规评审',
+    jared: '烂图建筑师：Jared Dunn 提出一条发现',
     explain: '烂图建筑师：协同设计故事会',
     barker: '烂图建筑师：成功剧场模式',
     fix: '烂图建筑师：现场工头修复烂图'
@@ -79,7 +79,7 @@ export const SLOPITECT_ZH_CN = {
     dinesh: 'Dinesh 早就找到了…',
     erlich: 'Erlich Bachman 正在亲自升华…',
     goMad: '砰！烂图建筑师来了',
-    critique: '协同设计评审即将开始',
+    jared: 'Jared 有一件事要提…',
     explain: '协同设计故事会 — 围过来',
     barker: 'Jack Barker 正在越权代劳……'
   },

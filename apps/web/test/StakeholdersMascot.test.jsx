@@ -8,7 +8,7 @@ const TEST_PERSONAS = [
   { variant: 'erlich', onClick: vi.fn() },
   { variant: 'goMad', onClick: vi.fn() },
   { variant: 'barker', onClick: vi.fn() },
-  { variant: 'critique', onClick: vi.fn() },
+  { variant: 'jared', onClick: vi.fn() },
   { variant: 'explain', onClick: vi.fn() }
 ];
 
@@ -71,7 +71,7 @@ describe('StakeholdersMascot', () => {
     expect(screen.getByText('Erlich Bachman')).toBeTruthy();
     expect(screen.getByText('THE SLOPITECT')).toBeTruthy();
     expect(screen.getByText('Jack Barker')).toBeTruthy();
-    expect(screen.getByText('The Auditor')).toBeTruthy();
+    expect(screen.getByText('Jared Dunn')).toBeTruthy();
     expect(screen.getByText('The Wise Architect')).toBeTruthy();
   });
 

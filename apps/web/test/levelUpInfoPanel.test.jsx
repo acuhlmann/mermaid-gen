@@ -20,7 +20,7 @@ const baseProps = {
   isMaxLevel: false,
   prestigeShortLabel: 'Trainee',
   totalRuns: 4,
-  runsByVariant: { gilfoyle: 2, erlich: 1, goMad: 0, critique: 1, explain: 0 },
+  runsByVariant: { gilfoyle: 2, erlich: 1, goMad: 0, jared: 1, explain: 0 },
   achievements: { firstSlop: true, hatTrick: true }
 };
 

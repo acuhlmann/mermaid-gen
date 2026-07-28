@@ -15,7 +15,7 @@ export function emitCritiqueA2uiBeforeFinal(
   input: { kind?: string; analyzeText?: string }
 ): void {
   if (typeof emit !== 'function') return;
-  if (input?.kind !== 'critique') return;
+  if (input?.kind !== 'jared') return;
   const text = input.analyzeText;
   if (typeof text !== 'string' || !text.trim()) return;
   const messages = buildCritiqueActionableA2uiMessages(text);

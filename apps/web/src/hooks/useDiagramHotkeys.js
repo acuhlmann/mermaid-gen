@@ -5,7 +5,7 @@ const ACTION_KEYS = {
   d: 'dinesh',
   l: 'erlich',
   m: 'goMad',
-  c: 'critique',
+  c: 'jared',
   e: 'explain',
   b: 'barker'
 };

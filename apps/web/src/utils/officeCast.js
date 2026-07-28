@@ -202,7 +202,7 @@ export function officeSenderInfo(id) {
 /** Steering-meeting seats: senior stakeholders the team presents to. */
 export const MEETING_SENIOR_POOL = ['ciso', 'cto', 'cfo', 'barker'];
 /** Team members who can be sent upstairs to defend the diagram. */
-export const MEETING_PRESENTER_POOL = ['gilfoyle', 'critique', 'explain'];
+export const MEETING_PRESENTER_POOL = ['gilfoyle', 'jared', 'explain'];
 export const MEETING_FACILITATOR = 'scrumMaster';
 /** Matches packages/shared MEETING_MAX_ATTENDEES / the /meeting route. */
 export const MEETING_ROSTER_MAX = 8;
@@ -219,7 +219,7 @@ export const MEETING_GROUP_PRESETS = [
     id: 'team',
     labelKey: 'groupTeam',
     titleKey: 'groupTeamTitle',
-    resolve: () => ['gilfoyle', 'dinesh', 'erlich', 'goMad', 'critique', 'explain']
+    resolve: () => ['gilfoyle', 'dinesh', 'erlich', 'goMad', 'jared', 'explain']
   },
   {
     id: 'steering',
@@ -299,10 +299,10 @@ export const OFFICE_WALKBY_LLM_CAST = [
   'greybeard',
   'facilities',
   'hr',
-  'critique',
+  'jared',
   'explain'
 ];
-export const OFFICE_EMAIL_LLM_CAST = ['critique', 'scrumMaster', 'greybeard', 'hr', 'intern'];
+export const OFFICE_EMAIL_LLM_CAST = ['jared', 'scrumMaster', 'greybeard', 'hr', 'intern'];
 export const OFFICE_IM_LLM_CAST = ['intern', 'greybeard', 'scrumMaster', 'goMad'];
 
 export function pickRandomFrom(list, random = Math.random) {

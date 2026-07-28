@@ -104,7 +104,7 @@ function buildTransformUserContent({ mode, currentDsl, goMadDepth }) {
 }
 
 function buildAnalyzeUserContent({ kind, currentDsl, focusScope, lastUserPrompt, advisorPrompt }) {
-  const task = kind === 'critique' ? METAPHOR_CRITIQUE_TASK : METAPHOR_EXPLAIN_TASK;
+  const task = kind === 'jared' ? METAPHOR_CRITIQUE_TASK : METAPHOR_EXPLAIN_TASK;
   return appendProseLanguageInstruction(
     [task, focusScope, `Current metaphor DSL:\n\n\`\`\`json\n${currentDsl}\n\`\`\``]
       .filter(Boolean)

@@ -24,7 +24,7 @@ test('buildAnalyzeFocusInstructions centers critique on selected edge', () => {
       edgeTo: 'B',
       label: 'feeds'
     },
-    'critique'
+    'jared'
   );
   assert.match(text, /Selection focus \(edge\)/);
   assert.match(text, /"A" → "B"/);

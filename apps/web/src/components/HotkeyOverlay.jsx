@@ -15,7 +15,7 @@ function buildEntries(copy) {
     { keys: ['L'], label: copy.erlich },
     { keys: ['M'], label: copy.goMad },
     { keys: ['B'], label: copy.barker },
-    { keys: ['C'], label: copy.critique },
+    { keys: ['C'], label: copy.jared },
     { keys: ['E'], label: copy.explain },
     { keys: ['?'], label: copy.toggleHelp },
     { keys: ['Esc'], label: copy.esc },

@@ -499,11 +499,11 @@ describe('useAdvisorOrchestrator', () => {
     expect(result.current.suggestion).toBeNull();
     expect(result.current.activePersona).toBeNull();
 
-    mockPersonaPick('critique');
+    mockPersonaPick('jared');
     fetchMock.mockResolvedValueOnce({
       ok: true,
       json: async () => ({
-        persona: 'critique',
+        persona: 'jared',
         suggestion: 'Audit the edges.',
         highlightIds: ['A']
       })
@@ -521,9 +521,9 @@ describe('useAdvisorOrchestrator', () => {
 
     expect(fetchMock).toHaveBeenCalled();
     const lastBody = JSON.parse(fetchMock.mock.calls.at(-1)[1].body);
-    expect(lastBody.persona).toBe('critique');
+    expect(lastBody.persona).toBe('jared');
     expect(result.current.suggestion).toBe('Audit the edges.');
-    expect(result.current.activePersona).toBe('critique');
+    expect(result.current.activePersona).toBe('jared');
   });
 
   it('promptNext with persona forces that stakeholder in the request body', async () => {

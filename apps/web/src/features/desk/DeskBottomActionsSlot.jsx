@@ -39,7 +39,7 @@ function DeskPeopleCluster({
             label: goMadShapeLabel(goMadStreak, controls.actions),
             onClick: () => runTransform('goMad', { useDiagramFocus: true })
           },
-          { variant: 'critique', onClick: () => runAnalyze('critique', { useDiagramFocus: true }) },
+          { variant: 'jared', onClick: () => runAnalyze('jared', { useDiagramFocus: true }) },
           { variant: 'explain', onClick: () => runAnalyze('explain', { useDiagramFocus: true }) },
           {
             variant: 'barker',

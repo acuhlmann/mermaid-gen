@@ -25,7 +25,7 @@ export function transformPayload(overrides = {}) {
 
 export function analyzePayload(overrides = {}) {
   return {
-    kind: 'critique',
+    kind: 'jared',
     revisionId: 0,
     diagramSource: 'flowchart TD\n  Start[Start] --> EndNode[End]',
     contentType: 'mermaid',

@@ -288,7 +288,7 @@ test('analyze route returns text without mutating state', async () => {
       revisionId: 0,
       diagramSource: 'flowchart TD\n  Start[Start] --> EndNode[End]',
       contentType: 'mermaid',
-      kind: 'critique'
+      kind: 'jared'
     },
     stateStore,
     agentService
@@ -296,7 +296,7 @@ test('analyze route returns text without mutating state', async () => {
 
   assert.equal(result.status, 200);
   assert.equal(result.body.text, 'Solid diagram overall.');
-  assert.equal(result.body.metadata.agent, 'analyze:critique');
+  assert.equal(result.body.metadata.agent, 'analyze:jared');
   assert.equal(stateStore.getSlot('mermaid').revisionId, 0);
 });
 

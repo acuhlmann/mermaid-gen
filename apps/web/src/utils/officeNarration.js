@@ -47,7 +47,7 @@ export const OFFICE_VOICE_PROFILES = {
   dinesh: { pitch: 1.14, rate: 1.12, volume: 0.86 },
   erlich: { pitch: 0.98, rate: 1.06, volume: 0.9 },
   goMad: { pitch: 1.28, rate: 1.16, volume: 0.9 },
-  critique: { pitch: 0.7, rate: 0.88, volume: 0.8 },
+  jared: { pitch: 1.1, rate: 1.0, volume: 0.8 },
   explain: { pitch: 0.94, rate: 0.92, volume: 0.8 },
   cto: { pitch: 1.08, rate: 1.05, volume: 0.85 },
   cfo: { pitch: 0.88, rate: 0.9, volume: 0.78 },

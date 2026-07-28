@@ -22,7 +22,7 @@ export const OFFICE_SPEAKER_IDS = [
   'dinesh',
   'erlich',
   'goMad',
-  'critique',
+  'jared',
   'explain',
   // senior
   'ciso',

@@ -54,17 +54,17 @@ export const SLOPITECT_GAMIFICATION_ZH_CN = {
       '图表就是我们结交的朋友',
       '直接用Lambda包一层'
     ],
-    critique: [
-      '我要把这个提为P2问题。',
-      '没有指定负责人。',
-      '运行手册在哪？',
-      '风险无人负责。归档处理。',
-      '请引用来源。',
-      '至少有两个未定义的边界情况。',
-      '这东西接触到用户就会崩溃。',
-      '在下次评审中标记。',
-      '你知道吗：大多数图表在第二个查看者那里就失败了。',
-      '为什么这个不在Confluence里？'
+    jared: [
+      '我想先提一件事，可以吗。',
+      '这一步没有负责人，我有点担心。',
+      '失败了没有退路。我必须说出来。',
+      '交接没有写清楚。这是我们的责任。',
+      '带着这个问题上线，我心里不安。',
+      '退出标准是什么？我找不到。',
+      '抱歉又是我提出来。',
+      '只有顺畅路径，我必须记下这一点。',
+      '如果有人值班负责这块，我想知道是谁。',
+      '如果那个框有负责人，我会安心很多。'
     ],
     explain: [
       '请试着想象……',
@@ -105,7 +105,7 @@ export const SLOPITECT_GAMIFICATION_ZH_CN = {
       dinesh: '正在全部读一遍。不像某些人……',
       erlich: '正在寻找更大胆的形态……',
       goMad: '打量那堆烂图 👀',
-      critique: '打开JIRA中……',
+      jared: '仔细读一遍……',
       explain: '细思图表中……',
       barker: '欣赏故事中……'
     },
@@ -114,7 +114,7 @@ export const SLOPITECT_GAMIFICATION_ZH_CN = {
       dinesh: '正在找出没人找到的那处……',
       erlich: '正在为转向做主题演讲……',
       goMad: '对着它大喊 📣',
-      critique: '起草调查结果……',
+      jared: '写好这条发现……',
       explain: '谱写史诗……',
       barker: '为董事会浓缩中……'
     },
@@ -123,7 +123,7 @@ export const SLOPITECT_GAMIFICATION_ZH_CN = {
       dinesh: '正在弄清你的意思……',
       erlich: '正在对齐愿景……',
       goMad: '跳过会议',
-      critique: '引用SOC 2控制条款',
+      jared: '确认我理解对了……',
       explain: '对齐意图……',
       barker: '对齐联合三角……'
     },
@@ -132,7 +132,7 @@ export const SLOPITECT_GAMIFICATION_ZH_CN = {
       dinesh: '正在改。我改的……',
       erlich: '正在亲自升华……',
       goMad: '在你的主题上癫狂',
-      critique: '归档工单……',
+      jared: '正式提出来……',
       explain: '注解架构中……',
       barker: '越权代劳中……'
     },
@@ -141,7 +141,7 @@ export const SLOPITECT_GAMIFICATION_ZH_CN = {
       dinesh: '正在补上所有人都跳过的那步……',
       erlich: '正在升华布局……',
       goMad: '添加美妙奇异的东西 🔥',
-      critique: '红笔标注布局中……',
+      jared: '记下流程缺口……',
       explain: '追溯重塑过程……',
       barker: '温暖地砍掉心头肉……'
     },
@@ -150,7 +150,7 @@ export const SLOPITECT_GAMIFICATION_ZH_CN = {
       dinesh: '好吧，那么……',
       erlich: '我问你一个问题……',
       goMad: '好了先停一下 🪖',
-      critique: '检查员抵达中……',
+      jared: '抱歉——稍等一下……',
       explain: '清嗓子中……',
       barker: '不知道你们怎样，反正我很兴奋……'
     },
@@ -159,7 +159,7 @@ export const SLOPITECT_GAMIFICATION_ZH_CN = {
       dinesh: '正在列出问题。是一张清单……',
       erlich: '正在起草主题演讲……',
       goMad: '对着图表扔飞镖 🎯',
-      critique: '构建发现大纲……',
+      jared: '列出需要负责人的地方……',
       explain: '起草章节计划……',
       barker: '起草单页报告……'
     },
@@ -168,7 +168,7 @@ export const SLOPITECT_GAMIFICATION_ZH_CN = {
       dinesh: '又在修语法。还是我……',
       erlich: '正在修复语法，才华横溢……',
       goMad: '用胶带把它粘回去',
-      critique: '修复语法——审计轨迹已更新……',
+      jared: '在别人看到之前先改好……',
       explain: '润色粗糙段落……',
       barker: '精简幻灯片……'
     },
@@ -177,7 +177,7 @@ export const SLOPITECT_GAMIFICATION_ZH_CN = {
       dinesh: '又修了一遍，这事我会提的……',
       erlich: '再次修复语法，依然才华横溢……',
       goMad: '更多胶带',
-      critique: '重新打开语法发现……',
+      jared: '再改一次，抱歉……',
       explain: '修订粗糙草稿……',
       barker: '重新起草幻灯片……'
     },
@@ -186,7 +186,7 @@ export const SLOPITECT_GAMIFICATION_ZH_CN = {
       dinesh: '正在调配色。不会有人注意……',
       erlich: '正在为主题演讲重塑样式……',
       goMad: '混乱配色方案 🔥',
-      critique: '标记对比度违规……',
+      jared: '标出读不通的地方……',
       explain: '讲述这种色调的历史……',
       barker: '只用一种品牌色。'
     },
@@ -195,7 +195,7 @@ export const SLOPITECT_GAMIFICATION_ZH_CN = {
       dinesh: '等着。反正没人在等我……',
       erlich: '等待董事会批准……',
       goMad: '贿赂变更委员会',
-      critique: '等待重新审查签核……',
+      jared: '等待中，有点担心……',
       explain: '再做一轮……',
       barker: '请求董事会重新起草……'
     },
@@ -204,7 +204,7 @@ export const SLOPITECT_GAMIFICATION_ZH_CN = {
       dinesh: '正在干实际的活 🙋',
       erlich: '正在升华 🕶',
       goMad: '让大楼燃起来 🔥',
-      critique: '记录生成工单……',
+      jared: '按规矩来做……',
       explain: '叙述草稿……',
       barker: '越权代劳 🧘'
     },
@@ -213,7 +213,7 @@ export const SLOPITECT_GAMIFICATION_ZH_CN = {
       dinesh: '正在回退。不是我的错……',
       erlich: '转向进行中……',
       goMad: '我们转型了',
-      critique: '归档备用发现……',
+      jared: '退回方案——还是要记下……',
       explain: '优雅地结束本章……',
       barker: '重新规划单页报告……'
     },
@@ -222,7 +222,7 @@ export const SLOPITECT_GAMIFICATION_ZH_CN = {
       dinesh: '正在修复。还是我……',
       erlich: '愿景修复进行中……',
       goMad: '更多安全帽！ 🪖🪖',
-      critique: '升级至P1修复……',
+      jared: '这次是我的问题。在修……',
       explain: '倒回羊皮纸……',
       barker: '温暖地推迟时间线 🗓️'
     },
@@ -231,7 +231,7 @@ export const SLOPITECT_GAMIFICATION_ZH_CN = {
       dinesh: '第二次修复。这笔先记下……',
       erlich: '第二次愿景修复进行中……',
       goMad: '更更多安全帽 🪖🪖🪖',
-      critique: '二次升级——仍不合规……',
+      jared: '还是我的问题。再修……',
       explain: '修订脚注……',
       barker: '为此成立委员会 🗓️🗓️'
     }
@@ -293,10 +293,10 @@ export const SLOPITECT_GAMIFICATION_ZH_CN = {
       title: '🪖 杰出混沌院士',
       subtitle: '已完成10次疯狂运行。把安全帽裱起来。'
     },
-    critique: {
-      id: 'auditTribunal',
-      title: '📋 审计法庭',
-      subtitle: '已归档10次批评。合规部门爱死你了。'
+    jared: {
+      id: 'carefulFinding',
+      title: '📋 总得有人说出来',
+      subtitle: '提出10条发现。每一条都有负责人。'
     },
     explain: {
       id: 'archivedStoryteller',
@@ -395,10 +395,10 @@ export const SLOPITECT_GAMIFICATION_ZH_CN = {
       title: '🪖 杰出混沌院士',
       subtitle: '已完成10次疯狂运行。把安全帽裱起来。'
     },
-    critique: {
-      id: 'auditTribunal',
-      title: '📋 审计法庭',
-      subtitle: '已归档10次批评。合规部门爱死你了。'
+    jared: {
+      id: 'carefulFinding',
+      title: '📋 总得有人说出来',
+      subtitle: '提出10条发现。每一条都有负责人。'
     },
     explain: {
       id: 'archivedStoryteller',

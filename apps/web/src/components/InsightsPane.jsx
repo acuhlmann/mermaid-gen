@@ -62,7 +62,7 @@ const SLOPITECT_VARIANT_CLASS = {
   dinesh: 'is-variant-dinesh',
   erlich: 'is-variant-erlich',
   goMad: 'is-variant-go-mad',
-  critique: 'is-variant-critique',
+  jared: 'is-variant-jared',
   explain: 'is-variant-explain',
   barker: 'is-variant-barker'
 };
@@ -210,7 +210,7 @@ function IconGoMad() {
 
 function isAccentuatedInsightVariant(variant) {
   return (
-    variant === 'critique' ||
+    variant === 'jared' ||
     variant === 'explain' ||
     variant === 'gilfoyle' ||
     variant === 'dinesh' ||
@@ -401,7 +401,7 @@ function EntryStatusIcon({ status, variant }) {
   if (status === 'cancelled') return <IconStopped />;
   if (status === 'failed') return <IconAlert />;
   if (status === 'done') {
-    if (variant === 'critique') return <IconCritique />;
+    if (variant === 'jared') return <IconCritique />;
     if (variant === 'explain') return <IconExplain />;
     if (variant === 'gilfoyle') return <IconGilfoyle />;
     if (variant === 'dinesh') return <IconDinesh />;
@@ -1399,7 +1399,7 @@ export default function InsightsPane({
             const phaseIdsHidden = hidePhaseIds(variant, streamDebugEnabled);
             const matchesLatestActionable =
               critiqueActionableUi &&
-              variant === 'critique' &&
+              variant === 'jared' &&
               rawStatus === 'done' &&
               (entry.id === critiqueActionableUi.insightEntryId ||
                 normalizeCritiqueMarkdownForMatch(entry.content) ===
@@ -1682,7 +1682,7 @@ export default function InsightsPane({
                           variant === 'gilfoyle' ? 'is-gilfoyle-caret' : '',
                           variant === 'dinesh' ? 'is-dinesh-caret' : '',
                           variant === 'erlich' ? 'is-erlich-caret' : '',
-                          variant === 'critique' ? 'is-critique-caret' : '',
+                          variant === 'jared' ? 'is-jared-caret' : '',
                           variant === 'explain' ? 'is-explain-caret' : ''
                         ]
                           .filter(Boolean)

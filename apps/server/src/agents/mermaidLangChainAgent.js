@@ -1044,7 +1044,7 @@ ${prompt}${focusScope}`,
       const focusScope = buildAnalyzeFocusInstructions(focusNode, kind);
       const stakeholderBlock = buildAdvisorSuggestionBlock(advisorPrompt);
       const task =
-        kind === 'critique'
+        kind === 'jared'
           ? buildCritiqueTask(focusNode, focusScope, state.diagramSource)
           : buildExplainTask(focusNode, focusScope, state.diagramSource);
       const scopedTask = stakeholderBlock ? `${task}${stakeholderBlock}` : task;
@@ -1063,7 +1063,7 @@ ${prompt}${focusScope}`,
       let analysisModel = getAnalysisModel(backend, modelId, kind);
 
       const analysisSystem =
-        kind === 'critique'
+        kind === 'jared'
           ? `${ANALYSIS_SYSTEM_PROMPT}${ANALYSIS_CRITIQUE_SYSTEM_APPEND}`
           : `${ANALYSIS_SYSTEM_PROMPT}${ANALYSIS_EXPLAIN_SYSTEM_APPEND}`;
       const messages = [new SystemMessage(analysisSystem), new HumanMessage(analysisBody)];
@@ -1085,7 +1085,7 @@ ${prompt}${focusScope}`,
             const orModel = resolveOpenRouterModelId(env, profile);
             analysisModel = createOpenRouterModel(env, {
               model: orModel,
-              temperature: kind === 'critique' ? 0.52 : 0.42,
+              temperature: kind === 'jared' ? 0.52 : 0.42,
               maxTokens: 1800
             });
             try {

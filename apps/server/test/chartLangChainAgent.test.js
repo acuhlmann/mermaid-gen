@@ -33,7 +33,7 @@ test('buildChartTransformUserContent includes advisor prompt', () => {
 
 test('buildChartAnalyzeUserContent includes advisor prompt', () => {
   const body = buildChartAnalyzeUserContent({
-    kind: 'critique',
+    kind: 'jared',
     currentDsl: CHART_DSL,
     focusScope: '',
     advisorPrompt: 'Check if Revenue hides seasonality'

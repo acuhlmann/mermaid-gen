@@ -28,7 +28,7 @@ export const COMBO_KING_THRESHOLD = 5;
 export const STORAGE_KEY = 'archislop:slopitect-progress';
 const SCHEMA_VERSION = 3;
 
-const VARIANTS = ['gilfoyle', 'dinesh', 'erlich', 'goMad', 'critique', 'explain', 'barker'];
+const VARIANTS = ['gilfoyle', 'dinesh', 'erlich', 'goMad', 'jared', 'explain', 'barker'];
 
 export function createInitialState() {
   const runsByVariant = {};
@@ -178,7 +178,7 @@ export function applyCompletedRun(state, input) {
   if (variant === 'goMad' && (input.goMadDepth ?? 0) >= 3) {
     unlock(achievementCopy.slopitectCertified.id, achievementCopy.slopitectCertified);
   }
-  if (variant === 'critique' && input.critiquePerfect) {
+  if (variant === 'jared' && input.critiquePerfect) {
     unlock(achievementCopy.perfectInspection.id, achievementCopy.perfectInspection);
   }
   if (variantsSeen.length >= 5) {

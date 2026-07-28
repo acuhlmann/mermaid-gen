@@ -168,7 +168,7 @@ export function useAnalyzeFlow({
       try {
         const syncedState = await syncDiagramOrThrow();
         const labels = {
-          critique: controls.actions.critique,
+          jared: controls.actions.jared,
           explain: controls.actions.explain
         };
         await runStreamingAgent({
@@ -187,7 +187,7 @@ export function useAnalyzeFlow({
           variant: kind,
           topic: topicFromDescriptor(titleSelection),
           onFinal: ({ finalText, sectionId: critiqueEntryId }) => {
-            if (kind !== 'critique') return;
+            if (kind !== 'jared') return;
             const cleaned = finalText.trim();
             if (!cleaned) return;
             setLatestCritique({
@@ -208,7 +208,7 @@ export function useAnalyzeFlow({
     },
     [
       contentMode,
-      controls.actions.critique,
+      controls.actions.jared,
       controls.actions.explain,
       hasInteractedRef,
       loadingRef,

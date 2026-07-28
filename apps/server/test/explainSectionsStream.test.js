@@ -18,7 +18,7 @@ test('emitExplainSectionsBeforeFinal emits explain_sections artifact', () => {
 test('emitExplainSectionsBeforeFinal skips critique', () => {
   const out = [];
   emitExplainSectionsBeforeFinal((e) => out.push(e), {
-    kind: 'critique',
+    kind: 'jared',
     analyzeText: '## Explanation\n\nA.\n\n## Takeaways\n\nB.'
   });
   assert.equal(out.length, 0);

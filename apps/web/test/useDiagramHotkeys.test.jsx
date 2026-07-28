@@ -28,7 +28,7 @@ describe('useDiagramHotkeys', () => {
       ['d', 'dinesh'],
       ['l', 'erlich'],
       ['m', 'goMad'],
-      ['c', 'critique'],
+      ['c', 'jared'],
       ['e', 'explain'],
       ['b', 'barker']
     ]) {

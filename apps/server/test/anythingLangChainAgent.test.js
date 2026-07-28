@@ -35,7 +35,7 @@ test('buildAnythingTransformUserContent keeps full rewrites for erlich and goMad
 
 test('buildAnythingAnalyzeUserContent includes advisor prompt', () => {
   const body = buildAnythingAnalyzeUserContent({
-    kind: 'critique',
+    kind: 'jared',
     currentHtml: HTML,
     advisorPrompt: 'Check interaction discoverability'
   });

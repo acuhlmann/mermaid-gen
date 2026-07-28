@@ -62,9 +62,9 @@ export const OFFICE_DESK_WORK = {
     look: 'tabs',
     line: 'TWELVE TABS. ONE IDEA. I HAVE NEVER BEEN CLOSER.'
   },
-  critique: {
+  jared: {
     look: 'tickets',
-    line: 'You are in my peripheral vision, and I am logging it as a finding.'
+    line: 'Sorry — I saw you walk by and now I have to raise the open finding.'
   },
   explain: {
     look: 'slides',

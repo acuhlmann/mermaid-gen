@@ -78,7 +78,7 @@ describe('ui locale bundles', () => {
         'dinesh',
         'erlich',
         'goMad',
-        'critique',
+        'jared',
         'explain',
         'barker'
       ]) {
@@ -98,7 +98,7 @@ describe('ui locale bundles', () => {
         'dinesh',
         'erlich',
         'goMad',
-        'critique',
+        'jared',
         'explain',
         'barker'
       ];

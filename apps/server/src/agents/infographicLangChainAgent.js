@@ -769,7 +769,7 @@ export function createInfographicLangChainAgent({
     async applyAnalyzeIntent({ kind, focusNode, modelProfile, emit, advisorPrompt }) {
       const slot = stateStore.getSlot('infographic');
       const focusScope = buildAnalyzeFocusInstructions(focusNode, kind);
-      const task = kind === 'critique' ? INFOGRAPHIC_CRITIQUE_TASK : INFOGRAPHIC_EXPLAIN_TASK;
+      const task = kind === 'jared' ? INFOGRAPHIC_CRITIQUE_TASK : INFOGRAPHIC_EXPLAIN_TASK;
 
       const profile = normalizeModelProfile(modelProfile);
       const backend = resolveLlmBackend(env, profile);

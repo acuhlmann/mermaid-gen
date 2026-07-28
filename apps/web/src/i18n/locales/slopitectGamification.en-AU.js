@@ -54,17 +54,17 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
       'THE DIAGRAM WAS THE MATES WE MADE',
       'JUST WRAP IT IN A LAMBDA'
     ],
-    critique: [
-      "I'm raising a P2 about this, mate.",
-      'No accountability assigned. Classic.',
-      'Where is the runbook?',
-      'Risk is unowned. Filing it.',
-      'Cite your sources.',
-      'Two undefined edge cases, minimum.',
-      'This will not survive contact with the user.',
-      'Flagging in the next review.',
-      'Did you know: most diagrams fail on the second viewer.',
-      'Why is this not in Confluence?'
+    jared: [
+      "I just wanted to flag one thing, if that's alright.",
+      'Nobody owns that step, and that worries me.',
+      "There's no fallback if it fails. I had to say it.",
+      "The handoff isn't named anywhere. That's on us.",
+      "I'm not comfortable shipping with this open.",
+      "What are the exit criteria? I couldn't find any.",
+      'Sorry to be the one raising this again.',
+      "It's happy-path only, and I have to note that.",
+      "If someone is on call for this, I'd love to know who.",
+      "I'd feel much better with an owner on that box."
     ],
     explain: [
       'Picture, if you will…',
@@ -105,7 +105,7 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
       dinesh: 'Reading the lot. Unlike some people…',
       erlich: 'Spotting the bolder shape…',
       goMad: 'Eyeballing the slop 👀',
-      critique: 'Opening JIRA…',
+      jared: 'Reading it through carefully…',
       explain: 'Pondering the diagram…',
       barker: 'Admiring the story…'
     },
@@ -114,7 +114,7 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
       dinesh: 'Finding the thing nobody found…',
       erlich: 'Keynoting the pivot…',
       goMad: 'Yelling at it 📣',
-      critique: 'Drafting findings…',
+      jared: 'Writing up the finding…',
       explain: 'Composing the saga…',
       barker: 'Boiling it down for the board…'
     },
@@ -123,7 +123,7 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
       dinesh: 'Working out what you meant…',
       erlich: 'Aligning the vision…',
       goMad: 'Skipping the meeting',
-      critique: 'Citing the SOC 2 controls',
+      jared: 'Making sure I understood you…',
       explain: 'Aligning intent…',
       barker: 'Aligning the triangles…'
     },
@@ -132,7 +132,7 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
       dinesh: 'Making the change. Mine…',
       erlich: 'Graciously elevating it…',
       goMad: 'GOING TROPPO ON YOUR TOPIC',
-      critique: 'Filing tickets…',
+      jared: 'Raising it properly…',
       explain: 'Annotating the architecture…',
       barker: 'Taking the liberty…'
     },
@@ -141,7 +141,7 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
       dinesh: 'Fixing the bit everyone skipped…',
       erlich: 'Elevating the layout…',
       goMad: 'Adding wonderfully strange things 🔥',
-      critique: 'Red-penning the layout…',
+      jared: 'Noting the process gap…',
       explain: 'Tracing the reshape…',
       barker: 'Killing the darlings, warmly…'
     },
@@ -150,7 +150,7 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
       dinesh: 'Righto, so…',
       erlich: 'Let me ask you this…',
       goMad: 'OK NOW HOLD ON 🪖',
-      critique: 'Inspector inbound…',
+      jared: 'Sorry — one sec…',
       explain: 'Clearing the throat…',
       barker: 'I don’t know about you, but I am excited…'
     },
@@ -159,7 +159,7 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
       dinesh: 'Listing what’s wrong. It’s a list…',
       erlich: 'Drafting the keynote…',
       goMad: 'Throwing darts at the diagram 🎯',
-      critique: 'Building the findings outline…',
+      jared: 'Outlining what needs an owner…',
       explain: 'Drafting the chapter plan…',
       barker: 'Drafting the one-pager…'
     },
@@ -168,7 +168,7 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
       dinesh: 'Fixing syntax. Again. Me…',
       erlich: 'Mending syntax, brilliantly…',
       goMad: 'Duct-taping it back together',
-      critique: 'Fixing syntax — audit trail updated…',
+      jared: 'Correcting it before anyone sees…',
       explain: 'Smoothing a rough passage…',
       barker: 'Tightening the deck…'
     },
@@ -177,7 +177,7 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
       dinesh: 'Fixing it again, and I will mention this…',
       erlich: 'Re-mending syntax, again brilliantly…',
       goMad: 'More duct tape',
-      critique: 'Re-opening the syntax finding…',
+      jared: 'Correcting it again, apologies…',
       explain: 'Revising the rough draft…',
       barker: 'Re-drafting the deck…'
     },
@@ -186,7 +186,7 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
       dinesh: 'Recolouring it. Nobody will notice…',
       erlich: 'Restyling for the keynote…',
       goMad: 'CHAOTIC COLOUR SCHEMES 🔥',
-      critique: 'Flagging contrast violations…',
+      jared: 'Flagging what will not read…',
       explain: 'On the history of this hue…',
       barker: 'One brand colour only.'
     },
@@ -195,7 +195,7 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
       dinesh: 'Waiting. Nobody’s waiting on me…',
       erlich: 'Awaiting the board’s approval…',
       goMad: 'Bribing the CAB',
-      critique: 'Awaiting re-review sign-off…',
+      jared: 'Waiting, and fretting a bit…',
       explain: 'Taking another pass…',
       barker: 'Asking the board for a redraft…'
     },
@@ -204,7 +204,7 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
       dinesh: 'Doing the actual work 🙋',
       erlich: 'Elevating it 🕶',
       goMad: 'Setting buildings on fire 🔥',
-      critique: 'Logging the generation ticket…',
+      jared: 'Doing it properly…',
       explain: 'Narrating the draft…',
       barker: 'Taking the liberty 🧘'
     },
@@ -213,7 +213,7 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
       dinesh: 'Falling back. Not my fault…',
       erlich: 'Pivot in flight…',
       goMad: 'WE PIVOT',
-      critique: 'Filing a fallback finding…',
+      jared: 'Falling back — noting it anyway…',
       explain: 'Closing the chapter gracefully…',
       barker: 'Rerouting the one-pager…'
     },
@@ -222,7 +222,7 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
       dinesh: 'Repairing it. Still me…',
       erlich: 'Vision repair in flight…',
       goMad: 'More hard hats! 🪖🪖',
-      critique: 'Escalating to P1 repair…',
+      jared: 'This one is on me. Fixing it…',
       explain: 'Rewinding the parchment…',
       barker: 'Sliding the timeline, warmly 🗓️'
     },
@@ -231,7 +231,7 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
       dinesh: 'Second repair. Noting this for later…',
       erlich: 'Second vision repair in flight…',
       goMad: 'EVEN MORE HARD HATS 🪖🪖🪖',
-      critique: 'Second escalation — still non-compliant…',
+      jared: 'Still on me. Fixing it again…',
       explain: 'Revising the footnotes…',
       barker: 'Forming a committee about it 🗓️🗓️'
     }
@@ -293,10 +293,10 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
       title: '🪖 DISTINGUISHED CHAOS FELLOW',
       subtitle: '10 mad runs. Frame the helmet. Fair dinkum.'
     },
-    critique: {
-      id: 'auditTribunal',
-      title: '📋 AUDIT TRIBUNAL',
-      subtitle: '10 critiques filed. Compliance loves you, you stickybeak.'
+    jared: {
+      id: 'carefulFinding',
+      title: '📋 SOMEONE HAD TO SAY IT',
+      subtitle: '10 findings raised. Every one of them had an owner. Good on ya.'
     },
     explain: {
       id: 'archivedStoryteller',
@@ -395,10 +395,10 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
       title: '🪖 DISTINGUISHED CHAOS FELLOW',
       subtitle: '10 mad runs. Frame the helmet. Fair dinkum.'
     },
-    critique: {
-      id: 'auditTribunal',
-      title: '📋 AUDIT TRIBUNAL',
-      subtitle: '10 critiques filed. Compliance loves you, you stickybeak.'
+    jared: {
+      id: 'carefulFinding',
+      title: '📋 SOMEONE HAD TO SAY IT',
+      subtitle: '10 findings raised. Every one of them had an owner. Good on ya.'
     },
     explain: {
       id: 'archivedStoryteller',

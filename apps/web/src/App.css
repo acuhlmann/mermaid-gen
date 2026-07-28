@@ -1005,7 +1005,7 @@
   background: rgba(236, 72, 153, 0.12);
 }
 
-.insights-pane-live-meta.is-variant-critique .insights-pane-live-chip.is-action {
+.insights-pane-live-meta.is-variant-jared .insights-pane-live-chip.is-action {
   color: #b91c1c;
   border-color: rgba(185, 28, 28, 0.28);
   background: rgba(185, 28, 28, 0.08);
@@ -7437,8 +7437,8 @@
   --slop-action-glow: rgba(236, 72, 153, 0.42);
 }
 
-.slop-action-button.is-critique,
-.radial-action-button.is-critique {
+.slop-action-button.is-jared,
+.radial-action-button.is-jared {
   --slop-action-accent: #b91c1c;
   --slop-action-accent-2: #f97316;
   --slop-action-glow: rgba(185, 28, 28, 0.32);
@@ -10606,7 +10606,7 @@ button {
     animation: slopitect-hardhat-drop 520ms cubic-bezier(0.5, 0.05, 0.6, 1) forwards;
   }
 
-  .boot-sequence-overlay.is-critique .boot-sequence-flash {
+  .boot-sequence-overlay.is-jared .boot-sequence-flash {
     background: radial-gradient(
       circle at 50% 35%,
       rgba(185, 28, 28, 0.4),
@@ -10614,14 +10614,14 @@ button {
     );
     animation: slopitect-clipboard-slam 460ms ease-out forwards;
   }
-  .boot-sequence-overlay.is-critique .boot-sequence-headline {
+  .boot-sequence-overlay.is-jared .boot-sequence-headline {
     color: #fee2e2;
     text-shadow:
       0 0 12px rgba(185, 28, 28, 0.8),
       0 4px 0 rgba(0, 0, 0, 0.18);
     animation: slopitect-boot-headline 460ms ease-out forwards;
   }
-  .boot-sequence-overlay.is-critique .boot-clipboard {
+  .boot-sequence-overlay.is-jared .boot-clipboard {
     position: absolute;
     top: calc(env(safe-area-inset-top) + 2.5rem);
     right: 1.25rem;
@@ -10845,7 +10845,7 @@ button {
   pointer-events: none;
   background: radial-gradient(ellipse at top right, rgba(236, 72, 153, 0.18), transparent 60%);
 }
-.insights-pane.is-variant-critique {
+.insights-pane.is-variant-jared {
   border-left-color: rgba(185, 28, 28, 0.35);
 }
 .insights-pane.is-variant-explain {
@@ -10934,7 +10934,7 @@ button {
   border-left-color: #ec4899;
   background: linear-gradient(90deg, rgba(236, 72, 153, 0.14), rgba(255, 255, 255, 0.82));
 }
-.insights-entry-persona.is-variant-critique {
+.insights-entry-persona.is-variant-jared {
   border-left-color: #b91c1c;
   background: linear-gradient(90deg, rgba(185, 28, 28, 0.1), rgba(255, 251, 240, 0.9));
 }
@@ -11068,7 +11068,7 @@ button {
   background: linear-gradient(90deg, rgba(236, 72, 153, 0.12), rgba(168, 85, 247, 0.12));
   border-color: rgba(236, 72, 153, 0.28);
 }
-.slopitect-status-board.is-variant-critique {
+.slopitect-status-board.is-variant-jared {
   color: #b91c1c;
   background: rgba(185, 28, 28, 0.08);
   border-color: rgba(185, 28, 28, 0.2);
@@ -11146,7 +11146,7 @@ button {
 .streak-hud-toast.is-variant-go-mad {
   background: linear-gradient(90deg, #f97316, #ec4899, #a855f7);
 }
-.streak-hud-toast.is-variant-critique {
+.streak-hud-toast.is-variant-jared {
   background: linear-gradient(90deg, #b91c1c, #f97316);
   box-shadow: 0 6px 18px rgba(185, 28, 28, 0.32);
 }
@@ -11453,7 +11453,7 @@ button {
       repeating-linear-gradient(90deg, transparent 0 28px, rgba(236, 72, 153, 0.08) 28px 29px);
     contain: strict;
   }
-  .app-shell[data-streaming='true'][data-live-variant='critique']::after {
+  .app-shell[data-streaming='true'][data-live-variant='jared']::after {
     content: '';
     position: fixed;
     inset: 0;
@@ -11612,7 +11612,7 @@ button {
 .xp-progress-bar.is-variant-goMad .xp-progress-bar-fill {
   background: linear-gradient(90deg, #f97316, #ec4899, #a855f7);
 }
-.xp-progress-bar.is-variant-critique .xp-progress-bar-fill {
+.xp-progress-bar.is-variant-jared .xp-progress-bar-fill {
   background: linear-gradient(90deg, #b91c1c, #f97316);
 }
 .xp-progress-bar.is-variant-explain .xp-progress-bar-fill {
@@ -12226,7 +12226,7 @@ button {
 .levelup-info-variant.is-goMad {
   background: linear-gradient(135deg, rgba(253, 242, 248, 0.85), rgba(254, 249, 195, 0.5));
 }
-.levelup-info-variant.is-critique {
+.levelup-info-variant.is-jared {
   background: linear-gradient(135deg, rgba(255, 247, 237, 0.82), rgba(255, 255, 255, 0.8));
 }
 .levelup-info-variant.is-explain {
@@ -12493,7 +12493,7 @@ button {
 .streak-hud-toast.is-xp.is-variant-go-mad {
   background: linear-gradient(135deg, #f97316, #ec4899, #a855f7);
 }
-.streak-hud-toast.is-xp.is-variant-critique {
+.streak-hud-toast.is-xp.is-variant-jared {
   background: linear-gradient(135deg, #b91c1c, #f97316);
 }
 .streak-hud-toast.is-xp.is-variant-explain {
@@ -12662,7 +12662,7 @@ button {
   border: 1px solid rgba(236, 72, 153, 0.32);
   box-shadow: inset 0 0 80px rgba(236, 72, 153, 0.12);
 }
-.diagram-run-fx.is-critique {
+.diagram-run-fx.is-jared {
   border: 1px solid rgba(185, 28, 28, 0.22);
   box-shadow: inset 4px 0 0 rgba(185, 28, 28, 0.35);
 }
@@ -12772,7 +12772,7 @@ button {
   right: 24%;
 }
 
-/* Critique — manila vignette + red squiggles + REVIEWING stamp */
+/* Jared — manila vignette + red squiggles + REVIEWING stamp */
 .diagram-run-fx-manila-vignette {
   position: absolute;
   inset: 0;
@@ -12856,10 +12856,10 @@ button {
   .diagram-run-fx.is-go-mad .diagram-run-fx-flame {
     animation: slopitect-flame-flicker 0.4s steps(2, end) infinite alternate;
   }
-  .diagram-run-fx.is-critique .diagram-run-fx-squiggle {
+  .diagram-run-fx.is-jared .diagram-run-fx-squiggle {
     animation: slopitect-squiggle-pop 3.4s ease-in-out infinite;
   }
-  .diagram-run-fx.is-critique .diagram-run-fx-stamp {
+  .diagram-run-fx.is-jared .diagram-run-fx-stamp {
     animation: slopitect-stamp-pulse 2.2s ease-in-out infinite;
   }
   .diagram-run-fx.is-explain .diagram-run-fx-pin {
@@ -13103,11 +13103,11 @@ button {
   filter: drop-shadow(0 0 14px rgba(236, 72, 153, 0.85));
 }
 
-.diagram-output[data-run-variant='critique'] .is-diagram-selected > rect,
-.diagram-output[data-run-variant='critique'] .is-diagram-selected > path,
-.diagram-output[data-run-variant='critique'] .is-diagram-selected > polygon,
-.diagram-output[data-run-variant='critique'] .is-diagram-selected > circle,
-.diagram-output[data-run-variant='critique'] .is-diagram-selected > ellipse {
+.diagram-output[data-run-variant='jared'] .is-diagram-selected > rect,
+.diagram-output[data-run-variant='jared'] .is-diagram-selected > path,
+.diagram-output[data-run-variant='jared'] .is-diagram-selected > polygon,
+.diagram-output[data-run-variant='jared'] .is-diagram-selected > circle,
+.diagram-output[data-run-variant='jared'] .is-diagram-selected > ellipse {
   stroke: #b91c1c !important;
   stroke-width: 3.6px !important;
   stroke-dasharray: 8 4 !important;
@@ -13292,10 +13292,10 @@ button {
   background-clip: text;
   color: transparent;
 }
-.slopitect-companion.is-critique {
+.slopitect-companion.is-jared {
   border-color: rgba(185, 28, 28, 0.55);
 }
-.slopitect-companion.is-critique .slopitect-companion-avatar {
+.slopitect-companion.is-jared .slopitect-companion-avatar {
   border-color: rgba(185, 28, 28, 0.55);
   background: linear-gradient(135deg, rgba(185, 28, 28, 0.22), rgba(154, 116, 30, 0.06));
 }
@@ -13330,7 +13330,7 @@ button {
   .slopitect-companion.is-gilfoyle.is-active .slopitect-companion-avatar {
     animation: slopitect-avatar-polish-sway 3.2s ease-in-out infinite;
   }
-  .slopitect-companion.is-critique.is-active .slopitect-companion-avatar {
+  .slopitect-companion.is-jared.is-active .slopitect-companion-avatar {
     animation: slopitect-avatar-nod 1.6s ease-in-out infinite;
   }
   .slopitect-companion.is-explain.is-active .slopitect-companion-avatar {
@@ -13514,7 +13514,7 @@ button {
   border-color: rgba(236, 72, 153, 0.7);
   background: linear-gradient(120deg, rgba(40, 14, 40, 0.96), rgba(20, 18, 38, 0.96));
 }
-.live-run-hud.is-critique {
+.live-run-hud.is-jared {
   border-color: rgba(185, 28, 28, 0.55);
 }
 .live-run-hud.is-explain {
@@ -13593,14 +13593,14 @@ button {
   border-radius: 2px;
   box-shadow: 0 0 8px rgba(249, 115, 22, 0.7);
 }
-.insights-stream-caret.is-critique-caret {
+.insights-stream-caret.is-jared-caret {
   width: 2px;
   height: 1.15em;
   background: #b91c1c;
   border-radius: 1px;
   box-shadow: 0 0 4px rgba(185, 28, 28, 0.6);
 }
-.insights-stream-caret.is-critique-caret::after {
+.insights-stream-caret.is-jared-caret::after {
   content: '';
   position: absolute;
   bottom: -4px;
@@ -13627,10 +13627,10 @@ button {
       insights-caret-blink 0.9s steps(2, end) infinite,
       slopitect-caret-erlich-pulse 1.6s ease-in-out infinite;
   }
-  .insights-stream-caret.is-critique-caret {
+  .insights-stream-caret.is-jared-caret {
     animation:
       insights-caret-blink 0.7s steps(2, end) infinite,
-      slopitect-caret-critique-wobble 1.2s ease-in-out infinite;
+      slopitect-caret-jared-wobble 1.2s ease-in-out infinite;
   }
   .insights-stream-caret.is-explain-caret {
     animation: insights-caret-blink 0.6s steps(2, end) infinite;
@@ -13647,7 +13647,7 @@ button {
   }
 }
 
-@keyframes slopitect-caret-critique-wobble {
+@keyframes slopitect-caret-jared-wobble {
   0%,
   100% {
     transform: translateY(0) rotate(0);
