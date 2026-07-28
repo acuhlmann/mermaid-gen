@@ -16,13 +16,23 @@ import roomToneUrl from '../assets/audio/office-room-tone.mp3';
 
 /**
  * Playback level for the −24 LUFS source. The bed must read as *underneath*
- * the cues, which peak at 0.006–0.014 (see agentChimes.js) — at 0.09 the bed
- * sits near 0.006 RMS, present but never competing. This is the one number to
- * turn if the room feels too loud or too empty.
+ * the cues, which peak at 0.006–0.014 (see agentChimes.js). Desk mode keeps
+ * the room subtle under your screen; isometric floor mode lets the office
+ * breathe a little louder so the soundscape matches what you are looking at.
  */
-export const ROOM_TONE_GAIN = 0.09;
+export const ROOM_TONE_GAIN_DESK = 0.055;
+export const ROOM_TONE_GAIN_FLOOR = 0.115;
+/** @deprecated alias — desk level; tests and duck restore use the active view gain. */
+export const ROOM_TONE_GAIN = ROOM_TONE_GAIN_DESK;
 /** Level while a colleague is speaking, so narration stays intelligible. */
 export const ROOM_TONE_DUCK_GAIN = 0.03;
+
+const VIEW_GAIN_RAMP_SEC = 0.8;
+
+/** @typedef {'desk' | 'floor'} RoomToneViewMode */
+
+/** @type {RoomToneViewMode} */
+let viewMode = 'desk';
 
 const FADE_IN_SEC = 3;
 const FADE_OUT_SEC = 1.2;
@@ -71,8 +81,23 @@ function loadBuffer(context) {
   return bufferPromise;
 }
 
+function baseGainForView() {
+  return viewMode === 'floor' ? ROOM_TONE_GAIN_FLOOR : ROOM_TONE_GAIN_DESK;
+}
+
 function targetGain() {
-  return ducked ? ROOM_TONE_DUCK_GAIN : ROOM_TONE_GAIN;
+  return ducked ? ROOM_TONE_DUCK_GAIN : baseGainForView();
+}
+
+/**
+ * Bias the bed toward desk or isometric floor. Safe to call before the bed
+ * starts — the next fade-in picks up the new level.
+ *
+ * @param {RoomToneViewMode} mode
+ */
+export function setRoomToneViewMode(mode) {
+  viewMode = mode === 'floor' ? 'floor' : 'desk';
+  applyDuck();
 }
 
 /**
@@ -152,9 +177,10 @@ function applyDuck() {
   if (!gainNode) return;
   try {
     const now = gainNode.context.currentTime;
+    const rampSec = ducked ? DUCK_SEC : VIEW_GAIN_RAMP_SEC;
     gainNode.gain.cancelScheduledValues(now);
     gainNode.gain.setValueAtTime(gainNode.gain.value, now);
-    gainNode.gain.linearRampToValueAtTime(targetGain(), now + DUCK_SEC);
+    gainNode.gain.linearRampToValueAtTime(targetGain(), now + rampSec);
   } catch {
     // ignore
   }
@@ -171,4 +197,5 @@ export function _resetRoomToneForTests() {
   gainNode = null;
   bufferPromise = null;
   ducked = false;
+  viewMode = 'desk';
 }

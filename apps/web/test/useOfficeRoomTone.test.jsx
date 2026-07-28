@@ -7,7 +7,11 @@ const { startRoomTone, stopRoomTone } = vi.hoisted(() => ({
   stopRoomTone: vi.fn()
 }));
 
-vi.mock('../src/utils/officeRoomTone.js', () => ({ startRoomTone, stopRoomTone }));
+vi.mock('../src/utils/officeRoomTone.js', () => ({
+  startRoomTone,
+  stopRoomTone,
+  setRoomToneViewMode: vi.fn()
+}));
 
 const { ROOM_TONE_TICK_MS, useOfficeRoomTone } = await import('../src/hooks/useOfficeRoomTone.js');
 const { _resetForTests, setOfficeFocusTime, setOfficeSoundscape } =

@@ -15,9 +15,8 @@ import OfficeWalkBy from './OfficeWalkBy.jsx';
 import { useDeskActions } from '../hooks/useDeskActions.js';
 import { meetingMinutes, useMeetingPlayback } from '../hooks/useMeetingPlayback.js';
 import { useOfficeAmbience } from '../hooks/useOfficeAmbience.js';
-import { useOfficeRoomTone } from '../hooks/useOfficeRoomTone.js';
+import { useOfficeAmbientAudio } from '../hooks/useOfficeAmbientAudio.js';
 import { useOfficeRunReactions } from '../hooks/useOfficeRunReactions.js';
-import { useOfficeSoundscape } from '../hooks/useOfficeSoundscape.js';
 import { useOfficeWelcome } from '../hooks/useOfficeWelcome.js';
 import {
   acceptOfficeBattle,
@@ -239,8 +238,7 @@ export default function OfficeLayer({
   // the printer, the desk phone, the watercooler, the espresso machine, the
   // vending machine, the elevator) — its own sparse cadence, muted by Focus
   // Time and the dock's Soundscape toggle.
-  useOfficeSoundscape({ playChime });
-  useOfficeRoomTone({ playChime });
+  useOfficeAmbientAudio({ playChime });
 
   // First-run onboarding: Linda's welcome email + Chad's IM, once ever.
   // Paused while Meet the Office is open so it doesn't compete with the tour.
