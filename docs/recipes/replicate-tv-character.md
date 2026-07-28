@@ -43,7 +43,7 @@ in the order listed. **Program complete** (locked roster shipped).
 | Jared Dunn        | team — `jared` (ex-`critique`)           | ✅ Shipped — seat inheritance; findings-only analyze seat; anxious compliance. First analyze-path inheritance. Fidelity **4.63 / 4.75**                         |
 | Russ Hanneman     | team — `russ` (ex-`goMad`)               | ✅ Shipped — seat inheritance; subject-rooted escalation; tres commas / tequila / SHIPS. Depth field `russDepth`. Fidelity **4.81 / 5.00**                      |
 | Richard Hendricks | team — `richard` (ex-`explain`)          | ✅ Shipped — seat inheritance; comment-only analyze; anxious pattern-naming (ADR-0010). Dumb-down travels with seat. Fidelity **4.75 / 4.63**                   |
-| Gavin Belson      | senior — `belson` (ex-`cto` / Marcus)    | ✅ Shipped — senior-only named replication; scarcer than Barker; Jack reports to him; never roundtable. Retires Marcus. Fidelity **TBD**                        |
+| Gavin Belson      | senior — `belson` (ex-`cto` / Marcus)    | ✅ Shipped — senior-only named replication; scarcer than Barker; Jack reports to him; never roundtable. Retires Marcus. Fidelity **4.63 / 5.00**                |
 | Marcus            | senior — `cto`                           | 🚮 Retired (Session 8) — was a Belson homage; display id `cto` → `belson`                                                                                       |
 
 Session 0 locked the map; the fidelity harness (§3) is generalized — one profile per character,
