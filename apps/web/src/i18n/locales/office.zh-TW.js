@@ -714,6 +714,10 @@ export const OFFICE_ZH_TW = {
     doIt: '就這麼辦',
     doSelected: '套用所選',
     doItAll: '全部套用',
+    windowMinimize: '最小化',
+    windowMinimizeTitle: '收合到標題列',
+    windowRestore: '還原',
+    windowRestoreTitle: '展開視窗',
     desk: {
       buttonLabel: '你的工位',
       buttonAria: '你的工位 — 你可以做的事',
@@ -940,7 +944,15 @@ export const OFFICE_ZH_TW = {
       dock: '🗕 看我的螢幕',
       dockTitle: '把會議縮到角落,騰出手來改圖',
       undock: '🗖 回到會議室',
-      undockTitle: '把會議放回螢幕中央'
+      undockTitle: '把會議放回螢幕中央',
+      minimize: '最小化',
+      minimizeTitle: '收合到標題列,讓畫布保持可見',
+      restore: '還原',
+      restoreTitle: '展開會議視窗',
+      dragHint: '拖曳以移動',
+      speakerViewHint: '正在收聽 — 可在工位選單開啟字幕(CC)閱讀',
+      discussionToggle: '討論紀要',
+      discussionToggleHide: '隱藏討論紀要'
     }
   }
 };

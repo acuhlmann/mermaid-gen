@@ -754,6 +754,8 @@ export default function OfficeLayer({
       {onFloor ? null : (
         <MeetingOverlay
           meeting={meeting}
+          captions={snapshot.captions}
+          narration={snapshot.narration}
           onInterject={interject}
           onLeave={handleMeetingDismiss}
           onClose={handleMeetingDismiss}

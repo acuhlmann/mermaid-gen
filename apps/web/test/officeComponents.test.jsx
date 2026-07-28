@@ -396,6 +396,44 @@ describe('MeetingOverlay', () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
+  it('hides the transcript in speaker view when captions are off and voice is active', () => {
+    render(
+      <MeetingOverlay
+        meeting={{
+          ...PLAYING_MEETING,
+          voiceSpeaking: true
+        }}
+        captions={false}
+        narration
+        onInterject={vi.fn()}
+        onLeave={vi.fn()}
+        onClose={vi.fn()}
+        onAdoptPrompt={vi.fn()}
+      />
+    );
+    expect(screen.queryByText(/We had this diagram in 2009/)).toBeNull();
+    expect(screen.getByText('Ulrich')).toBeTruthy();
+    expect(screen.getByText(/turn on CC/i)).toBeTruthy();
+  });
+
+  it('shows the transcript when captions are on even while voice plays', () => {
+    render(
+      <MeetingOverlay
+        meeting={{
+          ...PLAYING_MEETING,
+          voiceSpeaking: true
+        }}
+        captions
+        narration
+        onInterject={vi.fn()}
+        onLeave={vi.fn()}
+        onClose={vi.fn()}
+        onAdoptPrompt={vi.fn()}
+      />
+    );
+    expect(screen.getByText(/We had this diagram in 2009/)).toBeTruthy();
+  });
+
   it('shows minutes with Do selected / Do it all once the meeting ends', () => {
     const onAdoptAllPrompts = vi.fn();
     const ended = {

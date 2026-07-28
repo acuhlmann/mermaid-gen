@@ -4,6 +4,10 @@ import { formatLocale } from '../i18n/formatLocale.js';
 import { groupImThreads } from '../utils/officeImThreads.js';
 import { PersonaFace } from './personaFaces/index.jsx';
 import FloatingWindow, { FloatingWindowDragHandle } from './FloatingWindow.jsx';
+import {
+  FloatingWindowCloseButton,
+  FloatingWindowMinimizeButton
+} from './FloatingWindowChrome.jsx';
 
 function MessengerThreadList({ threads, activeId, label, unreadLabel, onSelect }) {
   return (
@@ -153,7 +157,9 @@ export default function OfficeMessenger({
   busy = false
 }) {
   const chat = officeChromeCopy().messenger;
+  const chrome = officeChromeCopy();
   const [selectedId, setSelectedId] = useState(null);
+  const [minimized, setMinimized] = useState(false);
   const scrollRef = useRef(null);
 
   const threads = useMemo(() => groupImThreads(messages), [messages]);
@@ -175,7 +181,10 @@ export default function OfficeMessenger({
   }, [active?.messages.length, activeId, busy]);
 
   useEffect(() => {
-    if (!open) return undefined;
+    if (!open) {
+      setMinimized(false);
+      return undefined;
+    }
     const onKeyDown = (event) => {
       if (event.key === 'Escape') onClose?.();
     };
@@ -190,7 +199,7 @@ export default function OfficeMessenger({
       id="office-messenger"
       open={open}
       group="officeModal"
-      className="office-messenger"
+      className={`office-messenger${minimized ? ' is-minimized' : ''}`}
       kind="messenger"
       senderId={activeId}
       defaultCorner="center"
@@ -227,57 +236,69 @@ export default function OfficeMessenger({
             {activeId ? chat.callMeeting : chat.callMeetingNoThread}
           </button>
         ) : null}
-        <button
-          type="button"
-          className="office-messenger-close"
-          aria-label={chat.closeAria}
-          onClick={onClose}
-        >
-          ×
-        </button>
+        <div className="office-messenger-titlebar-actions">
+          <FloatingWindowMinimizeButton
+            minimized={minimized}
+            minimizeLabel={chrome.windowMinimize}
+            restoreLabel={chrome.windowRestore}
+            minimizeTitle={chrome.windowMinimizeTitle}
+            restoreTitle={chrome.windowRestoreTitle}
+            onToggle={() => setMinimized((prev) => !prev)}
+            className="office-messenger-minimize"
+          />
+          <FloatingWindowCloseButton
+            label={chat.closeAria}
+            onClose={onClose}
+            className="office-messenger-close"
+          />
+        </div>
       </FloatingWindowDragHandle>
 
-      {threads.length === 0 ? (
-        <div className="office-messenger-empty-panel">
-          <p className="office-messenger-empty">{chat.emptyThreads}</p>
-          {typeof onMessageSomeone === 'function' ? (
-            <button
-              type="button"
-              className="office-messenger-message-someone"
-              disabled={busy}
-              title={chat.messageSomeoneTitle}
-              onClick={() => onMessageSomeone()}
-            >
-              {chat.messageSomeone}
-            </button>
-          ) : null}
-        </div>
-      ) : (
-        <div className="office-messenger-body">
-          <MessengerThreadList
-            threads={threads}
-            activeId={activeId}
-            label={chat.threadsAria}
-            unreadLabel={chat.unreadDot}
-            onSelect={setSelectedId}
-          />
-          <div className="office-messenger-thread-view">
-            <MessengerLog
-              thread={active}
-              chat={chat}
-              busy={busy}
-              typingName={activeName}
-              scrollRef={scrollRef}
-            />
-            <MessengerComposer
-              chat={chat}
-              busy={busy}
-              disabled={busy || !activeId}
-              targetName={activeName}
-              onSend={(body) => onSend?.(activeId, body)}
-            />
-          </div>
-        </div>
+      {minimized ? null : (
+        <>
+          {threads.length === 0 ? (
+            <div className="office-messenger-empty-panel">
+              <p className="office-messenger-empty">{chat.emptyThreads}</p>
+              {typeof onMessageSomeone === 'function' ? (
+                <button
+                  type="button"
+                  className="office-messenger-message-someone"
+                  disabled={busy}
+                  title={chat.messageSomeoneTitle}
+                  onClick={() => onMessageSomeone()}
+                >
+                  {chat.messageSomeone}
+                </button>
+              ) : null}
+            </div>
+          ) : (
+            <div className="office-messenger-body">
+              <MessengerThreadList
+                threads={threads}
+                activeId={activeId}
+                label={chat.threadsAria}
+                unreadLabel={chat.unreadDot}
+                onSelect={setSelectedId}
+              />
+              <div className="office-messenger-thread-view">
+                <MessengerLog
+                  thread={active}
+                  chat={chat}
+                  busy={busy}
+                  typingName={activeName}
+                  scrollRef={scrollRef}
+                />
+                <MessengerComposer
+                  chat={chat}
+                  busy={busy}
+                  disabled={busy || !activeId}
+                  targetName={activeName}
+                  onSend={(body) => onSend?.(activeId, body)}
+                />
+              </div>
+            </div>
+          )}
+        </>
       )}
     </FloatingWindow>
   );

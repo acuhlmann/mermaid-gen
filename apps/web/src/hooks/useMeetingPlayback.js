@@ -175,7 +175,9 @@ export function useMeetingPlayback({
       const nextBeat = pendingBeatsRef.current[0];
       if (!nextBeat) {
         applyMeeting((prev) =>
-          prev && prev.state === 'playing' ? { ...prev, state: 'ended', completed: true } : prev
+          prev && prev.state === 'playing'
+            ? { ...prev, state: 'ended', completed: true, voiceSpeaking: false }
+            : prev
         );
         return;
       }
@@ -192,7 +194,7 @@ export function useMeetingPlayback({
         prefetchUpcomingBeat();
         applyMeeting((prev) => {
           if (!prev || prev.state !== 'playing') return prev;
-          return { ...prev, transcript: [...prev.transcript, nextBeat] };
+          return { ...prev, transcript: [...prev.transcript, nextBeat], voiceSpeaking: true };
         });
         void (async () => {
           let spoken = false;
@@ -203,6 +205,7 @@ export function useMeetingPlayback({
             spoken = false;
           }
           if (generation !== generationRef.current) return;
+          applyMeeting((prev) => (prev ? { ...prev, voiceSpeaking: false } : prev));
           const waitMs = spoken ? (paramsRef.current.narrationGapMs ?? 180) : beatDelayMs(nextBeat);
           timerRef.current = setTimeout(() => {
             timerRef.current = null;
@@ -325,7 +328,7 @@ export function useMeetingPlayback({
     paramsRef.current.onCancelNarration?.();
     applyMeeting((prev) =>
       prev && (prev.state === 'playing' || prev.state === 'joining')
-        ? { ...prev, state: 'ended', completed: false }
+        ? { ...prev, state: 'ended', completed: false, voiceSpeaking: false }
         : prev
     );
   }, [clearTimer, applyMeeting]);

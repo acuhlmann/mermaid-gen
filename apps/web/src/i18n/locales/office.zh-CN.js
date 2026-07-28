@@ -714,6 +714,10 @@ export const OFFICE_ZH_CN = {
     doIt: '就这么办',
     doSelected: '应用所选',
     doItAll: '全部应用',
+    windowMinimize: '最小化',
+    windowMinimizeTitle: '收起到标题栏',
+    windowRestore: '还原',
+    windowRestoreTitle: '展开窗口',
     desk: {
       buttonLabel: '你的工位',
       buttonAria: '你的工位 — 你可以做的事',
@@ -940,7 +944,15 @@ export const OFFICE_ZH_CN = {
       dock: '🗕 看我的屏幕',
       dockTitle: '把会议缩到角落,腾出手来改图',
       undock: '🗖 回到会议室',
-      undockTitle: '把会议放回屏幕中央'
+      undockTitle: '把会议放回屏幕中央',
+      minimize: '最小化',
+      minimizeTitle: '收起到标题栏,让画布保持可见',
+      restore: '还原',
+      restoreTitle: '展开会议窗口',
+      dragHint: '拖动以移动',
+      speakerViewHint: '正在收听 — 可在工位菜单打开字幕(CC)阅读',
+      discussionToggle: '讨论纪要',
+      discussionToggleHide: '隐藏讨论纪要'
     }
   }
 };
