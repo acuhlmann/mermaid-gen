@@ -114,7 +114,7 @@ test('createAgentStreamEmitter passes through AG-UI wire events', () => {
 });
 
 test('createAgentStreamEmitter suppresses events after legacy error → final pair', () => {
-  // Mirrors the transform/Go Mad failure path: emit `error` (which sends RUN_ERROR), then
+  // Mirrors the transform/Russ failure path: emit `error` (which sends RUN_ERROR), then
   // still emit `final`. The legacy `final` handler tries to send STATE_DELTA / STATE_SNAPSHOT /
   // RUN_FINISHED — all of which the AG-UI client verifier rejects after RUN_ERROR.
   const captured: Array<Record<string, unknown>> = [];

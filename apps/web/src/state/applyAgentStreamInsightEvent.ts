@@ -26,13 +26,7 @@ import {
 } from '../utils/formatTechnicalActionDetail.js';
 
 const AUTO_DIAGRAM_CHANGE_HIGHLIGHT_PENDING_TIMEOUT_MS = 10000;
-const AUTO_DIAGRAM_HIGHLIGHT_VARIANTS = new Set([
-  'intent',
-  'gilfoyle',
-  'dinesh',
-  'erlich',
-  'goMad'
-]);
+const AUTO_DIAGRAM_HIGHLIGHT_VARIANTS = new Set(['intent', 'gilfoyle', 'dinesh', 'erlich', 'russ']);
 
 function normalizeInsightTextForDedup(text: string | undefined): string {
   return (text ?? '').replace(/\s+/g, ' ').trim();
@@ -124,10 +118,10 @@ export type InsightEventContext = {
     }
   ) => void;
   lastTokenSoundAtRef: { current: number };
-  goMadTokenTickIndexRef: { current: number };
+  russTokenTickIndexRef: { current: number };
   lastDraftTickAtRef: { current: number };
   tryAgentSound: (fn: ((audioCtx: AudioContext) => void) | (() => void)) => void;
-  playGoMadTokenTick?: (audioCtx: AudioContext, idx: number) => void;
+  playRussTokenTick?: (audioCtx: AudioContext, idx: number) => void;
   playTokenTickChime?: () => void;
   playToolStartChime?: () => void;
   playToolEndChime?: () => void;
@@ -142,14 +136,14 @@ export type InsightEventContext = {
   playGilfoylePolishLoop?: () => void;
   playDineshInsistLoop?: () => void;
   playErlichSynthLoop?: () => void;
-  playGoMadKlaxonLoop?: () => void;
-  playGoMadAirhornBlast?: () => void;
+  playRussKlaxonLoop?: () => void;
+  playRussAirhornBlast?: () => void;
   playJaredScribbleLoop?: () => void;
   playJaredPenStab?: () => void;
   playExplainPageFlipLoop?: () => void;
   setLiveDraftSource: (source: string) => void;
   setLiveDraftContentType: (ct: string | null) => void;
-  setGoMadStreak?: (fn: (s: number) => number) => void;
+  setRussStreak?: (fn: (s: number) => number) => void;
   sessionTopicRef?: { current: string | null };
   crossModeSyncRef?: { current: Record<string, unknown> };
   modeSwitchSync?: boolean;
@@ -200,10 +194,10 @@ export function applyAgentStreamInsightEvent(
     finalizeTechnicalActionResult,
     enrichTechnicalActionDetail,
     lastTokenSoundAtRef,
-    goMadTokenTickIndexRef,
+    russTokenTickIndexRef,
     lastDraftTickAtRef,
     tryAgentSound,
-    playGoMadTokenTick,
+    playRussTokenTick,
     playTokenTickChime,
     playToolStartChime,
     playToolEndChime,
@@ -218,14 +212,14 @@ export function applyAgentStreamInsightEvent(
     playGilfoylePolishLoop,
     playDineshInsistLoop,
     playErlichSynthLoop,
-    playGoMadKlaxonLoop,
-    playGoMadAirhornBlast,
+    playRussKlaxonLoop,
+    playRussAirhornBlast,
     playJaredScribbleLoop,
     playJaredPenStab,
     playExplainPageFlipLoop,
     setLiveDraftSource,
     setLiveDraftContentType,
-    setGoMadStreak,
+    setRussStreak,
     sessionTopicRef,
     crossModeSyncRef,
     modeSwitchSync,
@@ -286,11 +280,11 @@ export function applyAgentStreamInsightEvent(
     }
     if (variant === 'jared' && typeof playJaredPenStab === 'function') {
       tryAgentSound(playJaredPenStab);
-    } else if (variant === 'goMad') {
-      if (Math.random() < 0.18 && typeof playGoMadAirhornBlast === 'function') {
-        tryAgentSound(playGoMadAirhornBlast);
-      } else if (typeof playGoMadKlaxonLoop === 'function') {
-        tryAgentSound(playGoMadKlaxonLoop);
+    } else if (variant === 'russ') {
+      if (Math.random() < 0.18 && typeof playRussAirhornBlast === 'function') {
+        tryAgentSound(playRussAirhornBlast);
+      } else if (typeof playRussKlaxonLoop === 'function') {
+        tryAgentSound(playRussKlaxonLoop);
       }
     } else if (variant === 'erlich' && typeof playErlichSynthLoop === 'function') {
       if (Math.random() < 0.5) tryAgentSound(playErlichSynthLoop);
@@ -419,21 +413,21 @@ export function applyAgentStreamInsightEvent(
     const reduceMotion =
       typeof globalThis.matchMedia === 'function' &&
       globalThis.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const goMadDense = variant === 'goMad' && !reduceMotion;
-    const minGapMs = goMadDense ? 140 : 210;
+    const russDense = variant === 'russ' && !reduceMotion;
+    const minGapMs = russDense ? 140 : 210;
     if (now - lastTokenSoundAtRef.current >= minGapMs) {
       lastTokenSoundAtRef.current = now;
-      if (goMadDense && playGoMadTokenTick) {
-        const idx = goMadTokenTickIndexRef.current;
-        goMadTokenTickIndexRef.current = idx + 1;
-        tryAgentSound((audioCtx) => playGoMadTokenTick(audioCtx, idx));
+      if (russDense && playRussTokenTick) {
+        const idx = russTokenTickIndexRef.current;
+        russTokenTickIndexRef.current = idx + 1;
+        tryAgentSound((audioCtx) => playRussTokenTick(audioCtx, idx));
       } else if (variant === 'gilfoyle' && typeof playGilfoyleTokenTick === 'function') {
         tryAgentSound(playGilfoyleTokenTick);
       } else if (variant === 'dinesh' && typeof playDineshTokenTick === 'function') {
         tryAgentSound(playDineshTokenTick);
       } else if (variant === 'erlich' && playErlichTokenTick) {
-        const idx = goMadTokenTickIndexRef.current;
-        goMadTokenTickIndexRef.current = idx + 1;
+        const idx = russTokenTickIndexRef.current;
+        russTokenTickIndexRef.current = idx + 1;
         tryAgentSound((audioCtx) => playErlichTokenTick(audioCtx, idx));
       } else if (variant === 'jared' && typeof playJaredTokenTick === 'function') {
         tryAgentSound(playJaredTokenTick);
@@ -656,8 +650,8 @@ export function applyAgentStreamInsightEvent(
     setLiveDraftContentType(null);
     const mutationBlocked =
       (operation === 'transform' || operation === 'intent') && finalEvt.revisionChanged === false;
-    if (variant === 'goMad' && finalEvt.revisionChanged && setGoMadStreak) {
-      setGoMadStreak((s) => s + 1);
+    if (variant === 'russ' && finalEvt.revisionChanged && setRussStreak) {
+      setRussStreak((s) => s + 1);
     }
     if (finalEvt.revisionChanged && finalState?.lastUserPrompt && sessionTopicRef) {
       sessionTopicRef.current = finalState.lastUserPrompt;
@@ -708,7 +702,7 @@ export function applyAgentStreamInsightEvent(
               }
             }
           : undefined,
-        { denseSteps: variant === 'goMad' }
+        { denseSteps: variant === 'russ' }
       );
     }
     if (

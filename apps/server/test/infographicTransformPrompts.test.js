@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   INFOGRAPHIC_TRANSFORM_INSTRUCTIONS,
-  buildInfographicGoMadEscalation,
+  buildInfographicRussEscalation,
   buildInfographicTransformUserContent
 } from '../src/agents/infographicTransformPrompts.js';
 
@@ -18,14 +18,14 @@ test('erlich prefers current template first', () => {
   assert.match(INFOGRAPHIC_TRANSFORM_INSTRUCTIONS.erlich, /CURRENT template/i);
 });
 
-test('goMad tier 1 escalation keeps template', () => {
-  const text = buildInfographicGoMadEscalation(2, DSL);
+test('russ tier 1 escalation keeps template', () => {
+  const text = buildInfographicRussEscalation(2, DSL);
   assert.match(text, /KEEP template/i);
   assert.doesNotMatch(text, /OFF-LIMITS/);
 });
 
-test('goMad tier 3 escalation requires family switch', () => {
-  const text = buildInfographicGoMadEscalation(3, DSL);
+test('russ tier 3 escalation requires family switch', () => {
+  const text = buildInfographicRussEscalation(3, DSL);
   assert.match(text, /Switch template family/i);
 });
 

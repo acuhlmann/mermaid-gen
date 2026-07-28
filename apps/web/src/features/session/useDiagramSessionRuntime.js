@@ -41,7 +41,7 @@ export function useDiagramSessionRuntime({
   setPrompt,
   setInsightsEntries,
   setCritiqueActionableSelected,
-  setGoMadStreak,
+  setRussStreak,
   setModelProfile
 }) {
   const {
@@ -103,7 +103,7 @@ export function useDiagramSessionRuntime({
     setCritiqueActionableSelected,
     setLiveDraftSource,
     setLiveDraftContentType,
-    setGoMadStreak,
+    setRussStreak,
     setModelProfile,
     setContentMode
   });

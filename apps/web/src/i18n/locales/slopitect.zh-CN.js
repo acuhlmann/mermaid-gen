@@ -35,12 +35,12 @@ export const SLOPITECT_ZH_CN = {
       entryLine: '我问你一个问题…',
       exitLine: '已升华。不客气 🕶'
     },
-    goMad: {
-      name: '烂图建筑师',
-      title: '杰出混沌研究员',
-      tagline: '天才放飞 🚨',
-      entryLine: '烂图建筑师已进入现场',
-      exitLine: '建得更好 🛠'
+    russ: {
+      name: 'Russ Hanneman',
+      title: '三个逗号投资人',
+      tagline: '这家伙会交货。',
+      entryLine: '三个逗号能量——开干',
+      exitLine: '这家伙会交货 🍾'
     },
     jared: {
       name: 'Jared Dunn',
@@ -68,7 +68,7 @@ export const SLOPITECT_ZH_CN = {
     gilfoyle: '烂图建筑师：Gilfoyle 修好有问题的地方',
     dinesh: '烂图建筑师：Dinesh 修好它，顺便讨个说法',
     erlich: '烂图建筑师：Erlich Bachman 提出大胆方案',
-    goMad: '烂图建筑师：天才放飞 🚨',
+    russ: '烂图建筑师：Russ Hanneman 把事情升级',
     jared: '烂图建筑师：Jared Dunn 提出一条发现',
     explain: '烂图建筑师：协同设计故事会',
     barker: '烂图建筑师：成功剧场模式',
@@ -78,7 +78,7 @@ export const SLOPITECT_ZH_CN = {
     gilfoyle: 'Gilfoyle 找到了缺陷…',
     dinesh: 'Dinesh 早就找到了…',
     erlich: 'Erlich Bachman 正在亲自升华…',
-    goMad: '砰！烂图建筑师来了',
+    russ: '三个逗号来了…',
     jared: 'Jared 有一件事要提…',
     explain: '协同设计故事会 — 围过来',
     barker: 'Jack Barker 正在越权代劳……'

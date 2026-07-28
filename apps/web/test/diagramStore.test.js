@@ -118,7 +118,7 @@ describe('submitDiagramTransform', () => {
     }
   });
 
-  it('includes goMadDepth when provided', async () => {
+  it('includes russDepth when provided', async () => {
     const originalFetch = globalThis.fetch;
     let requestBody;
     try {
@@ -133,13 +133,13 @@ describe('submitDiagramTransform', () => {
       };
 
       await submitDiagramTransform({
-        mode: 'goMad',
+        mode: 'russ',
         revisionId: 0,
         diagramSource: 'flowchart TD\n  A --> B',
-        goMadDepth: 3
+        russDepth: 3
       });
 
-      expect(JSON.parse(requestBody).goMadDepth).toBe(3);
+      expect(JSON.parse(requestBody).russDepth).toBe(3);
     } finally {
       globalThis.fetch = originalFetch;
     }
@@ -157,7 +157,7 @@ describe('submitDiagramTransform', () => {
         });
 
       const request = submitDiagramTransform({
-        mode: 'goMad',
+        mode: 'russ',
         revisionId: 0,
         diagramSource: 'flowchart TD\n  Start[Start] --> EndNode[End]'
       });
@@ -165,10 +165,10 @@ describe('submitDiagramTransform', () => {
         'Transform agent request timed out. Please try again.'
       );
 
-      // Timeout mirrors the server run budget for the mode/profile (Go Mad fast) plus the
+      // Timeout mirrors the server run budget for the mode/profile (Russ fast) plus the
       // client grace window — keep in sync with agentMutationTimeoutMs in diagramStore.js.
       const clientGraceMs = 15_000;
-      const timeoutMs = resolveAgentRunBudgetMs('fast', {}, 'goMad') + clientGraceMs;
+      const timeoutMs = resolveAgentRunBudgetMs('fast', {}, 'russ') + clientGraceMs;
       await vi.advanceTimersByTimeAsync(timeoutMs + 1_000);
       await assertion;
     } finally {

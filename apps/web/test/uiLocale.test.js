@@ -14,7 +14,7 @@ describe('ui locale bundles', () => {
     expect(bundle.controls.actions.gilfoyle).toBe('精修');
     expect(bundle.controls.radial.drillDeeper).toBe('深入挖掘');
     expect(bundle.slopitect.PROMPT_ACTION_COPY.label).toBe('发表意见');
-    expect(bundle.controls.advisorThinking.goMad).toBe('正在癫狂');
+    expect(bundle.controls.advisorThinking.russ).toBe('正在癫狂');
     expect(bundle.controls.planBeat.agent).toBe('智能体');
     expect(bundle.controls.checklist.fixSelected).toBe('修复所选');
     expect(bundle.controls.contentModes.mermaidShort).toBe('架构图');
@@ -34,11 +34,11 @@ describe('ui locale bundles', () => {
   it('returns Aussie slang controls when locale is en-AU', () => {
     const bundle = getUiLocaleBundle('en-AU');
     expect(bundle.controls.actions.gilfoyle).toBe('Refine');
-    expect(bundle.controls.actions.goMad).toBe('Go troppo');
+    expect(bundle.controls.actions.russ).toBe('Go troppo');
     expect(bundle.controls.actions.stakeholders).toBe('The Mob');
     expect(bundle.controls.prompt.doIt).toBe('Have a go');
     expect(bundle.controls.introLocale.enAu).toBe('Aussie Slang');
-    expect(bundle.controls.advisorThinking.goMad).toBe('IS LOSING THE PLOT');
+    expect(bundle.controls.advisorThinking.russ).toBe('IS LOSING THE PLOT');
     expect(bundle.controls.appError.title).toMatch(/pear-shaped/);
     expect(bundle.slopitect.PROMPT_ACTION_COPY.label).toBe('Have a say');
     expect(bundle.slopitect.STAKEHOLDERS_MUTE_COPY.stakeholdersTag).toBe('The Mob');
@@ -77,7 +77,7 @@ describe('ui locale bundles', () => {
         'gilfoyle',
         'dinesh',
         'erlich',
-        'goMad',
+        'russ',
         'jared',
         'explain',
         'barker'
@@ -97,7 +97,7 @@ describe('ui locale bundles', () => {
         'gilfoyle',
         'dinesh',
         'erlich',
-        'goMad',
+        'russ',
         'jared',
         'explain',
         'barker'

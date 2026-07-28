@@ -72,7 +72,7 @@ function syntaxGuidancePlanBeat(
   const source = stateStore?.getSlot?.('mermaid')?.diagramSource ?? '';
   const detected = inferDiagramType(source);
   if (!detected) return null;
-  if (mode === 'goMad') {
+  if (mode === 'russ') {
     return `Current diagram reads as ${detected} — may pivot to another type for this run.`;
   }
   if (mode === 'erlich') {
@@ -82,7 +82,7 @@ function syntaxGuidancePlanBeat(
 }
 
 function modeIntentPlanBeat(mode: string | null, requestSnippet: string): string | null {
-  if (mode === 'goMad') return null;
+  if (mode === 'russ') return null;
   const req = requestSnippet ? ` — ${requestSnippet}` : '';
   switch (mode) {
     case 'gilfoyle':

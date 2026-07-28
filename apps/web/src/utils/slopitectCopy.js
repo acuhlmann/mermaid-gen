@@ -63,13 +63,13 @@ export const VARIANT_PERSONAS = {
     xpAward: 30,
     xpStreakBonus: 6
   },
-  goMad: {
-    name: 'THE SLOPITECT',
-    title: 'Distinguished Chaos Fellow',
-    tagline: 'GENIUS LOOSE 🚨',
-    avatarEmoji: '🪖',
-    entryLine: 'THE SLOPITECT HAS ENTERED THE BUILDING',
-    exitLine: 'BUILT IT BACK BETTER 🛠',
+  russ: {
+    name: 'Russ Hanneman',
+    title: 'Tres Commas Investor',
+    tagline: 'This guy SHIPS.',
+    avatarEmoji: '🍾',
+    entryLine: 'TRES COMMAS ENERGY — LET’S GO',
+    exitLine: 'THIS GUY SHIPS 🍾',
     accentColorVar: '#ec4899',
     xpAward: 40,
     xpStreakBonus: 15
@@ -168,19 +168,19 @@ export const VARIANT_QUOTES = {
     'I mentored everyone who ever mattered.',
     'Disrupt or be disrupted — I choose disrupt. Obviously.'
   ],
-  goMad: [
-    'WHAT IF THERE WERE TWELVE OF THIS THING',
-    'ROTATE EVERYTHING 90° AND CALL IT INSIGHT',
-    'GIVE EACH BOX A RIVAL THAT DOES THE OPPOSITE',
-    'MERGE THE FIRST AND LAST STEP INTO A SECRET LOOP',
-    'REWRITE EVERY LABEL IN BACKWARDS LATIN',
-    'ADD A SECRET TUNNEL BETWEEN UNRELATED BOXES',
-    'WHAT IF THE WHOLE DIAGRAM WAS A SONG',
-    'EVERY ARROW IS NOW A QUESTION',
-    'WHY IS THERE ONLY ONE DATABASE',
-    'I AM THE ARCHITECTURE NOW',
-    'THE DIAGRAM WAS THE FRIENDS WE MADE',
-    'JUST WRAP IT IN A LAMBDA'
+  russ: [
+    'Tres commas or bust.',
+    'This guy SHIPS.',
+    'What if there were twelve of this thing?',
+    'Synergy is a two-comma word.',
+    'Tequila first. Then we escalate.',
+    'Rotate everything 90° and call it insight.',
+    'Give each box a rival that does the opposite.',
+    'Radio Silence taught me that — once.',
+    'I am the valuation now.',
+    'Keep it small? That’s how you stay at two commas.',
+    'Make it louder. On the subject.',
+    'VIP lane. Obviously.'
   ],
   jared: [
     'I just wanted to flag one thing, if that’s alright.',
@@ -317,7 +317,7 @@ export const PHASE_CEREMONIES = {
     gilfoyle: 'Reading what you left me…',
     dinesh: 'Reading all of it. Unlike some people…',
     erlich: 'Spotting the bolder shape…',
-    goMad: 'Eyeballing the slop 👀',
+    russ: 'Eyeballing the valuation…',
     jared: 'Reading it through carefully…',
     explain: 'Pondering the diagram…',
     barker: 'Admiring the story…'
@@ -326,7 +326,7 @@ export const PHASE_CEREMONIES = {
     gilfoyle: 'Locating the defect…',
     dinesh: 'Finding the thing nobody found…',
     erlich: 'Keynoting the pivot…',
-    goMad: 'Yelling at it 📣',
+    russ: 'Calling it a keynote…',
     jared: 'Writing up the finding…',
     explain: 'Composing the saga…',
     barker: 'Boiling it down for the board…'
@@ -335,7 +335,7 @@ export const PHASE_CEREMONIES = {
     gilfoyle: 'Parsing what you meant…',
     dinesh: 'Working out what you meant…',
     erlich: 'Aligning the vision…',
-    goMad: 'Skipping the meeting',
+    russ: 'Skipping straight to tres commas…',
     jared: 'Making sure I understood you…',
     explain: 'Aligning intent…',
     barker: 'Aligning the triangles…'
@@ -344,7 +344,7 @@ export const PHASE_CEREMONIES = {
     gilfoyle: 'Making the correct change…',
     dinesh: 'Making the change. Mine…',
     erlich: 'Graciously elevating it…',
-    goMad: 'GOING MAD ON YOUR TOPIC',
+    russ: 'ESCALATING YOUR TOPIC 🍾',
     jared: 'Raising it properly…',
     explain: 'Annotating the architecture…',
     barker: 'Taking the liberty…'
@@ -353,7 +353,7 @@ export const PHASE_CEREMONIES = {
     gilfoyle: 'Drawing what was already true…',
     dinesh: 'Fixing the part everyone skipped…',
     erlich: 'Elevating the layout…',
-    goMad: 'Adding wonderfully strange things 🔥',
+    russ: 'Making it louder — on subject 🍾',
     jared: 'Noting the process gap…',
     explain: 'Tracing the reshape…',
     barker: 'Killing the darlings, warmly…'
@@ -362,7 +362,7 @@ export const PHASE_CEREMONIES = {
     gilfoyle: 'Fine.',
     dinesh: 'Okay, so…',
     erlich: 'Let me ask you this…',
-    goMad: 'OK NOW HOLD ON 🪖',
+    russ: 'OK NOW HOLD ON 🍾',
     jared: 'Sorry — one moment…',
     explain: 'Clearing the throat…',
     barker: 'I don’t know about you, but I am excited…'
@@ -371,7 +371,7 @@ export const PHASE_CEREMONIES = {
     gilfoyle: 'Enumerating what is wrong…',
     dinesh: 'Listing what is wrong. It is a list…',
     erlich: 'Drafting the keynote…',
-    goMad: 'Throwing darts at the diagram 🎯',
+    russ: 'Pricing the diagram in commas…',
     jared: 'Outlining what needs an owner…',
     explain: 'Drafting the chapter plan…',
     barker: 'Drafting the one-pager…'
@@ -380,7 +380,7 @@ export const PHASE_CEREMONIES = {
     gilfoyle: 'Fixing syntax nobody checked…',
     dinesh: 'Fixing syntax. Again. Me…',
     erlich: 'Mending syntax, brilliantly…',
-    goMad: 'Duct-taping it back together',
+    russ: 'Taping it with tequila money…',
     jared: 'Correcting it before anyone sees…',
     explain: 'Smoothing a rough passage…',
     barker: 'Tightening the deck…'
@@ -389,7 +389,7 @@ export const PHASE_CEREMONIES = {
     gilfoyle: 'Fixing it again. Obviously…',
     dinesh: 'Fixing it again, and I will mention this…',
     erlich: 'Re-mending syntax, again brilliantly…',
-    goMad: 'More duct tape',
+    russ: 'More tequila money…',
     jared: 'Correcting it again, apologies…',
     explain: 'Revising the rough draft…',
     barker: 'Re-drafting the deck…'
@@ -398,7 +398,7 @@ export const PHASE_CEREMONIES = {
     gilfoyle: 'Tuning the palette. Darker…',
     dinesh: 'Recolouring it. Nobody will notice…',
     erlich: 'Restyling for the keynote…',
-    goMad: 'CHAOTIC COLOR SCHEMES 🔥',
+    russ: 'LOUDER PALETTE. OBVIOUSLY 🍾',
     jared: 'Flagging what will not read…',
     explain: 'On the history of this hue…',
     barker: 'One brand color only.'
@@ -407,7 +407,7 @@ export const PHASE_CEREMONIES = {
     gilfoyle: 'Waiting on process. Predictable…',
     dinesh: 'Waiting. Nobody is waiting on me…',
     erlich: 'Awaiting the board’s approval…',
-    goMad: 'Bribing the CAB',
+    russ: 'Buying the CAB a round…',
     jared: 'Waiting, and worrying a little…',
     explain: 'Taking another pass…',
     barker: 'Asking the board for a redraft…'
@@ -416,7 +416,7 @@ export const PHASE_CEREMONIES = {
     gilfoyle: 'Patching prod 🦇',
     dinesh: 'Doing the actual work 🙋',
     erlich: 'Elevating it 🕶',
-    goMad: 'Setting buildings on fire 🔥',
+    russ: 'Shipping it loud 🍾',
     jared: 'Doing it properly…',
     explain: 'Narrating the draft…',
     barker: 'Taking the liberty 🧘'
@@ -425,7 +425,7 @@ export const PHASE_CEREMONIES = {
     gilfoyle: 'Falling back. Noted…',
     dinesh: 'Falling back. Not my fault…',
     erlich: 'Pivot in flight…',
-    goMad: 'WE PIVOT',
+    russ: 'WE ESCALATE',
     jared: 'Falling back — noting it anyway…',
     explain: 'Closing the chapter gracefully…',
     barker: 'Rerouting the one-pager…'
@@ -434,7 +434,7 @@ export const PHASE_CEREMONIES = {
     gilfoyle: 'Repairing it. Again…',
     dinesh: 'Repairing it. Still me…',
     erlich: 'Vision repair in flight…',
-    goMad: 'More hard hats! 🪖🪖',
+    russ: 'More commas! 🍾🍾',
     jared: 'This one is on me. Fixing it…',
     explain: 'Rewinding the parchment…',
     barker: 'Sliding the timeline, warmly 🗓️'
@@ -443,7 +443,7 @@ export const PHASE_CEREMONIES = {
     gilfoyle: 'Second repair. My objection is documented…',
     dinesh: 'Second repair. Noting this for later…',
     erlich: 'Second vision repair in flight…',
-    goMad: 'EVEN MORE HARD HATS 🪖🪖🪖',
+    russ: 'TRES COMMAS ENERGY 🍾🍾🍾',
     jared: 'Still on me. Fixing it again…',
     explain: 'Revising the footnotes…',
     barker: 'Forming a committee about it 🗓️🗓️'
@@ -451,7 +451,7 @@ export const PHASE_CEREMONIES = {
 };
 
 /**
- * @param {string} variant - one of gilfoyle/dinesh/erlich/goMad/jared/explain/barker (or anything else → fallback).
+ * @param {string} variant - one of gilfoyle/dinesh/erlich/russ/jared/explain/barker (or anything else → fallback).
  * @param {string} phaseId - canonical phase id from SSE.
  * @param {string} fallbackLabel - the literal label that the server sent; rendered as-is when no override.
  */
@@ -467,7 +467,7 @@ export const VARIANT_TAGLINES = {
   gilfoyle: 'Slopitect: Gilfoyle fixes what is wrong',
   dinesh: 'Slopitect: Dinesh fixes it and wants the credit',
   erlich: 'Slopitect: Erlich Bachman pitches the bold move',
-  goMad: 'Slopitect: GENIUS LOOSE 🚨',
+  russ: 'Slopitect: Russ Hanneman escalates it',
   jared: 'Slopitect: Jared Dunn raises one finding',
   explain: 'Slopitect: Co-Design story time',
   barker: 'Slopitect: Success Theater mode',
@@ -478,7 +478,7 @@ export const VARIANT_BOOT_HEADLINES = {
   gilfoyle: 'Gilfoyle found the defect…',
   dinesh: 'Dinesh already found it…',
   erlich: 'Erlich Bachman is graciously elevating…',
-  goMad: 'BONK! THE SLOPITECT IS HERE',
+  russ: 'Tres commas just walked in…',
   jared: 'Jared has one thing to flag…',
   explain: 'Co-Design story time — gather round',
   barker: 'Jack Barker is taking the liberty…'
@@ -618,10 +618,10 @@ export const VARIANT_MASTERY_ACHIEVEMENTS = {
     title: '🕶 TEN PERCENT LEGEND',
     subtitle: '10 bold pivots graciously elevated. The incubator approves.'
   },
-  goMad: {
-    id: 'distinguishedChaos',
-    title: '🪖 DISTINGUISHED CHAOS FELLOW',
-    subtitle: '10 mad runs. Frame the helmet.'
+  russ: {
+    id: 'tresCommas',
+    title: '🍾 TRES COMMAS CLUB',
+    subtitle: '10 escalations. The commas approve.'
   },
   jared: {
     id: 'carefulFinding',

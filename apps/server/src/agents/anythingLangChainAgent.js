@@ -80,12 +80,7 @@ function buildIntentUserContent({ prompt, currentHtml, peerContext }) {
   return appendLanguageInstruction(parts.join('\n\n'), prompt, currentHtml);
 }
 
-export function buildAnythingTransformUserContent({
-  mode,
-  currentHtml,
-  goMadDepth,
-  advisorPrompt
-}) {
+export function buildAnythingTransformUserContent({ mode, currentHtml, russDepth, advisorPrompt }) {
   const modeInstructions = {
     gilfoyle:
       'Fix what is actually wrong with the current document — layout, typography, color, interaction feel, and copy. Reach first for what the page already implies but never shows: the state that exists and is never rendered, the control that looks interactive and is not, the copy naming something other than what it does. Keep the concept and structure.',
@@ -93,13 +88,13 @@ export function buildAnythingTransformUserContent({
       'Fix what is actually wrong with the current document — layout, typography, color, interaction feel, and copy. Reach first for what the page has not survived yet: the empty state, the error path, the long string that overflows, the interaction with no way back. Keep the concept and structure. The fix must be genuinely right; any prose you emit afterwards makes sure the credit for it lands.',
     erlich:
       'Elevate the current document — rethink the presentation or interaction model for the same subject, the way only a visionary founder could. You may restructure freely.',
-    goMad: `Go mad on this document — escalate the spectacle (depth ${goMadDepth ?? 1}). More motion, more interactivity, bolder visuals, still on-subject and still self-contained.`,
+    russ: `Escalate like Russ Hanneman — push the spectacle further (depth ${russDepth ?? 1}). More motion, more interactivity, bolder visuals, still on-subject and still self-contained. Tres commas energy; never mean.`,
     barker:
       'Take the liberty of executing the requested change tightly. No additions beyond the implied scope.'
   };
   // Gilfoyle, Dinesh and Barker are scoped changes to an existing document —
   // targeted edits keep the untouched 95% of the page byte-identical instead of
-  // trusting a full regeneration to reproduce it. Erlich and Go Mad
+  // trusting a full regeneration to reproduce it. Erlich and Russ
   // restructure freely, so a full rewrite is the honest tool there.
   const preferEdits = mode === 'gilfoyle' || mode === 'dinesh' || mode === 'barker';
   return [
@@ -261,7 +256,7 @@ export function createAnythingLangChainAgent({
       focusNode,
       modelProfile,
       emit,
-      goMadDepth,
+      russDepth,
       abortSignal,
       advisorPrompt
     }) {
@@ -277,7 +272,7 @@ export function createAnythingLangChainAgent({
             buildAnythingTransformUserContent({
               mode,
               currentHtml: slot.diagramSource,
-              goMadDepth,
+              russDepth,
               advisorPrompt
             }),
             slot.lastUserPrompt,

@@ -4,12 +4,12 @@ import { selectionActionTitle, topicFromDescriptor } from '../utils/appInsightHe
 import { resolveAdvisorFocusNode } from '../utils/advisorActionContext.js';
 
 /**
- * Transform (Gilfoyle / Erlich / Go Mad / Barker) and Analyze (Critique / Explain) flows.
+ * Transform (Gilfoyle / Erlich / Russ / Barker) and Analyze (Critique / Explain) flows.
  *
  * @param {{
  *   contentMode: string;
  *   controls: object;
- *   goMadStreak: number;
+ *   russStreak: number;
  *   hasInteractedRef: import('react').MutableRefObject<boolean>;
  *   loadingRef: import('react').MutableRefObject<boolean>;
  *   modelProfile: string;
@@ -17,7 +17,7 @@ import { resolveAdvisorFocusNode } from '../utils/advisorActionContext.js';
  *   selectedNode: object | null;
  *   setActiveRequest: (value: string | null) => void;
  *   setError: (value: string) => void;
- *   setGoMadStreak: (value: number | ((prev: number) => number)) => void;
+ *   setRussStreak: (value: number | ((prev: number) => number)) => void;
  *   setLatestCritique: (value: object | null) => void;
  *   setLoading: (value: boolean) => void;
  *   stateRef: import('react').MutableRefObject<object>;
@@ -28,7 +28,7 @@ import { resolveAdvisorFocusNode } from '../utils/advisorActionContext.js';
 export function useAnalyzeFlow({
   contentMode,
   controls,
-  goMadStreak,
+  russStreak,
   hasInteractedRef,
   loadingRef,
   modelProfile,
@@ -36,7 +36,7 @@ export function useAnalyzeFlow({
   selectedNode,
   setActiveRequest,
   setError,
-  setGoMadStreak,
+  setRussStreak,
   setLatestCritique,
   setLoading,
   stateRef,
@@ -52,7 +52,7 @@ export function useAnalyzeFlow({
       if (!isConcreteContentMode(contentMode)) return;
       if (!stateRef.current.diagramSource.trim()) return;
 
-      if (mode !== 'goMad') setGoMadStreak(0);
+      if (mode !== 'russ') setRussStreak(0);
 
       const focusOverride = options.focusTarget ?? null;
       const baseFocus = focusOverride || selectedNode;
@@ -80,13 +80,13 @@ export function useAnalyzeFlow({
           gilfoyle: controls.actions.gilfoyle,
           dinesh: controls.actions.dinesh,
           erlich: controls.actions.erlich,
-          goMad: controls.actions.goMad,
+          russ: controls.actions.russ,
           barker: controls.actions.coDesign
         };
-        const goMadDepth = mode === 'goMad' ? goMadStreak + 1 : undefined;
+        const russDepth = mode === 'russ' ? russStreak + 1 : undefined;
         const transformTitleVerb =
-          mode === 'goMad' && goMadDepth > 1
-            ? `${controls.actions.goMad} (×${goMadDepth})`
+          mode === 'russ' && russDepth > 1
+            ? `${controls.actions.russ} (×${russDepth})`
             : labels[mode];
         await runStreamingAgent({
           operation: 'transform',
@@ -98,7 +98,7 @@ export function useAnalyzeFlow({
             contentType: contentMode,
             focusNode,
             modelProfile,
-            ...(mode === 'goMad' ? { goMadDepth } : {}),
+            ...(mode === 'russ' ? { russDepth } : {}),
             ...(advisorPrompt ? { advisorPrompt } : {})
           },
           title: selectionActionTitle(titleSelection, transformTitleVerb),
@@ -116,11 +116,11 @@ export function useAnalyzeFlow({
     [
       contentMode,
       controls.actions.coDesign,
-      controls.actions.goMad,
+      controls.actions.russ,
       controls.actions.erlich,
       controls.actions.gilfoyle,
       controls.actions.dinesh,
-      goMadStreak,
+      russStreak,
       hasInteractedRef,
       loadingRef,
       modelProfile,
@@ -128,7 +128,7 @@ export function useAnalyzeFlow({
       selectedNode,
       setActiveRequest,
       setError,
-      setGoMadStreak,
+      setRussStreak,
       setLoading,
       stateRef,
       streamingPreviewRef,

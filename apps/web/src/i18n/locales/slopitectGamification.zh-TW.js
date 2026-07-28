@@ -40,19 +40,19 @@ export const SLOPITECT_GAMIFICATION_ZH_TW = {
       '所有重要的人都是我帶出來的。',
       '顛覆，或被顛覆——我選擇顛覆。顯然。'
     ],
-    goMad: [
-      '如果這個東西有十二個呢',
-      '把所有東西旋轉 90 度然後稱之為洞見',
-      '給每個方塊一個做相反事的對手',
-      '把第一步和最後一步合併成一個秘密迴圈',
-      '把所有標籤用倒寫拉丁文重寫',
-      '在不相關的方塊之間添加一條秘密通道',
-      '如果整個圖表是一首歌',
-      '每個箭頭現在都是一個問題',
-      '為什麼只有一個資料庫',
-      '我現在就是架構',
-      '圖表就是我們一路上結交的朋友',
-      '直接包成一個 LAMBDA 就好'
+    russ: [
+      '三個逗號，否則免談。',
+      '這傢伙會交貨。',
+      '如果這個東西有十二個呢？',
+      '協同是兩個逗號的詞。',
+      '先龍舌蘭。再升級。',
+      '全部旋轉90度然後稱之為洞察。',
+      '給每個框配一個做相反事情的對手。',
+      '無線電靜默教會我的——就一次。',
+      '估值現在就是我。',
+      '做小？那是停在兩個逗號的辦法。',
+      '說得更響。扣住主題。',
+      'VIP通道。顯然。'
     ],
     jared: [
       '我想先提一件事，可以嗎。',
@@ -105,7 +105,7 @@ export const SLOPITECT_GAMIFICATION_ZH_TW = {
       gilfoyle: '正在讀你留下的東西……',
       dinesh: '正在全部讀一遍。不像某些人……',
       erlich: '正在尋找更大膽的形狀……',
-      goMad: '用眼神掃描爛圖 👀',
+      russ: '估個逗號價…',
       jared: '仔細讀一遍……',
       explain: '沉思圖表中……',
       barker: '欣賞故事中……'
@@ -114,7 +114,7 @@ export const SLOPITECT_GAMIFICATION_ZH_TW = {
       gilfoyle: '正在定位缺陷……',
       dinesh: '正在找出沒人找到的那處……',
       erlich: '正在為轉向做主題演講……',
-      goMad: '對著它大吼 📣',
+      russ: '當成主題演講…',
       jared: '寫好這條發現……',
       explain: '撰寫史詩……',
       barker: '為董事會濃縮中……'
@@ -123,7 +123,7 @@ export const SLOPITECT_GAMIFICATION_ZH_TW = {
       gilfoyle: '正在解析你的意思……',
       dinesh: '正在弄清你的意思……',
       erlich: '正在對齊願景……',
-      goMad: '跳過會議',
+      russ: '直接上三個逗號…',
       jared: '確認我理解對了……',
       explain: '對齊意圖……',
       barker: '對齊聯合三角……'
@@ -132,7 +132,7 @@ export const SLOPITECT_GAMIFICATION_ZH_TW = {
       gilfoyle: '正在做出正確的改動……',
       dinesh: '正在改。我改的……',
       erlich: '正在親自昇華……',
-      goMad: '對你的主題發瘋中',
+      russ: '正在升級你的主題 🍾',
       jared: '正式提出來……',
       explain: '為架構添加注解……',
       barker: '越權代勞中……'
@@ -141,7 +141,7 @@ export const SLOPITECT_GAMIFICATION_ZH_TW = {
       gilfoyle: '正在畫出本來就成立的東西……',
       dinesh: '正在補上所有人都跳過的那步……',
       erlich: '正在昇華版面配置……',
-      goMad: '添加美妙奇異的事物 🔥',
+      russ: '把主題說得更響 🍾',
       jared: '記下流程缺口……',
       explain: '追溯重塑過程……',
       barker: '溫暖地捨棄珍愛之物……'
@@ -150,7 +150,7 @@ export const SLOPITECT_GAMIFICATION_ZH_TW = {
       gilfoyle: '行。',
       dinesh: '好吧，那麼……',
       erlich: '我問你一個問題……',
-      goMad: '好了現在等等 🪖',
+      russ: '好了現在等等 🍾',
       jared: '抱歉——稍等一下……',
       explain: '清清喉嚨……',
       barker: '不知道你們怎樣，反正我很興奮……'
@@ -159,7 +159,7 @@ export const SLOPITECT_GAMIFICATION_ZH_TW = {
       gilfoyle: '正在列舉有問題的地方……',
       dinesh: '正在列出問題。是一張清單……',
       erlich: '正在起草主題演講……',
-      goMad: '對圖表丟飛鏢 🎯',
+      russ: '用逗號給圖表定價…',
       jared: '列出需要負責人的地方……',
       explain: '起草章節計畫……',
       barker: '起草一頁報告……'
@@ -168,7 +168,7 @@ export const SLOPITECT_GAMIFICATION_ZH_TW = {
       gilfoyle: '正在修沒人檢查過的語法……',
       dinesh: '又在修語法。還是我……',
       erlich: '正在修復語法，才華洋溢……',
-      goMad: '用膠帶把它黏回去',
+      russ: '用龍舌蘭錢膠帶黏…',
       jared: '在別人看到之前先改好……',
       explain: '潤飾粗糙段落……',
       barker: '緊縮簡報……'
@@ -177,7 +177,7 @@ export const SLOPITECT_GAMIFICATION_ZH_TW = {
       gilfoyle: '再修一次。很明顯……',
       dinesh: '又修了一遍，這事我會提的……',
       erlich: '再次修復語法，依然才華洋溢……',
-      goMad: '再多一點膠帶',
+      russ: '更多龍舌蘭錢…',
       jared: '再改一次，抱歉……',
       explain: '修訂粗糙草稿……',
       barker: '重新起草簡報……'
@@ -186,7 +186,7 @@ export const SLOPITECT_GAMIFICATION_ZH_TW = {
       gilfoyle: '正在調色盤。更暗……',
       dinesh: '正在調配色。不會有人注意……',
       erlich: '正在為主題演講重塑樣式……',
-      goMad: '混亂配色方案 🔥',
+      russ: '配色再響一點。顯然 🍾',
       jared: '標出讀不通的地方……',
       explain: '講述這種色調的歷史……',
       barker: '只用一種品牌色。'
@@ -195,7 +195,7 @@ export const SLOPITECT_GAMIFICATION_ZH_TW = {
       gilfoyle: '正在等流程。不出所料……',
       dinesh: '等著。反正沒人在等我……',
       erlich: '等待董事會核准……',
-      goMad: '賄賂 CAB',
+      russ: '請 CAB 喝一輪…',
       jared: '等待中，有點擔心……',
       explain: '再做一輪……',
       barker: '請求董事會重新起草……'
@@ -204,7 +204,7 @@ export const SLOPITECT_GAMIFICATION_ZH_TW = {
       gilfoyle: '正在修補正式環境 🦇',
       dinesh: '正在幹實際的活 🙋',
       erlich: '正在昇華 🕶',
-      goMad: '點燃大樓 🔥',
+      russ: '大聲交貨 🍾',
       jared: '按規矩來做……',
       explain: '敘述草稿……',
       barker: '越權代勞 🧘'
@@ -213,7 +213,7 @@ export const SLOPITECT_GAMIFICATION_ZH_TW = {
       gilfoyle: '退回上一步。已記錄……',
       dinesh: '正在回退。不是我的錯……',
       erlich: '轉向飛行中……',
-      goMad: '我們轉型了',
+      russ: '我們升級了',
       jared: '退回方案——還是要記下……',
       explain: '優雅地結束本章……',
       barker: '重新路由一頁報告……'
@@ -222,7 +222,7 @@ export const SLOPITECT_GAMIFICATION_ZH_TW = {
       gilfoyle: '再修一次。又來了……',
       dinesh: '正在修復。還是我……',
       erlich: '願景修復飛行中……',
-      goMad: '更多安全帽！ 🪖🪖',
+      russ: '更多逗號！ 🍾🍾',
       jared: '這次是我的問題。在修……',
       explain: '倒回羊皮紙……',
       barker: '溫暖地滑動時間線 🗓️'
@@ -231,7 +231,7 @@ export const SLOPITECT_GAMIFICATION_ZH_TW = {
       gilfoyle: '第二次修復。我的反對意見已記錄……',
       dinesh: '第二次修復。這筆先記下……',
       erlich: '第二次願景修復飛行中……',
-      goMad: '更更多安全帽 🪖🪖🪖',
+      russ: '三個逗號能量 🍾🍾🍾',
       jared: '還是我的問題。再修……',
       explain: '修訂註腳……',
       barker: '為此成立委員會 🗓️🗓️'
@@ -293,10 +293,10 @@ export const SLOPITECT_GAMIFICATION_ZH_TW = {
       title: '🕶 百分之十的傳奇',
       subtitle: '已親自昇華十次大膽轉向。孵化器認可。'
     },
-    goMad: {
-      id: 'distinguishedChaos',
-      title: '🪖 卓越混沌研究員',
-      subtitle: '十次瘋狂執行。把安全帽裱起來。'
+    russ: {
+      id: 'tresCommas',
+      title: '🍾 三個逗號俱樂部',
+      subtitle: '10 次升級。逗號批准。'
     },
     jared: {
       id: 'carefulFinding',
@@ -396,10 +396,10 @@ export const SLOPITECT_GAMIFICATION_ZH_TW = {
       title: '🕶 百分之十的傳奇',
       subtitle: '已親自昇華十次大膽轉向。孵化器認可。'
     },
-    goMad: {
-      id: 'distinguishedChaos',
-      title: '🪖 卓越混沌研究員',
-      subtitle: '十次瘋狂執行。把安全帽裱起來。'
+    russ: {
+      id: 'tresCommas',
+      title: '🍾 三個逗號俱樂部',
+      subtitle: '10 次升級。逗號批准。'
     },
     jared: {
       id: 'carefulFinding',
@@ -507,7 +507,7 @@ export const SLOPITECT_GAMIFICATION_ZH_TW = {
     engineTitle: '爛圖引擎',
     engineLede: '每次完成執行都能獲得 XP。累積連擊、連擊組合和極致瘋狂深度來賺取更多。',
     variantMetaSuffix: '每次連擊',
-    goMadDepthBonus: '· +35 深度 ≥ 3',
+    russDepthBonus: '· +35 深度 ≥ 3',
     comboLine: '6 秒內串接兩個角色可獲得 +8（每多一個連結 +4）。',
     comboChip: '連擊',
     trophyTitle: '獎盃架',

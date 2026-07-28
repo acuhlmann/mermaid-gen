@@ -4,7 +4,7 @@ import type {
   DiagramState,
   DiagramTransformIntent,
   FocusNode,
-  GoMadDepth,
+  RussDepth,
   IntentPeerContext,
   IntentSettings,
   ModelProfile,
@@ -57,7 +57,7 @@ export interface ApplyTransformIntentInput {
   focusNode?: FocusNode | null;
   modelProfile?: ModelProfile;
   emit?: AgentStreamEmit;
-  goMadDepth?: GoMadDepth;
+  russDepth?: RussDepth;
   abortSignal?: AbortSignal;
   /** Infographic-only — free-form prompt threaded into transform user content. */
   advisorPrompt?: string | null;
@@ -99,7 +99,7 @@ export interface DiagramAgentStreamPayload {
   focusNode?: FocusNode | null;
   peerContext?: IntentPeerContext | null;
   mode?: DiagramTransformIntent['mode'];
-  goMadDepth?: GoMadDepth;
+  russDepth?: RussDepth;
   kind?: DiagramAnalyze['kind'];
   transformPersona?: TransformPersona | null;
   /** Transform or analyze — stakeholder bubble text for scoped work. */
@@ -127,7 +127,7 @@ export interface DiagramAgentService {
   /** Prompt-bar Go / Fix-from-critique. Always requires a patch. */
   applyIntent(input: ApplyIntentInput): Promise<AgentResult>;
 
-  /** Gilfoyle / Erlich / Go Mad / Align / Barker. Always requires a patch. */
+  /** Gilfoyle / Erlich / Russ / Align / Barker. Always requires a patch. */
   applyTransformIntent(input: ApplyTransformIntentInput): Promise<AgentResult>;
 
   /** Critique / Explain. Read-only — never mutates a slot. */

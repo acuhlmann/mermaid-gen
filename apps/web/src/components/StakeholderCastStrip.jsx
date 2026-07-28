@@ -4,7 +4,7 @@ import { formatLocale } from '../i18n/formatLocale.js';
 import { PersonaFace } from './personaFaces/index.jsx';
 
 function cssVariant(variant) {
-  return variant === 'goMad' ? 'go-mad' : variant;
+  return variant === 'russ' ? 'russ' : variant;
 }
 
 /**

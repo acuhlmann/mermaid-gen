@@ -58,7 +58,7 @@ export const OFFICE_DESK_WORK = {
     look: 'slides',
     line: 'Do not look at slide nine yet. Slide nine is where I change everything.'
   },
-  goMad: {
+  russ: {
     look: 'tabs',
     line: 'TWELVE TABS. ONE IDEA. I HAVE NEVER BEEN CLOSER.'
   },

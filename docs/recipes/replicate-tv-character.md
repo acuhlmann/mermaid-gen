@@ -20,10 +20,13 @@ pass added **§1b, the tendency axis**: voice alone had left the two engineers d
 accents, so each seat now also has a documented instinct for _what kind_ of change it reaches for.
 Proven a sixth time with **Jared Dunn inheriting the `critique` seat** (Session 5, 2026-07-28,
 `critique` → `jared`) — the first **analyze-path** inheritance (`DiagramAnalyzeSchema.kind`, not
-`TransformModeSchema`). The cast
+`TransformModeSchema`). Proven a seventh time with **Russ Hanneman inheriting the `goMad` seat**
+(Session 6, 2026-07-28, `goMad` → `russ`) — subject-rooted escalation with tres-commas / tequila /
+"this guy SHIPS" energy; content-policy-safe innuendo (not profanity); depth/streak wire field
+renamed `russDepth` / `russStreak`. The cast
 map and **reachability ladder** below are **locked** (2026-07-26 program plan; reachability
 2026-07-27) — one character per agent session, in the order listed.
-**Next up: Session 6, Russ Hanneman inherits the `goMad` seat.**
+**Next up: Session 7, Richard Hendricks inherits the `explain` seat.**
 
 ## Status board
 
@@ -34,7 +37,7 @@ map and **reachability ladder** below are **locked** (2026-07-26 program plan; r
 | Bertram Gilfoyle  | team — `gilfoyle` (ex-`refine`)          | ✅ Shipped — seat inheritance; deadpan verdicts, always actionable; battle-eligible (dual-home). Draws what is **already true** (§1b). Fidelity **4.50 / 4.38** |
 | Dinesh Chugtai    | team — **new** `dinesh` (gilfoyle-class) | ✅ Shipped — new seventh seat (not an inheritance); correct fix + a bid for credit; battle dual-home. Draws what **will break** (§1b). Fidelity **4.00 / 4.19** |
 | Jared Dunn        | team — `jared` (ex-`critique`)           | ✅ Shipped — seat inheritance; findings-only analyze seat; anxious compliance. First analyze-path inheritance. Fidelity **4.63 / 4.75**                         |
-| Russ Hanneman     | team — `goMad`                           | ⬜ **Session 6 (next)** — highest content-policy risk (innuendo, not profanity)                                                                                 |
+| Russ Hanneman     | team — `russ` (ex-`goMad`)               | ✅ Shipped — seat inheritance; subject-rooted escalation; tres commas / tequila / SHIPS. Depth field `russDepth`. Fidelity **TBD in PR**                        |
 | Richard Hendricks | team — `explain` → `richard`             | ⬜ Session 7 — comment-only Wise Architect (no transform powers — ADR-0010)                                                                                     |
 | Gavin Belson      | senior — `cto` → `belson`                | ⬜ Session 8 — named CTO; scarcer than Barker; Jack reports to him; retires Marcus                                                                              |
 | Marcus            | senior — `cto`                           | 🚮 Retires when Belson lands — currently a Belson _homage_, not a replication                                                                                   |
@@ -49,13 +52,14 @@ Scores are `node scripts/barker-fidelity.mjs <id>` overall averages across the 4
 two consecutive runs, Vertex fast tier. **Treat these as the reference band, not a target to beat**
 — the axes are noisy above ~4.3 (see §3).
 
-| Character  | Runs            | Notes                                                                                                  |
-| ---------- | --------------- | ------------------------------------------------------------------------------------------------------ |
-| `gilfoyle` | **4.50 / 4.38** | Passed as shipped in Session 3 (4.50 / 4.63); unchanged by the §1b tendency split.                     |
-| `dinesh`   | **4.00 / 4.19** | As shipped **3.81 / 4.25**; re-tuned to **4.50 / 4.31**; §1b's tendency split settled him at ~4.0–4.2. |
-| `barker`   | ≈3.95–4.0       | Session 1 plateau; unchanged since (Session 2 was picker plumbing, no voice card touched).             |
-| `erlich`   | 4.50 / 4.31     | Carried over from the card iteration recorded in §2; not re-measured on 2026-07-27.                    |
-| `jared`    | **4.63 / 4.75** | Session 5 (2026-07-28); first analyze-path inheritance. Sustained well above bar.                      |
+| Character  | Runs                | Notes                                                                                                  |
+| ---------- | ------------------- | ------------------------------------------------------------------------------------------------------ |
+| `gilfoyle` | **4.50 / 4.38**     | Passed as shipped in Session 3 (4.50 / 4.63); unchanged by the §1b tendency split.                     |
+| `dinesh`   | **4.00 / 4.19**     | As shipped **3.81 / 4.25**; re-tuned to **4.50 / 4.31**; §1b's tendency split settled him at ~4.0–4.2. |
+| `barker`   | ≈3.95–4.0           | Session 1 plateau; unchanged since (Session 2 was picker plumbing, no voice card touched).             |
+| `erlich`   | 4.50 / 4.31         | Carried over from the card iteration recorded in §2; not re-measured on 2026-07-27.                    |
+| `jared`    | **4.63 / 4.75**     | Session 5 (2026-07-28); first analyze-path inheritance. Sustained well above bar.                      |
+| `russ`     | _(pending harness)_ | Session 6 (2026-07-28); fill after `node scripts/barker-fidelity.mjs russ`.                            |
 
 A session that cannot run the harness must say so in the PR (Sessions 2–4 correctly did) and leave
 the row blank rather than assert a score — but the row is then **not** done. Budget ~4 minutes and a
@@ -70,11 +74,11 @@ voice card.
 
 ### Reachability ladder (locked — do not re-litigate)
 
-| Who                                                                                           | How you reach them                          | Frequency                                                                                                                                          |
-| --------------------------------------------------------------------------------------------- | ------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Full-weight team advisors (Erlich, Gilfoyle, Dinesh, Jared; then Russ / Richard as they land) | Roundtable + radial / hotkey / mascot       | Peer weight in `pickNextPersona`                                                                                                                   |
-| **Jack Barker**                                                                               | Same Your Team surfaces                     | **Throttled** — in `ADVISOR_ORDER` at `ADVISOR_PICK_WEIGHTS.barker` = 0.5 (~half as often as a peer). ≤1 senior email/session. No walk-by/IM spam. |
-| **Gavin Belson** (ex-Marcus)                                                                  | Steering meetings + ≤1 senior email/session | **Scarcer than Barker** — never proactive roundtable, never a team transform seat. Fiction: Barker reports to him.                                 |
+| Who                                                                                         | How you reach them                          | Frequency                                                                                                                                          |
+| ------------------------------------------------------------------------------------------- | ------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Full-weight team advisors (Erlich, Gilfoyle, Dinesh, Jared, Russ; then Richard as he lands) | Roundtable + radial / hotkey / mascot       | Peer weight in `pickNextPersona`                                                                                                                   |
+| **Jack Barker**                                                                             | Same Your Team surfaces                     | **Throttled** — in `ADVISOR_ORDER` at `ADVISOR_PICK_WEIGHTS.barker` = 0.5 (~half as often as a peer). ≤1 senior email/session. No walk-by/IM spam. |
+| **Gavin Belson** (ex-Marcus)                                                                | Steering meetings + ≤1 senior email/session | **Scarcer than Barker** — never proactive roundtable, never a team transform seat. Fiction: Barker reports to him.                                 |
 
 ### Session 2 drill — Barker throttled roundtable (✅ shipped 2026-07-27)
 
@@ -96,7 +100,7 @@ test + doc sweep). What shipped, as the template for any future weight change:
    Session 5 seats Jared these shift again — recompute from `π`, don't nudge the literal.
 3. Belson / Marcus (`cto`), `ciso`, `cfo` stay OUT — a regression test pins that list.
 4. Senior email cap untouched; roster + radial ordering already had him findable-but-not-first
-   (radial: after `goMad`, before `critique`; roster: last, under "Upstairs"), so no reorder.
+   (radial: after `russ`, before `critique`; roster: last, under "Upstairs"), so no reorder.
 5. `castTiers.js` deliberately **not** changed — `barker` stays a single-tier `senior` tag
    (`tierOf` is first-match and the meeting directory iterates the tiers, so a second membership
    would double him in the picker). Roundtable membership is `ADVISOR_ORDER`'s job; the tier
@@ -118,7 +122,7 @@ card; the harness proves it; the wire-in is a mechanical drill whose size depend
 
 ### 1. Pick the tier (decides the touch list)
 
-- **team** (Erlich→innovate→`erlich`, Gilfoyle→refine→`gilfoyle`, Jared→critique, Russ→goMad, Richard→explain): the
+- **team** (Erlich→innovate→`erlich`, Gilfoyle→refine→`gilfoyle`, Jared→critique, Russ→russ, Richard→explain): the
   character INHERITS an existing advisor seat — the generic persona id is retired and the
   character id takes over everything the seat touched, including the transform/analyze behavior
   and the wire enum. This is the seat-inheritance drill below; Barker proved it on the `exec`
@@ -151,7 +155,7 @@ kind of change it reaches for first when you ask it for help. Locked 2026-07-27:
 | **Dinesh**   | what **has not survived contact** — the failure branch, unowned handoff, ambiguous trigger, biting ordering   | grows it                                        |
 | **Erlich**   | the bolder shape nobody proposed                                                                              | restructures it                                 |
 | **Jared**    | process and accountability gaps — who owns the step, what happens when it fails, whether the handoff is named | **findings only** (analyze; no canvas mutation) |
-| **Go Mad**   | escalation rooted in the subject                                                                              | anything                                        |
+| **Russ**     | escalation rooted in the subject                                                                              | anything                                        |
 
 Both engineers grow the diagram; Barker is the only one who shrinks it. The two engineers are
 separated **only** by this axis — they deliberately share budgets, temperature and one policy
@@ -261,7 +265,7 @@ Never kind: "suggestion".` reads to the model as _never emit the word "suggestio
   JSON, visible-label references) themselves.
 - **Team seats: keep the seat's behavior spec, change only the voice.** The seat's contract
   (Barker: subtractive-only suggestions, ~1 in 5 deliberately too far, ~1 in 3 pure comment;
-  refine: always actionable; critique: findings only; goMad: escalation with diagram-type
+  refine: always actionable; critique: findings only; russ: escalation with diagram-type
   roulette; explain: comment-only pattern/lore — never mutates the canvas)
   lives in the persona block — port the skeleton verbatim, re-skin the voice, keep temperatures
   and ratios. The wire validators (`mermaidTransformPolicy.ts` etc.) enforce the same budgets by
@@ -496,9 +500,9 @@ For team seats add: `slopitect.{en-AU,zh-CN,zh-TW}.js` (persona block, tagline, 
 ## Endgame: the SV team
 
 The destination is the locked cast map in the [Status board](#status-board) (program plan,
-2026-07-26; reachability 2026-07-27): **Russ → `goMad`**, **Erlich → `erlich`** (shipped),
+2026-07-26; reachability 2026-07-27): **Russ → `russ`** (shipped, ex-`goMad`), **Erlich → `erlich`** (shipped),
 **Gilfoyle → `gilfoyle`** (shipped), **Dinesh → new seventh seat `dinesh`** (gilfoyle-class; core team +
-battle dual-home), **Jared → `jared`**, **Richard → `richard`**, **Barker → sixth seat** (shipped,
+battle dual-home), **Jared → `jared`** (shipped), **Richard → `richard`**, **Barker → sixth seat** (shipped,
 incl. Session 2 throttled roundtable), **Gavin Belson → `belson`** (scarcer senior; Jack reports to
 him). One character per agent run — seat-inheritance (§4b) except Dinesh (new mode) and Belson
 (senior §4a + Marcus retirement).

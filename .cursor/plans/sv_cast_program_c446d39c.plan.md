@@ -27,7 +27,7 @@ todos:
     content: 'Session: Jared inherits critique'
     status: pending
   - id: russ
-    content: 'Session: Russ inherits goMad (content-policy careful voice card)'
+    content: 'Session: Russ inherits russ (content-policy careful voice card)'
     status: pending
   - id: richard
     content: 'Session: Richard inherits explain (comment-only)'
@@ -90,7 +90,7 @@ flowchart TB
 | team        | `refine` → `gilfoyle` | Bertram Gilfoyle  | Engineer                                                       |
 | team        | **new** `dinesh`      | Dinesh Chugtai    | Second engineer; desk by Gilfoyle; core team                   |
 | team        | `critique` → `jared`  | Jared Dunn        | Auditor                                                        |
-| team        | `goMad` → Russ        | Russ Hanneman     | goMad                                                          |
+| team        | `russ` → Russ         | Russ Hanneman     | russ                                                           |
 | team        | `explain` → `richard` | Richard Hendricks | Comment-only Wise Architect                                    |
 | senior      | `cto` → `belson`      | Gavin Belson      | Jack’s boss; scarcer than Jack                                 |
 
@@ -139,7 +139,7 @@ Recipe stays the status board. Next agent should land docs with (or before) the 
 2. Gilfoyle → `gilfoyle`
 3. Dinesh → new seat
 4. Jared → `jared`
-5. Russ → goMad
+5. Russ → russ
 6. Richard → `richard`
 7. Belson → retire Marcus (scarce senior)
 

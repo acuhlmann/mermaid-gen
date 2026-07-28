@@ -1,9 +1,9 @@
 import { inferInfographicTemplate } from '../prompts/infographicSyntaxGuard.js';
 import { templateFamilyFromTemplate } from '@archislop/shared';
 
-const GO_MAD_TEMPLATE_FAMILIES = ['list', 'sequence', 'compare', 'chart', 'hierarchy', 'relation'];
+const RUSS_TEMPLATE_FAMILIES = ['list', 'sequence', 'compare', 'chart', 'hierarchy', 'relation'];
 
-const GO_MAD_EXOTIC_TEMPLATES = [
+const RUSS_EXOTIC_TEMPLATES = [
   'compare-swot',
   'compare-quadrant-quarter-simple-card',
   'sequence-snake-steps-simple',
@@ -45,13 +45,14 @@ export const INFOGRAPHIC_TRANSFORM_INSTRUCTIONS = {
 - Shorten every label to executive-summary phrasing: verbs and nouns, no parentheticals, no asides.
 - Keep \`theme\` / \`palette\` untouched if present — preserve brand colors.
 - Output valid AntV Infographic DSL; one apply_infographic_patch call, then a one-sentence summary in serene, thrilled boardroom voice (at most ONE Barker-ism).`,
-  goMad: `Transform mode: GO MAD — THE SLOPITECT goes mad ON THE INFOGRAPHIC'S ACTUAL SUBJECT (tier 1–2: same template, louder; tier 3+: template roulette).
-- SUBJECT-ROOTED CHAOS: your madness must be rooted in the infographic's actual subject. If items are recipes, go mad on recipes; if they're org charts, go mad on the org. Defaulting to "blockchain / Kubernetes / Web3 / microservices / DAOs" when the subject is NOT cloud infrastructure is a failure mode.
+  russ: `Transform mode: RUSS — Russ Hanneman (HBO's Silicon Valley) escalates ON THE INFOGRAPHIC'S ACTUAL SUBJECT (tier 1–2: same template, louder; tier 3+: template roulette).
+- SUBJECT-ROOTED CHAOS: your escalation must be rooted in the infographic's actual subject. If items are recipes, escalate recipes; if they're org charts, escalate the org. Defaulting to "blockchain / Kubernetes / Web3 / microservices / DAOs" when the subject is NOT cloud infrastructure is a failure mode.
 - Tier 1–2: KEEP the same \`infographic <template>\` — escalate via absurd short labels, keyword \`icon\` phrases, and a wild \`theme\` \`palette\` (3–5 hex colors). No template switch yet.
 - Tier 3+: switch to a different template FAMILY (list → sequence → compare → chart → hierarchy → relation). Prefer exotic supported templates when they parse.
 - Speed first: ONE punchy preamble sentence (max ~18 words) then call apply_infographic_patch immediately.
 - Loud labels: short, on-subject riffs — still readable.
-- Compact spectacle: 3–7 items. Weird > safe — but weird IN-SUBJECT, not weird-by-default.`
+- Compact spectacle: 3–7 items. Weird > safe — but weird IN-SUBJECT, not weird-by-default.
+- Prose after the patch: loud bro-investor (tres commas / tequila / "this guy SHIPS"); never mean, never explicit, at most ONE Russ prop.`
 };
 
 /** Stakeholder intent routed through applyIntent (advisor "Do it") — softer than full transform. */
@@ -59,7 +60,7 @@ export const INFOGRAPHIC_INTENT_PERSONA_INSTRUCTIONS = {
   gilfoyle: `Persona: GILFOYLE (Bertram Gilfoyle, systems architect). Keep the current template and data field. Honor the user's wording with surgical label/structure tweaks; add at most 1 item if it obviously belongs — reach first for what the story already assumes but never states.`,
   dinesh: `Persona: DINESH (Dinesh Chugtai, engineer). Keep the current template and data field. Honor the user's wording with surgical label/structure tweaks; add at most 1 item if it obviously belongs — reach first for the gap that will embarrass whoever presents this. The fix is correct; the prose claims the credit.`,
   erlich: `Persona: ERLICH (Erlich Bachman, Hacker Hostel founder). Stay on the visible subject; prefer bold reshaping within the current template before switching. At most one template change if clearly justified for THIS subject.`,
-  goMad: `Persona: GO MAD (Slopitect). Same template unless the request screams for chaos; wild labels/icons/palette anchored to the actual subject. Valid DSL only.`,
+  russ: `Persona: RUSS (Russ Hanneman, tres-commas investor). Same template unless the request screams for escalation; wild labels/icons/palette anchored to the actual subject. Valid DSL only.`,
   barker: `Persona: BARKER (Jack Barker, CEO — Success Theater). Subtractive only — shorten labels, merge/drop items, keep template. Target 3–5 items.`,
   jared: `Persona: JARED (Jared Dunn, Head of Business Development). Apply only what the user asked; do not expand item count. Anxious compliance — flag gaps, never expand scope.`,
   explain: `Persona: EXPLAIN (Wise Architect). Read-only is preferred; if they asked for an edit, minimal label clarity only — no template switch.`
@@ -69,14 +70,14 @@ export const INFOGRAPHIC_INTENT_PERSONA_INSTRUCTIONS = {
  * @param {number} depth
  * @param {string} currentDsl
  */
-export function buildInfographicGoMadEscalation(depth, currentDsl) {
+export function buildInfographicRussEscalation(depth, currentDsl) {
   if (depth < 2) return '';
   const currentTemplate = inferInfographicTemplate(currentDsl) || '';
   const currentFamily = templateFamilyFromTemplate(currentTemplate);
 
   if (depth <= 2) {
     return `
-GO MAD escalation (tier ${depth}):
+RUSS escalation (tier ${depth}):
 - KEEP template "${currentTemplate || '(current)'}" — no family switch yet.
 - Palette MUST differ from before (3+ bold hex colors under theme palette).
 - Every item gets a fresh icon keyword phrase; labels shorter and weirder than tier ${depth - 1}.
@@ -84,18 +85,18 @@ GO MAD escalation (tier ${depth}):
   }
 
   const forbidden = currentFamily ? ` (family "${currentFamily}" is OFF-LIMITS)` : '';
-  const familyOptions = GO_MAD_TEMPLATE_FAMILIES.filter((f) => f !== currentFamily).join(', ');
+  const familyOptions = RUSS_TEMPLATE_FAMILIES.filter((f) => f !== currentFamily).join(', ');
   const exoticHint =
     depth >= 4
-      ? `- Prefer exotic templates: ${GO_MAD_EXOTIC_TEMPLATES.slice(0, 8).join(', ')}.\n`
-      : `- Lean exotic: ${GO_MAD_EXOTIC_TEMPLATES.slice(0, 5).join(', ')}.\n`;
+      ? `- Prefer exotic templates: ${RUSS_EXOTIC_TEMPLATES.slice(0, 8).join(', ')}.\n`
+      : `- Lean exotic: ${RUSS_EXOTIC_TEMPLATES.slice(0, 5).join(', ')}.\n`;
   const tierHint =
     depth >= 5
       ? `- Tier ${depth}: peak chaos — one coherent geek joke; valid DSL.\n`
       : `- Tier ${depth}: noticeably wilder than tier ${depth - 1}.\n`;
 
   return `
-GO MAD escalation (tier ${depth}):
+RUSS escalation (tier ${depth}):
 ${tierHint}- Switch template family${forbidden}. Pick from: ${familyOptions}.
 ${exoticHint}- Palette MUST swing (4–5 loud hex colors).
 - Labels: short, absurd, geek-coded.
@@ -103,23 +104,22 @@ ${exoticHint}- Palette MUST swing (4–5 loud hex colors).
 }
 
 /**
- * @param {{ mode: string, focusScope?: string, currentDsl: string, goMadDepth?: number, originalRequest?: string | null, advisorPrompt?: string | null }} args
+ * @param {{ mode: string, focusScope?: string, currentDsl: string, russDepth?: number, originalRequest?: string | null, advisorPrompt?: string | null }} args
  */
 export function buildInfographicTransformUserContent({
   mode,
   focusScope = '',
   currentDsl,
-  goMadDepth,
+  russDepth,
   originalRequest,
   advisorPrompt
 }) {
   const directive =
     INFOGRAPHIC_TRANSFORM_INSTRUCTIONS[mode] ?? INFOGRAPHIC_TRANSFORM_INSTRUCTIONS.gilfoyle;
   const depthValue =
-    mode === 'goMad' ? Math.min(12, Math.max(1, Math.trunc(Number(goMadDepth) || 1))) : 0;
-  const depthLine = mode === 'goMad' && goMadDepth ? `\nGo Mad depth: ${depthValue} of 12.` : '';
-  const escalation =
-    mode === 'goMad' ? buildInfographicGoMadEscalation(depthValue, currentDsl) : '';
+    mode === 'russ' ? Math.min(12, Math.max(1, Math.trunc(Number(russDepth) || 1))) : 0;
+  const depthLine = mode === 'russ' && russDepth ? `\nRuss depth: ${depthValue} of 12.` : '';
+  const escalation = mode === 'russ' ? buildInfographicRussEscalation(depthValue, currentDsl) : '';
   const stakeholderBlock =
     typeof advisorPrompt === 'string' && advisorPrompt.trim()
       ? `\n\nStakeholder suggestion to honor within the transform rules above:\n"${advisorPrompt.trim().slice(0, 400)}"\n`

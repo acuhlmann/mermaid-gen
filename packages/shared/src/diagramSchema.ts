@@ -161,9 +161,9 @@ export const IntentSettingsSchema = z
   // wrap as `() => ({})` so it accepts.
   .default(() => ({}) as never);
 
-export const TransformModeSchema = z.enum(['gilfoyle', 'dinesh', 'erlich', 'goMad', 'barker']);
+export const TransformModeSchema = z.enum(['gilfoyle', 'dinesh', 'erlich', 'russ', 'barker']);
 
-/** When set (gilfoyle|dinesh|erlich|goMad|barker), intent edits follow stakeholder transform constraints. */
+/** When set (gilfoyle|dinesh|erlich|russ|barker), intent edits follow stakeholder transform constraints. */
 export const TransformPersonaSchema = TransformModeSchema;
 
 export const DiagramIntentSchema = z
@@ -199,8 +199,8 @@ export const DiagramIntentSchema = z
     }
   });
 
-/** Escalation tier for repeated Go Mad transforms (1 = first click). Ignored unless mode is goMad. */
-export const GoMadDepthSchema = z.number().int().min(1).max(12).optional();
+/** Escalation tier for repeated Russ transforms (1 = first click). Ignored unless mode is russ. */
+export const RussDepthSchema = z.number().int().min(1).max(12).optional();
 
 export const DiagramTransformIntentSchema = z.object({
   revisionId: z.number().int().nonnegative(),
@@ -209,7 +209,7 @@ export const DiagramTransformIntentSchema = z.object({
   mode: TransformModeSchema,
   focusNode: FocusNodeSchema.optional(),
   modelProfile: ModelProfileSchema.optional(),
-  goMadDepth: GoMadDepthSchema,
+  russDepth: RussDepthSchema,
   /** Stakeholder bubble text when transform is triggered from advisor "Do it". */
   advisorPrompt: z.string().max(400).optional()
 });
@@ -283,7 +283,7 @@ export const AgentStreamPayloadSchema = z.discriminatedUnion('operation', [
     mode: TransformModeSchema,
     focusNode: FocusNodeSchema.optional(),
     modelProfile: ModelProfileSchema.optional(),
-    goMadDepth: GoMadDepthSchema,
+    russDepth: RussDepthSchema,
     advisorPrompt: z.string().max(400).optional()
   }),
   z.object({
@@ -498,7 +498,7 @@ export type IntentSettings = z.infer<typeof IntentSettingsSchema>;
 export type TransformMode = z.infer<typeof TransformModeSchema>;
 export type TransformPersona = z.infer<typeof TransformPersonaSchema>;
 export type DiagramIntent = z.infer<typeof DiagramIntentSchema>;
-export type GoMadDepth = z.infer<typeof GoMadDepthSchema>;
+export type RussDepth = z.infer<typeof RussDepthSchema>;
 export type DiagramTransformIntent = z.infer<typeof DiagramTransformIntentSchema>;
 export type DiagramAnalyze = z.infer<typeof DiagramAnalyzeSchema>;
 export type AgentStreamPayload = z.infer<typeof AgentStreamPayloadSchema>;

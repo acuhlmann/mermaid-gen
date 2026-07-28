@@ -137,3 +137,51 @@ test('erlich accepts bold restructuring within node and edge budgets', () => {
   });
   assert.equal(result.ok, true);
 });
+
+test('russ tier 1–2 keeps diagram type (wild labels ok)', () => {
+  const after = BUSY_FLOW.replace(/Acquire/g, 'YEET').replace(/Ship/g, 'SHIP IT');
+  const result = validateMermaidTransformConstraint({
+    transformMode: 'russ',
+    russDepth: 2,
+    beforeSource: BUSY_FLOW,
+    afterSource: after
+  });
+  assert.equal(result.ok, true);
+});
+
+test('russ tier 1–2 rejects type switch', () => {
+  const after = 'sequenceDiagram\n  A->>B: hi';
+  const result = validateMermaidTransformConstraint({
+    transformMode: 'russ',
+    russDepth: 2,
+    beforeSource: BUSY_FLOW,
+    afterSource: after
+  });
+  if (result.ok) throw new Error('expected not ok');
+  assert.match(result.error, /Russ tier 2: keep diagram type/i);
+  assert.equal(isMermaidTransformConstraintError(result.error), true);
+});
+
+test('russ tier 3+ requires diagram type switch', () => {
+  const after = BUSY_FLOW.replace(/Acquire/g, 'Louder');
+  const result = validateMermaidTransformConstraint({
+    transformMode: 'russ',
+    russDepth: 3,
+    beforeSource: BUSY_FLOW,
+    afterSource: after
+  });
+  if (result.ok) throw new Error('expected not ok');
+  assert.match(result.error, /Russ tier 3: switch diagram type/i);
+  assert.equal(isMermaidTransformConstraintError(result.error), true);
+});
+
+test('russ tier 3+ accepts type switch', () => {
+  const after = 'pie title Commas\n  "Two" : 2\n  "Tres" : 3';
+  const result = validateMermaidTransformConstraint({
+    transformMode: 'russ',
+    russDepth: 3,
+    beforeSource: BUSY_FLOW,
+    afterSource: after
+  });
+  assert.equal(result.ok, true);
+});

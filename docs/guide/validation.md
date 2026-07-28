@@ -59,7 +59,7 @@ All six mode agents share the same budget discipline (`packages/shared/src/agent
 - **Don't start what can't finish.** Before another full-agent repair turn the loop requires `MIN_AGENT_REPAIR_TURN_BUDGET_MS` (12 s) of remaining budget, and before the syntax-fixer ladder `MIN_SYNTAX_FIXER_BUDGET_MS` (18 s). When the remainder is too small the run fails fast instead of burning a model call that will be cut off anyway.
 - **Root cause survives the timeout.** When a run stops on budget, `appendLastValidationError` attaches the most recent validator diagnostic to the `run_budget_exceeded` error (`Last validation error: …`). Exhausted repair loops likewise return `<Mode> update failed: <validator error>` rather than model prose. The web client (`apps/web/src/utils/agentStreamFailureStatus.ts`) extracts that marker and renders it as the failure detail, so the UI shows _what was invalid in the DSL_ (e.g. `Parse error on line 3: … Expecting 'SQE', got 'PS'`) even for timeouts.
 - **Parser errors are verbatim.** The server-side Mermaid validator parses without `suppressErrors`, so failures carry Mermaid's real diagnostic (line number, caret, expected tokens) instead of a generic "parser rejected source". Those diagnostics also feed the syntax fixer and repair prompts, which measurably improves first-repair success.
-- **Client/server budget alignment.** The web client mirrors `resolveAgentRunBudgetMs(profile, {}, mode)` (including Go Mad headroom) plus a 15 s grace before force-aborting a stream, and REST intent/transform requests use the same budget-derived timeout.
+- **Client/server budget alignment.** The web client mirrors `resolveAgentRunBudgetMs(profile, {}, mode)` (including Russ headroom) plus a 15 s grace before force-aborting a stream, and REST intent/transform requests use the same budget-derived timeout.
 
 ## Infographic validation pipeline
 
@@ -189,14 +189,14 @@ Phases 0–4 of the Mermaid reliability ladder are shipped (sanitizer in [`packa
 
 ### bench-with-llm
 
-Extend the bench (or add a sibling script) to drive `applyIntent` / `applyTransformIntent` across modes and model profiles on a fixed prompt corpus with real API keys. (`GO_MAD_TEMP_MAX` has since been trimmed to ~1.15 — Go Mad chaos is now prompt-driven; a bench like this would confirm the accept-rate gain and whether the JSON intermediate below is still worth building.)
+Extend the bench (or add a sibling script) to drive `applyIntent` / `applyTransformIntent` across modes and model profiles on a fixed prompt corpus with real API keys. (`RUSS_TEMP_MAX` has since been trimmed to ~1.15 — Russ chaos is now prompt-driven; a bench like this would confirm the accept-rate gain and whether the JSON intermediate below is still worth building.)
 
-### JSON-graph intermediate (Go Mad only)
+### JSON-graph intermediate (Russ only)
 
-If Go Mad accept rate stays below target after the shipped ladder, introduce a structured intermediate for high-temperature modes only:
+If Russ accept rate stays below target after the shipped ladder, introduce a structured intermediate for high-temperature modes only:
 
-- Extend [`packages/shared/src/diagramSchema.ts`](../../packages/shared/src/diagramSchema.ts) with a discriminated union for diagram types Go Mad uses (mindmap, timeline, gitGraph, quadrantChart, pie, sankey-beta, block-beta, C4\*, flowchart, sequenceDiagram, stateDiagram-v2).
+- Extend [`packages/shared/src/diagramSchema.ts`](../../packages/shared/src/diagramSchema.ts) with a discriminated union for diagram types Russ uses (mindmap, timeline, gitGraph, quadrantChart, pie, sankey-beta, block-beta, C4\*, flowchart, sequenceDiagram, stateDiagram-v2).
 - Add `compileDiagramJsonToMermaid` in `packages/shared` — deterministic JSON → Mermaid (quoting, IDs, labels in code).
-- Add `apply_diagram_json` tool parallel to `apply_mermaid_patch`; Go Mad uses it; other modes keep direct Mermaid patches.
+- Add `apply_diagram_json` tool parallel to `apply_mermaid_patch`; Russ uses it; other modes keep direct Mermaid patches.
 
-Skip this if real-LLM bench shows Go Mad ≥ ~90% accept rate after Phases 0–4.
+Skip this if real-LLM bench shows Russ ≥ ~90% accept rate after Phases 0–4.

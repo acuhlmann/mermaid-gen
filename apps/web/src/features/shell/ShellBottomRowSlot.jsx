@@ -52,7 +52,7 @@ export function ShellBottomRowSlot({
   advisorBubbleProps,
   stakeholderIntroProps,
   advisorPause,
-  goMadStreak,
+  russStreak,
   onCallMeeting,
   handleSelectContentMode,
   latestCritique,
@@ -126,7 +126,7 @@ export function ShellBottomRowSlot({
           advisorBubbleProps={advisorBubbleProps}
           stakeholderIntroProps={stakeholderIntroProps}
           advisorPause={advisorPause}
-          goMadStreak={goMadStreak}
+          russStreak={russStreak}
           diagramSource={diagramSource}
           onCallMeeting={onCallMeeting}
           handleSelectContentMode={handleSelectContentMode}

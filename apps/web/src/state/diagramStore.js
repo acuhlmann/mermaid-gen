@@ -797,7 +797,7 @@ export async function submitDiagramTransform({
   mode,
   focusNode,
   modelProfile,
-  goMadDepth,
+  russDepth,
   sessionId
 }) {
   const response = await fetchWithTimeout(
@@ -812,7 +812,7 @@ export async function submitDiagramTransform({
         mode,
         focusNode,
         ...(modelProfile != null ? { modelProfile } : {}),
-        ...(typeof goMadDepth === 'number' && Number.isFinite(goMadDepth) ? { goMadDepth } : {})
+        ...(typeof russDepth === 'number' && Number.isFinite(russDepth) ? { russDepth } : {})
       })
     },
     agentMutationTimeoutMs(modelProfile, mode),
@@ -921,7 +921,7 @@ export async function streamDiagramAgent(payload, onEvent, options = {}) {
   let maxDurationTimedOut = false;
   let idleTimer = null;
   let maxDurationTimer = null;
-  // Mirror the server's budget, including per-mode headroom (Go Mad runs get a longer
+  // Mirror the server's budget, including per-mode headroom (Russ runs get a longer
   // server budget; without the mode here the client would abort those runs early).
   const runBudgetMs = resolveAgentRunBudgetMs(
     wirePayload.modelProfile,

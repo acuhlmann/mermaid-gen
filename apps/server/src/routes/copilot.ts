@@ -329,7 +329,7 @@ export async function handleDiagramTransformIntent({
       mode: intent.mode,
       focusNode: intent.focusNode,
       modelProfile: intent.modelProfile,
-      goMadDepth: intent.goMadDepth,
+      russDepth: intent.russDepth,
       advisorPrompt: intent.advisorPrompt,
       abortSignal
     });

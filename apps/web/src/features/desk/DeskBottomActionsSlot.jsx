@@ -3,10 +3,10 @@ import StakeholdersMascot from '../../components/StakeholdersMascot.jsx';
 import DeskDrawer from '../../components/DeskDrawer.jsx';
 import DeskNotebookButton from '../../components/DeskNotebookButton.jsx';
 import EntryDeskPointers from '../../components/EntryDeskPointers.jsx';
-import { goMadShapeLabel } from '../../utils/renderModeAction.js';
+import { russShapeLabel } from '../../utils/renderModeAction.js';
 
 function DeskPeopleCluster({
-  goMadStreak,
+  russStreak,
   controls,
   runTransform,
   runAnalyze,
@@ -35,9 +35,9 @@ function DeskPeopleCluster({
             onClick: () => runTransform('erlich', { useDiagramFocus: true })
           },
           {
-            variant: 'goMad',
-            label: goMadShapeLabel(goMadStreak, controls.actions),
-            onClick: () => runTransform('goMad', { useDiagramFocus: true })
+            variant: 'russ',
+            label: russShapeLabel(russStreak, controls.actions),
+            onClick: () => runTransform('russ', { useDiagramFocus: true })
           },
           { variant: 'jared', onClick: () => runAnalyze('jared', { useDiagramFocus: true }) },
           { variant: 'explain', onClick: () => runAnalyze('explain', { useDiagramFocus: true }) },
@@ -93,7 +93,7 @@ function DeskChromeRow({
   thinkingOpen,
   onToggleThinking,
   canToggleThinking = true,
-  goMadStreak,
+  russStreak,
   controls,
   runTransform,
   runAnalyze,
@@ -180,7 +180,7 @@ function DeskChromeRow({
           className={`desk-chrome-tool desk-tour-piece desk-tour-piece--team${tourHighlight === 'team' ? ' is-tour-highlight' : ''}`}
         >
           <DeskPeopleCluster
-            goMadStreak={goMadStreak}
+            russStreak={russStreak}
             controls={controls}
             runTransform={runTransform}
             runAnalyze={runAnalyze}
@@ -266,7 +266,7 @@ export function DeskBottomActionsSlot({
   advisorBubbleProps,
   stakeholderIntroProps,
   advisorPause,
-  goMadStreak,
+  russStreak,
   diagramSource,
   onCallMeeting,
   handleSelectContentMode,
@@ -319,7 +319,7 @@ export function DeskBottomActionsSlot({
     thinkingOpen: insightsOpen,
     onToggleThinking,
     canToggleThinking,
-    goMadStreak,
+    russStreak,
     controls,
     runTransform,
     runAnalyze,

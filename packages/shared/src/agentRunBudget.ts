@@ -2,12 +2,12 @@
 // a quality full-agent repair turn when Brain Fast was used for the first pass.
 export const DEFAULT_AGENT_RUN_BUDGET_MS_FAST = 120_000;
 export const DEFAULT_AGENT_RUN_BUDGET_MS_QUALITY = 210_000;
-// Go Mad output fails validation more often than other modes (exotic diagram
+// Russ output fails validation more often than other modes (exotic diagram
 // types, prompt-driven chaos) and may need a recovery or repair turn after the
 // first pass; give it extra headroom so the fallback turn doesn't get cut off
 // mid-stream ("BodyStreamBuffer aborted").
-export const DEFAULT_AGENT_RUN_BUDGET_MS_FAST_GO_MAD = 150_000;
-export const DEFAULT_AGENT_RUN_BUDGET_MS_QUALITY_GO_MAD = 240_000;
+export const DEFAULT_AGENT_RUN_BUDGET_MS_FAST_RUSS = 150_000;
+export const DEFAULT_AGENT_RUN_BUDGET_MS_QUALITY_RUSS = 240_000;
 export const DEFAULT_AGENT_REPAIR_ATTEMPTS_FAST = 2;
 export const DEFAULT_AGENT_REPAIR_ATTEMPTS_QUALITY = 2;
 
@@ -54,11 +54,11 @@ export function resolveAgentRunBudgetMs(
   mode: string | null = null
 ) {
   const p = normalizeAgentModelProfile(profile);
-  const isGoMad = mode === 'goMad';
-  const fallback = isGoMad
+  const isRuss = mode === 'russ';
+  const fallback = isRuss
     ? p === 'quality'
-      ? DEFAULT_AGENT_RUN_BUDGET_MS_QUALITY_GO_MAD
-      : DEFAULT_AGENT_RUN_BUDGET_MS_FAST_GO_MAD
+      ? DEFAULT_AGENT_RUN_BUDGET_MS_QUALITY_RUSS
+      : DEFAULT_AGENT_RUN_BUDGET_MS_FAST_RUSS
     : p === 'quality'
       ? DEFAULT_AGENT_RUN_BUDGET_MS_QUALITY
       : DEFAULT_AGENT_RUN_BUDGET_MS_FAST;

@@ -21,11 +21,11 @@ scripts/         Bash deploy + GCP secret push scripts
 
 ## The three architectural axes (don't conflate them)
 
-| Axis                                      | Path                                 | Who uses it                                                               | Doc                                                                            |
-| ----------------------------------------- | ------------------------------------ | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
-| **Built-in agents (REST + AG-UI SSE)**    | `/api/copilotkit/*`                  | Web UI Go/Gilfoyle/Dinesh/Erlich/Barker/Go Mad/Critique/Explain/Fix/Style | [`docs/architecture-ag-ui.md`](docs/architecture-ag-ui.md)                     |
-| **Collaboration (session-events SSE)**    | `GET /api/copilotkit/session-events` | Handshakes, proposals, presence, reactions, attributed insights           | [`docs/architecture-external-agents.md`](docs/architecture-external-agents.md) |
-| **External agents (MCP Streamable HTTP)** | `GET/POST /mcp`                      | Cursor, Claude Desktop, VS Code Copilot                                   | same                                                                           |
+| Axis                                      | Path                                 | Who uses it                                                             | Doc                                                                            |
+| ----------------------------------------- | ------------------------------------ | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| **Built-in agents (REST + AG-UI SSE)**    | `/api/copilotkit/*`                  | Web UI Go/Gilfoyle/Dinesh/Erlich/Barker/Russ/Critique/Explain/Fix/Style | [`docs/architecture-ag-ui.md`](docs/architecture-ag-ui.md)                     |
+| **Collaboration (session-events SSE)**    | `GET /api/copilotkit/session-events` | Handshakes, proposals, presence, reactions, attributed insights         | [`docs/architecture-external-agents.md`](docs/architecture-external-agents.md) |
+| **External agents (MCP Streamable HTTP)** | `GET/POST /mcp`                      | Cursor, Claude Desktop, VS Code Copilot                                 | same                                                                           |
 
 A **fourth** orthogonal layer is **MCP Apps** (interactive HTML at `ui://archislop/*.html`) opened by MCP tools — see [`docs/architecture-generative-ui.md`](docs/architecture-generative-ui.md) for the full Gen UI map.
 

@@ -12,9 +12,9 @@ const FORMS_DOC = buildFormsSeedDoc();
 
 test('buildFormsTransformUserContent includes mode instructions and advisor prompt', () => {
   const body = buildFormsTransformUserContent({
-    mode: 'goMad',
+    mode: 'russ',
     currentDoc: FORMS_DOC,
-    goMadDepth: 3,
+    russDepth: 3,
     advisorPrompt: 'Add a witness signature block'
   });
   assert.match(body, /Go mad on this form/);

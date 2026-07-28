@@ -5,7 +5,7 @@ const VARIANT_DURATION_MS = {
   gilfoyle: 660,
   dinesh: 660,
   erlich: 660,
-  goMad: 820,
+  russ: 820,
   jared: 700,
   explain: 700
 };
@@ -16,7 +16,7 @@ const VARIANT_CSS_CLASS = {
   gilfoyle: 'is-gilfoyle',
   dinesh: 'is-dinesh',
   erlich: 'is-erlich',
-  goMad: 'is-go-mad',
+  russ: 'is-russ',
   jared: 'is-jared',
   explain: 'is-explain'
 };
@@ -61,8 +61,8 @@ export default function ActionBootSequence({ trigger, variant }) {
   return (
     <div className={className} aria-hidden="true" data-testid="boot-sequence">
       <div className="boot-sequence-flash" />
-      {playing.variant === 'goMad' ? <div className="boot-bonk-flash" /> : null}
-      {playing.variant === 'goMad' ? <div className="boot-hardhat">🪖</div> : null}
+      {playing.variant === 'russ' ? <div className="boot-bonk-flash" /> : null}
+      {playing.variant === 'russ' ? <div className="boot-hardhat">🪖</div> : null}
       {playing.variant === 'jared' ? <div className="boot-clipboard">📋</div> : null}
       {playing.variant === 'explain' ? <div className="boot-scroll">📜</div> : null}
       {playing.variant === 'gilfoyle' ? <div className="boot-sparkle">✨</div> : null}

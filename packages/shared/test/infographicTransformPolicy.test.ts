@@ -45,21 +45,21 @@ test('barker rejects extra items', () => {
   if (result.ok) throw new Error('expected not ok');
 });
 
-test('goMad tier 2 keeps template', () => {
+test('russ tier 2 keeps template', () => {
   const after = BASE.replace(/Step 1/g, 'RFC 9001');
   const result = validateInfographicTransformConstraint({
-    transformMode: 'goMad',
-    goMadDepth: 2,
+    transformMode: 'russ',
+    russDepth: 2,
     beforeSource: BASE,
     afterSource: after
   });
   assert.equal(result.ok, true);
 });
 
-test('goMad tier 3 requires family change', () => {
+test('russ tier 3 requires family change', () => {
   const result = validateInfographicTransformConstraint({
-    transformMode: 'goMad',
-    goMadDepth: 3,
+    transformMode: 'russ',
+    russDepth: 3,
     beforeSource: BASE,
     afterSource: BASE.replace('Step 1', 'RFC 9001')
   });

@@ -13,7 +13,7 @@ function createCtx(overrides = {}) {
     finalizeTechnicalActionResult: vi.fn(),
     enrichTechnicalActionDetail: vi.fn(),
     lastTokenSoundAtRef: { current: 0 },
-    goMadTokenTickIndexRef: { current: 0 },
+    russTokenTickIndexRef: { current: 0 },
     lastDraftTickAtRef: { current: 0 },
     tryAgentSound: vi.fn(),
     setLiveDraftSource: vi.fn(),

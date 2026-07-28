@@ -3,7 +3,7 @@ import { act, cleanup, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   playFailureChime,
-  playGoMadStreamStart,
+  playRussStreamStart,
   playErlichStreamStart,
   playGilfoyleStreamStart,
   playStreamStartChime
@@ -37,7 +37,7 @@ function createDeps(overrides = {}) {
     },
     streamAgentAbortRef: { current: null },
     lastTokenSoundAtRef: { current: 99 },
-    goMadTokenTickIndexRef: { current: 5 },
+    russTokenTickIndexRef: { current: 5 },
     lastDraftTickAtRef: { current: 0 },
     sessionTopicRef: { current: null },
     crossModeSyncRef: { current: {} },
@@ -46,7 +46,7 @@ function createDeps(overrides = {}) {
     agentCostEstimatesRef: { current: {} },
     autoCloseActiveEntryIdRef: { current: null },
     setInsightsOpen: vi.fn(),
-    setGoMadStreak: vi.fn(),
+    setRussStreak: vi.fn(),
     setLiveDraftSource: vi.fn(),
     setLiveDraftContentType: vi.fn(),
     appendInsightEntry: vi.fn(() => 'section-42'),
@@ -121,7 +121,7 @@ describe('useRunStreamingAgent', () => {
     const { result } = renderHook(() => useRunStreamingAgent(deps));
 
     for (const [variant, chime] of [
-      ['goMad', playGoMadStreamStart],
+      ['russ', playRussStreamStart],
       ['erlich', playErlichStreamStart],
       ['gilfoyle', playGilfoyleStreamStart]
     ]) {

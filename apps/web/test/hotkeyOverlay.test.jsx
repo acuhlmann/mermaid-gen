@@ -18,7 +18,7 @@ describe('HotkeyOverlay', () => {
     expect(screen.getByTestId('hotkey-overlay')).toBeTruthy();
     expect(screen.getByText('Keyboard shortcuts')).toBeTruthy();
     expect(screen.getByText(/Gilfoyle/i)).toBeTruthy();
-    expect(screen.getByText(/Go Mad/i)).toBeTruthy();
+    expect(screen.getByText(/Russ/i)).toBeTruthy();
   });
 
   it('Escape dismisses the overlay', () => {

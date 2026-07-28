@@ -89,7 +89,7 @@ export function playErlichStreamStart(audioContextRef) {
 }
 
 /** Ascending triad — unmistakably “something extra is happening”. */
-export function playGoMadStreamStart(audioContextRef) {
+export function playRussStreamStart(audioContextRef) {
   const context = getContext(audioContextRef);
   if (!context) return;
   const now = context.currentTime;
@@ -148,8 +148,8 @@ export function playTokenTickChime(audioContextRef) {
   });
 }
 
-/** Playful chatter while Go Mad streams; `tickIndex` varies pitch. */
-export function playGoMadTokenTick(audioContextRef, tickIndex = 0) {
+/** Playful chatter while Russ streams; `tickIndex` varies pitch. */
+export function playRussTokenTick(audioContextRef, tickIndex = 0) {
   const freqs = [720, 840, 660, 910, 780, 990];
   const f = freqs[Math.abs(tickIndex) % freqs.length];
   playShortTone(audioContextRef, {
@@ -314,8 +314,8 @@ export function playErlichBoot(audioContextRef) {
   });
 }
 
-/** Go Mad boot: airhorn-ish three-note hit. Loud and unhinged but brief. */
-export function playGoMadBoot(audioContextRef) {
+/** Russ boot: airhorn-ish three-note hit. Loud and unhinged but brief. */
+export function playRussBoot(audioContextRef) {
   const context = getContext(audioContextRef);
   if (!context) return;
   const now = context.currentTime;
@@ -652,8 +652,8 @@ export function playErlichSynthLoop(audioContextRef) {
   osc.stop(now + 0.22);
 }
 
-/** Go Mad: brief klaxon honk — for unhinged ambient chaos. */
-export function playGoMadKlaxonLoop(audioContextRef) {
+/** Russ: brief klaxon honk — for unhinged ambient chaos. */
+export function playRussKlaxonLoop(audioContextRef) {
   const context = getContext(audioContextRef);
   if (!context) return;
   const now = context.currentTime;
@@ -715,8 +715,8 @@ export function playExplainPageFlipLoop(audioContextRef) {
   osc.stop(now + 0.28);
 }
 
-/** Rare Go Mad airhorn blast — dramatic, use sparingly. */
-export function playGoMadAirhornBlast(audioContextRef) {
+/** Rare Russ airhorn blast — dramatic, use sparingly. */
+export function playRussAirhornBlast(audioContextRef) {
   const context = getContext(audioContextRef);
   if (!context) return;
   const now = context.currentTime;
@@ -768,8 +768,8 @@ export function playKonamiRainbow(audioContextRef) {
   });
 }
 
-/** Short fanfare when Go Mad completes. */
-export function playGoMadCompletionChime(audioContextRef) {
+/** Short fanfare when Russ completes. */
+export function playRussCompletionChime(audioContextRef) {
   const context = getContext(audioContextRef);
   if (!context) return;
   const now = context.currentTime;

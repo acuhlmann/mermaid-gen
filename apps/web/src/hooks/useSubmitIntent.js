@@ -25,7 +25,7 @@ import { formatFormAnswer } from '../utils/formatFormAnswer.js';
  *   setActiveRequest: (value: string | null) => void;
  *   setDeskPrompt: (value: string) => void;
  *   setError: (value: string) => void;
- *   setGoMadStreak: (value: number | ((prev: number) => number)) => void;
+ *   setRussStreak: (value: number | ((prev: number) => number)) => void;
  *   setInsightsOpen: (value: boolean | ((prev: boolean) => boolean)) => void;
  *   setLatestCritique: (value: object | null) => void;
  *   setLoading: (value: boolean) => void;
@@ -53,7 +53,7 @@ export function useSubmitIntent({
   setActiveRequest,
   setDeskPrompt,
   setError,
-  setGoMadStreak,
+  setRussStreak,
   setInsightsOpen,
   setLatestCritique,
   setLoading,
@@ -75,7 +75,7 @@ export function useSubmitIntent({
 
       setInsightsOpen(true);
       tryAgentSound(playSubmitThunk);
-      setGoMadStreak(0);
+      setRussStreak(0);
       const focusNode = resolveAdvisorFocusNode({
         advisorFocusDescriptor: options.advisorFocusDescriptor,
         focusTarget: options.focusTarget,
@@ -143,7 +143,7 @@ export function useSubmitIntent({
       selectedNode,
       setActiveRequest,
       setError,
-      setGoMadStreak,
+      setRussStreak,
       setInsightsOpen,
       setLatestCritique,
       setLoading,

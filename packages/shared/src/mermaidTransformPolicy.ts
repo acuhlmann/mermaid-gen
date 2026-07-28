@@ -1,6 +1,6 @@
 import { countMermaidGraphElements, inferMermaidTopKeyword } from './mermaidGraphMetrics.js';
 
-const TRANSFORM_MODES = new Set(['gilfoyle', 'dinesh', 'erlich', 'goMad', 'barker']);
+const TRANSFORM_MODES = new Set(['gilfoyle', 'dinesh', 'erlich', 'russ', 'barker']);
 
 const BARKER_MAX_NODES = 8;
 const BARKER_MAX_EDGES = 10;
@@ -10,7 +10,7 @@ const BARKER_MAX_EDGES = 10;
  */
 export function isMermaidTransformConstraintError(message: string | null | undefined) {
   if (!message || typeof message !== 'string') return false;
-  return /executive simplify|subtractive only|may add at most|must keep (?:diagram type|template)|go mad tier/i.test(
+  return /executive simplify|subtractive only|may add at most|must keep (?:diagram type|template)|russ tier|go mad tier/i.test(
     message
   );
 }
@@ -20,7 +20,7 @@ export function isMermaidTransformConstraintError(message: string | null | undef
  *
  * @param {{
  *   transformMode?: string | null,
- *   goMadDepth?: number | null,
+ *   russDepth?: number | null,
  *   beforeSource?: string,
  *   afterSource?: string
  * }} opts
@@ -28,7 +28,7 @@ export function isMermaidTransformConstraintError(message: string | null | undef
  */
 export function validateMermaidTransformConstraint(opts: {
   transformMode?: string | null;
-  goMadDepth?: number | null;
+  russDepth?: number | null;
   beforeSource?: string;
   afterSource?: string;
 }): { ok: true } | { ok: false; error: string } {
@@ -41,7 +41,7 @@ export function validateMermaidTransformConstraint(opts: {
   const afterType = inferMermaidTopKeyword(after);
   const beforeGraph = countMermaidGraphElements(before);
   const afterGraph = countMermaidGraphElements(after);
-  const depth = Math.min(12, Math.max(1, Math.trunc(Number(opts.goMadDepth) || 1)));
+  const depth = Math.min(12, Math.max(1, Math.trunc(Number(opts.russDepth) || 1)));
 
   if (mode === 'barker') {
     if (beforeType !== 'diagram' && afterType !== 'diagram' && beforeType !== afterType) {
@@ -126,12 +126,12 @@ export function validateMermaidTransformConstraint(opts: {
     return { ok: true };
   }
 
-  if (mode === 'goMad') {
+  if (mode === 'russ') {
     if (depth <= 2) {
       if (beforeType !== 'diagram' && afterType !== 'diagram' && beforeType !== afterType) {
         return {
           ok: false,
-          error: `Go Mad tier ${depth}: keep diagram type "${beforeType}" — wild labels and styling only.`
+          error: `Russ tier ${depth}: keep diagram type "${beforeType}" — wild labels and styling only.`
         };
       }
       return { ok: true };
@@ -139,7 +139,7 @@ export function validateMermaidTransformConstraint(opts: {
     if (beforeType !== 'diagram' && afterType !== 'diagram' && beforeType === afterType) {
       return {
         ok: false,
-        error: `Go Mad tier ${depth}: switch diagram type (still "${beforeType}").`
+        error: `Russ tier ${depth}: switch diagram type (still "${beforeType}").`
       };
     }
     return { ok: true };

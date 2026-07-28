@@ -19,7 +19,7 @@ const VARIANT_CLASS = {
   gilfoyle: 'is-gilfoyle',
   dinesh: 'is-dinesh',
   erlich: 'is-erlich',
-  goMad: 'is-go-mad',
+  russ: 'is-russ',
   jared: 'is-jared',
   explain: 'is-explain',
   barker: 'is-barker'
@@ -29,7 +29,7 @@ const ACTION_LABEL = {
   gilfoyle: 'Refine',
   dinesh: 'Refine',
   erlich: 'Innovate',
-  goMad: 'Go Mad',
+  russ: 'Russ',
   jared: 'Critique',
   explain: 'Explain',
   barker: 'Synergize'
@@ -41,7 +41,7 @@ function resolveActionLabel(variant, controls) {
 }
 
 function cssVariant(variant) {
-  return variant === 'goMad' ? 'go-mad' : variant;
+  return variant === 'russ' ? 'russ' : variant;
 }
 
 /**

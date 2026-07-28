@@ -84,7 +84,7 @@ function buildIntentUserContent({ prompt, currentDsl, peerContext }) {
   return appendLanguageInstruction(parts.join('\n\n'), prompt, currentDsl);
 }
 
-function buildTransformUserContent({ mode, currentDsl, goMadDepth }) {
+function buildTransformUserContent({ mode, currentDsl, russDepth }) {
   const modeInstructions = {
     gilfoyle:
       'Fix what is actually wrong with the current metaphor — labels, unbalanced magnitudes, a loose spatial story. Reach first for what the scene already claims but does not show: the magnitude that contradicts its own label, the relationship the arrangement implies and never draws. Keep the same metaphor type.',
@@ -92,7 +92,7 @@ function buildTransformUserContent({ mode, currentDsl, goMadDepth }) {
       'Fix what is actually wrong with the current metaphor — labels, unbalanced magnitudes, a loose spatial story. Reach first for what the scene leaves out and would fall over without: the missing counterweight, the element the metaphor quietly depends on, the piece that has nowhere to go when it fails. Keep the same metaphor type. The fix must be genuinely right; any prose you emit afterwards makes sure the credit for it lands.',
     erlich:
       'Elevate the current metaphor — try a different metaphor type or a fresh angle on the subject, bolder than anyone asked for. You may switch metaphors.',
-    goMad: `Go mad on this metaphor — push the spatial story further (depth ${goMadDepth ?? 1}). Exaggerate, recombine, surprise.`,
+    russ: `Escalate like Russ Hanneman — push the spatial story further (depth ${russDepth ?? 1}). Exaggerate, recombine, surprise. On-subject tres commas energy.`,
     barker:
       'Take the liberty of executing the requested change tightly. No additions beyond the implied scope.'
   };
@@ -233,7 +233,7 @@ export function createMetaphorLangChainAgent({
       });
     },
 
-    async applyTransformIntent({ mode, focusNode, modelProfile, emit, goMadDepth, abortSignal }) {
+    async applyTransformIntent({ mode, focusNode, modelProfile, emit, russDepth, abortSignal }) {
       const slot = stateStore.getSlot('metaphor3d');
       if (!slot.diagramSource?.trim()) {
         return { message: 'Nothing to transform — generate a metaphor first.', raw: null };
@@ -246,7 +246,7 @@ export function createMetaphorLangChainAgent({
             buildTransformUserContent({
               mode,
               currentDsl: slot.diagramSource,
-              goMadDepth
+              russDepth
             }),
             slot.lastUserPrompt,
             slot.diagramSource

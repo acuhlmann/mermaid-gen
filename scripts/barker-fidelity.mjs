@@ -168,6 +168,29 @@ never agreeing that a named gap is fine).`,
     advisor: true,
     advisorNote: 'findings-only analyze seat',
     iterateHint: 'STAKEHOLDER_MEETING_VOICES.jared / ADVISOR_PERSONAS.jared'
+  },
+  russ: {
+    speakerId: 'russ',
+    shortName: 'Russ',
+    rubricSubject: `Russ Hanneman from HBO's Silicon Valley (tres-commas investor who bankrolled
+Pied Piper: loud bro-investor energy, money and lifestyle flex, "this guy SHIPS" swagger,
+tequila as personality, Radio Silence as a rare war story, mocks empty synergy/alignment
+buzzwords, escalates whatever the subject already is into keynote scale — never quiet, never
+humble about wealth, never sincerely praising synergy, never technically specific, never mean,
+never explicit/sexual, never profane — innuendo and swagger only).`,
+    foil: 'any generic chaos-bot or unhinged Slopitect',
+    pronounObject: 'him',
+    pronounSubject: 'he',
+    voiceMarkers: 'tres commas / tequila / this-guy-SHIPS / anti-synergy / loud money swagger',
+    ism: 'Russ-ism',
+    // Seated with Jared so the loud flex has to hold next to anxious care — a card that
+    // only reads as "chaos" in isolation has not been proven.
+    attendees: ['scrumMaster', 'russ', 'cto', 'jared'],
+    facilitator: 'scrumMaster',
+    seniorEmail: false,
+    advisor: true,
+    advisorNote: 'subject-rooted escalation / ex-goMad seat',
+    iterateHint: 'STAKEHOLDER_MEETING_VOICES.russ / ADVISOR_PERSONAS.russ'
   }
 };
 

@@ -28,7 +28,7 @@ export const COMBO_KING_THRESHOLD = 5;
 export const STORAGE_KEY = 'archislop:slopitect-progress';
 const SCHEMA_VERSION = 3;
 
-const VARIANTS = ['gilfoyle', 'dinesh', 'erlich', 'goMad', 'jared', 'explain', 'barker'];
+const VARIANTS = ['gilfoyle', 'dinesh', 'erlich', 'russ', 'jared', 'explain', 'barker'];
 
 export function createInitialState() {
   const runsByVariant = {};
@@ -84,7 +84,7 @@ function pruneTimeline(timeline, now) {
  * sounds and rendering toasts.
  *
  * @param {ReturnType<typeof createInitialState>} state
- * @param {{ variant: string, now?: number, goMadDepth?: number, critiquePerfect?: boolean, runCostUsd?: number }} input
+ * @param {{ variant: string, now?: number, russDepth?: number, critiquePerfect?: boolean, runCostUsd?: number }} input
  */
 export function applyCompletedRun(state, input) {
   const variant = input?.variant;
@@ -123,9 +123,9 @@ export function applyCompletedRun(state, input) {
   recentVariantTimeline.push({ variant, at: now });
 
   const streakBonus = Math.max(0, streakByVariant[variant] - 1) * persona.xpStreakBonus;
-  const goMadDepthBonus = variant === 'goMad' && (input.goMadDepth ?? 0) >= 3 ? 35 : 0;
+  const russDepthBonus = variant === 'russ' && (input.russDepth ?? 0) >= 3 ? 35 : 0;
   const comboBonus = combo >= 2 ? 8 + Math.min(combo, 6) * 4 : 0;
-  const xpGained = persona.xpAward + streakBonus + goMadDepthBonus + comboBonus;
+  const xpGained = persona.xpAward + streakBonus + russDepthBonus + comboBonus;
   const totalXp = (state.xp ?? 0) + xpGained;
   const previousLevelInfo = levelForXp(state.xp ?? 0);
   const nextLevelInfo = levelForXp(totalXp);
@@ -136,7 +136,7 @@ export function applyCompletedRun(state, input) {
     variant,
     amount: xpGained,
     streak: streakByVariant[variant],
-    bonus: streakBonus + goMadDepthBonus + comboBonus
+    bonus: streakBonus + russDepthBonus + comboBonus
   });
   if (streakByVariant[variant] >= 2) {
     emissions.push({ kind: 'streak', variant, streak: streakByVariant[variant] });
@@ -175,7 +175,7 @@ export function applyCompletedRun(state, input) {
   if (totalRuns === 1) {
     unlock(achievementCopy.firstSlop.id, achievementCopy.firstSlop);
   }
-  if (variant === 'goMad' && (input.goMadDepth ?? 0) >= 3) {
+  if (variant === 'russ' && (input.russDepth ?? 0) >= 3) {
     unlock(achievementCopy.slopitectCertified.id, achievementCopy.slopitectCertified);
   }
   if (variant === 'jared' && input.critiquePerfect) {

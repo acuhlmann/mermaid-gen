@@ -38,7 +38,7 @@ describe('PlanBeatCard', () => {
       <ul>
         <PlanBeatCard
           beat={{ text, source: 'agent' }}
-          variant="goMad"
+          variant="russ"
           index={0}
           contentType="metaphor3d"
         />
@@ -212,7 +212,7 @@ flowchart LR
       <ul>
         <PlanBeatCard
           beat={{ text, source: 'agent' }}
-          variant="goMad"
+          variant="russ"
           index={0}
           contentType="metaphor3d"
         />

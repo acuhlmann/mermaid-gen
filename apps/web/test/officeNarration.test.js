@@ -76,7 +76,7 @@ describe('officeVoiceProfile', () => {
     expect(officeVoiceProfile('intern').pitch).toBeGreaterThan(
       officeVoiceProfile('greybeard').pitch
     );
-    expect(officeVoiceProfile('goMad').rate).toBeGreaterThan(officeVoiceProfile('helpdesk').rate);
+    expect(officeVoiceProfile('russ').rate).toBeGreaterThan(officeVoiceProfile('helpdesk').rate);
     expect(OFFICE_VOICE_PROFILES.scrumMaster).toBeTruthy();
     expect(officeVoiceProfile('unknown-speaker')).toEqual({
       pitch: 1,

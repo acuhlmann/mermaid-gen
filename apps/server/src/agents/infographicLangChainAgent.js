@@ -33,7 +33,7 @@ import { createLazyAgentService } from './_lib/createLazyAgentService.js';
 import {
   buildAnalyzeFocusInstructions as buildMermaidAnalyzeFocusInstructions,
   buildFocusScopeInstructions as buildMermaidFocusScopeInstructions,
-  clampGoMadDepth
+  clampRussDepth
 } from './mermaidAnalysisPrompts.js';
 import { normalizeModelProfile } from './llmProvider.js';
 import {
@@ -89,7 +89,7 @@ const INFOGRAPHIC_PATCH_REQUIRED_INSTRUCTION = `Your previous response did not a
 - Do not return prose only.
 - Do not mention tool names in your final user-facing summary.`;
 
-const INFOGRAPHIC_TRANSFORM_PERSONAS = new Set(['gilfoyle', 'dinesh', 'erlich', 'goMad', 'barker']);
+const INFOGRAPHIC_TRANSFORM_PERSONAS = new Set(['gilfoyle', 'dinesh', 'erlich', 'russ', 'barker']);
 
 async function withInfographicTransformContext(stateStore, context, fn) {
   stateStore.setTransformContext(context);
@@ -462,7 +462,7 @@ async function invokeWithRepair(agent, userMessages, opts, stateStore, env) {
       // Mirrors the Mermaid pattern (mermaidLangChainAgent.js around line 949). The fixer is
       // a cheap fast model and skips tool plumbing entirely — when it works, we apply the
       // patch directly and short-circuit the rest of the loop. Transform-policy rejections
-      // (e.g. Go Mad tier ≥3 "switch template family") are semantic constraints the
+      // (e.g. Russ tier ≥3 "switch template family") are semantic constraints the
       // low-temperature fixer cannot satisfy, so those go straight to the agent retry.
       if (
         !syntaxFixerTried &&
@@ -636,9 +636,9 @@ export function createInfographicLangChainAgent({
     });
   }
 
-  function getTransformAgent(mode, profile = 'fast', goMadDepth) {
+  function getTransformAgent(mode, profile = 'fast', russDepth) {
     const safeMode = INFOGRAPHIC_TRANSFORM_PERSONAS.has(mode) ? mode : 'gilfoyle';
-    return cache.getTransformAgent(safeMode, profile, goMadDepth);
+    return cache.getTransformAgent(safeMode, profile, russDepth);
   }
 
   const getAnalysisModel = cache.getAnalysisModel;
@@ -700,7 +700,7 @@ export function createInfographicLangChainAgent({
       if (personaMode) {
         return withInfographicTransformContext(
           stateStore,
-          { mode: personaMode, goMadDepth: 1 },
+          { mode: personaMode, russDepth: 1 },
           run
         );
       }
@@ -712,12 +712,12 @@ export function createInfographicLangChainAgent({
       focusNode,
       modelProfile,
       emit,
-      goMadDepth,
+      russDepth,
       advisorPrompt,
       abortSignal
     }) {
-      const depth = mode === 'goMad' ? clampGoMadDepth(goMadDepth ?? 1) : null;
-      return withInfographicTransformContext(stateStore, { mode, goMadDepth: depth }, async () => {
+      const depth = mode === 'russ' ? clampRussDepth(russDepth ?? 1) : null;
+      return withInfographicTransformContext(stateStore, { mode, russDepth: depth }, async () => {
         let slot = stateStore.getSlot('infographic');
         if (mode === 'gilfoyle' && slot.diagramSource?.trim()) {
           const prepass = refineInfographicDsl(slot.diagramSource);
@@ -732,7 +732,7 @@ export function createInfographicLangChainAgent({
         }
 
         const focusScope = buildFocusScopeInstructions(focusNode);
-        const agent = getTransformAgent(mode, modelProfile, goMadDepth);
+        const agent = getTransformAgent(mode, modelProfile, russDepth);
         const stableAgent = getStableIntentAgent('fast');
         const originalRequest = typeof slot?.lastUserPrompt === 'string' ? slot.lastUserPrompt : '';
         const body = appendLanguageInstruction(
@@ -740,7 +740,7 @@ export function createInfographicLangChainAgent({
             mode,
             focusScope,
             currentDsl: slot.diagramSource,
-            goMadDepth,
+            russDepth,
             advisorPrompt
           }),
           originalRequest,

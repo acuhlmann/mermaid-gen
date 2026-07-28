@@ -15,10 +15,10 @@ import {
   playExplainPageFlipLoop,
   playExplainTokenTick,
   playFailureChime,
-  playGoMadAirhornBlast,
-  playGoMadKlaxonLoop,
-  playGoMadStreamStart,
-  playGoMadTokenTick,
+  playRussAirhornBlast,
+  playRussKlaxonLoop,
+  playRussStreamStart,
+  playRussTokenTick,
   playErlichStreamStart,
   playErlichSynthLoop,
   playErlichTokenTick,
@@ -45,7 +45,7 @@ import {
  *   controls: object;
  *   streamAgentAbortRef: import('react').MutableRefObject<AbortController | null>;
  *   lastTokenSoundAtRef: import('react').MutableRefObject<number>;
- *   goMadTokenTickIndexRef: import('react').MutableRefObject<number>;
+ *   russTokenTickIndexRef: import('react').MutableRefObject<number>;
  *   lastDraftTickAtRef: import('react').MutableRefObject<number>;
  *   sessionTopicRef: import('react').MutableRefObject<string | null>;
  *   crossModeSyncRef: import('react').MutableRefObject<object>;
@@ -54,7 +54,7 @@ import {
  *   agentCostEstimatesRef: import('react').MutableRefObject<object>;
  *   autoCloseActiveEntryIdRef: import('react').MutableRefObject<string | null>;
  *   setInsightsOpen: (open: boolean) => void;
- *   setGoMadStreak: import('react').Dispatch<import('react').SetStateAction<number>>;
+ *   setRussStreak: import('react').Dispatch<import('react').SetStateAction<number>>;
  *   setLiveDraftSource: (value: string) => void;
  *   setLiveDraftContentType: (value: string | null) => void;
  *   appendInsightEntry: Function;
@@ -79,7 +79,7 @@ export function useRunStreamingAgent({
   controls,
   streamAgentAbortRef,
   lastTokenSoundAtRef,
-  goMadTokenTickIndexRef,
+  russTokenTickIndexRef,
   lastDraftTickAtRef,
   sessionTopicRef,
   crossModeSyncRef,
@@ -88,7 +88,7 @@ export function useRunStreamingAgent({
   agentCostEstimatesRef,
   autoCloseActiveEntryIdRef,
   setInsightsOpen,
-  setGoMadStreak,
+  setRussStreak,
   setLiveDraftSource,
   setLiveDraftContentType,
   appendInsightEntry,
@@ -140,13 +140,13 @@ export function useRunStreamingAgent({
       if (diagramUndoBaseline) {
         autoCloseActiveEntryIdRef.current = sectionId;
       }
-      if (variant === 'goMad') tryAgentSound(playGoMadStreamStart);
+      if (variant === 'russ') tryAgentSound(playRussStreamStart);
       else if (variant === 'erlich') tryAgentSound(playErlichStreamStart);
       else if (variant === 'gilfoyle') tryAgentSound(playGilfoyleStreamStart);
       else if (variant === 'dinesh') tryAgentSound(playDineshStreamStart);
       else tryAgentSound(playStreamStartChime);
       lastTokenSoundAtRef.current = 0;
-      goMadTokenTickIndexRef.current = 0;
+      russTokenTickIndexRef.current = 0;
       const streamAcc = { text: '', estimatedCostUsd: 0 };
       const abortCtrl = new AbortController();
       streamAgentAbortRef.current = abortCtrl;
@@ -164,10 +164,10 @@ export function useRunStreamingAgent({
           finalizeTechnicalActionResult,
           enrichTechnicalActionDetail,
           lastTokenSoundAtRef,
-          goMadTokenTickIndexRef,
+          russTokenTickIndexRef,
           lastDraftTickAtRef,
           tryAgentSound,
-          playGoMadTokenTick,
+          playRussTokenTick,
           playTokenTickChime,
           playToolStartChime,
           playToolEndChime,
@@ -182,14 +182,14 @@ export function useRunStreamingAgent({
           playGilfoylePolishLoop,
           playDineshInsistLoop,
           playErlichSynthLoop,
-          playGoMadKlaxonLoop,
-          playGoMadAirhornBlast,
+          playRussKlaxonLoop,
+          playRussAirhornBlast,
           playJaredScribbleLoop,
           playJaredPenStab,
           playExplainPageFlipLoop,
           setLiveDraftSource,
           setLiveDraftContentType,
-          setGoMadStreak,
+          setRussStreak,
           sessionTopicRef,
           crossModeSyncRef,
           modeSwitchSync,
@@ -270,7 +270,7 @@ export function useRunStreamingAgent({
       controls,
       enrichTechnicalActionDetail,
       finalizeTechnicalActionResult,
-      goMadTokenTickIndexRef,
+      russTokenTickIndexRef,
       lastDraftTickAtRef,
       lastTokenSoundAtRef,
       modelProfile,
@@ -280,7 +280,7 @@ export function useRunStreamingAgent({
       pendingAutoDiagramHighlightRef,
       pendingAutoDiagramHighlightTimeoutRef,
       sessionTopicRef,
-      setGoMadStreak,
+      setRussStreak,
       setInsightStatus,
       setInsightsOpen,
       setLiveDraftContentType,

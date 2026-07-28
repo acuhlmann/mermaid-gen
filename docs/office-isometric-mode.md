@@ -374,7 +374,7 @@ occupied briefly has only ever been tested briefly.**
     walked over to read. Column offsets of 0 or ±112 clear it; −56 is the only one that
     does not, and `coversTheMonitor` is that arithmetic.
 17. **Glass answers "can I see it?" and "can I walk there?" differently.** A proximity test
-    is wrong for both: the meeting-room wall runs _parallel_ to goMad's mark half a tile
+    is wrong for both: the meeting-room wall runs _parallel_ to russ's mark half a tile
     away and blocks nothing, while the leadership wall is exactly what stands between you
     and the CFO. Sight lines and walk routes therefore use a segment-**crossing** test
     (`pathCrossesGlass`), and proximity is kept for furniture, which is what makes the CEO
@@ -448,7 +448,7 @@ occupied briefly has only ever been tested briefly.**
     | ------------------------------------ | ------------------------ | ---------------------------- |
     | person box                           | 34–116 px wide × 68 tall | **34.3 × 48.5**, all sixteen |
     | clicks on Critique that hit Critique | 357 / 441                | 441 / 441                    |
-    | …that hit goMad instead              | **84**                   | 0                            |
+    | …that hit russ instead               | **84**                   | 0                            |
     | stage samples reaching the floor     | 3313 / 3600              | 3449 / 3600                  |
     | printer's box: floor / Linda / Pam   | 376 / 36 / 12            | 406 / 12 / 6                 |
 
@@ -654,7 +654,7 @@ prop's own drawn area — a printer is a small object and will never score like 
 Slice 10 added two passes worth keeping, and the second is the one that found rule 23's real
 bug. **Scan the people too, not only the thing you just added** — the scan was built to ask
 "does my new prop answer?", and turning it on the cast is what showed that Critique's box was
-handing 84 of 441 clicks to goMad. **And scan the whole stage as one grid**, bucketing each
+handing 84 of 441 clicks to russ. **And scan the whole stage as one grid**, bucketing each
 sample into floor / person / prop: that single number ("3313 of 3600 samples reach the floor")
 is the only measure of how much of the room free roam actually has, and it is how you tell a
 hit-box fix from a hit-box rearrangement.
@@ -742,7 +742,7 @@ that ordering is **also** the order `floorAnnouncement` speaks in, so a new card
 sentence in the same position. Anything new that is **clickable on the stage** gets the
 hit-coverage scan from §6 before you believe it works — slice 9's printer was drawn perfectly
 and answered 11 clicks in 441, and slice 10 found that Critique had been handing a fifth of
-her clicks to goMad since slice 1. And anything new that is **as big as its box rather than as
+her clicks to russ since slice 1. And anything new that is **as big as its box rather than as
 big as its art** is the same bug waiting: constrain the element, or accept that it is stealing
 from whatever is behind it.
 

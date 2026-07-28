@@ -42,14 +42,14 @@ test('emitServerMutationPlanBeats embeds peer mermaid DSL when converting to for
   assert.ok(peerBeat.text.includes('Auth --> API'));
 });
 
-test('emitServerMutationPlanBeats skips goMad intent line but keeps focus', () => {
+test('emitServerMutationPlanBeats skips russ intent line but keeps focus', () => {
   const captured = [];
   const emit = (e) => captured.push(e);
   emitServerMutationPlanBeats({
     emit,
     stateStore: { getSlot: () => ({ diagramSource: 'sequenceDiagram\n  A->>B: hi' }) },
-    mode: 'goMad',
-    messages: [{ role: 'user', content: 'Transform mode: GO MAD' }],
+    mode: 'russ',
+    messages: [{ role: 'user', content: 'Transform mode: RUSS' }],
     focusNode: { id: 'A', selectionKind: 'node' },
     contentType: 'mermaid'
   });

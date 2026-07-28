@@ -45,9 +45,9 @@ export const SLOPITECT_GAMIFICATION_EN = {
     cleared: 'cleared',
     engineTitle: 'Slop Engine',
     engineLede:
-      'Every completed persona run pays XP — Gilfoyle, Erlich, Go Mad, Jared, Explain — across any diagram slot. Stack streaks, combos, and Go Mad depth to mint extra.',
+      'Every completed persona run pays XP — Gilfoyle, Erlich, Russ, Jared, Explain — across any diagram slot. Stack streaks, combos, and Russ depth to mint extra.',
     variantMetaSuffix: 'per streak',
-    goMadDepthBonus: '· +35 depth ≥ 3',
+    russDepthBonus: '· +35 depth ≥ 3',
     comboLine: 'chain two personas in a row inside 6s for +8 (+4 per extra link).',
     comboChip: 'Combo',
     trophyTitle: 'Trophy Shelf',
@@ -69,7 +69,7 @@ export const SLOPITECT_GAMIFICATION_EN = {
       idle: 'No billable chaos yet. Your CFO still believes this is "just a diagram tool."',
       pettyLow: 'Petty-cash tier. Finance will round this to zero and move on.',
       pettyMid: 'Enough to buy one (1) artisanal oat-milk latte for the platform team.',
-      expense: 'Expense-report energy. Someone will ask which cost center owns "Go Mad."',
+      expense: 'Expense-report energy. Someone will ask which cost center owns "Russ."',
       budget: 'A respectable pilot budget — if the pilot never ends.',
       incident: 'FinOps has opened a war room. Congratulations, you are the incident.'
     },

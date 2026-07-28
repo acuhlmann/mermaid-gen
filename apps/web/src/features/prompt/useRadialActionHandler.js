@@ -6,7 +6,7 @@ import {
   playDineshBoot,
   playErlichBoot,
   playExplainBoot,
-  playGoMadBoot,
+  playRussBoot,
   playGilfoyleBoot
 } from '../../utils/agentChimes.js';
 
@@ -20,7 +20,7 @@ import {
  *   contentMode: string;
  *   contentModeOptions: Array<object>;
  *   controls: object;
- *   goMadStreak: number;
+ *   russStreak: number;
  *   handleFixFromCritique: (scope: string) => void;
  *   openRadialSlopPrompt: () => void;
  *   radialMenuVisible: boolean;
@@ -42,7 +42,7 @@ export function useRadialActionHandler({
   contentMode,
   contentModeOptions,
   controls,
-  goMadStreak,
+  russStreak,
   handleFixFromCritique,
   openRadialSlopPrompt,
   radialMenuVisible,
@@ -74,7 +74,7 @@ export function useRadialActionHandler({
         action.id === 'gilfoyle' ||
         action.id === 'dinesh' ||
         action.id === 'erlich' ||
-        action.id === 'goMad' ||
+        action.id === 'russ' ||
         action.id === 'jared' ||
         action.id === 'explain' ||
         action.id === 'barker'
@@ -85,14 +85,14 @@ export function useRadialActionHandler({
         if (variantForBoot === 'gilfoyle') tryAgentSound(playGilfoyleBoot);
         else if (variantForBoot === 'dinesh') tryAgentSound(playDineshBoot);
         else if (variantForBoot === 'erlich') tryAgentSound(playErlichBoot);
-        else if (variantForBoot === 'goMad') tryAgentSound(playGoMadBoot);
+        else if (variantForBoot === 'russ') tryAgentSound(playRussBoot);
         else if (variantForBoot === 'jared') tryAgentSound(playJaredBoot);
         else if (variantForBoot === 'explain') tryAgentSound(playExplainBoot);
       }
       if (action.id === 'gilfoyle') runTransform('gilfoyle', runOpts);
       else if (action.id === 'dinesh') runTransform('dinesh', runOpts);
       else if (action.id === 'erlich') runTransform('erlich', runOpts);
-      else if (action.id === 'goMad') runTransform('goMad', runOpts);
+      else if (action.id === 'russ') runTransform('russ', runOpts);
       else if (action.id === 'barker') runTransform('barker', runOpts);
       else if (action.id === 'jared') runAnalyze('jared', runOpts);
       else if (action.id === 'explain') runAnalyze('explain', runOpts);
@@ -123,12 +123,12 @@ export function useRadialActionHandler({
       buildRadialActions({
         controls,
         slopitect,
-        goMadStreak,
+        russStreak,
         contentMode,
         contentModeOptions,
         canFixFromCritique
       }),
-    [canFixFromCritique, contentMode, contentModeOptions, controls, goMadStreak, slopitect]
+    [canFixFromCritique, contentMode, contentModeOptions, controls, russStreak, slopitect]
   );
 
   return { handleRadialAction, radialActions };

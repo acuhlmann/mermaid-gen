@@ -8,7 +8,7 @@ import {
   playJaredCompletion,
   playErlichCompletion,
   playExplainCompletion,
-  playGoMadCompletionChime,
+  playRussCompletionChime,
   playKonamiRainbow,
   playLevelUpFanfare,
   playGilfoyleCompletion,
@@ -31,7 +31,7 @@ import {
  *   promptEasterEggs: Array<{ match: RegExp, toast: string }>;
  *   konamiAchievement: { title?: string, subtitle?: string } | undefined;
  *   tryAgentSound: (playFn: (ctx: unknown) => void) => void;
- *   goMadStreak: number;
+ *   russStreak: number;
  *   setGamification: (value: unknown) => void;
  *   setOfficeRunSignal: (value: unknown) => void;
  *   celebrationTimerRef: import('react').MutableRefObject<ReturnType<typeof setTimeout> | null>;
@@ -42,7 +42,7 @@ export function useRunCeremony({
   promptEasterEggs,
   konamiAchievement,
   tryAgentSound,
-  goMadStreak,
+  russStreak,
   setGamification,
   setOfficeRunSignal,
   celebrationTimerRef
@@ -150,9 +150,9 @@ export function useRunCeremony({
       setOfficeRunSignal((prev) => ({ id: (prev?.id ?? 0) + 1, variant }));
       setCelebratingEntryId(entryId);
       if (celebrationTimerRef.current) clearTimeout(celebrationTimerRef.current);
-      const dwellMs = variant === 'goMad' ? 1100 : 900;
+      const dwellMs = variant === 'russ' ? 1100 : 900;
       celebrationTimerRef.current = setTimeout(() => setCelebratingEntryId(null), dwellMs);
-      if (variant === 'goMad') tryAgentSound(playGoMadCompletionChime);
+      if (variant === 'russ') tryAgentSound(playRussCompletionChime);
       else if (variant === 'gilfoyle') tryAgentSound(playGilfoyleCompletion);
       else if (variant === 'dinesh') tryAgentSound(playDineshCompletion);
       else if (variant === 'erlich') tryAgentSound(playErlichCompletion);
@@ -167,7 +167,7 @@ export function useRunCeremony({
         gilfoyle: ['#2563eb', '#60a5fa', '#bfdbfe', '#1d4ed8'],
         dinesh: ['#7c3aed', '#a78bfa', '#ddd6fe', '#5b21b6'],
         erlich: ['#ea580c', '#fb923c', '#fed7aa', '#c2410c'],
-        goMad: ['#f97316', '#ec4899', '#a855f7', '#22d3ee', '#fde047'],
+        russ: ['#f97316', '#ec4899', '#a855f7', '#22d3ee', '#fde047'],
         jared: ['#b91c1c', '#f97316', '#fde68a', '#7c2d12'],
         explain: ['#0d9488', '#22d3ee', '#ccfbf1', '#0f766e'],
         barker: ['#ca8a04', '#facc15', '#fde68a', '#854d0e'],
@@ -176,11 +176,11 @@ export function useRunCeremony({
       const palette = variantPalettes[variant] || variantPalettes.general;
       if (!reduceMotion && canvasConfettiAvailable()) {
         try {
-          const burstParticles = variant === 'goMad' ? 120 : 70;
+          const burstParticles = variant === 'russ' ? 120 : 70;
           confetti({
             particleCount: burstParticles,
-            spread: variant === 'goMad' ? 92 : 70,
-            startVelocity: variant === 'goMad' ? 55 : 42,
+            spread: variant === 'russ' ? 92 : 70,
+            startVelocity: variant === 'russ' ? 55 : 42,
             ticks: 200,
             origin: { x: 0.5, y: 0.4 },
             colors: palette
@@ -191,15 +191,15 @@ export function useRunCeremony({
         tryAgentSound(playConfettiPop);
       }
 
-      const knownVariants = ['gilfoyle', 'dinesh', 'erlich', 'goMad', 'jared', 'explain', 'barker'];
+      const knownVariants = ['gilfoyle', 'dinesh', 'erlich', 'russ', 'jared', 'explain', 'barker'];
       if (knownVariants.includes(variant)) {
         const now = Date.now();
-        const inferredGoMadDepth = variant === 'goMad' ? goMadStreak + 1 : undefined;
+        const inferredRussDepth = variant === 'russ' ? russStreak + 1 : undefined;
         setGamification((current) => {
           const { state, emissions } = applyCompletedRun(current, {
             variant,
             now,
-            goMadDepth: extras?.goMadDepth ?? inferredGoMadDepth,
+            russDepth: extras?.russDepth ?? inferredRussDepth,
             critiquePerfect: extras?.critiquePerfect,
             runCostUsd: extras?.runCostUsd
           });
@@ -213,7 +213,7 @@ export function useRunCeremony({
     },
     [
       celebrationTimerRef,
-      goMadStreak,
+      russStreak,
       processSlopEmissions,
       setGamification,
       setOfficeRunSignal,

@@ -15,9 +15,9 @@ test('resolveAgentRunBudgetMs keeps separate fast and quality defaults', () => {
   assert.equal(resolveAgentRunBudgetMs('unknown'), 120_000);
 });
 
-test('resolveAgentRunBudgetMs gives Go Mad extra headroom for the patch_retry turn', () => {
-  assert.equal(resolveAgentRunBudgetMs('fast', {}, 'goMad'), 150_000);
-  assert.equal(resolveAgentRunBudgetMs('quality', {}, 'goMad'), 240_000);
+test('resolveAgentRunBudgetMs gives Russ extra headroom for the patch_retry turn', () => {
+  assert.equal(resolveAgentRunBudgetMs('fast', {}, 'russ'), 150_000);
+  assert.equal(resolveAgentRunBudgetMs('quality', {}, 'russ'), 240_000);
   // Other modes are unaffected by the mode argument.
   assert.equal(resolveAgentRunBudgetMs('quality', {}, 'gilfoyle'), 210_000);
   assert.equal(resolveAgentRunBudgetMs('quality', {}, 'erlich'), 210_000);

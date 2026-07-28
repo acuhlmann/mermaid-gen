@@ -21,7 +21,7 @@ export const OFFICE_SPEAKER_IDS = [
   'gilfoyle',
   'dinesh',
   'erlich',
-  'goMad',
+  'russ',
   'jared',
   'explain',
   // senior
@@ -46,7 +46,7 @@ export type OfficeSpeakerId = (typeof OFFICE_SPEAKER_IDS)[number];
  * The per-persona tables are authored as *relative* comedy fingerprints and
  * happen to sit around a median of 0.95, which made the whole cast drag. This
  * scale lifts the median just above real-time while preserving every relative
- * difference (greybeard stays the slowest, goMad the fastest). Tune this one
+ * difference (greybeard stays the slowest, russ the fastest). Tune this one
  * number rather than editing the tables.
  */
 export const OFFICE_TTS_RATE_SCALE = 1.18;

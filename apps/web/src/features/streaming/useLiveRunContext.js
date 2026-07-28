@@ -5,7 +5,7 @@ import { useMemo } from 'react';
  */
 export function useLiveRunContext({
   gamification,
-  goMadStreak,
+  russStreak,
   insightsEntries,
   insightsMounted,
   insightsOpen,
@@ -29,13 +29,13 @@ export function useLiveRunContext({
   const runFx = useMemo(
     () => ({
       variant: liveVariant,
-      streaming: Boolean(liveStreamingEntry) && (!insightsOpen || liveVariant === 'goMad'),
+      streaming: Boolean(liveStreamingEntry) && (!insightsOpen || liveVariant === 'russ'),
       intensity:
-        (gamification?.streakByVariant?.[liveVariant] ?? 0) >= 2 || goMadStreak >= 2
+        (gamification?.streakByVariant?.[liveVariant] ?? 0) >= 2 || russStreak >= 2
           ? 'high'
           : 'normal'
     }),
-    [gamification?.streakByVariant, goMadStreak, insightsOpen, liveStreamingEntry, liveVariant]
+    [gamification?.streakByVariant, russStreak, insightsOpen, liveStreamingEntry, liveVariant]
   );
 
   return {
