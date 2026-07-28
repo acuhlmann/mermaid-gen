@@ -7,6 +7,12 @@ vi.mock('../src/utils/officeCueSamples.js', () => ({
   warmAllCueSamples: vi.fn()
 }));
 
+vi.mock('../src/utils/officeRoomTone.js', () => ({
+  warmRoomTone: vi.fn()
+}));
+
+const { warmRoomTone } = await import('../src/utils/officeRoomTone.js');
+
 const { getContext } = vi.hoisted(() => ({
   getContext: vi.fn(() => ({ resume: vi.fn(() => Promise.resolve()) }))
 }));
@@ -24,6 +30,7 @@ describe('officeAudioPrime', () => {
     hasInteractedRef = { current: false };
     warmAllCueSamples.mockClear();
     getContext.mockClear();
+    warmRoomTone.mockClear();
   });
 
   afterEach(() => {
@@ -37,6 +44,7 @@ describe('officeAudioPrime', () => {
     expect(primeOfficeAudio(audioContextRef, hasInteractedRef)).toBe(true);
     expect(hasInteractedRef.current).toBe(true);
     expect(warmAllCueSamples).toHaveBeenCalledWith(audioContextRef);
+    expect(warmRoomTone).toHaveBeenCalledWith(audioContextRef);
     expect(listener).toHaveBeenCalledTimes(1);
 
     primeOfficeAudio(audioContextRef, hasInteractedRef);

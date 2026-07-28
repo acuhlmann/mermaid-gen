@@ -7,6 +7,7 @@
  */
 import { getContext } from './agentChimes.js';
 import { warmAllCueSamples } from './officeCueSamples.js';
+import { warmRoomTone } from './officeRoomTone.js';
 
 /** @type {Set<() => void>} */
 const gateOpenListeners = new Set();
@@ -35,6 +36,7 @@ export function primeOfficeAudio(audioContextRef, hasInteractedRef) {
   const context = getContext(audioContextRef);
   context?.resume?.().catch(() => {});
   warmAllCueSamples(audioContextRef);
+  warmRoomTone(audioContextRef);
   if (!wasOpen && hasInteractedRef) {
     for (const fn of gateOpenListeners) {
       try {

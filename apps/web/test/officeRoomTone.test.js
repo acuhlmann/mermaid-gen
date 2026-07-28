@@ -4,6 +4,7 @@ import {
   ROOM_TONE_DUCK_GAIN,
   ROOM_TONE_GAIN_DESK,
   ROOM_TONE_GAIN_FLOOR,
+  warmRoomTone,
   _resetRoomToneForTests,
   duckRoomTone,
   isRoomTonePlaying,
@@ -76,6 +77,18 @@ afterEach(() => {
 });
 
 describe('officeRoomTone', () => {
+  it('preloads the bed without starting playback', async () => {
+    warmRoomTone(audioContextRef);
+    await settle();
+    expect(globalThis.fetch).toHaveBeenCalled();
+    expect(isRoomTonePlaying()).toBe(false);
+
+    startRoomTone(audioContextRef);
+    await settle();
+    expect(isRoomTonePlaying()).toBe(true);
+    expect(globalThis.fetch).toHaveBeenCalledTimes(1);
+  });
+
   it('loops the bed and fades it in at the bed level', async () => {
     startRoomTone(audioContextRef);
     await settle();

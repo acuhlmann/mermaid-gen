@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useSyncExternalStore } from 'react';
 import './App.css';
 import './components/RunTimeline.css';
 import './components/OfficeFloor.css';
@@ -41,7 +41,12 @@ import { useStyleEdits } from './hooks/useStyleEdits.js';
 import { useVoiceInput } from './hooks/useVoiceInput.js';
 import { useDeskSlotRef } from './hooks/useDeskSlotRef.js';
 import { buildContentModeOptions } from './utils/renderModeAction.js';
+import { useOfficeAmbientAudio } from './hooks/useOfficeAmbientAudio.js';
 import { primeOfficeAudio } from './utils/officeAudioPrime.js';
+import {
+  getOfficeViewMode,
+  subscribe as subscribeOfficeViewMode
+} from './state/officeViewModeStore.js';
 
 export function ArchiSlop() {
   const { controls, slopitect, applyLocaleFromText, locale: uiLocale } = useUiCopy();
@@ -632,6 +637,21 @@ export function ArchiSlop() {
     showEmptyCanvas,
     entryTourCopy
   } = shell;
+
+  const officeViewMode = useSyncExternalStore(
+    subscribeOfficeViewMode,
+    getOfficeViewMode,
+    getOfficeViewMode
+  );
+  // Mount ambient audio here — always in the tree — so the room-tone bed survives
+  // the floor-arrival → desk transition (OfficeLayer is not mounted during boot).
+  useOfficeAmbientAudio({
+    playChime: tryAgentSound,
+    audioContextRef,
+    hasInteractedRef,
+    soundEnabled,
+    roomToneViewMode: officeBootPending || officeViewMode === 'floor' ? 'floor' : 'desk'
+  });
 
   useInsightsAutoClose({
     autoCloseActiveEntryIdRef,
