@@ -12,6 +12,7 @@ import {
   dismissOfficeWalkBy,
   getOfficeSnapshot,
   hasActiveOfficeSurface,
+  shouldHoldAmbientOfficeMoments,
   IM_HISTORY_MAX,
   IM_PING_MAX_VISIBLE,
   IM_PING_TTL_MS,
@@ -324,5 +325,27 @@ describe('officeMomentStore', () => {
     expect(hasActiveOfficeSurface()).toBe(true);
     endOfficeHuddle();
     expect(hasActiveOfficeSurface()).toBe(false);
+  });
+
+  it('treats a single IM toast as an active surface', () => {
+    pushOfficeImPing({ colleagueId: 'intern', body: 'ping' });
+    expect(hasActiveOfficeSurface()).toBe(true);
+    expect(shouldHoldAmbientOfficeMoments()).toBe(true);
+  });
+
+  it('holds ambient moments when inbox or Slop Chat backlog is unread', () => {
+    pushOfficeEmail({
+      colleagueId: 'hr',
+      subject: 'Welcome',
+      body: 'Hi'
+    });
+    expect(hasActiveOfficeSurface()).toBe(false);
+    expect(shouldHoldAmbientOfficeMoments()).toBe(true);
+    markOfficeEmailRead(getOfficeSnapshot().emails[0].id);
+    expect(shouldHoldAmbientOfficeMoments()).toBe(false);
+    pushOfficeImPing({ colleagueId: 'intern', body: 'ping' });
+    markOfficeImsRead();
+    dismissOfficeImPing(getOfficeSnapshot().imPings[0].id);
+    expect(shouldHoldAmbientOfficeMoments()).toBe(false);
   });
 });

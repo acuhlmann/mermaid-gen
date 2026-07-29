@@ -10,7 +10,7 @@ import {
   readSlotContext,
   RECENT_MOMENTS_CAP
 } from '../utils/officeMomentDelivery.js';
-import { getOfficeSnapshot, hasActiveOfficeSurface } from '../state/officeMomentStore.js';
+import { getOfficeSnapshot, shouldHoldAmbientOfficeMoments } from '../state/officeMomentStore.js';
 
 export const OFFICE_TICK_MS = 5_000;
 const FAILURE_BACKOFF_MS = 30_000;
@@ -28,15 +28,19 @@ function isHidden() {
  *
  * This hook owns cadence and the session caps; it does not own content.
  *
- * Never interrupts: paused while an agent run streams (`pause`), while the
- * advisor bubble is up (`advisorBusy`), during a meeting, while any office
- * surface is already on screen, when the tab is hidden, and during Focus Time.
+ * Never interrupts: paused while an agent run streams (`pause` / `agentBusy`),
+ * while the advisor bubble is up (`advisorBusy`), during a meeting or huddle,
+ * while you are on the isometric floor, while any office surface or unread
+ * inbox/IM backlog is already demanding attention, when the tab is hidden, and
+ * during Focus Time.
  * LLM failures back off and fall back to canned content.
  *
  * @param {{
  *   pause: boolean,
  *   advisorBusy: boolean,
+ *   agentBusy?: boolean,
  *   meetingActive: boolean,
+ *   floorActive?: boolean,
  *   getDiagramSource: () => string,
  *   getContentType: () => string,
  *   getSessionId: () => string,
@@ -91,10 +95,11 @@ export function useOfficeAmbience(params) {
 
     const shouldHoldFire = () => {
       const p = paramsRef.current;
-      if (p.pause || p.advisorBusy || p.meetingActive) return true;
+      if (p.pause || p.advisorBusy || p.agentBusy || p.meetingActive) return true;
+      if (p.floorActive) return true;
       if (isHidden()) return true;
       if (getOfficeSnapshot().focusTime) return true;
-      if (hasActiveOfficeSurface()) return true;
+      if (shouldHoldAmbientOfficeMoments()) return true;
       if (Date.now() < failureUntil) return true;
       return false;
     };

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   planRunReaction,
+  RUN_REACTION_AFTER_MOMENT_MS,
   RUN_REACTION_COOLDOWN_MS,
   RUN_REACTION_SESSION_CAP,
   RUN_REACTION_LLM_CAP
@@ -41,6 +42,21 @@ describe('planRunReaction', () => {
     // Just past the cooldown, it fires again.
     expect(
       planRunReaction({ ...base, lastReactionAt: base.now - RUN_REACTION_COOLDOWN_MS })
+    ).not.toBeNull();
+  });
+
+  it('backs off when another office moment just fired', () => {
+    expect(
+      planRunReaction({
+        ...base,
+        lastAmbientFiredAt: base.now - (RUN_REACTION_AFTER_MOMENT_MS - 1)
+      })
+    ).toBeNull();
+    expect(
+      planRunReaction({
+        ...base,
+        lastAmbientFiredAt: base.now - RUN_REACTION_AFTER_MOMENT_MS
+      })
     ).not.toBeNull();
   });
 

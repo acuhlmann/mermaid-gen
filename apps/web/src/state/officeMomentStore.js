@@ -184,8 +184,21 @@ export function hasActiveOfficeSurface() {
     state.battle ||
     state.meetingInvite ||
     state.huddle ||
-    state.imPings.length >= IM_PING_MAX_VISIBLE
+    state.imPings.length > 0
   );
+}
+
+/**
+ * True when the ambient director (timer + run reactions + welcome) should hold
+ * fire. Broader than {@link hasActiveOfficeSurface}: unread inbox / Slop Chat
+ * backlog also count as attention already in flight, so email + walk-by + IM
+ * do not pile on in the same breath.
+ */
+export function shouldHoldAmbientOfficeMoments() {
+  if (hasActiveOfficeSurface()) return true;
+  if (state.unreadCount > 0) return true;
+  if (state.imUnreadCount > 0) return true;
+  return false;
 }
 
 /**
