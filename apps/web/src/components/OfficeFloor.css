@@ -1037,6 +1037,35 @@
   bottom: max(1rem, env(safe-area-inset-bottom));
   display: flex;
   gap: 0.5rem;
+  z-index: 5;
+}
+
+/* Zoomed follow-cam during the Day One walk — stage grows past fit so pan works
+   on desktop, and the viewport scrolls the focus tile into the middle. */
+.office-floor--arrival.is-arrival-focused .office-floor-viewport {
+  overflow: auto;
+  scroll-behavior: smooth;
+  scrollbar-width: none;
+}
+
+.office-floor--arrival.is-arrival-focused .office-floor-viewport::-webkit-scrollbar {
+  display: none;
+}
+
+.office-floor--arrival .office-floor-stage {
+  transition:
+    width 0.45s ease,
+    height 0.45s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .office-floor--arrival .office-floor-stage {
+    transition: none;
+  }
+
+  .office-floor--arrival.is-arrival-focused .office-floor-viewport {
+    scroll-behavior: auto;
+  }
 }
 
 /* ── responsive ──────────────────────────────────────────────────────────── */

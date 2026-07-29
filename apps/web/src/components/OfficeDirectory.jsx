@@ -4,6 +4,7 @@ import {
   writeOfficeDirectorySeen
 } from '../utils/officeAmbienceStorage.js';
 import { DAY_ONE_INTRO_IDS, officeChromeCopy, officeSenderInfo } from '../utils/officeCast.js';
+import { DAY_ONE_WALK_IDS } from '../utils/officeFloorIntro.js';
 import { resolveUserName, subscribe as subscribeUserName } from '../state/userIdentityStore.js';
 import {
   getOfficeDirectoryUi,
@@ -25,7 +26,8 @@ import IntroTranscriptButton from './IntroTranscriptButton.jsx';
 import IntroVoiceButton from './IntroVoiceButton.jsx';
 import NameTag from './NameTag.jsx';
 
-const COLLEAGUE_IDS = DAY_ONE_INTRO_IDS;
+const TOUR_IDS = DAY_ONE_WALK_IDS;
+const ROSTER_IDS = DAY_ONE_INTRO_IDS;
 
 /** When TTS is offline, give the user time to read the quote before advancing. */
 const SILENT_BEAT_MS = 2_400;
@@ -203,7 +205,7 @@ function OnboardingPage({
 
         <section className="office-directory-onboarding-cast" aria-label={copy.title}>
           <ul className="office-directory-onboarding-roster">
-            {COLLEAGUE_IDS.map((colleagueId, index) => {
+            {TOUR_IDS.map((colleagueId, index) => {
               const colleague = officeSenderInfo(colleagueId);
               return (
                 <OnboardingColleagueCard
@@ -262,7 +264,7 @@ function DirectoryRoster({ copy, speakingId, onHear, onDismiss, onReplayTour }) 
       <DirectoryHead copy={copy} onClose={onDismiss} eyebrow={copy.rosterEyebrow} />
       <p className="office-directory-tagline">{copy.rosterTagline}</p>
       <ul className="office-directory-roster">
-        {COLLEAGUE_IDS.map((id) => {
+        {ROSTER_IDS.map((id) => {
           const colleague = officeSenderInfo(id);
           const voiceLine = colleagueVoiceLine(colleague);
           return (
@@ -432,39 +434,78 @@ export default function OfficeDirectory({
     };
   }, [open, tourPhase, copy.welcomeVoiceLine, copy.welcomeVoiceSpeakerId, play]);
 
-  // Auto-speak each colleague in order.
+  // Auto-speak each teammate, then Linda's distinct closing handoff, then desk.
   useEffect(() => {
     if (!open || tourPhase !== 'colleagues' || colleagueIndex < 0) return undefined;
-    const colleagueId = COLLEAGUE_IDS[colleagueIndex];
-    if (!colleagueId) return undefined;
-    const colleague = officeSenderInfo(colleagueId);
+    const colleagueId = TOUR_IDS[colleagueIndex];
     const gen = ++autoGenRef.current;
     let cancelled = false;
     const ac = new AbortController();
     setAutoPlaying(true);
     void (async () => {
-      const result = await play(colleagueId, {
-        speakerId: colleagueId,
-        text: colleagueVoiceLine(colleague)
-      });
-      if (cancelled || gen !== autoGenRef.current) return;
-      if (result?.cancelled) {
+      if (colleagueId) {
+        const colleague = officeSenderInfo(colleagueId);
+        const result = await play(colleagueId, {
+          speakerId: colleagueId,
+          text: colleagueVoiceLine(colleague)
+        });
+        if (cancelled || gen !== autoGenRef.current) return;
+        if (result?.cancelled) {
+          setAutoPlaying(false);
+          return;
+        }
+        if (!result?.spoken) await sleep(SILENT_BEAT_MS, ac.signal);
+        else await sleep(OFFICE_NARRATION_GAP_MS, ac.signal);
+        if (cancelled || gen !== autoGenRef.current) return;
         setAutoPlaying(false);
-        return;
+        if (colleagueIndex < TOUR_IDS.length - 1) {
+          setColleagueIndex((index) => index + 1);
+          return;
+        }
       }
-      if (!result?.spoken) await sleep(SILENT_BEAT_MS, ac.signal);
-      else await sleep(OFFICE_NARRATION_GAP_MS, ac.signal);
+
+      const closing =
+        copy.welcomeClosingLine || officeSenderInfo('hr')?.introLine || copy.welcomeVoiceLine;
+      if (closing) {
+        setAutoPlaying(true);
+        const closeResult = await play('closing', {
+          speakerId: copy.welcomeVoiceSpeakerId ?? 'hr',
+          text: closing
+        });
+        if (cancelled || gen !== autoGenRef.current) return;
+        if (closeResult?.cancelled) {
+          setAutoPlaying(false);
+          return;
+        }
+        if (!closeResult?.spoken) await sleep(SILENT_BEAT_MS, ac.signal);
+        else await sleep(OFFICE_NARRATION_GAP_MS, ac.signal);
+        if (cancelled || gen !== autoGenRef.current) return;
+        setAutoPlaying(false);
+      }
+
+      await sleep(700, ac.signal);
       if (cancelled || gen !== autoGenRef.current) return;
-      setAutoPlaying(false);
-      if (colleagueIndex < COLLEAGUE_IDS.length - 1) {
-        setColleagueIndex((index) => index + 1);
-      }
+      const wasFirstRun = !readOfficeDirectorySeen();
+      writeOfficeDirectorySeen();
+      firstRunRef.current = false;
+      setTourOpen(null);
+      setOpen(false);
+      if (wasFirstRun) onBootComplete?.({ startDeskTour: true });
     })();
     return () => {
       cancelled = true;
       ac.abort();
     };
-  }, [open, tourPhase, colleagueIndex, play]);
+  }, [
+    open,
+    tourPhase,
+    colleagueIndex,
+    play,
+    onBootComplete,
+    copy.welcomeClosingLine,
+    copy.welcomeVoiceLine,
+    copy.welcomeVoiceSpeakerId
+  ]);
 
   if (!open) {
     if (!showChip) return null;

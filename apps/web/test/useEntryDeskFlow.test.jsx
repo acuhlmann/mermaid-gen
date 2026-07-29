@@ -70,6 +70,27 @@ describe('useEntryDeskFlow', () => {
     expect(result.current.entryTourStep).toBe('welcome');
   });
 
+  it('auto-advances from the welcome card onto the work-order tip', () => {
+    const { result } = renderHook(() =>
+      useEntryDeskFlow({
+        hasDiagramText: false,
+        insightsOpen: false,
+        stakeholderIntroProps: null,
+        editorOpen: false,
+        handleSelectContentMode: vi.fn(),
+        deskTourPending: true,
+        entryPointers: CONTROLS_EN.prompt.entryPointers
+      })
+    );
+
+    expect(result.current.entryTourStep).toBe('welcome');
+    act(() => {
+      vi.advanceTimersByTime(3_500);
+    });
+    expect(result.current.entryTourStep).toBe('work-order');
+    expect(result.current.tourHighlight).toBe('work-order');
+  });
+
   it('walks desk controls on the real chrome after the welcome beat', () => {
     const onDeskTourComplete = vi.fn();
     const { result } = renderHook(() =>

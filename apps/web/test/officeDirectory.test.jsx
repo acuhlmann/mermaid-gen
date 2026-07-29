@@ -9,6 +9,7 @@ import {
   OFFICE_USER_NAME_STORAGE_KEY
 } from '../src/utils/officeAmbienceStorage.js';
 import { DAY_ONE_INTRO_IDS, officeSenderInfo } from '../src/utils/officeCast.js';
+import { DAY_ONE_WALK_IDS } from '../src/utils/officeFloorIntro.js';
 import { _resetUserIdentityForTests, setUserName } from '../src/state/userIdentityStore.js';
 import {
   _resetOfficeDirectoryUiForTests,
@@ -28,7 +29,8 @@ vi.mock('../src/hooks/useIntroNarrator.js', () => ({
   })
 }));
 
-const COLLEAGUE_COUNT = DAY_ONE_INTRO_IDS.length;
+const TOUR_COUNT = DAY_ONE_WALK_IDS.length;
+const ROSTER_COUNT = DAY_ONE_INTRO_IDS.length;
 
 function renderDirectory(props = {}) {
   return render(
@@ -70,7 +72,7 @@ describe('OfficeDirectory', () => {
     expect(document.querySelector('.office-directory-chapter')?.textContent).toMatch(/PEOPLE OPS/i);
     expect(screen.getByTestId('office-directory-start-tour')).toBeTruthy();
     expect(screen.queryByRole('button', { name: /Begin Day One/i })).toBeNull();
-    expect(screen.getAllByTestId('office-directory-colleague-card').length).toBe(COLLEAGUE_COUNT);
+    expect(screen.getAllByTestId('office-directory-colleague-card').length).toBe(TOUR_COUNT);
     expect(screen.queryByTestId('entry-desk-pointers')).toBeNull();
     expect(screen.queryByTestId('intro-voice-button')).toBeNull();
     await waitFor(() => expect(getOfficeDirectoryUi().open).toBe(true));
@@ -115,27 +117,27 @@ describe('OfficeDirectory', () => {
   it('does not duplicate colleague intro text in the transcript', () => {
     renderDirectory();
     enableTranscript();
-    const lindaLine = officeSenderInfo('hr').introLine;
-    expect(screen.getAllByText(lindaLine).length).toBe(1);
+    const dineshLine = officeSenderInfo('dinesh').introLine;
+    expect(screen.getAllByText(dineshLine).length).toBe(1);
+    // Linda hosts welcome/closing — her roster identity line is not on the tour cards.
+    expect(screen.queryByText(officeSenderInfo('hr').introLine)).toBeNull();
   });
 
   it('auto-introduces colleagues by voice, then hands off to the desk tour on the canvas', async () => {
     const onBootComplete = vi.fn();
-    renderDirectory({ showChip: false, onBootComplete });
+    playMock.mockImplementation(() => Promise.resolve({ spoken: true, source: 'cloud' }));
+    renderDirectory({ showChip: false, onBootComplete, isBoot: true });
     fireEvent.click(screen.getByRole('button', { name: 'Meet the team →' }));
     await waitFor(() => expect(playMock).toHaveBeenCalled());
 
+    // Spoken gaps are short; closing auto-dismisses into the desk tour.
     await waitFor(
       () => {
-        expect(screen.getByRole('button', { name: /Begin Day One/i })).toBeTruthy();
+        expect(onBootComplete).toHaveBeenCalledWith({ startDeskTour: true });
       },
-      { timeout: 4000 }
+      { timeout: 8_000 }
     );
-
-    fireEvent.click(screen.getByRole('button', { name: /Begin Day One/i }));
     expect(screen.queryByTestId('office-directory-tour')).toBeNull();
-    expect(screen.queryByTestId('entry-desk-pointers')).toBeNull();
-    expect(onBootComplete).toHaveBeenCalledWith({ startDeskTour: true });
     expect(readOfficeDirectorySeen()).toBe(true);
     expect(getOfficeDirectoryUi().open).toBe(false);
   });
@@ -156,7 +158,7 @@ describe('OfficeDirectory', () => {
     renderDirectory();
     fireEvent.click(screen.getByRole('button', { name: /Meet the Team/ }));
     expect(screen.getByTestId('office-directory-roster')).toBeTruthy();
-    expect(screen.getAllByTestId('intro-voice-button').length).toBe(COLLEAGUE_COUNT);
+    expect(screen.getAllByTestId('intro-voice-button').length).toBe(ROSTER_COUNT);
     fireEvent.click(screen.getByRole('button', { name: /Replay intro/ }));
     expect(screen.getByTestId('office-directory-welcome')).toBeTruthy();
     expect(screen.getByTestId('office-directory-start-tour')).toBeTruthy();

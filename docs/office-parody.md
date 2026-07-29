@@ -278,11 +278,14 @@ interactive game-style **"Meet the Team"** orientation. **First run it is the en
 app is** — nothing else mounts until the tour is dismissed or skipped — then the empty
 state, Day One badge, and the rest of the chrome appear. The cinematic flow is reception
 check-in → name badge with Linda's auto-voiced welcome → Meet the team
-auto-plays each intro in `DAY_ONE_INTRO_IDS` order (Dinesh, Erlich, Jared, Richard,
-Barker, then Linda/HR — **not** Gilfoyle or Russ, and not the ambient office floor cast)
-→ Clock in, persisted via
+auto-plays each intro in walk order (Dinesh, Erlich, Jared, Richard, Barker — **not**
+Gilfoyle, Russ, or a second Linda self-intro; Linda's distinct closing handoff plays
+last) → auto sit at your desk / desk wizard, persisted via
 `archislop:office-directory-seen`; afterwards reopen via the **desk verb** once you
 have canvas content, so everybody can introduce themselves again anytime.
+On the isometric floor the same beats are a **walk**: you leave reception, visit each
+desk with the camera zoomed in and following, then walk home while Linda's closing
+plays, and land in the desk wizard.
 While the directory is open it publishes pause state (`officeDirectoryUiStore`)
 so ambience IMs/walk-bys, Linda's welcome email, and the advisor stay quiet.
 On first visit the rest of the shell does not mount until the tour completes;
