@@ -34,7 +34,7 @@ describe('ui locale bundles', () => {
   it('returns Aussie slang controls when locale is en-AU', () => {
     const bundle = getUiLocaleBundle('en-AU');
     expect(bundle.controls.actions.gilfoyle).toBe('Refine');
-    expect(bundle.controls.actions.russ).toBe('Russ');
+    expect(bundle.controls.actions.russ).toBe('Go Mad');
     expect(bundle.controls.actions.stakeholders).toBe('The Mob');
     expect(bundle.controls.prompt.doIt).toBe('Have a go');
     expect(bundle.controls.introLocale.enAu).toBe('Aussie Slang');

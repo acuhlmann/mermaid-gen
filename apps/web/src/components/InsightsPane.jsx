@@ -1807,20 +1807,28 @@ export default function InsightsPane({
           })
         )}
       </div>
-      {typeof onStopStreamingAgent === 'function' ? (
-        <button type="button" className="insights-stop-stream-btn" onClick={onStopStreamingAgent}>
-          {insightsCopy.stopRequest}
-        </button>
-      ) : null}
-      {typeof onDismiss === 'function' ? (
-        <button
-          type="button"
-          className="insights-pane-dismiss overlay-button compact-button"
-          onClick={onDismiss}
-          aria-label={insightsCopy.closeThinking}
-        >
-          {insightsCopy.hide}
-        </button>
+      {typeof onStopStreamingAgent === 'function' || typeof onDismiss === 'function' ? (
+        <footer className="insights-pane-footer">
+          {typeof onStopStreamingAgent === 'function' ? (
+            <button
+              type="button"
+              className="insights-stop-stream-btn"
+              onClick={onStopStreamingAgent}
+            >
+              {insightsCopy.stopRequest}
+            </button>
+          ) : null}
+          {typeof onDismiss === 'function' ? (
+            <button
+              type="button"
+              className="insights-pane-dismiss overlay-button compact-button"
+              onClick={onDismiss}
+              aria-label={insightsCopy.closeThinking}
+            >
+              {insightsCopy.hide}
+            </button>
+          ) : null}
+        </footer>
       ) : null}
     </aside>
   );
