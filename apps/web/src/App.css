@@ -6779,11 +6779,14 @@
   color: var(--muted);
 }
 
-/* Huddle is the primary of the three ways to reach the team — the only one that
- * brings everybody at once — so it carries the accent the others do not. */
+/* Huddle is the way to reach the whole team at once — full-width accent button. */
 .stakeholders-roster-team-action.is-huddle {
   background: color-mix(in srgb, var(--slop-action-accent) 14%, transparent);
   font-weight: 700;
+}
+
+.stakeholders-roster-huddle-action {
+  width: 100%;
 }
 
 /* The arrow that makes a row read as handing work to a person rather than
@@ -18417,6 +18420,34 @@ body.slopitect-rainbow-tint::before {
 .office-huddle-seat.is-listening {
   opacity: 0.5;
 }
+.office-huddle-seat.is-pinned {
+  opacity: 1;
+  z-index: 2;
+}
+.office-huddle-seat.is-watching {
+  opacity: 0.85;
+}
+.office-huddle-seat-hit {
+  display: flex;
+  flex-direction: inherit;
+  align-items: center;
+  gap: inherit;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+}
+.office-huddle-seat-hit:focus-visible {
+  outline: 2px solid var(--huddle-accent, var(--accent));
+  outline-offset: 3px;
+  border-radius: 0.75rem;
+}
+.office-huddle-layer.is-watching .office-huddle-seat {
+  opacity: 0.9;
+}
 .office-huddle-seat.is-speaking {
   z-index: 2;
   opacity: 1;
@@ -18464,6 +18495,36 @@ body.slopitect-rainbow-tint::before {
     color-mix(in srgb, var(--huddle-accent, var(--accent)) 40%, var(--control-border));
   border-radius: 12px;
   box-shadow: var(--control-shadow);
+}
+.office-huddle-bubble.is-pinned {
+  border-color: color-mix(in srgb, var(--huddle-accent, var(--accent)) 70%, var(--control-border));
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--huddle-accent, var(--accent)) 28%, transparent),
+    var(--control-shadow);
+}
+.office-huddle-unpin {
+  position: absolute;
+  top: 0.2rem;
+  right: 0.25rem;
+  margin: 0;
+  padding: 0.1rem 0.25rem;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  cursor: pointer;
+  font-size: 0.75rem;
+  line-height: 1;
+  opacity: 0.75;
+}
+.office-huddle-unpin:hover {
+  opacity: 1;
+}
+.office-huddle-watching {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text);
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.55);
 }
 /* The bubble always points back into the canvas, away from its own edge. */
 .office-huddle-seat.is-side-top .office-huddle-bubble {

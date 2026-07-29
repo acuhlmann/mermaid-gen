@@ -26,11 +26,14 @@ import {
   pushOfficeMeetingInvite,
   pushOfficeWalkBy,
   endOfficeHuddle,
+  pauseOfficeHuddleForWatching,
+  resumeOfficeHuddleSpeaking,
   setOfficeFocusTime,
   setOfficeHeadphones,
   setOfficeHuddleBeats,
   startOfficeHuddle,
   subscribe,
+  upsertOfficeHuddleBeat,
   voteOfficeBattle,
   WALKBY_TTL_MS
 } from '../src/state/officeMomentStore.js';
@@ -278,6 +281,29 @@ describe('officeMomentStore', () => {
     expect(getOfficeSnapshot().huddle.phase).toBe('speaking');
     endOfficeHuddle(id);
     expect(getOfficeSnapshot().huddle).toBeNull();
+  });
+
+  it('pauses for watching and resumes speaking without dissolving the ring', () => {
+    const id = startOfficeHuddle(['gilfoyle', 'dinesh']);
+    setOfficeHuddleBeats(id, [{ speakerId: 'gilfoyle', text: 'hi' }]);
+    pauseOfficeHuddleForWatching(id);
+    expect(getOfficeSnapshot().huddle.phase).toBe('watching');
+    expect(getOfficeSnapshot().huddle.beats).toHaveLength(1);
+    resumeOfficeHuddleSpeaking(id);
+    expect(getOfficeSnapshot().huddle.phase).toBe('speaking');
+  });
+
+  it('stores on-spot suggestions beside the spoken queue', () => {
+    const id = startOfficeHuddle(['gilfoyle', 'dinesh']);
+    setOfficeHuddleBeats(id, [{ speakerId: 'gilfoyle', text: 'hi' }]);
+    upsertOfficeHuddleBeat(
+      id,
+      { speakerId: 'dinesh', text: 'Ask me later.', actionPrompt: 'Ask me later.' },
+      { pacing: false }
+    );
+    const snap = getOfficeSnapshot().huddle;
+    expect(snap.beats).toHaveLength(1);
+    expect(snap.suggestions.dinesh.text).toBe('Ask me later.');
   });
 
   it('refuses a huddle of one — that is a walk-by', () => {

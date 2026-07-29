@@ -118,6 +118,11 @@ export default function OfficeLayer({
   callMeetingSignal = 0,
   /** Bumped from Your Team menu to pull the team into a face-to-face huddle. */
   huddleSignal = 0,
+  /**
+   * True while an agent run / notebook stream is in flight. Used to resume a
+   * huddle that paused for a delegated Do-it once the work finishes.
+   */
+  agentBusy = false,
   /** When false, #office-desk-bottom-slot is not in the bottom row (empty intro). */
   deskActionsAnchorReady = false,
   /** Desktop vs mobile bottom row — slot remounts when this flips. */
@@ -208,7 +213,14 @@ export default function OfficeLayer({
     onCancelNarration: cancelOfficeNarration
   });
 
-  const { huddle, startHuddle, endHuddle } = useHuddlePlayback({
+  const {
+    huddle,
+    startHuddle,
+    endHuddle,
+    requestSpeakerSuggestion,
+    pauseForWatching,
+    resumeSpeaking
+  } = useHuddlePlayback({
     getSessionId,
     getContentType,
     getDiagramSource,
@@ -482,19 +494,56 @@ export default function OfficeLayer({
   }, [huddleSignal, handleStartHuddle]);
 
   // Hard stop, Escape, or the last remark landing — all end the same way. Only
-  // a huddle that actually got as far as speaking is worth XP.
+  // a huddle that actually got as far as speaking (or watched a Do-it) is worth XP.
   const handleHardStop = useCallback(() => {
-    if (getOfficeSnapshot().huddle?.phase === 'speaking') onOfficeEvent?.('huddled');
+    const phase = getOfficeSnapshot().huddle?.phase;
+    if (phase === 'speaking' || phase === 'watching') onOfficeEvent?.('huddled');
     endHuddle();
   }, [endHuddle, onOfficeEvent]);
 
+  /**
+   * Delegate a pinned / spoken suggestion: keep the ring seated, open the
+   * notebook via onAdoptPrompt, and resume turn-taking when agentBusy clears.
+   */
+  const huddleWatchRef = useRef(/** @type {null | 'awaiting-busy' | 'busy'} */ (null));
   const handleHuddleAdopt = useCallback(
     (prompt, colleagueId) => {
-      endHuddle();
+      pauseForWatching();
+      huddleWatchRef.current = 'awaiting-busy';
       onAdoptPrompt?.(prompt, colleagueId);
     },
-    [endHuddle, onAdoptPrompt]
+    [pauseForWatching, onAdoptPrompt]
   );
+
+  useEffect(() => {
+    if (!huddleWatchRef.current) return;
+    if (huddle?.phase !== 'watching') {
+      huddleWatchRef.current = null;
+      return;
+    }
+    if (huddleWatchRef.current === 'awaiting-busy') {
+      if (agentBusy) huddleWatchRef.current = 'busy';
+      return;
+    }
+    if (huddleWatchRef.current === 'busy' && !agentBusy) {
+      huddleWatchRef.current = null;
+      resumeSpeaking();
+    }
+  }, [agentBusy, huddle?.phase, resumeSpeaking]);
+
+  // If the notebook never starts (failed adopt), don't leave the ring frozen.
+  useEffect(() => {
+    if (huddle?.phase !== 'watching' || huddleWatchRef.current !== 'awaiting-busy') {
+      return undefined;
+    }
+    const timer = setTimeout(() => {
+      if (huddleWatchRef.current === 'awaiting-busy' && !agentBusy) {
+        huddleWatchRef.current = null;
+        resumeSpeaking();
+      }
+    }, 2500);
+    return () => clearTimeout(timer);
+  }, [huddle?.phase, agentBusy, resumeSpeaking]);
 
   const handleMeetingDismiss = useCallback(() => {
     const current = meeting;
@@ -796,6 +845,7 @@ export default function OfficeLayer({
           huddle={huddle}
           onHardStop={handleHardStop}
           onAdoptPrompt={handleHuddleAdopt}
+          onRequestSuggestion={requestSpeakerSuggestion}
           narrateLine={snapshot.narration ? narrateLine : undefined}
           prefetchLine={snapshot.narration ? prefetchLine : undefined}
         />

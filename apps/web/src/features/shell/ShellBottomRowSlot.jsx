@@ -48,12 +48,7 @@ export function ShellBottomRowSlot({
   stopVoiceInput,
   runTransform,
   runAnalyze,
-  advisor,
-  advisorBubbleProps,
-  stakeholderIntroProps,
-  advisorPause,
   russStreak,
-  onCallMeeting,
   onHuddle,
   handleSelectContentMode,
   latestCritique,
@@ -123,13 +118,8 @@ export function ShellBottomRowSlot({
           stopVoiceInput={stopVoiceInput}
           runTransform={runTransform}
           runAnalyze={runAnalyze}
-          advisor={advisor}
-          advisorBubbleProps={advisorBubbleProps}
-          stakeholderIntroProps={stakeholderIntroProps}
-          advisorPause={advisorPause}
           russStreak={russStreak}
           diagramSource={diagramSource}
-          onCallMeeting={onCallMeeting}
           onHuddle={onHuddle}
           handleSelectContentMode={handleSelectContentMode}
           latestCritique={latestCritique}

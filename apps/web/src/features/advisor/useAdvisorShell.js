@@ -37,7 +37,9 @@ export function useAdvisorShell({
   stateRef,
   contentMode,
   activeSessionId,
-  advisorPause,
+  // Ambient advising is retired (pause: true below); advisorPause still arrives
+  // from the shell for Focus/busy plumbing but is intentionally unused here.
+  advisorPause: _advisorPause,
   controls,
   diagramRevisionId,
   diagramSource,
@@ -56,15 +58,13 @@ export function useAdvisorShell({
     : null;
 
   /**
-   * Focus Time is the roundtable's mute. The team menu used to carry its own
-   * Headphones button for this, which meant two mute concepts in two menus for
-   * one intent — "don't interrupt me". Focus already silenced every *other*
-   * interruption (walk-bys, IMs, run reactions), so it absorbs this one too.
+   * Focus Time is the roundtable's mute. Headphones used to live in the team
+   * menu for this; Focus already silences every other interruption, so it
+   * absorbs the roundtable too. Ambient advising is retired (pause: true), but
+   * the mute flag still gates any leftover promptNext / intro paths.
    *
-   * Routed through `isMuted` rather than `pause` on purpose: an explicit ask
-   * ("Grab whoever's free", delegating, huddling) clears the mute in
-   * `promptNext`, which is the documented "your own initiative bypasses Focus
-   * Time" rule. Folding it into `pause` would gate those clicks instead.
+   * Routed through `isMuted` rather than folding into `pause`: an explicit ask
+   * (delegating, huddling) can clear mute without also un-pausing a retired loop.
    */
   const officeFocusTime = useSyncExternalStore(
     subscribe,
@@ -72,6 +72,11 @@ export function useAdvisorShell({
     () => getOfficeSnapshot().focusTime
   );
 
+  /**
+   * Ambient advising pop-ups are retired — the team huddle is the roundtable now.
+   * Keep the orchestrator mounted (tests + Focus Time mute plumbing) but never
+   * schedule proactive ticks. Explicit radial/delegate verbs do not use this loop.
+   */
   const advisor = useAdvisorOrchestrator({
     getDiagramSource: () => stateRef.current?.diagramSource ?? '',
     getContentType: () => contentMode,
@@ -80,7 +85,7 @@ export function useAdvisorShell({
     focusKey: advisorFocusKey,
     focusSource: advisorFocusDescriptor?.source ?? null,
     getSvgRoot: () => (typeof document !== 'undefined' ? document : null),
-    pause: advisorPause,
+    pause: true,
     initialMuted: officeFocusTime,
     onAccept: (text, persona) => {
       const hasDiagram = Boolean((stateRef.current?.diagramSource ?? '').trim());
