@@ -387,11 +387,15 @@ export default function OfficeLayer({
 
   const [messengerOpen, setMessengerOpen] = useState(false);
   const [messengerBusy, setMessengerBusy] = useState(false);
+  const [messengerTargetId, setMessengerTargetId] = useState(null);
   const handleOpenMessenger = useCallback(() => {
     clearOfficeImPings();
     setMessengerOpen(true);
   }, []);
-  const handleCloseMessenger = useCallback(() => setMessengerOpen(false), []);
+  const handleCloseMessenger = useCallback(() => {
+    setMessengerOpen(false);
+    setMessengerTargetId(null);
+  }, []);
 
   const handleAdopt = useCallback(
     (prompt, colleagueId) => {
@@ -653,23 +657,13 @@ export default function OfficeLayer({
     [desk, onOfficeEvent]
   );
 
-  const handleMessageSomeone = useCallback(async () => {
+  const handleMessageSomeone = useCallback(() => {
     setMessengerOpen(true);
-    await desk.imSomeone();
-  }, [desk]);
+  }, []);
 
-  const handleStartThread = useCallback(
-    async (colleagueId) => {
-      setMessengerOpen(true);
-      setMessengerBusy(true);
-      try {
-        await desk.imSomeone(colleagueId);
-      } finally {
-        setMessengerBusy(false);
-      }
-    },
-    [desk]
-  );
+  const handleStartThread = useCallback(() => {
+    setMessengerOpen(true);
+  }, []);
 
   const handleComposeEmail = useCallback(
     async (colleagueId, { subject, body }) => {
@@ -685,14 +679,11 @@ export default function OfficeLayer({
 
   // Walking up to somebody on the isometric floor reuses the desk's IM verb —
   // renderer #2 gets no private dialogue path of its own (ADR-0011).
-  const handleFloorMessage = useCallback(
-    (colleagueId) => {
-      clearOfficeImPings();
-      setMessengerOpen(true);
-      void desk.imSomeone(colleagueId);
-    },
-    [desk]
-  );
+  const handleFloorMessage = useCallback((colleagueId) => {
+    clearOfficeImPings();
+    setMessengerTargetId(colleagueId);
+    setMessengerOpen(true);
+  }, []);
 
   /*
    * Talking on the floor (slice 8) is the same verb again, minus the window:
@@ -703,12 +694,9 @@ export default function OfficeLayer({
    */
   const [floorTalkingTo, setFloorTalkingTo] = useState(null);
 
-  const handleTalkGreet = useCallback(
-    async (colleagueId) => {
-      await desk.imSomeone(colleagueId);
-    },
-    [desk]
-  );
+  const handleTalkGreet = useCallback(async () => {
+    // User speaks first — no auto-opener when walking up to someone.
+  }, []);
 
   const handleTalkReply = useCallback(
     async (colleagueId, body) => {
@@ -860,6 +848,7 @@ export default function OfficeLayer({
             open={messengerOpen}
             messages={snapshot.imHistory}
             busy={messengerBusy}
+            initialColleagueId={messengerTargetId}
             onClose={handleCloseMessenger}
             onMarkRead={markOfficeImsRead}
             onSend={handleMessengerSend}

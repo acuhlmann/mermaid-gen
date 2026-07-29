@@ -163,7 +163,8 @@ export default function OfficeMessenger({
   onStartThread,
   onCallMeeting,
   canCallMeeting = false,
-  busy = false
+  busy = false,
+  initialColleagueId = null
 }) {
   const chat = officeChromeCopy().messenger;
   const chrome = officeChromeCopy();
@@ -179,6 +180,11 @@ export default function OfficeMessenger({
   const activeId = selectedId ?? threads[0]?.colleagueId ?? null;
   const active = threads.find((t) => t.colleagueId === activeId) ?? null;
   const activeName = activeId ? officeSenderInfo(activeId).name : null;
+
+  useEffect(() => {
+    if (!open || !initialColleagueId) return;
+    setSelectedId(initialColleagueId);
+  }, [open, initialColleagueId]);
 
   useEffect(() => {
     if (!open || !activeId) return;
@@ -206,7 +212,7 @@ export default function OfficeMessenger({
   const handlePickColleague = (colleagueId) => {
     setSelectedId(colleagueId);
     setPickingColleague(false);
-    void onStartThread?.(colleagueId);
+    onStartThread?.(colleagueId);
   };
 
   if (!open) return null;
@@ -289,7 +295,7 @@ export default function OfficeMessenger({
                 ariaLabel={chat.pickColleague}
               />
             </div>
-          ) : threads.length === 0 ? (
+          ) : threads.length === 0 && !selectedId ? (
             <div className="office-messenger-empty-panel">
               <p className="office-messenger-empty">{chat.emptyThreads}</p>
               {typeof onStartThread === 'function' ? (

@@ -96,6 +96,19 @@ describe('useDeskActions', () => {
     expect(ping.body.toLowerCase()).toContain('spicy');
   });
 
+  it('delivers a contextual canned email reply when the user composes mail', async () => {
+    const { result } = renderHook(() => useDeskActions(BASE_PARAMS));
+    await act(async () => {
+      await result.current.emailSomeone('intern', {
+        subject: 'quick question',
+        body: 'is this diagram too spicy?'
+      });
+    });
+    const email = getOfficeSnapshot().emails[0];
+    expect(email).toBeTruthy();
+    expect(email.body.toLowerCase()).toContain('spicy');
+  });
+
   it('stops spending LLM calls once the desk budget is gone', async () => {
     // Server answers, so each verb spends one desk LLM call.
     const fetchMock = vi.fn(() =>

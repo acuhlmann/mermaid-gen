@@ -716,7 +716,7 @@ export const OFFICE_ZH_CN = {
     leaveLabel: '离开会议',
     interjectCapLine: 'Pam:“观点很棒 — 先放停车场。时间到了。”'
   },
-  OFFICE_IM_QUICK_REPLIES: ['👍', '开会中', '回头聊', '先放停车场', '已记入档案'],
+  OFFICE_IM_QUICK_REPLIES: ['👍', '开会中', '停车场', '请指示'],
   OFFICE_CHROME_COPY: {
     doIt: '就这么办',
     doSelected: '应用所选',

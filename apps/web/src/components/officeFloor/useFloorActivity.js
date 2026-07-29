@@ -93,8 +93,6 @@ export function useFloorActivity({
 
   const conversation = useFloorTalk({
     colleagueId: talkingTo,
-    arrived: talk?.phase === 'talking',
-    onGreet: onTalkGreet,
     onReply: onTalkReply
   });
 

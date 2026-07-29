@@ -974,9 +974,12 @@
 
 .office-floor-talk-quick {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 0.3rem;
   margin: 0.5rem 0 0;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
 }
 
 .office-floor-talk-quick-reply {
@@ -988,6 +991,8 @@
   font-size: 0.72rem;
   padding: 0.2rem 0.6rem;
   cursor: pointer;
+  white-space: nowrap;
+  flex: 0 0 auto;
 }
 
 .office-floor-talk-quick-reply:hover:not(:disabled),

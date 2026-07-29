@@ -171,7 +171,7 @@ describe('office locale bundles', () => {
       actualKeys,
       `${locale} OFFICE_CHROME_COPY keys must match officeCast.js — ${formatKeyDiff(expectedKeys, actualKeys)}. When editing OFFICE_CHROME_COPY.directory, sync apps/web/src/i18n/locales/office.*.js`
     ).toEqual(expectedKeys);
-    expect(localized.OFFICE_IM_QUICK_REPLIES).toHaveLength(5);
+    expect(localized.OFFICE_IM_QUICK_REPLIES).toHaveLength(4);
   });
 
   it('routes localized copy through the officeCast accessors', () => {

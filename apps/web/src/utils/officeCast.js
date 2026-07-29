@@ -765,6 +765,45 @@ export const OFFICE_IM_REPLY_TEMPLATES = [
   }
 ];
 
+/** Canned email replies when the user composes mail and the LLM is unavailable. */
+export const OFFICE_EMAIL_REPLY_TEMPLATES = [
+  {
+    id: 'email-reply-intern',
+    colleagueId: 'intern',
+    subject: 'Re: your note',
+    body: 're: "{snippet}" — lol ok. also is {label} on your canvas supposed to look that official??'
+  },
+  {
+    id: 'email-reply-scrum',
+    colleagueId: 'scrumMaster',
+    subject: 'Re: following up',
+    body: 'Love the energy in "{snippet}"! Quick glance at {label} on the canvas — shall we time-box a follow-up? 🙂'
+  },
+  {
+    id: 'email-reply-greybeard',
+    colleagueId: 'greybeard',
+    subject: 'Re: your message',
+    body: 'Re: "{snippet}" — {label} reminds me of 1984. We had one of those. It\'s fine. Probably.'
+  },
+  {
+    id: 'email-reply-hr',
+    colleagueId: 'hr',
+    subject: 'Re: thanks for reaching out',
+    body: 'Thanks for "{snippet}", {userName}! I peeked at {label} on the canvas — great wellness energy 😊'
+  },
+  {
+    id: 'email-reply-helpdesk',
+    colleagueId: 'helpdesk',
+    subject: 'Re: ticket update',
+    body: 'User wrote: "{snippet}". I see {label} on the diagram. Status: ACKNOWLEDGED. Have you tried turning it off and on?'
+  },
+  {
+    id: 'email-reply-generic',
+    subject: 'Re: your note',
+    body: 'Re: "{snippet}" — noted. {label} on the canvas looks busy; circling back after standup.'
+  }
+];
+
 /** Walk-by fallbacks when the LLM is unavailable — must still name a label. */
 export const OFFICE_WALKBY_FALLBACKS = [
   {
@@ -1222,13 +1261,7 @@ export const OFFICE_MEETING_COPY = {
 };
 
 /** Quick canned replies offered under an IM ping (pure local flavor + tiny XP). */
-export const OFFICE_IM_QUICK_REPLIES = [
-  '👍',
-  'in a meeting',
-  'circling back',
-  'parking lot it',
-  'noted in my file'
-];
+export const OFFICE_IM_QUICK_REPLIES = ['👍', 'per my last email', 'parking lot', 'pls advise'];
 
 /**
  * Static chrome strings for the office surfaces (inbox dock, IM stack,
@@ -1727,6 +1760,10 @@ export function officeImTemplates() {
 
 export function officeImReplyTemplates() {
   return office()?.OFFICE_IM_REPLY_TEMPLATES ?? OFFICE_IM_REPLY_TEMPLATES;
+}
+
+export function officeEmailReplyTemplates() {
+  return office()?.OFFICE_EMAIL_REPLY_TEMPLATES ?? OFFICE_EMAIL_REPLY_TEMPLATES;
 }
 
 export function seniorEmailTemplates() {
