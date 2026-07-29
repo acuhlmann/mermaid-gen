@@ -863,6 +863,7 @@ export default function OfficeLayer({
           onRequestSuggestion={requestSpeakerSuggestion}
           narrateLine={snapshot.narration ? narrateLine : undefined}
           prefetchLine={snapshot.narration ? prefetchLine : undefined}
+          onCancelNarration={cancelOfficeNarration}
         />
       )}
       {/* The call window is renderer #1 of a meeting; the glass room above is

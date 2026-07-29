@@ -18424,6 +18424,10 @@ body.slopitect-rainbow-tint::before {
   );
   pointer-events: none;
 }
+.office-huddle-layer.has-pinned-suggestion .office-huddle-shade {
+  pointer-events: auto;
+  cursor: default;
+}
 .office-huddle-seat {
   position: absolute;
   display: flex;
