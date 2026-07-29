@@ -11,8 +11,9 @@ function DeskPeopleCluster({
   runTransform,
   runAnalyze,
   busy,
-  diagramSource,
-  onHuddle
+  onHuddle,
+  onCallMeeting,
+  canCallMeeting = true
 }) {
   return (
     <div className="desk-people-group">
@@ -45,7 +46,9 @@ function DeskPeopleCluster({
         ]}
         busy={busy}
         onHuddle={onHuddle}
-        canHuddle={Boolean((diagramSource ?? '').trim()) && !busy}
+        canHuddle={!busy}
+        onCallMeeting={onCallMeeting}
+        canCallMeeting={canCallMeeting && !busy}
       />
     </div>
   );
@@ -81,8 +84,8 @@ function DeskChromeRow({
   controls,
   runTransform,
   runAnalyze,
-  diagramSource,
   onHuddle,
+  onCallMeeting,
   contentModeOptions,
   contentMode,
   onPickMode,
@@ -164,9 +167,9 @@ function DeskChromeRow({
             controls={controls}
             runTransform={runTransform}
             runAnalyze={runAnalyze}
-            diagramSource={diagramSource}
             busy={busy}
             onHuddle={onHuddle}
+            onCallMeeting={onCallMeeting}
           />
         </div>
       ) : null}
@@ -239,8 +242,8 @@ export function DeskBottomActionsSlot({
   runTransform,
   runAnalyze,
   russStreak,
-  diagramSource,
   onHuddle,
+  onCallMeeting,
   handleSelectContentMode,
   latestCritique,
   canFixFromCritique,
@@ -295,8 +298,8 @@ export function DeskBottomActionsSlot({
     controls,
     runTransform,
     runAnalyze,
-    diagramSource,
     onHuddle,
+    onCallMeeting,
     contentModeOptions,
     contentMode,
     onPickMode: handleSelectContentMode,

@@ -4,7 +4,8 @@ import { getAdvisorVisibleLabels } from '../utils/advisorVisibleLabels.js';
 import {
   officeDialogueLocale,
   officeMeetingCopy,
-  MEETING_FACILITATOR
+  MEETING_FACILITATOR,
+  normalizeMeetingModality
 } from '../utils/officeCast.js';
 
 export const MEETING_FETCH_TIMEOUT_MS = 25_000;
@@ -231,10 +232,11 @@ export function useMeetingPlayback({
   );
 
   const startMeeting = useCallback(
-    async ({ attendees, topic } = {}) => {
+    async ({ attendees, topic, modality: modalityOpt } = {}) => {
       const generation = ++generationRef.current;
       const seats = Array.isArray(attendees) && attendees.length > 0 ? attendees : null;
       if (!seats) return;
+      const modality = normalizeMeetingModality(modalityOpt);
       clearTimer();
       pendingBeatsRef.current = [];
       applyMeeting({
@@ -242,6 +244,7 @@ export function useMeetingPlayback({
         title: officeMeetingCopy().inviteFallbackTitle,
         attendees: seats,
         facilitatorId: seats.includes(MEETING_FACILITATOR) ? MEETING_FACILITATOR : seats[0],
+        modality,
         transcript: [],
         completed: false,
         interjectionsLeft: MEETING_INTERJECTION_CAP

@@ -539,7 +539,11 @@ and at least 2 "smalltalk" beats.
 - Senior attendees (Jack Barker, the CISO, CTO, and CFO) outrank the room: they ask for the headline, the cost,
 and the risk; any team attendee presents and defends the diagram; the facilitator keeps time.
 - ${SUBJECT_RULE}
-- Substantive beats MUST reference visible labels by name.${buildOfficeLanguageRule(uiLocale)}`;
+- Substantive beats MUST reference visible labels by name when labels exist.
+- EMPTY CANVAS: when the diagram source is "(empty)" or there are no visible labels, do NOT invent a
+fictional diagram. Substantive beats (and their actionPrompts) must be about why nothing is drawn yet —
+gentle pressure to put a first box down, a starter shape, a title node. Smalltalk/offRails can rib the blank
+screen. actionPrompt examples: "Add a Start box", "Sketch the first service as a node".${buildOfficeLanguageRule(uiLocale)}`;
 }
 
 export function buildMeetingUserPrompt({
@@ -638,7 +642,12 @@ RULES:
 - Schema: {"beats": [{"speakerId": string, "text": string, "actionPrompt": string (optional)}]}.
 - EXACTLY one beat per person listed above, in the SAME ORDER they are listed. No extras, no repeats.
 - Each "text" is max 30 words. This is a hallway remark over somebody's shoulder, not a presentation.
-- Every beat must engage the ACTUAL diagram and reference at least one visible label by name.
+- Every beat must engage the ACTUAL diagram and reference at least one visible label by name when
+  labels exist.
+- EMPTY CANVAS: when the diagram source is "(empty)" or there are no visible labels, do NOT invent
+  diagram content. Every beat is about the blank screen — ribbing that nothing is drawn yet, and at
+  least 2 beats carry an actionPrompt that starts from nothing (e.g. "Add a Start box", "Draw the
+  first service as a node").
 - At least 2 beats carry an "actionPrompt": a self-contained imperative diagram edit, max 200 chars,
   actionable without any other context. This is the accidental competence that makes the parody land.
 - At least one beat reacts to the person before them by name (agree, object, or misunderstand).

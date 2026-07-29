@@ -50,6 +50,7 @@ export function ShellBottomRowSlot({
   runAnalyze,
   russStreak,
   onHuddle,
+  onCallMeeting,
   handleSelectContentMode,
   latestCritique,
   canFixFromCritique,
@@ -119,8 +120,8 @@ export function ShellBottomRowSlot({
           runTransform={runTransform}
           runAnalyze={runAnalyze}
           russStreak={russStreak}
-          diagramSource={diagramSource}
           onHuddle={onHuddle}
+          onCallMeeting={onCallMeeting}
           handleSelectContentMode={handleSelectContentMode}
           latestCritique={latestCritique}
           canFixFromCritique={canFixFromCritique}

@@ -60,6 +60,7 @@ export function FloorPersonButton({
   speaking = false,
   idleIndex = 0,
   disabled = false,
+  accessoryOverride = null,
   onSelect
 }) {
   return (
@@ -71,10 +72,17 @@ export function FloorPersonButton({
       aria-pressed={selected}
       title={label}
       disabled={disabled}
+      data-on-call={accessoryOverride === 'headset' ? 'true' : undefined}
       onClick={() => onSelect(id)}
     >
       <span className="office-floor-person-name">{name}</span>
-      <FloorFigure id={id} accent={accent} isYou={isYou} idleIndex={idleIndex} />
+      <FloorFigure
+        id={id}
+        accent={accent}
+        isYou={isYou}
+        idleIndex={idleIndex}
+        accessoryOverride={accessoryOverride}
+      />
     </button>
   );
 }

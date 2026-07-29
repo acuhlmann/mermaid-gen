@@ -961,6 +961,7 @@ export function ArchiSlop() {
           runTransform={runTransform}
           russStreak={russStreak}
           onHuddle={() => setHuddleSignal((n) => n + 1)}
+          onCallMeeting={() => setCallMeetingSignal((n) => n + 1)}
           handleSelectContentMode={handleSelectContentMode}
           latestCritique={latestCritique}
           canFixFromCritique={canFixFromCritique}

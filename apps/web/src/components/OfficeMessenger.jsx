@@ -235,7 +235,8 @@ export default function OfficeMessenger({
             onClick={() =>
               onCallMeeting?.({
                 seedAttendees: activeId ? [activeId] : [],
-                source: 'chat'
+                source: 'chat',
+                modality: 'remote'
               })
             }
           >

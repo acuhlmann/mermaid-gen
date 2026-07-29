@@ -13,10 +13,18 @@ import { PersonaFace } from '../personaFaces/index.jsx';
  *   accent: string,
  *   isYou?: boolean,
  *   idleIndex?: number,
- *   walking?: boolean
+ *   walking?: boolean,
+ *   accessoryOverride?: string | null
  * }} props
  */
-export function FloorFigure({ id, accent, isYou = false, idleIndex = 0, walking = false }) {
+export function FloorFigure({
+  id,
+  accent,
+  isYou = false,
+  idleIndex = 0,
+  walking = false,
+  accessoryOverride = null
+}) {
   return (
     <span
       className={`office-floor-person-figure${walking ? ' is-walking' : ''}`}
@@ -28,6 +36,7 @@ export function FloorFigure({ id, accent, isYou = false, idleIndex = 0, walking 
         accentRing={false}
         fallbackEmoji={isYou ? '🙋' : undefined}
         className="office-floor-person-head"
+        accessoryOverride={accessoryOverride}
       />
       <svg
         className="office-floor-person-body"

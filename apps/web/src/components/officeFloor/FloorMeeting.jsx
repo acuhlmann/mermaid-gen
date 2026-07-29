@@ -1,42 +1,37 @@
 /**
- * Meetings in the glass room (docs/office-isometric-mode.md § 5 slice 5).
+ * Meetings on the floor (docs/office-parody.md + docs/office-isometric-mode.md).
  *
- * The floor-side render of the meeting whose screen-side render is the call
- * window (`MeetingOverlay`). `useMeetingPlayback` — mounted in `OfficeLayer`,
- * one instance for both worlds — already owns beat pacing, narration,
- * interjections and minutes, and appends one beat at a time to
- * `meeting.transcript`. So this module only ever *reads* state: there is no
- * pacing here and therefore no double-narration risk (unlike slice 4, where the
- * pacing had to be hoisted into a shared hook first). `OfficeLayer` still hides
- * the overlay while you are standing, but for the visual reason alone — two
- * meeting rooms on screen at once.
+ * Two modalities, one playback state (ADR-0011):
+ * - **physical** — everyone sits in the glass room (including you). Desks empty.
+ * - **remote** — everyone stays at their desk with a headset; this module only
+ *   draws the speech bubble above the speaker's chair. Headsets themselves are
+ *   painted by `FloorStage` via `onCallIds`.
  *
- * Deliberately not a port of `MeetingOverlay`: that component is 333 lines of
- * its own layout, and the transcript history and the minutes card belong on a
- * screen, not in a room. The room shows who is here and who is talking; the
- * paperwork is what sitting down is for.
- *
- * Two exports because the meeting lands in two places, and a capture is what
- * settled it (§ 6 rule 12): `FloorMeeting` goes inside the scaled stage,
- * `FloorMeetingCard` is ordinary chrome beside the person card. A counter-scaled
- * panel pinned to the table — the obvious choice, and the one the plan called
- * for — is wider than the entire room and hid all nine people in it.
+ * The screen-side render is still `MeetingOverlay`. `useMeetingPlayback` owns
+ * beat pacing; this module only ever *reads* state.
  */
 
 import { useState } from 'react';
 import FloorBubble from './FloorBubble.jsx';
 import FloorFigure from './FloorFigure.jsx';
 import { MEETING_USER_SPEAKER } from '../../hooks/useMeetingPlayback.js';
-import { officeChromeCopy, officeMeetingCopy, officeSenderInfo } from '../../utils/officeCast.js';
+import {
+  MEETING_MODALITY_REMOTE,
+  officeChromeCopy,
+  officeMeetingCopy,
+  officeSenderInfo
+} from '../../utils/officeCast.js';
 import { formatLocale } from '../../i18n/formatLocale.js';
 import {
   MEETING_BUBBLE_DEPTH,
   MEETING_PLAYER_TILE,
+  YOU_SEAT_ID,
   bubbleAlignForTile,
   depthOf,
   liftToDepth,
   meetingSeating,
-  projectIso
+  projectIso,
+  seatFor
 } from '../../utils/officeFloorPlan.js';
 
 /** Above the zone signage (9000), same as the arrival ceremony's speakers. */
@@ -53,6 +48,10 @@ function actorInfo(castId, copy) {
     title: sender?.title ?? '',
     accent: sender?.accentColor ?? 'var(--accent)'
   };
+}
+
+function isRemoteMeeting(meeting) {
+  return meeting?.modality === MEETING_MODALITY_REMOTE;
 }
 
 /**
@@ -86,17 +85,12 @@ function MeetingActor({ castId, tile, speaking, isYou, idleIndex, copy }) {
 /**
  * The newest beat, on a fixed depth line above the room and in the speaker's own
  * screen column — so the tail points at them, the bubble clears the back row,
- * and it does not leap across the table on every beat. Its own positioned
- * element rather than a child of the figure, so the figure keeps its place in
- * the room's depth order while the bubble rides above the signage layer (§ 6
- * rule 6).
+ * and it does not leap across the table on every beat.
  */
 function MeetingBubble({ speakerId, text, tile, scale, copy }) {
   const { name, title } = actorInfo(speakerId, copy);
   const above = liftToDepth(tile, MEETING_BUBBLE_DEPTH);
   const { left, top } = projectIso(above.x, above.y);
-  // Keep the speaker's screen column for the tail, but bias away from the
-  // stage edge the same way desk speech does (§ 6 rule 27).
   const align = bubbleAlignForTile(tile);
   return (
     <div
@@ -113,27 +107,60 @@ function MeetingBubble({ speakerId, text, tile, scale, copy }) {
   );
 }
 
+/** Desk-side bubble for a remote headset sync — sits above their own chair. */
+function RemoteMeetingBubble({ speakerId, text, scale, copy }) {
+  const seatId = speakerId === MEETING_USER_SPEAKER ? YOU_SEAT_ID : speakerId;
+  const seat = seatFor(seatId);
+  if (!seat) return null;
+  const tile = { x: seat.x, y: seat.y };
+  const { name, title } = actorInfo(speakerId, copy);
+  const above = liftToDepth(tile, tile.x + tile.y - 0.55);
+  const { left, top } = projectIso(above.x, above.y);
+  const align = bubbleAlignForTile(tile);
+  return (
+    <div
+      className="office-floor-walker"
+      data-testid="office-floor-meeting-bubble"
+      data-modality="remote"
+      style={{ left, top, zIndex: BUBBLE_Z }}
+    >
+      <div className="office-floor-walker-anchor">
+        <FloorBubble name={name} title={title} scale={scale} align={align}>
+          {text}
+        </FloorBubble>
+      </div>
+    </div>
+  );
+}
+
 /**
- * The room itself: everyone in their chair, and whatever was just said.
+ * Physical: everyone in the glass room. Remote: bubble only (headsets on desks).
  *
  * @param {{
  *   meeting: {
  *     state: 'joining' | 'playing' | 'ended' | 'cancelled',
  *     attendees: string[],
  *     facilitatorId: string,
+ *     modality?: string,
  *     transcript: Array<{ speakerId: string, text: string }>
  *   },
  *   copy: Record<string, any>,
  *   scale?: number,
  *   showSpokenText?: boolean
- * }} props `copy` is `officeChromeCopy().floor`.
+ * }} props
  */
 export function FloorMeeting({ meeting, copy, scale = 1, showSpokenText = true }) {
-  const seating = meetingSeating(meeting.attendees, meeting.facilitatorId);
+  const remote = isRemoteMeeting(meeting);
+  const seating = remote ? [] : meetingSeating(meeting.attendees, meeting.facilitatorId);
   const lastBeat = meeting.transcript[meeting.transcript.length - 1] ?? null;
-  // Whoever spoke last holds the floor — the same rule the call window's seat
-  // highlight uses, so the glow and the voice can never disagree.
   const speakingId = meeting.state === 'playing' && lastBeat ? lastBeat.speakerId : null;
+
+  if (remote) {
+    return showSpokenText && speakingId && lastBeat?.text ? (
+      <RemoteMeetingBubble speakerId={speakingId} text={lastBeat.text} scale={scale} copy={copy} />
+    ) : null;
+  }
+
   const seatOf = (castId) =>
     castId === MEETING_USER_SPEAKER
       ? MEETING_PLAYER_TILE
@@ -213,34 +240,25 @@ function RaiseHandForm({ meeting, meetingCopy, chromeMeeting, onInterject }) {
 }
 
 /**
- * The meeting's two inputs, in the same corner as every other floor card.
- *
- * Chrome, not diegesis — deliberately, and by measurement: the glass room is
- * ~170 px wide on screen and a counter-scaled panel over the table covered all
- * nine people in it. Rule 2 wants a labelled conventional control anyway; the
- * diegetic half of this slice is the room itself.
- *
- * @param {{
- *   meeting: any,
- *   copy: Record<string, any>,
- *   onInterject?: (text: string) => void,
- *   onLeave?: () => void,
- *   onSitDown?: () => void
- * }} props
+ * The meeting's chrome card beside the person card.
  */
 export function FloorMeetingCard({ meeting, copy, onInterject, onLeave, onSitDown }) {
   const meetingCopy = officeMeetingCopy();
   const chromeMeeting = officeChromeCopy().meeting;
   const floorMeeting = copy.meeting;
   const ended = meeting.state === 'ended';
+  const remote = isRemoteMeeting(meeting);
 
   return (
     <aside
       className="office-floor-card office-floor-card--meeting"
       data-testid="office-floor-meeting-card"
+      data-modality={remote ? 'remote' : 'physical'}
       aria-live="polite"
     >
-      <span className="office-floor-eyebrow">{floorMeeting.eyebrow}</span>
+      <span className="office-floor-eyebrow">
+        {remote ? (floorMeeting.eyebrowRemote ?? floorMeeting.eyebrow) : floorMeeting.eyebrow}
+      </span>
       <strong className="office-floor-card-heading">{meeting.title}</strong>
 
       {meeting.state === 'joining' ? (
@@ -277,8 +295,6 @@ export function FloorMeetingCard({ meeting, copy, onInterject, onLeave, onSitDow
           </>
         ) : (
           <>
-            {/* Sitting down leaves the meeting running and hands it back to the
-                call window — the floor's equivalent of its docked mode. */}
             <button
               type="button"
               className="office-floor-card-action"

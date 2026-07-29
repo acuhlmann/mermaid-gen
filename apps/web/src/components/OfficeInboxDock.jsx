@@ -105,7 +105,8 @@ export default function OfficeInboxDock({
     onCallMeeting?.({
       seedAttendees: colleagueIds,
       topic: meetingTopicFromEmailSubjects(emailList.map((email) => email.subject)),
-      source: 'email'
+      source: 'email',
+      modality: 'remote'
     });
     setOpen(false);
     setSelectedId(null);

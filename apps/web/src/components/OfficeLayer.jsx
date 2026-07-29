@@ -55,6 +55,8 @@ import { officeMinutesToInsightEntry } from '../utils/appInsightHelpers.js';
 import { fetchOfficeCloudAudio } from '../utils/officeSpeechClient.js';
 import {
   MEETING_FACILITATOR,
+  MEETING_MODALITY_PHYSICAL,
+  normalizeMeetingModality,
   officeChromeCopy,
   officeDialogueLocale,
   officeMeetingCopy
@@ -434,7 +436,9 @@ export default function OfficeLayer({
     if (!invite) return;
     dismissOfficeMeetingInvite();
     setMeetingPicker(null);
-    void startMeeting({ attendees: invite.attendees });
+    // Calendar invites are diegetic "get to the glass room" moments.
+    void startMeeting({ attendees: invite.attendees, modality: MEETING_MODALITY_PHYSICAL });
+    if (getOfficeViewMode() !== 'floor') standUp();
   }, [startMeeting]);
 
   const handleCallMeeting = useCallback(
@@ -446,26 +450,36 @@ export default function OfficeLayer({
         : Array.isArray(options?.attendees)
           ? options.attendees
           : [];
+      const source =
+        options?.source === 'email' || options?.source === 'chat' ? options.source : 'desk';
       setMeetingPicker({
         seedAttendees,
         topic: typeof options?.topic === 'string' ? options.topic : '',
-        source: options?.source === 'email' || options?.source === 'chat' ? options.source : 'desk',
-        forceFacilitator: options?.forceFacilitator === true
+        source,
+        forceFacilitator: options?.forceFacilitator === true,
+        defaultModality: normalizeMeetingModality(options?.modality, { source })
       });
     },
     [meeting]
   );
 
   const handleConfirmMeetingPicker = useCallback(
-    ({ attendees, topic }) => {
+    ({ attendees, topic, modality }) => {
       setMeetingPicker(null);
       setMessengerOpen(false);
+      const resolved = normalizeMeetingModality(modality, {
+        source: meetingPicker?.source ?? 'desk'
+      });
       void startMeeting({
         attendees,
+        modality: resolved,
         ...(topic ? { topic } : {})
       });
+      if (resolved === MEETING_MODALITY_PHYSICAL && getOfficeViewMode() !== 'floor') {
+        standUp();
+      }
     },
-    [startMeeting]
+    [startMeeting, meetingPicker?.source]
   );
 
   const handleCancelMeetingPicker = useCallback(() => {
@@ -566,8 +580,7 @@ export default function OfficeLayer({
     closeMeeting();
   }, [meeting, onMeetingMinutes, onOfficeEvent, closeMeeting]);
 
-  const hasDiagramSource = Boolean((getDiagramSource?.() ?? '').trim());
-  const canCallMeeting = hasDiagramSource && !meeting;
+  const canCallMeeting = !meeting;
 
   // Bumping this counter opens the inbox popover from the desk menu without
   // lifting the dock's own open/close state.
@@ -583,7 +596,8 @@ export default function OfficeLayer({
     getUserName,
     onUsage,
     onOfficeEvent,
-    onCheckInbox: () => setInboxOpenSignal((n) => n + 1)
+    onCheckInbox: () => setInboxOpenSignal((n) => n + 1),
+    onCallMeeting: () => handleCallMeeting({ source: 'desk' })
   });
 
   // Slop Chat™ sending reuses the desk's "IM someone" verb, so a reply comes
@@ -833,6 +847,7 @@ export default function OfficeLayer({
         topic={meetingPicker?.topic ?? ''}
         source={meetingPicker?.source ?? 'desk'}
         forceFacilitator={meetingPicker?.forceFacilitator === true}
+        defaultModality={meetingPicker?.defaultModality}
         onConfirm={handleConfirmMeetingPicker}
         onCancel={handleCancelMeetingPicker}
       />

@@ -57,6 +57,23 @@ describe('meetings in the glass room (slice 5)', () => {
     expect(seat('greybeard')?.dataset.vacant).toBeUndefined();
   });
 
+  it('leaves desks occupied and paints headsets for a remote sync', () => {
+    const remote = {
+      ...PLAYING,
+      modality: 'remote',
+      transcript: [{ speakerId: 'gilfoyle', kind: 'substantive', text: 'Still blank?' }]
+    };
+    const view = renderFloor({ meeting: remote });
+    const seat = (id) => view.container.querySelector(`[data-seat="${id}"]`);
+
+    expect(screen.queryByTestId('office-floor-meeting-seat-gilfoyle')).toBeNull();
+    expect(seat('gilfoyle')?.dataset.vacant).toBeUndefined();
+    expect(seat('you')?.dataset.vacant).toBeUndefined();
+    expect(view.container.querySelector('[data-on-call="true"]')).toBeTruthy();
+    expect(screen.getByTestId('office-floor-meeting-card').dataset.modality).toBe('remote');
+    expect(screen.getByTestId('office-floor-meeting-bubble').textContent).toMatch(/Still blank/);
+  });
+
   it('shows only the newest beat, attributed to whoever said it', () => {
     renderFloor({ meeting: PLAYING });
 

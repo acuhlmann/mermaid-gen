@@ -25,12 +25,22 @@ import { useFloorActivity } from './officeFloor/useFloorActivity.js';
 import { useFloorSpokenText } from './officeFloor/useFloorSpokenText.js';
 import { useFloorAway } from './officeFloor/useFloorAway.js';
 import { useFloorAutoPan } from './officeFloor/useFloorAutoPan.js';
+import {
+  isPhysicalFloorMeeting,
+  useFloorMeetingFocus
+} from './officeFloor/useFloorMeetingFocus.js';
 import { useFloorKeyboard } from './officeFloor/useFloorKeyboard.js';
 import { useFloorWalker } from './officeFloor/useFloorWalker.js';
+import { MEETING_USER_SPEAKER } from '../hooks/useMeetingPlayback.js';
 import { useStageScale } from '../hooks/useStageScale.js';
 import { reachTileFor, whereaboutsOf } from '../utils/officeFloorReach.js';
 import { YOU_SEAT_ID, peekTileFor } from '../utils/officeFloorPlan.js';
-import { isOfficeColleagueId, officeChromeCopy, officeSenderInfo } from '../utils/officeCast.js';
+import {
+  MEETING_MODALITY_REMOTE,
+  isOfficeColleagueId,
+  officeChromeCopy,
+  officeSenderInfo
+} from '../utils/officeCast.js';
 import { deskWorkFor } from '../utils/officeDeskWork.js';
 import { tierOf } from '../utils/castTiers.js';
 import { resolveUserName, subscribe as subscribeUserName } from '../state/userIdentityStore.js';
@@ -161,13 +171,20 @@ function OfficeFloorView({ bridge }) {
   const officeSnap = useSyncExternalStore(subscribeOffice, getOfficeSnapshot, getOfficeSnapshot);
 
   const viewportRef = useRef(null);
-  const scale = useStageScale(viewportRef);
+  const fitScale = useStageScale(viewportRef);
+  const scale = useFloorMeetingFocus(viewportRef, meeting, fitScale);
   const [selectedId, setSelectedId] = useState(null);
   const { walker, departing, handleDeparted } = useFloorWalker(walkBy);
   const handleClosePerson = useCallback(() => setSelectedId(null), []);
 
+  const physicalMeeting = isPhysicalFloorMeeting(meeting);
+  const remoteMeeting = Boolean(meeting && meeting.modality === MEETING_MODALITY_REMOTE);
+
   const activity = useFloorActivity({
-    suspended: Boolean(meeting),
+    // Physical syncs claim the floor (you're in a chair in the glass room).
+    // Remote headset syncs leave desks occupied — free roam stays available so
+    // you can stand up and see everyone on the call.
+    suspended: physicalMeeting,
     imHistory,
     onTalkGreet,
     onTalkReply,
@@ -194,6 +211,20 @@ function OfficeFloorView({ bridge }) {
     // conversation you crossed the room for, or out from under an open card.
     holdId: activity.talk?.colleagueId ?? selectedId
   });
+
+  const onCallIds = useMemo(() => {
+    if (!remoteMeeting || !meeting) return [];
+    return [YOU_SEAT_ID, ...(meeting.attendees ?? [])];
+  }, [remoteMeeting, meeting]);
+
+  const meetingSpeakingId = useMemo(() => {
+    if (!meeting || meeting.state !== 'playing') return null;
+    const last = meeting.transcript?.[meeting.transcript.length - 1];
+    if (!last?.speakerId) return null;
+    return last.speakerId === MEETING_USER_SPEAKER ? YOU_SEAT_ID : last.speakerId;
+  }, [meeting]);
+
+  const stageSpeakingId = meetingSpeakingId ?? activity.speakingId;
 
   /*
    * Where somebody is, when it is not their own chair (slice 12). One question,
@@ -270,16 +301,18 @@ function OfficeFloorView({ bridge }) {
           onWalkerAdopt={onAdoptPrompt}
           onWalkerDismiss={onDismissWalkBy}
           onWalkerDeparted={handleDeparted}
-          // A meeting has you in a chair in the glass room; the floor is not
-          // yours to wander until you leave it.
-          onWalkTo={meeting ? null : activity.walkTo}
+          // A physical glass-room sync has you in a chair; the floor is not
+          // yours to wander until you leave it. Remote headset syncs keep desks
+          // occupied and still let you walk the floor.
+          onWalkTo={physicalMeeting ? null : activity.walkTo}
           roamOrigin={origin}
-          // Same reason as the roam surface: a meeting has you in a chair, and
-          // the coffee machine is not yours to press from it.
-          onUseProp={meeting ? null : activity.startUseProp}
+          // Same reason as the roam surface: a glass-room chair is not a place
+          // you press the coffee machine from.
+          onUseProp={physicalMeeting ? null : activity.startUseProp}
           activePropKind={activity.activePropKind}
           vacantIds={awayIds}
-          speakingId={activity.speakingId}
+          onCallIds={onCallIds}
+          speakingId={stageSpeakingId}
         >
           <FloorActors
             scale={scale}
@@ -294,7 +327,7 @@ function OfficeFloorView({ bridge }) {
             // A figure on the stage is selectable whether it is in a chair or
             // stood at the printer, so the wanderer takes the stage's own three.
             selectedId={selectedId}
-            speakingId={activity.speakingId}
+            speakingId={stageSpeakingId}
             onSelect={handleSelect}
             peek={peek}
             talk={talk}
