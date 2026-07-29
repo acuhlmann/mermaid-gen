@@ -5,7 +5,8 @@ import {
   officeDialogueLocale,
   officeMeetingCopy,
   MEETING_FACILITATOR,
-  normalizeMeetingModality
+  normalizeMeetingModality,
+  provisionalMeetingTitle
 } from '../utils/officeCast.js';
 
 export const MEETING_FETCH_TIMEOUT_MS = 25_000;
@@ -248,7 +249,7 @@ export function useMeetingPlayback({
       pendingBeatsRef.current = [];
       applyMeeting({
         state: 'playing',
-        title: officeMeetingCopy().inviteFallbackTitle,
+        title: provisionalMeetingTitle({ attendees: seats, topic, modality }),
         attendees: seats,
         facilitatorId: seats.includes(MEETING_FACILITATOR) ? MEETING_FACILITATOR : seats[0],
         modality,

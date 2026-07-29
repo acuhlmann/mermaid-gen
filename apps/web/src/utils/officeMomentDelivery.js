@@ -18,6 +18,7 @@ import { writeOfficeCadenceMemory } from './officeAmbienceStorage.js';
 import {
   fillOfficeSlots,
   MEETING_FACILITATOR,
+  MEETING_SENIOR_POOL,
   OFFICE_EMAIL_LLM_CAST,
   OFFICE_IM_LLM_CAST,
   OFFICE_WALKBY_LLM_CAST,
@@ -242,13 +243,18 @@ export function deliverCannedMoment(kind, ctx, options) {
 
   if (kind === 'meeting-invite') {
     const copy = officeMeetingCopy();
+    const attendees = pickMeetingAttendees(random);
+    const steering =
+      attendees.includes(MEETING_FACILITATOR) &&
+      attendees.some((id) => MEETING_SENIOR_POOL.includes(id));
+    const title = steering ? copy.steeringInviteTitle : copy.inviteFallbackTitle;
     pushOfficeMeetingInvite({
-      colleagueId: MEETING_FACILITATOR,
-      title: copy.inviteFallbackTitle,
+      colleagueId: attendees.includes(MEETING_FACILITATOR) ? MEETING_FACILITATOR : attendees[0],
+      title,
       body: copy.inviteFallbackBody,
-      attendees: pickMeetingAttendees(random)
+      attendees
     });
-    remember(copy.inviteFallbackTitle);
+    remember(title);
     markFired(memory, null, onFired);
     return true;
   }

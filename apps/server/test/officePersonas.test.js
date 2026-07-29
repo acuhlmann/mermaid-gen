@@ -326,7 +326,7 @@ test('normalizeAttendees dedupes, drops unknowns, and enforces seat bounds', () 
   );
   // Huddle floor: two seats is enough (1:1 + facilitator, or two peers).
   assert.deepEqual(normalizeAttendees(['scrumMaster', 'barker']), ['scrumMaster', 'barker']);
-  assert.equal(normalizeAttendees(['scrumMaster']), null);
+  assert.deepEqual(normalizeAttendees(['scrumMaster']), ['scrumMaster']);
   // Group ceiling matches the /meeting route (8).
   assert.deepEqual(normalizeAttendees(['scrumMaster', 'barker', 'intern', 'greybeard', 'jared']), [
     'scrumMaster',

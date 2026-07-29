@@ -699,11 +699,16 @@ export const OFFICE_ZH_CN = {
     }
   ],
   OFFICE_MEETING_COPY: {
-    inviteFallbackTitle: '架构评审委员会(指导会议)',
+    inviteFallbackTitle: '工作组同步',
+    steeringInviteTitle: '架构评审委员会(指导会议)',
+    quickSyncTitle: '快速同步',
+    quickSyncTitleRemote: '耳机同步',
+    defaultSyncTitle: '工作组同步',
+    defaultRemoteTitle: '耳机同步',
     inviteFallbackBody:
       '领导层想看看当前这张图。议程:重点、成本、风险。你的团队来展示;高层负责提问。零食:无。',
     joiningLine: '正在等待组织者放你进来…',
-    cancelledSubject: '已取消:架构评审委员会',
+    cancelledSubject: '已取消:工作组同步',
     cancelledBody: '会议取消 — 领导层行程冲突。改期至:永不。行动项仍归你负责。\n\nPam',
     proposeNewTimeGag: '已提议新时间。组织者拒绝了你提议的时间。',
     minutesTitle: '会议纪要',
