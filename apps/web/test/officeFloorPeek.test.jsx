@@ -127,14 +127,16 @@ describe('desk peeking (slice 6)', () => {
     // Gary has no desk to look at, but he is still on the office tier.
     fireEvent.click(screen.getByRole('button', { name: /Gary/ }));
     expect(screen.queryByRole('button', { name: /Their screen/i })).toBeNull();
-    expect(screen.getByRole('button', { name: /Message/ })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /Go and talk/i })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /Message/ })).toBeNull();
   });
 
-  it('offers both verbs to a floor colleague who has a desk', () => {
+  it('offers walk-up verbs to a floor colleague who has a desk', () => {
     renderFloor({ onMessage: vi.fn() });
     fireEvent.click(screen.getByRole('button', { name: /Chad/ }));
 
-    expect(screen.getByRole('button', { name: /Message/ })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /Message/ })).toBeNull();
+    expect(screen.getByRole('button', { name: /Go and talk/i })).toBeTruthy();
     expect(screen.getByRole('button', { name: /Their screen/i })).toBeTruthy();
   });
 

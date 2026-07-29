@@ -718,7 +718,7 @@ export const OFFICE_EN_AU = {
       'Tick items and tap Do selected, or Do the lot to ship every action item to the canvas.',
     minutesEmptyLede: 'No action items — a perfect meeting, by corporate standards.',
     discussionNotesLabel: 'Discussion notes',
-    raiseHandPlaceholder: 'Say something to the room…',
+    speakPlaceholder: 'Say something to the room…',
     leaveLabel: 'Shoot through',
     interjectCapLine: 'Pam: "Great point — let\'s parking-lot it. We\'re at time."'
   },

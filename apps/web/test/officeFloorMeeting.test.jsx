@@ -74,14 +74,26 @@ describe('meetings in the glass room (slice 5)', () => {
     expect(screen.getByTestId('office-floor-meeting-bubble').textContent).toMatch(/Still blank/);
   });
 
-  it('shows only the newest beat, attributed to whoever said it', () => {
-    renderFloor({ meeting: PLAYING });
+  it('shows only the newest beat on remote headset syncs', () => {
+    const remote = {
+      ...PLAYING,
+      modality: 'remote',
+      transcript: [
+        { speakerId: 'gilfoyle', kind: 'substantive', text: 'The gateway is the bottleneck.' },
+        { speakerId: 'cfo', kind: 'substantive', text: 'What does the gateway cost per quarter?' }
+      ]
+    };
+    renderFloor({ meeting: remote });
 
     const bubble = screen.getByTestId('office-floor-meeting-bubble');
     expect(bubble.textContent).toMatch(/What does the gateway cost/);
     expect(bubble.textContent).toMatch(/Diane/);
-    // The transcript history belongs on a screen, not in the room.
     expect(screen.queryByText(/gateway is the bottleneck/)).toBeNull();
+  });
+
+  it('shows no speech bubble in the physical glass room', () => {
+    renderFloor({ meeting: PLAYING });
+    expect(screen.queryByTestId('office-floor-meeting-bubble')).toBeNull();
   });
 
   it('keeps the controls out of the room and in the card slot', () => {
@@ -101,22 +113,22 @@ describe('meetings in the glass room (slice 5)', () => {
     expect(speaking[0].dataset.testid).toBe('office-floor-meeting-seat-cfo');
   });
 
-  it('raises a hand through the same capped interjection handler', () => {
+  it('speaks to the room through the capped interjection handler', () => {
     const onInterject = vi.fn();
     renderFloor({ meeting: PLAYING, meetingHandlers: { onInterject } });
 
-    const input = screen.getByRole('textbox', { name: /raise hand/i });
+    const input = screen.getByRole('textbox', { name: /speak to the room/i });
     fireEvent.change(input, { target: { value: 'Can we name the bottleneck?' } });
-    fireEvent.click(screen.getByRole('button', { name: /Raise hand/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Speak \(2\)/ }));
 
     expect(onInterject).toHaveBeenCalledWith('Can we name the bottleneck?');
     expect(input.value).toBe('');
   });
 
-  it('refuses to raise a hand once the room is at time', () => {
+  it('refuses another line once the room is at time', () => {
     renderFloor({ meeting: { ...PLAYING, interjectionsLeft: 0 } });
 
-    expect(screen.getByRole('textbox', { name: /raise hand/i }).disabled).toBe(true);
+    expect(screen.getByRole('textbox', { name: /speak to the room/i }).disabled).toBe(true);
     expect(screen.getByRole('button', { name: /At time/i }).disabled).toBe(true);
   });
 
@@ -140,18 +152,23 @@ describe('meetings in the glass room (slice 5)', () => {
     expect(onLeave).not.toHaveBeenCalled();
   });
 
-  it('waits to be admitted before anyone says anything', () => {
+  it('starts speaking immediately while the script loads', () => {
     renderFloor({
       meeting: {
         ...PLAYING,
-        state: 'joining',
         title: 'Architecture Review Board (steering)',
         transcript: []
       }
     });
 
-    expect(screen.getByText(/Waiting for the organizer to admit you/)).toBeTruthy();
-    expect(screen.queryByRole('textbox', { name: /raise hand/i })).toBeNull();
+    expect(screen.queryByText(/Waiting for the organizer to admit you/)).toBeNull();
+    expect(screen.getByRole('textbox', { name: /speak to the room/i })).toBeTruthy();
+  });
+
+  it('includes a mic on the floor meeting card', () => {
+    const view = renderFloor({ meeting: PLAYING });
+    const card = view.container.querySelector('[data-testid="office-floor-meeting-card"]');
+    expect(card?.querySelector('.office-floor-card-mic')).toBeTruthy();
   });
 
   it('sends you back to your desk to read the minutes when it wraps', () => {
@@ -166,7 +183,7 @@ describe('meetings in the glass room (slice 5)', () => {
     fireEvent.click(screen.getByRole('button', { name: /Read the minutes/i }));
     expect(getOfficeViewMode()).toBe('desk');
     expect(onLeave).not.toHaveBeenCalled();
-    expect(screen.queryByRole('textbox', { name: /raise hand/i })).toBeNull();
+    expect(screen.queryByRole('textbox', { name: /speak to the room/i })).toBeNull();
   });
 
   it('renders nothing about meetings when there is no meeting', () => {

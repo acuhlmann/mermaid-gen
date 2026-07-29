@@ -173,13 +173,13 @@ describe('useMeetingPlayback', () => {
 
     for (let i = 1; i < SCRIPT.beats.length; i += 1) {
       await act(async () => {
-        await vi.advanceTimersByTimeAsync(50);
+        await vi.advanceTimersByTimeAsync(600);
         await Promise.resolve();
         await Promise.resolve();
       });
     }
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(50);
+      await vi.advanceTimersByTimeAsync(600);
       await Promise.resolve();
     });
     expect(result.current.meeting.state).toBe('ended');

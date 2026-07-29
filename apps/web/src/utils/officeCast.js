@@ -1255,7 +1255,7 @@ export const OFFICE_MEETING_COPY = {
     'Check items and tap Do selected, or Do it all to ship every action item to the canvas.',
   minutesEmptyLede: 'No action items — a perfect meeting, by corporate standards.',
   discussionNotesLabel: 'Discussion notes',
-  raiseHandPlaceholder: 'Say something to the room… (keep it one-pager)',
+  speakPlaceholder: 'Say something to the room…',
   leaveLabel: 'Leave meeting',
   interjectCapLine: 'Pam: "Great point — let\'s parking-lot it. We\'re at time. Amazing energy."'
 };
@@ -1723,9 +1723,9 @@ export const OFFICE_CHROME_COPY = {
     youName: 'You',
     close: 'Close',
     noMinutes: 'No action items. A perfect meeting, by corporate standards.',
-    raiseHandAria: 'Raise hand',
-    raiseHand: '✋ Raise hand ({count})',
-    atTime: '✋ At time',
+    speakAria: 'Speak to the room',
+    speak: '🗣️ Speak ({count})',
+    atTime: 'At time',
     // Docking the meeting = glancing at your own screen while the room talks.
     dock: '🗕 Look at my screen',
     dockTitle: 'Shrink the meeting to a corner so you can work on the diagram',

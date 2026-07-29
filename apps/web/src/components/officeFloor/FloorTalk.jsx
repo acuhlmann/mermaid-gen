@@ -13,15 +13,14 @@
  * a seated figure (§ 6 rule 15). The replying half is chrome and therefore
  * belongs in the card slot (§ 6 rule 12), not pinned to a pod of desks.
  *
- * Composer parity with Slop Chat™: typed prompt **and** mic (`VoiceMicButton`),
- * plus a short recent-turns strip so a walk-up chat reads like a point-and-click
- * dialogue, not a blank text box.
+ * Composer parity with other voice surfaces: typed prompt **and** mic
+ * (`VoiceMicButton`). No thread strip — you are standing in front of them.
  */
 
 import FloorDeskSpeech from './FloorDeskSpeech.jsx';
 import { PersonaFace } from '../personaFaces/index.jsx';
 import VoiceMicButton from '../VoiceMicButton.jsx';
-import { officeImQuickReplies, officeSenderInfo } from '../../utils/officeCast.js';
+import { officeSenderInfo } from '../../utils/officeCast.js';
 
 /**
  * The newest thing they said, over their head.
@@ -66,20 +65,10 @@ export function FloorTalk({ talk, line, scale = 1, hideBody = false }) {
  *   draft: string,
  *   onDraftChange: (value: string) => void,
  *   onSend: (body: string) => void,
- *   onLeave: () => void,
- *   recentTurns?: Array<{ from: 'user' | 'colleague', body: string }>
+ *   onLeave: () => void
  * }} props `copy` is `officeChromeCopy().floor`.
  */
-export function FloorTalkCard({
-  talk,
-  copy,
-  busy = false,
-  draft,
-  onDraftChange,
-  onSend,
-  onLeave,
-  recentTurns = []
-}) {
+export function FloorTalkCard({ talk, copy, busy = false, draft, onDraftChange, onSend, onLeave }) {
   const talkCopy = copy.talk;
   const sender = officeSenderInfo(talk.colleagueId);
   const arrived = talk.phase === 'talking';
@@ -114,60 +103,30 @@ export function FloorTalkCard({
       {arrived ? null : <p className="office-floor-card-blurb">{talkCopy.walking}</p>}
 
       {arrived ? (
-        <>
-          {recentTurns.length > 0 ? (
-            <ol className="office-floor-talk-thread" data-testid="office-floor-talk-thread">
-              {recentTurns.map((turn, index) => (
-                <li
-                  key={`${turn.from}-${index}-${turn.body.slice(0, 24)}`}
-                  className={`office-floor-talk-turn is-${turn.from}`}
-                >
-                  <span className="office-floor-talk-turn-who">
-                    {turn.from === 'user' ? talkCopy.youLabel : theirName}
-                  </span>
-                  <span className="office-floor-talk-turn-body">{turn.body}</span>
-                </li>
-              ))}
-            </ol>
-          ) : null}
-          <div className="office-floor-talk-quick">
-            {officeImQuickReplies().map((reply) => (
-              <button
-                key={reply}
-                type="button"
-                className="office-floor-talk-quick-reply"
-                disabled={busy}
-                onClick={() => onSend(reply)}
-              >
-                {reply}
-              </button>
-            ))}
-          </div>
-          <form className="office-floor-talk-compose" onSubmit={submit}>
-            <input
-              type="text"
-              className="office-floor-talk-input"
-              value={draft}
-              onChange={(event) => onDraftChange(event.target.value)}
-              placeholder={busy ? talkCopy.thinking : talkCopy.placeholder}
-              aria-label={talkCopy.placeholder}
-              disabled={busy}
-            />
-            <VoiceMicButton
-              value={draft}
-              onChange={onDraftChange}
-              disabled={busy}
-              className="office-floor-talk-mic overlay-button is-mic-toggle"
-            />
-            <button
-              type="submit"
-              className="office-floor-card-action office-floor-card-action--primary"
-              disabled={busy || !draft.trim()}
-            >
-              {talkCopy.send}
-            </button>
-          </form>
-        </>
+        <form className="office-floor-talk-compose" onSubmit={submit}>
+          <input
+            type="text"
+            className="office-floor-talk-input"
+            value={draft}
+            onChange={(event) => onDraftChange(event.target.value)}
+            placeholder={busy ? talkCopy.thinking : talkCopy.placeholder}
+            aria-label={talkCopy.placeholder}
+            disabled={busy}
+          />
+          <VoiceMicButton
+            value={draft}
+            onChange={onDraftChange}
+            disabled={busy}
+            className="office-floor-talk-mic overlay-button is-mic-toggle"
+          />
+          <button
+            type="submit"
+            className="office-floor-card-action office-floor-card-action--primary"
+            disabled={busy || !draft.trim()}
+          >
+            {talkCopy.send}
+          </button>
+        </form>
       ) : null}
 
       <div className="office-floor-card-actions">

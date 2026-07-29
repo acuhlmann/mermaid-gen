@@ -32,7 +32,6 @@ import { sitDown } from '../../state/officeViewModeStore.js';
  *   meetingHandlers?: any,
  *   talk?: { colleagueId: string, phase: string } | null,
  *   conversation?: { draft: string, setDraft: (v: string) => void, busy: boolean, send: (b: string) => void },
- *   talkTurns?: Array<{ from: 'user' | 'colleague', body: string }>,
  *   peek?: { colleagueId: string, phase: string } | null,
  *   prop?: { propKind: string, phase: string } | null,
  *   propUse?: { phase: 'idle' | 'working' | 'done' | 'blocked' } | null,
@@ -50,7 +49,6 @@ export function FloorCardSlot({
   meetingHandlers = {},
   talk = null,
   conversation = null,
-  talkTurns = [],
   peek = null,
   prop = null,
   propUse = null,
@@ -83,7 +81,6 @@ export function FloorCardSlot({
         onDraftChange={conversation.setDraft}
         onSend={conversation.send}
         onLeave={onGoHome}
-        recentTurns={talkTurns}
       />
     );
   }

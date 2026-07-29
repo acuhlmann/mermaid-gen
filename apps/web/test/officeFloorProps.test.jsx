@@ -168,8 +168,8 @@ describe('usable props (slice 9)', () => {
     renderFloor({ onGetCoffee: vi.fn().mockResolvedValue(true), onMessage: vi.fn() });
 
     fireEvent.click(screen.getByRole('button', { name: /Chad/ }));
-    // The person card has no testid of its own; its Message verb identifies it.
-    expect(screen.getByRole('button', { name: /Message/ })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /Go and talk/i })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /Message/ })).toBeNull();
 
     fireEvent.click(machine());
 
