@@ -76,7 +76,6 @@ export function useArchiSlopSessionState({ controls }) {
   });
   const [xpBarMobileOpen, setXpBarMobileOpen] = useState(false);
   const [xpInfoPanelOpen, setXpInfoPanelOpen] = useState(false);
-  const [outboxOpenSignal, setOutboxOpenSignal] = useState(0);
   const [settingsOpenSignal, setSettingsOpenSignal] = useState(0);
   const [callMeetingSignal, setCallMeetingSignal] = useState(0);
   const [huddleSignal, setHuddleSignal] = useState(0);
@@ -181,8 +180,6 @@ export function useArchiSlopSessionState({ controls }) {
     setXpBarMobileOpen,
     xpInfoPanelOpen,
     setXpInfoPanelOpen,
-    outboxOpenSignal,
-    setOutboxOpenSignal,
     settingsOpenSignal,
     setSettingsOpenSignal,
     callMeetingSignal,

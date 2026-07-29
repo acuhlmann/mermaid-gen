@@ -10,7 +10,6 @@ function open(props = {}) {
     onCheckInbox: vi.fn(),
     onOpenSlopChat: vi.fn(),
     onCheckHrProgression: vi.fn(),
-    onOpenOutbox: vi.fn(),
     onInviteAgent: vi.fn(),
     canOpenOutbox: true,
     onToggleFocusTime: vi.fn(),
@@ -33,7 +32,6 @@ describe('DeskActionsDock', () => {
         onCheckInbox={vi.fn()}
         onOpenSlopChat={vi.fn()}
         onCheckHrProgression={vi.fn()}
-        onOpenOutbox={vi.fn()}
         onInviteAgent={vi.fn()}
       />
     );
@@ -48,7 +46,6 @@ describe('DeskActionsDock', () => {
         onCheckInbox={vi.fn()}
         onOpenSlopChat={vi.fn()}
         onCheckHrProgression={vi.fn()}
-        onOpenOutbox={vi.fn()}
         onInviteAgent={vi.fn()}
       />
     );
@@ -151,11 +148,18 @@ describe('DeskActionsDock', () => {
     expect(screen.queryByRole('menu')).toBeNull();
   });
 
-  it('opens mailroom from the desk menu', () => {
-    const handlers = open({ canOpenOutbox: true });
-    fireEvent.click(screen.getByRole('menuitem', { name: /Take it to the mailroom/ }));
-    expect(handlers.onOpenOutbox).toHaveBeenCalledTimes(1);
-    expect(screen.queryByRole('menu')).toBeNull();
+  it('expands mailroom share/export inline in the desk menu', () => {
+    open({
+      canOpenOutbox: true,
+      contentType: 'mermaid',
+      diagramSource: 'flowchart TD\n  A-->B'
+    });
+    const outbox = screen.getByRole('menuitem', { name: /Take it to the mailroom/ });
+    expect(outbox.getAttribute('aria-expanded')).toBe('false');
+    fireEvent.click(outbox);
+    expect(outbox.getAttribute('aria-expanded')).toBe('true');
+    expect(screen.getByRole('region', { name: /Mailroom/i })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /Export/i })).toBeTruthy();
   });
 
   it('shows an unread badge on Slop Chat when IMs are waiting', () => {

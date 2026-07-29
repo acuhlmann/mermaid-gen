@@ -21,7 +21,6 @@ export function OfficeLayerSlot({
   setInsightsEntries,
   handleOfficeEvent,
   setXpInfoPanelOpen,
-  setOutboxOpenSignal,
   setEditorOpen,
   setInviteDialogOpen,
   hasCanvasContent,
@@ -62,7 +61,6 @@ export function OfficeLayerSlot({
       onMeetingMinutes={(entry) => setInsightsEntries((prev) => [...prev, entry])}
       onOfficeEvent={handleOfficeEvent}
       onCheckHrProgression={() => setXpInfoPanelOpen((open) => !open)}
-      onOpenOutbox={() => setOutboxOpenSignal((n) => n + 1)}
       onToggleEditor={() => setEditorOpen((current) => !current)}
       onInviteAgent={() => setInviteDialogOpen(true)}
       canToggleEditor={hasCanvasContent || editorOpen}
@@ -74,6 +72,8 @@ export function OfficeLayerSlot({
       huddleSignal={huddleSignal}
       agentBusy={agentBusy}
       canOpenOutbox={Boolean((diagramSource ?? '').trim())}
+      contentType={contentMode}
+      diagramSource={diagramSource ?? ''}
       canToggleThinking
       thinkingOpen={insightsOpen}
       playChime={tryAgentSound}

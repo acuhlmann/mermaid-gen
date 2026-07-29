@@ -22,7 +22,6 @@ export function ShellBottomRowSlot({
   stateContentType,
   controls,
   settingsOpenSignal,
-  outboxOpenSignal,
   onInviteAgent,
   onToggleEditor,
   externalAgentPresence,
@@ -146,16 +145,11 @@ export function ShellBottomRowSlot({
             externalAgentPresence={externalAgentPresence}
             onInviteAgent={onInviteAgent}
             popoverMode={!narrowLayout}
-            contentType={
-              isConcreteContentMode(contentMode) ? contentMode : (stateContentType ?? null)
-            }
-            diagramSource={diagramSource}
             showEditorToggle={hasCanvasContent || editorOpen}
             editorOpen={editorOpen}
             onToggleEditor={onToggleEditor}
             editorControls={controls.editor}
             settingsOpenSignal={settingsOpenSignal}
-            outboxOpenSignal={outboxOpenSignal}
           />
         ) : null
       }

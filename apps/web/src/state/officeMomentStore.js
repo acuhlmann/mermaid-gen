@@ -205,6 +205,10 @@ export function startOfficeHuddle(attendees) {
     /** @type {Record<string, {speakerId: string, text: string, actionPrompt?: string}>} */
     suggestions: {},
     phase: /** @type {'gathering'} */ ('gathering'),
+    /** 0-based index of the line currently being spoken (drives diagram refresh). */
+    activeLineIndex: 0,
+    /** Snapshot of diagram source when beats last matched the canvas. */
+    diagramFingerprint: '',
     createdAt: Date.now()
   };
   update({ huddle });
@@ -212,12 +216,53 @@ export function startOfficeHuddle(attendees) {
 }
 
 /** Script landed — the ring starts talking. Ignored once the huddle is gone. */
-export function setOfficeHuddleBeats(id, beats) {
+export function setOfficeHuddleBeats(id, beats, { diagramFingerprint = '' } = {}) {
   if (!state.huddle || state.huddle.id !== id) return;
   const next = Array.isArray(beats) ? beats : [];
   // Don't yank out of watching if a late script races a Do-it handoff.
   const phase = state.huddle.phase === 'watching' ? 'watching' : 'speaking';
-  update({ huddle: { ...state.huddle, beats: next, phase } });
+  update({
+    huddle: {
+      ...state.huddle,
+      beats: next,
+      phase,
+      activeLineIndex: 0,
+      diagramFingerprint: typeof diagramFingerprint === 'string' ? diagramFingerprint : ''
+    }
+  });
+}
+
+/** Track which remark is live so diagram refreshes keep already-spoken lines. */
+export function setOfficeHuddleActiveLineIndex(id, index) {
+  if (!state.huddle || state.huddle.id !== id) return;
+  const next = Number.isFinite(Number(index)) ? Math.max(0, Math.floor(Number(index))) : 0;
+  if (state.huddle.activeLineIndex === next) return;
+  update({ huddle: { ...state.huddle, activeLineIndex: next } });
+}
+
+/**
+ * Replace unspoken beats when the canvas changes mid-huddle. Keeps remarks at
+ * indices below `fromIndex` intact.
+ *
+ * @param {string} id
+ * @param {number} fromIndex
+ * @param {Array<{speakerId: string, text: string, actionPrompt?: string}>} newBeats
+ * @param {string} diagramFingerprint
+ */
+export function refreshOfficeHuddleBeats(id, fromIndex, newBeats, diagramFingerprint) {
+  if (!state.huddle || state.huddle.id !== id) return;
+  const keep = Math.max(0, Math.floor(Number(fromIndex) || 0));
+  const existing = state.huddle.beats ?? [];
+  const tail = Array.isArray(newBeats) ? newBeats : [];
+  const beats = [...existing.slice(0, keep), ...tail];
+  update({
+    huddle: {
+      ...state.huddle,
+      beats,
+      diagramFingerprint: typeof diagramFingerprint === 'string' ? diagramFingerprint : '',
+      suggestions: {}
+    }
+  });
 }
 
 /**

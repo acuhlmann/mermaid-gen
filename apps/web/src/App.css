@@ -17107,6 +17107,46 @@ body.slopitect-rainbow-tint::before {
   text-align: center;
 }
 
+.desk-actions-outbox-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.desk-actions-item--expandable .desk-actions-item-chevron {
+  margin-left: auto;
+  font-size: 0.72rem;
+  color: var(--muted);
+  line-height: 1;
+}
+
+.desk-actions-outbox-panel {
+  padding: 0 0.35rem 0.25rem 0.15rem;
+}
+
+.desk-actions-outbox-panel .outbox-dock--embedded {
+  width: 100%;
+}
+
+.desk-actions-outbox-panel .outbox-panel--embedded {
+  position: static;
+  width: 100%;
+  max-width: none;
+  box-shadow: none;
+  border: 1px solid var(--control-border);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.82);
+  padding: 0.45rem 0.5rem 0.55rem;
+}
+
+.desk-actions-outbox-panel .settings-export {
+  gap: 0.35rem;
+}
+
+.outbox-panel--embedded[hidden] {
+  display: none;
+}
+
 .desk-actions-unread-badge {
   position: absolute;
   top: -0.2rem;

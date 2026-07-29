@@ -116,8 +116,6 @@ export function ArchiSlop() {
     setXpBarMobileOpen,
     xpInfoPanelOpen,
     setXpInfoPanelOpen,
-    outboxOpenSignal,
-    setOutboxOpenSignal,
     settingsOpenSignal,
     setSettingsOpenSignal,
     callMeetingSignal,
@@ -901,7 +899,6 @@ export function ArchiSlop() {
           setInsightsEntries={setInsightsEntries}
           onOfficeEvent={handleOfficeEvent}
           setXpInfoPanelOpen={setXpInfoPanelOpen}
-          setOutboxOpenSignal={setOutboxOpenSignal}
           setInviteDialogOpen={setInviteDialogOpen}
           hasCanvasContent={hasCanvasContent}
           setInsightsOpen={setInsightsOpen}
@@ -951,7 +948,6 @@ export function ArchiSlop() {
           pendingHandshakeForAi={pendingHandshake}
           stateContentType={state.contentType}
           settingsOpenSignal={settingsOpenSignal}
-          outboxOpenSignal={outboxOpenSignal}
           onInviteAgent={() => setInviteDialogOpen(true)}
           externalAgentPresence={externalAgentPresence}
           deskSlotRef={deskSlotRef}

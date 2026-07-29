@@ -102,13 +102,14 @@ export default function OfficeLayer({
   onMeetingMinutes,
   onOfficeEvent,
   onCheckHrProgression,
-  onOpenOutbox,
   onToggleEditor,
   onInviteAgent,
   onToggleThinking,
   modelProfile = 'fast',
   onSelectModelProfile = null,
   canOpenOutbox = false,
+  contentType = null,
+  diagramSource = '',
   canToggleThinking = false,
   canToggleEditor = false,
   editorOpen = false,
@@ -734,10 +735,11 @@ export default function OfficeLayer({
       onSummonSync={() => handleCallMeeting({ source: 'desk' })}
       canSummonSync={canCallMeeting}
       onCheckHrProgression={onCheckHrProgression}
-      onOpenOutbox={onOpenOutbox}
       onInviteAgent={onInviteAgent}
       blockedReason={desk.blockedReason}
       canOpenOutbox={canOpenOutbox}
+      contentType={contentType}
+      diagramSource={diagramSource}
       initialOpen={deskMenuInitialOpen}
       modelProfile={modelProfile}
       onSelectModelProfile={onSelectModelProfile}
