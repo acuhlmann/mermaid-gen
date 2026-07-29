@@ -66,7 +66,7 @@ describe('FloorArrival (isometric first run)', () => {
     });
     expect(screen.getByTestId('office-floor-narration').textContent).toMatch(/Linda/);
     // Silent TTS falls back to the bubble so the line is never lost.
-    expect(screen.getByText(/I'm Linda, from People Ops/)).toBeTruthy();
+    expect(screen.getByText(/I'm Linda, People Ops/)).toBeTruthy();
   });
 
   it('hides spoken balloons when voice works and captions stay off', async () => {
@@ -77,7 +77,7 @@ describe('FloorArrival (isometric first run)', () => {
     await waitFor(() => {
       expect(document.querySelector('.office-floor-person.is-speaking')).toBeTruthy();
     });
-    expect(screen.queryByText(/I'm Linda, from People Ops/)).toBeNull();
+    expect(screen.queryByText(/I'm Linda, People Ops/)).toBeNull();
   });
 
   it('shows balloons when captions are turned on even while voice plays', async () => {
@@ -87,7 +87,7 @@ describe('FloorArrival (isometric first run)', () => {
     fireEvent.click(screen.getByRole('button', { name: /Check in/i }));
 
     await waitFor(() => {
-      expect(screen.getByText(/I'm Linda, from People Ops/)).toBeTruthy();
+      expect(screen.getByText(/I'm Linda, People Ops/)).toBeTruthy();
     });
   });
 

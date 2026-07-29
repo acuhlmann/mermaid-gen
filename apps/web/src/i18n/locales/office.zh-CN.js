@@ -789,13 +789,14 @@ export const OFFICE_ZH_CN = {
       welcomeChapter: '人力资源',
       colleagueChapter: '同事 {current} / {total}',
       unlockedLabel: '✨ 解锁角色',
-      tagline: '你是这层楼最新的架构师。Your Team 会自我介绍。Gilfoyle 和 Russ 稍后再找你。',
+      tagline:
+        '你是这层楼最新的架构师。琳达会速通全员介绍——然后把你丢回工位。Gilfoyle 和 Russ 稍后再找你。',
       autoplayHint: '正在说话…',
-      rosterTagline: 'Your Team（跳过入职引导的那两位除外）——点 ▶ 听他们自我介绍：',
+      rosterTagline: 'Your Team（跳过入职引导的那两位除外）——真想听完整自我介绍再点 ▶：',
       greeting: '欢迎加入，{name}。',
       greetingRole: '架构师',
       expandLabel: '🏢 认识团队',
-      expandTitle: '第一天介绍 — Your Team 加上人力运营的 Linda。',
+      expandTitle: '第一天入职 — 人力运营的 Linda、Your Team，然后是工位向导。',
       startLabel: '认识团队 →',
       beginLabel: '开始第一天',
       skipToBuildLabel: '跳过引导 →',
@@ -811,9 +812,9 @@ export const OFFICE_ZH_CN = {
       transcriptTitle: '显示语音内容为文字 — 无法收听时使用',
       welcomeVoiceSpeakerId: 'hr',
       welcomeVoiceLine:
-        '欢迎来到这层楼。我是琳达，负责人力运营。跟我来——我带你在楼里走一圈，认识 Your Team。Gilfoyle 和 Russ 故意跳过入职引导。',
+        '欢迎来到这层楼。我是琳达，人力运营——工牌照片、逾期培训，以及边微笑边记录你罪状的人。速通一轮，因为没人扛得住五段串行自我介绍：Dinesh 会抓到 bug，并确保你他妈感谢他。Erlich 会问这张图够不够有勇气——说够，否则他会孵化你的灵魂。Jared 已经给你的入职开了发现项；他很抱歉。Richard 正在安静地给一个模式命名，祝福他。Jack Barker 超兴奋，已经为董事会简化了这一刻。Gilfoyle 和 Russ 故意翘了——他们会找到你，而且不会客气。继续走。',
       welcomeClosingLine:
-        '第一天到此为止。你的工位在等你——准备好了就开一个交付件。合规培训不知怎么已经逾期了，Craig 的生日贺卡还在冰箱上。尽量别为订书机全员回复。',
+        '第一天到此为止。你的工位在那边——坐下，熬过那个小入职向导，再开一个交付件，别等有人约一个关于约同步的同步会。合规不知怎么已经逾期了，Craig 的生日贺卡还在冰箱上，要是你为订书机全员回复，我会亲手弄死你。温暖地！',
       nameTag: {
         hello: '你好',
         subtitle: '我叫',

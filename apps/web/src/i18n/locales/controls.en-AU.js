@@ -49,9 +49,9 @@ export const CONTROLS_EN_AU = {
     starterHint: 'Or pick up an assignment from the floor:',
     starterAria: 'Assignment requests from the floor',
     entryIntro: {
-      greeting: 'You made it, {name}',
+      greeting: 'Desk wizard time, {name}',
       role: 'Architect',
-      body: 'This is your desk screen. Pitch a topic in the work order below — that is how every deliverable starts.'
+      body: 'You survived orientation. This is the last corporate hug. Pitch something in the work order below — that is how every deliverable starts, and how you stop looking like furniture.'
     },
     entryPointers: [
       {

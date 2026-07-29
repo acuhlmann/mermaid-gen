@@ -789,13 +789,14 @@ export const OFFICE_ZH_TW = {
       welcomeChapter: '人力資源',
       colleagueChapter: '同事 {current} / {total}',
       unlockedLabel: '✨ 解鎖角色',
-      tagline: '你是這層樓最新的架構師。Your Team 會自我介紹。Gilfoyle 和 Russ 稍後再找你。',
+      tagline:
+        '你是這層樓最新的架構師。琳達會速通全員介紹——然後把你丟回座位。Gilfoyle 和 Russ 稍後再找你。',
       autoplayHint: '正在說話…',
-      rosterTagline: 'Your Team（跳過到職引導的那兩位除外）——點 ▶ 聽他們自我介紹：',
+      rosterTagline: 'Your Team（跳過到職引導的那兩位除外）——真想聽完整自我介紹再點 ▶：',
       greeting: '歡迎加入，{name}。',
       greetingRole: '架構師',
       expandLabel: '🏢 認識團隊',
-      expandTitle: '第一天介紹 — Your Team 加上人資營運的 Linda。',
+      expandTitle: '第一天到職 — 人力營運的 Linda、Your Team，然後是座位精靈。',
       startLabel: '認識團隊 →',
       beginLabel: '開始第一天',
       skipToBuildLabel: '略過引導 →',
@@ -811,9 +812,9 @@ export const OFFICE_ZH_TW = {
       transcriptTitle: '顯示語音內容為文字 — 無法收聽時使用',
       welcomeVoiceSpeakerId: 'hr',
       welcomeVoiceLine:
-        '歡迎來到這層樓。我是琳達，負責人力營運。跟我來——我帶你在樓裡走一圈，認識 Your Team。Gilfoyle 和 Russ 故意跳過到職引導。',
+        '歡迎來到這層樓。我是琳達，人力營運——工牌照片、逾期訓練，以及邊微笑邊記錄你罪狀的人。速通一輪，因為沒人扛得住五段串行自我介紹：Dinesh 會抓到 bug，並確保你他媽感謝他。Erlich 會問這張圖夠不夠有勇氣——說夠，否則他會孵化你的靈魂。Jared 已經給你的到職開了發現項；他很抱歉。Richard 正在安靜地給一個模式命名，祝福他。Jack Barker 超興奮，已經為董事會簡化了這一刻。Gilfoyle 和 Russ 故意翹了——他們會找到你，而且不會客氣。繼續走。',
       welcomeClosingLine:
-        '第一天到此為止。你的座位在等你——準備好了就開一個交付件。合規訓練不知怎麼已經逾期了,Craig 的生日卡片還在冰箱上。儘量別為釘書機全員回覆。',
+        '第一天到此為止。你的座位在那邊——坐下，熬過那個小到職精靈，再開一個交付件，別等有人約一個關於約同步的同步會。合規不知怎麼已經逾期了，Craig 的生日卡片還在冰箱上，要是你為釘書機全員回覆，我會親手弄死你。溫暖地！',
       nameTag: {
         hello: '你好',
         subtitle: '我叫',

@@ -767,13 +767,14 @@ export const OFFICE_EN_AU = {
       colleagueChapter: 'COLLEAGUE {current} OF {total}',
       unlockedLabel: '✨ CHARACTER UNLOCKED',
       tagline:
-        "You're the newest architect on the floor. Your Team will introduce themselves. Gilfoyle and Russ will find you later.",
+        "You're the newest architect on the floor. Linda will speed-run the cast — then dump you at your desk. Gilfoyle and Russ will find you later.",
       autoplayHint: 'Speaking…',
-      rosterTagline: 'Your Team (minus the ones who skip orientation) — tap ▶ to hear an intro:',
+      rosterTagline:
+        'Your Team (minus the ones who skip orientation) — tap ▶ if you actually want a full self-intro:',
       greeting: 'Welcome aboard, {name}.',
       greetingRole: 'Architect',
       expandLabel: '🏢 Meet the Team',
-      expandTitle: 'Day One intros — Your Team plus Linda from People Ops.',
+      expandTitle: 'Day One orientation — Linda from People Ops, Your Team, then the desk wizard.',
       startLabel: 'Meet the team →',
       beginLabel: 'Begin Day One',
       skipToBuildLabel: 'Skip to canvas →',
@@ -790,9 +791,9 @@ export const OFFICE_EN_AU = {
       transcriptTitle: 'Show spoken dialogue as text — for when you cannot listen',
       welcomeVoiceSpeakerId: 'hr',
       welcomeVoiceLine:
-        "Welcome to the floor. I'm Linda, from People Ops. Come with me — I'll walk you around to meet Your Team. Gilfoyle and Russ skip orientation on purpose.",
+        "Welcome to the floor. I'm Linda, People Ops — badge photos, overdue trainings, and the smile that documents your sins. Speed round, because nobody survives five sequential self-intros: Dinesh will catch the bug and make damn sure you thank him. Erlich will ask if the diagram is courageous — say yes or he'll incubate your soul. Jared already filed a finding on your onboarding; he's sorry. Richard is quietly naming a pattern, bless him. Jack Barker is thrilled and has simplified this for the board. Gilfoyle and Russ skipped on purpose — they'll find you, and they will not be gentle. Keep moving.",
       welcomeClosingLine:
-        "That's Day One. Your desk is waiting — pitch a deliverable when you're ready. Compliance training is somehow already overdue, and Craig's birthday card is still on the fridge. Try not to reply-all about the stapler.",
+        "That's Day One. Your desk is that way — sit down, survive the little onboarding wizard, and pitch a deliverable before someone books a sync about syncing. Compliance is somehow already overdue, Craig's birthday card is still on the fridge, and if you reply-all about the stapler I will end you. Warmly!",
       nameTag: {
         hello: 'HELLO',
         subtitle: 'my name is',

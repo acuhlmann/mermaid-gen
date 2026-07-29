@@ -33,8 +33,8 @@ function office() {
 /**
  * Day One orientation roster (FloorArrival + OfficeDirectory): Your Team minus
  * Gilfoyle and Russ, plus Linda from People Ops for roster replay. The floor walk
- * and auto tour use `DAY_ONE_WALK_IDS` (same list without a second Linda beat);
- * Linda hosts welcome + `welcomeClosingLine` instead.
+ * and card tour show `DAY_ONE_WALK_IDS` as faces; Linda hosts welcome +
+ * `welcomeClosingLine` (rapid cast rundown — no sequential self-intros).
  */
 export const DAY_ONE_INTRO_IDS = Object.freeze([
   'dinesh',
@@ -47,8 +47,8 @@ export const DAY_ONE_INTRO_IDS = Object.freeze([
 
 /**
  * Orientation self-intros for team advisors (radial entryLine/exitLine are
- * different beats). officeSenderInfo merges these so FloorArrival /
- * OfficeDirectory colleagueVoiceLine keep working.
+ * different beats). Used by roster ▶ replay — the live ceremony uses Linda's
+ * welcome/closing lines instead of sequential desk intros.
  */
 export const TEAM_INTRO_LINES = Object.freeze({
   dinesh:
@@ -1287,14 +1287,14 @@ export const OFFICE_CHROME_COPY = {
     colleagueChapter: 'COLLEAGUE {current} OF {total}',
     unlockedLabel: '✨ CHARACTER UNLOCKED',
     tagline:
-      "You're the newest architect on the floor. Your Team will introduce themselves. Gilfoyle and Russ will find you later.",
+      "You're the newest architect on the floor. Linda will speed-run the cast — then dump you at your desk. Gilfoyle and Russ will find you later.",
     autoplayHint: 'Speaking…',
     rosterTagline:
-      'Your Team (minus the ones who skip orientation) — tap ▶ and let them introduce themselves:',
+      'Your Team (minus the ones who skip orientation) — tap ▶ if you actually want a full self-intro:',
     greeting: 'Welcome aboard, {name}.',
     greetingRole: 'Architect',
     expandLabel: '🏢 Meet the Team',
-    expandTitle: 'Day One intros — Your Team plus Linda from People Ops.',
+    expandTitle: 'Day One orientation — Linda from People Ops, Your Team, then the desk wizard.',
     startLabel: 'Meet the team →',
     beginLabel: 'Begin Day One',
     skipToBuildLabel: 'Skip to canvas →',
@@ -1311,9 +1311,9 @@ export const OFFICE_CHROME_COPY = {
     transcriptTitle: 'Show spoken dialogue as text — for when you cannot listen',
     welcomeVoiceSpeakerId: 'hr',
     welcomeVoiceLine:
-      "Welcome to the floor. I'm Linda, from People Ops. Come with me — I'll walk you around to meet Your Team. Gilfoyle and Russ skip orientation on purpose.",
+      "Welcome to the floor. I'm Linda, People Ops — badge photos, overdue trainings, and the smile that documents your sins. Speed round, because nobody survives five sequential self-intros: Dinesh will catch the bug and make damn sure you thank him. Erlich will ask if the diagram is courageous — say yes or he'll incubate your soul. Jared already filed a finding on your onboarding; he's sorry. Richard is quietly naming a pattern, bless him. Jack Barker is thrilled and has simplified this for the board. Gilfoyle and Russ skipped on purpose — they'll find you, and they will not be gentle. Keep moving.",
     welcomeClosingLine:
-      "That's Day One. Your desk is waiting — pitch a deliverable when you're ready. Compliance training is somehow already overdue, and Craig's birthday card is still on the fridge. Try not to reply-all about the stapler.",
+      "That's Day One. Your desk is that way — sit down, survive the little onboarding wizard, and pitch a deliverable before someone books a sync about syncing. Compliance is somehow already overdue, Craig's birthday card is still on the fridge, and if you reply-all about the stapler I will end you. Warmly!",
     nameTag: {
       hello: 'HELLO',
       subtitle: 'my name is',
@@ -1592,7 +1592,7 @@ export const OFFICE_CHROME_COPY = {
       skip: 'Skip the ceremony →',
       receptionEyebrow: 'RECEPTION',
       receptionBody:
-        'Sign in, take a lanyard, and try to look like you have done this before. Linda will walk you across the floor to meet the team — then park you at your desk.',
+        'Sign in, take a lanyard, and try to look like you have done this before. Linda will speed-run the cast — then park you at your desk for the onboarding wizard.',
       checkIn: 'Check in →',
       clockIn: '🪑 Clock in — take your desk',
       clockInEarly: '🪑 Take my desk (I get the idea)',

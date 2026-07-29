@@ -19,9 +19,9 @@ export const SLOPITECT_GAMIFICATION_EN = {
     greetingDefault: 'Welcome back, Slopitect.',
     meetTeamLabel: 'Meet the team →',
     meetTeamTitle:
-      'Open the Day One orientation — hear Your Team (minus Gilfoyle and Russ) plus Linda introduce themselves',
+      'Open the Day One orientation — Linda speed-runs Your Team (minus Gilfoyle and Russ), then dumps you into the desk wizard',
     meetTeamLede:
-      'Your persona teammates (below) chime in on the canvas. Day One intros cover the team plus HR; the office floor is a separate ambient cast.',
+      'Your persona teammates (below) chime in on the canvas. Day One is Linda’s cast rundown plus HR; the office floor is a separate ambient cast.',
     slotsLede:
       'Six diagram slots — Mermaid, Infographic, Chart, 3D Metaphor, Anything, Forms — each keeps its own revision history.',
     nextLevelTaunts: [

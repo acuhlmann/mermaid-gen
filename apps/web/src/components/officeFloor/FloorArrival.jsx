@@ -1,15 +1,15 @@
 /**
  * Day One, staged on the floor (docs/office-isometric-mode.md § 5 slice 3).
  *
- * First run *begins* isometric: you stand at reception, check in, then walk the
- * floor — Linda welcomes you at People Ops, each teammate introduces themselves
- * at their desk (camera zoomed in and following), and a distinct Linda handoff
- * plays while you automatically walk to your own desk and sit down into the
- * desktop wizard.
+ * First run *begins* isometric: you stand at reception, check in, then walk to
+ * People Ops — Linda welcomes you with a rapid cast rundown (no sequential
+ * desk self-intros), and a distinct closing handoff plays while you
+ * automatically walk to your own desk and sit down into the desktop wizard.
  *
- * Content parity with the card tour is deliberate: same roster
- * (`DAY_ONE_INTRO_IDS` / walk subset), same `introLine`s, same narrator. Only
- * the staging changes (ADR-0011). `OfficeDirectory` stays mounted for replays.
+ * Content parity with the card tour is deliberate: same roster cards
+ * (`DAY_ONE_WALK_IDS` for faces), same Linda welcome/closing lines, same
+ * narrator. Only the staging changes (ADR-0011). `OfficeDirectory` stays
+ * mounted for replays.
  *
  * Spoken copy stays voice-first (docs/office-parody.md): captions / CC default
  * off so the floor is not buried under balloons; turn CC on to read along, and
@@ -100,8 +100,8 @@ export default function FloorArrival({
   );
 
   /**
-   * reception → touring (walk + speak stops) → walking-home (closing + desk).
-   * Beat index walks `arrivalSpeechBeats()`; the last beat is the closing.
+   * reception → touring (Linda welcome) → walking-home (closing + desk wizard).
+   * Beat index walks `arrivalSpeechBeats()` — welcome then closing only.
    */
   const [phase, setPhase] = useState('reception');
   const [beatIndex, setBeatIndex] = useState(-1);
@@ -199,7 +199,7 @@ export default function FloorArrival({
     beginWalkHome();
   }, [beginWalkHome, stop]);
 
-  // After each walk settles, speak the beat; then walk to the next stop (or home).
+  // After Linda's welcome settles, walk home for the closing handoff.
   useEffect(() => {
     if (phase !== 'touring') return undefined;
     if (!arrivedForBeat || !currentBeat) return undefined;
@@ -231,18 +231,9 @@ export default function FloorArrival({
         beginWalkHome();
         return;
       }
-      if (next.kind === 'closing') {
-        setBeatIndex(nextIndex);
-        beginWalkHome();
-        return;
-      }
-      const visit = introVisitTileFor(next.id, atTile) ?? atTile;
+      // Only welcome → closing remain; never walk desk-to-desk for self-intros.
       setBeatIndex(nextIndex);
-      if (tilesEqual(visit, atTile)) {
-        setArrivedForBeat(true);
-      } else {
-        startWalk(visit, `you:to-${next.id}:${nextIndex}`);
-      }
+      beginWalkHome();
     })();
 
     return () => {
@@ -250,17 +241,7 @@ export default function FloorArrival({
       controller.abort();
       setVoiceActive(false);
     };
-  }, [
-    phase,
-    arrivedForBeat,
-    currentBeat,
-    beatIndex,
-    beats,
-    play,
-    atTile,
-    startWalk,
-    beginWalkHome
-  ]);
+  }, [phase, arrivedForBeat, currentBeat, beatIndex, beats, play, beginWalkHome]);
 
   // Linda's closing handoff plays while you walk to your desk — not a second
   // self-intro at her cubicle.
@@ -306,14 +287,9 @@ export default function FloorArrival({
   const said = floorArrivalAnnouncement({
     copy,
     phase,
-    colleagueIndex: Math.max(0, beatIndex - 1),
+    colleagueIndex: -1,
     speakingId,
-    walkingToId:
-      leg.walking && phase === 'touring' && currentBeat && currentBeat.kind === 'intro'
-        ? currentBeat.id
-        : phase === 'touring' && leg.walking && beatIndex === 0
-          ? 'hr'
-          : null,
+    walkingToId: phase === 'touring' && leg.walking && beatIndex === 0 ? 'hr' : null,
     atId: !leg.walking && phase === 'touring' && currentBeat ? currentBeat.id : null
   });
 
