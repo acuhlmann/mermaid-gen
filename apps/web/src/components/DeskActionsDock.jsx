@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { ArchiSlopMarkIcon } from './AppIcons.jsx';
 import ConcentrationControl from './ConcentrationControl.jsx';
+import DeskAttributionStrip from './DeskAttributionStrip.jsx';
 import DeskStandUpButton from './DeskStandUpButton.jsx';
 import IntroLocaleToggle from './IntroLocaleToggle.jsx';
 import OutboxDock from './OutboxDock.jsx';
@@ -396,6 +397,7 @@ export default function DeskActionsDock({
                   onSelectLocale={setLocale}
                 />
               </div>
+              <DeskAttributionStrip copy={copy.attribution} />
             </div>
           </div>,
           document.body

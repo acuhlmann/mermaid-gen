@@ -206,4 +206,24 @@ describe('DeskActionsDock', () => {
     expect(outbox.disabled).toBe(true);
     expect(outbox.getAttribute('title')).toMatch(/Nothing to ship/i);
   });
+
+  it('shows vendor attribution links at the bottom of the desk menu', () => {
+    open();
+    const strip = screen.getByTestId('desk-attribution-strip');
+    expect(strip.textContent).toMatch(/Approved vendors/);
+    expect(strip.textContent).toMatch(/fan parody/i);
+    const elevenLabs = screen.getByRole('link', { name: 'ElevenLabs' });
+    expect(elevenLabs.getAttribute('href')).toBe('https://elevenlabs.io');
+    expect(elevenLabs.getAttribute('rel')).toContain('noopener');
+    expect(screen.getByRole('link', { name: 'Silicon Valley' }).getAttribute('href')).toContain(
+      'hbo.com/silicon-valley'
+    );
+    expect(screen.getByRole('link', { name: 'Mermaid' }).getAttribute('href')).toContain(
+      'mermaid.js.org'
+    );
+    const languagePack = screen.getByTestId('desk-language-pack');
+    expect(strip.compareDocumentPosition(languagePack) & Node.DOCUMENT_POSITION_PRECEDING).toBe(
+      Node.DOCUMENT_POSITION_PRECEDING
+    );
+  });
 });
