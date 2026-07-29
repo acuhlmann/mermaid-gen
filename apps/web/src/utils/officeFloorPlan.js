@@ -276,7 +276,7 @@ export const RECEPTION_TILE = { x: 2, y: 1 };
 
 /**
  * Where set pieces happen (slice 4). Coffee happens by the machine; a battle
- * happens across the aisle between two cubicles, where the floor can watch.
+ * happens across the aisle in the open plan, where the floor can watch.
  *
  * Two placement rules, both learned the hard way:
  *

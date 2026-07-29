@@ -1056,7 +1056,7 @@ export const OFFICE_COFFEE_SCENES = [
 ];
 
 /**
- * Cubicle battles (docs/office-parody.md): two colleagues locked in a holy
+ * Holy wars on the floor (docs/office-parody.md): two colleagues locked in a holy
  * war — tabs vs spaces, the Friday deploy, the thermostat. The user spectates
  * (lines pace in one by one), then settles it by picking a winner; each side
  * has a `verdicts` closing zinger delivered only when they win. Pure canned
@@ -1543,7 +1543,7 @@ export const OFFICE_CHROME_COPY = {
     groupSteering: 'Steering',
     groupSteeringTitle: 'Pam + seniors + someone to present the diagram',
     groupFloor: 'The floor',
-    groupFloorTitle: 'Yell across the cubicles',
+    groupFloorTitle: 'Yell across the open plan',
     groupSeniors: 'Leadership',
     groupSeniorsTitle: 'Book the people who ask what it costs',
     directoryAria: 'Who to invite',
@@ -1631,14 +1631,15 @@ export const OFFICE_CHROME_COPY = {
     done: "I've got a deploy"
   },
   battle: {
-    kindLabel: 'Cubicle drama · Battle',
+    kindLabel: 'Open-plan drama · Holy war',
     inviteLine: '🥊 {a} and {b} are at it again — "{topic}". The floor is watching.',
     accept: 'Grab popcorn',
     decline: 'Not my circus',
-    sceneAria: 'Cubicle battle',
-    sceneTitle: 'Cubicle Battle',
+    sceneAria: 'Holy war on the floor',
+    sceneTitle: 'Holy War',
     versus: 'vs',
-    getOut: 'Get out of Cubicle Battle',
+    speakingLabel: '{name}…',
+    getOut: 'Walk away from the holy war',
     settleLine: "You've heard both sides. Someone has to be wrong:",
     sideLabel: 'Side with {name}',
     walkAway: 'Escalate to HR (leave)',

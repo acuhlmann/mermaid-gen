@@ -2,8 +2,8 @@
  * Set pieces at their locations (docs/office-isometric-mode.md § 5 slice 4).
  *
  * The same `coffee` / `battle` state the desk-mode overlays render, staged
- * where it would actually happen: the coffee break at the machine, the cubicle
- * battle across the aisle in full view of the floor. Participants leave their
+ * where it would actually happen: the coffee break at the machine, a holy war
+ * across the aisle in full view of the floor. Participants leave their
  * desks (which stay, empty) for the duration.
  *
  * Line pacing and narration come from the shared `useScenePacing` hook, so a
@@ -56,7 +56,7 @@ const SCENE_KINDS = {
 const SPEAKING_Z = 9600;
 
 /** One participant standing at their mark, optionally saying something. */
-function SceneActor({ castId, tile, line, scale }) {
+function SceneActor({ castId, tile, line, scale, expressionOverride = null }) {
   const { left, top } = projectIso(tile.x, tile.y);
   const sender = officeSenderInfo(castId);
   const align = bubbleAlignForTile(tile);
@@ -77,7 +77,11 @@ function SceneActor({ castId, tile, line, scale }) {
             {line}
           </FloorBubble>
         ) : null}
-        <FloorFigure id={castId} accent={sender?.accentColor ?? 'var(--accent)'} />
+        <FloorFigure
+          id={castId}
+          accent={sender?.accentColor ?? 'var(--accent)'}
+          expressionOverride={expressionOverride}
+        />
       </div>
     </div>
   );
@@ -242,6 +246,7 @@ export function FloorScene({
             castId={castId}
             tile={tiles[index % tiles.length]}
             scale={scale}
+            expressionOverride={isBattle ? 'frown' : null}
             line={shown}
           />
         );

@@ -1,20 +1,25 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { officeChromeCopy, officeSenderInfo } from '../utils/officeCast.js';
 import { OFFICE_NARRATION_GAP_MS } from '../utils/officeNarration.js';
 import { formatLocale } from '../i18n/formatLocale.js';
+import { shouldShowSpokenText } from '../utils/officeCaptions.js';
+import { getOfficeSnapshot, subscribe } from '../state/officeMomentStore.js';
 import { useNarrowLayout } from '../hooks/useAppLayoutMedia.js';
 import { PersonaFace } from './personaFaces/index.jsx';
 import FloatingWindow, { FloatingWindowDragHandle } from './FloatingWindow.jsx';
 
 export const BATTLE_LINE_PACE_MS = 1900;
 
+const FACE_SIZE = 128;
+const FACE_SIZE_SPEAKING = 140;
+
 /**
- * Cubicle battle (docs/office-parody.md). Three-phase: a small invite pill
- * ([Grab popcorn] / [Not my circus]), an arena scene where the two combatants'
- * lines pace in one by one for drama (spoken when narrateLine is provided —
- * overheard argument, not inbox text), then a verdict — the user settles the
- * holy war by siding with someone (worth a small XP nudge, wired by
- * OfficeLayer via onVote) and the winner gets the last word.
+ * Holy war on the floor (docs/office-parody.md). Three-phase: a small invite pill
+ * ([Grab popcorn] / [Not my circus]), a face-off scene where the two combatants
+ * lean in from opposite sides of the canvas (huddle/walk-by parity — angry
+ * scowls, one bubble at a time), then a verdict — the user settles the holy war
+ * by siding with someone (worth a small XP nudge, wired by OfficeLayer via
+ * onVote) and the winner gets the last word.
  *
  * @param {{
  *   battle: object | null,
@@ -33,6 +38,7 @@ export default function OfficeBattleOverlay({
   prefetchLine
 }) {
   const narrowLayout = useNarrowLayout();
+  const snapshot = useSyncExternalStore(subscribe, getOfficeSnapshot, getOfficeSnapshot);
   const accepted = Boolean(battle?.accepted);
   const battleId = battle?.id ?? null;
   const lineCount = battle?.lines?.length ?? 0;
@@ -44,7 +50,6 @@ export default function OfficeBattleOverlay({
     prefetchRef.current = prefetchLine;
   });
 
-  // Restart the pacing whenever a new battle enters the arena.
   useEffect(() => {
     setVisibleLines(1);
   }, [battleId]);
@@ -85,7 +90,6 @@ export default function OfficeBattleOverlay({
     };
   }, [accepted, battleId, lineCount]);
 
-  // Winner's closing zinger — overheard after the floor rules.
   useEffect(() => {
     if (!accepted || !battle?.votedFor) return undefined;
     const text = battle.verdicts?.[battle.votedFor];
@@ -112,6 +116,10 @@ export default function OfficeBattleOverlay({
   if (!battle || sides.length < 2) return null;
   const copy = officeChromeCopy();
   const [sideA, sideB] = sides;
+  const showText = shouldShowSpokenText({
+    captions: snapshot.captions,
+    voiceActive: snapshot.narration && typeof narrateLine === 'function'
+  });
 
   if (!accepted) {
     return (
@@ -157,94 +165,143 @@ export default function OfficeBattleOverlay({
   const votedFor = battle?.votedFor ?? null;
   const winner = votedFor ? officeSenderInfo(votedFor) : null;
   const verdictText = votedFor ? battle.verdicts[votedFor] : null;
+  const activeLine = battle.lines[visibleLines - 1] ?? null;
+  const activeSpeakerId = votedFor ? null : (activeLine?.speakerId ?? null);
 
   return (
-    <div className="office-battle-scene" role="dialog" aria-label={copy.battle.sceneAria}>
-      <div className="office-battle-card">
-        <div className="office-battle-head">
+    <div
+      className="office-battle-layer"
+      role="dialog"
+      aria-label={copy.battle.sceneAria}
+      data-testid="office-battle-scene"
+    >
+      <div className="office-battle-shade" aria-hidden="true" />
+      <div className="office-battle-chrome">
+        <p className="office-battle-kind" aria-hidden="true">
           <span aria-hidden="true">🥊</span> {copy.battle.sceneTitle}
-          <span className="office-battle-topic">“{battle.topic}”</span>
-        </div>
-        <div className="office-battle-versus" aria-hidden="true">
-          {[sideA, sideB].map((side, index) => (
-            <span key={side.id} className="office-battle-versus-side">
-              {index === 1 ? <span className="office-battle-vs">{copy.battle.versus}</span> : null}
-              <span
-                className="office-battle-versus-avatar"
-                title={side.title ? `${side.name} · ${side.title}` : side.name}
-              >
-                <PersonaFace id={side.id} size={34} />
-              </span>
-              <span className="office-battle-versus-name">{side.name}</span>
-            </span>
-          ))}
-        </div>
-        <ul className="office-battle-lines" aria-live="polite">
-          {battle.lines.slice(0, visibleLines).map((line, index) => {
-            const speaker = officeSenderInfo(line.speakerId);
-            return (
-              <li key={`${battle.id}-${index}`} className="office-battle-line">
-                <span
-                  className="office-battle-line-avatar"
-                  aria-hidden="true"
-                  title={speaker.title ? `${speaker.name} · ${speaker.title}` : speaker.name}
-                >
-                  <PersonaFace id={line.speakerId} size={24} />
-                </span>
-                <span>
-                  <span
-                    className="office-battle-speaker"
-                    style={{ color: speaker.accentColor }}
-                    title={speaker.title ? `${speaker.name} · ${speaker.title}` : speaker.name}
-                  >
-                    {speaker.name}:
-                  </span>{' '}
-                  {line.text}
-                </span>
-              </li>
-            );
-          })}
-        </ul>
+        </p>
+        <p className="office-battle-topic">“{battle.topic}”</p>
         {!votedFor && !allLinesIn ? (
-          <div className="office-battle-bail">
-            <button type="button" className="office-battle-getout" onClick={onDone}>
-              {copy.battle.getOut}
-            </button>
-          </div>
-        ) : null}
-        {allLinesIn && !votedFor ? (
-          <div className="office-battle-settle">
-            <p className="office-battle-settle-line">{copy.battle.settleLine}</p>
-            <div className="office-battle-settle-buttons">
-              {[sideA, sideB].map((side) => (
-                <button
-                  key={side.id}
-                  type="button"
-                  className="office-battle-side"
-                  style={{ borderColor: side.accentColor }}
-                  onClick={() => onVote?.(side.id)}
-                >
-                  {side.avatarEmoji} {formatLocale(copy.battle.sideLabel, { name: side.name })}
-                </button>
-              ))}
-            </div>
-            <button type="button" className="office-battle-walkaway" onClick={onDone}>
-              {copy.battle.walkAway}
-            </button>
-          </div>
-        ) : null}
-        {winner && verdictText ? (
-          <div className="office-battle-verdict" role="status">
-            <div className="office-battle-verdict-head">
-              🏆 {copy.battle.verdictHead}: {winner.avatarEmoji} {winner.name}
-            </div>
-            <p className="office-battle-verdict-text">{verdictText}</p>
-            <button type="button" className="office-battle-done" onClick={onDone}>
-              {copy.battle.done}
-            </button>
-          </div>
+          <button type="button" className="office-battle-getout" onClick={onDone}>
+            {copy.battle.getOut}
+          </button>
         ) : null}
       </div>
+
+      <BattleFighter
+        person={sideA}
+        side="left"
+        line={
+          votedFor === sideA.id && verdictText
+            ? verdictText
+            : activeSpeakerId === sideA.id
+              ? activeLine?.text
+              : null
+        }
+        showText={showText}
+        isSpeaking={activeSpeakerId === sideA.id || votedFor === sideA.id}
+        isWinner={votedFor === sideA.id}
+        copy={copy}
+      />
+      <BattleFighter
+        person={sideB}
+        side="right"
+        line={
+          votedFor === sideB.id && verdictText
+            ? verdictText
+            : activeSpeakerId === sideB.id
+              ? activeLine?.text
+              : null
+        }
+        showText={showText}
+        isSpeaking={activeSpeakerId === sideB.id || votedFor === sideB.id}
+        isWinner={votedFor === sideB.id}
+        copy={copy}
+      />
+
+      {allLinesIn && !votedFor ? (
+        <div className="office-battle-settle" data-testid="office-battle-settle">
+          <p className="office-battle-settle-line">{copy.battle.settleLine}</p>
+          <div className="office-battle-settle-buttons">
+            {[sideA, sideB].map((side) => (
+              <button
+                key={side.id}
+                type="button"
+                className="office-battle-side"
+                style={{ borderColor: side.accentColor }}
+                onClick={() => onVote?.(side.id)}
+              >
+                {side.avatarEmoji} {formatLocale(copy.battle.sideLabel, { name: side.name })}
+              </button>
+            ))}
+          </div>
+          <button type="button" className="office-battle-walkaway" onClick={onDone}>
+            {copy.battle.walkAway}
+          </button>
+        </div>
+      ) : null}
+
+      {winner && verdictText ? (
+        <div className="office-battle-verdict" role="status" data-testid="office-battle-verdict">
+          <div className="office-battle-verdict-head">
+            🏆 {copy.battle.verdictHead}: {winner.avatarEmoji} {winner.name}
+          </div>
+          <button type="button" className="office-battle-done" onClick={onDone}>
+            {copy.battle.done}
+          </button>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+/**
+ * One combatant leaning in from the left or right edge — angry scowl, bubble when
+ * they have the floor.
+ */
+function BattleFighter({ person, side, line, showText, isSpeaking, isWinner, copy }) {
+  return (
+    <div
+      className={[
+        'office-battle-fighter',
+        `is-side-${side}`,
+        isSpeaking ? 'is-speaking' : 'is-listening',
+        isWinner ? 'is-winner' : ''
+      ]
+        .filter(Boolean)
+        .join(' ')}
+      style={{ '--battle-accent': person.accentColor }}
+      data-testid={`office-battle-fighter-${person.id}`}
+      data-speaking={isSpeaking ? 'true' : undefined}
+    >
+      <div className="office-battle-fighter-head">
+        <PersonaFace
+          id={person.id}
+          size={isSpeaking ? FACE_SIZE_SPEAKING : FACE_SIZE}
+          className="office-battle-face"
+          expressionOverride="frown"
+        />
+      </div>
+      <p className="office-battle-fighter-name">{person.name}</p>
+      {line && showText ? (
+        <div
+          className={[
+            'office-battle-bubble',
+            isWinner ? 'is-verdict' : '',
+            isSpeaking ? 'is-speaking' : ''
+          ]
+            .filter(Boolean)
+            .join(' ')}
+          role="status"
+          aria-live="polite"
+        >
+          <p className="office-battle-line">{line}</p>
+        </div>
+      ) : isSpeaking && !showText ? (
+        <p className="office-battle-speaking-label">
+          {formatLocale(copy.battle.speakingLabel ?? '{name}…', { name: person.name })}
+        </p>
+      ) : null}
     </div>
   );
 }
