@@ -14251,6 +14251,84 @@ body.slopitect-rainbow-tint::before {
   line-height: 1;
 }
 
+/* Bottom of desk menu — procurement fine print, deliberately easy to miss. */
+.desk-attribution-strip {
+  margin-top: 0.15rem;
+  padding: 0.35rem 0.1rem 0.05rem;
+  border-top: 1px dashed rgba(148, 163, 184, 0.16);
+  text-align: right;
+}
+
+.desk-attribution-strip-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.28rem;
+  margin: 0;
+}
+
+.desk-attribution-strip-label {
+  font-size: 0.56rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--muted) 88%, transparent);
+}
+
+.desk-attribution-strip-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.06rem 0.28rem;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  background: rgba(148, 163, 184, 0.08);
+  color: color-mix(in srgb, var(--muted) 90%, transparent);
+  font-size: 0.48rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+}
+
+.desk-attribution-strip-disclaimer {
+  margin: 0.18rem 0 0;
+  font-size: 0.54rem;
+  line-height: 1.35;
+  color: color-mix(in srgb, var(--muted) 72%, transparent);
+}
+
+.desk-attribution-strip-links {
+  margin: 0.22rem 0 0;
+  font-size: 0.56rem;
+  line-height: 1.45;
+  color: color-mix(in srgb, var(--muted) 78%, transparent);
+}
+
+.desk-attribution-strip-link-wrap {
+  display: inline;
+  white-space: nowrap;
+}
+
+.desk-attribution-strip-sep {
+  margin: 0 0.18rem;
+  opacity: 0.55;
+}
+
+.desk-attribution-strip-link {
+  color: inherit;
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition:
+    color 120ms ease,
+    border-color 120ms ease;
+}
+
+.desk-attribution-strip-link:hover,
+.desk-attribution-strip-link:focus-visible {
+  color: color-mix(in srgb, var(--accent, #0ea5e9) 72%, var(--muted));
+  border-bottom-color: currentColor;
+  outline: none;
+}
+
 .desk-language-pack-tag {
   display: inline-flex;
   align-items: center;

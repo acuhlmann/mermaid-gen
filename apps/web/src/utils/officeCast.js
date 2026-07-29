@@ -1439,6 +1439,51 @@ export const OFFICE_CHROME_COPY = {
       noOutbox: 'Nothing to ship yet — put a deliverable on the canvas first',
       noThinking: 'Your notebook is empty — run something first',
       noCode: 'Generate something first — then you can edit the source'
+    },
+    attribution: {
+      aria: 'Third-party vendor acknowledgments',
+      label: 'Approved vendors',
+      tag: 'LEGAL TICKET',
+      disclaimer:
+        'Unofficial fan parody. Not Pied Piper, not HBO, not your employer. Procurement read the TOS.',
+      links: [
+        {
+          id: 'elevenlabs',
+          label: 'ElevenLabs',
+          href: 'https://elevenlabs.io',
+          title: 'Office room-tone and cue SFX — non-commercial use with attribution'
+        },
+        {
+          id: 'silicon-valley',
+          label: 'Silicon Valley',
+          href: 'https://www.hbo.com/silicon-valley',
+          title: "HBO's Silicon Valley — character homage, not an official tie-in"
+        },
+        {
+          id: 'mermaid',
+          label: 'Mermaid',
+          href: 'https://mermaid.js.org',
+          title: 'Flowchart and diagram rendering on the canvas'
+        },
+        {
+          id: 'antv',
+          label: 'AntV',
+          href: 'https://infographic.antv.antgroup.com',
+          title: 'Infographic slot layouts and templates'
+        },
+        {
+          id: 'vega-lite',
+          label: 'Vega-Lite',
+          href: 'https://vega.github.io/vega-lite/',
+          title: 'Chart slot data visualization'
+        },
+        {
+          id: 'three',
+          label: 'Three.js',
+          href: 'https://threejs.org',
+          title: 'Metaphor3D spatial scenes'
+        }
+      ]
     }
   },
   inbox: {
