@@ -18762,6 +18762,44 @@ body.slopitect-rainbow-tint::before {
   .office-battle-line {
     animation: office-pop-in 260ms ease-out;
   }
+  .office-battle-fighter.is-side-left {
+    animation: office-battle-in-left 280ms cubic-bezier(0.2, 0.85, 0.25, 1) both;
+  }
+  .office-battle-fighter.is-side-right {
+    animation: office-battle-in-right 280ms cubic-bezier(0.2, 0.85, 0.25, 1) both;
+  }
+}
+@keyframes office-battle-shake {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  25% {
+    transform: rotate(-2.5deg);
+  }
+  75% {
+    transform: rotate(2.5deg);
+  }
+}
+@keyframes office-battle-in-left {
+  from {
+    opacity: 0;
+    transform: translateY(-50%) translateX(-110%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(-50%);
+  }
+}
+@keyframes office-battle-in-right {
+  from {
+    opacity: 0;
+    transform: translateY(-50%) translateX(110%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(-50%);
+  }
 }
 @keyframes office-shoulder-drop {
   from {
@@ -19234,30 +19272,14 @@ body.slopitect-rainbow-tint::before {
     flex: 1 1 auto;
     min-width: 7rem;
   }
-  .office-battle-scene {
-    padding: max(0.75rem, env(safe-area-inset-top, 0px))
-      max(0.75rem, env(safe-area-inset-right, 0px)) max(0.75rem, env(safe-area-inset-bottom, 0px))
-      max(0.75rem, env(safe-area-inset-left, 0px));
-    align-items: center;
-    justify-content: center;
+  .office-battle-layer {
+    padding: 0;
   }
-  .office-battle-card {
-    width: 100%;
-    max-height: min(
-      calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 1.5rem),
-      36rem
-    );
-    overflow-y: auto;
-    overscroll-behavior: contain;
+  .office-battle-fighter {
+    max-width: min(180px, 38vw);
   }
-  .office-battle-head {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.2rem;
-  }
-  .office-battle-versus {
-    flex-wrap: wrap;
-    gap: 0.55rem 0.85rem;
+  .office-battle-bubble {
+    width: min(180px, 38vw);
   }
   .office-battle-settle-buttons {
     flex-direction: column;
@@ -19465,7 +19487,7 @@ body.slopitect-rainbow-tint::before {
   color: var(--text);
 }
 
-/* --- Cubicle battle --- */
+/* --- Holy war (open-plan face-off) --- */
 .office-battle-invite {
   display: flex;
   align-items: center;
@@ -19515,103 +19537,172 @@ body.slopitect-rainbow-tint::before {
   background: transparent;
   color: var(--muted);
 }
-.office-battle-scene {
+.office-battle-layer {
   position: fixed;
   inset: 0;
   z-index: var(--z-office-modal);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: max(0.75rem, env(safe-area-inset-top, 0px)) max(0.75rem, env(safe-area-inset-right, 0px))
-    max(0.75rem, env(safe-area-inset-bottom, 0px)) max(0.75rem, env(safe-area-inset-left, 0px));
-  background: var(--modal-backdrop);
+  pointer-events: none;
+  overflow: hidden;
 }
-.office-battle-card {
-  width: min(460px, 100%);
-  max-height: min(
-    calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 1.5rem),
-    36rem
-  );
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  background: var(--modal-card-bg);
-  border-radius: var(--modal-card-radius);
-  box-shadow: var(--modal-card-shadow);
-  padding: 16px;
+@media (min-width: 1025px) {
+  .app-shell.is-insights-open:not(.is-editor-open) .office-battle-layer {
+    right: max(260px, 30vw);
+  }
+  .app-shell.is-insights-open.is-editor-open .office-battle-layer {
+    right: calc(max(260px, 30vw) + max(320px, 38vw));
+  }
+}
+.office-battle-shade {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(
+      90deg,
+      color-mix(in srgb, #7f1d1d 22%, transparent) 0%,
+      transparent 38%,
+      transparent 62%,
+      color-mix(in srgb, #7f1d1d 22%, transparent) 100%
+    ),
+    radial-gradient(
+      ellipse at center,
+      transparent 30%,
+      color-mix(in srgb, #0f172a 28%, transparent) 100%
+    );
+  pointer-events: none;
+}
+.office-battle-fighter {
+  position: absolute;
+  top: 50%;
   display: flex;
   flex-direction: column;
-  gap: 12px;
-}
-.office-battle-head {
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--text);
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-.office-battle-topic {
-  font-weight: 400;
-  color: var(--muted);
-  font-size: 13px;
-}
-.office-battle-versus {
-  display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 14px;
+  gap: 0.35rem;
+  max-width: min(220px, 42vw);
+  pointer-events: auto;
+  filter: drop-shadow(0 14px 28px rgba(15, 23, 42, 0.38));
+  transition:
+    transform 180ms ease-out,
+    opacity 180ms ease-out;
 }
-.office-battle-versus-side {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+.office-battle-fighter.is-side-left {
+  left: max(0.45rem, env(safe-area-inset-left, 0px));
+  transform: translateY(-50%);
+  text-align: center;
 }
-.office-battle-vs {
+.office-battle-fighter.is-side-right {
+  right: max(0.45rem, env(safe-area-inset-right, 0px));
+  transform: translateY(-50%);
+  text-align: center;
+}
+.office-battle-fighter.is-listening {
+  opacity: 0.52;
+}
+.office-battle-fighter.is-speaking {
+  opacity: 1;
+  z-index: 2;
+}
+.office-battle-fighter.is-side-left.is-speaking {
+  transform: translateY(-50%) translateX(4px) scale(1.03);
+}
+.office-battle-fighter.is-side-right.is-speaking {
+  transform: translateY(-50%) translateX(-4px) scale(1.03);
+}
+.office-battle-fighter.is-winner {
+  opacity: 1;
+  z-index: 3;
+}
+.office-battle-fighter-head {
+  line-height: 0;
+}
+.office-battle-face {
+  display: block;
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 4px color-mix(in srgb, var(--battle-accent, var(--accent)) 55%, #7f1d1d),
+    0 16px 36px rgba(127, 29, 29, 0.35);
+  filter: saturate(1.08) contrast(1.06);
+}
+.office-battle-fighter.is-speaking .office-battle-face {
+  animation: office-battle-shake 0.55s ease-in-out infinite;
+}
+.office-battle-fighter-name {
+  margin: 0;
   font-size: 12px;
   font-weight: 800;
-  color: var(--muted);
-  text-transform: uppercase;
-  margin-right: 6px;
-}
-.office-battle-versus-avatar {
-  flex: 0 0 auto;
-}
-.office-battle-versus-name {
-  font-size: 13px;
-  font-weight: 700;
   color: var(--text);
+  letter-spacing: 0.02em;
 }
-.office-battle-lines {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+.office-battle-bubble {
+  width: min(220px, 42vw);
+  padding: 0.55rem 0.7rem;
+  background: color-mix(in srgb, var(--office-surface-bg) 94%, transparent);
+  border: 1px solid color-mix(in srgb, #7f1d1d 32%, var(--control-border));
+  border-radius: 12px;
+  box-shadow: var(--control-shadow);
+}
+.office-battle-bubble.is-verdict {
+  border-color: color-mix(in srgb, var(--battle-accent, var(--accent)) 45%, #7f1d1d);
 }
 .office-battle-line {
-  display: flex;
-  gap: 8px;
+  margin: 0;
   font-size: 13px;
   line-height: 1.45;
   color: var(--text);
 }
-.office-battle-line-avatar {
-  flex: 0 0 auto;
+.office-battle-speaking-label {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
 }
-.office-battle-speaker {
-  font-weight: 700;
+.office-battle-chrome {
+  position: absolute;
+  top: max(0.55rem, env(safe-area-inset-top, 0px));
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  max-width: min(320px, calc(100vw - 2rem));
+  pointer-events: auto;
+  text-align: center;
+}
+.office-battle-kind {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, #b45309 75%, var(--text));
+}
+.office-battle-topic {
+  margin: 0;
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.35;
 }
 .office-battle-settle {
+  position: absolute;
+  bottom: max(0.65rem, env(safe-area-inset-bottom, 0px));
+  left: 50%;
+  transform: translateX(-50%);
   display: flex;
   flex-direction: column;
   gap: 8px;
+  width: min(420px, calc(100vw - 1.5rem));
+  padding: 0.65rem 0.75rem;
+  background: color-mix(in srgb, var(--office-surface-bg) 94%, transparent);
+  border: 1px solid var(--control-border);
+  border-radius: 14px;
+  box-shadow: var(--control-shadow);
+  pointer-events: auto;
 }
 .office-battle-settle-line {
   margin: 0;
   font-size: 12px;
   color: var(--muted);
+  text-align: center;
 }
 .office-battle-settle-buttons {
   display: flex;
@@ -19640,11 +19731,6 @@ body.slopitect-rainbow-tint::before {
   align-self: center;
   padding: 2px 6px;
 }
-.office-battle-bail {
-  display: flex;
-  justify-content: center;
-  padding-top: 2px;
-}
 .office-battle-getout {
   font-size: 12px;
   text-decoration: underline;
@@ -19655,22 +19741,26 @@ body.slopitect-rainbow-tint::before {
   color: var(--text);
 }
 .office-battle-verdict {
+  position: absolute;
+  bottom: max(0.65rem, env(safe-area-inset-bottom, 0px));
+  left: 50%;
+  transform: translateX(-50%);
   display: flex;
   flex-direction: column;
   gap: 8px;
-  border-top: 1px solid var(--control-border);
-  padding-top: 10px;
+  align-items: center;
+  padding: 0.55rem 0.75rem;
+  background: color-mix(in srgb, var(--office-surface-bg) 94%, transparent);
+  border: 1px solid var(--control-border);
+  border-radius: 14px;
+  box-shadow: var(--control-shadow);
+  pointer-events: auto;
 }
 .office-battle-verdict-head {
   font-size: 12px;
   font-weight: 800;
   color: var(--text);
-}
-.office-battle-verdict-text {
-  margin: 0;
-  font-size: 13px;
-  line-height: 1.45;
-  color: var(--text);
+  text-align: center;
 }
 .office-battle-done {
   appearance: none;
@@ -19681,7 +19771,6 @@ body.slopitect-rainbow-tint::before {
   padding: 5px 12px;
   cursor: pointer;
   color: var(--text);
-  align-self: flex-end;
 }
 
 /* --- Meeting invite --- */

@@ -14,7 +14,8 @@ import { PersonaFace } from '../personaFaces/index.jsx';
  *   isYou?: boolean,
  *   idleIndex?: number,
  *   walking?: boolean,
- *   accessoryOverride?: string | null
+ *   accessoryOverride?: string | null,
+ *   expressionOverride?: string | null
  * }} props
  */
 export function FloorFigure({
@@ -23,7 +24,8 @@ export function FloorFigure({
   isYou = false,
   idleIndex = 0,
   walking = false,
-  accessoryOverride = null
+  accessoryOverride = null,
+  expressionOverride = null
 }) {
   return (
     <span
@@ -37,6 +39,7 @@ export function FloorFigure({
         fallbackEmoji={isYou ? '🙋' : undefined}
         className="office-floor-person-head"
         accessoryOverride={accessoryOverride}
+        expressionOverride={expressionOverride}
       />
       <svg
         className="office-floor-person-body"

@@ -28,7 +28,7 @@ export const COFFEE_SCENE_FIXTURE = {
   ]
 };
 
-/** Cubicle battle fixture — two sides and a verdict. */
+/** Holy war fixture — two sides and a verdict. */
 export const BATTLE_SCENE_FIXTURE = {
   id: 'battle-test-1',
   topic: 'Tabs vs spaces',

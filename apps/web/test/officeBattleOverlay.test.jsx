@@ -54,24 +54,37 @@ describe('OfficeBattleOverlay', () => {
   it('offers a get-out escape during line pacing', async () => {
     const onDone = vi.fn();
     render(<OfficeBattleOverlay battle={{ ...BATTLE, accepted: true }} onDone={onDone} />);
-    fireEvent.click(screen.getByText('Get out of Cubicle Battle'));
+    fireEvent.click(screen.getByText('Walk away from the holy war'));
     expect(onDone).toHaveBeenCalledOnce();
   });
 
-  it('paces the lines in one by one, then offers the vote', async () => {
+  it('paces one spoken line at a time on the active fighter, then offers the vote', async () => {
     render(<OfficeBattleOverlay battle={{ ...BATTLE, accepted: true }} />);
-    const arena = screen.getByRole('dialog');
+    const arena = screen.getByTestId('office-battle-scene');
     expect(arena.querySelectorAll('.office-battle-line')).toHaveLength(1);
-    expect(arena.querySelector('.office-battle-settle')).toBeNull();
+    expect(arena.textContent).toContain('Tabs. We settled this in 1979.');
+    expect(arena.querySelector('[data-testid="office-battle-settle"]')).toBeNull();
     await act(async () => {
       await vi.advanceTimersByTimeAsync(BATTLE_LINE_PACE_MS + 10);
     });
-    expect(arena.querySelectorAll('.office-battle-line')).toHaveLength(2);
+    expect(arena.textContent).toContain('the style guide says two spaces!!');
     await act(async () => {
       await vi.advanceTimersByTimeAsync(BATTLE_LINE_PACE_MS + 10);
     });
-    expect(arena.querySelectorAll('.office-battle-line')).toHaveLength(3);
-    expect(arena.querySelector('.office-battle-settle')).not.toBeNull();
+    expect(arena.textContent).toContain('The style guide has never opened a terminal.');
+    expect(arena.querySelector('[data-testid="office-battle-settle"]')).not.toBeNull();
+  });
+
+  it('places combatants on opposite sides of the canvas', () => {
+    render(<OfficeBattleOverlay battle={{ ...BATTLE, accepted: true }} />);
+    expect(screen.getByTestId('office-battle-fighter-greybeard')).toBeTruthy();
+    expect(screen.getByTestId('office-battle-fighter-intern')).toBeTruthy();
+    expect(
+      screen.getByTestId('office-battle-fighter-greybeard').className.includes('is-side-left')
+    ).toBe(true);
+    expect(
+      screen.getByTestId('office-battle-fighter-intern').className.includes('is-side-right')
+    ).toBe(true);
   });
 
   it('paces spoken lines via narrateLine when provided', async () => {
@@ -110,8 +123,9 @@ describe('OfficeBattleOverlay', () => {
         onVote={onVote}
       />
     );
-    const verdict = screen.getByRole('status');
-    expect(verdict.textContent).toContain('two spaces win!!');
+    const internFighter = screen.getByTestId('office-battle-fighter-intern');
+    expect(internFighter.textContent).toContain('two spaces win!!');
+    const verdict = screen.getByTestId('office-battle-verdict');
     expect(verdict.textContent).toContain('Chad');
   });
 });

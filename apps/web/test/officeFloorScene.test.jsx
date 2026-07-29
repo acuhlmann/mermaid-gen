@@ -119,7 +119,7 @@ describe('coffee break on the floor', () => {
   });
 });
 
-describe('cubicle battle on the floor', () => {
+describe('holy war on the floor', () => {
   it('invites you to watch, naming both sides and the topic', () => {
     renderFloor({ battle: BATTLE });
 

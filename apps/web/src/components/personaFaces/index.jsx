@@ -318,9 +318,11 @@ function Accessory({ style, accent }) {
  *   title?: string,
  *   fallbackEmoji?: string,
  *   accentRing?: boolean,
- *   accessoryOverride?: 'none' | 'headset' | 'hardhat' | 'lanyard' | 'tie' | 'badge' | null
+ *   accessoryOverride?: 'none' | 'headset' | 'hardhat' | 'lanyard' | 'tie' | 'badge' | null,
+ *   expressionOverride?: 'neutral' | 'smile' | 'smirk' | 'frown' | 'wide' | 'tired' | null
  * }} props `accessoryOverride` swaps the baked trait accessory for one beat
  *   (headset syncs on the floor) without mutating the registry.
+ *   `expressionOverride` does the same for mood (holy-war combatants scowl).
  */
 export function PersonaFace({
   id,
@@ -329,7 +331,8 @@ export function PersonaFace({
   title,
   fallbackEmoji,
   accentRing = true,
-  accessoryOverride = null
+  accessoryOverride = null,
+  expressionOverride = null
 }) {
   const traits = personaFaceTraits(id);
   const sender = officeSenderInfo(id);
@@ -350,6 +353,7 @@ export function PersonaFace({
   const hairColor = HAIR_COLORS[traits.hairColor] ?? HAIR_COLORS.brown;
   const lowDetail = size <= LOW_DETAIL_MAX_PX;
   const accessory = accessoryOverride ?? traits.accessory;
+  const expression = expressionOverride ?? traits.expression;
 
   return (
     <svg
@@ -402,9 +406,9 @@ export function PersonaFace({
           <Hair style={traits.hair} color={hairColor} />
         </g>
 
-        <Eyes expression={traits.expression} />
-        {!lowDetail && <Brows expression={traits.expression} />}
-        <Mouth expression={traits.expression} />
+        <Eyes expression={expression} />
+        {!lowDetail && <Brows expression={expression} />}
+        <Mouth expression={expression} />
 
         {!lowDetail && <Glasses style={traits.glasses} />}
         {!lowDetail && <Accessory style={accessory} accent={accent} />}
