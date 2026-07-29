@@ -41,9 +41,9 @@ export const OFFICE_ZH_CN = {
     },
     greybeard: {
       title: '资深工程师（荣休返聘）',
-      blurb: '“2009 年我们试过。”维护着那台大型机。冷笑话更冷。建议好得让人不安。',
+      blurb: '“1979 年我们试过。”维护着那台大型机。冷笑话更冷。建议好得让人不安。',
       introLine:
-        'Ulrich。资深工程师（荣休返聘）。2009 年我们试过。靠 cron 和恐惧在跑。正式环境挂了一周。现在还在跑。我维护着那台没人承认的大型机。大型机问起你了。我跟它说你在画图。它叹了口气。'
+        'Ulrich。资深工程师（荣休返聘）。1979 年我们试过。靠 JCL 和恐惧在跑。正式环境挂了一周。现在还在跑。我维护着那台没人承认的大型机。大型机问起你了。我跟它说你在画图。它叹了口气。'
     },
     ciso: {
       title: '首席信息安全官 — “不行部”',
@@ -150,7 +150,7 @@ export const OFFICE_ZH_CN = {
       id: 'email-greybeard-migration',
       colleagueId: 'greybeard',
       subject: '你重新发明了批处理任务',
-      body: '在共享盘上看到了你的图。这东西我们 2009 年就做过,靠一个 cron 任务和恐惧运行,2011 年把生产环境搞挂了一周。\n\n想知道细节就来问我。或者别问。它知道。\n\nUlrich'
+      body: '在共享盘上看到了你的图。这东西我们 1979 年就做过,靠一个 cron 任务和恐惧运行,1981 年把生产环境搞挂了一周。\n\n想知道细节就来问我。或者别问。它知道。\n\nUlrich'
     },
     {
       id: 'email-helpdesk-printer-firmware',
@@ -162,7 +162,7 @@ export const OFFICE_ZH_CN = {
       id: 'email-greybeard-cloud',
       colleagueId: 'greybeard',
       subject: '回复:云迁移启动会',
-      body: '云就是营销做得更好的大型机。我迁移过一次 — 2009 年,迁到“网格”上。2010 年我们又迁了回来。悄悄地。趁夜里。\n\n你的 {label} 放哪儿都能跑。东西大多都能跑,直到跑不动那天。\n\nUlrich'
+      body: '云就是营销做得更好的大型机。我迁移过一次 — 1979 年,迁到“网格”上。1985 年我们又迁了回来。悄悄地。趁夜里。\n\n你的 {label} 放哪儿都能跑。东西大多都能跑,直到跑不动那天。\n\nUlrich'
     },
     {
       id: 'email-scrum-retro-retro',
@@ -286,7 +286,7 @@ export const OFFICE_ZH_CN = {
     {
       id: 'im-greybeard-look',
       colleagueId: 'greybeard',
-      body: '看了眼 {label}。我们 2009 年试过。没事的。大概。'
+      body: '看了眼 {label}。我们 1979 年试过。没事的。大概。'
     },
     {
       id: 'im-greybeard-mainframe',
@@ -333,7 +333,7 @@ export const OFFICE_ZH_CN = {
     {
       id: 'walkby-greybeard',
       colleagueId: 'greybeard',
-      body: '{label} 啊。2009 年我们也有一个。现在还在跑。没人知道在哪。'
+      body: '{label} 啊。1979 年我们也有一个。现在还在跑。没人知道在哪。'
     },
     {
       id: 'walkby-facilities',
@@ -353,7 +353,7 @@ export const OFFICE_ZH_CN = {
     {
       id: 'walkby-greybeard-orchestrator',
       colleagueId: 'greybeard',
-      body: '小心 {label}。上一个这种东西在 2011 年前后有了自我意识。我们现在不把“编排器”说出口。'
+      body: '小心 {label}。上一个这种东西在 1981 年前后有了自我意识。我们现在不把“编排器”说出口。'
     }
   ],
   OFFICE_COFFEE_SCENES: [
@@ -411,7 +411,7 @@ export const OFFICE_ZH_CN = {
           speakerId: 'scrumMaster',
           text: '他们把路线图改名叫“北极星旅程图谱”了。路线图本身 2022 年起就没变过。'
         },
-        { speakerId: 'greybeard', text: '2009 年我们管它叫清单。它也没变过。' }
+        { speakerId: 'greybeard', text: '1979 年我们管它叫清单。它也没变过。' }
       ]
     },
     {
@@ -437,7 +437,7 @@ export const OFFICE_ZH_CN = {
         },
         {
           speakerId: 'greybeard',
-          text: '2009 年服务器就在我桌子底下。免费。暖和。吵。还是从前好。'
+          text: '1979 年服务器就在我桌子底下。免费。暖和。吵。还是从前好。'
         }
       ]
     },
@@ -476,7 +476,7 @@ export const OFFICE_ZH_CN = {
         },
         {
           speakerId: 'greybeard',
-          text: '试过。2009。那句 slogan 搞挂了生产。主机到现在还在引用。'
+          text: '试过。1979。那句 slogan 搞挂了生产。主机到现在还在引用。'
         }
       ]
     },
@@ -527,7 +527,7 @@ export const OFFICE_ZH_CN = {
       lines: [
         {
           speakerId: 'greybeard',
-          text: 'Tab。一次击键,一个字符,宽度可配置。这事儿 2009 年就定论了。'
+          text: 'Tab。一次击键,一个字符,宽度可配置。这事儿 1979 年就定论了。'
         },
         {
           speakerId: 'intern',
@@ -614,7 +614,7 @@ export const OFFICE_ZH_CN = {
         { speakerId: 'scrumMaster', text: '我们会有服务网格!有个网络研讨会!' },
         {
           speakerId: 'greybeard',
-          text: '我参加过一次网络研讨会。2011 年。我和大型机至今还会聊起它。'
+          text: '我参加过一次网络研讨会。1981 年。我和大型机至今还会聊起它。'
         }
       ],
       verdicts: {
@@ -743,8 +743,8 @@ export const OFFICE_ZH_CN = {
       team: '抓个有空的人',
       huddleAction: '围过来开小会',
       huddleActionTitle: '全队挤到你的屏幕前一起操作你的电脑。没有会议室，没有耳机。',
-      outbox: '从发件箱寄出',
-      outboxTitle: '导出或分享工位上的成品',
+      outbox: '拿去收发室',
+      outboxTitle: '保存、复制或分享工位上的成品',
       codeDrawer: '打开面条码抽屉',
       codeDrawerShort: '面条码',
       codeDrawerClose: '关闭面条码抽屉',

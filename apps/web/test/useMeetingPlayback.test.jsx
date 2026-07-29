@@ -14,7 +14,7 @@ const SCRIPT = {
   title: 'WG: Diagram Governance Sync (recurring)',
   beats: [
     { speakerId: 'scrumMaster', kind: 'procedural', text: 'Welcome! Time-boxed to 15.' },
-    { speakerId: 'greybeard', kind: 'offRails', text: 'We had this diagram in 2009.' },
+    { speakerId: 'greybeard', kind: 'offRails', text: 'We had this diagram in 1979.' },
     {
       speakerId: 'barker',
       kind: 'substantive',

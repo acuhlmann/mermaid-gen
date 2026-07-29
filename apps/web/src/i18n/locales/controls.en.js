@@ -121,7 +121,7 @@ export const CONTROLS_EN = {
         label: 'Microservices',
         prompt: 'Diagram a typical microservices architecture',
         fromId: 'greybeard',
-        ask: 'So he can tell you it was tried in 2009.'
+        ask: 'So he can tell you it was tried in ’79.'
       }
     ],
     // Compact purpose card on the empty canvas: brand → one job → sample → CTA,
@@ -173,12 +173,12 @@ export const CONTROLS_EN = {
     hide: 'Hide settings',
     title: 'Workstation · contractors & code drawer',
     region: 'Session settings',
-    // The Outbox — export/share promoted out of Settings into its own desk drawer.
-    outboxLabel: 'Outbox',
-    outboxShow: 'Open the outbox',
-    outboxHide: 'Close the outbox',
-    outboxTitle: 'Outbox · Ship this deliverable — save, copy, or share',
-    outboxRegion: 'Outbox — export & share',
+    // The mailroom — export/share promoted out of Settings into its own desk drawer.
+    outboxLabel: 'Mailroom',
+    outboxShow: 'Open the mailroom',
+    outboxHide: 'Close the mailroom',
+    outboxTitle: 'Mailroom · save, copy, or share this deliverable',
+    outboxRegion: 'Mailroom — export & share',
     externalAgents: 'External agents',
     waitingHandshake: 'Waiting for handshake:',
     externalAgentFallback: 'External agent',

@@ -126,12 +126,12 @@ describe('speakOfficeLine', () => {
     const { synth, spoken } = installSpeechMock();
     const result = await speakOfficeLine({
       speakerId: 'greybeard',
-      text: 'We tried that in 2009.',
+      text: 'We tried that in 1979.',
       lang: 'en-US'
     });
     expect(result).toEqual({ spoken: true, source: 'webspeech' });
     expect(synth.speak).toHaveBeenCalledTimes(1);
-    expect(spoken[0].text).toBe('We tried that in 2009.');
+    expect(spoken[0].text).toBe('We tried that in 1979.');
     expect(spoken[0].pitch).toBe(OFFICE_VOICE_PROFILES.greybeard.pitch);
     expect(spoken[0].rate).toBe(officeVoiceProfile('greybeard').rate);
     expect(spoken[0].lang).toBe('en-US');

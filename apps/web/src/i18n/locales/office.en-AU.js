@@ -36,9 +36,9 @@ export const OFFICE_EN_AU = {
     },
     greybeard: {
       blurb:
-        '“We tried that in 2009.” Maintains the mainframe. The mainframe maintains him. Darker punchlines, same calm.',
+        '“We tried that in ’79.” Maintains the mainframe. The mainframe maintains him. Darker punchlines, same calm.',
       introLine:
-        'Ulrich. Staff Engineer Emeritus. We tried that in 2009. It ran on cron and fear. Took prod down for a week. Still running. I maintain the mainframe nobody admits exists. The mainframe asked about you. I told it you were diagramming. It sighed.'
+        'Ulrich. Staff Engineer Emeritus. We tried that in 1979. It ran on JCL and fear. Took prod down for a week. Still running. I maintain the mainframe nobody admits exists. The mainframe asked about you. I told it you were diagramming. It sighed.'
     },
     ciso: {
       blurb: "Everything's an attack surface — especially the arrows. Trust is a vulnerability.",
@@ -129,7 +129,7 @@ export const OFFICE_EN_AU = {
       id: 'email-greybeard-migration',
       colleagueId: 'greybeard',
       subject: 'you have reinvented the batch job',
-      body: "Saw your diagram on the shared drive. We built this in 2009. Ran on a cron job and fear. Took down prod for a week in 2011.\n\nAsk me how. Or don't. It knows.\n\nUlrich"
+      body: "Saw your diagram on the shared drive. We built this in 1979. Ran on a batch job and fear. Took down prod for a week in 1981.\n\nAsk me how. Or don't. It knows.\n\nUlrich"
     },
     {
       id: 'email-helpdesk-printer-firmware',
@@ -141,7 +141,7 @@ export const OFFICE_EN_AU = {
       id: 'email-greybeard-cloud',
       colleagueId: 'greybeard',
       subject: 'RE: cloud migration kickoff',
-      body: "The cloud is the mainframe with better marketing. I migrated us once — 2009, to 'the grid'. We migrated back in 2010. Quietly. At night.\n\nYour {label} will run fine either way. Things mostly do, until they don't.\n\nUlrich"
+      body: "The cloud is the mainframe with better marketing. I migrated us once — 1984, to 'the grid'. We migrated back in 1985. Quietly. At night.\n\nYour {label} will run fine either way. Things mostly do, until they don't.\n\nUlrich"
     },
     {
       id: 'email-scrum-retro-retro',
@@ -267,7 +267,7 @@ export const OFFICE_EN_AU = {
     {
       id: 'im-greybeard-look',
       colleagueId: 'greybeard',
-      body: "Had a squiz at {label}. We tried that in 2009. It's fine. Probably."
+      body: "Had a squiz at {label}. We tried that in 1979. It's fine. Probably."
     },
     {
       id: 'im-greybeard-mainframe',
@@ -314,7 +314,7 @@ export const OFFICE_EN_AU = {
     {
       id: 'walkby-greybeard',
       colleagueId: 'greybeard',
-      body: "{label}, eh. We had one of those in 2009. It's still running. Nobody knows where."
+      body: "{label}, eh. We had one of those in 1979. It's still running. Nobody knows where."
     },
     {
       id: 'walkby-facilities',
@@ -404,7 +404,7 @@ export const OFFICE_EN_AU = {
           speakerId: 'scrumMaster',
           text: 'They\'ve renamed the roadmap to "north-star journey atlas". The roadmap itself is unchanged since 2022.'
         },
-        { speakerId: 'greybeard', text: "In 2009 we called it a list. It also didn't change." }
+        { speakerId: 'greybeard', text: "In 1979 we called it a list. It also didn't change." }
       ]
     },
     {
@@ -430,7 +430,7 @@ export const OFFICE_EN_AU = {
         },
         {
           speakerId: 'greybeard',
-          text: 'In 2009 the server lived under my desk. Free. Warm. Loud. Better days.'
+          text: 'In 1979 the server lived under my desk. Free. Warm. Loud. Better days.'
         }
       ]
     },
@@ -469,7 +469,7 @@ export const OFFICE_EN_AU = {
         },
         {
           speakerId: 'greybeard',
-          text: 'We tried that. 2009. The slogan took down prod. The mainframe still quotes it.'
+          text: 'We tried that. 1987. The slogan took down prod. The mainframe still quotes it.'
         }
       ]
     },
@@ -521,7 +521,7 @@ export const OFFICE_EN_AU = {
       lines: [
         {
           speakerId: 'greybeard',
-          text: 'Tabs. One keystroke, one character, configurable width. We settled this in 2009.'
+          text: 'Tabs. One keystroke, one character, configurable width. We settled this in 1979.'
         },
         {
           speakerId: 'intern',
@@ -736,7 +736,7 @@ export const OFFICE_EN_AU = {
     desk: {
       hrProgress: 'Check me HR progression',
       hrProgressTitle: 'People Ops scorecard — levels, XP, and whatever Linda reckons of ya',
-      outbox: 'Ship from the Outbox',
+      outbox: 'Take it to the mailroom',
       codeDrawer: 'Spaghetti',
       codeDrawerShort: 'Spaghetti',
       codeDrawerClose: 'Close spaghetti',

@@ -252,7 +252,7 @@ test('parseMeetingScript massages stray kinds and enforces the attendee allowlis
       actionPrompt: 'Merge the Discovery and Research nodes into one phase'
     },
     { speakerId: 'ghost', kind: 'smalltalk', text: 'I was never invited.' },
-    { speakerId: 'greybeard', kind: 'offRails', text: 'We had this diagram in 2009.' },
+    { speakerId: 'greybeard', kind: 'offRails', text: 'We had this diagram in 1979.' },
     { speakerId: 'intern', kind: 'smalltalk', text: 'wait we have a mainframe?' },
     { speakerId: 'barker', kind: 'smalltalk', text: 'Hard stop in four minutes.' },
     {

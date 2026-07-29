@@ -14,7 +14,7 @@ import { _resetOfficeViewModeForTests, standUp } from '../../src/state/officeVie
 export const WALK_BY_FIXTURE = {
   id: 'walk-test-1',
   colleagueId: 'greybeard',
-  body: 'We tried that in 2009. It is still in the mainframe.',
+  body: 'We tried that in 1979. It is still in the mainframe.',
   actionPrompt: 'Add the legacy system'
 };
 
@@ -24,7 +24,7 @@ export const COFFEE_SCENE_FIXTURE = {
   accepted: false,
   lines: [
     { speakerId: 'intern', text: 'Is the machine meant to make that noise?' },
-    { speakerId: 'greybeard', text: 'It has made that noise since 2009.' }
+    { speakerId: 'greybeard', text: 'It has made that noise since 1979.' }
   ]
 };
 
