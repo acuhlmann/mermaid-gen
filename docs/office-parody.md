@@ -277,15 +277,14 @@ The entry screen additionally mounts the **office directory** (`OfficeDirectory`
 interactive game-style **"Meet the Team"** orientation. **First run it is the entire
 app is** — nothing else mounts until the tour is dismissed or skipped — then the empty
 state, Day One badge, and the rest of the chrome appear. The cinematic flow is reception
-check-in → name badge with Linda's auto-voiced welcome → Meet the team
-auto-plays each intro in walk order (Dinesh, Erlich, Jared, Richard, Barker — **not**
-Gilfoyle, Russ, or a second Linda self-intro; Linda's distinct closing handoff plays
-last) → auto sit at your desk / desk wizard, persisted via
+check-in → name badge with Linda's auto-voiced **speed-run cast rundown** (Dinesh,
+Erlich, Jared, Richard, Barker named in one monologue — **not** sequential desk
+self-intros; Gilfoyle/Russ still skipped on purpose) → Linda's closing handoff into
+the **desk wizard** → auto sit / EntryDeskIntro, persisted via
 `archislop:office-directory-seen`; afterwards reopen via the **desk verb** once you
-have canvas content, so everybody can introduce themselves again anytime.
-On the isometric floor the same beats are a **walk**: you leave reception, visit each
-desk with the camera zoomed in and following, then walk home while Linda's closing
-plays, and land in the desk wizard.
+have canvas content, so individual ▶ intros remain available anytime.
+On the isometric floor the same beats are a **short walk**: you leave reception, hear
+Linda at People Ops, then walk home while her closing plays, and land in the desk wizard.
 While the directory is open it publishes pause state (`officeDirectoryUiStore`)
 so ambience IMs/walk-bys, Linda's welcome email, and the advisor stay quiet.
 On first visit the rest of the shell does not mount until the tour completes;
@@ -296,12 +295,12 @@ Floating office surfaces (directory, IM pings, walk-bys, coffee invites) use an 
 Three things make the orientation more than a static list:
 
 - **Cinematic voice (gesture-unlocked).** Check in at reception / Meet the team are the
-  user gestures that unlock speech. Linda's welcome and each colleague spotlight
-  then **auto-play** in order (`useIntroNarrator` + Cloud TTS), advancing when
-  each line finishes — no per-character ▶ required. Roster revisit and ▶ buttons
-  remain for replay/stop. Cost guardrail: nothing speaks on cold mount (scrapers
-  can't burn Chirp). `useIntroNarrator` and `OfficeLayer` share one Cloud-audio
-  fetcher (`officeSpeechClient.js`).
+  user gestures that unlock speech. Linda's welcome (cast rundown) and closing handoff
+  then **auto-play** (`useIntroNarrator` + Cloud TTS), advancing when each line
+  finishes — no per-character sequential intros on Day One. Roster revisit and ▶
+  buttons remain for full self-intro replay/stop. Cost guardrail: nothing speaks on
+  cold mount (scrapers can't burn Chirp). `useIntroNarrator` and `OfficeLayer` share
+  one Cloud-audio fetcher (`officeSpeechClient.js`).
 - **Name yourself in the intro.** The welcome step embeds the editable **name badge**
   (`NameTag`, see Day One below). Spoken copy stays voice-first; a **Transcript (CC)**
   toggle at reception, on the isometric arrival / floor bar, and in the Inbox ambience

@@ -82,7 +82,7 @@ describe('OfficeDirectory', () => {
     renderDirectory();
     expect(screen.queryByText(/newest architect/i)).toBeNull();
     enableTranscript();
-    expect(screen.getByText(/Your Team will introduce themselves/i)).toBeTruthy();
+    expect(screen.getByText(/Linda will speed-run the cast/i)).toBeTruthy();
     expect(screen.getByText('Welcome aboard, Newbie.')).toBeTruthy();
     expect(screen.getByTestId('office-directory-hr-transcript')).toBeTruthy();
   });
@@ -92,12 +92,13 @@ describe('OfficeDirectory', () => {
     expect(playMock).not.toHaveBeenCalled();
   });
 
-  it('auto-plays Linda then colleagues after Meet the team', async () => {
+  it('auto-plays Linda welcome then closing after Meet the team', async () => {
     renderDirectory({ showChip: false });
     fireEvent.click(screen.getByRole('button', { name: 'Meet the team →' }));
     await waitFor(() => expect(playMock).toHaveBeenCalled());
     expect(playMock.mock.calls[0][0]).toBe('welcome');
-    await waitFor(() => expect(playMock.mock.calls.some((c) => c[0] === 'dinesh')).toBe(true));
+    await waitFor(() => expect(playMock.mock.calls.some((c) => c[0] === 'closing')).toBe(true));
+    expect(playMock.mock.calls.some((c) => c[0] === 'dinesh')).toBe(false);
     expect(screen.getByTestId('office-directory-autoplay')).toBeTruthy();
     expect(screen.queryByTestId('intro-voice-button')).toBeNull();
   });
@@ -114,32 +115,36 @@ describe('OfficeDirectory', () => {
     expect(window.localStorage.getItem(OFFICE_USER_NAME_STORAGE_KEY)).toBe('Gavin');
   });
 
-  it('does not duplicate colleague intro text in the transcript', () => {
+  it('does not autoplay colleague intro text during the ceremony', () => {
     renderDirectory();
     enableTranscript();
+    // Idle pre-tour: cards may show intro lines for reading, but the ceremony
+    // itself only voices Linda welcome/closing.
     const dineshLine = officeSenderInfo('dinesh').introLine;
-    expect(screen.getAllByText(dineshLine).length).toBe(1);
-    // Linda hosts welcome/closing — her roster identity line is not on the tour cards.
+    expect(screen.getAllByText(dineshLine).length).toBeGreaterThanOrEqual(1);
     expect(screen.queryByText(officeSenderInfo('hr').introLine)).toBeNull();
   });
 
-  it('auto-introduces colleagues by voice, then hands off to the desk tour on the canvas', async () => {
+  it('hands off to the desk tour after Linda welcome + closing', async () => {
     const onBootComplete = vi.fn();
     playMock.mockImplementation(() => Promise.resolve({ spoken: true, source: 'cloud' }));
     renderDirectory({ showChip: false, onBootComplete, isBoot: true });
     fireEvent.click(screen.getByRole('button', { name: 'Meet the team →' }));
     await waitFor(() => expect(playMock).toHaveBeenCalled());
 
-    // Spoken gaps are short; closing auto-dismisses into the desk tour.
     await waitFor(
       () => {
         expect(onBootComplete).toHaveBeenCalledWith({ startDeskTour: true });
       },
-      { timeout: 8_000 }
+      { timeout: 5_000 }
     );
     expect(screen.queryByTestId('office-directory-tour')).toBeNull();
     expect(readOfficeDirectorySeen()).toBe(true);
     expect(getOfficeDirectoryUi().open).toBe(false);
+    const spokenIds = playMock.mock.calls.map((c) => c[0]);
+    expect(spokenIds).toContain('welcome');
+    expect(spokenIds).toContain('closing');
+    expect(spokenIds).not.toContain('dinesh');
   });
 
   it('skips the ceremony straight to the canvas and marks the tour seen', () => {

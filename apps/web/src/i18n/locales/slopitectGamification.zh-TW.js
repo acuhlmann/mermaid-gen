@@ -481,9 +481,9 @@ export const SLOPITECT_GAMIFICATION_ZH_TW = {
     greetingDefault: '歡迎回來，爛圖建築師。',
     meetTeamLabel: '認識團隊 →',
     meetTeamTitle:
-      '打開第一天到職引導——聽聽 Your Team（不含 Gilfoyle 和 Russ）以及 Linda 的自我介紹',
+      '打開第一天到職引導——Linda 速通 Your Team（不含 Gilfoyle 和 Russ），然後把你丟進座位精靈',
     meetTeamLede:
-      '畫布下方的人設隊友會插話點評。第一天介紹覆蓋團隊加人資；辦公室樓層是另一套氛圍陣容。',
+      '畫布下方的人設隊友會插話點評。第一天是 Linda 的全員速通加人資；辦公室樓層是另一套氛圍陣容。',
     slotsLede:
       '六個圖表槽位——Mermaid、資訊圖、資料圖、3D 隱喻、任意頁、表單——各自保留獨立的修訂歷史。',
     nextLevelTaunts: [

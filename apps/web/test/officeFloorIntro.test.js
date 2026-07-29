@@ -14,37 +14,29 @@ import {
 } from '../src/utils/officeFloorPlan.js';
 
 describe('officeFloorIntro', () => {
-  it('walks Your Team without a second Linda self-intro', () => {
+  it('keeps walk roster faces without a second Linda self-intro', () => {
     expect([...DAY_ONE_WALK_IDS]).toEqual(['dinesh', 'erlich', 'jared', 'richard', 'barker']);
     expect(DAY_ONE_WALK_IDS).not.toContain('hr');
     expect(DAY_ONE_INTRO_IDS).toContain('hr');
   });
 
-  it('orders welcome → team → distinct closing', () => {
+  it('orders welcome → distinct closing with no sequential desk intros', () => {
     const beats = arrivalSpeechBeats();
+    expect(beats).toHaveLength(2);
     expect(beats[0]).toMatchObject({ kind: 'welcome', id: 'hr' });
-    expect(beats[0].line).toMatch(/Linda/);
-    expect(beats.at(-1)).toMatchObject({ kind: 'closing', id: 'hr' });
-    expect(beats.at(-1).line).toMatch(/desk is waiting/i);
-    expect(beats.at(-1).line).not.toEqual(beats[0].line);
-    expect(beats.filter((beat) => beat.kind === 'intro').map((beat) => beat.id)).toEqual([
-      ...DAY_ONE_WALK_IDS
-    ]);
+    expect(beats[0].line).toMatch(/Linda|People Ops/i);
+    expect(beats[0].line).toMatch(/Speed round|Dinesh/i);
+    expect(beats[1]).toMatchObject({ kind: 'closing', id: 'hr' });
+    expect(beats[1].line).toMatch(/wizard/i);
+    expect(beats[1].line).not.toEqual(beats[0].line);
+    expect(beats.filter((beat) => beat.kind === 'intro')).toEqual([]);
   });
 
-  it('gives every walk stop a reachable visit tile from reception', () => {
-    let from = RECEPTION_TILE;
-    const linda = introVisitTileFor('hr', from);
+  it('gives Linda and home reachable tiles from reception', () => {
+    const linda = introVisitTileFor('hr', RECEPTION_TILE);
     expect(linda).toBeTruthy();
-    expect(pathCrossesGlass(walkPathBetween(from, linda, YOU_SEAT_ID))).toBe(false);
-    from = linda;
-    for (const id of DAY_ONE_WALK_IDS) {
-      const tile = introVisitTileFor(id, from);
-      expect(tile, id).toBeTruthy();
-      expect(pathCrossesGlass(walkPathBetween(from, tile, YOU_SEAT_ID)), id).toBe(false);
-      from = tile;
-    }
+    expect(pathCrossesGlass(walkPathBetween(RECEPTION_TILE, linda, YOU_SEAT_ID))).toBe(false);
     const home = introHomeTile();
-    expect(pathCrossesGlass(walkPathBetween(from, home, YOU_SEAT_ID))).toBe(false);
+    expect(pathCrossesGlass(walkPathBetween(linda, home, YOU_SEAT_ID))).toBe(false);
   });
 });

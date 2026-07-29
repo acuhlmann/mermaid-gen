@@ -86,11 +86,11 @@ export function colleagueVoiceLine(castId) {
 }
 
 /**
- * Ordered spoken beats for the floor ceremony (welcome → team → closing).
- * Closing is Linda's handoff, distinct from the welcome, and is meant to play
- * while you walk to your desk.
+ * Ordered spoken beats for the floor ceremony (welcome → closing).
+ * Linda does the cast rundown herself — no sequential desk self-intros.
+ * Closing is her handoff into the desk wizard, spoken while you walk home.
  *
- * @returns {Array<{ id: string, kind: 'welcome' | 'intro' | 'closing', line: string }>}
+ * @returns {Array<{ id: string, kind: 'welcome' | 'closing', line: string }>}
  */
 export function arrivalSpeechBeats() {
   const directory = officeChromeCopy().directory;
@@ -99,11 +99,6 @@ export function arrivalSpeechBeats() {
     kind: 'welcome',
     line: directory?.welcomeVoiceLine ?? ''
   };
-  const intros = DAY_ONE_WALK_IDS.map((id) => ({
-    id,
-    kind: 'intro',
-    line: colleagueVoiceLine(id)
-  }));
   const closingLine =
     directory?.welcomeClosingLine || colleagueVoiceLine('hr') || directory?.welcomeVoiceLine || '';
   const closing = {
@@ -111,5 +106,5 @@ export function arrivalSpeechBeats() {
     kind: 'closing',
     line: closingLine
   };
-  return [welcome, ...intros, closing];
+  return [welcome, closing];
 }

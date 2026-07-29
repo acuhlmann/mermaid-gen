@@ -120,14 +120,13 @@ function OnboardingColleagueCard({ colleague, colleagueId, isSpeaking, showTrans
 }
 
 /**
- * First-run orientation: Linda (HR) + name badge → auto-voiced colleague intros.
+ * First-run orientation: Linda (HR) speed-runs the cast, then the desk wizard.
  */
 function OnboardingPage({
   copy,
   userName,
   userRole,
   tourPhase,
-  colleagueIndex,
   autoPlaying,
   onDismiss,
   onSkip,
@@ -138,6 +137,7 @@ function OnboardingPage({
   localeToolbar
 }) {
   const touring = tourPhase !== 'idle';
+  const castLit = tourPhase === 'hr' || tourPhase === 'closing';
 
   return (
     <div
@@ -178,12 +178,20 @@ function OnboardingPage({
               </p>
               {userRole ? <p className="office-directory-role-line">{userRole}</p> : null}
               <p className="office-directory-tagline">{copy.tagline}</p>
-              {copy.welcomeVoiceLine ? (
+              {copy.welcomeVoiceLine && tourPhase !== 'closing' ? (
                 <p
                   className="office-directory-transcript-line"
                   data-testid="office-directory-hr-transcript"
                 >
                   {copy.welcomeVoiceLine}
+                </p>
+              ) : null}
+              {tourPhase === 'closing' && copy.welcomeClosingLine ? (
+                <p
+                  className="office-directory-transcript-line"
+                  data-testid="office-directory-closing-transcript"
+                >
+                  {copy.welcomeClosingLine}
                 </p>
               ) : null}
             </>
@@ -205,15 +213,15 @@ function OnboardingPage({
 
         <section className="office-directory-onboarding-cast" aria-label={copy.title}>
           <ul className="office-directory-onboarding-roster">
-            {TOUR_IDS.map((colleagueId, index) => {
+            {TOUR_IDS.map((colleagueId) => {
               const colleague = officeSenderInfo(colleagueId);
               return (
                 <OnboardingColleagueCard
                   key={colleagueId}
                   colleagueId={colleagueId}
                   colleague={colleague}
-                  isSpeaking={tourPhase === 'colleagues' && colleagueIndex === index}
-                  showTranscript={showTranscript}
+                  isSpeaking={castLit}
+                  showTranscript={showTranscript && !touring}
                 />
               );
             })}
@@ -304,7 +312,7 @@ function DirectoryRoster({ copy, speakingId, onHear, onDismiss, onReplayTour }) 
 }
 
 /**
- * Interactive office directory: HR welcome + name badge → auto colleague intros.
+ * Interactive office directory: HR speed-run → closing → desk wizard.
  * Voice starts only after "Meet the team" (browser gesture). Afterwards the
  * roster chip reopens the cast list with optional ▶ replay per person.
  */
@@ -321,7 +329,6 @@ export default function OfficeDirectory({
   const [open, setOpen] = useState(() => firstRunRef.current);
   const [tourOpen, setTourOpen] = useState(() => firstRunRef.current);
   const [tourPhase, setTourPhase] = useState('idle');
-  const [colleagueIndex, setColleagueIndex] = useState(-1);
   const [autoPlaying, setAutoPlaying] = useState(false);
   const showTranscript = useSyncExternalStore(
     subscribeOffice,
@@ -357,7 +364,6 @@ export default function OfficeDirectory({
     stop();
     autoGenRef.current += 1;
     setTourPhase('idle');
-    setColleagueIndex(-1);
     setAutoPlaying(false);
     setOpen(true);
     setTourOpen(directoryUi.mode === 'tour');
@@ -376,7 +382,6 @@ export default function OfficeDirectory({
     autoGenRef.current += 1;
     stop();
     setTourPhase('idle');
-    setColleagueIndex(-1);
     setAutoPlaying(false);
     writeOfficeDirectorySeen();
     firstRunRef.current = false;
@@ -401,10 +406,9 @@ export default function OfficeDirectory({
     autoGenRef.current += 1;
     stop();
     setTourPhase('hr');
-    setColleagueIndex(-1);
   };
 
-  // Linda's HR welcome, then hand off to the colleague run.
+  // Linda's HR welcome, then the closing handoff into the desk wizard.
   useEffect(() => {
     if (!open || tourPhase !== 'hr' || !copy.welcomeVoiceLine) return undefined;
     const gen = ++autoGenRef.current;
@@ -424,9 +428,7 @@ export default function OfficeDirectory({
       if (!result?.spoken) await sleep(SILENT_BEAT_MS, ac.signal);
       else await sleep(OFFICE_NARRATION_GAP_MS, ac.signal);
       if (cancelled || gen !== autoGenRef.current) return;
-      setAutoPlaying(false);
-      setTourPhase('colleagues');
-      setColleagueIndex(0);
+      setTourPhase('closing');
     })();
     return () => {
       cancelled = true;
@@ -434,40 +436,17 @@ export default function OfficeDirectory({
     };
   }, [open, tourPhase, copy.welcomeVoiceLine, copy.welcomeVoiceSpeakerId, play]);
 
-  // Auto-speak each teammate, then Linda's distinct closing handoff, then desk.
+  // Closing handoff, then auto-dismiss into the desk wizard.
   useEffect(() => {
-    if (!open || tourPhase !== 'colleagues' || colleagueIndex < 0) return undefined;
-    const colleagueId = TOUR_IDS[colleagueIndex];
+    if (!open || tourPhase !== 'closing') return undefined;
     const gen = ++autoGenRef.current;
     let cancelled = false;
     const ac = new AbortController();
     setAutoPlaying(true);
     void (async () => {
-      if (colleagueId) {
-        const colleague = officeSenderInfo(colleagueId);
-        const result = await play(colleagueId, {
-          speakerId: colleagueId,
-          text: colleagueVoiceLine(colleague)
-        });
-        if (cancelled || gen !== autoGenRef.current) return;
-        if (result?.cancelled) {
-          setAutoPlaying(false);
-          return;
-        }
-        if (!result?.spoken) await sleep(SILENT_BEAT_MS, ac.signal);
-        else await sleep(OFFICE_NARRATION_GAP_MS, ac.signal);
-        if (cancelled || gen !== autoGenRef.current) return;
-        setAutoPlaying(false);
-        if (colleagueIndex < TOUR_IDS.length - 1) {
-          setColleagueIndex((index) => index + 1);
-          return;
-        }
-      }
-
       const closing =
         copy.welcomeClosingLine || officeSenderInfo('hr')?.introLine || copy.welcomeVoiceLine;
       if (closing) {
-        setAutoPlaying(true);
         const closeResult = await play('closing', {
           speakerId: copy.welcomeVoiceSpeakerId ?? 'hr',
           text: closing
@@ -480,10 +459,10 @@ export default function OfficeDirectory({
         if (!closeResult?.spoken) await sleep(SILENT_BEAT_MS, ac.signal);
         else await sleep(OFFICE_NARRATION_GAP_MS, ac.signal);
         if (cancelled || gen !== autoGenRef.current) return;
-        setAutoPlaying(false);
       }
+      setAutoPlaying(false);
 
-      await sleep(700, ac.signal);
+      await sleep(500, ac.signal);
       if (cancelled || gen !== autoGenRef.current) return;
       const wasFirstRun = !readOfficeDirectorySeen();
       writeOfficeDirectorySeen();
@@ -499,7 +478,6 @@ export default function OfficeDirectory({
   }, [
     open,
     tourPhase,
-    colleagueIndex,
     play,
     onBootComplete,
     copy.welcomeClosingLine,
@@ -518,7 +496,6 @@ export default function OfficeDirectory({
           data-testid="office-directory-chip"
           onClick={() => {
             setTourPhase('idle');
-            setColleagueIndex(-1);
             setAutoPlaying(false);
             setTourOpen(null);
             setOpen(true);
@@ -550,7 +527,6 @@ export default function OfficeDirectory({
           userName={userName}
           userRole={userRole}
           tourPhase={tourPhase}
-          colleagueIndex={colleagueIndex}
           autoPlaying={autoPlaying}
           onDismiss={dismiss}
           onSkip={skipToBuild}
@@ -576,7 +552,6 @@ export default function OfficeDirectory({
             autoGenRef.current += 1;
             stop();
             setTourPhase('idle');
-            setColleagueIndex(-1);
             setAutoPlaying(false);
             setTourOpen(true);
           }}

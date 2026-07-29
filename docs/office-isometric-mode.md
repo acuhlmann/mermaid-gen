@@ -80,13 +80,13 @@ track touches chrome only, never the floor, and never blocks the floor slices.
    paying for itself.
 3. ~~**Isometric arrival**~~ — ✅ **shipped**: first run now _begins_ on the floor. You stand
    at reception (your desk visibly empty), fill in the name badge, and **Check in** — the
-   gesture that unlocks speech. Linda welcomes you at People Ops, then you **walk** to each
-   teammate's desk (camera zoomed in and following) as they introduce themselves. A distinct
-   Linda handoff plays while you **automatically** walk to your own desk and sit into the
-   desktop wizard. Content parity with the card tour remains — same walk roster, same
-   `introLine`s, same narrator — so this is a second _renderer_ of the orientation, not a
-   second orientation. `OfficeDirectory` stays mounted for replays from the level panel and
-   remains the fallback for anyone who skips.
+   gesture that unlocks speech. Linda welcomes you at People Ops with a **speed-run cast
+   rundown** (no sequential desk self-intros), then a distinct handoff plays while you
+   **automatically** walk to your own desk and sit into the desktop wizard. Content parity
+   with the card tour remains — same faces, same Linda welcome/closing lines, same narrator —
+   so this is a second _renderer_ of the orientation, not a second orientation.
+   `OfficeDirectory` stays mounted for replays from the level panel and remains the fallback
+   for anyone who skips (roster ▶ still plays full self-intros on demand).
 4. ~~**Set pieces at their locations**~~ — ✅ **shipped**: a coffee break happens at the
    machine, a cubicle battle across the aisle between two desks. Participants leave their
    desks (which stay, empty) for the duration; the invite ("coffee?", "they're at it
