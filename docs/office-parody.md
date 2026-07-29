@@ -484,11 +484,13 @@ the team roster.
 - **Seated before scripted.** `startOfficeHuddle(attendees)` draws the ring at `phase: 'gathering'`
   the moment you click, then `POST /api/office/huddle` fills it in and flips to `'speaking'`. The
   crowd arriving _is_ the feedback that the click landed, so nothing waits on the LLM.
-- **Click a head to pin their Do-it.** Any teammate's face is a hit target. If they already have a
-  remark (scripted or on-spot), their bubble pins so you can go back to an earlier suggestion and
-  delegate. If they have not said anything yet, the click fetches an on-spot suggestion via
-  `/api/advisor/suggest` into `huddle.suggestions` (beside the spoken queue, so pacing does not
-  restart).
+- **Click a head to pin their Do-it.** Any teammate's face is a hit target. Pinning
+  freezes turn-taking and they **repeat** their remark aloud (never flash stale text
+  from earlier in the queue). A Do-it button delegates the ask; clicking anywhere
+  else unpins. If they have not said anything yet, the click fetches an on-spot
+  suggestion via `/api/advisor/suggest` into `huddle.suggestions` (beside the spoken
+  queue, so pacing does not restart). Without Do-it, the repeat ends and the huddle
+  resumes where it paused.
 - **Do it keeps the ring watching.** Adopting a prompt sets `phase: 'watching'`, opens the notebook,
   and freezes turn-taking (`useScenePacing` `paused`) while faces stay seated. When the agent run
   finishes, the huddle resumes `speaking` from where it left off.

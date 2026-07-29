@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { officeChromeCopy, officeSenderInfo } from '../utils/officeCast.js';
 import { shouldShowSpokenText } from '../utils/officeCaptions.js';
 import { getOfficeSnapshot, subscribe } from '../state/officeMomentStore.js';
@@ -43,16 +43,24 @@ function beatForSpeaker(huddle, speakerId) {
   );
 }
 
+/** Notebook prompt for a pinned remark — mirrors on-spot suggest actionable rules. */
+function delegatablePrompt(beat, speakerId) {
+  if (!beat?.text) return null;
+  if (beat.actionPrompt) return beat.actionPrompt;
+  if (speakerId === 'richard') return null;
+  return beat.text;
+}
+
 /**
  * Team huddle (docs/office-parody.md) — the face-to-face counterpart to the
  * remote WG meeting. Your teammates crowd in from every edge of the canvas and
  * take turns saying one thing about the diagram, replacing the bottom-nav
  * advisor bubble for the duration.
  *
- * Click any head to pin that teammate's Do-it popup so you can go back to an
- * earlier suggestion and delegate. Heads with nothing yet fetch an on-spot
- * remark. "Do it" opens the notebook while the ring keeps watching, then the
- * huddle resumes when the run finishes.
+ * Click any head to pin that teammate: they repeat their take aloud (never flash
+ * stale text from earlier in the queue), a Do-it button lets you delegate, and
+ * clicking anywhere else unpins. "Do it" opens the notebook while the ring
+ * keeps watching, then the huddle resumes when the run finishes.
  *
  * Motion is deliberately the opposite of `OfficeWalkBy`: that one is a single
  * head dropping in over 720 ms and then looming at you forever, because it is
@@ -70,7 +78,8 @@ export default function HuddleOverlay({
   onAdoptPrompt,
   onRequestSuggestion,
   narrateLine,
-  prefetchLine
+  prefetchLine,
+  onCancelNarration
 }) {
   const snapshot = useSyncExternalStore(subscribe, getOfficeSnapshot, getOfficeSnapshot);
   const copy = officeChromeCopy().huddle;
@@ -81,12 +90,25 @@ export default function HuddleOverlay({
 
   const [pinnedSpeakerId, setPinnedSpeakerId] = useState(/** @type {string | null} */ (null));
   const [fetchingSpeakerId, setFetchingSpeakerId] = useState(/** @type {string | null} */ (null));
+  const [repeatingSpeakerId, setRepeatingSpeakerId] = useState(/** @type {string | null} */ (null));
+  const pinGenerationRef = useRef(0);
 
   // Clear pin / fetch chrome when the huddle dissolves or a new one starts.
   useEffect(() => {
     setPinnedSpeakerId(null);
     setFetchingSpeakerId(null);
+    setRepeatingSpeakerId(null);
+    pinGenerationRef.current += 1;
   }, [huddle?.id]);
+
+  // Do-it handoff dissolves the pin — the ring is watching the notebook now.
+  useEffect(() => {
+    if (huddle?.phase === 'watching') {
+      setPinnedSpeakerId(null);
+      setFetchingSpeakerId(null);
+      setRepeatingSpeakerId(null);
+    }
+  }, [huddle?.phase]);
 
   // useScenePacing reveals every line at once when it has no narrator, which is
   // right for a card of overheard chat and wrong for a ring of faces lighting up
@@ -104,7 +126,7 @@ export default function HuddleOverlay({
   const visibleLines = useScenePacing({
     lines: beats,
     active: pacingActive,
-    paused: watching,
+    paused: watching || Boolean(pinnedSpeakerId),
     narrateLine: speakLine,
     prefetchLine,
     paceMs: HUDDLE_LINE_PACE_MS,
@@ -123,29 +145,99 @@ export default function HuddleOverlay({
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [huddle, onHardStop]);
 
+  const unpin = useCallback(() => {
+    pinGenerationRef.current += 1;
+    setPinnedSpeakerId(null);
+    setFetchingSpeakerId(null);
+    setRepeatingSpeakerId(null);
+    onCancelNarration?.();
+  }, [onCancelNarration]);
+
+  const repeatPinnedBeat = useCallback(
+    async (speakerId, beat, generation) => {
+      if (!beat?.text) return;
+      setRepeatingSpeakerId(speakerId);
+      try {
+        const { spoken } = await speakLine(beat);
+        if (generation !== pinGenerationRef.current) return;
+        if (!spoken) {
+          await new Promise((resolve) => setTimeout(resolve, HUDDLE_LINE_PACE_MS));
+        }
+      } finally {
+        if (generation !== pinGenerationRef.current) return;
+        setRepeatingSpeakerId(null);
+        // No Do-it → they said it again, huddle continues from where it paused.
+        setPinnedSpeakerId(null);
+      }
+    },
+    [speakLine]
+  );
+
+  const handleDoIt = useCallback(
+    (speakerId, prompt) => {
+      if (!prompt || !speakerId) return;
+      pinGenerationRef.current += 1;
+      setRepeatingSpeakerId(null);
+      onCancelNarration?.();
+      onAdoptPrompt?.(prompt, speakerId);
+    },
+    [onAdoptPrompt, onCancelNarration]
+  );
+
   const handleSeatClick = useCallback(
     async (speakerId) => {
-      if (!huddle || !speakerId) return;
+      if (!huddle || !speakerId || watching) return;
+      if (pinnedSpeakerId === speakerId) {
+        unpin();
+        return;
+      }
+
+      const generation = ++pinGenerationRef.current;
       setPinnedSpeakerId(speakerId);
+      setRepeatingSpeakerId(null);
+      onCancelNarration?.();
+
       const existing = beatForSpeaker(huddle, speakerId);
-      if (existing?.text) return;
+      if (existing?.text) {
+        void repeatPinnedBeat(speakerId, existing, generation);
+        return;
+      }
       if (typeof onRequestSuggestion !== 'function') return;
       if (fetchingSpeakerId) return;
+
       setFetchingSpeakerId(speakerId);
       try {
-        await onRequestSuggestion(speakerId);
+        const beat = await onRequestSuggestion(speakerId);
+        if (generation !== pinGenerationRef.current) return;
+        if (beat?.text) {
+          void repeatPinnedBeat(speakerId, beat, generation);
+        }
       } finally {
         setFetchingSpeakerId((current) => (current === speakerId ? null : current));
       }
     },
-    [huddle, onRequestSuggestion, fetchingSpeakerId]
+    [
+      huddle,
+      watching,
+      pinnedSpeakerId,
+      unpin,
+      onCancelNarration,
+      repeatPinnedBeat,
+      onRequestSuggestion,
+      fetchingSpeakerId
+    ]
   );
+
+  const handleShadeClick = useCallback(() => {
+    if (pinnedSpeakerId) unpin();
+  }, [pinnedSpeakerId, unpin]);
 
   if (!huddle) return null;
 
   const activeBeat = speaking || watching ? beats[visibleLines - 1] : null;
-  const activeSpeakerId = watching ? null : (activeBeat?.speakerId ?? null);
+  const activeSpeakerId = watching || pinnedSpeakerId ? null : (activeBeat?.speakerId ?? null);
   const pinnedBeat = pinnedSpeakerId ? beatForSpeaker(huddle, pinnedSpeakerId) : null;
+  const pinnedPrompt = pinnedSpeakerId ? delegatablePrompt(pinnedBeat, pinnedSpeakerId) : null;
   // Voice intent, not the wrapper: OfficeLayer only passes narrateLine when
   // narration is on, so this is "somebody is about to say this out loud".
   const showText = shouldShowSpokenText({
@@ -168,15 +260,23 @@ export default function HuddleOverlay({
       data-testid="office-huddle"
       data-phase={huddle.phase}
     >
-      <div className="office-huddle-shade" aria-hidden="true" />
+      <div
+        className="office-huddle-shade"
+        aria-hidden={!pinnedSpeakerId}
+        onClick={pinnedSpeakerId ? handleShadeClick : undefined}
+        data-testid={pinnedSpeakerId ? 'office-huddle-shade' : undefined}
+      />
       {huddle.attendees.map((id, index) => {
         const slot = seatFor(index);
         const person = officeSenderInfo(id);
         const isSpeaking = activeSpeakerId === id;
         const isPinned = pinnedSpeakerId === id;
         const isFetching = fetchingSpeakerId === id;
-        const beat = isPinned ? pinnedBeat : isSpeaking && !pinnedSpeakerId ? activeBeat : null;
-        const showBubble = Boolean(beat) || isFetching;
+        const isRepeating = repeatingSpeakerId === id;
+        const beat = isPinned ? pinnedBeat : isSpeaking ? activeBeat : null;
+        const showBubble = Boolean(beat) || isFetching || isPinned;
+        const delegatePrompt = isPinned ? pinnedPrompt : delegatablePrompt(beat, id);
+        const hidePinnedText = isPinned && (isRepeating || isFetching || !showText);
         return (
           <div
             key={id}
@@ -187,6 +287,7 @@ export default function HuddleOverlay({
               activeSpeakerId && !isSpeaking && !isPinned ? 'is-listening' : '',
               isPinned ? 'is-pinned' : '',
               isFetching ? 'is-fetching' : '',
+              isRepeating ? 'is-repeating' : '',
               watching ? 'is-watching' : ''
             ]
               .filter(Boolean)
@@ -222,7 +323,8 @@ export default function HuddleOverlay({
                 className={[
                   'office-huddle-bubble',
                   isPinned ? 'is-pinned' : '',
-                  isFetching ? 'is-fetching' : ''
+                  isFetching ? 'is-fetching' : '',
+                  isRepeating ? 'is-repeating' : ''
                 ]
                   .filter(Boolean)
                   .join(' ')}
@@ -236,36 +338,24 @@ export default function HuddleOverlay({
                       name: person.name
                     })}
                   </p>
-                ) : showText || isPinned || !isSpeaking ? (
-                  <p className="office-huddle-line">{beat?.text}</p>
-                ) : (
-                  // CC off and somebody is speaking: label only, never the line.
+                ) : hidePinnedText || (isSpeaking && !showText) ? (
                   <p className="office-huddle-speaking-label">
                     {formatLocale(copy.speakingLabel, { name: person.name })}
                   </p>
+                ) : (
+                  <p className="office-huddle-line">{beat?.text}</p>
                 )}
-                {beat?.actionPrompt ? (
+                {delegatePrompt ? (
                   <button
                     type="button"
                     className="office-do-it office-huddle-do-it"
-                    onClick={() => onAdoptPrompt?.(beat.actionPrompt, id)}
+                    onClick={() => handleDoIt(id, delegatePrompt)}
                     title={formatLocale(
                       copy.delegateTitle ?? 'Delegate to {name} — open the notebook',
                       { name: person.name }
                     )}
                   >
                     {copy.delegate ?? officeChromeCopy().doIt}
-                  </button>
-                ) : null}
-                {isPinned ? (
-                  <button
-                    type="button"
-                    className="office-huddle-unpin"
-                    onClick={() => setPinnedSpeakerId(null)}
-                    aria-label={copy.unpinAria ?? 'Unpin suggestion'}
-                    title={copy.unpinAria ?? 'Unpin suggestion'}
-                  >
-                    📌
                   </button>
                 ) : null}
               </div>

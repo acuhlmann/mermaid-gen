@@ -114,12 +114,55 @@ describe('HuddleOverlay', () => {
     expect(onAdoptPrompt).toHaveBeenCalledWith('Split the Auth node in two', 'dinesh');
   });
 
-  it('pins a previous teammate suggestion when their head is clicked', async () => {
-    render(<HuddleOverlay huddle={huddle()} />);
+  it('repeats a pinned remark aloud instead of flashing stale text', async () => {
+    const narrateLine = vi.fn(async () => ({ spoken: true }));
+    render(<HuddleOverlay huddle={huddle()} narrateLine={narrateLine} />);
     await advanceOneLine();
     fireEvent.click(screen.getByRole('button', { name: /Pin .*Gilfoyle/i }));
     expect(screen.getByTestId('office-huddle-pinned-gilfoyle')).toBeTruthy();
-    expect(screen.getByText(BEATS[0].text)).toBeTruthy();
+    expect(screen.queryByText(BEATS[0].text)).toBeNull();
+    expect(screen.getByText(/is talking/)).toBeTruthy();
+    expect(narrateLine).toHaveBeenCalledWith(
+      expect.objectContaining({ speakerId: 'gilfoyle', text: BEATS[0].text })
+    );
+  });
+
+  it('shows Do it on a pinned head even when the scripted beat had no action prompt', async () => {
+    const narrateLine = vi.fn(async () => ({ spoken: false }));
+    render(<HuddleOverlay huddle={huddle()} narrateLine={narrateLine} />);
+    fireEvent.click(screen.getByRole('button', { name: /Pin .*Gilfoyle/i }));
+    expect(screen.getByRole('button', { name: /Do it/i })).toBeTruthy();
+  });
+
+  it('unpins and resumes the huddle after a repeat when Do it is not pressed', async () => {
+    const narrateLine = vi.fn(async () => ({ spoken: false }));
+    render(<HuddleOverlay huddle={huddle()} narrateLine={narrateLine} />);
+    fireEvent.click(screen.getByRole('button', { name: /Pin .*Gilfoyle/i }));
+    expect(screen.getByTestId('office-huddle-pinned-gilfoyle')).toBeTruthy();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(HUDDLE_LINE_PACE_MS + 20);
+    });
+    expect(screen.queryByTestId('office-huddle-pinned-gilfoyle')).toBeNull();
+  });
+
+  it('unpins when the backdrop is clicked', async () => {
+    const narrateLine = vi.fn(async () => ({ spoken: false }));
+    render(<HuddleOverlay huddle={huddle()} narrateLine={narrateLine} />);
+    fireEvent.click(screen.getByRole('button', { name: /Pin .*Gilfoyle/i }));
+    expect(screen.getByTestId('office-huddle-pinned-gilfoyle')).toBeTruthy();
+    fireEvent.click(screen.getByTestId('office-huddle-shade'));
+    expect(screen.queryByTestId('office-huddle-pinned-gilfoyle')).toBeNull();
+  });
+
+  it('delegates from a pinned head via Do it', async () => {
+    const onAdoptPrompt = vi.fn();
+    const narrateLine = vi.fn(async () => ({ spoken: false }));
+    render(
+      <HuddleOverlay huddle={huddle()} onAdoptPrompt={onAdoptPrompt} narrateLine={narrateLine} />
+    );
+    fireEvent.click(screen.getByRole('button', { name: /Pin .*Gilfoyle/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Do it/i }));
+    expect(onAdoptPrompt).toHaveBeenCalledWith(BEATS[0].text, 'gilfoyle');
   });
 
   it('asks for an on-spot suggestion when a silent head is clicked', async () => {
