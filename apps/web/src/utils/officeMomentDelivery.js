@@ -24,6 +24,7 @@ import {
   officeBattleScenes,
   officeCoffeeScenes,
   officeDialogueLocale,
+  officeEmailReplyTemplates,
   officeEmailTemplates,
   officeImReplyTemplates,
   officeImTemplates,
@@ -109,6 +110,35 @@ export function deliverCannedMoment(kind, ctx, options) {
   const remember = (text) => onRemember?.(String(text ?? ''));
 
   if (kind === 'email') {
+    const replyContext = options.replyContext;
+    const userMessage =
+      typeof replyContext?.userMessage === 'string' ? replyContext.userMessage.trim() : '';
+    if (userMessage) {
+      const targetId = replyContext.colleagueId ?? options.colleagueId;
+      if (!targetId) return false;
+      const bank = officeEmailReplyTemplates().filter(
+        (template) => !template.colleagueId || template.colleagueId === targetId
+      );
+      const template = pickUnseenTemplate(
+        bank.length > 0 ? bank : officeEmailReplyTemplates(),
+        memory.seenTemplateIds,
+        random
+      );
+      if (!template) return false;
+      pushOfficeEmail({
+        colleagueId: targetId,
+        subject: fillOfficeSlots(template.subject, slots),
+        body: fillOfficeSlots(template.body, {
+          ...slots,
+          snippet: userMessage.slice(0, 80)
+        }),
+        ...(template.actionPrompt ? { actionPrompt: template.actionPrompt } : {})
+      });
+      remember(userMessage);
+      markFired(memory, template.id, onFired);
+      return true;
+    }
+
     const bank = senior ? seniorEmailTemplates() : officeEmailTemplates();
     const template = pickUnseenTemplate(bank, memory.seenTemplateIds, random);
     if (!template) return false;

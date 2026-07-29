@@ -722,13 +722,7 @@ export const OFFICE_EN_AU = {
     leaveLabel: 'Shoot through',
     interjectCapLine: 'Pam: "Great point — let\'s parking-lot it. We\'re at time."'
   },
-  OFFICE_IM_QUICK_REPLIES: [
-    '👍',
-    'in a meeting',
-    'circling back arvo',
-    'parking lot it',
-    'noted in me file'
-  ],
+  OFFICE_IM_QUICK_REPLIES: ['👍', 'per my last email', 'parking lot', 'pls advise'],
   OFFICE_CHROME_COPY: {
     doIt: 'Have a go',
     doSelected: 'Do selected',

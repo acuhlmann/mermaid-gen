@@ -410,14 +410,24 @@ recurring corporate invite, e.g. "Architecture Review Board (steering)").`
 
 export function buildMomentSystemPrompt({ kind, colleagueId, uiLocale, isReply = false }) {
   const voice = speakerVoice(colleagueId);
-  const replyRule =
-    kind === 'im' && isReply
+  const canvasReplyHint =
+    '- When replying, weave in something you notice on their canvas (a visible label or the diagram shape) if it fits your character — not every line needs it, but at least acknowledge what they wrote.';
+  const replyRule = isReply
+    ? kind === 'email'
       ? `
+EMAIL REPLY MODE (overrides the usual "surprise me" rule):
+- The user just emailed you (subject and/or body below). Your reply must directly address what they wrote.
+- Do NOT send a cold-open broadcast or unrelated office noise.
+${canvasReplyHint}`
+      : kind === 'im'
+        ? `
 IM REPLY MODE (overrides the usual "surprise me" rule):
 - The user just sent you a chat message. Your "body" must directly acknowledge what they said —
 answer their question, react to their tone, or continue the thread naturally.
-- Do NOT pivot to a random new topic or send a cold-open ping.`
-      : '';
+- Do NOT pivot to a random new topic or send a cold-open ping.
+${canvasReplyHint}`
+        : ''
+    : '';
   return `${voice}
 
 You are writing ONE office "${kind}" moment inside a parody corporate-IT workplace where the user

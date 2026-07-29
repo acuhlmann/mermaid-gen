@@ -18155,7 +18155,10 @@ body.slopitect-rainbow-tint::before {
 .office-im-replies {
   display: flex;
   gap: 6px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
 }
 .office-im-reply {
   appearance: none;
@@ -18166,6 +18169,8 @@ body.slopitect-rainbow-tint::before {
   padding: 2px 8px;
   cursor: pointer;
   color: var(--muted);
+  white-space: nowrap;
+  flex: 0 0 auto;
 }
 .office-im-reply:hover {
   background: rgba(15, 23, 42, 0.05);
@@ -18414,9 +18419,12 @@ body.slopitect-rainbow-tint::before {
 .office-messenger-quick {
   display: flex;
   flex: 0 0 auto;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 5px;
-  padding: 0 9px 6px;
+  padding: 0 9px 4px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
 }
 .office-messenger-quick-reply {
   appearance: none;
@@ -18427,6 +18435,8 @@ body.slopitect-rainbow-tint::before {
   padding: 3px 8px;
   border-radius: 999px;
   cursor: pointer;
+  white-space: nowrap;
+  flex: 0 0 auto;
 }
 .office-messenger-quick-reply:hover:not(:disabled) {
   color: var(--text);
@@ -21156,9 +21166,21 @@ body.slopitect-rainbow-tint::before {
   .office-messenger {
     width: min(460px, calc(100vw - 20px));
     height: min(
-      58dvh,
-      calc(var(--app-vvh, 100dvh) - var(--mobile-bottom-chrome-est, 10.5rem) - 4rem)
+      72dvh,
+      calc(var(--app-vvh, 100dvh) - var(--mobile-bottom-chrome-est, 10.5rem) - 2.5rem)
     );
+  }
+  .office-messenger-titlebar {
+    padding: 7px 10px;
+  }
+  .office-messenger-tagline {
+    display: none;
+  }
+  .office-messenger-log {
+    padding: 8px;
+  }
+  .office-messenger-composer {
+    padding: 6px 8px;
   }
   .office-messenger-body {
     grid-template-columns: 1fr;

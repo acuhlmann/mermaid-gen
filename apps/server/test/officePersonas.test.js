@@ -124,6 +124,24 @@ test('moment system prompt carries the voice, strict-JSON rule, and kind rules',
   assert.match(walkby, /voice.*not a \*topic\*/s);
 });
 
+test('moment reply mode tells IM and email to acknowledge the user and glance at the canvas', () => {
+  const imReply = buildMomentSystemPrompt({
+    kind: 'im',
+    colleagueId: 'intern',
+    isReply: true
+  });
+  assert.match(imReply, /IM REPLY MODE/);
+  assert.match(imReply, /visible label|canvas/i);
+
+  const emailReply = buildMomentSystemPrompt({
+    kind: 'email',
+    colleagueId: 'hr',
+    isReply: true
+  });
+  assert.match(emailReply, /EMAIL REPLY MODE/);
+  assert.match(emailReply, /visible label|canvas/i);
+});
+
 test('moment user prompt lists labels and recent moments', () => {
   const prompt = buildMomentUserPrompt({
     contentType: 'mermaid',

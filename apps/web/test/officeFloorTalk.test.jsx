@@ -62,17 +62,17 @@ describe('talking on the floor (slice 8)', () => {
     expect(view.container.querySelector(`[data-seat="${CHAD}"]`)?.dataset.vacant).toBeUndefined();
   });
 
-  it('opens with a live line once, when you actually get there', async () => {
+  it('does not auto-greet when you arrive — you speak first', async () => {
     const onTalkGreet = vi.fn().mockResolvedValue(undefined);
     const view = renderFloor({ onTalkGreet });
 
     expect(onTalkGreet).not.toHaveBeenCalled();
     walkOverToTalk();
 
-    await waitFor(() => expect(onTalkGreet).toHaveBeenCalledWith(CHAD));
-    // Re-rendering must not re-fire a live LLM call.
+    await screen.findByTestId('office-floor-talk-card');
+    expect(onTalkGreet).not.toHaveBeenCalled();
     view.rerender(<OfficeFloor onTalkGreet={onTalkGreet} />);
-    expect(onTalkGreet).toHaveBeenCalledTimes(1);
+    expect(onTalkGreet).not.toHaveBeenCalled();
   });
 
   it('renders their newest line as a bubble over them, and glows them', async () => {
@@ -178,8 +178,8 @@ describe('talking on the floor (slice 8)', () => {
 
     fireEvent.doubleClick(screen.getByRole('button', { name: /Chad/ }));
 
-    await waitFor(() => expect(onTalkGreet).toHaveBeenCalledWith(CHAD));
-    expect(screen.getByTestId('office-floor-talk-card')).toBeTruthy();
+    await screen.findByTestId('office-floor-talk-card');
+    expect(onTalkGreet).not.toHaveBeenCalled();
   });
 
   it('offers the same canned quick replies Slop Chat does', async () => {
@@ -188,8 +188,8 @@ describe('talking on the floor (slice 8)', () => {
     walkOverToTalk();
 
     await screen.findByTestId('office-floor-talk-card');
-    fireEvent.click(screen.getByRole('button', { name: 'in a meeting' }));
-    await waitFor(() => expect(onTalkReply).toHaveBeenCalledWith(CHAD, 'in a meeting'));
+    fireEvent.click(screen.getByRole('button', { name: 'parking lot' }));
+    await waitFor(() => expect(onTalkReply).toHaveBeenCalledWith(CHAD, 'parking lot'));
   });
 
   it('tells renderer #1 who you are stood in front of, so it can hold the toast', async () => {

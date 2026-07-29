@@ -716,7 +716,7 @@ export const OFFICE_ZH_TW = {
     leaveLabel: '離開會議',
     interjectCapLine: 'Pam:「很棒的觀點 — 先放進停車場。時間到了。」'
   },
-  OFFICE_IM_QUICK_REPLIES: ['👍', '會議中', '晚點回', '先丟停車場', '已記入檔案'],
+  OFFICE_IM_QUICK_REPLIES: ['👍', '會議中', '停車場', '請指示'],
   OFFICE_CHROME_COPY: {
     doIt: '就這麼辦',
     doSelected: '套用所選',
