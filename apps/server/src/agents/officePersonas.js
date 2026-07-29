@@ -616,6 +616,65 @@ export function buildInterjectUserPrompt({
   ].join('\n');
 }
 
+/**
+ * Team huddle: everyone crowds your screen and says one thing each. Deliberately
+ * NOT the meeting grammar — a huddle has no facilitator, no agenda, and no
+ * procedural padding, so there are no beat kinds. Every line is signal, which is
+ * what makes it the face-to-face counterpart to the remote WG meeting.
+ */
+export function buildHuddleSystemPrompt({ attendees, uiLocale }) {
+  const cards = attendees
+    .map((id) => `### ${speakerLabel(id)} — speakerId "${id}"\n${speakerVoice(id)}`)
+    .join('\n\n');
+  return `You are the invisible showrunner of a parody corporate-IT team huddle. The user's teammates
+have crowded around their screen to look at the diagram together, and each gets ONE remark.
+
+THE HUDDLE (use these speakerId values and NO others):
+
+${cards}
+
+RULES:
+- Output STRICT JSON only — no prose, no backticks, no preamble.
+- Schema: {"beats": [{"speakerId": string, "text": string, "actionPrompt": string (optional)}]}.
+- EXACTLY one beat per person listed above, in the SAME ORDER they are listed. No extras, no repeats.
+- Each "text" is max 30 words. This is a hallway remark over somebody's shoulder, not a presentation.
+- Every beat must engage the ACTUAL diagram and reference at least one visible label by name.
+- At least 2 beats carry an "actionPrompt": a self-contained imperative diagram edit, max 200 chars,
+  actionable without any other context. This is the accidental competence that makes the parody land.
+- At least one beat reacts to the person before them by name (agree, object, or misunderstand).
+  Gentle bickering welcome; never mean.
+- No facilitation, no scheduling, no "let's take this offline" — nobody is running this, they just
+  wandered over.
+- ${SUBJECT_RULE}${buildOfficeLanguageRule(uiLocale)}`;
+}
+
+export function buildHuddleUserPrompt({ contentType, diagramSource, visibleLabels, uiLocale }) {
+  const labels =
+    Array.isArray(visibleLabels) && visibleLabels.length > 0
+      ? visibleLabels
+          .slice(0, 30)
+          .map((label) => `- ${String(label).slice(0, 120)}`)
+          .join('\n')
+      : '(no labels detected)';
+  const source =
+    typeof diagramSource === 'string' && diagramSource.trim()
+      ? diagramSource.slice(0, 6000)
+      : '(empty)';
+  return [
+    `Diagram type: ${contentType || 'mermaid'}`,
+    '',
+    'Visible labels:',
+    labels,
+    '',
+    'Current diagram source:',
+    '```',
+    source,
+    '```',
+    '',
+    `Write the huddle remarks as strict JSON now.${buildOfficeLanguageReminder(uiLocale)}`
+  ].join('\n');
+}
+
 const STRICT_JSON_RE = /\{[\s\S]*\}/;
 
 function extractJsonObject(raw) {
@@ -717,6 +776,48 @@ export function parseInterjectReply(raw, { attendees }) {
     .filter(Boolean)
     .slice(0, 8);
   return beats.length > 0 ? beats : null;
+}
+
+/** Upper bound on a huddle remark — 30 words of prompt, clamped generously here. */
+const HUDDLE_TEXT_MAX = 220;
+
+/** @returns {{speakerId: string, text: string, actionPrompt?: string} | null} */
+function normalizeHuddleBeat(beat) {
+  if (!beat || typeof beat !== 'object') return null;
+  const speakerId = typeof beat.speakerId === 'string' ? beat.speakerId.trim() : '';
+  const text = typeof beat.text === 'string' ? beat.text.trim().slice(0, HUDDLE_TEXT_MAX) : '';
+  if (!speakerId || !text) return null;
+  const actionPrompt =
+    typeof beat.actionPrompt === 'string' && beat.actionPrompt.trim()
+      ? beat.actionPrompt.trim().slice(0, 300)
+      : undefined;
+  return { speakerId, text, ...(actionPrompt ? { actionPrompt } : {}) };
+}
+
+/**
+ * Parse a huddle reply into one beat per attendee, in attendee order.
+ *
+ * Stricter than the meeting parser on shape and looser on content: there is no
+ * beat grammar to police, but the "exactly one line each, in order" contract is
+ * load-bearing — the overlay seats people around the canvas and lights them up
+ * one at a time, so a duplicate or unknown speaker would light the wrong face.
+ * Returns null when nobody usable spoke; the caller falls back in-fiction.
+ */
+export function parseHuddleScript(raw, { attendees }) {
+  const parsed = extractJsonObject(raw);
+  if (!parsed || typeof parsed !== 'object' || !Array.isArray(parsed.beats)) return null;
+  /** @type {Map<string, {speakerId: string, text: string, actionPrompt?: string}>} */
+  const bySpeaker = new Map();
+  for (const candidate of parsed.beats) {
+    const beat = normalizeHuddleBeat(candidate);
+    // First line wins: a model that repeats somebody must not overwrite the
+    // remark that already landed, and unknown speakers never get a seat.
+    if (!beat || !attendees.includes(beat.speakerId) || bySpeaker.has(beat.speakerId)) continue;
+    bySpeaker.set(beat.speakerId, beat);
+  }
+  // Attendee order, not model order — the seats were drawn before the LLM replied.
+  const beats = attendees.map((id) => bySpeaker.get(id)).filter(Boolean);
+  return beats.length > 0 ? { beats } : null;
 }
 
 /** Validate an attendee list: known speakers, deduped, within seat bounds. */

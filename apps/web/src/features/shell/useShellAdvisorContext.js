@@ -4,6 +4,7 @@ import {
   getOfficeDirectoryUi,
   subscribeOfficeDirectoryUi
 } from '../../state/officeDirectoryUiStore.js';
+import { getOfficeSnapshot, subscribe as subscribeOffice } from '../../state/officeMomentStore.js';
 import { subscribe as subscribeUserName, resolveUserName } from '../../state/userIdentityStore.js';
 import { useAdvisorPause } from '../advisor/useAdvisorPause.js';
 import { useAdvisorShell } from '../advisor/useAdvisorShell.js';
@@ -64,12 +65,22 @@ export function useShellAdvisorContext({
 
   const userName = useSyncExternalStore(subscribeUserName, resolveUserName, resolveUserName);
 
+  // A running huddle *is* the roundtable, drawn around the canvas instead of
+  // over the bottom nav — letting the advisor bubble surface underneath it would
+  // be a seventh teammate talking over the six you called.
+  const huddleActive = useSyncExternalStore(
+    subscribeOffice,
+    () => Boolean(getOfficeSnapshot().huddle),
+    () => Boolean(getOfficeSnapshot().huddle)
+  );
+
   const { advisorPause, officeDistractionsPaused } = useAdvisorPause({
     clearConfirmOpen,
     contentMode,
     editorOpen,
     insightsEntries,
     insightsOpen,
+    huddleActive,
     isFullscreen,
     liveDraftContentType,
     liveDraftSource,

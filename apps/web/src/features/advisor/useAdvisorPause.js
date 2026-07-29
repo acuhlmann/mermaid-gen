@@ -7,6 +7,7 @@ export function useAdvisorPause({
   clearConfirmOpen,
   contentMode,
   editorOpen,
+  huddleActive,
   insightsEntries,
   insightsOpen,
   isFullscreen,
@@ -32,11 +33,13 @@ export function useAdvisorPause({
       editorOpen ||
       (narrowLayout && insightsOpen) ||
       isFullscreen ||
-      officeDirectoryOpen,
+      officeDirectoryOpen ||
+      Boolean(huddleActive),
     [
       clearConfirmOpen,
       contentMode,
       editorOpen,
+      huddleActive,
       insightsEntries,
       insightsOpen,
       isFullscreen,

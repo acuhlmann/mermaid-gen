@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { useAdvisorOrchestrator } from '../../hooks/useAdvisorOrchestrator.js';
-import { readAdvisorMuted } from '../../utils/advisorMuteStorage.js';
+import { getOfficeSnapshot, subscribe } from '../../state/officeMomentStore.js';
 import { focusPayload } from '../../utils/appInsightHelpers.js';
 import { applyDiagramHighlightToSvg } from '../../utils/applyDiagramHighlightToSvg.js';
 import { buildAdvisorIntentPrompt } from '../../utils/advisorActionContext.js';
@@ -55,6 +55,23 @@ export function useAdvisorShell({
     ? `${advisorFocusDescriptor.source}:${advisorFocusDescriptor.id}`
     : null;
 
+  /**
+   * Focus Time is the roundtable's mute. The team menu used to carry its own
+   * Headphones button for this, which meant two mute concepts in two menus for
+   * one intent — "don't interrupt me". Focus already silenced every *other*
+   * interruption (walk-bys, IMs, run reactions), so it absorbs this one too.
+   *
+   * Routed through `isMuted` rather than `pause` on purpose: an explicit ask
+   * ("Grab whoever's free", delegating, huddling) clears the mute in
+   * `promptNext`, which is the documented "your own initiative bypasses Focus
+   * Time" rule. Folding it into `pause` would gate those clicks instead.
+   */
+  const officeFocusTime = useSyncExternalStore(
+    subscribe,
+    () => getOfficeSnapshot().focusTime,
+    () => getOfficeSnapshot().focusTime
+  );
+
   const advisor = useAdvisorOrchestrator({
     getDiagramSource: () => stateRef.current?.diagramSource ?? '',
     getContentType: () => contentMode,
@@ -64,7 +81,7 @@ export function useAdvisorShell({
     focusSource: advisorFocusDescriptor?.source ?? null,
     getSvgRoot: () => (typeof document !== 'undefined' ? document : null),
     pause: advisorPause,
-    initialMuted: readAdvisorMuted(),
+    initialMuted: officeFocusTime,
     onAccept: (text, persona) => {
       const hasDiagram = Boolean((stateRef.current?.diagramSource ?? '').trim());
       const operation = resolveAdvisorAcceptOperation(persona, hasDiagram);
@@ -88,6 +105,15 @@ export function useAdvisorShell({
     },
     onUsage: reportAdvisorUsage
   });
+
+  // Booking Focus Time mid-session silences the roundtable; ending it lets the
+  // team speak again. One-directional on purpose — promptNext un-mutes without
+  // ending Focus, so an explicit ask does not also reopen the floodgates.
+  const setAdvisorMuted = advisor.setMuted;
+  useEffect(() => {
+    if (officeFocusTime) setAdvisorMuted(true);
+    else setAdvisorMuted(false);
+  }, [officeFocusTime, setAdvisorMuted]);
 
   const stakeholderIntroSeenRef = useRef(readStakeholderIntroSeen());
   const [stakeholderIntroActive, setStakeholderIntroActive] = useState(false);

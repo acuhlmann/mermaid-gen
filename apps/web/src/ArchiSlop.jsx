@@ -121,7 +121,9 @@ export function ArchiSlop() {
     settingsOpenSignal,
     setSettingsOpenSignal,
     callMeetingSignal,
+    huddleSignal,
     setCallMeetingSignal,
+    setHuddleSignal,
     selectedNode,
     setSelectedNode,
     hotkeyOverlayOpen,
@@ -909,6 +911,7 @@ export function ArchiSlop() {
           modelProfile={modelProfile}
           setModelProfile={setModelProfile}
           callMeetingSignal={callMeetingSignal}
+          huddleSignal={huddleSignal}
           insightsOpen={insightsOpen}
           officeRunSignal={officeRunSignal}
           entryReveal={entryReveal}
@@ -963,6 +966,7 @@ export function ArchiSlop() {
           advisorPause={advisorPause}
           russStreak={russStreak}
           onCallMeeting={() => setCallMeetingSignal((n) => n + 1)}
+          onHuddle={() => setHuddleSignal((n) => n + 1)}
           handleSelectContentMode={handleSelectContentMode}
           latestCritique={latestCritique}
           canFixFromCritique={canFixFromCritique}

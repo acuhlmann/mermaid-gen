@@ -30,6 +30,7 @@ export function OfficeLayerSlot({
   modelProfile,
   setModelProfile,
   callMeetingSignal,
+  huddleSignal,
   diagramSource,
   insightsOpen,
   tryAgentSound,
@@ -69,6 +70,7 @@ export function OfficeLayerSlot({
       modelProfile={modelProfile}
       onSelectModelProfile={setModelProfile}
       callMeetingSignal={callMeetingSignal}
+      huddleSignal={huddleSignal}
       canOpenOutbox={Boolean((diagramSource ?? '').trim())}
       canToggleThinking
       thinkingOpen={insightsOpen}

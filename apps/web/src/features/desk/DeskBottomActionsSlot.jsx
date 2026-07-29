@@ -16,7 +16,8 @@ function DeskPeopleCluster({
   advisorPause,
   diagramSource,
   busy,
-  onCallMeeting
+  onCallMeeting,
+  onHuddle
 }) {
   return (
     <div className="desk-people-group">
@@ -54,14 +55,14 @@ function DeskPeopleCluster({
         onSelectVariant={(variant) => advisor.promptNext({ persona: variant })}
         castDisabled={busy || Boolean(advisor.thinkingPersona)}
         introProps={stakeholderIntroProps}
-        isMuted={advisor.isMuted}
-        onToggleMute={() => advisor.toggleMute()}
         onTalkToTeam={() => advisor.promptNext({})}
         onCallMeeting={onCallMeeting}
+        onHuddle={onHuddle}
         canTalkToTeam={
           Boolean((diagramSource ?? '').trim()) && !advisor.thinkingPersona && !advisorPause
         }
         canCallMeeting={Boolean((diagramSource ?? '').trim())}
+        canHuddle={Boolean((diagramSource ?? '').trim()) && !advisorPause}
       />
     </div>
   );
@@ -103,6 +104,7 @@ function DeskChromeRow({
   advisorPause,
   diagramSource,
   onCallMeeting,
+  onHuddle,
   contentModeOptions,
   contentMode,
   onPickMode,
@@ -191,6 +193,7 @@ function DeskChromeRow({
             diagramSource={diagramSource}
             busy={busy}
             onCallMeeting={onCallMeeting}
+            onHuddle={onHuddle}
           />
         </div>
       ) : null}
@@ -269,6 +272,7 @@ export function DeskBottomActionsSlot({
   russStreak,
   diagramSource,
   onCallMeeting,
+  onHuddle,
   handleSelectContentMode,
   latestCritique,
   canFixFromCritique,
@@ -329,6 +333,7 @@ export function DeskBottomActionsSlot({
     advisorPause,
     diagramSource,
     onCallMeeting,
+    onHuddle,
     contentModeOptions,
     contentMode,
     onPickMode: handleSelectContentMode,

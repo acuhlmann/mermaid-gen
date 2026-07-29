@@ -27,12 +27,6 @@ export const CONTROLS_EN_AU = {
     clear: 'Chuck it',
     clearTitle: 'File a demo permit · chuck it and start fresh',
     demolish: 'Shredder',
-    mute: 'Headphones',
-    unmute: 'Headphones off',
-    muteAria: 'Put headphones on — mute the mob',
-    unmuteAria: 'Take headphones off — unmute the mob',
-    muteTitle: 'The mob is hovering · put headphones on',
-    unmuteTitle: 'Headphones on · mob is muted · click to take them off',
     prepForCeo: 'Synergize',
     prepForCeoTitle: 'Synergize · Boil it down before it goes upstairs'
   },
@@ -338,9 +332,13 @@ export const CONTROLS_EN_AU = {
     castAskCommentary: 'Ask {name} for commentary',
     align: 'Prep for the CEO',
     seniorDivider: 'Upstairs',
+    teamActionsHeading: 'Get the mob on it',
+    delegateDivider: 'Palm it off to…',
+    delegateAria: 'Palm it off to {name} — they will {action}',
+    handoffAck: '{name} took it',
     introEyebrow: '👥 Your mob has opinions',
     introBody:
-      'One of your mob is weighing in on your diagram — they chip in as you work, whether you asked or not. It is literally their job. Open Your Team and put on Headphones anytime to shut them out.',
+      'One of your mob is weighing in on your diagram — they chip in as you work, whether you asked or not. It is literally their job. Palm work off to any of them from Your Team, or pull the whole mob over for a huddle. Book Focus Time from your desk to shut them out.',
     introDismiss: 'Gotcha',
     introAria: 'Meet the mob'
   },

@@ -359,38 +359,53 @@ desk verb — first-visit boot and the level panel's "Meet the team" CTA cover t
 
 **Zones on the desk**
 
-| Zone                | Fiction                      | Controls                                                                                        |
-| ------------------- | ---------------------------- | ----------------------------------------------------------------------------------------------- |
-| Your seat           | Personal cognition           | Notebook (Thinking pane), Concentration (Rush job / Deep work → wire `fast` / `quality`)        |
-| Work surface        | The deliverable              | Work order, Desk tray (Deliverable format, Facilities, Shredder)                                |
-| People around you   | Colleagues at adjacent desks | Your Team menu (teammates, Talk to team, Call a meeting, Headphones — distinct from desk Focus) |
-| Get up              | Leave the chair              | Mail, IM, outbox (+ Stand up is a primary bottom-nav control; coffee is on the floor)           |
-| Under the desk / IT | Cubicle plumbing             | Adjust workstation (contractors + code drawer), HR progression                                  |
+| Zone                | Fiction                      | Controls                                                                                 |
+| ------------------- | ---------------------------- | ---------------------------------------------------------------------------------------- |
+| Your seat           | Personal cognition           | Notebook (Thinking pane), Concentration (Rush job / Deep work → wire `fast` / `quality`) |
+| Work surface        | The deliverable              | Work order, Desk tray (Deliverable format, Facilities, Shredder)                         |
+| People around you   | Colleagues at adjacent desks | Your Team menu (delegate to a teammate, Huddle up, Grab whoever is free, Call a meeting) |
+| Get up              | Leave the chair              | Mail, IM, outbox (+ Stand up is a primary bottom-nav control; coffee is on the floor)    |
+| Under the desk / IT | Cubicle plumbing             | Adjust workstation (contractors + code drawer), HR progression                           |
 
-| Verb                        | Does                                                                                                                                                                                                                                                                                                  |
-| --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 📓 Open your notebook       | Toggles the Thinking / insights pane — Your seat; replaces the old Thinking board label                                                                                                                                                                                                               |
-| 🎚️ Concentration            | Rush job / Deep work segment on Your seat (was Brain Fast/Quality in Settings). Wire value unchanged: `modelProfile: "fast" \| "quality"`                                                                                                                                                             |
-| 👥 Talk to your team        | `advisor.promptNext({})` — in the **Your Team** roster menu (not the desk stamp). Disabled (in-fiction `blocked.noTeam`) on a blank canvas or while streaming/thinking. Explicit click clears Focus Time mute and ambient backoffs so the verb never silently no-ops when the roundtable _can_ speak. |
-| 📅 Call a meeting           | Opens the people/group picker (same as inbox / Slop Chat) — also in the **Your Team** roster menu                                                                                                                                                                                                     |
-| 🧍 Stand up and look around | Primary bottom-nav control beside the desk stamp (`DeskStandUpButton`) — enters isometric floor mode. Not a menu item. While standing, the same control sits you back down                                                                                                                            |
-| 📥 Check your mail          | Opens the inbox popover (`openSignal` counter prop)                                                                                                                                                                                                                                                   |
-| 📤 Ship from the Outbox     | Opens the headless Outbox export/share panel (`openSignal`) — no dedicated bottom-row icon                                                                                                                                                                                                            |
-| 💬 Open Slop Chat / Message | Messenger history / DM a teammate or colleague                                                                                                                                                                                                                                                        |
-| ⚙️ Adjust your workstation  | Opens headless Settings (guest agents, code drawer) — concentration no longer lives here                                                                                                                                                                                                              |
-| 📈 Check my HR progression  | Toggles the level-up / People Ops scorecard (`LevelUpInfoPanel`) — always enabled; that panel also links to Meet the team                                                                                                                                                                             |
+| Verb                        | Does                                                                                                                                                                                                                                                                                                                |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 📓 Open your notebook       | Toggles the Thinking / insights pane — Your seat; replaces the old Thinking board label                                                                                                                                                                                                                             |
+| 🎚️ Concentration            | Rush job / Deep work segment on Your seat (was Brain Fast/Quality in Settings). Wire value unchanged: `modelProfile: "fast" \| "quality"`                                                                                                                                                                           |
+| ↳ Delegate to a teammate    | A roster row hands the work to a **person**: `runTransform` / `runAnalyze` for that persona, with an arrow, a "Delegate to {name}" accessible name, and a "{name} took it" acknowledgement for `HANDOFF_ACK_MS`. Same verbs as the radial menu; the difference is that somebody's name is on it                     |
+| 🤝 Huddle up                | Pulls the whole `CAST_TIERS.team` tier around your canvas, face to face — see § 5b. In the **Your Team** roster menu                                                                                                                                                                                                |
+| 👥 Grab whoever is free     | `advisor.promptNext({})` — one teammate, in the **Your Team** roster menu (not the desk stamp). Disabled (in-fiction `blocked.noTeam`) on a blank canvas or while streaming/thinking. Explicit click clears Focus Time mute and ambient backoffs so the verb never silently no-ops when the roundtable _can_ speak. |
+| 📅 Call a meeting           | Opens the people/group picker (same as inbox / Slop Chat) — also in the **Your Team** roster menu. This is the **remote** one: a room, a roster, an agenda                                                                                                                                                          |
+| 🧍 Stand up and look around | Primary bottom-nav control beside the desk stamp (`DeskStandUpButton`) — enters isometric floor mode. Not a menu item. While standing, the same control sits you back down                                                                                                                                          |
+| 📥 Check your mail          | Opens the inbox popover (`openSignal` counter prop)                                                                                                                                                                                                                                                                 |
+| 📤 Ship from the Outbox     | Opens the headless Outbox export/share panel (`openSignal`) — no dedicated bottom-row icon                                                                                                                                                                                                                          |
+| 💬 Open Slop Chat / Message | Messenger history / DM a teammate or colleague                                                                                                                                                                                                                                                                      |
+| ⚙️ Adjust your workstation  | Opens headless Settings (guest agents, code drawer) — concentration no longer lives here                                                                                                                                                                                                                            |
+| 📈 Check my HR progression  | Toggles the level-up / People Ops scorecard (`LevelUpInfoPanel`) — always enabled; that panel also links to Meet the team                                                                                                                                                                                           |
 
-**Mute distinction.** **Headphones** (in the Your Team roster menu) mutes the advisor roundtable. **Focus**
-(desk menu footer, below Concentration) mutes office interruptions only — desk verbs still bypass it.
+**Two postures, not four checkboxes** (adopted 2026-07-29). The desk menu footer used to carry
+**Focus / Noise / Voice / CC**, and the Your Team roster carried a fifth control, Headphones, which
+muted the advisor roundtable. That was two mute concepts in two menus for one intent. It is now:
+
+| Posture           | Question it answers              | What it does                                                                                                                                                                                                                                                                             |
+| ----------------- | -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 🎧 **Headphones** | _How_ does the office reach you? | OFF (default) = you hear it: narration on, room tone on, captions off. ON = you read it: both off, captions on. A **macro** over `narration`/`soundscape`/`captions`, not a fifth flag — every consumer reads the same fields it always did. Persisted at `archislop:office-headphones`. |
+| 🔕 **Focus**      | _Whether_ it reaches you at all. | The office DND. Holds every ambient moment, the welcome flow, run reactions, room tone, narration — **and now the advisor roundtable**, absorbing the old Headphones button. `archislop:office-focus-time`.                                                                              |
+
+**Why Focus is not folded into Headphones.** Focus is the broadest kill switch in the app. If
+headphones-on also stopped interruptions, read-first mode would have nothing left to read, and
+there would be no way to get quiet without switching the office off. The advisor mute rides on
+`isMuted` rather than `pause` so that an explicit ask ("Grab whoever is free", delegating, huddling)
+still clears it via `promptNext` — the "your own initiative bypasses Focus Time" rule below.
+
+Per-scene **CC** buttons still exist on the floor (`FloorTopBar`, `FloorArrival`, `OfficeDirectory`)
+and nudge `captions` directly. Headphones sets the posture; it does not own captions forever.
 
 **Over-the-shoulder walk-bys are ambient only.** There is no "Walk the floor" desk verb — like
 real life, you cannot decide when somebody leans over your shoulder. The ambience director still
 delivers `walkby` moments; desk-mode chrome renders them as a big head dropping in from the top
 of the screen (`OfficeWalkBy`). When Voice is on and CC is off, the speech text is hidden (you
-hear them). The desk menu footer (below Concentration) exposes compact **Focus / Noise / Voice /
-CC** toggles (`archislop:office-focus-time`, `archislop:office-soundscape`,
-`archislop:office-narration`, `archislop:office-captions`). Coffee is a floor prop — stand up and
-walk to the machine.
+hear them). What you _can_ summon is the whole team at once — see § 5b. Coffee is a floor prop —
+stand up and walk to the machine.
 
 **Gating differs from the ambient director on purpose.** Verbs skip the random scheduler and
 **bypass Focus Time** (it mutes interruptions, not your own initiative). Floor coffee also bypasses a
@@ -450,6 +465,48 @@ Calling a meeting works like grabbing people on a real floor:
 Roadmap: recurring meeting series with memory ("as discussed last sync"), the escalation ladder
 (WG → steering committee → CAB hearing, each stricter and less useful; CAB approval unlocks an
 achievement), and the all-hands (CEO cameo, everyone attends, nothing is decided, confetti).
+
+## 5b. The team huddle (the face-to-face one)
+
+**"Huddle up" in the Your Team menu** → the six `CAST_TIERS.team` members snap in from all four
+edges of the canvas and each says one thing about the diagram, one at a time, then everyone goes
+back to their desk. It is the counterpart to the WG meeting above: a meeting is _remote_ (a room, a
+picker, a roster, an agenda); a huddle is _in person_ (no picker, no agenda, no facilitator, and
+Barker stays Upstairs — you huddle with peers).
+
+- **Seated before scripted.** `startOfficeHuddle(attendees)` draws the ring at `phase: 'gathering'`
+  the moment you click, then `POST /api/office/huddle` fills it in and flips to `'speaking'`. The
+  crowd arriving _is_ the feedback that the click landed, so nothing waits on the LLM.
+- **Motion is the deliberate opposite of the walk-by.** The walk-by is one head dropping in over
+  720 ms and then looming at you forever (`office-shoulder-loom`) — it is an interruption you did
+  not ask for. The huddle snaps six faces in at **240 ms with a 55 ms stagger** and then **holds
+  still**: no idle loom, because you called this one. Per-side keyframes
+  (`office-huddle-in{,-bottom,-left,-right}`) live inside `prefers-reduced-motion: no-preference`,
+  with a plain fade under `reduce`.
+- **One remark each, in attendee order.** `parseHuddleScript` re-sorts the model's beats into the
+  order the seats were drawn, drops speakers who were not invited, and keeps the first line per
+  person — a duplicate or a stranger would light the wrong face.
+- **Voice-first, same rule as everywhere else.** Voice on + CC off shows only "{name} is talking"
+  and never the line. `HuddleOverlay` always hands `useScenePacing` a narrator (a wrapper that
+  reports `spoken:false` when voice is off) — otherwise the hook's silent branch reveals every line
+  at once, which is right for a card of overheard chat and wrong for a ring of faces.
+- **"Hard stop ✋"**, Escape, or the last remark timing out (`HUDDLE_TAIL_MS`) all end it. A huddle
+  that got as far as speaking is worth `huddled` XP; one you cut short before anyone spoke is not.
+- **Replaces the advisor bubble while it runs.** `huddleActive` feeds `useAdvisorPause` — a
+  roundtable bubble surfacing under a huddle would be a seventh teammate talking over the six you
+  called. An active huddle also counts in `hasActiveOfficeSurface()`, so the ambience director and
+  desk verbs back off.
+- **Cost:** one LLM call per huddle, `purpose: 'meeting'` (fast tier), exactly like `/meeting`. An
+  empty or failed script dissolves the ring silently — no error toast.
+- **ADR-0011 status: desk renderer only, for now.** The state is presentation-agnostic in
+  `officeMomentStore`, so the floor version (the six physically ringing your desk) is a clean
+  follow-up slice. Until it exists, huddling while you are standing **sits you down first** rather
+  than starting a scene nobody can see.
+
+Code: `apps/server/src/routes/office.js` (`createHuddleHandler`), `officePersonas.js`
+(`buildHuddleSystemPrompt` / `buildHuddleUserPrompt` / `parseHuddleScript`),
+`apps/web/src/hooks/useHuddlePlayback.js`, `apps/web/src/components/HuddleOverlay.jsx`,
+huddle slice in `apps/web/src/state/officeMomentStore.js`.
 
 ## 6. Cadence & cost policy
 

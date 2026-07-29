@@ -6,7 +6,6 @@ import { formatLocale } from '../i18n/formatLocale.js';
 import AdvisorFloatPortal from './AdvisorFloatPortal.jsx';
 import AdvisorSpeechBubble from './AdvisorSpeechBubble.jsx';
 import AdvisorThinkingIndicator from './AdvisorThinkingIndicator.jsx';
-import StakeholderCastStrip from './StakeholderCastStrip.jsx';
 import StakeholderIntroSpotlight from './StakeholderIntroSpotlight.jsx';
 import { PersonaFace } from './personaFaces/index.jsx';
 import { overlayLayerStyle, useOverlayLayer } from '../hooks/useOverlayLayer.js';
@@ -14,6 +13,8 @@ import { overlayLayerStyle, useOverlayLayer } from '../hooks/useOverlayLayer.js'
 const COLLAPSE_AFTER_MS = 6000;
 /** Keep the float anchor latched briefly across thinking→bubble handoff gaps. */
 const SURFACE_LATCH_MS = 1200;
+/** How long "<name> took it" stays up after you delegate to a teammate. */
+export const HANDOFF_ACK_MS = 2600;
 
 const VARIANT_CLASS = {
   gilfoyle: 'is-gilfoyle',
@@ -59,12 +60,12 @@ export default function StakeholdersMascot({
   onSelectVariant = null,
   castDisabled = false,
   introProps = null,
-  isMuted = false,
-  onToggleMute = null,
   onTalkToTeam = null,
   onCallMeeting = null,
+  onHuddle = null,
   canTalkToTeam = true,
-  canCallMeeting = true
+  canCallMeeting = true,
+  canHuddle = true
 }) {
   const { controls } = useUiCopy();
   const stakeholdersCopy = controls.stakeholders;
@@ -117,6 +118,30 @@ export default function StakeholdersMascot({
   const wrapperRef = useRef(null);
   const mascotAnchorRef = useRef(null);
   const collapseTimerRef = useRef(null);
+
+  /**
+   * Who you just handed the work to. Delegating runs the streaming agent rather
+   * than the advisor roundtable, so none of the advisor surfaces above light up
+   * — without this the click has no in-roster acknowledgement that a *person*
+   * picked it up, which is the whole difference between this menu and the
+   * radial menu's identical verbs.
+   */
+  const [handedTo, setHandedTo] = useState(/** @type {string | null} */ (null));
+  const handoffTimerRef = useRef(null);
+  useEffect(
+    () => () => {
+      if (handoffTimerRef.current != null) clearTimeout(handoffTimerRef.current);
+    },
+    []
+  );
+  const noteHandoff = (variant) => {
+    if (handoffTimerRef.current != null) clearTimeout(handoffTimerRef.current);
+    setHandedTo(variant);
+    handoffTimerRef.current = setTimeout(() => {
+      handoffTimerRef.current = null;
+      setHandedTo(null);
+    }, HANDOFF_ACK_MS);
+  };
 
   const portaledFloat =
     introProps || advisorSurface ? (
@@ -204,7 +229,23 @@ export default function StakeholdersMascot({
     void fn?.();
   };
 
+  /**
+   * Three ways to reach the team, in ascending headcount: one teammate, all of
+   * them at your desk, or a room you have to schedule. Headphones used to sit
+   * here as a fourth; it was never a way of reaching anybody, and now lives in
+   * the desk menu with the rest of the sound posture.
+   */
   const teamActions = [
+    {
+      id: 'huddle',
+      label: deskCopy.huddleAction,
+      emoji: '🤝',
+      run: onHuddle,
+      disabled: !canHuddle,
+      disabledTitle: deskCopy.blocked?.noAgenda,
+      title: deskCopy.huddleActionTitle,
+      row: 'toggle'
+    },
     {
       id: 'talk-team',
       label: deskCopy.team,
@@ -212,17 +253,7 @@ export default function StakeholdersMascot({
       run: onTalkToTeam,
       disabled: !canTalkToTeam,
       disabledTitle: deskCopy.blocked?.noTeam ?? deskCopy.blocked?.noAgenda,
-      row: 'toggle'
-    },
-    {
-      id: 'headphones',
-      label: isMuted ? controls.actions.unmute : controls.actions.mute,
-      emoji: isMuted ? '🎧' : '🔊',
-      run: onToggleMute,
-      alwaysEnabled: true,
-      ariaPressed: isMuted,
-      title: isMuted ? controls.actions.unmuteTitle : controls.actions.muteTitle,
-      ariaLabel: isMuted ? controls.actions.unmuteAria : controls.actions.muteAria,
+      title: deskCopy.teamTitle,
       row: 'toggle'
     },
     {
@@ -232,6 +263,7 @@ export default function StakeholdersMascot({
       run: onCallMeeting,
       disabled: !canCallMeeting,
       disabledTitle: deskCopy.blocked?.noAgenda,
+      title: deskCopy.meetingTitle,
       row: 'meeting'
     }
   ];
@@ -300,7 +332,7 @@ export default function StakeholdersMascot({
           onPointerMove={armCollapseTimer}
         >
           <p className="stakeholders-roster-heading">
-            {stakeholdersCopy.teamActionsHeading ?? 'Your team'}
+            {stakeholdersCopy.teamActionsHeading ?? 'Get the team on it'}
           </p>
           <div className="stakeholders-team-actions">
             <div
@@ -325,7 +357,7 @@ export default function StakeholdersMascot({
                         'stakeholders-roster-team-action',
                         'stakeholders-roster-toggle-segment',
                         'slop-action-button',
-                        action.id === 'headphones' && isMuted ? 'is-muted' : ''
+                        action.id === 'huddle' ? 'is-huddle' : ''
                       ]
                         .filter(Boolean)
                         .join(' ')}
@@ -387,7 +419,7 @@ export default function StakeholdersMascot({
               })}
           </div>
           <span className="stakeholders-roster-divider" role="presentation">
-            {stakeholdersCopy.teammatesDivider ?? 'Teammates'}
+            {stakeholdersCopy.delegateDivider ?? 'Delegate to…'}
           </span>
           {personas.map((p) => {
             const meta = getVariantPersona(p.variant);
@@ -398,10 +430,18 @@ export default function StakeholdersMascot({
               'stakeholders-roster-row',
               'slop-action-button',
               `is-${variantClass}`,
-              isActiveAdvisor ? 'is-advisor-active' : ''
+              isActiveAdvisor ? 'is-advisor-active' : '',
+              handedTo === p.variant ? 'is-handed-off' : ''
             ]
               .filter(Boolean)
               .join(' ');
+            // Clicking a row hands the work to a *person*, not to a mode — the
+            // arrow and the "Delegate to" phrasing are the whole point of the
+            // roster over the radial menu's identical verbs.
+            const delegateLabel = formatLocale(
+              stakeholdersCopy.delegateAria ?? 'Delegate to {name} — {action}',
+              { name: meta.name, action: actionLabel }
+            );
             // Senior-tier rows (castTiers.js) sit below a divider: they are not
             // teammates, they are who your team reports to.
             const row = (
@@ -410,11 +450,12 @@ export default function StakeholdersMascot({
                 type="button"
                 className={rowClassName}
                 disabled={busy || p.disabled}
-                title={p.title ?? `${stakeholderTooltip(p.variant)} · ${actionLabel}`}
-                aria-label={p.ariaLabel ?? actionLabel}
+                title={p.title ?? `${delegateLabel} · ${stakeholderTooltip(p.variant)}`}
+                aria-label={p.ariaLabel ?? delegateLabel}
                 onClick={(event) => {
                   event.stopPropagation();
                   armCollapseTimer();
+                  noteHandoff(p.variant);
                   p.onClick?.();
                 }}
               >
@@ -423,9 +464,18 @@ export default function StakeholdersMascot({
                 </span>
                 <span className="stakeholders-roster-label">
                   <span className="stakeholders-roster-name">{meta.name}</span>
-                  <span className="stakeholders-roster-title">{meta.title}</span>
+                  <span className="stakeholders-roster-title">
+                    {handedTo === p.variant
+                      ? formatLocale(stakeholdersCopy.handoffAck ?? '{name} took it', {
+                          name: meta.name.split(' ')[0]
+                        })
+                      : meta.title}
+                  </span>
                 </span>
                 <span className="stakeholders-roster-chip" aria-hidden="true">
+                  <span className="stakeholders-roster-handoff">
+                    {handedTo === p.variant ? '✓' : '→'}
+                  </span>
                   {actionLabel}
                 </span>
               </button>

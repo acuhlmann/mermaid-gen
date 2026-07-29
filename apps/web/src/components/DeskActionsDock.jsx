@@ -46,7 +46,7 @@ function computePortaledMenuStyle(anchorRect) {
  * Your desk (docs/office-parody.md § Desk verbs): the things *you* can decide
  * to do in the office, as opposed to the things the office does to you. The
  * ArchiSlop helmet stamp opens a flat verb menu with concentration first, then
- * compact ambience toggles (Focus / Noise / Voice / CC), then language pack.
+ * the two ambience postures (Headphones / Focus), then language pack.
  * Stand up is a primary bottom-nav control beside the stamp — not buried in
  * the menu. Coffee lives on the isometric floor; walk-bys arrive on their own.
  *
@@ -75,13 +75,9 @@ export default function DeskActionsDock({
   modelProfile = 'fast',
   onSelectModelProfile = null,
   focusTime = false,
-  soundscape = true,
-  captions = false,
-  narration = true,
+  headphones = false,
   onToggleFocusTime = null,
-  onToggleSoundscape = null,
-  onToggleCaptions = null,
-  onToggleNarration = null
+  onToggleHeadphones = null
 }) {
   const [open, setOpen] = useState(initialOpen);
   const [anchorRect, setAnchorRect] = useState(/** @type {DOMRect | null} */ (null));
@@ -192,41 +188,37 @@ export default function DeskActionsDock({
     }
   ];
 
+  /**
+   * Two postures where there used to be four checkboxes (Focus / Noise / Voice
+   * / CC). They are the two questions those four were really asking, and they
+   * are genuinely orthogonal:
+   *
+   * - Headphones — *how* the office reaches you. On: silent, captions on (you
+   *   read them). Off: voice and room tone, no duplicate text (you hear them).
+   *   One macro over the narration / soundscape / captions flags.
+   * - Focus — *whether* it reaches you at all. The office DND: no walk-bys, no
+   *   IMs, no advisor roundtable. Deliberately NOT folded into headphones —
+   *   that would leave read-first mode with nothing left to read.
+   */
   const ambienceToggles = [
+    typeof onToggleHeadphones === 'function'
+      ? {
+          id: 'headphones',
+          checked: Boolean(headphones),
+          emoji: '🎧',
+          label: copy.headphonesLabel,
+          title: headphones ? copy.headphonesOnTitle : copy.headphonesOffTitle,
+          onChange: () => onToggleHeadphones(!headphones)
+        }
+      : null,
     typeof onToggleFocusTime === 'function'
       ? {
           id: 'focus',
           checked: Boolean(focusTime),
+          emoji: '🔕',
           label: copy.focusTimeLabel,
           title: copy.focusTimeTitle,
           onChange: () => onToggleFocusTime(!focusTime)
-        }
-      : null,
-    typeof onToggleSoundscape === 'function'
-      ? {
-          id: 'soundscape',
-          checked: Boolean(soundscape),
-          label: copy.soundscapeLabel,
-          title: copy.soundscapeTitle,
-          onChange: () => onToggleSoundscape(!soundscape)
-        }
-      : null,
-    typeof onToggleNarration === 'function'
-      ? {
-          id: 'narration',
-          checked: Boolean(narration),
-          label: copy.narrationLabel,
-          title: copy.narrationTitle,
-          onChange: () => onToggleNarration(!narration)
-        }
-      : null,
-    typeof onToggleCaptions === 'function'
-      ? {
-          id: 'captions',
-          checked: Boolean(captions),
-          label: copy.captionsLabel,
-          title: copy.captionsTitle,
-          onChange: () => onToggleCaptions(!captions)
         }
       : null
   ].filter(Boolean);
@@ -309,10 +301,14 @@ export default function DeskActionsDock({
                   {ambienceToggles.map((toggle) => (
                     <label
                       key={toggle.id}
-                      className="office-focus-toggle desk-ambience-toggle"
+                      className={`office-focus-toggle desk-ambience-toggle desk-ambience-toggle--${toggle.id}`}
                       title={toggle.title}
+                      data-testid={`desk-ambience-${toggle.id}`}
                     >
                       <input type="checkbox" checked={toggle.checked} onChange={toggle.onChange} />
+                      <span className="desk-ambience-toggle-emoji" aria-hidden="true">
+                        {toggle.emoji}
+                      </span>
                       <span>{toggle.label}</span>
                     </label>
                   ))}

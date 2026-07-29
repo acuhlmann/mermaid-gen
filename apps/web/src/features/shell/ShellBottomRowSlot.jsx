@@ -54,6 +54,7 @@ export function ShellBottomRowSlot({
   advisorPause,
   russStreak,
   onCallMeeting,
+  onHuddle,
   handleSelectContentMode,
   latestCritique,
   canFixFromCritique,
@@ -129,6 +130,7 @@ export function ShellBottomRowSlot({
           russStreak={russStreak}
           diagramSource={diagramSource}
           onCallMeeting={onCallMeeting}
+          onHuddle={onHuddle}
           handleSelectContentMode={handleSelectContentMode}
           latestCritique={latestCritique}
           canFixFromCritique={canFixFromCritique}

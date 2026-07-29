@@ -101,6 +101,7 @@ export function AppWorkspaceSlot({
   modelProfile,
   setModelProfile,
   callMeetingSignal,
+  huddleSignal,
   insightsOpen,
   officeRunSignal,
   entryReveal,
@@ -153,6 +154,7 @@ export function AppWorkspaceSlot({
   advisorPause,
   russStreak,
   onCallMeeting,
+  onHuddle,
   handleSelectContentMode,
   latestCritique,
   canFixFromCritique,
@@ -287,6 +289,7 @@ export function AppWorkspaceSlot({
         modelProfile={modelProfile}
         setModelProfile={setModelProfile}
         callMeetingSignal={callMeetingSignal}
+        huddleSignal={huddleSignal}
         diagramSource={state.diagramSource}
         insightsOpen={insightsOpen}
         tryAgentSound={tryAgentSound}
@@ -386,6 +389,7 @@ export function AppWorkspaceSlot({
         advisorPause={advisorPause}
         russStreak={russStreak}
         onCallMeeting={onCallMeeting}
+        onHuddle={onHuddle}
         handleSelectContentMode={handleSelectContentMode}
         latestCritique={latestCritique}
         canFixFromCritique={canFixFromCritique}

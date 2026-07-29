@@ -25,12 +25,22 @@ import {
   pushOfficeImReply,
   pushOfficeMeetingInvite,
   pushOfficeWalkBy,
+  endOfficeHuddle,
   setOfficeFocusTime,
+  setOfficeHeadphones,
+  setOfficeHuddleBeats,
+  startOfficeHuddle,
   subscribe,
   voteOfficeBattle,
   WALKBY_TTL_MS
 } from '../src/state/officeMomentStore.js';
-import { OFFICE_FOCUS_TIME_STORAGE_KEY } from '../src/utils/officeAmbienceStorage.js';
+import {
+  OFFICE_CAPTIONS_STORAGE_KEY,
+  OFFICE_FOCUS_TIME_STORAGE_KEY,
+  OFFICE_HEADPHONES_STORAGE_KEY,
+  OFFICE_NARRATION_STORAGE_KEY,
+  OFFICE_SOUNDSCAPE_STORAGE_KEY
+} from '../src/utils/officeAmbienceStorage.js';
 
 beforeEach(() => {
   vi.useFakeTimers();
@@ -232,5 +242,61 @@ describe('officeMomentStore', () => {
     setOfficeFocusTime(false);
     expect(window.localStorage.getItem(OFFICE_FOCUS_TIME_STORAGE_KEY)).toBeNull();
     unsubscribe();
+  });
+
+  // Headphones is a macro over the three flags that already existed, not a
+  // fifth flag: every consumer keeps reading exactly what it read before.
+  it('headphones on makes the office readable — silent, captions up', () => {
+    setOfficeHeadphones(true);
+    const snap = getOfficeSnapshot();
+    expect(snap.headphones).toBe(true);
+    expect(snap.narration).toBe(false);
+    expect(snap.soundscape).toBe(false);
+    expect(snap.captions).toBe(true);
+    expect(window.localStorage.getItem(OFFICE_HEADPHONES_STORAGE_KEY)).toBe('1');
+    expect(window.localStorage.getItem(OFFICE_NARRATION_STORAGE_KEY)).toBe('0');
+    expect(window.localStorage.getItem(OFFICE_SOUNDSCAPE_STORAGE_KEY)).toBe('0');
+    expect(window.localStorage.getItem(OFFICE_CAPTIONS_STORAGE_KEY)).toBe('1');
+  });
+
+  it('headphones off makes the office audible — voice, room tone, no subtitles', () => {
+    setOfficeHeadphones(true);
+    setOfficeHeadphones(false);
+    const snap = getOfficeSnapshot();
+    expect(snap.headphones).toBe(false);
+    expect(snap.narration).toBe(true);
+    expect(snap.soundscape).toBe(true);
+    expect(snap.captions).toBe(false);
+    expect(window.localStorage.getItem(OFFICE_HEADPHONES_STORAGE_KEY)).toBeNull();
+  });
+
+  it('seats a huddle, scripts it, and tears it down', () => {
+    const id = startOfficeHuddle(['gilfoyle', 'dinesh']);
+    expect(id).toBeTruthy();
+    expect(getOfficeSnapshot().huddle.phase).toBe('gathering');
+    setOfficeHuddleBeats(id, [{ speakerId: 'gilfoyle', text: 'It is wrong.' }]);
+    expect(getOfficeSnapshot().huddle.phase).toBe('speaking');
+    endOfficeHuddle(id);
+    expect(getOfficeSnapshot().huddle).toBeNull();
+  });
+
+  it('refuses a huddle of one — that is a walk-by', () => {
+    expect(startOfficeHuddle(['gilfoyle'])).toBeNull();
+    expect(getOfficeSnapshot().huddle).toBeNull();
+  });
+
+  it('ignores a script meant for a huddle that already ended', () => {
+    const id = startOfficeHuddle(['gilfoyle', 'dinesh']);
+    endOfficeHuddle(id);
+    setOfficeHuddleBeats(id, [{ speakerId: 'gilfoyle', text: 'Too late.' }]);
+    expect(getOfficeSnapshot().huddle).toBeNull();
+  });
+
+  it('counts a running huddle as an active surface', () => {
+    expect(hasActiveOfficeSurface()).toBe(false);
+    startOfficeHuddle(['gilfoyle', 'dinesh']);
+    expect(hasActiveOfficeSurface()).toBe(true);
+    endOfficeHuddle();
+    expect(hasActiveOfficeSurface()).toBe(false);
   });
 });

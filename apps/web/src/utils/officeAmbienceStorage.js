@@ -10,6 +10,13 @@ export const OFFICE_SOUNDSCAPE_STORAGE_KEY = 'archislop:office-soundscape';
 export const OFFICE_NARRATION_STORAGE_KEY = 'archislop:office-narration';
 /** Captions / CC for spoken office lines (arrival + floor bubbles). Opt-in. */
 export const OFFICE_CAPTIONS_STORAGE_KEY = 'archislop:office-captions';
+/**
+ * Headphones posture: the one control that replaced the Voice / Noise / CC
+ * checkboxes. It does not gate anything itself — `setOfficeHeadphones` writes
+ * the three flags above — so this key exists only to remember which posture the
+ * desk menu should show after a reload, independent of any per-scene CC nudge.
+ */
+export const OFFICE_HEADPHONES_STORAGE_KEY = 'archislop:office-headphones';
 export const OFFICE_MEETING_DOCKED_STORAGE_KEY = 'archislop:office-meeting-docked';
 export const OFFICE_MEETING_MINIMIZED_STORAGE_KEY = 'archislop:office-meeting-minimized';
 export const OFFICE_CADENCE_STORAGE_KEY = 'archislop:office-cadence';
@@ -45,6 +52,33 @@ export function writeOfficeFocusTime(enabled) {
       window.localStorage.setItem(OFFICE_FOCUS_TIME_STORAGE_KEY, '1');
     } else {
       window.localStorage.removeItem(OFFICE_FOCUS_TIME_STORAGE_KEY);
+    }
+  } catch {
+    // Ignore quota / privacy errors.
+  }
+}
+
+/**
+ * @returns {boolean} True when the user put headphones on (read-first: office
+ * silent, captions on). Defaults OFF — sound-first is the house posture, so
+ * only the opt-in is stored.
+ */
+export function readOfficeHeadphones() {
+  if (typeof window === 'undefined') return false;
+  try {
+    return window.localStorage.getItem(OFFICE_HEADPHONES_STORAGE_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
+export function writeOfficeHeadphones(enabled) {
+  if (typeof window === 'undefined') return;
+  try {
+    if (enabled) {
+      window.localStorage.setItem(OFFICE_HEADPHONES_STORAGE_KEY, '1');
+    } else {
+      window.localStorage.removeItem(OFFICE_HEADPHONES_STORAGE_KEY);
     }
   } catch {
     // Ignore quota / privacy errors.

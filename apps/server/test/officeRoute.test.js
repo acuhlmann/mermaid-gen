@@ -156,3 +156,38 @@ test('office interject requires a non-empty interjection', async () => {
     await closeServer();
   }
 });
+
+test('office huddle rejects a roster below two or above the team tier', async () => {
+  const { port, closeServer } = await bootServer();
+  try {
+    const tooFew = await post(port, 'huddle', { attendees: ['gilfoyle'] });
+    assert.equal(tooFew.status, 400);
+    // A huddle is your own team at your desk, not the eight-seat meeting room.
+    const tooMany = await post(port, 'huddle', {
+      attendees: ['gilfoyle', 'dinesh', 'erlich', 'russ', 'jared', 'richard', 'barker']
+    });
+    assert.equal(tooMany.status, 400);
+  } finally {
+    await closeServer();
+  }
+});
+
+test('office huddle rejects speakers who are not in the cast', async () => {
+  const { port, closeServer } = await bootServer();
+  try {
+    const res = await post(port, 'huddle', { attendees: ['gilfoyle', 'theCeo'] });
+    assert.equal(res.status, 400);
+  } finally {
+    await closeServer();
+  }
+});
+
+test('office huddle reports an unconfigured LLM rather than inventing a script', async () => {
+  const { port, closeServer } = await bootServer();
+  try {
+    const res = await post(port, 'huddle', { attendees: ['gilfoyle', 'dinesh'] });
+    assert.equal(res.status, 503);
+  } finally {
+    await closeServer();
+  }
+});

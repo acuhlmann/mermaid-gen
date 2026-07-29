@@ -11,7 +11,6 @@ import {
   useAdvisorOrchestrator
 } from '../src/hooks/useAdvisorOrchestrator.js';
 import { CAST_TIERS } from '../src/utils/castTiers.js';
-import { ADVISOR_MUTED_STORAGE_KEY } from '../src/utils/advisorMuteStorage.js';
 
 const GAP_MS = 2200;
 
@@ -146,17 +145,15 @@ describe('useAdvisorOrchestrator', () => {
     });
     vi.stubGlobal('fetch', fetchMock);
     Object.defineProperty(document, 'hidden', { value: false, configurable: true });
-    window.localStorage.removeItem(ADVISOR_MUTED_STORAGE_KEY);
   });
 
   afterEach(() => {
     vi.useRealTimers();
     vi.unstubAllGlobals();
     Object.defineProperty(document, 'hidden', { value: false, configurable: true });
-    window.localStorage.removeItem(ADVISOR_MUTED_STORAGE_KEY);
   });
 
-  it('persists explicit mute via toggleMute', () => {
+  it('flips mute state via toggleMute and setMuted', () => {
     const { result } = renderHook(() => useAdvisorOrchestrator(defaultParams()));
 
     expect(result.current.isMuted).toBe(false);
@@ -165,13 +162,18 @@ describe('useAdvisorOrchestrator', () => {
       result.current.toggleMute();
     });
     expect(result.current.isMuted).toBe(true);
-    expect(window.localStorage.getItem(ADVISOR_MUTED_STORAGE_KEY)).toBe('1');
 
     act(() => {
       result.current.toggleMute();
     });
     expect(result.current.isMuted).toBe(false);
-    expect(window.localStorage.getItem(ADVISOR_MUTED_STORAGE_KEY)).toBeNull();
+
+    // Focus Time drives mute from the outside now (useAdvisorShell), so the
+    // hook exposes a setter and persists nothing of its own.
+    act(() => {
+      result.current.setMuted(true);
+    });
+    expect(result.current.isMuted).toBe(true);
   });
 
   it('respects initialMuted without calling fetch while muted', async () => {
