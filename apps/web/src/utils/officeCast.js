@@ -367,7 +367,7 @@ export function normalizeMeetingRoster(
  */
 export function maybePamJoinsImportantMeeting(seats, random = Math.random) {
   if (seats.includes(MEETING_FACILITATOR)) return seats;
-  const important = seats.some((id) => MEETING_SENIOR_POOL.includes(id)) || seats.length >= 4;
+  const important = seats.some((id) => MEETING_SENIOR_POOL.includes(id));
   if (!important || random() >= 0.35 || seats.length >= MEETING_ROSTER_MAX) {
     return seats;
   }
