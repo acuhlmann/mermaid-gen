@@ -1,10 +1,17 @@
 import { useEffect, useRef } from 'react';
-import { readOfficeWelcomeSeen, writeOfficeWelcomeSeen } from '../utils/officeAmbienceStorage.js';
+import {
+  readOfficeCadenceMemory,
+  readOfficeWelcomeSeen,
+  writeOfficeCadenceMemory,
+  writeOfficeWelcomeSeen
+} from '../utils/officeAmbienceStorage.js';
 import { fillOfficeSlots, officeWelcomeEmail, officeWelcomeIm } from '../utils/officeCast.js';
 import {
   getOfficeSnapshot,
+  hasActiveOfficeSurface,
   pushOfficeEmail,
-  pushOfficeImPing
+  pushOfficeImPing,
+  shouldHoldAmbientOfficeMoments
 } from '../state/officeMomentStore.js';
 
 /** Fallback when the user never touches the page — deliver the email anyway. */
@@ -47,10 +54,20 @@ export function useOfficeWelcome(params = {}) {
       timers.add(timer);
     };
 
+    const stampCadence = () => {
+      const memory = readOfficeCadenceMemory();
+      memory.lastFiredAt = Date.now();
+      writeOfficeCadenceMemory(memory);
+    };
+
     const deliver = () => {
       if (delivered) return;
       // Hold welcome mail/IM while Meet the Office (or any pause) is up.
       if (paramsRef.current.pause) {
+        later(deliver, 2_000);
+        return;
+      }
+      if (shouldHoldAmbientOfficeMoments()) {
         later(deliver, 2_000);
         return;
       }
@@ -69,25 +86,26 @@ export function useOfficeWelcome(params = {}) {
         subject: fillOfficeSlots(email.subject, slots),
         body: fillOfficeSlots(email.body, slots)
       });
-      later(() => {
-        if (getOfficeSnapshot().focusTime) return;
-        if (paramsRef.current.pause) {
-          later(() => {
-            if (getOfficeSnapshot().focusTime || paramsRef.current.pause) return;
-            const im = officeWelcomeIm();
-            pushOfficeImPing({
-              colleagueId: im.colleagueId,
-              body: fillOfficeSlots(im.body, slots)
-            });
-          }, 2_000);
-          return;
-        }
-        const im = officeWelcomeIm();
-        pushOfficeImPing({
-          colleagueId: im.colleagueId,
-          body: fillOfficeSlots(im.body, slots)
-        });
-      }, WELCOME_IM_DELAY_MS);
+      stampCadence();
+      later(deliverIm, WELCOME_IM_DELAY_MS);
+    };
+
+    const deliverIm = () => {
+      if (getOfficeSnapshot().focusTime) return;
+      if (paramsRef.current.pause || hasActiveOfficeSurface()) {
+        later(deliverIm, 2_000);
+        return;
+      }
+      const slots = {
+        userTitle: paramsRef.current.getUserTitle?.() ?? '',
+        userName: paramsRef.current.getUserName?.() ?? ''
+      };
+      const im = officeWelcomeIm();
+      pushOfficeImPing({
+        colleagueId: im.colleagueId,
+        body: fillOfficeSlots(im.body, slots)
+      });
+      stampCadence();
     };
 
     const onFirstInteraction = () => {

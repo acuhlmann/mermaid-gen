@@ -9,12 +9,14 @@ import {
   readSlotContext,
   RECENT_MOMENTS_CAP
 } from '../utils/officeMomentDelivery.js';
-import { getOfficeSnapshot, hasActiveOfficeSurface } from '../state/officeMomentStore.js';
+import { getOfficeSnapshot, shouldHoldAmbientOfficeMoments } from '../state/officeMomentStore.js';
 
 /** Let the completion delight (confetti/sound) and the fresh render settle first. */
 export const RUN_REACTION_DELAY_MS = 2_200;
 /** Minimum gap between two run reactions — the floor never pig-piles a fast editor. */
 export const RUN_REACTION_COOLDOWN_MS = 40_000;
+/** After any office moment (ambient, welcome, or prior reaction), stay quiet awhile. */
+export const RUN_REACTION_AFTER_MOMENT_MS = 30_000;
 /** Hard cap of reactions per session — kept small so it stays a garnish, not noise. */
 export const RUN_REACTION_SESSION_CAP = 5;
 /** Of those, at most this many spend an LLM call; the rest are canned IM. */
@@ -33,12 +35,19 @@ function isHidden() {
  * over a streaming run, a meeting, the advisor bubble, another office surface,
  * a hidden tab, or Focus Time.
  *
- * @param {{ pause?: boolean, advisorBusy?: boolean, meetingActive?: boolean }} p
+ * @param {{
+ *   pause?: boolean,
+ *   advisorBusy?: boolean,
+ *   agentBusy?: boolean,
+ *   meetingActive?: boolean,
+ *   floorActive?: boolean
+ * }} p
  * @returns {boolean}
  */
 function reactionBlocked(p) {
-  if (p.pause || p.advisorBusy || p.meetingActive) return true;
-  if (isHidden() || hasActiveOfficeSurface()) return true;
+  if (p.pause || p.advisorBusy || p.agentBusy || p.meetingActive) return true;
+  if (p.floorActive) return true;
+  if (isHidden() || shouldHoldAmbientOfficeMoments()) return true;
   if (getOfficeSnapshot().focusTime) return true;
   return false;
 }
@@ -51,6 +60,7 @@ function reactionBlocked(p) {
  * @param {{
  *   now: number,
  *   lastReactionAt: number,
+ *   lastAmbientFiredAt?: number,
  *   reactionCount: number,
  *   llmCount: number,
  *   hasDiagram: boolean,
@@ -61,6 +71,7 @@ function reactionBlocked(p) {
 export function planRunReaction({
   now,
   lastReactionAt,
+  lastAmbientFiredAt = 0,
   reactionCount,
   llmCount,
   hasDiagram,
@@ -71,6 +82,9 @@ export function planRunReaction({
   if (!hasDiagram) return null;
   if (reactionCount >= RUN_REACTION_SESSION_CAP) return null;
   if (now - lastReactionAt < RUN_REACTION_COOLDOWN_MS) return null;
+  if (lastAmbientFiredAt > 0 && now - lastAmbientFiredAt < RUN_REACTION_AFTER_MOMENT_MS) {
+    return null;
+  }
   if (random() > RUN_REACTION_CHANCE) return null;
   const useLlm = llmCount < RUN_REACTION_LLM_CAP && random() < RUN_REACTION_LLM_SHARE;
   return { kind: 'im', useLlm };
@@ -94,7 +108,9 @@ export function planRunReaction({
  *   runSignal?: { id: number, variant?: string } | null,
  *   pause?: boolean,
  *   advisorBusy?: boolean,
+ *   agentBusy?: boolean,
  *   meetingActive?: boolean,
+ *   floorActive?: boolean,
  *   getDiagramSource?: () => string,
  *   getContentType?: () => string,
  *   getSessionId?: () => string,
@@ -163,6 +179,7 @@ export function useOfficeRunReactions(params) {
       const plan = planRunReaction({
         now: Date.now(),
         lastReactionAt: stateRef.current.lastReactionAt,
+        lastAmbientFiredAt: memory.lastFiredAt,
         reactionCount: stateRef.current.reactionCount,
         llmCount: stateRef.current.llmCount,
         hasDiagram: Boolean((ctx.diagramSource ?? '').trim()),

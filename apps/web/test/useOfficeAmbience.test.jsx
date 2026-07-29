@@ -5,6 +5,7 @@ import { useOfficeAmbience, OFFICE_TICK_MS } from '../src/hooks/useOfficeAmbienc
 import {
   _resetForTests,
   getOfficeSnapshot,
+  pushOfficeEmail,
   pushOfficeMeetingInvite,
   setOfficeFocusTime
 } from '../src/state/officeMomentStore.js';
@@ -97,5 +98,16 @@ describe('useOfficeAmbience', () => {
     expect(snapshot.emails.length).toBe(0);
     expect(snapshot.imPings.length).toBe(0);
     expect(countSurfaces(snapshot)).toBe(1);
+  });
+
+  it('holds fire while the inbox still has unread mail', async () => {
+    pushOfficeEmail({
+      colleagueId: 'hr',
+      subject: 'FYI',
+      body: 'read me'
+    });
+    renderHook(() => useOfficeAmbience(BASE_PARAMS));
+    await vi.advanceTimersByTimeAsync(FIRST_FIRE_MS + OFFICE_TICK_MS * 4);
+    expect(getOfficeSnapshot().imPings.length).toBe(0);
   });
 });
