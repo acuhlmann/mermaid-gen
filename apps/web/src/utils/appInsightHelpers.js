@@ -144,7 +144,7 @@ export function focusPayload(node) {
 
 /** Button label for repeated Russ (streak = completed Russ count since last reset). */
 export function russShapeLabel(streak) {
-  if (streak <= 0) return 'Russ';
+  if (streak <= 0) return 'Go Mad';
   if (streak === 1) return 'This Guy Ships';
   if (streak === 2) return 'Tres Commas';
   return 'Radio Silence';

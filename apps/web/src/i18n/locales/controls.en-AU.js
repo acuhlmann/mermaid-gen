@@ -12,7 +12,7 @@ export const CONTROLS_EN_AU = {
     gilfoyle: 'Refine',
     dinesh: 'Refine',
     erlich: 'Innovate',
-    russ: 'Russ',
+    russ: 'Go Mad',
     russHarder: 'This Guy Ships',
     russHardest: 'Tres Commas',
     maxRuss: 'Radio Silence',

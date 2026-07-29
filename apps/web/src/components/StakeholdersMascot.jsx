@@ -1,11 +1,14 @@
 import { Fragment, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { getVariantPersona, stakeholderTooltip } from '../utils/slopitectCopy.js';
 import { officeChromeCopy } from '../utils/officeCast.js';
 import { useUiCopy } from '../i18n/useUiLocale.js';
 import { formatLocale } from '../i18n/formatLocale.js';
 import StakeholderIntroSpotlight from './StakeholderIntroSpotlight.jsx';
 import { PersonaFace } from './personaFaces/index.jsx';
+import { useAdvisorFloatAnchor } from '../hooks/useAdvisorFloatAnchor.js';
 import { overlayLayerStyle, useOverlayLayer } from '../hooks/useOverlayLayer.js';
+import { computeBottomLeftPopoverStyle } from '../utils/bottomPopoverStyle.js';
 
 const COLLAPSE_AFTER_MS = 6000;
 /** How long "<name> took it" stays up after you delegate to a teammate. */
@@ -15,7 +18,7 @@ const ACTION_LABEL = {
   gilfoyle: 'Refine',
   dinesh: 'Refine',
   erlich: 'Innovate',
-  russ: 'Russ',
+  russ: 'Go Mad',
   jared: 'Critique',
   richard: 'Explain',
   barker: 'Synergize'
@@ -53,7 +56,9 @@ export default function StakeholdersMascot({
 
   const wrapperRef = useRef(null);
   const mascotAnchorRef = useRef(null);
+  const rosterRef = useRef(null);
   const collapseTimerRef = useRef(null);
+  const anchorRect = useAdvisorFloatAnchor(mascotAnchorRef, expanded);
 
   /**
    * Who you just handed the work to. Delegating runs the streaming agent rather
@@ -92,9 +97,10 @@ export default function StakeholdersMascot({
     }
     armCollapseTimer();
     const onDocPointer = (event) => {
-      if (!wrapperRef.current?.contains(event.target)) {
-        setExpanded(false);
-      }
+      const target = event.target;
+      if (wrapperRef.current?.contains(target)) return;
+      if (rosterRef.current?.contains(target)) return;
+      setExpanded(false);
     };
     document.addEventListener('pointerdown', onDocPointer);
     return () => {
@@ -127,6 +133,128 @@ export default function StakeholdersMascot({
     setExpanded(false);
     void onHuddle?.();
   };
+
+  const resolvedAnchor =
+    anchorRect ??
+    (expanded && mascotAnchorRef.current ? mascotAnchorRef.current.getBoundingClientRect() : null);
+  const rosterStyle = overlayLayerStyle(
+    rosterZIndex,
+    resolvedAnchor
+      ? computeBottomLeftPopoverStyle(resolvedAnchor, { maxWidthPx: 280, minWidthPx: 216 })
+      : undefined
+  );
+
+  const rosterMenu = expanded ? (
+    <div
+      ref={rosterRef}
+      className="stakeholders-roster stakeholders-roster--portaled"
+      style={rosterStyle}
+      role="menu"
+      aria-label={stakeholdersCopy.personaMenu}
+      onPointerEnter={armCollapseTimer}
+      onPointerMove={armCollapseTimer}
+    >
+      <p className="stakeholders-roster-heading">
+        {stakeholdersCopy.teamActionsHeading ?? 'Get the team on it'}
+      </p>
+      <div className="stakeholders-team-actions">
+        <button
+          type="button"
+          role="menuitem"
+          className={[
+            'stakeholders-roster-row',
+            'stakeholders-roster-team-action',
+            'stakeholders-roster-huddle-action',
+            'slop-action-button',
+            'is-huddle'
+          ].join(' ')}
+          disabled={!canHuddle}
+          aria-label={deskCopy.huddleAction}
+          title={
+            canHuddle
+              ? (deskCopy.huddleActionTitle ?? deskCopy.huddleAction)
+              : (deskCopy.blocked?.busy ?? deskCopy.huddleAction)
+          }
+          onClick={(event) => {
+            event.stopPropagation();
+            startHuddle();
+          }}
+        >
+          <span className="stakeholders-roster-team-emoji" aria-hidden="true">
+            🤝
+          </span>
+          <span className="stakeholders-roster-label">
+            <span className="stakeholders-roster-name">{deskCopy.huddleAction}</span>
+          </span>
+        </button>
+      </div>
+      <span className="stakeholders-roster-divider" role="presentation">
+        {stakeholdersCopy.delegateDivider ?? 'Delegate to…'}
+      </span>
+      {personas.map((p) => {
+        const meta = getVariantPersona(p.variant);
+        const actionLabel = p.label ?? resolveActionLabel(p.variant, controls) ?? meta.name;
+        const variantClass = p.cssVariant ?? cssVariant(p.variant);
+        const rowClassName = [
+          'stakeholders-roster-row',
+          'slop-action-button',
+          `is-${variantClass}`,
+          handedTo === p.variant ? 'is-handed-off' : ''
+        ]
+          .filter(Boolean)
+          .join(' ');
+        const delegateLabel = formatLocale(
+          stakeholdersCopy.delegateAria ?? 'Delegate to {name} — {action}',
+          { name: meta.name, action: actionLabel }
+        );
+        const row = (
+          <button
+            key={p.variant}
+            type="button"
+            className={rowClassName}
+            disabled={busy || p.disabled}
+            title={p.title ?? `${delegateLabel} · ${stakeholderTooltip(p.variant)}`}
+            aria-label={p.ariaLabel ?? delegateLabel}
+            onClick={(event) => {
+              event.stopPropagation();
+              armCollapseTimer();
+              noteHandoff(p.variant);
+              p.onClick?.();
+            }}
+          >
+            <span className={`action-persona-icon is-${variantClass}`} aria-hidden="true">
+              <PersonaFace id={p.variant} size={22} />
+            </span>
+            <span className="stakeholders-roster-label">
+              <span className="stakeholders-roster-name">{meta.name}</span>
+              <span className="stakeholders-roster-title">
+                {handedTo === p.variant
+                  ? formatLocale(stakeholdersCopy.handoffAck ?? '{name} took it', {
+                      name: meta.name.split(' ')[0]
+                    })
+                  : meta.title}
+              </span>
+            </span>
+            <span className="stakeholders-roster-chip" aria-hidden="true">
+              <span className="stakeholders-roster-handoff">
+                {handedTo === p.variant ? '✓' : '→'}
+              </span>
+              {actionLabel}
+            </span>
+          </button>
+        );
+        if (!p.senior) return row;
+        return (
+          <Fragment key={`${p.variant}-senior`}>
+            <span className="stakeholders-roster-divider" role="presentation">
+              {stakeholdersCopy.seniorDivider ?? 'Upstairs'}
+            </span>
+            {row}
+          </Fragment>
+        );
+      })}
+    </div>
+  ) : null;
 
   return (
     <div
@@ -172,116 +300,9 @@ export default function StakeholdersMascot({
           {expanded ? stakeholdersCopy.pickPersona : controls.actions.stakeholders}
         </span>
       </button>
-      {expanded ? (
-        <div
-          className="stakeholders-roster"
-          style={overlayLayerStyle(rosterZIndex)}
-          role="menu"
-          aria-label={stakeholdersCopy.personaMenu}
-          onPointerEnter={armCollapseTimer}
-          onPointerMove={armCollapseTimer}
-        >
-          <p className="stakeholders-roster-heading">
-            {stakeholdersCopy.teamActionsHeading ?? 'Get the team on it'}
-          </p>
-          <div className="stakeholders-team-actions">
-            <button
-              type="button"
-              role="menuitem"
-              className={[
-                'stakeholders-roster-row',
-                'stakeholders-roster-team-action',
-                'stakeholders-roster-huddle-action',
-                'slop-action-button',
-                'is-huddle'
-              ].join(' ')}
-              disabled={!canHuddle}
-              aria-label={deskCopy.huddleAction}
-              title={
-                canHuddle
-                  ? (deskCopy.huddleActionTitle ?? deskCopy.huddleAction)
-                  : (deskCopy.blocked?.busy ?? deskCopy.huddleAction)
-              }
-              onClick={(event) => {
-                event.stopPropagation();
-                startHuddle();
-              }}
-            >
-              <span className="stakeholders-roster-team-emoji" aria-hidden="true">
-                🤝
-              </span>
-              <span className="stakeholders-roster-label">
-                <span className="stakeholders-roster-name">{deskCopy.huddleAction}</span>
-              </span>
-            </button>
-          </div>
-          <span className="stakeholders-roster-divider" role="presentation">
-            {stakeholdersCopy.delegateDivider ?? 'Delegate to…'}
-          </span>
-          {personas.map((p) => {
-            const meta = getVariantPersona(p.variant);
-            const actionLabel = p.label ?? resolveActionLabel(p.variant, controls) ?? meta.name;
-            const variantClass = p.cssVariant ?? cssVariant(p.variant);
-            const rowClassName = [
-              'stakeholders-roster-row',
-              'slop-action-button',
-              `is-${variantClass}`,
-              handedTo === p.variant ? 'is-handed-off' : ''
-            ]
-              .filter(Boolean)
-              .join(' ');
-            const delegateLabel = formatLocale(
-              stakeholdersCopy.delegateAria ?? 'Delegate to {name} — {action}',
-              { name: meta.name, action: actionLabel }
-            );
-            const row = (
-              <button
-                key={p.variant}
-                type="button"
-                className={rowClassName}
-                disabled={busy || p.disabled}
-                title={p.title ?? `${delegateLabel} · ${stakeholderTooltip(p.variant)}`}
-                aria-label={p.ariaLabel ?? delegateLabel}
-                onClick={(event) => {
-                  event.stopPropagation();
-                  armCollapseTimer();
-                  noteHandoff(p.variant);
-                  p.onClick?.();
-                }}
-              >
-                <span className={`action-persona-icon is-${variantClass}`} aria-hidden="true">
-                  <PersonaFace id={p.variant} size={22} />
-                </span>
-                <span className="stakeholders-roster-label">
-                  <span className="stakeholders-roster-name">{meta.name}</span>
-                  <span className="stakeholders-roster-title">
-                    {handedTo === p.variant
-                      ? formatLocale(stakeholdersCopy.handoffAck ?? '{name} took it', {
-                          name: meta.name.split(' ')[0]
-                        })
-                      : meta.title}
-                  </span>
-                </span>
-                <span className="stakeholders-roster-chip" aria-hidden="true">
-                  <span className="stakeholders-roster-handoff">
-                    {handedTo === p.variant ? '✓' : '→'}
-                  </span>
-                  {actionLabel}
-                </span>
-              </button>
-            );
-            if (!p.senior) return row;
-            return (
-              <Fragment key={`${p.variant}-senior`}>
-                <span className="stakeholders-roster-divider" role="presentation">
-                  {stakeholdersCopy.seniorDivider ?? 'Upstairs'}
-                </span>
-                {row}
-              </Fragment>
-            );
-          })}
-        </div>
-      ) : null}
+      {typeof document !== 'undefined' && rosterMenu
+        ? createPortal(rosterMenu, document.body)
+        : rosterMenu}
     </div>
   );
 }

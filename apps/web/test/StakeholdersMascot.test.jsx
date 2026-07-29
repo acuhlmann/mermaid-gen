@@ -72,10 +72,10 @@ describe('StakeholdersMascot', () => {
   });
 
   it('exposes Gilfoyle in the gilfoyle row tooltip', () => {
-    const { container } = render(<StakeholdersMascot personas={TEST_PERSONAS} />);
+    render(<StakeholdersMascot personas={TEST_PERSONAS} />);
     const gilfoyleRow = screen.getByText('Bertram Gilfoyle').closest('.stakeholders-roster-row');
     expect(gilfoyleRow?.getAttribute('title')).toMatch(/Gilfoyle/);
-    expect(container.querySelector('.stakeholders-roster')).toBeTruthy();
+    expect(document.body.querySelector('.stakeholders-roster')).toBeTruthy();
   });
 
   it('invokes persona onClick when anywhere on the roster row is clicked', () => {

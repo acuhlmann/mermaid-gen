@@ -1127,11 +1127,33 @@
 
 /* Higher specificity than `.overlay-button` (same rule order would otherwise
    force `display: inline-flex` and stretch the pill across the flex column). */
+.insights-pane-footer {
+  position: absolute;
+  right: 0.75rem;
+  bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px));
+  left: 0.75rem;
+  z-index: 27;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.45rem;
+  pointer-events: none;
+}
+
+.insights-pane-footer > .insights-stop-stream-btn,
+.insights-pane-footer > .insights-pane-dismiss.overlay-button {
+  position: static;
+  inset: auto;
+  pointer-events: auto;
+  flex: 0 0 auto;
+}
+
 .insights-pane-dismiss.overlay-button {
-  display: none;
+  display: inline-flex;
   width: auto;
   min-width: 0;
-  align-self: flex-end;
+  align-self: auto;
   flex: 0 0 auto;
 }
 
@@ -1140,37 +1162,21 @@
     position: relative;
   }
 
-  .insights-pane-dismiss.overlay-button {
-    display: inline-flex;
-    position: absolute;
-    top: auto;
+  .insights-pane-footer {
     right: 0.85rem;
     bottom: calc(0.85rem + env(safe-area-inset-bottom, 0px));
+    left: 0.85rem;
     z-index: 3;
-    pointer-events: auto;
-    width: auto;
-    min-width: 0;
-    align-self: auto;
   }
 
-  .insights-pane:has(.insights-pane-dismiss) .insights-pane-body {
+  .insights-pane:has(.insights-pane-footer) .insights-pane-body {
     padding-bottom: calc(3.5rem + env(safe-area-inset-bottom, 0px));
-  }
-
-  .insights-pane:has(.insights-pane-dismiss):has(.insights-stop-stream-btn) .insights-pane-body {
-    padding-bottom: calc(6.35rem + env(safe-area-inset-bottom, 0px));
-  }
-
-  .insights-pane:has(.insights-pane-dismiss) .insights-stop-stream-btn {
-    bottom: calc(0.85rem + 2.85rem + env(safe-area-inset-bottom, 0px));
   }
 }
 
 .insights-stop-stream-btn {
-  position: absolute;
-  right: 0.75rem;
-  bottom: calc(0.75rem + env(safe-area-inset-bottom));
-  z-index: 27;
+  position: static;
+  z-index: auto;
   pointer-events: auto;
   border-radius: 999px;
   padding: 0.45rem 0.9rem;
@@ -5142,18 +5148,18 @@
 
 .bottom-chrome {
   left: 1rem;
-  right: 1rem;
+  right: auto;
   bottom: 1rem;
   display: flex;
   flex-direction: column;
-  align-items: stretch;
+  align-items: flex-start;
   gap: 0.45rem;
   pointer-events: none;
   max-width: min(
     100%,
     calc(100vw - 2rem - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px))
   );
-  margin-inline: auto;
+  margin-inline: 0;
   /* Sit above .brand-control (var(--z-brand)) so the stakeholders speech bubble
      — which pops up from the dock at the bottom — can render over the top-left
      logo on short screens where the two regions overlap. Modals still win
@@ -5187,7 +5193,7 @@
   display: flex;
   flex-direction: row;
   align-items: flex-end;
-  gap: 0.75rem;
+  gap: 0.4rem;
   width: 100%;
   pointer-events: auto;
   /* Anchor for the prompt popover (which renders as an absolute child of
@@ -5201,7 +5207,7 @@
   flex-direction: row;
   align-items: flex-end;
   flex-wrap: wrap;
-  gap: 0.45rem 0.65rem;
+  gap: 0.25rem 0.35rem;
   flex: 1 1 auto;
   min-width: 0;
 }
@@ -5250,7 +5256,10 @@
 .bottom-row-popover--prompt {
   left: 0;
   right: auto;
-  max-width: min(48rem, calc(100vw - 2rem));
+  max-width: min(
+    48rem,
+    calc(100vw - 1rem - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px))
+  );
 }
 
 .bottom-row-popover--settings {
@@ -5266,7 +5275,10 @@
   gap: 0.42rem;
   width: max-content;
   min-width: 0;
-  max-width: min(22rem, calc(100vw - 2rem));
+  max-width: min(
+    22rem,
+    calc(100vw - 1rem - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px))
+  );
 }
 
 /* Wraps the Settings button + its panel so the popover variant can anchor
@@ -5358,14 +5370,20 @@
   align-items: flex-end;
   gap: 0.42rem;
   width: max-content;
-  max-width: min(22rem, calc(100vw - 2rem));
+  max-width: min(
+    22rem,
+    calc(100vw - 1rem - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px))
+  );
   min-width: 0;
   animation: ai-corner-settings-reveal 180ms ease-out;
 }
 
 .ai-corner-settings-panel.bottom-row-popover--settings {
   width: max-content;
-  max-width: min(22rem, calc(100vw - 2rem));
+  max-width: min(
+    22rem,
+    calc(100vw - 1rem - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px))
+  );
 }
 
 .ai-corner-settings-panel[hidden] {
@@ -5552,14 +5570,14 @@
   .prompt-actions--mobile {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.3rem;
+    gap: 0.2rem;
     padding: 0;
   }
 
   .prompt-actions--mobile .button-group {
     display: flex;
     flex-wrap: nowrap;
-    gap: 0.75rem;
+    gap: 0.35rem;
     align-items: center;
     width: 100%;
   }
@@ -9016,17 +9034,20 @@ button {
     --mobile-bottom-chrome-est: 11.75rem;
   }
 
-  .insights-pane-dismiss.overlay-button {
-    display: inline-flex;
+  .insights-pane-footer {
     position: fixed;
-    top: auto;
     right: 0.75rem;
     bottom: calc(0.75rem + env(safe-area-inset-bottom));
+    left: 0.75rem;
     z-index: 26;
-    pointer-events: auto;
-    width: auto;
-    min-width: 0;
+  }
+
+  .insights-pane-footer > .insights-pane-dismiss.overlay-button {
     padding-inline: 0.62rem;
+  }
+
+  .insights-pane:has(.insights-pane-footer) .insights-pane-body {
+    padding-bottom: calc(3.5rem + env(safe-area-inset-bottom, 0px));
   }
 
   .insights-pane-header {
@@ -9034,10 +9055,8 @@ button {
   }
 
   .insights-stop-stream-btn {
-    position: fixed;
-    right: 0.75rem;
-    bottom: calc(0.75rem + 2.85rem + env(safe-area-inset-bottom));
-    z-index: 26;
+    position: static;
+    z-index: auto;
   }
 
   .app-shell.is-insights-open .top-corner-controls {
@@ -11906,7 +11925,10 @@ button {
   align-self: flex-start;
   margin-top: 0.45rem;
   width: min(22rem, 100%);
-  max-width: min(22rem, calc(100vw - 2rem));
+  max-width: min(
+    22rem,
+    calc(100vw - 1rem - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px))
+  );
   z-index: 2;
 }
 
@@ -12480,7 +12502,10 @@ button {
   box-sizing: border-box;
   align-self: stretch;
   width: max-content;
-  max-width: min(22rem, calc(100vw - 2rem));
+  max-width: min(
+    22rem,
+    calc(100vw - 1rem - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px))
+  );
   min-width: 100%;
   margin-top: 0.1rem;
   padding: 0.5rem 0.78rem 0.55rem 0.7rem;
@@ -12590,7 +12615,10 @@ button {
   position: absolute;
   top: 124px;
   right: 24px;
-  max-width: min(22rem, calc(100vw - 2rem));
+  max-width: min(
+    22rem,
+    calc(100vw - 1rem - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px))
+  );
   display: flex;
   align-items: stretch;
   border-radius: 16px;
@@ -14463,15 +14491,21 @@ body.slopitect-rainbow-tint::before {
   align-items: center;
   flex-wrap: wrap;
   /* Row gap when Desk tray (or tools) wrap under the Work Order line. */
-  gap: 0.9rem 0.85rem;
+  gap: 0.45rem 0.5rem;
 }
 
-/* Wide desk: keep helmet + Work Order + tools on one row with clear gutters.
-   nowrap avoids Notebook dropping alone under the prompt; work order shrinks. */
+/* Wide desk: cluster tool icons on the left; Work Order fills the right. */
 .prompt-actions--desktop .desk-chrome-layout {
   flex-wrap: nowrap;
-  gap: 1.1rem 1.25rem;
+  gap: 0.35rem 0.45rem;
   align-items: center;
+  justify-content: flex-start;
+}
+
+.prompt-actions--desktop #office-desk-bottom-slot,
+.prompt-actions--desktop .desk-chrome-tool {
+  order: 1;
+  flex: 0 0 auto;
 }
 
 .desk-work-order-group {
@@ -14483,7 +14517,10 @@ body.slopitect-rainbow-tint::before {
 }
 
 .prompt-actions--desktop .desk-work-order-group {
-  flex: 1 1 auto;
+  order: 2;
+  margin-left: auto;
+  flex: 1 1 12rem;
+  max-width: min(100%, 28rem);
   /* Floor keeps the Work Order typable when eyebrow + mic + Do It appear. */
   min-width: min(100%, 12rem);
 }
@@ -14759,7 +14796,10 @@ body.slopitect-rainbow-tint::before {
   align-items: stretch;
   width: max-content;
   min-width: 0;
-  max-width: min(22rem, calc(100vw - 2rem));
+  max-width: min(
+    22rem,
+    calc(100vw - 1rem - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px))
+  );
 }
 
 /* An explicit display wins over the [hidden] UA rule, so restore it (mirrors
@@ -14772,7 +14812,7 @@ body.slopitect-rainbow-tint::before {
 .prompt-actions--mobile .desk-chrome-layout {
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.9rem 0.85rem;
+  gap: 0.35rem 0.4rem;
 }
 
 .prompt-actions--mobile .desk-chrome-tool,
@@ -15391,6 +15431,16 @@ body.slopitect-rainbow-tint::before {
   pointer-events: auto;
   animation: stakeholders-roster-in 200ms cubic-bezier(0.22, 1.18, 0.62, 1);
   box-sizing: border-box;
+}
+
+.stakeholders-roster--portaled {
+  position: fixed;
+  top: auto;
+  padding: 0.28rem 0.35rem;
+  border-radius: 0.8rem;
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid rgba(99, 102, 241, 0.18);
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.14);
 }
 
 .stakeholders-roster-row {
@@ -21131,32 +21181,16 @@ body.slopitect-rainbow-tint::before {
     box-shadow: none;
   }
 
-  .insights-pane-dismiss.overlay-button {
-    display: inline-flex;
+  .insights-pane-footer {
     position: absolute;
-    top: auto;
     right: 0.75rem;
     bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px));
+    left: 0.75rem;
     z-index: 3;
-    pointer-events: auto;
-    width: auto;
-    min-width: 0;
-    align-self: auto;
   }
 
-  .insights-pane:has(.insights-pane-dismiss) .insights-pane-body {
+  .insights-pane:has(.insights-pane-footer) .insights-pane-body {
     padding-bottom: calc(3.5rem + env(safe-area-inset-bottom, 0px));
-  }
-
-  .insights-pane:has(.insights-pane-dismiss):has(.insights-stop-stream-btn) .insights-pane-body {
-    padding-bottom: calc(6.35rem + env(safe-area-inset-bottom, 0px));
-  }
-
-  .insights-pane:has(.insights-pane-dismiss) .insights-stop-stream-btn {
-    position: absolute;
-    right: 0.75rem;
-    bottom: calc(0.75rem + 2.85rem + env(safe-area-inset-bottom, 0px));
-    z-index: 3;
   }
 
   .app-shell.is-insights-open:not(.is-editor-open) .prompt-stack {

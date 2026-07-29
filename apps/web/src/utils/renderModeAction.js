@@ -113,7 +113,7 @@ export function buildRenderSelectionPrompt({
 /** Localized Russ button label by streak. */
 export function russShapeLabel(streak, actions) {
   const a = actions ?? {
-    russ: 'Russ',
+    russ: 'Go Mad',
     russHarder: 'This Guy Ships',
     russHardest: 'Tres Commas',
     maxRuss: 'Radio Silence'
