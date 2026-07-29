@@ -44,10 +44,12 @@ function personClassName({ seated, selected, isYou, speaking }) {
  *   speaking?: boolean,
  *   idleIndex?: number,
  *   disabled?: boolean,
- *   onSelect: (id: string) => void
+ *   onSelect: (id: string) => void,
+ *   onActivate?: ((id: string) => void) | null
  * }} props `name` is the visible chip; `label` is what it is called to anybody
  *   not looking at it, which is not always the same thing — away from their desk
  *   it carries where they are, because a target has to say what it is.
+ *   `onActivate` is the point-and-click shortcut (double-click → walk and talk).
  */
 export function FloorPersonButton({
   id,
@@ -61,7 +63,8 @@ export function FloorPersonButton({
   idleIndex = 0,
   disabled = false,
   accessoryOverride = null,
-  onSelect
+  onSelect,
+  onActivate = null
 }) {
   return (
     <button
@@ -74,6 +77,12 @@ export function FloorPersonButton({
       disabled={disabled}
       data-on-call={accessoryOverride === 'headset' ? 'true' : undefined}
       onClick={() => onSelect(id)}
+      onDoubleClick={(event) => {
+        if (!onActivate) return;
+        event.preventDefault();
+        event.stopPropagation();
+        onActivate(id);
+      }}
     >
       <span className="office-floor-person-name">{name}</span>
       <FloorFigure

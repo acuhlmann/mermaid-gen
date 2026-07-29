@@ -103,7 +103,9 @@ describe('talking on the floor (slice 8)', () => {
     walkOverToTalk();
 
     await waitFor(() => expect(narrateLine).toHaveBeenCalledWith({ speakerId: CHAD, text: line }));
-    await waitFor(() => expect(screen.queryByText(line)).toBeNull());
+    // Voice-first: the stage bubble hides; the talk *card* may still show the
+    // recent-turns strip (chrome, not a speech balloon).
+    await waitFor(() => expect(screen.queryByTestId('office-floor-talk-line')).toBeNull());
   });
 
   it('shows the bubble when captions are on even while narration speaks', async () => {
@@ -117,7 +119,8 @@ describe('talking on the floor (slice 8)', () => {
     });
     walkOverToTalk();
 
-    expect(await screen.findByText(line)).toBeTruthy();
+    expect(await screen.findByTestId('office-floor-talk-line')).toBeTruthy();
+    expect(screen.getByTestId('office-floor-talk-line').textContent).toContain(line);
   });
 
   it('shows what they said, not what you said', () => {
@@ -144,6 +147,39 @@ describe('talking on the floor (slice 8)', () => {
     await waitFor(() =>
       expect(onTalkReply).toHaveBeenCalledWith(CHAD, 'we should discuss the gateway')
     );
+  });
+
+  it('exposes a mic on the floor composer, same as Slop Chat', async () => {
+    renderFloor({ onTalkGreet: vi.fn() });
+    walkOverToTalk();
+
+    await screen.findByTestId('office-floor-talk-card');
+    const mic = screen.getByRole('button', { name: /hold to speak|tap to dictate|mic/i });
+    expect(mic.className).toContain('office-floor-talk-mic');
+  });
+
+  it('shows recent thread turns in the talk card', async () => {
+    const imHistory = [
+      imFrom(CHAD, 'is the gateway meant to talk to itself?'),
+      imFrom(CHAD, 'maybe we should check the edges', true)
+    ];
+    renderFloor({ imHistory, onTalkGreet: vi.fn() });
+    walkOverToTalk();
+
+    const thread = await screen.findByTestId('office-floor-talk-thread');
+    expect(thread.textContent).toContain('is the gateway meant to talk to itself?');
+    expect(thread.textContent).toContain('maybe we should check the edges');
+    expect(thread.textContent).toMatch(/You/i);
+  });
+
+  it('double-clicks a colleague to walk over and talk', async () => {
+    const onTalkGreet = vi.fn().mockResolvedValue(undefined);
+    renderFloor({ onTalkGreet });
+
+    fireEvent.doubleClick(screen.getByRole('button', { name: /Chad/ }));
+
+    await waitFor(() => expect(onTalkGreet).toHaveBeenCalledWith(CHAD));
+    expect(screen.getByTestId('office-floor-talk-card')).toBeTruthy();
   });
 
   it('offers the same canned quick replies Slop Chat does', async () => {

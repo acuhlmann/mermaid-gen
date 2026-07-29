@@ -47,7 +47,8 @@ function SeatArt({ part, you, look }) {
  *   vacant?: boolean,
  *   interactive?: boolean,
  *   look?: string,
- *   onSelect: (id: string) => void
+ *   onSelect: (id: string) => void,
+ *   onActivate?: ((id: string) => void) | null
  * }} props `look` is what is on their monitor (`officeDeskWork.js`) — always
  *   drawn, for everyone; walking over is only how you get close enough to read it.
  */
@@ -64,7 +65,8 @@ export function FloorSeat({
   speaking = false,
   accessoryOverride = null,
   look,
-  onSelect
+  onSelect,
+  onActivate = null
 }) {
   const { left, top } = projectIso(seat.x, seat.y);
   const label = title ? `${name} — ${title}` : name;
@@ -97,6 +99,7 @@ export function FloorSeat({
           /* During the arrival ceremony the cast is scenery, not a menu. */
           disabled={!interactive}
           onSelect={onSelect}
+          onActivate={onActivate}
         />
       )}
 
