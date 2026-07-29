@@ -4,6 +4,8 @@ import { ArchiSlopMarkIcon } from './AppIcons.jsx';
 import ConcentrationControl from './ConcentrationControl.jsx';
 import DeskStandUpButton from './DeskStandUpButton.jsx';
 import IntroLocaleToggle from './IntroLocaleToggle.jsx';
+import OutboxDock from './OutboxDock.jsx';
+import { CONTROLS_EN } from '../i18n/locales/controls.en.js';
 import { officeChromeCopy } from '../utils/officeCast.js';
 import { useUiCopy } from '../i18n/useUiLocale.js';
 import {
@@ -66,10 +68,12 @@ export default function DeskActionsDock({
   onSummonSync,
   canSummonSync = true,
   onCheckHrProgression,
-  onOpenOutbox,
   onInviteAgent,
   blockedReason = null,
   canOpenOutbox = false,
+  contentType = null,
+  diagramSource = '',
+  exportControls = null,
   unreadCount = 0,
   imUnreadCount = 0,
   placement = 'corner',
@@ -82,6 +86,7 @@ export default function DeskActionsDock({
   onToggleHeadphones = null
 }) {
   const [open, setOpen] = useState(initialOpen);
+  const [outboxExpanded, setOutboxExpanded] = useState(false);
   const [anchorRect, setAnchorRect] = useState(/** @type {DOMRect | null} */ (null));
   const rootRef = useRef(null);
   const triggerRef = useRef(null);
@@ -91,10 +96,15 @@ export default function DeskActionsDock({
   const chrome = officeChromeCopy();
   const copy = chrome.desk;
   const languagePack = controls.languagePack ?? {};
+  const outboxControls = exportControls ?? controls.settings ?? CONTROLS_EN.settings;
 
   useEffect(() => {
-    if (initialOpen) setOpen(true);
-  }, [initialOpen]);
+    if (!open) setOutboxExpanded(false);
+  }, [open]);
+
+  useEffect(() => {
+    if (!canOpenOutbox) setOutboxExpanded(false);
+  }, [canOpenOutbox]);
 
   useLayoutEffect(() => {
     if (!open) {
@@ -142,6 +152,10 @@ export default function DeskActionsDock({
     };
   }, [open]);
 
+  useEffect(() => {
+    if (initialOpen) setOpen(true);
+  }, [initialOpen]);
+
   const blockedTitle = blockedReason ? (copy.blocked?.[blockedReason] ?? null) : null;
 
   const deskVerbs = [
@@ -152,16 +166,6 @@ export default function DeskActionsDock({
       run: onCheckInbox,
       alwaysEnabled: true,
       badge: unreadCount > 0 ? (unreadCount > 9 ? '9+' : String(unreadCount)) : null
-    },
-    {
-      id: 'outbox',
-      label: copy.outbox,
-      emoji: '📤',
-      run: onOpenOutbox,
-      alwaysEnabled: true,
-      disabled: !canOpenOutbox,
-      disabledTitle: copy.blocked?.noOutbox,
-      title: copy.outboxTitle
     },
     {
       id: 'slopChat',
@@ -237,6 +241,47 @@ export default function DeskActionsDock({
 
   const placementClass = placement === 'bottom' ? ' desk-actions--bottom' : '';
 
+  const renderOutboxVerb = () => {
+    const disabled = !canOpenOutbox;
+    const title = disabled ? copy.blocked?.noOutbox : (copy.outboxTitle ?? copy.outbox);
+    return (
+      <div key="outbox" className="desk-actions-outbox-group" data-testid="desk-actions-outbox">
+        <button
+          type="button"
+          role="menuitem"
+          className={`desk-actions-item desk-actions-item--expandable${outboxExpanded ? ' is-expanded' : ''}`}
+          disabled={disabled}
+          title={title ?? copy.outbox}
+          aria-expanded={outboxExpanded}
+          onClick={() => {
+            if (disabled) return;
+            setOutboxExpanded((prev) => !prev);
+          }}
+        >
+          <span className="desk-actions-item-emoji" aria-hidden="true">
+            📤
+          </span>
+          <span className="desk-actions-item-label">{copy.outbox}</span>
+          <span className="desk-actions-item-chevron" aria-hidden="true">
+            {outboxExpanded ? '▴' : '▾'}
+          </span>
+        </button>
+        {outboxExpanded && canOpenOutbox ? (
+          <div className="desk-actions-outbox-panel">
+            <OutboxDock
+              embedded
+              controls={outboxControls}
+              contentType={contentType}
+              diagramSource={diagramSource}
+              popoverMode={false}
+              showTrigger={false}
+            />
+          </div>
+        ) : null}
+      </div>
+    );
+  };
+
   const renderVerb = (verb) => {
     const disabled = verb.disabled || (!verb.alwaysEnabled && Boolean(blockedReason));
     const title = verb.disabled
@@ -296,7 +341,9 @@ export default function DeskActionsDock({
             data-testid="desk-actions-menu"
             {...overlayFocusHandlers('desk-actions-menu', open)}
           >
-            {deskVerbs.map(renderVerb)}
+            {deskVerbs.slice(0, 1).map(renderVerb)}
+            {renderOutboxVerb()}
+            {deskVerbs.slice(1).map(renderVerb)}
             <div className="desk-actions-menu-footer" role="none">
               <ConcentrationControl
                 variant="menu"

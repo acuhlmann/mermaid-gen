@@ -1,7 +1,11 @@
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { officeChromeCopy, officeSenderInfo } from '../utils/officeCast.js';
 import { shouldShowSpokenText } from '../utils/officeCaptions.js';
-import { getOfficeSnapshot, subscribe } from '../state/officeMomentStore.js';
+import {
+  getOfficeSnapshot,
+  setOfficeHuddleActiveLineIndex,
+  subscribe
+} from '../state/officeMomentStore.js';
 import { useScenePacing } from '../hooks/useScenePacing.js';
 import { formatLocale } from '../i18n/formatLocale.js';
 import { PersonaFace } from './personaFaces/index.jsx';
@@ -135,6 +139,12 @@ export default function HuddleOverlay({
     sceneId: huddle?.id ?? null,
     onDone: onHardStop
   });
+
+  // Tell the store which remark is live so diagram refreshes keep finished lines.
+  useEffect(() => {
+    if (!huddle?.id || !pacingActive) return;
+    setOfficeHuddleActiveLineIndex(huddle.id, Math.max(0, visibleLines - 1));
+  }, [huddle?.id, pacingActive, visibleLines]);
 
   useEffect(() => {
     if (!huddle) return undefined;

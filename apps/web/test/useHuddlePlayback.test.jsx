@@ -1,8 +1,12 @@
 // @vitest-environment jsdom
-import { act, cleanup, renderHook } from '@testing-library/react';
+import { act, cleanup, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { useHuddlePlayback } from '../src/hooks/useHuddlePlayback.js';
-import { endOfficeHuddle, getOfficeSnapshot } from '../src/state/officeMomentStore.js';
+import { useHuddlePlayback, huddleDiagramFingerprint } from '../src/hooks/useHuddlePlayback.js';
+import {
+  endOfficeHuddle,
+  getOfficeSnapshot,
+  setOfficeHuddleActiveLineIndex
+} from '../src/state/officeMomentStore.js';
 
 const TEAM = ['gilfoyle', 'dinesh', 'erlich'];
 
@@ -219,5 +223,59 @@ describe('useHuddlePlayback', () => {
       result.current.resumeSpeaking();
     });
     expect(result.current.huddle.phase).toBe('speaking');
+  });
+
+  it('re-scripts unspoken remarks when the diagram changes mid-huddle', async () => {
+    const fetchMock = vi.fn(async (_url, init) => {
+      const body = JSON.parse(init.body);
+      if (body.priorBeats?.length) {
+        return {
+          ok: true,
+          json: async () => ({
+            script: {
+              beats: [
+                { speakerId: 'dinesh', text: 'Auth finally showed up.' },
+                { speakerId: 'erlich', text: 'Platform play, now with boxes.' }
+              ]
+            }
+          })
+        };
+      }
+      return {
+        ok: true,
+        json: async () => ({ script: SCRIPT })
+      };
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    let diagramSource = '';
+    const { result } = renderHook(() =>
+      useHuddlePlayback(
+        params({
+          getDiagramSource: () => diagramSource,
+          getDiagramWatchKey: () => huddleDiagramFingerprint('mermaid', diagramSource)
+        })
+      )
+    );
+    await act(async () => {
+      await result.current.startHuddle(TEAM);
+    });
+    const huddleId = result.current.huddle.id;
+    await act(async () => {
+      setOfficeHuddleActiveLineIndex(huddleId, 1);
+    });
+
+    diagramSource = 'flowchart TD\n  Auth[Auth]';
+    await waitFor(
+      () => {
+        expect(
+          fetchMock.mock.calls.some(([, init]) => JSON.parse(init.body).priorBeats?.length === 1)
+        ).toBe(true);
+      },
+      { timeout: 3000 }
+    );
+
+    expect(result.current.huddle.beats[0].text).toBe(SCRIPT.beats[0].text);
+    expect(result.current.huddle.beats[1].text).toBe('Auth finally showed up.');
   });
 });

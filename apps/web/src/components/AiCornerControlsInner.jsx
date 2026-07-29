@@ -1,7 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import AgentPresenceBar from './AgentPresenceBar.jsx';
-import OutboxDock from './OutboxDock.jsx';
 import { CONTROLS_EN } from '../i18n/locales/controls.en.js';
 import {
   overlayFocusHandlers,
@@ -53,14 +52,11 @@ export function AiCornerControlsInner({
   externalAgentPresence,
   onInviteAgent,
   popoverMode = true,
-  contentType = null,
-  diagramSource = '',
   editorOpen = false,
   onToggleEditor,
   editorControls = null,
   showEditorToggle = false,
-  settingsOpenSignal = 0,
-  outboxOpenSignal = 0
+  settingsOpenSignal = 0
 }) {
   const startExpanded = typeof import.meta !== 'undefined' && import.meta.env?.MODE === 'test';
   const [settingsOpen, setSettingsOpen] = useState(startExpanded);
@@ -167,16 +163,6 @@ export function AiCornerControlsInner({
 
   return (
     <>
-      {(diagramSource ?? '').trim() ? (
-        <OutboxDock
-          controls={controls}
-          contentType={contentType}
-          diagramSource={diagramSource}
-          popoverMode={popoverMode}
-          showTrigger={false}
-          openSignal={outboxOpenSignal}
-        />
-      ) : null}
       <div
         ref={anchorRef}
         className="ai-corner-settings-anchor ai-corner-settings-anchor--headless"

@@ -117,14 +117,19 @@ export default function OutboxDock({
   diagramSource = '',
   popoverMode = true,
   showTrigger = true,
+  embedded = false,
   openSignal = 0
 }) {
   const startExpanded = typeof import.meta !== 'undefined' && import.meta.env?.MODE === 'test';
-  const [panelOpen, setPanelOpen] = useState(startExpanded);
+  const [panelOpen, setPanelOpen] = useState(startExpanded || embedded);
 
   useEffect(() => {
+    if (embedded) {
+      setPanelOpen(true);
+      return;
+    }
     if (openSignal > 0) setPanelOpen(true);
-  }, [openSignal]);
+  }, [openSignal, embedded]);
   const [exportOpen, setExportOpen] = useState(false);
   const [exportBusyId, setExportBusyId] = useState(null);
   const [exportError, setExportError] = useState(null);
@@ -140,15 +145,17 @@ export default function OutboxDock({
   const exportListId = useId();
   const rootRef = useRef(null);
   const [anchorRect, setAnchorRect] = useState(/** @type {DOMRect | null} */ (null));
-  const panelClass = popoverMode
-    ? 'outbox-panel bottom-row-popover bottom-row-popover--outbox outbox-panel--portaled'
-    : 'outbox-panel';
-  const outboxZIndex = useOverlayLayer('outbox-panel', panelOpen && popoverMode);
+  const panelClass = embedded
+    ? 'outbox-panel outbox-panel--embedded'
+    : popoverMode
+      ? 'outbox-panel bottom-row-popover bottom-row-popover--outbox outbox-panel--portaled'
+      : 'outbox-panel';
+  const outboxZIndex = useOverlayLayer('outbox-panel', panelOpen && popoverMode && !embedded);
 
-  const deskAnchored = !showTrigger;
+  const deskAnchored = !showTrigger && !embedded;
 
   useLayoutEffect(() => {
-    if (!panelOpen || !popoverMode) {
+    if (!panelOpen || !popoverMode || embedded) {
       setAnchorRect(null);
       return undefined;
     }
@@ -173,7 +180,7 @@ export default function OutboxDock({
       vv?.removeEventListener('resize', measure);
       vv?.removeEventListener('scroll', measure);
     };
-  }, [panelOpen, popoverMode, deskAnchored]);
+  }, [panelOpen, popoverMode, deskAnchored, embedded]);
   const hasSource = Boolean((diagramSource ?? '').trim());
   const exportFormats = useMemo(
     () => (hasSource ? listExportFormats(contentType, diagramSource) : []),
@@ -492,9 +499,9 @@ export default function OutboxDock({
       role="region"
       aria-label={controls.outboxRegion ?? outboxLabel}
       hidden={!panelOpen}
-      {...overlayFocusHandlers('outbox-panel', panelOpen && popoverMode)}
+      {...overlayFocusHandlers('outbox-panel', panelOpen && popoverMode && !embedded)}
     >
-      {!showTrigger ? (
+      {!showTrigger && !embedded ? (
         <button
           type="button"
           className="outbox-panel-dismiss"
@@ -638,9 +645,17 @@ export default function OutboxDock({
   );
 
   const portaledPanel =
-    popoverMode && panelOpen && typeof document !== 'undefined'
+    popoverMode && panelOpen && !embedded && typeof document !== 'undefined'
       ? createPortal(panelNode, document.body)
       : null;
+
+  if (embedded) {
+    return (
+      <div ref={rootRef} className="outbox-dock outbox-dock--embedded">
+        {panelNode}
+      </div>
+    );
+  }
 
   return (
     <div ref={rootRef} className={`outbox-dock${showTrigger ? '' : ' outbox-dock--headless'}`}>

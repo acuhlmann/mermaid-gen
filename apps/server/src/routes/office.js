@@ -66,11 +66,17 @@ const OfficeMeetingRequestSchema = z.object({
  */
 const HUDDLE_MAX_ATTENDEES = 6;
 
+const OfficeHuddlePriorBeatSchema = z.object({
+  speakerId: z.string().max(40),
+  text: z.string().max(300)
+});
+
 const OfficeHuddleRequestSchema = z.object({
   contentType: ContentTypeSchema.default('mermaid'),
   diagramSource: z.string().max(20_000).default(''),
   visibleLabels: z.array(z.string().max(200)).max(60).default([]),
   attendees: z.array(z.string().max(40)).min(2).max(HUDDLE_MAX_ATTENDEES),
+  priorBeats: z.array(OfficeHuddlePriorBeatSchema).max(HUDDLE_MAX_ATTENDEES).optional(),
   uiLocale: UiLocaleField
 });
 
@@ -134,14 +140,28 @@ export function createHuddleHandler(env) {
       return;
     }
 
-    const system = buildHuddleSystemPrompt({ attendees, uiLocale: payload.uiLocale });
-    const user = buildHuddleUserPrompt(payload);
+    const priorBeats = Array.isArray(payload.priorBeats) ? payload.priorBeats : [];
+    const spokenIds = new Set(priorBeats.map((b) => b.speakerId));
+    const remainingAttendees =
+      priorBeats.length > 0 ? attendees.filter((id) => !spokenIds.has(id)) : attendees;
+    if (priorBeats.length > 0 && remainingAttendees.length === 0) {
+      res.status(200).json({ script: { beats: [] } });
+      return;
+    }
+    const system = buildHuddleSystemPrompt({
+      attendees,
+      uiLocale: payload.uiLocale,
+      priorBeats
+    });
+    const user = buildHuddleUserPrompt({ ...payload, priorBeats });
     const officeModel = resolveOfficeModelId(env);
     try {
       const reply = await model.invoke([new SystemMessage(system), new HumanMessage(user)]);
       const usage = officeUsageFromReply(reply);
       const raw = extractTextContent(reply?.content ?? reply);
-      const script = parseHuddleScript(raw, { attendees });
+      const script = parseHuddleScript(raw, {
+        attendees: priorBeats.length > 0 ? remainingAttendees : attendees
+      });
       res.status(200).json({
         script,
         ...(usage ? { usage, model: officeModel } : {})

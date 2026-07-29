@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { API_BASE_URL, SESSION_HEADER } from '../state/diagramSession.js';
 import { getAdvisorVisibleLabels } from '../utils/advisorVisibleLabels.js';
 import { officeDialogueLocale } from '../utils/officeCast.js';
@@ -6,6 +6,7 @@ import {
   endOfficeHuddle,
   getOfficeSnapshot,
   pauseOfficeHuddleForWatching,
+  refreshOfficeHuddleBeats,
   resumeOfficeHuddleSpeaking,
   setOfficeHuddleBeats,
   startOfficeHuddle,
@@ -15,6 +16,14 @@ import {
 
 export const HUDDLE_FETCH_TIMEOUT_MS = 20_000;
 export const HUDDLE_SUGGEST_TIMEOUT_MS = 18_000;
+/** Debounce canvas edits before re-scripting unspoken huddle remarks. */
+export const HUDDLE_DIAGRAM_REFRESH_DEBOUNCE_MS = 700;
+
+/** Stable fingerprint for diagram refresh — content type + trimmed source. */
+export function huddleDiagramFingerprint(contentType, diagramSource) {
+  const source = typeof diagramSource === 'string' ? diagramSource.trim() : '';
+  return `${contentType || 'mermaid'}::${source}`;
+}
 
 /** Everything the server needs to know about what the huddle is looking at. */
 function huddleContext(params, attendees) {
@@ -93,14 +102,23 @@ function reportUsage(onUsage, payload) {
 }
 
 /** Hand the ring its lines, or dissolve it when nobody had anything to say. */
-function applyHuddleResponse(huddleId, payload, onUsage) {
+function applyHuddleResponse(
+  huddleId,
+  payload,
+  onUsage,
+  { mergeFromIndex = null, fingerprint = '' } = {}
+) {
   reportUsage(onUsage, payload);
   const beats = payload?.script?.beats;
   if (!Array.isArray(beats) || beats.length === 0) {
-    endOfficeHuddle(huddleId);
+    if (mergeFromIndex == null) endOfficeHuddle(huddleId);
     return;
   }
-  setOfficeHuddleBeats(huddleId, beats);
+  if (mergeFromIndex != null) {
+    refreshOfficeHuddleBeats(huddleId, mergeFromIndex, beats, fingerprint);
+    return;
+  }
+  setOfficeHuddleBeats(huddleId, beats, { diagramFingerprint: fingerprint });
 }
 
 /**
@@ -124,6 +142,7 @@ function applyHuddleResponse(huddleId, payload, onUsage) {
  *   getContentType?: () => string,
  *   getDiagramSource?: () => string,
  *   getSvgRoot?: () => ParentNode | null | undefined,
+ *   getDiagramWatchKey?: () => string,
  *   onUsage?: (usage: { inputTokens: number, outputTokens: number, model: string | null }) => void,
  *   onCancelNarration?: () => void
  * }} params
@@ -136,15 +155,45 @@ export function useHuddlePlayback(params) {
   });
 
   const abortRef = useRef(/** @type {AbortController | null} */ (null));
+  const refreshAbortRef = useRef(/** @type {AbortController | null} */ (null));
   const suggestAbortRef = useRef(/** @type {AbortController | null} */ (null));
   const generationRef = useRef(0);
+  const refreshGenerationRef = useRef(0);
   const suggestGenerationRef = useRef(0);
+  const diagramFingerprintRef = useRef('');
+  const [diagramWatchKey, setDiagramWatchKey] = useState('');
+
+  // Poll the canvas fingerprint while a huddle is live — diagram state lives
+  // outside officeMomentStore, so a store subscription alone cannot see edits.
+  useEffect(() => {
+    if (!snapshot.huddle) {
+      setDiagramWatchKey('');
+      return undefined;
+    }
+    const read = () => {
+      const p = paramsRef.current;
+      const key =
+        typeof p.getDiagramWatchKey === 'function'
+          ? p.getDiagramWatchKey()
+          : huddleDiagramFingerprint(
+              p.getContentType?.() ?? 'mermaid',
+              p.getDiagramSource?.() ?? ''
+            );
+      setDiagramWatchKey(key);
+    };
+    read();
+    const id = setInterval(read, 350);
+    return () => clearInterval(id);
+  }, [snapshot.huddle?.id]);
 
   const endHuddle = useCallback(() => {
     generationRef.current += 1;
+    refreshGenerationRef.current += 1;
     suggestGenerationRef.current += 1;
     abortRef.current?.abort();
     abortRef.current = null;
+    refreshAbortRef.current?.abort();
+    refreshAbortRef.current = null;
     suggestAbortRef.current?.abort();
     suggestAbortRef.current = null;
     paramsRef.current.onCancelNarration?.();
@@ -154,13 +203,39 @@ export function useHuddlePlayback(params) {
   useEffect(
     () => () => {
       generationRef.current += 1;
+      refreshGenerationRef.current += 1;
       suggestGenerationRef.current += 1;
       abortRef.current?.abort();
+      refreshAbortRef.current?.abort();
       suggestAbortRef.current?.abort();
       paramsRef.current.onCancelNarration?.();
     },
     []
   );
+
+  const refreshHuddleForDiagram = useCallback(async (huddleId, mergeFromIndex, priorBeats) => {
+    const generation = ++refreshGenerationRef.current;
+    refreshAbortRef.current?.abort();
+    const controller = new AbortController();
+    refreshAbortRef.current = controller;
+    const p = paramsRef.current;
+    const ctx = huddleContext(p, getOfficeSnapshot().huddle?.attendees ?? []);
+    const fingerprint = huddleDiagramFingerprint(ctx.contentType, ctx.diagramSource);
+    const payload = await fetchHuddleScript(
+      { ...ctx, attendees: getOfficeSnapshot().huddle?.attendees ?? [], priorBeats },
+      p.getSessionId?.() ?? '',
+      controller
+    );
+    if (refreshAbortRef.current === controller) refreshAbortRef.current = null;
+    if (generation !== refreshGenerationRef.current) return;
+    const current = getOfficeSnapshot().huddle;
+    if (!current || current.id !== huddleId) return;
+    applyHuddleResponse(huddleId, payload, paramsRef.current.onUsage, {
+      mergeFromIndex,
+      fingerprint
+    });
+    diagramFingerprintRef.current = fingerprint;
+  }, []);
 
   const startHuddle = useCallback(async (attendees) => {
     const seats = (Array.isArray(attendees) ? attendees : []).filter(Boolean);
@@ -174,6 +249,8 @@ export function useHuddlePlayback(params) {
     const controller = new AbortController();
     abortRef.current = controller;
     const p = paramsRef.current;
+    const ctx = huddleContext(p, seats);
+    const fingerprint = huddleDiagramFingerprint(ctx.contentType, ctx.diagramSource);
     const payload = await fetchHuddleScript(
       huddleContext(p, seats),
       p.getSessionId?.() ?? '',
@@ -182,7 +259,8 @@ export function useHuddlePlayback(params) {
     if (abortRef.current === controller) abortRef.current = null;
     if (generation !== generationRef.current) return;
 
-    applyHuddleResponse(huddleId, payload, paramsRef.current.onUsage);
+    applyHuddleResponse(huddleId, payload, paramsRef.current.onUsage, { fingerprint });
+    diagramFingerprintRef.current = fingerprint;
   }, []);
 
   /**
@@ -254,6 +332,48 @@ export function useHuddlePlayback(params) {
     if (!current) return;
     resumeOfficeHuddleSpeaking(current.id);
   }, []);
+
+  // When the canvas changes mid-huddle, re-script remarks that have not been spoken yet.
+  useEffect(() => {
+    const huddle = snapshot.huddle;
+    if (!huddle) {
+      diagramFingerprintRef.current = '';
+      return undefined;
+    }
+    if (huddle.phase !== 'speaking' && huddle.phase !== 'watching') return undefined;
+    if (!huddle.beats?.length) return undefined;
+    if (!diagramWatchKey) return undefined;
+
+    const stored = huddle.diagramFingerprint || diagramFingerprintRef.current;
+    if (!stored || diagramWatchKey === stored) return undefined;
+
+    const timer = setTimeout(() => {
+      const current = getOfficeSnapshot().huddle;
+      if (!current || current.id !== huddle.id) return;
+      if (current.phase !== 'speaking' && current.phase !== 'watching') return;
+      const latestKey =
+        typeof paramsRef.current.getDiagramWatchKey === 'function'
+          ? paramsRef.current.getDiagramWatchKey()
+          : diagramWatchKey;
+      if (latestKey === (current.diagramFingerprint || diagramFingerprintRef.current)) {
+        return;
+      }
+      const mergeFromIndex = Math.max(0, current.activeLineIndex ?? 0);
+      const priorBeats = (current.beats ?? []).slice(0, mergeFromIndex);
+      if (mergeFromIndex >= (current.beats?.length ?? 0)) return;
+      void refreshHuddleForDiagram(current.id, mergeFromIndex, priorBeats);
+    }, HUDDLE_DIAGRAM_REFRESH_DEBOUNCE_MS);
+
+    return () => clearTimeout(timer);
+  }, [
+    snapshot.huddle?.id,
+    snapshot.huddle?.phase,
+    snapshot.huddle?.beats,
+    snapshot.huddle?.diagramFingerprint,
+    snapshot.huddle?.activeLineIndex,
+    diagramWatchKey,
+    refreshHuddleForDiagram
+  ]);
 
   return {
     huddle: snapshot.huddle,

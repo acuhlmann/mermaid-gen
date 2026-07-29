@@ -473,3 +473,15 @@ test('buildHuddleSystemPrompt names every attendee and forbids a facilitator', (
   assert.match(prompt, /EXACTLY one beat per person/);
   assert.match(prompt, /No facilitation/);
 });
+
+test('buildHuddleSystemPrompt refresh mode only scripts remaining teammates', () => {
+  const prompt = buildHuddleSystemPrompt({
+    attendees: ['gilfoyle', 'dinesh', 'erlich'],
+    uiLocale: 'en-US',
+    priorBeats: [{ speakerId: 'gilfoyle', text: 'Still blank.' }]
+  });
+  assert.match(prompt, /REFRESH MODE/);
+  assert.match(prompt, /speakerId "dinesh"/);
+  assert.match(prompt, /speakerId "erlich"/);
+  assert.doesNotMatch(prompt, /speakerId "gilfoyle"/);
+});

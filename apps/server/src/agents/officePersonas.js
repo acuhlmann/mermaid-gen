@@ -626,13 +626,32 @@ export function buildInterjectUserPrompt({
  * procedural padding, so there are no beat kinds. Every line is signal, which is
  * what makes it the face-to-face counterpart to the remote WG meeting.
  */
-export function buildHuddleSystemPrompt({ attendees, uiLocale }) {
-  const cards = attendees
+export function buildHuddleSystemPrompt({ attendees, uiLocale, priorBeats }) {
+  const prior = Array.isArray(priorBeats)
+    ? priorBeats.filter((b) => b?.speakerId && typeof b.text === 'string' && b.text.trim())
+    : [];
+  const spokenIds = new Set(prior.map((b) => b.speakerId));
+  const remaining = prior.length > 0 ? attendees.filter((id) => !spokenIds.has(id)) : attendees;
+  const cards = remaining
     .map((id) => `### ${speakerLabel(id)} — speakerId "${id}"\n${speakerVoice(id)}`)
     .join('\n\n');
+  const refreshBlock =
+    prior.length > 0
+      ? `
+REFRESH MODE: The diagram on screen just changed while the huddle was in progress. These remarks were
+already spoken aloud — do NOT rewrite or repeat them:
+${prior.map((b) => `- ${b.speakerId}: "${String(b.text).trim().slice(0, 120)}"`).join('\n')}
+Write beats ONLY for the teammates listed below who have NOT spoken yet. React to the UPDATED diagram
+as it is now — not the blank canvas they may have ribbed earlier.
+`
+      : '';
+  const headcountRule =
+    prior.length > 0
+      ? `- EXACTLY one beat per person listed below (${remaining.length}), in the SAME ORDER they are listed. No extras, no repeats.`
+      : '- EXACTLY one beat per person listed above, in the SAME ORDER they are listed. No extras, no repeats.';
   return `You are the invisible showrunner of a parody corporate-IT team huddle. The user's teammates
 have crowded around their screen to look at the diagram together, and each gets ONE remark.
-
+${refreshBlock}
 THE HUDDLE (use these speakerId values and NO others):
 
 ${cards}
@@ -640,7 +659,7 @@ ${cards}
 RULES:
 - Output STRICT JSON only — no prose, no backticks, no preamble.
 - Schema: {"beats": [{"speakerId": string, "text": string, "actionPrompt": string (optional)}]}.
-- EXACTLY one beat per person listed above, in the SAME ORDER they are listed. No extras, no repeats.
+${headcountRule}
 - Each "text" is max 30 words. This is a hallway remark over somebody's shoulder, not a presentation.
 - Every beat must engage the ACTUAL diagram and reference at least one visible label by name when
   labels exist.
@@ -657,7 +676,13 @@ RULES:
 - ${SUBJECT_RULE}${buildOfficeLanguageRule(uiLocale)}`;
 }
 
-export function buildHuddleUserPrompt({ contentType, diagramSource, visibleLabels, uiLocale }) {
+export function buildHuddleUserPrompt({
+  contentType,
+  diagramSource,
+  visibleLabels,
+  uiLocale,
+  priorBeats
+}) {
   const labels =
     Array.isArray(visibleLabels) && visibleLabels.length > 0
       ? visibleLabels
@@ -669,6 +694,13 @@ export function buildHuddleUserPrompt({ contentType, diagramSource, visibleLabel
     typeof diagramSource === 'string' && diagramSource.trim()
       ? diagramSource.slice(0, 6000)
       : '(empty)';
+  const prior = Array.isArray(priorBeats)
+    ? priorBeats.filter((b) => b?.speakerId && typeof b.text === 'string' && b.text.trim())
+    : [];
+  const refreshNote =
+    prior.length > 0
+      ? 'The diagram was updated since the huddle started — write only the remaining remarks for the teammates who have not spoken yet, about what is on screen NOW.\n'
+      : '';
   return [
     `Diagram type: ${contentType || 'mermaid'}`,
     '',
@@ -680,6 +712,7 @@ export function buildHuddleUserPrompt({ contentType, diagramSource, visibleLabel
     source,
     '```',
     '',
+    refreshNote,
     `Write the huddle remarks as strict JSON now.${buildOfficeLanguageReminder(uiLocale)}`
   ].join('\n');
 }

@@ -94,7 +94,6 @@ export function AppWorkspaceSlot({
   setInsightsEntries,
   onOfficeEvent,
   setXpInfoPanelOpen,
-  setOutboxOpenSignal,
   setInviteDialogOpen,
   hasCanvasContent,
   setInsightsOpen,
@@ -142,7 +141,6 @@ export function AppWorkspaceSlot({
   pendingHandshakeForAi,
   stateContentType,
   settingsOpenSignal,
-  outboxOpenSignal,
   onInviteAgent,
   externalAgentPresence,
   deskSlotRef,
@@ -278,7 +276,6 @@ export function AppWorkspaceSlot({
         setInsightsEntries={setInsightsEntries}
         handleOfficeEvent={onOfficeEvent}
         setXpInfoPanelOpen={setXpInfoPanelOpen}
-        setOutboxOpenSignal={setOutboxOpenSignal}
         setEditorOpen={setEditorOpen}
         setInviteDialogOpen={setInviteDialogOpen}
         hasCanvasContent={hasCanvasContent}
@@ -356,7 +353,6 @@ export function AppWorkspaceSlot({
         stateContentType={stateContentType}
         controls={shellControls}
         settingsOpenSignal={settingsOpenSignal}
-        outboxOpenSignal={outboxOpenSignal}
         onInviteAgent={onInviteAgent}
         onToggleEditor={() => setEditorOpen((current) => !current)}
         externalAgentPresence={externalAgentPresence}
