@@ -36,7 +36,7 @@ function cssVariant(variant) {
 /**
  * Unified stakeholders dock: one mascot button represents the whole advisory cast.
  * Clicking opens a roster of personas (name, title, action) plus team verbs —
- * Huddle up (crowd the monitor). Summon a sync lives on the desk menu.
+ * Huddle up (crowd the monitor). Have a meeting lives on the desk menu.
  * Auto-collapses on outside click, inactivity, or when a huddle starts.
  */
 export default function StakeholdersMascot({

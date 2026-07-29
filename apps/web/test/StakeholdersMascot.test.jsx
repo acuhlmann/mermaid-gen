@@ -19,7 +19,7 @@ describe('StakeholdersMascot', () => {
     const onHuddle = vi.fn();
     render(<StakeholdersMascot personas={TEST_PERSONAS} onHuddle={onHuddle} canHuddle />);
     expect(screen.getByRole('menuitem', { name: /Huddle up/ })).toBeTruthy();
-    expect(screen.queryByRole('menuitem', { name: /Summon a sync/ })).toBeNull();
+    expect(screen.queryByRole('menuitem', { name: /Have a meeting/ })).toBeNull();
     fireEvent.click(screen.getByRole('menuitem', { name: /Huddle up/ }));
     expect(onHuddle).toHaveBeenCalledTimes(1);
     expect(screen.queryByRole('menu', { name: 'Your team' })).toBeNull();

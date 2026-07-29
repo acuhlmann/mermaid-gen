@@ -57,6 +57,7 @@ import {
   MEETING_FACILITATOR,
   MEETING_MODALITY_PHYSICAL,
   normalizeMeetingModality,
+  normalizeMeetingRoster,
   officeChromeCopy,
   officeDialogueLocale,
   officeMeetingCopy
@@ -508,13 +509,20 @@ export default function OfficeLayer({
     setMeetingPicker(null);
   }, []);
 
+  // Signal bumps are one-shot — track the last handled counter so a meeting
+  // ending (which recreates handleCallMeeting) cannot re-open the picker.
+  const callMeetingHandledRef = useRef(0);
   useEffect(() => {
-    if (callMeetingSignal > 0) handleCallMeeting({ source: 'desk' });
+    if (callMeetingSignal <= 0 || callMeetingSignal === callMeetingHandledRef.current) {
+      return;
+    }
+    callMeetingHandledRef.current = callMeetingSignal;
+    handleCallMeeting({ source: 'desk' });
   }, [callMeetingSignal, handleCallMeeting]);
 
   /**
    * Huddling is your own team crowding your screen, so the roster is the team
-   * tier — no picker. Leadership are not peers; grabbing them is what "Call a
+   * tier — no picker. Leadership are not peers; grabbing them is what "Have a
    * meeting" is for.
    */
   const handleStartHuddle = useCallback(() => {
@@ -525,8 +533,11 @@ export default function OfficeLayer({
     void startHuddle(CAST_TIERS.team);
   }, [meeting, startHuddle]);
 
+  const huddleHandledRef = useRef(0);
   useEffect(() => {
-    if (huddleSignal > 0) handleStartHuddle();
+    if (huddleSignal <= 0 || huddleSignal === huddleHandledRef.current) return;
+    huddleHandledRef.current = huddleSignal;
+    handleStartHuddle();
   }, [huddleSignal, handleStartHuddle]);
 
   // Hard stop, Escape, or the last remark landing — all end the same way. Only
@@ -920,10 +931,11 @@ export default function OfficeLayer({
           onCancelNarration={cancelOfficeNarration}
         />
       )}
-      {/* The call window is renderer #1 of a meeting; the glass room above is
-          renderer #2. Standing up hands the running meeting to the floor and
-          sitting down hands it back — including the ended state, so the minutes
-          card is always read on a screen. */}
+      {/* The call window is renderer #1 of a meeting; the glass room is
+          renderer #2. Physical syncs stand you into the room and hand chrome to
+          the floor. Remote headset calls keep this window at the desk — standing
+          up mid-call paints headsets on the floor (and a side card) without
+          forcing the view change when the call starts. */}
       {onFloor ? null : (
         <MeetingOverlay
           meeting={meeting}

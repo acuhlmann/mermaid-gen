@@ -299,7 +299,18 @@ export default function MeetingOverlay({
   }, []);
 
   const ended = meeting?.state === 'ended';
+  const joining = meeting?.state === 'joining';
   const prevEndedRef = useRef(false);
+  const prevJoiningRef = useRef(false);
+  useEffect(() => {
+    // A fresh join always expands — leftover minimize from the last call would
+    // make "Hop on a call" look like a silent no-op (titlebar only).
+    if (joining && !prevJoiningRef.current) {
+      setMinimized(false);
+      writeOfficeMeetingMinimized(false);
+    }
+    prevJoiningRef.current = joining;
+  }, [joining]);
   useEffect(() => {
     if (ended && !prevEndedRef.current) {
       setMinimized(false);
