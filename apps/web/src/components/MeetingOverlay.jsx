@@ -393,11 +393,7 @@ export default function MeetingOverlay({
               flickKey={transcriptLength}
             />
           ) : null}
-          {meeting.state === 'joining' ? (
-            <div className="office-meeting-joining" role="status">
-              {copy.joiningLine}
-            </div>
-          ) : ended ? (
+          {ended ? (
             <MeetingMinutes
               minutes={minutes}
               copy={copy}
@@ -421,11 +417,11 @@ export default function MeetingOverlay({
                 value={handText}
                 onChange={(event) => setHandText(event.target.value)}
                 placeholder={
-                  meeting.interjectionsLeft > 0 ? copy.raiseHandPlaceholder : copy.interjectCapLine
+                  meeting.interjectionsLeft > 0 ? copy.speakPlaceholder : copy.interjectCapLine
                 }
                 disabled={meeting.interjectionsLeft <= 0}
                 maxLength={400}
-                aria-label={chrome.meeting.raiseHandAria}
+                aria-label={chrome.meeting.speakAria}
               />
               <VoiceMicButton
                 value={handText}
@@ -435,7 +431,7 @@ export default function MeetingOverlay({
               />
               <button type="submit" disabled={meeting.interjectionsLeft <= 0 || !handText.trim()}>
                 {meeting.interjectionsLeft > 0
-                  ? formatLocale(chrome.meeting.raiseHand, { count: meeting.interjectionsLeft })
+                  ? formatLocale(chrome.meeting.speak, { count: meeting.interjectionsLeft })
                   : chrome.meeting.atTime}
               </button>
             </form>

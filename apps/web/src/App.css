@@ -17139,8 +17139,59 @@ body.slopitect-rainbow-tint::before {
   padding: 0.45rem 0.5rem 0.55rem;
 }
 
+/* Share + Export on one row — the desk menu is narrow; stacked pills overflow. */
 .desk-actions-outbox-panel .settings-export {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem;
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+}
+
+.desk-actions-outbox-panel .settings-export-share-primary,
+.desk-actions-outbox-panel .settings-export-toggle {
+  width: auto;
+  flex: 0 0 auto;
+  max-width: none;
+  min-height: 2rem;
+  padding: 0.35rem 0.55rem;
+  font-size: 0.76rem;
+  white-space: nowrap;
+}
+
+.desk-actions-outbox-panel .settings-export-share-primary-label,
+.desk-actions-outbox-panel .settings-export-toggle-label {
+  white-space: nowrap;
+}
+
+.desk-actions-outbox-panel .settings-export-list,
+.desk-actions-outbox-panel .settings-export-empty,
+.desk-actions-outbox-panel .settings-export-feedback,
+.desk-actions-outbox-panel .settings-export-toast {
+  flex: 1 1 100%;
+  width: 100%;
+  max-width: none;
+}
+
+.desk-actions-outbox-panel .settings-export-item {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
   gap: 0.35rem;
+}
+
+.desk-actions-outbox-panel .settings-export-format-label {
+  white-space: nowrap;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.desk-actions-outbox-panel .settings-export-row-actions {
+  flex-wrap: nowrap;
+  flex-shrink: 0;
 }
 
 .outbox-panel--embedded[hidden] {

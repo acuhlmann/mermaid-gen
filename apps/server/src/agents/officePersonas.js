@@ -536,7 +536,10 @@ RULES:
 - Schema: {"scriptVersion": 1, "title": string, "beats": [{"speakerId": string, "kind": "procedural" |
 "smalltalk" | "substantive" | "offRails", "text": string, "actionPrompt": string (substantive only)}]}.
 - 8–12 beats. Each beat text max 40 words — meetings are interruptions, not monologues.
-- "title" reads like a real recurring corporate invite (e.g. "WG: Diagram Governance Sync (recurring)").
+- "title" reads like a real recurring corporate invite. When a requested agenda is
+provided, base the title on that topic — do NOT default to "Architecture Review
+Board" for a two-person headset sync. Reserve steering-committee titles for
+rosters that actually include senior leadership and the facilitator.
 - Open with a procedural beat from "${facilitatorId}" (the facilitator) and close with a procedural
 wrap-up from them.
 - EXACTLY 2 or 3 beats are "substantive": a concrete idea about the ACTUAL diagram, each with an
@@ -798,7 +801,7 @@ export function parseMeetingScript(raw, { attendees }) {
   const title =
     typeof parsed.title === 'string' && parsed.title.trim()
       ? parsed.title.trim().slice(0, 140)
-      : 'WG: Diagram Sync (recurring)';
+      : 'Working group sync';
   const candidate = MeetingScriptSchema.safeParse({ scriptVersion: 1, title, beats });
   if (!candidate.success) return null;
   return normalizeMeetingScript(candidate.data, attendees);
@@ -873,14 +876,14 @@ export function parseHuddleScript(raw, { attendees }) {
 }
 
 /** Validate an attendee list: known speakers, deduped, within seat bounds. */
-export function normalizeAttendees(value) {
+export function normalizeAttendees(value, { minAttendees = MEETING_MIN_ATTENDEES } = {}) {
   if (!Array.isArray(value)) return null;
   const seen = [];
   for (const id of value) {
     if (!isOfficeSpeaker(id) || seen.includes(id)) continue;
     seen.push(id);
   }
-  if (seen.length < MEETING_MIN_ATTENDEES || seen.length > MEETING_MAX_ATTENDEES) return null;
+  if (seen.length < minAttendees || seen.length > MEETING_MAX_ATTENDEES) return null;
   return seen;
 }
 

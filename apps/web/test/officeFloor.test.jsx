@@ -56,17 +56,18 @@ describe('OfficeFloor', () => {
     expect(getOfficeViewMode()).toBe('desk');
   });
 
-  it('opens a person card and offers Slop Chat for floor colleagues only', () => {
+  it('opens a person card with Go and talk — not Slop Chat on the floor', () => {
     const onMessage = vi.fn();
     renderFloor({ onMessage });
 
     fireEvent.click(screen.getByRole('button', { name: /Chad/ }));
     expect(screen.getByText(/The Intern/)).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: /Message/ }));
-    expect(onMessage).toHaveBeenCalledWith('intern');
+    expect(screen.getByRole('button', { name: /Go and talk/i })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /Message/ })).toBeNull();
+    expect(onMessage).not.toHaveBeenCalled();
   });
 
-  it('will not let you Slop Chat leadership', () => {
+  it('will not let you walk up to leadership without an invite', () => {
     const onMessage = vi.fn();
     renderFloor({ onMessage });
 

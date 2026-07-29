@@ -394,9 +394,8 @@ describe('somebody who is not at their desk', () => {
       'whiteboard'
     );
     expect(screen.queryByRole('button', { name: /Their screen/i })).toBeNull();
-    // Slop Chat™ reaches them wherever they are: rule 2's labelled conventional
-    // path outliving the diegetic one is the rule working, not a gap.
-    expect(screen.getByRole('button', { name: /Message/i })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /Go and talk/i })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /Message/i })).toBeNull();
   });
 
   it('aims Go and talk at where they are standing, not at the chair they left', () => {

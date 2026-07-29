@@ -4,6 +4,7 @@ import {
   DAY_ONE_INTRO_IDS,
   MEETING_FACILITATOR,
   MEETING_PRESENTER_POOL,
+  MEETING_MODALITY_REMOTE,
   MEETING_ROSTER_MAX,
   MEETING_SENIOR_POOL,
   OFFICE_COLLEAGUES,
@@ -18,7 +19,8 @@ import {
   meetingTopicFromEmailSubjects,
   normalizeMeetingRoster,
   officeSenderInfo,
-  pickMeetingAttendees
+  pickMeetingAttendees,
+  provisionalMeetingTitle
 } from '../src/utils/officeCast.js';
 import { VARIANT_PERSONAS } from '../src/utils/slopitectCopy.js';
 
@@ -94,10 +96,9 @@ describe('cast tiers', () => {
 });
 
 describe('pickMeetingAttendees', () => {
-  it('seats the facilitator, senior stakeholders, and one team presenter', () => {
-    // Sweep a spread of random values so both the 1- and 2-senior branches run.
+  it('steering preset always seats Pam with seniors and a presenter', () => {
     for (const value of [0, 0.2, 0.49, 0.5, 0.75, 0.99]) {
-      const seats = pickMeetingAttendees(() => value);
+      const seats = pickMeetingAttendees(() => value, { facilitator: true });
       expect(seats[0]).toBe('scrumMaster');
       expect(seats.length).toBeGreaterThanOrEqual(3);
       expect(seats.length).toBeLessThanOrEqual(4);
@@ -109,6 +110,12 @@ describe('pickMeetingAttendees', () => {
       expect(presenters.length).toBe(1);
     }
   });
+
+  it('ambient invites sometimes skip Pam', () => {
+    const seats = pickMeetingAttendees(() => 0.99, { facilitator: 'sometimes' });
+    expect(seats).not.toContain(MEETING_FACILITATOR);
+    expect(seats.length).toBeGreaterThanOrEqual(2);
+  });
 });
 
 describe('buildMeetingAttendeesFromColleagues', () => {
@@ -118,16 +125,13 @@ describe('buildMeetingAttendeesFromColleagues', () => {
     expect(seats).not.toContain(MEETING_FACILITATOR);
   });
 
-  it('pads an empty roster to the huddle minimum without forcing Pam', () => {
-    const seats = buildMeetingAttendeesFromColleagues([]);
-    expect(seats).not.toContain(MEETING_FACILITATOR);
-    expect(seats.length).toBeGreaterThanOrEqual(2);
-    expect(seats[0]).toBe('gilfoyle');
+  it('returns only the colleagues you picked', () => {
+    expect(buildMeetingAttendeesFromColleagues([])).toEqual([]);
   });
 });
 
 describe('normalizeMeetingRoster', () => {
-  it('caps at eight and can skip forcing Pam for a true huddle', () => {
+  it('caps at eight and does not add uninvited colleagues', () => {
     const many = normalizeMeetingRoster([
       'intern',
       'greybeard',
@@ -139,12 +143,34 @@ describe('normalizeMeetingRoster', () => {
       'richard',
       'barker'
     ]);
-    expect(many[0]).toBe('scrumMaster');
     expect(many.length).toBe(MEETING_ROSTER_MAX);
-    expect(normalizeMeetingRoster(['intern'], { forceFacilitator: false })).toEqual([
-      'intern',
-      'gilfoyle'
-    ]);
+    expect(normalizeMeetingRoster(['intern'], { forceFacilitator: false })).toEqual(['intern']);
+  });
+
+  it('adds Pam only when the steering preset forces her', () => {
+    expect(
+      normalizeMeetingRoster(['gilfoyle'], { forceFacilitator: true, random: () => 0 })
+    ).toEqual(['scrumMaster', 'gilfoyle']);
+  });
+});
+
+describe('provisionalMeetingTitle', () => {
+  it('uses the topic, quick-sync labels, or steering only when appropriate', () => {
+    expect(provisionalMeetingTitle({ topic: 'Gateway latency', attendees: ['gilfoyle'] })).toBe(
+      'Gateway latency'
+    );
+    expect(
+      provisionalMeetingTitle({
+        attendees: ['gilfoyle'],
+        modality: MEETING_MODALITY_REMOTE
+      })
+    ).toMatch(/Headset/i);
+    expect(
+      provisionalMeetingTitle({
+        attendees: ['scrumMaster', 'belson', 'gilfoyle']
+      })
+    ).toMatch(/Architecture Review Board/i);
+    expect(provisionalMeetingTitle({ attendees: ['gilfoyle', 'dinesh'] })).toMatch(/sync/i);
   });
 });
 

@@ -12,6 +12,7 @@
  */
 
 import { useState } from 'react';
+import VoiceMicButton from '../VoiceMicButton.jsx';
 import FloorBubble from './FloorBubble.jsx';
 import FloorFigure from './FloorFigure.jsx';
 import { MEETING_USER_SPEAKER } from '../../hooks/useMeetingPlayback.js';
@@ -23,12 +24,10 @@ import {
 } from '../../utils/officeCast.js';
 import { formatLocale } from '../../i18n/formatLocale.js';
 import {
-  MEETING_BUBBLE_DEPTH,
   MEETING_PLAYER_TILE,
   YOU_SEAT_ID,
   bubbleAlignForTile,
   depthOf,
-  liftToDepth,
   meetingSeating,
   projectIso,
   seatFor
@@ -83,38 +82,15 @@ function MeetingActor({ castId, tile, speaking, isYou, idleIndex, copy }) {
 }
 
 /**
- * The newest beat, on a fixed depth line above the room and in the speaker's own
- * screen column — so the tail points at them, the bubble clears the back row,
- * and it does not leap across the table on every beat.
+ * Desk-side bubble for a remote headset sync — sits above their own chair.
  */
-function MeetingBubble({ speakerId, text, tile, scale, copy }) {
-  const { name, title } = actorInfo(speakerId, copy);
-  const above = liftToDepth(tile, MEETING_BUBBLE_DEPTH);
-  const { left, top } = projectIso(above.x, above.y);
-  const align = bubbleAlignForTile(tile);
-  return (
-    <div
-      className="office-floor-walker"
-      data-testid="office-floor-meeting-bubble"
-      style={{ left, top, zIndex: BUBBLE_Z }}
-    >
-      <div className="office-floor-walker-anchor">
-        <FloorBubble name={name} title={title} scale={scale} align={align}>
-          {text}
-        </FloorBubble>
-      </div>
-    </div>
-  );
-}
-
-/** Desk-side bubble for a remote headset sync — sits above their own chair. */
 function RemoteMeetingBubble({ speakerId, text, scale, copy }) {
   const seatId = speakerId === MEETING_USER_SPEAKER ? YOU_SEAT_ID : speakerId;
   const seat = seatFor(seatId);
   if (!seat) return null;
   const tile = { x: seat.x, y: seat.y };
   const { name, title } = actorInfo(speakerId, copy);
-  const above = liftToDepth(tile, tile.x + tile.y - 0.55);
+  const above = { x: tile.x, y: tile.x + tile.y - 0.55 };
   const { left, top } = projectIso(above.x, above.y);
   const align = bubbleAlignForTile(tile);
   return (
@@ -161,12 +137,6 @@ export function FloorMeeting({ meeting, copy, scale = 1, showSpokenText = true }
     ) : null;
   }
 
-  const seatOf = (castId) =>
-    castId === MEETING_USER_SPEAKER
-      ? MEETING_PLAYER_TILE
-      : (seating.find((seat) => seat.id === castId)?.tile ?? null);
-  const bubbleTile = speakingId ? seatOf(speakingId) : null;
-
   return (
     <>
       {seating.map(({ id, tile }, index) => (
@@ -188,22 +158,12 @@ export function FloorMeeting({ meeting, copy, scale = 1, showSpokenText = true }
         isYou
         copy={copy}
       />
-
-      {showSpokenText && bubbleTile && lastBeat?.text ? (
-        <MeetingBubble
-          speakerId={speakingId}
-          text={lastBeat.text}
-          tile={bubbleTile}
-          scale={scale}
-          copy={copy}
-        />
-      ) : null}
     </>
   );
 }
 
-/** Raise a hand — the same capped one-liner the call window takes. */
-function RaiseHandForm({ meeting, meetingCopy, chromeMeeting, onInterject }) {
+/** Speak to the room — capped interjections, mic parity with the call window. */
+function MeetingSpeakForm({ meeting, meetingCopy, chromeMeeting, onInterject }) {
   const [text, setText] = useState('');
   const spent = meeting.interjectionsLeft <= 0;
 
@@ -221,10 +181,16 @@ function RaiseHandForm({ meeting, meetingCopy, chromeMeeting, onInterject }) {
         type="text"
         value={text}
         onChange={(event) => setText(event.target.value)}
-        placeholder={spent ? meetingCopy.interjectCapLine : meetingCopy.raiseHandPlaceholder}
+        placeholder={spent ? meetingCopy.interjectCapLine : meetingCopy.speakPlaceholder}
         disabled={spent}
         maxLength={400}
-        aria-label={chromeMeeting.raiseHandAria}
+        aria-label={chromeMeeting.speakAria}
+      />
+      <VoiceMicButton
+        value={text}
+        onChange={setText}
+        disabled={spent}
+        className="office-floor-card-mic overlay-button is-mic-toggle"
       />
       <button
         type="submit"
@@ -233,7 +199,7 @@ function RaiseHandForm({ meeting, meetingCopy, chromeMeeting, onInterject }) {
       >
         {spent
           ? chromeMeeting.atTime
-          : formatLocale(chromeMeeting.raiseHand, { count: meeting.interjectionsLeft })}
+          : formatLocale(chromeMeeting.speak, { count: meeting.interjectionsLeft })}
       </button>
     </form>
   );
@@ -261,14 +227,8 @@ export function FloorMeetingCard({ meeting, copy, onInterject, onLeave, onSitDow
       </span>
       <strong className="office-floor-card-heading">{meeting.title}</strong>
 
-      {meeting.state === 'joining' ? (
-        <p className="office-floor-card-blurb" role="status">
-          {meetingCopy.joiningLine}
-        </p>
-      ) : null}
-
       {meeting.state === 'playing' ? (
-        <RaiseHandForm
+        <MeetingSpeakForm
           meeting={meeting}
           meetingCopy={meetingCopy}
           chromeMeeting={chromeMeeting}

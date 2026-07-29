@@ -158,7 +158,7 @@ describe('talking on the floor (slice 8)', () => {
     expect(mic.className).toContain('office-floor-talk-mic');
   });
 
-  it('shows recent thread turns in the talk card', async () => {
+  it('shows recent thread turns in Slop Chat, not on the floor card', async () => {
     const imHistory = [
       imFrom(CHAD, 'is the gateway meant to talk to itself?'),
       imFrom(CHAD, 'maybe we should check the edges', true)
@@ -166,10 +166,14 @@ describe('talking on the floor (slice 8)', () => {
     renderFloor({ imHistory, onTalkGreet: vi.fn() });
     walkOverToTalk();
 
-    const thread = await screen.findByTestId('office-floor-talk-thread');
-    expect(thread.textContent).toContain('is the gateway meant to talk to itself?');
-    expect(thread.textContent).toContain('maybe we should check the edges');
-    expect(thread.textContent).toMatch(/You/i);
+    await screen.findByTestId('office-floor-talk-card');
+    expect(screen.queryByTestId('office-floor-talk-thread')).toBeNull();
+  });
+
+  it('offers Go and talk to your team, not leadership', () => {
+    renderFloor({ onTalkGreet: vi.fn() });
+    fireEvent.click(screen.getByRole('button', { name: /Gilfoyle/ }));
+    expect(screen.getByRole('button', { name: /Go and talk/i })).toBeTruthy();
   });
 
   it('double-clicks a colleague to walk over and talk', async () => {
@@ -180,16 +184,6 @@ describe('talking on the floor (slice 8)', () => {
 
     await screen.findByTestId('office-floor-talk-card');
     expect(onTalkGreet).not.toHaveBeenCalled();
-  });
-
-  it('offers the same canned quick replies Slop Chat does', async () => {
-    const onTalkReply = vi.fn().mockResolvedValue(undefined);
-    renderFloor({ onTalkGreet: vi.fn(), onTalkReply });
-    walkOverToTalk();
-
-    await screen.findByTestId('office-floor-talk-card');
-    fireEvent.click(screen.getByRole('button', { name: 'parking lot' }));
-    await waitFor(() => expect(onTalkReply).toHaveBeenCalledWith(CHAD, 'parking lot'));
   });
 
   it('tells renderer #1 who you are stood in front of, so it can hold the toast', async () => {

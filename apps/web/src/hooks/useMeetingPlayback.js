@@ -5,7 +5,8 @@ import {
   officeDialogueLocale,
   officeMeetingCopy,
   MEETING_FACILITATOR,
-  normalizeMeetingModality
+  normalizeMeetingModality,
+  provisionalMeetingTitle
 } from '../utils/officeCast.js';
 
 export const MEETING_FETCH_TIMEOUT_MS = 25_000;
@@ -37,9 +38,9 @@ function reportUsage(onUsage, payload) {
  * WG meeting playback state machine (docs/office-parody.md).
  *
  * `POST /api/office/meeting` returns the entire beat script in one cheap LLM
- * call; this hook paces it beat-by-beat client-side so it *feels* live (the
- * join latency hides behind an in-fiction "waiting to be admitted" gag).
- * "Raise hand" interjections re-fetch only the remaining beats. Deliberately
+ * call; this hook paces it beat-by-beat client-side so it *feels* live. The
+ * fetch latency is hidden by starting playback immediately — no admission
+ * lobby. "Speak" interjections re-fetch only the remaining beats. Deliberately
  * no SSE in v1 — the script exists before the first byte is useful, and local
  * timers are trivially testable (scriptVersion in the response leaves room
  * for a per-turn v2).
@@ -51,7 +52,7 @@ function reportUsage(onUsage, payload) {
  * Optional `prefetchBeat(beat)` warms cloud TTS for the next line while the
  * current speaker is still talking so hand-offs feel tighter.
  *
- * States: null → 'joining' → 'playing' → 'ended' (completed or left early),
+ * States: null → 'playing' → 'ended' (completed or left early),
  * or 'cancelled' when the script fetch fails (OfficeLayer converts that into
  * a canned cancellation email).
  */
@@ -207,7 +208,14 @@ export function useMeetingPlayback({
           }
           if (generation !== generationRef.current) return;
           applyMeeting((prev) => (prev ? { ...prev, voiceSpeaking: false } : prev));
-          const waitMs = spoken ? (paramsRef.current.narrationGapMs ?? 180) : beatDelayMs(nextBeat);
+          const tailMs =
+            spoken && nextBeat?.text
+              ? Math.min(
+                  480,
+                  Math.max(paramsRef.current.narrationGapMs ?? 180, nextBeat.text.length * 6)
+                )
+              : 0;
+          const waitMs = spoken ? tailMs : beatDelayMs(nextBeat);
           timerRef.current = setTimeout(() => {
             timerRef.current = null;
             if (generation !== generationRef.current) return;
@@ -240,8 +248,8 @@ export function useMeetingPlayback({
       clearTimer();
       pendingBeatsRef.current = [];
       applyMeeting({
-        state: 'joining',
-        title: officeMeetingCopy().inviteFallbackTitle,
+        state: 'playing',
+        title: provisionalMeetingTitle({ attendees: seats, topic, modality }),
         attendees: seats,
         facilitatorId: seats.includes(MEETING_FACILITATOR) ? MEETING_FACILITATOR : seats[0],
         modality,
@@ -262,9 +270,7 @@ export function useMeetingPlayback({
         return;
       }
       pendingBeatsRef.current = script.beats;
-      applyMeeting((prev) =>
-        prev ? { ...prev, state: 'playing', title: script.title || prev.title } : prev
-      );
+      applyMeeting((prev) => (prev ? { ...prev, title: script.title || prev.title } : prev));
       prefetchUpcomingBeat();
       scheduleNextBeat(generation);
     },

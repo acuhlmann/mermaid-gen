@@ -250,8 +250,8 @@ export const MEETING_PRESENTER_POOL = ['gilfoyle', 'jared', 'richard'];
 export const MEETING_FACILITATOR = 'scrumMaster';
 /** Matches packages/shared MEETING_MAX_ATTENDEES / the /meeting route. */
 export const MEETING_ROSTER_MAX = 8;
-/** Matches packages/shared MEETING_MIN_ATTENDEES — the smallest real meeting. */
-export const MEETING_ROSTER_MIN = 2;
+/** Matches packages/shared MEETING_MIN_ATTENDEES — a 1:1 with one colleague counts. */
+export const MEETING_ROSTER_MIN = 1;
 
 /**
  * Where a summoned sync happens on the floor:
@@ -294,7 +294,7 @@ export const MEETING_GROUP_PRESETS = [
     id: 'steering',
     labelKey: 'groupSteering',
     titleKey: 'groupSteeringTitle',
-    resolve: (random = Math.random) => pickMeetingAttendees(random)
+    resolve: (random = Math.random) => pickMeetingAttendees(random, { facilitator: true })
   },
   {
     id: 'floor',
@@ -329,10 +329,14 @@ export function listMeetingDirectory() {
 
 /**
  * Normalize a user-picked roster into a seat list the meeting route accepts:
- * unique speakers, optional Pam-as-facilitator, pad to the room minimum,
- * cap at MEETING_ROSTER_MAX.
+ * unique speakers, optional Pam-as-facilitator (steering preset only), cap at
+ * MEETING_ROSTER_MAX. Does not pad with uninvited colleagues — the picker is
+ * the guest list.
  */
-export function normalizeMeetingRoster(colleagueIds, { forceFacilitator = true } = {}) {
+export function normalizeMeetingRoster(
+  colleagueIds,
+  { forceFacilitator = false, random = Math.random } = {}
+) {
   const unique = [...new Set((colleagueIds ?? []).filter(Boolean))];
   let seats = [];
   for (const id of unique) {
@@ -341,20 +345,59 @@ export function normalizeMeetingRoster(colleagueIds, { forceFacilitator = true }
   }
   if (forceFacilitator && !seats.includes(MEETING_FACILITATOR)) {
     seats = [MEETING_FACILITATOR, ...seats];
-  } else if (seats.includes(MEETING_FACILITATOR) && seats[0] !== MEETING_FACILITATOR) {
+  } else if (!forceFacilitator) {
+    seats = maybePamJoinsImportantMeeting(seats, random);
+  }
+  if (seats.includes(MEETING_FACILITATOR) && seats[0] !== MEETING_FACILITATOR) {
     seats = [MEETING_FACILITATOR, ...seats.filter((id) => id !== MEETING_FACILITATOR)];
   }
   if (seats.length > MEETING_ROSTER_MAX) {
     seats = seats.slice(0, MEETING_ROSTER_MAX);
   }
-  if (seats.length < MEETING_ROSTER_MIN) {
-    for (const id of MEETING_PRESENTER_POOL) {
-      if (seats.includes(id)) continue;
-      seats.push(id);
-      if (seats.length >= MEETING_ROSTER_MIN) break;
-    }
-  }
   return seats;
+}
+
+/**
+ * Pam sometimes injects herself into a big or senior-heavy meeting — eager agile
+ * coaching, not every sync. Never adds her when the roster is already full.
+ *
+ * @param {string[]} seats
+ * @param {() => number} random
+ * @returns {string[]}
+ */
+export function maybePamJoinsImportantMeeting(seats, random = Math.random) {
+  if (seats.includes(MEETING_FACILITATOR)) return seats;
+  const important = seats.some((id) => MEETING_SENIOR_POOL.includes(id)) || seats.length >= 4;
+  if (!important || random() >= 0.35 || seats.length >= MEETING_ROSTER_MAX) {
+    return seats;
+  }
+  return [MEETING_FACILITATOR, ...seats];
+}
+
+/**
+ * Provisional window title while the script loads — topic first, then scale to
+ * roster size and whether this is actually a steering committee.
+ *
+ * @param {{
+ *   attendees?: string[],
+ *   topic?: string,
+ *   modality?: string
+ * }} options
+ * @returns {string}
+ */
+export function provisionalMeetingTitle({ attendees = [], topic = '', modality } = {}) {
+  const trimmed = String(topic ?? '').trim();
+  if (trimmed) return trimmed.slice(0, 140);
+  const copy = officeMeetingCopy();
+  const count = attendees.length;
+  const remote = modality === MEETING_MODALITY_REMOTE;
+  if (count <= 2) {
+    return remote ? copy.quickSyncTitleRemote : copy.quickSyncTitle;
+  }
+  const hasPam = attendees.includes(MEETING_FACILITATOR);
+  const hasSenior = attendees.some((id) => MEETING_SENIOR_POOL.includes(id));
+  if (hasPam && hasSenior) return copy.steeringInviteTitle;
+  return remote ? copy.defaultRemoteTitle : copy.defaultSyncTitle;
 }
 
 /**
@@ -380,20 +423,25 @@ export function pickRandomFrom(list, random = Math.random) {
 }
 
 /**
- * Pick 3–4 steering seats: Pam facilitates, 1–2 senior stakeholders outrank
- * the room, and one team member presents (the poor soul walking the deck
- * upstairs).
+ * Pick steering-style seats for ambient calendar invites: 1–2 seniors, one
+ * presenter, and Pam only when she decides the moment needs agile coaching.
+ *
+ * @param {() => number} random
+ * @param {{ facilitator?: boolean | 'sometimes' }} [options]
+ *   `true` — steering preset (Pam always). `sometimes` — ambient invite gag.
  */
-export function pickMeetingAttendees(random = Math.random) {
+export function pickMeetingAttendees(random = Math.random, { facilitator = 'sometimes' } = {}) {
   const seniors = [...MEETING_SENIOR_POOL];
-  const seats = [MEETING_FACILITATOR];
+  const seats = [];
+  const addPam = facilitator === true || (facilitator === 'sometimes' && random() < 0.55);
+  if (addPam) seats.push(MEETING_FACILITATOR);
   const seniorCount = 1 + (random() < 0.5 ? 1 : 0);
   for (let i = 0; i < seniorCount && seniors.length > 0; i += 1) {
     const index = Math.floor(random() * seniors.length);
     seats.push(seniors.splice(index, 1)[0]);
   }
   const presenter = pickRandomFrom(MEETING_PRESENTER_POOL, random) ?? 'gilfoyle';
-  seats.push(presenter);
+  if (!seats.includes(presenter)) seats.push(presenter);
   return seats;
 }
 
@@ -1239,11 +1287,16 @@ export const OFFICE_BATTLE_SCENES = [
 
 /** In-fiction copy for meeting chrome (invites, joining gag, failure gag). */
 export const OFFICE_MEETING_COPY = {
-  inviteFallbackTitle: 'Architecture Review Board (steering)',
+  inviteFallbackTitle: 'Working group sync',
+  steeringInviteTitle: 'Architecture Review Board (steering)',
+  quickSyncTitle: 'Quick sync',
+  quickSyncTitleRemote: 'Headset sync',
+  defaultSyncTitle: 'Working group sync',
+  defaultRemoteTitle: 'Headset sync',
   inviteFallbackBody:
     'Leadership would like a look at the current diagram. Agenda: the headline, the cost, the risk, and whether it pulses. Your team presents; the seniors have questions. Snacks: no. Optimism: optional.',
   joiningLine: 'Waiting for the organizer to admit you… (they can see you)',
-  cancelledSubject: 'CANCELLED: Architecture Review Board',
+  cancelledSubject: 'CANCELLED: Working group sync',
   cancelledBody:
     'Meeting cancelled — leadership is double-booked. Rescheduled to: never. Action items remain your problem. Synergy remains theoretical.\n\nPam',
   proposeNewTimeGag:
@@ -1255,7 +1308,7 @@ export const OFFICE_MEETING_COPY = {
     'Check items and tap Do selected, or Do it all to ship every action item to the canvas.',
   minutesEmptyLede: 'No action items — a perfect meeting, by corporate standards.',
   discussionNotesLabel: 'Discussion notes',
-  raiseHandPlaceholder: 'Say something to the room… (keep it one-pager)',
+  speakPlaceholder: 'Say something to the room…',
   leaveLabel: 'Leave meeting',
   interjectCapLine: 'Pam: "Great point — let\'s parking-lot it. We\'re at time. Amazing energy."'
 };
@@ -1723,9 +1776,9 @@ export const OFFICE_CHROME_COPY = {
     youName: 'You',
     close: 'Close',
     noMinutes: 'No action items. A perfect meeting, by corporate standards.',
-    raiseHandAria: 'Raise hand',
-    raiseHand: '✋ Raise hand ({count})',
-    atTime: '✋ At time',
+    speakAria: 'Speak to the room',
+    speak: '🗣️ Speak ({count})',
+    atTime: 'At time',
     // Docking the meeting = glancing at your own screen while the room talks.
     dock: '🗕 Look at my screen',
     dockTitle: 'Shrink the meeting to a corner so you can work on the diagram',

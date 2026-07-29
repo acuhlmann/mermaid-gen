@@ -37,7 +37,6 @@ import { reachTileFor, whereaboutsOf } from '../utils/officeFloorReach.js';
 import { YOU_SEAT_ID, peekTileFor } from '../utils/officeFloorPlan.js';
 import {
   MEETING_MODALITY_REMOTE,
-  isOfficeColleagueId,
   officeChromeCopy,
   officeSenderInfo
 } from '../utils/officeCast.js';
@@ -65,14 +64,14 @@ function awayNoteFor(away, copy) {
 }
 
 /**
- * Where you may stand to talk — tier gate × room gate, one derivation.
- * Office-tier colleagues only (Slop Chat™ doctrine); leadership glass and your
- * own team keep the brush-off on the person card. Double-click activate and the
- * person card both ask this so the verb offered is the walk that runs.
+ * Where you may stand to talk — everyone on the floor except leadership
+ * (senior tier). Double-click activate and the person card both ask this so
+ * the verb offered is the walk that runs.
  */
 function talkTileFor(colleagueId, away) {
   if (!colleagueId || colleagueId === YOU_SEAT_ID) return null;
-  if (tierOf(colleagueId) !== 'office' || !isOfficeColleagueId(colleagueId)) return null;
+  const tier = tierOf(colleagueId);
+  if (!tier || tier === 'senior') return null;
   return reachTileFor(colleagueId, away);
 }
 
@@ -121,10 +120,6 @@ function usePersonDetails(selectedId, copy, away) {
     }
     const sender = officeSenderInfo(selectedId);
     const tier = tierOf(selectedId);
-    // The tier decides whether there is anything to say; the room decides
-    // whether you can get close enough to say it. Two independent gates, which
-    // agree by accident rather than by construction.
-    const social = tier === 'office' && isOfficeColleagueId(selectedId);
     // Pure geometry: there has to be somewhere to stand that is not inside
     // the furniture, behind glass, or in front of the screen you came to read
     // — and somebody to stand behind. You cannot look over an absent shoulder,
@@ -137,9 +132,8 @@ function usePersonDetails(selectedId, copy, away) {
       title: sender?.title ?? '',
       blurb: sender?.blurb ?? '',
       tier,
-      // Slop Chat™ reaches them wherever they are: rule 2's labelled
-      // conventional path outliving the diegetic one is the rule working.
-      canMessage: social,
+      // On the floor you talk in person — Slop Chat™ is the screen-side path.
+      canMessage: false,
       peekTile,
       canPeek: peekTile !== null,
       talkTile,
@@ -380,7 +374,6 @@ function OfficeFloorView({ bridge }) {
         peek={peek}
         talk={talk}
         conversation={conversation}
-        talkTurns={activity.talkTurns}
         prop={prop}
         propUse={propUse}
         person={person}

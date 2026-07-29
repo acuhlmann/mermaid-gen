@@ -699,11 +699,16 @@ export const OFFICE_ZH_TW = {
     }
   ],
   OFFICE_MEETING_COPY: {
-    inviteFallbackTitle: '架構評審委員會(指導會議)',
+    inviteFallbackTitle: '工作組同步',
+    steeringInviteTitle: '架構評審委員會(指導會議)',
+    quickSyncTitle: '快速同步',
+    quickSyncTitleRemote: '耳機同步',
+    defaultSyncTitle: '工作組同步',
+    defaultRemoteTitle: '耳機同步',
     inviteFallbackBody:
       '領導層想看看目前這張圖。議程:重點、成本、風險。你的團隊來簡報;高層負責提問。點心:無。',
     joiningLine: '正在等主辦人讓你進來…',
-    cancelledSubject: '已取消:架構評審委員會',
+    cancelledSubject: '已取消:工作組同步',
     cancelledBody: '會議取消 — 領導層行程衝突。改期至:永遠不會。行動項目仍然歸你。\n\nPam',
     proposeNewTimeGag: '已提議新時間。主辦人婉拒了你提議的時間。',
     minutesTitle: '會議紀錄',
@@ -712,7 +717,7 @@ export const OFFICE_ZH_TW = {
     minutesActionLede: '勾選項目後點「套用所選」，或點「全部套用」一次送到畫布。',
     minutesEmptyLede: '沒有行動項目 — 依公司標準，這是完美會議。',
     discussionNotesLabel: '討論紀要',
-    raiseHandPlaceholder: '對大家說點什麼…',
+    speakPlaceholder: '對大家說點什麼…',
     leaveLabel: '離開會議',
     interjectCapLine: 'Pam:「很棒的觀點 — 先放進停車場。時間到了。」'
   },
@@ -963,8 +968,8 @@ export const OFFICE_ZH_TW = {
       youName: '你',
       close: '關閉',
       noMinutes: '沒有行動項目。以公司標準來說,這是一場完美的會議。',
-      raiseHandAria: '舉手',
-      raiseHand: '✋ 舉手({count})',
+      speakAria: '對大家說話',
+      speak: '🗣️ 說話 ({count})',
       atTime: '✋ 時間到',
       dock: '🗕 看我的螢幕',
       dockTitle: '把會議縮到角落,騰出手來改圖',

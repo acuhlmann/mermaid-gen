@@ -703,11 +703,16 @@ export const OFFICE_EN_AU = {
     }
   ],
   OFFICE_MEETING_COPY: {
-    inviteFallbackTitle: 'Architecture Review Board (steering)',
+    inviteFallbackTitle: 'Working group sync',
+    steeringInviteTitle: 'Architecture Review Board (steering)',
+    quickSyncTitle: 'Quick sync',
+    quickSyncTitleRemote: 'Headset sync',
+    defaultSyncTitle: 'Working group sync',
+    defaultRemoteTitle: 'Headset sync',
     inviteFallbackBody:
       'The big bosses want a squiz at the current diagram. Agenda: the headline, the cost, the risk. Your team presents; the seniors have questions. Snacks: nah.',
     joiningLine: 'Waiting for the organiser to let you in…',
-    cancelledSubject: 'CANCELLED: Architecture Review Board',
+    cancelledSubject: 'CANCELLED: Working group sync',
     cancelledBody:
       "Meeting's off — leadership is double-booked. Rescheduled to: never. Action items remain your problem.\n\nPam",
     proposeNewTimeGag: 'New time proposed. The organiser has knocked back your proposed time.',
@@ -718,7 +723,7 @@ export const OFFICE_EN_AU = {
       'Tick items and tap Do selected, or Do the lot to ship every action item to the canvas.',
     minutesEmptyLede: 'No action items — a perfect meeting, by corporate standards.',
     discussionNotesLabel: 'Discussion notes',
-    raiseHandPlaceholder: 'Say something to the room…',
+    speakPlaceholder: 'Say something to the room…',
     leaveLabel: 'Shoot through',
     interjectCapLine: 'Pam: "Great point — let\'s parking-lot it. We\'re at time."'
   },

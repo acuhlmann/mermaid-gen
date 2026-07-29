@@ -122,7 +122,7 @@ export function createHuddleHandler(env) {
       return;
     }
     const payload = parsed.data;
-    const attendees = normalizeAttendees(payload.attendees);
+    const attendees = normalizeAttendees(payload.attendees, { minAttendees: 2 });
     if (!attendees || attendees.length > HUDDLE_MAX_ATTENDEES) {
       res.status(400).json({ error: 'Invalid attendee list' });
       return;

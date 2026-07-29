@@ -403,10 +403,10 @@ describe('MeetingOverlay', () => {
       />
     );
     expect(screen.getByText(/We had this diagram in 1979/)).toBeTruthy();
-    fireEvent.change(screen.getByLabelText('Raise hand'), {
+    fireEvent.change(screen.getByLabelText('Speak to the room'), {
       target: { value: 'What about the budget?' }
     });
-    fireEvent.click(screen.getByRole('button', { name: /Raise hand/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Speak \(2\)/ }));
     expect(onInterject).toHaveBeenCalledWith('What about the budget?');
   });
 
