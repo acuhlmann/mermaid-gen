@@ -32,8 +32,9 @@ function office() {
 
 /**
  * Day One orientation roster (FloorArrival + OfficeDirectory): Your Team minus
- * Gilfoyle and Russ, plus Linda from People Ops. Office floor cast stays ambient
- * but does not walk the intro. Keep ADR-0011 parity — both renderers share this.
+ * Gilfoyle and Russ, plus Linda from People Ops for roster replay. The floor walk
+ * and auto tour use `DAY_ONE_WALK_IDS` (same list without a second Linda beat);
+ * Linda hosts welcome + `welcomeClosingLine` instead.
  */
 export const DAY_ONE_INTRO_IDS = Object.freeze([
   'dinesh',
@@ -122,8 +123,9 @@ export const OFFICE_COLLEAGUES = {
     name: 'Linda',
     title: 'People Ops Business Partner',
     blurb: 'Weaponized cheerfulness. Training overdue since onboarding. Please sign Craig’s card.',
+    // Roster replay identity — ceremony closing uses welcomeClosingLine instead.
     introLine:
-      "I'm Linda, People Ops. Your badge photo is processing, your compliance training is somehow already overdue, and Craig's birthday card still needs a warm generic message. You are going to fit in beautifully.",
+      "I'm Linda, People Ops. Badge photos, overdue trainings, and Craig's birthday card — that last one is somehow your problem too.",
     avatarEmoji: '📎',
     accentColor: '#db2777',
     emailFrom: 'people-ops@archislop.corp',
@@ -1276,7 +1278,9 @@ export const OFFICE_CHROME_COPY = {
     transcriptTitle: 'Show spoken dialogue as text — for when you cannot listen',
     welcomeVoiceSpeakerId: 'hr',
     welcomeVoiceLine:
-      "Welcome to the floor. I'm Linda, from People Ops. Pick up your badge, type your name, and I'll introduce Your Team — Dinesh, Erlich, Jared, Richard, and Jack. Gilfoyle and Russ skip orientation. You are going to fit in beautifully.",
+      "Welcome to the floor. I'm Linda, from People Ops. Come with me — I'll walk you around to meet Your Team. Gilfoyle and Russ skip orientation on purpose.",
+    welcomeClosingLine:
+      "That's Day One. Your desk is waiting — pitch a deliverable when you're ready. Compliance training is somehow already overdue, and Craig's birthday card is still on the fridge. Try not to reply-all about the stapler.",
     nameTag: {
       hello: 'HELLO',
       subtitle: 'my name is',
@@ -1534,7 +1538,7 @@ export const OFFICE_CHROME_COPY = {
       skip: 'Skip the ceremony →',
       receptionEyebrow: 'RECEPTION',
       receptionBody:
-        'Sign in, take a lanyard, and try to look like you have done this before. The floor would like to introduce itself.',
+        'Sign in, take a lanyard, and try to look like you have done this before. Linda will walk you across the floor to meet the team — then park you at your desk.',
       checkIn: 'Check in →',
       clockIn: '🪑 Clock in — take your desk',
       clockInEarly: '🪑 Take my desk (I get the idea)',
@@ -1542,6 +1546,8 @@ export const OFFICE_CHROME_COPY = {
       narration: {
         atReception: 'At reception. Sign in to begin.',
         welcome: 'Linda is welcoming you.',
+        walkingToColleague: 'Walking over to {name}.',
+        standingWithColleague: 'Standing with {name}.',
         colleagueIntroducing: '{name} at their desk.',
         walkingToDesk: 'Walking to your desk.'
       }

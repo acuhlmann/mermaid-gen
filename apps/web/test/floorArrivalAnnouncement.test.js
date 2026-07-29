@@ -15,14 +15,23 @@ describe('floorArrivalAnnouncement', () => {
     expect(reception.text).toMatch(/At reception/);
     expect(reception.text).not.toMatch(/Linda/);
 
+    const walking = floorArrivalAnnouncement({
+      copy,
+      phase: 'touring',
+      colleagueIndex: 0,
+      speakingId: null,
+      walkingToId: 'dinesh'
+    });
+    expect(walking.text).toMatch(/Walking over to Dinesh/);
+
     const colleague = floorArrivalAnnouncement({
       copy,
-      phase: 'colleagues',
+      phase: 'touring',
       colleagueIndex: 0,
-      speakingId: 'dinesh'
+      speakingId: 'dinesh',
+      atId: 'dinesh'
     });
-    expect(colleague.text).toMatch(/at their desk/);
-    expect(colleague.text).toContain('Dinesh');
+    expect(colleague.text).toMatch(/Standing with Dinesh|Dinesh/);
     expect(colleague.text).not.toMatch(/forty tabs/);
   });
 

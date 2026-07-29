@@ -56,10 +56,11 @@ describe('FloorArrival (isometric first run)', () => {
     expect(document.querySelector('.office-floor-person.is-speaking')).toBeNull();
   });
 
-  it('introduces the floor after check-in, starting with Linda', async () => {
+  it('walks you onto the floor after check-in and starts with Linda', async () => {
     render(<FloorArrival />);
     fireEvent.click(screen.getByRole('button', { name: /Check in/i }));
 
+    expect(screen.getByTestId('office-floor-arrival').className).toMatch(/is-arrival-focused/);
     await waitFor(() => {
       expect(document.querySelector('.office-floor-person.is-speaking')).toBeTruthy();
     });
@@ -108,12 +109,12 @@ describe('FloorArrival (isometric first run)', () => {
     expect(readOfficeDirectorySeen()).toBe(true);
   });
 
-  it('clocking in walks you to your desk and completes boot', async () => {
+  it('early clock-in walks you to your desk and starts the desk tour', async () => {
     const onComplete = vi.fn();
     render(<FloorArrival onComplete={onComplete} />);
     fireEvent.click(screen.getByRole('button', { name: /Check in/i }));
 
-    fireEvent.click(await screen.findByRole('button', { name: /take my desk|clock in/i }));
+    fireEvent.click(await screen.findByRole('button', { name: /take my desk/i }));
 
     // Without an animation engine the walk resolves immediately (also the
     // reduced-motion path), so boot completes and the desk tour follows.

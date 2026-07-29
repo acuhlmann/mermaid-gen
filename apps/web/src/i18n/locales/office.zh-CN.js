@@ -37,7 +37,7 @@ export const OFFICE_ZH_CN = {
       title: '人力运营业务伙伴',
       blurb: '武器化的热情。你的培训已逾期 847 天。记得给 Craig 的贺卡签名。',
       introLine:
-        '我是 Linda，人力运营。你的工牌照片还在处理，合规培训不知怎么已经逾期了，Craig 的生日贺卡还需要一句暖乎乎的套话。你会融入得非常漂亮。'
+        '我是 Linda，人力运营。工牌照片、逾期培训，还有 Craig 的生日贺卡——最后那件不知怎么也成了你的事。'
     },
     greybeard: {
       title: '资深工程师（荣休返聘）',
@@ -811,7 +811,9 @@ export const OFFICE_ZH_CN = {
       transcriptTitle: '显示语音内容为文字 — 无法收听时使用',
       welcomeVoiceSpeakerId: 'hr',
       welcomeVoiceLine:
-        '欢迎来到这层楼。我是琳达，负责人力运营。领取工牌，写下你的名字，我来介绍 Your Team——Dinesh、Erlich、Jared、Richard 和 Jack。Gilfoyle 和 Russ 跳过入职引导。你会融入得很好的。',
+        '欢迎来到这层楼。我是琳达，负责人力运营。跟我来——我带你在楼里走一圈，认识 Your Team。Gilfoyle 和 Russ 故意跳过入职引导。',
+      welcomeClosingLine:
+        '第一天到此为止。你的工位在等你——准备好了就开一个交付件。合规培训不知怎么已经逾期了，Craig 的生日贺卡还在冰箱上。尽量别为订书机全员回复。',
       nameTag: {
         hello: '你好',
         subtitle: '我叫',

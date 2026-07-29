@@ -37,7 +37,7 @@ export const OFFICE_ZH_TW = {
       title: '人資營運業務夥伴',
       blurb: '武器化的熱情。你的訓練已逾期 847 天。記得幫 Craig 的卡片簽名。',
       introLine:
-        '我是 Linda,人資營運。你的識別證照片還在處理,合規訓練不知怎麼已經逾期了,Craig 的生日卡片還需要一句暖呼呼的套話。你會融入得非常漂亮。'
+        '我是 Linda,人資營運。識別證照片、逾期訓練,還有 Craig 的生日卡片——最後那件不知怎麼也成了你的事。'
     },
     greybeard: {
       title: '資深工程師(榮退回鍋)',
@@ -811,7 +811,9 @@ export const OFFICE_ZH_TW = {
       transcriptTitle: '顯示語音內容為文字 — 無法收聽時使用',
       welcomeVoiceSpeakerId: 'hr',
       welcomeVoiceLine:
-        '歡迎來到這層樓。我是琳達，負責人力營運。領取識別證，寫下你的名字，我來介紹 Your Team——Dinesh、Erlich、Jared、Richard 和 Jack。Gilfoyle 和 Russ 跳過到職引導。你會融入得很好的。',
+        '歡迎來到這層樓。我是琳達，負責人力營運。跟我來——我帶你在樓裡走一圈，認識 Your Team。Gilfoyle 和 Russ 故意跳過到職引導。',
+      welcomeClosingLine:
+        '第一天到此為止。你的座位在等你——準備好了就開一個交付件。合規訓練不知怎麼已經逾期了,Craig 的生日卡片還在冰箱上。儘量別為釘書機全員回覆。',
       nameTag: {
         hello: '你好',
         subtitle: '我叫',

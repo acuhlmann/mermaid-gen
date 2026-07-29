@@ -12,6 +12,9 @@ const FULL_DESK_REVEAL = {
 /** Tour steps after the welcome beat on the empty canvas. */
 export const ENTRY_DESK_TOUR_STEPS = ['work-order', 'desk', 'notebook', 'team', 'format'];
 
+/** Auto-advance past the welcome card so newcomers land on the work-order tip. */
+export const ENTRY_WELCOME_AUTO_MS = 3_200;
+
 function revealForTourStep(step) {
   if (!step || step === 'welcome') return FULL_DESK_REVEAL;
   return {
@@ -72,6 +75,19 @@ export function useEntryDeskFlow({
     deskTourStartedRef.current = true;
     setEntryTourStep('welcome');
   }, [deskTourPending]);
+
+  // Smooth handoff from the floor: leave the welcome card briefly, then put the
+  // spotlight on the work order — the actual "what to do next".
+  useEffect(() => {
+    if (entryTourStep !== 'welcome') return undefined;
+    const timer = setTimeout(() => {
+      setEntryTourStep((current) => {
+        if (current !== 'welcome') return current;
+        return pointerSteps[0] ?? null;
+      });
+    }, ENTRY_WELCOME_AUTO_MS);
+    return () => clearTimeout(timer);
+  }, [entryTourStep, pointerSteps]);
 
   const dismissEntryDeskTour = useCallback(() => {
     setEntryTourStep(null);

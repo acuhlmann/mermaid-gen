@@ -49,42 +49,42 @@ export const CONTROLS_EN_AU = {
     starterHint: 'Or pick up an assignment from the floor:',
     starterAria: 'Assignment requests from the floor',
     entryIntro: {
-      greeting: 'Welcome, {name}',
+      greeting: 'You made it, {name}',
       role: 'Architect',
-      body: 'This is your desk — the same controls you will use every day. We will walk through them next.'
+      body: 'This is your desk screen. Pitch a topic in the work order below — that is how every deliverable starts.'
     },
     entryPointers: [
       {
         id: 'work-order',
-        label: 'Work order',
-        text: 'Pitch your topic here. This is the prompt that builds the deliverable.'
+        label: '1 · Work order',
+        text: 'Type what you want built here, then generate. Assignments from the floor are optional shortcuts.'
       },
       {
         id: 'desk',
-        label: 'Your desk',
-        text: 'Tap the helmet for mail, export, and more. The notebook icon beside the desk tray opens your thinking notes.'
+        label: '2 · Your desk',
+        text: 'The helmet opens mail, export, and desk verbs. Stand up anytime to walk the floor again.'
       },
       {
         id: 'notebook',
-        label: 'Notebook',
-        text: 'Open your notebook for run history, critiques, and the code drawer.'
+        label: '3 · Notebook',
+        text: 'Thinking notes, run history, and critiques land here once you have a deliverable.'
       },
       {
         id: 'team',
-        label: 'Your Team',
-        text: 'Colleagues live here. They weigh in once you have a diagram on the canvas.'
+        label: '4 · Your Team',
+        text: 'Colleagues weigh in after the canvas has something to argue about.'
       },
       {
         id: 'format',
-        label: 'Desk tray',
-        text: 'Open the tray for Deliverable format — Diagram, Chart, Anything, and the rest. Pick one before you generate.'
+        label: '5 · Desk tray',
+        text: 'Open the tray to pick Diagram, Chart, Anything, and the rest — then go back to the work order and pitch.'
       }
     ],
     entryTour: {
       next: 'Next',
       skip: 'Skip tour',
-      done: 'Start working',
-      deskEyebrow: 'Your desk'
+      done: 'Pitch your first topic',
+      deskEyebrow: 'At your desk'
     },
     renderAsHint:
       'Pick a format from the Desk tray before you generate. Your desk helmet has export, settings, and more.',
