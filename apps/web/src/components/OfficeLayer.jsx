@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import CallMeetingPicker from './CallMeetingPicker.jsx';
 import CoffeeBreakOverlay from './CoffeeBreakOverlay.jsx';
 import DeskActionsDock from './DeskActionsDock.jsx';
+import HuddleOverlay from './HuddleOverlay.jsx';
 import MeetingInviteToast from './MeetingInviteToast.jsx';
 import MeetingOverlay from './MeetingOverlay.jsx';
 import OfficeBattleOverlay from './OfficeBattleOverlay.jsx';
@@ -13,6 +14,7 @@ import OfficeInboxDock from './OfficeInboxDock.jsx';
 import OfficeMessenger from './OfficeMessenger.jsx';
 import OfficeWalkBy from './OfficeWalkBy.jsx';
 import { useDeskActions } from '../hooks/useDeskActions.js';
+import { useHuddlePlayback } from '../hooks/useHuddlePlayback.js';
 import { meetingMinutes, useMeetingPlayback } from '../hooks/useMeetingPlayback.js';
 import { useOfficeAmbience } from '../hooks/useOfficeAmbience.js';
 import { useOfficeRunReactions } from '../hooks/useOfficeRunReactions.js';
@@ -33,9 +35,7 @@ import {
   pushOfficeEmail,
   pushOfficeImReply,
   setOfficeFocusTime,
-  setOfficeCaptions,
-  setOfficeNarration,
-  setOfficeSoundscape,
+  setOfficeHeadphones,
   subscribe,
   voteOfficeBattle
 } from '../state/officeMomentStore.js';
@@ -49,6 +49,7 @@ import {
   playVictoryDing,
   playYouveGotMail
 } from '../utils/agentChimes.js';
+import { CAST_TIERS } from '../utils/castTiers.js';
 import { officeCueChime, playPropCues } from '../utils/officeCuePlayers.js';
 import { officeMinutesToInsightEntry } from '../utils/appInsightHelpers.js';
 import { fetchOfficeCloudAudio } from '../utils/officeSpeechClient.js';
@@ -115,6 +116,8 @@ export default function OfficeLayer({
   runSignal = null,
   /** Bumped from Your Team menu to start a WG meeting. */
   callMeetingSignal = 0,
+  /** Bumped from Your Team menu to pull the team into a face-to-face huddle. */
+  huddleSignal = 0,
   /** When false, #office-desk-bottom-slot is not in the bottom row (empty intro). */
   deskActionsAnchorReady = false,
   /** Desktop vs mobile bottom row — slot remounts when this flips. */
@@ -202,6 +205,15 @@ export default function OfficeLayer({
     narrateBeat: snapshot.narration ? narrateBeat : undefined,
     prefetchBeat: snapshot.narration ? prefetchBeat : undefined,
     narrationGapMs: OFFICE_NARRATION_GAP_MS,
+    onCancelNarration: cancelOfficeNarration
+  });
+
+  const { huddle, startHuddle, endHuddle } = useHuddlePlayback({
+    getSessionId,
+    getContentType,
+    getDiagramSource,
+    getSvgRoot,
+    onUsage,
     onCancelNarration: cancelOfficeNarration
   });
 
@@ -452,6 +464,38 @@ export default function OfficeLayer({
     if (callMeetingSignal > 0) handleCallMeeting({ source: 'desk' });
   }, [callMeetingSignal, handleCallMeeting]);
 
+  /**
+   * Huddling is your own team crowding your screen, so the roster is the team
+   * tier — no picker. Leadership are not peers; grabbing them is what "Call a
+   * meeting" is for.
+   */
+  const handleStartHuddle = useCallback(() => {
+    if (meeting || getOfficeSnapshot().huddle) return;
+    // The huddle only has a desk renderer today, so standing on the floor would
+    // start a scene nobody can see. Sit down first rather than silently no-op.
+    if (getOfficeViewMode() === 'floor') sitDown();
+    void startHuddle(CAST_TIERS.team);
+  }, [meeting, startHuddle]);
+
+  useEffect(() => {
+    if (huddleSignal > 0) handleStartHuddle();
+  }, [huddleSignal, handleStartHuddle]);
+
+  // Hard stop, Escape, or the last remark landing — all end the same way. Only
+  // a huddle that actually got as far as speaking is worth XP.
+  const handleHardStop = useCallback(() => {
+    if (getOfficeSnapshot().huddle?.phase === 'speaking') onOfficeEvent?.('huddled');
+    endHuddle();
+  }, [endHuddle, onOfficeEvent]);
+
+  const handleHuddleAdopt = useCallback(
+    (prompt, colleagueId) => {
+      endHuddle();
+      onAdoptPrompt?.(prompt, colleagueId);
+    },
+    [endHuddle, onAdoptPrompt]
+  );
+
   const handleMeetingDismiss = useCallback(() => {
     const current = meeting;
     if (!current) {
@@ -586,13 +630,9 @@ export default function OfficeLayer({
       modelProfile={modelProfile}
       onSelectModelProfile={onSelectModelProfile}
       focusTime={snapshot.focusTime}
-      soundscape={snapshot.soundscape}
-      captions={snapshot.captions}
-      narration={snapshot.narration}
+      headphones={snapshot.headphones}
       onToggleFocusTime={setOfficeFocusTime}
-      onToggleSoundscape={setOfficeSoundscape}
-      onToggleCaptions={setOfficeCaptions}
-      onToggleNarration={setOfficeNarration}
+      onToggleHeadphones={setOfficeHeadphones}
     />
   );
   const deskSlot = useSyncExternalStore(
@@ -747,6 +787,19 @@ export default function OfficeLayer({
         onConfirm={handleConfirmMeetingPicker}
         onCancel={handleCancelMeetingPicker}
       />
+      {/* Huddles are a desk-screen fiction — the team crowding the edges of your
+          monitor. The floor's version of that is them physically ringing your
+          desk, which is a future slice (ADR-0011 rule 1); until it exists the
+          verb sits you down rather than rendering nothing. */}
+      {onFloor ? null : (
+        <HuddleOverlay
+          huddle={huddle}
+          onHardStop={handleHardStop}
+          onAdoptPrompt={handleHuddleAdopt}
+          narrateLine={snapshot.narration ? narrateLine : undefined}
+          prefetchLine={snapshot.narration ? prefetchLine : undefined}
+        />
+      )}
       {/* The call window is renderer #1 of a meeting; the glass room above is
           renderer #2. Standing up hands the running meeting to the floor and
           sitting down hands it back — including the ended state, so the minutes

@@ -1,11 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  buildHuddleSystemPrompt,
   buildInterjectSystemPrompt,
   buildMeetingSystemPrompt,
   buildMeetingUserPrompt,
   buildInterjectUserPrompt,
   buildMomentSystemPrompt,
+  parseHuddleScript,
   buildOfficeLanguageRule,
   buildMomentUserPrompt,
   createOfficeChatModel,
@@ -416,4 +418,58 @@ test('all three office prompt builders honour uiLocale', () => {
       uiLocale: 'en-US'
     })
   );
+});
+
+test('parseHuddleScript returns one remark per attendee, in attendee order', () => {
+  // The overlay seats the ring before the LLM answers, so the parser must hand
+  // back seats in the order they were drawn — not the order the model replied in.
+  const raw = JSON.stringify({
+    beats: [
+      { speakerId: 'erlich', text: 'What if Auth were a platform?' },
+      { speakerId: 'gilfoyle', text: 'Auth is doing two jobs.', actionPrompt: 'Split Auth in two' },
+      { speakerId: 'dinesh', text: 'I said that last week.' }
+    ]
+  });
+  const script = parseHuddleScript(raw, { attendees: ['gilfoyle', 'dinesh', 'erlich'] });
+  assert.deepEqual(
+    script.beats.map((b) => b.speakerId),
+    ['gilfoyle', 'dinesh', 'erlich']
+  );
+  assert.equal(script.beats[0].actionPrompt, 'Split Auth in two');
+});
+
+test('parseHuddleScript drops strangers and keeps the first line per teammate', () => {
+  const raw = JSON.stringify({
+    beats: [
+      { speakerId: 'gilfoyle', text: 'First.' },
+      { speakerId: 'gilfoyle', text: 'Second — should not overwrite.' },
+      { speakerId: 'theCeo', text: 'I was not invited.' },
+      { speakerId: 'dinesh', text: 'Mine.' }
+    ]
+  });
+  const script = parseHuddleScript(raw, { attendees: ['gilfoyle', 'dinesh'] });
+  assert.equal(script.beats.length, 2);
+  assert.equal(script.beats[0].text, 'First.');
+  assert.ok(!script.beats.some((b) => b.speakerId === 'theCeo'));
+});
+
+test('parseHuddleScript returns null when nobody usable spoke', () => {
+  assert.equal(parseHuddleScript('not json at all', { attendees: ['gilfoyle', 'dinesh'] }), null);
+  assert.equal(
+    parseHuddleScript(JSON.stringify({ beats: [{ speakerId: 'gilfoyle', text: '  ' }] }), {
+      attendees: ['gilfoyle', 'dinesh']
+    }),
+    null
+  );
+});
+
+test('buildHuddleSystemPrompt names every attendee and forbids a facilitator', () => {
+  const prompt = buildHuddleSystemPrompt({
+    attendees: ['gilfoyle', 'dinesh'],
+    uiLocale: 'en-US'
+  });
+  assert.match(prompt, /speakerId "gilfoyle"/);
+  assert.match(prompt, /speakerId "dinesh"/);
+  assert.match(prompt, /EXACTLY one beat per person/);
+  assert.match(prompt, /No facilitation/);
 });

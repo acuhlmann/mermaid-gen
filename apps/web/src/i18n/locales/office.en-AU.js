@@ -757,14 +757,13 @@ export const OFFICE_EN_AU = {
       sectionGetUp: 'Get up',
       sectionUnderDesk: 'Under the desk',
       ambienceAria: 'Office sound & focus',
+      headphonesLabel: 'Headphones',
+      headphonesOffTitle:
+        'Headphones off — you hear the office. Voices out loud, room tone on, no subtitles.',
+      headphonesOnTitle:
+        'Headphones on — you read the office. Everyone goes quiet and their lines turn up as text.',
       focusTimeLabel: 'Focus',
-      focusTimeTitle: 'Colleagues (mostly) respect Focus Time',
-      soundscapeLabel: 'Noise',
-      soundscapeTitle: 'Ambient office racket — keyboards, printer, coffee machine, the usual',
-      narrationLabel: 'Voice',
-      narrationTitle: 'Speak walk-bys, meetings, and floor chat aloud — mail stays silent',
-      captionsLabel: 'CC',
-      captionsTitle: 'Show spoken lines as text when you cannot listen'
+      focusTimeTitle: 'Focus Time — nobody comes over at all, and the mob stops chiming in'
     },
     directory: {
       title: 'Meet the team',
@@ -842,12 +841,19 @@ export const OFFICE_EN_AU = {
       maxHint: 'Room holds {max} — drop someone before adding more.',
       needSomeone: 'Pick at least one person (Pam alone is a meeting with herself).',
       start: 'Start meeting',
-      startHuddle: 'Start huddle',
+      startHuddle: 'Start',
       cancel: 'Never mind',
       closeAria: 'Close meeting picker',
       sourceEmail: 'From your inbox',
       sourceChat: 'From Slop Chat',
       sourceDesk: 'From your desk'
+    },
+    huddle: {
+      sceneAria: 'Team huddle around your diagram',
+      gathering: 'Everyone is wandering over…',
+      speakingLabel: '{name} is talking',
+      hardStop: 'Hard stop',
+      hardStopTitle: 'Sorry — hard stop on the hour. Break it up.'
     },
     coffee: {
       inviteLine: 'Coffee break? {name} is holding court at the machine.',

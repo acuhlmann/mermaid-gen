@@ -30,12 +30,6 @@ export const CONTROLS_EN = {
     clear: 'Clear',
     clearTitle: 'File a demolition permit · clear the desk and start fresh',
     demolish: 'Shredder',
-    mute: 'Headphones',
-    unmute: 'Headphones off',
-    muteAria: 'Put headphones on — mute your team',
-    unmuteAria: 'Take headphones off — unmute your team',
-    muteTitle: 'Your team is hovering · put headphones on',
-    unmuteTitle: 'Headphones on · team is muted · click to take them off',
     prepForCeo: 'Synergize',
     prepForCeoTitle: 'Synergize · Boil it down before it goes upstairs'
   },
@@ -389,12 +383,17 @@ export const CONTROLS_EN = {
     castAskCommentary: 'Ask {name} for commentary',
     align: 'Prep for the CEO',
     seniorDivider: 'Upstairs',
-    teamActionsHeading: 'Your team',
-    teammatesDivider: 'Teammates',
+    teamActionsHeading: 'Get the team on it',
+    // Clicking a row hands the work to a person. The divider, the arrow, and
+    // this aria string are the whole difference between the roster and the
+    // radial menu, which fires the identical verbs without anyone's name on it.
+    delegateDivider: 'Delegate to…',
+    delegateAria: 'Delegate to {name} — they will {action}',
+    handoffAck: '{name} took it',
     // One-time first-run spotlight framing the team mechanic.
     introEyebrow: '👥 Your team has opinions',
     introBody:
-      'A teammate is weighing in on your diagram — they chime in as you work, whether you asked or not. It is literally their job. Open Your Team and put on Headphones anytime to shut them out.',
+      'A teammate is weighing in on your diagram — they chime in as you work, whether you asked or not. It is literally their job. Hand work to any of them from Your Team, or pull the whole team over for a huddle. Book Focus Time from your desk to shut them out.',
     introDismiss: 'Got it',
     introAria: 'Meet your team'
   },

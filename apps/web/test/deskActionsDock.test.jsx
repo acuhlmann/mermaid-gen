@@ -14,9 +14,7 @@ function open(props = {}) {
     onInviteAgent: vi.fn(),
     canOpenOutbox: true,
     onToggleFocusTime: vi.fn(),
-    onToggleSoundscape: vi.fn(),
-    onToggleCaptions: vi.fn(),
-    onToggleNarration: vi.fn(),
+    onToggleHeadphones: vi.fn(),
     ...props
   };
   render(<DeskActionsDock {...handlers} />);
@@ -117,31 +115,33 @@ describe('DeskActionsDock', () => {
     expect(ambience.compareDocumentPosition(concentration) & Node.DOCUMENT_POSITION_PRECEDING).toBe(
       Node.DOCUMENT_POSITION_PRECEDING
     );
-    expect(screen.getByLabelText('Focus')).toBeTruthy();
-    expect(screen.getByLabelText('Noise')).toBeTruthy();
-    expect(screen.getByLabelText('Voice')).toBeTruthy();
-    expect(screen.getByLabelText('CC')).toBeTruthy();
+    // Two postures replaced the old four checkboxes (Focus / Noise / Voice / CC):
+    // Headphones is how the office reaches you, Focus is whether it does.
+    expect(screen.getByTestId('desk-ambience-headphones').textContent).toContain('Headphones');
+    expect(screen.getByTestId('desk-ambience-focus').textContent).toContain('Focus');
+    expect(ambience.querySelectorAll('input[type="checkbox"]')).toHaveLength(2);
+    expect(ambience.textContent).not.toContain('Noise');
+    expect(ambience.textContent).not.toContain('Voice');
+    expect(ambience.textContent).not.toContain('CC');
     expect(screen.getByTestId('desk-language-pack')).toBeTruthy();
     expect(screen.getByText('Language pack')).toBeTruthy();
     expect(screen.getByRole('radiogroup', { name: /language/i })).toBeTruthy();
     expect(screen.getByRole('radio', { name: /English/i })).toBeTruthy();
   });
 
-  it('toggles Focus, Noise, Voice, and CC from the desk menu footer', () => {
-    const handlers = open({
-      focusTime: false,
-      soundscape: true,
-      captions: false,
-      narration: true
-    });
-    fireEvent.click(screen.getByLabelText('Focus'));
+  it('toggles Headphones and Focus from the desk menu footer', () => {
+    const handlers = open({ focusTime: false, headphones: false });
+    fireEvent.click(screen.getByTestId('desk-ambience-headphones').querySelector('input'));
+    expect(handlers.onToggleHeadphones).toHaveBeenCalledWith(true);
+    fireEvent.click(screen.getByTestId('desk-ambience-focus').querySelector('input'));
     expect(handlers.onToggleFocusTime).toHaveBeenCalledWith(true);
-    fireEvent.click(screen.getByLabelText('Noise'));
-    expect(handlers.onToggleSoundscape).toHaveBeenCalledWith(false);
-    fireEvent.click(screen.getByLabelText('Voice'));
-    expect(handlers.onToggleNarration).toHaveBeenCalledWith(false);
-    fireEvent.click(screen.getByLabelText('CC'));
-    expect(handlers.onToggleCaptions).toHaveBeenCalledWith(true);
+  });
+
+  it('reflects headphones-on so the posture survives a reload', () => {
+    open({ headphones: true });
+    expect(screen.getByTestId('desk-ambience-headphones').querySelector('input').checked).toBe(
+      true
+    );
   });
 
   it('runs contractor verb and closes the menu', () => {

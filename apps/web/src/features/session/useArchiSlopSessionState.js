@@ -79,6 +79,7 @@ export function useArchiSlopSessionState({ controls }) {
   const [outboxOpenSignal, setOutboxOpenSignal] = useState(0);
   const [settingsOpenSignal, setSettingsOpenSignal] = useState(0);
   const [callMeetingSignal, setCallMeetingSignal] = useState(0);
+  const [huddleSignal, setHuddleSignal] = useState(0);
   const [selectedNode, setSelectedNode] = useState(null);
   const [hotkeyOverlayOpen, setHotkeyOverlayOpen] = useState(false);
   const [hoverDescriptor, setHoverDescriptor] = useState(null);
@@ -185,7 +186,9 @@ export function useArchiSlopSessionState({ controls }) {
     settingsOpenSignal,
     setSettingsOpenSignal,
     callMeetingSignal,
+    huddleSignal,
     setCallMeetingSignal,
+    setHuddleSignal,
     selectedNode,
     setSelectedNode,
     hotkeyOverlayOpen,

@@ -534,7 +534,7 @@ describe('App simplified controls', { timeout: 20_000 }, () => {
     render(<App />);
     await waitForControlsReady('Jared Dunn');
 
-    const critiqueButton = await screen.findByRole('button', { name: 'Critique' });
+    const critiqueButton = await screen.findByRole('button', { name: /Delegate to .* Critique/i });
     fireEvent.click(critiqueButton);
 
     // Desk tray Facilities is shown once critique text exists but stays disabled until
@@ -543,7 +543,7 @@ describe('App simplified controls', { timeout: 20_000 }, () => {
       name: /Use clearer labels and simplify branching/i
     });
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Critique' }).disabled).toBe(false);
+      expect(screen.getByRole('button', { name: /Delegate to .* Critique/i }).disabled).toBe(false);
     });
 
     openDeskDrawer();
@@ -595,7 +595,7 @@ describe('App simplified controls', { timeout: 20_000 }, () => {
 
     render(<App />);
     await waitForControlsReady('Jared Dunn');
-    fireEvent.click(await screen.findByRole('button', { name: 'Critique' }));
+    fireEvent.click(await screen.findByRole('button', { name: /Delegate to .* Critique/i }));
 
     const keepBox = await screen.findByRole('checkbox', { name: /Keep this change/i });
     fireEvent.click(keepBox);
@@ -630,7 +630,7 @@ describe('App simplified controls', { timeout: 20_000 }, () => {
 
     render(<App />);
     await waitForControlsReady('Jared Dunn');
-    fireEvent.click(await screen.findByRole('button', { name: 'Critique' }));
+    fireEvent.click(await screen.findByRole('button', { name: /Delegate to .* Critique/i }));
 
     const keepBox = await screen.findByRole('checkbox', { name: /Alpha/i });
     expect(keepBox).toBeTruthy();

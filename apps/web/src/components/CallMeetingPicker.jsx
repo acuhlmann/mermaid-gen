@@ -61,7 +61,10 @@ export default function CallMeetingPicker({
   const selectedCount = selected.size;
   const atCap = selectedCount >= MEETING_ROSTER_MAX;
   const canStart = selectedCount > 0;
-  const isHuddle = selectedCount <= 2;
+  // One or two seats is a quick sync, not the full room — different title and
+  // CTA. Deliberately not called a huddle: that word now means the desk verb
+  // that pulls your whole team over in person, with no picker and no room.
+  const isQuickSync = selectedCount <= 2;
   const sourceLine =
     source === 'email' ? copy.sourceEmail : source === 'chat' ? copy.sourceChat : copy.sourceDesk;
 
@@ -119,7 +122,7 @@ export default function CallMeetingPicker({
         >
           <div>
             <div className="office-meeting-picker-title">
-              {isHuddle ? copy.titleHuddle : copy.title}
+              {isQuickSync ? copy.titleHuddle : copy.title}
             </div>
             <p className="office-meeting-picker-tagline">{copy.tagline}</p>
             <p className="office-meeting-picker-source">{sourceLine}</p>
@@ -258,7 +261,7 @@ export default function CallMeetingPicker({
               disabled={!canStart}
               onClick={handleStart}
             >
-              {isHuddle ? copy.startHuddle : copy.start}
+              {isQuickSync ? copy.startHuddle : copy.start}
             </button>
           </div>
         </div>

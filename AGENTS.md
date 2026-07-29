@@ -163,6 +163,12 @@ Production deploy notes (Cloud Run, billing credits, GitHub Actions CI, optional
 - Avoid destructive git commands unless explicitly requested.
 - Keep docs and commands aligned with actual `package.json` scripts.
 - New baked audio assets go under `apps/web/src/assets/audio/` via `scripts/generate-office-audio.sh`, not by hand-editing `.mp3` files.
+- **Office sound is one posture, not four checkboxes.** The desk menu carries 🎧 **Headphones**
+  (how the office reaches you) and 🔕 **Focus** (whether it does). `setOfficeHeadphones` in
+  `apps/web/src/state/officeMomentStore.js` is a **macro** that writes `narration`/`soundscape`/
+  `captions` — read those three, never `headphones`, from a consumer. Focus is also the advisor
+  roundtable's mute; don't reintroduce a second one. See
+  [`docs/office-parody.md`](docs/office-parody.md) § Desk verbs.
 
 ## Cursor Cloud specific instructions
 

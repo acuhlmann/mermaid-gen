@@ -6779,9 +6779,34 @@
   color: var(--muted);
 }
 
-.stakeholders-roster-team-action.is-muted {
-  border-color: rgba(100, 116, 139, 0.45);
-  background: rgba(148, 163, 184, 0.12);
+/* Huddle is the primary of the three ways to reach the team — the only one that
+ * brings everybody at once — so it carries the accent the others do not. */
+.stakeholders-roster-team-action.is-huddle {
+  background: color-mix(in srgb, var(--slop-action-accent) 14%, transparent);
+  font-weight: 700;
+}
+
+/* The arrow that makes a row read as handing work to a person rather than
+ * picking a mode; it flips to a tick for HANDOFF_ACK_MS after a click. */
+.stakeholders-roster-handoff {
+  margin-right: 0.2rem;
+  font-weight: 700;
+  opacity: 0.65;
+}
+
+.stakeholders-roster-row.is-handed-off {
+  border-color: color-mix(in srgb, #16a34a 45%, var(--control-border));
+  background: color-mix(in srgb, #16a34a 10%, transparent);
+}
+
+.stakeholders-roster-row.is-handed-off .stakeholders-roster-handoff {
+  opacity: 1;
+  color: #16a34a;
+}
+
+.stakeholders-roster-row.is-handed-off .stakeholders-roster-title {
+  color: color-mix(in srgb, #16a34a 70%, var(--text));
+  font-weight: 600;
 }
 
 .stakeholders-roster-team-emoji {
@@ -18318,6 +18343,287 @@ body.slopitect-rainbow-tint::before {
     transform: translateY(6px) rotate(1.5deg);
   }
 }
+
+/* --- Team huddle (everyone crowds the canvas, all four sides) ---
+ * Counterpart to the walk-by above, and deliberately its opposite: the walk-by
+ * is one slow head-drop with a permanent loom because it interrupts you; the
+ * huddle snaps six faces in and holds still because you called it. */
+.office-huddle-layer {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-office-chrome);
+  pointer-events: none;
+  /* Seats start off-layer and slide in; clip so nothing shows before it arrives. */
+  overflow: hidden;
+}
+/* Keep the ring on the diagram column when the side panes are open — the same
+ * insets .run-ceremony-layer[data-ceremony-anchor='canvas'] uses. */
+@media (min-width: 1025px) {
+  .app-shell.is-insights-open:not(.is-editor-open) .office-huddle-layer {
+    right: max(260px, 30vw);
+  }
+  .app-shell.is-insights-open.is-editor-open .office-huddle-layer {
+    right: calc(max(260px, 30vw) + max(320px, 38vw));
+  }
+}
+.office-huddle-shade {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse at center,
+    transparent 34%,
+    color-mix(in srgb, #0f172a 26%, transparent) 100%
+  );
+  pointer-events: none;
+}
+.office-huddle-seat {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  pointer-events: auto;
+  filter: drop-shadow(0 10px 20px rgba(15, 23, 42, 0.32));
+  transition:
+    transform 180ms ease-out,
+    opacity 180ms ease-out;
+}
+/* Seats sit fully inside the layer. The "leaning in from off-screen" read comes
+ * from the enter keyframes, which start each one a full width/height outside —
+ * overhanging the resting pose too would clip faces and truncate name chips. */
+.office-huddle-seat.is-side-top {
+  top: 0.45rem;
+  left: var(--huddle-pos);
+  transform: translateX(-50%);
+}
+.office-huddle-seat.is-side-bottom {
+  bottom: 0.45rem;
+  left: var(--huddle-pos);
+  /* Name above the face so the label never sits under the viewport edge. */
+  flex-direction: column-reverse;
+  transform: translateX(-50%);
+}
+.office-huddle-seat.is-side-left {
+  left: 0.45rem;
+  top: var(--huddle-pos);
+  transform: translateY(-50%);
+}
+.office-huddle-seat.is-side-right {
+  right: 0.45rem;
+  top: var(--huddle-pos);
+  transform: translateY(-50%);
+}
+/* Listening teammates recede so the speaker is unambiguous at a glance. */
+.office-huddle-seat.is-listening {
+  opacity: 0.5;
+}
+.office-huddle-seat.is-speaking {
+  z-index: 2;
+  opacity: 1;
+}
+.office-huddle-seat.is-speaking.is-side-top,
+.office-huddle-seat.is-speaking.is-side-bottom {
+  transform: translateX(-50%) scale(1.08);
+}
+.office-huddle-seat.is-speaking.is-side-left,
+.office-huddle-seat.is-speaking.is-side-right {
+  transform: translateY(-50%) scale(1.08);
+}
+.office-huddle-face {
+  display: block;
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--office-surface-bg) 82%, transparent),
+    0 8px 20px rgba(15, 23, 42, 0.34);
+}
+.office-huddle-seat.is-speaking .office-huddle-face {
+  box-shadow:
+    0 0 0 3px var(--huddle-accent, var(--accent)),
+    0 10px 26px rgba(15, 23, 42, 0.42);
+}
+.office-huddle-name {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text);
+  background: color-mix(in srgb, var(--office-surface-bg) 92%, transparent);
+  border: 1px solid var(--control-border);
+  border-radius: 999px;
+  padding: 1px 8px;
+  white-space: nowrap;
+}
+.office-huddle-bubble {
+  position: absolute;
+  width: min(240px, 42vw);
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 0.55rem 0.7rem;
+  text-align: center;
+  background: color-mix(in srgb, var(--office-surface-bg) 96%, transparent);
+  border: 1px solid
+    color-mix(in srgb, var(--huddle-accent, var(--accent)) 40%, var(--control-border));
+  border-radius: 12px;
+  box-shadow: var(--control-shadow);
+}
+/* The bubble always points back into the canvas, away from its own edge. */
+.office-huddle-seat.is-side-top .office-huddle-bubble {
+  top: calc(100% + 0.4rem);
+}
+.office-huddle-seat.is-side-bottom .office-huddle-bubble {
+  bottom: calc(100% + 0.4rem);
+}
+.office-huddle-seat.is-side-left .office-huddle-bubble {
+  left: calc(100% + 0.4rem);
+}
+.office-huddle-seat.is-side-right .office-huddle-bubble {
+  right: calc(100% + 0.4rem);
+}
+.office-huddle-line {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--text);
+}
+/* CC off + voice on: the label of who is talking, never the line itself. */
+.office-huddle-speaking-label {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.office-huddle-do-it {
+  align-self: center;
+}
+.office-huddle-chrome {
+  position: absolute;
+  left: 50%;
+  bottom: 0.9rem;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  pointer-events: auto;
+}
+.office-huddle-gathering {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.office-huddle-hard-stop {
+  appearance: none;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 0.32rem 0.8rem;
+  border-radius: 999px;
+  color: var(--text);
+  background: color-mix(in srgb, var(--office-surface-bg) 94%, transparent);
+  border: 1px solid color-mix(in srgb, #b91c1c 32%, var(--control-border));
+  box-shadow: var(--control-shadow);
+}
+.office-huddle-hard-stop:hover {
+  background: color-mix(in srgb, #b91c1c 12%, var(--office-surface-bg));
+}
+@media (max-width: 720px) {
+  .office-huddle-bubble {
+    width: min(200px, 62vw);
+  }
+  .office-huddle-name {
+    font-size: 10px;
+  }
+}
+/* Side-specific animation-names live inside the no-preference block on purpose:
+ * they out-specify the shorthand below them, so under `reduce` they would
+ * otherwise reinstate the slide the fade is there to replace. */
+@media (prefers-reduced-motion: no-preference) {
+  .office-huddle-seat {
+    animation: office-huddle-in 240ms cubic-bezier(0.2, 0.85, 0.25, 1) both;
+  }
+  .office-huddle-seat.is-side-bottom {
+    animation-name: office-huddle-in-bottom;
+  }
+  .office-huddle-seat.is-side-left {
+    animation-name: office-huddle-in-left;
+  }
+  .office-huddle-seat.is-side-right {
+    animation-name: office-huddle-in-right;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .office-huddle-seat {
+    animation: office-huddle-fade 240ms ease-out both;
+  }
+  .office-huddle-seat,
+  .office-huddle-seat.is-speaking {
+    transition: none;
+  }
+}
+/* Each side slides in along its own axis. The per-side `transform` above is the
+ * resting pose and `translate`/`scale` compose ahead of it, so a keyframe only
+ * has to describe the offset it arrives from. */
+@keyframes office-huddle-in {
+  from {
+    opacity: 0;
+    scale: 0.9;
+    translate: 0 -100%;
+  }
+  to {
+    opacity: 1;
+    scale: 1;
+    translate: 0 0;
+  }
+}
+@keyframes office-huddle-in-bottom {
+  from {
+    opacity: 0;
+    scale: 0.9;
+    translate: 0 100%;
+  }
+  to {
+    opacity: 1;
+    scale: 1;
+    translate: 0 0;
+  }
+}
+@keyframes office-huddle-in-left {
+  from {
+    opacity: 0;
+    scale: 0.9;
+    translate: -100% 0;
+  }
+  to {
+    opacity: 1;
+    scale: 1;
+    translate: 0 0;
+  }
+}
+@keyframes office-huddle-in-right {
+  from {
+    opacity: 0;
+    scale: 0.9;
+    translate: 100% 0;
+  }
+  to {
+    opacity: 1;
+    scale: 1;
+    translate: 0 0;
+  }
+}
+@keyframes office-huddle-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 @keyframes office-slide-in-left {
   from {
     opacity: 0;

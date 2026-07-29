@@ -2,9 +2,11 @@
  * Office ambience pub/sub store — same hand-rolled useSyncExternalStore
  * pattern as errorToastStore.js. Holds everything the OfficeLayer chrome
  * renders: the email inbox, IM ping stack, active walk-by, coffee-break scene,
- * pending meeting invite, the Focus Time (DND) flag, Soundscape, and Narration
- * (walk-bys + meetings spoken aloud; emails stay silent), and Captions / CC
- * (show spoken dialogue as on-screen text when voice is playing).
+ * pending meeting invite, the active team huddle, the Focus Time (DND) flag,
+ * and the sound flags — Soundscape, Narration (walk-bys + meetings spoken
+ * aloud; emails stay silent), and Captions / CC (show spoken dialogue as
+ * on-screen text when voice is playing). The desk menu drives those three
+ * through one Headphones posture; see setOfficeHeadphones.
  *
  * The useOfficeAmbience hook is the only producer; components subscribe via
  * useSyncExternalStore(subscribe, getOfficeSnapshot).
@@ -13,16 +15,20 @@
 import {
   readOfficeCaptionsEnabled,
   readOfficeFocusTime,
+  readOfficeHeadphones,
   readOfficeNarrationEnabled,
   readOfficeSoundscapeEnabled,
   writeOfficeCaptionsEnabled,
   writeOfficeFocusTime,
+  writeOfficeHeadphones,
   writeOfficeNarrationEnabled,
   writeOfficeSoundscapeEnabled
 } from '../utils/officeAmbienceStorage.js';
 
 export const IM_PING_TTL_MS = 9000;
 export const IM_PING_MAX_VISIBLE = 2;
+/** Mirrors the server's huddle floor — below this it is a walk-by, not a huddle. */
+export const HUDDLE_MIN_SEATS = 2;
 /**
  * Slop Chat™ scrollback. Toast pings expire after IM_PING_TTL_MS and only two
  * show at once, so without a separate log every IM the user didn't catch in
@@ -37,6 +43,11 @@ export const OFFICE_BATTLE_REENTRY_COOLDOWN_MS = 90_000;
 function initialState() {
   return {
     focusTime: readOfficeFocusTime(),
+    /**
+     * Headphones posture — the desk menu's single sound control. A macro over
+     * the three flags below, never read by a consumer directly.
+     */
+    headphones: readOfficeHeadphones(),
     soundscape: readOfficeSoundscapeEnabled(),
     narration: readOfficeNarrationEnabled(),
     /** Opt-in CC for spoken lines (arrival + floor bubbles). */
@@ -58,7 +69,14 @@ function initialState() {
     /** @type {{id: string, topic: string, lines: Array<{speakerId: string, text: string}>, verdicts: Record<string, string>, accepted: boolean, votedFor: string | null, createdAt: number} | null} */
     battle: null,
     /** @type {{id: string, colleagueId: string, title: string, body: string, attendees: string[], createdAt: number} | null} */
-    meetingInvite: null
+    meetingInvite: null,
+    /**
+     * Team huddle — everyone crowds the canvas and speaks in turn. Presentation-
+     * agnostic on purpose (ADR-0011 rule 1): the desk overlay is renderer #1 and
+     * a floor version can read this same slice without forking state.
+     * @type {{id: string, attendees: string[], beats: Array<{speakerId: string, text: string, actionPrompt?: string}>, phase: 'gathering' | 'speaking' | 'ended', createdAt: number} | null}
+     */
+    huddle: null
   };
 }
 
@@ -135,6 +153,26 @@ export function setOfficeCaptions(enabled) {
   update({ captions: Boolean(enabled) });
 }
 
+/**
+ * The one sound control in the desk menu, replacing the old Voice / Noise / CC
+ * checkboxes. Headphones ON is the read-first posture (office silent, captions
+ * on); OFF is sound-first (voice + room tone, no duplicate text).
+ *
+ * Deliberately a *macro* over the three existing flags rather than a fifth flag
+ * to thread through the app: every consumer (room tone, soundscape, narration,
+ * shouldShowSpokenText) keeps reading exactly what it read before. Per-scene CC
+ * buttons on the floor still nudge `captions` on their own — headphones sets the
+ * posture, it does not own captions forever.
+ */
+export function setOfficeHeadphones(enabled) {
+  const on = Boolean(enabled);
+  writeOfficeHeadphones(on);
+  writeOfficeNarrationEnabled(!on);
+  writeOfficeSoundscapeEnabled(!on);
+  writeOfficeCaptionsEnabled(on);
+  update({ headphones: on, narration: !on, soundscape: !on, captions: on });
+}
+
 /** True when any interruptive office surface is currently on screen. */
 export function hasActiveOfficeSurface() {
   return Boolean(
@@ -142,8 +180,44 @@ export function hasActiveOfficeSurface() {
     state.coffee ||
     state.battle ||
     state.meetingInvite ||
+    state.huddle ||
     state.imPings.length >= IM_PING_MAX_VISIBLE
   );
+}
+
+/**
+ * Seat the huddle before a single word exists. The overlay draws the ring from
+ * `attendees` during 'gathering', so the arrival animation runs while the LLM
+ * is still writing — the crowd is the feedback that the click landed.
+ */
+export function startOfficeHuddle(attendees) {
+  const seats = Array.isArray(attendees) ? attendees.filter(Boolean) : [];
+  // Two is the floor the server enforces too — one person leaning in is a
+  // walk-by, and seating a lone face would flash a ring that cannot be scripted.
+  if (seats.length < HUDDLE_MIN_SEATS) return null;
+  const huddle = {
+    id: makeId('huddle'),
+    attendees: seats,
+    beats: [],
+    phase: /** @type {'gathering'} */ ('gathering'),
+    createdAt: Date.now()
+  };
+  update({ huddle });
+  return huddle.id;
+}
+
+/** Script landed — the ring starts talking. Ignored once the huddle is gone. */
+export function setOfficeHuddleBeats(id, beats) {
+  if (!state.huddle || state.huddle.id !== id) return;
+  const next = Array.isArray(beats) ? beats : [];
+  update({ huddle: { ...state.huddle, beats: next, phase: 'speaking' } });
+}
+
+/** Hard stop, last line spoken, or a failed fetch — all end the same way. */
+export function endOfficeHuddle(id = null) {
+  if (!state.huddle) return;
+  if (id && state.huddle.id !== id) return;
+  update({ huddle: null });
 }
 
 export function pushOfficeEmail({ colleagueId, subject, body, actionPrompt }) {

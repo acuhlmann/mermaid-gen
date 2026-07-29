@@ -6,7 +6,6 @@ import {
   MAX_LABEL_EXPLAIN_DUMB_LEVEL
 } from '@archislop/shared';
 import { API_BASE_URL, SESSION_HEADER } from '../state/diagramSession.js';
-import { writeAdvisorMuted } from '../utils/advisorMuteStorage.js';
 import { getAdvisorVisibleLabels } from '../utils/advisorVisibleLabels.js';
 
 /**
@@ -675,7 +674,6 @@ export function useAdvisorOrchestrator(params) {
       if (mutedRef.current) {
         mutedRef.current = false;
         setIsMuted(false);
-        writeAdvisorMuted(false);
       }
       failureUntil = 0;
       dismissBackoffUntil = 0;
@@ -875,12 +873,18 @@ export function useAdvisorOrchestrator(params) {
     promptNextRef.current?.(opts);
   }, []);
 
+  /**
+   * Mute is no longer the roundtable's own setting — Focus Time owns it, since
+   * "don't interrupt me" is one intent whether the interruption is a colleague
+   * or an advisor. `useAdvisorShell` drives this from the office store, which is
+   * also where it is persisted; nothing here writes to localStorage any more.
+   */
+  const setMuted = useCallback((next) => {
+    setIsMuted(Boolean(next));
+  }, []);
+
   const toggleMute = useCallback(() => {
-    setIsMuted((m) => {
-      const next = !m;
-      writeAdvisorMuted(next);
-      return next;
-    });
+    setIsMuted((m) => !m);
   }, []);
 
   /**
@@ -1063,6 +1067,7 @@ export function useAdvisorOrchestrator(params) {
     isDumbingDown,
     architectDumbLevel,
     error,
+    setMuted,
     toggleMute,
     togglePin,
     pauseTimer,

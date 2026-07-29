@@ -15,45 +15,71 @@ const TEST_PERSONAS = [
 describe('StakeholdersMascot', () => {
   afterEach(() => cleanup());
 
-  it('lists team huddle verbs and headphones in the roster when expanded (test mode)', () => {
+  // Three ways to reach the team, in ascending headcount. Headphones used to sit
+  // in this row; it was never a way of reaching anybody and now lives in the desk
+  // menu with the rest of the sound posture.
+  it('lists the three team verbs in the roster when expanded (test mode)', () => {
     const onTalkToTeam = vi.fn();
     const onCallMeeting = vi.fn();
-    const onToggleMute = vi.fn();
+    const onHuddle = vi.fn();
     render(
       <StakeholdersMascot
         personas={TEST_PERSONAS}
         onTalkToTeam={onTalkToTeam}
         onCallMeeting={onCallMeeting}
-        onToggleMute={onToggleMute}
+        onHuddle={onHuddle}
         canTalkToTeam
         canCallMeeting
+        canHuddle
       />
     );
-    expect(screen.getByRole('menuitem', { name: /Talk to your team/ })).toBeTruthy();
+    expect(screen.getByRole('menuitem', { name: /Huddle up/ })).toBeTruthy();
+    expect(screen.getByRole('menuitem', { name: /Grab whoever is free/ })).toBeTruthy();
     expect(screen.getByRole('menuitem', { name: /Call a meeting/ })).toBeTruthy();
-    expect(screen.getByRole('menuitem', { name: /Put headphones on/ })).toBeTruthy();
-    fireEvent.click(screen.getByRole('menuitem', { name: /Talk to your team/ }));
+    expect(screen.queryByRole('menuitem', { name: /headphones/i })).toBeNull();
+    fireEvent.click(screen.getByRole('menuitem', { name: /Huddle up/ }));
+    expect(onHuddle).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByRole('menuitem', { name: /Grab whoever is free/ }));
     expect(onTalkToTeam).toHaveBeenCalledTimes(1);
     fireEvent.click(screen.getByRole('menuitem', { name: /Call a meeting/ }));
     expect(onCallMeeting).toHaveBeenCalledTimes(1);
-    fireEvent.click(screen.getByRole('menuitem', { name: /Put headphones on/ }));
-    expect(onToggleMute).toHaveBeenCalledTimes(1);
   });
 
-  it('blocks team huddle verbs on an empty canvas', () => {
+  it('blocks every team verb on an empty canvas', () => {
     render(
       <StakeholdersMascot
         personas={TEST_PERSONAS}
         onTalkToTeam={vi.fn()}
         onCallMeeting={vi.fn()}
-        onToggleMute={vi.fn()}
+        onHuddle={vi.fn()}
         canTalkToTeam={false}
         canCallMeeting={false}
+        canHuddle={false}
       />
     );
-    expect(screen.getByRole('menuitem', { name: /Talk to your team/ }).disabled).toBe(true);
+    expect(screen.getByRole('menuitem', { name: /Huddle up/ }).disabled).toBe(true);
+    expect(screen.getByRole('menuitem', { name: /Grab whoever is free/ }).disabled).toBe(true);
     expect(screen.getByRole('menuitem', { name: /Call a meeting/ }).disabled).toBe(true);
-    expect(screen.getByRole('menuitem', { name: /Put headphones on/ }).disabled).toBe(false);
+  });
+
+  it('reads persona rows as delegating to a person, and acknowledges the hand-off', () => {
+    const onClick = vi.fn();
+    render(
+      <StakeholdersMascot
+        personas={[{ variant: 'gilfoyle', onClick }]}
+        onTalkToTeam={vi.fn()}
+        onCallMeeting={vi.fn()}
+        onHuddle={vi.fn()}
+      />
+    );
+    expect(screen.getByText('Delegate to…')).toBeTruthy();
+    const row = screen.getByRole('button', { name: /Delegate to .* Refine/i });
+    fireEvent.click(row);
+    expect(onClick).toHaveBeenCalledTimes(1);
+    // The click runs the streaming agent, not the advisor roundtable, so the
+    // roster owns the only acknowledgement that a person picked the work up.
+    expect(row.className).toContain('is-handed-off');
+    expect(row.textContent).toContain('took it');
   });
 
   it('lists personality verbs on roster chips, not duplicate names', () => {

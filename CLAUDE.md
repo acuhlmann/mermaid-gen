@@ -86,6 +86,21 @@ Every session carries **six independent diagram slots** — `mermaid` (Mermaid t
 - `apps/web/src/assets/audio/*.mp3` — baked ElevenLabs assets; don't hand-edit, regenerate via `./scripts/generate-office-audio.sh` (build-time only — never wire ElevenLabs into a route, CI, or a deploy script). See [`docs/audio-assets.md`](docs/audio-assets.md).
 - `package-lock.json`, `skills-lock.json` — never hand-edit.
 
+## Office layer gotchas
+
+- **Office sound is one posture, not four checkboxes.** The desk menu carries 🎧 **Headphones**
+  (how the office reaches you) and 🔕 **Focus** (whether it does). `setOfficeHeadphones` in
+  `apps/web/src/state/officeMomentStore.js` is a **macro** that writes `narration`/`soundscape`/
+  `captions` — read those three, never `headphones`, from a consumer. Focus is also the advisor
+  roundtable's mute; don't reintroduce a second one. See
+  [`docs/office-parody.md`](docs/office-parody.md) § Desk verbs.
+- **A huddle is a moment, so it lives in the store.** `officeMomentStore.huddle` is
+  presentation-agnostic on purpose (ADR-0011 rule 1) — the desk overlay is renderer #1 and the
+  isometric floor version is a follow-up slice. Don't move huddle state into `HuddleOverlay`.
+- **`useScenePacing` reveals every line at once when it has no narrator.** That is right for the
+  coffee/battle cards and wrong for anything that lights one speaker at a time — pass a narrator
+  wrapper that returns `{spoken:false}` instead of passing `undefined`.
+
 ## File-size budgets (work in progress)
 
 Files above ~800 LOC are slated for splits per [ADR-0005](docs/decisions/0005-monolith-splits.md). If you need to make a change in one of these, prefer extracting the slice you touch into a sibling module rather than growing the monolith:

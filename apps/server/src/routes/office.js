@@ -6,6 +6,8 @@ import { extractTextContent } from '../utils/extractTextContent.js';
 import { redactSecrets } from '../utils/redactSecrets.js';
 import { createApiRateLimitMiddleware } from '../middleware/apiRateLimit.js';
 import {
+  buildHuddleSystemPrompt,
+  buildHuddleUserPrompt,
   buildInterjectSystemPrompt,
   buildInterjectUserPrompt,
   buildMeetingSystemPrompt,
@@ -16,6 +18,7 @@ import {
   isOfficeSpeaker,
   normalizeAttendees,
   officeUsageFromReply,
+  parseHuddleScript,
   parseInterjectReply,
   parseMeetingScript,
   parseMomentReply,
@@ -57,6 +60,20 @@ const OfficeMeetingRequestSchema = z.object({
   uiLocale: UiLocaleField
 });
 
+/**
+ * A huddle is your own team crowding your screen, so the seat count is bounded
+ * by the team tier (six) rather than the meeting room's eight.
+ */
+const HUDDLE_MAX_ATTENDEES = 6;
+
+const OfficeHuddleRequestSchema = z.object({
+  contentType: ContentTypeSchema.default('mermaid'),
+  diagramSource: z.string().max(20_000).default(''),
+  visibleLabels: z.array(z.string().max(200)).max(60).default([]),
+  attendees: z.array(z.string().max(40)).min(2).max(HUDDLE_MAX_ATTENDEES),
+  uiLocale: UiLocaleField
+});
+
 const OfficeInterjectRequestSchema = z.object({
   contentType: ContentTypeSchema.default('mermaid'),
   diagramSource: z.string().max(20_000).default(''),
@@ -79,6 +96,60 @@ function safeErrorMessage(error) {
 
 function pickFacilitator(attendees) {
   return attendees.includes('scrumMaster') ? 'scrumMaster' : attendees[0];
+}
+
+/**
+ * The face-to-face counterpart to /meeting: no facilitator, no beat grammar,
+ * one remark per teammate in the order the client already seated them.
+ *
+ * Lives outside createOfficeRouter (unlike its siblings) because that factory
+ * is already over the max-lines-per-function budget — new handlers extract.
+ *
+ * @param {NodeJS.ProcessEnv} env
+ * @returns {import('express').RequestHandler}
+ */
+export function createHuddleHandler(env) {
+  return async (req, res) => {
+    const parsed = OfficeHuddleRequestSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: 'Invalid huddle payload', details: parsed.error.flatten() });
+      return;
+    }
+    const payload = parsed.data;
+    const attendees = normalizeAttendees(payload.attendees);
+    if (!attendees || attendees.length > HUDDLE_MAX_ATTENDEES) {
+      res.status(400).json({ error: 'Invalid attendee list' });
+      return;
+    }
+
+    let model;
+    try {
+      model = createOfficeChatModel(env, { purpose: 'meeting' });
+    } catch (error) {
+      res.status(503).json({ error: safeErrorMessage(error) });
+      return;
+    }
+    if (!model) {
+      res.status(503).json({ error: 'Office LLM is not configured on this server.' });
+      return;
+    }
+
+    const system = buildHuddleSystemPrompt({ attendees, uiLocale: payload.uiLocale });
+    const user = buildHuddleUserPrompt(payload);
+    const officeModel = resolveOfficeModelId(env);
+    try {
+      const reply = await model.invoke([new SystemMessage(system), new HumanMessage(user)]);
+      const usage = officeUsageFromReply(reply);
+      const raw = extractTextContent(reply?.content ?? reply);
+      const script = parseHuddleScript(raw, { attendees });
+      res.status(200).json({
+        script,
+        ...(usage ? { usage, model: officeModel } : {})
+      });
+    } catch (error) {
+      res.status(502).json({ error: safeErrorMessage(error) });
+    }
+  };
 }
 
 /**
@@ -189,6 +260,8 @@ export function createOfficeRouter({ env = process.env } = {}) {
       res.status(502).json({ error: safeErrorMessage(error) });
     }
   });
+
+  router.post('/huddle', createHuddleHandler(env));
 
   // Cloud TTS (Neural2 default, WaveNet switchback) or Web Speech fallback on
   // the client. No LLM — decorative audio

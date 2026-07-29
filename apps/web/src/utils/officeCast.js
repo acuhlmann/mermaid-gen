@@ -248,7 +248,7 @@ export const MEETING_PRESENTER_POOL = ['gilfoyle', 'jared', 'richard'];
 export const MEETING_FACILITATOR = 'scrumMaster';
 /** Matches packages/shared MEETING_MAX_ATTENDEES / the /meeting route. */
 export const MEETING_ROSTER_MAX = 8;
-/** Matches packages/shared MEETING_MIN_ATTENDEES — enough for a huddle. */
+/** Matches packages/shared MEETING_MIN_ATTENDEES — the smallest real meeting. */
 export const MEETING_ROSTER_MIN = 2;
 
 /**
@@ -302,7 +302,7 @@ export function listMeetingDirectory() {
 
 /**
  * Normalize a user-picked roster into a seat list the meeting route accepts:
- * unique speakers, optional Pam-as-facilitator, pad to the huddle minimum,
+ * unique speakers, optional Pam-as-facilitator, pad to the room minimum,
  * cap at MEETING_ROSTER_MAX.
  */
 export function normalizeMeetingRoster(colleagueIds, { forceFacilitator = true } = {}) {
@@ -1279,8 +1279,12 @@ export const OFFICE_CHROME_COPY = {
     slopChatTitle: 'Slop Chat™ — message a colleague or read past threads',
     inbox: 'Check your mail',
     meeting: 'Call a meeting',
-    team: 'Talk to your team',
-    teamToggleAria: 'Talk to your team or mute with headphones',
+    meetingTitle: 'Get a room and a roster — the remote one, with an agenda',
+    team: 'Grab whoever is free',
+    teamTitle: 'Pull one teammate over for a single opinion',
+    huddleAction: 'Huddle up',
+    huddleActionTitle: 'Everyone crowds your screen and says one thing. No agenda, no room.',
+    teamToggleAria: 'Huddle the whole team, or grab one teammate',
     outbox: 'Ship from the Outbox',
     outboxTitle: 'Export or share the deliverable on your desk',
     codeDrawer: 'Spaghetti',
@@ -1303,14 +1307,13 @@ export const OFFICE_CHROME_COPY = {
     thinkingRole: 'Thinking',
     thinkingTitle: 'Your notebook · notes, critiques, and run history',
     ambienceAria: 'Office sound & focus',
+    headphonesLabel: 'Headphones',
+    headphonesOffTitle:
+      'Headphones off — you hear the office. Voices out loud, room tone on, no subtitles.',
+    headphonesOnTitle:
+      'Headphones on — you read the office. Everyone goes quiet and their lines appear as text.',
     focusTimeLabel: 'Focus',
-    focusTimeTitle: 'Colleagues (mostly) respect Focus Time',
-    soundscapeLabel: 'Noise',
-    soundscapeTitle: 'Ambient office noise — keyboards, printer, coffee machine, the usual',
-    narrationLabel: 'Voice',
-    narrationTitle: 'Speak walk-bys, meetings, and floor chat aloud — mail stays silent',
-    captionsLabel: 'CC',
-    captionsTitle: 'Show spoken lines as text when you cannot listen',
+    focusTimeTitle: 'Focus Time — nobody comes over at all, and the team stops chiming in',
     blocked: {
       busy: 'Deploy in progress — nobody leaves their desk.',
       meeting: "You're in a meeting. Look engaged.",
@@ -1371,7 +1374,7 @@ export const OFFICE_CHROME_COPY = {
     maxHint: 'Room holds {max} — drop someone before adding more.',
     needSomeone: 'Pick at least one person (Pam alone is a meeting with herself).',
     start: 'Start meeting',
-    startHuddle: 'Start huddle',
+    startHuddle: 'Start',
     cancel: 'Never mind',
     closeAria: 'Close meeting picker',
     sourceEmail: 'From your inbox',
@@ -1406,7 +1409,7 @@ export const OFFICE_CHROME_COPY = {
     statusBusy: 'In a meeting',
     callMeeting: '📅 Call to talk',
     callMeetingTitle: 'Pull this person into a meeting — add more people if you want',
-    callMeetingDisabledTitle: 'Draw something first — even a huddle needs an agenda',
+    callMeetingDisabledTitle: 'Draw something first — even a quick sync needs an agenda',
     callMeetingNoThread: '📅 Call a meeting',
     callMeetingNoThreadTitle: 'Open the roster and grab whoever you need'
   },
@@ -1414,6 +1417,13 @@ export const OFFICE_CHROME_COPY = {
     kindLabel: 'Over your shoulder',
     preamble: 'Someone is reading your screen from behind. Act natural.',
     dismissAria: 'Wave off {name}'
+  },
+  huddle: {
+    sceneAria: 'Team huddle around your diagram',
+    gathering: 'Everyone is wandering over…',
+    speakingLabel: '{name} is talking',
+    hardStop: 'Hard stop',
+    hardStopTitle: 'Sorry — hard stop at the top of the hour. Break it up.'
   },
   coffee: {
     kindLabel: 'Watercooler · Coffee break',
