@@ -3,7 +3,10 @@ import {
   listMeetingDirectory,
   MEETING_FACILITATOR,
   MEETING_GROUP_PRESETS,
+  MEETING_MODALITY_PHYSICAL,
+  MEETING_MODALITY_REMOTE,
   MEETING_ROSTER_MAX,
+  normalizeMeetingModality,
   normalizeMeetingRoster,
   officeChromeCopy,
   officeSenderInfo
@@ -19,10 +22,12 @@ const TIER_LABEL_KEYS = {
 };
 
 /**
- * People/group picker for calling a meeting — like grabbing colleagues on the
- * floor. Seeded from inbox senders, a Slop Chat thread, or an empty desk grab.
+ * People/group picker for summoning a sync — glass room or headsets.
+ * Seeded from inbox senders, a Slop Chat thread, or an empty desk grab.
  * Pam is available in the directory but is not auto-added — only scheduled
  * invites and the steering preset include her by default.
+ *
+ * Inbox / Slop Chat default to headsets; desk defaults to the glass room.
  */
 export default function CallMeetingPicker({
   open,
@@ -30,6 +35,7 @@ export default function CallMeetingPicker({
   topic: seedTopic = '',
   source = 'desk',
   forceFacilitator = false,
+  defaultModality,
   onConfirm,
   onCancel
 }) {
@@ -38,6 +44,9 @@ export default function CallMeetingPicker({
   const [selected, setSelected] = useState(() => new Set(seedAttendees));
   const [topic, setTopic] = useState(seedTopic ?? '');
   const [keepFacilitator, setKeepFacilitator] = useState(forceFacilitator);
+  const [modality, setModality] = useState(() =>
+    normalizeMeetingModality(defaultModality, { source })
+  );
 
   useEffect(() => {
     if (!open) return;
@@ -45,7 +54,8 @@ export default function CallMeetingPicker({
     setSelected(new Set(seeded.slice(0, MEETING_ROSTER_MAX)));
     setTopic(seedTopic ?? '');
     setKeepFacilitator(forceFacilitator);
-  }, [open, seedAttendees, seedTopic, forceFacilitator]);
+    setModality(normalizeMeetingModality(defaultModality, { source }));
+  }, [open, seedAttendees, seedTopic, forceFacilitator, defaultModality, source]);
 
   useEffect(() => {
     if (!open) return undefined;
@@ -61,12 +71,17 @@ export default function CallMeetingPicker({
   const selectedCount = selected.size;
   const atCap = selectedCount >= MEETING_ROSTER_MAX;
   const canStart = selectedCount > 0;
-  // One or two seats is a quick sync, not the full room — different title and
-  // CTA. Deliberately not called a huddle: that word now means the desk verb
-  // that pulls your whole team over in person, with no picker and no room.
+  // One or two seats is a quick sync, not the full room — different title.
+  // Deliberately not called a huddle: that word means the desk verb that pulls
+  // your whole team over your monitor, with no picker and no room.
   const isQuickSync = selectedCount <= 2;
   const sourceLine =
     source === 'email' ? copy.sourceEmail : source === 'chat' ? copy.sourceChat : copy.sourceDesk;
+  const startLabel = isQuickSync
+    ? copy.startHuddle
+    : modality === MEETING_MODALITY_REMOTE
+      ? copy.startRemote
+      : copy.startPhysical;
 
   const toggle = (id) => {
     setSelected((prev) => {
@@ -94,6 +109,7 @@ export default function CallMeetingPicker({
     const trimmed = String(topic ?? '').trim();
     onConfirm?.({
       attendees,
+      modality,
       ...(trimmed ? { topic: trimmed.slice(0, 200) } : {})
     });
   };
@@ -137,6 +153,33 @@ export default function CallMeetingPicker({
           </button>
         </FloatingWindowDragHandle>
 
+        <div className="office-meeting-picker-modality" role="group" aria-label={copy.modalityAria}>
+          <button
+            type="button"
+            className={`office-meeting-picker-modality-btn${
+              modality === MEETING_MODALITY_PHYSICAL ? ' is-selected' : ''
+            }`}
+            aria-pressed={modality === MEETING_MODALITY_PHYSICAL}
+            title={copy.modalityPhysicalTitle}
+            onClick={() => setModality(MEETING_MODALITY_PHYSICAL)}
+          >
+            <span aria-hidden="true">🏢</span>
+            {copy.modalityPhysical}
+          </button>
+          <button
+            type="button"
+            className={`office-meeting-picker-modality-btn${
+              modality === MEETING_MODALITY_REMOTE ? ' is-selected' : ''
+            }`}
+            aria-pressed={modality === MEETING_MODALITY_REMOTE}
+            title={copy.modalityRemoteTitle}
+            onClick={() => setModality(MEETING_MODALITY_REMOTE)}
+          >
+            <span aria-hidden="true">🎧</span>
+            {copy.modalityRemote}
+          </button>
+        </div>
+
         <label className="office-meeting-picker-topic">
           <span>{copy.topicLabel}</span>
           <input
@@ -170,14 +213,16 @@ export default function CallMeetingPicker({
               {[...selected].map((id) => {
                 const sender = officeSenderInfo(id);
                 return (
-                  <span
+                  <button
                     key={id}
+                    type="button"
                     className="office-meeting-picker-selected-chip"
                     title={sender.name}
+                    aria-label={sender.name}
+                    onClick={() => toggle(id)}
                   >
-                    <PersonaFace id={id} size={24} fallbackEmoji={sender.avatarEmoji} />
-                    <span className="office-meeting-picker-selected-name">{sender.name}</span>
-                  </span>
+                    <PersonaFace id={id} size={22} fallbackEmoji={sender.avatarEmoji} />
+                  </button>
                 );
               })}
             </div>
@@ -261,7 +306,7 @@ export default function CallMeetingPicker({
               disabled={!canStart}
               onClick={handleStart}
             >
-              {isQuickSync ? copy.startHuddle : copy.start}
+              {startLabel}
             </button>
           </div>
         </div>

@@ -15,19 +15,48 @@ const TEST_PERSONAS = [
 describe('StakeholdersMascot', () => {
   afterEach(() => cleanup());
 
-  // Huddle replaced Grab whoever / Call a meeting / ambient advising pop-ups.
-  it('lists Huddle up as the sole team verb and closes the roster when it starts', () => {
+  // Huddle + Summon a sync are the team verbs; Grab whoever was retired.
+  it('lists Huddle up and Summon a sync, and closes the roster when either starts', () => {
     const onHuddle = vi.fn();
-    render(<StakeholdersMascot personas={TEST_PERSONAS} onHuddle={onHuddle} canHuddle />);
+    const onCallMeeting = vi.fn();
+    render(
+      <StakeholdersMascot
+        personas={TEST_PERSONAS}
+        onHuddle={onHuddle}
+        canHuddle
+        onCallMeeting={onCallMeeting}
+        canCallMeeting
+      />
+    );
     expect(screen.getByRole('menuitem', { name: /Huddle up/ })).toBeTruthy();
+    expect(screen.getByRole('menuitem', { name: /Summon a sync/ })).toBeTruthy();
     expect(screen.queryByRole('menuitem', { name: /Grab whoever is free/ })).toBeNull();
-    expect(screen.queryByRole('menuitem', { name: /Call a meeting/ })).toBeNull();
     fireEvent.click(screen.getByRole('menuitem', { name: /Huddle up/ }));
     expect(onHuddle).toHaveBeenCalledTimes(1);
     expect(screen.queryByRole('menu', { name: 'Your team' })).toBeNull();
   });
 
-  it('blocks Huddle up on an empty canvas', () => {
+  it('opens the sync picker from Summon a sync', () => {
+    const onCallMeeting = vi.fn();
+    render(
+      <StakeholdersMascot
+        personas={TEST_PERSONAS}
+        onHuddle={vi.fn()}
+        canHuddle
+        onCallMeeting={onCallMeeting}
+        canCallMeeting
+      />
+    );
+    fireEvent.click(screen.getByRole('menuitem', { name: /Summon a sync/ }));
+    expect(onCallMeeting).toHaveBeenCalledWith({ source: 'desk' });
+  });
+
+  it('allows Huddle up on an empty canvas when canHuddle is true', () => {
+    render(<StakeholdersMascot personas={TEST_PERSONAS} onHuddle={vi.fn()} canHuddle />);
+    expect(screen.getByRole('menuitem', { name: /Huddle up/ }).disabled).toBe(false);
+  });
+
+  it('blocks Huddle up when canHuddle is false (busy / surface)', () => {
     render(<StakeholdersMascot personas={TEST_PERSONAS} onHuddle={vi.fn()} canHuddle={false} />);
     expect(screen.getByRole('menuitem', { name: /Huddle up/ }).disabled).toBe(true);
   });

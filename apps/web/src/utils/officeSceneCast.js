@@ -24,15 +24,16 @@ export function sceneParticipants(lines) {
 /**
  * Everybody who is up and about, and whose desk should therefore stand empty
  * (§ 6 rule 5 — the furniture stays, the person doesn't). Two things take *you*
- * out of your chair: a meeting, where you are visibly in the room rather than
- * at your screen, and standing on the floor at all — peeking at somebody's
- * desk, or just walking about since slice 7. Whoever you walked over to look at
- * does not move: you went to them.
+ * out of your chair: a **physical** glass-room meeting, where you are visibly in
+ * the room rather than at your screen, and standing on the floor at all — peeking
+ * at somebody's desk, or just walking about since slice 7. A **remote** headset
+ * sync leaves everyone (including you) at their desks with headsets on. Whoever
+ * you walked over to look at does not move: you went to them.
  *
  * @param {{
  *   coffee?: { lines?: Array<{speakerId?: string}> } | null,
  *   battle?: { lines?: Array<{speakerId?: string}> } | null,
- *   meeting?: { attendees?: string[] } | null,
+ *   meeting?: { attendees?: string[], modality?: string } | null,
  *   standing?: unknown,
  *   playerId: string
  * }} state `standing` is truthy whenever you are on your feet somewhere that
@@ -41,7 +42,8 @@ export function sceneParticipants(lines) {
  */
 export function awayFromDeskIds({ coffee, battle, meeting, standing, playerId }) {
   const away = [...sceneParticipants(coffee?.lines), ...sceneParticipants(battle?.lines)];
-  if (meeting) away.push(playerId, ...(meeting.attendees ?? []));
+  const physicalMeeting = meeting && meeting.modality !== 'remote';
+  if (physicalMeeting) away.push(playerId, ...(meeting.attendees ?? []));
   if (standing) away.push(playerId);
   return away;
 }

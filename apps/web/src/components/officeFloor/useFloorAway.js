@@ -55,7 +55,7 @@ export function useFloorAway({
   });
 
   const { wanderer, handleArrive, figureRef } = useFloorWander({
-    suspended: Boolean(meeting),
+    suspended: Boolean(meeting && meeting.modality !== 'remote'),
     busyIds: awayIds,
     avoidTile,
     holdId

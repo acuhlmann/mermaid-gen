@@ -17397,7 +17397,7 @@ body.slopitect-rainbow-tint::before {
   margin-left: auto;
 }
 
-/* --- Call a meeting people/group picker --- */
+/* --- Summon a sync people/group picker --- */
 .office-meeting-picker {
   width: min(440px, calc(100vw - 32px));
   max-height: min(640px, calc(100vh - 32px));
@@ -17407,12 +17407,45 @@ body.slopitect-rainbow-tint::before {
   max-height: min(640px, calc(100vh - 32px));
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
   padding: 14px 14px 12px;
   background: var(--office-surface-bg);
   border: 1px solid var(--control-border);
   border-radius: 14px;
   box-shadow: var(--control-shadow);
+  /* Keep topic / modality / footer visible; only the directory scrolls. */
+  overflow: hidden;
+}
+.office-meeting-picker-modality {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+.office-meeting-picker-modality-btn {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid var(--control-border);
+  border-radius: 10px;
+  background: rgba(15, 23, 42, 0.03);
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 8px 10px;
+  cursor: pointer;
+  line-height: 1.25;
+  text-align: center;
+}
+.office-meeting-picker-modality-btn:hover {
+  background: rgba(15, 23, 42, 0.07);
+  border-color: var(--accent);
+}
+.office-meeting-picker-modality-btn.is-selected {
+  background: color-mix(in srgb, var(--accent) 14%, white);
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 25%, transparent);
 }
 .office-meeting-picker-header {
   display: flex;
@@ -17495,9 +17528,8 @@ body.slopitect-rainbow-tint::before {
 }
 .office-meeting-picker-directory {
   overflow: auto;
-  flex: 1;
-  min-height: 160px;
-  max-height: 340px;
+  flex: 1 1 auto;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -17563,14 +17595,17 @@ body.slopitect-rainbow-tint::before {
 }
 .office-meeting-picker-selected-strip {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 8px 10px;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+  padding: 4px 8px;
   border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--control-border));
   border-radius: 10px;
   background: color-mix(in srgb, var(--accent) 6%, var(--modal-card-bg));
+  min-height: 0;
 }
 .office-meeting-picker-selected-label {
+  flex: 0 0 auto;
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.05em;
@@ -17579,22 +17614,26 @@ body.slopitect-rainbow-tint::before {
 }
 .office-meeting-picker-selected-avatars {
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
+  flex-wrap: nowrap;
+  gap: 4px;
+  overflow-x: auto;
+  min-width: 0;
+  padding-bottom: 1px;
 }
 .office-meeting-picker-selected-chip {
+  appearance: none;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 2px 8px 2px 2px;
+  justify-content: center;
+  flex: 0 0 auto;
+  padding: 1px;
   border-radius: 999px;
   border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
   background: color-mix(in srgb, var(--accent) 10%, white);
+  cursor: pointer;
 }
-.office-meeting-picker-selected-name {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--text);
+.office-meeting-picker-selected-chip:hover {
+  border-color: var(--accent);
 }
 .office-meeting-picker-person.is-disabled {
   opacity: 0.45;
@@ -17634,8 +17673,14 @@ body.slopitect-rainbow-tint::before {
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
+  flex: 0 0 auto;
   padding-top: 4px;
   border-top: 1px solid var(--control-border);
+  /* Never let the invited filmstrip shove Start past the viewport. */
+  position: sticky;
+  bottom: 0;
+  background: var(--office-surface-bg);
+  z-index: 1;
 }
 .office-meeting-picker-count {
   font-size: 11px;

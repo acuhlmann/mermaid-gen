@@ -363,24 +363,23 @@ desk verb — first-visit boot and the level panel's "Meet the team" CTA cover t
 | ------------------- | ---------------------------- | ---------------------------------------------------------------------------------------- |
 | Your seat           | Personal cognition           | Notebook (Thinking pane), Concentration (Rush job / Deep work → wire `fast` / `quality`) |
 | Work surface        | The deliverable              | Work order, Desk tray (Deliverable format, Facilities, Shredder)                         |
-| People around you   | Colleagues at adjacent desks | Your Team menu (delegate to a teammate, Huddle up, Grab whoever is free, Call a meeting) |
+| People around you   | Colleagues at adjacent desks | Your Team menu (delegate to a teammate, Huddle up, Summon a sync)                        |
 | Get up              | Leave the chair              | Mail, IM, outbox (+ Stand up is a primary bottom-nav control; coffee is on the floor)    |
 | Under the desk / IT | Cubicle plumbing             | Adjust workstation (contractors + code drawer), HR progression                           |
 
-| Verb                        | Does                                                                                                                                                                                                                                                                                                                |
-| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 📓 Open your notebook       | Toggles the Thinking / insights pane — Your seat; replaces the old Thinking board label                                                                                                                                                                                                                             |
-| 🎚️ Concentration            | Rush job / Deep work segment on Your seat (was Brain Fast/Quality in Settings). Wire value unchanged: `modelProfile: "fast" \| "quality"`                                                                                                                                                                           |
-| ↳ Delegate to a teammate    | A roster row hands the work to a **person**: `runTransform` / `runAnalyze` for that persona, with an arrow, a "Delegate to {name}" accessible name, and a "{name} took it" acknowledgement for `HANDOFF_ACK_MS`. Same verbs as the radial menu; the difference is that somebody's name is on it                     |
-| 🤝 Huddle up                | Pulls the whole `CAST_TIERS.team` tier around your canvas, face to face — see § 5b. In the **Your Team** roster menu                                                                                                                                                                                                |
-| 👥 Grab whoever is free     | `advisor.promptNext({})` — one teammate, in the **Your Team** roster menu (not the desk stamp). Disabled (in-fiction `blocked.noTeam`) on a blank canvas or while streaming/thinking. Explicit click clears Focus Time mute and ambient backoffs so the verb never silently no-ops when the roundtable _can_ speak. |
-| 📅 Call a meeting           | Opens the people/group picker (same as inbox / Slop Chat) — also in the **Your Team** roster menu. This is the **remote** one: a room, a roster, an agenda                                                                                                                                                          |
-| 🧍 Stand up and look around | Primary bottom-nav control beside the desk stamp (`DeskStandUpButton`) — enters isometric floor mode. Not a menu item. While standing, the same control sits you back down                                                                                                                                          |
-| 📥 Check your mail          | Opens the inbox popover (`openSignal` counter prop)                                                                                                                                                                                                                                                                 |
-| 📤 Ship from the Outbox     | Opens the headless Outbox export/share panel (`openSignal`) — no dedicated bottom-row icon                                                                                                                                                                                                                          |
-| 💬 Open Slop Chat / Message | Messenger history / DM a teammate or colleague                                                                                                                                                                                                                                                                      |
-| ⚙️ Adjust your workstation  | Opens headless Settings (guest agents, code drawer) — concentration no longer lives here                                                                                                                                                                                                                            |
-| 📈 Check my HR progression  | Toggles the level-up / People Ops scorecard (`LevelUpInfoPanel`) — always enabled; that panel also links to Meet the team                                                                                                                                                                                           |
+| Verb                        | Does                                                                                                                                                                                                                                                                                            |
+| --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 📓 Open your notebook       | Toggles the Thinking / insights pane — Your seat; replaces the old Thinking board label                                                                                                                                                                                                         |
+| 🎚️ Concentration            | Rush job / Deep work segment on Your seat (was Brain Fast/Quality in Settings). Wire value unchanged: `modelProfile: "fast" \| "quality"`                                                                                                                                                       |
+| ↳ Delegate to a teammate    | A roster row hands the work to a **person**: `runTransform` / `runAnalyze` for that persona, with an arrow, a "Delegate to {name}" accessible name, and a "{name} took it" acknowledgement for `HANDOFF_ACK_MS`. Same verbs as the radial menu; the difference is that somebody's name is on it |
+| 🤝 Huddle up                | Pulls the whole `CAST_TIERS.team` tier around your canvas, face to face — see § 5b. In the **Your Team** roster menu                                                                                                                                                                            |
+| 📅 Summon a sync            | Opens the people/group picker (same as inbox / Slop Chat) — also in the **Your Team** roster menu. Toggle **Book the glass room** vs **Slap on headsets**; blank canvas is fine                                                                                                                 |
+| 🧍 Stand up and look around | Primary bottom-nav control beside the desk stamp (`DeskStandUpButton`) — enters isometric floor mode. Not a menu item. While standing, the same control sits you back down                                                                                                                      |
+| 📥 Check your mail          | Opens the inbox popover (`openSignal` counter prop)                                                                                                                                                                                                                                             |
+| 📤 Ship from the Outbox     | Opens the headless Outbox export/share panel (`openSignal`) — no dedicated bottom-row icon                                                                                                                                                                                                      |
+| 💬 Open Slop Chat / Message | Messenger history / DM a teammate or colleague                                                                                                                                                                                                                                                  |
+| ⚙️ Adjust your workstation  | Opens headless Settings (guest agents, code drawer) — concentration no longer lives here                                                                                                                                                                                                        |
+| 📈 Check my HR progression  | Toggles the level-up / People Ops scorecard (`LevelUpInfoPanel`) — always enabled; that panel also links to Meet the team                                                                                                                                                                       |
 
 **Two postures, not four checkboxes** (adopted 2026-07-29). The desk menu footer used to carry
 **Focus / Noise / Voice / CC**, and the Your Team roster carried a fifth control, Headphones, which
@@ -423,22 +422,28 @@ afterwards) but never consume its session caps. XP reuses the existing awards, p
 Both producers share `apps/web/src/utils/officeMomentDelivery.js` — the canned-bank and
 LLM-moment paths live there, so a desk verb and an ambient moment resolve content identically.
 
-## 5. The WG meeting system (flagship)
+## 5. The WG sync system (flagship)
 
-**Invite** (cadence-driven, max 1/session) or **"Call a meeting"** (inbox, Slop Chat, or Your
-Team) → **people/group picker** → **meeting room overlay**: avatar row with speaking highlight,
-transcript bubbles pacing in, "Raise hand ✋" input, leave button, and a **minutes card** at the
-end.
+**Invite** (cadence-driven, max 1/session) or **"Summon a sync"** (inbox, Slop Chat, or Your
+Team) → **people/group picker** with a modality toggle → playback:
 
-Calling a meeting works like grabbing people on a real floor:
+| Modality                             | Desk chrome                                 | Floor                                                                                 |
+| ------------------------------------ | ------------------------------------------- | ------------------------------------------------------------------------------------- |
+| **Book the glass room** (`physical`) | Call window while seated                    | Auto **Stand up**, pan/zoom to the glass room; attendees + you seated at the table    |
+| **Slap on headsets** (`remote`)      | Call window (default for inbox / Slop Chat) | Everyone stays at their desk wearing headsets; speaking bubble above the active chair |
 
-- **Inbox** — select one or more emails (or open one) → picker opens seeded with those senders and
-  the subject(s) as the topic; add or drop anyone before starting.
-- **Slop Chat™** — "Call to talk" on the active thread seeds that colleague (Pam still facilitates
-  the room); open the roster with no thread to grab a group cold.
-- **Your Team / desk** — empty picker with quick groups: Your team, Steering, The floor, Leadership.
-- **Ambient calendar invite** — still accepts straight into the room (no picker); roster stays the
-  steering draw from `pickMeetingAttendees`.
+Calling a sync works like grabbing people on a real floor:
+
+- **Inbox** — "Hop on a call" from one or more emails → picker opens seeded with those senders,
+  topic from subjects, modality defaults to **headsets**.
+- **Slop Chat™** — "Call to talk" on the active thread seeds that colleague (headset default);
+  open the roster with no thread via "Summon a sync".
+- **Your Team / desk** — **Summon a sync** opens the empty picker (defaults to glass room) with
+  quick groups: Your team, Steering, The floor, Leadership.
+- **Ambient calendar invite** — still accepts straight into the **glass room** (no picker).
+
+Blank canvas is allowed: huddles and syncs no longer require a diagram. When the slot is empty the
+script ribs you for not having started and substantive beats suggest a first stroke.
 
 - **One LLM call generates the whole beat script** (`POST /api/office/meeting`, `scriptVersion: 1`);
   the client paces playback beat-by-beat so it feels live. Join latency hides behind an in-fiction
@@ -470,11 +475,11 @@ achievement), and the all-hands (CEO cameo, everyone attends, nothing is decided
 
 **"Huddle up" in the Your Team menu** → the six `CAST_TIERS.team` members snap in from all four
 edges of the canvas and each says one thing about the diagram, one at a time, then everyone goes
-back to their desk. It is the counterpart to the WG meeting (still reachable from inbox / Slop Chat):
-a meeting is _remote_ (a room, a picker, a roster, an agenda); a huddle is _in person_ (no picker,
-no agenda, no facilitator, and Barker stays Upstairs — you huddle with peers). Ambient advising
-pop-ups, "Grab whoever is free", and "Call a meeting" were removed from Your Team — the huddle _is_
-the roundtable now. Starting a huddle closes the team roster.
+back to their desk. It is the counterpart to a summoned sync (inbox / Slop Chat / Summon a sync):
+a sync is either _in the glass room_ or _on headsets_ (picker, roster, optional agenda); a huddle is
+_at your monitor_ (no picker, no agenda, no facilitator, and Barker stays Upstairs — you huddle with
+peers). Blank canvas is allowed — then they rib you for not having started. Starting a huddle closes
+the team roster.
 
 - **Seated before scripted.** `startOfficeHuddle(attendees)` draws the ring at `phase: 'gathering'`
   the moment you click, then `POST /api/office/huddle` fills it in and flips to `'speaking'`. The

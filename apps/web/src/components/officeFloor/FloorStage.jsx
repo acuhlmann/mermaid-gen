@@ -50,6 +50,7 @@ function seatDisplay(seat, copy) {
  *   onWalkerDismiss?: (id: string) => void,
  *   onWalkerDeparted?: () => void,
  *   vacantIds?: string[],
+ *   onCallIds?: string[],
  *   interactive?: boolean,
  *   onWalkTo?: ((tile: { x: number, y: number }) => void) | null,
  *   roamOrigin?: { x: number, y: number } | null,
@@ -73,6 +74,7 @@ export function FloorStage({
   onWalkerDismiss,
   onWalkerDeparted,
   vacantIds = [],
+  onCallIds = [],
   interactive = true,
   speakingId = null,
   onWalkTo = null,
@@ -117,6 +119,7 @@ export function FloorStage({
             vacant={(walker && seat.id === walker.colleagueId) || vacantIds.includes(seat.id)}
             interactive={interactive}
             speaking={speakingId === seat.id}
+            accessoryOverride={onCallIds.includes(seat.id) ? 'headset' : null}
             look={deskWorkFor(seat.id)?.look}
             onSelect={onSelect}
           />

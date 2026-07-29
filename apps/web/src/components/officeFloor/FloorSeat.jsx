@@ -62,6 +62,7 @@ export function FloorSeat({
   vacant = false,
   interactive = true,
   speaking = false,
+  accessoryOverride = null,
   look,
   onSelect
 }) {
@@ -92,6 +93,7 @@ export function FloorSeat({
           isYou={isYou}
           speaking={speaking}
           idleIndex={idleIndex}
+          accessoryOverride={accessoryOverride}
           /* During the arrival ceremony the cast is scenery, not a menu. */
           disabled={!interactive}
           onSelect={onSelect}

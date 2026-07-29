@@ -317,10 +317,20 @@ function Accessory({ style, accent }) {
  *   className?: string,
  *   title?: string,
  *   fallbackEmoji?: string,
- *   accentRing?: boolean
- * }} props
+ *   accentRing?: boolean,
+ *   accessoryOverride?: 'none' | 'headset' | 'hardhat' | 'lanyard' | 'tie' | 'badge' | null
+ * }} props `accessoryOverride` swaps the baked trait accessory for one beat
+ *   (headset syncs on the floor) without mutating the registry.
  */
-export function PersonaFace({ id, size = 40, className, title, fallbackEmoji, accentRing = true }) {
+export function PersonaFace({
+  id,
+  size = 40,
+  className,
+  title,
+  fallbackEmoji,
+  accentRing = true,
+  accessoryOverride = null
+}) {
   const traits = personaFaceTraits(id);
   const sender = officeSenderInfo(id);
 
@@ -339,6 +349,7 @@ export function PersonaFace({ id, size = 40, className, title, fallbackEmoji, ac
   const skin = SKIN_TONES[traits.skin] ?? SKIN_TONES.light;
   const hairColor = HAIR_COLORS[traits.hairColor] ?? HAIR_COLORS.brown;
   const lowDetail = size <= LOW_DETAIL_MAX_PX;
+  const accessory = accessoryOverride ?? traits.accessory;
 
   return (
     <svg
@@ -350,6 +361,7 @@ export function PersonaFace({ id, size = 40, className, title, fallbackEmoji, ac
       aria-hidden={title ? undefined : 'true'}
       data-persona-face={id}
       data-detail={lowDetail ? 'low' : 'full'}
+      data-accessory={accessory}
     >
       {title ? <title>{title}</title> : null}
 
@@ -395,7 +407,7 @@ export function PersonaFace({ id, size = 40, className, title, fallbackEmoji, ac
         <Mouth expression={traits.expression} />
 
         {!lowDetail && <Glasses style={traits.glasses} />}
-        {!lowDetail && <Accessory style={traits.accessory} accent={accent} />}
+        {!lowDetail && <Accessory style={accessory} accent={accent} />}
       </g>
     </svg>
   );

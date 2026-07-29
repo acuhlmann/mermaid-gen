@@ -252,6 +252,31 @@ export const MEETING_ROSTER_MAX = 8;
 export const MEETING_ROSTER_MIN = 2;
 
 /**
+ * Where a summoned sync happens on the floor:
+ * - `physical` — everyone walks into the glass room (including you).
+ * - `remote` — everyone stays at their desk with headsets; call chrome on screen.
+ * Distinct from a huddle (team crowding your monitor — no room, no headsets).
+ */
+export const MEETING_MODALITY_PHYSICAL = 'physical';
+export const MEETING_MODALITY_REMOTE = 'remote';
+
+/**
+ * Resolve modality from an explicit pick or the entry surface.
+ * Inbox / Slop Chat default remote (it's all headset work); desk defaults to
+ * booking the glass room.
+ *
+ * @param {unknown} value
+ * @param {{ source?: string }} [options]
+ * @returns {'physical' | 'remote'}
+ */
+export function normalizeMeetingModality(value, { source } = {}) {
+  if (value === MEETING_MODALITY_PHYSICAL || value === MEETING_MODALITY_REMOTE) return value;
+  return source === 'email' || source === 'chat'
+    ? MEETING_MODALITY_REMOTE
+    : MEETING_MODALITY_PHYSICAL;
+}
+
+/**
  * Group presets for the Call-a-meeting picker — like grabbing people in a real
  * office ("pull in your team", "book steering", "yell across the floor").
  * Member lists are resolved at click time so steering can stay slightly random.
@@ -1278,12 +1303,13 @@ export const OFFICE_CHROME_COPY = {
     slopChat: 'Open Slop Chat',
     slopChatTitle: 'Slop Chat™ — message a colleague or read past threads',
     inbox: 'Check your mail',
-    meeting: 'Call a meeting',
-    meetingTitle: 'Get a room and a roster — the remote one, with an agenda',
+    meeting: 'Summon a sync',
+    meetingTitle: 'Book the glass room or slap on headsets — pick a roster and go',
     team: 'Grab whoever is free',
     teamTitle: 'Pull one teammate over for a single opinion',
     huddleAction: 'Huddle up',
-    huddleActionTitle: 'Everyone crowds your screen and says one thing. No agenda, no room.',
+    huddleActionTitle:
+      'Your team crowds your screen and works on your computer together. No room, no headsets.',
     teamToggleAria: 'Huddle the whole team',
     outbox: 'Ship from the Outbox',
     outboxTitle: 'Export or share the deliverable on your desk',
@@ -1318,8 +1344,8 @@ export const OFFICE_CHROME_COPY = {
       busy: 'Deploy in progress — nobody leaves their desk.',
       meeting: "You're in a meeting. Look engaged.",
       surface: 'One thing at a time. You are already busy being interrupted.',
-      noAgenda: 'Draw something first — even this meeting needs an agenda',
-      noTeam: 'Put something on the canvas — the team has nothing to react to yet',
+      noAgenda: 'Someone is already in a sync — finish that first',
+      noTeam: 'The team is busy — try again when the floor is quieter',
       noOutbox: 'Nothing to ship yet — put a deliverable on the canvas first',
       noThinking: 'Your notebook is empty — run something first',
       noCode: 'Generate something first — then you can edit the source'
@@ -1338,22 +1364,27 @@ export const OFFICE_CHROME_COPY = {
     emptyLine: 'Inbox zero. HR finds this suspicious. Enjoy it while it lasts.',
     markAllRead: 'Mark all read',
     selectEmailAria: 'Select email from {name} for a meeting',
-    callMeeting: '📅 Call a meeting',
-    callMeetingWithCount: '📅 Call a meeting ({count})',
-    callMeetingTitle: 'Summon a working-group meeting about the current diagram',
-    callMeetingFromSelectionTitle: 'Pick who to pull in about the selected email thread',
-    callMeetingSelectTitle: 'Select emails for a topic, or open the picker to grab anyone',
-    callMeetingDisabledTitle: 'Draw something first — even this meeting needs an agenda',
-    callMeetingAboutEmail: '📅 Call a meeting about this email'
+    callMeeting: '📅 Hop on a call',
+    callMeetingWithCount: '📅 Hop on a call ({count})',
+    callMeetingTitle: 'Open a headset sync about this mail — add or drop people first',
+    callMeetingFromSelectionTitle: 'Headset call about the selected thread — pick who joins',
+    callMeetingSelectTitle: 'Select emails for a topic, or open the roster cold',
+    callMeetingDisabledTitle: 'Already in a sync — leave that one first',
+    callMeetingAboutEmail: '📅 Hop on a call about this'
   },
   meetingPicker: {
-    title: '📅 Call a meeting',
+    title: '📅 Summon a sync',
     titleHuddle: '📅 Pull someone in',
     dragHint: 'Drag to move',
-    tagline: 'Grab people like you would on the floor — one person or a whole circus.',
+    tagline: 'Glass room or headsets — grab one person or a whole circus.',
     topicLabel: 'What is this about?',
     topicPlaceholder: 'Optional agenda (they will ignore it either way)',
     topicAria: 'Meeting topic',
+    modalityAria: 'Where this sync happens',
+    modalityPhysical: 'Book the glass room',
+    modalityPhysicalTitle: 'Stand everyone up and walk them into the meeting room — including you',
+    modalityRemote: 'Slap on headsets',
+    modalityRemoteTitle: 'Everyone stays at their desk on a call — headsets visible on the floor',
     groupsAria: 'Quick groups',
     groupTeam: 'Your team',
     groupTeamTitle: 'Pull in the day-to-day collaborators',
@@ -1368,15 +1399,17 @@ export const OFFICE_CHROME_COPY = {
     tierSenior: 'Leadership',
     tierOffice: 'The floor',
     facilitatorBadge: 'Facilitates',
-    selectedStripLabel: 'Selected',
+    selectedStripLabel: 'Invited',
     selectedCount: '{count} invited',
     selectedCountOne: '1 invited',
     maxHint: 'Room holds {max} — drop someone before adding more.',
     needSomeone: 'Pick at least one person (Pam alone is a meeting with herself).',
-    start: 'Start meeting',
+    start: 'Start sync',
+    startPhysical: 'Book it',
+    startRemote: 'Dial in',
     startHuddle: 'Start',
     cancel: 'Never mind',
-    closeAria: 'Close meeting picker',
+    closeAria: 'Close sync picker',
     sourceEmail: 'From your inbox',
     sourceChat: 'From Slop Chat',
     sourceDesk: 'From your desk'
@@ -1408,10 +1441,10 @@ export const OFFICE_CHROME_COPY = {
     statusOnline: 'Available',
     statusBusy: 'In a meeting',
     callMeeting: '📅 Call to talk',
-    callMeetingTitle: 'Pull this person into a meeting — add more people if you want',
-    callMeetingDisabledTitle: 'Draw something first — even a quick sync needs an agenda',
-    callMeetingNoThread: '📅 Call a meeting',
-    callMeetingNoThreadTitle: 'Open the roster and grab whoever you need'
+    callMeetingTitle: 'Hop on a headset call with this person — add more people if you want',
+    callMeetingDisabledTitle: 'Already in a sync — leave that one first',
+    callMeetingNoThread: '📅 Summon a sync',
+    callMeetingNoThreadTitle: 'Open the roster — glass room or headsets'
   },
   walkby: {
     kindLabel: 'Over your shoulder',
@@ -1607,6 +1640,7 @@ export const OFFICE_CHROME_COPY = {
     // Labels stay short: two of them share one row of a 21 rem card.
     meeting: {
       eyebrow: 'GLASS ROOM',
+      eyebrowRemote: 'HEADSET SYNC',
       leave: '🚪 Leave',
       leaveTitle: 'Walk out mid-sentence. Pam will note it in the minutes.',
       sitOut: '🪑 My screen',

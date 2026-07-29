@@ -152,6 +152,7 @@ export function AppWorkspaceSlot({
   runTransform,
   russStreak,
   onHuddle,
+  onCallMeeting,
   handleSelectContentMode,
   latestCritique,
   canFixFromCritique,
@@ -383,6 +384,7 @@ export function AppWorkspaceSlot({
         runAnalyze={runAnalyze}
         russStreak={russStreak}
         onHuddle={onHuddle}
+        onCallMeeting={onCallMeeting}
         handleSelectContentMode={handleSelectContentMode}
         latestCritique={latestCritique}
         canFixFromCritique={canFixFromCritique}

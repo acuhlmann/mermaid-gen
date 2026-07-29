@@ -78,7 +78,7 @@ describe('OfficeInboxDock', () => {
     );
   });
 
-  it('gates Call a meeting when meetings are unavailable', () => {
+  it('gates Hop on a call when meetings are unavailable', () => {
     render(
       <OfficeInboxDock
         emails={[]}
@@ -96,7 +96,7 @@ describe('OfficeInboxDock', () => {
     expect(screen.queryByLabelText(/Noise|Soundscape/i)).toBeNull();
     expect(screen.queryByLabelText(/Voice|Narration/i)).toBeNull();
     expect(screen.queryByLabelText(/CC|Captions/i)).toBeNull();
-    expect(screen.getByRole('button', { name: /Call a meeting/ }).disabled).toBe(true);
+    expect(screen.getByRole('button', { name: /Hop on a call/ }).disabled).toBe(true);
   });
 
   it('calls a meeting with a single email without requiring a checkbox tap', () => {
@@ -114,11 +114,12 @@ describe('OfficeInboxDock', () => {
       />
     );
     fireEvent.click(screen.getByRole('button', { name: /1 unread/ }));
-    fireEvent.click(screen.getByRole('button', { name: /Call a meeting \(1\)/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Hop on a call \(1\)/ }));
     expect(onCallMeeting).toHaveBeenCalledWith({
       seedAttendees: ['facilities'],
       topic: 'FRIDGE CLEANOUT FRIDAY',
-      source: 'email'
+      source: 'email',
+      modality: 'remote'
     });
   });
 
@@ -139,11 +140,12 @@ describe('OfficeInboxDock', () => {
     fireEvent.click(screen.getByRole('button', { name: /1 unread/ }));
     fireEvent.click(screen.getByRole('checkbox', { name: /Select email from Gary/i }));
     fireEvent.click(screen.getByRole('checkbox', { name: /Select email from Pam/i }));
-    fireEvent.click(screen.getByRole('button', { name: /Call a meeting \(2\)/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Hop on a call \(2\)/ }));
     expect(onCallMeeting).toHaveBeenCalledWith({
       seedAttendees: ['facilities', 'scrumMaster'],
       topic: 'FRIDGE CLEANOUT FRIDAY; Story-point your diagram',
-      source: 'email'
+      source: 'email',
+      modality: 'remote'
     });
   });
 
@@ -163,11 +165,12 @@ describe('OfficeInboxDock', () => {
     );
     fireEvent.click(screen.getByRole('button', { name: /no unread/ }));
     fireEvent.click(screen.getByText('FRIDGE CLEANOUT FRIDAY'));
-    fireEvent.click(screen.getByRole('button', { name: /Call a meeting about this email/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Hop on a call about this/i }));
     expect(onCallMeeting).toHaveBeenCalledWith({
       seedAttendees: ['facilities'],
       topic: 'FRIDGE CLEANOUT FRIDAY',
-      source: 'email'
+      source: 'email',
+      modality: 'remote'
     });
   });
 });
@@ -187,8 +190,11 @@ describe('CallMeetingPicker', () => {
     );
     expect(screen.getByDisplayValue('FRIDGE CLEANOUT FRIDAY')).toBeTruthy();
     expect(screen.getByText(/From your inbox/i)).toBeTruthy();
+    expect(
+      screen.getByRole('button', { name: /Slap on headsets/i }).getAttribute('aria-pressed')
+    ).toBe('true');
     fireEvent.click(screen.getByRole('button', { name: 'Your team' }));
-    fireEvent.click(screen.getByRole('button', { name: /Start meeting|Start huddle/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Dial in|Book it|Start/ }));
     expect(onConfirm).toHaveBeenCalled();
     const payload = onConfirm.mock.calls[0][0];
     expect(payload.attendees).toEqual(
@@ -196,9 +202,10 @@ describe('CallMeetingPicker', () => {
     );
     expect(payload.attendees).not.toContain('scrumMaster');
     expect(payload.topic).toBe('FRIDGE CLEANOUT FRIDAY');
+    expect(payload.modality).toBe('remote');
   });
 
-  it('includes Pam when the steering preset is chosen', () => {
+  it('includes Pam when the steering preset is chosen and defaults desk to glass room', () => {
     const onConfirm = vi.fn();
     render(
       <CallMeetingPicker
@@ -209,11 +216,15 @@ describe('CallMeetingPicker', () => {
         onCancel={vi.fn()}
       />
     );
+    expect(
+      screen.getByRole('button', { name: /Book the glass room/i }).getAttribute('aria-pressed')
+    ).toBe('true');
     fireEvent.click(screen.getByRole('button', { name: 'Steering' }));
-    fireEvent.click(screen.getByRole('button', { name: /Start meeting|Start huddle/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Dial in|Book it|Start/ }));
     expect(onConfirm).toHaveBeenCalled();
     const payload = onConfirm.mock.calls[0][0];
     expect(payload.attendees[0]).toBe('scrumMaster');
+    expect(payload.modality).toBe('physical');
   });
 
   it('lets the user cancel without starting', () => {
@@ -258,7 +269,8 @@ describe('OfficeMessenger call-to-talk', () => {
     fireEvent.click(screen.getByRole('button', { name: /Call to talk/i }));
     expect(onCallMeeting).toHaveBeenCalledWith({
       seedAttendees: ['intern'],
-      source: 'chat'
+      source: 'chat',
+      modality: 'remote'
     });
   });
 });
