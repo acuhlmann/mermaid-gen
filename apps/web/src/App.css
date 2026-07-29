@@ -17399,16 +17399,16 @@ body.slopitect-rainbow-tint::before {
 
 /* --- Summon a sync people/group picker --- */
 .office-meeting-picker {
-  width: min(440px, calc(100vw - 32px));
-  max-height: min(640px, calc(100vh - 32px));
+  width: min(380px, calc(100vw - 32px));
+  max-height: min(480px, calc(100vh - 32px));
 }
 .office-meeting-picker-panel {
-  width: min(440px, calc(100vw - 32px));
-  max-height: min(640px, calc(100vh - 32px));
+  width: min(380px, calc(100vw - 32px));
+  max-height: min(480px, calc(100vh - 32px));
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding: 14px 14px 12px;
+  gap: 8px;
+  padding: 12px 12px 10px;
   background: var(--office-surface-bg);
   border: 1px solid var(--control-border);
   border-radius: 14px;
@@ -17530,9 +17530,10 @@ body.slopitect-rainbow-tint::before {
   overflow: auto;
   flex: 1 1 auto;
   min-height: 0;
+  max-height: 150px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
   padding-right: 2px;
 }
 .office-meeting-picker-tier-label {
@@ -17668,19 +17669,19 @@ body.slopitect-rainbow-tint::before {
   color: var(--accent);
   white-space: nowrap;
 }
-.office-meeting-picker-footer {
+.office-meeting-picker-toolbar {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
   flex: 0 0 auto;
-  padding-top: 4px;
-  border-top: 1px solid var(--control-border);
-  /* Never let the invited filmstrip shove Start past the viewport. */
-  position: sticky;
-  bottom: 0;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--control-border);
   background: var(--office-surface-bg);
   z-index: 1;
+}
+.office-meeting-picker-footer {
+  display: none;
 }
 .office-meeting-picker-count {
   font-size: 11px;
@@ -17718,6 +17719,172 @@ body.slopitect-rainbow-tint::before {
 .office-meeting-picker-start:disabled {
   opacity: 0.5;
   cursor: default;
+}
+
+/* --- Compose / colleague pickers (inbox + Slop Chat) --- */
+.office-colleague-picker {
+  overflow: auto;
+  max-height: 160px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-right: 2px;
+}
+.office-colleague-picker-tier-label {
+  margin: 0 0 4px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.office-colleague-picker-people {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.office-colleague-picker-person {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 5px 8px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+}
+.office-colleague-picker-person:hover {
+  background: rgba(15, 23, 42, 0.04);
+}
+.office-colleague-picker-person.is-selected {
+  background: color-mix(in srgb, var(--accent) 14%, white);
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+}
+.office-colleague-picker-person-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+.office-colleague-picker-person-name {
+  font-size: 12px;
+  font-weight: 600;
+}
+.office-colleague-picker-person-title {
+  font-size: 10px;
+  color: var(--muted);
+}
+.office-email-compose {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0 12px 12px;
+  min-height: 0;
+  overflow: auto;
+}
+.office-email-compose-heading {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+}
+.office-email-compose-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.office-email-compose-field input,
+.office-email-compose-field textarea {
+  appearance: none;
+  border: 1px solid var(--control-border);
+  border-radius: 8px;
+  background: var(--bg, #fff);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 400;
+  padding: 8px 10px;
+  resize: vertical;
+}
+.office-email-compose-recipient {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.04);
+}
+.office-email-compose-change {
+  margin-left: auto;
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.office-email-compose-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+.office-email-compose-send {
+  font-weight: 700;
+}
+.office-messenger-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  min-height: 0;
+  padding: 4px;
+  border-right: 1px solid var(--control-border);
+}
+.office-messenger-new-thread {
+  appearance: none;
+  border: 1px solid var(--control-border);
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.03);
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 6px 8px;
+  cursor: pointer;
+  text-align: left;
+}
+.office-messenger-new-thread:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+.office-messenger-pick-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px 12px 12px;
+  min-height: 0;
+}
+.office-messenger-pick-back {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  align-self: flex-start;
+  padding: 0;
+}
+.office-messenger-pick-hint {
+  margin: 0;
+  font-size: 12px;
+  color: var(--muted);
 }
 .office-messenger-call-meeting {
   appearance: none;
@@ -17994,11 +18161,10 @@ body.slopitect-rainbow-tint::before {
 .office-messenger-threads {
   list-style: none;
   margin: 0;
-  padding: 4px;
+  padding: 0;
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
-  border-right: 1px solid var(--control-border);
 }
 .office-messenger-thread {
   display: flex;

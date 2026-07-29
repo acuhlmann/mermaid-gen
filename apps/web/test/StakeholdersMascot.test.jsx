@@ -15,40 +15,14 @@ const TEST_PERSONAS = [
 describe('StakeholdersMascot', () => {
   afterEach(() => cleanup());
 
-  // Huddle + Summon a sync are the team verbs; Grab whoever was retired.
-  it('lists Huddle up and Summon a sync, and closes the roster when either starts', () => {
+  it('lists Huddle up and closes the roster when it starts', () => {
     const onHuddle = vi.fn();
-    const onCallMeeting = vi.fn();
-    render(
-      <StakeholdersMascot
-        personas={TEST_PERSONAS}
-        onHuddle={onHuddle}
-        canHuddle
-        onCallMeeting={onCallMeeting}
-        canCallMeeting
-      />
-    );
+    render(<StakeholdersMascot personas={TEST_PERSONAS} onHuddle={onHuddle} canHuddle />);
     expect(screen.getByRole('menuitem', { name: /Huddle up/ })).toBeTruthy();
-    expect(screen.getByRole('menuitem', { name: /Summon a sync/ })).toBeTruthy();
-    expect(screen.queryByRole('menuitem', { name: /Grab whoever is free/ })).toBeNull();
+    expect(screen.queryByRole('menuitem', { name: /Summon a sync/ })).toBeNull();
     fireEvent.click(screen.getByRole('menuitem', { name: /Huddle up/ }));
     expect(onHuddle).toHaveBeenCalledTimes(1);
     expect(screen.queryByRole('menu', { name: 'Your team' })).toBeNull();
-  });
-
-  it('opens the sync picker from Summon a sync', () => {
-    const onCallMeeting = vi.fn();
-    render(
-      <StakeholdersMascot
-        personas={TEST_PERSONAS}
-        onHuddle={vi.fn()}
-        canHuddle
-        onCallMeeting={onCallMeeting}
-        canCallMeeting
-      />
-    );
-    fireEvent.click(screen.getByRole('menuitem', { name: /Summon a sync/ }));
-    expect(onCallMeeting).toHaveBeenCalledWith({ source: 'desk' });
   });
 
   it('allows Huddle up on an empty canvas when canHuddle is true', () => {

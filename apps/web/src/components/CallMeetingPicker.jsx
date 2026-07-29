@@ -153,6 +153,35 @@ export default function CallMeetingPicker({
           </button>
         </FloatingWindowDragHandle>
 
+        <div className="office-meeting-picker-toolbar">
+          <span className="office-meeting-picker-count" role="status">
+            {!canStart
+              ? copy.needSomeone
+              : atCap
+                ? formatLocale(copy.maxHint, { max: MEETING_ROSTER_MAX })
+                : selectedCount === 1
+                  ? copy.selectedCountOne
+                  : formatLocale(copy.selectedCount, { count: selectedCount })}
+          </span>
+          <div className="office-meeting-picker-actions">
+            <button
+              type="button"
+              className="office-meeting-picker-cancel"
+              onClick={() => onCancel?.()}
+            >
+              {copy.cancel}
+            </button>
+            <button
+              type="button"
+              className="office-meeting-picker-start"
+              disabled={!canStart}
+              onClick={handleStart}
+            >
+              {startLabel}
+            </button>
+          </div>
+        </div>
+
         <div className="office-meeting-picker-modality" role="group" aria-label={copy.modalityAria}>
           <button
             type="button"
@@ -280,35 +309,6 @@ export default function CallMeetingPicker({
               </section>
             );
           })}
-        </div>
-
-        <div className="office-meeting-picker-footer">
-          <span className="office-meeting-picker-count" role="status">
-            {!canStart
-              ? copy.needSomeone
-              : atCap
-                ? formatLocale(copy.maxHint, { max: MEETING_ROSTER_MAX })
-                : selectedCount === 1
-                  ? copy.selectedCountOne
-                  : formatLocale(copy.selectedCount, { count: selectedCount })}
-          </span>
-          <div className="office-meeting-picker-actions">
-            <button
-              type="button"
-              className="office-meeting-picker-cancel"
-              onClick={() => onCancel?.()}
-            >
-              {copy.cancel}
-            </button>
-            <button
-              type="button"
-              className="office-meeting-picker-start"
-              disabled={!canStart}
-              onClick={handleStart}
-            >
-              {startLabel}
-            </button>
-          </div>
         </div>
       </div>
     </FloatingWindow>

@@ -5,16 +5,7 @@ import DeskNotebookButton from '../../components/DeskNotebookButton.jsx';
 import EntryDeskPointers from '../../components/EntryDeskPointers.jsx';
 import { russShapeLabel } from '../../utils/renderModeAction.js';
 
-function DeskPeopleCluster({
-  russStreak,
-  controls,
-  runTransform,
-  runAnalyze,
-  busy,
-  onHuddle,
-  onCallMeeting,
-  canCallMeeting = true
-}) {
+function DeskPeopleCluster({ russStreak, controls, runTransform, runAnalyze, busy, onHuddle }) {
   return (
     <div className="desk-people-group">
       <StakeholdersMascot
@@ -47,8 +38,6 @@ function DeskPeopleCluster({
         busy={busy}
         onHuddle={onHuddle}
         canHuddle={!busy}
-        onCallMeeting={onCallMeeting}
-        canCallMeeting={canCallMeeting && !busy}
       />
     </div>
   );
