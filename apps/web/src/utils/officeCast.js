@@ -1530,7 +1530,7 @@ export const OFFICE_CHROME_COPY = {
     stageAria: 'Isometric view of the office floor',
     back: '🪑 Back to your screen',
     backTitle: 'Sit down and get back to the deliverable',
-    hint: 'Click the floor to walk there, or somebody to see who they are. Escape sits you back down.',
+    hint: 'Click the floor to walk. Click somebody to meet them, or double-click a colleague to walk over and talk. Escape sits you back down.',
     // The floor's one live region (slice 10). Spatial only: where bodies are
     // and where they are going. What anybody *says* stays in their speech
     // bubble — narrating both would read every line twice, which is the trap
@@ -1598,11 +1598,12 @@ export const OFFICE_CHROME_COPY = {
     talk: {
       eyebrow: 'HAVING A WORD',
       action: '💬 Go and talk',
-      actionTitle: 'Walk over and say something',
+      actionTitle: 'Walk over and say something — or double-click them',
       walking: 'Walking over. Rehearse the opener.',
       thinking: 'They are thinking of something to say…',
       placeholder: 'Say something…',
       send: 'Say it',
+      youLabel: 'You',
       leave: '🪑 Back to my desk',
       leaveTitle: 'End the conversation and walk back to your screen'
     },

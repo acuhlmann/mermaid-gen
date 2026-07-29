@@ -774,7 +774,13 @@ the one item that was _getting worse with waiting_, and nothing on the list belo
 and 12 were both easy calls because ambient life had made a standing gap actively louder. What
 remains is a set of genuine choices, so pick on appetite rather than on urgency.
 
-Three candidates, none designed:
+Shipped on top of slice 8 (adventure polish, not a new slice number): **floor talk now matches
+Slop Chat™ for input** — typed prompt **and** mic (`VoiceMicButton`), a short recent-turns
+strip in the talk card, and **double-click a talkable colleague** to walk over and open the
+chat (same `talkTileFor` derivation as **Go and talk**). Still office-tier only; leadership
+glass and your team keep the person-card brush-off.
+
+Three earlier candidates, none designed:
 
 - **Where the "stand up" affordance lives in desktop chrome.** The oldest open item and the only
   one that is not floor work at all: today the floor is reachable from the desk dock, and the
@@ -788,6 +794,25 @@ Three candidates, none designed:
 - **The screen-world skin** (§ 4), which has not been touched since it was written. It is a
   parallel track by design, blocks nothing, and is the only item here that would make desktop
   mode feel like part of the same fiction rather than the thing you leave to see the fiction.
+
+### Point-and-click adventure ideas (not designed)
+
+Kept here so appetite can pick without re-deriving. Each should stay bound by ADR-0011
+(one state, two renderers) and ADR-0010 (cast never produces slot content):
+
+- **Examine / look at** on a few props that today only have a line — fridge sticky notes, the
+  whiteboard doodle, a sticky on Gary's fridge — as flavour text in the card slot, never a
+  second state machine.
+- **Topic hotspots from the diagram** — walking up with a recent run in mind seeds the opener
+  ("about the gateway node…") through the existing `imSomeone` context contract.
+- **Soft errands** — Linda asks you to "find Chad and ask about the reply-all"; completing it
+  is a reactive IM exchange + a tiny XP beat, not a quest log UI.
+- **Overhear → join** — standing next to a coffee/battle scene offers **Join in** once (already
+  considered for interrupting mid-script; still a content question).
+- **Name-chip proximity** — show all names when you are within one tile (clears § 8's "name chip
+  is hover-only" debt without growing hit boxes).
+- **Team walk-up chats** — optional later: full-weight peers answer floor talk the way office
+  tier does, while senior stays invite-only. Would need a doctrine note in office-parody §11.
 
 Considered and not chosen, kept so nobody re-derives them: **a second wanderer at a time**
 (§ 8's original sketch imagined "two people end up at the whiteboard"; one at a time was chosen

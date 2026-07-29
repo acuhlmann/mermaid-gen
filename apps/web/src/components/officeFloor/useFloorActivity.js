@@ -19,6 +19,7 @@ import { useFloorPropUse } from './useFloorPropUse.js';
 import { useFloorTalk } from './useFloorTalk.js';
 import { propTileFor } from '../../utils/officeFloorMovement.js';
 import { YOU_SEAT_ID, seatFor } from '../../utils/officeFloorPlan.js';
+import { threadTranscriptFor } from '../../utils/officeImThreads.js';
 
 /**
  * `phase` names differ because the cards read as sentences: looking / talking /
@@ -84,6 +85,11 @@ export function useFloorActivity({
   const prop = intentView(presence, 'use', 'using', 'propKind');
   const talkingTo = talk?.colleagueId ?? null;
   const talkLine = lastLineFrom(imHistory, talkingTo);
+  // Short recent strip for the floor dialogue card — same source as the bubble,
+  // capped so a long Slop Chat thread does not flood a 21 rem panel. Not memoized:
+  // React Compiler rejects manual memo over `imHistory` (same reason `talkLine`
+  // is a plain call).
+  const talkTurns = threadTranscriptFor(imHistory, talkingTo, 4);
 
   const conversation = useFloorTalk({
     colleagueId: talkingTo,
@@ -158,6 +164,7 @@ export function useFloorActivity({
     peek,
     talk,
     talkLine,
+    talkTurns,
     conversation,
     prop,
     propUse,

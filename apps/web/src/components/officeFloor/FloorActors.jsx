@@ -38,6 +38,7 @@ import FloorWanderer from './FloorWanderer.jsx';
  *   selectedId?: string | null,
  *   speakingId?: string | null,
  *   onSelect?: (id: string) => void,
+ *   onActivate?: ((id: string) => void) | null,
  *   peek?: { colleagueId: string, phase: string } | null,
  *   talk?: { colleagueId: string, phase: string, at?: { x: number, y: number } | null } | null,
  *   talkLine?: string,
@@ -67,6 +68,7 @@ export function FloorActors({
   selectedId,
   speakingId,
   onSelect,
+  onActivate,
   peek,
   talk,
   talkLine,
@@ -100,6 +102,7 @@ export function FloorActors({
           selected={selectedId === wanderer.seatId}
           speaking={speakingId === wanderer.seatId}
           onSelect={onSelect}
+          onActivate={onActivate}
         />
       ) : null}
 

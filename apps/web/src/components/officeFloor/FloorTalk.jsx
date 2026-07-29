@@ -12,10 +12,15 @@
  * The speaking half reuses `FloorDeskSpeech`, which already lifts a bubble past
  * a seated figure (§ 6 rule 15). The replying half is chrome and therefore
  * belongs in the card slot (§ 6 rule 12), not pinned to a pod of desks.
+ *
+ * Composer parity with Slop Chat™: typed prompt **and** mic (`VoiceMicButton`),
+ * plus a short recent-turns strip so a walk-up chat reads like a point-and-click
+ * dialogue, not a blank text box.
  */
 
 import FloorDeskSpeech from './FloorDeskSpeech.jsx';
 import { PersonaFace } from '../personaFaces/index.jsx';
+import VoiceMicButton from '../VoiceMicButton.jsx';
 import { officeImQuickReplies, officeSenderInfo } from '../../utils/officeCast.js';
 
 /**
@@ -52,7 +57,7 @@ export function FloorTalk({ talk, line, scale = 1, hideBody = false }) {
  * What you say back. Quick replies are the canned pure-local flavour Slop Chat
  * already offers under a ping; the composer routes through the identical send
  * path, so a reply typed on the floor and one typed in the window are the same
- * message.
+ * message. Mic dictation is the same `VoiceMicButton` the messenger uses.
  *
  * @param {{
  *   talk: { colleagueId: string, phase: string },
@@ -61,13 +66,24 @@ export function FloorTalk({ talk, line, scale = 1, hideBody = false }) {
  *   draft: string,
  *   onDraftChange: (value: string) => void,
  *   onSend: (body: string) => void,
- *   onLeave: () => void
+ *   onLeave: () => void,
+ *   recentTurns?: Array<{ from: 'user' | 'colleague', body: string }>
  * }} props `copy` is `officeChromeCopy().floor`.
  */
-export function FloorTalkCard({ talk, copy, busy = false, draft, onDraftChange, onSend, onLeave }) {
+export function FloorTalkCard({
+  talk,
+  copy,
+  busy = false,
+  draft,
+  onDraftChange,
+  onSend,
+  onLeave,
+  recentTurns = []
+}) {
   const talkCopy = copy.talk;
   const sender = officeSenderInfo(talk.colleagueId);
   const arrived = talk.phase === 'talking';
+  const theirName = sender?.name ?? talk.colleagueId;
 
   const submit = (event) => {
     event.preventDefault();
@@ -90,7 +106,7 @@ export function FloorTalkCard({ talk, copy, busy = false, draft, onDraftChange, 
       <div className="office-floor-card-head">
         <PersonaFace id={talk.colleagueId} size={44} />
         <div className="office-floor-card-id">
-          <strong>{sender?.name ?? talk.colleagueId}</strong>
+          <strong>{theirName}</strong>
           <span>{sender?.title ?? ''}</span>
         </div>
       </div>
@@ -99,6 +115,21 @@ export function FloorTalkCard({ talk, copy, busy = false, draft, onDraftChange, 
 
       {arrived ? (
         <>
+          {recentTurns.length > 0 ? (
+            <ol className="office-floor-talk-thread" data-testid="office-floor-talk-thread">
+              {recentTurns.map((turn, index) => (
+                <li
+                  key={`${turn.from}-${index}-${turn.body.slice(0, 24)}`}
+                  className={`office-floor-talk-turn is-${turn.from}`}
+                >
+                  <span className="office-floor-talk-turn-who">
+                    {turn.from === 'user' ? talkCopy.youLabel : theirName}
+                  </span>
+                  <span className="office-floor-talk-turn-body">{turn.body}</span>
+                </li>
+              ))}
+            </ol>
+          ) : null}
           <div className="office-floor-talk-quick">
             {officeImQuickReplies().map((reply) => (
               <button
@@ -121,6 +152,12 @@ export function FloorTalkCard({ talk, copy, busy = false, draft, onDraftChange, 
               placeholder={busy ? talkCopy.thinking : talkCopy.placeholder}
               aria-label={talkCopy.placeholder}
               disabled={busy}
+            />
+            <VoiceMicButton
+              value={draft}
+              onChange={onDraftChange}
+              disabled={busy}
+              className="office-floor-talk-mic overlay-button is-mic-toggle"
             />
             <button
               type="submit"

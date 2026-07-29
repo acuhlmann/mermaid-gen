@@ -43,6 +43,7 @@ function seatDisplay(seat, copy) {
  *   copy: Record<string, any>,
  *   selectedId: string | null,
  *   onSelect: (id: string) => void,
+ *   onActivate?: ((id: string) => void) | null,
  *   walker?: { id: string, colleagueId: string } | null,
  *   walkerDeparting?: boolean,
  *   walkerHideBody?: boolean,
@@ -67,6 +68,7 @@ export function FloorStage({
   copy,
   selectedId,
   onSelect,
+  onActivate = null,
   walker = null,
   walkerDeparting = false,
   walkerHideBody = false,
@@ -122,6 +124,7 @@ export function FloorStage({
             accessoryOverride={onCallIds.includes(seat.id) ? 'headset' : null}
             look={deskWorkFor(seat.id)?.look}
             onSelect={onSelect}
+            onActivate={onActivate}
           />
         ))}
 

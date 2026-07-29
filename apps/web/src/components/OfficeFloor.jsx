@@ -65,6 +65,18 @@ function awayNoteFor(away, copy) {
 }
 
 /**
+ * Where you may stand to talk — tier gate × room gate, one derivation.
+ * Office-tier colleagues only (Slop Chat™ doctrine); leadership glass and your
+ * own team keep the brush-off on the person card. Double-click activate and the
+ * person card both ask this so the verb offered is the walk that runs.
+ */
+function talkTileFor(colleagueId, away) {
+  if (!colleagueId || colleagueId === YOU_SEAT_ID) return null;
+  if (tierOf(colleagueId) !== 'office' || !isOfficeColleagueId(colleagueId)) return null;
+  return reachTileFor(colleagueId, away);
+}
+
+/**
  * The talk view with **where they are** attached, so the speech bubble lands over
  * their head rather than over the chair they left (§ 6 rule 20 generalized).
  *
@@ -118,7 +130,7 @@ function usePersonDetails(selectedId, copy, away) {
     // — and somebody to stand behind. You cannot look over an absent shoulder,
     // so a peek is the one verb being away takes off the card outright.
     const peekTile = away ? null : peekTileFor(selectedId);
-    const talkTile = social ? reachTileFor(selectedId, away) : null;
+    const talkTile = talkTileFor(selectedId, away);
     return {
       id: selectedId,
       name: sender?.name ?? selectedId,
@@ -193,7 +205,7 @@ function OfficeFloorView({ bridge }) {
     onPropCue,
     onEngage: handleClosePerson
   });
-  const { presence, peek, conversation, prop, propUse, origin, goHome } = activity;
+  const { presence, peek, conversation, prop, propUse, origin, goHome, startTalk } = activity;
 
   useFloorKeyboard({ presence, origin, goHome, walkTo: activity.walkTo });
   useFloorAutoPan(viewportRef, presence, scale);
@@ -256,6 +268,25 @@ function OfficeFloorView({ bridge }) {
     setSelectedId((current) => (current === id ? null : id));
   }, []);
 
+  // Point-and-click: double-click walks over and opens the floor chat when the
+  // room will let you; otherwise it just opens the person card (brush-off /
+  // peek-only). Same mark derivation as the card's Go and talk button.
+  const handleActivate = useCallback(
+    (id) => {
+      if (id === YOU_SEAT_ID || physicalMeeting) {
+        setSelectedId(id);
+        return;
+      }
+      const mark = talkTileFor(id, whereaboutsOf(id, floorState));
+      if (mark) {
+        startTalk(id, mark);
+        return;
+      }
+      setSelectedId(id);
+    },
+    [startTalk, floorState, physicalMeeting]
+  );
+
   // The room in one sentence, for whoever is not looking at it. Derived from
   // the state already on this component, so it can never disagree with what the
   // stage is drawing — the two-renderer rule, applied to a third renderer.
@@ -295,6 +326,7 @@ function OfficeFloorView({ bridge }) {
           copy={copy}
           selectedId={selectedId}
           onSelect={handleSelect}
+          onActivate={physicalMeeting ? null : handleActivate}
           walker={walker}
           walkerDeparting={departing}
           walkerHideBody={!showSpokenText}
@@ -329,6 +361,7 @@ function OfficeFloorView({ bridge }) {
             selectedId={selectedId}
             speakingId={stageSpeakingId}
             onSelect={handleSelect}
+            onActivate={physicalMeeting ? null : handleActivate}
             peek={peek}
             talk={talk}
             talkLine={activity.talkLine}
@@ -347,6 +380,7 @@ function OfficeFloorView({ bridge }) {
         peek={peek}
         talk={talk}
         conversation={conversation}
+        talkTurns={activity.talkTurns}
         prop={prop}
         propUse={propUse}
         person={person}

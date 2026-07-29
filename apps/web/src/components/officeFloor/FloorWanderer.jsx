@@ -64,11 +64,13 @@ function awayLabel(sender, seatId, propKind, copy) {
  *   elementRef?: { current: HTMLElement | null },
  *   selected?: boolean,
  *   speaking?: boolean,
- *   onSelect?: ((id: string) => void) | null
+ *   onSelect?: ((id: string) => void) | null,
+ *   onActivate?: ((id: string) => void) | null
  * }} props `elementRef` lets the hook read where they actually got to when a
  *   trip is turned round mid-stride (`liveTileOf`), exactly as free roam does
  *   for you. `onSelect` is what makes them reachable; without it they are the
  *   slice 11 wanderer, which is what the arrival ceremony still wants.
+ *   `onActivate` is the double-click walk-and-talk shortcut.
  *
  *   `selected` and `speaking` take no defaults: both are forwarded to
  *   `FloorPersonButton`, which defaults them itself, so a default here would buy
@@ -82,7 +84,8 @@ export function FloorWanderer({
   elementRef,
   selected,
   speaking,
-  onSelect
+  onSelect,
+  onActivate = null
 }) {
   const ownRef = useRef(null);
   const ref = elementRef ?? ownRef;
@@ -118,6 +121,7 @@ export function FloorWanderer({
           selected={selected}
           speaking={speaking}
           onSelect={onSelect}
+          onActivate={onActivate}
         />
       ) : (
         <div className="office-floor-walker-anchor">
