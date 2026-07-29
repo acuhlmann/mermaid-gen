@@ -243,8 +243,8 @@ describe('CallMeetingPicker', () => {
   });
 });
 
-describe('OfficeMessenger call-to-talk', () => {
-  it('seeds the active thread into the meeting picker', () => {
+describe('OfficeMessenger hop-on-a-call', () => {
+  it('seeds the active thread into a remote headset meeting', () => {
     const onCallMeeting = vi.fn();
     render(
       <OfficeMessenger
@@ -266,7 +266,7 @@ describe('OfficeMessenger call-to-talk', () => {
         canCallMeeting
       />
     );
-    fireEvent.click(screen.getByRole('button', { name: /Call to talk/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Hop on a call/i }));
     expect(onCallMeeting).toHaveBeenCalledWith({
       seedAttendees: ['intern'],
       source: 'chat',

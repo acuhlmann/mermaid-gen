@@ -22,7 +22,7 @@ const TIER_LABEL_KEYS = {
 };
 
 /**
- * People/group picker for summoning a sync — glass room or headsets.
+ * People/group picker for having a meeting — glass room or headsets.
  * Seeded from inbox senders, a Slop Chat thread, or an empty desk grab.
  * Pam is available in the directory but is not auto-added — only scheduled
  * invites and the steering preset include her by default.

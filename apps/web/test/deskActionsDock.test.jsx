@@ -170,16 +170,16 @@ describe('DeskActionsDock', () => {
     expect(screen.queryByRole('menu')).toBeNull();
   });
 
-  it('opens Summon a sync from the desk menu', () => {
+  it('opens Have a meeting from the desk menu', () => {
     const handlers = open({ onSummonSync: vi.fn(), canSummonSync: true });
-    fireEvent.click(screen.getByRole('menuitem', { name: /Summon a sync/ }));
+    fireEvent.click(screen.getByRole('menuitem', { name: /Have a meeting/ }));
     expect(handlers.onSummonSync).toHaveBeenCalledTimes(1);
     expect(screen.queryByRole('menu')).toBeNull();
   });
 
-  it('blocks Summon a sync while already in a meeting', () => {
+  it('blocks Have a meeting while already in a meeting', () => {
     open({ onSummonSync: vi.fn(), canSummonSync: false });
-    expect(screen.getByRole('menuitem', { name: /Summon a sync/ }).disabled).toBe(true);
+    expect(screen.getByRole('menuitem', { name: /Have a meeting/ }).disabled).toBe(true);
   });
 
   it('runs HR progression and closes the menu', () => {
