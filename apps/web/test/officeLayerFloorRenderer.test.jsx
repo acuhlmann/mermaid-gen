@@ -34,7 +34,7 @@ const BASE_PROPS = {
 
 const COFFEE_LINES = [
   { speakerId: 'intern', text: 'Coffee?' },
-  { speakerId: 'greybeard', text: 'The machine makes that noise since 2009.' }
+  { speakerId: 'greybeard', text: 'The machine makes that noise since 1979.' }
 ];
 
 /**

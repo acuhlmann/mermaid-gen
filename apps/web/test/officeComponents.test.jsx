@@ -297,7 +297,7 @@ describe('office who-is-who chrome', () => {
   it('shows the sender name and role on IM pings', () => {
     render(
       <OfficeImPing
-        pings={[{ id: 'im-1', colleagueId: 'greybeard', body: 'We tried that in 2009.' }]}
+        pings={[{ id: 'im-1', colleagueId: 'greybeard', body: 'We tried that in 1979.' }]}
         onDismiss={vi.fn()}
         onQuickReply={vi.fn()}
       />
@@ -387,7 +387,7 @@ describe('MeetingOverlay', () => {
     interjectionsLeft: 2,
     transcript: [
       { speakerId: 'scrumMaster', kind: 'procedural', text: 'Welcome! Time-boxed to 15.' },
-      { speakerId: 'greybeard', kind: 'offRails', text: 'We had this diagram in 2009.' }
+      { speakerId: 'greybeard', kind: 'offRails', text: 'We had this diagram in 1979.' }
     ]
   };
 
@@ -402,7 +402,7 @@ describe('MeetingOverlay', () => {
         onAdoptPrompt={vi.fn()}
       />
     );
-    expect(screen.getByText(/We had this diagram in 2009/)).toBeTruthy();
+    expect(screen.getByText(/We had this diagram in 1979/)).toBeTruthy();
     fireEvent.change(screen.getByLabelText('Raise hand'), {
       target: { value: 'What about the budget?' }
     });
@@ -440,7 +440,7 @@ describe('MeetingOverlay', () => {
         onAdoptPrompt={vi.fn()}
       />
     );
-    expect(screen.queryByText(/We had this diagram in 2009/)).toBeNull();
+    expect(screen.queryByText(/We had this diagram in 1979/)).toBeNull();
     expect(screen.getAllByText('Ulrich').length).toBeGreaterThan(0);
     expect(screen.queryByText(/turn on CC/i)).toBeNull();
   });
@@ -460,7 +460,7 @@ describe('MeetingOverlay', () => {
         onAdoptPrompt={vi.fn()}
       />
     );
-    expect(screen.getByText(/We had this diagram in 2009/)).toBeTruthy();
+    expect(screen.getByText(/We had this diagram in 1979/)).toBeTruthy();
   });
 
   it('shows minutes with Do selected / Do it all once the meeting ends', () => {

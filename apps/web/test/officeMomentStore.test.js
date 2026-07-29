@@ -151,8 +151,8 @@ describe('officeMomentStore', () => {
 
   it('replaces an active walk-by and auto-expires it', () => {
     pushOfficeWalkBy({ colleagueId: 'scrumMaster', body: 'spike!' });
-    pushOfficeWalkBy({ colleagueId: 'greybeard', body: '2009.' });
-    expect(getOfficeSnapshot().walkBy.body).toBe('2009.');
+    pushOfficeWalkBy({ colleagueId: 'greybeard', body: '1979.' });
+    expect(getOfficeSnapshot().walkBy.body).toBe('1979.');
     vi.advanceTimersByTime(WALKBY_TTL_MS + 10);
     expect(getOfficeSnapshot().walkBy).toBeNull();
   });

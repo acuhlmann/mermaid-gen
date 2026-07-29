@@ -194,7 +194,7 @@ test('synthesizeOfficeSpeech sends the scaled rate (and pitch) under the neural2
     }
   };
   await synthesizeOfficeSpeech(
-    { speakerId: 'greybeard', text: 'We tried that in 2009.', lang: 'en-US' },
+    { speakerId: 'greybeard', text: 'We tried that in 1979.', lang: 'en-US' },
     {
       VERTEX_PROJECT_ID: 'mermaidgen',
       OFFICE_TTS_RATE_SCALE: '1.25',
@@ -219,7 +219,7 @@ test('synthesizeOfficeSpeech defaults to Chirp3-HD and drops pitch (unsupported)
     }
   };
   const result = await synthesizeOfficeSpeech(
-    { speakerId: 'greybeard', text: 'We tried that in 2009.', lang: 'en-US' },
+    { speakerId: 'greybeard', text: 'We tried that in 1979.', lang: 'en-US' },
     { VERTEX_PROJECT_ID: 'mermaidgen', OFFICE_TTS_RATE_SCALE: '1.25' },
     { client }
   );
@@ -244,7 +244,7 @@ test('synthesizeOfficeSpeech falls back down the ladder when a tier fails', asyn
     }
   };
   const result = await synthesizeOfficeSpeech(
-    { speakerId: 'greybeard', text: 'We tried that in 2009.', lang: 'en-US' },
+    { speakerId: 'greybeard', text: 'We tried that in 1979.', lang: 'en-US' },
     { VERTEX_PROJECT_ID: 'mermaidgen' },
     { client }
   );
@@ -267,7 +267,7 @@ test('synthesizeOfficeSpeech sends the WaveNet name under the wavenet tier', asy
     }
   };
   await synthesizeOfficeSpeech(
-    { speakerId: 'greybeard', text: 'We tried that in 2009.', lang: 'en-US' },
+    { speakerId: 'greybeard', text: 'We tried that in 1979.', lang: 'en-US' },
     { VERTEX_PROJECT_ID: 'mermaidgen', OFFICE_TTS_VOICE_TIER: 'wavenet' },
     { client }
   );
@@ -283,7 +283,7 @@ test('tiers cache separately because the voice name is in the key', async () => 
     }
   };
   const baseEnv = { VERTEX_PROJECT_ID: 'mermaidgen' };
-  const args = { speakerId: 'greybeard', text: 'We tried that in 2009.', lang: 'en-US' };
+  const args = { speakerId: 'greybeard', text: 'We tried that in 1979.', lang: 'en-US' };
   const chirp = await synthesizeOfficeSpeech(args, baseEnv, { client });
   const wave = await synthesizeOfficeSpeech(
     args,
@@ -321,7 +321,7 @@ test('synthesizeOfficeSpeech uses the injected client and caches', async () => {
   };
   const env = { VERTEX_PROJECT_ID: 'mermaidgen' };
   const first = await synthesizeOfficeSpeech(
-    { speakerId: 'greybeard', text: 'We tried that in 2009.', lang: 'en-US' },
+    { speakerId: 'greybeard', text: 'We tried that in 1979.', lang: 'en-US' },
     env,
     { client }
   );
@@ -329,7 +329,7 @@ test('synthesizeOfficeSpeech uses the injected client and caches', async () => {
   assert.equal(first.mimeType, 'audio/mpeg');
   assert.equal(first.voiceName, 'en-US-Chirp3-HD-Orus');
   const second = await synthesizeOfficeSpeech(
-    { speakerId: 'greybeard', text: 'We tried that in 2009.', lang: 'en-US' },
+    { speakerId: 'greybeard', text: 'We tried that in 1979.', lang: 'en-US' },
     env,
     { client }
   );

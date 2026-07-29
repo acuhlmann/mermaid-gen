@@ -9,7 +9,7 @@ const BATTLE = {
   id: 'battle-1',
   topic: 'Tabs vs. spaces',
   lines: [
-    { speakerId: 'greybeard', text: 'Tabs. We settled this in 2009.' },
+    { speakerId: 'greybeard', text: 'Tabs. We settled this in 1979.' },
     { speakerId: 'intern', text: 'the style guide says two spaces!!' },
     { speakerId: 'greybeard', text: 'The style guide has never opened a terminal.' }
   ],

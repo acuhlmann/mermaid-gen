@@ -24,18 +24,54 @@ import {
   listExportFormats,
   startWebShare
 } from '../utils/exportDiagram.js';
+import { getDeskSlotElement, subscribeDeskSlotElement } from '../state/deskSlotStore.js';
 
 const DEFAULT_CONTROLS = CONTROLS_EN.settings;
 const COPY_TOAST_TTL_MS = 2000;
 const POPOVER_GAP_PX = 9;
+const DESK_ANCHOR_GAP_PX = 7;
+const SAFE_INSET_PX = 8;
+const MAX_DESK_PANEL_WIDTH_PX = 352;
 
 /**
+ * Headless export opened from the desk verb anchors to the helmet stamp (left
+ * cluster), not the zero-width headless slot on the right.
+ *
+ * @param {DOMRect} anchorRect
+ * @returns {import('react').CSSProperties}
+ */
+function computePortaledDeskOutboxStyle(anchorRect) {
+  const viewportWidth = window.innerWidth;
+  const maxWidth = Math.min(MAX_DESK_PANEL_WIDTH_PX, viewportWidth - SAFE_INSET_PX * 2);
+  let left = anchorRect.left;
+  left = Math.max(SAFE_INSET_PX, Math.min(left, viewportWidth - maxWidth - SAFE_INSET_PX));
+  const width = Math.min(maxWidth, viewportWidth - left - SAFE_INSET_PX);
+
+  return {
+    position: 'fixed',
+    top: 'auto',
+    left,
+    right: 'auto',
+    bottom: Math.max(SAFE_INSET_PX, window.innerHeight - anchorRect.top + DESK_ANCHOR_GAP_PX),
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'stretch',
+    width,
+    minWidth: 0,
+    maxWidth: width,
+    boxSizing: 'border-box'
+  };
+}
+
+/**
+ * Dedicated bottom-row Outbox trigger (when visible) keeps right-cluster alignment.
+ *
  * @param {DOMRect} anchorRect
  * @returns {import('react').CSSProperties}
  */
 function computePortaledOutboxStyle(anchorRect) {
   const viewportWidth = window.innerWidth;
-  const maxWidth = Math.min(352, viewportWidth - 32);
+  const maxWidth = Math.min(MAX_DESK_PANEL_WIDTH_PX, viewportWidth - 32);
   const right = Math.max(8, viewportWidth - anchorRect.right);
 
   return {
@@ -68,11 +104,12 @@ function isQuickToastMethod(method) {
  */
 
 /**
- * The Outbox: sending your finished deliverable out is a first-class office
- * action. The panel opens from the desk verb "Ship from the Outbox" via
- * `openSignal` (optional dedicated trigger kept for tests). Owns the whole
- * export subsystem (share pre-warm, per-format Save/Copy, Web Share). The panel
- * floats above the anchor when `popoverMode` (desktop) and stacks inline otherwise.
+ * The mailroom export panel: sending your finished deliverable out is a
+ * first-class office action. The panel opens from the desk verb "Take it to the
+ * mailroom" via `openSignal` (optional dedicated trigger kept for tests).
+ * Headless opens anchor to the desk stamp; a visible trigger keeps right-cluster
+ * alignment. Owns the whole export subsystem (share pre-warm, per-format
+ * Save/Copy, Web Share). Floats above the anchor when `popoverMode` (desktop).
  */
 export default function OutboxDock({
   controls = DEFAULT_CONTROLS,
@@ -108,30 +145,35 @@ export default function OutboxDock({
     : 'outbox-panel';
   const outboxZIndex = useOverlayLayer('outbox-panel', panelOpen && popoverMode);
 
+  const deskAnchored = !showTrigger;
+
   useLayoutEffect(() => {
     if (!panelOpen || !popoverMode) {
       setAnchorRect(null);
       return undefined;
     }
     const measure = () => {
-      const node = rootRef.current;
+      const node = deskAnchored ? getDeskSlotElement() : rootRef.current;
       if (!node) return;
       setAnchorRect(node.getBoundingClientRect());
     };
     measure();
     const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(measure) : null;
-    if (rootRef.current) ro?.observe(rootRef.current);
+    const observed = deskAnchored ? getDeskSlotElement() : rootRef.current;
+    if (observed) ro?.observe(observed);
+    const unsubDesk = deskAnchored ? subscribeDeskSlotElement(measure) : () => {};
     window.addEventListener('resize', measure);
     const vv = window.visualViewport;
     vv?.addEventListener('resize', measure);
     vv?.addEventListener('scroll', measure);
     return () => {
       ro?.disconnect();
+      unsubDesk();
       window.removeEventListener('resize', measure);
       vv?.removeEventListener('resize', measure);
       vv?.removeEventListener('scroll', measure);
     };
-  }, [panelOpen, popoverMode]);
+  }, [panelOpen, popoverMode, deskAnchored]);
   const hasSource = Boolean((diagramSource ?? '').trim());
   const exportFormats = useMemo(
     () => (hasSource ? listExportFormats(contentType, diagramSource) : []),
@@ -433,7 +475,7 @@ export default function OutboxDock({
         )
       : true);
   const primaryShareBusy = Boolean(exportBusyId) && exportBusyId === preferredShareFormatId;
-  const outboxLabel = controls.outboxLabel ?? 'Outbox';
+  const outboxLabel = controls.outboxLabel ?? 'Mailroom';
 
   const panelNode = (
     <div
@@ -441,7 +483,11 @@ export default function OutboxDock({
       className={`${panelClass}${panelOpen ? ' is-open' : ''}`}
       style={overlayLayerStyle(
         outboxZIndex,
-        popoverMode && anchorRect ? computePortaledOutboxStyle(anchorRect) : undefined
+        popoverMode && anchorRect
+          ? deskAnchored
+            ? computePortaledDeskOutboxStyle(anchorRect)
+            : computePortaledOutboxStyle(anchorRect)
+          : undefined
       )}
       role="region"
       aria-label={controls.outboxRegion ?? outboxLabel}
@@ -455,7 +501,7 @@ export default function OutboxDock({
           onClick={() => setPanelOpen(false)}
           aria-label={controls.outboxHide ?? outboxLabel}
         >
-          {controls.outboxHide ?? 'Hide Outbox'}
+          {controls.outboxHide ?? 'Close mailroom'}
         </button>
       ) : null}
       <div className="settings-export" role="group" aria-label={controls.export}>

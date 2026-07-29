@@ -11,7 +11,7 @@ const COFFEE = {
   accepted: false,
   lines: [
     { speakerId: 'intern', text: 'Is the machine meant to make that noise?' },
-    { speakerId: 'greybeard', text: 'It has made that noise since 2009.' }
+    { speakerId: 'greybeard', text: 'It has made that noise since 1979.' }
   ]
 };
 
@@ -115,7 +115,7 @@ describe('coffee break on the floor', () => {
 
     expect(screen.queryByTestId('office-floor-coffee-invite')).toBeNull();
     // With narration off every line shows at once, as in the desk-mode card.
-    expect(screen.getByText(/made that noise since 2009/)).toBeTruthy();
+    expect(screen.getByText(/made that noise since 1979/)).toBeTruthy();
   });
 });
 

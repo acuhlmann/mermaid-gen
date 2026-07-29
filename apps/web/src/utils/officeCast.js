@@ -137,9 +137,9 @@ export const OFFICE_COLLEAGUES = {
     name: 'Ulrich',
     title: 'Staff Engineer Emeritus',
     blurb:
-      '“We tried that in 2009.” Maintains the mainframe. The mainframe maintains him. Darker punchlines, same calm.',
+      '“We tried that in ’79.” Maintains the mainframe. The mainframe maintains him. Darker punchlines, same calm.',
     introLine:
-      'Ulrich. Staff Engineer Emeritus. We tried that in 2009. It ran on cron and fear. Took prod down for a week. Still running. I maintain the mainframe nobody admits exists. The mainframe asked about you. I told it you were diagramming. It sighed.',
+      'Ulrich. Staff Engineer Emeritus. We tried that in 1979. It ran on JCL and fear. Took prod down for a week. Still running. I maintain the mainframe nobody admits exists. The mainframe asked about you. I told it you were diagramming. It sighed.',
     avatarEmoji: '🧓',
     accentColor: '#57534e',
     emailFrom: 'ulrich@mainframe.archislop.corp',
@@ -519,7 +519,7 @@ export const OFFICE_EMAIL_TEMPLATES = [
     id: 'email-greybeard-migration',
     colleagueId: 'greybeard',
     subject: 'you have reinvented the batch job',
-    body: "Saw your diagram on the shared drive. We built this in 2009. It ran on a cron job and fear. Took down prod for a week in 2011.\n\nAsk me how. Or don't. It knows.\n\nUlrich"
+    body: "Saw your diagram on the shared drive. We built this in 1979. Ran on a batch job and fear. Took down prod for a week in 1981.\n\nAsk me how. Or don't. It knows.\n\nUlrich"
   },
   {
     id: 'email-helpdesk-printer-firmware',
@@ -531,7 +531,7 @@ export const OFFICE_EMAIL_TEMPLATES = [
     id: 'email-greybeard-cloud',
     colleagueId: 'greybeard',
     subject: 'RE: cloud migration kickoff',
-    body: "The cloud is the mainframe with better marketing. I migrated us once — 2009, to 'the grid'. We migrated back in 2010. Quietly. At night.\n\nYour {label} will run fine either way. Things mostly do, until they don't.\n\nUlrich"
+    body: "The cloud is the mainframe with better marketing. I migrated us once — 1984, to 'the grid'. We migrated back in 1985. Quietly. At night.\n\nYour {label} will run fine either way. Things mostly do, until they don't.\n\nUlrich"
   },
   {
     id: 'email-scrum-retro-retro',
@@ -684,7 +684,7 @@ export const OFFICE_IM_TEMPLATES = [
   {
     id: 'im-greybeard-look',
     colleagueId: 'greybeard',
-    body: "Looked at {label}. We tried that in 2009. Took prod down for a week. It's fine. Probably. The mainframe shrugged. Then it logged you."
+    body: "Looked at {label}. We tried that in 1979. Took prod down for a week. It's fine. Probably. The mainframe shrugged. Then it logged you."
   },
   {
     id: 'im-greybeard-mainframe',
@@ -738,7 +738,7 @@ export const OFFICE_IM_REPLY_TEMPLATES = [
   {
     id: 'im-reply-greybeard-ack',
     colleagueId: 'greybeard',
-    body: 'Re: "{snippet}" — we tried that in 2009. It\'s fine. Probably.'
+    body: 'Re: "{snippet}" — we tried that in 1984. It\'s fine. Probably.'
   },
   {
     id: 'im-reply-helpdesk-ack',
@@ -780,7 +780,7 @@ export const OFFICE_WALKBY_FALLBACKS = [
   {
     id: 'walkby-greybeard',
     colleagueId: 'greybeard',
-    body: "{label}, huh. We had one of those in 2009. It's still running. Nobody knows where. The mainframe does. It judges."
+    body: "{label}, huh. We had one of those in 1979. It's still running. Nobody knows where. The mainframe does. It judges."
   },
   {
     id: 'walkby-facilities',
@@ -840,7 +840,7 @@ export const OFFICE_COFFEE_SCENES = [
     lines: [
       {
         speakerId: 'greybeard',
-        text: "Saw your {label} thing. One box too many. You'll see which one. Eventually. Or in 2009."
+        text: "Saw your {label} thing. One box too many. You'll see which one. Eventually. Or in 1987."
       },
       {
         speakerId: 'intern',
@@ -883,7 +883,7 @@ export const OFFICE_COFFEE_SCENES = [
       },
       {
         speakerId: 'greybeard',
-        text: "In 2009 we called it a list. It also didn't change. We were honest about it."
+        text: "In 1979 we called it a list. It also didn't change. We were honest about it."
       }
     ]
   },
@@ -910,7 +910,7 @@ export const OFFICE_COFFEE_SCENES = [
       },
       {
         speakerId: 'greybeard',
-        text: 'In 2009 the server lived under my desk. Free. Warm. Loud. Better days. Worse latency. Same politics.'
+        text: 'In 1979 the server lived under my desk. Free. Warm. Loud. Better days. Worse latency. Same politics.'
       }
     ]
   },
@@ -949,7 +949,7 @@ export const OFFICE_COFFEE_SCENES = [
       },
       {
         speakerId: 'greybeard',
-        text: 'We tried that. 2009. The slogan took down prod. The mainframe still quotes it.'
+        text: 'We tried that. 1987. The slogan took down prod. The mainframe still quotes it.'
       }
     ]
   },
@@ -1010,7 +1010,7 @@ export const OFFICE_BATTLE_SCENES = [
     lines: [
       {
         speakerId: 'greybeard',
-        text: 'Tabs. One keystroke, one character, configurable width. We settled this in 2009. The industry forgot. On purpose.'
+        text: 'Tabs. One keystroke, one character, configurable width. We settled this in 1979. The industry forgot. On purpose.'
       },
       {
         speakerId: 'intern',
@@ -1315,8 +1315,8 @@ export const OFFICE_CHROME_COPY = {
     huddleActionTitle:
       'Your team crowds your screen and works on your computer together. No room, no headsets.',
     teamToggleAria: 'Huddle the whole team',
-    outbox: 'Ship from the Outbox',
-    outboxTitle: 'Export or share the deliverable on your desk',
+    outbox: 'Take it to the mailroom',
+    outboxTitle: 'Save, copy, or share the deliverable on your desk',
     codeDrawer: 'Spaghetti',
     codeDrawerShort: 'Spaghetti',
     codeDrawerClose: 'Close spaghetti',

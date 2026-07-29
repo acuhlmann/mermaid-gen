@@ -97,7 +97,7 @@ describe('DeskActionsDock', () => {
     expect(screen.queryByRole('menuitem', { name: /Talk to your team/ })).toBeNull();
     expect(screen.queryByRole('menuitem', { name: /Call a meeting/ })).toBeNull();
     expect(screen.queryByRole('menuitem', { name: /Get a coffee/ })).toBeNull();
-    expect(screen.getByRole('menuitem', { name: /Ship from the Outbox/ })).toBeTruthy();
+    expect(screen.getByRole('menuitem', { name: /Take it to the mailroom/ })).toBeTruthy();
     for (const label of ['Open Slop Chat', 'Onboard a contractor', 'Check my HR progression']) {
       expect(screen.getByRole('menuitem', { name: new RegExp(label) })).toBeTruthy();
     }
@@ -151,9 +151,9 @@ describe('DeskActionsDock', () => {
     expect(screen.queryByRole('menu')).toBeNull();
   });
 
-  it('opens Outbox from the desk menu', () => {
+  it('opens mailroom from the desk menu', () => {
     const handlers = open({ canOpenOutbox: true });
-    fireEvent.click(screen.getByRole('menuitem', { name: /Ship from the Outbox/ }));
+    fireEvent.click(screen.getByRole('menuitem', { name: /Take it to the mailroom/ }));
     expect(handlers.onOpenOutbox).toHaveBeenCalledTimes(1);
     expect(screen.queryByRole('menu')).toBeNull();
   });
@@ -196,9 +196,9 @@ describe('DeskActionsDock', () => {
     expect(screen.getByRole('menuitem', { name: /Check my HR progression/ }).disabled).toBe(false);
   });
 
-  it('blocks Outbox when there is nothing to ship', () => {
+  it('blocks mailroom when there is nothing to ship', () => {
     open({ canOpenOutbox: false });
-    const outbox = screen.getByRole('menuitem', { name: /Ship from the Outbox/ });
+    const outbox = screen.getByRole('menuitem', { name: /Take it to the mailroom/ });
     expect(outbox.disabled).toBe(true);
     expect(outbox.getAttribute('title')).toMatch(/Nothing to ship/i);
   });

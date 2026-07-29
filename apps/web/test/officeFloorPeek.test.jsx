@@ -88,7 +88,7 @@ describe('desk peeking (slice 6)', () => {
     expect(card.textContent).toMatch(/green on black/i);
     expect(screen.queryByTestId('office-floor-panel')).toBeNull();
     // The card slot is single-occupancy: the peek replaces the person card.
-    expect(screen.queryByText(/We tried that in 2009/)).toBeNull();
+    expect(screen.queryByText(/We tried that in 1979/)).toBeNull();
   });
 
   it('walks you home again and sits nobody down on the way', () => {

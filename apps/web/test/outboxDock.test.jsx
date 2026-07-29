@@ -3,6 +3,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-libra
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import OutboxDock from '../src/components/OutboxDock.jsx';
 import { CONTROLS_EN } from '../src/i18n/locales/controls.en.js';
+import { setDeskSlotElement } from '../src/state/deskSlotStore.js';
 
 vi.mock('../src/utils/exportDiagram.js', async (importOriginal) => {
   const actual = await importOriginal();
@@ -203,7 +204,7 @@ describe('OutboxDock export', () => {
         openSignal={0}
       />
     );
-    expect(screen.queryByRole('button', { name: /^Outbox$/i })).toBeNull();
+    expect(screen.queryByRole('button', { name: /^Mailroom$/i })).toBeNull();
     rerender(
       <OutboxDock
         controls={CONTROLS_EN.settings}
@@ -213,6 +214,37 @@ describe('OutboxDock export', () => {
         openSignal={1}
       />
     );
-    expect(screen.getByRole('region', { name: /Outbox/i })).toBeTruthy();
+    expect(screen.getByRole('region', { name: /Mailroom/i })).toBeTruthy();
+  });
+
+  it('anchors headless opens to the desk slot (left cluster)', () => {
+    const deskSlot = document.createElement('div');
+    deskSlot.getBoundingClientRect = () => ({
+      top: 400,
+      left: 24,
+      right: 72,
+      bottom: 448,
+      width: 48,
+      height: 48,
+      x: 24,
+      y: 400,
+      toJSON: () => ({})
+    });
+    setDeskSlotElement(deskSlot);
+
+    render(
+      <OutboxDock
+        controls={CONTROLS_EN.settings}
+        contentType="chart"
+        diagramSource={chartSource}
+        showTrigger={false}
+        openSignal={1}
+      />
+    );
+
+    const panel = screen.getByRole('region', { name: /Mailroom/i });
+    expect(panel.style.left).toBe('24px');
+    expect(panel.style.right).toBe('auto');
+    setDeskSlotElement(null);
   });
 });
