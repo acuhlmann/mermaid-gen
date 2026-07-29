@@ -24,6 +24,7 @@ function huddle(overrides = {}) {
     id: 'huddle-1',
     attendees: ATTENDEES,
     beats: BEATS,
+    suggestions: {},
     phase: 'speaking',
     createdAt: 0,
     ...overrides
@@ -54,8 +55,6 @@ describe('HuddleOverlay', () => {
     for (const id of ATTENDEES) {
       expect(screen.getByTestId(`office-huddle-seat-${id}`)).toBeTruthy();
     }
-    // The ring arrives before a single word exists — the crowd IS the feedback
-    // that the click landed.
     expect(screen.getByText('Everyone is wandering over…')).toBeTruthy();
     expect(screen.queryByText(BEATS[0].text)).toBeNull();
   });
@@ -101,9 +100,6 @@ describe('HuddleOverlay', () => {
   });
 
   it('keeps remarks sequential when voice is off — never reveals the whole ring at once', async () => {
-    // useScenePacing dumps every line at once when it has no narrator, which is
-    // right for a card of overheard chat and wrong for a ring of faces. The
-    // overlay always hands it a narrator to keep the walk one-at-a-time.
     const { container } = render(<HuddleOverlay huddle={huddle()} />);
     expect(container.querySelectorAll('.office-huddle-bubble')).toHaveLength(1);
     await advanceOneLine();
@@ -116,6 +112,42 @@ describe('HuddleOverlay', () => {
     await advanceOneLine();
     fireEvent.click(screen.getByRole('button', { name: /Do it/i }));
     expect(onAdoptPrompt).toHaveBeenCalledWith('Split the Auth node in two', 'dinesh');
+  });
+
+  it('pins a previous teammate suggestion when their head is clicked', async () => {
+    render(<HuddleOverlay huddle={huddle()} />);
+    await advanceOneLine();
+    fireEvent.click(screen.getByRole('button', { name: /Pin .*Gilfoyle/i }));
+    expect(screen.getByTestId('office-huddle-pinned-gilfoyle')).toBeTruthy();
+    expect(screen.getByText(BEATS[0].text)).toBeTruthy();
+  });
+
+  it('asks for an on-spot suggestion when a silent head is clicked', async () => {
+    const onRequestSuggestion = vi.fn(async () => ({
+      speakerId: 'russ',
+      text: 'Ship a tres-commas Auth.',
+      actionPrompt: 'Ship a tres-commas Auth.'
+    }));
+    render(
+      <HuddleOverlay
+        huddle={huddle({
+          beats: BEATS,
+          suggestions: {}
+        })}
+        onRequestSuggestion={onRequestSuggestion}
+      />
+    );
+    fireEvent.click(screen.getByRole('button', { name: /Pin .*Russ/i }));
+    expect(onRequestSuggestion).toHaveBeenCalledWith('russ');
+  });
+
+  it('keeps the ring seated while watching a delegated Do-it', () => {
+    render(<HuddleOverlay huddle={huddle({ phase: 'watching' })} />);
+    expect(screen.getByTestId('office-huddle').getAttribute('data-phase')).toBe('watching');
+    expect(screen.getByText(/watching the notebook/i)).toBeTruthy();
+    for (const id of ATTENDEES) {
+      expect(screen.getByTestId(`office-huddle-seat-${id}`)).toBeTruthy();
+    }
   });
 
   it('ends the huddle from the Hard stop button', () => {

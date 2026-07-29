@@ -620,11 +620,8 @@ export function ArchiSlop() {
     officeCanvasGrace,
     handleOfficeBootComplete,
     userName,
-    advisorPause,
     officeDistractionsPaused,
     advisor,
-    advisorBubbleProps,
-    stakeholderIntroProps,
     showDeskChrome,
     entryReveal,
     entryTourActive,
@@ -913,6 +910,7 @@ export function ArchiSlop() {
           callMeetingSignal={callMeetingSignal}
           huddleSignal={huddleSignal}
           insightsOpen={insightsOpen}
+          agentBusy={busy || insightsEntries.some((e) => (e.status ?? 'running') === 'running')}
           officeRunSignal={officeRunSignal}
           entryReveal={entryReveal}
           hotkeyOverlayOpen={hotkeyOverlayOpen}
@@ -961,11 +959,7 @@ export function ArchiSlop() {
           setDeskPrompt={setDeskPrompt}
           handleDeskPromptSubmit={handleDeskPromptSubmit}
           runTransform={runTransform}
-          advisorBubbleProps={advisorBubbleProps}
-          stakeholderIntroProps={stakeholderIntroProps}
-          advisorPause={advisorPause}
           russStreak={russStreak}
-          onCallMeeting={() => setCallMeetingSignal((n) => n + 1)}
           onHuddle={() => setHuddleSignal((n) => n + 1)}
           handleSelectContentMode={handleSelectContentMode}
           latestCritique={latestCritique}

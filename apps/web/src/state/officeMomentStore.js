@@ -74,7 +74,10 @@ function initialState() {
      * Team huddle — everyone crowds the canvas and speaks in turn. Presentation-
      * agnostic on purpose (ADR-0011 rule 1): the desk overlay is renderer #1 and
      * a floor version can read this same slice without forking state.
-     * @type {{id: string, attendees: string[], beats: Array<{speakerId: string, text: string, actionPrompt?: string}>, phase: 'gathering' | 'speaking' | 'ended', createdAt: number} | null}
+     * `watching` freezes turn-taking while a teammate runs a delegated "Do it"
+     * (notebook open, faces stay seated) and flips back to `speaking` when done.
+     * `suggestions` holds on-spot pin-able remarks that are not in the spoken queue.
+     * @type {{id: string, attendees: string[], beats: Array<{speakerId: string, text: string, actionPrompt?: string}>, suggestions?: Record<string, {speakerId: string, text: string, actionPrompt?: string}>, phase: 'gathering' | 'speaking' | 'watching', createdAt: number} | null}
      */
     huddle: null
   };
@@ -199,6 +202,8 @@ export function startOfficeHuddle(attendees) {
     id: makeId('huddle'),
     attendees: seats,
     beats: [],
+    /** @type {Record<string, {speakerId: string, text: string, actionPrompt?: string}>} */
+    suggestions: {},
     phase: /** @type {'gathering'} */ ('gathering'),
     createdAt: Date.now()
   };
@@ -210,7 +215,56 @@ export function startOfficeHuddle(attendees) {
 export function setOfficeHuddleBeats(id, beats) {
   if (!state.huddle || state.huddle.id !== id) return;
   const next = Array.isArray(beats) ? beats : [];
-  update({ huddle: { ...state.huddle, beats: next, phase: 'speaking' } });
+  // Don't yank out of watching if a late script races a Do-it handoff.
+  const phase = state.huddle.phase === 'watching' ? 'watching' : 'speaking';
+  update({ huddle: { ...state.huddle, beats: next, phase } });
+}
+
+/**
+ * Upsert one teammate's remark. Scripted beats (`pacing: true`, default) stay in
+ * `beats` and drive turn-taking. On-spot click suggestions use `pacing: false`
+ * so they land in `suggestions` — pin-able without restarting the spoken queue.
+ *
+ * @param {string} id
+ * @param {{speakerId: string, text: string, actionPrompt?: string}} beat
+ * @param {{ pacing?: boolean }} [opts]
+ */
+export function upsertOfficeHuddleBeat(id, beat, opts = {}) {
+  if (!state.huddle || state.huddle.id !== id) return;
+  if (!beat?.speakerId || typeof beat.text !== 'string' || !beat.text.trim()) return;
+  const speakerId = beat.speakerId;
+  const nextBeat = {
+    speakerId,
+    text: beat.text.trim(),
+    ...(beat.actionPrompt ? { actionPrompt: String(beat.actionPrompt) } : {})
+  };
+  const pacing = opts.pacing !== false;
+  if (pacing) {
+    const existing = state.huddle.beats ?? [];
+    const index = existing.findIndex((b) => b.speakerId === speakerId);
+    const beats =
+      index >= 0 ? existing.map((b, i) => (i === index ? nextBeat : b)) : [...existing, nextBeat];
+    update({ huddle: { ...state.huddle, beats } });
+    return;
+  }
+  const suggestions = { ...(state.huddle.suggestions ?? {}), [speakerId]: nextBeat };
+  update({ huddle: { ...state.huddle, suggestions } });
+}
+
+/** Freeze turn-taking while a delegated Do-it runs — faces stay in the ring. */
+export function pauseOfficeHuddleForWatching(id = null) {
+  if (!state.huddle) return;
+  if (id && state.huddle.id !== id) return;
+  if (state.huddle.phase === 'watching') return;
+  update({ huddle: { ...state.huddle, phase: 'watching' } });
+}
+
+/** Resume turn-taking after the notebook run finishes. */
+export function resumeOfficeHuddleSpeaking(id = null) {
+  if (!state.huddle) return;
+  if (id && state.huddle.id !== id) return;
+  if (state.huddle.phase !== 'watching') return;
+  update({ huddle: { ...state.huddle, phase: 'speaking' } });
 }
 
 /** Hard stop, last line spoken, or a failed fetch — all end the same way. */

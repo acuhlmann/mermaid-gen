@@ -470,13 +470,23 @@ achievement), and the all-hands (CEO cameo, everyone attends, nothing is decided
 
 **"Huddle up" in the Your Team menu** → the six `CAST_TIERS.team` members snap in from all four
 edges of the canvas and each says one thing about the diagram, one at a time, then everyone goes
-back to their desk. It is the counterpart to the WG meeting above: a meeting is _remote_ (a room, a
-picker, a roster, an agenda); a huddle is _in person_ (no picker, no agenda, no facilitator, and
-Barker stays Upstairs — you huddle with peers).
+back to their desk. It is the counterpart to the WG meeting (still reachable from inbox / Slop Chat):
+a meeting is _remote_ (a room, a picker, a roster, an agenda); a huddle is _in person_ (no picker,
+no agenda, no facilitator, and Barker stays Upstairs — you huddle with peers). Ambient advising
+pop-ups, "Grab whoever is free", and "Call a meeting" were removed from Your Team — the huddle _is_
+the roundtable now. Starting a huddle closes the team roster.
 
 - **Seated before scripted.** `startOfficeHuddle(attendees)` draws the ring at `phase: 'gathering'`
   the moment you click, then `POST /api/office/huddle` fills it in and flips to `'speaking'`. The
   crowd arriving _is_ the feedback that the click landed, so nothing waits on the LLM.
+- **Click a head to pin their Do-it.** Any teammate's face is a hit target. If they already have a
+  remark (scripted or on-spot), their bubble pins so you can go back to an earlier suggestion and
+  delegate. If they have not said anything yet, the click fetches an on-spot suggestion via
+  `/api/advisor/suggest` into `huddle.suggestions` (beside the spoken queue, so pacing does not
+  restart).
+- **Do it keeps the ring watching.** Adopting a prompt sets `phase: 'watching'`, opens the notebook,
+  and freezes turn-taking (`useScenePacing` `paused`) while faces stay seated. When the agent run
+  finishes, the huddle resumes `speaking` from where it left off.
 - **Motion is the deliberate opposite of the walk-by.** The walk-by is one head dropping in over
   720 ms and then looming at you forever (`office-shoulder-loom`) — it is an interruption you did
   not ask for. The huddle snaps six faces in at **240 ms with a 55 ms stagger** and then **holds
@@ -491,13 +501,14 @@ Barker stays Upstairs — you huddle with peers).
   reports `spoken:false` when voice is off) — otherwise the hook's silent branch reveals every line
   at once, which is right for a card of overheard chat and wrong for a ring of faces.
 - **"Hard stop ✋"**, Escape, or the last remark timing out (`HUDDLE_TAIL_MS`) all end it. A huddle
-  that got as far as speaking is worth `huddled` XP; one you cut short before anyone spoke is not.
-- **Replaces the advisor bubble while it runs.** `huddleActive` feeds `useAdvisorPause` — a
-  roundtable bubble surfacing under a huddle would be a seventh teammate talking over the six you
-  called. An active huddle also counts in `hasActiveOfficeSurface()`, so the ambience director and
-  desk verbs back off.
-- **Cost:** one LLM call per huddle, `purpose: 'meeting'` (fast tier), exactly like `/meeting`. An
-  empty or failed script dissolves the ring silently — no error toast.
+  that got as far as speaking (or watched a Do-it) is worth `huddled` XP; one you cut short before
+  anyone spoke is not.
+- **Replaces the advisor bubble while it runs.** Ambient advising is retired entirely; `huddleActive`
+  still feeds `useAdvisorPause` so nothing talks over the six you called. An active huddle also
+  counts in `hasActiveOfficeSurface()`, so the ambience director and desk verbs back off.
+- **Cost:** one LLM call per huddle, `purpose: 'meeting'` (fast tier), exactly like `/meeting`, plus
+  optional `/api/advisor/suggest` calls when you click a silent head. An empty or failed script
+  dissolves the ring silently — no error toast.
 - **ADR-0011 status: desk renderer only, for now.** The state is presentation-agnostic in
   `officeMomentStore`, so the floor version (the six physically ringing your desk) is a clean
   follow-up slice. Until it exists, huddling while you are standing **sits you down first** rather

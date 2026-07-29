@@ -18,6 +18,7 @@ import { OFFICE_NARRATION_GAP_MS } from '../utils/officeNarration.js';
  * @param {{
  *   lines: Array<{speakerId: string, text: string}>,
  *   active: boolean,
+ *   paused?: boolean,
  *   narrateLine?: (line: any) => Promise<{spoken?: boolean}> | void,
  *   prefetchLine?: (line: any) => void,
  *   paceMs: number,
@@ -31,6 +32,7 @@ import { OFFICE_NARRATION_GAP_MS } from '../utils/officeNarration.js';
 export function useScenePacing({
   lines,
   active,
+  paused = false,
   narrateLine,
   prefetchLine,
   paceMs,
@@ -47,18 +49,34 @@ export function useScenePacing({
   const prefetchRef = useRef(prefetchLine);
   const onDoneRef = useRef(onDone);
   const linesRef = useRef(lines);
+  const pausedRef = useRef(paused);
   useEffect(() => {
     narrateRef.current = narrateLine;
     prefetchRef.current = prefetchLine;
     onDoneRef.current = onDone;
     linesRef.current = lines;
+    pausedRef.current = paused;
   });
 
   useEffect(() => {
     if (!active || lineCount === 0) return undefined;
     const shouldNarrate = typeof narrateRef.current === 'function';
 
+    const wait = (ms) =>
+      new Promise((resolve) => {
+        setTimeout(resolve, ms);
+      });
+
+    // Hold the clock while a huddle Do-it is running — do not reset the index.
+    const waitWhilePaused = async () => {
+      while (pausedRef.current) {
+        await wait(120);
+      }
+    };
+
     if (!shouldNarrate) {
+      // Keep the original sync-timer path: floor/coffee tests advance fake timers
+      // with vi.advanceTimersByTime (not Async). Huddle always passes a narrator.
       setVisibleLines(lineCount);
       const timer = setTimeout(() => onDoneRef.current?.(), silentDurationMs);
       return () => clearTimeout(timer);
@@ -67,13 +85,10 @@ export function useScenePacing({
     let cancelled = false;
     setVisibleLines(1);
 
-    const wait = (ms) =>
-      new Promise((resolve) => {
-        setTimeout(resolve, ms);
-      });
-
     void (async () => {
       for (let index = 0; index < lineCount; index += 1) {
+        if (cancelled) return;
+        await waitWhilePaused();
         if (cancelled) return;
         setVisibleLines(index + 1);
         const line = linesRef.current?.[index];
@@ -81,18 +96,26 @@ export function useScenePacing({
         if (nextLine) prefetchRef.current?.(nextLine);
         let spoken = false;
         try {
-          const result = await narrateRef.current?.(line);
-          spoken = Boolean(result?.spoken);
+          // Skip speaking the line aloud while paused (e.g. notebook Do-it).
+          if (!pausedRef.current) {
+            const result = await narrateRef.current?.(line);
+            spoken = Boolean(result?.spoken);
+          }
         } catch {
           // Narration failed (offline, muted, no voice): pace as if silent.
         }
+        if (cancelled) return;
+        await waitWhilePaused();
         if (cancelled) return;
         if (index < lineCount - 1) {
           await wait(spoken ? OFFICE_NARRATION_GAP_MS : paceMs);
         }
       }
       if (cancelled) return;
+      await waitWhilePaused();
+      if (cancelled) return;
       await wait(tailMs);
+      await waitWhilePaused();
       if (!cancelled) onDoneRef.current?.();
     })();
 

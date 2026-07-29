@@ -174,4 +174,50 @@ describe('useHuddlePlayback', () => {
     });
     expect(onCancelNarration).toHaveBeenCalled();
   });
+
+  it('fetches an on-spot suggestion for a silent teammate without growing the spoken queue', async () => {
+    const seats = [...TEAM, 'russ'];
+    const suggestPayload = {
+      suggestion: 'Make Auth a platform.',
+      kind: 'suggestion'
+    };
+    const fetchMock = vi.fn(async (url) => {
+      if (String(url).includes('/api/advisor/suggest')) {
+        return { ok: true, json: async () => suggestPayload };
+      }
+      return { ok: true, json: async () => ({ script: SCRIPT }) };
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const { result } = renderHook(() => useHuddlePlayback(params()));
+    await act(async () => {
+      await result.current.startHuddle(seats);
+    });
+    // SCRIPT covers gilfoyle/dinesh/erlich — russ is seated but silent.
+    let beat;
+    await act(async () => {
+      beat = await result.current.requestSpeakerSuggestion('russ');
+    });
+    expect(beat?.text).toBe('Make Auth a platform.');
+    expect(result.current.huddle.beats).toHaveLength(3);
+    expect(result.current.huddle.suggestions.russ.text).toBe('Make Auth a platform.');
+    expect(fetchMock.mock.calls.some(([url]) => String(url).includes('/api/advisor/suggest'))).toBe(
+      true
+    );
+  });
+
+  it('pauses for watching and resumes speaking', async () => {
+    stubFetch({ script: SCRIPT });
+    const { result } = renderHook(() => useHuddlePlayback(params()));
+    await act(async () => {
+      await result.current.startHuddle(TEAM);
+    });
+    await act(async () => {
+      result.current.pauseForWatching();
+    });
+    expect(result.current.huddle.phase).toBe('watching');
+    await act(async () => {
+      result.current.resumeSpeaking();
+    });
+    expect(result.current.huddle.phase).toBe('speaking');
+  });
 });

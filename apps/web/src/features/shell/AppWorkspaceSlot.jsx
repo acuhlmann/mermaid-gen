@@ -103,6 +103,7 @@ export function AppWorkspaceSlot({
   callMeetingSignal,
   huddleSignal,
   insightsOpen,
+  agentBusy = false,
   officeRunSignal,
   entryReveal,
   hotkeyOverlayOpen,
@@ -149,11 +150,7 @@ export function AppWorkspaceSlot({
   setDeskPrompt,
   handleDeskPromptSubmit,
   runTransform,
-  advisorBubbleProps,
-  stakeholderIntroProps,
-  advisorPause,
   russStreak,
-  onCallMeeting,
   onHuddle,
   handleSelectContentMode,
   latestCritique,
@@ -292,6 +289,7 @@ export function AppWorkspaceSlot({
         huddleSignal={huddleSignal}
         diagramSource={state.diagramSource}
         insightsOpen={insightsOpen}
+        agentBusy={agentBusy}
         tryAgentSound={tryAgentSound}
         officeRunSignal={officeRunSignal}
         entryReveal={entryReveal}
@@ -383,12 +381,7 @@ export function AppWorkspaceSlot({
         stopVoiceInput={stopVoiceInput}
         runTransform={runTransform}
         runAnalyze={runAnalyze}
-        advisor={advisor}
-        advisorBubbleProps={advisorBubbleProps}
-        stakeholderIntroProps={stakeholderIntroProps}
-        advisorPause={advisorPause}
         russStreak={russStreak}
-        onCallMeeting={onCallMeeting}
         onHuddle={onHuddle}
         handleSelectContentMode={handleSelectContentMode}
         latestCritique={latestCritique}

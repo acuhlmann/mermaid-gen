@@ -10,13 +10,8 @@ function DeskPeopleCluster({
   controls,
   runTransform,
   runAnalyze,
-  advisor,
-  advisorBubbleProps,
-  stakeholderIntroProps,
-  advisorPause,
-  diagramSource,
   busy,
-  onCallMeeting,
+  diagramSource,
   onHuddle
 }) {
   return (
@@ -48,21 +43,9 @@ function DeskPeopleCluster({
             onClick: () => runTransform('barker', { useDiagramFocus: true })
           }
         ]}
-        activeAdvisorVariant={advisor.activePersona}
-        thinkingPersona={advisor.thinkingPersona}
         busy={busy}
-        bubbleProps={advisorBubbleProps}
-        onSelectVariant={(variant) => advisor.promptNext({ persona: variant })}
-        castDisabled={busy || Boolean(advisor.thinkingPersona)}
-        introProps={stakeholderIntroProps}
-        onTalkToTeam={() => advisor.promptNext({})}
-        onCallMeeting={onCallMeeting}
         onHuddle={onHuddle}
-        canTalkToTeam={
-          Boolean((diagramSource ?? '').trim()) && !advisor.thinkingPersona && !advisorPause
-        }
-        canCallMeeting={Boolean((diagramSource ?? '').trim())}
-        canHuddle={Boolean((diagramSource ?? '').trim()) && !advisorPause}
+        canHuddle={Boolean((diagramSource ?? '').trim()) && !busy}
       />
     </div>
   );
@@ -98,12 +81,7 @@ function DeskChromeRow({
   controls,
   runTransform,
   runAnalyze,
-  advisor,
-  advisorBubbleProps,
-  stakeholderIntroProps,
-  advisorPause,
   diagramSource,
-  onCallMeeting,
   onHuddle,
   contentModeOptions,
   contentMode,
@@ -186,13 +164,8 @@ function DeskChromeRow({
             controls={controls}
             runTransform={runTransform}
             runAnalyze={runAnalyze}
-            advisor={advisor}
-            advisorBubbleProps={advisorBubbleProps}
-            stakeholderIntroProps={stakeholderIntroProps}
-            advisorPause={advisorPause}
             diagramSource={diagramSource}
             busy={busy}
-            onCallMeeting={onCallMeeting}
             onHuddle={onHuddle}
           />
         </div>
@@ -265,13 +238,8 @@ export function DeskBottomActionsSlot({
   stopVoiceInput,
   runTransform,
   runAnalyze,
-  advisor,
-  advisorBubbleProps,
-  stakeholderIntroProps,
-  advisorPause,
   russStreak,
   diagramSource,
-  onCallMeeting,
   onHuddle,
   handleSelectContentMode,
   latestCritique,
@@ -327,12 +295,7 @@ export function DeskBottomActionsSlot({
     controls,
     runTransform,
     runAnalyze,
-    advisor,
-    advisorBubbleProps,
-    stakeholderIntroProps,
-    advisorPause,
     diagramSource,
-    onCallMeeting,
     onHuddle,
     contentModeOptions,
     contentMode,
