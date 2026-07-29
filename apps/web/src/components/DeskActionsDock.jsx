@@ -63,6 +63,8 @@ export default function DeskActionsDock({
   standing = false,
   onCheckInbox,
   onOpenSlopChat,
+  onSummonSync,
+  canSummonSync = true,
   onCheckHrProgression,
   onOpenOutbox,
   onInviteAgent,
@@ -169,6 +171,16 @@ export default function DeskActionsDock({
       alwaysEnabled: true,
       title: copy.slopChatTitle,
       badge: imUnreadCount > 0 ? (imUnreadCount > 9 ? '9+' : String(imUnreadCount)) : null
+    },
+    {
+      id: 'meeting',
+      label: copy.meeting,
+      emoji: '📅',
+      run: onSummonSync,
+      alwaysEnabled: true,
+      disabled: !canSummonSync,
+      disabledTitle: copy.blocked?.meeting,
+      title: copy.meetingTitle
     },
     {
       id: 'contractor',

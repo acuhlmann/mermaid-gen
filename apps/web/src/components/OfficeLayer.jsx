@@ -452,15 +452,36 @@ export default function OfficeLayer({
           : [];
       const source =
         options?.source === 'email' || options?.source === 'chat' ? options.source : 'desk';
+      const topic = typeof options?.topic === 'string' ? options.topic : '';
+      const modality = normalizeMeetingModality(options?.modality, { source });
+      const directStart =
+        options?.directStart !== false &&
+        (source === 'email' || source === 'chat') &&
+        seedAttendees.length > 0;
+
+      if (directStart) {
+        setMessengerOpen(false);
+        const attendees = normalizeMeetingRoster(seedAttendees, { forceFacilitator: false });
+        void startMeeting({
+          attendees,
+          modality,
+          ...(topic ? { topic } : {})
+        });
+        if (modality === MEETING_MODALITY_PHYSICAL && getOfficeViewMode() !== 'floor') {
+          standUp();
+        }
+        return;
+      }
+
       setMeetingPicker({
         seedAttendees,
-        topic: typeof options?.topic === 'string' ? options.topic : '',
+        topic,
         source,
         forceFacilitator: options?.forceFacilitator === true,
-        defaultModality: normalizeMeetingModality(options?.modality, { source })
+        defaultModality: modality
       });
     },
-    [meeting]
+    [meeting, startMeeting]
   );
 
   const handleConfirmMeetingPicker = useCallback(
@@ -585,6 +606,7 @@ export default function OfficeLayer({
   // Bumping this counter opens the inbox popover from the desk menu without
   // lifting the dock's own open/close state.
   const [inboxOpenSignal, setInboxOpenSignal] = useState(0);
+  const [composeBusy, setComposeBusy] = useState(false);
   const desk = useDeskActions({
     pause,
     meetingActive: Boolean(meeting),
@@ -623,6 +645,31 @@ export default function OfficeLayer({
     setMessengerOpen(true);
     await desk.imSomeone();
   }, [desk]);
+
+  const handleStartThread = useCallback(
+    async (colleagueId) => {
+      setMessengerOpen(true);
+      setMessengerBusy(true);
+      try {
+        await desk.imSomeone(colleagueId);
+      } finally {
+        setMessengerBusy(false);
+      }
+    },
+    [desk]
+  );
+
+  const handleComposeEmail = useCallback(
+    async (colleagueId, { subject, body }) => {
+      setComposeBusy(true);
+      try {
+        return await desk.emailSomeone(colleagueId, { subject, body });
+      } finally {
+        setComposeBusy(false);
+      }
+    },
+    [desk]
+  );
 
   // Walking up to somebody on the isometric floor reuses the desk's IM verb —
   // renderer #2 gets no private dialogue path of its own (ADR-0011).
@@ -684,6 +731,8 @@ export default function OfficeLayer({
       standing={onFloor}
       onCheckInbox={desk.checkInbox}
       onOpenSlopChat={handleOpenMessenger}
+      onSummonSync={() => handleCallMeeting({ source: 'desk' })}
+      canSummonSync={canCallMeeting}
       onCheckHrProgression={onCheckHrProgression}
       onOpenOutbox={onOpenOutbox}
       onInviteAgent={onInviteAgent}
@@ -775,6 +824,8 @@ export default function OfficeLayer({
         onMarkAllRead={markAllOfficeEmailsRead}
         onAdoptPrompt={handleAdopt}
         onCallMeeting={handleCallMeeting}
+        onComposeEmail={handleComposeEmail}
+        composeBusy={composeBusy}
         canCallMeeting={canCallMeeting}
       />
       {suppressDistractions ? null : (
@@ -800,6 +851,7 @@ export default function OfficeLayer({
             onMarkRead={markOfficeImsRead}
             onSend={handleMessengerSend}
             onMessageSomeone={handleMessageSomeone}
+            onStartThread={handleStartThread}
             onCallMeeting={handleCallMeeting}
             canCallMeeting={canCallMeeting}
           />

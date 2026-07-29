@@ -8,7 +8,7 @@ import {
   deliverLlmMoment,
   readSlotContext
 } from '../utils/officeMomentDelivery.js';
-import { pickRandomFrom } from '../utils/officeCast.js';
+import { pickRandomFrom, listMeetingDirectory } from '../utils/officeCast.js';
 import {
   acceptOfficeCoffee,
   canOfferOfficeBattle,
@@ -23,19 +23,8 @@ import {
  */
 export const DESK_LLM_CAP = 3;
 
-/** Cast you can DM. Senior stakeholders are excluded — you don't cold-DM the CFO. */
-export const DESK_IM_CAST = [
-  'intern',
-  'scrumMaster',
-  'helpdesk',
-  'facilities',
-  'hr',
-  'greybeard',
-  'gilfoyle',
-  'dinesh',
-  'jared',
-  'richard'
-];
+/** Cast you can DM or email — anyone in the meeting directory. */
+export const DESK_IM_CAST = listMeetingDirectory().map((row) => row.id);
 
 /**
  * Player-initiated office actions — the "ego perspective" verbs
@@ -232,6 +221,51 @@ export function useDeskActions(params) {
     [deliveryOptions, random, runVerb]
   );
 
+  /**
+   * Email someone directly — their reply lands in your inbox. Pass subject/body
+   * so the LLM (or canned bank) can respond in character.
+   */
+  const emailSomeone = useCallback(
+    (colleagueId, { subject = '', body = '' } = {}) =>
+      runVerb(async () => {
+        const p = paramsRef.current;
+        const ctx = readSlotContext(p, random);
+        const target = colleagueId ?? pickRandomFrom(DESK_IM_CAST, random);
+        if (!target) return false;
+        const userMessage = [String(subject ?? '').trim(), String(body ?? '').trim()]
+          .filter(Boolean)
+          .join('\n\n');
+        const replyOpts = userMessage
+          ? { replyContext: { colleagueId: target, userMessage, threadTranscript: [] } }
+          : {};
+        let delivered = false;
+        if (deskLlmCountRef.current < DESK_LLM_CAP) {
+          delivered = await deliverLlmMoment(
+            'email',
+            ctx,
+            deliveryOptions({
+              colleagueId: target,
+              sessionId: p.getSessionId?.() ?? '',
+              onUsage: (usage) => paramsRef.current.onUsage?.(usage),
+              onLlmSpent: () => {
+                deskLlmCountRef.current += 1;
+              },
+              ...replyOpts
+            })
+          );
+        }
+        if (!delivered) {
+          delivered = deliverCannedMoment(
+            'email',
+            ctx,
+            deliveryOptions({ colleagueId: target, ...replyOpts })
+          );
+        }
+        return delivered;
+      }),
+    [deliveryOptions, random, runVerb]
+  );
+
   const checkInbox = useCallback(() => {
     paramsRef.current.onCheckInbox?.();
     return true;
@@ -255,6 +289,7 @@ export function useDeskActions(params) {
       getCoffee,
       walkTheFloor,
       imSomeone,
+      emailSomeone,
       checkInbox,
       callMeeting,
       talkToTeam,
@@ -267,6 +302,7 @@ export function useDeskActions(params) {
       blockedReason,
       callMeeting,
       checkInbox,
+      emailSomeone,
       getCoffee,
       imSomeone,
       talkToTeam,

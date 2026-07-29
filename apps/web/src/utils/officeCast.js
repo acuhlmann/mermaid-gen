@@ -1374,7 +1374,24 @@ export const OFFICE_CHROME_COPY = {
     callMeetingFromSelectionTitle: 'Headset call about the selected thread — pick who joins',
     callMeetingSelectTitle: 'Select emails for a topic, or open the roster cold',
     callMeetingDisabledTitle: 'Already in a sync — leave that one first',
-    callMeetingAboutEmail: '📅 Hop on a call about this'
+    callMeetingAboutEmail: '📅 Hop on a call about this',
+    compose: '✉️ New email',
+    composeTitle: 'Write to anyone in the building',
+    composeToLabel: 'To',
+    composeSubjectLabel: 'Subject',
+    composeSubjectPlaceholder: 'RE: something urgent (probably not)',
+    composeBodyLabel: 'Message',
+    composeBodyPlaceholder: 'Keep it professional. They won’t.',
+    composeSend: 'Send',
+    composeSending: 'Sending…',
+    composeCancel: 'Cancel',
+    composePickSomeone: 'Pick someone to email'
+  },
+  colleaguePicker: {
+    directoryAria: 'Choose a colleague',
+    tierTeam: 'Your team',
+    tierSenior: 'Leadership',
+    tierOffice: 'The floor'
   },
   meetingPicker: {
     title: '📅 Summon a sync',
@@ -1434,6 +1451,10 @@ export const OFFICE_CHROME_COPY = {
     emptyThreads: 'No messages yet. Enjoy it while it lasts.',
     messageSomeone: 'Message someone',
     messageSomeoneTitle: 'Ping a random colleague — they always reply',
+    newMessage: '✉️ New message',
+    newMessageTitle: 'Start a thread with anyone in the building',
+    pickColleague: 'Pick a colleague',
+    pickColleagueHint: 'Choose who to message — they are all "available".',
     emptyThread: 'Pick a colleague. They are all "available".',
     composerPlaceholder: 'Type a message…',
     composerAria: 'Message {name}',

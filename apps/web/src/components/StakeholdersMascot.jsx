@@ -33,7 +33,7 @@ function cssVariant(variant) {
 /**
  * Unified stakeholders dock: one mascot button represents the whole advisory cast.
  * Clicking opens a roster of personas (name, title, action) plus team verbs —
- * Huddle up (crowd the monitor) and Summon a sync (glass room or headsets).
+ * Huddle up (crowd the monitor). Summon a sync lives on the desk menu.
  * Auto-collapses on outside click, inactivity, or when a huddle starts.
  */
 export default function StakeholdersMascot({
@@ -41,9 +41,7 @@ export default function StakeholdersMascot({
   busy = false,
   introProps = null,
   onHuddle = null,
-  canHuddle = true,
-  onCallMeeting = null,
-  canCallMeeting = true
+  canHuddle = true
 }) {
   const { controls } = useUiCopy();
   const stakeholdersCopy = controls.stakeholders;
@@ -128,11 +126,6 @@ export default function StakeholdersMascot({
     // team UI now, and leaving the popup open on top of six faces is noise.
     setExpanded(false);
     void onHuddle?.();
-  };
-
-  const startSync = () => {
-    setExpanded(false);
-    void onCallMeeting?.({ source: 'desk' });
   };
 
   return (
@@ -221,37 +214,6 @@ export default function StakeholdersMascot({
                 <span className="stakeholders-roster-name">{deskCopy.huddleAction}</span>
               </span>
             </button>
-            {typeof onCallMeeting === 'function' ? (
-              <button
-                type="button"
-                role="menuitem"
-                className={[
-                  'stakeholders-roster-row',
-                  'stakeholders-roster-team-action',
-                  'stakeholders-roster-sync-action',
-                  'slop-action-button',
-                  'is-sync'
-                ].join(' ')}
-                disabled={!canCallMeeting}
-                aria-label={deskCopy.meeting}
-                title={
-                  canCallMeeting
-                    ? (deskCopy.meetingTitle ?? deskCopy.meeting)
-                    : (deskCopy.blocked?.meeting ?? deskCopy.meeting)
-                }
-                onClick={(event) => {
-                  event.stopPropagation();
-                  startSync();
-                }}
-              >
-                <span className="stakeholders-roster-team-emoji" aria-hidden="true">
-                  📅
-                </span>
-                <span className="stakeholders-roster-label">
-                  <span className="stakeholders-roster-name">{deskCopy.meeting}</span>
-                </span>
-              </button>
-            ) : null}
           </div>
           <span className="stakeholders-roster-divider" role="presentation">
             {stakeholdersCopy.delegateDivider ?? 'Delegate to…'}

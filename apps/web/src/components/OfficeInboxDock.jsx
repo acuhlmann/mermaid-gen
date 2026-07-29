@@ -6,6 +6,7 @@ import {
 } from '../utils/officeCast.js';
 import { formatLocale } from '../i18n/formatLocale.js';
 import { PersonaFace } from './personaFaces/index.jsx';
+import OfficeColleaguePicker from './OfficeColleaguePicker.jsx';
 import FloatingWindow, { FloatingWindowDragHandle } from './FloatingWindow.jsx';
 import {
   FloatingWindowCloseButton,
@@ -33,6 +34,8 @@ export default function OfficeInboxDock({
   onMarkAllRead,
   onAdoptPrompt,
   onCallMeeting,
+  onComposeEmail,
+  composeBusy = false,
   canCallMeeting,
   showTrigger = true
 }) {
@@ -40,6 +43,10 @@ export default function OfficeInboxDock({
   const [minimized, setMinimized] = useState(false);
   const [selectedId, setSelectedId] = useState(null);
   const [selectedEmailIds, setSelectedEmailIds] = useState(() => new Set());
+  const [composing, setComposing] = useState(false);
+  const [composeTo, setComposeTo] = useState(null);
+  const [composeSubject, setComposeSubject] = useState('');
+  const [composeBody, setComposeBody] = useState('');
   const selected = emails.find((email) => email.id === selectedId) ?? null;
   const copy = officeChromeCopy();
   const selectedCount = selectedEmailIds.size;
@@ -72,9 +79,41 @@ export default function OfficeInboxDock({
         setSelectedId(null);
         setSelectedEmailIds(new Set());
         setMinimized(false);
+        setComposing(false);
+        setComposeTo(null);
+        setComposeSubject('');
+        setComposeBody('');
       }
       return !prev;
     });
+  };
+
+  const startCompose = () => {
+    setSelectedId(null);
+    setSelectedEmailIds(new Set());
+    setComposing(true);
+    setComposeTo(null);
+    setComposeSubject('');
+    setComposeBody('');
+  };
+
+  const cancelCompose = () => {
+    setComposing(false);
+    setComposeTo(null);
+    setComposeSubject('');
+    setComposeBody('');
+  };
+
+  const handleComposeSend = async () => {
+    if (!composeTo || composeBusy) return;
+    const subject = composeSubject.trim();
+    const body = composeBody.trim();
+    if (!subject && !body) return;
+    const sent = await onComposeEmail?.(composeTo, { subject, body });
+    if (sent !== false) {
+      cancelCompose();
+      setOpen(false);
+    }
   };
 
   const openEmail = (email) => {
@@ -194,120 +233,196 @@ export default function OfficeInboxDock({
               </div>
             </div>
           </FloatingWindowDragHandle>
-          {minimized ? null : (
-            <>
-              {selected ? (
-                <div className="office-email-view">
-                  <button
-                    type="button"
-                    className="office-email-back"
-                    onClick={() => setSelectedId(null)}
-                  >
-                    {copy.inbox.back}
-                  </button>
-                  <OfficeEmailHeader email={selected} />
-                  <p className="office-email-body">{selected.body}</p>
-                  {selected.actionPrompt ? (
+          {minimized ? null : composing ? (
+            <div className="office-email-compose">
+              <button type="button" className="office-email-back" onClick={cancelCompose}>
+                {copy.inbox.back}
+              </button>
+              <p className="office-email-compose-heading">{copy.inbox.compose}</p>
+              <label className="office-email-compose-field">
+                <span>{copy.inbox.composeToLabel}</span>
+                {composeTo ? (
+                  <div className="office-email-compose-recipient">
+                    <PersonaFace id={composeTo} size={24} />
+                    <span>{officeSenderInfo(composeTo).name}</span>
                     <button
                       type="button"
-                      className="office-do-it"
-                      onClick={() => onAdoptPrompt?.(selected.actionPrompt, selected.colleagueId)}
+                      className="office-email-compose-change"
+                      onClick={() => setComposeTo(null)}
                     >
-                      {copy.doIt}
+                      Change
                     </button>
-                  ) : null}
-                  <button
-                    type="button"
-                    className="office-call-meeting office-email-call-meeting"
-                    onClick={handleCallMeetingAboutOpenEmail}
-                    disabled={!canCallMeeting}
-                    title={
-                      canCallMeeting ? copy.inbox.callMeetingFromSelectionTitle : callMeetingTitle
-                    }
-                  >
-                    {copy.inbox.callMeetingAboutEmail}
-                  </button>
-                </div>
-              ) : (
+                  </div>
+                ) : (
+                  <OfficeColleaguePicker
+                    selectedId={composeTo}
+                    onSelect={setComposeTo}
+                    ariaLabel={copy.inbox.composePickSomeone}
+                  />
+                )}
+              </label>
+              {composeTo ? (
                 <>
-                  <ul className="office-email-list">
-                    {emails.length === 0 ? (
-                      <li className="office-email-empty">{copy.inbox.emptyLine}</li>
-                    ) : (
-                      emails.map((email) => {
-                        const sender = officeSenderInfo(email.colleagueId);
-                        const isChecked = selectedEmailIds.has(email.id);
-                        return (
-                          <li key={email.id}>
-                            <div
-                              className={`office-email-row-wrap${isChecked ? ' is-selected' : ''}`}
-                            >
-                              <label className="office-email-select">
-                                <input
-                                  type="checkbox"
-                                  className="office-email-select-input"
-                                  checked={isChecked}
-                                  onChange={() => toggleEmailSelection(email.id)}
-                                  aria-label={formatLocale(copy.inbox.selectEmailAria, {
-                                    name: sender.name
-                                  })}
-                                />
-                              </label>
-                              <button
-                                type="button"
-                                className={`office-email-row${email.read ? '' : ' is-unread'}`}
-                                onClick={() => openEmail(email)}
-                              >
-                                <span
-                                  className="office-email-avatar"
-                                  aria-hidden="true"
-                                  title={
-                                    sender.title ? `${sender.name} · ${sender.title}` : sender.name
-                                  }
-                                >
-                                  <PersonaFace id={email.colleagueId} size={24} />
-                                </span>
-                                <span className="office-email-meta">
-                                  <span className="office-email-sender">
-                                    {sender.name}
-                                    {sender.title ? (
-                                      <span className="office-email-sender-role">
-                                        {' '}
-                                        · {sender.title}
-                                      </span>
-                                    ) : null}
-                                  </span>
-                                  <span className="office-email-subject">{email.subject}</span>
-                                </span>
-                              </button>
-                            </div>
-                          </li>
-                        );
-                      })
-                    )}
-                  </ul>
-                  <div className="office-inbox-footer">
-                    {unreadCount > 0 ? (
-                      <button
-                        type="button"
-                        className="office-inbox-footer-action"
-                        onClick={onMarkAllRead}
-                      >
-                        {copy.inbox.markAllRead}
-                      </button>
-                    ) : null}
+                  <label className="office-email-compose-field">
+                    <span>{copy.inbox.composeSubjectLabel}</span>
+                    <input
+                      type="text"
+                      value={composeSubject}
+                      maxLength={120}
+                      placeholder={copy.inbox.composeSubjectPlaceholder}
+                      onChange={(event) => setComposeSubject(event.target.value)}
+                      disabled={composeBusy}
+                    />
+                  </label>
+                  <label className="office-email-compose-field">
+                    <span>{copy.inbox.composeBodyLabel}</span>
+                    <textarea
+                      value={composeBody}
+                      maxLength={800}
+                      rows={4}
+                      placeholder={copy.inbox.composeBodyPlaceholder}
+                      onChange={(event) => setComposeBody(event.target.value)}
+                      disabled={composeBusy}
+                    />
+                  </label>
+                  <div className="office-email-compose-actions">
                     <button
                       type="button"
-                      className="office-inbox-footer-action office-call-meeting"
-                      onClick={handleCallMeeting}
-                      disabled={!canCallFromSelection}
-                      title={callMeetingTitle}
+                      className="office-inbox-footer-action"
+                      onClick={cancelCompose}
+                      disabled={composeBusy}
                     >
-                      {callMeetingLabel}
+                      {copy.inbox.composeCancel}
+                    </button>
+                    <button
+                      type="button"
+                      className="office-inbox-footer-action office-email-compose-send"
+                      onClick={() => void handleComposeSend()}
+                      disabled={
+                        composeBusy || !composeTo || (!composeSubject.trim() && !composeBody.trim())
+                      }
+                    >
+                      {composeBusy ? copy.inbox.composeSending : copy.inbox.composeSend}
                     </button>
                   </div>
                 </>
-              )}
+              ) : null}
+            </div>
+          ) : selected ? (
+            <div className="office-email-view">
+              <button
+                type="button"
+                className="office-email-back"
+                onClick={() => setSelectedId(null)}
+              >
+                {copy.inbox.back}
+              </button>
+              <OfficeEmailHeader email={selected} />
+              <p className="office-email-body">{selected.body}</p>
+              {selected.actionPrompt ? (
+                <button
+                  type="button"
+                  className="office-do-it"
+                  onClick={() => onAdoptPrompt?.(selected.actionPrompt, selected.colleagueId)}
+                >
+                  {copy.doIt}
+                </button>
+              ) : null}
+              <button
+                type="button"
+                className="office-call-meeting office-email-call-meeting"
+                onClick={handleCallMeetingAboutOpenEmail}
+                disabled={!canCallMeeting}
+                title={canCallMeeting ? copy.inbox.callMeetingFromSelectionTitle : callMeetingTitle}
+              >
+                {copy.inbox.callMeetingAboutEmail}
+              </button>
+            </div>
+          ) : (
+            <>
+              <ul className="office-email-list">
+                {emails.length === 0 ? (
+                  <li className="office-email-empty">{copy.inbox.emptyLine}</li>
+                ) : (
+                  emails.map((email) => {
+                    const sender = officeSenderInfo(email.colleagueId);
+                    const isChecked = selectedEmailIds.has(email.id);
+                    return (
+                      <li key={email.id}>
+                        <div className={`office-email-row-wrap${isChecked ? ' is-selected' : ''}`}>
+                          <label className="office-email-select">
+                            <input
+                              type="checkbox"
+                              className="office-email-select-input"
+                              checked={isChecked}
+                              onChange={() => toggleEmailSelection(email.id)}
+                              aria-label={formatLocale(copy.inbox.selectEmailAria, {
+                                name: sender.name
+                              })}
+                            />
+                          </label>
+                          <button
+                            type="button"
+                            className={`office-email-row${email.read ? '' : ' is-unread'}`}
+                            onClick={() => openEmail(email)}
+                          >
+                            <span
+                              className="office-email-avatar"
+                              aria-hidden="true"
+                              title={
+                                sender.title ? `${sender.name} · ${sender.title}` : sender.name
+                              }
+                            >
+                              <PersonaFace id={email.colleagueId} size={24} />
+                            </span>
+                            <span className="office-email-meta">
+                              <span className="office-email-sender">
+                                {sender.name}
+                                {sender.title ? (
+                                  <span className="office-email-sender-role">
+                                    {' '}
+                                    · {sender.title}
+                                  </span>
+                                ) : null}
+                              </span>
+                              <span className="office-email-subject">{email.subject}</span>
+                            </span>
+                          </button>
+                        </div>
+                      </li>
+                    );
+                  })
+                )}
+              </ul>
+              <div className="office-inbox-footer">
+                <button
+                  type="button"
+                  className="office-inbox-footer-action"
+                  onClick={startCompose}
+                  disabled={composeBusy || typeof onComposeEmail !== 'function'}
+                  title={copy.inbox.composeTitle}
+                >
+                  {copy.inbox.compose}
+                </button>
+                {unreadCount > 0 ? (
+                  <button
+                    type="button"
+                    className="office-inbox-footer-action"
+                    onClick={onMarkAllRead}
+                  >
+                    {copy.inbox.markAllRead}
+                  </button>
+                ) : null}
+                <button
+                  type="button"
+                  className="office-inbox-footer-action office-call-meeting"
+                  onClick={handleCallMeeting}
+                  disabled={!canCallFromSelection}
+                  title={callMeetingTitle}
+                >
+                  {callMeetingLabel}
+                </button>
+              </div>
             </>
           )}
         </FloatingWindow>

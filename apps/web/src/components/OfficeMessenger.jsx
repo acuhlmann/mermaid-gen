@@ -3,6 +3,7 @@ import { officeChromeCopy, officeImQuickReplies, officeSenderInfo } from '../uti
 import { formatLocale } from '../i18n/formatLocale.js';
 import { groupImThreads } from '../utils/officeImThreads.js';
 import { PersonaFace } from './personaFaces/index.jsx';
+import OfficeColleaguePicker from './OfficeColleaguePicker.jsx';
 import VoiceMicButton from './VoiceMicButton.jsx';
 import FloatingWindow, { FloatingWindowDragHandle } from './FloatingWindow.jsx';
 import {
@@ -159,6 +160,7 @@ export default function OfficeMessenger({
   onMarkRead,
   onSend,
   onMessageSomeone,
+  onStartThread,
   onCallMeeting,
   canCallMeeting = false,
   busy = false
@@ -167,6 +169,7 @@ export default function OfficeMessenger({
   const chrome = officeChromeCopy();
   const [selectedId, setSelectedId] = useState(null);
   const [minimized, setMinimized] = useState(false);
+  const [pickingColleague, setPickingColleague] = useState(false);
   const scrollRef = useRef(null);
 
   const threads = useMemo(() => groupImThreads(messages), [messages]);
@@ -190,6 +193,7 @@ export default function OfficeMessenger({
   useEffect(() => {
     if (!open) {
       setMinimized(false);
+      setPickingColleague(false);
       return undefined;
     }
     const onKeyDown = (event) => {
@@ -198,6 +202,12 @@ export default function OfficeMessenger({
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [open, onClose]);
+
+  const handlePickColleague = (colleagueId) => {
+    setSelectedId(colleagueId);
+    setPickingColleague(false);
+    void onStartThread?.(colleagueId);
+  };
 
   if (!open) return null;
 
@@ -263,10 +273,36 @@ export default function OfficeMessenger({
 
       {minimized ? null : (
         <>
-          {threads.length === 0 ? (
+          {pickingColleague ? (
+            <div className="office-messenger-pick-panel">
+              <button
+                type="button"
+                className="office-messenger-pick-back"
+                onClick={() => setPickingColleague(false)}
+              >
+                {chat.pickColleague}
+              </button>
+              <p className="office-messenger-pick-hint">{chat.pickColleagueHint}</p>
+              <OfficeColleaguePicker
+                selectedId={activeId}
+                onSelect={handlePickColleague}
+                ariaLabel={chat.pickColleague}
+              />
+            </div>
+          ) : threads.length === 0 ? (
             <div className="office-messenger-empty-panel">
               <p className="office-messenger-empty">{chat.emptyThreads}</p>
-              {typeof onMessageSomeone === 'function' ? (
+              {typeof onStartThread === 'function' ? (
+                <button
+                  type="button"
+                  className="office-messenger-message-someone"
+                  disabled={busy}
+                  title={chat.newMessageTitle}
+                  onClick={() => setPickingColleague(true)}
+                >
+                  {chat.newMessage}
+                </button>
+              ) : typeof onMessageSomeone === 'function' ? (
                 <button
                   type="button"
                   className="office-messenger-message-someone"
@@ -280,13 +316,26 @@ export default function OfficeMessenger({
             </div>
           ) : (
             <div className="office-messenger-body">
-              <MessengerThreadList
-                threads={threads}
-                activeId={activeId}
-                label={chat.threadsAria}
-                unreadLabel={chat.unreadDot}
-                onSelect={setSelectedId}
-              />
+              <div className="office-messenger-sidebar">
+                {typeof onStartThread === 'function' ? (
+                  <button
+                    type="button"
+                    className="office-messenger-new-thread"
+                    disabled={busy}
+                    title={chat.newMessageTitle}
+                    onClick={() => setPickingColleague(true)}
+                  >
+                    {chat.newMessage}
+                  </button>
+                ) : null}
+                <MessengerThreadList
+                  threads={threads}
+                  activeId={activeId}
+                  label={chat.threadsAria}
+                  unreadLabel={chat.unreadDot}
+                  onSelect={setSelectedId}
+                />
+              </div>
               <div className="office-messenger-thread-view">
                 <MessengerLog
                   thread={active}
