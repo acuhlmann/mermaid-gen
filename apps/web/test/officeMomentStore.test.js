@@ -333,15 +333,13 @@ describe('officeMomentStore', () => {
     expect(shouldHoldAmbientOfficeMoments()).toBe(true);
   });
 
-  it('holds ambient moments when inbox or Slop Chat backlog is unread', () => {
+  it('does not hold ambient moments solely for unread inbox or Slop Chat backlog', () => {
     pushOfficeEmail({
       colleagueId: 'hr',
       subject: 'Welcome',
       body: 'Hi'
     });
     expect(hasActiveOfficeSurface()).toBe(false);
-    expect(shouldHoldAmbientOfficeMoments()).toBe(true);
-    markOfficeEmailRead(getOfficeSnapshot().emails[0].id);
     expect(shouldHoldAmbientOfficeMoments()).toBe(false);
     pushOfficeImPing({ colleagueId: 'intern', body: 'ping' });
     markOfficeImsRead();

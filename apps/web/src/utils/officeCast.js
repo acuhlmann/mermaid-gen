@@ -1674,6 +1674,9 @@ export const OFFICE_CHROME_COPY = {
   battle: {
     kindLabel: 'Open-plan drama · Holy war',
     inviteLine: '🥊 {a} and {b} are at it again — "{topic}". The floor is watching.',
+    inviteTagline: 'The floor is watching.',
+    declineAria: 'Not my circus — walk away',
+    dismissAria: 'Walk away from the holy war',
     accept: 'Grab popcorn',
     decline: 'Not my circus',
     sceneAria: 'Holy war on the floor',

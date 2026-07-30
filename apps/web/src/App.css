@@ -19692,6 +19692,19 @@ body.slopitect-rainbow-tint::before {
     overflow-wrap: anywhere;
   }
 
+  .office-battle-invite--shoulder,
+  .office-coffee-invite--shoulder {
+    margin-top: 0;
+    padding-top: 0.35rem;
+  }
+  .office-battle-invite-faceoff {
+    gap: 0.35rem;
+  }
+  .office-battle-invite-versus {
+    font-size: 1.2rem;
+    margin-bottom: 1.1rem;
+  }
+  .office-battle-invite-presence,
   .office-walkby-presence,
   .office-coffee-invite-presence {
     width: min(260px, calc(100vw - 40px));
@@ -19757,23 +19770,139 @@ body.slopitect-rainbow-tint::before {
   }
 }
 
-/* --- Holy war (open-plan face-off) --- */
+/* --- Holy war (shoulder invite + open-plan face-off) --- */
+.office-battle-invite-layer {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-office-chrome);
+  pointer-events: none;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+.office-battle-invite-shade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, #7f1d1d 34%, transparent) 0%,
+    color-mix(in srgb, #0f172a 16%, transparent) 44%,
+    transparent 70%
+  );
+  pointer-events: none;
+}
+.office-battle-invite--shoulder {
+  position: relative;
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  max-width: min(460px, calc(100vw - 28px));
+  margin-top: -0.35rem;
+  padding: 0 0.75rem 0.85rem;
+  filter: drop-shadow(0 18px 28px rgba(127, 29, 29, 0.28));
+}
+.office-battle-invite-head {
+  position: relative;
+  z-index: 1;
+  line-height: 0;
+}
+.office-battle-invite-faceoff {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 0.55rem;
+}
+.office-battle-invite-fighter {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  min-width: 0;
+}
+.office-battle-invite-versus {
+  font-size: 1.45rem;
+  line-height: 1;
+  margin-bottom: 1.35rem;
+  filter: drop-shadow(0 4px 10px rgba(127, 29, 29, 0.35));
+}
+.office-battle-invite-avatar {
+  display: block;
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 4px color-mix(in srgb, var(--office-surface-bg) 80%, transparent),
+    0 16px 36px rgba(127, 29, 29, 0.38);
+  filter: saturate(1.05) contrast(1.05);
+}
+.office-battle-invite-name {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--text);
+  letter-spacing: 0.02em;
+  line-height: 1.2;
+  text-align: center;
+  max-width: 7.5rem;
+  overflow-wrap: anywhere;
+}
+.office-battle-invite-presence {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.45rem;
+  width: min(320px, calc(100vw - 48px));
+  margin-top: -0.55rem;
+  padding: 0.65rem 0.85rem 0.8rem;
+  text-align: center;
+  background: color-mix(in srgb, var(--office-surface-bg) 92%, transparent);
+  border: 1px solid color-mix(in srgb, #7f1d1d 28%, var(--control-border));
+  border-radius: 14px;
+  box-shadow: var(--control-shadow);
+}
+.office-battle-invite-topic {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--text);
+}
+.office-battle-invite-ask {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--muted);
+}
+.office-battle-invite-dismiss {
+  position: absolute;
+  top: 0.35rem;
+  right: 0.15rem;
+  z-index: 3;
+  appearance: none;
+  border: 0;
+  background: color-mix(in srgb, var(--office-surface-bg) 88%, transparent);
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  width: 1.5rem;
+  height: 1.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 0;
+  pointer-events: auto;
+}
+.office-battle-invite-dismiss:hover {
+  background: rgba(127, 29, 29, 0.12);
+  color: var(--text);
+}
 .office-battle-invite {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 8px 10px;
-  padding: 8px 14px;
-  background: var(--control-bg);
-  border: 1px solid var(--control-border);
-  border-radius: 999px;
-  box-shadow: var(--control-shadow);
-  font-size: 13px;
-  color: var(--text);
-  max-width: min(
-    520px,
-    calc(100vw - 1rem - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px))
-  );
 }
 .office-battle-invite-text {
   flex: 1 1 auto;
@@ -19784,8 +19913,9 @@ body.slopitect-rainbow-tint::before {
 .office-battle-invite-actions {
   display: flex;
   flex-wrap: wrap;
+  justify-content: center;
   gap: 0.45rem;
-  flex: 0 0 auto;
+  width: 100%;
 }
 .office-battle-accept,
 .office-battle-decline {
@@ -19813,6 +19943,31 @@ body.slopitect-rainbow-tint::before {
   z-index: var(--z-office-modal);
   pointer-events: none;
   overflow: hidden;
+}
+.office-battle-scene-dismiss {
+  position: absolute;
+  top: max(0.55rem, env(safe-area-inset-top, 0px));
+  right: max(0.55rem, env(safe-area-inset-right, 0px));
+  z-index: 4;
+  appearance: none;
+  border: 0;
+  background: color-mix(in srgb, var(--office-surface-bg) 90%, transparent);
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+  width: 2rem;
+  height: 2rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  box-shadow: var(--control-shadow);
+  pointer-events: auto;
+}
+.office-battle-scene-dismiss:hover {
+  background: color-mix(in srgb, #7f1d1d 12%, var(--office-surface-bg));
+  color: var(--text);
 }
 @media (min-width: 1025px) {
   .app-shell.is-insights-open:not(.is-editor-open) .office-battle-layer {

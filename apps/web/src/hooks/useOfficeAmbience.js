@@ -30,8 +30,8 @@ function isHidden() {
  *
  * Never interrupts: paused while an agent run streams (`pause` / `agentBusy`),
  * while the advisor bubble is up (`advisorBusy`), during a meeting or huddle,
- * while you are on the isometric floor, while any office surface or unread
- * inbox/IM backlog is already demanding attention, when the tab is hidden, and
+ * while you are on the isometric floor, while any office surface is already on
+ * screen, when the tab is hidden, and
  * during Focus Time.
  * LLM failures back off and fall back to canned content.
  *

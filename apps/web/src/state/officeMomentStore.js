@@ -190,15 +190,13 @@ export function hasActiveOfficeSurface() {
 
 /**
  * True when the ambient director (timer + run reactions + welcome) should hold
- * fire. Broader than {@link hasActiveOfficeSurface}: unread inbox / Slop Chat
- * backlog also count as attention already in flight, so email + walk-by + IM
- * do not pile on in the same breath.
+ * fire. Only active surfaces count — a walk-by on screen, a coffee invite, an
+ * IM toast, etc. Unread inbox / Slop Chat backlog must not block the office
+ * forever; cadence gaps (`lastFiredAt` in officeCadence.js) already stagger
+ * moments so they do not pile on in the same breath.
  */
 export function shouldHoldAmbientOfficeMoments() {
-  if (hasActiveOfficeSurface()) return true;
-  if (state.unreadCount > 0) return true;
-  if (state.imUnreadCount > 0) return true;
-  return false;
+  return hasActiveOfficeSurface();
 }
 
 /**
