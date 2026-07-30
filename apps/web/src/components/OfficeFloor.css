@@ -902,11 +902,25 @@
  * The meeting's chrome is a floor card, not a panel over the table. The glass
  * room renders ~170 px wide and a counter-scaled panel is ~300 px, so pinning
  * the controls to the table hid all nine people sitting at it (§ 6 rule 12).
+ *
+ * Physical syncs anchor the card below the top bar so the glass room — which
+ * paints in the lower-right of the stage — stays visible. Remote headset syncs
+ * keep the bottom-left slot; nobody is seated in the room to obscure.
  */
 .office-floor-card--meeting {
   display: flex;
   flex-direction: column;
   gap: 0.45rem;
+}
+
+.office-floor-card--meeting[data-modality='physical'] {
+  top: max(4.75rem, calc(env(safe-area-inset-top) + 3.85rem));
+  bottom: auto;
+  left: 1rem;
+  right: 1rem;
+  width: auto;
+  max-width: min(24rem, calc(100vw - 2rem));
+  z-index: 5;
 }
 
 .office-floor-card--meeting .office-floor-card-blurb,
@@ -922,20 +936,23 @@
 /* Raise a hand: the same one-line interjection the call window offers. */
 .office-floor-card-hand {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 0.4rem;
+  gap: 0.5rem;
 }
 
 .office-floor-card-hand input {
-  flex: 1 1 auto;
+  flex: 1 1 100%;
   min-width: 0;
   border: 1px solid var(--control-border);
-  border-radius: 999px;
+  border-radius: 12px;
   background: var(--control-bg);
   color: inherit;
   font: inherit;
-  font-size: 0.76rem;
-  padding: 0.35rem 0.7rem;
+  font-size: 0.95rem;
+  line-height: 1.35;
+  padding: 0.55rem 0.85rem;
+  min-height: 2.75rem;
 }
 
 .office-floor-card-hand input:focus-visible {
@@ -943,8 +960,9 @@
   border-color: var(--accent);
 }
 
-.office-floor-card-hand button {
-  flex: none;
+.office-floor-card-hand .office-floor-card-mic,
+.office-floor-card-hand .office-floor-card-action--primary {
+  flex: 1 1 auto;
 }
 
 .office-floor-card-hand button:disabled {
@@ -1165,6 +1183,12 @@
     left: 0.6rem;
     right: 0.6rem;
     width: auto;
+  }
+
+  .office-floor-card--meeting[data-modality='physical'] {
+    left: 0.6rem;
+    right: 0.6rem;
+    max-width: none;
   }
 
   .office-floor-hint {
