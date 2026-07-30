@@ -17,12 +17,12 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  REGION: us-central1  # pragma: allowlist secret
+  REGION: us-central1 # pragma: allowlist secret
   AR_REPO: mermaid-gen
   # Production “latest” app — hackathon snapshot is a separate service (manual deploy script).
   SERVICE_NAME: mermaid-gen-main
   IMAGE_NAME: web-main
-  PUBLIC_BASE_URL: https://mermaid-gen-main-464241135431.us-central1.run.app  # pragma: allowlist secret
+  PUBLIC_BASE_URL: https://mermaid-gen-main-464241135431.us-central1.run.app # pragma: allowlist secret
 
 jobs:
   deploy:
