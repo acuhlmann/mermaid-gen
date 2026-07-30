@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { CONTROLS_EN } from '../i18n/locales/controls.en.js';
+import { OFFICE_VIEW_HOTKEY_LABEL } from '../hooks/useOfficeViewHotkey.js';
 import {
   overlayFocusHandlers,
   overlayLayerStyle,
@@ -17,6 +18,7 @@ function buildEntries(copy) {
     { keys: ['B'], label: copy.barker },
     { keys: ['C'], label: copy.jared },
     { keys: ['E'], label: copy.richard },
+    { keys: [OFFICE_VIEW_HOTKEY_LABEL], label: copy.officeView },
     { keys: ['?'], label: copy.toggleHelp },
     { keys: ['Esc'], label: copy.esc },
     { keys: ['↑', '↓', '←', '→'], label: copy.arrows },

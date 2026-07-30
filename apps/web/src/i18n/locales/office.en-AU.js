@@ -747,6 +747,7 @@ export const OFFICE_EN_AU = {
       standUpShort: 'Stand up',
       standUpRole: 'Floor',
       standUpTitle: 'Leave ya screen for the floor — see the office you keep hearin',
+      officeViewShortcut: 'Shift+O',
       sitDown: 'Back to ya screen',
       sitDownShort: 'Sit down',
       sitDownTitle: 'Sit down and get back to the deliverable',

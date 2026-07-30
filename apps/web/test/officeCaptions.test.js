@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { shouldShowSpokenText } from '../src/utils/officeCaptions.js';
-import { bubbleAlignForTile, STAGE_W, projectIso } from '../src/utils/officeFloorPlan.js';
+import {
+  bubbleAlignForTile,
+  bubbleAlignForSpeaker,
+  STAGE_W,
+  projectIso
+} from '../src/utils/officeFloorPlan.js';
 
 describe('shouldShowSpokenText', () => {
   it('shows text when captions are on', () => {
@@ -40,5 +45,16 @@ describe('bubbleAlignForTile', () => {
     expect(rightish.left).toBeGreaterThan(STAGE_W * 0.55);
     expect(bubbleAlignForTile({ x: 4, y: 8 })).toBe('start');
     expect(bubbleAlignForTile({ x: 8, y: 1 })).toBe('end');
+  });
+});
+
+describe('bubbleAlignForSpeaker', () => {
+  it('biases a central standing speaker away from a bystander head (§ 6 rule 29)', () => {
+    // Chad at the whiteboard mark — centred bubble covers Gilfoyle; start clears.
+    expect(bubbleAlignForSpeaker({ x: 8, y: 4 }, 'intern', { standing: true })).toBe('start');
+  });
+
+  it('keeps seated desk speakers on the edge bias path', () => {
+    expect(bubbleAlignForSpeaker({ x: 2, y: 5 }, 'intern', { standing: false })).toBe('start');
   });
 });

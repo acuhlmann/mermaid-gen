@@ -1445,6 +1445,7 @@ export const OFFICE_CHROME_COPY = {
     standUpShort: 'Stand up',
     standUpRole: 'Floor',
     standUpTitle: 'Leave your screen for the floor — see the office you keep hearing',
+    officeViewShortcut: 'Shift+O',
     sitDown: 'Back to your screen',
     sitDownShort: 'Sit down',
     sitDownTitle: 'Sit down and get back to the deliverable',

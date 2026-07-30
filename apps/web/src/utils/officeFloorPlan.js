@@ -86,6 +86,84 @@ export function bubbleAlignForTile(tile) {
   return 'center';
 }
 
+/** Counter-scaled bubble width at stage scale 1 (§ 6 rule 29). */
+const BUBBLE_W = 264;
+/** Typical bubble height above the speaker's head. */
+const BUBBLE_H = 75;
+/** `--align-start` / `--align-end` shift (OfficeFloor.css). */
+const BUBBLE_SHIFT_RATIO = 0.42;
+const BUBBLE_OVER_SEAT_LIFT = 82;
+const BUBBLE_OVER_STANDING_LIFT = 52;
+
+/**
+ * Screen-space box for a speech bubble anchored on a tile. Approximates the
+ * painted footprint at scale 1 so occlusion can be tested without a browser.
+ *
+ * @param {{ x: number, y: number }} tile
+ * @param {'start' | 'center' | 'end'} align
+ * @param {{ standing?: boolean }} [options]
+ * @returns {{ x0: number, x1: number, y0: number, y1: number }}
+ */
+export function bubbleScreenBox(tile, align, { standing = true } = {}) {
+  const { left, top } = projectIso(tile.x, tile.y);
+  const lift = standing ? BUBBLE_OVER_STANDING_LIFT : BUBBLE_OVER_SEAT_LIFT;
+  const bottom = top - lift - 6;
+  const y0 = bottom - BUBBLE_H;
+  const y1 = bottom;
+  let x0 = left - BUBBLE_W / 2;
+  let x1 = left + BUBBLE_W / 2;
+  if (align === 'start') {
+    const shift = BUBBLE_W * BUBBLE_SHIFT_RATIO;
+    x0 += shift;
+    x1 += shift;
+  } else if (align === 'end') {
+    const shift = BUBBLE_W * BUBBLE_SHIFT_RATIO;
+    x0 -= shift;
+    x1 -= shift;
+  }
+  return { x0, x1, y0, y1 };
+}
+
+function bubbleVictimIds(tile, align, speakerId, standing) {
+  const bubble = bubbleScreenBox(tile, align, { standing });
+  return FLOOR_SEATS.filter((seat) => {
+    if (seat.id === speakerId || seat.id === YOU_SEAT_ID) return false;
+    return boxesOverlap(bubble, headBox({ x: seat.x, y: seat.y }, { seated: true }));
+  }).map((seat) => seat.id);
+}
+
+/**
+ * Horizontal bias for a speech bubble: edge clipping first (rule 28), then
+ * sideways shift when a centred balloon would cover a bystander's head (rule 29).
+ *
+ * @param {{ x: number, y: number }} tile where the speaker is standing
+ * @param {string} speakerId cast id — excluded from bystander checks
+ * @param {{ standing?: boolean }} [options] false when the speaker is seated at a desk
+ * @returns {'start' | 'center' | 'end'}
+ */
+export function bubbleAlignForSpeaker(tile, speakerId, { standing = true } = {}) {
+  const edge = bubbleAlignForTile(tile);
+  if (edge !== 'center') return edge;
+
+  const centerVictims = new Set(bubbleVictimIds(tile, 'center', speakerId, standing));
+  if (centerVictims.size === 0) return 'center';
+
+  const startVictims = new Set(bubbleVictimIds(tile, 'start', speakerId, standing));
+  const endVictims = new Set(bubbleVictimIds(tile, 'end', speakerId, standing));
+  const clearedByStart = [...centerVictims].filter((id) => !startVictims.has(id)).length;
+  const clearedByEnd = [...centerVictims].filter((id) => !endVictims.has(id)).length;
+
+  if (clearedByStart > clearedByEnd) return 'start';
+  if (clearedByEnd > clearedByStart) return 'end';
+  if (clearedByStart > 0) return 'start';
+
+  if (startVictims.size < centerVictims.size && startVictims.size <= endVictims.size) {
+    return 'start';
+  }
+  if (endVictims.size < centerVictims.size) return 'end';
+  return 'center';
+}
+
 /**
  * `projectIso` backwards: a point on the stage to the (fractional) tile under
  * it. Two callers need this and both are about *you* rather than the layout —
