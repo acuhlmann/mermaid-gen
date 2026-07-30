@@ -10072,20 +10072,6 @@ button {
   letter-spacing: 0.01em;
 }
 
-.agent-invite-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 2rem;
-  min-width: 2rem;
-  padding: 0.28rem;
-}
-
-.agent-invite-emoji {
-  font-size: 15px;
-  line-height: 1;
-}
-
 .agent-handshake-overlay {
   position: fixed;
   inset: 0;

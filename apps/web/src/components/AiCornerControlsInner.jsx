@@ -50,7 +50,6 @@ export function AiCornerControlsInner({
   controls = DEFAULT_CONTROLS,
   pendingHandshake,
   externalAgentPresence,
-  onInviteAgent,
   popoverMode = true,
   editorOpen = false,
   onToggleEditor,
@@ -123,7 +122,7 @@ export function AiCornerControlsInner({
               {pendingHandshake.proposedName ?? controls.externalAgentFallback}
             </span>
           ) : null}
-          <AgentPresenceBar presence={externalAgentPresence} onInvite={onInviteAgent} />
+          <AgentPresenceBar presence={externalAgentPresence} />
         </div>
       </div>
       {showEditorToggle && editorControls ? (

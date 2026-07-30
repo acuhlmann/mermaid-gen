@@ -141,7 +141,6 @@ export function AppWorkspaceSlot({
   pendingHandshakeForAi,
   stateContentType,
   settingsOpenSignal,
-  onInviteAgent,
   externalAgentPresence,
   deskSlotRef,
   deskPrompt,
@@ -353,7 +352,6 @@ export function AppWorkspaceSlot({
         stateContentType={stateContentType}
         controls={shellControls}
         settingsOpenSignal={settingsOpenSignal}
-        onInviteAgent={onInviteAgent}
         onToggleEditor={() => setEditorOpen((current) => !current)}
         externalAgentPresence={externalAgentPresence}
         deskSlotRef={deskSlotRef}

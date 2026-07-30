@@ -951,7 +951,6 @@ export function ArchiSlop() {
           pendingHandshakeForAi={pendingHandshake}
           stateContentType={state.contentType}
           settingsOpenSignal={settingsOpenSignal}
-          onInviteAgent={() => setInviteDialogOpen(true)}
           externalAgentPresence={externalAgentPresence}
           deskSlotRef={deskSlotRef}
           deskPrompt={deskPrompt}

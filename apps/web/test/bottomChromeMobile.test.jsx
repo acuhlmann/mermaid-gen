@@ -27,7 +27,7 @@ describe('mobile bottom chrome helpers', () => {
       { agentId: 'a4', agentName: 'Four' }
     ];
 
-    render(<AgentPresenceBar presence={agents} onInvite={() => {}} />);
+    render(<AgentPresenceBar presence={agents} />);
     expect(screen.getByLabelText('1 more agents').textContent).toBe('+1');
     expect(screen.getByText('One')).toBeTruthy();
     expect(screen.queryByText('Four')).toBeNull();

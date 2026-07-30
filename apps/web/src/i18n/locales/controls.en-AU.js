@@ -596,9 +596,7 @@ export const CONTROLS_EN_AU = {
   },
   presence: {
     connected: 'Connected external agents',
-    invite: 'Invite agent',
-    moreAgents: '{count} more agents',
-    inviteTitle: 'Invite an external agent into the Co-Design session'
+    moreAgents: '{count} more agents'
   },
   proposal: {
     loadPreviewTitle:

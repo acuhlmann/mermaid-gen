@@ -556,9 +556,7 @@ export const CONTROLS_ZH_CN = {
   },
   presence: {
     connected: '已连接的外部智能体',
-    invite: '邀请智能体',
-    moreAgents: '另有 {count} 个智能体',
-    inviteTitle: '邀请外部智能体加入协同设计会话'
+    moreAgents: '另有 {count} 个智能体'
   },
   proposal: {
     loadPreviewTitle: '在主画布上加载此提案以全尺寸预览。不会接受该提案。',

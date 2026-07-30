@@ -5,7 +5,7 @@ import { formatLocale } from '../i18n/formatLocale.js';
 
 const MOBILE_VISIBLE_AGENT_CAP = 3;
 
-export default function AgentPresenceBar({ presence, onInvite }) {
+export default function AgentPresenceBar({ presence }) {
   const { controls } = useUiCopy();
   const agents = Array.isArray(presence) ? presence : [];
   const narrowLayout = useNarrowLayout();
@@ -41,19 +41,6 @@ export default function AgentPresenceBar({ presence, onInvite }) {
         >
           +{overflowCount}
         </span>
-      ) : null}
-      {typeof onInvite === 'function' ? (
-        <button
-          type="button"
-          className="overlay-button compact-button agent-invite-button"
-          onClick={onInvite}
-          aria-label={controls.presence.invite}
-          title={controls.presence.inviteTitle}
-        >
-          <span className="agent-invite-emoji" aria-hidden="true">
-            🤝
-          </span>
-        </button>
       ) : null}
     </div>
   );

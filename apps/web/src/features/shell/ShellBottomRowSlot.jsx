@@ -22,7 +22,6 @@ export function ShellBottomRowSlot({
   stateContentType,
   controls,
   settingsOpenSignal,
-  onInviteAgent,
   onToggleEditor,
   externalAgentPresence,
   deskSlotRef,
@@ -143,7 +142,6 @@ export function ShellBottomRowSlot({
             controls={controls.settings}
             pendingHandshake={pendingHandshake}
             externalAgentPresence={externalAgentPresence}
-            onInviteAgent={onInviteAgent}
             popoverMode={!narrowLayout}
             showEditorToggle={hasCanvasContent || editorOpen}
             editorOpen={editorOpen}

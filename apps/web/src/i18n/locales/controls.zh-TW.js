@@ -556,9 +556,7 @@ export const CONTROLS_ZH_TW = {
   },
   presence: {
     connected: '已連線的外部智慧代理',
-    invite: '邀請智慧代理',
-    moreAgents: '另有 {count} 個智慧代理',
-    inviteTitle: '邀請外部智慧代理加入協同設計工作階段'
+    moreAgents: '另有 {count} 個智慧代理'
   },
   proposal: {
     loadPreviewTitle: '在主畫布上載入此提案以全尺寸預覽。不會接受該提案。',
