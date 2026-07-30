@@ -410,6 +410,11 @@ export default function OfficeLayer({
     clearOfficeImPings();
     setMessengerOpen(true);
   }, []);
+  const handleOpenImMessage = useCallback((colleagueId, pingId) => {
+    if (pingId) dismissOfficeImPing(pingId);
+    setMessengerTargetId(colleagueId);
+    setMessengerOpen(true);
+  }, []);
   const handleCloseMessenger = useCallback(() => {
     setMessengerOpen(false);
     setMessengerTargetId(null);
@@ -738,18 +743,6 @@ export default function OfficeLayer({
     [desk, onOfficeEvent]
   );
 
-  const handleQuickReply = useCallback(
-    async (ping, reply) => {
-      pushOfficeImReply({ colleagueId: ping.colleagueId, body: reply });
-      dismissOfficeImPing(ping.id);
-      onOfficeEvent?.('imReply');
-      const history = getOfficeSnapshot().imHistory;
-      const threadTranscript = threadTranscriptFor(history, ping.colleagueId);
-      await desk.imSomeone(ping.colleagueId, { userMessage: reply, threadTranscript });
-    },
-    [desk, onOfficeEvent]
-  );
-
   const deskDock = (
     <DeskActionsDock
       placement="bottom"
@@ -870,8 +863,10 @@ export default function OfficeLayer({
                 ? []
                 : snapshot.imPings.filter((ping) => ping.colleagueId !== floorTalkingTo)
             }
+            imUnreadCount={messengerOpen ? 0 : snapshot.imUnreadCount}
             onDismiss={dismissOfficeImPing}
-            onQuickReply={handleQuickReply}
+            onOpenMessage={handleOpenImMessage}
+            onOpenHistory={handleOpenMessenger}
           />
           <OfficeMessenger
             open={messengerOpen}
