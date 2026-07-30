@@ -4,6 +4,9 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 const AGENT_DOC_FILES = [
   'AGENTS.md',
@@ -118,4 +121,25 @@ export function verifyAgentInfra(root, docFiles = AGENT_DOC_FILES) {
     scriptCount: checkedScripts.size,
     testPathCount: checkedTests.size
   };
+}
+
+function main() {
+  const result = verifyAgentInfra(ROOT);
+  if (result.ok) {
+    console.log(
+      `verify:agent-infra: OK (${result.scriptCount} npm script(s), ${result.testPathCount} blast-radius test path(s))`
+    );
+    return;
+  }
+  for (const miss of result.missingScripts) {
+    console.error(`  missing npm script "${miss.script}" (cited in ${miss.source})`);
+  }
+  for (const miss of result.missingTests) {
+    console.error(`  missing blast-radius test "${miss.path}" (cited in ${miss.source})`);
+  }
+  process.exit(1);
+}
+
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  main();
 }

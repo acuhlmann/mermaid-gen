@@ -160,8 +160,8 @@ Two coupling traps worth knowing before you touch this:
 | Diff-scoped (agents)          | `npm run check:affected`                                                |
 | Diff-scoped tests only        | `npm run test:affected`                                                 |
 | Shared only                   | `npm run check:fast`                                                    |
-| Default (includes wire tests) | `npm run check`                                                         |
-| Before PR / CI parity         | `npm run check:full`                                                    |
+| Default (wire via `npm test`) | `npm run check`                                                         |
+| Before PR / local CI parity   | `npm run check:full`                                                    |
 | Wire + doc paths only         | `npm run check:wire`                                                    |
 | Doc links only                | `npm run verify:doc-paths` (scans `docs/guide/` and `docs/agents/` too) |
 | Server strict TS islands      | `npm run typecheck:strict -w apps/server`                               |

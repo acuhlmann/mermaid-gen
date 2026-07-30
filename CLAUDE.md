@@ -64,7 +64,7 @@ Every session carries **six independent diagram slots** — `mermaid` (Mermaid t
 | **Verify (diff-scoped, agents)**       | `npm run check:affected` (includes Prettier on changed files)                                              |
 | **Verify a change end-to-end**         | `npm run check` (typecheck + typecheck:strict + lint + test + wire)                                        |
 | Shared-only / schema touch             | `npm run check:fast`                                                                                       |
-| Before PR (matches CI)                 | `npm run check:full` (`check` + build)                                                                     |
+| Before PR / local CI parity            | `npm run check:full` (`check` + build); GitHub CI parallels the same coverage                              |
 | Wire + doc paths only                  | `npm run check:wire`                                                                                       |
 | Blast-radius map                       | [`docs/agent-blast-radius.md`](docs/agent-blast-radius.md)                                                 |
 | Format the diff you're about to commit | `npm run format:affected` (agents); `npm run format` for whole repo                                        |
