@@ -239,12 +239,13 @@ describe('InsightsPane', () => {
         celebratingEntryId={null}
         onToggleEditor={() => {}}
         canToggleEditor
+        onToggleThinking={() => {}}
       />
     );
 
     const headerTools = screen.getByTestId('insights-pane-header-tools');
     expect(headerTools.className).toContain('insights-pane-toolbar');
-    expect(within(headerTools).getByText('Notebook')).toBeTruthy();
+    expect(within(headerTools).getByTestId('insights-notebook-toggle')).toBeTruthy();
     expect(within(headerTools).getByTestId('concentration-control')).toBeTruthy();
     expect(within(headerTools).getByTestId('insights-code-drawer-toggle')).toBeTruthy();
     expect(within(headerTools).getByText('Spaghetti')).toBeTruthy();

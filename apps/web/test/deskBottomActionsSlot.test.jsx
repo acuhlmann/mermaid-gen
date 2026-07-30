@@ -135,6 +135,40 @@ describe('DeskBottomActionsSlot empty canvas', () => {
     expect(onToggleThinking).toHaveBeenCalledTimes(1);
   });
 
+  it('keeps the notebook toggle enabled while a run is busy', () => {
+    const onToggleThinking = vi.fn();
+    render(
+      <DeskBottomActionsSlot
+        {...baseProps({
+          hasCanvasContent: true,
+          busy: true,
+          onToggleThinking
+        })}
+      />
+    );
+    const notebookBtn = screen.getByTestId('desk-notebook-button');
+    expect(notebookBtn.disabled).toBe(false);
+    fireEvent.click(notebookBtn);
+    expect(onToggleThinking).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows the notebook toggle when the pane is open without canvas content', () => {
+    const onToggleThinking = vi.fn();
+    render(
+      <DeskBottomActionsSlot
+        {...baseProps({
+          hasCanvasContent: false,
+          insightsOpen: true,
+          onToggleThinking
+        })}
+      />
+    );
+    expect(screen.getByTestId('desk-notebook-button')).toBeTruthy();
+    expect(screen.queryByLabelText(/Work order/i)).toBeNull();
+    fireEvent.click(screen.getByTestId('desk-notebook-button'));
+    expect(onToggleThinking).toHaveBeenCalledTimes(1);
+  });
+
   it('anchors desk tour pointers on the real chrome row', () => {
     render(
       <DeskBottomActionsSlot

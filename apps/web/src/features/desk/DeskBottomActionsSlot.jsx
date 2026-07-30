@@ -46,6 +46,7 @@ function DeskPeopleCluster({ russStreak, controls, runTransform, runAnalyze, bus
 function DeskChromeRow({
   deskSlotRef,
   showDeskSlot = true,
+  showWorkOrder = true,
   showTeam = true,
   showNotebook = true,
   showDrawer = true,
@@ -120,33 +121,35 @@ function DeskChromeRow({
           className={`desk-chrome-tool desk-tour-piece desk-tour-piece--desk${tourHighlight === 'desk' ? ' is-tour-highlight' : ''}`}
         />
       ) : null}
-      <div
-        className={`desk-work-order-group desk-tour-piece desk-tour-piece--work-order${tourHighlight === 'work-order' ? ' is-tour-highlight' : ''}`}
-      >
-        <SlopNextPrompt
-          layout="desk"
-          prompt={deskPrompt}
-          busy={busy}
-          voiceSupported={voiceSupported}
-          voiceListening={voiceListening}
-          narrowLayout={narrowLayout}
-          speechRecognitionCtor={speechRecognitionCtor}
-          PromptIcon={PromptIcon}
-          MicIcon={MicIcon}
-          MicActiveIcon={MicActiveIcon}
-          ButtonIcon={ButtonIcon}
-          copy={copy}
-          onPromptChange={onPromptChange}
-          onSubmit={onSubmit}
-          onMicToggleClick={onMicToggleClick}
-          onMicPointerDown={onMicPointerDown}
-          onMicPointerUp={onMicPointerUp}
-          onMicLostPointerCapture={onMicLostPointerCapture}
-        />
-        <span hidden data-testid="desk-prompt-change-wired">
-          {typeof onPromptChange === 'function' ? 'yes' : 'no'}
-        </span>
-      </div>
+      {showWorkOrder ? (
+        <div
+          className={`desk-work-order-group desk-tour-piece desk-tour-piece--work-order${tourHighlight === 'work-order' ? ' is-tour-highlight' : ''}`}
+        >
+          <SlopNextPrompt
+            layout="desk"
+            prompt={deskPrompt}
+            busy={busy}
+            voiceSupported={voiceSupported}
+            voiceListening={voiceListening}
+            narrowLayout={narrowLayout}
+            speechRecognitionCtor={speechRecognitionCtor}
+            PromptIcon={PromptIcon}
+            MicIcon={MicIcon}
+            MicActiveIcon={MicActiveIcon}
+            ButtonIcon={ButtonIcon}
+            copy={copy}
+            onPromptChange={onPromptChange}
+            onSubmit={onSubmit}
+            onMicToggleClick={onMicToggleClick}
+            onMicPointerDown={onMicPointerDown}
+            onMicPointerUp={onMicPointerUp}
+            onMicLostPointerCapture={onMicLostPointerCapture}
+          />
+          <span hidden data-testid="desk-prompt-change-wired">
+            {typeof onPromptChange === 'function' ? 'yes' : 'no'}
+          </span>
+        </div>
+      ) : null}
       {showTeam ? (
         <div
           className={`desk-chrome-tool desk-tour-piece desk-tour-piece--team${tourHighlight === 'team' ? ' is-tour-highlight' : ''}`}
@@ -189,7 +192,6 @@ function DeskChromeRow({
             thinkingOpen={thinkingOpen}
             onToggleThinking={onToggleThinking}
             disabled={!canToggleThinking}
-            busy={busy}
           />
         </div>
       ) : null}
@@ -320,11 +322,32 @@ export function DeskBottomActionsSlot({
     );
   }
 
-  if (!hasCanvasContent) return null;
+  // Notebook-only chrome: active session with the pane open but no canvas yet
+  // (streaming intent, analysis-only run, etc.) — keep the toggle reachable.
+  if (!hasCanvasContent) {
+    return (
+      <div className={`prompt-actions prompt-actions--notebook-only ${layoutClass}`}>
+        <DeskChromeRow
+          {...chromeProps}
+          showDeskSlot={false}
+          showWorkOrder={false}
+          showTeam={false}
+          showDrawer={false}
+          showNotebook
+        />
+      </div>
+    );
+  }
 
   return (
     <div className={`prompt-actions ${layoutClass}`}>
-      <DeskChromeRow {...chromeProps} showTeam showNotebook showDrawer />
+      <DeskChromeRow
+        {...chromeProps}
+        showDeskSlot={!insightsOpen}
+        showTeam
+        showNotebook
+        showDrawer
+      />
     </div>
   );
 }
