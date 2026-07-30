@@ -5,6 +5,7 @@ import HuddleOverlay, {
   HUDDLE_LINE_PACE_MS,
   HUDDLE_TAIL_MS
 } from '../src/components/HuddleOverlay.jsx';
+import { useHuddleRingControls } from '../src/hooks/useHuddleRingControls.js';
 import { OFFICE_NARRATION_GAP_MS } from '../src/utils/officeNarration.js';
 import { setOfficeCaptions } from '../src/state/officeMomentStore.js';
 
@@ -105,14 +106,30 @@ describe('HuddleOverlay', () => {
     expect(container.querySelector('[data-speaking="true"]')).toBeTruthy();
   });
 
-  it('shows only Do it when voice is on and the beat has an action prompt', async () => {
-    const { container } = render(
-      <HuddleOverlay huddle={huddle()} narrateLine={vi.fn(async () => ({ spoken: true }))} />
-    );
+  it('shows Do it in the chrome when ring controls are lifted to OfficeLayer', async () => {
+    function LiftedRingHarness({ huddle: h, onAdoptPrompt }) {
+      const ring = useHuddleRingControls({
+        huddle: h,
+        onAdoptPrompt,
+        onHardStop: vi.fn()
+      });
+      return <HuddleOverlay huddle={h} ringControls={ring} onAdoptPrompt={onAdoptPrompt} />;
+    }
+
+    const onAdoptPrompt = vi.fn();
+    render(<LiftedRingHarness huddle={huddle()} onAdoptPrompt={onAdoptPrompt} />);
+    await advanceOneLine();
+    expect(screen.getAllByRole('button', { name: /Do it/i }).length).toBeGreaterThanOrEqual(1);
+    fireEvent.click(screen.getAllByRole('button', { name: /Do it/i })[0]);
+    expect(onAdoptPrompt).toHaveBeenCalledWith('Split the Auth node in two', 'dinesh');
+  });
+
+  it('shows Do it in the chrome when voice is on and the beat has an action prompt', async () => {
+    render(<HuddleOverlay huddle={huddle()} narrateLine={vi.fn(async () => ({ spoken: true }))} />);
     await advanceSpokenLine();
     expect(screen.queryByText(BEATS[1].text)).toBeNull();
     expect(screen.getByRole('button', { name: /Do it/i })).toBeTruthy();
-    expect(container.querySelectorAll('.office-huddle-bubble')).toHaveLength(1);
+    expect(document.querySelectorAll('.office-huddle-bubble')).toHaveLength(0);
   });
 
   it('shows the remark text again once CC is on, even with voice speaking', () => {
@@ -134,6 +151,14 @@ describe('HuddleOverlay', () => {
     await advanceOneLine();
     fireEvent.click(screen.getByRole('button', { name: /Do it/i }));
     expect(onAdoptPrompt).toHaveBeenCalledWith('Split the Auth node in two', 'dinesh');
+  });
+
+  it('shows Do it in the chrome when captions are on', async () => {
+    setOfficeCaptions(true);
+    render(<HuddleOverlay huddle={huddle()} />);
+    await advanceOneLine();
+    expect(screen.getByText(BEATS[1].text)).toBeTruthy();
+    expect(screen.getByRole('button', { name: /Do it/i })).toBeTruthy();
   });
 
   it('repeats a pinned remark aloud instead of flashing stale text', async () => {

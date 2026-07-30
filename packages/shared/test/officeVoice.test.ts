@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {
   OFFICE_TTS_CHUNK_MAX_CHARS,
   OFFICE_TTS_RATE_SCALE,
+  OFFICE_WEB_SPEECH_CHUNK_MAX_CHARS,
   chunkOfficeNarrationText,
   scaleSpeakingRate,
   CLOUD_TTS_RATE_RANGE
@@ -29,6 +30,11 @@ test('chunkOfficeNarrationText hard-splits overlong sentences', () => {
   assert.ok(chunks.length >= 2);
   assert.ok(chunks.every((chunk) => chunk.length <= OFFICE_TTS_CHUNK_MAX_CHARS));
   assert.equal(chunks.join(''), long);
+});
+
+test('OFFICE_WEB_SPEECH_CHUNK_MAX_CHARS stays below the cloud TTS cap', () => {
+  assert.ok(OFFICE_WEB_SPEECH_CHUNK_MAX_CHARS < OFFICE_TTS_CHUNK_MAX_CHARS);
+  assert.ok(OFFICE_WEB_SPEECH_CHUNK_MAX_CHARS >= 100);
 });
 
 test('scaleSpeakingRate applies the global multiplier', () => {

@@ -43,6 +43,8 @@ export function sceneParticipants(lines) {
  */
 export function awayFromDeskIds({ coffee, battle, meeting, huddle, standing, playerId }) {
   const away = [...sceneParticipants(coffee?.lines), ...sceneParticipants(battle?.lines)];
+  // A coffee break is at the machine — you leave your chair to join it.
+  if (coffee?.lines?.length) away.push(playerId);
   const physicalMeeting = meeting && meeting.modality !== 'remote';
   if (physicalMeeting) away.push(playerId, ...(meeting.attendees ?? []));
   // Huddle: they ring your desk — you stay seated; their chairs empty.

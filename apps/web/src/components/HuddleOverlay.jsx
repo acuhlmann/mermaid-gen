@@ -38,6 +38,8 @@ function seatFor(index) {
  */
 export default function HuddleOverlay({
   huddle,
+  /** When set, pacing/interaction is owned by `OfficeLayer`. */
+  ringControls: ringControlsProp,
   onHardStop,
   onAdoptPrompt,
   onRequestSuggestion,
@@ -46,6 +48,16 @@ export default function HuddleOverlay({
   onCancelNarration
 }) {
   const copy = officeChromeCopy().huddle;
+  const internalRing = useHuddleRingControls({
+    huddle,
+    onHardStop,
+    onAdoptPrompt,
+    onRequestSuggestion,
+    narrateLine,
+    prefetchLine,
+    onCancelNarration,
+    disabled: ringControlsProp !== undefined
+  });
   const {
     speaking,
     watching,
@@ -60,21 +72,16 @@ export default function HuddleOverlay({
     unpin,
     handleDoIt,
     handleSeatClick
-  } = useHuddleRingControls({
-    huddle,
-    onHardStop,
-    onAdoptPrompt,
-    onRequestSuggestion,
-    narrateLine,
-    prefetchLine,
-    onCancelNarration
-  });
+  } = ringControlsProp ?? internalRing;
 
   const handleShadeClick = useCallback(() => {
     if (pinnedSpeakerId) unpin();
   }, [pinnedSpeakerId, unpin]);
 
   if (!huddle) return null;
+
+  const delegateSpeakerId = watching ? null : (pinnedSpeakerId ?? activeSpeakerId);
+  const delegatePrompt = watching ? null : (pinnedPrompt ?? delegatablePrompt(activeBeat));
 
   return (
     <div
@@ -110,7 +117,7 @@ export default function HuddleOverlay({
           (isPinned && (isRepeating || isFetching)) || ((isSpeaking || isPinned) && !showText);
         const showRemarkText = Boolean(beat?.text) && !hideRemarkText;
         const showFetching = isFetching && !beat?.text;
-        const showBubble = showRemarkText || Boolean(actionPrompt) || showFetching;
+        const showBubble = showRemarkText || showFetching;
         return (
           <div
             key={id}
@@ -172,16 +179,6 @@ export default function HuddleOverlay({
                 ) : showRemarkText ? (
                   <p className="office-huddle-line">{beat.text}</p>
                 ) : null}
-                {actionPrompt ? (
-                  <button
-                    type="button"
-                    className="office-do-it office-huddle-do-it"
-                    onClick={() => handleDoIt(id, actionPrompt)}
-                    title={copy.delegateTitle ?? 'Open the notebook with this ask'}
-                  >
-                    {copy.delegate ?? officeChromeCopy().doIt}
-                  </button>
-                ) : null}
               </div>
             ) : null}
           </div>
@@ -197,6 +194,16 @@ export default function HuddleOverlay({
           <p className="office-huddle-watching" role="status" aria-live="polite">
             {copy.watching ?? 'The team is watching the notebook…'}
           </p>
+        ) : null}
+        {delegatePrompt && delegateSpeakerId ? (
+          <button
+            type="button"
+            className="office-do-it office-huddle-chrome-do-it"
+            onClick={() => handleDoIt(delegateSpeakerId, delegatePrompt)}
+            title={copy.delegateTitle ?? 'Open the notebook with this ask'}
+          >
+            {copy.delegate ?? officeChromeCopy().doIt}
+          </button>
         ) : null}
         <button
           type="button"

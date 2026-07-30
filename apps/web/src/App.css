@@ -18972,6 +18972,20 @@ body.slopitect-rainbow-tint::before {
   line-height: 1.35;
   color: var(--muted);
 }
+.office-walkby-meta {
+  width: 100%;
+}
+.office-walkby-meta--inline {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem 0.55rem;
+  flex-wrap: wrap;
+}
+.office-walkby-meta--inline .office-do-it {
+  align-self: center;
+  flex-shrink: 0;
+}
 .office-walkby-name {
   font-size: 12px;
   font-weight: 700;
@@ -19341,6 +19355,9 @@ body.slopitect-rainbow-tint::before {
 }
 .office-huddle-do-it {
   align-self: center;
+}
+.office-huddle-chrome-do-it {
+  pointer-events: auto;
 }
 .office-huddle-chrome {
   position: absolute;

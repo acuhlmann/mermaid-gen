@@ -1,12 +1,16 @@
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import { officeChromeCopy, officeSenderInfo } from '../utils/officeCast.js';
-import { OFFICE_NARRATION_GAP_MS } from '../utils/officeNarration.js';
 import { formatLocale } from '../i18n/formatLocale.js';
 import { shouldShowSpokenText } from '../utils/officeCaptions.js';
 import { getOfficeSnapshot, subscribe } from '../state/officeMomentStore.js';
+import { useScenePacing } from '../hooks/useScenePacing.js';
+import {
+  BATTLE_LINE_PACE_MS,
+  BATTLE_SILENT_DURATION_MS
+} from '../hooks/officeScenePacingConstants.js';
 import { PersonaFace } from './personaFaces/index.jsx';
 
-export const BATTLE_LINE_PACE_MS = 1900;
+export { BATTLE_LINE_PACE_MS } from '../hooks/officeScenePacingConstants.js';
 
 const FACE_SIZE = 128;
 const FACE_SIZE_SPEAKING = 140;
@@ -30,6 +34,10 @@ const INVITE_FACE_SIZE = 108;
  */
 export default function OfficeBattleOverlay({
   battle,
+  /** When set, pacing is owned by `OfficeLayer` so view toggles do not restart. */
+  visibleLines: visibleLinesProp,
+  /** True once all combat lines have been revealed (lifted from `OfficeLayer`). */
+  linesDone: linesDoneProp,
   onAccept,
   onVote,
   onDone,
@@ -40,53 +48,29 @@ export default function OfficeBattleOverlay({
   const accepted = Boolean(battle?.accepted);
   const battleId = battle?.id ?? null;
   const lineCount = battle?.lines?.length ?? 0;
-  const [visibleLines, setVisibleLines] = useState(1);
-  const narrateRef = useRef(narrateLine);
-  const prefetchRef = useRef(prefetchLine);
-  useEffect(() => {
-    narrateRef.current = narrateLine;
-    prefetchRef.current = prefetchLine;
-  });
+  const [internalLinesDone, setInternalLinesDone] = useState(false);
 
   useEffect(() => {
-    setVisibleLines(1);
+    setInternalLinesDone(false);
   }, [battleId]);
 
-  useEffect(() => {
-    if (!accepted || !battle || lineCount <= 0) return undefined;
-    let cancelled = false;
-    const lines = battle.lines;
-
-    const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-
-    void (async () => {
-      for (let index = 0; index < lineCount; index += 1) {
-        if (cancelled) return;
-        setVisibleLines(index + 1);
-        const line = lines[index];
-        const nextLine = lines[index + 1];
-        if (nextLine) prefetchRef.current?.(nextLine);
-        const narrate = narrateRef.current;
-        let spoken = false;
-        if (typeof narrate === 'function' && line) {
-          try {
-            const result = await narrate(line);
-            spoken = Boolean(result?.spoken);
-          } catch {
-            spoken = false;
-          }
-        }
-        if (cancelled) return;
-        if (index < lineCount - 1) {
-          await wait(spoken ? OFFICE_NARRATION_GAP_MS : BATTLE_LINE_PACE_MS);
-        }
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [accepted, battleId, lineCount]);
+  const pacedVisibleLines = useScenePacing({
+    lines: battle?.lines ?? [],
+    active: visibleLinesProp === undefined && accepted && Boolean(battle) && lineCount > 0,
+    narrateLine:
+      typeof narrateLine === 'function'
+        ? narrateLine
+        : visibleLinesProp === undefined
+          ? () => ({ spoken: false })
+          : undefined,
+    prefetchLine,
+    paceMs: BATTLE_LINE_PACE_MS,
+    silentDurationMs: BATTLE_SILENT_DURATION_MS,
+    sceneId: battleId,
+    onDone: visibleLinesProp === undefined ? () => setInternalLinesDone(true) : undefined
+  });
+  const visibleLines = visibleLinesProp ?? pacedVisibleLines;
+  const linesDone = linesDoneProp ?? internalLinesDone;
 
   useEffect(() => {
     if (!accepted || !battle?.votedFor) return undefined;
@@ -193,7 +177,7 @@ export default function OfficeBattleOverlay({
     );
   }
 
-  const allLinesIn = visibleLines >= lineCount;
+  const allLinesIn = linesDone || visibleLines >= lineCount;
   const votedFor = battle?.votedFor ?? null;
   const winner = votedFor ? officeSenderInfo(votedFor) : null;
   const verdictText = votedFor ? battle.verdicts[votedFor] : null;

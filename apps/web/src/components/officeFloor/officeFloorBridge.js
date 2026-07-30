@@ -49,6 +49,8 @@
  *   prefetchLine?: (line: any) => void,
  *   onCancelNarration?: () => void
  * }} huddleHandlers
+ * @property {import('../../hooks/useHuddleRingControls.js').default | ReturnType<import('../../hooks/useHuddleRingControls.js').useHuddleRingControls>} [huddleRing]
+ * @property {{ coffeeVisibleLines?: number, battleVisibleLines?: number, battleLinesDone?: boolean }} [scenePacing]
  */
 
 /** Empty bridge for tests and mount points that only need defaults. */
@@ -61,7 +63,9 @@ export const EMPTY_OFFICE_FLOOR_BRIDGE = /** @type {OfficeFloorBridge} */ ({
   meeting: null,
   meetingHandlers: {},
   huddle: null,
-  huddleHandlers: {}
+  huddleHandlers: {},
+  huddleRing: null,
+  scenePacing: {}
 });
 
 /**

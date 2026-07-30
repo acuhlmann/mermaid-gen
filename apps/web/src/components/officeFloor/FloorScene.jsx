@@ -22,8 +22,12 @@ import FloorBubble from './FloorBubble.jsx';
 import FloorFigure from './FloorFigure.jsx';
 import FloorPanel from './FloorPanel.jsx';
 import { useScenePacing } from '../../hooks/useScenePacing.js';
-import { BATTLE_LINE_PACE_MS } from '../OfficeBattleOverlay.jsx';
-import { COFFEE_BREAK_DURATION_MS, COFFEE_LINE_PACE_MS } from '../CoffeeBreakOverlay.jsx';
+import {
+  BATTLE_LINE_PACE_MS,
+  BATTLE_SILENT_DURATION_MS,
+  COFFEE_BREAK_DURATION_MS,
+  COFFEE_LINE_PACE_MS
+} from '../../hooks/officeScenePacingConstants.js';
 import { officeChromeCopy, officeSenderInfo } from '../../utils/officeCast.js';
 import { formatLocale } from '../../i18n/formatLocale.js';
 import { sceneParticipants } from '../../utils/officeSceneCast.js';
@@ -34,9 +38,6 @@ import {
   depthOf,
   projectIso
 } from '../../utils/officeFloorPlan.js';
-
-/** A battle with narration off still needs an end; matches the coffee timer. */
-const BATTLE_SILENT_DURATION_MS = 18_000;
 
 /** Everything that differs between the two kinds of set piece, in one place. */
 const SCENE_KINDS = {
@@ -101,7 +102,17 @@ function ScenePanel({ tiles, scale, children, testId }) {
 }
 
 /** "They're at it again / up for coffee?" — the ask, before anything has started. */
-function SceneInvite({ isBattle, scene, names, copy, tiles, scale, onAccept, onDecline }) {
+function SceneInvite({
+  isBattle,
+  scene,
+  names,
+  copy,
+  tiles,
+  scale,
+  onAccept,
+  onDecline,
+  showInviteText = true
+}) {
   const inviteLine = isBattle
     ? formatLocale(copy.battle.inviteLine, {
         a: names[0] ?? '',
@@ -117,7 +128,7 @@ function SceneInvite({ isBattle, scene, names, copy, tiles, scale, onAccept, onD
           castId={scene.lines[0].speakerId}
           tile={tiles[0]}
           scale={scale}
-          line={inviteLine}
+          line={showInviteText ? inviteLine : null}
         />
       ) : null}
       <ScenePanel
@@ -125,7 +136,9 @@ function SceneInvite({ isBattle, scene, names, copy, tiles, scale, onAccept, onD
         scale={scale}
         testId={`office-floor-${isBattle ? 'battle' : 'coffee'}-invite`}
       >
-        {isBattle ? <p className="office-floor-panel-line">{inviteLine}</p> : null}
+        {isBattle && showInviteText ? (
+          <p className="office-floor-panel-line">{inviteLine}</p>
+        ) : null}
         <div className="office-floor-card-actions">
           <button
             type="button"
@@ -144,7 +157,17 @@ function SceneInvite({ isBattle, scene, names, copy, tiles, scale, onAccept, onD
 }
 
 /** Someone has to be wrong: the floor rules, then the winner gets the podium. */
-function BattleVerdict({ scene, participants, votedFor, copy, tiles, scale, onVote, onDone }) {
+function BattleVerdict({
+  scene,
+  participants,
+  votedFor,
+  copy,
+  tiles,
+  scale,
+  onVote,
+  onDone,
+  showSpokenText = true
+}) {
   if (votedFor) {
     return (
       <ScenePanel tiles={tiles} scale={scale} testId="office-floor-battle-done">
@@ -163,7 +186,7 @@ function BattleVerdict({ scene, participants, votedFor, copy, tiles, scale, onVo
 
   return (
     <ScenePanel tiles={tiles} scale={scale} testId="office-floor-battle-verdict">
-      <p className="office-floor-panel-line">{copy.battle.settleLine}</p>
+      {showSpokenText ? <p className="office-floor-panel-line">{copy.battle.settleLine}</p> : null}
       <div className="office-floor-card-actions">
         {participants.map((castId) => (
           <button
@@ -196,43 +219,55 @@ function BattleVerdict({ scene, participants, votedFor, copy, tiles, scale, onVo
  *   onDecline?: () => void,
  *   onVote?: (id: string, sideId: string) => void,
  *   onDone?: () => void,
- *   showSpokenText?: boolean
+ *   showSpokenText?: boolean,
+ *   showInviteText?: boolean
  * }} props
  */
 export function FloorScene({
   kind,
   scene,
   scale = 1,
+  /** When set, pacing is owned by `OfficeLayer` so view toggles do not restart. */
+  visibleLines: visibleLinesProp,
+  /** Battle only — all combat lines revealed (lifted from `OfficeLayer`). */
+  linesDone: linesDoneProp,
   narrateLine,
   prefetchLine,
   onAccept,
   onDecline,
   onVote,
   onDone,
-  showSpokenText = true
+  showSpokenText = true,
+  showInviteText = true
 }) {
   const isBattle = kind === 'battle';
   const spec = SCENE_KINDS[kind] ?? SCENE_KINDS.coffee;
   const tiles = spec.tiles;
   const accepted = Boolean(scene?.accepted);
-  const [linesDone, setLinesDone] = useState(false);
+  const [internalLinesDone, setInternalLinesDone] = useState(false);
   const sceneId = scene?.id ?? null;
 
   useEffect(() => {
-    setLinesDone(false);
+    setInternalLinesDone(false);
   }, [sceneId]);
 
-  const visibleLines = useScenePacing({
+  const pacedVisibleLines = useScenePacing({
     lines: scene?.lines ?? [],
-    active: accepted,
+    active: visibleLinesProp === undefined && accepted,
     narrateLine,
     prefetchLine,
     paceMs: spec.paceMs,
     silentDurationMs: spec.silentMs,
     sceneId,
-    // A battle does not end itself: the floor has to rule on it.
-    onDone: isBattle ? () => setLinesDone(true) : onDone
+    onDone:
+      visibleLinesProp === undefined
+        ? isBattle
+          ? () => setInternalLinesDone(true)
+          : onDone
+        : undefined
   });
+  const visibleLines = visibleLinesProp ?? pacedVisibleLines;
+  const linesDone = linesDoneProp ?? internalLinesDone;
 
   if (!scene) return null;
 
@@ -249,8 +284,7 @@ export function FloorScene({
             const verdict = votedFor === castId ? scene.verdicts?.[castId] : null;
             const speaking = currentLine?.speakerId === castId ? currentLine.text : null;
             const line = verdict ?? speaking;
-            // Verdict panels stay readable; spoken beats respect CC when voice is on.
-            const shown = verdict || (line && showSpokenText) ? line : null;
+            const shown = line && showSpokenText ? line : null;
             return (
               <SceneActor
                 key={castId}
@@ -274,6 +308,7 @@ export function FloorScene({
           scale={scale}
           onAccept={onAccept}
           onDecline={onDecline}
+          showInviteText={showInviteText}
         />
       ) : null}
 
@@ -287,6 +322,7 @@ export function FloorScene({
           scale={scale}
           onVote={onVote}
           onDone={onDone}
+          showSpokenText={showSpokenText}
         />
       ) : null}
     </>

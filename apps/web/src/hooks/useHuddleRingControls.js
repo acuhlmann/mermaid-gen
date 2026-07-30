@@ -44,8 +44,9 @@ export function delegatablePrompt(beat) {
  *   onRequestSuggestion?: (speakerId: string) => Promise<any>,
  *   narrateLine?: (line: any) => Promise<{ spoken?: boolean }>,
  *   prefetchLine?: (line: any) => void,
- *   onCancelNarration?: () => void
- * }} options
+ *   onCancelNarration?: () => void,
+ *   disabled?: boolean
+ * }} options `disabled` — when true, skip pacing; caller owns the performance (OfficeLayer).
  */
 export function useHuddleRingControls({
   huddle,
@@ -54,7 +55,8 @@ export function useHuddleRingControls({
   onRequestSuggestion,
   narrateLine,
   prefetchLine,
-  onCancelNarration
+  onCancelNarration,
+  disabled = false
 }) {
   const snapshot = useSyncExternalStore(subscribe, getOfficeSnapshot, getOfficeSnapshot);
   const beats = huddle?.beats ?? [];
@@ -93,7 +95,7 @@ export function useHuddleRingControls({
 
   const visibleLines = useScenePacing({
     lines: beats,
-    active: pacingActive,
+    active: !disabled && pacingActive,
     paused: watching || Boolean(pinnedSpeakerId),
     narrateLine: speakLine,
     prefetchLine,
@@ -105,18 +107,18 @@ export function useHuddleRingControls({
   });
 
   useEffect(() => {
-    if (!huddle?.id || !pacingActive) return;
+    if (disabled || !huddle?.id || !pacingActive) return;
     setOfficeHuddleActiveLineIndex(huddle.id, Math.max(0, visibleLines - 1));
-  }, [huddle?.id, pacingActive, visibleLines]);
+  }, [disabled, huddle?.id, pacingActive, visibleLines]);
 
   useEffect(() => {
-    if (!huddle) return undefined;
+    if (disabled || !huddle) return undefined;
     const onKeyDown = (event) => {
       if (event.key === 'Escape') onHardStop?.();
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [huddle, onHardStop]);
+  }, [disabled, huddle, onHardStop]);
 
   const unpin = useCallback(() => {
     pinGenerationRef.current += 1;

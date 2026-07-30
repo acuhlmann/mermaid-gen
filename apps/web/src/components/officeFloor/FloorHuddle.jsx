@@ -41,6 +41,8 @@ export function FloorHuddle({
   huddle,
   scale = 1,
   showSpokenText = true,
+  /** When set, pacing/interaction is owned by `OfficeLayer`. */
+  ringControls: ringControlsProp,
   onHardStop,
   onAdoptPrompt,
   onRequestSuggestion,
@@ -48,6 +50,16 @@ export function FloorHuddle({
   prefetchLine,
   onCancelNarration
 }) {
+  const internalRing = useHuddleRingControls({
+    huddle,
+    onHardStop,
+    onAdoptPrompt,
+    onRequestSuggestion,
+    narrateLine,
+    prefetchLine,
+    onCancelNarration,
+    disabled: ringControlsProp !== undefined
+  });
   const {
     watching,
     pinnedSpeakerId,
@@ -60,15 +72,7 @@ export function FloorHuddle({
     showText,
     handleDoIt,
     handleSeatClick
-  } = useHuddleRingControls({
-    huddle,
-    onHardStop,
-    onAdoptPrompt,
-    onRequestSuggestion,
-    narrateLine,
-    prefetchLine,
-    onCancelNarration
-  });
+  } = ringControlsProp ?? internalRing;
 
   if (!huddle) return null;
 
@@ -92,6 +96,7 @@ export function FloorHuddle({
         const showRemarkText = Boolean(beat?.text) && !hideRemarkText;
         const showFetching = isFetching && !beat?.text;
         const showBubble = showRemarkText || Boolean(actionPrompt) || showFetching;
+        const doItOnly = Boolean(actionPrompt) && !showRemarkText && !showFetching;
         const align = bubbleAlignForSpeaker(tile, id, { standing: true });
 
         return (
@@ -138,6 +143,7 @@ export function FloorHuddle({
                   title={person.title}
                   scale={scale}
                   align={align}
+                  hideBody={doItOnly}
                   footer={
                     actionPrompt ? (
                       <button
@@ -169,12 +175,21 @@ export function FloorHuddle({
 /**
  * Card chrome for a floor huddle — hard stop and status live off-stage (§ 6 rule 12).
  */
-export function FloorHuddleCard({ huddle, copy, onHardStop }) {
+export function FloorHuddleCard({ huddle, copy, onHardStop, ringControls = null }) {
   const huddleCopy = officeChromeCopy().huddle;
   const floorHuddle = copy.huddle ?? {};
   if (!huddle) return null;
   const speaking = huddle.phase === 'speaking';
   const watching = huddle.phase === 'watching';
+  const {
+    activeBeat = null,
+    activeSpeakerId = null,
+    pinnedSpeakerId = null,
+    pinnedPrompt = null,
+    handleDoIt = null
+  } = ringControls ?? {};
+  const delegateSpeakerId = watching ? null : (pinnedSpeakerId ?? activeSpeakerId);
+  const delegatePrompt = watching ? null : (pinnedPrompt ?? delegatablePrompt(activeBeat));
 
   return (
     <aside
@@ -195,6 +210,16 @@ export function FloorHuddleCard({ huddle, copy, onHardStop }) {
         </p>
       ) : null}
       <div className="office-floor-card-actions">
+        {delegatePrompt && delegateSpeakerId ? (
+          <button
+            type="button"
+            className="office-floor-card-action office-floor-card-action--primary"
+            title={huddleCopy.delegateTitle}
+            onClick={() => handleDoIt?.(delegateSpeakerId, delegatePrompt)}
+          >
+            {huddleCopy.delegate ?? officeChromeCopy().doIt}
+          </button>
+        ) : null}
         <button
           type="button"
           className="office-floor-card-action office-floor-card-action--primary"

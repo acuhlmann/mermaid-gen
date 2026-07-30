@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import OfficeLayer from '../src/components/OfficeLayer.jsx';
 import {
   _resetForTests as resetOfficeMoments,
+  acceptOfficeCoffee,
   pushOfficeCoffeeInvite,
   pushOfficeWalkBy,
   setOfficeCaptions
@@ -83,15 +84,19 @@ describe('OfficeLayer floor renderer guards', () => {
     expect(screen.queryByTestId('office-floor')).toBeNull();
   });
 
-  it('shows the desk coffee overlay or the floor scene, not both', () => {
+  it('shows the floor coffee scene when an invite arrives, not the desk overlay', () => {
     pushOfficeCoffeeInvite({ lines: COFFEE_LINES });
 
     render(<OfficeLayer {...BASE_PROPS} />);
 
-    expect(screen.getByTestId('office-coffee-invite')).toBeTruthy();
-    expect(screen.queryByTestId('office-floor-coffee-invite')).toBeNull();
+    expect(screen.queryByTestId('office-coffee-invite')).toBeNull();
+    expect(screen.getByTestId('office-floor-coffee-invite')).toBeTruthy();
+  });
 
-    act(() => standUp());
+  it('shows the desk coffee overlay or the floor scene, not both', () => {
+    pushOfficeCoffeeInvite({ lines: COFFEE_LINES });
+
+    render(<OfficeLayer {...BASE_PROPS} />);
 
     expect(screen.queryByTestId('office-coffee-invite')).toBeNull();
     expect(screen.getByTestId('office-floor-coffee-invite')).toBeTruthy();
@@ -100,5 +105,32 @@ describe('OfficeLayer floor renderer guards', () => {
 
     expect(screen.getByTestId('office-coffee-invite')).toBeTruthy();
     expect(screen.queryByTestId('office-floor-coffee-invite')).toBeNull();
+
+    act(() => standUp());
+
+    expect(screen.queryByTestId('office-coffee-invite')).toBeNull();
+    expect(screen.getByTestId('office-floor-coffee-invite')).toBeTruthy();
+  });
+
+  it('keeps coffee scene pacing when toggling desk and floor mid-break', async () => {
+    pushOfficeCoffeeInvite({ lines: COFFEE_LINES });
+
+    render(<OfficeLayer {...BASE_PROPS} />);
+
+    act(() => acceptOfficeCoffee());
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2300);
+    });
+
+    act(() => sitDown());
+    const deskScene = screen.getByTestId('office-coffee-scene');
+    expect(deskScene.textContent).toContain('1979');
+
+    act(() => standUp());
+    expect(screen.getByTestId('office-floor-scene-actor-greybeard').textContent).toContain('1979');
+    expect(screen.getByTestId('office-floor-scene-actor-intern').textContent).not.toContain(
+      'Coffee?'
+    );
   });
 });

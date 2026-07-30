@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { FloorHuddleCard } from '../src/components/officeFloor/FloorHuddle.jsx';
 import { officeChromeCopy } from '../src/utils/officeCast.js';
@@ -33,6 +33,26 @@ describe('floor huddle', () => {
     );
     expect(screen.getByTestId('office-floor-huddle-card')).toBeTruthy();
     expect(screen.getByText(/Hard stop/i)).toBeTruthy();
+  });
+
+  it('shows Do it on the floor card when the active beat carries an action prompt', () => {
+    const handleDoIt = vi.fn();
+    render(
+      <FloorHuddleCard
+        huddle={{ id: 'h1', phase: 'speaking', attendees: ['dinesh'] }}
+        copy={officeChromeCopy().floor}
+        onHardStop={vi.fn()}
+        ringControls={{
+          activeBeat: { speakerId: 'dinesh', text: 'Split Auth.', actionPrompt: 'Split Auth node' },
+          activeSpeakerId: 'dinesh',
+          pinnedSpeakerId: null,
+          pinnedPrompt: null,
+          handleDoIt
+        }}
+      />
+    );
+    fireEvent.click(screen.getByRole('button', { name: /Do it/i }));
+    expect(handleDoIt).toHaveBeenCalledWith('dinesh', 'Split Auth node');
   });
 });
 

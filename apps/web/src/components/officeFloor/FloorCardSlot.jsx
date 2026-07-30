@@ -33,6 +33,7 @@ import { sitDown } from '../../state/officeViewModeStore.js';
  *   meetingHandlers?: any,
  *   huddle?: any,
  *   huddleHandlers?: any,
+ *   huddleRing?: any,
  *   talk?: { colleagueId: string, phase: string } | null,
  *   conversation?: { draft: string, setDraft: (v: string) => void, busy: boolean, send: (b: string) => void },
  *   peek?: { colleagueId: string, phase: string } | null,
@@ -52,6 +53,7 @@ export function FloorCardSlot({
   meetingHandlers = {},
   huddle = null,
   huddleHandlers = {},
+  huddleRing = null,
   talk = null,
   conversation = null,
   peek = null,
@@ -77,7 +79,14 @@ export function FloorCardSlot({
   }
 
   if (huddle) {
-    return <FloorHuddleCard huddle={huddle} copy={copy} onHardStop={huddleHandlers.onHardStop} />;
+    return (
+      <FloorHuddleCard
+        huddle={huddle}
+        copy={copy}
+        onHardStop={huddleHandlers.onHardStop}
+        ringControls={huddleRing}
+      />
+    );
   }
 
   if (talk && conversation) {

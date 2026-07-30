@@ -14,6 +14,7 @@
 
 import {
   chunkOfficeNarrationText,
+  OFFICE_WEB_SPEECH_CHUNK_MAX_CHARS,
   WEB_SPEECH_RATE_RANGE,
   scaleSpeakingRate
 } from '@archislop/shared';
@@ -230,6 +231,31 @@ export function cancelOfficeNarration(globalObj = globalThis) {
 }
 
 /**
+ * True while cloud MP3 or Web Speech is in flight. Ambient surfaces (walk-bys)
+ * use this to avoid cutting off a meeting beat, huddle remark, or coffee line.
+ *
+ * @param {typeof globalThis} [globalObj]
+ * @returns {boolean}
+ */
+export function isOfficeNarrationBusy(globalObj = globalThis) {
+  if (pendingResolve !== null) return true;
+  if (activeAudio) {
+    try {
+      if (!activeAudio.paused && !activeAudio.ended) return true;
+    } catch {
+      return true;
+    }
+  }
+  try {
+    const synth = globalObj.speechSynthesis;
+    if (synth?.speaking || synth?.pending) return true;
+  } catch {
+    // Ignore — synthesis is optional.
+  }
+  return false;
+}
+
+/**
  * @param {OfficeCloudAudio} audio
  * @param {number} generation
  * @param {typeof globalThis} globalObj
@@ -435,13 +461,22 @@ export async function speakOfficeLine({
     if (generation !== speakGeneration) {
       return { spoken: spokeAny, cancelled: true };
     }
-    const webResult = await speakWebSpeech({ speakerId, text: chunk, lang, globalObj }, generation);
-    if (webResult.cancelled) {
-      return { spoken: spokeAny, cancelled: true };
-    }
-    if (webResult.spoken) {
-      spokeAny = true;
-      lastSource = 'webspeech';
+    const webChunks = chunkOfficeNarrationText(chunk, OFFICE_WEB_SPEECH_CHUNK_MAX_CHARS);
+    for (const webChunk of webChunks) {
+      if (generation !== speakGeneration) {
+        return { spoken: spokeAny, cancelled: true };
+      }
+      const webResult = await speakWebSpeech(
+        { speakerId, text: webChunk, lang, globalObj },
+        generation
+      );
+      if (webResult.cancelled) {
+        return { spoken: spokeAny, cancelled: true };
+      }
+      if (webResult.spoken) {
+        spokeAny = true;
+        lastSource = 'webspeech';
+      }
     }
   }
 

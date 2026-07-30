@@ -593,6 +593,25 @@
   cursor: pointer;
 }
 
+.office-floor-bubble-meta {
+  width: 100%;
+}
+.office-floor-bubble-meta--inline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.35rem 0.5rem;
+  flex-wrap: wrap;
+}
+.office-floor-bubble-meta--inline .office-floor-bubble-name {
+  padding-right: 0;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.office-floor-bubble-meta--inline .office-floor-bubble-action {
+  margin-top: 0;
+  flex-shrink: 0;
+}
 .office-floor-bubble-name {
   font-size: 0.68rem;
   font-weight: 700;

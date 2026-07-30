@@ -38,6 +38,7 @@ export function FloorBubble({
   const body = hideBody ? null : children;
   // Interactive walk-bys still need the chrome (Do it / dismiss) when CC is off.
   if (!body && !footer && !onDismiss) return null;
+  const inlineFooter = hideBody && footer;
 
   const alignClass =
     align === 'start' || align === 'end' ? ` office-floor-bubble--align-${align}` : '';
@@ -60,12 +61,17 @@ export function FloorBubble({
           ×
         </button>
       ) : null}
-      <div className="office-floor-bubble-name">
-        {name}
-        {title ? <span> · {title}</span> : null}
+      <div
+        className={`office-floor-bubble-meta${inlineFooter ? ' office-floor-bubble-meta--inline' : ''}`}
+      >
+        <div className="office-floor-bubble-name">
+          {name}
+          {title ? <span> · {title}</span> : null}
+        </div>
+        {inlineFooter ? footer : null}
       </div>
       {body ? <p className="office-floor-bubble-body">{body}</p> : null}
-      {footer}
+      {!inlineFooter ? footer : null}
     </div>
   );
 }

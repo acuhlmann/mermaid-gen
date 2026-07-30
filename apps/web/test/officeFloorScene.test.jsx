@@ -5,6 +5,7 @@ import OfficeFloor from '../src/components/OfficeFloor.jsx';
 import { awayFromDeskIds, sceneParticipants } from '../src/utils/officeSceneCast.js';
 import { _resetOfficeViewModeForTests, standUp } from '../src/state/officeViewModeStore.js';
 import { setOfficeCaptions, setOfficeNarration } from '../src/state/officeMomentStore.js';
+import * as officeNarration from '../src/utils/officeNarration.js';
 
 const COFFEE = {
   id: 'coffee-1',
@@ -60,7 +61,8 @@ describe('awayFromDeskIds', () => {
       'intern',
       'greybeard',
       'scrumMaster',
-      'greybeard'
+      'greybeard',
+      'you'
     ]);
   });
 
@@ -74,7 +76,7 @@ describe('awayFromDeskIds', () => {
     expect(awayFromDeskIds({ meeting: { attendees: undefined }, playerId: 'you' })).toEqual([
       'you'
     ]);
-    expect(awayFromDeskIds({ coffee: COFFEE, playerId: 'you' })).not.toContain('you');
+    expect(awayFromDeskIds({ coffee: COFFEE, playerId: 'you' })).toContain('you');
   });
 });
 
@@ -93,6 +95,7 @@ describe('coffee break on the floor', () => {
     const view = renderFloor({ coffee: COFFEE });
     const seat = (id) => view.container.querySelector(`[data-seat="${id}"]`);
 
+    expect(seat('you')?.dataset.vacant).toBe('true');
     expect(seat('greybeard')?.dataset.vacant).toBe('true');
     expect(seat('intern')?.dataset.vacant).toBe('true');
     // Everyone else is still working.
@@ -127,6 +130,33 @@ describe('holy war on the floor', () => {
     expect(screen.getByTestId('office-floor-battle-invite')).toBeTruthy();
     expect(screen.getByText(/Tabs vs spaces/)).toBeTruthy();
     expect(screen.getByRole('button', { name: /Grab popcorn/i })).toBeTruthy();
+  });
+
+  it('hides invite copy when CC is off and narration is on', () => {
+    setOfficeCaptions(false);
+    setOfficeNarration(true);
+    renderFloor({
+      battle: BATTLE,
+      sceneHandlers: { narrateLine: vi.fn(() => Promise.resolve({ spoken: true })) }
+    });
+
+    expect(screen.getByTestId('office-floor-battle-invite')).toBeTruthy();
+    expect(screen.getByRole('button', { name: /Grab popcorn/i })).toBeTruthy();
+    expect(screen.queryByText(/Tabs vs spaces/)).toBeNull();
+  });
+
+  it('hides combat bubbles when CC is off and TTS is playing', () => {
+    setOfficeCaptions(false);
+    setOfficeNarration(true);
+    vi.spyOn(officeNarration, 'isOfficeNarrationBusy').mockReturnValue(true);
+    renderFloor({
+      battle: { ...BATTLE, accepted: true },
+      sceneHandlers: { narrateLine: vi.fn(() => Promise.resolve({ spoken: true })) },
+      scenePacing: { battleVisibleLines: 1, battleLinesDone: false }
+    });
+
+    expect(screen.queryByText(/Consistency is a ceremony/)).toBeNull();
+    vi.restoreAllMocks();
   });
 
   it('asks the floor to rule once the argument has played out', () => {

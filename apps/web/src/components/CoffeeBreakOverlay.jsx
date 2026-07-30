@@ -3,13 +3,18 @@ import { officeChromeCopy, officeSenderInfo } from '../utils/officeCast.js';
 import { shouldShowSpokenText } from '../utils/officeCaptions.js';
 import { getOfficeSnapshot, subscribe } from '../state/officeMomentStore.js';
 import { useScenePacing } from '../hooks/useScenePacing.js';
+import {
+  COFFEE_BREAK_DURATION_MS,
+  COFFEE_LINE_PACE_MS
+} from '../hooks/officeScenePacingConstants.js';
 import { formatLocale } from '../i18n/formatLocale.js';
 import { sceneParticipants } from '../utils/officeSceneCast.js';
 import { PersonaFace } from './personaFaces/index.jsx';
 
-export const COFFEE_BREAK_DURATION_MS = 15_000;
-/** Reading-pace gap between watercooler lines when narration is off / muted. */
-export const COFFEE_LINE_PACE_MS = 2200;
+export {
+  COFFEE_BREAK_DURATION_MS,
+  COFFEE_LINE_PACE_MS
+} from '../hooks/officeScenePacingConstants.js';
 
 const FACE_SIZE = 120;
 const FACE_SIZE_SPEAKING = 132;
@@ -27,6 +32,8 @@ const INVITE_FACE_SIZE = 168;
  */
 export default function CoffeeBreakOverlay({
   coffee,
+  /** When set, pacing is owned by `OfficeLayer` so view toggles do not restart. */
+  visibleLines: visibleLinesProp,
   onAccept,
   onDecline,
   onDone,
@@ -36,9 +43,9 @@ export default function CoffeeBreakOverlay({
   const snapshot = useSyncExternalStore(subscribe, getOfficeSnapshot, getOfficeSnapshot);
   const accepted = Boolean(coffee?.accepted);
   const lineCount = coffee?.lines?.length ?? 0;
-  const visibleLines = useScenePacing({
+  const pacedVisibleLines = useScenePacing({
     lines: coffee?.lines ?? [],
-    active: accepted && Boolean(coffee),
+    active: visibleLinesProp === undefined && accepted && Boolean(coffee),
     narrateLine,
     prefetchLine,
     paceMs: COFFEE_LINE_PACE_MS,
@@ -46,6 +53,7 @@ export default function CoffeeBreakOverlay({
     sceneId: coffee?.id ?? null,
     onDone
   });
+  const visibleLines = visibleLinesProp ?? pacedVisibleLines;
 
   if (!coffee) return null;
   const copy = officeChromeCopy();

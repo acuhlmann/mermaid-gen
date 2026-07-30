@@ -58,6 +58,14 @@ export const OFFICE_TTS_RATE_SCALE = 1.18;
  */
 export const OFFICE_TTS_CHUNK_MAX_CHARS = 800;
 
+/**
+ * Max characters per Web Speech utterance. Browser synthesis (especially
+ * Chrome) often stops past ~15–30 s; slow personas can hit that well below
+ * the cloud TTS cap. Cloud requests keep OFFICE_TTS_CHUNK_MAX_CHARS; the
+ * client sub-splits further when falling back to Web Speech.
+ */
+export const OFFICE_WEB_SPEECH_CHUNK_MAX_CHARS = 200;
+
 /** @internal Shared clamp — engines disagree on their valid rate ranges. */
 function clamp(value: number, min: number, max: number): number {
   if (value < min) return min;

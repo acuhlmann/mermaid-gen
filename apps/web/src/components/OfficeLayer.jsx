@@ -1,4 +1,12 @@
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore
+} from 'react';
 import { createPortal } from 'react-dom';
 import CallMeetingPicker from './CallMeetingPicker.jsx';
 import CoffeeBreakOverlay from './CoffeeBreakOverlay.jsx';
@@ -16,6 +24,7 @@ import OfficeMessenger from './OfficeMessenger.jsx';
 import OfficeWalkBy from './OfficeWalkBy.jsx';
 import { useDeskActions } from '../hooks/useDeskActions.js';
 import { useHuddlePlayback } from '../hooks/useHuddlePlayback.js';
+import { useOfficeLayerPerformances } from '../hooks/useOfficeLayerPerformances.js';
 import { meetingMinutes, useMeetingPlayback } from '../hooks/useMeetingPlayback.js';
 import { useOfficeAmbience } from '../hooks/useOfficeAmbience.js';
 import { useOfficeRunReactions } from '../hooks/useOfficeRunReactions.js';
@@ -65,6 +74,7 @@ import {
 } from '../utils/officeCast.js';
 import {
   cancelOfficeNarration,
+  isOfficeNarrationBusy,
   OFFICE_NARRATION_GAP_MS,
   prefetchOfficeLine,
   speakOfficeLine
@@ -287,7 +297,8 @@ export default function OfficeLayer({
   const prevMeetingStateRef = useRef(null);
   const prevWalkByIdRef = useRef(snapshot.walkBy?.id ?? null);
   const prevInviteIdRef = useRef(snapshot.meetingInvite?.id ?? null);
-  const prevCoffeeIdRef = useRef(snapshot.coffee?.id ?? null);
+  const prevCoffeeIdRef = useRef(null);
+  const prevBattleIdRef = useRef(null);
   const prevCoffeeAcceptedRef = useRef(Boolean(snapshot.coffee?.accepted));
   const prevBattleAcceptedRef = useRef(Boolean(snapshot.battle?.accepted));
   const prevBattleVotedRef = useRef(snapshot.battle?.votedFor ?? null);
@@ -323,7 +334,7 @@ export default function OfficeLayer({
       playChime?.(playFootsteps);
       // Over-the-shoulder: the colleague actually says the line. Emails never
       // get this treatment — inbox stays read-only by design.
-      if (snapshot.narration && walkBy?.body && !onFloor) {
+      if (snapshot.narration && walkBy?.body && !onFloor && !isOfficeNarrationBusy()) {
         void narrateLine({ speakerId: walkBy.colleagueId, text: walkBy.body });
       }
     }
@@ -334,6 +345,22 @@ export default function OfficeLayer({
     if (inviteId && inviteId !== prevInviteIdRef.current) playChime?.(playCalendarDing);
     prevInviteIdRef.current = inviteId;
   }, [snapshot.meetingInvite?.id, playChime]);
+  useLayoutEffect(() => {
+    const coffee = snapshot.coffee;
+    const coffeeId = coffee?.id ?? null;
+    if (coffeeId && coffeeId !== prevCoffeeIdRef.current && !coffee?.accepted) {
+      if (getOfficeViewMode() !== 'floor') standUp();
+    }
+  }, [snapshot.coffee]);
+
+  useLayoutEffect(() => {
+    const battle = snapshot.battle;
+    const battleId = battle?.id ?? null;
+    if (battleId && battleId !== prevBattleIdRef.current && !battle?.accepted) {
+      if (getOfficeViewMode() !== 'floor') standUp();
+    }
+  }, [snapshot.battle]);
+
   useEffect(() => {
     const coffee = snapshot.coffee;
     const coffeeId = coffee?.id ?? null;
@@ -347,6 +374,11 @@ export default function OfficeLayer({
     }
     prevCoffeeIdRef.current = coffeeId;
   }, [snapshot.coffee, snapshot.narration, onFloor, playChime, narrateLine]);
+  useEffect(() => {
+    const battle = snapshot.battle;
+    const battleId = battle?.id ?? null;
+    prevBattleIdRef.current = battleId;
+  }, [snapshot.battle]);
   useEffect(() => {
     const accepted = Boolean(snapshot.coffee?.accepted);
     if (accepted && !prevCoffeeAcceptedRef.current) {
@@ -447,6 +479,11 @@ export default function OfficeLayer({
     dismissOfficeCoffee();
     onOfficeEvent?.('coffeeBreak');
   }, [onOfficeEvent]);
+
+  const handleAcceptCoffee = useCallback(() => {
+    acceptOfficeCoffee();
+    if (getOfficeViewMode() !== 'floor') standUp();
+  }, []);
 
   // Settling a battle (voting) is the XP moment; walking away earns nothing
   // but judgment-free peace. Dismiss happens on "Back to work" either way.
@@ -634,6 +671,41 @@ export default function OfficeLayer({
     return () => clearTimeout(timer);
   }, [huddle?.phase, agentBusy, resumeSpeaking]);
 
+  const huddleHandlersForPerformances = useMemo(
+    () => ({
+      onHardStop: handleHardStop,
+      onAdoptPrompt: handleHuddleAdopt,
+      onRequestSuggestion: requestSpeakerSuggestion,
+      narrateLine: snapshot.narration ? narrateLine : undefined,
+      prefetchLine: snapshot.narration ? prefetchLine : undefined,
+      onCancelNarration: cancelOfficeNarration
+    }),
+    [
+      handleHardStop,
+      handleHuddleAdopt,
+      requestSpeakerSuggestion,
+      snapshot.narration,
+      narrateLine,
+      prefetchLine
+    ]
+  );
+
+  const { coffeeVisibleLines, battleVisibleLines, battleLinesDone, huddleRing } =
+    useOfficeLayerPerformances({
+      coffee: snapshot.coffee,
+      battle: snapshot.battle,
+      huddle,
+      narrateLine: snapshot.narration ? narrateLine : undefined,
+      prefetchLine: snapshot.narration ? prefetchLine : undefined,
+      onCoffeeDone: handleCoffeeDone,
+      huddleHandlers: huddleHandlersForPerformances
+    });
+
+  const scenePacing = useMemo(
+    () => ({ coffeeVisibleLines, battleVisibleLines, battleLinesDone }),
+    [coffeeVisibleLines, battleVisibleLines, battleLinesDone]
+  );
+
   const handleMeetingDismiss = useCallback(() => {
     const current = meeting;
     if (!current) {
@@ -798,7 +870,7 @@ export default function OfficeLayer({
         sceneHandlers: {
           narrateLine: snapshot.narration ? narrateLine : undefined,
           prefetchLine: snapshot.narration ? prefetchLine : undefined,
-          onAcceptCoffee: acceptOfficeCoffee,
+          onAcceptCoffee: handleAcceptCoffee,
           onDeclineCoffee: dismissOfficeCoffee,
           onCoffeeDone: handleCoffeeDone,
           onAcceptBattle: acceptOfficeBattle,
@@ -812,14 +884,9 @@ export default function OfficeLayer({
           onLeave: handleMeetingDismiss
         },
         huddle,
-        huddleHandlers: {
-          onHardStop: handleHardStop,
-          onAdoptPrompt: handleHuddleAdopt,
-          onRequestSuggestion: requestSpeakerSuggestion,
-          narrateLine: snapshot.narration ? narrateLine : undefined,
-          prefetchLine: snapshot.narration ? prefetchLine : undefined,
-          onCancelNarration: cancelOfficeNarration
-        }
+        huddleHandlers: huddleHandlersForPerformances,
+        huddleRing,
+        scenePacing
       }),
     [
       snapshot.imHistory,
@@ -840,6 +907,9 @@ export default function OfficeLayer({
       handleBattleDone,
       meeting,
       huddle,
+      huddleHandlersForPerformances,
+      huddleRing,
+      scenePacing,
       handleHardStop,
       handleHuddleAdopt,
       requestSpeakerSuggestion,
@@ -916,7 +986,8 @@ export default function OfficeLayer({
             <>
               <CoffeeBreakOverlay
                 coffee={snapshot.coffee}
-                onAccept={acceptOfficeCoffee}
+                visibleLines={coffeeVisibleLines}
+                onAccept={handleAcceptCoffee}
                 onDecline={dismissOfficeCoffee}
                 onDone={handleCoffeeDone}
                 narrateLine={snapshot.narration ? narrateLine : undefined}
@@ -924,6 +995,8 @@ export default function OfficeLayer({
               />
               <OfficeBattleOverlay
                 battle={snapshot.battle}
+                visibleLines={battleVisibleLines}
+                linesDone={battleLinesDone}
                 onAccept={acceptOfficeBattle}
                 onVote={handleBattleVote}
                 onDone={handleBattleDone}
@@ -958,6 +1031,7 @@ export default function OfficeLayer({
       {onFloor ? null : (
         <HuddleOverlay
           huddle={huddle}
+          ringControls={huddleRing}
           onHardStop={handleHardStop}
           onAdoptPrompt={handleHuddleAdopt}
           onRequestSuggestion={requestSpeakerSuggestion}

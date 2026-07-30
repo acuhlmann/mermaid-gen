@@ -4,6 +4,7 @@ import {
   cancelOfficeNarration,
   clearOfficeNarrationPrefetch,
   isOfficeNarrationAvailable,
+  isOfficeNarrationBusy,
   OFFICE_VOICE_PROFILES,
   officeVoiceProfile,
   pickOfficeNarrationVoice,
@@ -11,7 +12,11 @@ import {
   sanitizeOfficeNarrationText,
   speakOfficeLine
 } from '../src/utils/officeNarration.js';
-import { OFFICE_SPEAKER_IDS, OFFICE_TTS_RATE_SCALE } from '@archislop/shared';
+import {
+  OFFICE_SPEAKER_IDS,
+  OFFICE_TTS_RATE_SCALE,
+  OFFICE_WEB_SPEECH_CHUNK_MAX_CHARS
+} from '@archislop/shared';
 import {
   OFFICE_CAPTIONS_STORAGE_KEY,
   OFFICE_NARRATION_STORAGE_KEY,
@@ -292,6 +297,40 @@ describe('speakOfficeLine', () => {
     expect(result).toEqual({ spoken: true, source: 'webspeech' });
     expect(fetchCloudAudio).toHaveBeenCalledOnce();
     expect(spoken).toHaveLength(1);
+  });
+
+  it('sub-chunks long Web Speech fallbacks so browsers do not truncate', async () => {
+    const { synth, spoken } = installSpeechMock();
+    const long = Array.from({ length: 80 }, (_, i) => `word${i}`).join(' ');
+    const result = await speakOfficeLine({
+      speakerId: 'greybeard',
+      text: long,
+      lang: 'en-US'
+    });
+    expect(result).toEqual({ spoken: true, source: 'webspeech' });
+    expect(synth.speak.mock.calls.length).toBeGreaterThan(1);
+    expect(spoken.every((u) => u.text.length <= OFFICE_WEB_SPEECH_CHUNK_MAX_CHARS)).toBe(true);
+  });
+
+  it('isOfficeNarrationBusy is true while synthesis is pending', async () => {
+    const synth = {
+      speak: vi.fn((utterance) => {
+        expect(isOfficeNarrationBusy()).toBe(true);
+        queueMicrotask(() => utterance.onend?.());
+      }),
+      cancel: vi.fn(),
+      getVoices: () => [{ lang: 'en-US', default: true }]
+    };
+    globalThis.speechSynthesis = synth;
+    globalThis.SpeechSynthesisUtterance = function SpeechSynthesisUtterance(text) {
+      this.text = text;
+      this.onend = null;
+      this.onerror = null;
+    };
+    expect(isOfficeNarrationBusy()).toBe(false);
+    const pending = speakOfficeLine({ speakerId: 'hr', text: 'Quick line.' });
+    await pending;
+    expect(isOfficeNarrationBusy()).toBe(false);
   });
 
   it('cancelOfficeNarration settles an in-flight waiter', async () => {

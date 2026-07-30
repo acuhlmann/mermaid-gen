@@ -24,6 +24,8 @@ export default function OfficeWalkBy({ walkBy, onDismiss, onAdoptPrompt }) {
     captions: snapshot.captions,
     voiceActive: snapshot.narration
   });
+  // Voice-first: hide the line but keep who it is and the adopt action compact.
+  const compactChrome = !showText;
 
   return (
     <div
@@ -50,15 +52,28 @@ export default function OfficeWalkBy({ walkBy, onDismiss, onAdoptPrompt }) {
           <p className="office-walkby-kind" aria-hidden="true">
             {copy.walkby.kindLabel}
           </p>
-          <div className="office-walkby-name">
-            {sender.name}
-            {sender.title ? <span className="office-walkby-title"> · {sender.title}</span> : null}
+          <div
+            className={`office-walkby-meta${compactChrome ? ' office-walkby-meta--inline' : ''}`}
+          >
+            <div className="office-walkby-name">
+              {sender.name}
+              {sender.title ? <span className="office-walkby-title"> · {sender.title}</span> : null}
+            </div>
+            {walkBy.actionPrompt && compactChrome ? (
+              <button
+                type="button"
+                className="office-do-it"
+                onClick={() => onAdoptPrompt?.(walkBy.actionPrompt, walkBy.colleagueId)}
+              >
+                {copy.doIt}
+              </button>
+            ) : null}
           </div>
           {showText && copy.walkby.preamble ? (
             <p className="office-walkby-preamble">{copy.walkby.preamble}</p>
           ) : null}
           {showText ? <p className="office-walkby-body">{walkBy.body}</p> : null}
-          {walkBy.actionPrompt ? (
+          {walkBy.actionPrompt && !compactChrome ? (
             <button
               type="button"
               className="office-do-it"

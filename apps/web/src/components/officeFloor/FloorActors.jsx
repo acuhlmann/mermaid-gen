@@ -32,9 +32,11 @@ import FloorWanderer from './FloorWanderer.jsx';
  *   coffee?: any,
  *   battle?: any,
  *   sceneHandlers?: any,
+ *   scenePacing?: { coffeeVisibleLines?: number, battleVisibleLines?: number, battleLinesDone?: boolean },
  *   meeting?: any,
  *   huddle?: any,
  *   huddleHandlers?: any,
+ *   huddleRing?: any,
  *   wanderer?: any,
  *   onWandererArrive?: () => void,
  *   wandererRef?: { current: HTMLElement | null },
@@ -48,7 +50,8 @@ import FloorWanderer from './FloorWanderer.jsx';
  *   presence?: any,
  *   onPresenceArrive?: () => void,
  *   playerRef?: { current: HTMLElement | null },
- *   showSpokenText?: boolean
+ *   showSpokenText?: boolean,
+ *   showInviteText?: boolean
  * }} props `selectedId` / `speakingId` / `onSelect` are the stage's own names for
  *   the same three things, because since slice 12 a figure on the stage can be
  *   selected whether it is in a chair or stood at the printer, and it should not
@@ -64,9 +67,11 @@ export function FloorActors({
   coffee,
   battle,
   sceneHandlers,
+  scenePacing,
   meeting,
   huddle,
   huddleHandlers,
+  huddleRing,
   wanderer,
   onWandererArrive,
   wandererRef,
@@ -80,7 +85,8 @@ export function FloorActors({
   presence,
   onPresenceArrive,
   playerRef,
-  showSpokenText = true
+  showSpokenText = true,
+  showInviteText = true
 }) {
   return (
     <>
@@ -89,7 +95,9 @@ export function FloorActors({
         battle={battle}
         scale={scale}
         sceneHandlers={sceneHandlers}
+        scenePacing={scenePacing}
         showSpokenText={showSpokenText}
+        showInviteText={showInviteText}
       />
 
       {/* Somebody who has got up for a minute. Still deliberately absent from
@@ -119,6 +127,7 @@ export function FloorActors({
           huddle={huddle}
           scale={scale}
           showSpokenText={showSpokenText}
+          ringControls={huddleRing ?? undefined}
           onHardStop={huddleHandlers?.onHardStop}
           onAdoptPrompt={huddleHandlers?.onAdoptPrompt}
           onRequestSuggestion={huddleHandlers?.onRequestSuggestion}

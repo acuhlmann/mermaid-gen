@@ -25,6 +25,7 @@ import { useFloorActivity } from './officeFloor/useFloorActivity.js';
 import { useFloorSpokenText } from './officeFloor/useFloorSpokenText.js';
 import { useFloorAway } from './officeFloor/useFloorAway.js';
 import { useFloorAutoPan } from './officeFloor/useFloorAutoPan.js';
+import { useFloorCoffeeWalk } from './officeFloor/useFloorCoffeeWalk.js';
 import {
   isPhysicalFloorMeeting,
   useFloorMeetingFocus
@@ -42,6 +43,7 @@ import {
   officeSenderInfo
 } from '../utils/officeCast.js';
 import { deskWorkFor } from '../utils/officeDeskWork.js';
+import { shouldShowSpokenText } from '../utils/officeCaptions.js';
 import { tierOf } from '../utils/castTiers.js';
 import { resolveUserName, subscribe as subscribeUserName } from '../state/userIdentityStore.js';
 import { getOfficeViewMode, subscribe as subscribeViewMode } from '../state/officeViewModeStore.js';
@@ -170,7 +172,9 @@ function OfficeFloorView({ bridge }) {
     meeting = null,
     meetingHandlers = {},
     huddle = null,
-    huddleHandlers = {}
+    huddleHandlers = {},
+    huddleRing = null,
+    scenePacing = {}
   } = bridge;
   // Subscribes this component to locale changes; the copy itself comes from the
   // office bundle below, exactly like DeskActionsDock.
@@ -206,6 +210,11 @@ function OfficeFloorView({ bridge }) {
 
   useFloorKeyboard({ presence, origin, goHome, walkTo: activity.walkTo });
   useFloorAutoPan(viewportRef, presence, scale);
+  useFloorCoffeeWalk({
+    coffee,
+    walkTo: activity.walkTo,
+    suspended: physicalMeeting
+  });
 
   // Per-room colouring of the single bed (docs/audio-assets.md) — no new files.
   useEffect(() => {
@@ -258,7 +267,16 @@ function OfficeFloorView({ bridge }) {
     Boolean(talkingColleagueId && activity.talkLine) ||
     Boolean(peekColleagueId && peekLine) ||
     Boolean(walker?.body && !departing) ||
-    Boolean(coffee?.accepted || battle?.accepted);
+    Boolean(coffee?.accepted || battle?.accepted) ||
+    Boolean(huddle?.phase === 'speaking' || huddle?.phase === 'watching');
+
+  const liftedSceneSpeech = Boolean(
+    officeSnap.narration && sceneHandlers?.narrateLine && (coffee?.accepted || battle?.accepted)
+  );
+  const showInviteText = shouldShowSpokenText({
+    captions: officeSnap.captions,
+    voiceActive: Boolean(officeSnap.narration && sceneHandlers?.narrateLine)
+  });
 
   const { showSpokenText, sceneHandlersWithVoice } = useFloorSpokenText({
     captions: officeSnap.captions,
@@ -267,7 +285,8 @@ function OfficeFloorView({ bridge }) {
     talkLine: activity.talkLine,
     peekColleagueId,
     walkBy: walker,
-    hasActiveSpeech
+    hasActiveSpeech,
+    liftedSceneSpeech
   });
 
   const handleSelect = useCallback((id) => {
@@ -359,9 +378,11 @@ function OfficeFloorView({ bridge }) {
             coffee={coffee}
             battle={battle}
             sceneHandlers={sceneHandlersWithVoice}
+            scenePacing={scenePacing}
             meeting={meeting}
             huddle={huddle}
             huddleHandlers={huddleHandlers}
+            huddleRing={huddleRing}
             wanderer={wanderer}
             onWandererArrive={handleWanderArrive}
             wandererRef={wandererRef}
@@ -378,6 +399,7 @@ function OfficeFloorView({ bridge }) {
             onPresenceArrive={activity.handleArrive}
             playerRef={activity.playerRef}
             showSpokenText={showSpokenText}
+            showInviteText={showInviteText}
           />
         </FloorStage>
       </div>
@@ -388,6 +410,7 @@ function OfficeFloorView({ bridge }) {
         meetingHandlers={meetingHandlers}
         huddle={huddle}
         huddleHandlers={huddleHandlers}
+        huddleRing={huddleRing}
         peek={peek}
         talk={talk}
         conversation={conversation}
