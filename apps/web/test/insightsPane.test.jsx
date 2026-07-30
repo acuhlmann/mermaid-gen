@@ -131,15 +131,17 @@ describe('InsightsPane', () => {
       />
     );
 
-    expect(screen.getByTestId('insights-pane-persona')).toBeTruthy();
-    const entryPersona = screen.getByTestId('insights-entry-persona');
+    expect(screen.getByTestId('insights-pane-persona-companion')).toBeTruthy();
+    const entryPersona = screen.getByTestId('insights-pane-persona-companion');
     expect(within(entryPersona).getByText('Bertram Gilfoyle')).toBeTruthy();
     expect(within(entryPersona).getByText(/Systems Architect, Unimpressed/)).toBeTruthy();
     const liveMeta = screen.getByTestId('insights-pane-live-meta');
     expect(within(liveMeta).getByText('Refine')).toBeTruthy();
     expect(within(liveMeta).getByText('🔥 ×3')).toBeTruthy();
     expect(within(liveMeta).getByText('Phase 1')).toBeTruthy();
-    expect(screen.getByTestId('insights-pane-persona-quote')).toBeTruthy();
+    expect(
+      entryPersona.querySelector('.slopitect-companion-bubble-text')?.textContent.length
+    ).toBeGreaterThan(0);
   });
 
   it('shows rotating persona quote for live critique runs', () => {
@@ -162,8 +164,10 @@ describe('InsightsPane', () => {
       />
     );
 
-    const quote = screen.getByTestId('insights-pane-persona-quote');
-    expect(quote.textContent.length).toBeGreaterThan(0);
+    const companion = screen.getByTestId('insights-pane-persona-companion');
+    expect(
+      companion.querySelector('.slopitect-companion-bubble-text')?.textContent.length
+    ).toBeGreaterThan(0);
     expect(screen.queryByTestId('insights-tagline')).toBeNull();
   });
 
@@ -272,7 +276,7 @@ describe('InsightsPane', () => {
     expect(screen.getAllByText('Done').length).toBeGreaterThan(0);
     expect(screen.getByText('Notebook')).toBeTruthy();
     expect(screen.getByTestId('run-timeline-terminal')).toBeTruthy();
-    expect(screen.queryByTestId('insights-pane-persona')).toBeNull();
+    expect(screen.queryByTestId('insights-pane-persona-companion')).toBeNull();
     expect(screen.queryByTestId('insights-tagline')).toBeNull();
     expect(screen.queryByTestId('insights-pane-persona-quote')).toBeNull();
   });

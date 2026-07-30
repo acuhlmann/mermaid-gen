@@ -23,7 +23,7 @@ const EXIT_LINGER_MS = 1100;
  * brief exit animation before returning null. Timer state lives in async
  * setTimeout/setInterval to avoid synchronous setState within useEffect bodies.
  */
-export default function SlopitectCompanion({ variant, streaming = false }) {
+export default function SlopitectCompanion({ variant, streaming = false, placement = 'overlay' }) {
   const [rotationIndex, setRotationIndex] = useState(() => Math.floor(Math.random() * 100));
   const [exitDone, setExitDone] = useState(false);
   const exitTimerRef = useRef(null);
@@ -63,16 +63,23 @@ export default function SlopitectCompanion({ variant, streaming = false }) {
     ? persona.exitLine || persona.name
     : quoteForRotation(variant, rotationIndex) || persona.entryLine || '';
 
+  const isPane = placement === 'pane';
   const className = [
     'slopitect-companion',
     VARIANT_CLASS[variant],
-    isExiting ? 'is-exiting' : 'is-active'
+    isExiting ? 'is-exiting' : 'is-active',
+    isPane ? 'is-pane' : ''
   ]
     .filter(Boolean)
     .join(' ');
 
   return (
-    <div className={className} role="status" aria-live="polite" data-testid="slopitect-companion">
+    <div
+      className={className}
+      role="status"
+      aria-live="polite"
+      data-testid={isPane ? 'insights-pane-persona-companion' : 'slopitect-companion'}
+    >
       <div className="slopitect-companion-bubble">
         <span className="slopitect-companion-bubble-text">{speechLine}</span>
       </div>

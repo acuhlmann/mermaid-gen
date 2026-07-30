@@ -28,13 +28,7 @@ import {
   canRetryInsightEntry,
   showRetryWithQualityForEntry
 } from '../utils/insightRetryDescriptor.js';
-import {
-  getVariantPersona,
-  phaseCeremonyLabel,
-  quoteForRotation,
-  tipForIndex,
-  getVariantTagline
-} from '../utils/slopitectCopy.js';
+import { getVariantPersona, phaseCeremonyLabel, tipForIndex } from '../utils/slopitectCopy.js';
 import {
   accentContentLaneClass,
   accentSectionTitleClass,
@@ -45,6 +39,7 @@ import {
 } from './insightsPaneEntryUi.js';
 import { ThinkingPanelIcon } from './AppIcons.jsx';
 import ConcentrationControl from './ConcentrationControl.jsx';
+import SlopitectCompanion from './SlopitectCompanion.jsx';
 import { officeChromeCopy, officeMeetingCopy } from '../utils/officeCast.js';
 import { AntVModeIcon, ThreeJsModeIcon, VegaLiteModeIcon } from './ContentModeIcons.jsx';
 import { useUiCopy } from '../i18n/useUiLocale.js';
@@ -68,7 +63,6 @@ const SLOPITECT_VARIANT_CLASS = {
 };
 
 const TIP_ROTATION_MS = 7000;
-const PERSONA_QUOTE_ROTATION_MS = 3200;
 
 /** Streaming UI for agent runs: extend `applyAgentStreamInsightEvent` + `InsightsPane` entries for new phases; add A2UI via shared builders + `createLegacyA2uiStreamEvent` (see `critiqueA2uiMessages.js`). */
 
@@ -353,37 +347,6 @@ function InsightEntryPersonaBanner({ variant, size = 'entry' }) {
         <span className="insights-entry-persona-title">{persona.title}</span>
       </span>
     </div>
-  );
-}
-
-/** Rotating persona one-liner — same copy the run mascot bubble cycles through. */
-function InsightsPanePersonaQuote({ variant, streaming = false }) {
-  const [rotationIndex, setRotationIndex] = useState(0);
-
-  useEffect(() => {
-    if (!streaming || !variant) return undefined;
-    const handle = setInterval(() => setRotationIndex((n) => n + 1), PERSONA_QUOTE_ROTATION_MS);
-    return () => clearInterval(handle);
-  }, [streaming, variant]);
-
-  if (!variant || variant === 'general') return null;
-  const persona = getVariantPersona(variant);
-  const quote =
-    quoteForRotation(variant, rotationIndex) ||
-    persona.entryLine ||
-    persona.tagline ||
-    getVariantTagline(variant) ||
-    '';
-  if (!quote) return null;
-
-  return (
-    <p
-      className="insights-pane-persona-quote"
-      data-testid="insights-pane-persona-quote"
-      aria-live="polite"
-    >
-      {quote}
-    </p>
   );
 }
 
@@ -1278,7 +1241,6 @@ export default function InsightsPane({
         </div>
         {hasLiveAgent && liveEntry?.variant ? (
           <div className="insights-pane-header-meta">
-            <InsightEntryPersonaBanner variant={liveEntry.variant} size="pane" />
             <InsightsPaneLiveRunMeta
               variant={liveEntry.variant}
               phases={liveEntry.phases}
@@ -1287,7 +1249,7 @@ export default function InsightsPane({
               actionLabels={controls.actions}
               insightsCopy={insightsCopy}
             />
-            <InsightsPanePersonaQuote variant={liveEntry.variant} streaming />
+            <SlopitectCompanion variant={liveEntry.variant} streaming placement="pane" />
           </div>
         ) : null}
         <InsightsPaneNowStatusStrip entry={statusEntry} insightsCopy={insightsCopy} />
