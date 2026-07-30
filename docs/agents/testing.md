@@ -21,10 +21,14 @@ All tests run without API keys. LLM calls are mocked in agent and route tests.
 | Shared schemas / sanitizers only                       | `npm run check:fast`               |
 | Wire contracts (AG-UI, emitter, translator)            | `npm run check:wire`               |
 | Server tests without slow Anything child-process suite | `npm run test:fast -w apps/server` |
-| Full local gate (CI default)                           | `npm run check`                    |
-| Before PR                                              | `npm run check:full`               |
+| Full local gate                                        | `npm run check`                    |
+| Before PR / local CI parity                            | `npm run check:full`               |
 
-`npm run check:affected` runs `test:affected` automatically when `apps/server` or `apps/web` files change (instead of the full ~100s suite).
+`npm run check` ends with `verify:doc-paths` (not a second wire suite): wire round-trip files already run inside `npm test`. Use `check:wire` when you want only those three files + doc-paths.
+
+GitHub CI (`.github/workflows/ci.yml`) splits sensors, workspace tests, and build into **parallel jobs** so wall clock is closer to the slowest suite than to the sum. Deploy waits for that CI workflow to succeed (`workflow_run`) before updating Cloud Run.
+
+`npm run check:affected` runs `test:affected` automatically when `apps/server` or `apps/web` files change (instead of the full ~100s suite). When those workspaces change, wire coverage comes from `test:affected` (not a second `check:wire`).
 
 ### Diff-scoped mapping
 

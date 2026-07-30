@@ -36,9 +36,9 @@ Domain depth (slots, validation ladders, wire-contract habits, where-to-put tabl
   - `npm run format:affected` — write Prettier fixes on changed + untracked files (included in `precommit`)
   - `npm run format` / `npm run format:check` — Prettier write / verify whole repo (CI runs `format:check`; pre-commit auto-formats staged files). Text is LF via `.gitattributes`; Windows CRLF working trees — see [`docs/agents/sensors.md`](docs/agents/sensors.md) § Line endings
   - `npm run check:fast` — shared package only (schemas, sanitizers, wire constants)
-  - `npm run check` — typecheck + lint + test all workspaces (default)
-  - `npm run check:full` — same as CI: typecheck + test + build
-  - `npm run check:wire` — doc path verify + wire round-trip tests (shared, server, web)
+  - `npm run check` — typecheck + lint + test all workspaces (wire files via `npm test`) + doc-paths
+  - `npm run check:full` — local full gate (`check` + build); GitHub CI runs the same coverage as parallel jobs
+  - `npm run check:wire` — doc path verify + wire round-trip tests only (shared, server, web)
   - `npm run typecheck:strict` — strict TS on server wire-route modules (`copilotRouteTypes`, stream helpers)
   - `npm run verify:doc-paths` — operator-doc links to `apps/`, `packages/`, and `scripts/` paths (`STRUCTURE.md`, `AGENTS.md`, `CLAUDE.md`, `docs/recipes/`, `docs/guide/`, `docs/agents/`)
   - `npm run verify:deps` — override pins and singleton npm installs (e.g. `@a2ui/web_core` hoisted vs nested); error output includes the `npm install` fix

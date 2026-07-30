@@ -10,8 +10,12 @@ concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
+# Parallel jobs cut wall clock vs a single sequential `check:full`.
+# Local agents still use `npm run check:affected` / `check:full`.
+# Job `check` is the required aggregate status (branch protection).
+
 jobs:
-  check:
+  sensors:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -22,9 +26,114 @@ jobs:
           cache: npm
       - name: Install dependencies
         run: npm ci
+      - name: verify:deps
+        run: npm run verify:deps
+      - name: verify:agent-infra
+        run: npm run verify:agent-infra
+      - name: verify:boundaries
+        run: npm run verify:boundaries
       - name: Format (Prettier)
         run: npm run format:check
-      - name: Verify doc paths (recipes, STRUCTURE)
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Typecheck (strict islands)
+        run: npm run typecheck:strict
+      - name: Lint
+        run: npm run lint
+      - name: Verify doc paths
         run: npm run verify:doc-paths
-      - name: Check (typecheck, test, build — matches local check:full)
-        run: npm run check:full
+
+  test-scripts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Test root scripts
+        run: npm run test:scripts
+
+  test-shared:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Test packages/shared
+        run: npm run test -w packages/shared
+
+  test-server:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Test apps/server
+        run: npm run test -w apps/server
+
+  test-web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Test apps/web
+        run: npm run test -w apps/web
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Build all workspaces
+        run: npm run build
+
+  check:
+    if: always()
+    needs:
+      - sensors
+      - test-scripts
+      - test-shared
+      - test-server
+      - test-web
+      - build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require all CI jobs
+        run: |
+          set -euo pipefail
+          results=(
+            "${{ needs.sensors.result }}"
+            "${{ needs.test-scripts.result }}"
+            "${{ needs.test-shared.result }}"
+            "${{ needs.test-server.result }}"
+            "${{ needs.test-web.result }}"
+            "${{ needs.build.result }}"
+          )
+          for result in "${results[@]}"; do
+            if [[ "${result}" != "success" ]]; then
+              echo "CI aggregate failed (job result=${result})"
+              exit 1
+            fi
+          done
+          echo "CI aggregate OK"

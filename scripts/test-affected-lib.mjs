@@ -209,19 +209,19 @@ export function basenameTestCandidates(srcPath) {
   return [];
 }
 
+const APP_SRC_LINTABLE_RE = /\.(js|jsx|ts|tsx|mjs|cjs)$/;
+
 /**
+ * Match `check-affected` wire flag: any app source change can affect contracts,
+ * so `test:affected` runs the cheap wire suite once (avoid a second `check:wire`).
  * @param {string} srcPath
  */
 export function isWireSourcePath(srcPath) {
   if (WIRE_SOURCE_RE.test(srcPath)) return true;
   if (
-    /apps\/server\/src\/(routes\/copilot|agents\/|mcp\/|state\/sessionEventBus|tools\/)/.test(
-      srcPath
-    )
+    (srcPath.startsWith('apps/server/src/') || srcPath.startsWith('apps/web/src/')) &&
+    APP_SRC_LINTABLE_RE.test(srcPath)
   ) {
-    return true;
-  }
-  if (/apps\/web\/src\/state\//.test(srcPath) || srcPath.includes('agUiTranslator')) {
     return true;
   }
   return false;
