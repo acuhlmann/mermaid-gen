@@ -44,7 +44,8 @@ export function InsightsSlot({
   onSelectModelProfile,
   editorOpen,
   onToggleEditor,
-  canToggleEditor
+  canToggleEditor,
+  onToggleThinking
 }) {
   if (!mounted) return null;
 
@@ -89,6 +90,7 @@ export function InsightsSlot({
       editorOpen={editorOpen}
       onToggleEditor={onToggleEditor}
       canToggleEditor={canToggleEditor}
+      onToggleThinking={onToggleThinking}
     />
   );
 }

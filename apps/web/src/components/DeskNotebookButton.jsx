@@ -10,8 +10,7 @@ export default function DeskNotebookButton({
   thinkingOpen = false,
   onToggleThinking,
   disabled = false,
-  disabledTitle = null,
-  busy = false
+  disabledTitle = null
 }) {
   const copy = officeChromeCopy().desk;
   const label = thinkingOpen ? copy.thinkingClose : copy.thinking;
@@ -36,7 +35,7 @@ export default function DeskNotebookButton({
       aria-pressed={thinkingOpen}
       aria-label={label}
       title={title ?? label}
-      disabled={disabled || busy}
+      disabled={disabled}
       data-testid="desk-notebook-button"
       onClick={() => onToggleThinking?.()}
     >

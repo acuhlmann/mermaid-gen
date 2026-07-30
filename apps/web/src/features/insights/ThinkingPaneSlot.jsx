@@ -40,7 +40,8 @@ export function ThinkingPaneSlot({
   onSelectModelProfile,
   editorOpen,
   onToggleEditor,
-  canToggleEditor
+  canToggleEditor,
+  onToggleThinking
 }) {
   return (
     <InsightsSlot
@@ -89,6 +90,7 @@ export function ThinkingPaneSlot({
       editorOpen={editorOpen}
       onToggleEditor={onToggleEditor}
       canToggleEditor={canToggleEditor}
+      onToggleThinking={onToggleThinking}
     />
   );
 }

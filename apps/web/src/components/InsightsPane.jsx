@@ -1132,7 +1132,8 @@ export default function InsightsPane({
   onSelectModelProfile = null,
   editorOpen = false,
   onToggleEditor = null,
-  canToggleEditor = false
+  canToggleEditor = false,
+  onToggleThinking = null
 }) {
   const { controls } = useUiCopy();
   const insightsCopy = controls.insights;
@@ -1223,6 +1224,24 @@ export default function InsightsPane({
             ) : null}
           </div>
           <div className="insights-pane-header-actions">
+            {typeof onToggleThinking === 'function' ? (
+              <button
+                type="button"
+                className="insights-pane-tool-btn is-active"
+                aria-pressed
+                title={deskCopy.thinkingClose ?? insightsCopy.closeThinking}
+                aria-label={deskCopy.thinkingClose ?? insightsCopy.closeThinking}
+                data-testid="insights-notebook-toggle"
+                onClick={() => onToggleThinking()}
+              >
+                <span className="insights-pane-tool-emoji" aria-hidden="true">
+                  📓
+                </span>
+                <span className="insights-pane-tool-label">
+                  {deskCopy.thinkingShort ?? deskCopy.thinking ?? insightsCopy.title}
+                </span>
+              </button>
+            ) : null}
             <ConcentrationControl
               variant="header"
               modelProfile={modelProfile}

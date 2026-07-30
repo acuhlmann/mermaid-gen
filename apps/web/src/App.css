@@ -9107,9 +9107,26 @@ button {
     padding-right: 0;
   }
 
-  .app-shell.is-insights-open .ai-corner-controls,
-  .app-shell.is-insights-open .prompt-actions--mobile {
+  .app-shell.is-insights-open .ai-corner-controls {
     display: none;
+  }
+
+  /* Keep the notebook toggle reachable while the pane is fullscreen on mobile. */
+  .app-shell.is-insights-open
+    .prompt-actions--mobile
+    .desk-chrome-layout
+    > :not(.desk-tour-piece--notebook) {
+    display: none !important;
+  }
+
+  .app-shell.is-insights-open .prompt-actions--mobile {
+    display: flex;
+    justify-content: flex-end;
+    pointer-events: auto;
+  }
+
+  .app-shell.is-insights-open .prompt-actions--mobile .desk-tour-piece--notebook {
+    margin-left: auto;
   }
 
   .prompt-stack {

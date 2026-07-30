@@ -81,6 +81,7 @@ export function useThinkingPaneSlot({
         editorOpen={editorOpen}
         onToggleEditor={() => setEditorOpen((current) => !current)}
         canToggleEditor={hasCanvasContent || editorOpen}
+        onToggleThinking={() => setInsightsOpen((open) => !open)}
       />
     ),
     [
