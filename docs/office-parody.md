@@ -76,8 +76,7 @@ leadership pinging your desk.
 > = 0.5, so roughly half as often as a peer advisor — not summoned-only. He does not get office
 > walk-by/IM spam. Fiction: he reports to
 > **Gavin Belson** (`belson`, Session 8 — shipped), who stays harder to reach (senior-only; never
-> roundtable). Status: **local experiment** — before public deploy, decide real names vs
-> legally-distinct aliases. Locked roster: Erlich → `erlich` (shipped), Gilfoyle → `gilfoyle` (shipped),
+> roundtable). Locked roster: Erlich → `erlich` (shipped), Gilfoyle → `gilfoyle` (shipped),
 > Dinesh → new seventh engineer seat (`dinesh`, gilfoyle-class, core team + battle dual-home),
 > Jared → `jared` (shipped), Russ → `russ` (shipped, ex-`goMad`), Richard → `richard` (shipped, ex-`explain`, comment-only), Belson → `belson` (shipped; Marcus/`cto` retired).
 > Single source of truth:
