@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import RadialActionMenu from '../src/components/RadialActionMenu.jsx';
 
@@ -47,8 +47,13 @@ function renderMenu(props = {}) {
 }
 
 describe('RadialActionMenu keyboard navigation', () => {
+  beforeEach(() => {
+    window.localStorage.removeItem('archislop:radial-selection-intro-seen');
+  });
+
   afterEach(() => {
     cleanup();
+    window.localStorage.removeItem('archislop:radial-selection-intro-seen');
   });
 
   it('first action button is tabbable by default; others are not', () => {
@@ -63,7 +68,9 @@ describe('RadialActionMenu keyboard navigation', () => {
 
   it('ArrowRight moves the tabbable index forward', () => {
     renderMenu();
-    const menu = screen.getByRole('menu', { name: 'Diagram selection actions' });
+    const menu = screen.getByRole('menu', {
+      name: 'Precision edits for the selected diagram part'
+    });
     fireEvent.keyDown(menu, { key: 'ArrowRight' });
     const buttons = screen.getAllByRole('menuitem');
     expect(buttons[1].tabIndex).toBe(0);
@@ -72,7 +79,9 @@ describe('RadialActionMenu keyboard navigation', () => {
 
   it('ArrowDown is equivalent to ArrowRight', () => {
     renderMenu();
-    const menu = screen.getByRole('menu', { name: 'Diagram selection actions' });
+    const menu = screen.getByRole('menu', {
+      name: 'Precision edits for the selected diagram part'
+    });
     fireEvent.keyDown(menu, { key: 'ArrowDown' });
     const buttons = screen.getAllByRole('menuitem');
     expect(buttons[1].tabIndex).toBe(0);
@@ -80,7 +89,9 @@ describe('RadialActionMenu keyboard navigation', () => {
 
   it('ArrowLeft from index 0 wraps to last', () => {
     renderMenu();
-    const menu = screen.getByRole('menu', { name: 'Diagram selection actions' });
+    const menu = screen.getByRole('menu', {
+      name: 'Precision edits for the selected diagram part'
+    });
     fireEvent.keyDown(menu, { key: 'ArrowLeft' });
     const buttons = screen.getAllByRole('menuitem');
     expect(buttons[buttons.length - 1].tabIndex).toBe(0);
@@ -88,7 +99,9 @@ describe('RadialActionMenu keyboard navigation', () => {
 
   it('ArrowRight from last wraps to 0', () => {
     renderMenu();
-    const menu = screen.getByRole('menu', { name: 'Diagram selection actions' });
+    const menu = screen.getByRole('menu', {
+      name: 'Precision edits for the selected diagram part'
+    });
     fireEvent.keyDown(menu, { key: 'ArrowRight' });
     fireEvent.keyDown(menu, { key: 'ArrowRight' });
     fireEvent.keyDown(menu, { key: 'ArrowRight' });
@@ -98,7 +111,9 @@ describe('RadialActionMenu keyboard navigation', () => {
 
   it('Home / End jump to first / last', () => {
     renderMenu();
-    const menu = screen.getByRole('menu', { name: 'Diagram selection actions' });
+    const menu = screen.getByRole('menu', {
+      name: 'Precision edits for the selected diagram part'
+    });
     fireEvent.keyDown(menu, { key: 'End' });
     let buttons = screen.getAllByRole('menuitem');
     expect(buttons[buttons.length - 1].tabIndex).toBe(0);
@@ -110,7 +125,9 @@ describe('RadialActionMenu keyboard navigation', () => {
   it('Enter activates the focused action via onActionPick', () => {
     const onActionPick = vi.fn();
     renderMenu({ onActionPick });
-    const menu = screen.getByRole('menu', { name: 'Diagram selection actions' });
+    const menu = screen.getByRole('menu', {
+      name: 'Precision edits for the selected diagram part'
+    });
     fireEvent.keyDown(menu, { key: 'ArrowRight' });
     const buttons = screen.getAllByRole('menuitem');
     // Native <button> Enter/Space synthesizes click — assert via direct click.
