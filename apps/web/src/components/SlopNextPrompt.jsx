@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { CONTROLS_EN } from '../i18n/locales/controls.en.js';
+import { formatLocale } from '../i18n/formatLocale.js';
 
 const DEFAULT_COPY = CONTROLS_EN.prompt;
 
@@ -20,6 +21,7 @@ export default function SlopNextPrompt({
   MicActiveIcon,
   ButtonIcon,
   copy = DEFAULT_COPY,
+  selectionName = '',
   onPromptChange,
   onSubmit,
   onClose,
@@ -32,6 +34,16 @@ export default function SlopNextPrompt({
   const inputRef = useRef(null);
   const [inputFocused, setInputFocused] = useState(false);
   const isDesk = layout === 'desk';
+  const isRadial = layout === 'radial';
+  const radialTitle = selectionName
+    ? formatLocale(copy.slopNextRadialTitleNamed ?? copy.slopNextTitle, { name: selectionName })
+    : (copy.slopNextRadialTitle ?? copy.slopNextTitle);
+  const panelTitle = isRadial ? radialTitle : copy.slopNextTitle;
+  const panelPlaceholder = isRadial
+    ? (copy.slopNextRadialPlaceholder ?? copy.slopNextPlaceholder)
+    : isDesk
+      ? (copy.deskPlaceholder ?? copy.slopNextPlaceholder)
+      : copy.slopNextPlaceholder;
   const inputId =
     layout === 'radial'
       ? 'slop-prompt-radial-input'
@@ -155,8 +167,11 @@ export default function SlopNextPrompt({
             {PromptIcon ? <PromptIcon /> : '💬'}
           </span>
           <p className="slop-prompt-panel-title" id={`${inputId}-label`}>
-            {copy.slopNextTitle}
+            {panelTitle}
           </p>
+          {isRadial && copy.slopNextRadialHint ? (
+            <p className="slop-prompt-panel-radial-hint">{copy.slopNextRadialHint}</p>
+          ) : null}
           <button
             type="button"
             className="slop-prompt-panel-close"
@@ -178,9 +193,7 @@ export default function SlopNextPrompt({
         name={isDesk ? 'work-order' : 'slop-prompt'}
         value={prompt ?? ''}
         onChange={(event) => onPromptChange?.(event.target.value)}
-        placeholder={
-          isDesk ? (copy.deskPlaceholder ?? copy.slopNextPlaceholder) : copy.slopNextPlaceholder
-        }
+        placeholder={panelPlaceholder}
         disabled={busy}
         inputMode="text"
         enterKeyHint="go"

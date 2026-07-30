@@ -7962,6 +7962,57 @@
   line-height: 1.25;
 }
 
+.radial-action-chip-hint {
+  font-weight: 500;
+  font-size: 0.58rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #bfdbfe;
+  opacity: 0.95;
+  line-height: 1.2;
+}
+
+.radial-selection-intro {
+  position: fixed;
+  pointer-events: auto;
+  z-index: 4;
+  width: max-content;
+  max-width: min(18rem, calc(100vw - 2rem));
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  padding: 0.7rem 0.8rem;
+  border-radius: 14px;
+  background: #ffffff;
+  border: 1.5px solid color-mix(in srgb, var(--accent) 55%, transparent);
+  box-shadow:
+    0 12px 32px color-mix(in srgb, var(--accent) 18%, rgba(15, 23, 42, 0.18)),
+    0 2px 8px rgba(15, 23, 42, 0.1);
+  animation: topic-starters-in 0.35s ease both;
+}
+
+.radial-selection-intro-eyebrow {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--accent-dark);
+}
+
+.radial-selection-intro-body {
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.4;
+  color: var(--text);
+}
+
+.radial-selection-intro-dismiss {
+  align-self: flex-end;
+  margin-top: 0.15rem;
+  padding: 0.28rem 0.65rem;
+  font-size: 0.78rem;
+}
+
 .radial-action-button {
   position: fixed;
   transform: translate(-50%, -50%);
@@ -14060,6 +14111,13 @@ body.slopitect-rainbow-tint::before {
   font-weight: 800;
   letter-spacing: -0.02em;
   color: var(--text);
+}
+
+.slop-prompt-panel-radial-hint {
+  margin: 0;
+  font-size: 0.72rem;
+  line-height: 1.35;
+  color: color-mix(in srgb, var(--text) 72%, transparent);
 }
 
 .slop-prompt-panel-close {

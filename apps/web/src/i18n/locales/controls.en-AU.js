@@ -44,6 +44,10 @@ export const CONTROLS_EN_AU = {
     slopNextTitle: 'What should we slop next?',
     slopNextPlaceholder: 'Tell the agent what to change…',
     slopNextLabel: 'New prompt',
+    slopNextRadialTitle: 'Edit this selection',
+    slopNextRadialTitleNamed: 'Edit “{name}”',
+    slopNextRadialPlaceholder: 'Rename it, tweak the label, add detail…',
+    slopNextRadialHint: 'Only this bit changes — the rest of the diagram stays put.',
     closePrompt: 'Close prompt',
     topicPlaceholder: 'Pitch any topic — diagram, chart, form…',
     starterHint: 'Or pick up an assignment from the floor:',
@@ -279,7 +283,13 @@ export const CONTROLS_EN_AU = {
     gibberishActive: 'Gibberish simplification active'
   },
   radial: {
-    selectionActions: 'Diagram selection actions',
+    selectionActions: 'Precision edits for the selected diagram bit',
+    chipHint: 'Only this bit',
+    introEyebrow: '🎯 Precision editing',
+    introBody:
+      'You picked one piece of the diagram. Every action here changes just this selection — the rest stays put. Use Edit for your own words, or hand it to the team.',
+    introDismiss: 'Gotcha',
+    introAria: 'How precision editing works',
     whatDoesMean: 'What does {target} mean?',
     whatDoesThisMean: 'What does this mean?',
     dragToReposition: 'Drag to reposition',

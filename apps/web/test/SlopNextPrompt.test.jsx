@@ -39,10 +39,16 @@ describe('SlopNextPrompt mobile chrome', () => {
     expect(screen.getByRole('button', { name: 'Close prompt' })).toBeTruthy();
   });
 
-  it('shows the title on narrow radial layout', () => {
+  it('shows the scoped title on narrow radial layout', () => {
     renderPrompt({ layout: 'radial', narrowLayout: true });
-    expect(screen.getByText('What should we slop next?')).toBeTruthy();
+    expect(screen.getByText('Edit this selection')).toBeTruthy();
+    expect(screen.getByText(/Only this part changes/)).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Close prompt' })).toBeTruthy();
+  });
+
+  it('names the selected part in the radial title when provided', () => {
+    renderPrompt({ layout: 'radial', narrowLayout: true, selectionName: 'Auth Service' });
+    expect(screen.getByText('Edit “Auth Service”')).toBeTruthy();
   });
 
   it('uses pointerup toggle for the mic on narrow layouts', () => {

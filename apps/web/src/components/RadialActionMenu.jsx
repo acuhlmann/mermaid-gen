@@ -19,6 +19,10 @@ import { useUiCopy } from '../i18n/useUiLocale.js';
 import { formatLocale } from '../i18n/formatLocale.js';
 import { getVariantPersona } from '../utils/slopitectCopy.js';
 import { overlayLayerStyle, useOverlayLayer } from '../hooks/useOverlayLayer.js';
+import {
+  readRadialSelectionIntroSeen,
+  writeRadialSelectionIntroSeen
+} from '../utils/radialSelectionIntroStorage.js';
 
 const WISE_ARCHITECT_EMOJI = getVariantPersona('richard').avatarEmoji || '🧙';
 const STAKEHOLDERS_EMOJI = '👥';
@@ -161,8 +165,23 @@ export default function RadialActionMenu({
   const [dumbLevel, setDumbLevel] = useState(0);
   const [explainerSurrendering, setExplainerSurrendering] = useState(false);
   const surrenderTimerRef = useRef(null);
+  const [selectionIntroOpen, setSelectionIntroOpen] = useState(false);
   const [explanation, setExplanation] = useState({ status: 'idle', text: '', error: '' });
   const narrowLayout = useNarrowLayout();
+
+  useEffect(() => {
+    if (!descriptor) {
+      setSelectionIntroOpen(false);
+      return;
+    }
+    if (readRadialSelectionIntroSeen()) return;
+    setSelectionIntroOpen(true);
+  }, [descriptor?.id]);
+
+  function dismissSelectionIntro() {
+    writeRadialSelectionIntroSeen();
+    setSelectionIntroOpen(false);
+  }
 
   useEffect(() => {
     if (!descriptor) return undefined;
@@ -725,6 +744,7 @@ export default function RadialActionMenu({
             const isExplainer = behavior === 'showExplanation';
             const isModeRenderer = behavior === 'expandRenderModes';
             const handleClick = () => {
+              dismissSelectionIntro();
               if (isExplainer) {
                 setStakeholdersExpanded(false);
                 setRenderModesExpanded(false);
@@ -790,6 +810,31 @@ export default function RadialActionMenu({
         >
           <span className="radial-action-chip-type">{chipTypeLabel}</span>
           {chipName ? <span className="radial-action-chip-name">{chipName}</span> : null}
+          <span className="radial-action-chip-hint">{radial.chipHint}</span>
+        </div>
+      ) : null}
+      {selectionIntroOpen && !modalSurfaceOpen && !slopPrompt ? (
+        <div
+          className="radial-selection-intro"
+          role="dialog"
+          aria-label={radial.introAria}
+          style={{
+            left: layout.centerX,
+            top: layout.centerY - layout.chipHalfHeight - (narrowLayout ? 118 : 132),
+            transform: 'translate(-50%, -100%)'
+          }}
+          onPointerDown={(event) => event.stopPropagation()}
+          onPointerEnter={onHoverHold}
+        >
+          <p className="radial-selection-intro-eyebrow">{radial.introEyebrow}</p>
+          <p className="radial-selection-intro-body">{radial.introBody}</p>
+          <button
+            type="button"
+            className="overlay-button primary-button radial-selection-intro-dismiss"
+            onClick={dismissSelectionIntro}
+          >
+            {radial.introDismiss}
+          </button>
         </div>
       ) : null}
       {explainerOpen && !slopPrompt ? (

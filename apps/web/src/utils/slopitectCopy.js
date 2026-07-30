@@ -111,10 +111,10 @@ export const VARIANT_PERSONAS = {
 
 /** Chrome "weigh in" prompt — primary label vs funny role tag (avoids duplicate text on the button). */
 export const PROMPT_ACTION_COPY = {
-  label: 'Weigh In',
-  roleTag: 'Just Say It',
-  roleEmoji: '🗣️',
-  title: 'Weigh In · Share your thoughts on the matter'
+  label: 'Edit',
+  roleTag: 'This part only',
+  roleEmoji: '✏️',
+  title: 'Edit · Change just this selection — the rest of the diagram stays put'
 };
 
 /** Mute / unmute stakeholders chrome action — role pill always names who you are silencing. */

@@ -47,6 +47,10 @@ export const CONTROLS_EN = {
     slopNextTitle: 'What should we slop next?',
     slopNextPlaceholder: 'Prompt anything into reality…',
     slopNextLabel: 'New prompt',
+    slopNextRadialTitle: 'Edit this selection',
+    slopNextRadialTitleNamed: 'Edit “{name}”',
+    slopNextRadialPlaceholder: 'Rename it, tweak the label, add detail…',
+    slopNextRadialHint: 'Only this part changes — the rest of the diagram stays put.',
     closePrompt: 'Close prompt',
     // The persistent Work Order at the centre of the desk (content mode).
     deskLabel: 'Work order — what should we change?',
@@ -81,8 +85,13 @@ export const CONTROLS_EN = {
         text: 'Colleagues weigh in after the canvas has something to argue about.'
       },
       {
+        id: 'selection',
+        label: '5 · Precision edits',
+        text: 'Click any node, edge, or label on the canvas to open the action ring — every verb there changes only that piece, not the whole diagram.'
+      },
+      {
         id: 'format',
-        label: '5 · Desk tray',
+        label: '6 · Desk tray',
         text: 'Open the tray to pick Diagram, Chart, Anything, and the rest — then go back to the work order and pitch.'
       }
     ],
@@ -319,7 +328,13 @@ export const CONTROLS_EN = {
     gibberishActive: 'Gibberish simplification active'
   },
   radial: {
-    selectionActions: 'Diagram selection actions',
+    selectionActions: 'Precision edits for the selected diagram part',
+    chipHint: 'Only this part',
+    introEyebrow: '🎯 Precision editing',
+    introBody:
+      'You picked one piece of the diagram. Every action here changes just this selection — the rest stays put. Use Edit for your own words, or delegate to the team.',
+    introDismiss: 'Got it',
+    introAria: 'How precision editing works',
     whatDoesMean: 'What does {target} mean?',
     whatDoesThisMean: 'What does this mean?',
     dragToReposition: 'Drag to reposition',

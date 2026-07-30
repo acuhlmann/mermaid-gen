@@ -44,6 +44,10 @@ export const CONTROLS_ZH_TW = {
     slopNextTitle: '接下來要改什麼？',
     slopNextPlaceholder: '告訴智慧代理要改什麼…',
     slopNextLabel: '新提示',
+    slopNextRadialTitle: '編輯此選取項',
+    slopNextRadialTitleNamed: '編輯「{name}」',
+    slopNextRadialPlaceholder: '重新命名、改標籤、補充細節…',
+    slopNextRadialHint: '只改這一部分——圖表其餘部分保持不變。',
     closePrompt: '關閉提示',
     deskLabel: '工單 — 這次要改什麼？',
     deskPlaceholder: '寫下你的下一條工單…',
@@ -231,7 +235,13 @@ export const CONTROLS_ZH_TW = {
     gibberishActive: '胡話簡化已啟用'
   },
   radial: {
-    selectionActions: '圖表選擇操作',
+    selectionActions: '針對所選圖表部分的精細編輯',
+    chipHint: '僅改此部分',
+    introEyebrow: '🎯 精細編輯',
+    introBody:
+      '你選中了一個圖表元素。此處的每個操作只改這一部分——其餘保持不變。用「編輯」輸入你的要求，或交給團隊處理。',
+    introDismiss: '知道了',
+    introAria: '精細編輯說明',
     whatDoesMean: '{target} 是什麼意思？',
     whatDoesThisMean: '這是什麼意思？',
     dragToReposition: '拖動以重新定位',

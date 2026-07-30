@@ -6,14 +6,14 @@ describe('ui locale bundles', () => {
   it('returns English controls by default', () => {
     const bundle = getUiLocaleBundle('en');
     expect(bundle.controls.actions.gilfoyle).toBe('Refine');
-    expect(bundle.slopitect.PROMPT_ACTION_COPY.label).toBe('Weigh In');
+    expect(bundle.slopitect.PROMPT_ACTION_COPY.label).toBe('Edit');
   });
 
   it('returns simplified Chinese controls when locale is zh-CN', () => {
     const bundle = getUiLocaleBundle('zh-CN');
     expect(bundle.controls.actions.gilfoyle).toBe('精修');
     expect(bundle.controls.radial.drillDeeper).toBe('深入挖掘');
-    expect(bundle.slopitect.PROMPT_ACTION_COPY.label).toBe('发表意见');
+    expect(bundle.slopitect.PROMPT_ACTION_COPY.label).toBe('编辑');
     expect(bundle.controls.advisorThinking.russ).toBe('在秀逗号');
     expect(bundle.controls.planBeat.agent).toBe('智能体');
     expect(bundle.controls.checklist.fixSelected).toBe('修复所选');
@@ -40,7 +40,7 @@ describe('ui locale bundles', () => {
     expect(bundle.controls.introLocale.enAu).toBe('Aussie Slang');
     expect(bundle.controls.advisorThinking.russ).toBe('is flexing commas');
     expect(bundle.controls.appError.title).toMatch(/pear-shaped/);
-    expect(bundle.slopitect.PROMPT_ACTION_COPY.label).toBe('Have a say');
+    expect(bundle.slopitect.PROMPT_ACTION_COPY.label).toBe('Edit');
     expect(bundle.slopitect.STAKEHOLDERS_MUTE_COPY.stakeholdersTag).toBe('The Mob');
     expect(bundle.slopitect.LEVEL_PANEL.damageQuips.pettyMid).toMatch(/flat white/);
   });

@@ -121,13 +121,17 @@ describe('radial menu click-to-open UX', () => {
     render(<RadialMenuHarness />);
     fireEvent.click(screen.getByRole('button', { name: 'Simulate hover' }));
     expect(screen.getByTestId('radial-harness').getAttribute('data-session')).toBe('');
-    expect(screen.queryByRole('menu', { name: 'Diagram selection actions' })).toBeNull();
+    expect(
+      screen.queryByRole('menu', { name: 'Precision edits for the selected diagram part' })
+    ).toBeNull();
   });
 
   it('opens the menu when a part is selected', () => {
     render(<RadialMenuHarness />);
     fireEvent.click(screen.getByRole('button', { name: 'Simulate select' }));
-    expect(screen.getByRole('menu', { name: 'Diagram selection actions' })).toBeTruthy();
+    expect(
+      screen.getByRole('menu', { name: 'Precision edits for the selected diagram part' })
+    ).toBeTruthy();
     // Labels are no longer rendered in the radial menu — accessibility still
     // surfaces the action name (with persona) via `aria-label`.
     const refineBtn = screen.getByRole('menuitem', { name: 'Refine (Engineer)' });
@@ -141,16 +145,24 @@ describe('radial menu click-to-open UX', () => {
 
   it('closes the menu when the same part is clicked again', () => {
     render(<RadialMenuHarness initialSelected={MOCK_DESCRIPTOR} />);
-    expect(screen.getByRole('menu', { name: 'Diagram selection actions' })).toBeTruthy();
+    expect(
+      screen.getByRole('menu', { name: 'Precision edits for the selected diagram part' })
+    ).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Simulate select' }));
-    expect(screen.queryByRole('menu', { name: 'Diagram selection actions' })).toBeNull();
+    expect(
+      screen.queryByRole('menu', { name: 'Precision edits for the selected diagram part' })
+    ).toBeNull();
   });
 
   it('closes the menu when the backdrop hit area is clicked', () => {
     render(<RadialMenuHarness initialSelected={MOCK_DESCRIPTOR} />);
-    expect(screen.getByRole('menu', { name: 'Diagram selection actions' })).toBeTruthy();
+    expect(
+      screen.getByRole('menu', { name: 'Precision edits for the selected diagram part' })
+    ).toBeTruthy();
     fireEvent.pointerDown(screen.getByTestId('radial-hit-area'), { button: 0 });
-    expect(screen.queryByRole('menu', { name: 'Diagram selection actions' })).toBeNull();
+    expect(
+      screen.queryByRole('menu', { name: 'Precision edits for the selected diagram part' })
+    ).toBeNull();
   });
 
   it('reopens the menu at a new anchor when another part is selected', () => {
@@ -165,7 +177,9 @@ describe('radial menu click-to-open UX', () => {
         }}
       />
     );
-    expect(screen.getByRole('menu', { name: 'Diagram selection actions' })).toBeTruthy();
+    expect(
+      screen.getByRole('menu', { name: 'Precision edits for the selected diagram part' })
+    ).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Simulate select other' }));
     expect(screen.getByTestId('radial-harness').getAttribute('data-session')).toBe(
       OTHER_DESCRIPTOR.id
@@ -177,18 +191,26 @@ describe('radial menu click-to-open UX', () => {
 
   it('closes the menu on pan dismiss while selection state remains', () => {
     render(<RadialMenuHarness initialSelected={MOCK_DESCRIPTOR} />);
-    expect(screen.getByRole('menu', { name: 'Diagram selection actions' })).toBeTruthy();
+    expect(
+      screen.getByRole('menu', { name: 'Precision edits for the selected diagram part' })
+    ).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Simulate pan dismiss' }));
-    expect(screen.queryByRole('menu', { name: 'Diagram selection actions' })).toBeNull();
+    expect(
+      screen.queryByRole('menu', { name: 'Precision edits for the selected diagram part' })
+    ).toBeNull();
     expect(screen.getByTestId('radial-harness').getAttribute('data-session')).toBe('');
   });
 
   it('reopens the menu when the same selected part is clicked after dismiss', () => {
     render(<RadialMenuHarness initialSelected={MOCK_DESCRIPTOR} />);
     fireEvent.click(screen.getByRole('button', { name: 'Simulate pan dismiss' }));
-    expect(screen.queryByRole('menu', { name: 'Diagram selection actions' })).toBeNull();
+    expect(
+      screen.queryByRole('menu', { name: 'Precision edits for the selected diagram part' })
+    ).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Simulate select' }));
-    expect(screen.getByRole('menu', { name: 'Diagram selection actions' })).toBeTruthy();
+    expect(
+      screen.getByRole('menu', { name: 'Precision edits for the selected diagram part' })
+    ).toBeTruthy();
   });
 });
 
@@ -288,7 +310,7 @@ describe('radial menu popover survives the hover-close grace period', () => {
 });
 
 /**
- * The radial "Weigh In" slop prompt is modal like the explainer/stakeholders
+ * The radial "Edit" slop prompt is modal like the explainer/stakeholders
  * popovers. Opening it must cancel any pending hover-close timer and must not
  * schedule a fresh one when the virtual keyboard shrinks the viewport.
  */
@@ -300,7 +322,7 @@ describe('radial slop prompt survives the hover-close grace period', () => {
   const PRIMARY_WITH_PROMPT = [
     {
       id: 'prompt',
-      label: 'Weigh In',
+      label: 'Edit',
       icon: '💬',
       variant: 'prompt',
       group: 'primary',
@@ -378,7 +400,7 @@ describe('radial slop prompt survives the hover-close grace period', () => {
       slopPromptOpen: true,
       slopPrompt: <input data-testid="slop-prompt-input" aria-label="New prompt" />
     });
-    expect(screen.queryByRole('menuitem', { name: /Weigh In/ })).toBeNull();
+    expect(screen.queryByRole('menuitem', { name: /Edit/ })).toBeNull();
     expect(screen.getByTestId('slop-prompt-input')).toBeTruthy();
   });
 });
@@ -803,5 +825,57 @@ describe('radial popover drag handle', () => {
     // Clicking the close button still works.
     fireEvent.click(closeBtn);
     expect(onClose).toHaveBeenCalled();
+  });
+});
+
+describe('radial selection intro', () => {
+  beforeEach(() => {
+    window.localStorage.removeItem('archislop:radial-selection-intro-seen');
+  });
+
+  afterEach(() => {
+    cleanup();
+    window.localStorage.removeItem('archislop:radial-selection-intro-seen');
+  });
+
+  it('shows a first-run precision-editing callout on the first selection', () => {
+    render(
+      <RadialActionMenu
+        descriptor={MOCK_DESCRIPTOR}
+        anchor={MOCK_ANCHOR}
+        actions={MOCK_ACTIONS}
+        onActionPick={vi.fn()}
+        onBackdropPointerDown={vi.fn()}
+        onClose={vi.fn()}
+      />
+    );
+    expect(screen.getByRole('dialog', { name: /How precision editing works/i })).toBeTruthy();
+    expect(screen.getByText(/Only this part/i)).toBeTruthy();
+  });
+
+  it('dismisses the intro and does not show it again after Got it', () => {
+    render(
+      <RadialActionMenu
+        descriptor={MOCK_DESCRIPTOR}
+        anchor={MOCK_ANCHOR}
+        actions={MOCK_ACTIONS}
+        onActionPick={vi.fn()}
+        onBackdropPointerDown={vi.fn()}
+        onClose={vi.fn()}
+      />
+    );
+    fireEvent.click(screen.getByRole('button', { name: /Got it/i }));
+    cleanup();
+    render(
+      <RadialActionMenu
+        descriptor={OTHER_DESCRIPTOR}
+        anchor={MOCK_ANCHOR}
+        actions={MOCK_ACTIONS}
+        onActionPick={vi.fn()}
+        onBackdropPointerDown={vi.fn()}
+        onClose={vi.fn()}
+      />
+    );
+    expect(screen.queryByRole('dialog', { name: /precision editing/i })).toBeNull();
   });
 });

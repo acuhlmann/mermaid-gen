@@ -79,6 +79,12 @@ export function RadialMenuSlot({
               MicActiveIcon={MicActiveIcon}
               ButtonIcon={ButtonIcon}
               copy={promptCopy}
+              selectionName={
+                radialMenuSession?.descriptor?.partName ||
+                radialMenuSession?.descriptor?.label ||
+                radialMenuSession?.descriptor?.clickedLabel ||
+                ''
+              }
               onPromptChange={onPromptChange}
               onSubmit={onSlopPromptSubmit}
               onClose={onSlopPromptClose}
