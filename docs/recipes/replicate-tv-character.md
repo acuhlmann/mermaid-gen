@@ -56,16 +56,16 @@ Scores are `node scripts/barker-fidelity.mjs <id>` overall averages across the 4
 two consecutive runs, Vertex fast tier. **Treat these as the reference band, not a target to beat**
 — the axes are noisy above ~4.3 (see §3).
 
-| Character  | Runs            | Notes                                                                                                  |
-| ---------- | --------------- | ------------------------------------------------------------------------------------------------------ |
-| `gilfoyle` | **4.50 / 4.38** | Passed as shipped in Session 3 (4.50 / 4.63); unchanged by the §1b tendency split.                     |
-| `dinesh`   | **4.00 / 4.19** | As shipped **3.81 / 4.25**; re-tuned to **4.50 / 4.31**; §1b's tendency split settled him at ~4.0–4.2. |
-| `barker`   | ≈3.95–4.0       | Session 1 plateau; unchanged since (Session 2 was picker plumbing, no voice card touched).             |
-| `erlich`   | 4.50 / 4.31     | Carried over from the card iteration recorded in §2; not re-measured on 2026-07-27.                    |
-| `jared`    | **4.63 / 4.75** | Session 5 (2026-07-28); first analyze-path inheritance. Sustained well above bar.                      |
-| `russ`     | **4.81 / 5.00** | Session 6 (2026-07-28); DeepSeek fast tier. Sustained well above bar.                                  |
-| `richard`  | **4.75 / 4.63** | Session 7 (2026-07-28); DeepSeek fast tier. Sustained well above bar.                                  |
-| `belson`   | **4.63 / 5.00** | Session 8 (2026-07-28); DeepSeek fast tier. Senior-only (meeting + email). Sustained well above bar.   |
+| Character  | Runs            | Notes                                                                                                         |
+| ---------- | --------------- | ------------------------------------------------------------------------------------------------------------- |
+| `gilfoyle` | **4.50 / 4.38** | Passed as shipped in Session 3 (4.50 / 4.63); unchanged by the §1b tendency split.                            |
+| `dinesh`   | **4.00 / 4.19** | As shipped **3.81 / 4.25**; re-tuned to **4.50 / 4.31**; §1b's tendency split settled him at ~4.0–4.2.        |
+| `barker`   | ≈3.95–4.0       | Session 1 plateau; unchanged since (Session 2 was picker plumbing, no voice card touched).                    |
+| `erlich`   | **4.44 / 4.63** | Re-measured 2026-07-30 (DeepSeek fast tier); sustained above bar. Earlier 4.50 / 4.31 from §2 card iteration. |
+| `jared`    | **4.63 / 4.75** | Session 5 (2026-07-28); first analyze-path inheritance. Sustained well above bar.                             |
+| `russ`     | **4.81 / 5.00** | Session 6 (2026-07-28); DeepSeek fast tier. Sustained well above bar.                                         |
+| `richard`  | **4.75 / 4.63** | Session 7 (2026-07-28); DeepSeek fast tier. Sustained well above bar.                                         |
+| `belson`   | **4.63 / 5.00** | Session 8 (2026-07-28); DeepSeek fast tier. Senior-only (meeting + email). Sustained well above bar.          |
 
 A session that cannot run the harness must say so in the PR (Sessions 2–4 correctly did) and leave
 the row blank rather than assert a score — but the row is then **not** done. Budget ~4 minutes and a
@@ -529,9 +529,3 @@ Hard decisions baked in (do not re-litigate per session):
   retired to `belson`, Session 8) — fidelity-harnessed like Barker; larger than a blurb rename.
 - **Kept as-is (not this program):** Pam (SAFe ceremony), Linda (weaponized HR cheerfulness),
   Chad, Dave, Gary, Ulrich, Sasha, Diane. Gary's "Fridge Czar" bit is optional later polish.
-
-Open question (unchanged; does not block the program):
-
-- **Public deploy naming** — keep HBO names locally; before the named cast ships to the public
-  Cloud Run deployment, decide real names vs legally-distinct aliases (Marcus was the
-  legally-distinct homage; Belson/`belson` ended that compromise in Session 8).

@@ -777,8 +777,10 @@ remains is a set of genuine choices, so pick on appetite rather than on urgency.
 Shipped on top of slice 8 (adventure polish, not a new slice number): **floor talk now matches
 Slop Chat™ for input** — typed prompt **and** mic (`VoiceMicButton`), a short recent-turns
 strip in the talk card, and **double-click a talkable colleague** to walk over and open the
-chat (same `talkTileFor` derivation as **Go and talk**). Still office-tier only; leadership
-glass and your team keep the person-card brush-off.
+chat (same `talkTileFor` derivation as **Go and talk**). **Team + office tiers** are
+talkable (`talkTileFor` in `OfficeFloor.jsx` — everyone except `senior` behind the glass);
+leadership gets the person-card brush-off only. Slice 6's desk **peek** (`peekTileFor`) covers
+the same team pod plus office desks — look over their shoulder at fiction on the monitor.
 
 Three earlier candidates, none designed:
 
@@ -811,17 +813,14 @@ Kept here so appetite can pick without re-deriving. Each should stay bound by AD
   considered for interrupting mid-script; still a content question).
 - **Name-chip proximity** — show all names when you are within one tile (clears § 8's "name chip
   is hover-only" debt without growing hit boxes).
-- **Team walk-up chats** — optional later: full-weight peers answer floor talk the way office
-  tier does, while senior stays invite-only. Would need a doctrine note in office-parody §11.
-
-Considered and not chosen, kept so nobody re-derives them: **a second wanderer at a time**
-(§ 8's original sketch imagined "two people end up at the whiteboard"; one at a time was chosen
-deliberately and should stay until something wants the collision rules), and **making scene
-participants and meeting attendees reachable too** — slice 12 deliberately stops at somebody
-whom nothing has claimed. A colleague in a coffee break or in the glass room is already being
-drawn by a surface with its own chrome, and § 6 rule 5 does not allow two of anybody; walking up
-to interrupt them would mean deciding what a conversation does to a scene that is mid-script,
-which is a content question rather than a geometry one.
+  Considered and not chosen, kept so nobody re-derives them: **a second wanderer at a time**
+  (§ 8's original sketch imagined "two people end up at the whiteboard"; one at a time was chosen
+  deliberately and should stay until something wants the collision rules), and **making scene
+  participants and meeting attendees reachable too** — slice 12 deliberately stops at somebody
+  whom nothing has claimed. A colleague in a coffee break or in the glass room is already being
+  drawn by a surface with its own chrome, and § 6 rule 5 does not allow two of anybody; walking up
+  to interrupt them would mean deciding what a conversation does to a scene that is mid-script,
+  which is a content question rather than a geometry one.
 
 ### Debts the shipped slices left behind
 
