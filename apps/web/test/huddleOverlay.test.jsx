@@ -5,6 +5,7 @@ import HuddleOverlay, {
   HUDDLE_LINE_PACE_MS,
   HUDDLE_TAIL_MS
 } from '../src/components/HuddleOverlay.jsx';
+import { OFFICE_NARRATION_GAP_MS } from '../src/utils/officeNarration.js';
 import { setOfficeCaptions } from '../src/state/officeMomentStore.js';
 
 const ATTENDEES = ['gilfoyle', 'dinesh', 'erlich', 'russ', 'jared', 'richard'];
@@ -35,6 +36,13 @@ function huddle(overrides = {}) {
 async function advanceOneLine() {
   await act(async () => {
     await vi.advanceTimersByTimeAsync(HUDDLE_LINE_PACE_MS + 20);
+  });
+}
+
+/** Advance to the next remark when narration reports spoken (short gap). */
+async function advanceSpokenLine() {
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(OFFICE_NARRATION_GAP_MS + 40);
   });
 }
 
@@ -87,10 +95,24 @@ describe('HuddleOverlay', () => {
     expect(screen.getByText(BEATS[0].text)).toBeTruthy();
   });
 
-  it('hides the remark and names the speaker when voice is on and CC is off', () => {
-    render(<HuddleOverlay huddle={huddle()} narrateLine={vi.fn(async () => ({ spoken: true }))} />);
+  it('hides remark text when voice is on and CC is off — the highlighted face is enough', () => {
+    const { container } = render(
+      <HuddleOverlay huddle={huddle()} narrateLine={vi.fn(async () => ({ spoken: true }))} />
+    );
     expect(screen.queryByText(BEATS[0].text)).toBeNull();
-    expect(screen.getByText(/is talking/)).toBeTruthy();
+    expect(screen.queryByText(/is talking/)).toBeNull();
+    expect(container.querySelectorAll('.office-huddle-bubble')).toHaveLength(0);
+    expect(container.querySelector('[data-speaking="true"]')).toBeTruthy();
+  });
+
+  it('shows only Do it when voice is on and the beat has an action prompt', async () => {
+    const { container } = render(
+      <HuddleOverlay huddle={huddle()} narrateLine={vi.fn(async () => ({ spoken: true }))} />
+    );
+    await advanceSpokenLine();
+    expect(screen.queryByText(BEATS[1].text)).toBeNull();
+    expect(screen.getByRole('button', { name: /Do it/i })).toBeTruthy();
+    expect(container.querySelectorAll('.office-huddle-bubble')).toHaveLength(1);
   });
 
   it('shows the remark text again once CC is on, even with voice speaking', () => {
@@ -121,17 +143,18 @@ describe('HuddleOverlay', () => {
     fireEvent.click(screen.getByRole('button', { name: /Pin .*Gilfoyle/i }));
     expect(screen.getByTestId('office-huddle-pinned-gilfoyle')).toBeTruthy();
     expect(screen.queryByText(BEATS[0].text)).toBeNull();
-    expect(screen.getByText(/is talking/)).toBeTruthy();
+    expect(screen.queryByText(/is talking/)).toBeNull();
+    expect(screen.queryByRole('button', { name: /Do it/i })).toBeNull();
     expect(narrateLine).toHaveBeenCalledWith(
       expect.objectContaining({ speakerId: 'gilfoyle', text: BEATS[0].text })
     );
   });
 
-  it('shows Do it on a pinned head even when the scripted beat had no action prompt', async () => {
+  it('does not show Do it on a pinned head unless the beat has an action prompt', async () => {
     const narrateLine = vi.fn(async () => ({ spoken: false }));
     render(<HuddleOverlay huddle={huddle()} narrateLine={narrateLine} />);
     fireEvent.click(screen.getByRole('button', { name: /Pin .*Gilfoyle/i }));
-    expect(screen.getByRole('button', { name: /Do it/i })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /Do it/i })).toBeNull();
   });
 
   it('unpins and resumes the huddle after a repeat when Do it is not pressed', async () => {
@@ -154,15 +177,16 @@ describe('HuddleOverlay', () => {
     expect(screen.queryByTestId('office-huddle-pinned-gilfoyle')).toBeNull();
   });
 
-  it('delegates from a pinned head via Do it', async () => {
+  it('delegates from a pinned head via Do it when the beat has an action prompt', async () => {
     const onAdoptPrompt = vi.fn();
     const narrateLine = vi.fn(async () => ({ spoken: false }));
     render(
       <HuddleOverlay huddle={huddle()} onAdoptPrompt={onAdoptPrompt} narrateLine={narrateLine} />
     );
-    fireEvent.click(screen.getByRole('button', { name: /Pin .*Gilfoyle/i }));
+    await advanceOneLine();
+    fireEvent.click(screen.getByRole('button', { name: /Pin .*Dinesh/i }));
     fireEvent.click(screen.getByRole('button', { name: /Do it/i }));
-    expect(onAdoptPrompt).toHaveBeenCalledWith(BEATS[0].text, 'gilfoyle');
+    expect(onAdoptPrompt).toHaveBeenCalledWith('Split the Auth node in two', 'dinesh');
   });
 
   it('asks for an on-spot suggestion when a silent head is clicked', async () => {
