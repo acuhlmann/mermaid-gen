@@ -893,6 +893,9 @@ export const OFFICE_ZH_CN = {
       kindLabel: 'Slop Chat™ · 即时消息',
       regionAria: '即时消息',
       dismissAria: '关闭来自 {name} 的消息',
+      announce: '{name} 给你发了消息',
+      showFull: '查看完整消息',
+      showFullAria: '在 Slop Chat 中打开 {name} 的完整消息',
       openHistoryAria: '打开 Slop Chat(未读 {count} 条)',
       openHistoryTitle: 'Slop Chat™ —— 查看历史消息'
     },

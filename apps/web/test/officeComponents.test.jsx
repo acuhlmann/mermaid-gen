@@ -304,17 +304,29 @@ describe('office who-is-who chrome', () => {
     expect(screen.getByText(/Agile Coach/)).toBeTruthy();
   });
 
-  it('shows the sender name and role on IM pings', () => {
+  it('announces IM pings briefly without showing the full message body', () => {
+    const onOpenMessage = vi.fn();
     render(
       <OfficeImPing
         pings={[{ id: 'im-1', colleagueId: 'greybeard', body: 'We tried that in 1979.' }]}
         onDismiss={vi.fn()}
-        onQuickReply={vi.fn()}
+        onOpenMessage={onOpenMessage}
       />
     );
     expect(screen.getByText('Slop Chat™ · Instant message')).toBeTruthy();
     expect(screen.getByText('Ulrich')).toBeTruthy();
     expect(screen.getByText(/Staff Engineer Emeritus/)).toBeTruthy();
+    expect(screen.getByText('Ulrich messaged you')).toBeTruthy();
+    expect(screen.queryByText('We tried that in 1979.')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Show full message' }));
+    expect(onOpenMessage).toHaveBeenCalledWith('greybeard', 'im-1');
+  });
+
+  it('shows a Slop Chat history chip when unread messages remain after toasts expire', () => {
+    const onOpenHistory = vi.fn();
+    render(<OfficeImPing pings={[]} imUnreadCount={3} onOpenHistory={onOpenHistory} />);
+    fireEvent.click(screen.getByRole('button', { name: /Open Slop Chat \(3 unread\)/ }));
+    expect(onOpenHistory).toHaveBeenCalledTimes(1);
   });
 
   it('names every attendee on a meeting invite instead of bare emoji', () => {

@@ -1601,6 +1601,9 @@ export const OFFICE_CHROME_COPY = {
     regionAria: 'Slop Chat instant messages',
     kindLabel: 'Slop Chat™ · Instant message',
     dismissAria: 'Dismiss message from {name}',
+    announce: '{name} messaged you',
+    showFull: 'Show full message',
+    showFullAria: 'Open full message from {name} in Slop Chat',
     openHistoryAria: 'Open Slop Chat ({count} unread)',
     openHistoryTitle: 'Slop Chat™ — read past messages'
   },
