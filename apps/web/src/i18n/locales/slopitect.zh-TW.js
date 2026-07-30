@@ -3,10 +3,10 @@ import { SLOPITECT_GAMIFICATION_ZH_TW } from './slopitectGamification.zh-TW.js';
 
 export const SLOPITECT_ZH_TW = {
   PROMPT_ACTION_COPY: {
-    label: '發表意見',
-    roleTag: '直說',
-    roleEmoji: '🗣️',
-    title: '發表意見 · 分享你對這件事的看法'
+    label: '編輯',
+    roleTag: '僅改此部分',
+    roleEmoji: '✏️',
+    title: '編輯 · 只改此選取項——圖表其餘部分保持不變'
   },
   STAKEHOLDERS_MUTE_COPY: {
     stakeholdersTag: '相關方',

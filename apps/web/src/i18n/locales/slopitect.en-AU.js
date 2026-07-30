@@ -3,10 +3,10 @@ import { SLOPITECT_GAMIFICATION_EN_AU } from './slopitectGamification.en-AU.js';
 
 export const SLOPITECT_EN_AU = {
   PROMPT_ACTION_COPY: {
-    label: 'Have a say',
-    roleTag: 'Just spit it',
-    roleEmoji: '🗣️',
-    title: 'Have a say · Share your thoughts on the matter, mate'
+    label: 'Edit',
+    roleTag: 'This bit only',
+    roleEmoji: '✏️',
+    title: 'Edit · Change just this selection — the rest of the diagram stays put, mate'
   },
   STAKEHOLDERS_MUTE_COPY: {
     stakeholdersTag: 'The Mob',

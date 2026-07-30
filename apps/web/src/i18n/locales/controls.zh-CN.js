@@ -44,6 +44,10 @@ export const CONTROLS_ZH_CN = {
     slopNextTitle: '接下来要改什么？',
     slopNextPlaceholder: '告诉智能体要改什么…',
     slopNextLabel: '新提示',
+    slopNextRadialTitle: '编辑此选中项',
+    slopNextRadialTitleNamed: '编辑「{name}」',
+    slopNextRadialPlaceholder: '重命名、改标签、补充细节…',
+    slopNextRadialHint: '只改这一部分——图表其余部分保持不变。',
     closePrompt: '关闭提示',
     deskLabel: '工单 — 这次要改什么？',
     deskPlaceholder: '写下你的下一条工单…',
@@ -231,7 +235,13 @@ export const CONTROLS_ZH_CN = {
     gibberishActive: '胡话简化已激活'
   },
   radial: {
-    selectionActions: '图表选择操作',
+    selectionActions: '针对所选图表部分的精细编辑',
+    chipHint: '仅改此部分',
+    introEyebrow: '🎯 精细编辑',
+    introBody:
+      '你选中了一个图表元素。此处的每个操作只改这一部分——其余保持不变。用「编辑」输入你的要求，或交给团队处理。',
+    introDismiss: '知道了',
+    introAria: '精细编辑说明',
     whatDoesMean: '{target} 是什么意思？',
     whatDoesThisMean: '这是什么意思？',
     dragToReposition: '拖动以重新定位',

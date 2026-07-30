@@ -163,9 +163,9 @@ describe('slopitectCopy', () => {
   });
 
   it('keeps prompt and mute chrome copy distinct (no duplicate role tag)', () => {
-    expect(PROMPT_ACTION_COPY.label).toBe('Weigh In');
+    expect(PROMPT_ACTION_COPY.label).toBe('Edit');
     expect(PROMPT_ACTION_COPY.roleTag).not.toBe(PROMPT_ACTION_COPY.label);
-    expect(PROMPT_ACTION_COPY.roleTag).toBe('Just Say It');
+    expect(PROMPT_ACTION_COPY.roleTag).toBe('This part only');
     expect(STAKEHOLDERS_MUTE_COPY.stakeholdersTag).toBe('Your Team');
   });
 });

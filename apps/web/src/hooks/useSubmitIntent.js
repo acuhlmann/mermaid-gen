@@ -214,7 +214,9 @@ export function useSubmitIntent({
       if (radialDescriptor) {
         setSelectedNode(radialDescriptor);
       }
-      await submitIntentWithPrompt(trimmed);
+      await submitIntentWithPrompt(trimmed, {
+        focusTarget: radialDescriptor ?? undefined
+      });
     },
     [
       closeRadialMenuRef,
