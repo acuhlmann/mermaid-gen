@@ -17,12 +17,12 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  REGION: [REDACTED]
+  REGION: us-central1  # pragma: allowlist secret
   AR_REPO: mermaid-gen
   # Production “latest” app — hackathon snapshot is a separate service (manual deploy script).
   SERVICE_NAME: mermaid-gen-main
   IMAGE_NAME: web-main
-  PUBLIC_BASE_URL: https://mermaid-gen-main-464241135431.[REDACTED].run.app
+  PUBLIC_BASE_URL: https://mermaid-gen-main-464241135431.us-central1.run.app  # pragma: allowlist secret
 
 jobs:
   deploy:
@@ -104,7 +104,7 @@ jobs:
           if ((${#CLOUD_RUN_SECRETS[@]} > 0)); then
             ARGS+=(--set-secrets="$(IFS=,; echo "${CLOUD_RUN_SECRETS[*]}")")
           fi
-          VL="${VERTEX_LOCATION:-[REDACTED]}"
+          VL="${VERTEX_LOCATION:-us-central1}"  # pragma: allowlist secret
           VF="${VERTEX_MODEL_FAST:-gemini-2.5-flash}"
           VQ="${VERTEX_MODEL_QUALITY:-gemini-2.5-pro}"
           VP="${VERTEX_PROJECT_ID:-${PROJECT_ID}}"
