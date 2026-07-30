@@ -47,12 +47,9 @@ function beatForSpeaker(huddle, speakerId) {
   );
 }
 
-/** Notebook prompt for a pinned remark — mirrors on-spot suggest actionable rules. */
-function delegatablePrompt(beat, speakerId) {
-  if (!beat?.text) return null;
-  if (beat.actionPrompt) return beat.actionPrompt;
-  if (speakerId === 'richard') return null;
-  return beat.text;
+/** Notebook prompt — only when the beat carries an explicit action item. */
+function delegatablePrompt(beat) {
+  return beat?.actionPrompt ?? null;
 }
 
 /**
@@ -72,9 +69,9 @@ function delegatablePrompt(beat, speakerId) {
  * ring snaps into place (240 ms, staggered) and then holds still — the movement
  * is the arrival, not the presence.
  *
- * Voice-first, same rule as every other spoken office surface: when narration
- * is speaking and CC is off, the remark text is hidden and only the speaker's
- * name shows. You hear them; you do not also read them.
+ * Voice-first: when narration is speaking and CC is off, the remark text is
+ * hidden and the highlighted face carries who is talking. A bubble appears only
+ * for remark text (when CC is on or voice is off) or a generated Do-it action.
  */
 export default function HuddleOverlay({
   huddle,
@@ -247,7 +244,7 @@ export default function HuddleOverlay({
   const activeBeat = speaking || watching ? beats[visibleLines - 1] : null;
   const activeSpeakerId = watching || pinnedSpeakerId ? null : (activeBeat?.speakerId ?? null);
   const pinnedBeat = pinnedSpeakerId ? beatForSpeaker(huddle, pinnedSpeakerId) : null;
-  const pinnedPrompt = pinnedSpeakerId ? delegatablePrompt(pinnedBeat, pinnedSpeakerId) : null;
+  const pinnedPrompt = pinnedSpeakerId ? delegatablePrompt(pinnedBeat) : null;
   // Voice intent, not the wrapper: OfficeLayer only passes narrateLine when
   // narration is on, so this is "somebody is about to say this out loud".
   const showText = shouldShowSpokenText({
@@ -284,9 +281,12 @@ export default function HuddleOverlay({
         const isFetching = fetchingSpeakerId === id;
         const isRepeating = repeatingSpeakerId === id;
         const beat = isPinned ? pinnedBeat : isSpeaking ? activeBeat : null;
-        const showBubble = Boolean(beat) || isFetching || isPinned;
-        const delegatePrompt = isPinned ? pinnedPrompt : delegatablePrompt(beat, id);
-        const hidePinnedText = isPinned && (isRepeating || isFetching || !showText);
+        const actionPrompt = isPinned ? pinnedPrompt : delegatablePrompt(beat);
+        const hideRemarkText =
+          (isPinned && (isRepeating || isFetching)) || ((isSpeaking || isPinned) && !showText);
+        const showRemarkText = Boolean(beat?.text) && !hideRemarkText;
+        const showFetching = isFetching && !beat?.text;
+        const showBubble = showRemarkText || Boolean(actionPrompt) || showFetching;
         return (
           <div
             key={id}
@@ -307,7 +307,7 @@ export default function HuddleOverlay({
               '--huddle-accent': person.accentColor,
               animationDelay: `${index * HUDDLE_SEAT_STAGGER_MS}ms`
             }}
-            data-testid={`office-huddle-seat-${id}`}
+            data-testid={isPinned ? `office-huddle-pinned-${id}` : `office-huddle-seat-${id}`}
             data-speaking={isSpeaking ? 'true' : undefined}
             data-pinned={isPinned ? 'true' : undefined}
           >
@@ -340,30 +340,20 @@ export default function HuddleOverlay({
                   .join(' ')}
                 role="status"
                 aria-live="polite"
-                data-testid={isPinned ? `office-huddle-pinned-${id}` : undefined}
               >
-                {isFetching && !beat ? (
-                  <p className="office-huddle-speaking-label">
-                    {formatLocale(copy.fetchingLabel ?? '{name} is thinking\u2026', {
-                      name: person.name
-                    })}
+                {showFetching ? (
+                  <p className="office-huddle-fetching-label">
+                    {copy.fetchingLabel ?? 'Thinking\u2026'}
                   </p>
-                ) : hidePinnedText || (isSpeaking && !showText) ? (
-                  <p className="office-huddle-speaking-label">
-                    {formatLocale(copy.speakingLabel, { name: person.name })}
-                  </p>
-                ) : (
-                  <p className="office-huddle-line">{beat?.text}</p>
-                )}
-                {delegatePrompt ? (
+                ) : showRemarkText ? (
+                  <p className="office-huddle-line">{beat.text}</p>
+                ) : null}
+                {actionPrompt ? (
                   <button
                     type="button"
                     className="office-do-it office-huddle-do-it"
-                    onClick={() => handleDoIt(id, delegatePrompt)}
-                    title={formatLocale(
-                      copy.delegateTitle ?? 'Delegate to {name} — open the notebook',
-                      { name: person.name }
-                    )}
+                    onClick={() => handleDoIt(id, actionPrompt)}
+                    title={copy.delegateTitle ?? 'Open the notebook with this ask'}
                   >
                     {copy.delegate ?? officeChromeCopy().doIt}
                   </button>
