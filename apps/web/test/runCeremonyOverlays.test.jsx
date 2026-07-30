@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import RunCeremonyOverlays from '../src/components/RunCeremonyOverlays.jsx';
 
 describe('RunCeremonyOverlays', () => {
-  it('hides persona ceremony chrome over Thinking unless russ', () => {
+  it('hides persona ceremony chrome over Thinking when the notebook is open', () => {
     const { rerender } = render(
       <RunCeremonyOverlays
         anchor="insights"
@@ -28,7 +28,7 @@ describe('RunCeremonyOverlays', () => {
       />
     );
 
-    expect(screen.getByTestId('boot-sequence')).toBeTruthy();
-    expect(screen.getByTestId('slopitect-companion')).toBeTruthy();
+    expect(screen.queryByTestId('boot-sequence')).toBeNull();
+    expect(screen.queryByTestId('slopitect-companion')).toBeNull();
   });
 });

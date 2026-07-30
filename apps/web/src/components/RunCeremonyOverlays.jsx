@@ -24,11 +24,11 @@ export default function RunCeremonyOverlays({
   liveStreaming = false,
   showLiveRunHud = false,
   liveStreak = 0,
-  /** When true, persona pop-ups (boot flash, mascot) stay off the Thinking pane unless russ. */
+  /** When true, persona pop-ups (boot flash, mascot) stay off the Thinking pane. */
   insightsOpen = false
 }) {
   const anchorClass = ANCHOR_CLASS[anchor] || ANCHOR_CLASS.viewport;
-  const showPersonaCeremony = !insightsOpen || liveVariant === 'russ';
+  const showPersonaCeremony = !insightsOpen;
 
   return (
     <div className={`run-ceremony-layer ${anchorClass}`.trim()} data-ceremony-anchor={anchor}>
