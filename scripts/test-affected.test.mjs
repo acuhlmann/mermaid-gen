@@ -70,10 +70,12 @@ test('resolveAffectedTests marks unknown server paths for fallback', () => {
   assert.ok(plan.fallbacks.includes('server'));
 });
 
-test('isWireSourcePath recognizes copilot routes and web state', () => {
+test('isWireSourcePath treats any app src lintable path as wire (cheap suite)', () => {
   assert.equal(isWireSourcePath('apps/server/src/routes/copilot.ts'), true);
   assert.equal(isWireSourcePath('apps/web/src/state/agUiTranslator.ts'), true);
-  assert.equal(isWireSourcePath('apps/server/src/utils/redactSecrets.js'), false);
+  assert.equal(isWireSourcePath('apps/server/src/utils/redactSecrets.js'), true);
+  assert.equal(isWireSourcePath('apps/web/src/components/InsightsPane.jsx'), true);
+  assert.equal(isWireSourcePath('docs/guide/coding-agents.md'), false);
 });
 
 test('touchesAnythingRuntime matches anything modules only', () => {

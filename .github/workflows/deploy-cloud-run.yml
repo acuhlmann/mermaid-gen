@@ -1,26 +1,33 @@
 # Build the Docker image on GitHub-hosted runners and deploy to Cloud Run.
 # Uses Workload Identity Federation (no long-lived JSON keys). One-time GCP setup: docs/deploy/gcp.md
+#
+# Deploy waits for the CI workflow to succeed on the same commit (workflow_run),
+# so a green main push is required before Cloud Run updates. Manual runs use workflow_dispatch.
 name: Deploy Cloud Run
 
 on:
-  push:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
     branches: [main, master]
   workflow_dispatch:
 
 concurrency:
-  group: deploy-cloud-run-${{ github.ref }}
+  group: deploy-cloud-run-${{ github.event.workflow_run.head_branch || github.ref }}
   cancel-in-progress: true
 
 env:
-  REGION: us-central1
+  REGION: [REDACTED]
   AR_REPO: mermaid-gen
   # Production “latest” app — hackathon snapshot is a separate service (manual deploy script).
   SERVICE_NAME: mermaid-gen-main
   IMAGE_NAME: web-main
-  PUBLIC_BASE_URL: https://mermaid-gen-main-464241135431.us-central1.run.app
+  PUBLIC_BASE_URL: https://mermaid-gen-main-464241135431.[REDACTED].run.app
 
 jobs:
   deploy:
+    # Skip failed/cancelled CI runs; always allow manual dispatch.
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -28,6 +35,9 @@ jobs:
 
     steps:
       - uses: actions/checkout@v5
+        with:
+          # Deploy the commit CI validated (not whatever HEAD is when this job starts).
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
       - uses: google-github-actions/auth@v2
         with:
@@ -51,19 +61,22 @@ jobs:
       - name: Build and push image
         env:
           PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+          # Prefer the CI-validated SHA when triggered via workflow_run.
+          DEPLOY_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
         run: |
           set -euo pipefail
           IMAGE="${{ env.REGION }}-docker.pkg.dev/${PROJECT_ID}/${{ env.AR_REPO }}/${{ env.IMAGE_NAME }}"
-          docker build --build-arg UI_VARIANT=main-only -t "${IMAGE}:${GITHUB_SHA}" -t "${IMAGE}:latest" .
-          docker push "${IMAGE}:${GITHUB_SHA}"
+          docker build --build-arg UI_VARIANT=main-only -t "${IMAGE}:${DEPLOY_SHA}" -t "${IMAGE}:latest" .
+          docker push "${IMAGE}:${DEPLOY_SHA}"
           docker push "${IMAGE}:latest"
 
       - name: Deploy Cloud Run
         env:
           PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+          DEPLOY_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
         run: |
           set -euo pipefail
-          IMAGE="${{ env.REGION }}-docker.pkg.dev/${PROJECT_ID}/${{ env.AR_REPO }}/${{ env.IMAGE_NAME }}:${GITHUB_SHA}"
+          IMAGE="${{ env.REGION }}-docker.pkg.dev/${PROJECT_ID}/${{ env.AR_REPO }}/${{ env.IMAGE_NAME }}:${DEPLOY_SHA}"
           ARGS=(
             run deploy "${{ env.SERVICE_NAME }}"
             --project="${PROJECT_ID}"
@@ -91,7 +104,7 @@ jobs:
           if ((${#CLOUD_RUN_SECRETS[@]} > 0)); then
             ARGS+=(--set-secrets="$(IFS=,; echo "${CLOUD_RUN_SECRETS[*]}")")
           fi
-          VL="${VERTEX_LOCATION:-us-central1}"
+          VL="${VERTEX_LOCATION:-[REDACTED]}"
           VF="${VERTEX_MODEL_FAST:-gemini-2.5-flash}"
           VQ="${VERTEX_MODEL_QUALITY:-gemini-2.5-pro}"
           VP="${VERTEX_PROJECT_ID:-${PROJECT_ID}}"

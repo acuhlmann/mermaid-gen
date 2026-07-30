@@ -154,7 +154,9 @@ function main() {
     run('node', ['scripts/test-affected.mjs', '--base', baseRef], 'test:affected');
   }
 
-  if (flags.wire) {
+  // Wire suite: `test:affected` already runs it when app src changed (isWireSourcePath).
+  // Shared-only / wire-doc diffs still need the dedicated gate.
+  if (flags.wire && !(flags.server || flags.web)) {
     run('npm', ['run', 'check:wire'], 'check:wire');
     ran = true;
   }

@@ -22,7 +22,9 @@ gcloud billing projects describe PROJECT_ID
 
 ## CI/CD from GitHub (`main` / `master`)
 
-Workflow: [`.github/workflows/deploy-cloud-run.yml`](../../.github/workflows/deploy-cloud-run.yml). It runs on pushes to **`main`** or **`master`** and deploys **`mermaid-gen-main`** only (`UI_VARIANT=main-only`, image `…/web-main`).
+**CI** ([`.github/workflows/ci.yml`](../../.github/workflows/ci.yml)) runs on every PR and push to **`main`**: parallel jobs for sensors (format, typecheck, lint, verify:\*), workspace tests, and build. The aggregate job is named `check` (branch-protection friendly).
+
+**Deploy** ([`.github/workflows/deploy-cloud-run.yml`](../../.github/workflows/deploy-cloud-run.yml)) starts via **`workflow_run` after CI succeeds** on `main`/`master` (or `workflow_dispatch` for a manual deploy). It deploys **`mermaid-gen-main`** only (`UI_VARIANT=main-only`, image `…/web-main`), using the CI-validated commit SHA.
 
 The **hackathon** snapshot uses a **second Cloud Run service** and is **not** updated by GitHub Actions. After checking out the snapshot Git ref you want, run [`scripts/deploy-hackathon-cloud-run.sh`](../../scripts/deploy-hackathon-cloud-run.sh) (image `…/web-hackathon`). Two public URLs, one pipeline.
 

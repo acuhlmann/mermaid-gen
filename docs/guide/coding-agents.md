@@ -27,9 +27,9 @@ Operator guide for Claude Code, Cursor, Copilot, and other agents editing **arch
 | `apps/server` or `apps/web` (tests only)       | `npm run test:affected` (skips slow Anything integration unless the diff touches `anything*`)                                                               |
 | Isometric floor only (`OfficeFloor`, geometry) | `npm run test:floor`                                                                                                                                        |
 | `packages/shared` only                         | `npm run check:fast`                                                                                                                                        |
-| Default local gate                             | `npm run check` (boundaries, typecheck, lint, test, **wire**)                                                                                               |
-| **Before opening a PR** (matches CI)           | `npm run check:full`                                                                                                                                        |
-| AG-UI / session-events / MCP / `diagramSchema` | `npm run check:wire` (also included in `check`)                                                                                                             |
+| Default local gate                             | `npm run check` (boundaries, typecheck, lint, test — wire files included in `npm test` — then doc-paths)                                                    |
+| **Before opening a PR** (matches CI)           | `npm run check:full` (local); GitHub CI runs the same sensors/tests/build as **parallel jobs**                                                              |
+| AG-UI / session-events / MCP / `diagramSchema` | `npm run check:wire` (focused loop; `npm test` / CI already cover the same wire files)                                                                      |
 | Mermaid sanitizer or rule packs                | `npm run check:fast` + `node apps/server/scripts/benchMermaid.js --tag <label>`                                                                             |
 | Server wire modules (strict islands)           | `npm run typecheck:strict -w apps/server`                                                                                                                   |
 
