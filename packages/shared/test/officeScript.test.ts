@@ -129,3 +129,24 @@ test('normalizeMeetingScript returns null when too few beats survive the allowli
   const normalized = normalizeMeetingScript(MeetingScriptSchema.parse(script(beats)), ATTENDEES);
   assert.equal(normalized, null);
 });
+
+test('normalizeMeetingScript accepts fewer beats for a 1:1 dyad roster', () => {
+  const beats = [
+    beat({ speakerId: 'facilities', kind: 'procedural', text: 'Thanks for hopping on.' }),
+    beat({ speakerId: 'facilities', kind: 'smalltalk', text: 'Quick sync on the fridge.' }),
+    beat({
+      speakerId: 'facilities',
+      kind: 'substantive',
+      text: 'Label the diagram node.',
+      actionPrompt: 'Label the node'
+    }),
+    beat({ speakerId: 'facilities', kind: 'offRails', text: 'Thermostat politics.' })
+  ];
+  const normalized = normalizeMeetingScript(
+    MeetingScriptSchema.parse(script(beats)),
+    ['facilities'],
+    { minBeats: 4 }
+  );
+  assert.ok(normalized);
+  assert.equal(normalized?.beats.length, 4);
+});

@@ -16,6 +16,7 @@ import {
   TEAM_INTRO_LINES,
   buildMeetingAttendeesFromColleagues,
   listMeetingDirectory,
+  meetingContextFromEmails,
   meetingTopicFromEmailSubjects,
   normalizeMeetingRoster,
   officeSenderInfo,
@@ -198,5 +199,16 @@ describe('meetingTopicFromEmailSubjects', () => {
     const topic = meetingTopicFromEmailSubjects([long, long]);
     expect(topic?.length).toBe(200);
     expect(topic?.endsWith('...')).toBe(true);
+  });
+});
+
+describe('meetingContextFromEmails', () => {
+  it('includes subject and body for source-driven headset syncs', () => {
+    const ctx = meetingContextFromEmails([
+      { subject: 'FRIDGE CLEANOUT', body: 'Label your leftovers.' }
+    ]);
+    expect(ctx.topic).toBe('FRIDGE CLEANOUT');
+    expect(ctx.contextSource).toBe('email');
+    expect(ctx.contextDetail).toContain('Label your leftovers.');
   });
 });

@@ -332,9 +332,14 @@ export default function MeetingOverlay({
   const lastSpeakerId = meeting.transcript[meeting.transcript.length - 1]?.speakerId ?? null;
   const minutes = meetingMinutes(meeting);
   const playing = meeting.state === 'playing';
-  const voiceActive = Boolean(narration && meeting.voiceSpeaking);
-  const showTranscript = shouldShowSpokenText({ captions, voiceActive });
-  const speakerView = playing && !showTranscript;
+  // Voice-first remote calls: keep the speaker tile for the whole sync when
+  // narration is on and CC is off — toggling voiceSpeaking between beats was
+  // flashing the transcript in and out between lines.
+  const speakerView = playing && narration && !captions;
+  const showTranscript =
+    playing && !speakerView
+      ? shouldShowSpokenText({ captions, voiceActive: Boolean(narration && meeting.voiceSpeaking) })
+      : false;
 
   const submitHand = (event) => {
     event.preventDefault();

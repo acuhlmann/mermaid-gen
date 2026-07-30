@@ -34,6 +34,8 @@ export default function CallMeetingPicker({
   seedAttendees = [],
   topic: seedTopic = '',
   source = 'desk',
+  contextSource,
+  contextDetail = '',
   forceFacilitator = false,
   defaultModality,
   onConfirm,
@@ -110,7 +112,9 @@ export default function CallMeetingPicker({
     onConfirm?.({
       attendees,
       modality,
-      ...(trimmed ? { topic: trimmed.slice(0, 200) } : {})
+      ...(trimmed ? { topic: trimmed.slice(0, 200) } : {}),
+      ...(contextSource === 'email' || contextSource === 'chat' ? { contextSource } : {}),
+      ...(contextDetail ? { contextDetail } : {})
     });
   };
 

@@ -462,6 +462,37 @@ export function meetingTopicFromEmailSubjects(subjects) {
   return `${joined.slice(0, 197)}...`;
 }
 
+/**
+ * Build meeting topic + source context from one or more inbox emails so a
+ * headset sync stays on the thread that summoned it.
+ *
+ * @param {Array<{ subject?: string, body?: string }>} emails
+ * @returns {{ topic?: string, contextSource?: 'email', contextDetail?: string }}
+ */
+export function meetingContextFromEmails(emails) {
+  const list = Array.isArray(emails) ? emails : [];
+  if (list.length === 0) return {};
+  const topic = meetingTopicFromEmailSubjects(list.map((email) => email.subject));
+  const detail = list
+    .slice(0, 3)
+    .map((email) => {
+      const subject = String(email.subject ?? '').trim();
+      const body = String(email.body ?? '')
+        .trim()
+        .slice(0, 400);
+      if (subject && body) return `${subject}\n${body}`;
+      return subject || body;
+    })
+    .filter(Boolean)
+    .join('\n\n')
+    .slice(0, 1200);
+  return {
+    ...(topic ? { topic } : {}),
+    contextSource: 'email',
+    ...(detail ? { contextDetail: detail } : {})
+  };
+}
+
 /** Localized safe defaults for empty `{label}` / `{userTitle}` / `{userName}` slot fills. */
 export const OFFICE_SLOT_FALLBACKS = {
   label: 'the diagram',

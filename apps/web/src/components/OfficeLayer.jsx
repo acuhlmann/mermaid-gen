@@ -477,6 +477,11 @@ export default function OfficeLayer({
       const source =
         options?.source === 'email' || options?.source === 'chat' ? options.source : 'desk';
       const topic = typeof options?.topic === 'string' ? options.topic : '';
+      const contextSource =
+        options?.contextSource === 'email' || options?.contextSource === 'chat'
+          ? options.contextSource
+          : undefined;
+      const contextDetail = typeof options?.contextDetail === 'string' ? options.contextDetail : '';
       const modality = normalizeMeetingModality(options?.modality, { source });
       const directStart =
         options?.directStart !== false &&
@@ -489,7 +494,9 @@ export default function OfficeLayer({
         void startMeeting({
           attendees,
           modality,
-          ...(topic ? { topic } : {})
+          ...(topic ? { topic } : {}),
+          ...(contextSource ? { contextSource } : {}),
+          ...(contextDetail ? { contextDetail } : {})
         });
         if (modality === MEETING_MODALITY_PHYSICAL && getOfficeViewMode() !== 'floor') {
           standUp();
@@ -501,6 +508,8 @@ export default function OfficeLayer({
         seedAttendees,
         topic,
         source,
+        contextSource,
+        contextDetail,
         forceFacilitator: options?.forceFacilitator === true,
         defaultModality: modality
       });
@@ -509,7 +518,7 @@ export default function OfficeLayer({
   );
 
   const handleConfirmMeetingPicker = useCallback(
-    ({ attendees, topic, modality }) => {
+    ({ attendees, topic, modality, contextSource, contextDetail }) => {
       setMeetingPicker(null);
       setMessengerOpen(false);
       const resolved = normalizeMeetingModality(modality, {
@@ -518,7 +527,9 @@ export default function OfficeLayer({
       void startMeeting({
         attendees,
         modality: resolved,
-        ...(topic ? { topic } : {})
+        ...(topic ? { topic } : {}),
+        ...(contextSource ? { contextSource } : {}),
+        ...(contextDetail ? { contextDetail } : {})
       });
       if (resolved === MEETING_MODALITY_PHYSICAL && getOfficeViewMode() !== 'floor') {
         standUp();
@@ -918,6 +929,8 @@ export default function OfficeLayer({
         seedAttendees={meetingPicker?.seedAttendees ?? []}
         topic={meetingPicker?.topic ?? ''}
         source={meetingPicker?.source ?? 'desk'}
+        contextSource={meetingPicker?.contextSource}
+        contextDetail={meetingPicker?.contextDetail ?? ''}
         forceFacilitator={meetingPicker?.forceFacilitator === true}
         defaultModality={meetingPicker?.defaultModality}
         onConfirm={handleConfirmMeetingPicker}

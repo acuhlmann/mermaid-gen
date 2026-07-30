@@ -240,7 +240,7 @@ export function useMeetingPlayback({
   );
 
   const startMeeting = useCallback(
-    async ({ attendees, topic, modality: modalityOpt } = {}) => {
+    async ({ attendees, topic, modality: modalityOpt, contextSource, contextDetail } = {}) => {
       const generation = ++generationRef.current;
       const seats = Array.isArray(attendees) && attendees.length > 0 ? attendees : null;
       if (!seats) return;
@@ -260,7 +260,9 @@ export function useMeetingPlayback({
       const payload = await postJson('/api/office/meeting', {
         ...diagramContext(),
         attendees: seats,
-        ...(topic ? { topic } : {})
+        ...(topic ? { topic } : {}),
+        ...(contextSource === 'email' || contextSource === 'chat' ? { contextSource } : {}),
+        ...(contextDetail ? { contextDetail } : {})
       });
       if (generation !== generationRef.current) return;
       reportUsage(paramsRef.current.onUsage, payload);
