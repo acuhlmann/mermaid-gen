@@ -22,6 +22,8 @@ import { MAX_SCALE } from '../../hooks/useStageScale.js';
 
 const MEETING_ZONE = FLOOR_ZONES.find((zone) => zone.id === 'meeting');
 const FOCUS_BOOST = 1.38;
+/** Bias the glass room down in the viewport so it clears the top-anchored card. */
+const TOP_CARD_VIEWPORT_BIAS = 110;
 
 /**
  * @param {unknown} meeting
@@ -60,7 +62,11 @@ export function useFloorMeetingFocus(viewportRef, meeting, fitScale) {
     const frame = window.requestAnimationFrame(() => {
       viewport.scrollTo({
         left: (stage?.offsetLeft ?? 0) + centre.left * focusScale - viewport.clientWidth / 2,
-        top: (stage?.offsetTop ?? 0) + centre.top * focusScale - viewport.clientHeight / 2,
+        top:
+          (stage?.offsetTop ?? 0) +
+          centre.top * focusScale -
+          viewport.clientHeight / 2 -
+          TOP_CARD_VIEWPORT_BIAS,
         behavior: prefersReducedMotion() ? 'auto' : 'smooth'
       });
     });
