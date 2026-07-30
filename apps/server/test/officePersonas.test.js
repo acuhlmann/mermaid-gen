@@ -164,6 +164,37 @@ test('meeting system prompt seats only the attendees and names the facilitator',
   assert.ok(STAKEHOLDER_MEETING_VOICES.barker.includes('Success Theater made flesh'));
 });
 
+test('meeting system prompt adds intimacy rules for headset 1:1 syncs', () => {
+  const pamOnly = buildMeetingSystemPrompt({
+    attendees: ['scrumMaster'],
+    facilitatorId: 'scrumMaster'
+  });
+  assert.match(pamOnly, /INTIMATE SYNC/);
+  assert.match(pamOnly, /Address them as "you"/);
+  assert.match(pamOnly, /Pam \(scrumMaster\)/);
+
+  const pair = buildMeetingSystemPrompt({
+    attendees: ['facilities'],
+    facilitatorId: 'facilities'
+  });
+  assert.match(pair, /never speakerId "you"/);
+  assert.match(pair, /6–8 beats/);
+});
+
+test('meeting user prompt includes email and chat source material', () => {
+  const prompt = buildMeetingUserPrompt({
+    contentType: 'mermaid',
+    diagramSource: 'flowchart TD',
+    visibleLabels: [],
+    topic: 'FRIDGE CLEANOUT',
+    contextSource: 'email',
+    contextDetail: 'Label your leftovers.'
+  });
+  assert.match(prompt, /Requested agenda: FRIDGE CLEANOUT/);
+  assert.match(prompt, /Source: email thread/);
+  assert.match(prompt, /Label your leftovers/);
+});
+
 /*
  * Ported from PR #233 (written before the refine->gilfoyle rename, so it conflicted
  * and was never merged). Sessions 3-4 rewrote this file's fixtures and displaced the

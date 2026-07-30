@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { officeChromeCopy, officeImQuickReplies, officeSenderInfo } from '../utils/officeCast.js';
 import { formatLocale } from '../i18n/formatLocale.js';
-import { groupImThreads } from '../utils/officeImThreads.js';
+import { groupImThreads, meetingContextFromImThread } from '../utils/officeImThreads.js';
 import { PersonaFace } from './personaFaces/index.jsx';
 import OfficeColleaguePicker from './OfficeColleaguePicker.jsx';
 import VoiceMicButton from './VoiceMicButton.jsx';
@@ -252,7 +252,8 @@ export default function OfficeMessenger({
               onCallMeeting?.({
                 seedAttendees: activeId ? [activeId] : [],
                 source: 'chat',
-                modality: 'remote'
+                modality: 'remote',
+                ...(activeId ? meetingContextFromImThread(messages, activeId) : {})
               })
             }
           >

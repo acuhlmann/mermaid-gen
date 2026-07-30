@@ -57,6 +57,8 @@ const OfficeMeetingRequestSchema = z.object({
   visibleLabels: z.array(z.string().max(200)).max(60).default([]),
   attendees: z.array(z.string().max(40)).min(1).max(8),
   topic: z.string().max(200).optional(),
+  contextSource: z.enum(['email', 'chat']).optional(),
+  contextDetail: z.string().max(1200).optional(),
   uiLocale: UiLocaleField
 });
 
@@ -263,7 +265,8 @@ export function createOfficeRouter({ env = process.env } = {}) {
     const system = buildMeetingSystemPrompt({
       attendees,
       facilitatorId,
-      uiLocale: payload.uiLocale
+      uiLocale: payload.uiLocale,
+      contextSource: payload.contextSource
     });
     const user = buildMeetingUserPrompt(payload);
     const officeModel = resolveOfficeModelId(env);

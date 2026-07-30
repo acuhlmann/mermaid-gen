@@ -13,6 +13,8 @@
 import {
   MEETING_MAX_ATTENDEES,
   MEETING_MIN_ATTENDEES,
+  MEETING_MIN_BEATS,
+  MEETING_MIN_BEATS_DYAD,
   MeetingScriptSchema,
   normalizeMeetingScript,
   OfficeMomentKindSchema,
@@ -520,22 +522,25 @@ export function buildMomentUserPrompt({
     .join('\n');
 }
 
-export function buildMeetingSystemPrompt({ attendees, facilitatorId, uiLocale }) {
+export function buildMeetingSystemPrompt({ attendees, facilitatorId, uiLocale, contextSource }) {
   const cards = attendees
     .map((id) => `### ${speakerLabel(id)} — speakerId "${id}"\n${speakerVoice(id)}`)
     .join('\n\n');
+  const beatRange = attendees.length <= 1 ? '6–8' : '8–12';
+  const intimacyRules = meetingIntimacyRules(attendees);
+  const sourceRules = meetingSourceRules(contextSource);
   return `You are the invisible showrunner of a parody corporate-IT working-group meeting about the
 user's current diagram. You script EVERY attendee's lines.
 
 ATTENDEES (use these speakerId values and NO others):
 
 ${cards}
-
+${intimacyRules}${sourceRules}
 RULES:
 - Output STRICT JSON only — no prose, no backticks, no preamble.
 - Schema: {"scriptVersion": 1, "title": string, "beats": [{"speakerId": string, "kind": "procedural" |
 "smalltalk" | "substantive" | "offRails", "text": string, "actionPrompt": string (substantive only)}]}.
-- 8–12 beats. Each beat text max 40 words — meetings are interruptions, not monologues.
+- ${beatRange} beats. Each beat text max 40 words — meetings are interruptions, not monologues.
 - "title" reads like a real recurring corporate invite. When a requested agenda is
 provided, base the title on that topic — do NOT default to "Architecture Review
 Board" for a two-person headset sync. Reserve steering-committee titles for
@@ -559,11 +564,42 @@ gentle pressure to put a first box down, a starter shape, a title node. Smalltal
 screen. actionPrompt examples: "Add a Start box", "Sketch the first service as a node".${buildOfficeLanguageRule(uiLocale)}`;
 }
 
+function meetingIntimacyRules(attendees) {
+  if (!Array.isArray(attendees) || attendees.length === 0 || attendees.length > 2) return '';
+  const rosterLabel =
+    attendees.length === 1
+      ? 'one colleague on the line with the user'
+      : 'two colleagues on the line';
+  return `
+
+INTIMATE SYNC (${rosterLabel} — NOT a committee):
+- The user is the only other person listening. Address them as "you", never "everyone", "team", "folks", or "the room".
+- ONLY script beats for the ATTENDEES listed above — never speakerId "you" or uninvited guests. Every beat must use an attendee speakerId.
+- When only one attendee is seated, that colleague may carry multiple beats — they are talking with the user, not hosting a crowd.
+- Pam (scrumMaster): keep facilitation light — no steering-committee theatrics, "great energy in the room", or parking-lot ceremonies meant for a crowd. This is a quick headset 1:1.
+- Attendees talk WITH the user, not about the user in the third person to an imaginary audience.
+`;
+}
+
+function meetingSourceRules(contextSource) {
+  if (contextSource !== 'email' && contextSource !== 'chat') return '';
+  const label = contextSource === 'email' ? 'email thread' : 'Slop Chat thread';
+  return `
+
+SOURCE-DRIVEN CALL (from the user's ${label}):
+- The requested agenda and source material are the PRIMARY topic — most substantive beats must advance or resolve that thread.
+- Diagram edits still appear in 1–2 substantive beats, but they should connect to the ${label} (not a generic architecture review).
+- Title and opening procedural beat should name the actual subject from the source, not "Architecture Review Board".
+`;
+}
+
 export function buildMeetingUserPrompt({
   contentType,
   diagramSource,
   visibleLabels,
   topic,
+  contextSource,
+  contextDetail,
   uiLocale
 }) {
   const labels =
@@ -580,6 +616,10 @@ export function buildMeetingUserPrompt({
   return [
     `Diagram type: ${contentType || 'mermaid'}`,
     topic ? `Requested agenda: ${String(topic).slice(0, 200)}` : null,
+    contextSource === 'email' || contextSource === 'chat'
+      ? `Source: ${contextSource === 'email' ? 'email thread' : 'Slop Chat thread'}`
+      : null,
+    contextDetail ? `Source material:\n${String(contextDetail).slice(0, 1200)}` : null,
     '',
     'Visible labels:',
     labels,
@@ -804,7 +844,8 @@ export function parseMeetingScript(raw, { attendees }) {
       : 'Working group sync';
   const candidate = MeetingScriptSchema.safeParse({ scriptVersion: 1, title, beats });
   if (!candidate.success) return null;
-  return normalizeMeetingScript(candidate.data, attendees);
+  const minBeats = attendees.length <= 1 ? MEETING_MIN_BEATS_DYAD : MEETING_MIN_BEATS;
+  return normalizeMeetingScript(candidate.data, attendees, { minBeats });
 }
 
 /**

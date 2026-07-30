@@ -44,6 +44,8 @@ export type MeetingBeatKind = z.infer<typeof MeetingBeatKindSchema>;
 
 export const MEETING_BEAT_TEXT_MAX_CHARS = 280;
 export const MEETING_MIN_BEATS = 6;
+/** A 1:1 headset sync only has one scripted colleague — fewer beats still land. */
+export const MEETING_MIN_BEATS_DYAD = 4;
 export const MEETING_MAX_BEATS = 14;
 /** Floor for a 1:1 headset sync or a pulled-together pair. */
 export const MEETING_MIN_ATTENDEES = 1;
@@ -86,7 +88,8 @@ export type MeetingScript = z.infer<typeof MeetingScriptSchema>;
  */
 export function normalizeMeetingScript(
   script: MeetingScript,
-  attendees: readonly string[]
+  attendees: readonly string[],
+  { minBeats = MEETING_MIN_BEATS }: { minBeats?: number } = {}
 ): MeetingScript | null {
   const allowed = new Set(attendees);
   const beats = script.beats
@@ -97,7 +100,7 @@ export function normalizeMeetingScript(
         ? beat
         : { ...beat, actionPrompt: undefined }
     );
-  if (beats.length < MEETING_MIN_BEATS) return null;
+  if (beats.length < minBeats) return null;
   if (!beats.some((beat) => beat.kind === 'substantive')) return null;
   return { ...script, beats };
 }

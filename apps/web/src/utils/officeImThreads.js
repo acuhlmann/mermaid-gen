@@ -67,3 +67,30 @@ export function threadTranscriptFor(messages, colleagueId, limit = 8) {
       body: String(msg.body ?? '').slice(0, 300)
     }));
 }
+
+/**
+ * Derive a headset-sync topic and transcript context from the active Slop Chat
+ * thread so the meeting follows what you were already talking about.
+ *
+ * @param {OfficeImMessage[] | null | undefined} messages
+ * @param {string} colleagueId
+ * @returns {{ topic?: string, contextSource?: 'chat', contextDetail?: string }}
+ */
+export function meetingContextFromImThread(messages, colleagueId) {
+  const lines = threadTranscriptFor(messages, colleagueId, 10);
+  if (lines.length === 0) return {};
+  const lastColleague = [...lines].reverse().find((line) => line.from === 'colleague');
+  const lastUser = [...lines].reverse().find((line) => line.from === 'user');
+  const topic = String(lastColleague?.body || lastUser?.body || '')
+    .trim()
+    .slice(0, 200);
+  const detail = lines
+    .map((line) => `${line.from === 'user' ? 'You' : 'Colleague'}: ${line.body}`)
+    .join('\n')
+    .slice(0, 1200);
+  return {
+    ...(topic ? { topic } : {}),
+    contextSource: 'chat',
+    ...(detail ? { contextDetail: detail } : {})
+  };
+}

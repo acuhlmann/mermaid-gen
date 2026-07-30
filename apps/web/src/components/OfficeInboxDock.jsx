@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import {
-  meetingTopicFromEmailSubjects,
+  meetingContextFromEmails,
   officeChromeCopy,
   officeSenderInfo
 } from '../utils/officeCast.js';
@@ -143,9 +143,9 @@ export default function OfficeInboxDock({
     const colleagueIds = [...new Set(emailList.map((email) => email.colleagueId))];
     onCallMeeting?.({
       seedAttendees: colleagueIds,
-      topic: meetingTopicFromEmailSubjects(emailList.map((email) => email.subject)),
       source: 'email',
-      modality: 'remote'
+      modality: 'remote',
+      ...meetingContextFromEmails(emailList)
     });
     setOpen(false);
     setSelectedId(null);

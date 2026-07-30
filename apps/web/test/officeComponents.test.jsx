@@ -119,7 +119,9 @@ describe('OfficeInboxDock', () => {
       seedAttendees: ['facilities'],
       topic: 'FRIDGE CLEANOUT FRIDAY',
       source: 'email',
-      modality: 'remote'
+      modality: 'remote',
+      contextSource: 'email',
+      contextDetail: expect.stringContaining('FRIDGE CLEANOUT FRIDAY')
     });
   });
 
@@ -145,7 +147,9 @@ describe('OfficeInboxDock', () => {
       seedAttendees: ['facilities', 'scrumMaster'],
       topic: 'FRIDGE CLEANOUT FRIDAY; Story-point your diagram',
       source: 'email',
-      modality: 'remote'
+      modality: 'remote',
+      contextSource: 'email',
+      contextDetail: expect.stringContaining('FRIDGE CLEANOUT FRIDAY')
     });
   });
 
@@ -170,7 +174,9 @@ describe('OfficeInboxDock', () => {
       seedAttendees: ['facilities'],
       topic: 'FRIDGE CLEANOUT FRIDAY',
       source: 'email',
-      modality: 'remote'
+      modality: 'remote',
+      contextSource: 'email',
+      contextDetail: expect.stringContaining('FRIDGE CLEANOUT FRIDAY')
     });
   });
 });
@@ -270,7 +276,10 @@ describe('OfficeMessenger hop-on-a-call', () => {
     expect(onCallMeeting).toHaveBeenCalledWith({
       seedAttendees: ['intern'],
       source: 'chat',
-      modality: 'remote'
+      modality: 'remote',
+      topic: 'quick question',
+      contextSource: 'chat',
+      contextDetail: expect.stringContaining('quick question')
     });
   });
 });
@@ -396,6 +405,7 @@ describe('MeetingOverlay', () => {
     render(
       <MeetingOverlay
         meeting={PLAYING_MEETING}
+        narration={false}
         onInterject={onInterject}
         onLeave={vi.fn()}
         onClose={vi.fn()}
@@ -443,6 +453,25 @@ describe('MeetingOverlay', () => {
     expect(screen.queryByText(/We had this diagram in 1979/)).toBeNull();
     expect(screen.getAllByText('Ulrich').length).toBeGreaterThan(0);
     expect(screen.queryByText(/turn on CC/i)).toBeNull();
+  });
+
+  it('keeps speaker view between narration beats when captions are off', () => {
+    render(
+      <MeetingOverlay
+        meeting={{
+          ...PLAYING_MEETING,
+          voiceSpeaking: false
+        }}
+        captions={false}
+        narration
+        onInterject={vi.fn()}
+        onLeave={vi.fn()}
+        onClose={vi.fn()}
+        onAdoptPrompt={vi.fn()}
+      />
+    );
+    expect(screen.queryByText(/We had this diagram in 1979/)).toBeNull();
+    expect(screen.getAllByText('Ulrich').length).toBeGreaterThan(0);
   });
 
   it('shows the transcript when captions are on even while voice plays', () => {
