@@ -92,6 +92,8 @@ export default function FloatingWindow({
 
   const classNames = [
     'floating-window',
+    kind ? `floating-window--${kind}` : '',
+    'floating-window--os',
     className,
     isFocused ? 'is-focused' : 'is-unfocused',
     isDragging ? 'is-dragging' : '',
@@ -107,6 +109,7 @@ export default function FloatingWindow({
       style={overlayLayerStyle(zIndex, { ...positionedStyle, ...style })}
       onPointerDown={handlePointerDown}
       data-floating-window={id}
+      data-window-kind={kind || undefined}
       {...rest}
     >
       {children}

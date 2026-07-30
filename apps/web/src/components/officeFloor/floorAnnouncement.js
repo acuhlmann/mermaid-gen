@@ -92,10 +92,11 @@ function nameOf(colleagueId) {
  * @returns {FloorAnnouncement}
  */
 export function floorAnnouncement(state) {
-  const { copy, meeting, talk, peek, prop, presence, walkBy, walkerDeparting } = state;
+  const { copy, meeting, huddle, talk, peek, prop, presence, walkBy, walkerDeparting } = state;
   const lines = copy.narration;
 
   if (meeting) return announce('meeting', lines.inMeeting);
+  if (huddle) return announce(`huddle:${huddle.id}`, lines.inHuddle ?? lines.atDesk);
 
   for (const { kind, going, there } of WALKED_TO) {
     const view = { talk, peek, prop }[kind];

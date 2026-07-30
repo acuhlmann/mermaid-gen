@@ -19,6 +19,7 @@
  */
 
 import FloorPersonCard from './FloorPersonCard.jsx';
+import { FloorHuddleCard } from './FloorHuddle.jsx';
 import { FloorMeetingCard } from './FloorMeeting.jsx';
 import { FloorPeekCard } from './FloorPeek.jsx';
 import { FloorPropCard } from './FloorProps.jsx';
@@ -30,6 +31,8 @@ import { sitDown } from '../../state/officeViewModeStore.js';
  *   copy: Record<string, any>,
  *   meeting?: any,
  *   meetingHandlers?: any,
+ *   huddle?: any,
+ *   huddleHandlers?: any,
  *   talk?: { colleagueId: string, phase: string } | null,
  *   conversation?: { draft: string, setDraft: (v: string) => void, busy: boolean, send: (b: string) => void },
  *   peek?: { colleagueId: string, phase: string } | null,
@@ -47,6 +50,8 @@ export function FloorCardSlot({
   copy,
   meeting = null,
   meetingHandlers = {},
+  huddle = null,
+  huddleHandlers = {},
   talk = null,
   conversation = null,
   peek = null,
@@ -69,6 +74,10 @@ export function FloorCardSlot({
         onSitDown={() => sitDown()}
       />
     );
+  }
+
+  if (huddle) {
+    return <FloorHuddleCard huddle={huddle} copy={copy} onHardStop={huddleHandlers.onHardStop} />;
   }
 
   if (talk && conversation) {

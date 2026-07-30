@@ -28,11 +28,27 @@ export const ROOM_TONE_GAIN = ROOM_TONE_GAIN_DESK;
 export const ROOM_TONE_DUCK_GAIN = 0.03;
 
 const VIEW_GAIN_RAMP_SEC = 0.8;
+const ZONE_RAMP_SEC = 0.55;
 
 /** @typedef {'desk' | 'floor'} RoomToneViewMode */
+/** @typedef {'neutral' | 'glass' | 'kitchen' | 'pod'} RoomToneZone */
+
+/**
+ * Per-zone colouring of the single bed (docs/audio-assets.md) — no new assets.
+ * Filters reshape the open-plan loop so kitchen / glass / pod read differently
+ * as you walk. True multi-bed beds still want ElevenLabs regeneration later.
+ */
+const ZONE_SHAPING = {
+  neutral: { gainMul: 1, type: 'peaking', frequency: 800, Q: 0.7, gain: 0 },
+  glass: { gainMul: 0.82, type: 'lowpass', frequency: 2400, Q: 0.7, gain: 0 },
+  kitchen: { gainMul: 1.08, type: 'highshelf', frequency: 1800, Q: 0.7, gain: 3.5 },
+  pod: { gainMul: 0.95, type: 'lowshelf', frequency: 220, Q: 0.7, gain: 2.2 }
+};
 
 /** @type {RoomToneViewMode} */
 let viewMode = 'desk';
+/** @type {RoomToneZone} */
+let zone = 'neutral';
 
 const FADE_IN_SEC = 3;
 const FADE_OUT_SEC = 1.2;
@@ -52,6 +68,8 @@ let bufferPromise = null;
 let sourceNode = null;
 /** @type {GainNode | null} */
 let gainNode = null;
+/** @type {BiquadFilterNode | null} */
+let filterNode = null;
 /** Bumped on every stop so an in-flight decode can tell it was superseded. */
 let generation = 0;
 let ducked = false;
@@ -93,12 +111,35 @@ function loadBuffer(context) {
   return bufferPromise;
 }
 
+function zoneProfile() {
+  return ZONE_SHAPING[zone] ?? ZONE_SHAPING.neutral;
+}
+
 function baseGainForView() {
-  return viewMode === 'floor' ? ROOM_TONE_GAIN_FLOOR : ROOM_TONE_GAIN_DESK;
+  const base = viewMode === 'floor' ? ROOM_TONE_GAIN_FLOOR : ROOM_TONE_GAIN_DESK;
+  return base * (viewMode === 'floor' ? zoneProfile().gainMul : 1);
 }
 
 function targetGain() {
   return ducked ? ROOM_TONE_DUCK_GAIN : baseGainForView();
+}
+
+function applyZoneFilter(rampSec = ZONE_RAMP_SEC) {
+  if (!filterNode) return;
+  const profile = zoneProfile();
+  try {
+    const now = filterNode.context.currentTime;
+    filterNode.type = profile.type;
+    filterNode.frequency.cancelScheduledValues(now);
+    filterNode.frequency.setValueAtTime(filterNode.frequency.value, now);
+    filterNode.frequency.linearRampToValueAtTime(profile.frequency, now + rampSec);
+    filterNode.Q.value = profile.Q;
+    filterNode.gain.cancelScheduledValues(now);
+    filterNode.gain.setValueAtTime(filterNode.gain.value, now);
+    filterNode.gain.linearRampToValueAtTime(profile.gain, now + rampSec);
+  } catch {
+    // ignore
+  }
 }
 
 /**
@@ -109,6 +150,21 @@ function targetGain() {
  */
 export function setRoomToneViewMode(mode) {
   viewMode = mode === 'floor' ? 'floor' : 'desk';
+  if (viewMode === 'desk') zone = 'neutral';
+  applyZoneFilter();
+  applyDuck();
+}
+
+/**
+ * Colour the bed for the floor zone under you. Desk mode ignores this.
+ *
+ * @param {RoomToneZone} next
+ */
+export function setRoomToneZone(next) {
+  const allowed = next === 'glass' || next === 'kitchen' || next === 'pod' ? next : 'neutral';
+  if (zone === allowed) return;
+  zone = allowed;
+  applyZoneFilter();
   applyDuck();
 }
 
@@ -143,7 +199,21 @@ export function startRoomTone(audioContextRef) {
     gain.gain.setValueAtTime(0.0001, now);
     gain.gain.linearRampToValueAtTime(targetGain(), now + FADE_IN_SEC);
 
-    source.connect(gain);
+    // jsdom test stubs often omit BiquadFilter — skip colouring rather than crash.
+    if (typeof context.createBiquadFilter === 'function') {
+      const filter = context.createBiquadFilter();
+      const profile = zoneProfile();
+      filter.type = profile.type;
+      filter.frequency.value = profile.frequency;
+      filter.Q.value = profile.Q;
+      filter.gain.value = profile.gain;
+      source.connect(filter);
+      filter.connect(gain);
+      filterNode = filter;
+    } else {
+      source.connect(gain);
+      filterNode = null;
+    }
     gain.connect(context.destination);
     source.start(now, source.loopStart);
 
@@ -158,6 +228,7 @@ export function stopRoomTone() {
   const source = sourceNode;
   const gain = gainNode;
   sourceNode = null;
+  filterNode = null;
   gainNode = null;
   ducked = false;
   if (!source) return;
@@ -206,8 +277,10 @@ export function isRoomTonePlaying() {
 export function _resetRoomToneForTests() {
   generation += 1;
   sourceNode = null;
+  filterNode = null;
   gainNode = null;
   bufferPromise = null;
   ducked = false;
   viewMode = 'desk';
+  zone = 'neutral';
 }

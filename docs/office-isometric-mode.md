@@ -791,9 +791,9 @@ Three earlier candidates, none designed:
   measured and the four obvious fixes are each recorded as worse~~ ✅ **shipped** for desk/floor
   speech — `bubbleAlignForSpeaker` biases sideways when a centred bubble would cover a bystander.
   Walk-bys and meeting bubbles unchanged; revisit if a capture shows another surface still wrong.
-- **The screen-world skin** (§ 4), which has not been touched since it was written. It is a
-  parallel track by design, blocks nothing, and is the only item here that would make desktop
-  mode feel like part of the same fiction rather than the thing you leave to see the fiction.
+- **The screen-world skin** (§ 4). ~~which has not been touched since it was written~~ ✅ **first
+  pass** — `floating-window--os` kind tints + `DeskOsTray` task strip. Control panel as a
+  `FloatingWindow` still open if appetite returns.
 
 ### Point-and-click adventure ideas (not designed)
 
@@ -836,15 +836,9 @@ which is a content question rather than a geometry one.
   (heading for their tile walks them home), so nothing to fix — but if a future slice makes a
   fourth prop usable, that prop's coverage should be measured **with somebody standing at it**,
   not only empty.
-- **The floor is English-only, and slices 10 and 12 each made it slightly worse.** The
-  `office.*.js` locale bundles (en-AU / zh-CN / zh-TW) have no `floor` key at all — every slice
-  from 3 onward has put its copy in `officeCast.js` only, so this is a standing gap rather than
-  one slice's oversight, and `floor.narration` and `floor.away` are now part of it. It is
-  invisible because the merge falls back to English. Localizing it is a real chunk of copy
-  (arrival, peek, talk, meeting, props, zones, narration, whereabouts) and should be its own
-  pass. Note one wart it would want to fix: `floor.away` and `floor.narration` both compose prop
-  names into sentences from `props.items[kind].name`, which is capitalised ("The printer"), so
-  every such sentence is punctuated around a capital rather than reading through it.
+- **The floor is English-only.** ~~locale bundles had no `floor` key~~ ✅ **cleared** — en-AU /
+  zh-CN / zh-TW now ship `OFFICE_CHROME_COPY.floor` (and prop names are sentence-case so narration
+  reads cleanly).
 - **The name chip is still a hover affordance on a 34 px target.** Rule 23 shrank the button to
   the figure, which is right for clicking and slightly worse for _reading names_: you now have
   to be on the figure rather than anywhere in a name-width box. Nobody has complained because

@@ -240,6 +240,24 @@ export function zoneCentre([x0, y0, x1, y1]) {
 }
 
 /**
+ * Which floor zone contains a tile (first match). Used for per-room room-tone
+ * shaping without new audio assets — see `setRoomToneZone`.
+ *
+ * @param {{ x: number, y: number } | null | undefined} tile
+ * @returns {'neutral' | 'glass' | 'kitchen' | 'pod'}
+ */
+export function floorZoneToneAt(tile) {
+  if (!tile || !Number.isFinite(tile.x) || !Number.isFinite(tile.y)) return 'neutral';
+  for (const zone of FLOOR_ZONES) {
+    const [x0, y0, x1, y1] = zone.rect;
+    if (tile.x >= x0 && tile.x <= x1 && tile.y >= y0 && tile.y <= y1) {
+      return zone.tone;
+    }
+  }
+  return 'neutral';
+}
+
+/**
  * Who sits where. `id` doubles as the React key and the `PersonaFace` id, so
  * the player's seat uses the same `'you'` convention as the meeting overlay
  * (unknown id → `fallbackEmoji`).
@@ -372,6 +390,20 @@ export const COFFEE_TILES = [
 export const BATTLE_TILES = [
   { x: 4, y: 5 },
   { x: 5, y: 4 }
+];
+
+/**
+ * Where the team stands when they ring your desk for a huddle (renderer #2).
+ * Closer than a coffee break — they lean in around YOUR seat at (7, 7). Six
+ * marks so a full Your Team roster surrounds you without stacking heads.
+ */
+export const HUDDLE_TILES = [
+  { x: 6, y: 7 },
+  { x: 8, y: 7 },
+  { x: 7, y: 6 },
+  { x: 7, y: 8 },
+  { x: 6, y: 8 },
+  { x: 8, y: 6 }
 ];
 
 /**
@@ -672,7 +704,15 @@ export const PEEK_OFFSETS = [
 
 /** Marks that belong to another staging; two people on one tile is one person. */
 function reservedMarks() {
-  return [VISITOR_TILE, ...COFFEE_TILES, ...BATTLE_TILES, MEETING_PLAYER_TILE, ...MEETING_SEATS];
+  return [
+    VISITOR_TILE,
+    ...COFFEE_TILES,
+    ...BATTLE_TILES,
+    // HUDDLE_TILES deliberately absent: the ring only exists while a huddle is
+    // live, and permanently reserving it strands Richard's peek/approach marks.
+    MEETING_PLAYER_TILE,
+    ...MEETING_SEATS
+  ];
 }
 
 const STAND_SEAT_CLEARANCE = 0.8;

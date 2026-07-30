@@ -174,6 +174,15 @@ describe('office locale bundles', () => {
     expect(localized.OFFICE_IM_QUICK_REPLIES).toHaveLength(4);
   });
 
+  it.each(LOCALES)('localizes floor chrome (%s)', (locale) => {
+    const localized = getUiLocaleBundle(locale).office;
+    const floor = localized.OFFICE_CHROME_COPY.floor;
+    expect(floor?.title).toBeTruthy();
+    expect(floor.title).not.toBe(OFFICE_CHROME_COPY.floor.title);
+    expect(floor.zones?.kitchen).toBeTruthy();
+    expect(floor.narration?.inHuddle).toBeTruthy();
+  });
+
   it('routes localized copy through the officeCast accessors', () => {
     setActiveOfficeBundle(getUiLocaleBundle('zh-CN').office);
     expect(officeEmailTemplates()[0].subject).toContain('冰箱');

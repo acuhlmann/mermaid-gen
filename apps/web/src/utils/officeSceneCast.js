@@ -34,16 +34,19 @@ export function sceneParticipants(lines) {
  *   coffee?: { lines?: Array<{speakerId?: string}> } | null,
  *   battle?: { lines?: Array<{speakerId?: string}> } | null,
  *   meeting?: { attendees?: string[], modality?: string } | null,
+ *   huddle?: { attendees?: string[] } | null,
  *   standing?: unknown,
  *   playerId: string
  * }} state `standing` is truthy whenever you are on your feet somewhere that
  *   is not your own chair.
  * @returns {string[]}
  */
-export function awayFromDeskIds({ coffee, battle, meeting, standing, playerId }) {
+export function awayFromDeskIds({ coffee, battle, meeting, huddle, standing, playerId }) {
   const away = [...sceneParticipants(coffee?.lines), ...sceneParticipants(battle?.lines)];
   const physicalMeeting = meeting && meeting.modality !== 'remote';
   if (physicalMeeting) away.push(playerId, ...(meeting.attendees ?? []));
+  // Huddle: they ring your desk — you stay seated; their chairs empty.
+  if (huddle?.attendees?.length) away.push(...huddle.attendees);
   if (standing) away.push(playerId);
   return away;
 }

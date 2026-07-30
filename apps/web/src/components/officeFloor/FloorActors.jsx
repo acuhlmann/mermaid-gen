@@ -17,6 +17,7 @@
  * rest of "what are you doing", not here.
  */
 
+import FloorHuddle from './FloorHuddle.jsx';
 import FloorMeeting from './FloorMeeting.jsx';
 import FloorPeek from './FloorPeek.jsx';
 import FloorPlayer from './FloorPlayer.jsx';
@@ -32,6 +33,8 @@ import FloorWanderer from './FloorWanderer.jsx';
  *   battle?: any,
  *   sceneHandlers?: any,
  *   meeting?: any,
+ *   huddle?: any,
+ *   huddleHandlers?: any,
  *   wanderer?: any,
  *   onWandererArrive?: () => void,
  *   wandererRef?: { current: HTMLElement | null },
@@ -62,6 +65,8 @@ export function FloorActors({
   battle,
   sceneHandlers,
   meeting,
+  huddle,
+  huddleHandlers,
   wanderer,
   onWandererArrive,
   wandererRef,
@@ -108,6 +113,19 @@ export function FloorActors({
 
       {meeting ? (
         <FloorMeeting meeting={meeting} copy={copy} scale={scale} showSpokenText={showSpokenText} />
+      ) : null}
+      {huddle ? (
+        <FloorHuddle
+          huddle={huddle}
+          scale={scale}
+          showSpokenText={showSpokenText}
+          onHardStop={huddleHandlers?.onHardStop}
+          onAdoptPrompt={huddleHandlers?.onAdoptPrompt}
+          onRequestSuggestion={huddleHandlers?.onRequestSuggestion}
+          narrateLine={huddleHandlers?.narrateLine}
+          prefetchLine={huddleHandlers?.prefetchLine}
+          onCancelNarration={huddleHandlers?.onCancelNarration}
+        />
       ) : null}
       {peek ? <FloorPeek peek={peek} scale={scale} hideBody={!showSpokenText} /> : null}
       {talk ? (

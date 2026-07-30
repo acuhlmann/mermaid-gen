@@ -518,10 +518,9 @@ the team roster.
 - **Cost:** one LLM call per huddle, `purpose: 'meeting'` (fast tier), exactly like `/meeting`, plus
   optional `/api/advisor/suggest` calls when you click a silent head. An empty or failed script
   dissolves the ring silently — no error toast.
-- **ADR-0011 status: desk renderer only, for now.** The state is presentation-agnostic in
-  `officeMomentStore`, so the floor version (the six physically ringing your desk) is a clean
-  follow-up slice. Until it exists, huddling while you are standing **sits you down first** rather
-  than starting a scene nobody can see.
+- **ADR-0011 status: desk + floor.** Desk crowds the monitor edges (`HuddleOverlay`); floor rings
+  your desk (`FloorHuddle` + `FloorHuddleCard`) via shared `useHuddleRingControls`. Starting a
+  huddle while standing no longer forces sit-down.
 
 Code: `apps/server/src/routes/office.js` (`createHuddleHandler`), `officePersonas.js`
 (`buildHuddleSystemPrompt` / `buildHuddleUserPrompt` / `parseHuddleScript`),

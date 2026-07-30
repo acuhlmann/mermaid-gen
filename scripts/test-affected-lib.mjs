@@ -33,6 +33,7 @@ export const ISOMETRIC_FLOOR_BLAST_TESTS = [
   'apps/web/test/officeFloorAccess.test.jsx',
   'apps/web/test/officeFloorArrival.test.jsx',
   'apps/web/test/officeFloorContracts.test.js',
+  'apps/web/test/officeFloorHuddle.test.jsx',
   'apps/web/test/officeFloorMeeting.test.jsx',
   'apps/web/test/officeFloorMovement.test.js',
   'apps/web/test/officeFloorModuleInventory.test.js',

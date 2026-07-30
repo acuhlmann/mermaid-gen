@@ -902,6 +902,156 @@ export const OFFICE_EN_AU = {
       accept: 'Accept',
       decline: "Can't — I'm shipping",
       proposeNewTime: 'Propose new time'
+    },
+    floor: {
+      eyebrow: 'ARCHISLOP CORP. · FLOOR 3',
+      title: 'The floor, mate',
+      subtitle: 'Open plan. They took the walls away for collaboration and kept all the meetings.',
+      stageAria: 'Isometric view of the office floor',
+      back: '🪑 Back to ya screen',
+      backTitle: 'Sit down and get back to the deliverable',
+      hint: 'Click the floor to walk. Click somebody to meet them, or double-click a colleague to walk over and have a word. Escape sits you back down.',
+      narration: {
+        atDesk: 'At ya own desk.',
+        inMeeting: 'In the glass meeting room.',
+        walkingTo: 'Walking over to {name}.',
+        standingWith: 'Standing with {name}.',
+        walkingToDesk: "Walking over to {name}'s desk.",
+        standingAtDesk: "Standing at {name}'s desk.",
+        walkingToProp: 'Walking over to {prop}.',
+        standingAtProp: 'Standing at {prop}.',
+        walkingHome: 'Walking back to ya desk.',
+        walkingFloor: 'Walking across the floor.',
+        standingFloor: 'Standing on the floor. Arrow keys step; Escape walks you back.',
+        arriving: '{name} is walking over to ya desk.',
+        leaving: '{name} is walking back to their desk.',
+        inHuddle: 'Ya team is huddled around ya desk.'
+      },
+      arrival: {
+        eyebrow: 'ARCHISLOP CORP. · YA FIRST DAY',
+        title: 'Welcome to the floor',
+        subtitle: 'Somebody will be with you shortly. They will not.',
+        skip: 'Skip the ceremony →',
+        receptionEyebrow: 'RECEPTION',
+        receptionBody:
+          'Sign in, grab a lanyard, and try to look like you have done this before. Linda will speed-run the cast — then park you at ya desk for the onboarding wizard.',
+        checkIn: 'Check in →',
+        clockIn: '🪑 Clock in — take ya desk',
+        clockInEarly: '🪑 Take my desk (I get the idea)',
+        narration: {
+          atReception: 'At reception. Sign in to begin.',
+          welcome: 'Linda is welcoming you.',
+          walkingToColleague: 'Walking over to {name}.',
+          standingWithColleague: 'Standing with {name}.',
+          colleagueIntroducing: '{name} at their desk.',
+          walkingToDesk: 'Walking to ya desk.'
+        }
+      },
+      close: 'Close',
+      youName: 'You',
+      youTitle: 'Architect — New Hire',
+      youBlurb:
+        'Ya desk. Ya deliverable. Ya monitor, which is the only one on this floor doing any work.',
+      sitHere: '🪑 Sit down here',
+      message: '💬 Message',
+      messageTitle: 'Open Slop Chat™ with them',
+      seniorNote: 'Not without a calendar invite.',
+      teamNote: 'On ya team — brief them from the canvas.',
+      away: {
+        atLabel: '{who}, {prop}',
+        atProp: 'Away from their desk: {prop}.',
+        elsewhere: 'Away from their desk.'
+      },
+      talk: {
+        eyebrow: 'HAVING A WORD',
+        action: '💬 Go and talk',
+        actionTitle: 'Walk over and say something — or double-click them',
+        walking: 'Walking over. Rehearse the opener.',
+        thinking: 'They are thinking of something to say…',
+        placeholder: 'Say something…',
+        send: 'Say it',
+        youLabel: 'You',
+        leave: '🪑 Back to my desk',
+        leaveTitle: 'End the yarn and walk back to ya screen'
+      },
+      peek: {
+        eyebrow: 'OVER THEIR SHOULDER',
+        action: '👀 Their screen',
+        actionTitle: 'Walk over and see what they are working on',
+        walking: 'Walking over. Try to look like you need something.',
+        back: '🪑 Back to my desk',
+        backTitle: 'Walk back to ya own screen',
+        looks: {
+          terminal: 'A terminal. Green on black, scrollback to the horizon.',
+          tabs: 'Forty tabs. One of them is the work.',
+          spreadsheet: 'A spreadsheet. The tab is called FINAL_v7_actual.',
+          slides: 'Slides. Slide four is titled “Slide 4”.',
+          tickets: 'A ticket queue, sorted by how long it has been ignored.',
+          calendar: 'A calendar. Solid colour, wall to wall.'
+        }
+      },
+      props: {
+        eyebrow: 'HANDS ON',
+        walking: 'Heading over.',
+        working: 'One moment…',
+        blocked: 'Not right now — something else has ya attention.',
+        back: '🪑 Back to my desk',
+        backTitle: 'Walk back to ya own screen',
+        items: {
+          coffeeMachine: {
+            glyph: '☕',
+            name: 'the coffee machine',
+            note: 'Kitchen · descaled never',
+            useLabel: 'Coffee machine — make one',
+            useTitle: 'Walk over and make one',
+            line: 'It grinds, it hisses, it produces something brown. Somebody will be along shortly to talk to you.',
+            blocked: 'It is already making one for somebody. Wait ya turn.'
+          },
+          printer: {
+            glyph: '🖨️',
+            name: 'the printer',
+            note: 'Reception · MFP-3 "SLOPMASTER"',
+            useLabel: 'Printer — have a squiz',
+            useTitle: 'Walk over and look at it',
+            line: 'PC LOAD LETTER. Nobody on this floor has ever loaded letter. The queue says 41 jobs, all from 2023.'
+          },
+          whiteboard: {
+            glyph: '📋',
+            name: 'the whiteboard',
+            note: 'By the pod · DO NOT ERASE',
+            useLabel: 'Whiteboard — read what is on it',
+            useTitle: 'Walk over and read it',
+            line: 'An architecture from two re-orgs ago, in permanent marker. Three boxes, one arrow, and the word SYNERGY underlined twice.'
+          }
+        }
+      },
+      meeting: {
+        eyebrow: 'GLASS ROOM',
+        eyebrowRemote: 'HEADSET SYNC',
+        leave: '🚪 Leave',
+        leaveTitle: 'Walk out mid-sentence. Pam will note it in the minutes.',
+        sitOut: '🪑 My screen',
+        sitOutTitle: 'Sit back down — the meeting keeps going without you in the room',
+        endedLine: "That's a wrap. The minutes are on ya screen.",
+        readMinutes: '🪑 Read the minutes',
+        readMinutesTitle: 'Sit back down — the meeting hands the minutes to ya screen'
+      },
+      huddle: {
+        eyebrow: 'TEAM HUDDLE',
+        heading: 'Ya team, around ya desk'
+      },
+      zones: {
+        reception: 'Reception',
+        leadership: 'Leadership',
+        kitchen: 'Kitchen',
+        meeting: 'Meeting room',
+        pod: 'Ya pod',
+        hrCorner: 'People Ops'
+      }
+    },
+    osTray: {
+      aria: 'Open workstation windows',
+      brand: 'ArchiSlop OS'
     }
   }
 };
