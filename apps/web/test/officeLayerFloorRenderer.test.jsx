@@ -88,17 +88,17 @@ describe('OfficeLayer floor renderer guards', () => {
 
     render(<OfficeLayer {...BASE_PROPS} />);
 
-    expect(document.querySelector('[data-floating-window="office-coffee-invite"]')).toBeTruthy();
+    expect(screen.getByTestId('office-coffee-invite')).toBeTruthy();
     expect(screen.queryByTestId('office-floor-coffee-invite')).toBeNull();
 
     act(() => standUp());
 
-    expect(document.querySelector('[data-floating-window="office-coffee-invite"]')).toBeNull();
+    expect(screen.queryByTestId('office-coffee-invite')).toBeNull();
     expect(screen.getByTestId('office-floor-coffee-invite')).toBeTruthy();
 
     act(() => sitDown());
 
-    expect(document.querySelector('[data-floating-window="office-coffee-invite"]')).toBeTruthy();
+    expect(screen.getByTestId('office-coffee-invite')).toBeTruthy();
     expect(screen.queryByTestId('office-floor-coffee-invite')).toBeNull();
   });
 });

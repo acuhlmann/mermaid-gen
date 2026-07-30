@@ -100,9 +100,9 @@ function ScenePanel({ tiles, scale, children, testId }) {
   );
 }
 
-/** "They're at it again / coffee?" — the ask, before anything has started. */
+/** "They're at it again / up for coffee?" — the ask, before anything has started. */
 function SceneInvite({ isBattle, scene, names, copy, tiles, scale, onAccept, onDecline }) {
-  const line = isBattle
+  const inviteLine = isBattle
     ? formatLocale(copy.battle.inviteLine, {
         a: names[0] ?? '',
         b: names[1] ?? '',
@@ -111,25 +111,35 @@ function SceneInvite({ isBattle, scene, names, copy, tiles, scale, onAccept, onD
     : formatLocale(copy.coffee.inviteLine, { name: names[0] ?? '' });
 
   return (
-    <ScenePanel
-      tiles={tiles}
-      scale={scale}
-      testId={`office-floor-${isBattle ? 'battle' : 'coffee'}-invite`}
-    >
-      <p className="office-floor-panel-line">{line}</p>
-      <div className="office-floor-card-actions">
-        <button
-          type="button"
-          className="office-floor-card-action office-floor-card-action--primary"
-          onClick={onAccept}
-        >
-          {isBattle ? copy.battle.accept : copy.coffee.accept}
-        </button>
-        <button type="button" className="office-floor-card-action" onClick={onDecline}>
-          {isBattle ? copy.battle.decline : copy.coffee.decline}
-        </button>
-      </div>
-    </ScenePanel>
+    <>
+      {!isBattle && scene.lines?.[0]?.speakerId ? (
+        <SceneActor
+          castId={scene.lines[0].speakerId}
+          tile={tiles[0]}
+          scale={scale}
+          line={inviteLine}
+        />
+      ) : null}
+      <ScenePanel
+        tiles={tiles}
+        scale={scale}
+        testId={`office-floor-${isBattle ? 'battle' : 'coffee'}-invite`}
+      >
+        {isBattle ? <p className="office-floor-panel-line">{inviteLine}</p> : null}
+        <div className="office-floor-card-actions">
+          <button
+            type="button"
+            className="office-floor-card-action office-floor-card-action--primary"
+            onClick={onAccept}
+          >
+            {isBattle ? copy.battle.accept : copy.coffee.accept}
+          </button>
+          <button type="button" className="office-floor-card-action" onClick={onDecline}>
+            {isBattle ? copy.battle.decline : copy.coffee.decline}
+          </button>
+        </div>
+      </ScenePanel>
+    </>
   );
 }
 
@@ -234,23 +244,25 @@ export function FloorScene({
 
   return (
     <>
-      {participants.map((castId, index) => {
-        const verdict = votedFor === castId ? scene.verdicts?.[castId] : null;
-        const speaking = currentLine?.speakerId === castId ? currentLine.text : null;
-        const line = verdict ?? speaking;
-        // Verdict panels stay readable; spoken beats respect CC when voice is on.
-        const shown = verdict || (line && showSpokenText) ? line : null;
-        return (
-          <SceneActor
-            key={castId}
-            castId={castId}
-            tile={tiles[index % tiles.length]}
-            scale={scale}
-            expressionOverride={isBattle ? 'frown' : null}
-            line={shown}
-          />
-        );
-      })}
+      {accepted
+        ? participants.map((castId, index) => {
+            const verdict = votedFor === castId ? scene.verdicts?.[castId] : null;
+            const speaking = currentLine?.speakerId === castId ? currentLine.text : null;
+            const line = verdict ?? speaking;
+            // Verdict panels stay readable; spoken beats respect CC when voice is on.
+            const shown = verdict || (line && showSpokenText) ? line : null;
+            return (
+              <SceneActor
+                key={castId}
+                castId={castId}
+                tile={tiles[index % tiles.length]}
+                scale={scale}
+                expressionOverride={isBattle ? 'frown' : null}
+                line={shown}
+              />
+            );
+          })
+        : null}
 
       {!accepted ? (
         <SceneInvite
