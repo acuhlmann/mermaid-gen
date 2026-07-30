@@ -13,7 +13,7 @@
  * person is selected, and — since slice 7 — where you are standing.
  */
 
-import { useCallback, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import FloorActors from './officeFloor/FloorActors.jsx';
 import FloorCardSlot from './officeFloor/FloorCardSlot.jsx';
 import FloorLiveRegion from './officeFloor/FloorLiveRegion.jsx';
@@ -34,7 +34,8 @@ import { useFloorWalker } from './officeFloor/useFloorWalker.js';
 import { MEETING_USER_SPEAKER } from '../hooks/useMeetingPlayback.js';
 import { useStageScale } from '../hooks/useStageScale.js';
 import { reachTileFor, whereaboutsOf } from '../utils/officeFloorReach.js';
-import { YOU_SEAT_ID, peekTileFor } from '../utils/officeFloorPlan.js';
+import { YOU_SEAT_ID, floorZoneToneAt, peekTileFor, seatFor } from '../utils/officeFloorPlan.js';
+import { setRoomToneZone } from '../utils/officeRoomTone.js';
 import {
   MEETING_MODALITY_REMOTE,
   officeChromeCopy,
@@ -167,7 +168,9 @@ function OfficeFloorView({ bridge }) {
     battle = null,
     sceneHandlers = {},
     meeting = null,
-    meetingHandlers = {}
+    meetingHandlers = {},
+    huddle = null,
+    huddleHandlers = {}
   } = bridge;
   // Subscribes this component to locale changes; the copy itself comes from the
   // office bundle below, exactly like DeskActionsDock.
@@ -204,11 +207,20 @@ function OfficeFloorView({ bridge }) {
   useFloorKeyboard({ presence, origin, goHome, walkTo: activity.walkTo });
   useFloorAutoPan(viewportRef, presence, scale);
 
+  // Per-room colouring of the single bed (docs/audio-assets.md) — no new files.
+  useEffect(() => {
+    const you = seatFor(YOU_SEAT_ID);
+    const tile = origin ?? (you ? { x: you.x, y: you.y } : null);
+    setRoomToneZone(floorZoneToneAt(tile));
+    return () => setRoomToneZone('neutral');
+  }, [origin]);
+
   /* Everybody who is out of their chair, for either reason (`useFloorAway`). */
   const { awayIds, wanderer, handleWanderArrive, wandererRef, floorState } = useFloorAway({
     coffee,
     battle,
     meeting,
+    huddle,
     standing: presence,
     // Where you are or are heading. One rule for two cases: walking over to use
     // a prop, and free-roaming onto the mark it is used from.
@@ -287,6 +299,7 @@ function OfficeFloorView({ bridge }) {
   const said = floorAnnouncement({
     copy,
     meeting,
+    huddle,
     talk,
     peek,
     prop,
@@ -347,6 +360,8 @@ function OfficeFloorView({ bridge }) {
             battle={battle}
             sceneHandlers={sceneHandlersWithVoice}
             meeting={meeting}
+            huddle={huddle}
+            huddleHandlers={huddleHandlers}
             wanderer={wanderer}
             onWandererArrive={handleWanderArrive}
             wandererRef={wandererRef}
@@ -371,6 +386,8 @@ function OfficeFloorView({ bridge }) {
         copy={copy}
         meeting={meeting}
         meetingHandlers={meetingHandlers}
+        huddle={huddle}
+        huddleHandlers={huddleHandlers}
         peek={peek}
         talk={talk}
         conversation={conversation}

@@ -23,6 +23,7 @@ import { YOU_SEAT_ID } from '../../utils/officeFloorPlan.js';
  *   coffee?: unknown,
  *   battle?: unknown,
  *   meeting?: unknown,
+ *   huddle?: unknown,
  *   standing?: unknown,
  *   avoidTile?: { x: number, y: number } | null,
  *   holdId?: string | null
@@ -42,6 +43,7 @@ export function useFloorAway({
   coffee,
   battle,
   meeting,
+  huddle,
   standing,
   avoidTile = null,
   holdId = null
@@ -50,12 +52,13 @@ export function useFloorAway({
     coffee,
     battle,
     meeting,
+    huddle,
     standing,
     playerId: YOU_SEAT_ID
   });
 
   const { wanderer, handleArrive, figureRef } = useFloorWander({
-    suspended: Boolean(meeting && meeting.modality !== 'remote'),
+    suspended: Boolean((meeting && meeting.modality !== 'remote') || huddle),
     busyIds: awayIds,
     avoidTile,
     holdId

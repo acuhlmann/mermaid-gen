@@ -195,6 +195,7 @@ export const CONTROLS_ZH_TW = {
     jared: 'Jared — 標出流程缺口',
     richard: 'Richard — 命名模式',
     toggleHelp: '切換此說明',
+    officeView: '站起 / 坐下（辦公室樓層）',
     esc: '關閉選單 / 對話框',
     arrows: '在環形操作中移動焦點',
     activate: '啟用目前焦點操作'

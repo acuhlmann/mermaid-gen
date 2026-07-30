@@ -25,7 +25,7 @@
 
 import FloorBubble from './FloorBubble.jsx';
 import { officeSenderInfo } from '../../utils/officeCast.js';
-import { bubbleAlignForTile, projectIso, seatFor } from '../../utils/officeFloorPlan.js';
+import { bubbleAlignForSpeaker, projectIso, seatFor } from '../../utils/officeFloorPlan.js';
 
 /** Above the signage layer, same as the walker's bubble at your desk. */
 const BUBBLE_Z = 9600;
@@ -75,7 +75,8 @@ export function FloorDeskSpeech({ castId, line, scale = 1, testId, tile, hideBod
    * tile and the whiteboard he is stood at is a `center` one, so aligning by the
    * chair he left would shove the balloon the wrong way across the room.
    */
-  const align = bubbleAlignForTile(anchor.tile);
+  const standing = lift === OVER_STANDING;
+  const align = bubbleAlignForSpeaker(anchor.tile, castId, { standing });
 
   return (
     <div

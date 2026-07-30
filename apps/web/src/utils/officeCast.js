@@ -1445,6 +1445,7 @@ export const OFFICE_CHROME_COPY = {
     standUpShort: 'Stand up',
     standUpRole: 'Floor',
     standUpTitle: 'Leave your screen for the floor — see the office you keep hearing',
+    officeViewShortcut: 'Shift+O',
     sitDown: 'Back to your screen',
     sitDownShort: 'Sit down',
     sitDownTitle: 'Sit down and get back to the deliverable',
@@ -1641,6 +1642,10 @@ export const OFFICE_CHROME_COPY = {
     preamble: 'Someone is reading your screen from behind. Act natural.',
     dismissAria: 'Wave off {name}'
   },
+  osTray: {
+    aria: 'Open workstation windows',
+    brand: 'ArchiSlop OS'
+  },
   huddle: {
     sceneAria: 'Team huddle around your diagram',
     gathering: 'Everyone is wandering over…',
@@ -1717,7 +1722,8 @@ export const OFFICE_CHROME_COPY = {
       walkingFloor: 'Walking across the floor.',
       standingFloor: 'Standing on the floor. Arrow keys step; Escape walks you back.',
       arriving: '{name} is walking over to your desk.',
-      leaving: '{name} is walking back to their desk.'
+      leaving: '{name} is walking back to their desk.',
+      inHuddle: 'Your team is huddled around your desk.'
     },
     // Day One, staged on the floor (isometric arrival).
     arrival: {
@@ -1807,7 +1813,7 @@ export const OFFICE_CHROME_COPY = {
       items: {
         coffeeMachine: {
           glyph: '☕',
-          name: 'The coffee machine',
+          name: 'the coffee machine',
           note: 'Kitchen · descaled never',
           useLabel: 'Coffee machine — make one',
           useTitle: 'Walk over and make one',
@@ -1816,7 +1822,7 @@ export const OFFICE_CHROME_COPY = {
         },
         printer: {
           glyph: '🖨️',
-          name: 'The printer',
+          name: 'the printer',
           note: 'Reception · MFP-3 "SLOPMASTER"',
           useLabel: 'Printer — have a look at it',
           useTitle: 'Walk over and look at it',
@@ -1824,7 +1830,7 @@ export const OFFICE_CHROME_COPY = {
         },
         whiteboard: {
           glyph: '📋',
-          name: 'The whiteboard',
+          name: 'the whiteboard',
           note: 'By the pod · DO NOT ERASE',
           useLabel: 'Whiteboard — read what is on it',
           useTitle: 'Walk over and read it',
@@ -1844,6 +1850,10 @@ export const OFFICE_CHROME_COPY = {
       endedLine: "That's a wrap. The minutes are on your screen.",
       readMinutes: '🪑 Read the minutes',
       readMinutesTitle: 'Sit back down — the meeting hands the minutes to your screen'
+    },
+    huddle: {
+      eyebrow: 'TEAM HUDDLE',
+      heading: 'Your team, around your desk'
     },
     zones: {
       reception: 'Reception',

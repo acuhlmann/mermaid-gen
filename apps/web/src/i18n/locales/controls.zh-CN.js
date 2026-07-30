@@ -195,6 +195,7 @@ export const CONTROLS_ZH_CN = {
     jared: 'Jared — 标出流程缺口',
     richard: 'Richard — 命名模式',
     toggleHelp: '切换此帮助',
+    officeView: '站起 / 坐下（办公室楼层）',
     esc: '关闭菜单 / 对话框',
     arrows: '在环形操作中移动焦点',
     activate: '激活当前焦点操作'

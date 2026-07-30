@@ -1256,3 +1256,47 @@
     transform: none;
   }
 }
+
+/* Floor huddle — teammates ring your desk. */
+.office-floor-huddle-actor {
+  animation: office-floor-huddle-in 240ms ease-out both;
+}
+
+.office-floor-huddle-hit {
+  display: block;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  width: 34px;
+  height: 48px;
+}
+
+.office-floor-huddle-hit:focus-visible {
+  outline: 2px solid var(--floor-accent, var(--accent));
+  outline-offset: 2px;
+}
+
+.office-floor-huddle-actor.is-speaking .office-floor-person-figure,
+.office-floor-huddle-actor.is-pinned .office-floor-person-figure {
+  filter: drop-shadow(0 0 9px var(--floor-accent, var(--accent)))
+    drop-shadow(0 0 20px rgba(37, 99, 235, 0.55));
+}
+
+@keyframes office-floor-huddle-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .office-floor-huddle-actor {
+    animation: none;
+  }
+}

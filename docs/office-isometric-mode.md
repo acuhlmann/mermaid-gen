@@ -784,18 +784,18 @@ the same team pod plus office desks — look over their shoulder at fiction on t
 
 Three earlier candidates, none designed:
 
-- **Where the "stand up" affordance lives in desktop chrome.** The oldest open item and the only
+- **Where the "stand up" affordance lives in desktop chrome.** ~~The oldest open item and the only
   one that is not floor work at all: today the floor is reachable from the desk dock, and the
-  mode toggle has never had a deliberate home or a keyboard shortcut. Small, self-contained, and
-  the one candidate a person who has never read § 6 could take.
-- **Bubble placement for a speaker who is not against a wall** (§ 6 rule 29). The finding is
-  measured and the four obvious fixes are each recorded as worse, which is exactly the shape of
-  problem that wants its own slice rather than a patch inside somebody else's. It would touch
-  every surface that uses `FloorBubble` and needs re-validating against rules 6, 12, 13, 15 and
-  20 — so it is real work, and it is also the only known way the room draws something wrong.
-- **The screen-world skin** (§ 4), which has not been touched since it was written. It is a
-  parallel track by design, blocks nothing, and is the only item here that would make desktop
-  mode feel like part of the same fiction rather than the thing you leave to see the fiction.
+  mode toggle has never had a deliberate home or a keyboard shortcut.~~ ✅ **shipped** — primary
+  bottom-nav control beside the desk stamp (`DeskStandUpButton`) plus **Shift+O** toggle
+  (`useOfficeViewHotkey`, listed in the hotkey overlay).
+- **Bubble placement for a speaker who is not against a wall** (§ 6 rule 29). ~~The finding is
+  measured and the four obvious fixes are each recorded as worse~~ ✅ **shipped** for desk/floor
+  speech — `bubbleAlignForSpeaker` biases sideways when a centred bubble would cover a bystander.
+  Walk-bys and meeting bubbles unchanged; revisit if a capture shows another surface still wrong.
+- **The screen-world skin** (§ 4). ~~which has not been touched since it was written~~ ✅ **first
+  pass** — `floating-window--os` kind tints + `DeskOsTray` task strip. Control panel as a
+  `FloatingWindow` still open if appetite returns.
 
 ### Point-and-click adventure ideas (not designed)
 
@@ -824,31 +824,20 @@ Kept here so appetite can pick without re-deriving. Each should stay bound by AD
 
 ### Debts the shipped slices left behind
 
-- **The arrival ceremony has no live region.** Slice 10 gave `OfficeFloorView` one and left
+- **The arrival ceremony has no live region.** ~~Slice 10 gave `OfficeFloorView` one and left
   `FloorArrival` — a sibling that renders its own `FloorStage` from `ArchiSlop.jsx` — with
-  none. It narrates in _voice_, which is not the same thing and is not available with sound
-  off. This is the newest debt and the cheapest to clear: the ceremony already knows exactly
-  who is speaking (`colleagueVoiceLine`), so it wants a `FloorLiveRegion` and about four
-  strings, not a design.
+  none.~~ ✅ **cleared** — `FloorArrival` now mounts `FloorLiveRegion` + `floorArrivalAnnouncement`.
 - **A speech bubble over somebody standing in the middle of the room covers a bystander's head**
-  (§ 6 rule 29). Measured, and left as it is on purpose: rule 15's real requirement (do not cover
-  _the speaker_) is met with 8.6 px to spare, and each of the four available fixes breaks
-  something rules 13, 15 or 20 established. It is the only known case of the room drawing
-  something wrong, so it is also a candidate slice in its own right — see above.
+  (§ 6 rule 29). ~~Measured, and left as it is on purpose~~ ✅ **mitigated** — `bubbleAlignForSpeaker`
+  applies sideways bias when a centred bubble would cover a seated bystander's head (`FloorDeskSpeech`).
 - **A body standing at a prop eats that prop's clicks** (§ 6 rule 30): the printer goes from 16 of
   441 sampled points to 7 while somebody loiters at it. Correct physics and self-limiting
   (heading for their tile walks them home), so nothing to fix — but if a future slice makes a
   fourth prop usable, that prop's coverage should be measured **with somebody standing at it**,
   not only empty.
-- **The floor is English-only, and slices 10 and 12 each made it slightly worse.** The
-  `office.*.js` locale bundles (en-AU / zh-CN / zh-TW) have no `floor` key at all — every slice
-  from 3 onward has put its copy in `officeCast.js` only, so this is a standing gap rather than
-  one slice's oversight, and `floor.narration` and `floor.away` are now part of it. It is
-  invisible because the merge falls back to English. Localizing it is a real chunk of copy
-  (arrival, peek, talk, meeting, props, zones, narration, whereabouts) and should be its own
-  pass. Note one wart it would want to fix: `floor.away` and `floor.narration` both compose prop
-  names into sentences from `props.items[kind].name`, which is capitalised ("The printer"), so
-  every such sentence is punctuated around a capital rather than reading through it.
+- **The floor is English-only.** ~~locale bundles had no `floor` key~~ ✅ **cleared** — en-AU /
+  zh-CN / zh-TW now ship `OFFICE_CHROME_COPY.floor` (and prop names are sentence-case so narration
+  reads cleanly).
 - **The name chip is still a hover affordance on a 34 px target.** Rule 23 shrank the button to
   the figure, which is right for clicking and slightly worse for _reading names_: you now have
   to be on the figure rather than anywhere in a name-width box. Nobody has complained because

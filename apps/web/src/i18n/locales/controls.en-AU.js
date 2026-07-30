@@ -243,6 +243,7 @@ export const CONTROLS_EN_AU = {
     jared: 'Jared — flag the process gap',
     richard: 'Richard — name the pattern',
     toggleHelp: 'Toggle this help',
+    officeView: 'Stand up / sit down (office floor)',
     esc: 'Close menus / dialogs',
     arrows: 'Move focus across radial actions',
     activate: 'Activate focused action'

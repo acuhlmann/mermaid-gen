@@ -1,24 +1,18 @@
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { useCallback } from 'react';
 import { officeChromeCopy, officeSenderInfo } from '../utils/officeCast.js';
-import { shouldShowSpokenText } from '../utils/officeCaptions.js';
 import {
-  getOfficeSnapshot,
-  setOfficeHuddleActiveLineIndex,
-  subscribe
-} from '../state/officeMomentStore.js';
-import { useScenePacing } from '../hooks/useScenePacing.js';
+  HUDDLE_SEAT_STAGGER_MS,
+  delegatablePrompt,
+  useHuddleRingControls
+} from '../hooks/useHuddleRingControls.js';
 import { formatLocale } from '../i18n/formatLocale.js';
 import { PersonaFace } from './personaFaces/index.jsx';
 
-/** Per-seat entry delay. Six faces are all in within ~0.4 s. */
-export const HUDDLE_SEAT_STAGGER_MS = 55;
-/** Reading-pace gap between remarks when voice is off or unavailable. */
-export const HUDDLE_LINE_PACE_MS = 3000;
-/**
- * How long the last speaker holds after the final remark. Longer than the scene
- * default so a closing "Do it" is still clickable before everyone wanders off.
- */
-export const HUDDLE_TAIL_MS = 4000;
+export {
+  HUDDLE_SEAT_STAGGER_MS,
+  HUDDLE_LINE_PACE_MS,
+  HUDDLE_TAIL_MS
+} from '../hooks/useHuddleRingControls.js';
 
 /**
  * Where each teammate leans in from. Order matters: the first four cover all
@@ -38,40 +32,9 @@ function seatFor(index) {
   return SEAT_SLOTS[index % SEAT_SLOTS.length];
 }
 
-function beatForSpeaker(huddle, speakerId) {
-  if (!huddle || !speakerId) return null;
-  return (
-    (huddle.beats ?? []).find((b) => b.speakerId === speakerId) ??
-    huddle.suggestions?.[speakerId] ??
-    null
-  );
-}
-
-/** Notebook prompt — only when the beat carries an explicit action item. */
-function delegatablePrompt(beat) {
-  return beat?.actionPrompt ?? null;
-}
-
 /**
- * Team huddle (docs/office-parody.md) — the face-to-face counterpart to the
- * remote WG meeting. Your teammates crowd in from every edge of the canvas and
- * take turns saying one thing about the diagram, replacing the bottom-nav
- * advisor bubble for the duration.
- *
- * Click any head to pin that teammate: they repeat their take aloud (never flash
- * stale text from earlier in the queue), a Do-it button lets you delegate, and
- * clicking anywhere else unpins. "Do it" opens the notebook while the ring
- * keeps watching, then the huddle resumes when the run finishes.
- *
- * Motion is deliberately the opposite of `OfficeWalkBy`: that one is a single
- * head dropping in over 720 ms and then looming at you forever, because it is
- * an ambient interruption you did not ask for. A huddle you *called*, so the
- * ring snaps into place (240 ms, staggered) and then holds still — the movement
- * is the arrival, not the presence.
- *
- * Voice-first: when narration is speaking and CC is off, the remark text is
- * hidden and the highlighted face carries who is talking. A bubble appears only
- * for remark text (when CC is on or voice is off) or a generated Do-it action.
+ * Team huddle (docs/office-parody.md) — desk renderer #1. The floor version is
+ * `FloorHuddle` (ADR-0011). Both share `useHuddleRingControls`.
  */
 export default function HuddleOverlay({
   huddle,
@@ -82,175 +45,36 @@ export default function HuddleOverlay({
   prefetchLine,
   onCancelNarration
 }) {
-  const snapshot = useSyncExternalStore(subscribe, getOfficeSnapshot, getOfficeSnapshot);
   const copy = officeChromeCopy().huddle;
-  const beats = huddle?.beats ?? [];
-  const speaking = huddle?.phase === 'speaking';
-  const watching = huddle?.phase === 'watching';
-  const pacingActive = (speaking || watching) && beats.length > 0;
-
-  const [pinnedSpeakerId, setPinnedSpeakerId] = useState(/** @type {string | null} */ (null));
-  const [fetchingSpeakerId, setFetchingSpeakerId] = useState(/** @type {string | null} */ (null));
-  const [repeatingSpeakerId, setRepeatingSpeakerId] = useState(/** @type {string | null} */ (null));
-  const pinGenerationRef = useRef(0);
-
-  // Clear pin / fetch chrome when the huddle dissolves or a new one starts.
-  useEffect(() => {
-    setPinnedSpeakerId(null);
-    setFetchingSpeakerId(null);
-    setRepeatingSpeakerId(null);
-    pinGenerationRef.current += 1;
-  }, [huddle?.id]);
-
-  // Do-it handoff dissolves the pin — the ring is watching the notebook now.
-  useEffect(() => {
-    if (huddle?.phase === 'watching') {
-      setPinnedSpeakerId(null);
-      setFetchingSpeakerId(null);
-      setRepeatingSpeakerId(null);
-    }
-  }, [huddle?.phase]);
-
-  // useScenePacing reveals every line at once when it has no narrator, which is
-  // right for a card of overheard chat and wrong for a ring of faces lighting up
-  // one at a time. Always hand it a narrator; the wrapper reports spoken:false
-  // when voice is off so it falls back to the reading-pace timer per line.
-  const speakLine = useCallback(
-    async (line) => {
-      if (typeof narrateLine !== 'function') return { spoken: false };
-      const result = await narrateLine(line);
-      return { spoken: Boolean(result?.spoken) };
-    },
-    [narrateLine]
-  );
-
-  const visibleLines = useScenePacing({
-    lines: beats,
-    active: pacingActive,
-    paused: watching || Boolean(pinnedSpeakerId),
-    narrateLine: speakLine,
+  const {
+    speaking,
+    watching,
+    pinnedSpeakerId,
+    fetchingSpeakerId,
+    repeatingSpeakerId,
+    activeBeat,
+    activeSpeakerId,
+    pinnedBeat,
+    pinnedPrompt,
+    showText,
+    unpin,
+    handleDoIt,
+    handleSeatClick
+  } = useHuddleRingControls({
+    huddle,
+    onHardStop,
+    onAdoptPrompt,
+    onRequestSuggestion,
+    narrateLine,
     prefetchLine,
-    paceMs: HUDDLE_LINE_PACE_MS,
-    silentDurationMs: HUDDLE_LINE_PACE_MS * Math.max(beats.length, 1),
-    tailMs: HUDDLE_TAIL_MS,
-    sceneId: huddle?.id ?? null,
-    onDone: onHardStop
+    onCancelNarration
   });
-
-  // Tell the store which remark is live so diagram refreshes keep finished lines.
-  useEffect(() => {
-    if (!huddle?.id || !pacingActive) return;
-    setOfficeHuddleActiveLineIndex(huddle.id, Math.max(0, visibleLines - 1));
-  }, [huddle?.id, pacingActive, visibleLines]);
-
-  useEffect(() => {
-    if (!huddle) return undefined;
-    const onKeyDown = (event) => {
-      if (event.key === 'Escape') onHardStop?.();
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [huddle, onHardStop]);
-
-  const unpin = useCallback(() => {
-    pinGenerationRef.current += 1;
-    setPinnedSpeakerId(null);
-    setFetchingSpeakerId(null);
-    setRepeatingSpeakerId(null);
-    onCancelNarration?.();
-  }, [onCancelNarration]);
-
-  const repeatPinnedBeat = useCallback(
-    async (speakerId, beat, generation) => {
-      if (!beat?.text) return;
-      setRepeatingSpeakerId(speakerId);
-      try {
-        const { spoken } = await speakLine(beat);
-        if (generation !== pinGenerationRef.current) return;
-        if (!spoken) {
-          await new Promise((resolve) => setTimeout(resolve, HUDDLE_LINE_PACE_MS));
-        }
-      } finally {
-        if (generation !== pinGenerationRef.current) return;
-        setRepeatingSpeakerId(null);
-        // No Do-it → they said it again, huddle continues from where it paused.
-        setPinnedSpeakerId(null);
-      }
-    },
-    [speakLine]
-  );
-
-  const handleDoIt = useCallback(
-    (speakerId, prompt) => {
-      if (!prompt || !speakerId) return;
-      pinGenerationRef.current += 1;
-      setRepeatingSpeakerId(null);
-      onCancelNarration?.();
-      onAdoptPrompt?.(prompt, speakerId);
-    },
-    [onAdoptPrompt, onCancelNarration]
-  );
-
-  const handleSeatClick = useCallback(
-    async (speakerId) => {
-      if (!huddle || !speakerId || watching) return;
-      if (pinnedSpeakerId === speakerId) {
-        unpin();
-        return;
-      }
-
-      const generation = ++pinGenerationRef.current;
-      setPinnedSpeakerId(speakerId);
-      setRepeatingSpeakerId(null);
-      onCancelNarration?.();
-
-      const existing = beatForSpeaker(huddle, speakerId);
-      if (existing?.text) {
-        void repeatPinnedBeat(speakerId, existing, generation);
-        return;
-      }
-      if (typeof onRequestSuggestion !== 'function') return;
-      if (fetchingSpeakerId) return;
-
-      setFetchingSpeakerId(speakerId);
-      try {
-        const beat = await onRequestSuggestion(speakerId);
-        if (generation !== pinGenerationRef.current) return;
-        if (beat?.text) {
-          void repeatPinnedBeat(speakerId, beat, generation);
-        }
-      } finally {
-        setFetchingSpeakerId((current) => (current === speakerId ? null : current));
-      }
-    },
-    [
-      huddle,
-      watching,
-      pinnedSpeakerId,
-      unpin,
-      onCancelNarration,
-      repeatPinnedBeat,
-      onRequestSuggestion,
-      fetchingSpeakerId
-    ]
-  );
 
   const handleShadeClick = useCallback(() => {
     if (pinnedSpeakerId) unpin();
   }, [pinnedSpeakerId, unpin]);
 
   if (!huddle) return null;
-
-  const activeBeat = speaking || watching ? beats[visibleLines - 1] : null;
-  const activeSpeakerId = watching || pinnedSpeakerId ? null : (activeBeat?.speakerId ?? null);
-  const pinnedBeat = pinnedSpeakerId ? beatForSpeaker(huddle, pinnedSpeakerId) : null;
-  const pinnedPrompt = pinnedSpeakerId ? delegatablePrompt(pinnedBeat) : null;
-  // Voice intent, not the wrapper: OfficeLayer only passes narrateLine when
-  // narration is on, so this is "somebody is about to say this out loud".
-  const showText = shouldShowSpokenText({
-    captions: snapshot.captions,
-    voiceActive: typeof narrateLine === 'function' && speaking
-  });
 
   return (
     <div

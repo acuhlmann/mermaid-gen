@@ -1,5 +1,6 @@
 import { ButtonIcon } from './AppIcons.jsx';
 import { officeChromeCopy } from '../utils/officeCast.js';
+import { OFFICE_VIEW_HOTKEY_LABEL } from '../hooks/useOfficeViewHotkey.js';
 
 const STAND_EMOJI = '🧍';
 const SIT_EMOJI = '🪑';
@@ -23,7 +24,9 @@ export default function DeskStandUpButton({
     : (desk.standUpShort ?? 'Stand up');
   const title = standing
     ? (desk.sitDownTitle ?? floor.backTitle ?? label)
-    : (desk.standUpTitle ?? label);
+    : [desk.standUpTitle ?? label, desk.officeViewShortcut ?? OFFICE_VIEW_HOTKEY_LABEL]
+        .filter(Boolean)
+        .join(' · ');
   const emoji = standing ? SIT_EMOJI : STAND_EMOJI;
 
   const buttonClass = [

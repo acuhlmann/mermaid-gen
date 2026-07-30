@@ -16876,6 +16876,35 @@ body.slopitect-rainbow-tint::before {
     filter 160ms ease;
 }
 
+/* Screen-world OS skin (docs/office-isometric-mode.md §4): kind-tinted edge. */
+.floating-window--os {
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: var(--control-shadow);
+}
+
+.floating-window--os::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 2px;
+  background: color-mix(in srgb, var(--accent) 55%, transparent);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.floating-window--inbox::before {
+  background: linear-gradient(90deg, #2563eb, #60a5fa);
+}
+
+.floating-window--messenger::before {
+  background: linear-gradient(90deg, #0d9488, #5eead4);
+}
+
+.floating-window--meeting::before {
+  background: linear-gradient(90deg, #7c3aed, #c4b5fd);
+}
+
 .floating-window.is-unfocused {
   opacity: 0.94;
   filter: saturate(0.92);
@@ -21834,5 +21863,90 @@ body.slopitect-rainbow-tint::before {
   .prompt-actions--mobile .overlay-button.slop-action-button {
     min-width: 2.65rem;
     padding-inline: 0.5rem;
+  }
+}
+
+/* Desk OS task strip — parody workstation chrome (§4). */
+.desk-os-tray {
+  position: fixed;
+  left: 50%;
+  bottom: calc(4.6rem + env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+  z-index: 280;
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  max-width: min(92vw, 42rem);
+  padding: 0.28rem 0.45rem 0.28rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--control-border) 80%, transparent);
+  background: color-mix(in srgb, var(--office-surface-bg, #fff) 88%, transparent);
+  box-shadow: var(--control-shadow);
+  backdrop-filter: blur(10px);
+  pointer-events: auto;
+}
+
+.desk-os-tray-brand {
+  flex: 0 0 auto;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.desk-os-tray-list {
+  display: flex;
+  gap: 0.28rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow-x: auto;
+  max-width: 100%;
+}
+
+.desk-os-tray-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  max-width: 10rem;
+  padding: 0.22rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 0.72rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.desk-os-tray-item:hover,
+.desk-os-tray-item:focus-visible {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  outline: none;
+}
+
+.desk-os-tray-item.is-focused {
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+}
+
+.desk-os-tray-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (max-width: 720px) {
+  .desk-os-tray {
+    left: 0.6rem;
+    right: 0.6rem;
+    transform: none;
+    max-width: none;
+  }
+
+  .desk-os-tray-brand {
+    display: none;
   }
 }

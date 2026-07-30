@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import CallMeetingPicker from './CallMeetingPicker.jsx';
 import CoffeeBreakOverlay from './CoffeeBreakOverlay.jsx';
 import DeskActionsDock from './DeskActionsDock.jsx';
+import DeskOsTray from './DeskOsTray.jsx';
 import HuddleOverlay from './HuddleOverlay.jsx';
 import MeetingInviteToast from './MeetingInviteToast.jsx';
 import MeetingOverlay from './MeetingOverlay.jsx';
@@ -565,9 +566,7 @@ export default function OfficeLayer({
    */
   const handleStartHuddle = useCallback(() => {
     if (meeting || getOfficeSnapshot().huddle) return;
-    // The huddle only has a desk renderer today, so standing on the floor would
-    // start a scene nobody can see. Sit down first rather than silently no-op.
-    if (getOfficeViewMode() === 'floor') sitDown();
+    // Floor renderer #2 rings the desk in place — no forced sit-down.
     void startHuddle(CAST_TIERS.team);
   }, [meeting, startHuddle]);
 
@@ -806,6 +805,15 @@ export default function OfficeLayer({
         meetingHandlers: {
           onInterject: interject,
           onLeave: handleMeetingDismiss
+        },
+        huddle,
+        huddleHandlers: {
+          onHardStop: handleHardStop,
+          onAdoptPrompt: handleHuddleAdopt,
+          onRequestSuggestion: requestSpeakerSuggestion,
+          narrateLine: snapshot.narration ? narrateLine : undefined,
+          prefetchLine: snapshot.narration ? prefetchLine : undefined,
+          onCancelNarration: cancelOfficeNarration
         }
       }),
     [
@@ -826,6 +834,11 @@ export default function OfficeLayer({
       handleBattleVote,
       handleBattleDone,
       meeting,
+      huddle,
+      handleHardStop,
+      handleHuddleAdopt,
+      requestSpeakerSuggestion,
+      cancelOfficeNarration,
       interject,
       handleMeetingDismiss
     ]
@@ -834,6 +847,9 @@ export default function OfficeLayer({
   return (
     <div className="office-layer">
       {deskActionsAnchorReady && deskSlot ? createPortal(deskDock, deskSlot) : null}
+      {/* Screen-world OS skin (§4): task strip of open office windows. Floor
+          mode is the physical world — hide the tray while standing. */}
+      <DeskOsTray open={!onFloor} />
       {/* Renderer #2 of the same office state (ADR-0011). Renders null at your
           desk; office windows below still float above it when you stand up. */}
       <OfficeFloor bridge={officeFloorBridge} />
@@ -931,10 +947,8 @@ export default function OfficeLayer({
         onConfirm={handleConfirmMeetingPicker}
         onCancel={handleCancelMeetingPicker}
       />
-      {/* Huddles are a desk-screen fiction — the team crowding the edges of your
-          monitor. The floor's version of that is them physically ringing your
-          desk, which is a future slice (ADR-0011 rule 1); until it exists the
-          verb sits you down rather than rendering nothing. */}
+      {/* Huddles: desk crowds the monitor edges; floor rings your desk
+          (ADR-0011 — mount one renderer at a time). */}
       {onFloor ? null : (
         <HuddleOverlay
           huddle={huddle}

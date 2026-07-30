@@ -761,6 +761,7 @@ export const OFFICE_ZH_CN = {
       standUpShort: '站起来',
       standUpRole: '楼层',
       standUpTitle: '离开屏幕，到楼层上看看你一直听到的办公室',
+      officeViewShortcut: 'Shift+O',
       sitDown: '回到屏幕前',
       sitDownShort: '坐下',
       sitDownTitle: '坐下，继续做交付物',
@@ -989,6 +990,155 @@ export const OFFICE_ZH_CN = {
       speakerViewHint: '正在收听 — 可在工位菜单打开字幕(CC)阅读',
       discussionToggle: '讨论纪要',
       discussionToggleHide: '隐藏讨论纪要'
+    },
+    floor: {
+      eyebrow: 'ARCHISLOP CORP. · 3 楼',
+      title: '楼层',
+      subtitle: '开放办公。墙拆了说是为了协作，会一个都没少。',
+      stageAria: '办公室楼层的等距视图',
+      back: '🪑 回到屏幕前',
+      backTitle: '坐下，继续做交付物',
+      hint: '点击地板走动。点同事认识他们，或双击走过去交谈。Esc 让你坐下。',
+      narration: {
+        atDesk: '在自己的工位。',
+        inMeeting: '在玻璃会议室里。',
+        walkingTo: '正走向 {name}。',
+        standingWith: '站在 {name} 旁边。',
+        walkingToDesk: '正走向 {name} 的工位。',
+        standingAtDesk: '站在 {name} 的工位旁。',
+        walkingToProp: '正走向 {prop}。',
+        standingAtProp: '站在 {prop} 旁。',
+        walkingHome: '正走回自己的工位。',
+        walkingFloor: '正走过楼层。',
+        standingFloor: '站在地板上。方向键迈步；Esc 走回工位。',
+        arriving: '{name} 正朝你的工位走来。',
+        leaving: '{name} 正走回自己的工位。',
+        inHuddle: '你的团队围在你工位旁开小会。'
+      },
+      arrival: {
+        eyebrow: 'ARCHISLOP CORP. · 入职第一天',
+        title: '欢迎来到楼层',
+        subtitle: '马上有人接待你。不会有。',
+        skip: '跳过仪式 →',
+        receptionEyebrow: '前台',
+        receptionBody:
+          '签到、拿工牌，装得像做过一样。琳达会速通全员介绍——然后把你按回工位做入职向导。',
+        checkIn: '签到 →',
+        clockIn: '🪑 打卡 — 坐到工位',
+        clockInEarly: '🪑 去工位（我懂了）',
+        narration: {
+          atReception: '在前台。签到开始。',
+          welcome: '琳达正在欢迎你。',
+          walkingToColleague: '正走向 {name}。',
+          standingWithColleague: '站在 {name} 旁边。',
+          colleagueIntroducing: '{name} 在工位上。',
+          walkingToDesk: '正走向你的工位。'
+        }
+      },
+      close: '关闭',
+      youName: '你',
+      youTitle: '架构师 — 新人',
+      youBlurb: '你的工位。你的交付物。你的显示器——这层楼唯一在干活的屏幕。',
+      sitHere: '🪑 在这里坐下',
+      message: '💬 发消息',
+      messageTitle: '打开与对方的 Slop Chat™',
+      seniorNote: '没有日历邀请免谈。',
+      teamNote: '是你的队友 — 从画布给他们交代。',
+      away: {
+        atLabel: '{who}，{prop}',
+        atProp: '不在工位：{prop}。',
+        elsewhere: '不在工位。'
+      },
+      talk: {
+        eyebrow: '当面聊聊',
+        action: '💬 走过去说',
+        actionTitle: '走过去说点什么 — 或双击对方',
+        walking: '正在走过去。开场白再练一遍。',
+        thinking: '对方正在想怎么回……',
+        placeholder: '说点什么……',
+        send: '发出去',
+        youLabel: '你',
+        leave: '🪑 回工位',
+        leaveTitle: '结束对话，走回屏幕前'
+      },
+      peek: {
+        eyebrow: '从肩膀上方偷看',
+        action: '👀 看他们屏幕',
+        actionTitle: '走过去看看对方在忙什么',
+        walking: '正在走过去。装得像有事找。',
+        back: '🪑 回工位',
+        backTitle: '走回自己的屏幕',
+        looks: {
+          terminal: '一个终端。绿字黑底，回滚到天边。',
+          tabs: '四十个标签页。其中一个是正事。',
+          spreadsheet: '一张表。标签叫 FINAL_v7_actual。',
+          slides: '幻灯片。第四页标题是“Slide 4”。',
+          tickets: '工单队列，按被无视了多久排序。',
+          calendar: '日历。满屏纯色。'
+        }
+      },
+      props: {
+        eyebrow: '动手试试',
+        walking: '正在过去。',
+        working: '稍等……',
+        blocked: '现在不行 — 你还有别的事。',
+        back: '🪑 回工位',
+        backTitle: '走回自己的屏幕',
+        items: {
+          coffeeMachine: {
+            glyph: '☕',
+            name: '咖啡机',
+            note: '茶水间 · 从未除垢',
+            useLabel: '咖啡机 — 来一杯',
+            useTitle: '走过去冲一杯',
+            line: '它研磨、嘶嘶响，吐出棕色液体。很快会有人过来找你说话。',
+            blocked: '已经在给别人做了。等你的轮次。'
+          },
+          printer: {
+            glyph: '🖨️',
+            name: '打印机',
+            note: '前台 · MFP-3 “SLOPMASTER”',
+            useLabel: '打印机 — 看看它',
+            useTitle: '走过去看一眼',
+            line: 'PC LOAD LETTER。这层楼从来没人装过信纸。队列显示 41 个任务，全是 2023 年的。'
+          },
+          whiteboard: {
+            glyph: '📋',
+            name: '白板',
+            note: '工位旁 · 请勿擦除',
+            useLabel: '白板 — 读读上面写的',
+            useTitle: '走过去读一下',
+            line: '两轮重组前的架构，油性笔写的。三个框、一根箭头，还有被划了两道的 SYNERGY。'
+          }
+        }
+      },
+      meeting: {
+        eyebrow: '玻璃会议室',
+        eyebrowRemote: '耳机同步会',
+        leave: '🚪 离开',
+        leaveTitle: '话没说完就走。Pam 会记进纪要。',
+        sitOut: '🪑 我的屏幕',
+        sitOutTitle: '坐下 — 会议继续，你不在房间里',
+        endedLine: '散会。纪要在你的屏幕上。',
+        readMinutes: '🪑 看纪要',
+        readMinutesTitle: '坐下 — 会议把纪要交给你的屏幕'
+      },
+      huddle: {
+        eyebrow: '团队围聚',
+        heading: '你的团队，围在你工位旁'
+      },
+      zones: {
+        reception: '前台',
+        leadership: '领导区',
+        kitchen: '茶水间',
+        meeting: '会议室',
+        pod: '你的工位区',
+        hrCorner: '人力资源'
+      }
+    },
+    osTray: {
+      aria: '已打开的工作站窗口',
+      brand: 'ArchiSlop OS'
     }
   }
 };

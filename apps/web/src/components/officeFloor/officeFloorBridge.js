@@ -40,6 +40,15 @@
  * @property {OfficeFloorSceneHandlers} sceneHandlers
  * @property {unknown} meeting
  * @property {OfficeFloorMeetingHandlers} meetingHandlers
+ * @property {unknown} huddle
+ * @property {{
+ *   onHardStop?: () => void,
+ *   onAdoptPrompt?: (prompt: string, colleagueId: string) => void,
+ *   onRequestSuggestion?: (speakerId: string) => Promise<any>,
+ *   narrateLine?: (line: any) => Promise<{ spoken?: boolean }>,
+ *   prefetchLine?: (line: any) => void,
+ *   onCancelNarration?: () => void
+ * }} huddleHandlers
  */
 
 /** Empty bridge for tests and mount points that only need defaults. */
@@ -50,7 +59,9 @@ export const EMPTY_OFFICE_FLOOR_BRIDGE = /** @type {OfficeFloorBridge} */ ({
   battle: null,
   sceneHandlers: {},
   meeting: null,
-  meetingHandlers: {}
+  meetingHandlers: {},
+  huddle: null,
+  huddleHandlers: {}
 });
 
 /**

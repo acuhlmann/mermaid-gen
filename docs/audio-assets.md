@@ -138,10 +138,9 @@ planning a large batch rather than trusting this number.
 2. **Diegetic prop cues are wired for the printer and coffee; the water cooler is still
    unreachable** on the isometric floor (§6 rule 21). If a standable mark is found for the cooler,
    `cuesForProp('waterCooler')` already returns the watercooler sample — no second wiring pass.
-3. **Per-room beds.** One bed currently plays everywhere. The isometric floor has rooms, so a
-   meeting-room or kitchen tone would make moving through the office change what you hear. 300
-   credits each; `officeRoomTone.js` would need to swap buffers on a crossfade rather than
-   assuming a single asset.
+3. ~~**Per-room beds.**~~ ✅ **zone-shaped single bed** — `setRoomToneZone` + `floorZoneToneAt`
+   colour the existing loop (kitchen brighter, glass muffled, pod bassier) without new assets.
+   True multi-buffer beds (kitchen espresso ambience, etc.) still want ElevenLabs regeneration.
 4. **A second variant for the highest-weight cues.** `keyboard` has weight 7 in
    `officeSoundscape.js` and an at-desk bias on top — it fires far more often than any set piece, so
    it is the first sample that will wear thin. Rate/gain jitter and panning delay that, they do not

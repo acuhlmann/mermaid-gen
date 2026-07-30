@@ -42,6 +42,7 @@ import { useVoiceInput } from './hooks/useVoiceInput.js';
 import { useDeskSlotRef } from './hooks/useDeskSlotRef.js';
 import { buildContentModeOptions } from './utils/renderModeAction.js';
 import { useOfficeAmbientAudio } from './hooks/useOfficeAmbientAudio.js';
+import { useOfficeViewHotkey } from './hooks/useOfficeViewHotkey.js';
 import { primeOfficeAudio } from './utils/officeAudioPrime.js';
 import {
   getOfficeViewMode,
@@ -649,6 +650,8 @@ export function ArchiSlop() {
     soundEnabled,
     roomToneViewMode: officeBootPending || officeViewMode === 'floor' ? 'floor' : 'desk'
   });
+
+  useOfficeViewHotkey({ enabled: !officeBootPending });
 
   useInsightsAutoClose({
     autoCloseActiveEntryIdRef,
