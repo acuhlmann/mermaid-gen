@@ -100,14 +100,14 @@ describe('useOfficeAmbience', () => {
     expect(countSurfaces(snapshot)).toBe(1);
   });
 
-  it('holds fire while the inbox still has unread mail', async () => {
+  it('still fires moments when the inbox has unread mail', async () => {
     pushOfficeEmail({
       colleagueId: 'hr',
       subject: 'FYI',
       body: 'read me'
     });
     renderHook(() => useOfficeAmbience(BASE_PARAMS));
-    await vi.advanceTimersByTimeAsync(FIRST_FIRE_MS + OFFICE_TICK_MS * 4);
-    expect(getOfficeSnapshot().imPings.length).toBe(0);
+    await vi.advanceTimersByTimeAsync(FIRST_FIRE_MS);
+    expect(getOfficeSnapshot().imPings.length).toBe(1);
   });
 });
