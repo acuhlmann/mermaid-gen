@@ -37,24 +37,32 @@ describe('OfficeBattleOverlay', () => {
     expect(container.firstChild).toBeNull();
   });
 
-  it('shows the invite pill with both combatants and the topic', () => {
+  it('shows the shoulder invite with both combatants and the topic', () => {
     const onAccept = vi.fn();
     const onDone = vi.fn();
     render(<OfficeBattleOverlay battle={BATTLE} onAccept={onAccept} onDone={onDone} />);
-    const invite = screen.getByRole('status');
+    const invite = screen.getByTestId('office-battle-invite');
     expect(invite.textContent).toContain('Ulrich');
     expect(invite.textContent).toContain('Chad');
     expect(invite.textContent).toContain('Tabs vs. spaces');
+    expect(invite.querySelectorAll('.office-battle-invite-avatar')).toHaveLength(2);
     fireEvent.click(screen.getByText('Grab popcorn'));
     expect(onAccept).toHaveBeenCalledOnce();
     fireEvent.click(screen.getByText('Not my circus'));
     expect(onDone).toHaveBeenCalledOnce();
   });
 
-  it('offers a get-out escape during line pacing', async () => {
+  it('dismisses the invite from the corner close button', () => {
+    const onDone = vi.fn();
+    render(<OfficeBattleOverlay battle={BATTLE} onDone={onDone} />);
+    fireEvent.click(screen.getByLabelText('Not my circus — walk away'));
+    expect(onDone).toHaveBeenCalledOnce();
+  });
+
+  it('offers a persistent escape during line pacing', async () => {
     const onDone = vi.fn();
     render(<OfficeBattleOverlay battle={{ ...BATTLE, accepted: true }} onDone={onDone} />);
-    fireEvent.click(screen.getByText('Walk away from the holy war'));
+    fireEvent.click(screen.getByLabelText('Walk away from the holy war'));
     expect(onDone).toHaveBeenCalledOnce();
   });
 

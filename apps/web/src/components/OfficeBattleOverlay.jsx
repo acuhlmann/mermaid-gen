@@ -4,14 +4,13 @@ import { OFFICE_NARRATION_GAP_MS } from '../utils/officeNarration.js';
 import { formatLocale } from '../i18n/formatLocale.js';
 import { shouldShowSpokenText } from '../utils/officeCaptions.js';
 import { getOfficeSnapshot, subscribe } from '../state/officeMomentStore.js';
-import { useNarrowLayout } from '../hooks/useAppLayoutMedia.js';
 import { PersonaFace } from './personaFaces/index.jsx';
-import FloatingWindow, { FloatingWindowDragHandle } from './FloatingWindow.jsx';
 
 export const BATTLE_LINE_PACE_MS = 1900;
 
 const FACE_SIZE = 128;
 const FACE_SIZE_SPEAKING = 140;
+const INVITE_FACE_SIZE = 108;
 
 /**
  * Holy war on the floor (docs/office-parody.md). Three-phase: a small invite pill
@@ -37,7 +36,6 @@ export default function OfficeBattleOverlay({
   narrateLine,
   prefetchLine
 }) {
-  const narrowLayout = useNarrowLayout();
   const snapshot = useSyncExternalStore(subscribe, getOfficeSnapshot, getOfficeSnapshot);
   const accepted = Boolean(battle?.accepted);
   const battleId = battle?.id ?? null;
@@ -122,42 +120,76 @@ export default function OfficeBattleOverlay({
   });
 
   if (!accepted) {
+    const inviteLine = formatLocale(copy.battle.inviteLine, {
+      a: sideA.name,
+      b: sideB.name,
+      topic: battle.topic
+    });
+
     return (
-      <FloatingWindow
-        id="office-battle-invite"
-        open
-        group="officeChrome"
-        className="office-battle-invite"
-        manageable={false}
-        defaultCorner="top-center"
-        defaultOffsetX={16}
-        defaultOffsetY={narrowLayout ? 92 : 76}
-        cascade={1}
+      <div
+        className="office-battle-invite-layer"
         role="status"
         aria-live="polite"
+        aria-label={inviteLine}
+        data-testid="office-battle-invite"
+        data-floating-window="office-battle-invite"
       >
-        <FloatingWindowDragHandle className="office-battle-invite-head" title="Drag to move">
-          <p className="office-moment-kind office-moment-kind--battle" aria-hidden="true">
-            {copy.battle.kindLabel}
-          </p>
-        </FloatingWindowDragHandle>
-        <span aria-hidden="true">🥊</span>
-        <span className="office-battle-invite-text">
-          {formatLocale(copy.battle.inviteLine, {
-            a: sideA.name,
-            b: sideB.name,
-            topic: battle.topic
-          })}
-        </span>
-        <div className="office-battle-invite-actions">
-          <button type="button" className="office-battle-accept" onClick={onAccept}>
-            {copy.battle.accept}
+        <div className="office-battle-invite-shade" aria-hidden="true" />
+        <div className="office-battle-invite office-battle-invite--shoulder">
+          <button
+            type="button"
+            className="office-battle-invite-dismiss"
+            aria-label={formatLocale(copy.battle.declineAria ?? copy.battle.decline, {
+              a: sideA.name,
+              b: sideB.name
+            })}
+            onClick={onDone}
+          >
+            ×
           </button>
-          <button type="button" className="office-battle-decline" onClick={onDone}>
-            {copy.battle.decline}
-          </button>
+          <div className="office-battle-invite-head" aria-hidden="true">
+            <div className="office-battle-invite-faceoff">
+              <div className="office-battle-invite-fighter">
+                <PersonaFace
+                  id={sideA.id}
+                  size={INVITE_FACE_SIZE}
+                  className="office-battle-invite-avatar"
+                  expressionOverride="frown"
+                />
+                <span className="office-battle-invite-name">{sideA.name}</span>
+              </div>
+              <span className="office-battle-invite-versus" aria-hidden="true">
+                🥊
+              </span>
+              <div className="office-battle-invite-fighter">
+                <PersonaFace
+                  id={sideB.id}
+                  size={INVITE_FACE_SIZE}
+                  className="office-battle-invite-avatar"
+                  expressionOverride="frown"
+                />
+                <span className="office-battle-invite-name">{sideB.name}</span>
+              </div>
+            </div>
+          </div>
+          <div className="office-battle-invite-presence">
+            <p className="office-moment-kind office-moment-kind--battle" aria-hidden="true">
+              {copy.battle.kindLabel}
+            </p>
+            <p className="office-battle-invite-topic">“{battle.topic}”</p>
+            <p className="office-battle-invite-ask">{copy.battle.inviteTagline}</p>
+            <div className="office-battle-invite-actions">
+              <button type="button" className="office-battle-accept" onClick={onAccept}>
+                {copy.battle.accept}
+              </button>
+              <button type="button" className="office-battle-decline" onClick={onDone}>
+                {copy.battle.decline}
+              </button>
+            </div>
+          </div>
         </div>
-      </FloatingWindow>
+      </div>
     );
   }
 
@@ -175,17 +207,20 @@ export default function OfficeBattleOverlay({
       aria-label={copy.battle.sceneAria}
       data-testid="office-battle-scene"
     >
+      <button
+        type="button"
+        className="office-battle-scene-dismiss"
+        aria-label={copy.battle.dismissAria ?? copy.battle.getOut}
+        onClick={onDone}
+      >
+        ×
+      </button>
       <div className="office-battle-shade" aria-hidden="true" />
       <div className="office-battle-chrome">
         <p className="office-battle-kind" aria-hidden="true">
           <span aria-hidden="true">🥊</span> {copy.battle.sceneTitle}
         </p>
         <p className="office-battle-topic">“{battle.topic}”</p>
-        {!votedFor && !allLinesIn ? (
-          <button type="button" className="office-battle-getout" onClick={onDone}>
-            {copy.battle.getOut}
-          </button>
-        ) : null}
       </div>
 
       <BattleFighter
