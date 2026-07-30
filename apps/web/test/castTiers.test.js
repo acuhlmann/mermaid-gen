@@ -152,6 +152,11 @@ describe('normalizeMeetingRoster', () => {
       normalizeMeetingRoster(['gilfoyle'], { forceFacilitator: true, random: () => 0 })
     ).toEqual(['scrumMaster', 'gilfoyle']);
   });
+
+  it('does not inject Pam into a large team-only roster', () => {
+    const teamRoster = ['gilfoyle', 'erlich', 'russ', 'jared', 'richard', 'dinesh'];
+    expect(normalizeMeetingRoster(teamRoster, { random: () => 0 })).toEqual(teamRoster);
+  });
 });
 
 describe('provisionalMeetingTitle', () => {

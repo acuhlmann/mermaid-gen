@@ -387,6 +387,8 @@ export default function OfficeDirectory({
     firstRunRef.current = false;
     setTourOpen(null);
     setOpen(false);
+    // Mirror before boot callbacks — consumers read the store synchronously.
+    setOfficeDirectoryOpen(false);
     if (wasFirstRun) onBootComplete?.(options);
   };
 
@@ -469,6 +471,7 @@ export default function OfficeDirectory({
       firstRunRef.current = false;
       setTourOpen(null);
       setOpen(false);
+      setOfficeDirectoryOpen(false);
       if (wasFirstRun) onBootComplete?.({ startDeskTour: true });
     })();
     return () => {
