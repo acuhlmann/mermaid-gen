@@ -1411,7 +1411,7 @@ export const OFFICE_CHROME_COPY = {
   desk: {
     buttonLabel: 'Your desk',
     buttonAria: 'Your desk — things you can do',
-    buttonTitle: 'Get up, wander, bother someone',
+    buttonTitle: 'Mail, chat, meetings, export, and office sound settings',
     menuAria: 'Desk actions',
     menuHeading: 'What are you doing?',
     sectionSeat: 'Your seat',
@@ -1607,6 +1607,16 @@ export const OFFICE_CHROME_COPY = {
     showFullAria: 'Open full message from {name} in Slop Chat',
     openHistoryAria: 'Open Slop Chat ({count} unread)',
     openHistoryTitle: 'Slop Chat™ — read past messages'
+  },
+  arrivals: {
+    regionAria: 'Desk arrivals — mail and chat',
+    emailKindLabel: 'Corporate inbox · New mail',
+    imKindLabel: 'Slop Chat™ · Instant message',
+    emailAnnounce: '{name} sent you mail',
+    imAnnounce: '{name} messaged you',
+    openMail: 'Check your mail',
+    openChat: 'Open Slop Chat',
+    dismissAria: 'Dismiss arrival from {name}'
   },
   messenger: {
     title: '💬 Slop Chat™',

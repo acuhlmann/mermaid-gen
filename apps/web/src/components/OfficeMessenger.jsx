@@ -145,8 +145,8 @@ function MessengerComposer({ chat, disabled, busy, targetName, onSend }) {
 /**
  * Slop Chat™ — the messenger window (docs/office-parody.md).
  *
- * OfficeImPing is a *notification*: two toasts, nine seconds, then gone. This
- * is the durable other half — `imHistory` in officeMomentStore keeps every IM
+ * OfficeDeskArrival is a *notification*: brief overviews that auto-expire.
+ * This is the durable other half — `imHistory` in officeMomentStore keeps every IM
  * so the user can scroll back through a thread they missed, and reply into it.
  *
  * Non-modal by design (same reasoning as the docked meeting): you read chat

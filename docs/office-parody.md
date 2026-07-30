@@ -7,9 +7,10 @@
 
 ## 1. Vision & tone
 
-archislop already ships an enterprise-parody **cast** (the six Stakeholders) — but a cast without a
-workplace. The office layer builds the workplace around the user: the diagram is the thing the
-office keeps interrupting you about. Comedy rules:
+archislop already ships an enterprise-parody **cast** (seven named Silicon Valley advisors in
+`VARIANT_PERSONAS`, plus dual-home Barker as CEO) — but a cast without a workplace. The office
+layer builds the workplace around the user: the diagram is the thing the office keeps interrupting
+you about. Comedy rules:
 
 - **Comedy from specificity.** The best moments reference the user's actual node labels ("the
   fridge email" is funny; "the fridge email about _Bake → Slice_" is funnier).
@@ -27,7 +28,7 @@ The office layer is a **fourth character system**, orthogonal to the existing th
 
 | System                            | Cast                                | Delivery                                |
 | --------------------------------- | ----------------------------------- | --------------------------------------- |
-| A. Stakeholders (advisor)         | 6 personas (`VARIANT_PERSONAS`)     | Proactive speech bubble, radial actions |
+| A. Stakeholders (advisor)         | 7 personas (`VARIANT_PERSONAS`)     | Proactive speech bubble, radial actions |
 | B. External agents (MCP)          | Real Cursor/Claude/VS Code guests   | session-events SSE, presence, proposals |
 | C. Run gamification               | XP/levels/achievements              | StreakHud, XP bar                       |
 | **D. Office ambience (this doc)** | **7 colleagues + the stakeholders** | **OfficeLayer chrome, `/api/office/*`** |
@@ -59,7 +60,7 @@ leadership pinging your desk.
 
 | id       | Name         | Title                                | Emoji | Bit                                                                                                                                                                                                                                                          |
 | -------- | ------------ | ------------------------------------ | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `barker` | Jack Barker  | CEO — Success Theater                | 🧘    | **Named Silicon Valley replication** — 6th radial advisor; dual-home team+senior; throttled roundtable (see note)                                                                                                                                            |
+| `barker` | Jack Barker  | CEO — Success Theater                | 🧘    | **Named Silicon Valley replication** — inherited the ex-`exec` seat (6th when he joined; 7th in today's `ADVISOR_ORDER` after Dinesh's new seat); dual-home team+senior; throttled roundtable (see note)                                                     |
 | `ciso`   | Sasha        | CISO — The Department of No          | 🔐    | Everything is an attack surface; runs the phishing sims                                                                                                                                                                                                      |
 | `belson` | Gavin Belson | CTO — Makes the World a Better Place | 🌐    | **Named Silicon Valley replication** (Session 8; ex-Marcus/`cto`) — messianic vision with a two-gear register (measured manifesto **or** cold fury / clipped swears when thinking is undersized); scarcer than Barker; Jack reports to him; never roundtable |
 | `cfo`    | Diane        | CFO — The Budget Is a No             | 🧮    | Every box is a cost center; asks what the diagram costs per month                                                                                                                                                                                            |

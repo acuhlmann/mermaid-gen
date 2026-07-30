@@ -1,12 +1,12 @@
 # Recipe: add a transform / intent variant
 
-Use when you want a new top-level user action besides Go / Gilfoyle / Dinesh / Erlich / Russ / Critique / Explain / Fix / Style — e.g. "Simplify", "Pitch deck", "Storyboard".
+Use when you want a new top-level user action besides Go / Gilfoyle / Dinesh / Erlich / Russ / Barker / Jared / Richard / Fix / Style — e.g. "Simplify", "Pitch deck", "Storyboard".
 
 ## Decide which path it belongs to
 
 - **Intent path** — anything that takes user input and produces a diagram (like Go or Fix). Same system prompt, single user turn from user wording. Hits `POST /api/copilotkit/intent` or `agent-stream` with `operation: intent`.
 - **Transform path** — same tools, but the _user message_ is server-generated for the named mode. Hits `POST /api/copilotkit/transform` (or `agent-stream` with `operation: transform`). This is where Gilfoyle / Dinesh / Erlich / Russ / Barker live.
-- **Analyze path** — read-only Markdown, no diagram tools. This is where Critique / Explain live.
+- **Analyze path** — read-only Markdown, no diagram tools. This is where Jared (`kind: jared`, radial **Critique**) and Richard (`kind: richard`, radial **Explain**) live.
 
 Pick by asking "does the user type the prompt?" — yes = intent; "does the server own the prompt for the named mode?" — yes = transform; "is the output Markdown only?" — yes = analyze.
 

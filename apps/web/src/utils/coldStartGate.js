@@ -8,7 +8,7 @@ const DEFAULT_BACKOFF_FACTOR = 1.35;
 const DEFAULT_FETCH_TIMEOUT_MS = 8_000;
 
 /**
- * Resolve `/api/health` for same-origin production and local Vite dev (API on :4000).
+ * Resolve `/api/health` for same-origin production and local Vite dev (proxied /api).
  * @param {{ location?: Location; apiBaseMeta?: string | null }} [options]
  */
 export function resolveHealthCheckUrl({ location = globalThis.location, apiBaseMeta = null } = {}) {
@@ -19,15 +19,6 @@ export function resolveHealthCheckUrl({ location = globalThis.location, apiBaseM
       : null);
   const trimmedMeta = typeof meta === 'string' ? meta.trim().replace(/\/+$/, '') : '';
   if (trimmedMeta) return `${trimmedMeta}/api/health`;
-
-  const host = location?.hostname ?? '';
-  const port = location?.port ?? '';
-  const isLocalDevHost = host === 'localhost' || host === '127.0.0.1';
-  const isViteDevPort = port && port !== '4000' && port !== '8080';
-
-  if (isLocalDevHost && isViteDevPort) {
-    return `http://${host}:4000/api/health`;
-  }
 
   const origin = location?.origin?.replace(/\/+$/, '') ?? '';
   return `${origin}/api/health`;

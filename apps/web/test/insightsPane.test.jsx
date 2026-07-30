@@ -1457,6 +1457,63 @@ flowchart TB
     expect(await screen.findByRole('checkbox', { name: /First improvement/i })).toBeTruthy();
   });
 
+  it('renders actionable checkboxes after Diagram type fit in canonical critique order', () => {
+    const critiqueText = `## Weaknesses and limits
+
+- Label overlap on the selected node.
+
+## Diagram type fit
+
+Flowchart fits the branching logic.
+
+## Visual and style review
+
+- Arrow labels could be clearer.
+
+## Actionable improvements
+
+- Shorten the label on the selected node
+- Add a guard on the branching edge
+`;
+    const split = splitCritiqueActionableSections(critiqueText);
+
+    const { container } = render(
+      <InsightsPane
+        entries={[
+          {
+            id: 'ent-order',
+            variant: 'jared',
+            status: 'done',
+            title: 'Critique — node',
+            content: critiqueText,
+            technicalActions: []
+          }
+        ]}
+        critiqueActionableUi={{
+          critiqueText,
+          insightEntryId: 'ent-order',
+          headingText: split.headingText,
+          items: split.items,
+          prefix: split.prefix,
+          suffix: split.suffix,
+          a2uiMessages: null,
+          busy: false,
+          onFixSelected: vi.fn(),
+          onFixAll: vi.fn()
+        }}
+        celebratingEntryId={null}
+      />
+    );
+
+    const proseSections = container.querySelectorAll('.insights-prose-section');
+    const sectionTexts = [...proseSections].map((el) => el.textContent ?? '');
+    const diagramTypeIdx = sectionTexts.findIndex((t) => /Diagram type fit/i.test(t));
+    const actionableIdx = sectionTexts.findIndex((t) => /Actionable improvements/i.test(t));
+    expect(diagramTypeIdx).toBeGreaterThanOrEqual(0);
+    expect(actionableIdx).toBeGreaterThan(diagramTypeIdx);
+    expect(screen.getAllByRole('checkbox')).toHaveLength(2);
+  });
+
   it('renders markdown tables in thinking content as UI tables', () => {
     const content = `Planning a horizontal bar chart.
 

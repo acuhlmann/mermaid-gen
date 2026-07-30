@@ -1564,31 +1564,6 @@ export default function InsightsPane({
 
                 <EntryRunMeta entry={entry} />
 
-                {canRetryInsightEntry(entry) ? (
-                  <div className="insights-entry-retry-row">
-                    <div className="insights-entry-retry-actions">
-                      <button
-                        type="button"
-                        className="insights-entry-retry-btn"
-                        disabled={retryActionsDisabled}
-                        onClick={() => onRetryInsightEntry?.(entry.id)}
-                      >
-                        {insightsCopy.retry}
-                      </button>
-                      {showRetryWithQualityForEntry(entry) ? (
-                        <button
-                          type="button"
-                          className="insights-entry-retry-btn is-quality"
-                          disabled={retryActionsDisabled}
-                          onClick={() => onRetryInsightEntryWithQuality?.(entry.id)}
-                        >
-                          {insightsCopy.retryQuality}
-                        </button>
-                      ) : null}
-                    </div>
-                  </div>
-                ) : null}
-
                 <RunTimeline
                   entry={entry}
                   variant={variant}
@@ -1770,6 +1745,31 @@ export default function InsightsPane({
                   hasResponse={Boolean(displayContent || explainStructured || showLiveDraftPreview)}
                   responseActive={isRunning && (isStreaming || showLiveDraftPreview)}
                 />
+
+                {canRetryInsightEntry(entry) ? (
+                  <div className="insights-entry-retry-row">
+                    <div className="insights-entry-retry-actions">
+                      <button
+                        type="button"
+                        className="insights-entry-retry-btn"
+                        disabled={retryActionsDisabled}
+                        onClick={() => onRetryInsightEntry?.(entry.id)}
+                      >
+                        {insightsCopy.retry}
+                      </button>
+                      {showRetryWithQualityForEntry(entry) ? (
+                        <button
+                          type="button"
+                          className="insights-entry-retry-btn is-quality"
+                          disabled={retryActionsDisabled}
+                          onClick={() => onRetryInsightEntryWithQuality?.(entry.id)}
+                        >
+                          {insightsCopy.retryQuality}
+                        </button>
+                      ) : null}
+                    </div>
+                  </div>
+                ) : null}
 
                 {streamDebugEnabled && entry.streamDebugLog?.length ? (
                   <details className="insights-stream-debug">

@@ -1,10 +1,10 @@
 const rawApiBase = (import.meta.env.VITE_API_BASE_URL ?? '').trim();
 
-/** In production, leave `VITE_API_BASE_URL` unset for same-origin `/api/...` (Cloud Run). In dev, defaults to the local server. */
+/** In production, leave `VITE_API_BASE_URL` unset for same-origin `/api/...` (Cloud Run). In dev, same-origin via the Vite proxy (see vite.config.js). */
 export const API_BASE_URL = rawApiBase
   ? rawApiBase.replace(/\/+$/, '')
   : import.meta.env.DEV
-    ? 'http://localhost:4000'
+    ? ''
     : '';
 
 export const SESSION_HEADER = 'x-session-id';

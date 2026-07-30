@@ -733,7 +733,7 @@ export const OFFICE_ZH_TW = {
     desk: {
       buttonLabel: '你的工位',
       buttonAria: '你的工位 — 你可以做的事',
-      buttonTitle: '起身、閒晃、打擾別人',
+      buttonTitle: '郵件、聊天、會議、匯出和辦公室聲音設定',
       menuAria: '工位操作',
       menuHeading: '你在幹嘛？',
       hrProgress: '查一下我的 HR 晉升進度',

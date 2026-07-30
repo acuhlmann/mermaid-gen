@@ -80,7 +80,7 @@ describe('useDeskActions', () => {
     await act(async () => {
       await result.current.imSomeone('intern');
     });
-    expect(getOfficeSnapshot().imPings.length).toBe(1);
+    expect(getOfficeSnapshot().deskArrivals.length).toBe(1);
   });
 
   it('delivers a contextual canned IM reply when the user messages someone', async () => {
@@ -91,9 +91,11 @@ describe('useDeskActions', () => {
         threadTranscript: [{ from: 'user', body: 'is this diagram too spicy?' }]
       });
     });
-    const ping = getOfficeSnapshot().imPings[0];
-    expect(ping).toBeTruthy();
-    expect(ping.body.toLowerCase()).toContain('spicy');
+    const arrival = getOfficeSnapshot().deskArrivals[0];
+    expect(arrival).toBeTruthy();
+    expect(arrival.kind).toBe('im');
+    const message = getOfficeSnapshot().imHistory.find((m) => !m.outbound);
+    expect(message.body.toLowerCase()).toContain('spicy');
   });
 
   it('delivers a contextual canned email reply when the user composes mail', async () => {

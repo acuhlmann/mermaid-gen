@@ -472,6 +472,8 @@ export const CONTROLS_EN_AU = {
       go: 'Go',
       goDiagram: 'Go — diagram',
       goQuoted: "Go '{excerpt}'",
+      delegateGo: '{name} · {title}',
+      batchMore: '(+{count} more)',
       edge: 'edge',
       node: 'node',
       subgraph: 'subgraph',

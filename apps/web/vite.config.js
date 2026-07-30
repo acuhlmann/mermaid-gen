@@ -15,9 +15,18 @@ function normalizeBase(value) {
 
 // https://vite.dev/config/
 // Set VITE_BASE_PATH for subdirectory deploys (e.g. /hackathon/ behind a load balancer).
+const devApiPort = process.env.PORT?.trim() || '4000';
+
 export default defineConfig({
   base: normalizeBase(process.env.VITE_BASE_PATH),
   plugins: [react()],
+  server: {
+    // Same-origin /api in dev so Visitor Badge cookies work when VISITOR_BADGE_SECRETS is set.
+    proxy: {
+      '/api': { target: `http://127.0.0.1:${devApiPort}`, changeOrigin: true },
+      '/mcp': { target: `http://127.0.0.1:${devApiPort}`, changeOrigin: true }
+    }
+  },
   resolve: {
     alias: {
       // PostCSS (pulled in by @antv/infographic) expects Node built-ins; Vite otherwise

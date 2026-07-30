@@ -10,7 +10,7 @@ import MeetingOverlay from './MeetingOverlay.jsx';
 import OfficeBattleOverlay from './OfficeBattleOverlay.jsx';
 import OfficeFloor from './OfficeFloor.jsx';
 import { createOfficeFloorBridge } from './officeFloor/officeFloorBridge.js';
-import OfficeImPing from './OfficeImPing.jsx';
+import OfficeDeskArrival from './OfficeDeskArrival.jsx';
 import OfficeInboxDock from './OfficeInboxDock.jsx';
 import OfficeMessenger from './OfficeMessenger.jsx';
 import OfficeWalkBy from './OfficeWalkBy.jsx';
@@ -25,8 +25,8 @@ import {
   acceptOfficeCoffee,
   dismissOfficeBattle,
   dismissOfficeCoffee,
-  dismissOfficeImPing,
-  clearOfficeImPings,
+  dismissDeskArrival,
+  clearDeskArrivals,
   dismissOfficeMeetingInvite,
   dismissOfficeWalkBy,
   getOfficeSnapshot,
@@ -283,7 +283,7 @@ export default function OfficeLayer({
   // playing. playChime is App's sound gate (soundEnabled + gesture). Sampled
   // cues prefer the baked assets (docs/audio-assets.md).
   const prevUnreadRef = useRef(snapshot.unreadCount);
-  const prevPingCountRef = useRef(snapshot.imPings.length);
+  const prevArrivalCountRef = useRef(snapshot.deskArrivals.length);
   const prevMeetingStateRef = useRef(null);
   const prevWalkByIdRef = useRef(snapshot.walkBy?.id ?? null);
   const prevInviteIdRef = useRef(snapshot.meetingInvite?.id ?? null);
@@ -308,9 +308,14 @@ export default function OfficeLayer({
     prevUnreadRef.current = snapshot.unreadCount;
   }, [snapshot.unreadCount, playChime]);
   useEffect(() => {
-    if (snapshot.imPings.length > prevPingCountRef.current) playChime?.(playImPing);
-    prevPingCountRef.current = snapshot.imPings.length;
-  }, [snapshot.imPings.length, playChime]);
+    const prev = prevArrivalCountRef.current;
+    const next = snapshot.deskArrivals.length;
+    if (next > prev) {
+      const latest = snapshot.deskArrivals[next - 1];
+      if (latest?.kind === 'im') playChime?.(playImPing);
+    }
+    prevArrivalCountRef.current = next;
+  }, [snapshot.deskArrivals, playChime]);
   useEffect(() => {
     const walkBy = snapshot.walkBy;
     const walkById = walkBy?.id ?? null;
@@ -408,11 +413,11 @@ export default function OfficeLayer({
   const [messengerBusy, setMessengerBusy] = useState(false);
   const [messengerTargetId, setMessengerTargetId] = useState(null);
   const handleOpenMessenger = useCallback(() => {
-    clearOfficeImPings();
+    clearDeskArrivals();
     setMessengerOpen(true);
   }, []);
   const handleOpenImMessage = useCallback((colleagueId, pingId) => {
-    if (pingId) dismissOfficeImPing(pingId);
+    if (pingId) dismissDeskArrival(pingId);
     setMessengerTargetId(colleagueId);
     setMessengerOpen(true);
   }, []);
@@ -713,7 +718,7 @@ export default function OfficeLayer({
   // Walking up to somebody on the isometric floor reuses the desk's IM verb —
   // renderer #2 gets no private dialogue path of its own (ADR-0011).
   const handleFloorMessage = useCallback((colleagueId) => {
-    clearOfficeImPings();
+    clearDeskArrivals();
     setMessengerTargetId(colleagueId);
     setMessengerOpen(true);
   }, []);
@@ -869,20 +874,21 @@ export default function OfficeLayer({
       />
       {suppressDistractions ? null : (
         <>
-          {/* One renderer per line. The messenger being open already suppressed
-              the toast; standing in front of somebody has to do the same, or
-              their answer arrives as a bubble *and* a toast and the narrator
-              reads it out twice. */}
-          <OfficeImPing
-            pings={
+          {/* Brief desk-side arrivals for mail and IM; unread badges live on Your desk. */}
+          <OfficeDeskArrival
+            arrivals={
               messengerOpen
-                ? []
-                : snapshot.imPings.filter((ping) => ping.colleagueId !== floorTalkingTo)
+                ? snapshot.deskArrivals.filter((a) => a.kind !== 'im')
+                : snapshot.deskArrivals.filter(
+                    (a) => a.kind !== 'im' || a.colleagueId !== floorTalkingTo
+                  )
             }
-            imUnreadCount={messengerOpen ? 0 : snapshot.imUnreadCount}
-            onDismiss={dismissOfficeImPing}
-            onOpenMessage={handleOpenImMessage}
-            onOpenHistory={handleOpenMessenger}
+            onDismiss={dismissDeskArrival}
+            onOpenEmail={(arrival) => {
+              dismissDeskArrival(arrival.id);
+              setInboxOpenSignal((n) => n + 1);
+            }}
+            onOpenIm={(arrival) => handleOpenImMessage(arrival.colleagueId, arrival.id)}
           />
           <OfficeMessenger
             open={messengerOpen}

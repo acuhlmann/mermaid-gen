@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   buildAdvisorIntentPrompt,
   buildOfficeBatchIntentPrompt,
+  extractStakeholderSuggestionDisplay,
   focusNodeFromAdvisorDescriptor,
   resolveAdvisorFocusNode
 } from '../src/utils/advisorActionContext.js';
@@ -41,5 +42,15 @@ describe('advisorActionContext', () => {
     expect(prompt).toContain('stakeholder suggestions');
     expect(prompt).toContain('Label the Retail node');
     expect(prompt).toContain('Add an owner to Consumption');
+  });
+
+  it('extracts the suggestion line for Thinking titles', () => {
+    const prompt = buildAdvisorIntentPrompt('Rename Cache to Redis');
+    expect(extractStakeholderSuggestionDisplay(prompt)).toBe('Rename Cache to Redis');
+  });
+
+  it('summarizes batch suggestions for Thinking titles', () => {
+    const prompt = buildOfficeBatchIntentPrompt(['First ask', 'Second ask']);
+    expect(extractStakeholderSuggestionDisplay(prompt)).toBe('First ask (+1 more)');
   });
 });

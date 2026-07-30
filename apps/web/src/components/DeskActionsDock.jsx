@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { ArchiSlopMarkIcon } from './AppIcons.jsx';
+import { ArchiSlopMarkIcon, ButtonIcon } from './AppIcons.jsx';
 import ConcentrationControl from './ConcentrationControl.jsx';
 import DeskAttributionStrip from './DeskAttributionStrip.jsx';
 import DeskStandUpButton from './DeskStandUpButton.jsx';
@@ -241,6 +241,14 @@ export default function DeskActionsDock({
   ].filter(Boolean);
 
   const placementClass = placement === 'bottom' ? ' desk-actions--bottom' : '';
+  const isBottom = placement === 'bottom';
+  const triggerClass = [
+    'desk-actions-button',
+    isBottom ? 'overlay-button compact-button slop-action-button is-brand' : '',
+    open ? 'is-open' : ''
+  ]
+    .filter(Boolean)
+    .join(' ');
 
   const renderOutboxVerb = () => {
     const disabled = !canOpenOutbox;
@@ -404,12 +412,19 @@ export default function DeskActionsDock({
         )
       : null;
 
+  const unreadBadge =
+    unreadCount > 0 ? (
+      <span className="desk-actions-unread-badge" aria-hidden="true">
+        {unreadCount > 9 ? '9+' : unreadCount}
+      </span>
+    ) : null;
+
   return (
     <div className={`desk-actions${placementClass}`} ref={rootRef}>
       <button
         ref={triggerRef}
         type="button"
-        className={`desk-actions-button${open ? ' is-open' : ''}`}
+        className={triggerClass}
         aria-label={copy.buttonAria}
         aria-expanded={open}
         aria-haspopup="menu"
@@ -417,15 +432,24 @@ export default function DeskActionsDock({
         data-testid="bottom-brand-mark"
         onClick={() => setOpen((prev) => !prev)}
       >
-        <span className="desk-actions-button-stamp is-brand" aria-hidden="true">
-          <ArchiSlopMarkIcon />
+        {isBottom ? (
+          <ButtonIcon>
+            <span className="action-persona-icon is-brand" aria-hidden="true">
+              <ArchiSlopMarkIcon />
+              {unreadBadge}
+            </span>
+          </ButtonIcon>
+        ) : (
+          <>
+            <span className="desk-actions-button-stamp is-brand" aria-hidden="true">
+              <ArchiSlopMarkIcon />
+            </span>
+            {unreadBadge}
+          </>
+        )}
+        <span className={isBottom ? 'button-label' : 'desk-actions-button-label'}>
+          {copy.buttonLabel}
         </span>
-        <span className="desk-actions-button-label">{copy.buttonLabel}</span>
-        {unreadCount > 0 ? (
-          <span className="desk-actions-unread-badge" aria-hidden="true">
-            {unreadCount > 9 ? '9+' : unreadCount}
-          </span>
-        ) : null}
       </button>
       {placement === 'bottom' ? (
         <DeskStandUpButton standing={standing} onStandUp={onStandUp} onSitDown={onSitDown} />

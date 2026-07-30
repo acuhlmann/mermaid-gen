@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import {
   DEFAULT_USER_NAME,
   getStoredUserName,
@@ -28,14 +28,55 @@ function NameTagHeader({ hello, subtitle }) {
   );
 }
 
-/** The edit form — a controlled text field that commits on submit/blur. */
+const NAME_TAG_SAVE_DEBOUNCE_MS = 300;
+
+/** The edit form — persists on a short debounce so refresh mid-type keeps the draft. */
 function NameTagEditor({ text, stored, onCommit, onCancel }) {
   const [draft, setDraft] = useState(stored);
   const inputRef = useRef(null);
+  const originalRef = useRef(stored);
+  const debounceRef = useRef(null);
+
+  const persistNow = useCallback((value) => {
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+      debounceRef.current = null;
+    }
+    setUserName(value);
+  }, []);
+
+  const schedulePersist = useCallback((value) => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      debounceRef.current = null;
+      setUserName(value);
+    }, NAME_TAG_SAVE_DEBOUNCE_MS);
+  }, []);
+
+  useEffect(() => {
+    schedulePersist(draft);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [draft, schedulePersist]);
 
   useEffect(() => {
     inputRef.current?.select();
   }, []);
+
+  const finish = (value) => {
+    persistNow(value);
+    onCommit();
+  };
+
+  const cancel = () => {
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+      debounceRef.current = null;
+    }
+    setUserName(originalRef.current);
+    onCancel();
+  };
 
   return (
     <form
@@ -43,7 +84,7 @@ function NameTagEditor({ text, stored, onCommit, onCancel }) {
       data-testid="name-tag"
       onSubmit={(event) => {
         event.preventDefault();
-        onCommit(draft);
+        finish(draft);
       }}
     >
       <NameTagHeader hello={text.hello} subtitle={text.subtitle} />
@@ -55,9 +96,9 @@ function NameTagEditor({ text, stored, onCommit, onCancel }) {
         placeholder={text.placeholder}
         aria-label={text.inputAria}
         onChange={(event) => setDraft(event.target.value)}
-        onBlur={() => onCommit(draft)}
+        onBlur={() => finish(draft)}
         onKeyDown={(event) => {
-          if (event.key === 'Escape') onCancel();
+          if (event.key === 'Escape') cancel();
         }}
       />
     </form>
@@ -75,20 +116,24 @@ function NameTagEditor({ text, stored, onCommit, onCancel }) {
  * you nameless. Copy is optional so the badge still renders with sane English
  * defaults when a locale bundle omits the section.
  */
-export default function NameTag({ copy }) {
+export default function NameTag({ copy, autoEditWhenEmpty = false }) {
   const stored = useSyncExternalStore(subscribe, getStoredUserName, getStoredUserName);
   const [editing, setEditing] = useState(false);
+  const autoOpenedRef = useRef(false);
   const text = resolveNameTagCopy(copy);
+
+  useEffect(() => {
+    if (!autoEditWhenEmpty || autoOpenedRef.current || stored) return;
+    autoOpenedRef.current = true;
+    setEditing(true);
+  }, [autoEditWhenEmpty, stored]);
 
   if (editing) {
     return (
       <NameTagEditor
         text={text}
         stored={stored}
-        onCommit={(draft) => {
-          setUserName(draft);
-          setEditing(false);
-        }}
+        onCommit={() => setEditing(false)}
         onCancel={() => setEditing(false)}
       />
     );

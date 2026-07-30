@@ -14,8 +14,8 @@ import {
   hasActiveOfficeSurface,
   shouldHoldAmbientOfficeMoments,
   IM_HISTORY_MAX,
-  IM_PING_MAX_VISIBLE,
-  IM_PING_TTL_MS,
+  DESK_ARRIVAL_MAX_VISIBLE,
+  DESK_ARRIVAL_TTL_MS,
   markAllOfficeEmailsRead,
   markOfficeEmailRead,
   markOfficeImsRead,
@@ -69,50 +69,58 @@ describe('officeMomentStore', () => {
     expect(getOfficeSnapshot().emails).toHaveLength(2);
   });
 
-  it('caps visible IM pings and expires them on TTL', () => {
+  it('caps visible desk arrivals and expires them on TTL', () => {
     pushOfficeImPing({ colleagueId: 'intern', body: 'one' });
     pushOfficeImPing({ colleagueId: 'intern', body: 'two' });
     pushOfficeImPing({ colleagueId: 'intern', body: 'three' });
-    expect(getOfficeSnapshot().imPings).toHaveLength(IM_PING_MAX_VISIBLE);
-    vi.advanceTimersByTime(IM_PING_TTL_MS + 10);
-    expect(getOfficeSnapshot().imPings).toHaveLength(0);
+    expect(getOfficeSnapshot().deskArrivals).toHaveLength(DESK_ARRIVAL_MAX_VISIBLE);
+    vi.advanceTimersByTime(DESK_ARRIVAL_TTL_MS + 10);
+    expect(getOfficeSnapshot().deskArrivals).toHaveLength(0);
   });
 
-  it('dismisses an IM ping manually without touching its siblings', () => {
-    const first = pushOfficeImPing({ colleagueId: 'intern', body: 'one' });
+  it('dismisses a desk arrival manually without touching its siblings', () => {
+    pushOfficeImPing({ colleagueId: 'intern', body: 'one' });
     pushOfficeImPing({ colleagueId: 'greybeard', body: 'two' });
-    dismissOfficeImPing(first);
-    expect(getOfficeSnapshot().imPings.map((p) => p.body)).toEqual(['two']);
+    const firstArrival = getOfficeSnapshot().deskArrivals[0];
+    dismissOfficeImPing(firstArrival.id);
+    expect(getOfficeSnapshot().deskArrivals.map((a) => a.colleagueId)).toEqual(['greybeard']);
   });
 
-  it('keeps IM history after the toasts cap out and expire', () => {
+  it('keeps IM history after arrivals cap out and expire', () => {
     pushOfficeImPing({ colleagueId: 'intern', body: 'one' });
     pushOfficeImPing({ colleagueId: 'intern', body: 'two' });
     pushOfficeImPing({ colleagueId: 'greybeard', body: 'three' });
-    // Toasts are capped; history is not.
-    expect(getOfficeSnapshot().imPings).toHaveLength(IM_PING_MAX_VISIBLE);
+    expect(getOfficeSnapshot().deskArrivals).toHaveLength(DESK_ARRIVAL_MAX_VISIBLE);
     expect(getOfficeSnapshot().imHistory.map((m) => m.body)).toEqual(['one', 'two', 'three']);
 
-    vi.advanceTimersByTime(IM_PING_TTL_MS + 10);
-    expect(getOfficeSnapshot().imPings).toHaveLength(0);
-    // The whole point of the messenger: expiry must not erase the log.
+    vi.advanceTimersByTime(DESK_ARRIVAL_TTL_MS + 10);
+    expect(getOfficeSnapshot().deskArrivals).toHaveLength(0);
     expect(getOfficeSnapshot().imHistory).toHaveLength(3);
     expect(getOfficeSnapshot().imUnreadCount).toBe(3);
   });
 
-  it('dismissing a toast leaves its message in history', () => {
-    const id = pushOfficeImPing({ colleagueId: 'intern', body: 'still here' });
-    dismissOfficeImPing(id);
-    expect(getOfficeSnapshot().imPings).toHaveLength(0);
+  it('dismissing an arrival leaves its message in history', () => {
+    pushOfficeImPing({ colleagueId: 'intern', body: 'still here' });
+    dismissOfficeImPing(getOfficeSnapshot().deskArrivals[0].id);
+    expect(getOfficeSnapshot().deskArrivals).toHaveLength(0);
     expect(getOfficeSnapshot().imHistory.map((m) => m.body)).toEqual(['still here']);
   });
 
-  it('clearOfficeImPings drops toasts without touching history', () => {
+  it('clearOfficeImPings drops arrivals without touching history', () => {
     pushOfficeImPing({ colleagueId: 'intern', body: 'ping one' });
     pushOfficeImPing({ colleagueId: 'greybeard', body: 'ping two' });
     clearOfficeImPings();
-    expect(getOfficeSnapshot().imPings).toHaveLength(0);
+    expect(getOfficeSnapshot().deskArrivals).toHaveLength(0);
     expect(getOfficeSnapshot().imHistory.map((m) => m.body)).toEqual(['ping one', 'ping two']);
+  });
+
+  it('creates email desk arrivals that expire without clearing unread mail', () => {
+    pushOfficeEmail({ colleagueId: 'hr', subject: 'Welcome', body: 'Hi' });
+    expect(getOfficeSnapshot().deskArrivals).toHaveLength(1);
+    expect(getOfficeSnapshot().deskArrivals[0].kind).toBe('email');
+    vi.advanceTimersByTime(DESK_ARRIVAL_TTL_MS + 10);
+    expect(getOfficeSnapshot().deskArrivals).toHaveLength(0);
+    expect(getOfficeSnapshot().unreadCount).toBe(1);
   });
 
   it('records outbound replies without counting them as unread', () => {
@@ -327,10 +335,17 @@ describe('officeMomentStore', () => {
     expect(hasActiveOfficeSurface()).toBe(false);
   });
 
-  it('treats a single IM toast as an active surface', () => {
+  it('treats a single IM desk arrival as an active surface', () => {
     pushOfficeImPing({ colleagueId: 'intern', body: 'ping' });
     expect(hasActiveOfficeSurface()).toBe(true);
     expect(shouldHoldAmbientOfficeMoments()).toBe(true);
+  });
+
+  it('does not treat email desk arrivals as an active surface', () => {
+    pushOfficeEmail({ colleagueId: 'hr', subject: 'Welcome', body: 'Hi' });
+    expect(getOfficeSnapshot().deskArrivals).toHaveLength(1);
+    expect(hasActiveOfficeSurface()).toBe(false);
+    expect(shouldHoldAmbientOfficeMoments()).toBe(false);
   });
 
   it('does not hold ambient moments solely for unread inbox or Slop Chat backlog', () => {
@@ -339,11 +354,13 @@ describe('officeMomentStore', () => {
       subject: 'Welcome',
       body: 'Hi'
     });
+    vi.advanceTimersByTime(DESK_ARRIVAL_TTL_MS + 10);
     expect(hasActiveOfficeSurface()).toBe(false);
     expect(shouldHoldAmbientOfficeMoments()).toBe(false);
+    expect(getOfficeSnapshot().unreadCount).toBe(1);
     pushOfficeImPing({ colleagueId: 'intern', body: 'ping' });
     markOfficeImsRead();
-    dismissOfficeImPing(getOfficeSnapshot().imPings[0].id);
+    dismissOfficeImPing(getOfficeSnapshot().deskArrivals[0].id);
     expect(shouldHoldAmbientOfficeMoments()).toBe(false);
   });
 });

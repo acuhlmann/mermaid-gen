@@ -4,6 +4,7 @@ import { getOfficeSnapshot, subscribe } from '../../state/officeMomentStore.js';
 import { focusPayload } from '../../utils/appInsightHelpers.js';
 import { applyDiagramHighlightToSvg } from '../../utils/applyDiagramHighlightToSvg.js';
 import { buildAdvisorIntentPrompt } from '../../utils/advisorActionContext.js';
+import { actionPersonaName } from '../../utils/appActionPersonas.js';
 import { resolveAdvisorAcceptOperation } from '../../utils/advisorAcceptRouting.js';
 import { getVariantPersona } from '../../utils/slopitectCopy.js';
 import {
@@ -103,6 +104,8 @@ export function useAdvisorShell({
         return;
       }
       void submitIntentWithPrompt(buildAdvisorIntentPrompt(text), {
+        titlePrompt: text,
+        delegateName: actionPersonaName(persona),
         variantOverride: persona,
         transformPersona: persona,
         ...advisorCtx

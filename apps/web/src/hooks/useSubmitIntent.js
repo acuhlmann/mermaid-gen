@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { isContentMode } from '../utils/renderModeAction.js';
 import { playSubmitThunk } from '../utils/agentChimes.js';
+import { extractStakeholderSuggestionDisplay } from '../utils/advisorActionContext.js';
 import { goIntentInsightTitle } from '../utils/goIntentInsightTitle.js';
 import { topicFromDescriptor } from '../utils/appInsightHelpers.js';
 import { resolveAdvisorFocusNode } from '../utils/advisorActionContext.js';
@@ -113,7 +114,14 @@ export function useSubmitIntent({
             ...(options.peerContext ? { peerContext: options.peerContext } : {}),
             ...(options.transformPersona ? { transformPersona: options.transformPersona } : {})
           },
-          title: goIntentInsightTitle(trimmed, titleSelection, controls.insights?.goIntent),
+          title: goIntentInsightTitle(
+            options.titlePrompt ??
+              extractStakeholderSuggestionDisplay(trimmed, controls.insights?.goIntent) ??
+              trimmed,
+            titleSelection,
+            controls.insights?.goIntent,
+            { delegateName: options.delegateName }
+          ),
           variant: options.variantOverride ?? 'intent',
           diagramUndoBaseline: { ...syncedState },
           topic: topicFromDescriptor(titleSelection),

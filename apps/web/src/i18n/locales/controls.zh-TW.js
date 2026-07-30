@@ -432,6 +432,8 @@ export const CONTROLS_ZH_TW = {
       go: '開始',
       goDiagram: '開始 — 圖表',
       goQuoted: '開始「{excerpt}」',
+      delegateGo: '{name} · {title}',
+      batchMore: '（+{count} 項）',
       edge: '連線',
       node: '節點',
       subgraph: '子圖',

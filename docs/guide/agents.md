@@ -49,7 +49,7 @@ flowchart TB
 
 - **Intent agent** — `SYSTEM_PROMPT` plus a single user turn. **Go** sends the prompt-bar text inside `applyIntent`'s "interpret and apply" template (with optional focus). **Fix** and **syntax auto-fix** are also intent: the web app composes a different user message but hits the same `POST /api/copilotkit/intent` (or `agent-stream` with `operation: intent`). Uses the **default** (non-transform) agent; model tier follows the UI **Fast** / **Quality** profile.
 - **Transform agent** — Same system prompt and tools as intent, but the **user message** is entirely produced by `buildTransformUserContent` for `gilfoyle` | `dinesh` | `erlich` | `russ` | `barker`. Russ adds **depth** (`russStreak + 1` in the client, capped at 12): hotter sampling and extra escalation text in the prompt. Cached **per mode** (and per Russ depth), not shared with intent.
-- **Analysis** — Separate chat model path: read-only system prompt plus `buildCritiqueTask` or `buildExplainTask`. **No** diagram tools; output is Markdown only. Used for **Critique** and **Explain**.
+- **Analysis** — Separate chat model path: read-only system prompt plus `buildCritiqueTask` or `buildExplainTask`. **No** diagram tools; output is Markdown only. Wire ids `jared` and `richard` (radial labels **Critique** / **Explain**).
 
 Agents are created in `createMermaidLangChainAgent` / `createInfographicLangChainAgent` and cached per model key so repeated operations reuse instances.
 
@@ -78,7 +78,7 @@ Validation and repair ladders: [Validation & repair](validation.md).
 2. User edits source or loads state; client syncs via `GET`/`POST /api/copilotkit/state` with `contentType`.
 3. **Go** and **Fix from critique** use the **intent** operation: `POST /api/copilotkit/agent-stream` with `operation: intent`, or `POST /api/copilotkit/intent` without streaming. The active `contentType` is forwarded. **Syntax auto-fix** for Mermaid and Anything tries the fast-path `POST /api/diagram/render-error` first (one fixer call, no agent loop) and only falls back to the intent operation on rejection.
 4. **Gilfoyle / Dinesh / Erlich / Russ / Barker** use `agent-stream` or `POST /api/copilotkit/transform` with `mode` and optional `russDepth`.
-5. **Critique / Explain** use `analyze` or `agent-stream` with `operation: analyze`; responses patch insights only, not diagram state.
+5. **Jared / Richard** (radial **Critique** / **Explain**) use `analyze` or `agent-stream` with `operation: analyze` and `kind: jared` \| `richard`; responses patch insights only, not diagram state.
 6. **Style** is Mermaid or Chart only; the route rejects other `contentType` values with a 400.
 7. **Clear** resets to the starter diagram for the active mode via client + server state conventions.
 

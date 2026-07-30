@@ -101,12 +101,13 @@ test + doc sweep). What shipped, as the template for any future weight change:
    stationary distribution, `π(j) ∝ w(j)·(total − w(j))` — which lands Barker slightly above a
    flat 0.5×. **Both numbers move every time the pool grows**, so the sweep in
    `useAdvisorOrchestrator.test.js` is written as fractions of the live pool, not as literals:
-   with 6 peers + Barker at 0.5 (total 6.5) a single draw is 2/13 per peer vs 1/13, and the
-   120k-turn rotation is 5.5/36 (≈15%) per peer vs 3/36 (≈8%) for Barker, i.e. 0.545×. When
-   Session 5 seats Jared these shift again — recompute from `π`, don't nudge the literal.
+   with the shipped roster (6 full-weight peers in `CAST_TIERS.team` + Barker at 0.5, total 6.5)
+   a single draw is 2/13 per peer vs 1/13 for Barker, and the 120k-turn rotation is 5.5/36
+   (≈15%) per peer vs 3/36 (≈8%) for Barker, i.e. 0.545×. **Recompute from `π` whenever you add
+   or remove a roundtable seat** — don't nudge the literal fractions by hand.
 3. Belson (`belson`), `ciso`, `cfo` stay OUT — a regression test pins that list.
 4. Senior email cap untouched; roster + radial ordering already had him findable-but-not-first
-   (radial: after `russ`, before `critique`; roster: last, under "Upstairs"), so no reorder.
+   (radial: after `russ`, before `jared`; mascot roster: last, under "Upstairs"), so no reorder.
 5. `castTiers.js` deliberately **not** changed — `barker` stays a single-tier `senior` tag
    (`tierOf` is first-match and the meeting directory iterates the tiers, so a second membership
    would double him in the picker). Roundtable membership is `ADVISOR_ORDER`'s job; the tier
@@ -317,7 +318,10 @@ the stable signal, `world`/`budget` swing with generation luck. Stop there.
   actor likeness.
 - `apps/web/src/utils/officeFloorPlan.js` — a `FLOOR_SEATS` row; widen the zone rect if the row is
   full (leadership went 9.7 → 10.7 for Barker, back to 9.7 when he took The VP's seat). Guarded by
-  `apps/web/test/officeFloorPlan.test.js`.
+  `apps/web/test/officeFloorPlan.test.js`. Isometric reachability (where somebody is when away from
+  their desk, slice 12) derives from the same seat table via `officeFloorReach.js` — if you add a
+  dual-home character who can be reached on the floor while a moment has them elsewhere, grep that
+  module and `officeFloorReach.test.js` alongside the plan pins.
 - `apps/web/src/utils/officeCast.js` — display card (`SENIOR_STAKEHOLDERS` or `OFFICE_COLLEAGUES`:
   name, title, blurb, avatarEmoji, accentColor) + tier extras (`MEETING_SENIOR_POOL`,
   `SENIOR_EMAIL_TEMPLATES`, or the office LLM-cast arrays + canned banks).
@@ -407,10 +411,12 @@ Session 4 learned that §4b does not cover:
    place a peer id appears is a place the new id probably belongs. Do this before writing code;
    it is the whole file list.
 3. **Roster-pin tests will fail, and that is the point.** Adding a desk changed
-   `peekableSeatIds()`, `approachTileFor`'s roster, and the wander roster — three pinned arrays
-   that exist precisely so a layout change cannot pass unnoticed. Update the pins. Where a test
-   picks from a roster by seeded index (the floor-wander `stubRandom`), the roster grew, so
-   re-derive the seed that still selects the same person rather than re-pinning the _outcome_.
+   `peekableSeatIds()`, `approachTileFor`'s roster, the wander roster, and (since slice 12)
+   `officeFloorReach.js` reachability — pinned arrays that exist precisely so a layout change
+   cannot pass unnoticed. Update the pins in `officeFloorPlan.test.js`, `officeFloorMovement.test.js`,
+   `officeFloorWander.test.jsx`, and `officeFloorReach.test.js`. Where a test picks from a roster
+   by seeded index (the floor-wander `stubRandom`), the roster grew, so re-derive the seed that
+   still selects the same person rather than re-pinning the _outcome_.
 4. **Weighted-pick sweeps are arithmetic, not literals.** A seventh seat changes both Barker's
    single-draw share and his stationary share (see the Session 2 note). Recompute from
    `π(j) ∝ w(j)·(total − w(j))` and write the assertion as a fraction of the live pool.
@@ -522,8 +528,9 @@ Hard decisions baked in (do not re-litigate per session):
 - **Both engineers on the team** — Gilfoyle inherited `refine`; Dinesh is a new gilfoyle-class wire
   mode (`TransformModeSchema` clone of gilfoyle budgets/temps); floor desks adjacent; cubicle
   battles are extra, not their only home.
-- **Richard stays on `explain`** — comment-only; does not gain invent-transform powers. Helpful +
-  funny via pattern-naming and anxious over-explaining, not canvas mutation. His genius reads as
+- **Richard stays on the ex-`explain` analyze seat** (wire id `richard`; radial label still
+  **Explain**) — comment-only; does not gain invent-transform powers. Helpful + funny via
+  pattern-naming and anxious over-explaining, not canvas mutation. His genius reads as
   over-specific insight, not a second Erlich.
 - **Gavin Belson is a full named replication** of the CTO senior seat (Marcus/`cto` display id
   retired to `belson`, Session 8) — fidelity-harnessed like Barker; larger than a blurb rename.

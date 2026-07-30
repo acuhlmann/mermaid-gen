@@ -363,7 +363,7 @@ export default function FloorArrival({
         <aside className="office-floor-card office-floor-card--reception">
           <span className="office-floor-eyebrow">{arrival.receptionEyebrow}</span>
           <p className="office-floor-card-blurb">{arrival.receptionBody}</p>
-          <NameTag copy={chrome.directory?.nameTag} />
+          <NameTag copy={chrome.directory?.nameTag} autoEditWhenEmpty />
           <div className="office-floor-card-actions">
             <button
               type="button"

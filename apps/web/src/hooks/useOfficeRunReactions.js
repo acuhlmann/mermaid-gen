@@ -176,6 +176,7 @@ export function useOfficeRunReactions(params) {
       if (inFlightRef.current || reactionBlocked(p)) return;
 
       const ctx = readSlotContext(p, random);
+      const memory = readOfficeCadenceMemory();
       const plan = planRunReaction({
         now: Date.now(),
         lastReactionAt: stateRef.current.lastReactionAt,
@@ -188,7 +189,6 @@ export function useOfficeRunReactions(params) {
       if (!plan) return;
 
       inFlightRef.current = true;
-      const memory = readOfficeCadenceMemory();
       try {
         if (await deliver(plan, ctx, memory)) {
           stateRef.current.reactionCount += 1;

@@ -26,6 +26,44 @@ export function resolveAdvisorFocusNode({ advisorFocusDescriptor, focusTarget, s
   return focusPayload(selectedNode);
 }
 
+const STAKEHOLDER_SINGLE_PREFIX = 'Apply this stakeholder suggestion to the diagram.';
+const STAKEHOLDER_BATCH_PREFIX = 'Apply these stakeholder suggestions to the diagram.';
+const STAKEHOLDER_SUGGESTION_MARKER = 'Suggestion: "';
+
+/**
+ * Pull the human-facing suggestion out of a wrapped stakeholder intent prompt
+ * so Thinking titles quote the ask, not the boilerplate preamble.
+ * @param {string | null | undefined} promptText
+ * @param {{ batchMore?: string }} [copy]
+ * @returns {string | null}
+ */
+export function extractStakeholderSuggestionDisplay(promptText, copy) {
+  const trimmed = (promptText ?? '').trim();
+  if (trimmed.startsWith(STAKEHOLDER_SINGLE_PREFIX)) {
+    const markerIdx = trimmed.indexOf(STAKEHOLDER_SUGGESTION_MARKER);
+    if (markerIdx === -1) return null;
+    const start = markerIdx + STAKEHOLDER_SUGGESTION_MARKER.length;
+    const end = trimmed.indexOf('"', start);
+    if (end === -1) return null;
+    const suggestion = trimmed.slice(start, end).trim();
+    return suggestion || null;
+  }
+  if (trimmed.startsWith(STAKEHOLDER_BATCH_PREFIX)) {
+    const bullets = trimmed
+      .split('\n')
+      .map((line) => line.trim())
+      .filter((line) => line.startsWith('- '))
+      .map((line) => line.slice(2).trim())
+      .filter(Boolean);
+    if (bullets.length === 0) return null;
+    if (bullets.length === 1) return bullets[0];
+    const moreLabel = copy?.batchMore ?? '(+{count} more)';
+    const suffix = moreLabel.replace('{count}', String(bullets.length - 1));
+    return `${bullets[0]} ${suffix}`;
+  }
+  return null;
+}
+
 /** User intent prompt when accepting a stakeholder suggestion via the intent route. */
 export function buildAdvisorIntentPrompt(suggestionText) {
   const trimmed = String(suggestionText ?? '')

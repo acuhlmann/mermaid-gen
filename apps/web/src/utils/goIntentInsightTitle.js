@@ -58,21 +58,32 @@ export function selectionFocusFragment(selectionLike, copy) {
   return `${c.node ?? 'node'} “${selectionLike.label || selectionLike.id}”`;
 }
 
-/** Thinking-panel title for Go / intent runs. */
-export function goIntentInsightTitle(promptText, selectionLike, copy) {
-  const c = goCopy(copy);
+function promptExcerpt(promptText) {
   const trimmed = (promptText ?? '').trim();
-  const excerpt =
-    trimmed.length > GO_TITLE_PROMPT_MAX
-      ? `${trimmed.slice(0, GO_TITLE_PROMPT_MAX).trimEnd()}…`
-      : trimmed;
+  if (!trimmed) return '';
+  return trimmed.length > GO_TITLE_PROMPT_MAX
+    ? `${trimmed.slice(0, GO_TITLE_PROMPT_MAX).trimEnd()}…`
+    : trimmed;
+}
+
+/** Thinking-panel title for Go / intent runs. */
+export function goIntentInsightTitle(promptText, selectionLike, copy, options = {}) {
+  const c = goCopy(copy);
+  const { delegateName } = options;
+  const excerpt = promptExcerpt(promptText);
   const quoted = excerpt
     ? formatLocale(c.goQuoted ?? "Go '{excerpt}'", { excerpt })
     : (c.go ?? 'Go');
   if (!excerpt) {
     const focus = selectionFocusFragment(selectionLike, c);
-    return focus ? `${c.go ?? 'Go'} — ${focus}` : (c.goDiagram ?? 'Go — diagram');
+    const base = focus ? `${c.go ?? 'Go'} — ${focus}` : (c.goDiagram ?? 'Go — diagram');
+    return delegateName
+      ? formatLocale(c.delegateGo ?? '{name} · {title}', { name: delegateName, title: base })
+      : base;
   }
   const focus = selectionFocusFragment(selectionLike, c);
-  return focus ? `${quoted} · ${focus}` : quoted;
+  const core = focus ? `${quoted} · ${focus}` : quoted;
+  return delegateName
+    ? formatLocale(c.delegateGo ?? '{name} · {title}', { name: delegateName, title: core })
+    : core;
 }

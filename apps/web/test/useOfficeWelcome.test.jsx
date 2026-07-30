@@ -43,8 +43,9 @@ describe('useOfficeWelcome', () => {
     expect(readOfficeWelcomeSeen()).toBe(true);
     await vi.advanceTimersByTimeAsync(WELCOME_IM_DELAY_MS);
     const afterIm = getOfficeSnapshot();
-    expect(afterIm.imPings).toHaveLength(1);
-    expect(afterIm.imPings[0].colleagueId).toBe('intern');
+    const imArrival = afterIm.deskArrivals.find((a) => a.kind === 'im');
+    expect(imArrival).toBeTruthy();
+    expect(imArrival.colleagueId).toBe('intern');
   });
 
   it('falls back to a plain timer when the user never interacts', async () => {
@@ -69,7 +70,7 @@ describe('useOfficeWelcome', () => {
     window.dispatchEvent(new Event('pointerdown'));
     await vi.advanceTimersByTimeAsync(WELCOME_FALLBACK_MS * 2);
     expect(getOfficeSnapshot().emails).toHaveLength(0);
-    expect(getOfficeSnapshot().imPings).toHaveLength(0);
+    expect(getOfficeSnapshot().deskArrivals).toHaveLength(0);
     expect(readOfficeWelcomeSeen()).toBe(true);
   });
 

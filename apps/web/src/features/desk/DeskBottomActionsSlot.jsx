@@ -323,13 +323,12 @@ export function DeskBottomActionsSlot({
   }
 
   // Notebook-only chrome: active session with the pane open but no canvas yet
-  // (streaming intent, analysis-only run, etc.) — keep the toggle reachable.
+  // (streaming intent, analysis-only run, etc.) — keep desk + notebook reachable.
   if (!hasCanvasContent) {
     return (
       <div className={`prompt-actions prompt-actions--notebook-only ${layoutClass}`}>
         <DeskChromeRow
           {...chromeProps}
-          showDeskSlot={false}
           showWorkOrder={false}
           showTeam={false}
           showDrawer={false}
@@ -341,13 +340,7 @@ export function DeskBottomActionsSlot({
 
   return (
     <div className={`prompt-actions ${layoutClass}`}>
-      <DeskChromeRow
-        {...chromeProps}
-        showDeskSlot={!insightsOpen}
-        showTeam
-        showNotebook
-        showDrawer
-      />
+      <DeskChromeRow {...chromeProps} showTeam showNotebook showDrawer />
     </div>
   );
 }

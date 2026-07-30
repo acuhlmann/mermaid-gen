@@ -27,14 +27,13 @@ describe('resolveHealthCheckUrl', () => {
     ).toBe('https://app.example.com/api/health');
   });
 
-  it('targets local API server during Vite dev', () => {
+  it('uses same-origin health during Vite dev (API proxied through Vite)', () => {
     const devOrigin = 'http://127.0.0.1:5173'; // pragma: allowlist secret
-    const apiPort = 4000;
     expect(
       resolveHealthCheckUrl({
         location: { hostname: '127.0.0.1', port: '5173', origin: devOrigin }
       })
-    ).toBe(`http://127.0.0.1:${apiPort}/api/health`); // pragma: allowlist secret
+    ).toBe(`${devOrigin}/api/health`);
   });
 
   it('honors archislop-api-base meta content', () => {

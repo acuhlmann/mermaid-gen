@@ -13,8 +13,7 @@ import { OFFICE_FIRST_MOMENT_MIN_MS } from '../src/utils/officeCadence.js';
 
 function countSurfaces(snapshot) {
   return (
-    snapshot.emails.length +
-    snapshot.imPings.length +
+    snapshot.deskArrivals.length +
     (snapshot.walkBy ? 1 : 0) +
     (snapshot.coffee ? 1 : 0) +
     (snapshot.meetingInvite ? 1 : 0)
@@ -61,8 +60,8 @@ describe('useOfficeAmbience', () => {
     await vi.advanceTimersByTimeAsync(FIRST_FIRE_MS);
     const snapshot = getOfficeSnapshot();
     // random 0.5 lands on the IM lane in the cadence weights, canned variant.
-    expect(snapshot.imPings.length).toBe(1);
-    expect(snapshot.imPings[0].body.length).toBeGreaterThan(0);
+    expect(snapshot.deskArrivals.length).toBe(1);
+    expect(snapshot.deskArrivals[0].kind).toBe('im');
     expect(countSurfaces(snapshot)).toBe(1);
   });
 
@@ -96,7 +95,7 @@ describe('useOfficeAmbience', () => {
     await vi.advanceTimersByTimeAsync(FIRST_FIRE_MS + OFFICE_TICK_MS * 4);
     const snapshot = getOfficeSnapshot();
     expect(snapshot.emails.length).toBe(0);
-    expect(snapshot.imPings.length).toBe(0);
+    expect(snapshot.deskArrivals.length).toBe(0);
     expect(countSurfaces(snapshot)).toBe(1);
   });
 
@@ -108,6 +107,6 @@ describe('useOfficeAmbience', () => {
     });
     renderHook(() => useOfficeAmbience(BASE_PARAMS));
     await vi.advanceTimersByTimeAsync(FIRST_FIRE_MS);
-    expect(getOfficeSnapshot().imPings.length).toBe(1);
+    expect(getOfficeSnapshot().deskArrivals.filter((a) => a.kind === 'im').length).toBe(1);
   });
 });

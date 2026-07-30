@@ -164,9 +164,23 @@ describe('DeskBottomActionsSlot empty canvas', () => {
       />
     );
     expect(screen.getByTestId('desk-notebook-button')).toBeTruthy();
+    expect(document.getElementById('office-desk-bottom-slot')).toBeTruthy();
     expect(screen.queryByLabelText(/Work order/i)).toBeNull();
     fireEvent.click(screen.getByTestId('desk-notebook-button'));
     expect(onToggleThinking).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the desk slot mounted when the notebook pane is open with canvas content', () => {
+    render(
+      <DeskBottomActionsSlot
+        {...baseProps({
+          hasCanvasContent: true,
+          insightsOpen: true
+        })}
+      />
+    );
+    expect(document.getElementById('office-desk-bottom-slot')).toBeTruthy();
+    expect(screen.getByTestId('desk-notebook-button')).toBeTruthy();
   });
 
   it('anchors desk tour pointers on the real chrome row', () => {

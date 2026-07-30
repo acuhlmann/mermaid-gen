@@ -1,7 +1,7 @@
 /**
  * Office ambience pub/sub store — same hand-rolled useSyncExternalStore
  * pattern as errorToastStore.js. Holds everything the OfficeLayer chrome
- * renders: the email inbox, IM ping stack, active walk-by, coffee-break scene,
+ * renders: the email inbox, desk arrival toasts, active walk-by, coffee-break scene,
  * pending meeting invite, the active team huddle, the Focus Time (DND) flag,
  * and the sound flags — Soundscape, Narration (walk-bys + meetings spoken
  * aloud; emails stay silent), and Captions / CC (show spoken dialogue as
@@ -25,12 +25,16 @@ import {
   writeOfficeSoundscapeEnabled
 } from '../utils/officeAmbienceStorage.js';
 
-export const IM_PING_TTL_MS = 9000;
-export const IM_PING_MAX_VISIBLE = 2;
+export const DESK_ARRIVAL_TTL_MS = 9000;
+export const DESK_ARRIVAL_MAX_VISIBLE = 2;
+/** @deprecated Use DESK_ARRIVAL_TTL_MS */
+export const IM_PING_TTL_MS = DESK_ARRIVAL_TTL_MS;
+/** @deprecated Use DESK_ARRIVAL_MAX_VISIBLE */
+export const IM_PING_MAX_VISIBLE = DESK_ARRIVAL_MAX_VISIBLE;
 /** Mirrors the server's huddle floor — below this it is a walk-by, not a huddle. */
 export const HUDDLE_MIN_SEATS = 2;
 /**
- * Slop Chat™ scrollback. Toast pings expire after IM_PING_TTL_MS and only two
+ * Slop Chat™ scrollback. Desk arrival toasts expire after DESK_ARRIVAL_TTL_MS and only two
  * show at once, so without a separate log every IM the user didn't catch in
  * nine seconds was gone forever. History is capped rather than unbounded —
  * this is ambience, not a compliance archive.
@@ -55,9 +59,9 @@ function initialState() {
     /** @type {Array<{id: string, colleagueId: string, subject: string, body: string, actionPrompt?: string, createdAt: number, read: boolean}>} */
     emails: [],
     unreadCount: 0,
-    /** Transient toasts — TTL-expired, max IM_PING_MAX_VISIBLE on screen.
-     * @type {Array<{id: string, colleagueId: string, body: string, createdAt: number}>} */
-    imPings: [],
+    /** Transient desk-side arrival toasts — TTL-expired, max DESK_ARRIVAL_MAX_VISIBLE.
+     * @type {Array<{id: string, kind: 'email' | 'im', colleagueId: string, subject?: string, createdAt: number}>} */
+    deskArrivals: [],
     /** Durable scrollback for the messenger, oldest first. Never TTL-expired.
      * @type {Array<{id: string, colleagueId: string, body: string, createdAt: number, outbound?: boolean, read: boolean}>} */
     imHistory: [],
@@ -184,7 +188,7 @@ export function hasActiveOfficeSurface() {
     state.battle ||
     state.meetingInvite ||
     state.huddle ||
-    state.imPings.length > 0
+    state.deskArrivals.some((arrival) => arrival.kind === 'im')
   );
 }
 
@@ -342,8 +346,43 @@ export function pushOfficeEmail({ colleagueId, subject, body, actionPrompt }) {
   };
   const emails = [email, ...state.emails];
   update({ emails, unreadCount: emails.filter((e) => !e.read).length });
+  pushDeskArrival({ kind: 'email', colleagueId, subject: email.subject });
   return email.id;
 }
+
+function pushDeskArrival({ kind, colleagueId, subject }) {
+  const arrival = {
+    id: makeId('arrival'),
+    kind,
+    colleagueId,
+    ...(subject ? { subject: String(subject) } : {}),
+    createdAt: Date.now()
+  };
+  const deskArrivals = [...state.deskArrivals, arrival].slice(-DESK_ARRIVAL_MAX_VISIBLE);
+  update({ deskArrivals });
+  scheduleExpiry(arrival.id, DESK_ARRIVAL_TTL_MS, () => dismissDeskArrival(arrival.id));
+  return arrival.id;
+}
+
+export function dismissDeskArrival(id) {
+  clearExpiry(id);
+  const deskArrivals = state.deskArrivals.filter((arrival) => arrival.id !== id);
+  if (deskArrivals.length === state.deskArrivals.length) return;
+  update({ deskArrivals });
+}
+
+/** Clears transient desk arrival toasts without touching inbox or chat history. */
+export function clearDeskArrivals() {
+  for (const arrival of state.deskArrivals) clearExpiry(arrival.id);
+  if (state.deskArrivals.length === 0) return;
+  update({ deskArrivals: [] });
+}
+
+/** @deprecated Use dismissDeskArrival */
+export const dismissOfficeImPing = dismissDeskArrival;
+
+/** @deprecated Use clearDeskArrivals */
+export const clearOfficeImPings = clearDeskArrivals;
 
 export function markOfficeEmailRead(id) {
   const emails = state.emails.map((email) =>
@@ -358,16 +397,15 @@ export function markAllOfficeEmailsRead() {
 }
 
 /**
- * A new IM lands in two places: the transient toast stack (expires) and the
- * durable history (does not). Dismissing or expiring a toast must NOT touch
+ * A new IM lands in two places: a transient desk arrival (expires) and the
+ * durable history (does not). Dismissing or expiring an arrival must NOT touch
  * history — that separation is the whole point of the messenger.
  */
 export function pushOfficeImPing({ colleagueId, body }) {
   const ping = { id: makeId('im'), colleagueId, body: String(body ?? ''), createdAt: Date.now() };
-  const imPings = [...state.imPings, ping].slice(-IM_PING_MAX_VISIBLE);
   const imHistory = [...state.imHistory, { ...ping, read: false }].slice(-IM_HISTORY_MAX);
-  update({ imPings, imHistory, imUnreadCount: countUnreadIms(imHistory) });
-  scheduleExpiry(ping.id, IM_PING_TTL_MS, () => dismissOfficeImPing(ping.id));
+  update({ imHistory, imUnreadCount: countUnreadIms(imHistory) });
+  pushDeskArrival({ kind: 'im', colleagueId });
   return ping.id;
 }
 
@@ -400,21 +438,6 @@ export function markOfficeImsRead(colleagueId) {
   const imUnreadCount = countUnreadIms(imHistory);
   if (imUnreadCount === state.imUnreadCount) return;
   update({ imHistory, imUnreadCount });
-}
-
-export function dismissOfficeImPing(id) {
-  clearExpiry(id);
-  const imPings = state.imPings.filter((ping) => ping.id !== id);
-  if (imPings.length === state.imPings.length) return;
-  // History deliberately untouched — the toast is a notification, not the message.
-  update({ imPings });
-}
-
-/** Clears transient IM toasts without touching durable chat history. */
-export function clearOfficeImPings() {
-  for (const ping of state.imPings) clearExpiry(ping.id);
-  if (state.imPings.length === 0) return;
-  update({ imPings: [] });
 }
 
 export function pushOfficeWalkBy({ colleagueId, body, actionPrompt }) {

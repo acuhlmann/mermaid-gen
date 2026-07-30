@@ -5,7 +5,7 @@ import CoffeeBreakOverlay from '../src/components/CoffeeBreakOverlay.jsx';
 import CallMeetingPicker from '../src/components/CallMeetingPicker.jsx';
 import MeetingInviteToast from '../src/components/MeetingInviteToast.jsx';
 import MeetingOverlay from '../src/components/MeetingOverlay.jsx';
-import OfficeImPing from '../src/components/OfficeImPing.jsx';
+import OfficeDeskArrival from '../src/components/OfficeDeskArrival.jsx';
 import OfficeInboxDock from '../src/components/OfficeInboxDock.jsx';
 import OfficeMessenger from '../src/components/OfficeMessenger.jsx';
 import { setOfficeCaptions } from '../src/state/officeMomentStore.js';
@@ -304,29 +304,50 @@ describe('office who-is-who chrome', () => {
     expect(screen.getByText(/Agile Coach/)).toBeTruthy();
   });
 
-  it('announces IM pings briefly without showing the full message body', () => {
-    const onOpenMessage = vi.fn();
+  it('announces IM arrivals briefly without showing the full message body', () => {
+    const onOpenIm = vi.fn();
     render(
-      <OfficeImPing
-        pings={[{ id: 'im-1', colleagueId: 'greybeard', body: 'We tried that in 1979.' }]}
+      <OfficeDeskArrival
+        arrivals={[{ id: 'arrival-1', kind: 'im', colleagueId: 'greybeard', createdAt: 1 }]}
         onDismiss={vi.fn()}
-        onOpenMessage={onOpenMessage}
+        onOpenIm={onOpenIm}
       />
     );
     expect(screen.getByText('Slop Chat™ · Instant message')).toBeTruthy();
     expect(screen.getByText('Ulrich')).toBeTruthy();
     expect(screen.getByText(/Staff Engineer Emeritus/)).toBeTruthy();
     expect(screen.getByText('Ulrich messaged you')).toBeTruthy();
-    expect(screen.queryByText('We tried that in 1979.')).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: 'Show full message' }));
-    expect(onOpenMessage).toHaveBeenCalledWith('greybeard', 'im-1');
+    fireEvent.click(screen.getByRole('button', { name: 'Open Slop Chat' }));
+    expect(onOpenIm).toHaveBeenCalledWith({
+      id: 'arrival-1',
+      kind: 'im',
+      colleagueId: 'greybeard',
+      createdAt: 1
+    });
   });
 
-  it('shows a Slop Chat history chip when unread messages remain after toasts expire', () => {
-    const onOpenHistory = vi.fn();
-    render(<OfficeImPing pings={[]} imUnreadCount={3} onOpenHistory={onOpenHistory} />);
-    fireEvent.click(screen.getByRole('button', { name: /Open Slop Chat \(3 unread\)/ }));
-    expect(onOpenHistory).toHaveBeenCalledTimes(1);
+  it('announces email arrivals with subject overview', () => {
+    const onOpenEmail = vi.fn();
+    render(
+      <OfficeDeskArrival
+        arrivals={[
+          {
+            id: 'arrival-2',
+            kind: 'email',
+            colleagueId: 'facilities',
+            subject: 'FRIDGE CLEANOUT FRIDAY',
+            createdAt: 2
+          }
+        ]}
+        onDismiss={vi.fn()}
+        onOpenEmail={onOpenEmail}
+      />
+    );
+    expect(screen.getByText('Corporate inbox · New mail')).toBeTruthy();
+    expect(screen.getByText('Gary sent you mail')).toBeTruthy();
+    expect(screen.getByText('FRIDGE CLEANOUT FRIDAY')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Check your mail' }));
+    expect(onOpenEmail).toHaveBeenCalledTimes(1);
   });
 
   it('names every attendee on a meeting invite instead of bare emoji', () => {

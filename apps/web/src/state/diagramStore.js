@@ -327,6 +327,15 @@ export async function fetchSessionDiagramState({ sessionId } = {}) {
     throw err;
   }
   if (!response.ok) {
+    if (
+      response.status === 401 &&
+      typeof payload?.error === 'string' &&
+      payload.error.includes('Visitor Badge')
+    ) {
+      throw new Error(
+        'Visitor Badge required — comment out VISITOR_BADGE_SECRETS in .env for local dev, or unlock with POST /api/visitor-badge'
+      );
+    }
     throw new Error(`Failed to fetch session state: ${response.status}`);
   }
   return normalizeFetchedSessionDiagram(payload);

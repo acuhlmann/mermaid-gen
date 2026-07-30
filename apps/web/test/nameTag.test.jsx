@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { cleanup, fireEvent, render, screen, act } from '@testing-library/react';
 import NameTag from '../src/components/NameTag.jsx';
 import {
   _resetUserIdentityForTests,
@@ -34,6 +34,19 @@ describe('NameTag', () => {
     fireEvent.submit(input.closest('form'));
     expect(getStoredUserName()).toBe('Bighead');
     expect(screen.getByText('Bighead')).toBeTruthy();
+  });
+
+  it('persists the name while typing so a refresh does not lose it', async () => {
+    vi.useFakeTimers();
+    render(<NameTag />);
+    fireEvent.click(screen.getByTestId('name-tag'));
+    const input = screen.getByRole('textbox');
+    fireEvent.change(input, { target: { value: 'Bighead' } });
+    await act(async () => {
+      vi.advanceTimersByTime(300);
+    });
+    expect(getStoredUserName()).toBe('Bighead');
+    vi.useRealTimers();
   });
 
   it('discards the edit on Escape', () => {

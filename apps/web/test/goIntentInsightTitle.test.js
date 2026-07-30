@@ -28,6 +28,14 @@ describe('goIntentInsightTitle', () => {
     expect(goIntentInsightTitle('', null)).toBe('Go — diagram');
     expect(goIntentInsightTitle('  ', null)).toBe('Go — diagram');
   });
+
+  it('prefixes delegate name for office Do-it titles', () => {
+    expect(
+      goIntentInsightTitle('Merge Discovery and Research nodes', null, null, {
+        delegateName: 'Gilfoyle'
+      })
+    ).toBe("Gilfoyle · Go 'Merge Discovery and Research nodes'");
+  });
 });
 
 describe('selectionFocusFragment', () => {
