@@ -286,6 +286,7 @@ export default function OfficeLayer({
   const prevMeetingStateRef = useRef(null);
   const prevWalkByIdRef = useRef(snapshot.walkBy?.id ?? null);
   const prevInviteIdRef = useRef(snapshot.meetingInvite?.id ?? null);
+  const prevCoffeeIdRef = useRef(snapshot.coffee?.id ?? null);
   const prevCoffeeAcceptedRef = useRef(Boolean(snapshot.coffee?.accepted));
   const prevBattleAcceptedRef = useRef(Boolean(snapshot.battle?.accepted));
   const prevBattleVotedRef = useRef(snapshot.battle?.votedFor ?? null);
@@ -327,6 +328,19 @@ export default function OfficeLayer({
     if (inviteId && inviteId !== prevInviteIdRef.current) playChime?.(playCalendarDing);
     prevInviteIdRef.current = inviteId;
   }, [snapshot.meetingInvite?.id, playChime]);
+  useEffect(() => {
+    const coffee = snapshot.coffee;
+    const coffeeId = coffee?.id ?? null;
+    if (coffeeId && coffeeId !== prevCoffeeIdRef.current && !coffee?.accepted) {
+      playChime?.(playFootsteps);
+      const inviterId = coffee?.lines?.[0]?.speakerId;
+      const ask = officeChromeCopy().coffee.inviteLine;
+      if (snapshot.narration && inviterId && ask && !onFloor) {
+        void narrateLine({ speakerId: inviterId, text: ask });
+      }
+    }
+    prevCoffeeIdRef.current = coffeeId;
+  }, [snapshot.coffee, snapshot.narration, onFloor, playChime, narrateLine]);
   useEffect(() => {
     const accepted = Boolean(snapshot.coffee?.accepted);
     if (accepted && !prevCoffeeAcceptedRef.current) {

@@ -17319,8 +17319,7 @@ body.slopitect-rainbow-tint::before {
     );
   }
   .office-battle-invite,
-  .office-meeting-invite,
-  .office-coffee-invite {
+  .office-meeting-invite {
     border-radius: 14px;
     justify-content: flex-start;
     flex-direction: column;
@@ -18744,18 +18743,26 @@ body.slopitect-rainbow-tint::before {
   border: 1px solid color-mix(in srgb, #f59e0b 35%, var(--control-border));
   color: color-mix(in srgb, #b45309 70%, var(--text));
 }
+.office-moment-kind--coffee {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, #92400e 12%, var(--office-surface-bg));
+  border: 1px solid color-mix(in srgb, #92400e 35%, var(--control-border));
+  color: color-mix(in srgb, #b45309 70%, var(--text));
+}
 @media (prefers-reduced-motion: no-preference) {
-  .office-walkby--shoulder {
+  .office-walkby--shoulder,
+  .office-coffee-invite--shoulder {
     animation: office-shoulder-drop 720ms cubic-bezier(0.2, 0.85, 0.25, 1) both;
   }
-  .office-walkby-head {
+  .office-walkby-head,
+  .office-coffee-invite-head {
     animation: office-shoulder-loom 2.8s ease-in-out 720ms infinite;
   }
   .office-im-ping-shell,
   .office-meeting-invite {
     animation: office-pop-in 220ms ease-out;
   }
-  .office-coffee-invite,
   .office-battle-invite {
     animation: office-pop-in-centered 220ms ease-out;
   }
@@ -19198,26 +19205,287 @@ body.slopitect-rainbow-tint::before {
   }
 }
 
-/* --- Coffee break --- */
-.office-coffee-invite {
+/* --- Coffee break (shoulder invite + watercooler face-off) --- */
+.office-coffee-invite-layer {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-office-chrome);
+  pointer-events: none;
   display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px 10px;
-  padding: 8px 14px;
-  background: var(--office-surface-bg);
-  border: 1px solid var(--control-border);
-  border-radius: 999px;
-  box-shadow: var(--control-shadow);
-  font-size: 13px;
-  color: var(--text);
-  max-width: min(
-    480px,
-    calc(100vw - 1rem - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px))
+  justify-content: center;
+  align-items: flex-start;
+}
+.office-coffee-invite-shade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, #78350f 38%, transparent) 0%,
+    color-mix(in srgb, #0f172a 14%, transparent) 42%,
+    transparent 68%
   );
+  pointer-events: none;
+}
+.office-coffee-invite--shoulder {
+  position: relative;
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  max-width: min(420px, calc(100vw - 28px));
+  margin-top: -0.5rem;
+  padding: 0 0.75rem 0.85rem;
+  filter: drop-shadow(0 18px 28px rgba(15, 23, 42, 0.35));
+}
+.office-coffee-invite-head {
+  position: relative;
+  z-index: 1;
+  transform-origin: 50% 0%;
+  line-height: 0;
+}
+.office-coffee-empty-cup {
+  position: absolute;
+  right: -0.15rem;
+  bottom: 0.35rem;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.35rem;
+  height: 2.35rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--office-surface-bg) 90%, transparent);
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.28);
+  transform: rotate(-16deg);
+}
+.office-coffee-cup-glyph {
+  font-size: 1.35rem;
+  line-height: 1;
+  filter: grayscale(0.55) brightness(1.15);
+  opacity: 0.72;
+}
+.office-coffee-invite-avatar {
+  display: block;
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 4px color-mix(in srgb, var(--office-surface-bg) 80%, transparent),
+    0 16px 36px rgba(15, 23, 42, 0.45);
+  filter: saturate(0.92) contrast(1.05);
+}
+.office-coffee-invite-presence {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.45rem;
+  width: min(300px, calc(100vw - 48px));
+  margin-top: -1.1rem;
+  padding: 0.65rem 0.85rem 0.8rem;
+  text-align: center;
+  background: color-mix(in srgb, var(--office-surface-bg) 92%, transparent);
+  border: 1px solid color-mix(in srgb, #92400e 28%, var(--control-border));
+  border-radius: 14px;
+  box-shadow: var(--control-shadow);
+}
+.office-coffee-invite-name {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text);
+}
+.office-coffee-invite-title {
+  font-weight: 400;
+  color: var(--muted);
+}
+.office-coffee-invite-ask {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--text);
+}
+.office-coffee-invite-dismiss {
+  position: absolute;
+  top: 0.35rem;
+  right: 0.15rem;
+  z-index: 3;
+  appearance: none;
+  border: 0;
+  background: color-mix(in srgb, var(--office-surface-bg) 88%, transparent);
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  width: 1.5rem;
+  height: 1.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 0;
+  pointer-events: auto;
+}
+.office-coffee-invite-dismiss:hover {
+  background: rgba(15, 23, 42, 0.1);
+  color: var(--text);
+}
+.office-coffee-invite-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.45rem;
+  width: 100%;
+}
+.office-coffee-accept,
+.office-coffee-decline {
+  appearance: none;
+  border-radius: 999px;
+  font-size: 12px;
+  padding: 5px 14px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.office-coffee-accept {
+  border: 0;
+  background: var(--accent);
+  color: #fff;
+  font-weight: 600;
+}
+.office-coffee-decline {
+  border: 1px solid var(--control-border);
+  background: transparent;
+  color: var(--muted);
+}
+.office-coffee-layer {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-office-modal);
+  pointer-events: none;
+  overflow: hidden;
+}
+@media (min-width: 1025px) {
+  .app-shell.is-insights-open:not(.is-editor-open) .office-coffee-layer {
+    right: max(260px, 30vw);
+  }
+  .app-shell.is-insights-open.is-editor-open .office-coffee-layer {
+    right: calc(max(260px, 30vw) + max(320px, 38vw));
+  }
+}
+.office-coffee-shade {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(
+      90deg,
+      color-mix(in srgb, #78350f 18%, transparent) 0%,
+      transparent 38%,
+      transparent 62%,
+      color-mix(in srgb, #78350f 18%, transparent) 100%
+    ),
+    radial-gradient(
+      ellipse at center,
+      transparent 30%,
+      color-mix(in srgb, #0f172a 24%, transparent) 100%
+    );
+  pointer-events: none;
+}
+.office-coffee-chrome {
+  position: absolute;
+  top: max(0.65rem, env(safe-area-inset-top, 0px));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  pointer-events: auto;
+  text-align: center;
+}
+.office-coffee-kind {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, #b45309 75%, var(--text));
+}
+.office-coffee-fellow {
+  position: absolute;
+  top: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  max-width: min(220px, 42vw);
+  pointer-events: auto;
+  filter: drop-shadow(0 14px 28px rgba(15, 23, 42, 0.34));
+  transition:
+    transform 180ms ease-out,
+    opacity 180ms ease-out;
+}
+.office-coffee-fellow.is-side-left {
+  left: max(0.45rem, env(safe-area-inset-left, 0px));
+  transform: translateY(-50%);
+}
+.office-coffee-fellow.is-side-right {
+  right: max(0.45rem, env(safe-area-inset-right, 0px));
+  transform: translateY(-50%);
+}
+.office-coffee-fellow.is-listening {
+  opacity: 0.58;
+}
+.office-coffee-fellow.is-speaking {
+  opacity: 1;
+  z-index: 2;
+}
+.office-coffee-fellow.is-side-left.is-speaking {
+  transform: translateY(-50%) translateX(4px) scale(1.03);
+}
+.office-coffee-fellow.is-side-right.is-speaking {
+  transform: translateY(-50%) translateX(-4px) scale(1.03);
+}
+.office-coffee-fellow-name {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text);
+}
+.office-coffee-bubble {
+  width: min(220px, 42vw);
+  padding: 0.55rem 0.7rem;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--office-surface-bg) 94%, transparent);
+  border: 1px solid
+    color-mix(in srgb, var(--coffee-accent, var(--accent)) 35%, var(--control-border));
+  box-shadow: var(--control-shadow);
+}
+.office-coffee-line {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--text);
+}
+.office-coffee-speaking-label {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.office-coffee-done {
+  appearance: none;
+  border: 1px solid var(--control-border);
+  background: color-mix(in srgb, var(--office-surface-bg) 92%, transparent);
+  border-radius: 999px;
+  font-size: 12px;
+  padding: 5px 12px;
+  cursor: pointer;
+  color: var(--text);
 }
 @media (max-width: 720px) {
-  .office-walkby--shoulder {
+  .office-walkby--shoulder,
+  .office-coffee-invite--shoulder {
     max-width: min(
       22rem,
       calc(100vw - 1rem - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px))
@@ -19230,14 +19498,14 @@ body.slopitect-rainbow-tint::before {
     overflow-wrap: anywhere;
   }
 
-  .office-walkby-presence {
+  .office-walkby-presence,
+  .office-coffee-invite-presence {
     width: min(260px, calc(100vw - 40px));
     padding-right: 1.55rem;
   }
 
   .office-battle-invite,
-  .office-meeting-invite,
-  .office-coffee-invite {
+  .office-meeting-invite {
     border-radius: 14px;
     justify-content: flex-start;
     flex-direction: column;
@@ -19259,7 +19527,8 @@ body.slopitect-rainbow-tint::before {
     overflow-wrap: anywhere;
   }
   .office-battle-invite-actions,
-  .office-meeting-invite-actions {
+  .office-meeting-invite-actions,
+  .office-coffee-invite-actions {
     display: flex;
     flex-wrap: wrap;
     gap: 0.45rem;
@@ -19268,17 +19537,22 @@ body.slopitect-rainbow-tint::before {
   .office-battle-decline,
   .office-meeting-accept,
   .office-meeting-decline,
-  .office-meeting-propose {
+  .office-meeting-propose,
+  .office-coffee-accept,
+  .office-coffee-decline {
     flex: 1 1 auto;
     min-width: 7rem;
   }
-  .office-battle-layer {
+  .office-battle-layer,
+  .office-coffee-layer {
     padding: 0;
   }
-  .office-battle-fighter {
+  .office-battle-fighter,
+  .office-coffee-fellow {
     max-width: min(180px, 38vw);
   }
-  .office-battle-bubble {
+  .office-battle-bubble,
+  .office-coffee-bubble {
     width: min(180px, 38vw);
   }
   .office-battle-settle-buttons {
@@ -19287,204 +19561,6 @@ body.slopitect-rainbow-tint::before {
   .office-battle-side {
     width: 100%;
   }
-}
-
-/* Watercooler invite: phones use the block above via max-width 720px; unfolded
-   foldables land in the 721–1024px band and kept the centered pill — awkward
-   across the hinge and cramped beside a side-by-side Thinking pane. */
-@media (max-width: 1024px) {
-  .office-coffee-invite {
-    top: calc(4.4rem + env(safe-area-inset-top, 0px));
-    left: max(0.5rem, env(safe-area-inset-left, 0px));
-    right: max(0.5rem, env(safe-area-inset-right, 0px));
-    bottom: auto;
-    width: auto;
-    max-width: none;
-    transform: none;
-    border-radius: 14px;
-    justify-content: flex-start;
-    flex-direction: column;
-    align-items: stretch;
-    gap: 0.55rem;
-    padding: 0.72rem 0.85rem;
-  }
-
-  .office-coffee-invite-text {
-    flex: 1 1 auto;
-    min-width: 0;
-    line-height: 1.35;
-    overflow-wrap: anywhere;
-  }
-
-  .office-coffee-invite-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.45rem;
-  }
-
-  .office-coffee-accept,
-  .office-coffee-decline {
-    flex: 1 1 auto;
-    min-width: 7rem;
-    border-radius: 8px;
-    padding: 6px 12px;
-  }
-
-  .office-coffee-scene {
-    padding: max(0.75rem, env(safe-area-inset-top, 0px))
-      max(0.75rem, env(safe-area-inset-right, 0px)) max(0.75rem, env(safe-area-inset-bottom, 0px))
-      max(0.75rem, env(safe-area-inset-left, 0px));
-    align-items: center;
-    justify-content: center;
-  }
-
-  .office-coffee-card {
-    width: 100%;
-    max-height: min(
-      calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 1.5rem),
-      32rem
-    );
-    overflow-y: auto;
-    overscroll-behavior: contain;
-  }
-
-  .office-coffee-footer {
-    flex-wrap: wrap;
-  }
-
-  .office-coffee-done {
-    flex: 1 1 auto;
-    min-width: 7rem;
-    text-align: center;
-  }
-}
-
-@supports (horizontal-viewport-segments: 2) {
-  @media (horizontal-viewport-segments: 2) and (max-width: 1024px) {
-    /* Keep the invite on the canvas segment — not straddling the hinge. */
-    .office-coffee-invite {
-      right: auto;
-      width: min(
-        26rem,
-        calc(
-          env(viewport-segment-width 0 0, 50vw) - 1rem - env(safe-area-inset-left, 0px) -
-            env(safe-area-inset-right, 0px)
-        )
-      );
-    }
-
-    .office-coffee-scene {
-      /* Scene stays centred on the active (left) segment when unfolded. */
-      left: env(viewport-segment-left 0 0, 0);
-      width: env(viewport-segment-width 0 0, 100vw);
-      right: auto;
-    }
-  }
-}
-.office-coffee-accept,
-.office-coffee-decline {
-  appearance: none;
-  border-radius: 999px;
-  font-size: 12px;
-  padding: 4px 12px;
-  cursor: pointer;
-}
-.office-coffee-accept {
-  border: 0;
-  background: var(--accent);
-  color: #fff;
-  font-weight: 600;
-}
-.office-coffee-decline {
-  border: 1px solid var(--control-border);
-  background: transparent;
-  color: var(--muted);
-}
-.office-coffee-scene {
-  position: fixed;
-  inset: 0;
-  z-index: var(--z-office-modal);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 16px;
-  background: var(--modal-backdrop);
-}
-.office-coffee-card {
-  width: min(420px, 100%);
-  background: var(--modal-card-bg);
-  border-radius: var(--modal-card-radius);
-  box-shadow: var(--modal-card-shadow);
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-.office-coffee-head {
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--text);
-}
-.office-coffee-lines {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-.office-coffee-line {
-  display: flex;
-  gap: 8px;
-  font-size: 13px;
-  line-height: 1.45;
-  color: var(--text);
-}
-.office-coffee-avatar {
-  flex: 0 0 auto;
-}
-.office-coffee-speaker {
-  font-weight: 700;
-}
-.office-coffee-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-}
-.office-coffee-timer {
-  flex: 1 1 auto;
-  height: 4px;
-  border-radius: 999px;
-  background: rgba(15, 23, 42, 0.12);
-  overflow: hidden;
-  position: relative;
-}
-.office-coffee-timer::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: var(--accent);
-  transform-origin: left;
-  animation: office-coffee-drain 15s linear forwards;
-}
-@keyframes office-coffee-drain {
-  from {
-    transform: scaleX(1);
-  }
-  to {
-    transform: scaleX(0);
-  }
-}
-.office-coffee-done {
-  appearance: none;
-  border: 1px solid var(--control-border);
-  background: transparent;
-  border-radius: 8px;
-  font-size: 12px;
-  padding: 5px 12px;
-  cursor: pointer;
-  color: var(--text);
 }
 
 /* --- Holy war (open-plan face-off) --- */

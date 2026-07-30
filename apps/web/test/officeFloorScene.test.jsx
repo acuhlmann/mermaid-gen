@@ -79,11 +79,12 @@ describe('awayFromDeskIds', () => {
 });
 
 describe('coffee break on the floor', () => {
-  it('puts both of them at the machine and asks before it starts', () => {
+  it('shows the inviter at the machine and asks before it starts', () => {
     renderFloor({ coffee: COFFEE });
 
     expect(screen.getByTestId('office-floor-scene-actor-intern')).toBeTruthy();
-    expect(screen.getByTestId('office-floor-scene-actor-greybeard')).toBeTruthy();
+    expect(screen.queryByTestId('office-floor-scene-actor-greybeard')).toBeNull();
+    expect(screen.getByText(/Up for coffee/i)).toBeTruthy();
     expect(screen.getByTestId('office-floor-coffee-invite')).toBeTruthy();
     expect(screen.getByRole('button', { name: /Take 5/i })).toBeTruthy();
   });

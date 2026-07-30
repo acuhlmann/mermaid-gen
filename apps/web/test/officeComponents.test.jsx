@@ -8,6 +8,7 @@ import MeetingOverlay from '../src/components/MeetingOverlay.jsx';
 import OfficeImPing from '../src/components/OfficeImPing.jsx';
 import OfficeInboxDock from '../src/components/OfficeInboxDock.jsx';
 import OfficeMessenger from '../src/components/OfficeMessenger.jsx';
+import { setOfficeCaptions } from '../src/state/officeMomentStore.js';
 
 afterEach(() => {
   cleanup();
@@ -351,6 +352,7 @@ describe('office who-is-who chrome', () => {
 
 describe('CoffeeBreakOverlay', () => {
   it('runs invite → accept → done and grants the break on bail-out', () => {
+    setOfficeCaptions(true);
     const onAccept = vi.fn();
     const onDone = vi.fn();
     const coffee = {
@@ -361,6 +363,8 @@ describe('CoffeeBreakOverlay', () => {
     const { rerender } = render(
       <CoffeeBreakOverlay coffee={coffee} onAccept={onAccept} onDecline={vi.fn()} onDone={onDone} />
     );
+    expect(screen.getByText('Up for coffee?')).toBeTruthy();
+    expect(screen.getByTestId('office-coffee-invite')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Take 5' }));
     expect(onAccept).toHaveBeenCalled();
     rerender(
@@ -371,6 +375,7 @@ describe('CoffeeBreakOverlay', () => {
         onDone={onDone}
       />
     );
+    expect(screen.getByTestId('office-coffee-scene')).toBeTruthy();
     expect(screen.getByText(/Twelve decorative buttons/)).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: "I've got a deploy" }));
     expect(onDone).toHaveBeenCalled();

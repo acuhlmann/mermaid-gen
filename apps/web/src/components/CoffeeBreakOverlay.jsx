@@ -1,17 +1,26 @@
+import { useSyncExternalStore } from 'react';
 import { officeChromeCopy, officeSenderInfo } from '../utils/officeCast.js';
+import { shouldShowSpokenText } from '../utils/officeCaptions.js';
+import { getOfficeSnapshot, subscribe } from '../state/officeMomentStore.js';
 import { useScenePacing } from '../hooks/useScenePacing.js';
 import { formatLocale } from '../i18n/formatLocale.js';
+import { sceneParticipants } from '../utils/officeSceneCast.js';
 import { PersonaFace } from './personaFaces/index.jsx';
-import FloatingWindow, { FloatingWindowDragHandle } from './FloatingWindow.jsx';
 
 export const COFFEE_BREAK_DURATION_MS = 15_000;
 /** Reading-pace gap between watercooler lines when narration is off / muted. */
 export const COFFEE_LINE_PACE_MS = 2200;
 
+const FACE_SIZE = 120;
+const FACE_SIZE_SPEAKING = 132;
+const INVITE_FACE_SIZE = 168;
+
 /**
- * Coffee break (docs/office-parody.md). Two-phase: a small invite toast
- * ([Take 5] / [Deadline]), then a centered watercooler scene. When
- * `narrateLine` is provided, lines pace in and are spoken (overheard chat);
+ * Coffee break (docs/office-parody.md). Two-phase: a colleague leans over your
+ * screen with an empty cup and asks if you're up for coffee ([Take 5] /
+ * [Deadline]), then a watercooler scene where participants lean in from
+ * opposite sides and trade overheard lines one at a time (battle/huddle
+ * parity). When `narrateLine` is provided, lines pace in and are spoken;
  * otherwise all lines show at once and the scene auto-wraps after
  * COFFEE_BREAK_DURATION_MS. Accepting is worth a small work-life-balance
  * XP nudge (wired by OfficeLayer via onAccept/onDone).
@@ -24,6 +33,7 @@ export default function CoffeeBreakOverlay({
   narrateLine,
   prefetchLine
 }) {
+  const snapshot = useSyncExternalStore(subscribe, getOfficeSnapshot, getOfficeSnapshot);
   const accepted = Boolean(coffee?.accepted);
   const lineCount = coffee?.lines?.length ?? 0;
   const visibleLines = useScenePacing({
@@ -41,85 +51,147 @@ export default function CoffeeBreakOverlay({
   const copy = officeChromeCopy();
 
   if (!accepted) {
-    const inviter = officeSenderInfo(coffee.lines[0]?.speakerId ?? 'facilities');
+    const inviterId = coffee.lines[0]?.speakerId ?? 'facilities';
+    const inviter = officeSenderInfo(inviterId);
+    const ask = formatLocale(copy.coffee.inviteLine, { name: inviter.name });
+    const showText = shouldShowSpokenText({
+      captions: snapshot.captions,
+      voiceActive: snapshot.narration
+    });
+
     return (
-      <FloatingWindow
-        id="office-coffee-invite"
-        open
-        group="officeChrome"
-        className="office-coffee-invite"
-        manageable={false}
-        defaultCorner="top-center"
-        defaultOffsetX={16}
-        defaultOffsetY={76}
-        cascade={0}
+      <div
+        className="office-coffee-invite-layer"
         role="status"
         aria-live="polite"
+        data-testid="office-coffee-invite"
+        data-floating-window="office-coffee-invite"
       >
-        <FloatingWindowDragHandle className="office-coffee-invite-head" title="Drag to move">
-          <p className="office-moment-kind office-moment-kind--coffee" aria-hidden="true">
-            {copy.coffee.kindLabel}
-          </p>
-        </FloatingWindowDragHandle>
-        <span aria-hidden="true">☕</span>
-        <span
-          className="office-coffee-invite-text"
-          title={inviter.title ? `${inviter.name} · ${inviter.title}` : inviter.name}
-        >
-          {formatLocale(copy.coffee.inviteLine, { name: inviter.name })}
-        </span>
-        <div className="office-coffee-invite-actions">
-          <button type="button" className="office-coffee-accept" onClick={onAccept}>
-            {copy.coffee.accept}
+        <div className="office-coffee-invite-shade" aria-hidden="true" />
+        <div className="office-coffee-invite office-coffee-invite--shoulder">
+          <button
+            type="button"
+            className="office-coffee-invite-dismiss"
+            aria-label={formatLocale(copy.coffee.declineAria ?? copy.coffee.decline, {
+              name: inviter.name
+            })}
+            onClick={onDecline}
+          >
+            ×
           </button>
-          <button type="button" className="office-coffee-decline" onClick={onDecline}>
-            {copy.coffee.decline}
-          </button>
+          <div className="office-coffee-invite-head" aria-hidden="true">
+            <span className="office-coffee-empty-cup" title="Empty cup">
+              <span className="office-coffee-cup-glyph">☕</span>
+            </span>
+            <PersonaFace
+              id={inviterId}
+              size={INVITE_FACE_SIZE}
+              className="office-coffee-invite-avatar"
+            />
+          </div>
+          <div className="office-coffee-invite-presence">
+            <p className="office-moment-kind office-moment-kind--coffee" aria-hidden="true">
+              {copy.coffee.kindLabel}
+            </p>
+            <div className="office-coffee-invite-name">
+              {inviter.name}
+              {inviter.title ? (
+                <span className="office-coffee-invite-title"> · {inviter.title}</span>
+              ) : null}
+            </div>
+            {showText ? <p className="office-coffee-invite-ask">{ask}</p> : null}
+            <div className="office-coffee-invite-actions">
+              <button type="button" className="office-coffee-accept" onClick={onAccept}>
+                {copy.coffee.accept}
+              </button>
+              <button type="button" className="office-coffee-decline" onClick={onDecline}>
+                {copy.coffee.decline}
+              </button>
+            </div>
+          </div>
         </div>
-      </FloatingWindow>
+      </div>
     );
   }
 
+  const participants = sceneParticipants(coffee.lines);
+  const showText = shouldShowSpokenText({
+    captions: snapshot.captions,
+    voiceActive: snapshot.narration && typeof narrateLine === 'function'
+  });
   const linesToShow = typeof narrateLine === 'function' ? visibleLines : lineCount;
+  const activeLine = coffee.lines[linesToShow - 1] ?? null;
+  const activeSpeakerId = activeLine?.speakerId ?? null;
 
   return (
-    <div className="office-coffee-scene" role="dialog" aria-label={copy.coffee.sceneAria}>
-      <div className="office-coffee-card">
-        <div className="office-coffee-head">
+    <div
+      className="office-coffee-layer"
+      role="dialog"
+      aria-label={copy.coffee.sceneAria}
+      data-testid="office-coffee-scene"
+    >
+      <div className="office-coffee-shade" aria-hidden="true" />
+      <div className="office-coffee-chrome">
+        <p className="office-coffee-kind" aria-hidden="true">
           <span aria-hidden="true">☕</span> {copy.coffee.sceneTitle}
-        </div>
-        <ul className="office-coffee-lines">
-          {coffee.lines.slice(0, linesToShow).map((line, index) => {
-            const speaker = officeSenderInfo(line.speakerId);
-            return (
-              <li key={`${coffee.id}-${index}`} className="office-coffee-line">
-                <span
-                  className="office-coffee-avatar"
-                  aria-hidden="true"
-                  title={speaker.title ? `${speaker.name} · ${speaker.title}` : speaker.name}
-                >
-                  <PersonaFace id={line.speakerId} size={26} />
-                </span>
-                <span>
-                  <span
-                    className="office-coffee-speaker"
-                    title={speaker.title ? `${speaker.name} · ${speaker.title}` : speaker.name}
-                  >
-                    {speaker.name}:
-                  </span>{' '}
-                  {line.text}
-                </span>
-              </li>
-            );
-          })}
-        </ul>
-        <div className="office-coffee-footer">
-          <span className="office-coffee-timer" aria-hidden="true" />
-          <button type="button" className="office-coffee-done" onClick={onDone}>
-            {copy.coffee.done}
-          </button>
-        </div>
+        </p>
+        <button type="button" className="office-coffee-done" onClick={onDone}>
+          {copy.coffee.done}
+        </button>
       </div>
+
+      {participants.map((castId, index) => {
+        const person = officeSenderInfo(castId);
+        const side = index % 2 === 0 ? 'left' : 'right';
+        const isSpeaking = activeSpeakerId === castId;
+        const line = isSpeaking ? (activeLine?.text ?? null) : null;
+        return (
+          <CoffeeFellow
+            key={castId}
+            person={person}
+            side={side}
+            line={line && showText ? line : null}
+            isSpeaking={isSpeaking}
+            copy={copy}
+          />
+        );
+      })}
+    </div>
+  );
+}
+
+/** One colleague at the watercooler — leans in from an edge, bubble when speaking. */
+function CoffeeFellow({ person, side, line, isSpeaking, copy }) {
+  return (
+    <div
+      className={[
+        'office-coffee-fellow',
+        `is-side-${side}`,
+        isSpeaking ? 'is-speaking' : 'is-listening'
+      ]
+        .filter(Boolean)
+        .join(' ')}
+      style={{ '--coffee-accent': person.accentColor }}
+      data-testid={`office-coffee-fellow-${person.id}`}
+      data-speaking={isSpeaking ? 'true' : undefined}
+    >
+      <div className="office-coffee-fellow-head">
+        <PersonaFace
+          id={person.id}
+          size={isSpeaking ? FACE_SIZE_SPEAKING : FACE_SIZE}
+          className="office-coffee-face"
+        />
+      </div>
+      <p className="office-coffee-fellow-name">{person.name}</p>
+      {line ? (
+        <div className="office-coffee-bubble is-speaking" role="status" aria-live="polite">
+          <p className="office-coffee-line">{line}</p>
+        </div>
+      ) : isSpeaking && !line ? (
+        <p className="office-coffee-speaking-label">
+          {formatLocale(copy.coffee.speakingLabel ?? '{name}…', { name: person.name })}
+        </p>
+      ) : null}
     </div>
   );
 }

@@ -933,12 +933,14 @@ export const OFFICE_ZH_CN = {
       hardStopTitle: '抱歉 — 整点有硬性截止。散了吧。'
     },
     coffee: {
-      kindLabel: '茶水间 · 咖啡歇脚',
-      inviteLine: '喝杯咖啡?{name} 正在咖啡机旁开讲。',
+      kindLabel: '咖啡歇脚',
+      inviteLine: '要喝杯咖啡吗？',
+      declineAria: '不用了，{name}',
       accept: '歇 5 分钟',
       decline: '赶死线',
-      sceneAria: '咖啡时间',
+      sceneAria: '茶水间咖啡时间',
       sceneTitle: '茶水间',
+      speakingLabel: '{name}…',
       done: '我得去发版了'
     },
     battle: {

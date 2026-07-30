@@ -870,11 +870,14 @@ export const OFFICE_EN_AU = {
       hardStopTitle: 'Sorry — hard stop on the hour. Break it up.'
     },
     coffee: {
-      inviteLine: 'Coffee break? {name} is holding court at the machine.',
+      kindLabel: 'Coffee run',
+      inviteLine: 'Up for a coffee?',
+      declineAria: 'No worries, {name}',
       accept: 'Smoko',
       decline: 'Flat out',
-      sceneAria: 'Coffee break',
-      sceneTitle: 'The Watercooler',
+      sceneAria: 'Coffee break at the watercooler',
+      sceneTitle: 'The watercooler',
+      speakingLabel: '{name}…',
       done: "I've got a deploy"
     },
     battle: {

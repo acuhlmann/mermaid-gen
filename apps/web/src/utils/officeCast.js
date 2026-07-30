@@ -1622,12 +1622,14 @@ export const OFFICE_CHROME_COPY = {
     hardStopTitle: 'Sorry — hard stop at the top of the hour. Break it up.'
   },
   coffee: {
-    kindLabel: 'Watercooler · Coffee break',
-    inviteLine: 'Coffee break? {name} is holding court at the machine.',
+    kindLabel: 'Coffee run',
+    inviteLine: 'Up for coffee?',
+    declineAria: 'No thanks, {name}',
     accept: 'Take 5',
     decline: 'Deadline',
-    sceneAria: 'Coffee break',
-    sceneTitle: 'The Watercooler',
+    sceneAria: 'Coffee break at the watercooler',
+    sceneTitle: 'The watercooler',
+    speakingLabel: '{name}…',
     done: "I've got a deploy"
   },
   battle: {
