@@ -41,4 +41,17 @@ describe('useFloorSpokenText', () => {
     await waitFor(() => expect(narrateLine).toHaveBeenCalled());
     await waitFor(() => expect(result.current.showSpokenText).toBe(true));
   });
+
+  it('keeps lifted scene bubbles hidden between paced lines when narration is on', async () => {
+    const narrateLine = vi.fn(() => Promise.resolve({ spoken: true }));
+    const { result } = renderHook(() =>
+      useFloorSpokenText({
+        captions: false,
+        sceneHandlers: { narrateLine },
+        liftedSceneSpeech: true,
+        hasActiveSpeech: true
+      })
+    );
+    await waitFor(() => expect(result.current.showSpokenText).toBe(false));
+  });
 });

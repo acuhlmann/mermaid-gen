@@ -132,9 +132,14 @@ export function useFloorSpokenText({
     return undefined;
   }, [walkBy, narrateTracked]);
 
+  // Paced coffee/battle lines are narrated in `OfficeLayer`, not here. Keep
+  // bubbles hidden for the whole accepted scene when voice is on — otherwise
+  // text flashes between beats while TTS is idle (meeting speaker-view parity).
+  const sceneVoiceFirst = Boolean(liftedSceneSpeech && !captions);
+
   const showSpokenText = shouldShowSpokenText({
     captions,
-    voiceActive: voiceActive || liftedNarrationBusy
+    voiceActive: voiceActive || liftedNarrationBusy || sceneVoiceFirst
   });
 
   return { showSpokenText, sceneHandlersWithVoice };

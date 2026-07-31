@@ -7,7 +7,8 @@ import {
   acceptOfficeCoffee,
   pushOfficeCoffeeInvite,
   pushOfficeWalkBy,
-  setOfficeCaptions
+  setOfficeCaptions,
+  setOfficeNarration
 } from '../src/state/officeMomentStore.js';
 import {
   _resetOfficeViewModeForTests,
@@ -113,6 +114,8 @@ describe('OfficeLayer floor renderer guards', () => {
   });
 
   it('keeps coffee scene pacing when toggling desk and floor mid-break', async () => {
+    // Timer-driven pacing only — real TTS does not resolve under fake timers.
+    setOfficeNarration(false);
     pushOfficeCoffeeInvite({ lines: COFFEE_LINES });
 
     render(<OfficeLayer {...BASE_PROPS} />);
