@@ -104,17 +104,17 @@ describe('HuddleOverlay', () => {
     expect(screen.getByText(BEATS[0].text)).toBeTruthy();
   });
 
-  it('hides remark text when voice is on and CC is off — the highlighted face is enough', () => {
+  it('names the speaker when voice is on and CC is off — pulse plus a label', () => {
     const { container } = render(
       <HuddleOverlay huddle={huddle()} narrateLine={vi.fn(async () => ({ spoken: true }))} />
     );
     expect(screen.queryByText(BEATS[0].text)).toBeNull();
-    expect(screen.queryByText(/is talking/)).toBeNull();
+    expect(screen.getByText(/Gilfoyle is talking/i)).toBeTruthy();
     expect(container.querySelectorAll('.office-huddle-bubble')).toHaveLength(0);
     expect(container.querySelector('[data-speaking="true"]')).toBeTruthy();
   });
 
-  it('shows Do it in the chrome when ring controls are lifted to OfficeLayer', async () => {
+  it('shows Do it beside the speaker when ring controls are lifted to OfficeLayer', async () => {
     function LiftedRingHarness({ huddle: h, onAdoptPrompt }) {
       const ring = useHuddleRingControls({
         huddle: h,
@@ -132,12 +132,12 @@ describe('HuddleOverlay', () => {
     expect(onAdoptPrompt).toHaveBeenCalledWith('Split the Auth node in two', 'dinesh');
   });
 
-  it('shows Do it in the chrome when voice is on and the beat has an action prompt', async () => {
+  it('shows Do it beside the speaker when voice is on and the beat has an action prompt', async () => {
     render(<HuddleOverlay huddle={huddle()} narrateLine={vi.fn(async () => ({ spoken: true }))} />);
     await advanceSpokenLine();
     expect(screen.queryByText(BEATS[1].text)).toBeNull();
-    expect(screen.getByRole('button', { name: /Do it/i })).toBeTruthy();
-    expect(document.querySelectorAll('.office-huddle-bubble')).toHaveLength(0);
+    expect(screen.getAllByRole('button', { name: /Do it/i }).length).toBeGreaterThanOrEqual(1);
+    expect(document.querySelector('.office-huddle-bubble.is-do-it-only')).toBeTruthy();
   });
 
   it('shows the remark text again once CC is on, even with voice speaking', () => {
@@ -161,7 +161,7 @@ describe('HuddleOverlay', () => {
     expect(onAdoptPrompt).toHaveBeenCalledWith('Split the Auth node in two', 'dinesh');
   });
 
-  it('shows Do it in the chrome when captions are on', async () => {
+  it('shows Do it beside the speaker when captions are on', async () => {
     setOfficeCaptions(true);
     render(<HuddleOverlay huddle={huddle()} />);
     await advanceOneLine();
@@ -176,7 +176,7 @@ describe('HuddleOverlay', () => {
     fireEvent.click(screen.getByRole('button', { name: /Pin .*Gilfoyle/i }));
     expect(screen.getByTestId('office-huddle-pinned-gilfoyle')).toBeTruthy();
     expect(screen.queryByText(BEATS[0].text)).toBeNull();
-    expect(screen.queryByText(/is talking/)).toBeNull();
+    expect(screen.queryByText(/Gilfoyle is talking/i)).toBeNull();
     expect(screen.queryByRole('button', { name: /Do it/i })).toBeNull();
     expect(narrateLine).toHaveBeenCalledWith(
       expect.objectContaining({ speakerId: 'gilfoyle', text: BEATS[0].text })
