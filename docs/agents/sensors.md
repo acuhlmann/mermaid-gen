@@ -66,8 +66,23 @@ deadline; alone they take ~2 s each, and under a loaded full-suite run the same 
 the file from 2 s to 4 s. Before assuming you broke something, check whether your diff touches
 `apps/server` at all, then re-run the file alone.
 
-Worth fixing properly (a deadline scaled to load, or serialising the sandbox cases) rather
-than living with it: an agent who has just changed unrelated code sees six red tests and a
+### Why `scripts/test-affected-lib.mjs` edits keep hitting it
+
+Any change under `scripts/` sets the `root` flag in `check-affected-lib.mjs`, so
+`npm run check:affected` (and Husky pre-push) runs the **full** `npm run check` — not the
+diff-scoped `test:affected` loop. That is intentional: resolver and blast-radius rules are
+tooling that gates every agent's verify path; a bad mapping is worse than a slow run.
+
+`scripts/test-affected-lib.mjs` has no basename mirror under `scripts/` (the runner's
+`scripts/test-affected.test.mjs` imports it but is not auto-selected for lib-only edits), so `test:affected` alone would fall back to `npm run test:scripts` — but
+`check:affected` never takes that shortcut for `scripts/` paths. Expect the flake whenever you
+touch the resolver until the timeout issue is fixed.
+
+Do **not** weaken the `scripts/` → full-check fallback or add a fake mirror test just to dodge
+the suite. If this becomes a regular annoyance, raise the Anything runtime-check budget under
+load (`ANYTHING_RUNTIME_CHECK_TIMEOUT_MS` in `.env`, default 4000 ms in
+`anythingRuntimeCheck.js`) or serialise the sandbox cases in the test file — not loosen the
+resolver. An agent who has just changed unrelated tooling still sees six red tests and a
 non-zero `npm run check`, which is the most expensive kind of false alarm.
 
 ## How to read verify:deps output
