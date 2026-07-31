@@ -176,6 +176,18 @@ Production deploy notes (Cloud Run, billing credits, GitHub Actions CI, optional
   just the flexbox. `test/deskOsFrameStyles.test.js` pins both facts; jsdom has no layout engine,
   so real geometry needs a headless browser (the scoped verify skill under
   `apps/web/.claude/skills/verify/` has the recipe).
+- **Taskbar width is a priority ladder, and `min-width: 0` is the wrong reflex on a cluster.**
+  The bar is over-subscribed by 320px, so every resident must declare what it yields. Inside a
+  resident, `min-width: 0` is right — it is what lets a label ellipsize. On the flex _cluster_ that
+  holds residents it is wrong: it defeats the automatic minimum size, so the cluster shrinks past
+  the floors its children declared and their content spills sideways into the neighbouring
+  resident. The bar's own `overflow: hidden` cannot catch that, because the overflow is into a
+  sibling rather than out of the bar. Measured symptom: `.desk-os-taskbar-lead` collapsed to 19px
+  and the presence faces painted over the window pills. Give the cluster its content-based
+  minimum, floor each resident at what it must never lose, and `overflow: hidden` the resident
+  itself. Related trap: a narrow-viewport override for a taskbar selector must sit **after** the
+  base rule in `App.css` — same specificity, so the 360px block further up the file loses the
+  cascade and silently does nothing. Both pinned by `test/deskOsFrameStyles.test.js`.
 - **Which verb goes where is frequency, not category.** Most-runs verbs stay on the bottom
   composer band; few-times-a-session verbs go to the menu bar (`DeskOsMenuBar`), persistent status
   goes to the taskbar tray (`DeskOsTaskbar`). Don't add a sixth command surface. See

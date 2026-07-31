@@ -1080,7 +1080,21 @@ export const OFFICE_EN_AU = {
       trayAria: 'Status tray',
       brand: 'ArchiSlop OS',
       tidy: 'Chuck it back',
-      tidyTitle: 'Shove every window back where it opened'
+      tidyTitle: 'Shove every window back where it opened',
+      presence: {
+        aria: '{status}. Get up and have a look.',
+        title: 'Get up and have a look',
+        overflow: '+{count}',
+        pair: 'Pairing with {name}',
+        mob: '{count} round your screen',
+        walkby: '{name} is at your desk',
+        battle: '{name} vs {other}',
+        coffee: 'Cuppa break',
+        meeting: '{name} is rounding everyone up',
+        talk: '{name} is waiting on you',
+        talkMany: '{count} waiting on you',
+        quiet: 'Floor is dead quiet'
+      }
     }
   }
 };

@@ -1169,7 +1169,21 @@ export const OFFICE_ZH_CN = {
       trayAria: '状态托盘',
       brand: 'ArchiSlop OS',
       tidy: '收拾一下',
-      tidyTitle: '把每个窗口送回它打开时的位置'
+      tidyTitle: '把每个窗口送回它打开时的位置',
+      presence: {
+        aria: '{status}。起身去看看。',
+        title: '起身去看看',
+        overflow: '+{count}',
+        pair: '{name} 正在和你结对',
+        mob: '{count} 人围着你的屏幕',
+        walkby: '{name} 就在你工位旁',
+        battle: '{name} 对阵 {other}',
+        coffee: '咖啡时间',
+        meeting: '{name} 正在召集会议',
+        talk: '{name} 在等你回复',
+        talkMany: '{count} 人在等你回复',
+        quiet: '办公区一片安静'
+      }
     }
   }
 };

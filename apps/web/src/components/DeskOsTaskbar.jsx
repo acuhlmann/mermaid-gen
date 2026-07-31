@@ -1,6 +1,7 @@
 import { useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
 import ConcentrationControl from './ConcentrationControl.jsx';
+import DeskOsPresenceStrip from './DeskOsPresenceStrip.jsx';
 import DeskOsTray from './DeskOsTray.jsx';
 import DeskStandUpButton from './DeskStandUpButton.jsx';
 import LevelUpInfoPanel from './LevelUpInfoPanel.jsx';
@@ -165,9 +166,15 @@ export default function DeskOsTaskbar({
       aria-label={copy.taskbarAria ?? copy.aria}
     >
       {/* Always the sit-down half of the pair is missing on purpose: this bar is
-          desk chrome, and the floor carries its own way back (`FloorTopBar`). */}
+          desk chrome, and the floor carries its own way back (`FloorTopBar`).
+
+          The presence strip shares this cluster rather than standing alone: it
+          is the *diegetic* way onto the floor, and ADR-0011 rule 3 only permits
+          that next to the labelled control it duplicates. Grouped, the pairing
+          is structural instead of a coincidence of flex order. */}
       <div className="desk-os-taskbar-lead">
         <DeskStandUpButton standing={false} onStandUp={standUp} />
+        <DeskOsPresenceStrip />
       </div>
 
       <DeskOsTray />

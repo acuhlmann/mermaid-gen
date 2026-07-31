@@ -62,6 +62,90 @@ describe('parody-OS frame geometry', () => {
     expect(Number(zIndex)).toBeGreaterThan(279); // above the officeModal band
   });
 
+  // Slice 6 put a second resident in the leading cluster. The bar has no spare
+  // width — at 320px it already drops Concentration, the wordmark, the pill
+  // labels and Tidy up — so which of the two yields is a decision, not a
+  // default.
+  it('lets the leading cluster shrink, but never past its children', () => {
+    const body = ruleBody('.desk-os-taskbar-lead');
+    expect(body).toBeTruthy();
+    // `0 0 auto` was right for a lone fixed-width button; kept, the strip's
+    // caption would push the tray end out of the bar's right edge.
+    expect(body).toMatch(/\bflex:\s*0\s+1\s+auto\b/);
+    // And `min-width: 0` — the reflex for every other flexible resident here —
+    // is exactly wrong on this one. It defeats the automatic minimum size, so
+    // the cluster shrinks past the floors its children declare and their
+    // content spills sideways into the window list. Measured at 320px: the
+    // cluster collapsed to 19px and the faces painted over the window pills.
+    expect(body).not.toMatch(/\bmin-width:\s*0\b/);
+  });
+
+  it('makes the presence strip yield before Stand up does', () => {
+    // ADR-0011 rule 3: the labelled control is the one that must survive, and
+    // the diegetic duplicate beside it is what absorbs a narrow viewport.
+    expect(ruleBody('.desk-os-taskbar-lead .overlay-button.slop-action-button')).toMatch(
+      /\bflex:\s*0\s+0\s+auto\b/
+    );
+    expect(ruleBody('.desk-os-presence')).toMatch(/\bflex:\s*0\s+1\s+auto\b/);
+  });
+
+  it('clips the strip and floors it, so a squeeze loses words and not people', () => {
+    const body = ruleBody('.desk-os-presence');
+    // The faces are `flex: 0 0 auto` inside a button that shrinks. Without the
+    // clip they overflow into the sibling window list — and the bar's own
+    // `overflow: hidden` cannot catch that, because it is not out of the bar.
+    expect(body).toContain('overflow: hidden');
+    // A floor wide enough for the faces alone; the caption carries min-width: 0
+    // and is therefore what ellipsizes first. Anchored to the line start rather
+    // than read through `ruleBody`, which finds the selector as the *tail* of
+    // the compound `.desk-os-presence:not(…) .desk-os-presence-caption` rule
+    // above it and returns the wrong body.
+    expect(body).toMatch(/\bmin-width:\s*[\d.]+rem/);
+    expect(css.match(/\n\.desk-os-presence-caption\s*\{([^}]*)\}/)?.[1]).toContain('min-width: 0');
+  });
+
+  it('drops the presence caption on a phone, keeping the faces', () => {
+    // ~95px of caption is the difference between a readable run status and none
+    // at 320px. The faces and the button's accessible name still carry it.
+    const bodies = [...css.matchAll(/\.desk-os-presence-caption\s*\{([^}]*)\}/g)].map(
+      ([, body]) => body
+    );
+    expect(bodies.length).toBeGreaterThanOrEqual(2);
+    expect(bodies.some((body) => /display:\s*none/.test(body))).toBe(true);
+    // The faces are never in that trade — a strip with no faces is not a
+    // presence strip.
+    expect(css).not.toMatch(/\.desk-os-presence-faces\s*\{[^}]*display:\s*none/);
+  });
+
+  it('trims faces and the overflow badge together', () => {
+    // The badge counts what is *hidden*. Trimming the third face in CSS while
+    // the badge still rendered would quietly make it undercount by one, and
+    // nothing else in the app would notice.
+    const trimmed = css.match(
+      /\.desk-os-presence-faces\s*>\s*svg:nth-child\([^)]*\)[^{]*\{[^}]*\}/
+    )?.[0];
+    expect(trimmed).toBeTruthy();
+    expect(trimmed).toContain('.desk-os-presence-more');
+    expect(trimmed).toMatch(/display:\s*none/);
+  });
+
+  it('retires the strip below 360px, and wins the cascade doing it', () => {
+    // ADR-0011 rule 3 picks the survivor when only one of the pair fits: the
+    // labelled control stays, the diegetic duplicate goes.
+    expect(css).toMatch(
+      /@media\s*\(max-width:\s*360px\)\s*\{\s*\.desk-os-presence\s*\{[^}]*display:\s*none/
+    );
+    // Every rule for this selector has the same specificity, so source order is
+    // the whole mechanism: `display: none` has to be the last word. Grouped
+    // with the other 360px rules further up the file it loses to the base
+    // `display: inline-flex` and silently does nothing — which is how it first
+    // shipped in this slice, and it measured as still on screen at 320px.
+    const displays = [...css.matchAll(/\.desk-os-presence\s*\{([^}]*)\}/g)]
+      .map(([, body]) => body.match(/display:\s*([^;]+);/)?.[1]?.trim())
+      .filter(Boolean);
+    expect(displays.at(-1)).toBe('none');
+  });
+
   it('reserves the safe-area inset once, on the bar that touches the edge', () => {
     // Double-counting it pushes the composer band a notch-height into the canvas
     // on every iPhone.

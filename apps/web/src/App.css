@@ -22227,10 +22227,22 @@ body.slopitect-rainbow-tint::before {
   pointer-events: auto;
 }
 
+/* Stand up + the presence strip, as one cluster: the labelled control and its
+   diegetic duplicate (ADR-0011 rule 3). It shrinks — `0 0 auto` was right while
+   the only resident was a fixed-width button, and would now let the strip's
+   caption push the tray end out of the bar.
+
+   No `min-width: 0` here, unlike every other flexible resident of this bar.
+   That is the whole mechanism: the automatic minimum size makes this cluster
+   refuse to shrink past what its children have already declared they need, so
+   the floors below are respected instead of being quietly overrun. With
+   `min-width: 0` the cluster shrank to 19px at 320px and its faces painted
+   straight over the window pills. */
 .desk-os-taskbar-lead {
-  flex: 0 0 auto;
+  flex: 0 1 auto;
   display: flex;
   align-items: center;
+  gap: 0.35rem;
 }
 
 /* Stand up is a labelled bottom-nav control (ADR-0011 rule 3), but the taskbar
@@ -22238,6 +22250,10 @@ body.slopitect-rainbow-tint::before {
    explicit height, not padding: the desk buttons size from padding + icon box,
    which lands at 36px and leaves the bar no headroom. */
 .desk-os-taskbar-lead .overlay-button.slop-action-button {
+  /* Never the thing that yields: it is the conventional control the whole
+     diegetic pair is required to keep (ADR-0011 rule 3). The strip beside it
+     absorbs instead. */
+  flex: 0 0 auto;
   min-width: 0;
   min-height: 0;
   height: 1.7rem;
@@ -22249,6 +22265,90 @@ body.slopitect-rainbow-tint::before {
 
 .desk-os-taskbar-lead .slop-action-role {
   display: none;
+}
+
+/* Presence strip — who is around, and the diegetic way onto the floor. A quiet
+   chip by default: it is on screen for the whole session, so it may not read
+   like a notification when nothing is happening. */
+.desk-os-presence {
+  flex: 0 1 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  /* Priority *within* the strip: the caption yields, the faces never do. The
+     caption carries its own `min-width: 0` so it ellipsizes, and this floor is
+     the width of the faces alone (3 heads overlapped by 0.4rem — content-box,
+     so it excludes the padding). Together they mean a squeezed strip loses
+     words, never a person. */
+  min-width: 2.4rem;
+  /* Not cosmetic. The faces are `flex: 0 0 auto` inside a button that shrinks,
+     so without this a squeezed strip paints its heads straight over the window
+     pills next to it — which is exactly what it did at 320px. The bar's own
+     `overflow: hidden` cannot catch it: the overflow is into a sibling, not
+     out of the bar. */
+  overflow: hidden;
+  height: 1.7rem;
+  padding: 0 0.45rem;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.7rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.desk-os-presence:hover,
+.desk-os-presence:focus-visible {
+  border-color: color-mix(in srgb, var(--control-border) 80%, transparent);
+  color: var(--text);
+  outline: none;
+}
+
+/* Something is happening. Colour and weight only — a taskbar that animates
+   every time a colleague walks past is a slot machine, and a motion cue would
+   need a reduced-motion answer that says the same thing this already says. */
+.desk-os-presence:not([data-kind='quiet']) {
+  color: var(--text);
+}
+
+.desk-os-presence:not([data-kind='quiet']) .desk-os-presence-caption {
+  font-weight: 600;
+}
+
+.desk-os-presence-faces {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+}
+
+/* Overlapped, the way a presence stack always is: three faces cost the width of
+   roughly two, and that saving is exactly what buys the caption its room. */
+.desk-os-presence-faces > svg + svg {
+  margin-left: -0.4rem;
+}
+
+/* `PersonaFace` draws its accent disc edge to edge, so overlapping heads need a
+   rim in the bar's own colour or they read as one smear rather than three
+   people. */
+.desk-os-presence-faces > svg {
+  border-radius: 50%;
+  box-shadow: 0 0 0 1.5px var(--office-surface-bg, #fff);
+}
+
+.desk-os-presence-more {
+  margin-left: 0.3rem;
+  font-size: 0.62rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+
+.desk-os-presence-caption {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* Trailing status cluster: what an OS puts by the clock. */
@@ -22549,6 +22649,42 @@ body.slopitect-rainbow-tint::before {
     display: none;
   }
 
+  /* The presence caption joins the same demotion ladder as Concentration, the
+     OS wordmark and Tidy up: nice, not necessary. It costs ~95px, which at
+     320px is the difference between a readable run status and none — and the
+     faces still say who is around, while the button's accessible name still
+     carries the full sentence for a screen reader. Measured at 390px with a
+     window open, keeping it left the status ~100px; at 320px, ~30px. */
+  .desk-os-presence-caption {
+    display: none;
+  }
+
+  /* Phone: two smaller heads and nothing else. Dropping the third face is what
+     lets the `+N` badge go too — the badge counts what is *hidden*, so trimming
+     faces in CSS while it still rendered would quietly make it undercount. With
+     both gone the strip has no number to be wrong about, and the button's
+     accessible name still reads the whole sentence. */
+  .desk-os-presence-faces > svg:nth-child(n + 3),
+  .desk-os-presence-more {
+    display: none;
+  }
+
+  .desk-os-presence-faces > svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  .desk-os-presence-faces > svg + svg {
+    margin-left: -0.3rem;
+  }
+
+  /* Two smaller faces' worth of floor, the sibling of the window list's
+     one-pill floor below. */
+  .desk-os-presence {
+    min-width: 1.5rem;
+    padding-inline: 0.3rem;
+  }
+
   /* The XP *bar* needs ~170px it does not have here; the level chip is the part
      that carries the standing. Tap target and level panel are unchanged.
      The `max-width: 540px` rule above hides the level text instead — that trade
@@ -22587,6 +22723,23 @@ body.slopitect-rainbow-tint::before {
      list scrolls from here, which is the graceful degradation. */
   .desk-os-tray {
     min-width: 2.1rem;
+  }
+}
+
+/* Last rung of the taskbar's demotion ladder. Below this the bar is Stand up,
+   the window list, the run status and your standing — every one already down to
+   a glyph — and there is no width left to also be a window onto the floor.
+
+   ADR-0011 rule 3 decides *which* of the pair goes: diegesis duplicates and
+   never replaces, so when only one fits it is the labelled control that stays.
+   Standing up still works here; it just stops being decorated.
+
+   It has to live after the base rule rather than joining the other 360px rules
+   further up the file — same specificity, so the later `display: inline-flex`
+   would win and this would silently do nothing. */
+@media (max-width: 360px) {
+  .desk-os-presence {
+    display: none;
   }
 }
 

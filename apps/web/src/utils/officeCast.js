@@ -1685,7 +1685,29 @@ export const OFFICE_CHROME_COPY = {
     trayAria: 'Status tray',
     brand: 'ArchiSlop OS',
     tidy: 'Tidy up',
-    tidyTitle: 'Send every window back to where it opened'
+    tidyTitle: 'Send every window back to where it opened',
+    /**
+     * Presence strip — who is around, and the diegetic way onto the floor. It
+     * duplicates `Stand up` rather than replacing it (ADR-0011 rule 3), which
+     * is why the labelled button next to it keeps its label.
+     *
+     * One caption per `officePresenceOf` kind; `{name}` is always a first name,
+     * so the line still fits when the bar is a phone wide.
+     */
+    presence: {
+      aria: '{status}. Stand up and go see.',
+      title: 'Stand up and go see',
+      overflow: '+{count}',
+      pair: 'Pairing with {name}',
+      mob: '{count} at your screen',
+      walkby: '{name} is at your desk',
+      battle: '{name} vs {other}',
+      coffee: 'Coffee break',
+      meeting: '{name} is convening',
+      talk: '{name} is waiting on you',
+      talkMany: '{count} waiting on you',
+      quiet: 'The floor is quiet'
+    }
   },
   huddle: {
     sceneAria: 'Team huddle around your diagram',

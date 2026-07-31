@@ -401,20 +401,21 @@ items now, and Facilities (Fix) rejoins the team beside Jared, whose critique it
 | Get up              | Leave the chair              | Mail, IM (+ Stand up in the taskbar's leading corner; coffee is on the floor)            |
 | Under the desk / IT | Cubicle plumbing             | Menu bar → Admin (contractors, HR, language, hotkeys); code drawer on View               |
 
-| Verb                        | Does                                                                                                                                                                                                                                                                                            |
-| --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 📓 Open your notebook       | Toggles the Thinking / insights pane — Your seat; replaces the old Thinking board label                                                                                                                                                                                                         |
-| 🎚️ Concentration            | Rush job / Deep work segment in the taskbar tray, the Work Order footer and the Thinking header. Wire value unchanged: `modelProfile: "fast" \| "quality"`                                                                                                                                      |
-| ↳ Delegate to a teammate    | A roster row hands the work to a **person**: `runTransform` / `runAnalyze` for that persona, with an arrow, a "Delegate to {name}" accessible name, and a "{name} took it" acknowledgement for `HANDOFF_ACK_MS`. Same verbs as the radial menu; the difference is that somebody's name is on it |
-| 🤝 Everyone over here       | **Mob.** Pulls the whole `CAST_TIERS.team` tier around your canvas, face to face — see § 5b. In the **Your Team** roster menu, above the rows                                                                                                                                                   |
-| 🪑 Pair                     | **Pair.** Seats one teammate in the chair beside you and keeps them there until you end it — see § 5b. A chip on that person's own roster row, next to their delegate chip                                                                                                                      |
-| 📅 Have a meeting           | Opens the people/group picker (same as inbox / Slop Chat) — on the **desk** menu. Toggle **Book the glass room** vs **Slap on headsets**; blank canvas is fine                                                                                                                                  |
-| 🧍 Stand up and look around | Leading corner of the taskbar (`DeskStandUpButton` inside `DeskOsTaskbar`) — enters isometric floor mode. Not a menu item. The taskbar hides while you are standing; the floor carries its own way back (`FloorTopBar`)                                                                         |
-| 📥 Check your mail          | Opens the inbox popover (`openSignal` counter prop)                                                                                                                                                                                                                                             |
-| 📤 Take it to the mailroom  | Menu bar → **Mailroom**: the export/share panel inline, one click deep. Was an expandable row inside this menu, two clicks deep behind a menu you had to know to open                                                                                                                           |
-| 💬 Open Slop Chat / Message | Messenger history / DM a teammate or colleague                                                                                                                                                                                                                                                  |
-| ⚙️ Adjust your workstation  | Menu bar → **Admin** → External agents (guest agents); the code drawer is on **View**                                                                                                                                                                                                           |
-| 📈 Check my HR progression  | Menu bar → **Admin**: toggles the level-up / People Ops scorecard (`LevelUpInfoPanel`, now anchored to the taskbar tray's XP chip) — always enabled; that panel also links to Meet the team                                                                                                     |
+| Verb                        | Does                                                                                                                                                                                                                                                                                                                 |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 📓 Open your notebook       | Toggles the Thinking / insights pane — Your seat; replaces the old Thinking board label                                                                                                                                                                                                                              |
+| 🎚️ Concentration            | Rush job / Deep work segment in the taskbar tray, the Work Order footer and the Thinking header. Wire value unchanged: `modelProfile: "fast" \| "quality"`                                                                                                                                                           |
+| ↳ Delegate to a teammate    | A roster row hands the work to a **person**: `runTransform` / `runAnalyze` for that persona, with an arrow, a "Delegate to {name}" accessible name, and a "{name} took it" acknowledgement for `HANDOFF_ACK_MS`. Same verbs as the radial menu; the difference is that somebody's name is on it                      |
+| 🤝 Everyone over here       | **Mob.** Pulls the whole `CAST_TIERS.team` tier around your canvas, face to face — see § 5b. In the **Your Team** roster menu, above the rows                                                                                                                                                                        |
+| 🪑 Pair                     | **Pair.** Seats one teammate in the chair beside you and keeps them there until you end it — see § 5b. A chip on that person's own roster row, next to their delegate chip                                                                                                                                           |
+| 📅 Have a meeting           | Opens the people/group picker (same as inbox / Slop Chat) — on the **desk** menu. Toggle **Book the glass room** vs **Slap on headsets**; blank canvas is fine                                                                                                                                                       |
+| 🧍 Stand up and look around | Leading corner of the taskbar (`DeskStandUpButton` inside `DeskOsTaskbar`) — enters isometric floor mode. Not a menu item. The taskbar hides while you are standing; the floor carries its own way back (`FloorTopBar`)                                                                                              |
+| 👥 Who's around             | **Presence strip.** `DeskOsPresenceStrip`, beside Stand up — faces + one line for what the room is doing, and pressing it stands you up too. The diegetic half of the pair (ADR-0011 rule 3), so it is the half that retires below 360px. Produces nothing: pure `officePresenceOf` over the moment store — see § 5c |
+| 📥 Check your mail          | Opens the inbox popover (`openSignal` counter prop)                                                                                                                                                                                                                                                                  |
+| 📤 Take it to the mailroom  | Menu bar → **Mailroom**: the export/share panel inline, one click deep. Was an expandable row inside this menu, two clicks deep behind a menu you had to know to open                                                                                                                                                |
+| 💬 Open Slop Chat / Message | Messenger history / DM a teammate or colleague                                                                                                                                                                                                                                                                       |
+| ⚙️ Adjust your workstation  | Menu bar → **Admin** → External agents (guest agents); the code drawer is on **View**                                                                                                                                                                                                                                |
+| 📈 Check my HR progression  | Menu bar → **Admin**: toggles the level-up / People Ops scorecard (`LevelUpInfoPanel`, now anchored to the taskbar tray's XP chip) — always enabled; that panel also links to Meet the team                                                                                                                          |
 
 ### The talk channel — say it out loud (slice 3)
 
@@ -636,6 +637,55 @@ Code: `apps/server/src/routes/office.js` (`createHuddleHandler`, `planHuddleTurn
 `parseHuddleScript`, and `buildPairSystemPrompt` / `parsePairScript`),
 `apps/web/src/hooks/useHuddlePlayback.js`, `apps/web/src/components/HuddleOverlay.jsx`,
 huddle slice in `apps/web/src/state/officeMomentStore.js`.
+
+## 5c. The presence strip — who is around (slice 6)
+
+Every other surface in this document is the office **doing** something. The presence strip is the
+one that only ever **looks**: faces and one line, in the taskbar next to Stand up, saying what the
+room is up to right now. Pressing it stands you up.
+
+That it produces nothing is not a side effect, it is the licence. § 11's carve-out lets ambient
+floor life exist precisely because it writes to no store and fires no moment; the strip claims the
+same standing from a chair. `officePresenceOf` (`utils/officePresence.js`) is a pure function from
+the moment-store snapshot to `{ kind, ids }` — no timer, no fetch, no LLM call, no budget line. It
+is tested in a node environment, which is the proof: a presence surface you can exercise with no
+DOM has nowhere to hide a side effect.
+
+**What a seated person can honestly know.** The plan proposed deriving "who is up" from
+`officeFloorWander`, but wandering is floor-local by construction — it dies when the floor
+unmounts, which is every moment you are sitting down. Reading it from the desk would have shown
+_who could get up_ and called it _who is around_. So the strip answers from two sources that are
+true from a chair: whoever a moment has brought to you, and — when nothing is happening — **your
+pod**, the six advisor desks adjoining yours (`zone: 'pod'` in `FLOOR_SEATS`). Leadership behind
+glass never appear, which nobody had to write down: it falls out of the seating plan, the same way
+the fishbowl already explained why executives never fetch their own coffee.
+
+One kind wins at a time, ordered by **proximity to your chair** rather than by loudness:
+
+| Kind           | Reads                    | From                                      |
+| -------------- | ------------------------ | ----------------------------------------- |
+| `pair` / `mob` | at your screen           | `huddle.attendees` + `huddle.mode`        |
+| `walkby`       | at your desk             | `walkBy.colleagueId`                      |
+| `battle`       | "{name} vs {other}"      | `sceneParticipants(battle.lines)`         |
+| `coffee`       | the kitchen has the room | `sceneParticipants(coffee.lines)`         |
+| `meeting`      | convener, then the room  | `meetingInvite`                           |
+| `talk`         | waiting on you           | unread inbound `imHistory`                |
+| `quiet`        | your pod, at their desks | `FLOOR_SEATS` — the only never-empty kind |
+
+Two rules worth keeping:
+
+- **A holy war is a two-hander**, enforced in the derivation rather than the view. A malformed
+  scene falls through to the next kind instead of captioning "Gilfoyle vs " — the renderer never
+  has to own a half-a-fight string.
+- **Unread IMs are presence; unread email is not.** Slop Chat is somebody typing at you now; an
+  inbox is somebody who typed at some point, and it already has its own badge. `quiet` never being
+  empty is what lets the strip be a permanent taskbar resident instead of something that flickers
+  in and out all session.
+
+Code: `apps/web/src/utils/officePresence.js`,
+`apps/web/src/components/DeskOsPresenceStrip.jsx`. Geometry and the demotion ladder (including why
+`min-width: 0` on the leading cluster was the bug) are in
+[`office-isometric-mode.md`](office-isometric-mode.md) §4d.
 
 ## 6. Cadence & cost policy
 

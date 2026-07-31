@@ -144,6 +144,56 @@ takes a full row of its own, above the Work Order, which stays nearest the thumb
 Full rationale — the budget, the gate, the desk speech surface, and why the floor mirror cost
 nothing — is in [`office-parody.md`](office-parody.md) § The talk channel.
 
+### 4d. Slice 6 — presence strip ✅ shipped
+
+`DeskOsPresenceStrip` joins Stand up in the taskbar's leading cluster: who is around, in one
+glance, and a second way onto the floor. It is the ADR-0011 rule-3 pair made literal — the
+diegetic affordance beside the labelled control it duplicates, never instead of it.
+
+**It produces nothing**, which is the carve-out that licenses a permanent resident watching the
+office. The entire render is `officePresenceOf` (`utils/officePresence.js`) over the moment-store
+snapshot: no timer, no fetch, no write. It reads the store directly like `DeskOsTray` reads the
+overlay stack, so it costs the shell prop wall nothing.
+
+**The desk cannot see the floor**, and that changed the design from the plan. The plan named
+`utils/officeFloorWander.js` as the source for "who is up" — but wandering is floor-local by
+construction (`useFloorWander` dies when the floor unmounts, which is every moment you are
+sitting down). Taken literally it would have dressed _who could get up_ as _who is up_. So the
+question is answered from what a seated person actually knows: whoever a moment brought to them,
+and, when nothing is happening, **your pod** — the six advisor desks adjoining yours, which is
+also the roster the composer band already puts under your hands. Leadership behind glass never
+appear, for the same reason they never fetch their own coffee.
+
+Exactly one kind wins, ordered by proximity to your chair rather than by loudness: pair/mob (at
+your screen) → walk-by (at your desk) → battle → coffee → meeting invite → unread IM → quiet.
+`quiet` is the only kind that is never empty, and that is deliberate: a strip that vanished
+whenever the office went quiet would flicker in and out all session, and a taskbar that changes
+width on its own is worse than one showing six idle colleagues. Unread **IMs** count as presence
+and unread **email** does not — Slop Chat is somebody typing at you now, an inbox is somebody who
+typed at some point, and the inbox carries its own badge.
+
+Geometry, measured in headless Chrome at 1280 / 720 / 390 / 320 with two windows open and a run
+in flight — the failure mode here is subtle and worth recording:
+
+- **`min-width: 0` on the leading cluster was the bug, not the fix.** It is the reflex for every
+  other flexible resident of this bar, and on a cluster it defeats the automatic minimum size:
+  the cluster shrank to 19px at 320px and its faces painted straight over the window pills. The
+  bar's own `overflow: hidden` cannot catch that — the overflow is into a _sibling_, not out of
+  the bar. The cluster now keeps its content-based minimum, so the floors its children declare
+  are respected instead of overrun.
+- **Inside the strip, the caption yields and the faces never do**: `overflow: hidden` plus a
+  `min-width` floor the width of the faces alone. A squeeze loses words, not people.
+- **Demotion ladder**, continuing slice 2's: caption + third face + the `+N` badge go at 720px
+  (the badge counts what is _hidden_, so trimming faces while it still rendered would quietly
+  make it undercount), then the strip retires entirely below 360px — where rule 3 decides which
+  of the pair survives, and it is the labelled control. That last rule has to sit **after** the
+  base rule in `App.css`; grouped with the other 360px rules further up the file it loses the
+  cascade and silently does nothing, which is how it first shipped.
+
+Pinned by `test/deskOsFrameStyles.test.js` (the CSS facts jsdom cannot measure),
+`test/officePresence.test.js` (the derivation, in a node environment — being testable without a
+DOM is the proof it produces nothing) and `test/deskOsPresenceStrip.test.jsx`.
+
 ## 5. Phasing (each slice independently shippable)
 
 1. ~~**Floor substrate**~~ — ✅ **shipped**: the room (floor plate, tile grid, zone plates,

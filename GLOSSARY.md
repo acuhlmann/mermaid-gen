@@ -60,6 +60,20 @@ Short definitions for the recurring vocabulary in this repo. Cross-references in
 
 **Attributed insight.** A free-text note an external agent can drop into the session (`drop_insight`); rendered in the Insights pane with the agent's emoji/color/name. Stored in the session event bus, not in slot state.
 
+## Office collaboration (shipped)
+
+The five acts you can perform with the built-in cast, drawn from how a real team works. Only the last one produces anything — see [[Sign-off rule / one-producer model]] and `docs/decisions/0012-collaboration-model.md`. Full behaviour: [`docs/office-parody.md`](docs/office-parody.md) § Desk verbs, § 5b, § 5c.
+
+**Talk (undirected / directed).** Saying something to the room from your chair, and turning to the person next to you — one verb (`imSomeone`) with and without a target id, not two features. The reply lands as speech at your desk (`OfficeDeskSpeech`) or as a bubble over their head on the floor, and carries `channel: 'talk'` so it deliberately skips the arrival toast: an answer to something you just said is not a notification that somebody messaged you. Has its own reactive budget (`TALK_LLM_CAP`), separate from the ambient cap, with the canned bank as the graceful floor.
+
+**Mob.** "Everyone look at my screen" — the whole team tier gathered around your canvas, one remark each, ending itself when the last one lands. The original huddle, renamed once [[Pair]] joined it on the same slice.
+
+**Pair.** One teammate in the chair beside you with a train of thought, and **it does not end itself** — somebody who pulled up a chair does not evaporate because they finished a sentence. Shares `officeMomentStore.huddle` with [[Mob]], differing only in roster size and end condition; deliberately _not_ "a mob with one seat", since every huddle prompt rule breaks at one attendee (`buildPairSystemPrompt` / `parsePairScript` are its own).
+
+**Delegate.** Handing the work order to a named person — the only one of the five acts that spends pipeline compute on your instruction (`runTransform` / `runAnalyze` in that persona's flavour). The roster's action chip delegates; the roster's name/face addresses (that is [[Talk (undirected / directed)]]).
+
+**Presence strip.** The taskbar resident that shows who is around and what the room is doing, and doubles as a way onto the floor. Derived purely from the moment store plus the seating plan (`officePresenceOf`); it **produces nothing**, which is the carve-out that licenses it. The diegetic half of an ADR-0011 rule-3 pair, so it is the half that retires when only one of the two can fit.
+
 ## Multiplayer (design-stage — adopted terms, not yet shipped)
 
 Vocabulary fixed during the multi-human/NPC-participant design sessions. No code implements these yet; entries here are the canonical names for the design docs and future schemas. Full spec: [`docs/multi-human-office.md`](docs/multi-human-office.md).
@@ -82,7 +96,7 @@ Vocabulary fixed during the multi-human/NPC-participant design sessions. No code
 
 **Session locale.** The language of everything _generated_ in a shared session (LLM moments, meeting scripts, agent outputs, deliverable labels) — chosen by the host at creation, defaulting to their UI locale, announced at the invite link and reception check-in. Canned moments and UI chrome stay per-viewer (template ids localize at render time). Changing it mid-session affects only future generation.
 
-**Pitch.** An actionable _suggestion_ from an NPC or team participant: instruction + rationale, attributed, persistent as a card in the review queue. Accepting a pitch triggers a run — commissioned by the human, attributed to the pitcher. Distinct from a [[Proposal]], which is a concrete server-validated change (contractors; commissioned lane work). One queue, two honest card types. A pitch is today's "Do it" `actionPrompt` promoted from an ephemeral toast to a reviewable card.
+**Pitch.** An actionable _suggestion_ from an NPC or team participant: instruction + rationale, attributed, persistent as a card in the review queue. Accepting a pitch triggers a run — commissioned by the human, attributed to the pitcher. Distinct from a [[Proposal]], which is a concrete server-validated change (contractors; commissioned lane work). One queue, two honest card types. **Partly shipped**: a pitch is the `actionPrompt` any speaker may attach to a remark, and since the whole-cast slice it is no longer one critic's privilege — every teammate can carry one, on a **condition** (the speaker actually has something) rather than at a rate, so Do-it buttons stay meaningful instead of becoming wallpaper. What remains design-stage is the promotion from ephemeral toast to a reviewable queue card. Surfaces that render one: desk speech, Slop Chat, inbox, walk-bys, huddle beats — [[Floor talk]] is the outstanding gap.
 
 **Sign-off rule / one-producer model.** Doctrine, two clauses. (1) **No agent-initiated runs**: agent spend follows human initiative. (2) **The built-in cast never produces slot content** — no DSLs, no code, no lane work; NPCs and team personas comment, pitch, and chat, and the human's own pipeline is the sole producer. The only exception is a **contractor** (a real external agent the human explicitly invited), which keeps its validated-proposal path. The cast may have [[Their own work]] — as fiction only.
 
