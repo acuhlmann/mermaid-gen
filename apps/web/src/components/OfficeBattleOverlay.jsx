@@ -161,8 +161,12 @@ export default function OfficeBattleOverlay({
             <p className="office-moment-kind office-moment-kind--battle" aria-hidden="true">
               {copy.battle.kindLabel}
             </p>
-            <p className="office-battle-invite-topic">“{battle.topic}”</p>
-            <p className="office-battle-invite-ask">{copy.battle.inviteTagline}</p>
+            {showText ? (
+              <>
+                <p className="office-battle-invite-topic">“{battle.topic}”</p>
+                <p className="office-battle-invite-ask">{copy.battle.inviteTagline}</p>
+              </>
+            ) : null}
             <div className="office-battle-invite-actions">
               <button type="button" className="office-battle-accept" onClick={onAccept}>
                 {copy.battle.accept}
@@ -204,7 +208,7 @@ export default function OfficeBattleOverlay({
         <p className="office-battle-kind" aria-hidden="true">
           <span aria-hidden="true">🥊</span> {copy.battle.sceneTitle}
         </p>
-        <p className="office-battle-topic">“{battle.topic}”</p>
+        {showText ? <p className="office-battle-topic">“{battle.topic}”</p> : null}
       </div>
 
       <BattleFighter
@@ -240,7 +244,7 @@ export default function OfficeBattleOverlay({
 
       {allLinesIn && !votedFor ? (
         <div className="office-battle-settle" data-testid="office-battle-settle">
-          <p className="office-battle-settle-line">{copy.battle.settleLine}</p>
+          {showText ? <p className="office-battle-settle-line">{copy.battle.settleLine}</p> : null}
           <div className="office-battle-settle-buttons">
             {[sideA, sideB].map((side) => (
               <button
@@ -262,9 +266,11 @@ export default function OfficeBattleOverlay({
 
       {winner && verdictText ? (
         <div className="office-battle-verdict" role="status" data-testid="office-battle-verdict">
-          <div className="office-battle-verdict-head">
-            🏆 {copy.battle.verdictHead}: {winner.avatarEmoji} {winner.name}
-          </div>
+          {showText ? (
+            <div className="office-battle-verdict-head">
+              🏆 {copy.battle.verdictHead}: {winner.avatarEmoji} {winner.name}
+            </div>
+          ) : null}
           <button type="button" className="office-battle-done" onClick={onDone}>
             {copy.battle.done}
           </button>

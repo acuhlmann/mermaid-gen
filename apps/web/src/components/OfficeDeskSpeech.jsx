@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import OfficeMomentShell from './OfficeMomentShell.jsx';
 import { PersonaFace } from './personaFaces/index.jsx';
+import { useSpokenLineVoice } from '../hooks/useSpokenLineVoice.js';
 import { officeChromeCopy, officeSenderInfo } from '../utils/officeCast.js';
 import { formatLocale } from '../i18n/formatLocale.js';
 
@@ -19,6 +20,9 @@ import { formatLocale } from '../i18n/formatLocale.js';
  * a reply to something you just said would be absurd. `pushOfficeImPing` skips
  * the arrival toast entirely for `channel: 'talk'` so the two never double up.
  *
+ * Voice-first like walk-bys and floor talk: narration on + CC off hides the
+ * remark while you hear it; actions (Do it / open thread) stay visible.
+ *
  * ADR-0010: what comes back is a remark. It never touches a slot; if it carries
  * a pitch, only you can pull the trigger (slice 4 broadens that to every cast
  * member, which is why `actionPrompt` is read here rather than assumed absent).
@@ -27,6 +31,10 @@ import { formatLocale } from '../i18n/formatLocale.js';
  *   line: { id: string, colleagueId: string, body: string, actionPrompt?: string } | null,
  *   pending?: boolean,
  *   pendingColleagueId?: string | null,
+ *   captions?: boolean,
+ *   narration?: boolean,
+ *   narrateLine?: (line: { speakerId: string, text: string }) =>
+ *     Promise<{ spoken?: boolean } | void>,
  *   onAdoptPrompt?: (prompt: string, colleagueId: string) => void,
  *   onOpenThread?: (colleagueId: string) => void
  * }} props
@@ -35,6 +43,9 @@ export default function OfficeDeskSpeech({
   line = null,
   pending = false,
   pendingColleagueId = null,
+  captions = false,
+  narration = false,
+  narrateLine,
   onAdoptPrompt,
   onOpenThread
 }) {
@@ -45,6 +56,15 @@ export default function OfficeDeskSpeech({
    * a desk-only flag leaking into the store (ADR-0011 rule 1).
    */
   const [dismissedId, setDismissedId] = useState(/** @type {string | null} */ (null));
+
+  const { showSpokenText } = useSpokenLineVoice({
+    captions,
+    narration,
+    narrateLine,
+    speakerId: line?.colleagueId ?? '',
+    text: line?.body ?? '',
+    lineKey: line?.id ?? null
+  });
 
   if (pending) {
     const waiting = officeSenderInfo(pendingColleagueId);
@@ -97,7 +117,7 @@ export default function OfficeDeskSpeech({
                 <span className="office-desk-speech-title"> · {speaker.title}</span>
               ) : null}
             </span>
-            <p className="office-desk-speech-body">{line.body}</p>
+            {showSpokenText ? <p className="office-desk-speech-body">{line.body}</p> : null}
             <div className="office-desk-speech-actions">
               {line.actionPrompt && typeof onAdoptPrompt === 'function' ? (
                 <button

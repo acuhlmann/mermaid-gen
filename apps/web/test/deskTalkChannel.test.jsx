@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { renderHook, act } from '@testing-library/react';
 import DeskTalkComposer from '../src/components/DeskTalkComposer.jsx';
 import OfficeDeskSpeech from '../src/components/OfficeDeskSpeech.jsx';
@@ -82,6 +82,31 @@ describe('OfficeDeskSpeech', () => {
   it('speaks the line itself, not an announcement that someone messaged you', () => {
     render(<OfficeDeskSpeech line={LINE} />);
     expect(screen.getByText('That is three services too many.')).toBeTruthy();
+  });
+
+  it('hides the remark while narration speaks and CC is off', async () => {
+    const narrateLine = vi.fn(() => Promise.resolve({ spoken: true }));
+    render(<OfficeDeskSpeech line={LINE} narration narrateLine={narrateLine} captions={false} />);
+    await waitFor(() =>
+      expect(narrateLine).toHaveBeenCalledWith({
+        speakerId: 'gilfoyle',
+        text: LINE.body
+      })
+    );
+    expect(screen.queryByText(LINE.body)).toBeNull();
+    expect(screen.getByText(/Gilfoyle/)).toBeTruthy();
+  });
+
+  it('shows the remark when narration fails and CC stays off', async () => {
+    render(
+      <OfficeDeskSpeech
+        line={LINE}
+        narration
+        narrateLine={vi.fn(() => Promise.resolve({ spoken: false }))}
+        captions={false}
+      />
+    );
+    expect(await screen.findByText(LINE.body)).toBeTruthy();
   });
 
   it('renders nothing without a line', () => {

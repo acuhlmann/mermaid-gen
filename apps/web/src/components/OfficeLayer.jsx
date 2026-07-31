@@ -70,8 +70,10 @@ import {
   normalizeMeetingRoster,
   officeChromeCopy,
   officeDialogueLocale,
-  officeMeetingCopy
+  officeMeetingCopy,
+  officeSenderInfo
 } from '../utils/officeCast.js';
+import { formatLocale } from '../i18n/formatLocale.js';
 import {
   cancelOfficeNarration,
   isOfficeNarrationBusy,
@@ -366,8 +368,25 @@ export default function OfficeLayer({
   useEffect(() => {
     const battle = snapshot.battle;
     const battleId = battle?.id ?? null;
+    if (battleId && battleId !== prevBattleIdRef.current && !battle?.accepted) {
+      playChime?.(playFootsteps);
+      if (snapshot.narration && !onFloor) {
+        const sides = Object.keys(battle.verdicts ?? {});
+        if (sides.length >= 2) {
+          const copy = officeChromeCopy();
+          const sideA = officeSenderInfo(sides[0]);
+          const sideB = officeSenderInfo(sides[1]);
+          const inviteLine = formatLocale(copy.battle.inviteLine, {
+            a: sideA.name,
+            b: sideB.name,
+            topic: battle.topic
+          });
+          void narrateLine({ speakerId: sides[0], text: inviteLine });
+        }
+      }
+    }
     prevBattleIdRef.current = battleId;
-  }, [snapshot.battle]);
+  }, [snapshot.battle, snapshot.narration, onFloor, playChime, narrateLine]);
   useEffect(() => {
     const accepted = Boolean(snapshot.coffee?.accepted);
     if (accepted && !prevCoffeeAcceptedRef.current) {
@@ -998,6 +1017,9 @@ export default function OfficeLayer({
               line={latestTalkLine}
               pending={talkPending}
               pendingColleagueId={talkPendingFor}
+              captions={snapshot.captions}
+              narration={snapshot.narration}
+              narrateLine={snapshot.narration ? narrateLine : undefined}
               onAdoptPrompt={handleAdopt}
               onOpenThread={(colleagueId) => handleOpenImMessage(colleagueId, null)}
             />
