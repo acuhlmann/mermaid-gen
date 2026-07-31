@@ -746,8 +746,10 @@ export const OFFICE_ZH_CN = {
       meeting: '开个会',
       meetingTitle: '订玻璃会议室或戴上耳机 — 选好人就开',
       team: '抓个有空的人',
-      huddleAction: '围过来开小会',
-      huddleActionTitle: '全队挤到你的屏幕前一起操作你的电脑。没有会议室，没有耳机。',
+      huddleAction: '都过来一下',
+      huddleActionTitle: '全队挤到你屏幕前 — 每人说一句，然后各回各位。没有会议室，没有耳机。',
+      pairAction: '结对',
+      pairActionTitle: '他们拉把椅子坐下，你不赶人就一直待着',
       outbox: '拿去收发室',
       outboxTitle: '保存、复制或分享工位上的成品',
       codeDrawer: '打开面条码抽屉',
@@ -934,7 +936,12 @@ export const OFFICE_ZH_CN = {
       gathering: '大家正走过来…',
       speakingLabel: '{name} 正在发言',
       hardStop: '硬性截止',
-      hardStopTitle: '抱歉 — 整点有硬性截止。散了吧。'
+      hardStopTitle: '抱歉 — 整点有硬性截止。散了吧。',
+      pairSceneAria: '结对看你的图',
+      pairGathering: '{name} 正拉椅子过来…',
+      pairWatching: '{name} 正在看笔记本…',
+      pairEnd: '谢了 — 我明白了',
+      pairEndTitle: '{name} 回自己工位'
     },
     coffee: {
       kindLabel: '咖啡歇脚',
@@ -1125,7 +1132,9 @@ export const OFFICE_ZH_CN = {
       },
       huddle: {
         eyebrow: '团队围聚',
-        heading: '你的团队，围在你工位旁'
+        heading: '你的团队，围在你工位旁',
+        pairEyebrow: '结对',
+        pairHeading: '{name}，就坐在你旁边'
       },
       zones: {
         reception: '前台',
@@ -1136,9 +1145,31 @@ export const OFFICE_ZH_CN = {
         hrCorner: '人力资源'
       }
     },
+    talk: {
+      kindLabel: '在你工位旁',
+      placeholder: '随口说一句…',
+      placeholderNamed: '跟 {name} 说一句…',
+      aria: '随口说一句 —— 谁合适谁接话',
+      ariaNamed: '跟 {name} 说一句',
+      roomTitle: '对着办公室说 —— 谁合适谁接话',
+      send: '说出口',
+      sendTitle: '随口说说，没人会动画布',
+      sending: '…',
+      pending: '有人抬起头…',
+      pendingNamed: '{name} 抬起头…',
+      dismissAria: '继续干活',
+      adopt: '照做',
+      openThread: '打开这条对话',
+      clearTargetTitle: '改成对着办公室说',
+      clearTargetAria: '不再单独跟 {name} 说'
+    },
     osTray: {
       aria: '已打开的工作站窗口',
-      brand: 'ArchiSlop OS'
+      taskbarAria: '工作站任务栏',
+      trayAria: '状态托盘',
+      brand: 'ArchiSlop OS',
+      tidy: '收拾一下',
+      tidyTitle: '把每个窗口送回它打开时的位置'
     }
   }
 };

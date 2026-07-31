@@ -285,6 +285,64 @@ describe('OfficeMessenger hop-on-a-call', () => {
   });
 });
 
+describe('OfficeMessenger pitches', () => {
+  const THREAD = [
+    {
+      id: 'im-1',
+      colleagueId: 'gilfoyle',
+      body: 'Auth is doing two jobs.',
+      actionPrompt: 'Split Auth into Authentication and Authorization',
+      createdAt: 1,
+      read: true,
+      outbound: false
+    },
+    {
+      id: 'im-2',
+      colleagueId: 'gilfoyle',
+      body: 'fine, do it',
+      actionPrompt: 'should never be adoptable',
+      createdAt: 2,
+      read: true,
+      outbound: true
+    },
+    { id: 'im-3', colleagueId: 'gilfoyle', body: 'Noted.', createdAt: 3, read: true }
+  ];
+
+  function renderThread(props = {}) {
+    return render(
+      <OfficeMessenger
+        open
+        messages={THREAD}
+        onClose={vi.fn()}
+        onMarkRead={vi.fn()}
+        onSend={vi.fn()}
+        {...props}
+      />
+    );
+  }
+
+  // The thread is what keeps things: the desk speech card speaks once and a
+  // desk arrival expires, so a suggestion you walked away from is takeable
+  // here or nowhere.
+  it('offers Do it on an inbound line that carries one — and only that line', () => {
+    const onAdoptPrompt = vi.fn();
+    renderThread({ onAdoptPrompt });
+
+    const buttons = screen.getAllByTestId('messenger-adopt');
+    expect(buttons).toHaveLength(1);
+    fireEvent.click(buttons[0]);
+    expect(onAdoptPrompt).toHaveBeenCalledWith(
+      'Split Auth into Authentication and Authorization',
+      'gilfoyle'
+    );
+  });
+
+  it('renders no pitch button when the window cannot adopt one', () => {
+    renderThread();
+    expect(screen.queryByTestId('messenger-adopt')).toBeNull();
+  });
+});
+
 describe('office who-is-who chrome', () => {
   it('shows the sender name AND role on inbox rows', () => {
     render(

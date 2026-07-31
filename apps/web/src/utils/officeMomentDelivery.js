@@ -172,6 +172,7 @@ export function deliverCannedMoment(kind, ctx, options) {
       if (!template) return false;
       pushOfficeImPing({
         colleagueId: targetId,
+        channel: options.channel,
         body: fillOfficeSlots(template.body, {
           ...slots,
           snippet: userMessage.slice(0, 48)
@@ -339,6 +340,11 @@ export async function deliverLlmMoment(kind, ctx, options) {
     if (!moment || typeof moment.body !== 'string' || !moment.body.trim()) return false;
 
     onLlmSpent?.();
+    // Every kind forwards `actionPrompt` the same way. It reads like boilerplate
+    // and is the point: the IM branch used to drop it, so a colleague who spoke
+    // up in Slop Chat or at your desk could propose something and hand you no
+    // way to take them up on it. A pitch belongs to whoever had it, not to the
+    // surface it happened to arrive on.
     if (kind === 'email') {
       pushOfficeEmail({
         colleagueId,
@@ -353,7 +359,12 @@ export async function deliverLlmMoment(kind, ctx, options) {
         ...(moment.actionPrompt ? { actionPrompt: moment.actionPrompt } : {})
       });
     } else {
-      pushOfficeImPing({ colleagueId, body: moment.body });
+      pushOfficeImPing({
+        colleagueId,
+        body: moment.body,
+        channel: options.channel,
+        ...(moment.actionPrompt ? { actionPrompt: moment.actionPrompt } : {})
+      });
     }
     onRemember?.(moment.body);
     markFired(memory, null, onFired);

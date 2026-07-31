@@ -202,6 +202,7 @@ export default function OfficeInboxDock({
           group="officeModal"
           className={`office-inbox-popover${minimized ? ' is-minimized' : ''}`}
           kind="inbox"
+          title={copy.inbox.title}
           defaultCorner="center"
           defaultOffsetX={0}
           defaultOffsetY={0}

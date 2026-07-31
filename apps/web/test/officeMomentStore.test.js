@@ -136,6 +136,22 @@ describe('officeMomentStore', () => {
     expect(getOfficeSnapshot().imHistory).toHaveLength(2);
   });
 
+  // Emails and walk-bys have always carried a pitch; IMs dropping theirs made
+  // the talk channel the one place a colleague could have an idea and no way to
+  // hand it over. Storing it is not running it (ADR-0010).
+  it('keeps a pitch on an inbound IM, and omits the key when there is none', () => {
+    pushOfficeImPing({
+      colleagueId: 'gilfoyle',
+      body: 'Auth is doing two jobs.',
+      actionPrompt: 'Split Auth into Authentication and Authorization'
+    });
+    pushOfficeImPing({ colleagueId: 'intern', body: 'anyone seen the fridge email' });
+
+    const [pitched, plain] = getOfficeSnapshot().imHistory;
+    expect(pitched.actionPrompt).toBe('Split Auth into Authentication and Authorization');
+    expect('actionPrompt' in plain).toBe(false);
+  });
+
   it('marks IMs read per colleague, then globally', () => {
     pushOfficeImPing({ colleagueId: 'intern', body: 'a' });
     pushOfficeImPing({ colleagueId: 'greybeard', body: 'b' });
@@ -318,6 +334,23 @@ describe('officeMomentStore', () => {
   it('refuses a huddle of one — that is a walk-by', () => {
     expect(startOfficeHuddle(['gilfoyle'])).toBeNull();
     expect(getOfficeSnapshot().huddle).toBeNull();
+  });
+
+  // The floor was never "two people", it was "enough people to script a scene
+  // for". Pairing brings a script written for one voice, so it brings its own.
+  it('seats a pair of exactly one, and refuses a pair of several', () => {
+    expect(startOfficeHuddle(['gilfoyle'], { mode: 'pair' })).toBeTruthy();
+    expect(getOfficeSnapshot().huddle.mode).toBe('pair');
+    expect(getOfficeSnapshot().huddle.attendees).toEqual(['gilfoyle']);
+
+    endOfficeHuddle();
+    expect(startOfficeHuddle(['gilfoyle', 'dinesh'], { mode: 'pair' })).toBeNull();
+    expect(getOfficeSnapshot().huddle).toBeNull();
+  });
+
+  it('tags an unqualified huddle as a mob so every existing caller is one', () => {
+    startOfficeHuddle(['gilfoyle', 'dinesh']);
+    expect(getOfficeSnapshot().huddle.mode).toBe('mob');
   });
 
   it('ignores a script meant for a huddle that already ended', () => {

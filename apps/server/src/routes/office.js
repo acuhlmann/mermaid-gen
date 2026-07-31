@@ -14,6 +14,7 @@ import {
   buildMeetingUserPrompt,
   buildMomentSystemPrompt,
   buildMomentUserPrompt,
+  buildPairSystemPrompt,
   createOfficeChatModel,
   isOfficeSpeaker,
   normalizeAttendees,
@@ -22,6 +23,7 @@ import {
   parseInterjectReply,
   parseMeetingScript,
   parseMomentReply,
+  parsePairScript,
   resolveOfficeModelId
 } from '../agents/officePersonas.js';
 import { isOfficeTtsEnabled, synthesizeOfficeSpeech } from '../agents/officeTts.js';
@@ -73,11 +75,22 @@ const OfficeHuddlePriorBeatSchema = z.object({
   text: z.string().max(300)
 });
 
+/**
+ * `mob` is the whole team crowding your screen; `pair` is one teammate in the
+ * chair next to you. They share this endpoint because they share the client's
+ * huddle slice (ADR-0011 rule 1) — but almost nothing downstream of the mode
+ * check is shared, because a scene for one person is not a scene for six.
+ */
+const HuddleModeSchema = z.enum(['mob', 'pair']).default('mob');
+
 const OfficeHuddleRequestSchema = z.object({
   contentType: ContentTypeSchema.default('mermaid'),
   diagramSource: z.string().max(20_000).default(''),
   visibleLabels: z.array(z.string().max(200)).max(60).default([]),
-  attendees: z.array(z.string().max(40)).min(2).max(HUDDLE_MAX_ATTENDEES),
+  mode: HuddleModeSchema,
+  // Floor of 1 here; the per-mode seat count is enforced below where the mode
+  // is known, so a one-seat "mob" fails as a mode error, not a schema error.
+  attendees: z.array(z.string().max(40)).min(1).max(HUDDLE_MAX_ATTENDEES),
   priorBeats: z.array(OfficeHuddlePriorBeatSchema).max(HUDDLE_MAX_ATTENDEES).optional(),
   uiLocale: UiLocaleField
 });
@@ -107,8 +120,55 @@ function pickFacilitator(attendees) {
 }
 
 /**
- * The face-to-face counterpart to /meeting: no facilitator, no beat grammar,
- * one remark per teammate in the order the client already seated them.
+ * Seat count is the one validation that cannot live in the schema: it depends
+ * on the mode. A one-seat mob and a two-seat pair are both nonsense, and saying
+ * so here (rather than with a `min`) keeps the failure legible as "wrong roster
+ * for this act" instead of "malformed request".
+ *
+ * @returns {string[] | null} normalized attendees, or null when the roster does
+ *   not fit the mode.
+ */
+function huddleAttendeesForMode(payload) {
+  const attendees = normalizeAttendees(payload.attendees, { minAttendees: 1 });
+  if (!attendees || attendees.length > HUDDLE_MAX_ATTENDEES) return null;
+  if (payload.mode === 'pair') return attendees.length === 1 ? attendees : null;
+  return attendees.length >= 2 ? attendees : null;
+}
+
+/**
+ * What to ask for this turn and how to read it back. The two modes diverge
+ * completely here — different prompt, different parser. `priorBeats` is a mob
+ * concern only: it names who has already spoken so a mid-scene re-script does
+ * not rewrite remarks the user already heard. A pair is scripted once (see
+ * `buildPairSystemPrompt`), so it ignores the field rather than pretending to
+ * support a refresh the client never asks for.
+ *
+ * @returns {{system: string, parse: (raw: string) => object | null} | null}
+ *   null when the ring has nothing left to say, so the caller can answer with
+ *   an empty script instead of spending a call.
+ */
+function planHuddleTurn(payload, attendees, priorBeats) {
+  if (payload.mode === 'pair') {
+    const attendee = attendees[0];
+    return {
+      system: buildPairSystemPrompt({ attendee, uiLocale: payload.uiLocale }),
+      parse: (raw) => parsePairScript(raw, { attendee })
+    };
+  }
+  const spokenIds = new Set(priorBeats.map((b) => b.speakerId));
+  const remaining =
+    priorBeats.length > 0 ? attendees.filter((id) => !spokenIds.has(id)) : attendees;
+  if (priorBeats.length > 0 && remaining.length === 0) return null;
+  return {
+    system: buildHuddleSystemPrompt({ attendees, uiLocale: payload.uiLocale, priorBeats }),
+    parse: (raw) => parseHuddleScript(raw, { attendees: remaining })
+  };
+}
+
+/**
+ * The face-to-face counterpart to /meeting: no facilitator, no beat grammar.
+ * `mode: 'mob'` is one remark per teammate in the order the client seated them;
+ * `mode: 'pair'` is several remarks from the one person in the chair.
  *
  * Lives outside createOfficeRouter (unlike its siblings) because that factory
  * is already over the max-lines-per-function budget — new handlers extract.
@@ -124,8 +184,8 @@ export function createHuddleHandler(env) {
       return;
     }
     const payload = parsed.data;
-    const attendees = normalizeAttendees(payload.attendees, { minAttendees: 2 });
-    if (!attendees || attendees.length > HUDDLE_MAX_ATTENDEES) {
+    const attendees = huddleAttendeesForMode(payload);
+    if (!attendees) {
       res.status(400).json({ error: 'Invalid attendee list' });
       return;
     }
@@ -143,29 +203,19 @@ export function createHuddleHandler(env) {
     }
 
     const priorBeats = Array.isArray(payload.priorBeats) ? payload.priorBeats : [];
-    const spokenIds = new Set(priorBeats.map((b) => b.speakerId));
-    const remainingAttendees =
-      priorBeats.length > 0 ? attendees.filter((id) => !spokenIds.has(id)) : attendees;
-    if (priorBeats.length > 0 && remainingAttendees.length === 0) {
+    const turn = planHuddleTurn(payload, attendees, priorBeats);
+    if (!turn) {
       res.status(200).json({ script: { beats: [] } });
       return;
     }
-    const system = buildHuddleSystemPrompt({
-      attendees,
-      uiLocale: payload.uiLocale,
-      priorBeats
-    });
     const user = buildHuddleUserPrompt({ ...payload, priorBeats });
     const officeModel = resolveOfficeModelId(env);
     try {
-      const reply = await model.invoke([new SystemMessage(system), new HumanMessage(user)]);
+      const reply = await model.invoke([new SystemMessage(turn.system), new HumanMessage(user)]);
       const usage = officeUsageFromReply(reply);
       const raw = extractTextContent(reply?.content ?? reply);
-      const script = parseHuddleScript(raw, {
-        attendees: priorBeats.length > 0 ? remainingAttendees : attendees
-      });
       res.status(200).json({
-        script,
+        script: turn.parse(raw),
         ...(usage ? { usage, model: officeModel } : {})
       });
     } catch (error) {

@@ -74,11 +74,25 @@ export function useArchiSlopSessionState({ controls }) {
     if (typeof window === 'undefined') return createInitialGamificationState();
     return readGamificationFromStorage(window.localStorage) ?? createInitialGamificationState();
   });
-  const [xpBarMobileOpen, setXpBarMobileOpen] = useState(false);
   const [xpInfoPanelOpen, setXpInfoPanelOpen] = useState(false);
   const [settingsOpenSignal, setSettingsOpenSignal] = useState(0);
   const [callMeetingSignal, setCallMeetingSignal] = useState(0);
-  const [huddleSignal, setHuddleSignal] = useState(0);
+  /**
+   * "Gather people around my screen" — one seam for both acts, because mob and
+   * pair are one slice (`officeMomentStore.huddle`). A bare counter would have
+   * done for mob, which always grabs the whole team; pair has to name who is in
+   * the chair, so the signal carries a payload the way `talkSignal` does.
+   * @type {[{ seq: number, mode: 'mob' | 'pair', colleagueId: string | null } | null, Function]}
+   */
+  const [huddleSignal, setHuddleSignal] = useState(null);
+  /**
+   * Lane 2's outbound line, handed to the office layer the same way Huddle and
+   * Have a meeting are: a bumped signal, not a shared store. The composer lives
+   * in the shell tree and `talkOutLoud` lives in `OfficeLayer`; this is the
+   * established seam between them.
+   * @type {[{ seq: number, colleagueId: string | null, text: string } | null, Function]}
+   */
+  const [talkSignal, setTalkSignal] = useState(null);
   const [selectedNode, setSelectedNode] = useState(null);
   const [hotkeyOverlayOpen, setHotkeyOverlayOpen] = useState(false);
   const [hoverDescriptor, setHoverDescriptor] = useState(null);
@@ -176,14 +190,14 @@ export function useArchiSlopSessionState({ controls }) {
     setRussStreak,
     gamification,
     setGamification,
-    xpBarMobileOpen,
-    setXpBarMobileOpen,
     xpInfoPanelOpen,
     setXpInfoPanelOpen,
     settingsOpenSignal,
     setSettingsOpenSignal,
     callMeetingSignal,
     huddleSignal,
+    talkSignal,
+    setTalkSignal,
     setCallMeetingSignal,
     setHuddleSignal,
     selectedNode,

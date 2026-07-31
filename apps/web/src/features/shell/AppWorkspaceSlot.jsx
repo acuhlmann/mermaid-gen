@@ -1,4 +1,5 @@
 import ClearConfirmDialog from '../../components/ClearConfirmDialog.jsx';
+import DeskOsTaskbar from '../../components/DeskOsTaskbar.jsx';
 import ErrorToast from '../../components/ErrorToast.jsx';
 import HotkeyOverlay from '../../components/HotkeyOverlay.jsx';
 import { ButtonIcon, PromptIcon, MicIcon, MicActiveIcon } from '../../components/AppIcons.jsx';
@@ -93,10 +94,8 @@ export function AppWorkspaceSlot({
   submitIntentWithPrompt,
   setInsightsEntries,
   onOfficeEvent,
-  setXpInfoPanelOpen,
   setInviteDialogOpen,
   hasCanvasContent,
-  setInsightsOpen,
   modelProfile,
   setModelProfile,
   callMeetingSignal,
@@ -107,10 +106,9 @@ export function AppWorkspaceSlot({
   entryReveal,
   hotkeyOverlayOpen,
   onCloseHotkeyOverlay,
+  onOpenHotkeyOverlay,
+  onOpenExternalAgents,
   hotkeyCopy,
-  compactBrand,
-  xpBarMobileOpen,
-  onToggleXpBarMobile,
   slopitectTip,
   slopitectTipRef,
   onDismissSlopitectTip,
@@ -139,7 +137,6 @@ export function AppWorkspaceSlot({
   stopStreamingAgentLabel,
   onStopStreamingAgent,
   pendingHandshakeForAi,
-  stateContentType,
   settingsOpenSignal,
   externalAgentPresence,
   deskSlotRef,
@@ -149,11 +146,16 @@ export function AppWorkspaceSlot({
   runTransform,
   russStreak,
   onHuddle,
+  onPair,
   onCallMeeting,
-  handleSelectContentMode,
+  onTalk,
+  talkDisabled,
+  talkDisabledReason,
+  talkSignal,
   latestCritique,
   canFixFromCritique,
   handleFixFromCritique,
+  handleSelectContentMode,
   handleClearDiagram,
   onToggleThinking,
   entryTourActive,
@@ -161,6 +163,38 @@ export function AppWorkspaceSlot({
   entryTourProgress,
   entryPointers
 }) {
+  /**
+   * The menu bar's whole prop surface, bundled once. Every value below already
+   * exists on this component — the menus are new homes for old verbs, not new
+   * state (the Deliverable menu is the dismantled `DeskDrawer`, Mailroom is the
+   * export panel that was two clicks deep in the desk menu, and the Admin verbs
+   * came off the desk stamp).
+   */
+  const menuBar = {
+    modes: contentModeOptions,
+    currentMode: contentMode,
+    onPickMode: handleSelectContentMode,
+    modeDisabled: loading || streamingPreview,
+    onClearDiagram: handleClearDiagram,
+    clearDisabled: busy,
+    contentType: contentMode,
+    diagramSource: state.diagramSource,
+    editorOpen,
+    onToggleEditor: () => setEditorOpen((current) => !current),
+    canToggleEditor: hasCanvasContent || editorOpen,
+    notebookOpen: insightsOpen,
+    onToggleNotebook: onToggleThinking,
+    fullscreenSupported,
+    isFullscreen,
+    fullscreenDisabled: streamingPreview,
+    onToggleFullscreen,
+    onOpenContractor: () => setInviteDialogOpen(true),
+    onOpenExternalAgents,
+    onOpenHrProgression: onToggleXpInfoPanel,
+    onOpenHotkeys: onOpenHotkeyOverlay,
+    tourHighlight: entryTourActive && entryTourStep === 'format' ? 'deliverable' : null
+  };
+
   return (
     <>
       <DiagramCanvasSlot
@@ -274,43 +308,24 @@ export function AppWorkspaceSlot({
         submitIntentWithPrompt={submitIntentWithPrompt}
         setInsightsEntries={setInsightsEntries}
         handleOfficeEvent={onOfficeEvent}
-        setXpInfoPanelOpen={setXpInfoPanelOpen}
-        setEditorOpen={setEditorOpen}
-        setInviteDialogOpen={setInviteDialogOpen}
-        hasCanvasContent={hasCanvasContent}
-        editorOpen={editorOpen}
-        setInsightsOpen={setInsightsOpen}
-        modelProfile={modelProfile}
-        setModelProfile={setModelProfile}
         callMeetingSignal={callMeetingSignal}
         huddleSignal={huddleSignal}
-        diagramSource={state.diagramSource}
-        insightsOpen={insightsOpen}
+        talkSignal={talkSignal}
         agentBusy={agentBusy}
         tryAgentSound={tryAgentSound}
         officeRunSignal={officeRunSignal}
         entryReveal={entryReveal}
-        narrowLayout={narrowLayout}
       />
       <HotkeyOverlay open={hotkeyOverlayOpen} onClose={onCloseHotkeyOverlay} copy={hotkeyCopy} />
 
       <BrandChromeSlot
         narrowLayout={narrowLayout}
-        compactBrand={compactBrand}
-        xpBarMobileOpen={xpBarMobileOpen}
-        onToggleXpBarMobile={onToggleXpBarMobile}
         slopitectTip={slopitectTip}
         slopitectTipRef={slopitectTipRef}
         onDismissSlopitectTip={onDismissSlopitectTip}
-        xpInfoPanelOpen={xpInfoPanelOpen}
-        onToggleXpInfoPanel={onToggleXpInfoPanel}
-        onCloseXpInfoPanel={onCloseXpInfoPanel}
-        gamification={gamification}
-        xpBarFlashKey={xpBarFlashKey}
-        liveVariant={liveVariant}
         controls={shellControls}
         onBrandClick={onBrandClick}
-        costTrackingEnabled={costTrackingEnabled}
+        menuBar={menuBar}
         fullscreenSupported={fullscreenSupported}
         hasCanvasContent={hasCanvasContent}
         editorOpen={editorOpen}
@@ -338,18 +353,10 @@ export function AppWorkspaceSlot({
 
       <ShellBottomRowSlot
         narrowLayout={narrowLayout}
-        status={status}
-        error={error}
-        streamingAgentStoppable={streamingAgentStoppable}
         insightsOpen={insightsOpen}
-        stopStreamingAgentLabel={stopStreamingAgentLabel}
-        onStopStreamingAgent={onStopStreamingAgent}
         hasCanvasContent={hasCanvasContent}
         pendingHandshake={pendingHandshakeForAi}
         editorOpen={editorOpen}
-        contentMode={contentMode}
-        diagramSource={state.diagramSource}
-        stateContentType={stateContentType}
         controls={shellControls}
         settingsOpenSignal={settingsOpenSignal}
         onToggleEditor={() => setEditorOpen((current) => !current)}
@@ -357,9 +364,6 @@ export function AppWorkspaceSlot({
         deskSlotRef={deskSlotRef}
         entryReveal={entryReveal}
         busy={busy}
-        loading={loading}
-        streamingPreview={streamingPreview}
-        contentModeOptions={contentModeOptions}
         deskPrompt={deskPrompt}
         setDeskPrompt={setDeskPrompt}
         voiceSupported={voiceSupported}
@@ -378,12 +382,14 @@ export function AppWorkspaceSlot({
         runAnalyze={runAnalyze}
         russStreak={russStreak}
         onHuddle={onHuddle}
+        onPair={onPair}
         onCallMeeting={onCallMeeting}
-        handleSelectContentMode={handleSelectContentMode}
+        onTalk={onTalk}
+        talkDisabled={talkDisabled}
+        talkDisabledReason={talkDisabledReason}
         latestCritique={latestCritique}
         canFixFromCritique={canFixFromCritique}
         handleFixFromCritique={handleFixFromCritique}
-        handleClearDiagram={handleClearDiagram}
         onToggleThinking={onToggleThinking}
         entryTourActive={entryTourActive}
         entryTourStep={entryTourStep}
@@ -392,6 +398,28 @@ export function AppWorkspaceSlot({
         entryTourCopy={entryTourCopy}
         onAdvanceEntryTour={onAdvanceEntryTour}
         onDismissEntryTour={onDismissEntryTour}
+      />
+
+      {/* Taskbar — the bottom half of the OS frame. Rendered here rather than
+          inside `OfficeLayer` because Stand up reads `officeViewModeStore`
+          directly (a global store, like the overlay stack its window list
+          reads), so the bar needs no office props and can sit where the shell's
+          run status and progression state already live. */}
+      <DeskOsTaskbar
+        status={status}
+        error={Boolean(error)}
+        stoppable={streamingAgentStoppable && !insightsOpen}
+        stopLabel={stopStreamingAgentLabel}
+        onStop={onStopStreamingAgent}
+        gamification={gamification}
+        xpBarFlashKey={xpBarFlashKey}
+        liveVariant={liveVariant}
+        xpInfoPanelOpen={xpInfoPanelOpen}
+        onToggleXpInfoPanel={onToggleXpInfoPanel}
+        onCloseXpInfoPanel={onCloseXpInfoPanel}
+        costTrackingEnabled={costTrackingEnabled}
+        modelProfile={modelProfile}
+        onSelectModelProfile={setModelProfile}
       />
     </>
   );

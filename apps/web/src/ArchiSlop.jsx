@@ -29,7 +29,6 @@ import FloorArrival from './components/officeFloor/FloorArrival.jsx';
 import { useUiCopy } from './i18n/useUiLocale.js';
 import { readStreamDebugEnabled } from './utils/appStreamDebug.js';
 import {
-  useCompactBrandLayout,
   useFoldableDualScreen,
   useNarrowLayout,
   usePhoneLayout,
@@ -113,14 +112,14 @@ export function ArchiSlop() {
     setRussStreak,
     gamification,
     setGamification,
-    xpBarMobileOpen,
-    setXpBarMobileOpen,
     xpInfoPanelOpen,
     setXpInfoPanelOpen,
     settingsOpenSignal,
     setSettingsOpenSignal,
     callMeetingSignal,
     huddleSignal,
+    talkSignal,
+    setTalkSignal,
     setCallMeetingSignal,
     setHuddleSignal,
     selectedNode,
@@ -235,7 +234,6 @@ export function ArchiSlop() {
   const phoneLayout = usePhoneLayout();
   const wideMobileLayout = useWideMobileLayout();
   const foldableDualScreen = useFoldableDualScreen();
-  const compactBrand = useCompactBrandLayout();
 
   usePromptBufferSync({
     prompt,
@@ -901,24 +899,22 @@ export function ArchiSlop() {
           submitIntentWithPrompt={submitIntentWithPrompt}
           setInsightsEntries={setInsightsEntries}
           onOfficeEvent={handleOfficeEvent}
-          setXpInfoPanelOpen={setXpInfoPanelOpen}
           setInviteDialogOpen={setInviteDialogOpen}
           hasCanvasContent={hasCanvasContent}
-          setInsightsOpen={setInsightsOpen}
           modelProfile={modelProfile}
           setModelProfile={setModelProfile}
           callMeetingSignal={callMeetingSignal}
           huddleSignal={huddleSignal}
+          talkSignal={talkSignal}
           insightsOpen={insightsOpen}
           agentBusy={busy || insightsEntries.some((e) => (e.status ?? 'running') === 'running')}
           officeRunSignal={officeRunSignal}
           entryReveal={entryReveal}
           hotkeyOverlayOpen={hotkeyOverlayOpen}
           onCloseHotkeyOverlay={() => setHotkeyOverlayOpen(false)}
+          onOpenHotkeyOverlay={() => setHotkeyOverlayOpen(true)}
+          onOpenExternalAgents={() => setSettingsOpenSignal((n) => n + 1)}
           hotkeyCopy={controls.hotkeys}
-          compactBrand={compactBrand}
-          xpBarMobileOpen={xpBarMobileOpen}
-          onToggleXpBarMobile={() => setXpBarMobileOpen((current) => !current)}
           slopitectTip={slopitectTip}
           slopitectTipRef={slopitectTipRef}
           onDismissSlopitectTip={dismissSlopitectTip}
@@ -949,7 +945,6 @@ export function ArchiSlop() {
           stopStreamingAgentLabel={controls.insights.stopRequest}
           onStopStreamingAgent={stopStreamingAgentRequest}
           pendingHandshakeForAi={pendingHandshake}
-          stateContentType={state.contentType}
           settingsOpenSignal={settingsOpenSignal}
           externalAgentPresence={externalAgentPresence}
           deskSlotRef={deskSlotRef}
@@ -958,12 +953,28 @@ export function ArchiSlop() {
           handleDeskPromptSubmit={handleDeskPromptSubmit}
           runTransform={runTransform}
           russStreak={russStreak}
-          onHuddle={() => setHuddleSignal((n) => n + 1)}
+          onHuddle={() =>
+            setHuddleSignal((prev) => ({
+              seq: (prev?.seq ?? 0) + 1,
+              mode: 'mob',
+              colleagueId: null
+            }))
+          }
+          onPair={(colleagueId) =>
+            setHuddleSignal((prev) => ({
+              seq: (prev?.seq ?? 0) + 1,
+              mode: 'pair',
+              colleagueId
+            }))
+          }
           onCallMeeting={() => setCallMeetingSignal((n) => n + 1)}
-          handleSelectContentMode={handleSelectContentMode}
+          onTalk={(colleagueId, text) =>
+            setTalkSignal((prev) => ({ seq: (prev?.seq ?? 0) + 1, colleagueId, text }))
+          }
           latestCritique={latestCritique}
           canFixFromCritique={canFixFromCritique}
           handleFixFromCritique={handleFixFromCritique}
+          handleSelectContentMode={handleSelectContentMode}
           handleClearDiagram={handleClearDiagram}
           onToggleThinking={() => setInsightsOpen((v) => !v)}
           entryTourActive={entryTourActive}

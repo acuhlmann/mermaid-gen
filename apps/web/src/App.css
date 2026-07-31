@@ -18,6 +18,14 @@
   --forms-top-chrome-est: 5rem;
   --forms-bottom-chrome-est: 5.5rem;
 
+  /* Parody-OS frame (docs/office-isometric-mode.md §4). The taskbar is the only
+     permanently-reserved strip the workstation adds; the bottom chrome sits on
+     top of it. Height accounting: the taskbar takes the 1rem gutter the bottom
+     chrome already left empty, and the status row that moved into its tray was
+     taller than the ~1rem it costs — so a run in flight nets slightly *more*
+     canvas than before, an idle canvas slightly less. */
+  --desk-taskbar-h: 2.3rem;
+
   /* Modal / overlay shared tokens. */
   --modal-backdrop: rgba(20, 14, 36, 0.55);
   --modal-backdrop-strong: rgba(20, 14, 36, 0.65);
@@ -5158,7 +5166,8 @@
 .bottom-chrome {
   left: 1rem;
   right: auto;
-  bottom: 1rem;
+  /* Rides on top of the taskbar rather than the raw viewport edge. */
+  bottom: calc(var(--desk-taskbar-h) + env(safe-area-inset-bottom, 0px) + 0.15rem);
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -5184,7 +5193,7 @@
   .bottom-chrome {
     left: 1.25rem;
     right: 1.25rem;
-    bottom: 1.15rem;
+    bottom: calc(var(--desk-taskbar-h) + env(safe-area-inset-bottom, 0px) + 0.3rem);
     width: auto;
     max-width: none;
     gap: 0.55rem;
@@ -9251,7 +9260,7 @@ button {
   .bottom-chrome {
     left: 0.75rem;
     right: 0.75rem;
-    bottom: calc(0.75rem + env(safe-area-inset-bottom));
+    bottom: calc(var(--desk-taskbar-h) + env(safe-area-inset-bottom, 0px) + 0.15rem);
     flex-direction: column;
     align-items: stretch;
     justify-content: flex-end;
@@ -9306,7 +9315,7 @@ button {
     position: fixed;
     left: 0.75rem;
     right: 0.75rem;
-    bottom: calc(0.75rem + env(safe-area-inset-bottom));
+    bottom: calc(var(--desk-taskbar-h) + env(safe-area-inset-bottom, 0px) + 0.15rem);
     z-index: 25;
     margin: 0;
     padding: 0;
@@ -18760,6 +18769,12 @@ body.slopitect-rainbow-tint::before {
   line-height: 1.45;
   white-space: pre-wrap;
 }
+/* A pitch inside a chat bubble — the shared .office-do-it, trimmed to fit one. */
+.office-messenger-adopt {
+  margin-top: 6px;
+  font-size: 11px;
+  padding: 3px 9px;
+}
 .office-messenger-typing,
 .office-messenger-empty {
   font-size: 11px;
@@ -22131,7 +22146,7 @@ body.slopitect-rainbow-tint::before {
   }
 
   .bottom-chrome {
-    bottom: calc(0.5rem + env(safe-area-inset-bottom, 0px));
+    bottom: calc(var(--desk-taskbar-h) + env(safe-area-inset-bottom, 0px) + 0.1rem);
     gap: 0.35rem;
   }
 
@@ -22152,6 +22167,13 @@ body.slopitect-rainbow-tint::before {
     right: 0.5rem;
   }
 
+  /* The wordmark is what pushes the menu bar onto a second row here, and a
+     second row of top chrome costs canvas the frame is supposed to give back.
+     The helmet mark stays, and `.brand-control` keeps its aria-label. */
+  .top-shell > .brand-control .brand-name {
+    display: none;
+  }
+
   .diagram-viewport {
     padding-left: 0.65rem;
     padding-right: 0.65rem;
@@ -22163,23 +22185,152 @@ body.slopitect-rainbow-tint::before {
   }
 }
 
-/* Desk OS task strip — parody workstation chrome (§4). */
-.desk-os-tray {
+/* ---------------------------------------------------------------------------
+   Parody-OS frame (docs/office-isometric-mode.md §4): menu bar on top, taskbar
+   on the bottom, canvas as a fixed maximized surface in between. "Frame, not
+   furniture" — no windowing, no drawers; the Editor and Thinking panes stay
+   docked.
+   --------------------------------------------------------------------------- */
+
+/* Taskbar — the bottom edge of the workstation. Full-bleed to the viewport so
+   permanent residents (Stand up, the window list, the tray) never park chrome
+   mid-canvas the way the old centred pill did.
+   z-index 280 clears every static band but stays under the focus stack
+   (FOCUS_Z_BASE 300), so a window you dragged down covers the bar rather than
+   being mysteriously clipped by it. */
+.desk-os-taskbar {
   position: fixed;
-  left: 50%;
-  bottom: calc(4.6rem + env(safe-area-inset-bottom, 0px));
-  transform: translateX(-50%);
+  left: 0;
+  right: 0;
+  bottom: 0;
   z-index: 280;
   display: flex;
   align-items: center;
-  gap: 0.55rem;
-  max-width: min(92vw, 42rem);
-  padding: 0.28rem 0.45rem 0.28rem 0.55rem;
-  border-radius: 999px;
-  border: 1px solid color-mix(in srgb, var(--control-border) 80%, transparent);
-  background: color-mix(in srgb, var(--office-surface-bg, #fff) 88%, transparent);
-  box-shadow: var(--control-shadow);
+  gap: 0.5rem;
+  /* A fixed height, not a minimum: `--desk-taskbar-h` is what `.bottom-chrome`
+     stacks on, so the bar must never grow past what the token promises. A tall
+     child clips instead of silently shoving the composer band into it.
+     `border-box` is load-bearing: the default content-box added the padding and
+     the top border on top of the token and the bar overlapped the composer. */
+  box-sizing: border-box;
+  height: calc(var(--desk-taskbar-h) + env(safe-area-inset-bottom, 0px));
+  /* Structural guarantee that nothing in the bar can paint outside it, whatever
+     a locale's string lengths do to the flex line. */
+  overflow: hidden;
+  padding: 0.1rem 0.55rem;
+  padding-bottom: calc(0.1rem + env(safe-area-inset-bottom, 0px));
+  padding-left: calc(0.55rem + env(safe-area-inset-left, 0px));
+  padding-right: calc(0.55rem + env(safe-area-inset-right, 0px));
+  border-top: 1px solid color-mix(in srgb, var(--control-border) 85%, transparent);
+  background: color-mix(in srgb, var(--office-surface-bg, #fff) 92%, transparent);
   backdrop-filter: blur(10px);
+  pointer-events: auto;
+}
+
+.desk-os-taskbar-lead {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+}
+
+/* Stand up is a labelled bottom-nav control (ADR-0011 rule 3), but the taskbar
+   is a ~37px strip — shrink the desk-button chrome rather than the label. An
+   explicit height, not padding: the desk buttons size from padding + icon box,
+   which lands at 36px and leaves the bar no headroom. */
+.desk-os-taskbar-lead .overlay-button.slop-action-button {
+  min-width: 0;
+  min-height: 0;
+  height: 1.7rem;
+  padding: 0 0.5rem;
+  font-size: 0.72rem;
+  line-height: 1;
+  box-shadow: none;
+}
+
+.desk-os-taskbar-lead .slop-action-role {
+  display: none;
+}
+
+/* Trailing status cluster: what an OS puts by the clock. */
+.desk-os-taskbar-end {
+  flex: 1 1 auto;
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+/* Status is the one resident that truncates — everything else in the tray is a
+   fixed-size chip. It keeps `min-width: 0` on purpose: a floor here is what
+   over-constrains the line (see `.desk-os-tray`'s shrink factor). */
+.desk-os-taskbar-status {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.35rem;
+  min-width: 0;
+  max-width: min(46vw, 26rem);
+}
+
+.desk-os-taskbar-status .overlay-status {
+  margin: 0;
+  font-size: 0.7rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.desk-os-taskbar-status .overlay-status-stop {
+  flex: 0 0 auto;
+  min-height: 1.5rem;
+  padding: 0.05rem 0.45rem;
+  font-size: 0.66rem;
+}
+
+.desk-os-taskbar-xp {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+/* Tray variant of Concentration: a horizontal chip, not the stacked footer. */
+.concentration-control--tray {
+  flex: 0 0 auto;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.concentration-control--tray .concentration-control-option {
+  padding: 0.08rem 0.4rem;
+  font-size: 0.66rem;
+}
+
+/* The level panel rises from the tray instead of hanging off the brand chip. */
+.levelup-info-panel-mount--tray {
+  align-items: flex-end;
+}
+
+/* Window list — a flex resident of the taskbar now, not a floating pill. It is
+   the *flexible middle*: the tray end is a row of fixed-size chips, so the list
+   is what absorbs a narrow viewport. `overflow: hidden` is not cosmetic — only
+   the <ul> scrolls, so without it the trailing Tidy up escapes the box and
+   paints straight over the status line. */
+.desk-os-tray {
+  /* shrink-factor 4: with two windows open the list is the widest thing in the
+     bar, and it is the one that degrades best — it scrolls. Yielding by
+     priority beats flooring the status with `min-width`, which over-constrains
+     the line and makes the tray end overflow out its own left edge. */
+  flex: 0 4 auto;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
+  overflow: hidden;
   pointer-events: auto;
 }
 
@@ -22200,6 +22351,7 @@ body.slopitect-rainbow-tint::before {
   padding: 0;
   list-style: none;
   overflow-x: auto;
+  min-width: 0;
   max-width: 100%;
 }
 
@@ -22208,7 +22360,7 @@ body.slopitect-rainbow-tint::before {
   align-items: center;
   gap: 0.3rem;
   max-width: 10rem;
-  padding: 0.22rem 0.55rem;
+  padding: 0.12rem 0.5rem;
   border-radius: 999px;
   border: 1px solid transparent;
   background: transparent;
@@ -22235,15 +22387,494 @@ body.slopitect-rainbow-tint::before {
   text-overflow: ellipsis;
 }
 
+/* Trailing slot: quieter than a window button, since tidying is a recovery
+   action rather than a way to switch to something. */
+.desk-os-tray-tidy {
+  flex: 0 0 auto;
+  padding: 0.12rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.68rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.desk-os-tray-tidy:hover,
+.desk-os-tray-tidy:focus-visible {
+  border-color: color-mix(in srgb, var(--control-border) 80%, transparent);
+  color: var(--text);
+  outline: none;
+}
+
+/* Menu bar — the top half of the frame. Sits between the brand chip and the
+   fullscreen corner inside `.top-shell`, which already owns that strip, so the
+   menus cost no vertical space the old brand row didn't. */
+.desk-os-menubar {
+  flex: 0 1 auto;
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+  min-width: 0;
+  padding: 0.15rem 0.25rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--control-border) 70%, transparent);
+  background: color-mix(in srgb, var(--office-surface-bg, #fff) 84%, transparent);
+  box-shadow: var(--control-shadow);
+  backdrop-filter: blur(10px);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.desk-os-menubar::-webkit-scrollbar {
+  display: none;
+}
+
+.desk-os-menu-trigger {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.55rem;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.78rem;
+  line-height: 1.2;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.desk-os-menu-trigger:hover:not(:disabled),
+.desk-os-menu-trigger:focus-visible {
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  outline: none;
+}
+
+.desk-os-menu-trigger.is-open {
+  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
+}
+
+.desk-os-menu-trigger:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* First-run tour: the `format` beat now points up here instead of at a drawer. */
+.desk-os-menu-trigger.is-tour-highlight {
+  border-color: color-mix(in srgb, var(--accent) 65%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
+}
+
+.desk-os-menu-trigger-emoji {
+  font-size: 0.9rem;
+  line-height: 1;
+}
+
+/* Menu-bar dropdowns fall downward; `.desk-actions-menu` defaults to an
+   upward-anchored absolute box, so neutralise the physical offsets it sets.
+   Position / top / max-height arrive inline from computeDropdownStyle. */
+.desk-actions-menu.desk-os-menu-dropdown {
+  right: auto;
+  max-block-size: none;
+}
+
+.desk-os-menu-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.12rem;
+}
+
+.desk-os-menu-section + .desk-os-menu-section {
+  margin-top: 0.28rem;
+  padding-top: 0.28rem;
+  border-top: 1px solid color-mix(in srgb, var(--control-border) 70%, transparent);
+}
+
+.desk-os-menu-section-label {
+  padding: 0.15rem 0.55rem 0.2rem;
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* Mailroom hosts the whole export panel rather than a list of items. */
+.desk-os-menu-panel {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
 @media (max-width: 720px) {
-  .desk-os-tray {
-    left: 0.6rem;
-    right: 0.6rem;
-    transform: none;
-    max-width: none;
+  /* Emoji-only triggers keep four menus + brand + fullscreen on one top row at
+     phone widths; wrapping the bar would cost canvas height. */
+  .desk-os-menu-trigger-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .desk-os-menu-trigger {
+    padding: 0.2rem 0.4rem;
   }
 
   .desk-os-tray-brand {
     display: none;
+  }
+
+  /* Phone: Concentration is the first thing to go — it has two other homes (the
+     Work Order footer and the Thinking header). Run status stays: it is the only
+     place the app says what it is doing, and it truncates instead. */
+  .concentration-control--tray {
+    display: none;
+  }
+
+  .desk-os-taskbar-status {
+    max-width: 55vw;
+  }
+
+  .desk-os-taskbar-lead .overlay-button.slop-action-button .button-label {
+    display: none;
+  }
+
+  /* The XP *bar* needs ~170px it does not have here; the level chip is the part
+     that carries the standing. Tap target and level panel are unchanged.
+     The `max-width: 540px` rule above hides the level text instead — that trade
+     was made when the bar lived in the brand chip and had to fit beside the
+     wordmark. In the tray the trade inverts: "Lvl 4" is the information, the
+     track is the decoration. */
+  .desk-os-taskbar-xp .xp-progress-bar-track,
+  .desk-os-taskbar-xp .xp-progress-bar-xp {
+    display: none;
+  }
+
+  .desk-os-taskbar-xp .xp-progress-bar-level {
+    display: inline;
+  }
+
+  /* Window pills go glyph-only, the way a phone dock does. The title survives
+     as `title` + the button's accessible name; the glyph is the same one the
+     window's own titlebar carries, so the mapping stays learnable. */
+  .desk-os-tray-label {
+    display: none;
+  }
+
+  .desk-os-tray-item {
+    padding-inline: 0.4rem;
+  }
+
+  /* Tidy up costs more than the window list it sits beside — at 390px it left
+     the pills 13px between them. It is a recovery action for a window dragged
+     out of reach; the pills are what a taskbar is *for*. */
+  .desk-os-tray-tidy {
+    display: none;
+  }
+
+  /* One pill's worth of floor. Without it the shrink factor squeezes the list
+     out entirely at 320px and there is no way to switch windows at all — the
+     list scrolls from here, which is the graceful degradation. */
+  .desk-os-tray {
+    min-width: 2.1rem;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Composer band — two lanes (slice 3). Lane 1 is the Work Order: it goes to the
+   canvas and costs a pipeline run. Lane 2 is the talk channel: it goes to the
+   room and produces nothing (ADR-0010). They sit side by side rather than
+   behind a toggle, because a toggle would make you choose before you know which
+   one you meant — and the roster between them answers both.
+   --------------------------------------------------------------------------- */
+
+.desk-talk-group {
+  display: flex;
+  align-items: center;
+  flex: 1 1 16rem;
+  min-width: 0;
+}
+
+/* Explicit left-to-right reading order for the band: stamp · work order ·
+   the team · say it out loud · notebook. The generic `.desk-chrome-tool`
+   ordering above cannot express "between the lanes". */
+.prompt-actions--desktop .desk-tour-piece--desk {
+  order: 0;
+}
+
+.prompt-actions--desktop .desk-tour-piece--work-order {
+  order: 1;
+  margin-inline-start: 0.5rem;
+}
+
+.prompt-actions--desktop .desk-tour-piece--team {
+  order: 2;
+}
+
+.prompt-actions--desktop .desk-talk-group {
+  order: 3;
+  flex: 1 1 clamp(11rem, 20vw, 20rem);
+  min-width: 0;
+}
+
+.prompt-actions--desktop .desk-tour-piece--notebook {
+  order: 4;
+}
+
+.desk-talk-composer {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  width: 100%;
+  min-width: 0;
+  padding: 0.22rem 0.3rem 0.22rem 0.45rem;
+  border-radius: 999px;
+  /* Dashed and unfilled against the Work Order's solid pill: the two lanes must
+     not read as one field, because they cost wildly different things. Dashed is
+     the "this is talk, it is cheap and it produces nothing" signal. */
+  border: 1.5px dashed color-mix(in srgb, var(--accent) 40%, transparent);
+  background: color-mix(in srgb, var(--accent) 4%, transparent);
+}
+
+/* Solid once you have turned to somebody — the border *is* the difference
+   between saying it to the room and saying it to a person. */
+.desk-talk-composer.is-directed {
+  border-style: solid;
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+  background: color-mix(in srgb, var(--accent) 9%, transparent);
+}
+
+.desk-talk-room {
+  flex: 0 0 auto;
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+.desk-talk-target {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.22rem;
+  max-width: 8rem;
+  padding: 0.1rem 0.35rem 0.1rem 0.15rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  color: inherit;
+  font: inherit;
+  font-size: 0.7rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.desk-talk-target-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.desk-talk-target-clear {
+  opacity: 0.6;
+}
+
+.desk-talk-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 0.82rem;
+  padding: 0.15rem 0;
+}
+
+.desk-talk-input:focus-visible {
+  outline: none;
+}
+
+.desk-talk-send {
+  flex: 0 0 auto;
+  padding: 0.18rem 0.6rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--control-border) 90%, transparent);
+  background: color-mix(in srgb, var(--office-surface-bg, #fff) 90%, transparent);
+  color: inherit;
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.desk-talk-send:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.desk-talk-send:hover:not(:disabled),
+.desk-talk-send:focus-visible:not(:disabled) {
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  outline: none;
+}
+
+/* Somebody answering you at your desk. Sits above the arrival toasts — an
+   answer to something you just said is more urgent than a notification. */
+.office-desk-speech-stack {
+  position: fixed;
+  left: 14px;
+  bottom: calc(96px + 4.5rem);
+  z-index: var(--z-office-chrome);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: min(340px, calc(100vw - 28px));
+  pointer-events: auto;
+}
+
+.office-moment-shell--desk-speech {
+  animation: office-pop-in 220ms ease-out;
+}
+
+.office-desk-speech {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  border-left: 3px solid var(--accent);
+  padding-left: 8px;
+}
+
+.office-desk-speech-content {
+  min-width: 0;
+}
+
+.office-desk-speech-speaker {
+  display: block;
+  font-size: 0.74rem;
+  font-weight: 800;
+}
+
+.office-desk-speech-title {
+  font-weight: 500;
+  color: var(--muted);
+}
+
+.office-desk-speech-body {
+  margin: 0.15rem 0 0;
+  font-size: 0.84rem;
+  line-height: 1.35;
+}
+
+.office-desk-speech-pending {
+  margin: 0;
+  font-size: 0.8rem;
+  font-style: italic;
+  color: var(--muted);
+}
+
+.office-desk-speech-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-top: 0.35rem;
+}
+
+.office-desk-speech-adopt,
+.office-desk-speech-thread {
+  padding: 0.16rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--control-border) 90%, transparent);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 0.7rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* The pitch is the loud one: it is the only thing here that can start a run. */
+.office-desk-speech-adopt {
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+.office-desk-speech-thread {
+  color: var(--muted);
+}
+
+/* Roster row: two gestures, so two buttons. The row keeps its box and the
+   children carry the affordance (a nested button is invalid HTML, and the two
+   acts need separate accessible names anyway). */
+.stakeholders-roster-address {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  gap: 0.32rem;
+  min-width: 0;
+  padding: 0.1rem 0.2rem;
+  border: none;
+  border-radius: 0.45rem;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.stakeholders-roster-address:hover,
+.stakeholders-roster-address:focus-visible {
+  background: color-mix(in srgb, var(--slop-action-accent, var(--accent)) 14%, transparent);
+  outline: none;
+}
+
+button.stakeholders-roster-chip {
+  font: inherit;
+  cursor: pointer;
+  /* The span form is decorative; the button form is a target. */
+  pointer-events: auto;
+}
+
+button.stakeholders-roster-chip:hover:not(:disabled),
+button.stakeholders-roster-chip:focus-visible:not(:disabled) {
+  background: color-mix(in srgb, var(--slop-action-accent, var(--accent)) 22%, white);
+  outline: none;
+}
+
+button.stakeholders-roster-chip:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.stakeholders-roster-chip-inner {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.22rem;
+}
+
+.stakeholders-roster-chip--extra {
+  min-width: 0;
+}
+
+@media (max-width: 1024px) {
+  /* Phone / wide-mobile: the two lanes stack rather than fight for the row.
+     Work order stays first — it is the one that ships a deliverable. */
+  .desk-talk-group {
+    order: 5;
+    flex: 1 1 100%;
+    width: 100%;
+  }
+
+  .office-desk-speech-stack {
+    bottom: calc(var(--mobile-bottom-chrome-est, 5.5rem) + env(safe-area-inset-bottom, 0px) + 3rem);
   }
 }

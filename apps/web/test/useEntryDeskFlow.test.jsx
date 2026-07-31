@@ -32,8 +32,7 @@ describe('useEntryDeskFlow', () => {
       workOrder: true,
       desk: true,
       team: true,
-      notebook: true,
-      drawer: true
+      notebook: true
     });
   });
 

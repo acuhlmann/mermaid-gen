@@ -1,25 +1,21 @@
 import { BottomRow } from '../../components/BottomRow.jsx';
 import { AiCornerControlsInner } from '../../components/AiCornerControlsInner.jsx';
 import { DeskBottomActionsSlot } from '../desk/DeskBottomActionsSlot.jsx';
-import { isConcreteContentMode } from '../../utils/renderModeAction.js';
 
 /**
- * Bottom desk row: status line, desk actions, and optional AI corner controls.
+ * Bottom desk row: desk actions and optional AI corner controls.
+ *
+ * Run status used to sit above this row; it moved to the taskbar tray
+ * (`DeskOsTaskbar`), which is both where an OS puts "what is happening right
+ * now" and what pays for the taskbar's height — the row it vacated here is
+ * taller than the bar that replaced it.
  */
 export function ShellBottomRowSlot({
   narrowLayout,
-  status,
-  error,
-  streamingAgentStoppable,
   insightsOpen,
-  stopStreamingAgentLabel,
-  onStopStreamingAgent,
   hasCanvasContent,
   pendingHandshake,
   editorOpen,
-  contentMode,
-  diagramSource,
-  stateContentType,
   controls,
   settingsOpenSignal,
   onToggleEditor,
@@ -27,9 +23,6 @@ export function ShellBottomRowSlot({
   deskSlotRef,
   entryReveal,
   busy,
-  loading,
-  streamingPreview,
-  contentModeOptions,
   deskPrompt,
   setDeskPrompt,
   voiceSupported,
@@ -48,12 +41,14 @@ export function ShellBottomRowSlot({
   runAnalyze,
   russStreak,
   onHuddle,
+  onPair,
   onCallMeeting,
-  handleSelectContentMode,
+  onTalk,
+  talkDisabled,
+  talkDisabledReason,
   latestCritique,
   canFixFromCritique,
   handleFixFromCritique,
-  handleClearDiagram,
   onToggleThinking,
   entryTourActive,
   entryTourStep,
@@ -66,28 +61,6 @@ export function ShellBottomRowSlot({
   return (
     <BottomRow
       narrowLayout={narrowLayout}
-      statusRow={
-        status ? (
-          <div className="overlay-status-row">
-            <p
-              id="app-status"
-              className={`overlay-status ${error ? 'is-error' : ''}`}
-              role="status"
-            >
-              {status}
-            </p>
-            {streamingAgentStoppable && !insightsOpen ? (
-              <button
-                type="button"
-                className="overlay-button compact-button overlay-status-stop"
-                onClick={onStopStreamingAgent}
-              >
-                {stopStreamingAgentLabel}
-              </button>
-            ) : null}
-          </div>
-        ) : null
-      }
       actions={
         <DeskBottomActionsSlot
           hasCanvasContent={hasCanvasContent}
@@ -95,11 +68,7 @@ export function ShellBottomRowSlot({
           entryReveal={entryReveal}
           narrowLayout={narrowLayout}
           busy={busy}
-          loading={loading}
-          streamingPreview={streamingPreview}
           controls={controls}
-          contentMode={contentMode}
-          contentModeOptions={contentModeOptions}
           deskSlotRef={deskSlotRef}
           deskPrompt={deskPrompt}
           setDeskPrompt={setDeskPrompt}
@@ -119,12 +88,14 @@ export function ShellBottomRowSlot({
           runAnalyze={runAnalyze}
           russStreak={russStreak}
           onHuddle={onHuddle}
+          onPair={onPair}
           onCallMeeting={onCallMeeting}
-          handleSelectContentMode={handleSelectContentMode}
+          onTalk={onTalk}
+          talkDisabled={talkDisabled}
+          talkDisabledReason={talkDisabledReason}
           latestCritique={latestCritique}
           canFixFromCritique={canFixFromCritique}
           handleFixFromCritique={handleFixFromCritique}
-          handleClearDiagram={handleClearDiagram}
           onToggleThinking={onToggleThinking}
           canToggleThinking
           entryTourActive={entryTourActive}

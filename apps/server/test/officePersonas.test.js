@@ -7,7 +7,9 @@ import {
   buildMeetingUserPrompt,
   buildInterjectUserPrompt,
   buildMomentSystemPrompt,
+  buildPairSystemPrompt,
   parseHuddleScript,
+  parsePairScript,
   buildOfficeLanguageRule,
   buildMomentUserPrompt,
   createOfficeChatModel,
@@ -140,6 +142,30 @@ test('moment reply mode tells IM and email to acknowledge the user and glance at
   });
   assert.match(emailReply, /EMAIL REPLY MODE/);
   assert.match(emailReply, /visible label|canvas/i);
+});
+
+test('a pitch is conditional on having one, never a frequency quota', () => {
+  // The old rule read "roughly 1 in 3 moments" — a base rate. A model reading a
+  // base rate in a conversation treats it as a target and buttons every turn,
+  // which is how "Do it" becomes wallpaper (docs/office-parody.md § Desk verbs).
+  const prompt = buildMomentSystemPrompt({ kind: 'im', colleagueId: 'gilfoyle' });
+  assert.doesNotMatch(prompt, /1 in \d/);
+  assert.match(prompt, /not a quota/i);
+  assert.match(prompt, /omit the key entirely/i);
+  // Voices like Richard's ("you never propose diagram changes") must be able to
+  // stay silent without the rule fighting them.
+  assert.match(prompt, /observe, explain, or complain rather than propose/i);
+});
+
+test('in a reply, what the user said is what decides whether you pitch', () => {
+  for (const kind of ['im', 'email']) {
+    const prompt = buildMomentSystemPrompt({ kind, colleagueId: 'jared', isReply: true });
+    assert.match(prompt, /What they said decides whether you pitch/i);
+    assert.match(prompt, /small talk is noise/i);
+  }
+  // Cold-open moments get the base rule only — there is nothing they were told.
+  const cold = buildMomentSystemPrompt({ kind: 'im', colleagueId: 'jared' });
+  assert.doesNotMatch(cold, /What they said decides/i);
 });
 
 test('moment user prompt lists labels and recent moments', () => {
@@ -467,6 +493,44 @@ test('all three office prompt builders honour uiLocale', () => {
       uiLocale: 'en-US'
     })
   );
+});
+
+test('pair prompt asks one voice for a train of thought, not a ring of opinions', () => {
+  const prompt = buildPairSystemPrompt({ attendee: 'gilfoyle' });
+  assert.match(prompt, /Bertram Gilfoyle from HBO's Silicon Valley/);
+  assert.match(prompt, /speakerId "gilfoyle"/);
+  assert.match(prompt, /EXACTLY 4 beats, all from "gilfoyle"/);
+  // The huddle rules that cannot survive a roster of one must not leak in.
+  assert.doesNotMatch(prompt, /one beat per person/i);
+  assert.doesNotMatch(prompt, /reacts to the person before them/i);
+  // A pair that scripts its own goodbye ends the scene the user is meant to end.
+  assert.match(prompt, /No wrapping up/i);
+  assert.match(prompt, /never "team", "folks", "everyone", or\s+"the room"/i);
+});
+
+test('parsePairScript keeps every beat from the one voice, in the order said', () => {
+  // The exact inverse of the huddle parser: there a repeated speaker is the
+  // model double-seating a face; here it is the entire point.
+  const raw = JSON.stringify({
+    beats: [
+      { speakerId: 'gilfoyle', text: 'Auth is doing two jobs.' },
+      { speakerId: 'dinesh', text: 'I was not invited.' },
+      { speakerId: 'gilfoyle', text: 'The second one is authorization.', actionPrompt: 'Split it' },
+      { speakerId: 'gilfoyle', text: 'Which is why Billing reads it.' }
+    ]
+  });
+  const script = parsePairScript(raw, { attendee: 'gilfoyle' });
+  assert.deepEqual(
+    script.beats.map((b) => b.text),
+    [
+      'Auth is doing two jobs.',
+      'The second one is authorization.',
+      'Which is why Billing reads it.'
+    ]
+  );
+  assert.equal(script.beats[1].actionPrompt, 'Split it');
+  assert.equal(parsePairScript('{"beats":[]}', { attendee: 'gilfoyle' }), null);
+  assert.equal(parsePairScript(raw, { attendee: 'jared' }), null);
 });
 
 test('parseHuddleScript returns one remark per attendee, in attendee order', () => {

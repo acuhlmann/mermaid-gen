@@ -746,8 +746,10 @@ export const OFFICE_ZH_TW = {
       meeting: '開個會',
       meetingTitle: '訂玻璃會議室或戴上耳機 — 選好人就開',
       team: '抓個有空的人',
-      huddleAction: '圍過來開小會',
-      huddleActionTitle: '全隊擠到你的螢幕前一起操作你的電腦。沒有會議室，沒有耳機。',
+      huddleAction: '都過來一下',
+      huddleActionTitle: '全隊擠到你螢幕前 — 每人說一句，然後各回各位。沒有會議室，沒有耳機。',
+      pairAction: '結對',
+      pairActionTitle: '他們拉張椅子坐下，你不趕人就一直待著',
       outbox: '拿去收發室',
       outboxTitle: '儲存、複製或分享工位上的成品',
       codeDrawer: '打開麵條碼抽屜',
@@ -934,7 +936,12 @@ export const OFFICE_ZH_TW = {
       gathering: '大家正走過來…',
       speakingLabel: '{name} 正在發言',
       hardStop: '硬性截止',
-      hardStopTitle: '抱歉 — 整點有硬性截止。散了吧。'
+      hardStopTitle: '抱歉 — 整點有硬性截止。散了吧。',
+      pairSceneAria: '結對看你的圖',
+      pairGathering: '{name} 正拉椅子過來…',
+      pairWatching: '{name} 正在看筆記本…',
+      pairEnd: '謝了 — 我懂了',
+      pairEndTitle: '{name} 回自己座位'
     },
     coffee: {
       kindLabel: '咖啡歇腳',
@@ -1125,7 +1132,9 @@ export const OFFICE_ZH_TW = {
       },
       huddle: {
         eyebrow: '團隊圍聚',
-        heading: '你的團隊，圍在你工位旁'
+        heading: '你的團隊，圍在你工位旁',
+        pairEyebrow: '結對',
+        pairHeading: '{name}，就坐在你旁邊'
       },
       zones: {
         reception: '前台',
@@ -1136,9 +1145,31 @@ export const OFFICE_ZH_TW = {
         hrCorner: '人力資源'
       }
     },
+    talk: {
+      kindLabel: '在你座位旁',
+      placeholder: '隨口說一句…',
+      placeholderNamed: '跟 {name} 說一句…',
+      aria: '隨口說一句 —— 誰適合誰接話',
+      ariaNamed: '跟 {name} 說一句',
+      roomTitle: '對著辦公室說 —— 誰適合誰接話',
+      send: '說出口',
+      sendTitle: '隨口說說，沒人會動畫布',
+      sending: '…',
+      pending: '有人抬起頭…',
+      pendingNamed: '{name} 抬起頭…',
+      dismissAria: '繼續做事',
+      adopt: '照做',
+      openThread: '打開這條對話',
+      clearTargetTitle: '改成對著辦公室說',
+      clearTargetAria: '不再單獨跟 {name} 說'
+    },
     osTray: {
       aria: '已開啟的工作站視窗',
-      brand: 'ArchiSlop OS'
+      taskbarAria: '工作站工作列',
+      trayAria: '狀態列',
+      brand: 'ArchiSlop OS',
+      tidy: '收拾一下',
+      tidyTitle: '把每個視窗送回它開啟時的位置'
     }
   }
 };

@@ -25,8 +25,8 @@ export function huddleDiagramFingerprint(contentType, diagramSource) {
   return `${contentType || 'mermaid'}::${source}`;
 }
 
-/** Everything the server needs to know about what the huddle is looking at. */
-function huddleContext(params, attendees) {
+/** Everything the server needs to know about what the scene is looking at. */
+function huddleContext(params, attendees, mode = 'mob') {
   const contentType = params.getContentType?.() ?? 'mermaid';
   const diagramSource = params.getDiagramSource?.() ?? '';
   const svgRoot = params.getSvgRoot?.() ?? null;
@@ -37,6 +37,7 @@ function huddleContext(params, attendees) {
     diagramSource,
     visibleLabels: labels,
     attendees,
+    mode,
     uiLocale: officeDialogueLocale()
   };
 }
@@ -237,25 +238,26 @@ export function useHuddlePlayback(params) {
     diagramFingerprintRef.current = fingerprint;
   }, []);
 
-  const startHuddle = useCallback(async (attendees) => {
+  /**
+   * @param {string[]} attendees
+   * @param {{ mode?: 'mob' | 'pair' }} [opts] `pair` seats exactly one person
+   *   and asks for a script written for a single voice.
+   */
+  const startHuddle = useCallback(async (attendees, { mode = 'mob' } = {}) => {
     const seats = (Array.isArray(attendees) ? attendees : []).filter(Boolean);
     const generation = ++generationRef.current;
     abortRef.current?.abort();
     suggestAbortRef.current?.abort();
 
-    const huddleId = startOfficeHuddle(seats);
+    const huddleId = startOfficeHuddle(seats, { mode });
     if (!huddleId) return;
 
     const controller = new AbortController();
     abortRef.current = controller;
     const p = paramsRef.current;
-    const ctx = huddleContext(p, seats);
+    const ctx = huddleContext(p, seats, mode);
     const fingerprint = huddleDiagramFingerprint(ctx.contentType, ctx.diagramSource);
-    const payload = await fetchHuddleScript(
-      huddleContext(p, seats),
-      p.getSessionId?.() ?? '',
-      controller
-    );
+    const payload = await fetchHuddleScript(ctx, p.getSessionId?.() ?? '', controller);
     if (abortRef.current === controller) abortRef.current = null;
     if (generation !== generationRef.current) return;
 
@@ -333,13 +335,23 @@ export function useHuddlePlayback(params) {
     resumeOfficeHuddleSpeaking(current.id);
   }, []);
 
-  // When the canvas changes mid-huddle, re-script remarks that have not been spoken yet.
+  /*
+   * When the canvas changes mid-mob, re-script remarks nobody has spoken yet.
+   *
+   * Mob only, and not as a simplification: the replacement is exactly one beat
+   * per teammate who has not spoken, so the total line count is unchanged and
+   * `useScenePacing` keeps its place. A pair has no such invariant — one voice's
+   * script can come back longer or shorter, which restarts the pacing loop and
+   * re-speaks lines the user already heard. Pairing instead stays scripted from
+   * when they sat down; clicking the seat is how you ask them again.
+   */
   useEffect(() => {
     const huddle = snapshot.huddle;
     if (!huddle) {
       diagramFingerprintRef.current = '';
       return undefined;
     }
+    if (huddle.mode === 'pair') return undefined;
     if (huddle.phase !== 'speaking' && huddle.phase !== 'watching') return undefined;
     if (!huddle.beats?.length) return undefined;
     if (!diagramWatchKey) return undefined;
@@ -367,6 +379,7 @@ export function useHuddlePlayback(params) {
     return () => clearTimeout(timer);
   }, [
     snapshot.huddle?.id,
+    snapshot.huddle?.mode,
     snapshot.huddle?.phase,
     snapshot.huddle?.beats,
     snapshot.huddle?.diagramFingerprint,

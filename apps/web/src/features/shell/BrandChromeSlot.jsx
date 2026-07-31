@@ -1,67 +1,39 @@
-import { useRef } from 'react';
-import { createPortal } from 'react-dom';
+import DeskOsMenuBar from '../../components/DeskOsMenuBar.jsx';
 import DiagramFullscreenButton from '../../components/DiagramFullscreenButton.jsx';
 import { ArchiSlopMarkIcon } from '../../components/AppIcons.jsx';
-import XpProgressBar from '../../components/XpProgressBar.jsx';
-import LevelUpInfoPanel from '../../components/LevelUpInfoPanel.jsx';
 import { TopShell } from '../../components/TopShell.jsx';
 import { SlopitectTipSlot } from '../prompt/SlopitectTipSlot.jsx';
-import { resolveUserName } from '../../state/userIdentityStore.js';
-import { useAdvisorFloatAnchor } from '../../hooks/useAdvisorFloatAnchor.js';
-import { overlayLayerStyle, useOverlayLayer } from '../../hooks/useOverlayLayer.js';
-
-const PANEL_GAP_PX = 8;
-const SAFE_INSET_PX = 8;
-const MAX_PANEL_WIDTH_PX = 352; // ~22rem
 
 /**
- * @param {DOMRect} anchorRect
- * @param {boolean} narrowLayout
- * @returns {import('react').CSSProperties}
- */
-function computePortaledLevelPanelStyle(anchorRect, narrowLayout) {
-  const viewportWidth = window.innerWidth;
-  const maxWidth = Math.min(
-    MAX_PANEL_WIDTH_PX,
-    viewportWidth - SAFE_INSET_PX * 2,
-    narrowLayout ? viewportWidth - SAFE_INSET_PX * 2 : MAX_PANEL_WIDTH_PX
-  );
-  let left = anchorRect.left;
-  left = Math.max(SAFE_INSET_PX, Math.min(left, viewportWidth - maxWidth - SAFE_INSET_PX));
-  const width = Math.min(maxWidth, viewportWidth - left - SAFE_INSET_PX);
-
-  return {
-    position: 'fixed',
-    left,
-    top: anchorRect.bottom + PANEL_GAP_PX,
-    width,
-    maxWidth: width,
-    zIndex: undefined // applied via overlayLayerStyle
-  };
-}
-
-/**
- * Top shell: brand chip, XP/progression chrome, Slopitect tip, and fullscreen control.
+ * Top shell — the parody-OS **menu bar** (ADR-0011 rule 3;
+ * docs/office-isometric-mode.md §4).
+ *
+ * The brand keeps the leading slot, the way an OS keeps its logo in the corner
+ * you reach for first, and keeps its Slopitect Tip™ click. What changed is what
+ * follows it: the strip used to carry an XP bar and one fullscreen button, and
+ * now carries the menus that used to be scattered across the bottom row (the
+ * Desk tray's Deliverable format, the export panel buried inside the desk menu,
+ * Shredder, the panel toggles, and the once-a-session admin verbs).
+ *
+ * The XP bar, prestige badge and `LevelUpInfoPanel` moved to the taskbar tray
+ * (`DeskOsTaskbar`) — persistent status belongs next to the clock, not next to
+ * the logo. The gamification parody is not being removed; it is being given the
+ * place an OS puts standing status.
+ *
+ * `menuBar` arrives as one object rather than ~18 loose props: it is a single
+ * cohesive group and `AppWorkspaceSlot` is already carrying more pass-through
+ * props than it should.
  *
  * @param {object} props
  */
 export function BrandChromeSlot({
   narrowLayout,
-  compactBrand,
-  xpBarMobileOpen,
-  onToggleXpBarMobile,
   slopitectTip,
   slopitectTipRef,
   onDismissSlopitectTip,
-  xpInfoPanelOpen,
-  onToggleXpInfoPanel,
-  onCloseXpInfoPanel,
-  gamification,
-  xpBarFlashKey,
-  liveVariant,
   controls,
   onBrandClick,
-  costTrackingEnabled,
+  menuBar = null,
   fullscreenSupported,
   hasCanvasContent,
   editorOpen,
@@ -69,51 +41,10 @@ export function BrandChromeSlot({
   streamingPreview,
   onToggleFullscreen
 }) {
-  const brandRef = useRef(null);
-  const levelUpZIndex = useOverlayLayer('levelup-info-panel', xpInfoPanelOpen);
-  const brandRect = useAdvisorFloatAnchor(brandRef, xpInfoPanelOpen);
-
-  const levelPanel =
-    xpInfoPanelOpen && gamification?.level && brandRect && typeof document !== 'undefined'
-      ? createPortal(
-          <div
-            id="levelup-info-panel"
-            className={`levelup-info-panel-mount levelup-info-panel-mount--portaled${narrowLayout ? ' is-mobile' : ''}`}
-            style={overlayLayerStyle(
-              levelUpZIndex,
-              computePortaledLevelPanelStyle(brandRect, narrowLayout)
-            )}
-            onClick={(event) => event.stopPropagation()}
-          >
-            <LevelUpInfoPanel
-              level={gamification.level}
-              levelTitle={gamification.levelTitle}
-              levelFlair={gamification.levelFlair}
-              levelShortLabel={gamification.levelShortLabel}
-              progressRatio={gamification.levelProgressRatio}
-              xpInto={gamification.xpIntoLevel}
-              xpForNext={gamification.xpForNextLevel}
-              totalXp={gamification.xp}
-              isMaxLevel={gamification.xpForNextLevel == null}
-              prestigeShortLabel={gamification.prestigeShortLabel}
-              totalRuns={gamification.totalRuns}
-              runsByVariant={gamification.runsByVariant}
-              achievements={gamification.achievements}
-              lifetimeLlmCostUsd={gamification.lifetimeLlmCostUsd ?? 0}
-              costTrackingEnabled={costTrackingEnabled}
-              userName={resolveUserName()}
-              onClose={onCloseXpInfoPanel}
-            />
-          </div>,
-          document.body
-        )
-      : null;
-
   return (
     <TopShell>
       <div
-        ref={brandRef}
-        className={`brand-control ${narrowLayout ? 'is-mobile' : ''} ${narrowLayout && compactBrand ? 'is-compact' : ''} ${narrowLayout && (xpBarMobileOpen || !compactBrand) ? 'is-xp-open' : ''} ${slopitectTip ? 'has-tip' : ''} ${xpInfoPanelOpen ? 'is-info-panel-open' : ''}`}
+        className={`brand-control ${narrowLayout ? 'is-mobile' : ''} ${slopitectTip ? 'has-tip' : ''}`}
         aria-label="ArchiSlop"
         onClick={onBrandClick}
       >
@@ -123,76 +54,7 @@ export function BrandChromeSlot({
               <ArchiSlopMarkIcon />
             </span>
             <span className="brand-name">ArchiSlop</span>
-            {gamification?.prestigeShortLabel ? (
-              narrowLayout && compactBrand ? (
-                <button
-                  type="button"
-                  className="brand-prestige-badge"
-                  title={`${controls.brand.totalSlopRuns.replace('{count}', String(gamification.totalRuns ?? 0))} · ${xpBarMobileOpen ? controls.brand.tapToHideXp : controls.brand.tapToShowXp}`}
-                  data-testid="brand-prestige-badge"
-                  aria-expanded={xpBarMobileOpen}
-                  aria-controls="brand-xp-mobile-slot"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    onToggleXpBarMobile();
-                  }}
-                >
-                  {gamification.prestigeShortLabel}
-                </button>
-              ) : (
-                <span
-                  className="brand-prestige-badge"
-                  title={controls.brand.totalSlopRuns.replace(
-                    '{count}',
-                    String(gamification.totalRuns ?? 0)
-                  )}
-                  data-testid="brand-prestige-badge"
-                >
-                  {gamification.prestigeShortLabel}
-                </span>
-              )
-            ) : null}
-            {gamification?.level && !narrowLayout ? (
-              <XpProgressBar
-                level={gamification.level}
-                short={gamification.levelShortLabel}
-                flair={gamification.levelFlair}
-                progressRatio={gamification.levelProgressRatio}
-                xpInto={gamification.xpIntoLevel}
-                xpForNext={gamification.xpForNextLevel}
-                totalXp={gamification.xp}
-                isMaxLevel={gamification.xpForNextLevel == null}
-                flashKey={xpBarFlashKey}
-                variant={liveVariant}
-                onClick={onToggleXpInfoPanel}
-                expanded={xpInfoPanelOpen}
-                controlsId="levelup-info-panel"
-              />
-            ) : null}
           </div>
-          {gamification?.level && narrowLayout ? (
-            <div
-              id="brand-xp-mobile-slot"
-              className={`brand-xp-mobile-slot ${xpBarMobileOpen || !compactBrand ? 'is-open' : ''} ${compactBrand ? '' : 'is-always-on'}`}
-              aria-hidden={compactBrand ? !xpBarMobileOpen : false}
-            >
-              <XpProgressBar
-                level={gamification.level}
-                short={gamification.levelShortLabel}
-                flair={gamification.levelFlair}
-                progressRatio={gamification.levelProgressRatio}
-                xpInto={gamification.xpIntoLevel}
-                xpForNext={gamification.xpForNextLevel}
-                totalXp={gamification.xp}
-                isMaxLevel={gamification.xpForNextLevel == null}
-                flashKey={xpBarFlashKey}
-                variant={liveVariant}
-                onClick={onToggleXpInfoPanel}
-                expanded={xpInfoPanelOpen}
-                controlsId="levelup-info-panel"
-              />
-            </div>
-          ) : null}
         </div>
         <SlopitectTipSlot
           tip={slopitectTip}
@@ -201,8 +63,13 @@ export function BrandChromeSlot({
           onDismiss={onDismissSlopitectTip}
         />
       </div>
-      {levelPanel}
 
+      {menuBar ? <DeskOsMenuBar {...menuBar} /> : null}
+
+      {/* Fullscreen keeps its own corner button *and* a View-menu entry: it is
+          the one control that acts on the canvas itself, and burying a
+          one-click canvas verb two clicks deep would be a downgrade. The menu
+          entry is the labelled, discoverable duplicate (ADR-0011 rule 3). */}
       {fullscreenSupported && (hasCanvasContent || editorOpen) ? (
         <div className="top-corner-controls" aria-label={controls.diagramSurface.controls}>
           <DiagramFullscreenButton

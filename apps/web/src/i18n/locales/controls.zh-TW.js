@@ -89,6 +89,20 @@ export const CONTROLS_ZH_TW = {
     zhCn: '簡體中文',
     zhTw: '繁體中文'
   },
+  menuBar: {
+    aria: '工作站選單列',
+    deliverable: '交付物',
+    deliverableTitle: '交付物 · 這份東西到底是什麼，以及怎麼碎掉它',
+    deliverableAria: '交付物格式',
+    formatSection: '交付物格式',
+    view: '檢視',
+    viewTitle: '檢視 · 程式碼抽屜、筆記本、全螢幕',
+    viewAria: '面板與螢幕',
+    admin: '行政',
+    adminTitle: '行政 · 外包、人事、語言、快速鍵',
+    adminAria: '行政 — 外包、人事、語言、快速鍵',
+    hotkeys: '鍵盤快速鍵'
+  },
   languagePack: {
     label: '語言包',
     tag: 'IT 工單',
@@ -280,16 +294,8 @@ export const CONTROLS_ZH_TW = {
     tapToOpen: '{mode} · 點擊開啟渲染為',
     pickMode: '選擇模式'
   },
-  deskDrawer: {
-    label: '桌面托盤',
-    close: '關閉桌面托盤',
-    title: '桌面托盤 · 交付形態、物業與碎紙機',
-    menuAria: '桌面托盤',
-    roleTag: '工作台面',
-    formatHeading: '交付形態',
-    deskHeading: '工作台面'
-  },
   stakeholders: {
+    addressAria: '轉向 {name}',
     theStakeholders: '相關方',
     hideActions: '隱藏相關方操作',
     openStakeholders: '開啟相關方 · {name}',

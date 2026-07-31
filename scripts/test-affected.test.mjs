@@ -83,11 +83,12 @@ test('touchesAnythingRuntime matches anything modules only', () => {
   assert.equal(touchesAnythingRuntime('apps/server/src/agents/mermaidLangChainAgent.js'), false);
 });
 
-test('resolveAffectedTests adds deliverable-format blast-radius tests for DeskDrawer edits', () => {
-  const plan = resolveAffectedTests(['apps/web/src/components/DeskDrawer.jsx'], { root: ROOT });
+test('resolveAffectedTests adds deliverable-format blast-radius tests for menu-bar edits', () => {
+  const plan = resolveAffectedTests(['apps/web/src/components/DeskOsMenuBar.jsx'], { root: ROOT });
   assert.ok(plan.tests.includes('apps/web/test/App.test.jsx'));
   assert.ok(plan.tests.includes('apps/web/test/entryRenderAs.test.jsx'));
   assert.ok(plan.tests.includes('apps/web/test/renderModeAction.test.js'));
+  assert.ok(plan.tests.includes('apps/web/test/deskOsMenuBar.test.jsx'));
 });
 
 test('resolveAffectedTests adds desk-chrome blast-radius tests for concentration chip edits', () => {

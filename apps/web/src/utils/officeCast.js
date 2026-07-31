@@ -1428,9 +1428,13 @@ export const OFFICE_CHROME_COPY = {
     meetingTitle: 'Book the glass room or slap on headsets — pick a roster and go',
     team: 'Grab whoever is free',
     teamTitle: 'Pull one teammate over for a single opinion',
-    huddleAction: 'Huddle up',
+    // Mob and pair start the same scene; the labels have to carry the one
+    // difference that matters, which is how it ends.
+    huddleAction: 'Everyone over here',
     huddleActionTitle:
-      'Your team crowds your screen and works on your computer together. No room, no headsets.',
+      'The whole team crowds your screen — one remark each, then they wander off. No room, no headsets.',
+    pairAction: 'Pair',
+    pairActionTitle: 'They pull up a chair and stay until you send them away',
     teamToggleAria: 'Huddle the whole team',
     outbox: 'Take it to the mailroom',
     outboxTitle: 'Save, copy, or share the deliverable on your desk',
@@ -1652,9 +1656,36 @@ export const OFFICE_CHROME_COPY = {
     preamble: 'Someone is reading your screen from behind. Act natural.',
     dismissAria: 'Wave off {name}'
   },
+  /**
+   * The talk channel — saying it out loud from your chair, and whoever is apt
+   * answering at your desk. Deliberately not "chat": you are not opening a
+   * window, you are speaking in an open-plan office.
+   */
+  talk: {
+    kindLabel: 'At your desk',
+    placeholder: 'Say it out loud…',
+    placeholderNamed: 'Say something to {name}…',
+    aria: 'Say something out loud — whoever is apt answers',
+    ariaNamed: 'Say something to {name}',
+    roomTitle: 'To the room — whoever is apt picks it up',
+    send: 'Say it',
+    sendTitle: 'Say it out loud. Nobody touches the canvas',
+    sending: '…',
+    pending: 'Somebody looks up…',
+    pendingNamed: '{name} looks up…',
+    dismissAria: 'Back to work',
+    adopt: 'Do it',
+    openThread: 'Open the thread',
+    clearTargetTitle: 'Say it to the room instead',
+    clearTargetAria: 'Stop addressing {name}'
+  },
   osTray: {
     aria: 'Open workstation windows',
-    brand: 'ArchiSlop OS'
+    taskbarAria: 'Workstation taskbar',
+    trayAria: 'Status tray',
+    brand: 'ArchiSlop OS',
+    tidy: 'Tidy up',
+    tidyTitle: 'Send every window back to where it opened'
   },
   huddle: {
     sceneAria: 'Team huddle around your diagram',
@@ -1668,7 +1699,19 @@ export const OFFICE_CHROME_COPY = {
     delegateTitle: 'Open the notebook with this ask',
     unpinAria: 'Unpin suggestion',
     hardStop: 'Hard stop',
-    hardStopTitle: 'Sorry — hard stop at the top of the hour. Break it up.'
+    hardStopTitle: 'Sorry — hard stop at the top of the hour. Break it up.',
+    /**
+     * Pairing wears the same overlay and needs a different voice for every line
+     * of it. "Hard stop" is meeting language — you do not hard-stop the person
+     * sitting next to you, you thank them. And since a pair never ends itself,
+     * this button is the only way out, which is exactly why it must not sound
+     * like an interruption.
+     */
+    pairSceneAria: 'Pairing on your diagram',
+    pairGathering: '{name} is pulling up a chair…',
+    pairWatching: '{name} is watching the notebook…',
+    pairEnd: "Thanks — I've got it",
+    pairEndTitle: '{name} goes back to their desk'
   },
   coffee: {
     kindLabel: 'Coffee run',
@@ -1866,7 +1909,9 @@ export const OFFICE_CHROME_COPY = {
     },
     huddle: {
       eyebrow: 'TEAM HUDDLE',
-      heading: 'Your team, around your desk'
+      heading: 'Your team, around your desk',
+      pairEyebrow: 'PAIRING',
+      pairHeading: '{name}, in the chair next to you'
     },
     zones: {
       reception: 'Reception',

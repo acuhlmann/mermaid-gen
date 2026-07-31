@@ -38,13 +38,36 @@ function cssVariant(variant) {
  * Clicking opens a roster of personas (name, title, action) plus team verbs —
  * Huddle up (crowd the monitor). Have a meeting lives on the desk menu.
  * Auto-collapses on outside click, inactivity, or when a huddle starts.
+ *
+ * **Two gestures per row** (slice 3). The roster sits between the two composer
+ * lanes and answers both of them, because a real roster answers both questions
+ * you have about a colleague:
+ *
+ * - the **action chip delegates** — `runTransform` / `runAnalyze` in that
+ *   persona's flavour. This is the only channel that spends pipeline compute on
+ *   your instruction (ADR-0010).
+ * - the **name / face addresses** — sets lane 2's target so the next thing you
+ *   type goes to that person instead of the room. It produces nothing.
+ *
+ * A row is therefore a group of sibling buttons, not one button: nesting is
+ * invalid HTML, and the two gestures need separate accessible names anyway.
+ * Without `onAddress` the whole row falls back to delegating, so callers that
+ * only want the old behaviour keep it.
+ *
+ * `extraActions` hangs additional chips off a persona — Jared carries **Fix**,
+ * which acts on the critique he just wrote and had been living in three places,
+ * none of them next to him, and every teammate carries **Pair**, which seats
+ * them in the chair beside you. Note the coupling: chips only exist on the
+ * sibling-button row, so a caller that omits `onAddress` gets the single-button
+ * fallback and silently loses its extras.
  */
 export default function StakeholdersMascot({
   personas,
   busy = false,
   introProps = null,
   onHuddle = null,
-  canHuddle = true
+  canHuddle = true,
+  onAddress = null
 }) {
   const { controls } = useUiCopy();
   const stakeholdersCopy = controls.stakeholders;
@@ -207,21 +230,14 @@ export default function StakeholdersMascot({
           stakeholdersCopy.delegateAria ?? 'Delegate to {name} — {action}',
           { name: meta.name, action: actionLabel }
         );
-        const row = (
-          <button
-            key={p.variant}
-            type="button"
-            className={rowClassName}
-            disabled={busy || p.disabled}
-            title={p.title ?? `${delegateLabel} · ${stakeholderTooltip(p.variant)}`}
-            aria-label={p.ariaLabel ?? delegateLabel}
-            onClick={(event) => {
-              event.stopPropagation();
-              armCollapseTimer();
-              noteHandoff(p.variant);
-              p.onClick?.();
-            }}
-          >
+        const delegate = (event) => {
+          event.stopPropagation();
+          armCollapseTimer();
+          noteHandoff(p.variant);
+          p.onClick?.();
+        };
+        const identity = (
+          <>
             <span className={`action-persona-icon is-${variantClass}`} aria-hidden="true">
               <PersonaFace id={p.variant} size={22} />
             </span>
@@ -235,11 +251,93 @@ export default function StakeholdersMascot({
                   : meta.title}
               </span>
             </span>
+          </>
+        );
+        const delegateChip = (
+          <span className="stakeholders-roster-chip-inner">
+            <span className="stakeholders-roster-handoff" aria-hidden="true">
+              {handedTo === p.variant ? '✓' : '→'}
+            </span>
+            {actionLabel}
+          </span>
+        );
+        const extras = Array.isArray(p.extraActions) ? p.extraActions : [];
+
+        // No address handler → the row is one button, exactly as before.
+        const row = onAddress ? (
+          <div key={p.variant} className={rowClassName} role="none">
+            <button
+              type="button"
+              role="menuitem"
+              className="stakeholders-roster-address"
+              title={
+                p.addressTitle ??
+                formatLocale(stakeholdersCopy.addressAria ?? 'Turn to {name}', { name: meta.name })
+              }
+              aria-label={formatLocale(stakeholdersCopy.addressAria ?? 'Turn to {name}', {
+                name: meta.name
+              })}
+              data-testid={`stakeholders-address-${p.variant}`}
+              onClick={(event) => {
+                event.stopPropagation();
+                armCollapseTimer();
+                onAddress(p.variant);
+              }}
+            >
+              {identity}
+            </button>
+            <button
+              type="button"
+              role="menuitem"
+              className="stakeholders-roster-chip stakeholders-roster-chip--delegate"
+              disabled={busy || p.disabled}
+              title={p.title ?? `${delegateLabel} · ${stakeholderTooltip(p.variant)}`}
+              aria-label={p.ariaLabel ?? delegateLabel}
+              data-testid={`stakeholders-delegate-${p.variant}`}
+              onClick={delegate}
+            >
+              {delegateChip}
+            </button>
+            {extras.map((extra) => (
+              <button
+                key={extra.id}
+                type="button"
+                role="menuitem"
+                className={`stakeholders-roster-chip stakeholders-roster-chip--extra is-${extra.id}`}
+                disabled={busy || extra.disabled}
+                title={extra.title ?? extra.label}
+                aria-label={extra.ariaLabel ?? extra.label}
+                data-testid={`stakeholders-extra-${p.variant}-${extra.id}`}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  armCollapseTimer();
+                  extra.onClick?.();
+                }}
+              >
+                <span className="stakeholders-roster-chip-inner">
+                  {extra.emoji ? (
+                    <span className="stakeholders-roster-handoff" aria-hidden="true">
+                      {extra.emoji}
+                    </span>
+                  ) : null}
+                  {extra.label}
+                </span>
+              </button>
+            ))}
+          </div>
+        ) : (
+          <button
+            key={p.variant}
+            type="button"
+            className={rowClassName}
+            disabled={busy || p.disabled}
+            title={p.title ?? `${delegateLabel} · ${stakeholderTooltip(p.variant)}`}
+            aria-label={p.ariaLabel ?? delegateLabel}
+            onClick={delegate}
+          >
+            {identity}
             <span className="stakeholders-roster-chip" aria-hidden="true">
-              <span className="stakeholders-roster-handoff">
-                {handedTo === p.variant ? '✓' : '→'}
-              </span>
-              {actionLabel}
+              {delegateChip}
             </span>
           </button>
         );

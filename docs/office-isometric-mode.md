@@ -64,6 +64,86 @@ Slop Chat = the messenger; Settings = the control panel; the WG meeting = a vide
 window (the existing docked "Look at my screen" card is literally a minimized call). This
 track touches chrome only, never the floor, and never blocks the floor slices.
 
+The depth is **"frame, not furniture"**: a menu bar on top, a taskbar on the bottom, and
+the canvas as a fixed maximized surface between them. The Editor and Thinking panes stay
+_docked_ — there is no windowing, and per ADR-0011 rule 3's clean-desk policy, no drawers.
+
+### 4a. Slice 1 — the task strip ✅ shipped
+
+`DeskOsTray` listed nothing: it filtered `entry.group === 'officeChrome'`, but all four
+office windows register as `officeModal` — and only `MeetingOverlay` passed a `title` to
+`FloatingWindow` (the others passed it to the drag handle), so `&& entry.title` would have
+dropped them anyway. Both fixed, reusing the strings already on each window's `aria-label`.
+`resetAllFloatingWindows()` — zero production callers since `OfficeWindowBar` was deleted in
+99bd816 — was re-homed as the strip's **Tidy up**, the recovery path for a window dragged
+out of reach.
+
+### 4b. Slice 2 — menu bar + taskbar ✅ shipped
+
+The canvas screen had **seven command surfaces with no rule for which verb goes where**.
+The rule is now **frequency, not category**: what you reach for on most runs stays on the
+bottom composer band; what you reach for a few times a session moves to the frame, one
+click deep.
+
+| Region                | Component       | Holds                                                                     |
+| --------------------- | --------------- | ------------------------------------------------------------------------- |
+| Menu bar (top)        | `DeskOsMenuBar` | brand (leading slot) · Deliverable · Mailroom · View · Admin · fullscreen |
+| Composer band         | `BottomRow`     | Work order · Your Team · Notebook (unchanged this slice)                  |
+| Taskbar (bottom edge) | `DeskOsTaskbar` | Stand up · window list (`DeskOsTray`) · tray end                          |
+
+What moved, and why it was somewhere worse before:
+
+- **Deliverable format + Shredder** — out of the dismantled `DeskDrawer`. That row's
+  function was already documented as "Deliverable format" ([`office-parody.md`](office-parody.md)),
+  and `GLOSSARY.md` already calls the six slots "your deliverables", so the menu introduces
+  no new vocabulary. It also retires a drawer, which the clean-desk policy forbids on screen.
+- **Export (11 formats)** — was an expandable row _inside_ the desk-stamp menu, two clicks
+  deep behind a menu you had to know to open. Now the **Mailroom** menu.
+- **Contractor · External agents · HR · Language · Hotkeys** — off the desk stamp into
+  **Admin**. `settingsOpenSignal` had no producer at all; "External agents" is now it.
+- **Stand up** — out of `DeskActionsDock` into the taskbar's leading corner, still labelled,
+  still `Shift+O`. The taskbar reads `officeViewModeStore` directly, so it needs no office
+  props and lives in the shell tree rather than inside `OfficeLayer`.
+- **XP bar, prestige badge, `LevelUpInfoPanel`** — off the brand chip into the tray end,
+  where an OS puts persistent status. The gamification parody is not being removed; it is
+  being given the clock corner. The mobile "tap the prestige badge to reveal XP" toggle
+  (`xpBarMobileOpen`) died with the move.
+- **Run status** — out of `.bottom-chrome` into the tray end. This is also the **height
+  accounting**: the status row it vacated is taller than the ~1rem the taskbar costs, so a
+  run in flight nets slightly _more_ canvas than before, an idle canvas slightly less.
+
+What stayed on the desk stamp: the three ways the office reaches you (Inbox, Slop Chat,
+Meeting) plus the two ambience postures. A menu that answered five unrelated questions was
+the reason nobody could predict what was in it.
+
+**Fix is deliberately homeless this slice.** It left with the drawer and is reachable from
+the Notebook checklist and the radial ring until slice 3 puts it beside Jared, whose
+critique it acts on — which was the original complaint (Fix appeared in three places, none
+of them next to Jared).
+
+Geometry is pinned by `--desk-taskbar-h` and asserted in `test/deskOsFrameStyles.test.js`;
+`.bottom-chrome` stacks on the token at every breakpoint. Measured in headless Chrome at
+1440 / 820 / 390 / 320: the bar is flush to the viewport edge, the composer band clears it,
+the menu bar never wraps, and nothing scrolls horizontally. Degradation order in the
+taskbar as width runs out: Concentration (has two other homes) → window-pill labels →
+Tidy up → the XP track (the level text survives; below 540px the old brand-chip rule hid
+the opposite half). Foldable dual-segment is **not** verified — `env(viewport-segment-*)`
+has no headless emulation.
+
+### 4c. Slice 3 — composer band ✅ shipped
+
+Two lanes side by side where the bottom strip used to carry one prompt and five tool groups:
+**Work order → the canvas** (unchanged `SlopNextPrompt layout="desk"`) and **Say it out loud → the
+room** (`DeskTalkComposer` → `talkOutLoud`). The `StakeholdersMascot` roster sits between them and
+answers both — chip delegates, name/face addresses — and Fix rejoined Jared's row.
+
+Reading order on the band is explicit (`order: 0…4` on `.prompt-actions--desktop`), because the
+generic `.desk-chrome-tool` ordering cannot express "between the lanes". Below 1024px the talk lane
+takes a full row of its own, above the Work Order, which stays nearest the thumb.
+
+Full rationale — the budget, the gate, the desk speech surface, and why the floor mirror cost
+nothing — is in [`office-parody.md`](office-parody.md) § The talk channel.
+
 ## 5. Phasing (each slice independently shippable)
 
 1. ~~**Floor substrate**~~ — ✅ **shipped**: the room (floor plate, tile grid, zone plates,

@@ -22,10 +22,8 @@ function baseProps(overrides = {}) {
       workOrder: true,
       desk: true,
       team: true,
-      notebook: true,
-      drawer: true
+      notebook: true
     },
-    deskDrawerTourOpen: false,
     narrowLayout: false,
     busy: false,
     loading: false,
@@ -83,7 +81,6 @@ describe('DeskBottomActionsSlot empty canvas', () => {
     render(<DeskBottomActionsSlot {...baseProps()} />);
     expect(screen.queryByTestId('topic-starters')).toBeNull();
     expect(screen.getByLabelText(/Work order/i)).toBeTruthy();
-    expect(screen.getByRole('button', { name: /desk tray/i })).toBeTruthy();
   });
 
   it('submits the work order without a separate format strip', async () => {
@@ -100,7 +97,6 @@ describe('DeskBottomActionsSlot empty canvas', () => {
     const view = render(<DeskBottomActionsSlot {...props} />);
 
     expect(screen.queryByTestId('entry-render-as')).toBeNull();
-    expect(screen.getByRole('button', { name: /desk tray/i })).toBeTruthy();
 
     const input = screen.getByLabelText(/Work order/i);
     fireEvent.change(input, { target: { value: 'Coffee supply chain' } });
@@ -111,9 +107,11 @@ describe('DeskBottomActionsSlot empty canvas', () => {
     expect(handleDeskPromptSubmit).toHaveBeenCalledWith('Coffee supply chain');
   });
 
-  it('keeps the desk tray closed by default on an empty canvas', () => {
+  // Slice 2 dismantled the Desk tray: Deliverable format and Shredder are
+  // menu-bar items now (`DeskOsMenuBar`), so the desk row carries none of it.
+  it('no longer carries the desk tray or a format strip', () => {
     render(<DeskBottomActionsSlot {...baseProps()} />);
-    expect(screen.getByRole('button', { name: /desk tray/i })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /desk tray/i })).toBeNull();
     expect(screen.queryByRole('menu', { name: /Desk tray/i })).toBeNull();
     expect(screen.queryByTestId('entry-render-as')).toBeNull();
   });
@@ -181,6 +179,26 @@ describe('DeskBottomActionsSlot empty canvas', () => {
     );
     expect(document.getElementById('office-desk-bottom-slot')).toBeTruthy();
     expect(screen.getByTestId('desk-notebook-button')).toBeTruthy();
+  });
+
+  // Pair is aimed at one person, so it rides on that person's row — the same
+  // reason Fix rides on Jared's. Mob stays in the team-actions block above.
+  it('offers Pair on every teammate row, naming who is in the chair', () => {
+    const onPair = vi.fn();
+    // `onTalk` is what turns a row into sibling buttons, which is what row-level
+    // chips hang off — see StakeholdersMascot's `extraActions`.
+    render(
+      <DeskBottomActionsSlot {...baseProps({ onPair, onTalk: vi.fn(), onHuddle: vi.fn() })} />
+    );
+    const chips = screen.getAllByTestId(/^stakeholders-extra-.*-pair$/);
+    expect(chips.length).toBeGreaterThan(1);
+    fireEvent.click(screen.getByTestId('stakeholders-extra-gilfoyle-pair'));
+    expect(onPair).toHaveBeenCalledWith('gilfoyle');
+  });
+
+  it('drops the Pair chip entirely when the shell cannot start one', () => {
+    render(<DeskBottomActionsSlot {...baseProps({ onTalk: vi.fn(), onHuddle: vi.fn() })} />);
+    expect(screen.queryAllByTestId(/^stakeholders-extra-.*-pair$/)).toHaveLength(0);
   });
 
   it('anchors desk tour pointers on the real chrome row', () => {

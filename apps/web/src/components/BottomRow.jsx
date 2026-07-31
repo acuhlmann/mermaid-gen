@@ -6,10 +6,9 @@ import { useUiCopy } from '../i18n/useUiLocale.js';
  * headless Outbox / Settings panels (opened from desk verbs) on the right.
  *
  * Slots:
- * - `statusRow`      — optional, rendered above the row in flow (keeps
- *                       aria-live semantics; minor vertical shift acceptable).
  * - `actions`        — left side: the empty-state entry form OR the desk row
- *                       (Work Order · Your Team + Headphones · Desk tray).
+ *                       (Work Order · Your Team · Notebook). Run status moved
+ *                       to the taskbar tray (`DeskOsTaskbar`).
  * - `aiControls`     — right side: AiCornerControlsInner (headless Outbox +
  *                       Settings panels — contractors & code; concentration is
  *                       in the desk menu footer).
@@ -17,12 +16,11 @@ import { useUiCopy } from '../i18n/useUiLocale.js';
  * `narrowLayout` toggles mobile class hooks so the right cluster keeps the
  * existing inline-stacked settings panel layout instead of popover mode.
  */
-export function BottomRow({ statusRow, actions, aiControls, narrowLayout }) {
+export function BottomRow({ actions, aiControls, narrowLayout }) {
   const { controls } = useUiCopy();
   const aiClass = narrowLayout ? 'bottom-row-ai is-narrow' : 'bottom-row-ai';
   return (
     <div className="corner-control bottom-chrome">
-      {statusRow}
       <div className="bottom-row">
         <div className="bottom-row-actions">{actions}</div>
         <div className={aiClass} aria-label={controls.settings.aiCluster}>

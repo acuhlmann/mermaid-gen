@@ -34,6 +34,12 @@ export const IM_PING_MAX_VISIBLE = DESK_ARRIVAL_MAX_VISIBLE;
 /** Mirrors the server's huddle floor — below this it is a walk-by, not a huddle. */
 export const HUDDLE_MIN_SEATS = 2;
 /**
+ * A pair is exactly one chair pulled up next to you. Not "at least one": a
+ * two-person pair is a small mob, which is a different scene with a different
+ * script (one remark each, then everyone leaves) — see `startOfficeHuddle`.
+ */
+export const PAIR_SEATS = 1;
+/**
  * Slop Chat™ scrollback. Desk arrival toasts expire after DESK_ARRIVAL_TTL_MS and only two
  * show at once, so without a separate log every IM the user didn't catch in
  * nine seconds was gone forever. History is capped rather than unbounded —
@@ -63,7 +69,7 @@ function initialState() {
      * @type {Array<{id: string, kind: 'email' | 'im', colleagueId: string, subject?: string, createdAt: number}>} */
     deskArrivals: [],
     /** Durable scrollback for the messenger, oldest first. Never TTL-expired.
-     * @type {Array<{id: string, colleagueId: string, body: string, createdAt: number, outbound?: boolean, read: boolean}>} */
+     * @type {Array<{id: string, colleagueId: string, body: string, channel?: string, actionPrompt?: string, createdAt: number, outbound?: boolean, read: boolean}>} */
     imHistory: [],
     imUnreadCount: 0,
     /** @type {{id: string, colleagueId: string, body: string, actionPrompt?: string, createdAt: number} | null} */
@@ -75,13 +81,22 @@ function initialState() {
     /** @type {{id: string, colleagueId: string, title: string, body: string, attendees: string[], createdAt: number} | null} */
     meetingInvite: null,
     /**
-     * Team huddle — everyone crowds the canvas and speaks in turn. Presentation-
-     * agnostic on purpose (ADR-0011 rule 1): the desk overlay is renderer #1 and
-     * a floor version can read this same slice without forking state.
+     * The gathered-around-your-screen slice, in two modes. Presentation-agnostic
+     * on purpose (ADR-0011 rule 1): the desk overlay is renderer #1 and a floor
+     * version can read this same slice without forking state.
+     *
+     * `mode: 'mob'` is the whole team crowding the canvas — one remark each, in
+     * turn, and it ends itself when the last one lands. `mode: 'pair'` is one
+     * teammate in the chair next to you with a train of thought, and it does
+     * **not** end itself: somebody sitting with you does not evaporate because
+     * they finished a sentence. Two acts, one slice, because what they share
+     * (seated faces, paced remarks, a Do-it, pausing for a delegated run) is
+     * everything except how many people and how it ends.
+     *
      * `watching` freezes turn-taking while a teammate runs a delegated "Do it"
      * (notebook open, faces stay seated) and flips back to `speaking` when done.
      * `suggestions` holds on-spot pin-able remarks that are not in the spoken queue.
-     * @type {{id: string, attendees: string[], beats: Array<{speakerId: string, text: string, actionPrompt?: string}>, suggestions?: Record<string, {speakerId: string, text: string, actionPrompt?: string}>, phase: 'gathering' | 'speaking' | 'watching', createdAt: number} | null}
+     * @type {{id: string, mode: 'mob' | 'pair', attendees: string[], beats: Array<{speakerId: string, text: string, actionPrompt?: string}>, suggestions?: Record<string, {speakerId: string, text: string, actionPrompt?: string}>, phase: 'gathering' | 'speaking' | 'watching', createdAt: number} | null}
      */
     huddle: null
   };
@@ -204,17 +219,25 @@ export function shouldHoldAmbientOfficeMoments() {
 }
 
 /**
- * Seat the huddle before a single word exists. The overlay draws the ring from
+ * Seat the scene before a single word exists. The overlay draws the ring from
  * `attendees` during 'gathering', so the arrival animation runs while the LLM
- * is still writing — the crowd is the feedback that the click landed.
+ * is still writing — the crowd (or the one chair) is the feedback that the
+ * click landed.
+ *
+ * @param {string[]} attendees
+ * @param {{ mode?: 'mob' | 'pair' }} [opts]
  */
-export function startOfficeHuddle(attendees) {
+export function startOfficeHuddle(attendees, { mode = 'mob' } = {}) {
   const seats = Array.isArray(attendees) ? attendees.filter(Boolean) : [];
+  const pairing = mode === 'pair';
   // Two is the floor the server enforces too — one person leaning in is a
   // walk-by, and seating a lone face would flash a ring that cannot be scripted.
-  if (seats.length < HUDDLE_MIN_SEATS) return null;
+  // Pairing is the deliberate exception: it asks for a script written for one
+  // voice, so the lone face has something to say.
+  if (pairing ? seats.length !== PAIR_SEATS : seats.length < HUDDLE_MIN_SEATS) return null;
   const huddle = {
     id: makeId('huddle'),
+    mode: pairing ? 'pair' : 'mob',
     attendees: seats,
     beats: [],
     /** @type {Record<string, {speakerId: string, text: string, actionPrompt?: string}>} */
@@ -400,12 +423,33 @@ export function markAllOfficeEmailsRead() {
  * A new IM lands in two places: a transient desk arrival (expires) and the
  * durable history (does not). Dismissing or expiring an arrival must NOT touch
  * history — that separation is the whole point of the messenger.
+ *
+ * `channel` marks *how the line was said*, not where it renders — it stays
+ * renderer-agnostic (ADR-0011 rule 1), and both renderers read it. `'talk'` is
+ * the out-loud/turn-to-someone channel: it answers as speech at your desk
+ * (`OfficeDeskSpeech`) or as a bubble over their head on the floor, so it
+ * deliberately skips the arrival toast — an answer to something you just said
+ * is not a notification that someone messaged you.
+ *
+ * `actionPrompt` is an optional **pitch**: a concrete diagram edit the speaker
+ * proposed while saying this. Emails and walk-bys have carried one since the
+ * beginning; IMs did not, which quietly made the talk channel the one place a
+ * colleague could have an idea and no way to hand it over. Storing it does not
+ * weaken ADR-0010 — a pitch is still inert text until the user presses the
+ * button a renderer puts under it.
  */
-export function pushOfficeImPing({ colleagueId, body }) {
-  const ping = { id: makeId('im'), colleagueId, body: String(body ?? ''), createdAt: Date.now() };
+export function pushOfficeImPing({ colleagueId, body, channel = 'im', actionPrompt }) {
+  const ping = {
+    id: makeId('im'),
+    colleagueId,
+    body: String(body ?? ''),
+    ...(channel && channel !== 'im' ? { channel } : {}),
+    ...(actionPrompt ? { actionPrompt: String(actionPrompt) } : {}),
+    createdAt: Date.now()
+  };
   const imHistory = [...state.imHistory, { ...ping, read: false }].slice(-IM_HISTORY_MAX);
   update({ imHistory, imUnreadCount: countUnreadIms(imHistory) });
-  pushDeskArrival({ kind: 'im', colleagueId });
+  if (channel !== 'talk') pushDeskArrival({ kind: 'im', colleagueId });
   return ping.id;
 }
 
@@ -414,13 +458,14 @@ function countUnreadIms(history) {
 }
 
 /** Records the user's side of the conversation (quick replies + composer). */
-export function pushOfficeImReply({ colleagueId, body }) {
+export function pushOfficeImReply({ colleagueId, body, channel = 'im' }) {
   const text = String(body ?? '').trim();
   if (!text) return null;
   const message = {
     id: makeId('im'),
     colleagueId,
     body: text,
+    ...(channel && channel !== 'im' ? { channel } : {}),
     createdAt: Date.now(),
     outbound: true,
     read: true

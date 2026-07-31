@@ -153,10 +153,11 @@ export const BLAST_RADIUS_RULES = [
   },
   {
     match:
-      /apps\/web\/src\/(components\/(DeskDrawer|EntryRenderAs)|utils\/renderModeAction)|apps\/web\/src\/i18n\/locales\/controls\.(en|en-AU)\.js/,
+      /apps\/web\/src\/(components\/(DeskOsMenu|DeskOsMenuBar|EntryRenderAs)|utils\/renderModeAction)|apps\/web\/src\/i18n\/locales\/controls\.(en|en-AU)\.js/,
     tests: [
       'apps/web/test/entryRenderAs.test.jsx',
       'apps/web/test/renderModeAction.test.js',
+      'apps/web/test/deskOsMenuBar.test.jsx',
       'apps/web/test/App.test.jsx'
     ]
   },

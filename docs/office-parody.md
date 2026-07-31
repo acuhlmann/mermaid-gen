@@ -236,6 +236,21 @@ A **moment** is one interruption: `{kind, colleague, channel, content source}`. 
 Actionable moments carry an `actionPrompt` — a "Do it" button that feeds the normal intent-prompt
 path (same adopt flow as the stakeholder advisor).
 
+**Any kind can carry one, and most do not.** Emails and walk-bys always could; IMs joined them so
+that a colleague who says something useful at your desk or in Slop Chat can hand it over instead of
+just having been right. A pitch reaches every surface the line does: the desk speech card
+(`OfficeDeskSpeech`), the thread in Slop Chat (`OfficeMessenger` — where a suggestion outlives the
+nine-second toast), the inbox, and the walk-by card. The floor's talk bubble is the one renderer
+without an adopt affordance.
+
+Whether a pitch exists is a **condition, not a rate**. The moment prompt asks for one only when the
+speaker genuinely has a specific change in mind for what is on the canvas, and in a reply the
+trigger is what the user just said — asked what to change, pushed back, left an obvious opening.
+Vague pitches ("clean this up") are forbidden, voices that observe rather than propose (Richard) are
+told to omit it, and a "Do it" under small talk is treated as a defect: a button under every line is
+wallpaper, which costs the button its meaning. ADR-0010 is unchanged — a pitch is inert text until
+the user presses it.
+
 **Every surface shows who is talking**: name **and** role ride along on IM pings, inbox rows,
 meeting-invite attendee chips, meeting seats, transcript bubbles, coffee scenes, and battle
 arenas (tooltips where space is tight) — never a bare emoji.
@@ -355,33 +370,96 @@ drill (all surfaces evacuate for 30 s), the printer that prints one page reading
 
 The ambience director decides when the office interrupts you; the **desk verbs** are the other
 direction — you deciding to act from your cube. `DeskActionsDock` (ArchiSlop helmet stamp in the
-bottom row) opens a **desk-geography** menu wired to `useDeskActions` plus chrome sinks for Outbox,
-Settings, Notebook, Concentration, and the XP / People Ops panel. Meet the Office is no longer a
-desk verb — first-visit boot and the level panel's "Meet the team" CTA cover the directory.
+bottom row) opens a menu wired to `useDeskActions`. Meet the Office is no longer a desk verb —
+first-visit boot and the level panel's "Meet the team" CTA cover the directory.
+
+**The desk stamp is office verbs only** (adopted 2026-07-31, the parody-OS frame slice — see
+[`office-isometric-mode.md`](office-isometric-mode.md) §4b). It used to answer five unrelated
+questions at once, which is why nobody could predict what was in it. What is left is the three
+ways the office reaches you — **Check your mail**, **Open Slop Chat**, **Have a meeting** — plus
+the two ambience postures and the vendor attribution strip. Everything else moved to the frame:
+
+| Left the desk stamp for…  | New home                                                                                      |
+| ------------------------- | --------------------------------------------------------------------------------------------- |
+| Take it to the mailroom   | Menu bar → **Mailroom** (`DeskOsMenuBar`)                                                     |
+| Onboard a contractor · HR | Menu bar → **Admin**                                                                          |
+| Language pack · Hotkeys   | Menu bar → **Admin**                                                                          |
+| Adjust your workstation   | Menu bar → **Admin** → External agents (the `settingsOpenSignal` producer that never existed) |
+| Concentration             | Taskbar tray (`DeskOsTaskbar`) — still on the Work Order footer and Thinking header too       |
+| 🧍 Stand up               | Taskbar leading corner, labelled, still `Shift+O`                                             |
+
+The **Desk tray** row is gone with `DeskDrawer`: Deliverable format and Shredder are menu-bar
+items now, and Facilities (Fix) rejoins the team beside Jared, whose critique it acts on.
 
 **Zones on the desk**
 
 | Zone                | Fiction                      | Controls                                                                                 |
 | ------------------- | ---------------------------- | ---------------------------------------------------------------------------------------- |
 | Your seat           | Personal cognition           | Notebook (Thinking pane), Concentration (Rush job / Deep work → wire `fast` / `quality`) |
-| Work surface        | The deliverable              | Work order, Desk tray (Deliverable format, Facilities, Shredder)                         |
+| Work surface        | The deliverable              | Work order; Deliverable format + Shredder on the menu bar                                |
 | People around you   | Colleagues at adjacent desks | Your Team menu (delegate to a teammate, Huddle up) + desk **Have a meeting**             |
-| Get up              | Leave the chair              | Mail, IM, outbox (+ Stand up is a primary bottom-nav control; coffee is on the floor)    |
-| Under the desk / IT | Cubicle plumbing             | Adjust workstation (contractors + code drawer), HR progression                           |
+| Get up              | Leave the chair              | Mail, IM (+ Stand up in the taskbar's leading corner; coffee is on the floor)            |
+| Under the desk / IT | Cubicle plumbing             | Menu bar → Admin (contractors, HR, language, hotkeys); code drawer on View               |
 
 | Verb                        | Does                                                                                                                                                                                                                                                                                            |
 | --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 📓 Open your notebook       | Toggles the Thinking / insights pane — Your seat; replaces the old Thinking board label                                                                                                                                                                                                         |
-| 🎚️ Concentration            | Rush job / Deep work segment on Your seat (was Brain Fast/Quality in Settings). Wire value unchanged: `modelProfile: "fast" \| "quality"`                                                                                                                                                       |
+| 🎚️ Concentration            | Rush job / Deep work segment in the taskbar tray, the Work Order footer and the Thinking header. Wire value unchanged: `modelProfile: "fast" \| "quality"`                                                                                                                                      |
 | ↳ Delegate to a teammate    | A roster row hands the work to a **person**: `runTransform` / `runAnalyze` for that persona, with an arrow, a "Delegate to {name}" accessible name, and a "{name} took it" acknowledgement for `HANDOFF_ACK_MS`. Same verbs as the radial menu; the difference is that somebody's name is on it |
-| 🤝 Huddle up                | Pulls the whole `CAST_TIERS.team` tier around your canvas, face to face — see § 5b. In the **Your Team** roster menu                                                                                                                                                                            |
+| 🤝 Everyone over here       | **Mob.** Pulls the whole `CAST_TIERS.team` tier around your canvas, face to face — see § 5b. In the **Your Team** roster menu, above the rows                                                                                                                                                   |
+| 🪑 Pair                     | **Pair.** Seats one teammate in the chair beside you and keeps them there until you end it — see § 5b. A chip on that person's own roster row, next to their delegate chip                                                                                                                      |
 | 📅 Have a meeting           | Opens the people/group picker (same as inbox / Slop Chat) — on the **desk** menu. Toggle **Book the glass room** vs **Slap on headsets**; blank canvas is fine                                                                                                                                  |
-| 🧍 Stand up and look around | Primary bottom-nav control beside the desk stamp (`DeskStandUpButton`) — enters isometric floor mode. Not a menu item. While standing, the same control sits you back down                                                                                                                      |
+| 🧍 Stand up and look around | Leading corner of the taskbar (`DeskStandUpButton` inside `DeskOsTaskbar`) — enters isometric floor mode. Not a menu item. The taskbar hides while you are standing; the floor carries its own way back (`FloorTopBar`)                                                                         |
 | 📥 Check your mail          | Opens the inbox popover (`openSignal` counter prop)                                                                                                                                                                                                                                             |
-| 📤 Take it to the mailroom  | Opens the headless mailroom export/share panel (`openSignal`) — no dedicated bottom-row icon                                                                                                                                                                                                    |
+| 📤 Take it to the mailroom  | Menu bar → **Mailroom**: the export/share panel inline, one click deep. Was an expandable row inside this menu, two clicks deep behind a menu you had to know to open                                                                                                                           |
 | 💬 Open Slop Chat / Message | Messenger history / DM a teammate or colleague                                                                                                                                                                                                                                                  |
-| ⚙️ Adjust your workstation  | Opens headless Settings (guest agents, code drawer) — concentration no longer lives here                                                                                                                                                                                                        |
-| 📈 Check my HR progression  | Toggles the level-up / People Ops scorecard (`LevelUpInfoPanel`) — always enabled; that panel also links to Meet the team                                                                                                                                                                       |
+| ⚙️ Adjust your workstation  | Menu bar → **Admin** → External agents (guest agents); the code drawer is on **View**                                                                                                                                                                                                           |
+| 📈 Check my HR progression  | Menu bar → **Admin**: toggles the level-up / People Ops scorecard (`LevelUpInfoPanel`, now anchored to the taskbar tray's XP chip) — always enabled; that panel also links to Meet the team                                                                                                     |
+
+### The talk channel — say it out loud (slice 3)
+
+The desk had only ever had **one** prompt and it went to the production pipeline. There was no way
+to say something to the room from your chair, which meant every throwaway remark cost a run. Lane 2
+of the composer band is that missing channel.
+
+| Act                         | Composer           | Verb                                 | Yields                        |
+| --------------------------- | ------------------ | ------------------------------------ | ----------------------------- |
+| Say something out loud      | lane 2, no target  | `talkOutLoud(null, { userMessage })` | a reply, sometimes a pitch    |
+| Turn to the person next you | lane 2, target set | `talkOutLoud(id, { userMessage })`   | a reply, sometimes a pitch    |
+| Get everyone over (mob)     | roster team block  | `startHuddle(team, {mode:'mob'})`    | a remark each, then it ends   |
+| Sit with one of them (pair) | roster 🪑 chip     | `startHuddle([id], {mode:'pair'})`   | a train of thought that stays |
+| "Can you do this for me?"   | roster action chip | `runTransform` / `runAnalyze`        | **a pipeline run**            |
+
+Four of the five never touch a slot (ADR-0010). Only the last one produces.
+
+Undirected and directed are **the same verb** with and without an id — `imSomeone` has always
+resolved a null colleague by picking whoever is apt (`colleagueId ?? pickRandomFrom(DESK_IM_CAST)`).
+Three things are new:
+
+- **Its own budget.** `DESK_LLM_CAP = 3` is the _ambient_ verb cap; a conversation exhausts it in
+  three sentences and falls back to the canned bank, which reads as broken rather than in-character.
+  `TALK_LLM_CAP = 12` is the reactive class ADR-0010 calls generous and self-limiting: you only
+  spend it by typing.
+- **Its own gate.** Blocked only by an open meeting — deliberately _not_ by `pause` or
+  one-surface-at-a-time. Talking while a run streams is exactly when you would, and being unable to
+  speak because an IM toast is up would be absurd.
+- **A desk speech surface.** `OfficeDeskSpeech` renders the answer as speech at your desk on the
+  shared `OfficeMomentShell` chrome. It is not `OfficeDeskArrival`: an arrival announces _that_
+  somebody messaged you, this is the line itself, because you are standing in the conversation.
+  `pushOfficeImPing` skips the arrival toast for `channel: 'talk'` so the two never double up.
+
+**The floor mirror cost nothing.** Talk lands in the same `imHistory` Slop Chat and `FloorTalk`
+already read, so a line said at your desk is in the messenger afterwards, and — if you walk up to
+that person — over their head on the floor. That is ADR-0011 rule 1 paying for itself twice: `channel`
+is a tag on shared state, not a second conversation engine.
+
+**The roster gained a second gesture.** A row is now two buttons: the **action chip delegates**
+(the only channel that spends pipeline compute), the **name / face addresses** (sets lane 2's
+target). Jared's row also carries **Fix**, which acts on the critique he just wrote and had been
+living in three places, none of them next to him.
+
+**Two composers, not a toggle.** A toggle would make you choose before you know which one you meant.
+On phone the lanes stack, with the Work Order nearest the thumb.
 
 **Two postures, not four checkboxes** (adopted 2026-07-29). The desk menu footer used to carry
 **Focus / Noise / Voice / CC**, and the Your Team roster carried a fifth control, Headphones, which
@@ -473,9 +551,37 @@ Roadmap: recurring meeting series with memory ("as discussed last sync"), the es
 (WG → steering committee → CAB hearing, each stricter and less useful; CAB approval unlocks an
 achievement), and the all-hands (CEO cameo, everyone attends, nothing is decided, confetti).
 
-## 5b. The team huddle (the face-to-face one)
+## 5b. The huddle slice — mob and pair (the face-to-face ones)
 
-**"Huddle up" in the Your Team menu** → the six `CAST_TIERS.team` members snap in from all four
+One slice, two acts. **Mob** ("Everyone over here", in the Your Team menu) is the whole team.
+**Pair** (the 🪑 chip on a teammate's own row) is one of them in the chair next to you. They share
+`officeMomentStore.huddle` because they share almost everything — seated faces, paced remarks, a
+Do-it, going quiet for a delegated run — and `huddle.mode` names which one you are in.
+
+What differs is the shape of the script and how it ends:
+
+|                       | Mob                                             | Pair                                        |
+| --------------------- | ----------------------------------------------- | ------------------------------------------- |
+| Roster                | `CAST_TIERS.team`, ≥ `HUDDLE_MIN_SEATS` (2)     | exactly one (`PAIR_SEATS`)                  |
+| Script                | one beat per person, attendee order             | four beats from one voice, model order      |
+| Server                | `buildHuddleSystemPrompt` / `parseHuddleScript` | `buildPairSystemPrompt` / `parsePairScript` |
+| Canvas edit mid-scene | re-scripts unspoken remarks                     | holds its script (see below)                |
+| Ends                  | last remark times out, Hard stop, or Escape     | **only** when you end it                    |
+
+A pair is deliberately _not_ "a mob with one seat": every huddle prompt rule breaks at one attendee
+(one beat each, react to the person before you by name, two action prompts across the ring), and
+`parseHuddleScript` keeps only the first line per speaker — which is exactly the wrong contract for
+one person with a train of thought. And the mid-scene refresh is mob-only for a mechanical reason:
+the mob's replacement is the same size as what it replaces (one beat per teammate who has not
+spoken), so `useScenePacing` keeps its place. A single voice's script has no such invariant, and a
+re-script that came back longer or shorter would restart the pacing loop and re-speak lines the user
+already heard. Clicking the seat is how you ask a pair for more.
+
+The rest of this section is the mob unless it says otherwise; everything in it applies to a pair too
+except the roster, the ending, and the copy (pairing has its own register throughout — you thank the
+person next to you, you do not hard-stop them).
+
+**Mob** → the six `CAST_TIERS.team` members snap in from all four
 edges of the canvas and each says one thing about the diagram, one at a time, then everyone goes
 back to their desk. It is the counterpart to a summoned meeting (inbox / Slop Chat / Have a meeting):
 a meeting is either _in the glass room_ or _on headsets_ (picker, roster, optional agenda); a huddle is
@@ -509,9 +615,12 @@ the team roster.
   and never the line. `HuddleOverlay` always hands `useScenePacing` a narrator (a wrapper that
   reports `spoken:false` when voice is off) — otherwise the hook's silent branch reveals every line
   at once, which is right for a card of overheard chat and wrong for a ring of faces.
-- **"Hard stop ✋"**, Escape, or the last remark timing out (`HUDDLE_TAIL_MS`) all end it. A huddle
-  that got as far as speaking (or watched a Do-it) is worth `huddled` XP; one you cut short before
-  anyone spoke is not.
+- **"Hard stop ✋"**, Escape, or the last remark timing out (`HUDDLE_TAIL_MS`) all end a mob. A
+  huddle that got as far as speaking (or watched a Do-it) is worth `huddled` XP; one you cut short
+  before anyone spoke is not. **A pair has no tail**: `useHuddleRingControls` withholds
+  `useScenePacing`'s `onDone`, so the last remark holds and the chair stays until you press
+  "Thanks — I've got it" (or Escape). Somebody who pulled up a chair does not evaporate because
+  they finished a sentence.
 - **Replaces the advisor bubble while it runs.** Ambient advising is retired entirely; `huddleActive`
   still feeds `useAdvisorPause` so nothing talks over the six you called. An active huddle also
   counts in `hasActiveOfficeSurface()`, so the ambience director and desk verbs back off.
@@ -522,8 +631,9 @@ the team roster.
   your desk (`FloorHuddle` + `FloorHuddleCard`) via shared `useHuddleRingControls`. Starting a
   huddle while standing no longer forces sit-down.
 
-Code: `apps/server/src/routes/office.js` (`createHuddleHandler`), `officePersonas.js`
-(`buildHuddleSystemPrompt` / `buildHuddleUserPrompt` / `parseHuddleScript`),
+Code: `apps/server/src/routes/office.js` (`createHuddleHandler`, `planHuddleTurn`,
+`huddleAttendeesForMode`), `officePersonas.js` (`buildHuddleSystemPrompt` / `buildHuddleUserPrompt` /
+`parseHuddleScript`, and `buildPairSystemPrompt` / `parsePairScript`),
 `apps/web/src/hooks/useHuddlePlayback.js`, `apps/web/src/components/HuddleOverlay.jsx`,
 huddle slice in `apps/web/src/state/officeMomentStore.js`.
 

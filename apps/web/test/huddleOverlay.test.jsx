@@ -21,9 +21,17 @@ const BEATS = [
   { speakerId: 'erlich', text: 'What if Auth were a platform?' }
 ];
 
+/** One voice, several beats — the shape only a pair script has. */
+const PAIR_BEATS = [
+  { speakerId: 'gilfoyle', text: 'The Auth box is doing two jobs.' },
+  { speakerId: 'gilfoyle', text: 'The second one is authorization.' },
+  { speakerId: 'gilfoyle', text: 'Which is why Billing reads it.', actionPrompt: 'Split Auth' }
+];
+
 function huddle(overrides = {}) {
   return {
     id: 'huddle-1',
+    mode: 'mob',
     attendees: ATTENDEES,
     beats: BEATS,
     suggestions: {},
@@ -266,6 +274,65 @@ describe('HuddleOverlay', () => {
       await vi.advanceTimersByTimeAsync(HUDDLE_TAIL_MS + 20);
     });
     expect(onHardStop).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('HuddleOverlay in pair mode', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    setOfficeCaptions(false);
+  });
+
+  afterEach(() => {
+    cleanup();
+    vi.useRealTimers();
+    setOfficeCaptions(false);
+  });
+
+  function pair(overrides = {}) {
+    return huddle({
+      mode: 'pair',
+      attendees: ['gilfoyle'],
+      beats: PAIR_BEATS,
+      ...overrides
+    });
+  }
+
+  it('seats one chair and walks that one voice through its own remarks', async () => {
+    const { container } = render(<HuddleOverlay huddle={pair()} />);
+    expect(container.querySelectorAll('.office-huddle-seat')).toHaveLength(1);
+    expect(screen.getByText(PAIR_BEATS[0].text)).toBeTruthy();
+    await advanceOneLine();
+    expect(screen.getByText(PAIR_BEATS[1].text)).toBeTruthy();
+  });
+
+  // The defining difference. A mob dissolves on the tail timer; somebody who
+  // pulled up a chair does not evaporate because they finished a sentence.
+  it('stays put after the last remark instead of wrapping itself up', async () => {
+    const onHardStop = vi.fn();
+    const { container } = render(<HuddleOverlay huddle={pair()} onHardStop={onHardStop} />);
+    await advanceOneLine();
+    await advanceOneLine();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(HUDDLE_TAIL_MS * 4);
+    });
+    expect(onHardStop).not.toHaveBeenCalled();
+    expect(container.querySelector('[data-testid="office-huddle"][data-mode="pair"]')).toBeTruthy();
+  });
+
+  it('still ends explicitly, and the way out does not sound like a meeting', () => {
+    const onHardStop = vi.fn();
+    render(<HuddleOverlay huddle={pair()} onHardStop={onHardStop} />);
+    const end = screen.getByTestId('office-huddle-end');
+    expect(end.textContent).not.toMatch(/Hard stop/);
+    fireEvent.click(end);
+    expect(onHardStop).toHaveBeenCalledTimes(1);
+  });
+
+  it('names the person in the chair while they are still arriving', () => {
+    render(<HuddleOverlay huddle={pair({ beats: [], phase: 'gathering' })} />);
+    expect(screen.getByRole('status').textContent).toMatch(/Gilfoyle/);
+    expect(screen.queryByText('Everyone is wandering over…')).toBeNull();
   });
 
   it('renders nothing when there is no huddle', () => {

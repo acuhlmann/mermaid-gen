@@ -735,6 +735,8 @@ export const OFFICE_EN_AU = {
     desk: {
       hrProgress: 'Check me HR progression',
       hrProgressTitle: 'People Ops scorecard — levels, XP, and whatever Linda reckons of ya',
+      pairAction: 'Pair up',
+      pairActionTitle: 'They pull up a chair and stay til ya send em packin',
       outbox: 'Take it to the mailroom',
       codeDrawer: 'Spaghetti',
       codeDrawerShort: 'Spaghetti',
@@ -1041,7 +1043,9 @@ export const OFFICE_EN_AU = {
       },
       huddle: {
         eyebrow: 'TEAM HUDDLE',
-        heading: 'Ya team, around ya desk'
+        heading: 'Ya team, around ya desk',
+        pairEyebrow: 'PAIRING',
+        pairHeading: '{name}, in the chair next to ya'
       },
       zones: {
         reception: 'Reception',
@@ -1052,9 +1056,31 @@ export const OFFICE_EN_AU = {
         hrCorner: 'People Ops'
       }
     },
+    talk: {
+      kindLabel: 'At your desk',
+      placeholder: 'Sing out…',
+      placeholderNamed: 'Have a word with {name}…',
+      aria: 'Sing out — whoever is across from you answers',
+      ariaNamed: 'Have a word with {name}',
+      roomTitle: 'To the room — whoever is across from you picks it up',
+      send: 'Sing out',
+      sendTitle: 'Sing out. Nobody touches the canvas',
+      sending: '…',
+      pending: 'Somebody looks up…',
+      pendingNamed: '{name} looks up…',
+      dismissAria: 'Back to it',
+      adopt: 'Do it',
+      openThread: 'Open the thread',
+      clearTargetTitle: 'Sing it out to the room instead',
+      clearTargetAria: 'Stop having a word with {name}'
+    },
     osTray: {
       aria: 'Open workstation windows',
-      brand: 'ArchiSlop OS'
+      taskbarAria: 'Workstation taskbar',
+      trayAria: 'Status tray',
+      brand: 'ArchiSlop OS',
+      tidy: 'Chuck it back',
+      tidyTitle: 'Shove every window back where it opened'
     }
   }
 };

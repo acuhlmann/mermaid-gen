@@ -169,6 +169,17 @@ Production deploy notes (Cloud Run, billing credits, GitHub Actions CI, optional
   `captions` — read those three, never `headphones`, from a consumer. Focus is also the advisor
   roundtable's mute; don't reintroduce a second one. See
   [`docs/office-parody.md`](docs/office-parody.md) § Desk verbs.
+- **The parody-OS frame is height-budgeted by one token.** `--desk-taskbar-h` (`App.css` `:root`)
+  is what `.bottom-chrome` stacks on at _every_ breakpoint, and `.desk-os-taskbar` uses a fixed
+  `height` + `box-sizing: border-box` so a tall child clips instead of silently shoving the
+  composer band under the bar. Adding a resident to the taskbar means checking the token, not
+  just the flexbox. `test/deskOsFrameStyles.test.js` pins both facts; jsdom has no layout engine,
+  so real geometry needs a headless browser (the scoped verify skill under
+  `apps/web/.claude/skills/verify/` has the recipe).
+- **Which verb goes where is frequency, not category.** Most-runs verbs stay on the bottom
+  composer band; few-times-a-session verbs go to the menu bar (`DeskOsMenuBar`), persistent status
+  goes to the taskbar tray (`DeskOsTaskbar`). Don't add a sixth command surface. See
+  [`docs/office-isometric-mode.md`](docs/office-isometric-mode.md) §4b.
 
 ## Cursor Cloud specific instructions
 

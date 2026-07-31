@@ -3,7 +3,7 @@ import { formatLocale } from '../i18n/formatLocale.js';
 /**
  * Compact empty-state explainer — greets newcomers after the office voice intro.
  * The stepped desk tour then reveals the real bottom chrome (Work order, Your desk,
- * Your Team, Desk tray) instead of a duplicate format strip.
+ * Your Team, Notebook) instead of a duplicate format strip.
  */
 export default function EntryDeskIntro({ copy, userName, role }) {
   if (!copy) return null;

@@ -5,13 +5,8 @@ import DeskActionsDock from '../src/components/DeskActionsDock.jsx';
 
 function open(props = {}) {
   const handlers = {
-    onStandUp: vi.fn(),
-    onSitDown: vi.fn(),
     onCheckInbox: vi.fn(),
     onOpenSlopChat: vi.fn(),
-    onCheckHrProgression: vi.fn(),
-    onInviteAgent: vi.fn(),
-    canOpenOutbox: true,
     onToggleFocusTime: vi.fn(),
     onToggleHeadphones: vi.fn(),
     ...props
@@ -25,49 +20,15 @@ describe('DeskActionsDock', () => {
   afterEach(() => cleanup());
 
   it('opens the desk menu on first render when initialOpen is set', () => {
-    render(
-      <DeskActionsDock
-        initialOpen
-        onStandUp={vi.fn()}
-        onCheckInbox={vi.fn()}
-        onOpenSlopChat={vi.fn()}
-        onCheckHrProgression={vi.fn()}
-        onInviteAgent={vi.fn()}
-      />
-    );
+    render(<DeskActionsDock initialOpen onCheckInbox={vi.fn()} onOpenSlopChat={vi.fn()} />);
     expect(screen.getByRole('menu')).toBeTruthy();
     expect(screen.queryByText('Get up')).toBeNull();
   });
 
   it('shows the ArchiSlop mark on the desk stamp', () => {
-    render(
-      <DeskActionsDock
-        onStandUp={vi.fn()}
-        onCheckInbox={vi.fn()}
-        onOpenSlopChat={vi.fn()}
-        onCheckHrProgression={vi.fn()}
-        onInviteAgent={vi.fn()}
-      />
-    );
+    render(<DeskActionsDock onCheckInbox={vi.fn()} onOpenSlopChat={vi.fn()} />);
     const trigger = screen.getByTestId('bottom-brand-mark');
     expect(trigger.querySelector('.brand-helmet-svg')).toBeTruthy();
-  });
-
-  it('exposes Stand up as a primary bottom-nav control, not a menu item', () => {
-    const handlers = open({ placement: 'bottom' });
-    const standUp = screen.getByTestId('desk-standup-button');
-    expect(standUp).toBeTruthy();
-    expect(screen.queryByRole('menuitem', { name: /Stand up and look around/ })).toBeNull();
-    expect(screen.queryByRole('menuitem', { name: /Walk the floor/ })).toBeNull();
-    fireEvent.click(standUp);
-    expect(handlers.onStandUp).toHaveBeenCalledTimes(1);
-  });
-
-  it('toggles sit-down on the primary control while standing', () => {
-    const handlers = open({ placement: 'bottom', standing: true });
-    fireEvent.click(screen.getByTestId('desk-standup-button'));
-    expect(handlers.onSitDown).toHaveBeenCalledTimes(1);
-    expect(handlers.onStandUp).not.toHaveBeenCalled();
   });
 
   it('shows an unread badge on the desk button and inbox verb', () => {
@@ -76,42 +37,37 @@ describe('DeskActionsDock', () => {
     expect(screen.getByRole('menuitem', { name: /Check your mail/ }).textContent).toContain('3');
   });
 
-  it('lists desk verbs with concentration above compact ambience toggles', () => {
-    open({
-      modelProfile: 'fast',
-      onSelectModelProfile: vi.fn(),
-      focusTime: false,
-      soundscape: true,
-      captions: false,
-      narration: true
-    });
+  // Slice 2: the desk menu is now *only* the three ways the office reaches you,
+  // plus the two ambience postures. Stand up moved to the taskbar's leading
+  // corner; the mailroom, contractor, HR and language moved to the menu bar;
+  // Concentration moved to the taskbar tray.
+  it('lists only office verbs — everything relocated in slice 2 is gone', () => {
+    open({ focusTime: false, headphones: false });
     const items = screen.getAllByRole('menuitem').map((el) => el.textContent);
-    expect(items.join('\n')).not.toMatch(/Meet the Office/);
-    expect(screen.queryByText('Get up')).toBeNull();
-    expect(screen.queryByText('Under the desk')).toBeNull();
     expect(items[0]).toMatch(/Check your mail/);
-    expect(screen.queryByRole('menuitem', { name: /Open your notebook/ })).toBeNull();
-    expect(screen.queryByRole('menuitem', { name: /Talk to your team/ })).toBeNull();
-    expect(screen.queryByRole('menuitem', { name: /Call a meeting/ })).toBeNull();
-    expect(screen.queryByRole('menuitem', { name: /Get a coffee/ })).toBeNull();
-    expect(screen.getByRole('menuitem', { name: /Take it to the mailroom/ })).toBeTruthy();
-    for (const label of ['Open Slop Chat', 'Onboard a contractor', 'Check my HR progression']) {
+    for (const label of ['Open Slop Chat', 'Have a meeting']) {
       expect(screen.getByRole('menuitem', { name: new RegExp(label) })).toBeTruthy();
     }
-    expect(screen.queryByRole('menuitem', { name: /Walk the floor/ })).toBeNull();
-    expect(screen.queryByRole('menuitem', { name: /Stand up/ })).toBeNull();
-    expect(screen.queryByRole('menuitem', { name: /Open code drawer/ })).toBeNull();
-    expect(screen.queryByRole('menuitem', { name: /Message someone/ })).toBeNull();
-    expect(screen.queryByRole('menuitem', { name: /Adjust your workstation/ })).toBeNull();
-    const concentration = screen.getByTestId('concentration-control');
-    expect(concentration.className).toContain('concentration-control--menu');
-    expect(screen.getByText('Concentration')).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Rush job' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Deep work' })).toBeTruthy();
+    for (const gone of [
+      /Take it to the mailroom/,
+      /Onboard a contractor/,
+      /Check my HR progression/,
+      /Stand up/,
+      /Walk the floor/,
+      /Open your notebook/,
+      /Get a coffee/
+    ]) {
+      expect(screen.queryByRole('menuitem', { name: gone })).toBeNull();
+    }
+    expect(screen.queryByTestId('desk-standup-button')).toBeNull();
+    expect(screen.queryByTestId('desk-actions-outbox')).toBeNull();
+    expect(screen.queryByTestId('concentration-control')).toBeNull();
+    expect(screen.queryByTestId('desk-language-pack')).toBeNull();
+  });
+
+  it('keeps the two ambience postures in the menu footer', () => {
+    open({ focusTime: false, headphones: false });
     const ambience = screen.getByTestId('desk-ambience-pack');
-    expect(ambience.compareDocumentPosition(concentration) & Node.DOCUMENT_POSITION_PRECEDING).toBe(
-      Node.DOCUMENT_POSITION_PRECEDING
-    );
     // Two postures replaced the old four checkboxes (Focus / Noise / Voice / CC):
     // Headphones is how the office reaches you, Focus is whether it does.
     expect(screen.getByTestId('desk-ambience-headphones').textContent).toContain('Headphones');
@@ -120,10 +76,6 @@ describe('DeskActionsDock', () => {
     expect(ambience.textContent).not.toContain('Noise');
     expect(ambience.textContent).not.toContain('Voice');
     expect(ambience.textContent).not.toContain('CC');
-    expect(screen.getByTestId('desk-language-pack')).toBeTruthy();
-    expect(screen.getByText('Language pack')).toBeTruthy();
-    expect(screen.getByRole('radiogroup', { name: /language/i })).toBeTruthy();
-    expect(screen.getByRole('radio', { name: /English/i })).toBeTruthy();
   });
 
   it('toggles Headphones and Focus from the desk menu footer', () => {
@@ -139,27 +91,6 @@ describe('DeskActionsDock', () => {
     expect(screen.getByTestId('desk-ambience-headphones').querySelector('input').checked).toBe(
       true
     );
-  });
-
-  it('runs contractor verb and closes the menu', () => {
-    const handlers = open();
-    fireEvent.click(screen.getByRole('menuitem', { name: /Onboard a contractor/ }));
-    expect(handlers.onInviteAgent).toHaveBeenCalledTimes(1);
-    expect(screen.queryByRole('menu')).toBeNull();
-  });
-
-  it('expands mailroom share/export inline in the desk menu', () => {
-    open({
-      canOpenOutbox: true,
-      contentType: 'mermaid',
-      diagramSource: 'flowchart TD\n  A-->B'
-    });
-    const outbox = screen.getByRole('menuitem', { name: /Take it to the mailroom/ });
-    expect(outbox.getAttribute('aria-expanded')).toBe('false');
-    fireEvent.click(outbox);
-    expect(outbox.getAttribute('aria-expanded')).toBe('true');
-    expect(screen.getByRole('region', { name: /Mailroom/i })).toBeTruthy();
-    expect(screen.getByRole('button', { name: /Export/i })).toBeTruthy();
   });
 
   it('shows an unread badge on Slop Chat when IMs are waiting', () => {
@@ -186,25 +117,9 @@ describe('DeskActionsDock', () => {
     expect(screen.getByRole('menuitem', { name: /Have a meeting/ }).disabled).toBe(true);
   });
 
-  it('runs HR progression and closes the menu', () => {
-    const handlers = open();
-    fireEvent.click(screen.getByRole('menuitem', { name: /Check my HR progression/ }));
-    expect(handlers.onCheckHrProgression).toHaveBeenCalledTimes(1);
-    expect(screen.queryByRole('menu')).toBeNull();
-  });
-
-  it('never disables inbox, contractor, or HR while blocked', () => {
+  it('never disables inbox while blocked', () => {
     open({ blockedReason: 'meeting' });
     expect(screen.getByRole('menuitem', { name: /Check your mail/ }).disabled).toBe(false);
-    expect(screen.getByRole('menuitem', { name: /Onboard a contractor/ }).disabled).toBe(false);
-    expect(screen.getByRole('menuitem', { name: /Check my HR progression/ }).disabled).toBe(false);
-  });
-
-  it('blocks mailroom when there is nothing to ship', () => {
-    open({ canOpenOutbox: false });
-    const outbox = screen.getByRole('menuitem', { name: /Take it to the mailroom/ });
-    expect(outbox.disabled).toBe(true);
-    expect(outbox.getAttribute('title')).toMatch(/Nothing to ship/i);
   });
 
   it('shows vendor attribution links at the bottom of the desk menu', () => {
@@ -220,10 +135,6 @@ describe('DeskActionsDock', () => {
     );
     expect(screen.getByRole('link', { name: 'Mermaid' }).getAttribute('href')).toContain(
       'mermaid.js.org'
-    );
-    const languagePack = screen.getByTestId('desk-language-pack');
-    expect(strip.compareDocumentPosition(languagePack) & Node.DOCUMENT_POSITION_PRECEDING).toBe(
-      Node.DOCUMENT_POSITION_PRECEDING
     );
   });
 });

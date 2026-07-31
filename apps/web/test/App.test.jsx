@@ -111,14 +111,18 @@ vi.mock('../src/state/diagramStore.js', async (importOriginal) => {
 });
 
 // Both engineer seats render the same action label ("Refine"), so the row is
-// addressed by persona name rather than by accessible button name.
+// addressed by persona name rather than by accessible button name. Since slice 3
+// a roster row is a *group* of two gestures — the name/face addresses (lane 2),
+// the chip delegates — so this returns the delegate chip specifically.
 async function waitForControlsReady(personaName = 'Bertram Gilfoyle') {
-  let row;
+  let chip;
   await waitFor(() => {
-    row = screen.getByText(personaName).closest('button');
-    expect(row?.disabled).toBe(false);
+    const group = screen.getByText(personaName).closest('.stakeholders-roster-row');
+    chip = group?.querySelector('[data-testid^="stakeholders-delegate-"]');
+    expect(chip).toBeTruthy();
+    expect(chip.disabled).toBe(false);
   });
-  return row;
+  return chip;
 }
 
 async function clickRefine() {
@@ -126,11 +130,12 @@ async function clickRefine() {
   fireEvent.click(row);
 }
 
-// Deliverable format now lives inside the Desk tray, alongside Facilities and
-// Shredder — the secondaries no longer sit out on the desk.
-function openDeskDrawer() {
-  if (screen.queryByRole('menu', { name: /desk tray/i })) return;
-  fireEvent.click(screen.getByRole('button', { name: /desk tray/i }));
+// Slice 2: Deliverable format and Shredder moved off the desk row into the
+// parody-OS menu bar (`DeskOsMenuBar`).
+function openDeliverableMenu() {
+  const trigger = screen.getByTestId('desk-os-menu-trigger-deliverable');
+  if (trigger.getAttribute('aria-expanded') === 'true') return;
+  fireEvent.click(trigger);
 }
 
 function escapeRegExp(value) {
@@ -138,7 +143,7 @@ function escapeRegExp(value) {
 }
 
 function pickContentMode(modeLabel) {
-  openDeskDrawer();
+  openDeliverableMenu();
   // Menu rows show the human label plus a tech subtitle (e.g. "Diagram" + "Mermaid").
   fireEvent.click(
     screen.getByRole('menuitem', {
@@ -435,7 +440,7 @@ describe('App simplified controls', { timeout: 20_000 }, () => {
     await screen.findByLabelText(/Work order/i);
     await waitFor(() => {
       expect(document.documentElement.getAttribute('data-archislop-app-ready')).toBe('true');
-      expect(screen.getByRole('button', { name: /desk tray/i })).toBeTruthy();
+      expect(screen.getByTestId('desk-os-menubar')).toBeTruthy();
     });
     const input = screen.getByLabelText(/Work order/i);
     fireEvent.change(input, { target: { value: 'Add a payment step' } });
@@ -477,7 +482,7 @@ describe('App simplified controls', { timeout: 20_000 }, () => {
       () => {
         expect(screen.getByLabelText(/Work order/i)).toBeTruthy();
         expect(screen.getByTestId('bottom-brand-mark')).toBeTruthy();
-        expect(screen.getByRole('button', { name: /desk tray/i })).toBeTruthy();
+        expect(screen.getByTestId('desk-os-menubar')).toBeTruthy();
       },
       { timeout: 6_000 }
     );
@@ -534,20 +539,25 @@ describe('App simplified controls', { timeout: 20_000 }, () => {
     render(<App />);
     await waitForControlsReady('Jared Dunn');
 
-    const critiqueButton = await screen.findByRole('button', { name: /Delegate to .* Critique/i });
+    const critiqueButton = await screen.findByRole('menuitem', {
+      name: /Delegate to .* Critique/i
+    });
     fireEvent.click(critiqueButton);
 
-    // Desk tray Facilities is shown once critique text exists but stays disabled until
-    // actionable bullets are parsed and the agent is idle — clicking early is a no-op.
+    // Fix left the desk chrome with the Desk tray; the Notebook checklist is its
+    // home until slice 3 re-homes it beside Jared, whose critique it acts on.
+    // It appears once critique text exists but stays disabled until actionable
+    // bullets are parsed and the agent is idle.
     await screen.findByRole('checkbox', {
       name: /Use clearer labels and simplify branching/i
     });
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /Delegate to .* Critique/i }).disabled).toBe(false);
+      expect(screen.getByRole('menuitem', { name: /Delegate to .* Critique/i }).disabled).toBe(
+        false
+      );
     });
 
-    openDeskDrawer();
-    const fixButton = await screen.findByRole('menuitem', { name: 'Facilities' });
+    const fixButton = await screen.findByRole('button', { name: 'Fix all' });
     await waitFor(() => expect(fixButton.disabled).toBe(false));
     fireEvent.click(fixButton);
 
@@ -564,9 +574,8 @@ describe('App simplified controls', { timeout: 20_000 }, () => {
         ),
       { timeout: 25_000 }
     );
-    // Reopen the tray: with the critique consumed, Facilities no longer appears.
-    openDeskDrawer();
-    await waitFor(() => expect(screen.queryByRole('menuitem', { name: 'Facilities' })).toBeNull());
+    // With the critique consumed, the checklist's Fix affordance goes away.
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Fix all' })).toBeNull());
   }, 30_000);
 
   it('Fix selected sends only checked actionable improvements', async () => {
@@ -595,7 +604,7 @@ describe('App simplified controls', { timeout: 20_000 }, () => {
 
     render(<App />);
     await waitForControlsReady('Jared Dunn');
-    fireEvent.click(await screen.findByRole('button', { name: /Delegate to .* Critique/i }));
+    fireEvent.click(await screen.findByRole('menuitem', { name: /Delegate to .* Critique/i }));
 
     const keepBox = await screen.findByRole('checkbox', { name: /Keep this change/i });
     fireEvent.click(keepBox);
@@ -630,7 +639,7 @@ describe('App simplified controls', { timeout: 20_000 }, () => {
 
     render(<App />);
     await waitForControlsReady('Jared Dunn');
-    fireEvent.click(await screen.findByRole('button', { name: /Delegate to .* Critique/i }));
+    fireEvent.click(await screen.findByRole('menuitem', { name: /Delegate to .* Critique/i }));
 
     const keepBox = await screen.findByRole('checkbox', { name: /Alpha/i });
     expect(keepBox).toBeTruthy();
@@ -650,7 +659,7 @@ describe('App simplified controls', { timeout: 20_000 }, () => {
 
     await screen.findByLabelText(/Work order/i);
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /desk tray/i })).toBeTruthy();
+      expect(screen.getByTestId('desk-os-menubar')).toBeTruthy();
     });
     fireEvent.change(screen.getByLabelText(/Work order/i), {
       target: { value: 'Tighten wording' }
@@ -667,8 +676,8 @@ describe('App simplified controls', { timeout: 20_000 }, () => {
     window.localStorage.setItem('archislop:entry-desk-intro-seen', '1');
     render(<App />);
     await waitForControlsReady();
-    // Shredder lives inside the Desk tray now.
-    openDeskDrawer();
+    // Shredder lives on the menu bar's Deliverable menu now.
+    openDeliverableMenu();
     const clearButton = await screen.findByRole('menuitem', { name: 'Shredder' });
     fireEvent.click(clearButton);
 
@@ -751,7 +760,7 @@ describe('App simplified controls', { timeout: 20_000 }, () => {
 
     await screen.findByLabelText(/Work order/i);
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /desk tray/i })).toBeTruthy();
+      expect(screen.getByTestId('desk-os-menubar')).toBeTruthy();
     });
     fireEvent.change(screen.getByLabelText(/Work order/i), {
       target: { value: 'Long request' }
@@ -1161,9 +1170,9 @@ describe('App simplified controls', { timeout: 20_000 }, () => {
     });
     render(<App />);
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /desk tray/i })).toBeTruthy();
+      expect(screen.getByTestId('desk-os-menubar')).toBeTruthy();
     });
-    openDeskDrawer();
+    openDeliverableMenu();
     expect(screen.getByRole('menuitem', { name: /^Auto/i }).getAttribute('aria-current')).toBe(
       'true'
     );

@@ -83,7 +83,7 @@ Run: `npm run check:fast` when only shared changed; `npm run check` otherwise.
 | Mode labels       | [`apps/web/src/i18n/locales/controls.en.js`](../apps/web/src/i18n/locales/controls.en.js) `contentModes`                                                                 |
 | Option builder    | [`apps/web/src/utils/renderModeAction.js`](../apps/web/src/utils/renderModeAction.js)                                                                                    |
 | Empty-state chips | [`apps/web/src/components/EntryRenderAs.jsx`](../apps/web/src/components/EntryRenderAs.jsx)                                                                              |
-| Desk tray menu    | [`apps/web/src/components/DeskDrawer.jsx`](../apps/web/src/components/DeskDrawer.jsx)                                                                                    |
+| Deliverable menu  | [`apps/web/src/components/DeskOsMenuBar.jsx`](../apps/web/src/components/DeskOsMenuBar.jsx)                                                                              |
 | Radial picker     | [`apps/web/src/components/RadialActionMenu.jsx`](../apps/web/src/components/RadialActionMenu.jsx)                                                                        |
 | Integration       | [`apps/web/test/App.test.jsx`](../apps/web/test/App.test.jsx) (`pickContentMode` helper — menu rows expose label + tech subtitle)                                        |
 | Unit              | [`apps/web/test/entryRenderAs.test.jsx`](../apps/web/test/entryRenderAs.test.jsx), [`apps/web/test/renderModeAction.test.js`](../apps/web/test/renderModeAction.test.js) |

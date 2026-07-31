@@ -63,6 +63,13 @@ export function useHuddleRingControls({
   const speaking = huddle?.phase === 'speaking';
   const watching = huddle?.phase === 'watching';
   const pacingActive = (speaking || watching) && beats.length > 0;
+  /**
+   * The one behavioural difference between the two modes, and the whole reason
+   * pairing is a mode rather than a roster: a mob dissolves when the last
+   * remark lands, a pair does not. Somebody who pulled up a chair does not
+   * evaporate because they finished a sentence — you end it, or nobody does.
+   */
+  const pairing = huddle?.mode === 'pair';
 
   const [pinnedSpeakerId, setPinnedSpeakerId] = useState(/** @type {string | null} */ (null));
   const [fetchingSpeakerId, setFetchingSpeakerId] = useState(/** @type {string | null} */ (null));
@@ -103,7 +110,7 @@ export function useHuddleRingControls({
     silentDurationMs: HUDDLE_LINE_PACE_MS * Math.max(beats.length, 1),
     tailMs: HUDDLE_TAIL_MS,
     sceneId: huddle?.id ?? null,
-    onDone: onHardStop
+    onDone: pairing ? undefined : onHardStop
   });
 
   useEffect(() => {
@@ -214,6 +221,7 @@ export function useHuddleRingControls({
   return {
     speaking,
     watching,
+    pairing,
     pinnedSpeakerId,
     fetchingSpeakerId,
     repeatingSpeakerId,

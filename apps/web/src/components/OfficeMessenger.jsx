@@ -47,7 +47,7 @@ function MessengerThreadList({ threads, activeId, label, unreadLabel, onSelect }
   );
 }
 
-function MessengerLog({ thread, chat, busy, typingName, scrollRef }) {
+function MessengerLog({ thread, chat, doItLabel, busy, typingName, scrollRef, onAdoptPrompt }) {
   return (
     <div className="office-messenger-log" ref={scrollRef}>
       {thread ? (
@@ -66,6 +66,23 @@ function MessengerLog({ thread, chat, busy, typingName, scrollRef }) {
                   {msg.outbound ? chat.you : sender.name}
                 </span>
                 <p className="office-messenger-msg-body">{msg.body}</p>
+                {/*
+                 * The pitch survives the card it arrived on. A talk-channel
+                 * answer speaks once at your desk and a desk arrival expires in
+                 * nine seconds; the thread is the surface that keeps things, so
+                 * it is also where a suggestion you walked away from is still
+                 * takeable. Inbound only — you do not adopt your own line.
+                 */}
+                {!msg.outbound && msg.actionPrompt && typeof onAdoptPrompt === 'function' ? (
+                  <button
+                    type="button"
+                    className="office-do-it office-messenger-adopt"
+                    data-testid="messenger-adopt"
+                    onClick={() => onAdoptPrompt(msg.actionPrompt, msg.colleagueId)}
+                  >
+                    {doItLabel}
+                  </button>
+                ) : null}
               </div>
             </div>
           );
@@ -152,6 +169,11 @@ function MessengerComposer({ chat, disabled, busy, targetName, onSend }) {
  * Non-modal by design (same reasoning as the docked meeting): you read chat
  * *while* working, so this never blocks the canvas. Pure props — OfficeLayer
  * owns the store subscription and the send plumbing.
+ *
+ * Because it keeps everything, it is also where a pitch outlives the moment it
+ * was made in: an inbound line carrying an `actionPrompt` renders the same
+ * shared "Do it" the inbox and walk-bys use. ADR-0010 — the button is the only
+ * way a remark ever becomes a run, and the user is the one pressing it.
  */
 export default function OfficeMessenger({
   open,
@@ -162,6 +184,7 @@ export default function OfficeMessenger({
   onMessageSomeone,
   onStartThread,
   onCallMeeting,
+  onAdoptPrompt,
   canCallMeeting = false,
   busy = false,
   initialColleagueId = null
@@ -224,6 +247,7 @@ export default function OfficeMessenger({
       group="officeModal"
       className={`office-messenger${minimized ? ' is-minimized' : ''}`}
       kind="messenger"
+      title={chat.title}
       senderId={activeId}
       defaultCorner="center"
       defaultOffsetX={0}
@@ -347,9 +371,11 @@ export default function OfficeMessenger({
                 <MessengerLog
                   thread={active}
                   chat={chat}
+                  doItLabel={chrome.doIt}
                   busy={busy}
                   typingName={activeName}
                   scrollRef={scrollRef}
+                  onAdoptPrompt={onAdoptPrompt}
                 />
                 <MessengerComposer
                   chat={chat}

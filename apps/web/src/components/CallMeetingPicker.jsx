@@ -77,6 +77,9 @@ export default function CallMeetingPicker({
   // Deliberately not called a huddle: that word means the desk verb that pulls
   // your whole team over your monitor, with no picker and no room.
   const isQuickSync = selectedCount <= 2;
+  // Names the window in its own header and in the OS task strip, so the two
+  // can never drift apart.
+  const windowTitle = isQuickSync ? copy.titleHuddle : copy.title;
   const sourceLine =
     source === 'email' ? copy.sourceEmail : source === 'chat' ? copy.sourceChat : copy.sourceDesk;
   const startLabel = isQuickSync
@@ -127,6 +130,7 @@ export default function CallMeetingPicker({
       group="officeModal"
       className="office-meeting-picker"
       kind="meeting-picker"
+      title={windowTitle}
       defaultCorner="center"
       defaultOffsetX={0}
       defaultOffsetY={0}
@@ -141,9 +145,7 @@ export default function CallMeetingPicker({
           title={copy.dragHint ?? 'Drag to move'}
         >
           <div>
-            <div className="office-meeting-picker-title">
-              {isQuickSync ? copy.titleHuddle : copy.title}
-            </div>
+            <div className="office-meeting-picker-title">{windowTitle}</div>
             <p className="office-meeting-picker-tagline">{copy.tagline}</p>
             <p className="office-meeting-picker-source">{sourceLine}</p>
           </div>

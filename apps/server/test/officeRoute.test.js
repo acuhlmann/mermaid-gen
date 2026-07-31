@@ -172,6 +172,29 @@ test('office huddle rejects a roster below two or above the team tier', async ()
   }
 });
 
+// The seat rule is per-mode, not global: a one-seat mob and a two-seat pair are
+// both nonsense, and neither can be expressed as a single `min` on the schema.
+test('office huddle seat count follows the mode', async () => {
+  const { port, closeServer } = await bootServer();
+  try {
+    const pairOfSeveral = await post(port, 'huddle', {
+      mode: 'pair',
+      attendees: ['gilfoyle', 'dinesh']
+    });
+    assert.equal(pairOfSeveral.status, 400);
+
+    // A lone seat is a walk-by for a mob and the whole act for a pair, so this
+    // one gets past the roster check and fails later, on the missing LLM.
+    const pairOfOne = await post(port, 'huddle', { mode: 'pair', attendees: ['gilfoyle'] });
+    assert.equal(pairOfOne.status, 503);
+
+    const unknownMode = await post(port, 'huddle', { mode: 'swarm', attendees: ['gilfoyle'] });
+    assert.equal(unknownMode.status, 400);
+  } finally {
+    await closeServer();
+  }
+});
+
 test('office huddle rejects speakers who are not in the cast', async () => {
   const { port, closeServer } = await bootServer();
   try {

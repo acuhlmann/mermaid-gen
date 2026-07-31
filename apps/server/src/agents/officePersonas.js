@@ -414,20 +414,26 @@ export function buildMomentSystemPrompt({ kind, colleagueId, uiLocale, isReply =
   const voice = speakerVoice(colleagueId);
   const canvasReplyHint =
     '- When replying, weave in something you notice on their canvas (a visible label or the diagram shape) if it fits your character — not every line needs it, but at least acknowledge what they wrote.';
+  // In a reply the pitch trigger is what the user said, not the dice. Without
+  // this the model reads the base rate below as a quota and buttons every turn.
+  const pitchReplyHint =
+    '- What they said decides whether you pitch: carry an "actionPrompt" when they asked what to change, pushed back on the design, or handed you an obvious opening — omit it when they were just making conversation. A "Do it" button under small talk is noise.';
   const replyRule = isReply
     ? kind === 'email'
       ? `
 EMAIL REPLY MODE (overrides the usual "surprise me" rule):
 - The user just emailed you (subject and/or body below). Your reply must directly address what they wrote.
 - Do NOT send a cold-open broadcast or unrelated office noise.
-${canvasReplyHint}`
+${canvasReplyHint}
+${pitchReplyHint}`
       : kind === 'im'
         ? `
 IM REPLY MODE (overrides the usual "surprise me" rule):
 - The user just sent you a chat message. Your "body" must directly acknowledge what they said —
 answer their question, react to their tone, or continue the thread naturally.
 - Do NOT pivot to a random new topic or send a cold-open ping.
-${canvasReplyHint}`
+${canvasReplyHint}
+${pitchReplyHint}`
         : ''
     : '';
   return `${voice}
@@ -439,9 +445,16 @@ RULES (apply to every reply):
 - Output STRICT JSON only — no prose, no backticks, no preamble.
 - Schema: {"subject": string (only when asked below), "body": string, "actionPrompt": string (optional)}.
 ${MOMENT_BODY_RULES[kind] ?? MOMENT_BODY_RULES.im}
-- "actionPrompt" is OPTIONAL and rare (roughly 1 in 3 moments): a concrete, self-contained diagram
-edit instruction (max 200 chars, imperative, e.g. "Add a rejection branch to Review"). Include it
-only when your moment genuinely proposes a change. Omit the key entirely otherwise.
+- "actionPrompt" is OPTIONAL and uncommon: a concrete, self-contained diagram edit instruction (max
+200 chars, imperative, e.g. "Add a rejection branch to Review"). It renders as a one-click button
+under your line, so it is a PITCH, not a quota — include it when you genuinely have a specific
+change in mind for what is on the canvas right now, and omit the key entirely when you do not. Most
+moments have nothing to pitch, and that is the correct outcome: a button under every line is
+wallpaper and stops meaning anything. A vague pitch is worse than none — never "improve it", "clean
+this up", "consider refactoring". Never pitch on pure office noise (fridge, passwords, trainings),
+and never pitch just to have something to say.
+- Some of the voices above observe, explain, or complain rather than propose. If yours is one of
+them, omit "actionPrompt" — staying in character beats producing a button.
 - ${SUBJECT_RULE}
 - Reference at least one visible label when the moment is about the diagram. Pure office noise
 (fridge, passwords, trainings) may ignore the diagram.
@@ -729,6 +742,60 @@ ${headcountRule}
 - ${SUBJECT_RULE}${buildOfficeLanguageRule(uiLocale)}`;
 }
 
+/**
+ * Pairing: one teammate pulls up a chair and works the diagram *with* you.
+ *
+ * Deliberately not "a huddle with one seat" — the huddle grammar above is
+ * structurally impossible at one attendee (one beat each, react to the person
+ * before you by name, two action prompts across the ring). More to the point it
+ * would be the wrong scene: a mob is N people with one opinion each and it ends;
+ * a pair is one person with a train of thought and it ends when the user says
+ * so. So this asks for several beats from the same voice that MOVE, and the
+ * caller never auto-dismisses the ring.
+ *
+ * There is deliberately no refresh mode here, unlike the huddle. A mob can be
+ * re-scripted mid-scene because the replacement is the same size as what it
+ * replaces (one beat per teammate who has not spoken), so `useScenePacing`
+ * never sees its line count change. A pair has no such invariant — appending or
+ * shortening a single voice's script restarts the pacing loop and re-speaks
+ * lines the user already heard. The seat is clickable if they want to ask again.
+ */
+export function buildPairSystemPrompt({ attendee, uiLocale }) {
+  return `You are writing one side of a PAIRING SESSION in a parody corporate-IT workplace. One
+teammate has pulled up a chair next to the user and is working through the diagram WITH them. They
+are not presenting, not reviewing, and not going anywhere.
+
+THE PERSON IN THE CHAIR (use this speakerId and NO other):
+
+### ${speakerLabel(attendee)} — speakerId "${attendee}"
+${speakerVoice(attendee)}
+
+RULES:
+- Output STRICT JSON only — no prose, no backticks, no preamble.
+- Schema: {"beats": [{"speakerId": string, "text": string, "actionPrompt": string (optional)}]}.
+- EXACTLY 4 beats, all from "${attendee}", in the order they are said. This is one person thinking
+  out loud over a few minutes — not four separate opinions.
+- Each "text" is max 30 words. Pairing is muttering to the person next to you, not a presentation.
+- The beats must MOVE: notice something, follow the thread, arrive somewhere. Restating one
+  observation four ways is the failure mode — each beat has to earn its turn.
+- Talk TO the user as "you". Nobody else is in the chair: never "team", "folks", "everyone", or
+  "the room", and there is nobody to react to by name.
+- Every beat must engage the ACTUAL diagram and reference at least one visible label by name when
+  labels exist.
+- EMPTY CANVAS: when the diagram source is "(empty)" or there are no visible labels, do NOT invent
+  diagram content. Work with the user on getting the first thing down, in your own voice.
+- 1–2 beats carry an "actionPrompt": a self-contained imperative diagram edit, max 200 chars,
+  actionable without any other context. Not every thought is a proposal — see the beats that are.
+- No wrapping up, no "let me know how it goes", no scheduling. They leave when the user ends it,
+  and a goodbye written into the script would end the scene early.
+- ${SUBJECT_RULE}${buildOfficeLanguageRule(uiLocale)}`;
+}
+
+/**
+ * Shared context block for both scene modes — the canvas is the canvas either
+ * way. The refresh note below is mob-only language because only a mob is
+ * re-scripted mid-scene; see `buildPairSystemPrompt` for why a pair is not.
+ */
 export function buildHuddleUserPrompt({
   contentType,
   diagramSource,
@@ -913,6 +980,30 @@ export function parseHuddleScript(raw, { attendees }) {
   }
   // Attendee order, not model order — the seats were drawn before the LLM replied.
   const beats = attendees.map((id) => bySpeaker.get(id)).filter(Boolean);
+  return beats.length > 0 ? { beats } : null;
+}
+
+/** Generous clamp on a pairing script; the prompt asks for exactly 4. */
+const PAIR_MAX_BEATS = 6;
+
+/**
+ * Parse a pairing reply: several remarks from ONE person, in the order said.
+ *
+ * The exact mirror of `parseHuddleScript`'s contract, and for the same reason.
+ * There, a repeated speakerId means the model double-seated a face, so the
+ * first line wins and the rest are dropped, and attendee order beats model
+ * order because the seats were drawn before the LLM answered. Here a repeated
+ * speakerId is the entire point and there are no seats to reconcile against —
+ * model order IS the order they say things in. Both parsers drop anyone who was
+ * not in the room.
+ */
+export function parsePairScript(raw, { attendee }) {
+  const parsed = extractJsonObject(raw);
+  if (!parsed || typeof parsed !== 'object' || !Array.isArray(parsed.beats)) return null;
+  const beats = parsed.beats
+    .map((candidate) => normalizeHuddleBeat(candidate))
+    .filter((beat) => beat && beat.speakerId === attendee)
+    .slice(0, PAIR_MAX_BEATS);
   return beats.length > 0 ? { beats } : null;
 }
 

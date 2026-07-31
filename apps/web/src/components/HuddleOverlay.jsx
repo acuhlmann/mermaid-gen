@@ -28,7 +28,16 @@ const SEAT_SLOTS = [
   { side: 'bottom', pos: '30%' }
 ];
 
-function seatFor(index) {
+/**
+ * A pair does not surround you, they sit beside you. Reusing `SEAT_SLOTS[0]`
+ * (top edge, off-centre) puts the lone face where the first of six would stand,
+ * which reads as a mob nobody turned up to. The right edge at eye level reads
+ * as the chair they pulled over.
+ */
+const PAIR_SLOT = { side: 'right', pos: '46%' };
+
+function seatFor(index, pairing = false) {
+  if (pairing) return PAIR_SLOT;
   return SEAT_SLOTS[index % SEAT_SLOTS.length];
 }
 
@@ -61,6 +70,7 @@ export default function HuddleOverlay({
   const {
     speaking,
     watching,
+    pairing,
     pinnedSpeakerId,
     fetchingSpeakerId,
     repeatingSpeakerId,
@@ -82,20 +92,33 @@ export default function HuddleOverlay({
 
   const delegateSpeakerId = watching ? null : (pinnedSpeakerId ?? activeSpeakerId);
   const delegatePrompt = watching ? null : (pinnedPrompt ?? delegatablePrompt(activeBeat));
+  /*
+   * One overlay, two registers. Everything visual is shared — the same seats,
+   * the same paced bubbles, the same Do-it — so the mode only changes the words
+   * and how you get out. A pair is one attendee by construction, so the name is
+   * always available for the chair-side copy.
+   */
+  const partner = pairing ? officeSenderInfo(huddle.attendees[0]) : null;
+  const endLabel = pairing ? (copy.pairEnd ?? copy.hardStop) : copy.hardStop;
+  const endTitle = pairing
+    ? formatLocale(copy.pairEndTitle ?? copy.hardStopTitle, { name: partner?.name ?? '' })
+    : copy.hardStopTitle;
 
   return (
     <div
       className={[
         'office-huddle-layer',
         'is-anchor-canvas',
+        pairing ? 'is-pairing' : '',
         watching ? 'is-watching' : '',
         pinnedSpeakerId ? 'has-pinned-suggestion' : ''
       ]
         .filter(Boolean)
         .join(' ')}
       role="dialog"
-      aria-label={copy.sceneAria}
+      aria-label={pairing ? (copy.pairSceneAria ?? copy.sceneAria) : copy.sceneAria}
       data-testid="office-huddle"
+      data-mode={huddle.mode ?? 'mob'}
       data-phase={huddle.phase}
     >
       <div
@@ -105,7 +128,7 @@ export default function HuddleOverlay({
         data-testid={pinnedSpeakerId ? 'office-huddle-shade' : undefined}
       />
       {huddle.attendees.map((id, index) => {
-        const slot = seatFor(index);
+        const slot = seatFor(index, pairing);
         const person = officeSenderInfo(id);
         const isSpeaking = activeSpeakerId === id;
         const isPinned = pinnedSpeakerId === id;
@@ -187,12 +210,16 @@ export default function HuddleOverlay({
       <div className="office-huddle-chrome">
         {!speaking && !watching ? (
           <p className="office-huddle-gathering" role="status" aria-live="polite">
-            {copy.gathering}
+            {pairing
+              ? formatLocale(copy.pairGathering ?? copy.gathering, { name: partner?.name ?? '' })
+              : copy.gathering}
           </p>
         ) : null}
         {watching ? (
           <p className="office-huddle-watching" role="status" aria-live="polite">
-            {copy.watching ?? 'The team is watching the notebook…'}
+            {pairing
+              ? formatLocale(copy.pairWatching ?? copy.watching, { name: partner?.name ?? '' })
+              : (copy.watching ?? 'The team is watching the notebook…')}
           </p>
         ) : null}
         {delegatePrompt && delegateSpeakerId ? (
@@ -208,10 +235,11 @@ export default function HuddleOverlay({
         <button
           type="button"
           className="office-huddle-hard-stop"
+          data-testid="office-huddle-end"
           onClick={() => onHardStop?.()}
-          title={copy.hardStopTitle}
+          title={endTitle}
         >
-          <span aria-hidden="true">✋</span> {copy.hardStop}
+          <span aria-hidden="true">{pairing ? '🪑' : '✋'}</span> {endLabel}
         </button>
       </div>
     </div>

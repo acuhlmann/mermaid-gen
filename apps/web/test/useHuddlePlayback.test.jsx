@@ -18,6 +18,15 @@ const SCRIPT = {
   ]
 };
 
+/** A pair is several beats from ONE voice — the shape a mob script cannot take. */
+const PAIR_SCRIPT = {
+  beats: [
+    { speakerId: 'gilfoyle', text: 'Auth is doing two jobs.' },
+    { speakerId: 'gilfoyle', text: 'The second one is authorization.' },
+    { speakerId: 'gilfoyle', text: 'Which is why Billing reads it.', actionPrompt: 'Split Auth' }
+  ]
+};
+
 function params(overrides = {}) {
   return {
     getSessionId: () => 'sess-1',
@@ -156,7 +165,7 @@ describe('useHuddlePlayback', () => {
     });
   });
 
-  it('refuses a huddle of one — that is a walk-by, not a huddle', async () => {
+  it('refuses a mob of one — that is a walk-by, not a huddle', async () => {
     const fetchMock = stubFetch({ script: SCRIPT });
     const { result } = renderHook(() => useHuddlePlayback(params()));
     await act(async () => {
@@ -164,6 +173,60 @@ describe('useHuddlePlayback', () => {
     });
     expect(result.current.huddle).toBeNull();
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  // The seat floor was never "two people"; it was "enough people to script a
+  // scene for". Pairing brings its own script, so it brings its own floor.
+  it('seats a pair of one, and refuses a pair of several', async () => {
+    const fetchMock = stubFetch({ script: PAIR_SCRIPT });
+    const { result } = renderHook(() => useHuddlePlayback(params()));
+    await act(async () => {
+      await result.current.startHuddle(['gilfoyle'], { mode: 'pair' });
+    });
+    expect(result.current.huddle.mode).toBe('pair');
+    expect(result.current.huddle.attendees).toEqual(['gilfoyle']);
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body).mode).toBe('pair');
+
+    endOfficeHuddle();
+    fetchMock.mockClear();
+    await act(async () => {
+      await result.current.startHuddle(TEAM, { mode: 'pair' });
+    });
+    expect(result.current.huddle).toBeNull();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('defaults to a mob so every existing caller keeps mobbing', async () => {
+    const fetchMock = stubFetch({ script: SCRIPT });
+    const { result } = renderHook(() => useHuddlePlayback(params()));
+    await act(async () => {
+      await result.current.startHuddle(TEAM);
+    });
+    expect(result.current.huddle.mode).toBe('mob');
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body).mode).toBe('mob');
+  });
+
+  // A mob is re-scripted mid-scene because the replacement is the same size as
+  // what it replaces. One voice has no such invariant, so a pair holds the
+  // script it sat down with rather than restarting its own pacing.
+  it('never re-scripts a pair when the canvas changes underneath it', async () => {
+    let watchKey = 'mermaid::one';
+    const fetchMock = stubFetch({ script: PAIR_SCRIPT });
+    const { result } = renderHook(() =>
+      useHuddlePlayback(params({ getDiagramWatchKey: () => watchKey }))
+    );
+    await act(async () => {
+      await result.current.startHuddle(['gilfoyle'], { mode: 'pair' });
+    });
+    const callsAfterStart = fetchMock.mock.calls.length;
+
+    watchKey = 'mermaid::two';
+    await act(async () => {
+      setOfficeHuddleActiveLineIndex(getOfficeSnapshot().huddle.id, 0);
+      await new Promise((resolve) => setTimeout(resolve, 1200));
+    });
+    expect(fetchMock.mock.calls.length).toBe(callsAfterStart);
+    expect(result.current.huddle.beats).toEqual(PAIR_SCRIPT.beats);
   });
 
   it('cancels narration when the huddle ends', async () => {

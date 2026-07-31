@@ -11,7 +11,6 @@ import { createPortal } from 'react-dom';
 import CallMeetingPicker from './CallMeetingPicker.jsx';
 import CoffeeBreakOverlay from './CoffeeBreakOverlay.jsx';
 import DeskActionsDock from './DeskActionsDock.jsx';
-import DeskOsTray from './DeskOsTray.jsx';
 import HuddleOverlay from './HuddleOverlay.jsx';
 import MeetingInviteToast from './MeetingInviteToast.jsx';
 import MeetingOverlay from './MeetingOverlay.jsx';
@@ -19,6 +18,7 @@ import OfficeBattleOverlay from './OfficeBattleOverlay.jsx';
 import OfficeFloor from './OfficeFloor.jsx';
 import { createOfficeFloorBridge } from './officeFloor/officeFloorBridge.js';
 import OfficeDeskArrival from './OfficeDeskArrival.jsx';
+import OfficeDeskSpeech from './OfficeDeskSpeech.jsx';
 import OfficeInboxDock from './OfficeInboxDock.jsx';
 import OfficeMessenger from './OfficeMessenger.jsx';
 import OfficeWalkBy from './OfficeWalkBy.jsx';
@@ -84,7 +84,6 @@ import { threadTranscriptFor } from '../utils/officeImThreads.js';
 import { getDeskSlotElement, subscribeDeskSlotElement } from '../state/deskSlotStore.js';
 import {
   getOfficeViewMode,
-  sitDown,
   standUp,
   subscribe as subscribeOfficeViewMode
 } from '../state/officeViewModeStore.js';
@@ -113,26 +112,18 @@ export default function OfficeLayer({
   onAdoptAllPrompts,
   onMeetingMinutes,
   onOfficeEvent,
-  onCheckHrProgression,
-  onToggleEditor,
-  onInviteAgent,
-  onToggleThinking,
-  modelProfile = 'fast',
-  onSelectModelProfile = null,
-  canOpenOutbox = false,
-  contentType = null,
-  diagramSource = '',
-  canToggleThinking = false,
-  canToggleEditor = false,
-  editorOpen = false,
-  thinkingOpen = false,
   playChime,
   /** Bumped by App when an agent run completes, so a colleague can react to it. */
   runSignal = null,
   /** Bumped from Your Team menu to start a WG meeting. */
   callMeetingSignal = 0,
   /** Bumped from Your Team menu to pull the team into a face-to-face huddle. */
-  huddleSignal = 0,
+  huddleSignal = null,
+  /**
+   * Lane 2's outbound line: `{ seq, colleagueId, text }`, or null. `colleagueId`
+   * null means "said out loud" — `talkOutLoud` picks whoever is apt.
+   */
+  talkSignal = null,
   /**
    * True while an agent run / notebook stream is in flight. Used to resume a
    * huddle that paused for a delegated Do-it once the work finishes.
@@ -140,8 +131,6 @@ export default function OfficeLayer({
   agentBusy = false,
   /** When false, #office-desk-bottom-slot is not in the bottom row (empty intro). */
   deskActionsAnchorReady = false,
-  /** Desktop vs mobile bottom row — slot remounts when this flips. */
-  deskActionsLayoutKey = 'desktop',
   /** First-run empty state: reserved for callers that still want the menu open. */
   deskMenuInitialOpen = false
 }) {
@@ -602,21 +591,35 @@ export default function OfficeLayer({
   }, [callMeetingSignal, handleCallMeeting]);
 
   /**
-   * Huddling is your own team crowding your screen, so the roster is the team
+   * Mobbing is your own team crowding your screen, so the roster is the team
    * tier — no picker. Leadership are not peers; grabbing them is what "Have a
-   * meeting" is for.
+   * meeting" is for. Pairing names one of them and seats only them.
+   *
+   * @param {{ mode?: 'mob' | 'pair', colleagueId?: string | null }} [act]
    */
-  const handleStartHuddle = useCallback(() => {
-    if (meeting || getOfficeSnapshot().huddle) return;
-    // Floor renderer #2 rings the desk in place — no forced sit-down.
-    void startHuddle(CAST_TIERS.team);
-  }, [meeting, startHuddle]);
+  const handleStartHuddle = useCallback(
+    (act = {}) => {
+      if (meeting || getOfficeSnapshot().huddle) return;
+      const pairing = act.mode === 'pair';
+      // A pair of nobody is not a pair — bail rather than silently mobbing.
+      if (pairing && !act.colleagueId) return;
+      // Floor renderer #2 rings the desk in place — no forced sit-down.
+      void startHuddle(pairing ? [act.colleagueId] : CAST_TIERS.team, {
+        mode: pairing ? 'pair' : 'mob'
+      });
+    },
+    [meeting, startHuddle]
+  );
 
   const huddleHandledRef = useRef(0);
   useEffect(() => {
-    if (huddleSignal <= 0 || huddleSignal === huddleHandledRef.current) return;
-    huddleHandledRef.current = huddleSignal;
-    handleStartHuddle();
+    const seq = huddleSignal?.seq ?? 0;
+    if (seq <= 0 || seq === huddleHandledRef.current) return;
+    huddleHandledRef.current = seq;
+    handleStartHuddle({
+      mode: huddleSignal.mode ?? 'mob',
+      colleagueId: huddleSignal.colleagueId ?? null
+    });
   }, [huddleSignal, handleStartHuddle]);
 
   // Hard stop, Escape, or the last remark landing — all end the same way. Only
@@ -748,6 +751,42 @@ export default function OfficeLayer({
     onCallMeeting: () => handleCallMeeting({ source: 'desk' })
   });
 
+  /*
+   * The talk channel (slice 3). Everything below the signal is `imSomeone`'s
+   * existing ladder — the only new machinery is a separate budget and a
+   * channel tag, because a conversation on the ambient cap falls back to canned
+   * after three sentences. ADR-0010: nothing here produces slot content.
+   */
+  const [talkPendingFor, setTalkPendingFor] = useState(/** @type {string | null} */ (null));
+  const [talkPending, setTalkPending] = useState(false);
+  const talkHandledRef = useRef(0);
+  useEffect(() => {
+    const seq = talkSignal?.seq ?? 0;
+    if (seq <= 0 || seq === talkHandledRef.current) return;
+    talkHandledRef.current = seq;
+    const text = typeof talkSignal?.text === 'string' ? talkSignal.text : '';
+    if (!text.trim()) return;
+    setTalkPendingFor(talkSignal.colleagueId ?? null);
+    setTalkPending(true);
+    void desk
+      .talkOutLoud(talkSignal.colleagueId ?? null, { userMessage: text })
+      .finally(() => setTalkPending(false));
+  }, [talkSignal, desk]);
+
+  /*
+   * The desk renderer of the talk channel reads the same `imHistory` the floor
+   * and Slop Chat read; `channel: 'talk'` is what tells the three apart. Only
+   * the newest inbound line is spoken — an office is not a transcript.
+   */
+  const latestTalkLine = useMemo(() => {
+    for (let i = snapshot.imHistory.length - 1; i >= 0; i -= 1) {
+      const msg = snapshot.imHistory[i];
+      if (msg?.channel !== 'talk') continue;
+      return msg.outbound ? null : msg;
+    }
+    return null;
+  }, [snapshot.imHistory]);
+
   // Slop Chat™ sending reuses the desk's "IM someone" verb, so a reply comes
   // back through the same LLM/canned ladder as any other IM — and therefore
   // lands in imHistory via pushOfficeImPing with no extra plumbing.
@@ -824,22 +863,12 @@ export default function OfficeLayer({
       placement="bottom"
       unreadCount={snapshot.unreadCount}
       imUnreadCount={snapshot.imUnreadCount}
-      onStandUp={standUp}
-      onSitDown={sitDown}
-      standing={onFloor}
       onCheckInbox={desk.checkInbox}
       onOpenSlopChat={handleOpenMessenger}
       onSummonSync={() => handleCallMeeting({ source: 'desk' })}
       canSummonSync={canCallMeeting}
-      onCheckHrProgression={onCheckHrProgression}
-      onInviteAgent={onInviteAgent}
       blockedReason={desk.blockedReason}
-      canOpenOutbox={canOpenOutbox}
-      contentType={contentType}
-      diagramSource={diagramSource}
       initialOpen={deskMenuInitialOpen}
-      modelProfile={modelProfile}
-      onSelectModelProfile={onSelectModelProfile}
       focusTime={snapshot.focusTime}
       headphones={snapshot.headphones}
       onToggleFocusTime={setOfficeFocusTime}
@@ -922,9 +951,10 @@ export default function OfficeLayer({
   return (
     <div className="office-layer">
       {deskActionsAnchorReady && deskSlot ? createPortal(deskDock, deskSlot) : null}
-      {/* Screen-world OS skin (§4): task strip of open office windows. Floor
-          mode is the physical world — hide the tray while standing. */}
-      <DeskOsTray open={!onFloor} />
+      {/* The screen-world OS skin (§4) — taskbar, window list and menu bar —
+          lives in the shell tree now (`DeskOsTaskbar` / `DeskOsMenuBar`): it
+          reads the office view mode and overlay stack straight off their
+          stores, so it never needed to be inside the office renderer. */}
       {/* Renderer #2 of the same office state (ADR-0011). Renders null at your
           desk; office windows below still float above it when you stand up. */}
       <OfficeFloor bridge={officeFloorBridge} />
@@ -960,6 +990,18 @@ export default function OfficeLayer({
             }}
             onOpenIm={(arrival) => handleOpenImMessage(arrival.colleagueId, arrival.id)}
           />
+          {/* Somebody answering you at your desk. Hidden while you are standing
+              (the floor speaks it over their head instead) or while Slop Chat is
+              open on that thread — one line, one place (ADR-0011). */}
+          {onFloor || messengerOpen ? null : (
+            <OfficeDeskSpeech
+              line={latestTalkLine}
+              pending={talkPending}
+              pendingColleagueId={talkPendingFor}
+              onAdoptPrompt={handleAdopt}
+              onOpenThread={(colleagueId) => handleOpenImMessage(colleagueId, null)}
+            />
+          )}
           <OfficeMessenger
             open={messengerOpen}
             messages={snapshot.imHistory}
@@ -971,6 +1013,7 @@ export default function OfficeLayer({
             onMessageSomeone={handleMessageSomeone}
             onStartThread={handleStartThread}
             onCallMeeting={handleCallMeeting}
+            onAdoptPrompt={handleAdopt}
             canCallMeeting={canCallMeeting}
           />
           {onFloor ? null : (

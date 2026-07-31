@@ -91,8 +91,8 @@ export const CONTROLS_EN = {
       },
       {
         id: 'format',
-        label: '6 · Desk tray',
-        text: 'Open the tray to pick Diagram, Chart, Anything, and the rest — then go back to the work order and pitch.'
+        label: '6 · Deliverable',
+        text: 'The menu bar up top picks what this is — Diagram, Chart, Anything, and the rest. Pick one, then come back to the work order and pitch.'
       }
     ],
     entryTour: {
@@ -102,7 +102,7 @@ export const CONTROLS_EN = {
       deskEyebrow: 'At your desk'
     },
     renderAsHint:
-      'Pick a format from the Desk tray before you generate. Your desk helmet has export and mail; the notebook icon opens thinking notes and the code drawer.',
+      'Pick a format from Deliverable on the menu bar before you generate. Mailroom ships it out; the notebook icon opens thinking notes.',
     // Starters double as in-fiction assignments: `fromId` names the requester
     // (any cast id officeSenderInfo can resolve) and `ask` is their one-line
     // justification. `label`/`prompt` stay the real generation inputs — locale
@@ -169,6 +169,22 @@ export const CONTROLS_EN = {
     enAu: 'Aussie Slang',
     zhCn: 'Simplified Chinese',
     zhTw: 'Traditional Chinese'
+  },
+  /* Parody-OS menu bar (docs/office-isometric-mode.md §4). Menu *titles* are
+     plain-office nouns on purpose — the joke is the org chart, not the chrome. */
+  menuBar: {
+    aria: 'Workstation menu bar',
+    deliverable: 'Deliverable',
+    deliverableTitle: 'Deliverable · what this thing is, and how it gets shredded',
+    deliverableAria: 'Deliverable format',
+    formatSection: 'Deliverable format',
+    view: 'View',
+    viewTitle: 'View · code drawer, notebook, full screen',
+    viewAria: 'Panels and screen',
+    admin: 'Admin',
+    adminTitle: 'Admin · contractors, HR, language, hotkeys',
+    adminAria: 'Admin — contractors, HR, language, hotkeys',
+    hotkeys: 'Keyboard shortcuts'
   },
   languagePack: {
     label: 'Language pack',
@@ -268,10 +284,10 @@ export const CONTROLS_EN = {
     renderMenu: 'Deliverable format'
   },
   // First-run mode reveal — after the first result, reminds newcomers they can
-  // switch forms from the Desk tray. Skipped if they already picked a format.
+  // switch forms from the menu bar. Skipped if they already picked a format.
   modeReveal: {
     eyebrow: 'Same topic, another deliverable',
-    body: 'Change format anytime from the Desk tray (🗄️) in the bottom bar — hand the same idea in as a 3D scene, chart, infographic, or freeform page.',
+    body: 'Change format anytime from Deliverable (📄) on the menu bar — hand the same idea in as a 3D scene, chart, infographic, or freeform page.',
     pickPrefix: 'Hand it in as',
     dismiss: 'Got it',
     aria: 'Try rendering your topic in another mode'
@@ -373,18 +389,8 @@ export const CONTROLS_EN = {
     tapToOpen: '{mode} · tap to change deliverable format',
     pickMode: 'Pick a format'
   },
-  // The desk tray — work-surface tools (format, facilities, shredder) grouped
-  // out of the way so the Work Order and Your Team stay the primary desk objects.
-  deskDrawer: {
-    label: 'Desk tray',
-    close: 'Close the desk tray',
-    title: 'Desk tray · Deliverable format, facilities & shredder',
-    menuAria: 'Desk tray',
-    roleTag: 'Work surface',
-    formatHeading: 'Deliverable format',
-    deskHeading: 'Work surface'
-  },
   stakeholders: {
+    addressAria: 'Turn to {name}',
     theStakeholders: 'Your Team',
     hideActions: 'Hide team actions',
     openStakeholders: 'Open your team · {name}',

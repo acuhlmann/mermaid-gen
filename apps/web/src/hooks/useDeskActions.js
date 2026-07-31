@@ -13,8 +13,10 @@ import {
   acceptOfficeCoffee,
   canOfferOfficeBattle,
   getOfficeSnapshot,
-  hasActiveOfficeSurface
+  hasActiveOfficeSurface,
+  pushOfficeImReply
 } from '../state/officeMomentStore.js';
+import { threadTranscriptFor } from '../utils/officeImThreads.js';
 
 /**
  * Budget for verb-triggered LLM calls. Separate from the ambient
@@ -22,6 +24,19 @@ import {
  * office's background allowance (or vice versa).
  */
 export const DESK_LLM_CAP = 3;
+
+/**
+ * Budget for the talk channel — saying something out loud, or turning to the
+ * person next to you (docs/office-parody.md § Desk verbs).
+ *
+ * Deliberately its own, and deliberately much larger than `DESK_LLM_CAP`. That
+ * cap governs *ambient* verbs, where three is plenty because the office is
+ * interrupting you; a conversation exhausts three in three sentences and then
+ * answers from the canned bank, which reads as broken rather than in-character.
+ * ADR-0010 puts reactive spend in the generous, self-limiting class: you only
+ * spend it by typing, so the ceiling is a backstop, not a rationing device.
+ */
+export const TALK_LLM_CAP = 12;
 
 /** Cast you can DM or email — anyone in the meeting directory. */
 export const DESK_IM_CAST = listMeetingDirectory().map((row) => row.id);
@@ -60,6 +75,7 @@ export function useDeskActions(params) {
   paramsRef.current = params;
   const memoryRef = useRef(null);
   const deskLlmCountRef = useRef(0);
+  const talkLlmCountRef = useRef(0);
   const busyRef = useRef(false);
 
   const random = useCallback(() => (paramsRef.current.random ?? Math.random)(), []);
@@ -174,6 +190,58 @@ export function useDeskActions(params) {
   );
 
   /**
+   * The shared half of "a colleague answers you in character". `imSomeone` and
+   * `talkOutLoud` differ only in which budget they spend and what channel the
+   * reply is tagged with — the delivery ladder (LLM first, canned bank as the
+   * graceful floor) is identical, which is the point: the talk channel is not a
+   * second conversation engine.
+   *
+   * @param {{ target: string, replyContext?: object, counterRef: { current: number },
+   *   cap: number, channel?: string }} args
+   */
+  const deliverImReply = useCallback(
+    async ({ target, replyContext, counterRef, cap, channel }) => {
+      const p = paramsRef.current;
+      const ctx = readSlotContext(p, random);
+      const userMessage =
+        typeof replyContext?.userMessage === 'string' ? replyContext.userMessage.trim() : '';
+      const threadTranscript = Array.isArray(replyContext?.threadTranscript)
+        ? replyContext.threadTranscript
+        : [];
+      const replyOpts = userMessage
+        ? { replyContext: { colleagueId: target, userMessage, threadTranscript } }
+        : {};
+      const channelOpts = channel ? { channel } : {};
+      let delivered = false;
+      if (target && counterRef.current < cap) {
+        delivered = await deliverLlmMoment(
+          'im',
+          ctx,
+          deliveryOptions({
+            colleagueId: target,
+            sessionId: p.getSessionId?.() ?? '',
+            onUsage: (usage) => paramsRef.current.onUsage?.(usage),
+            onLlmSpent: () => {
+              counterRef.current += 1;
+            },
+            ...channelOpts,
+            ...replyOpts
+          })
+        );
+      }
+      if (!delivered) {
+        delivered = deliverCannedMoment(
+          'im',
+          ctx,
+          deliveryOptions({ colleagueId: target, ...channelOpts, ...replyOpts })
+        );
+      }
+      return delivered;
+    },
+    [deliveryOptions, random]
+  );
+
+  /**
    * Message someone directly. Their reply comes from the LLM when the desk
    * budget allows, otherwise from the canned IM bank. Pass `userMessage` (and
    * optional `threadTranscript`) when replying in Slop Chat™ so the colleague
@@ -181,44 +249,58 @@ export function useDeskActions(params) {
    */
   const imSomeone = useCallback(
     (colleagueId, replyContext) =>
-      runVerb(async () => {
-        const p = paramsRef.current;
-        const ctx = readSlotContext(p, random);
-        const target = colleagueId ?? pickRandomFrom(DESK_IM_CAST, random);
-        const userMessage =
-          typeof replyContext?.userMessage === 'string' ? replyContext.userMessage.trim() : '';
-        const threadTranscript = Array.isArray(replyContext?.threadTranscript)
-          ? replyContext.threadTranscript
-          : [];
-        const replyOpts = userMessage
-          ? { replyContext: { colleagueId: target, userMessage, threadTranscript } }
-          : {};
-        let delivered = false;
-        if (target && deskLlmCountRef.current < DESK_LLM_CAP) {
-          delivered = await deliverLlmMoment(
-            'im',
-            ctx,
-            deliveryOptions({
-              colleagueId: target,
-              sessionId: p.getSessionId?.() ?? '',
-              onUsage: (usage) => paramsRef.current.onUsage?.(usage),
-              onLlmSpent: () => {
-                deskLlmCountRef.current += 1;
-              },
-              ...replyOpts
-            })
-          );
-        }
-        if (!delivered) {
-          delivered = deliverCannedMoment(
-            'im',
-            ctx,
-            deliveryOptions({ colleagueId: target, ...replyOpts })
-          );
-        }
-        return delivered;
-      }),
-    [deliveryOptions, random, runVerb]
+      runVerb(() =>
+        deliverImReply({
+          target: colleagueId ?? pickRandomFrom(DESK_IM_CAST, random),
+          replyContext,
+          counterRef: deskLlmCountRef,
+          cap: DESK_LLM_CAP
+        })
+      ),
+    [deliverImReply, random, runVerb]
+  );
+
+  /**
+   * Say something from your chair. `colleagueId` null means **out loud** — you
+   * said it to the room and whoever is apt picks it up; an id means you turned
+   * to that person. Same verb, and `imSomeone` has always resolved null the same
+   * way; what is new is that the user's own line is recorded first, so the
+   * exchange reads as a conversation rather than an unprompted reply.
+   *
+   * Gated only by an open meeting. Unlike the ambient verbs it deliberately
+   * ignores `pause` and one-surface-at-a-time: talking while a run streams is
+   * exactly when you would, and being unable to speak because an IM toast is up
+   * would be absurd.
+   *
+   * ADR-0010: this never produces slot content. Whatever comes back is a remark,
+   * and only *you* can turn a remark into a run.
+   *
+   * @param {string | null} colleagueId
+   * @param {{ userMessage: string, threadTranscript?: Array<object> }} said
+   * @returns {Promise<{ ok: boolean, colleagueId: string | null }>} who picked it up
+   */
+  const talkOutLoud = useCallback(
+    async (colleagueId, said) => {
+      if (paramsRef.current.meetingActive) return { ok: false, colleagueId: null };
+      const body = typeof said?.userMessage === 'string' ? said.userMessage.trim() : '';
+      if (!body) return { ok: false, colleagueId: null };
+      const target = colleagueId ?? pickRandomFrom(DESK_IM_CAST, random);
+      if (!target) return { ok: false, colleagueId: null };
+      // Your line lands before theirs, attributed to whoever answers — that is
+      // what makes it a thread you can reopen in Slop Chat later.
+      pushOfficeImReply({ colleagueId: target, body, channel: 'talk' });
+      paramsRef.current.onOfficeEvent?.('talked');
+      const threadTranscript = threadTranscriptFor(getOfficeSnapshot().imHistory, target);
+      const ok = await deliverImReply({
+        target,
+        replyContext: { userMessage: body, threadTranscript },
+        counterRef: talkLlmCountRef,
+        cap: TALK_LLM_CAP,
+        channel: 'talk'
+      });
+      return { ok, colleagueId: target };
+    },
+    [deliverImReply, random]
   );
 
   /**
@@ -289,6 +371,7 @@ export function useDeskActions(params) {
       getCoffee,
       walkTheFloor,
       imSomeone,
+      talkOutLoud,
       emailSomeone,
       checkInbox,
       callMeeting,
@@ -305,6 +388,7 @@ export function useDeskActions(params) {
       emailSomeone,
       getCoffee,
       imSomeone,
+      talkOutLoud,
       talkToTeam,
       walkTheFloor,
       snapshot.unreadCount

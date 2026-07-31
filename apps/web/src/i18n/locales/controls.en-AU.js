@@ -80,8 +80,8 @@ export const CONTROLS_EN_AU = {
       },
       {
         id: 'format',
-        label: '5 · Desk tray',
-        text: 'Open the tray to pick Diagram, Chart, Anything, and the rest — then go back to the work order and pitch.'
+        label: '5 · Deliverable',
+        text: 'The menu bar up top picks what this is — Diagram, Chart, Anything, and the rest. Pick one, then come back to the work order and pitch.'
       }
     ],
     entryTour: {
@@ -91,7 +91,7 @@ export const CONTROLS_EN_AU = {
       deskEyebrow: 'At your desk'
     },
     renderAsHint:
-      'Pick a format from the Desk tray before you generate. Your desk helmet has export, settings, and more.',
+      'Pick a format from Deliverable on the menu bar before you generate. Mailroom ships it out; Admin has the rest.',
     starters: [
       {
         label: 'Coffee supply chain',
@@ -139,6 +139,20 @@ export const CONTROLS_EN_AU = {
     enAu: 'Aussie Slang',
     zhCn: 'Simplified Chinese',
     zhTw: 'Traditional Chinese'
+  },
+  menuBar: {
+    aria: 'Workstation menu bar',
+    deliverable: 'Deliverable',
+    deliverableTitle: 'Deliverable · what this thing is, and how it gets binned',
+    deliverableAria: 'Deliverable format',
+    formatSection: 'Deliverable format',
+    view: 'View',
+    viewTitle: 'View · code drawer, notebook, full screen',
+    viewAria: 'Panels and screen',
+    admin: 'Admin',
+    adminTitle: 'Admin · contractors, HR, language, hotkeys',
+    adminAria: 'Admin — contractors, HR, language, hotkeys',
+    hotkeys: 'Keyboard shortcuts'
   },
   languagePack: {
     label: 'Language pack',
@@ -226,7 +240,7 @@ export const CONTROLS_EN_AU = {
   },
   modeReveal: {
     eyebrow: 'Same topic, another form',
-    body: 'Switch modes anytime from the Desk tray (🗄️) in the bottom bar — try the same idea as a 3D scene, chart, infographic, or freeform page.',
+    body: 'Switch modes anytime from Deliverable (📄) on the menu bar — try the same idea as a 3D scene, chart, infographic, or freeform page.',
     pickPrefix: 'Knock it out as',
     dismiss: 'Gotcha',
     aria: 'Try rendering your topic in another mode'
@@ -329,6 +343,7 @@ export const CONTROLS_EN_AU = {
     pickMode: 'Pick a mode'
   },
   stakeholders: {
+    addressAria: 'Turn to {name}',
     theStakeholders: 'The Mob',
     hideActions: 'Hide mob actions',
     openStakeholders: 'Open the Mob · {name}',

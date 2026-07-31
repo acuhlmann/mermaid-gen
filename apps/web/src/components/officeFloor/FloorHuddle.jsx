@@ -174,6 +174,11 @@ export function FloorHuddle({
 
 /**
  * Card chrome for a floor huddle — hard stop and status live off-stage (§ 6 rule 12).
+ *
+ * Carries the pair register too. A pair is one state away from a mob, so the
+ * floor must not be the renderer that still calls it a team huddle and offers a
+ * hard stop — that would be exactly the state fork ADR-0011 rule 1 exists to
+ * prevent, just spelled in copy instead of in a store.
  */
 export function FloorHuddleCard({ huddle, copy, onHardStop, ringControls = null }) {
   const huddleCopy = officeChromeCopy().huddle;
@@ -181,6 +186,9 @@ export function FloorHuddleCard({ huddle, copy, onHardStop, ringControls = null 
   if (!huddle) return null;
   const speaking = huddle.phase === 'speaking';
   const watching = huddle.phase === 'watching';
+  const pairing = huddle.mode === 'pair';
+  const partnerName = pairing ? officeSenderInfo(huddle.attendees[0])?.name : '';
+  const withName = (template) => formatLocale(template, { name: partnerName ?? '' });
   const {
     activeBeat = null,
     activeSpeakerId = null,
@@ -195,18 +203,29 @@ export function FloorHuddleCard({ huddle, copy, onHardStop, ringControls = null 
     <aside
       className="office-floor-card office-floor-card--huddle"
       data-testid="office-floor-huddle-card"
+      data-mode={huddle.mode ?? 'mob'}
       aria-live="polite"
     >
-      <span className="office-floor-eyebrow">{floorHuddle.eyebrow ?? 'TEAM HUDDLE'}</span>
+      <span className="office-floor-eyebrow">
+        {pairing ? (floorHuddle.pairEyebrow ?? 'PAIRING') : (floorHuddle.eyebrow ?? 'TEAM HUDDLE')}
+      </span>
       <strong className="office-floor-card-heading">
-        {floorHuddle.heading ?? huddleCopy.sceneAria}
+        {pairing
+          ? withName(floorHuddle.pairHeading ?? '{name}, in the chair next to you')
+          : (floorHuddle.heading ?? huddleCopy.sceneAria)}
       </strong>
       {!speaking && !watching ? (
-        <p className="office-floor-card-blurb">{huddleCopy.gathering}</p>
+        <p className="office-floor-card-blurb">
+          {pairing
+            ? withName(huddleCopy.pairGathering ?? huddleCopy.gathering)
+            : huddleCopy.gathering}
+        </p>
       ) : null}
       {watching ? (
         <p className="office-floor-card-blurb">
-          {huddleCopy.watching ?? 'The team is watching the notebook…'}
+          {pairing
+            ? withName(huddleCopy.pairWatching ?? huddleCopy.watching)
+            : (huddleCopy.watching ?? 'The team is watching the notebook…')}
         </p>
       ) : null}
       <div className="office-floor-card-actions">
@@ -223,10 +242,11 @@ export function FloorHuddleCard({ huddle, copy, onHardStop, ringControls = null 
         <button
           type="button"
           className="office-floor-card-action office-floor-card-action--primary"
-          title={huddleCopy.hardStopTitle}
+          data-testid="office-floor-huddle-end"
+          title={pairing ? withName(huddleCopy.pairEndTitle) : huddleCopy.hardStopTitle}
           onClick={() => onHardStop?.()}
         >
-          ✋ {huddleCopy.hardStop}
+          {pairing ? `🪑 ${huddleCopy.pairEnd}` : `✋ ${huddleCopy.hardStop}`}
         </button>
       </div>
     </aside>

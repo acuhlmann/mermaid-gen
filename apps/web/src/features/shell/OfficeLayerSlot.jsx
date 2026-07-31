@@ -38,23 +38,13 @@ export function OfficeLayerSlot({
   submitIntentWithPrompt,
   setInsightsEntries,
   handleOfficeEvent,
-  setXpInfoPanelOpen,
-  setEditorOpen,
-  setInviteDialogOpen,
-  hasCanvasContent,
-  editorOpen,
-  setInsightsOpen,
-  modelProfile,
-  setModelProfile,
   callMeetingSignal,
   huddleSignal,
-  diagramSource,
-  insightsOpen,
+  talkSignal = null,
   agentBusy = false,
   tryAgentSound,
   officeRunSignal,
-  entryReveal,
-  narrowLayout
+  entryReveal
 }) {
   return (
     <OfficeLayer
@@ -86,27 +76,14 @@ export function OfficeLayerSlot({
       }}
       onMeetingMinutes={(entry) => setInsightsEntries((prev) => [...prev, entry])}
       onOfficeEvent={handleOfficeEvent}
-      onCheckHrProgression={() => setXpInfoPanelOpen((open) => !open)}
-      onToggleEditor={() => setEditorOpen((current) => !current)}
-      onInviteAgent={() => setInviteDialogOpen(true)}
-      canToggleEditor={hasCanvasContent || editorOpen}
-      editorOpen={editorOpen}
-      onToggleThinking={() => setInsightsOpen((v) => !v)}
-      modelProfile={modelProfile}
-      onSelectModelProfile={setModelProfile}
       callMeetingSignal={callMeetingSignal}
       huddleSignal={huddleSignal}
+      talkSignal={talkSignal}
       agentBusy={agentBusy}
-      canOpenOutbox={Boolean((diagramSource ?? '').trim())}
-      contentType={contentMode}
-      diagramSource={diagramSource ?? ''}
-      canToggleThinking
-      thinkingOpen={insightsOpen}
       playChime={tryAgentSound}
       runSignal={officeRunSignal}
       deskActionsAnchorReady={entryReveal.desk}
       deskMenuInitialOpen={false}
-      deskActionsLayoutKey={narrowLayout ? 'mobile' : 'desktop'}
     />
   );
 }

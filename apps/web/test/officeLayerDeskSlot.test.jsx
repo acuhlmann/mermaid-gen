@@ -17,7 +17,6 @@ const BASE_PROPS = {
   onMeetingMinutes: () => {},
   onOfficeEvent: () => {},
   onTalkToTeam: () => {},
-  onCheckHrProgression: () => {},
   playChime: () => {}
 };
 
@@ -80,17 +79,16 @@ describe('OfficeLayer desk actions portal', () => {
     );
 
     expect(screen.getByRole('menu', { name: /Desk actions/i })).toBeTruthy();
-    const concentration = screen.getByTestId('concentration-control');
-    expect(concentration.className).toContain('concentration-control--menu');
-    expect(screen.getByText('Concentration')).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Rush job' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Deep work' })).toBeTruthy();
+    // Concentration moved to the taskbar tray in slice 2 — the desk menu is
+    // office verbs and ambience only now.
+    expect(screen.queryByTestId('concentration-control')).toBeNull();
+    expect(screen.getByRole('menuitem', { name: /Check your mail/i })).toBeTruthy();
   });
 
-  it('rebinds when the bottom nav layout key changes', () => {
+  it('keeps the portal bound across re-renders', () => {
     const view = render(
       <>
-        <OfficeLayer {...BASE_PROPS} deskActionsAnchorReady deskActionsLayoutKey="desktop" />
+        <OfficeLayer {...BASE_PROPS} deskActionsAnchorReady />
         <BottomNavSlot ready />
       </>
     );
@@ -99,7 +97,7 @@ describe('OfficeLayer desk actions portal', () => {
 
     view.rerender(
       <>
-        <OfficeLayer {...BASE_PROPS} deskActionsAnchorReady deskActionsLayoutKey="mobile" />
+        <OfficeLayer {...BASE_PROPS} deskActionsAnchorReady />
         <BottomNavSlot ready />
       </>
     );

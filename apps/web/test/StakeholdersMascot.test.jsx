@@ -2,6 +2,11 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import StakeholdersMascot from '../src/components/StakeholdersMascot.jsx';
+import { officeChromeCopy } from '../src/utils/officeCast.js';
+
+const deskCopy = officeChromeCopy().desk;
+/** The mob row's label is product copy, not a contract — read it, don't retype it. */
+const mobLabel = new RegExp(deskCopy.huddleAction);
 
 const TEST_PERSONAS = [
   { variant: 'gilfoyle', onClick: vi.fn() },
@@ -15,24 +20,24 @@ const TEST_PERSONAS = [
 describe('StakeholdersMascot', () => {
   afterEach(() => cleanup());
 
-  it('lists Huddle up and closes the roster when it starts', () => {
+  it('lists the mob row and closes the roster when it starts', () => {
     const onHuddle = vi.fn();
     render(<StakeholdersMascot personas={TEST_PERSONAS} onHuddle={onHuddle} canHuddle />);
-    expect(screen.getByRole('menuitem', { name: /Huddle up/ })).toBeTruthy();
+    expect(screen.getByRole('menuitem', { name: mobLabel })).toBeTruthy();
     expect(screen.queryByRole('menuitem', { name: /Have a meeting/ })).toBeNull();
-    fireEvent.click(screen.getByRole('menuitem', { name: /Huddle up/ }));
+    fireEvent.click(screen.getByRole('menuitem', { name: mobLabel }));
     expect(onHuddle).toHaveBeenCalledTimes(1);
     expect(screen.queryByRole('menu', { name: 'Your team' })).toBeNull();
   });
 
-  it('allows Huddle up on an empty canvas when canHuddle is true', () => {
+  it('allows the mob on an empty canvas when canHuddle is true', () => {
     render(<StakeholdersMascot personas={TEST_PERSONAS} onHuddle={vi.fn()} canHuddle />);
-    expect(screen.getByRole('menuitem', { name: /Huddle up/ }).disabled).toBe(false);
+    expect(screen.getByRole('menuitem', { name: mobLabel }).disabled).toBe(false);
   });
 
-  it('blocks Huddle up when canHuddle is false (busy / surface)', () => {
+  it('blocks the mob when canHuddle is false (busy / surface)', () => {
     render(<StakeholdersMascot personas={TEST_PERSONAS} onHuddle={vi.fn()} canHuddle={false} />);
-    expect(screen.getByRole('menuitem', { name: /Huddle up/ }).disabled).toBe(true);
+    expect(screen.getByRole('menuitem', { name: mobLabel }).disabled).toBe(true);
   });
 
   it('does not render advising speech bubbles or thinking indicators', () => {
@@ -50,6 +55,90 @@ describe('StakeholdersMascot', () => {
     expect(onClick).toHaveBeenCalledTimes(1);
     expect(row.className).toContain('is-handed-off');
     expect(row.textContent).toContain('took it');
+  });
+
+  // Slice 3: the roster answers both composer lanes. Without `onAddress` the
+  // row stays one button, which is why the delegate-only test above still holds.
+  describe('two gestures per row', () => {
+    it('addresses the person from the name/face without spending a run', () => {
+      const onClick = vi.fn();
+      const onAddress = vi.fn();
+      render(
+        <StakeholdersMascot
+          personas={[{ variant: 'gilfoyle', onClick }]}
+          onAddress={onAddress}
+          onHuddle={vi.fn()}
+        />
+      );
+      fireEvent.click(screen.getByTestId('stakeholders-address-gilfoyle'));
+      expect(onAddress).toHaveBeenCalledWith('gilfoyle');
+      expect(onClick).not.toHaveBeenCalled();
+    });
+
+    it('delegates from the action chip, which is the channel that spends compute', () => {
+      const onClick = vi.fn();
+      const onAddress = vi.fn();
+      render(
+        <StakeholdersMascot
+          personas={[{ variant: 'gilfoyle', onClick }]}
+          onAddress={onAddress}
+          onHuddle={vi.fn()}
+        />
+      );
+      fireEvent.click(screen.getByTestId('stakeholders-delegate-gilfoyle'));
+      expect(onClick).toHaveBeenCalledTimes(1);
+      expect(onAddress).not.toHaveBeenCalled();
+    });
+
+    it('keeps addressing available while a run is busy', () => {
+      render(
+        <StakeholdersMascot
+          personas={[{ variant: 'gilfoyle', onClick: vi.fn() }]}
+          onAddress={vi.fn()}
+          busy
+        />
+      );
+      expect(screen.getByTestId('stakeholders-address-gilfoyle').disabled).toBe(false);
+      expect(screen.getByTestId('stakeholders-delegate-gilfoyle').disabled).toBe(true);
+    });
+
+    // Fix acts on the critique Jared just wrote and used to live in three
+    // places, none of them next to him.
+    it('hangs Fix off the row of the person whose critique it acts on', () => {
+      const onFix = vi.fn();
+      render(
+        <StakeholdersMascot
+          personas={[
+            {
+              variant: 'jared',
+              onClick: vi.fn(),
+              extraActions: [{ id: 'fix', label: 'Facilities', onClick: onFix }]
+            },
+            { variant: 'gilfoyle', onClick: vi.fn() }
+          ]}
+          onAddress={vi.fn()}
+        />
+      );
+      expect(screen.queryByTestId('stakeholders-extra-gilfoyle-fix')).toBeNull();
+      fireEvent.click(screen.getByTestId('stakeholders-extra-jared-fix'));
+      expect(onFix).toHaveBeenCalledTimes(1);
+    });
+
+    it('disables Fix until the critique is actionable', () => {
+      render(
+        <StakeholdersMascot
+          personas={[
+            {
+              variant: 'jared',
+              onClick: vi.fn(),
+              extraActions: [{ id: 'fix', label: 'Facilities', disabled: true, onClick: vi.fn() }]
+            }
+          ]}
+          onAddress={vi.fn()}
+        />
+      );
+      expect(screen.getByTestId('stakeholders-extra-jared-fix').disabled).toBe(true);
+    });
   });
 
   it('lists personality verbs on roster chips, not duplicate names', () => {

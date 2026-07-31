@@ -5,8 +5,7 @@ const FULL_DESK_REVEAL = {
   workOrder: true,
   desk: true,
   team: true,
-  notebook: true,
-  drawer: true
+  notebook: true
 };
 
 /** Tour steps after the welcome beat on the empty canvas. */
@@ -15,14 +14,18 @@ export const ENTRY_DESK_TOUR_STEPS = ['work-order', 'desk', 'notebook', 'team', 
 /** Auto-advance past the welcome card so newcomers land on the work-order tip. */
 export const ENTRY_WELCOME_AUTO_MS = 3_200;
 
+/**
+ * The `format` step no longer reveals a piece of the bottom row — Deliverable
+ * format is a menu-bar item now, so the last beat points *up* while the desk row
+ * stays fully revealed behind it.
+ */
 function revealForTourStep(step) {
   if (!step || step === 'welcome') return FULL_DESK_REVEAL;
   return {
     workOrder: true,
     desk: ['desk', 'notebook', 'team', 'format'].includes(step),
     notebook: ['notebook', 'team', 'format'].includes(step),
-    team: ['team', 'format'].includes(step),
-    drawer: step === 'format'
+    team: ['team', 'format'].includes(step)
   };
 }
 
@@ -147,7 +150,6 @@ export function useEntryDeskFlow({
 
   const entryReveal = entryTourActive ? revealForTourStep(entryTourStep) : FULL_DESK_REVEAL;
   const tourHighlight = entryTourActive && entryTourStep !== 'welcome' ? entryTourStep : null;
-  const deskDrawerTourOpen = entryTourStep === 'format';
   const entryTourProgress =
     entryTourStep && entryTourStep !== 'welcome'
       ? {
@@ -164,7 +166,6 @@ export function useEntryDeskFlow({
     entryTourProgress,
     showEntryDeskIntro,
     tourHighlight,
-    deskDrawerTourOpen,
     advanceEntryTour,
     dismissEntryDeskTour,
     modeRevealActive,

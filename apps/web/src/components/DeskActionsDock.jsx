@@ -1,14 +1,8 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { ArchiSlopMarkIcon, ButtonIcon } from './AppIcons.jsx';
-import ConcentrationControl from './ConcentrationControl.jsx';
 import DeskAttributionStrip from './DeskAttributionStrip.jsx';
-import DeskStandUpButton from './DeskStandUpButton.jsx';
-import IntroLocaleToggle from './IntroLocaleToggle.jsx';
-import OutboxDock from './OutboxDock.jsx';
-import { CONTROLS_EN } from '../i18n/locales/controls.en.js';
 import { officeChromeCopy } from '../utils/officeCast.js';
-import { useUiCopy } from '../i18n/useUiLocale.js';
 import {
   overlayLayerStyle,
   overlayFocusHandlers,
@@ -48,10 +42,17 @@ function computePortaledMenuStyle(anchorRect) {
 /**
  * Your desk (docs/office-parody.md § Desk verbs): the things *you* can decide
  * to do in the office, as opposed to the things the office does to you. The
- * ArchiSlop helmet stamp opens a flat verb menu with concentration first, then
- * the two ambience postures (Headphones / Focus), then language pack.
- * Stand up is a primary bottom-nav control beside the stamp — not buried in
- * the menu. Coffee lives on the isometric floor; walk-bys arrive on their own.
+ * ArchiSlop helmet stamp opens a flat verb menu — the three ways the office
+ * reaches you (mail, chat, meeting) plus the two ambience postures
+ * (Headphones / Focus). Coffee lives on the isometric floor; walk-bys arrive on
+ * their own.
+ *
+ * Slice 2 moved everything that was *not* an office verb out of here: Stand up
+ * went to the taskbar's leading corner (`DeskOsTaskbar`), the mailroom's export
+ * formats and the once-a-session admin verbs (contractor, HR, language) went to
+ * the menu bar (`DeskOsMenuBar`), and Concentration went to the taskbar tray.
+ * A menu that answered five unrelated questions was the reason nobody could
+ * predict what was in it.
  *
  * Pure props: OfficeLayer owns the store subscription and wires the handlers
  * from useDeskActions. Verbs that cannot run right now stay visible but
@@ -61,51 +62,27 @@ function computePortaledMenuStyle(anchorRect) {
  * office windows (inbox, Slop Chat) that live outside .bottom-chrome.
  */
 export default function DeskActionsDock({
-  onStandUp,
-  onSitDown,
-  standing = false,
   onCheckInbox,
   onOpenSlopChat,
   onSummonSync,
   canSummonSync = true,
-  onCheckHrProgression,
-  onInviteAgent,
   blockedReason = null,
-  canOpenOutbox = false,
-  contentType = null,
-  diagramSource = '',
-  exportControls = null,
   unreadCount = 0,
   imUnreadCount = 0,
   placement = 'corner',
   initialOpen = false,
-  modelProfile = 'fast',
-  onSelectModelProfile = null,
   focusTime = false,
   headphones = false,
   onToggleFocusTime = null,
   onToggleHeadphones = null
 }) {
   const [open, setOpen] = useState(initialOpen);
-  const [outboxExpanded, setOutboxExpanded] = useState(false);
   const [anchorRect, setAnchorRect] = useState(/** @type {DOMRect | null} */ (null));
   const rootRef = useRef(null);
   const triggerRef = useRef(null);
   const menuRef = useRef(null);
   const menuZIndex = useOverlayLayer('desk-actions-menu', open);
-  const { locale, setLocale, controls } = useUiCopy();
-  const chrome = officeChromeCopy();
-  const copy = chrome.desk;
-  const languagePack = controls.languagePack ?? {};
-  const outboxControls = exportControls ?? controls.settings ?? CONTROLS_EN.settings;
-
-  useEffect(() => {
-    if (!open) setOutboxExpanded(false);
-  }, [open]);
-
-  useEffect(() => {
-    if (!canOpenOutbox) setOutboxExpanded(false);
-  }, [canOpenOutbox]);
+  const copy = officeChromeCopy().desk;
 
   useLayoutEffect(() => {
     if (!open) {
@@ -186,22 +163,6 @@ export default function DeskActionsDock({
       disabled: !canSummonSync,
       disabledTitle: copy.blocked?.meeting,
       title: copy.meetingTitle
-    },
-    {
-      id: 'contractor',
-      label: copy.onboardContractor,
-      emoji: '🤝',
-      run: onInviteAgent,
-      alwaysEnabled: true,
-      title: copy.onboardContractorTitle
-    },
-    {
-      id: 'hr',
-      label: copy.hrProgress,
-      emoji: '📈',
-      run: onCheckHrProgression,
-      alwaysEnabled: true,
-      title: copy.hrProgressTitle
     }
   ];
 
@@ -249,47 +210,6 @@ export default function DeskActionsDock({
   ]
     .filter(Boolean)
     .join(' ');
-
-  const renderOutboxVerb = () => {
-    const disabled = !canOpenOutbox;
-    const title = disabled ? copy.blocked?.noOutbox : (copy.outboxTitle ?? copy.outbox);
-    return (
-      <div key="outbox" className="desk-actions-outbox-group" data-testid="desk-actions-outbox">
-        <button
-          type="button"
-          role="menuitem"
-          className={`desk-actions-item desk-actions-item--expandable${outboxExpanded ? ' is-expanded' : ''}`}
-          disabled={disabled}
-          title={title ?? copy.outbox}
-          aria-expanded={outboxExpanded}
-          onClick={() => {
-            if (disabled) return;
-            setOutboxExpanded((prev) => !prev);
-          }}
-        >
-          <span className="desk-actions-item-emoji" aria-hidden="true">
-            📤
-          </span>
-          <span className="desk-actions-item-label">{copy.outbox}</span>
-          <span className="desk-actions-item-chevron" aria-hidden="true">
-            {outboxExpanded ? '▴' : '▾'}
-          </span>
-        </button>
-        {outboxExpanded && canOpenOutbox ? (
-          <div className="desk-actions-outbox-panel">
-            <OutboxDock
-              embedded
-              controls={outboxControls}
-              contentType={contentType}
-              diagramSource={diagramSource}
-              popoverMode={false}
-              showTrigger={false}
-            />
-          </div>
-        ) : null}
-      </div>
-    );
-  };
 
   const renderVerb = (verb) => {
     const disabled = verb.disabled || (!verb.alwaysEnabled && Boolean(blockedReason));
@@ -350,15 +270,8 @@ export default function DeskActionsDock({
             data-testid="desk-actions-menu"
             {...overlayFocusHandlers('desk-actions-menu', open)}
           >
-            {deskVerbs.slice(0, 1).map(renderVerb)}
-            {renderOutboxVerb()}
-            {deskVerbs.slice(1).map(renderVerb)}
+            {deskVerbs.map(renderVerb)}
             <div className="desk-actions-menu-footer" role="none">
-              <ConcentrationControl
-                variant="menu"
-                modelProfile={modelProfile}
-                onSelectModelProfile={onSelectModelProfile}
-              />
               {ambienceToggles.length > 0 ? (
                 <div
                   className="desk-ambience-pack"
@@ -382,29 +295,6 @@ export default function DeskActionsDock({
                   ))}
                 </div>
               ) : null}
-              <div
-                className="desk-language-pack"
-                role="group"
-                aria-label={languagePack.aria ?? languagePack.label}
-                title={languagePack.title}
-                data-testid="desk-language-pack"
-              >
-                <span className="desk-language-pack-label">
-                  <span className="desk-language-pack-emoji" aria-hidden="true">
-                    🌐
-                  </span>
-                  {languagePack.label ?? 'Language pack'}
-                  <span className="desk-language-pack-tag" aria-hidden="true">
-                    {languagePack.tag ?? 'IT TICKET'}
-                  </span>
-                </span>
-                <IntroLocaleToggle
-                  variant="inline"
-                  locale={locale}
-                  copy={controls.introLocale}
-                  onSelectLocale={setLocale}
-                />
-              </div>
               <DeskAttributionStrip copy={copy.attribution} />
             </div>
           </div>,
@@ -451,9 +341,6 @@ export default function DeskActionsDock({
           {copy.buttonLabel}
         </span>
       </button>
-      {placement === 'bottom' ? (
-        <DeskStandUpButton standing={standing} onStandUp={onStandUp} onSitDown={onSitDown} />
-      ) : null}
       {portaledMenu}
     </div>
   );
