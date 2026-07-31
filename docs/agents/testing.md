@@ -34,10 +34,16 @@ GitHub CI (`.github/workflows/ci.yml`) splits sensors, workspace tests, and buil
 
 `scripts/test-affected-lib.mjs` maps changed paths to test files:
 
-1. **Basename mirror** — `apps/server/src/agents/diagramAgentDispatcher.js` → `apps/server/test/diagramAgentDispatcher.test.js`
+1. **Basename mirror** — `apps/server/src/agents/diagramAgentDispatcher.js` → `apps/server/test/diagramAgentDispatcher.test.js`; `scripts/test-affected-lib.mjs` → `scripts/test-affected.test.mjs` via the `*-lib.mjs` runner mirror (there is no separate lib-only test file)
 2. **Blast-radius rules** — e.g. `diagramSchema.ts` also runs `copilotRoute.test.js` and wire tests
-3. **Fallback** — unmapped server paths use `test:fast`; unmapped shared/web paths use the workspace full suite
+3. **Fallback** — unmapped server paths use `test:fast`; unmapped shared/web paths use the workspace full suite; unmapped `scripts/` paths use `test:scripts`
 4. **Slow skip** — Anything runtime tests (~40s of jsdom child processes) are skipped unless the diff touches `anything*` paths. Set `TEST_AFFECTED_SLOW=1` to force them.
+
+**`check:affected` vs `test:affected`:** any `scripts/` change (including
+`scripts/test-affected-lib.mjs`) is classified as `root` tooling and runs the full
+`npm run check` — see [`sensors.md`](sensors.md) § Known flake. Do not weaken that fallback;
+the durable fix for the recurring `anythingRuntimeCheck` flake under load is a higher
+`ANYTHING_RUNTIME_CHECK_TIMEOUT_MS`, not a narrower resolver.
 
 Examples:
 

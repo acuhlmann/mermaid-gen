@@ -156,6 +156,17 @@ Four coupling traps worth knowing before you touch this:
 - **A `SAMPLES` row whose `.mp3` does not exist is a build failure, not a fallback.** Vite resolves the `import` at build time. Add the manifest row and generate the asset _first_, wire `officeCueSamples.js` last. Everything else about a new cue (the synth fallback, the trigger, the weight) can land before the asset does — and should, because that keeps the moment audible while the asset is pending.
 - **A cue needs a row in `SYNTH_CUE_PLAYERS` or it is silent on first play.** Sampling is best-effort; the fallback is what makes that safe. `officeCuePlayers.test.js` asserts every `SOUNDSCAPE_CUES` and `SAMPLED_CUES` entry has one, and that every `FLOOR_PROP_USES` entry has a `cuesForProp` row — the guard that would have caught the whiteboard being reachable and silent for three slices.
 
+## Agent tooling (diff-scoped tests + verify)
+
+| Layer      | Location                                                                                                                                                                                                                        |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Resolver   | [`scripts/test-affected-lib.mjs`](../scripts/test-affected-lib.mjs) (`resolveAffectedTests`, `BLAST_RADIUS_RULES`, `AGENT_TOOLING_BLAST_TESTS`)                                                                                 |
+| Classifier | [`scripts/check-affected-lib.mjs`](../scripts/check-affected-lib.mjs) (`classifyChangedFiles` — any `scripts/` path is `root` → full `npm run check`)                                                                           |
+| Runners    | [`scripts/test-affected.mjs`](../scripts/test-affected.mjs), [`scripts/check-affected.mjs`](../scripts/check-affected.mjs), [`scripts/run-server-tests.mjs`](../scripts/run-server-tests.mjs)                                   |
+| Tests      | [`scripts/test-affected.test.mjs`](../scripts/test-affected.test.mjs), [`scripts/check-affected.test.mjs`](../scripts/check-affected.test.mjs), [`scripts/verify-agent-infra.test.mjs`](../scripts/verify-agent-infra.test.mjs) |
+
+`npm run test:affected` pulls `AGENT_TOOLING_BLAST_TESTS` when the diff touches the scripts above (see `scripts/test-affected-lib.mjs`). `*-lib.mjs` edits also basename-match the runner `*.test.mjs` (e.g. `test-affected-lib.mjs` → `test-affected.test.mjs`). `check:affected` still runs the full gate for any `scripts/` change — intentional; see [`docs/agents/sensors.md`](agents/sensors.md) § Known flake.
+
 ## Verification commands (quick reference)
 
 | Scope                         | Command                                                                 |
