@@ -40,18 +40,36 @@ function arrivedTarget(view) {
   return view.colleagueId;
 }
 
+/** Nothing said yet — a frozen pair so the no-conversation case allocates once. */
+const NO_TALK = Object.freeze({ line: '', pitch: null });
+
 /**
  * The last thing they said, out of the shared IM log — the floor reads this
  * state, it never owns it (ADR-0011 rule 1). Outbound messages are yours, and
  * you do not need a speech bubble to tell you what you just typed.
+ *
+ * Returns the **line and its pitch together** because they are one scan of one
+ * message: `actionPrompt` is optional on every IM (`pushOfficeImPing`), and
+ * ADR-0012 made a pitch something any of the cast may attach when they actually
+ * have something. Reading them separately would mean two walks of the history
+ * that could disagree about which message is newest.
+ *
+ * The `?.`/`??` live here rather than at the call site on purpose: complexity is
+ * counted per function, `useFloorActivity` is already at 14 against a max of 12,
+ * and § 8's finding is that these operators are most of what puts floor modules
+ * over. Destructuring the result costs the hook nothing.
+ *
+ * @returns {{ line: string, pitch: string | null }}
  */
-function lastLineFrom(imHistory, colleagueId) {
-  if (!colleagueId) return '';
+function lastInboundFrom(imHistory, colleagueId) {
+  if (!colleagueId) return NO_TALK;
   for (let i = (imHistory?.length ?? 0) - 1; i >= 0; i -= 1) {
     const msg = imHistory[i];
-    if (msg.colleagueId === colleagueId && !msg.outbound) return msg.body ?? '';
+    if (msg.colleagueId === colleagueId && !msg.outbound) {
+      return { line: msg.body ?? '', pitch: msg.actionPrompt ?? null };
+    }
   }
-  return '';
+  return NO_TALK;
 }
 
 /**
@@ -84,17 +102,27 @@ export function useFloorActivity({
   const talk = intentView(presence, 'talk', 'talking');
   const prop = intentView(presence, 'use', 'using', 'propKind');
   const talkingTo = talk?.colleagueId ?? null;
-  const talkLine = lastLineFrom(imHistory, talkingTo);
+  const { line: talkLine, pitch: talkPitch } = lastInboundFrom(imHistory, talkingTo);
   // Short recent strip for the floor dialogue card — same source as the bubble,
   // capped so a long Slop Chat thread does not flood a 21 rem panel. Not memoized:
   // React Compiler rejects manual memo over `imHistory` (same reason `talkLine`
   // is a plain call).
   const talkTurns = threadTranscriptFor(imHistory, talkingTo, 4);
 
-  const conversation = useFloorTalk({
+  const composer = useFloorTalk({
     colleagueId: talkingTo,
     onReply: onTalkReply
   });
+
+  /*
+   * `useFloorTalk` deliberately "holds a text box" and nothing else, so the
+   * pitch is composed on top of it here, where `imHistory` is already being
+   * read. It rides in this bundle rather than as a third top-level `talk*` prop
+   * because a pitch *is* conversation state — the actionable half of the newest
+   * thing they said — and because `FloorCardSlot` threads `conversation`
+   * already, so the card slot's prop list does not grow.
+   */
+  const conversation = { ...composer, pitch: talkPitch };
 
   const propUse = useFloorPropUse({
     propKind: prop?.propKind ?? null,

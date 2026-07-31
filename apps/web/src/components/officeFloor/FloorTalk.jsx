@@ -20,7 +20,7 @@
 import FloorDeskSpeech from './FloorDeskSpeech.jsx';
 import { PersonaFace } from '../personaFaces/index.jsx';
 import VoiceMicButton from '../VoiceMicButton.jsx';
-import { officeSenderInfo } from '../../utils/officeCast.js';
+import { officeChromeCopy, officeSenderInfo } from '../../utils/officeCast.js';
 
 /**
  * The newest thing they said, over their head.
@@ -53,10 +53,63 @@ export function FloorTalk({ talk, line, scale = 1, hideBody = false }) {
 }
 
 /**
+ * Their suggestion, with the trigger you pull (ADR-0012).
+ *
+ * Its own component so the guard lives out of `FloorTalkCard`'s body — the card
+ * was under the complexity threshold and § 8's finding is that these small
+ * boolean guards are exactly what pushes floor modules over it. The guard is
+ * deliberately the *same shape* as `FloorTalk`'s above: a pitch and a bubble are
+ * two halves of one arrival, so neither shows until you are actually stood
+ * there. On the walk over, "the last thing they said" is still whatever they
+ * said in Slop Chat last week, and offering to act on that would adopt a line
+ * you have not heard.
+ *
+ * @param {{
+ *   talk: { colleagueId: string, phase: string },
+ *   pitch?: string | null,
+ *   onAdopt?: (prompt: string, colleagueId: string) => void
+ * }} props
+ */
+function TalkPitch({ talk, pitch, onAdopt }) {
+  // The handler is part of the guard, not an optional call: a Do-it that renders
+  // without one is a button that silently does nothing, which is worse than no
+  // offer at all. `OfficeDeskSpeech` — the desk renderer of this same channel —
+  // checks it the same way.
+  if (talk.phase !== 'talking' || !pitch || typeof onAdopt !== 'function') return null;
+
+  return (
+    <button
+      type="button"
+      className="office-floor-card-action office-floor-card-action--adopt"
+      data-testid="office-floor-talk-adopt"
+      onClick={() => onAdopt(pitch, talk.colleagueId)}
+    >
+      {officeChromeCopy().doIt}
+    </button>
+  );
+}
+
+/**
  * What you say back. Quick replies are the canned pure-local flavour Slop Chat
  * already offers under a ping; the composer routes through the identical send
  * path, so a reply typed on the floor and one typed in the window are the same
  * message. Mic dictation is the same `VoiceMicButton` the messenger uses.
+ *
+ * **The Do-it lives here rather than on the bubble**, which is the one place
+ * this surface departs from the walk-by. Two reasons, and the second is the
+ * load-bearing one:
+ *
+ * 1. § 6 rule 12 — the replying half is chrome and belongs in the card slot. A
+ *    pitch is an action, not speech. (A walk-by puts its Do-it in the bubble
+ *    because a walk-by has no card, not because the bubble is the right home.)
+ * 2. `FloorDeskSpeech` returns `null` outright when `hideBody` is set, and the
+ *    bubble is rendered with `hideBody={!showSpokenText}`. A Do-it on the bubble
+ *    would therefore **disappear whenever captions are off** — the offer would
+ *    come and go with a display preference that has nothing to do with it. The
+ *    card is unconditional for as long as you are stood there.
+ *
+ * ADR-0010/0012: adopting runs *your* pipeline on their suggestion, attributed
+ * to them. The remark itself never touched a slot.
  *
  * @param {{
  *   talk: { colleagueId: string, phase: string },
@@ -65,10 +118,24 @@ export function FloorTalk({ talk, line, scale = 1, hideBody = false }) {
  *   draft: string,
  *   onDraftChange: (value: string) => void,
  *   onSend: (body: string) => void,
+ *   pitch?: string | null,
+ *   onAdopt?: (prompt: string, colleagueId: string) => void,
  *   onLeave: () => void
  * }} props `copy` is `officeChromeCopy().floor`.
  */
-export function FloorTalkCard({ talk, copy, busy = false, draft, onDraftChange, onSend, onLeave }) {
+export function FloorTalkCard({
+  talk,
+  copy,
+  busy = false,
+  draft,
+  onDraftChange,
+  onSend,
+  /** No `= null`: truthiness-tested in `TalkPitch`, and § 8's rule is that a
+      default parameter costs a complexity point apiece. */
+  pitch,
+  onAdopt,
+  onLeave
+}) {
   const talkCopy = copy.talk;
   const sender = officeSenderInfo(talk.colleagueId);
   const arrived = talk.phase === 'talking';
@@ -130,6 +197,7 @@ export function FloorTalkCard({ talk, copy, busy = false, draft, onDraftChange, 
       ) : null}
 
       <div className="office-floor-card-actions">
+        <TalkPitch talk={talk} pitch={pitch} onAdopt={onAdopt} />
         <button
           type="button"
           className="office-floor-card-action"

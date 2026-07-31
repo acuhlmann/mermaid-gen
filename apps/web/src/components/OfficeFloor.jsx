@@ -424,6 +424,10 @@ function OfficeFloorView({ bridge }) {
         // card can press these, and a missing mark is a no-op at the other end.
         onPeek={(id) => activity.startPeek(id, person?.peekTile)}
         onTalk={(id) => activity.startTalk(id, person?.talkTile)}
+        // The same handler the walker's bubble gets — one adopt path for the
+        // whole floor, so a pitch runs your pipeline identically wherever it
+        // was offered (ADR-0012).
+        onAdoptPrompt={onAdoptPrompt}
         onClosePerson={handleClosePerson}
       />
     </div>

@@ -2,6 +2,8 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import OfficeFloor from '../src/components/OfficeFloor.jsx';
+import { FloorTalkCard } from '../src/components/officeFloor/FloorTalk.jsx';
+import { officeChromeCopy } from '../src/utils/officeCast.js';
 import { approachTileFor } from '../src/utils/officeFloorMovement.js';
 import { projectIso } from '../src/utils/officeFloorPlan.js';
 import {
@@ -252,5 +254,129 @@ describe('talking on the floor (slice 8)', () => {
       .getByTestId('office-floor-talk-line')
       .querySelector('.office-floor-walker-anchor');
     expect(anchor.className).toContain('office-floor-walker-anchor--over-seat');
+  });
+});
+
+/**
+ * Slice 4 shipped pitches from the whole cast and every surface honoured it
+ * except this one, so the same suggestion carried a Do-it at your desk and
+ * nothing standing up. ADR-0012 recorded that as a debt rather than a decision.
+ */
+describe('adopting a pitch on the floor (ADR-0012)', () => {
+  const PITCH = 'add a retry queue between the gateway and the workers';
+  const SAID = 'the gateway has no backpressure';
+
+  function pitchFrom(colleagueId, body, actionPrompt, outbound = false) {
+    return { ...imFrom(colleagueId, body, outbound), actionPrompt };
+  }
+
+  it('offers Do it when their newest line carries one, and runs it attributed to them', async () => {
+    const onAdoptPrompt = vi.fn();
+    renderFloor({
+      imHistory: [pitchFrom(CHAD, SAID, PITCH)],
+      onTalkGreet: vi.fn(),
+      onAdoptPrompt
+    });
+    walkOverToTalk();
+
+    fireEvent.click(await screen.findByTestId('office-floor-talk-adopt'));
+    expect(onAdoptPrompt).toHaveBeenCalledWith(PITCH, CHAD);
+  });
+
+  it('offers nothing when they were only making conversation', async () => {
+    renderFloor({
+      imHistory: [imFrom(CHAD, 'is that the new architecture diagram?')],
+      onTalkGreet: vi.fn(),
+      onAdoptPrompt: vi.fn()
+    });
+    walkOverToTalk();
+
+    await screen.findByTestId('office-floor-talk-card');
+    expect(screen.queryByTestId('office-floor-talk-adopt')).toBeNull();
+  });
+
+  /*
+   * The reason the button is card chrome rather than bubble furniture.
+   * `FloorDeskSpeech` returns null outright under `hideBody`, so a Do-it on the
+   * balloon would come and go with a captions preference that has nothing to do
+   * with whether somebody had an idea.
+   */
+  it('keeps the offer when narration hides the bubble — a pitch is not a caption', async () => {
+    renderFloor({
+      imHistory: [pitchFrom(CHAD, SAID, PITCH)],
+      onTalkGreet: vi.fn(),
+      onAdoptPrompt: vi.fn(),
+      sceneHandlers: { narrateLine: vi.fn(() => Promise.resolve({ spoken: true })) }
+    });
+    walkOverToTalk();
+
+    await waitFor(() => expect(screen.queryByTestId('office-floor-talk-line')).toBeNull());
+    expect(screen.getByTestId('office-floor-talk-adopt')).toBeTruthy();
+  });
+
+  it('reads their suggestion, never one attached to your own message', async () => {
+    const onAdoptPrompt = vi.fn();
+    renderFloor({
+      imHistory: [
+        pitchFrom(CHAD, SAID, PITCH),
+        pitchFrom(CHAD, 'good idea, I will try that', 'a prompt on your own words', true)
+      ],
+      onTalkGreet: vi.fn(),
+      onAdoptPrompt
+    });
+    walkOverToTalk();
+
+    fireEvent.click(await screen.findByTestId('office-floor-talk-adopt'));
+    expect(onAdoptPrompt).toHaveBeenCalledWith(PITCH, CHAD);
+  });
+
+  /*
+   * Rendered directly because a walk settles in one tick under jsdom, so the
+   * integration path above can never hold the 'walking' phase long enough to
+   * assert on it.
+   */
+  it('offers nothing on the walk over — their last line may be from last week', () => {
+    render(
+      <FloorTalkCard
+        talk={{ colleagueId: CHAD, phase: 'walking' }}
+        copy={officeChromeCopy().floor}
+        draft=""
+        onDraftChange={vi.fn()}
+        onSend={vi.fn()}
+        pitch={PITCH}
+        onAdopt={vi.fn()}
+        onLeave={vi.fn()}
+      />
+    );
+
+    expect(screen.queryByTestId('office-floor-talk-adopt')).toBeNull();
+  });
+
+  it('offers nothing when no adopt handler is wired — a dead trigger is worse than none', () => {
+    render(
+      <FloorTalkCard
+        talk={{ colleagueId: CHAD, phase: 'talking' }}
+        copy={officeChromeCopy().floor}
+        draft=""
+        onDraftChange={vi.fn()}
+        onSend={vi.fn()}
+        pitch={PITCH}
+        onLeave={vi.fn()}
+      />
+    );
+
+    expect(screen.queryByTestId('office-floor-talk-adopt')).toBeNull();
+  });
+
+  it('labels the button with the shared Do-it copy, not a floor-only synonym', async () => {
+    renderFloor({
+      imHistory: [pitchFrom(CHAD, SAID, PITCH)],
+      onTalkGreet: vi.fn(),
+      onAdoptPrompt: vi.fn()
+    });
+    walkOverToTalk();
+
+    const button = await screen.findByTestId('office-floor-talk-adopt');
+    expect(button.textContent).toBe(officeChromeCopy().doIt);
   });
 });

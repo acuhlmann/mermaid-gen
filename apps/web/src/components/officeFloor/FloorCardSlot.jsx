@@ -35,7 +35,7 @@ import { sitDown } from '../../state/officeViewModeStore.js';
  *   huddleHandlers?: any,
  *   huddleRing?: any,
  *   talk?: { colleagueId: string, phase: string } | null,
- *   conversation?: { draft: string, setDraft: (v: string) => void, busy: boolean, send: (b: string) => void },
+ *   conversation?: { draft: string, setDraft: (v: string) => void, busy: boolean, send: (b: string) => void, pitch?: string | null },
  *   peek?: { colleagueId: string, phase: string } | null,
  *   prop?: { propKind: string, phase: string } | null,
  *   propUse?: { phase: 'idle' | 'working' | 'done' | 'blocked' } | null,
@@ -44,8 +44,12 @@ import { sitDown } from '../../state/officeViewModeStore.js';
  *   onMessage?: (colleagueId: string) => void,
  *   onPeek?: (colleagueId: string) => void,
  *   onTalk?: (colleagueId: string) => void,
+ *   onAdoptPrompt?: (prompt: string, colleagueId: string) => void,
  *   onClosePerson: () => void
- * }} props `copy` is `officeChromeCopy().floor`.
+ * }} props `copy` is `officeChromeCopy().floor`. `onAdoptPrompt` is declared
+ *   without a default deliberately: § 8's finding is that ESLint counts a
+ *   default parameter as a branch apiece, and this component is already at 16
+ *   against a max of 12 — nine of those points are its own `= null`s.
  */
 export function FloorCardSlot({
   copy,
@@ -64,6 +68,7 @@ export function FloorCardSlot({
   onMessage,
   onPeek,
   onTalk,
+  onAdoptPrompt,
   onClosePerson
 }) {
   if (meeting) {
@@ -98,6 +103,8 @@ export function FloorCardSlot({
         draft={conversation.draft}
         onDraftChange={conversation.setDraft}
         onSend={conversation.send}
+        pitch={conversation.pitch}
+        onAdopt={onAdoptPrompt}
         onLeave={onGoHome}
       />
     );

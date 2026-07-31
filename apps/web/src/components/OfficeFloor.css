@@ -743,6 +743,16 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  /*
+   * The row was built when every card had exactly one action; the talk card now
+   * carries a Do-it beside Leave (ADR-0012). Measured at a 320px viewport the
+   * pair comes to ~229px of the ~258px the card has, which fits and has no room
+   * to spare — and the labels are localized ("Have a go" is longer than "Do it",
+   * and neither is the longest a locale could ship). Wrapping is the cheap
+   * guarantee; without it a third pill or a longer translation pushes a button
+   * out of a rounded card.
+   */
+  flex-wrap: wrap;
 }
 
 .office-floor-card-action {
@@ -867,6 +877,24 @@
 .office-floor-card-action--primary:focus-visible {
   background: var(--accent-dark);
   border-color: var(--accent-dark);
+  color: #fff;
+}
+
+/*
+ * Adopting a pitch on the floor (ADR-0012). Outlined rather than filled on
+ * purpose: `--primary` is Send, which is the verb you came over to use, and two
+ * filled pills in one card would make the offer compete with the conversation.
+ * This one reads as available, not as the thing to do next.
+ */
+.office-floor-card-action--adopt {
+  border-color: var(--accent);
+  color: var(--accent-dark);
+}
+
+.office-floor-card-action--adopt:hover,
+.office-floor-card-action--adopt:focus-visible {
+  background: var(--accent);
+  border-color: var(--accent);
   color: #fff;
 }
 

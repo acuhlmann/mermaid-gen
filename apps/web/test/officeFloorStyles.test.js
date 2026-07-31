@@ -141,6 +141,24 @@ describe('reduced motion covers the whole floor', () => {
     return found;
   }
 
+  it('lets a card’s action row wrap, now that a card can carry two', () => {
+    /*
+     * ADR-0012 put a Do-it beside Leave on the talk card. Measured at a 320px
+     * viewport the pair needs ~229px of the ~258px the card has — it fits, with
+     * nothing spare, and the labels are localized. jsdom has no layout engine,
+     * so the guarantee is asserted as stylesheet text rather than geometry.
+     */
+    expect(ruleBody('.office-floor-card-actions')).toMatch(/flex-wrap:\s*wrap/);
+  });
+
+  it('keeps the adopt pill outlined so it does not compete with the primary', () => {
+    // Send is `--primary` (filled) and is the verb you crossed the room to use;
+    // two filled pills in one card would make the offer read as the next step.
+    const adopt = ruleBody('.office-floor-card-action--adopt');
+    expect(adopt).toMatch(/border-color:\s*var\(--accent\)/);
+    expect(adopt).not.toMatch(/background:/);
+  });
+
   it('silences every animation the sheet declares', () => {
     const reduced = css.slice(css.indexOf('@media (prefers-reduced-motion: reduce)'));
     const selectors = animatedSelectors();

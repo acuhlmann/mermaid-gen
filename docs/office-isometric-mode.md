@@ -912,6 +912,22 @@ talkable (`talkTileFor` in `OfficeFloor.jsx` — everyone except `senior` behind
 leadership gets the person-card brush-off only. Slice 6's desk **peek** (`peekTileFor`) covers
 the same team pod plus office desks — look over their shoulder at fiction on the monitor.
 
+Also on top of slice 8, and a debt rather than polish: **a pitch offered in floor conversation
+now has a Do-it** (ADR-0012). The screen-skin track shipped pitches from the whole cast, and
+every surface honoured it except this one — so the same suggestion carried a button at your desk
+and nothing standing up. `lastInboundFrom` in `useFloorActivity.js` now returns the line **and**
+its `actionPrompt` from one scan, and the offer rides the existing `conversation` bundle into
+`FloorTalkCard`, so the card slot's prop list did not grow.
+
+Two things it settled that the next surface will hit too. **A pitch is card chrome, not bubble
+furniture** — `FloorDeskSpeech` returns `null` outright under `hideBody`, and the talk bubble is
+rendered `hideBody={!showSpokenText}`, so a Do-it on the balloon would come and go with a
+captions preference. (The walk-by puts its Do-it in the bubble because a walk-by has no card, not
+because the bubble is right.) And **the guard includes the handler**: a Do-it that renders
+without an `onAdopt` is a button that silently does nothing, which is worse than no offer — the
+same check `OfficeDeskSpeech` makes. Both pinned by `officeFloorTalk.test.jsx`, including the
+one that matters most: the offer survives when narration hides the bubble.
+
 Three earlier candidates, none designed:
 
 - **Where the "stand up" affordance lives in desktop chrome.** ~~The oldest open item and the only
@@ -988,17 +1004,26 @@ Kept here so appetite can pick without re-deriving. Each should stay bound by AD
   nobody is looking at has no reason to animate, and the alternative is a timer running under
   the editor forever), but it is a choice nobody made explicitly, and it is worth knowing
   before anybody wonders why the office is always calm for the first five seconds.
-- **Complexity warnings** (thresholds, so CI stays green): `FloorCardSlot` 16, `FloorStage` 14,
-  `useFloorActivity` 14, `FloorWalker` 13, `FloorScene` 21, against a max of 12. `OfficeFloorView`
-  came off this list in slice 11 — its stage actors moved to `FloorActors` — and slice 12 had to
-  work to keep it off: the wiring took it to 18 before `talkView` moved the whereabouts
-  projection out. The general lesson is worth more than the individual numbers: **most of these
-  are default parameters**, which ESLint counts one apiece. `floorAnnouncement` went from 28 to 11
-  mostly by dropping seven `= null` defaults on fields that are read for truthiness; `FloorActors`
-  was born at 16 for the same reason; and slice 12 got `FloorPersonCard` and `FloorWanderer` back
-  under budget purely by dropping `= false` from props that are truthiness-tested a few lines
-  later and always passed. Check that before restructuring anything. `FloorCardSlot`'s if-chain is
-  the ordering rule the file exists to express and should be left alone.
+- **Complexity warnings** (thresholds, so CI stays green). **Measured 2026-07-31, because the
+  numbers this list carried had drifted and one of them was backwards** — it recorded
+  `OfficeFloorView` as having "come off this list in slice 11", when it is in fact the worst
+  offender on the floor. Against a max of 12: `OfficeFloorView` **48**, `FloorArrival` 42,
+  `FloorHuddleCard` 36, `FloorScene` 28, `floorArrivalAnnouncement` 24, `FloorCardSlot` 20,
+  `FloorBubble` / `FloorActors` / `FloorStage` / `SceneInvite` 17–18, `FloorSeat` / `FloorWalker`
+  14, `floorAnnouncement` / `useFloorActivity` / `useFloorSpokenText` 13.
+
+  **Re-measure before trusting a number here**; treat the lesson as the durable part and the
+  figures as a snapshot. That lesson: **most of these are default parameters**, which ESLint
+  counts one apiece. `floorAnnouncement` came down from 28 mostly by dropping seven `= null`
+  defaults on fields read for truthiness; slice 12 got `FloorPersonCard` and `FloorWanderer` back
+  under budget purely by dropping `= false` from props truthiness-tested a few lines later and
+  always passed. The floor-pitch change used the same lever twice in the other direction — it
+  added a prop to `FloorCardSlot` **without** a default (0 points, versus 1 for `= null`) and
+  moved a guard out of `FloorTalkCard` into a `TalkPitch` sibling, which kept a component that had
+  no warning from acquiring one. Complexity is counted per function, so extracting is the reliable
+  fix and rewording the condition usually is not. Check that before restructuring anything.
+  `FloorCardSlot`'s if-chain is the ordering rule the file exists to express and should be left
+  alone.
 
 ### Answered, kept for the reasoning
 

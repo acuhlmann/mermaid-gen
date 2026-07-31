@@ -454,6 +454,15 @@ already read, so a line said at your desk is in the messenger afterwards, and �
 that person — over their head on the floor. That is ADR-0011 rule 1 paying for itself twice: `channel`
 is a tag on shared state, not a second conversation engine.
 
+**The mirror was not free after all, and the bill was a pitch.** Reading the same state renders the
+same _words_, not the same _offer_: the floor showed their remark and dropped the `actionPrompt`
+attached to it, so an idea you could act on at your desk was only an observation standing up. Fixed
+by having `lastInboundFrom` return the line and its pitch from one scan, and by putting the Do-it in
+the **talk card** rather than the speech bubble — the bubble is suppressed while narration speaks it
+aloud, and an offer that disappears when captions go off is worse than no offer. The general form
+is worth carrying to the next surface: **one state, two renderers guarantees the same data, never
+the same affordances.** Every renderer owes each surface its own audit.
+
 **The roster gained a second gesture.** A row is now two buttons: the **action chip delegates**
 (the only channel that spends pipeline compute), the **name / face addresses** (sets lane 2's
 target). Jared's row also carries **Fix**, which acts on the critique he just wrote and had been
