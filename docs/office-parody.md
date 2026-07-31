@@ -785,8 +785,33 @@ last case `playChime` now reports whether it let the call through, so muting the
 also stops a bed that is already looping. The bed fades in over 3 s, fades out over 1.2 s, and
 **ducks to a third of its level while a colleague is speaking** so narration stays intelligible.
 
-Level lives in one constant, `ROOM_TONE_GAIN` in `officeRoomTone.js` — the bed is mixed to sit
-under the cues (which peak at 0.006–0.014), present but never competing.
+Level lives in `officeRoomTone.js` — the bed is mixed to sit under the cues (which peak at
+0.006–0.014), present but never competing. It is two constants rather than the one this used to
+claim: `ROOM_TONE_GAIN_DESK` (0.055) and `ROOM_TONE_GAIN_FLOOR` (0.115), because standing in the
+room should be louder than hearing it through your monitor. `ROOM_TONE_GAIN` remains as a
+deprecated alias.
+
+**Which room you are in shapes the bed and the cues.** `setRoomToneZone` filters the single loop
+per floor zone (kitchen brighter, glass muffled, pod bassier), and `ZONE_CUES` in
+`officeSoundscape.js` weights that room's own _events_ — standing in the kitchen makes the fridge,
+espresso machine, cooler and vending machine three-ish times as likely. The two halves read the
+same zone: the director asks `getRoomToneZone()` rather than deriving its own, so a filter setting
+and a cue table cannot disagree about where you are standing. Together they are the cheap
+substitute for per-room beds, which would cost 300 credits and a crossfading multi-buffer player
+each.
+
+**Footsteps, and the floor finally having a body.** `useWalkAnimation` fires `onLeg` as each walk
+leg starts, and every walker on the floor sounds one footstep cue per leg — you (`near`, centred),
+a colleague walking over, and the ambient wanderer (both placed by `stereoPanForTile`, the sibling
+of `bubbleAlignForTile`, so a sound and a speech bubble never disagree about which side of the room
+somebody is on). The surface comes from `floorSurfaceAt`, which reads zone **ids** rather than
+tones because reception and the HR corner are both `neutral` and only one of them is a lobby.
+Reduced motion is silent for free: that branch teleports and never enters the leg loop, so there is
+no second preference check to drift.
+
+Note what this replaced. `playFootsteps` fired once, at your desk, for an incoming walk-by — the
+screen renderer's idea of somebody approaching. On the floor, where people literally walk, nothing
+was heard at all until this.
 
 Event SFX on top of the room tone: the session's first email plays **"You've got mail!"**
 (speech synthesis via the localized `mailAnnounce` line; plain chime fallback), walk-bys get
@@ -798,6 +823,29 @@ machine, entering a cubicle battle rings the **boxing bell**, and settling one l
 to the reading-pace timer when synthesis is muted or unavailable). The desk menu's **Voice**
 toggle (defaults ON, persisted opt-out) sits next to Noise; Focus cancels in-flight
 speech.
+
+Slice 2 closed the loudest gaps in that list:
+
+- **The talk channel had no cue in either direction.** `pushOfficeImPing` skips the arrival toast
+  for `channel: 'talk'` — correctly, since announcing a reply to something you just said is absurd
+  — but `playImPing` hung off that toast, so the whole out-loud conversation channel was silent.
+  It now murmurs, and only when the line will not actually be **voiced** (`onFloor && narration`),
+  because a ping over a colleague speaking is noise rather than detail. Sending gets a soft tick.
+- **A huddle seating is audible, and pair no longer sounds like mob.** `chairsGather` fires for a
+  mob, the existing single `chair` for a pair. It lands while the ring is drawn and before the
+  script exists, so it doubles as the feedback that the click registered.
+- **Day One has a door.** Checking in is the gesture that opens the audio gate and it made no sound
+  at all; `FloorArrival` had been receiving `playChime` as a deliberately-unused prop since it was
+  written. The cue fires one render _after_ the click — `primeOfficeAudio` starts an async decode on
+  that tick, and a beat's delay both stages better and lets the sample win over the synth fallback.
+- **Inbox zero rings.** It was already detected for the XP beat (`onOfficeEvent('emailRead',
+{ inboxZero })`) and simply never sounded.
+- **A prop that will not answer buzzes.** `useFloorPropUse`'s own header said a machine that
+  silently does nothing reads as a broken machine; the card saying so was half the answer.
+- **Desk-OS chrome has window sounds** — open, close, raise, and a paper sweep for "Tidy up",
+  driven by one `overlayStack` subscriber rather than a call at each site, so a new floating window
+  gets its sound without anybody remembering to add it. Pitched well under the event chimes: chrome
+  that clicks on every window is exhausting inside a minute.
 
 ## 7. Gamification
 

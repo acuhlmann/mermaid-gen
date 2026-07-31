@@ -84,6 +84,7 @@ export function FloorActors({
   talkLine,
   presence,
   onPresenceArrive,
+  onStep,
   playerRef,
   showSpokenText = true,
   showInviteText = true
@@ -116,6 +117,7 @@ export function FloorActors({
           speaking={speakingId === wanderer.seatId}
           onSelect={onSelect}
           onActivate={onActivate}
+          onStep={onStep}
         />
       ) : null}
 
@@ -149,6 +151,7 @@ export function FloorActors({
           walking
           walkKey={`roam:${presence.key}`}
           onArrive={onPresenceArrive}
+          onStep={onStep}
           elementRef={playerRef}
           testId={peek ? 'office-floor-peek-player' : 'office-floor-player'}
         />

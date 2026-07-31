@@ -57,7 +57,11 @@ Integrator & operator references:
 
 ## Credits
 
-The office room-tone bed (`apps/web/src/assets/audio/office-room-tone.mp3`) was generated with
-[ElevenLabs](https://elevenlabs.io) sound effects. Baked at build time and committed — ElevenLabs
-is not a runtime dependency. Generated under the free tier, which is licensed for **non-commercial
-use with attribution**; see [`docs/audio-assets.md`](docs/audio-assets.md).
+The office audio in `apps/web/src/assets/audio/` — the room-tone bed and every `cue-*.mp3` — was
+generated with [ElevenLabs](https://elevenlabs.io) sound effects. Baked at build time and committed
+— ElevenLabs is not a runtime dependency. Generated under the free tier, which is licensed for
+**non-commercial use with attribution**; see [`docs/audio-assets.md`](docs/audio-assets.md).
+
+Attribution covers the whole directory rather than a named file on purpose: the sampled cues are
+from the same generator as the bed, and a list of filenames goes stale the first time somebody adds
+one. The authoritative inventory is the `ASSETS` manifest in `scripts/generate-office-audio.sh`.

@@ -8,18 +8,33 @@
  */
 import {
   playChairSqueak,
+  playChairsGather,
   playDeskPhone,
   playDistantPrinter,
+  playDoorSwing,
   playElevatorDing,
   playEspressoMachine,
+  playFootstepPair,
+  playFridgeDoor,
   playKeyboardClatter,
   playMouseClicks,
   playPaperShuffle,
   playVendingMachine,
-  playWaterCooler
+  playWaterCooler,
+  playWhiteboardSqueak
 } from './agentChimes.js';
 import { playCueSample, warmAllCueSamples } from './officeCueSamples.js';
 
+/**
+ * Every cue needs a row here, sampled or not. `playOfficeCue` falls through to
+ * this table whenever the buffer is missing or still decoding, so a cue with no
+ * synth row is a cue that is silent on its first play — and for the door, the
+ * first play is the only play.
+ *
+ * Both footstep surfaces share one synth fallback deliberately: the difference
+ * between carpet and vinyl is exactly the kind of thing synthesis cannot sell,
+ * which is why they are sampled in the first place.
+ */
 const SYNTH_CUE_PLAYERS = {
   keyboard: playKeyboardClatter,
   mouse: playMouseClicks,
@@ -30,8 +45,21 @@ const SYNTH_CUE_PLAYERS = {
   watercooler: playWaterCooler,
   espresso: playEspressoMachine,
   vending: playVendingMachine,
-  elevator: playElevatorDing
+  elevator: playElevatorDing,
+  footstepCarpet: playFootstepPair,
+  footstepHard: playFootstepPair,
+  chairsGather: playChairsGather,
+  door: playDoorSwing,
+  whiteboard: playWhiteboardSqueak,
+  fridge: playFridgeDoor
 };
+
+/**
+ * Which cues can make a sound at all. Exported as names rather than as the
+ * table itself: a caller reaching for a player directly would skip the
+ * sample-first path, which is the one thing this module exists to enforce.
+ */
+export const SYNTH_CUES = Object.keys(SYNTH_CUE_PLAYERS);
 
 let warmedAll = false;
 
@@ -58,6 +86,10 @@ export function cuesForProp(propKind) {
       ];
     case 'waterCooler':
       return [{ cue: 'watercooler', near: true }];
+    case 'whiteboard':
+      // The one usable prop that was reachable and still silent — it has been
+      // in FLOOR_PROP_USES since slice 9 and never had a row here.
+      return [{ cue: 'whiteboard', near: true }];
     default:
       return [];
   }
@@ -66,15 +98,15 @@ export function cuesForProp(propKind) {
 /**
  * @param {string} cue
  * @param {{ current: AudioContext | null }} audioContextRef
- * @param {{ random?: () => number, near?: boolean }} [options]
+ * @param {{ random?: () => number, near?: boolean, pan?: number }} [options]
  */
 export function playOfficeCue(cue, audioContextRef, options = {}) {
-  const { random = Math.random, near = false } = options;
+  const { random = Math.random, near = false, pan } = options;
   if (!warmedAll) {
     warmAllCueSamples(audioContextRef);
     warmedAll = true;
   }
-  if (playCueSample(cue, audioContextRef, random, { near })) return;
+  if (playCueSample(cue, audioContextRef, random, { near, pan })) return;
   SYNTH_CUE_PLAYERS[cue]?.(audioContextRef);
 }
 
@@ -82,7 +114,7 @@ export function playOfficeCue(cue, audioContextRef, options = {}) {
  * Adapter for App's `playChime` gate: `playChime(officeCueChime('printer'))`.
  *
  * @param {string} cue
- * @param {{ random?: () => number, near?: boolean }} [options]
+ * @param {{ random?: () => number, near?: boolean, pan?: number }} [options]
  * @returns {(audioContextRef: { current: AudioContext | null }) => void}
  */
 export function officeCueChime(cue, options = {}) {

@@ -49,14 +49,27 @@ import {
   subscribe,
   voteOfficeBattle
 } from '../state/officeMomentStore.js';
+import { subscribeFloatingWindowReset } from '../state/floatingWindowControl.js';
+import {
+  getFocusedOverlayId,
+  getOpenOverlays,
+  subscribe as subscribeOverlayStack
+} from '../state/overlayStack.js';
 import {
   playBattleBell,
   playCalendarDing,
   playFootsteps,
   playImPing,
+  playInboxZero,
   playMailChime,
   playMeetingJoinBlip,
+  playPropJam,
+  playSendTick,
+  playTalkMurmur,
   playVictoryDing,
+  playWindowClose,
+  playWindowFocus,
+  playWindowOpen,
   playYouveGotMail
 } from '../utils/agentChimes.js';
 import { CAST_TIERS } from '../utils/castTiers.js';
@@ -417,9 +430,78 @@ export default function OfficeLayer({
     prevMeetingStateRef.current = meeting?.state ?? null;
   }, [meeting?.state, playChime]);
 
+  /*
+   * Desk-OS chrome. One subscriber rather than a call at each of the four sites
+   * that open or raise a window: `overlayStack` is a module-level store, every
+   * path through it ends in a notify, and diffing the snapshot here means a new
+   * surface gets its sound for free instead of being remembered about.
+   *
+   * The initial ids are read before subscribing so mounting into a session that
+   * already has windows open does not fire a burst of blips.
+   *
+   * At most one sound per notification, open winning over close winning over
+   * focus: opening a window also focuses it, and two blips for one click reads
+   * as a glitch rather than as detail.
+   */
+  useEffect(() => {
+    let prevIds = new Set(getOpenOverlays().map((o) => o.id));
+    let prevFocused = getFocusedOverlayId();
+    return subscribeOverlayStack(() => {
+      const ids = new Set(getOpenOverlays().map((o) => o.id));
+      const focused = getFocusedOverlayId();
+      let opened = false;
+      let closed = false;
+      for (const id of ids) if (!prevIds.has(id)) opened = true;
+      for (const id of prevIds) if (!ids.has(id)) closed = true;
+      if (opened) playChime?.(playWindowOpen);
+      else if (closed) playChime?.(playWindowClose);
+      else if (focused && focused !== prevFocused) playChime?.(playWindowFocus);
+      prevIds = ids;
+      prevFocused = focused;
+    });
+  }, [playChime]);
+
+  /*
+   * "Tidy up" — every window snapping back to its corner. Sampled paper rather
+   * than a new asset: the sound of a desk being straightened is already in the
+   * bank, and a sweep is the one window gesture with a physical referent.
+   * Single-window resets get it too; it is the same gesture at a smaller scale.
+   */
+  useEffect(
+    () => subscribeFloatingWindowReset(() => playChime?.(officeCueChime('paper'))),
+    [playChime]
+  );
+
   const handlePropCue = useCallback(
     (propKind) => {
       playPropCues(propKind, playChime);
+    },
+    [playChime]
+  );
+
+  /*
+   * Floor events that are not a prop (`onFloorCue`). The floor says what
+   * happened; the mapping to a sound lives here with the other event cues.
+   *
+   * `step` is the one that fires in bulk — once per walk leg, for you and for
+   * anybody else crossing the room — so it takes an explicit `pan` from the
+   * caller: a colleague's footsteps have to come from where the colleague is,
+   * and the random placement the ambient cues use would put them anywhere.
+   */
+  const handleFloorCue = useCallback(
+    (cue, options = {}) => {
+      if (cue === 'jam') {
+        playChime?.(playPropJam);
+        return;
+      }
+      if (cue === 'door') {
+        playChime?.(officeCueChime('door', { near: true }));
+        return;
+      }
+      if (cue === 'step') {
+        const sampled = options.surface === 'hard' ? 'footstepHard' : 'footstepCarpet';
+        playChime?.(officeCueChime(sampled, { near: options.near, pan: options.pan }));
+      }
     },
     [playChime]
   );
@@ -445,8 +527,11 @@ export default function OfficeLayer({
       const inboxZero = current.unreadCount === 1 && current.emails.length >= 2;
       markOfficeEmailRead(emailId);
       onOfficeEvent?.('emailRead', { inboxZero });
+      // The moment was already detected for the XP beat and simply never made a
+      // sound. Clearing the last unread is rare enough to earn a real sting.
+      if (inboxZero) playChime?.(playInboxZero);
     },
-    [onOfficeEvent]
+    [onOfficeEvent, playChime]
   );
 
   const [messengerOpen, setMessengerOpen] = useState(false);
@@ -787,10 +872,11 @@ export default function OfficeLayer({
     if (!text.trim()) return;
     setTalkPendingFor(talkSignal.colleagueId ?? null);
     setTalkPending(true);
+    playChime?.(playSendTick);
     void desk
       .talkOutLoud(talkSignal.colleagueId ?? null, { userMessage: text })
       .finally(() => setTalkPending(false));
-  }, [talkSignal, desk]);
+  }, [talkSignal, desk, playChime]);
 
   /*
    * The desk renderer of the talk channel reads the same `imHistory` the floor
@@ -806,6 +892,35 @@ export default function OfficeLayer({
     return null;
   }, [snapshot.imHistory]);
 
+  /*
+   * The talk channel was the one inbound surface with no cue at all.
+   * `pushOfficeImPing` skips `pushDeskArrival` for `channel: 'talk'` — rightly,
+   * since announcing a reply to something you just said is absurd — but
+   * `playImPing` hangs off that arrival, so skipping the toast also skipped the
+   * sound, in both renderers.
+   *
+   * The cue is conditional on the line not being *voiced*, because a murmur
+   * under a colleague actually speaking is just noise. **Both** renderers
+   * narrate a talk line now — the floor through `useFloorSpokenText`, the desk
+   * through `OfficeDeskSpeech`'s `useSpokenLineVoice` — so the condition is
+   * `narration` alone. It was `onFloor && narration` while the desk only
+   * rendered the remark as text; folding voice-first into desk talk made the
+   * `onFloor` half wrong, and wrong in the direction that doubles up.
+   *
+   * Residual case left deliberately: if TTS is on but fails, the bubble appears
+   * with no cue. Reporting that back would mean threading `spoken` up through
+   * two renderers for one edge, and the bubble is already the fallback that
+   * failure mode is designed around.
+   */
+  const prevTalkLineIdRef = useRef(latestTalkLine?.id ?? null);
+  useEffect(() => {
+    const talkId = latestTalkLine?.id ?? null;
+    if (talkId && talkId !== prevTalkLineIdRef.current) {
+      if (!snapshot.narration) playChime?.(playTalkMurmur);
+    }
+    prevTalkLineIdRef.current = talkId;
+  }, [latestTalkLine?.id, snapshot.narration, playChime]);
+
   // Slop Chat™ sending reuses the desk's "IM someone" verb, so a reply comes
   // back through the same LLM/canned ladder as any other IM — and therefore
   // lands in imHistory via pushOfficeImPing with no extra plumbing.
@@ -813,6 +928,7 @@ export default function OfficeLayer({
     async (colleagueId, body) => {
       pushOfficeImReply({ colleagueId, body });
       onOfficeEvent?.('imReply');
+      playChime?.(playSendTick);
       setMessengerBusy(true);
       try {
         const history = getOfficeSnapshot().imHistory;
@@ -822,7 +938,7 @@ export default function OfficeLayer({
         setMessengerBusy(false);
       }
     },
-    [desk, onOfficeEvent]
+    [desk, onOfficeEvent, playChime]
   );
 
   const handleMessageSomeone = useCallback(() => {
@@ -911,6 +1027,7 @@ export default function OfficeLayer({
         onTalkingChange: setFloorTalkingTo,
         onGetCoffee: desk.getCoffee,
         onPropCue: handlePropCue,
+        onFloorCue: handleFloorCue,
         onAdoptPrompt: handleAdopt,
         onDismissWalkBy: dismissOfficeWalkBy,
         coffee: snapshot.coffee,
@@ -947,6 +1064,7 @@ export default function OfficeLayer({
       handleTalkReply,
       desk.getCoffee,
       handlePropCue,
+      handleFloorCue,
       handleAdopt,
       narrateLine,
       prefetchLine,

@@ -240,6 +240,23 @@ export function zoneCentre([x0, y0, x1, y1]) {
 }
 
 /**
+ * Which floor zone contains a tile (first match), or `null` out in the open.
+ *
+ * @param {{ x: number, y: number } | null | undefined} tile
+ * @returns {(typeof FLOOR_ZONES)[number] | null}
+ */
+function zoneAt(tile) {
+  if (!tile || !Number.isFinite(tile.x) || !Number.isFinite(tile.y)) return null;
+  for (const zone of FLOOR_ZONES) {
+    const [x0, y0, x1, y1] = zone.rect;
+    if (tile.x >= x0 && tile.x <= x1 && tile.y >= y0 && tile.y <= y1) {
+      return zone;
+    }
+  }
+  return null;
+}
+
+/**
  * Which floor zone contains a tile (first match). Used for per-room room-tone
  * shaping without new audio assets — see `setRoomToneZone`.
  *
@@ -247,14 +264,40 @@ export function zoneCentre([x0, y0, x1, y1]) {
  * @returns {'neutral' | 'glass' | 'kitchen' | 'pod'}
  */
 export function floorZoneToneAt(tile) {
-  if (!tile || !Number.isFinite(tile.x) || !Number.isFinite(tile.y)) return 'neutral';
-  for (const zone of FLOOR_ZONES) {
-    const [x0, y0, x1, y1] = zone.rect;
-    if (tile.x >= x0 && tile.x <= x1 && tile.y >= y0 && tile.y <= y1) {
-      return zone.tone;
-    }
-  }
-  return 'neutral';
+  return zoneAt(tile)?.tone ?? 'neutral';
+}
+
+/**
+ * What a footstep lands on. Keyed on zone **id** rather than `tone`, because
+ * tone is a filter setting and two zones that should sound different underfoot
+ * share one: reception and the HR corner are both `neutral`, and only one of
+ * them is a lobby.
+ *
+ * @param {{ x: number, y: number } | null | undefined} tile
+ * @returns {'hard' | 'carpet'}
+ */
+export function floorSurfaceAt(tile) {
+  const id = zoneAt(tile)?.id;
+  return id === 'kitchen' || id === 'reception' ? 'hard' : 'carpet';
+}
+
+/**
+ * Where a tile sits in the stereo field, -1 (left) to 1 (right).
+ *
+ * Sibling of `bubbleAlignForTile` and deliberately the same derivation — the
+ * projected `left` against `STAGE_W` — so a sound and a speech bubble never
+ * disagree about which side of the room somebody is on. Damped rather than
+ * mapped to the full width: hard-panned footsteps read as being outside the
+ * room on headphones.
+ *
+ * @param {{ x: number, y: number } | null | undefined} tile
+ * @returns {number}
+ */
+export function stereoPanForTile(tile) {
+  if (!tile || !Number.isFinite(tile.x) || !Number.isFinite(tile.y)) return 0;
+  const { left } = projectIso(tile.x, tile.y);
+  const ratio = Math.max(0, Math.min(1, left / STAGE_W));
+  return (ratio * 2 - 1) * 0.7;
 }
 
 /**

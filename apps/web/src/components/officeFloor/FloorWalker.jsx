@@ -54,7 +54,8 @@ function WalkerBubble({ walkBy, sender, scale, onAdopt, onDismiss, hideBody }) {
  *   hideBody?: boolean,
  *   onAdopt?: (prompt: string, colleagueId: string) => void,
  *   onDismiss?: (id: string) => void,
- *   onDeparted?: () => void
+ *   onDeparted?: () => void,
+ *   onStep?: (tile: { x: number, y: number }, isYou?: boolean) => void
  * }} props
  */
 export function FloorWalker({
@@ -64,7 +65,8 @@ export function FloorWalker({
   hideBody = false,
   onAdopt,
   onDismiss,
-  onDeparted
+  onDeparted,
+  onStep
 }) {
   const ref = useRef(null);
   const outbound = walkPathFrom(walkBy.colleagueId);
@@ -73,7 +75,11 @@ export function FloorWalker({
 
   const { tile, arrived } = useWalkAnimation(ref, path.length ? path : fallback, {
     walkKey: `${walkBy.id}:${departing ? 'out' : 'in'}`,
-    onArrive: departing ? onDeparted : undefined
+    onArrive: departing ? onDeparted : undefined,
+    // Somebody else's approach, so it is placed rather than centred — and it
+    // carries on as they leave, which is what the desk renderer's one-shot
+    // `playFootsteps` could never do.
+    onLeg: onStep ? (legTile) => onStep(legTile, false) : undefined
   });
 
   const sender = officeSenderInfo(walkBy.colleagueId);

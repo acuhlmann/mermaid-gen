@@ -11,7 +11,7 @@
  * (you, walking to your desk for the first time).
  */
 
-import { useEffect, useLayoutEffect, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { projectIso, unprojectIso } from '../../utils/officeFloorPlan.js';
 
 /** Walking pace, ms per stage pixel, clamped so no leg drags or teleports. */
@@ -65,15 +65,31 @@ export function liveTileOf(el) {
 /**
  * @param {{ current: HTMLElement | null }} ref element positioned at the stage origin
  * @param {Array<{x: number, y: number}>} path
- * @param {{ walkKey: string, onArrive?: () => void, enabled?: boolean }} options
+ * @param {{ walkKey: string, onArrive?: () => void, onLeg?: (tile: {x: number, y: number}, leg: number) => void, enabled?: boolean }} options
  *   `walkKey` identifies one walk; changing it restarts the sequence.
+ *
+ *   `onLeg` fires as each leg starts, with the tile it is heading for. It exists
+ *   so a caller can sound a footstep without this hook knowing what audio is —
+ *   the leg loop is the only place in the app that knows how often a foot hits
+ *   the floor, and a leg is already clamped to 420–2000 ms, which is a walking
+ *   pace rather than an animation detail. Note that the reduced-motion and
+ *   no-engine branches below never enter the loop: stillness is silent for free,
+ *   with no second preference check.
  * @returns {{ tile: {x: number, y: number}, arrived: boolean }} current leg
  *   destination, for depth ordering.
  */
-export function useWalkAnimation(ref, path, { walkKey, onArrive, enabled = true }) {
+export function useWalkAnimation(ref, path, { walkKey, onArrive, onLeg, enabled = true }) {
   const start = path[0] ?? { x: 0, y: 0 };
   const [tile, setTile] = useState(start);
   const [arrived, setArrived] = useState(false);
+  /* Held in a ref, not a dependency: the walk effect re-runs only on `walkKey`
+   * / `enabled`, and a caller that rebuilds this callback each render would
+   * otherwise restart the animation mid-stride. Same reasoning `onArrive` is
+   * read through the closure the effect already captures. */
+  const onLegRef = useRef(onLeg);
+  useEffect(() => {
+    onLegRef.current = onLeg;
+  });
 
   // Place before first paint so the element never flashes at the stage origin.
   useLayoutEffect(() => {
@@ -114,6 +130,7 @@ export function useWalkAnimation(ref, path, { walkKey, onArrive, enabled = true 
         // Depth follows the leg's destination, so a walker passing a desk is
         // painted behind or in front of it correctly.
         setTile(path[leg]);
+        onLegRef.current?.(path[leg], leg);
         const animation = el.animate(
           [{ transform: transformFor(from) }, { transform: transformFor(to) }],
           {

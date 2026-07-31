@@ -34,18 +34,21 @@ import { propUseFor } from '../../utils/officeFloorProps.js';
  *   propKind: string | null,
  *   arrived: boolean,
  *   onGetCoffee?: () => Promise<boolean> | boolean,
- *   onPropCue?: (propKind: string) => void
+ *   onPropCue?: (propKind: string) => void,
+ *   onFloorCue?: (cue: string, options?: object) => void
  * }} options
  * @returns {{ phase: PropUsePhase }}
  */
-export function useFloorPropUse({ propKind, arrived, onGetCoffee, onPropCue }) {
+export function useFloorPropUse({ propKind, arrived, onGetCoffee, onPropCue, onFloorCue }) {
   const [phase, setPhase] = useState('idle');
   /** Which prop we have already used, so arriving does not re-fire on render. */
   const used = useRef(null);
   const alive = useRef(true);
   const onPropCueRef = useRef(onPropCue);
+  const onFloorCueRef = useRef(onFloorCue);
   useEffect(() => {
     onPropCueRef.current = onPropCue;
+    onFloorCueRef.current = onFloorCue;
   });
 
   useEffect(() => {
@@ -87,7 +90,14 @@ export function useFloorPropUse({ propKind, arrived, onGetCoffee, onPropCue }) {
       try {
         delivered = await fire(propKind);
       } finally {
-        if (alive.current) setPhase(delivered ? 'done' : 'blocked');
+        if (alive.current) {
+          setPhase(delivered ? 'done' : 'blocked');
+          // Point 2 of this file's own header: a machine that silently does
+          // nothing reads as a broken machine, and the card saying so was only
+          // half the answer — a jam you can hear is the half that arrives
+          // before you have read anything.
+          if (!delivered) onFloorCueRef.current?.('jam');
+        }
       }
     };
     void run();

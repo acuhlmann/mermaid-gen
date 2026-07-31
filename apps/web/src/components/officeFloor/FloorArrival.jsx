@@ -38,7 +38,8 @@ import { shouldShowSpokenText } from '../../utils/officeCaptions.js';
 import { OFFICE_NARRATION_GAP_MS } from '../../utils/officeNarration.js';
 import { writeOfficeDirectorySeen } from '../../utils/officeAmbienceStorage.js';
 import { primeOfficeAudio } from '../../utils/officeAudioPrime.js';
-import { RECEPTION_TILE, YOU_SEAT_ID } from '../../utils/officeFloorPlan.js';
+import { RECEPTION_TILE, YOU_SEAT_ID, floorSurfaceAt } from '../../utils/officeFloorPlan.js';
+import { officeCueChime } from '../../utils/officeCuePlayers.js';
 import { getOfficeSnapshot, setOfficeCaptions, subscribe } from '../../state/officeMomentStore.js';
 import { useUiCopy } from '../../i18n/useUiLocale.js';
 
@@ -79,10 +80,10 @@ export default function FloorArrival({
   onComplete,
   onSkipToBuild,
   getSessionId,
-  playChime: _playChime,
+  playChime,
   audioContextRef,
   hasInteractedRef,
-  soundEnabled: _soundEnabled = true
+  soundEnabled = true
 }) {
   useUiCopy();
   const chrome = officeChromeCopy();
@@ -183,6 +184,39 @@ export default function FloorArrival({
       setArrivedForBeat(true);
     }
   }, [audioContextRef, hasInteractedRef]);
+
+  /*
+   * The door, one render after the check-in click rather than during it.
+   *
+   * `handleCheckIn` calls `primeOfficeAudio`, which opens the sound gate and
+   * *starts* an async fetch+decode of every cue. A cue fired on that same tick
+   * finds no buffer and falls through to the synth door — survivable, since
+   * `playDoorSwing` exists precisely for this, but the sample is the one worth
+   * hearing. An effect on the phase change buys a full render's worth of decode
+   * and stages better besides: the door, and then you walk in.
+   */
+  useEffect(() => {
+    if (phase !== 'touring') return;
+    playChime?.(officeCueChime('door', { near: true }));
+  }, [phase, playChime]);
+
+  /*
+   * Your own footsteps on the way to Linda and on to your desk. `soundEnabled`
+   * is read here rather than left to the gate because this component is mounted
+   * before the office exists — there is no soundscape toggle yet, and the boot
+   * ceremony should not be the one surface that ignores the app-level mute.
+   */
+  const handleStep = useCallback(
+    (tile) => {
+      if (!soundEnabled) return;
+      playChime?.(
+        officeCueChime(floorSurfaceAt(tile) === 'hard' ? 'footstepHard' : 'footstepCarpet', {
+          near: true
+        })
+      );
+    },
+    [playChime, soundEnabled]
+  );
 
   const beginWalkHome = useCallback(() => {
     if (homeStartedRef.current) return;
@@ -347,6 +381,7 @@ export default function FloorArrival({
             walking={leg.walking}
             walkKey={leg.key}
             onArrive={leg.walking ? onPlayerArrive : undefined}
+            onStep={handleStep}
             testId="office-floor-arrival-player"
           >
             {showBubble && phase === 'walking-home' ? (

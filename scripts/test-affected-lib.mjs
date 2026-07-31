@@ -136,12 +136,18 @@ export const BLAST_RADIUS_RULES = [
     // Office audio. agentChimes.js has no test of its own, so basename matching
     // finds nothing for it — yet both sampled-audio modules import its shared
     // getContext, and the baked assets are what the cue/bed players decode.
+    //
+    // officeCuePlayers is in the list because it is the seam that binds a cue
+    // *name* to a chime function: renaming an export in agentChimes.js breaks
+    // SYNTH_CUE_PLAYERS silently, and officeCuePlayers.test.js is the only
+    // suite that asserts every cue has a fallback at all.
     match:
-      /apps\/web\/src\/(utils\/(agentChimes|officeRoomTone|officeCueSamples|officeSoundscape)|hooks\/(useOfficeRoomTone|useOfficeSoundscape))|apps\/web\/src\/assets\/audio\//,
+      /apps\/web\/src\/(utils\/(agentChimes|officeRoomTone|officeCueSamples|officeCuePlayers|officeSoundscape)|hooks\/(useOfficeRoomTone|useOfficeSoundscape))|apps\/web\/src\/assets\/audio\//,
     tests: [
       'apps/web/test/officeRoomTone.test.js',
       'apps/web/test/useOfficeRoomTone.test.jsx',
       'apps/web/test/officeCueSamples.test.js',
+      'apps/web/test/officeCuePlayers.test.js',
       'apps/web/test/officeSoundscape.test.js',
       'apps/web/test/useOfficeSoundscape.test.jsx'
     ]

@@ -124,6 +124,48 @@ describe('pickNextSoundscapeCue', () => {
   });
 });
 
+describe('zone-biased cues (the cheap half of per-room beds)', () => {
+  /**
+   * Sample the picker across the whole roll space, so the assertion is about
+   * the weight table rather than about one lucky `random()`.
+   */
+  function distribution(args) {
+    const counts = new Map();
+    for (let i = 0; i < 400; i += 1) {
+      const roll = i / 400;
+      const cue = pickNextSoundscapeCue({ ...BASE, ...args, random: () => roll });
+      if (cue) counts.set(cue, (counts.get(cue) ?? 0) + 1);
+    }
+    return counts;
+  }
+
+  it('plays the fridge far more often while you stand in the kitchen', () => {
+    const neutral = distribution({ atDesk: false, zone: 'neutral' });
+    const kitchen = distribution({ atDesk: false, zone: 'kitchen' });
+    expect(kitchen.get('fridge') ?? 0).toBeGreaterThan(neutral.get('fridge') ?? 0);
+  });
+
+  it('lifts the rest of the kitchen with it', () => {
+    const neutral = distribution({ atDesk: false, zone: 'neutral' });
+    const kitchen = distribution({ atDesk: false, zone: 'kitchen' });
+    for (const cue of ['espresso', 'watercooler', 'vending']) {
+      expect(kitchen.get(cue) ?? 0, `${cue} should rise in the kitchen`).toBeGreaterThan(
+        neutral.get(cue) ?? 0
+      );
+    }
+  });
+
+  it('ignores the zone at your desk — a stale standing position is not a room', () => {
+    const atDesk = distribution({ atDesk: true, zone: 'kitchen' });
+    const atDeskNeutral = distribution({ atDesk: true, zone: 'neutral' });
+    expect([...atDesk.entries()].sort()).toEqual([...atDeskNeutral.entries()].sort());
+  });
+
+  it('an unknown zone is simply no bias, never a crash', () => {
+    expect(() => pickNextSoundscapeCue({ ...BASE, atDesk: false, zone: 'nowhere' })).not.toThrow();
+  });
+});
+
 describe('office soundscape storage', () => {
   it('defaults ON and only persists the opt-out', () => {
     expect(readOfficeSoundscapeEnabled()).toBe(true);

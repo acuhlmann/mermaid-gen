@@ -1323,3 +1323,228 @@ export function playEspressoMachine(audioContextRef) {
   clink.start(clinkAt);
   clink.stop(clinkAt + 0.07);
 }
+
+/** ────────────────────────────────────────────────────────────────
+ *  Slice 2 additions.
+ *
+ *  Two groups, and the split is the same rule the rest of this file follows
+ *  (see officeCueSamples.js's header): a **tone** is synthesized here and never
+ *  sampled, because synthesis is the right tool for a bell. A **texture** is
+ *  sampled, and the function below exists only as the fallback that plays while
+ *  the buffer is still decoding — sampling is best-effort and the office never
+ *  goes quiet waiting on a download.
+ *
+ *  Everything here sits below the event chimes (~0.024–0.03 peak) on purpose.
+ *  Desk-OS chrome in particular fires on every window you open; at event-chime
+ *  level it would be exhausting within a minute.
+ *  ──────────────────────────────────────────────────────────────── */
+
+/** Fallback texture: two footfalls, one per walk leg. Sampled counterpart is
+ * `cue-footstep-carpet` / `cue-footstep-hard`. */
+export function playFootstepPair(audioContextRef) {
+  const context = getContext(audioContextRef);
+  if (!context) return;
+  const now = context.currentTime;
+  for (let i = 0; i < 2; i += 1) {
+    playNoiseBurst(context, {
+      at: now + i * 0.32,
+      durationSec: 0.05,
+      freqHz: 150 + (i % 2 === 0 ? 0 : 35) + Math.random() * 25,
+      q: 0.9,
+      peakGain: 0.006
+    });
+  }
+}
+
+/** Fallback texture: chairs rolling in as a huddle seats. Sampled counterpart
+ * is `cue-chairs-gather`. Deliberately messier than playChairSqueak — the whole
+ * point of the cue is that a mob sounds like more people than a pair. */
+export function playChairsGather(audioContextRef) {
+  const context = getContext(audioContextRef);
+  if (!context) return;
+  const now = context.currentTime;
+  for (let i = 0; i < 4; i += 1) {
+    const at = now + i * 0.16 + Math.random() * 0.07;
+    playNoiseBurst(context, {
+      at,
+      durationSec: 0.26 + Math.random() * 0.1,
+      freqHz: 220 + Math.random() * 160,
+      freqEndHz: 140 + Math.random() * 90,
+      q: 1.1,
+      peakGain: 0.007
+    });
+  }
+}
+
+/** Fallback texture: whiteboard marker squeak. Sampled: `cue-whiteboard`. */
+export function playWhiteboardSqueak(audioContextRef) {
+  const context = getContext(audioContextRef);
+  if (!context) return;
+  const now = context.currentTime;
+  for (let i = 0; i < 3; i += 1) {
+    const at = now + i * 0.19;
+    playNoiseBurst(context, {
+      at,
+      durationSec: 0.13,
+      freqHz: 1800 + Math.random() * 700,
+      freqEndHz: 1200 + Math.random() * 500,
+      q: 5.5,
+      peakGain: 0.006
+    });
+  }
+}
+
+/** Fallback texture: fridge door and bottles. Sampled: `cue-fridge`. */
+export function playFridgeDoor(audioContextRef) {
+  const context = getContext(audioContextRef);
+  if (!context) return;
+  const now = context.currentTime;
+  // Seal releasing.
+  playNoiseBurst(context, {
+    at: now,
+    durationSec: 0.3,
+    freqHz: 260,
+    freqEndHz: 170,
+    q: 0.7,
+    peakGain: 0.007
+  });
+  // Bottles.
+  for (let i = 0; i < 3; i += 1) {
+    playNoiseBurst(context, {
+      at: now + 0.34 + i * 0.08,
+      durationSec: 0.05,
+      freqHz: 2400 + Math.random() * 900,
+      q: 4,
+      peakGain: 0.004
+    });
+  }
+}
+
+/** Fallback texture: the lobby door on Day One. Sampled: `cue-door-badge`.
+ *
+ * This fallback matters more than the others. The door fires on the very first
+ * walk of a session, closest to `primeOfficeAudio` opening the gate, so it is
+ * the cue most likely to find its buffer still decoding. Without a fallback the
+ * one play that sets the tone for the whole office would be silence. */
+export function playDoorSwing(audioContextRef) {
+  const context = getContext(audioContextRef);
+  if (!context) return;
+  const now = context.currentTime;
+  playNoiseBurst(context, {
+    at: now,
+    durationSec: 0.42,
+    freqHz: 420,
+    freqEndHz: 190,
+    q: 0.6,
+    peakGain: 0.009
+  });
+  // The latch catching.
+  playNoiseBurst(context, {
+    at: now + 0.66,
+    durationSec: 0.07,
+    freqHz: 900,
+    q: 2.4,
+    peakGain: 0.008
+  });
+}
+
+/** A prop that would not answer — the printer with no paper, the machine that
+ * is "out of order". A flat two-pulse buzz, the universal sound of no. */
+export function playPropJam(audioContextRef) {
+  const context = getContext(audioContextRef);
+  if (!context) return;
+  const now = context.currentTime;
+  for (let i = 0; i < 2; i += 1) {
+    const t0 = now + i * 0.16;
+    const osc = context.createOscillator();
+    const gainNode = context.createGain();
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(146.83, t0);
+    applyGainEnvelope(gainNode, t0, 0.012, 0.11);
+    osc.connect(gainNode);
+    gainNode.connect(context.destination);
+    osc.start(t0);
+    osc.stop(t0 + 0.13);
+  }
+}
+
+/** Somebody said something to your face rather than in a thread. Softer and
+ * lower than playImPing, because the IM ping is a notification and this is a
+ * person — it only fires when narration did NOT actually voice the line. */
+export function playTalkMurmur(audioContextRef) {
+  playShortTone(audioContextRef, {
+    type: 'sine',
+    freqHz: 520,
+    freqEndHz: 610,
+    durationSec: 0.1,
+    peakGain: 0.018
+  });
+}
+
+/** Your own line leaving. Barely there — you know you pressed send. */
+export function playSendTick(audioContextRef) {
+  playShortTone(audioContextRef, {
+    type: 'sine',
+    freqHz: 1180,
+    durationSec: 0.04,
+    peakGain: 0.012
+  });
+}
+
+/** Desk-OS chrome: a window taking the screen. */
+export function playWindowOpen(audioContextRef) {
+  playShortTone(audioContextRef, {
+    type: 'triangle',
+    freqHz: 620,
+    freqEndHz: 880,
+    durationSec: 0.07,
+    peakGain: 0.011
+  });
+}
+
+/** Desk-OS chrome: a window giving it back. */
+export function playWindowClose(audioContextRef) {
+  playShortTone(audioContextRef, {
+    type: 'triangle',
+    freqHz: 760,
+    freqEndHz: 480,
+    durationSec: 0.07,
+    peakGain: 0.01
+  });
+}
+
+/** Desk-OS chrome: raising a window that was already open. The quietest thing
+ * in this file — it fires on every taskbar click. */
+export function playWindowFocus(audioContextRef) {
+  playShortTone(audioContextRef, {
+    type: 'sine',
+    freqHz: 1040,
+    durationSec: 0.035,
+    peakGain: 0.007
+  });
+}
+
+/** Inbox zero. Rare enough to earn a real two-note lift rather than a blip. */
+export function playInboxZero(audioContextRef) {
+  const context = getContext(audioContextRef);
+  if (!context) return;
+  const now = context.currentTime;
+  const notes = [
+    { freq: 783.99, dur: 0.11, peak: 0.022 },
+    { freq: 1174.66, dur: 0.2, peak: 0.024 }
+  ];
+  let offset = 0;
+  for (const note of notes) {
+    const osc = context.createOscillator();
+    const gainNode = context.createGain();
+    osc.type = 'sine';
+    const t0 = now + offset;
+    osc.frequency.setValueAtTime(note.freq, t0);
+    applyGainEnvelope(gainNode, t0, note.peak, note.dur);
+    osc.connect(gainNode);
+    gainNode.connect(context.destination);
+    osc.start(t0);
+    osc.stop(t0 + note.dur + 0.02);
+    offset += 0.1;
+  }
+}

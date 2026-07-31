@@ -99,6 +99,97 @@ describe('useWalkAnimation interrupts', () => {
   });
 });
 
+describe('useWalkAnimation onLeg (footsteps)', () => {
+  it('fires once per leg, with the tile that leg is heading for', async () => {
+    const el = document.createElement('div');
+    const animations = stubAnimate(el);
+    const ref = { current: el };
+    const onLeg = vi.fn();
+    const path = [
+      { x: 0, y: 0 },
+      { x: 1, y: 0 },
+      { x: 2, y: 0 }
+    ];
+
+    function Harness() {
+      useWalkAnimation(ref, path, { walkKey: 'walk', onLeg });
+      return null;
+    }
+
+    render(<Harness />);
+    await Promise.resolve();
+    // A leg at a time: the second only starts once the first has finished.
+    expect(onLeg).toHaveBeenCalledTimes(1);
+    expect(onLeg).toHaveBeenLastCalledWith({ x: 1, y: 0 }, 1);
+
+    animations[0].finish();
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(onLeg).toHaveBeenCalledTimes(2);
+    expect(onLeg).toHaveBeenLastCalledWith({ x: 2, y: 0 }, 2);
+  });
+
+  it('is silent when there is no animation engine — stillness costs no extra check', async () => {
+    // No stubAnimate: this is the jsdom/reduced-motion branch, which teleports
+    // to the destination and settles. A walk that does not travel has no steps,
+    // and that falls out of the leg loop never running rather than out of a
+    // second `prefersReducedMotion()` call that could drift.
+    const el = document.createElement('div');
+    const ref = { current: el };
+    const onLeg = vi.fn();
+    const onArrive = vi.fn();
+
+    function Harness() {
+      useWalkAnimation(
+        ref,
+        [
+          { x: 0, y: 0 },
+          { x: 5, y: 5 }
+        ],
+        { walkKey: 'still', onLeg, onArrive }
+      );
+      return null;
+    }
+
+    render(<Harness />);
+    await Promise.resolve();
+
+    expect(onArrive).toHaveBeenCalled();
+    expect(onLeg).not.toHaveBeenCalled();
+  });
+
+  it('does not restart the walk when the callback identity changes', async () => {
+    // Footstep handlers close over a cue emitter and are rebuilt freely by
+    // their callers. Held in a ref, so a new identity must not re-run the
+    // effect — a walk that restarts mid-stride teleports the walker home.
+    const el = document.createElement('div');
+    const animations = stubAnimate(el);
+    const ref = { current: el };
+
+    function Harness({ onLeg }) {
+      useWalkAnimation(
+        ref,
+        [
+          { x: 0, y: 0 },
+          { x: 3, y: 1 }
+        ],
+        { walkKey: 'stable', onLeg }
+      );
+      return null;
+    }
+
+    const view = render(<Harness onLeg={() => {}} />);
+    await Promise.resolve();
+    expect(animations).toHaveLength(1);
+
+    view.rerender(<Harness onLeg={() => {}} />);
+    await Promise.resolve();
+
+    expect(animations).toHaveLength(1);
+    expect(animations[0].cancel).not.toHaveBeenCalled();
+  });
+});
+
 describe('liveTileOf', () => {
   it('reads a walker’s position back out of its transform', () => {
     const el = document.createElement('div');

@@ -65,7 +65,8 @@ function awayLabel(sender, seatId, propKind, copy) {
  *   selected?: boolean,
  *   speaking?: boolean,
  *   onSelect?: ((id: string) => void) | null,
- *   onActivate?: ((id: string) => void) | null
+ *   onActivate?: ((id: string) => void) | null,
+ *   onStep?: (tile: { x: number, y: number }, isYou?: boolean) => void
  * }} props `elementRef` lets the hook read where they actually got to when a
  *   trip is turned round mid-stride (`liveTileOf`), exactly as free roam does
  *   for you. `onSelect` is what makes them reachable; without it they are the
@@ -85,7 +86,8 @@ export function FloorWanderer({
   selected,
   speaking,
   onSelect,
-  onActivate = null
+  onActivate = null,
+  onStep
 }) {
   const ownRef = useRef(null);
   const ref = elementRef ?? ownRef;
@@ -94,7 +96,11 @@ export function FloorWanderer({
 
   const { tile, arrived } = useWalkAnimation(ref, path, {
     walkKey: `wander:${seatId}:${leg}`,
-    onArrive
+    onArrive,
+    // Ambient traffic finally gets the one thing it is allowed to have. It says
+    // nothing and is announced nowhere (slice 11), but a room where somebody
+    // crosses it in total silence is a room that reads as empty.
+    onLeg: onStep ? (legTile) => onStep(legTile, false) : undefined
   });
 
   const sender = officeSenderInfo(seatId);

@@ -21,9 +21,12 @@ import {
   VISITOR_TILE,
   YOU_SEAT_ID,
   boxesOverlap,
+  bubbleAlignForTile,
   depthOf,
   figureBox,
   floorSeatIds,
+  floorSurfaceAt,
+  floorZoneToneAt,
   headBox,
   isOnFloor,
   liftToDepth,
@@ -34,6 +37,7 @@ import {
   peekableSeatIds,
   projectIso,
   seatFor,
+  stereoPanForTile,
   unprojectIso,
   walkPathBetween,
   walkPathFrom,
@@ -490,5 +494,70 @@ describe('zones', () => {
   it('has a unique id per zone', () => {
     const ids = FLOOR_ZONES.map((zone) => zone.id);
     expect(new Set(ids).size).toBe(ids.length);
+  });
+});
+
+describe('what a footstep lands on', () => {
+  /**
+   * The middle of a zone **in tiles**. Deliberately not `zoneCentre`, which
+   * projects to stage pixels for a label — feeding those back in as `{x, y}`
+   * would silently land outside every rect and make all four cases pass as
+   * 'carpet'.
+   */
+  function tileInZone(id) {
+    const zone = FLOOR_ZONES.find((z) => z.id === id);
+    if (!zone) throw new Error(`no zone '${id}' — the plan moved under this test`);
+    const [x0, y0, x1, y1] = zone.rect;
+    return { x: (x0 + x1) / 2, y: (y0 + y1) / 2 };
+  }
+
+  it('is hard in the kitchen and the lobby, carpet everywhere else', () => {
+    expect(floorSurfaceAt(tileInZone('kitchen'))).toBe('hard');
+    expect(floorSurfaceAt(tileInZone('reception'))).toBe('hard');
+    expect(floorSurfaceAt(tileInZone('pod'))).toBe('carpet');
+    expect(floorSurfaceAt(tileInZone('meeting'))).toBe('carpet');
+  });
+
+  it('separates the two neutral zones, which is the whole reason it reads ids', () => {
+    // reception and hrCorner share `tone: 'neutral'`, so a surface derived from
+    // the room-tone value could not tell a lobby from a carpeted corner.
+    expect(floorZoneToneAt(tileInZone('reception'))).toBe('neutral');
+    expect(floorZoneToneAt(tileInZone('hrCorner'))).toBe('neutral');
+    expect(floorSurfaceAt(tileInZone('reception'))).not.toBe(
+      floorSurfaceAt(tileInZone('hrCorner'))
+    );
+  });
+
+  it('is carpet out in the open and for a tile that is not a tile', () => {
+    expect(floorSurfaceAt(null)).toBe('carpet');
+    expect(floorSurfaceAt({ x: Number.NaN, y: 0 })).toBe('carpet');
+  });
+});
+
+describe('stereoPanForTile', () => {
+  it('agrees with bubbleAlignForTile about which side of the room somebody is on', () => {
+    // Both derive from the same projected `left`, which is the point: a sound
+    // and a speech bubble that disagreed would be worse than either alone.
+    for (const tile of FLOOR_SEATS) {
+      const align = bubbleAlignForTile(tile);
+      const pan = stereoPanForTile(tile);
+      if (align === 'start') expect(pan).toBeLessThan(0);
+      if (align === 'end') expect(pan).toBeGreaterThan(0);
+    }
+  });
+
+  it('stays inside StereoPanner range and never hard-pans', () => {
+    for (let x = -2; x <= GRID_W + 2; x += 1) {
+      for (let y = -2; y <= GRID_H + 2; y += 1) {
+        const pan = stereoPanForTile({ x, y });
+        expect(pan).toBeGreaterThanOrEqual(-0.7);
+        expect(pan).toBeLessThanOrEqual(0.7);
+      }
+    }
+  });
+
+  it('is dead centre for a tile it cannot place', () => {
+    expect(stereoPanForTile(null)).toBe(0);
+    expect(stereoPanForTile({ x: 'left', y: 2 })).toBe(0);
   });
 });

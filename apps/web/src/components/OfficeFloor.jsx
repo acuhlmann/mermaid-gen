@@ -35,7 +35,14 @@ import { useFloorWalker } from './officeFloor/useFloorWalker.js';
 import { MEETING_USER_SPEAKER } from '../hooks/useMeetingPlayback.js';
 import { useStageScale } from '../hooks/useStageScale.js';
 import { reachTileFor, whereaboutsOf } from '../utils/officeFloorReach.js';
-import { YOU_SEAT_ID, floorZoneToneAt, peekTileFor, seatFor } from '../utils/officeFloorPlan.js';
+import {
+  YOU_SEAT_ID,
+  floorSurfaceAt,
+  floorZoneToneAt,
+  peekTileFor,
+  seatFor,
+  stereoPanForTile
+} from '../utils/officeFloorPlan.js';
 import { setRoomToneZone } from '../utils/officeRoomTone.js';
 import {
   MEETING_MODALITY_REMOTE,
@@ -164,6 +171,7 @@ function OfficeFloorView({ bridge }) {
     onTalkingChange,
     onGetCoffee,
     onPropCue,
+    onFloorCue,
     onAdoptPrompt,
     onDismissWalkBy,
     coffee = null,
@@ -204,6 +212,7 @@ function OfficeFloorView({ bridge }) {
     onTalkingChange,
     onGetCoffee,
     onPropCue,
+    onFloorCue,
     onEngage: handleClosePerson
   });
   const { presence, peek, conversation, prop, propUse, origin, goHome, startTalk } = activity;
@@ -223,6 +232,27 @@ function OfficeFloorView({ bridge }) {
     setRoomToneZone(floorZoneToneAt(tile));
     return () => setRoomToneZone('neutral');
   }, [origin]);
+
+  /*
+   * One footstep per walk leg (`useWalkAnimation`'s `onLeg`). The walkers stay
+   * dumb — they report the tile they are heading for and whether it is you —
+   * and both derivations happen here, from the layout module, so a step and a
+   * speech bubble can never disagree about which side of the room somebody is
+   * standing on (`stereoPanForTile` is `bubbleAlignForTile`'s sibling).
+   *
+   * Your own steps are `near`: centred and louder, because you are the one
+   * listening. Everybody else's are placed where they are.
+   */
+  const handleStep = useCallback(
+    (tile, isYou = false) => {
+      onFloorCue?.('step', {
+        near: isYou,
+        surface: floorSurfaceAt(tile),
+        pan: isYou ? 0 : stereoPanForTile(tile)
+      });
+    },
+    [onFloorCue]
+  );
 
   /* Everybody who is out of their chair, for either reason (`useFloorAway`). */
   const { awayIds, wanderer, handleWanderArrive, wandererRef, floorState } = useFloorAway({
@@ -359,6 +389,7 @@ function OfficeFloorView({ bridge }) {
           onWalkerAdopt={onAdoptPrompt}
           onWalkerDismiss={onDismissWalkBy}
           onWalkerDeparted={handleDeparted}
+          onStep={handleStep}
           // A physical glass-room sync has you in a chair; the floor is not
           // yours to wander until you leave it. Remote headset syncs keep desks
           // occupied and still let you walk the floor.
@@ -397,6 +428,7 @@ function OfficeFloorView({ bridge }) {
             talkLine={activity.talkLine}
             presence={presence}
             onPresenceArrive={activity.handleArrive}
+            onStep={handleStep}
             playerRef={activity.playerRef}
             showSpokenText={showSpokenText}
             showInviteText={showInviteText}

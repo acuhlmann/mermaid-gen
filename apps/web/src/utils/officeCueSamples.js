@@ -16,12 +16,19 @@
  */
 import { getContext } from './agentChimes.js';
 import chairUrl from '../assets/audio/cue-chair.mp3';
+import chairsGatherUrl from '../assets/audio/cue-chairs-gather.mp3';
+import doorUrl from '../assets/audio/cue-door-badge.mp3';
 import espressoUrl from '../assets/audio/cue-espresso.mp3';
+import footstepCarpetUrl from '../assets/audio/cue-footstep-carpet.mp3';
+import footstepHardUrl from '../assets/audio/cue-footstep-hard.mp3';
+import fridgeUrl from '../assets/audio/cue-fridge.mp3';
 import keyboardUrl from '../assets/audio/cue-keyboard.mp3';
+import keyboardBUrl from '../assets/audio/cue-keyboard-b.mp3';
 import paperUrl from '../assets/audio/cue-paper.mp3';
 import printerUrl from '../assets/audio/cue-printer.mp3';
 import vendingUrl from '../assets/audio/cue-vending.mp3';
 import watercoolerUrl from '../assets/audio/cue-watercooler.mp3';
+import whiteboardUrl from '../assets/audio/cue-whiteboard.mp3';
 
 /**
  * Each asset is peak-normalized to −3 dBFS (0.708 linear), so `gain` is simply
@@ -37,16 +44,42 @@ import watercoolerUrl from '../assets/audio/cue-watercooler.mp3';
  * `spread` is how far across the stereo field the cue may be placed, randomly,
  * per play. Desk textures happen at *your* desk and stay centred; the set
  * pieces are somewhere else in the room, and moving them around is most of
- * what stops a repeated sample sounding like a repeated sample.
+ * what stops a repeated sample sounding like a repeated sample. A cue whose
+ * caller passes an explicit `pan` (footsteps, which belong to somebody you can
+ * see) uses `spread` only as the fallback when it does not.
+ *
+ * `urls` is a list because one recording of a frequent cue wears thin: keyboard
+ * fires ~4× more often than any set piece, so it has a second take picked at
+ * random per play. Variants are takes of *one* sound, never two sounds — they
+ * share a gain and a spread because they are meant to be indistinguishable in
+ * placement and level, and different only in detail.
  */
 const SAMPLES = {
-  keyboard: { url: keyboardUrl, gain: 0.028, spread: 0.15 },
-  paper: { url: paperUrl, gain: 0.018, spread: 0.15 },
-  chair: { url: chairUrl, gain: 0.012, spread: 0.25 },
-  printer: { url: printerUrl, gain: 0.0099, spread: 0.7 },
-  watercooler: { url: watercoolerUrl, gain: 0.0155, spread: 0.6 },
-  espresso: { url: espressoUrl, gain: 0.0169, spread: 0.6 },
-  vending: { url: vendingUrl, gain: 0.0169, spread: 0.7 }
+  keyboard: { urls: [keyboardUrl, keyboardBUrl], gain: 0.028, spread: 0.15 },
+  paper: { urls: [paperUrl], gain: 0.018, spread: 0.15 },
+  chair: { urls: [chairUrl], gain: 0.012, spread: 0.25 },
+  printer: { urls: [printerUrl], gain: 0.0099, spread: 0.7 },
+  watercooler: { urls: [watercoolerUrl], gain: 0.0155, spread: 0.6 },
+  espresso: { urls: [espressoUrl], gain: 0.0169, spread: 0.6 },
+  vending: { urls: [vendingUrl], gain: 0.0169, spread: 0.7 },
+  /*
+   * Slice 2. Gains follow the same rule as the rest of this table — the synth
+   * cue's hand-tuned `peakGain` ÷ 0.708 — except that these had no predecessor,
+   * so the peak is the one written for their fallback in `agentChimes.js`,
+   * chosen against the existing 0.006–0.014 range. First candidates for a
+   * by-ear pass (docs/audio-assets.md open item 6).
+   *
+   * Footsteps are pitched deliberately below that derivation. Every other cue
+   * fires at most once per moment; a footstep fires once per walk leg, so it is
+   * the only sample that repeats *within* a single gesture, and repetitive plus
+   * loud is the shortest path to a sound people turn off.
+   */
+  footstepCarpet: { urls: [footstepCarpetUrl], gain: 0.007, spread: 0.5 },
+  footstepHard: { urls: [footstepHardUrl], gain: 0.007, spread: 0.5 },
+  chairsGather: { urls: [chairsGatherUrl], gain: 0.0099, spread: 0.3 },
+  door: { urls: [doorUrl], gain: 0.0127, spread: 0 },
+  whiteboard: { urls: [whiteboardUrl], gain: 0.0085, spread: 0.3 },
+  fridge: { urls: [fridgeUrl], gain: 0.0099, spread: 0.6 }
 };
 
 /** Standing next to the source — louder, centred, not "down the hall". */
@@ -64,6 +97,27 @@ const buffers = new Map();
 /** @type {Set<string>} */
 const loading = new Set();
 
+/** Clamp a caller-supplied pan into StereoPanner's range, or `null` if absent. */
+function toPan(value) {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return null;
+  return Math.max(-1, Math.min(1, value));
+}
+
+/**
+ * Where in the stereo field this play sits, or `null` for dead centre (which
+ * costs a node and is the right answer for `near`).
+ *
+ * @returns {StereoPannerNode | null}
+ */
+function makePanner(context, { near, entry, random, pan }) {
+  if (near || typeof context.createStereoPanner !== 'function') return null;
+  const fixed = toPan(pan);
+  if (fixed === null && !(entry.spread > 0)) return null;
+  const panner = context.createStereoPanner();
+  panner.pan.value = fixed ?? (random() * 2 - 1) * entry.spread;
+  return panner;
+}
+
 function decodeAudio(context, arrayBuffer) {
   return new Promise((resolve, reject) => {
     const maybePromise = context.decodeAudioData(arrayBuffer, resolve, reject);
@@ -74,26 +128,50 @@ function decodeAudio(context, arrayBuffer) {
 }
 
 /**
- * Fetch and decode in the background. The play that triggered this falls back
- * to synthesis; the next one gets the sample.
+ * Fetch and decode one variant in the background. The play that triggered this
+ * falls back to synthesis; the next one gets the sample.
  */
-function warm(cue, context) {
-  if (buffers.has(cue) || loading.has(cue) || typeof fetch !== 'function') return;
-  const entry = SAMPLES[cue];
-  if (!entry) return;
-  loading.add(cue);
-  void fetch(entry.url)
+function warmVariant(cue, index, url, context) {
+  const key = `${cue}:${index}`;
+  if (buffers.has(key) || loading.has(key) || typeof fetch !== 'function') return;
+  loading.add(key);
+  void fetch(url)
     .then((response) => (response.ok ? response.arrayBuffer() : null))
     .then((arrayBuffer) => (arrayBuffer ? decodeAudio(context, arrayBuffer) : null))
     .then((buffer) => {
-      if (buffer) buffers.set(cue, buffer);
+      if (buffer) buffers.set(key, buffer);
     })
     .catch(() => {
-      // Leave the cue unsampled — it keeps playing its synthesized version.
+      // Leave this variant unsampled — the cue keeps its synthesized version,
+      // or its other variants if any of those decoded.
     })
     .finally(() => {
-      loading.delete(cue);
+      loading.delete(key);
     });
+}
+
+/** Warm every variant of a cue. */
+function warm(cue, context) {
+  const entry = SAMPLES[cue];
+  if (!entry) return;
+  entry.urls.forEach((url, index) => warmVariant(cue, index, url, context));
+}
+
+/**
+ * One decoded variant at random, or `null` if none are ready yet.
+ *
+ * Chooses among the variants that have actually decoded rather than rolling
+ * first and checking second: a cue whose take A is warm and take B is not
+ * would otherwise fall back to synthesis half the time for no reason.
+ */
+function pickBuffer(cue, entry, random) {
+  const ready = [];
+  for (let i = 0; i < entry.urls.length; i += 1) {
+    const buffer = buffers.get(`${cue}:${i}`);
+    if (buffer) ready.push(buffer);
+  }
+  if (ready.length === 0) return null;
+  return ready[Math.min(ready.length - 1, Math.floor(random() * ready.length))];
 }
 
 /**
@@ -102,7 +180,12 @@ function warm(cue, context) {
  * @param {string} cue
  * @param {{ current: AudioContext | null }} audioContextRef
  * @param {() => number} [random]
- * @param {{ near?: boolean }} [options] `near` = standing at the source (louder, centred)
+ * @param {{ near?: boolean, pan?: number }} [options] `near` = standing at the
+ *   source (louder, centred). `pan` (-1..1) places the cue explicitly instead of
+ *   randomly within `spread` — random placement is what stops a *repeated*
+ *   sample sounding repeated, but a cue that belongs to somebody visible has to
+ *   come from where they are, or the sound and the picture disagree. `near`
+ *   still wins: standing at the source is centred by definition.
  * @returns {boolean} whether the sample played — false means "use the synth cue"
  */
 export function playCueSample(cue, audioContextRef, random = Math.random, options = {}) {
@@ -111,7 +194,7 @@ export function playCueSample(cue, audioContextRef, random = Math.random, option
   const context = getContext(audioContextRef);
   if (!context || typeof context.createBufferSource !== 'function') return false;
 
-  const buffer = buffers.get(cue);
+  const buffer = pickBuffer(cue, entry, random);
   if (!buffer) {
     warm(cue, context);
     return false;
@@ -127,11 +210,9 @@ export function playCueSample(cue, audioContextRef, random = Math.random, option
     const base = entry.gain * (near ? NEAR_GAIN : 1);
     gainNode.gain.value = base * (1 + (random() * 2 - 1) * GAIN_JITTER);
 
+    const panner = makePanner(context, { near, entry, random, pan: options?.pan });
     let tail = gainNode;
-    const spread = near ? 0 : entry.spread;
-    if (spread > 0 && typeof context.createStereoPanner === 'function') {
-      const panner = context.createStereoPanner();
-      panner.pan.value = (random() * 2 - 1) * spread;
+    if (panner) {
       gainNode.connect(panner);
       tail = panner;
     }

@@ -136,6 +136,63 @@ describe('officeCueSamples', () => {
     expect(printerPan).toBeGreaterThan(keyboardPan);
   });
 
+  it('fetches every variant of a multi-take cue', async () => {
+    playCueSample('keyboard', ref);
+    await settle();
+    // keyboard has a second take because it fires ~4x more than anything else.
+    expect(globalThis.fetch).toHaveBeenCalledTimes(2);
+  });
+
+  it('plays a decoded variant rather than rolling and hoping', async () => {
+    // Only take A resolves; take B never does. Rolling first and checking
+    // second would fall back to synthesis half the time for no reason.
+    let call = 0;
+    globalThis.fetch = vi.fn(() => {
+      call += 1;
+      return call === 1
+        ? Promise.resolve({ ok: true, arrayBuffer: () => Promise.resolve(new ArrayBuffer(8)) })
+        : Promise.resolve({ ok: false });
+    });
+
+    playCueSample('keyboard', ref);
+    await settle();
+
+    // Every roll, including the one that would have picked take B.
+    for (const roll of [0, 0.5, 0.99]) {
+      expect(playCueSample('keyboard', ref, () => roll)).toBe(true);
+    }
+  });
+
+  it('honours an explicit pan, so a walker is heard where they are', async () => {
+    playCueSample('printer', ref);
+    await settle();
+
+    // `random` would place this hard right; the caller's pan must win.
+    playCueSample('printer', ref, () => 1, { pan: -0.6 });
+    expect(stubs.panners.at(-1).pan.value).toBeCloseTo(-0.6, 6);
+  });
+
+  it('clamps a pan into range instead of trusting the caller', async () => {
+    playCueSample('printer', ref);
+    await settle();
+
+    playCueSample('printer', ref, () => 0.5, { pan: -9 });
+    expect(stubs.panners.at(-1).pan.value).toBe(-1);
+    playCueSample('printer', ref, () => 0.5, { pan: Number.NaN });
+    // Not a number at all → fall back to the random placement, not to a throw.
+    expect(Number.isFinite(stubs.panners.at(-1).pan.value)).toBe(true);
+  });
+
+  it('centres a near play even when a pan was passed', async () => {
+    // Standing at the machine is centred by definition; a caller that supplies
+    // both is describing where the *thing* is, not where you are.
+    playCueSample('printer', ref);
+    await settle();
+
+    playCueSample('printer', ref, () => 0.5, { near: true, pan: 0.9 });
+    expect(stubs.panners).toHaveLength(0);
+  });
+
   it('still plays where the browser has no StereoPanner', async () => {
     _resetCueSamplesForTests();
     stubs = createAudioStubs({ withPanner: false });

@@ -1,11 +1,14 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
+  SYNTH_CUES,
   cuesForProp,
   officeCueChime,
   playOfficeCue,
   playPropCues
 } from '../src/utils/officeCuePlayers.js';
-import { _resetCueSamplesForTests } from '../src/utils/officeCueSamples.js';
+import { SAMPLED_CUES, _resetCueSamplesForTests } from '../src/utils/officeCueSamples.js';
+import { FLOOR_PROP_USES } from '../src/utils/officeFloorProps.js';
+import { SOUNDSCAPE_CUES } from '../src/utils/officeSoundscape.js';
 
 afterEach(() => {
   _resetCueSamplesForTests();
@@ -28,9 +31,42 @@ describe('cuesForProp', () => {
     expect(cuesForProp('waterCooler')).toEqual([{ cue: 'watercooler', near: true }]);
   });
 
-  it('is silent for props with no diegetic sound', () => {
-    expect(cuesForProp('whiteboard')).toEqual([]);
+  it('squeaks a marker at the whiteboard — the usable prop that had no row', () => {
+    expect(cuesForProp('whiteboard')).toEqual([{ cue: 'whiteboard', near: true }]);
+  });
+
+  it('is silent for scenery', () => {
+    // `plant` is not in FLOOR_PROP_USES, so you can never stand at it. Scenery
+    // staying silent is what keeps the four usable props worth walking to.
     expect(cuesForProp('plant')).toEqual([]);
+    expect(cuesForProp('fridge')).toEqual([]);
+  });
+
+  it('gives every usable prop a cue', () => {
+    // The gap this closed was invisible: whiteboard had been reachable since
+    // slice 9 and silent the whole time, because nothing checked the two lists
+    // against each other.
+    for (const { kind } of FLOOR_PROP_USES) {
+      expect(cuesForProp(kind).length, `${kind} has no cue`).toBeGreaterThan(0);
+    }
+  });
+});
+
+describe('every cue can actually make a sound', () => {
+  it('gives each scheduled cue a synth player', () => {
+    // The fallback table is what makes sampling best-effort. A cue the brain
+    // can schedule but the table has no row for is silent on every play until
+    // its buffer decodes — and for a one-shot like the door, that is the only
+    // play there is.
+    for (const cue of SOUNDSCAPE_CUES) {
+      expect(SYNTH_CUES, `${cue} has no synth fallback`).toContain(cue);
+    }
+  });
+
+  it('gives each sampled cue a synth player too', () => {
+    for (const cue of SAMPLED_CUES) {
+      expect(SYNTH_CUES, `${cue} has no synth fallback`).toContain(cue);
+    }
   });
 });
 

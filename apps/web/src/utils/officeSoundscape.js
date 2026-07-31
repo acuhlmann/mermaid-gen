@@ -40,7 +40,8 @@ const CUE_WEIGHTS = [
   ['watercooler', 0.9],
   ['espresso', 1.2],
   ['vending', 0.7],
-  ['elevator', 0.6]
+  ['elevator', 0.6],
+  ['fridge', 0.8]
 ];
 
 /** Desk textures get this multiplier while you are sitting at your screen. */
@@ -50,6 +51,20 @@ const AT_DESK_SET_PIECE_SCALE = 0.55;
 /** On the floor, set pieces (kitchen, printer) step forward. */
 const ON_FLOOR_SET_PIECE_BOOST = 1.6;
 
+/**
+ * Cues that belong to a room, and how much louder that room makes them.
+ *
+ * This is the cheap half of "per-room beds" (docs/audio-assets.md): a second
+ * 30 s ElevenLabs bed costs 300 credits and an entire crossfading multi-buffer
+ * player, where standing in the kitchen and hearing the kitchen's own sounds
+ * three times as often costs one 20-credit cue and this table. The bed keeps
+ * doing the room's *timbre* through `setRoomToneZone`'s filter; this does its
+ * *events*, which is the half a filter cannot fake.
+ */
+const ZONE_CUES = {
+  kitchen: { fridge: 3, espresso: 2.2, watercooler: 2, vending: 1.8 }
+};
+
 export const SOUNDSCAPE_CUES = CUE_WEIGHTS.map(([cue]) => cue);
 
 /** Desk textures that may play twice in a row; everything else is a set piece. */
@@ -57,15 +72,20 @@ const REPEATABLE_CUES = new Set(['keyboard', 'mouse', 'paper']);
 
 /**
  * @param {string} cue
+ * @param {number} base
  * @param {boolean} atDesk
+ * @param {string} zone
  * @returns {number}
  */
-function weightFor(cue, base, atDesk) {
+function weightFor(cue, base, atDesk, zone) {
   const deskTexture = REPEATABLE_CUES.has(cue);
   if (atDesk) {
+    // Zone never applies at the desk: you are looking at a screen, and the
+    // floor's idea of where you are standing is stale the moment you sit down.
     return deskTexture ? base * AT_DESK_TEXTURE_BOOST : base * AT_DESK_SET_PIECE_SCALE;
   }
-  return deskTexture ? base : base * ON_FLOOR_SET_PIECE_BOOST;
+  const zoned = base * (ZONE_CUES[zone]?.[cue] ?? 1);
+  return deskTexture ? zoned : zoned * ON_FLOOR_SET_PIECE_BOOST;
 }
 
 /**
@@ -75,9 +95,11 @@ function weightFor(cue, base, atDesk) {
  *   lastPlayedAt: number,
  *   lastCue?: string | null,
  *   atDesk?: boolean,
+ *   zone?: 'neutral' | 'glass' | 'kitchen' | 'pod',
  *   random?: () => number
- * }} args
- * @returns {'keyboard'|'mouse'|'paper'|'printer'|'chair'|'phone'|'watercooler'|'espresso'|'vending'|'elevator'|null}
+ * }} args `zone` is where you are standing on the floor (`floorZoneToneAt`);
+ *   ignored at the desk.
+ * @returns {'keyboard'|'mouse'|'paper'|'printer'|'chair'|'phone'|'watercooler'|'espresso'|'vending'|'elevator'|'fridge'|null}
  */
 export function pickNextSoundscapeCue({
   now,
@@ -85,6 +107,7 @@ export function pickNextSoundscapeCue({
   lastPlayedAt,
   lastCue = null,
   atDesk = true,
+  zone = 'neutral',
   random = Math.random
 }) {
   if (now - sessionStartedAt < SOUNDSCAPE_FIRST_CUE_MIN_MS) return null;
@@ -95,7 +118,7 @@ export function pickNextSoundscapeCue({
   if (lastPlayedAt > 0 && now - lastPlayedAt < requiredGap) return null;
 
   const eligible = CUE_WEIGHTS.filter(([cue]) => REPEATABLE_CUES.has(cue) || cue !== lastCue).map(
-    ([cue, base]) => /** @type {[string, number]} */ ([cue, weightFor(cue, base, atDesk)])
+    ([cue, base]) => /** @type {[string, number]} */ ([cue, weightFor(cue, base, atDesk, zone)])
   );
   const total = eligible.reduce((sum, [, weight]) => sum + weight, 0);
   let roll = random() * total;

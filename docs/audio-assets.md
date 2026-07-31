@@ -119,35 +119,123 @@ All paths below are relative to `apps/web/src/assets/audio/`.
 **Total: 379 KB, 510 credits.** The `elevator`, `phone` and `mouse` cues are deliberately absent —
 they are tones, and stay synthesized in `agentChimes.js`.
 
+### Slice 2 — the moments that were dead air
+
+Seven cues aimed at moments with no sound at all, rather than at deepening cues that already
+worked. Generated 2026-07-31.
+
+| Asset                     | Kind | Length | Size  | Cost | Fires on                                                              |
+| ------------------------- | ---- | ------ | ----- | ---- | --------------------------------------------------------------------- |
+| `cue-footstep-carpet.mp3` | cue  | 1.8 s  | 14 KB | 20   | every walk leg on carpet — you, walk-bys, wanderers                   |
+| `cue-footstep-hard.mp3`   | cue  | 2.0 s  | 17 KB | 20   | the same, in the kitchen and the lobby (`floorSurfaceAt`)             |
+| `cue-chairs-gather.mp3`   | cue  | 2.8 s  | 23 KB | 30   | a **mob** huddle seating; a pair keeps the single `cue-chair`         |
+| `cue-door-badge.mp3`      | cue  | 1.8 s  | 14 KB | 30   | Day One check-in, one render after the gate opens                     |
+| `cue-keyboard-b.mp3`      | cue  | 3.0 s  | 24 KB | 30   | second take of `cue-keyboard`, picked at random                       |
+| `cue-whiteboard.mp3`      | cue  | 1.9 s  | 16 KB | 20   | walking up to the whiteboard — usable since slice 9, silent until now |
+| `cue-fridge.mp3`          | cue  | 0.7 s  | 6 KB  | 20   | ambient, weighted ×3 while you stand in the kitchen zone              |
+
+**Adds 116 KB and 170 credits** for a running total of **495 KB, 680 credits**.
+
+Two of these are worth flagging as design decisions rather than content:
+
+- **`cue-fridge` is ambient, not a prop cue.** The fridge is scenery and `FLOOR_PROP_USES` stays at
+  four — `officeFloorProps.js` argues the number in prose, and a fifth usable prop would be a
+  product change smuggled in as an audio one. Instead `ZONE_CUES` in `officeSoundscape.js` weights
+  the kitchen's own cues while you stand there. That buys most of what a per-room bed would (open
+  item 3) for 20 credits instead of 300, and needs no crossfading multi-buffer player.
+- **Both footstep surfaces share one synth fallback.** Telling carpet from vinyl is exactly what
+  synthesis cannot do, which is the reason they are sampled; pretending otherwise in the fallback
+
+Two of these are worth flagging as design decisions rather than content:
+
+- **`cue-fridge` is ambient, not a prop cue.** The fridge is scenery and `FLOOR_PROP_USES` stays at
+  four — `officeFloorProps.js` argues the number in prose, and a fifth usable prop would be a
+  product change smuggled in as an audio one. Instead `ZONE_CUES` in `officeSoundscape.js` weights
+  the kitchen's own cues while you stand there. That buys most of what a per-room bed would (open
+  item 3) for 20 credits instead of 300, and needs no crossfading multi-buffer player.
+- **Both footstep surfaces share one synth fallback.** Telling carpet from vinyl is exactly what
+  synthesis cannot do, which is the reason they are sampled; pretending otherwise in the fallback
+  would just be two names for one sound.
+
+**Ordering, learned the hard way:** add the `SAMPLES` rows in `officeCueSamples.js` **last**. Vite
+resolves `import url from '…/cue-x.mp3'` at build time, so a row whose file does not exist is a hard
+build failure, not a graceful fallback. Everything else about a cue — the synth fallback, the
+trigger, the weight — can and should land first, because that keeps the moment audible while the
+asset is pending.
+
+**Three environment traps this generation hit**, all now handled in the script so the next run does
+not rediscover them:
+
+1. **`python3` on Windows is the Microsoft Store alias stub.** It is on `PATH`, so `command -v`
+   succeeds; running it prints an ad and exits. The script now probes candidates (`python3`,
+   `python`, `py`) for one that actually reports Python 3, and fails up front rather than
+   mid-generation looking like an API error.
+2. **Windows Python writes CRLF and `$(…)` strips only the LF.** The stray `\r` rides into ffmpeg
+   as part of a number, which rejects it as `Invalid duration for option t: 2.000` — after the API
+   call has already been billed. Numeric hand-offs now go through a `pynum` helper that strips it.
+   (The JSON request body does not need it: a trailing `\r` is insignificant JSON whitespace.)
+3. **A UTF-8 BOM in `.env`** made the shell try to run `<BOM>PORT=4000` as a command and abort under
+   `set -e`. Stripped on the way in rather than by rewriting `.env`, which is on CLAUDE.md's
+   don't-touch list.
+
+Trap 2 is the expensive one: it burned 20 credits on a take that was generated and then discarded,
+which is the argument for generating one asset at a time on any unfamiliar machine.
+
 ## Status and outstanding work
 
-_Last updated 2026-07-27._
+_Last updated 2026-07-31._
 
-**Quota ledger.** 1,130 of the month's 10,000 credits were spent producing the current inventory:
-510 on the assets that shipped, and 620 on exploration that did not (two rejected bed variants at
-300 each, plus 20 in probes). Regenerating everything in the manifest costs 510. Assume roughly
-**8,900 credits were left in the July 2026 window**; the allowance resets monthly, so check before
-planning a large batch rather than trusting this number.
+**Quota ledger.** **1,340 of July 2026's 10,000 credits** spent in total:
+
+| Batch                  | Shipped | Wasted  | Note                                                     |
+| ---------------------- | ------- | ------- | -------------------------------------------------------- |
+| Bed + first seven cues | 510     | 620     | two rejected bed variants at 300 each, plus 20 in probes |
+| Slice 2 (seven cues)   | 170     | 20      | one whiteboard take lost to the CRLF trap above          |
+| **Total**              | **680** | **640** |                                                          |
+
+Regenerating everything now in the manifest costs 680. Assume roughly **8,660 credits were left in
+the July window**; the allowance resets monthly, so check the dashboard before planning a large
+batch rather than trusting this number.
+
+Budget re-rolls, not just the manifest total: last time more credits went on rejected takes than on
+shipped ones. Beds are where that happens (300 a roll); a 20-credit cue is cheap to re-roll, which
+is the argument for generating one asset at a time rather than the whole manifest.
 
 **Open, in rough order of value:**
 
-1. **`ROOM_TONE_GAIN` has never been tuned by ear in the running app.** It is `0.09` in
-   `officeRoomTone.js`, derived so the bed sits under cues peaking 0.006–0.014, and approved from
-   an offline mix that got the _relative_ balance right. Absolute presence against a real system
-   volume is a different judgement. Costs nothing to change — one constant, no regeneration.
-2. **Diegetic prop cues are wired for the printer and coffee; the water cooler is still
-   unreachable** on the isometric floor (§6 rule 21). If a standable mark is found for the cooler,
-   `cuesForProp('waterCooler')` already returns the watercooler sample — no second wiring pass.
+1. **`ROOM_TONE_GAIN` has never been tuned by ear in the running app.** Derived so the bed sits
+   under cues peaking 0.006–0.014, and approved from an offline mix that got the _relative_ balance
+   right; absolute presence against a real system volume is a different judgement. Costs nothing to
+   change — no regeneration. (The single constant this used to name is gone: the code now splits
+   into `ROOM_TONE_GAIN_DESK = 0.055` and `ROOM_TONE_GAIN_FLOOR = 0.115`, with `ROOM_TONE_GAIN` kept
+   as a deprecated alias. Both want the same by-ear pass.)
+2. **Diegetic prop cues are wired for the printer, coffee and — since slice 2 — the whiteboard.
+   The water cooler is still unreachable** on the isometric floor (§6 rule 21). If a standable mark
+   is found for the cooler, `cuesForProp('waterCooler')` already returns the watercooler sample — no
+   second wiring pass. `officeCuePlayers.test.js` now asserts every entry in `FLOOR_PROP_USES` has a
+   cue row, so the next reachable prop cannot ship silent the way the whiteboard did.
 3. ~~**Per-room beds.**~~ ✅ **zone-shaped single bed** — `setRoomToneZone` + `floorZoneToneAt`
    colour the existing loop (kitchen brighter, glass muffled, pod bassier) without new assets.
-   True multi-buffer beds (kitchen espresso ambience, etc.) still want ElevenLabs regeneration.
-4. **A second variant for the highest-weight cues.** `keyboard` has weight 7 in
-   `officeSoundscape.js` and an at-desk bias on top — it fires far more often than any set piece, so
-   it is the first sample that will wear thin. Rate/gain jitter and panning delay that, they do not
-   prevent it. A second `cue-keyboard-b.mp3` picked at random would; 30 credits.
+   Slice 2 added the other half — `ZONE_CUES` weights a room's own _events_, not just its timbre.
+   True multi-buffer beds still want ElevenLabs regeneration, and are now the weakest item here.
+4. ~~**A second variant for the highest-weight cues.**~~ ✅ `SAMPLES` takes a `urls` array keyed
+   `${cue}:${index}` in `buffers`/`loading`, and `keyboard` has two takes. `pickBuffer` chooses
+   among the variants that have actually **decoded**, not among all of them — rolling first and
+   checking second would fall back to synthesis half the time while take B was still downloading.
+   Adding a second take to `paper` (weight 2, the next most frequent) is now one manifest row and
+   one array entry, 20 credits.
 5. **Nothing verifies a regenerated asset automatically.** The loop-seam and level checks under
    "Verifying a new asset" are a manual ritual. If beds get regenerated often, fold them into the
    generator as a post-step that fails loudly.
+6. **The seven slice-2 gains have not been heard.** Every older cue's `gain` is
+   `synthPeakGain / 0.708`, inherited from the cue it replaced. These had no predecessor, so the
+   figure is derived from the peak written for their own synth fallback — coherent with the
+   0.006–0.014 range, but nobody has listened. **Footsteps are the one to check first**: they are
+   pitched below that derivation on purpose (0.007) because they are the only cue that repeats
+   _within_ a single gesture. Worth knowing that the takes came out at very different source levels
+   (the door needed +5.1 dB to reach the ceiling, `cue-fridge` only −2.4), and peak-normalizing to a
+   common ceiling equalizes peaks, not perceived loudness — which is exactly what an ear pass
+   catches and the pipeline cannot.
 
 **Deliberately not done:** no runtime ElevenLabs calls, no key in deploy scripts, no Opus/Ogg
 variants (MP3 is universally supported and the size difference did not justify format negotiation

@@ -169,6 +169,22 @@ export function setRoomToneZone(next) {
 }
 
 /**
+ * Which zone the room is currently coloured for.
+ *
+ * Exported so the cue director can bias *which* cue plays by the same room the
+ * bed is already shaped by (`ZONE_CUES` in officeSoundscape.js). Reading it back
+ * from here rather than adding a second source of truth is the point: the floor
+ * pushes the zone exactly once, and the two halves of "what this room sounds
+ * like" — its timbre and its events — cannot drift apart.
+ *
+ * @returns {RoomToneZone} `'neutral'` in desk mode, which `setRoomToneViewMode`
+ *   enforces, so a caller never has to check the view mode itself.
+ */
+export function getRoomToneZone() {
+  return zone;
+}
+
+/**
  * Start the bed, or do nothing if it is already playing. Safe to call on every
  * tick — that is how the director self-heals after the sound gate opens.
  *

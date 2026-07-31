@@ -33,6 +33,11 @@
  * @property {((colleagueId: string | null) => void) | undefined} onTalkingChange
  * @property {(() => Promise<boolean> | boolean) | undefined} onGetCoffee
  * @property {((propKind: string) => void) | undefined} onPropCue
+ * @property {((cue: 'step' | 'jam' | 'door', options?: { near?: boolean, pan?: number, surface?: 'carpet' | 'hard' }) => void) | undefined} onFloorCue
+ *   Floor events that are not a prop. Sibling of `onPropCue` and deliberately
+ *   the same shape of contract: the floor names *what happened*, never which
+ *   sample to play, so the sound layer stays on `OfficeLayer`'s side of the
+ *   boundary along with the other event cues (ADR-0011 — one wiring point).
  * @property {((prompt: string, colleagueId: string) => void) | undefined} onAdoptPrompt
  * @property {((id: string) => void) | undefined} onDismissWalkBy
  * @property {unknown} coffee

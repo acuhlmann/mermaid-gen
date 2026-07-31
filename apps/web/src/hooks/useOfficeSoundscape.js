@@ -3,6 +3,7 @@ import { officeCueChime } from '../utils/officeCuePlayers.js';
 import { pickNextSoundscapeCue } from '../utils/officeSoundscape.js';
 import { getOfficeSnapshot } from '../state/officeMomentStore.js';
 import { getOfficeViewMode } from '../state/officeViewModeStore.js';
+import { getRoomToneZone } from '../utils/officeRoomTone.js';
 
 export const SOUNDSCAPE_TICK_MS = 5_000;
 
@@ -17,7 +18,9 @@ export const SOUNDSCAPE_TICK_MS = 5_000;
  * Cues resolve through `officeCueChime`, which prefers a baked sample and falls
  * back to synthesis. The continuous bed underneath is a separate concern —
  * see useOfficeRoomTone. While you are at your desk the brain biases toward
- * keyboard/mouse/paper; on the floor, kitchen and printer set pieces step up.
+ * keyboard/mouse/paper; on the floor, kitchen and printer set pieces step up,
+ * and standing *in* a room weights that room's own cues (the fridge in the
+ * kitchen) — the cheap half of per-room beds, see `ZONE_CUES`.
  *
  * @param {{ playChime?: (playFn: (ref: object) => void) => void, random?: () => number }} params
  */
@@ -44,6 +47,9 @@ export function useOfficeSoundscape(params) {
         lastPlayedAt,
         lastCue,
         atDesk,
+        // Same zone the bed is already filtered for, read back from the tone
+        // player so there is one answer to "which room are you in".
+        zone: getRoomToneZone(),
         random
       });
       if (!cue) return;

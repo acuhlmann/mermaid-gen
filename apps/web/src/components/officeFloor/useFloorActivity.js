@@ -79,6 +79,7 @@ function lastInboundFrom(imHistory, colleagueId) {
  *   onTalkingChange?: (colleagueId: string | null) => void,
  *   onGetCoffee?: () => Promise<boolean> | boolean,
  *   onPropCue?: (propKind: string) => void,
+ *   onFloorCue?: (cue: string, options?: object) => void,
  *   onEngage?: () => void
  * }} options `onEngage` fires when you set off somewhere with a reason — the
  *   person card that offered the verb has served its purpose.
@@ -91,6 +92,7 @@ export function useFloorActivity({
   onTalkingChange,
   onGetCoffee,
   onPropCue,
+  onFloorCue,
   onEngage
 }) {
   const { presence, playerRef, walkTo, peekAt, talkTo, reachFor, goHome, handleArrive } =
@@ -121,7 +123,8 @@ export function useFloorActivity({
     propKind: prop?.propKind ?? null,
     arrived: prop?.phase === 'using',
     onGetCoffee,
-    onPropCue
+    onPropCue,
+    onFloorCue
   });
 
   // Renderer #1 needs to know who you are stood in front of, so it can hold

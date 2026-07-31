@@ -50,6 +50,7 @@ function seatDisplay(seat, copy) {
  *   onWalkerAdopt?: (prompt: string, colleagueId: string) => void,
  *   onWalkerDismiss?: (id: string) => void,
  *   onWalkerDeparted?: () => void,
+ *   onStep?: (tile: { x: number, y: number }, isYou?: boolean) => void,
  *   vacantIds?: string[],
  *   onCallIds?: string[],
  *   interactive?: boolean,
@@ -75,6 +76,7 @@ export function FloorStage({
   onWalkerAdopt,
   onWalkerDismiss,
   onWalkerDeparted,
+  onStep,
   vacantIds = [],
   onCallIds = [],
   interactive = true,
@@ -138,6 +140,7 @@ export function FloorStage({
             onAdopt={onWalkerAdopt}
             onDismiss={onWalkerDismiss}
             onDeparted={onWalkerDeparted}
+            onStep={onStep}
           />
         ) : null}
 
