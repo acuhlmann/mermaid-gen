@@ -59,7 +59,6 @@ function baseProps(overrides = {}) {
       isMuted: false,
       toggleMute: vi.fn()
     },
-    advisorBubbleProps: null,
     stakeholderIntroProps: null,
     advisorPause: false,
     russStreak: 0,

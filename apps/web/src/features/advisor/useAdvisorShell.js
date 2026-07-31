@@ -13,8 +13,8 @@ import {
 } from '../../utils/stakeholderIntroStorage.js';
 
 /**
- * Advisor orchestrator + shell wiring: focus descriptor, bubble props, diagram
- * highlights, and first-run stakeholder intro.
+ * Advisor orchestrator + shell wiring: focus descriptor, diagram highlights,
+ * and first-run stakeholder intro.
  *
  * @param {{
  *   selectedNode: object | null;
@@ -169,40 +169,6 @@ export function useAdvisorShell({
       }
     : null;
 
-  const advisorBubbleProps = useMemo(() => {
-    if (!advisor.suggestion) return null;
-    return {
-      persona: advisor.activePersona ?? advisor.thinkingPersona,
-      suggestion: advisor.suggestion,
-      kind: advisor.suggestionKind,
-      isPinned: advisor.isPinned,
-      isDumbingDown: advisor.isDumbingDown,
-      architectDumbLevel: advisor.architectDumbLevel,
-      onGo: advisor.accept,
-      onDismiss: advisor.dismiss,
-      onTogglePin: advisor.togglePin,
-      onPauseTimer: advisor.pauseTimer,
-      onResumeTimer: advisor.resumeTimer,
-      onDumbDown: advisor.dumbDown,
-      onDrillDeeper: () => {
-        const suggestion = advisor.suggestion;
-        advisor.dismiss();
-        void runAnalyze('richard', {
-          advisorPrompt: suggestion ?? '',
-          advisorFocusDescriptor
-        });
-      },
-      showHistoryNav: advisor.showHistoryNav,
-      canGoBack: advisor.canGoBack,
-      canPromptNext: advisor.canPromptNext,
-      historyPositionLabel: advisor.historyPositionLabel,
-      onHistoryBack: advisor.goBack,
-      onPromptNext: () => advisor.promptNext(),
-      onSelectVariant: (variant) => advisor.promptNext({ persona: variant }),
-      castDisabled: false
-    };
-  }, [advisor, advisorFocusDescriptor, runAnalyze]);
-
   const advisorDiagramHighlight = useMemo(() => {
     const ids = advisor.highlightIds ?? [];
     const active =
@@ -254,7 +220,6 @@ export function useAdvisorShell({
   return {
     advisor,
     advisorFocusDescriptor,
-    advisorBubbleProps,
     advisorDiagramHighlight,
     stakeholderIntroProps
   };

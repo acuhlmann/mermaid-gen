@@ -93,7 +93,7 @@ export function useShellAdvisorContext({
     voiceListening
   });
 
-  const { advisor, advisorBubbleProps, stakeholderIntroProps } = useAdvisorShell({
+  const { advisor, stakeholderIntroProps } = useAdvisorShell({
     selectedNode,
     hoverDescriptor,
     stateRef,
@@ -160,7 +160,6 @@ export function useShellAdvisorContext({
     advisorPause,
     officeDistractionsPaused,
     advisor,
-    advisorBubbleProps,
     stakeholderIntroProps,
     showDeskChrome,
     entryReveal,

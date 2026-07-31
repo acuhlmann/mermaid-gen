@@ -905,9 +905,11 @@ and 12 were both easy calls because ambient life had made a standing gap activel
 remains is a set of genuine choices, so pick on appetite rather than on urgency.
 
 Shipped on top of slice 8 (adventure polish, not a new slice number): **floor talk now matches
-Slop Chat™ for input** — typed prompt **and** mic (`VoiceMicButton`), a short recent-turns
-strip in the talk card, and **double-click a talkable colleague** to walk over and open the
-chat (same `talkTileFor` derivation as **Go and talk**). **Team + office tiers** are
+Slop Chat™ for input** — typed prompt **and** mic (`VoiceMicButton`), and **double-click a
+talkable colleague** to walk over and open the chat (same `talkTileFor` derivation as **Go and
+talk**). The recent-turns strip stays in Slop Chat™ only: on the floor you are standing in
+front of them, so the newest line is the speech bubble and the card is compose + Do-it chrome
+(`FloorTalk.jsx` — no thread strip by design). **Team + office tiers** are
 talkable (`talkTileFor` in `OfficeFloor.jsx` — everyone except `senior` behind the glass);
 leadership gets the person-card brush-off only. Slice 6's desk **peek** (`peekTileFor`) covers
 the same team pod plus office desks — look over their shoulder at fiction on the monitor.
