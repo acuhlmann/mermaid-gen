@@ -122,10 +122,25 @@ test('resolveAffectedTests adds desk prompt blast-radius tests for SlopNextPromp
   assert.ok(plan.tests.includes('apps/web/test/App.test.jsx'));
 });
 
-test('summarizeAffectedTestPlan is human-readable', () => {
-  const summary = summarizeAffectedTestPlan(
-    resolveAffectedTests(['packages/shared/src/diagramSchema.ts'], { root: ROOT })
-  );
-  assert.match(summary, /targeted test file/);
-  assert.match(summary, /wire/);
+test('basenameTestCandidates maps scripts/*-lib.mjs to the runner test file', () => {
+  assert.deepEqual(basenameTestCandidates('scripts/test-affected-lib.mjs'), [
+    'scripts/test-affected-lib.test.mjs',
+    'scripts/test-affected.test.mjs'
+  ]);
+  assert.deepEqual(basenameTestCandidates('scripts/check-affected-lib.mjs'), [
+    'scripts/check-affected-lib.test.mjs',
+    'scripts/check-affected.test.mjs'
+  ]);
+});
+
+test('resolveAffectedTests pulls agent tooling blast tests for test-affected-lib edits', () => {
+  const plan = resolveAffectedTests(['scripts/test-affected-lib.mjs'], { root: ROOT });
+  assert.ok(plan.tests.includes('scripts/test-affected.test.mjs'));
+  assert.ok(plan.tests.includes('scripts/check-affected.test.mjs'));
+  assert.equal(plan.fallbacks.includes('scripts'), false);
+});
+
+test('resolveAffectedTests marks unknown scripts paths for fallback', () => {
+  const plan = resolveAffectedTests(['scripts/noMatchingAgentScript.mjs'], { root: ROOT });
+  assert.ok(plan.fallbacks.includes('scripts'));
 });

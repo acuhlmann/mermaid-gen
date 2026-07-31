@@ -53,6 +53,19 @@ export const ISOMETRIC_FLOOR_BLAST_TESTS = [
 ];
 
 /**
+ * Agent verify / diff-scoping scripts. Pulled when resolver or check classifier
+ * changes even if basename mirror misses a sibling test file.
+ */
+export const AGENT_TOOLING_BLAST_TESTS = [
+  'scripts/test-affected.test.mjs',
+  'scripts/check-affected.test.mjs',
+  'scripts/prettier-files.test.mjs',
+  'scripts/verify-agent-infra.test.mjs',
+  'scripts/verify-doc-paths.test.mjs',
+  'scripts/wire-cochange.test.mjs'
+];
+
+/**
  * Prefix → extra tests beyond the basename mirror rule.
  * Keep in sync with `docs/agent-blast-radius.md`.
  * @type {Array<{ match: RegExp, tests: string[] }>}
@@ -176,6 +189,11 @@ export const BLAST_RADIUS_RULES = [
       'apps/web/test/deskBottomActionsSlot.test.jsx',
       'apps/web/test/officeLayerDeskSlot.test.jsx'
     ]
+  },
+  {
+    match:
+      /scripts\/(test-affected-lib|test-affected|check-affected-lib|check-affected|prettier-files|format-affected|wire-cochange|verify-agent-infra|verify-doc-paths)\.mjs/,
+    tests: AGENT_TOOLING_BLAST_TESTS
   }
 ];
 
@@ -212,7 +230,11 @@ export function basenameTestCandidates(srcPath) {
   }
   if (srcPath.startsWith('scripts/')) {
     const scriptBase = path.basename(srcPath).replace(/\.mjs$/, '');
-    return [`scripts/${scriptBase}.test.mjs`];
+    const candidates = [`scripts/${scriptBase}.test.mjs`];
+    if (scriptBase.endsWith('-lib')) {
+      candidates.push(`scripts/${scriptBase.replace(/-lib$/, '')}.test.mjs`);
+    }
+    return candidates;
   }
   return [];
 }

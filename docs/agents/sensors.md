@@ -79,11 +79,13 @@ tooling that gates every agent's verify path; a bad mapping is worse than a slow
 touch the resolver until the timeout issue is fixed.
 
 Do **not** weaken the `scripts/` → full-check fallback or add a fake mirror test just to dodge
-the suite. If this becomes a regular annoyance, raise the Anything runtime-check budget under
-load (`ANYTHING_RUNTIME_CHECK_TIMEOUT_MS` in `.env`, default 4000 ms in
-`anythingRuntimeCheck.js`) or serialise the sandbox cases in the test file — not loosen the
-resolver. An agent who has just changed unrelated tooling still sees six red tests and a
-non-zero `npm run check`, which is the most expensive kind of false alarm.
+the suite. The runtime gate default budget is 6000 ms (`ANYTHING_RUNTIME_CHECK_TIMEOUT_MS` in
+`.env`; override in `anythingRuntimeCheck.js`). Slow Anything server tests also run in a
+serial batch via `scripts/run-server-tests.mjs`, and `anythingRuntimeCheck.test.js` runs its
+sandbox cases inside one `{ concurrency: false }` parent so cases in that file do not contend
+with each other.
+An agent who has just changed unrelated tooling still sees six red tests and a non-zero
+`npm run check` when load wins anyway — re-run the file alone before assuming a regression.
 
 ## How to read verify:deps output
 

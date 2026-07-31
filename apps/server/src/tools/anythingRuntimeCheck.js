@@ -15,7 +15,7 @@
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
-export const DEFAULT_ANYTHING_RUNTIME_TIMEOUT_MS = 4000;
+export const DEFAULT_ANYTHING_RUNTIME_TIMEOUT_MS = 6000;
 export const DEFAULT_ANYTHING_RUNTIME_SETTLE_MS = 250;
 
 // fileURLToPath (not URL.pathname) so Windows gets `D:\...` instead of `/D:/...`.
