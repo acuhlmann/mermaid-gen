@@ -151,4 +151,19 @@ describe('parody-OS frame geometry', () => {
     // on every iPhone.
     expect(ruleBody('.desk-os-taskbar')).toContain('env(safe-area-inset-bottom');
   });
+
+  it('lifts huddle bottom seats and chrome above the mobile composer stack', () => {
+    const block = css.match(
+      /@media\s*\(max-width:\s*1024px\)\s*\{[^}]*\.office-huddle-layer\s*\{[^}]*--huddle-bottom-clearance/
+    );
+    expect(block).toBeTruthy();
+    const bottomSeat = css.match(
+      /\.office-huddle-seat\.is-side-bottom\s*\{[^}]*bottom:\s*var\(--huddle-bottom-clearance\)/
+    );
+    expect(bottomSeat).toBeTruthy();
+    const chrome = css.match(
+      /\.office-huddle-chrome\s*\{[^}]*bottom:\s*calc\(var\(--huddle-bottom-clearance\)/
+    );
+    expect(chrome).toBeTruthy();
+  });
 });

@@ -19276,6 +19276,24 @@ body.slopitect-rainbow-tint::before {
     0 0 0 3px var(--huddle-accent, var(--accent)),
     0 10px 26px rgba(15, 23, 42, 0.42);
 }
+@media (prefers-reduced-motion: no-preference) {
+  .office-huddle-seat.is-speaking .office-huddle-face {
+    animation: office-huddle-speak-pulse 1.35s ease-in-out infinite;
+  }
+}
+@keyframes office-huddle-speak-pulse {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 3px var(--huddle-accent, var(--accent)),
+      0 10px 26px rgba(15, 23, 42, 0.42);
+  }
+  50% {
+    box-shadow:
+      0 0 0 5px color-mix(in srgb, var(--huddle-accent, var(--accent)) 55%, transparent),
+      0 12px 30px rgba(15, 23, 42, 0.48);
+  }
+}
 .office-huddle-seat.is-pinned .office-huddle-face {
   box-shadow:
     0 0 0 3px var(--huddle-accent, var(--accent)),
@@ -19310,6 +19328,9 @@ body.slopitect-rainbow-tint::before {
   box-shadow:
     0 0 0 2px color-mix(in srgb, var(--huddle-accent, var(--accent)) 28%, transparent),
     var(--control-shadow);
+}
+.office-huddle-bubble.is-do-it-only {
+  padding-block: 0.35rem;
 }
 .office-huddle-unpin {
   position: absolute;
@@ -19361,14 +19382,29 @@ body.slopitect-rainbow-tint::before {
   font-weight: 500;
   color: var(--muted);
 }
-/* Legacy — kept for locales that still reference speakingLabel elsewhere. */
+/* Shown when voice is on and CC is off — the face pulses, this names who has the floor. */
 .office-huddle-speaking-label {
+  position: absolute;
   margin: 0;
+  max-width: min(160px, 42vw);
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--muted);
+  text-align: center;
+  color: var(--huddle-accent, var(--accent));
+}
+.office-huddle-seat.is-side-top .office-huddle-speaking-label {
+  top: calc(100% + 0.35rem);
+}
+.office-huddle-seat.is-side-bottom .office-huddle-speaking-label {
+  bottom: calc(100% + 0.35rem);
+}
+.office-huddle-seat.is-side-left .office-huddle-speaking-label {
+  left: calc(100% + 0.35rem);
+}
+.office-huddle-seat.is-side-right .office-huddle-speaking-label {
+  right: calc(100% + 0.35rem);
 }
 .office-huddle-do-it {
   align-self: center;
@@ -19409,6 +19445,19 @@ body.slopitect-rainbow-tint::before {
 }
 .office-huddle-hard-stop:hover {
   background: color-mix(in srgb, #b91c1c 12%, var(--office-surface-bg));
+}
+@media (max-width: 1024px) {
+  .office-huddle-layer {
+    --huddle-bottom-clearance: calc(
+      var(--mobile-bottom-chrome-est, 5.5rem) + env(safe-area-inset-bottom, 0px) + 0.35rem
+    );
+  }
+  .office-huddle-seat.is-side-bottom {
+    bottom: var(--huddle-bottom-clearance);
+  }
+  .office-huddle-chrome {
+    bottom: calc(var(--huddle-bottom-clearance) + 0.25rem);
+  }
 }
 @media (max-width: 720px) {
   .office-huddle-bubble {

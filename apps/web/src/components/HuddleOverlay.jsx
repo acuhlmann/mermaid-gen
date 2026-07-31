@@ -90,14 +90,6 @@ export default function HuddleOverlay({
 
   if (!huddle) return null;
 
-  const delegateSpeakerId = watching ? null : (pinnedSpeakerId ?? activeSpeakerId);
-  const delegatePrompt = watching ? null : (pinnedPrompt ?? delegatablePrompt(activeBeat));
-  /*
-   * One overlay, two registers. Everything visual is shared — the same seats,
-   * the same paced bubbles, the same Do-it — so the mode only changes the words
-   * and how you get out. A pair is one attendee by construction, so the name is
-   * always available for the chair-side copy.
-   */
   const partner = pairing ? officeSenderInfo(huddle.attendees[0]) : null;
   const endLabel = pairing ? (copy.pairEnd ?? copy.hardStop) : copy.hardStop;
   const endTitle = pairing
@@ -140,7 +132,8 @@ export default function HuddleOverlay({
           (isPinned && (isRepeating || isFetching)) || ((isSpeaking || isPinned) && !showText);
         const showRemarkText = Boolean(beat?.text) && !hideRemarkText;
         const showFetching = isFetching && !beat?.text;
-        const showBubble = showRemarkText || showFetching;
+        const showBubble = showRemarkText || Boolean(actionPrompt) || showFetching;
+        const doItOnly = Boolean(actionPrompt) && !showRemarkText && !showFetching;
         return (
           <div
             key={id}
@@ -188,7 +181,8 @@ export default function HuddleOverlay({
                   'office-huddle-bubble',
                   isPinned ? 'is-pinned' : '',
                   isFetching ? 'is-fetching' : '',
-                  isRepeating ? 'is-repeating' : ''
+                  isRepeating ? 'is-repeating' : '',
+                  doItOnly ? 'is-do-it-only' : ''
                 ]
                   .filter(Boolean)
                   .join(' ')}
@@ -202,7 +196,21 @@ export default function HuddleOverlay({
                 ) : showRemarkText ? (
                   <p className="office-huddle-line">{beat.text}</p>
                 ) : null}
+                {actionPrompt ? (
+                  <button
+                    type="button"
+                    className="office-do-it office-huddle-do-it"
+                    onClick={() => handleDoIt(id, actionPrompt)}
+                    title={copy.delegateTitle ?? 'Open the notebook with this ask'}
+                  >
+                    {copy.delegate ?? officeChromeCopy().doIt}
+                  </button>
+                ) : null}
               </div>
+            ) : isSpeaking ? (
+              <p className="office-huddle-speaking-label">
+                {formatLocale(copy.speakingLabel ?? '{name} is talking', { name: person.name })}
+              </p>
             ) : null}
           </div>
         );
@@ -221,16 +229,6 @@ export default function HuddleOverlay({
               ? formatLocale(copy.pairWatching ?? copy.watching, { name: partner?.name ?? '' })
               : (copy.watching ?? 'The team is watching the notebook…')}
           </p>
-        ) : null}
-        {delegatePrompt && delegateSpeakerId ? (
-          <button
-            type="button"
-            className="office-do-it office-huddle-chrome-do-it"
-            onClick={() => handleDoIt(delegateSpeakerId, delegatePrompt)}
-            title={copy.delegateTitle ?? 'Open the notebook with this ask'}
-          >
-            {copy.delegate ?? officeChromeCopy().doIt}
-          </button>
         ) : null}
         <button
           type="button"
