@@ -2,7 +2,7 @@ import { ButtonIcon } from './AppIcons.jsx';
 import { officeChromeCopy } from '../utils/officeCast.js';
 import { OFFICE_VIEW_HOTKEY_LABEL } from '../hooks/useOfficeViewHotkey.js';
 
-const STAND_EMOJI = '🧍';
+const STAND_EMOJI = '🚶';
 const SIT_EMOJI = '🪑';
 
 /**

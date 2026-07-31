@@ -160,10 +160,16 @@ export default function StakeholdersMascot({
   const resolvedAnchor =
     anchorRect ??
     (expanded && mascotAnchorRef.current ? mascotAnchorRef.current.getBoundingClientRect() : null);
+  const rosterPopoverAlign =
+    typeof window !== 'undefined' && window.innerWidth <= 1024 ? 'center' : 'left';
   const rosterStyle = overlayLayerStyle(
     rosterZIndex,
     resolvedAnchor
-      ? computeBottomLeftPopoverStyle(resolvedAnchor, { maxWidthPx: 280, minWidthPx: 216 })
+      ? computeBottomLeftPopoverStyle(resolvedAnchor, {
+          maxWidthPx: 320,
+          minWidthPx: 240,
+          align: rosterPopoverAlign
+        })
       : undefined
   );
 

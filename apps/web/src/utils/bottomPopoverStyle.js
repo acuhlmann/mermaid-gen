@@ -12,6 +12,7 @@ const DEFAULT_MIN_WIDTH_PX = 200;
  *   safeInsetPx?: number;
  *   maxWidthPx?: number;
  *   minWidthPx?: number;
+ *   align?: 'left' | 'center';
  * }} [options]
  * @returns {import('react').CSSProperties}
  */
@@ -20,14 +21,15 @@ export function computeBottomLeftPopoverStyle(anchorRect, options = {}) {
   const safeInsetPx = options.safeInsetPx ?? DEFAULT_SAFE_INSET_PX;
   const maxWidthPx = options.maxWidthPx ?? DEFAULT_MAX_WIDTH_PX;
   const minWidthPx = options.minWidthPx ?? DEFAULT_MIN_WIDTH_PX;
+  const align = options.align ?? 'left';
 
   const viewportWidth = window.innerWidth;
   const viewportHeight = window.innerHeight;
   const maxWidth = Math.min(maxWidthPx, viewportWidth - safeInsetPx * 2);
   const minWidth = Math.min(minWidthPx, maxWidth);
-  let left = anchorRect.left;
-  left = Math.max(safeInsetPx, Math.min(left, viewportWidth - minWidth - safeInsetPx));
-  const width = Math.min(maxWidth, viewportWidth - left - safeInsetPx);
+  const width = Math.min(maxWidth, viewportWidth - safeInsetPx * 2);
+  let left = align === 'center' ? (viewportWidth - width) / 2 : anchorRect.left;
+  left = Math.max(safeInsetPx, Math.min(left, viewportWidth - width - safeInsetPx));
   const bottom = Math.max(safeInsetPx, viewportHeight - anchorRect.top + gapPx);
   const maxHeight = Math.max(120, anchorRect.top - gapPx - safeInsetPx);
 

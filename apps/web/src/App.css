@@ -5848,7 +5848,7 @@
     position: relative;
     display: inline-flex;
     align-items: center;
-    align-self: flex-end;
+    align-self: center;
     flex: 0 0 auto;
     /* Float surfaces must paint above neighboring stamps / mute without being
        clipped by the row's nowrap flex formatting context. */
@@ -5978,19 +5978,19 @@
     right: auto;
     bottom: calc(100% + 0.5rem);
     z-index: 35;
-    width: min(17.5rem, calc(100vw - 2rem));
-    min-width: min(13.5rem, calc(100vw - 2rem));
-    max-width: calc(100vw - 2rem);
+    width: min(20rem, calc(100vw - 1.5rem));
+    min-width: min(15rem, calc(100vw - 1.5rem));
+    max-width: calc(100vw - 1.5rem);
     --desk-menu-max-block-size: calc(
       100dvh - var(--mobile-bottom-chrome-est, 5.5rem) - env(safe-area-inset-bottom, 0px) -
         env(safe-area-inset-top, 0px) - 1.5rem
     );
     max-height: var(--desk-menu-max-block-size);
     overflow-y: auto;
-    padding: 0.28rem 0.35rem;
-    background: rgba(255, 255, 255, 0.96);
+    padding: 0.42rem 0.5rem;
+    background: rgba(255, 255, 255, 0.98);
     border: 1px solid rgba(99, 102, 241, 0.18);
-    border-radius: 0.8rem;
+    border-radius: 0.85rem;
     box-shadow: 0 10px 28px rgba(15, 23, 42, 0.14);
     box-sizing: border-box;
     gap: 0;
@@ -5999,9 +5999,9 @@
   .prompt-actions--mobile .stakeholders-roster-row {
     width: 100%;
     max-width: none;
-    padding: 0.28rem 0.38rem;
-    gap: 0.28rem;
-    min-height: 2.35rem;
+    padding: 0.38rem 0.45rem;
+    gap: 0.34rem;
+    min-height: 2.55rem;
   }
 
   .prompt-actions--mobile .stakeholders-roster-label {
@@ -6023,9 +6023,9 @@
   }
 
   .prompt-actions--mobile .stakeholders-roster-chip {
-    min-width: 3.5rem;
-    padding: 0.14rem 0.42rem;
-    font-size: 0.72rem;
+    min-width: 3.65rem;
+    padding: 0.2rem 0.5rem;
+    font-size: 0.74rem;
   }
 
   /* Clear button isn't a slop-action-button. Keep it square-ish too so the
@@ -6906,8 +6906,8 @@
 /* Senior-tier divider in the team roster: everything below reports upward. */
 .stakeholders-roster-heading {
   margin: 0;
-  padding: 0.2rem 0.5rem 0.05rem;
-  font-size: 0.62rem;
+  padding: 0.35rem 0.55rem 0.15rem;
+  font-size: 0.66rem;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -6958,8 +6958,8 @@
 .stakeholders-team-actions {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
-  padding: 0 0.15rem 0.25rem;
+  gap: 0.42rem;
+  padding: 0.1rem 0.2rem 0.35rem;
 }
 
 .stakeholders-team-toggle-row {
@@ -6989,7 +6989,7 @@
 }
 
 .stakeholders-roster-divider {
-  padding: 0.3rem 0.5rem 0.1rem;
+  padding: 0.34rem 0.55rem 0.14rem;
   font-size: 0.62rem;
   font-weight: 600;
   letter-spacing: 0.08em;
@@ -7679,6 +7679,21 @@
   --slop-action-accent: #f4a300;
   --slop-action-accent-2: #60a5fa;
   --slop-action-glow: rgba(244, 163, 0, 0.28);
+}
+
+.slop-action-button.is-desk-standup {
+  --slop-action-accent: #059669;
+  --slop-action-accent-2: #34d399;
+  --slop-action-glow: rgba(5, 150, 105, 0.24);
+}
+
+.action-persona-icon.is-desk-standup {
+  background: linear-gradient(155deg, #ecfdf5 0%, #d1fae5 48%, #a7f3d0 100%);
+  border-color: rgba(5, 150, 105, 0.42);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.92),
+    0 2px 6px rgba(5, 150, 105, 0.14);
+  font-size: 1.05rem;
 }
 
 /* Unread badge sits outside the pill — don't clip it like decorative ::before art. */
@@ -9258,11 +9273,11 @@ button {
   }
 
   .bottom-chrome {
-    left: 0.75rem;
-    right: 0.75rem;
+    left: max(0.45rem, env(safe-area-inset-left, 0px));
+    right: max(0.45rem, env(safe-area-inset-right, 0px));
     bottom: calc(var(--desk-taskbar-h) + env(safe-area-inset-bottom, 0px) + 0.15rem);
     flex-direction: column;
-    align-items: stretch;
+    align-items: flex-start;
     justify-content: flex-end;
     gap: 0.55rem;
     overflow: visible;
@@ -15119,6 +15134,7 @@ body.slopitect-rainbow-tint::before {
 .prompt-actions--mobile .desk-chrome-layout {
   flex-wrap: wrap;
   align-items: center;
+  justify-content: flex-start;
   gap: 0.35rem 0.4rem;
 }
 
@@ -15743,9 +15759,9 @@ body.slopitect-rainbow-tint::before {
 .stakeholders-roster--portaled {
   position: fixed;
   top: auto;
-  padding: 0.28rem 0.35rem;
-  border-radius: 0.8rem;
-  background: rgba(255, 255, 255, 0.96);
+  padding: 0.42rem 0.5rem;
+  border-radius: 0.85rem;
+  background: rgba(255, 255, 255, 0.98);
   border: 1px solid rgba(99, 102, 241, 0.18);
   box-shadow: 0 10px 28px rgba(15, 23, 42, 0.14);
 }
@@ -15755,12 +15771,12 @@ body.slopitect-rainbow-tint::before {
   flex-direction: row;
   align-items: center;
   justify-content: flex-start;
-  gap: 0.32rem;
+  gap: 0.38rem;
   width: 100%;
   min-width: 0;
   margin: 0;
-  padding: 0.3rem 0.4rem;
-  min-height: 2.4rem;
+  padding: 0.38rem 0.48rem;
+  min-height: 2.55rem;
   border: none;
   border-radius: 0.55rem;
   background: transparent;
@@ -15863,8 +15879,8 @@ body.slopitect-rainbow-tint::before {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 3.75rem;
-  padding: 0.16rem 0.48rem;
+  min-width: 3.85rem;
+  padding: 0.22rem 0.55rem;
   border-radius: 999px;
   font-size: 0.74rem;
   font-weight: 800;
@@ -22263,8 +22279,11 @@ body.slopitect-rainbow-tint::before {
   box-shadow: none;
 }
 
-.desk-os-taskbar-lead .slop-action-role {
-  display: none;
+.desk-os-taskbar-lead .slop-action-button.is-desk-standup .action-persona-icon.is-desk-standup {
+  width: 1.35rem;
+  height: 1.35rem;
+  font-size: 0.92rem;
+  border-radius: 0.45rem;
 }
 
 /* Presence strip — who is around, and the diegetic way onto the floor. A quiet
@@ -22395,6 +22414,32 @@ body.slopitect-rainbow-tint::before {
   display: flex;
   align-items: center;
   gap: 0.3rem;
+}
+
+.desk-os-taskbar-xp .xp-progress-bar {
+  margin-left: 0;
+  padding: 0.2rem 0.48rem 0.2rem 0.4rem;
+  background: color-mix(in srgb, var(--accent) 10%, white);
+  border: 1px solid color-mix(in srgb, var(--accent) 28%, transparent);
+  color: var(--text);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75);
+}
+
+.desk-os-taskbar-xp .xp-progress-bar-level {
+  color: #92400e;
+  font-size: 0.64rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-shadow: none;
+}
+
+.desk-os-taskbar-xp .xp-progress-bar-flair {
+  font-size: 0.82rem;
+}
+
+.desk-os-taskbar-xp .xp-progress-bar.is-interactive:hover {
+  background: color-mix(in srgb, var(--accent) 16%, white);
+  border-color: color-mix(in srgb, var(--accent) 42%, transparent);
 }
 
 /* Tray variant of Concentration: a horizontal chip, not the stacked footer. */
@@ -22972,9 +23017,9 @@ body.slopitect-rainbow-tint::before {
   flex: 1 1 auto;
   display: flex;
   align-items: center;
-  gap: 0.32rem;
+  gap: 0.38rem;
   min-width: 0;
-  padding: 0.1rem 0.2rem;
+  padding: 0.14rem 0.24rem;
   border: none;
   border-radius: 0.45rem;
   background: transparent;
