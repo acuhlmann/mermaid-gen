@@ -13,6 +13,7 @@
  */
 
 import { API_BASE_URL, SESSION_HEADER } from '../state/diagramSession.js';
+import { OFFICE_DIAGRAM_SOURCE_MAX_CHARS } from '@archislop/shared';
 import { getAdvisorVisibleLabels } from './advisorVisibleLabels.js';
 import { writeOfficeCadenceMemory } from './officeAmbienceStorage.js';
 import {
@@ -312,7 +313,10 @@ export async function deliverLlmMoment(kind, ctx, options) {
         kind,
         colleagueId,
         contentType: ctx.contentType,
-        diagramSource: ctx.diagramSource,
+        diagramSource:
+          typeof ctx.diagramSource === 'string'
+            ? ctx.diagramSource.slice(0, OFFICE_DIAGRAM_SOURCE_MAX_CHARS)
+            : ctx.diagramSource,
         visibleLabels: ctx.labels,
         recentMoments: [...recentMoments],
         uiLocale: officeDialogueLocale(),

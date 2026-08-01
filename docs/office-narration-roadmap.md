@@ -1,68 +1,98 @@
-# Office narration — next steps & TTS research
+# Office narration — TTS roadmap & research log
 
-> Roadmap after the Web Speech MVP (`apps/web/src/utils/officeNarration.js`).
 > Companion to [`office-parody.md`](office-parody.md). Written for a **small / personal**
-> deploy on **GCP Cloud Run** (a couple of users): decent voice quality, not
-> industry-best; minimize new vendors and monthly bills.
+> deploy on **GCP Cloud Run**. Sections 2–3 are the **historical** research that chose GCP
+> WaveNet first; **§1 + Phase B++ describe what ships today** (Chirp3-HD ladder).
 
 ## 1. What we already shipped
 
-| Surface            | Spoken today?                                                                 | Notes                                                   |
-| ------------------ | ----------------------------------------------------------------------------- | ------------------------------------------------------- |
-| Walk-bys           | Yes — Chirp3-HD (→ Neural2 → WaveNet ladder) when configured, else Web Speech | Overheard colleague; cancels on dismiss / Focus Time    |
-| WG meeting beats   | Yes — paced to playback end                                                   | User raise-hand lines stay silent                       |
-| Cubicle battles    | Yes — lines + winner verdict spoken                                           | Overheard argument (invite pill stays text-only)        |
-| Coffee break scene | Yes — watercooler lines paced + spoken when Narration on                      | Invite toast stays text-only; opt-in scene is overheard |
-| Emails             | **No**                                                                        | Realistic: nobody reads your inbox aloud                |
-| IM pings           | **No**                                                                        | Chat notifications — you read them                      |
-| Meeting invites    | No (calendar chime only)                                                      | You read the toast                                      |
-| Soundscape         | N/A (non-verbal SFX)                                                          | Stays Web Audio synthesized cues                        |
+| Surface            | Spoken today?                                                                 | Notes                                                                  |
+| ------------------ | ----------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| Walk-bys           | Yes — Chirp3-HD (→ Neural2 → WaveNet ladder) when configured, else Web Speech | Overheard colleague; cancels on dismiss / Focus Time                   |
+| WG meeting beats   | Yes — paced to playback end                                                   | User raise-hand lines stay silent                                      |
+| Cubicle battles    | Yes — lines + winner verdict spoken                                           | Overheard argument (invite pill stays text-only)                       |
+| Coffee break scene | Yes — watercooler lines paced + spoken when Narration is on                   | Invite toast stays text-only; opt-in scene is overheard                |
+| Emails             | **No**                                                                        | Realistic: nobody reads your inbox aloud                               |
+| IM pings           | **No**                                                                        | Chat notifications — you read them                                     |
+| Meeting invites    | No (calendar chime only)                                                      | You read the toast                                                     |
+| Soundscape         | N/A (non-verbal SFX)                                                          | Stays Web Audio + baked cues; see [`audio-assets.md`](audio-assets.md) |
 
-Toggle: desk menu **Voice** (default on). **Transcript (CC)** (`archislop:office-captions`, default off) reveals spoken text when voice is playing — shared across the card tour, isometric floor, desk walk-bys, and inbox footer. When CC is off and TTS succeeds, speech bubbles hide (`shouldShowSpokenText` in `apps/web/src/utils/officeCaptions.js`; floor wiring in `officeFloor/useFloorSpokenText.js`). A silent or failed TTS beat falls back to the bubble so the line is never lost. Global sound gate + first-gesture policy still apply on mobile Safari/Chrome.
+**Desk posture:** 🎧 **Headphones** (macro over `narration` / `soundscape` / `captions` via
+`setOfficeHeadphones` — not a separate Voice toggle). Per-scene **CC** buttons still nudge
+`captions` directly. When CC is off and TTS succeeds, speech bubbles hide (`shouldShowSpokenText`
+in `apps/web/src/utils/officeCaptions.js`; floor wiring in `officeFloor/useFloorSpokenText.js`).
+A silent or failed TTS beat falls back to the bubble so the line is never lost. Global sound gate
 
-**Cloud path:** `POST /api/office/speak` → `apps/server/src/agents/officeTts.js` (Chirp3-HD default for every locale, with a Chirp3-HD → Neural2 → WaveNet fallback ladder; in-memory cache). Kill switch `OFFICE_TTS=0`; tier switch `OFFICE_TTS_VOICE_TIER=neural2|wavenet`. Health exposes `officeTtsConfigured`. Client (`officeNarration.js`) prefers cloud MP3, falls back to Web Speech.
+- first-gesture policy still apply on mobile Safari/Chrome. Focus Time cancels in-flight speech.
+
+**Cloud path:** `POST /api/office/speak` → `apps/server/src/agents/officeTts.js` (Chirp3-HD
+default where published, with a Chirp3-HD → Neural2 → WaveNet fallback ladder; in-memory cache).
+Kill switch `OFFICE_TTS=0`; tier pin `OFFICE_TTS_VOICE_TIER=chirp3|neural2|wavenet` (default
+`chirp3`). Health exposes `officeTtsConfigured`. Client (`officeNarration.js`) prefers cloud MP3,
+falls back to Web Speech.
+
+**Locale reality (do not re-break):**
+
+| Locale | Default tier | Ladder                        | Notes                                                                     |
+| ------ | ------------ | ----------------------------- | ------------------------------------------------------------------------- |
+| en-US  | Chirp3-HD    | Chirp3-HD → Neural2 → WaveNet | full three-rung ladder; optional accent overrides (e.g. Dinesh → `en-IN`) |
+| en-AU  | Chirp3-HD    | Chirp3-HD → Neural2 → WaveNet | full three-rung ladder                                                    |
+| zh-CN  | Chirp3-HD    | Chirp3-HD → WaveNet           | no Neural2 cmn-CN voices, so that rung is skipped                         |
+| zh-TW  | WaveNet      | WaveNet                       | Google publishes **neither** Neural2 nor Chirp3-HD for `cmn-TW`           |
+
+`CHIRP_LANG_CODE` deliberately omits `zh-TW`. Re-check with `listVoices` before re-adding it —
+offering a Chirp rung that cannot exist burns one failed request per line.
+
+**Cast map:** one Chirp3-HD voice per speaker in `CHIRP3_VOICE_ROSTER` (widened past the old
+eight-voice core). Chirp drops `pitch`; rate fingerprints stay in the WaveNet table.
+Ear-audition spikes live under `scripts/` (`cast-audition.mjs`, `chirp3-audition.mjs`,
+`gemini-tts-spike.mjs`) — throwaway; never wire into routes, CI, or deploy.
 
 ---
 
-## 2. Recommended next direction (for this project)
+## 2. Historical research — why GCP WaveNet first (archived)
 
-**Default recommendation: Google Cloud Text-to-Speech (WaveNet), on the existing GCP project.**
+> The recommendation below chose WaveNet as the **first** cloud tier. That path shipped (Phase B),
+> then Neural2 (B+), then Chirp3-HD as default (B++). Keep this section as rationale; do not treat
+> “skip Chirp” as current product advice.
 
-Why this fits archislop specifically:
+**Original call: Google Cloud Text-to-Speech (WaveNet), on the existing GCP project.**
+
+Why that fit archislop specifically at the time:
 
 1. **Already on GCP** — Cloud Run + Vertex ADC path in [`docs/deploy/gcp.md`](deploy/gcp.md). Same project, same service account pattern; enable `texttospeech.googleapis.com` and grant the runtime SA. No new cloud bill / identity stack.
 2. **Volume is tiny** — a couple of users, walk-bys + meetings only. WaveNet’s **free tier is 4M characters/month** ([official pricing](https://cloud.google.com/text-to-speech/pricing)). A busy personal session might burn a few thousand characters; you are unlikely to leave the free tier.
-3. **“Decent, not best”** — WaveNet is a clear step up from browser TTS and costs the same as Standard ($4 / 1M after free). Skip Studio ($160 / 1M), Chirp 3 HD ($30 / 1M), and Gemini-TTS token pricing for now — those optimize for broadcast / agent-grade realism you do not need.
-4. **Locales you already ship** — en-US / en-AU / zh-CN / zh-TW map cleanly to Cloud TTS voice catalogs; keep using `mailAnnounceLang` (or a dedicated narration lang) as the synthesis locale.
-5. **Provider-swappable** — treat TTS as a **generic subdomain** (see modularity notes in `.cursor/skills/modularity/`): one `synthesizeOfficeLine({ speakerId, text, lang })` behind an interface so Polly / Azure / ElevenLabs can replace Google later without rewriting `OfficeLayer`.
+3. **“Decent, not best”** — WaveNet was a clear step up from browser TTS at Standard pricing. Studio / early Chirp / Gemini-TTS looked like broadcast-grade spend for parody lines — later Chirp3-HD proved cheap enough at personal volume _and_ unlocked `cmn-CN`, which is why it became the default.
+4. **Locales you already ship** — en-US / en-AU / zh-CN / zh-TW map cleanly to Cloud TTS voice catalogs.
+5. **Provider-swappable** — treat TTS as a **generic subdomain**: one `synthesizeOfficeLine({ speakerId, text, lang })` behind an interface so Polly / Azure / ElevenLabs can replace Google later without rewriting `OfficeLayer`.
 
-### What _not_ to pick first
+### What _not_ to pick as a first vendor (still true)
 
-| Option                                | Why defer                                                                                                                                           |
-| ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **ElevenLabs**                        | Best-in-class emotional voices; extra vendor + subscription for quality you said you do not need yet. Revisit if cast “acting” becomes the product. |
-| **Amazon Polly**                      | Fine quality/price; wrong cloud unless you leave GCP.                                                                                               |
-| **Azure Speech**                      | Strong enterprise catalog; adds Azure identity for little gain here.                                                                                |
-| **Chirp 3 / Studio / Gemini-TTS**     | Overkill cost/complexity for parody office lines.                                                                                                   |
-| **Self-hosted** (Kokoro, Piper, etc.) | Fun for offline demos; ops burden vs Cloud Run free-tier TTS.                                                                                       |
+| Option                                | Why defer                                                                                                                                                |
+| ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **ElevenLabs**                        | Best-in-class emotional voices; extra vendor + subscription. Runtime ElevenLabs is forbidden — baked assets only ([`audio-assets.md`](audio-assets.md)). |
+| **Amazon Polly**                      | Fine quality/price; wrong cloud unless you leave GCP.                                                                                                    |
+| **Azure Speech**                      | Strong enterprise catalog; adds Azure identity for little gain here.                                                                                     |
+| **Self-hosted** (Kokoro, Piper, etc.) | Fun for offline demos; ops burden vs Cloud Run free-tier TTS.                                                                                            |
 
 ---
 
 ## 3. Provider snapshot (research, mid‑2026)
 
-Prices move — always re-check [Google Cloud TTS pricing](https://cloud.google.com/text-to-speech/pricing) before implementing.
+Prices move — always re-check [Google Cloud TTS pricing](https://cloud.google.com/text-to-speech/pricing) before changing tiers.
 
-| Provider                | Decent tier (ballpark) | Free / low-volume note             | Fit for us                             |
-| ----------------------- | ---------------------- | ---------------------------------- | -------------------------------------- |
-| **GCP WaveNet**         | ~$4 / 1M chars         | **4M chars/mo free**               | **Best default**                       |
-| **GCP Neural2**         | ~$16 / 1M chars        | 1M chars/mo free                   | Optional upgrade if WaveNet feels flat |
-| **GCP Chirp 3 HD**      | ~$30 / 1M chars        | 1M free                            | Skip unless chasing “wow”              |
-| **GCP Studio**          | ~$160 / 1M chars       | 1M free                            | Skip                                   |
-| **Azure Neural**        | ~$4–16 / 1M            | ~0.5M free/mo                      | Only if multi-cloud                    |
-| **Amazon Polly Neural** | ~$16 / 1M              | Large first-year free on AWS       | Only if on AWS                         |
-| **ElevenLabs**          | Subscription / credit  | Tiny free tier; paid plans for API | Quality flex, not cost/stack fit       |
+| Provider                | Decent tier (ballpark) | Free / low-volume note             | Fit for us (today)                            |
+| ----------------------- | ---------------------- | ---------------------------------- | --------------------------------------------- |
+| **GCP Chirp 3 HD**      | ~$30 / 1M chars        | 1M free                            | **Shipped default** (where published)         |
+| **GCP Neural2**         | ~$16 / 1M chars        | 1M chars/mo free                   | Ladder rung / `OFFICE_TTS_VOICE_TIER=neural2` |
+| **GCP WaveNet**         | ~$4 / 1M chars         | **4M chars/mo free**               | Ladder floor; **only** tier for zh-TW         |
+| **GCP Studio**          | ~$160 / 1M chars       | 1M free                            | Skip                                          |
+| **Azure Neural**        | ~$4–16 / 1M            | ~0.5M free/mo                      | Only if multi-cloud                           |
+| **Amazon Polly Neural** | ~$16 / 1M              | Large first-year free on AWS       | Only if on AWS                                |
+| **ElevenLabs**          | Subscription / credit  | Tiny free tier; paid plans for API | Build-time bake only                          |
 
-**Personal-project math:** even Neural2’s 1M free chars/month is far more than a handful of meetings and walk-bys. Prefer WaveNet first (free pool is larger and price after free matches Standard).
+**Personal-project math:** even Chirp3-HD’s 1M free chars/month is far more than a handful of
+meetings and walk-bys; only the top of the ladder ever bills (fallbacks fire only on failure).
 
 ---
 
@@ -85,64 +115,57 @@ Cheap wins while Cloud TTS is optional:
 
 ### Phase B+ — Neural2 tier (shipped)
 
-WaveNet got its scheduled upgrade: **Neural2 is the default voice tier** for locales that
-have one, switched by `OFFICE_TTS_VOICE_TIER` (`neural2` default, `wavenet` = instant
-switchback to the old cast). Same `synthesizeSpeech` request shape, same
-speakingRate/pitch prosody — only the voice names change (`officeTts.js`
-`NEURAL2_VOICE_NAMES` overlay; prosody stays in the WaveNet table as the single source).
+WaveNet got its scheduled upgrade: **Neural2 became the default** for locales that have one,
+switched by `OFFICE_TTS_VOICE_TIER` (then `neural2` default, `wavenet` = instant switchback).
+Same `synthesizeSpeech` request shape, same speakingRate/pitch prosody — only the voice names
+change (`NEURAL2_VOICE_NAMES` overlay; prosody stays in the WaveNet table as the single source).
 
-| Locale | Default tier | Notes                                                                                      |
-| ------ | ------------ | ------------------------------------------------------------------------------------------ |
-| en-US  | Neural2      | A/C/D/E/F/G/H/I/J — no B, so helpdesk/critique (Wavenet-B males) remap to J/A, same gender |
-| en-AU  | Neural2      | A/B/C/D — letters and genders identical to the WaveNet set                                 |
-| zh-CN  | WaveNet      | No Neural2 cmn-CN voices exist (Chirp 3 HD exists but skips rate/pitch control)            |
-| zh-TW  | WaveNet      | No Neural2 **or** Chirp 3 HD — WaveNet is the top tier here                                |
-
-Cost: Neural2 free tier is 1M chars/month (vs WaveNet's 4M), then $16 / 1M chars — still
-effectively $0 at personal-app volume (~6,700 typical lines/month would exhaust the free pool).
+| Locale | Tier at B+ | Notes                                                                                      |
+| ------ | ---------- | ------------------------------------------------------------------------------------------ |
+| en-US  | Neural2    | A/C/D/E/F/G/H/I/J — no B, so helpdesk/critique (Wavenet-B males) remap to J/A, same gender |
+| en-AU  | Neural2    | A/B/C/D — letters and genders identical to the WaveNet set                                 |
+| zh-CN  | WaveNet    | No Neural2 cmn-CN voices                                                                   |
+| zh-TW  | WaveNet    | No Neural2 **or** Chirp 3 HD — WaveNet is still the top tier here                          |
 
 ### Phase B++ — Chirp3-HD tier + fallback ladder (shipped)
 
-The default tier moved again to **Chirp3-HD** for _every_ locale. The reason it superseded the
-"skip it" call above is **Chinese**: Neural2 ships no `cmn-*` voices, so zh was stuck on WaveNet,
-whereas Chirp3-HD covers `cmn-CN` / `cmn-TW` — so zh finally gets the newest voices too. The
-earlier "no rate control" objection is stale: Chirp3-HD honours `speakingRate`, so the per-persona
-_rate_ fingerprints survive. It does **not** support `pitch`, so `synthesizeSpeech` drops pitch for
-the Chirp tier only (WaveNet / Neural2 still carry it).
+The default tier moved to **Chirp3-HD** for every locale that has one. The reason it superseded
+the early “skip it” call was **Chinese**: Neural2 ships no `cmn-*` voices, so zh-CN was stuck on
+WaveNet, whereas Chirp3-HD covers `cmn-CN`. Chirp3-HD honours `speakingRate` (rate fingerprints
+survive) but **not** `pitch` (dropped for the Chirp tier only).
 
-Rather than a static per-locale tier, `officeTts.js` now synthesises down a **runtime fallback
+> **Correction (2026-08-01):** an earlier draft claimed Chirp3-HD covers `cmn-TW` as well.
+> It does not — `listVoices` returns Chirp3-HD for `cmn-CN` and `yue-HK` only. zh-TW spent a
+> period firing one guaranteed-to-fail Chirp request per line before falling through. Fixed by
+> dropping `zh-TW` from `CHIRP_LANG_CODE`. Re-check with `listVoices` before re-adding it.
+
+Rather than a static per-locale tier, `officeTts.js` synthesises down a **runtime fallback
 ladder** (`resolveOfficeTtsVoiceCandidates` → `synthesizeOfficeSpeech` loop): Chirp3-HD → Neural2 →
-WaveNet → (client) Web Speech "system voice". Any rung's API failure falls through to the next, so
-a Chirp outage silently degrades to Neural2, a Neural2 gap to WaveNet, and a total cloud failure to
-the browser — no error ever reaches the user. `OFFICE_TTS_VOICE_TIER` pins the ladder's top
-(`chirp3` default, `neural2`, `wavenet`). Chirp3-HD uses the eight locale-independent core voices
-(`Aoede`/`Kore`/`Leda`/`Zephyr` female, `Puck`/`Charon`/`Fenrir`/`Orus` male), gender-matched to
-each persona's WaveNet letter (`CHIRP3_VOICE_ROSTER`).
+WaveNet → (client) Web Speech. `OFFICE_TTS_VOICE_TIER` pins the ladder's top
+(`chirp3` default, `neural2`, `wavenet`).
 
-| Locale | Default tier | Ladder                        | Notes                                             |
-| ------ | ------------ | ----------------------------- | ------------------------------------------------- |
-| en-US  | Chirp3-HD    | Chirp3-HD → Neural2 → WaveNet | full three-rung ladder                            |
-| en-AU  | Chirp3-HD    | Chirp3-HD → Neural2 → WaveNet | full three-rung ladder                            |
-| zh-CN  | Chirp3-HD    | Chirp3-HD → WaveNet           | no Neural2 cmn-CN voices, so that rung is skipped |
-| zh-TW  | Chirp3-HD    | Chirp3-HD → WaveNet           | no Neural2 cmn-TW voices, so that rung is skipped |
-
-Cost note: Chirp3-HD is ~$30 / 1M chars after a 1M free pool — still effectively $0 at
-personal-app volume, and only the top of the ladder ever bills (fallbacks fire only on failure).
+~~**Eight-voice roster**~~ — ✅ widened: `CHIRP3_VOICE_ROSTER` is one voice per speaker (all 30
+Chirp3-HD names are available for en-\* and cmn-CN). English accent overrides live in
+`CHIRP3_ACCENT_LANG` (apply only when the Chirp language is already English — under zh-CN the
+speaker must speak Mandarin). Some picks are deliberate ear-matches, not gender bugs (e.g.
+Richard → `Gacrux`); do not “fix” by gender alone — re-audition with `scripts/cast-audition.mjs`.
 
 **Still useful follow-ups:**
 
 - Batch meeting-script audio during the “waiting to be admitted” gag (fewer round-trips).
 - Optional GCS cache for hot canned lines across Cloud Run instances.
-- Re-listen in the [Cloud TTS console](https://console.cloud.google.com/speech/text-to-speech) and tweak voice ids if a character feels off.
+- Phase A polish still open (duck soundscape, speaker sting, directory “Hear sample”).
+- Re-listen in the [Cloud TTS console](https://console.cloud.google.com/speech/text-to-speech) when a character feels off.
 
-**Env / deploy (required for WaveNet in production):**
+**Env / deploy:**
 
 - Enable API: `gcloud services enable texttospeech.googleapis.com --project=PROJECT_ID`
 - IAM: no predefined role for standard synthesis — API enable + runtime SA with project access (default compute SA already has `roles/editor`)
 - Kill switch: `OFFICE_TTS=0` → Web Speech fallback
+- Tier pin: `OFFICE_TTS_VOICE_TIER=chirp3|neural2|wavenet`
 - Project id: same `VERTEX_PROJECT_ID` / `GOOGLE_CLOUD_PROJECT` resolution as Vertex
 
-**Cost control (even though free tier should cover you):**
+**Cost control:**
 
 - In-memory LRU already caches identical lines (battle/coffee templates repeat).
 - Never synthesize emails / IMs.
@@ -157,7 +180,7 @@ Battle/coffee/walk-by fallbacks are **static templates**. Generate Opus/MP3 once
 
 - Streaming TTS for very long beats (usually unnecessary — beats are short).
 - Word timestamps → seat highlight / caption sync.
-- ElevenLabs (or Chirp) **only** for a “premium voices” Easter egg if you ever want it.
+- ElevenLabs (or Chirp) **only** as a build-time “premium voices” bake if you ever want it — never a runtime dependency.
 
 ---
 
@@ -168,29 +191,27 @@ Battle/coffee/walk-by fallbacks are **static templates**. Generate Opus/MP3 once
 3. Phase A polish (duck soundscape, speaker sting, directory “Hear sample”).
 4. Batch meeting-script synthesize during join latency.
 5. Phase C bake canned battle/coffee/walk-by templates.
-6. ~~Re-evaluate Neural2~~ ✅ shipped as a tier (Phase B+); ~~Chirp 3 HD skipped~~ ✅ now the default tier (Phase B++) — it honours `speakingRate`, unlocks Chinese `cmn-*` voices, and only bills at the top of the fallback ladder.
+6. ~~Re-evaluate Neural2~~ ✅ (Phase B+); ~~Chirp 3 HD as default~~ ✅ (Phase B++) — unlocks `cmn-CN`, honours `speakingRate`, only bills at the top of the fallback ladder; zh-TW stays WaveNet.
+7. ~~Widen Chirp roster + English accent overrides~~ ✅ (`CHIRP3_VOICE_ROSTER` / `CHIRP3_ACCENT_LANG`).
 
 ---
 
-## 6. Acceptance checks (Phase B)
+## 6. Acceptance checks
 
-- [x] Same Narration / Focus Time / global mute behavior as Web Speech MVP
+- [x] Same Headphones / Focus / global mute behavior as the Web Speech MVP (consumers read `narration` / `soundscape` / `captions`, never a `headphones` flag)
 - [x] Emails / IMs never synthesize
 - [x] Offline / API failure → Web Speech or reading-pace timers (no error toast)
-- [x] en-AU / zh-CN / zh-TW map onto voice tables (Neural2 for en locales, WaveNet for zh)
+- [x] en-AU / zh-CN / zh-TW map onto voice tables (Chirp3 for en-\* + zh-CN; WaveNet for zh-TW)
+- [x] Chirp ladder skips zh-TW without a failed request (`CHIRP_LANG_CODE` omits it)
 - [x] Synthesize **server-side only** (`POST /api/office/speak`)
-- [ ] Character usage stays under the Neural2 1M-char free tier in production (spot-check Metrics Explorer after deploy)
+- [ ] Character usage stays under the free tier in production (spot-check Metrics Explorer after deploy)
 - [ ] `texttospeech.googleapis.com` enabled on deploy project (runtime SA already has Editor on `mermaidgen`)
 
 ---
 
-## 7. Pointers
+## Related
 
-| Piece                    | Path / link                                     |
-| ------------------------ | ----------------------------------------------- |
-| Current client narration | `apps/web/src/utils/officeNarration.js`         |
-| Meeting pacing hook      | `apps/web/src/hooks/useMeetingPlayback.js`      |
-| Office design + cadence  | [`office-parody.md`](office-parody.md)          |
-| GCP deploy / SA pattern  | [`deploy/gcp.md`](deploy/gcp.md)                |
-| Official TTS pricing     | https://cloud.google.com/text-to-speech/pricing |
-| Official TTS docs        | https://cloud.google.com/text-to-speech/docs    |
+- [`office-parody.md`](office-parody.md) — desk verbs, presence, agency doctrine
+- [`audio-assets.md`](audio-assets.md) — build-time ElevenLabs room tone / cues (not runtime TTS)
+- [`deploy/gcp.md`](deploy/gcp.md) — enable Cloud TTS on Cloud Run
+- [`recipes/replicate-tv-character.md`](recipes/replicate-tv-character.md) — adding a cast member (incl. TTS rows)

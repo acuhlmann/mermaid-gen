@@ -86,6 +86,43 @@ export function writeOfficeHeadphones(enabled) {
 }
 
 /**
+ * Headphones is the desk-menu posture; narration / soundscape / captions are
+ * what consumers read. Before the macro, Voice / CC were independent keys — and
+ * a half-cleared localStorage (or a pre-macro "Voice off") can leave the menu
+ * saying headphones off while narration is still `'0'`. Reconcile on boot so the
+ * checkbox never lies about whether the office speaks.
+ *
+ * Captions may stay on when headphones are off (floor CC nudge). When headphones
+ * are on, captions must be on (read-first).
+ *
+ * @returns {{ headphones: boolean, narration: boolean, soundscape: boolean, captions: boolean }}
+ */
+export function reconcileOfficeHeadphonesPosture() {
+  const headphones = readOfficeHeadphones();
+  let narration = readOfficeNarrationEnabled();
+  let soundscape = readOfficeSoundscapeEnabled();
+  let captions = readOfficeCaptionsEnabled();
+
+  if (headphones) {
+    if (narration || soundscape || !captions) {
+      narration = false;
+      soundscape = false;
+      captions = true;
+      writeOfficeNarrationEnabled(false);
+      writeOfficeSoundscapeEnabled(false);
+      writeOfficeCaptionsEnabled(true);
+    }
+  } else if (!narration || !soundscape) {
+    narration = true;
+    soundscape = true;
+    writeOfficeNarrationEnabled(true);
+    writeOfficeSoundscapeEnabled(true);
+  }
+
+  return { headphones, narration, soundscape, captions };
+}
+
+/**
  * @returns {boolean} True unless the user switched the soundscape off — the
  * room tone defaults ON (it is quiet, sparse, and behind the global sound
  * toggle) and only stores the opt-out.

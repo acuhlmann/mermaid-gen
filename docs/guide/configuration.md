@@ -52,6 +52,18 @@ All are optional — the defaults make every layer of the validation/repair ladd
 
 Cloud Run operators: see [`docs/deploy/gcp.md`](../deploy/gcp.md) for `PUBLIC_BASE_URL`, `INVITE_TOKEN_SECRET` via Secret Manager, optional Redis, and `min-instances` guidance for MCP session stickiness.
 
+## Office narration (optional Cloud TTS)
+
+Spoken walk-bys / meetings / battles prefer Google Cloud Text-to-Speech when a GCP project id resolves; otherwise the browser uses Web Speech. Full ladder and locale exceptions: [`docs/office-narration-roadmap.md`](../office-narration-roadmap.md).
+
+| Variable                | Default  | What it does                                                                                      |
+| ----------------------- | -------- | ------------------------------------------------------------------------------------------------- |
+| `OFFICE_TTS`            | on       | Set `0` / `false` / `off` to force Web Speech only.                                               |
+| `OFFICE_TTS_VOICE_TIER` | `chirp3` | Top of the ladder: `chirp3` \| `neural2` \| `wavenet`. zh-TW is WaveNet-only (no Chirp `cmn-TW`). |
+| `OFFICE_TTS_RATE_SCALE` | `1.18`   | Global speed multiplier on top of per-persona rates.                                              |
+
+Desk UI postures are **Headphones** (how) and **Focus** (whether) — not a Voice checkbox. See [`docs/office-parody.md`](../office-parody.md).
+
 ## LLM configuration
 
 Backends are selected in `apps/server/src/agents/llmProvider.js` via `LLM_PROVIDER` (`auto` | `vertex` | `openrouter` | `deepseek`). Full resolution table: [`docs/llm-config.md`](../llm-config.md).

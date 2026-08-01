@@ -19,11 +19,7 @@ function setup(overrides = {}) {
     currentMode: 'mermaid',
     onPickMode: vi.fn(),
     onClearDiagram: vi.fn(),
-    onToggleEditor: vi.fn(),
-    onToggleNotebook: vi.fn(),
-    onToggleFullscreen: vi.fn(),
     onOpenContractor: vi.fn(),
-    onOpenExternalAgents: vi.fn(),
     onOpenHrProgression: vi.fn(),
     onOpenHotkeys: vi.fn(),
     ...overrides
@@ -42,12 +38,13 @@ afterEach(() => {
 });
 
 describe('DeskOsMenuBar', () => {
-  it('renders the four menus as a menubar', () => {
+  it('renders the three menus as a menubar', () => {
     setup();
     expect(screen.getByRole('menubar', { name: MENU.aria })).toBeTruthy();
-    for (const id of ['deliverable', 'mailroom', 'view', 'admin']) {
+    for (const id of ['deliverable', 'mailroom', 'admin']) {
       expect(screen.getByTestId(`desk-os-menu-trigger-${id}`)).toBeTruthy();
     }
+    expect(screen.queryByTestId('desk-os-menu-trigger-view')).toBeNull();
   });
 
   // The dismantled DeskDrawer's job, one level up.
@@ -90,32 +87,14 @@ describe('DeskOsMenuBar', () => {
     expect(screen.getByRole('button', { name: /Export/i })).toBeTruthy();
   });
 
-  it('toggles the docked panes from the View menu', () => {
-    const handlers = setup({ notebookOpen: true });
-    openMenu('view');
-    const notebook = screen.getByTestId('menubar-notebook-toggle');
-    expect(notebook.getAttribute('aria-pressed')).toBe('true');
-    fireEvent.click(notebook);
-    expect(handlers.onToggleNotebook).toHaveBeenCalledTimes(1);
-
-    openMenu('view');
-    fireEvent.click(screen.getByTestId('menubar-editor-toggle'));
-    expect(handlers.onToggleEditor).toHaveBeenCalledTimes(1);
-  });
-
-  it('hides fullscreen when the browser does not support it', () => {
-    setup({ fullscreenSupported: false });
-    openMenu('view');
-    expect(screen.queryByTestId('menubar-fullscreen')).toBeNull();
-  });
-
-  // These four came off the desk stamp: they are once-a-session verbs and were
-  // crowding out the office verbs that are not.
+  // These came off the desk stamp: they are once-a-session verbs and were
+  // crowding out the office verbs that are not. External agents used to sit
+  // here too, but it opened the settings/code panel — Onboard a contractor is
+  // the real MCP invite doorway.
   it('dispatches the admin verbs that moved off the desk stamp', () => {
     const handlers = setup();
     for (const [testId, key] of [
       ['menubar-contractor', 'onOpenContractor'],
-      ['menubar-external-agents', 'onOpenExternalAgents'],
       ['menubar-hr', 'onOpenHrProgression'],
       ['menubar-hotkeys', 'onOpenHotkeys']
     ]) {
@@ -123,6 +102,8 @@ describe('DeskOsMenuBar', () => {
       fireEvent.click(screen.getByTestId(testId));
       expect(handlers[key]).toHaveBeenCalledTimes(1);
     }
+    openMenu('admin');
+    expect(screen.queryByTestId('menubar-external-agents')).toBeNull();
   });
 
   it('keeps the language pack reachable from Admin', () => {
@@ -136,19 +117,19 @@ describe('DeskOsMenuBar', () => {
     setup();
     openMenu('deliverable');
     expect(screen.getByTestId('desk-os-menu-deliverable')).toBeTruthy();
-    openMenu('view');
+    openMenu('admin');
     expect(screen.queryByTestId('desk-os-menu-deliverable')).toBeNull();
-    expect(screen.getByTestId('desk-os-menu-view')).toBeTruthy();
+    expect(screen.getByTestId('desk-os-menu-admin')).toBeTruthy();
   });
 
   it('switches menus on hover only once one is already open', () => {
     setup();
-    fireEvent.pointerEnter(screen.getByTestId('desk-os-menu-trigger-view'));
+    fireEvent.pointerEnter(screen.getByTestId('desk-os-menu-trigger-admin'));
     expect(screen.queryByRole('menu')).toBeNull();
 
     openMenu('deliverable');
-    fireEvent.pointerEnter(screen.getByTestId('desk-os-menu-trigger-view'));
-    expect(screen.getByTestId('desk-os-menu-view')).toBeTruthy();
+    fireEvent.pointerEnter(screen.getByTestId('desk-os-menu-trigger-admin'));
+    expect(screen.getByTestId('desk-os-menu-admin')).toBeTruthy();
     expect(screen.queryByTestId('desk-os-menu-deliverable')).toBeNull();
   });
 

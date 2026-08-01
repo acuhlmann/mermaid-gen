@@ -379,43 +379,42 @@ questions at once, which is why nobody could predict what was in it. What is lef
 ways the office reaches you — **Check your mail**, **Open Slop Chat**, **Have a meeting** — plus
 the two ambience postures and the vendor attribution strip. Everything else moved to the frame:
 
-| Left the desk stamp for…  | New home                                                                                      |
-| ------------------------- | --------------------------------------------------------------------------------------------- |
-| Take it to the mailroom   | Menu bar → **Mailroom** (`DeskOsMenuBar`)                                                     |
-| Onboard a contractor · HR | Menu bar → **Admin**                                                                          |
-| Language pack · Hotkeys   | Menu bar → **Admin**                                                                          |
-| Adjust your workstation   | Menu bar → **Admin** → External agents (the `settingsOpenSignal` producer that never existed) |
-| Concentration             | Taskbar tray (`DeskOsTaskbar`) — still on the Work Order footer and Thinking header too       |
-| 🧍 Stand up               | Taskbar leading corner, labelled, still `Shift+O`                                             |
+| Left the desk stamp for…  | New home                                                                                |
+| ------------------------- | --------------------------------------------------------------------------------------- |
+| Take it to the mailroom   | Menu bar → **Mailroom** (`DeskOsMenuBar`)                                               |
+| Onboard a contractor · HR | Menu bar → **Admin**                                                                    |
+| Language pack · Hotkeys   | Menu bar → **Admin**                                                                    |
+| Concentration             | Taskbar tray (`DeskOsTaskbar`) — still on the Work Order footer and Thinking header too |
+| 🧍 Stand up               | Taskbar leading corner, labelled, still `Shift+O`                                       |
 
 The **Desk tray** row is gone with `DeskDrawer`: Deliverable format and Shredder are menu-bar
 items now, and Facilities (Fix) rejoins the team beside Jared, whose critique it acts on.
 
 **Zones on the desk**
 
-| Zone                | Fiction                      | Controls                                                                                 |
-| ------------------- | ---------------------------- | ---------------------------------------------------------------------------------------- |
-| Your seat           | Personal cognition           | Notebook (Thinking pane), Concentration (Rush job / Deep work → wire `fast` / `quality`) |
-| Work surface        | The deliverable              | Work order; Deliverable format + Shredder on the menu bar                                |
-| People around you   | Colleagues at adjacent desks | Your Team menu (delegate to a teammate, Huddle up) + desk **Have a meeting**             |
-| Get up              | Leave the chair              | Mail, IM (+ Stand up in the taskbar's leading corner; coffee is on the floor)            |
-| Under the desk / IT | Cubicle plumbing             | Menu bar → Admin (contractors, HR, language, hotkeys); code drawer on View               |
+| Zone                | Fiction                      | Controls                                                                                           |
+| ------------------- | ---------------------------- | -------------------------------------------------------------------------------------------------- |
+| Your seat           | Personal cognition           | Notebook (Thinking pane), Concentration (Rush job / Deep work → wire `fast` / `quality`)           |
+| Work surface        | The deliverable              | Work order; Deliverable format + Shredder on the menu bar                                          |
+| People around you   | Colleagues at adjacent desks | Your Team menu (delegate to a teammate, Huddle up) + desk **Have a meeting**                       |
+| Get up              | Leave the chair              | Mail, IM (+ Stand up in the taskbar's leading corner; coffee is on the floor)                      |
+| Under the desk / IT | Cubicle plumbing             | Menu bar → Admin (contractors, HR, language, hotkeys); code drawer on the notebook / canvas chrome |
 
-| Verb                        | Does                                                                                                                                                                                                                                                                                                                 |
-| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 📓 Open your notebook       | Toggles the Thinking / insights pane — Your seat; replaces the old Thinking board label                                                                                                                                                                                                                              |
-| 🎚️ Concentration            | Rush job / Deep work segment in the taskbar tray, the Work Order footer and the Thinking header. Wire value unchanged: `modelProfile: "fast" \| "quality"`                                                                                                                                                           |
-| ↳ Delegate to a teammate    | A roster row hands the work to a **person**: `runTransform` / `runAnalyze` for that persona, with an arrow, a "Delegate to {name}" accessible name, and a "{name} took it" acknowledgement for `HANDOFF_ACK_MS`. Same verbs as the radial menu; the difference is that somebody's name is on it                      |
-| 🤝 Everyone over here       | **Mob.** Pulls the whole `CAST_TIERS.team` tier around your canvas, face to face — see § 5b. In the **Your Team** roster menu, above the rows                                                                                                                                                                        |
-| 🪑 Pair                     | **Pair.** Seats one teammate in the chair beside you and keeps them there until you end it — see § 5b. A chip on that person's own roster row, next to their delegate chip                                                                                                                                           |
-| 📅 Have a meeting           | Opens the people/group picker (same as inbox / Slop Chat) — on the **desk** menu. Toggle **Book the glass room** vs **Slap on headsets**; blank canvas is fine                                                                                                                                                       |
-| 🧍 Stand up and look around | Leading corner of the taskbar (`DeskStandUpButton` inside `DeskOsTaskbar`) — enters isometric floor mode. Not a menu item. The taskbar hides while you are standing; the floor carries its own way back (`FloorTopBar`)                                                                                              |
-| 👥 Who's around             | **Presence strip.** `DeskOsPresenceStrip`, beside Stand up — faces + one line for what the room is doing, and pressing it stands you up too. The diegetic half of the pair (ADR-0011 rule 3), so it is the half that retires below 360px. Produces nothing: pure `officePresenceOf` over the moment store — see § 5c |
-| 📥 Check your mail          | Opens the inbox popover (`openSignal` counter prop)                                                                                                                                                                                                                                                                  |
-| 📤 Take it to the mailroom  | Menu bar → **Mailroom**: the export/share panel inline, one click deep. Was an expandable row inside this menu, two clicks deep behind a menu you had to know to open                                                                                                                                                |
-| 💬 Open Slop Chat / Message | Messenger history / DM a teammate or colleague                                                                                                                                                                                                                                                                       |
-| ⚙️ Adjust your workstation  | Menu bar → **Admin** → External agents (guest agents); the code drawer is on **View**                                                                                                                                                                                                                                |
-| 📈 Check my HR progression  | Menu bar → **Admin**: toggles the level-up / People Ops scorecard (`LevelUpInfoPanel`, now anchored to the taskbar tray's XP chip) — always enabled; that panel also links to Meet the team                                                                                                                          |
+| Verb                        | Does                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 📓 Open your notebook       | Toggles the Thinking / insights pane — Your seat; replaces the old Thinking board label                                                                                                                                                                                                                                                                                                                               |
+| 🎚️ Concentration            | Rush job / Deep work segment in the taskbar tray, the Work Order footer and the Thinking header. Wire value unchanged: `modelProfile: "fast" \| "quality"`                                                                                                                                                                                                                                                            |
+| ↳ Delegate to a teammate    | A roster row hands the work to a **person**: `runTransform` / `runAnalyze` for that persona, with an arrow, a "Delegate to {name}" accessible name, and a "{name} took it" acknowledgement for `HANDOFF_ACK_MS`. Same verbs as the radial menu; the difference is that somebody's name is on it                                                                                                                       |
+| 🤝 Everyone over here       | **Mob.** Pulls the whole `CAST_TIERS.team` tier around your canvas, face to face — see § 5b. In the **Your Team** roster menu, above the rows                                                                                                                                                                                                                                                                         |
+| 🪑 Pair                     | **Pair.** Seats one teammate in the chair beside you and keeps them there until you end it — see § 5b. A chip on that person's own roster row, next to their delegate chip                                                                                                                                                                                                                                            |
+| 📅 Have a meeting           | Opens the people/group picker (same as inbox / Slop Chat) — on the **desk** menu. Toggle **Book the glass room** vs **Slap on headsets**; blank canvas is fine                                                                                                                                                                                                                                                        |
+| 🧍 Stand up and look around | Leading corner of the taskbar (`DeskStandUpButton` inside `DeskOsTaskbar`) — enters isometric floor mode. Not a menu item. The taskbar hides while you are standing; the floor carries its own way back (`FloorTopBar`)                                                                                                                                                                                               |
+| 👥 Who's around             | **Presence strip.** `DeskOsPresenceStrip`, beside Stand up — faces + one line for what the room is doing. Pressing it **follows** that presence (`presenceFollowOf`): floor-native moments stand you up; unread IMs open Slop Chat; a huddle / meeting invite already on your screen stays put. Stand up remains the always-floor control. Produces nothing: pure `officePresenceOf` over the moment store — see § 5c |
+| 📥 Check your mail          | Opens the inbox popover (`openSignal` counter prop)                                                                                                                                                                                                                                                                                                                                                                   |
+| 📤 Take it to the mailroom  | Menu bar → **Mailroom**: the export/share panel inline, one click deep. Was an expandable row inside this menu, two clicks deep behind a menu you had to know to open                                                                                                                                                                                                                                                 |
+| 💬 Open Slop Chat / Message | Messenger history / DM a teammate or colleague                                                                                                                                                                                                                                                                                                                                                                        |
+| ⚙️ Adjust your workstation  | Removed — guest agents are **Admin → Onboard a contractor**; code drawer lives on the notebook / canvas chrome                                                                                                                                                                                                                                                                                                        |
+| 📈 Check my HR progression  | Menu bar → **Admin**: toggles the level-up / People Ops scorecard (`LevelUpInfoPanel`, now anchored to the taskbar tray's XP chip) — always enabled; that panel also links to Meet the team                                                                                                                                                                                                                           |
 
 ### The talk channel — say it out loud (slice 3)
 
@@ -475,10 +474,10 @@ On phone the lanes stack, with the Work Order nearest the thumb.
 **Focus / Noise / Voice / CC**, and the Your Team roster carried a fifth control, Headphones, which
 muted the advisor roundtable. That was two mute concepts in two menus for one intent. It is now:
 
-| Posture           | Question it answers              | What it does                                                                                                                                                                                                                                                                             |
-| ----------------- | -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 🎧 **Headphones** | _How_ does the office reach you? | OFF (default) = you hear it: narration on, room tone on, captions off. ON = you read it: both off, captions on. A **macro** over `narration`/`soundscape`/`captions`, not a fifth flag — every consumer reads the same fields it always did. Persisted at `archislop:office-headphones`. |
-| 🔕 **Focus**      | _Whether_ it reaches you at all. | The office DND. Holds every ambient moment, the welcome flow, run reactions, room tone, narration — **and now the advisor roundtable**, absorbing the old Headphones button. `archislop:office-focus-time`.                                                                              |
+| Posture           | Question it answers              | What it does                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| ----------------- | -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 🎧 **Headphones** | _How_ does the office reach you? | OFF (default) = you hear it: narration on, room tone on, captions off. ON = you read it: both off, captions on. A **macro** over `narration`/`soundscape`/`captions`, not a fifth flag — every consumer reads the same fields it always did. Persisted at `archislop:office-headphones`. Boot calls `reconcileOfficeHeadphonesPosture()` so a stale pre-macro Voice key cannot leave the menu saying “hear it” while narration is still off. |
+| 🔕 **Focus**      | _Whether_ it reaches you at all. | The office DND. Holds every ambient moment, the welcome flow, run reactions, room tone, narration — **and now the advisor roundtable**, absorbing the old Headphones button. `archislop:office-focus-time`.                                                                                                                                                                                                                                  |
 
 **Why Focus is not folded into Headphones.** Focus is the broadest kill switch in the app. If
 headphones-on also stopped interruptions, read-first mode would have nothing left to read, and
@@ -492,9 +491,9 @@ and nudge `captions` directly. Headphones sets the posture; it does not own capt
 **Over-the-shoulder walk-bys are ambient only.** There is no "Walk the floor" desk verb — like
 real life, you cannot decide when somebody leans over your shoulder. The ambience director still
 delivers `walkby` moments; desk-mode chrome renders them as a big head dropping in from the top
-of the screen (`OfficeWalkBy`). When Voice is on and CC is off, the speech text is hidden (you
-hear them). What you _can_ summon is the whole team at once — see § 5b. Coffee is a floor prop —
-stand up and walk to the machine.
+of the screen (`OfficeWalkBy`). When Headphones are off (you hear the office) and CC is off, the
+speech text is hidden — you hear them. What you _can_ summon is the whole team at once — see
+§ 5b. Coffee is a floor prop — stand up and walk to the machine.
 
 **Gating differs from the ambient director on purpose.** Verbs skip the random scheduler and
 **bypass Focus Time** (it mutes interruptions, not your own initiative). Floor coffee also bypasses a
@@ -621,9 +620,9 @@ the team roster.
 - **One remark each, in attendee order.** `parseHuddleScript` re-sorts the model's beats into the
   order the seats were drawn, drops speakers who were not invited, and keeps the first line per
   person — a duplicate or a stranger would light the wrong face.
-- **Voice-first, same rule as everywhere else.** Voice on + CC off shows only "{name} is talking"
+- **Voice-first, same rule as everywhere else.** Headphones off + CC off shows only "{name} is talking"
   and never the line. `HuddleOverlay` always hands `useScenePacing` a narrator (a wrapper that
-  reports `spoken:false` when voice is off) — otherwise the hook's silent branch reveals every line
+  reports `spoken:false` when narration is off) — otherwise the hook's silent branch reveals every line
   at once, which is right for a card of overheard chat and wrong for a ring of faces.
 - **"Hard stop ✋"**, Escape, or the last remark timing out (`HUDDLE_TAIL_MS`) all end a mob. A
   huddle that got as far as speaking (or watched a Do-it) is worth `huddled` XP; one you cut short
@@ -651,7 +650,11 @@ huddle slice in `apps/web/src/state/officeMomentStore.js`.
 
 Every other surface in this document is the office **doing** something. The presence strip is the
 one that only ever **looks**: faces and one line, in the taskbar next to Stand up, saying what the
-room is up to right now. Pressing it stands you up.
+room is up to right now. Pressing it **follows** that presence via `presenceFollowOf`: floor-native
+moments (`walkby` / `battle` / `coffee` / `quiet`) stand you up; unread IMs (`talk`) open Slop Chat
+through `officeMessengerUiStore` (shell chrome must not prop-drill into `OfficeLayer`); a huddle or
+meeting invite already on your screen stays put. Stand up remains the labelled always-floor control
+beside it.
 
 That it produces nothing is not a side effect, it is the licence. § 11's carve-out lets ambient
 floor life exist precisely because it writes to no store and fires no moment; the strip claims the
@@ -691,8 +694,9 @@ Two rules worth keeping:
   empty is what lets the strip be a permanent taskbar resident instead of something that flickers
   in and out all session.
 
-Code: `apps/web/src/utils/officePresence.js`,
-`apps/web/src/components/DeskOsPresenceStrip.jsx`. Geometry and the demotion ladder (including why
+Code: `apps/web/src/utils/officePresence.js` (`officePresenceOf` + `presenceFollowOf`),
+`apps/web/src/components/DeskOsPresenceStrip.jsx`,
+`apps/web/src/state/officeMessengerUiStore.js`. Geometry and the demotion ladder (including why
 `min-width: 0` on the leading cluster was the bug) are in
 [`office-isometric-mode.md`](office-isometric-mode.md) §4d.
 
@@ -820,9 +824,9 @@ pitch/rate profiles in `officeNarration.js`; emails stay silent — nobody reads
 loud), meeting invites a **calendar bing-bong**, accepting a coffee break fires the espresso
 machine, entering a cubicle battle rings the **boxing bell**, and settling one lands a small
 **victory sting**. WG meeting beats are paced to the spoken line when Narration is on (fallback
-to the reading-pace timer when synthesis is muted or unavailable). The desk menu's **Voice**
-toggle (defaults ON, persisted opt-out) sits next to Noise; Focus cancels in-flight
-speech.
+to the reading-pace timer when synthesis is muted or unavailable). Desk menu **Headphones** sets
+that posture (macro over narration / soundscape / captions; defaults to hear-it); Focus cancels
+in-flight speech.
 
 Slice 2 closed the loudest gaps in that list:
 
@@ -874,6 +878,12 @@ model?}`.
 - `POST /api/office/meeting/interject` — `{…context, attendees, transcriptSoFar, interjection}` →
   `{beats: MeetingBeat[] | null, usage?, model?}`.
 
+`diagramSource` is truncated to `OFFICE_DIAGRAM_SOURCE_MAX_CHARS` (20k, in
+`packages/shared/src/officeScript.ts`) on both the client (`officeMomentDelivery` /
+`useMeetingPlayback` / `useHuddlePlayback`) and the route preprocess — oversized anything/forms
+slots get a prefix of the source, not a 400. Do not tighten Zod to reject oversize; that turns
+meetings into Pam CANCELLED emails.
+
 `attendees` accepts any id that passes `isOfficeSpeaker` — colleagues, stakeholders, and (since the
 tier split) the senior execs. Seat bounds are **2–8** (`MEETING_MIN_ATTENDEES` /
 `MEETING_MAX_ATTENDEES` in `packages/shared`). Producer is the client's `CallMeetingPicker` →
@@ -913,9 +923,11 @@ consumer). Reserved for later MCP-app parity: `office_moment` / `meeting_started
 | Office XP reducer                                                      | `applyOfficeEvent` in `apps/web/src/state/runGamificationStore.js`                                                                                                                                                                                                                                                                                                                                                                              |
 | Minutes → Thinking pane                                                | `officeMinutesToInsightEntry` in `apps/web/src/utils/appInsightHelpers.js`                                                                                                                                                                                                                                                                                                                                                                      |
 | SFX                                                                    | `playMailChime` / `playYouveGotMail` / `playImPing` / `playFootsteps` / `playCalendarDing` / `playMeetingJoinBlip` / `playBattleBell` / `playVictoryDing` + soundscape / diegetic cues via `officeCuePlayers.js` (`playOfficeCue` / `playPropCues` — sample-first for keyboard / paper / printer / chair / watercooler / espresso / vending; synth for elevator / phone / mouse) in `apps/web/src/utils/agentChimes.js` + `officeCueSamples.js` |
-| Walk-by / meeting / battle / coffee narration                          | `apps/web/src/utils/officeNarration.js` + `POST /api/office/speak` (`apps/server/src/agents/officeTts.js` Chirp3-HD default with a Chirp3-HD → Neural2 → WaveNet → Web Speech fallback ladder; `OFFICE_TTS_VOICE_TIER` pins the ladder top); emails/IMs stay silent; desk menu Voice toggle                                                                                                                                                     |
+| Walk-by / meeting / battle / coffee narration                          | `apps/web/src/utils/officeNarration.js` + `POST /api/office/speak` (`apps/server/src/agents/officeTts.js` Chirp3-HD default with a Chirp3-HD → Neural2 → WaveNet → Web Speech fallback ladder; zh-TW is WaveNet-only — no cmn-TW Chirp voices; `OFFICE_TTS_VOICE_TIER=chirp3\|neural2\|wavenet` pins the ladder top); emails/IMs stay silent; desk menu **Headphones** posture (not a Voice toggle)                                             |
+| Messenger open signal (presence strip → Slop Chat)                     | `apps/web/src/state/officeMessengerUiStore.js` (`requestOfficeMessengerOpen`; mirrors `officeDirectoryUiStore`) — shell chrome opens the window without prop-drilling through `OfficeLayer`                                                                                                                                                                                                                                                     |
+| Presence follow                                                        | `presenceFollowOf` in `apps/web/src/utils/officePresence.js` → `standUp` \| `messenger` \| `stay`                                                                                                                                                                                                                                                                                                                                               |
 | Narration roadmap (TTS follow-ups)                                     | [`docs/office-narration-roadmap.md`](office-narration-roadmap.md)                                                                                                                                                                                                                                                                                                                                                                               |
-| App integration                                                        | one `<OfficeLayer/>` mount next to `<ErrorToast/>` in `apps/web/src/App.jsx`                                                                                                                                                                                                                                                                                                                                                                    |
+| App integration                                                        | one `<OfficeLayer/>` mount via `apps/web/src/features/shell/OfficeLayerSlot.jsx` (ADR-0005 shell split)                                                                                                                                                                                                                                                                                                                                         |
 
 ## 10. Future roadmap (beyond v1)
 
@@ -996,16 +1008,18 @@ the backburnered multi-human future is [`multi-human-office.md`](multi-human-off
     that argues about the user's actual diagram, and betting XP on the outcome before the first line
     lands.
 14. ~~**Walk-by / meeting narration (Web Speech)**~~ — ✅ shipped: per-cast pitch/rate profiles in
-    `officeNarration.js`; emails stay silent; desk menu Voice toggle.
+    `officeNarration.js`; emails stay silent; desk menu **Headphones** posture (macro over
+    narration / soundscape / captions).
 15. ~~**Google Cloud WaveNet TTS + overheard battles/coffee**~~ — ✅ shipped: `POST /api/office/speak`,
-    `officeTts.js` WaveNet cast map, client prefers cloud MP3 with Web Speech fallback; cubicle
-    battles and coffee scenes are spoken (emails/IMs stay silent). Voices since upgraded again to a
-    **Chirp3-HD default tier** for _every_ locale — crucially including the Chinese ones, since
-    Chirp3-HD ships cmn-CN / cmn-TW voices that Neural2 never had. Each `/speak` walks a runtime
-    **fallback ladder** — Chirp3-HD → Neural2 → WaveNet → the client's Web Speech "system voice" —
-    so any single tier's outage degrades silently. `OFFICE_TTS_VOICE_TIER` pins the top of the
-    ladder (`chirp3` default, `neural2`, or `wavenet` for full switchback). Chirp3-HD carries the
-    per-persona rate fingerprint but not pitch (the engine ignores it). Polish + caching ladder:
+    `officeTts.js` cast map, client prefers cloud MP3 with Web Speech fallback; cubicle battles and
+    coffee scenes are spoken (emails/IMs stay silent). Default tier is **Chirp3-HD** where Google
+    publishes it (en-\* and zh-CN / `cmn-CN`); **zh-TW stays WaveNet** — Chirp3-HD has no `cmn-TW`
+    voices (`CHIRP_LANG_CODE` deliberately omits `zh-TW`). Each `/speak` walks a runtime **fallback
+    ladder** — Chirp3-HD → Neural2 → WaveNet → the client's Web Speech "system voice" — so any
+    single tier's outage degrades silently. `OFFICE_TTS_VOICE_TIER` pins the top (`chirp3` default,
+    `neural2`, or `wavenet`). Chirp roster is one voice per speaker (`CHIRP3_VOICE_ROSTER`), with
+    optional English accent overrides (`CHIRP3_ACCENT_LANG`, e.g. Dinesh → `en-IN`); Chirp carries
+    rate but not pitch. Polish + caching ladder:
     [`office-narration-roadmap.md`](office-narration-roadmap.md).
 16. ~~**LLM moments speak the UI locale**~~ — ✅ shipped: the client sends `uiLocale`
     (`officeDialogueLocale()`) on `/api/office/moment`, `/meeting`, and `/meeting/interject`;

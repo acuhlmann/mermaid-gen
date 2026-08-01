@@ -298,6 +298,45 @@ describe('officeMomentStore', () => {
     expect(window.localStorage.getItem(OFFICE_HEADPHONES_STORAGE_KEY)).toBeNull();
   });
 
+  it('boot heals a stale Voice-off key so headphones-off actually speaks', () => {
+    // Pre-macro (or half-cleared) storage: menu would show headphones off while
+    // narration stayed muted — huddle/walk-bys rendered speech bubbles forever.
+    window.localStorage.removeItem(OFFICE_HEADPHONES_STORAGE_KEY);
+    window.localStorage.setItem(OFFICE_NARRATION_STORAGE_KEY, '0');
+    window.localStorage.setItem(OFFICE_SOUNDSCAPE_STORAGE_KEY, '0');
+    _resetForTests();
+    const snap = getOfficeSnapshot();
+    expect(snap.headphones).toBe(false);
+    expect(snap.narration).toBe(true);
+    expect(snap.soundscape).toBe(true);
+    expect(window.localStorage.getItem(OFFICE_NARRATION_STORAGE_KEY)).toBeNull();
+    expect(window.localStorage.getItem(OFFICE_SOUNDSCAPE_STORAGE_KEY)).toBeNull();
+  });
+
+  it('boot keeps headphones-on read-first even if narration drifted on', () => {
+    window.localStorage.setItem(OFFICE_HEADPHONES_STORAGE_KEY, '1');
+    window.localStorage.removeItem(OFFICE_NARRATION_STORAGE_KEY);
+    window.localStorage.removeItem(OFFICE_SOUNDSCAPE_STORAGE_KEY);
+    window.localStorage.removeItem(OFFICE_CAPTIONS_STORAGE_KEY);
+    _resetForTests();
+    const snap = getOfficeSnapshot();
+    expect(snap.headphones).toBe(true);
+    expect(snap.narration).toBe(false);
+    expect(snap.soundscape).toBe(false);
+    expect(snap.captions).toBe(true);
+  });
+
+  it('boot leaves floor CC on when headphones are off', () => {
+    window.localStorage.removeItem(OFFICE_HEADPHONES_STORAGE_KEY);
+    window.localStorage.removeItem(OFFICE_NARRATION_STORAGE_KEY);
+    window.localStorage.setItem(OFFICE_CAPTIONS_STORAGE_KEY, '1');
+    _resetForTests();
+    const snap = getOfficeSnapshot();
+    expect(snap.headphones).toBe(false);
+    expect(snap.narration).toBe(true);
+    expect(snap.captions).toBe(true);
+  });
+
   it('seats a huddle, scripts it, and tears it down', () => {
     const id = startOfficeHuddle(['gilfoyle', 'dinesh']);
     expect(id).toBeTruthy();

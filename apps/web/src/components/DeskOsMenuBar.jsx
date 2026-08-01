@@ -92,85 +92,10 @@ function MailroomMenu({ menu, settings, options }) {
 }
 
 /**
- * The docked panes and the screen itself. Editor and Thinking stay *docked*
- * panes — this is a toggle list, not a window manager.
- */
-function ViewMenu({ menu, copy, controls, desk, options }) {
-  const {
-    editorOpen,
-    onToggleEditor,
-    canToggleEditor,
-    notebookOpen,
-    onToggleNotebook,
-    canToggleNotebook,
-    fullscreenSupported,
-    isFullscreen,
-    fullscreenDisabled,
-    onToggleFullscreen
-  } = options;
-  return (
-    <DeskOsMenu
-      {...menu}
-      label={copy.view ?? 'View'}
-      emoji="🖥️"
-      title={copy.viewTitle ?? copy.view}
-      menuAria={copy.viewAria ?? copy.view}
-    >
-      {(close) => (
-        <>
-          <DeskOsMenuItem
-            emoji="</>"
-            label={controls.editor?.code ?? 'Code'}
-            title={controls.editor?.codeTitle}
-            pressed={editorOpen}
-            disabled={!canToggleEditor}
-            testId="menubar-editor-toggle"
-            onSelect={() => {
-              close();
-              onToggleEditor?.();
-            }}
-          />
-          <DeskOsMenuItem
-            emoji="📓"
-            label={desk.thinkingShort ?? desk.thinking}
-            title={desk.thinkingTitle}
-            pressed={notebookOpen}
-            disabled={!canToggleNotebook}
-            testId="menubar-notebook-toggle"
-            onSelect={() => {
-              close();
-              onToggleNotebook?.();
-            }}
-          />
-          {fullscreenSupported ? (
-            <DeskOsMenuItem
-              emoji="⛶"
-              label={
-                isFullscreen
-                  ? (controls.fullscreen?.exit ?? 'Exit fullscreen')
-                  : (controls.fullscreen?.enter ?? 'Enter fullscreen')
-              }
-              pressed={isFullscreen}
-              disabled={fullscreenDisabled}
-              testId="menubar-fullscreen"
-              onSelect={() => {
-                close();
-                void onToggleFullscreen?.();
-              }}
-            />
-          ) : null}
-        </>
-      )}
-    </DeskOsMenu>
-  );
-}
-
-/**
  * The rare, boring, once-a-session verbs. "Onboard a contractor" is the single
- * doorway to external agents (docs/multi-human-office.md), so the presence
- * panel sits next to it rather than in a settings cluster of its own.
+ * doorway to external agents (docs/multi-human-office.md).
  */
-function AdminMenu({ menu, copy, controls, settings, desk, locale, setLocale, options }) {
+function AdminMenu({ menu, copy, controls, desk, locale, setLocale, options }) {
   const languagePack = controls.languagePack ?? {};
   return (
     <DeskOsMenu
@@ -190,16 +115,6 @@ function AdminMenu({ menu, copy, controls, settings, desk, locale, setLocale, op
             onSelect={() => {
               close();
               options.onOpenContractor?.();
-            }}
-          />
-          <DeskOsMenuItem
-            emoji="🛰️"
-            label={settings.externalAgents ?? 'External agents'}
-            title={settings.title}
-            testId="menubar-external-agents"
-            onSelect={() => {
-              close();
-              options.onOpenExternalAgents?.();
             }}
           />
           <DeskOsMenuItem
@@ -277,20 +192,8 @@ export default function DeskOsMenuBar({
   // Mailroom
   contentType = null,
   diagramSource = '',
-  // View
-  editorOpen = false,
-  onToggleEditor,
-  canToggleEditor = true,
-  notebookOpen = false,
-  onToggleNotebook,
-  canToggleNotebook = true,
-  fullscreenSupported = false,
-  isFullscreen = false,
-  fullscreenDisabled = false,
-  onToggleFullscreen,
   // Admin
   onOpenContractor,
-  onOpenExternalAgents,
   onOpenHrProgression,
   onOpenHotkeys,
   /** First-run tour: which menu the coach tip is pointing at. */
@@ -348,35 +251,15 @@ export default function DeskOsMenuBar({
         settings={shared.settings}
         options={{ contentType, diagramSource }}
       />
-      <ViewMenu
-        menu={menuFor('view')}
-        copy={copy}
-        controls={controls}
-        desk={desk}
-        options={{
-          editorOpen,
-          onToggleEditor,
-          canToggleEditor,
-          notebookOpen,
-          onToggleNotebook,
-          canToggleNotebook,
-          fullscreenSupported,
-          isFullscreen,
-          fullscreenDisabled,
-          onToggleFullscreen
-        }}
-      />
       <AdminMenu
         menu={menuFor('admin')}
         copy={copy}
         controls={controls}
-        settings={shared.settings}
         desk={desk}
         locale={locale}
         setLocale={setLocale}
         options={{
           onOpenContractor,
-          onOpenExternalAgents,
           onOpenHrProgression,
           onOpenHotkeys
         }}

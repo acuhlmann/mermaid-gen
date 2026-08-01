@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, renderHook } from '@testing-library/react';
+import { OFFICE_DIAGRAM_SOURCE_MAX_CHARS } from '@archislop/shared';
 import {
   beatDelayMs,
   meetingMinutes,
@@ -90,6 +91,39 @@ describe('useMeetingPlayback', () => {
       await result.current.startMeeting({ attendees: ATTENDEES });
     });
     expect(result.current.meeting.state).toBe('cancelled');
+  });
+
+  // Anything/forms slots routinely exceed the office route's diagramSource
+  // ceiling. Sending the raw slot used to 400 the meeting and surface as Pam's
+  // CANCELLED: Working group sync email — truncate so the call still starts.
+  it('truncates oversized diagramSource so the meeting request stays valid', async () => {
+    const huge = `flowchart TD\n  A-->B\n${'x'.repeat(OFFICE_DIAGRAM_SOURCE_MAX_CHARS + 5_000)}`;
+    const fetchMock = vi.fn(async (_url, init) => {
+      const body = JSON.parse(String(init?.body ?? '{}'));
+      if (String(body.diagramSource ?? '').length > OFFICE_DIAGRAM_SOURCE_MAX_CHARS) {
+        return {
+          ok: false,
+          json: async () => ({ error: 'Invalid meeting payload' })
+        };
+      }
+      return { ok: true, json: async () => ({ script: SCRIPT }) };
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const { result } = renderHook(() =>
+      useMeetingPlayback({ ...PARAMS, getDiagramSource: () => huge })
+    );
+    await act(async () => {
+      await result.current.startMeeting({
+        attendees: ['facilities'],
+        contextSource: 'email',
+        contextDetail: 'FRIDGE CLEANOUT\nPlease label the shelves.'
+      });
+    });
+    expect(fetchMock).toHaveBeenCalled();
+    const sent = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body ?? '{}'));
+    expect(sent.diagramSource.length).toBeLessThanOrEqual(OFFICE_DIAGRAM_SOURCE_MAX_CHARS);
+    expect(result.current.meeting.state).toBe('playing');
+    expect(result.current.meeting.title).toBe(SCRIPT.title);
   });
 
   it('records the user line, spends an interjection, and splices revised beats', async () => {

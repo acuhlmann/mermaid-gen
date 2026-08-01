@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { OFFICE_DIAGRAM_SOURCE_MAX_CHARS } from '@archislop/shared';
 import { API_BASE_URL, SESSION_HEADER } from '../state/diagramSession.js';
 import { getAdvisorVisibleLabels } from '../utils/advisorVisibleLabels.js';
 import {
@@ -125,7 +126,9 @@ export function useMeetingPlayback({
   const diagramContext = useCallback(() => {
     const p = paramsRef.current;
     const contentType = p.getContentType?.() ?? 'mermaid';
-    const diagramSource = p.getDiagramSource?.() ?? '';
+    const rawSource = p.getDiagramSource?.() ?? '';
+    const diagramSource =
+      typeof rawSource === 'string' ? rawSource.slice(0, OFFICE_DIAGRAM_SOURCE_MAX_CHARS) : '';
     const svgRoot = p.getSvgRoot?.() ?? null;
     const host = svgRoot ?? (typeof document !== 'undefined' ? document : null);
     const { labels } = getAdvisorVisibleLabels({ contentType, host, diagramSource });

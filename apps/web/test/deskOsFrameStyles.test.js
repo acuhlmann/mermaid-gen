@@ -101,7 +101,12 @@ describe('parody-OS frame geometry', () => {
     // the compound `.desk-os-presence:not(…) .desk-os-presence-caption` rule
     // above it and returns the wrong body.
     expect(body).toMatch(/\bmin-width:\s*[\d.]+rem/);
-    expect(css.match(/\n\.desk-os-presence-caption\s*\{([^}]*)\}/)?.[1]).toContain('min-width: 0');
+    const caption = css.match(/\n\.desk-os-presence-caption\s*\{([^}]*)\}/)?.[1];
+    expect(caption).toContain('min-width: 0');
+    // Cap before the flex fight so mid-widths ellipsize cleanly; the portaled
+    // peek recovers the full line on hover / focus / long-press.
+    expect(caption).toMatch(/max-width:\s*min\(/);
+    expect(ruleBody('.desk-os-presence-peek')).toMatch(/\bz-index:\s*290\b/);
   });
 
   it('drops the presence caption on a phone, keeping the faces', () => {
@@ -152,11 +157,15 @@ describe('parody-OS frame geometry', () => {
     expect(ruleBody('.desk-os-taskbar')).toContain('env(safe-area-inset-bottom');
   });
 
-  it('lifts huddle bottom seats and chrome above the mobile composer stack', () => {
-    const block = css.match(
-      /@media\s*\(max-width:\s*1024px\)\s*\{[^}]*\.office-huddle-layer\s*\{[^}]*--huddle-bottom-clearance/
-    );
-    expect(block).toBeTruthy();
+  it('lifts huddle bottom seats and chrome above the taskbar on every viewport', () => {
+    // Desktop used to park chrome at `bottom: 0.9rem` — under the permanent
+    // `--desk-taskbar-h` strip. Mobile already cleared the composer; both must
+    // clear the taskbar now that the parody-OS frame owns the bottom edge.
+    const layer = ruleBody('.office-huddle-layer');
+    expect(layer).toBeTruthy();
+    expect(layer).toContain('--huddle-bottom-clearance');
+    expect(layer).toContain('var(--desk-taskbar-h)');
+
     const bottomSeat = css.match(
       /\.office-huddle-seat\.is-side-bottom\s*\{[^}]*bottom:\s*var\(--huddle-bottom-clearance\)/
     );
@@ -165,5 +174,12 @@ describe('parody-OS frame geometry', () => {
       /\.office-huddle-chrome\s*\{[^}]*bottom:\s*calc\(var\(--huddle-bottom-clearance\)/
     );
     expect(chrome).toBeTruthy();
+
+    const mobile = css.match(
+      /@media\s*\(max-width:\s*1024px\)\s*\{[^}]*\.office-huddle-layer\s*\{[^}]*--huddle-bottom-clearance:[^}]*\}/
+    );
+    expect(mobile).toBeTruthy();
+    expect(mobile?.[0]).toContain('var(--desk-taskbar-h)');
+    expect(mobile?.[0]).toContain('var(--mobile-bottom-chrome-est');
   });
 });

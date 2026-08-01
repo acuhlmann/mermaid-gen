@@ -13,7 +13,7 @@ import { SlopitectTipSlot } from '../prompt/SlopitectTipSlot.jsx';
  * follows it: the strip used to carry an XP bar and one fullscreen button, and
  * now carries the menus that used to be scattered across the bottom row (the
  * Desk tray's Deliverable format, the export panel buried inside the desk menu,
- * Shredder, the panel toggles, and the once-a-session admin verbs).
+ * Shredder, and the once-a-session admin verbs).
  *
  * The XP bar, prestige badge and `LevelUpInfoPanel` moved to the taskbar tray
  * (`DeskOsTaskbar`) — persistent status belongs next to the clock, not next to
@@ -66,10 +66,8 @@ export function BrandChromeSlot({
 
       {menuBar ? <DeskOsMenuBar {...menuBar} /> : null}
 
-      {/* Fullscreen keeps its own corner button *and* a View-menu entry: it is
-          the one control that acts on the canvas itself, and burying a
-          one-click canvas verb two clicks deep would be a downgrade. The menu
-          entry is the labelled, discoverable duplicate (ADR-0011 rule 3). */}
+      {/* Fullscreen stays a corner button: it acts on the canvas itself, and
+          burying a one-click canvas verb inside a menu would be a downgrade. */}
       {fullscreenSupported && (hasCanvasContent || editorOpen) ? (
         <div className="top-corner-controls" aria-label={controls.diagramSurface.controls}>
           <DiagramFullscreenButton

@@ -1,6 +1,10 @@
 import express from 'express';
 import { z } from 'zod';
-import { ContentTypeSchema, OfficeMomentKindSchema } from '@archislop/shared';
+import {
+  ContentTypeSchema,
+  OfficeMomentKindSchema,
+  OFFICE_DIAGRAM_SOURCE_MAX_CHARS
+} from '@archislop/shared';
 import { SystemMessage, HumanMessage } from '@langchain/core/messages';
 import { extractTextContent } from '../utils/extractTextContent.js';
 import { redactSecrets } from '../utils/redactSecrets.js';
@@ -35,6 +39,12 @@ import { isOfficeTtsEnabled, synthesizeOfficeSpeech } from '../agents/officeTts.
  */
 const UiLocaleField = z.string().max(16).optional();
 
+/** Truncate oversized slot sources instead of 400ing — anything/forms exceed 20k. */
+const DiagramSourceField = z.preprocess(
+  (value) => (typeof value === 'string' ? value.slice(0, OFFICE_DIAGRAM_SOURCE_MAX_CHARS) : value),
+  z.string().max(OFFICE_DIAGRAM_SOURCE_MAX_CHARS).default('')
+);
+
 const OfficeThreadLineSchema = z.object({
   from: z.enum(['user', 'colleague']),
   body: z.string().max(300)
@@ -44,7 +54,7 @@ const OfficeMomentRequestSchema = z.object({
   kind: OfficeMomentKindSchema,
   colleagueId: z.string().refine(isOfficeSpeaker, { message: 'unknown colleague' }),
   contentType: ContentTypeSchema.default('mermaid'),
-  diagramSource: z.string().max(20_000).default(''),
+  diagramSource: DiagramSourceField,
   visibleLabels: z.array(z.string().max(200)).max(60).default([]),
   recentMoments: z.array(z.string().max(400)).max(5).default([]),
   uiLocale: UiLocaleField,
@@ -55,7 +65,7 @@ const OfficeMomentRequestSchema = z.object({
 
 const OfficeMeetingRequestSchema = z.object({
   contentType: ContentTypeSchema.default('mermaid'),
-  diagramSource: z.string().max(20_000).default(''),
+  diagramSource: DiagramSourceField,
   visibleLabels: z.array(z.string().max(200)).max(60).default([]),
   attendees: z.array(z.string().max(40)).min(1).max(8),
   topic: z.string().max(200).optional(),
@@ -85,7 +95,7 @@ const HuddleModeSchema = z.enum(['mob', 'pair']).default('mob');
 
 const OfficeHuddleRequestSchema = z.object({
   contentType: ContentTypeSchema.default('mermaid'),
-  diagramSource: z.string().max(20_000).default(''),
+  diagramSource: DiagramSourceField,
   visibleLabels: z.array(z.string().max(200)).max(60).default([]),
   mode: HuddleModeSchema,
   // Floor of 1 here; the per-mode seat count is enforced below where the mode
@@ -97,7 +107,7 @@ const OfficeHuddleRequestSchema = z.object({
 
 const OfficeInterjectRequestSchema = z.object({
   contentType: ContentTypeSchema.default('mermaid'),
-  diagramSource: z.string().max(20_000).default(''),
+  diagramSource: DiagramSourceField,
   visibleLabels: z.array(z.string().max(200)).max(60).default([]),
   attendees: z.array(z.string().max(40)).min(1).max(8),
   transcriptSoFar: z.array(z.string().max(300)).max(20).default([]),

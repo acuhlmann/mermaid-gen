@@ -157,7 +157,7 @@ Keep the **`deepseek-api-key`** secret attached for hybrid Brain Quality. Keep *
 
 ## Office Cloud TTS (optional: spoken walk-bys / meetings / battles)
 
-Office narration prefers **Google Cloud Text-to-Speech** when a GCP project id resolves; otherwise the browser falls back to Web Speech. Voices default to **Chirp3-HD** for every locale (including the Chinese ones — Chirp3-HD ships cmn-CN / cmn-TW voices Neural2 lacks), synthesised down a runtime fallback ladder **Chirp3-HD → Neural2 → WaveNet → Web Speech**. `OFFICE_TTS_VOICE_TIER` pins the ladder top (`chirp3` default, `neural2`, or `wavenet` for full switchback). See [`docs/office-narration-roadmap.md`](../office-narration-roadmap.md).
+Office narration prefers **Google Cloud Text-to-Speech** when a GCP project id resolves; otherwise the browser falls back to Web Speech. Voices default to **Chirp3-HD** where Google publishes them (en-\* and zh-CN / `cmn-CN`), synthesised down a runtime fallback ladder **Chirp3-HD → Neural2 → WaveNet → Web Speech**. **zh-TW is WaveNet-only** — Chirp3-HD has no `cmn-TW` voices. `OFFICE_TTS_VOICE_TIER` pins the ladder top (`chirp3` default, `neural2`, or `wavenet` for full switchback). See [`docs/office-narration-roadmap.md`](../office-narration-roadmap.md).
 
 1. **Enable the API:**
 

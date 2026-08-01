@@ -1083,7 +1083,11 @@ export const OFFICE_EN_AU = {
       tidyTitle: 'Shove every window back where it opened',
       presence: {
         aria: '{status}. Get up and have a look.',
+        ariaChat: '{status}. Open Slop Chat.',
+        ariaStay: '{status}.',
         title: 'Get up and have a look',
+        titleChat: 'Open Slop Chat',
+        titleStay: 'Already on your screen',
         overflow: '+{count}',
         pair: 'Pairing with {name}',
         mob: '{count} round your screen',

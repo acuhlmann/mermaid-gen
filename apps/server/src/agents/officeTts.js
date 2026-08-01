@@ -7,18 +7,24 @@
  * back to Web Speech (officeNarration.js).
  *
  * Voice tier: **Chirp3-HD** (the newest, most natural tier) is the default for
- * every locale, including the Chinese ones — this is the whole reason Chinese
+ * every locale that has one — including zh-CN, which is the whole reason Chinese
  * finally sounds right, because unlike Neural2 (which ships no cmn-* voices at
- * all) Chirp3-HD covers cmn-CN and cmn-TW. Each `/speak` synthesises down a
- * runtime **fallback ladder**: Chirp3-HD → Neural2 → WaveNet, dropping to the
- * client's Web Speech ("system voice") only when every cloud tier fails. So a
- * Chirp outage silently degrades to Neural2, a Neural2 gap to WaveNet, and a
- * total cloud failure to the browser — no error ever reaches the user.
+ * all) Chirp3-HD covers cmn-CN. Each `/speak` synthesises down a runtime
+ * **fallback ladder**: Chirp3-HD → Neural2 → WaveNet, dropping to the client's
+ * Web Speech ("system voice") only when every cloud tier fails. So a Chirp
+ * outage silently degrades to Neural2, a Neural2 gap to WaveNet, and a total
+ * cloud failure to the browser — no error ever reaches the user.
+ *
+ * **zh-TW is the exception: Chirp3-HD has no cmn-TW voices at all.** Verified
+ * against listVoices — Chirp3-HD ships cmn-CN and yue-HK only, and cmn-TW has
+ * nothing above WaveNet. zh-TW therefore never gets a Chirp rung; offering one
+ * only bought a guaranteed-to-fail request and a warning log on every line.
  *
  * `OFFICE_TTS_VOICE_TIER` pins the *top* of that ladder for switchback:
  * `chirp3` (default) tries all three; `neural2` skips Chirp and starts at
  * Neural2; `wavenet` pins the old WaveNet cast everywhere. zh locales have no
- * Neural2 voices, so their ladder is just Chirp3-HD → WaveNet.
+ * Neural2 voices, so zh-CN's ladder is Chirp3-HD → WaveNet and zh-TW's is
+ * WaveNet alone.
  *
  * Kill switch: OFFICE_TTS=0|false|off. Default ON when a GCP project id
  * resolves (same VERTEX_PROJECT_ID / GOOGLE_CLOUD_PROJECT path as Vertex).
@@ -71,7 +77,10 @@ const VOICES_BY_LANG = {
     richard: { name: 'en-US-Wavenet-C', languageCode: 'en-US', speakingRate: 0.92, pitch: 0.5 },
     belson: { name: 'en-US-Wavenet-A', languageCode: 'en-US', speakingRate: 1.06, pitch: -0.4 },
     cfo: { name: 'en-US-Wavenet-F', languageCode: 'en-US', speakingRate: 0.9, pitch: -2.0 },
-    barker: { name: 'en-US-Wavenet-C', languageCode: 'en-US', speakingRate: 0.9, pitch: -1.5 }
+    // 0.78 is deliberately the cast's slowest after greybeard: over-deliberate
+    // pacing is what reads as dorky rather than merely authoritative, and it is
+    // also what separates him from belson, who shares his Chirp3 voice.
+    barker: { name: 'en-US-Wavenet-C', languageCode: 'en-US', speakingRate: 0.78, pitch: -1.5 }
   },
   'en-AU': {
     intern: { name: 'en-AU-Wavenet-B', languageCode: 'en-AU', speakingRate: 1.1, pitch: 2.0 },
@@ -89,7 +98,7 @@ const VOICES_BY_LANG = {
     richard: { name: 'en-AU-Wavenet-C', languageCode: 'en-AU', speakingRate: 0.92, pitch: 0.5 },
     belson: { name: 'en-AU-Wavenet-B', languageCode: 'en-AU', speakingRate: 1.06, pitch: -0.4 },
     cfo: { name: 'en-AU-Wavenet-A', languageCode: 'en-AU', speakingRate: 0.9, pitch: -2.0 },
-    barker: { name: 'en-AU-Wavenet-B', languageCode: 'en-AU', speakingRate: 0.9, pitch: -1.5 }
+    barker: { name: 'en-AU-Wavenet-B', languageCode: 'en-AU', speakingRate: 0.78, pitch: -1.5 }
   },
   'zh-CN': {
     intern: { name: 'cmn-CN-Wavenet-B', languageCode: 'cmn-CN', speakingRate: 1.08, pitch: 2.0 },
@@ -122,7 +131,7 @@ const VOICES_BY_LANG = {
     richard: { name: 'cmn-CN-Wavenet-A', languageCode: 'cmn-CN', speakingRate: 0.92, pitch: 0.5 },
     belson: { name: 'cmn-CN-Wavenet-B', languageCode: 'cmn-CN', speakingRate: 1.05, pitch: -0.2 },
     cfo: { name: 'cmn-CN-Wavenet-D', languageCode: 'cmn-CN', speakingRate: 0.9, pitch: -2.0 },
-    barker: { name: 'cmn-CN-Wavenet-B', languageCode: 'cmn-CN', speakingRate: 0.9, pitch: -1.5 }
+    barker: { name: 'cmn-CN-Wavenet-B', languageCode: 'cmn-CN', speakingRate: 0.78, pitch: -1.5 }
   },
   'zh-TW': {
     intern: { name: 'cmn-TW-Wavenet-B', languageCode: 'cmn-TW', speakingRate: 1.08, pitch: 2.0 },
@@ -155,7 +164,7 @@ const VOICES_BY_LANG = {
     richard: { name: 'cmn-TW-Wavenet-A', languageCode: 'cmn-TW', speakingRate: 0.92, pitch: 0.5 },
     belson: { name: 'cmn-TW-Wavenet-B', languageCode: 'cmn-TW', speakingRate: 1.05, pitch: -0.2 },
     cfo: { name: 'cmn-TW-Wavenet-A', languageCode: 'cmn-TW', speakingRate: 0.9, pitch: -2.0 },
-    barker: { name: 'cmn-TW-Wavenet-B', languageCode: 'cmn-TW', speakingRate: 0.9, pitch: -1.5 }
+    barker: { name: 'cmn-TW-Wavenet-B', languageCode: 'cmn-TW', speakingRate: 0.78, pitch: -1.5 }
   }
 };
 
@@ -213,33 +222,52 @@ const NEURAL2_VOICE_NAMES = {
 
 /**
  * Chirp3-HD voice-name roster, keyed by speaker. Chirp3-HD voice names are
- * *locale-independent* (the same `Puck` / `Aoede` ship for en-US, en-AU,
- * cmn-CN and cmn-TW alike), so unlike the WaveNet / Neural2 tables this is one
- * flat map — the per-locale voice id is `${chirpLang}-Chirp3-HD-${name}`.
+ * *locale-independent* (the same `Puck` / `Aoede` ship for en-US, en-AU and
+ * cmn-CN alike), so unlike the WaveNet / Neural2 tables this is one flat map —
+ * the per-locale voice id is `${chirpLang}-Chirp3-HD-${name}`.
  *
- * Only the eight core Chirp3-HD voices are used, because those are the ones
- * guaranteed across every office locale (crucially the cmn-* ones):
+ * Only eight voices are used here:
  *   female — Aoede, Kore, Leda, Zephyr
  *   male   — Puck, Charon, Fenrir, Orus
- * Each speaker keeps the *gender* of its WaveNet letter so the cast still reads
- * the same; prosody (rate) is inherited from VOICES_BY_LANG, and pitch is
- * dropped (Chirp3-HD does not support it).
+ * That was originally justified as "the ones guaranteed across every locale",
+ * but `listVoices` says otherwise: en-US, en-AU **and** cmn-CN each publish all
+ * 30 Chirp3-HD voices (16 male / 14 female), and cmn-TW publishes none, so it
+ * takes the WaveNet rung regardless. The eight-voice limit therefore buys
+ * nothing and costs a lot — 16 speakers collapse onto 8 voices, five of them
+ * onto `Charon` alone, and Chirp3 drops `pitch` so only `speakingRate` tells
+ * them apart. Widening this map is a free distinctiveness win whenever the cast
+ * is next tuned by ear.
+ *
+ * Speakers otherwise keep the *gender* of their WaveNet letter; prosody (rate)
+ * is inherited from VOICES_BY_LANG, and pitch is dropped (Chirp3-HD does not
+ * support it).
  *
  * @type {Record<string, string>}
  */
 const CHIRP3_VOICE_ROSTER = {
   // team
-  gilfoyle: 'Puck',
-  dinesh: 'Charon',
+  gilfoyle: 'Schedar',
+  // Paired with an `en-IN` accent override below — see CHIRP3_ACCENT_LANG.
+  dinesh: 'Iapetus',
   erlich: 'Fenrir',
-  russ: 'Fenrir',
-  jared: 'Charon',
-  richard: 'Aoede',
+  russ: 'Sadaltager',
+  jared: 'Umbriel',
+  // Deliberate, not a gender bug: `Gacrux` is a FEMALE voice on a male character.
+  // Richard was A/B'd against eight male Chirp3-HD voices plus three other female
+  // ones, and the female timbre won by ear both times — it is the closest match to
+  // his high, reedy, apologetic delivery. Chirp3 rejects `pitch`, so picking a
+  // naturally lower voice is the only way to steer this. Do not "fix" this.
+  richard: 'Gacrux',
   // senior
   ciso: 'Charon',
-  belson: 'Charon',
+  // belson and barker deliberately share `Rasalgethi`, separated by rate alone
+  // (belson 1.06, barker 0.78 — a 36% gap). Both were picked by ear. They are
+  // the two execs and co-occur in steering meetings (MEETING_SENIOR_POOL), so
+  // this is the cast's most load-bearing shared voice: if it ever reads as one
+  // person, split it before adding anything else.
+  belson: 'Rasalgethi',
   cfo: 'Kore',
-  barker: 'Orus',
+  barker: 'Rasalgethi',
   // office
   intern: 'Puck',
   scrumMaster: 'Kore',
@@ -250,17 +278,56 @@ const CHIRP3_VOICE_ROSTER = {
 };
 
 /**
- * BCP-47 language code Chirp3-HD (and WaveNet) use per office locale. zh tags
- * map onto Google's `cmn-*` codes; the en tags pass through unchanged.
+ * BCP-47 language code Chirp3-HD uses per office locale. zh tags map onto
+ * Google's `cmn-*` codes; the en tags pass through unchanged.
+ *
+ * **zh-TW is deliberately absent** — Chirp3-HD publishes no cmn-TW voices, so a
+ * missing key here is what makes `voiceForEngine` return null and the ladder
+ * skip straight to WaveNet. Re-adding it would restore a failed request per
+ * line. Re-check with `listVoices` before assuming Google has shipped them.
  *
  * @type {Record<string, string>}
  */
 const CHIRP_LANG_CODE = {
   'en-US': 'en-US',
   'en-AU': 'en-AU',
-  'zh-CN': 'cmn-CN',
-  'zh-TW': 'cmn-TW'
+  'zh-CN': 'cmn-CN'
 };
+
+/**
+ * Per-speaker accent override for Chirp3-HD. Chirp3 voice names are
+ * locale-independent — `Iapetus` ships for en-US, en-IN, en-GB, en-AU and
+ * cmn-CN alike — so synthesising the *same* voice under a different English
+ * locale changes only the accent. That is free: every English locale publishes
+ * all 30 voices.
+ *
+ * **Accent is a character trait; language is a locale trait.** These overrides
+ * therefore apply only when the resolved Chirp language is already English —
+ * under zh-CN, Dinesh must speak Mandarin, not Indian-accented English.
+ *
+ * `dinesh` — Dinesh Chugtai is Pakistani, and Google publishes no `en-PK`
+ * (the nearest, `ur-IN`, speaks Urdu rather than accented English). `en-IN` is
+ * the closest available South Asian English and reads as a mild accent. This is
+ * a deliberate approximation, not an error.
+ *
+ * @type {Record<string, string>}
+ */
+const CHIRP3_ACCENT_LANG = {
+  dinesh: 'en-IN'
+};
+
+/**
+ * Apply a speaker's accent override, but only within English.
+ *
+ * @param {string} key resolved speaker key
+ * @param {string} chirpLang language the locale resolved to
+ * @returns {string}
+ */
+function resolveChirpAccentLang(key, chirpLang) {
+  const accent = CHIRP3_ACCENT_LANG[key];
+  if (!accent || !chirpLang.startsWith('en-')) return chirpLang;
+  return accent;
+}
 
 const DEFAULT_VOICE = {
   name: 'en-US-Wavenet-D',
@@ -374,9 +441,10 @@ function voiceForEngine(engine, locale, key, base, env) {
   } else if (engine === 'neural2') {
     name = NEURAL2_VOICE_NAMES[locale]?.[key] ?? null;
   } else if (engine === 'chirp3') {
-    const chirpLang = CHIRP_LANG_CODE[locale];
+    const localeLang = CHIRP_LANG_CODE[locale];
     const voiceName = CHIRP3_VOICE_ROSTER[key];
-    if (chirpLang && voiceName) {
+    if (localeLang && voiceName) {
+      const chirpLang = resolveChirpAccentLang(key, localeLang);
       name = `${chirpLang}-Chirp3-HD-${voiceName}`;
       languageCode = chirpLang;
     }
@@ -452,6 +520,9 @@ export const _NEURAL2_VOICE_NAMES = NEURAL2_VOICE_NAMES;
 
 /** @internal Test seam — the locale-independent Chirp3-HD voice roster. */
 export const _CHIRP3_VOICE_ROSTER = CHIRP3_VOICE_ROSTER;
+
+/** @internal Test seam — per-speaker Chirp3-HD accent overrides. */
+export const _CHIRP3_ACCENT_LANG = CHIRP3_ACCENT_LANG;
 
 /**
  * @param {unknown} text

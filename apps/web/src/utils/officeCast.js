@@ -57,8 +57,12 @@ export const TEAM_INTRO_LINES = Object.freeze({
     "Erlich Bachman. Founder. Incubator. Vision. Let me ask you this: is this diagram courageous, or is it merely… present? I can elevate it. You're welcome. Aviato energy, but quieter, for HR.",
   jared:
     "Hi — Jared. I just wanted to flag that onboarding is already a finding, and if it's alright, someone should own the handoff before we move on. I'm sorry. Also I'm glad you're here. Mostly the finding.",
+  // Disfluency is authored into the *source* text, not injected at synthesis
+  // time, so the caption bubble and the spoken line always agree — and so the
+  // written Richard reads as anxious too. Filled pause, two self-restarts and a
+  // rising "…a shape?" were picked by ear against the plain line.
   richard:
-    "Okay — so if I'm reading this right, I'm Richard. I name patterns. I think this office has a shape. Sorry — that was a lot. I just… I care that the model is right.",
+    "Okay — so, um… if I'm reading this right, I'm — I'm Richard. I name patterns. I think this office has… a shape? Sorry. Sorry, that was — that was a lot. I just… I care that the model is right.",
   barker:
     "I don't know about you, but I am excited. Jack Barker — CEO. I've taken the liberty of simplifying this introduction for the board. Great energy. We're a family here."
 });
@@ -1696,7 +1700,11 @@ export const OFFICE_CHROME_COPY = {
      */
     presence: {
       aria: '{status}. Stand up and go see.',
+      ariaChat: '{status}. Open Slop Chat.',
+      ariaStay: '{status}.',
       title: 'Stand up and go see',
+      titleChat: 'Open Slop Chat',
+      titleStay: 'Already on your screen',
       overflow: '+{count}',
       pair: 'Pairing with {name}',
       mob: '{count} at your screen',

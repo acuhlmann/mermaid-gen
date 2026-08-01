@@ -13,11 +13,8 @@
  */
 
 import {
-  readOfficeCaptionsEnabled,
   readOfficeFocusTime,
-  readOfficeHeadphones,
-  readOfficeNarrationEnabled,
-  readOfficeSoundscapeEnabled,
+  reconcileOfficeHeadphonesPosture,
   writeOfficeCaptionsEnabled,
   writeOfficeFocusTime,
   writeOfficeHeadphones,
@@ -51,17 +48,20 @@ export const WALKBY_TTL_MS = 24_000;
 export const OFFICE_BATTLE_REENTRY_COOLDOWN_MS = 90_000;
 
 function initialState() {
+  const posture = reconcileOfficeHeadphonesPosture();
   return {
     focusTime: readOfficeFocusTime(),
     /**
      * Headphones posture — the desk menu's single sound control. A macro over
-     * the three flags below, never read by a consumer directly.
+     * the three flags below, never read by a consumer directly. Boot runs
+     * `reconcileOfficeHeadphonesPosture` so a stale narration key cannot leave
+     * the menu saying "off" while the office stays silent.
      */
-    headphones: readOfficeHeadphones(),
-    soundscape: readOfficeSoundscapeEnabled(),
-    narration: readOfficeNarrationEnabled(),
+    headphones: posture.headphones,
+    soundscape: posture.soundscape,
+    narration: posture.narration,
     /** Opt-in CC for spoken lines (arrival + floor bubbles). */
-    captions: readOfficeCaptionsEnabled(),
+    captions: posture.captions,
     /** @type {Array<{id: string, colleagueId: string, subject: string, body: string, actionPrompt?: string, createdAt: number, read: boolean}>} */
     emails: [],
     unreadCount: 0,

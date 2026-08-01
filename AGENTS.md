@@ -166,8 +166,9 @@ Production deploy notes (Cloud Run, billing credits, GitHub Actions CI, optional
 - **Office sound is one posture, not four checkboxes.** The desk menu carries 🎧 **Headphones**
   (how the office reaches you) and 🔕 **Focus** (whether it does). `setOfficeHeadphones` in
   `apps/web/src/state/officeMomentStore.js` is a **macro** that writes `narration`/`soundscape`/
-  `captions` — read those three, never `headphones`, from a consumer. Focus is also the advisor
-  roundtable's mute; don't reintroduce a second one. See
+  `captions` — read those three, never `headphones`, from a consumer. Boot runs
+  `reconcileOfficeHeadphonesPosture()` so a stale pre-macro Voice key cannot desync the menu from
+  speech. Focus is also the advisor roundtable's mute; don't reintroduce a second one. See
   [`docs/office-parody.md`](docs/office-parody.md) § Desk verbs.
 - **The parody-OS frame is height-budgeted by one token.** `--desk-taskbar-h` (`App.css` `:root`)
   is what `.bottom-chrome` stacks on at _every_ breakpoint, and `.desk-os-taskbar` uses a fixed
@@ -192,6 +193,24 @@ Production deploy notes (Cloud Run, billing credits, GitHub Actions CI, optional
   composer band; few-times-a-session verbs go to the menu bar (`DeskOsMenuBar`), persistent status
   goes to the taskbar tray (`DeskOsTaskbar`). Don't add a sixth command surface. See
   [`docs/office-isometric-mode.md`](docs/office-isometric-mode.md) §4b.
+- **A huddle is a moment, so it lives in the store.** `officeMomentStore.huddle` is
+  presentation-agnostic on purpose (ADR-0011 rule 1) — the desk overlay is renderer #1 and the
+  isometric floor version is a follow-up slice. Don't move huddle state into `HuddleOverlay`.
+- **Presence strip is not always Stand up.** `presenceFollowOf` routes by kind (`standUp` |
+  `messenger` | `stay`). Opening Slop Chat from the strip goes through
+  `officeMessengerUiStore` — do not prop-drill through the menu bar or fold that signal into
+  `officeMomentStore`.
+- **Office TTS cast / accent lives in `officeTts.js`.** Change `CHIRP3_VOICE_ROSTER` /
+  `CHIRP3_ACCENT_LANG` / WaveNet tables there; ear-audition with throwaway `scripts/*-audition*.mjs`
+  (never wire Cloud TTS or ElevenLabs into CI, routes, or deploy). Kill switch `OFFICE_TTS=0`.
+  **zh-TW has no Chirp rung** — missing `CHIRP_LANG_CODE['zh-TW']` is intentional; verify with
+  `listVoices` before re-adding. See [`docs/office-narration-roadmap.md`](docs/office-narration-roadmap.md).
+- **Office `diagramSource` is truncated, not rejected.** Cap is `OFFICE_DIAGRAM_SOURCE_MAX_CHARS`
+  (shared). Tightening Zod to 400 oversized anything/forms slots turns meetings into Pam CANCELLED
+  emails.
+- **After presence / TTS / desk-frame edits**, prefer `apps/web/test/officePresence.test.js`,
+  `deskOsPresenceStrip.test.jsx`, `deskOsFrameStyles.test.js`, `apps/server/test/officeTts.test.js`,
+  `officeRoute.test.js` (or `npm run test:affected`).
 
 ## Cursor Cloud specific instructions
 

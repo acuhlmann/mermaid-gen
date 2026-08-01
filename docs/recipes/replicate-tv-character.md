@@ -305,11 +305,13 @@ the stable signal, `world`/`budget` swing with generation luck. Stop there.
 - `packages/shared/src/officeVoice.ts` — add the id to `OFFICE_SPEAKER_IDS`, then
   `npm run build -w packages/shared` (server/web consume shared via `dist/`).
 - `apps/server/src/agents/officeTts.js` — voice rows in all 4 `VOICES_BY_LANG` locales, both
-  `NEURAL2_VOICE_NAMES` locales, and `CHIRP3_VOICE_ROSTER`. Gender-match the letters
-  (en-US male: A/B/C/D/I/J; en-AU male: B/D; cmn-CN male: B/C; cmn-TW male: B/C; Chirp3-HD male:
-  Puck/Charon/Fenrir/Orus, female: Aoede/Kore/Leda/Zephyr). Author rate/pitch as the character's
-  comedy fingerprint (Barker: 0.9 / -1.5 measured-warm). Drift-guarded by
-  `apps/server/test/officeTts.test.js`.
+  `NEURAL2_VOICE_NAMES` locales, and `CHIRP3_VOICE_ROSTER` (one Chirp voice per speaker — see the
+  live map, not the old eight-voice core). Optional English accent override in
+  `CHIRP3_ACCENT_LANG` (only applies when Chirp language is already English). Author rate/pitch as
+  the character's comedy fingerprint in the WaveNet table (Chirp drops pitch). Some roster picks
+  are deliberate ear-matches across gender (e.g. Richard → `Gacrux`) — re-audition with
+  `scripts/cast-audition.mjs` before "fixing". Drift-guarded by
+  `apps/server/test/officeTts.test.js`. zh-TW has no Chirp rung.
 - `apps/web/src/utils/officeNarration.js` — `OFFICE_VOICE_PROFILES` row (Web Speech fallback;
   guarded by `apps/web/test/officeNarration.test.js`).
 - `apps/web/src/utils/castTiers.js` — add to the tier array (drives the meeting-picker directory).

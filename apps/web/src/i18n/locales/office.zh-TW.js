@@ -1172,7 +1172,11 @@ export const OFFICE_ZH_TW = {
       tidyTitle: '把每個視窗送回它開啟時的位置',
       presence: {
         aria: '{status}。起身去看看。',
+        ariaChat: '{status}。開啟 Slop Chat。',
+        ariaStay: '{status}。',
         title: '起身去看看',
+        titleChat: '開啟 Slop Chat',
+        titleStay: '已在你的螢幕上',
         overflow: '+{count}',
         pair: '{name} 正在和你結對',
         mob: '{count} 人圍著你的螢幕',

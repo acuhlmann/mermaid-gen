@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { OFFICE_DIAGRAM_SOURCE_MAX_CHARS } from '@archislop/shared';
 import { API_BASE_URL, SESSION_HEADER } from '../state/diagramSession.js';
 import { getAdvisorVisibleLabels } from '../utils/advisorVisibleLabels.js';
 import { officeDialogueLocale } from '../utils/officeCast.js';
@@ -28,7 +29,9 @@ export function huddleDiagramFingerprint(contentType, diagramSource) {
 /** Everything the server needs to know about what the scene is looking at. */
 function huddleContext(params, attendees, mode = 'mob') {
   const contentType = params.getContentType?.() ?? 'mermaid';
-  const diagramSource = params.getDiagramSource?.() ?? '';
+  const rawSource = params.getDiagramSource?.() ?? '';
+  const diagramSource =
+    typeof rawSource === 'string' ? rawSource.slice(0, OFFICE_DIAGRAM_SOURCE_MAX_CHARS) : '';
   const svgRoot = params.getSvgRoot?.() ?? null;
   const host = svgRoot ?? (typeof document !== 'undefined' ? document : null);
   const { labels } = getAdvisorVisibleLabels({ contentType, host, diagramSource });

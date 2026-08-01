@@ -2,7 +2,8 @@ import { afterEach, describe, expect, it } from 'vitest';
 import {
   _resetOfficePresenceForTests,
   officePresenceOf,
-  podSeatIds
+  podSeatIds,
+  presenceFollowOf
 } from '../src/utils/officePresence.js';
 import {
   _resetForTests,
@@ -163,5 +164,28 @@ describe('officePresenceOf over the real store', () => {
 
     startOfficeHuddle(['jared'], { mode: 'pair' });
     expect(officePresenceOf(getOfficeSnapshot())).toEqual({ kind: 'pair', ids: ['jared'] });
+  });
+});
+
+describe('presenceFollowOf', () => {
+  // Unread IMs are a desk medium — standing up to read a chat is the wrong room.
+  it('opens Slop Chat for unread talk, aimed at the newest sender', () => {
+    expect(presenceFollowOf({ kind: 'talk', ids: ['intern', 'greybeard'] })).toEqual({
+      action: 'messenger',
+      colleagueId: 'intern'
+    });
+  });
+
+  // Pair / mob / meeting invite are already on the desk surface.
+  it('stays put when the presence is already at your screen', () => {
+    expect(presenceFollowOf({ kind: 'pair', ids: ['jared'] }).action).toBe('stay');
+    expect(presenceFollowOf({ kind: 'mob', ids: ['jared', 'dinesh'] }).action).toBe('stay');
+    expect(presenceFollowOf({ kind: 'meeting', ids: ['scrumMaster'] }).action).toBe('stay');
+  });
+
+  it('stands you up for floor-native presence', () => {
+    for (const kind of ['walkby', 'battle', 'coffee', 'quiet']) {
+      expect(presenceFollowOf({ kind, ids: ['jared'] }).action).toBe('standUp');
+    }
   });
 });

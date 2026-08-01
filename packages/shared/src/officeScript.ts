@@ -51,6 +51,13 @@ export const MEETING_MAX_BEATS = 14;
 export const MEETING_MIN_ATTENDEES = 1;
 /** Ceiling for a pulled-together group (route + client roster share this). */
 export const MEETING_MAX_ATTENDEES = 8;
+/**
+ * Ceiling for `diagramSource` on office LLM routes (meeting / moment / huddle).
+ * Slot content (especially anything / forms) can be far larger; callers must
+ * truncate rather than 400 the request — a failed meeting becomes Pam's
+ * CANCELLED email on the client.
+ */
+export const OFFICE_DIAGRAM_SOURCE_MAX_CHARS = 20_000;
 
 /** One utterance in a WG meeting. */
 export const MeetingBeatSchema = z.object({

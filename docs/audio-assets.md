@@ -2,7 +2,8 @@
 
 > How archislop's committed sound files are made, and why ElevenLabs is a **build-time dependency
 > only**. Runtime audio (the synthesized cues in `agentChimes.js`, the office TTS voices via Google
-> Cloud) is out of scope here — see [`docs/office-parody.md`](office-parody.md).
+> Cloud Chirp3-HD / Neural2 / WaveNet) is out of scope here — see [`docs/office-parody.md`](office-parody.md)
+> and [`docs/office-narration-roadmap.md`](office-narration-roadmap.md).
 
 ## The rule
 

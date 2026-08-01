@@ -5554,7 +5554,7 @@
   /* Desktop popover menus: slightly larger, tighter type than the cramped
      mobile roster sizes. */
   .prompt-actions--desktop .stakeholders-roster {
-    padding: 0.35rem 0.4rem;
+    padding: 0.55rem 0.75rem 0.65rem 0.55rem;
   }
 
   .prompt-actions--desktop .stakeholders-roster-name {
@@ -5565,8 +5565,8 @@
 
   .prompt-actions--desktop .stakeholders-roster-title {
     font-size: 0.68rem;
-    font-weight: 550;
-    letter-spacing: 0.02em;
+    font-weight: 500;
+    letter-spacing: 0.01em;
   }
 
   .prompt-actions--desktop .render-as-mascot-menu .radial-render-mode-row-name {
@@ -5978,8 +5978,8 @@
     right: auto;
     bottom: calc(100% + 0.5rem);
     z-index: 35;
-    width: min(20rem, calc(100vw - 1.5rem));
-    min-width: min(15rem, calc(100vw - 1.5rem));
+    width: min(21rem, calc(100vw - 1.5rem));
+    min-width: min(16rem, calc(100vw - 1.5rem));
     max-width: calc(100vw - 1.5rem);
     --desk-menu-max-block-size: calc(
       100dvh - var(--mobile-bottom-chrome-est, 5.5rem) - env(safe-area-inset-bottom, 0px) -
@@ -5987,11 +5987,13 @@
     );
     max-height: var(--desk-menu-max-block-size);
     overflow-y: auto;
-    padding: 0.42rem 0.5rem;
+    padding: 0.55rem 0.75rem 0.65rem 0.55rem;
     background: rgba(255, 255, 255, 0.98);
-    border: 1px solid rgba(99, 102, 241, 0.18);
-    border-radius: 0.85rem;
-    box-shadow: 0 10px 28px rgba(15, 23, 42, 0.14);
+    border: 1px solid color-mix(in srgb, var(--control-border) 85%, transparent);
+    border-radius: 0.95rem;
+    box-shadow:
+      0 14px 36px rgba(15, 23, 42, 0.14),
+      0 0 0 1px rgba(255, 255, 255, 0.65) inset;
     box-sizing: border-box;
     gap: 0;
   }
@@ -5999,9 +6001,9 @@
   .prompt-actions--mobile .stakeholders-roster-row {
     width: 100%;
     max-width: none;
-    padding: 0.38rem 0.45rem;
-    gap: 0.34rem;
-    min-height: 2.55rem;
+    padding: 0.42rem 0.15rem 0.42rem 0.35rem;
+    gap: 0.3rem;
+    min-height: 0;
   }
 
   .prompt-actions--mobile .stakeholders-roster-label {
@@ -6010,9 +6012,13 @@
   }
 
   .prompt-actions--mobile .stakeholders-roster-name {
-    flex: 0 0 auto;
-    overflow: visible;
-    text-overflow: clip;
+    flex: 0 1 auto;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .prompt-actions--mobile .stakeholders-roster-title {
+    display: block;
   }
 
   .prompt-actions--mobile .stakeholders-roster-row .action-persona-icon {
@@ -6023,9 +6029,9 @@
   }
 
   .prompt-actions--mobile .stakeholders-roster-chip {
-    min-width: 3.65rem;
-    padding: 0.2rem 0.5rem;
-    font-size: 0.74rem;
+    min-width: 0;
+    padding: 0.08rem 0.28rem;
+    font-size: 0.55rem;
   }
 
   /* Clear button isn't a slop-action-button. Keep it square-ish too so the
@@ -6903,21 +6909,37 @@
   opacity: 0.55;
 }
 
-/* Senior-tier divider in the team roster: everything below reports upward. */
+/* Team roster sections — quiet labels, not chrome buttons. */
+.stakeholders-roster-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
 .stakeholders-roster-heading {
   margin: 0;
-  padding: 0.35rem 0.55rem 0.15rem;
+  padding: 0.2rem 0.55rem 0.28rem;
   font-size: 0.66rem;
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
   color: var(--muted);
 }
 
-/* Huddle is the way to reach the whole team at once — full-width accent button. */
+/* Huddle reaches the whole team — a soft menu row, not a full-width CTA. */
 .stakeholders-roster-team-action.is-huddle {
-  background: color-mix(in srgb, var(--slop-action-accent) 14%, transparent);
-  font-weight: 700;
+  background: color-mix(in srgb, var(--stakeholders-accent, var(--accent)) 8%, transparent);
+  font-weight: 650;
+}
+
+.stakeholders-roster-team-action.is-huddle:hover:not(:disabled),
+.stakeholders-roster-team-action.is-huddle:focus-visible:not(:disabled) {
+  background: color-mix(in srgb, var(--stakeholders-accent, var(--accent)) 14%, transparent);
+}
+
+.stakeholders-roster-team-action.is-huddle:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .stakeholders-roster-huddle-action {
@@ -6927,13 +6949,13 @@
 /* The arrow that makes a row read as handing work to a person rather than
  * picking a mode; it flips to a tick for HANDOFF_ACK_MS after a click. */
 .stakeholders-roster-handoff {
-  margin-right: 0.2rem;
-  font-weight: 700;
-  opacity: 0.65;
+  margin-right: 0.08rem;
+  font-size: 0.75em;
+  font-weight: 650;
+  opacity: 0.5;
 }
 
 .stakeholders-roster-row.is-handed-off {
-  border-color: color-mix(in srgb, #16a34a 45%, var(--control-border));
   background: color-mix(in srgb, #16a34a 10%, transparent);
 }
 
@@ -6949,17 +6971,24 @@
 
 .stakeholders-roster-team-emoji {
   flex: 0 0 auto;
-  width: 1.75rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.65rem;
+  height: 1.65rem;
+  border-radius: 0.45rem;
+  background: color-mix(in srgb, var(--stakeholders-accent, var(--accent)) 12%, white);
+  border: 1px solid color-mix(in srgb, var(--stakeholders-accent, var(--accent)) 22%, transparent);
   text-align: center;
-  font-size: 1.05rem;
+  font-size: 0.95rem;
   line-height: 1;
 }
 
 .stakeholders-team-actions {
   display: flex;
   flex-direction: column;
-  gap: 0.42rem;
-  padding: 0.1rem 0.2rem 0.35rem;
+  gap: 0.2rem;
+  padding: 0 0.15rem 0.15rem;
 }
 
 .stakeholders-team-toggle-row {
@@ -6989,14 +7018,15 @@
 }
 
 .stakeholders-roster-divider {
-  padding: 0.34rem 0.55rem 0.14rem;
+  display: block;
+  padding: 0.45rem 0.55rem 0.28rem;
+  margin: 0.35rem 0.1rem 0.1rem;
   font-size: 0.62rem;
-  font-weight: 600;
-  letter-spacing: 0.08em;
+  font-weight: 650;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--muted);
-  border-top: 1px solid var(--control-border);
-  margin-top: 0.2rem;
+  border-top: 1px solid color-mix(in srgb, var(--control-border) 75%, transparent);
 }
 
 /* Day One assignment chips: attributed requests stack sender → topic → ask. */
@@ -15759,24 +15789,33 @@ body.slopitect-rainbow-tint::before {
 .stakeholders-roster--portaled {
   position: fixed;
   top: auto;
-  padding: 0.42rem 0.5rem;
-  border-radius: 0.85rem;
+  padding: 0.55rem 0.75rem 0.65rem 0.55rem;
+  border-radius: 0.95rem;
   background: rgba(255, 255, 255, 0.98);
-  border: 1px solid rgba(99, 102, 241, 0.18);
-  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.14);
+  border: 1px solid color-mix(in srgb, var(--control-border) 85%, transparent);
+  box-shadow:
+    0 14px 36px rgba(15, 23, 42, 0.14),
+    0 0 0 1px rgba(255, 255, 255, 0.65) inset;
 }
 
-.stakeholders-roster-row {
+/*
+ * Roster rows reuse `slop-action-button` only for persona accent CSS variables.
+ * Strip the chrome so the panel reads as a menu, not a stack of dock pills.
+ */
+.stakeholders-roster .stakeholders-roster-row.slop-action-button,
+.stakeholders-roster .stakeholders-roster-row {
   display: flex;
   flex-direction: row;
   align-items: center;
   justify-content: flex-start;
-  gap: 0.38rem;
+  gap: 0.35rem;
   width: 100%;
   min-width: 0;
   margin: 0;
-  padding: 0.38rem 0.48rem;
-  min-height: 2.55rem;
+  padding: 0.4rem 0.2rem 0.4rem 0.35rem;
+  min-height: 0;
+  isolation: auto;
+  overflow: visible;
   border: none;
   border-radius: 0.55rem;
   background: transparent;
@@ -15788,51 +15827,55 @@ body.slopitect-rainbow-tint::before {
   -webkit-tap-highlight-color: transparent;
 }
 
+.stakeholders-roster .stakeholders-roster-row.slop-action-button::before,
 .stakeholders-roster-row::before {
   display: none;
+  content: none;
 }
 
+.stakeholders-roster .stakeholders-roster-row.slop-action-button:hover:not(:disabled),
+.stakeholders-roster .stakeholders-roster-row.slop-action-button:focus-visible:not(:disabled),
 .stakeholders-roster-row:hover:not(:disabled),
 .stakeholders-roster-row:focus-visible:not(:disabled) {
-  background: color-mix(in srgb, var(--slop-action-accent) 8%, white);
+  background: color-mix(in srgb, var(--slop-action-accent, var(--accent)) 8%, white);
+  border-color: transparent;
   box-shadow: none;
+  outline: none;
 }
 
 .stakeholders-roster-row + .stakeholders-roster-row {
-  border-top: 1px solid rgba(99, 102, 241, 0.1);
-  border-radius: 0;
-}
-
-.stakeholders-roster-row + .stakeholders-roster-row:hover:not(:disabled),
-.stakeholders-roster-row + .stakeholders-roster-row:focus-visible:not(:disabled) {
-  border-radius: 0.55rem;
+  margin-top: 0.08rem;
 }
 
 .stakeholders-roster-row .action-persona-icon {
   flex: 0 0 auto;
-  width: 1.75rem;
-  height: 1.75rem;
-  font-size: 1.12rem;
-  border-radius: 0.52rem;
+  width: 1.7rem;
+  height: 1.7rem;
+  font-size: 1.05rem;
+  border-radius: 0.48rem;
 }
 
 .stakeholders-roster-label {
   flex: 1 1 auto;
   display: inline-flex;
-  flex-direction: row;
-  align-items: baseline;
-  flex-wrap: nowrap;
-  gap: 0.15rem 0.3rem;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 0.08rem;
   min-width: 0;
 }
 
 .stakeholders-roster-name {
-  flex: 0 0 auto;
-  font-size: 0.78rem;
-  font-weight: 800;
-  line-height: 1.15;
+  flex: 0 1 auto;
+  max-width: 100%;
+  font-size: 0.84rem;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.012em;
   color: #0f172a;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Only ellipsize persona names when the roster row is genuinely cramped. */
@@ -15851,12 +15894,13 @@ body.slopitect-rainbow-tint::before {
 }
 
 .stakeholders-roster-title {
-  display: none;
-  font-size: 0.62rem;
-  font-weight: 600;
-  line-height: 1.15;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
+  display: block;
+  max-width: 100%;
+  font-size: 0.66rem;
+  font-weight: 550;
+  line-height: 1.2;
+  letter-spacing: 0.01em;
+  text-transform: none;
   color: #64748b;
   white-space: nowrap;
   overflow: hidden;
@@ -15864,14 +15908,7 @@ body.slopitect-rainbow-tint::before {
 }
 
 .stakeholders-roster-title::before {
-  content: '·';
-  margin-right: 0.28rem;
-  opacity: 0.55;
-  text-transform: none;
-}
-
-.prompt-actions--mobile .stakeholders-roster-title {
-  display: none;
+  content: none;
 }
 
 .stakeholders-roster-chip {
@@ -15879,18 +15916,21 @@ body.slopitect-rainbow-tint::before {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 3.85rem;
-  padding: 0.22rem 0.55rem;
+  min-width: 0;
+  padding: 0.1rem 0.32rem;
   border-radius: 999px;
-  font-size: 0.74rem;
-  font-weight: 800;
-  line-height: 1.1;
+  font-size: 0.58rem;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: 0;
+  text-transform: none;
   white-space: nowrap;
-  color: var(--slop-action-ink, #0f172a);
-  background: color-mix(in srgb, var(--slop-action-accent) 10%, white);
-  border: 1px solid color-mix(in srgb, var(--slop-action-accent) 28%, transparent);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75);
+  color: color-mix(in srgb, var(--slop-action-accent, #64748b) 40%, #64748b);
+  background: color-mix(in srgb, var(--slop-action-accent, #94a3b8) 5%, #f8fafc);
+  border: 1px solid color-mix(in srgb, var(--slop-action-accent, #94a3b8) 12%, transparent);
+  box-shadow: none;
   pointer-events: none;
+  opacity: 0.88;
 }
 
 .prompt-actions--desktop .stakeholders-mascot-wrap.is-menu-expanded {
@@ -15903,24 +15943,26 @@ body.slopitect-rainbow-tint::before {
   left: 0;
   bottom: calc(100% + 0.45rem);
   z-index: 35;
-  width: min(17.5rem, calc(100vw - 2rem));
+  width: min(19rem, calc(100vw - 2rem));
   min-width: 0;
-  max-width: min(17.5rem, calc(100vw - 2rem));
+  max-width: min(19rem, calc(100vw - 2rem));
   --desk-menu-max-block-size: calc(
     100dvh - var(--mobile-bottom-chrome-est, 5.5rem) - env(safe-area-inset-bottom, 0px) -
       env(safe-area-inset-top, 0px) - 1.5rem
   );
   max-height: var(--desk-menu-max-block-size);
   overflow-y: auto;
-  padding: 0.28rem 0.35rem;
-  border-radius: 0.8rem;
-  background: rgba(255, 255, 255, 0.96);
-  border: 1px solid rgba(99, 102, 241, 0.18);
-  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.14);
+  padding: 0.55rem 0.75rem 0.65rem 0.55rem;
+  border-radius: 0.95rem;
+  background: rgba(255, 255, 255, 0.98);
+  border: 1px solid color-mix(in srgb, var(--control-border) 85%, transparent);
+  box-shadow:
+    0 14px 36px rgba(15, 23, 42, 0.14),
+    0 0 0 1px rgba(255, 255, 255, 0.65) inset;
 }
 
 .prompt-actions--desktop .stakeholders-roster-row {
-  padding: 0.28rem 0.35rem;
+  padding: 0.4rem 0.15rem 0.4rem 0.35rem;
   gap: 0.32rem;
 }
 
@@ -15930,13 +15972,13 @@ body.slopitect-rainbow-tint::before {
 }
 
 .prompt-actions--desktop .stakeholders-roster-name {
-  flex: 0 0 auto;
-  overflow: visible;
-  text-overflow: clip;
+  flex: 0 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .prompt-actions--desktop .stakeholders-roster-title {
-  display: inline;
+  display: block;
 }
 
 @keyframes stakeholders-roster-in {
@@ -19150,6 +19192,12 @@ body.slopitect-rainbow-tint::before {
   pointer-events: none;
   /* Seats start off-layer and slide in; clip so nothing shows before it arrives. */
   overflow: hidden;
+  /* The parody-OS taskbar is a permanent bottom strip (z-index 280). Huddle
+     chrome and bottom seats used to sit at `bottom: 0.9rem` / `0.45rem` — under
+     the bar on desktop. Clear it the same way `.bottom-chrome` does. */
+  --huddle-bottom-clearance: calc(
+    var(--desk-taskbar-h) + env(safe-area-inset-bottom, 0px) + 0.35rem
+  );
 }
 /* Keep the ring on the diagram column when the side panes are open — the same
  * insets .run-ceremony-layer[data-ceremony-anchor='canvas'] uses. */
@@ -19196,7 +19244,7 @@ body.slopitect-rainbow-tint::before {
   transform: translateX(-50%);
 }
 .office-huddle-seat.is-side-bottom {
-  bottom: 0.45rem;
+  bottom: var(--huddle-bottom-clearance);
   left: var(--huddle-pos);
   /* Name above the face so the label never sits under the viewport edge. */
   flex-direction: column-reverse;
@@ -19415,7 +19463,7 @@ body.slopitect-rainbow-tint::before {
 .office-huddle-chrome {
   position: absolute;
   left: 50%;
-  bottom: 0.9rem;
+  bottom: calc(var(--huddle-bottom-clearance) + 0.25rem);
   transform: translateX(-50%);
   display: flex;
   flex-direction: column;
@@ -19448,15 +19496,11 @@ body.slopitect-rainbow-tint::before {
 }
 @media (max-width: 1024px) {
   .office-huddle-layer {
+    /* Phone/tablet: also clear the composer band stacked above the taskbar. */
     --huddle-bottom-clearance: calc(
-      var(--mobile-bottom-chrome-est, 5.5rem) + env(safe-area-inset-bottom, 0px) + 0.35rem
+      var(--desk-taskbar-h) + var(--mobile-bottom-chrome-est, 5.5rem) +
+        env(safe-area-inset-bottom, 0px) + 0.35rem
     );
-  }
-  .office-huddle-seat.is-side-bottom {
-    bottom: var(--huddle-bottom-clearance);
-  }
-  .office-huddle-chrome {
-    bottom: calc(var(--huddle-bottom-clearance) + 0.25rem);
   }
 }
 @media (max-width: 720px) {
@@ -22414,8 +22458,47 @@ body.slopitect-rainbow-tint::before {
 
 .desk-os-presence-caption {
   min-width: 0;
+  /* Cap before the flex squeeze so mid-widths get a clean ellipsis instead of
+     the whole chip fighting the tray for leftover pixels and looking hard-cut. */
+  max-width: min(11rem, 22vw);
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Full status, portaled above the bar. The taskbar's `overflow: hidden` +
+   `backdrop-filter` clip any absolute child, so this lives on `document.body`
+   (see DeskOsPresenceStrip). Hover / focus / long-press recover the caption the
+   demotion ladder hides at phone widths, and the ellipsis on mid-widths. */
+.desk-os-presence-peek {
+  z-index: 290;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--control-border) 80%, transparent);
+  background: color-mix(in srgb, var(--office-surface-bg, #fff) 96%, transparent);
+  box-shadow: var(--control-shadow);
+  backdrop-filter: blur(10px);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.72rem;
+  line-height: 1.15;
+  pointer-events: none;
+}
+
+.desk-os-presence-peek .desk-os-presence-faces > svg {
+  border-radius: 50%;
+  box-shadow: 0 0 0 1.5px var(--office-surface-bg, #fff);
+}
+
+.desk-os-presence-peek .desk-os-presence-faces > svg + svg {
+  margin-left: -0.4rem;
+}
+
+.desk-os-presence-peek-caption {
+  min-width: 0;
   white-space: nowrap;
 }
 
@@ -23066,9 +23149,10 @@ body.slopitect-rainbow-tint::before {
   flex: 1 1 auto;
   display: flex;
   align-items: center;
-  gap: 0.38rem;
+  gap: 0.42rem;
   min-width: 0;
-  padding: 0.14rem 0.24rem;
+  padding: 0.2rem 0.3rem;
+  margin: -0.1rem 0;
   border: none;
   border-radius: 0.45rem;
   background: transparent;
@@ -23080,7 +23164,7 @@ body.slopitect-rainbow-tint::before {
 
 .stakeholders-roster-address:hover,
 .stakeholders-roster-address:focus-visible {
-  background: color-mix(in srgb, var(--slop-action-accent, var(--accent)) 14%, transparent);
+  background: color-mix(in srgb, var(--slop-action-accent, var(--accent)) 12%, transparent);
   outline: none;
 }
 
@@ -23093,7 +23177,8 @@ button.stakeholders-roster-chip {
 
 button.stakeholders-roster-chip:hover:not(:disabled),
 button.stakeholders-roster-chip:focus-visible:not(:disabled) {
-  background: color-mix(in srgb, var(--slop-action-accent, var(--accent)) 22%, white);
+  background: color-mix(in srgb, var(--slop-action-accent, var(--accent)) 14%, white);
+  opacity: 1;
   outline: none;
 }
 
@@ -23105,11 +23190,15 @@ button.stakeholders-roster-chip:disabled {
 .stakeholders-roster-chip-inner {
   display: inline-flex;
   align-items: center;
-  gap: 0.22rem;
+  gap: 0.12rem;
 }
 
 .stakeholders-roster-chip--extra {
   min-width: 0;
+}
+
+.stakeholders-roster-chip--delegate {
+  margin-left: 0.2rem;
 }
 
 @media (max-width: 1024px) {

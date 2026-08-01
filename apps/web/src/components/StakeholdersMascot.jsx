@@ -166,8 +166,8 @@ export default function StakeholdersMascot({
     rosterZIndex,
     resolvedAnchor
       ? computeBottomLeftPopoverStyle(resolvedAnchor, {
-          maxWidthPx: 320,
-          minWidthPx: 240,
+          maxWidthPx: 340,
+          minWidthPx: 260,
           align: rosterPopoverAlign
         })
       : undefined
@@ -183,39 +183,40 @@ export default function StakeholdersMascot({
       onPointerEnter={armCollapseTimer}
       onPointerMove={armCollapseTimer}
     >
-      <p className="stakeholders-roster-heading">
-        {stakeholdersCopy.teamActionsHeading ?? 'Get the team on it'}
-      </p>
-      <div className="stakeholders-team-actions">
-        <button
-          type="button"
-          role="menuitem"
-          className={[
-            'stakeholders-roster-row',
-            'stakeholders-roster-team-action',
-            'stakeholders-roster-huddle-action',
-            'slop-action-button',
-            'is-huddle'
-          ].join(' ')}
-          disabled={!canHuddle}
-          aria-label={deskCopy.huddleAction}
-          title={
-            canHuddle
-              ? (deskCopy.huddleActionTitle ?? deskCopy.huddleAction)
-              : (deskCopy.blocked?.busy ?? deskCopy.huddleAction)
-          }
-          onClick={(event) => {
-            event.stopPropagation();
-            startHuddle();
-          }}
-        >
-          <span className="stakeholders-roster-team-emoji" aria-hidden="true">
-            🤝
-          </span>
-          <span className="stakeholders-roster-label">
-            <span className="stakeholders-roster-name">{deskCopy.huddleAction}</span>
-          </span>
-        </button>
+      <div className="stakeholders-roster-section">
+        <p className="stakeholders-roster-heading">
+          {stakeholdersCopy.teamActionsHeading ?? 'Get the team on it'}
+        </p>
+        <div className="stakeholders-team-actions">
+          <button
+            type="button"
+            role="menuitem"
+            className={[
+              'stakeholders-roster-row',
+              'stakeholders-roster-team-action',
+              'stakeholders-roster-huddle-action',
+              'is-huddle'
+            ].join(' ')}
+            disabled={!canHuddle}
+            aria-label={deskCopy.huddleAction}
+            title={
+              canHuddle
+                ? (deskCopy.huddleActionTitle ?? deskCopy.huddleAction)
+                : (deskCopy.blocked?.busy ?? deskCopy.huddleAction)
+            }
+            onClick={(event) => {
+              event.stopPropagation();
+              startHuddle();
+            }}
+          >
+            <span className="stakeholders-roster-team-emoji" aria-hidden="true">
+              🤝
+            </span>
+            <span className="stakeholders-roster-label">
+              <span className="stakeholders-roster-name">{deskCopy.huddleAction}</span>
+            </span>
+          </button>
+        </div>
       </div>
       <span className="stakeholders-roster-divider" role="presentation">
         {stakeholdersCopy.delegateDivider ?? 'Delegate to…'}

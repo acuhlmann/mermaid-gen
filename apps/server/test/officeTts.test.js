@@ -6,6 +6,7 @@ import {
   _VOICES_BY_LANG,
   _NEURAL2_VOICE_NAMES,
   _CHIRP3_VOICE_ROSTER,
+  _CHIRP3_ACCENT_LANG,
   isOfficeTtsEnabled,
   normalizeOfficeTtsLang,
   resolveOfficeTtsRateScale,
@@ -44,17 +45,91 @@ test('resolveOfficeTtsVoice defaults to Chirp3-HD names for every locale', () =>
   assert.equal(pam.engine, 'chirp3');
   assert.equal(resolveOfficeTtsVoice('greybeard', 'en-AU').name, 'en-AU-Chirp3-HD-Orus');
   // Unknown speakers fall back to the gilfoyle persona, still on Chirp3-HD.
-  assert.equal(resolveOfficeTtsVoice('nobody', 'en-US').name, 'en-US-Chirp3-HD-Puck');
+  assert.equal(resolveOfficeTtsVoice('nobody', 'en-US').name, 'en-US-Chirp3-HD-Schedar');
 });
 
-test('Chinese finally resolves to Chirp3-HD (the whole point of the migration)', () => {
-  // Neural2 ships no cmn-* voices; Chirp3-HD does, so zh is no longer stuck on
-  // WaveNet under the default tier — it gets the newest voices like en does.
+test('zh-CN resolves to Chirp3-HD (the whole point of the migration)', () => {
+  // Neural2 ships no cmn-* voices; Chirp3-HD ships cmn-CN, so zh-CN is no longer
+  // stuck on WaveNet under the default tier — it gets the newest voices like en.
   const cn = resolveOfficeTtsVoice('intern', 'zh-CN');
   assert.equal(cn.name, 'cmn-CN-Chirp3-HD-Puck');
   assert.equal(cn.languageCode, 'cmn-CN');
   assert.equal(cn.engine, 'chirp3');
-  assert.equal(resolveOfficeTtsVoice('intern', 'zh-TW').name, 'cmn-TW-Chirp3-HD-Puck');
+});
+
+test('zh-TW skips Chirp3-HD entirely — Google publishes no cmn-TW voices', () => {
+  // Verified against listVoices: Chirp3-HD covers cmn-CN and yue-HK only, and
+  // cmn-TW has nothing above WaveNet. Offering a Chirp rung here only bought a
+  // guaranteed-to-fail request plus a warning log on every single line.
+  const tw = resolveOfficeTtsVoice('intern', 'zh-TW');
+  assert.equal(tw.engine, 'wavenet');
+  assert.equal(tw.name, 'cmn-TW-Wavenet-B');
+  assert.deepEqual(
+    resolveOfficeTtsVoiceCandidates('intern', 'zh-TW').map((v) => v.engine),
+    ['wavenet']
+  );
+});
+
+test('a speaker accent override swaps the English locale, not the voice', () => {
+  // Chirp3 voice names are locale-independent, so the same `Iapetus` under a
+  // different English locale changes only the accent — the mechanism behind
+  // Dinesh's South Asian accent.
+  const us = resolveOfficeTtsVoice('dinesh', 'en-US');
+  assert.equal(us.name, 'en-IN-Chirp3-HD-Iapetus');
+  assert.equal(us.languageCode, 'en-IN');
+  // Applies under every English locale — accent is a character trait, so it does
+  // not follow the UI locale around.
+  assert.equal(resolveOfficeTtsVoice('dinesh', 'en-AU').name, 'en-IN-Chirp3-HD-Iapetus');
+  // Speakers without an override are untouched.
+  assert.equal(resolveOfficeTtsVoice('jared', 'en-US').name, 'en-US-Chirp3-HD-Umbriel');
+});
+
+test('accent overrides never leak out of English', () => {
+  // The whole point of the English guard: under zh-CN, Dinesh speaks Mandarin.
+  // An en-IN voice here would make him speak accented English to a Chinese user.
+  const cn = resolveOfficeTtsVoice('dinesh', 'zh-CN');
+  assert.equal(cn.languageCode, 'cmn-CN');
+  assert.equal(cn.name, 'cmn-CN-Chirp3-HD-Iapetus');
+  // zh-TW has no Chirp rung at all, so it lands on WaveNet regardless.
+  assert.equal(resolveOfficeTtsVoice('dinesh', 'zh-TW').engine, 'wavenet');
+});
+
+test('every accent override targets a real speaker and an English locale', () => {
+  for (const [speaker, lang] of Object.entries(_CHIRP3_ACCENT_LANG)) {
+    assert.ok(OFFICE_SPEAKER_IDS.includes(speaker), `${speaker} is not a canonical speaker id`);
+    assert.ok(lang.startsWith('en-'), `${speaker} override ${lang} is not an English locale`);
+  }
+});
+
+test('the cast no longer collapses onto a handful of shared voices', () => {
+  // Regression guard for the collision that made characters indistinguishable.
+  // Chirp3 drops `pitch`, so speakers sharing a voice differ only by rate — this
+  // started at 8 voices for 16 speakers with `Charon` serving five of them.
+  const counts = new Map();
+  for (const voice of Object.values(_CHIRP3_VOICE_ROSTER)) {
+    counts.set(voice, (counts.get(voice) ?? 0) + 1);
+  }
+  const worst = Math.max(...counts.values());
+  assert.ok(worst <= 2, `a Chirp3 voice is shared by ${worst} speakers; 30 voices are available`);
+  assert.ok(counts.size >= 12, `only ${counts.size} distinct voices across the cast`);
+});
+
+test('barker and belson share a voice but not a tempo', () => {
+  // The one collision that is deliberate. Both were picked by ear onto
+  // `Rasalgethi`, and with pitch unavailable on Chirp3 the rate gap is the ONLY
+  // thing telling them apart — which matters because they are the two execs and
+  // are drawn into the same steering meetings (MEETING_SENIOR_POOL), so they
+  // routinely speak back to back.
+  //
+  // Scoped to this pair on purpose. Three older collisions predate this work and
+  // are NOT yet separated — ciso/helpdesk (1.05x), cfo/scrumMaster (1.09x) and
+  // erlich/facilities (1.13x) all share a voice at near-identical rates. They
+  // need an audition round before a global guard can be asserted honestly.
+  assert.equal(_CHIRP3_VOICE_ROSTER.barker, _CHIRP3_VOICE_ROSTER.belson);
+  const barker = _VOICES_BY_LANG['en-US'].barker.speakingRate;
+  const belson = _VOICES_BY_LANG['en-US'].belson.speakingRate;
+  const spread = Math.max(barker, belson) / Math.min(barker, belson);
+  assert.ok(spread >= 1.3, `barker/belson rate spread is only ${spread.toFixed(2)}x`);
 });
 
 test('OFFICE_TTS_VOICE_TIER=neural2 pins the Neural2 top of the ladder', () => {

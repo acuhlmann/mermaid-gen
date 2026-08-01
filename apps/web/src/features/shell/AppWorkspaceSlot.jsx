@@ -107,7 +107,6 @@ export function AppWorkspaceSlot({
   hotkeyOverlayOpen,
   onCloseHotkeyOverlay,
   onOpenHotkeyOverlay,
-  onOpenExternalAgents,
   hotkeyCopy,
   slopitectTip,
   slopitectTipRef,
@@ -166,9 +165,9 @@ export function AppWorkspaceSlot({
   /**
    * The menu bar's whole prop surface, bundled once. Every value below already
    * exists on this component — the menus are new homes for old verbs, not new
-   * state (the Deliverable menu is the dismantled `DeskDrawer`, Mailroom is the
-   * export panel that was two clicks deep in the desk menu, and the Admin verbs
-   * came off the desk stamp).
+   * state (Deliverable is the dismantled `DeskDrawer`, Mailroom is the export
+   * panel that was two clicks deep in the desk menu, Admin holds the
+   * once-a-session verbs off the desk stamp).
    */
   const menuBar = {
     modes: contentModeOptions,
@@ -179,17 +178,7 @@ export function AppWorkspaceSlot({
     clearDisabled: busy,
     contentType: contentMode,
     diagramSource: state.diagramSource,
-    editorOpen,
-    onToggleEditor: () => setEditorOpen((current) => !current),
-    canToggleEditor: hasCanvasContent || editorOpen,
-    notebookOpen: insightsOpen,
-    onToggleNotebook: onToggleThinking,
-    fullscreenSupported,
-    isFullscreen,
-    fullscreenDisabled: streamingPreview,
-    onToggleFullscreen,
     onOpenContractor: () => setInviteDialogOpen(true),
-    onOpenExternalAgents,
     onOpenHrProgression: onToggleXpInfoPanel,
     onOpenHotkeys: onOpenHotkeyOverlay,
     tourHighlight: entryTourActive && entryTourStep === 'format' ? 'deliverable' : null

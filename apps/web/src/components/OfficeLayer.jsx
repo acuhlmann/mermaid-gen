@@ -98,6 +98,10 @@ import { duckRoomTone, unduckRoomTone } from '../utils/officeRoomTone.js';
 import { threadTranscriptFor } from '../utils/officeImThreads.js';
 import { getDeskSlotElement, subscribeDeskSlotElement } from '../state/deskSlotStore.js';
 import {
+  getOfficeMessengerUi,
+  subscribeOfficeMessengerUi
+} from '../state/officeMessengerUiStore.js';
+import {
   getOfficeViewMode,
   standUp,
   subscribe as subscribeOfficeViewMode
@@ -507,15 +511,22 @@ export default function OfficeLayer({
   );
 
   // A failed meeting fetch degrades in-fiction: the invite becomes a canned
-  // cancellation email instead of an error toast.
+  // cancellation email instead of an error toast. Cap how often Pam cries wolf —
+  // the gag lands once; a sticky failure (LLM outage) should not flood the inbox.
+  const lastCancelledMeetingEmailAtRef = useRef(0);
   useEffect(() => {
     if (meeting?.state !== 'cancelled') return;
     const copy = officeMeetingCopy();
-    pushOfficeEmail({
-      colleagueId: MEETING_FACILITATOR,
-      subject: copy.cancelledSubject,
-      body: copy.cancelledBody
-    });
+    const now = Date.now();
+    const cooldownMs = 15 * 60 * 1000;
+    if (now - lastCancelledMeetingEmailAtRef.current >= cooldownMs) {
+      lastCancelledMeetingEmailAtRef.current = now;
+      pushOfficeEmail({
+        colleagueId: MEETING_FACILITATOR,
+        subject: copy.cancelledSubject,
+        body: copy.cancelledBody
+      });
+    }
     closeMeeting();
   }, [meeting?.state, closeMeeting]);
 
@@ -550,6 +561,24 @@ export default function OfficeLayer({
     setMessengerOpen(false);
     setMessengerTargetId(null);
   }, []);
+
+  // Presence strip (and any future desk chrome outside this tree) asks for
+  // Slop Chat via a tiny UI store — same nonce pattern as Meet the Office.
+  const messengerUi = useSyncExternalStore(
+    subscribeOfficeMessengerUi,
+    getOfficeMessengerUi,
+    getOfficeMessengerUi
+  );
+  const handledMessengerNonce = useRef(0);
+  useEffect(() => {
+    if (messengerUi.openNonce <= handledMessengerNonce.current) return;
+    handledMessengerNonce.current = messengerUi.openNonce;
+    if (messengerUi.colleagueId) {
+      handleOpenImMessage(messengerUi.colleagueId);
+    } else {
+      handleOpenMessenger();
+    }
+  }, [messengerUi.openNonce, messengerUi.colleagueId, handleOpenImMessage, handleOpenMessenger]);
 
   const handleAdopt = useCallback(
     (prompt, colleagueId) => {

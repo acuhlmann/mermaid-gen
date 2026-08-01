@@ -85,11 +85,14 @@ The rule is now **frequency, not category**: what you reach for on most runs sta
 bottom composer band; what you reach for a few times a session moves to the frame, one
 click deep.
 
-| Region                | Component       | Holds                                                                     |
-| --------------------- | --------------- | ------------------------------------------------------------------------- |
-| Menu bar (top)        | `DeskOsMenuBar` | brand (leading slot) · Deliverable · Mailroom · View · Admin · fullscreen |
-| Composer band         | `BottomRow`     | Work order · Your Team · Notebook (unchanged this slice)                  |
-| Taskbar (bottom edge) | `DeskOsTaskbar` | Stand up · window list (`DeskOsTray`) · tray end                          |
+| Region                | Component       | Holds                                                                 |
+| --------------------- | --------------- | --------------------------------------------------------------------- |
+| Menu bar (top)        | `DeskOsMenuBar` | brand (leading slot) · Deliverable · Mailroom · Admin                 |
+| Composer band         | `BottomRow`     | Work order · Your Team · Notebook (unchanged this slice)              |
+| Taskbar (bottom edge) | `DeskOsTaskbar` | Stand up · **presence strip** · window list (`DeskOsTray`) · tray end |
+
+Fullscreen lives on the canvas corner control (`DiagramFullscreenButton` in
+`BrandChromeSlot`), not the menu bar — the View menu was removed.
 
 What moved, and why it was somewhere worse before:
 
@@ -99,8 +102,9 @@ What moved, and why it was somewhere worse before:
   no new vocabulary. It also retires a drawer, which the clean-desk policy forbids on screen.
 - **Export (11 formats)** — was an expandable row _inside_ the desk-stamp menu, two clicks
   deep behind a menu you had to know to open. Now the **Mailroom** menu.
-- **Contractor · External agents · HR · Language · Hotkeys** — off the desk stamp into
-  **Admin**. `settingsOpenSignal` had no producer at all; "External agents" is now it.
+- **Contractor · HR · Language · Hotkeys** — off the desk stamp into **Admin**.
+  "Onboard a contractor" is the MCP invite doorway (the old "External agents"
+  row opened the settings/code panel by mistake and was removed).
 - **Stand up** — out of `DeskActionsDock` into the taskbar's leading corner, still labelled,
   still `Shift+O`. The taskbar reads `officeViewModeStore` directly, so it needs no office
   props and lives in the shell tree rather than inside `OfficeLayer`.
@@ -147,8 +151,10 @@ nothing — is in [`office-parody.md`](office-parody.md) § The talk channel.
 ### 4d. Slice 6 — presence strip ✅ shipped
 
 `DeskOsPresenceStrip` joins Stand up in the taskbar's leading cluster: who is around, in one
-glance, and a second way onto the floor. It is the ADR-0011 rule-3 pair made literal — the
-diegetic affordance beside the labelled control it duplicates, never instead of it.
+glance, and a way to follow that presence. It sits beside the labelled Stand up control
+(ADR-0011 rule 3) — Stand up is always the floor; the strip routes by kind via `presenceFollowOf`
+(unread IMs → Slop Chat via `officeMessengerUiStore`, huddle / meeting invite already on screen →
+stay, floor-native moments → stand up).
 
 **It produces nothing**, which is the carve-out that licenses a permanent resident watching the
 office. The entire render is `officePresenceOf` (`utils/officePresence.js`) over the moment-store

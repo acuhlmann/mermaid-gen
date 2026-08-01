@@ -115,7 +115,6 @@ export function ArchiSlop() {
     xpInfoPanelOpen,
     setXpInfoPanelOpen,
     settingsOpenSignal,
-    setSettingsOpenSignal,
     callMeetingSignal,
     huddleSignal,
     talkSignal,
@@ -913,7 +912,6 @@ export function ArchiSlop() {
           hotkeyOverlayOpen={hotkeyOverlayOpen}
           onCloseHotkeyOverlay={() => setHotkeyOverlayOpen(false)}
           onOpenHotkeyOverlay={() => setHotkeyOverlayOpen(true)}
-          onOpenExternalAgents={() => setSettingsOpenSignal((n) => n + 1)}
           hotkeyCopy={controls.hotkeys}
           slopitectTip={slopitectTip}
           slopitectTipRef={slopitectTipRef}

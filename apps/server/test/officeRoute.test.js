@@ -144,6 +144,22 @@ test('office meeting validates the attendee list before touching the model', asy
   }
 });
 
+test('office meeting truncates oversized diagramSource instead of 400ing', async () => {
+  const { port, closeServer } = await bootServer();
+  try {
+    const res = await post(port, 'meeting', {
+      attendees: ['facilities'],
+      diagramSource: `flowchart TD\n A-->B\n${'x'.repeat(25_000)}`,
+      contextSource: 'email',
+      contextDetail: 'FRIDGE CLEANOUT\nLabel the shelves.'
+    });
+    // Truncated payload reaches the (unconfigured) model gate rather than Zod 400.
+    assert.equal(res.status, 503);
+  } finally {
+    await closeServer();
+  }
+});
+
 test('office interject requires a non-empty interjection', async () => {
   const { port, closeServer } = await bootServer();
   try {

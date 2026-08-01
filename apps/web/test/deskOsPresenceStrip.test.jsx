@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import DeskOsPresenceStrip from '../src/components/DeskOsPresenceStrip.jsx';
 import DeskOsTaskbar from '../src/components/DeskOsTaskbar.jsx';
@@ -9,6 +9,10 @@ import {
   pushOfficeWalkBy,
   startOfficeHuddle
 } from '../src/state/officeMomentStore.js';
+import {
+  _resetOfficeMessengerUiForTests,
+  getOfficeMessengerUi
+} from '../src/state/officeMessengerUiStore.js';
 import {
   _resetOfficeViewModeForTests,
   getOfficeViewMode
@@ -26,12 +30,14 @@ beforeEach(() => {
   _resetForTests();
   _resetOfficeViewModeForTests();
   _resetOfficePresenceForTests();
+  _resetOfficeMessengerUiForTests();
 });
 
 afterEach(() => {
   cleanup();
   _resetForTests();
   _resetOfficeViewModeForTests();
+  _resetOfficeMessengerUiForTests();
 });
 
 describe('DeskOsPresenceStrip', () => {
@@ -89,17 +95,76 @@ describe('DeskOsPresenceStrip', () => {
     );
   });
 
-  // ADR-0011 rule 3: the strip is the diegetic duplicate of Stand up, so it has
-  // to actually be a way onto the floor, and it has to say so out loud — the
-  // caption alone reads as a status rather than as something you can press.
-  it('stands you up, and its accessible name leads with the visible caption', () => {
+  // Floor-native presence still stands you up; the accessible name leads with
+  // the visible caption so the press reads as a verb, not only a status.
+  it('stands you up when the floor is where the presence lives', () => {
     render(<DeskOsPresenceStrip />);
     const strip = screen.getByTestId('desk-os-presence');
 
+    expect(strip.dataset.follow).toBe('standUp');
     expect(strip.getAttribute('aria-label')).toBe(formatLocale(copy.aria, { status: copy.quiet }));
+    // Native title carries the status too — recovery path when the in-bar
+    // caption is ellipsized or demoted away on a phone.
+    expect(strip.getAttribute('title')).toBe(`${copy.quiet} — ${copy.title}`);
 
     fireEvent.click(strip);
     expect(getOfficeViewMode()).toBe('floor');
+  });
+
+  // Unread IMs are a desk medium — standing up to read a chat is the wrong room.
+  it('opens Slop Chat for unread talk instead of standing up', () => {
+    render(<DeskOsPresenceStrip />);
+    act(() => pushOfficeImPing({ colleagueId: 'intern', body: 'quick q' }));
+
+    const strip = screen.getByTestId('desk-os-presence');
+    const status = formatLocale(copy.talk, { name: firstName('intern') });
+    expect(strip.dataset.follow).toBe('messenger');
+    expect(strip.getAttribute('aria-label')).toBe(formatLocale(copy.ariaChat, { status }));
+
+    const before = getOfficeMessengerUi().openNonce;
+    fireEvent.click(strip);
+    expect(getOfficeViewMode()).toBe('desk');
+    expect(getOfficeMessengerUi()).toEqual({
+      openNonce: before + 1,
+      colleagueId: 'intern'
+    });
+  });
+
+  // Pairing is already at your screen — the strip should not yank you onto the
+  // floor away from the huddle overlay.
+  it('stays put for a huddle already at your screen', () => {
+    render(<DeskOsPresenceStrip />);
+    act(() => startOfficeHuddle(['jared'], { mode: 'pair' }));
+
+    const strip = screen.getByTestId('desk-os-presence');
+    expect(strip.dataset.follow).toBe('stay');
+    fireEvent.click(strip);
+    expect(getOfficeViewMode()).toBe('desk');
+    expect(getOfficeMessengerUi().openNonce).toBe(0);
+  });
+
+  it('peeks the full caption on hover, and a long-press does not stand you up', () => {
+    render(<DeskOsPresenceStrip />);
+    const strip = screen.getByTestId('desk-os-presence');
+
+    fireEvent.pointerEnter(strip, { pointerType: 'mouse' });
+    const peek = screen.getByTestId('desk-os-presence-peek');
+    expect(peek.textContent).toContain(copy.quiet);
+
+    fireEvent.pointerLeave(strip, { pointerType: 'mouse' });
+    expect(screen.queryByTestId('desk-os-presence-peek')).toBeNull();
+
+    // Touch: hold to read, release without standing up — tap still stands up.
+    vi.useFakeTimers();
+    fireEvent.pointerDown(strip, { pointerType: 'touch' });
+    act(() => {
+      vi.advanceTimersByTime(420);
+    });
+    expect(screen.getByTestId('desk-os-presence-peek').textContent).toContain(copy.quiet);
+    fireEvent.pointerUp(strip, { pointerType: 'touch' });
+    fireEvent.click(strip);
+    expect(getOfficeViewMode()).toBe('desk');
+    vi.useRealTimers();
   });
 
   it('sits beside Stand up in the taskbar, not instead of it', () => {

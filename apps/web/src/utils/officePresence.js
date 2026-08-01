@@ -151,6 +151,41 @@ export function officePresenceOf(snapshot) {
   return { kind: 'quiet', ids: podSeatIds() };
 }
 
+/**
+ * Where pressing the presence strip should take you.
+ *
+ * The strip started life as a diegetic Stand up (ADR-0011 rule 3). That is
+ * right when the presence is embodied on the floor, and wrong when it is a
+ * desk medium: unread IMs live in Slop Chat, a huddle is already at your
+ * screen, and a meeting invite is already a desk toast. Email never appears
+ * here — the inbox carries its own badge (see `unreadImSenders`).
+ *
+ * Pure, like `officePresenceOf`: the strip dispatches; it still produces
+ * nothing of its own.
+ *
+ * @param {OfficePresence | null | undefined} presence
+ * @returns {{ action: 'standUp' | 'messenger' | 'stay', colleagueId?: string }}
+ */
+export function presenceFollowOf(presence) {
+  switch (presence?.kind) {
+    case 'talk':
+      return {
+        action: 'messenger',
+        colleagueId: presence.ids?.[0] || undefined
+      };
+    case 'pair':
+    case 'mob':
+    case 'meeting':
+      return { action: 'stay' };
+    case 'walkby':
+    case 'battle':
+    case 'coffee':
+    case 'quiet':
+    default:
+      return { action: 'standUp' };
+  }
+}
+
 /** @internal Reset the memoized pod between tests. */
 export function _resetOfficePresenceForTests() {
   pod = null;

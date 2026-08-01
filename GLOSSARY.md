@@ -72,7 +72,9 @@ The five acts you can perform with the built-in cast, drawn from how a real team
 
 **Delegate.** Handing the work order to a named person — the only one of the five acts that spends pipeline compute on your instruction (`runTransform` / `runAnalyze` in that persona's flavour). The roster's action chip delegates; the roster's name/face addresses (that is [[Talk (undirected / directed)]]).
 
-**Presence strip.** The taskbar resident that shows who is around and what the room is doing, and doubles as a way onto the floor. Derived purely from the moment store plus the seating plan (`officePresenceOf`); it **produces nothing**, which is the carve-out that licenses it. The diegetic half of an ADR-0011 rule-3 pair, so it is the half that retires when only one of the two can fit.
+**Presence strip.** The taskbar resident that shows who is around and what the room is doing, and a way to **follow** that presence — not always onto the floor. Derived purely from the moment store plus the seating plan (`officePresenceOf`); pressing it dispatches via `presenceFollowOf` (`standUp` for floor-native moments, `messenger` for unread IMs → Slop Chat via `officeMessengerUiStore`, `stay` when a huddle / meeting invite is already on screen). It **produces nothing**, which is the carve-out that licenses it. The diegetic half of an ADR-0011 rule-3 pair, so it is the half that retires when only one of the two can fit.
+
+**Headphones / Focus.** The two desk ambience postures. **Headphones** answers _how_ the office reaches you (hear it vs read it) — a macro over `narration` / `soundscape` / `captions`, not a fifth flag. **Focus** answers _whether_ it reaches you at all (office DND, including the advisor roundtable). See [`docs/office-parody.md`](docs/office-parody.md) § Desk verbs.
 
 ## Multiplayer (design-stage — adopted terms, not yet shipped)
 
