@@ -6,6 +6,7 @@ import {
   MAX_LABEL_EXPLAIN_DUMB_LEVEL
 } from '@archislop/shared';
 import { API_BASE_URL, SESSION_HEADER } from '../state/diagramSession.js';
+import { getOfficeLogDigest } from '../state/officeLogStore.js';
 import { getAdvisorVisibleLabels } from '../utils/advisorVisibleLabels.js';
 
 /**
@@ -493,7 +494,10 @@ export function useAdvisorOrchestrator(params) {
             diagramSource,
             visibleLabels: labels,
             ...(focusDescriptor?.id ? { focusNode: focusDescriptor } : {}),
-            lastSuggestions: lastSuggestionTexts(proposalHistoryRef.current.entries)
+            lastSuggestions: lastSuggestionTexts(proposalHistoryRef.current.entries),
+            // Context, not material — the advisor uses it to avoid proposing
+            // something the user has already done, never to chat about the day.
+            officeLog: getOfficeLogDigest()
           }),
           signal: controller.signal
         });

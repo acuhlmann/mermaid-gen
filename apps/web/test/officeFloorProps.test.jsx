@@ -2,6 +2,8 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import OfficeFloor from '../src/components/OfficeFloor.jsx';
+import { FloorPropCard } from '../src/components/officeFloor/FloorProps.jsx';
+import { officeChromeCopy } from '../src/utils/officeCast.js';
 import { usablePropKinds } from '../src/utils/officeFloorMovement.js';
 import {
   _resetOfficeViewModeForTests,
@@ -175,5 +177,64 @@ describe('usable props (slice 9)', () => {
 
     expect(await screen.findByTestId('office-floor-prop-card')).toBeTruthy();
     expect(screen.queryByRole('button', { name: /Message/ })).toBeNull();
+  });
+});
+
+/**
+ * Looking closer (§ 8 "examine / look at").
+ *
+ * § 8's own examples name the fridge and its sticky notes, but no unclaimed
+ * kitchen prop is reachable — `propTileFor('fridge')` and `propTileFor(
+ * 'waterCooler')` are both null — so the idea lands on what § 8 actually
+ * describes: "a few props that today only have a line", given somewhere for
+ * that line to go.
+ */
+describe('looking closer at a prop', () => {
+  const propCopy = () => officeChromeCopy().floor.props;
+
+  const renderCard = (propKind, phase = 'idle') =>
+    render(
+      <FloorPropCard
+        prop={{ propKind, phase: 'using' }}
+        phase={phase}
+        copy={officeChromeCopy().floor}
+        onBack={vi.fn()}
+      />
+    );
+
+  it('shows the main line first, and the detail only once you look', () => {
+    const item = propCopy().items.whiteboard;
+    renderCard('whiteboard');
+    expect(screen.getByText(item.line)).toBeTruthy();
+
+    fireEvent.click(screen.getByTestId('office-floor-prop-look'));
+    expect(screen.queryByText(item.line)).toBeNull();
+    expect(screen.getByText(item.details[0])).toBeTruthy();
+  });
+
+  it('cycles and wraps, so a prop never runs out of things to notice', () => {
+    const item = propCopy().items.printer;
+    renderCard('printer');
+    for (let i = 0; i < item.details.length; i += 1) {
+      fireEvent.click(screen.getByTestId('office-floor-prop-look'));
+      expect(screen.getByText(item.details[i])).toBeTruthy();
+    }
+    fireEvent.click(screen.getByTestId('office-floor-prop-look'));
+    expect(screen.getByText(item.details[0])).toBeTruthy();
+  });
+
+  it('every usable prop has something to find', () => {
+    for (const kind of usablePropKinds()) {
+      expect(propCopy().items[kind]?.details?.length ?? 0).toBeGreaterThan(0);
+    }
+  });
+
+  /** Mid-pour there is nothing to read — the card is reporting a verb. */
+  it('does not offer a look while the prop is working or blocked', () => {
+    renderCard('coffeeMachine', 'working');
+    expect(screen.queryByTestId('office-floor-prop-look')).toBeNull();
+    cleanup();
+    renderCard('coffeeMachine', 'blocked');
+    expect(screen.queryByTestId('office-floor-prop-look')).toBeNull();
   });
 });

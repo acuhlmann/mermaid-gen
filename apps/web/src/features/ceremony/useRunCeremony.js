@@ -22,6 +22,7 @@ import {
   applyOfficeEvent,
   writeToStorage as writeGamificationToStorage
 } from '../../state/runGamificationStore.js';
+import { recordOfficeLogEntry } from '../../state/officeLogStore.js';
 
 /**
  * Run ceremony state: boot overlays, streak HUD emissions, completion delight,
@@ -149,6 +150,11 @@ export function useRunCeremony({
   const triggerCompletionDelight = useCallback(
     (entryId, variant = 'general', extras = {}) => {
       setOfficeRunSignal((prev) => ({ id: (prev?.id ?? 0) + 1, variant }));
+      // A landed run is the day's spine — everything else in the log happened
+      // around one of these. Only successes reach here (the caller skips it on
+      // a blocked mutation), so the office remembers what you shipped and stays
+      // tactfully silent about the rest.
+      recordOfficeLogEntry('run', { detail: extras?.contentType });
       setCelebratingEntryId(entryId);
       if (celebrationTimerRef.current) clearTimeout(celebrationTimerRef.current);
       const dwellMs = variant === 'russ' ? 1100 : 900;
@@ -222,9 +228,41 @@ export function useRunCeremony({
     ]
   );
 
+  /**
+   * Office-life events map to log entries here rather than at each call site,
+   * because this callback is already the one place they all pass through. The
+   * log is a second reader of that funnel — it awards nothing and triggers
+   * nothing, it just remembers (see officeLogStore.js).
+   *
+   * `emailRead` is deliberately absent: what the office can talk about later is
+   * that an email *arrived* and who sent it, which the delivery pipeline
+   * records. That you later clicked it is not a story.
+   */
   const handleOfficeEvent = useCallback(
     (kind, extras = {}) => {
       const now = Date.now();
+      switch (kind) {
+        case 'coffeeBreak':
+          recordOfficeLogEntry('coffee', { now });
+          break;
+        case 'battleSettled':
+          recordOfficeLogEntry('battle', { now, detail: extras.colleagueId });
+          break;
+        case 'meetingSurvived':
+          recordOfficeLogEntry('meeting', { now, detail: 'survived' });
+          break;
+        case 'meetingLeftEarly':
+          recordOfficeLogEntry('meeting', { now, detail: 'left' });
+          break;
+        case 'huddled':
+          recordOfficeLogEntry('huddle', { now });
+          break;
+        case 'imReply':
+          recordOfficeLogEntry('chat', { now, colleagueId: extras.colleagueId });
+          break;
+        default:
+          break;
+      }
       setGamification((current) => {
         const { state, emissions } = applyOfficeEvent(current, { kind, now, ...extras });
         if (typeof window !== 'undefined') {

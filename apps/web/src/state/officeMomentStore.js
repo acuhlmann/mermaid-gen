@@ -14,14 +14,17 @@
 
 import {
   readOfficeFocusTime,
+  readOfficeImHistory,
   reconcileOfficeHeadphonesPosture,
   writeOfficeCaptionsEnabled,
   writeOfficeFocusTime,
   writeOfficeHeadphones,
+  writeOfficeImHistory,
   writeOfficeNarrationEnabled,
   writeOfficeSoundscapeEnabled
 } from '../utils/officeAmbienceStorage.js';
 import { isSlopChatMessage } from '../utils/officeImThreads.js';
+import { recordOfficeLogEntry } from './officeLogStore.js';
 
 export const DESK_ARRIVAL_TTL_MS = 9000;
 export const DESK_ARRIVAL_MAX_VISIBLE = 2;
@@ -48,7 +51,43 @@ export const WALKBY_TTL_MS = 24_000;
 /** After the user walks away from a battle, hold off the next invite. */
 export const OFFICE_BATTLE_REENTRY_COOLDOWN_MS = 90_000;
 
-function initialState() {
+/**
+ * Scrollback restored from the last visit (see `readOfficeImHistory`). Read
+ * once, at module load, so `initialState` and the id counter below agree on
+ * exactly one array.
+ */
+const restoredImHistory = readOfficeImHistory(IM_HISTORY_MAX);
+
+/**
+ * Ids are `im-1`, `im-2`, … from a counter that resets every load, so a
+ * restored thread would collide with the first new message of the session and
+ * hand React two children with the same key. Resume the counter past whatever
+ * came back instead.
+ *
+ * @param {Array<{id?: string}>} history
+ * @returns {number}
+ */
+function highestIdSuffix(history) {
+  let highest = 0;
+  for (const msg of history) {
+    const suffix = Number.parseInt(
+      String(msg?.id ?? '')
+        .split('-')
+        .pop() ?? '',
+      10
+    );
+    if (Number.isFinite(suffix) && suffix > highest) highest = suffix;
+  }
+  return highest;
+}
+
+/**
+ * @param {Array<object>} [imHistory] scrollback to open with. Defaults to what
+ *   the last visit left behind; `_resetForTests` passes an empty array so a
+ *   test starts from a clean office rather than from whatever the module
+ *   happened to read at import time.
+ */
+function initialState(imHistory = restoredImHistory) {
   const posture = reconcileOfficeHeadphonesPosture();
   return {
     focusTime: readOfficeFocusTime(),
@@ -71,8 +110,8 @@ function initialState() {
     deskArrivals: [],
     /** Durable scrollback for the messenger, oldest first. Never TTL-expired.
      * @type {Array<{id: string, colleagueId: string, body: string, channel?: string, actionPrompt?: string, createdAt: number, outbound?: boolean, read: boolean}>} */
-    imHistory: [],
-    imUnreadCount: 0,
+    imHistory,
+    imUnreadCount: countUnreadIms(imHistory),
     /** @type {{id: string, colleagueId: string, body: string, actionPrompt?: string, createdAt: number} | null} */
     walkBy: null,
     /** @type {{id: string, lines: Array<{speakerId: string, text: string}>, accepted: boolean, createdAt: number} | null} */
@@ -104,7 +143,7 @@ function initialState() {
 }
 
 let state = initialState();
-let nextId = 1;
+let nextId = highestIdSuffix(restoredImHistory) + 1;
 let battleReentryBlockedUntil = 0;
 const listeners = new Set();
 const expiryTimers = new Map();
@@ -370,6 +409,7 @@ export function pushOfficeEmail({ colleagueId, subject, body, actionPrompt }) {
   };
   const emails = [email, ...state.emails];
   update({ emails, unreadCount: emails.filter((e) => !e.read).length });
+  recordOfficeLogEntry('email', { colleagueId, detail: email.subject });
   pushDeskArrival({ kind: 'email', colleagueId, subject: email.subject });
   return email.id;
 }
@@ -452,8 +492,21 @@ export function pushOfficeImPing({ colleagueId, body, channel = 'im', actionProm
   };
   const imHistory = [...state.imHistory, { ...ping, read: talk }].slice(-IM_HISTORY_MAX);
   update({ imHistory, imUnreadCount: countUnreadIms(imHistory) });
+  persistImHistory(imHistory);
+  recordOfficeLogEntry('chat', { colleagueId });
   if (!talk) pushDeskArrival({ kind: 'im', colleagueId });
   return ping.id;
+}
+
+/**
+ * Keep the scrollback across a reload. Only Slop Chat lines are stored —
+ * `talk` is speech, and `readOfficeImHistory` explains why speech should not
+ * come back.
+ *
+ * @param {Array<object>} history
+ */
+function persistImHistory(history) {
+  writeOfficeImHistory(history.filter(isSlopChatMessage), IM_HISTORY_MAX);
 }
 
 function countUnreadIms(history) {
@@ -478,6 +531,7 @@ export function pushOfficeImReply({ colleagueId, body, channel = 'im' }) {
   };
   const imHistory = [...state.imHistory, message].slice(-IM_HISTORY_MAX);
   update({ imHistory });
+  persistImHistory(imHistory);
   return message.id;
 }
 
@@ -487,8 +541,11 @@ export function markOfficeImsRead(colleagueId) {
     !msg.read && (!colleagueId || msg.colleagueId === colleagueId) ? { ...msg, read: true } : msg
   );
   const imUnreadCount = countUnreadIms(imHistory);
+  // Unchanged count means no message flipped: the map only ever turns unread
+  // into read, so a drop is the only way the count can move.
   if (imUnreadCount === state.imUnreadCount) return;
   update({ imHistory, imUnreadCount });
+  persistImHistory(imHistory);
 }
 
 export function pushOfficeWalkBy({ colleagueId, body, actionPrompt }) {
@@ -500,6 +557,10 @@ export function pushOfficeWalkBy({ colleagueId, body, actionPrompt }) {
     ...(actionPrompt ? { actionPrompt } : {}),
     createdAt: Date.now()
   };
+  // Who came by, never what they said: a walk-by line quoted into the digest
+  // comes back word-for-word next time (the lesson §2 of the character recipe
+  // learned the hard way). The office remembers the visit, not the script.
+  recordOfficeLogEntry('walkby', { colleagueId });
   update({ walkBy });
   scheduleExpiry(walkBy.id, WALKBY_TTL_MS, () => dismissOfficeWalkBy(walkBy.id));
   return walkBy.id;
@@ -595,7 +656,7 @@ export function _resetForTests() {
   for (const timer of expiryTimers.values()) clearTimeout(timer);
   expiryTimers.clear();
   listeners.clear();
-  state = initialState();
+  state = initialState([]);
   nextId = 1;
   battleReentryBlockedUntil = 0;
 }

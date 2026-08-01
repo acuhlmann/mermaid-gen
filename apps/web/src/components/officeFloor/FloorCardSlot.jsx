@@ -104,6 +104,7 @@ export function FloorCardSlot({
         onDraftChange={conversation.setDraft}
         onSend={conversation.send}
         pitch={conversation.pitch}
+        openers={conversation.openers}
         onAdopt={onAdoptPrompt}
         onLeave={onGoHome}
       />

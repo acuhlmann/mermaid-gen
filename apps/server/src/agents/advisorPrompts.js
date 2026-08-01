@@ -9,6 +9,7 @@
 import { getLabelExplainDumbLevel } from '@archislop/shared';
 import { buildLabelExplainerSystemPrompt } from './labelExplainer.js';
 import { llmUsageFromReply } from './_lib/llmUsageFromReply.js';
+import { buildOfficeLogBlock } from './_lib/officeLogPrompt.js';
 import {
   createLlmChatModel,
   DEFAULT_DEEPSEEK_MODEL_FAST,
@@ -316,6 +317,7 @@ export function buildAdvisorUserPrompt({
   visibleLabels,
   focusNode,
   lastSuggestions,
+  officeLog,
   previousSuggestion,
   mode,
   simpleLevel,
@@ -420,6 +422,12 @@ export function buildAdvisorUserPrompt({
     '',
     'Recent suggestions (avoid repetition):',
     recent,
+    // `purpose: 'work'` rather than the dialogue rule the office surfaces use.
+    // A suggestion is ONE fragment under 80 characters that must name a visible
+    // label — invited to "reference the day naturally" it spends that budget on
+    // office chit-chat and stops being a suggestion. What it needs from the log
+    // is narrower: don't propose what the user has already just done.
+    buildOfficeLogBlock(officeLog, { purpose: 'work' })?.join('\n') ?? null,
     '',
     'Current diagram source (for context):',
     '```',

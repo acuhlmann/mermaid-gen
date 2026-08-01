@@ -11,6 +11,7 @@ import {
   parseHuddleScript,
   parsePairScript,
   buildOfficeLanguageRule,
+  buildHuddleUserPrompt,
   buildMomentUserPrompt,
   createOfficeChatModel,
   isOfficeColleague,
@@ -23,6 +24,7 @@ import {
   SENIOR_MEETING_VOICES,
   STAKEHOLDER_MEETING_VOICES
 } from '../src/agents/officePersonas.js';
+import { buildOfficeLogBlock } from '../src/agents/_lib/officeLogPrompt.js';
 
 const ATTENDEES = ['scrumMaster', 'barker', 'greybeard', 'intern'];
 
@@ -632,4 +634,110 @@ test('buildHuddleSystemPrompt refresh mode only scripts remaining teammates', ()
   assert.match(prompt, /speakerId "dinesh"/);
   assert.match(prompt, /speakerId "erlich"/);
   assert.doesNotMatch(prompt, /speakerId "gilfoyle"/);
+});
+
+test('buildOfficeLogBlock stays silent when the office has no memory yet', () => {
+  // A heading over "(none)" reads as an absence worth remarking on, and the
+  // first minute of a session is exactly when nobody should open with
+  // "quiet morning so far".
+  assert.equal(buildOfficeLogBlock([]), null);
+  assert.equal(buildOfficeLogBlock(undefined), null);
+  assert.equal(buildOfficeLogBlock(['   ']), null);
+});
+
+test('buildOfficeLogBlock carries the day and the rule not to recap it', () => {
+  const block = buildOfficeLogBlock(['09:02 you shipped a mermaid diagram']).join('\n');
+  assert.match(block, /09:02 you shipped a mermaid diagram/);
+  assert.match(block, /shared memory/);
+  // The rule is the load-bearing half: handed bare facts, a model summarizes.
+  assert.match(block, /Do NOT summarize the day/);
+});
+
+test('buildMomentUserPrompt threads the office log in beside recent moments', () => {
+  const prompt = buildMomentUserPrompt({
+    contentType: 'mermaid',
+    diagramSource: 'graph TD; A-->B;',
+    visibleLabels: ['Gateway'],
+    recentMoments: ['walkby from gilfoyle'],
+    officeLog: ['13:00 a cubicle argument was settled, gilfoyle won'],
+    uiLocale: 'en-US'
+  });
+  assert.match(prompt, /Recent moments \(avoid repetition\)/);
+  assert.match(prompt, /a cubicle argument was settled, gilfoyle won/);
+  // Both are present because they answer different questions: one is
+  // anti-repetition, the other is memory.
+  assert.match(prompt, /walkby from gilfoyle/);
+});
+
+test('buildMomentUserPrompt omits the log section entirely when there is none', () => {
+  const prompt = buildMomentUserPrompt({
+    contentType: 'mermaid',
+    diagramSource: '',
+    visibleLabels: [],
+    recentMoments: [],
+    uiLocale: 'en-US'
+  });
+  assert.doesNotMatch(prompt, /shared memory/);
+});
+
+test('buildOfficeLogBlock swaps the rule for the advisor, whose envelope is 80 chars', () => {
+  const dialogue = buildOfficeLogBlock(['09:02 you shipped a mermaid diagram']).join('\n');
+  const work = buildOfficeLogBlock(['09:02 you shipped a mermaid diagram'], {
+    purpose: 'work'
+  }).join('\n');
+  assert.match(dialogue, /shared memory/);
+  assert.match(dialogue, /Do NOT summarize the day/);
+  // The advisor is told the opposite: don't mention it at all, just don't
+  // re-propose what was already done.
+  assert.match(work, /context — what the user has already done/);
+  assert.match(work, /do not mention it in your/);
+  assert.match(work, /never propose something the user has already just done/);
+  assert.doesNotMatch(work, /shared memory/);
+});
+
+test('buildMeetingUserPrompt carries the day into the room', () => {
+  const prompt = buildMeetingUserPrompt({
+    contentType: 'mermaid',
+    diagramSource: 'graph TD; A-->B;',
+    visibleLabels: ['Gateway'],
+    officeLog: ['09:02 gilfoyle stopped by your desk'],
+    uiLocale: 'en-US'
+  });
+  assert.match(prompt, /shared memory/);
+  assert.match(prompt, /gilfoyle stopped by your desk/);
+});
+
+test('buildInterjectUserPrompt inherits the day from the meeting prompt', () => {
+  const prompt = buildInterjectUserPrompt({
+    contentType: 'mermaid',
+    diagramSource: 'graph TD; A-->B;',
+    visibleLabels: ['Gateway'],
+    transcriptSoFar: ['scrumMaster: welcome'],
+    interjection: 'can we ship it',
+    officeLog: ['13:00 a cubicle argument was settled, gilfoyle won'],
+    uiLocale: 'en-US'
+  });
+  assert.match(prompt, /a cubicle argument was settled, gilfoyle won/);
+  assert.match(prompt, /THE USER JUST SAID/);
+});
+
+test('buildHuddleUserPrompt carries the day, and omits the block without one', () => {
+  const withLog = buildHuddleUserPrompt({
+    contentType: 'mermaid',
+    diagramSource: 'graph TD; A-->B;',
+    visibleLabels: ['Gateway'],
+    officeLog: ['14:00 you sat through a meeting'],
+    uiLocale: 'en-US'
+  });
+  assert.match(withLog, /you sat through a meeting/);
+
+  const without = buildHuddleUserPrompt({
+    contentType: 'mermaid',
+    diagramSource: 'graph TD; A-->B;',
+    visibleLabels: ['Gateway'],
+    uiLocale: 'en-US'
+  });
+  assert.doesNotMatch(without, /shared memory/);
+  // A missing block must not leave a stray `null` in the joined prompt.
+  assert.doesNotMatch(without, /\bnull\b/);
 });

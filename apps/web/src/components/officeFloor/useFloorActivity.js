@@ -13,12 +13,18 @@
  * thing it had to generalize was that a subject need not be a person.
  */
 
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useSyncExternalStore } from 'react';
 import { useFloorPresence } from './useFloorPresence.js';
 import { useFloorPropUse } from './useFloorPropUse.js';
 import { useFloorTalk } from './useFloorTalk.js';
 import { propTileFor } from '../../utils/officeFloorMovement.js';
 import { YOU_SEAT_ID, seatFor } from '../../utils/officeFloorPlan.js';
+import { officeChromeCopy } from '../../utils/officeCast.js';
+import { buildFloorTalkOpeners } from '../../utils/officeTalkOpeners.js';
+import {
+  getOfficeLogSnapshot,
+  subscribe as subscribeOfficeLog
+} from '../../state/officeLogStore.js';
 /**
  * `phase` names differ because the cards read as sentences: looking / talking /
  * using. `subjectKey` is which field of the intent names what you went there
@@ -40,6 +46,9 @@ function arrivedTarget(view) {
 
 /** Nothing said yet — a frozen pair so the no-conversation case allocates once. */
 const NO_TALK = Object.freeze({ line: '', pitch: null });
+
+/** Same reasoning: nobody to open with means one array, not one per render. */
+const NO_OPENERS = Object.freeze([]);
 
 /**
  * The last thing they said, out of the shared IM log — the floor reads this
@@ -110,14 +119,37 @@ export function useFloorActivity({
   });
 
   /*
-   * `useFloorTalk` deliberately "holds a text box" and nothing else, so the
-   * pitch is composed on top of it here, where `imHistory` is already being
-   * read. It rides in this bundle rather than as a third top-level `talk*` prop
-   * because a pitch *is* conversation state — the actionable half of the newest
-   * thing they said — and because `FloorCardSlot` threads `conversation`
-   * already, so the card slot's prop list does not grow.
+   * Things you could open with (§ 8 topic hotspots), read from the office log.
+   *
+   * Subscribed rather than read bare in render: a plain `getOfficeLogSnapshot()`
+   * inside a `useMemo` is memoization the React Compiler cannot verify, and it
+   * says so ("existing memoization could not be preserved"). The store already
+   * has a `subscribe`, so taking it properly costs nothing — the snapshot is a
+   * stable reference between writes, so this settles immediately.
    */
-  const conversation = { ...composer, pitch: talkPitch };
+  const logEntries = useSyncExternalStore(
+    subscribeOfficeLog,
+    getOfficeLogSnapshot,
+    getOfficeLogSnapshot
+  );
+  // Not memoized: the locale bundle behind `officeChromeCopy()` is mutable, so
+  // any `useMemo` around it is memoization the compiler refuses to preserve.
+  // Nothing is lost — `conversation` below is a fresh object every render
+  // regardless, and the builder early-exits after three openers.
+  const openers = talkingTo
+    ? buildFloorTalkOpeners(logEntries, talkingTo, officeChromeCopy().floor.talk.openers)
+    : NO_OPENERS;
+
+  /*
+   * `useFloorTalk` deliberately "holds a text box" and nothing else, so the
+   * pitch and the openers are composed on top of it here, where `imHistory` is
+   * already being read. They ride in this bundle rather than as extra top-level
+   * `talk*` props because both *are* conversation state — the actionable half of
+   * the newest thing they said, and what you might say next — and because
+   * `FloorCardSlot` threads `conversation` already, so the card slot's prop list
+   * does not grow.
+   */
+  const conversation = { ...composer, pitch: talkPitch, openers };
 
   const propUse = useFloorPropUse({
     propKind: prop?.propKind ?? null,

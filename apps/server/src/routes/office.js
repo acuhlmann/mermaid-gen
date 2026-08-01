@@ -50,6 +50,18 @@ const OfficeThreadLineSchema = z.object({
   body: z.string().max(300)
 });
 
+/**
+ * The office log — what the cast remembers happened today, built client-side
+ * by `officeLogDigest.js` and already capped there. Re-stated rather than
+ * trusted: the caps must match on both sides, or a client that drifts turns
+ * into a 400 the user experiences as "the office went quiet".
+ *
+ * Optional with an empty default, so a client that has never heard of the log
+ * (or a session with nothing in it yet) is a normal request rather than a
+ * degraded one.
+ */
+const OfficeLogField = z.array(z.string().max(200)).max(12).default([]);
+
 const OfficeMomentRequestSchema = z.object({
   kind: OfficeMomentKindSchema,
   colleagueId: z.string().refine(isOfficeSpeaker, { message: 'unknown colleague' }),
@@ -57,6 +69,7 @@ const OfficeMomentRequestSchema = z.object({
   diagramSource: DiagramSourceField,
   visibleLabels: z.array(z.string().max(200)).max(60).default([]),
   recentMoments: z.array(z.string().max(400)).max(5).default([]),
+  officeLog: OfficeLogField,
   uiLocale: UiLocaleField,
   userName: z.string().max(80).optional(),
   userMessage: z.string().max(400).optional(),
@@ -71,6 +84,7 @@ const OfficeMeetingRequestSchema = z.object({
   topic: z.string().max(200).optional(),
   contextSource: z.enum(['email', 'chat']).optional(),
   contextDetail: z.string().max(1200).optional(),
+  officeLog: OfficeLogField,
   uiLocale: UiLocaleField
 });
 
@@ -102,6 +116,7 @@ const OfficeHuddleRequestSchema = z.object({
   // is known, so a one-seat "mob" fails as a mode error, not a schema error.
   attendees: z.array(z.string().max(40)).min(1).max(HUDDLE_MAX_ATTENDEES),
   priorBeats: z.array(OfficeHuddlePriorBeatSchema).max(HUDDLE_MAX_ATTENDEES).optional(),
+  officeLog: OfficeLogField,
   uiLocale: UiLocaleField
 });
 
@@ -112,6 +127,7 @@ const OfficeInterjectRequestSchema = z.object({
   attendees: z.array(z.string().max(40)).min(1).max(8),
   transcriptSoFar: z.array(z.string().max(300)).max(20).default([]),
   interjection: z.string().min(1).max(400),
+  officeLog: OfficeLogField,
   uiLocale: UiLocaleField
 });
 

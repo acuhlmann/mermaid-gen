@@ -154,6 +154,51 @@ export function officePresenceOf(snapshot) {
 }
 
 /**
+ * @typedef {'meeting' | 'huddle' | 'battle' | 'coffee' | 'desk' | 'available'} OfficeStatusKind
+ */
+
+/**
+ * What one named colleague is doing right now.
+ *
+ * A sibling of `officePresenceOf`, not a slice of it. That one answers "what is
+ * the room doing", collapses to a single winning kind, and deliberately never
+ * reports per-person state — asking it about one person would mean reading the
+ * room's kind and hoping that person is in `ids`, which is wrong the moment
+ * anybody is doing something the room-level answer lost to.
+ *
+ * The immediate consumer is Slop Chat, whose title bar has advertised "Now with
+ * 40% more presence indicators" over an empty roster since it shipped, and
+ * whose `statusOnline` / `statusBusy` copy keys have sat in `officeCast.js`
+ * rendered by nobody. Same derivation is available to the floor person card and
+ * the Directory (ADR-0011: one state, N renderers).
+ *
+ * **Produces nothing** — the same carve-out the rest of this module stands on
+ * (ADR-0012). It reads the moment store and answers.
+ *
+ * `available` is the honest default rather than a fallback: somebody at their
+ * desk with nothing claiming them *is* reachable, which is exactly what a
+ * messenger wants to tell you.
+ *
+ * @param {object | null | undefined} snapshot `getOfficeSnapshot()`
+ * @param {string} colleagueId
+ * @returns {OfficeStatusKind}
+ */
+export function officeStatusOf(snapshot, colleagueId) {
+  if (!colleagueId) return 'available';
+  const { huddle, battle, coffee, meetingInvite, walkBy } = snapshot ?? {};
+
+  if (meetingInvite?.attendees?.includes(colleagueId)) return 'meeting';
+  if (meetingInvite?.colleagueId === colleagueId) return 'meeting';
+  if (huddle?.attendees?.includes(colleagueId)) return 'huddle';
+  if (sceneParticipants(battle?.lines).includes(colleagueId)) return 'battle';
+  if (sceneParticipants(coffee?.lines).includes(colleagueId)) return 'coffee';
+  // Standing at your desk mid-walk-by is the one status that is *about you*,
+  // so it reads as "here", not as "busy elsewhere".
+  if (walkBy?.colleagueId === colleagueId) return 'desk';
+  return 'available';
+}
+
+/**
  * Where pressing the presence strip should take you.
  *
  * The strip started life as a diegetic Stand up (ADR-0011 rule 3). That is

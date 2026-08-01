@@ -163,6 +163,20 @@ Production deploy notes (Cloud Run, billing credits, GitHub Actions CI, optional
 - Avoid destructive git commands unless explicitly requested.
 - Keep docs and commands aligned with actual `package.json` scripts.
 - New baked audio assets go under `apps/web/src/assets/audio/` via `scripts/generate-office-audio.sh`, not by hand-editing `.mp3` files.
+- **The office log records; it never triggers.** `apps/web/src/state/officeLogStore.js` is what
+  lets the cast say "since this morning's thing". Writers hook funnels that already exist —
+  `onOfficeEvent` in `useRunCeremony.js`, the moment-store push mutators, the adopt handler in
+  `OfficeLayerSlot.jsx` — so **don't add an observer to feed it**. Making it schedule or trigger
+  anything would be `auto-fix-on-idle` in a new hat, which ADR-0010 consequence #4 rules out. Two
+  rules its tests pin: DM bodies never enter the digest (email subjects do), and the log is
+  **day-stamped** while Slop Chat scrollback is not. It ships as `officeLog` on every office LLM
+  surface via `apps/server/src/agents/_lib/officeLogPrompt.js`; pass `purpose: 'work'` for the
+  advisor, whose 80-char envelope cannot afford the dialogue rule.
+- **The office's LLM appetite is one table in `apps/web/src/utils/officeCadence.js`.**
+  `useDeskActions.js` and `useOfficeRunReactions.js` re-export from it rather than declaring their
+  own caps, and `officeCadence.test.js` pins that identity — tune there, not at the use site. The
+  governing split is `docs/office-parody.md` §11's: **ambient** (a timer interrupted you) stays
+  canned-heavy; **reactive** (you started it or answered it) leans LLM.
 - **Office sound is one posture, not four checkboxes.** Menu bar **Admin** carries 🎧 **Headphones**
   (how the office reaches you) and 🔕 **Focus** (whether it does), plus the Approved vendors strip.
   The composer band holds Mail / Chat / Meeting as direct icons (`DeskActionsDock`), not a helmet

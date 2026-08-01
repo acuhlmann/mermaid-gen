@@ -133,6 +133,25 @@ Every session carries **six independent diagram slots** — `mermaid` (Mermaid t
   (never wire Cloud TTS or ElevenLabs into CI, routes, or deploy). Kill switch `OFFICE_TTS=0`.
   **zh-TW has no Chirp rung** — missing `CHIRP_LANG_CODE['zh-TW']` is intentional; verify with
   `listVoices` before re-adding. See [`docs/office-narration-roadmap.md`](docs/office-narration-roadmap.md).
+- **The office log records; it never triggers.** `officeLogStore.js` is what lets the cast say
+  "since this morning's thing" (docs/office-parody.md §11 context contract). Writers hook the
+  funnels that already exist — `onOfficeEvent` in `useRunCeremony.js`, the moment-store push
+  mutators, the adopt handler in `OfficeLayerSlot.jsx` — so **don't add an observer to feed it**.
+  Making it schedule or trigger anything would be `auto-fix-on-idle` in a new hat, which
+  ADR-0010 consequence #4 rules out. Two rules its tests pin: DM bodies never enter the digest
+  (email subjects do), and the log is **day-stamped** while Slop Chat scrollback is not.
+  It ships as `officeLog` on every office LLM surface (`/moment`, `/meeting`, `/huddle`,
+  `/meeting/interject`, `/advisor/suggest`) via `agents/_lib/officeLogPrompt.js` — which lives
+  in `_lib/` because `officePersonas.js` and `advisorPrompts.js` are deliberately separate
+  prompt systems. Pass `purpose: 'work'` for the advisor: its 80-char envelope cannot afford the
+  dialogue rule, so it is told to use the log **only** to avoid re-proposing what was just done.
+- **The office's LLM appetite is one table in `officeCadence.js`.** `OFFICE_LLM_MOMENT_CAP`,
+  `EMAIL_LLM_RATIO`/`IM_LLM_RATIO`, `OFFICE_RUN_REACTION_LLM_CAP`, `OFFICE_DESK_LLM_CAP`,
+  `OFFICE_TALK_LLM_CAP` — `useDeskActions.js` and `useOfficeRunReactions.js` re-export from it
+  rather than declaring their own, and `officeCadence.test.js` pins that identity. Tune there,
+  not at the use site. The governing split is §11's: **ambient** (a timer interrupted you) stays
+  canned-heavy; **reactive** (you started it or answered it) leans LLM, because a canned reply to
+  a sentence you typed is the clearest possible tell that nobody is home.
 - **Office `diagramSource` is truncated, not rejected.** Cap is `OFFICE_DIAGRAM_SOURCE_MAX_CHARS`
   (shared). Tightening Zod to 400 oversized anything/forms slots turns meetings into Pam CANCELLED
   emails.

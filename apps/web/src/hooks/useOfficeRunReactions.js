@@ -10,6 +10,7 @@ import {
   RECENT_MOMENTS_CAP
 } from '../utils/officeMomentDelivery.js';
 import { getOfficeSnapshot, shouldHoldAmbientOfficeMoments } from '../state/officeMomentStore.js';
+import { OFFICE_RUN_REACTION_LLM_CAP } from '../utils/officeCadence.js';
 
 /** Let the completion delight (confetti/sound) and the fresh render settle first. */
 export const RUN_REACTION_DELAY_MS = 2_200;
@@ -19,8 +20,12 @@ export const RUN_REACTION_COOLDOWN_MS = 40_000;
 export const RUN_REACTION_AFTER_MOMENT_MS = 30_000;
 /** Hard cap of reactions per session — kept small so it stays a garnish, not noise. */
 export const RUN_REACTION_SESSION_CAP = 5;
-/** Of those, at most this many spend an LLM call; the rest are canned IM. */
-export const RUN_REACTION_LLM_CAP = 2;
+/**
+ * Of those, at most this many spend an LLM call; the rest are canned IM.
+ * Re-exported from the one budget table in `officeCadence.js` — the number
+ * lives there so the office's whole appetite is tunable in one place.
+ */
+export const RUN_REACTION_LLM_CAP = OFFICE_RUN_REACTION_LLM_CAP;
 /** Not every run earns a reaction — most land quietly. */
 export const RUN_REACTION_CHANCE = 0.55;
 /** Share of the earned reactions that try the (diagram-aware) LLM path. */

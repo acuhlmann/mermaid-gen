@@ -94,6 +94,7 @@ import {
 } from '../utils/officeNarration.js';
 import { duckRoomTone, unduckRoomTone } from '../utils/officeRoomTone.js';
 import { threadTranscriptFor } from '../utils/officeImThreads.js';
+import { officeStatusOf } from '../utils/officePresence.js';
 import { getDeskSlotElement, subscribeDeskSlotElement } from '../state/deskSlotStore.js';
 import {
   getOfficeMessengerUi,
@@ -622,7 +623,9 @@ export default function OfficeLayer({
     (colleagueId) => {
       if (getOfficeSnapshot().battle?.votedFor) return;
       voteOfficeBattle(colleagueId);
-      onOfficeEvent?.('battleSettled');
+      // Who you sided with rides along so the office log can remember who won;
+      // `applyOfficeEvent` reads only `kind`, so the extra key costs nothing.
+      onOfficeEvent?.('battleSettled', { colleagueId });
     },
     [onOfficeEvent]
   );
@@ -965,7 +968,7 @@ export default function OfficeLayer({
   const handleMessengerSend = useCallback(
     async (colleagueId, body) => {
       pushOfficeImReply({ colleagueId, body });
-      onOfficeEvent?.('imReply');
+      onOfficeEvent?.('imReply', { colleagueId });
       playChime?.(playSendTick);
       setMessengerBusy(true);
       try {
@@ -1023,7 +1026,7 @@ export default function OfficeLayer({
   const handleTalkReply = useCallback(
     async (colleagueId, body) => {
       pushOfficeImReply({ colleagueId, body });
-      onOfficeEvent?.('imReply');
+      onOfficeEvent?.('imReply', { colleagueId });
       const history = getOfficeSnapshot().imHistory;
       const threadTranscript = threadTranscriptFor(history, colleagueId);
       await desk.imSomeone(colleagueId, { userMessage: body, threadTranscript });
@@ -1180,6 +1183,10 @@ export default function OfficeLayer({
           <OfficeMessenger
             open={messengerOpen}
             messages={snapshot.imHistory}
+            // Derived here rather than inside the window so the messenger stays
+            // a renderer of office state instead of a second reader of the
+            // store (ADR-0011 rule 1).
+            statusOf={(id) => officeStatusOf(snapshot, id)}
             busy={messengerBusy}
             initialColleagueId={messengerTargetId}
             onClose={handleCloseMessenger}

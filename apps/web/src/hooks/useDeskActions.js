@@ -17,13 +17,14 @@ import {
   pushOfficeImReply
 } from '../state/officeMomentStore.js';
 import { threadTranscriptFor } from '../utils/officeImThreads.js';
+import { OFFICE_DESK_LLM_CAP, OFFICE_TALK_LLM_CAP } from '../utils/officeCadence.js';
 
 /**
  * Budget for verb-triggered LLM calls. Separate from the ambient
  * OFFICE_LLM_MOMENT_CAP: asking for something yourself should not consume the
  * office's background allowance (or vice versa).
  */
-export const DESK_LLM_CAP = 3;
+export const DESK_LLM_CAP = OFFICE_DESK_LLM_CAP;
 
 /**
  * Budget for the talk channel — saying something out loud, or turning to the
@@ -36,7 +37,7 @@ export const DESK_LLM_CAP = 3;
  * ADR-0010 puts reactive spend in the generous, self-limiting class: you only
  * spend it by typing, so the ceiling is a backstop, not a rationing device.
  */
-export const TALK_LLM_CAP = 12;
+export const TALK_LLM_CAP = OFFICE_TALK_LLM_CAP;
 
 /** Cast you can DM or email — anyone in the meeting directory. */
 export const DESK_IM_CAST = listMeetingDirectory().map((row) => row.id);

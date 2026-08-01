@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import CoffeeBreakOverlay from '../src/components/CoffeeBreakOverlay.jsx';
 import CallMeetingPicker from '../src/components/CallMeetingPicker.jsx';
 import MeetingInviteToast from '../src/components/MeetingInviteToast.jsx';
@@ -281,6 +281,68 @@ describe('OfficeMessenger hop-on-a-call', () => {
       contextSource: 'chat',
       contextDetail: expect.stringContaining('quick question')
     });
+  });
+});
+
+describe('OfficeMessenger presence', () => {
+  const THREAD = [
+    {
+      id: 'im-1',
+      colleagueId: 'intern',
+      body: 'quick question',
+      createdAt: 1,
+      read: true,
+      outbound: false
+    }
+  ];
+
+  const renderWith = (statusOf) =>
+    render(
+      <OfficeMessenger
+        open
+        messages={THREAD}
+        statusOf={statusOf}
+        onClose={vi.fn()}
+        onMarkRead={vi.fn()}
+        onSend={vi.fn()}
+      />
+    );
+
+  it('states the open thread as available when nobody has claimed them', () => {
+    renderWith(() => 'available');
+    expect(screen.getByText('Available')).toBeTruthy();
+  });
+
+  it('says where somebody is when they are not at their desk', () => {
+    renderWith(() => 'meeting');
+    expect(screen.getAllByText('In a meeting').length).toBeGreaterThan(0);
+  });
+
+  /**
+   * A sidebar where every row says "Available" is a sidebar where the word
+   * means nothing, so the list shows a status only when it is news. The open
+   * conversation still states one — there it answers a question you asked by
+   * opening the thread.
+   */
+  it('leaves the thread list showing the message when they are reachable', () => {
+    renderWith(() => 'available');
+    const list = within(screen.getByRole('list', { name: /Conversations/i }));
+    expect(list.getByText('quick question')).toBeTruthy();
+  });
+
+  it('replaces the snippet with the status when they are away', () => {
+    renderWith(() => 'coffee');
+    const list = within(screen.getByRole('list', { name: /Conversations/i }));
+    expect(list.queryByText('quick question')).toBeNull();
+    expect(list.getByText('Getting coffee')).toBeTruthy();
+    // The open conversation still shows the message itself — only the
+    // one-line snippet yields to the status.
+    expect(screen.getByText('quick question')).toBeTruthy();
+  });
+
+  it('renders without a statusOf prop at all', () => {
+    renderWith(undefined);
+    expect(screen.getByText('Available')).toBeTruthy();
   });
 });
 

@@ -16,6 +16,7 @@ import { API_BASE_URL, SESSION_HEADER } from '../state/diagramSession.js';
 import { OFFICE_DIAGRAM_SOURCE_MAX_CHARS } from '@archislop/shared';
 import { getAdvisorVisibleLabels } from './advisorVisibleLabels.js';
 import { writeOfficeCadenceMemory } from './officeAmbienceStorage.js';
+import { getOfficeLogDigest } from '../state/officeLogStore.js';
 import {
   fillOfficeSlots,
   MEETING_FACILITATOR,
@@ -319,6 +320,10 @@ export async function deliverLlmMoment(kind, ctx, options) {
             : ctx.diagramSource,
         visibleLabels: ctx.labels,
         recentMoments: [...recentMoments],
+        // What the office remembers of today. `recentMoments` beside it is a
+        // different thing and both are needed: that one is anti-repetition
+        // ("don't say this again"), this one is memory ("this happened").
+        officeLog: getOfficeLogDigest(),
         uiLocale: officeDialogueLocale(),
         userName: ctx.userName || undefined,
         userMessage: userMessage || undefined,

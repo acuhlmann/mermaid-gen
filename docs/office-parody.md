@@ -998,6 +998,37 @@ the backburnered multi-human future is [`multi-human-office.md`](multi-human-off
   moments — what makes six voices one office); deliverable context (source, labels, last-run
   summary); persisted across reloads (capped localStorage). **DM privacy:** a character never
   sees the user's threads with other characters.
+
+  **Partly shipped.** `apps/web/src/state/officeLogStore.js` records the day (runs, pitches,
+  walk-bys, emails, chats, coffee, battles, meetings, huddles) and
+  `apps/web/src/utils/officeLogDigest.js` renders it as capped English prompt lines. It reaches
+  `POST /api/office/moment` as the `officeLog` field and lands in the prompt through
+  `buildOfficeLogBlock` (`officePersonas.js`), so IM replies and walk-bys can refer back.
+  Three deliberate lines were drawn while building it:
+
+  - **DM privacy is enforced in the digest, not by convention** — a `chat` entry stores who,
+    never the body, and `officeLogDigest.test.js` pins it. Email _subjects_ do appear: in the
+    fiction a subject line is office gossip and a direct message is not.
+  - **The log is day-stamped** (`readOfficeLog`). A reload should not cost the office its
+    morning; yesterday recounted as today is a character being wrong. Slop Chat scrollback is
+    deliberately _not_ day-stamped — a messenger that forgets overnight is a broken messenger.
+  - **The digest is always English** and names cast ids, because it is prompt context rather
+    than UI copy; `buildOfficeLanguageRule` still owns output language.
+
+  **Every office LLM surface now carries it**: `/moment`, `/meeting`, `/huddle`,
+  `/meeting/interject`, and `/advisor/suggest`. The block itself is
+  `apps/server/src/agents/_lib/officeLogPrompt.js` — in `_lib/` because the two prompt systems
+  are deliberately kept apart (`officePersonas.js` owns dialogue contracts, `advisorPrompts.js`
+  owns the `{suggestion, highlightIds, kind}` envelope) and neither should import the other.
+
+  It ships with **two rules, not one**. Dialogue surfaces get "glance back at one thing if it
+  lands naturally, never summarize the day". The advisor gets `purpose: 'work'` — the opposite
+  instruction: _do not mention it at all_, use it only to avoid re-proposing what the user just
+  did. A suggestion is one fragment under 80 characters that must name a visible label; invited
+  to reference the day, it spends that budget on chit-chat and stops being a suggestion.
+
+  Still open: deliverable context (last-run summary), and "their own work" below.
+
 - **Their own work.** Each character carries a slowly-evolving _fictional_ workload they
   reference and can discuss when asked — conversational color (and, later, desk-peeking
   visuals on the floor), never a real pipeline.
@@ -1046,8 +1077,15 @@ the backburnered multi-human future is [`multi-human-office.md`](multi-human-off
     its nine seconds is still readable. `OfficeMessenger.jsx` renders per-colleague threads with
     unread counts, quick replies, and a composer that routes through the desk's existing
     `imSomeone` verb — replies come back through the same LLM/canned ladder as any other IM. Also
-    non-modal. Follow-ups: per-thread "poke" targeting a specific colleague, and persisting history
-    across reloads.
+    non-modal. History now **persists across reloads** (`readOfficeImHistory` /
+    `writeOfficeImHistory`, capped at `IM_HISTORY_MAX`, unread counts recomputed on hydrate);
+    `channel: 'talk'` lines are excluded, because speech at your desk is not scrollback. The
+    id counter resumes past whatever came back, or a restored thread collides with the first
+    new message of the session. Threads also carry a **live per-colleague status**
+    (`officeStatusOf` in `officePresence.js` — in a meeting / at your screen / mid-argument /
+    getting coffee / at your desk / available), which is what the titlebar's "Now with 40% more
+    presence indicators" had been promising since launch. Follow-up: per-thread "poke"
+    targeting a specific colleague.
 19. ~~**Coherent window management**~~ — ✅ shipped (taskbar removed): every floating office surface
     shares one window model. The shell is `FloatingWindow` (drag by the titlebar via
     `FloatingWindowDragHandle`, click-to-focus with a focus ring, viewport-clamped placement that

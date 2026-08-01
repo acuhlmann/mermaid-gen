@@ -21,6 +21,7 @@ import {
   OfficeMomentResponseSchema
 } from '@archislop/shared';
 import { llmUsageFromReply } from './_lib/llmUsageFromReply.js';
+import { buildOfficeLogBlock } from './_lib/officeLogPrompt.js';
 import { resolveAdvisorModelId } from './advisorPrompts.js';
 import { createLlmChatModel, isLlmConfigured, resolveLlmBackend } from './llmProvider.js';
 
@@ -478,6 +479,7 @@ export function buildMomentUserPrompt({
   diagramSource,
   visibleLabels,
   recentMoments,
+  officeLog,
   uiLocale,
   userName,
   userMessage,
@@ -524,6 +526,7 @@ export function buildMomentUserPrompt({
     '',
     'Recent moments (avoid repetition):',
     recent,
+    buildOfficeLogBlock(officeLog),
     transcript
       ? [
           '',
@@ -624,6 +627,7 @@ export function buildMeetingUserPrompt({
   topic,
   contextSource,
   contextDetail,
+  officeLog,
   uiLocale
 }) {
   const labels =
@@ -644,6 +648,7 @@ export function buildMeetingUserPrompt({
       ? `Source: ${contextSource === 'email' ? 'email thread' : 'Slop Chat thread'}`
       : null,
     contextDetail ? `Source material:\n${String(contextDetail).slice(0, 1200)}` : null,
+    buildOfficeLogBlock(officeLog),
     '',
     'Visible labels:',
     labels,
@@ -655,6 +660,7 @@ export function buildMeetingUserPrompt({
     '',
     `Write the meeting script as strict JSON now.${buildOfficeLanguageReminder(uiLocale)}`
   ]
+    .flat()
     .filter((line) => line !== null)
     .join('\n');
 }
@@ -676,6 +682,7 @@ export function buildInterjectUserPrompt({
   visibleLabels,
   transcriptSoFar,
   interjection,
+  officeLog,
   uiLocale
 }) {
   const transcript =
@@ -686,7 +693,9 @@ export function buildInterjectUserPrompt({
           .join('\n')
       : '(meeting just started)';
   return [
-    buildMeetingUserPrompt({ contentType, diagramSource, visibleLabels, uiLocale }),
+    // The day rides in through the meeting prompt this delegates to — an
+    // interjection is the same room, mid-scene.
+    buildMeetingUserPrompt({ contentType, diagramSource, visibleLabels, officeLog, uiLocale }),
     '',
     'Transcript so far:',
     transcript,
@@ -811,6 +820,7 @@ export function buildHuddleUserPrompt({
   contentType,
   diagramSource,
   visibleLabels,
+  officeLog,
   uiLocale,
   priorBeats
 }) {
@@ -834,6 +844,7 @@ export function buildHuddleUserPrompt({
       : '';
   return [
     `Diagram type: ${contentType || 'mermaid'}`,
+    buildOfficeLogBlock(officeLog),
     '',
     'Visible labels:',
     labels,
@@ -845,7 +856,10 @@ export function buildHuddleUserPrompt({
     '',
     refreshNote,
     `Write the huddle remarks as strict JSON now.${buildOfficeLanguageReminder(uiLocale)}`
-  ].join('\n');
+  ]
+    .flat()
+    .filter((line) => line !== null)
+    .join('\n');
 }
 
 const STRICT_JSON_RE = /\{[\s\S]*\}/;

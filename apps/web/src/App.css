@@ -18805,6 +18805,35 @@ body.slopitect-rainbow-tint::before {
   min-height: 0;
   flex-direction: column;
 }
+/* Who you are typing at, and whether they are actually there. Unlike the
+   thread list — which shows a status only when somebody is away — the open
+   conversation always states one, including "Available": here the word is an
+   answer to a question you just asked by opening the thread. */
+.office-messenger-presence {
+  display: flex;
+  min-width: 0;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0;
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--border);
+}
+.office-messenger-presence-name {
+  overflow: hidden;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.office-messenger-presence-status,
+.office-messenger-status {
+  flex: 0 0 auto;
+  font-size: 11px;
+  font-style: italic;
+  color: var(--muted);
+}
 .office-messenger-log {
   flex: 1 1 auto;
   min-height: 0;

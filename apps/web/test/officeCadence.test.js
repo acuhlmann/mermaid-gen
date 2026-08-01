@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
   OFFICE_BATTLES_PER_SESSION,
+  OFFICE_DESK_LLM_CAP,
   OFFICE_FIRST_MOMENT_MIN_MS,
   OFFICE_LLM_MOMENT_CAP,
+  OFFICE_RUN_REACTION_LLM_CAP,
+  OFFICE_TALK_LLM_CAP,
   OFFICE_MIN_GAP_MS,
   OFFICE_SENIOR_EMAILS_PER_SESSION,
   OFFICE_SESSION_MOMENT_CAP,
@@ -141,5 +144,32 @@ describe('pickNextMoment', () => {
       });
       if (moment) expect(moment.senior).toBeFalsy();
     }
+  });
+});
+
+describe('the office LLM budget table', () => {
+  /**
+   * The caps used to live in three files, two of them module-private. Re-homing
+   * them only helps if the consumers keep importing rather than quietly
+   * re-declaring a local number, so pin the identity.
+   */
+  it('is the single source the hooks re-export', async () => {
+    const { DESK_LLM_CAP, TALK_LLM_CAP } = await import('../src/hooks/useDeskActions.js');
+    const { RUN_REACTION_LLM_CAP } = await import('../src/hooks/useOfficeRunReactions.js');
+    expect(DESK_LLM_CAP).toBe(OFFICE_DESK_LLM_CAP);
+    expect(TALK_LLM_CAP).toBe(OFFICE_TALK_LLM_CAP);
+    expect(RUN_REACTION_LLM_CAP).toBe(OFFICE_RUN_REACTION_LLM_CAP);
+  });
+
+  /**
+   * §11's split, as an assertion rather than a comment: a conversation you
+   * started must never be rationed harder than an interruption you did not ask
+   * for. If a future tuning pass inverts this, the office starts answering
+   * typed sentences from a canned bank, which is the exact failure this layer
+   * exists to avoid.
+   */
+  it('gives reactive talk more room than ambient interruption', () => {
+    expect(OFFICE_TALK_LLM_CAP).toBeGreaterThan(OFFICE_LLM_MOMENT_CAP);
+    expect(OFFICE_DESK_LLM_CAP).toBeGreaterThanOrEqual(OFFICE_RUN_REACTION_LLM_CAP);
   });
 });

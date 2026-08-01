@@ -3,6 +3,7 @@ import { OFFICE_DIAGRAM_SOURCE_MAX_CHARS } from '@archislop/shared';
 import { API_BASE_URL, SESSION_HEADER } from '../state/diagramSession.js';
 import { getAdvisorVisibleLabels } from '../utils/advisorVisibleLabels.js';
 import { officeDialogueLocale } from '../utils/officeCast.js';
+import { getOfficeLogDigest } from '../state/officeLogStore.js';
 import {
   endOfficeHuddle,
   getOfficeSnapshot,
@@ -41,6 +42,9 @@ function huddleContext(params, attendees, mode = 'mob') {
     visibleLabels: labels,
     attendees,
     mode,
+    // Your own team, crowded around your screen — the surface with the most
+    // standing to say "wasn't that the thing from this morning".
+    officeLog: getOfficeLogDigest(),
     uiLocale: officeDialogueLocale()
   };
 }
@@ -299,7 +303,8 @@ export function useHuddlePlayback(params) {
         contentType: ctx.contentType,
         diagramSource: ctx.diagramSource,
         visibleLabels: ctx.visibleLabels,
-        lastSuggestions
+        lastSuggestions,
+        officeLog: ctx.officeLog
       },
       p.getSessionId?.() ?? '',
       controller

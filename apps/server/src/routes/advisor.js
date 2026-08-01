@@ -39,6 +39,12 @@ const AdvisorSuggestSchema = z.object({
   focusNodeId: z.string().max(200).optional(),
   focusNode: FocusDescriptorSchema.optional(),
   lastSuggestions: z.array(z.string().max(400)).max(8).default([]),
+  /**
+   * The office log (see `_lib/officeLogPrompt.js`). Caps mirror the office
+   * route's field and the client digest's own caps — a digest a route would
+   * reject is a client bug, not a validation exercise.
+   */
+  officeLog: z.array(z.string().max(200)).max(12).default([]),
   // "dumb" rephrases the architect's previous bubble in plain English. Only honored
   // when persona === 'richard' (other personas ignore the flag at prompt-build time).
   mode: z.enum(['dumb']).optional(),
@@ -116,6 +122,7 @@ export function createAdvisorRouter() {
       visibleLabels: payload.visibleLabels,
       focusNode: payload.focusNode ?? (payload.focusNodeId ? { id: payload.focusNodeId } : null),
       lastSuggestions: payload.lastSuggestions,
+      officeLog: payload.officeLog,
       previousSuggestion: payload.previousSuggestion,
       mode: payload.mode,
       simpleLevel: payload.simpleLevel,

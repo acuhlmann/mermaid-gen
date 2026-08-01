@@ -159,7 +159,8 @@ export type InsightEventContext = {
   triggerCompletionDelight: (
     sectionId: string,
     variant: string | undefined,
-    extras?: { runCostUsd?: number }
+    /** `contentType` is what the office log records the run as. */
+    extras?: { runCostUsd?: number; contentType?: string }
   ) => void;
   onFinal?: (args: { evt: LegacyStreamEvent; finalText: string; sectionId: string }) => void;
   onA2uiMessages?: (messages: A2uiV09Message[], sectionId: string) => void;
@@ -754,7 +755,10 @@ export function applyAgentStreamInsightEvent(
         : {})
     }));
     if (!mutationBlocked) {
-      triggerCompletionDelight(sectionId, variant, { runCostUsd });
+      triggerCompletionDelight(sectionId, variant, {
+        runCostUsd,
+        contentType: finalState?.contentType
+      });
     } else if (typeof playFailureChime === 'function') {
       tryAgentSound(playFailureChime);
     }

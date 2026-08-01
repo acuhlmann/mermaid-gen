@@ -9,6 +9,7 @@ import {
   normalizeMeetingModality,
   provisionalMeetingTitle
 } from '../utils/officeCast.js';
+import { getOfficeLogDigest } from '../state/officeLogStore.js';
 
 export const MEETING_FETCH_TIMEOUT_MS = 25_000;
 export const MEETING_INTERJECTION_CAP = 2;
@@ -138,6 +139,9 @@ export function useMeetingPlayback({
       contentType,
       diagramSource,
       visibleLabels: labels,
+      // The day rides along too, so a meeting can open on "following this
+      // morning's thing" and an interjection stays in the same world.
+      officeLog: getOfficeLogDigest(),
       uiLocale: officeDialogueLocale()
     };
   }, []);

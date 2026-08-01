@@ -917,6 +917,10 @@ export const OFFICE_ZH_CN = {
       you: '我',
       statusOnline: '空闲',
       statusBusy: '开会中',
+      statusHuddle: '在你屏幕前',
+      statusBattle: '吵架中',
+      statusCoffee: '接咖啡中',
+      statusDesk: '在你工位旁',
       callMeeting: '📅 拨个电话',
       callMeetingTitle: '和此人开一场耳机通话 — 想叫更多人也可以',
       callMeetingDisabledTitle: '已经在开会 — 先离开那场',
@@ -1063,7 +1067,16 @@ export const OFFICE_ZH_CN = {
         send: '发出去',
         youLabel: '你',
         leave: '🪑 回工位',
-        leaveTitle: '结束对话，走回屏幕前'
+        leaveTitle: '结束对话，走回屏幕前',
+        openers: {
+          label: '可以这样开场',
+          pitch: '关于“{topic}”……',
+          email: '关于你那封邮件……',
+          visit: '关于刚才的事……',
+          battle: '关于谁说得对……',
+          run: '关于我刚出的那版……',
+          generic: '有空吗？'
+        }
       },
       peek: {
         eyebrow: '从肩膀上方偷看',
@@ -1088,6 +1101,8 @@ export const OFFICE_ZH_CN = {
         blocked: '现在不行 — 你还有别的事。',
         back: '🪑 回工位',
         backTitle: '走回自己的屏幕',
+        look: '🔍 凑近看看',
+        lookTitle: '好好看一眼',
         items: {
           coffeeMachine: {
             glyph: '☕',
@@ -1096,7 +1111,13 @@ export const OFFICE_ZH_CN = {
             useLabel: '咖啡机 — 来一杯',
             useTitle: '走过去冲一杯',
             line: '它研磨、嘶嘶响，吐出棕色液体。很快会有人过来找你说话。',
-            blocked: '已经在给别人做了。等你的轮次。'
+            blocked: '已经在给别人做了。等你的轮次。',
+            details: [
+              '一张塑封的：除垢值日表。最后一个签名的人早就离职了。',
+              '沥水架上六个杯子。有一个写着「全世界最凑合」。那是大家的。',
+              '「该清洁了」的指示灯被一小块胶带盖住了。',
+              'Gary 贴在咖啡豆罐上的标签：设施部财产。不是福利。'
+            ]
           },
           printer: {
             glyph: '🖨️',
@@ -1104,7 +1125,13 @@ export const OFFICE_ZH_CN = {
             note: '前台 · MFP-3 “SLOPMASTER”',
             useLabel: '打印机 — 看看它',
             useTitle: '走过去看一眼',
-            line: 'PC LOAD LETTER。这层楼从来没人装过信纸。队列显示 41 个任务，全是 2023 年的。'
+            line: 'PC LOAD LETTER。这层楼从来没人装过信纸。队列显示 41 个任务，全是 2023 年的。',
+            details: [
+              '盖子上贴着：「已损坏 — Dave」。底下压着更旧的一张：「已损坏 — Dave」。',
+              '出纸盘最上面是一份 60 页的材料。第一页写着「草稿 — 请勿外传」。',
+              '有人把 wifi 密码写在了纸盒上。是错的，而且已经被更正过两次。',
+              '一张便利贴：「响两声就走开」。它正在响一声。'
+            ]
           },
           whiteboard: {
             glyph: '📋',
@@ -1112,7 +1139,13 @@ export const OFFICE_ZH_CN = {
             note: '工位旁 · 请勿擦除',
             useLabel: '白板 — 读读上面写的',
             useTitle: '走过去读一下',
-            line: '两轮重组前的架构，油性笔写的。三个框、一根箭头，还有被划了两道的 SYNERGY。'
+            line: '两轮重组前的架构，油性笔写的。三个框、一根箭头，还有被划了两道的 SYNERGY。',
+            details: [
+              '右下角小字：「这只是临时的」。日期是四年前。',
+              '第四个框被擦掉了一半。还能认出 BILLING 这个词。',
+              '角落里有人画了一匹很不错的马。从来没有人提起过。',
+              '在「请勿擦除」下面，另一种笔迹写着「为什么」。再下面：「问 Ulrich」。'
+            ]
           }
         }
       },

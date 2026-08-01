@@ -1645,8 +1645,15 @@ export const OFFICE_CHROME_COPY = {
     typing: '{name} is typing…',
     unreadDot: 'Unread',
     you: 'You',
+    // One line per `officeStatusOf` kind (officePresence.js). `statusOnline`
+    // and `statusBusy` predate the derivation and kept their names so the
+    // locale bundles that already mirror them do not need re-keying.
     statusOnline: 'Available',
     statusBusy: 'In a meeting',
+    statusHuddle: 'At your screen',
+    statusBattle: 'Mid-argument',
+    statusCoffee: 'Getting coffee',
+    statusDesk: 'At your desk',
     callMeeting: '📅 Hop on a call',
     callMeetingTitle: 'Hop on a headset call with this person — add more people if you want',
     callMeetingDisabledTitle: 'Already in a meeting — leave that one first',
@@ -1863,7 +1870,19 @@ export const OFFICE_CHROME_COPY = {
       send: 'Say it',
       youLabel: 'You',
       leave: '🪑 Back to my desk',
-      leaveTitle: 'End the conversation and walk back to your screen'
+      leaveTitle: 'End the conversation and walk back to your screen',
+      // Dialogue options in the point-and-click sense: pressing one fills your
+      // composer, it never sends and it never puts words in their mouth —
+      // `useFloorTalk`'s rule is that you speak first. See officeTalkOpeners.js.
+      openers: {
+        label: 'Things you could open with',
+        pitch: 'About “{topic}”…',
+        email: 'About your email…',
+        visit: 'About earlier…',
+        battle: 'About who was right…',
+        run: 'About what I just shipped…',
+        generic: 'Got a minute?'
+      }
     },
     // Desk peeking. Everything you see over a shoulder is fiction: the cast
     // produces nothing (ADR-0010), they are just visibly busy.
@@ -1894,6 +1913,11 @@ export const OFFICE_CHROME_COPY = {
       blocked: 'Not right now — something else has your attention.',
       back: '🪑 Back to my desk',
       backTitle: 'Walk back to your own screen',
+      // Looking closer (§ 8 "examine / look at"). Each `details` entry replaces
+      // the prop's main line; the button cycles and wraps, so a prop never runs
+      // out of things to notice.
+      look: '🔍 Look closer',
+      lookTitle: 'Have a proper look',
       items: {
         coffeeMachine: {
           glyph: '☕',
@@ -1902,7 +1926,13 @@ export const OFFICE_CHROME_COPY = {
           useLabel: 'Coffee machine — make one',
           useTitle: 'Walk over and make one',
           line: 'It grinds, it hisses, it produces something brown. Somebody will be along shortly to talk to you.',
-          blocked: 'It is already making one for somebody. Wait your turn.'
+          blocked: 'It is already making one for somebody. Wait your turn.',
+          details: [
+            'A laminated sign: DESCALE ROTA. The last initial is from a leaver.',
+            'Six mugs on the drainer. One says WORLD’S OKAYEST. It is everyone’s.',
+            'The "clean me" light has been covered with a small square of gaffer tape.',
+            'Gary’s label on the bean tin: PROPERTY OF FACILITIES. NOT A PERK.'
+          ]
         },
         printer: {
           glyph: '🖨️',
@@ -1910,7 +1940,13 @@ export const OFFICE_CHROME_COPY = {
           note: 'Reception · MFP-3 "SLOPMASTER"',
           useLabel: 'Printer — have a look at it',
           useTitle: 'Walk over and look at it',
-          line: 'PC LOAD LETTER. Nobody on this floor has ever loaded letter. The queue says 41 jobs, all from 2023.'
+          line: 'PC LOAD LETTER. Nobody on this floor has ever loaded letter. The queue says 41 jobs, all from 2023.',
+          details: [
+            'Taped to the lid: "OUT OF ORDER — Dave". Under it, older tape: "OUT OF ORDER — Dave".',
+            'The top sheet in the output tray is a 60-page deck. Page one says DRAFT — DO NOT CIRCULATE.',
+            'Someone has written the wifi password on the paper drawer. It is wrong, and it has been corrected twice.',
+            'A sticky note: "if it beeps twice, walk away". It is beeping once.'
+          ]
         },
         whiteboard: {
           glyph: '📋',
@@ -1918,7 +1954,13 @@ export const OFFICE_CHROME_COPY = {
           note: 'By the pod · DO NOT ERASE',
           useLabel: 'Whiteboard — read what is on it',
           useTitle: 'Walk over and read it',
-          line: 'An architecture from two re-orgs ago, in permanent marker. Three boxes, one arrow, and the word SYNERGY underlined twice.'
+          line: 'An architecture from two re-orgs ago, in permanent marker. Three boxes, one arrow, and the word SYNERGY underlined twice.',
+          details: [
+            'Bottom right, small: "this is the temporary one". Dated four years ago.',
+            'A fourth box has been half-erased. You can still read the word BILLING.',
+            'Someone has drawn a very good horse in the corner. Nobody has ever mentioned it.',
+            'Under DO NOT ERASE, in different handwriting: "why". Under that: "ask Ulrich".'
+          ]
         }
       }
     },

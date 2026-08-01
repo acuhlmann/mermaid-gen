@@ -22,6 +22,7 @@
  * scenery (§ 6 rule 21).
  */
 
+import { useState } from 'react';
 import { FloorPropArt } from './isoArt.jsx';
 import {
   FLOOR_PROPS,
@@ -133,12 +134,34 @@ export function FloorPropCard({ prop, phase = 'idle', copy, onBack }) {
   const item = propsCopy.items?.[prop.propKind] ?? {};
   const arrived = prop.phase === 'using';
 
+  /*
+   * Looking closer (§ 8 "examine / look at").
+   *
+   * § 8's own examples name the fridge and its sticky notes, but no unclaimed
+   * kitchen prop is reachable — `propTileFor('fridge')` is null, same as the
+   * water cooler (§ 6 rule 21), and making one reachable is a furniture move
+   * that re-opens the `COFFEE_TILES` validation § 8 parks as "only worth it if
+   * something wants a second kitchen prop". So the idea lands on the props that
+   * § 8 actually describes — "a few props that today only have a line" — by
+   * giving that line somewhere to go.
+   *
+   * An index in a component, not a store slice: § 8 says "never a second state
+   * machine", and which sentence you are on is not office state. Walking away
+   * unmounts the card and the prop starts fresh, which is right — noticing the
+   * doodle again next time is the joke, not a continuity bug.
+   */
+  const [looked, setLooked] = useState(0);
+  const details = Array.isArray(item.details) ? item.details : [];
+  const showing = looked > 0 ? details[(looked - 1) % details.length] : null;
+
   const body = () => {
     if (!arrived) return propsCopy.walking;
     if (phase === 'blocked') return item.blocked ?? propsCopy.blocked;
     if (phase === 'working') return propsCopy.working ?? propsCopy.walking;
-    return item.line;
+    return showing ?? item.line;
   };
+
+  const canLook = arrived && phase !== 'working' && phase !== 'blocked' && details.length > 0;
 
   /* Not a live region — see `FloorLiveRegion`. */
   return (
@@ -158,6 +181,17 @@ export function FloorPropCard({ prop, phase = 'idle', copy, onBack }) {
       </div>
       <p className="office-floor-card-blurb">{body()}</p>
       <div className="office-floor-card-actions">
+        {canLook ? (
+          <button
+            type="button"
+            className="office-floor-card-action"
+            data-testid="office-floor-prop-look"
+            title={propsCopy.lookTitle}
+            onClick={() => setLooked((n) => n + 1)}
+          >
+            {propsCopy.look}
+          </button>
+        ) : null}
         <button
           type="button"
           className="office-floor-card-action office-floor-card-action--primary"

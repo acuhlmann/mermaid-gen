@@ -21,12 +21,59 @@ export const OFFICE_GAP_JITTER_MS = 2 * 60_000;
 export const OFFICE_SESSION_MOMENT_CAP = 10;
 export const OFFICE_MEETING_INVITES_PER_SESSION = 1;
 export const OFFICE_BATTLES_PER_SESSION = 2;
-export const OFFICE_LLM_MOMENT_CAP = 3;
 /** Senior stakeholders (VP/CISO/CTO/CFO) get exactly one ambient email each
  * session — they are meeting people, not desk-ping people. */
 export const OFFICE_SENIOR_EMAILS_PER_SESSION = 1;
 /** Share of canned emails drawn from the senior bank while that cap is open. */
 const SENIOR_EMAIL_RATIO = 0.2;
+
+/*
+ * ---------------------------------------------------------------------------
+ * THE OFFICE LLM BUDGET — one table, tuned in one place.
+ * ---------------------------------------------------------------------------
+ *
+ * These used to live in three files, and two of them were module-private, so
+ * "how talkative is the office" could not be answered without opening
+ * `officeCadence.js`, `useOfficeRunReactions.js`, and `useDeskActions.js` and
+ * reading past the logic in each. They are re-homed here and imported back —
+ * every knob that decides whether a line is written or drawn from a bank is
+ * now visible at once.
+ *
+ * The split that governs the numbers is §11's, not a uniform generosity:
+ *
+ * - **Ambient** (a timer decided to interrupt you) stays canned-heavy. Nobody
+ *   asked for it, so it should be cheap and it should repeat rarely rather
+ *   than never.
+ * - **Reactive** (you started it, or you directly answered) leans LLM, because
+ *   a canned reply to something you typed is the single most obvious tell that
+ *   nobody is home. Reactive spend is self-limiting: you have to do something
+ *   to cause it.
+ *
+ * Every category degrades into the canned bank when its cap is spent — in
+ * character, never as an error.
+ */
+
+/** Ambient: diagram-aware moments per session. The rest come from the banks. */
+export const OFFICE_LLM_MOMENT_CAP = 5;
+/** Ambient: share of eligible emails / IMs that spend one of those calls. */
+const EMAIL_LLM_RATIO = 1 / 2;
+const IM_LLM_RATIO = 0.45;
+/**
+ * Reactive: a landed run may draw a remark. Capped low on purpose even though
+ * it is reactive — the user did not ask the office for an opinion, they just
+ * shipped something, so this sits between the two tiers.
+ */
+export const OFFICE_RUN_REACTION_LLM_CAP = 3;
+/** Reactive: desk verbs you clicked (get coffee, IM someone, walk the floor). */
+export const OFFICE_DESK_LLM_CAP = 4;
+/**
+ * Reactive: talking — the composer's "say it out loud" and every Slop Chat
+ * reply. Deliberately the largest budget in the table and unchanged by the
+ * rebalance: this is the one place the user is unambiguously in a conversation,
+ * and a canned answer to a typed sentence is the failure this whole layer is
+ * trying to avoid.
+ */
+export const OFFICE_TALK_LLM_CAP = 12;
 
 /** Relative frequency of each moment kind (before availability filters). */
 const MOMENT_WEIGHTS = [
@@ -37,10 +84,6 @@ const MOMENT_WEIGHTS = [
   ['battle', 1.25],
   ['meeting-invite', 1]
 ];
-
-/** Share of eligible emails/IMs that spend an LLM call to be diagram-aware. */
-const EMAIL_LLM_RATIO = 1 / 3;
-const IM_LLM_RATIO = 0.2;
 
 /**
  * @param {{

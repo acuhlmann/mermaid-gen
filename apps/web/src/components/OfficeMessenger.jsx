@@ -11,12 +11,43 @@ import {
   FloatingWindowMinimizeButton
 } from './FloatingWindowChrome.jsx';
 
-function MessengerThreadList({ threads, activeId, label, unreadLabel, onSelect }) {
+/**
+ * One colleague's status as a label, or `null` when they are simply reachable.
+ *
+ * `available` renders as nothing in the thread list on purpose: a sidebar where
+ * every row says "Available" is a sidebar where the word means nothing. The
+ * status earns its pixels only when somebody is *not* at their desk — which is
+ * also when you would want to know before typing.
+ *
+ * @param {(id: string) => string} statusOf
+ * @param {object} chat messenger copy bundle
+ * @param {string} colleagueId
+ * @returns {string | null}
+ */
+function statusLabelFor(statusOf, chat, colleagueId) {
+  switch (statusOf?.(colleagueId)) {
+    case 'meeting':
+      return chat.statusBusy;
+    case 'huddle':
+      return chat.statusHuddle;
+    case 'battle':
+      return chat.statusBattle;
+    case 'coffee':
+      return chat.statusCoffee;
+    case 'desk':
+      return chat.statusDesk;
+    default:
+      return null;
+  }
+}
+
+function MessengerThreadList({ threads, activeId, label, unreadLabel, chat, statusOf, onSelect }) {
   return (
     <ul className="office-messenger-threads" aria-label={label}>
       {threads.map((thread) => {
         const sender = officeSenderInfo(thread.colleagueId);
         const isActive = thread.colleagueId === activeId;
+        const status = statusLabelFor(statusOf, chat, thread.colleagueId);
         return (
           <li key={thread.colleagueId}>
             <button
@@ -25,14 +56,20 @@ function MessengerThreadList({ threads, activeId, label, unreadLabel, onSelect }
               aria-current={isActive}
               // The name is visually hidden in the mobile avatar strip, so it
               // has to live on the control itself.
-              aria-label={sender.name}
+              aria-label={status ? `${sender.name} — ${status}` : sender.name}
               title={sender.title ? `${sender.name} · ${sender.title}` : sender.name}
               onClick={() => onSelect(thread.colleagueId)}
             >
               <PersonaFace id={thread.colleagueId} size={26} />
               <span className="office-messenger-thread-meta">
                 <span className="office-messenger-thread-name">{sender.name}</span>
-                <span className="office-messenger-thread-snippet">{thread.last.body}</span>
+                <span className="office-messenger-thread-snippet">
+                  {status ? (
+                    <span className="office-messenger-status">{status}</span>
+                  ) : (
+                    thread.last.body
+                  )}
+                </span>
               </span>
               {thread.unread > 0 ? (
                 <span className="office-messenger-unread" title={unreadLabel}>
@@ -187,7 +224,8 @@ export default function OfficeMessenger({
   onAdoptPrompt,
   canCallMeeting = false,
   busy = false,
-  initialColleagueId = null
+  initialColleagueId = null,
+  statusOf
 }) {
   const chat = officeChromeCopy().messenger;
   const chrome = officeChromeCopy();
@@ -364,10 +402,20 @@ export default function OfficeMessenger({
                   activeId={activeId}
                   label={chat.threadsAria}
                   unreadLabel={chat.unreadDot}
+                  chat={chat}
+                  statusOf={statusOf}
                   onSelect={setSelectedId}
                 />
               </div>
               <div className="office-messenger-thread-view">
+                {activeName ? (
+                  <p className="office-messenger-presence">
+                    <span className="office-messenger-presence-name">{activeName}</span>
+                    <span className="office-messenger-presence-status">
+                      {statusLabelFor(statusOf, chat, activeId) ?? chat.statusOnline}
+                    </span>
+                  </p>
+                ) : null}
                 <MessengerLog
                   thread={active}
                   chat={chat}

@@ -82,6 +82,86 @@ test('office moment accepts optional IM reply context fields', async () => {
   }
 });
 
+test('office moment accepts an office log and enforces its caps', async () => {
+  const { port, closeServer } = await bootServer();
+  try {
+    // Absent is normal, not degraded: a client with nothing to remember yet —
+    // or one that predates the log — is a plain request.
+    const withoutLog = await post(port, 'moment', {
+      kind: 'im',
+      colleagueId: 'intern',
+      diagramSource: 'flowchart TD\n A-->B'
+    });
+    assert.equal(withoutLog.status, 503, 'no log still reaches the unconfigured model gate');
+
+    const withLog = await post(port, 'moment', {
+      kind: 'im',
+      colleagueId: 'intern',
+      diagramSource: 'flowchart TD\n A-->B',
+      officeLog: ['09:02 you shipped a mermaid diagram', '09:14 gilfoyle stopped by your desk']
+    });
+    assert.equal(withLog.status, 503, 'a valid log reaches the unconfigured model gate');
+
+    // The caps are restated server-side rather than trusted. A client that
+    // drifts past them should fail loudly here, not quietly inflate a prompt.
+    const tooMany = await post(port, 'moment', {
+      kind: 'im',
+      colleagueId: 'intern',
+      officeLog: Array.from({ length: 13 }, (_, i) => `09:0${i} something happened`)
+    });
+    assert.equal(tooMany.status, 400);
+
+    const tooLong = await post(port, 'moment', {
+      kind: 'im',
+      colleagueId: 'intern',
+      officeLog: ['x'.repeat(201)]
+    });
+    assert.equal(tooLong.status, 400);
+  } finally {
+    await closeServer();
+  }
+});
+
+test('meeting, huddle and interject all accept the office log', async () => {
+  const { port, closeServer } = await bootServer();
+  const officeLog = ['09:02 you shipped a mermaid diagram'];
+  try {
+    // Each reaches the unconfigured-model gate, which is as far as a test
+    // without an LLM can get — the point is that none of them 400 on the field.
+    const meeting = await post(port, 'meeting', {
+      attendees: ['scrumMaster', 'gilfoyle'],
+      diagramSource: 'flowchart TD\n A-->B',
+      officeLog
+    });
+    assert.equal(meeting.status, 503);
+
+    const huddle = await post(port, 'huddle', {
+      attendees: ['gilfoyle', 'dinesh'],
+      mode: 'mob',
+      diagramSource: 'flowchart TD\n A-->B',
+      officeLog
+    });
+    assert.equal(huddle.status, 503);
+
+    const interject = await post(port, 'meeting/interject', {
+      attendees: ['scrumMaster', 'gilfoyle'],
+      diagramSource: 'flowchart TD\n A-->B',
+      interjection: 'can we ship it',
+      officeLog
+    });
+    assert.equal(interject.status, 503);
+
+    // Same caps as /moment, restated on every endpoint.
+    const tooLong = await post(port, 'meeting', {
+      attendees: ['scrumMaster', 'gilfoyle'],
+      officeLog: ['x'.repeat(201)]
+    });
+    assert.equal(tooLong.status, 400);
+  } finally {
+    await closeServer();
+  }
+});
+
 test('office moment reports 503 when no LLM is configured', async () => {
   const { port, closeServer } = await bootServer();
   try {

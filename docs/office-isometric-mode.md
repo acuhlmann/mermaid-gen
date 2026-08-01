@@ -959,11 +959,24 @@ Three earlier candidates, none designed:
 Kept here so appetite can pick without re-deriving. Each should stay bound by ADR-0011
 (one state, two renderers) and ADR-0010 (cast never produces slot content):
 
-- **Examine / look at** on a few props that today only have a line — fridge sticky notes, the
-  whiteboard doodle, a sticky on Gary's fridge — as flavour text in the card slot, never a
-  second state machine.
-- **Topic hotspots from the diagram** — walking up with a recent run in mind seeds the opener
-  ("about the gateway node…") through the existing `imSomeone` context contract.
+- ~~**Examine / look at**~~ — ✅ shipped. Each usable prop's copy gained a `details` array and
+  the prop card a **🔍 Look closer** button that cycles it (wrapping, so a prop never runs out).
+  An index in `FloorPropCard`, not a store slice — "never a second state machine", and which
+  sentence you are on is not office state, so walking away resets it. **The fridge is not among
+  them**: `propTileFor('fridge')` is null, same as the water cooler (§ 6 rule 21), so the sticky
+  notes this bullet imagined would need the furniture move debt 3 parks. The idea landed instead
+  on the bullet's other half — "a few props that today only have a line" — by giving that line
+  somewhere to go. `officeFloorProps.test.jsx` pins that every `usablePropKinds()` entry has
+  details.
+- ~~**Topic hotspots from the diagram**~~ — ✅ shipped, with a **deliberate change of source**.
+  The bullet wanted the diagram's visible labels, which do not reach the floor; threading them
+  would grow the bridge, `OfficeFloorView` (48 against a max of 12) and `useFloorActivity` — the
+  exact growth § 8 warns about. The office log (`docs/office-parody.md` § 11) carries better
+  material: an adopted pitch quotes real diagram text, and everything else in it is _personal_
+  ("about your email") in a way a node label is not. `officeTalkOpeners.js` ranks what **they**
+  did above what **you** did, never offers to discuss a chat you already had, and always ends
+  with a generic option. Rendered as chips above the composer that **fill it rather than send**,
+  which is what keeps `useFloorTalk`'s "you speak first, no auto-opener" rule literally true.
 - **Soft errands** — Linda asks you to "find Chad and ask about the reply-all"; completing it
   is a reactive IM exchange + a tiny XP beat, not a quest log UI.
 - **Overhear → join** — standing next to a coffee/battle scene offers **Join in** once (already
@@ -1001,9 +1014,13 @@ Kept here so appetite can pick without re-deriving. Each should stay bound by AD
   nobody had the old behaviour long enough to miss it, but if a slice wants names discoverable,
   the answer is a deliberate one (a "show all names" toggle, or the chip appearing on
   proximity) rather than growing the hit box back.
-- **The water cooler is unreachable** (§6 rule 21). Left as scenery on purpose, but the other
-  branch is open: move it and re-validate `COFFEE_TILES` against rule 11, which is what put it
-  in that corner in the first place. Only worth it if something wants a second kitchen prop.
+- **The water cooler is unreachable** (§6 rule 21), and so are the **fridge** and the **server
+  rack** — `propTileFor` is null for all three, which is why `usablePropKinds()` is only
+  `coffeeMachine`, `printer`, `whiteboard`. Left as scenery on purpose, but the other branch is
+  open: move one and re-validate `COFFEE_TILES` against rule 11, which is what put the cooler in
+  that corner in the first place. Only worth it if something wants a second kitchen prop — the
+  "look closer" work deliberately did **not** claim this, because § 8's fridge-sticky-note
+  example is a furniture change wearing a copy change's clothes.
 - **Unverified composition:** standing at the coffee machine _while the coffee-break scene
   plays around you_. Safe by construction (the mark passes `isStandableTile`, which rejects
   anything within 0.5 of a `COFFEE_TILE`) and unit-tested at the verb, but never looked at —

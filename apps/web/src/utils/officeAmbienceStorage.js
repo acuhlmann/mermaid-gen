@@ -20,6 +20,20 @@ export const OFFICE_HEADPHONES_STORAGE_KEY = 'archislop:office-headphones';
 export const OFFICE_MEETING_DOCKED_STORAGE_KEY = 'archislop:office-meeting-docked';
 export const OFFICE_MEETING_MINIMIZED_STORAGE_KEY = 'archislop:office-meeting-minimized';
 export const OFFICE_CADENCE_STORAGE_KEY = 'archislop:office-cadence';
+/**
+ * The office log — what the cast remembers happened today (see
+ * `officeLogDigest.js`). Day-stamped, and a stamp from any other day is
+ * discarded on read: a reload should not cost the office its morning, but
+ * Tuesday's "09:12 you shipped a diagram" recounted on Thursday is a character
+ * being wrong rather than a character remembering.
+ */
+export const OFFICE_LOG_STORAGE_KEY = 'archislop:office-log';
+/**
+ * Slop Chat™ scrollback. Deliberately *not* day-stamped, unlike the log above:
+ * a messenger that forgets your threads overnight is a broken messenger, and
+ * the scrollback is the user's own record rather than the cast's memory.
+ */
+export const OFFICE_IM_HISTORY_STORAGE_KEY = 'archislop:office-im-history';
 export const OFFICE_WELCOME_STORAGE_KEY = 'archislop:office-welcomed';
 export const OFFICE_DIRECTORY_STORAGE_KEY = 'archislop:office-directory-seen';
 export const OFFICE_DAY_ONE_BADGE_STORAGE_KEY = 'archislop:day-one-badge-seen';
@@ -417,6 +431,116 @@ export function writeOfficeCadenceMemory(memory) {
           ? memory.seenTemplateIds.slice(-SEEN_TEMPLATE_CAP)
           : []
       })
+    );
+  } catch {
+    // Ignore quota / privacy errors.
+  }
+}
+
+/** Entries the office log keeps; older ones fall off the front. */
+export const OFFICE_LOG_ENTRY_CAP = 24;
+
+/**
+ * Which day a stored log belongs to, in the reader's own zone.
+ *
+ * A plain local date string rather than a timestamp comparison: "is this the
+ * same calendar day the user is looking at" is the actual question, and it
+ * survives a laptop that slept through midnight.
+ *
+ * @param {number} at epoch ms
+ * @returns {string}
+ */
+function dayStampOf(at) {
+  const date = new Date(at);
+  if (Number.isNaN(date.getTime())) return '';
+  return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`;
+}
+
+/**
+ * @param {number} [now] epoch ms, for tests
+ * @returns {Array<{at: number, kind: string, colleagueId?: string, detail?: string}>}
+ *   Empty when the stored log is from another day — see
+ *   `OFFICE_LOG_STORAGE_KEY`.
+ */
+export function readOfficeLog(now = Date.now()) {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = window.localStorage.getItem(OFFICE_LOG_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') return [];
+    if (parsed.day !== dayStampOf(now)) return [];
+    if (!Array.isArray(parsed.entries)) return [];
+    return parsed.entries
+      .filter((entry) => entry && typeof entry.kind === 'string' && Number.isFinite(entry.at))
+      .slice(-OFFICE_LOG_ENTRY_CAP);
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * @param {Array<{at: number, kind: string}>} entries
+ * @param {number} [now] epoch ms, for tests
+ */
+export function writeOfficeLog(entries, now = Date.now()) {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(
+      OFFICE_LOG_STORAGE_KEY,
+      JSON.stringify({
+        day: dayStampOf(now),
+        entries: Array.isArray(entries) ? entries.slice(-OFFICE_LOG_ENTRY_CAP) : []
+      })
+    );
+  } catch {
+    // Ignore quota / privacy errors.
+  }
+}
+
+/**
+ * Slop Chat scrollback across a reload.
+ *
+ * `talk`-channel lines are dropped on the way out rather than on the way in:
+ * they are speech at your desk or on the floor, the messenger never rendered
+ * them, and a spoken remark that reappears in a chat window three days later
+ * is the wrong kind of memory. What you typed persists; what was said aloud
+ * does not.
+ *
+ * @param {number} cap
+ * @returns {Array<object>}
+ */
+export function readOfficeImHistory(cap) {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = window.localStorage.getItem(OFFICE_IM_HISTORY_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter(
+        (msg) =>
+          msg &&
+          typeof msg.id === 'string' &&
+          typeof msg.colleagueId === 'string' &&
+          typeof msg.body === 'string'
+      )
+      .slice(-cap);
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * @param {Array<object>} history already filtered to Slop Chat messages
+ * @param {number} cap
+ */
+export function writeOfficeImHistory(history, cap) {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(
+      OFFICE_IM_HISTORY_STORAGE_KEY,
+      JSON.stringify(Array.isArray(history) ? history.slice(-cap) : [])
     );
   } catch {
     // Ignore quota / privacy errors.

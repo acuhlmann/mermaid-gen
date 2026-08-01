@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import {
   _resetOfficePresenceForTests,
   officePresenceOf,
+  officeStatusOf,
   podSeatIds,
   presenceFollowOf
 } from '../src/utils/officePresence.js';
@@ -174,6 +175,46 @@ describe('officePresenceOf over the real store', () => {
 
     startOfficeHuddle(['jared'], { mode: 'pair' });
     expect(officePresenceOf(getOfficeSnapshot())).toEqual({ kind: 'pair', ids: ['jared'] });
+  });
+});
+
+describe('officeStatusOf', () => {
+  it('answers "available" for anyone nothing has claimed', () => {
+    expect(officeStatusOf(getOfficeSnapshot(), 'gilfoyle')).toBe('available');
+    expect(officeStatusOf(null, 'gilfoyle')).toBe('available');
+    expect(officeStatusOf(getOfficeSnapshot(), '')).toBe('available');
+  });
+
+  /**
+   * The reason this is not a slice of `officePresenceOf`: that one collapses
+   * the room to a single winning kind, so a colleague in a huddle would be
+   * invisible the moment a walk-by outranked it. Per-person state has to be
+   * read per person.
+   */
+  it('reports what one person is doing, not what the room is doing', () => {
+    startOfficeHuddle(['jared'], { mode: 'pair' });
+    pushOfficeWalkBy({ colleagueId: 'erlich', body: 'hear me out' });
+
+    expect(officePresenceOf(getOfficeSnapshot()).kind).toBe('pair');
+    expect(officeStatusOf(getOfficeSnapshot(), 'jared')).toBe('huddle');
+    expect(officeStatusOf(getOfficeSnapshot(), 'erlich')).toBe('desk');
+    expect(officeStatusOf(getOfficeSnapshot(), 'dinesh')).toBe('available');
+  });
+
+  it('reads scene participants out of a battle and a coffee break', () => {
+    expect(
+      officeStatusOf(
+        { battle: { lines: [{ speakerId: 'dinesh' }, { speakerId: 'gilfoyle' }] } },
+        'gilfoyle'
+      )
+    ).toBe('battle');
+    expect(officeStatusOf({ coffee: { lines: [{ speakerId: 'hr' }] } }, 'hr')).toBe('coffee');
+  });
+
+  it('counts both the convener and the attendees of a pending invite', () => {
+    const snapshot = { meetingInvite: { colleagueId: 'scrumMaster', attendees: ['ciso'] } };
+    expect(officeStatusOf(snapshot, 'scrumMaster')).toBe('meeting');
+    expect(officeStatusOf(snapshot, 'ciso')).toBe('meeting');
   });
 });
 

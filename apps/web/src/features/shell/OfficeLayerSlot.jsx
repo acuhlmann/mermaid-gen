@@ -1,4 +1,5 @@
 import OfficeLayer from '../../components/OfficeLayer.jsx';
+import { recordOfficeLogEntry } from '../../state/officeLogStore.js';
 import { resolveUserName } from '../../state/userIdentityStore.js';
 import { actionPersonaName } from '../../utils/appActionPersonas.js';
 import {
@@ -61,6 +62,10 @@ export function OfficeLayerSlot({
       onAdoptPrompt={(text, colleagueId) => {
         const delegateName = colleagueDisplayName(colleagueId);
         const variant = variantFromColleague(colleagueId);
+        // Whose idea you actually took is the most socially loaded fact the
+        // office has — it is what lets someone bring it up later, and what
+        // lets someone else notice they were passed over.
+        recordOfficeLogEntry('pitch', { colleagueId, detail: text });
         void submitIntentWithPrompt(buildAdvisorIntentPrompt(text), {
           titlePrompt: text,
           delegateName,
