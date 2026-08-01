@@ -177,6 +177,7 @@ export const VARIANT_QUOTES = {
     'Rotate everything 90° and call it insight.',
     'Give each box a rival that does the opposite.',
     'Radio Silence taught me that — once.',
+    'I invented the Like button. Fact.',
     'I am the valuation now.',
     'Keep it small? That’s how you stay at two commas.',
     'Make it louder. On the subject.',

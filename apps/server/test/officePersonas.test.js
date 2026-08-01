@@ -241,6 +241,41 @@ test('erlich meeting voice card anchors the Silicon Valley replication', () => {
   assert.equal(isOfficeColleague('erlich'), false);
 });
 
+/*
+ * Signature biography props (Son of Anton, SeeFood, Donald/desk, Pied Piper identity)
+ * must stay on the meeting cards — otherwise the characters forget the show's load-bearing
+ * lore the way a dropped Aviato anchor once went unnoticed.
+ */
+test('named SV meeting cards retain signature biography props', () => {
+  assert.ok(
+    STAKEHOLDER_MEETING_VOICES.gilfoyle.includes('Son of Anton'),
+    'Gilfoyle must know Son of Anton'
+  );
+  assert.ok(
+    STAKEHOLDER_MEETING_VOICES.gilfoyle.includes('Dark Lord') ||
+      STAKEHOLDER_MEETING_VOICES.gilfoyle.includes('Satanist'),
+    'Gilfoyle keeps the Satanism register'
+  );
+  assert.ok(STAKEHOLDER_MEETING_VOICES.dinesh.includes('SeeFood'), 'Dinesh must know SeeFood');
+  assert.ok(
+    STAKEHOLDER_MEETING_VOICES.jared.includes('Donald') &&
+      STAKEHOLDER_MEETING_VOICES.jared.includes('desk'),
+    'Jared overshare spice names Donald / desk'
+  );
+  assert.ok(
+    STAKEHOLDER_MEETING_VOICES.richard.includes('middle-out') &&
+      STAKEHOLDER_MEETING_VOICES.richard.includes('Pied Piper'),
+    'Richard knows Pied Piper / middle-out as identity (not default topic)'
+  );
+  assert.ok(STAKEHOLDER_MEETING_VOICES.russ.includes('Radio Silence'));
+  assert.match(STAKEHOLDER_MEETING_VOICES.russ, /Like button/i, 'Russ must claim the Like button');
+  assert.match(
+    STAKEHOLDER_MEETING_VOICES.barker,
+    /Conjoined\s+Triangles/,
+    'Barker keeps the Conjoined Triangles'
+  );
+});
+
 test('jared meeting voice card anchors the Silicon Valley replication', () => {
   assert.ok(STAKEHOLDER_MEETING_VOICES.jared.includes('Jared Dunn'));
   assert.ok(STAKEHOLDER_MEETING_VOICES.jared.includes("HBO's Silicon Valley"));

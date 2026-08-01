@@ -34,17 +34,17 @@ in the order listed. **Program complete** (locked roster shipped).
 
 ## Status board
 
-| Character         | Target seat / tier                       | Status                                                                                                                                                          |
-| ----------------- | ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Jack Barker       | team+senior — 6th advisor (`barker`)     | ✅ Shipped — advisor seat + Session 2 throttled roundtable (part of team, less often than peers)                                                                |
-| Erlich Bachman    | team — `erlich` (ex-`innovate`)          | ✅ Shipped — seat inheritance; courageous pivots, incubator swagger                                                                                             |
-| Bertram Gilfoyle  | team — `gilfoyle` (ex-`refine`)          | ✅ Shipped — seat inheritance; deadpan verdicts, always actionable; battle-eligible (dual-home). Draws what is **already true** (§1b). Fidelity **4.50 / 4.38** |
-| Dinesh Chugtai    | team — **new** `dinesh` (gilfoyle-class) | ✅ Shipped — new seventh seat (not an inheritance); correct fix + a bid for credit; battle dual-home. Draws what **will break** (§1b). Fidelity **4.00 / 4.19** |
-| Jared Dunn        | team — `jared` (ex-`critique`)           | ✅ Shipped — seat inheritance; findings-only analyze seat; anxious compliance. First analyze-path inheritance. Fidelity **4.63 / 4.75**                         |
-| Russ Hanneman     | team — `russ` (ex-`goMad`)               | ✅ Shipped — seat inheritance; subject-rooted escalation; tres commas / tequila / SHIPS. Depth field `russDepth`. Fidelity **4.81 / 5.00**                      |
-| Richard Hendricks | team — `richard` (ex-`explain`)          | ✅ Shipped — seat inheritance; comment-only analyze; anxious pattern-naming (ADR-0010). Dumb-down travels with seat. Fidelity **4.75 / 4.63**                   |
-| Gavin Belson      | senior — `belson` (ex-`cto` / Marcus)    | ✅ Shipped — senior-only named replication; scarcer than Barker; Jack reports to him; never roundtable. Retires Marcus. Fidelity **4.63 / 5.00**                |
-| Marcus            | senior — `cto`                           | 🚮 Retired (Session 8) — was a Belson homage; display id `cto` → `belson`                                                                                       |
+| Character         | Target seat / tier                       | Status                                                                                                                                                                   |
+| ----------------- | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Jack Barker       | team+senior — 6th advisor (`barker`)     | ✅ Shipped — advisor seat + Session 2 throttled roundtable (part of team, less often than peers)                                                                         |
+| Erlich Bachman    | team — `erlich` (ex-`innovate`)          | ✅ Shipped — seat inheritance; courageous pivots, incubator swagger                                                                                                      |
+| Bertram Gilfoyle  | team — `gilfoyle` (ex-`refine`)          | ✅ Shipped — seat inheritance; deadpan verdicts, always actionable; battle-eligible (dual-home). Draws what is **already true** (§1b). Fidelity **4.50 / 4.38**          |
+| Dinesh Chugtai    | team — **new** `dinesh` (gilfoyle-class) | ✅ Shipped — new seventh seat (not an inheritance); correct fix + a bid for credit; battle dual-home. Draws what **will break** (§1b). Fidelity **4.00 / 4.19**          |
+| Jared Dunn        | team — `jared` (ex-`critique`)           | ✅ Shipped — seat inheritance; findings-only analyze seat; anxious compliance. First analyze-path inheritance. Fidelity **4.63 / 4.75**                                  |
+| Russ Hanneman     | team — `russ` (ex-`goMad`)               | ✅ Shipped — seat inheritance; subject-rooted escalation; tres commas / tequila / SHIPS / Like button / Radio Silence. Depth field `russDepth`. Fidelity **4.81 / 5.00** |
+| Richard Hendricks | team — `richard` (ex-`explain`)          | ✅ Shipped — seat inheritance; comment-only analyze; anxious pattern-naming (ADR-0010). Dumb-down travels with seat. Fidelity **4.75 / 4.63**                            |
+| Gavin Belson      | senior — `belson` (ex-`cto` / Marcus)    | ✅ Shipped — senior-only named replication; scarcer than Barker; Jack reports to him; never roundtable. Retires Marcus. Fidelity **4.63 / 5.00**                         |
+| Marcus            | senior — `cto`                           | 🚮 Retired (Session 8) — was a Belson homage; display id `cto` → `belson`                                                                                                |
 
 Session 0 locked the map; the fidelity harness (§3) is generalized — one profile per character,
 reused every session. Each character session ends with registry/TTS/locale tests green,
@@ -243,7 +243,8 @@ template. Lessons burned in:
   diagrams that are not about them") — otherwise every recipe diagram grows a cache layer.
 - **Never ration a signature that has no detachable prop.** The template's closing line ("at most
   ONE prop per few replies and usually none — props, in order of preference: …") works for Gilfoyle
-  and Erlich because their props really are removable garnish (Satanism, Canada; Aviato, Jobs) —
+  and Erlich because their props really are removable garnish (Satanism, Son of Anton, Canada;
+  Aviato, Jobs) —
   delete them and the voice survives. Dinesh's card copied that line and filled it with three items
   that were _already_ the mandatory `STRUCTURE` rotation, so the same card called the bid required
   every reply **and** capped at "usually none". The model resolved the contradiction by never using

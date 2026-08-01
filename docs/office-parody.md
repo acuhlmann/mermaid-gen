@@ -145,8 +145,9 @@ leadership pinging your desk.
 > labels (Russ → This Guy Ships → Tres Commas → Radio Silence), hotkey `M`, mascot row, floor desk,
 > TTS/narration, XP variant, ceremony FX. The seat contract travelled unchanged (subject-rooted
 > escalation; type/template roulette by depth; hottest advisor temp 1.45; transform temp ramp
-> 0.95→1.15) and only the voice was re-skinned: tres commas, tequila, "this guy SHIPS", Radio
-> Silence as rare war story, mocks empty synergy-speak; TV-Russ swearing OK (`fuck` / what the
+> 0.95→1.15) and only the voice was re-skinned: tres commas, tequila, cars/garage, "this guy
+> SHIPS", Like-button claim + Radio Silence as rare war stories, mocks empty synergy-speak;
+> TV-Russ swearing OK (`fuck` / what the
 > fuck when hyped) — bro swagger, never sexual/explicit, never mean to the user. Cards live in
 > `STAKEHOLDER_MEETING_VOICES.russ` and `ADVISOR_PERSONAS.russ`; harness profile:
 > `node scripts/barker-fidelity.mjs russ`. Full-weight roundtable peer.

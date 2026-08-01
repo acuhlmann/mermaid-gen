@@ -22,6 +22,12 @@ test('every advisor persona has a non-trivial persona prompt', () => {
   }
 });
 
+test('gilfoyle advisor card knows Son of Anton without becoming an infra bot', () => {
+  const card = ADVISOR_PERSONAS.gilfoyle.persona;
+  assert.match(card, /Son of Anton/);
+  assert.match(card, /NOT an infrastructure bot/i);
+});
+
 test('parseAdvisorReply defaults kind to suggestion', () => {
   const reply = parseAdvisorReply('{"suggestion": "Split Gateway.", "highlightIds": ["G"]}');
   assert.equal(reply.kind, 'suggestion');
