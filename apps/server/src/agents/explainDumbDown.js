@@ -14,14 +14,9 @@ import {
 import { extractTextContent } from '../utils/extractTextContent.js';
 import {
   createLlmChatModel,
-  DEFAULT_DEEPSEEK_MODEL_FAST,
-  DEFAULT_OPENROUTER_MODEL_FAST,
-  DEFAULT_VERTEX_MODEL_FAST,
   isLlmConfigured,
-  resolveDeepSeekModelId,
-  resolveLlmBackend,
-  resolveOpenRouterModelId,
-  resolveVertexModelId
+  resolveDecorativeModelId,
+  resolveLlmBackend
 } from './llmProvider.js';
 import { llmUsageFromReply } from './_lib/llmUsageFromReply.js';
 
@@ -47,13 +42,7 @@ const SECTION_BUDGET_BY_LEVEL = Object.freeze({
 });
 
 function resolveExplainerModelId(env, backend) {
-  if (backend === 'vertex') {
-    return resolveVertexModelId(env, 'fast') || DEFAULT_VERTEX_MODEL_FAST;
-  }
-  if (backend === 'deepseek') {
-    return resolveDeepSeekModelId(env, 'fast') || DEFAULT_DEEPSEEK_MODEL_FAST;
-  }
-  return resolveOpenRouterModelId(env, 'fast') || DEFAULT_OPENROUTER_MODEL_FAST;
+  return resolveDecorativeModelId(env, backend);
 }
 
 const explainDumbModelCache = new Map();

@@ -262,9 +262,24 @@ test('advisor Vertex model gives the JSON real headroom and disables reasoning',
   assert.equal(model.maxReasoningTokens, 0, 'thinkingBudget 0 → no reasoning tokens');
 });
 
-test('resolveAdvisorModelId returns the fast slug per backend', () => {
-  assert.equal(resolveAdvisorModelId({}, 'vertex'), 'gemini-2.5-flash');
-  assert.equal(resolveAdvisorModelId({ VERTEX_MODEL_FAST: 'gemini-x' }, 'vertex'), 'gemini-x');
+test('resolveAdvisorModelId uses Vertex lite (not Brain Fast) for decorative paths', () => {
+  assert.equal(resolveAdvisorModelId({}, 'vertex'), 'gemini-2.5-flash-lite');
+  assert.equal(
+    resolveAdvisorModelId({ VERTEX_MODEL_LITE: 'gemini-x-lite' }, 'vertex'),
+    'gemini-x-lite'
+  );
+  assert.equal(
+    resolveAdvisorModelId(
+      { VERTEX_MODEL_OFFICE: 'gemini-office', VERTEX_MODEL_LITE: 'gemini-x-lite' },
+      'vertex'
+    ),
+    'gemini-office'
+  );
+  // Brain Fast override must not drag office/advisor off lite.
+  assert.equal(
+    resolveAdvisorModelId({ VERTEX_MODEL_FAST: 'gemini-x' }, 'vertex'),
+    'gemini-2.5-flash-lite'
+  );
   assert.equal(resolveAdvisorModelId({}, 'deepseek'), 'deepseek-v4-flash');
   assert.equal(resolveAdvisorModelId({}, 'openrouter'), 'google/gemini-2.5-flash-lite');
 });

@@ -7,14 +7,9 @@ import { SystemMessage, HumanMessage } from '@langchain/core/messages';
 import { AUTO_CONTENT_TYPE, ContentTypeSchema, type ContentType } from '@archislop/shared';
 import {
   createLlmChatModel,
-  DEFAULT_DEEPSEEK_MODEL_FAST,
-  DEFAULT_OPENROUTER_MODEL_FAST,
-  DEFAULT_VERTEX_MODEL_FAST,
   isLlmConfigured,
-  resolveDeepSeekModelId,
-  resolveLlmBackend,
-  resolveOpenRouterModelId,
-  resolveVertexModelId
+  resolveDecorativeModelId,
+  resolveLlmBackend
 } from './llmProvider.js';
 import { extractTextContent } from '../utils/extractTextContent.js';
 
@@ -36,14 +31,11 @@ const SYSTEM_PROMPT = [
   'No markdown fences. No extra keys.'
 ].join('\n');
 
-function resolveClassifierModelId(env: NodeJS.ProcessEnv, backend: string): string {
-  if (backend === 'vertex') {
-    return resolveVertexModelId(env, 'fast') || DEFAULT_VERTEX_MODEL_FAST;
-  }
-  if (backend === 'deepseek') {
-    return resolveDeepSeekModelId(env, 'fast') || DEFAULT_DEEPSEEK_MODEL_FAST;
-  }
-  return resolveOpenRouterModelId(env, 'fast') || DEFAULT_OPENROUTER_MODEL_FAST;
+function resolveClassifierModelId(
+  env: NodeJS.ProcessEnv,
+  backend: 'vertex' | 'openrouter' | 'deepseek' | null
+): string {
+  return resolveDecorativeModelId(env, backend);
 }
 
 const classifierModelCache = new Map<string, ReturnType<typeof createLlmChatModel>>();

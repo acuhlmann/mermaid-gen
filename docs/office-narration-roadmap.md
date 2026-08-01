@@ -102,10 +102,30 @@ meetings and walk-bys; only the top of the ladder ever bills (fallbacks fire onl
 
 Cheap wins while Cloud TTS is optional:
 
-1. **Duck the soundscape** while a line is speaking (gain → ~30%).
-2. **Speaker sting** before speech (reuse existing chimes: calendar for Pam, ticket blip for Dave).
-3. **Caption karaoke** — optional underline of the active walk-by / meeting bubble (accessibility + mobile without headphones).
-4. **Directory “Hear sample”** — one canned line per colleague in `OfficeDirectory` so users audition voices.
+**Phase A is complete (2026-08-01).** Three of its four items turned out to be already built — this
+list had gone stale, which is worth knowing before trusting any other "still open" line in this doc.
+
+1. ~~**Duck the soundscape**~~ — ✅ **already shipped**, and had been for a while:
+   `OfficeLayer.narrateLine` calls `duckRoomTone()` before `speakOfficeLine` and restores it in a
+   `.finally`, so it survives a failed or cancelled line.
+2. ~~**Speaker sting**~~ — ✅ **shipped 2026-08-01**. `apps/web/src/utils/officeSpeakerStings.js`
+   maps a persona to an existing `agentChimes` player, and `narrateLine` fires it through the
+   priming call it was already making — the sound gate, the one-shot timing, and the mobile
+   audio-context warm-up all came for free. Deliberately **only five colleagues** (Pam, Dave,
+   Linda, Gary, Chad): a cue before all sixteen voices is a metronome, and a tone assigned for no
+   reason is something the user has to learn. Everyone else gets `null` and just starts talking.
+3. ~~**Caption karaoke**~~ — ✅ **shipped 2026-08-01**, and smaller than it looked. Speaker-level
+   highlighting already existed everywhere (`HuddleOverlay`'s `is-speaking` seat plus its
+   "{name} is talking" label; `MeetingFilmStrip`'s `lastSpeakerId`; the directory's speaking card).
+   The one real gap was the meeting **transcript**, where every beat rendered identically.
+   `activeCaptionIndex` (`officeCaptions.js`) marks the newest line while a voice is actually in
+   the air, and returns -1 the moment it is not — a finished meeting must not have a line
+   pretending to still be spoken. Not applied to the coffee/battle cards: they reveal every line at
+   once by design, so there is no "current" line to mark.
+4. ~~**Directory “Hear sample”**~~ — ✅ **already shipped**: `DirectoryRoster` renders a
+   per-colleague `IntroVoiceButton` wired through `useIntroNarrator` → `speakOfficeLine` →
+   `POST /api/office/speak`, with stop-on-second-click. Only the first-run onboarding cards lack
+   one, which is correct — they auto-play during the cinematic tour.
 5. ~~**IM narration**~~ — **won’t do** for realism (chat stays text); keep emails silent too.
 
 ### Phase B — Cloud TTS behind the same Narration toggle
@@ -154,7 +174,9 @@ Richard → `Gacrux`); do not “fix” by gender alone — re-audition with `sc
 
 - Batch meeting-script audio during the “waiting to be admitted” gag (fewer round-trips).
 - Optional GCS cache for hot canned lines across Cloud Run instances.
-- Phase A polish still open (duck soundscape, speaker sting, directory “Hear sample”).
+- ~~Phase A polish still open~~ — **Phase A is complete as of 2026-08-01** (see §4 Phase A; the
+  soundscape duck and the directory “Hear sample” had already been built when that line was
+  written).
 - Re-listen in the [Cloud TTS console](https://console.cloud.google.com/speech/text-to-speech) when a character feels off.
 
 **Env / deploy:**
@@ -188,7 +210,7 @@ Battle/coffee/walk-by fallbacks are **static templates**. Generate Opus/MP3 once
 
 1. ~~Server WaveNet + `/api/office/speak` + Web Speech fallback~~ ✅
 2. ~~Speak battles + coffee (overheard) while keeping email/IM silent~~ ✅
-3. Phase A polish (duck soundscape, speaker sting, directory “Hear sample”).
+3. ~~Phase A polish~~ — ✅ done 2026-08-01 (see §4 Phase A).
 4. Batch meeting-script synthesize during join latency.
 5. Phase C bake canned battle/coffee/walk-by templates.
 6. ~~Re-evaluate Neural2~~ ✅ (Phase B+); ~~Chirp 3 HD as default~~ ✅ (Phase B++) — unlocks `cmn-CN`, honours `speakingRate`, only bills at the top of the fallback ladder; zh-TW stays WaveNet.

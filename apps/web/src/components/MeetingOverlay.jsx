@@ -5,7 +5,7 @@ import {
   readOfficeMeetingMinimized,
   writeOfficeMeetingMinimized
 } from '../utils/officeAmbienceStorage.js';
-import { shouldShowSpokenText } from '../utils/officeCaptions.js';
+import { activeCaptionIndex, shouldShowSpokenText } from '../utils/officeCaptions.js';
 import { formatLocale } from '../i18n/formatLocale.js';
 import { PersonaFace } from './personaFaces/index.jsx';
 import OfficeActionableChecklist from './OfficeActionableChecklist.jsx';
@@ -141,16 +141,28 @@ function MeetingFilmStrip({ attendees, lastSpeakerId, chrome }) {
   );
 }
 
-function MeetingTranscript({ transcript, chrome, ended, playing, onAdoptPrompt, scrollRef }) {
+function MeetingTranscript({
+  transcript,
+  chrome,
+  ended,
+  playing,
+  onAdoptPrompt,
+  scrollRef,
+  speakingIndex = -1
+}) {
   return (
     <div className="office-meeting-transcript" ref={scrollRef}>
       {transcript.map((beat, index) => {
         const speaker = speakerInfo(beat.speakerId, chrome);
         const isUser = beat.speakerId === MEETING_USER_SPEAKER;
+        const isSpeaking = index === speakingIndex;
         return (
           <div
             key={index}
-            className={`office-meeting-beat office-meeting-beat--${beat.kind}${isUser ? ' is-user' : ''}`}
+            className={`office-meeting-beat office-meeting-beat--${beat.kind}${isUser ? ' is-user' : ''}${
+              isSpeaking ? ' is-speaking' : ''
+            }`}
+            data-speaking={isSpeaking ? 'true' : undefined}
           >
             <PersonaFace
               id={beat.speakerId}
@@ -370,10 +382,16 @@ export default function MeetingOverlay({
   // narration is on and CC is off — toggling voiceSpeaking between beats was
   // flashing the transcript in and out between lines.
   const speakerView = playing && narration && !captions;
+  const voiceActive = Boolean(narration && meeting.voiceSpeaking);
   const showTranscript =
-    playing && !speakerView
-      ? shouldShowSpokenText({ captions, voiceActive: Boolean(narration && meeting.voiceSpeaking) })
-      : false;
+    playing && !speakerView ? shouldShowSpokenText({ captions, voiceActive }) : false;
+  // Caption karaoke: mark the line actually in the air. -1 once the voice
+  // stops, so a finished meeting has no line pretending to still be spoken.
+  const speakingIndex = activeCaptionIndex({
+    lineCount: transcriptLength,
+    playing,
+    voiceActive
+  });
 
   const submitHand = (event) => {
     event.preventDefault();
@@ -448,6 +466,7 @@ export default function MeetingOverlay({
               chrome={chrome}
               ended={ended}
               playing={playing}
+              speakingIndex={speakingIndex}
               onAdoptPrompt={onAdoptPrompt}
               scrollRef={transcriptRef}
             />

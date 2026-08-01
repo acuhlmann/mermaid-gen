@@ -20860,6 +20860,23 @@ body.slopitect-rainbow-tint::before {
   scrollbar-width: thin;
 }
 
+/* Caption karaoke (narration roadmap Phase A): the transcript line currently
+   in the air. Subtle on purpose — this runs under live speech, and anything
+   stronger reads as an error state rather than as "this is the bit you are
+   hearing". Left rail + lift, no colour change, so it survives both themes. */
+.office-meeting-beat.is-speaking .office-meeting-beat-bubble {
+  box-shadow: inset 3px 0 0 0 color-mix(in srgb, var(--accent) 70%, transparent);
+  background: color-mix(in srgb, var(--accent) 7%, transparent);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .office-meeting-beat.is-speaking .office-meeting-beat-bubble {
+    transition:
+      background 220ms ease,
+      box-shadow 220ms ease;
+  }
+}
+
 /* The all-hands crowd (docs/office-parody.md §10.4). Wraps rather than scrolls
    — the whole point is seeing how many people are on the call at once, and a
    horizontal scroller hides exactly that. Dimmed and faceless-small so it reads

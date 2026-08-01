@@ -16,14 +16,9 @@ import {
 } from '@archislop/shared';
 import {
   createLlmChatModel,
-  DEFAULT_DEEPSEEK_MODEL_FAST,
-  DEFAULT_OPENROUTER_MODEL_FAST,
-  DEFAULT_VERTEX_MODEL_FAST,
   isLlmConfigured,
-  resolveDeepSeekModelId,
-  resolveLlmBackend,
-  resolveOpenRouterModelId,
-  resolveVertexModelId
+  resolveDecorativeModelId,
+  resolveLlmBackend
 } from './llmProvider.js';
 import { extractTextContent } from '../utils/extractTextContent.js';
 import { llmUsageFromReply } from './_lib/llmUsageFromReply.js';
@@ -77,13 +72,7 @@ const GIBBERISH_SYSTEM_PROMPT = [
 ].join('\n');
 
 function resolveExplainerModelId(env, backend) {
-  if (backend === 'vertex') {
-    return resolveVertexModelId(env, 'fast') || DEFAULT_VERTEX_MODEL_FAST;
-  }
-  if (backend === 'deepseek') {
-    return resolveDeepSeekModelId(env, 'fast') || DEFAULT_DEEPSEEK_MODEL_FAST;
-  }
-  return resolveOpenRouterModelId(env, 'fast') || DEFAULT_OPENROUTER_MODEL_FAST;
+  return resolveDecorativeModelId(env, backend);
 }
 
 const explainerModelCache = new Map();

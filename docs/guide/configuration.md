@@ -95,5 +95,6 @@ Backends are selected in `apps/server/src/agents/llmProvider.js` via `LLM_PROVID
 - `VERTEX_PROJECT_ID` or `GOOGLE_CLOUD_PROJECT`, plus `VERTEX_LOCATION` (default `us-central1`).
 - `VERTEX_MODEL_FAST` / `VERTEX_MODEL_QUALITY` / `VERTEX_MODEL`: same "per tier + optional shared" pattern as OpenRouter.
 - **Built-in defaults** when unset: **Fast** = `gemini-2.5-flash`, **Quality** = `gemini-2.5-pro` (latest GA on this GCP project; override to `gemini-3.5-flash` / `gemini-3.1-pro-preview` when Vertex exposes them — see [`docs/llm-config.md`](../llm-config.md)). With hybrid auto (Vertex + DeepSeek), Brain Quality uses DeepSeek instead of `VERTEX_MODEL_QUALITY`.
+- **Decorative Fast** (office cast, advisor chips, label explain, Auto classifier) uses `VERTEX_MODEL_OFFICE` → `VERTEX_MODEL_LITE` → `gemini-2.5-flash-lite`, not Brain Fast — so desk talk stays snappy while canvas Go keeps full Flash.
 
 The web client never sends raw model ids — only `modelProfile: "fast" | "quality"`; the server resolves slugs.

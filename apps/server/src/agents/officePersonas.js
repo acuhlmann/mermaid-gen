@@ -1103,9 +1103,9 @@ export function officeUsageFromReply(reply) {
 const officeModelCache = new Map();
 
 /**
- * Tool-less chat model for office content — same "decorative, fast backend"
- * policy as the advisor. Meetings get a bigger output budget (a whole beat
- * script) and slightly hotter sampling than one-line moments.
+ * Tool-less chat model for office content — decorative Fast (Vertex lite by
+ * default), same policy as the advisor. Meetings get a bigger output budget (a
+ * whole beat script) and slightly hotter sampling than one-line moments.
  *
  * @param {NodeJS.ProcessEnv} env
  * @param {{ purpose?: 'moment' | 'meeting' | 'training', temperature?: number }} [opts]

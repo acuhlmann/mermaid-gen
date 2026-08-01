@@ -21,6 +21,8 @@ import {
   resolveVertexProjectId,
   DEFAULT_VERTEX_MODEL_LITE,
   DEFAULT_OPENROUTER_MODEL_FLASH,
+  resolveDecorativeModelId,
+  resolveVertexLiteModelId,
   resolveSyntaxFixerEscalationLadder,
   resolveSyntaxFixerTarget
 } from '../src/agents/llmProvider.js';
@@ -237,6 +239,25 @@ test('isLlmConfigured reflects any usable backend', () => {
   assert.equal(isLlmConfigured({ DEEPSEEK_API_KEY: 'k' }), true);
   assert.equal(isLlmConfigured({ OPENROUTER_API_KEY: 'k' }), true);
   assert.equal(isLlmConfigured({ GOOGLE_CLOUD_PROJECT: 'p' }), true);
+});
+
+test('resolveVertexLiteModelId and resolveDecorativeModelId prefer lite over Brain Fast', () => {
+  assert.equal(resolveVertexLiteModelId({}), DEFAULT_VERTEX_MODEL_LITE);
+  assert.equal(resolveVertexLiteModelId({ VERTEX_MODEL_LITE: 'lite-x' }), 'lite-x');
+  assert.equal(resolveDecorativeModelId({}, 'vertex'), DEFAULT_VERTEX_MODEL_LITE);
+  assert.equal(
+    resolveDecorativeModelId({ VERTEX_MODEL_FAST: DEFAULT_VERTEX_MODEL_FAST }, 'vertex'),
+    DEFAULT_VERTEX_MODEL_LITE
+  );
+  assert.equal(
+    resolveDecorativeModelId(
+      { VERTEX_MODEL_OFFICE: 'office-x', VERTEX_MODEL_LITE: 'lite-x' },
+      'vertex'
+    ),
+    'office-x'
+  );
+  assert.equal(resolveDecorativeModelId({}, 'deepseek'), DEFAULT_DEEPSEEK_MODEL_FAST);
+  assert.equal(resolveDecorativeModelId({}, 'openrouter'), DEFAULT_OPENROUTER_MODEL_FAST);
 });
 
 test('resolveSyntaxFixerEscalationLadder climbs lite→flash→DeepSeek on hybrid Vertex+DeepSeek', () => {

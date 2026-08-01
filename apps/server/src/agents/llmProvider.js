@@ -9,7 +9,11 @@ import { ChatVertexAI } from '@langchain/google-vertexai';
  */
 export const DEFAULT_VERTEX_MODEL_FAST = 'gemini-2.5-flash';
 export const DEFAULT_VERTEX_MODEL_QUALITY = 'gemini-2.5-pro';
-/** Ultra-low-latency Vertex fixer rung (optional; skipped when unavailable at runtime). */
+/**
+ * Ultra-low-latency Vertex slug for decorative / salvage paths (office, advisor,
+ * label explain, Auto classifier, syntax-fixer lite rung). Brain Fast stays on
+ * {@link DEFAULT_VERTEX_MODEL_FAST} so canvas tool agents keep full Flash.
+ */
 export const DEFAULT_VERTEX_MODEL_LITE = 'gemini-2.5-flash-lite';
 
 /** Default DeepSeek API model ids (OpenAI-compatible https://api.deepseek.com). */
@@ -446,16 +450,46 @@ function resolvePinnedRepairBackend(env = process.env) {
 }
 
 /**
- * @param {NodeJS.ProcessEnv} env
- * @param {LlmBackend} backend
- * @param {'lite' | 'flash' | 'quality'} tier
+ * Vertex lite slug (fixer rung 1 + default decorative Fast).
+ * Precedence: `VERTEX_MODEL_LITE` → {@link DEFAULT_VERTEX_MODEL_LITE}.
+ * @param {NodeJS.ProcessEnv} [env]
  */
+export function resolveVertexLiteModelId(env = process.env) {
+  const lite = typeof env.VERTEX_MODEL_LITE === 'string' ? env.VERTEX_MODEL_LITE.trim() : '';
+  return lite || DEFAULT_VERTEX_MODEL_LITE;
+}
+
+/**
+ * Model id for latency-first decorative surfaces (office cast, advisor chips,
+ * label explainer, Auto content-type classifier, explain dumb-down). Independent
+ * of Brain Fast so canvas Go can stay on full Flash while desk talk uses lite.
+ *
+ * Vertex precedence: `VERTEX_MODEL_OFFICE` → `VERTEX_MODEL_LITE` → default lite.
+ * DeepSeek / OpenRouter: Fast (OpenRouter Fast is already flash-lite).
+ *
+ * @param {NodeJS.ProcessEnv} [env]
+ * @param {LlmBackend | null} [backend]
+ */
+export function resolveDecorativeModelId(env = process.env, backend = resolveLlmBackend(env)) {
+  if (backend === 'vertex') {
+    const office =
+      typeof env.VERTEX_MODEL_OFFICE === 'string' ? env.VERTEX_MODEL_OFFICE.trim() : '';
+    return office || resolveVertexLiteModelId(env);
+  }
+  if (backend === 'deepseek') {
+    return resolveDeepSeekModelId(env, 'fast') || DEFAULT_DEEPSEEK_MODEL_FAST;
+  }
+  if (backend === 'openrouter') {
+    const lite =
+      typeof env.OPENROUTER_MODEL_LITE === 'string' ? env.OPENROUTER_MODEL_LITE.trim() : '';
+    return lite || resolveOpenRouterModelId(env, 'fast') || DEFAULT_OPENROUTER_MODEL_FAST;
+  }
+  return DEFAULT_VERTEX_MODEL_LITE;
+}
+
 function resolveModelIdForFixerTier(env, backend, tier) {
   if (backend === 'vertex') {
-    if (tier === 'lite') {
-      const lite = typeof env.VERTEX_MODEL_LITE === 'string' ? env.VERTEX_MODEL_LITE.trim() : '';
-      return lite || DEFAULT_VERTEX_MODEL_LITE;
-    }
+    if (tier === 'lite') return resolveVertexLiteModelId(env);
     if (tier === 'quality') return resolveVertexModelId(env, 'quality');
     return resolveVertexModelId(env, 'fast');
   }
@@ -488,6 +522,7 @@ function resolveModelIdForFixerTier(env, backend, tier) {
  *   SYNTAX_FIXER_ESCALATION=0 — collapse to a single fast-tier target
  *   MERMAID_REPAIR_BACKEND / MERMAID_REPAIR_MODEL — pin first rung (still escalates unless disabled)
  *   VERTEX_MODEL_LITE / OPENROUTER_MODEL_LITE / OPENROUTER_MODEL_FLASH — tier overrides
+ *   VERTEX_MODEL_OFFICE — optional decorative Fast override (office/advisor/…); else lite
  *
  * @param {NodeJS.ProcessEnv} [env]
  * @returns {Array<{ backend: LlmBackend, modelId: string, tier: 'lite' | 'flash' | 'quality' }>}

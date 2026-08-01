@@ -66,6 +66,23 @@ VERTEX_MODEL_QUALITY=gemini-3.1-pro-preview
 
 Optional first-rung override for the syntax fixer: `MERMAID_REPAIR_MODEL=gemini-2.5-flash-lite` (or `gemini-3.1-flash-lite` when available). The fixer still escalates to flash and DeepSeek Pro unless `SYNTAX_FIXER_ESCALATION=0`.
 
+## Decorative Fast (office / advisor / explain) vs Brain Fast
+
+Latency-sensitive desk talk does **not** use Brain Fast. `resolveDecorativeModelId` in [`llmProvider.js`](../apps/server/src/agents/llmProvider.js) serves:
+
+- Office moments, meetings, huddles, training (`createOfficeChatModel`)
+- Advisor chips (`createAdvisorChatModel`)
+- Label explainer + explain dumb-down
+- Auto content-type classifier
+
+| Backend    | Decorative default                         | Brain Fast (canvas Go) |
+| ---------- | ------------------------------------------ | ---------------------- |
+| Vertex     | `gemini-2.5-flash-lite`                    | `gemini-2.5-flash`     |
+| DeepSeek   | `deepseek-v4-flash`                        | `deepseek-v4-flash`    |
+| OpenRouter | `google/gemini-2.5-flash-lite` (same Fast) | same                   |
+
+Vertex overrides: `VERTEX_MODEL_OFFICE` → `VERTEX_MODEL_LITE` → built-in lite. Setting `VERTEX_MODEL_FAST` alone does **not** change office/advisor.
+
 ## Syntax fixer ladder (separate from Brain)
 
 Layer 3 of the validation ladder is a **latency-first model climb**, independent of the UI Brain Fast/Quality setting:
@@ -81,7 +98,8 @@ Each rejected rung feeds its diagnostic into the next. Full-agent repair (Layer 
 | `MERMAID_REPAIR_MODEL`    | Override the model id for the **first** fixer rung (Mermaid _and_ other slot fixers) |
 | `MERMAID_REPAIR_BACKEND`  | Pin latency rungs to `vertex`, `openrouter`, or `deepseek`                           |
 | `SYNTAX_FIXER_ESCALATION` | Default on; set `0`/`false` to collapse to a single fast-tier target                 |
-| `VERTEX_MODEL_LITE`       | Override Vertex lite rung (default `gemini-2.5-flash-lite`)                          |
+| `VERTEX_MODEL_LITE`       | Override Vertex lite (fixer rung 1 + default decorative Fast)                        |
+| `VERTEX_MODEL_OFFICE`     | Optional decorative-only override (office/advisor/…); else uses lite                 |
 | `OPENROUTER_MODEL_LITE`   | Override OpenRouter lite rung                                                        |
 | `OPENROUTER_MODEL_FLASH`  | Override OpenRouter flash rung (default `google/gemini-2.5-flash`)                   |
 

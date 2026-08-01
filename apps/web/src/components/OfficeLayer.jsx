@@ -100,6 +100,7 @@ import {
 import { duckRoomTone, unduckRoomTone } from '../utils/officeRoomTone.js';
 import { threadTranscriptFor } from '../utils/officeImThreads.js';
 import { officeStatusOf } from '../utils/officePresence.js';
+import { officeSpeakerSting } from '../utils/officeSpeakerStings.js';
 import { getDeskSlotElement, subscribeDeskSlotElement } from '../state/deskSlotStore.js';
 import {
   getOfficeMessengerUi,
@@ -194,7 +195,11 @@ export default function OfficeLayer({
       // Narration is independent of SFX chimes — the narration toggle controls
       // speech, not the global soundscape mute. Still prime the audio context
       // when the sound gate is open so cloud TTS can play on mobile.
-      playChime?.(() => {});
+      //
+      // That priming call is also where the speaker sting goes: it already
+      // fires once, through the sound gate, immediately before the voice. Most
+      // of the cast has no sting and keeps the silent no-op.
+      playChime?.(officeSpeakerSting(speakerId) ?? (() => {}));
       // Pull the room-tone bed down so a colleague talking over it stays
       // intelligible; it comes back up when the line finishes either way.
       duckRoomTone();

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { shouldShowSpokenText } from '../src/utils/officeCaptions.js';
+import { activeCaptionIndex, shouldShowSpokenText } from '../src/utils/officeCaptions.js';
 import {
   bubbleAlignForTile,
   bubbleAlignForSpeaker,
@@ -56,5 +56,33 @@ describe('bubbleAlignForSpeaker', () => {
 
   it('keeps seated desk speakers on the edge bias path', () => {
     expect(bubbleAlignForSpeaker({ x: 2, y: 5 }, 'intern', { standing: false })).toBe('start');
+  });
+});
+
+/**
+ * Caption karaoke (narration roadmap Phase A). The interesting cases are all
+ * the ones that return -1: highlighting a line nobody is speaking is a lie
+ * about what the user is hearing, and it is the failure mode that would ship
+ * silently because a highlight always *looks* plausible.
+ */
+describe('activeCaptionIndex', () => {
+  it('marks the newest line of a growing transcript', () => {
+    expect(activeCaptionIndex({ lineCount: 3, playing: true, voiceActive: true })).toBe(2);
+    expect(activeCaptionIndex({ lineCount: 1, playing: true, voiceActive: true })).toBe(0);
+  });
+
+  it('marks nothing when no voice is in the air', () => {
+    // Narration off, or between beats: every line is equally past.
+    expect(activeCaptionIndex({ lineCount: 3, playing: true, voiceActive: false })).toBe(-1);
+    // Meeting over: the minutes card is showing, nobody is talking.
+    expect(activeCaptionIndex({ lineCount: 3, playing: false, voiceActive: true })).toBe(-1);
+  });
+
+  it('marks nothing for an empty or nonsensical transcript', () => {
+    const live = { playing: true, voiceActive: true };
+    expect(activeCaptionIndex({ lineCount: 0, ...live })).toBe(-1);
+    expect(activeCaptionIndex({ lineCount: -2, ...live })).toBe(-1);
+    expect(activeCaptionIndex({ lineCount: Number.NaN, ...live })).toBe(-1);
+    expect(activeCaptionIndex()).toBe(-1);
   });
 });

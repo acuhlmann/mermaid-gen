@@ -12,14 +12,9 @@ import { llmUsageFromReply } from './_lib/llmUsageFromReply.js';
 import { buildOfficeLogBlock } from './_lib/officeLogPrompt.js';
 import {
   createLlmChatModel,
-  DEFAULT_DEEPSEEK_MODEL_FAST,
-  DEFAULT_OPENROUTER_MODEL_FAST,
-  DEFAULT_VERTEX_MODEL_FAST,
   isLlmConfigured,
-  resolveDeepSeekModelId,
-  resolveLlmBackend,
-  resolveOpenRouterModelId,
-  resolveVertexModelId
+  resolveDecorativeModelId,
+  resolveLlmBackend
 } from './llmProvider.js';
 
 const COMMON_RULES = `
@@ -440,14 +435,12 @@ export function buildAdvisorUserPrompt({
     .join('\n');
 }
 
+/**
+ * Advisor + office share the decorative Fast slug (Vertex lite by default),
+ * not Brain Fast — see {@link resolveDecorativeModelId}.
+ */
 export function resolveAdvisorModelId(env = process.env, backend = resolveLlmBackend(env)) {
-  if (backend === 'vertex') {
-    return resolveVertexModelId(env, 'fast') || DEFAULT_VERTEX_MODEL_FAST;
-  }
-  if (backend === 'deepseek') {
-    return resolveDeepSeekModelId(env, 'fast') || DEFAULT_DEEPSEEK_MODEL_FAST;
-  }
-  return resolveOpenRouterModelId(env, 'fast') || DEFAULT_OPENROUTER_MODEL_FAST;
+  return resolveDecorativeModelId(env, backend);
 }
 
 /** Pull `{ inputTokens, outputTokens }` from a LangChain reply, when the provider reports usage. */
@@ -458,8 +451,9 @@ export function advisorUsageFromReply(reply) {
 const advisorModelCache = new Map();
 
 /**
- * Tool-less chat model for the advisor — short responses, fast backend regardless of
- * the user's selected quality profile (these are decorative; not worth slow tokens).
+ * Tool-less chat model for the advisor — short responses on the decorative Fast
+ * slug (Vertex lite by default), independent of Brain Fast/Quality. Not worth
+ * full Flash tokens for a one-liner chip.
  */
 export function createAdvisorChatModel(env = process.env, persona = 'gilfoyle') {
   if (!isLlmConfigured(env)) return null;
