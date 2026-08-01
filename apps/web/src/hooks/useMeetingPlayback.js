@@ -247,10 +247,20 @@ export function useMeetingPlayback({
   );
 
   const startMeeting = useCallback(
-    async ({ attendees, topic, modality: modalityOpt, contextSource, contextDetail } = {}) => {
+    async ({
+      attendees,
+      audience,
+      topic,
+      modality: modalityOpt,
+      contextSource,
+      contextDetail
+    } = {}) => {
       const generation = ++generationRef.current;
       const seats = Array.isArray(attendees) && attendees.length > 0 ? attendees : null;
       if (!seats) return;
+      // Everyone present who will not speak (§10.4). Filtered against the seats
+      // so a caller can pass the whole cast without double-rendering the panel.
+      const crowd = Array.isArray(audience) ? audience.filter((id) => !seats.includes(id)) : [];
       const modality = normalizeMeetingModality(modalityOpt);
       clearTimer();
       pendingBeatsRef.current = [];
@@ -258,6 +268,7 @@ export function useMeetingPlayback({
         state: 'playing',
         title: provisionalMeetingTitle({ attendees: seats, topic, modality }),
         attendees: seats,
+        audience: crowd,
         facilitatorId: seats.includes(MEETING_FACILITATOR) ? MEETING_FACILITATOR : seats[0],
         modality,
         transcript: [],
@@ -267,6 +278,7 @@ export function useMeetingPlayback({
       const payload = await postJson('/api/office/meeting', {
         ...diagramContext(),
         attendees: seats,
+        ...(crowd.length > 0 ? { audience: crowd } : {}),
         ...(topic ? { topic } : {}),
         ...(contextSource === 'email' || contextSource === 'chat' ? { contextSource } : {}),
         ...(contextDetail ? { contextDetail } : {})

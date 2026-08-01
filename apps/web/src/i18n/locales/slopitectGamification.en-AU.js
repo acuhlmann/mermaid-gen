@@ -376,6 +376,16 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
       title: '🥊 HOLY WAR REFEREE',
       subtitle: 'Settled three cubicle barneys. Tabs, spaces and the thermostat all rate you.'
     },
+    complianceOfficer: {
+      id: 'complianceOfficer',
+      title: '🎓 COMPLIANT (PROVISIONAL)',
+      subtitle: 'Knocked over a compliance module only 847 days late. Next one is already overdue.'
+    },
+    securityIncident: {
+      id: 'securityIncident',
+      title: '🎣 SECURITY INCIDENT #1',
+      subtitle: 'You clicked it. Everyone does, but. Straight in your file.'
+    },
     gilfoyle: {
       id: 'stackOwner',
       title: '🦇 THE STACK IS MINE',

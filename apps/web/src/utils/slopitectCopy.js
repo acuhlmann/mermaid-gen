@@ -707,6 +707,16 @@ export const ACHIEVEMENTS = {
     title: '🥊 HOLY WAR REFEREE',
     subtitle: 'Settled three cubicle battles. Tabs, spaces, and the thermostat all fear you.'
   },
+  complianceOfficer: {
+    id: 'complianceOfficer',
+    title: '🎓 COMPLIANT (PROVISIONAL)',
+    subtitle: 'Finished a compliance module 847 days late. The next one is already overdue.'
+  },
+  securityIncident: {
+    id: 'securityIncident',
+    title: '🎣 SECURITY INCIDENT #1',
+    subtitle: 'You clicked the link. Statistically, everyone does. It is in your file now.'
+  },
   ...VARIANT_MASTERY_ACHIEVEMENTS
 };
 

@@ -78,6 +78,40 @@ function MeetingActiveSpeaker({ speakerId, chrome, flickKey }) {
   );
 }
 
+/**
+ * The all-hands crowd (docs/office-parody.md §10.4) — everyone present who will
+ * not speak. Deliberately a separate, smaller row rather than more film-strip
+ * cells: the film strip highlights the active speaker, and an audience member
+ * can never be one, so a face there would advertise a state it can never enter.
+ * Faces only, no names — this is "the company is watching", not a roll call.
+ */
+function MeetingAudienceRow({ audience, chrome }) {
+  return (
+    <div
+      className="office-meeting-audience"
+      aria-label={`${audience.length} more attending, not speaking`}
+    >
+      {audience.map((id) => {
+        const seat = speakerInfo(id, chrome);
+        return (
+          <span
+            key={id}
+            className="office-meeting-audience-cell"
+            title={`${seat.name}${seat.title ? ` · ${seat.title}` : ''}`}
+          >
+            <PersonaFace
+              id={id}
+              size={18}
+              className="office-meeting-audience-face"
+              fallbackEmoji={seat.avatarEmoji}
+            />
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
 /** Horizontal film strip of everyone in the meeting. */
 function MeetingFilmStrip({ attendees, lastSpeakerId, chrome }) {
   return (
@@ -390,6 +424,9 @@ export default function MeetingOverlay({
               lastSpeakerId={lastSpeakerId}
               chrome={chrome}
             />
+          ) : null}
+          {playing && meeting.audience?.length > 0 ? (
+            <MeetingAudienceRow audience={meeting.audience} chrome={chrome} />
           ) : null}
           {speakerView ? (
             <MeetingActiveSpeaker

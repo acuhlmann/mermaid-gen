@@ -42,6 +42,8 @@ export const OFFICE_LOG_KINDS = /** @type {const} */ ([
   'battle',
   'meeting',
   'huddle',
+  'training',
+  'security',
   'levelUp'
 ]);
 
@@ -134,6 +136,16 @@ function sentenceOf(entry) {
       return detail === 'left' ? 'you left a meeting early' : 'you sat through a meeting';
     case 'huddle':
       return 'the team crowded around your screen';
+    // §10.1 / §10.2. Both are things the whole office would plausibly know
+    // about by lunchtime — which is exactly the test for what belongs here.
+    case 'training':
+      return detail
+        ? `you finally completed compliance module ${detail}`
+        : 'you finally completed a compliance module';
+    case 'security':
+      return detail === 'reported'
+        ? 'you reported a phishing email'
+        : 'you clicked a simulated phishing email';
     case 'levelUp':
       return detail ? `you were promoted to ${detail}` : 'you were promoted';
     default:

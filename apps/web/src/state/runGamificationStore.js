@@ -391,7 +391,16 @@ export const OFFICE_XP_AWARDS = {
   coffeeBreak: 10,
   battleSettled: 5,
   meetingLeftEarly: 5,
-  meetingSurvived: 25
+  meetingSurvived: 25,
+  /** Linda's compliance training (§10.1) — a real sit-down, but still not a run. */
+  trainingCompleted: 20,
+  phishingReported: 5,
+  /**
+   * Failing Sasha's phishing test pays 1 XP, not 0. `applyOfficeEvent` bails on
+   * a falsy award, so a zero here would swallow the "Security Incident #1"
+   * achievement along with it — and the achievement IS the joke.
+   */
+  phishingClicked: 1
 };
 export const OFFICE_COFFEE_ACHIEVEMENT_THRESHOLD = 3;
 export const OFFICE_REPLY_ACHIEVEMENT_THRESHOLD = 5;
@@ -447,6 +456,12 @@ export function applyOfficeEvent(state, input) {
   }
   if (officeBattlesSettledInSession >= OFFICE_BATTLE_ACHIEVEMENT_THRESHOLD) {
     unlock('holyWarReferee', achievementCopy.holyWarReferee);
+  }
+  if (kind === 'trainingCompleted') {
+    unlock('complianceOfficer', achievementCopy.complianceOfficer);
+  }
+  if (kind === 'phishingClicked') {
+    unlock('securityIncident', achievementCopy.securityIncident);
   }
 
   if (nextLevelInfo.level > previousLevelInfo.level) {

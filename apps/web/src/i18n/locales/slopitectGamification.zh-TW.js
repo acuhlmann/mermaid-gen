@@ -382,6 +382,16 @@ export const SLOPITECT_GAMIFICATION_ZH_TW = {
       title: '🥊 聖戰裁判',
       subtitle: '平定了三場座位對決。Tab、空格和恆溫器都怕你。'
     },
+    complianceOfficer: {
+      id: 'complianceOfficer',
+      title: '🎓 已合規（暫定）',
+      subtitle: '遲到 847 天完成了一個合規模組。下一個已經逾期了。'
+    },
+    securityIncident: {
+      id: 'securityIncident',
+      title: '🎣 資安事件 #1',
+      subtitle: '你點了那個連結。統計上人人都會點。已記入你的檔案。'
+    },
     gilfoyle: {
       id: 'stackOwner',
       title: '🦇 這套系統是我的',

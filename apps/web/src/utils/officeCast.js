@@ -570,6 +570,10 @@ export const OFFICE_EMAIL_TEMPLATES = [
   {
     id: 'email-compliance-training',
     colleagueId: 'hr',
+    // Opens the training window (docs/office-parody.md §10.1). The number is
+    // the module — Linda starts you on 3 of 11, because starting at 1 would
+    // imply you had ever done one.
+    training: 3,
     subject: 'Friendly nudge! Training overdue 😊',
     body: 'Just a friendly nudge that your "Working Safely With Diagrams" compliance training is 847 days overdue! Completing it takes only 4 hours and features 11 unskippable modules, a quiz you cannot fail (we track attempts), and a certificate nobody will ask for until an audit.\n\nWarmly,\nLinda — People Ops'
   },
@@ -662,6 +666,17 @@ export const SENIOR_EMAIL_TEMPLATES = [
     body: 'Courtesy notice: you failed to click last week\'s simulated phishing email ("FREE ARCHITECTURE REVIEW — CLICK NOW"). Statistically, everyone clicks. Not clicking is suspicious behavior and has been noted in your file.\n\nWe will keep testing until you do.\n\nTrust nothing,\nSasha — The Department of No'
   },
   {
+    // Sasha's simulated phishing test (§10.2). The tells are deliberate and
+    // load-bearing — a bait email that reads clean is just a lie, while one
+    // with "Colleauge" and a 24-hour deadline is a joke the user is invited to
+    // spot. Clicking it is the funnier branch, and it chains into §10.1.
+    id: 'email-ciso-phishing-bait',
+    colleagueId: 'ciso',
+    phishing: true,
+    subject: 'URGENT: Your diagram access will be revoked in 24 hours',
+    body: 'Dear Valued Colleauge,\n\nOur system have detected unusual activity on your diagram "{label}". To avoid permanent deletion of all your work, please re-verify your credentials within 24 hours using the secure link below.\n\nThis is a official communication from the Security Team. Do not reply to this email.\n\nRegards,\nThe Security Team (Internal)'
+  },
+  {
     id: 'email-ciso-password',
     colleagueId: 'ciso',
     subject: 'Password policy update (effective yesterday)',
@@ -672,6 +687,18 @@ export const SENIOR_EMAIL_TEMPLATES = [
     colleagueId: 'cfo',
     subject: 'FLAGGED: unexplained line item ("{label}")',
     body: 'Finance flagged a resource called "{label}". Please confirm it is (a) essential, and (b) free. If it cannot be both, see (b).\n\nThe budget is a no,\nDiane'
+  },
+  {
+    // The Re-org (docs/office-parody.md §10.5). The whole joke is the Do-it:
+    // it goes through the ordinary onAdoptPrompt path, so the org chart lands
+    // as a normal, undoable Mermaid revision the human commissioned — the
+    // product satirizing itself without the cast ever authoring a slot.
+    id: 'email-barker-reorg',
+    colleagueId: 'barker',
+    subject: 'Organizational Update: the Conjoined Triangles of Success',
+    body: 'Team,\n\nEffective immediately we are flattening the organization by adding a layer. Engineering and Sales now sit at the bases of two conjoined triangles whose shared vertex is Compromise. Nobody reports to anybody twice, except where they do.\n\nYour work on "{label}" is unaffected — structurally, culturally, and in terms of who now approves it, it is affected.\n\nConquest is a mindset,\nJack Barker',
+    actionPrompt:
+      'Draw the new org chart: two conjoined triangles sharing a vertex labelled Compromise, with Engineering and Sales at the bases and my current work reporting into both'
   },
   {
     id: 'email-belson-world',
@@ -1330,6 +1357,9 @@ export const OFFICE_MEETING_COPY = {
   defaultRemoteTitle: 'Headset sync',
   inviteFallbackBody:
     'Leadership would like a look at the current diagram. Agenda: the headline, the cost, the risk, and whether it pulses. Your team presents; the seniors have questions. Snacks: no. Optimism: optional.',
+  allHandsInviteTitle: 'All-Hands: Alignment, Altitude & The Path Forward',
+  allHandsInviteBody:
+    'Gavin is hosting a company-wide all-hands. Everyone attends. Agenda: the vision, the altitude, and where we go from here. There will be time for questions, and there will not be answers. Cameras on.',
   joiningLine: 'Waiting for the organizer to admit you… (they can see you)',
   cancelledSubject: 'CANCELLED: Working group sync',
   cancelledBody:
@@ -1562,6 +1592,35 @@ export const OFFICE_CHROME_COPY = {
     composeSending: 'Sending…',
     composeCancel: 'Cancel',
     composePickSomeone: 'Pick someone to email'
+  },
+  /* Linda's compliance training (docs/office-parody.md §10.1). The module body
+     itself is authored by the LLM (or the canned fallback in
+     officeTrainingModule.js) — only the window chrome is localized here. */
+  training: {
+    title: '🎓 Working Safely With Diagrams',
+    stepLabel: 'Form {step} of {total}',
+    loading: 'Linda is preparing your module…',
+    closeAria: 'Close training',
+    dragHint: 'Drag to move',
+    startCta: '🎓 Begin Module {module}',
+    assignedSubject: 'ACTION REQUIRED: Module {module} assigned 😊',
+    assignedBody:
+      'Following a recent security incident, you have been enrolled in "Working Safely With Diagrams", Module {module} of {total}.\n\nThis is not a punishment. Punishments are handled by a different team, and they are also this team.\n\nWarmly,\nLinda — People Ops',
+    certificateSubject: 'Certificate of Completion (provisional) 🎓',
+    certificateBody:
+      'Congratulations! You have completed Module {module} of {total} of "Working Safely With Diagrams".\n\nYour certificate is attached. It is not attached — certificates are issued by a system decommissioned in 2019, and your completion has been recorded in a spreadsheet nobody owns.\n\nModule {next} is now overdue.\n\nWarmly,\nLinda — People Ops'
+  },
+  /* Sasha's simulated phishing test (docs/office-parody.md §10.2). Both verbs
+     are offered on the same email — spotting it and falling for it are equally
+     valid endings, and only one of them is funny. */
+  phishing: {
+    link: '🔗 Re-verify your credentials now',
+    linkTitle: 'This looks official.',
+    report: '🛡️ Report phishing',
+    reportTitle: 'Forward it to the Department of No',
+    caught:
+      'That was me. That was a test. You failed it in 1.2 seconds, which is a record, and I have attached the record to your file. People Ops will be in touch about remedial training.',
+    approved: 'You reported it. Good. I sent that one. I send all of them. Do not get comfortable.'
   },
   colleaguePicker: {
     directoryAria: 'Choose a colleague',

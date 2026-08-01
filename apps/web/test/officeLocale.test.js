@@ -121,6 +121,33 @@ describe('office locale bundles', () => {
     }
   });
 
+  // Set-piece markers (§10.1 training, §10.2 phishing) decide whether an email
+  // grows a CTA at all. They are not text, so the slot-fill test above sails
+  // straight past a missing one — and the symptom is that the whole set piece
+  // is simply unreachable in that locale, with nothing rendered to notice.
+  it.each(LOCALES)('carries the set-piece markers into every locale (%s)', (locale) => {
+    const en = getUiLocaleBundle('en').office;
+    const localized = getUiLocaleBundle(locale).office;
+    for (const bank of ['OFFICE_EMAIL_TEMPLATES', 'SENIOR_EMAIL_TEMPLATES']) {
+      for (const [index, template] of en[bank].entries()) {
+        const localizedTemplate = localized[bank][index];
+        expect(localizedTemplate.training ?? null, `${locale} ${bank}[${index}] training`).toBe(
+          template.training ?? null
+        );
+        expect(Boolean(localizedTemplate.phishing), `${locale} ${bank}[${index}] phishing`).toBe(
+          Boolean(template.phishing)
+        );
+        // Same class again: an email's Do-it is a field, not a slot-bearing
+        // string. A locale that drops it loses the whole action — the Re-org
+        // (§10.5) is nothing but its actionPrompt.
+        expect(
+          Boolean(localizedTemplate.actionPrompt),
+          `${locale} ${bank}[${index}] actionPrompt`
+        ).toBe(Boolean(template.actionPrompt));
+      }
+    }
+  });
+
   it.each(['zh-CN', 'zh-TW'])('translates every email and the meeting copy (%s)', (locale) => {
     const en = getUiLocaleBundle('en').office;
     const localized = getUiLocaleBundle(locale).office;

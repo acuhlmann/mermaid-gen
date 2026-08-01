@@ -20,6 +20,13 @@ export const OFFICE_MIN_GAP_MS = 3 * 60_000;
 export const OFFICE_GAP_JITTER_MS = 2 * 60_000;
 export const OFFICE_SESSION_MOMENT_CAP = 10;
 export const OFFICE_MEETING_INVITES_PER_SESSION = 1;
+/**
+ * The all-hands (docs/office-parody.md §10.4) gets its own budget rather than
+ * sharing the meeting-invite one, so the session's single ordinary invite is
+ * still available. Both are hard-capped, so the worst case is two summonses in
+ * a session — and only one of them has the whole company in it.
+ */
+export const OFFICE_ALL_HANDS_PER_SESSION = 1;
 export const OFFICE_BATTLES_PER_SESSION = 2;
 /** Senior stakeholders (VP/CISO/CTO/CFO) get exactly one ambient email each
  * session — they are meeting people, not desk-ping people. */
@@ -74,6 +81,14 @@ export const OFFICE_DESK_LLM_CAP = 4;
  * trying to avoid.
  */
 export const OFFICE_TALK_LLM_CAP = 12;
+/**
+ * Reactive: Linda's compliance training (docs/office-parody.md §10.1). One call
+ * authors one form, and the gauntlet is `TRAINING_STEPS` long — so this cap is
+ * "the whole module, once, personalized", and a second sitting draws the canned
+ * module instead. Sized to the feature rather than to a feeling: raising it
+ * buys nothing until the gauntlet grows.
+ */
+export const OFFICE_TRAINING_LLM_CAP = 2;
 
 /** Relative frequency of each moment kind (before availability filters). */
 const MOMENT_WEIGHTS = [
@@ -82,7 +97,10 @@ const MOMENT_WEIGHTS = [
   ['walkby', 2],
   ['coffee', 1.5],
   ['battle', 1.25],
-  ['meeting-invite', 1]
+  ['meeting-invite', 1],
+  // Rarest thing the office does, and it should stay that way: a company-wide
+  // summons is only funny if it is not a fixture.
+  ['all-hands', 0.4]
 ];
 
 /**
@@ -95,10 +113,11 @@ const MOMENT_WEIGHTS = [
  *   meetingInviteCount: number,
  *   battleCount?: number,
  *   seniorEmailCount?: number,
+ *   allHandsCount?: number,
  *   hasDiagram: boolean,
  *   random?: () => number
  * }} args
- * @returns {{ kind: 'email'|'im'|'walkby'|'coffee'|'battle'|'meeting-invite', useLlm: boolean, senior?: boolean } | null}
+ * @returns {{ kind: 'email'|'im'|'walkby'|'coffee'|'battle'|'meeting-invite'|'all-hands', useLlm: boolean, senior?: boolean } | null}
  */
 export function pickNextMoment({
   now,
@@ -109,6 +128,7 @@ export function pickNextMoment({
   meetingInviteCount,
   battleCount = 0,
   seniorEmailCount = 0,
+  allHandsCount = 0,
   hasDiagram,
   random = Math.random
 }) {
@@ -125,6 +145,12 @@ export function pickNextMoment({
     if (kind === 'walkby') return hasDiagram && llmBudgetLeft;
     if (kind === 'meeting-invite') {
       return hasDiagram && meetingInviteCount < OFFICE_MEETING_INVITES_PER_SESSION;
+    }
+    // Needs a diagram for the same reason a walk-by does: an all-hands about
+    // an empty canvas is a meeting about nothing, which is funny once and
+    // indistinguishable from a bug the rest of the time.
+    if (kind === 'all-hands') {
+      return hasDiagram && allHandsCount < OFFICE_ALL_HANDS_PER_SESSION;
     }
     // Battles are rare set pieces — needing no diagram (holy wars predate work).
     if (kind === 'battle') return battleCount < OFFICE_BATTLES_PER_SESSION;

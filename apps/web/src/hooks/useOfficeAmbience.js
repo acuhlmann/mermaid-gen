@@ -67,7 +67,8 @@ export function useOfficeAmbience(params) {
       llmMomentCount: 0,
       meetingInviteCount: 0,
       battleCount: 0,
-      seniorEmailCount: 0
+      seniorEmailCount: 0,
+      allHandsCount: 0
     };
     const memory = readOfficeCadenceMemory();
     /** @type {string[]} */
@@ -117,6 +118,7 @@ export function useOfficeAmbience(params) {
         meetingInviteCount: counters.meetingInviteCount,
         battleCount: counters.battleCount,
         seniorEmailCount: counters.seniorEmailCount,
+        allHandsCount: counters.allHandsCount,
         hasDiagram: Boolean(diagramSource.trim()),
         random
       });
@@ -152,6 +154,7 @@ export function useOfficeAmbience(params) {
           if (delivered && senior) counters.seniorEmailCount += 1;
           if (delivered && moment.kind === 'battle') counters.battleCount += 1;
           if (delivered && moment.kind === 'meeting-invite') counters.meetingInviteCount += 1;
+          if (delivered && moment.kind === 'all-hands') counters.allHandsCount += 1;
         }
       } finally {
         inFlight = false;

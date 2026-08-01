@@ -741,3 +741,38 @@ test('buildHuddleUserPrompt carries the day, and omits the block without one', (
   // A missing block must not leave a stray `null` in the joined prompt.
   assert.doesNotMatch(without, /\bnull\b/);
 });
+
+/**
+ * §10.4 — the all-hands is a large silent room, not a large cast. The audience
+ * must be named (so the room reads as full) and forbidden a speakerId in the
+ * same breath: `normalizeMeetingScript` drops beats from unlisted speakers, so
+ * an audience member who "speaks" costs a beat and can push the script under
+ * MEETING_MIN_BEATS — a cancelled meeting rather than a big one.
+ */
+test('all-hands rules name the audience and forbid it a speakerId', () => {
+  const withAudience = buildMeetingSystemPrompt({
+    attendees: ['belson', 'barker', 'scrumMaster', 'richard'],
+    facilitatorId: 'scrumMaster',
+    audience: ['gilfoyle', 'dinesh', 'hr']
+  });
+  assert.match(withAudience, /ALL-HANDS/);
+  assert.match(withAudience, /MUST NOT be scripted/);
+  assert.match(withAudience, /NOTHING IS DECIDED/);
+  // Listed by id, in the same vocabulary as the rule that forbids them.
+  assert.match(withAudience, /gilfoyle, dinesh, hr/);
+  // The speaking roster still gets its full voice cards...
+  assert.match(withAudience, /speakerId "belson"/);
+  // ...and the audience must not, or the model will happily script them.
+  assert.doesNotMatch(withAudience, /speakerId "gilfoyle"/);
+});
+
+test('an ordinary meeting carries no all-hands rules at all', () => {
+  const ordinary = buildMeetingSystemPrompt({
+    attendees: ['gilfoyle', 'dinesh', 'scrumMaster'],
+    facilitatorId: 'scrumMaster'
+  });
+  assert.doesNotMatch(ordinary, /ALL-HANDS/);
+  assert.doesNotMatch(ordinary, /NOTHING IS DECIDED/);
+  // An absent audience must not leave a stray `undefined` in the joined prompt.
+  assert.doesNotMatch(ordinary, /\bundefined\b/);
+});

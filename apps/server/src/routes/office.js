@@ -2,6 +2,7 @@ import express from 'express';
 import { z } from 'zod';
 import {
   ContentTypeSchema,
+  MEETING_MAX_ATTENDEES,
   OfficeMomentKindSchema,
   OFFICE_DIAGRAM_SOURCE_MAX_CHARS
 } from '@archislop/shared';
@@ -30,6 +31,13 @@ import {
   parsePairScript,
   resolveOfficeModelId
 } from '../agents/officePersonas.js';
+import {
+  buildTrainingSystemPrompt,
+  buildTrainingUserPrompt,
+  parseTrainingReply,
+  TRAINING_MODULE_TOTAL,
+  TRAINING_STEPS
+} from '../agents/officeTrainingPrompt.js';
 import { isOfficeTtsEnabled, synthesizeOfficeSpeech } from '../agents/officeTts.js';
 
 /**
@@ -76,11 +84,31 @@ const OfficeMomentRequestSchema = z.object({
   threadTranscript: z.array(OfficeThreadLineSchema).max(12).optional()
 });
 
+/**
+ * The all-hands audience (docs/office-parody.md §10.4) — everyone present who
+ * will *not* speak.
+ *
+ * This exists because `attendees` has always meant two things at once: who is
+ * in the room, and who may be scripted. At every other roster size those are
+ * the same list. An all-hands is where they come apart — sixteen attend, three
+ * speak — and conflating them would mean either raising
+ * `MEETING_MAX_ATTENDEES` (letting *every* meeting seat sixteen, and asking the
+ * model to give sixteen people lines inside a fourteen-beat cap) or inventing a
+ * parallel meeting endpoint. Splitting the two is cheaper than both and leaves
+ * the shared schema alone.
+ *
+ * The cap is a ceiling, not a contract: the client sends the cast (16) and the
+ * server simply refuses absurdity. Unlike `TRAINING_STEPS`, the two sides do
+ * not have to agree on a number, so this stays route-local.
+ */
+const MEETING_MAX_AUDIENCE = 24;
+
 const OfficeMeetingRequestSchema = z.object({
   contentType: ContentTypeSchema.default('mermaid'),
   diagramSource: DiagramSourceField,
   visibleLabels: z.array(z.string().max(200)).max(60).default([]),
-  attendees: z.array(z.string().max(40)).min(1).max(8),
+  attendees: z.array(z.string().max(40)).min(1).max(MEETING_MAX_ATTENDEES),
+  audience: z.array(z.string().max(40)).max(MEETING_MAX_AUDIENCE).default([]),
   topic: z.string().max(200).optional(),
   contextSource: z.enum(['email', 'chat']).optional(),
   contextDetail: z.string().max(1200).optional(),
@@ -124,7 +152,7 @@ const OfficeInterjectRequestSchema = z.object({
   contentType: ContentTypeSchema.default('mermaid'),
   diagramSource: DiagramSourceField,
   visibleLabels: z.array(z.string().max(200)).max(60).default([]),
-  attendees: z.array(z.string().max(40)).min(1).max(8),
+  attendees: z.array(z.string().max(40)).min(1).max(MEETING_MAX_ATTENDEES),
   transcriptSoFar: z.array(z.string().max(300)).max(20).default([]),
   interjection: z.string().min(1).max(400),
   officeLog: OfficeLogField,
@@ -135,6 +163,33 @@ const OfficeSpeakRequestSchema = z.object({
   speakerId: z.string().refine(isOfficeSpeaker, { message: 'unknown speaker' }),
   text: z.string().min(1).max(800),
   lang: z.string().max(16).optional()
+});
+
+/**
+ * One answer the user gave on the previous training form, echoed back so the
+ * next one can quote it. A2UI data-model values are primitives or string
+ * arrays (ChoicePicker's multi-select), so the union is the whole domain.
+ */
+const TrainingAnswerValueSchema = z.union([
+  z.string().max(300),
+  z.number(),
+  z.boolean(),
+  z.array(z.string().max(120)).max(12)
+]);
+
+const OfficeTrainingRequestSchema = z.object({
+  contentType: ContentTypeSchema.default('mermaid'),
+  diagramSource: DiagramSourceField,
+  visibleLabels: z.array(z.string().max(200)).max(60).default([]),
+  officeLog: OfficeLogField,
+  uiLocale: UiLocaleField,
+  userName: z.string().max(80).optional(),
+  moduleNumber: z.number().int().min(1).max(TRAINING_MODULE_TOTAL).default(3),
+  step: z.number().int().min(1).max(TRAINING_STEPS).default(1),
+  priorAnswers: z
+    .array(z.object({ label: z.string().max(160), value: TrainingAnswerValueSchema }))
+    .max(12)
+    .default([])
 });
 
 function safeErrorMessage(error) {
@@ -251,6 +306,68 @@ export function createHuddleHandler(env) {
 }
 
 /**
+ * Linda's compliance training (docs/office-parody.md §10.1) — the one office
+ * endpoint that returns a document rather than dialogue.
+ *
+ * Two things make it unlike its siblings and both are deliberate:
+ *
+ * 1. **It validates through `parseFormsA2ui`, the same gate the `forms` slot
+ *    uses**, and returns the canonical serialization. The client renders it
+ *    with the interactive `FormsRenderer` in window-local state — it is never
+ *    written to the user's `forms` slot (ADR-0010: the cast produces no slot
+ *    content).
+ * 2. **A rejected document answers 200 with `form: null`**, not 502. The client
+ *    holds a canned module for exactly this, so a model that cannot hold the
+ *    A2UI contract costs the user a slightly less personalized joke rather than
+ *    an error toast.
+ *
+ * Lives outside createOfficeRouter for the same reason as createHuddleHandler:
+ * that factory is already over the max-lines-per-function budget.
+ *
+ * @param {NodeJS.ProcessEnv} env
+ * @returns {import('express').RequestHandler}
+ */
+export function createTrainingHandler(env) {
+  return async (req, res) => {
+    const parsed = OfficeTrainingRequestSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: 'Invalid training payload', details: parsed.error.flatten() });
+      return;
+    }
+    const payload = parsed.data;
+
+    let model;
+    try {
+      model = createOfficeChatModel(env, { purpose: 'training' });
+    } catch (error) {
+      res.status(503).json({ error: safeErrorMessage(error) });
+      return;
+    }
+    if (!model) {
+      res.status(503).json({ error: 'Office LLM is not configured on this server.' });
+      return;
+    }
+
+    const system = buildTrainingSystemPrompt({ uiLocale: payload.uiLocale, step: payload.step });
+    const user = buildTrainingUserPrompt(payload);
+    const officeModel = resolveOfficeModelId(env);
+    try {
+      const reply = await model.invoke([new SystemMessage(system), new HumanMessage(user)]);
+      const usage = officeUsageFromReply(reply);
+      const raw = extractTextContent(reply?.content ?? reply);
+      const training = parseTrainingReply(raw);
+      res.status(200).json({
+        form: training?.form ?? null,
+        formTitle: training?.formTitle ?? null,
+        ...(usage ? { usage, model: officeModel } : {})
+      });
+    } catch (error) {
+      res.status(502).json({ error: safeErrorMessage(error) });
+    }
+  };
+}
+
+/**
  * Office-parody content endpoints (docs/office-parody.md). All decorative:
  * cheap fast-tier model, strict-JSON replies, and the client always has a
  * canned fallback — a null result here is a feature, not an error.
@@ -342,7 +459,10 @@ export function createOfficeRouter({ env = process.env } = {}) {
       attendees,
       facilitatorId,
       uiLocale: payload.uiLocale,
-      contextSource: payload.contextSource
+      contextSource: payload.contextSource,
+      // Silent by construction: the audience is named so the room feels full,
+      // and explicitly forbidden a speakerId so it stays silent.
+      audience: payload.audience.filter((id) => !attendees.includes(id))
     });
     const user = buildMeetingUserPrompt(payload);
     const officeModel = resolveOfficeModelId(env);
@@ -361,6 +481,8 @@ export function createOfficeRouter({ env = process.env } = {}) {
   });
 
   router.post('/huddle', createHuddleHandler(env));
+
+  router.post('/training', createTrainingHandler(env));
 
   // Cloud TTS (Neural2 default, WaveNet switchback) or Web Speech fallback on
   // the client. No LLM — decorative audio

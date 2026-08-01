@@ -549,12 +549,19 @@ export function buildMomentUserPrompt({
     .join('\n');
 }
 
-export function buildMeetingSystemPrompt({ attendees, facilitatorId, uiLocale, contextSource }) {
+export function buildMeetingSystemPrompt({
+  attendees,
+  facilitatorId,
+  uiLocale,
+  contextSource,
+  audience
+}) {
   const cards = attendees
     .map((id) => `### ${speakerLabel(id)} — speakerId "${id}"\n${speakerVoice(id)}`)
     .join('\n\n');
   const beatRange = attendees.length <= 1 ? '6–8' : '8–12';
   const intimacyRules = meetingIntimacyRules(attendees);
+  const allHandsRules = meetingAllHandsRules(audience);
   const sourceRules = meetingSourceRules(contextSource);
   return `You are the invisible showrunner of a parody corporate-IT working-group meeting about the
 user's current diagram. You script EVERY attendee's lines.
@@ -562,7 +569,7 @@ user's current diagram. You script EVERY attendee's lines.
 ATTENDEES (use these speakerId values and NO others):
 
 ${cards}
-${intimacyRules}${sourceRules}
+${intimacyRules}${allHandsRules}${sourceRules}
 RULES:
 - Output STRICT JSON only — no prose, no backticks, no preamble.
 - Schema: {"scriptVersion": 1, "title": string, "beats": [{"speakerId": string, "kind": "procedural" |
@@ -605,6 +612,46 @@ INTIMATE SYNC (${rosterLabel} — NOT a committee):
 - When only one attendee is seated, that colleague may carry multiple beats — they are talking with the user, not hosting a crowd.
 - Pam (scrumMaster): keep facilitation light — no steering-committee theatrics, "great energy in the room", or parking-lot ceremonies meant for a crowd. This is a quick headset 1:1.
 - Attendees talk WITH the user, not about the user in the third person to an imaginary audience.
+`;
+}
+
+/**
+ * The opposite pole from `meetingIntimacyRules` (docs/office-parody.md §10.4).
+ *
+ * The audience is atmosphere, never voices: `normalizeMeetingScript` drops any
+ * beat whose speakerId is outside the attendee list, so an unlisted name would
+ * be silently deleted and the script would come up short of MEETING_MIN_BEATS —
+ * a cancelled meeting rather than a big one. Naming them and forbidding them a
+ * speakerId in the same breath is what makes the room feel full without
+ * spending beats on it.
+ *
+ * "Nothing is decided" is the whole point of the act, so it is a rule rather
+ * than a hope: substantive beats still have to name real diagram labels (that
+ * is the accidental competence the parody runs on), but each one has to resolve
+ * into more process.
+ */
+function meetingAllHandsRules(audience) {
+  if (!Array.isArray(audience) || audience.length === 0) return '';
+  // Listed by id, not by `speakerLabel`: the team tier lives in
+  // STAKEHOLDER_MEETING_VOICES, which stores voice strings rather than
+  // {name,title}, so speakerLabel falls through to the raw id for exactly the
+  // six people most likely to be in an audience. Ids are the better choice
+  // anyway — the rule below is about speakerIds, so naming them in that same
+  // vocabulary is the least ambiguous way to forbid them.
+  const ids = audience.join(', ');
+  return `
+
+ALL-HANDS (the entire company is on this call):
+- ${audience.length} other people are watching in silence. These speakerIds MUST NOT be scripted —
+never emit a beat for any of them, because a beat from a speaker outside the attendee list is
+dropped and the script comes up short: ${ids}.
+- Address the room as "everyone" / "team" / "folks", never as "you". The user is one face in a grid.
+- Register is a company-wide broadcast: vision, alignment, "some of you have been asking".
+- NOTHING IS DECIDED. Substantive beats must still name real labels from the diagram, but every one of
+them resolves into more process — a follow-up, a working group, a task force, "let's take that
+offline", a commitment to circle back next quarter. The action item is always another meeting.
+- At least one beat is a question answered by a different question, and at least one references
+somebody's microphone being unmuted, a dog, or a slide nobody can see.
 `;
 }
 
@@ -1061,18 +1108,24 @@ const officeModelCache = new Map();
  * script) and slightly hotter sampling than one-line moments.
  *
  * @param {NodeJS.ProcessEnv} env
- * @param {{ purpose?: 'moment' | 'meeting', temperature?: number }} [opts]
+ * @param {{ purpose?: 'moment' | 'meeting' | 'training', temperature?: number }} [opts]
  */
 export function createOfficeChatModel(env = process.env, opts = {}) {
   if (!isLlmConfigured(env)) return null;
   const backend = resolveLlmBackend(env);
   if (!backend) return null;
-  const purpose = opts.purpose === 'meeting' ? 'meeting' : 'moment';
+  const purpose =
+    opts.purpose === 'meeting' || opts.purpose === 'training' ? opts.purpose : 'moment';
   const temperature = Number.isFinite(opts.temperature)
     ? opts.temperature
     : purpose === 'meeting'
       ? 0.95
-      : 0.9;
+      : // Training authors a structured A2UI document, so it runs cooler than
+        // dialogue: the jokes live in the labels, and hot sampling there buys
+        // nothing but malformed JSON.
+        purpose === 'training'
+        ? 0.8
+        : 0.9;
   const modelId = resolveOfficeModelId(env);
   const key = `${backend}:${modelId}:${purpose}:${temperature}`;
   const cached = officeModelCache.get(key);
@@ -1083,7 +1136,12 @@ export function createOfficeChatModel(env = process.env, opts = {}) {
     // Moments are one JSON one-liner; meetings are a full beat script. Same
     // Gemini caveat as the advisor: maxOutputTokens shares budget with internal
     // reasoning, so give the JSON real headroom and disable thinking below.
-    maxOutputTokens: purpose === 'meeting' ? 2048 : 512
+    //
+    // Training is the outlier: a whole A2UI form document. At the meeting
+    // budget it truncates mid-JSON and fails `parseFormsA2ui` every single
+    // time, which reads as "the model cannot author A2UI" rather than "the
+    // ceiling is too low".
+    maxOutputTokens: purpose === 'training' ? 6144 : purpose === 'meeting' ? 2048 : 512
   };
   if (backend === 'vertex') {
     overrides.thinkingBudget = 0;

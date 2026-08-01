@@ -28,8 +28,17 @@ const BASE_PARAMS = {
   getContentType: () => 'mermaid',
   getSessionId: () => 'test-session',
   getUserTitle: () => 'Associate Slopitect',
-  // random 0.5 → deterministic canned IM pick in the cadence weights.
-  random: () => 0.5
+  /**
+   * Deterministic canned IM pick in the cadence weights.
+   *
+   * MOMENT_WEIGHTS is a cumulative roll, so this constant is coupled to the
+   * table's TOTAL, not just to the IM entry: adding any new kind moves every
+   * lane boundary. If you add a weight and these tests start asserting on the
+   * wrong surface, re-derive rather than assuming a logic break — the IM band
+   * is (email, email+im] of the eligible total, and this value has to land
+   * inside it. (Last re-derived when `all-hands` took the total to 12.15.)
+   */
+  random: () => 0.4
 };
 
 // Ticks land every OFFICE_TICK_MS from mount; the first eligible one is at the

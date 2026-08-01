@@ -17125,6 +17125,11 @@ body.slopitect-rainbow-tint::before {
   background: linear-gradient(90deg, #7c3aed, #c4b5fd);
 }
 
+/* People Ops gold — Linda's compliance training (docs/office-parody.md §10.1). */
+.floating-window--training::before {
+  background: linear-gradient(90deg, #b45309, #fcd34d);
+}
+
 .floating-window.is-unfocused {
   opacity: 0.94;
   filter: saturate(0.92);
@@ -17183,6 +17188,7 @@ body.slopitect-rainbow-tint::before {
 .office-messenger-titlebar.floating-window-drag-handle,
 .office-inbox-header.floating-window-drag-handle,
 .office-meeting-picker-header.floating-window-drag-handle,
+.office-training-header.floating-window-drag-handle,
 .office-meeting-titlebar.floating-window-drag-handle {
   padding-left: 1.35rem;
 }
@@ -17190,6 +17196,7 @@ body.slopitect-rainbow-tint::before {
 .floating-window-minimize,
 .office-meeting-minimize,
 .office-inbox-minimize,
+.office-training-minimize,
 .office-messenger-minimize {
   appearance: none;
   flex: 0 0 auto;
@@ -17725,6 +17732,121 @@ body.slopitect-rainbow-tint::before {
   font-weight: 700;
   text-align: center;
 }
+/* Linda's compliance training (docs/office-parody.md §10.1). Wider than the
+   inbox because it holds a real A2UI form rather than a list; same modal-card
+   shell so the parody-OS frame stays consistent across window kinds. */
+.office-training-window {
+  width: min(
+    34rem,
+    calc(100vw - 1rem - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px))
+  );
+  max-height: min(620px, calc(var(--app-vvh, 100dvh) - 150px));
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--modal-card-bg);
+  border: 1px solid var(--control-border);
+}
+
+.office-training-window.is-minimized {
+  height: auto !important;
+  max-height: none !important;
+}
+
+.office-training-header {
+  display: flex;
+  flex: 0 0 auto;
+  padding: 0.55rem 0.7rem 0.6rem;
+  border-bottom: 1px solid var(--control-border);
+}
+
+.office-training-header-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  min-width: 0;
+}
+
+.office-training-heading {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.office-training-title {
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.office-training-step {
+  font-size: 11px;
+  opacity: 0.7;
+}
+
+.office-training-header-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.office-training-body {
+  flex: 1 1 auto;
+  padding: 0.6rem 0.75rem 0.85rem;
+  overflow-y: auto;
+}
+
+.office-training-loading {
+  margin: 0;
+  padding: 1.2rem 0;
+  font-size: 13px;
+  text-align: center;
+  opacity: 0.75;
+}
+
+.office-email-training {
+  margin-top: 0.6rem;
+}
+
+/* Sasha's phishing test (docs/office-parody.md §10.2). The bait is styled as a
+   link because a link is the tell being taught, and it is a <button> because
+   there is nowhere to navigate — and nowhere it should be able to navigate. */
+.office-email-phishing {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  align-items: center;
+  margin-top: 0.6rem;
+}
+
+.office-email-phishing-link {
+  appearance: none;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #2563eb;
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.office-email-phishing-report {
+  appearance: none;
+  flex: 0 0 auto;
+  padding: 0.25rem 0.55rem;
+  border: 1px solid var(--control-border);
+  border-radius: 7px;
+  background: transparent;
+  color: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
 .office-inbox-popover {
   container-type: inline-size;
   container-name: office-inbox;
@@ -20736,6 +20858,30 @@ body.slopitect-rainbow-tint::before {
   padding: 8px 12px 4px;
   border-bottom: 1px solid var(--control-border);
   scrollbar-width: thin;
+}
+
+/* The all-hands crowd (docs/office-parody.md §10.4). Wraps rather than scrolls
+   — the whole point is seeing how many people are on the call at once, and a
+   horizontal scroller hides exactly that. Dimmed and faceless-small so it reads
+   as background to the speaking panel above it. */
+.office-meeting-audience {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  padding: 5px 12px 6px;
+  border-bottom: 1px solid var(--control-border);
+  opacity: 0.55;
+}
+
+.office-meeting-audience-cell {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+}
+
+.office-meeting-audience-face {
+  border-radius: 50%;
+  filter: grayscale(0.35);
 }
 .office-meeting-filmstrip-cell {
   display: inline-flex;

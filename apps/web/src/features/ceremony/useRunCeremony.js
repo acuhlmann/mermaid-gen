@@ -260,6 +260,18 @@ export function useRunCeremony({
         case 'imReply':
           recordOfficeLogEntry('chat', { now, colleagueId: extras.colleagueId });
           break;
+        case 'trainingCompleted':
+          recordOfficeLogEntry('training', {
+            now,
+            detail: extras.moduleNumber ? String(extras.moduleNumber) : ''
+          });
+          break;
+        case 'phishingClicked':
+          recordOfficeLogEntry('security', { now, detail: 'clicked' });
+          break;
+        case 'phishingReported':
+          recordOfficeLogEntry('security', { now, detail: 'reported' });
+          break;
         default:
           break;
       }

@@ -35,6 +35,9 @@ export default function OfficeInboxDock({
   onAdoptPrompt,
   onCallMeeting,
   onComposeEmail,
+  onStartTraining,
+  onPhishingClick,
+  onPhishingReport,
   composeBusy = false,
   canCallMeeting,
   showTrigger = true
@@ -328,6 +331,39 @@ export default function OfficeInboxDock({
                 >
                   {copy.doIt}
                 </button>
+              ) : null}
+              {/* Set pieces (docs/office-parody.md §10.1, §10.2). Both are
+                  offers the human has to accept — the email never acts. */}
+              {selected.training ? (
+                <button
+                  type="button"
+                  className="office-do-it office-email-training"
+                  onClick={() => onStartTraining?.(selected.training)}
+                >
+                  {formatLocale(copy.training.startCta, { module: selected.training })}
+                </button>
+              ) : null}
+              {selected.phishing ? (
+                <div className="office-email-phishing">
+                  {/* Deliberately styled like a link and deliberately a button:
+                      no navigation exists, and none should. */}
+                  <button
+                    type="button"
+                    className="office-email-phishing-link"
+                    title={copy.phishing.linkTitle}
+                    onClick={() => onPhishingClick?.(selected.id, selected.colleagueId)}
+                  >
+                    {copy.phishing.link}
+                  </button>
+                  <button
+                    type="button"
+                    className="office-email-phishing-report"
+                    title={copy.phishing.reportTitle}
+                    onClick={() => onPhishingReport?.(selected.id, selected.colleagueId)}
+                  >
+                    {copy.phishing.report}
+                  </button>
+                </div>
               ) : null}
               <button
                 type="button"

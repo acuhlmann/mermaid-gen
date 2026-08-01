@@ -21,8 +21,11 @@ import OfficeDeskArrival from './OfficeDeskArrival.jsx';
 import OfficeDeskSpeech from './OfficeDeskSpeech.jsx';
 import OfficeInboxDock from './OfficeInboxDock.jsx';
 import OfficeMessenger from './OfficeMessenger.jsx';
+import OfficeTrainingWindow from './OfficeTrainingWindow.jsx';
 import OfficeWalkBy from './OfficeWalkBy.jsx';
+import { TRAINING_MODULE_TOTAL } from '@archislop/shared';
 import { useDeskActions } from '../hooks/useDeskActions.js';
+import { useOfficeTraining } from '../hooks/useOfficeTraining.js';
 import { useHuddlePlayback } from '../hooks/useHuddlePlayback.js';
 import { useOfficeLayerPerformances } from '../hooks/useOfficeLayerPerformances.js';
 import { meetingMinutes, useMeetingPlayback } from '../hooks/useMeetingPlayback.js';
@@ -43,6 +46,7 @@ import {
   markOfficeEmailRead,
   markOfficeImsRead,
   pushOfficeEmail,
+  pushOfficeImPing,
   pushOfficeImReply,
   subscribe,
   voteOfficeBattle
@@ -70,6 +74,7 @@ import {
   playWindowOpen,
   playYouveGotMail
 } from '../utils/agentChimes.js';
+import { fireOfficeConfetti } from '../utils/appConfetti.js';
 import { CAST_TIERS } from '../utils/castTiers.js';
 import { officeCueChime, playPropCues } from '../utils/officeCuePlayers.js';
 import { officeMinutesToInsightEntry } from '../utils/appInsightHelpers.js';
@@ -113,6 +118,14 @@ import {
  * Self-contained fixed-position chrome, mounted as a sibling of ErrorToast;
  * App only supplies context getters and the adopt/minutes/gamification sinks.
  */
+/**
+ * Module Linda assigns after a failed phishing test (§10.2 → §10.1). Same
+ * number as the canned overdue-training email, so the two entry points lead to
+ * the same module rather than implying a course you have been quietly failing
+ * in parallel.
+ */
+const PHISHING_ASSIGNED_MODULE = 3;
+
 export default function OfficeLayer({
   pause,
   /** When true, hide transient office surfaces (IM, walk-bys, etc.) while the
@@ -431,6 +444,21 @@ export default function OfficeLayer({
     prevMeetingStateRef.current = meeting?.state ?? null;
   }, [meeting?.state, playChime]);
 
+  /**
+   * §10.4 — the all-hands ends in confetti for an outcome that does not exist.
+   * Gated on the meeting having had an audience: confetti after an ordinary
+   * two-person headset sync is not a joke, just noise.
+   */
+  const prevMeetingCompletedRef = useRef(false);
+  useEffect(() => {
+    const completed = Boolean(meeting?.completed);
+    if (completed && !prevMeetingCompletedRef.current && meeting?.audience?.length > 0) {
+      void fireOfficeConfetti();
+      playChime?.(playVictoryDing);
+    }
+    prevMeetingCompletedRef.current = completed;
+  }, [meeting?.completed, meeting?.audience, playChime]);
+
   /*
    * Desk-OS chrome. One subscriber rather than a call at each of the four sites
    * that open or raise a window: `overlayStack` is a module-level store, every
@@ -542,6 +570,87 @@ export default function OfficeLayer({
     [onOfficeEvent, playChime]
   );
 
+  /**
+   * Linda's compliance training (docs/office-parody.md §10.1). Completion is
+   * where the set piece pays out: XP and the achievement through the normal
+   * office-event funnel, plus a certificate email whose own last line makes the
+   * next module overdue.
+   */
+  const handleTrainingComplete = useCallback(
+    ({ moduleNumber }) => {
+      onOfficeEvent?.('trainingCompleted', { moduleNumber });
+      const copy = officeChromeCopy().training;
+      pushOfficeEmail({
+        colleagueId: 'hr',
+        subject: copy.certificateSubject,
+        body: formatLocale(copy.certificateBody, {
+          module: moduleNumber,
+          total: TRAINING_MODULE_TOTAL,
+          next: moduleNumber + 1
+        })
+      });
+    },
+    [onOfficeEvent]
+  );
+
+  const { training, openTraining, closeTraining, submitTraining } = useOfficeTraining({
+    getSessionId,
+    getContentType,
+    getDiagramSource,
+    getSvgRoot,
+    getUserName,
+    onUsage,
+    onComplete: handleTrainingComplete
+  });
+
+  const handleStartTraining = useCallback(
+    (moduleNumber) => openTraining({ moduleNumber }),
+    [openTraining]
+  );
+
+  /**
+   * Sasha's phishing test (§10.2). The chain is the payoff — falling for it is
+   * what enrols you in Linda's module. Both halves are ordinary office surfaces
+   * (an IM and an email), so nothing here produces slot content or starts a run.
+   *
+   * `handledPhishingRef` makes each bait email a one-shot: the achievement is
+   * idempotent, but a second click would post a second enrolment email, and an
+   * inbox filling with identical assignments is a bug rather than a joke.
+   */
+  const handledPhishingRef = useRef(new Set());
+
+  const handlePhishingClick = useCallback(
+    (emailId) => {
+      if (handledPhishingRef.current.has(emailId)) return;
+      handledPhishingRef.current.add(emailId);
+      onOfficeEvent?.('phishingClicked');
+      const copy = officeChromeCopy();
+      pushOfficeImPing({ colleagueId: 'ciso', body: copy.phishing.caught });
+      pushOfficeEmail({
+        colleagueId: 'hr',
+        training: PHISHING_ASSIGNED_MODULE,
+        subject: formatLocale(copy.training.assignedSubject, {
+          module: PHISHING_ASSIGNED_MODULE
+        }),
+        body: formatLocale(copy.training.assignedBody, {
+          module: PHISHING_ASSIGNED_MODULE,
+          total: TRAINING_MODULE_TOTAL
+        })
+      });
+    },
+    [onOfficeEvent]
+  );
+
+  const handlePhishingReport = useCallback(
+    (emailId) => {
+      if (handledPhishingRef.current.has(emailId)) return;
+      handledPhishingRef.current.add(emailId);
+      onOfficeEvent?.('phishingReported');
+      pushOfficeImPing({ colleagueId: 'ciso', body: officeChromeCopy().phishing.approved });
+    },
+    [onOfficeEvent]
+  );
+
   const [messengerOpen, setMessengerOpen] = useState(false);
   const [messengerBusy, setMessengerBusy] = useState(false);
   const [messengerTargetId, setMessengerTargetId] = useState(null);
@@ -642,8 +751,14 @@ export default function OfficeLayer({
     if (!invite) return;
     dismissOfficeMeetingInvite();
     setMeetingPicker(null);
-    // Calendar invites are diegetic "get to the glass room" moments.
-    void startMeeting({ attendees: invite.attendees, modality: MEETING_MODALITY_PHYSICAL });
+    // Calendar invites are diegetic "get to the glass room" moments. An
+    // all-hands additionally carries an audience — everyone present who will
+    // not speak (§10.4).
+    void startMeeting({
+      attendees: invite.attendees,
+      ...(invite.audience?.length ? { audience: invite.audience } : {}),
+      modality: MEETING_MODALITY_PHYSICAL
+    });
     if (getOfficeViewMode() !== 'floor') standUp();
   }, [startMeeting]);
 
@@ -1145,9 +1260,15 @@ export default function OfficeLayer({
         onAdoptPrompt={handleAdopt}
         onCallMeeting={handleCallMeeting}
         onComposeEmail={handleComposeEmail}
+        onStartTraining={handleStartTraining}
+        onPhishingClick={handlePhishingClick}
+        onPhishingReport={handlePhishingReport}
         composeBusy={composeBusy}
         canCallMeeting={canCallMeeting}
       />
+      {/* Linda's compliance training (§10.1). Window-local: the module never
+          reaches a diagram slot, and closing the window discards it. */}
+      <OfficeTrainingWindow training={training} onClose={closeTraining} onSubmit={submitTraining} />
       {suppressDistractions ? null : (
         <>
           {/* Brief desk-side arrivals for mail and IM; unread badges live on the comms icons. */}

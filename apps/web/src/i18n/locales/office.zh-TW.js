@@ -118,6 +118,7 @@ export const OFFICE_ZH_TW = {
     {
       id: 'email-compliance-training',
       colleagueId: 'hr',
+      training: 3,
       subject: '溫馨小提醒!訓練已逾期 😊',
       body: '溫馨提醒:您的《安全使用圖表》法遵訓練已逾期 847 天!只需 4 小時即可完成,內含 11 個不可跳過的單元。\n\n溫暖的問候,\nLinda — 人資營運'
     },
@@ -203,6 +204,13 @@ export const OFFICE_ZH_TW = {
       body: '禮貌性通知:上週的模擬釣魚信(「免費架構評審 — 立即點擊」)你沒有點。統計上,人人都會點。不點屬於可疑行為,已記入你的檔案。\n\n我們會一直測,直到你點為止。\n\n什麼都別信,\nSasha — 不行部'
     },
     {
+      id: 'email-ciso-phishing-bait',
+      colleagueId: 'ciso',
+      phishing: true,
+      subject: '緊急:您的圖表存取權限將在 24 小時內被撤銷',
+      body: '尊敬的貴重同仁:\n\n我們的系統已偵測到您的圖表「{label}」存在異常活動。為避免您的全部工作被永久刪除,請在 24 小時內透過下方安全連結重新驗證您的憑證。\n\n此為安全團隊之正式通訊。請勿回覆本郵件。\n\n此致,\n安全團隊(內部)'
+    },
+    {
       id: 'email-ciso-password',
       colleagueId: 'ciso',
       subject: '密碼政策更新(自昨日起生效)',
@@ -213,6 +221,14 @@ export const OFFICE_ZH_TW = {
       colleagueId: 'cfo',
       subject: '已標記:無法解釋的預算項目(「{label}」)',
       body: '財務標記了一個名為「{label}」的資源。請確認它 (a) 必不可少,且 (b) 免費。如果無法兼得,請參見 (b)。\n\n預算就是不行,\nDiane'
+    },
+    {
+      id: 'email-barker-reorg',
+      colleagueId: 'barker',
+      subject: '組織架構更新:成功的雙聯三角',
+      body: '各位,\n\n即日起,我們透過增加一個層級來實現組織扁平化。工程與銷售現分別位於兩個雙聯三角的底邊,其共同頂點為「妥協」。沒有人會向任何人重複匯報,除非確實如此。\n\n你在「{label}」上的工作不受影響 — 在架構上、文化上,以及在由誰簽核這一點上,它受到了影響。\n\n征服是一種心態,\nJack Barker',
+      actionPrompt:
+        '畫出新的組織架構圖:兩個雙聯三角共享一個標記為「妥協」的頂點,工程與銷售位於底邊,我當前的工作同時向兩者匯報'
     },
     {
       id: 'email-belson-world',
@@ -707,6 +723,9 @@ export const OFFICE_ZH_TW = {
     defaultRemoteTitle: '耳機同步',
     inviteFallbackBody:
       '領導層想看看目前這張圖。議程:重點、成本、風險。你的團隊來簡報;高層負責提問。點心:無。',
+    allHandsInviteTitle: '全員大會:對齊、高度與前行之路',
+    allHandsInviteBody:
+      'Gavin 將主持一場全公司全員大會。所有人參加。議程:願景、高度,以及我們接下來往哪走。會留出提問時間,但不會有答案。請打開攝影機。',
     joiningLine: '正在等主辦人讓你進來…',
     cancelledSubject: '已取消:工作組同步',
     cancelledBody: '會議取消 — 領導層行程衝突。改期至:永遠不會。行動項目仍然歸你。\n\nPam',
@@ -854,6 +873,29 @@ export const OFFICE_ZH_TW = {
       callMeetingSelectTitle: '先選郵件當議題，或直接打開名單',
       callMeetingDisabledTitle: '已經在開會 — 先離開那場',
       callMeetingAboutEmail: '📅 就此郵件撥個電話'
+    },
+    phishing: {
+      link: '🔗 立即重新驗證你的憑證',
+      linkTitle: '這看起來很正式。',
+      report: '🛡️ 檢舉釣魚郵件',
+      reportTitle: '轉寄給「拒絕部」',
+      caught:
+        '那是我發的。那是一次測試。你在 1.2 秒內就失敗了，這是新紀錄，我已經把這條紀錄附進你的檔案。人力營運會就補訓事宜聯絡你。',
+      approved: '你檢舉了。很好。那封是我發的。所有的都是我發的。別太放鬆。'
+    },
+    training: {
+      title: '🎓 圖表安全操作規範',
+      stepLabel: '第 {step} 份 / 共 {total} 份',
+      loading: 'Linda 正在準備你的模組…',
+      closeAria: '關閉訓練',
+      dragHint: '拖曳以移動',
+      startCta: '🎓 開始第 {module} 模組',
+      assignedSubject: '需要處理：已為你指派第 {module} 模組 😊',
+      assignedBody:
+        '鑑於近期發生的資安事件，你已被納入《圖表安全操作規範》第 {module} 模組（共 {total} 個）。\n\n這不是處分。處分由另一個團隊負責，而那個團隊也是我們。\n\n溫馨地，\nLinda — 人力營運',
+      certificateSubject: '完成證書（暫定）🎓',
+      certificateBody:
+        '恭喜！你已完成《圖表安全操作規範》第 {module} 模組（共 {total} 個）。\n\n證書已附在信中。並沒有附上 — 證書由一套 2019 年就已下線的系統核發，你的完成紀錄被存進了一份無人認領的試算表。\n\n第 {next} 模組現已逾期。\n\n溫馨地，\nLinda — 人力營運'
     },
     meetingPicker: {
       title: '📅 開個會',

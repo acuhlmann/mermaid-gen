@@ -97,6 +97,7 @@ export const OFFICE_EN_AU = {
     {
       id: 'email-compliance-training',
       colleagueId: 'hr',
+      training: 3,
       subject: 'Friendly nudge! Training overdue 😊',
       body: 'G\'day! Just a friendly nudge that your "Working Safely With Diagrams" compliance training is 847 days overdue! It only takes 4 hours and features 11 unskippable modules.\n\nWarmly,\nLinda — People Ops'
     },
@@ -182,6 +183,13 @@ export const OFFICE_EN_AU = {
       body: 'Courtesy notice: you failed to click last week\'s simulated phishing email ("FREE ARCHITECTURE REVIEW — CLICK NOW"). Statistically, everyone clicks. Not clicking is suss behaviour and has been noted in your file.\n\nWe\'ll keep testing until you do.\n\nTrust nothing,\nSasha — The Department of No'
     },
     {
+      id: 'email-ciso-phishing-bait',
+      colleagueId: 'ciso',
+      phishing: true,
+      subject: 'URGENT: Your diagram access will be revoked in 24 hours',
+      body: 'Dear Valued Colleauge,\n\nOur system have detected unusual activity on your diagram "{label}". To avoid permanent deletion of all your work, please re-verify your credentials within 24 hours using the secure link below.\n\nThis is a official communication from the Security Team. Do not reply to this email.\n\nRegards,\nThe Security Team (Internal)'
+    },
+    {
       id: 'email-ciso-password',
       colleagueId: 'ciso',
       subject: 'Password policy update (effective yesterday)',
@@ -192,6 +200,14 @@ export const OFFICE_EN_AU = {
       colleagueId: 'cfo',
       subject: 'FLAGGED: unexplained line item ("{label}")',
       body: 'Finance flagged a resource called "{label}". Please confirm it is (a) essential, and (b) free. If it can\'t be both, see (b).\n\nThe budget is a no,\nDiane'
+    },
+    {
+      id: 'email-barker-reorg',
+      colleagueId: 'barker',
+      subject: 'Organisational Update: the Conjoined Triangles of Success',
+      body: 'Team,\n\nEffective immediately we are flattening the org by adding a layer. Engineering and Sales now sit at the bases of two conjoined triangles whose shared vertex is Compromise. Nobody reports to anybody twice, except where they do.\n\nYour work on "{label}" is unaffected — structurally, culturally, and in terms of who signs off on it, it is affected.\n\nConquest is a mindset,\nJack Barker',
+      actionPrompt:
+        'Draw the new org chart: two conjoined triangles sharing a vertex labelled Compromise, with Engineering and Sales at the bases and my current work reporting into both'
     },
     {
       id: 'email-belson-world',
@@ -711,6 +727,9 @@ export const OFFICE_EN_AU = {
     defaultRemoteTitle: 'Headset sync',
     inviteFallbackBody:
       'The big bosses want a squiz at the current diagram. Agenda: the headline, the cost, the risk. Your team presents; the seniors have questions. Snacks: nah.',
+    allHandsInviteTitle: 'All-Hands: Alignment, Altitude & The Path Forward',
+    allHandsInviteBody:
+      "Gavin's hosting a company-wide all-hands. Everyone attends. Agenda: the vision, the altitude, and where we go from here. There'll be time for questions, and there won't be answers. Cameras on.",
     joiningLine: 'Waiting for the organiser to let you in…',
     cancelledSubject: 'CANCELLED: Working group sync',
     cancelledBody:

@@ -23,7 +23,8 @@ const KIND_GLYPH = {
   messenger: '💬',
   meeting: '📅',
   'meeting-picker': '📅',
-  battle: '🥊'
+  battle: '🥊',
+  training: '🎓'
 };
 
 /**

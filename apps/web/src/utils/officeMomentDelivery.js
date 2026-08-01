@@ -46,6 +46,7 @@ import {
   pushOfficeMeetingInvite,
   pushOfficeWalkBy
 } from '../state/officeMomentStore.js';
+import { CAST_TIERS } from './castTiers.js';
 
 export const MOMENT_TIMEOUT_MS = 12_000;
 export const RECENT_MOMENTS_CAP = 5;
@@ -95,7 +96,7 @@ function markFired(memory, templateId, onFired) {
 /**
  * Push a canned moment from the local banks. Zero network, works offline.
  *
- * @param {'email'|'im'|'walkby'|'coffee'|'battle'|'meeting-invite'} kind
+ * @param {'email'|'im'|'walkby'|'coffee'|'battle'|'meeting-invite'|'all-hands'} kind
  * @param {ReturnType<typeof readSlotContext>} ctx
  * @param {{
  *   memory: { lastFiredAt: number, seenTemplateIds: string[] },
@@ -149,7 +150,11 @@ export function deliverCannedMoment(kind, ctx, options) {
       colleagueId: template.colleagueId,
       subject: fillOfficeSlots(template.subject, slots),
       body: fillOfficeSlots(template.body, slots),
-      ...(template.actionPrompt ? { actionPrompt: template.actionPrompt } : {})
+      ...(template.actionPrompt ? { actionPrompt: template.actionPrompt } : {}),
+      // Set-piece markers (§10.1 training, §10.2 phishing) ride along with the
+      // template so the bank stays the single place a set piece is authored.
+      ...(template.training ? { training: template.training } : {}),
+      ...(template.phishing ? { phishing: true } : {})
     });
     remember(template.subject);
     markFired(memory, template.id, onFired);
@@ -258,6 +263,28 @@ export function deliverCannedMoment(kind, ctx, options) {
       attendees
     });
     remember(title);
+    markFired(memory, null, onFired);
+    return true;
+  }
+
+  if (kind === 'all-hands') {
+    const copy = officeMeetingCopy();
+    // Belson hosts, Barker translates it into pillars, Pam keeps time, and one
+    // rotating team member is made to present. Everybody else attends and says
+    // nothing — that split is exactly what lets a sixteen-person meeting fit
+    // inside a fourteen-beat script (§10.4).
+    const presenter = pickRandomFrom(CAST_TIERS.team, random);
+    const panel = ['belson', 'barker', MEETING_FACILITATOR, presenter];
+    const everyone = [...CAST_TIERS.team, ...CAST_TIERS.senior, ...CAST_TIERS.office];
+    const audience = everyone.filter((id) => !panel.includes(id));
+    pushOfficeMeetingInvite({
+      colleagueId: 'belson',
+      title: copy.allHandsInviteTitle,
+      body: copy.allHandsInviteBody,
+      attendees: panel,
+      audience
+    });
+    remember(copy.allHandsInviteTitle);
     markFired(memory, null, onFired);
     return true;
   }

@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import express from 'express';
+import { MEETING_MAX_ATTENDEES, TRAINING_MODULE_TOTAL, TRAINING_STEPS } from '@archislop/shared';
 import { createOfficeRouter } from '../src/routes/office.js';
 import { UNCONFIGURED_LLM_ENV } from './helpers/testEnv.js';
 
@@ -171,6 +172,81 @@ test('office moment reports 503 when no LLM is configured', async () => {
       diagramSource: 'flowchart TD\n A-->B'
     });
     assert.equal(res.status, 503);
+  } finally {
+    await closeServer();
+  }
+});
+
+test('office meeting accepts an all-hands audience without widening the roster', async () => {
+  const { port, closeServer } = await bootServer();
+  try {
+    // The whole point of the split: sixteen in the room, four on the roster.
+    const allHands = await post(port, 'meeting', {
+      attendees: ['belson', 'barker', 'scrumMaster', 'richard'],
+      audience: ['gilfoyle', 'dinesh', 'erlich', 'russ', 'jared', 'hr', 'intern', 'helpdesk'],
+      diagramSource: 'flowchart TD\n A-->B'
+    });
+    assert.equal(allHands.status, 503);
+
+    // The speaking roster is still bounded by the shared constant — an
+    // all-hands must never be a way to smuggle a 16-speaker meeting through.
+    const tooManySpeakers = await post(port, 'meeting', {
+      attendees: Array.from({ length: MEETING_MAX_ATTENDEES + 1 }, () => 'gilfoyle')
+    });
+    assert.equal(tooManySpeakers.status, 400);
+
+    const absurdAudience = await post(port, 'meeting', {
+      attendees: ['gilfoyle'],
+      audience: Array.from({ length: 40 }, () => 'dinesh')
+    });
+    assert.equal(absurdAudience.status, 400);
+
+    // Audience is optional — every existing caller omits it.
+    const ordinary = await post(port, 'meeting', { attendees: ['gilfoyle', 'dinesh'] });
+    assert.equal(ordinary.status, 503);
+  } finally {
+    await closeServer();
+  }
+});
+
+test('office training validates its payload before reaching the model', async () => {
+  const { port, closeServer } = await bootServer();
+  try {
+    // A well-formed request gets as far as the (unconfigured) model.
+    const ok = await post(port, 'training', {
+      contentType: 'mermaid',
+      diagramSource: 'flowchart TD\n A-->B',
+      visibleLabels: ['paymentGateway'],
+      step: 1,
+      moduleNumber: 3
+    });
+    assert.equal(ok.status, 503);
+
+    // The gauntlet is TRAINING_STEPS long; a client that walks past the end is
+    // a bug on the client, and the shared constant is what keeps the two sides
+    // agreeing about where the end is.
+    const pastEnd = await post(port, 'training', { step: TRAINING_STEPS + 1 });
+    assert.equal(pastEnd.status, 400);
+
+    const badModule = await post(port, 'training', { moduleNumber: TRAINING_MODULE_TOTAL + 1 });
+    assert.equal(badModule.status, 400);
+
+    // Prior answers ride along so the next form can quote them; A2UI data-model
+    // values are primitives or string arrays and nothing else.
+    const answers = await post(port, 'training', {
+      step: 2,
+      priorAnswers: [
+        { label: 'Accountable party', value: 'Craig' },
+        { label: 'Channels', value: ['slack', 'email'] },
+        { label: 'Alignment', value: 3 }
+      ]
+    });
+    assert.equal(answers.status, 503);
+
+    const badAnswer = await post(port, 'training', {
+      priorAnswers: [{ label: 'Nested', value: { nope: true } }]
+    });
+    assert.equal(badAnswer.status, 400);
   } finally {
     await closeServer();
   }

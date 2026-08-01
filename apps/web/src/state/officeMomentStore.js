@@ -397,13 +397,30 @@ export function endOfficeHuddle(id = null) {
   update({ huddle: null });
 }
 
-export function pushOfficeEmail({ colleagueId, subject, body, actionPrompt }) {
+/**
+ * @param {{
+ *   colleagueId: string,
+ *   subject?: string,
+ *   body?: string,
+ *   actionPrompt?: string,
+ *   training?: number,
+ *   phishing?: boolean
+ * }} email
+ *   `training` (a module number) and `phishing` are inert markers that let the
+ *   inbox render an extra affordance — Linda's "Begin Module N", Sasha's
+ *   too-good-to-be-true link. They are offers, never actions: nothing happens
+ *   until the human clicks, which is ADR-0010's whole line. Same shape as the
+ *   existing `actionPrompt`, which is likewise inert text until Do-it.
+ */
+export function pushOfficeEmail({ colleagueId, subject, body, actionPrompt, training, phishing }) {
   const email = {
     id: makeId('email'),
     colleagueId,
     subject: String(subject ?? '(no subject)'),
     body: String(body ?? ''),
     ...(actionPrompt ? { actionPrompt } : {}),
+    ...(Number.isFinite(training) ? { training } : {}),
+    ...(phishing ? { phishing: true } : {}),
     createdAt: Date.now(),
     read: false
   };
@@ -634,13 +651,26 @@ export function dismissOfficeBattle() {
   update({ battle: null });
 }
 
-export function pushOfficeMeetingInvite({ colleagueId, title, body, attendees }) {
+/**
+ * @param {{
+ *   colleagueId: string,
+ *   title?: string,
+ *   body?: string,
+ *   attendees: string[],
+ *   audience?: string[]
+ * }} invite
+ *   `audience` is the all-hands crowd (docs/office-parody.md §10.4) — everyone
+ *   present who will not speak. Absent on an ordinary invite, where being in
+ *   the room and being scripted are the same thing.
+ */
+export function pushOfficeMeetingInvite({ colleagueId, title, body, attendees, audience }) {
   const meetingInvite = {
     id: makeId('meeting'),
     colleagueId,
     title: String(title ?? ''),
     body: String(body ?? ''),
     attendees: Array.isArray(attendees) ? attendees : [],
+    ...(Array.isArray(audience) && audience.length > 0 ? { audience } : {}),
     createdAt: Date.now()
   };
   update({ meetingInvite });

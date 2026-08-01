@@ -70,12 +70,29 @@ function flattenComponents(messages) {
   return components;
 }
 
+/**
+ * @param {{
+ *   diagramSource?: string,
+ *   streamingPreview?: boolean,
+ *   busy?: boolean,
+ *   onFormSubmit?: (submission: object) => void,
+ *   preview?: boolean,
+ *   exportable?: boolean
+ * }} props
+ *   `exportable` must be false for any instance that is not the primary canvas.
+ *   The PNG exporter registry is a Map keyed by content type, so a second live
+ *   instance overwrites the slot's entry — and because unregistering is
+ *   identity-matched, the loser's unmount does not restore it. Export-PNG then
+ *   stays broken until the real renderer remounts. Office surfaces (Linda's
+ *   training window) pass false; the `forms` slot keeps the default.
+ */
 export default function FormsRenderer({
   diagramSource,
   streamingPreview = false,
   busy = false,
   onFormSubmit,
-  preview = false
+  preview = false,
+  exportable = true
 }) {
   const { controls } = useUiCopy();
   const lastGoodDocRef = useRef(null);
@@ -188,7 +205,7 @@ export default function FormsRenderer({
   }, [parsed]);
 
   useEffect(() => {
-    if (streamingPreview || preview || !parsed.ok) return undefined;
+    if (streamingPreview || preview || !exportable || !parsed.ok) return undefined;
     const exporter = async () => {
       const root = rootRef.current;
       if (!root) {
@@ -198,7 +215,7 @@ export default function FormsRenderer({
     };
     registerViewportPngExporter('forms', exporter);
     return () => unregisterViewportPngExporter('forms', exporter);
-  }, [parsed, streamingPreview, preview]);
+  }, [parsed, streamingPreview, preview, exportable]);
 
   if (!parsed.ok && parsed.empty) {
     return null;

@@ -145,6 +145,43 @@ Every session carries **six independent diagram slots** — `mermaid` (Mermaid t
   in `_lib/` because `officePersonas.js` and `advisorPrompts.js` are deliberately separate
   prompt systems. Pass `purpose: 'work'` for the advisor: its 80-char envelope cannot afford the
   dialogue rule, so it is told to use the log **only** to avoid re-proposing what was just done.
+- **A meeting's roster and its speakers are two different lists.** `POST /api/office/meeting` takes
+  `attendees` (scripted, bounded by `MEETING_MAX_ATTENDEES`) and an optional `audience` (present,
+  silent — the all-hands crowd, §10.4). Do **not** raise `MEETING_MAX_ATTENDEES` to seat a crowd:
+  it lets _every_ meeting seat one, and asks the model to give N people lines inside
+  `MEETING_MAX_BEATS` (14). The audience is listed **by speakerId and forbidden one in the same
+  breath** — `normalizeMeetingScript` drops beats from speakers outside `attendees`, so an audience
+  member who "speaks" costs a beat and can push the script under `MEETING_MIN_BEATS`, which the
+  client renders as a _cancelled_ meeting rather than a big one. Note `speakerLabel` returns the
+  raw id for the whole team tier (their voices live in `STAKEHOLDER_MEETING_VOICES`, which stores
+  strings, not `{name,title}`) — don't reach for it to pretty-print a roster.
+- **`MOMENT_WEIGHTS` in `officeCadence.js` is a cumulative roll, so adding a kind moves every lane
+  boundary.** Tests that pin a lane with a magic `random` value (`useOfficeAmbience.test.jsx`)
+  will start asserting on the wrong surface — re-derive the value against the new total rather than
+  hunting for a logic break.
+- **A second live `FormsRenderer` breaks the `forms` slot unless you opt out of two things.**
+  Linda's training window (`OfficeTrainingWindow.jsx`, §10.1) is the first non-slot forms surface
+  and the template for any future one. Pass `exportable={false}` — the exporter registry in
+  `viewportPngExport.js` is a `Map` keyed by content type and unregistering is identity-matched, so
+  a second instance overwrites the slot's entry and then fails to restore it, leaving Export-PNG
+  broken until the real renderer remounts. Do **not** pass `preview` — that is the read-only
+  thinking-pane mirror and it early-returns out of the action handler, so the form renders
+  perfectly and silently refuses to submit. The training document never reaches the `forms` slot
+  (ADR-0010); `officeTraining.test.jsx` pins that by asserting no _import path_ exists, not merely
+  that one flow avoided it. Server side, `/api/office/training` reuses `FORMS_CORE_RULES` rather
+  than restating the A2UI contract, and `createOfficeChatModel` needs `purpose: 'training'` — a
+  form document does not fit the 512/2048-token moment/meeting ceilings and truncates into a
+  validation failure that reads like "the model cannot author A2UI".
+- **`@archislop/shared` resolves to `dist`, so a new shared file is invisible until you build it.**
+  Adding a new module under `packages/shared/src/` and importing it from `apps/web` yields
+  `undefined` at runtime rather than a module error — the symptom is a constant that silently
+  became `"undefined"`. Run `npm run build -w packages/shared` after adding or changing a shared
+  export.
+- **Set-piece markers on office email templates are fields, not text — mirror them per locale.**
+  `training: <module>` and `phishing: true` (`officeCast.js` + all three `office.*.js` bundles) are
+  what grow the CTA on an email. The slot-fill parity test only inspects strings, so a missing
+  marker makes the set piece unreachable in that locale with nothing rendered to notice;
+  `officeLocale.test.js` now pins the markers explicitly.
 - **The office's LLM appetite is one table in `officeCadence.js`.** `OFFICE_LLM_MOMENT_CAP`,
   `EMAIL_LLM_RATIO`/`IM_LLM_RATIO`, `OFFICE_RUN_REACTION_LLM_CAP`, `OFFICE_DESK_LLM_CAP`,
   `OFFICE_TALK_LLM_CAP` — `useDeskActions.js` and `useOfficeRunReactions.js` re-export from it

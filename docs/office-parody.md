@@ -936,16 +936,85 @@ consumer). Reserved for later MCP-app parity: `office_moment` / `meeting_started
 
 ## 10. Future roadmap (beyond v1)
 
-1. **Compliance-training minigame** — A2UI forms gauntlet ("Synergy & You: Module 3 of 11") reusing
-   `FormsRenderer`; XP for completion; Linda sends the overdue notices.
-2. **Phishing test** — the CISO sends a too-good-to-be-true email; clicking it = achievement
-   ("Security Incident #1") + a mandatory training form. (Sasha the CISO ✅ shipped with the
-   ambience cast — including a phishing-_report_ email gag; the interactive click-bait minigame
-   is the part that remains.)
+1. ~~**Compliance-training minigame**~~ — ✅ **shipped**. "Working Safely With Diagrams — Module 3
+   of 11" is a real, fillable A2UI gauntlet: `POST /api/office/training` has Linda author the form,
+   it is validated through `parseFormsA2ui` (the same gate the `forms` slot uses), and it renders in
+   a new `training` `FloatingWindow` kind via the **interactive** `FormsRenderer`. Two forms per
+   sitting (`TRAINING_STEPS`, shared) — the module, then the attestation the module generated —
+   then XP, the `complianceOfficer` achievement, and a certificate email whose last line makes
+   Module 4 overdue.
+
+   Four things are load-bearing and easy to undo by accident:
+   - **The document never touches the user's `forms` slot** (ADR-0010 — the cast produces no slot
+     content). It lives in `useOfficeTraining`'s state. `officeTraining.test.jsx` pins it by
+     asserting the feature has no _import path_ to a slot mutator, not merely that this flow
+     avoided one.
+   - **Do not pass `preview`.** That prop is the thinking-pane read-only mirror and it early-returns
+     out of `FormsRenderer`'s action handler — a preview module renders perfectly and silently
+     refuses to submit.
+   - **Do pass `exportable={false}`.** The PNG exporter registry is a `Map` keyed by content type
+     and unregistering is identity-matched, so a second live forms renderer hijacks the slot's
+     Export-PNG and then fails to hand it back on unmount.
+   - **Nothing persists.** Closing the window discards the module. Abandoning a compliance training
+     halfway is the most realistic thing this feature does, and it keeps the state model to one
+     `useState`.
+
+   `OFFICE_TRAINING_LLM_CAP` (2, in `officeCadence.js`) buys exactly one personalized sitting;
+   after that — or on an unconfigured server, or on a document the allowlist rejects —
+   `officeTrainingModule.js` serves the canned forms. Those are held to the same contract: a test
+   parses them through `parseFormsA2ui`, because a fallback that fails validation degrades into the
+   error state the fallback exists to prevent.
+
+2. ~~**Phishing test**~~ — ✅ **shipped**. Sasha's bait (`email-ciso-phishing-bait`, senior bank)
+   carries deliberate tells — "Dear Valued Colleauge", "Our system have detected", a 24-hour
+   deadline. The reading pane offers **both** endings: click the fake link (achievement
+   "Security Incident #1", Sasha's IM, and auto-enrolment in item 1's module — the chain is the
+   payoff) or **Report phishing** (XP plus Sasha's approval). The link is a `<button>` styled as a
+   link: there is nowhere to navigate and nowhere it should be able to. Each bait email is
+   one-shot per session, or the inbox fills with identical enrolment emails.
+
+   The set-piece markers (`training: 3`, `phishing: true`) are template _fields_, not text, so the
+   locale slot-fill test sails straight past a missing one and the whole set piece silently
+   disappears in that locale — `officeLocale.test.js` now pins them across all three bundles.
+
 3. **Performance review** — quarterly A2UI self-assessment pre-filled from real gamification stats.
-4. **All-hands** — CEO cameo meeting; everyone attends; nothing is decided; confetti.
-5. **The Re-org** — stakeholder titles/accents reshuffle for one session; the org chart renders as
-   an actual Mermaid diagram in-canvas.
+4. ~~**All-hands**~~ — ✅ **shipped**. Belson hosts, the whole cast attends, nothing is decided,
+   confetti. Its own once-a-session budget (`OFFICE_ALL_HANDS_PER_SESSION`) so it never eats the
+   ordinary meeting invite, and it needs a diagram for the same reason a walk-by does.
+
+   **The design decision worth carrying: the roster and the speakers are different lists.**
+   `attendees` had always meant both "who is in the room" and "who may be scripted" — at every
+   other roster size those coincide. An all-hands is where they come apart: sixteen attend, four
+   speak. The two obvious routes both cost more than they look:
+
+   - _Raise `MEETING_MAX_ATTENDEES` to 16_ — a shared-schema change that also lets **every**
+     ordinary meeting seat sixteen, and asks the model to give sixteen people lines inside
+     `MEETING_MAX_BEATS` (14). Most attendees would get no beat, and `normalizeMeetingScript` would
+     be silently dropping the overflow.
+   - _A parallel all-hands endpoint_ — a second copy of the meeting machinery to keep in step.
+
+   Instead, `/meeting` gained an optional **`audience`**: everyone present who will not speak. The
+   speaking roster stays bounded by `MEETING_MAX_ATTENDEES`, so **the shared schema did not move at
+   all** — the meeting request schema is route-local (`routes/office.js`), the same property that
+   made the §11 office log cheap to thread. `meetingAllHandsRules` names the audience _by
+   speakerId_ and forbids them one in the same breath, because a beat from a speaker outside the
+   attendee list is dropped and the script then comes up short of `MEETING_MIN_BEATS` — a cancelled
+   meeting rather than a big one. The overlay renders them as a separate dimmed wrapping row rather
+   than more film-strip cells: the strip highlights the active speaker, and an audience member can
+   never be one.
+
+   "Nothing is decided" is a prompt rule, not a hope: substantive beats must still name real
+   diagram labels (that is the accidental competence the parody runs on), but every one of them has
+   to resolve into more process — a working group, a task force, a commitment to circle back.
+
+5. ~~**The Re-org**~~ — ✅ **shipped** (the org-chart half; the title/accent reshuffle is
+   deliberately _not_ built — it was scoped as optional polish and turns heavy fast). Barker emails
+   the Conjoined Triangles of Success, and its **Do-it goes through the ordinary `onAdoptPrompt` →
+   `submitIntentWithPrompt` path**, so the new org chart lands as a normal, undoable,
+   revision-history-safe Mermaid diagram that the human commissioned. The product satirizing itself
+   without the cast ever authoring a slot (ADR-0010). Cost: one email template plus its three
+   locale mirrors — the whole feature is its `actionPrompt`, which is why
+   `officeLocale.test.js` now pins `actionPrompt` presence across bundles.
 6. ~~**Office soundscape**~~ — ✅ shipped: keyboard clatter, distant printer, espresso machine
    (see §6 "Soundscape"). **Extended 2026-07-27** with a continuous room-tone bed and baked
    ElevenLabs samples for the seven cues synthesis loses on (see §6 and
