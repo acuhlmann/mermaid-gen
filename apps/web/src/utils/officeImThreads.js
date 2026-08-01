@@ -13,14 +13,31 @@
  *   body: string,
  *   createdAt: number,
  *   outbound?: boolean,
- *   read?: boolean
+ *   read?: boolean,
+ *   channel?: string
  * }} OfficeImMessage
  */
 
 /**
+ * Typed Slop Chat vs physical speech sharing the same `imHistory`.
+ *
+ * `channel: 'talk'` is say-it-out-loud / turn-to-someone — desk speech and floor
+ * balloons render it. Slop Chat is the typed messenger only; walk-bys never
+ * land here at all.
+ *
+ * @param {OfficeImMessage | null | undefined} msg
+ * @returns {boolean}
+ */
+export function isSlopChatMessage(msg) {
+  if (!msg) return false;
+  return !msg.channel || msg.channel === 'im';
+}
+
+/**
  * Group a flat IM log into per-colleague threads, most recently active first —
  * the ordering a real messenger uses, so a fresh ping surfaces its thread to
- * the top. Outbound (user-authored) messages never count as unread.
+ * the top. Outbound (user-authored) messages never count as unread. Talk-channel
+ * lines are excluded — physical speech is not a chat transcript.
  *
  * @param {OfficeImMessage[] | null | undefined} messages
  * @returns {Array<{
@@ -33,6 +50,7 @@
 export function groupImThreads(messages) {
   const byColleague = new Map();
   for (const msg of messages ?? []) {
+    if (!isSlopChatMessage(msg)) continue;
     const list = byColleague.get(msg.colleagueId);
     if (list) list.push(msg);
     else byColleague.set(msg.colleagueId, [msg]);

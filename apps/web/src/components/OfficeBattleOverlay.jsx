@@ -8,6 +8,7 @@ import {
   BATTLE_LINE_PACE_MS,
   BATTLE_SILENT_DURATION_MS
 } from '../hooks/officeScenePacingConstants.js';
+import { cancelOfficeNarration } from '../utils/officeNarration.js';
 import { PersonaFace } from './personaFaces/index.jsx';
 
 export { BATTLE_LINE_PACE_MS } from '../hooks/officeScenePacingConstants.js';
@@ -87,6 +88,8 @@ export default function OfficeBattleOverlay({
     })();
     return () => {
       cancelled = true;
+      // Verdict TTS outlives the combat pacing loop — walk away must cut it.
+      cancelOfficeNarration();
     };
   }, [accepted, battle?.votedFor, battleId, narrateLine]);
 

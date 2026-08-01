@@ -8,7 +8,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { shouldShowSpokenText } from '../../utils/officeCaptions.js';
-import { isOfficeNarrationBusy } from '../../utils/officeNarration.js';
+import { cancelOfficeNarration, isOfficeNarrationBusy } from '../../utils/officeNarration.js';
 import { deskWorkFor } from '../../utils/officeDeskWork.js';
 
 /** Poll interval for lifted-scene TTS — only gates bubble visibility. */
@@ -96,6 +96,7 @@ export function useFloorSpokenText({
 
   useEffect(() => {
     if (!talkColleagueId) {
+      if (prevTalkLineRef.current) cancelOfficeNarration();
       prevTalkLineRef.current = '';
       return undefined;
     }
@@ -122,6 +123,7 @@ export function useFloorSpokenText({
   useEffect(() => {
     const walkById = walkBy?.id ?? null;
     if (!walkById) {
+      if (prevWalkByIdRef.current) cancelOfficeNarration();
       prevWalkByIdRef.current = null;
       return undefined;
     }

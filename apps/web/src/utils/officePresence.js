@@ -22,6 +22,7 @@
  */
 
 import { FLOOR_SEATS, YOU_SEAT_ID } from './officeFloorPlan.js';
+import { isSlopChatMessage } from './officeImThreads.js';
 import { sceneParticipants } from './officeSceneCast.js';
 
 /** Your own desk cluster — the six advisors at the desks adjoining yours. */
@@ -77,16 +78,17 @@ function others(ids) {
  * Unread **IMs** count as presence and unread email does not, which is a
  * distinction about the medium rather than the backlog: Slop Chat is somebody
  * typing at you now, and an inbox is somebody who typed at you at some point.
- * The inbox carries its own unread badge for that.
+ * The inbox carries its own unread badge for that. Talk-channel speech
+ * (`channel: 'talk'`) is physical — desk / floor — and never counts here.
  *
- * @param {Array<{colleagueId?: string, read?: boolean, outbound?: boolean}> | undefined} imHistory
+ * @param {Array<{colleagueId?: string, read?: boolean, outbound?: boolean, channel?: string}> | undefined} imHistory
  * @returns {string[]}
  */
 function unreadImSenders(imHistory) {
   const senders = [];
   for (let i = (imHistory?.length ?? 0) - 1; i >= 0; i -= 1) {
     const msg = imHistory[i];
-    if (!msg || msg.read || msg.outbound) continue;
+    if (!msg || msg.read || msg.outbound || !isSlopChatMessage(msg)) continue;
     senders.push(msg.colleagueId);
   }
   return others(senders);

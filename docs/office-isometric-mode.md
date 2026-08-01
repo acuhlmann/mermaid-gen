@@ -85,11 +85,11 @@ The rule is now **frequency, not category**: what you reach for on most runs sta
 bottom composer band; what you reach for a few times a session moves to the frame, one
 click deep.
 
-| Region                | Component       | Holds                                                                 |
-| --------------------- | --------------- | --------------------------------------------------------------------- |
-| Menu bar (top)        | `DeskOsMenuBar` | brand (leading slot) · Deliverable · Mailroom · Admin                 |
-| Composer band         | `BottomRow`     | Work order · Your Team · Notebook (unchanged this slice)              |
-| Taskbar (bottom edge) | `DeskOsTaskbar` | Stand up · **presence strip** · window list (`DeskOsTray`) · tray end |
+| Region                | Component       | Holds                                                                                      |
+| --------------------- | --------------- | ------------------------------------------------------------------------------------------ |
+| Menu bar (top)        | `DeskOsMenuBar` | brand (leading slot) · Deliverable · Mailroom · Admin (incl. Headphones / Focus / vendors) |
+| Composer band         | `BottomRow`     | Work order · **Mail / Chat / Meeting** icons · Your Team · Notebook                        |
+| Taskbar (bottom edge) | `DeskOsTaskbar` | Stand up · **presence strip** · window list (`DeskOsTray`) · tray end                      |
 
 Fullscreen lives on the canvas corner control (`DiagramFullscreenButton` in
 `BrandChromeSlot`), not the menu bar — the View menu was removed.
@@ -105,6 +105,8 @@ What moved, and why it was somewhere worse before:
 - **Contractor · HR · Language · Hotkeys** — off the desk stamp into **Admin**.
   "Onboard a contractor" is the MCP invite doorway (the old "External agents"
   row opened the settings/code panel by mistake and was removed).
+- **Headphones · Focus · Approved vendors** — off the desk stamp into **Admin**'s
+  footer, so the composer band can show mail / chat / meeting as direct icons.
 - **Stand up** — out of `DeskActionsDock` into the taskbar's leading corner, still labelled,
   still `Shift+O`. The taskbar reads `officeViewModeStore` directly, so it needs no office
   props and lives in the shell tree rather than inside `OfficeLayer`.
@@ -116,9 +118,8 @@ What moved, and why it was somewhere worse before:
   accounting**: the status row it vacated is taller than the ~1rem the taskbar costs, so a
   run in flight nets slightly _more_ canvas than before, an idle canvas slightly less.
 
-What stayed on the desk stamp: the three ways the office reaches you (Inbox, Slop Chat,
-Meeting) plus the two ambience postures. A menu that answered five unrelated questions was
-the reason nobody could predict what was in it.
+What lives on the composer as **comms icons** (no helmet menu): the three ways the office
+reaches you — Inbox, Slop Chat, Meeting — each with its own unread badge where relevant.
 
 **Fix is deliberately homeless this slice.** It left with the drawer and is reachable from
 the Notebook checklist and the radial ring until slice 3 puts it beside Jared, whose
@@ -131,7 +132,8 @@ Geometry is pinned by `--desk-taskbar-h` and asserted in `test/deskOsFrameStyles
 the menu bar never wraps, and nothing scrolls horizontally. Degradation order in the
 taskbar as width runs out: Concentration (has two other homes) → window-pill labels →
 Tidy up → the XP track (the level text survives; below 540px the old brand-chip rule hid
-the opposite half). Foldable dual-segment is **not** verified — `env(viewport-segment-*)`
+the opposite half) → the whole XP chip below 360px (Admin still opens HR progression) so
+the presence faces stay. Foldable dual-segment is **not** verified — `env(viewport-segment-*)`
 has no headless emulation.
 
 ### 4c. Slice 3 — composer band ✅ shipped
@@ -191,10 +193,11 @@ in flight — the failure mode here is subtle and worth recording:
   `min-width` floor the width of the faces alone. A squeeze loses words, not people.
 - **Demotion ladder**, continuing slice 2's: caption + third face + the `+N` badge go at 720px
   (the badge counts what is _hidden_, so trimming faces while it still rendered would quietly
-  make it undercount), then the strip retires entirely below 360px — where rule 3 decides which
-  of the pair survives, and it is the labelled control. That last rule has to sit **after** the
-  base rule in `App.css`; grouped with the other 360px rules further up the file it loses the
-  cascade and silently does nothing, which is how it first shipped.
+  make it undercount). Below 360px the **XP chip** retires instead of the strip — who's around
+  outranks HR standing on a phone-width desk; Admin still opens the scorecard. That override
+  has to sit **after** the base `.desk-os-taskbar-xp` rule in `App.css` (same specificity /
+  cascade trap as the old strip hide). Stand up still never yields to the strip (rule 3);
+  only the tray's HR chip does.
 
 Pinned by `test/deskOsFrameStyles.test.js` (the CSS facts jsdom cannot measure),
 `test/officePresence.test.js` (the derivation, in a node environment — being testable without a
@@ -941,7 +944,7 @@ Three earlier candidates, none designed:
 - **Where the "stand up" affordance lives in desktop chrome.** ~~The oldest open item and the only
   one that is not floor work at all: today the floor is reachable from the desk dock, and the
   mode toggle has never had a deliberate home or a keyboard shortcut.~~ ✅ **shipped** — primary
-  bottom-nav control beside the desk stamp (`DeskStandUpButton`) plus **Shift+O** toggle
+  bottom-nav control beside the desk comms cluster (`DeskStandUpButton`) plus **Shift+O** toggle
   (`useOfficeViewHotkey`, listed in the hotkey overlay).
 - **Bubble placement for a speaker who is not against a wall** (§ 6 rule 29). ~~The finding is
   measured and the four obvious fixes are each recorded as worse~~ ✅ **shipped** for desk/floor

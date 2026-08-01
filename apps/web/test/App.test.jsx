@@ -481,7 +481,7 @@ describe('App simplified controls', { timeout: 20_000 }, () => {
     await waitFor(
       () => {
         expect(screen.getByLabelText(/Work order/i)).toBeTruthy();
-        expect(screen.getByTestId('bottom-brand-mark')).toBeTruthy();
+        expect(screen.getByTestId('desk-comms-cluster')).toBeTruthy();
         expect(screen.getByTestId('desk-os-menubar')).toBeTruthy();
       },
       { timeout: 6_000 }
@@ -489,7 +489,7 @@ describe('App simplified controls', { timeout: 20_000 }, () => {
     expect(screen.queryByTestId('entry-desk-intro')).toBeNull();
     expect(screen.queryByTestId('topic-starters')).toBeNull();
     expect(screen.queryByTestId('entry-render-as')).toBeNull();
-    expect(screen.getByTestId('bottom-brand-mark').getAttribute('aria-expanded')).toBe('false');
+    expect(screen.getByTestId('desk-comms-inbox')).toBeTruthy();
     expect(screen.getByRole('button', { name: /Open your team|Hide team actions/i })).toBeTruthy();
 
     const input = screen.getByLabelText(/Work order/i);
@@ -715,7 +715,7 @@ describe('App simplified controls', { timeout: 20_000 }, () => {
   it('sends quality modelProfile after selecting Deep work', async () => {
     render(<App />);
 
-    fireEvent.click(await screen.findByRole('button', { name: /Your desk/i }));
+    // Concentration lives on the taskbar tray (not the old Your desk menu).
     fireEvent.click(await screen.findByRole('button', { name: 'Deep work' }));
 
     await clickRefine();

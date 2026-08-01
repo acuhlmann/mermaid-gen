@@ -1,7 +1,7 @@
 import { useCallback, useRef } from 'react';
 import { clearDeskSlotElement, setDeskSlotElement } from '../state/deskSlotStore.js';
 
-/** Registers the bottom-row desk anchor for OfficeLayer's DeskActionsDock portal. */
+/** Registers the bottom-row desk anchor for OfficeLayer's desk comms portal. */
 export function useDeskSlotRef() {
   const held = useRef(null);
   return useCallback((el) => {

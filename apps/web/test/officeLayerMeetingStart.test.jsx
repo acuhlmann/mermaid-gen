@@ -98,8 +98,7 @@ describe('OfficeLayer meeting starts', () => {
 
     renderOffice();
 
-    fireEvent.click(screen.getByRole('button', { name: /Your desk/i }));
-    fireEvent.click(screen.getByRole('menuitem', { name: /Check your mail/i }));
+    fireEvent.click(screen.getByTestId('desk-comms-inbox'));
 
     await waitFor(() => {
       expect(screen.getByRole('button', { name: /Hop on a call \(1\)/i })).toBeTruthy();
@@ -124,8 +123,7 @@ describe('OfficeLayer meeting starts', () => {
 
     renderOffice();
 
-    fireEvent.click(screen.getByRole('button', { name: /Your desk/i }));
-    fireEvent.click(screen.getByRole('menuitem', { name: /Open Slop Chat/i }));
+    fireEvent.click(screen.getByTestId('desk-comms-slopChat'));
 
     await waitFor(() => {
       expect(screen.getByRole('button', { name: /Hop on a call/i })).toBeTruthy();
@@ -144,8 +142,7 @@ describe('OfficeLayer meeting starts', () => {
   it('stands into the glass room for a physical desk meeting', async () => {
     renderOffice();
 
-    fireEvent.click(screen.getByRole('button', { name: /Your desk/i }));
-    fireEvent.click(screen.getByRole('menuitem', { name: /Have a meeting/i }));
+    fireEvent.click(screen.getByTestId('desk-comms-meeting'));
 
     await waitFor(() => {
       expect(screen.getByRole('button', { name: /Your team/i })).toBeTruthy();
@@ -169,8 +166,7 @@ describe('OfficeLayer meeting starts', () => {
 
     renderOffice();
 
-    fireEvent.click(screen.getByRole('button', { name: /Your desk/i }));
-    fireEvent.click(screen.getByRole('menuitem', { name: /Check your mail/i }));
+    fireEvent.click(screen.getByTestId('desk-comms-inbox'));
     await waitFor(() => {
       expect(screen.getByRole('button', { name: /Hop on a call \(1\)/i })).toBeTruthy();
     });

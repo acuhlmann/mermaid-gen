@@ -10,7 +10,7 @@ import FloorBubble from './FloorBubble.jsx';
 import FloorFigure from './FloorFigure.jsx';
 import {
   HUDDLE_SEAT_STAGGER_MS,
-  delegatablePrompt,
+  adoptPromptFor,
   useHuddleRingControls
 } from '../../hooks/useHuddleRingControls.js';
 import { officeChromeCopy, officeSenderInfo } from '../../utils/officeCast.js';
@@ -89,7 +89,9 @@ export function FloorHuddle({
         const isFetching = fetchingSpeakerId === id;
         const isRepeating = repeatingSpeakerId === id;
         const beat = isPinned ? pinnedBeat : isSpeaking ? activeBeat : null;
-        const actionPrompt = isPinned ? pinnedPrompt : delegatablePrompt(beat);
+        const actionPrompt = isPinned
+          ? pinnedPrompt
+          : adoptPromptFor(beat, { fallbackToText: isSpeaking || isPinned });
         const hideRemarkText =
           (isPinned && (isRepeating || isFetching)) ||
           ((isSpeaking || isPinned) && !voiceShowsText);
@@ -197,7 +199,9 @@ export function FloorHuddleCard({ huddle, copy, onHardStop, ringControls = null 
     handleDoIt = null
   } = ringControls ?? {};
   const delegateSpeakerId = watching ? null : (pinnedSpeakerId ?? activeSpeakerId);
-  const delegatePrompt = watching ? null : (pinnedPrompt ?? delegatablePrompt(activeBeat));
+  const delegatePrompt = watching
+    ? null
+    : (pinnedPrompt ?? adoptPromptFor(activeBeat, { fallbackToText: true }));
 
   return (
     <aside

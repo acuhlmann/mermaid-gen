@@ -88,13 +88,14 @@ Every session carries **six independent diagram slots** — `mermaid` (Mermaid t
 
 ## Office layer gotchas
 
-- **Office sound is one posture, not four checkboxes.** The desk menu carries 🎧 **Headphones**
-  (how the office reaches you) and 🔕 **Focus** (whether it does). `setOfficeHeadphones` in
-  `apps/web/src/state/officeMomentStore.js` is a **macro** that writes `narration`/`soundscape`/
-  `captions` — read those three, never `headphones`, from a consumer. Boot runs
-  `reconcileOfficeHeadphonesPosture()` so a stale pre-macro Voice key cannot desync the menu from
-  speech. Focus is also the advisor roundtable's mute; don't reintroduce a second one. See
-  [`docs/office-parody.md`](docs/office-parody.md) § Desk verbs.
+- **Office sound is one posture, not four checkboxes.** Menu bar **Admin** carries 🎧 **Headphones**
+  (how the office reaches you) and 🔕 **Focus** (whether it does), plus the Approved vendors strip.
+  The composer band holds Mail / Chat / Meeting as direct icons (`DeskActionsDock`), not a helmet
+  menu. `setOfficeHeadphones` in `apps/web/src/state/officeMomentStore.js` is a **macro** that
+  writes `narration`/`soundscape`/`captions` — read those three, never `headphones`, from a
+  consumer. Boot runs `reconcileOfficeHeadphonesPosture()` so a stale pre-macro Voice key cannot
+  desync the menu from speech. Focus is also the advisor roundtable's mute; don't reintroduce a
+  second one. See [`docs/office-parody.md`](docs/office-parody.md) § Desk verbs.
 - **The parody-OS frame is height-budgeted by one token.** `--desk-taskbar-h` (`App.css` `:root`)
   is what `.bottom-chrome` stacks on at _every_ breakpoint, and `.desk-os-taskbar` uses a fixed
   `height` + `box-sizing: border-box` so a tall child clips instead of silently shoving the
@@ -111,9 +112,11 @@ Every session carries **six independent diagram slots** — `mermaid` (Mermaid t
   sibling rather than out of the bar. Measured symptom: `.desk-os-taskbar-lead` collapsed to 19px
   and the presence faces painted over the window pills. Give the cluster its content-based
   minimum, floor each resident at what it must never lose, and `overflow: hidden` the resident
-  itself. Related trap: a narrow-viewport override for a taskbar selector must sit **after** the
-  base rule in `App.css` — same specificity, so the 360px block further up the file loses the
-  cascade and silently does nothing. Both pinned by `test/deskOsFrameStyles.test.js`.
+  itself. Below 360px the **XP chip yields before the presence strip** — who's around is the
+  office-life signal; HR progression still opens from Admin. Related trap: a narrow-viewport
+  override for a taskbar selector must sit **after** the base rule in `App.css` — same
+  specificity, so the 360px block further up the file loses the cascade and silently does
+  nothing. Both pinned by `test/deskOsFrameStyles.test.js`.
 - **Which verb goes where is frequency, not category.** Most-runs verbs stay on the bottom
   composer band; few-times-a-session verbs go to the menu bar (`DeskOsMenuBar`), persistent status
   goes to the taskbar tray (`DeskOsTaskbar`). Don't add a sixth command surface. See

@@ -6,7 +6,7 @@ import OfficeMomentShell from './OfficeMomentShell.jsx';
 /**
  * Brief desk-side arrival toasts for mail and IM (docs/office-parody.md).
  * Like the inbox badge pattern: announce who reached out, not the full body.
- * Unread counts live on the Your desk menu verbs once these auto-expire.
+ * Unread counts live on the composer Mail / Chat icons once these auto-expire.
  */
 export default function OfficeDeskArrival({ arrivals, onDismiss, onOpenEmail, onOpenIm }) {
   const copy = officeChromeCopy();

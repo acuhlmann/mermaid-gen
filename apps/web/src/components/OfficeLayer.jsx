@@ -44,8 +44,6 @@ import {
   markOfficeImsRead,
   pushOfficeEmail,
   pushOfficeImReply,
-  setOfficeFocusTime,
-  setOfficeHeadphones,
   subscribe,
   voteOfficeBattle
 } from '../state/officeMomentStore.js';
@@ -149,9 +147,7 @@ export default function OfficeLayer({
    */
   agentBusy = false,
   /** When false, #office-desk-bottom-slot is not in the bottom row (empty intro). */
-  deskActionsAnchorReady = false,
-  /** First-run empty state: reserved for callers that still want the menu open. */
-  deskMenuInitialOpen = false
+  deskActionsAnchorReady = false
 }) {
   const snapshot = useSyncExternalStore(subscribe, getOfficeSnapshot, getOfficeSnapshot);
   // Which renderer is on screen (ADR-0011). Surfaces that exist in both worlds
@@ -582,6 +578,7 @@ export default function OfficeLayer({
 
   const handleAdopt = useCallback(
     (prompt, colleagueId) => {
+      cancelOfficeNarration();
       dismissOfficeWalkBy();
       onAdoptPrompt?.(prompt, colleagueId);
     },
@@ -590,14 +587,26 @@ export default function OfficeLayer({
 
   const handleAdoptAll = useCallback(
     (prompts) => {
+      cancelOfficeNarration();
       dismissOfficeWalkBy();
       onAdoptAllPrompts?.(prompts);
     },
     [onAdoptAllPrompts]
   );
 
+  const handleDismissWalkBy = useCallback((id) => {
+    cancelOfficeNarration();
+    dismissOfficeWalkBy(id);
+  }, []);
+
+  const handleDeclineCoffee = useCallback(() => {
+    cancelOfficeNarration();
+    dismissOfficeCoffee();
+  }, []);
+
   const handleCoffeeDone = useCallback(() => {
     if (!getOfficeSnapshot().coffee?.accepted) return;
+    cancelOfficeNarration();
     dismissOfficeCoffee();
     onOfficeEvent?.('coffeeBreak');
   }, [onOfficeEvent]);
@@ -909,8 +918,8 @@ export default function OfficeLayer({
 
   /*
    * The desk renderer of the talk channel reads the same `imHistory` the floor
-   * and Slop Chat read; `channel: 'talk'` is what tells the three apart. Only
-   * the newest inbound line is spoken — an office is not a transcript.
+   * reads; `channel: 'talk'` is what keeps physical speech out of Slop Chat.
+   * Only the newest inbound line is spoken — an office is not a transcript.
    */
   const latestTalkLine = useMemo(() => {
     for (let i = snapshot.imHistory.length - 1; i >= 0; i -= 1) {
@@ -1032,11 +1041,6 @@ export default function OfficeLayer({
       onSummonSync={() => handleCallMeeting({ source: 'desk' })}
       canSummonSync={canCallMeeting}
       blockedReason={desk.blockedReason}
-      initialOpen={deskMenuInitialOpen}
-      focusTime={snapshot.focusTime}
-      headphones={snapshot.headphones}
-      onToggleFocusTime={setOfficeFocusTime}
-      onToggleHeadphones={setOfficeHeadphones}
     />
   );
   const deskSlot = useSyncExternalStore(
@@ -1058,17 +1062,17 @@ export default function OfficeLayer({
         onPropCue: handlePropCue,
         onFloorCue: handleFloorCue,
         onAdoptPrompt: handleAdopt,
-        onDismissWalkBy: dismissOfficeWalkBy,
+        onDismissWalkBy: handleDismissWalkBy,
         coffee: snapshot.coffee,
         battle: snapshot.battle,
         sceneHandlers: {
           narrateLine: snapshot.narration ? narrateLine : undefined,
           prefetchLine: snapshot.narration ? prefetchLine : undefined,
           onAcceptCoffee: handleAcceptCoffee,
-          onDeclineCoffee: dismissOfficeCoffee,
+          onDeclineCoffee: handleDeclineCoffee,
           onCoffeeDone: handleCoffeeDone,
           onAcceptBattle: acceptOfficeBattle,
-          onDeclineBattle: dismissOfficeBattle,
+          onDeclineBattle: handleBattleDone,
           onVoteBattle: handleBattleVote,
           onBattleDone: handleBattleDone
         },
@@ -1095,6 +1099,9 @@ export default function OfficeLayer({
       handlePropCue,
       handleFloorCue,
       handleAdopt,
+      handleDismissWalkBy,
+      handleDeclineCoffee,
+      handleAcceptCoffee,
       narrateLine,
       prefetchLine,
       handleCoffeeDone,
@@ -1140,7 +1147,7 @@ export default function OfficeLayer({
       />
       {suppressDistractions ? null : (
         <>
-          {/* Brief desk-side arrivals for mail and IM; unread badges live on Your desk. */}
+          {/* Brief desk-side arrivals for mail and IM; unread badges live on the comms icons. */}
           <OfficeDeskArrival
             arrivals={
               messengerOpen
@@ -1168,7 +1175,6 @@ export default function OfficeLayer({
               narration={snapshot.narration}
               narrateLine={snapshot.narration ? narrateLine : undefined}
               onAdoptPrompt={handleAdopt}
-              onOpenThread={(colleagueId) => handleOpenImMessage(colleagueId, null)}
             />
           )}
           <OfficeMessenger
@@ -1188,7 +1194,7 @@ export default function OfficeLayer({
           {onFloor ? null : (
             <OfficeWalkBy
               walkBy={snapshot.walkBy}
-              onDismiss={dismissOfficeWalkBy}
+              onDismiss={handleDismissWalkBy}
               onAdoptPrompt={handleAdopt}
             />
           )}
@@ -1200,7 +1206,7 @@ export default function OfficeLayer({
                 coffee={snapshot.coffee}
                 visibleLines={coffeeVisibleLines}
                 onAccept={handleAcceptCoffee}
-                onDecline={dismissOfficeCoffee}
+                onDecline={handleDeclineCoffee}
                 onDone={handleCoffeeDone}
                 narrateLine={snapshot.narration ? narrateLine : undefined}
                 prefetchLine={snapshot.narration ? prefetchLine : undefined}

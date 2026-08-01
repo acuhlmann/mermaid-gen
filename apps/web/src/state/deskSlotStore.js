@@ -1,6 +1,6 @@
 /**
  * Reactive handle for the bottom-row #office-desk-bottom-slot anchor. OfficeLayer
- * portals DeskActionsDock here; the slot is rendered by ArchiSlop below
+ * portals the desk comms cluster here; the slot is rendered by ArchiSlop below
  * OfficeLayer in the tree, so getElementById lookups can miss the first paint.
  */
 let deskSlotEl = null;

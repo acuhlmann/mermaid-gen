@@ -163,6 +163,17 @@ describe('officeMomentStore', () => {
     expect(getOfficeSnapshot().imHistory).toHaveLength(2);
   });
 
+  // Physical speech shares imHistory with FloorTalk / DeskSpeech, but it is
+  // not a Slop Chat ping — no toast, no unread badge.
+  it('records talk-channel lines without toast or unread badge', () => {
+    pushOfficeImPing({ colleagueId: 'gilfoyle', body: 'three services too many', channel: 'talk' });
+    const snap = getOfficeSnapshot();
+    expect(snap.imHistory).toHaveLength(1);
+    expect(snap.imHistory[0].channel).toBe('talk');
+    expect(snap.deskArrivals).toHaveLength(0);
+    expect(snap.imUnreadCount).toBe(0);
+  });
+
   it('caps IM history so a long session cannot grow it without bound', () => {
     for (let i = 0; i < IM_HISTORY_MAX + 12; i += 1) {
       pushOfficeImPing({ colleagueId: 'intern', body: `msg-${i}` });

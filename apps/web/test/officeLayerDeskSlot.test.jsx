@@ -37,7 +37,7 @@ describe('OfficeLayer desk actions portal', () => {
     cleanup();
   });
 
-  it('portals the desk trigger once the bottom nav slot mounts after hydrate', () => {
+  it('portals the comms cluster once the bottom nav slot mounts after hydrate', () => {
     const view = render(
       <>
         <OfficeLayer {...BASE_PROPS} deskActionsAnchorReady={false} />
@@ -45,7 +45,7 @@ describe('OfficeLayer desk actions portal', () => {
       </>
     );
 
-    expect(screen.queryByTestId('bottom-brand-mark')).toBeNull();
+    expect(screen.queryByTestId('desk-comms-cluster')).toBeNull();
 
     view.rerender(
       <>
@@ -54,35 +54,22 @@ describe('OfficeLayer desk actions portal', () => {
       </>
     );
 
-    expect(screen.getByTestId('bottom-brand-mark')).toBeTruthy();
-    expect(screen.getByRole('button', { name: /Your desk/i })).toBeTruthy();
+    expect(screen.getByTestId('desk-comms-cluster')).toBeTruthy();
+    expect(screen.getByTestId('desk-comms-inbox')).toBeTruthy();
+    expect(screen.getByTestId('desk-comms-slopChat')).toBeTruthy();
+    expect(screen.getByTestId('desk-comms-meeting')).toBeTruthy();
   });
 
   it('finds the slot when OfficeLayer renders before the bottom nav in tree order', () => {
     render(
       <>
-        <OfficeLayer {...BASE_PROPS} deskActionsAnchorReady deskMenuInitialOpen />
+        <OfficeLayer {...BASE_PROPS} deskActionsAnchorReady />
         <BottomNavSlot ready />
       </>
     );
 
-    expect(screen.getByTestId('bottom-brand-mark')).toBeTruthy();
-    expect(screen.getByRole('menu', { name: /Desk actions/i })).toBeTruthy();
-  });
-
-  it('opens the desk menu when deskMenuInitialOpen is set', () => {
-    render(
-      <>
-        <OfficeLayer {...BASE_PROPS} deskActionsAnchorReady deskMenuInitialOpen />
-        <BottomNavSlot ready />
-      </>
-    );
-
-    expect(screen.getByRole('menu', { name: /Desk actions/i })).toBeTruthy();
-    // Concentration moved to the taskbar tray in slice 2 — the desk menu is
-    // office verbs and ambience only now.
-    expect(screen.queryByTestId('concentration-control')).toBeNull();
-    expect(screen.getByRole('menuitem', { name: /Check your mail/i })).toBeTruthy();
+    expect(screen.getByTestId('desk-comms-cluster')).toBeTruthy();
+    expect(screen.queryByRole('menu')).toBeNull();
   });
 
   it('keeps the portal bound across re-renders', () => {
@@ -93,7 +80,7 @@ describe('OfficeLayer desk actions portal', () => {
       </>
     );
 
-    expect(screen.getByTestId('bottom-brand-mark')).toBeTruthy();
+    expect(screen.getByTestId('desk-comms-cluster')).toBeTruthy();
 
     view.rerender(
       <>
@@ -102,6 +89,6 @@ describe('OfficeLayer desk actions portal', () => {
       </>
     );
 
-    expect(screen.getByTestId('bottom-brand-mark')).toBeTruthy();
+    expect(screen.getByTestId('desk-comms-cluster')).toBeTruthy();
   });
 });

@@ -1,4 +1,5 @@
 import { useCallback, useState } from 'react';
+import DeskAttributionStrip from './DeskAttributionStrip.jsx';
 import DeskOsMenu, { DeskOsMenuItem, DeskOsMenuSection } from './DeskOsMenu.jsx';
 import IntroLocaleToggle from './IntroLocaleToggle.jsx';
 import OutboxDock from './OutboxDock.jsx';
@@ -92,11 +93,36 @@ function MailroomMenu({ menu, settings, options }) {
 }
 
 /**
- * The rare, boring, once-a-session verbs. "Onboard a contractor" is the single
- * doorway to external agents (docs/multi-human-office.md).
+ * Workstation prefs: once-a-session admin verbs, the two office sound postures
+ * (Headphones / Focus), and the Approved vendors attribution strip. "Onboard a
+ * contractor" is the single doorway to external agents (docs/multi-human-office.md).
  */
 function AdminMenu({ menu, copy, controls, desk, locale, setLocale, options }) {
   const languagePack = controls.languagePack ?? {};
+  const { headphones, focusTime, onToggleHeadphones, onToggleFocusTime } = options;
+  const ambienceToggles = [
+    typeof onToggleHeadphones === 'function'
+      ? {
+          id: 'headphones',
+          checked: Boolean(headphones),
+          emoji: '🎧',
+          label: desk.headphonesLabel,
+          title: headphones ? desk.headphonesOnTitle : desk.headphonesOffTitle,
+          onChange: () => onToggleHeadphones(!headphones)
+        }
+      : null,
+    typeof onToggleFocusTime === 'function'
+      ? {
+          id: 'focus',
+          checked: Boolean(focusTime),
+          emoji: '🔕',
+          label: desk.focusTimeLabel,
+          title: desk.focusTimeTitle,
+          onChange: () => onToggleFocusTime(!focusTime)
+        }
+      : null
+  ].filter(Boolean);
+
   return (
     <DeskOsMenu
       {...menu}
@@ -162,6 +188,32 @@ function AdminMenu({ menu, copy, controls, desk, locale, setLocale, options }) {
               onSelectLocale={setLocale}
             />
           </div>
+          <div className="desk-actions-menu-footer desk-os-admin-footer" role="none">
+            {ambienceToggles.length > 0 ? (
+              <div
+                className="desk-ambience-pack"
+                role="group"
+                aria-label={desk.ambienceAria}
+                data-testid="desk-ambience-pack"
+              >
+                {ambienceToggles.map((toggle) => (
+                  <label
+                    key={toggle.id}
+                    className={`office-focus-toggle desk-ambience-toggle desk-ambience-toggle--${toggle.id}`}
+                    title={toggle.title}
+                    data-testid={`desk-ambience-${toggle.id}`}
+                  >
+                    <input type="checkbox" checked={toggle.checked} onChange={toggle.onChange} />
+                    <span className="desk-ambience-toggle-emoji" aria-hidden="true">
+                      {toggle.emoji}
+                    </span>
+                    <span>{toggle.label}</span>
+                  </label>
+                ))}
+              </div>
+            ) : null}
+            <DeskAttributionStrip copy={desk.attribution} />
+          </div>
         </>
       )}
     </DeskOsMenu>
@@ -177,7 +229,8 @@ function AdminMenu({ menu, copy, controls, desk, locale, setLocale, options }) {
  * times a session lives up here, one click deep, like a real menu bar.
  *
  * Behaviour-only props: App owns every handler and copy comes from the bundle.
- * Nothing here is office state, so the bar never needs the office layer.
+ * Office posture (Headphones / Focus) is passed in — the bar never imports the
+ * office store itself.
  *
  * @param {object} props
  */
@@ -196,6 +249,10 @@ export default function DeskOsMenuBar({
   onOpenContractor,
   onOpenHrProgression,
   onOpenHotkeys,
+  headphones = false,
+  focusTime = false,
+  onToggleHeadphones = null,
+  onToggleFocusTime = null,
   /** First-run tour: which menu the coach tip is pointing at. */
   tourHighlight = null
 }) {
@@ -261,7 +318,11 @@ export default function DeskOsMenuBar({
         options={{
           onOpenContractor,
           onOpenHrProgression,
-          onOpenHotkeys
+          onOpenHotkeys,
+          headphones,
+          focusTime,
+          onToggleHeadphones,
+          onToggleFocusTime
         }}
       />
     </div>

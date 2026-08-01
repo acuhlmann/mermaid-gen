@@ -13,7 +13,7 @@ const MIN_MENU_WIDTH_PX = 210;
 
 /**
  * Menu-bar dropdowns fall *downward* from the top strip — the mirror image of
- * the desk menus (`DeskActionsDock`, the old `DeskDrawer`), which rise from the
+ * the bottom-anchored menus (the old `DeskDrawer` / desk stamp), which rise from the
  * bottom chrome. Same clamping arithmetic, opposite axis.
  *
  * @param {DOMRect} anchorRect

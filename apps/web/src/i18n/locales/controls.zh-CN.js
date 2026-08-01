@@ -99,8 +99,8 @@ export const CONTROLS_ZH_CN = {
     viewTitle: '视图 · 代码抽屉、笔记本、全屏',
     viewAria: '面板与屏幕',
     admin: '行政',
-    adminTitle: '行政 · 外包、人事、语言、快捷键',
-    adminAria: '行政 — 外包、人事、语言、快捷键',
+    adminTitle: '行政 · 外包、人事、耳机、语言、快捷键',
+    adminAria: '行政 — 外包、人事、耳机、语言、快捷键',
     hotkeys: '键盘快捷键'
   },
   languagePack: {

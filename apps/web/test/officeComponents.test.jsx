@@ -196,10 +196,9 @@ describe('CallMeetingPicker', () => {
       />
     );
     expect(screen.getByDisplayValue('FRIDGE CLEANOUT FRIDAY')).toBeTruthy();
-    expect(screen.getByText(/From your inbox/i)).toBeTruthy();
-    expect(
-      screen.getByRole('button', { name: /Slap on headsets/i }).getAttribute('aria-pressed')
-    ).toBe('true');
+    expect(screen.getByRole('button', { name: /Headsets/i }).getAttribute('aria-pressed')).toBe(
+      'true'
+    );
     fireEvent.click(screen.getByRole('button', { name: 'Your team' }));
     fireEvent.click(screen.getByRole('button', { name: /Dial in|Book it|Start/ }));
     expect(onConfirm).toHaveBeenCalled();
@@ -223,9 +222,9 @@ describe('CallMeetingPicker', () => {
         onCancel={vi.fn()}
       />
     );
-    expect(
-      screen.getByRole('button', { name: /Book the glass room/i }).getAttribute('aria-pressed')
-    ).toBe('true');
+    expect(screen.getByRole('button', { name: /^Room$/i }).getAttribute('aria-pressed')).toBe(
+      'true'
+    );
     fireEvent.click(screen.getByRole('button', { name: 'Steering' }));
     fireEvent.click(screen.getByRole('button', { name: /Dial in|Book it|Start/ }));
     expect(onConfirm).toHaveBeenCalled();

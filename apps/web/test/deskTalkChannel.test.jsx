@@ -97,6 +97,15 @@ describe('OfficeDeskSpeech', () => {
     expect(screen.getByText(/Gilfoyle/)).toBeTruthy();
   });
 
+  // Headphones off = hear the office: do not flash the spoken line as text
+  // before TTS starts (walk-by already gates on the narration preference).
+  it('hides the remark immediately when narration is on and CC is off', () => {
+    const narrateLine = vi.fn(() => new Promise(() => {}));
+    render(<OfficeDeskSpeech line={LINE} narration narrateLine={narrateLine} captions={false} />);
+    expect(screen.queryByText(LINE.body)).toBeNull();
+    expect(screen.getByText(/Gilfoyle/)).toBeTruthy();
+  });
+
   it('shows the remark when narration fails and CC stays off', async () => {
     render(
       <OfficeDeskSpeech
@@ -109,13 +118,20 @@ describe('OfficeDeskSpeech', () => {
     expect(await screen.findByText(LINE.body)).toBeTruthy();
   });
 
+  // Physical speech is not Slop Chat — no "open the thread" that dumps the
+  // line into the messenger window.
+  it('does not offer a Slop Chat thread link for desk speech', () => {
+    render(<OfficeDeskSpeech line={LINE} onOpenThread={vi.fn()} />);
+    expect(screen.queryByRole('button', { name: /Open the thread/i })).toBeNull();
+  });
+
   it('renders nothing without a line', () => {
     const { container } = render(<OfficeDeskSpeech line={null} />);
     expect(container.querySelector('.office-desk-speech-stack')).toBeNull();
   });
 
-  it('dismisses the card without touching the thread', () => {
-    render(<OfficeDeskSpeech line={LINE} onOpenThread={vi.fn()} />);
+  it('dismisses the card without touching history', () => {
+    render(<OfficeDeskSpeech line={LINE} />);
     fireEvent.click(screen.getByRole('button', { name: /Back to work/i }));
     expect(screen.queryByText('That is three services too many.')).toBeNull();
   });

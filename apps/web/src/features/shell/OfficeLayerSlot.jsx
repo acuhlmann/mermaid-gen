@@ -83,7 +83,6 @@ export function OfficeLayerSlot({
       playChime={tryAgentSound}
       runSignal={officeRunSignal}
       deskActionsAnchorReady={entryReveal.desk}
-      deskMenuInitialOpen={false}
     />
   );
 }

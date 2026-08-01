@@ -2,7 +2,8 @@ import { useCallback } from 'react';
 import { officeChromeCopy, officeSenderInfo } from '../utils/officeCast.js';
 import {
   HUDDLE_SEAT_STAGGER_MS,
-  delegatablePrompt,
+  adoptPromptFor,
+  beatForSpeaker,
   useHuddleRingControls
 } from '../hooks/useHuddleRingControls.js';
 import { formatLocale } from '../i18n/formatLocale.js';
@@ -17,15 +18,16 @@ export {
 /**
  * Where each teammate leans in from. Order matters: the first four cover all
  * four edges, so a short-handed huddle still surrounds you, and the last two
- * double up top and bottom where there is the most room.
+ * fill the remaining thirds on the long edges. Side seats sit mid-edge so they
+ * never share a corner with a top/bottom face (Russ/Richard used to collide).
  */
 const SEAT_SLOTS = [
-  { side: 'top', pos: '28%' },
-  { side: 'right', pos: '36%' },
+  { side: 'top', pos: '32%' },
+  { side: 'right', pos: '50%' },
   { side: 'bottom', pos: '68%' },
-  { side: 'left', pos: '42%' },
-  { side: 'top', pos: '72%' },
-  { side: 'bottom', pos: '30%' }
+  { side: 'left', pos: '50%' },
+  { side: 'top', pos: '68%' },
+  { side: 'bottom', pos: '32%' }
 ];
 
 /**
@@ -34,7 +36,7 @@ const SEAT_SLOTS = [
  * which reads as a mob nobody turned up to. The right edge at eye level reads
  * as the chair they pulled over.
  */
-const PAIR_SLOT = { side: 'right', pos: '46%' };
+const PAIR_SLOT = { side: 'right', pos: '48%' };
 
 function seatFor(index, pairing = false) {
   if (pairing) return PAIR_SLOT;
@@ -78,6 +80,7 @@ export default function HuddleOverlay({
     activeSpeakerId,
     pinnedBeat,
     pinnedPrompt,
+    visibleLines = 0,
     showText,
     unpin,
     handleDoIt,
@@ -90,6 +93,7 @@ export default function HuddleOverlay({
 
   if (!huddle) return null;
 
+  const beats = huddle.beats ?? [];
   const partner = pairing ? officeSenderInfo(huddle.attendees[0]) : null;
   const endLabel = pairing ? (copy.pairEnd ?? copy.hardStop) : copy.hardStop;
   const endTitle = pairing
@@ -126,10 +130,23 @@ export default function HuddleOverlay({
         const isPinned = pinnedSpeakerId === id;
         const isFetching = fetchingSpeakerId === id;
         const isRepeating = repeatingSpeakerId === id;
-        const beat = isPinned ? pinnedBeat : isSpeaking ? activeBeat : null;
-        const actionPrompt = isPinned ? pinnedPrompt : delegatablePrompt(beat);
+        const beatIndex = beats.findIndex((b) => b.speakerId === id);
+        const seatBeat = beatIndex >= 0 ? beats[beatIndex] : beatForSpeaker(huddle, id);
+        /** Keep Do it beside anyone who has already spoken — offers live next to
+         * that face, not in the bottom chrome. */
+        const hasSpoken = beatIndex >= 0 && beatIndex < visibleLines;
+        const beat = isPinned ? pinnedBeat : isSpeaking ? activeBeat : hasSpoken ? seatBeat : null;
+        const actionPrompt = watching
+          ? null
+          : isPinned
+            ? pinnedPrompt
+            : isSpeaking || hasSpoken
+              ? adoptPromptFor(isSpeaking ? activeBeat : seatBeat, { fallbackToText: true })
+              : null;
         const hideRemarkText =
-          (isPinned && (isRepeating || isFetching)) || ((isSpeaking || isPinned) && !showText);
+          (isPinned && (isRepeating || isFetching)) ||
+          ((isSpeaking || isPinned) && !showText) ||
+          (!isSpeaking && !isPinned && hasSpoken);
         const showRemarkText = Boolean(beat?.text) && !hideRemarkText;
         const showFetching = isFetching && !beat?.text;
         const showBubble = showRemarkText || Boolean(actionPrompt) || showFetching;
@@ -145,7 +162,8 @@ export default function HuddleOverlay({
               isPinned ? 'is-pinned' : '',
               isFetching ? 'is-fetching' : '',
               isRepeating ? 'is-repeating' : '',
-              watching ? 'is-watching' : ''
+              watching ? 'is-watching' : '',
+              actionPrompt ? 'has-do-it' : ''
             ]
               .filter(Boolean)
               .join(' ')}
@@ -172,7 +190,7 @@ export default function HuddleOverlay({
                 }
               )}
             >
-              <PersonaFace id={id} size={72} className="office-huddle-face" />
+              <PersonaFace id={id} size={52} className="office-huddle-face" />
               <span className="office-huddle-name">{person.name}</span>
             </button>
             {showBubble ? (
@@ -200,7 +218,11 @@ export default function HuddleOverlay({
                   <button
                     type="button"
                     className="office-do-it office-huddle-do-it"
-                    onClick={() => handleDoIt(id, actionPrompt)}
+                    data-testid={`office-huddle-do-it-${id}`}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      handleDoIt(id, actionPrompt);
+                    }}
                     title={copy.delegateTitle ?? 'Open the notebook with this ask'}
                   >
                     {copy.delegate ?? officeChromeCopy().doIt}

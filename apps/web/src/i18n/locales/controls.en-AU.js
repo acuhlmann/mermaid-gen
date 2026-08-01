@@ -150,8 +150,8 @@ export const CONTROLS_EN_AU = {
     viewTitle: 'View · code drawer, notebook, full screen',
     viewAria: 'Panels and screen',
     admin: 'Admin',
-    adminTitle: 'Admin · contractors, HR, language, hotkeys',
-    adminAria: 'Admin — contractors, HR, language, hotkeys',
+    adminTitle: 'Admin · contractors, HR, headphones, language, hotkeys',
+    adminAria: 'Admin — contractors, HR, headphones, language, hotkeys',
     hotkeys: 'Keyboard shortcuts'
   },
   languagePack: {

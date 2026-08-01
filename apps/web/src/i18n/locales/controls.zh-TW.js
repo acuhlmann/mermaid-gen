@@ -99,8 +99,8 @@ export const CONTROLS_ZH_TW = {
     viewTitle: '檢視 · 程式碼抽屜、筆記本、全螢幕',
     viewAria: '面板與螢幕',
     admin: '行政',
-    adminTitle: '行政 · 外包、人事、語言、快速鍵',
-    adminAria: '行政 — 外包、人事、語言、快速鍵',
+    adminTitle: '行政 · 外包、人事、耳機、語言、快速鍵',
+    adminAria: '行政 — 外包、人事、耳機、語言、快速鍵',
     hotkeys: '鍵盤快速鍵'
   },
   languagePack: {

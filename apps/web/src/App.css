@@ -5643,18 +5643,20 @@
   }
 
   .prompt-actions--desktop #office-desk-bottom-slot .desk-actions--bottom {
-    gap: 0.45rem;
+    gap: 0.35rem;
   }
-}
 
-/* Top chip keeps name/XP; the helmet stamp lives on the desk-actions trigger
-   in the bottom row so it shares a baseline with Prompt / Render as / cast. */
-.app-shell.has-bottom-brand .brand-control .brand-mark {
-  display: none;
-}
+  .prompt-actions--desktop #office-desk-bottom-slot .desk-comms-cluster {
+    gap: 0.28rem;
+  }
 
-.app-shell.has-bottom-brand .brand-control-chip {
-  padding-left: 0.72rem;
+  .prompt-actions--desktop
+    #office-desk-bottom-slot
+    .slop-action-button.desk-comms-button
+    .desk-comms-emoji {
+    font-size: 1.05rem;
+    line-height: 1;
+  }
 }
 
 @media (max-width: 1024px) {
@@ -5898,22 +5900,18 @@
   }
 
   /* Speech bubble / thinking chip: float above the action bar without shifting buttons.
-     Size to content but allow it to extend toward the viewport edges so the cast
-     strip avatars stay on one row instead of wrapping into a squashed grid.
-     The chip is anchored to the mascot wrap's LEFT edge, and the mascot sits a
-     few buttons into the row — so `calc(100vw - …)` alone (which assumes a
-     screen-left origin) let a wide chip run off the right edge and hide the
-     "Do it" button. Reserve the width taken up by the leading buttons (Brand +
-     Prompt + Render-as) so the chip stays fully on-screen from wherever the
-     mascot sits; narrow viewports just wrap it taller, which is fine now that
-     nothing clips it vertically. */
+     Keep a compact width so Do it / cast controls stay on-screen; the cast strip may
+     wrap on narrow viewports. The chip is anchored to the mascot wrap's LEFT edge,
+     and the mascot sits a few buttons into the row — so `calc(100vw - …)` alone
+     (which assumes a screen-left origin) let a wide chip run off the right edge.
+     Reserve the width taken up by the leading buttons (Brand + Prompt + Render-as). */
   .prompt-actions--mobile .advisor-speech-bubble,
   .prompt-actions--mobile .advisor-thinking-indicator {
     position: absolute;
     left: 0;
     right: auto;
     bottom: calc(100% + 0.35rem);
-    width: max-content;
+    width: min(22rem, calc(100vw - 10rem));
     min-width: 0;
     max-width: min(22rem, calc(100vw - 10rem));
     max-height: min(
@@ -5930,9 +5928,8 @@
     flex: none;
     order: unset;
     z-index: 50;
-    overflow-y: auto;
+    overflow: hidden;
     overscroll-behavior: contain;
-    -webkit-overflow-scrolling: touch;
   }
 
   .prompt-actions--mobile .advisor-speech-bubble.is-richard {
@@ -15513,7 +15510,7 @@ body.slopitect-rainbow-tint::before {
   align-items: flex-start;
   gap: 0.5rem;
   min-width: 0;
-  max-width: min(32rem, calc(100vw - 2rem));
+  max-width: min(22rem, calc(100vw - 2rem));
   pointer-events: auto;
 }
 
@@ -15530,7 +15527,7 @@ body.slopitect-rainbow-tint::before {
   right: auto;
   bottom: auto;
   margin: 0;
-  max-width: min(32rem, calc(100vw - 2rem));
+  max-width: min(22rem, calc(100vw - 2rem));
   max-height: min(28rem, var(--advisor-float-max-h, 24rem));
 }
 
@@ -16189,13 +16186,14 @@ body.slopitect-rainbow-tint::before {
   position: absolute;
   left: 0;
   bottom: calc(100% + 0.55rem);
-  width: max-content;
-  max-width: min(32rem, calc(100vw - 2rem));
+  width: min(22rem, calc(100vw - 2rem));
+  max-width: min(22rem, calc(100vw - 2rem));
   /* The Wise Architect bubble is taller (cast strip + comment + Dumb it Down / Drill
      Deeper). Without a viewport cap it can grow above the top edge and get clipped
      by `.app-shell { overflow: hidden }` — looks like the popup vanishes right
      after the thinking chip hands off. StakeholdersMascot also publishes
-     `--advisor-float-max-h` from the live anchor position for a tighter fit. */
+     `--advisor-float-max-h` from the live anchor position for a tighter fit.
+     Scroll the body, not the whole card, so Do it / cast controls stay in view. */
   max-height: min(
     24rem,
     var(
@@ -16222,9 +16220,8 @@ body.slopitect-rainbow-tint::before {
     0 2px 8px rgba(15, 23, 42, 0.12);
   pointer-events: auto;
   z-index: 30;
-  overflow-y: auto;
+  overflow: hidden;
   overscroll-behavior: contain;
-  -webkit-overflow-scrolling: touch;
   animation: advisor-bubble-in 240ms cubic-bezier(0.22, 1.18, 0.62, 1);
 }
 
@@ -16277,7 +16274,7 @@ body.slopitect-rainbow-tint::before {
 .advisor-speech-bubble.is-richard .advisor-speech-main {
   min-height: 0;
   width: 100%;
-  max-width: min(32rem, calc(100vw - 2rem));
+  max-width: 100%;
 }
 
 .advisor-speech-pin {
@@ -16295,14 +16292,21 @@ body.slopitect-rainbow-tint::before {
   column-gap: 0.6rem;
   row-gap: 0.35rem;
   align-items: start;
+  align-content: start;
   min-width: 0;
   min-height: 0;
+  flex: 1 1 auto;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
 
 .advisor-speech-cast {
   flex: 0 0 auto;
   align-self: stretch;
-  min-width: max-content;
+  min-width: 0;
+  width: 100%;
 }
 
 /* "<persona> is thinking…" — compact pre-bubble shown while the LLM call is
@@ -16311,7 +16315,8 @@ body.slopitect-rainbow-tint::before {
   position: absolute;
   left: 0;
   bottom: calc(100% + 0.55rem);
-  max-width: min(24rem, calc(100vw - 2rem));
+  width: min(22rem, calc(100vw - 2rem));
+  max-width: min(22rem, calc(100vw - 2rem));
   max-height: min(
     24rem,
     var(
@@ -16335,9 +16340,8 @@ body.slopitect-rainbow-tint::before {
     0 1px 4px rgba(15, 23, 42, 0.08);
   pointer-events: none;
   z-index: 30;
-  overflow-y: auto;
+  overflow: hidden;
   overscroll-behavior: contain;
-  -webkit-overflow-scrolling: touch;
   animation: advisor-bubble-in 200ms cubic-bezier(0.22, 1.18, 0.62, 1);
 }
 
@@ -16505,6 +16509,10 @@ body.slopitect-rainbow-tint::before {
   min-width: 0;
   padding-top: 0.22rem;
   border-top: 1px solid color-mix(in srgb, var(--advisor-accent, var(--accent)) 18%, transparent);
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.98) 35%);
 }
 
 .advisor-speech-history-nav {
@@ -16559,9 +16567,9 @@ body.slopitect-rainbow-tint::before {
 
 .advisor-thinking-cast .stakeholder-cast-strip,
 .advisor-speech-cast .stakeholder-cast-strip {
-  width: max-content;
-  min-width: 100%;
-  max-width: none;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .advisor-thinking-cast .stakeholder-cast-strip {
@@ -16570,7 +16578,7 @@ body.slopitect-rainbow-tint::before {
 
 .advisor-speech-cast .stakeholder-cast-strip-avatars,
 .advisor-thinking-cast .stakeholder-cast-strip-avatars {
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
 }
 
 .advisor-speech-persona {
@@ -16707,7 +16715,7 @@ body.slopitect-rainbow-tint::before {
 
 @media (max-width: 540px) {
   .advisor-speech-bubble {
-    width: max-content;
+    width: min(100vw - 1rem, 22rem);
     min-width: 0;
     max-width: calc(100vw - 1rem);
     padding: 0.5rem 0.55rem;
@@ -17279,6 +17287,35 @@ body.slopitect-rainbow-tint::before {
   align-items: center;
   align-self: center;
   gap: 0.35rem;
+}
+
+/* Mail / Chat / Meeting icons — independent badges, no dropdown. */
+.desk-comms-cluster {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 0.28rem;
+}
+
+.desk-comms-cluster .desk-comms-emoji {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.05rem;
+  line-height: 1;
+}
+
+.desk-comms-cluster .desk-actions-unread-badge {
+  top: -0.35rem;
+  right: -0.35rem;
+  left: auto;
+  z-index: 1;
+}
+
+.desk-os-admin-footer {
+  margin-top: 0.35rem;
 }
 
 /* Bottom-row trigger: same ArchiSlop helmet stamp as the old brand control —
@@ -17941,11 +17978,11 @@ body.slopitect-rainbow-tint::before {
 /* --- Summon a sync people/group picker --- */
 .office-meeting-picker {
   width: min(380px, calc(100vw - 32px));
-  max-height: min(480px, calc(100vh - 32px));
+  max-height: min(560px, calc(100vh - 32px));
 }
 .office-meeting-picker-panel {
   width: min(380px, calc(100vw - 32px));
-  max-height: min(480px, calc(100vh - 32px));
+  max-height: min(560px, calc(100vh - 32px));
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -17961,6 +17998,7 @@ body.slopitect-rainbow-tint::before {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 6px;
+  flex: 0 0 auto;
 }
 .office-meeting-picker-modality-btn {
   appearance: none;
@@ -17972,12 +18010,13 @@ body.slopitect-rainbow-tint::before {
   border-radius: 10px;
   background: rgba(15, 23, 42, 0.03);
   color: var(--text);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
-  padding: 8px 10px;
+  padding: 7px 10px;
   cursor: pointer;
   line-height: 1.25;
   text-align: center;
+  white-space: nowrap;
 }
 .office-meeting-picker-modality-btn:hover {
   background: rgba(15, 23, 42, 0.07);
@@ -17990,26 +18029,15 @@ body.slopitect-rainbow-tint::before {
 }
 .office-meeting-picker-header {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 8px;
+  flex: 0 0 auto;
 }
 .office-meeting-picker-title {
   font-size: 15px;
   font-weight: 700;
   color: var(--text);
-}
-.office-meeting-picker-tagline,
-.office-meeting-picker-source {
-  margin: 2px 0 0;
-  font-size: 11px;
-  color: var(--muted);
-  line-height: 1.35;
-}
-.office-meeting-picker-source {
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
-  font-size: 10px;
+  min-width: 0;
 }
 .office-meeting-picker-close {
   margin-left: auto;
@@ -18021,20 +18049,20 @@ body.slopitect-rainbow-tint::before {
   line-height: 1;
   cursor: pointer;
   padding: 0 4px;
+  flex: 0 0 auto;
 }
 .office-meeting-picker-close:hover {
   color: var(--text);
 }
 .office-meeting-picker-topic {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--muted);
+  display: block;
+  flex: 0 0 auto;
 }
 .office-meeting-picker-topic input {
   appearance: none;
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
   border: 1px solid var(--control-border);
   border-radius: 8px;
   background: var(--bg, #fff);
@@ -18051,6 +18079,7 @@ body.slopitect-rainbow-tint::before {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+  flex: 0 0 auto;
 }
 .office-meeting-picker-group {
   appearance: none;
@@ -18070,8 +18099,7 @@ body.slopitect-rainbow-tint::before {
 .office-meeting-picker-directory {
   overflow: auto;
   flex: 1 1 auto;
-  min-height: 0;
-  max-height: 150px;
+  min-height: 180px;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -18146,14 +18174,6 @@ body.slopitect-rainbow-tint::before {
   background: color-mix(in srgb, var(--accent) 6%, var(--modal-card-bg));
   min-height: 0;
 }
-.office-meeting-picker-selected-label {
-  flex: 0 0 auto;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
 .office-meeting-picker-selected-avatars {
   display: flex;
   flex-wrap: nowrap;
@@ -18212,12 +18232,12 @@ body.slopitect-rainbow-tint::before {
 }
 .office-meeting-picker-toolbar {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
   gap: 8px;
   flex: 0 0 auto;
-  padding-bottom: 4px;
-  border-bottom: 1px solid var(--control-border);
+  padding-top: 4px;
+  border-top: 1px solid var(--control-border);
   background: var(--office-surface-bg);
   z-index: 1;
 }
@@ -18227,13 +18247,17 @@ body.slopitect-rainbow-tint::before {
 .office-meeting-picker-count {
   font-size: 11px;
   color: var(--muted);
-  flex: 1;
-  min-width: 120px;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .office-meeting-picker-actions {
   display: flex;
   gap: 6px;
   margin-left: auto;
+  flex: 0 0 auto;
 }
 .office-meeting-picker-cancel,
 .office-meeting-picker-start {
@@ -18243,6 +18267,7 @@ body.slopitect-rainbow-tint::before {
   font-weight: 600;
   padding: 6px 12px;
   cursor: pointer;
+  white-space: nowrap;
 }
 .office-meeting-picker-cancel {
   border: 1px solid var(--control-border);
@@ -19212,10 +19237,12 @@ body.slopitect-rainbow-tint::before {
 .office-huddle-shade {
   position: absolute;
   inset: 0;
+  /* Keep the diagram column clear — seats hug the rim; the vignette only
+     darkens the outer band so the middle stays readable. */
   background: radial-gradient(
     ellipse at center,
-    transparent 34%,
-    color-mix(in srgb, #0f172a 26%, transparent) 100%
+    transparent 52%,
+    color-mix(in srgb, #0f172a 18%, transparent) 100%
   );
   pointer-events: none;
 }
@@ -19235,11 +19262,12 @@ body.slopitect-rainbow-tint::before {
     transform 180ms ease-out,
     opacity 180ms ease-out;
 }
-/* Seats sit fully inside the layer. The "leaning in from off-screen" read comes
- * from the enter keyframes, which start each one a full width/height outside —
- * overhanging the resting pose too would clip faces and truncate name chips. */
+/* Seats sit fully inside the layer on the rim. The "leaning in from off-screen"
+ * read comes from the enter keyframes — overhanging the resting pose would clip
+ * faces under `overflow: hidden`. Keep the inset tight so the diagram keeps the
+ * middle. */
 .office-huddle-seat.is-side-top {
-  top: 0.45rem;
+  top: 0.15rem;
   left: var(--huddle-pos);
   transform: translateX(-50%);
 }
@@ -19251,18 +19279,22 @@ body.slopitect-rainbow-tint::before {
   transform: translateX(-50%);
 }
 .office-huddle-seat.is-side-left {
-  left: 0.45rem;
+  left: 0.15rem;
   top: var(--huddle-pos);
   transform: translateY(-50%);
 }
 .office-huddle-seat.is-side-right {
-  right: 0.45rem;
+  right: 0.15rem;
   top: var(--huddle-pos);
   transform: translateY(-50%);
 }
-/* Listening teammates recede so the speaker is unambiguous at a glance. */
+/* Listening teammates recede so the speaker is unambiguous at a glance.
+ * Seats that still offer Do it stay readable — a faded adopt button is easy to miss. */
 .office-huddle-seat.is-listening {
   opacity: 0.5;
+}
+.office-huddle-seat.is-listening.has-do-it {
+  opacity: 0.92;
 }
 .office-huddle-seat.is-pinned {
   opacity: 1;
@@ -19270,11 +19302,11 @@ body.slopitect-rainbow-tint::before {
 }
 .office-huddle-seat.is-pinned.is-side-top,
 .office-huddle-seat.is-pinned.is-side-bottom {
-  transform: translateX(-50%) scale(1.08);
+  transform: translateX(-50%) scale(1.04);
 }
 .office-huddle-seat.is-pinned.is-side-left,
 .office-huddle-seat.is-pinned.is-side-right {
-  transform: translateY(-50%) scale(1.08);
+  transform: translateY(-50%) scale(1.04);
 }
 .office-huddle-seat.is-watching {
   opacity: 0.85;
@@ -19306,11 +19338,11 @@ body.slopitect-rainbow-tint::before {
 }
 .office-huddle-seat.is-speaking.is-side-top,
 .office-huddle-seat.is-speaking.is-side-bottom {
-  transform: translateX(-50%) scale(1.08);
+  transform: translateX(-50%) scale(1.04);
 }
 .office-huddle-seat.is-speaking.is-side-left,
 .office-huddle-seat.is-speaking.is-side-right {
-  transform: translateY(-50%) scale(1.08);
+  transform: translateY(-50%) scale(1.04);
 }
 .office-huddle-face {
   display: block;
@@ -19359,17 +19391,19 @@ body.slopitect-rainbow-tint::before {
 }
 .office-huddle-bubble {
   position: absolute;
-  width: min(220px, 38vw);
+  width: min(156px, 28vw);
+  max-width: 11.5rem;
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
-  padding: 0.45rem 0.6rem;
+  gap: 0.3rem;
+  padding: 0.38rem 0.5rem;
   text-align: center;
-  background: color-mix(in srgb, var(--office-surface-bg) 92%, transparent);
+  background: color-mix(in srgb, var(--office-surface-bg) 96%, transparent);
   border: 1px solid
     color-mix(in srgb, var(--huddle-accent, var(--accent)) 28%, var(--control-border));
   border-radius: 10px;
   box-shadow: 0 4px 14px rgba(15, 23, 42, 0.12);
+  z-index: 3;
 }
 .office-huddle-bubble.is-pinned {
   border-color: color-mix(in srgb, var(--huddle-accent, var(--accent)) 70%, var(--control-border));
@@ -19404,18 +19438,27 @@ body.slopitect-rainbow-tint::before {
   color: var(--text);
   text-shadow: 0 1px 2px rgba(255, 255, 255, 0.55);
 }
-/* The bubble always points back into the canvas, away from its own edge. */
+/* Bubbles stay close to the rim. Top/bottom centre on the seat; left/right sit
+ * just inside the face so they do not claim a wide column of diagram space. */
 .office-huddle-seat.is-side-top .office-huddle-bubble {
-  top: calc(100% + 0.4rem);
+  top: calc(100% + 0.3rem);
+  left: 50%;
+  transform: translateX(-50%);
 }
 .office-huddle-seat.is-side-bottom .office-huddle-bubble {
-  bottom: calc(100% + 0.4rem);
+  bottom: calc(100% + 0.3rem);
+  left: 50%;
+  transform: translateX(-50%);
 }
 .office-huddle-seat.is-side-left .office-huddle-bubble {
-  left: calc(100% + 0.4rem);
+  left: calc(100% + 0.25rem);
+  top: 50%;
+  transform: translateY(-50%);
 }
 .office-huddle-seat.is-side-right .office-huddle-bubble {
-  right: calc(100% + 0.4rem);
+  right: calc(100% + 0.25rem);
+  top: 50%;
+  transform: translateY(-50%);
 }
 .office-huddle-line {
   margin: 0;
@@ -19443,22 +19486,29 @@ body.slopitect-rainbow-tint::before {
   color: var(--huddle-accent, var(--accent));
 }
 .office-huddle-seat.is-side-top .office-huddle-speaking-label {
-  top: calc(100% + 0.35rem);
+  top: calc(100% + 0.28rem);
+  left: 50%;
+  transform: translateX(-50%);
 }
 .office-huddle-seat.is-side-bottom .office-huddle-speaking-label {
-  bottom: calc(100% + 0.35rem);
+  bottom: calc(100% + 0.28rem);
+  left: 50%;
+  transform: translateX(-50%);
 }
 .office-huddle-seat.is-side-left .office-huddle-speaking-label {
-  left: calc(100% + 0.35rem);
+  left: calc(100% + 0.25rem);
+  top: 50%;
+  transform: translateY(-50%);
 }
 .office-huddle-seat.is-side-right .office-huddle-speaking-label {
-  right: calc(100% + 0.35rem);
+  right: calc(100% + 0.25rem);
+  top: 50%;
+  transform: translateY(-50%);
 }
 .office-huddle-do-it {
   align-self: center;
-}
-.office-huddle-chrome-do-it {
-  pointer-events: auto;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.18);
 }
 .office-huddle-chrome {
   position: absolute;
@@ -19470,6 +19520,7 @@ body.slopitect-rainbow-tint::before {
   align-items: center;
   gap: 0.35rem;
   pointer-events: auto;
+  z-index: 4;
 }
 .office-huddle-gathering {
   margin: 0;
@@ -19505,7 +19556,7 @@ body.slopitect-rainbow-tint::before {
 }
 @media (max-width: 720px) {
   .office-huddle-bubble {
-    width: min(200px, 62vw);
+    width: min(140px, 42vw);
   }
   .office-huddle-name {
     font-size: 10px;
@@ -22863,11 +22914,12 @@ body.slopitect-rainbow-tint::before {
   }
 
   /* The XP *bar* needs ~170px it does not have here; the level chip is the part
-     that carries the standing. Tap target and level panel are unchanged.
-     The `max-width: 540px` rule above hides the level text instead — that trade
-     was made when the bar lived in the brand chip and had to fit beside the
-     wordmark. In the tray the trade inverts: "Lvl 4" is the information, the
-     track is the decoration. */
+     that carries the standing until 360px, where the whole chip yields to the
+     presence faces (Admin still opens HR progression). Tap target and level
+     panel are unchanged while the chip is visible. The `max-width: 540px` rule
+     above hides the level text instead — that trade was made when the bar lived
+     in the brand chip and had to fit beside the wordmark. In the tray the trade
+     inverts: "Lvl 4" is the information, the track is the decoration. */
   .desk-os-taskbar-xp .xp-progress-bar-track,
   .desk-os-taskbar-xp .xp-progress-bar-xp {
     display: none;
@@ -22904,18 +22956,16 @@ body.slopitect-rainbow-tint::before {
 }
 
 /* Last rung of the taskbar's demotion ladder. Below this the bar is Stand up,
-   the window list, the run status and your standing — every one already down to
-   a glyph — and there is no width left to also be a window onto the floor.
+   the presence faces, the window list and the run status — every one already
+   down to a glyph. HR standing (the XP chip) yields before the presence strip:
+   "who's around" is the office-life signal; level text still lives under
+   Admin → Check my HR progression.
 
-   ADR-0011 rule 3 decides *which* of the pair goes: diegesis duplicates and
-   never replaces, so when only one fits it is the labelled control that stays.
-   Standing up still works here; it just stops being decorated.
-
-   It has to live after the base rule rather than joining the other 360px rules
-   further up the file — same specificity, so the later `display: inline-flex`
-   would win and this would silently do nothing. */
+   It has to live after the base `.desk-os-taskbar-xp` rule rather than joining
+   the other 360px rules further up the file — same specificity, so a later
+   `display: flex` would win and this would silently do nothing. */
 @media (max-width: 360px) {
-  .desk-os-presence {
+  .desk-os-taskbar-xp {
     display: none;
   }
 }

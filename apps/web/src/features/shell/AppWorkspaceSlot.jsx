@@ -1,9 +1,16 @@
+import { useSyncExternalStore } from 'react';
 import ClearConfirmDialog from '../../components/ClearConfirmDialog.jsx';
 import DeskOsTaskbar from '../../components/DeskOsTaskbar.jsx';
 import ErrorToast from '../../components/ErrorToast.jsx';
 import HotkeyOverlay from '../../components/HotkeyOverlay.jsx';
 import { ButtonIcon, PromptIcon, MicIcon, MicActiveIcon } from '../../components/AppIcons.jsx';
 import { SpeechRecognitionCtor } from '../../utils/appConstants.js';
+import {
+  getOfficeSnapshot,
+  setOfficeFocusTime,
+  setOfficeHeadphones,
+  subscribe as subscribeOffice
+} from '../../state/officeMomentStore.js';
 import { DiagramCanvasSlot } from '../canvas/DiagramCanvasSlot.jsx';
 import { EmptyCanvasSlot } from '../desk/EmptyCanvasSlot.jsx';
 import { ModeRevealSlot } from '../desk/ModeRevealSlot.jsx';
@@ -162,12 +169,21 @@ export function AppWorkspaceSlot({
   entryTourProgress,
   entryPointers
 }) {
+  const officeHeadphones = useSyncExternalStore(
+    subscribeOffice,
+    () => getOfficeSnapshot().headphones,
+    () => getOfficeSnapshot().headphones
+  );
+  const officeFocusTime = useSyncExternalStore(
+    subscribeOffice,
+    () => getOfficeSnapshot().focusTime,
+    () => getOfficeSnapshot().focusTime
+  );
+
   /**
-   * The menu bar's whole prop surface, bundled once. Every value below already
-   * exists on this component — the menus are new homes for old verbs, not new
-   * state (Deliverable is the dismantled `DeskDrawer`, Mailroom is the export
-   * panel that was two clicks deep in the desk menu, Admin holds the
-   * once-a-session verbs off the desk stamp).
+   * The menu bar's whole prop surface, bundled once. Deliverable is the
+   * dismantled `DeskDrawer`, Mailroom is the export panel, Admin holds
+   * once-a-session verbs plus Headphones / Focus and Approved vendors.
    */
   const menuBar = {
     modes: contentModeOptions,
@@ -181,6 +197,10 @@ export function AppWorkspaceSlot({
     onOpenContractor: () => setInviteDialogOpen(true),
     onOpenHrProgression: onToggleXpInfoPanel,
     onOpenHotkeys: onOpenHotkeyOverlay,
+    headphones: officeHeadphones,
+    focusTime: officeFocusTime,
+    onToggleHeadphones: setOfficeHeadphones,
+    onToggleFocusTime: setOfficeFocusTime,
     tourHighlight: entryTourActive && entryTourStep === 'format' ? 'deliverable' : null
   };
 

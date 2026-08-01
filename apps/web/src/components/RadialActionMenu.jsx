@@ -174,7 +174,13 @@ export default function RadialActionMenu({
       setSelectionIntroOpen(false);
       return;
     }
-    if (readRadialSelectionIntroSeen()) return;
+    // Persist on first show so closing the menu without "Got it" still
+    // counts as learned — the tip must not reappear on every node click.
+    if (readRadialSelectionIntroSeen()) {
+      setSelectionIntroOpen(false);
+      return;
+    }
+    writeRadialSelectionIntroSeen();
     setSelectionIntroOpen(true);
   }, [descriptor?.id]);
 

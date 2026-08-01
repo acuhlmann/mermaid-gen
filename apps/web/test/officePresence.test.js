@@ -140,6 +140,16 @@ describe('officePresenceOf', () => {
     expect(officePresenceOf({ imHistory }).kind).toBe('quiet');
   });
 
+  // Say-it-out-loud / over-the-shoulder speech is physical, not Slop Chat —
+  // unread talk-channel lines must not route the presence strip into the messenger.
+  it('ignores talk-channel lines when deciding who messaged you', () => {
+    const imHistory = [
+      { colleagueId: 'gilfoyle', read: false, channel: 'talk' },
+      { colleagueId: 'intern', read: false }
+    ];
+    expect(officePresenceOf({ imHistory })).toEqual({ kind: 'talk', ids: ['intern'] });
+  });
+
   // The strip answers "who is around *you*", so the viewer is the one wrong
   // answer it can give.
   it('never lists you among the people who are around', () => {

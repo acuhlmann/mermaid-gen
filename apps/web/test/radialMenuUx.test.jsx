@@ -853,7 +853,7 @@ describe('radial selection intro', () => {
     expect(screen.getByText(/Only this part/i)).toBeTruthy();
   });
 
-  it('dismisses the intro and does not show it again after Got it', () => {
+  it('does not show the intro again after the first selection (even without Got it)', () => {
     render(
       <RadialActionMenu
         descriptor={MOCK_DESCRIPTOR}
@@ -864,7 +864,7 @@ describe('radial selection intro', () => {
         onClose={vi.fn()}
       />
     );
-    fireEvent.click(screen.getByRole('button', { name: /Got it/i }));
+    expect(screen.getByRole('dialog', { name: /How precision editing works/i })).toBeTruthy();
     cleanup();
     render(
       <RadialActionMenu
@@ -876,6 +876,21 @@ describe('radial selection intro', () => {
         onClose={vi.fn()}
       />
     );
+    expect(screen.queryByRole('dialog', { name: /precision editing/i })).toBeNull();
+  });
+
+  it('dismisses the intro when Got it is clicked', () => {
+    render(
+      <RadialActionMenu
+        descriptor={MOCK_DESCRIPTOR}
+        anchor={MOCK_ANCHOR}
+        actions={MOCK_ACTIONS}
+        onActionPick={vi.fn()}
+        onBackdropPointerDown={vi.fn()}
+        onClose={vi.fn()}
+      />
+    );
+    fireEvent.click(screen.getByRole('button', { name: /Got it/i }));
     expect(screen.queryByRole('dialog', { name: /precision editing/i })).toBeNull();
   });
 });

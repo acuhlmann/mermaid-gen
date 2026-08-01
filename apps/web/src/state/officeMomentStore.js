@@ -21,6 +21,7 @@ import {
   writeOfficeNarrationEnabled,
   writeOfficeSoundscapeEnabled
 } from '../utils/officeAmbienceStorage.js';
+import { isSlopChatMessage } from '../utils/officeImThreads.js';
 
 export const DESK_ARRIVAL_TTL_MS = 9000;
 export const DESK_ARRIVAL_MAX_VISIBLE = 2;
@@ -429,7 +430,8 @@ export function markAllOfficeEmailsRead() {
  * the out-loud/turn-to-someone channel: it answers as speech at your desk
  * (`OfficeDeskSpeech`) or as a bubble over their head on the floor, so it
  * deliberately skips the arrival toast — an answer to something you just said
- * is not a notification that someone messaged you.
+ * is not a notification that someone messaged you. It also stays out of Slop
+ * Chat unread / threads: physical speech is not a typed IM.
  *
  * `actionPrompt` is an optional **pitch**: a concrete diagram edit the speaker
  * proposed while saying this. Emails and walk-bys have carried one since the
@@ -439,6 +441,7 @@ export function markAllOfficeEmailsRead() {
  * button a renderer puts under it.
  */
 export function pushOfficeImPing({ colleagueId, body, channel = 'im', actionPrompt }) {
+  const talk = channel === 'talk';
   const ping = {
     id: makeId('im'),
     colleagueId,
@@ -447,14 +450,17 @@ export function pushOfficeImPing({ colleagueId, body, channel = 'im', actionProm
     ...(actionPrompt ? { actionPrompt: String(actionPrompt) } : {}),
     createdAt: Date.now()
   };
-  const imHistory = [...state.imHistory, { ...ping, read: false }].slice(-IM_HISTORY_MAX);
+  const imHistory = [...state.imHistory, { ...ping, read: talk }].slice(-IM_HISTORY_MAX);
   update({ imHistory, imUnreadCount: countUnreadIms(imHistory) });
-  if (channel !== 'talk') pushDeskArrival({ kind: 'im', colleagueId });
+  if (!talk) pushDeskArrival({ kind: 'im', colleagueId });
   return ping.id;
 }
 
 function countUnreadIms(history) {
-  return history.reduce((total, msg) => (msg.read || msg.outbound ? total : total + 1), 0);
+  return history.reduce((total, msg) => {
+    if (!isSlopChatMessage(msg) || msg.read || msg.outbound) return total;
+    return total + 1;
+  }, 0);
 }
 
 /** Records the user's side of the conversation (quick replies + composer). */

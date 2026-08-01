@@ -286,8 +286,8 @@ export function useDeskActions(params) {
       if (!body) return { ok: false, colleagueId: null };
       const target = colleagueId ?? pickRandomFrom(DESK_IM_CAST, random);
       if (!target) return { ok: false, colleagueId: null };
-      // Your line lands before theirs, attributed to whoever answers — that is
-      // what makes it a thread you can reopen in Slop Chat later.
+      // Your line lands before theirs, attributed to whoever answers — shared
+      // history for desk speech + floor balloons; Slop Chat stays typed-IM only.
       pushOfficeImReply({ colleagueId: target, body, channel: 'talk' });
       paramsRef.current.onOfficeEvent?.('talked');
       const threadTranscript = threadTranscriptFor(getOfficeSnapshot().imHistory, target);

@@ -28,6 +28,7 @@ const TIER_LABEL_KEYS = {
  * invites and the steering preset include her by default.
  *
  * Inbox / Slop Chat default to headsets; desk defaults to the glass room.
+ * UI stays terse: modality toggle, optional topic, presets, roster, Start.
  */
 export default function CallMeetingPicker({
   open,
@@ -80,13 +81,18 @@ export default function CallMeetingPicker({
   // Names the window in its own header and in the OS task strip, so the two
   // can never drift apart.
   const windowTitle = isQuickSync ? copy.titleHuddle : copy.title;
-  const sourceLine =
-    source === 'email' ? copy.sourceEmail : source === 'chat' ? copy.sourceChat : copy.sourceDesk;
   const startLabel = isQuickSync
     ? copy.startHuddle
     : modality === MEETING_MODALITY_REMOTE
       ? copy.startRemote
       : copy.startPhysical;
+  const statusLine = !canStart
+    ? null
+    : atCap
+      ? formatLocale(copy.maxHint, { max: MEETING_ROSTER_MAX })
+      : selectedCount === 1
+        ? copy.selectedCountOne
+        : formatLocale(copy.selectedCount, { count: selectedCount });
 
   const toggle = (id) => {
     setSelected((prev) => {
@@ -144,11 +150,7 @@ export default function CallMeetingPicker({
           className="office-meeting-picker-header"
           title={copy.dragHint ?? 'Drag to move'}
         >
-          <div>
-            <div className="office-meeting-picker-title">{windowTitle}</div>
-            <p className="office-meeting-picker-tagline">{copy.tagline}</p>
-            <p className="office-meeting-picker-source">{sourceLine}</p>
-          </div>
+          <div className="office-meeting-picker-title">{windowTitle}</div>
           <button
             type="button"
             className="office-meeting-picker-close"
@@ -158,35 +160,6 @@ export default function CallMeetingPicker({
             ×
           </button>
         </FloatingWindowDragHandle>
-
-        <div className="office-meeting-picker-toolbar">
-          <span className="office-meeting-picker-count" role="status">
-            {!canStart
-              ? copy.needSomeone
-              : atCap
-                ? formatLocale(copy.maxHint, { max: MEETING_ROSTER_MAX })
-                : selectedCount === 1
-                  ? copy.selectedCountOne
-                  : formatLocale(copy.selectedCount, { count: selectedCount })}
-          </span>
-          <div className="office-meeting-picker-actions">
-            <button
-              type="button"
-              className="office-meeting-picker-cancel"
-              onClick={() => onCancel?.()}
-            >
-              {copy.cancel}
-            </button>
-            <button
-              type="button"
-              className="office-meeting-picker-start"
-              disabled={!canStart}
-              onClick={handleStart}
-            >
-              {startLabel}
-            </button>
-          </div>
-        </div>
 
         <div className="office-meeting-picker-modality" role="group" aria-label={copy.modalityAria}>
           <button
@@ -216,7 +189,6 @@ export default function CallMeetingPicker({
         </div>
 
         <label className="office-meeting-picker-topic">
-          <span>{copy.topicLabel}</span>
           <input
             type="text"
             value={topic}
@@ -243,7 +215,6 @@ export default function CallMeetingPicker({
 
         {selectedCount > 0 ? (
           <div className="office-meeting-picker-selected-strip" role="status" aria-live="polite">
-            <span className="office-meeting-picker-selected-label">{copy.selectedStripLabel}</span>
             <div className="office-meeting-picker-selected-avatars">
               {[...selected].map((id) => {
                 const sender = officeSenderInfo(id);
@@ -315,6 +286,33 @@ export default function CallMeetingPicker({
               </section>
             );
           })}
+        </div>
+
+        <div className="office-meeting-picker-toolbar">
+          {statusLine ? (
+            <span className="office-meeting-picker-count" role="status">
+              {statusLine}
+            </span>
+          ) : (
+            <span className="office-meeting-picker-count" aria-hidden="true" />
+          )}
+          <div className="office-meeting-picker-actions">
+            <button
+              type="button"
+              className="office-meeting-picker-cancel"
+              onClick={() => onCancel?.()}
+            >
+              {copy.cancel}
+            </button>
+            <button
+              type="button"
+              className="office-meeting-picker-start"
+              disabled={!canStart}
+              onClick={handleStart}
+            >
+              {startLabel}
+            </button>
+          </div>
         </div>
       </div>
     </FloatingWindow>

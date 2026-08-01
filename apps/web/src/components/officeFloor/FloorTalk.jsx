@@ -1,13 +1,11 @@
 /**
  * Talking to somebody where they sit (docs/office-isometric-mode.md § 5 slice 8).
  *
- * **This renders the IM thread**, it does not own a conversation. ADR-0011
- * rule 1: you walking over and saying something is the same `imSomeone` verb
- * Slop Chat™ sends, landing in the same `imHistory`, answered by the same
- * reactive LLM ladder. The window shows it as a thread; the floor shows the
- * newest line as a speech bubble over the person who said it. Two renderers,
- * one state — and afterwards the whole exchange is still in Slop Chat, because
- * it never left.
+ * **This renders conversation at their desk**, it does not own it. ADR-0011
+ * rule 1: walking over and typing is the same `imSomeone` verb Slop Chat™
+ * sends (typed IM stays in the messenger afterwards). Say-it-out-loud
+ * (`channel: 'talk'`) shares `imHistory` so the newest line can lift as a
+ * bubble here too, but that physical speech stays out of Slop Chat.
  *
  * The speaking half reuses `FloorDeskSpeech`, which already lifts a bubble past
  * a seated figure (§ 6 rule 15). The replying half is chrome and therefore

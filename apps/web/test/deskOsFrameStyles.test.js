@@ -134,21 +134,22 @@ describe('parody-OS frame geometry', () => {
     expect(trimmed).toMatch(/display:\s*none/);
   });
 
-  it('retires the strip below 360px, and wins the cascade doing it', () => {
-    // ADR-0011 rule 3 picks the survivor when only one of the pair fits: the
-    // labelled control stays, the diegetic duplicate goes.
+  it('retires HR standing before the presence strip below 360px', () => {
+    // Presence is the office-life signal; the XP chip is status you can still
+    // open from Admin. Same cascade trap as before: the override must win
+    // source order against the base `.desk-os-taskbar-xp { display: flex }`.
     expect(css).toMatch(
-      /@media\s*\(max-width:\s*360px\)\s*\{\s*\.desk-os-presence\s*\{[^}]*display:\s*none/
+      /@media\s*\(max-width:\s*360px\)\s*\{\s*\.desk-os-taskbar-xp\s*\{[^}]*display:\s*none/
     );
-    // Every rule for this selector has the same specificity, so source order is
-    // the whole mechanism: `display: none` has to be the last word. Grouped
-    // with the other 360px rules further up the file it loses to the base
-    // `display: inline-flex` and silently does nothing — which is how it first
-    // shipped in this slice, and it measured as still on screen at 320px.
-    const displays = [...css.matchAll(/\.desk-os-presence\s*\{([^}]*)\}/g)]
+    const displays = [...css.matchAll(/\.desk-os-taskbar-xp\s*\{([^}]*)\}/g)]
       .map(([, body]) => body.match(/display:\s*([^;]+);/)?.[1]?.trim())
       .filter(Boolean);
     expect(displays.at(-1)).toBe('none');
+    // And the strip itself is never hard-hidden — faces stay so the desk still
+    // feels inhabited when width is tight.
+    expect(css).not.toMatch(
+      /@media\s*\(max-width:\s*360px\)\s*\{\s*\.desk-os-presence\s*\{[^}]*display:\s*none/
+    );
   });
 
   it('reserves the safe-area inset once, on the bar that touches the edge', () => {
@@ -181,5 +182,15 @@ describe('parody-OS frame geometry', () => {
     expect(mobile).toBeTruthy();
     expect(mobile?.[0]).toContain('var(--desk-taskbar-h)');
     expect(mobile?.[0]).toContain('var(--mobile-bottom-chrome-est');
+  });
+
+  it('keeps huddle remark bubbles compact so the diagram keeps the middle', () => {
+    const bubble = ruleBody('.office-huddle-bubble');
+    expect(bubble).toBeTruthy();
+    expect(bubble).toMatch(/width:\s*min\(156px/);
+    expect(bubble).toMatch(/max-width:\s*11\.5rem/);
+    expect(css).toMatch(
+      /\.office-huddle-seat\.is-side-top\s+\.office-huddle-bubble\s*\{[^}]*left:\s*50%/
+    );
   });
 });

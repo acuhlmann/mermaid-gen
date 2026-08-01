@@ -4,6 +4,7 @@ import { PersonaFace } from './personaFaces/index.jsx';
 import { useSpokenLineVoice } from '../hooks/useSpokenLineVoice.js';
 import { officeChromeCopy, officeSenderInfo } from '../utils/officeCast.js';
 import { formatLocale } from '../i18n/formatLocale.js';
+import { cancelOfficeNarration } from '../utils/officeNarration.js';
 
 /**
  * Somebody answering you at your desk (docs/office-parody.md § Desk verbs).
@@ -11,8 +12,8 @@ import { formatLocale } from '../i18n/formatLocale.js';
  * This is the desk renderer of the **talk channel** — you said something out
  * loud, or turned to the person next to you, and they said something back. The
  * floor renders the same line as a bubble over their head (`FloorTalk`), from
- * the same `imHistory`; neither surface owns the conversation, which is why the
- * whole exchange is still in Slop Chat afterwards (ADR-0011 rule 1).
+ * the same `imHistory`. Slop Chat is a different medium (typed IM); talk-channel
+ * lines stay out of the messenger window even though they share storage.
  *
  * Not the same thing as `OfficeDeskArrival`, and deliberately so: an arrival
  * announces *that* somebody messaged you and makes you go and read it. This one
@@ -21,7 +22,7 @@ import { formatLocale } from '../i18n/formatLocale.js';
  * the arrival toast entirely for `channel: 'talk'` so the two never double up.
  *
  * Voice-first like walk-bys and floor talk: narration on + CC off hides the
- * remark while you hear it; actions (Do it / open thread) stay visible.
+ * remark while you hear it; actions (Do it) stay visible.
  *
  * ADR-0010: what comes back is a remark. It never touches a slot; if it carries
  * a pitch, only you can pull the trigger (slice 4 broadens that to every cast
@@ -35,8 +36,7 @@ import { formatLocale } from '../i18n/formatLocale.js';
  *   narration?: boolean,
  *   narrateLine?: (line: { speakerId: string, text: string }) =>
  *     Promise<{ spoken?: boolean } | void>,
- *   onAdoptPrompt?: (prompt: string, colleagueId: string) => void,
- *   onOpenThread?: (colleagueId: string) => void
+ *   onAdoptPrompt?: (prompt: string, colleagueId: string) => void
  * }} props
  */
 export default function OfficeDeskSpeech({
@@ -46,8 +46,7 @@ export default function OfficeDeskSpeech({
   captions = false,
   narration = false,
   narrateLine,
-  onAdoptPrompt,
-  onOpenThread
+  onAdoptPrompt
 }) {
   const copy = officeChromeCopy().talk ?? {};
   /**
@@ -102,7 +101,10 @@ export default function OfficeDeskSpeech({
             aria-label={formatLocale(copy.dismissAria ?? 'Get back to work', {
               name: speaker.name
             })}
-            onClick={() => setDismissedId(line.id)}
+            onClick={() => {
+              cancelOfficeNarration();
+              setDismissedId(line.id);
+            }}
           >
             ×
           </button>
@@ -127,15 +129,6 @@ export default function OfficeDeskSpeech({
                   onClick={() => onAdoptPrompt(line.actionPrompt, line.colleagueId)}
                 >
                   {copy.adopt ?? 'Do it'}
-                </button>
-              ) : null}
-              {typeof onOpenThread === 'function' ? (
-                <button
-                  type="button"
-                  className="office-desk-speech-thread"
-                  onClick={() => onOpenThread(line.colleagueId)}
-                >
-                  {copy.openThread ?? 'Open the thread'}
                 </button>
               ) : null}
             </div>

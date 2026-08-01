@@ -185,7 +185,7 @@ function OfficeFloorView({ bridge }) {
     scenePacing = {}
   } = bridge;
   // Subscribes this component to locale changes; the copy itself comes from the
-  // office bundle below, exactly like DeskActionsDock.
+  // office bundle below, exactly like the desk comms cluster.
   useUiCopy();
   const copy = officeChromeCopy().floor;
   const directory = officeChromeCopy().directory;

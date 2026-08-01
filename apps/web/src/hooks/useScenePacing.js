@@ -12,7 +12,7 @@
  */
 
 import { useEffect, useRef, useState } from 'react';
-import { OFFICE_NARRATION_GAP_MS } from '../utils/officeNarration.js';
+import { cancelOfficeNarration, OFFICE_NARRATION_GAP_MS } from '../utils/officeNarration.js';
 
 /**
  * @param {{
@@ -99,6 +99,9 @@ export function useScenePacing({
           // Skip speaking the line aloud while paused (e.g. notebook Do-it).
           if (!pausedRef.current) {
             const result = await narrateRef.current?.(line);
+            // Hard stop / dismiss cancels TTS before React re-renders this
+            // effect — without this bail the loop would start the next line.
+            if (cancelled || result?.cancelled) return;
             spoken = Boolean(result?.spoken);
           }
         } catch {
@@ -121,6 +124,9 @@ export function useScenePacing({
 
     return () => {
       cancelled = true;
+      // Cutting the scene must cut the voice — waiting for the line to finish
+      // after you walked away feels like a ghost still talking.
+      cancelOfficeNarration();
     };
   }, [active, sceneId, lineCount, paceMs, silentDurationMs, tailMs]);
 

@@ -37,6 +37,18 @@ export function delegatablePrompt(beat) {
 }
 
 /**
+ * Prefer an explicit actionPrompt; optionally fall back to the spoken remark so
+ * desk chrome still offers Do it when the model skipped the optional field.
+ */
+export function adoptPromptFor(beat, { fallbackToText = false } = {}) {
+  const explicit = delegatablePrompt(beat);
+  if (explicit) return explicit;
+  if (!fallbackToText || !beat) return null;
+  const text = typeof beat.text === 'string' ? beat.text.trim() : '';
+  return text || null;
+}
+
+/**
  * @param {{
  *   huddle: any,
  *   onHardStop?: () => void,
@@ -95,7 +107,12 @@ export function useHuddleRingControls({
     async (line) => {
       if (typeof narrateLine !== 'function') return { spoken: false };
       const result = await narrateLine(line);
-      return { spoken: Boolean(result?.spoken) };
+      return {
+        spoken: Boolean(result?.spoken),
+        // Preserve cancel so Hard stop can cut the pacing loop before React
+        // re-renders and flips `active` (see useScenePacing).
+        ...(result?.cancelled ? { cancelled: true } : {})
+      };
     },
     [narrateLine]
   );
@@ -212,7 +229,9 @@ export function useHuddleRingControls({
   const activeBeat = speaking || watching ? beats[visibleLines - 1] : null;
   const activeSpeakerId = watching || pinnedSpeakerId ? null : (activeBeat?.speakerId ?? null);
   const pinnedBeat = pinnedSpeakerId ? beatForSpeaker(huddle, pinnedSpeakerId) : null;
-  const pinnedPrompt = pinnedSpeakerId ? delegatablePrompt(pinnedBeat) : null;
+  const pinnedPrompt = pinnedSpeakerId
+    ? adoptPromptFor(pinnedBeat, { fallbackToText: true })
+    : null;
   const showText = shouldShowSpokenText({
     captions: snapshot.captions,
     voiceActive: typeof narrateLine === 'function' && speaking
@@ -229,6 +248,9 @@ export function useHuddleRingControls({
     activeSpeakerId,
     pinnedBeat,
     pinnedPrompt,
+    /** How many beats have been revealed (1-based). Seats use this to keep
+     * Do-it available after someone has already spoken. */
+    visibleLines: pacingActive ? visibleLines : 0,
     showText,
     unpin,
     handleDoIt,

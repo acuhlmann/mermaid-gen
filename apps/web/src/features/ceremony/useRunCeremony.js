@@ -6,6 +6,7 @@ import {
   playCompletionChime as playCompletionChimeTone,
   playConfettiPop,
   playJaredCompletion,
+  playDineshCompletion,
   playErlichCompletion,
   playRichardCompletion,
   playRussCompletionChime,

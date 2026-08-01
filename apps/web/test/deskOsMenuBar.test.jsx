@@ -22,6 +22,10 @@ function setup(overrides = {}) {
     onOpenContractor: vi.fn(),
     onOpenHrProgression: vi.fn(),
     onOpenHotkeys: vi.fn(),
+    headphones: false,
+    focusTime: false,
+    onToggleHeadphones: vi.fn(),
+    onToggleFocusTime: vi.fn(),
     ...overrides
   };
   render(<DeskOsMenuBar {...handlers} />);
@@ -111,6 +115,33 @@ describe('DeskOsMenuBar', () => {
     openMenu('admin');
     expect(screen.getByTestId('menubar-language-pack')).toBeTruthy();
     expect(screen.getByRole('radio', { name: /English/i })).toBeTruthy();
+  });
+
+  // Headphones / Focus and Approved vendors left the desk stamp for Admin.
+  it('hosts office ambience postures and Approved vendors in Admin', () => {
+    const handlers = setup({ headphones: false, focusTime: false });
+    openMenu('admin');
+    const ambience = screen.getByTestId('desk-ambience-pack');
+    expect(screen.getByTestId('desk-ambience-headphones').textContent).toContain('Headphones');
+    expect(screen.getByTestId('desk-ambience-focus').textContent).toContain('Focus');
+    expect(ambience.querySelectorAll('input[type="checkbox"]')).toHaveLength(2);
+    fireEvent.click(screen.getByTestId('desk-ambience-headphones').querySelector('input'));
+    expect(handlers.onToggleHeadphones).toHaveBeenCalledWith(true);
+    fireEvent.click(screen.getByTestId('desk-ambience-focus').querySelector('input'));
+    expect(handlers.onToggleFocusTime).toHaveBeenCalledWith(true);
+    const strip = screen.getByTestId('desk-attribution-strip');
+    expect(strip.textContent).toMatch(/Approved vendors/);
+    expect(screen.getByRole('link', { name: 'ElevenLabs' }).getAttribute('href')).toBe(
+      'https://elevenlabs.io'
+    );
+  });
+
+  it('reflects headphones-on so the posture survives a reload', () => {
+    setup({ headphones: true });
+    openMenu('admin');
+    expect(screen.getByTestId('desk-ambience-headphones').querySelector('input').checked).toBe(
+      true
+    );
   });
 
   it('opens one menu at a time', () => {
