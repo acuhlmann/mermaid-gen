@@ -40,7 +40,8 @@ export default function CallMeetingPicker({
   forceFacilitator = false,
   defaultModality,
   onConfirm,
-  onCancel
+  onCancel,
+  taskbarAnchor = null
 }) {
   const copy = officeChromeCopy().meetingPicker;
   const directory = useMemo(() => listMeetingDirectory(), []);
@@ -141,6 +142,7 @@ export default function CallMeetingPicker({
       defaultOffsetX={0}
       defaultOffsetY={0}
       cascade={2}
+      taskbarAnchor={taskbarAnchor}
       role="dialog"
       aria-modal="true"
       aria-label={copy.title}

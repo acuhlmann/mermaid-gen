@@ -29,7 +29,8 @@ export default function DeskActionsDock({
   blockedReason = null,
   unreadCount = 0,
   imUnreadCount = 0,
-  placement = 'corner'
+  placement = 'corner',
+  activePanel = null
 }) {
   const copy = officeChromeCopy().desk;
   const blockedTitle = blockedReason ? (copy.blocked?.[blockedReason] ?? null) : null;
@@ -80,17 +81,21 @@ export default function DeskActionsDock({
     >
       {verbs.map((verb) => {
         const title = verb.disabled ? verb.title : (verb.title ?? blockedTitle ?? verb.ariaLabel);
+        const isActive = activePanel === verb.id;
         return (
           <button
             key={verb.id}
             type="button"
-            className="overlay-button compact-button slop-action-button desk-actions-button desk-comms-button"
+            className={`overlay-button compact-button slop-action-button desk-actions-button desk-comms-button${
+              isActive ? ' is-active' : ''
+            }`}
             data-testid={`desk-comms-${verb.id}`}
             aria-label={verb.ariaLabel}
+            aria-pressed={isActive}
             title={title}
             disabled={verb.disabled}
-            onClick={() => {
-              void verb.run?.();
+            onClick={(event) => {
+              void verb.run?.(event.currentTarget.getBoundingClientRect());
             }}
           >
             <ButtonIcon>

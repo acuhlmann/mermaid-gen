@@ -16025,7 +16025,10 @@ body.slopitect-rainbow-tint::before {
   border: 1px solid color-mix(in srgb, var(--control-border) 85%, transparent);
   box-shadow:
     0 14px 36px rgba(15, 23, 42, 0.14),
+    0 4px 12px rgba(15, 23, 42, 0.08),
     0 0 0 1px rgba(255, 255, 255, 0.65) inset;
+  transform-origin: bottom center;
+  animation: stakeholders-roster-in 240ms cubic-bezier(0.22, 1.12, 0.48, 1) both;
 }
 
 /*
@@ -16214,11 +16217,11 @@ body.slopitect-rainbow-tint::before {
 @keyframes stakeholders-roster-in {
   from {
     opacity: 0;
-    transform: translateY(4px);
+    transform: translateY(10px) scale(0.97);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateY(0) scale(1);
   }
 }
 
@@ -17558,12 +17561,28 @@ body.slopitect-rainbow-tint::before {
   z-index: 1;
 }
 
-/* Taskbar: overlap the glyph corner instead of painting above the strip (clipped). */
+/* Taskbar: tuck the badge into the glyph corner — stays inside the strip so
+   `.desk-os-taskbar { overflow: hidden }` never clips the count. */
 .desk-actions--taskbar .desk-comms-cluster .desk-actions-unread-badge {
-  top: 0;
+  top: auto;
+  bottom: 0;
   right: 0;
-  transform: translate(35%, -35%);
+  transform: translate(30%, 30%);
   z-index: 2;
+}
+
+.desk-actions--taskbar .desk-comms-button.is-active {
+  background: color-mix(in srgb, var(--accent) 14%, white);
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 22%, transparent);
+}
+
+.desk-actions--taskbar .desk-comms-emoji {
+  overflow: visible;
+}
+
+.desk-actions--taskbar .button-icon {
+  overflow: visible;
 }
 
 .desk-os-admin-footer {
@@ -24130,4 +24149,70 @@ button.stakeholders-roster-chip:disabled {
 .desk-os-tray-item.is-minimized:hover,
 .desk-os-tray-item.is-minimized:focus-visible {
   opacity: 1;
+}
+
+/* --- Phone: taskbar-anchored comms popovers ------------------------------ */
+
+@keyframes taskbar-popover-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.floating-window.floating-window--taskbar-popover {
+  transform-origin: bottom center;
+  animation: taskbar-popover-in 220ms cubic-bezier(0.22, 1.12, 0.48, 1) both;
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow:
+    0 14px 36px rgba(15, 23, 42, 0.16),
+    0 4px 12px rgba(15, 23, 42, 0.08);
+  transition: none;
+}
+
+.floating-window--taskbar-popover .floating-window-drag-handle {
+  cursor: default;
+}
+
+.floating-window--taskbar-popover .floating-window-drag-grip,
+.floating-window--taskbar-popover .floating-window-sheet-grip {
+  display: none;
+}
+
+.floating-window.floating-window--taskbar-popover {
+  width: auto;
+  height: auto;
+  max-height: inherit;
+}
+
+.floating-window--taskbar-popover[data-window-kind='messenger'] {
+  min-height: 0;
+}
+
+.floating-window--taskbar-popover .office-messenger-body {
+  min-height: 8rem;
+  max-height: min(42dvh, 320px);
+}
+
+.floating-window--taskbar-popover .office-email-list {
+  max-height: min(36dvh, 280px);
+  overflow-y: auto;
+}
+
+.floating-window--taskbar-popover .office-meeting-picker-directory {
+  min-height: 0;
+  flex: 0 1 auto;
+  max-height: min(36dvh, 280px);
+}
+
+.floating-window--taskbar-popover .office-meeting-picker-panel {
+  height: auto;
+  max-height: inherit;
 }

@@ -6,6 +6,7 @@ import { useSheetSnap } from '../hooks/useSheetSnap.js';
 import { useWindowPresentation } from '../hooks/useWindowPresentation.js';
 import { overlayLayerStyle, useOverlayLayer } from '../hooks/useOverlayLayer.js';
 import { officeChromeCopy } from '../utils/officeCast.js';
+import { computeTaskbarPopoverStyle } from '../utils/taskbarPopoverStyle.js';
 import {
   bringOverlayToFront,
   getFocusedOverlayId,
@@ -39,7 +40,8 @@ import {
  *   senderId?: string | null,
  *   manageable?: boolean,
  *   style?: import('react').CSSProperties,
- *   onFocusWindow?: () => void
+ *   onFocusWindow?: () => void,
+ *   taskbarAnchor?: { left: number, top: number, width: number, height: number } | null
  * } & import('react').HTMLAttributes<HTMLDivElement>} props
  */
 export default function FloatingWindow({
@@ -60,6 +62,7 @@ export default function FloatingWindow({
   manageable = true,
   style,
   onFocusWindow,
+  taskbarAnchor = null,
   onPointerDown,
   ...rest
 }) {
@@ -67,7 +70,9 @@ export default function FloatingWindow({
   const focusedId = useSyncExternalStore(subscribe, getFocusedOverlayId, getFocusedOverlayId);
   const isFocused = focusedId === id;
 
-  const presentation = useWindowPresentation();
+  const viewportPresentation = useWindowPresentation();
+  const isTaskbarPopover = viewportPresentation === 'sheet' && Boolean(taskbarAnchor);
+  const presentation = isTaskbarPopover ? 'taskbar-popover' : viewportPresentation;
   const isSheet = presentation === 'sheet';
   const isFloating = presentation === 'floating';
 
@@ -112,9 +117,9 @@ export default function FloatingWindow({
   // in the store's open path so it is scoped to the breakpoint that needs it —
   // two windows side by side on a tablet is fine.
   useEffect(() => {
-    if (!visible || !isSheet) return;
+    if (!visible || (!isSheet && !isTaskbarPopover)) return;
     minimizeOtherOverlays(id);
-  }, [visible, isSheet, id]);
+  }, [visible, isSheet, isTaskbarPopover, id]);
 
   const focusWindow = useCallback(() => {
     bringOverlayToFront(id);
@@ -132,9 +137,11 @@ export default function FloatingWindow({
   if (!visible) return null;
 
   const positionedStyle =
-    isFloating && position
-      ? { left: position.left, top: position.top, right: 'auto', bottom: 'auto' }
-      : undefined;
+    isTaskbarPopover && taskbarAnchor
+      ? computeTaskbarPopoverStyle(taskbarAnchor)
+      : isFloating && position
+        ? { left: position.left, top: position.top, right: 'auto', bottom: 'auto' }
+        : undefined;
 
   const classNames = [
     'floating-window',
