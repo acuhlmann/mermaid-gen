@@ -469,6 +469,66 @@
   display: block;
 }
 
+/* Mailroom in fullscreen — the menu bar is outside the fullscreen subtree, so
+   export/share is portaled beside the exit button. */
+.diagram-fullscreen-mailroom-btn {
+  position: absolute;
+  top: 0.85rem;
+  left: 0.85rem;
+  z-index: 130;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.15rem;
+  height: 2.15rem;
+  padding: 0;
+  border-radius: 0.65rem;
+  border: 1px solid rgba(15, 23, 42, 0.14);
+  background: rgba(255, 255, 255, 0.94);
+  color: var(--text);
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.2);
+}
+
+.diagram-fullscreen-mailroom-btn:hover {
+  background: #fff;
+  border-color: rgba(37, 99, 235, 0.4);
+}
+
+.diagram-fullscreen-mailroom-btn:focus-visible {
+  outline: 2px solid rgba(37, 99, 235, 0.55);
+  outline-offset: 2px;
+}
+
+.diagram-fullscreen-mailroom-btn.is-open {
+  border-color: rgba(37, 99, 235, 0.45);
+  background: linear-gradient(135deg, rgba(239, 246, 255, 0.98), rgba(255, 255, 255, 0.92));
+}
+
+.diagram-fullscreen-mailroom-icon {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.diagram-fullscreen-mailroom-panel {
+  position: absolute;
+  top: calc(0.85rem + 2.15rem + 0.45rem);
+  left: 0.85rem;
+  z-index: 130;
+  width: min(22rem, calc(100vw - 1.7rem));
+  max-height: min(70vh, calc(100% - 4.5rem));
+  overflow: auto;
+  border-radius: 0.85rem;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 14px 36px rgba(15, 23, 42, 0.22);
+  backdrop-filter: blur(10px);
+}
+
+.diagram-fullscreen-mailroom-panel-inner {
+  padding: 0.45rem 0.5rem 0.55rem;
+}
+
 .diagram-output:fullscreen,
 .diagram-output:-webkit-full-screen {
   width: 100%;
@@ -23364,6 +23424,23 @@ body.slopitect-rainbow-tint::before {
 
   .desk-os-taskbar-lead .overlay-button.slop-action-button .button-label {
     display: none;
+  }
+
+  /* The "Floor" role pill is a composer-band affordance. In the taskbar it
+     duplicates the icon and costs ~3.5rem — at 390px with a window open that
+     was the difference between readable run status and faces painting over the
+     tray pills. The button's accessible name still carries the full label. */
+  .desk-os-taskbar-lead .slop-action-role {
+    display: none;
+  }
+
+  /* Prestige is status you can still open from Admin → HR progression. */
+  .desk-os-taskbar-xp .brand-prestige-badge {
+    display: none;
+  }
+
+  .desk-os-taskbar-end {
+    gap: 0.3rem;
   }
 
   /* The presence caption joins the same demotion ladder as Concentration, the

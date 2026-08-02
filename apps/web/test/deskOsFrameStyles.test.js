@@ -152,6 +152,15 @@ describe('parody-OS frame geometry', () => {
     );
   });
 
+  it('hides the Floor role pill and prestige badge on phone taskbars', () => {
+    expect(css).toMatch(
+      /@media\s*\(max-width:\s*720px\)[\s\S]*\.desk-os-taskbar-lead\s+\.slop-action-role\s*\{[^}]*display:\s*none/
+    );
+    expect(css).toMatch(
+      /@media\s*\(max-width:\s*720px\)[\s\S]*\.desk-os-taskbar-xp\s+\.brand-prestige-badge\s*\{[^}]*display:\s*none/
+    );
+  });
+
   it('reserves the safe-area inset once, on the bar that touches the edge', () => {
     // Double-counting it pushes the composer band a notch-height into the canvas
     // on every iPhone.
