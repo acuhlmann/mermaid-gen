@@ -71,7 +71,7 @@ function extractFormsDocFromAssistantResult(result) {
   return null;
 }
 
-function buildIntentUserContent({ prompt, currentDoc, peerContext }) {
+function buildIntentUserContent({ prompt, currentDoc, peerContext, uiLocale }) {
   const parts = [];
   parts.push(`User request: ${prompt.trim()}`);
   if (currentDoc?.trim()) {
@@ -90,7 +90,7 @@ function buildIntentUserContent({ prompt, currentDoc, peerContext }) {
     );
   }
   parts.push('Call apply_forms_patch with the full forms document JSON.');
-  return appendLanguageInstruction(parts.join('\n\n'), prompt, currentDoc);
+  return appendLanguageInstruction(parts.join('\n\n'), prompt, currentDoc, { uiLocale });
 }
 
 /** Short human label for the current form (title + code) for repair/next-form context. */
@@ -123,7 +123,13 @@ export function buildFormsTransformUserContent({ mode, currentDoc, russDepth, ad
     .join('\n\n');
 }
 
-export function buildFormsAnalyzeUserContent({ kind, currentDoc, advisorPrompt, lastUserPrompt }) {
+export function buildFormsAnalyzeUserContent({
+  kind,
+  currentDoc,
+  advisorPrompt,
+  lastUserPrompt,
+  uiLocale
+}) {
   const task = kind === 'jared' ? FORMS_CRITIQUE_TASK : FORMS_EXPLAIN_TASK;
   return appendProseLanguageInstruction(
     [
@@ -135,7 +141,8 @@ export function buildFormsAnalyzeUserContent({ kind, currentDoc, advisorPrompt, 
       .join('\n\n'),
     lastUserPrompt,
     currentDoc,
-    advisorPrompt
+    advisorPrompt,
+    { uiLocale }
   );
 }
 
@@ -231,7 +238,15 @@ export function createFormsLangChainAgent({
   }
 
   return {
-    async applyIntent({ prompt, focusNode, modelProfile, emit, peerContext, abortSignal }) {
+    async applyIntent({
+      prompt,
+      focusNode,
+      modelProfile,
+      emit,
+      peerContext,
+      abortSignal,
+      uiLocale
+    }) {
       const slot = stateStore.getSlot('forms');
       const profile = normalizeModelProfile(modelProfile);
       const userMessages = [
@@ -240,7 +255,8 @@ export function createFormsLangChainAgent({
           content: buildIntentUserContent({
             prompt,
             currentDoc: slot.diagramSource,
-            peerContext
+            peerContext,
+            uiLocale
           })
         }
       ];
@@ -264,7 +280,8 @@ export function createFormsLangChainAgent({
       emit,
       russDepth,
       abortSignal,
-      advisorPrompt
+      advisorPrompt,
+      uiLocale
     }) {
       const slot = stateStore.getSlot('forms');
       if (!slot.diagramSource?.trim()) {
@@ -283,7 +300,8 @@ export function createFormsLangChainAgent({
             }),
             slot.lastUserPrompt,
             slot.diagramSource,
-            advisorPrompt
+            advisorPrompt,
+            { uiLocale }
           )
         }
       ];
@@ -302,7 +320,7 @@ export function createFormsLangChainAgent({
       });
     },
 
-    async applyAnalyzeIntent({ kind, modelProfile, emit, advisorPrompt }) {
+    async applyAnalyzeIntent({ kind, modelProfile, emit, advisorPrompt, uiLocale }) {
       const slot = stateStore.getSlot('forms');
       if (!slot.diagramSource?.trim()) {
         return { message: 'Nothing to analyze — generate a form first.', raw: null };
@@ -318,7 +336,8 @@ export function createFormsLangChainAgent({
             kind,
             currentDoc: slot.diagramSource,
             advisorPrompt,
-            lastUserPrompt: slot.lastUserPrompt
+            lastUserPrompt: slot.lastUserPrompt,
+            uiLocale
           })
         )
       ];

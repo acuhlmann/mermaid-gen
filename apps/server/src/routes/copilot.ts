@@ -237,6 +237,7 @@ export async function handleDiagramIntent({
       modelProfile: intent.modelProfile,
       peerContext: intent.peerContext,
       transformPersona: intent.transformPersona,
+      uiLocale: intent.uiLocale,
       abortSignal
     });
     const nextState = stateStore.getSlot(intent.contentType);
@@ -331,6 +332,7 @@ export async function handleDiagramTransformIntent({
       modelProfile: intent.modelProfile,
       russDepth: intent.russDepth,
       advisorPrompt: intent.advisorPrompt,
+      uiLocale: intent.uiLocale,
       abortSignal
     });
     const nextState = stateStore.getSlot(intent.contentType);
@@ -413,7 +415,8 @@ export async function handleDiagramAnalyze({
       kind: intent.kind,
       focusNode: intent.focusNode,
       modelProfile: intent.modelProfile,
-      advisorPrompt: intent.advisorPrompt
+      advisorPrompt: intent.advisorPrompt,
+      uiLocale: intent.uiLocale
     });
 
     return {
@@ -488,6 +491,7 @@ export async function handleStyleIntent({
       prompt: intent.stylePrompt || intent.prompt,
       settings: intent.settings,
       contentType: intent.contentType,
+      uiLocale: intent.uiLocale,
       abortSignal
     });
     const nextState = stateStore.getSlot(intent.contentType);

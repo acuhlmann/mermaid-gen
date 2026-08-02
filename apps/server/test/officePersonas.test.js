@@ -451,8 +451,12 @@ test('office language rule follows the UI locale, not the diagram script', () =>
   assert.match(buildOfficeLanguageRule('cmn-TW'), /Traditional Chinese/);
   // Each variant must exclude the other, or TTS gets the wrong script.
   assert.doesNotMatch(buildOfficeLanguageRule('zh-CN'), /Write EVERY[\s\S]*Traditional Chinese \(/);
-  // English locales stay clause-free so the prompt is unchanged for them.
-  for (const locale of ['en', 'en-US', 'en-AU', '', undefined, null]) {
+  // English locales get an explicit English lock so DeepSeek does not default to Chinese.
+  for (const locale of ['en', 'en-US', 'en-AU']) {
+    assert.match(buildOfficeLanguageRule(locale), /in English/);
+    assert.match(buildOfficeLanguageRule(locale), /Do NOT emit Chinese/);
+  }
+  for (const locale of ['', undefined, null]) {
     assert.equal(buildOfficeLanguageRule(locale), '', `${locale} should add no clause`);
   }
 });
@@ -487,7 +491,11 @@ test('user prompts restate the language as their final instruction', () => {
   });
   assert.match(interject.trimEnd(), /Simplified Chinese \(zh-CN\)\.$/);
 
-  // English locales must leave the tail instruction untouched.
+  // English locales restate English at the tail so recency beats persona catchphrases.
+  assert.match(
+    buildMomentUserPrompt({ visibleLabels: [], recentMoments: [], uiLocale: 'en' }).trimEnd(),
+    /written in English\.$/
+  );
   assert.match(
     buildMomentUserPrompt({ visibleLabels: [], recentMoments: [] }).trimEnd(),
     /Reply with strict JSON now\.$/
@@ -521,14 +529,18 @@ test('all three office prompt builders honour uiLocale', () => {
   assert.match(interject, /Traditional Chinese \(zh-TW\)/);
   assert.match(interject, /INTERJECTION MODE/);
 
-  // Omitting the locale must leave the English prompts byte-identical.
-  assert.equal(
+  // Explicit English UI locale adds a language lock; omitting locale leaves prompts unchanged.
+  assert.doesNotMatch(
     buildMeetingSystemPrompt({ attendees: ATTENDEES, facilitatorId: 'scrumMaster' }),
+    /Do NOT emit Chinese/
+  );
+  assert.match(
     buildMeetingSystemPrompt({
       attendees: ATTENDEES,
       facilitatorId: 'scrumMaster',
       uiLocale: 'en-US'
-    })
+    }),
+    /in English/
   );
 });
 

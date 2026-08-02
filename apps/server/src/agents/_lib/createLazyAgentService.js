@@ -93,6 +93,7 @@ export function createLazyAgentService({
           focusNode: payload.focusNode,
           modelProfile,
           emit,
+          uiLocale: payload.uiLocale,
           ...pickExtras(payload, analyzeExtraFields)
         });
         emitAnalyzeStreamArtifactsBeforeFinal(emit, {
@@ -114,6 +115,7 @@ export function createLazyAgentService({
           emit,
           peerContext: payload.peerContext,
           abortSignal: payload.abortSignal,
+          uiLocale: payload.uiLocale,
           ...pickExtras(payload, intentExtraFields)
         });
       } else {
@@ -124,6 +126,7 @@ export function createLazyAgentService({
           emit,
           russDepth: payload.russDepth,
           abortSignal: payload.abortSignal,
+          uiLocale: payload.uiLocale,
           ...pickExtras(payload, transformExtraFields)
         });
       }

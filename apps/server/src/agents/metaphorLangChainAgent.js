@@ -67,7 +67,7 @@ function extractMetaphorDslFromAssistantResult(result) {
   return null;
 }
 
-function buildIntentUserContent({ prompt, currentDsl, peerContext }) {
+function buildIntentUserContent({ prompt, currentDsl, peerContext, uiLocale }) {
   const parts = [];
   parts.push(`User request: ${prompt.trim()}`);
   if (currentDsl?.trim()) {
@@ -81,7 +81,7 @@ function buildIntentUserContent({ prompt, currentDsl, peerContext }) {
     );
   }
   parts.push('Call apply_metaphor_patch with the full JSON DSL.');
-  return appendLanguageInstruction(parts.join('\n\n'), prompt, currentDsl);
+  return appendLanguageInstruction(parts.join('\n\n'), prompt, currentDsl, { uiLocale });
 }
 
 function buildTransformUserContent({ mode, currentDsl, russDepth }) {
@@ -103,7 +103,14 @@ function buildTransformUserContent({ mode, currentDsl, russDepth }) {
   ].join('\n\n');
 }
 
-function buildAnalyzeUserContent({ kind, currentDsl, focusScope, lastUserPrompt, advisorPrompt }) {
+function buildAnalyzeUserContent({
+  kind,
+  currentDsl,
+  focusScope,
+  lastUserPrompt,
+  advisorPrompt,
+  uiLocale
+}) {
   const task = kind === 'jared' ? METAPHOR_CRITIQUE_TASK : METAPHOR_EXPLAIN_TASK;
   return appendProseLanguageInstruction(
     [task, focusScope, `Current metaphor DSL:\n\n\`\`\`json\n${currentDsl}\n\`\`\``]
@@ -111,7 +118,8 @@ function buildAnalyzeUserContent({ kind, currentDsl, focusScope, lastUserPrompt,
       .join('\n\n'),
     lastUserPrompt,
     currentDsl,
-    advisorPrompt
+    advisorPrompt,
+    { uiLocale }
   );
 }
 
@@ -205,7 +213,15 @@ export function createMetaphorLangChainAgent({
   }
 
   return {
-    async applyIntent({ prompt, focusNode, modelProfile, emit, peerContext, abortSignal }) {
+    async applyIntent({
+      prompt,
+      focusNode,
+      modelProfile,
+      emit,
+      peerContext,
+      abortSignal,
+      uiLocale
+    }) {
       const slot = stateStore.getSlot('metaphor3d');
       const profile = normalizeModelProfile(modelProfile);
       const userMessages = [
@@ -214,7 +230,8 @@ export function createMetaphorLangChainAgent({
           content: buildIntentUserContent({
             prompt,
             currentDsl: slot.diagramSource,
-            peerContext
+            peerContext,
+            uiLocale
           })
         }
       ];
@@ -233,7 +250,15 @@ export function createMetaphorLangChainAgent({
       });
     },
 
-    async applyTransformIntent({ mode, focusNode, modelProfile, emit, russDepth, abortSignal }) {
+    async applyTransformIntent({
+      mode,
+      focusNode,
+      modelProfile,
+      emit,
+      russDepth,
+      abortSignal,
+      uiLocale
+    }) {
       const slot = stateStore.getSlot('metaphor3d');
       if (!slot.diagramSource?.trim()) {
         return { message: 'Nothing to transform — generate a metaphor first.', raw: null };
@@ -249,7 +274,8 @@ export function createMetaphorLangChainAgent({
               russDepth
             }),
             slot.lastUserPrompt,
-            slot.diagramSource
+            slot.diagramSource,
+            { uiLocale }
           )
         }
       ];
@@ -268,7 +294,7 @@ export function createMetaphorLangChainAgent({
       });
     },
 
-    async applyAnalyzeIntent({ kind, focusNode, modelProfile, emit }) {
+    async applyAnalyzeIntent({ kind, focusNode, modelProfile, emit, uiLocale }) {
       const slot = stateStore.getSlot('metaphor3d');
       if (!slot.diagramSource?.trim()) {
         return { message: 'Nothing to analyze — generate a metaphor first.', raw: null };
@@ -285,7 +311,8 @@ export function createMetaphorLangChainAgent({
             kind,
             currentDsl: slot.diagramSource,
             focusScope,
-            lastUserPrompt: slot.lastUserPrompt
+            lastUserPrompt: slot.lastUserPrompt,
+            uiLocale
           })
         )
       ];

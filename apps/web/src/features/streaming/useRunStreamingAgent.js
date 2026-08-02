@@ -42,6 +42,7 @@ import {
  *   activeSessionId: string;
  *   contentMode: string;
  *   modelProfile: string;
+ *   uiLocale?: string;
  *   controls: object;
  *   streamAgentAbortRef: import('react').MutableRefObject<AbortController | null>;
  *   lastTokenSoundAtRef: import('react').MutableRefObject<number>;
@@ -76,6 +77,7 @@ export function useRunStreamingAgent({
   activeSessionId,
   contentMode,
   modelProfile,
+  uiLocale,
   controls,
   streamAgentAbortRef,
   lastTokenSoundAtRef,
@@ -208,7 +210,7 @@ export function useRunStreamingAgent({
       );
       try {
         await streamDiagramAgent(
-          payload,
+          { ...payload, ...(uiLocale != null ? { uiLocale } : {}) },
           (evt) => {
             appendStreamDebugLog(sectionId, evt);
             applyAgentStreamInsightEvent(streamAcc, streamCtx, evt);
@@ -274,6 +276,7 @@ export function useRunStreamingAgent({
       lastDraftTickAtRef,
       lastTokenSoundAtRef,
       modelProfile,
+      uiLocale,
       patchInsightEntry,
       agentCostEstimatesRef,
       crossModeSyncRef,
