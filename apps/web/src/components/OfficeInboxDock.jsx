@@ -8,10 +8,7 @@ import { formatLocale } from '../i18n/formatLocale.js';
 import { PersonaFace } from './personaFaces/index.jsx';
 import OfficeColleaguePicker from './OfficeColleaguePicker.jsx';
 import FloatingWindow, { FloatingWindowDragHandle } from './FloatingWindow.jsx';
-import {
-  FloatingWindowCloseButton,
-  FloatingWindowMinimizeButton
-} from './FloatingWindowChrome.jsx';
+import { FloatingWindowCloseButton } from './FloatingWindowChrome.jsx';
 import { restoreOverlay } from '../state/overlayStack.js';
 
 /** Overlay id — shared by the window and the verb that has to un-minimize it. */
@@ -52,12 +49,18 @@ export default function OfficeInboxDock({
   const [openInternal, setOpenInternal] = useState(false);
   const open = openControlled !== undefined ? openControlled : openInternal;
   const setOpen = useCallback(
-    (next) => {
+    (nextOrUpdater) => {
+      const resolve = (prev) =>
+        typeof nextOrUpdater === 'function' ? nextOrUpdater(prev) : nextOrUpdater;
       if (openControlled !== undefined) {
+        // Controlled: parent owns open=true (desk mail icon / openSignal). We
+        // only relay closes — and must resolve functional updaters, or close
+        // never fires (a function is truthy so `if (!next)` was a no-op).
+        const next = resolve(Boolean(openControlled));
         if (!next) onClose?.();
         return;
       }
-      setOpenInternal(next);
+      setOpenInternal((prev) => Boolean(resolve(prev)));
     },
     [openControlled, onClose]
   );
@@ -239,11 +242,6 @@ export default function OfficeInboxDock({
             <div className="office-inbox-header-row">
               <span className="office-inbox-title">{copy.inbox.title}</span>
               <div className="office-inbox-header-actions">
-                <FloatingWindowMinimizeButton
-                  label={copy.windowMinimize}
-                  title={copy.windowMinimizeTitle}
-                  className="office-inbox-minimize"
-                />
                 <FloatingWindowCloseButton
                   label={copy.inbox.closeAria}
                   onClose={toggleOpen}

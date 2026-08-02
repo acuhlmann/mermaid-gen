@@ -74,18 +74,11 @@ describe('DeskActionsDock', () => {
     expect(screen.getByTestId('desk-comms-inbox').disabled).toBe(false);
   });
 
-  it('does not host relocated frame verbs', () => {
-    renderDock();
-    for (const gone of [
-      /Take it to the mailroom/,
-      /Onboard a contractor/,
-      /Check my HR progression/,
-      /Stand up/,
-      /Headphones/,
-      /Focus/,
-      /Approved vendors/
-    ]) {
-      expect(screen.queryByText(gone)).toBeNull();
-    }
+  it('keeps inbox in the taskbar cluster', () => {
+    render(<DeskActionsDock placement="taskbar" onCheckInbox={vi.fn()} onOpenSlopChat={vi.fn()} />);
+    expect(screen.getByTestId('desk-comms-inbox')).toBeTruthy();
+    expect(
+      screen.getByTestId('desk-comms-inbox').querySelector('.desk-comms-mail-svg')
+    ).toBeTruthy();
   });
 });

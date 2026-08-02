@@ -114,16 +114,15 @@ describe('parody-OS frame geometry', () => {
     expect(ruleBody('.desk-os-presence-peek')).toMatch(/\bz-index:\s*290\b/);
   });
 
-  it('drops the presence caption on a phone, keeping the faces', () => {
-    // ~95px of caption is the difference between a readable run status and none
-    // at 320px. The faces and the button's accessible name still carry it.
+  it('keeps the presence caption on a phone once the status half has retired', () => {
+    // Phones shed Concentration + HR; the caption has the room the old demotion
+    // ladder reserved for run status. Faces alone are the 360px fallback via
+    // max-width squeeze, not display:none.
     const bodies = [...css.matchAll(/\.desk-os-presence-caption\s*\{([^}]*)\}/g)].map(
       ([, body]) => body
     );
-    expect(bodies.length).toBeGreaterThanOrEqual(2);
-    expect(bodies.some((body) => /display:\s*none/.test(body))).toBe(true);
-    // The faces are never in that trade — a strip with no faces is not a
-    // presence strip.
+    expect(bodies.length).toBeGreaterThanOrEqual(1);
+    expect(bodies.every((body) => !/display:\s*none/.test(body))).toBe(true);
     expect(css).not.toMatch(/\.desk-os-presence-faces\s*\{[^}]*display:\s*none/);
   });
 
@@ -159,7 +158,7 @@ describe('parody-OS frame geometry', () => {
 
   it('hides the Floor role pill and prestige badge on phone taskbars', () => {
     expect(css).toMatch(
-      /@media\s*\(max-width:\s*1024px\)[\s\S]*\.desk-os-taskbar-lead\s+\.overlay-button\.slop-action-button\.is-desk-standup\s+\.slop-action-role\s*\{[^}]*display:\s*none/
+      /\.desk-os-taskbar-lead\s+\.overlay-button\.slop-action-button\.is-desk-standup\s+\.slop-action-role\s*\{[^}]*display:\s*none/
     );
     expect(css).toMatch(
       /@media\s*\(max-width:\s*720px\)[\s\S]*\.desk-os-taskbar-xp\s+\.brand-prestige-badge\s*\{[^}]*display:\s*none/
@@ -170,19 +169,32 @@ describe('parody-OS frame geometry', () => {
     expect(css).toMatch(
       /\.app-shell\.is-wide-mobile\s+\.desk-os-taskbar-xp,\s*\.app-shell\.is-foldable-dual\s+\.desk-os-taskbar-xp\s*\{[^}]*display:\s*none/
     );
+    // Foldables keep Concentration — enough width once HR yields.
     expect(css).toMatch(
-      /\.app-shell\.is-wide-mobile\s+\.concentration-control--tray,\s*\.app-shell\.is-foldable-dual\s+\.concentration-control--tray\s*\{[^}]*display:\s*none/
+      /\.app-shell\.is-wide-mobile\s+\.concentration-control--tray,\s*\.app-shell\.is-foldable-dual\s+\.concentration-control--tray\s*\{[^}]*display:\s*flex/
     );
   });
 
-  it('tucks taskbar comms badges inside the glyph so the strip never clips them', () => {
+  it('overlaps taskbar comms badges on the glyph without clipping below the strip', () => {
     const badge = css.match(
       /\.desk-actions--taskbar\s+\.desk-comms-cluster\s+\.desk-actions-unread-badge\s*\{([^}]*)\}/
     )?.[1];
     expect(badge).toBeTruthy();
-    expect(badge).toMatch(/bottom:\s*0/);
-    expect(badge).toMatch(/transform:\s*translate\(30%,\s*30%\)/);
-    expect(badge).not.toMatch(/translate\([^)]*-35%/);
+    expect(badge).toMatch(/top:\s*-0\.3/);
+    expect(badge).toMatch(/right:\s*-0\.3/);
+    expect(badge).not.toMatch(/bottom:\s*0/);
+    expect(badge).not.toMatch(/translate\([^)]*30%/);
+    // Parent bar must not clip the overlap — measured failure was overflow:hidden.
+    expect(ruleBody('.desk-os-taskbar')).toMatch(/overflow:\s*visible/);
+  });
+
+  it('keeps Stand up labelled on desktop and foldables, glyph-only on phones', () => {
+    expect(css).toMatch(
+      /\.desk-os-taskbar-lead\s+\.overlay-button\.slop-action-button\.is-desk-standup\s+\.button-label\s*\{[^}]*display:\s*inline/
+    );
+    expect(css).toMatch(
+      /@media\s*\(max-width:\s*639px\)[\s\S]*\.desk-os-taskbar-lead\s+\.overlay-button\.slop-action-button\.is-desk-standup\s+\.button-label\s*\{[^}]*display:\s*none/
+    );
   });
 
   it('lets walk-by paint above the focus stack via overlay layer, not office chrome', () => {
@@ -327,6 +339,15 @@ describe('office window placement', () => {
     expect(css).not.toMatch(/\.office-inbox-popover\.is-minimized/);
     expect(css).not.toMatch(/\.office-training-window\.is-minimized/);
     expect(css).not.toMatch(/\.office-meeting-room\.is-minimized\s*\{/);
+  });
+
+  it('keeps Headphones and Focus on one row in the Admin footer', () => {
+    // A one-column override stacked them; the pack is only two short toggles.
+    expect(css).not.toMatch(
+      /\.desk-os-admin-footer\s+\.desk-ambience-pack\s*\{[^}]*grid-template-columns:\s*1fr;/
+    );
+    const body = ruleBody('.desk-ambience-pack');
+    expect(body).toMatch(/grid-template-columns:\s*repeat\(2,/);
   });
 });
 

@@ -132,6 +132,24 @@ export function SettingsGearIcon() {
   );
 }
 
+/** Corporate inbox — closed envelope, clearer than the tray emoji on a 30px stamp. */
+export function MailInboxIcon() {
+  return (
+    <svg
+      className="desk-comms-mail-svg"
+      viewBox="0 0 24 24"
+      width="16"
+      height="16"
+      aria-hidden="true"
+    >
+      <path
+        fill="currentColor"
+        d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4-8 5-8-5V6l8 5 8-5v2z"
+      />
+    </svg>
+  );
+}
+
 /** Insights / Thinking pane — prose panel with a sparkle (agent deep-dive). */
 export function ThinkingPanelIcon() {
   return (

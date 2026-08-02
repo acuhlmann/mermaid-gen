@@ -55,7 +55,7 @@ describe('OfficeLayer desk actions portal', () => {
     );
 
     expect(screen.getByTestId('desk-comms-cluster')).toBeTruthy();
-    expect(screen.queryByTestId('desk-comms-inbox')).toBeNull();
+    expect(screen.getByTestId('desk-comms-inbox')).toBeTruthy();
     expect(screen.getByTestId('desk-comms-slopChat')).toBeTruthy();
     expect(screen.getByTestId('desk-comms-meeting')).toBeTruthy();
   });

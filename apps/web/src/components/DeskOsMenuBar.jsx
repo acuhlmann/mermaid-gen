@@ -216,8 +216,7 @@ function AdminMenu({
             {typeof onSelectModelProfile === 'function' ? (
               <div className="desk-os-admin-concentration" data-testid="desk-admin-concentration">
                 <ConcentrationControl
-                  variant="footer"
-                  compact
+                  variant="tray"
                   modelProfile={modelProfile}
                   onSelectModelProfile={onSelectModelProfile}
                 />

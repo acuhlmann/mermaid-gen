@@ -104,6 +104,7 @@ import {
   closeDeskCommsPanel,
   getDeskCommsUi,
   openDeskCommsPanel,
+  readDeskCommsAnchorRect,
   serializeAnchorRect,
   subscribeDeskCommsUi,
   toggleDeskCommsPanel
@@ -689,19 +690,25 @@ export default function OfficeLayer({
   const taskbarAnchor = commsUi.anchorRect;
 
   const handleToggleInbox = useCallback((anchorRect) => {
-    toggleDeskCommsPanel('inbox', serializeAnchorRect(anchorRect));
+    toggleDeskCommsPanel(
+      'inbox',
+      serializeAnchorRect(anchorRect) ?? readDeskCommsAnchorRect('inbox')
+    );
   }, []);
   const handleToggleMessenger = useCallback((anchorRect) => {
-    toggleDeskCommsPanel('slopChat', serializeAnchorRect(anchorRect));
+    toggleDeskCommsPanel(
+      'slopChat',
+      serializeAnchorRect(anchorRect) ?? readDeskCommsAnchorRect('slopChat')
+    );
   }, []);
   const handleOpenMessenger = useCallback(() => {
     clearDeskArrivals();
-    openDeskCommsPanel('slopChat');
+    openDeskCommsPanel('slopChat', readDeskCommsAnchorRect('slopChat'));
   }, []);
   const handleOpenImMessage = useCallback((colleagueId, pingId) => {
     if (pingId) dismissDeskArrival(pingId);
     setMessengerTargetId(colleagueId);
-    openDeskCommsPanel('slopChat');
+    openDeskCommsPanel('slopChat', readDeskCommsAnchorRect('slopChat'));
   }, []);
   const handleCloseMessenger = useCallback(() => {
     closeDeskCommsPanel();
@@ -891,7 +898,10 @@ export default function OfficeLayer({
     (anchorRect) => {
       if (meeting) return;
       dismissOfficeMeetingInvite();
-      toggleDeskCommsPanel('meeting', serializeAnchorRect(anchorRect));
+      toggleDeskCommsPanel(
+        'meeting',
+        serializeAnchorRect(anchorRect) ?? readDeskCommsAnchorRect('meeting')
+      );
     },
     [meeting]
   );
@@ -1263,12 +1273,7 @@ export default function OfficeLayer({
     if (!commsUi.activePanel) return undefined;
     const onPointerDown = (event) => {
       const target = event.target;
-      if (
-        target.closest(
-          '.desk-comms-cluster, .diagram-canvas-mailbox-btn, .floating-window, [data-floating-window]'
-        )
-      )
-        return;
+      if (target.closest('.desk-comms-cluster, .floating-window, [data-floating-window]')) return;
       closeDeskCommsPanel();
       if (meetingPicker?.source === 'desk') setMeetingPicker(null);
     };

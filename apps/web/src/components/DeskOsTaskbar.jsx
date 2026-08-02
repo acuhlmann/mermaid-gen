@@ -63,10 +63,10 @@ function computeTrayPanelStyle(anchorRect) {
  *   allowed beside the labelled control it duplicates) and is the part that grows,
  *   because "what is going on in the office" is a sentence and needs room.
  * - **Window list** — `DeskOsTray`, the open office windows.
- * - **Tray end** — persistent status an OS puts by the clock. Below 720px this
- *   whole cluster's *optional* half retires: Concentration and the HR chip both
- *   have a second home (Admin, and the desk menu), and on a phone the bar's job
- *   is the office and the windows, not a scorecard.
+ * - **Tray end** — persistent status an OS puts by the clock. Below 720px a
+ *   phone sheds Concentration (it has Admin + Thinking as backups); foldables
+ *   keep the tray once HR has already yielded. The HR chip still retires on
+ *   phone — Admin still opens progression.
  *
  * The taskbar owns no office state. Standing/sitting is read straight off
  * `officeViewModeStore` (a global store, exactly like the overlay stack the

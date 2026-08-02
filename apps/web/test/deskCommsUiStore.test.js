@@ -1,9 +1,11 @@
+// @vitest-environment jsdom
 import { afterEach, describe, expect, it } from 'vitest';
 import {
   _resetDeskCommsUiForTests,
   closeDeskCommsPanel,
   getDeskCommsUi,
   openDeskCommsPanel,
+  readDeskCommsAnchorRect,
   serializeAnchorRect,
   toggleDeskCommsPanel
 } from '../src/state/deskCommsUiStore.js';
@@ -46,5 +48,21 @@ describe('deskCommsUiStore', () => {
       width: 3,
       height: 4
     });
+  });
+
+  it('reads an anchor from the matching desk-comms button', () => {
+    const btn = document.createElement('button');
+    btn.dataset.testid = 'desk-comms-slopChat';
+    Object.defineProperty(btn, 'getBoundingClientRect', {
+      value: () => ({ left: 40, top: 700, width: 28, height: 28, right: 68, bottom: 728 })
+    });
+    document.body.appendChild(btn);
+    expect(readDeskCommsAnchorRect('slopChat')).toEqual({
+      left: 40,
+      top: 700,
+      width: 28,
+      height: 28
+    });
+    btn.remove();
   });
 });

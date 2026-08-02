@@ -71,7 +71,10 @@ export default function FloatingWindow({
   const isFocused = focusedId === id;
 
   const viewportPresentation = useWindowPresentation();
-  const isTaskbarPopover = viewportPresentation === 'sheet' && Boolean(taskbarAnchor);
+  // Desk Mail / Chat / Meeting rise from their taskbar icons on every
+  // breakpoint — not only on phone. Free-drag placement is for windows that
+  // were never launched from those buttons (e.g. an in-progress meeting).
+  const isTaskbarPopover = Boolean(taskbarAnchor);
   const presentation = isTaskbarPopover ? 'taskbar-popover' : viewportPresentation;
   const isSheet = presentation === 'sheet';
   const isFloating = presentation === 'floating';
@@ -138,7 +141,17 @@ export default function FloatingWindow({
 
   const positionedStyle =
     isTaskbarPopover && taskbarAnchor
-      ? computeTaskbarPopoverStyle(taskbarAnchor)
+      ? computeTaskbarPopoverStyle(taskbarAnchor, {
+          maxWidthPx:
+            kind === 'messenger'
+              ? 440
+              : kind === 'meeting-picker'
+                ? 400
+                : viewportPresentation === 'floating'
+                  ? 380
+                  : 360,
+          fillHeight: kind === 'messenger' || kind === 'meeting-picker'
+        })
       : isFloating && position
         ? { left: position.left, top: position.top, right: 'auto', bottom: 'auto' }
         : undefined;

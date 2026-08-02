@@ -161,15 +161,15 @@ export default function StakeholdersMascot({
   const resolvedAnchor =
     anchorRect ??
     (expanded && mascotAnchorRef.current ? mascotAnchorRef.current.getBoundingClientRect() : null);
-  const rosterPopoverAlign =
-    typeof window !== 'undefined' && window.innerWidth <= 1024 ? 'center' : 'left';
+  // Always pin left to the Teams / Your Team button — never viewport-center on
+  // tablet; clamping inside computeBottomLeftPopoverStyle still keeps it on-screen.
   const rosterStyle = overlayLayerStyle(
     rosterZIndex,
     resolvedAnchor
       ? computeBottomLeftPopoverStyle(resolvedAnchor, {
           maxWidthPx: 340,
           minWidthPx: 260,
-          align: rosterPopoverAlign
+          align: 'left'
         })
       : undefined
   );

@@ -145,6 +145,29 @@ describe('office window manager', () => {
     }
   });
 
+  it('rises from a taskbar button as a popover on desktop too', () => {
+    stubViewport(1440);
+    const anchor = { left: 96, top: 760, width: 32, height: 28 };
+    render(
+      <FloatingWindow
+        id="office-messenger"
+        open
+        group="officeModal"
+        kind="messenger"
+        title="Slop Chat"
+        taskbarAnchor={anchor}
+        aria-label="Slop Chat"
+      >
+        <div>Slop Chat body</div>
+      </FloatingWindow>
+    );
+
+    const el = document.querySelector('[data-floating-window="office-messenger"]');
+    expect(el.dataset.presentation).toBe('taskbar-popover');
+    expect(el.style.left).toBe('96px');
+    expect(el.style.bottom).toBeTruthy();
+  });
+
   it('the sheet grip is a real button, so the snap is reachable without a drag', () => {
     stubViewport(PHONE_MAX_WIDTH_PX - 1);
     render(<OfficeWindow id="office-messenger" title="Slop Chat" kind="messenger" />);

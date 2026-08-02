@@ -1,7 +1,6 @@
 /**
  * Window list for the parody-OS taskbar (docs/office-isometric-mode.md §4) —
- * the open, manageable floating windows, plus the recovery verb for a window
- * that has been dragged somewhere unreachable. Diegesis duplicates focus; the
+ * the open, manageable floating windows. Diegesis duplicates focus; the
  * windows keep their own titlebars.
  *
  * A pill now **restores** rather than merely re-focusing: minimize sends a
@@ -11,6 +10,10 @@
  *
  * Rendered inside `DeskOsTaskbar`, which owns the position; this collapses to
  * nothing when no window is open so the bar's permanent residents close up.
+ *
+ * Brand wordmark and "Tidy up" deliberately omitted — desk Mail / Chat / Meeting
+ * now rise from their taskbar icons (no stranded free-float to recover), and
+ * the wordmark cost width the presence caption needs more.
  */
 
 import { useSyncExternalStore } from 'react';
@@ -21,7 +24,6 @@ import {
   restoreOverlay,
   subscribe
 } from '../state/overlayStack.js';
-import { resetAllFloatingWindows } from '../state/floatingWindowControl.js';
 import { officeChromeCopy } from '../utils/officeCast.js';
 
 const KIND_GLYPH = {
@@ -50,9 +52,6 @@ export default function DeskOsTray({ open = true }) {
 
   return (
     <div className="desk-os-tray" data-testid="desk-os-tray" role="toolbar" aria-label={copy.aria}>
-      <span className="desk-os-tray-brand" aria-hidden="true">
-        {copy.brand ?? 'ArchiSlop OS'}
-      </span>
       <ul className="desk-os-tray-list">
         {windows.map((entry) => {
           const glyph = KIND_GLYPH[entry.kind] ?? '▢';
@@ -78,18 +77,6 @@ export default function DeskOsTray({ open = true }) {
           );
         })}
       </ul>
-      {/* Re-homes `resetAllFloatingWindows` — the "tidy the whole desk" verb was
-          orphaned when OfficeWindowBar was removed (99bd816) and had no caller
-          outside tests. A window dragged off-screen, or stranded by a fold, is
-          otherwise unreachable. */}
-      <button
-        type="button"
-        className="desk-os-tray-tidy"
-        title={copy.tidyTitle}
-        onClick={() => resetAllFloatingWindows()}
-      >
-        {copy.tidy ?? 'Tidy up'}
-      </button>
     </div>
   );
 }

@@ -8,10 +8,7 @@ import { PersonaFace } from './personaFaces/index.jsx';
 import OfficeActionableChecklist from './OfficeActionableChecklist.jsx';
 import VoiceMicButton from './VoiceMicButton.jsx';
 import FloatingWindow, { FloatingWindowDragHandle } from './FloatingWindow.jsx';
-import {
-  FloatingWindowCloseButton,
-  FloatingWindowMinimizeButton
-} from './FloatingWindowChrome.jsx';
+import { FloatingWindowCloseButton } from './FloatingWindowChrome.jsx';
 
 /** Overlay id — shared by the window and the state changes that un-minimize it. */
 const MEETING_WINDOW_ID = 'office-meeting';
@@ -34,11 +31,6 @@ function MeetingTitlebar({ title, chrome, onExit }) {
     <FloatingWindowDragHandle className="office-meeting-titlebar" title={chrome.meeting.dragHint}>
       <span className="office-meeting-title">📅 {title}</span>
       <div className="office-meeting-titlebar-actions">
-        <FloatingWindowMinimizeButton
-          label={chrome.meeting.minimize}
-          title={chrome.meeting.minimizeTitle}
-          className="office-meeting-minimize"
-        />
         <FloatingWindowCloseButton
           label={chrome.meeting.close}
           onClose={onExit}

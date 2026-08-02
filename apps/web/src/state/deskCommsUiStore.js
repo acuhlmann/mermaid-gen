@@ -67,6 +67,29 @@ export function serializeAnchorRect(rect) {
   };
 }
 
+const PANEL_TEST_ID = {
+  inbox: 'desk-comms-inbox',
+  slopChat: 'desk-comms-slopChat',
+  meeting: 'desk-comms-meeting'
+};
+
+/**
+ * Measure the taskbar button for a panel when the opener did not pass a rect
+ * (presence strip, desk arrivals). Falls back to the whole comms cluster.
+ * @param {DeskCommsPanelId} panel
+ * @returns {DeskCommsAnchorRect}
+ */
+export function readDeskCommsAnchorRect(panel) {
+  if (typeof document === 'undefined') return null;
+  const testId = PANEL_TEST_ID[panel];
+  const node =
+    (testId && document.querySelector(`[data-testid="${testId}"]`)) ||
+    document.querySelector('[data-testid="desk-comms-cluster"]') ||
+    document.getElementById('office-desk-bottom-slot');
+  if (!node) return null;
+  return serializeAnchorRect(node.getBoundingClientRect());
+}
+
 /** Test helper — reset without touching localStorage. */
 export function _resetDeskCommsUiForTests() {
   state = { activePanel: null, anchorRect: null };

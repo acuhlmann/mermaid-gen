@@ -180,6 +180,31 @@ describe('OfficeInboxDock', () => {
       contextDetail: expect.stringContaining('FRIDGE CLEANOUT FRIDAY')
     });
   });
+
+  // Controlled open (OfficeLayer) used to pass a functional updater into a
+  // setter that only accepted booleans — a function is truthy, so Close never
+  // called onClose. Pin the close path and the no-minimize chrome.
+  it('closes via × when open is controlled by the parent', () => {
+    const onClose = vi.fn();
+    render(
+      <OfficeInboxDock
+        open
+        onClose={onClose}
+        showTrigger={false}
+        emails={EMAILS}
+        unreadCount={0}
+        focusTime={false}
+        onMarkRead={vi.fn()}
+        onMarkAllRead={vi.fn()}
+        onAdoptPrompt={vi.fn()}
+        onCallMeeting={vi.fn()}
+        canCallMeeting
+      />
+    );
+    expect(screen.queryByRole('button', { name: 'Minimize' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Close inbox' }));
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe('CallMeetingPicker', () => {
@@ -281,6 +306,9 @@ describe('OfficeMessenger hop-on-a-call', () => {
       contextSource: 'chat',
       contextDetail: expect.stringContaining('quick question')
     });
+    // Mail / IM / calendar open from the taskbar — × closes; minimize is noise.
+    expect(screen.queryByRole('button', { name: 'Minimize' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Close Slop Chat' })).toBeTruthy();
   });
 });
 
@@ -588,6 +616,7 @@ describe('MeetingOverlay', () => {
         onAdoptPrompt={vi.fn()}
       />
     );
+    expect(screen.queryByRole('button', { name: 'Minimize' })).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Close' }));
     expect(onClose).toHaveBeenCalledTimes(1);
   });

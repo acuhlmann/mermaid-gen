@@ -177,6 +177,39 @@ describe('StakeholdersMascot', () => {
     expect(onRefine).toHaveBeenCalledTimes(1);
   });
 
+  it('anchors the roster popup to the Teams button x, even on a narrow viewport', () => {
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: 900 });
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 700 });
+    const proto = HTMLElement.prototype;
+    const original = proto.getBoundingClientRect;
+    proto.getBoundingClientRect = function getBoundingClientRect() {
+      if (this.getAttribute?.('aria-haspopup') === 'menu') {
+        return {
+          left: 310,
+          top: 620,
+          width: 48,
+          height: 36,
+          right: 358,
+          bottom: 656,
+          x: 310,
+          y: 620,
+          toJSON() {
+            return {};
+          }
+        };
+      }
+      return original.call(this);
+    };
+    try {
+      render(<StakeholdersMascot personas={TEST_PERSONAS} />);
+      const roster = document.body.querySelector('.stakeholders-roster');
+      expect(roster).toBeTruthy();
+      expect(roster.style.left).toBe('310px');
+    } finally {
+      proto.getBoundingClientRect = original;
+    }
+  });
+
   it('does not render the first-run spotlight without introProps', () => {
     render(<StakeholdersMascot personas={TEST_PERSONAS} />);
     expect(screen.queryByTestId('stakeholder-intro-spotlight')).toBeNull();

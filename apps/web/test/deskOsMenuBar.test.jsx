@@ -160,7 +160,10 @@ describe('DeskOsMenuBar', () => {
     });
     openMenu('admin');
     expect(screen.getByTestId('desk-admin-concentration')).toBeTruthy();
-    expect(screen.getByTestId('concentration-control')).toBeTruthy();
+    const concentration = screen.getByTestId('concentration-control');
+    expect(concentration.className).toContain('concentration-control--tray');
+    expect(concentration.textContent).toMatch(/Rush job/);
+    expect(concentration.textContent).toMatch(/Deep work/);
     const ambience = screen.getByTestId('desk-ambience-pack');
     expect(screen.getByTestId('desk-ambience-headphones').textContent).toContain('Headphones');
     expect(screen.getByTestId('desk-ambience-focus').textContent).toContain('Focus');

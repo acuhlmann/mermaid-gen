@@ -6,10 +6,7 @@ import { PersonaFace } from './personaFaces/index.jsx';
 import OfficeColleaguePicker from './OfficeColleaguePicker.jsx';
 import VoiceMicButton from './VoiceMicButton.jsx';
 import FloatingWindow, { FloatingWindowDragHandle } from './FloatingWindow.jsx';
-import {
-  FloatingWindowCloseButton,
-  FloatingWindowMinimizeButton
-} from './FloatingWindowChrome.jsx';
+import { FloatingWindowCloseButton } from './FloatingWindowChrome.jsx';
 
 /**
  * One colleague's status as a label, or `null` when they are simply reachable.
@@ -323,11 +320,6 @@ export default function OfficeMessenger({
           </button>
         ) : null}
         <div className="office-messenger-titlebar-actions">
-          <FloatingWindowMinimizeButton
-            label={chrome.windowMinimize}
-            title={chrome.windowMinimizeTitle}
-            className="office-messenger-minimize"
-          />
           <FloatingWindowCloseButton
             label={chat.closeAria}
             onClose={onClose}

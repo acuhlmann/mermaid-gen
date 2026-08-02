@@ -86,10 +86,7 @@ describe('DeskOsTray', () => {
     expect(screen.getByRole('button', { name: /Inbox/ }).getAttribute('aria-pressed')).toBe('true');
   });
 
-  it('tidies every window back to its default position', () => {
-    // `resetAllFloatingWindows` lost its only caller when OfficeWindowBar was
-    // removed (99bd816), leaving a window dragged off-screen unreachable.
-    window.sessionStorage.setItem('floating-window:office-inbox', '{"left":9000,"top":9000}');
+  it('lists windows without an Archislop OS wordmark or Tidy up verb', () => {
     registerOverlay('office-inbox', 'officeModal', {
       title: 'Inbox',
       kind: 'inbox',
@@ -97,9 +94,10 @@ describe('DeskOsTray', () => {
     });
 
     render(<DeskOsTray />);
-    fireEvent.click(screen.getByRole('button', { name: /Tidy up/i }));
 
-    expect(window.sessionStorage.getItem('floating-window:office-inbox')).toBeNull();
+    expect(screen.getByRole('button', { name: /Inbox/ })).toBeTruthy();
+    expect(screen.queryByText(/ArchiSlop OS/i)).toBeNull();
+    expect(screen.queryByRole('button', { name: /Tidy up/i })).toBeNull();
   });
 
   it('renders nothing when closed', () => {

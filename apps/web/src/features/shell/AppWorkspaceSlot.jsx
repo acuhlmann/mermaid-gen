@@ -17,7 +17,6 @@ import { ModeRevealSlot } from '../desk/ModeRevealSlot.jsx';
 import { RadialMenuSlot } from '../prompt/RadialMenuSlot.jsx';
 import { BrandChromeSlot } from './BrandChromeSlot.jsx';
 import { DiagramFullscreenToolbarSlot } from './DiagramFullscreenToolbarSlot.jsx';
-import { DiagramCanvasMailboxSlot } from './DiagramCanvasMailboxSlot.jsx';
 import { OfficeLayerSlot } from './OfficeLayerSlot.jsx';
 import { SessionCollaborationSlot } from '../session/SessionCollaborationSlot.jsx';
 import { ShellBottomRowSlot } from './ShellBottomRowSlot.jsx';
@@ -274,8 +273,6 @@ export function AppWorkspaceSlot({
         diagramSource={state.diagramSource}
         onExit={toggleFullscreen}
       />
-
-      <DiagramCanvasMailboxSlot diagramSurfaceRef={diagramSurfaceRef} isFullscreen={isFullscreen} />
 
       <RadialMenuSlot
         isFullscreen={isFullscreen}

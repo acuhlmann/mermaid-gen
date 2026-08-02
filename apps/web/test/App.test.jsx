@@ -482,8 +482,8 @@ describe('App simplified controls', { timeout: 20_000 }, () => {
       () => {
         expect(screen.getByLabelText(/Work order/i)).toBeTruthy();
         expect(screen.getByTestId('desk-comms-cluster')).toBeTruthy();
+        expect(screen.getByTestId('desk-comms-inbox')).toBeTruthy();
         expect(screen.getByTestId('desk-os-menubar')).toBeTruthy();
-        expect(screen.getByTestId('diagram-canvas-mailbox')).toBeTruthy();
       },
       { timeout: 6_000 }
     );

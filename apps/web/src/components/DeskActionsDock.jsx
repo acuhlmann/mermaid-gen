@@ -1,4 +1,4 @@
-import { ButtonIcon } from './AppIcons.jsx';
+import { ButtonIcon, MailInboxIcon } from './AppIcons.jsx';
 import { officeChromeCopy } from '../utils/officeCast.js';
 
 function formatBadge(count) {
@@ -30,32 +30,28 @@ export default function DeskActionsDock({
   unreadCount = 0,
   imUnreadCount = 0,
   placement = 'corner',
-  activePanel = null,
-  /** Mail trigger lives on the canvas when the comms cluster is in the taskbar. */
-  showInbox = placement !== 'taskbar'
+  activePanel = null
 }) {
   const copy = officeChromeCopy().desk;
   const blockedTitle = blockedReason ? (copy.blocked?.[blockedReason] ?? null) : null;
 
   const verbs = [
-    showInbox
-      ? {
-          id: 'inbox',
-          label: copy.inboxShort ?? copy.inbox,
-          ariaLabel: copy.inbox,
-          title: copy.inbox,
-          emoji: '📥',
-          run: onCheckInbox,
-          badge: formatBadge(unreadCount),
-          disabled: false
-        }
-      : null,
+    {
+      id: 'inbox',
+      label: copy.inboxShort ?? copy.inbox,
+      ariaLabel: copy.inbox,
+      title: copy.inbox,
+      glyph: <MailInboxIcon />,
+      run: onCheckInbox,
+      badge: formatBadge(unreadCount),
+      disabled: false
+    },
     {
       id: 'slopChat',
       label: copy.slopChatShort ?? copy.slopChat,
       ariaLabel: copy.slopChat,
       title: copy.slopChatTitle ?? copy.slopChat,
-      emoji: '💬',
+      glyph: '💬',
       run: onOpenSlopChat,
       badge: formatBadge(imUnreadCount),
       disabled: false
@@ -67,12 +63,12 @@ export default function DeskActionsDock({
       title: canSummonSync
         ? (copy.meetingTitle ?? copy.meeting)
         : (copy.blocked?.meeting ?? copy.meeting),
-      emoji: '📅',
+      glyph: '📅',
       run: onSummonSync,
       badge: null,
       disabled: !canSummonSync
     }
-  ].filter(Boolean);
+  ];
 
   const placementClass = placement === 'corner' ? '' : ` desk-actions--${placement}`;
 
@@ -104,7 +100,7 @@ export default function DeskActionsDock({
           >
             <ButtonIcon>
               <span className="action-persona-icon desk-comms-emoji" aria-hidden="true">
-                {verb.emoji}
+                {verb.glyph}
                 {verb.badge ? (
                   <span className="desk-actions-unread-badge" aria-hidden="true">
                     {verb.badge}
