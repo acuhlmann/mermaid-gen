@@ -101,6 +101,14 @@ import { officeStatusOf } from '../utils/officePresence.js';
 import { officeSpeakerSting } from '../utils/officeSpeakerStings.js';
 import { getDeskSlotElement, subscribeDeskSlotElement } from '../state/deskSlotStore.js';
 import {
+  closeDeskCommsPanel,
+  getDeskCommsUi,
+  openDeskCommsPanel,
+  serializeAnchorRect,
+  subscribeDeskCommsUi,
+  toggleDeskCommsPanel
+} from '../state/deskCommsUiStore.js';
+import {
   getOfficeMessengerUi,
   subscribeOfficeMessengerUi
 } from '../state/officeMessengerUiStore.js';
@@ -672,21 +680,35 @@ export default function OfficeLayer({
     [onOfficeEvent]
   );
 
-  const [messengerOpen, setMessengerOpen] = useState(false);
   const [messengerBusy, setMessengerBusy] = useState(false);
   const [messengerTargetId, setMessengerTargetId] = useState(null);
+
+  const commsUi = useSyncExternalStore(subscribeDeskCommsUi, getDeskCommsUi, getDeskCommsUi);
+  const messengerOpen = commsUi.activePanel === 'slopChat';
+  const inboxOpen = commsUi.activePanel === 'inbox';
+  const taskbarAnchor = commsUi.anchorRect;
+
+  const handleToggleInbox = useCallback((anchorRect) => {
+    toggleDeskCommsPanel('inbox', serializeAnchorRect(anchorRect));
+  }, []);
+  const handleToggleMessenger = useCallback((anchorRect) => {
+    toggleDeskCommsPanel('slopChat', serializeAnchorRect(anchorRect));
+  }, []);
   const handleOpenMessenger = useCallback(() => {
     clearDeskArrivals();
-    setMessengerOpen(true);
+    openDeskCommsPanel('slopChat');
   }, []);
   const handleOpenImMessage = useCallback((colleagueId, pingId) => {
     if (pingId) dismissDeskArrival(pingId);
     setMessengerTargetId(colleagueId);
-    setMessengerOpen(true);
+    openDeskCommsPanel('slopChat');
   }, []);
   const handleCloseMessenger = useCallback(() => {
-    setMessengerOpen(false);
+    closeDeskCommsPanel();
     setMessengerTargetId(null);
+  }, []);
+  const handleCloseInbox = useCallback(() => {
+    closeDeskCommsPanel();
   }, []);
 
   // Presence strip (and any future desk chrome outside this tree) asks for
@@ -810,7 +832,7 @@ export default function OfficeLayer({
         seedAttendees.length > 0;
 
       if (directStart) {
-        setMessengerOpen(false);
+        closeDeskCommsPanel();
         const attendees = normalizeMeetingRoster(seedAttendees, { forceFacilitator: false });
         void startMeeting({
           attendees,
@@ -834,6 +856,7 @@ export default function OfficeLayer({
         forceFacilitator: options?.forceFacilitator === true,
         defaultModality: modality
       });
+      closeDeskCommsPanel();
     },
     [meeting, startMeeting]
   );
@@ -841,7 +864,7 @@ export default function OfficeLayer({
   const handleConfirmMeetingPicker = useCallback(
     ({ attendees, topic, modality, contextSource, contextDetail }) => {
       setMeetingPicker(null);
-      setMessengerOpen(false);
+      closeDeskCommsPanel();
       const resolved = normalizeMeetingModality(modality, {
         source: meetingPicker?.source ?? 'desk'
       });
@@ -861,7 +884,32 @@ export default function OfficeLayer({
 
   const handleCancelMeetingPicker = useCallback(() => {
     setMeetingPicker(null);
+    closeDeskCommsPanel();
   }, []);
+
+  const handleToggleMeeting = useCallback(
+    (anchorRect) => {
+      if (meeting) return;
+      dismissOfficeMeetingInvite();
+      toggleDeskCommsPanel('meeting', serializeAnchorRect(anchorRect));
+    },
+    [meeting]
+  );
+
+  // Desk meeting toggle opens the people picker; email/chat paths set it directly.
+  useEffect(() => {
+    if (commsUi.activePanel !== 'meeting' || meeting || meetingPicker) return;
+    setMeetingPicker({
+      seedAttendees: [],
+      topic: '',
+      source: 'desk'
+    });
+  }, [commsUi.activePanel, meeting, meetingPicker]);
+
+  useEffect(() => {
+    if (commsUi.activePanel === 'meeting' || meetingPicker?.source !== 'desk') return;
+    setMeetingPicker(null);
+  }, [commsUi.activePanel, meetingPicker?.source]);
 
   // Signal bumps are one-shot — track the last handled counter so a meeting
   // ending (which recreates handleCallMeeting) cannot re-open the picker.
@@ -871,8 +919,8 @@ export default function OfficeLayer({
       return;
     }
     callMeetingHandledRef.current = callMeetingSignal;
-    handleCallMeeting({ source: 'desk' });
-  }, [callMeetingSignal, handleCallMeeting]);
+    openDeskCommsPanel('meeting');
+  }, [callMeetingSignal]);
 
   /**
    * Mobbing is your own team crowding your screen, so the roster is the team
@@ -1036,9 +1084,6 @@ export default function OfficeLayer({
 
   const canCallMeeting = !meeting;
 
-  // Bumping this counter opens the inbox popover from the desk menu without
-  // lifting the dock's own open/close state.
-  const [inboxOpenSignal, setInboxOpenSignal] = useState(0);
   const [composeBusy, setComposeBusy] = useState(false);
   const desk = useDeskActions({
     pause,
@@ -1052,8 +1097,8 @@ export default function OfficeLayer({
     getModelProfile: () => modelProfile,
     onUsage,
     onOfficeEvent,
-    onCheckInbox: () => setInboxOpenSignal((n) => n + 1),
-    onCallMeeting: () => handleCallMeeting({ source: 'desk' })
+    onCheckInbox: handleToggleInbox,
+    onCallMeeting: () => handleToggleMeeting()
   });
 
   /*
@@ -1199,9 +1244,10 @@ export default function OfficeLayer({
       placement="taskbar"
       unreadCount={snapshot.unreadCount}
       imUnreadCount={snapshot.imUnreadCount}
-      onCheckInbox={desk.checkInbox}
-      onOpenSlopChat={handleOpenMessenger}
-      onSummonSync={() => handleCallMeeting({ source: 'desk' })}
+      activePanel={commsUi.activePanel}
+      onCheckInbox={handleToggleInbox}
+      onOpenSlopChat={handleToggleMessenger}
+      onSummonSync={handleToggleMeeting}
       canSummonSync={canCallMeeting}
       blockedReason={desk.blockedReason}
     />
@@ -1211,6 +1257,19 @@ export default function OfficeLayer({
     getDeskSlotElement,
     getDeskSlotElement
   );
+
+  // One taskbar app at a time — tap outside the cluster or its popover to dismiss.
+  useEffect(() => {
+    if (!commsUi.activePanel) return undefined;
+    const onPointerDown = (event) => {
+      const target = event.target;
+      if (target.closest('.desk-comms-cluster, .floating-window, [data-floating-window]')) return;
+      closeDeskCommsPanel();
+      if (meetingPicker?.source === 'desk') setMeetingPicker(null);
+    };
+    document.addEventListener('pointerdown', onPointerDown);
+    return () => document.removeEventListener('pointerdown', onPointerDown);
+  }, [commsUi.activePanel, meetingPicker?.source]);
 
   const officeFloorBridge = useMemo(
     () =>
@@ -1297,7 +1356,9 @@ export default function OfficeLayer({
       <OfficeFloor bridge={officeFloorBridge} />
       <OfficeInboxDock
         showTrigger={false}
-        openSignal={inboxOpenSignal}
+        open={inboxOpen}
+        onClose={handleCloseInbox}
+        taskbarAnchor={taskbarAnchor}
         emails={snapshot.emails}
         unreadCount={snapshot.unreadCount}
         focusTime={snapshot.focusTime}
@@ -1329,7 +1390,7 @@ export default function OfficeLayer({
             onDismiss={dismissDeskArrival}
             onOpenEmail={(arrival) => {
               dismissDeskArrival(arrival.id);
-              setInboxOpenSignal((n) => n + 1);
+              openDeskCommsPanel('inbox');
             }}
             onOpenIm={(arrival) => handleOpenImMessage(arrival.colleagueId, arrival.id)}
           />
@@ -1349,6 +1410,7 @@ export default function OfficeLayer({
           )}
           <OfficeMessenger
             open={messengerOpen}
+            taskbarAnchor={taskbarAnchor}
             messages={snapshot.imHistory}
             // Derived here rather than inside the window so the messenger stays
             // a renderer of office state instead of a second reader of the
@@ -1411,6 +1473,7 @@ export default function OfficeLayer({
       )}
       <CallMeetingPicker
         open={Boolean(meetingPicker)}
+        taskbarAnchor={meetingPicker?.source === 'desk' ? taskbarAnchor : null}
         seedAttendees={meetingPicker?.seedAttendees ?? []}
         topic={meetingPicker?.topic ?? ''}
         source={meetingPicker?.source ?? 'desk'}

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   meetingContextFromEmails,
   officeChromeCopy,
@@ -30,6 +30,8 @@ const INBOX_WINDOW_ID = 'office-inbox';
  * office.
  */
 export default function OfficeInboxDock({
+  open: openControlled,
+  onClose,
   openSignal = 0,
   emails,
   unreadCount,
@@ -44,9 +46,21 @@ export default function OfficeInboxDock({
   onPhishingReport,
   composeBusy = false,
   canCallMeeting,
-  showTrigger = true
+  showTrigger = true,
+  taskbarAnchor = null
 }) {
-  const [open, setOpen] = useState(false);
+  const [openInternal, setOpenInternal] = useState(false);
+  const open = openControlled !== undefined ? openControlled : openInternal;
+  const setOpen = useCallback(
+    (next) => {
+      if (openControlled !== undefined) {
+        if (!next) onClose?.();
+        return;
+      }
+      setOpenInternal(next);
+    },
+    [openControlled, onClose]
+  );
   const [selectedId, setSelectedId] = useState(null);
   const [selectedEmailIds, setSelectedEmailIds] = useState(() => new Set());
   const [composing, setComposing] = useState(false);
@@ -69,7 +83,7 @@ export default function OfficeInboxDock({
       // it back, or the verb reads as a no-op.
       restoreOverlay(INBOX_WINDOW_ID);
     }
-  }, [openSignal]);
+  }, [openSignal, setOpen]);
 
   // One email in the tray — pre-select it so "Call a meeting" works without an
   // extra checkbox tap (multi-email still requires explicit selection).
@@ -214,6 +228,7 @@ export default function OfficeInboxDock({
           defaultOffsetX={0}
           defaultOffsetY={0}
           cascade={0}
+          taskbarAnchor={taskbarAnchor}
           role="dialog"
           aria-label={copy.inbox.buttonTitle}
         >

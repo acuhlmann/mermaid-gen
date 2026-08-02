@@ -175,12 +175,14 @@ describe('parody-OS frame geometry', () => {
     );
   });
 
-  it('overlaps taskbar comms badges on the glyph instead of clipping above', () => {
+  it('tucks taskbar comms badges inside the glyph so the strip never clips them', () => {
     const badge = css.match(
       /\.desk-actions--taskbar\s+\.desk-comms-cluster\s+\.desk-actions-unread-badge\s*\{([^}]*)\}/
     )?.[1];
     expect(badge).toBeTruthy();
-    expect(badge).toMatch(/transform:\s*translate\(35%,\s*-35%\)/);
+    expect(badge).toMatch(/bottom:\s*0/);
+    expect(badge).toMatch(/transform:\s*translate\(30%,\s*30%\)/);
+    expect(badge).not.toMatch(/translate\([^)]*-35%/);
   });
 
   it('lets walk-by paint above the focus stack via overlay layer, not office chrome', () => {

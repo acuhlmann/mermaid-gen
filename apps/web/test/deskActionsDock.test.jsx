@@ -49,6 +49,7 @@ describe('DeskActionsDock', () => {
     fireEvent.click(screen.getByTestId('desk-comms-slopChat'));
     expect(handlers.onCheckInbox).toHaveBeenCalledTimes(1);
     expect(handlers.onOpenSlopChat).toHaveBeenCalledTimes(1);
+    expect(handlers.onCheckInbox.mock.calls[0][0]).toBeTruthy();
   });
 
   it('opens Have a meeting from the cluster', () => {
@@ -60,6 +61,12 @@ describe('DeskActionsDock', () => {
   it('blocks Have a meeting while already in a meeting', () => {
     renderDock({ onSummonSync: vi.fn(), canSummonSync: false });
     expect(screen.getByTestId('desk-comms-meeting').disabled).toBe(true);
+  });
+
+  it('marks the active taskbar comms icon', () => {
+    renderDock({ activePanel: 'slopChat' });
+    expect(screen.getByTestId('desk-comms-slopChat').getAttribute('aria-pressed')).toBe('true');
+    expect(screen.getByTestId('desk-comms-inbox').getAttribute('aria-pressed')).toBe('false');
   });
 
   it('keeps inbox enabled while blocked', () => {

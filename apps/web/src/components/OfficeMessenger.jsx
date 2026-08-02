@@ -225,7 +225,8 @@ export default function OfficeMessenger({
   canCallMeeting = false,
   busy = false,
   initialColleagueId = null,
-  statusOf
+  statusOf,
+  taskbarAnchor = null
 }) {
   const chat = officeChromeCopy().messenger;
   const chrome = officeChromeCopy();
@@ -289,6 +290,7 @@ export default function OfficeMessenger({
       defaultOffsetX={0}
       defaultOffsetY={0}
       cascade={1}
+      taskbarAnchor={taskbarAnchor}
       role="dialog"
       aria-label={chat.title}
       aria-modal="false"

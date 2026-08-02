@@ -9,6 +9,7 @@ import { PersonaFace } from './personaFaces/index.jsx';
 import { useAdvisorFloatAnchor } from '../hooks/useAdvisorFloatAnchor.js';
 import { overlayLayerStyle, useOverlayLayer } from '../hooks/useOverlayLayer.js';
 import { computeBottomLeftPopoverStyle } from '../utils/bottomPopoverStyle.js';
+import { closeDeskCommsPanel } from '../state/deskCommsUiStore.js';
 
 const COLLAPSE_AFTER_MS = 6000;
 /** How long "<name> took it" stays up after you delegate to a teammate. */
@@ -390,7 +391,13 @@ export default function StakeholdersMascot({
             ? stakeholdersCopy.tapToHide
             : formatLocale(stakeholdersCopy.tapToOpen, { name: mascotName })
         }
-        onClick={() => setExpanded((v) => !v)}
+        onClick={() => {
+          setExpanded((v) => {
+            const next = !v;
+            if (next) closeDeskCommsPanel();
+            return next;
+          });
+        }}
       >
         <span className="stakeholders-mascot-emoji" aria-hidden="true">
           {mascotEmoji}
