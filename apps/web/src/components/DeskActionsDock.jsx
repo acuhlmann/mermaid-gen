@@ -30,22 +30,26 @@ export default function DeskActionsDock({
   unreadCount = 0,
   imUnreadCount = 0,
   placement = 'corner',
-  activePanel = null
+  activePanel = null,
+  /** Mail trigger lives on the canvas when the comms cluster is in the taskbar. */
+  showInbox = placement !== 'taskbar'
 }) {
   const copy = officeChromeCopy().desk;
   const blockedTitle = blockedReason ? (copy.blocked?.[blockedReason] ?? null) : null;
 
   const verbs = [
-    {
-      id: 'inbox',
-      label: copy.inboxShort ?? copy.inbox,
-      ariaLabel: copy.inbox,
-      title: copy.inbox,
-      emoji: '📥',
-      run: onCheckInbox,
-      badge: formatBadge(unreadCount),
-      disabled: false
-    },
+    showInbox
+      ? {
+          id: 'inbox',
+          label: copy.inboxShort ?? copy.inbox,
+          ariaLabel: copy.inbox,
+          title: copy.inbox,
+          emoji: '📥',
+          run: onCheckInbox,
+          badge: formatBadge(unreadCount),
+          disabled: false
+        }
+      : null,
     {
       id: 'slopChat',
       label: copy.slopChatShort ?? copy.slopChat,
@@ -68,7 +72,7 @@ export default function DeskActionsDock({
       badge: null,
       disabled: !canSummonSync
     }
-  ];
+  ].filter(Boolean);
 
   const placementClass = placement === 'corner' ? '' : ` desk-actions--${placement}`;
 

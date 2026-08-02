@@ -1263,7 +1263,12 @@ export default function OfficeLayer({
     if (!commsUi.activePanel) return undefined;
     const onPointerDown = (event) => {
       const target = event.target;
-      if (target.closest('.desk-comms-cluster, .floating-window, [data-floating-window]')) return;
+      if (
+        target.closest(
+          '.desk-comms-cluster, .diagram-canvas-mailbox-btn, .floating-window, [data-floating-window]'
+        )
+      )
+        return;
       closeDeskCommsPanel();
       if (meetingPicker?.source === 'desk') setMeetingPicker(null);
     };

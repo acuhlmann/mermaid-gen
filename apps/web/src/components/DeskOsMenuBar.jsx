@@ -1,8 +1,10 @@
 import { useCallback, useState } from 'react';
+import ConcentrationControl from './ConcentrationControl.jsx';
 import DeskAttributionStrip from './DeskAttributionStrip.jsx';
 import DeskOsMenu, { DeskOsMenuItem, DeskOsMenuSection } from './DeskOsMenu.jsx';
 import IntroLocaleToggle from './IntroLocaleToggle.jsx';
 import OutboxDock from './OutboxDock.jsx';
+import { SettingsGearIcon } from './AppIcons.jsx';
 import { useCoarsePointer } from '../hooks/useAppLayoutMedia.js';
 import { useUiCopy } from '../i18n/useUiLocale.js';
 import { officeChromeCopy } from '../utils/officeCast.js';
@@ -105,7 +107,18 @@ function MailroomMenu({ menu, settings, options }) {
  * (Headphones / Focus), and the Approved vendors attribution strip. "Onboard a
  * contractor" is the single doorway to external agents (docs/multi-human-office.md).
  */
-function AdminMenu({ menu, copy, controls, desk, locale, setLocale, options, touchUi = false }) {
+function AdminMenu({
+  menu,
+  copy,
+  controls,
+  desk,
+  locale,
+  setLocale,
+  options,
+  touchUi = false,
+  modelProfile = 'fast',
+  onSelectModelProfile = null
+}) {
   const languagePack = controls.languagePack ?? {};
   const { headphones, focusTime, onToggleHeadphones, onToggleFocusTime } = options;
   const ambienceToggles = [
@@ -134,10 +147,10 @@ function AdminMenu({ menu, copy, controls, desk, locale, setLocale, options, tou
   return (
     <DeskOsMenu
       {...menu}
-      label={copy.admin ?? 'Admin'}
-      emoji="🏢"
-      title={copy.adminTitle ?? copy.admin}
-      menuAria={copy.adminAria ?? copy.admin}
+      label={copy.settings ?? copy.admin ?? 'Settings'}
+      icon={<SettingsGearIcon />}
+      title={copy.settingsTitle ?? copy.adminTitle ?? copy.admin}
+      menuAria={copy.settingsAria ?? copy.adminAria ?? copy.admin}
       wide
     >
       {(close) => (
@@ -200,6 +213,16 @@ function AdminMenu({ menu, copy, controls, desk, locale, setLocale, options, tou
             />
           </div>
           <div className="desk-actions-menu-footer desk-os-admin-footer" role="none">
+            {typeof onSelectModelProfile === 'function' ? (
+              <div className="desk-os-admin-concentration" data-testid="desk-admin-concentration">
+                <ConcentrationControl
+                  variant="footer"
+                  compact
+                  modelProfile={modelProfile}
+                  onSelectModelProfile={onSelectModelProfile}
+                />
+              </div>
+            ) : null}
             {ambienceToggles.length > 0 ? (
               <div
                 className="desk-ambience-pack"
@@ -264,6 +287,8 @@ export default function DeskOsMenuBar({
   focusTime = false,
   onToggleHeadphones = null,
   onToggleFocusTime = null,
+  modelProfile = 'fast',
+  onSelectModelProfile = null,
   /** First-run tour: which menu the coach tip is pointing at. */
   tourHighlight = null
 }) {
@@ -337,6 +362,8 @@ export default function DeskOsMenuBar({
           onToggleHeadphones,
           onToggleFocusTime
         }}
+        modelProfile={modelProfile}
+        onSelectModelProfile={onSelectModelProfile}
       />
     </div>
   );

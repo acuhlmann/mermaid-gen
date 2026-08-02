@@ -17,6 +17,7 @@ import { ModeRevealSlot } from '../desk/ModeRevealSlot.jsx';
 import { RadialMenuSlot } from '../prompt/RadialMenuSlot.jsx';
 import { BrandChromeSlot } from './BrandChromeSlot.jsx';
 import { DiagramFullscreenMailroomSlot } from './DiagramFullscreenMailroomSlot.jsx';
+import { DiagramCanvasMailboxSlot } from './DiagramCanvasMailboxSlot.jsx';
 import { OfficeLayerSlot } from './OfficeLayerSlot.jsx';
 import { SessionCollaborationSlot } from '../session/SessionCollaborationSlot.jsx';
 import { ShellBottomRowSlot } from './ShellBottomRowSlot.jsx';
@@ -202,6 +203,8 @@ export function AppWorkspaceSlot({
     focusTime: officeFocusTime,
     onToggleHeadphones: setOfficeHeadphones,
     onToggleFocusTime: setOfficeFocusTime,
+    modelProfile,
+    onSelectModelProfile: setModelProfile,
     tourHighlight: entryTourActive && entryTourStep === 'format' ? 'deliverable' : null
   };
 
@@ -270,6 +273,8 @@ export function AppWorkspaceSlot({
         contentType={contentMode === 'auto' ? 'mermaid' : contentMode}
         diagramSource={state.diagramSource}
       />
+
+      <DiagramCanvasMailboxSlot diagramSurfaceRef={diagramSurfaceRef} isFullscreen={isFullscreen} />
 
       <RadialMenuSlot
         isFullscreen={isFullscreen}
