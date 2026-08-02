@@ -26,7 +26,7 @@ export const OFFICE_EN_AU = {
     facilities: {
       blurb: 'ALL-CAPS fridge cleanouts. Thermostat locked at 20.5°C. Architecture is perishable.',
       introLine:
-        'I AM GARY. I OWN THE FRIDGE. I OWN THE THERMOSTAT. Unlabelled containers — and unlabelled architecture diagrams — become FACILITIES PROPERTY. You have been warned. Warmly.'
+        'I AM GARY. I OWN THE FRIDGE. I OWN THE THERMOSTAT. Unlabelled containers — and unlabelled architecture diagrams — become FACILITIES PROPERTY. You have been warned.'
     },
     hr: {
       blurb:
@@ -43,14 +43,14 @@ export const OFFICE_EN_AU = {
     ciso: {
       blurb: "Everything's an attack surface — especially the arrows. Trust is a vulnerability.",
       introLine:
-        'Sasha. CISO. Department of No. Everything is an attack surface — especially you, the arrows, and that temporary admin password from 2017. Noted in your file. I mean it warmly.'
+        'Sasha. CISO. Department of No. Everything is an attack surface — especially you, the arrows, and that temporary admin password from 2017. Noted in your file.'
     }
   },
   OFFICE_WELCOME_EMAIL: {
     id: 'welcome-email-hr',
     colleagueId: 'hr',
     subject: 'Welcome aboard, {userTitle}! 🎉 (badge photo: pending)',
-    body: 'Welcome to the floor! Stoked to have you. A few faces from Your Team before orientation (rescheduled, TBD):\n\n🙋 Dinesh will catch the bug nobody else saw, then remind you he caught it.\n🕶 Erlich will ask if the diagram is courageous. Answer carefully.\n📋 Jared has already filed a finding about your onboarding handoff. Softly. Firmly.\n🤓 Richard thinks this office has a named pattern. He is probably right.\n🧘 Jack Barker is thrilled — and has taken the liberty of simplifying your first week for the board.\n\nGilfoyle and Russ are also on the floor. They will find you. They do not need an introduction.\n\nAnd I’m Linda — People Ops! Your compliance training is already overdue, which is honestly a record. Need quieter? Your desk menu has Focus, Noise, and Voice — and you can always stand up and wander over to the coffee machine.\n\nWarmly,\nLinda'
+    body: 'Welcome to the floor! Stoked to have you. A few faces from Your Team before orientation (rescheduled, TBD):\n\n🙋 Dinesh will catch the bug nobody else saw, then remind you he caught it.\n🕶 Erlich will ask if the diagram is courageous. Answer carefully.\n📋 Jared has already filed a finding about your onboarding handoff. Softly. Firmly.\n🤓 Richard thinks this office has a named pattern. He is probably right.\n🧘 Jack Barker is thrilled — and has taken the liberty of simplifying your first week for the board.\n\nGilfoyle and Russ are also on the floor. They will find you. They do not need an introduction.\n\nAnd I’m Linda — People Ops! Your compliance training is already overdue, which is honestly a record. Need quieter? Your desk menu has Focus, Noise, and Voice — and you can always stand up and wander over to the coffee machine.\n\nHR forever,\nLinda'
   },
   OFFICE_WELCOME_IM: {
     id: 'welcome-im-intern',
@@ -99,13 +99,13 @@ export const OFFICE_EN_AU = {
       colleagueId: 'hr',
       training: 3,
       subject: 'Friendly nudge! Training overdue 😊',
-      body: 'G\'day! Just a friendly nudge that your "Working Safely With Diagrams" compliance training is 847 days overdue! It only takes 4 hours and features 11 unskippable modules.\n\nWarmly,\nLinda — People Ops'
+      body: 'G\'day! Just a friendly nudge that your "Working Safely With Diagrams" compliance training is 847 days overdue! It only takes 4 hours and features 11 unskippable modules.\n\nHR forever,\nLinda — People Ops'
     },
     {
       id: 'email-birthday-card',
       colleagueId: 'hr',
       subject: 'Card for Craig — sign by EOD!',
-      body: "Craig's birthday card is doing the rounds! Please add a warm personal message for Craig. If you don't know Craig, a warm generic message is fine. Craig knows who you are.\n\nLinda"
+      body: "Craig's birthday card is doing the rounds! Please add a personal message for Craig. If you don't know Craig, a generic message is fine. Craig knows who you are.\n\nLinda"
     },
     {
       id: 'email-mandatory-fun',
@@ -173,6 +173,54 @@ export const OFFICE_EN_AU = {
       colleagueId: 'intern',
       subject: 'quick q: can a diagram be a pitch deck',
       body: 'hey {userName}!! random but is "{label}" basically a pitch deck with arrows?? asking because someone said "deck" in standup and i nodded for 12 minutes.\n\nalso i put "disrupting the whiteboard space" on me linkedin. is that too much\n\nchad (intern)'
+    },
+    {
+      id: 'email-helpdesk-slack-outage',
+      colleagueId: 'helpdesk',
+      subject: '[Ticket #48340] Slop Chat™ is fine (update)',
+      body: 'Slop Chat™ briefly entered a quantum state where messages both sent and did not send. Root cause: DNS, vibes, and a deploy nobody claimed.\\n\\nStatus: RESOLVED. Status of the resolution: also RESOLVED. If you still cannot send, that is a different ticket, which is already closed.\\n\\n— Dave'
+    },
+    {
+      id: 'email-facilities-hotdesk',
+      colleagueId: 'facilities',
+      subject: 'Hot-desking: your desk is a suggestion',
+      body: 'Effective Monday, desks are "fluid collaboration nodes". Your monitor settings, snacks, and emotional support plant will be redistributed by Facilities. Name tags are for closers.\\n\\nIf you find someone at YOUR desk, congratulate them. Synergy has seated itself.\\n\\nGary'
+    },
+    {
+      id: 'email-scrum-definition-done',
+      colleagueId: 'scrumMaster',
+      subject: 'Updated Definition of Done (v14, living doc)',
+      body: 'DoD now includes: tests (vibes OK), docs (emoji OK), and a parking-lot sticky that "{label}" has been socially processed.\\n\\nItems not Done remain Done-adjacent. Celebrate the adjacency!!\\n\\nPam'
+    },
+    {
+      id: 'email-greybeard-kubernetes',
+      colleagueId: 'greybeard',
+      subject: 'you rediscovered init scripts',
+      body: "Your '{label}' cluster YAML is three init scripts in a trench coat. We ran those from cron in 1988. The mainframe still has the receipts.\\n\\nOrchestration is a mood. Fear is a runtime.\\n\\nUlrich"
+    },
+    {
+      id: 'email-hr-anonymous-feedback',
+      colleagueId: 'hr',
+      subject: 'Anonymous feedback window is OPEN 😊',
+      body: 'Share how you really feel about the culture! Responses are anonymous, optional, and attached to your employee ID for "theme analysis".\\n\\nThemes so far: fridge, thermostat, Craig.\\n\\nHR forever,\\nLinda — People Ops'
+    },
+    {
+      id: 'email-helpdesk-2fa',
+      colleagueId: 'helpdesk',
+      subject: '[Ticket #48355] MFA enrolment (please ignore carefully)',
+      body: 'You must enrol in MFA by Friday using the app that requires MFA to download. Backup codes were emailed to the account you cannot access.\\n\\nThis ticket anticipates your confusion and has closed itself.\\n\\n— Dave'
+    },
+    {
+      id: 'email-intern-standup-confession',
+      colleagueId: 'intern',
+      subject: 're: blockers (mine)',
+      body: "hey {userName} — my blocker is that i don't know what a blocker is. also {label} looks scary in a Series A way. also i told standup i was 'heads down' while writing this email. am i doing product\\n\\nchad (intern)"
+    },
+    {
+      id: 'email-facilities-bike-room',
+      colleagueId: 'facilities',
+      subject: 'Bike room policy (FINAL, with feelings)',
+      body: 'The bike room is not a closet, not a meeting room, and not a place to store ambition. Helmets unlabelled for 48h become Facilities property. Same rule as the fridge. Same energy. Different smell.\\n\\nGary'
     }
   ],
   SENIOR_EMAIL_TEMPLATES: [
@@ -229,14 +277,14 @@ export const OFFICE_EN_AU = {
       id: 'email-barker-liberty',
       colleagueId: 'barker',
       subject: "I've taken the liberty (terrific news)",
-      body: "{userName} — I spent some time with {label} this morning, and I am excited. Not just about what it is, but about the story we can tell about it. So I've taken the liberty of setting up a little working group around it — nothing formal, just a recurring sync, a steering committee, and a one-pager. That's what families do.\n\nWarmly,\nJack Barker",
+      body: "{userName} — I spent some time with {label} this morning, and I am excited. Not just about what it is, but about the story we can tell about it. So I've taken the liberty of setting up a little working group around it — nothing formal, just a recurring sync, a steering committee, and a one-pager. That's what families do.\n\nConquest is a mindset,\nJack Barker",
       actionPrompt: 'Add a node named "Board-Ready Outcome" and connect it to the final step'
     },
     {
       id: 'email-barker-excited',
       colleagueId: 'barker',
       subject: "I don't know about you, but I am excited",
-      body: "{userName} — {label} is coming along beautifully, and I say that as someone who has seen many, many diagrams. Remember: a diagram that can't impress a board is a hobby, and we're not a hobby company. Keep the story simple, the value obvious, and the synergy visible.\n\nWe're a family here.\n\nWarmly,\nJack"
+      body: "{userName} — {label} is coming along beautifully, and I say that as someone who has seen many, many diagrams. Remember: a diagram that can't impress a board is a hobby, and we're not a hobby company. Keep the story simple, the value obvious, and the synergy visible.\n\nWe're a family here.\n\nJack Barker"
     }
   ],
   OFFICE_IM_TEMPLATES: [
@@ -314,6 +362,51 @@ export const OFFICE_EN_AU = {
       id: 'im-facilities-elevator',
       colleagueId: 'facilities',
       body: 'The lift is making the noise again. Take the stairs. The stairs also make a noise, but a different one.'
+    },
+    {
+      id: 'im-intern-jira',
+      colleagueId: 'intern',
+      body: 'created a jira for "{label}"!! then created a jira about creating the jira. then closed both as duplicates of each other. dave would be proud. or mad. unclear'
+    },
+    {
+      id: 'im-scrum-async',
+      colleagueId: 'scrumMaster',
+      body: "Async standup in the channel!! Please post yesterday / today / blockers / feelings / feelings about blockers. I'll synthesise into a deck nobody opens 🙂"
+    },
+    {
+      id: 'im-helpdesk-cache',
+      colleagueId: 'helpdesk',
+      body: 'Have you tried clearing the cache. Have you tried clearing the other cache. Have you tried clearing the cache of clearing the cache. Ticket closed as educational.'
+    },
+    {
+      id: 'im-facilities-lights',
+      colleagueId: 'facilities',
+      body: 'Motion lights on 3 are haunted. They turn off while you are still moving. Architecture is perishable. So is dignity.'
+    },
+    {
+      id: 'im-hr-badge',
+      colleagueId: 'hr',
+      body: 'Reminder: smile for the badge reprint! Last batch looked "legally distressed". We can see who. Anonymously.'
+    },
+    {
+      id: 'im-greybeard-cobol',
+      colleagueId: 'greybeard',
+      body: 'Someone said cloud-native near {label}. I translated it to COBOL in my head. It still ran. The mainframe smirked.'
+    },
+    {
+      id: 'im-intern-meeting-hell',
+      colleagueId: 'intern',
+      body: 'i have 7 meetings about meetings. is that a funnel?? asking for my calendar / also my will to live / also i already reply-all’d the invite chain sorry'
+    },
+    {
+      id: 'im-scrum-capacity',
+      colleagueId: 'scrumMaster',
+      body: "Capacity check!! We're at 112% committed and 40% emotionally available. Perfect sprint shape. Thank you!!"
+    },
+    {
+      id: 'im-helpdesk-reboot-loop',
+      colleagueId: 'helpdesk',
+      body: 'Laptop stuck on update 2 of 2 for 14 hours. Working as designed. Product calls it "journey". Do not open a ticket. The ticket opened itself and quit.'
     }
   ],
   OFFICE_WALKBY_FALLBACKS: [
@@ -351,6 +444,26 @@ export const OFFICE_EN_AU = {
       id: 'walkby-greybeard-orchestrator',
       colleagueId: 'greybeard',
       body: "Careful with {label}. The last one of those became self-aware around 2011. We don't say 'orchestrator' out loud anymore."
+    },
+    {
+      id: 'walkby-scrum-points',
+      colleagueId: 'scrumMaster',
+      body: "Love the energy on {label}!! I've story-pointed it as a 21 and then decomposed my feelings into three 8s. Math checks. Culture checks. Thank you!!"
+    },
+    {
+      id: 'walkby-intern-ship',
+      colleagueId: 'intern',
+      body: 'wait {label} is LIVE?? i thought live meant "in the doc". is prod the same as the canvas. asking for my resume / also my survival'
+    },
+    {
+      id: 'walkby-ciso-surface',
+      colleagueId: 'ciso',
+      body: '{label} is an attack surface with branding. Cute. I have already filed three findings and one compliment disguised as a finding.'
+    },
+    {
+      id: 'walkby-helpdesk-known',
+      colleagueId: 'helpdesk',
+      body: "Oh, {label}. That's a known issue. Known since Tuesday. Known as a feature since Wednesday. Closed Thursday. You're welcome."
     }
   ],
   OFFICE_COFFEE_SCENES: [
@@ -499,6 +612,84 @@ export const OFFICE_EN_AU = {
         {
           speakerId: 'hr',
           text: "I brought Craig's card. Craig has feelings about parking lots. Allegedly."
+        }
+      ]
+    },
+    {
+      id: 'coffee-badge-photo',
+      lines: [
+        {
+          speakerId: 'hr',
+          text: 'Badge reprints are in. Yours looks like a hostage negotiation went well. Growth!'
+        },
+        {
+          speakerId: 'intern',
+          text: 'mine looks like i discovered equity in vibes mid-blink. is that a brand or a cry for help'
+        }
+      ]
+    },
+    {
+      id: 'coffee-wifi-name',
+      lines: [
+        {
+          speakerId: 'helpdesk',
+          text: 'Guest Wi-Fi is still named "DefinitelyNotAHoneypot". Engagement is up. Security is… also up. In a sense.'
+        },
+        {
+          speakerId: 'ciso',
+          text: 'It is a honeypot. The name is the only honest thing on this floor. Noted.'
+        }
+      ]
+    },
+    {
+      id: 'coffee-okrs',
+      lines: [
+        {
+          speakerId: 'scrumMaster',
+          text: 'Q3 OKRs are "ship value", "feel value", and "retro the value". Measurable!!'
+        },
+        {
+          speakerId: 'greybeard',
+          text: 'In 1979 the objective was "keep it running". Key result: it ran. We slept.'
+        }
+      ]
+    },
+    {
+      id: 'coffee-pingpong',
+      lines: [
+        {
+          speakerId: 'facilities',
+          text: 'The ping-pong table is a meeting room now. Book it. Bring paddles or a deck. Prefer a deck.'
+        },
+        {
+          speakerId: 'intern',
+          text: 'i booked it for "alignment" and someone brought actual balls. chaos. series a chaos'
+        }
+      ]
+    },
+    {
+      id: 'coffee-reorg-rumor',
+      lines: [
+        {
+          speakerId: 'hr',
+          text: "There's a re-org rumour. There is always a re-org rumour. This one has a slide."
+        },
+        {
+          speakerId: 'helpdesk',
+          text: 'I opened a ticket: "org chart, unexpected behaviour". Closed as duplicate of capitalism.'
+        }
+      ]
+    },
+    {
+      id: 'coffee-dark-mode',
+      lines: [
+        {
+          speakerId: 'intern',
+          text: 'why is everything in dark mode except the fridge policy email. that one is blinding. on purpose?'
+        },
+        {
+          speakerId: 'facilities',
+          text: 'Yes. Fear should be well-lit. Architecture too. Label your leftovers.'
         }
       ]
     }
@@ -716,6 +907,88 @@ export const OFFICE_EN_AU = {
         scrumMaster:
           'MVP means the deck. The product will follow in a future ceremony. Invite already sent.'
       }
+    },
+    {
+      id: 'battle-remote-office',
+      topic: 'Remote vs. "back in the office"',
+      lines: [
+        {
+          speakerId: 'hr',
+          text: 'Culture happens in the building! Presence is a wellness metric. Cameras on is a love language.'
+        },
+        {
+          speakerId: 'greybeard',
+          text: 'I was remote in 1979. The mainframe was under my desk. Latency was honesty. Commutes were optional myths.'
+        },
+        {
+          speakerId: 'hr',
+          text: "We've booked mandatory Fun Fridays on-site! Attendance is tracked anonymously and by badge swipe."
+        },
+        {
+          speakerId: 'greybeard',
+          text: 'Fun tracked is not fun. It is a ticket. Dave will close it as a duplicate of joy.'
+        }
+      ],
+      verdicts: {
+        hr: 'Hybrid it is! Hybrid means in-office with Wi-Fi anxiety. Badge printers rejoice.',
+        greybeard:
+          "Remote stands. The building can keep its Fun Fridays. The mainframe never RSVP'd."
+      }
+    },
+    {
+      id: 'battle-jira-notion',
+      topic: 'Jira vs. Notion (the second brain war)',
+      lines: [
+        {
+          speakerId: 'scrumMaster',
+          text: 'If it is not in Jira, it is not real!! Tickets are truth. Backlog is destiny. Great energy!'
+        },
+        {
+          speakerId: 'intern',
+          text: 'but notion is where the vibes live?? i nested twelve databases and lost my internship inside one'
+        },
+        {
+          speakerId: 'scrumMaster',
+          text: "We'll sync Notion into Jira via a ceremony and a Zap nobody owns. Alignment!!"
+        },
+        {
+          speakerId: 'intern',
+          text: 'i already made a notion page about the zap. it has a roadmap emoji. we are so back'
+        }
+      ],
+      verdicts: {
+        scrumMaster:
+          'Jira wins. Notion becomes a mirror that lies optimistically. Pam has story-pointed the lying.',
+        intern:
+          'notion wins!! jira is now a "system of record" which means nobody opens it. equity in vibes.'
+      }
+    },
+    {
+      id: 'battle-emoji-reacts',
+      topic: 'Whether 👍 counts as a decision',
+      lines: [
+        {
+          speakerId: 'helpdesk',
+          text: 'A thumbs-up is ACK. ACK is closure. Closure is peace. I have closed wars with an emoji.'
+        },
+        {
+          speakerId: 'ciso',
+          text: 'A thumbs-up is not consent, not a change advisory, and not a security review. Noted in the channel. Forever.'
+        },
+        {
+          speakerId: 'helpdesk',
+          text: 'Then stop reacting with 🔥 to outages. That is also not a runbook. It is vibes with severity.'
+        },
+        {
+          speakerId: 'ciso',
+          text: '🔥 means I see you. Seeing you is not approving you. Learn the difference before prod learns it.'
+        }
+      ],
+      verdicts: {
+        helpdesk:
+          'Emoji decisions stand. CAB now accepts 👍 as a quorum. Efficiency is a yellow heart.',
+        ciso: 'Emoji are not approvals. The CAB remains a meeting. Your file remains a file.'
+      }
     }
   ],
   OFFICE_MEETING_COPY: {
@@ -746,7 +1019,16 @@ export const OFFICE_EN_AU = {
     leaveLabel: 'Shoot through',
     interjectCapLine: 'Pam: "Great point — let\'s parking-lot it. We\'re at time."'
   },
-  OFFICE_IM_QUICK_REPLIES: ['👍', 'per my last email', 'parking lot', 'pls advise'],
+  OFFICE_IM_QUICK_REPLIES: [
+    '👍',
+    'per my last email',
+    'parking lot',
+    'pls advise',
+    'circling back',
+    'noted in your file',
+    'works on my machine',
+    'synergy?'
+  ],
   OFFICE_CHROME_COPY: {
     doIt: 'Have a go',
     doSelected: 'Do selected',
@@ -823,7 +1105,7 @@ export const OFFICE_EN_AU = {
       welcomeVoiceLine:
         "Welcome to the floor. I'm Linda, People Ops — badge photos, overdue trainings, and the smile that documents your sins. Speed round, because nobody survives five sequential self-intros: Dinesh will catch the bug and make damn sure you thank him. Erlich will ask if the diagram is courageous — say yes or he'll incubate your soul. Jared already filed a finding on your onboarding; he's sorry. Richard is quietly naming a pattern, bless him. Jack Barker is thrilled and has simplified this for the board. Gilfoyle and Russ skipped on purpose — they'll find you, and they will not be gentle. Keep moving.",
       welcomeClosingLine:
-        "That's Day One. Your desk is that way — sit down, survive the little onboarding wizard, and pitch a deliverable before someone books a sync about syncing. Compliance is somehow already overdue, Craig's birthday card is still on the fridge, and if you reply-all about the stapler I will end you. Warmly!",
+        "That's Day One. Your desk is that way — sit down, survive the little onboarding wizard, and pitch a deliverable before someone books a sync about syncing. Compliance is somehow already overdue, Craig's birthday card is still on the fridge, and if you reply-all about the stapler I will end you.",
       nameTag: {
         hello: 'HELLO',
         subtitle: 'my name is',

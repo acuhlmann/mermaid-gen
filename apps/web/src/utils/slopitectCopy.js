@@ -220,12 +220,17 @@ export const VARIANT_QUOTES = {
     'Synergy is not a word. It’s a belief system.',
     'A diagram that can’t impress a board is a hobby.',
     'What story does this tell investors?',
-    'Optics beat substance. Warmly.',
+    'Optics beat substance. Always.',
     'I’m thrilled. You’re thrilled. We’re all thrilled.',
     'Three boxes. That’s the slide.',
     'Boil it down — the board reads three.',
     'Success is a theater. Perform it.',
-    'Every box is a value proposition waiting to align.'
+    'Every box is a value proposition waiting to align.',
+    'I’ve formed a small working group. Nothing formal.',
+    'Conquest is a mindset.',
+    'Simplify until it sings for the board.',
+    'Loyalty looks like a one-pager.',
+    'Let me just say this — less is the strategy.'
   ]
 };
 
@@ -357,7 +362,7 @@ export const PHASE_CEREMONIES = {
     russ: 'Making it louder — on subject 🍾',
     jared: 'Noting the process gap…',
     richard: 'Still not changing it — naming it…',
-    barker: 'Killing the darlings, warmly…'
+    barker: 'Killing the darlings…'
   },
   run_started: {
     gilfoyle: 'Fine.',
@@ -438,7 +443,7 @@ export const PHASE_CEREMONIES = {
     russ: 'More commas! 🍾🍾',
     jared: 'This one is on me. Fixing it…',
     richard: 'Rewinding one clause…',
-    barker: 'Sliding the timeline, warmly 🗓️'
+    barker: 'Sliding the timeline 🗓️'
   },
   repair_2: {
     gilfoyle: 'Second repair. My objection is documented…',
@@ -498,7 +503,7 @@ export const IDLE_TIPS = [
   "A 9-box matrix solves any problem you can't pronounce — Co-Design the tenth box away.",
   'When the CTO asks "is it cloud-native?", the answer is yes — we Co-Designed it that way.',
   'Re-orgs are just architecture refactors with feelings and a synergy offsite.',
-  'Jack Barker has taken the liberty of Co-Designing your roadmap. Warmly.',
+  "Jack Barker has taken the liberty of Co-Designing your roadmap. You're welcome.",
   'Slopitect Tip™: "It works on my machine" is not a deployment strategy. It is a lifestyle.',
   'Pivot means we kept the logo and replaced the product. Again.',
   'If your compression algorithm also compresses morale, call it culture.',
@@ -506,7 +511,14 @@ export const IDLE_TIPS = [
   'Minimum viable product means maximum viable PowerPoint.',
   'The best middleware is the one nobody admits still runs in production.',
   'Six slots, one canvas: Mermaid for boxes, Chart for numbers, Anything for chaos.',
-  'Slop Chat™ colleagues remember what you said — try not to panic.'
+  'Slop Chat™ colleagues remember what you said — try not to panic.',
+  'A parking lot is just a backlog with better lighting and worse follow-through.',
+  'If DNS was involved, Dave already closed the ticket as educational.',
+  "Craig's birthday card is the only immortal process on this floor.",
+  'Story points are feelings with Fibonacci cosplay.',
+  'The Department of No has already noted your optimism.',
+  'Hot-desking means your snacks are now a shared economic zone.',
+  'When in doubt, form a working group and call it family.'
 ];
 
 /** Pick a tip for the given rotation index (stable, no random). */

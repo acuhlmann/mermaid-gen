@@ -63,7 +63,7 @@ describe('slopitectCopy', () => {
       'Taking the liberty 🧘'
     );
     expect(phaseCeremonyLabel('barker', 'chart_transform', 'Transform')).toBe(
-      'Killing the darlings, warmly…'
+      'Killing the darlings…'
     );
     expect(phaseCeremonyLabel('russ', 'anything_invoke', 'anything_invoke')).toMatch(
       /Shipping it loud/
