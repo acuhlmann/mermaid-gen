@@ -540,7 +540,9 @@
   left: auto;
   z-index: 1;
   width: min(22rem, calc(100vw - 1.7rem));
-  max-height: min(70vh, calc(100% - 4.5rem));
+  /* Anchor is only the trigger button tall — percentage max-height collapses
+     to a thin strip. Size against the viewport instead. */
+  max-height: min(70vh, calc(100vh - 4.5rem));
   overflow: auto;
   border-radius: 0.85rem;
   border: 1px solid rgba(15, 23, 42, 0.12);
@@ -576,9 +578,14 @@
   max-width: min(20rem, calc(50vw - 1rem));
 }
 
+/* Keep the kind switcher height-to-content at bottom-right. Setting both
+   `top` and `bottom` stretches an absolute panel full height. */
 .diagram-output:fullscreen .metaphor-kind-switcher,
 .diagram-output:-webkit-full-screen .metaphor-kind-switcher {
-  top: var(--diagram-fullscreen-corner-inset);
+  top: auto;
+  bottom: var(--diagram-fullscreen-corner-inset);
+  right: var(--diagram-fullscreen-corner-inset);
+  height: auto;
 }
 
 .diagram-viewport.is-revision-transition {

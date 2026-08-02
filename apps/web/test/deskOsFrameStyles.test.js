@@ -214,6 +214,21 @@ describe('parody-OS frame geometry', () => {
     expect(css).toMatch(
       /\.diagram-output:fullscreen\s+\.metaphor-title-overlay[\s\S]*top:\s*var\(--diagram-fullscreen-top-chrome-h\)/
     );
+    // Kind switcher must stay bottom-right content-sized — a `top` + `bottom`
+    // pair stretches the absolute panel full height.
+    expect(css).toMatch(
+      /\.diagram-output:fullscreen\s+\.metaphor-kind-switcher[\s\S]*?\btop:\s*auto\b[\s\S]*?\bbottom:\s*var\(--diagram-fullscreen-corner-inset\)/
+    );
+  });
+
+  it('sizes the fullscreen mailroom panel against the viewport, not the button anchor', () => {
+    // The panel is `position: absolute` inside `.diagram-fullscreen-mailroom-anchor`,
+    // which is only as tall as the 2.25rem trigger. `max-height: calc(100% - …)`
+    // resolves against that tiny box and collapses to a thin clipped strip.
+    const body = ruleBody('.diagram-fullscreen-mailroom-panel');
+    expect(body).toBeTruthy();
+    expect(body).not.toMatch(/max-height:[^;]*\b100%/);
+    expect(body).toMatch(/max-height:[^;]*\b(?:\d+(?:\.\d+)?vh|100vh|100dvh)\b/);
   });
 
   it('reserves the safe-area inset once, on the bar that touches the edge', () => {
