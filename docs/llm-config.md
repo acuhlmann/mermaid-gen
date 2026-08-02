@@ -70,16 +70,19 @@ Optional first-rung override for the syntax fixer: `MERMAID_REPAIR_MODEL=gemini-
 Latency-sensitive desk talk does **not** use Brain Fast. `resolveDecorativeBackend` +
 `resolveDecorativeModelId` in [`llmProvider.js`](../apps/server/src/agents/llmProvider.js) serve:
 
-- Office moments, meetings, huddles, training (`createOfficeChatModel`)
 - Advisor chips (`createAdvisorChatModel`)
 - Label explainer + explain dumb-down
 - Auto content-type classifier
+- **Latency office lane** — walk-bys, huddles, live meeting interjections (`createOfficeChatModel` with `live: true` or walk-by kinds)
 
-| Surface                       | Typical hybrid (DeepSeek + Vertex) | Model id                |
-| ----------------------------- | ---------------------------------- | ----------------------- |
-| Brain Fast (canvas Go)        | DeepSeek                           | `deepseek-v4-flash`     |
-| Brain Quality (Deep work)     | DeepSeek                           | `deepseek-v4-pro`       |
-| Decorative (office / advisor) | Vertex                             | `gemini-2.5-flash-lite` |
+**Quality office lane** — email, IM, meeting scripts, training — uses DeepSeek Flash when `DEEPSEEK_API_KEY` is set (falls back to decorative Fast otherwise). When the user selects **Deep work** (Brain Quality), those surfaces upgrade to DeepSeek Pro. The client passes `modelProfile` on every `/api/office/*` LLM route.
+
+| Surface                                         | Typical hybrid (DeepSeek + Vertex) | Model id                                |
+| ----------------------------------------------- | ---------------------------------- | --------------------------------------- |
+| Brain Fast (canvas Go)                          | DeepSeek                           | `deepseek-v4-flash`                     |
+| Brain Quality (Deep work)                       | DeepSeek                           | `deepseek-v4-pro`                       |
+| Office quality lane (email/IM/meeting/training) | DeepSeek (Flash or Pro by Brain)   | `deepseek-v4-flash` / `deepseek-v4-pro` |
+| Office latency lane + advisor                   | Vertex                             | `gemini-2.5-flash-lite`                 |
 
 Vertex overrides: `VERTEX_MODEL_OFFICE` → `VERTEX_MODEL_LITE` → built-in lite. Setting `VERTEX_MODEL_FAST` alone does **not** change office/advisor.
 

@@ -21,6 +21,9 @@ import {
   parseInterjectReply,
   parseMeetingScript,
   parseMomentReply,
+  resolveOfficeBackend,
+  resolveOfficeLane,
+  resolveOfficeModelId,
   SENIOR_MEETING_VOICES,
   STAKEHOLDER_MEETING_VOICES
 } from '../src/agents/officePersonas.js';
@@ -441,6 +444,23 @@ test('normalizeAttendees dedupes, drops unknowns, and enforces seat bounds', () 
 test('createOfficeChatModel returns null when no LLM is configured', () => {
   const model = createOfficeChatModel({}, { purpose: 'moment' });
   assert.equal(model, null);
+});
+
+test('office quality lane prefers DeepSeek flash; Deep work upgrades to Pro', () => {
+  const env = { GOOGLE_CLOUD_PROJECT: 'p', DEEPSEEK_API_KEY: 'k' };
+  assert.equal(resolveOfficeLane({ kind: 'email' }), 'quality');
+  assert.equal(resolveOfficeLane({ kind: 'im' }), 'quality');
+  assert.equal(resolveOfficeLane({ kind: 'walkby' }), 'latency');
+  assert.equal(resolveOfficeLane({ purpose: 'meeting' }), 'quality');
+  assert.equal(resolveOfficeLane({ purpose: 'meeting', live: true }), 'latency');
+  assert.equal(resolveOfficeBackend(env, { kind: 'email' }), 'deepseek');
+  assert.equal(resolveOfficeBackend(env, { kind: 'walkby' }), 'vertex');
+  assert.equal(resolveOfficeModelId(env, { kind: 'email' }), 'deepseek-v4-flash');
+  assert.equal(
+    resolveOfficeModelId(env, { kind: 'email', modelProfile: 'quality' }),
+    'deepseek-v4-pro'
+  );
+  assert.equal(resolveOfficeModelId(env, { kind: 'walkby' }), 'gemini-2.5-flash-lite');
 });
 
 test('office language rule follows the UI locale, not the diagram script', () => {

@@ -47,6 +47,7 @@ function isHidden() {
  *   getSvgRoot?: () => ParentNode | null | undefined,
  *   getUserTitle?: () => string,
  *   onUsage?: (usage: { inputTokens: number, outputTokens: number, model: string | null }) => void,
+ *   getModelProfile?: () => string,
  *   random?: () => number
  * }} params
  */
@@ -89,6 +90,7 @@ export function useOfficeAmbience(params) {
     const deliveryOptions = (extra = {}) => ({
       memory,
       random,
+      modelProfile: paramsRef.current.getModelProfile?.() ?? 'fast',
       onRemember: rememberMoment,
       onFired: countAmbientMoment,
       ...extra

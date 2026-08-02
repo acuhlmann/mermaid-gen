@@ -68,6 +68,7 @@ export const DESK_IM_CAST = listMeetingDirectory().map((row) => row.id);
  *   onCallMeeting?: () => void,
  *   onCheckInbox?: () => void,
  *   onTalkToTeam?: () => void,
+ *   getModelProfile?: () => string,
  *   random?: () => number
  * }} params
  */
@@ -113,6 +114,7 @@ export function useDeskActions(params) {
     (extra = {}) => ({
       memory: memory(),
       random,
+      modelProfile: paramsRef.current.getModelProfile?.() ?? 'fast',
       ...extra
     }),
     [memory, random]

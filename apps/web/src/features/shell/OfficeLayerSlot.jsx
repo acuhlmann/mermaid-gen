@@ -35,6 +35,7 @@ export function OfficeLayerSlot({
   contentMode,
   activeSessionId,
   gamification,
+  modelProfile = 'fast',
   reportAdvisorUsage,
   submitIntentWithPrompt,
   setInsightsEntries,
@@ -51,6 +52,7 @@ export function OfficeLayerSlot({
     <OfficeLayer
       pause={officeDistractionsPaused}
       suppressDistractions={officeCanvasGrace}
+      modelProfile={modelProfile}
       advisorBusy={Boolean(advisor.activePersona || advisor.thinkingPersona)}
       getDiagramSource={() => stateRef.current?.diagramSource ?? ''}
       getContentType={() => contentMode}

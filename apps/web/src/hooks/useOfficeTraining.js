@@ -3,6 +3,7 @@ import { OFFICE_DIAGRAM_SOURCE_MAX_CHARS, TRAINING_STEPS } from '@archislop/shar
 import { API_BASE_URL, SESSION_HEADER } from '../state/diagramSession.js';
 import { getAdvisorVisibleLabels } from '../utils/advisorVisibleLabels.js';
 import { officeDialogueLocale } from '../utils/officeCast.js';
+import { officeWireModelProfile } from '../utils/officeMomentDelivery.js';
 import { getOfficeLogDigest } from '../state/officeLogStore.js';
 import { OFFICE_TRAINING_LLM_CAP } from '../utils/officeCadence.js';
 import { buildCannedTrainingForm } from '../utils/officeTrainingModule.js';
@@ -32,6 +33,7 @@ export const TRAINING_FETCH_TIMEOUT_MS = 30_000;
  *   getDiagramSource?: () => string,
  *   getSvgRoot?: () => Element | null,
  *   getUserName?: () => string,
+ *   getModelProfile?: () => string,
  *   onUsage?: (usage: object) => void,
  *   onComplete?: (result: { moduleNumber: number, answers: Array<object> }) => void
  * }} params
@@ -62,6 +64,7 @@ export function useOfficeTraining(params = {}) {
       visibleLabels: labels,
       officeLog: getOfficeLogDigest(),
       uiLocale: officeDialogueLocale(),
+      modelProfile: officeWireModelProfile(paramsRef.current.getModelProfile?.()),
       ...(p.getUserName?.() ? { userName: p.getUserName() } : {})
     };
   }, []);

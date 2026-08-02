@@ -112,4 +112,21 @@ describe('deliverLlmMoment carries a pitch to every surface', () => {
     expect(delivered).toBe(false);
     expect(getOfficeSnapshot().imHistory).toHaveLength(0);
   });
+
+  it('forwards Brain mode as modelProfile on the wire', async () => {
+    const fetchMock = vi.fn(async () => ({
+      ok: true,
+      json: async () => ({ moment: { body: 'ping', colleagueId: 'intern', kind: 'im' } })
+    }));
+    globalThis.fetch = fetchMock;
+
+    await deliverLlmMoment('im', CTX, {
+      memory: memory(),
+      colleagueId: 'intern',
+      modelProfile: 'quality'
+    });
+
+    const body = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body ?? '{}'));
+    expect(body.modelProfile).toBe('quality');
+  });
 });

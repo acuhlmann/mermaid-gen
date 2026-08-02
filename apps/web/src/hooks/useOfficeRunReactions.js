@@ -121,6 +121,7 @@ export function planRunReaction({
  *   getSessionId?: () => string,
  *   getSvgRoot?: () => ParentNode | null | undefined,
  *   getUserTitle?: () => string,
+ *   getModelProfile?: () => string,
  *   onUsage?: (usage: { inputTokens: number, outputTokens: number, model: string | null }) => void,
  *   random?: () => number
  * }} params
@@ -165,6 +166,7 @@ export function useOfficeRunReactions(params) {
           random,
           sessionId: p.getSessionId?.() ?? '',
           recentMoments: recentRef.current,
+          modelProfile: p.getModelProfile?.() ?? 'fast',
           onUsage: (usage) => paramsRef.current.onUsage?.(usage),
           onRemember: rememberMoment,
           onLlmSpent: () => {

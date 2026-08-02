@@ -323,6 +323,7 @@ export function AppWorkspaceSlot({
         contentMode={contentMode}
         activeSessionId={activeSessionId}
         gamification={gamification}
+        modelProfile={modelProfile}
         reportAdvisorUsage={onAdvisorUsage}
         submitIntentWithPrompt={submitIntentWithPrompt}
         setInsightsEntries={setInsightsEntries}

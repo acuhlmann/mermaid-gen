@@ -51,6 +51,11 @@ import { CAST_TIERS } from './castTiers.js';
 export const MOMENT_TIMEOUT_MS = 12_000;
 export const RECENT_MOMENTS_CAP = 5;
 
+/** Map the desk Brain toggle to the office route's modelProfile field. */
+export function officeWireModelProfile(modelProfile) {
+  return modelProfile === 'quality' ? 'quality' : 'fast';
+}
+
 /**
  * Read the live diagram context for slot fills and LLM prompts.
  *
@@ -318,7 +323,8 @@ export async function deliverLlmMoment(kind, ctx, options) {
     onFired,
     onLlmSpent,
     isAlive = () => true,
-    registerAbort
+    registerAbort,
+    modelProfile
   } = options;
   if (!colleagueId) return false;
 
@@ -354,7 +360,8 @@ export async function deliverLlmMoment(kind, ctx, options) {
         uiLocale: officeDialogueLocale(),
         userName: ctx.userName || undefined,
         userMessage: userMessage || undefined,
-        threadTranscript: threadTranscript.length > 0 ? threadTranscript : undefined
+        threadTranscript: threadTranscript.length > 0 ? threadTranscript : undefined,
+        modelProfile: officeWireModelProfile(modelProfile)
       }),
       signal: controller.signal
     });

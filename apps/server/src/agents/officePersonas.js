@@ -22,8 +22,65 @@ import {
 } from '@archislop/shared';
 import { llmUsageFromReply } from './_lib/llmUsageFromReply.js';
 import { buildOfficeLogBlock } from './_lib/officeLogPrompt.js';
-import { resolveAdvisorModelId } from './advisorPrompts.js';
-import { createLlmChatModel, isLlmConfigured, resolveDecorativeBackend } from './llmProvider.js';
+import {
+  createLlmChatModel,
+  isLlmConfigured,
+  normalizeModelProfile,
+  resolveDecorativeBackend,
+  resolveDecorativeModelId,
+  resolveDeepSeekModelId
+} from './llmProvider.js';
+
+/** Moment kinds that should stay on the latency-first decorative tier. */
+const LATENCY_MOMENT_KINDS = new Set(['walkby', 'coffee', 'meeting-invite']);
+
+/**
+ * Office surfaces split into two lanes:
+ * - **latency** — walk-bys, huddles, live meeting interjections (flash-lite)
+ * - **quality** — email, IM, meeting scripts, training (DeepSeek when configured)
+ *
+ * @param {{ purpose?: 'moment' | 'meeting' | 'training', kind?: string, live?: boolean }} [opts]
+ * @returns {'latency' | 'quality'}
+ */
+export function resolveOfficeLane(opts = {}) {
+  if (opts.lane === 'latency' || opts.lane === 'quality') return opts.lane;
+  if (opts.purpose === 'training') return 'quality';
+  if (opts.purpose === 'meeting') return opts.live ? 'latency' : 'quality';
+  if (typeof opts.kind === 'string' && LATENCY_MOMENT_KINDS.has(opts.kind)) return 'latency';
+  return 'quality';
+}
+
+/**
+ * @param {NodeJS.ProcessEnv} env
+ * @param {{ purpose?: 'moment' | 'meeting' | 'training', kind?: string, live?: boolean, lane?: 'latency' | 'quality' }} [opts]
+ */
+export function resolveOfficeBackend(env = process.env, opts = {}) {
+  if (resolveOfficeLane(opts) === 'latency') {
+    return resolveDecorativeBackend(env);
+  }
+  if (env.DEEPSEEK_API_KEY) return 'deepseek';
+  return resolveDecorativeBackend(env);
+}
+
+/**
+ * Model id for an office LLM call. Quality-lane surfaces prefer DeepSeek Flash;
+ * Brain mode (`modelProfile: quality`) upgrades them to DeepSeek Pro.
+ *
+ * @param {NodeJS.ProcessEnv} env
+ * @param {{ purpose?: 'moment' | 'meeting' | 'training', kind?: string, live?: boolean, lane?: 'latency' | 'quality', modelProfile?: 'fast' | 'quality' }} [opts]
+ */
+export function resolveOfficeModelId(env = process.env, opts = {}) {
+  const backend = resolveOfficeBackend(env, opts);
+  if (!backend) return null;
+  if (resolveOfficeLane(opts) === 'latency') {
+    return resolveDecorativeModelId(env, backend);
+  }
+  const profile = normalizeModelProfile(opts.modelProfile);
+  if (backend === 'deepseek') {
+    return resolveDeepSeekModelId(env, profile);
+  }
+  return resolveDecorativeModelId(env, backend);
+}
 
 /**
  * The office colleagues — parody corporate-IT archetypes that live purely in
@@ -1104,10 +1161,6 @@ export function normalizeAttendees(value, { minAttendees = MEETING_MIN_ATTENDEES
   return seen;
 }
 
-export function resolveOfficeModelId(env = process.env) {
-  return resolveAdvisorModelId(env);
-}
-
 /** Pull `{ inputTokens, outputTokens }` from a LangChain reply, when reported. */
 export function officeUsageFromReply(reply) {
   return llmUsageFromReply(reply);
@@ -1116,16 +1169,17 @@ export function officeUsageFromReply(reply) {
 const officeModelCache = new Map();
 
 /**
- * Tool-less chat model for office content — decorative Fast (Vertex lite by
- * default), same policy as the advisor. Meetings get a bigger output budget (a
- * whole beat script) and slightly hotter sampling than one-line moments.
+ * Tool-less chat model for office content. Latency-sensitive surfaces (walk-bys,
+ * huddles, live interjections) stay on decorative flash-lite; email, IM,
+ * meeting scripts, and training prefer DeepSeek Flash, or DeepSeek Pro when the
+ * user has Brain in Deep work mode.
  *
  * @param {NodeJS.ProcessEnv} env
- * @param {{ purpose?: 'moment' | 'meeting' | 'training', temperature?: number }} [opts]
+ * @param {{ purpose?: 'moment' | 'meeting' | 'training', kind?: string, live?: boolean, lane?: 'latency' | 'quality', modelProfile?: 'fast' | 'quality', temperature?: number }} [opts]
  */
 export function createOfficeChatModel(env = process.env, opts = {}) {
   if (!isLlmConfigured(env)) return null;
-  const backend = resolveDecorativeBackend(env);
+  const backend = resolveOfficeBackend(env, opts);
   if (!backend) return null;
   const purpose =
     opts.purpose === 'meeting' || opts.purpose === 'training' ? opts.purpose : 'moment';
@@ -1139,8 +1193,10 @@ export function createOfficeChatModel(env = process.env, opts = {}) {
         purpose === 'training'
         ? 0.8
         : 0.9;
-  const modelId = resolveOfficeModelId(env);
-  const key = `${backend}:${modelId}:${purpose}:${temperature}`;
+  const modelId = resolveOfficeModelId(env, opts);
+  const lane = resolveOfficeLane(opts);
+  const profile = normalizeModelProfile(opts.modelProfile);
+  const key = `${backend}:${modelId}:${lane}:${profile}:${purpose}:${temperature}`;
   const cached = officeModelCache.get(key);
   if (cached) return cached;
   const overrides = {

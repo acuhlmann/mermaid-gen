@@ -3,6 +3,7 @@ import { z } from 'zod';
 import {
   ContentTypeSchema,
   MEETING_MAX_ATTENDEES,
+  ModelProfileSchema,
   OfficeMomentKindSchema,
   OFFICE_DIAGRAM_SOURCE_MAX_CHARS
 } from '@archislop/shared';
@@ -70,6 +71,8 @@ const OfficeThreadLineSchema = z.object({
  */
 const OfficeLogField = z.array(z.string().max(200)).max(12).default([]);
 
+const ModelProfileField = ModelProfileSchema.optional();
+
 const OfficeMomentRequestSchema = z.object({
   kind: OfficeMomentKindSchema,
   colleagueId: z.string().refine(isOfficeSpeaker, { message: 'unknown colleague' }),
@@ -81,7 +84,8 @@ const OfficeMomentRequestSchema = z.object({
   uiLocale: UiLocaleField,
   userName: z.string().max(80).optional(),
   userMessage: z.string().max(400).optional(),
-  threadTranscript: z.array(OfficeThreadLineSchema).max(12).optional()
+  threadTranscript: z.array(OfficeThreadLineSchema).max(12).optional(),
+  modelProfile: ModelProfileField
 });
 
 /**
@@ -113,7 +117,8 @@ const OfficeMeetingRequestSchema = z.object({
   contextSource: z.enum(['email', 'chat']).optional(),
   contextDetail: z.string().max(1200).optional(),
   officeLog: OfficeLogField,
-  uiLocale: UiLocaleField
+  uiLocale: UiLocaleField,
+  modelProfile: ModelProfileField
 });
 
 /**
@@ -145,7 +150,8 @@ const OfficeHuddleRequestSchema = z.object({
   attendees: z.array(z.string().max(40)).min(1).max(HUDDLE_MAX_ATTENDEES),
   priorBeats: z.array(OfficeHuddlePriorBeatSchema).max(HUDDLE_MAX_ATTENDEES).optional(),
   officeLog: OfficeLogField,
-  uiLocale: UiLocaleField
+  uiLocale: UiLocaleField,
+  modelProfile: ModelProfileField
 });
 
 const OfficeInterjectRequestSchema = z.object({
@@ -156,7 +162,8 @@ const OfficeInterjectRequestSchema = z.object({
   transcriptSoFar: z.array(z.string().max(300)).max(20).default([]),
   interjection: z.string().min(1).max(400),
   officeLog: OfficeLogField,
-  uiLocale: UiLocaleField
+  uiLocale: UiLocaleField,
+  modelProfile: ModelProfileField
 });
 
 const OfficeSpeakRequestSchema = z.object({
@@ -189,7 +196,8 @@ const OfficeTrainingRequestSchema = z.object({
   priorAnswers: z
     .array(z.object({ label: z.string().max(160), value: TrainingAnswerValueSchema }))
     .max(12)
-    .default([])
+    .default([]),
+  modelProfile: ModelProfileField
 });
 
 function safeErrorMessage(error) {
@@ -273,7 +281,11 @@ export function createHuddleHandler(env) {
 
     let model;
     try {
-      model = createOfficeChatModel(env, { purpose: 'meeting' });
+      model = createOfficeChatModel(env, {
+        purpose: 'meeting',
+        live: true,
+        modelProfile: payload.modelProfile
+      });
     } catch (error) {
       res.status(503).json({ error: safeErrorMessage(error) });
       return;
@@ -290,7 +302,11 @@ export function createHuddleHandler(env) {
       return;
     }
     const user = buildHuddleUserPrompt({ ...payload, priorBeats });
-    const officeModel = resolveOfficeModelId(env);
+    const officeModel = resolveOfficeModelId(env, {
+      purpose: 'meeting',
+      live: true,
+      modelProfile: payload.modelProfile
+    });
     try {
       const reply = await model.invoke([new SystemMessage(turn.system), new HumanMessage(user)]);
       const usage = officeUsageFromReply(reply);
@@ -338,7 +354,10 @@ export function createTrainingHandler(env) {
 
     let model;
     try {
-      model = createOfficeChatModel(env, { purpose: 'training' });
+      model = createOfficeChatModel(env, {
+        purpose: 'training',
+        modelProfile: payload.modelProfile
+      });
     } catch (error) {
       res.status(503).json({ error: safeErrorMessage(error) });
       return;
@@ -350,7 +369,10 @@ export function createTrainingHandler(env) {
 
     const system = buildTrainingSystemPrompt({ uiLocale: payload.uiLocale, step: payload.step });
     const user = buildTrainingUserPrompt(payload);
-    const officeModel = resolveOfficeModelId(env);
+    const officeModel = resolveOfficeModelId(env, {
+      purpose: 'training',
+      modelProfile: payload.modelProfile
+    });
     try {
       const reply = await model.invoke([new SystemMessage(system), new HumanMessage(user)]);
       const usage = officeUsageFromReply(reply);
@@ -368,9 +390,11 @@ export function createTrainingHandler(env) {
 }
 
 /**
- * Office-parody content endpoints (docs/office-parody.md). All decorative:
- * cheap fast-tier model, strict-JSON replies, and the client always has a
- * canned fallback — a null result here is a feature, not an error.
+ * Office-parody content endpoints (docs/office-parody.md). Quality-lane surfaces
+ * (email, IM, meeting scripts, training) prefer DeepSeek; latency-lane surfaces
+ * (walk-bys, huddles, live interjections) stay on decorative flash-lite. Strict
+ * JSON replies, and the client always has a canned fallback — a null result
+ * here is a feature, not an error.
  */
 /**
  * @param {{ env?: NodeJS.ProcessEnv }} [opts]
@@ -394,7 +418,11 @@ export function createOfficeRouter({ env = process.env } = {}) {
 
     let model;
     try {
-      model = createOfficeChatModel(env, { purpose: 'moment' });
+      model = createOfficeChatModel(env, {
+        purpose: 'moment',
+        kind: payload.kind,
+        modelProfile: payload.modelProfile
+      });
     } catch (error) {
       res.status(503).json({ error: safeErrorMessage(error) });
       return;
@@ -411,7 +439,10 @@ export function createOfficeRouter({ env = process.env } = {}) {
       isReply: Boolean(payload.userMessage?.trim())
     });
     const user = buildMomentUserPrompt(payload);
-    const officeModel = resolveOfficeModelId(env);
+    const officeModel = resolveOfficeModelId(env, {
+      kind: payload.kind,
+      modelProfile: payload.modelProfile
+    });
     try {
       const reply = await model.invoke([new SystemMessage(system), new HumanMessage(user)]);
       const usage = officeUsageFromReply(reply);
@@ -444,7 +475,10 @@ export function createOfficeRouter({ env = process.env } = {}) {
 
     let model;
     try {
-      model = createOfficeChatModel(env, { purpose: 'meeting' });
+      model = createOfficeChatModel(env, {
+        purpose: 'meeting',
+        modelProfile: payload.modelProfile
+      });
     } catch (error) {
       res.status(503).json({ error: safeErrorMessage(error) });
       return;
@@ -465,7 +499,10 @@ export function createOfficeRouter({ env = process.env } = {}) {
       audience: payload.audience.filter((id) => !attendees.includes(id))
     });
     const user = buildMeetingUserPrompt(payload);
-    const officeModel = resolveOfficeModelId(env);
+    const officeModel = resolveOfficeModelId(env, {
+      purpose: 'meeting',
+      modelProfile: payload.modelProfile
+    });
     try {
       const reply = await model.invoke([new SystemMessage(system), new HumanMessage(user)]);
       const usage = officeUsageFromReply(reply);
@@ -522,7 +559,11 @@ export function createOfficeRouter({ env = process.env } = {}) {
 
     let model;
     try {
-      model = createOfficeChatModel(env, { purpose: 'meeting' });
+      model = createOfficeChatModel(env, {
+        purpose: 'meeting',
+        live: true,
+        modelProfile: payload.modelProfile
+      });
     } catch (error) {
       res.status(503).json({ error: safeErrorMessage(error) });
       return;
@@ -539,7 +580,11 @@ export function createOfficeRouter({ env = process.env } = {}) {
       uiLocale: payload.uiLocale
     });
     const user = buildInterjectUserPrompt(payload);
-    const officeModel = resolveOfficeModelId(env);
+    const officeModel = resolveOfficeModelId(env, {
+      purpose: 'meeting',
+      live: true,
+      modelProfile: payload.modelProfile
+    });
     try {
       const reply = await model.invoke([new SystemMessage(system), new HumanMessage(user)]);
       const usage = officeUsageFromReply(reply);
