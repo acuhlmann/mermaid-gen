@@ -92,12 +92,17 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
       'Synergy is not a word. It’s a belief system.',
       'A diagram that can’t impress a board is a hobby.',
       'What story does this tell investors?',
-      'Optics beat substance. Warmly.',
+      'Optics beat substance. Always.',
       'I’m thrilled. You’re thrilled. We’re all thrilled.',
       'Three boxes. That’s the slide.',
       'Boil it down — the board reads three.',
       'Success is a theatre. Perform it.',
-      'Every box is a value proposition waiting to align.'
+      'Every box is a value proposition waiting to align.',
+      "I've formed a small working group. Nothing formal.",
+      'Conquest is a mindset.',
+      'Simplify until it sings for the board.',
+      'Loyalty looks like a one-pager.',
+      'Let me just say this — less is the strategy.'
     ]
   },
   PHASE_CEREMONIES: {
@@ -144,7 +149,7 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
       russ: 'Making it louder — on subject 🍾',
       jared: 'Noting the process gap…',
       richard: 'Still not changing it — naming it…',
-      barker: 'Killing the darlings, warmly…'
+      barker: 'Killing the darlings…'
     },
     run_started: {
       gilfoyle: 'Fine.',
@@ -225,7 +230,7 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
       russ: 'More commas! 🍾🍾',
       jared: 'This one is on me. Fixing it…',
       richard: 'Rewinding the parchment…',
-      barker: 'Sliding the timeline, warmly 🗓️'
+      barker: 'Sliding the timeline 🗓️'
     },
     repair_2: {
       gilfoyle: 'Second repair. My objection is documented…',
@@ -250,7 +255,14 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
     "A 9-box matrix solves any problem you can't pronounce — Co-Design the tenth box away.",
     'When the CTO asks "is it cloud-native?", the answer is yes — we Co-Designed it that way.',
     'Re-orgs are just architecture refactors with feelings and a synergy offsite.',
-    'Jack Barker has taken the liberty of Co-Designing your roadmap. Warmly, mate.'
+    "Jack Barker has taken the liberty of Co-Designing your roadmap. You're welcome, mate.",
+    'A parking lot is just a backlog with better lighting and worse follow-through.',
+    'If DNS was involved, Dave already closed the ticket as educational.',
+    "Craig's birthday card is the only immortal process on this floor.",
+    'Story points are feelings with Fibonacci cosplay.',
+    'The Department of No has already noted your optimism.',
+    'Hot-desking means your snacks are now a shared economic zone.',
+    'When in doubt, form a working group and call it family.'
   ],
   PRESTIGE_TIERS: [
     { threshold: 0, label: 'Slop Trainee', short: 'Trainee' },

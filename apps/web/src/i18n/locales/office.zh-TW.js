@@ -49,7 +49,7 @@ export const OFFICE_ZH_TW = {
       title: '資安長 — 「不行部」',
       blurb: '萬物皆攻擊面,尤其是箭頭。釣魚演練由 TA 主持。誰都不信。',
       introLine:
-        'Sasha。資安長。不行部。萬物皆攻擊面——尤其是你、那些箭頭,還有 2017 年那個臨時管理員密碼。已記入你的檔案。我是出於好意。'
+        'Sasha。資安長。不行部。萬物皆攻擊面——尤其是你、那些箭頭,還有 2017 年那個臨時管理員密碼。已記入你的檔案。'
     }
   },
   SENIOR_STAKEHOLDERS: {
@@ -71,7 +71,7 @@ export const OFFICE_ZH_TW = {
     id: 'welcome-email-hr',
     colleagueId: 'hr',
     subject: '歡迎加入,{userTitle}!🎉(識別證照片:待定)',
-    body: '歡迎來到這層樓!很開心你的加入。在新人引導(已改期,時間待定)之前,先認識 Your Team 的幾張臉:\n\n🙋 Dinesh 會抓住別人沒看見的 bug,然後提醒你是他抓到的。\n🕶 Erlich 會問這張圖夠不夠有勇氣。請慎重回答。\n📋 Jared 已經就你的到職交接提了發現。輕輕地。堅定地。\n🤓 Richard 覺得這間辦公室有一個可命名的模式。他大概是對的。\n🧘 Jack Barker 很興奮——並且已擅自把你的第一週簡化成董事會版本。\n\nGilfoyle 和 Russ 也在這層樓。他們會自己找到你。不需要介紹。\n\n我是 Linda — 人資營運!你的合規訓練已經逾期了,這實屬紀錄。想安靜一點?工位選單裡有專注、音景和朗讀 — 也可以站起來去咖啡機那邊轉轉。\n\n溫暖的問候,\nLinda'
+    body: '歡迎來到這層樓!很開心你的加入。在新人引導(已改期,時間待定)之前,先認識 Your Team 的幾張臉:\n\n🙋 Dinesh 會抓住別人沒看見的 bug,然後提醒你是他抓到的。\n🕶 Erlich 會問這張圖夠不夠有勇氣。請慎重回答。\n📋 Jared 已經就你的到職交接提了發現。輕輕地。堅定地。\n🤓 Richard 覺得這間辦公室有一個可命名的模式。他大概是對的。\n🧘 Jack Barker 很興奮——並且已擅自把你的第一週簡化成董事會版本。\n\nGilfoyle 和 Russ 也在這層樓。他們會自己找到你。不需要介紹。\n\n我是 Linda — 人資營運!你的合規訓練已經逾期了,這實屬紀錄。想安靜一點?工位選單裡有專注、音景和朗讀 — 也可以站起來去咖啡機那邊轉轉。\n\n人資營運永遠,\nLinda'
   },
   OFFICE_WELCOME_IM: {
     id: 'welcome-im-intern',
@@ -120,13 +120,13 @@ export const OFFICE_ZH_TW = {
       colleagueId: 'hr',
       training: 3,
       subject: '溫馨小提醒!訓練已逾期 😊',
-      body: '溫馨提醒:您的《安全使用圖表》法遵訓練已逾期 847 天!只需 4 小時即可完成,內含 11 個不可跳過的單元。\n\n溫暖的問候,\nLinda — 人資營運'
+      body: '溫馨提醒:您的《安全使用圖表》法遵訓練已逾期 847 天!只需 4 小時即可完成,內含 11 個不可跳過的單元。\n\n人資營運永遠,\nLinda — 人資營運'
     },
     {
       id: 'email-birthday-card',
       colleagueId: 'hr',
       subject: '給 Craig 的卡片 — 今天下班前簽名!',
-      body: 'Craig 的生日卡正在傳閱!請為 Craig 寫句溫暖的祝福。不認識 Craig 的話,寫句通用的溫暖祝福也行。Craig 認識你。\n\nLinda'
+      body: 'Craig 的生日卡正在傳閱!請為 Craig 寫句祝福。不認識 Craig 的話,寫句通用的也行。Craig 認識你。\n\nLinda'
     },
     {
       id: 'email-mandatory-fun',
@@ -194,6 +194,54 @@ export const OFFICE_ZH_TW = {
       colleagueId: 'intern',
       subject: '小問題:圖能當路演簡報嗎',
       body: '嘿 {userName}!!隨便問一下 — 「{label}」本質上是不是帶箭頭的路演稿??因為站會有人說 deck,我點頭點了十二分鐘。\n\n另外我在 LinkedIn 寫了「顛覆白板賽道」。會不會有點兇\n\nchad(實習生)'
+    },
+    {
+      id: 'email-helpdesk-slack-outage',
+      colleagueId: 'helpdesk',
+      subject: '[工單 #48340] Slop Chat™ 沒問題（更新）',
+      body: 'Slop Chat™ 短暫進入量子態，訊息同時處於「已送出」和「沒送出」。根因：DNS、氣氛，以及一場沒人認領的部署。\n\n狀態：已解決。解決狀態：也已解決。如果你還是送不出去，那是另一張工單，而且已經結案。\n\n— Dave'
+    },
+    {
+      id: 'email-facilities-hotdesk',
+      colleagueId: 'facilities',
+      subject: '共享座位：你的桌子只是一項建議',
+      body: '週一起，所有辦公桌改稱「流動協作節點」。你的螢幕設定、零食和情緒支持植物將由總務重新分配。只有贏家才配貼名牌。\n\n如果發現別人坐在你的桌前，恭喜對方。協同效應自己找了座位。\n\nGary'
+    },
+    {
+      id: 'email-scrum-definition-done',
+      colleagueId: 'scrumMaster',
+      subject: '完成定義已更新（v14，活文件）',
+      body: 'DoD 現包括：測試（靠感覺也行）、文件（表情符號也行），以及一張停車場便利貼，證明「{label}」已完成社會化處理。\n\n沒完成的項目仍屬於「接近完成」。為這種接近歡呼吧！！\n\nPam'
+    },
+    {
+      id: 'email-greybeard-kubernetes',
+      colleagueId: 'greybeard',
+      subject: '你重新發明了啟動指令稿',
+      body: '你的「{label}」叢集 YAML，就是三支啟動指令稿穿著一件風衣。1988 年我們用 cron 跑這玩意。大型主機還留著收據。\n\n協調只是一種情緒。恐懼才是執行環境。\n\nUlrich'
+    },
+    {
+      id: 'email-hr-anonymous-feedback',
+      colleagueId: 'hr',
+      subject: '匿名意見回饋窗口已開放 😊',
+      body: '儘管說出你對公司文化的真實感受！回覆匿名、自願，並會綁定你的員工 ID 以便進行「主題分析」。\n\n目前主題：冰箱、恆溫器、Craig。\n\n人資營運永遠,\nLinda — 人資營運'
+    },
+    {
+      id: 'email-helpdesk-2fa',
+      colleagueId: 'helpdesk',
+      subject: '[工單 #48355] MFA 註冊（請謹慎忽略）',
+      body: '你必須在週五前用那個「必須先通過 MFA 才能下載」的 App 完成 MFA 註冊。備用代碼已寄到你目前無法登入的帳號。\n\n本工單預判了你的困惑，並已自行結案。\n\n— Dave'
+    },
+    {
+      id: 'email-intern-standup-confession',
+      colleagueId: 'intern',
+      subject: '回覆：阻礙項目（我的）',
+      body: '嘿 {userName} — 我的阻礙是我不知道什麼算阻礙。另外 {label} 看起來有種 A 輪募資級的嚇人。另外我在寫這封信時，剛在站會說自己正「埋頭苦幹」。這算做產品嗎\n\nchad（實習生）'
+    },
+    {
+      id: 'email-facilities-bike-room',
+      colleagueId: 'facilities',
+      subject: '自行車室政策（最終版，夾帶情緒）',
+      body: '自行車室不是儲藏室，不是會議室，更不是存放野心的地方。安全帽未標記超過 48 小時，即歸總務所有。跟冰箱同一條規則。同樣的殺氣。不同的味道。\n\nGary'
     }
   ],
   SENIOR_EMAIL_TEMPLATES: [
@@ -248,14 +296,14 @@ export const OFFICE_ZH_TW = {
       id: 'email-barker-liberty',
       colleagueId: 'barker',
       subject: '我擅自做了決定(天大的好消息)',
-      body: '{userName} — 今天早上我花時間看了你的 {label},我很興奮。不是因為它本身,而是因為我們可以圍繞它講出的故事。所以我擅自為它成立了一個小型工作組 — 沒什麼正式的,只是一個例行同步會、一個指導委員會和一份一頁報告。一家人就該這樣。\n\n溫暖的問候,\nJack Barker',
+      body: '{userName} — 今天早上我花時間看了你的 {label},我很興奮。不是因為它本身,而是因為我們可以圍繞它講出的故事。所以我擅自為它成立了一個小型工作組 — 沒什麼正式的,只是一個例行同步會、一個指導委員會和一份一頁報告。一家人就該這樣。\n\n征服是一種心態,\nJack Barker',
       actionPrompt: '新增一個名為「董事會級成果」的節點,並連接到最後一步'
     },
     {
       id: 'email-barker-excited',
       colleagueId: 'barker',
       subject: '我不知道你怎麼樣,反正我很興奮',
-      body: '{userName} — {label} 進展得非常漂亮,我這麼說可是看過無數圖表的人。記住:打動不了董事會的圖只是愛好,而我們不是一家做愛好的公司。故事要簡單,價值要明顯,協同要可見。\n\n我們是一家人。\n\n溫暖的問候,\nJack'
+      body: '{userName} — {label} 進展得非常漂亮,我這麼說可是看過無數圖表的人。記住:打動不了董事會的圖只是愛好,而我們不是一家做愛好的公司。故事要簡單,價值要明顯,協同要可見。\n\n我們是一家人。\n\nJack Barker'
     }
   ],
   OFFICE_IM_TEMPLATES: [
@@ -333,6 +381,51 @@ export const OFFICE_ZH_TW = {
       id: 'im-facilities-elevator',
       colleagueId: 'facilities',
       body: '電梯又開始發出那個聲音了。請走樓梯。樓梯也有聲音,但是另一種。'
+    },
+    {
+      id: 'im-intern-jira',
+      colleagueId: 'intern',
+      body: '幫「{label}」建了一張 Jira！！然後又建了一張 Jira 來追蹤建 Jira 這件事。最後兩張都被我結案成對方的重複項目。Dave 要嘛會驕傲，要嘛會發火。不確定'
+    },
+    {
+      id: 'im-scrum-async',
+      colleagueId: 'scrumMaster',
+      body: '頻道裡非同步站會！！請貼：昨天 / 今天 / 阻礙 / 情緒 / 對阻礙的情緒。我會整理成一份沒人打開的簡報 🙂'
+    },
+    {
+      id: 'im-helpdesk-cache',
+      colleagueId: 'helpdesk',
+      body: '清過快取了嗎。另一個快取清過了嗎。清除「清快取」這件事的快取了嗎。工單已按「教育意義」結案。'
+    },
+    {
+      id: 'im-facilities-lights',
+      colleagueId: 'facilities',
+      body: '三樓的感應燈鬧鬼。你還在動，它就熄了。架構會過期。尊嚴也是。'
+    },
+    {
+      id: 'im-hr-badge',
+      colleagueId: 'hr',
+      body: '提醒：補拍識別證時請微笑！上一批看起來「在法律意義上遭受脅迫」。我們知道是誰。匿名地。'
+    },
+    {
+      id: 'im-greybeard-cobol',
+      colleagueId: 'greybeard',
+      body: '有人在 {label} 附近說了「雲端原生」。我腦內把它翻譯成 COBOL。照樣能跑。大型主機笑了。'
+    },
+    {
+      id: 'im-intern-meeting-hell',
+      colleagueId: 'intern',
+      body: '我今天有 7 場討論會議的會議。這算漏斗嗎？？替我的行事曆 / 求生意志 / 已經誤按全部回覆的邀請串問問，抱歉'
+    },
+    {
+      id: 'im-scrum-capacity',
+      colleagueId: 'scrumMaster',
+      body: '容量檢查！！我們已承諾 112%，情緒可用容量 40%。完美的衝刺形狀。謝謝！！'
+    },
+    {
+      id: 'im-helpdesk-reboot-loop',
+      colleagueId: 'helpdesk',
+      body: '筆電卡在「正在更新 2/2」已經 14 小時。符合設計。產品稱之為「旅程」。別開工單。工單剛剛自行打開，然後離職了。'
     }
   ],
   OFFICE_WALKBY_FALLBACKS: [
@@ -370,6 +463,26 @@ export const OFFICE_ZH_TW = {
       id: 'walkby-greybeard-orchestrator',
       colleagueId: 'greybeard',
       body: '小心 {label}。上一個這種東西在 1981 年左右有了自我意識。我們現在不把「協調器」說出口。'
+    },
+    {
+      id: 'walkby-scrum-points',
+      colleagueId: 'scrumMaster',
+      body: '太愛 {label} 的能量了！！我給它估了 21 點，然後把自己的情緒拆成三個 8 點。數學正確。文化正確。謝謝！！'
+    },
+    {
+      id: 'walkby-intern-ship',
+      colleagueId: 'intern',
+      body: '等等，{label} 已經上線了？？我以為「上線」是指「寫進文件」。正式環境跟畫布是一回事嗎。替我的履歷 / 生存問題問問'
+    },
+    {
+      id: 'walkby-ciso-surface',
+      colleagueId: 'ciso',
+      body: '{label} 就是加了品牌包裝的攻擊面。挺可愛。我已經提交三項發現，以及一項偽裝成發現的稱讚。'
+    },
+    {
+      id: 'walkby-helpdesk-known',
+      colleagueId: 'helpdesk',
+      body: '喔，{label}。已知問題。週二已知。週三被認定為功能。週四結案。不客氣。'
     }
   ],
   OFFICE_COFFEE_SCENES: [
@@ -506,6 +619,84 @@ export const OFFICE_ZH_TW = {
         {
           speakerId: 'hr',
           text: '我帶了 Craig 的賀卡。Craig 對停車場有情緒。據說。'
+        }
+      ]
+    },
+    {
+      id: 'coffee-badge-photo',
+      lines: [
+        {
+          speakerId: 'hr',
+          text: '補印識別證到了。你的照片像一場進展順利的人質談判。成長！'
+        },
+        {
+          speakerId: 'intern',
+          text: '我的像是眨眼到一半突然悟出情緒股權。這算個人品牌還是求救訊號'
+        }
+      ]
+    },
+    {
+      id: 'coffee-wifi-name',
+      lines: [
+        {
+          speakerId: 'helpdesk',
+          text: '訪客 Wi-Fi 還叫「DefinitelyNotAHoneypot」。參與度上升了。安全性也……就某種意義而言上升了。'
+        },
+        {
+          speakerId: 'ciso',
+          text: '它就是蜜罐。這個名字是整層樓唯一誠實的東西。已記錄。'
+        }
+      ]
+    },
+    {
+      id: 'coffee-okrs',
+      lines: [
+        {
+          speakerId: 'scrumMaster',
+          text: '第三季 OKR 是「交付價值」、「感受價值」和「回顧價值」。可衡量！！'
+        },
+        {
+          speakerId: 'greybeard',
+          text: '1979 年的目標叫「別讓它掛」。關鍵結果：它沒掛。我們睡了覺。'
+        }
+      ]
+    },
+    {
+      id: 'coffee-pingpong',
+      lines: [
+        {
+          speakerId: 'facilities',
+          text: '桌球桌現在是會議室。要用就預訂。帶球拍或簡報。最好帶簡報。'
+        },
+        {
+          speakerId: 'intern',
+          text: '我訂了一場叫「對齊」的會，結果有人真的帶了球。混亂。A 輪級混亂'
+        }
+      ]
+    },
+    {
+      id: 'coffee-reorg-rumor',
+      lines: [
+        {
+          speakerId: 'hr',
+          text: '有組織重整傳聞。永遠都有組織重整傳聞。這次還附了一頁簡報。'
+        },
+        {
+          speakerId: 'helpdesk',
+          text: '我開了一張工單：「組織架構，行為異常」。已結案為資本主義的重複項目。'
+        }
+      ]
+    },
+    {
+      id: 'coffee-dark-mode',
+      lines: [
+        {
+          speakerId: 'intern',
+          text: '為什麼所有東西都有深色模式，只有冰箱政策郵件亮得刺眼。故意的嗎？'
+        },
+        {
+          speakerId: 'facilities',
+          text: '對。恐懼必須照明充足。架構也是。幫剩菜貼標籤。'
         }
       ]
     }
@@ -712,6 +903,84 @@ export const OFFICE_ZH_TW = {
         intern: 'MVP 是能跑的東西。Chad 已更新 LinkedIn。簡報吃醋了。',
         scrumMaster: 'MVP 是簡報。產品會在未來的儀式跟上。邀請已發。'
       }
+    },
+    {
+      id: 'battle-remote-office',
+      topic: '遠端辦公還是「滾回辦公室」',
+      lines: [
+        {
+          speakerId: 'hr',
+          text: '文化只會發生在大樓裡！到場是一項健康指標。打開攝影機是一種愛的語言。'
+        },
+        {
+          speakerId: 'greybeard',
+          text: '1979 年我就在遠端辦公。大型主機在我桌子底下。延遲很誠實。通勤只是可選的神話。'
+        },
+        {
+          speakerId: 'hr',
+          text: '我們已預訂強制到場的歡樂星期五！出席狀況會匿名追蹤，並透過刷識別證記錄。'
+        },
+        {
+          speakerId: 'greybeard',
+          text: '被追蹤的歡樂不是歡樂，是工單。Dave 會把它結案為「快樂」的重複項目。'
+        }
+      ],
+      verdicts: {
+        hr: '就混合辦公！混合辦公就是帶著 Wi-Fi 焦慮來辦公室。識別證印表機歡呼吧。',
+        greybeard: '遠端辦公保留。大樓可以留著它的歡樂星期五。大型主機從沒回覆邀請。'
+      }
+    },
+    {
+      id: 'battle-jira-notion',
+      topic: 'Jira 對 Notion（第二大腦之戰）',
+      lines: [
+        {
+          speakerId: 'scrumMaster',
+          text: '不在 Jira 裡，就不是真的！！工單是真理。待辦清單是命運。能量滿滿！'
+        },
+        {
+          speakerId: 'intern',
+          text: '但 Notion 才是情緒住的地方啊？？我巢狀了十二個資料庫，然後把自己的實習職位弄丟在裡面'
+        },
+        {
+          speakerId: 'scrumMaster',
+          text: '我們會透過一場儀式和一個無人負責的 Zap，把 Notion 同步進 Jira。對齊！！'
+        },
+        {
+          speakerId: 'intern',
+          text: '我已經建了一個 Notion 頁面介紹這個 Zap。還有路線圖表情。我們又行了'
+        }
+      ],
+      verdicts: {
+        scrumMaster: 'Jira 獲勝。Notion 改任一面樂觀說謊的鏡子。Pam 已經幫說謊估了故事點。',
+        intern: 'Notion 贏了！！Jira 現在是「紀錄系統」，意思就是沒人會打開它。情緒股權。'
+      }
+    },
+    {
+      id: 'battle-emoji-reacts',
+      topic: '👍 到底算不算決策',
+      lines: [
+        {
+          speakerId: 'helpdesk',
+          text: '按讚就是 ACK。ACK 就是閉環。閉環就是和平。我用一個表情結束過戰爭。'
+        },
+        {
+          speakerId: 'ciso',
+          text: '按讚不是同意，不是變更核准，也不是資安審查。已永久記錄在頻道裡。'
+        },
+        {
+          speakerId: 'helpdesk',
+          text: '那你就別給事故按 🔥。那也不是操作手冊，只是帶嚴重等級的情緒。'
+        },
+        {
+          speakerId: 'ciso',
+          text: '🔥 表示我看到你了。看到不等於核准。趁正式環境還沒替你學會，先搞清楚差別。'
+        }
+      ],
+      verdicts: {
+        helpdesk: '表情決策有效。CAB 現在接受 👍 作為法定人數。效率就是一顆黃心。',
+        ciso: '表情不算核准。CAB 仍然是一場會議。你的檔案仍然是一份檔案。'
+      }
     }
   ],
   OFFICE_MEETING_COPY: {
@@ -740,7 +1009,16 @@ export const OFFICE_ZH_TW = {
     leaveLabel: '離開會議',
     interjectCapLine: 'Pam:「很棒的觀點 — 先放進停車場。時間到了。」'
   },
-  OFFICE_IM_QUICK_REPLIES: ['👍', '會議中', '停車場', '請指示'],
+  OFFICE_IM_QUICK_REPLIES: [
+    '👍',
+    '照我上一封信說的',
+    '先丟停車場',
+    '請指示',
+    '再跟進一下',
+    '已記入你的檔案',
+    '我這台能跑',
+    '協同效應？'
+  ],
   OFFICE_CHROME_COPY: {
     doIt: '就這麼辦',
     doSelected: '套用所選',
@@ -848,7 +1126,7 @@ export const OFFICE_ZH_TW = {
       welcomeVoiceLine:
         '歡迎來到這層樓。我是琳達，人力營運——工牌照片、逾期訓練，以及邊微笑邊記錄你罪狀的人。速通一輪，因為沒人扛得住五段串行自我介紹：Dinesh 會抓到 bug，並確保你他媽感謝他。Erlich 會問這張圖夠不夠有勇氣——說夠，否則他會孵化你的靈魂。Jared 已經給你的到職開了發現項；他很抱歉。Richard 正在安靜地給一個模式命名，祝福他。Jack Barker 超興奮，已經為董事會簡化了這一刻。Gilfoyle 和 Russ 故意翹了——他們會找到你，而且不會客氣。繼續走。',
       welcomeClosingLine:
-        '第一天到此為止。你的座位在那邊——坐下，熬過那個小到職精靈，再開一個交付件，別等有人約一個關於約同步的同步會。合規不知怎麼已經逾期了，Craig 的生日卡片還在冰箱上，要是你為釘書機全員回覆，我會親手弄死你。溫暖地！',
+        '第一天到此為止。你的座位在那邊——坐下，熬過那個小到職精靈，再開一個交付件，別等有人約一個關於約同步的同步會。合規不知怎麼已經逾期了，Craig 的生日卡片還在冰箱上，要是你為釘書機全員回覆，我會親手弄死你。',
       nameTag: {
         hello: '你好',
         subtitle: '我叫',
@@ -895,10 +1173,10 @@ export const OFFICE_ZH_TW = {
       startCta: '🎓 開始第 {module} 模組',
       assignedSubject: '需要處理：已為你指派第 {module} 模組 😊',
       assignedBody:
-        '鑑於近期發生的資安事件，你已被納入《圖表安全操作規範》第 {module} 模組（共 {total} 個）。\n\n這不是處分。處分由另一個團隊負責，而那個團隊也是我們。\n\n溫馨地，\nLinda — 人力營運',
+        '鑑於近期發生的資安事件，你已被納入《圖表安全操作規範》第 {module} 模組（共 {total} 個）。\n\n這不是處分。處分由另一個團隊負責，而那個團隊也是我們。\n\n人資營運永遠，\nLinda — 人資營運',
       certificateSubject: '完成證書（暫定）🎓',
       certificateBody:
-        '恭喜！你已完成《圖表安全操作規範》第 {module} 模組（共 {total} 個）。\n\n證書已附在信中。並沒有附上 — 證書由一套 2019 年就已下線的系統核發，你的完成紀錄被存進了一份無人認領的試算表。\n\n第 {next} 模組現已逾期。\n\n溫馨地，\nLinda — 人力營運'
+        '恭喜！你已完成《圖表安全操作規範》第 {module} 模組（共 {total} 個）。\n\n證書已附在信中。並沒有附上 — 證書由一套 2019 年就已下線的系統核發，你的完成紀錄被存進了一份無人認領的試算表。\n\n第 {next} 模組現已逾期。\n\n人資營運永遠，\nLinda — 人資營運'
     },
     meetingPicker: {
       title: '📅 開個會',

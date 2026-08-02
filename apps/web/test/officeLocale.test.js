@@ -198,7 +198,7 @@ describe('office locale bundles', () => {
       actualKeys,
       `${locale} OFFICE_CHROME_COPY keys must match officeCast.js — ${formatKeyDiff(expectedKeys, actualKeys)}. When editing OFFICE_CHROME_COPY.directory, sync apps/web/src/i18n/locales/office.*.js`
     ).toEqual(expectedKeys);
-    expect(localized.OFFICE_IM_QUICK_REPLIES).toHaveLength(4);
+    expect(localized.OFFICE_IM_QUICK_REPLIES).toHaveLength(8);
   });
 
   it.each(LOCALES)('localizes floor chrome (%s)', (locale) => {
@@ -215,7 +215,8 @@ describe('office locale bundles', () => {
     expect(officeEmailTemplates()[0].subject).toContain('冰箱');
     expect(officeMeetingCopy().minutesTitle).toBe('会议纪要');
     expect(officeChromeCopy().doIt).toBe('就这么办');
-    expect(officeImQuickReplies()).toContain('开会中');
+    expect(officeImQuickReplies()).toContain('请指示');
+    expect(officeImQuickReplies()).toContain('已记入你的档案');
     expect(officeSenderInfo('facilities').title).toContain('冰箱');
     expect(officeSenderInfo('facilities').name).toBe('Gary');
     expect(officeSenderInfo('facilities').accentColor).toBeTruthy();
