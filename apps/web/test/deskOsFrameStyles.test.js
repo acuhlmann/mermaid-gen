@@ -161,6 +161,17 @@ describe('parody-OS frame geometry', () => {
     );
   });
 
+  it('keeps fullscreen mailroom beside the exit control on the top right', () => {
+    const mailroom = ruleBody('.diagram-fullscreen-mailroom-btn');
+    expect(mailroom).toBeTruthy();
+    expect(mailroom).toMatch(/\bright:\s*calc\(/);
+    expect(mailroom).not.toMatch(/\bleft:\s*0\.85rem/);
+    expect(ruleBody('.diagram-fullscreen-mailroom-panel')).toMatch(
+      /\bright:\s*var\(--diagram-fullscreen-corner-inset/
+    );
+    expect(css).toContain('--diagram-fullscreen-control-gap');
+  });
+
   it('reserves the safe-area inset once, on the bar that touches the edge', () => {
     // Double-counting it pushes the composer band a notch-height into the canvas
     // on every iPhone.

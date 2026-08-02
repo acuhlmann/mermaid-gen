@@ -8,8 +8,8 @@ import { useUiCopy } from '../i18n/useUiLocale.js';
  *
  * Native fullscreen paints only the fullscreen element's subtree, so the menu
  * bar's Mailroom menu vanishes with the rest of the shell chrome. This portals a
- * compact trigger and the embedded export panel into `.diagram-output`, beside
- * the exit button that `DiagramFullscreenOverlay` already provides.
+ * compact trigger and the embedded export panel into the top-right control
+ * cluster, immediately left of the exit button.
  *
  * @param {{
  *   isFullscreen: boolean,
