@@ -82,6 +82,7 @@ function computeDropdownStyle(anchorRect, { compact = false, wide = false } = {}
  *   id: string,
  *   label: string,
  *   emoji?: string,
+ *   icon?: import('react').ReactNode,
  *   title?: string,
  *   menuAria?: string,
  *   open?: boolean,
@@ -98,6 +99,7 @@ export default function DeskOsMenu({
   id,
   label,
   emoji,
+  icon = null,
   title,
   menuAria,
   open = false,
@@ -226,7 +228,11 @@ export default function DeskOsMenu({
           if (!open && !disabled) onHoverOpen?.();
         }}
       >
-        {emoji ? (
+        {icon ? (
+          <span className="desk-os-menu-trigger-icon" aria-hidden="true">
+            {icon}
+          </span>
+        ) : emoji ? (
           <span className="desk-os-menu-trigger-emoji" aria-hidden="true">
             {emoji}
           </span>

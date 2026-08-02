@@ -48,6 +48,7 @@ describe('DeskOsMenuBar', () => {
     for (const id of ['deliverable', 'mailroom', 'admin']) {
       expect(screen.getByTestId(`desk-os-menu-trigger-${id}`)).toBeTruthy();
     }
+    expect(screen.getByTestId('desk-os-menu-trigger-admin').textContent).toMatch(/Settings/);
     expect(screen.queryByTestId('desk-os-menu-trigger-view')).toBeNull();
   });
 
@@ -150,9 +151,16 @@ describe('DeskOsMenuBar', () => {
   });
 
   // Headphones / Focus and Approved vendors left the desk stamp for Admin.
-  it('hosts office ambience postures and Approved vendors in Admin', () => {
-    const handlers = setup({ headphones: false, focusTime: false });
+  it('hosts office ambience postures, concentration, and Approved vendors in Admin', () => {
+    const handlers = setup({
+      headphones: false,
+      focusTime: false,
+      modelProfile: 'fast',
+      onSelectModelProfile: vi.fn()
+    });
     openMenu('admin');
+    expect(screen.getByTestId('desk-admin-concentration')).toBeTruthy();
+    expect(screen.getByTestId('concentration-control')).toBeTruthy();
     const ambience = screen.getByTestId('desk-ambience-pack');
     expect(screen.getByTestId('desk-ambience-headphones').textContent).toContain('Headphones');
     expect(screen.getByTestId('desk-ambience-focus').textContent).toContain('Focus');

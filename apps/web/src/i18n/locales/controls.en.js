@@ -184,6 +184,9 @@ export const CONTROLS_EN = {
     admin: 'Admin',
     adminTitle: 'Admin · contractors, HR, headphones, language, hotkeys',
     adminAria: 'Admin — contractors, HR, headphones, language, hotkeys',
+    settings: 'Settings',
+    settingsTitle: 'Settings · rush job, deep work, contractors, HR, headphones',
+    settingsAria: 'Settings — workstation preferences',
     hotkeys: 'Keyboard shortcuts'
   },
   languagePack: {

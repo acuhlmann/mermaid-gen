@@ -3,6 +3,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-libra
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import OfficeLayer from '../src/components/OfficeLayer.jsx';
 import { setDeskSlotElement } from '../src/state/deskSlotStore.js';
+import { _resetDeskCommsUiForTests, openDeskCommsPanel } from '../src/state/deskCommsUiStore.js';
 import {
   _resetForTests as resetOfficeMoments,
   pushOfficeEmail,
@@ -68,6 +69,7 @@ function renderOffice() {
 describe('OfficeLayer meeting starts', () => {
   beforeEach(() => {
     resetOfficeMoments();
+    _resetDeskCommsUiForTests();
     _resetOfficeViewModeForTests();
     setDeskSlotElement(null);
     vi.stubGlobal(
@@ -84,6 +86,7 @@ describe('OfficeLayer meeting starts', () => {
   afterEach(() => {
     cleanup();
     resetOfficeMoments();
+    _resetDeskCommsUiForTests();
     _resetOfficeViewModeForTests();
     setDeskSlotElement(null);
     vi.unstubAllGlobals();
@@ -98,7 +101,7 @@ describe('OfficeLayer meeting starts', () => {
 
     renderOffice();
 
-    fireEvent.click(screen.getByTestId('desk-comms-inbox'));
+    openDeskCommsPanel('inbox');
 
     await waitFor(() => {
       expect(screen.getByRole('button', { name: /Hop on a call \(1\)/i })).toBeTruthy();
@@ -166,7 +169,7 @@ describe('OfficeLayer meeting starts', () => {
 
     renderOffice();
 
-    fireEvent.click(screen.getByTestId('desk-comms-inbox'));
+    openDeskCommsPanel('inbox');
     await waitFor(() => {
       expect(screen.getByRole('button', { name: /Hop on a call \(1\)/i })).toBeTruthy();
     });
