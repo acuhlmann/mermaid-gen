@@ -7,6 +7,7 @@ import {
 } from '../prompts/infographicSyntaxGuard.js';
 import { validateInfographicStrict } from '../tools/infographicDslTool.js';
 import { extractTextContent } from '../utils/extractTextContent.js';
+import { withLlmUsage } from './_lib/attachLlmUsage.js';
 
 const SYSTEM_PROMPT = `You are an AntV Infographic DSL syntax repair function. Given a broken DSL and a parser error, output the smallest set of changes that yield a valid DSL for the same intent.
 
@@ -72,33 +73,42 @@ Output the corrected DSL between a single \`\`\` fenced block. No prose.`;
   const text = extractTextContent(response?.content ?? response?.kwargs?.content ?? '');
   const candidate = extractDslFromResponse(text);
   if (!candidate) {
-    return { accepted: false, error: 'Syntax fixer returned empty output.' };
+    return withLlmUsage(
+      { accepted: false, error: 'Syntax fixer returned empty output.' },
+      response
+    );
   }
 
   const validation = validateInfographicStrict(candidate);
   if (!validation.valid) {
-    return {
-      accepted: false,
-      error: validation.error ?? 'Fixer output failed validation.',
-      attemptedSource: candidate
-    };
+    return withLlmUsage(
+      {
+        accepted: false,
+        error: validation.error ?? 'Fixer output failed validation.',
+        attemptedSource: candidate
+      },
+      response
+    );
   }
 
-  return {
-    accepted: true,
-    diagramSource: validation.diagramSource,
-    metadata: {
-      validator: 'infographic-syntax-fixer',
-      template: validation.template ?? templateName
-    }
-  };
+  return withLlmUsage(
+    {
+      accepted: true,
+      diagramSource: validation.diagramSource,
+      metadata: {
+        validator: 'infographic-syntax-fixer',
+        template: validation.template ?? templateName
+      }
+    },
+    response
+  );
 }
 
 /**
  * Tool-less Infographic DSL repair with latency→quality fixer escalation
  * (same ladder as Mermaid: lite → flash → DeepSeek), independent of Brain.
  *
- * @param {{ brokenSource: string, parseError?: string | null, originalRequest?: string | null, env?: NodeJS.ProcessEnv, modelOverride?: unknown, abortSignal?: AbortSignal | null }} args
+ * @param {{ brokenSource: string, parseError?: string | null, originalRequest?: string | null, env?: NodeJS.ProcessEnv, modelOverride?: unknown, abortSignal?: AbortSignal | null, onModelCall?: Function }} args
  */
 export async function repairInfographicWithFixer({
   brokenSource,
@@ -106,7 +116,8 @@ export async function repairInfographicWithFixer({
   originalRequest,
   env,
   modelOverride,
-  abortSignal
+  abortSignal,
+  onModelCall
 } = {}) {
   if (typeof brokenSource !== 'string' || !brokenSource.trim()) {
     return { accepted: false, error: 'No broken source provided.' };
@@ -116,6 +127,7 @@ export async function repairInfographicWithFixer({
     env: env ?? process.env,
     modelOverride,
     brokenSource,
+    onModelCall,
     repairOnce: (model) =>
       repairInfographicOnce({
         brokenSource,

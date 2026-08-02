@@ -62,8 +62,10 @@ test('resolveAgentRepairMaxAttempts supports Mermaid and Infographic envs', () =
   );
 });
 
-test('resolveAgentRepairAttemptProfile climbs to quality on attempt 2+', () => {
-  assert.equal(resolveAgentRepairAttemptProfile('fast', 1), 'fast');
+test('resolveAgentRepairAttemptProfile climbs to quality on any repair attempt', () => {
+  assert.equal(resolveAgentRepairAttemptProfile('fast', 0), 'fast');
+  assert.equal(resolveAgentRepairAttemptProfile('quality', 0), 'quality');
+  assert.equal(resolveAgentRepairAttemptProfile('fast', 1), 'quality');
   assert.equal(resolveAgentRepairAttemptProfile('quality', 1), 'quality');
   assert.equal(resolveAgentRepairAttemptProfile('fast', 2), 'quality');
   assert.equal(resolveAgentRepairAttemptProfile('quality', 2), 'quality');

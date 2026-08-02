@@ -1448,6 +1448,51 @@ export function playDoorSwing(audioContextRef) {
   });
 }
 
+/** Fallback texture: somebody's phone face-down on a desk. Sampled:
+ * `cue-phone-buzz`. Three bursts of low buzz against a hard surface — this one
+ * synthesizes acceptably because a vibrating motor really is a narrow-band
+ * rattle, which is not true of the slice-3 cues that have no row here. */
+export function playPhoneBuzz(audioContextRef) {
+  const context = getContext(audioContextRef);
+  if (!context) return;
+  const now = context.currentTime;
+  for (let i = 0; i < 3; i += 1) {
+    playNoiseBurst(context, {
+      at: now + i * 0.28,
+      durationSec: 0.2,
+      freqHz: 120,
+      freqEndHz: 95,
+      q: 3.5,
+      peakGain: 0.005
+    });
+  }
+}
+
+/** Fallback texture: the rack in the corner of the pod. Sampled:
+ * `cue-server-rack`. Broadband fan hiss with a low motor fundamental — the one
+ * genuinely *continuous* cue in the bank, so it is a sustained band rather than
+ * the transient bursts everything else here is built from. */
+export function playServerRack(audioContextRef) {
+  const context = getContext(audioContextRef);
+  if (!context) return;
+  const now = context.currentTime;
+  playNoiseBurst(context, {
+    at: now,
+    durationSec: 1.6,
+    freqHz: 2200,
+    freqEndHz: 1900,
+    q: 0.8,
+    peakGain: 0.003
+  });
+  playNoiseBurst(context, {
+    at: now,
+    durationSec: 1.6,
+    freqHz: 190,
+    q: 2.2,
+    peakGain: 0.004
+  });
+}
+
 /** A prop that would not answer — the printer with no paper, the machine that
  * is "out of order". A flat two-pulse buzz, the universal sound of no. */
 export function playPropJam(audioContextRef) {

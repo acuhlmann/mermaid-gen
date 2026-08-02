@@ -67,7 +67,8 @@ export async function streamReactAgentEvents({
   abortSignal,
   patchToolName,
   contentType,
-  emitDraftPreview
+  emitDraftPreview,
+  modelFallback = ''
 }) {
   const runnableConfig = {
     ...getAgentRunnableConfig(env),
@@ -106,7 +107,7 @@ export async function streamReactAgentEvents({
     );
     for await (const ev of stream) {
       latestMessages = captureMessagesFromStreamEvent(ev, latestMessages);
-      const normalized = normalizeAgentStreamEvent(ev);
+      const normalized = normalizeAgentStreamEvent(ev, { modelFallback });
       if (normalized) {
         forwardNormalizedAgentStreamEvent(emit, normalized);
         lastActivity = Date.now();
@@ -150,7 +151,8 @@ export async function runAgentTurn({
   abortSignal,
   patchToolName,
   contentType,
-  emitDraftPreview = false
+  emitDraftPreview = false,
+  modelFallback = ''
 }) {
   const runnableConfig = {
     ...getAgentRunnableConfig(env),
@@ -168,7 +170,8 @@ export async function runAgentTurn({
     abortSignal,
     patchToolName,
     contentType,
-    emitDraftPreview
+    emitDraftPreview,
+    modelFallback
   });
   if (streamed.messages?.length) {
     return streamed;

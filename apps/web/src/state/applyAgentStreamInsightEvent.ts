@@ -543,6 +543,7 @@ export function applyAgentStreamInsightEvent(
     finalizeTechnicalActionResult(sectionId, 'model_call', {
       status: 'done',
       ...(callEvt.callId ? { toolCallId: callEvt.callId } : {}),
+      ...(callEvt.model ? { modelName: callEvt.model } : {}),
       ...(usageDetail ? { outcomeDetail: usageDetail } : {})
     });
     if (costUsd != null && costUsd > 0) {

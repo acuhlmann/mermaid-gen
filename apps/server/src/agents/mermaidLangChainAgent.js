@@ -16,7 +16,11 @@ import { getRulePack } from '../prompts/mermaidSyntaxGuard.js';
 import { repairMermaidWithFixer, isSyntaxFixerAvailable } from './mermaidSyntaxFixer.js';
 import { extractTextContent } from '../utils/extractTextContent.js';
 import { emitPlanBeat, emitServerMutationPlanBeats } from './planBeatMessages.js';
-import { emitSyntaxFixerResult, emitSyntaxFixerStart } from './syntaxFixerTelemetry.js';
+import {
+  emitSyntaxFixerResult,
+  emitSyntaxFixerStart,
+  emitSyntaxFixerModelCall
+} from './syntaxFixerTelemetry.js';
 import {
   captureMessagesFromStreamEvent,
   extractFinalMessage,
@@ -132,7 +136,9 @@ export {
   LlmNotConfiguredError,
   normalizeModelProfile,
   resolveDeepSeekModelId,
+  resolveDecorativeModelLabel,
   resolveLlmBackend,
+  resolveLlmModelLabel,
   resolveModelId,
   resolveOpenRouterModelId,
   resolveVertexModelId
@@ -538,7 +544,8 @@ async function invokeWithRepair(
       abortSignal: runSignal,
       patchToolName: 'apply_mermaid_patch',
       contentType: 'mermaid',
-      emitDraftPreview: false
+      emitDraftPreview: false,
+      modelFallback: modelLabel ?? ''
     });
   } catch (error) {
     const stop = stopReason();
@@ -623,7 +630,8 @@ async function invokeWithRepair(
         abortSignal: runSignal,
         patchToolName: 'apply_mermaid_patch',
         contentType: 'mermaid',
-        emitDraftPreview: false
+        emitDraftPreview: false,
+        modelFallback: modelLabel ?? ''
       });
       if (stateStore.getSlot('mermaid').revisionId !== beforeRevision) {
         emitPatchSummaryArtifact(emit, stateStore, beforeRevision, beforeSource);
@@ -704,7 +712,8 @@ async function invokeWithRepair(
         parseError: latestError,
         originalRequest,
         env,
-        abortSignal: runSignal
+        abortSignal: runSignal,
+        onModelCall: (usage) => emitSyntaxFixerModelCall(emit, usage)
         // No previousAttempts on first fixer call — this is the first repair pass.
       });
       if (fixerOutcome.accepted && fixerOutcome.diagramSource) {
@@ -771,7 +780,7 @@ async function invokeWithRepair(
   for (let attempt = 1; attempt <= maxRepairAttempts; attempt += 1) {
     repairAttempts += 1;
     const repairProfile = resolveAgentRepairAttemptProfile(runProfile, attempt);
-    // Attempt 1 prefers the stable/fast agent; attempt 2+ climbs to Quality regardless of Brain.
+    // Attempt 1+ climbs to Quality regardless of Brain (see resolveAgentRepairAttemptProfile).
     let repairAgent = stableAgent ?? agent;
     if (typeof resolveRepairAgent === 'function') {
       const escalated = resolveRepairAgent(repairProfile, attempt);
@@ -780,6 +789,10 @@ async function invokeWithRepair(
       // No resolver — stay on the incoming agent when climbing isn't possible.
       repairAgent = agent;
     }
+    const repairBackend = resolveLlmBackend(env, repairProfile);
+    const repairModelFallback = repairBackend
+      ? `${repairBackend}:${resolveModelId(env, repairProfile, repairBackend)}`
+      : (modelLabel ?? '');
     let retryResult;
     try {
       const repairStop = stopReason(MIN_AGENT_REPAIR_TURN_BUDGET_MS);
@@ -817,7 +830,8 @@ async function invokeWithRepair(
         abortSignal: runSignal,
         patchToolName: 'apply_mermaid_patch',
         contentType: 'mermaid',
-        emitDraftPreview: false
+        emitDraftPreview: false,
+        modelFallback: repairModelFallback
       });
     } catch (error) {
       const stop = stopReason();

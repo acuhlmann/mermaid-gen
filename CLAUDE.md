@@ -218,7 +218,7 @@ See [`docs/recipes/`](docs/recipes/) for templates of recurring changes (new MCP
 
 ## LLM backend resolution
 
-Three backends: **DeepSeek**, **OpenRouter**, **Vertex** (Gemini). Selection is in `apps/server/src/agents/llmProvider.js` via `LLM_PROVIDER` (`auto` default). Local `auto` prefers DeepSeek if `DEEPSEEK_API_KEY` is set, else OpenRouter, else Vertex ADC. Cloud Run `auto` prefers Vertex unless `OPENROUTER_PREFERRED=1`. The web client only ever sends `modelProfile: "fast" | "quality"`; the server resolves slugs. Full table: [`docs/llm-config.md`](docs/llm-config.md).
+Three backends: **DeepSeek**, **OpenRouter**, **Vertex** (Gemini). Selection is in `apps/server/src/agents/llmProvider.js` via `LLM_PROVIDER` (`auto` default). Local `auto` prefers DeepSeek if `DEEPSEEK_API_KEY` is set (Brain Fast=flash, Quality=pro), else OpenRouter, else Vertex ADC. When Vertex is also configured, office/advisor stay on Vertex flash-lite. Cloud Run `auto` prefers DeepSeek when the secret is attached, else Vertex. The web client only ever sends `modelProfile: "fast" | "quality"`; the server resolves slugs. Full table: [`docs/llm-config.md`](docs/llm-config.md).
 
 ## Where to put new code
 

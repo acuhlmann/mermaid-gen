@@ -8,10 +8,11 @@ import { AUTO_CONTENT_TYPE, ContentTypeSchema, type ContentType } from '@archisl
 import {
   createLlmChatModel,
   isLlmConfigured,
-  resolveDecorativeModelId,
-  resolveLlmBackend
+  resolveDecorativeBackend,
+  resolveDecorativeModelId
 } from './llmProvider.js';
 import { extractTextContent } from '../utils/extractTextContent.js';
+import { withLlmUsage } from './_lib/attachLlmUsage.js';
 
 const SYSTEM_PROMPT = [
   'You choose which ArchiSlop content mode best fits a user topic or question.',
@@ -46,7 +47,7 @@ const classifierModelCache = new Map<string, ReturnType<typeof createLlmChatMode
  */
 export function createContentTypeClassifierModel(env: NodeJS.ProcessEnv = process.env) {
   if (!isLlmConfigured(env)) return null;
-  const backend = resolveLlmBackend(env);
+  const backend = resolveDecorativeBackend(env);
   if (!backend) return null;
   const modelId = resolveClassifierModelId(env, backend);
   const key = `${backend}:${modelId}`;
@@ -54,6 +55,7 @@ export function createContentTypeClassifierModel(env: NodeJS.ProcessEnv = proces
   if (cached) return cached;
   const model = createLlmChatModel(env, {
     model: modelId,
+    backend,
     temperature: 0,
     maxOutputTokens: 64
   });
@@ -110,6 +112,10 @@ export type InferContentTypeResult = {
   reason: string;
   /** True when the model was invoked (vs skipped because already concrete). */
   classified: boolean;
+  /** Token usage when the classifier ran and the provider reported it. */
+  usage?: { inputTokens?: number; outputTokens?: number } | null;
+  /** Decorative model id used for classification (for cost estimates). */
+  model?: string | null;
 };
 
 /**
@@ -142,10 +148,13 @@ export async function inferContentTypeFromPrompt({
     return {
       contentType: 'mermaid',
       reason: 'LLM unavailable — defaulted to diagram',
-      classified: true
+      classified: true,
+      usage: null,
+      model: null
     };
   }
 
+  const modelId = resolveClassifierModelId(env, resolveDecorativeBackend(env));
   const user = [
     'Pick the best contentType for this user request:',
     '---',
@@ -162,13 +171,18 @@ export async function inferContentTypeFromPrompt({
     );
     const raw = extractTextContent((response as { content?: unknown })?.content ?? response);
     const parsed = parseContentTypeClassification(raw);
-    return { ...parsed, classified: true };
+    return withLlmUsage(
+      { ...parsed, classified: true as const, model: modelId },
+      response
+    ) as InferContentTypeResult;
   } catch (error) {
     if (abortSignal?.aborted) throw error;
     return {
       contentType: 'mermaid',
       reason: 'Classifier failed — defaulted to diagram',
-      classified: true
+      classified: true,
+      usage: null,
+      model: modelId
     };
   }
 }

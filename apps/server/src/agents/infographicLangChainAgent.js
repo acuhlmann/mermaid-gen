@@ -81,7 +81,11 @@ import {
   isInfographicSyntaxFixerAvailable
 } from './infographicSyntaxFixer.js';
 import { emitPlanBeat, emitServerMutationPlanBeats } from './planBeatMessages.js';
-import { emitSyntaxFixerResult, emitSyntaxFixerStart } from './syntaxFixerTelemetry.js';
+import {
+  emitSyntaxFixerResult,
+  emitSyntaxFixerStart,
+  emitSyntaxFixerModelCall
+} from './syntaxFixerTelemetry.js';
 import { createPatchToolStreamTracker } from './streamPatchToolTelemetry.js';
 
 const INFOGRAPHIC_PATCH_REQUIRED_INSTRUCTION = `Your previous response did not apply an infographic patch.
@@ -257,7 +261,7 @@ async function invokeWithRepair(agent, userMessages, opts, stateStore, env) {
   let invokeErrored = false;
 
   const backend = resolveLlmBackend(env, runProfile);
-  const modelLabel = backend ? `${backend}:${resolveModelId(env, runProfile, backend)}` : null;
+  let modelLabel = backend ? `${backend}:${resolveModelId(env, runProfile, backend)}` : null;
   let repairAttempts = 0;
   /** @param {{accepted: boolean, validator?: string | null, errorClass?: string | null}} sample */
   const finishTurn = (sample) => {
@@ -335,6 +339,10 @@ async function invokeWithRepair(agent, userMessages, opts, stateStore, env) {
         const escalated = resolveRepairAgent(repairProfile, attempt);
         if (escalated) currentAgent = escalated;
       }
+      const repairBackend = resolveLlmBackend(env, repairProfile);
+      if (repairBackend) {
+        modelLabel = `${repairBackend}:${resolveModelId(env, repairProfile, repairBackend)}`;
+      }
     }
     const stop = stopReason(attempt > 0 ? MIN_AGENT_REPAIR_TURN_BUDGET_MS : 0);
     if (stop) return finishStoppedRun(stop);
@@ -374,7 +382,7 @@ async function invokeWithRepair(agent, userMessages, opts, stateStore, env) {
         let latestMessages = [];
         for await (const ev of stream) {
           latestMessages = captureMessagesFromStreamEvent(ev, latestMessages);
-          const normalized = normalizeAgentStreamEvent(ev);
+          const normalized = normalizeAgentStreamEvent(ev, { modelFallback: modelLabel ?? '' });
           if (normalized) forwardNormalizedAgentStreamEvent(emit, normalized);
 
           if (ev?.event === 'on_chat_model_stream') {
@@ -480,7 +488,8 @@ async function invokeWithRepair(agent, userMessages, opts, stateStore, env) {
           parseError: failureError,
           originalRequest,
           env,
-          abortSignal: runSignal
+          abortSignal: runSignal,
+          onModelCall: (usage) => emitSyntaxFixerModelCall(emit, usage)
         });
         if (fixerOutcome.accepted && fixerOutcome.diagramSource) {
           const applied = await stateStore.applyDiagramSource({

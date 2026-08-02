@@ -78,7 +78,7 @@ Set **`GCP_PROJECT_ID`** (`mermaidgen`) plus Workload Identity secrets as below.
    | `GCP_WORKLOAD_IDENTITY_PROVIDER` | Full provider resource name from `gcloud iam workload-identity-pools providers describe …` |
    | `GCP_SERVICE_ACCOUNT`            | Deployer SA email, e.g. `github-deploy-mermaid-gen@PROJECT_ID.iam.gserviceaccount.com`     |
 
-6. Optional: create Secret Manager secrets **`deepseek-api-key`** (Brain Quality / hybrid) and/or **`openrouter-api-key`** (backup / OpenRouter-preferred); grant the **runtime** SA `secretAccessor` on them (see below).
+6. Optional: create Secret Manager secrets **`deepseek-api-key`** (Brain Fast+Quality) and/or **`openrouter-api-key`** (backup / OpenRouter-preferred); grant the **runtime** SA `secretAccessor` on them (see below).
 
 ## Two Cloud Run URLs (recommended): main vs hackathon snapshot
 
@@ -95,7 +95,7 @@ export GCP_PROJECT_ID=mermaidgen   # example
 ./scripts/deploy-hackathon-cloud-run.sh   # optional second URL; uses current tree / checkout
 ```
 
-Optional env overrides: `REGION` (default `us-central1`), `AR_REPO` (default `mermaid-gen`). Create Secret Manager secret **`deepseek-api-key`** for Brain Quality (hybrid with Vertex) and optionally **`openrouter-api-key`** (see below).
+Optional env overrides: `REGION` (default `us-central1`), `AR_REPO` (default `mermaid-gen`). Create Secret Manager secret **`deepseek-api-key`** for Brain Fast+Quality (DeepSeek Flash/Pro; Vertex still serves office flash-lite) and optionally **`openrouter-api-key`** (see below).
 
 ### Legacy: one hostname with `/` and `/hackathon/` paths
 
@@ -153,7 +153,7 @@ When the API server runs on **Cloud Run**, it can call **Vertex AI** (Gemini / G
    - **`LLM_PROVIDER=deepseek`**: DeepSeek only (requires Secret Manager or env key).
    - **`LLM_PROVIDER=openrouter`**: OpenRouter only (requires Secret Manager or env key).
 
-Keep the **`deepseek-api-key`** secret attached for hybrid Brain Quality. Keep **`openrouter-api-key`** if you want **OpenRouter as backup** (analyze streaming retries once on OpenRouter after a Vertex stream error) or when using **`OPENROUTER_PREFERRED=1`**. Local development typically uses DeepSeek and/or OpenRouter from `.env`; Vertex locally needs `VERTEX_PROJECT_ID`, `VERTEX_LOCATION`, and Application Default Credentials (for example `gcloud auth application-default login`).
+Keep the **`deepseek-api-key`** secret attached for Brain Fast+Quality (DeepSeek). Keep **`openrouter-api-key`** if you want **OpenRouter as backup** (analyze streaming retries once on OpenRouter after a Vertex stream error) or when using **`OPENROUTER_PREFERRED=1`**. Local development typically uses DeepSeek and/or OpenRouter from `.env`; Vertex locally needs `VERTEX_PROJECT_ID`, `VERTEX_LOCATION`, and Application Default Credentials (for example `gcloud auth application-default login`) for office TTS / decorative flash-lite.
 
 ## Office Cloud TTS (optional: spoken walk-bys / meetings / battles)
 
@@ -169,11 +169,11 @@ Office narration prefers **Google Cloud Text-to-Speech** when a GCP project id r
 
 3. Deploy scripts already set `VERTEX_PROJECT_ID` on Cloud Run — that is enough for `officeTtsConfigured: true` on `GET /api/health`. Kill switch: `OFFICE_TTS=0`. Voice tier: `OFFICE_TTS_VOICE_TIER=neural2` (skip Chirp) or `=wavenet` (pin the oldest cast); default `chirp3`.
 
-## Secrets (DeepSeek for Brain Quality; OpenRouter optional)
+## Secrets (DeepSeek for Brain Fast+Quality; OpenRouter optional)
 
 `.env` is **only for local development**. Cloud Run never reads your laptop’s `.env`; put keys in **Secret Manager** and expose them as env vars on the service (already wired in [`scripts/deploy-cloud-run.sh`](../../scripts/deploy-cloud-run.sh), [`scripts/deploy-hackathon-cloud-run.sh`](../../scripts/deploy-hackathon-cloud-run.sh), and the GitHub Actions workflow).
 
-### DeepSeek (recommended for hybrid Brain Quality)
+### DeepSeek (recommended for Brain + Vertex office lite)
 
 ```bash
 chmod +x scripts/push-deepseek-secret-cloud-run.sh

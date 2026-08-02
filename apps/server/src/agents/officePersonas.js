@@ -23,7 +23,7 @@ import {
 import { llmUsageFromReply } from './_lib/llmUsageFromReply.js';
 import { buildOfficeLogBlock } from './_lib/officeLogPrompt.js';
 import { resolveAdvisorModelId } from './advisorPrompts.js';
-import { createLlmChatModel, isLlmConfigured, resolveLlmBackend } from './llmProvider.js';
+import { createLlmChatModel, isLlmConfigured, resolveDecorativeBackend } from './llmProvider.js';
 
 /**
  * The office colleagues — parody corporate-IT archetypes that live purely in
@@ -1112,7 +1112,7 @@ const officeModelCache = new Map();
  */
 export function createOfficeChatModel(env = process.env, opts = {}) {
   if (!isLlmConfigured(env)) return null;
-  const backend = resolveLlmBackend(env);
+  const backend = resolveDecorativeBackend(env);
   if (!backend) return null;
   const purpose =
     opts.purpose === 'meeting' || opts.purpose === 'training' ? opts.purpose : 'moment';
@@ -1132,6 +1132,7 @@ export function createOfficeChatModel(env = process.env, opts = {}) {
   if (cached) return cached;
   const overrides = {
     model: modelId,
+    backend,
     temperature,
     // Moments are one JSON one-liner; meetings are a full beat script. Same
     // Gemini caveat as the advisor: maxOutputTokens shares budget with internal

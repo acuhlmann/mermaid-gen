@@ -6,6 +6,7 @@ import { getRulePack } from '../prompts/mermaidSyntaxGuard.js';
 import { sanitizeMermaid } from '@archislop/shared';
 import { validateMermaidStrict } from './mermaidReliabilitySkill.js';
 import { extractTextContent } from '../utils/extractTextContent.js';
+import { withLlmUsage } from './_lib/attachLlmUsage.js';
 
 const SYSTEM_PROMPT = `You are a Mermaid syntax repair function. Given a broken Mermaid diagram and a parser error, output the smallest set of changes that yield valid Mermaid for the same intent.
 
@@ -86,7 +87,10 @@ Output the corrected Mermaid source between a single \`\`\`mermaid fenced block.
   const text = extractTextContent(response?.content ?? response?.kwargs?.content ?? '');
   const initial = extractMermaidFromResponse(text);
   if (!initial) {
-    return { accepted: false, error: 'Syntax fixer returned empty output.' };
+    return withLlmUsage(
+      { accepted: false, error: 'Syntax fixer returned empty output.' },
+      response
+    );
   }
 
   // Pass the fixer's output through the same sanitizer + validator the agent's patches use,
@@ -96,22 +100,28 @@ Output the corrected Mermaid source between a single \`\`\`mermaid fenced block.
 
   const validation = await validateMermaidStrict(candidate);
   if (!validation.valid) {
-    return {
-      accepted: false,
-      error: validation.error ?? 'Fixer output failed validation.',
-      attemptedSource: candidate
-    };
+    return withLlmUsage(
+      {
+        accepted: false,
+        error: validation.error ?? 'Fixer output failed validation.',
+        attemptedSource: candidate
+      },
+      response
+    );
   }
 
-  return {
-    accepted: true,
-    diagramSource: candidate,
-    metadata: {
-      validator: 'syntax-fixer',
-      diagramType,
-      sanitizerApplied: sanitized.applied
-    }
-  };
+  return withLlmUsage(
+    {
+      accepted: true,
+      diagramSource: candidate,
+      metadata: {
+        validator: 'syntax-fixer',
+        diagramType,
+        sanitizerApplied: sanitized.applied
+      }
+    },
+    response
+  );
 }
 
 /**
@@ -119,7 +129,7 @@ Output the corrected Mermaid source between a single \`\`\`mermaid fenced block.
  * (flash-lite → flash → DeepSeek) until a rung accepts, independent of Brain.
  * Pass `modelOverride` to pin a single model (tests / callers that already chose one).
  *
- * @param {{ brokenSource: string, parseError?: string | null, originalRequest?: string | null, previousAttempts?: Array<{source: string, error: string}>, env?: NodeJS.ProcessEnv, modelOverride?: unknown, abortSignal?: AbortSignal | null }} args
+ * @param {{ brokenSource: string, parseError?: string | null, originalRequest?: string | null, previousAttempts?: Array<{source: string, error: string}>, env?: NodeJS.ProcessEnv, modelOverride?: unknown, abortSignal?: AbortSignal | null, onModelCall?: Function }} args
  */
 export async function repairMermaidWithFixer({
   brokenSource,
@@ -128,7 +138,8 @@ export async function repairMermaidWithFixer({
   previousAttempts,
   env,
   modelOverride,
-  abortSignal
+  abortSignal,
+  onModelCall
 } = {}) {
   if (typeof brokenSource !== 'string' || !brokenSource.trim()) {
     return { accepted: false, error: 'No broken source provided.' };
@@ -139,6 +150,7 @@ export async function repairMermaidWithFixer({
     previousAttempts,
     modelOverride,
     brokenSource,
+    onModelCall,
     repairOnce: (model, prior) =>
       repairMermaidOnce({
         brokenSource,

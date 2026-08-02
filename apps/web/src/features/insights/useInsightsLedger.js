@@ -6,6 +6,7 @@ import {
   formatPatchApplyDetail
 } from '../../utils/formatTechnicalActionDetail.js';
 import { readStreamDebugEnabled, snapshotStreamEventForDebug } from '../../utils/appStreamDebug.js';
+import { getCachedLlmModelsByProfile } from '../../state/llmModelsByProfile.js';
 
 /**
  * Thinking-pane insight entry ledger: list state plus append/patch/technical-action helpers.
@@ -33,6 +34,8 @@ export function useInsightsLedger({ initialEntries = [], workingStatusText }) {
     (title, variant = 'general', options = {}) => {
       const { diagramUndoBaseline, topic, retryDescriptor, contentType, modelProfile } = options;
       const id = globalThis.crypto?.randomUUID?.() ?? `ins-${Date.now()}`;
+      const profileKey = modelProfile === 'quality' ? 'quality' : 'fast';
+      const modelLabel = getCachedLlmModelsByProfile()[profileKey] ?? null;
       setInsightsEntries((prev) => [
         ...prev,
         {
@@ -52,6 +55,7 @@ export function useInsightsLedger({ initialEntries = [], workingStatusText }) {
           completedAt: null,
           contentType: contentType ?? null,
           modelProfile: modelProfile ?? null,
+          ...(modelLabel ? { modelLabel } : {}),
           ...(retryDescriptor ? { retryDescriptor } : {}),
           ...(diagramUndoBaseline
             ? {
@@ -169,10 +173,11 @@ export function useInsightsLedger({ initialEntries = [], workingStatusText }) {
   );
 
   const finalizeTechnicalActionResult = useCallback(
-    (id, name, { status = 'done', validationError, outcomeDetail, toolCallId } = {}) => {
+    (id, name, { status = 'done', validationError, outcomeDetail, toolCallId, modelName } = {}) => {
       const errorText = typeof validationError === 'string' ? validationError.trim() : '';
       const detailText = typeof outcomeDetail === 'string' ? outcomeDetail.trim() : '';
-      if (!errorText && !detailText && status === 'done') {
+      const modelText = typeof modelName === 'string' ? modelName.trim() : '';
+      if (!errorText && !detailText && !modelText && status === 'done') {
         patchInsightEntry(id, (entry) => {
           const current = Array.isArray(entry.technicalActions) ? entry.technicalActions : [];
           const actionIndex = [...current].reverse().findIndex((action) => {
@@ -213,7 +218,8 @@ export function useInsightsLedger({ initialEntries = [], workingStatusText }) {
                   ? { durationMs: Math.max(0, Date.now() - action.startedAt) }
                   : {}),
                 ...(errorText ? { validationError: errorText } : {}),
-                ...(detailText ? { outcomeDetail: detailText } : {})
+                ...(detailText ? { outcomeDetail: detailText } : {}),
+                ...(modelText ? { modelName: modelText } : {})
               }
             : action
         );

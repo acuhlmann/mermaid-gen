@@ -1264,7 +1264,7 @@ test('patch_retry validation failure seeds repair loop and climbs to quality', a
     modelProfile: 'fast'
   });
 
-  assert.equal(invokeCount, 4, 'prose + patch_retry + fast repair + quality repair');
+  assert.equal(invokeCount, 3, 'prose + patch_retry + quality repair');
   assert.equal(qualityRepairInvoked, true);
   assert.equal(stateStore.getSlot('mermaid').revisionId, 1);
   assert.match(result.message, /Quality repair ok/);

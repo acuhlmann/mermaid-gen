@@ -222,10 +222,33 @@ function tokenFromLangChainChunk(chunk) {
 }
 
 /** Best-effort model slug for a chat-model stream event (LangChain `ls_*` metadata). */
-function modelNameFromStreamEvent(event) {
+function modelNameFromStreamEvent(event, fallback = '') {
   const meta = event?.metadata && typeof event.metadata === 'object' ? event.metadata : {};
-  const candidate = meta.ls_model_name ?? event?.name ?? '';
-  return typeof candidate === 'string' ? candidate : '';
+  const data = event?.data && typeof event.data === 'object' ? event.data : {};
+  const invocation =
+    data?.invocation_params && typeof data.invocation_params === 'object'
+      ? data.invocation_params
+      : {};
+  const candidates = [
+    meta.ls_model_name,
+    meta.ls_model_id,
+    invocation.model,
+    invocation.model_name,
+    event?.name,
+    fallback
+  ];
+  for (const candidate of candidates) {
+    if (typeof candidate === 'string' && candidate.trim()) {
+      // Prefer bare model id when fallback is `backend:model`.
+      const trimmed = candidate.trim();
+      if (trimmed.includes(':') && !trimmed.startsWith('google/')) {
+        const parts = trimmed.split(':');
+        return parts[parts.length - 1] || trimmed;
+      }
+      return trimmed;
+    }
+  }
+  return '';
 }
 
 /** Extract `{inputTokens, outputTokens}` from an on_chat_model_end output, when the provider reports usage. */
@@ -240,7 +263,7 @@ export function usageFromModelOutput(output) {
   const outputTokens = usage.output_tokens ?? usage.completionTokens;
   return {
     ...(Number.isFinite(input) ? { inputTokens: input } : {}),
-    ...(Number.isFinite(outputTokens) ? { outputTokens } : {})
+    ...(Number.isFinite(outputTokens) ? { outputTokens: outputTokens } : {})
   };
 }
 
@@ -248,10 +271,14 @@ export function usageFromModelOutput(output) {
  * Translate a LangChain v2 stream event into the small `{type, text, name}`
  * envelope the SSE layer emits to the client. Returns null for events the
  * client doesn't care about.
+ *
+ * @param {object} event
+ * @param {{ modelFallback?: string }} [opts]
  */
-export function normalizeAgentStreamEvent(event) {
+export function normalizeAgentStreamEvent(event, opts = {}) {
   const ev = event?.event ?? '';
   const data = event?.data ?? {};
+  const modelFallback = typeof opts.modelFallback === 'string' ? opts.modelFallback : '';
 
   if (/stream/i.test(ev) && data.chunk !== undefined) {
     const text = tokenFromLangChainChunk(data.chunk);
@@ -262,14 +289,14 @@ export function normalizeAgentStreamEvent(event) {
     return {
       type: 'model_call_start',
       callId: String(event?.run_id ?? ''),
-      model: modelNameFromStreamEvent(event)
+      model: modelNameFromStreamEvent(event, modelFallback)
     };
   }
   if (ev === 'on_chat_model_end') {
     return {
       type: 'model_call_end',
       callId: String(event?.run_id ?? ''),
-      model: modelNameFromStreamEvent(event),
+      model: modelNameFromStreamEvent(event, modelFallback),
       ...usageFromModelOutput(data.output)
     };
   }

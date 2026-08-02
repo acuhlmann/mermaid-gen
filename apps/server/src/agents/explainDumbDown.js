@@ -15,8 +15,8 @@ import { extractTextContent } from '../utils/extractTextContent.js';
 import {
   createLlmChatModel,
   isLlmConfigured,
-  resolveDecorativeModelId,
-  resolveLlmBackend
+  resolveDecorativeBackend,
+  resolveDecorativeModelId
 } from './llmProvider.js';
 import { llmUsageFromReply } from './_lib/llmUsageFromReply.js';
 
@@ -49,7 +49,7 @@ const explainDumbModelCache = new Map();
 
 function createExplainDumbDownChatModel(env = process.env) {
   if (!isLlmConfigured(env)) return null;
-  const backend = resolveLlmBackend(env);
+  const backend = resolveDecorativeBackend(env);
   if (!backend) return null;
   const modelId = resolveExplainerModelId(env, backend);
   const key = `${backend}:${modelId}:explain-dumb`;
@@ -57,6 +57,7 @@ function createExplainDumbDownChatModel(env = process.env) {
   if (cached) return cached;
   const model = createLlmChatModel(env, {
     model: modelId,
+    backend,
     temperature: 0.35,
     maxOutputTokens: 1800
   });
@@ -198,7 +199,7 @@ export async function explainDumbDownOnce({ env = process.env, payload }) {
     return { markdown: '', explainSections: null, usage: null, model: null };
   }
 
-  const backend = resolveLlmBackend(env);
+  const backend = resolveDecorativeBackend(env);
   const modelId = resolveExplainerModelId(env, backend);
 
   const system =

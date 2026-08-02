@@ -11,7 +11,11 @@ import {
 import { classifyAgentTurnError, recordAgentTurn } from '../../metrics/agentTurnMetrics.js';
 import { normalizeModelProfile, resolveLlmBackend, resolveModelId } from '../llmProvider.js';
 import { emitPlanBeat, emitServerMutationPlanBeats } from '../planBeatMessages.js';
-import { emitSyntaxFixerResult, emitSyntaxFixerStart } from '../syntaxFixerTelemetry.js';
+import {
+  emitSyntaxFixerResult,
+  emitSyntaxFixerStart,
+  emitSyntaxFixerModelCall
+} from '../syntaxFixerTelemetry.js';
 import { createRunDeadlineSignal } from './agentRunDeadline.js';
 import {
   extractFinalMessage,
@@ -20,6 +24,11 @@ import {
   extractToolFailureError,
   toLangChainMessages
 } from './diagramAgentHelpers.js';
+
+function modelLabelForProfile(env, profile) {
+  const backend = resolveLlmBackend(env, profile);
+  return backend ? `${backend}:${resolveModelId(env, profile, backend)}` : '';
+}
 
 /**
  * Shared repair ladder for slot agents that use the immutable-transcript pattern
@@ -140,8 +149,8 @@ export async function invokePatchAgentWithRepair(config) {
   let invokeErrored = false;
   let agent = buildAgent(runProfile);
 
-  const backend = resolveLlmBackend(env, runProfile);
-  const modelLabel = backend ? `${backend}:${resolveModelId(env, runProfile, backend)}` : null;
+  let activeProfile = runProfile;
+  let modelLabel = modelLabelForProfile(env, runProfile) || null;
   let repairAttempts = 0;
 
   /** @param {{accepted: boolean, validator?: string | null, errorClass?: string | null}} sample */
@@ -213,13 +222,15 @@ export async function invokePatchAgentWithRepair(config) {
     if (attempt > 0) {
       repairAttempts += 1;
       const repairProfile = resolveAgentRepairAttemptProfile(runProfile, attempt);
+      activeProfile = repairProfile;
+      modelLabel = modelLabelForProfile(env, repairProfile) || modelLabel;
       agent = buildAgent(repairProfile);
     }
     const stop = stopReason(attempt > 0 ? MIN_AGENT_REPAIR_TURN_BUDGET_MS : 0);
     if (stop) return finishStoppedRun(stop);
     if (typeof emit === 'function') {
       if (attempt > 0) {
-        const repairProfile = resolveAgentRepairAttemptProfile(runProfile, attempt);
+        const repairProfile = activeProfile;
         const tierNote = repairProfile === 'quality' ? ' (quality model)' : '';
         emitPlanBeat(emit, labels.retryPlanBeat(attempt, maxRepairAttempts, tierNote), 'server');
       }
@@ -234,7 +245,8 @@ export async function invokePatchAgentWithRepair(config) {
       agent,
       messages,
       abortSignal: runSignal,
-      emit
+      emit,
+      modelFallback: modelLabel || ''
     });
     if (result?.error) {
       const abortStop = stopReason();
@@ -311,7 +323,8 @@ export async function invokePatchAgentWithRepair(config) {
           parseError: failureError,
           originalRequest,
           env,
-          abortSignal: runSignal
+          abortSignal: runSignal,
+          onModelCall: (usage) => emitSyntaxFixerModelCall(emit, usage)
         });
         if (fixerOutcome.accepted && fixerOutcome.diagramSource) {
           const applied = await stateStore.applyDiagramSource({

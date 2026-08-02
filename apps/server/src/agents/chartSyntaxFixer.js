@@ -3,6 +3,7 @@ import { resolveSyntaxFixerTarget } from './llmProvider.js';
 import { escalateSyntaxFixerRepair } from './syntaxFixerEscalation.js';
 import { validateChartStrict } from '../tools/chartDslTool.js';
 import { extractTextContent } from '../utils/extractTextContent.js';
+import { withLlmUsage } from './_lib/attachLlmUsage.js';
 import { CHART_RULE_PACK, CHART_SELF_CHECK } from '../prompts/chartSyntaxGuard.js';
 
 const SYSTEM_PROMPT = `You are a Chart DSL JSON syntax repair function. Given broken JSON (an archislop chart wrapper containing a Vega-Lite spec) and a validation error, output the smallest fix that yields a valid wrapper + spec for the same intent.
@@ -68,32 +69,41 @@ Output the corrected JSON between a single \`\`\`json fenced block. No prose.`;
   const text = extractTextContent(response?.content ?? response?.kwargs?.content ?? '');
   const candidate = extractJsonFromResponse(text);
   if (!candidate) {
-    return { accepted: false, error: 'Syntax fixer returned empty output.' };
+    return withLlmUsage(
+      { accepted: false, error: 'Syntax fixer returned empty output.' },
+      response
+    );
   }
 
   const validation = validateChartStrict(candidate);
   if (!validation.valid) {
-    return {
-      accepted: false,
-      error: validation.error ?? 'Fixer output failed validation.',
-      attemptedSource: candidate
-    };
+    return withLlmUsage(
+      {
+        accepted: false,
+        error: validation.error ?? 'Fixer output failed validation.',
+        attemptedSource: candidate
+      },
+      response
+    );
   }
 
-  return {
-    accepted: true,
-    diagramSource: validation.diagramSource,
-    metadata: {
-      validator: 'chart-syntax-fixer',
-      theme: validation.theme
-    }
-  };
+  return withLlmUsage(
+    {
+      accepted: true,
+      diagramSource: validation.diagramSource,
+      metadata: {
+        validator: 'chart-syntax-fixer',
+        theme: validation.theme
+      }
+    },
+    response
+  );
 }
 
 /**
  * Chart DSL repair with latency→quality fixer escalation (lite → flash → DeepSeek).
  *
- * @param {{ brokenSource: string, parseError?: string | null, originalRequest?: string | null, env?: NodeJS.ProcessEnv, modelOverride?: unknown, abortSignal?: AbortSignal | null }} args
+ * @param {{ brokenSource: string, parseError?: string | null, originalRequest?: string | null, env?: NodeJS.ProcessEnv, modelOverride?: unknown, abortSignal?: AbortSignal | null, onModelCall?: Function }} args
  */
 export async function repairChartWithFixer({
   brokenSource,
@@ -101,7 +111,8 @@ export async function repairChartWithFixer({
   originalRequest,
   env,
   modelOverride,
-  abortSignal
+  abortSignal,
+  onModelCall
 } = {}) {
   if (typeof brokenSource !== 'string' || !brokenSource.trim()) {
     return { accepted: false, error: 'No broken source provided.' };
@@ -111,6 +122,7 @@ export async function repairChartWithFixer({
     env: env ?? process.env,
     modelOverride,
     brokenSource,
+    onModelCall,
     repairOnce: (model) =>
       repairChartOnce({
         brokenSource,

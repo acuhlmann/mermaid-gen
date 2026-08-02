@@ -6,18 +6,18 @@ Single source of truth for which LLM backend the server picks, which model id ea
 
 | Backend                | Used for                                                              | Configure with                                                      |
 | ---------------------- | --------------------------------------------------------------------- | ------------------------------------------------------------------- |
-| **Vertex AI (Gemini)** | Cloud Run Fast (default); sole backend when DeepSeek is unset         | `VERTEX_PROJECT_ID` (or `GOOGLE_CLOUD_PROJECT`) + `VERTEX_LOCATION` |
-| **DeepSeek**           | Local default when set alone; **Brain Quality** in hybrid with Vertex | `DEEPSEEK_API_KEY` (Secret Manager `deepseek-api-key` on Cloud Run) |
+| **DeepSeek**           | Brain Fast + Quality when `DEEPSEEK_API_KEY` is set                   | `DEEPSEEK_API_KEY` (Secret Manager `deepseek-api-key` on Cloud Run) |
+| **Vertex AI (Gemini)** | Office/advisor decorative Fast (lite); sole Brain when DeepSeek unset | `VERTEX_PROJECT_ID` (or `GOOGLE_CLOUD_PROJECT`) + `VERTEX_LOCATION` |
 | **OpenRouter**         | Local secondary; Cloud Run with `OPENROUTER_PREFERRED=1`              | `OPENROUTER_API_KEY`                                                |
 
 ## Brain profiles (Fast vs Quality)
 
-| UI Brain setting   | Typical Cloud Run (`auto` + Vertex + DeepSeek secret) | Model id           |
-| ------------------ | ----------------------------------------------------- | ------------------ |
-| **Fast** (default) | Vertex Gemini Flash — low latency                     | `gemini-2.5-flash` |
-| **Quality**        | DeepSeek V4 Pro — best DeepSeek tier                  | `deepseek-v4-pro`  |
+| UI Brain setting   | Typical setup (`auto` + DeepSeek key, optional Vertex) | Model id            |
+| ------------------ | ------------------------------------------------------ | ------------------- |
+| **Fast** (default) | DeepSeek V4 Flash — canvas Go / tool agents            | `deepseek-v4-flash` |
+| **Quality**        | DeepSeek V4 Pro — Concentration "Deep work"            | `deepseek-v4-pro`   |
 
-When Vertex and `DEEPSEEK_API_KEY` are both available in `auto` mode, the server **splits** backends by profile (hybrid). If DeepSeek is missing, Quality falls back to Vertex `gemini-2.5-pro`. If only DeepSeek is configured (common local setup), both profiles stay on DeepSeek (`deepseek-v4-flash` / `deepseek-v4-pro`).
+When `DEEPSEEK_API_KEY` is set in `auto` mode, **both** Brain profiles use DeepSeek. Vertex (when configured) is reserved for decorative Fast (`gemini-2.5-flash-lite`) and the syntax-fixer lite rung — not canvas Brain. If DeepSeek is missing, Brain falls back to Vertex Flash/Pro (or OpenRouter).
 
 ## Backend selection: `LLM_PROVIDER`
 
@@ -32,15 +32,14 @@ When Vertex and `DEEPSEEK_API_KEY` are both available in `auto` mode, the server
 
 ```
 1. If OPENROUTER_PREFERRED=1 and OPENROUTER_API_KEY set     → openrouter (both profiles)
-2. If Vertex env set AND DEEPSEEK_API_KEY set (hybrid)      → Fast=vertex, Quality=deepseek
+2. If DEEPSEEK_API_KEY set                                  → deepseek (Brain Fast+Quality)
 3. If running on Cloud Run (K_SERVICE set) and Vertex env set → vertex
-4. If DEEPSEEK_API_KEY set                                  → deepseek
-5. If OPENROUTER_API_KEY set                                → openrouter
-6. If Vertex env set                                        → vertex
-7. Otherwise                                                → null (llmConfigured=false; 503 from intent/transform/analyze)
+4. If OPENROUTER_API_KEY set                                → openrouter
+5. If Vertex env set                                        → vertex
+6. Otherwise                                                → null (llmConfigured=false; 503 from intent/transform/analyze)
 ```
 
-`K_SERVICE` is set automatically inside a Cloud Run container, so step 3 captures "production" without us needing a flag when DeepSeek is not attached.
+`K_SERVICE` is set automatically inside a Cloud Run container, so step 3 captures "production" without DeepSeek attached.
 
 ## Model resolution per backend
 
@@ -68,18 +67,19 @@ Optional first-rung override for the syntax fixer: `MERMAID_REPAIR_MODEL=gemini-
 
 ## Decorative Fast (office / advisor / explain) vs Brain Fast
 
-Latency-sensitive desk talk does **not** use Brain Fast. `resolveDecorativeModelId` in [`llmProvider.js`](../apps/server/src/agents/llmProvider.js) serves:
+Latency-sensitive desk talk does **not** use Brain Fast. `resolveDecorativeBackend` +
+`resolveDecorativeModelId` in [`llmProvider.js`](../apps/server/src/agents/llmProvider.js) serve:
 
 - Office moments, meetings, huddles, training (`createOfficeChatModel`)
 - Advisor chips (`createAdvisorChatModel`)
 - Label explainer + explain dumb-down
 - Auto content-type classifier
 
-| Backend    | Decorative default                         | Brain Fast (canvas Go) |
-| ---------- | ------------------------------------------ | ---------------------- |
-| Vertex     | `gemini-2.5-flash-lite`                    | `gemini-2.5-flash`     |
-| DeepSeek   | `deepseek-v4-flash`                        | `deepseek-v4-flash`    |
-| OpenRouter | `google/gemini-2.5-flash-lite` (same Fast) | same                   |
+| Surface                       | Typical hybrid (DeepSeek + Vertex) | Model id                |
+| ----------------------------- | ---------------------------------- | ----------------------- |
+| Brain Fast (canvas Go)        | DeepSeek                           | `deepseek-v4-flash`     |
+| Brain Quality (Deep work)     | DeepSeek                           | `deepseek-v4-pro`       |
+| Decorative (office / advisor) | Vertex                             | `gemini-2.5-flash-lite` |
 
 Vertex overrides: `VERTEX_MODEL_OFFICE` → `VERTEX_MODEL_LITE` → built-in lite. Setting `VERTEX_MODEL_FAST` alone does **not** change office/advisor.
 
@@ -91,7 +91,7 @@ Layer 3 of the validation ladder is a **latency-first model climb**, independent
 2. **Flash** — `gemini-2.5-flash` / OpenRouter flash
 3. **Quality** — DeepSeek V4 Pro when `DEEPSEEK_API_KEY` is set; otherwise Vertex/OpenRouter quality
 
-Each rejected rung feeds its diagnostic into the next. Full-agent repair (Layer 4) then climbs Brain→Quality on attempt 2+ via `resolveAgentRepairAttemptProfile`.
+Each rejected rung feeds its diagnostic into the next. Full-agent repair (Layer 4) then climbs to Quality on **every** repair attempt via `resolveAgentRepairAttemptProfile` (attempt ≥ 1), so a Fast Brain run gets DeepSeek Pro on the first full-agent retry.
 
 | Env var                   | Effect                                                                               |
 | ------------------------- | ------------------------------------------------------------------------------------ |
@@ -149,13 +149,13 @@ On Cloud Run the server merges rates from several sources (see `ratesSources` in
 2. Edit `packages/shared/src/data/llm-token-rates.json` (`version` + per-model `inputPerM` / `outputPerM` in USD per 1M tokens) and deploy, **or** hot-patch Cloud Run env vars.
 3. Confirm: `curl -sS "$PUBLIC_BASE_URL/api/health" | jq '{enabled:.agentCostEstimates.enabled, version:.agentCostEstimates.ratesVersion, sources:.agentCostEstimates.ratesSources, backends:.llmBackendsByProfile}'`.
 
-The web client reads `agentCostEstimates` from `/api/health` at load. Lifetime totals accumulate in the Slopitect level panel (**Stakeholder Damage Report™**) when cost tracking is enabled.
+The web client reads `agentCostEstimates` from `/api/health` at load. Lifetime totals accumulate in the Slopitect level panel (**Stakeholder Damage Report™**) when cost tracking is enabled. That total includes **canvas agent runs** (each `model_call_end`, including Auto content-type classification and syntax-fixer ladder rungs) **plus** office/advisor/explain/label decorative LLM calls reported through the shared auxiliary usage sink.
 
 ## Health check
 
 `GET /api/health` returns `{ status, llmConfigured, runtimeReady, llmBackend, llmBackendsByProfile, agentCostEstimates, … }`. `llmConfigured: true` means `resolveLlmBackend(env)` returned a non-null backend — i.e. at least one of the three providers is usable with the current env. When `false`, the app still loads and renders diagrams but `intent`, `transform`, `analyze`, and `agent-stream` return 503.
 
-`llmBackend` is the Fast/primary backend; `llmBackendsByProfile` shows `{ fast, quality }` so hybrid splits are visible.
+`llmBackend` is the Brain backend; `llmBackendsByProfile` shows `{ fast, quality }` (same backend when DeepSeek is set); `llmModelsByProfile` shows resolved `backend:modelId` labels for Fast, Quality, and decorative Fast so the thinking panel can display the real slug.
 
 `agentCostEstimates` shape:
 
@@ -178,16 +178,26 @@ The web client reads `agentCostEstimates` from `/api/health` at load. Lifetime t
 DEEPSEEK_API_KEY=sk-…
 ```
 
-**Local / Cloud Run hybrid** (Fast = Gemini Flash, Quality = DeepSeek Pro):
+**Local / Cloud Run with DeepSeek Brain + Vertex office**:
 
 ```env
 # Vertex via ADC locally, or VERTEX_* on Cloud Run from deploy scripts
 VERTEX_PROJECT_ID=mermaidgen
 VERTEX_LOCATION=us-central1
+VERTEX_MODEL_LITE=gemini-2.5-flash-lite
 DEEPSEEK_API_KEY=sk-…
+# Brain Fast = deepseek-v4-flash, Quality = deepseek-v4-pro
+# Office / advisor = Vertex flash-lite
 ```
 
-On Cloud Run, attach the key via Secret Manager:
+**Vertex-only Brain** (no DeepSeek):
+
+```env
+VERTEX_PROJECT_ID=mermaidgen
+VERTEX_LOCATION=us-central1
+```
+
+On Cloud Run, attach DeepSeek via Secret Manager:
 
 ```bash
 export DEEPSEEK_API_KEY=sk-…   # from local .env — never commit
@@ -199,14 +209,6 @@ npm run secret:deepseek:cloud-run
 ```env
 OPENROUTER_API_KEY=sk-or-…
 LLM_PROVIDER=openrouter
-```
-
-**Cloud Run production** (Vertex Fast by default; add DeepSeek secret for Quality):
-
-```env
-# Deploy scripts set VERTEX_PROJECT_ID from GCP_PROJECT_ID automatically.
-# Optionally pin region and models:
-VERTEX_LOCATION=us-central1
 ```
 
 **Cloud Run with OpenRouter preferred** (e.g. testing a new OpenRouter model in prod):

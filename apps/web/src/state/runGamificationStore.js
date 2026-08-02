@@ -59,9 +59,10 @@ export function createInitialState() {
     recentVariantTimeline: [], // [{ variant, at }] for hat-trick window
     achievements: {},
     lifetimeLlmCostUsd: 0,
-    // Stakeholder advisor (/api/advisor/suggest) spend. Tracked apart from run
-    // costs because it never produces an insights entry, so the reconcile below
-    // must fold it back in explicitly (otherwise a run-cost repair could drop it).
+    // Non-canvas LLM spend (office, advisor, label explain, explain-dumb). Tracked
+    // apart from run costs because it never produces an insights entry, so the
+    // reconcile below must fold it back in explicitly (otherwise a run-cost
+    // repair could drop it).
     advisorLlmCostUsd: 0
   };
 }
@@ -369,8 +370,9 @@ export function reconcileLifetimeLlmCostUsd(state, insightsEntries) {
 }
 
 /**
- * Add a stakeholder-advisor LLM charge to both the dedicated advisor tally and the
- * lifetime total shown in the Stakeholder Damage Report. No-op for non-positive USD.
+ * Add a non-canvas LLM charge (office / advisor / explain / labels) to both the
+ * dedicated auxiliary tally and the lifetime total shown in the Stakeholder
+ * Damage Report. No-op for non-positive USD.
  */
 export function addAdvisorLlmCostUsd(state, usd) {
   if (!state) return state;

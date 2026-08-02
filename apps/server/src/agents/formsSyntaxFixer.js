@@ -3,6 +3,7 @@ import { resolveSyntaxFixerTarget } from './llmProvider.js';
 import { escalateSyntaxFixerRepair } from './syntaxFixerEscalation.js';
 import { validateFormsStrict } from '../tools/formsA2uiTool.js';
 import { extractTextContent } from '../utils/extractTextContent.js';
+import { withLlmUsage } from './_lib/attachLlmUsage.js';
 import { FORMS_CORE_RULES } from '../prompts/formsSystemPrompt.js';
 import { FORMS_SELF_CHECK } from '../prompts/formsSyntaxGuard.js';
 
@@ -75,33 +76,42 @@ Output the corrected JSON between a single \`\`\`json fenced block. No prose.`;
   const text = extractTextContent(response?.content ?? response?.kwargs?.content ?? '');
   const candidate = extractJsonFromResponse(text);
   if (!candidate) {
-    return { accepted: false, error: 'Syntax fixer returned empty output.' };
+    return withLlmUsage(
+      { accepted: false, error: 'Syntax fixer returned empty output.' },
+      response
+    );
   }
 
   const validation = validateFormsStrict(candidate);
   if (!validation.valid) {
-    return {
-      accepted: false,
-      error: validation.error ?? 'Fixer output failed validation.',
-      attemptedSource: candidate
-    };
+    return withLlmUsage(
+      {
+        accepted: false,
+        error: validation.error ?? 'Fixer output failed validation.',
+        attemptedSource: candidate
+      },
+      response
+    );
   }
 
-  return {
-    accepted: true,
-    diagramSource: validation.diagramSource,
-    metadata: {
-      validator: 'forms-syntax-fixer',
-      formTitle: validation.formTitle
-    }
-  };
+  return withLlmUsage(
+    {
+      accepted: true,
+      diagramSource: validation.diagramSource,
+      metadata: {
+        validator: 'forms-syntax-fixer',
+        formTitle: validation.formTitle
+      }
+    },
+    response
+  );
 }
 
 /**
  * Forms A2UI repair with latency→quality fixer escalation (lite → flash → DeepSeek).
  * Same ladder as chart/metaphor; higher maxOutputTokens for large form documents.
  *
- * @param {{ brokenSource: string, parseError?: string | null, originalRequest?: string | null, env?: NodeJS.ProcessEnv, modelOverride?: unknown, abortSignal?: AbortSignal | null }} args
+ * @param {{ brokenSource: string, parseError?: string | null, originalRequest?: string | null, env?: NodeJS.ProcessEnv, modelOverride?: unknown, abortSignal?: AbortSignal | null, onModelCall?: Function }} args
  */
 export async function repairFormsWithFixer({
   brokenSource,
@@ -109,7 +119,8 @@ export async function repairFormsWithFixer({
   originalRequest,
   env,
   modelOverride,
-  abortSignal
+  abortSignal,
+  onModelCall
 } = {}) {
   if (typeof brokenSource !== 'string' || !brokenSource.trim()) {
     return { accepted: false, error: 'No broken source provided.' };
@@ -120,6 +131,7 @@ export async function repairFormsWithFixer({
     modelOverride,
     brokenSource,
     maxOutputTokens: FORMS_FIXER_MAX_OUTPUT_TOKENS,
+    onModelCall,
     repairOnce: (model) =>
       repairFormsOnce({
         brokenSource,

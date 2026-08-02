@@ -47,6 +47,30 @@ export function emitSyntaxFixerStart(emit, { contentType, triggerError }) {
 }
 
 /**
+ * Bill a syntax-fixer LLM rung into the run cost stream (model_call_* → Damage Report).
+ * No-op when emit is missing or neither token count is finite.
+ *
+ * @param {((evt: object) => void) | null | undefined} emit
+ * @param {{ model?: string | null, inputTokens?: number, outputTokens?: number }} usage
+ */
+export function emitSyntaxFixerModelCall(emit, usage) {
+  if (typeof emit !== 'function' || !usage || typeof usage !== 'object') return;
+  const inputTokens = Number(usage.inputTokens);
+  const outputTokens = Number(usage.outputTokens);
+  if (!Number.isFinite(inputTokens) && !Number.isFinite(outputTokens)) return;
+  const model = typeof usage.model === 'string' ? usage.model : '';
+  const callId = `syntax-fixer-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  emit({ type: 'model_call_start', callId, model });
+  emit({
+    type: 'model_call_end',
+    callId,
+    model,
+    ...(Number.isFinite(inputTokens) ? { inputTokens } : {}),
+    ...(Number.isFinite(outputTokens) ? { outputTokens } : {})
+  });
+}
+
+/**
  * Emit tool-trace outcome after the fixer finishes.
  *
  * @param {'repaired' | 'fixer_failed' | 'store_rejected'} outcome

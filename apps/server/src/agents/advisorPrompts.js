@@ -13,8 +13,8 @@ import { buildOfficeLogBlock } from './_lib/officeLogPrompt.js';
 import {
   createLlmChatModel,
   isLlmConfigured,
-  resolveDecorativeModelId,
-  resolveLlmBackend
+  resolveDecorativeBackend,
+  resolveDecorativeModelId
 } from './llmProvider.js';
 
 const COMMON_RULES = `
@@ -439,7 +439,7 @@ export function buildAdvisorUserPrompt({
  * Advisor + office share the decorative Fast slug (Vertex lite by default),
  * not Brain Fast — see {@link resolveDecorativeModelId}.
  */
-export function resolveAdvisorModelId(env = process.env, backend = resolveLlmBackend(env)) {
+export function resolveAdvisorModelId(env = process.env, backend = resolveDecorativeBackend(env)) {
   return resolveDecorativeModelId(env, backend);
 }
 
@@ -457,7 +457,7 @@ const advisorModelCache = new Map();
  */
 export function createAdvisorChatModel(env = process.env, persona = 'gilfoyle') {
   if (!isLlmConfigured(env)) return null;
-  const backend = resolveLlmBackend(env);
+  const backend = resolveDecorativeBackend(env);
   if (!backend) return null;
   const spec = ADVISOR_PERSONAS[persona] ?? ADVISOR_PERSONAS.gilfoyle;
   const modelId = resolveAdvisorModelId(env, backend);
@@ -466,6 +466,7 @@ export function createAdvisorChatModel(env = process.env, persona = 'gilfoyle') 
   if (cached) return cached;
   const overrides = {
     model: modelId,
+    backend,
     temperature: spec.temperature,
     // The advisor emits a tiny JSON one-liner, but on Gemini 2.5 (the default fast
     // model) `maxOutputTokens` is shared with the model's internal reasoning tokens.

@@ -1,5 +1,6 @@
 import { useUiCopy } from '../i18n/useUiLocale.js';
 import { useNarrowLayout } from '../hooks/useAppLayoutMedia.js';
+import { getCachedLlmModelsByProfile, shortModelSlug } from '../state/llmModelsByProfile.js';
 
 /**
  * Fast / quality model profile toggle — shared by the desk menu footer and the
@@ -20,6 +21,15 @@ export default function ConcentrationControl({
   const rootClass = ['concentration-control', `concentration-control--${variant}`, className]
     .filter(Boolean)
     .join(' ');
+  const models = getCachedLlmModelsByProfile();
+  const fastModel = shortModelSlug(models.fast);
+  const qualityModel = shortModelSlug(models.quality);
+  const fastTitle = fastModel
+    ? `${settingsCopy.fast} · ${models.fast}`
+    : (settingsCopy.concentrationTitle ?? settingsCopy.brain);
+  const qualityTitle = qualityModel
+    ? `${settingsCopy.quality} · ${models.quality}`
+    : (settingsCopy.concentrationTitle ?? settingsCopy.brain);
 
   return (
     <div
@@ -48,6 +58,7 @@ export default function ConcentrationControl({
           type="button"
           className={`concentration-control-option${modelProfile === 'fast' ? ' is-selected' : ''}`}
           aria-pressed={modelProfile === 'fast'}
+          title={fastTitle}
           onClick={() => onSelectModelProfile?.('fast')}
         >
           {segmentCompact ? (settingsCopy.fastShort ?? settingsCopy.fast) : settingsCopy.fast}
@@ -56,6 +67,7 @@ export default function ConcentrationControl({
           type="button"
           className={`concentration-control-option${modelProfile === 'quality' ? ' is-selected' : ''}`}
           aria-pressed={modelProfile === 'quality'}
+          title={qualityTitle}
           onClick={() => onSelectModelProfile?.('quality')}
         >
           {segmentCompact

@@ -56,6 +56,23 @@ test('escalateSyntaxFixerRepair reports exhausted ladder', async () => {
   assert.match(String(result.error), /exhausted \d+-rung fixer ladder/);
 });
 
+test('escalateSyntaxFixerRepair forwards usage via onModelCall', async () => {
+  const calls = [];
+  const result = await escalateSyntaxFixerRepair({
+    env: {},
+    modelOverride: { id: 'pinned' },
+    brokenSource: 'broken',
+    onModelCall: (usage) => calls.push(usage),
+    repairOnce: async () => ({
+      accepted: true,
+      diagramSource: 'fixed',
+      usage: { inputTokens: 12, outputTokens: 34 }
+    })
+  });
+  assert.equal(result.accepted, true);
+  assert.deepEqual(calls, [{ model: null, inputTokens: 12, outputTokens: 34 }]);
+});
+
 test('escalateSyntaxFixerRepair returns not configured when no backends exist', async () => {
   const result = await escalateSyntaxFixerRepair({
     env: {},

@@ -1,5 +1,6 @@
 // Headroom covers the latency-first syntax-fixer ladder (lite→flash→DeepSeek) plus
-// a quality full-agent repair turn when Brain Fast was used for the first pass.
+// a quality full-agent repair turn when Brain Fast was used for the first pass
+// (repair attempts climb to Quality immediately via resolveAgentRepairAttemptProfile).
 export const DEFAULT_AGENT_RUN_BUDGET_MS_FAST = 120_000;
 export const DEFAULT_AGENT_RUN_BUDGET_MS_QUALITY = 210_000;
 // Russ output fails validation more often than other modes (exotic diagram
@@ -88,11 +89,11 @@ export function resolveAgentRepairMaxAttempts(profile = 'fast', env = {}, conten
 
 /**
  * Full-agent repair model profile for attempt `attempt` (1-based).
- * Attempt 1 follows Brain; attempt 2+ always climbs to Quality so Fast runs
- * still get a stronger salvage pass independent of the UI Brain setting.
+ * Any repair turn (attempt ≥ 1) climbs to Quality so Fast Brain gets a stronger
+ * salvage pass on the first retry — not only after a second failed Fast repair.
  */
 export function resolveAgentRepairAttemptProfile(profile = 'fast', attempt = 1) {
-  if (Number(attempt) >= 2) return 'quality';
+  if (Number(attempt) >= 1) return 'quality';
   return normalizeAgentModelProfile(profile);
 }
 

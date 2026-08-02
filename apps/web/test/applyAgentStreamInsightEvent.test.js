@@ -149,6 +149,7 @@ describe('applyAgentStreamInsightEvent model_call', () => {
     expect(finalizeTechnicalActionResult).toHaveBeenCalledWith('sec-1', 'model_call', {
       status: 'done',
       toolCallId: 'run-42',
+      modelName: 'deepseek-chat',
       outcomeDetail: '1204 tokens in · 512 tokens out'
     });
   });
@@ -182,6 +183,7 @@ describe('applyAgentStreamInsightEvent model_call', () => {
     expect(finalizeTechnicalActionResult).toHaveBeenCalledWith('sec-1', 'model_call', {
       status: 'done',
       toolCallId: 'run-99',
+      modelName: 'gemini-2.5-flash',
       outcomeDetail: '1000000 tokens in · 0 tokens out'
     });
     expect(entry.estimatedCostUsd).toBeCloseTo(0.3, 5);

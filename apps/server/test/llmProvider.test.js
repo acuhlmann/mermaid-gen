@@ -21,7 +21,10 @@ import {
   resolveVertexProjectId,
   DEFAULT_VERTEX_MODEL_LITE,
   DEFAULT_OPENROUTER_MODEL_FLASH,
+  resolveDecorativeBackend,
   resolveDecorativeModelId,
+  resolveDecorativeModelLabel,
+  resolveLlmModelLabel,
   resolveVertexLiteModelId,
   resolveSyntaxFixerEscalationLadder,
   resolveSyntaxFixerTarget
@@ -123,22 +126,32 @@ test('resolveLlmBackend auto uses Vertex when only Vertex is configured', () => 
   assert.equal(resolveLlmBackend({ GOOGLE_CLOUD_PROJECT: 'p' }), 'vertex');
 });
 
-test('resolveLlmBackend hybrid Fast=Vertex Quality=DeepSeek when both are configured', () => {
+test('resolveLlmBackend uses DeepSeek for both Brain profiles when key + Vertex are set', () => {
   const env = {
     K_SERVICE: 'svc',
     GOOGLE_CLOUD_PROJECT: 'proj',
     DEEPSEEK_API_KEY: 'k'
   };
-  assert.equal(resolveLlmBackend(env), 'vertex');
-  assert.equal(resolveLlmBackend(env, 'fast'), 'vertex');
+  assert.equal(resolveLlmBackend(env), 'deepseek');
+  assert.equal(resolveLlmBackend(env, 'fast'), 'deepseek');
   assert.equal(resolveLlmBackend(env, 'quality'), 'deepseek');
-  assert.equal(resolveModelId(env, 'fast'), DEFAULT_VERTEX_MODEL_FAST);
+  assert.equal(resolveModelId(env, 'fast'), DEFAULT_DEEPSEEK_MODEL_FAST);
   assert.equal(resolveModelId(env, 'quality'), DEFAULT_DEEPSEEK_MODEL_QUALITY);
 });
 
-test('resolveLlmBackend hybrid also applies locally when Vertex and DeepSeek are both set', () => {
+test('resolveDecorativeBackend prefers Vertex lite when Brain is DeepSeek', () => {
   const env = { GOOGLE_CLOUD_PROJECT: 'p', DEEPSEEK_API_KEY: 'k' };
-  assert.equal(resolveLlmBackend(env, 'fast'), 'vertex');
+  assert.equal(resolveLlmBackend(env, 'fast'), 'deepseek');
+  assert.equal(resolveDecorativeBackend(env), 'vertex');
+  assert.equal(resolveDecorativeModelId(env), DEFAULT_VERTEX_MODEL_LITE);
+  assert.equal(resolveDecorativeModelLabel(env), `vertex:${DEFAULT_VERTEX_MODEL_LITE}`);
+  assert.equal(resolveLlmModelLabel(env, 'fast'), `deepseek:${DEFAULT_DEEPSEEK_MODEL_FAST}`);
+  assert.equal(resolveLlmModelLabel(env, 'quality'), `deepseek:${DEFAULT_DEEPSEEK_MODEL_QUALITY}`);
+});
+
+test('resolveLlmBackend DeepSeek+Vertex also applies locally', () => {
+  const env = { GOOGLE_CLOUD_PROJECT: 'p', DEEPSEEK_API_KEY: 'k' };
+  assert.equal(resolveLlmBackend(env, 'fast'), 'deepseek');
   assert.equal(resolveLlmBackend(env, 'quality'), 'deepseek');
 });
 
@@ -153,13 +166,14 @@ test('resolveLlmBackend hybrid is skipped when OPENROUTER_PREFERRED pins OpenRou
   assert.equal(resolveLlmBackend(env, 'quality'), 'openrouter');
 });
 
-test('resolveLlmBackend pinned LLM_PROVIDER ignores hybrid profile split', () => {
+test('resolveLlmBackend pinned LLM_PROVIDER ignores DeepSeek key for Brain', () => {
   const env = {
     LLM_PROVIDER: 'vertex',
     GOOGLE_CLOUD_PROJECT: 'p',
     DEEPSEEK_API_KEY: 'k'
   };
   assert.equal(resolveLlmBackend(env, 'quality'), 'vertex');
+  assert.equal(resolveDecorativeBackend(env), 'vertex');
 });
 
 test('resolveDeepSeekModelId mirrors tier env keys', () => {

@@ -154,7 +154,7 @@ export function createAnythingLangChainAgent({
     return createChatModel(env, { model: modelId, backend, modelProfile: profile });
   }
 
-  async function invokeAgentStream({ agent, messages, abortSignal, emit }) {
+  async function invokeAgentStream({ agent, messages, abortSignal, emit, modelFallback = '' }) {
     try {
       if (typeof agent.streamEvents === 'function' && typeof emit === 'function') {
         const stream = await agent.streamEvents(
@@ -170,7 +170,7 @@ export function createAnythingLangChainAgent({
         let latestMessages = [];
         for await (const ev of stream) {
           latestMessages = captureMessagesFromStreamEvent(ev, latestMessages);
-          const normalized = normalizeAgentStreamEvent(ev);
+          const normalized = normalizeAgentStreamEvent(ev, { modelFallback });
           if (normalized) forwardNormalizedAgentStreamEvent(emit, normalized);
           if (ev?.event === 'on_chat_model_stream') {
             patchTelemetry.processToolCallChunks(ev.data?.chunk?.tool_call_chunks);

@@ -1,7 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createAgentStreamEmitter, AGUI_CUSTOM_NAME_SYNTAX_FIXER } from '@archislop/shared';
-import { emitSyntaxFixerResult, emitSyntaxFixerStart } from '../src/agents/syntaxFixerTelemetry.js';
+import {
+  emitSyntaxFixerResult,
+  emitSyntaxFixerStart,
+  emitSyntaxFixerModelCall
+} from '../src/agents/syntaxFixerTelemetry.js';
 
 test('emitSyntaxFixerStart emits plan beat, phase, and syntax_fixer_start', () => {
   const captured = [];
@@ -32,6 +36,21 @@ test('emitSyntaxFixerResult emits syntax_fixer_result envelope', () => {
   assert.equal(captured[0].type, 'syntax_fixer_result');
   assert.equal(captured[0].outcome, 'fixer_failed');
   assert.equal(captured[0].error, 'Could not repair chart DSL');
+});
+
+test('emitSyntaxFixerModelCall emits paired model_call start/end for billing', () => {
+  const captured = [];
+  emitSyntaxFixerModelCall((evt) => captured.push(evt), {
+    model: 'gemini-2.5-flash-lite',
+    inputTokens: 100,
+    outputTokens: 40
+  });
+  assert.equal(captured.length, 2);
+  assert.equal(captured[0].type, 'model_call_start');
+  assert.equal(captured[0].model, 'gemini-2.5-flash-lite');
+  assert.equal(captured[1].type, 'model_call_end');
+  assert.equal(captured[1].inputTokens, 100);
+  assert.equal(captured[1].outputTokens, 40);
 });
 
 test('createAgentStreamEmitter maps syntax_fixer_start to CUSTOM wire event', () => {

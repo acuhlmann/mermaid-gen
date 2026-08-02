@@ -11,8 +11,9 @@ export const DEFAULT_VERTEX_MODEL_FAST = 'gemini-2.5-flash';
 export const DEFAULT_VERTEX_MODEL_QUALITY = 'gemini-2.5-pro';
 /**
  * Ultra-low-latency Vertex slug for decorative / salvage paths (office, advisor,
- * label explain, Auto classifier, syntax-fixer lite rung). Brain Fast stays on
- * {@link DEFAULT_VERTEX_MODEL_FAST} so canvas tool agents keep full Flash.
+ * label explain, Auto classifier, syntax-fixer lite rung). When DeepSeek is the
+ * Brain backend, canvas Fast/Quality stay on DeepSeek Flash/Pro; Vertex lite is
+ * reserved for desk talk and the fixer ladder's first rung.
  */
 export const DEFAULT_VERTEX_MODEL_LITE = 'gemini-2.5-flash-lite';
 
@@ -183,7 +184,8 @@ export function resolveModelId(
 }
 
 /**
- * True when auto mode can split Brain profiles across Vertex (Fast) and DeepSeek (Quality).
+ * True when Vertex and DeepSeek are both configured — Brain runs on DeepSeek
+ * (Flash/Pro by profile) while decorative Fast can still use Vertex lite.
  * @param {NodeJS.ProcessEnv} [env]
  */
 export function isHybridVertexDeepseek(env = process.env) {
@@ -191,15 +193,17 @@ export function isHybridVertexDeepseek(env = process.env) {
 }
 
 /**
- * Resolve LLM backend. Optional `profile` enables hybrid Brain routing in `auto` mode:
- * when Vertex and DeepSeek are both configured, Fast → Vertex (Gemini Flash) and
- * Quality → DeepSeek (V4 Pro). Callers without a profile get the Fast/primary backend.
+ * Resolve Brain LLM backend. `profile` selects the model id (Flash vs Pro) via
+ * {@link resolveModelId}; both Brain tiers share one backend in `auto` mode.
+ * When DeepSeek is configured, Brain uses DeepSeek; Vertex is kept for
+ * decorative Fast ({@link resolveDecorativeBackend}) and the fixer lite rung.
  *
  * @param {NodeJS.ProcessEnv} [env]
  * @param {'fast' | 'quality'} [profile]
  * @returns {LlmBackend | null}
  */
 export function resolveLlmBackend(env = process.env, profile) {
+  void profile; // Brain backend is not profile-split; model id still varies by profile.
   const raw = typeof env.LLM_PROVIDER === 'string' ? env.LLM_PROVIDER.trim().toLowerCase() : '';
   const mode = raw === 'vertex' || raw === 'openrouter' || raw === 'deepseek' ? raw : 'auto';
 
@@ -217,17 +221,13 @@ export function resolveLlmBackend(env = process.env, profile) {
     return 'openrouter';
   }
 
-  // Hybrid Brain: Fast = low-latency Gemini Flash on Vertex; Quality = DeepSeek V4 Pro.
-  if (isHybridVertexDeepseek(env)) {
-    const p = profile != null ? normalizeModelProfile(profile) : 'fast';
-    return p === 'quality' ? 'deepseek' : 'vertex';
+  // Brain: DeepSeek Flash/Pro whenever the key is present (local + Cloud Run hybrid).
+  if (env.DEEPSEEK_API_KEY) {
+    return 'deepseek';
   }
 
   if (env.K_SERVICE && isVertexEnvConfigured(env)) {
     return 'vertex';
-  }
-  if (env.DEEPSEEK_API_KEY) {
-    return 'deepseek';
   }
   if (env.OPENROUTER_API_KEY) {
     return 'openrouter';
@@ -236,6 +236,68 @@ export function resolveLlmBackend(env = process.env, profile) {
     return 'vertex';
   }
   return null;
+}
+
+/**
+ * Backend for latency-first decorative surfaces (office, advisor, label explain,
+ * Auto classifier, explain dumb-down). Prefers Vertex lite when Vertex is
+ * configured — even if Brain is on DeepSeek — so desk talk stays ultra-low-latency.
+ *
+ * @param {NodeJS.ProcessEnv} [env]
+ * @returns {LlmBackend | null}
+ */
+export function resolveDecorativeBackend(env = process.env) {
+  const raw = typeof env.LLM_PROVIDER === 'string' ? env.LLM_PROVIDER.trim().toLowerCase() : '';
+  const mode = raw === 'vertex' || raw === 'openrouter' || raw === 'deepseek' ? raw : 'auto';
+
+  if (mode === 'openrouter') {
+    return env.OPENROUTER_API_KEY ? 'openrouter' : null;
+  }
+  if (mode === 'deepseek') {
+    return env.DEEPSEEK_API_KEY ? 'deepseek' : null;
+  }
+  if (mode === 'vertex') {
+    return isVertexEnvConfigured(env) ? 'vertex' : null;
+  }
+
+  if (envTruthy(env.OPENROUTER_PREFERRED) && env.OPENROUTER_API_KEY) {
+    return 'openrouter';
+  }
+
+  // Prefer Vertex flash-lite for office life whenever ADC/project is available.
+  if (isVertexEnvConfigured(env)) {
+    return 'vertex';
+  }
+  if (env.DEEPSEEK_API_KEY) {
+    return 'deepseek';
+  }
+  if (env.OPENROUTER_API_KEY) {
+    return 'openrouter';
+  }
+  return null;
+}
+
+/**
+ * `backend:modelId` label for a Brain profile (thinking panel / health).
+ * @param {NodeJS.ProcessEnv} [env]
+ * @param {'fast' | 'quality'} [profile]
+ * @returns {string | null}
+ */
+export function resolveLlmModelLabel(env = process.env, profile = 'fast') {
+  const backend = resolveLlmBackend(env, profile);
+  if (!backend) return null;
+  return `${backend}:${resolveModelId(env, profile, backend)}`;
+}
+
+/**
+ * `backend:modelId` label for decorative Fast (office / advisor / …).
+ * @param {NodeJS.ProcessEnv} [env]
+ * @returns {string | null}
+ */
+export function resolveDecorativeModelLabel(env = process.env) {
+  const backend = resolveDecorativeBackend(env);
+  if (!backend) return null;
+  return `${backend}:${resolveDecorativeModelId(env, backend)}`;
 }
 
 /**
@@ -378,8 +440,8 @@ export function createChatModelForBackend(env, backend, overrides = {}) {
 
 /**
  * Unified factory: Vertex, DeepSeek, or OpenRouter from `resolveLlmBackend`.
- * Pass `backend` and/or `modelProfile` in overrides when the Brain tier should
- * pick a different provider (hybrid Fast=Vertex / Quality=DeepSeek).
+ * Pass `backend` and/or `modelProfile` in overrides when a surface should use a
+ * different provider than Brain (e.g. decorative Fast → Vertex lite).
  * @param {NodeJS.ProcessEnv} env
  * @param {Record<string, unknown>} [overrides]
  */
@@ -462,7 +524,7 @@ export function resolveVertexLiteModelId(env = process.env) {
 /**
  * Model id for latency-first decorative surfaces (office cast, advisor chips,
  * label explainer, Auto content-type classifier, explain dumb-down). Independent
- * of Brain Fast so canvas Go can stay on full Flash while desk talk uses lite.
+ * of Brain so canvas Go can stay on DeepSeek Flash while desk talk uses Vertex lite.
  *
  * Vertex precedence: `VERTEX_MODEL_OFFICE` → `VERTEX_MODEL_LITE` → default lite.
  * DeepSeek / OpenRouter: Fast (OpenRouter Fast is already flash-lite).
@@ -470,7 +532,10 @@ export function resolveVertexLiteModelId(env = process.env) {
  * @param {NodeJS.ProcessEnv} [env]
  * @param {LlmBackend | null} [backend]
  */
-export function resolveDecorativeModelId(env = process.env, backend = resolveLlmBackend(env)) {
+export function resolveDecorativeModelId(
+  env = process.env,
+  backend = resolveDecorativeBackend(env)
+) {
   if (backend === 'vertex') {
     const office =
       typeof env.VERTEX_MODEL_OFFICE === 'string' ? env.VERTEX_MODEL_OFFICE.trim() : '';
@@ -565,7 +630,14 @@ export function resolveSyntaxFixerEscalationLadder(env = process.env) {
 
   if (!isSyntaxFixerEscalationEnabled(env)) {
     if (rungs.length > 0) return rungs;
-    const backend = pinnedBackend || resolveLlmBackend(env);
+    // Prefer Vertex (or OpenRouter) for the single latency rung even when Brain is DeepSeek.
+    const backend =
+      pinnedBackend ||
+      (backendUsable(env, 'vertex')
+        ? 'vertex'
+        : backendUsable(env, 'openrouter')
+          ? 'openrouter'
+          : resolveLlmBackend(env));
     if (!backend) return [];
     push(backend, resolveFastDefaultForBackend(env, backend), 'flash');
     return rungs;

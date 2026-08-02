@@ -9,7 +9,12 @@ import { fileURLToPath } from 'node:url';
 import { CopilotRuntime } from '@copilotkit/runtime/v2';
 import { createCopilotExpressHandler } from '@copilotkit/runtime/v2/express';
 import { createSessionAwareCopilotRuntimeAgent } from './agents/copilotRuntimeAgent.js';
-import { isLlmConfigured, resolveLlmBackend } from './agents/mermaidLangChainAgent.js';
+import {
+  isLlmConfigured,
+  resolveDecorativeModelLabel,
+  resolveLlmBackend,
+  resolveLlmModelLabel
+} from './agents/mermaidLangChainAgent.js';
 import { isOfficeTtsEnabled } from './agents/officeTts.js';
 import { isAgentCostEstimateEnabled } from '@archislop/shared';
 import {
@@ -156,6 +161,11 @@ app.get('/api/health', (_req, res) => {
     llmBackendsByProfile: {
       fast: resolveLlmBackend(process.env, 'fast') ?? 'none',
       quality: resolveLlmBackend(process.env, 'quality') ?? 'none'
+    },
+    llmModelsByProfile: {
+      fast: resolveLlmModelLabel(process.env, 'fast') ?? 'none',
+      quality: resolveLlmModelLabel(process.env, 'quality') ?? 'none',
+      decorative: resolveDecorativeModelLabel(process.env) ?? 'none'
     },
     agentCostEstimates: {
       enabled: isAgentCostEstimateEnabled(process.env),

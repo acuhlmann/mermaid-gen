@@ -1,8 +1,6 @@
 import { useEffect, useState } from 'react';
-import {
-  getCachedAgentCostEstimates,
-  loadAgentCostEstimates
-} from '../../state/agentCostEstimates.js';
+import { loadAgentCostEstimates } from '../../state/agentCostEstimates.js';
+import { loadLlmModelsByProfile } from '../../state/llmModelsByProfile.js';
 import {
   reconcileLifetimeLlmCostUsd,
   writeToStorage as writeGamificationToStorage
@@ -28,7 +26,7 @@ export function useGamificationPersistence({
 
   useEffect(() => {
     let cancelled = false;
-    loadAgentCostEstimates().then((payload) => {
+    Promise.all([loadAgentCostEstimates(), loadLlmModelsByProfile()]).then(([payload]) => {
       if (!cancelled) {
         agentCostEstimatesRef.current = payload;
         setCostTrackingEnabled(payload.enabled === true);

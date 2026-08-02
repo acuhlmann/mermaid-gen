@@ -17,8 +17,8 @@ import {
 import {
   createLlmChatModel,
   isLlmConfigured,
-  resolveDecorativeModelId,
-  resolveLlmBackend
+  resolveDecorativeBackend,
+  resolveDecorativeModelId
 } from './llmProvider.js';
 import { extractTextContent } from '../utils/extractTextContent.js';
 import { llmUsageFromReply } from './_lib/llmUsageFromReply.js';
@@ -84,7 +84,7 @@ const explainerModelCache = new Map();
  */
 export function createLabelExplainerChatModel(env = process.env) {
   if (!isLlmConfigured(env)) return null;
-  const backend = resolveLlmBackend(env);
+  const backend = resolveDecorativeBackend(env);
   if (!backend) return null;
   const modelId = resolveExplainerModelId(env, backend);
   const key = `${backend}:${modelId}`;
@@ -92,6 +92,7 @@ export function createLabelExplainerChatModel(env = process.env) {
   if (cached) return cached;
   const overrides = {
     model: modelId,
+    backend,
     temperature: 0.3,
     // Gemini 2.5 shares maxOutputTokens with internal reasoning tokens — the old
     // 120-token cap could be swallowed whole by "thinking", yielding an empty
@@ -228,7 +229,7 @@ export function sanitizeLabelGibberish(raw) {
 export async function explainLabelOnce({ env = process.env, payload }) {
   const model = createLabelExplainerChatModel(env);
   if (!model) return { explanation: '', usage: null, model: null };
-  const backend = resolveLlmBackend(env);
+  const backend = resolveDecorativeBackend(env);
   const modelId = resolveExplainerModelId(env, backend);
   const style =
     payload?.style === 'gibberish' ? 'gibberish' : payload?.style === 'simple' ? 'simple' : 'brief';

@@ -38,6 +38,7 @@ import {
   statusLabel
 } from './insightsPaneEntryUi.js';
 import { ThinkingPanelIcon } from './AppIcons.jsx';
+import { getCachedLlmModelsByProfile, shortModelSlug } from '../state/llmModelsByProfile.js';
 import ConcentrationControl from './ConcentrationControl.jsx';
 import SlopitectCompanion from './SlopitectCompanion.jsx';
 import { officeChromeCopy, officeMeetingCopy } from '../utils/officeCast.js';
@@ -430,7 +431,12 @@ function EntryRunMeta({ entry }) {
   const brainMetaMap = modelProfileMeta(controls);
   const contentMeta = entry?.contentType ? modeMeta[entry.contentType] : null;
   const brainMeta = entry?.modelProfile ? brainMetaMap[entry.modelProfile] : null;
-  if (!contentMeta && !brainMeta) return null;
+  const models = getCachedLlmModelsByProfile();
+  const profileKey = entry?.modelProfile === 'quality' ? 'quality' : 'fast';
+  const resolvedModel =
+    (typeof entry?.modelLabel === 'string' && entry.modelLabel.trim()) || models[profileKey] || '';
+  const modelSlug = shortModelSlug(resolvedModel);
+  if (!contentMeta && !brainMeta && !modelSlug) return null;
   return (
     <div className="insights-entry-meta" aria-label={controls.insights.runDetails}>
       {contentMeta ? (
@@ -447,12 +453,25 @@ function EntryRunMeta({ entry }) {
       {brainMeta ? (
         <span
           className="insights-entry-meta-chip is-brain"
-          title={`${brainMeta.label} ${controls.insights.brainSuffix}`}
+          title={
+            modelSlug
+              ? `${brainMeta.label} ${controls.insights.brainSuffix} · ${resolvedModel}`
+              : `${brainMeta.label} ${controls.insights.brainSuffix}`
+          }
         >
           <span className="insights-entry-meta-emoji" aria-hidden="true">
             {brainMeta.emoji}
           </span>
           <span>{brainMeta.label}</span>
+          {modelSlug ? (
+            <code className="insights-entry-meta-model" title={resolvedModel}>
+              {modelSlug}
+            </code>
+          ) : null}
+        </span>
+      ) : modelSlug ? (
+        <span className="insights-entry-meta-chip is-brain" title={resolvedModel}>
+          <code className="insights-entry-meta-model">{modelSlug}</code>
         </span>
       ) : null}
     </div>

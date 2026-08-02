@@ -32,6 +32,11 @@ import {
  *     index: number,
  *     ladderSize: number
  *   ) => void,
+ *   onModelCall?: (usage: {
+ *     model: string | null,
+ *     inputTokens?: number,
+ *     outputTokens?: number
+ *   }) => void,
  *   maxOutputTokens?: number
  * }} args
  */
@@ -42,14 +47,39 @@ export async function escalateSyntaxFixerRepair({
   brokenSource = '',
   repairOnce,
   onRung,
+  onModelCall,
   maxOutputTokens
 } = {}) {
   if (typeof repairOnce !== 'function') {
     return { accepted: false, error: 'Syntax fixer repairOnce callback is required.' };
   }
 
+  /**
+   * @param {object | null | undefined} result
+   * @param {{ modelId?: string } | null} target
+   */
+  const reportUsage = (result, target) => {
+    if (typeof onModelCall !== 'function') return;
+    const usage = result?.usage;
+    if (!usage || typeof usage !== 'object') return;
+    const model =
+      (target && typeof target.modelId === 'string' && target.modelId) ||
+      (typeof result.model === 'string' ? result.model : null);
+    onModelCall({
+      model,
+      ...(Number.isFinite(usage.inputTokens) ? { inputTokens: usage.inputTokens } : {}),
+      ...(Number.isFinite(usage.outputTokens) ? { outputTokens: usage.outputTokens } : {})
+    });
+  };
+
   if (modelOverride != null) {
-    return repairOnce(modelOverride, Array.isArray(previousAttempts) ? previousAttempts : [], null);
+    const pinned = await repairOnce(
+      modelOverride,
+      Array.isArray(previousAttempts) ? previousAttempts : [],
+      null
+    );
+    reportUsage(pinned, null);
+    return pinned;
   }
 
   const ladder = resolveSyntaxFixerEscalationLadder(env);
@@ -74,6 +104,7 @@ export async function escalateSyntaxFixerRepair({
     if (typeof onRung === 'function') onRung(target, i, ladder.length);
 
     last = await repairOnce(model, prior, target);
+    reportUsage(last, target);
     if (last?.accepted) {
       return {
         ...last,
