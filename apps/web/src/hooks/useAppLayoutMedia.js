@@ -55,6 +55,11 @@ export function useFoldableDualScreen() {
   return useMatchMedia(FOLDABLE_DUAL_SCREEN_MEDIA_QUERY);
 }
 
+/** True on touch-first devices where keyboard shortcut hints are noise. */
+export function useCoarsePointer() {
+  return useMatchMedia('(pointer: coarse)');
+}
+
 /**
  * True when the brand chip cannot fit the inline XP bar — drop the bar into the row below.
  */

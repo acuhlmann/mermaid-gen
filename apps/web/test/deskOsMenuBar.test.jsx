@@ -120,6 +120,28 @@ describe('DeskOsMenuBar', () => {
     expect(screen.queryByTestId('menubar-external-agents')).toBeNull();
   });
 
+  it('hides keyboard shortcuts in Admin on touch-first devices', () => {
+    const orig = window.matchMedia;
+    window.matchMedia = (query) => {
+      if (query === '(pointer: coarse)') {
+        return {
+          matches: true,
+          media: query,
+          addEventListener: () => {},
+          removeEventListener: () => {}
+        };
+      }
+      return orig(query);
+    };
+    try {
+      setup();
+      openMenu('admin');
+      expect(screen.queryByTestId('menubar-hotkeys')).toBeNull();
+    } finally {
+      window.matchMedia = orig;
+    }
+  });
+
   it('keeps the language pack reachable from Admin', () => {
     setup();
     openMenu('admin');

@@ -10,6 +10,9 @@ const MENU_GAP_PX = 6;
 const SAFE_INSET_PX = 8;
 const MAX_MENU_WIDTH_PX = 300;
 const MIN_MENU_WIDTH_PX = 210;
+/** Admin hosts long HR / headphones labels and a two-toggle ambience footer. */
+const MAX_WIDE_MENU_WIDTH_PX = 360;
+const MIN_WIDE_MENU_WIDTH_PX = 280;
 /** Mailroom hosts a slip, not a verb list — tighter than Admin/Deliverable. */
 const COMPACT_MAX_MENU_WIDTH_PX = 212;
 const COMPACT_MIN_MENU_WIDTH_PX = 168;
@@ -20,14 +23,22 @@ const COMPACT_MIN_MENU_WIDTH_PX = 168;
  * bottom chrome. Same clamping arithmetic, opposite axis.
  *
  * @param {DOMRect} anchorRect
- * @param {{ compact?: boolean }} [options]
+ * @param {{ compact?: boolean, wide?: boolean }} [options]
  * @returns {import('react').CSSProperties}
  */
-function computeDropdownStyle(anchorRect, { compact = false } = {}) {
+function computeDropdownStyle(anchorRect, { compact = false, wide = false } = {}) {
   const viewportWidth = window.innerWidth;
   const viewportHeight = window.innerHeight;
-  const maxCap = compact ? COMPACT_MAX_MENU_WIDTH_PX : MAX_MENU_WIDTH_PX;
-  const minCap = compact ? COMPACT_MIN_MENU_WIDTH_PX : MIN_MENU_WIDTH_PX;
+  const maxCap = compact
+    ? COMPACT_MAX_MENU_WIDTH_PX
+    : wide
+      ? MAX_WIDE_MENU_WIDTH_PX
+      : MAX_MENU_WIDTH_PX;
+  const minCap = compact
+    ? COMPACT_MIN_MENU_WIDTH_PX
+    : wide
+      ? MIN_WIDE_MENU_WIDTH_PX
+      : MIN_MENU_WIDTH_PX;
   const maxWidth = Math.min(maxCap, viewportWidth - SAFE_INSET_PX * 2);
   const minWidth = Math.min(minCap, maxWidth);
   // Prefer room for the full slip (compact) / column (items). Clamping only to
@@ -77,6 +88,7 @@ function computeDropdownStyle(anchorRect, { compact = false } = {}) {
  *   disabled?: boolean,
  *   highlight?: boolean,
  *   compact?: boolean,
+ *   wide?: boolean,
  *   onOpenChange: (open: boolean) => void,
  *   onHoverOpen?: () => void,
  *   children: (close: () => void) => import('react').ReactNode
@@ -92,6 +104,7 @@ export default function DeskOsMenu({
   disabled = false,
   highlight = false,
   compact = false,
+  wide = false,
   onOpenChange,
   onHoverOpen,
   children
@@ -159,12 +172,16 @@ export default function DeskOsMenu({
   const menuStyle = overlayLayerStyle(
     menuZIndex,
     resolvedAnchor
-      ? computeDropdownStyle(resolvedAnchor, { compact })
+      ? computeDropdownStyle(resolvedAnchor, { compact, wide })
       : {
           position: 'fixed',
           left: SAFE_INSET_PX,
           top: SAFE_INSET_PX + 48,
-          width: compact ? COMPACT_MIN_MENU_WIDTH_PX : MIN_MENU_WIDTH_PX,
+          width: compact
+            ? COMPACT_MIN_MENU_WIDTH_PX
+            : wide
+              ? MIN_WIDE_MENU_WIDTH_PX
+              : MIN_MENU_WIDTH_PX,
           boxSizing: 'border-box'
         }
   );

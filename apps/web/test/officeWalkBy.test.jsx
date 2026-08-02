@@ -7,6 +7,7 @@ import {
   setOfficeCaptions,
   setOfficeNarration
 } from '../src/state/officeMomentStore.js';
+import { FOCUS_Z_BASE, resetOverlayStackForTests } from '../src/state/overlayStack.js';
 
 const walkBy = {
   id: 'walkby-1',
@@ -22,7 +23,10 @@ describe('OfficeWalkBy', () => {
     setOfficeCaptions(false);
   });
 
-  afterEach(() => cleanup());
+  afterEach(() => {
+    cleanup();
+    resetOverlayStackForTests();
+  });
 
   it('hides the speech body while TTS is speaking (voice-first)', async () => {
     const narrateLine = vi.fn(() => new Promise(() => {}));
@@ -67,5 +71,14 @@ describe('OfficeWalkBy', () => {
     setOfficeNarration(false);
     render(<OfficeWalkBy walkBy={walkBy} onDismiss={vi.fn()} />);
     expect(screen.getByText(walkBy.body)).toBeTruthy();
+  });
+
+  it('registers on the focus stack above floating windows', async () => {
+    render(<OfficeWalkBy walkBy={walkBy} onDismiss={vi.fn()} />);
+    await act(async () => {
+      await Promise.resolve();
+    });
+    const overlay = screen.getByTestId('office-walkby');
+    expect(Number(overlay.style.zIndex)).toBeGreaterThanOrEqual(FOCUS_Z_BASE);
   });
 });

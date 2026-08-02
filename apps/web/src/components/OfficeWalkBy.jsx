@@ -2,6 +2,7 @@ import { useSyncExternalStore } from 'react';
 import { officeChromeCopy, officeSenderInfo } from '../utils/officeCast.js';
 import { formatLocale } from '../i18n/formatLocale.js';
 import { getOfficeSnapshot, subscribe } from '../state/officeMomentStore.js';
+import { overlayLayerStyle, useOverlayLayer } from '../hooks/useOverlayLayer.js';
 import { useSpokenLineVoice } from '../hooks/useSpokenLineVoice.js';
 import { PersonaFace } from './personaFaces/index.jsx';
 
@@ -25,6 +26,12 @@ import { PersonaFace } from './personaFaces/index.jsx';
  */
 export default function OfficeWalkBy({ walkBy, onDismiss, onAdoptPrompt, narrateLine }) {
   const snapshot = useSyncExternalStore(subscribe, getOfficeSnapshot, getOfficeSnapshot);
+  const overlayId = walkBy ? `office-walkby-${walkBy.id}` : 'office-walkby';
+  const walkByZIndex = useOverlayLayer(overlayId, Boolean(walkBy), 'officeModal', {
+    title: 'Walk-by',
+    kind: 'officeWalkBy',
+    manageable: false
+  });
   const { showSpokenText: showText } = useSpokenLineVoice({
     captions: snapshot.captions,
     narration: snapshot.narration,
@@ -44,6 +51,7 @@ export default function OfficeWalkBy({ walkBy, onDismiss, onAdoptPrompt, narrate
   return (
     <div
       className="office-walkby-overlay"
+      style={overlayLayerStyle(walkByZIndex)}
       role="status"
       aria-live="polite"
       data-testid="office-walkby"

@@ -1,4 +1,5 @@
 import { ButtonIcon } from './AppIcons.jsx';
+import { useCoarsePointer } from '../hooks/useAppLayoutMedia.js';
 import { officeChromeCopy } from '../utils/officeCast.js';
 import { OFFICE_VIEW_HOTKEY_LABEL } from '../hooks/useOfficeViewHotkey.js';
 
@@ -16,17 +17,17 @@ export default function DeskStandUpButton({
   disabled = false,
   busy = false
 }) {
+  const touchUi = useCoarsePointer();
   const desk = officeChromeCopy().desk;
   const floor = officeChromeCopy().floor;
   const label = standing ? (desk.sitDown ?? floor.back) : desk.standUp;
   const shortLabel = standing
     ? (desk.sitDownShort ?? desk.sitDown ?? 'Sit down')
     : (desk.standUpShort ?? 'Stand up');
+  const shortcutHint = touchUi ? null : (desk.officeViewShortcut ?? OFFICE_VIEW_HOTKEY_LABEL);
   const title = standing
     ? (desk.sitDownTitle ?? floor.backTitle ?? label)
-    : [desk.standUpTitle ?? label, desk.officeViewShortcut ?? OFFICE_VIEW_HOTKEY_LABEL]
-        .filter(Boolean)
-        .join(' · ');
+    : [desk.standUpTitle ?? label, shortcutHint].filter(Boolean).join(' · ');
   const emoji = standing ? SIT_EMOJI : STAND_EMOJI;
 
   const buttonClass = [
@@ -56,12 +57,7 @@ export default function DeskStandUpButton({
         </span>
       </ButtonIcon>
       <span className="button-label">{shortLabel}</span>
-      <span className="slop-action-role">
-        <span className="slop-action-role-emoji" aria-hidden="true">
-          {emoji}
-        </span>
-        {desk.standUpRole ?? 'Floor'}
-      </span>
+      <span className="slop-action-role">{desk.standUpRole ?? 'Floor'}</span>
     </button>
   );
 }
