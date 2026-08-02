@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import { DESK_LLM_CAP, TALK_LLM_CAP } from '../src/hooks/useDeskActions.js';
+import { RUN_REACTION_LLM_CAP } from '../src/hooks/useOfficeRunReactions.js';
 import {
   OFFICE_BATTLES_PER_SESSION,
   OFFICE_DESK_LLM_CAP,
@@ -152,12 +154,10 @@ describe('the office LLM budget table', () => {
    * The caps used to live in three files, two of them module-private. Re-homing
    * them only helps if the consumers keep importing rather than quietly
    * re-declaring a local number, so pin the identity.
+   * Static imports (file top) keep the heavy hook graph off the per-test
+   * timeout — dynamic import timed out at 30s under full-suite Windows load.
    */
-  // Dynamic import of desk/run-reaction hooks pulls a large graph; under a full
-  // vitest parallel run the default 5s is too tight on slower Windows agents.
-  it('is the single source the hooks re-export', { timeout: 30_000 }, async () => {
-    const { DESK_LLM_CAP, TALK_LLM_CAP } = await import('../src/hooks/useDeskActions.js');
-    const { RUN_REACTION_LLM_CAP } = await import('../src/hooks/useOfficeRunReactions.js');
+  it('is the single source the hooks re-export', () => {
     expect(DESK_LLM_CAP).toBe(OFFICE_DESK_LLM_CAP);
     expect(TALK_LLM_CAP).toBe(OFFICE_TALK_LLM_CAP);
     expect(RUN_REACTION_LLM_CAP).toBe(OFFICE_RUN_REACTION_LLM_CAP);
