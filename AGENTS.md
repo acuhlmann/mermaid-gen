@@ -28,7 +28,7 @@ Domain depth (slots, validation ladders, wire-contract habits, where-to-put tabl
 - Run web + server together: `npm run dev`
 - Run all tests: `npm test`
 - Build all packages: `npm run build`
-- Regenerate baked office audio: `./scripts/generate-office-audio.sh --dry-run` (cost first), then without the flag — see [`docs/audio-assets.md`](docs/audio-assets.md)
+- Regenerate baked office audio: **always name the asset** — `./scripts/generate-office-audio.sh cue-laugh`. Bare (no name) regenerates the entire manifest: 900 credits and every committed `.mp3` overwritten. `--dry-run` prices it first; `--verify` re-checks the installed bank for free (no API key, no network) and is what runs automatically after each generate. See [`docs/audio-assets.md`](docs/audio-assets.md)
 - **Verify after edits** (pick the smallest loop that fits):
   - `npm run check:affected` — diff-scoped sensors (includes Prettier on changed files; **verify:boundaries** when `apps/web` changes; **test:affected** when `apps/server` or `apps/web` changes; matches what agents should run before push)
   - `npm run test:affected` — diff-scoped tests only (basename mirror + blast-radius rules; skips slow Anything child-process suite unless the diff touches `anything*`)

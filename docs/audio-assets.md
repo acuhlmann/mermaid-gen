@@ -31,8 +31,14 @@ That is nothing for a runtime API and plenty for baking a permanent library. The
 
 ```bash
 ./scripts/generate-office-audio.sh --dry-run   # print the credit cost, spend nothing
-./scripts/generate-office-audio.sh             # generate, post-process, install
+./scripts/generate-office-audio.sh cue-laugh   # generate ONE asset, post-process, install, verify
+./scripts/generate-office-audio.sh --verify    # re-check what is installed, free
+./scripts/generate-office-audio.sh             # the whole manifest — 900 credits, overwrites all
 ```
+
+**Name the asset.** The bare form regenerates all 24 and overwrites every committed `.mp3`; the
+`ONLY` argument takes a single name, so a batch is one invocation per asset. That is also the
+cheaper habit — a bad take costs 20–40 credits to re-roll instead of the run.
 
 Requires `ELEVENLABS_API_KEY` in `.env` and `ffmpeg` on `PATH` (`apt install ffmpeg`). ffmpeg is
 only needed to _regenerate_ — the committed `.mp3` means nobody else has to install anything.
@@ -53,33 +59,75 @@ The manifest tags each asset `bed` or `cue`, and they are post-processed differe
 
 ## What the pipeline does, and why
 
-| Step                                       | Why                                                                                                                                                                                                                                                                  |
-| ------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `loop: true` (beds)                        | The API returns audio whose tail flows back into its head. On the shipped bed this holds up: zero silence padding at either edge, and the wrap-around sample step sits inside the interior range. No crossfade surgery needed.                                       |
-| `duration_seconds: 30` (beds)              | The v2 ceiling. Longer loop = longer before the ear notices the repeat.                                                                                                                                                                                              |
-| ffmpeg linear gain to −24 LUFS (beds)      | Every bed lands at the same level, so a second bed drops in without remixing. Deliberately a **pure gain**, never `loudnorm`'s dynamic mode — a bed must be levelled, not compressed.                                                                                |
-| Trim to content, 20 ms / 150 ms pad (cues) | Cut where the sound starts, keep enough tail for the decay, with 8 ms/30 ms fades so the cut cannot click.                                                                                                                                                           |
-| Peak-normalize to −3 dBFS (cues)           | **`officeCueSamples.js` depends on this ceiling**: each cue's playback gain is the old synth `peakGain` ÷ 0.708, so the sample peaks exactly where the hand-tuned synth cue peaked. Change the ceiling and you silently rebalance every cue — update that table too. |
-| ffmpeg re-encode to 64 kbps joint stereo   | `output_format` is **silently ignored on the free tier** (every value returns 128 kbps stereo), so the size reduction has to happen locally: 481 KB → 240 KB for the bed.                                                                                            |
-| Stereo kept, not collapsed to mono         | The beds carry real width — L/R correlation ≈ 0.36 on the shipped one, side only 3.2 dB below mid. Mono flattens the room to a hiss. Joint stereo at 64k costs the same as mono at 64k, so width is free.                                                            |
+| Step                                       | Why                                                                                                                                                                                                                                                                                                                                                                                                                |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `loop: true` (beds)                        | The API returns audio whose tail flows back into its head. On the shipped bed this holds up: zero silence padding at either edge, and the wrap-around sample step sits inside the interior range. No crossfade surgery needed.                                                                                                                                                                                     |
+| `duration_seconds: 30` (beds)              | The v2 ceiling. Longer loop = longer before the ear notices the repeat.                                                                                                                                                                                                                                                                                                                                            |
+| ffmpeg linear gain to −24 LUFS (beds)      | Every bed lands at the same level, so a second bed drops in without remixing. Deliberately a **pure gain**, never `loudnorm`'s dynamic mode — a bed must be levelled, not compressed.                                                                                                                                                                                                                              |
+| Trim to content, 20 ms / 150 ms pad (cues) | Cut where the sound starts, keep enough tail for the decay, with 8 ms/30 ms fades so the cut cannot click.                                                                                                                                                                                                                                                                                                         |
+| Peak-normalize to −3 dBFS (cues)           | **`officeCueSamples.js` depends on this ceiling**: each cue's playback gain is the old synth `peakGain` ÷ 0.708, so the sample peaks where the hand-tuned synth cue peaked. Change the ceiling and you silently rebalance every cue — update that table too. Applied to the WAV; the encoder then moves it by up to ~2.6 dB, so treat the ceiling as an anchor rather than a guarantee (see "Verifying an asset"). |
+| ffmpeg re-encode to 64 kbps joint stereo   | `output_format` is **silently ignored on the free tier** (every value returns 128 kbps stereo), so the size reduction has to happen locally: 481 KB → 240 KB for the bed.                                                                                                                                                                                                                                          |
+| Stereo kept, not collapsed to mono         | The beds carry real width — L/R correlation ≈ 0.36 on the shipped one, side only 3.2 dB below mid. Mono flattens the room to a hiss. Joint stereo at 64k costs the same as mono at 64k, so width is free.                                                                                                                                                                                                          |
 
 Loudness across generated cues varies wildly (−9.8 LUFS for the espresso machine against −43.2 for
 the chair squeak), which is exactly why cues are peak-normalized to a common ceiling and balanced
 by per-cue playback gain rather than shipped at whatever level the model chose.
 
-### Verifying a new asset
+### Verifying an asset
 
-Before committing a regenerated bed, check the loop actually holds:
+**This is automatic now.** Every generated asset is checked the moment it is installed, and the
+whole committed bank can be re-checked for free:
 
 ```bash
-ffmpeg -i bed.mp3 -ac 1 -ar 44100 -f wav bed.wav      # then compare, in the decoded PCM:
-#  - leading/trailing near-silence  → must be 0 samples (codec padding would click each lap)
-#  - |sample[0] - sample[n-1]|      → must sit inside the interior step distribution
-#  - head vs tail 500 ms RMS        → must match within ~1 dB (or it thumps on the wrap)
+./scripts/generate-office-audio.sh --verify              # all 24, no API calls, no credits
+./scripts/generate-office-audio.sh --verify cue-laugh    # just one
 ```
 
-`apps/web/test/officeRoomTone.test.js` covers the playback side; the asset side is a one-off check
-at generation time.
+`--verify` needs neither the API key nor the network — it only reads what is already on disk. It
+exits non-zero if anything **FAILS**, so it is safe to wire into a check if that is ever wanted.
+It stays out of CI on purpose: the assets are committed and immutable, so the only moment the
+answer can change is when somebody regenerates one, which is exactly when it already runs.
+
+| Check                               | Applies to | Verdict | Why                                                                                  |
+| ----------------------------------- | ---------- | ------- | ------------------------------------------------------------------------------------ |
+| duration ≥ 0.2 s                    | both       | FAIL    | The content-trim ate the cue — its start threshold is tuned for a mechanical attack. |
+| peak ≤ −0.5 dBFS                    | cue        | FAIL    | Close enough to full scale that the encoder may clip it.                             |
+| peak within 3.5 dB of −3 dBFS       | cue        | WARN    | The ceiling the whole gain table is anchored on.                                     |
+| no near-silence at either edge      | bed        | FAIL    | Codec padding clicks once per lap.                                                   |
+| wrap-around step ≤ interior p99     | bed        | FAIL    | An audible seam where the loop rejoins.                                              |
+| head vs tail 500 ms RMS within 1 dB | bed        | WARN    | Otherwise the wrap thumps.                                                           |
+| integrated loudness vs −24 LUFS     | bed        | WARN    | Beds are levelled so a second one drops in without remixing.                         |
+
+It also **prints the integrated loudness of every asset, pass or fail**, because that is the input
+to the loudness-matched gain derivation below — measuring it here is what stops the next batch
+guessing.
+
+Two things worth knowing about the measurement itself, both learned by getting them wrong first:
+
+- **Peak is read from the installed stereo `.mp3`, never from a mono downmix.** A downmix averages
+  the channels, so a peak living mostly in one of them reads up to 6 dB quiet and invents failures.
+  Measured on `cue-door-badge`: −10.2 dB downmixed against **−5.6 dB** real. Geometry (edge silence,
+  the loop seam) still uses a mono decode, which is what those checks want.
+- **A failed check does not abort a generation run.** The credits are already spent and the file is
+  already on disk by the time it runs; the useful outcome is a verdict on every asset in the batch,
+  not a stop at the first bad one. The script exits non-zero at the end instead.
+
+`apps/web/test/officeRoomTone.test.js` covers the playback side.
+
+#### What the automation found immediately
+
+The shipped bank passes all 24. But running it revealed something the manual ritual never would
+have, because the ritual only ever looked at beds:
+
+**Post-encode peaks span −1.4 dB to −5.6 dB against a −3 dBFS target.** The pipeline normalizes the
+_WAV_ to exactly −3, and then LAME at 64 kbps moves it by up to ~2.6 dB in either direction. So the
+sentence this document repeats — "each asset is peak-normalized to −3 dBFS, so its playback gain is
+just `synthPeakGain / 0.708`" — is true of the intermediate file and only approximately true of the
+`.mp3` that ships. The gain table inherits that couple of dB of slop. It is not worth chasing (it is
+well inside what the ear pass in open item 6 would adjust anyway), but it does mean **the ceiling is
+an anchor, not a guarantee**, and a cue that looks 2 dB off in the table may simply be an encoder
+artifact rather than a mistake. `CUE_PEAK_TOLERANCE_DB` is set to 3.5 dB for exactly this reason —
+tighter and it cries wolf on every batch.
 
 ## Consuming an asset
 
@@ -336,9 +384,19 @@ is the argument for generating one asset at a time rather than the whole manifes
    much shorter path to noticing a loop. Encouraging for the "same prompt = second take" rule: the
    three new takes landed within ~2 dB of their originals, which is what makes one shared `gain`
    across variants honest rather than approximate.
-5. **Nothing verifies a regenerated asset automatically.** The loop-seam and level checks under
-   "Verifying a new asset" are a manual ritual. If beds get regenerated often, fold them into the
-   generator as a post-step that fails loudly.
+5. ~~**Nothing verifies a regenerated asset automatically.**~~ ✅ **done** — the loop-seam and level
+   checks run as a post-install step in the generator, plus a free `--verify` mode that re-checks
+   the committed bank without an API key or the network. See "Verifying an asset" above for the
+   check table. Three things about how it was built are worth carrying:
+   - **The verifier was tested by breaking assets on purpose**, not by observing it pass. Five
+     deliberate corruptions (a clipped cue, a cue 10 dB under target, a cue trimmed to 0.1 s, a bed
+     with padded silence, a bed whose tail sits 6 dB under its head) each produced the intended
+     verdict, restored with `git checkout --` between runs. A checker that has only ever said OK is
+     not evidence of anything — this is the same reasoning as the huddle-cue test in "The free pass".
+   - **It reports rather than blocks.** Warnings do not fail; only structural damage does. The
+     temptation with a new checker is to make everything an error, which trains people to skip it.
+   - **It cannot replace the ear pass** (open item 6), and nothing here should be read as though it
+     does. It answers "is this asset structurally sound", never "does this sound right".
 6. **Sixteen gains have now been derived and none have been heard** — the seven from slice 2, the
    six new ones in slice 3, plus the door in its new ambient role. This is the single largest
    outstanding item, it costs nothing to fix, and it is the one thing in this document that no
