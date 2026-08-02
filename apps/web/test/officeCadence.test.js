@@ -159,7 +159,9 @@ describe('the office LLM budget table', () => {
     expect(DESK_LLM_CAP).toBe(OFFICE_DESK_LLM_CAP);
     expect(TALK_LLM_CAP).toBe(OFFICE_TALK_LLM_CAP);
     expect(RUN_REACTION_LLM_CAP).toBe(OFFICE_RUN_REACTION_LLM_CAP);
-  });
+  }, // Dynamic import of desk/run-reaction hooks pulls a large graph; under a full
+  // vitest parallel run the default 5s is too tight on slower Windows agents.
+  30_000);
 
   /**
    * §11's split, as an assertion rather than a comment: a conversation you
