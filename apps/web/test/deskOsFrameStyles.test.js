@@ -159,11 +159,34 @@ describe('parody-OS frame geometry', () => {
 
   it('hides the Floor role pill and prestige badge on phone taskbars', () => {
     expect(css).toMatch(
-      /@media\s*\(max-width:\s*720px\)[\s\S]*\.desk-os-taskbar-lead\s+\.slop-action-role\s*\{[^}]*display:\s*none/
+      /@media\s*\(max-width:\s*1024px\)[\s\S]*\.desk-os-taskbar-lead\s+\.overlay-button\.slop-action-button\.is-desk-standup\s+\.slop-action-role\s*\{[^}]*display:\s*none/
     );
     expect(css).toMatch(
       /@media\s*\(max-width:\s*720px\)[\s\S]*\.desk-os-taskbar-xp\s+\.brand-prestige-badge\s*\{[^}]*display:\s*none/
     );
+  });
+
+  it('retires HR on foldables before brain mode in the taskbar tray', () => {
+    expect(css).toMatch(
+      /\.app-shell\.is-wide-mobile\s+\.desk-os-taskbar-xp,\s*\.app-shell\.is-foldable-dual\s+\.desk-os-taskbar-xp\s*\{[^}]*display:\s*none/
+    );
+    expect(css).toMatch(
+      /\.app-shell\.is-wide-mobile\s+\.concentration-control--tray,\s*\.app-shell\.is-foldable-dual\s+\.concentration-control--tray\s*\{[^}]*display:\s*none/
+    );
+  });
+
+  it('overlaps taskbar comms badges on the glyph instead of clipping above', () => {
+    const badge = css.match(
+      /\.desk-actions--taskbar\s+\.desk-comms-cluster\s+\.desk-actions-unread-badge\s*\{([^}]*)\}/
+    )?.[1];
+    expect(badge).toBeTruthy();
+    expect(badge).toMatch(/transform:\s*translate\(35%,\s*-35%\)/);
+  });
+
+  it('lets walk-by paint above the focus stack via overlay layer, not office chrome', () => {
+    const body = ruleBody('.office-walkby-overlay');
+    expect(body).toBeTruthy();
+    expect(body).not.toMatch(/z-index:\s*var\(--z-office-chrome\)/);
   });
 
   it('reserves the safe-area inset once, on the bar that touches the edge', () => {

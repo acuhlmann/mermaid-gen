@@ -3,6 +3,7 @@ import DeskAttributionStrip from './DeskAttributionStrip.jsx';
 import DeskOsMenu, { DeskOsMenuItem, DeskOsMenuSection } from './DeskOsMenu.jsx';
 import IntroLocaleToggle from './IntroLocaleToggle.jsx';
 import OutboxDock from './OutboxDock.jsx';
+import { useCoarsePointer } from '../hooks/useAppLayoutMedia.js';
 import { useUiCopy } from '../i18n/useUiLocale.js';
 import { officeChromeCopy } from '../utils/officeCast.js';
 
@@ -104,7 +105,7 @@ function MailroomMenu({ menu, settings, options }) {
  * (Headphones / Focus), and the Approved vendors attribution strip. "Onboard a
  * contractor" is the single doorway to external agents (docs/multi-human-office.md).
  */
-function AdminMenu({ menu, copy, controls, desk, locale, setLocale, options }) {
+function AdminMenu({ menu, copy, controls, desk, locale, setLocale, options, touchUi = false }) {
   const languagePack = controls.languagePack ?? {};
   const { headphones, focusTime, onToggleHeadphones, onToggleFocusTime } = options;
   const ambienceToggles = [
@@ -137,6 +138,7 @@ function AdminMenu({ menu, copy, controls, desk, locale, setLocale, options }) {
       emoji="🏢"
       title={copy.adminTitle ?? copy.admin}
       menuAria={copy.adminAria ?? copy.admin}
+      wide
     >
       {(close) => (
         <>
@@ -160,16 +162,18 @@ function AdminMenu({ menu, copy, controls, desk, locale, setLocale, options }) {
               options.onOpenHrProgression?.();
             }}
           />
-          <DeskOsMenuItem
-            emoji="⌨️"
-            label={copy.hotkeys ?? controls.hotkeys?.title ?? 'Keyboard shortcuts'}
-            title={controls.hotkeys?.title}
-            testId="menubar-hotkeys"
-            onSelect={() => {
-              close();
-              options.onOpenHotkeys?.();
-            }}
-          />
+          {touchUi ? null : (
+            <DeskOsMenuItem
+              emoji="⌨️"
+              label={copy.hotkeys ?? controls.hotkeys?.title ?? 'Keyboard shortcuts'}
+              title={controls.hotkeys?.title}
+              testId="menubar-hotkeys"
+              onSelect={() => {
+                close();
+                options.onOpenHotkeys?.();
+              }}
+            />
+          )}
           {/* Language stays a "raise a ticket with IT" gag — it just stopped
               being a footer on a menu nobody opened for that reason. */}
           <div
@@ -266,6 +270,7 @@ export default function DeskOsMenuBar({
   const { locale, setLocale, controls } = useUiCopy();
   const desk = officeChromeCopy().desk;
   const copy = controls.menuBar ?? {};
+  const touchUi = useCoarsePointer();
   const [openId, setOpenId] = useState(/** @type {string | null} */ (null));
 
   const openChangeFor = useCallback(
@@ -322,6 +327,7 @@ export default function DeskOsMenuBar({
         desk={desk}
         locale={locale}
         setLocale={setLocale}
+        touchUi={touchUi}
         options={{
           onOpenContractor,
           onOpenHrProgression,

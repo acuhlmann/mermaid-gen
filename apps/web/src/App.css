@@ -14558,6 +14558,11 @@ body.slopitect-rainbow-tint::before {
   padding: 0.15rem 0 0.1rem;
 }
 
+/* Admin footer: one column so "Check my HR progression" neighbours do not clip. */
+.desk-os-admin-footer .desk-ambience-pack {
+  grid-template-columns: 1fr;
+}
+
 .desk-ambience-toggle {
   font-size: 0.72rem;
 }
@@ -17553,6 +17558,14 @@ body.slopitect-rainbow-tint::before {
   z-index: 1;
 }
 
+/* Taskbar: overlap the glyph corner instead of painting above the strip (clipped). */
+.desk-actions--taskbar .desk-comms-cluster .desk-actions-unread-badge {
+  top: 0;
+  right: 0;
+  transform: translate(35%, -35%);
+  z-index: 2;
+}
+
 .desk-os-admin-footer {
   margin-top: 0.35rem;
 }
@@ -19354,7 +19367,7 @@ body.slopitect-rainbow-tint::before {
 .office-walkby-overlay {
   position: fixed;
   inset: 0;
-  z-index: var(--z-office-chrome);
+  /* z-index from useOverlayLayer — must sit above floating windows (300+). */
   pointer-events: none;
   display: flex;
   justify-content: center;
@@ -22624,6 +22637,20 @@ body.slopitect-rainbow-tint::before {
   .forms-renderer-root {
     --forms-top-chrome-est: 4.25rem;
   }
+
+  /* Foldable / wide-mobile taskbar: HR level yields first (still in Admin). */
+  .app-shell.is-wide-mobile .desk-os-taskbar-xp,
+  .app-shell.is-foldable-dual .desk-os-taskbar-xp {
+    display: none;
+  }
+}
+
+/* Second rung on foldables: brain mode has two other homes (composer + Thinking). */
+@media (min-width: 640px) and (max-width: 900px) and (min-height: 480px) {
+  .app-shell.is-wide-mobile .concentration-control--tray,
+  .app-shell.is-foldable-dual .concentration-control--tray {
+    display: none;
+  }
 }
 
 /* Dual-screen foldables: place canvas on the left segment, Thinking on the right. */
@@ -22824,6 +22851,7 @@ body.slopitect-rainbow-tint::before {
   align-items: center;
   gap: 0.2rem;
   flex: 0 0 auto;
+  overflow: visible;
 }
 
 /* `.desk-actions` is `position: fixed` at `top: 124px; right: 14px` — it began
@@ -22862,6 +22890,12 @@ body.slopitect-rainbow-tint::before {
   height: 1.85rem;
   padding: 0;
   justify-content: center;
+  overflow: visible;
+}
+
+.desk-actions--taskbar .desk-comms-emoji {
+  position: relative;
+  overflow: visible;
 }
 
 /* Stand up is a labelled bottom-nav control (ADR-0011 rule 3), but the taskbar
@@ -22887,6 +22921,20 @@ body.slopitect-rainbow-tint::before {
   height: 1.35rem;
   font-size: 0.92rem;
   border-radius: 0.45rem;
+}
+
+/* Mobile / foldable: glyph-only stand up — same footprint as the comms icons. */
+@media (max-width: 1024px) {
+  .desk-os-taskbar-lead .overlay-button.slop-action-button.is-desk-standup {
+    width: 1.85rem;
+    padding: 0;
+    justify-content: center;
+  }
+
+  .desk-os-taskbar-lead .overlay-button.slop-action-button.is-desk-standup .button-label,
+  .desk-os-taskbar-lead .overlay-button.slop-action-button.is-desk-standup .slop-action-role {
+    display: none;
+  }
 }
 
 /* Presence strip — who is around, and the diegetic way onto the floor. A quiet
