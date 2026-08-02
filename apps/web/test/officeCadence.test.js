@@ -153,15 +153,15 @@ describe('the office LLM budget table', () => {
    * them only helps if the consumers keep importing rather than quietly
    * re-declaring a local number, so pin the identity.
    */
-  it('is the single source the hooks re-export', async () => {
+  // Dynamic import of desk/run-reaction hooks pulls a large graph; under a full
+  // vitest parallel run the default 5s is too tight on slower Windows agents.
+  it('is the single source the hooks re-export', { timeout: 30_000 }, async () => {
     const { DESK_LLM_CAP, TALK_LLM_CAP } = await import('../src/hooks/useDeskActions.js');
     const { RUN_REACTION_LLM_CAP } = await import('../src/hooks/useOfficeRunReactions.js');
     expect(DESK_LLM_CAP).toBe(OFFICE_DESK_LLM_CAP);
     expect(TALK_LLM_CAP).toBe(OFFICE_TALK_LLM_CAP);
     expect(RUN_REACTION_LLM_CAP).toBe(OFFICE_RUN_REACTION_LLM_CAP);
-  }, // Dynamic import of desk/run-reaction hooks pulls a large graph; under a full
-  // vitest parallel run the default 5s is too tight on slower Windows agents.
-  30_000);
+  });
 
   /**
    * §11's split, as an assertion rather than a comment: a conversation you
