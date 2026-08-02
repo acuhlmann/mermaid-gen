@@ -48,11 +48,7 @@ export function RadialMenuSlot({
   onAdvisorUsage
 }) {
   return (
-    <DiagramFullscreenOverlay
-      isFullscreen={isFullscreen}
-      host={diagramSurfaceRef.current}
-      onExit={toggleFullscreen}
-    >
+    <DiagramFullscreenOverlay isFullscreen={isFullscreen} host={diagramSurfaceRef.current}>
       <RadialActionMenu
         key={radialMenuSession?.descriptor?.id ?? 'radial-closed'}
         descriptor={radialMenuSession?.descriptor ?? null}

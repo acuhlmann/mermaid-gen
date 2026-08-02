@@ -162,14 +162,16 @@ describe('parody-OS frame geometry', () => {
   });
 
   it('keeps fullscreen mailroom beside the exit control on the top right', () => {
-    const mailroom = ruleBody('.diagram-fullscreen-mailroom-btn');
-    expect(mailroom).toBeTruthy();
-    expect(mailroom).toMatch(/\bright:\s*calc\(/);
-    expect(mailroom).not.toMatch(/\bleft:\s*0\.85rem/);
-    expect(ruleBody('.diagram-fullscreen-mailroom-panel')).toMatch(
-      /\bright:\s*var\(--diagram-fullscreen-corner-inset/
+    const toolbar = ruleBody('.diagram-fullscreen-toolbar');
+    expect(toolbar).toBeTruthy();
+    expect(toolbar).toMatch(/\bright:\s*var\(--diagram-fullscreen-corner-inset/);
+    expect(toolbar).toMatch(/\bdisplay:\s*flex\b/);
+    expect(ruleBody('.diagram-fullscreen-mailroom-btn')).toMatch(/\bposition:\s*static\b/);
+    expect(ruleBody('.diagram-fullscreen-close')).toMatch(/\bposition:\s*static\b/);
+    expect(css).toContain('--diagram-fullscreen-top-chrome-h');
+    expect(css).toMatch(
+      /\.diagram-output:fullscreen\s+\.metaphor-title-overlay[\s\S]*top:\s*var\(--diagram-fullscreen-top-chrome-h\)/
     );
-    expect(css).toContain('--diagram-fullscreen-control-gap');
   });
 
   it('reserves the safe-area inset once, on the bar that touches the edge', () => {
