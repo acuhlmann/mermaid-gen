@@ -160,8 +160,8 @@ describe('parody-OS frame geometry', () => {
 
   it('lifts huddle bottom seats and chrome above the taskbar on every viewport', () => {
     // Desktop used to park chrome at `bottom: 0.9rem` — under the permanent
-    // `--desk-taskbar-h` strip. Mobile already cleared the composer; both must
-    // clear the taskbar now that the parody-OS frame owns the bottom edge.
+    // `--desk-taskbar-h` strip. Mobile clears via `--mobile-bottom-chrome-est`
+    // (taskbar + composer from the viewport edge — do not also add taskbar).
     const layer = ruleBody('.office-huddle-layer');
     expect(layer).toBeTruthy();
     expect(layer).toContain('--huddle-bottom-clearance');
@@ -180,8 +180,10 @@ describe('parody-OS frame geometry', () => {
       /@media\s*\(max-width:\s*1024px\)\s*\{[^}]*\.office-huddle-layer\s*\{[^}]*--huddle-bottom-clearance:[^}]*\}/
     );
     expect(mobile).toBeTruthy();
-    expect(mobile?.[0]).toContain('var(--desk-taskbar-h)');
     expect(mobile?.[0]).toContain('var(--mobile-bottom-chrome-est');
+    expect(mobile?.[0]).not.toMatch(
+      /--huddle-bottom-clearance:\s*calc\(\s*var\(--desk-taskbar-h\)/
+    );
   });
 
   it('keeps huddle remark bubbles compact so the diagram keeps the middle', () => {

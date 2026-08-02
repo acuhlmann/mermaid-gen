@@ -3,6 +3,7 @@ import { officeCueChime } from '../utils/officeCuePlayers.js';
 import { pickNextSoundscapeCue } from '../utils/officeSoundscape.js';
 import { getOfficeSnapshot } from '../state/officeMomentStore.js';
 import { getOfficeViewMode } from '../state/officeViewModeStore.js';
+import { isOfficeNarrationBusy } from '../utils/officeNarration.js';
 import { getRoomToneZone } from '../utils/officeRoomTone.js';
 
 export const SOUNDSCAPE_TICK_MS = 5_000;
@@ -39,6 +40,19 @@ export function useOfficeSoundscape(params) {
       if (typeof document !== 'undefined' && document.hidden) return;
       const snapshot = getOfficeSnapshot();
       if (!snapshot.soundscape || snapshot.focusTime) return;
+      /*
+       * Hold while a colleague is speaking. The bed handles this by *ducking*
+       * (`duckRoomTone`, to 0.03); a cue cannot duck, because it is an event
+       * rather than a level — by the time the line starts, a 2 s espresso
+       * machine is already committed. So the director simply does not start
+       * one. Without this a keyboard burst at 0.028 lands on top of a spoken
+       * line, louder than the bed it is supposed to be sitting under.
+       *
+       * This defers rather than drops: `lastPlayedAt` is untouched, so the cue
+       * the room owed you arrives on a later tick. Same check the walk-by
+       * surfaces already make, and for the same reason.
+       */
+      if (isOfficeNarrationBusy()) return;
       const random = paramsRef.current.random ?? Math.random;
       const atDesk = getOfficeViewMode() === 'desk';
       const cue = pickNextSoundscapeCue({

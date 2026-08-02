@@ -88,52 +88,9 @@ function TalkPitch({ talk, pitch, onAdopt }) {
 }
 
 /**
- * Things you could open with (§ 8 topic hotspots).
- *
- * Pressing one **fills the composer**; it does not send. That is the whole
- * reason this is allowed to exist next to `useFloorTalk`'s "you speak first,
- * no auto-opener" rule — a suggestion in your own text box is still you
- * speaking, and you can edit it before it goes.
- *
- * Its own component for the same reason `TalkPitch` is: the card is already at
- * the complexity threshold and § 8's finding is that small guards like this one
- * are what push floor modules over it.
- *
- * @param {{
- *   openers?: string[],
- *   copy: Record<string, string>,
- *   draft: string,
- *   busy?: boolean,
- *   onPick: (text: string) => void
- * }} props `copy` is `floor.talk.openers`.
- */
-function TalkOpeners({ openers, copy, draft, busy, onPick }) {
-  // Once you have started typing, a row of suggestions is in the way of the
-  // sentence you are already writing.
-  if (!openers?.length || draft.trim() || busy) return null;
-
-  return (
-    <div className="office-floor-talk-openers" role="group" aria-label={copy.label}>
-      {openers.map((opener) => (
-        <button
-          key={opener}
-          type="button"
-          className="office-floor-talk-opener"
-          data-testid="office-floor-talk-opener"
-          onClick={() => onPick(opener)}
-        >
-          {opener}
-        </button>
-      ))}
-    </div>
-  );
-}
-
-/**
- * What you say back. Quick replies are the canned pure-local flavour Slop Chat
- * already offers under a ping; the composer routes through the identical send
- * path, so a reply typed on the floor and one typed in the window are the same
- * message. Mic dictation is the same `VoiceMicButton` the messenger uses.
+ * What you say back. The composer is the whole surface: typed prompt and mic
+ * (`VoiceMicButton`, same as Slop Chat / floor meetings). No opener chips —
+ * they ate the card and you still speak first by typing or holding the mic.
  *
  * **The Do-it lives here rather than on the bubble**, which is the one place
  * this surface departs from the walk-by. Two reasons, and the second is the
@@ -173,8 +130,6 @@ export function FloorTalkCard({
   /** No `= null`: truthiness-tested in `TalkPitch`, and § 8's rule is that a
       default parameter costs a complexity point apiece. */
   pitch,
-  /** Same no-default reasoning as `pitch` — truthiness-tested in `TalkOpeners`. */
-  openers,
   onAdopt,
   onLeave
 }) {
@@ -212,16 +167,6 @@ export function FloorTalkCard({
       {arrived ? null : <p className="office-floor-card-blurb">{talkCopy.walking}</p>}
 
       {arrived ? (
-        <TalkOpeners
-          openers={openers}
-          copy={talkCopy.openers}
-          draft={draft}
-          busy={busy}
-          onPick={onDraftChange}
-        />
-      ) : null}
-
-      {arrived ? (
         <form className="office-floor-talk-compose" onSubmit={submit}>
           <input
             type="text"
@@ -231,6 +176,9 @@ export function FloorTalkCard({
             placeholder={busy ? talkCopy.thinking : talkCopy.placeholder}
             aria-label={talkCopy.placeholder}
             disabled={busy}
+            autoFocus
+            maxLength={300}
+            enterKeyHint="send"
           />
           <VoiceMicButton
             value={draft}

@@ -19,6 +19,8 @@ import {
   playKeyboardClatter,
   playMouseClicks,
   playPaperShuffle,
+  playPhoneBuzz,
+  playServerRack,
   playVendingMachine,
   playWaterCooler,
   playWhiteboardSqueak
@@ -26,10 +28,13 @@ import {
 import { playCueSample, warmAllCueSamples } from './officeCueSamples.js';
 
 /**
- * Every cue needs a row here, sampled or not. `playOfficeCue` falls through to
- * this table whenever the buffer is missing or still decoding, so a cue with no
- * synth row is a cue that is silent on its first play — and for the door, the
- * first play is the only play.
+ * `playOfficeCue` falls through to this table whenever the buffer is missing or
+ * still decoding, so a cue with no synth row is silent on its first play — and
+ * for the door, the first play used to be the only play.
+ *
+ * Nearly every cue therefore needs a row. The exceptions are listed in
+ * `SILENT_UNTIL_SAMPLED` below, where silence is the better answer than any
+ * fallback that could be built.
  *
  * Both footstep surfaces share one synth fallback deliberately: the difference
  * between carpet and vinyl is exactly the kind of thing synthesis cannot sell,
@@ -51,7 +56,12 @@ const SYNTH_CUE_PLAYERS = {
   chairsGather: playChairsGather,
   door: playDoorSwing,
   whiteboard: playWhiteboardSqueak,
-  fridge: playFridgeDoor
+  fridge: playFridgeDoor,
+  // Slice 3. Both synthesize acceptably: a vibrating motor is a narrow-band
+  // rattle and a server rack is fan hiss over a fundamental. Neither is a
+  // person, which is the line the set below draws.
+  phoneBuzz: playPhoneBuzz,
+  serverRack: playServerRack
 };
 
 /**
@@ -60,6 +70,28 @@ const SYNTH_CUE_PLAYERS = {
  * sample-first path, which is the one thing this module exists to enforce.
  */
 export const SYNTH_CUES = Object.keys(SYNTH_CUE_PLAYERS);
+
+/**
+ * Cues that are **deliberately silent** until their buffer decodes.
+ *
+ * Every cue before slice 3 has a synth fallback, and the rule that produced
+ * them — "sample broadband texture, synthesize tones" — assumed the fallback
+ * was always at least *worth having*. These four break that assumption: they
+ * are people and crowds, and there is no oscillator arrangement that is better
+ * than nothing for a cough. A synthesized laugh would not read as a cheap
+ * laugh, it would read as a bug.
+ *
+ * Silence costs almost nothing here. `primeOfficeAudio` warms every sample the
+ * moment the audio gate opens, the soundscape brain will not schedule anything
+ * for the first 4 s of a session, and these are ambient or once-per-meeting —
+ * so the realistic worst case is that the room happens to be quiet that time,
+ * which is a thing offices do.
+ *
+ * This is an allowlist, not an escape hatch: `officeCuePlayers.test.js` asserts
+ * every sampled cue is either in `SYNTH_CUES` or named here, so a cue cannot
+ * lose its fallback by accident — only on purpose, in this list, with a reason.
+ */
+export const SILENT_UNTIL_SAMPLED = ['laugh', 'cough', 'crowdSettle', 'applause'];
 
 let warmedAll = false;
 

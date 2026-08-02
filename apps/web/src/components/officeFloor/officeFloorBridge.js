@@ -55,7 +55,7 @@
  *   onCancelNarration?: () => void
  * }} huddleHandlers
  * @property {import('../../hooks/useHuddleRingControls.js').default | ReturnType<import('../../hooks/useHuddleRingControls.js').useHuddleRingControls>} [huddleRing]
- * @property {{ coffeeVisibleLines?: number, battleVisibleLines?: number, battleLinesDone?: boolean }} [scenePacing]
+ * @property {{ coffeeVisibleLines?: number, coffeeLineSpoken?: boolean, battleVisibleLines?: number, battleLineSpoken?: boolean, battleLinesDone?: boolean }} [scenePacing]
  */
 
 /** Empty bridge for tests and mount points that only need defaults. */

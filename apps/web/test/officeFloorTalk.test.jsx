@@ -160,6 +160,29 @@ describe('talking on the floor (slice 8)', () => {
     expect(mic.className).toContain('office-floor-talk-mic');
   });
 
+  it('focuses the prompt when you arrive — no opener chips crowding the card', async () => {
+    renderFloor({ onTalkGreet: vi.fn() });
+    walkOverToTalk();
+
+    const input = await screen.findByPlaceholderText(/Say something/i);
+    expect(document.activeElement).toBe(input);
+    expect(screen.queryByTestId('office-floor-talk-opener')).toBeNull();
+  });
+
+  it('sends on Enter from the prompt', async () => {
+    const onTalkReply = vi.fn().mockResolvedValue(undefined);
+    renderFloor({ onTalkGreet: vi.fn(), onTalkReply });
+    walkOverToTalk();
+
+    const input = await screen.findByPlaceholderText(/Say something/i);
+    fireEvent.change(input, { target: { value: 'quick one about the gateway' } });
+    fireEvent.submit(input.closest('form'));
+
+    await waitFor(() =>
+      expect(onTalkReply).toHaveBeenCalledWith(CHAD, 'quick one about the gateway')
+    );
+  });
+
   it('shows recent thread turns in Slop Chat, not on the floor card', async () => {
     const imHistory = [
       imFrom(CHAD, 'is the gateway meant to talk to itself?'),
@@ -378,69 +401,5 @@ describe('adopting a pitch on the floor (ADR-0012)', () => {
 
     const button = await screen.findByTestId('office-floor-talk-adopt');
     expect(button.textContent).toBe(officeChromeCopy().doIt);
-  });
-});
-
-/**
- * Openers (§ 8 "topic hotspots"). These are dialogue options in the
- * point-and-click sense: pressing one fills your composer. `useFloorTalk`'s
- * rule — "you speak first, no auto-opener" — survives because nothing is sent
- * and nothing is put in their mouth.
- */
-describe('floor talk openers', () => {
-  const OPENERS = ['About “the Gateway node”…', 'Got a minute?'];
-
-  const renderCard = (extra = {}) =>
-    render(
-      <FloorTalkCard
-        talk={{ colleagueId: CHAD, phase: 'talking' }}
-        copy={officeChromeCopy().floor}
-        draft=""
-        onDraftChange={vi.fn()}
-        onSend={vi.fn()}
-        onLeave={vi.fn()}
-        openers={OPENERS}
-        {...extra}
-      />
-    );
-
-  it('offers the openers once you are stood there', () => {
-    renderCard();
-    expect(screen.getAllByTestId('office-floor-talk-opener')).toHaveLength(2);
-  });
-
-  it('fills the composer instead of sending — you still speak first', () => {
-    const onDraftChange = vi.fn();
-    const onSend = vi.fn();
-    renderCard({ onDraftChange, onSend });
-
-    fireEvent.click(screen.getAllByTestId('office-floor-talk-opener')[0]);
-    expect(onDraftChange).toHaveBeenCalledWith(OPENERS[0]);
-    expect(onSend).not.toHaveBeenCalled();
-  });
-
-  it('gets out of the way once you have started typing', () => {
-    renderCard({ draft: 'actually I wanted to ask about' });
-    expect(screen.queryByTestId('office-floor-talk-opener')).toBeNull();
-  });
-
-  it('offers nothing on the walk over, like the pitch', () => {
-    render(
-      <FloorTalkCard
-        talk={{ colleagueId: CHAD, phase: 'walking' }}
-        copy={officeChromeCopy().floor}
-        draft=""
-        onDraftChange={vi.fn()}
-        onSend={vi.fn()}
-        onLeave={vi.fn()}
-        openers={OPENERS}
-      />
-    );
-    expect(screen.queryByTestId('office-floor-talk-opener')).toBeNull();
-  });
-
-  it('renders without openers at all', () => {
-    renderCard({ openers: undefined });
-    expect(screen.queryByTestId('office-floor-talk-opener')).toBeNull();
   });
 });

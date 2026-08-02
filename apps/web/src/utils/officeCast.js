@@ -1497,6 +1497,10 @@ export const OFFICE_CHROME_COPY = {
     thinkingShort: 'Notebook',
     thinkingRole: 'Thinking',
     thinkingTitle: 'Your notebook · notes, critiques, and run history',
+    /** Shown next to the notebook toggle when a run is live and the pane is closed. */
+    thinkingLiveWorking: 'Still scribbling…',
+    thinkingLiveTitle: 'Still scribbling under the lid · {status} — open your notebook',
+    thinkingLiveAria: 'Notebook still writing: {status}. Open to watch the run.',
     ambienceAria: 'Office sound & focus',
     headphonesLabel: 'Headphones',
     headphonesOffTitle:
@@ -1923,25 +1927,13 @@ export const OFFICE_CHROME_COPY = {
       eyebrow: 'HAVING A WORD',
       action: '💬 Go and talk',
       actionTitle: 'Walk over and say something — or double-click them',
-      walking: 'Walking over. Rehearse the opener.',
+      walking: 'Walking over…',
       thinking: 'They are thinking of something to say…',
       placeholder: 'Say something…',
       send: 'Say it',
       youLabel: 'You',
       leave: '🪑 Back to my desk',
-      leaveTitle: 'End the conversation and walk back to your screen',
-      // Dialogue options in the point-and-click sense: pressing one fills your
-      // composer, it never sends and it never puts words in their mouth —
-      // `useFloorTalk`'s rule is that you speak first. See officeTalkOpeners.js.
-      openers: {
-        label: 'Things you could open with',
-        pitch: 'About “{topic}”…',
-        email: 'About your email…',
-        visit: 'About earlier…',
-        battle: 'About who was right…',
-        run: 'About what I just shipped…',
-        generic: 'Got a minute?'
-      }
+      leaveTitle: 'End the conversation and walk back to your screen'
     },
     // Desk peeking. Everything you see over a shoulder is fiction: the cast
     // produces nothing (ADR-0010), they are just visibly busy.

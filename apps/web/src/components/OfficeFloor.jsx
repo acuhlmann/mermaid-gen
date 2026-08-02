@@ -50,7 +50,6 @@ import {
   officeSenderInfo
 } from '../utils/officeCast.js';
 import { deskWorkFor } from '../utils/officeDeskWork.js';
-import { shouldShowSpokenText } from '../utils/officeCaptions.js';
 import { tierOf } from '../utils/castTiers.js';
 import { resolveUserName, subscribe as subscribeUserName } from '../state/userIdentityStore.js';
 import { getOfficeViewMode, subscribe as subscribeViewMode } from '../state/officeViewModeStore.js';
@@ -303,10 +302,10 @@ function OfficeFloorView({ bridge }) {
   const liftedSceneSpeech = Boolean(
     officeSnap.narration && sceneHandlers?.narrateLine && (coffee?.accepted || battle?.accepted)
   );
-  const showInviteText = shouldShowSpokenText({
-    captions: officeSnap.captions,
-    voiceActive: Boolean(officeSnap.narration && sceneHandlers?.narrateLine)
-  });
+  const liftedLineSpoken = Boolean(
+    (coffee?.accepted && scenePacing?.coffeeLineSpoken) ||
+    (battle?.accepted && scenePacing?.battleLineSpoken)
+  );
 
   const { showSpokenText, sceneHandlersWithVoice } = useFloorSpokenText({
     captions: officeSnap.captions,
@@ -316,7 +315,8 @@ function OfficeFloorView({ bridge }) {
     peekColleagueId,
     walkBy: walker,
     hasActiveSpeech,
-    liftedSceneSpeech
+    liftedSceneSpeech,
+    liftedLineSpoken
   });
 
   const handleSelect = useCallback((id) => {
@@ -431,7 +431,6 @@ function OfficeFloorView({ bridge }) {
             onStep={handleStep}
             playerRef={activity.playerRef}
             showSpokenText={showSpokenText}
-            showInviteText={showInviteText}
           />
         </FloorStage>
       </div>

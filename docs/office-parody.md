@@ -736,12 +736,33 @@ canvas — there is no response to react to.
 
 ### Soundscape (room tone)
 
-A second, sound-only cadence: sporadic synthesized cues — the desk textures **keyboard clatter**,
+A second, sound-only cadence: sporadic cues — the desk textures **keyboard clatter**,
 **mouse clicks** (with the occasional scroll-wheel ratchet), and **paper shuffle** (may repeat),
 plus the set pieces **distant printer**, **chair squeak** (with caster roll), **desk phone**
 (nobody answers), **watercooler glugs**, **espresso machine**, **vending machine** (coin, spiral
-motor, thunk), and **elevator ding** (nobody gets out) — never back-to-back — in
-`agentChimes.js` / `officeCueSamples.js`, all quieter than any event chime.
+motor, thunk), **fridge door**, **whiteboard marker**, **front door**, **server rack**, and
+**elevator ding** (nobody gets out) — never back-to-back — in `agentChimes.js` /
+`officeCueSamples.js`, all quieter than any event chime.
+
+**And, since slice 3, people.** Every cue in that list is an _object_. The bed murmurs distant
+conversation, but a bed is a texture — it has no position and cannot be an event — so across a
+whole session nothing in this office ever coughed or laughed. `laugh`, `cough` and `phoneBuzz`
+close that hole, on the lowest weights in the table: a person is far more attention-grabbing than a
+machine at equal loudness (you look up), so the budget is once or twice a session. `laugh` is the
+quietest-weighted cue in the office at 0.45 — a joke you were not part of should be rare, or it
+stops being one. These are also the office's first cues with **no synth fallback at all**
+(`SILENT_UNTIL_SAMPLED`): a synthesized cough would not read as a cheap cough, it would read as a
+bug, and silence is a thing offices genuinely do.
+
+The whiteboard and the front door were **diegetic-only until they were not**: both were baked for
+one walk-up moment each (standing at the board; the Day One check-in), which meant two paid samples
+that could play at most once in a session and never at all for a returning user who skipped the
+gesture. Ambient rows in `CUE_WEIGHTS` cost nothing and are what the sounds already were — somebody
+_else_ writing on the board, somebody _else_ coming through the entrance. Both sit on low weights,
+because the elevator ding is already telling the "a person arrived" joke. The door's `spread` went
+from 0 to the widest in the table at the same time: it was dead while the cue was Day-One-only
+(`makePanner` short-circuits on `near` before it reads `spread`), and the entrance is the one thing
+in this room that is definitely not where you are sitting.
 
 **Diegetic prop cues.** Walking up to a usable floor prop fires the matching sample at near
 gain (centred, louder): the **printer** plays `printer` then `paper` ~1.6 s later (the page that
@@ -750,12 +771,15 @@ today (§6 rule 21 of the isometric doc — no standable mark in the crowded kit
 sample stays ambient-only ("someone at the cooler down the hall"). Standing up / sitting down
 plays `chair`. Shared path: `officeCuePlayers.js` (`playOfficeCue` / `playPropCues`).
 
-**Sampled where synthesis loses.** Seven of those ten cues — keyboard, paper, printer, chair,
-watercooler, espresso, vending — now play baked recordings from
-`apps/web/src/assets/audio/cue-*.mp3` (139 KB for the set) via `officeCueSamples.js`. They are the
-broadband mechanical and textural ones, where oscillators read as synth buzz rather than as a room.
-The other three keep their synthesized versions **on purpose**: the elevator ding, the desk phone
-ring and the mouse click _are_ tones, and synthesis is the right tool for a bell.
+**Sampled where synthesis loses.** Most cues now play baked recordings from
+`apps/web/src/assets/audio/cue-*.mp3` (23 cues plus the bed, 648 KB for the set) via
+`officeCueSamples.js` — the broadband mechanical and textural ones, where oscillators read as synth
+buzz rather than as a room, plus the slice-3 human ones, where they do not read as anything at all.
+Three cues keep their synthesized versions **on purpose**: the elevator ding, the desk phone ring
+and the mouse click _are_ tones, and synthesis is the right tool for a bell. Four of the sampled
+cues have **no** synthesized version, also on purpose (`SILENT_UNTIL_SAMPLED`, above). Exact
+inventory, costs and the gain derivation live in [`docs/audio-assets.md`](audio-assets.md) rather
+than here, so this section cannot go stale about a number again.
 
 Sampling is best-effort, never load-bearing. `playCueSample` reports whether it played and
 `playOfficeCue` falls back to the synthesized cue whenever it did not — while the buffer is still
@@ -775,6 +799,14 @@ brain heavily prefers keyboard/mouse/paper, and on the **floor** kitchen/printer
 forward. The `useOfficeSoundscape` director holds while the tab is hidden or Focus Time is on and
 plays through App's sound gate (global sound toggle + user gesture). Defaults ON with a persisted
 opt-out toggle ("Soundscape" / Noise) next to Focus in the desk menu footer. Zero LLM, zero network.
+
+**The director also holds while a colleague is speaking** (`isOfficeNarrationBusy`, the same check
+the walk-by surfaces make). The bed handles narration by _ducking_ to 0.03; a cue cannot duck,
+because it is an event rather than a level — by the time the line starts, a 2 s espresso machine is
+already committed. So the cue is never started. Until this, a keyboard burst at 0.028 could land on
+top of a spoken line, i.e. **louder than the bed it is supposed to be sitting under**. The hold
+defers rather than drops: `lastPlayedAt` is untouched while waiting, so the cue the room owed you
+arrives on the next tick instead of costing another full cruise gap.
 
 **Room-tone bed.** Underneath those cues runs one continuous ~30 s seamless loop of open-plan
 office ambience — distant unintelligible conversation over a soft air-handling hum. The cues are
@@ -803,7 +835,10 @@ deprecated alias.
 **Which room you are in shapes the bed and the cues.** `setRoomToneZone` filters the single loop
 per floor zone (kitchen brighter, glass muffled, pod bassier), and `ZONE_CUES` in
 `officeSoundscape.js` weights that room's own _events_ — standing in the kitchen makes the fridge,
-espresso machine, cooler and vending machine three-ish times as likely. The two halves read the
+espresso machine, cooler and vending machine three-ish times as likely, and standing in the
+**pod** brings up the server rack (×3.2) and somebody's phone buzzing on a desk (×1.6). The rack
+was a `FLOOR_PROPS` entry sitting in that zone with nothing to say; it now gives the engineering
+corner an identity for 20 credits and a table row, exactly as `cue-fridge` did for the kitchen. The two halves read the
 same zone: the director asks `getRoomToneZone()` rather than deriving its own, so a filter setting
 and a cue table cannot disagree about where you are standing. Together they are the cheap
 substitute for per-room beds, which would cost 300 credits and a crossfading multi-buffer player
@@ -833,6 +868,15 @@ to the reading-pace timer when synthesis is muted or unavailable). Admin menu **
 that posture (macro over narration / soundscape / captions; defaults to hear-it); Focus cancels
 in-flight speech.
 
+**The all-hands now sounds like one** (§10.4). It draws an audience row of faces for "the company
+is watching" and fired confetti "for an outcome that does not exist" — while making no more noise
+than a two-person headset sync. A `crowdSettle` cue lands when the meeting reaches `playing`
+(after the join blip, not instead of it: you did still join a call, there are simply a great many
+people already in it), and `applause` lands with the confetti at the end — scattered, polite, from
+people who cannot leave yet. Both gate on the same `audience.length > 0` the confetti does, because
+the cue is worth nothing without the contrast: if every meeting sounds like forty people, the
+all-hands sounds like nothing in particular.
+
 Slice 2 closed the loudest gaps in that list:
 
 - **The talk channel had no cue in either direction.** `pushOfficeImPing` skips the arrival toast
@@ -841,8 +885,20 @@ Slice 2 closed the loudest gaps in that list:
   It now murmurs, and only when the line will not actually be **voiced** (`onFloor && narration`),
   because a ping over a colleague speaking is noise rather than detail. Sending gets a soft tick.
 - **A huddle seating is audible, and pair no longer sounds like mob.** `chairsGather` fires for a
-  mob, the existing single `chair` for a pair. It lands while the ring is drawn and before the
-  script exists, so it doubles as the feedback that the click registered.
+  mob, the existing single `chair` for a pair, from `handleStartHuddle` in `OfficeLayer.jsx` —
+  behind the "a pair of nobody is not a pair" guard, so the office never makes the sound of a
+  thing that did not happen. It lands while the ring is drawn and before the script exists, so it
+  doubles as the feedback that the click registered.
+
+  **This bullet described the future for four days.** Slice 2 shipped the asset, the `SAMPLES` row,
+  the `SYNTH_CUE_PLAYERS` row, the manifest line, 30 spent credits and this paragraph — and no call
+  site. `cue-chairs-gather.mp3` had never made a sound. Both assertions in
+  `officeCuePlayers.test.js` passed throughout, because both ask whether a cue _could_ play; nothing
+  asked whether anything plays it. That gap only closes at the call site, which is what
+  `officeLayerHuddleCue.test.jsx` now pins — by mocking `officeCueChime` and asserting on the **cue
+  name**, since a `playChime` spy only ever sees an opaque function. Worth copying for the next cue
+  whose trigger lives in a component.
+
 - **Day One has a door.** Checking in is the gesture that opens the audio gate and it made no sound
   at all; `FloorArrival` had been receiving `playChime` as a deliberately-unused prop since it was
   written. The cue fires one render _after_ the click — `primeOfficeAudio` starts an async decode on

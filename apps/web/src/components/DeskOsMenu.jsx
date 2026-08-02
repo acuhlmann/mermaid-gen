@@ -10,6 +10,9 @@ const MENU_GAP_PX = 6;
 const SAFE_INSET_PX = 8;
 const MAX_MENU_WIDTH_PX = 300;
 const MIN_MENU_WIDTH_PX = 210;
+/** Mailroom hosts a slip, not a verb list — tighter than Admin/Deliverable. */
+const COMPACT_MAX_MENU_WIDTH_PX = 212;
+const COMPACT_MIN_MENU_WIDTH_PX = 168;
 
 /**
  * Menu-bar dropdowns fall *downward* from the top strip — the mirror image of
@@ -17,18 +20,28 @@ const MIN_MENU_WIDTH_PX = 210;
  * bottom chrome. Same clamping arithmetic, opposite axis.
  *
  * @param {DOMRect} anchorRect
+ * @param {{ compact?: boolean }} [options]
  * @returns {import('react').CSSProperties}
  */
-function computeDropdownStyle(anchorRect) {
+function computeDropdownStyle(anchorRect, { compact = false } = {}) {
   const viewportWidth = window.innerWidth;
   const viewportHeight = window.innerHeight;
-  const maxWidth = Math.min(MAX_MENU_WIDTH_PX, viewportWidth - SAFE_INSET_PX * 2);
-  const minWidth = Math.min(MIN_MENU_WIDTH_PX, maxWidth);
+  const maxCap = compact ? COMPACT_MAX_MENU_WIDTH_PX : MAX_MENU_WIDTH_PX;
+  const minCap = compact ? COMPACT_MIN_MENU_WIDTH_PX : MIN_MENU_WIDTH_PX;
+  const maxWidth = Math.min(maxCap, viewportWidth - SAFE_INSET_PX * 2);
+  const minWidth = Math.min(minCap, maxWidth);
+  // Prefer room for the full slip (compact) / column (items). Clamping only to
+  // minWidth parks Mailroom flush-right at ~150px and truncates the counter copy.
+  const layoutWidth = compact ? maxWidth : minWidth;
   let left = anchorRect.left;
-  left = Math.max(SAFE_INSET_PX, Math.min(left, viewportWidth - minWidth - SAFE_INSET_PX));
-  const width = Math.min(maxWidth, viewportWidth - left - SAFE_INSET_PX);
+  left = Math.max(SAFE_INSET_PX, Math.min(left, viewportWidth - layoutWidth - SAFE_INSET_PX));
   const top = anchorRect.bottom + MENU_GAP_PX;
+  const maxHeight = Math.max(120, viewportHeight - top - SAFE_INSET_PX);
+  const roomRight = viewportWidth - left - SAFE_INSET_PX;
 
+  // Compact panels (Mailroom) use a tighter column than verb menus, but still a
+  // fixed width so right-edge anchors don't collapse the slip to an ellipsis.
+  const width = Math.min(maxWidth, roomRight);
   return {
     position: 'fixed',
     left,
@@ -37,7 +50,7 @@ function computeDropdownStyle(anchorRect) {
     width,
     minWidth: Math.min(minWidth, width),
     maxWidth: width,
-    maxHeight: Math.max(120, viewportHeight - top - SAFE_INSET_PX),
+    maxHeight,
     overflowY: 'auto',
     boxSizing: 'border-box'
   };
@@ -63,6 +76,7 @@ function computeDropdownStyle(anchorRect) {
  *   open?: boolean,
  *   disabled?: boolean,
  *   highlight?: boolean,
+ *   compact?: boolean,
  *   onOpenChange: (open: boolean) => void,
  *   onHoverOpen?: () => void,
  *   children: (close: () => void) => import('react').ReactNode
@@ -77,6 +91,7 @@ export default function DeskOsMenu({
   open = false,
   disabled = false,
   highlight = false,
+  compact = false,
   onOpenChange,
   onHoverOpen,
   children
@@ -144,12 +159,12 @@ export default function DeskOsMenu({
   const menuStyle = overlayLayerStyle(
     menuZIndex,
     resolvedAnchor
-      ? computeDropdownStyle(resolvedAnchor)
+      ? computeDropdownStyle(resolvedAnchor, { compact })
       : {
           position: 'fixed',
           left: SAFE_INSET_PX,
           top: SAFE_INSET_PX + 48,
-          width: MIN_MENU_WIDTH_PX,
+          width: compact ? COMPACT_MIN_MENU_WIDTH_PX : MIN_MENU_WIDTH_PX,
           boxSizing: 'border-box'
         }
   );
@@ -161,7 +176,7 @@ export default function DeskOsMenu({
       ? createPortal(
           <div
             ref={menuRef}
-            className="desk-actions-menu desk-os-menu-dropdown"
+            className={`desk-actions-menu desk-os-menu-dropdown${compact ? ' desk-os-menu-dropdown--compact' : ''}`}
             style={menuStyle}
             role="menu"
             aria-label={menuAria ?? label}

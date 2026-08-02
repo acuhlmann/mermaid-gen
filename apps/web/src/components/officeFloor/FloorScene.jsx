@@ -17,11 +17,12 @@
  * corner of the screen divorced from the people it is about.
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useSyncExternalStore } from 'react';
 import FloorBubble from './FloorBubble.jsx';
 import FloorFigure from './FloorFigure.jsx';
 import FloorPanel from './FloorPanel.jsx';
 import { useScenePacing } from '../../hooks/useScenePacing.js';
+import { useSpokenLineVoice } from '../../hooks/useSpokenLineVoice.js';
 import {
   BATTLE_LINE_PACE_MS,
   BATTLE_SILENT_DURATION_MS,
@@ -29,8 +30,10 @@ import {
   COFFEE_LINE_PACE_MS
 } from '../../hooks/officeScenePacingConstants.js';
 import { officeChromeCopy, officeSenderInfo } from '../../utils/officeCast.js';
+import { shouldShowSpokenText } from '../../utils/officeCaptions.js';
 import { formatLocale } from '../../i18n/formatLocale.js';
 import { sceneParticipants } from '../../utils/officeSceneCast.js';
+import { getOfficeSnapshot, subscribe } from '../../state/officeMomentStore.js';
 import {
   BATTLE_TILES,
   COFFEE_TILES,
@@ -111,8 +114,9 @@ function SceneInvite({
   scale,
   onAccept,
   onDecline,
-  showInviteText = true
+  narrateLine
 }) {
+  const snapshot = useSyncExternalStore(subscribe, getOfficeSnapshot, getOfficeSnapshot);
   const inviteLine = isBattle
     ? formatLocale(copy.battle.inviteLine, {
         a: names[0] ?? '',
@@ -120,6 +124,17 @@ function SceneInvite({
         topic: scene.topic ?? ''
       })
     : formatLocale(copy.coffee.inviteLine, { name: names[0] ?? '' });
+  const speakerId = isBattle
+    ? (Object.keys(scene.verdicts ?? {})[0] ?? '')
+    : (scene.lines?.[0]?.speakerId ?? '');
+  const { showSpokenText: showInviteText } = useSpokenLineVoice({
+    captions: snapshot.captions,
+    narration: snapshot.narration,
+    narrateLine,
+    speakerId,
+    text: inviteLine,
+    lineKey: scene?.id ?? null
+  });
 
   return (
     <>
@@ -219,8 +234,7 @@ function BattleVerdict({
  *   onDecline?: () => void,
  *   onVote?: (id: string, sideId: string) => void,
  *   onDone?: () => void,
- *   showSpokenText?: boolean,
- *   showInviteText?: boolean
+ *   showSpokenText?: boolean
  * }} props
  */
 export function FloorScene({
@@ -229,6 +243,8 @@ export function FloorScene({
   scale = 1,
   /** When set, pacing is owned by `OfficeLayer` so view toggles do not restart. */
   visibleLines: visibleLinesProp,
+  /** Spoken-state twin of `visibleLines` when pacing is lifted to OfficeLayer. */
+  lineSpoken: lineSpokenProp,
   /** Battle only — all combat lines revealed (lifted from `OfficeLayer`). */
   linesDone: linesDoneProp,
   narrateLine,
@@ -237,8 +253,7 @@ export function FloorScene({
   onDecline,
   onVote,
   onDone,
-  showSpokenText = true,
-  showInviteText = true
+  showSpokenText: showSpokenTextProp
 }) {
   const isBattle = kind === 'battle';
   const spec = SCENE_KINDS[kind] ?? SCENE_KINDS.coffee;
@@ -251,7 +266,7 @@ export function FloorScene({
     setInternalLinesDone(false);
   }, [sceneId]);
 
-  const pacedVisibleLines = useScenePacing({
+  const paced = useScenePacing({
     lines: scene?.lines ?? [],
     active: visibleLinesProp === undefined && accepted,
     narrateLine,
@@ -266,8 +281,13 @@ export function FloorScene({
           : onDone
         : undefined
   });
-  const visibleLines = visibleLinesProp ?? pacedVisibleLines;
+  const visibleLines = visibleLinesProp ?? paced.visibleLines;
+  const lineSpoken = lineSpokenProp ?? paced.lineSpoken;
   const linesDone = linesDoneProp ?? internalLinesDone;
+  const snapshot = useSyncExternalStore(subscribe, getOfficeSnapshot, getOfficeSnapshot);
+  const showSpokenText =
+    showSpokenTextProp ??
+    shouldShowSpokenText({ captions: snapshot.captions, voiceActive: lineSpoken });
 
   if (!scene) return null;
 
@@ -308,7 +328,7 @@ export function FloorScene({
           scale={scale}
           onAccept={onAccept}
           onDecline={onDecline}
-          showInviteText={showInviteText}
+          narrateLine={narrateLine}
         />
       ) : null}
 

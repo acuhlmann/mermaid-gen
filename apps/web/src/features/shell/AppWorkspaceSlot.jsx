@@ -167,7 +167,8 @@ export function AppWorkspaceSlot({
   entryTourActive,
   entryTourStep,
   entryTourProgress,
-  entryPointers
+  entryPointers,
+  liveStreamingEntry = null
 }) {
   const officeHeadphones = useSyncExternalStore(
     subscribeOffice,
@@ -407,6 +408,7 @@ export function AppWorkspaceSlot({
         entryTourCopy={entryTourCopy}
         onAdvanceEntryTour={onAdvanceEntryTour}
         onDismissEntryTour={onDismissEntryTour}
+        liveStreamingEntry={liveStreamingEntry}
       />
 
       {/* Taskbar — the bottom half of the OS frame. Rendered here rather than

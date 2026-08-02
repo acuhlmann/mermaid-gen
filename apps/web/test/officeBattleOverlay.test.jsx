@@ -112,7 +112,7 @@ describe('OfficeBattleOverlay', () => {
     expect(narrateLine.mock.calls.length).toBeGreaterThanOrEqual(2);
   });
 
-  it('hides combat lines and settle copy when narration is on and CC is off', async () => {
+  it('hides combat lines and settle copy when narration is heard and CC is off', async () => {
     const narrateLine = vi.fn(() => Promise.resolve({ spoken: true }));
     render(
       <OfficeBattleOverlay battle={{ ...BATTLE, accepted: true }} narrateLine={narrateLine} />
@@ -128,6 +128,18 @@ describe('OfficeBattleOverlay', () => {
     const settle = arena.querySelector('[data-testid="office-battle-settle"]');
     expect(settle).not.toBeNull();
     expect(settle?.querySelector('.office-battle-settle-line')).toBeNull();
+  });
+
+  it('shows combat lines when TTS returns silent', async () => {
+    const narrateLine = vi.fn(() => Promise.resolve({ spoken: false }));
+    render(
+      <OfficeBattleOverlay battle={{ ...BATTLE, accepted: true }} narrateLine={narrateLine} />
+    );
+    await act(async () => {
+      await Promise.resolve();
+    });
+    const arena = screen.getByTestId('office-battle-scene');
+    expect(arena.textContent).toContain('Tabs. We settled this in 1979.');
   });
 
   it('reports the chosen side and then shows the winning verdict', async () => {

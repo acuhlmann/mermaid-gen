@@ -793,6 +793,9 @@ export const OFFICE_ZH_TW = {
       thinking: '打開筆記本',
       thinkingClose: '關閉筆記本',
       thinkingTitle: '你的筆記本 · 筆記、評審和執行紀錄',
+      thinkingLiveWorking: '還在寫…',
+      thinkingLiveTitle: '蓋子底下還在寫 · {status} — 打開筆記本看看',
+      thinkingLiveAria: '筆記本還在寫：{status}。打開可查看執行進度。',
       sectionSeat: '座位上',
       sectionGetUp: '起身',
       sectionUnderDesk: '桌子下面',
@@ -1103,22 +1106,13 @@ export const OFFICE_ZH_TW = {
         eyebrow: '當面聊聊',
         action: '💬 走過去說',
         actionTitle: '走過去說点什麼 — 或雙擊對方',
-        walking: '正在走過去。開場白再練一遍。',
+        walking: '正在走過去……',
         thinking: '對方正在想怎麼回……',
         placeholder: '說點什麼……',
         send: '發送',
         youLabel: '你',
         leave: '🪑 回工位',
-        leaveTitle: '結束對話，走回螢幕前',
-        openers: {
-          label: '可以這樣開場',
-          pitch: '關於「{topic}」……',
-          email: '關於你那封信……',
-          visit: '關於剛才的事……',
-          battle: '關於誰說得對……',
-          run: '關於我剛出的那版……',
-          generic: '有空嗎？'
-        }
+        leaveTitle: '結束對話，走回螢幕前'
       },
       peek: {
         eyebrow: '從肩膀上方偷看',

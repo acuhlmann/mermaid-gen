@@ -512,81 +512,89 @@ export default function OutboxDock({
         </button>
       ) : null}
       <div className="settings-export" role="group" aria-label={controls.export}>
-        {hasSource && canPrimaryShare ? (
-          <button
-            type="button"
-            className="settings-export-share-primary"
-            disabled={Boolean(exportBusyId) || !primaryShareReady}
-            aria-busy={primaryShareBusy}
-            onClick={handlePrimaryShare}
-          >
-            <span className="settings-export-share-primary-icon" aria-hidden="true">
-              ↗
-            </span>
-            <span className="settings-export-share-primary-label">
-              {primaryShareReady
-                ? (controls.exportSharePrimary ?? controls.exportShare ?? 'Share')
-                : (controls.exportSharePreparing ?? 'Preparing…')}
-            </span>
-          </button>
-        ) : null}
-        <button
-          type="button"
-          className={`settings-export-toggle${exportOpen ? ' is-open' : ''}`}
-          aria-expanded={exportOpen}
-          aria-controls={exportListId}
-          disabled={!hasSource || exportFormats.length === 0}
-          onClick={() => setExportOpen((v) => !v)}
-        >
-          <span className="settings-export-toggle-label">{controls.export}</span>
-          <span className="settings-export-chevron" aria-hidden="true">
-            {exportOpen ? '▴' : '▾'}
-          </span>
-        </button>
-        {!hasSource ? <p className="settings-export-empty">{controls.exportEmpty}</p> : null}
-        {hasSource && exportOpen ? (
-          <ul id={exportListId} className="settings-export-list" role="list">
-            {exportFormats.map((format) => {
-              const busy = exportBusyId === format.id;
-              const label = controls[format.labelKey] ?? format.id;
-              const canCopy = isFormatCopyable(format);
-              return (
-                <li key={format.id} className="settings-export-item">
-                  <span className="settings-export-format-label">{label}</span>
-                  <div
-                    className="settings-export-row-actions"
-                    role="group"
-                    aria-label={formatLocale(controls.exportActionsFor ?? 'Actions for {label}', {
-                      label
-                    })}
-                  >
-                    <button
-                      type="button"
-                      className="settings-export-action"
-                      disabled={Boolean(exportBusyId)}
-                      aria-busy={busy}
-                      title={controls.exportSave ?? 'Save'}
-                      onClick={() => handleExport(format.id, 'download')}
-                    >
-                      {busy ? (controls.exportWorking ?? '…') : (controls.exportSave ?? 'Save')}
-                    </button>
-                    {canCopy ? (
-                      <button
-                        type="button"
-                        className="settings-export-action"
-                        disabled={Boolean(exportBusyId)}
-                        title={controls.exportCopy ?? 'Copy'}
-                        onClick={() => handleExport(format.id, 'copy')}
+        {hasSource ? (
+          <>
+            {canPrimaryShare ? (
+              <button
+                type="button"
+                className="settings-export-share-primary"
+                disabled={Boolean(exportBusyId) || !primaryShareReady}
+                aria-busy={primaryShareBusy}
+                onClick={handlePrimaryShare}
+              >
+                <span className="settings-export-share-primary-icon" aria-hidden="true">
+                  ↗
+                </span>
+                <span className="settings-export-share-primary-label">
+                  {primaryShareReady
+                    ? (controls.exportSharePrimary ?? controls.exportShare ?? 'Share')
+                    : (controls.exportSharePreparing ?? 'Preparing…')}
+                </span>
+              </button>
+            ) : null}
+            <button
+              type="button"
+              className={`settings-export-toggle${exportOpen ? ' is-open' : ''}`}
+              aria-expanded={exportOpen}
+              aria-controls={exportListId}
+              disabled={exportFormats.length === 0}
+              onClick={() => setExportOpen((v) => !v)}
+            >
+              <span className="settings-export-toggle-label">{controls.export}</span>
+              <span className="settings-export-chevron" aria-hidden="true">
+                {exportOpen ? '▴' : '▾'}
+              </span>
+            </button>
+            {exportOpen ? (
+              <ul id={exportListId} className="settings-export-list" role="list">
+                {exportFormats.map((format) => {
+                  const busy = exportBusyId === format.id;
+                  const label = controls[format.labelKey] ?? format.id;
+                  const canCopy = isFormatCopyable(format);
+                  return (
+                    <li key={format.id} className="settings-export-item">
+                      <span className="settings-export-format-label">{label}</span>
+                      <div
+                        className="settings-export-row-actions"
+                        role="group"
+                        aria-label={formatLocale(
+                          controls.exportActionsFor ?? 'Actions for {label}',
+                          {
+                            label
+                          }
+                        )}
                       >
-                        {controls.exportCopy ?? 'Copy'}
-                      </button>
-                    ) : null}
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        ) : null}
+                        <button
+                          type="button"
+                          className="settings-export-action"
+                          disabled={Boolean(exportBusyId)}
+                          aria-busy={busy}
+                          title={controls.exportSave ?? 'Save'}
+                          onClick={() => handleExport(format.id, 'download')}
+                        >
+                          {busy ? (controls.exportWorking ?? '…') : (controls.exportSave ?? 'Save')}
+                        </button>
+                        {canCopy ? (
+                          <button
+                            type="button"
+                            className="settings-export-action"
+                            disabled={Boolean(exportBusyId)}
+                            title={controls.exportCopy ?? 'Copy'}
+                            onClick={() => handleExport(format.id, 'copy')}
+                          >
+                            {controls.exportCopy ?? 'Copy'}
+                          </button>
+                        ) : null}
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : null}
+          </>
+        ) : (
+          <p className="settings-export-empty">{controls.exportEmpty}</p>
+        )}
         {exportFeedback ? (
           isQuickToastMethod(exportFeedback.method) ? (
             <div className="settings-export-toast" role="status" aria-live="polite">

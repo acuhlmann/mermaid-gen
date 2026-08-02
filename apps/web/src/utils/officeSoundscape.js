@@ -7,9 +7,9 @@
  * Anti-annoyance policy: a brief quiet opening, a denser warm-up window (the
  * room "fades in" while the user settles), then a jittered cruise gap, and no
  * back-to-back set pieces (the printer, espresso machine, desk phone,
- * watercooler, chair squeak, vending machine, and elevator are events; only
- * the desk textures — keyboard clatter, mouse clicks, and paper shuffles —
- * may repeat).
+ * watercooler, chair squeak, vending machine, elevator, whiteboard and front
+ * door are events; only the desk textures — keyboard clatter, mouse clicks,
+ * and paper shuffles — may repeat).
  *
  * Cadence is deliberately denser than a "background music" bed: a corporate-IT
  * office is keyboards all day. At the desk, typing/mouse/paper are heavily
@@ -41,7 +41,37 @@ const CUE_WEIGHTS = [
   ['espresso', 1.2],
   ['vending', 0.7],
   ['elevator', 0.6],
-  ['fridge', 0.8]
+  ['fridge', 0.8],
+  /*
+   * Both of these were baked as *diegetic* cues — the whiteboard for walking up
+   * to it, the door for the Day One check-in — which meant two paid samples
+   * that could play at most once each in a session, and never at all for a
+   * returning user who does not visit the prop. Ambient rows cost nothing and
+   * are what the sounds already are: somebody else writing on the board,
+   * somebody else coming through the front door. Low weights, because the
+   * elevator ding is already telling the "a person arrived" joke.
+   */
+  ['whiteboard', 0.7],
+  ['door', 0.5],
+  /*
+   * Slice 3 — the room gets people in it.
+   *
+   * Every cue above this line is an object. The bed murmurs distant
+   * conversation, but a bed is a texture: it has no position and cannot be an
+   * event, so across a whole session nothing here ever coughed or laughed.
+   * That was the palette's only structural hole.
+   *
+   * Weights are low on purpose and the laugh is the lowest thing in the table.
+   * A person is far more attention-grabbing than a machine at equal loudness —
+   * you look up — so the budget is "once or twice a session", not "as often as
+   * the fridge". `cough` outranks it because clearing your throat is
+   * background where laughing is an event you were not part of.
+   */
+  ['laugh', 0.45],
+  ['cough', 0.8],
+  ['phoneBuzz', 1.1],
+  // Fan noise; carries the pod the way the fridge carries the kitchen.
+  ['serverRack', 0.6]
 ];
 
 /** Desk textures get this multiplier while you are sitting at your screen. */
@@ -62,7 +92,16 @@ const ON_FLOOR_SET_PIECE_BOOST = 1.6;
  * *events*, which is the half a filter cannot fake.
  */
 const ZONE_CUES = {
-  kitchen: { fridge: 3, espresso: 2.2, watercooler: 2, vending: 1.8 }
+  kitchen: { fridge: 3, espresso: 2.2, watercooler: 2, vending: 1.8 },
+  /*
+   * The engineering pod, bought the same way the kitchen was: one 20-credit
+   * cue and a row here, rather than a 300-credit bed. `serverRack` is a
+   * `FLOOR_PROPS` entry sitting in this zone and was pure scenery until now.
+   *
+   * The pod is also where the desks are, so its identity is partly the typing
+   * that already happens there — this only has to add the corner nobody sits in.
+   */
+  pod: { serverRack: 3.2, phoneBuzz: 1.6 }
 };
 
 export const SOUNDSCAPE_CUES = CUE_WEIGHTS.map(([cue]) => cue);
@@ -99,7 +138,7 @@ function weightFor(cue, base, atDesk, zone) {
  *   random?: () => number
  * }} args `zone` is where you are standing on the floor (`floorZoneToneAt`);
  *   ignored at the desk.
- * @returns {'keyboard'|'mouse'|'paper'|'printer'|'chair'|'phone'|'watercooler'|'espresso'|'vending'|'elevator'|'fridge'|null}
+ * @returns {'keyboard'|'mouse'|'paper'|'printer'|'chair'|'phone'|'watercooler'|'espresso'|'vending'|'elevator'|'fridge'|'whiteboard'|'door'|'laugh'|'cough'|'phoneBuzz'|'serverRack'|null}
  */
 export function pickNextSoundscapeCue({
   now,

@@ -535,7 +535,7 @@ export const SLOPITECT_GAMIFICATION_ZH_CN = {
       incident: 'FinOps 已开启战情室。恭喜，你就是事件本身。'
     },
     damageTitle: '利益相关方损失报告™',
-    damageLede: '你通过智能体运行向云端释放的累计预估花费。',
+    damageLede: '画布运行、办公室对话、会议、顾问与讲解累计的预估云端花费。',
     damageFootnote: '不是真实账单。按令牌数 × 部署端定期刷新的目录价估算。财务仍握有真账单。'
   },
   PRESTIGE_PROMOTION: {

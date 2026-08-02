@@ -3,6 +3,7 @@ import { officeChromeCopy, officeSenderInfo } from '../utils/officeCast.js';
 import { shouldShowSpokenText } from '../utils/officeCaptions.js';
 import { getOfficeSnapshot, subscribe } from '../state/officeMomentStore.js';
 import { useScenePacing } from '../hooks/useScenePacing.js';
+import { useSpokenLineVoice } from '../hooks/useSpokenLineVoice.js';
 import {
   COFFEE_BREAK_DURATION_MS,
   COFFEE_LINE_PACE_MS
@@ -34,6 +35,8 @@ export default function CoffeeBreakOverlay({
   coffee,
   /** When set, pacing is owned by `OfficeLayer` so view toggles do not restart. */
   visibleLines: visibleLinesProp,
+  /** Spoken-state twin of `visibleLines` when pacing is lifted to OfficeLayer. */
+  lineSpoken: lineSpokenProp,
   onAccept,
   onDecline,
   onDone,
@@ -43,7 +46,18 @@ export default function CoffeeBreakOverlay({
   const snapshot = useSyncExternalStore(subscribe, getOfficeSnapshot, getOfficeSnapshot);
   const accepted = Boolean(coffee?.accepted);
   const lineCount = coffee?.lines?.length ?? 0;
-  const pacedVisibleLines = useScenePacing({
+  const inviterId = coffee?.lines?.[0]?.speakerId ?? 'facilities';
+  const inviter = officeSenderInfo(inviterId);
+  const inviteAsk = formatLocale(officeChromeCopy().coffee.inviteLine, { name: inviter.name });
+  const { showSpokenText: showInviteText } = useSpokenLineVoice({
+    captions: snapshot.captions,
+    narration: Boolean(snapshot.narration && !accepted),
+    narrateLine: accepted ? undefined : narrateLine,
+    speakerId: inviterId,
+    text: inviteAsk,
+    lineKey: !accepted ? (coffee?.id ?? null) : null
+  });
+  const paced = useScenePacing({
     lines: coffee?.lines ?? [],
     active: visibleLinesProp === undefined && accepted && Boolean(coffee),
     narrateLine,
@@ -53,20 +67,13 @@ export default function CoffeeBreakOverlay({
     sceneId: coffee?.id ?? null,
     onDone
   });
-  const visibleLines = visibleLinesProp ?? pacedVisibleLines;
+  const visibleLines = visibleLinesProp ?? paced.visibleLines;
+  const lineSpoken = lineSpokenProp ?? paced.lineSpoken;
 
   if (!coffee) return null;
   const copy = officeChromeCopy();
 
   if (!accepted) {
-    const inviterId = coffee.lines[0]?.speakerId ?? 'facilities';
-    const inviter = officeSenderInfo(inviterId);
-    const ask = formatLocale(copy.coffee.inviteLine, { name: inviter.name });
-    const showText = shouldShowSpokenText({
-      captions: snapshot.captions,
-      voiceActive: snapshot.narration
-    });
-
     return (
       <div
         className="office-coffee-invite-layer"
@@ -107,7 +114,7 @@ export default function CoffeeBreakOverlay({
                 <span className="office-coffee-invite-title"> · {inviter.title}</span>
               ) : null}
             </div>
-            {showText ? <p className="office-coffee-invite-ask">{ask}</p> : null}
+            {showInviteText ? <p className="office-coffee-invite-ask">{inviteAsk}</p> : null}
             <div className="office-coffee-invite-actions">
               <button type="button" className="office-coffee-accept" onClick={onAccept}>
                 {copy.coffee.accept}
@@ -125,7 +132,9 @@ export default function CoffeeBreakOverlay({
   const participants = sceneParticipants(coffee.lines);
   const showText = shouldShowSpokenText({
     captions: snapshot.captions,
-    voiceActive: snapshot.narration && typeof narrateLine === 'function'
+    // No narrator prop → silent stub may still pace, but there is nothing to
+    // hear, so keep the lines readable (pre-voice-first desk behaviour).
+    voiceActive: typeof narrateLine === 'function' ? lineSpoken : false
   });
   const linesToShow = typeof narrateLine === 'function' ? visibleLines : lineCount;
   const activeLine = coffee.lines[linesToShow - 1] ?? null;

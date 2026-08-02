@@ -117,7 +117,7 @@ export function useHuddleRingControls({
     [narrateLine]
   );
 
-  const visibleLines = useScenePacing({
+  const { visibleLines, lineSpoken } = useScenePacing({
     lines: beats,
     active: !disabled && pacingActive,
     paused: watching || Boolean(pinnedSpeakerId),
@@ -248,8 +248,7 @@ export function useHuddleRingControls({
     activeSpeakerId,
     pinnedBeat,
     pinnedPrompt,
-    /** How many beats have been revealed (1-based). Seats use this to keep
-     * Do-it available after someone has already spoken. */
+    /** How many beats have been revealed (1-based). Used for active-line sync. */
     visibleLines: pacingActive ? visibleLines : 0,
     showText,
     unpin,

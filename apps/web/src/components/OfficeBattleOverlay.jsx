@@ -4,6 +4,7 @@ import { formatLocale } from '../i18n/formatLocale.js';
 import { shouldShowSpokenText } from '../utils/officeCaptions.js';
 import { getOfficeSnapshot, subscribe } from '../state/officeMomentStore.js';
 import { useScenePacing } from '../hooks/useScenePacing.js';
+import { useSpokenLineVoice } from '../hooks/useSpokenLineVoice.js';
 import {
   BATTLE_LINE_PACE_MS,
   BATTLE_SILENT_DURATION_MS
@@ -37,6 +38,8 @@ export default function OfficeBattleOverlay({
   battle,
   /** When set, pacing is owned by `OfficeLayer` so view toggles do not restart. */
   visibleLines: visibleLinesProp,
+  /** Spoken-state twin of `visibleLines` when pacing is lifted to OfficeLayer. */
+  lineSpoken: lineSpokenProp,
   /** True once all combat lines have been revealed (lifted from `OfficeLayer`). */
   linesDone: linesDoneProp,
   onAccept,
@@ -55,7 +58,30 @@ export default function OfficeBattleOverlay({
     setInternalLinesDone(false);
   }, [battleId]);
 
-  const pacedVisibleLines = useScenePacing({
+  const sides = useMemo(() => {
+    if (!battle) return [];
+    return Object.keys(battle.verdicts ?? {}).map((id) => officeSenderInfo(id));
+  }, [battle]);
+  const sideA = sides[0];
+  const sideB = sides[1];
+  const inviteLine =
+    sideA && sideB
+      ? formatLocale(officeChromeCopy().battle.inviteLine, {
+          a: sideA.name,
+          b: sideB.name,
+          topic: battle?.topic ?? ''
+        })
+      : '';
+  const { showSpokenText: showInviteText } = useSpokenLineVoice({
+    captions: snapshot.captions,
+    narration: Boolean(snapshot.narration && !accepted && sides.length >= 2),
+    narrateLine: accepted ? undefined : narrateLine,
+    speakerId: sideA?.id ?? '',
+    text: inviteLine,
+    lineKey: !accepted && sides.length >= 2 ? battleId : null
+  });
+
+  const paced = useScenePacing({
     lines: battle?.lines ?? [],
     active: visibleLinesProp === undefined && accepted && Boolean(battle) && lineCount > 0,
     narrateLine:
@@ -70,7 +96,8 @@ export default function OfficeBattleOverlay({
     sceneId: battleId,
     onDone: visibleLinesProp === undefined ? () => setInternalLinesDone(true) : undefined
   });
-  const visibleLines = visibleLinesProp ?? pacedVisibleLines;
+  const visibleLines = visibleLinesProp ?? paced.visibleLines;
+  const lineSpoken = lineSpokenProp ?? paced.lineSpoken;
   const linesDone = linesDoneProp ?? internalLinesDone;
 
   useEffect(() => {
@@ -93,26 +120,16 @@ export default function OfficeBattleOverlay({
     };
   }, [accepted, battle?.votedFor, battleId, narrateLine]);
 
-  const sides = useMemo(() => {
-    if (!battle) return [];
-    return Object.keys(battle.verdicts ?? {}).map((id) => officeSenderInfo(id));
-  }, [battle]);
-
   if (!battle || sides.length < 2) return null;
   const copy = officeChromeCopy();
-  const [sideA, sideB] = sides;
   const showText = shouldShowSpokenText({
     captions: snapshot.captions,
-    voiceActive: snapshot.narration && typeof narrateLine === 'function'
+    // No narrator prop → silent stub may still pace, but there is nothing to
+    // hear, so keep the lines readable (pre-voice-first desk behaviour).
+    voiceActive: typeof narrateLine === 'function' ? lineSpoken : false
   });
 
   if (!accepted) {
-    const inviteLine = formatLocale(copy.battle.inviteLine, {
-      a: sideA.name,
-      b: sideB.name,
-      topic: battle.topic
-    });
-
     return (
       <div
         className="office-battle-invite-layer"
@@ -164,7 +181,7 @@ export default function OfficeBattleOverlay({
             <p className="office-moment-kind office-moment-kind--battle" aria-hidden="true">
               {copy.battle.kindLabel}
             </p>
-            {showText ? (
+            {showInviteText ? (
               <>
                 <p className="office-battle-invite-topic">“{battle.topic}”</p>
                 <p className="office-battle-invite-ask">{copy.battle.inviteTagline}</p>

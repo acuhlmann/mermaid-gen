@@ -9,6 +9,10 @@
  * With narration on, each line is revealed, spoken, and followed by the
  * narration gap. With narration off there is nothing to wait for, so every line
  * shows at once and the scene ends on a fixed timer.
+ *
+ * `lineSpoken` tracks whether the *current* revealed line was actually heard
+ * (or is optimistically assumed to be speaking). Voice-first UIs hide the
+ * duplicate bubble while this is true and fall back to text when TTS fails.
  */
 
 import { useEffect, useRef, useState } from 'react';
@@ -19,7 +23,7 @@ import { cancelOfficeNarration, OFFICE_NARRATION_GAP_MS } from '../utils/officeN
  *   lines: Array<{speakerId: string, text: string}>,
  *   active: boolean,
  *   paused?: boolean,
- *   narrateLine?: (line: any) => Promise<{spoken?: boolean}> | void,
+ *   narrateLine?: (line: any) => Promise<{spoken?: boolean, cancelled?: boolean}> | void,
  *   prefetchLine?: (line: any) => void,
  *   paceMs: number,
  *   silentDurationMs: number,
@@ -27,7 +31,7 @@ import { cancelOfficeNarration, OFFICE_NARRATION_GAP_MS } from '../utils/officeN
  *   sceneId?: string | null,
  *   onDone?: () => void
  * }} options
- * @returns {number} how many lines have been revealed
+ * @returns {{ visibleLines: number, lineSpoken: boolean }}
  */
 export function useScenePacing({
   lines,
@@ -43,6 +47,7 @@ export function useScenePacing({
 }) {
   const lineCount = lines?.length ?? 0;
   const [visibleLines, setVisibleLines] = useState(lineCount);
+  const [lineSpoken, setLineSpoken] = useState(false);
 
   // Kept in refs so a re-rendered parent can't restart a scene mid-sentence.
   const narrateRef = useRef(narrateLine);
@@ -78,12 +83,16 @@ export function useScenePacing({
       // Keep the original sync-timer path: floor/coffee tests advance fake timers
       // with vi.advanceTimersByTime (not Async). Huddle always passes a narrator.
       setVisibleLines(lineCount);
+      setLineSpoken(false);
       const timer = setTimeout(() => onDoneRef.current?.(), silentDurationMs);
       return () => clearTimeout(timer);
     }
 
     let cancelled = false;
     setVisibleLines(1);
+    // Optimistic hide before the first utterance — same posture as walk-by /
+    // FloorTalk. A silent result flips this off so the line is still readable.
+    setLineSpoken(true);
 
     void (async () => {
       for (let index = 0; index < lineCount; index += 1) {
@@ -91,6 +100,7 @@ export function useScenePacing({
         await waitWhilePaused();
         if (cancelled) return;
         setVisibleLines(index + 1);
+        setLineSpoken(true);
         const line = linesRef.current?.[index];
         const nextLine = linesRef.current?.[index + 1];
         if (nextLine) prefetchRef.current?.(nextLine);
@@ -108,6 +118,7 @@ export function useScenePacing({
           // Narration failed (offline, muted, no voice): pace as if silent.
         }
         if (cancelled) return;
+        setLineSpoken(spoken);
         await waitWhilePaused();
         if (cancelled) return;
         if (index < lineCount - 1) {
@@ -130,5 +141,5 @@ export function useScenePacing({
     };
   }, [active, sceneId, lineCount, paceMs, silentDurationMs, tailMs]);
 
-  return visibleLines;
+  return { visibleLines, lineSpoken };
 }

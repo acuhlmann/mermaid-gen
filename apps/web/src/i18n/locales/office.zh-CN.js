@@ -793,6 +793,9 @@ export const OFFICE_ZH_CN = {
       thinking: '打开笔记本',
       thinkingClose: '关闭笔记本',
       thinkingTitle: '你的笔记本 · 笔记、评审和运行记录',
+      thinkingLiveWorking: '还在写…',
+      thinkingLiveTitle: '盖子底下还在写 · {status} — 打开笔记本看看',
+      thinkingLiveAria: '笔记本还在写：{status}。打开可查看运行进度。',
       sectionSeat: '座位上',
       sectionGetUp: '起身',
       sectionUnderDesk: '桌子下面',
@@ -1103,22 +1106,13 @@ export const OFFICE_ZH_CN = {
         eyebrow: '当面聊聊',
         action: '💬 走过去说',
         actionTitle: '走过去说点什么 — 或双击对方',
-        walking: '正在走过去。开场白再练一遍。',
+        walking: '正在走过去……',
         thinking: '对方正在想怎么回……',
         placeholder: '说点什么……',
         send: '发出去',
         youLabel: '你',
         leave: '🪑 回工位',
-        leaveTitle: '结束对话，走回屏幕前',
-        openers: {
-          label: '可以这样开场',
-          pitch: '关于“{topic}”……',
-          email: '关于你那封邮件……',
-          visit: '关于刚才的事……',
-          battle: '关于谁说得对……',
-          run: '关于我刚出的那版……',
-          generic: '有空吗？'
-        }
+        leaveTitle: '结束对话，走回屏幕前'
       },
       peek: {
         eyebrow: '从肩膀上方偷看',

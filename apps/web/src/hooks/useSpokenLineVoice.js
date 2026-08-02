@@ -30,11 +30,12 @@ export function useSpokenLineVoice({
   text = '',
   lineKey = null
 } = {}) {
-  // Optimistic hide when headphones-off / narration-on: first paint must not
-  // flash the spoken line as text before TTS starts (walk-by gates the same
-  // way on the narration preference). A silent result flips this back off.
+  // Optimistic hide when headphones-off / narration-on *and* a narrator is
+  // wired: first paint must not flash the spoken line as text before TTS
+  // starts (walk-by gates the same way). No narrator → nothing to hear, so
+  // text stays visible. A silent result flips voiceActive back off.
   const [voiceActive, setVoiceActive] = useState(() =>
-    Boolean(narration && text && speakerId && !captions)
+    Boolean(narration && typeof narrateLine === 'function' && text && speakerId && !captions)
   );
   const prevKeyRef = useRef(/** @type {string | null} */ (null));
 
@@ -62,11 +63,11 @@ export function useSpokenLineVoice({
     prevKeyRef.current = lineKey;
     // Hide before the first paint after a new line — same optimistic gate as
     // FloorTalk's narrateTracked. Failure below restores the text.
-    if (narration && !captions) setVoiceActive(true);
+    if (narration && typeof narrateLine === 'function' && !captions) setVoiceActive(true);
     if (isOfficeNarrationBusy()) return undefined;
     void speakLine();
     return undefined;
-  }, [lineKey, speakLine, narration, captions]);
+  }, [lineKey, speakLine, narration, captions, narrateLine]);
 
   const showSpokenText = shouldShowSpokenText({ captions, voiceActive });
 

@@ -187,11 +187,11 @@ describe('OutboxDock export', () => {
     expect(svgRow?.querySelectorAll('button').length).toBe(1);
   });
 
-  it('disables export when there is no source', () => {
+  it('shows an empty slip when there is no source', () => {
     render(<OutboxDock controls={CONTROLS_EN.settings} contentType="mermaid" diagramSource="" />);
 
-    expect(screen.getByRole('button', { name: /Export/i }).disabled).toBe(true);
-    expect(screen.getByText(/Generate something first/i)).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /Export/i })).toBeNull();
+    expect(screen.getByText(/Nothing queued/i)).toBeTruthy();
   });
 
   it('supports headless mode opened via openSignal', () => {

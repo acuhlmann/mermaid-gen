@@ -51,7 +51,7 @@ export function useOfficeLayerPerformances({
     setBattleLinesDone(false);
   }, [battleId]);
 
-  const coffeeVisibleLines = useScenePacing({
+  const coffeePace = useScenePacing({
     lines: coffee?.lines ?? [],
     active: Boolean(coffee?.accepted && coffee),
     narrateLine,
@@ -62,7 +62,7 @@ export function useOfficeLayerPerformances({
     onDone: onCoffeeDone
   });
 
-  const battleVisibleLines = useScenePacing({
+  const battlePace = useScenePacing({
     lines: battle?.lines ?? [],
     active: Boolean(battle?.accepted && battle),
     narrateLine: typeof narrateLine === 'function' ? narrateLine : () => ({ spoken: false }),
@@ -84,8 +84,10 @@ export function useOfficeLayerPerformances({
   });
 
   return {
-    coffeeVisibleLines,
-    battleVisibleLines,
+    coffeeVisibleLines: coffeePace.visibleLines,
+    coffeeLineSpoken: coffeePace.lineSpoken,
+    battleVisibleLines: battlePace.visibleLines,
+    battleLineSpoken: battlePace.lineSpoken,
     battleLinesDone,
     huddleRing
   };

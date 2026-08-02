@@ -3,7 +3,6 @@ import { officeChromeCopy, officeSenderInfo } from '../utils/officeCast.js';
 import {
   HUDDLE_SEAT_STAGGER_MS,
   adoptPromptFor,
-  beatForSpeaker,
   useHuddleRingControls
 } from '../hooks/useHuddleRingControls.js';
 import { formatLocale } from '../i18n/formatLocale.js';
@@ -80,7 +79,6 @@ export default function HuddleOverlay({
     activeSpeakerId,
     pinnedBeat,
     pinnedPrompt,
-    visibleLines = 0,
     showText,
     unpin,
     handleDoIt,
@@ -93,7 +91,6 @@ export default function HuddleOverlay({
 
   if (!huddle) return null;
 
-  const beats = huddle.beats ?? [];
   const partner = pairing ? officeSenderInfo(huddle.attendees[0]) : null;
   const endLabel = pairing ? (copy.pairEnd ?? copy.hardStop) : copy.hardStop;
   const endTitle = pairing
@@ -130,23 +127,18 @@ export default function HuddleOverlay({
         const isPinned = pinnedSpeakerId === id;
         const isFetching = fetchingSpeakerId === id;
         const isRepeating = repeatingSpeakerId === id;
-        const beatIndex = beats.findIndex((b) => b.speakerId === id);
-        const seatBeat = beatIndex >= 0 ? beats[beatIndex] : beatForSpeaker(huddle, id);
-        /** Keep Do it beside anyone who has already spoken — offers live next to
-         * that face, not in the bottom chrome. */
-        const hasSpoken = beatIndex >= 0 && beatIndex < visibleLines;
-        const beat = isPinned ? pinnedBeat : isSpeaking ? activeBeat : hasSpoken ? seatBeat : null;
+        /** Do it lives on the live speaker, then clears when the turn ends.
+         * Clicking a face pins them and brings Do it back (FloorHuddle matches). */
+        const beat = isPinned ? pinnedBeat : isSpeaking ? activeBeat : null;
         const actionPrompt = watching
           ? null
           : isPinned
             ? pinnedPrompt
-            : isSpeaking || hasSpoken
-              ? adoptPromptFor(isSpeaking ? activeBeat : seatBeat, { fallbackToText: true })
+            : isSpeaking
+              ? adoptPromptFor(activeBeat, { fallbackToText: true })
               : null;
         const hideRemarkText =
-          (isPinned && (isRepeating || isFetching)) ||
-          ((isSpeaking || isPinned) && !showText) ||
-          (!isSpeaking && !isPinned && hasSpoken);
+          (isPinned && (isRepeating || isFetching)) || ((isSpeaking || isPinned) && !showText);
         const showRemarkText = Boolean(beat?.text) && !hideRemarkText;
         const showFetching = isFetching && !beat?.text;
         const showBubble = showRemarkText || Boolean(actionPrompt) || showFetching;

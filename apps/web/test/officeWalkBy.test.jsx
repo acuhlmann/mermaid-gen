@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen } from '@testing-library/react';
+import { act, cleanup, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import OfficeWalkBy from '../src/components/OfficeWalkBy.jsx';
 import {
@@ -24,8 +24,19 @@ describe('OfficeWalkBy', () => {
 
   afterEach(() => cleanup());
 
-  it('leans a big head in from above without a speech body when narration is on', () => {
-    render(<OfficeWalkBy walkBy={walkBy} onDismiss={vi.fn()} onAdoptPrompt={vi.fn()} />);
+  it('hides the speech body while TTS is speaking (voice-first)', async () => {
+    const narrateLine = vi.fn(() => new Promise(() => {}));
+    render(
+      <OfficeWalkBy
+        walkBy={walkBy}
+        onDismiss={vi.fn()}
+        onAdoptPrompt={vi.fn()}
+        narrateLine={narrateLine}
+      />
+    );
+    await act(async () => {
+      await Promise.resolve();
+    });
     expect(screen.getByTestId('office-walkby')).toBeTruthy();
     expect(document.querySelector('.office-walkby--shoulder')).toBeTruthy();
     expect(document.querySelector('.office-walkby-head')).toBeTruthy();
@@ -33,9 +44,22 @@ describe('OfficeWalkBy', () => {
     expect(screen.getByRole('button', { name: /Do it/i })).toBeTruthy();
   });
 
-  it('shows the spoken line when captions are on', () => {
+  it('falls back to the spoken line when TTS returns silent', async () => {
+    const narrateLine = vi.fn(async () => ({ spoken: false }));
+    render(<OfficeWalkBy walkBy={walkBy} onDismiss={vi.fn()} narrateLine={narrateLine} />);
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(screen.getByText(walkBy.body)).toBeTruthy();
+  });
+
+  it('shows the spoken line when captions are on', async () => {
     setOfficeCaptions(true);
-    render(<OfficeWalkBy walkBy={walkBy} onDismiss={vi.fn()} />);
+    const narrateLine = vi.fn(async () => ({ spoken: true }));
+    render(<OfficeWalkBy walkBy={walkBy} onDismiss={vi.fn()} narrateLine={narrateLine} />);
+    await act(async () => {
+      await Promise.resolve();
+    });
     expect(screen.getByText(walkBy.body)).toBeTruthy();
   });
 

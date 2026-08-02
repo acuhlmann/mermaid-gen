@@ -125,27 +125,17 @@ they are tones, and stay synthesized in `agentChimes.js`.
 Seven cues aimed at moments with no sound at all, rather than at deepening cues that already
 worked. Generated 2026-07-31.
 
-| Asset                     | Kind | Length | Size  | Cost | Fires on                                                              |
-| ------------------------- | ---- | ------ | ----- | ---- | --------------------------------------------------------------------- |
-| `cue-footstep-carpet.mp3` | cue  | 1.8 s  | 14 KB | 20   | every walk leg on carpet — you, walk-bys, wanderers                   |
-| `cue-footstep-hard.mp3`   | cue  | 2.0 s  | 17 KB | 20   | the same, in the kitchen and the lobby (`floorSurfaceAt`)             |
-| `cue-chairs-gather.mp3`   | cue  | 2.8 s  | 23 KB | 30   | a **mob** huddle seating; a pair keeps the single `cue-chair`         |
-| `cue-door-badge.mp3`      | cue  | 1.8 s  | 14 KB | 30   | Day One check-in, one render after the gate opens                     |
-| `cue-keyboard-b.mp3`      | cue  | 3.0 s  | 24 KB | 30   | second take of `cue-keyboard`, picked at random                       |
-| `cue-whiteboard.mp3`      | cue  | 1.9 s  | 16 KB | 20   | walking up to the whiteboard — usable since slice 9, silent until now |
-| `cue-fridge.mp3`          | cue  | 0.7 s  | 6 KB  | 20   | ambient, weighted ×3 while you stand in the kitchen zone              |
+| Asset                     | Kind | Length | Size  | Cost | Fires on                                                            |
+| ------------------------- | ---- | ------ | ----- | ---- | ------------------------------------------------------------------- |
+| `cue-footstep-carpet.mp3` | cue  | 1.8 s  | 14 KB | 20   | every walk leg on carpet — you, walk-bys, wanderers                 |
+| `cue-footstep-hard.mp3`   | cue  | 2.0 s  | 17 KB | 20   | the same, in the kitchen and the lobby (`floorSurfaceAt`)           |
+| `cue-chairs-gather.mp3`   | cue  | 2.8 s  | 23 KB | 30   | a **mob** huddle seating; a pair keeps the single `cue-chair`       |
+| `cue-door-badge.mp3`      | cue  | 1.8 s  | 14 KB | 30   | Day One check-in, **plus** ambient (weight 0.5) since the free pass |
+| `cue-keyboard-b.mp3`      | cue  | 3.0 s  | 24 KB | 30   | second take of `cue-keyboard`, picked at random                     |
+| `cue-whiteboard.mp3`      | cue  | 1.9 s  | 16 KB | 20   | walking up to the whiteboard, **plus** ambient (weight 0.7)         |
+| `cue-fridge.mp3`          | cue  | 0.7 s  | 6 KB  | 20   | ambient, weighted ×3 while you stand in the kitchen zone            |
 
 **Adds 116 KB and 170 credits** for a running total of **495 KB, 680 credits**.
-
-Two of these are worth flagging as design decisions rather than content:
-
-- **`cue-fridge` is ambient, not a prop cue.** The fridge is scenery and `FLOOR_PROP_USES` stays at
-  four — `officeFloorProps.js` argues the number in prose, and a fifth usable prop would be a
-  product change smuggled in as an audio one. Instead `ZONE_CUES` in `officeSoundscape.js` weights
-  the kitchen's own cues while you stand there. That buys most of what a per-room bed would (open
-  item 3) for 20 credits instead of 300, and needs no crossfading multi-buffer player.
-- **Both footstep surfaces share one synth fallback.** Telling carpet from vinyl is exactly what
-  synthesis cannot do, which is the reason they are sampled; pretending otherwise in the fallback
 
 Two of these are worth flagging as design decisions rather than content:
 
@@ -182,21 +172,136 @@ not rediscover them:
 Trap 2 is the expensive one: it burned 20 credits on a take that was generated and then discarded,
 which is the argument for generating one asset at a time on any unfamiliar machine.
 
+### The free pass — what the bank already owned
+
+Generated 2026-08-02. **Zero credits, zero new assets.** Run before buying anything else, on the
+principle that a batch you have already paid for should be fully audible before the next one is
+commissioned. Three of these four were pure loss, not polish:
+
+1. **`cue-chairs-gather.mp3` had never made a sound.** 30 credits, a `SAMPLES` row, a
+   `SYNTH_CUE_PLAYERS` row, a manifest line, a paragraph in `office-parody.md` §6 written in the
+   present tense — and no call site anywhere in `apps/web`. Now fired from `handleStartHuddle`
+   (`OfficeLayer.jsx`), mob only, behind the pair-of-nobody guard.
+2. **`cue-whiteboard` and `cue-door-badge` were diegetic-only**, so each could play at most once
+   per session and never at all for a user who skipped the gesture. Both gained ambient
+   `CUE_WEIGHTS` rows (0.7 / 0.5). The door's `spread` went 0 → 0.8 in the same change; it had
+   been dead weight because `makePanner` short-circuits on `near` before reading it.
+3. **Ambient cues did not yield to speech.** The bed ducks to 0.03 under narration; cues kept
+   firing at up to 0.028, i.e. _above_ the bed they are mixed to sit under. The director now holds
+   on `isOfficeNarrationBusy()` and defers rather than drops.
+
+**The testing lesson is the durable part.** `officeCuePlayers.test.js` asserts every scheduled cue
+has a synth fallback and every sampled cue has one too — both green while `chairsGather` was
+silent, because both ask whether a cue **could** play and neither asks whether anything plays it.
+A cue whose trigger lives in a component can only be pinned at the call site, and a `playChime` spy
+cannot help you: it receives an opaque closure. `officeLayerHuddleCue.test.jsx` mocks
+`officeCueChime` instead and asserts on the **cue name**. Copy that shape for the next one — and
+note the diagnostic it produced when run against the old code, `expected [] to include
+'chairsGather'`, where the empty array _is_ the bug.
+
+### Slice 3 — the room has people in it
+
+Generated 2026-08-02. Nine cues, **220 credits**, no re-rolls.
+
+Every cue in the two batches above is an **object**: keyboard, mouse, paper, printer, chair, phone,
+cooler, espresso, vending, elevator, fridge. The bed murmurs distant conversation, but a bed is a
+texture — it has no position and cannot be an event, so across a whole session nothing in this
+office ever coughed or laughed. That was the palette's only structural hole, and it is also the one
+category synthesis cannot even attempt.
+
+| Asset                       | Kind | Length | Size  | Cost | Fires on                                                          |
+| --------------------------- | ---- | ------ | ----- | ---- | ----------------------------------------------------------------- |
+| `cue-laugh.mp3`             | cue  | 2.6 s  | 21 KB | 30   | ambient, weight 0.45 — the lowest in the table, a joke you missed |
+| `cue-cough.mp3`             | cue  | 1.2 s  | 10 KB | 20   | ambient, weight 0.8                                               |
+| `cue-phone-buzz.mp3`        | cue  | 2.0 s  | 16 KB | 20   | ambient, weight 1.1; ×1.6 in the pod                              |
+| `cue-crowd-settle.mp3`      | cue  | 4.0 s  | 32 KB | 40   | an all-hands reaching `state: 'playing'` (§10.4)                  |
+| `cue-applause.mp3`          | cue  | 3.0 s  | 24 KB | 30   | an all-hands completing, alongside the confetti                   |
+| `cue-server-rack.mp3`       | cue  | 2.0 s  | 16 KB | 20   | ambient, weight 0.6; **×3.2 in the pod** — the zone's own event   |
+| `cue-footstep-carpet-b.mp3` | cue  | 2.0 s  | 16 KB | 20   | second take of `cue-footstep-carpet`                              |
+| `cue-footstep-hard-b.mp3`   | cue  | 2.0 s  | 16 KB | 20   | second take of `cue-footstep-hard`                                |
+| `cue-paper-b.mp3`           | cue  | 1.7 s  | 14 KB | 20   | second take of `cue-paper`                                        |
+
+**Adds 165 KB and 220 credits** for a running total of **648 KB, 900 credits**. Still comfortably
+under the ~1 MB mark at which the "Deliberately not done" note says to revisit Opus/Ogg.
+
+#### A different way of deriving `gain`, and why this batch needed one
+
+Every earlier cue's playback gain is `synthPeakGain / 0.708` — inherited from the synthesized cue it
+replaced. Four of these have **no predecessor and no synth fallback**, so that rule has nothing to
+inherit from. They are matched by measured **integrated loudness** instead:
+
+```
+gain = 10 ^ ((target_dB − LUFS) / 20)
+```
+
+where `target_dB` is the effective playback level. This is the number peak-normalizing cannot give
+you: the pipeline equalizes **peaks**, and a 2 s phone buzz carries far more energy under an
+identical peak than a paper shuffle does. Measured, `cue-phone-buzz` came in at **−8.2 LUFS** — the
+hottest source in the bank, 20 dB above `cue-keyboard` — and would have swamped the room at any
+peak-derived gain.
+
+The interesting part is that the hand-tuned table **already worked this way** and never said so:
+
+| Cue              | gain   | source LUFS | effective |
+| ---------------- | ------ | ----------- | --------- |
+| `printer`        | 0.0099 | −14.9       | −55.0 dB  |
+| `keyboard`       | 0.028  | −28.1       | −59.2 dB  |
+| `paper`          | 0.018  | −26.4       | −61.3 dB  |
+| `fridge`         | 0.0099 | −21.1       | −61.2 dB  |
+| `footstepCarpet` | 0.007  | −23.3       | −66.4 dB  |
+| `footstepHard`   | 0.007  | −28.4       | −71.5 dB  |
+
+Keyboard is the **quietest** source and carries the **highest** gain; the printer is the loudest
+source on one of the lowest gains. The band in use runs −55 dB (the most present set piece) to
+−71 dB (footsteps, which repeat inside a single gesture). Slice 3 targets −63/−64 for the ambient
+people and the rack, −58 for the two all-hands cues.
+
+**This is loudness-matching, not attention-matching.** A laugh pulls the ear far harder than a
+printer at identical LUFS, so these still want the ear pass in open item 6 — the method just means
+the starting point is measured rather than guessed.
+
+#### Two design decisions worth carrying
+
+- **Four cues have no synth fallback, on purpose.** `SILENT_UNTIL_SAMPLED` in `officeCuePlayers.js`
+  names `laugh`, `cough`, `crowdSettle`, `applause`. The rule that produced every earlier fallback —
+  "sample broadband texture, synthesize tones" — quietly assumed a fallback is always at least worth
+  having, and for a cough it is not: a synthesized laugh would not read as a cheap laugh, it would
+  read as a bug. Silence costs almost nothing, because `primeOfficeAudio` warms every buffer the
+  moment the audio gate opens and the brain schedules nothing in a session's first 4 s. It is an
+  **allowlist, not an escape hatch** — the test suite asserts every sampled cue is either in
+  `SYNTH_CUES` or named here, and that nothing is in both.
+- **`cue-server-rack` buys the pod the way `cue-fridge` bought the kitchen.** A `ZONE_CUES` row
+  (×3.2) and a 20-credit cue, against 300 for a bed and a crossfading multi-buffer player. The rack
+  was already a `FLOOR_PROPS` entry sitting in that zone with nothing to say.
+
+**On generating human sounds**, since this was the first batch to try: the takes needed no re-rolls,
+but two things are worth knowing. The trim step cuts at 2 % of peak and is tuned for a mechanical
+attack, so a soft onset can lose its first moment — `cue-cough` trimmed to 1.2 s of a requested 2 s
+and wants a listen. And `cue-crowd-settle` arrived at −24.9 dB peak, needing **+21.9 dB** to reach
+the ceiling, which lifts the take's noise floor with it; its 18.4 dB crest afterwards suggests it
+survived, but that is an inference from numbers, not an ear.
+
 ## Status and outstanding work
 
-_Last updated 2026-07-31._
+_Last updated 2026-08-02._
 
-**Quota ledger.** **1,340 of July 2026's 10,000 credits** spent in total:
+**Quota ledger.** The allowance is monthly. July 2026 spent **1,340 of 10,000**; August opened
+fresh and slice 3 is the only draw against it so far:
 
-| Batch                  | Shipped | Wasted  | Note                                                     |
-| ---------------------- | ------- | ------- | -------------------------------------------------------- |
-| Bed + first seven cues | 510     | 620     | two rejected bed variants at 300 each, plus 20 in probes |
-| Slice 2 (seven cues)   | 170     | 20      | one whiteboard take lost to the CRLF trap above          |
-| **Total**              | **680** | **640** |                                                          |
+| Batch                  | Month    | Shipped | Wasted  | Note                                                     |
+| ---------------------- | -------- | ------- | ------- | -------------------------------------------------------- |
+| Bed + first seven cues | Jul 2026 | 510     | 620     | two rejected bed variants at 300 each, plus 20 in probes |
+| Slice 2 (seven cues)   | Jul 2026 | 170     | 20      | one whiteboard take lost to the CRLF trap above          |
+| Slice 3 (nine cues)    | Aug 2026 | 220     | 0       | **no re-rolls** — first batch to need none               |
+| **Total shipped**      |          | **900** | **640** |                                                          |
 
-Regenerating everything now in the manifest costs 680. Assume roughly **8,660 credits were left in
-the July window**; the allowance resets monthly, so check the dashboard before planning a large
-batch rather than trusting this number.
+Regenerating everything now in the manifest costs 900. Roughly **9,780 credits remained in the
+August window** after slice 3; the allowance resets monthly, so check the dashboard before planning
+a large batch rather than trusting this number.
+
+Slice 3 spending zero on re-rolls is worth a caveat before it becomes a rule: the batch contained
+no bed (where re-rolls actually hurt, at 300 a throw), and "no re-roll" here means **no take was
+regenerated**, not that every take was auditioned and approved. The ear pass is still owed.
 
 Budget re-rolls, not just the manifest total: last time more credits went on rejected takes than on
 shipped ones. Beds are where that happens (300 a roll); a 20-credit cue is cheap to re-roll, which
@@ -214,21 +319,31 @@ is the argument for generating one asset at a time rather than the whole manifes
    The water cooler is still unreachable** on the isometric floor (§6 rule 21). If a standable mark
    is found for the cooler, `cuesForProp('waterCooler')` already returns the watercooler sample — no
    second wiring pass. `officeCuePlayers.test.js` now asserts every entry in `FLOOR_PROP_USES` has a
-   cue row, so the next reachable prop cannot ship silent the way the whiteboard did.
+   cue row, so the next reachable prop cannot ship silent the way the whiteboard did — **but note
+   what that assertion did not catch**, per "The free pass" above: a cue can have every row the
+   test suite knows to look for and still have no trigger.
 3. ~~**Per-room beds.**~~ ✅ **zone-shaped single bed** — `setRoomToneZone` + `floorZoneToneAt`
    colour the existing loop (kitchen brighter, glass muffled, pod bassier) without new assets.
    Slice 2 added the other half — `ZONE_CUES` weights a room's own _events_, not just its timbre.
    True multi-buffer beds still want ElevenLabs regeneration, and are now the weakest item here.
-4. ~~**A second variant for the highest-weight cues.**~~ ✅ `SAMPLES` takes a `urls` array keyed
-   `${cue}:${index}` in `buffers`/`loading`, and `keyboard` has two takes. `pickBuffer` chooses
-   among the variants that have actually **decoded**, not among all of them — rolling first and
-   checking second would fall back to synthesis half the time while take B was still downloading.
-   Adding a second take to `paper` (weight 2, the next most frequent) is now one manifest row and
-   one array entry, 20 credits.
+4. ~~**A second variant for the highest-weight cues.**~~ ✅ **done, and extended.** `SAMPLES` takes
+   a `urls` array keyed `${cue}:${index}` in `buffers`/`loading`. `pickBuffer` chooses among the
+   variants that have actually **decoded**, not among all of them — rolling first and checking
+   second would fall back to synthesis half the time while take B was still downloading. Slice 3
+   took this to **four** multi-take cues: `keyboard`, `paper`, and both footstep surfaces. The
+   footsteps mattered most and were not the obvious pick — keyboard fires more often per session,
+   but footsteps are the only cue that repeats _within one gesture_ (once per walk leg), which is a
+   much shorter path to noticing a loop. Encouraging for the "same prompt = second take" rule: the
+   three new takes landed within ~2 dB of their originals, which is what makes one shared `gain`
+   across variants honest rather than approximate.
 5. **Nothing verifies a regenerated asset automatically.** The loop-seam and level checks under
    "Verifying a new asset" are a manual ritual. If beds get regenerated often, fold them into the
    generator as a post-step that fails loudly.
-6. **The seven slice-2 gains have not been heard.** Every older cue's `gain` is
+6. **Sixteen gains have now been derived and none have been heard** — the seven from slice 2, the
+   six new ones in slice 3, plus the door in its new ambient role. This is the single largest
+   outstanding item, it costs nothing to fix, and it is the one thing in this document that no
+   amount of measurement can substitute for. **The order to listen in: footsteps, then the laugh,
+   then the door.** Every older cue's `gain` is
    `synthPeakGain / 0.708`, inherited from the cue it replaced. These had no predecessor, so the
    figure is derived from the peak written for their own synth fallback — coherent with the
    0.006–0.014 range, but nobody has listened. **Footsteps are the one to check first**: they are
@@ -237,6 +352,21 @@ is the argument for generating one asset at a time rather than the whole manifes
    (the door needed +5.1 dB to reach the ceiling, `cue-fridge` only −2.4), and peak-normalizing to a
    common ceiling equalizes peaks, not perceived loudness — which is exactly what an ear pass
    catches and the pipeline cannot.
+
+   **The door is now the second one to check.** Its 0.0127 is the highest gain in the slice-2 block
+   and was derived for a `near` play — the Day One check-in, where it is additionally multiplied by
+   `NEAR_GAIN`. Since the free pass it also plays _ambiently_, at that same 0.0127, which is louder
+   than the printer (0.0099) across the room. It was left alone deliberately: swapping one unheard
+   number for another unheard number is not an improvement, and the +5.1 dB it needed at source
+   hints its perceived loudness sits below what its peak implies. Decide it with ears, not algebra.
+
+   **The slice-3 six are a different kind of unheard.** They were derived from measured integrated
+   loudness rather than from an inherited synth peak (see "A different way of deriving `gain`"), so
+   their _relative_ balance should already be close — the arithmetic is sound. What measurement
+   cannot decide is **`laugh`**, which is loudness-matched to the ambient set at −63 dB effective
+   but is the only cue in the bank a person will look up for. If exactly one number in this document
+   turns out to be wrong, it is that one, and the fix is a weight change or a gain cut, not a
+   regeneration.
 
 **Deliberately not done:** no runtime ElevenLabs calls, no key in deploy scripts, no Opus/Ogg
 variants (MP3 is universally supported and the size difference did not justify format negotiation

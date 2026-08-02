@@ -86,13 +86,11 @@ import {
   normalizeMeetingRoster,
   officeChromeCopy,
   officeDialogueLocale,
-  officeMeetingCopy,
-  officeSenderInfo
+  officeMeetingCopy
 } from '../utils/officeCast.js';
 import { formatLocale } from '../i18n/formatLocale.js';
 import {
   cancelOfficeNarration,
-  isOfficeNarrationBusy,
   OFFICE_NARRATION_GAP_MS,
   prefetchOfficeLine,
   speakOfficeLine
@@ -322,6 +320,12 @@ export default function OfficeLayer({
   const prevInviteIdRef = useRef(snapshot.meetingInvite?.id ?? null);
   const prevCoffeeIdRef = useRef(null);
   const prevBattleIdRef = useRef(null);
+  const prevCoffeeStoodForRef = useRef(
+    snapshot.coffee?.accepted ? (snapshot.coffee?.id ?? null) : null
+  );
+  const prevBattleStoodForRef = useRef(
+    snapshot.battle?.accepted ? (snapshot.battle?.id ?? null) : null
+  );
   const prevCoffeeAcceptedRef = useRef(Boolean(snapshot.coffee?.accepted));
   const prevBattleAcceptedRef = useRef(Boolean(snapshot.battle?.accepted));
   const prevBattleVotedRef = useRef(snapshot.battle?.votedFor ?? null);
@@ -355,33 +359,39 @@ export default function OfficeLayer({
     const walkById = walkBy?.id ?? null;
     if (walkById && walkById !== prevWalkByIdRef.current) {
       playChime?.(playFootsteps);
-      // Over-the-shoulder: the colleague actually says the line. Emails never
-      // get this treatment — inbox stays read-only by design.
-      if (snapshot.narration && walkBy?.body && !onFloor && !isOfficeNarrationBusy()) {
-        void narrateLine({ speakerId: walkBy.colleagueId, text: walkBy.body });
-      }
+      // Speech lives in `OfficeWalkBy` via `useSpokenLineVoice` so a failed TTS
+      // result can fall the line back to on-screen text. Floor walk-bys are
+      // spoken by `useFloorSpokenText` instead.
     }
     prevWalkByIdRef.current = walkById;
-  }, [snapshot.walkBy, snapshot.narration, onFloor, playChime, narrateLine]);
+  }, [snapshot.walkBy, playChime]);
   useEffect(() => {
     const inviteId = snapshot.meetingInvite?.id ?? null;
     if (inviteId && inviteId !== prevInviteIdRef.current) playChime?.(playCalendarDing);
     prevInviteIdRef.current = inviteId;
   }, [snapshot.meetingInvite?.id, playChime]);
+  // Coffee / battle invites stay at your desk (shoulder ask over the canvas).
+  // Standing up is the "yes, let's go" beat — same as real life.
   useLayoutEffect(() => {
     const coffee = snapshot.coffee;
+    const accepted = Boolean(coffee?.accepted);
     const coffeeId = coffee?.id ?? null;
-    if (coffeeId && coffeeId !== prevCoffeeIdRef.current && !coffee?.accepted) {
+    if (accepted && coffeeId && coffeeId !== prevCoffeeStoodForRef.current) {
+      prevCoffeeStoodForRef.current = coffeeId;
       if (getOfficeViewMode() !== 'floor') standUp();
     }
+    if (!coffeeId) prevCoffeeStoodForRef.current = null;
   }, [snapshot.coffee]);
 
   useLayoutEffect(() => {
     const battle = snapshot.battle;
+    const accepted = Boolean(battle?.accepted);
     const battleId = battle?.id ?? null;
-    if (battleId && battleId !== prevBattleIdRef.current && !battle?.accepted) {
+    if (accepted && battleId && battleId !== prevBattleStoodForRef.current) {
+      prevBattleStoodForRef.current = battleId;
       if (getOfficeViewMode() !== 'floor') standUp();
     }
+    if (!battleId) prevBattleStoodForRef.current = null;
   }, [snapshot.battle]);
 
   useEffect(() => {
@@ -389,36 +399,19 @@ export default function OfficeLayer({
     const coffeeId = coffee?.id ?? null;
     if (coffeeId && coffeeId !== prevCoffeeIdRef.current && !coffee?.accepted) {
       playChime?.(playFootsteps);
-      const inviterId = coffee?.lines?.[0]?.speakerId;
-      const ask = officeChromeCopy().coffee.inviteLine;
-      if (snapshot.narration && inviterId && ask && !onFloor) {
-        void narrateLine({ speakerId: inviterId, text: ask });
-      }
+      // Invite speech lives in FloorScene / CoffeeBreakOverlay via
+      // `useSpokenLineVoice` so a desk-mode ask still speaks before you stand.
     }
     prevCoffeeIdRef.current = coffeeId;
-  }, [snapshot.coffee, snapshot.narration, onFloor, playChime, narrateLine]);
+  }, [snapshot.coffee, playChime]);
   useEffect(() => {
     const battle = snapshot.battle;
     const battleId = battle?.id ?? null;
     if (battleId && battleId !== prevBattleIdRef.current && !battle?.accepted) {
       playChime?.(playFootsteps);
-      if (snapshot.narration && !onFloor) {
-        const sides = Object.keys(battle.verdicts ?? {});
-        if (sides.length >= 2) {
-          const copy = officeChromeCopy();
-          const sideA = officeSenderInfo(sides[0]);
-          const sideB = officeSenderInfo(sides[1]);
-          const inviteLine = formatLocale(copy.battle.inviteLine, {
-            a: sideA.name,
-            b: sideB.name,
-            topic: battle.topic
-          });
-          void narrateLine({ speakerId: sides[0], text: inviteLine });
-        }
-      }
     }
     prevBattleIdRef.current = battleId;
-  }, [snapshot.battle, snapshot.narration, onFloor, playChime, narrateLine]);
+  }, [snapshot.battle, playChime]);
   useEffect(() => {
     const accepted = Boolean(snapshot.coffee?.accepted);
     if (accepted && !prevCoffeeAcceptedRef.current) {
@@ -445,9 +438,21 @@ export default function OfficeLayer({
   useEffect(() => {
     if (meeting?.state === 'playing' && prevMeetingStateRef.current !== 'playing') {
       playChime?.(playMeetingJoinBlip);
+      /*
+       * §10.4 — an all-hands sounded exactly like a two-person headset sync.
+       * The audience row draws faces for "the company is watching" and the
+       * room made no more noise for forty people than for two.
+       *
+       * Gated on the same `audience.length` the confetti is, and after the
+       * join blip rather than instead of it: you still joined a call, there
+       * are simply a great many people already in it.
+       */
+      if (meeting?.audience?.length > 0) {
+        playChime?.(officeCueChime('crowdSettle'));
+      }
     }
     prevMeetingStateRef.current = meeting?.state ?? null;
-  }, [meeting?.state, playChime]);
+  }, [meeting?.state, meeting?.audience, playChime]);
 
   /**
    * §10.4 — the all-hands ends in confetti for an outcome that does not exist.
@@ -460,6 +465,10 @@ export default function OfficeLayer({
     if (completed && !prevMeetingCompletedRef.current && meeting?.audience?.length > 0) {
       void fireOfficeConfetti();
       playChime?.(playVictoryDing);
+      // The comment above says "confetti for an outcome that does not exist".
+      // Applause is that sentence out loud, and the half of the joke that was
+      // missing: scattered, polite, from people who cannot leave yet.
+      playChime?.(officeCueChime('applause'));
     }
     prevMeetingCompletedRef.current = completed;
   }, [meeting?.completed, meeting?.audience, playChime]);
@@ -728,7 +737,10 @@ export default function OfficeLayer({
 
   const handleAcceptCoffee = useCallback(() => {
     acceptOfficeCoffee();
-    if (getOfficeViewMode() !== 'floor') standUp();
+  }, []);
+
+  const handleAcceptBattle = useCallback(() => {
+    acceptOfficeBattle();
   }, []);
 
   // Settling a battle (voting) is the XP moment; walking away earns nothing
@@ -868,12 +880,20 @@ export default function OfficeLayer({
       const pairing = act.mode === 'pair';
       // A pair of nobody is not a pair — bail rather than silently mobbing.
       if (pairing && !act.colleagueId) return;
+      /*
+       * Seating the huddle. It fires here rather than off the `gathering` phase
+       * because this is the moment of the *click*: the ring is drawn and the
+       * script does not exist yet, so the sound is also the feedback that the
+       * gesture registered. A mob is several chairs dragged over; a pair is one
+       * person pulling theirs up, which is the existing single `chair`.
+       */
+      playChime?.(officeCueChime(pairing ? 'chair' : 'chairsGather'));
       // Floor renderer #2 rings the desk in place — no forced sit-down.
       void startHuddle(pairing ? [act.colleagueId] : CAST_TIERS.team, {
         mode: pairing ? 'pair' : 'mob'
       });
     },
-    [meeting, startHuddle]
+    [meeting, playChime, startHuddle]
   );
 
   const huddleHandledRef = useRef(0);
@@ -958,20 +978,32 @@ export default function OfficeLayer({
     ]
   );
 
-  const { coffeeVisibleLines, battleVisibleLines, battleLinesDone, huddleRing } =
-    useOfficeLayerPerformances({
-      coffee: snapshot.coffee,
-      battle: snapshot.battle,
-      huddle,
-      narrateLine: snapshot.narration ? narrateLine : undefined,
-      prefetchLine: snapshot.narration ? prefetchLine : undefined,
-      onCoffeeDone: handleCoffeeDone,
-      huddleHandlers: huddleHandlersForPerformances
-    });
+  const {
+    coffeeVisibleLines,
+    coffeeLineSpoken,
+    battleVisibleLines,
+    battleLineSpoken,
+    battleLinesDone,
+    huddleRing
+  } = useOfficeLayerPerformances({
+    coffee: snapshot.coffee,
+    battle: snapshot.battle,
+    huddle,
+    narrateLine: snapshot.narration ? narrateLine : undefined,
+    prefetchLine: snapshot.narration ? prefetchLine : undefined,
+    onCoffeeDone: handleCoffeeDone,
+    huddleHandlers: huddleHandlersForPerformances
+  });
 
   const scenePacing = useMemo(
-    () => ({ coffeeVisibleLines, battleVisibleLines, battleLinesDone }),
-    [coffeeVisibleLines, battleVisibleLines, battleLinesDone]
+    () => ({
+      coffeeVisibleLines,
+      coffeeLineSpoken,
+      battleVisibleLines,
+      battleLineSpoken,
+      battleLinesDone
+    }),
+    [coffeeVisibleLines, coffeeLineSpoken, battleVisibleLines, battleLineSpoken, battleLinesDone]
   );
 
   const handleMeetingDismiss = useCallback(() => {
@@ -1194,7 +1226,7 @@ export default function OfficeLayer({
           onAcceptCoffee: handleAcceptCoffee,
           onDeclineCoffee: handleDeclineCoffee,
           onCoffeeDone: handleCoffeeDone,
-          onAcceptBattle: acceptOfficeBattle,
+          onAcceptBattle: handleAcceptBattle,
           onDeclineBattle: handleBattleDone,
           onVoteBattle: handleBattleVote,
           onBattleDone: handleBattleDone
@@ -1225,6 +1257,7 @@ export default function OfficeLayer({
       handleDismissWalkBy,
       handleDeclineCoffee,
       handleAcceptCoffee,
+      handleAcceptBattle,
       narrateLine,
       prefetchLine,
       handleCoffeeDone,
@@ -1329,6 +1362,7 @@ export default function OfficeLayer({
               walkBy={snapshot.walkBy}
               onDismiss={handleDismissWalkBy}
               onAdoptPrompt={handleAdopt}
+              narrateLine={snapshot.narration ? narrateLine : undefined}
             />
           )}
           {/* Set pieces render here or on the floor, never both — two paced
@@ -1338,6 +1372,7 @@ export default function OfficeLayer({
               <CoffeeBreakOverlay
                 coffee={snapshot.coffee}
                 visibleLines={coffeeVisibleLines}
+                lineSpoken={coffeeLineSpoken}
                 onAccept={handleAcceptCoffee}
                 onDecline={handleDeclineCoffee}
                 onDone={handleCoffeeDone}
@@ -1347,8 +1382,9 @@ export default function OfficeLayer({
               <OfficeBattleOverlay
                 battle={snapshot.battle}
                 visibleLines={battleVisibleLines}
+                lineSpoken={battleLineSpoken}
                 linesDone={battleLinesDone}
-                onAccept={acceptOfficeBattle}
+                onAccept={handleAcceptBattle}
                 onVote={handleBattleVote}
                 onDone={handleBattleDone}
                 narrateLine={snapshot.narration ? narrateLine : undefined}

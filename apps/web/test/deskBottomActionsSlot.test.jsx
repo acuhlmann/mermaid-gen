@@ -149,6 +149,46 @@ describe('DeskBottomActionsSlot empty canvas', () => {
     expect(onToggleThinking).toHaveBeenCalledTimes(1);
   });
 
+  it('shows a live notebook cue when a run is in flight and the pane is closed', () => {
+    const onToggleThinking = vi.fn();
+    render(
+      <DeskBottomActionsSlot
+        {...baseProps({
+          hasCanvasContent: true,
+          insightsOpen: false,
+          busy: true,
+          liveStreamingEntry: {
+            status: 'running',
+            variant: 'gilfoyle',
+            statusText: 'Still working…'
+          },
+          onToggleThinking
+        })}
+      />
+    );
+    expect(screen.getByTestId('desk-notebook-live-cue')).toBeTruthy();
+    fireEvent.click(screen.getByTestId('desk-notebook-live-cue'));
+    expect(onToggleThinking).toHaveBeenCalledTimes(1);
+  });
+
+  it('hides the live notebook cue while the pane is open', () => {
+    render(
+      <DeskBottomActionsSlot
+        {...baseProps({
+          hasCanvasContent: true,
+          insightsOpen: true,
+          busy: true,
+          liveStreamingEntry: {
+            status: 'running',
+            variant: 'gilfoyle',
+            statusText: 'Still working…'
+          }
+        })}
+      />
+    );
+    expect(screen.queryByTestId('desk-notebook-live-cue')).toBeNull();
+  });
+
   it('shows the notebook toggle when the pane is open without canvas content', () => {
     const onToggleThinking = vi.fn();
     render(

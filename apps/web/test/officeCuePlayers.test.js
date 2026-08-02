@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
+  SILENT_UNTIL_SAMPLED,
   SYNTH_CUES,
   cuesForProp,
   officeCueChime,
@@ -53,19 +54,46 @@ describe('cuesForProp', () => {
 });
 
 describe('every cue can actually make a sound', () => {
-  it('gives each scheduled cue a synth player', () => {
+  /**
+   * A cue is covered when it has a synth fallback, or when it is named in
+   * `SILENT_UNTIL_SAMPLED` — the allowlist for the handful where silence beats
+   * anything synthesis could offer. Membership has to be *declared*: that is
+   * the difference between choosing silence and forgetting a row.
+   */
+  function isCovered(cue) {
+    return SYNTH_CUES.includes(cue) || SILENT_UNTIL_SAMPLED.includes(cue);
+  }
+
+  it('gives each scheduled cue a synth player, or declares it silent', () => {
     // The fallback table is what makes sampling best-effort. A cue the brain
     // can schedule but the table has no row for is silent on every play until
     // its buffer decodes — and for a one-shot like the door, that is the only
     // play there is.
     for (const cue of SOUNDSCAPE_CUES) {
-      expect(SYNTH_CUES, `${cue} has no synth fallback`).toContain(cue);
+      expect(isCovered(cue), `${cue} has no synth fallback and is not declared silent`).toBe(true);
     }
   });
 
-  it('gives each sampled cue a synth player too', () => {
+  it('gives each sampled cue a synth player, or declares it silent', () => {
     for (const cue of SAMPLED_CUES) {
-      expect(SYNTH_CUES, `${cue} has no synth fallback`).toContain(cue);
+      expect(isCovered(cue), `${cue} has no synth fallback and is not declared silent`).toBe(true);
+    }
+  });
+
+  it('keeps the silent list to cues that are actually sampled', () => {
+    // A name here that no longer has an asset is a cue that can never make a
+    // sound at all, and nothing else in the suite would notice.
+    for (const cue of SILENT_UNTIL_SAMPLED) {
+      expect(SAMPLED_CUES, `${cue} is declared silent but has no sample`).toContain(cue);
+    }
+  });
+
+  it('does not let a cue claim both a fallback and silence', () => {
+    // Overlap would mean the allowlist is decorative — the cue would fall back
+    // to synthesis anyway, and the comment justifying its silence would be a
+    // lie that reads as documentation.
+    for (const cue of SILENT_UNTIL_SAMPLED) {
+      expect(SYNTH_CUES, `${cue} is declared silent but also has a synth row`).not.toContain(cue);
     }
   });
 });

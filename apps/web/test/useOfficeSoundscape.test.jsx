@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, renderHook } from '@testing-library/react';
-import { useOfficeSoundscape } from '../src/hooks/useOfficeSoundscape.js';
+import { SOUNDSCAPE_TICK_MS, useOfficeSoundscape } from '../src/hooks/useOfficeSoundscape.js';
 import {
   _resetForTests,
   setOfficeFocusTime,
@@ -49,5 +49,23 @@ describe('useOfficeSoundscape', () => {
     renderHook(() => useOfficeSoundscape({ playChime, random: () => 0.5 }));
     await vi.advanceTimersByTimeAsync(FIRST_FIRE_MS);
     expect(playChime).not.toHaveBeenCalled();
+  });
+
+  it('holds while a colleague is speaking, then pays the cue back', async () => {
+    // The bed ducks under narration; a cue cannot, so the director waits. Note
+    // what is being asserted after the line ends: not merely that cues resume,
+    // but that the wait cost nothing — `lastPlayedAt` is untouched while
+    // holding, so the very next tick is eligible rather than owing another
+    // full cruise gap.
+    const playChime = vi.fn();
+    vi.stubGlobal('speechSynthesis', { speaking: true, pending: false });
+    renderHook(() => useOfficeSoundscape({ playChime, random: () => 0.5 }));
+    await vi.advanceTimersByTimeAsync(FIRST_FIRE_MS);
+    expect(playChime).not.toHaveBeenCalled();
+
+    vi.stubGlobal('speechSynthesis', { speaking: false, pending: false });
+    await vi.advanceTimersByTimeAsync(SOUNDSCAPE_TICK_MS);
+    expect(playChime).toHaveBeenCalledTimes(1);
+    vi.unstubAllGlobals();
   });
 });

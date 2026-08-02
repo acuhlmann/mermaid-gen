@@ -93,14 +93,15 @@ describe('HuddleOverlay', () => {
     expect(onAdoptPrompt).toHaveBeenCalledWith('The Auth box is doing two jobs.', 'gilfoyle');
   });
 
-  it('keeps Do it on a seat after that teammate has finished speaking', async () => {
+  it('clears Do it when the turn ends, and brings it back when the face is pinned', async () => {
     render(<HuddleOverlay huddle={huddle()} />);
-    await advanceOneLine();
-    // Dinesh is speaking; Gilfoyle already spoke — both keep a seat-local Do it.
     expect(screen.getByTestId('office-huddle-do-it-gilfoyle')).toBeTruthy();
-    expect(screen.getByTestId('office-huddle-do-it-dinesh')).toBeTruthy();
     await advanceOneLine();
+    // Dinesh has the floor; Gilfoyle's turn is over — no lingering Do it.
+    expect(screen.queryByTestId('office-huddle-do-it-gilfoyle')).toBeNull();
     expect(screen.getByTestId('office-huddle-do-it-dinesh')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: /Pin .*Gilfoyle/i }));
+    expect(screen.getByTestId('office-huddle-do-it-gilfoyle')).toBeTruthy();
   });
 
   it('spreads the seats across all four sides', () => {
@@ -176,7 +177,7 @@ describe('HuddleOverlay', () => {
     const { container } = render(<HuddleOverlay huddle={huddle()} />);
     expect(container.querySelectorAll('.office-huddle-line')).toHaveLength(1);
     await advanceOneLine();
-    // Prior speakers may keep a Do-it-only chip; only one remark line is live.
+    // Prior speakers clear their bubble; only the live remark is on screen.
     expect(container.querySelectorAll('.office-huddle-line')).toHaveLength(1);
   });
 

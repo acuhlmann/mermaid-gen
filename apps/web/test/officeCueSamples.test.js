@@ -143,6 +143,43 @@ describe('officeCueSamples', () => {
     expect(globalThis.fetch).toHaveBeenCalledTimes(2);
   });
 
+  it('gives a second take to every cue that repeats, footsteps most of all', async () => {
+    // Footsteps are the only cue that repeats *within* one gesture — one per
+    // walk leg, where everything else fires at most once per moment — so a
+    // single recording wears through faster here than anywhere in the bank.
+    for (const cue of ['footstepCarpet', 'footstepHard', 'paper']) {
+      _resetCueSamplesForTests();
+      globalThis.fetch.mockClear();
+      playCueSample(cue, ref);
+      await settle();
+      expect(globalThis.fetch, `${cue} should have a second take`).toHaveBeenCalledTimes(2);
+    }
+  });
+
+  it('samples the people, who are the one thing synthesis cannot attempt', () => {
+    // Every cue before slice 3 is an object. The bed murmurs conversation as a
+    // texture, but a texture has no position and cannot be an event.
+    for (const cue of ['laugh', 'cough', 'crowdSettle', 'applause']) {
+      expect(SAMPLED_CUES).toContain(cue);
+    }
+  });
+
+  it('keeps the all-hands crowd near-centred rather than thrown across the room', async () => {
+    // Ambient set pieces are placed randomly because that is what stops a
+    // repeat sounding repeated. The crowd is not somewhere else in the office:
+    // you are in the room with it, so a wide pan would put the company
+    // to your left.
+    playCueSample('applause', ref);
+    playCueSample('printer', ref);
+    await settle();
+
+    playCueSample('applause', ref, () => 1);
+    playCueSample('printer', ref, () => 1);
+
+    const [applausePan, printerPan] = stubs.panners.map((p) => Math.abs(p.pan.value));
+    expect(applausePan).toBeLessThan(printerPan);
+  });
+
   it('plays a decoded variant rather than rolling and hoping', async () => {
     // Only take A resolves; take B never does. Rolling first and checking
     // second would fall back to synthesis half the time for no reason.

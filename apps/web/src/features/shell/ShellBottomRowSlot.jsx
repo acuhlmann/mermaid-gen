@@ -56,7 +56,8 @@ export function ShellBottomRowSlot({
   entryPointers,
   entryTourCopy,
   onAdvanceEntryTour,
-  onDismissEntryTour
+  onDismissEntryTour,
+  liveStreamingEntry = null
 }) {
   return (
     <BottomRow
@@ -98,6 +99,7 @@ export function ShellBottomRowSlot({
           handleFixFromCritique={handleFixFromCritique}
           onToggleThinking={onToggleThinking}
           canToggleThinking
+          liveStreamingEntry={liveStreamingEntry}
           entryTourActive={entryTourActive}
           entryTourStep={entryTourStep}
           entryTourProgress={entryTourProgress}

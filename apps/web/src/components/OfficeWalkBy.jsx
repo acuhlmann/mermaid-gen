@@ -1,8 +1,8 @@
 import { useSyncExternalStore } from 'react';
 import { officeChromeCopy, officeSenderInfo } from '../utils/officeCast.js';
 import { formatLocale } from '../i18n/formatLocale.js';
-import { shouldShowSpokenText } from '../utils/officeCaptions.js';
 import { getOfficeSnapshot, subscribe } from '../state/officeMomentStore.js';
+import { useSpokenLineVoice } from '../hooks/useSpokenLineVoice.js';
 import { PersonaFace } from './personaFaces/index.jsx';
 
 /**
@@ -12,18 +12,32 @@ import { PersonaFace } from './personaFaces/index.jsx';
  *
  * Voice-first: when narration is speaking and captions are off, hide the
  * speech text (you hear them behind you). Keep dismiss / Do it chrome so the
- * interruption stays actionable.
+ * interruption stays actionable. If TTS is muted or fails, the line falls back
+ * to text so the interruption is never silent *and* blank.
+ *
+ * @param {{
+ *   walkBy: { id: string, colleagueId: string, body: string, actionPrompt?: string } | null,
+ *   onDismiss?: (id: string) => void,
+ *   onAdoptPrompt?: (prompt: string, colleagueId: string) => void,
+ *   narrateLine?: (line: { speakerId: string, text: string }) =>
+ *     Promise<{ spoken?: boolean } | void>
+ * }} props
  */
-export default function OfficeWalkBy({ walkBy, onDismiss, onAdoptPrompt }) {
+export default function OfficeWalkBy({ walkBy, onDismiss, onAdoptPrompt, narrateLine }) {
   const snapshot = useSyncExternalStore(subscribe, getOfficeSnapshot, getOfficeSnapshot);
+  const { showSpokenText: showText } = useSpokenLineVoice({
+    captions: snapshot.captions,
+    narration: snapshot.narration,
+    narrateLine,
+    speakerId: walkBy?.colleagueId ?? '',
+    text: walkBy?.body ?? '',
+    lineKey: walkBy?.id ?? null
+  });
+
   if (!walkBy) return null;
 
   const copy = officeChromeCopy();
   const sender = officeSenderInfo(walkBy.colleagueId);
-  const showText = shouldShowSpokenText({
-    captions: snapshot.captions,
-    voiceActive: snapshot.narration
-  });
   // Voice-first: hide the line but keep who it is and the adopt action compact.
   const compactChrome = !showText;
 

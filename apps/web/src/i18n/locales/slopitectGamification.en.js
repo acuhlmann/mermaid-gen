@@ -74,7 +74,8 @@ export const SLOPITECT_GAMIFICATION_EN = {
       incident: 'FinOps has opened a war room. Congratulations, you are the incident.'
     },
     damageTitle: 'Stakeholder Damage Report™',
-    damageLede: 'Lifetime estimated cloud spend you have personally unleashed via agent runs.',
+    damageLede:
+      'Lifetime estimated cloud spend from canvas runs, office chat, meetings, advisors, and explainers.',
     damageFootnote:
       'Not a real invoice. Token math × list prices that refresh from the deployed rate table. Finance still owns the actual bill.'
   },

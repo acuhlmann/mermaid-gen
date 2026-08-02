@@ -143,6 +143,7 @@ function DeskChromeRow({
   thinkingOpen,
   onToggleThinking,
   canToggleThinking = true,
+  liveStreamingEntry = null,
   russStreak,
   controls,
   runTransform,
@@ -267,6 +268,8 @@ function DeskChromeRow({
             thinkingOpen={thinkingOpen}
             onToggleThinking={onToggleThinking}
             disabled={!canToggleThinking}
+            liveEntry={liveStreamingEntry}
+            busy={busy}
           />
         </div>
       ) : null}
@@ -319,6 +322,7 @@ export function DeskBottomActionsSlot({
   handleFixFromCritique,
   onToggleThinking,
   canToggleThinking = true,
+  liveStreamingEntry = null,
   entryTourActive = false,
   entryTourStep = null,
   entryTourProgress = null,
@@ -367,6 +371,7 @@ export function DeskBottomActionsSlot({
     thinkingOpen: insightsOpen,
     onToggleThinking,
     canToggleThinking,
+    liveStreamingEntry,
     russStreak,
     controls,
     runTransform,

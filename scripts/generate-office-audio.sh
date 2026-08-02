@@ -59,6 +59,37 @@ ASSETS=(
   # four. Weighted up in the kitchen zone, which is what gives that corner an
   # identity without a 300-credit room-tone bed of its own.
   "cue-fridge|cue|2|0.55|Office fridge door sucking open, bottles rattling in the shelf, door thudding shut, close-up, no music"
+  #
+  # --- Slice 3: the room has people in it -----------------------------------
+  #
+  # Every cue above this line is an OBJECT. Across a whole session nothing in
+  # this office ever coughed or laughed — the bed murmurs distant conversation
+  # as a texture, but a texture has no position and cannot be an event. These
+  # three are the palette's only structural hole, and the one category
+  # synthesis cannot even attempt: a synthesized cough is unthinkable, where a
+  # synthesized printer is merely bad.
+  #
+  # Lower prompt_influence than the mechanical cues on purpose. High influence
+  # makes the model perform the prompt, and a performed laugh is a caricature;
+  # what is wanted is a room that happens to contain one.
+  "cue-laugh|cue|3|0.4|A short burst of laughter from two or three people across an open-plan office, heard from a distance, dry indoor recording, no music"
+  "cue-cough|cue|2|0.45|One person clearing their throat and coughing once at a desk a few metres away, dry indoor office recording, no music"
+  "cue-phone-buzz|cue|2|0.55|A mobile phone vibrating against a hard desk surface, three short buzzes, close-up, no music"
+  # The all-hands (docs/office-parody.md §10.4) draws an audience row of faces
+  # and fires confetti "for an outcome that does not exist" — and sounded
+  # exactly like a two-person headset call. Applause is that joke's punchline.
+  "cue-crowd-settle|cue|4|0.45|A room full of people settling into seats before a presentation, chairs and murmured conversation dying down, no music"
+  "cue-applause|cue|3|0.45|Scattered polite applause from a small seated audience in a meeting room, no cheering, no music"
+  # Gives the engineering pod an identity the way cue-fridge gave the kitchen
+  # one: a ZONE_CUES row, not a 300-credit bed.
+  "cue-server-rack|cue|2|0.55|Server rack cooling fans whirring with hard drives chattering, heard from a metre away, no music"
+  # Second takes. Same prompt as the base take on purpose — a second take of one
+  # sound, not a different sound. Footsteps need it most: they are the only cue
+  # that repeats WITHIN a single gesture (one per walk leg), so one recording
+  # wears through faster than anything else in the bank.
+  "cue-footstep-carpet-b|cue|2|0.55|Two footsteps walking on office carpet, close-up, dry indoor recording, no music"
+  "cue-footstep-hard-b|cue|2|0.55|Two footsteps walking on hard vinyl office flooring, close-up, dry indoor recording, no music"
+  "cue-paper-b|cue|2|0.55|Shuffling a small stack of paper sheets on a desk, close-up, dry, no music"
 )
 
 # Measured empirically, not documented: the v2 model bills 10 credits/second

@@ -968,15 +968,9 @@ Kept here so appetite can pick without re-deriving. Each should stay bound by AD
   on the bullet's other half — "a few props that today only have a line" — by giving that line
   somewhere to go. `officeFloorProps.test.jsx` pins that every `usablePropKinds()` entry has
   details.
-- ~~**Topic hotspots from the diagram**~~ — ✅ shipped, with a **deliberate change of source**.
-  The bullet wanted the diagram's visible labels, which do not reach the floor; threading them
-  would grow the bridge, `OfficeFloorView` (48 against a max of 12) and `useFloorActivity` — the
-  exact growth § 8 warns about. The office log (`docs/office-parody.md` § 11) carries better
-  material: an adopted pitch quotes real diagram text, and everything else in it is _personal_
-  ("about your email") in a way a node label is not. `officeTalkOpeners.js` ranks what **they**
-  did above what **you** did, never offers to discuss a chat you already had, and always ends
-  with a generic option. Rendered as chips above the composer that **fill it rather than send**,
-  which is what keeps `useFloorTalk`'s "you speak first, no auto-opener" rule literally true.
+- ~~**Topic hotspots from the diagram**~~ — tried as opener chips above the floor composer
+  (ranked from the office log), then **removed**: they ate the talk card and the typed prompt /
+  mic already cover "you speak first". The card is now composer-only.
 - **Soft errands** — Linda asks you to "find Chad and ask about the reply-all"; completing it
   is a reactive IM exchange + a tiny XP beat, not a quest log UI.
 - **Overhear → join** — standing next to a coffee/battle scene offers **Join in** once (already

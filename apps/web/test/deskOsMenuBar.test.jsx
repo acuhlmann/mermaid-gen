@@ -83,12 +83,22 @@ describe('DeskOsMenuBar', () => {
   });
 
   // Eleven export formats used to sit behind an expandable row inside a menu
-  // you had to know to open.
+  // you had to know to open. Renders as a compact counter slip.
   it('opens the mailroom export panel one click deep', () => {
     setup({ contentType: 'mermaid', diagramSource: 'flowchart TD\n  A-->B' });
     openMenu('mailroom');
+    const menu = screen.getByTestId('desk-os-menu-mailroom');
+    expect(menu.className).toContain('desk-os-menu-dropdown--compact');
     expect(screen.getByRole('region', { name: /Mailroom/i })).toBeTruthy();
     expect(screen.getByRole('button', { name: /Export/i })).toBeTruthy();
+    expect(menu.textContent).toMatch(/Window 3/i);
+  });
+
+  it('shows a compact empty slip when the mailroom has nothing to ship', () => {
+    setup({ contentType: 'mermaid', diagramSource: '' });
+    openMenu('mailroom');
+    expect(screen.queryByRole('button', { name: /Export/i })).toBeNull();
+    expect(screen.getByText(/Nothing queued/i)).toBeTruthy();
   });
 
   // These came off the desk stamp: they are once-a-session verbs and were

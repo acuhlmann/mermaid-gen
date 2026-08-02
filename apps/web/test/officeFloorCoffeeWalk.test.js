@@ -5,15 +5,26 @@ import { useFloorCoffeeWalk } from '../src/components/officeFloor/useFloorCoffee
 import { propTileFor } from '../src/utils/officeFloorMovement.js';
 
 describe('useFloorCoffeeWalk', () => {
-  it('walks you to the coffee machine when a break is live', () => {
+  it('walks you to the coffee machine once the break is accepted', () => {
     const walkTo = vi.fn();
     renderHook(() =>
       useFloorCoffeeWalk({
-        coffee: { id: 'coffee-1' },
+        coffee: { id: 'coffee-1', accepted: true },
         walkTo
       })
     );
     expect(walkTo).toHaveBeenCalledWith(propTileFor('coffeeMachine'));
+  });
+
+  it('does not walk while the invite is still pending', () => {
+    const walkTo = vi.fn();
+    renderHook(() =>
+      useFloorCoffeeWalk({
+        coffee: { id: 'coffee-1', accepted: false },
+        walkTo
+      })
+    );
+    expect(walkTo).not.toHaveBeenCalled();
   });
 
   it('does nothing when there is no coffee break', () => {
@@ -26,7 +37,7 @@ describe('useFloorCoffeeWalk', () => {
     const walkTo = vi.fn();
     renderHook(() =>
       useFloorCoffeeWalk({
-        coffee: { id: 'coffee-1' },
+        coffee: { id: 'coffee-1', accepted: true },
         walkTo,
         suspended: true
       })

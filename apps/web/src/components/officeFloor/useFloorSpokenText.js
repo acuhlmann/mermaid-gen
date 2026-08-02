@@ -35,7 +35,9 @@ export function useFloorSpokenText({
   walkBy = null,
   hasActiveSpeech = false,
   /** Coffee/battle pacing lives in `OfficeLayer` — track busy TTS separately. */
-  liftedSceneSpeech = false
+  liftedSceneSpeech = false,
+  /** True when the current lifted coffee/battle line was actually heard (or is speaking). */
+  liftedLineSpoken = false
 }) {
   const [voiceActive, setVoiceActive] = useState(false);
   const [liftedNarrationBusy, setLiftedNarrationBusy] = useState(false);
@@ -134,14 +136,13 @@ export function useFloorSpokenText({
     return undefined;
   }, [walkBy, narrateTracked]);
 
-  // Paced coffee/battle lines are narrated in `OfficeLayer`, not here. Keep
-  // bubbles hidden for the whole accepted scene when voice is on — otherwise
-  // text flashes between beats while TTS is idle (meeting speaker-view parity).
-  const sceneVoiceFirst = Boolean(liftedSceneSpeech && !captions);
-
+  // Paced coffee/battle lines are narrated in `OfficeLayer`. Prefer the
+  // per-line spoken flag from pacing so a failed TTS falls back to bubbles;
+  // busy polling covers the in-flight window between optimistic hide and
+  // the result.
   const showSpokenText = shouldShowSpokenText({
     captions,
-    voiceActive: voiceActive || liftedNarrationBusy || sceneVoiceFirst
+    voiceActive: voiceActive || liftedNarrationBusy || (liftedSceneSpeech && liftedLineSpoken)
   });
 
   return { showSpokenText, sceneHandlersWithVoice };

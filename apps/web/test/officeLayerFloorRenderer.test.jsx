@@ -85,32 +85,39 @@ describe('OfficeLayer floor renderer guards', () => {
     expect(screen.queryByTestId('office-floor')).toBeNull();
   });
 
-  it('shows the floor coffee scene when an invite arrives, not the desk overlay', () => {
+  it('keeps a coffee invite over the desk canvas until you accept', () => {
     pushOfficeCoffeeInvite({ lines: COFFEE_LINES });
 
     render(<OfficeLayer {...BASE_PROPS} />);
 
-    expect(screen.queryByTestId('office-coffee-invite')).toBeNull();
-    expect(screen.getByTestId('office-floor-coffee-invite')).toBeTruthy();
+    expect(screen.getByTestId('office-coffee-invite')).toBeTruthy();
+    expect(screen.queryByTestId('office-floor-coffee-invite')).toBeNull();
+    expect(screen.queryByTestId('office-floor')).toBeNull();
   });
 
-  it('shows the desk coffee overlay or the floor scene, not both', () => {
+  it('stands you up to the floor coffee scene only after you accept', () => {
     pushOfficeCoffeeInvite({ lines: COFFEE_LINES });
 
     render(<OfficeLayer {...BASE_PROPS} />);
-
-    expect(screen.queryByTestId('office-coffee-invite')).toBeNull();
-    expect(screen.getByTestId('office-floor-coffee-invite')).toBeTruthy();
-
-    act(() => sitDown());
 
     expect(screen.getByTestId('office-coffee-invite')).toBeTruthy();
     expect(screen.queryByTestId('office-floor-coffee-invite')).toBeNull();
 
-    act(() => standUp());
+    act(() => acceptOfficeCoffee());
 
     expect(screen.queryByTestId('office-coffee-invite')).toBeNull();
-    expect(screen.getByTestId('office-floor-coffee-invite')).toBeTruthy();
+    expect(screen.getByTestId('office-floor')).toBeTruthy();
+    expect(screen.getByTestId('office-floor-scene-actor-intern')).toBeTruthy();
+
+    act(() => sitDown());
+
+    expect(screen.getByTestId('office-coffee-scene')).toBeTruthy();
+    expect(screen.queryByTestId('office-floor')).toBeNull();
+
+    act(() => standUp());
+
+    expect(screen.queryByTestId('office-coffee-scene')).toBeNull();
+    expect(screen.getByTestId('office-floor-scene-actor-intern')).toBeTruthy();
   });
 
   it('keeps coffee scene pacing when toggling desk and floor mid-break', async () => {

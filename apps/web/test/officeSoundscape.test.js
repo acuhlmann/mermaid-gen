@@ -93,6 +93,20 @@ describe('pickNextSoundscapeCue', () => {
     }
   });
 
+  it('schedules the two cues that used to be diegetic-only', () => {
+    // Both assets were baked for a single walk-up moment — the whiteboard for
+    // standing at it, the door for the Day One check-in — so a returning user
+    // who skipped both heard neither, ever. An ambient row is what makes a
+    // paid sample part of the room rather than part of one gesture.
+    const seen = new Set();
+    for (let i = 0; i < 600; i += 1) {
+      const cue = pickNextSoundscapeCue({ ...BASE, atDesk: false, random: Math.random });
+      if (cue) seen.add(cue);
+    }
+    expect(seen).toContain('whiteboard');
+    expect(seen).toContain('door');
+  });
+
   it('never plays a set piece twice in a row', () => {
     for (const setPiece of [
       'printer',
@@ -101,7 +115,9 @@ describe('pickNextSoundscapeCue', () => {
       'watercooler',
       'chair',
       'vending',
-      'elevator'
+      'elevator',
+      'whiteboard',
+      'door'
     ]) {
       for (let i = 0; i < 200; i += 1) {
         const cue = pickNextSoundscapeCue({ ...BASE, lastCue: setPiece, random: Math.random });

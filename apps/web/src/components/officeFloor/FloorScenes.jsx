@@ -19,7 +19,6 @@ import FloorScene from './FloorScene.jsx';
  *   scale: number,
  *   sceneHandlers?: Record<string, any>,
  *   showSpokenText?: boolean,
- *   showInviteText?: boolean
  * }} props
  */
 export function FloorScenes({
@@ -28,10 +27,15 @@ export function FloorScenes({
   scale,
   sceneHandlers = {},
   showSpokenText = true,
-  showInviteText = true,
   scenePacing = {}
 }) {
-  const { coffeeVisibleLines, battleVisibleLines, battleLinesDone } = scenePacing;
+  const {
+    coffeeVisibleLines,
+    coffeeLineSpoken,
+    battleVisibleLines,
+    battleLineSpoken,
+    battleLinesDone
+  } = scenePacing;
   return (
     <>
       {coffee ? (
@@ -40,13 +44,13 @@ export function FloorScenes({
           scene={coffee}
           scale={scale}
           visibleLines={coffeeVisibleLines}
+          lineSpoken={coffeeLineSpoken}
           narrateLine={sceneHandlers.narrateLine}
           prefetchLine={sceneHandlers.prefetchLine}
           onAccept={sceneHandlers.onAcceptCoffee}
           onDecline={sceneHandlers.onDeclineCoffee}
           onDone={sceneHandlers.onCoffeeDone}
           showSpokenText={showSpokenText}
-          showInviteText={showInviteText}
         />
       ) : null}
       {battle ? (
@@ -55,6 +59,7 @@ export function FloorScenes({
           scene={battle}
           scale={scale}
           visibleLines={battleVisibleLines}
+          lineSpoken={battleLineSpoken}
           linesDone={battleLinesDone}
           narrateLine={sceneHandlers.narrateLine}
           prefetchLine={sceneHandlers.prefetchLine}
@@ -63,7 +68,6 @@ export function FloorScenes({
           onVote={sceneHandlers.onVoteBattle}
           onDone={sceneHandlers.onBattleDone}
           showSpokenText={showSpokenText}
-          showInviteText={showInviteText}
         />
       ) : null}
     </>

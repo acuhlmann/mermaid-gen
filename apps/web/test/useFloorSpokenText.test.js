@@ -42,16 +42,31 @@ describe('useFloorSpokenText', () => {
     await waitFor(() => expect(result.current.showSpokenText).toBe(true));
   });
 
-  it('keeps lifted scene bubbles hidden between paced lines when narration is on', async () => {
+  it('keeps lifted scene bubbles hidden while the current paced line was heard', async () => {
     const narrateLine = vi.fn(() => Promise.resolve({ spoken: true }));
     const { result } = renderHook(() =>
       useFloorSpokenText({
         captions: false,
         sceneHandlers: { narrateLine },
         liftedSceneSpeech: true,
+        liftedLineSpoken: true,
         hasActiveSpeech: true
       })
     );
     await waitFor(() => expect(result.current.showSpokenText).toBe(false));
+  });
+
+  it('shows lifted scene bubbles when the paced line was silent', async () => {
+    const narrateLine = vi.fn(() => Promise.resolve({ spoken: true }));
+    const { result } = renderHook(() =>
+      useFloorSpokenText({
+        captions: false,
+        sceneHandlers: { narrateLine },
+        liftedSceneSpeech: true,
+        liftedLineSpoken: false,
+        hasActiveSpeech: true
+      })
+    );
+    await waitFor(() => expect(result.current.showSpokenText).toBe(true));
   });
 });

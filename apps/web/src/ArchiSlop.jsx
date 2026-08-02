@@ -979,6 +979,7 @@ export function ArchiSlop() {
           entryTourStep={entryTourStep}
           entryTourProgress={entryTourProgress}
           entryPointers={controls.prompt.entryPointers ?? []}
+          liveStreamingEntry={liveStreamingEntry}
         />
       ) : null}
       {/* First run arrives through the floor (ADR-0011 slice 3); the card tour

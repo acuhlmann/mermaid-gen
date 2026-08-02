@@ -15,17 +15,26 @@
  * Assets are baked at build time — see docs/audio-assets.md.
  */
 import { getContext } from './agentChimes.js';
+import applauseUrl from '../assets/audio/cue-applause.mp3';
 import chairUrl from '../assets/audio/cue-chair.mp3';
 import chairsGatherUrl from '../assets/audio/cue-chairs-gather.mp3';
+import coughUrl from '../assets/audio/cue-cough.mp3';
+import crowdSettleUrl from '../assets/audio/cue-crowd-settle.mp3';
 import doorUrl from '../assets/audio/cue-door-badge.mp3';
 import espressoUrl from '../assets/audio/cue-espresso.mp3';
 import footstepCarpetUrl from '../assets/audio/cue-footstep-carpet.mp3';
+import footstepCarpetBUrl from '../assets/audio/cue-footstep-carpet-b.mp3';
 import footstepHardUrl from '../assets/audio/cue-footstep-hard.mp3';
+import footstepHardBUrl from '../assets/audio/cue-footstep-hard-b.mp3';
 import fridgeUrl from '../assets/audio/cue-fridge.mp3';
 import keyboardUrl from '../assets/audio/cue-keyboard.mp3';
 import keyboardBUrl from '../assets/audio/cue-keyboard-b.mp3';
+import laughUrl from '../assets/audio/cue-laugh.mp3';
 import paperUrl from '../assets/audio/cue-paper.mp3';
+import paperBUrl from '../assets/audio/cue-paper-b.mp3';
+import phoneBuzzUrl from '../assets/audio/cue-phone-buzz.mp3';
 import printerUrl from '../assets/audio/cue-printer.mp3';
+import serverRackUrl from '../assets/audio/cue-server-rack.mp3';
 import vendingUrl from '../assets/audio/cue-vending.mp3';
 import watercoolerUrl from '../assets/audio/cue-watercooler.mp3';
 import whiteboardUrl from '../assets/audio/cue-whiteboard.mp3';
@@ -48,15 +57,19 @@ import whiteboardUrl from '../assets/audio/cue-whiteboard.mp3';
  * caller passes an explicit `pan` (footsteps, which belong to somebody you can
  * see) uses `spread` only as the fallback when it does not.
  *
- * `urls` is a list because one recording of a frequent cue wears thin: keyboard
- * fires ~4× more often than any set piece, so it has a second take picked at
- * random per play. Variants are takes of *one* sound, never two sounds — they
- * share a gain and a spread because they are meant to be indistinguishable in
- * placement and level, and different only in detail.
+ * `urls` is a list because one recording of a frequent cue wears thin, so the
+ * four cues that fire most often have a second take picked at random per play:
+ * keyboard (~4× any set piece), paper, and **both footstep surfaces** — the
+ * footsteps matter most, because they are the only cue that repeats inside a
+ * single gesture (one per walk leg) rather than once per moment. Variants are
+ * takes of *one* sound, never two sounds — they share a gain and a spread
+ * because they are meant to be indistinguishable in placement and level, and
+ * different only in detail. The slice-3 takes came in within ~2 dB of their
+ * originals measured, which is what makes one shared gain honest.
  */
 const SAMPLES = {
   keyboard: { urls: [keyboardUrl, keyboardBUrl], gain: 0.028, spread: 0.15 },
-  paper: { urls: [paperUrl], gain: 0.018, spread: 0.15 },
+  paper: { urls: [paperUrl, paperBUrl], gain: 0.018, spread: 0.15 },
   chair: { urls: [chairUrl], gain: 0.012, spread: 0.25 },
   printer: { urls: [printerUrl], gain: 0.0099, spread: 0.7 },
   watercooler: { urls: [watercoolerUrl], gain: 0.0155, spread: 0.6 },
@@ -74,12 +87,51 @@ const SAMPLES = {
    * the only sample that repeats *within* a single gesture, and repetitive plus
    * loud is the shortest path to a sound people turn off.
    */
-  footstepCarpet: { urls: [footstepCarpetUrl], gain: 0.007, spread: 0.5 },
-  footstepHard: { urls: [footstepHardUrl], gain: 0.007, spread: 0.5 },
+  footstepCarpet: { urls: [footstepCarpetUrl, footstepCarpetBUrl], gain: 0.007, spread: 0.5 },
+  footstepHard: { urls: [footstepHardUrl, footstepHardBUrl], gain: 0.007, spread: 0.5 },
   chairsGather: { urls: [chairsGatherUrl], gain: 0.0099, spread: 0.3 },
-  door: { urls: [doorUrl], gain: 0.0127, spread: 0 },
+  /*
+   * `spread` was 0 while the door was Day-One-only: that play passes `near`,
+   * and `makePanner` short-circuits on `near` before it ever reads `spread`,
+   * so the field was dead either way. Now that the door also plays ambiently
+   * it needs the widest placement in the table — the entrance is the one thing
+   * in this room that is definitely not where you are sitting. The Day One
+   * check-in is unaffected for the same reason it always was.
+   */
+  door: { urls: [doorUrl], gain: 0.0127, spread: 0.8 },
   whiteboard: { urls: [whiteboardUrl], gain: 0.0085, spread: 0.3 },
-  fridge: { urls: [fridgeUrl], gain: 0.0099, spread: 0.6 }
+  fridge: { urls: [fridgeUrl], gain: 0.0099, spread: 0.6 },
+  /*
+   * Slice 3, and a different derivation — see docs/audio-assets.md.
+   *
+   * Everything above inherits `synthPeakGain / 0.708` from the cue it replaced.
+   * These have no predecessor **and no synth fallback** (below), so that rule
+   * has nothing to inherit from. They are matched by measured **integrated
+   * loudness** instead: gain = 10^((target − LUFS)/20), where `target` is the
+   * effective playback level in dB. That is the number the peak-normalizing
+   * pipeline cannot give you — it equalizes peaks, and a 2 s phone buzz has far
+   * more energy under an identical peak than a paper shuffle does.
+   *
+   * The shipped table turns out to already work this way, it just never said
+   * so: keyboard is the *quietest* source (−28.1 LUFS) and carries the
+   * *highest* gain (0.028), landing at −59 dB effective, while the printer
+   * (−14.9 LUFS, gain 0.0099) lands at −55. The range in use is −55 (printer,
+   * the most present set piece) to −71 (footsteps, the only cue that repeats
+   * inside one gesture).
+   *
+   * Targets chosen against that range: −63/−64 for the ambient people and the
+   * server rack (present but never the subject), −58 for the two all-hands
+   * cues (they *are* the moment). Loudness-matching is not attention-matching,
+   * though — a laugh pulls the ear harder than a printer at the same LUFS — so
+   * these still want the ear pass that open item 6 describes.
+   */
+  laugh: { urls: [laughUrl], gain: 0.0034, spread: 0.85 },
+  cough: { urls: [coughUrl], gain: 0.0056, spread: 0.8 },
+  phoneBuzz: { urls: [phoneBuzzUrl], gain: 0.002, spread: 0.7 },
+  serverRack: { urls: [serverRackUrl], gain: 0.003, spread: 0.75 },
+  // The all-hands pair. Centred: you are in the room, not beside it.
+  crowdSettle: { urls: [crowdSettleUrl], gain: 0.009, spread: 0.2 },
+  applause: { urls: [applauseUrl], gain: 0.011, spread: 0.2 }
 };
 
 /** Standing next to the source — louder, centred, not "down the hall". */

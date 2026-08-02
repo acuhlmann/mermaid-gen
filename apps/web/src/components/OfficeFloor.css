@@ -1071,34 +1071,6 @@
   cursor: default;
 }
 
-/* Dialogue options, above the composer they fill. Wrapped rather than scrolled:
-   there are at most three and they are short, so a row that wraps to two lines
-   is calmer than one that hides an option off-edge. */
-.office-floor-talk-openers {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.3rem;
-  margin: 0.5rem 0 0;
-}
-
-.office-floor-talk-opener {
-  border: 1px dashed var(--control-border);
-  border-radius: 999px;
-  background: transparent;
-  font: inherit;
-  font-size: 0.72rem;
-  color: var(--muted);
-  padding: 0.22rem 0.6rem;
-  cursor: pointer;
-  text-align: left;
-}
-
-.office-floor-talk-opener:hover,
-.office-floor-talk-opener:focus-visible {
-  border-style: solid;
-  color: var(--text);
-}
-
 .office-floor-talk-compose {
   display: flex;
   gap: 0.35rem;
@@ -1108,9 +1080,14 @@
 
 .office-floor-talk-mic {
   flex: 0 0 auto;
+  min-width: 2.25rem;
+  min-height: 2.25rem;
   padding: 0.2rem 0.45rem;
   font-size: 0.7rem;
   align-self: stretch;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .office-floor-talk-mic .button-label {

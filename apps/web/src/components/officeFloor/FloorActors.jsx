@@ -50,8 +50,7 @@ import FloorWanderer from './FloorWanderer.jsx';
  *   presence?: any,
  *   onPresenceArrive?: () => void,
  *   playerRef?: { current: HTMLElement | null },
- *   showSpokenText?: boolean,
- *   showInviteText?: boolean
+ *   showSpokenText?: boolean
  * }} props `selectedId` / `speakingId` / `onSelect` are the stage's own names for
  *   the same three things, because since slice 12 a figure on the stage can be
  *   selected whether it is in a chair or stood at the printer, and it should not
@@ -86,8 +85,7 @@ export function FloorActors({
   onPresenceArrive,
   onStep,
   playerRef,
-  showSpokenText = true,
-  showInviteText = true
+  showSpokenText = true
 }) {
   return (
     <>
@@ -98,7 +96,6 @@ export function FloorActors({
         sceneHandlers={sceneHandlers}
         scenePacing={scenePacing}
         showSpokenText={showSpokenText}
-        showInviteText={showInviteText}
       />
 
       {/* Somebody who has got up for a minute. Still deliberately absent from

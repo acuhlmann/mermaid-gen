@@ -65,9 +65,11 @@ function DeliverableMenu({ menu, copy, controls, actions, options }) {
 
 /**
  * Shipping it out. The 11 export formats were two clicks deep — an expandable
- * row inside a menu you had to know to open.
+ * row inside a menu you had to know to open. Renders as a compact counter slip
+ * rather than a full-width verb column.
  */
 function MailroomMenu({ menu, settings, options }) {
+  const counterLabel = settings.outboxCounter ?? 'Window 3 · Outgoing';
   return (
     <DeskOsMenu
       {...menu}
@@ -75,9 +77,14 @@ function MailroomMenu({ menu, settings, options }) {
       emoji="📤"
       title={settings.outboxTitle ?? settings.outboxLabel}
       menuAria={settings.outboxRegion ?? settings.outboxLabel}
+      compact
     >
       {() => (
-        <div className="desk-os-menu-panel">
+        <div className="desk-os-menu-panel desk-os-mailroom">
+          <div className="desk-os-mailroom-header" aria-hidden="true">
+            <span className="desk-os-mailroom-stamp">📮</span>
+            <span className="desk-os-mailroom-counter">{counterLabel}</span>
+          </div>
           <OutboxDock
             embedded
             controls={settings}
