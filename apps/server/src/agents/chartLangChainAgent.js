@@ -75,7 +75,7 @@ function extractChartDslFromAssistantResult(result) {
   return null;
 }
 
-function buildIntentUserContent({ prompt, currentDsl, peerContext, focusScope }) {
+function buildIntentUserContent({ prompt, currentDsl, peerContext, focusScope, uiLocale }) {
   const parts = [];
   parts.push(`User request: ${prompt.trim()}`);
   if (currentDsl?.trim()) {
@@ -90,7 +90,7 @@ function buildIntentUserContent({ prompt, currentDsl, peerContext, focusScope })
   }
   if (focusScope?.trim()) parts.push(focusScope.trim());
   parts.push('Call apply_chart_patch with the full JSON wrapper.');
-  return appendLanguageInstruction(parts.join('\n\n'), prompt, currentDsl);
+  return appendLanguageInstruction(parts.join('\n\n'), prompt, currentDsl, { uiLocale });
 }
 
 export function buildChartTransformUserContent({
@@ -127,7 +127,8 @@ export function buildChartAnalyzeUserContent({
   currentDsl,
   focusScope,
   advisorPrompt,
-  lastUserPrompt
+  lastUserPrompt,
+  uiLocale
 }) {
   const task = kind === 'jared' ? CHART_CRITIQUE_TASK : CHART_EXPLAIN_TASK;
   return appendProseLanguageInstruction(
@@ -141,7 +142,8 @@ export function buildChartAnalyzeUserContent({
       .join('\n\n'),
     lastUserPrompt,
     currentDsl,
-    advisorPrompt
+    advisorPrompt,
+    { uiLocale }
   );
 }
 
@@ -263,7 +265,15 @@ export function createChartLangChainAgent({
   }
 
   return {
-    async applyIntent({ prompt, focusNode, modelProfile, emit, peerContext, abortSignal }) {
+    async applyIntent({
+      prompt,
+      focusNode,
+      modelProfile,
+      emit,
+      peerContext,
+      abortSignal,
+      uiLocale
+    }) {
       const slot = stateStore.getSlot('chart');
       const profile = normalizeModelProfile(modelProfile);
       const focusScope = buildChartFocusScopeInstructions(focusNode);
@@ -274,7 +284,8 @@ export function createChartLangChainAgent({
             prompt,
             currentDsl: slot.diagramSource,
             peerContext,
-            focusScope
+            focusScope,
+            uiLocale
           })
         }
       ];
@@ -300,7 +311,8 @@ export function createChartLangChainAgent({
       emit,
       russDepth,
       abortSignal,
-      advisorPrompt
+      advisorPrompt,
+      uiLocale
     }) {
       const slot = stateStore.getSlot('chart');
       if (!slot.diagramSource?.trim()) {
@@ -321,7 +333,8 @@ export function createChartLangChainAgent({
             }),
             slot.lastUserPrompt,
             slot.diagramSource,
-            advisorPrompt
+            advisorPrompt,
+            { uiLocale }
           )
         }
       ];
@@ -366,7 +379,7 @@ export function createChartLangChainAgent({
       });
     },
 
-    async applyAnalyzeIntent({ kind, focusNode, modelProfile, emit, advisorPrompt }) {
+    async applyAnalyzeIntent({ kind, focusNode, modelProfile, emit, advisorPrompt, uiLocale }) {
       const slot = stateStore.getSlot('chart');
       if (!slot.diagramSource?.trim()) {
         return { message: 'Nothing to analyze — generate a chart first.', raw: null };
@@ -384,7 +397,8 @@ export function createChartLangChainAgent({
             currentDsl: slot.diagramSource,
             focusScope,
             advisorPrompt,
-            lastUserPrompt: slot.lastUserPrompt
+            lastUserPrompt: slot.lastUserPrompt,
+            uiLocale
           })
         )
       ];

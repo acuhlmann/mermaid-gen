@@ -1,7 +1,7 @@
 /**
  * Lightweight Chinese script detection so agents reply in the same language
  * the user wrote. Single-pass, no LLM calls — only appends a prompt suffix
- * when enough Han characters are present.
+ * when enough Han characters are present or the UI locale requires it.
  */
 
 const CJK_HAN_RE = /\p{Script=Han}/gu;
@@ -130,6 +130,29 @@ const TRADITIONAL_MARKERS = new Set(SCRIPT_PAIRS.map(([, t]) => t));
 export type PromptLanguageHint =
   'Simplified Chinese (zh-CN)' | 'Traditional Chinese (zh-TW)' | 'Chinese (zh)';
 
+export type OutputLanguageHint = PromptLanguageHint | 'English';
+
+export type LanguageLockOptions = {
+  uiLocale?: string | null | undefined;
+};
+
+function resolveUiLocaleOutputHint(
+  uiLocale?: string | null | undefined
+): OutputLanguageHint | null {
+  const raw = typeof uiLocale === 'string' ? uiLocale.trim().toLowerCase() : '';
+  if (!raw) return null;
+  if (raw.startsWith('zh-tw') || raw.startsWith('cmn-tw')) {
+    return 'Traditional Chinese (zh-TW)';
+  }
+  if (raw.startsWith('zh') || raw.startsWith('cmn')) {
+    return 'Simplified Chinese (zh-CN)';
+  }
+  if (raw === 'en-au' || raw === 'en' || raw.startsWith('en')) {
+    return 'English';
+  }
+  return null;
+}
+
 function classifyChineseVariant(text: string): PromptLanguageHint {
   let simplified = 0;
   let traditional = 0;
@@ -171,43 +194,98 @@ export function resolvePromptLanguageHint(
   return null;
 }
 
+/** Map a UI locale tag to the output language agents must use. */
+export function uiLocaleToOutputHint(uiLocale: string): OutputLanguageHint | null {
+  return resolveUiLocaleOutputHint(uiLocale);
+}
+
+/**
+ * Resolve the output language from user text first, then the UI locale.
+ * User-written Chinese always wins over an English UI locale.
+ */
+export function resolveOutputLanguageHint(
+  uiLocale?: string | null | undefined,
+  ...sources: (string | null | undefined)[]
+): OutputLanguageHint | null {
+  const fromText = resolvePromptLanguageHint(...sources);
+  if (fromText) return fromText;
+  return resolveUiLocaleOutputHint(uiLocale);
+}
+
+function parseLanguageLockArgs(args: Array<string | null | undefined | LanguageLockOptions>): {
+  sources: Array<string | null | undefined>;
+  options: LanguageLockOptions;
+} {
+  const last = args[args.length - 1];
+  if (last != null && typeof last === 'object' && 'uiLocale' in last) {
+    return {
+      sources: args.slice(0, -1) as Array<string | null | undefined>,
+      options: last as LanguageLockOptions
+    };
+  }
+  return { sources: args as Array<string | null | undefined>, options: {} };
+}
+
 const LANGUAGE_LOCK_BODY =
   'Do NOT translate unprompted. Do NOT convert between simplified and traditional unless the user asked. Do NOT add second-language alternates. This is NON-NEGOTIABLE for this turn.';
 
+const ENGLISH_NON_LATIN_GUARD =
+  'Do NOT emit Chinese (Simplified or Traditional), Japanese, or Korean unless the user explicitly requested that language.';
+
+function formatDiagramLanguageLock(hint: OutputLanguageHint): string {
+  if (hint === 'English') {
+    return `\n\nLANGUAGE LOCK: Output ALL reader-facing text (labels, titles, headings, edge labels, prose summaries) in English. ${ENGLISH_NON_LATIN_GUARD} Keep proper nouns, product names, and technical acronyms as-is. ${LANGUAGE_LOCK_BODY}`;
+  }
+  return `\n\nLANGUAGE LOCK: Output ALL reader-facing text (labels, titles, headings, edge labels, prose summaries) in ${hint}. ${LANGUAGE_LOCK_BODY}`;
+}
+
+function formatProseLanguageLock(hint: OutputLanguageHint): string {
+  if (hint === 'English') {
+    return `\n\nLANGUAGE LOCK: Write ALL prose (Markdown section headings and body text) in English. ${ENGLISH_NON_LATIN_GUARD} Keep proper nouns and technical acronyms as-is. ${LANGUAGE_LOCK_BODY}`;
+  }
+  return `\n\nLANGUAGE LOCK: Write ALL prose (Markdown section headings and body text) in ${hint}. Keep proper nouns and technical acronyms as-is. ${LANGUAGE_LOCK_BODY}`;
+}
+
 /**
  * Hard lock for diagram labels, titles, and mixed prose+label output.
- * Appends nothing when Chinese is not detected.
+ * Appends nothing when no language hint resolves.
  */
-export function buildLanguageInstruction(...sources: (string | null | undefined)[]): string {
-  const hint = resolvePromptLanguageHint(...sources);
+export function buildLanguageInstruction(
+  ...args: Array<string | null | undefined | LanguageLockOptions>
+): string {
+  const { sources, options } = parseLanguageLockArgs(args);
+  const hint = resolveOutputLanguageHint(options.uiLocale, ...sources);
   if (!hint) return '';
-  return `\n\nLANGUAGE LOCK: Output ALL reader-facing text (labels, titles, headings, edge labels, prose summaries) in ${hint}. ${LANGUAGE_LOCK_BODY}`;
+  return formatDiagramLanguageLock(hint);
 }
 
 /**
  * Hard lock for read-only analysis (Explain / Critique) section prose.
  */
-export function buildProseLanguageInstruction(...sources: (string | null | undefined)[]): string {
-  const hint = resolvePromptLanguageHint(...sources);
+export function buildProseLanguageInstruction(
+  ...args: Array<string | null | undefined | LanguageLockOptions>
+): string {
+  const { sources, options } = parseLanguageLockArgs(args);
+  const hint = resolveOutputLanguageHint(options.uiLocale, ...sources);
   if (!hint) return '';
-  return `\n\nLANGUAGE LOCK: Write ALL prose (Markdown section headings and body text) in ${hint}. Keep proper nouns and technical acronyms as-is. ${LANGUAGE_LOCK_BODY}`;
+  return formatProseLanguageLock(hint);
 }
 
-/** Append {@link buildLanguageInstruction} when a Chinese hint resolves. */
+/** Append {@link buildLanguageInstruction} when a language hint resolves. */
 export function appendLanguageInstruction(
   content: string,
-  ...sources: (string | null | undefined)[]
+  ...args: Array<string | null | undefined | LanguageLockOptions>
 ): string {
-  const instruction = buildLanguageInstruction(...sources);
+  const instruction = buildLanguageInstruction(...args);
   return instruction ? `${content}${instruction}` : content;
 }
 
-/** Append {@link buildProseLanguageInstruction} when a Chinese hint resolves. */
+/** Append {@link buildProseLanguageInstruction} when a language hint resolves. */
 export function appendProseLanguageInstruction(
   content: string,
-  ...sources: (string | null | undefined)[]
+  ...args: Array<string | null | undefined | LanguageLockOptions>
 ): string {
-  const instruction = buildProseLanguageInstruction(...sources);
+  const instruction = buildProseLanguageInstruction(...args);
   return instruction ? `${content}${instruction}` : content;
 }
 

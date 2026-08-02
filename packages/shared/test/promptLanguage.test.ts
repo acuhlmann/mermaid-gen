@@ -6,6 +6,7 @@ import {
   buildLanguageInstruction,
   buildProseLanguageInstruction,
   detectPromptLanguageHint,
+  resolveOutputLanguageHint,
   resolvePromptLanguageHint
 } from '../src/promptLanguage.js';
 
@@ -66,6 +67,24 @@ describe('buildLanguageInstruction', () => {
     assert.equal(buildLanguageInstruction('hello world'), '');
   });
 
+  it('adds an English lock for English UI locales', () => {
+    const block = buildLanguageInstruction('draw login', { uiLocale: 'en' });
+    assert.match(block, /LANGUAGE LOCK/);
+    assert.match(block, /in English/);
+    assert.match(block, /Do NOT emit Chinese/);
+  });
+
+  it('prefers user-written Chinese over an English UI locale', () => {
+    const block = buildLanguageInstruction('创建架构图', { uiLocale: 'en' });
+    assert.match(block, /Simplified Chinese \(zh-CN\)/);
+    assert.doesNotMatch(block, /in English/);
+  });
+
+  it('forces Traditional Chinese from zh-TW UI when the prompt is English', () => {
+    const block = buildLanguageInstruction('draw login', { uiLocale: 'zh-TW' });
+    assert.match(block, /Traditional Chinese \(zh-TW\)/);
+  });
+
   it('embeds simplified Chinese lock for simplified prompts', () => {
     const block = buildLanguageInstruction('创建架构图');
     assert.match(block, /LANGUAGE LOCK/);
@@ -80,9 +99,24 @@ describe('buildLanguageInstruction', () => {
   });
 });
 
+describe('resolveOutputLanguageHint', () => {
+  it('maps English UI locales to English', () => {
+    assert.equal(resolveOutputLanguageHint('en', 'draw login'), 'English');
+    assert.equal(resolveOutputLanguageHint('en-AU', 'draw login'), 'English');
+  });
+
+  it('prefers detected Chinese over English UI locale', () => {
+    assert.equal(resolveOutputLanguageHint('en', '创建架构图'), 'Simplified Chinese (zh-CN)');
+  });
+});
 describe('append helpers', () => {
   it('appendLanguageInstruction leaves Latin prompts unchanged', () => {
     assert.equal(appendLanguageInstruction('base', 'hello'), 'base');
+  });
+
+  it('appendLanguageInstruction adds English lock when UI locale is English', () => {
+    const out = appendLanguageInstruction('base', 'draw login', { uiLocale: 'en' });
+    assert.match(out, /in English/);
   });
 
   it('appendProseLanguageInstruction appends for Chinese diagram labels', () => {

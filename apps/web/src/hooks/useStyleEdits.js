@@ -33,6 +33,7 @@ export function useStyleEdits({
   contentMode,
   loadingRef,
   modelProfile,
+  uiLocale,
   setActiveRequest,
   setError,
   setInsightsOpen,
@@ -86,7 +87,8 @@ export function useStyleEdits({
             contentType: contentMode,
             settings: {},
             modelProfile,
-            sessionId: activeSessionId
+            sessionId: activeSessionId,
+            uiLocale
           });
           animateAcceptedSource(result.state);
           return;

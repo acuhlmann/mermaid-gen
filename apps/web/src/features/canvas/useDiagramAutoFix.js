@@ -31,6 +31,7 @@ export function useDiagramAutoFix({
   loading,
   loadingRef,
   modelProfile,
+  uiLocale,
   setActiveRequest,
   setError,
   setLoading,
@@ -82,7 +83,8 @@ export function useDiagramAutoFix({
           diagramSource: syncedState.diagramSource,
           settings: {},
           modelProfile,
-          sessionId: activeSessionId
+          sessionId: activeSessionId,
+          uiLocale
         });
 
         animateAcceptedSource(result.state);
@@ -97,6 +99,7 @@ export function useDiagramAutoFix({
       animateAcceptedSource,
       contentMode,
       modelProfile,
+      uiLocale,
       setActiveRequest,
       setError,
       setLoading

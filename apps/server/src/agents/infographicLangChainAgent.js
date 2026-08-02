@@ -108,7 +108,14 @@ function defaultChatModelFactory(env, options) {
   return createLlmChatModel(env, options);
 }
 
-function buildIntentUserContent({ prompt, focusScope, currentDsl, peerMermaid, transformPersona }) {
+function buildIntentUserContent({
+  prompt,
+  focusScope,
+  currentDsl,
+  peerMermaid,
+  transformPersona,
+  uiLocale
+}) {
   const peerBlock =
     typeof peerMermaid === 'string' && peerMermaid.trim()
       ? `Cross-format / mode switch: reproduce the same information as the peer Mermaid diagram below as Infographic DSL (entities, flow, labels). Prefer this source over improvising from the topic text alone.
@@ -120,7 +127,7 @@ ${peerMermaid.trim()}
 
 `
       : '';
-  const languageInstruction = buildLanguageInstruction(prompt, currentDsl);
+  const languageInstruction = buildLanguageInstruction(prompt, currentDsl, { uiLocale });
   const personaBlock =
     transformPersona && INFOGRAPHIC_INTENT_PERSONA_INSTRUCTIONS[transformPersona]
       ? `\n\n${INFOGRAPHIC_INTENT_PERSONA_INSTRUCTIONS[transformPersona]}`
@@ -160,13 +167,15 @@ function buildAnalysisUserContentWithLanguage({
   focusScope,
   currentDsl,
   advisorPrompt,
-  lastUserPrompt
+  lastUserPrompt,
+  uiLocale
 }) {
   return appendProseLanguageInstruction(
     buildAnalysisUserContent({ task, focusScope, currentDsl, advisorPrompt }),
     lastUserPrompt,
     currentDsl,
-    advisorPrompt
+    advisorPrompt,
+    { uiLocale }
   );
 }
 
@@ -660,7 +669,8 @@ export function createInfographicLangChainAgent({
       emit,
       peerContext,
       transformPersona,
-      abortSignal
+      abortSignal,
+      uiLocale
     }) {
       const slot = stateStore.getSlot('infographic');
       const focusScope = buildFocusScopeInstructions(focusNode);
@@ -685,7 +695,8 @@ export function createInfographicLangChainAgent({
                 focusScope,
                 currentDsl: stateStore.getSlot('infographic').diagramSource,
                 peerMermaid,
-                transformPersona: personaMode ?? transformPersona
+                transformPersona: personaMode ?? transformPersona,
+                uiLocale
               })
             }
           ],
@@ -723,7 +734,8 @@ export function createInfographicLangChainAgent({
       emit,
       russDepth,
       advisorPrompt,
-      abortSignal
+      abortSignal,
+      uiLocale
     }) {
       const depth = mode === 'russ' ? clampRussDepth(russDepth ?? 1) : null;
       return withInfographicTransformContext(stateStore, { mode, russDepth: depth }, async () => {
@@ -753,7 +765,8 @@ export function createInfographicLangChainAgent({
             advisorPrompt
           }),
           originalRequest,
-          slot.diagramSource
+          slot.diagramSource,
+          { uiLocale }
         );
 
         return invokeWithRepair(
@@ -775,7 +788,7 @@ export function createInfographicLangChainAgent({
       });
     },
 
-    async applyAnalyzeIntent({ kind, focusNode, modelProfile, emit, advisorPrompt }) {
+    async applyAnalyzeIntent({ kind, focusNode, modelProfile, emit, advisorPrompt, uiLocale }) {
       const slot = stateStore.getSlot('infographic');
       const focusScope = buildAnalyzeFocusInstructions(focusNode, kind);
       const task = kind === 'jared' ? INFOGRAPHIC_CRITIQUE_TASK : INFOGRAPHIC_EXPLAIN_TASK;
@@ -793,7 +806,8 @@ export function createInfographicLangChainAgent({
             focusScope,
             currentDsl: slot.diagramSource,
             advisorPrompt,
-            lastUserPrompt: slot.lastUserPrompt
+            lastUserPrompt: slot.lastUserPrompt,
+            uiLocale
           })
         )
       ];

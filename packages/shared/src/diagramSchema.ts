@@ -5,6 +5,9 @@ import {
   parseMermaidStyleConfig
 } from './mermaidStyle.js';
 
+/** BCP-47-ish locale the web UI sends so agents match chrome language. */
+export const UiLocaleSchema = z.enum(['en', 'en-AU', 'zh-CN', 'zh-TW']);
+
 export const ContentTypeSchema = z.enum([
   'mermaid',
   'infographic',
@@ -178,7 +181,8 @@ export const DiagramIntentSchema = z
     focusNode: FocusNodeSchema.optional(),
     modelProfile: ModelProfileSchema.optional(),
     peerContext: IntentPeerContextSchema.optional(),
-    transformPersona: TransformPersonaSchema.optional()
+    transformPersona: TransformPersonaSchema.optional(),
+    uiLocale: UiLocaleSchema.optional()
   })
   .superRefine((val, ctx) => {
     if (!val.peerContext) return;
@@ -211,7 +215,8 @@ export const DiagramTransformIntentSchema = z.object({
   modelProfile: ModelProfileSchema.optional(),
   russDepth: RussDepthSchema,
   /** Stakeholder bubble text when transform is triggered from advisor "Do it". */
-  advisorPrompt: z.string().max(400).optional()
+  advisorPrompt: z.string().max(400).optional(),
+  uiLocale: UiLocaleSchema.optional()
 });
 
 export const DiagramAnalyzeSchema = z.object({
@@ -222,7 +227,8 @@ export const DiagramAnalyzeSchema = z.object({
   focusNode: FocusNodeSchema.optional(),
   modelProfile: ModelProfileSchema.optional(),
   /** Stakeholder bubble text when analyze is triggered from advisor accept or Drill Deeper. */
-  advisorPrompt: z.string().max(400).optional()
+  advisorPrompt: z.string().max(400).optional(),
+  uiLocale: UiLocaleSchema.optional()
 });
 
 /**
@@ -255,7 +261,8 @@ export const AgentStreamPayloadSchema = z.discriminatedUnion('operation', [
       focusNode: FocusNodeSchema.optional(),
       modelProfile: ModelProfileSchema.optional(),
       peerContext: IntentPeerContextSchema.optional(),
-      transformPersona: TransformPersonaSchema.optional()
+      transformPersona: TransformPersonaSchema.optional(),
+      uiLocale: UiLocaleSchema.optional()
     })
     .superRefine((val, ctx) => {
       if (!val.peerContext) return;
@@ -284,7 +291,8 @@ export const AgentStreamPayloadSchema = z.discriminatedUnion('operation', [
     focusNode: FocusNodeSchema.optional(),
     modelProfile: ModelProfileSchema.optional(),
     russDepth: RussDepthSchema,
-    advisorPrompt: z.string().max(400).optional()
+    advisorPrompt: z.string().max(400).optional(),
+    uiLocale: UiLocaleSchema.optional()
   }),
   z.object({
     operation: z.literal('analyze'),
@@ -294,7 +302,8 @@ export const AgentStreamPayloadSchema = z.discriminatedUnion('operation', [
     kind: z.enum(['jared', 'richard']),
     focusNode: FocusNodeSchema.optional(),
     modelProfile: ModelProfileSchema.optional(),
-    advisorPrompt: z.string().max(400).optional()
+    advisorPrompt: z.string().max(400).optional(),
+    uiLocale: UiLocaleSchema.optional()
   })
 ]);
 
@@ -311,7 +320,8 @@ export const StyleIntentSchema = z
     modelProfile: ModelProfileSchema.optional(),
     peerContext: IntentPeerContextSchema.optional(),
     transformPersona: TransformPersonaSchema.optional(),
-    stylePrompt: z.string().min(1).optional()
+    stylePrompt: z.string().min(1).optional(),
+    uiLocale: UiLocaleSchema.optional()
   })
   .superRefine((val, ctx) => {
     if (!val.peerContext) return;

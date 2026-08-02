@@ -934,7 +934,8 @@ export function createMermaidLangChainAgent({
       modelProfile,
       emit,
       peerContext,
-      abortSignal
+      abortSignal,
+      uiLocale
     }) {
       const resolvedSettings = { ...INTENT_PROFILE_DEFAULTS, ...settings };
       const focusScope = buildFocusScopeInstructions(focusNode);
@@ -954,7 +955,8 @@ Settings (response shaping only):
 User request:
 ${prompt}${focusScope}`,
         prompt,
-        stateStore.getSlot('mermaid').diagramSource
+        stateStore.getSlot('mermaid').diagramSource,
+        { uiLocale }
       );
 
       const agent = getDefaultAgent(modelProfile);
@@ -983,7 +985,8 @@ ${prompt}${focusScope}`,
       emit,
       russDepth,
       abortSignal,
-      advisorPrompt
+      advisorPrompt,
+      uiLocale
     }) {
       const depth = mode === 'russ' ? clampRussDepth(russDepth ?? 1) : null;
       return withTransformContext(stateStore, { mode, russDepth: depth }, async () => {
@@ -1006,7 +1009,8 @@ ${prompt}${focusScope}`,
                 }),
                 currentState.lastUserPrompt,
                 currentState.diagramSource,
-                advisorPrompt
+                advisorPrompt,
+                { uiLocale }
               )
             }
           ],
@@ -1053,7 +1057,7 @@ ${prompt}${focusScope}`,
       );
     },
 
-    async applyAnalyzeIntent({ kind, focusNode, modelProfile, emit, advisorPrompt }) {
+    async applyAnalyzeIntent({ kind, focusNode, modelProfile, emit, advisorPrompt, uiLocale }) {
       const state = stateStore.getSlot('mermaid');
       const focusScope = buildAnalyzeFocusInstructions(focusNode, kind);
       const stakeholderBlock = buildAdvisorSuggestionBlock(advisorPrompt);
@@ -1068,7 +1072,8 @@ ${prompt}${focusScope}`,
         `${humanPrefix}${scopedTask}\n\n${diagramBlock}`,
         state.lastUserPrompt,
         state.diagramSource,
-        advisorPrompt
+        advisorPrompt,
+        { uiLocale }
       );
 
       const profile = normalizeModelProfile(modelProfile);

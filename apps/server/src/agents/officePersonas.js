@@ -382,7 +382,15 @@ export function resolveOfficeLanguage(uiLocale) {
 
 export function buildOfficeLanguageRule(uiLocale) {
   const lang = resolveOfficeLanguage(uiLocale);
-  if (!lang) return '';
+  if (!lang) {
+    const raw = typeof uiLocale === 'string' ? uiLocale.trim().toLowerCase() : '';
+    if (raw === 'en' || raw === 'en-us' || raw === 'en-au' || raw === 'en-gb') {
+      return `\n\nLANGUAGE: Write EVERY reader-facing string (subject, body, title, beat text,
+actionPrompt) in English. Do NOT emit Chinese (Simplified or Traditional) unless the user explicitly
+wrote in Chinese. Keep speakerId values and technical acronyms exactly as given.`;
+    }
+    return '';
+  }
   // The persona voice blocks above quote English catchphrases verbatim ("sorry
   // if this is a dumb question"). Without the explicit "adapt the catchphrases"
   // clause the model copies them through and the whole line reverts to English.
@@ -404,7 +412,12 @@ emit ${lang.avoid} and do NOT add English translations. Translate the JOKE, not 
  */
 export function buildOfficeLanguageReminder(uiLocale) {
   const lang = resolveOfficeLanguage(uiLocale);
-  return lang ? `\nEvery reader-facing string MUST be written in ${lang.label}.` : '';
+  if (lang) return `\nEvery reader-facing string MUST be written in ${lang.label}.`;
+  const raw = typeof uiLocale === 'string' ? uiLocale.trim().toLowerCase() : '';
+  if (raw === 'en' || raw === 'en-us' || raw === 'en-au' || raw === 'en-gb') {
+    return '\nEvery reader-facing string MUST be written in English.';
+  }
+  return '';
 }
 
 const MOMENT_BODY_RULES = {

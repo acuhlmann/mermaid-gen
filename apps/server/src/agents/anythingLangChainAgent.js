@@ -63,7 +63,7 @@ function extractHtmlFromAssistantResult(result) {
   return null;
 }
 
-function buildIntentUserContent({ prompt, currentHtml, peerContext }) {
+function buildIntentUserContent({ prompt, currentHtml, peerContext, uiLocale }) {
   const parts = [];
   parts.push(`User request: ${prompt.trim()}`);
   if (currentHtml?.trim()) {
@@ -77,7 +77,7 @@ function buildIntentUserContent({ prompt, currentHtml, peerContext }) {
     );
   }
   parts.push('Call apply_anything_patch with the full HTML document.');
-  return appendLanguageInstruction(parts.join('\n\n'), prompt, currentHtml);
+  return appendLanguageInstruction(parts.join('\n\n'), prompt, currentHtml, { uiLocale });
 }
 
 export function buildAnythingTransformUserContent({ mode, currentHtml, russDepth, advisorPrompt }) {
@@ -113,7 +113,8 @@ export function buildAnythingAnalyzeUserContent({
   kind,
   currentHtml,
   advisorPrompt,
-  lastUserPrompt
+  lastUserPrompt,
+  uiLocale
 }) {
   const task =
     kind === 'jared'
@@ -129,7 +130,8 @@ export function buildAnythingAnalyzeUserContent({
       .join('\n\n'),
     lastUserPrompt,
     currentHtml,
-    advisorPrompt
+    advisorPrompt,
+    { uiLocale }
   );
 }
 
@@ -223,7 +225,15 @@ export function createAnythingLangChainAgent({
   }
 
   return {
-    async applyIntent({ prompt, focusNode, modelProfile, emit, peerContext, abortSignal }) {
+    async applyIntent({
+      prompt,
+      focusNode,
+      modelProfile,
+      emit,
+      peerContext,
+      abortSignal,
+      uiLocale
+    }) {
       const slot = stateStore.getSlot('anything');
       const profile = normalizeModelProfile(modelProfile);
       const userMessages = [
@@ -232,7 +242,8 @@ export function createAnythingLangChainAgent({
           content: buildIntentUserContent({
             prompt,
             currentHtml: slot.diagramSource,
-            peerContext
+            peerContext,
+            uiLocale
           })
         }
       ];
@@ -258,7 +269,8 @@ export function createAnythingLangChainAgent({
       emit,
       russDepth,
       abortSignal,
-      advisorPrompt
+      advisorPrompt,
+      uiLocale
     }) {
       const slot = stateStore.getSlot('anything');
       if (!slot.diagramSource?.trim()) {
@@ -277,7 +289,8 @@ export function createAnythingLangChainAgent({
             }),
             slot.lastUserPrompt,
             slot.diagramSource,
-            advisorPrompt
+            advisorPrompt,
+            { uiLocale }
           )
         }
       ];
@@ -296,7 +309,7 @@ export function createAnythingLangChainAgent({
       });
     },
 
-    async applyAnalyzeIntent({ kind, modelProfile, emit, advisorPrompt }) {
+    async applyAnalyzeIntent({ kind, modelProfile, emit, advisorPrompt, uiLocale }) {
       const slot = stateStore.getSlot('anything');
       if (!slot.diagramSource?.trim()) {
         return { message: 'Nothing to analyze — generate a page first.', raw: null };
@@ -311,7 +324,8 @@ export function createAnythingLangChainAgent({
             kind,
             currentHtml: slot.diagramSource,
             advisorPrompt,
-            lastUserPrompt: slot.lastUserPrompt
+            lastUserPrompt: slot.lastUserPrompt,
+            uiLocale
           })}`
         )
       ];

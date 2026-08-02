@@ -50,6 +50,8 @@ export interface ApplyIntentInput {
   abortSignal?: AbortSignal;
   /** Infographic-only — mapped to a persona instruction block. Ignored by mermaid. */
   transformPersona?: TransformPersona | null;
+  /** Web UI locale — forces output language when the model would otherwise drift. */
+  uiLocale?: string | null;
 }
 
 export interface ApplyTransformIntentInput {
@@ -61,6 +63,7 @@ export interface ApplyTransformIntentInput {
   abortSignal?: AbortSignal;
   /** Infographic-only — free-form prompt threaded into transform user content. */
   advisorPrompt?: string | null;
+  uiLocale?: string | null;
 }
 
 export interface ApplyAnalyzeIntentInput {
@@ -70,6 +73,7 @@ export interface ApplyAnalyzeIntentInput {
   emit?: AgentStreamEmit;
   /** Stakeholder suggestion text — scoped analysis, not a whole-diagram pass. */
   advisorPrompt?: string | null;
+  uiLocale?: string | null;
 }
 
 export interface ApplyStyleIntentInput {
@@ -81,6 +85,7 @@ export interface ApplyStyleIntentInput {
   emit?: AgentStreamEmit;
   /** Aborts the run when the REST client disconnects, so an abandoned run stops burning budget. */
   abortSignal?: AbortSignal;
+  uiLocale?: string | null;
 }
 
 export type AgentStreamOperation = 'intent' | 'transform' | 'analyze';
@@ -105,6 +110,8 @@ export interface DiagramAgentStreamPayload {
   /** Transform or analyze — stakeholder bubble text for scoped work. */
   advisorPrompt?: string | null;
   abortSignal?: AbortSignal;
+  /** Web UI locale — forces output language when the model would otherwise drift. */
+  uiLocale?: string | null;
   /** Server-side checkpoint of revisionId before the run started. */
   _revisionBefore?: number;
 }

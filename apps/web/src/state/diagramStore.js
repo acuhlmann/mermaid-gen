@@ -770,7 +770,8 @@ export async function submitDiagramIntent({
   settings,
   focusNode,
   modelProfile,
-  sessionId
+  sessionId,
+  uiLocale
 }) {
   const response = await fetchWithTimeout(
     `${API_BASE_URL}/api/copilotkit/intent`,
@@ -784,7 +785,8 @@ export async function submitDiagramIntent({
         contentType,
         settings,
         focusNode,
-        ...(modelProfile != null ? { modelProfile } : {})
+        ...(modelProfile != null ? { modelProfile } : {}),
+        ...(uiLocale != null ? { uiLocale } : {})
       })
     },
     agentMutationTimeoutMs(modelProfile),
@@ -807,7 +809,8 @@ export async function submitDiagramTransform({
   focusNode,
   modelProfile,
   russDepth,
-  sessionId
+  sessionId,
+  uiLocale
 }) {
   const response = await fetchWithTimeout(
     `${API_BASE_URL}/api/copilotkit/transform`,
@@ -821,7 +824,8 @@ export async function submitDiagramTransform({
         mode,
         focusNode,
         ...(modelProfile != null ? { modelProfile } : {}),
-        ...(typeof russDepth === 'number' && Number.isFinite(russDepth) ? { russDepth } : {})
+        ...(typeof russDepth === 'number' && Number.isFinite(russDepth) ? { russDepth } : {}),
+        ...(uiLocale != null ? { uiLocale } : {})
       })
     },
     agentMutationTimeoutMs(modelProfile, mode),
@@ -843,7 +847,8 @@ export async function submitDiagramAnalyze({
   kind,
   focusNode,
   modelProfile,
-  sessionId
+  sessionId,
+  uiLocale
 }) {
   const response = await fetchWithTimeout(
     `${API_BASE_URL}/api/copilotkit/analyze`,
@@ -856,7 +861,8 @@ export async function submitDiagramAnalyze({
         contentType,
         kind,
         focusNode,
-        ...(modelProfile != null ? { modelProfile } : {})
+        ...(modelProfile != null ? { modelProfile } : {}),
+        ...(uiLocale != null ? { uiLocale } : {})
       })
     },
     AGENT_REQUEST_TIMEOUT_MS,
@@ -879,7 +885,8 @@ export async function submitDiagramStyle({
   contentType = 'mermaid',
   settings,
   modelProfile,
-  sessionId
+  sessionId,
+  uiLocale
 }) {
   const resolvedPrompt = (stylePrompt ?? prompt ?? '').trim();
   const response = await fetchWithTimeout(
@@ -894,7 +901,8 @@ export async function submitDiagramStyle({
         diagramSource,
         contentType,
         settings,
-        ...(modelProfile != null ? { modelProfile } : {})
+        ...(modelProfile != null ? { modelProfile } : {}),
+        ...(uiLocale != null ? { uiLocale } : {})
       })
     },
     agentMutationTimeoutMs(modelProfile),
