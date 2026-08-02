@@ -127,6 +127,8 @@ const PHISHING_ASSIGNED_MODULE = 3;
 
 export default function OfficeLayer({
   pause,
+  /** Brain Fast / Deep work — quality-lane office calls honor this on the wire. */
+  modelProfile = 'fast',
   /** When true, hide transient office surfaces (IM, walk-bys, etc.) while the
    *  canvas intro is still landing — pause still gates the ambience director. */
   suppressDistractions = false,
@@ -243,6 +245,7 @@ export default function OfficeLayer({
     getDiagramSource,
     getSvgRoot,
     onUsage,
+    getModelProfile: () => modelProfile,
     narrateBeat: snapshot.narration ? narrateBeat : undefined,
     prefetchBeat: snapshot.narration ? prefetchBeat : undefined,
     narrationGapMs: OFFICE_NARRATION_GAP_MS,
@@ -262,6 +265,7 @@ export default function OfficeLayer({
     getDiagramSource,
     getSvgRoot,
     onUsage,
+    getModelProfile: () => modelProfile,
     onCancelNarration: cancelOfficeNarration
   });
 
@@ -277,6 +281,7 @@ export default function OfficeLayer({
     getSvgRoot,
     getUserTitle,
     getUserName,
+    getModelProfile: () => modelProfile,
     onUsage
   });
 
@@ -294,6 +299,7 @@ export default function OfficeLayer({
     getSvgRoot,
     getUserTitle,
     getUserName,
+    getModelProfile: () => modelProfile,
     onUsage
   });
 
@@ -613,6 +619,7 @@ export default function OfficeLayer({
     getDiagramSource,
     getSvgRoot,
     getUserName,
+    getModelProfile: () => modelProfile,
     onUsage,
     onComplete: handleTrainingComplete
   });
@@ -1042,6 +1049,7 @@ export default function OfficeLayer({
     getSvgRoot,
     getUserTitle,
     getUserName,
+    getModelProfile: () => modelProfile,
     onUsage,
     onOfficeEvent,
     onCheckInbox: () => setInboxOpenSignal((n) => n + 1),
