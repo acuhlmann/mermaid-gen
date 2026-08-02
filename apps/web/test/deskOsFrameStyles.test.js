@@ -191,6 +191,19 @@ describe('parody-OS frame geometry', () => {
     expect(body).not.toMatch(/z-index:\s*var\(--z-office-chrome\)/);
   });
 
+  it('keeps fullscreen mailroom beside the exit control on the top right', () => {
+    const toolbar = ruleBody('.diagram-fullscreen-toolbar');
+    expect(toolbar).toBeTruthy();
+    expect(toolbar).toMatch(/\bright:\s*var\(--diagram-fullscreen-corner-inset/);
+    expect(toolbar).toMatch(/\bdisplay:\s*flex\b/);
+    expect(ruleBody('.diagram-fullscreen-mailroom-btn')).toMatch(/\bposition:\s*static\b/);
+    expect(ruleBody('.diagram-fullscreen-close')).toMatch(/\bposition:\s*static\b/);
+    expect(css).toContain('--diagram-fullscreen-top-chrome-h');
+    expect(css).toMatch(
+      /\.diagram-output:fullscreen\s+\.metaphor-title-overlay[\s\S]*top:\s*var\(--diagram-fullscreen-top-chrome-h\)/
+    );
+  });
+
   it('reserves the safe-area inset once, on the bar that touches the edge', () => {
     // Double-counting it pushes the composer band a notch-height into the canvas
     // on every iPhone.

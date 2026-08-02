@@ -432,20 +432,41 @@
   background: linear-gradient(135deg, rgba(239, 246, 255, 0.98), rgba(255, 255, 255, 0.92));
 }
 
-/* Exit-fullscreen affordance: the top-corner fullscreen toggle is itself hidden
-   in fullscreen (it lives outside the fullscreen surface), so this small button
-   is portaled into `.diagram-output` as the on-screen way back. Sits above the
-   canvas and the radial action popover (z 120). */
-.diagram-fullscreen-close {
+/* Fullscreen top-right chrome — mailroom + exit share one flex cluster so they
+   cannot drift to the wrong corner (metaphor3d title cards live top-left). */
+.diagram-fullscreen-toolbar {
   position: absolute;
-  top: 0.85rem;
-  right: 0.85rem;
-  z-index: 130;
+  top: var(--diagram-fullscreen-corner-inset, 0.85rem);
+  right: var(--diagram-fullscreen-corner-inset, 0.85rem);
+  z-index: 140;
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  justify-content: flex-end;
+  gap: var(--diagram-fullscreen-control-gap, 0.42rem);
+  pointer-events: none;
+}
+
+.diagram-fullscreen-toolbar > * {
+  pointer-events: auto;
+}
+
+.diagram-fullscreen-mailroom-anchor {
+  position: relative;
+}
+
+/* Exit-fullscreen affordance — lives inside `.diagram-fullscreen-toolbar`. */
+.diagram-fullscreen-close {
+  position: static;
+  top: auto;
+  right: auto;
+  left: auto;
+  z-index: auto;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 2.25rem;
-  height: 2.25rem;
+  width: var(--diagram-fullscreen-control-size, 2.25rem);
+  height: var(--diagram-fullscreen-control-size, 2.25rem);
   padding: 0;
   border: 1px solid rgba(15, 23, 42, 0.16);
   border-radius: 50%;
@@ -543,18 +564,18 @@
   pointer-events: auto;
 }
 
-/* Mailroom in fullscreen — the menu bar is outside the fullscreen subtree, so
-   export/share is portaled beside the exit button. */
+/* Mailroom in fullscreen — grouped with exit in `.diagram-fullscreen-toolbar`. */
 .diagram-fullscreen-mailroom-btn {
-  position: absolute;
-  top: 0.85rem;
-  left: 0.85rem;
-  z-index: 130;
+  position: static;
+  top: auto;
+  right: auto;
+  left: auto;
+  z-index: auto;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 2.15rem;
-  height: 2.15rem;
+  width: var(--diagram-fullscreen-control-size, 2.25rem);
+  height: var(--diagram-fullscreen-control-size, 2.25rem);
   padding: 0;
   border-radius: 0.65rem;
   border: 1px solid rgba(15, 23, 42, 0.14);
@@ -586,9 +607,10 @@
 
 .diagram-fullscreen-mailroom-panel {
   position: absolute;
-  top: calc(0.85rem + 2.15rem + 0.45rem);
-  left: 0.85rem;
-  z-index: 130;
+  top: calc(100% + 0.45rem);
+  right: 0;
+  left: auto;
+  z-index: 1;
   width: min(22rem, calc(100vw - 1.7rem));
   max-height: min(70vh, calc(100% - 4.5rem));
   overflow: auto;
@@ -605,11 +627,30 @@
 
 .diagram-output:fullscreen,
 .diagram-output:-webkit-full-screen {
+  --diagram-fullscreen-corner-inset: 0.85rem;
+  --diagram-fullscreen-control-size: 2.25rem;
+  --diagram-fullscreen-control-gap: 0.42rem;
+  --diagram-fullscreen-top-chrome-h: calc(
+    var(--diagram-fullscreen-corner-inset) + var(--diagram-fullscreen-control-size) + 0.85rem
+  );
   width: 100%;
   height: 100%;
   max-width: none;
   max-height: none;
   background-color: #f8fafc;
+}
+
+/* metaphor3d title cards are AI-authored scene chrome — keep them on the left,
+   but drop them below the top-right toolbar row so they never collide with it. */
+.diagram-output:fullscreen .metaphor-title-overlay,
+.diagram-output:-webkit-full-screen .metaphor-title-overlay {
+  top: var(--diagram-fullscreen-top-chrome-h);
+  max-width: min(20rem, calc(50vw - 1rem));
+}
+
+.diagram-output:fullscreen .metaphor-kind-switcher,
+.diagram-output:-webkit-full-screen .metaphor-kind-switcher {
+  top: var(--diagram-fullscreen-corner-inset);
 }
 
 .diagram-viewport.is-revision-transition {

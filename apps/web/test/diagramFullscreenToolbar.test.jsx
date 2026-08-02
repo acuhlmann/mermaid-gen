@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it } from 'vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
-import DiagramFullscreenMailroom from '../src/components/DiagramFullscreenMailroom.jsx';
+import DiagramFullscreenToolbar from '../src/components/DiagramFullscreenToolbar.jsx';
 import { CONTROLS_EN } from '../src/i18n/locales/controls.en.js';
 
 const CHART_SOURCE = JSON.stringify({
@@ -20,7 +20,7 @@ function hostElement() {
   return host;
 }
 
-describe('DiagramFullscreenMailroom', () => {
+describe('DiagramFullscreenToolbar', () => {
   afterEach(() => {
     cleanup();
     document.body.innerHTML = '';
@@ -29,49 +29,60 @@ describe('DiagramFullscreenMailroom', () => {
   it('renders nothing when not fullscreen', () => {
     const host = hostElement();
     render(
-      <DiagramFullscreenMailroom
+      <DiagramFullscreenToolbar
         isFullscreen={false}
         host={host}
         hasSource
         contentType="chart"
         diagramSource={CHART_SOURCE}
+        onExit={() => {}}
       />
     );
     expect(screen.queryByRole('button', { name: /Mailroom/i })).toBeNull();
+    expect(screen.queryByRole('button', { name: /Exit fullscreen/i })).toBeNull();
   });
 
-  it('renders nothing when there is no deliverable source', () => {
+  it('portals mailroom and exit as siblings in the top-right toolbar cluster', () => {
     const host = hostElement();
     render(
-      <DiagramFullscreenMailroom
-        isFullscreen
-        host={host}
-        hasSource={false}
-        contentType="chart"
-        diagramSource=""
-      />
-    );
-    expect(screen.queryByRole('button', { name: /Mailroom/i })).toBeNull();
-  });
-
-  it('portals a mailroom trigger and opens the export panel in fullscreen', () => {
-    const host = hostElement();
-    render(
-      <DiagramFullscreenMailroom
+      <DiagramFullscreenToolbar
         isFullscreen
         host={host}
         hasSource
         contentType="chart"
         diagramSource={CHART_SOURCE}
+        onExit={() => {}}
       />
     );
 
-    const trigger = screen.getByRole('button', {
-      name: CONTROLS_EN.settings.outboxShow
-    });
-    expect(host.contains(trigger)).toBe(true);
+    const toolbar = host.querySelector('.diagram-fullscreen-toolbar');
+    expect(toolbar).toBeTruthy();
+    expect(
+      toolbar?.contains(screen.getByRole('button', { name: CONTROLS_EN.settings.outboxShow }))
+    ).toBe(true);
+    expect(
+      toolbar?.contains(screen.getByRole('button', { name: CONTROLS_EN.fullscreen.exit }))
+    ).toBe(true);
 
-    fireEvent.click(trigger);
+    const mailroom = screen.getByRole('button', { name: CONTROLS_EN.settings.outboxShow });
+    const close = screen.getByRole('button', { name: CONTROLS_EN.fullscreen.exit });
+    expect(mailroom.compareDocumentPosition(close) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('opens the export panel from the mailroom trigger', () => {
+    const host = hostElement();
+    render(
+      <DiagramFullscreenToolbar
+        isFullscreen
+        host={host}
+        hasSource
+        contentType="chart"
+        diagramSource={CHART_SOURCE}
+        onExit={() => {}}
+      />
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: CONTROLS_EN.settings.outboxShow }));
     expect(screen.getByRole('dialog', { name: CONTROLS_EN.settings.outboxRegion })).toBeTruthy();
     expect(screen.getByRole('button', { name: /Export/i })).toBeTruthy();
   });
