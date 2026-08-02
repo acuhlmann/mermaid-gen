@@ -17253,11 +17253,15 @@ body.slopitect-rainbow-tint::before {
     calc(10.5rem + env(safe-area-inset-bottom, 0px));
 }
 
-/* --- Draggable floating window shell --- */
+/* --- Office window shell (docs/office-window-manager.md) --- */
+/* No `touch-action: none` here. It used to sit on the root so the drag could own
+   the gesture — but the drag handlers live on the *handle*, which declares its
+   own. On the root it did nothing for dragging and disabled touch scrolling for
+   every descendant: a scroll container cannot re-enable a pan its ancestor set
+   to `none`, so the messenger log and the inbox list did not scroll by finger. */
 .floating-window {
   position: fixed;
   pointer-events: auto;
-  touch-action: none;
   transition:
     box-shadow 160ms ease,
     opacity 160ms ease,
@@ -17916,11 +17920,6 @@ body.slopitect-rainbow-tint::before {
   border: 1px solid var(--control-border);
 }
 
-.office-training-window.is-minimized {
-  height: auto !important;
-  max-height: none !important;
-}
-
 .office-training-header {
   display: flex;
   flex: 0 0 auto;
@@ -18050,11 +18049,6 @@ body.slopitect-rainbow-tint::before {
   align-items: center;
   gap: 0.35rem;
   min-width: 0;
-}
-.office-inbox-popover.is-minimized,
-.office-messenger.is-minimized {
-  height: auto !important;
-  max-height: none !important;
 }
 .office-inbox-title {
   flex: 1 1 auto;
@@ -20890,11 +20884,6 @@ body.slopitect-rainbow-tint::before {
   max-height: min(420px, calc(var(--app-vvh) - 24px));
 }
 
-.office-meeting-room.is-minimized {
-  width: min(320px, calc(100vw - 28px));
-  max-height: none;
-}
-
 .office-meeting-room.is-ended {
   width: min(620px, calc(100vw - 28px));
   max-height: min(78vh, calc(var(--app-vvh) - 24px));
@@ -20914,10 +20903,6 @@ body.slopitect-rainbow-tint::before {
   flex-direction: column;
   min-height: 0;
   flex: 1 1 auto;
-}
-
-.office-meeting-room.is-minimized .office-meeting-body {
-  display: none;
 }
 
 .office-meeting-titlebar-actions,
@@ -23767,4 +23752,143 @@ button.stakeholders-roster-chip:disabled {
   .office-desk-speech-stack {
     bottom: calc(var(--mobile-bottom-chrome-est, 5.5rem) + env(safe-area-inset-bottom, 0px) + 3rem);
   }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Office window placement — sheet / docked / floating
+   (docs/office-window-manager.md §5A)
+
+   Deliberately the LAST block in this file. Every per-window rule above sets its
+   own width/height at (0,1,0) — `.office-messenger`, `.office-inbox-popover`,
+   `.office-meeting-room`, `.office-training-window`, plus their phone overrides.
+   These selectors are (0,2,0)+ *and* come last, so a new window kind inherits
+   the placement without anyone remembering to opt in. Putting them earlier would
+   mean each window's own rule silently winning back its desktop size on a phone.
+   --------------------------------------------------------------------------- */
+
+/* --- Phone: bottom sheet ------------------------------------------------- */
+
+.floating-window.floating-window--sheet {
+  /* The only chrome a sheet sits above is the taskbar, because the taskbar is
+     the way back — minimize sends the window there. Everything else (composer
+     band, menu bar) is content the sheet is allowed to cover, which is why this
+     needs one measured token instead of the three disagreeing estimates of
+     `--mobile-bottom-chrome-est` the old messenger height used. */
+  --sheet-bottom: calc(var(--desk-taskbar-h, 2.3rem) + env(safe-area-inset-bottom, 0px));
+
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: auto;
+  bottom: var(--sheet-bottom);
+  width: 100%;
+  max-width: 100%;
+  max-height: none;
+  border-radius: 14px 14px 0 0;
+  border-bottom: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition:
+    height 220ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* Mid-gesture the transform is written straight to the node, so animating it
+   would fight the finger. */
+.floating-window.floating-window--sheet.is-dragging {
+  transition: none;
+}
+
+/* Snap heights. `peek` is the titlebar and nothing else — the sheet reduced to
+   proof that it is still open, with the canvas behind it. */
+.floating-window.floating-window--sheet[data-snap='peek'] {
+  height: 3.1rem;
+}
+
+.floating-window.floating-window--sheet[data-snap='half'] {
+  height: min(52dvh, calc(var(--app-vvh, 100dvh) - var(--sheet-bottom) - 4rem));
+}
+
+.floating-window.floating-window--sheet[data-snap='full'] {
+  height: calc(var(--app-vvh, 100dvh) - var(--sheet-bottom) - 3.25rem);
+}
+
+/* A focus ring around a full-width sheet outlines the viewport. The sheet is
+   the only office window on screen at this breakpoint anyway (§5C), so "which
+   one has focus" is not a question that needs answering. */
+.floating-window.floating-window--sheet.is-focused {
+  box-shadow: 0 -10px 30px rgba(15, 23, 42, 0.18);
+}
+
+.floating-window.floating-window--sheet.is-unfocused {
+  opacity: 1;
+  filter: none;
+}
+
+/* The grab bar. A real button, so the snap is reachable by tap and by keyboard —
+   the drag is an accelerator, never the only way in. */
+.floating-window--sheet .floating-window-drag-handle {
+  padding-top: 1.15rem;
+  position: relative;
+}
+
+.floating-window-sheet-grip {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1.15rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.floating-window-sheet-grip-bar {
+  width: 2.25rem;
+  height: 4px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--muted) 55%, transparent);
+}
+
+.floating-window-sheet-grip:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+/* --- Wide mobile / landscape phone: docked panel ------------------------- */
+
+.floating-window.floating-window--docked {
+  position: fixed;
+  left: auto;
+  top: auto;
+  right: max(0.6rem, env(safe-area-inset-right, 0px));
+  bottom: calc(var(--desk-taskbar-h, 2.3rem) + env(safe-area-inset-bottom, 0px) + 0.4rem);
+  width: min(26rem, calc(100vw - 1.2rem));
+  max-height: min(62dvh, calc(var(--app-vvh, 100dvh) - 6rem));
+}
+
+/* Neither placement is draggable, so neither offers a grab cursor. */
+.floating-window--sheet .floating-window-drag-handle,
+.floating-window--docked .floating-window-drag-handle {
+  cursor: default;
+}
+
+.floating-window--docked .floating-window-drag-grip {
+  display: none;
+}
+
+/* --- Taskbar: a pill for a window that is not on screen ------------------ */
+
+.desk-os-tray-item.is-minimized {
+  opacity: 0.62;
+}
+
+.desk-os-tray-item.is-minimized:hover,
+.desk-os-tray-item.is-minimized:focus-visible {
+  opacity: 1;
 }

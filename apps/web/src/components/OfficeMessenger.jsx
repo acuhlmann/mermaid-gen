@@ -230,7 +230,6 @@ export default function OfficeMessenger({
   const chat = officeChromeCopy().messenger;
   const chrome = officeChromeCopy();
   const [selectedId, setSelectedId] = useState(null);
-  const [minimized, setMinimized] = useState(false);
   const [pickingColleague, setPickingColleague] = useState(false);
   const scrollRef = useRef(null);
 
@@ -259,7 +258,6 @@ export default function OfficeMessenger({
 
   useEffect(() => {
     if (!open) {
-      setMinimized(false);
       setPickingColleague(false);
       return undefined;
     }
@@ -283,7 +281,7 @@ export default function OfficeMessenger({
       id="office-messenger"
       open={open}
       group="officeModal"
-      className={`office-messenger${minimized ? ' is-minimized' : ''}`}
+      className="office-messenger"
       kind="messenger"
       title={chat.title}
       senderId={activeId}
@@ -324,12 +322,8 @@ export default function OfficeMessenger({
         ) : null}
         <div className="office-messenger-titlebar-actions">
           <FloatingWindowMinimizeButton
-            minimized={minimized}
-            minimizeLabel={chrome.windowMinimize}
-            restoreLabel={chrome.windowRestore}
-            minimizeTitle={chrome.windowMinimizeTitle}
-            restoreTitle={chrome.windowRestoreTitle}
-            onToggle={() => setMinimized((prev) => !prev)}
+            label={chrome.windowMinimize}
+            title={chrome.windowMinimizeTitle}
             className="office-messenger-minimize"
           />
           <FloatingWindowCloseButton
@@ -340,103 +334,101 @@ export default function OfficeMessenger({
         </div>
       </FloatingWindowDragHandle>
 
-      {minimized ? null : (
-        <>
-          {pickingColleague ? (
-            <div className="office-messenger-pick-panel">
+      <>
+        {pickingColleague ? (
+          <div className="office-messenger-pick-panel">
+            <button
+              type="button"
+              className="office-messenger-pick-back"
+              onClick={() => setPickingColleague(false)}
+            >
+              {chat.pickColleague}
+            </button>
+            <p className="office-messenger-pick-hint">{chat.pickColleagueHint}</p>
+            <OfficeColleaguePicker
+              selectedId={activeId}
+              onSelect={handlePickColleague}
+              ariaLabel={chat.pickColleague}
+            />
+          </div>
+        ) : threads.length === 0 && !selectedId ? (
+          <div className="office-messenger-empty-panel">
+            <p className="office-messenger-empty">{chat.emptyThreads}</p>
+            {typeof onStartThread === 'function' ? (
               <button
                 type="button"
-                className="office-messenger-pick-back"
-                onClick={() => setPickingColleague(false)}
+                className="office-messenger-message-someone"
+                disabled={busy}
+                title={chat.newMessageTitle}
+                onClick={() => setPickingColleague(true)}
               >
-                {chat.pickColleague}
+                {chat.newMessage}
               </button>
-              <p className="office-messenger-pick-hint">{chat.pickColleagueHint}</p>
-              <OfficeColleaguePicker
-                selectedId={activeId}
-                onSelect={handlePickColleague}
-                ariaLabel={chat.pickColleague}
-              />
-            </div>
-          ) : threads.length === 0 && !selectedId ? (
-            <div className="office-messenger-empty-panel">
-              <p className="office-messenger-empty">{chat.emptyThreads}</p>
+            ) : typeof onMessageSomeone === 'function' ? (
+              <button
+                type="button"
+                className="office-messenger-message-someone"
+                disabled={busy}
+                title={chat.messageSomeoneTitle}
+                onClick={() => onMessageSomeone()}
+              >
+                {chat.messageSomeone}
+              </button>
+            ) : null}
+          </div>
+        ) : (
+          <div className="office-messenger-body">
+            <div className="office-messenger-sidebar">
               {typeof onStartThread === 'function' ? (
                 <button
                   type="button"
-                  className="office-messenger-message-someone"
+                  className="office-messenger-new-thread"
                   disabled={busy}
                   title={chat.newMessageTitle}
                   onClick={() => setPickingColleague(true)}
                 >
                   {chat.newMessage}
                 </button>
-              ) : typeof onMessageSomeone === 'function' ? (
-                <button
-                  type="button"
-                  className="office-messenger-message-someone"
-                  disabled={busy}
-                  title={chat.messageSomeoneTitle}
-                  onClick={() => onMessageSomeone()}
-                >
-                  {chat.messageSomeone}
-                </button>
               ) : null}
+              <MessengerThreadList
+                threads={threads}
+                activeId={activeId}
+                label={chat.threadsAria}
+                unreadLabel={chat.unreadDot}
+                chat={chat}
+                statusOf={statusOf}
+                onSelect={setSelectedId}
+              />
             </div>
-          ) : (
-            <div className="office-messenger-body">
-              <div className="office-messenger-sidebar">
-                {typeof onStartThread === 'function' ? (
-                  <button
-                    type="button"
-                    className="office-messenger-new-thread"
-                    disabled={busy}
-                    title={chat.newMessageTitle}
-                    onClick={() => setPickingColleague(true)}
-                  >
-                    {chat.newMessage}
-                  </button>
-                ) : null}
-                <MessengerThreadList
-                  threads={threads}
-                  activeId={activeId}
-                  label={chat.threadsAria}
-                  unreadLabel={chat.unreadDot}
-                  chat={chat}
-                  statusOf={statusOf}
-                  onSelect={setSelectedId}
-                />
-              </div>
-              <div className="office-messenger-thread-view">
-                {activeName ? (
-                  <p className="office-messenger-presence">
-                    <span className="office-messenger-presence-name">{activeName}</span>
-                    <span className="office-messenger-presence-status">
-                      {statusLabelFor(statusOf, chat, activeId) ?? chat.statusOnline}
-                    </span>
-                  </p>
-                ) : null}
-                <MessengerLog
-                  thread={active}
-                  chat={chat}
-                  doItLabel={chrome.doIt}
-                  busy={busy}
-                  typingName={activeName}
-                  scrollRef={scrollRef}
-                  onAdoptPrompt={onAdoptPrompt}
-                />
-                <MessengerComposer
-                  chat={chat}
-                  busy={busy}
-                  disabled={busy || !activeId}
-                  targetName={activeName}
-                  onSend={(body) => onSend?.(activeId, body)}
-                />
-              </div>
+            <div className="office-messenger-thread-view">
+              {activeName ? (
+                <p className="office-messenger-presence">
+                  <span className="office-messenger-presence-name">{activeName}</span>
+                  <span className="office-messenger-presence-status">
+                    {statusLabelFor(statusOf, chat, activeId) ?? chat.statusOnline}
+                  </span>
+                </p>
+              ) : null}
+              <MessengerLog
+                thread={active}
+                chat={chat}
+                doItLabel={chrome.doIt}
+                busy={busy}
+                typingName={activeName}
+                scrollRef={scrollRef}
+                onAdoptPrompt={onAdoptPrompt}
+              />
+              <MessengerComposer
+                chat={chat}
+                busy={busy}
+                disabled={busy || !activeId}
+                targetName={activeName}
+                onSend={(body) => onSend?.(activeId, body)}
+              />
             </div>
-          )}
-        </>
-      )}
+          </div>
+        )}
+      </>
     </FloatingWindow>
   );
 }

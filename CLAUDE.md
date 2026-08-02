@@ -118,6 +118,20 @@ Every session carries **six independent diagram slots** — `mermaid` (Mermaid t
   override for a taskbar selector must sit **after** the base rule in `App.css` — same
   specificity, so the 360px block further up the file loses the cascade and silently does
   nothing. Both pinned by `test/deskOsFrameStyles.test.js`.
+- **Office windows have three placements and one minimize; both live outside the window.**
+  `FloatingWindow` resolves a `presentation` from the viewport (`useWindowPresentation`):
+  free-dragging ≥1025px, docked panel 640–1024px, bottom sheet ≤639px. A sheet has **no
+  `left`/`top` at all** — don't "fix" phone clipping by tuning `minVisiblePx` in
+  `useDraggablePosition`; that hook is disabled at that breakpoint and `useSheetSnap` owns the
+  gesture instead. **Minimize is `overlayStack` state, not a local `useState`** — a minimized
+  window renders nothing and the `DeskOsTray` pill restores it. Three traps: the placement CSS
+  must remain the **last block in `App.css`** (every window sets its own size at (0,1,0), so
+  the (0,2,0) placement rules win by order too); a sheet reserves **only** `--desk-taskbar-h`,
+  because the taskbar is where minimize sends things; and `minimizeOtherOverlays` (the phone's
+  one-window-at-a-time rule) spares anything with `manageable: false`, which is the only thing
+  stopping it from swallowing IM pings. Never re-add `touch-action` to `.floating-window` — the
+  drag handlers are on the handle, and on the root it vetoes touch scrolling for every
+  descendant. See [`docs/office-window-manager.md`](docs/office-window-manager.md).
 - **Which verb goes where is frequency, not category.** Most-runs verbs stay on the bottom
   composer band; few-times-a-session verbs go to the menu bar (`DeskOsMenuBar`), persistent status
   goes to the taskbar tray (`DeskOsTaskbar`). Don't add a sixth command surface. See

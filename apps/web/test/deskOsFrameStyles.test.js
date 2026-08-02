@@ -196,3 +196,84 @@ describe('parody-OS frame geometry', () => {
     );
   });
 });
+
+/**
+ * Window placement (docs/office-window-manager.md §5A). Every fact here is a
+ * consequence that only exists in a real browser — a sheet's height, a cascade
+ * order, whether a finger can scroll — so they are pinned against the
+ * stylesheet's text like the rest of this file.
+ */
+describe('office window placement', () => {
+  it('never disables touch-action on the window root', () => {
+    // The drag handlers live on the handle, which declares its own
+    // `touch-action`. On the root it did nothing for the drag and disabled
+    // panning for every descendant, because a nested scroll container cannot
+    // re-enable a pan an ancestor set to `none` — so the messenger log and the
+    // inbox list did not scroll by finger.
+    const body = ruleBody('.floating-window');
+    expect(body).toBeTruthy();
+    expect(body).not.toMatch(/touch-action:\s*none/);
+    expect(ruleBody('.floating-window-drag-handle')).toMatch(/touch-action:\s*none/);
+  });
+
+  it('gives a phone sheet no free position at all', () => {
+    // The clipping this replaced came from `left`/`top` arithmetic that was
+    // allowed to leave 56px of window on screen. A sheet pins all four edges,
+    // so there is no arithmetic left to get wrong.
+    const body = ruleBody('.floating-window.floating-window--sheet');
+    expect(body).toBeTruthy();
+    expect(body).toMatch(/position:\s*fixed/);
+    expect(body).toMatch(/left:\s*0;/);
+    expect(body).toMatch(/right:\s*0;/);
+    expect(body).toMatch(/top:\s*auto;/);
+    expect(body).toMatch(/bottom:\s*var\(--sheet-bottom\)/);
+    // max-height must be released, or each window's own desktop cap fights the snap.
+    expect(body).toMatch(/max-height:\s*none/);
+  });
+
+  it('reserves the taskbar under a sheet, because the taskbar is the way back', () => {
+    // One measured token, not the three disagreeing bottom-chrome estimates the
+    // old messenger height stacked. Minimize sends a window to the taskbar, so a
+    // sheet that covered it would strand whatever it covered.
+    const body = ruleBody('.floating-window.floating-window--sheet');
+    expect(body).toMatch(/--sheet-bottom:\s*calc\(\s*var\(--desk-taskbar-h/);
+    for (const snap of ['peek', 'half', 'full']) {
+      const rule = ruleBody(`.floating-window.floating-window--sheet[data-snap='${snap}']`);
+      expect(rule, `snap ${snap}`).toBeTruthy();
+      expect(rule, `snap ${snap}`).toMatch(/height:/);
+    }
+    // Half and full budget for the reserve; peek is the titlebar and nothing else.
+    for (const snap of ['half', 'full']) {
+      expect(
+        ruleBody(`.floating-window.floating-window--sheet[data-snap='${snap}']`),
+        `snap ${snap}`
+      ).toContain('var(--sheet-bottom)');
+    }
+  });
+
+  it('places the sheet rules after every per-window size rule', () => {
+    // Same-specificity cascade trap the presence strip hit: `.office-messenger`
+    // and friends set width/height at (0,1,0) in blocks further up, including
+    // inside phone media queries. The placement block is last on purpose — if it
+    // moves up, a window silently wins back its desktop footprint on a phone.
+    const sheetIdx = css.indexOf('.floating-window.floating-window--sheet {');
+    expect(sheetIdx).toBeGreaterThan(-1);
+    for (const selector of [
+      '.office-messenger {',
+      '.office-inbox-popover {',
+      '.office-meeting-room {',
+      '.office-training-window {'
+    ]) {
+      expect(css.lastIndexOf(selector), selector).toBeLessThan(sheetIdx);
+    }
+  });
+
+  it('leaves no collapsed-in-place minimize styling behind', () => {
+    // Minimize renders nothing now; a window that still had `height: auto`
+    // rules would be a second, silent way to be half-open.
+    expect(css).not.toMatch(/\.office-messenger\.is-minimized/);
+    expect(css).not.toMatch(/\.office-inbox-popover\.is-minimized/);
+    expect(css).not.toMatch(/\.office-training-window\.is-minimized/);
+    expect(css).not.toMatch(/\.office-meeting-room\.is-minimized\s*\{/);
+  });
+});

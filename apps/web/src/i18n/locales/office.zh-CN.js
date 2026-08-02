@@ -1024,9 +1024,9 @@ export const OFFICE_ZH_CN = {
     doSelected: '应用所选',
     doItAll: '全部应用',
     windowMinimize: '最小化',
-    windowMinimizeTitle: '收起到标题栏',
-    windowRestore: '还原',
-    windowRestoreTitle: '展开窗口',
+    windowMinimizeTitle: '收到任务栏',
+    sheetExpand: '放大此窗口',
+    sheetCollapse: '缩小此窗口',
     desk: {
       buttonLabel: '你的工位',
       buttonAria: '你的工位 — 你可以做的事',
@@ -1513,6 +1513,7 @@ export const OFFICE_ZH_CN = {
       trayAria: '状态托盘',
       brand: 'ArchiSlop OS',
       tidy: '收拾一下',
+      restore: '恢复窗口',
       tidyTitle: '把每个窗口送回它打开时的位置',
       presence: {
         aria: '{status}。起身去看看。',

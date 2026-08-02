@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { TRAINING_STEPS } from '@archislop/shared';
 import { officeChromeCopy } from '../utils/officeCast.js';
 import { formatLocale } from '../i18n/formatLocale.js';
@@ -29,7 +28,6 @@ import {
  * document never touches a diagram slot (ADR-0010).
  */
 export default function OfficeTrainingWindow({ training, onClose, onSubmit }) {
-  const [minimized, setMinimized] = useState(false);
   const copy = officeChromeCopy();
   const t = copy.training ?? {};
 
@@ -46,7 +44,7 @@ export default function OfficeTrainingWindow({ training, onClose, onSubmit }) {
       open
       group="officeModal"
       kind="training"
-      className={`office-training-window${minimized ? ' is-minimized' : ''}`}
+      className="office-training-window"
       title={t.title ?? 'Compliance Training'}
       defaultCorner="center"
       defaultOffsetX={0}
@@ -67,12 +65,8 @@ export default function OfficeTrainingWindow({ training, onClose, onSubmit }) {
           </div>
           <div className="office-training-header-actions">
             <FloatingWindowMinimizeButton
-              minimized={minimized}
-              minimizeLabel={copy.windowMinimize}
-              restoreLabel={copy.windowRestore}
-              minimizeTitle={copy.windowMinimizeTitle}
-              restoreTitle={copy.windowRestoreTitle}
-              onToggle={() => setMinimized((prev) => !prev)}
+              label={copy.windowMinimize}
+              title={copy.windowMinimizeTitle}
               className="office-training-minimize"
             />
             {/* Abandoning the module is allowed and discards it — see
@@ -85,21 +79,15 @@ export default function OfficeTrainingWindow({ training, onClose, onSubmit }) {
           </div>
         </div>
       </FloatingWindowDragHandle>
-      {minimized ? null : (
-        <div className="office-training-body">
-          {training.busy || !training.form ? (
-            <p className="office-training-loading" role="status">
-              {t.loading ?? 'Loading your module…'}
-            </p>
-          ) : (
-            <FormsRenderer
-              diagramSource={training.form}
-              exportable={false}
-              onFormSubmit={onSubmit}
-            />
-          )}
-        </div>
-      )}
+      <div className="office-training-body">
+        {training.busy || !training.form ? (
+          <p className="office-training-loading" role="status">
+            {t.loading ?? 'Loading your module…'}
+          </p>
+        ) : (
+          <FormsRenderer diagramSource={training.form} exportable={false} onFormSubmit={onSubmit} />
+        )}
+      </div>
     </FloatingWindow>
   );
 }

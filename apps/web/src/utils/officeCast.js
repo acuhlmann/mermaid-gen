@@ -1707,9 +1707,9 @@ export const OFFICE_CHROME_COPY = {
   doSelected: 'Do selected',
   doItAll: 'Do it all',
   windowMinimize: 'Minimize',
-  windowMinimizeTitle: 'Collapse to the title bar',
-  windowRestore: 'Restore',
-  windowRestoreTitle: 'Expand window',
+  windowMinimizeTitle: 'Send to the taskbar',
+  sheetExpand: 'Expand this window',
+  sheetCollapse: 'Shrink this window',
   directory: {
     title: 'Meet the team',
     tourEyebrow: 'NEW HIRE ORIENTATION™',
@@ -2070,6 +2070,7 @@ export const OFFICE_CHROME_COPY = {
     trayAria: 'Status tray',
     brand: 'ArchiSlop OS',
     tidy: 'Tidy up',
+    restore: 'Bring it back',
     tidyTitle: 'Send every window back to where it opened',
     /**
      * Presence strip — who is around, and the diegetic way onto the floor. It

@@ -215,6 +215,20 @@ Production deploy notes (Cloud Run, billing credits, GitHub Actions CI, optional
   consumer. Boot runs `reconcileOfficeHeadphonesPosture()` so a stale pre-macro Voice key cannot
   desync the menu from speech. Focus is also the advisor roundtable's mute; don't reintroduce a
   second one. See [`docs/office-parody.md`](docs/office-parody.md) § Desk verbs.
+- **Office windows have three placements and one minimize; both live outside the window.**
+  `FloatingWindow` resolves a `presentation` from the viewport (`useWindowPresentation`):
+  free-dragging ≥1025px, docked panel 640–1024px, bottom sheet ≤639px. A sheet has **no
+  `left`/`top` at all** — don't "fix" phone clipping by tuning `minVisiblePx` in
+  `useDraggablePosition`; that hook is disabled at that breakpoint and `useSheetSnap` owns the
+  gesture instead. **Minimize is `overlayStack` state, not a local `useState`** — a minimized
+  window renders nothing and the `DeskOsTray` pill restores it. Three traps: the placement CSS
+  must remain the **last block in `App.css`** (every window sets its own size at (0,1,0), so the
+  (0,2,0) placement rules win by order too); a sheet reserves **only** `--desk-taskbar-h`,
+  because the taskbar is where minimize sends things; and `minimizeOtherOverlays` (the phone's
+  one-window-at-a-time rule) spares anything with `manageable: false`, which is the only thing
+  stopping it from swallowing IM pings. Never re-add `touch-action` to `.floating-window` — the
+  drag handlers are on the handle, and on the root it vetoes touch scrolling for every
+  descendant. See [`docs/office-window-manager.md`](docs/office-window-manager.md).
 - **The parody-OS frame is height-budgeted by one token.** `--desk-taskbar-h` (`App.css` `:root`)
   is what `.bottom-chrome` stacks on at _every_ breakpoint, and `.desk-os-taskbar` uses a fixed
   `height` + `box-sizing: border-box` so a tall child clips instead of silently shoving the

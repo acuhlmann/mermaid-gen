@@ -1377,6 +1377,7 @@ export const OFFICE_EN_AU = {
       trayAria: 'Status tray',
       brand: 'ArchiSlop OS',
       tidy: 'Chuck it back',
+      restore: 'Bring it back',
       tidyTitle: 'Shove every window back where it opened',
       presence: {
         aria: '{status}. Get up and have a look.',

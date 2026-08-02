@@ -9,6 +9,15 @@
  *
  * Overlays can also carry display metadata (title, kind, who it is from) and a
  * `manageable` flag for callers that list open surfaces.
+ *
+ * **Minimize lives here, not in the windows.** It used to be a local `useState`
+ * in each of four components (one of them persisted to localStorage), which
+ * collapsed a window to its titlebar *in place* — so it stayed wherever it had
+ * been dragged, over the canvas, while the taskbar pill that should have owned
+ * it could only re-focus. Two half-implementations of one idea, wired to each
+ * other by nothing. A minimized overlay now renders nothing and the tray pill is
+ * the way back, which is what a taskbar is for.
+ * See docs/office-window-manager.md §5B.
  */
 
 /** @typedef {'anchored' | 'advisor' | 'officeChrome' | 'modal' | 'officeModal'} OverlayGroupId */
@@ -28,6 +37,7 @@
  *   group: OverlayGroupId,
  *   zIndex: number,
  *   focused: boolean,
+ *   minimized: boolean,
  *   manageable: boolean,
  *   title: string,
  *   kind: string,
@@ -52,6 +62,20 @@ export const OVERLAY_GROUP = {
   officeModal: { base: 240, max: 279 }
 };
 
+/**
+ * Which overlay bands are *switchable windows* — the ones a taskbar lists and
+ * minimize applies to. Office surfaces span both office bands: `officeChrome` is
+ * the `FloatingWindow` default, `officeModal` is what the five real windows
+ * register as. App modals (`modal`) and anchored menus stay out; a taskbar lists
+ * things you can switch back to, and those are dismissed rather than left open.
+ *
+ * Lives here rather than in `DeskOsTray` because `minimizeOtherOverlays` needs
+ * the same answer, and two copies of this set would drift.
+ *
+ * @type {Set<OverlayGroupId>}
+ */
+export const SWITCHABLE_GROUPS = new Set(['officeChrome', 'officeModal']);
+
 /** @type {Map<OverlayGroupId, string[]>} */
 const stacks = new Map(
   Object.keys(OVERLAY_GROUP).map((id) => [/** @type {OverlayGroupId} */ (id), []])
@@ -65,6 +89,13 @@ const groupById = new Map();
 
 /** @type {Map<string, OverlayMeta>} */
 const metaById = new Map();
+
+/**
+ * Overlays sent to the taskbar. Not part of `OverlayMeta` on purpose — metadata
+ * describes what a window *is*, this is what it is currently *doing*.
+ * @type {Set<string>}
+ */
+const minimizedIds = new Set();
 
 /**
  * Stable registration order of currently-open overlays. Unlike the focus
@@ -124,6 +155,7 @@ function rebuildSnapshot() {
       group: groupById.get(id) ?? 'officeChrome',
       zIndex: zIndexById.get(id) ?? 0,
       focused: focusedOverlayId === id,
+      minimized: minimizedIds.has(id),
       manageable: meta.manageable === true,
       title: typeof meta.title === 'string' ? meta.title : '',
       kind: typeof meta.kind === 'string' ? meta.kind : '',
@@ -151,6 +183,9 @@ export function registerOverlay(id, group, meta) {
   stacks.set(group, list);
   if (!openOrder.includes(id)) openOrder.push(id);
   if (meta) metaById.set(id, { ...(metaById.get(id) ?? {}), ...meta });
+  // Opening is never minimized. This is also why the meeting no longer needs to
+  // persist its minimize state and then undo it on join: a fresh open clears it.
+  minimizedIds.delete(id);
   elevateFocus(id);
   recomputeGroups();
   rebuildSnapshot();
@@ -199,6 +234,7 @@ export function unregisterOverlay(id) {
     groupById.delete(id);
     metaById.delete(id);
     zIndexById.delete(id);
+    minimizedIds.delete(id);
     recomputeGroups();
     rebuildSnapshot();
     notify();
@@ -229,6 +265,67 @@ export function bringOverlayToFront(id) {
  */
 export function focusOverlay(id) {
   bringOverlayToFront(id);
+}
+
+/**
+ * Send an overlay to the taskbar. It stays open and registered — it just stops
+ * rendering, so the tray pill can bring it back exactly as it was.
+ * @param {string} id
+ */
+export function minimizeOverlay(id) {
+  if (!groupById.has(id) || minimizedIds.has(id)) return;
+  minimizedIds.add(id);
+  // Nothing visible can hold focus. Leaving the id focused would keep the
+  // taskbar pill lit for a window that is not on screen.
+  if (focusedOverlayId === id) focusedOverlayId = null;
+  rebuildSnapshot();
+  notify();
+}
+
+/**
+ * Bring a minimized overlay back and focus it. Safe to call on one that is
+ * already visible — then it is just a focus.
+ * @param {string} id
+ */
+export function restoreOverlay(id) {
+  if (!groupById.has(id)) return;
+  minimizedIds.delete(id);
+  bringOverlayToFront(id);
+}
+
+/**
+ * Minimize every *switchable* overlay except `keepId` — the phone's
+ * one-window-at-a-time rule (docs/office-window-manager.md §5C).
+ *
+ * Only `manageable` overlays in {@link SWITCHABLE_GROUPS} are touched, so IM
+ * pings, walk-by cards and app modals are untouched: those are notifications and
+ * dialogs, not windows, and a rule about windows must not silently swallow them.
+ *
+ * @param {string} keepId
+ */
+export function minimizeOtherOverlays(keepId) {
+  let changed = false;
+  for (const id of openOrder) {
+    if (id === keepId || minimizedIds.has(id)) continue;
+    if (metaById.get(id)?.manageable !== true) continue;
+    const group = groupById.get(id);
+    if (!group || !SWITCHABLE_GROUPS.has(group)) continue;
+    minimizedIds.add(id);
+    if (focusedOverlayId === id) focusedOverlayId = null;
+    changed = true;
+  }
+  if (changed) {
+    rebuildSnapshot();
+    notify();
+  }
+}
+
+/**
+ * @param {string} id
+ * @returns {boolean}
+ */
+export function isOverlayMinimized(id) {
+  return minimizedIds.has(id);
 }
 
 /** @returns {string | null} */
@@ -266,6 +363,7 @@ export function resetOverlayStackForTests() {
   zIndexById.clear();
   groupById.clear();
   metaById.clear();
+  minimizedIds.clear();
   openOrder.length = 0;
   focusedOverlayId = null;
   focusSeq = 0;

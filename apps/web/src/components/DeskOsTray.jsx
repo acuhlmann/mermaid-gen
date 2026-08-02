@@ -4,15 +4,21 @@
  * that has been dragged somewhere unreachable. Diegesis duplicates focus; the
  * windows keep their own titlebars.
  *
+ * A pill now **restores** rather than merely re-focusing: minimize sends a
+ * window here (docs/office-window-manager.md §5B), so this is the only way back
+ * for one. That also makes the strip the phone's window switcher, which is what
+ * the one-window-at-a-time rule leans on.
+ *
  * Rendered inside `DeskOsTaskbar`, which owns the position; this collapses to
  * nothing when no window is open so the bar's permanent residents close up.
  */
 
 import { useSyncExternalStore } from 'react';
 import {
-  bringOverlayToFront,
+  SWITCHABLE_GROUPS,
   getFocusedOverlayId,
   getOpenOverlays,
+  restoreOverlay,
   subscribe
 } from '../state/overlayStack.js';
 import { resetAllFloatingWindows } from '../state/floatingWindowControl.js';
@@ -28,15 +34,6 @@ const KIND_GLYPH = {
 };
 
 /**
- * Which overlay bands are switchable windows. Office surfaces span both office
- * bands — `officeChrome` is the FloatingWindow default, `officeModal` is what
- * the four real windows (inbox, Slop Chat, meeting, meeting picker) register
- * as. App modals (`modal`) and anchored menus stay out: a taskbar lists things
- * you can switch back to, and those are dismissed rather than left open.
- */
-const TASKBAR_GROUPS = new Set(['officeChrome', 'officeModal']);
-
-/**
  * @param {{ open?: boolean }} props
  */
 export default function DeskOsTray({ open = true }) {
@@ -47,7 +44,7 @@ export default function DeskOsTray({ open = true }) {
   if (!open) return null;
 
   const windows = overlays.filter(
-    (entry) => entry.manageable && TASKBAR_GROUPS.has(entry.group) && entry.title
+    (entry) => entry.manageable && SWITCHABLE_GROUPS.has(entry.group) && entry.title
   );
   if (windows.length === 0) return null;
 
@@ -64,11 +61,15 @@ export default function DeskOsTray({ open = true }) {
             <li key={entry.id}>
               <button
                 type="button"
-                className={`desk-os-tray-item${focused ? ' is-focused' : ''}`}
+                className={`desk-os-tray-item${focused ? ' is-focused' : ''}${
+                  entry.minimized ? ' is-minimized' : ''
+                }`}
                 data-kind={entry.kind || undefined}
                 aria-pressed={focused}
-                title={entry.title}
-                onClick={() => bringOverlayToFront(entry.id)}
+                title={
+                  entry.minimized ? `${entry.title} — ${copy.restore ?? 'Restore'}` : entry.title
+                }
+                onClick={() => restoreOverlay(entry.id)}
               >
                 <span aria-hidden="true">{glyph}</span>
                 <span className="desk-os-tray-label">{entry.title}</span>

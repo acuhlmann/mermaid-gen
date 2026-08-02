@@ -203,6 +203,47 @@ Pinned by `test/deskOsFrameStyles.test.js` (the CSS facts jsdom cannot measure),
 `test/officePresence.test.js` (the derivation, in a node environment — being testable without a
 DOM is the proof it produces nothing) and `test/deskOsPresenceStrip.test.jsx`.
 
+### 4e. Slice 7 — the window manager on a phone ✅ shipped
+
+Slice 2 measured the _frame_ at 320px. The five `FloatingWindow` surfaces inside it were still
+Windows 95: free dragging, a clamp that tolerated hanging 56px off-screen, and a minimize that
+collapsed a window to a titlebar stub floating over the canvas — on the one breakpoint where
+**Tidy up**, slice 1's recovery verb for exactly that, is hidden below 720px. Reported by the
+owner, not derived: the app is mobile-first and free dragging is not.
+
+The fix keeps the joke and replaces the window manager — **a phone OS is still an OS.** One
+`presentation` axis resolved from the existing breakpoints (`useWindowPresentation`): free
+dragging ≥1025px, a fixed docked panel 640–1024px, a snap-point bottom sheet ≤639px. The sheet
+is a separate state machine (`useSheetSnap`) rather than an extension of `useDraggablePosition`
+— one clamps a point in a plane and persists it, the other picks from an ordered list and
+persists nothing. At phone width `left`/`top` are never computed, which is what ends the
+clipping structurally instead of by tuning a constant.
+
+**Minimize now means the taskbar**, at every breakpoint. It had been a local `useState` in
+each of four windows (one persisted to `localStorage`), while the tray pill beside it could
+only re-focus — two half-implementations of one idea, wired to each other by nothing. Both
+halves moved into `overlayStack`; the pill restores. That also gave the phone its
+one-window-at-a-time rule for free (`minimizeOtherOverlays`), which is the user's own framing:
+_you never need mail and chat at once, there is not enough space anyway, and the canvas is the
+work — the rest is a side show._
+
+Full design, diagnosis, and the two things it got wrong:
+[`office-window-manager.md`](office-window-manager.md). Three findings worth carrying:
+
+- **`touch-action: none` on `.floating-window` was redundant and harmful.** The drag handlers
+  live on the _handle_, which declares its own — on the root it did nothing for the drag while
+  vetoing touch panning for every descendant, since a nested scroller cannot re-enable what an
+  ancestor set to `none`.
+- **The docked "minimized call" this document describes in §4's intro does not exist.**
+  `.office-meeting-room.is-docked` is three CSS rules with no code path that applies the class,
+  and its storage pair had no callers. The line above it is aspirational; treat it as such.
+- **The placement CSS must stay the last block in `App.css`** — every window sets its own size
+  at (0,1,0), so the (0,2,0) placement rules win by order as well as specificity. Pinned by a
+  cascade-order assertion in `deskOsFrameStyles.test.js`.
+
+Not built: merging the composer's comms icons with the tray pills on phone (§5D of that doc) —
+the same three things in two rows, and the only part that touches the composer band.
+
 ## 5. Phasing (each slice independently shippable)
 
 1. ~~**Floor substrate**~~ — ✅ **shipped**: the room (floor plate, tile grid, zone plates,
@@ -953,6 +994,10 @@ Three earlier candidates, none designed:
 - **The screen-world skin** (§ 4). ~~which has not been touched since it was written~~ ✅ **first
   pass** — `floating-window--os` kind tints + `DeskOsTray` task strip. Control panel as a
   `FloatingWindow` still open if appetite returns.
+- ~~**The window manager on a phone** (§ 4)~~ ✅ **shipped** as slice 7 (§ 4e) —
+  [`office-window-manager.md`](office-window-manager.md). Sheets on phones, minimize to the
+  taskbar, one window at a time. Slice 4 of that doc (merging the composer's comms icons with
+  the tray pills) is the piece left on the table.
 
 ### Point-and-click adventure ideas (not designed)
 

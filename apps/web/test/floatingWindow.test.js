@@ -2,9 +2,14 @@ import { describe, expect, it, beforeEach, vi } from 'vitest';
 import {
   bringOverlayToFront,
   getFocusedOverlayId,
+  getOpenOverlays,
   getOverlayZIndex,
+  isOverlayMinimized,
+  minimizeOtherOverlays,
+  minimizeOverlay,
   registerOverlay,
-  resetOverlayStackForTests
+  resetOverlayStackForTests,
+  restoreOverlay
 } from '../src/state/overlayStack.js';
 import {
   clampWindowPosition,
@@ -27,6 +32,89 @@ describe('overlayStack focus', () => {
 
     expect(getOverlayZIndex('office-inbox')).toBeGreaterThan(getOverlayZIndex('office-messenger'));
     expect(getFocusedOverlayId()).toBe('office-inbox');
+  });
+});
+
+/**
+ * Minimize used to be a local `useState` in each window, and the taskbar pill
+ * beside it could only re-focus — so the two never met. These pin the single
+ * concept that replaced them (docs/office-window-manager.md §5B).
+ */
+describe('overlayStack minimize', () => {
+  const meta = { title: 'Slop Chat', kind: 'messenger', manageable: true };
+
+  beforeEach(() => {
+    resetOverlayStackForTests();
+  });
+
+  it('keeps a minimized overlay registered so its taskbar pill survives', () => {
+    registerOverlay('office-messenger', 'officeModal', meta);
+
+    minimizeOverlay('office-messenger');
+
+    expect(isOverlayMinimized('office-messenger')).toBe(true);
+    const listed = getOpenOverlays().find((o) => o.id === 'office-messenger');
+    expect(listed).toBeDefined();
+    expect(listed.minimized).toBe(true);
+    // Nothing on screen may hold focus, or the pill stays lit for a window that
+    // is not there.
+    expect(getFocusedOverlayId()).toBeNull();
+  });
+
+  it('restore un-minimizes and brings to front in one move', () => {
+    registerOverlay('office-messenger', 'officeModal', meta);
+    registerOverlay('office-inbox', 'officeModal', { ...meta, title: 'Inbox', kind: 'inbox' });
+    minimizeOverlay('office-messenger');
+
+    restoreOverlay('office-messenger');
+
+    expect(isOverlayMinimized('office-messenger')).toBe(false);
+    expect(getFocusedOverlayId()).toBe('office-messenger');
+    expect(getOverlayZIndex('office-messenger')).toBeGreaterThan(getOverlayZIndex('office-inbox'));
+  });
+
+  it('re-opening clears a stale minimize', () => {
+    registerOverlay('office-meeting', 'officeModal', { ...meta, title: 'WG sync' });
+    minimizeOverlay('office-meeting');
+
+    registerOverlay('office-meeting', 'officeModal', { ...meta, title: 'WG sync' });
+
+    expect(isOverlayMinimized('office-meeting')).toBe(false);
+  });
+
+  it('closing forgets it was minimized', () => {
+    registerOverlay('office-messenger', 'officeModal', meta);
+    const unregister = registerOverlay('office-inbox', 'officeModal', meta);
+    minimizeOverlay('office-inbox');
+
+    unregister();
+    registerOverlay('office-inbox', 'officeModal', meta);
+
+    expect(isOverlayMinimized('office-inbox')).toBe(false);
+  });
+
+  it('one-window-at-a-time minimizes the other switchable windows', () => {
+    registerOverlay('office-inbox', 'officeModal', { ...meta, title: 'Inbox' });
+    registerOverlay('office-messenger', 'officeModal', meta);
+
+    minimizeOtherOverlays('office-messenger');
+
+    expect(isOverlayMinimized('office-inbox')).toBe(true);
+    expect(isOverlayMinimized('office-messenger')).toBe(false);
+  });
+
+  // The phone rule is about *windows*. An IM ping and a walk-by card share the
+  // officeChrome band but are notifications — swallowing them would make the
+  // office go quiet exactly when somebody was trying to reach you.
+  it('leaves unmanageable surfaces and app modals alone', () => {
+    registerOverlay('office-messenger', 'officeModal', meta);
+    registerOverlay('im-ping', 'officeChrome', { title: 'Chad', manageable: false });
+    registerOverlay('clear-confirm', 'modal', { title: 'Clear?', manageable: true });
+
+    minimizeOtherOverlays('office-messenger');
+
+    expect(isOverlayMinimized('im-ping')).toBe(false);
+    expect(isOverlayMinimized('clear-confirm')).toBe(false);
   });
 });
 

@@ -1,10 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { meetingMinutes, MEETING_USER_SPEAKER } from '../hooks/useMeetingPlayback.js';
 import { officeChromeCopy, officeMeetingCopy, officeSenderInfo } from '../utils/officeCast.js';
-import {
-  readOfficeMeetingMinimized,
-  writeOfficeMeetingMinimized
-} from '../utils/officeAmbienceStorage.js';
+import { restoreOverlay } from '../state/overlayStack.js';
 import { activeCaptionIndex, shouldShowSpokenText } from '../utils/officeCaptions.js';
 import { formatLocale } from '../i18n/formatLocale.js';
 import { PersonaFace } from './personaFaces/index.jsx';
@@ -15,6 +12,9 @@ import {
   FloatingWindowCloseButton,
   FloatingWindowMinimizeButton
 } from './FloatingWindowChrome.jsx';
+
+/** Overlay id — shared by the window and the state changes that un-minimize it. */
+const MEETING_WINDOW_ID = 'office-meeting';
 
 function speakerInfo(speakerId, chrome) {
   if (speakerId === MEETING_USER_SPEAKER) {
@@ -29,18 +29,14 @@ function speakerInfo(speakerId, chrome) {
   return officeSenderInfo(speakerId);
 }
 
-function MeetingTitlebar({ title, chrome, minimized, onToggleMinimized, onExit }) {
+function MeetingTitlebar({ title, chrome, onExit }) {
   return (
     <FloatingWindowDragHandle className="office-meeting-titlebar" title={chrome.meeting.dragHint}>
       <span className="office-meeting-title">📅 {title}</span>
       <div className="office-meeting-titlebar-actions">
         <FloatingWindowMinimizeButton
-          minimized={minimized}
-          minimizeLabel={chrome.meeting.minimize}
-          restoreLabel={chrome.meeting.restore}
-          minimizeTitle={chrome.meeting.minimizeTitle}
-          restoreTitle={chrome.meeting.restoreTitle}
-          onToggle={onToggleMinimized}
+          label={chrome.meeting.minimize}
+          title={chrome.meeting.minimizeTitle}
           className="office-meeting-minimize"
         />
         <FloatingWindowCloseButton
@@ -325,7 +321,6 @@ export default function MeetingOverlay({
   onAdoptAllPrompts
 }) {
   const [handText, setHandText] = useState('');
-  const [minimized, setMinimized] = useState(readOfficeMeetingMinimized);
   const transcriptRef = useRef(null);
   const copy = officeMeetingCopy();
   const chrome = officeChromeCopy();
@@ -336,32 +331,19 @@ export default function MeetingOverlay({
     if (el) el.scrollTop = el.scrollHeight;
   }, [transcriptLength]);
 
-  const toggleMinimized = useCallback(() => {
-    setMinimized((prev) => {
-      const next = !prev;
-      writeOfficeMeetingMinimized(next);
-      return next;
-    });
-  }, []);
-
   const ended = meeting?.state === 'ended';
   const joining = meeting?.state === 'joining';
   const prevEndedRef = useRef(false);
   const prevJoiningRef = useRef(false);
+  // A fresh join, and the wrap-up, both pull the window back out of the taskbar.
+  // The window stays registered across a meeting's whole lifecycle, so the
+  // open path in `registerOverlay` never fires for these transitions.
   useEffect(() => {
-    // A fresh join always expands — leftover minimize from the last call would
-    // make "Hop on a call" look like a silent no-op (titlebar only).
-    if (joining && !prevJoiningRef.current) {
-      setMinimized(false);
-      writeOfficeMeetingMinimized(false);
-    }
+    if (joining && !prevJoiningRef.current) restoreOverlay(MEETING_WINDOW_ID);
     prevJoiningRef.current = joining;
   }, [joining]);
   useEffect(() => {
-    if (ended && !prevEndedRef.current) {
-      setMinimized(false);
-      writeOfficeMeetingMinimized(false);
-    }
+    if (ended && !prevEndedRef.current) restoreOverlay(MEETING_WINDOW_ID);
     prevEndedRef.current = ended;
   }, [ended]);
 
@@ -403,7 +385,6 @@ export default function MeetingOverlay({
 
   const windowClass = [
     'office-meeting-room',
-    minimized ? 'is-minimized' : '',
     ended ? 'is-ended' : '',
     speakerView ? 'is-speaker-view' : ''
   ]
@@ -412,7 +393,7 @@ export default function MeetingOverlay({
 
   return (
     <FloatingWindow
-      id="office-meeting"
+      id={MEETING_WINDOW_ID}
       open
       group="officeModal"
       className={windowClass}
@@ -422,83 +403,75 @@ export default function MeetingOverlay({
       defaultOffsetX={0}
       defaultOffsetY={0}
       cascade={2}
-      storageKey="office-meeting"
+      storageKey={MEETING_WINDOW_ID}
       role="dialog"
       aria-modal="false"
       aria-label={meeting.title}
     >
-      <MeetingTitlebar
-        title={meeting.title}
-        chrome={chrome}
-        minimized={minimized}
-        onToggleMinimized={toggleMinimized}
-        onExit={() => onClose?.()}
-      />
-      {minimized ? null : (
-        <div className="office-meeting-body">
-          {playing ? (
-            <MeetingFilmStrip
-              attendees={meeting.attendees}
-              lastSpeakerId={lastSpeakerId}
-              chrome={chrome}
+      <MeetingTitlebar title={meeting.title} chrome={chrome} onExit={() => onClose?.()} />
+      <div className="office-meeting-body">
+        {playing ? (
+          <MeetingFilmStrip
+            attendees={meeting.attendees}
+            lastSpeakerId={lastSpeakerId}
+            chrome={chrome}
+          />
+        ) : null}
+        {playing && meeting.audience?.length > 0 ? (
+          <MeetingAudienceRow audience={meeting.audience} chrome={chrome} />
+        ) : null}
+        {speakerView ? (
+          <MeetingActiveSpeaker
+            speakerId={lastSpeakerId}
+            chrome={chrome}
+            flickKey={transcriptLength}
+          />
+        ) : null}
+        {ended ? (
+          <MeetingMinutes
+            minutes={minutes}
+            copy={copy}
+            chrome={chrome}
+            onAdoptAllPrompts={handleAdoptAll}
+          />
+        ) : showTranscript ? (
+          <MeetingTranscript
+            transcript={meeting.transcript}
+            chrome={chrome}
+            ended={ended}
+            playing={playing}
+            speakingIndex={speakingIndex}
+            onAdoptPrompt={onAdoptPrompt}
+            scrollRef={transcriptRef}
+          />
+        ) : null}
+        {playing ? (
+          <form className="office-meeting-hand" onSubmit={submitHand}>
+            <input
+              type="text"
+              value={handText}
+              onChange={(event) => setHandText(event.target.value)}
+              placeholder={
+                meeting.interjectionsLeft > 0 ? copy.speakPlaceholder : copy.interjectCapLine
+              }
+              disabled={meeting.interjectionsLeft <= 0}
+              maxLength={400}
+              aria-label={chrome.meeting.speakAria}
             />
-          ) : null}
-          {playing && meeting.audience?.length > 0 ? (
-            <MeetingAudienceRow audience={meeting.audience} chrome={chrome} />
-          ) : null}
-          {speakerView ? (
-            <MeetingActiveSpeaker
-              speakerId={lastSpeakerId}
-              chrome={chrome}
-              flickKey={transcriptLength}
+            <VoiceMicButton
+              value={handText}
+              onChange={setHandText}
+              disabled={meeting.interjectionsLeft <= 0}
+              className="office-meeting-mic overlay-button is-mic-toggle"
             />
-          ) : null}
-          {ended ? (
-            <MeetingMinutes
-              minutes={minutes}
-              copy={copy}
-              chrome={chrome}
-              onAdoptAllPrompts={handleAdoptAll}
-            />
-          ) : showTranscript ? (
-            <MeetingTranscript
-              transcript={meeting.transcript}
-              chrome={chrome}
-              ended={ended}
-              playing={playing}
-              speakingIndex={speakingIndex}
-              onAdoptPrompt={onAdoptPrompt}
-              scrollRef={transcriptRef}
-            />
-          ) : null}
-          {playing ? (
-            <form className="office-meeting-hand" onSubmit={submitHand}>
-              <input
-                type="text"
-                value={handText}
-                onChange={(event) => setHandText(event.target.value)}
-                placeholder={
-                  meeting.interjectionsLeft > 0 ? copy.speakPlaceholder : copy.interjectCapLine
-                }
-                disabled={meeting.interjectionsLeft <= 0}
-                maxLength={400}
-                aria-label={chrome.meeting.speakAria}
-              />
-              <VoiceMicButton
-                value={handText}
-                onChange={setHandText}
-                disabled={meeting.interjectionsLeft <= 0}
-                className="office-meeting-mic overlay-button is-mic-toggle"
-              />
-              <button type="submit" disabled={meeting.interjectionsLeft <= 0 || !handText.trim()}>
-                {meeting.interjectionsLeft > 0
-                  ? formatLocale(chrome.meeting.speak, { count: meeting.interjectionsLeft })
-                  : chrome.meeting.atTime}
-              </button>
-            </form>
-          ) : null}
-        </div>
-      )}
+            <button type="submit" disabled={meeting.interjectionsLeft <= 0 || !handText.trim()}>
+              {meeting.interjectionsLeft > 0
+                ? formatLocale(chrome.meeting.speak, { count: meeting.interjectionsLeft })
+                : chrome.meeting.atTime}
+            </button>
+          </form>
+        ) : null}
+      </div>
     </FloatingWindow>
   );
 }

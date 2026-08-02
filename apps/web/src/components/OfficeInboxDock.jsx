@@ -12,6 +12,10 @@ import {
   FloatingWindowCloseButton,
   FloatingWindowMinimizeButton
 } from './FloatingWindowChrome.jsx';
+import { restoreOverlay } from '../state/overlayStack.js';
+
+/** Overlay id — shared by the window and the verb that has to un-minimize it. */
+const INBOX_WINDOW_ID = 'office-inbox';
 
 /**
  * The corporate inbox (docs/office-parody.md): an envelope button with an
@@ -43,7 +47,6 @@ export default function OfficeInboxDock({
   showTrigger = true
 }) {
   const [open, setOpen] = useState(false);
-  const [minimized, setMinimized] = useState(false);
   const [selectedId, setSelectedId] = useState(null);
   const [selectedEmailIds, setSelectedEmailIds] = useState(() => new Set());
   const [composing, setComposing] = useState(false);
@@ -62,7 +65,9 @@ export default function OfficeInboxDock({
   useEffect(() => {
     if (openSignal > 0) {
       setOpen(true);
-      setMinimized(false);
+      // Already open but sitting in the taskbar: "Check your mail" has to bring
+      // it back, or the verb reads as a no-op.
+      restoreOverlay(INBOX_WINDOW_ID);
     }
   }, [openSignal]);
 
@@ -81,7 +86,6 @@ export default function OfficeInboxDock({
       if (prev) {
         setSelectedId(null);
         setSelectedEmailIds(new Set());
-        setMinimized(false);
         setComposing(false);
         setComposeTo(null);
         setComposeSubject('');
@@ -200,10 +204,10 @@ export default function OfficeInboxDock({
       ) : null}
       {open ? (
         <FloatingWindow
-          id="office-inbox"
+          id={INBOX_WINDOW_ID}
           open={open}
           group="officeModal"
-          className={`office-inbox-popover${minimized ? ' is-minimized' : ''}`}
+          className="office-inbox-popover"
           kind="inbox"
           title={copy.inbox.title}
           defaultCorner="center"
@@ -221,12 +225,8 @@ export default function OfficeInboxDock({
               <span className="office-inbox-title">{copy.inbox.title}</span>
               <div className="office-inbox-header-actions">
                 <FloatingWindowMinimizeButton
-                  minimized={minimized}
-                  minimizeLabel={copy.windowMinimize}
-                  restoreLabel={copy.windowRestore}
-                  minimizeTitle={copy.windowMinimizeTitle}
-                  restoreTitle={copy.windowRestoreTitle}
-                  onToggle={() => setMinimized((prev) => !prev)}
+                  label={copy.windowMinimize}
+                  title={copy.windowMinimizeTitle}
                   className="office-inbox-minimize"
                 />
                 <FloatingWindowCloseButton
@@ -237,7 +237,7 @@ export default function OfficeInboxDock({
               </div>
             </div>
           </FloatingWindowDragHandle>
-          {minimized ? null : composing ? (
+          {composing ? (
             <div className="office-email-compose">
               <button type="button" className="office-email-back" onClick={cancelCompose}>
                 {copy.inbox.back}
