@@ -38,7 +38,6 @@ import { useDelayedUnmount } from './utils/useDelayedUnmount.js';
 import { useSyncVisualViewportHeight } from './hooks/useSyncVisualViewportHeight.js';
 import { useStyleEdits } from './hooks/useStyleEdits.js';
 import { useVoiceInput } from './hooks/useVoiceInput.js';
-import { useDeskSlotRef } from './hooks/useDeskSlotRef.js';
 import { buildContentModeOptions } from './utils/renderModeAction.js';
 import { useOfficeAmbientAudio } from './hooks/useOfficeAmbientAudio.js';
 import { useOfficeViewHotkey } from './hooks/useOfficeViewHotkey.js';
@@ -50,7 +49,6 @@ import {
 
 export function ArchiSlop() {
   const { controls, slopitect, applyLocaleFromText, locale: uiLocale } = useUiCopy();
-  const deskSlotRef = useDeskSlotRef();
   const contentModeOptions = useMemo(() => buildContentModeOptions(controls), [controls]);
   const { slopitectTip, slopitectTipRef, handleBrandClick, dismissSlopitectTip, focusTopicInput } =
     useSlopitectTips({ idleTips: slopitect.IDLE_TIPS });
@@ -948,7 +946,6 @@ export function ArchiSlop() {
           pendingHandshakeForAi={pendingHandshake}
           settingsOpenSignal={settingsOpenSignal}
           externalAgentPresence={externalAgentPresence}
-          deskSlotRef={deskSlotRef}
           deskPrompt={deskPrompt}
           setDeskPrompt={setDeskPrompt}
           handleDeskPromptSubmit={handleDeskPromptSubmit}

@@ -1196,7 +1196,7 @@ export default function OfficeLayer({
 
   const deskDock = (
     <DeskActionsDock
-      placement="bottom"
+      placement="taskbar"
       unreadCount={snapshot.unreadCount}
       imUnreadCount={snapshot.imUnreadCount}
       onCheckInbox={desk.checkInbox}

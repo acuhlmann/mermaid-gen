@@ -7,6 +7,8 @@ import DeskStandUpButton from './DeskStandUpButton.jsx';
 import LevelUpInfoPanel from './LevelUpInfoPanel.jsx';
 import XpProgressBar from './XpProgressBar.jsx';
 import { useUiCopy } from '../i18n/useUiLocale.js';
+import { useDeskSlotRef } from '../hooks/useDeskSlotRef.js';
+import { usePhoneLayout } from '../hooks/useAppLayoutMedia.js';
 import { officeChromeCopy } from '../utils/officeCast.js';
 import { overlayLayerStyle, useOverlayLayer } from '../hooks/useOverlayLayer.js';
 import { resolveUserName } from '../state/userIdentityStore.js';
@@ -51,12 +53,20 @@ function computeTrayPanelStyle(anchorRect) {
  *
  * Three zones, in the order every desktop OS has used since 1995:
  *
- * - **Leading corner** — `Stand up`, the one verb that leaves this renderer for
- *   the other one. It kept `Shift+O`; it just stopped being the odd control out
- *   in a menu of desk verbs.
+ * - **Leading cluster — the office.** `Stand up` (the one verb that leaves this
+ *   renderer for the other one; still `Shift+O`), then the three ways the office
+ *   reaches you — mail / Slop Chat / meeting — then what the room is doing.
+ *   The comms icons arrive by **portal** through `deskSlotStore`, exactly as they
+ *   did when the anchor lived on the composer band: the bar still owns no office
+ *   state, it owns a hole that `OfficeLayer` fills. The presence strip keeps
+ *   sharing this cluster (ADR-0011 rule 3 — the diegetic floor affordance is only
+ *   allowed beside the labelled control it duplicates) and is the part that grows,
+ *   because "what is going on in the office" is a sentence and needs room.
  * - **Window list** — `DeskOsTray`, the open office windows.
- * - **Tray end** — persistent status an OS puts by the clock: what the agent is
- *   doing right now, how hard it is thinking, and your standing in the company.
+ * - **Tray end** — persistent status an OS puts by the clock. Below 720px this
+ *   whole cluster's *optional* half retires: Concentration and the HR chip both
+ *   have a second home (Admin, and the desk menu), and on a phone the bar's job
+ *   is the office and the windows, not a scorecard.
  *
  * The taskbar owns no office state. Standing/sitting is read straight off
  * `officeViewModeStore` (a global store, exactly like the overlay stack the
@@ -90,11 +100,17 @@ export default function DeskOsTaskbar({
   );
   const { controls } = useUiCopy();
   const copy = officeChromeCopy().osTray ?? {};
+  const deskSlotRef = useDeskSlotRef();
+  // Space-constrained means *phone*, not "mobile": a tablet has room for the
+  // status half. Concentration and the HR chip both have a second home (Admin,
+  // the desk menu), so the bar sheds them rather than shedding the office.
+  const phone = usePhoneLayout();
   const xpAnchorRef = useRef(null);
   const [xpAnchorRect, setXpAnchorRect] = useState(/** @type {DOMRect | null} */ (null));
   const levelUpZIndex = useOverlayLayer('levelup-info-panel', xpInfoPanelOpen);
   const onFloor = viewMode === 'floor';
-  const hasLevel = Boolean(gamification?.level);
+  const showStatusHalf = !phone;
+  const hasLevel = Boolean(gamification?.level) && showStatusHalf;
   const panelOpen = xpInfoPanelOpen && hasLevel && !onFloor;
 
   useLayoutEffect(() => {
@@ -174,6 +190,15 @@ export default function DeskOsTaskbar({
           is structural instead of a coincidence of flex order. */}
       <div className="desk-os-taskbar-lead">
         <DeskStandUpButton standing={false} onStandUp={standUp} />
+        {/* Portal target for OfficeLayer's comms cluster. Rendered unconditionally
+            so the anchor exists before the office mounts; OfficeLayer decides
+            whether to fill it (`deskActionsAnchorReady`), which is also what keeps
+            the entry tour able to reveal it one step at a time. */}
+        <div
+          id="office-desk-bottom-slot"
+          ref={deskSlotRef}
+          className="desk-os-taskbar-comms desk-tour-piece desk-tour-piece--desk"
+        />
         <DeskOsPresenceStrip />
       </div>
 
@@ -205,7 +230,7 @@ export default function DeskOsTaskbar({
           </div>
         ) : null}
 
-        {onSelectModelProfile ? (
+        {onSelectModelProfile && showStatusHalf ? (
           <ConcentrationControl
             variant="tray"
             compact

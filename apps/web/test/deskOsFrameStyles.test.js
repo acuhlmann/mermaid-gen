@@ -69,9 +69,12 @@ describe('parody-OS frame geometry', () => {
   it('lets the leading cluster shrink, but never past its children', () => {
     const body = ruleBody('.desk-os-taskbar-lead');
     expect(body).toBeTruthy();
-    // `0 0 auto` was right for a lone fixed-width button; kept, the strip's
-    // caption would push the tray end out of the bar's right edge.
-    expect(body).toMatch(/\bflex:\s*0\s+1\s+auto\b/);
+    // `0 0 auto` was right for a lone fixed-width button, then `0 1 auto` once
+    // the strip joined it. This cluster now holds the whole office half of the
+    // bar — Stand up, the comms icons, and what the room is doing — so it grows,
+    // and the status end is what yields instead.
+    expect(body).toMatch(/\bflex:\s*1\s+1\s+auto\b/);
+    expect(ruleBody('.desk-os-taskbar-end')).toMatch(/\bflex:\s*0\s+1\s+auto\b/);
     // And `min-width: 0` — the reflex for every other flexible resident here —
     // is exactly wrong on this one. It defeats the automatic minimum size, so
     // the cluster shrinks past the floors its children declare and their
@@ -86,7 +89,9 @@ describe('parody-OS frame geometry', () => {
     expect(ruleBody('.desk-os-taskbar-lead .overlay-button.slop-action-button')).toMatch(
       /\bflex:\s*0\s+0\s+auto\b/
     );
-    expect(ruleBody('.desk-os-presence')).toMatch(/\bflex:\s*0\s+1\s+auto\b/);
+    // The strip grows as well now — it carries the office summary. What rule 3
+    // turns on is the *shrink* factor, and Stand up's is still 0.
+    expect(ruleBody('.desk-os-presence')).toMatch(/\bflex:\s*1\s+1\s+auto\b/);
   });
 
   it('clips the strip and floors it, so a squeeze loses words and not people', () => {
@@ -284,5 +289,55 @@ describe('office window placement', () => {
     expect(css).not.toMatch(/\.office-inbox-popover\.is-minimized/);
     expect(css).not.toMatch(/\.office-training-window\.is-minimized/);
     expect(css).not.toMatch(/\.office-meeting-room\.is-minimized\s*\{/);
+  });
+});
+
+/**
+ * The bottom-nav rearrangement (docs/office-window-manager.md §11). Every fact
+ * here was found by measuring a real browser, not by reading the diff — jsdom
+ * has no layout engine, so each one shipped broken through a green test suite
+ * first.
+ */
+describe('bottom nav placement', () => {
+  it('lets the comms cluster escape the corner-dock positioning', () => {
+    // `.desk-actions` is `position: fixed; top: 124px; right: 14px` — it began
+    // life as a floating corner dock. Measured failures, in order:
+    //   no reset          -> cluster painted top-right, anchor 0x0 in the bar
+    //   (0,1,0) reset     -> `.desk-actions:not(.desk-actions--bottom)` (0,2,0)
+    //                        still won `top`, so relative + top:7.4rem put the
+    //                        cluster at y=930 inside an 844px viewport
+    // Hence the doubled class: it ties the corner rules and wins on order.
+    const body = ruleBody('.desk-actions.desk-actions--taskbar');
+    expect(body).toBeTruthy();
+    expect(body).toMatch(/position:\s*relative/);
+    expect(body).toMatch(/top:\s*auto/);
+    expect(body).toMatch(/right:\s*auto/);
+  });
+
+  it('runs each composer lane as a row, not a column', () => {
+    // `.desk-work-order-group` is `flex-direction: column` further up — right
+    // when the prompt was its only child, and the reason the notebook first
+    // rendered *under* the input instead of beside it.
+    const body = ruleBody('.desk-work-order-group,\n.desk-talk-group');
+    expect(body).toBeTruthy();
+    expect(body).toMatch(/flex-direction:\s*row/);
+  });
+
+  it('declares lane order per lane, so the flat-tool-row rules cannot reverse it', () => {
+    // `.prompt-actions--mobile .desk-chrome-tool { order: 1 }` was written when
+    // these tools were siblings of the lanes. Nested inside one it put the
+    // roster to the RIGHT of the talk input it is supposed to address.
+    const team = ruleBody('.desk-talk-group > .desk-tour-piece--team');
+    expect(team).toMatch(/order:\s*0/);
+    const notebook = ruleBody('.desk-work-order-group > .desk-tour-piece--notebook');
+    expect(notebook).toMatch(/order:\s*2/);
+    // Every child needs an explicit order or the unset ones tie at 0.
+    expect(ruleBody('.desk-work-order-group > *,\n.desk-talk-group > *')).toMatch(/order:\s*1/);
+  });
+
+  it('sizes a sheet border-box so it does not hang over both edges', () => {
+    // Window kinds carry a 1px border and are not border-box, so a bare
+    // `width: 100%` measured 392px inside a 390px viewport.
+    expect(ruleBody('.floating-window.floating-window--sheet')).toMatch(/box-sizing:\s*border-box/);
   });
 });

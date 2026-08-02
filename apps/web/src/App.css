@@ -22805,10 +22805,63 @@ body.slopitect-rainbow-tint::before {
    `min-width: 0` the cluster shrank to 19px at 320px and its faces painted
    straight over the window pills. */
 .desk-os-taskbar-lead {
-  flex: 0 1 auto;
+  /* Grows now: this cluster holds the whole office half of the bar (Stand up,
+     the comms icons, and the "what is the room doing" strip), and the strip is
+     a sentence that deserves the slack. Still NO `min-width: 0` — that is the
+     documented trap; it defeats the automatic minimum and lets the faces spill
+     sideways into the window pills. */
+  flex: 1 1 auto;
   display: flex;
   align-items: center;
   gap: 0.35rem;
+}
+
+/* Portal anchor for the comms cluster. Collapses to nothing before OfficeLayer
+   fills it, so the bar does not reserve a gap for an office that has not
+   mounted. */
+.desk-os-taskbar-comms {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+  flex: 0 0 auto;
+}
+
+/* `.desk-actions` is `position: fixed` at `top: 124px; right: 14px` — it began
+   as a floating corner dock, and every placement since has had to opt out of
+   that. Two measured failures on the way in, both invisible to jsdom:
+   without the reset the cluster painted in the top-right corner while its
+   anchor collapsed to 0x0 (1440px: anchor 0x0, presence strip 813px); and with
+   the reset written as `.desk-actions--taskbar` (0,1,0) the corner rules'
+   `.desk-actions:not(.desk-actions--bottom)` (0,2,0) still won `top`, so
+   `position: relative` + `top: 7.4rem` dropped the cluster to y=930 in an 844px
+   viewport — present, measurable, and entirely off-screen.
+
+   Hence the doubled class: (0,2,0) ties the corner rules and wins on order.
+   Any future placement needs the same escape, not a third variant of it. */
+.desk-actions.desk-actions--taskbar {
+  position: relative;
+  top: auto;
+  right: auto;
+  z-index: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+/* Glyph-only in the bar: three labels is ~150px this bar does not have, and
+   every button keeps its title + accessible name. */
+.desk-actions--taskbar .button-label {
+  display: none;
+}
+
+.desk-actions--taskbar .overlay-button.slop-action-button.desk-comms-button {
+  flex: 0 0 auto;
+  min-width: 0;
+  min-height: 0;
+  width: 1.85rem;
+  height: 1.85rem;
+  padding: 0;
+  justify-content: center;
 }
 
 /* Stand up is a labelled bottom-nav control (ADR-0011 rule 3), but the taskbar
@@ -22840,7 +22893,11 @@ body.slopitect-rainbow-tint::before {
    chip by default: it is on screen for the whole session, so it may not read
    like a notification when nothing is happening. */
 .desk-os-presence {
-  flex: 0 1 auto;
+  /* Grows as well as shrinks: this is the one resident whose content is a
+     sentence about the room, and it is now the bar's office half. It still
+     yields before Stand up (`0 0 auto`), which is what ADR-0011 rule 3 asks —
+     the labelled control survives, the diegetic duplicate absorbs. */
+  flex: 1 1 auto;
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
@@ -22961,7 +23018,9 @@ body.slopitect-rainbow-tint::before {
 
 /* Trailing status cluster: what an OS puts by the clock. */
 .desk-os-taskbar-end {
-  flex: 1 1 auto;
+  /* Was `1 1 auto`. The office cluster grows now; status takes what it needs
+     and no more, which is also why it is the half that retires on a phone. */
+  flex: 0 1 auto;
   margin-left: auto;
   display: flex;
   align-items: center;
@@ -23554,27 +23613,64 @@ body.slopitect-rainbow-tint::before {
 /* Explicit left-to-right reading order for the band: stamp · work order ·
    the team · say it out loud · notebook. The generic `.desk-chrome-tool`
    ordering above cannot express "between the lanes". */
-.prompt-actions--desktop .desk-tour-piece--desk {
+/* Two lanes, two slots. The desk comms cluster left this row for the taskbar,
+   and the roster and notebook moved *inside* the lane each of them serves — so
+   the band no longer needs a five-way reading order, and on a phone it wraps to
+   two rows instead of four. */
+.prompt-actions--desktop .desk-work-order-group {
   order: 0;
-}
-
-.prompt-actions--desktop .desk-tour-piece--work-order {
-  order: 1;
   margin-inline-start: 0.5rem;
 }
 
-.prompt-actions--desktop .desk-tour-piece--team {
-  order: 2;
-}
-
 .prompt-actions--desktop .desk-talk-group {
-  order: 3;
+  order: 1;
   flex: 1 1 clamp(11rem, 20vw, 20rem);
   min-width: 0;
 }
 
-.prompt-actions--desktop .desk-tour-piece--notebook {
-  order: 4;
+/* Each lane is a ROW. `.desk-work-order-group` is `flex-direction: column`
+   further up — correct when its only child was the prompt, and the reason the
+   notebook first landed *under* the input instead of beside it. */
+.desk-work-order-group,
+.desk-talk-group {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+/* Order has to be declared per lane now. The flat-tool-row rules above
+   (`.prompt-actions--mobile .desk-chrome-tool { order: 1 }` and
+   `--notebook { order: 2 }`) were written when these tools were siblings of the
+   lanes; nested inside one they reverse it, which put the roster to the RIGHT
+   of the talk input and the notebook after nothing at all. Direct-child
+   selectors so a tour wrapper deeper in the tree cannot pick these up.
+
+   Declared on every child rather than just the tools, because a child with no
+   `order` defaults to 0 and would tie with the one we want first. */
+.desk-work-order-group > *,
+.desk-talk-group > * {
+  order: 1;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* The roster leads its lane: picking a face is how you choose who the talk
+   input is addressing, so it reads left-to-right as "to <person>: <message>". */
+.desk-talk-group > .desk-tour-piece--team {
+  order: 0;
+  flex: 0 0 auto;
+  min-width: auto;
+  align-self: center;
+}
+
+/* Notebook trails its lane — nearest the Thinking pane it opens, and after the
+   input whose output lands in it. */
+.desk-work-order-group > .desk-tour-piece--notebook {
+  order: 2;
+  flex: 0 0 auto;
+  min-width: auto;
+  align-self: center;
 }
 
 .desk-talk-composer {
@@ -23819,11 +23915,21 @@ button.stakeholders-roster-chip:disabled {
 
 @media (max-width: 1024px) {
   /* Phone / wide-mobile: the two lanes stack rather than fight for the row.
-     Work order stays first — it is the one that ships a deliverable. */
+     Work order stays first — it is the one that ships a deliverable. Each lane
+     now carries its own tool inline (notebook / roster), so this is two rows,
+     not the four it used to wrap into. */
+  .desk-work-order-group,
   .desk-talk-group {
-    order: 5;
     flex: 1 1 100%;
     width: 100%;
+  }
+
+  .desk-work-order-group {
+    order: 0;
+  }
+
+  .desk-talk-group {
+    order: 1;
   }
 
   .office-desk-speech-stack {
@@ -23861,6 +23967,11 @@ button.stakeholders-roster-chip:disabled {
   width: 100%;
   max-width: 100%;
   max-height: none;
+  /* Every window kind carries a 1px border and these are not border-box, so a
+     bare `width: 100%` measured 392px inside a 390px viewport. Not a visible
+     scroll (the sheet is fixed, so the overflow is clipped) — it just put both
+     edges a pixel off-screen, which is the rounded corner you paid for. */
+  box-sizing: border-box;
   border-radius: 14px 14px 0 0;
   border-bottom: 0;
   display: flex;
@@ -23887,8 +23998,11 @@ button.stakeholders-roster-chip:disabled {
   height: min(52dvh, calc(var(--app-vvh, 100dvh) - var(--sheet-bottom) - 4rem));
 }
 
+/* Almost the full height: mail / chat / a meeting are apps, and on a phone the
+   vertical space is the reason to open one. The reserve left at the top is the
+   menu bar — enough that you can still see where you are and get out. */
 .floating-window.floating-window--sheet[data-snap='full'] {
-  height: calc(var(--app-vvh, 100dvh) - var(--sheet-bottom) - 3.25rem);
+  height: calc(var(--app-vvh, 100dvh) - var(--sheet-bottom) - 2.1rem);
 }
 
 /* A focus ring around a full-width sheet outlines the viewport. The sheet is

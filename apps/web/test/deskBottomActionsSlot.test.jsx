@@ -201,13 +201,15 @@ describe('DeskBottomActionsSlot empty canvas', () => {
       />
     );
     expect(screen.getByTestId('desk-notebook-button')).toBeTruthy();
-    expect(document.getElementById('office-desk-bottom-slot')).toBeTruthy();
     expect(screen.queryByLabelText(/Work order/i)).toBeNull();
     fireEvent.click(screen.getByTestId('desk-notebook-button'));
     expect(onToggleThinking).toHaveBeenCalledTimes(1);
   });
 
-  it('keeps the desk slot mounted when the notebook pane is open with canvas content', () => {
+  // The comms anchor left this row for the taskbar (docs/office-window-manager.md
+  // §11) — the composer band must NOT reintroduce one, or OfficeLayer's portal
+  // would have two targets and `deskSlotStore` holds exactly one element.
+  it('leaves the comms anchor to the taskbar and keeps the notebook here', () => {
     render(
       <DeskBottomActionsSlot
         {...baseProps({
@@ -216,7 +218,7 @@ describe('DeskBottomActionsSlot empty canvas', () => {
         })}
       />
     );
-    expect(document.getElementById('office-desk-bottom-slot')).toBeTruthy();
+    expect(document.getElementById('office-desk-bottom-slot')).toBeNull();
     expect(screen.getByTestId('desk-notebook-button')).toBeTruthy();
   });
 

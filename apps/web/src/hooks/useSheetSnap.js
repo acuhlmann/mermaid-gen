@@ -9,8 +9,13 @@ import { useCallback, useEffect, useRef, useState } from 'react';
  */
 export const SHEET_SNAPS = /** @type {const} */ (['peek', 'half', 'full']);
 
-/** Default on open. The canvas is the work and the office is the side show, so a sheet opens at half. */
-export const DEFAULT_SHEET_SNAP = 'half';
+/**
+ * Default on open. Mail, chat and a meeting are *apps* — on a phone the useful
+ * thing is the vertical space, so a sheet slides up to nearly the top rather
+ * than politely taking half. `half` and `peek` stay one drag away, which is the
+ * version of "the office is a side show" that costs nothing when you want it.
+ */
+export const DEFAULT_SHEET_SNAP = 'full';
 
 /** Drag distance that commits a snap change. */
 const STEP_PX = 56;

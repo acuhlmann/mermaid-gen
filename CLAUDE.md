@@ -132,6 +132,19 @@ Every session carries **six independent diagram slots** — `mermaid` (Mermaid t
   stopping it from swallowing IM pings. Never re-add `touch-action` to `.floating-window` — the
   drag handlers are on the handle, and on the root it vetoes touch scrolling for every
   descendant. See [`docs/office-window-manager.md`](docs/office-window-manager.md).
+- **The taskbar's leading cluster is the office; the composer band is two lanes.** Mail / Slop
+  Chat / Meeting live in `DeskOsTaskbar` beside Stand up and the presence strip, arriving by
+  **portal** through `deskSlotStore` — so the bar still owns no office state, and the anchor
+  `#office-desk-bottom-slot` must exist exactly once (a second one silently steals the portal).
+  The composer band's lanes each carry their own tool: notebook inside `.desk-work-order-group`,
+  roster inside `.desk-talk-group`. Three traps, all invisible to jsdom and all found by driving
+  a browser: **`.desk-actions` is a corner dock** (`position: fixed; top: 124px`) so any new
+  placement needs a reset at `(0,2,0)` or the corner rules' `:not(.desk-actions--bottom)` wins
+  `top` and drops it off-screen; **`.desk-work-order-group` is `flex-direction: column`**, so a
+  second child stacks unless the lane is forced to `row`; and the flat-tool-row
+  `.desk-chrome-tool { order: 1 }` **reverses a nested lane**, so lane order must be declared on
+  every child. Below 640px the bar sheds Concentration + the HR chip (both have a second home),
+  never the office half. See [`docs/office-window-manager.md`](docs/office-window-manager.md) §11.
 - **Which verb goes where is frequency, not category.** Most-runs verbs stay on the bottom
   composer band; few-times-a-session verbs go to the menu bar (`DeskOsMenuBar`), persistent status
   goes to the taskbar tray (`DeskOsTaskbar`). Don't add a sixth command surface. See

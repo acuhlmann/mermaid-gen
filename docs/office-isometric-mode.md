@@ -241,8 +241,41 @@ Full design, diagnosis, and the two things it got wrong:
   at (0,1,0), so the (0,2,0) placement rules win by order as well as specificity. Pinned by a
   cascade-order assertion in `deskOsFrameStyles.test.js`.
 
-Not built: merging the composer's comms icons with the tray pills on phone (§5D of that doc) —
-the same three things in two rows, and the only part that touches the composer band.
+### 4f. Slice 8 — the bottom nav rearrangement ✅ shipped
+
+Slice 2 put the comms icons on the composer band and said which verb goes where is
+**frequency, not category**. Slice 8 keeps that rule and corrects the category: mail, Slop
+Chat and a meeting are not composer tools, they are _the office reaching you_ — the same
+thing the presence strip reports. So they joined it in the taskbar, and the bar's leading
+cluster became the office half outright: **Stand up · comms · what the room is doing**, with
+the strip taking the slack because it is the one resident whose content is a sentence.
+
+Nothing was prop-drilled to do it. The icons arrive through the portal anchor
+`deskSlotStore` already owned; the anchor just moved from the band into the bar, so
+`DeskOsTaskbar` still holds no office state and `deskSlotRef` stopped being threaded through
+four components.
+
+The band kept its two lanes and each one absorbed the tool it serves — notebook into the work
+order (what lands in it is what that input produced), the roster into the talk lane (picking a
+face is how you choose who you are addressing). Measured at 1440px: **105px → 60px**, one row
+back for the canvas; a phone wraps to two rows instead of four. Below 640px the bar drops
+Concentration and the HR chip — both have a second home under Admin and the desk menu, and on
+a phone the bar's job is the office and the windows, not a scorecard. A tablet keeps them.
+
+**This is the first slice on this track verified in a real browser**, and it needed to be —
+three defects shipped through a green `npm run check`:
+
+- **`.desk-actions` is a corner dock** (`position: fixed; top: 124px`) and every placement has
+  to escape it. A (0,1,0) reset lost `top` to the corner rules' (0,2,0)
+  `:not(.desk-actions--bottom)`, which put the cluster at **y=930 in an 844px viewport** —
+  correctly sized, fully measurable, entirely off-screen.
+- **`.desk-work-order-group` is `flex-direction: column`**, so the notebook rendered under the
+  prompt rather than beside it.
+- **The flat-tool-row `order` reverses a nested lane** — the roster landed to the right of the
+  input it exists to address.
+
+Taskbar sibling overlap across ten widths from 1440 to 320, with and without a window open:
+zero, and no horizontal overflow. All of it pinned in `test/deskOsFrameStyles.test.js`.
 
 ## 5. Phasing (each slice independently shippable)
 

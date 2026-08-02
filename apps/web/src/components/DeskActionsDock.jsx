@@ -8,13 +8,18 @@ function formatBadge(count) {
 
 /**
  * Desk comms cluster (docs/office-parody.md § Desk verbs): the three ways the
- * office reaches you — mail, Slop Chat, meeting — as direct composer icons with
+ * office reaches you — mail, Slop Chat, meeting — as direct icons with
  * independent unread badges. Headphones / Focus and Approved vendors live in
- * the menu bar Admin menu (`DeskOsMenuBar`); Stand up is on the taskbar.
+ * the menu bar Admin menu (`DeskOsMenuBar`).
+ *
+ * `placement="taskbar"` puts them in the bottom bar beside Stand up, where the
+ * rest of the office already is: the presence strip says what the room is doing
+ * and these are how you answer it. Glyph-only there — a label per verb is 3
+ * labels the bar cannot spend, and each icon keeps its `title` + `aria-label`.
  *
  * Pure props: OfficeLayer owns the store subscription and wires handlers from
- * useDeskActions. Verbs that cannot run stay visible but disabled with an
- * in-fiction reason.
+ * useDeskActions, then portals this into the bar's anchor (`deskSlotStore`), so
+ * the taskbar itself still holds no office state.
  */
 export default function DeskActionsDock({
   onCheckInbox,
@@ -64,7 +69,7 @@ export default function DeskActionsDock({
     }
   ];
 
-  const placementClass = placement === 'bottom' ? ' desk-actions--bottom' : '';
+  const placementClass = placement === 'corner' ? '' : ` desk-actions--${placement}`;
 
   return (
     <div

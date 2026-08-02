@@ -4,6 +4,7 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import FloatingWindow, { FloatingWindowDragHandle } from '../src/components/FloatingWindow.jsx';
 import { FloatingWindowMinimizeButton } from '../src/components/FloatingWindowChrome.jsx';
 import DeskOsTray from '../src/components/DeskOsTray.jsx';
+import DeskOsTaskbar from '../src/components/DeskOsTaskbar.jsx';
 import { resetOverlayStackForTests } from '../src/state/overlayStack.js';
 import { PHONE_MAX_WIDTH_PX, MOBILE_MAX_WIDTH_PX } from '../src/utils/layoutBreakpoints.js';
 
@@ -118,14 +119,15 @@ describe('office window manager', () => {
     expect(screen.getByText('Inbox body')).toBeTruthy();
   });
 
-  it('opens a phone sheet at half height, not covering the canvas', () => {
+  it('opens a phone sheet at full height — these are apps, and the space is the point', () => {
     stubViewport(PHONE_MAX_WIDTH_PX - 1);
     render(<OfficeWindow id="office-messenger" title="Slop Chat" kind="messenger" />);
 
     const el = document.querySelector('[data-floating-window="office-messenger"]');
     expect(el.dataset.presentation).toBe('sheet');
-    // The canvas is the work and the office is the side show.
-    expect(el.dataset.snap).toBe('half');
+    // Mail / chat / a meeting want the vertical space on a phone. `half` and
+    // `peek` stay one drag away for when the canvas is what you want back.
+    expect(el.dataset.snap).toBe('full');
   });
 
   it('resolves a placement per breakpoint', () => {
@@ -151,10 +153,74 @@ describe('office window manager', () => {
     expect(grip).toBeTruthy();
     expect(grip.getAttribute('aria-label')).toBeTruthy();
 
+    // Opens full, so the tap gives the canvas back rather than taking more.
     fireEvent.click(grip);
 
     expect(document.querySelector('[data-floating-window="office-messenger"]').dataset.snap).toBe(
-      'full'
+      'half'
     );
+  });
+});
+
+/**
+ * Where the office lives in the bottom bar (docs/office-window-manager.md §11).
+ * The comms icons moved off the composer band and onto the taskbar beside Stand
+ * up, and the bar sheds its *status* half on a phone rather than its office half.
+ */
+describe('taskbar office cluster', () => {
+  beforeEach(() => {
+    resetOverlayStackForTests();
+  });
+
+  afterEach(() => {
+    cleanup();
+    vi.unstubAllGlobals();
+  });
+
+  it('owns the single comms portal anchor, beside Stand up', () => {
+    stubViewport(1440);
+    render(<DeskOsTaskbar />);
+
+    const anchor = document.getElementById('office-desk-bottom-slot');
+    expect(anchor).toBeTruthy();
+    // Exactly one: `deskSlotStore` holds a single element, so a second anchor
+    // anywhere in the tree silently steals OfficeLayer's portal.
+    expect(document.querySelectorAll('#office-desk-bottom-slot')).toHaveLength(1);
+    // Same cluster as Stand up — ADR-0011 rule 3 only allows the diegetic
+    // presence strip to sit here because the labelled control is beside it.
+    expect(anchor.closest('.desk-os-taskbar-lead')).toBeTruthy();
+    expect(anchor.closest('.desk-os-taskbar-lead').querySelector('.desk-os-presence')).toBeTruthy();
+  });
+
+  it('keeps Concentration and the HR chip on a tablet', () => {
+    stubViewport(MOBILE_MAX_WIDTH_PX);
+    render(
+      <DeskOsTaskbar
+        modelProfile="fast"
+        onSelectModelProfile={() => {}}
+        gamification={{ level: 3, levelShortLabel: 'L3', levelProgressRatio: 0.5, xp: 120 }}
+      />
+    );
+
+    expect(document.querySelector('.desk-os-taskbar-xp')).toBeTruthy();
+  });
+
+  it('sheds the status half on a phone, never the office half', () => {
+    stubViewport(PHONE_MAX_WIDTH_PX - 1);
+    render(
+      <DeskOsTaskbar
+        modelProfile="fast"
+        onSelectModelProfile={() => {}}
+        gamification={{ level: 3, levelShortLabel: 'L3', levelProgressRatio: 0.5, xp: 120 }}
+      />
+    );
+
+    // Both have a second home (Admin / the desk menu), so the bar can spend
+    // their width on the office instead.
+    expect(document.querySelector('.desk-os-taskbar-xp')).toBeNull();
+    expect(document.querySelector('.concentration-control')).toBeNull();
+    // The office half survives intact — that is the whole point of the trade.
+    expect(document.getElementById('office-desk-bottom-slot')).toBeTruthy();
+    expect(document.querySelector('.desk-os-presence')).toBeTruthy();
   });
 });

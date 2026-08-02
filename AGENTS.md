@@ -229,6 +229,19 @@ Production deploy notes (Cloud Run, billing credits, GitHub Actions CI, optional
   stopping it from swallowing IM pings. Never re-add `touch-action` to `.floating-window` — the
   drag handlers are on the handle, and on the root it vetoes touch scrolling for every
   descendant. See [`docs/office-window-manager.md`](docs/office-window-manager.md).
+- **The taskbar's leading cluster is the office; the composer band is two lanes.** Mail / Slop
+  Chat / Meeting live in `DeskOsTaskbar` beside Stand up and the presence strip, arriving by
+  **portal** through `deskSlotStore` — the bar still owns no office state, and the anchor
+  `#office-desk-bottom-slot` must exist exactly once (a second one silently steals the portal).
+  The band's lanes each carry their own tool: notebook inside `.desk-work-order-group`, roster
+  inside `.desk-talk-group`. Three traps, all invisible to jsdom and all found by driving a
+  browser: **`.desk-actions` is a corner dock** (`position: fixed; top: 124px`) so any new
+  placement needs a reset at `(0,2,0)` or the corner rules' `:not(.desk-actions--bottom)` wins
+  `top` and drops it off-screen; **`.desk-work-order-group` is `flex-direction: column`**, so a
+  second child stacks unless the lane is forced to `row`; and the flat-tool-row
+  `.desk-chrome-tool { order: 1 }` **reverses a nested lane**, so lane order must be declared on
+  every child. Below 640px the bar sheds Concentration + the HR chip (both have a second home),
+  never the office half. See [`docs/office-window-manager.md`](docs/office-window-manager.md) §11.
 - **The parody-OS frame is height-budgeted by one token.** `--desk-taskbar-h` (`App.css` `:root`)
   is what `.bottom-chrome` stacks on at _every_ breakpoint, and `.desk-os-taskbar` uses a fixed
   `height` + `box-sizing: border-box` so a tall child clips instead of silently shoving the

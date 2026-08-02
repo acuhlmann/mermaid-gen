@@ -146,7 +146,6 @@ export function AppWorkspaceSlot({
   pendingHandshakeForAi,
   settingsOpenSignal,
   externalAgentPresence,
-  deskSlotRef,
   deskPrompt,
   setDeskPrompt,
   handleDeskPromptSubmit,
@@ -381,7 +380,6 @@ export function AppWorkspaceSlot({
         settingsOpenSignal={settingsOpenSignal}
         onToggleEditor={() => setEditorOpen((current) => !current)}
         externalAgentPresence={externalAgentPresence}
-        deskSlotRef={deskSlotRef}
         entryReveal={entryReveal}
         busy={busy}
         deskPrompt={deskPrompt}

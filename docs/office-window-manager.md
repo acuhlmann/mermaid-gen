@@ -290,3 +290,77 @@ deletions across nine files. `npm run check` passes; 1744 pre-existing tests wer
 the 18 new ones were added, which is itself the finding — **nothing covered the old split**,
 because the store had focus coverage and each window had its own boolean, and no test ever
 asserted the two were connected. They were not.
+
+## 11. Slice 4 — the bottom nav rearrangement ✅ shipped
+
+§5D said "merge the comms icons with the tray, on phone only". What shipped is
+larger and simpler: **the comms icons moved to the taskbar at every breakpoint**,
+and the composer band's free-standing tools moved _inside_ the lane each of them
+serves. Owner's framing, which is the design: _you never need mail and chat at
+once, there is not enough space anyway, and the canvas is the work — the rest is
+a side show._
+
+**The bottom bar is now the office.** `Stand up` · the comms icons · what the
+room is doing, all in one cluster, with the presence strip taking the slack
+because it is the one resident whose content is a sentence. The icons arrive by
+**portal** through the anchor `deskSlotStore` already owned — the anchor simply
+moved from the composer band into the bar — so `DeskOsTaskbar` still holds no
+office state, and `deskSlotRef` stopped being threaded through four components.
+
+**Space-constrained means phone, not "mobile".** Below 640px the bar drops
+Concentration and the HR chip: both have a second home (Admin, the desk menu),
+and on a phone the bar's job is the office and the windows, not a scorecard. A
+tablet keeps them. This is a _render_ condition, not `display: none`, so the
+controls stop mounting rather than merely hiding.
+
+**Each composer lane carries its own tool.** The notebook rides the work-order
+lane (what lands in it is what that input produced); the roster leads the talk
+lane (picking a face is how you choose who you are addressing, so the lane reads
+"to `<person>`: `<message>`"). Measured at 1440px the band went from **105px to
+60px** — one row back for the canvas — and a phone wraps to two rows instead of
+four.
+
+**Sheets open at `full`.** These are apps and the vertical space is the reason to
+open one; `half` and `peek` stay one drag or one tap away.
+
+### What only a browser could tell me
+
+All three of these shipped through a green `npm run check` and were caught by
+driving Chrome (playwright-core + system Chrome, per the recipe in
+`apps/web/.claude/skills/verify/` adapted to Windows). Each is now pinned in
+`deskOsFrameStyles.test.js`.
+
+1. **`.desk-actions` is a corner dock, and every placement must escape it.** The
+   base rule is `position: fixed; top: 124px; right: 14px`. Without a reset the
+   cluster painted in the top-right corner while its anchor measured 0×0 and the
+   presence strip silently ate the 813px of slack. With the reset written as
+   `.desk-actions--taskbar` (0,1,0), the corner rules'
+   `.desk-actions:not(.desk-actions--bottom)` (0,2,0) still won `top`, so
+   `position: relative` + `top: 7.4rem` put the cluster at **y=930 inside an
+   844px viewport** — present, measurable, correctly sized, and entirely
+   off-screen. The fix is a doubled class. A third placement will need the same
+   escape; the honest fix is for the corner rules to name the corner.
+2. **`.desk-work-order-group` is `flex-direction: column`.** Correct when the
+   prompt was its only child, and the reason the notebook rendered _under_ the
+   input rather than beside it.
+3. **The flat-tool-row ordering reverses a nested lane.**
+   `.prompt-actions--mobile .desk-chrome-tool { order: 1 }` was written when
+   these tools were siblings of the lanes; inside one, it put the roster to the
+   right of the input it exists to address. Order is declared per lane now, on
+   _every_ child — an unset child defaults to 0 and ties with the one you want
+   first.
+
+Plus one cosmetic: a sheet measured **392px in a 390px viewport**, because window
+kinds carry a 1px border and are not border-box. Not a scroll (the sheet is
+fixed, so it clipped), just both rounded corners a pixel off-screen.
+
+### Measured, and clean
+
+Taskbar sibling overlap across 1440 / 1024 / 900 / 820 / 720 / 640 / 540 / 430 /
+390 / 320, with and without a window open: **zero at every width**, and
+`document.scrollWidth === innerWidth` throughout. Worth recording because the
+mid-width tablet screenshot _looked_ like the presence caption was colliding with
+the status cluster — it was the docked panel painting above the bar, which is the
+documented z-order (`FOCUS_Z_BASE` 300 > taskbar 280). The measurement was right
+and the picture was misleading, which is the §4-in-`windows-dev-gotchas` lesson
+arriving from the opposite direction.

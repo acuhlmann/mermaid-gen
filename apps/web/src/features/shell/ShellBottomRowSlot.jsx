@@ -20,7 +20,6 @@ export function ShellBottomRowSlot({
   settingsOpenSignal,
   onToggleEditor,
   externalAgentPresence,
-  deskSlotRef,
   entryReveal,
   busy,
   deskPrompt,
@@ -70,7 +69,6 @@ export function ShellBottomRowSlot({
           narrowLayout={narrowLayout}
           busy={busy}
           controls={controls}
-          deskSlotRef={deskSlotRef}
           deskPrompt={deskPrompt}
           setDeskPrompt={setDeskPrompt}
           voiceSupported={voiceSupported}

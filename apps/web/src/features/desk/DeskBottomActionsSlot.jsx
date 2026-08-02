@@ -118,8 +118,6 @@ function DeskPeopleCluster({
 }
 
 function DeskChromeRow({
-  deskSlotRef,
-  showDeskSlot = true,
   showWorkOrder = true,
   showTeam = true,
   showNotebook = true,
@@ -184,18 +182,31 @@ function DeskChromeRow({
     skipLabel: entryTourCopy?.skip
   };
 
+  /**
+   * Notebook rides the work-order lane, because what lands in it is what that
+   * input produced — but it has to survive the lane being gone. The
+   * notebook-only chrome (pane open, nothing on the canvas yet) hides the work
+   * order, and nesting alone made that branch render an empty row.
+   */
+  const notebook = showNotebook ? (
+    <div
+      className={`desk-chrome-tool desk-tour-piece desk-tour-piece--notebook${tourHighlight === 'notebook' ? ' is-tour-highlight' : ''}`}
+    >
+      <DeskNotebookButton
+        thinkingOpen={thinkingOpen}
+        onToggleThinking={onToggleThinking}
+        disabled={!canToggleThinking}
+        liveEntry={liveStreamingEntry}
+        busy={busy}
+      />
+    </div>
+  ) : null;
+
   return (
     <div
       className={`button-group desk-primary-group desk-chrome-layout${entryTourActive ? ' is-entry-tour-active' : ''}`}
     >
       {tourTip ? <EntryDeskPointers {...tourPointerProps} /> : null}
-      {showDeskSlot ? (
-        <div
-          id="office-desk-bottom-slot"
-          ref={deskSlotRef}
-          className={`desk-chrome-tool desk-tour-piece desk-tour-piece--desk${tourHighlight === 'desk' ? ' is-tour-highlight' : ''}`}
-        />
-      ) : null}
       {showWorkOrder ? (
         <div
           className={`desk-work-order-group desk-tour-piece desk-tour-piece--work-order${tourHighlight === 'work-order' ? ' is-tour-highlight' : ''}`}
@@ -223,54 +234,52 @@ function DeskChromeRow({
           <span hidden data-testid="desk-prompt-change-wired">
             {typeof onPromptChange === 'function' ? 'yes' : 'no'}
           </span>
+          {notebook}
         </div>
       ) : null}
-      {showTeam ? (
-        <div
-          className={`desk-chrome-tool desk-tour-piece desk-tour-piece--team${tourHighlight === 'team' ? ' is-tour-highlight' : ''}`}
-        >
-          <DeskPeopleCluster
-            russStreak={russStreak}
-            controls={controls}
-            runTransform={runTransform}
-            runAnalyze={runAnalyze}
-            busy={busy}
-            onHuddle={onHuddle}
-            onPair={onPair}
-            onCallMeeting={onCallMeeting}
-            onAddress={onAddressTeammate}
-            canFixFromCritique={canFixFromCritique}
-            hasCritique={hasCritique}
-            onFixFromCritique={onFixFromCritique}
-          />
-        </div>
-      ) : null}
+      {/* No lane to ride — stand alone rather than disappear with it. */}
+      {showWorkOrder ? null : notebook}
       {/* Lane 2. Two composers side by side, not a toggle: the work order goes
           to the canvas, this goes to the room. Conflating them would make every
-          throwaway remark cost a pipeline run. */}
-      {showTalk ? (
+          throwaway remark cost a pipeline run.
+
+          The roster leads this lane instead of sitting between the lanes. It
+          still answers both — the action chip delegates to the canvas, the
+          name/face addresses the room — but it is the *addressing* half that
+          needs to be adjacent, because picking a face is how you choose who this
+          input is talking to. Between the lanes it belonged to neither and
+          wrapped onto its own row on a phone. */}
+      {showTalk || showTeam ? (
         <div className="desk-talk-group desk-tour-piece desk-tour-piece--talk">
-          <DeskTalkComposer
-            target={talkTarget}
-            onClearTarget={onClearTalkTarget}
-            onSubmit={onTalk}
-            disabled={talkDisabled}
-            disabledReason={talkDisabledReason}
-          />
-        </div>
-      ) : null}
-      {/* Notebook last so it sits nearest the right-side Notebook / Thinking pane. */}
-      {showNotebook ? (
-        <div
-          className={`desk-chrome-tool desk-tour-piece desk-tour-piece--notebook${tourHighlight === 'notebook' ? ' is-tour-highlight' : ''}`}
-        >
-          <DeskNotebookButton
-            thinkingOpen={thinkingOpen}
-            onToggleThinking={onToggleThinking}
-            disabled={!canToggleThinking}
-            liveEntry={liveStreamingEntry}
-            busy={busy}
-          />
+          {showTeam ? (
+            <div
+              className={`desk-chrome-tool desk-tour-piece desk-tour-piece--team${tourHighlight === 'team' ? ' is-tour-highlight' : ''}`}
+            >
+              <DeskPeopleCluster
+                russStreak={russStreak}
+                controls={controls}
+                runTransform={runTransform}
+                runAnalyze={runAnalyze}
+                busy={busy}
+                onHuddle={onHuddle}
+                onPair={onPair}
+                onCallMeeting={onCallMeeting}
+                onAddress={onAddressTeammate}
+                canFixFromCritique={canFixFromCritique}
+                hasCritique={hasCritique}
+                onFixFromCritique={onFixFromCritique}
+              />
+            </div>
+          ) : null}
+          {showTalk ? (
+            <DeskTalkComposer
+              target={talkTarget}
+              onClearTarget={onClearTalkTarget}
+              onSubmit={onTalk}
+              disabled={talkDisabled}
+              disabledReason={talkDisabledReason}
+            />
+          ) : null}
         </div>
       ) : null}
     </div>
@@ -293,7 +302,6 @@ export function DeskBottomActionsSlot({
   narrowLayout,
   busy,
   controls,
-  deskSlotRef,
   deskPrompt,
   setDeskPrompt,
   voiceSupported,
@@ -347,8 +355,6 @@ export function DeskBottomActionsSlot({
   const [talkTarget, setTalkTarget] = useState(/** @type {string | null} */ (null));
 
   const chromeProps = {
-    deskSlotRef,
-    showDeskSlot: reveal.desk,
     showTeam: reveal.team,
     showNotebook: reveal.notebook,
     deskPrompt,
