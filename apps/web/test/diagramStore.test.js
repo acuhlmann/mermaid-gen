@@ -19,6 +19,7 @@ import {
   shouldAutoSubmitModeSwitchIntent,
   slotLastTopic,
   streamDiagramAgent,
+  submitDiagramIntent,
   submitDiagramTransform,
   syncClientDiagramState,
   clearAllArchislopAppStorage,
@@ -118,6 +119,41 @@ describe('submitDiagramTransform', () => {
     }
   });
 
+  it('includes uiLocale when provided and omits it otherwise', async () => {
+    const originalFetch = globalThis.fetch;
+    let requestBody;
+    try {
+      globalThis.fetch = async (_url, options) => {
+        requestBody = options.body;
+        return {
+          ok: true,
+          async json() {
+            return { state: { revisionId: 1 }, metadata: {} };
+          }
+        };
+      };
+
+      await submitDiagramTransform({
+        mode: 'gilfoyle',
+        revisionId: 0,
+        diagramSource: 'flowchart TD\n  A --> B',
+        uiLocale: 'en-AU'
+      });
+
+      expect(JSON.parse(requestBody).uiLocale).toBe('en-AU');
+
+      await submitDiagramTransform({
+        mode: 'gilfoyle',
+        revisionId: 0,
+        diagramSource: 'flowchart TD\n  A --> B'
+      });
+
+      expect(JSON.parse(requestBody).uiLocale).toBeUndefined();
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
   it('includes russDepth when provided', async () => {
     const originalFetch = globalThis.fetch;
     let requestBody;
@@ -171,6 +207,35 @@ describe('submitDiagramTransform', () => {
       const timeoutMs = resolveAgentRunBudgetMs('fast', {}, 'russ') + clientGraceMs;
       await vi.advanceTimersByTimeAsync(timeoutMs + 1_000);
       await assertion;
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+});
+
+describe('submitDiagramIntent', () => {
+  it('includes uiLocale in the intent payload when provided', async () => {
+    const originalFetch = globalThis.fetch;
+    let requestBody;
+    try {
+      globalThis.fetch = async (_url, options) => {
+        requestBody = options.body;
+        return {
+          ok: true,
+          async json() {
+            return { state: { revisionId: 1 }, metadata: {} };
+          }
+        };
+      };
+
+      await submitDiagramIntent({
+        prompt: 'draw login flow',
+        revisionId: 0,
+        diagramSource: 'flowchart TD\n  A --> B',
+        uiLocale: 'en'
+      });
+
+      expect(JSON.parse(requestBody).uiLocale).toBe('en');
     } finally {
       globalThis.fetch = originalFetch;
     }
