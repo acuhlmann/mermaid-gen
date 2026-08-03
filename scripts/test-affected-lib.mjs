@@ -31,6 +31,7 @@ export const WIRE_TEST_FILES = [
 export const ISOMETRIC_FLOOR_BLAST_TESTS = [
   'apps/web/test/officeFloor.test.jsx',
   'apps/web/test/officeFloorAccess.test.jsx',
+  'apps/web/test/officeFloorActivity.test.jsx',
   'apps/web/test/officeFloorArrival.test.jsx',
   'apps/web/test/officeFloorContracts.test.js',
   'apps/web/test/officeFloorHuddle.test.jsx',
@@ -49,6 +50,7 @@ export const ISOMETRIC_FLOOR_BLAST_TESTS = [
   'apps/web/test/officeFloorWander.test.jsx',
   'apps/web/test/officeLayerFloorRenderer.test.jsx',
   'apps/web/test/officeDeskWork.test.js',
+  'apps/web/test/personaFaces.test.jsx',
   'apps/web/test/useWalkAnimation.test.jsx'
 ];
 
@@ -167,7 +169,7 @@ export const BLAST_RADIUS_RULES = [
   },
   {
     match:
-      /apps\/web\/src\/(components\/(OfficeFloor|officeFloor|OfficeLayer)|utils\/officeFloor|utils\/officeDeskWork|utils\/officeSceneCast|hooks\/useStageScale\.js|state\/officeViewModeStore)/,
+      /apps\/web\/src\/(components\/(OfficeFloor|officeFloor|OfficeLayer|personaFaces)|utils\/officeFloor|utils\/officeDeskWork|utils\/officeSceneCast|hooks\/useStageScale\.js|state\/officeViewModeStore)/,
     tests: ISOMETRIC_FLOOR_BLAST_TESTS
   },
   {

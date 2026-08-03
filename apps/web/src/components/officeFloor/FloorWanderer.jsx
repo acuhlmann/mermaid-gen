@@ -30,6 +30,7 @@ import FloorPersonButton from './FloorPersonButton.jsx';
 import { useWalkAnimation } from './useWalkAnimation.js';
 import { depthOf, walkPathBetween } from '../../utils/officeFloorPlan.js';
 import { officeSenderInfo } from '../../utils/officeCast.js';
+import { floorActivityFor } from '../../utils/officeFloorActivity.js';
 import { formatLocale } from '../../i18n/formatLocale.js';
 
 /**
@@ -106,6 +107,14 @@ export function FloorWanderer({
   const sender = officeSenderInfo(seatId);
   const accent = sender?.accentColor ?? 'var(--accent)';
   const settled = wanderer.phase === 'dwell';
+  /*
+   * They keep whatever they were holding while they are up — which is most of
+   * why ambient traffic reads as errands rather than pacing: Gary crossing the
+   * room with his mug is going somewhere, Gary crossing it empty-handed is
+   * lost. `moving` only drops the idle rhythm, never the hand (see
+   * `floorActivityFor`), and the walk animation owns the body meanwhile.
+   */
+  const activity = floorActivityFor(seatId, { moving: !settled });
 
   return (
     <div
@@ -126,12 +135,13 @@ export function FloorWanderer({
           accent={accent}
           selected={selected}
           speaking={speaking}
+          activity={activity}
           onSelect={onSelect}
           onActivate={onActivate}
         />
       ) : (
         <div className="office-floor-walker-anchor">
-          <FloorFigure id={seatId} accent={accent} walking={!arrived} />
+          <FloorFigure id={seatId} accent={accent} activity={activity} walking={!arrived} />
         </div>
       )}
     </div>

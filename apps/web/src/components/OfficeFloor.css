@@ -369,6 +369,11 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+  /* Containing block for the held-item layer below, which is the only child
+     that is not in this flex flow. Costs the layout nothing and is what keeps
+     § 6 rule 23 true with a mug hanging off the shoulder: an absolutely
+     positioned child does not size the button. */
+  position: relative;
   animation: office-floor-idle 4.6s ease-in-out infinite;
   animation-delay: var(--idle-delay, 0s);
   filter: drop-shadow(0 4px 5px rgba(15, 23, 42, 0.22));
@@ -381,6 +386,70 @@
   }
   50% {
     transform: translateY(-2.5px);
+  }
+}
+
+/*
+ * What is in their hand (slice 13). Placed over the figure's own x18–34 /
+ * y16–40, which is the right shoulder and the ear beside it — high enough that
+ * a seated figure's desk (which hides everything below y36) does not eat it,
+ * and on top of the head so a phone can reach an ear.
+ *
+ * `pointer-events: none` for the same reason the name chip has it: this hangs
+ * outside the 34 px figure, and a child that took pointer events would hand the
+ * oversized hit box straight back.
+ */
+.office-floor-person-hold {
+  position: absolute;
+  left: 18px;
+  top: 16px;
+  z-index: 2;
+  pointer-events: none;
+  overflow: visible;
+}
+
+/*
+ * What the body is doing, which is only ever a rhythm — at 34 px a shoulder
+ * angle is not a signal and a mug is, so the art budget goes on the hand and
+ * the pose only retimes the idle bob.
+ *
+ * A walking figure is given **no** pose class at all (`figureClassName` in
+ * `FloorFigure.jsx`) rather than being out-specified here: `.is-walking` and
+ * these are all single-class overrides of one property, so the winner would be
+ * source order in a file where rules move.
+ */
+.office-floor-person-figure.is-pose-typing {
+  animation: office-floor-typing 0.92s ease-in-out infinite;
+}
+
+.office-floor-person-figure.is-pose-call {
+  animation: office-floor-call 3.4s ease-in-out infinite;
+}
+
+.office-floor-person-figure.is-pose-reading {
+  animation: office-floor-idle 6.4s ease-in-out infinite;
+}
+
+/* Short and shallow: a torso barely moving over a keyboard, not a bob. */
+@keyframes office-floor-typing {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-0.9px);
+  }
+}
+
+/* Listening, not agreeing — a slow lean, no nod, because a nod at this size
+   reads as the whole person falling over. */
+@keyframes office-floor-call {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-1.6px) rotate(1.1deg);
   }
 }
 
@@ -831,33 +900,77 @@
 }
 
 /*
- * Whoever is introducing themselves — or holding the floor in the glass room —
- * glows. A ring on the floor would be the obvious choice and is completely
- * wrong: their own desk (or the meeting table) stands on that tile and hides it.
- * The head clears both, so the highlight goes there.
+ * Whoever is talking — the ceremony introducing themselves, the glass room,
+ * a coffee break, the person you are stood in front of, and since slice 13 you.
+ *
+ * A ring on the floor would be the obvious choice and is completely wrong:
+ * their own desk (or the meeting table) stands on that tile and hides it. The
+ * head clears both, so the indicator goes there.
+ *
+ * **Two selectors, not five.** Every actor on this stage is either
+ * `.office-floor-person` (in a chair or stood at a prop) or
+ * `.office-floor-walker` (travelling, seated in the glass room, in a huddle
+ * ring, in a set piece, or you) — so the meeting, huddle and scene classes do
+ * not each need a rule, and a sixth surface that sets `is-speaking` on its
+ * wrapper is lit with no CSS at all.
+ *
+ * **Subtle on purpose.** This was a 9 px accent glow *plus* a 20 px blue one,
+ * which is a stage light: in a two-hander it read as the room dimming rather
+ * than as somebody taking a turn, and the blue was the same hue for everybody,
+ * so the one thing the highlight is for — who — was the thing it said least.
+ * What is left is the character's own accent at half the spread, plus a ring
+ * that breathes. The ring carries the motion so the figure can stay still,
+ * which is what stops a conversation looking like both people bouncing.
  */
 .office-floor-person.is-speaking .office-floor-person-figure,
-.office-floor-meeting-actor.is-speaking .office-floor-person-figure {
-  filter: drop-shadow(0 0 9px var(--floor-accent, var(--accent)))
-    drop-shadow(0 0 20px rgba(37, 99, 235, 0.55));
+.office-floor-walker.is-speaking .office-floor-person-figure {
+  filter: drop-shadow(0 0 4px var(--floor-accent, var(--accent)))
+    drop-shadow(0 4px 5px rgba(15, 23, 42, 0.25));
+}
+
+/*
+ * The breathing ring, drawn round the head. `::before` on the figure rather
+ * than a real element so every surface gets it from the two selectors above —
+ * and behind the head (`z-index: 0` against the head's `1`) so it reads as a
+ * halo rather than a bubble over the face.
+ */
+.office-floor-person.is-speaking .office-floor-person-figure::before,
+.office-floor-walker.is-speaking .office-floor-person-figure::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 1px;
+  width: 32px;
+  height: 32px;
+  margin-left: -16px;
+  border-radius: 50%;
+  border: 2px solid var(--floor-accent, var(--accent));
+  z-index: 0;
+  pointer-events: none;
   animation: office-floor-speaking 1.9s ease-in-out infinite;
 }
 
-/* Their name rides along while they introduce themselves — the tour is
-   supposed to teach you who sits where, not just play voices. */
+/* Their name rides along while they hold the floor — the tour is supposed to
+   teach you who sits where, not just play voices, and in a conversation the
+   chip is what makes a quiet indicator legible at a glance. */
 .office-floor-person.is-speaking .office-floor-person-name {
   opacity: 1;
   border-color: var(--floor-accent, var(--accent));
   color: var(--floor-accent, var(--accent));
 }
 
+/* Opacity and scale, never `transform` on the figure: the figure is already
+   running an idle or a pose, and a second animation on the same property would
+   silently replace it. */
 @keyframes office-floor-speaking {
   0%,
   100% {
-    transform: translateY(0);
+    opacity: 0.28;
+    transform: scale(0.94);
   }
   50% {
-    transform: translateY(-3px);
+    opacity: 0.6;
+    transform: scale(1.06);
   }
 }
 
@@ -1255,13 +1368,27 @@
 @media (prefers-reduced-motion: reduce) {
   .office-floor,
   .office-floor-person-figure,
-  .office-floor-person.is-speaking .office-floor-person-figure,
-  .office-floor-meeting-actor.is-speaking .office-floor-person-figure,
+  .office-floor-person-figure.is-pose-typing,
+  .office-floor-person-figure.is-pose-call,
+  .office-floor-person-figure.is-pose-reading,
+  .office-floor-person.is-speaking .office-floor-person-figure::before,
+  .office-floor-walker.is-speaking .office-floor-person-figure::before,
   .office-floor-prop--usable.is-active .office-floor-prop-art,
   .office-floor-you-tile,
   .office-floor-bubble,
   .floor-screen {
     animation: none;
+  }
+
+  /*
+   * The ring still has to *be* there when it cannot breathe — reduced motion is
+   * a request for less movement, not for less information, and it is the only
+   * thing marking who is talking once the figure stops bobbing.
+   */
+  .office-floor-person.is-speaking .office-floor-person-figure::before,
+  .office-floor-walker.is-speaking .office-floor-person-figure::before {
+    opacity: 0.5;
+    transform: scale(1);
   }
 
   .office-floor-person:hover .office-floor-person-figure {
@@ -1290,10 +1417,16 @@
   outline-offset: 2px;
 }
 
-.office-floor-huddle-actor.is-speaking .office-floor-person-figure,
+/*
+ * A huddle speaker is already covered by the `.office-floor-walker.is-speaking`
+ * pair above (the actor carries both classes), so only **pinned** needs a rule
+ * of its own — and it gets the louder glow deliberately: speaking is a turn
+ * that passes, pinned is a choice you made and should still be able to find
+ * after the turn has moved on.
+ */
 .office-floor-huddle-actor.is-pinned .office-floor-person-figure {
-  filter: drop-shadow(0 0 9px var(--floor-accent, var(--accent)))
-    drop-shadow(0 0 20px rgba(37, 99, 235, 0.55));
+  filter: drop-shadow(0 0 8px var(--floor-accent, var(--accent)))
+    drop-shadow(0 4px 5px rgba(15, 23, 42, 0.25));
 }
 
 @keyframes office-floor-huddle-in {

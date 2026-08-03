@@ -322,9 +322,55 @@ export const PERSONA_FACE_TRAITS = {
 };
 
 /**
+ * The id the player answers to everywhere in the office (`YOU_SEAT_ID`,
+ * `MEETING_USER_SPEAKER`). Not imported from the floor plan on purpose: this
+ * module is a leaf that the whole app draws faces from, and it should not learn
+ * about isometric geometry to do it.
+ */
+export const PLAYER_FACE_ID = 'you';
+
+/**
+ * **You.** Kept out of `PERSONA_FACE_TRAITS` rather than added to it, because
+ * that object's keys are asserted to be exactly `CAST_TIERS` and you are not
+ * cast — you are the one person in this office who is real.
+ *
+ * Before slice 13 you rendered as a 🙋 through `PersonaFace`'s unknown-id
+ * fallback, which was fine while a figure was only ever a silhouette and became
+ * the blocking limitation the moment the floor started drawing what people are
+ * doing: an emoji cannot put headphones on, and "show me wearing them" is the
+ * whole point of the Admin posture reaching the room.
+ *
+ * Deliberately **unremarkable** — no facial hair, no glasses, a mid skin tone,
+ * a plain shirt. Every cast row is drawn toward somebody; this one is drawn
+ * toward nobody, because the app has no idea what you look like and guessing
+ * loudly would be worse than not guessing. What identifies you is what has
+ * always identified you: your own `--accent`, and the name you typed on the
+ * badge. The `lanyard` is that badge — the office fiction already hangs one
+ * round your neck on day one (`NameTag`, docs/office-parody.md § Day one).
+ *
+ * @type {PersonaFaceTraits}
+ */
+export const PLAYER_FACE_TRAITS = {
+  skin: 'tan',
+  hair: 'short',
+  hairColor: 'brown',
+  facialHair: 'none',
+  glasses: 'none',
+  accessory: 'lanyard',
+  expression: 'smile',
+  faceShape: 'oval',
+  brows: 'straight',
+  eyes: 'round',
+  nose: 'straight',
+  top: 'oxford',
+  build: 'regular'
+};
+
+/**
  * @param {string} id
  * @returns {PersonaFaceTraits | null}
  */
 export function personaFaceTraits(id) {
+  if (id === PLAYER_FACE_ID) return PLAYER_FACE_TRAITS;
   return PERSONA_FACE_TRAITS[id] ?? null;
 }

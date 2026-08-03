@@ -46,11 +46,15 @@ function SeatArt({ part, you, look }) {
  *   idleIndex?: number,
  *   vacant?: boolean,
  *   interactive?: boolean,
+ *   activity?: { pose?: string, hold?: string | null, headwear?: string | null } | null,
+ *   onCall?: boolean,
  *   look?: string,
  *   onSelect: (id: string) => void,
  *   onActivate?: ((id: string) => void) | null
  * }} props `look` is what is on their monitor (`officeDeskWork.js`) — always
  *   drawn, for everyone; walking over is only how you get close enough to read it.
+ *   `activity` is the same row's other half (`officeFloorActivity.js`): what
+ *   their hands are doing in front of that screen.
  */
 export function FloorSeat({
   seat,
@@ -63,7 +67,8 @@ export function FloorSeat({
   vacant = false,
   interactive = true,
   speaking = false,
-  accessoryOverride = null,
+  activity = null,
+  onCall = false,
   look,
   onSelect,
   onActivate = null
@@ -95,7 +100,8 @@ export function FloorSeat({
           isYou={isYou}
           speaking={speaking}
           idleIndex={idleIndex}
-          accessoryOverride={accessoryOverride}
+          activity={activity}
+          onCall={onCall}
           /* During the arrival ceremony the cast is scenery, not a menu. */
           disabled={!interactive}
           onSelect={onSelect}

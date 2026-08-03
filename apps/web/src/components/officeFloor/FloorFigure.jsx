@@ -12,10 +12,15 @@
  * own shoulders (drawn by PersonaFace) continue into this torso at the 10px
  * overlap, so collar details belong to the face and everything below the
  * collarbone belongs here.
+ *
+ * Slice 13 added a third layer on top of both: whatever is **in their hand**.
+ * The figure draws it; it does not decide it — `floorActivityFor` does, once,
+ * for every surface (see `officeFloorActivity.js`).
  */
 
 import { PersonaFace } from '../personaFaces/index.jsx';
-import { personaFaceTraits } from '../personaFaces/registry.js';
+import { SKIN_TONES, personaFaceTraits } from '../personaFaces/registry.js';
+import HeldItem from './HeldItem.jsx';
 
 const ACCENT = 'var(--floor-accent, #64748b)';
 
@@ -141,15 +146,57 @@ function floorBodyFor(build) {
 }
 
 /**
+ * Class list for the figure. A walking figure takes **no** pose class at all
+ * rather than losing one to the cascade: `.is-walking` and `.is-pose-*` are both
+ * single-class overrides of the same `animation`, so which wins would be decided
+ * by source order in a stylesheet nobody would think to check while moving a
+ * rule. Legs beat hands; a walk is the pose.
+ */
+function figureClassName(walking, pose) {
+  const posed = !walking && pose && pose !== 'idle' ? ` is-pose-${pose}` : '';
+  return `office-floor-person-figure${walking ? ' is-walking' : ''}${posed}`;
+}
+
+/**
+ * Everything the three layers need, resolved once.
+ *
+ * A helper rather than six expressions in the component body, because every one
+ * of them is a `?.`/`??` chain and § 8's standing finding is that those
+ * operators are most of what puts floor modules over their complexity budget.
+ * The precedence it encodes is the older one: `accessoryOverride` is a
+ * single-beat escape hatch and still beats the derived headwear, so a caller
+ * with a reason (the arrival ceremony, a set piece) need not fabricate an
+ * activity to use it.
+ */
+function figureParts(id, activity, accessoryOverride) {
+  const traits = personaFaceTraits(id);
+  return {
+    traits,
+    ...floorBodyFor(traits?.build),
+    hold: activity?.hold ?? null,
+    accessory: accessoryOverride ?? activity?.headwear ?? null,
+    skin: SKIN_TONES[traits?.skin] ?? SKIN_TONES.light
+  };
+}
+
+/**
  * @param {{
  *   id: string,
  *   accent: string,
  *   isYou?: boolean,
  *   idleIndex?: number,
  *   walking?: boolean,
+ *   activity?: { pose?: string, hold?: string | null, headwear?: string | null } | null,
  *   accessoryOverride?: string | null,
  *   expressionOverride?: string | null
- * }} props
+ * }} props `activity` is `floorActivityFor` (`officeFloorActivity.js`) — what
+ *   this person is visibly doing. It is one object rather than three props
+ *   because its three fields are one derivation and must not be assembled
+ *   per-caller: six components draw a figure, and a room where five of them
+ *   agree about the headset is a bug nobody sees. `accessoryOverride` is the
+ *   older single-beat escape hatch and still wins, so a caller that has a
+ *   reason (an arrival ceremony, a set piece) does not have to fabricate an
+ *   activity to use it.
  */
 export function FloorFigure({
   id,
@@ -157,15 +204,16 @@ export function FloorFigure({
   isYou = false,
   idleIndex = 0,
   walking = false,
+  activity = null,
   accessoryOverride = null,
   expressionOverride = null
 }) {
-  const traits = personaFaceTraits(id);
-  const { body, s } = floorBodyFor(traits?.build);
+  const { traits, body, s, hold, accessory, skin } = figureParts(id, activity, accessoryOverride);
   return (
     <span
-      className={`office-floor-person-figure${walking ? ' is-walking' : ''}`}
+      className={figureClassName(walking, activity?.pose)}
       style={{ '--floor-accent': accent, '--idle-delay': `${(idleIndex % 7) * 0.53}s` }}
+      data-hold={hold ?? undefined}
     >
       <PersonaFace
         id={id}
@@ -173,7 +221,7 @@ export function FloorFigure({
         accentRing={false}
         fallbackEmoji={isYou ? '🙋' : undefined}
         className="office-floor-person-head"
-        accessoryOverride={accessoryOverride}
+        accessoryOverride={accessory}
         expressionOverride={expressionOverride}
       />
       <svg
@@ -188,6 +236,18 @@ export function FloorFigure({
         <path d={body.shade} fill="rgba(15,23,42,0.16)" />
         {traits ? <TorsoGarment top={traits.top} s={s} /> : null}
       </svg>
+      {hold ? (
+        <svg
+          className="office-floor-person-hold"
+          viewBox="0 0 16 24"
+          width="16"
+          height="24"
+          aria-hidden="true"
+          focusable="false"
+        >
+          <HeldItem hold={hold} skin={skin} />
+        </svg>
+      ) : null}
     </span>
   );
 }

@@ -24,6 +24,7 @@ import FloorPlayer from './FloorPlayer.jsx';
 import FloorScenes from './FloorScenes.jsx';
 import FloorTalk from './FloorTalk.jsx';
 import FloorWanderer from './FloorWanderer.jsx';
+import { YOU_SEAT_ID } from '../../utils/officeFloorPlan.js';
 
 /**
  * @param {{
@@ -50,6 +51,7 @@ import FloorWanderer from './FloorWanderer.jsx';
  *   presence?: any,
  *   onPresenceArrive?: () => void,
  *   playerRef?: { current: HTMLElement | null },
+ *   youActivity?: { pose?: string, hold?: string | null, headwear?: string | null } | null,
  *   showSpokenText?: boolean
  * }} props `selectedId` / `speakingId` / `onSelect` are the stage's own names for
  *   the same three things, because since slice 12 a figure on the stage can be
@@ -85,6 +87,7 @@ export function FloorActors({
   onPresenceArrive,
   onStep,
   playerRef,
+  youActivity,
   showSpokenText = true
 }) {
   return (
@@ -150,6 +153,11 @@ export function FloorActors({
           onArrive={onPresenceArrive}
           onStep={onStep}
           elementRef={playerRef}
+          activity={youActivity}
+          /* You get the same indicator as everyone else — otherwise "who is
+             talking" quietly means "who else is talking", and the one turn in
+             a conversation that never lights up is your own. */
+          speaking={speakingId === YOU_SEAT_ID}
           testId={peek ? 'office-floor-peek-player' : 'office-floor-player'}
         />
       ) : null}
