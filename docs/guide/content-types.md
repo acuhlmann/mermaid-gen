@@ -137,3 +137,37 @@ The document is a JSON wrapper `{ archislopFormsVersion, formTitle, formCode?, m
 - Forms mode persists in the mode picker and client cache like Chart; it is **web-only** — MCP hosts do not render the Forms slot (session state may still carry the A2UI JSON for programmatic consumers).
 
 See also [Agents](agents.md) and [Validation & repair](validation.md).
+
+## UI locale and diagram output language
+
+Diagram agents (Go, Gilfoyle/Dinesh/Erlich/Russ/Barker, Critique/Explain, Style) follow a **separate language path** from office dialogue. The cast speaks whatever the UI locale is (`officeDialogueLocale()` → `/api/office/*` — see [`office-parody.md`](../office-parody.md) item 16). Canvas agents instead receive `uiLocale` on every intent / transform / analyze / style POST and append a hard **LANGUAGE LOCK** suffix when a hint resolves.
+
+| Concern       | Office dialogue                                                                  | Diagram agents                                                                                          |
+| ------------- | -------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| Client source | `officeDialogueLocale()` in `officeCast.js`                                      | `UiLocaleContext.locale` in `ArchiSlop.jsx` → `diagramStore` POST bodies                                |
+| Server hook   | `buildOfficeLanguageRule` / `buildOfficeLanguageReminder` in `officePersonas.js` | `buildLanguageInstruction` / `buildProseLanguageInstruction` in `packages/shared/src/promptLanguage.ts` |
+| Inference     | UI locale only — never the diagram's script                                      | User prompt + slot content first, then UI locale                                                        |
+
+**Supported UI locales:** `en`, `en-AU`, `zh-CN`, `zh-TW` (`UiLocale` in `packages/shared/src/uiLocale.ts`). The choice persists in `localStorage` at `archislop.uiLocale` and survives session wipes (`PRESERVED_KEYS` in `diagramStore.js`).
+
+**Resolution order** (`resolveOutputLanguageHint`):
+
+1. **User-written Chinese in the prompt or diagram** — Han-ratio detection (`detectPromptLanguageHint`, threshold 25% of letters) classifies simplified vs traditional and **wins over an English UI locale**.
+2. **UI locale** — when step 1 finds nothing: English locales append a non-Latin guard (`Do NOT emit Chinese… unless the user explicitly requested that language`); Chinese locales lock labels and prose to the matching variant.
+
+**Switching the UI locale:**
+
+- **Explicit request** — Weigh In / prompt phrases matched by `resolveUiLocaleFromExplicitRequest` (e.g. "switch to simplified Chinese", `用中文界面`).
+- **Deprecated auto-switch** — `resolveUiLocaleFromText` (Han-ratio on arbitrary text) remains for agent reply language only; do not wire new UI surfaces to it.
+
+**Wire contract:** `diagramStore.js` spreads `...(uiLocale != null ? { uiLocale } : {})` on intent, transform, analyze, and style fetch bodies. `createLazyAgentService` forwards `payload.uiLocale` into each agent's `applyIntent` / `applyTransformIntent` / `applyAnalyzeIntent`.
+
+**Troubleshooting:**
+
+| Symptom                                            | Likely cause                                                                                                                                        |
+| -------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| UI is English but node labels come back in Chinese | The prompt or existing diagram text triggered Han-ratio detection — user text always wins.                                                          |
+| UI is Chinese but output stays English             | `uiLocale` omitted on the wire (check `diagramStore` tests) or the model ignored the suffix (Critique/Explain use `buildProseLanguageInstruction`). |
+| Office speaks English while the UI is Chinese      | Different path — office ignores diagram script by design; check `officeDialogueLocale()` and `/api/office/*` bodies, not `promptLanguage.ts`.       |
+
+Tests: `packages/shared/test/promptLanguage.test.ts`, `apps/web/test/diagramStore.test.js` (`uiLocale` omit/include on POST bodies).

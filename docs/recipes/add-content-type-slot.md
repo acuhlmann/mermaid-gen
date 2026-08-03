@@ -22,7 +22,12 @@ The dual-slot pattern (ADR-0001) still applies: independent `diagramSource` + `r
 
 5. **Prompts + syntax fixer** — add `apps/server/src/prompts/<slot>SystemPrompt.js` (+ optional syntax guard). Add `apps/server/src/agents/<slot>SyntaxFixer.js` if the ladder needs a single-shot fixer.
 
-6. **LangChain agent** — add `apps/server/src/agents/<slot>LangChainAgent.js` with `createLazy…AgentService`. Implement `invokeWithRepair` via `invokePatchAgentWithRepair` (see `formsLangChainAgent.js` / `chartLangChainAgent.js`). Wire into `apps/server/src/agents/diagramAgentDispatcher.js`.
+6. **LangChain agent** — add `apps/server/src/agents/<slot>LangChainAgent.js` with `createLazyAgentService` (`apps/server/src/agents/_lib/createLazyAgentService.js`). Implement `invokeWithRepair` via `invokePatchAgentWithRepair` (see `formsLangChainAgent.js` / `chartLangChainAgent.js`). Wire into `apps/server/src/agents/diagramAgentDispatcher.js`.
+
+   - Export a `create*LangChainAgentService({ stateStore, env })` that returns the lazy proxy — do not open-code `runAgentStream`.
+   - Pass `streamLabels` for the three SSE phases; list any slot-specific payload keys in `intentExtraFields` / `transformExtraFields` / `analyzeExtraFields`.
+   - Append `buildLanguageInstruction(..., { uiLocale })` (or `appendLanguageInstruction`) in user-message builders so diagram labels respect the UI locale pipeline ([`content-types.md`](../guide/content-types.md#ui-locale-and-diagram-output-language)).
+   - Set `supportsInvoke` / `supportsStyleIntent` only when the slot implements those methods (Mermaid-only today).
 
 7. **Routes / wire** — ensure `contentType` is accepted on intent/transform/analyze/stream (usually automatic via `ContentTypeSchema`). Update `inferContentType` classifier guidance in `apps/server/src/agents/inferContentType.ts` if Auto mode should pick the new slot.
 

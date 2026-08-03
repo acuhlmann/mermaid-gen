@@ -426,8 +426,10 @@ newest architect on the floor and the diagram slots are their work deliverables:
   `archislop:user-name`) and is the source for the `{userName}` slot (`fillOfficeSlots`), so the
   instant the user names themselves the whole office — Linda's welcome, Chad's IMs, the
   orientation greeting, and any canned line carrying `{userName}` — starts addressing them by it.
-  Blank badge falls back to a funny default (`resolveUserName` → "Newbie"). The same badge shows
-  in the orientation welcome step; both edit the one store, so they stay in sync live. `{userName}`
+  `writeUserName` trims whitespace and caps at **`USER_NAME_MAX_LENGTH` (24)** in
+  `officeAmbienceStorage.js` — a paste-bomb cannot bloat every slot fill; whitespace-only clears
+  the key so `resolveUserName` falls back to "Newbie". Blank badge falls back to the same default.
+  The same badge shows in the orientation welcome step; both edit the one store, so they stay in sync live. `{userName}`
   threads through `readSlotContext` alongside `{userTitle}`, so it is available to every ambient
   moment, not just onboarding.
 - **Assignment chips** — `controls.prompt.starters` entries carry `fromId` (any cast id

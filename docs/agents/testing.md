@@ -51,6 +51,12 @@ Examples:
 # After editing the dispatcher
 npm run test:affected
 
+# After editing diagramStore uiLocale wiring
+npm run test -w apps/web -- diagramStore.test.js
+
+# After editing useSheetSnap thresholds
+npm run test -w apps/web -- useSheetSnap.test.jsx
+
 # Force slow Anything integration tests in the affected set
 TEST_AFFECTED_SLOW=1 npm run test:affected
 
@@ -73,15 +79,19 @@ The MCP harness in `apps/server/test/mcpServer.test.js` (`setupServer`, `connect
 
 ## What to extend for common edits
 
-| You changed…               | Extend these tests                                                                                            |
-| -------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| Zod schema / patch shape   | `packages/shared/test/diagramSchema.test.ts` + producer/consumer per [blast-radius](../agent-blast-radius.md) |
-| Copilot HTTP handler       | `apps/server/test/copilotRoute.test.js`                                                                       |
-| Multi-slot routing         | `apps/server/test/diagramAgentDispatcher.test.js`                                                             |
-| LangChain agent (new slot) | Mirror `chartLangChainAgent.test.js` — builder unit tests + non-cumulative repair loop                        |
-| AG-UI CUSTOM event         | `wireRoundTrip.test.ts`, `wireEmitterRoundTrip.test.js`, `wireAgUiTranslator.test.js`                         |
-| Session-events SSE         | `sessionEventBus.test.js`, `sessionEventsClient.test.js`                                                      |
-| MCP tool                   | `mcpServer.test.js` (+ optional per-tool file as tools split continues)                                       |
+| You changed…                                              | Extend these tests                                                                                            |
+| --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| Zod schema / patch shape                                  | `packages/shared/test/diagramSchema.test.ts` + producer/consumer per [blast-radius](../agent-blast-radius.md) |
+| Copilot HTTP handler                                      | `apps/server/test/copilotRoute.test.js`                                                                       |
+| Multi-slot routing                                        | `apps/server/test/diagramAgentDispatcher.test.js`                                                             |
+| LangChain agent (new slot)                                | Mirror `chartLangChainAgent.test.js` — builder unit tests + non-cumulative repair loop                        |
+| `createLazyAgentService`                                  | `apps/server/test/createLazyAgentService.test.js`                                                             |
+| `diagramStore` wire bodies                                | `apps/web/test/diagramStore.test.js` (especially `uiLocale` spread on POST payloads)                          |
+| `useSheetSnap`                                            | `apps/web/test/useSheetSnap.test.jsx`                                                                         |
+| `officeAmbienceStorage` (user name, headphones reconcile) | `apps/web/test/officeAmbienceStorage.test.js`, `apps/web/test/userIdentityStore.test.js`                      |
+| AG-UI CUSTOM event                                        | `wireRoundTrip.test.ts`, `wireEmitterRoundTrip.test.js`, `wireAgUiTranslator.test.js`                         |
+| Session-events SSE                                        | `sessionEventBus.test.js`, `sessionEventsClient.test.js`                                                      |
+| MCP tool                                                  | `mcpServer.test.js` (+ optional per-tool file as tools split continues)                                       |
 
 ## Slow tests (Anything slot)
 

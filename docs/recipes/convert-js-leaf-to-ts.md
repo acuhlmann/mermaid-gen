@@ -31,7 +31,7 @@ defers those until the ADR-0005 splits).
    `npm run typecheck:strict` (island green, including any new error the
    conversion surfaced in its importers — fix those too). Then `npm run lint -w <ws>`:
    the file now also gets `@typescript-eslint` `recommended` guidance.
-7. **If a failed strict build left bad `.d.ts` in `packages/shared/dist`**, rebuild
+7. **If a failed strict build left bad `.d.ts` in the shared package's gitignored build output**, rebuild
    it: `npm run build -w packages/shared` (shared's build emits even on error).
 
 ## Worked example
