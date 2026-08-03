@@ -190,18 +190,29 @@ false`, `seniorEmail: true`).
 The emoji column above is now a **fallback**, not the render path. Every avatar surface
 renders `<PersonaFace id={...} />`
 (`apps/web/src/components/personaFaces/index.jsx`) — one parametric SVG face driven by a
-trait row per character in `./registry.js` (skin, hair + color, facial hair, glasses,
-accessory, expression). The accent disc/ring uses the character's existing `accentColor`
-from `officeSenderInfo`, so faces stay distinguishable at a glance even at 16 px.
+trait row per character in `./registry.js` (skin, face shape, hair + color, brows, eyes,
+nose, facial hair, glasses, accessory, expression, garment `top`, floor `build`). The
+accent disc/ring uses the character's existing `accentColor` from `officeSenderInfo`, so
+faces stay distinguishable at a glance even at 16 px.
 
 Rules worth knowing before you touch it:
 
-- **Traits are read off the character's prose, not invented.** Ulrich "Staff Engineer
-  Emeritus" is `receding` + `beard` + `tired`; Dave "Tier 1 (of 1)" wears the `headset`.
+- **Named Silicon Valley seats are drawn toward their actors.** Gilfoyle gets Martin
+  Starr's centre-part `curtain`, `beard` and half-`lidded` eyes on a black `tee`; Erlich
+  gets the dirty-blond `shag`, `scruff`, round face and `hawaiian` on a `broad` build;
+  Jared the porcelain long face, neat `sweep`, big `round` eyes and slim blue `oxford`;
+  Belson the slicked grey `vneck`; Russ the `spiky` hair, `chain` and manic `wide` grin.
+  The invented office staff (Sasha, Diane, Pam, Linda, Chad, Dave, Gary, Ulrich) stay
+  **read off the character's prose** — Dave "Tier 1 (of 1)" wears the `headset`.
+- **All face shapes share one cranium** (crown y9.6, temples x11.8/28.2); only the jaw
+  below y18 changes, so one set of hair paths fits every head. New hair styles must span
+  at least x11–29 to cover the round jaw's cheeks, and part lines are thin skin slivers
+  hugging the hairline's lower edge — a blob floating on the scalp reads as a bald spot.
 - **A new cast member costs a trait row, not new art** — that is the whole reason this is
   parametric rather than 15 hand-drawn SVGs. The future bench below needs one row each.
-- **Below ~24 px the component drops fine detail** (glasses, facial hair, accessory) and
-  keeps silhouette + ring, so the 1.35 rem cast strip stays legible.
+- **Below ~24 px the component drops fine detail** (glasses, facial hair, brows, nose,
+  garment cut, accessory) and keeps silhouette + ring, so the 1.35 rem cast strip stays
+  legible.
 - **Faces stay `aria-hidden`.** Every call site already shows the name next to the avatar;
   passing `title` promotes the SVG to a named image and duplicates that text in the a11y
   tree. Where a hover tooltip is wanted, put `title` on a wrapper span instead.
@@ -210,6 +221,58 @@ Rules worth knowing before you touch it:
   avatars.
 - Unknown ids fall back to `avatarEmoji` (or an explicit `fallbackEmoji`, which is how the
   meeting's non-persona "you" seat keeps its 🙋).
+
+### Retuning a face: where the next agent starts
+
+The 2026-08 actor-likeness pass shipped the trait space (`faceShape`, `brows`, `eyes`, `nose`,
+`top`, `build`) and tuned all nine named seats with a **screenshot loop**, not by eyeballing path
+math. To continue the work, re-create the throwaway harness it used (deleted after use, per the
+verify skill's rule):
+
+1. `apps/web/personaPreview.html` — any root-level html vite serves: a `#root` div, a module
+   script tag, and `:root { --accent: #2563eb; }` (the value from `App.css`). The `--accent`
+   line is **not optional**: `var(--accent)` accents (Gilfoyle, the "you" figure) silently
+   fall back to grey/black without it and you will tune against a lie.
+2. `apps/web/src/personaPreviewHarness.jsx` — mount every `PERSONA_FACE_TRAITS` id as
+   `PersonaFace` at 110 px (chrome detail), 40 px (ring), 34 px ringless, and `FloorFigure`
+   (accent from `officeSenderInfo(id).accentColor`) at 2×, plus a **true-scale 34 px strip**
+   and a 24 px low-detail row. Judge likeness at 34 px (the floor) and 110 px (desktop chrome)
+   — anything between is a size nothing ships.
+3. `npx vite --port 5199 --strictPort` in `apps/web` (no backend — these are pure-data
+   components), then headless-Chrome screenshot
+   (`--headless=new --virtual-time-budget=8000 --window-size=1000,2000`). Windows Chrome and
+   the ms-playwright Chromium are both on this machine; the generic recipe + blank-page gotchas
+   are in `apps/web/.claude/skills/verify/SKILL.md`.
+4. **Delete both files before committing** and run `npm run check:affected`.
+
+What pins the art (will fail if you break it): `apps/web/test/personaFaces.test.jsx` (trait-row
+key-set matches `CAST_TIERS`, all faces' innerHTML distinct, low-detail shrinks markup, no
+top-level circles with `accentRing={false}`, enum fields in range),
+`officeFloorModuleInventory.test.js` (file names), `officeFloorStyles.test.js` (person CSS
+rules), and the figure geometry `FIGURE_*` in `apps/web/src/utils/officeFloorPlan.js` if you
+ever change the 34×48 proportions.
+
+Known rough edges, in priority order — each is a self-contained next step:
+
+- **Erlich's `shag` is the weakest likeness.** Warmer than v1 but still cap-adjacent; TJ
+  Miller's mop wants deeper wave scallops and a more broken fringe. Iterate in `Hair`'s
+  `case 'shag'` only — nobody else uses the style.
+- **The `wide` grin is one shape doing two jobs.** Russ's toothy salesman grin and Chad's
+  surprised-bro gasp share the white-smile path. Splitting `grin` from `gasp` means a new
+  `expression` enum value — sweep `expressionOverride` consumers (`FloorScene`'s battle scowl
+  is `frown`, unaffected) and the typedef.
+- **Hair is flat silhouette.** One or two 0.5-opacity strand lines would help pale hair
+  (Barker's grey, Chad's blond) read as hair rather than helmet — but verify at 34 px first;
+  fine lines are exactly what the low-detail cutoff exists to avoid.
+- **`build` is floor-only by design.** The 40×40 portrait shoulders are one width for everyone
+  because the clip circle is tight; widening them for `broad` touches every chrome surface at
+  once (presence strip, inbox, meeting, huddle). Only attempt with the harness above.
+- **Barker's glasses** were dropped to keep four glasses-wearers distinct (Sasha, Diane,
+  Linda, Ulrich); Tobolowsky does wear readers in-show. Re-add only alongside another change
+  to one of those four rows, or the distinctness test does it for you.
+- **The Future bench below will need new hair** (bun, curly, fade, afro at minimum). Add
+  styles as data rows demand them — span x11–29 per the cranium rule, and never hand a bench
+  character a recycled combo (the distinctness test is the backstop).
 
 ### Future bench (roadmap)
 

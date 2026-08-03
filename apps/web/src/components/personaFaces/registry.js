@@ -30,7 +30,7 @@ export const HAIR_COLORS = {
   auburn: '#8c4a2f',
   blond: '#d8b25a',
   darkBlond: '#7d6136',
-  dirtyBlond: '#a0854f',
+  dirtyBlond: '#ad8a52',
   saltPepper: '#6e6258',
   grey: '#9aa0a6',
   white: '#dde1e6'

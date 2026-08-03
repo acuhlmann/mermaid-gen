@@ -220,6 +220,14 @@ Every session carries **six independent diagram slots** — `mermaid` (Mermaid t
 - **Office `diagramSource` is truncated, not rejected.** Cap is `OFFICE_DIAGRAM_SOURCE_MAX_CHARS`
   (shared). Tightening Zod to 400 oversized anything/forms slots turns meetings into Pam CANCELLED
   emails.
+- **Persona faces vary jaws, never skulls.** All four `faceShape`s in `personaFaces/index.jsx`
+  share one cranium (crown y9.6, temples x11.8/28.2) so every hair path fits every head — a new
+  hair style must span x11–29 to cover the `round` jaw's cheeks, or the scalp peeks out. Two
+  more art traps, both found by screenshotting the throwaway vite-harness recipe from
+  `apps/web/.claude/skills/verify/`: a hair part is a thin skin sliver hugging the hairline's
+  lower edge (a blob floating on the scalp reads as a bald spot), and garment shading is
+  `color-mix` in `style` over a plain `fill`/`stroke` attribute fallback. The harness must define
+  `--accent` itself or `var(--accent)` accents (Gilfoyle, you) paint wrong.
 - **`useScenePacing` reveals every line at once when it has no narrator.** That is right for the
   coffee/battle cards and wrong for anything that lights one speaker at a time — pass a narrator
   wrapper that returns `{spoken:false}` instead of passing `undefined`.

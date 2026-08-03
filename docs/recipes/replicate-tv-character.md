@@ -317,8 +317,10 @@ the stable signal, `world`/`budget` swing with generation luck. Stop there.
   guarded by `apps/web/test/officeNarration.test.js`).
 - `apps/web/src/utils/castTiers.js` — add to the tier array (drives the meeting-picker directory).
 - `apps/web/src/components/personaFaces/registry.js` — a `PERSONA_FACE_TRAITS` row; pick a visually
-  distinct combo (asserted by `apps/web/test/personaFaces.test.jsx`). Stylized traits only, never
-  actor likeness.
+  distinct combo (asserted by `apps/web/test/personaFaces.test.jsx`). Named seats are drawn toward
+  their actor's real look within the trait space; invented office staff stay prose-derived. The
+  screenshot loop for retuning a face and the known rough edges are in docs/office-parody.md
+  § How a character is drawn → § Retuning a face.
 - `apps/web/src/utils/officeFloorPlan.js` — a `FLOOR_SEATS` row; widen the zone rect if the row is
   full (leadership went 9.7 → 10.7 for Barker, back to 9.7 when he took The VP's seat). Guarded by
   `apps/web/test/officeFloorPlan.test.js`. Isometric reachability (where somebody is when away from

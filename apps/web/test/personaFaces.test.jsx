@@ -37,6 +37,25 @@ describe('PersonaFace', () => {
     expect(shapes.size).toBe(ALL_IDS.length);
   });
 
+  // Drift guard for the actor-likeness trait space: a typo'd enum value
+  // silently falls back to the default drawing, which is invisible in tests
+  // that only assert "an svg rendered".
+  it('keeps every trait row inside the supported enums', () => {
+    const enums = {
+      faceShape: ['oval', 'long', 'round', 'square'],
+      brows: ['thin', 'straight', 'thick', 'bushy'],
+      eyes: ['dot', 'lidded', 'round', 'deep', 'almond'],
+      nose: ['button', 'straight', 'broad'],
+      top: ['hoodie', 'tee', 'sweater', 'oxford', 'vneck', 'hawaiian', 'blazer'],
+      build: ['slim', 'regular', 'broad']
+    };
+    for (const [id, row] of Object.entries(PERSONA_FACE_TRAITS)) {
+      for (const [field, allowed] of Object.entries(enums)) {
+        expect(allowed, `${id}.${field}`).toContain(row[field]);
+      }
+    }
+  });
+
   it('falls back to emoji for an unknown id rather than rendering blank', () => {
     const { container } = render(<PersonaFace id="not-a-colleague" />);
     expect(container.querySelector('svg')).toBeNull();
