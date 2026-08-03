@@ -219,8 +219,24 @@ Rules worth knowing before you touch it:
 - Emoji deliberately remain where a glyph sits **inline in a sentence** (meeting minutes,
   battle verdict, invite toast) and in the Markdown transcript — those are text, not
   avatars.
-- Unknown ids fall back to `avatarEmoji` (or an explicit `fallbackEmoji`, which is how the
-  meeting's non-persona "you" seat keeps its 🙋).
+- **You have a row too, and it lives next door.** `PLAYER_FACE_TRAITS` sits beside
+  `PERSONA_FACE_TRAITS` rather than inside it, because that object's keys are asserted to
+  be exactly `CAST_TIERS` and you are not cast. Before the isometric floor started drawing
+  what people are doing you rendered as a 🙋 through the unknown-id fallback below, which
+  is fine for a silhouette and useless the moment anything has to go **on** you — an emoji
+  cannot wear headphones. The row is deliberately unremarkable: every cast row is drawn
+  toward somebody and the app has no idea what you look like, so what identifies you stays
+  what always did — your own `--accent` and the name on the badge, which the figure wears
+  as a `lanyard`.
+- **Two things sit on top of a face rather than in it**, and both are override-only:
+  `accessoryOverride` (a headset for a remote sync, `headphones` for the Admin menu's
+  posture — same band, no boom, and the boom is the entire distinction) and, on the floor,
+  a **held item** drawn by `FloorFigure` in its own layer. What is in whose hand is one
+  derivation for every surface — see
+  [`office-isometric-mode.md`](office-isometric-mode.md) § 5 slice 13 and § 6 rule 31 for
+  why the layer is over the head rather than in the torso.
+- Unknown ids fall back to `avatarEmoji` (or an explicit `fallbackEmoji`, which is how a
+  future non-persona seat would degrade).
 
 ### Retuning a face: where the next agent starts
 
@@ -555,6 +571,13 @@ still clears it via `promptNext` — the "your own initiative bypasses Focus Tim
 
 Per-scene **CC** buttons still exist on the floor (`FloorTopBar`, `FloorArrival`, `OfficeDirectory`)
 and nudge `captions` directly. Headphones sets the posture; it does not own captions forever.
+
+**Headphones is also the one posture you can see.** In isometric mode your figure wears them
+(`floorActivityFor` — [`office-isometric-mode.md`](office-isometric-mode.md) § 5 slice 13), which
+is the first time a preference reaches the room rather than only the speakers. Read `headphones`
+for that and never `narration`/`soundscape`: they are this macro's outputs, and a figure drawn
+from them would take its headphones off the moment a per-scene CC button touched one. A remote
+sync's headset overrides the drawing while the call is on — you did not join it for the music.
 
 **Over-the-shoulder walk-bys are ambient only.** There is no "Walk the floor" desk verb — like
 real life, you cannot decide when somebody leans over your shoulder. The ambience director still

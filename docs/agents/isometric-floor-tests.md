@@ -55,6 +55,7 @@ Do not copy `standUp(); render(<OfficeFloor />)` into new suites — extend the 
 | `officeFloorStyles.test.js`          | CSS facts (hit box, focus, reduced motion)                                 |
 | `useWalkAnimation.test.jsx`          | Walk interrupts + `liveTileOf` read-back                                   |
 | `officeDeskWork.test.js`             | Fictional desk workloads for peek                                          |
+| `officeFloorActivity.test.jsx`       | Held items, headphones posture, who-is-talking derivation                  |
 
 ## Rules encoded as tests (add here when you learn new ones)
 
@@ -64,6 +65,7 @@ Do not copy `standUp(); render(<OfficeFloor />)` into new suites — extend the 
 4. **Wander marks use walker POV** — `isStandableTile(mark, { excludeSeatId })` in contracts + wander suite.
 5. **One live region on the floor** — `officeFloorAccess.test.jsx` counts `[aria-live]`.
 6. **Only a settled figure is reachable** — `officeFloorContracts.test.js` + `officeFloorReach.test.js`: a walker and anybody a moment has claimed get no mark, so the verb does not render.
+7. **One derivation of what somebody is doing** — `officeFloorActivity.test.jsx`: the precedence (call ▸ your headphones ▸ coffee ▸ trait row) is asserted once, and no surface composes it itself.
 
 ## Adding a new floor slice
 

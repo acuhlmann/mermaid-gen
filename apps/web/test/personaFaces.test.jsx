@@ -3,7 +3,11 @@ import { describe, expect, it } from 'vitest';
 import { render, cleanup } from '@testing-library/react';
 import { afterEach } from 'vitest';
 import { PersonaFace } from '../src/components/personaFaces/index.jsx';
-import { PERSONA_FACE_TRAITS } from '../src/components/personaFaces/registry.js';
+import {
+  PERSONA_FACE_TRAITS,
+  PLAYER_FACE_ID,
+  PLAYER_FACE_TRAITS
+} from '../src/components/personaFaces/registry.js';
 import { CAST_TIERS } from '../src/utils/castTiers.js';
 
 afterEach(cleanup);
@@ -40,6 +44,33 @@ describe('PersonaFace', () => {
   // Drift guard for the actor-likeness trait space: a typo'd enum value
   // silently falls back to the default drawing, which is invisible in tests
   // that only assert "an svg rendered".
+  it('draws the player too, without adding them to the cast', () => {
+    /*
+     * Slice 13. You used to fall through the unknown-id branch to a 🙋, which an
+     * accessory cannot ride on — and "show me wearing the headphones I just
+     * turned on" is the whole point of the Admin posture reaching the floor.
+     * The row lives beside `PERSONA_FACE_TRAITS` rather than in it, because the
+     * key-set guard above says that object is exactly the cast.
+     */
+    expect(Object.keys(PERSONA_FACE_TRAITS)).not.toContain(PLAYER_FACE_ID);
+    const { container } = render(<PersonaFace id={PLAYER_FACE_ID} fallbackEmoji="🙋" />);
+    expect(container.querySelector('svg')).toBeTruthy();
+    expect(container.textContent).not.toContain('🙋');
+  });
+
+  it('gives the player a face no colleague already has', () => {
+    // Same distinctness rule the cast lives under: you are somebody in this
+    // office, not a second Chad.
+    const { container: player } = render(<PersonaFace id={PLAYER_FACE_ID} />);
+    const mine = player.querySelector('svg').innerHTML;
+    cleanup();
+    for (const id of ALL_IDS) {
+      const { container } = render(<PersonaFace id={id} />);
+      expect(container.querySelector('svg').innerHTML, `you are drawn as ${id}`).not.toBe(mine);
+      cleanup();
+    }
+  });
+
   it('keeps every trait row inside the supported enums', () => {
     const enums = {
       faceShape: ['oval', 'long', 'round', 'square'],
@@ -49,7 +80,8 @@ describe('PersonaFace', () => {
       top: ['hoodie', 'tee', 'sweater', 'oxford', 'vneck', 'hawaiian', 'blazer'],
       build: ['slim', 'regular', 'broad']
     };
-    for (const [id, row] of Object.entries(PERSONA_FACE_TRAITS)) {
+    const rows = { ...PERSONA_FACE_TRAITS, [PLAYER_FACE_ID]: PLAYER_FACE_TRAITS };
+    for (const [id, row] of Object.entries(rows)) {
       for (const [field, allowed] of Object.entries(enums)) {
         expect(allowed, `${id}.${field}`).toContain(row[field]);
       }

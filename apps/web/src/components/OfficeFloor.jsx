@@ -50,6 +50,7 @@ import {
   officeSenderInfo
 } from '../utils/officeCast.js';
 import { deskWorkFor } from '../utils/officeDeskWork.js';
+import { floorActivityFor } from '../utils/officeFloorActivity.js';
 import { tierOf } from '../utils/castTiers.js';
 import { resolveUserName, subscribe as subscribeUserName } from '../state/userIdentityStore.js';
 import { getOfficeViewMode, subscribe as subscribeViewMode } from '../state/officeViewModeStore.js';
@@ -150,6 +151,31 @@ function usePersonDetails(selectedId, copy, away) {
       awayNote: awayNoteFor(away, copy)
     };
   }, [selectedId, userName, copy, away]);
+}
+
+/**
+ * What *you* are visibly doing — the one figure on this floor whose activity is
+ * not a trait row (`officeFloorActivity.js`).
+ *
+ * Headphones is the Admin menu's posture reaching the room. `officeSnap`
+ * already carries it because the floor subscribes to the same store the menu
+ * writes, so this is renderer #2 rendering existing state rather than a second
+ * copy of a preference (ADR-0011 rule 1). Read `headphones` here and **not**
+ * `narration`/`soundscape`: the three are one macro's outputs, and a figure
+ * drawn from them would take its headphones off the first time a per-scene CC
+ * button touched one.
+ *
+ * The coffee is the set piece rather than the machine: `getCoffee` pours a
+ * break and `useFloorCoffeeWalk` sends you to it, so `accepted` is the moment
+ * you are holding a cup, whichever of the two paths poured it.
+ */
+function youActivityFor(remoteMeeting, headphones, coffee, presence) {
+  return floorActivityFor(YOU_SEAT_ID, {
+    onCall: remoteMeeting,
+    headphones,
+    coffee: Boolean(coffee?.accepted),
+    moving: Boolean(presence && presence.phase !== 'standing')
+  });
 }
 
 /**
@@ -282,6 +308,11 @@ function OfficeFloorView({ bridge }) {
 
   const stageSpeakingId = meetingSpeakingId ?? activity.speakingId;
 
+  const youActivity = useMemo(
+    () => youActivityFor(remoteMeeting, officeSnap.headphones, coffee, presence),
+    [remoteMeeting, officeSnap.headphones, coffee, presence]
+  );
+
   /*
    * Where somebody is, when it is not their own chair (slice 12). One question,
    * two consumers that must agree: the card decides which verbs to offer from it
@@ -402,6 +433,8 @@ function OfficeFloorView({ bridge }) {
           vacantIds={awayIds}
           onCallIds={onCallIds}
           speakingId={stageSpeakingId}
+          headphones={officeSnap.headphones}
+          youHolding={youActivity.hold}
         >
           <FloorActors
             scale={scale}
@@ -430,6 +463,7 @@ function OfficeFloorView({ bridge }) {
             onPresenceArrive={activity.handleArrive}
             onStep={handleStep}
             playerRef={activity.playerRef}
+            youActivity={youActivity}
             showSpokenText={showSpokenText}
           />
         </FloorStage>

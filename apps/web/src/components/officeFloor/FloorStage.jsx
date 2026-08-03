@@ -19,6 +19,7 @@ import {
 } from '../../utils/officeFloorPlan.js';
 import { officeSenderInfo } from '../../utils/officeCast.js';
 import { deskWorkFor } from '../../utils/officeDeskWork.js';
+import { floorActivityFor } from '../../utils/officeFloorActivity.js';
 
 /**
  * Display fields for one seat. The player is in no cast bank, so their row
@@ -38,6 +39,23 @@ function seatDisplay(seat, copy) {
 }
 
 /**
+ * What the occupant of one chair is visibly doing.
+ *
+ * Two of the three inputs are **yours and nobody else's**: the Headphones
+ * posture is a preference, and a coffee is a set piece you are in. A colleague
+ * in a coffee break is being drawn by whatever claimed them (§ 6 rule 5), so
+ * their cup arrives from there rather than from here.
+ */
+function seatActivity(seatId, { onCallIds, headphones, youHolding }) {
+  const isYou = seatId === YOU_SEAT_ID;
+  return floorActivityFor(seatId, {
+    onCall: onCallIds.includes(seatId),
+    headphones: isYou && headphones,
+    coffee: isYou && youHolding === 'coffee'
+  });
+}
+
+/**
  * @param {{
  *   scale: number,
  *   copy: Record<string, any>,
@@ -53,6 +71,8 @@ function seatDisplay(seat, copy) {
  *   onStep?: (tile: { x: number, y: number }, isYou?: boolean) => void,
  *   vacantIds?: string[],
  *   onCallIds?: string[],
+ *   headphones?: boolean,
+ *   youHolding?: string | null,
  *   interactive?: boolean,
  *   onWalkTo?: ((tile: { x: number, y: number }) => void) | null,
  *   roamOrigin?: { x: number, y: number } | null,
@@ -81,6 +101,11 @@ export function FloorStage({
   onCallIds = [],
   interactive = true,
   speakingId = null,
+  // No defaults, for the reason `FloorActors` records: `seatActivity` treats
+  // both as falsy-or-not, so `= false` / `= null` would buy nothing but a
+  // branch each against a complexity budget this component is already over.
+  headphones,
+  youHolding,
   onWalkTo = null,
   roamOrigin = null,
   onUseProp = null,
@@ -123,7 +148,8 @@ export function FloorStage({
             vacant={(walker && seat.id === walker.colleagueId) || vacantIds.includes(seat.id)}
             interactive={interactive}
             speaking={speakingId === seat.id}
-            accessoryOverride={onCallIds.includes(seat.id) ? 'headset' : null}
+            onCall={onCallIds.includes(seat.id)}
+            activity={seatActivity(seat.id, { onCallIds, headphones, youHolding })}
             look={deskWorkFor(seat.id)?.look}
             onSelect={onSelect}
             onActivate={onActivate}

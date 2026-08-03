@@ -16,6 +16,7 @@ const EXPECTED_OFFICE_FLOOR_COMPONENTS = [
   'FloorCardSlot.jsx',
   'FloorDeskSpeech.jsx',
   'FloorFigure.jsx',
+  'HeldItem.jsx',
   'FloorLiveRegion.jsx',
   'FloorHuddle.jsx',
   'FloorMeeting.jsx',
@@ -55,12 +56,14 @@ const EXPECTED_FLOOR_UTILS = [
   'officeFloorReach.js',
   'officeFloorProps.js',
   'officeDeskWork.js',
+  'officeFloorActivity.js',
   'officeSceneCast.js'
 ];
 
 const EXPECTED_FLOOR_TEST_FILES = [
   'officeFloor.test.jsx',
   'officeFloorAccess.test.jsx',
+  'officeFloorActivity.test.jsx',
   'officeFloorArrival.test.jsx',
   'officeFloorContracts.test.js',
   'officeFloorHuddle.test.jsx',

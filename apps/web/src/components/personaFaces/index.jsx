@@ -546,6 +546,30 @@ function Accessory({ style, accent }) {
           <circle cx="15.4" cy="26.4" r="1.1" fill={LINE} />
         </>
       );
+    case 'headphones':
+      // The headset above, minus the boom — which is the whole distinction, in
+      // the office and in the drawing. A headset means a call is happening to
+      // you; headphones mean you have decided the office is not (the Admin
+      // menu's Headphones posture). Deeper cups than the headset's so the two
+      // are still telling apart at 34 px, where the missing mic is two pixels.
+      // The band's apex sits at y ≈ 7.6, above the shared crown at y 9.6, so it
+      // clears every hair style rather than parting one (docs/office-parody.md
+      // § How a character is drawn).
+      return (
+        <>
+          <path
+            d="M10.6 19.4v-2a9.4 9.4 0 0 1 18.8 0v2"
+            stroke={LINE}
+            strokeWidth="1.9"
+            fill="none"
+            strokeLinecap="round"
+          />
+          <rect x="8.5" y="16.6" width="4.2" height="6.4" rx="2.1" fill={LINE} />
+          <rect x="27.3" y="16.6" width="4.2" height="6.4" rx="2.1" fill={LINE} />
+          <rect x="11.1" y="18" width="1.6" height="3.6" rx="0.8" fill={accent} opacity="0.75" />
+          <rect x="27.3" y="18" width="1.6" height="3.6" rx="0.8" fill={accent} opacity="0.75" />
+        </>
+      );
     case 'tie':
       return (
         <>
@@ -699,10 +723,13 @@ function Garment({ top, accent, skin }) {
  *   title?: string,
  *   fallbackEmoji?: string,
  *   accentRing?: boolean,
- *   accessoryOverride?: 'none' | 'headset' | 'hardhat' | 'lanyard' | 'tie' | 'badge' | 'chain' | null,
+ *   accessoryOverride?: 'none' | 'headset' | 'headphones' | 'hardhat' | 'lanyard' | 'tie'
+ *     | 'badge' | 'chain' | null,
  *   expressionOverride?: 'neutral' | 'smile' | 'smirk' | 'frown' | 'wide' | 'tired' | null
  * }} props `accessoryOverride` swaps the baked trait accessory for one beat
- *   (headset syncs on the floor) without mutating the registry.
+ *   (headset syncs and your own Headphones posture on the floor) without
+ *   mutating the registry. `headphones` is override-only — no cast member wears
+ *   a pair as a trait, because it is your preference rather than their look.
  *   `expressionOverride` does the same for mood (holy-war combatants scowl).
  */
 export function PersonaFace({

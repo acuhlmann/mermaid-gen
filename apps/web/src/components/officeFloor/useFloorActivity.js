@@ -18,6 +18,7 @@ import { useFloorPresence } from './useFloorPresence.js';
 import { useFloorPropUse } from './useFloorPropUse.js';
 import { useFloorTalk } from './useFloorTalk.js';
 import { propTileFor } from '../../utils/officeFloorMovement.js';
+import { conversationSpeakerId } from '../../utils/officeFloorActivity.js';
 import { YOU_SEAT_ID, seatFor } from '../../utils/officeFloorPlan.js';
 /**
  * `phase` names differ because the cards read as sentences: looking / talking /
@@ -197,11 +198,22 @@ export function useFloorActivity({
     startTalk,
     startUseProp,
     /**
-     * Whoever holds the floor gets the glow the ceremony and glass room use —
-     * but only once you have arrived. Glowing somebody you are still walking
-     * towards announces the beat before it happens.
+     * Whoever holds the floor gets the indicator the ceremony and glass room
+     * use — but only once you have arrived. Marking somebody you are still
+     * walking towards announces the beat before it happens.
+     *
+     * In a conversation that is **whoever spoke last**, not whoever you walked
+     * up to. Slice 8 marked your partner for as long as you stood there, which
+     * answers "who are you with"; the IM log already knows which way the newest
+     * message went (`conversationSpeakerId`), so the indicator can follow the
+     * turn — including onto you — with no timer and no new state. Nobody is
+     * marked before the opener lands, which is correct: nobody has said
+     * anything yet.
      */
-    speakingId: arrivedTarget(talk) ?? arrivedTarget(peek),
+    speakingId:
+      (talk?.phase === 'talking'
+        ? conversationSpeakerId(imHistory, talkingTo, YOU_SEAT_ID)
+        : null) ?? arrivedTarget(peek),
     /**
      * The prop you are actually stood at, so it can glow — the same "only once
      * you have arrived" rule `speakingId` follows, for the same reason: a

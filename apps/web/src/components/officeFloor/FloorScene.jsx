@@ -33,6 +33,7 @@ import { officeChromeCopy, officeSenderInfo } from '../../utils/officeCast.js';
 import { shouldShowSpokenText } from '../../utils/officeCaptions.js';
 import { formatLocale } from '../../i18n/formatLocale.js';
 import { sceneParticipants } from '../../utils/officeSceneCast.js';
+import { floorActivityFor } from '../../utils/officeFloorActivity.js';
 import { getOfficeSnapshot, subscribe } from '../../state/officeMomentStore.js';
 import {
   BATTLE_TILES,
@@ -59,14 +60,31 @@ const SCENE_KINDS = {
 /** Above the signage layer, so a spoken line clears the zone labels. */
 const SPEAKING_Z = 9600;
 
-/** One participant standing at their mark, optionally saying something. */
-function SceneActor({ castId, tile, line, scale, expressionOverride = null }) {
+/**
+ * One participant standing at their mark, optionally saying something.
+ *
+ * `speaking` is deliberately **not** `Boolean(line)`. Under narration the line
+ * is spoken instead of drawn (`showSpokenText`), and whoever is talking is still
+ * whoever is talking — reading the bubble back would hang the indicator off a
+ * captions preference, which is the trap slice 8's Do-it nearly fell into
+ * (§ 8). The depth lift stays on the bubble, because that is what has to clear
+ * the signage.
+ */
+function SceneActor({
+  castId,
+  tile,
+  line,
+  scale,
+  speaking = false,
+  hold = null,
+  expressionOverride = null
+}) {
   const { left, top } = projectIso(tile.x, tile.y);
   const sender = officeSenderInfo(castId);
   const align = bubbleAlignForTile(tile);
   return (
     <div
-      className="office-floor-walker"
+      className={`office-floor-walker office-floor-scene-actor${speaking ? ' is-speaking' : ''}`}
       data-testid={`office-floor-scene-actor-${castId}`}
       style={{ left, top, zIndex: line ? SPEAKING_Z : depthOf(tile.x, tile.y) + 5 }}
     >
@@ -84,6 +102,7 @@ function SceneActor({ castId, tile, line, scale, expressionOverride = null }) {
         <FloorFigure
           id={castId}
           accent={sender?.accentColor ?? 'var(--accent)'}
+          activity={floorActivityFor(castId, { coffee: hold === 'coffee', moving: true })}
           expressionOverride={expressionOverride}
         />
       </div>
@@ -312,6 +331,10 @@ export function FloorScene({
                 tile={tiles[index % tiles.length]}
                 scale={scale}
                 expressionOverride={isBattle ? 'frown' : null}
+                speaking={Boolean(speaking)}
+                /* A coffee break is two people holding coffee. A holy war is
+                   two people holding nothing, because their hands are busy. */
+                hold={isBattle ? null : 'coffee'}
                 line={shown}
               />
             );

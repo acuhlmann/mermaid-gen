@@ -44,6 +44,8 @@ function personClassName({ seated, selected, isYou, speaking }) {
  *   speaking?: boolean,
  *   idleIndex?: number,
  *   disabled?: boolean,
+ *   activity?: { pose?: string, hold?: string | null, headwear?: string | null } | null,
+ *   onCall?: boolean,
  *   onSelect: (id: string) => void,
  *   onActivate?: ((id: string) => void) | null
  * }} props `name` is the visible chip; `label` is what it is called to anybody
@@ -62,7 +64,8 @@ export function FloorPersonButton({
   speaking = false,
   idleIndex = 0,
   disabled = false,
-  accessoryOverride = null,
+  activity = null,
+  onCall = false,
   onSelect,
   onActivate = null
 }) {
@@ -75,7 +78,12 @@ export function FloorPersonButton({
       aria-pressed={selected}
       title={label}
       disabled={disabled}
-      data-on-call={accessoryOverride === 'headset' ? 'true' : undefined}
+      /* Its own boolean since slice 13, not "is there a headset on them": Dave
+         wears one all day (`officeDeskWork.doing`), so reading the drawing back
+         would mark the helpdesk permanently on a call and quietly cost the
+         marker its meaning. What a sync puts on somebody is a fact about the
+         sync, and the sync is what says so. */
+      data-on-call={onCall ? 'true' : undefined}
       onClick={() => onSelect(id)}
       onDoubleClick={(event) => {
         if (!onActivate) return;
@@ -90,7 +98,7 @@ export function FloorPersonButton({
         accent={accent}
         isYou={isYou}
         idleIndex={idleIndex}
-        accessoryOverride={accessoryOverride}
+        activity={activity}
       />
     </button>
   );

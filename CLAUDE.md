@@ -231,9 +231,24 @@ Every session carries **six independent diagram slots** — `mermaid` (Mermaid t
 - **`useScenePacing` reveals every line at once when it has no narrator.** That is right for the
   coffee/battle cards and wrong for anything that lights one speaker at a time — pass a narrator
   wrapper that returns `{spoken:false}` instead of passing `undefined`.
+- **What somebody is doing on the floor is derived once, in `officeFloorActivity.js`.** Held
+  item, headwear and idle rhythm come from `floorActivityFor(id, ctx)` with a fixed precedence
+  — a call ▸ your Headphones posture ▸ a coffee ▸ the character's `officeDeskWork.doing` row —
+  and `FloorFigure` is handed the answer. Do **not** compose it at a use site: the four inputs
+  are four different kinds of state (trait row, live meeting, moment-store preference, running
+  set piece) and six components draw a figure, so a second composition is a room where five
+  surfaces agree about the headset. Read `headphones` from the moment store, never
+  `narration`/`soundscape` — one macro, three outputs, and only the first means "wearing a
+  pair". Two art traps: a held item is a **third layer over the head** (a seated figure's desk
+  hides everything below figure-y 36 and the face disc owns y 0-34, so the torso has ~6 usable
+  pixels — `office-isometric-mode.md` § 6 rule 31), and it must stay absolutely positioned with
+  `pointer-events: none` or it re-inflates the hit box § 6 rule 23 shrank. **You** are drawn
+  from `PLAYER_FACE_TRAITS`, which lives beside `PERSONA_FACE_TRAITS` because that object's
+  keys are pinned to `CAST_TIERS`.
 - **After presence / TTS / desk-frame edits**, prefer `apps/web/test/officePresence.test.js`,
   `deskOsPresenceStrip.test.jsx`, `deskOsFrameStyles.test.js`, `apps/server/test/officeTts.test.js`,
-  `officeRoute.test.js` (or `npm run test:affected`).
+  `officeRoute.test.js` (or `npm run test:affected`). **After isometric-floor edits**, `npm run
+test:floor`; the floor test map is [`docs/agents/isometric-floor-tests.md`](docs/agents/isometric-floor-tests.md).
 
 ## File-size budgets (work in progress)
 

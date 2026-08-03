@@ -13,6 +13,7 @@ import FloorFigure from './FloorFigure.jsx';
 import { useWalkAnimation } from './useWalkAnimation.js';
 import { VISITOR_TILE, depthOf, walkPathFrom } from '../../utils/officeFloorPlan.js';
 import { officeChromeCopy, officeSenderInfo } from '../../utils/officeCast.js';
+import { floorActivityFor } from '../../utils/officeFloorActivity.js';
 import { formatLocale } from '../../i18n/formatLocale.js';
 
 /** Above the zone-signage layer (9000) so the speech bubble is never buried. */
@@ -112,6 +113,10 @@ export function FloorWalker({
         <FloorFigure
           id={walkBy.colleagueId}
           accent={sender?.accentColor ?? 'var(--accent)'}
+          /* They came over holding whatever they were holding. `moving` covers
+             both legs of the trip and the beat at your desk in between, because
+             somebody delivering a line is not at their keyboard. */
+          activity={floorActivityFor(walkBy.colleagueId, { moving: true })}
           walking={!arrived || departing}
         />
       </div>

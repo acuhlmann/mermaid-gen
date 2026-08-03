@@ -50,6 +50,56 @@ describe('the person is the size of the person', () => {
     expect(focus).toMatch(/outline:\s*2px solid/);
     expect(focus).not.toMatch(/outline:\s*none/);
   });
+
+  it('keeps the held item out of the hit box the same way the chip is', () => {
+    /*
+     * Slice 13. The item hangs off the shoulder, past the 34 px figure — the
+     * exact shape of § 6 rule 22, which cost a browser and 441 sampled points
+     * to find the first time. Absolute keeps it out of the flex flow that sizes
+     * the button; `pointer-events: none` keeps it from handing the oversized
+     * box back through the child.
+     */
+    const hold = ruleBody('.office-floor-person-hold');
+    expect(hold).toMatch(/position:\s*absolute/);
+    expect(hold).toMatch(/pointer-events:\s*none/);
+    // And the layer needs something to be absolute against, or it lands on the
+    // stage instead of on the shoulder.
+    expect(ruleBody('.office-floor-person-figure')).toMatch(/position:\s*relative/);
+  });
+});
+
+describe('who is talking is marked quietly (slice 13)', () => {
+  it('lights the speaker in the character’s own accent, not one blue for all', () => {
+    const body = ruleBody(
+      '.office-floor-person.is-speaking .office-floor-person-figure,\n.office-floor-walker.is-speaking .office-floor-person-figure'
+    );
+    expect(body, 'the two-selector speaking rule is gone').toBeTruthy();
+    expect(body).toMatch(/var\(--floor-accent/);
+    // The 20 px `rgba(37, 99, 235, …)` bloom was the same hue for everybody, so
+    // the one thing the indicator is for — who — was what it said least.
+    expect(body).not.toMatch(/37,\s*99,\s*235/);
+  });
+
+  it('animates the ring rather than the figure, which is already animating', () => {
+    /*
+     * The figure runs an idle or a pose, both on `transform`. A second
+     * animation on the same element replaces it outright rather than composing
+     * — so a speaking colleague would silently stop typing.
+     */
+    const ring = ruleBody(
+      '.office-floor-person.is-speaking .office-floor-person-figure::before,\n.office-floor-walker.is-speaking .office-floor-person-figure::before'
+    );
+    expect(ring, 'the speaking ring is gone').toBeTruthy();
+    expect(ring).toMatch(/animation:\s*office-floor-speaking/);
+  });
+
+  it('keeps the ring visible when it may not move', () => {
+    // Reduced motion asks for less movement, not less information — and with
+    // the bob switched off the ring is the only thing marking the speaker.
+    const reduced = css.slice(css.indexOf('@media (prefers-reduced-motion: reduce)'));
+    expect(reduced).toMatch(/is-speaking .office-floor-person-figure::before/);
+    expect(reduced).toMatch(/opacity:\s*0\.5/);
+  });
 });
 
 describe('indicators that actually render', () => {

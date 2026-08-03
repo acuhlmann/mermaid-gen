@@ -27,11 +27,15 @@ import { YOU_SEAT_ID, depthOf, walkPathBetween } from '../../utils/officeFloorPl
  *   onStep?: (tile: { x: number, y: number }, isYou?: boolean) => void,
  *   testId?: string,
  *   elementRef?: { current: HTMLElement | null },
+ *   activity?: { pose?: string, hold?: string | null, headwear?: string | null } | null,
+ *   speaking?: boolean,
  *   children?: import('react').ReactNode
  * }} props `children` ride above the figure inside its anchor (a speech
  *   bubble); changing `walkKey` starts a new walk. `elementRef` lets free roam
  *   read where you actually got to when it interrupts a walk (`liveTileOf`).
  *   `onStep` fires per leg — this actor is always you, so it always says so.
+ *   `activity` is what you are visibly doing while you are up: your headphones
+ *   if the posture is on, the coffee you are stood at the machine drinking.
  */
 export function FloorPlayer({
   from,
@@ -42,6 +46,8 @@ export function FloorPlayer({
   onStep,
   testId,
   elementRef,
+  activity = null,
+  speaking = false,
   children
 }) {
   const ownRef = useRef(null);
@@ -57,14 +63,20 @@ export function FloorPlayer({
   return (
     <div
       ref={ref}
-      className="office-floor-walker"
+      className={`office-floor-walker${speaking ? ' is-speaking' : ''}`}
       data-testid={testId}
       /* +6 so you are never buried by the desk you just walked past. */
       style={{ zIndex: depthOf(tile.x, tile.y) + 6 }}
     >
       <div className="office-floor-walker-anchor">
         {children}
-        <FloorFigure id={YOU_SEAT_ID} accent="var(--accent)" isYou walking={walking && !arrived} />
+        <FloorFigure
+          id={YOU_SEAT_ID}
+          accent="var(--accent)"
+          isYou
+          activity={activity}
+          walking={walking && !arrived}
+        />
       </div>
     </div>
   );

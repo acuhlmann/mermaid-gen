@@ -495,7 +495,50 @@ zero, and no horizontal overflow. All of it pinned in `test/deskOsFrameStyles.te
     and 30 and the debts in § 8. Cost, in full: one derivation module, one extracted component,
     one hook parameter, and two verbs that stopped deriving their own mark twice.
 
-**There is no slice 13 yet, and that is deliberate.** The list above was written one slice at
+13. ~~**What everybody is visibly doing**~~ — ✅ **shipped**: the room stopped being sixteen
+    identical torsos bobbing at sixteen desks. Everyone now carries what their work looks like —
+    Ulrich and Gary never without a mug, Russ on the phone, Jared and Linda holding the paperwork,
+    Dave in his headset, everybody else typing — **you** wear the Admin menu's 🎧 Headphones
+    posture, a coffee break puts a cup in every hand at the machine, and whoever is talking is
+    marked instead of whoever you happen to be stood in front of.
+
+    **One derivation, six consumers.** `officeFloorActivity.js` answers "what is this person
+    doing" for the seat, the wanderer, the walk-by, the set piece, the glass room and you, and
+    `FloorFigure` is handed the answer rather than assembling it. That is the slice's whole
+    structural claim and it is not decoration: the four inputs are four completely different
+    kinds of state — a trait row (`officeDeskWork.doing`), a live meeting, a **preference** in the
+    moment store, and a set piece that is running — and every surface that composed them itself
+    would be a surface that can disagree about whether Dave is on a call. The precedence is
+    written down in one docblock (call ▸ your headphones ▸ coffee ▸ trait row) instead of living
+    in the order of somebody's `??` chain.
+
+    **It is the first time a preference reaches the room**, and it is exactly ADR-0011 rule 1
+    being cashed rather than bent: Headphones is `officeMomentStore` state the Admin menu already
+    writes and the floor already subscribes to, so renderer #2 renders it and stores nothing.
+    Read `headphones`, never `narration`/`soundscape` — they are one macro's outputs and only the
+    first one means "am I wearing a pair" (`office-parody.md` § Desk verbs).
+
+    **You needed a face first.** You had been rendering as a 🙋 through `PersonaFace`'s
+    unknown-id fallback, which is fine for a silhouette and fatal here — an emoji cannot put
+    headphones on. `PLAYER_FACE_TRAITS` sits _beside_ `PERSONA_FACE_TRAITS` rather than in it,
+    because that object's keys are asserted to be exactly `CAST_TIERS` and you are not cast. The
+    row is deliberately unremarkable: every other row is drawn toward somebody, and the app has
+    no idea what you look like. What identifies you is what always did — your `--accent` and the
+    name on the badge, which the figure now wears as a lanyard.
+
+    **Who is talking is now who is talking.** Slice 8 marked whoever you had walked up to, for as
+    long as you stood there — an answer to "who are you with". The IM log already knows which way
+    the newest message went, so `conversationSpeakerId` follows the turn with no timer and no new
+    state, including onto **you**, and marks nobody before the opener lands. The indicator itself
+    got quieter on purpose: a 9 px accent glow plus a 20 px blue bloom read as the room dimming,
+    and the blue was the same hue for everybody, so the one thing it exists to say — _who_ — was
+    what it said least. It is now the character's own accent at half the spread plus a ring that
+    breathes, and it collapsed from five per-surface rules to **two**, because every actor on this
+    stage is either a `.office-floor-person` or a `.office-floor-walker`.
+
+    One geometry finding, and it is the reason the art works at all: see § 6 rule 31.
+
+**There is no slice 14 yet, and that is deliberate.** The list above was written one slice at
 a time, each defined when it was picked up rather than planned in advance — so "continue with
 slice _n_" only means something once somebody has chosen what _n_ is. § 8 has the candidates,
 a recommendation, and the debts that argue for one over another. Pick from there, write the
@@ -797,6 +840,24 @@ occupied briefly has only ever been tested briefly.**
     box's _centre_ is empty air above the object and reaches the floor for all three usable props,
     with or without anybody standing there.
 
+31. **A seated figure has about six visible pixels that are not its own face.** The figure is
+    34 × 48: a 34 px `PersonaFace` disc over a 34 × 24 torso, overlapped 10 px. Seated, it is
+    lifted 30 px (rule 2) and its own desk's top-back edge is ~42 px above the tile centre — so
+    everything below figure-y 36 is behind furniture. The head disc occupies y 0–34. Subtract
+    them and what is left is a band **y 34–36 wide open, and a sliver either side of the disc**
+    that narrows as you go up: at y 30 the disc still covers x 6–28 of 34.
+
+    This is why slice 13's held items are a **third layer over the head** rather than paths in
+    the torso. Inside the torso SVG the only place a mug both survives the desk and clears the
+    face is that six-pixel band, and nothing legible fits in it. Lifted out (absolutely
+    positioned over the figure's x18–34 / y16–40) an item can sit where a hand would hold it,
+    and a phone can reach an ear — which is the one held item that is unmistakable at 34 px.
+
+    Two constraints the layer inherits and must keep. It is **out of the flex flow**, so rule 23
+    still holds: a figure's hit box is still the 34 × 48 figure, with the mug hanging outside it.
+    And it takes **`pointer-events: none`**, for the identical reason the name chip does — a
+    child that accepted them would hand the oversized box straight back.
+
 Note on rule 10: "no mark may share `x − y` with a desk" is the integer shorthand, and it
 does not survive fractional marks — the glass room is a diagonal strip in column space, so
 every seat around its table has a fractional column. The precise form of the rule (screen
@@ -1012,6 +1073,26 @@ because the bubble is right.) And **the guard includes the handler**: a Do-it th
 without an `onAdopt` is a button that silently does nothing, which is worse than no offer — the
 same check `OfficeDeskSpeech` makes. Both pinned by `officeFloorTalk.test.jsx`, including the
 one that matters most: the offer survives when narration hides the bubble.
+
+**What slice 13 left on the table**, in the order somebody should want them:
+
+- **The glass room is the one surface with no activity at all.** `MeetingActor` draws a plain
+  figure, so sixteen people sit round a table holding nothing. A mug or a laptop each would help,
+  but it is a content question rather than a wiring one — the wiring is one prop — and the honest
+  version needs a rule for _who_ brings what to a meeting, which nobody has written.
+- **`doing` is static.** Dave is in his headset at 4 pm on a Friday exactly as he was at 9 am.
+  The obvious next move is to let the office log or the cadence nudge it (everyone holds a mug
+  in the first hour, nobody does after the stand-up), and the obvious trap is that this is
+  ambient content with a timer, so § 11's budget applies and `officeCadence.js` owns the dial —
+  not a new one here.
+- **A held item is drawn, never carried.** Nothing walks to the machine and comes back holding
+  something: a wanderer's mug is theirs the whole time. Making the trip _change_ the hand is the
+  first thing on this floor that would need a wanderer to remember something, which is floor-only
+  state about somebody else (slice 11's line) — cheap to build and worth being deliberate about.
+- **`data-on-call` is now narrower than the drawing.** It marks a sync, not a headset, because
+  Dave wears one all day and reading the art back would mark the helpdesk permanently on a call.
+  If something later wants "is there a headset on this person", that is a second attribute, not a
+  loosening of this one.
 
 Three earlier candidates, none designed:
 
