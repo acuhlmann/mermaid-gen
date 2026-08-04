@@ -53,6 +53,24 @@ flowchart TB
 
 Agents are created in `createMermaidLangChainAgent` / `createInfographicLangChainAgent` and cached per model key so repeated operations reuse instances.
 
+### `createLazyAgentService` (shared streaming wrapper)
+
+Every diagram slot exposes a lazy service built by `createLazyAgentService` (`apps/server/src/agents/_lib/createLazyAgentService.js`). It defers `buildService()` until the first call (throws `LlmNotConfiguredError` when no backend resolves) and routes SSE streaming for analyze, intent, and transform through one implementation.
+
+| Config field                                                        | Purpose                                                               |
+| ------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| `contentType`                                                       | Slot id passed to stream result emitters                              |
+| `buildService`                                                      | Factory that returns the real agent service                           |
+| `streamLabels`                                                      | `{ analyze, intent, transform }` phase labels in the SSE stream       |
+| `intentExtraFields` / `transformExtraFields` / `analyzeExtraFields` | Optional payload keys forwarded beyond the common set                 |
+| `supportsInvoke` / `supportsStyleIntent`                            | Mermaid-only today — wires `invoke` / `applyStyleIntent` on the proxy |
+
+**Common payload fields** forwarded on every stream operation: `modelProfile`, `focusNode`, `emit`, `uiLocale`, plus operation-specific fields (`prompt`, `mode`, `russDepth`, `kind`, …). **`uiLocale` must stay on this path** — bypassing the wrapper duplicates ~120 lines of streaming protocol per slot and is the usual cause of "UI locale stopped reaching the agent".
+
+Adding a slot: call `createLazyAgentService` from `create*LangChainAgentService`, declare any extra fields in `*ExtraFields`, and mirror the pattern in `chartLangChainAgent.js` or `formsLangChainAgent.js`. Tests: `apps/server/test/createLazyAgentService.test.js`.
+
+Output language: agents append `buildLanguageInstruction` / `buildProseLanguageInstruction` inside their user-message builders; the wrapper only forwards `uiLocale`. See [Content types — UI locale](content-types.md#ui-locale-and-diagram-output-language).
+
 ## User-facing modes
 
 | Control                         | What it feels like                                                                                                                                                                                                                                                                                                                                                                                                                      | Server path and code                                                                                                                                                                                                                 |

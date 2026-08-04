@@ -56,6 +56,10 @@ Run: `npm run check:wire`
 | Web client     | [`apps/web/src/state/diagramStore.js`](../apps/web/src/state/diagramStore.js), [`App.jsx`](../apps/web/src/App.jsx)                                                                                                                                                                         |
 | Tests          | [`apps/server/test/copilotRoute.test.js`](../apps/server/test/copilotRoute.test.js), [`apps/server/test/diagramAgentDispatcher.test.js`](../apps/server/test/diagramAgentDispatcher.test.js), [`packages/shared/test/diagramSchema.test.ts`](../packages/shared/test/diagramSchema.test.ts) |
 
+When you change **`uiLocale` on diagram POST bodies**, also run [`apps/web/test/diagramStore.test.js`](../apps/web/test/diagramStore.test.js) (omit/include on intent/transform/analyze) and [`packages/shared/test/promptLanguage.test.ts`](../packages/shared/test/promptLanguage.test.ts).
+
+When you change **`createLazyAgentService`** or per-slot `runAgentStream` wiring, run [`apps/server/test/createLazyAgentService.test.js`](../apps/server/test/createLazyAgentService.test.js).
+
 Run: `npm run check:fast` when only shared changed; `npm run check` otherwise.
 
 ## MCP tool
@@ -101,6 +105,16 @@ Run: `npm run check:fast` when only shared changed; `npm run check` otherwise.
 | Unit               | [`apps/web/test/deskBottomActionsSlot.test.jsx`](../apps/web/test/deskBottomActionsSlot.test.jsx), [`apps/web/test/deskActionsDock.test.jsx`](../apps/web/test/deskActionsDock.test.jsx), [`apps/web/test/officeLayerDeskSlot.test.jsx`](../apps/web/test/officeLayerDeskSlot.test.jsx) |
 
 `test:affected` pulls the integration + unit files above when desk chrome or concentration modules change (see `scripts/test-affected-lib.mjs`).
+
+## Office window manager (phone sheets)
+
+| Layer        | Location                                                                                                                                                                                                    |
+| ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Presentation | [`apps/web/src/hooks/useWindowPresentation.js`](../apps/web/src/hooks/useWindowPresentation.js), [`apps/web/src/components/FloatingWindow.jsx`](../apps/web/src/components/FloatingWindow.jsx)              |
+| Sheet snap   | [`apps/web/src/hooks/useSheetSnap.js`](../apps/web/src/hooks/useSheetSnap.js) (`SHEET_SNAPS`, `DEFAULT_SHEET_SNAP`, gesture thresholds)                                                                     |
+| Minimize     | [`apps/web/src/state/overlayStack.js`](../apps/web/src/state/overlayStack.js)                                                                                                                               |
+| Design doc   | [`docs/office-window-manager.md`](office-window-manager.md)                                                                                                                                                 |
+| Tests        | [`apps/web/test/officeWindowManager.test.jsx`](../apps/web/test/officeWindowManager.test.jsx), [`apps/web/test/useSheetSnap.test.jsx`](../apps/web/test/useSheetSnap.test.jsx), `deskOsFrameStyles.test.js` |
 
 ## Office cast + meetings (roster helpers)
 
