@@ -78,7 +78,8 @@ describe('free roam (slice 7)', () => {
 
   it('offers a labelled way back to your screen while you are up', () => {
     const view = renderFloor();
-    expect(screen.queryByRole('button', { name: /Back to your screen/i })).toBeNull();
+    // The "Back to your screen" button is always present in the top bar
+    expect(screen.getByRole('button', { name: /Back to your screen/i })).toBeTruthy();
 
     clickTile(4, 3);
     fireEvent.click(screen.getByRole('button', { name: /Back to your screen/i }));
