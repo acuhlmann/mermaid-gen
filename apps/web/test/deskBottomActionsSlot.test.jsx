@@ -256,6 +256,8 @@ describe('DeskBottomActionsSlot empty canvas', () => {
     );
     expect(screen.getByTestId('entry-desk-pointers')).toBeTruthy();
     expect(screen.getByText('1 · Work order')).toBeTruthy();
-    expect(screen.getByText(/Type what you want built here/i)).toBeTruthy();
+    expect(
+      screen.getByText(CONTROLS_EN.prompt.entryPointers.find((p) => p.id === 'work-order').text)
+    ).toBeTruthy();
   });
 });
