@@ -1,9 +1,10 @@
 /**
  * Zoomed-in follow-cam for the Day One floor walk.
  *
- * Same trick as `useFloorMeetingFocus`: bump past fit-to-viewport so there is
- * something to pan on desktop, then scroll the focus tile into the middle.
- * Deliberately not a free camera — the stage still owns scale.
+ * Same trick as the directed camera (`useFloorCamera`): bump past fit-to-
+ * viewport so there is something to pan on desktop, then scroll the focus
+ * tile into the middle. Deliberately not a free camera — the stage still
+ * owns scale.
  */
 
 import { useEffect, useMemo } from 'react';

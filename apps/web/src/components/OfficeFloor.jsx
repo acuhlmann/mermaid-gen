@@ -20,16 +20,18 @@ import FloorLiveRegion from './officeFloor/FloorLiveRegion.jsx';
 import FloorStage from './officeFloor/FloorStage.jsx';
 import FloorTopBar from './officeFloor/FloorTopBar.jsx';
 import { floorAnnouncement } from './officeFloor/floorAnnouncement.js';
+import {
+  autoPanPresenceFor,
+  cameraFocusFor,
+  isPhysicalFloorMeeting
+} from './officeFloor/floorCamera.js';
 import { createOfficeFloorBridge } from './officeFloor/officeFloorBridge.js';
 import { useFloorActivity } from './officeFloor/useFloorActivity.js';
+import { useFloorCamera } from './officeFloor/useFloorCamera.js';
 import { useFloorSpokenText } from './officeFloor/useFloorSpokenText.js';
 import { useFloorAway } from './officeFloor/useFloorAway.js';
 import { useFloorAutoPan } from './officeFloor/useFloorAutoPan.js';
 import { useFloorCoffeeWalk } from './officeFloor/useFloorCoffeeWalk.js';
-import {
-  isPhysicalFloorMeeting,
-  useFloorMeetingFocus
-} from './officeFloor/useFloorMeetingFocus.js';
 import { useFloorKeyboard } from './officeFloor/useFloorKeyboard.js';
 import { useFloorWalker } from './officeFloor/useFloorWalker.js';
 import { MEETING_USER_SPEAKER } from '../hooks/useMeetingPlayback.js';
@@ -218,7 +220,6 @@ function OfficeFloorView({ bridge }) {
 
   const viewportRef = useRef(null);
   const fitScale = useStageScale(viewportRef);
-  const scale = useFloorMeetingFocus(viewportRef, meeting, fitScale);
   const [selectedId, setSelectedId] = useState(null);
   const { walker, departing, handleDeparted } = useFloorWalker(walkBy);
   const handleClosePerson = useCallback(() => setSelectedId(null), []);
@@ -242,8 +243,19 @@ function OfficeFloorView({ bridge }) {
   });
   const { presence, peek, conversation, prop, propUse, origin, goHome, startTalk } = activity;
 
+  /*
+   * The directed camera (slice 14): frame whatever moment is on — meeting,
+   * huddle, set piece, or your own walk-with-reason — and ease back to the
+   * wide view when it clears. A pure projection of state already held here,
+   * so it can never disagree with what the stage draws.
+   */
+  const focus = cameraFocusFor({ meeting, huddle, coffee, battle, presence });
+  const scale = useFloorCamera(viewportRef, focus, fitScale);
+
   useFloorKeyboard({ presence, origin, goHome, walkTo: activity.walkTo });
-  useFloorAutoPan(viewportRef, presence, scale);
+  /* While the camera is framing a moment it owns the pan; auto-pan remains
+     the phone-overflow fallback for the camera-free walks. */
+  useFloorAutoPan(viewportRef, autoPanPresenceFor(focus, presence), scale);
   useFloorCoffeeWalk({
     coffee,
     walkTo: activity.walkTo,

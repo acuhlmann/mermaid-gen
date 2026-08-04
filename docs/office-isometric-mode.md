@@ -538,7 +538,46 @@ zero, and no horizontal overflow. All of it pinned in `test/deskOsFrameStyles.te
 
     One geometry finding, and it is the reason the art works at all: see § 6 rule 31.
 
-**There is no slice 14 yet, and that is deliberate.** The list above was written one slice at
+14. **The directed camera** — ✅ **shipped**: the room leans into whatever it is watching and
+    eases back when it is done. A physical meeting gets a 1.38× frame of the glass room (the
+    same figure slice 5 used, eased now), a huddle 1.2× around the ring, a coffee break or
+    battle 1.35× on the midpoint of its two marks — the invite included, it is already standing
+    there asking — and your own reasons to be somewhere (walking over to talk, to peek, to use
+    a prop) 1.22× from the first step. Free roam and the walk home stay camera-free: wandering
+    is the room being yours, and the release back to the wide view is how a moment says it is
+    over.
+
+    **The camera proposes, never insists.** A wheel, touch or pointer on the viewport takes the
+    pan away for the rest of the current moment — the zoom still completes, only the
+    re-centring stops — and only the next moment, or the moment ending, picks the camera back
+    up. This is slice 7's answer reopened in the one direction it allowed: there is still no
+    free camera and no zoom levels, and tap-to-walk stays taps on one stage.
+
+    **One clock, not two.** `useFloorMeetingFocus` and the arrival flow each ran scale and
+    scroll as separate animations — a CSS width transition on the stage and a smooth
+    `scrollTo` — which can drift. `useFloorCamera` eases a single rAF clock and derives both
+    the scale state and the scroll position from it per frame; a layout effect writes the
+    scroll before paint, so the zoom and the pan never disagree in a painted frame. Reduced
+    motion snaps (duration zero), same end state. The meeting's 110 px top-card bias carried
+    over: the frame aims below the card that anchors under the top bar.
+
+    **The release holds for a beat.** A moment clearing holds the frame for 250 ms before
+    easing back over 600 ms — scenes and meetings can run back to back — and a new moment
+    arriving mid-release cancels it. The focus key carries the beat: a scene's invite and its
+    accepted break share a location but not a key, so an override made at the invite does not
+    survive into the break itself.
+
+    The old `useFloorMeetingFocus` hook is deleted; `isPhysicalFloorMeeting` moved into
+    `floorCamera.js` (it still gates wander/roam suspension, so that contract is unchanged).
+    `useFloorAutoPan` remains the phone-overflow fallback for camera-free walks only — while
+    the camera frames, it owns the pan. Measured in headless Chromium at 1440 × 900 and
+    390 × 844: every boost lands exactly (the phone meeting at 0.69 = MIN_SCALE × 1.38), the
+    release returns to fit scale, and counter-scaled chrome stays readable at boosted scale.
+    One empirical finding, appended to § 6's Windows notes: `--force-prefers-reduced-motion`
+    did **not** disable `matchMedia` on that Chromium build — the tween visibly ran — and the
+    reliable lever is `page.emulateMedia({ reducedMotion: 'reduce' })`.
+
+**There is no slice 15 yet, and that is deliberate.** The list above was written one slice at
 a time, each defined when it was picked up rather than planned in advance — so "continue with
 slice _n_" only means something once somebody has chosen what _n_ is. § 8 has the candidates,
 a recommendation, and the debts that argue for one over another. Pick from there, write the
@@ -912,6 +951,10 @@ The Windows gotchas, for whoever is on that machine:
 - Headless Edge on this machine fails to write the PNG on roughly half of runs. A fresh
   `--user-data-dir` per invocation and a retry is the whole workaround; the `LoadEnclaveImageW`
   and `fallback_task_provider` lines on stderr are noise and appear on successful runs too.
+- **`--force-prefers-reduced-motion` did not disable `matchMedia` on headless Chromium on
+  this machine** (slice 14): the camera tween visibly ran its frames despite the flag. The
+  reliable lever is `page.emulateMedia({ reducedMotion: 'reduce' })` (or
+  `newPage({ reducedMotion: 'reduce' })`), which `prefersReducedMotion()` does see.
 
 **Hit-coverage recipe (slice 9, extended in slice 10).** Rules 21–23 are the ones a screenshot
 could not have found: the floor _looked_ right and the printer simply did not answer to a
@@ -961,7 +1004,7 @@ is `pointer-events: none` on the button _and_ the `<svg>`, re-enabled on `.offic
 
 ## 7. The bench (for whatever comes next)
 
-Slices 1–12 have shipped. Anything new on the floor should be built out of the
+Slices 1–14 have shipped. Anything new on the floor should be built out of the
 pieces below rather than beside them — and should read §2 (binding rules) and §6 (geometry
 constraints) first, because every one of those cost a screenshot to find. Verification
 recipe is in §6; repo commands are in `CLAUDE.md` (`npm run check:affected`,
@@ -988,7 +1031,11 @@ are standing — view state, like the peek it absorbed), `useFloorActivity` (pre
 reasons you went there, as one object; the two social verbs are _handed_ their mark rather than
 deriving one), `useFloorTalk` (a conversation's composer, not its
 dialogue), `FloorTalk` + `FloorTalkCard`, `useFloorKeyboard` (Escape ladder + arrow stepping),
-`useFloorAutoPan`, `FloorTopBar`, `FloorCardSlot`, `FloorScenes`,
+`useFloorAutoPan` (phone-overflow panning for camera-free walks),
+**`floorCamera` + `useFloorCamera`** (slice 14's directed camera: which moment owns the
+frame — meeting ▸ huddle ▸ set piece ▸ your walk-with-reason — and the ease in and back
+out; the tuning table is `CAMERA_BOOSTS`, `CAMERA_MAX_SCALE` the ceiling, and the camera
+proposes — user pan overrides it for the moment), `FloorTopBar`, `FloorCardSlot`, `FloorScenes`,
 `FloorSeat`, `FloorFigure`, `FloorBubble` (counter-scaled speech), `FloorDeskSpeech` (a line
 above somebody at their own desk, or at the tile they are standing on — mind §6 rules 15, 20,
 28 and 29), `FloorPanel` (counter-scaled panel
@@ -1045,8 +1092,9 @@ Nothing here is designed yet. The ordering below is a recommendation, not a queu
 
 Nothing is recommended over the others yet, and the reason is worth stating: slice 12 cleared
 the one item that was _getting worse with waiting_, and nothing on the list below is. Slices 10
-and 12 were both easy calls because ambient life had made a standing gap actively louder. What
-remains is a set of genuine choices, so pick on appetite rather than on urgency.
+and 12 were both easy calls because ambient life had made a standing gap actively louder. Slice
+14 was a different kind of pick — not a gap closing but a deliberate UX improvement chosen on
+appetite. What remains is a set of genuine choices, so pick on appetite rather than on urgency.
 
 Shipped on top of slice 8 (adventure polish, not a new slice number): **floor talk now matches
 Slop Chat™ for input** — typed prompt **and** mic (`VoiceMicButton`), and **double-click a
@@ -1210,9 +1258,15 @@ Kept here so appetite can pick without re-deriving. Each should stay bound by AD
 
 - ~~Floor layout source of truth~~ — `officeFloorPlan.js`, with `officeFloorMovement.js` as
   its sibling for "where may _you_ go".
-- ~~Camera/controls detail~~ — answered by slice 7, and the answer is that there is no camera
-  to control: the stage fits the viewport, so tap-to-walk and tap-to-talk are both just taps
-  on the same stage, distinguished by whether they land on a person. Zoom levels stay out.
+- ~~Camera/controls detail~~ — answered by slice 7, and **reopened by slice 14**. The slice 7
+  answer stood as far as it went: there is no **user-driven** camera — tap-to-walk and
+  tap-to-talk stay taps on one stage, and zoom levels stay out. Slice 14 added what slice 7's
+  phrasing ("no camera to control") left room for: a **directed** camera that nobody controls.
+  `floorCamera.js` picks which moment owns the frame (meeting ▸ huddle ▸ scene ▸ your own
+  walk-with-reason) and `useFloorCamera` eases to it and back. It proposes, never insists — a
+  user pan takes over for the moment — and it never frames free roam or the walk home, so the
+  room still reads as yours between moments. The meeting's slice-5 jump is now this camera's
+  meeting rung (same 1.38×, eased, with the 110 px top-card bias).
 - ~~Should ambient movement be narrated~~ — answered by slice 11, **and slice 12 did not reopen
   it after all.** The answer is still no: ambient traffic is the one class of event on this floor
   with nothing to say, and a live region that reads out every trip to the printer is one people
