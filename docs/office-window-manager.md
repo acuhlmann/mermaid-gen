@@ -222,7 +222,20 @@ settle:
 - **Whether the `touch-action` veto was actually breaking scroll** (§3.5). Now academic: the
   declaration is gone and the drag provably did not depend on it.
 - **The sheet drag's feel** — `STEP_PX` (56) and `DISMISS_PX` (96) in `useSheetSnap.js` are
-  reasoned defaults, not tuned ones.
+  reasoned defaults, not tuned ones. Exported constants for tests and tuning:
+
+  | Constant             | Value                      | Role                                                                             |
+  | -------------------- | -------------------------- | -------------------------------------------------------------------------------- |
+  | `SHEET_SNAPS`        | `['peek', 'half', 'full']` | Ordered snap heights (actual sizes are CSS `--sheet-block-size` per `data-snap`) |
+  | `DEFAULT_SHEET_SNAP` | `'full'`                   | Open height on phone — mail/chat/meeting are apps, not half-height panels        |
+  | `STEP_PX`            | 56                         | Drag distance that commits to the next snap                                      |
+  | `DISMISS_PX`         | 96                         | Extra pull past `peek` that minimizes to the taskbar via `onDismiss`             |
+  | `OVERPULL_PX`        | 24                         | Rubber-band ceiling when dragging up from `full`                                 |
+
+  **`enabled: false` reset:** when the viewport leaves sheet mode (rotate, fold open), the hook
+  clears inline `transform`, resets snap to `DEFAULT_SHEET_SNAP`, and drops drag state — a
+  half-finished gesture must not strand on the node. Titlebar controls stay clickable (same rule
+  as free drag: pointer handlers ignore `button, a, input, …` targets).
 
 ## 9. Where this lives in code
 
@@ -240,7 +253,8 @@ settle:
   `writeOfficeMeetingMinimized` (+ its storage key), the `.is-minimized` size rules for four
   window kinds, `windowRestore` / `windowRestoreTitle` copy in three locale bundles
 - Tests: `apps/web/test/officeWindowManager.test.jsx` (behaviour),
-  `floatingWindow.test.js` (store semantics), `deskOsFrameStyles.test.js` (the CSS facts)
+  `floatingWindow.test.js` (store semantics), `useSheetSnap.test.jsx` (snap thresholds,
+  dismiss, `enabled: false` reset), `deskOsFrameStyles.test.js` (the CSS facts)
 
 ## 10. What building it taught
 
