@@ -157,3 +157,46 @@ describe('free roam (slice 7)', () => {
     expect(screen.getByTestId('office-floor-meeting-seat-you')).toBeTruthy();
   });
 });
+
+describe('name-chip proximity (slice 15)', () => {
+  const personOf = (container, id) =>
+    container.querySelector(`[data-seat="${id}"] button.office-floor-person`);
+
+  it('shows nobody at your desk — the room waits until you actually move', () => {
+    const view = renderFloor();
+
+    // Every colleague sits further than a tile away from your chair.
+    for (const id of ['gilfoyle', 'dinesh', 'jared', 'russ', 'richard', 'erlich']) {
+      expect(personOf(view.container, id)?.className).not.toContain('is-nearby');
+    }
+    // Your own chip never comes from proximity — you follow yourself around,
+    // so a self-chip would light up wherever you wandered. It is `.is-you`
+    // that keeps your name visible at your desk.
+    const you = personOf(view.container, 'you');
+    expect(you?.className).toContain('is-you');
+    expect(you?.className).not.toContain('is-nearby');
+  });
+
+  it('lights whoever stands within a tile of you, and only them', () => {
+    const view = renderFloor();
+
+    // One tile into the pod: Russ at (9, 6) is now within the ring, Gilfoyle
+    // at (6, 4) is not. The reveal follows you, not the room's memory of it.
+    // (8, 7) would be the obvious step, but that is the visitor tile a walk-by
+    // owns — the room refuses it, and so the test stands one tile to the left.
+    clickTile(8, 6);
+    expect(playerAt()).toBe(transformOf(8, 6));
+    expect(personOf(view.container, 'russ')?.className).toContain('is-nearby');
+    expect(personOf(view.container, 'gilfoyle')?.className).not.toContain('is-nearby');
+  });
+
+  it('takes the reveal back when you walk away', () => {
+    const view = renderFloor();
+
+    clickTile(8, 6);
+    expect(personOf(view.container, 'russ')?.className).toContain('is-nearby');
+
+    clickTile(4, 3);
+    expect(personOf(view.container, 'russ')?.className).not.toContain('is-nearby');
+  });
+});

@@ -38,6 +38,7 @@ import { MEETING_USER_SPEAKER } from '../hooks/useMeetingPlayback.js';
 import { useStageScale } from '../hooks/useStageScale.js';
 import { reachTileFor, whereaboutsOf } from '../utils/officeFloorReach.js';
 import {
+  MEETING_PLAYER_TILE,
   YOU_SEAT_ID,
   floorSurfaceAt,
   floorZoneToneAt,
@@ -244,6 +245,14 @@ function OfficeFloorView({ bridge }) {
   const { presence, peek, conversation, prop, propUse, origin, goHome, startTalk } = activity;
 
   /*
+   * Slice 15: where you are, for the name-chip proximity reveal. In a
+   * physical sync that is a chair in the glass room — the desk `origin`
+   * falls back to is the one you left. Everywhere else it is the tile you
+   * are on (or walking to), which `useFloorActivity.origin` already is.
+   */
+  const youTile = physicalMeeting ? MEETING_PLAYER_TILE : origin;
+
+  /*
    * The directed camera (slice 14): frame whatever moment is on — meeting,
    * huddle, set piece, or your own walk-with-reason — and ease back to the
    * wide view when it clears. A pure projection of state already held here,
@@ -447,6 +456,10 @@ function OfficeFloorView({ bridge }) {
           speakingId={stageSpeakingId}
           headphones={officeSnap.headphones}
           youHolding={youActivity.hold}
+          // Slice 15: where you are (or are heading) — seats within a tile
+          // of it light their name chip. In a glass-room sync that is the
+          // chair in the room, not the desk you left.
+          youTile={youTile}
         >
           <FloorActors
             scale={scale}
@@ -476,6 +489,7 @@ function OfficeFloorView({ bridge }) {
             onStep={handleStep}
             playerRef={activity.playerRef}
             youActivity={youActivity}
+            youTile={youTile}
             showSpokenText={showSpokenText}
           />
         </FloorStage>

@@ -431,6 +431,27 @@ describe('somebody who is not at their desk', () => {
     expect(screen.queryByTestId('office-floor-wanderer')).toBeNull();
   });
 
+  it('lights their chip within a tile of you, wherever they are settled (slice 15)', () => {
+    /*
+     * The seat loop in `FloorStage` cannot see them — a wanderer is drawn by
+     * `FloorActors` and their desk stands empty — so the reveal has to reach
+     * them through `youTile` too. (7, 5) is the standable tile one step from
+     * the whiteboard mark; (8, 5) would be nearer but the desk next to it
+     * refuses it.
+     */
+    const { figure } = floorWithWanderer();
+    const button = figure.querySelector('button.office-floor-person');
+    expect(button.className).not.toContain('is-nearby');
+
+    const { left, top } = projectIso(7, 5);
+    fireEvent.click(screen.getByTestId('office-floor-roam'), { clientX: left, clientY: top });
+
+    expect(
+      screen.getByTestId('office-floor-wanderer').querySelector('button.office-floor-person')
+        ?.className
+    ).toContain('is-nearby');
+  });
+
   it('puts their answer over their head at the prop, not over their desk', () => {
     const imHistory = [
       {

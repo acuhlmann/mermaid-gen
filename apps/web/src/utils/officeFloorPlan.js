@@ -203,6 +203,42 @@ export const FLOOR_BOUNDS = {
 };
 
 /**
+ * How close is close enough for a name to light up (slice 15). One tile —
+ * the eight tiles around you plus your own — measured in tile space, so
+ * diagonal neighbours count the same as orthogonal ones. The talk and peek
+ * ladders prefer their nearest marks (Chebyshev 1), so whoever you came over
+ * for usually lights up; a mark that falls back to the second ring stays
+ * hover-only, and that is fine — its speech bubble and card carry the name.
+ * Tuning the feel is this one constant.
+ */
+export const NAME_CHIP_RANGE_TILES = 1;
+
+/**
+ * Chebyshev distance between two tiles. `null` on either side is infinitely
+ * far — a seat with no you, or a you with no floor, is not near anything.
+ *
+ * @param {{ x: number, y: number } | null} a
+ * @param {{ x: number, y: number } | null} b
+ * @returns {number}
+ */
+export function tileDistance(a, b) {
+  if (!a || !b) return Infinity;
+  return Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y));
+}
+
+/**
+ * Whether two tiles are within `NAME_CHIP_RANGE_TILES` of each other — the
+ * question a name chip asks about you.
+ *
+ * @param {{ x: number, y: number } | null} from
+ * @param {{ x: number, y: number } | null} to
+ * @returns {boolean}
+ */
+export function isWithinNameChipRange(from, to) {
+  return tileDistance(from, to) <= NAME_CHIP_RANGE_TILES;
+}
+
+/**
  * Zone plates: tinted floor regions with a label. `rect` is
  * `[x0, y0, x1, y1]` in tiles and projects to a parallelogram. `copyKey` looks
  * the label up in `officeChromeCopy().floor.zones` so zones localize like the

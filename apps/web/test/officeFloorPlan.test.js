@@ -29,6 +29,7 @@ import {
   floorZoneToneAt,
   headBox,
   isOnFloor,
+  isWithinNameChipRange,
   liftToDepth,
   meetingSeating,
   pathCost,
@@ -38,6 +39,7 @@ import {
   projectIso,
   seatFor,
   stereoPanForTile,
+  tileDistance,
   unprojectIso,
   walkPathBetween,
   walkPathFrom,
@@ -559,5 +561,52 @@ describe('stereoPanForTile', () => {
   it('is dead centre for a tile it cannot place', () => {
     expect(stereoPanForTile(null)).toBe(0);
     expect(stereoPanForTile({ x: 'left', y: 2 })).toBe(0);
+  });
+});
+
+describe('tileDistance and name-chip proximity (slice 15)', () => {
+  it('measures Chebyshev distance, so diagonals count the same as orthogonal steps', () => {
+    const you = { x: 7, y: 7 };
+    expect(tileDistance(you, { x: 7, y: 7 })).toBe(0);
+    expect(tileDistance(you, { x: 7, y: 8 })).toBe(1);
+    expect(tileDistance(you, { x: 8, y: 8 })).toBe(1);
+    expect(tileDistance(you, { x: 8, y: 5 })).toBe(2);
+  });
+
+  it('is infinitely far when either side is missing', () => {
+    expect(tileDistance(null, { x: 1, y: 1 })).toBe(Infinity);
+    expect(tileDistance({ x: 1, y: 1 }, null)).toBe(Infinity);
+    expect(tileDistance(null, null)).toBe(Infinity);
+  });
+
+  it('lights a chip for the eight tiles around you and for nobody further out', () => {
+    const you = { x: 7, y: 7 };
+    for (let dx = -1; dx <= 1; dx += 1) {
+      for (let dy = -1; dy <= 1; dy += 1) {
+        expect(isWithinNameChipRange(you, { x: 7 + dx, y: 7 + dy })).toBe(true);
+      }
+    }
+    expect(isWithinNameChipRange(you, { x: 9, y: 7 })).toBe(false);
+    expect(isWithinNameChipRange(you, { x: 7, y: 9 })).toBe(false);
+    expect(isWithinNameChipRange(you, null)).toBe(false);
+    expect(isWithinNameChipRange(null, you)).toBe(false);
+  });
+
+  it('matches the room nobody has to know: at your own desk, no colleague sits within the ring', () => {
+    const you = seatFor(YOU_SEAT_ID);
+    for (const seat of FLOOR_SEATS) {
+      if (seat.id === YOU_SEAT_ID) continue;
+      expect(isWithinNameChipRange(you, seat), `${seat.id} is within a tile of your desk`).toBe(
+        false
+      );
+    }
+  });
+
+  it('lights the colleague you came over to talk to — nearest approach marks are all inside the ring', () => {
+    // The talk ladder prefers Chebyshev-1 offsets (see APPROACH_OFFSETS), so
+    // whoever you walked up to is the one whose chip shows. Asserted for the
+    // office-tier pair the floor tests already use.
+    const mark = { x: 2, y: 6 }; // one tile beside Chad's desk at (2, 5)
+    expect(isWithinNameChipRange(mark, { x: 2, y: 5 })).toBe(true);
   });
 });

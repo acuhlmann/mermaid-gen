@@ -492,9 +492,13 @@
 }
 
 /* Names stay out of the way until you look for them — except your own desk,
-   which you must be able to find at a glance. */
+   which you must be able to find at a glance, and whoever is standing within
+   a tile of you (slice 15): the room shows you who is near without asking you
+   to hover a 34 px figure for it. The chip is paint only — `is-nearby` never
+   touches the button's box, so § 6 rule 23 still holds. */
 .office-floor-person.is-you .office-floor-person-name,
 .office-floor-person.is-selected .office-floor-person-name,
+.office-floor-person.is-nearby .office-floor-person-name,
 .office-floor-person:hover .office-floor-person-name,
 .office-floor-person:focus-visible .office-floor-person-name {
   opacity: 1;

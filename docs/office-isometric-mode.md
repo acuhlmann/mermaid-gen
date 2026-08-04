@@ -577,7 +577,38 @@ zero, and no horizontal overflow. All of it pinned in `test/deskOsFrameStyles.te
     did **not** disable `matchMedia` on that Chromium build — the tween visibly ran — and the
     reliable lever is `page.emulateMedia({ reducedMotion: 'reduce' })`.
 
-**There is no slice 15 yet, and that is deliberate.** The list above was written one slice at
+15. **Name-chip proximity** — ✅ **shipped**: the floor shows you who is standing within one
+    tile of you, without asking you to hover a 34 px figure for it. The chip is paint only —
+    an `is-nearby` class on the same button, so the § 6 rule 23 hit box is untouched by
+    construction — and the distance is Chebyshev in tile space (`tileDistance` /
+    `isWithinNameChipRange` in `officeFloorPlan.js`, tuned by one constant,
+    `NAME_CHIP_RANGE_TILES`), so diagonal neighbours count the same as orthogonal ones.
+
+    The reveal follows you — seats get it from `FloorStage`'s seat loop and a settled
+    wanderer gets it from `FloorActors`, both reading the same `youTile` — and it leaves
+    when you do, so the room answers "who is near me" instead of remembering where you have
+    been. Your own seat never takes the chip: proximity is who is near **you**, and you
+    follow yourself around the room, so a self-chip would light up wherever you wandered.
+    Meeting attendees get no chip at all: `MeetingActor` draws a figure, not a
+    `FloorPersonButton`, and the glass room already has speech bubbles naming each speaker.
+
+    **It rides the marks the room already derives.** The talk and peek ladders prefer their
+    nearest offsets (Chebyshev 1), so whoever you came over to talk to — the verb that
+    matters — is the one whose name appears; a mark that fell back to the second ring stays
+    hover-only, which is fine because its speech bubble and card carry the name. It also
+    rides slice 14's camera: the frame the directed camera leans into is now the frame that
+    says who is in it.
+
+    Measured in headless Chromium at 1440 × 900 and 390 × 844: idle at your desk lights
+    nothing (the whole cast sits further than a tile away), stepping into the pod lights
+    exactly the seats within the ring, and walking over to talk to somebody lights them. The
+    slice's two geometry surprises, both caught in capture: (8, 7) — the obvious "beside the
+    pod" step — is the reserved visitor tile, so the test stands at (8, 6) instead; and a
+    conversation lights **everybody** in the ring, so talking to somebody at their desk can
+    name a bystander a tile away too. That is the arithmetic working, not a bug — the ring
+    does not know who you mean.
+
+**There is no slice 16 yet, and that is deliberate.** The list above was written one slice at
 a time, each defined when it was picked up rather than planned in advance — so "continue with
 slice _n_" only means something once somebody has chosen what _n_ is. § 8 has the candidates,
 a recommendation, and the debts that argue for one over another. Pick from there, write the
@@ -1004,7 +1035,7 @@ is `pointer-events: none` on the button _and_ the `<svg>`, re-enabled on `.offic
 
 ## 7. The bench (for whatever comes next)
 
-Slices 1–14 have shipped. Anything new on the floor should be built out of the
+Slices 1–15 have shipped. Anything new on the floor should be built out of the
 pieces below rather than beside them — and should read §2 (binding rules) and §6 (geometry
 constraints) first, because every one of those cost a screenshot to find. Verification
 recipe is in §6; repo commands are in `CLAUDE.md` (`npm run check:affected`,
@@ -1020,7 +1051,8 @@ whoever is not looking at it — a new card needs a line here, in the same posit
 `FloorActors` (every figure on the stage that is not seated; a new actor is one more
 `x ? <X /> : null` here rather than another branch in the view component),
 `FloorPersonButton` (**the** clickable figure — one definition of § 6 rule 23's 34 × 48 box, and
-where any new place a person can be clicked belongs),
+where any new place a person can be clicked belongs; since slice 15 its name chip also lights
+up within a tile of you — paint only, hit box untouched),
 `useFloorAway` (everybody out of their chair, for either reason — a moment has them, or they got
 up on their own; the two answers have to agree, so one hook gives both) + `useFloorWander` +
 `FloorWanderer` (ambient traffic, and since slice 12 a figure you can select
@@ -1094,7 +1126,8 @@ Nothing is recommended over the others yet, and the reason is worth stating: sli
 the one item that was _getting worse with waiting_, and nothing on the list below is. Slices 10
 and 12 were both easy calls because ambient life had made a standing gap actively louder. Slice
 14 was a different kind of pick — not a gap closing but a deliberate UX improvement chosen on
-appetite. What remains is a set of genuine choices, so pick on appetite rather than on urgency.
+appetite — and slice 15 followed it by clearing the oldest discoverability debt. What remains
+is a set of genuine choices, so pick on appetite rather than on urgency.
 
 Shipped on top of slice 8 (adventure polish, not a new slice number): **floor talk now matches
 Slop Chat™ for input** — typed prompt **and** mic (`VoiceMicButton`), and **double-click a
@@ -1182,8 +1215,8 @@ Kept here so appetite can pick without re-deriving. Each should stay bound by AD
   is a reactive IM exchange + a tiny XP beat, not a quest log UI.
 - **Overhear → join** — standing next to a coffee/battle scene offers **Join in** once (already
   considered for interrupting mid-script; still a content question).
-- **Name-chip proximity** — show all names when you are within one tile (clears § 8's "name chip
-  is hover-only" debt without growing hit boxes).
+- ~~**Name-chip proximity**~~ — ✅ shipped as slice 15 (§ 5): show all names when you are
+  within one tile — cleared the "name chip is hover-only" debt without growing hit boxes.
   Considered and not chosen, kept so nobody re-derives them: **a second wanderer at a time**
   (§ 8's original sketch imagined "two people end up at the whiteboard"; one at a time was chosen
   deliberately and should stay until something wants the collision rules), and **making scene
@@ -1209,12 +1242,13 @@ Kept here so appetite can pick without re-deriving. Each should stay bound by AD
 - **The floor is English-only.** ~~locale bundles had no `floor` key~~ ✅ **cleared** — en-AU /
   zh-CN / zh-TW now ship `OFFICE_CHROME_COPY.floor` (and prop names are sentence-case so narration
   reads cleanly).
-- **The name chip is still a hover affordance on a 34 px target.** Rule 23 shrank the button to
-  the figure, which is right for clicking and slightly worse for _reading names_: you now have
-  to be on the figure rather than anywhere in a name-width box. Nobody has complained because
-  nobody had the old behaviour long enough to miss it, but if a slice wants names discoverable,
-  the answer is a deliberate one (a "show all names" toggle, or the chip appearing on
-  proximity) rather than growing the hit box back.
+- **The name chip is still a hover affordance on a 34 px target.** ~~Rule 23 shrank the button
+  to the figure, which is right for clicking and slightly worse for _reading names_: you now
+  have to be on the figure rather than anywhere in a name-width box. Nobody has complained
+  because nobody had the old behaviour long enough to miss it, but if a slice wants names
+  discoverable, the answer is a deliberate one (a "show all names" toggle, or the chip
+  appearing on proximity) rather than growing the hit box back.~~ ✅ **cleared** by slice 15:
+  chips light up within a tile of you — the proximity answer, hit box untouched (rule 23).
 - **The water cooler is unreachable** (§6 rule 21), and so are the **fridge** and the **server
   rack** — `propTileFor` is null for all three, which is why `usablePropKinds()` is only
   `coffeeMachine`, `printer`, `whiteboard`. Left as scenery on purpose, but the other branch is

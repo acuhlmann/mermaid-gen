@@ -20,13 +20,14 @@
 import FloorFigure from './FloorFigure.jsx';
 
 /** Modifier soup, kept out of the JSX so the markup stays readable. */
-function personClassName({ seated, selected, isYou, speaking }) {
+function personClassName({ seated, selected, isYou, speaking, nearby }) {
   return [
     'office-floor-person',
     seated && 'is-seated',
     selected && 'is-selected',
     isYou && 'is-you',
-    speaking && 'is-speaking'
+    speaking && 'is-speaking',
+    nearby && 'is-nearby'
   ]
     .filter(Boolean)
     .join(' ');
@@ -42,6 +43,7 @@ function personClassName({ seated, selected, isYou, speaking }) {
  *   selected?: boolean,
  *   isYou?: boolean,
  *   speaking?: boolean,
+ *   nearby?: boolean,
  *   idleIndex?: number,
  *   disabled?: boolean,
  *   activity?: { pose?: string, hold?: string | null, headwear?: string | null } | null,
@@ -52,6 +54,8 @@ function personClassName({ seated, selected, isYou, speaking }) {
  *   not looking at it, which is not always the same thing — away from their desk
  *   it carries where they are, because a target has to say what it is.
  *   `onActivate` is the point-and-click shortcut (double-click → walk and talk).
+ *   `nearby` lights the chip up without hover (slice 15): the room shows you
+ *   who is standing within a tile of you, so the hit box stays the figure.
  */
 export function FloorPersonButton({
   id,
@@ -62,6 +66,7 @@ export function FloorPersonButton({
   selected = false,
   isYou = false,
   speaking = false,
+  nearby = false,
   idleIndex = 0,
   disabled = false,
   activity = null,
@@ -72,7 +77,7 @@ export function FloorPersonButton({
   return (
     <button
       type="button"
-      className={personClassName({ seated, selected, isYou, speaking })}
+      className={personClassName({ seated, selected, isYou, speaking, nearby })}
       style={{ '--floor-accent': accent }}
       aria-label={label}
       aria-pressed={selected}

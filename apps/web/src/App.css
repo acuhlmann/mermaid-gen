@@ -14712,17 +14712,18 @@ body.slopitect-rainbow-tint::before {
 
 .desk-attribution-strip-link {
   color: inherit;
-  text-decoration: none;
-  border-bottom: 1px solid transparent;
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, currentColor 45%, transparent);
+  text-underline-offset: 0.15em;
   transition:
     color 120ms ease,
-    border-color 120ms ease;
+    text-decoration-color 120ms ease;
 }
 
 .desk-attribution-strip-link:hover,
 .desk-attribution-strip-link:focus-visible {
   color: color-mix(in srgb, var(--accent, #0ea5e9) 72%, var(--muted));
-  border-bottom-color: currentColor;
+  text-decoration-color: currentColor;
   outline: none;
 }
 

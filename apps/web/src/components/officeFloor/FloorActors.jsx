@@ -24,7 +24,7 @@ import FloorPlayer from './FloorPlayer.jsx';
 import FloorScenes from './FloorScenes.jsx';
 import FloorTalk from './FloorTalk.jsx';
 import FloorWanderer from './FloorWanderer.jsx';
-import { YOU_SEAT_ID } from '../../utils/officeFloorPlan.js';
+import { YOU_SEAT_ID, isWithinNameChipRange } from '../../utils/officeFloorPlan.js';
 
 /**
  * @param {{
@@ -52,6 +52,7 @@ import { YOU_SEAT_ID } from '../../utils/officeFloorPlan.js';
  *   onPresenceArrive?: () => void,
  *   playerRef?: { current: HTMLElement | null },
  *   youActivity?: { pose?: string, hold?: string | null, headwear?: string | null } | null,
+ *   youTile?: { x: number, y: number } | null,
  *   showSpokenText?: boolean
  * }} props `selectedId` / `speakingId` / `onSelect` are the stage's own names for
  *   the same three things, because since slice 12 a figure on the stage can be
@@ -61,6 +62,11 @@ import { YOU_SEAT_ID } from '../../utils/officeFloorPlan.js';
  *   defaults it itself (`FloorScenes` already defaults all three of its own), so
  *   `= null` would buy nothing but a branch each — and thirteen of them is how
  *   this component was born over its complexity budget.
+ *
+ *   `youTile` is the one exception that takes an inline computation rather than
+ *   a prop default: the settled wanderer's chip lights up within a tile of it
+ *   (slice 15), and the wanderer is the one actor `FloorStage`'s seat loop does
+ *   not cover, so the proximity has to be asked here about their standing tile.
  */
 export function FloorActors({
   scale,
@@ -88,6 +94,7 @@ export function FloorActors({
   onStep,
   playerRef,
   youActivity,
+  youTile,
   showSpokenText = true
 }) {
   return (
@@ -115,6 +122,9 @@ export function FloorActors({
           elementRef={wandererRef}
           selected={selectedId === wanderer.seatId}
           speaking={speakingId === wanderer.seatId}
+          // Slice 15: a colleague stood near you shows their name even mid-
+          // errand — `to` is where they settle, which is where the button is.
+          nearby={isWithinNameChipRange(youTile, wanderer.to)}
           onSelect={onSelect}
           onActivate={onActivate}
           onStep={onStep}

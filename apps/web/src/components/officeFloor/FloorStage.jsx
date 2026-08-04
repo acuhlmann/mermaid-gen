@@ -15,6 +15,7 @@ import {
   STAGE_H,
   STAGE_W,
   YOU_SEAT_ID,
+  isWithinNameChipRange,
   seatFor
 } from '../../utils/officeFloorPlan.js';
 import { officeSenderInfo } from '../../utils/officeCast.js';
@@ -36,6 +37,15 @@ function seatDisplay(seat, copy) {
     accent: sender?.accentColor ?? 'var(--accent)',
     isYou: false
   };
+}
+
+/**
+ * Whether one seat's name chip lights up (slice 15). Proximity is who is near
+ * *you* — never your own seat, since you follow yourself around the room and
+ * a self-chip would light up wherever you wandered.
+ */
+function nearbySeat(youTile, seat) {
+  return seat.id !== YOU_SEAT_ID && isWithinNameChipRange(youTile, seat);
 }
 
 /**
@@ -76,13 +86,15 @@ function seatActivity(seatId, { onCallIds, headphones, youHolding }) {
  *   interactive?: boolean,
  *   onWalkTo?: ((tile: { x: number, y: number }) => void) | null,
  *   roamOrigin?: { x: number, y: number } | null,
+ *   youTile?: { x: number, y: number } | null,
  *   onUseProp?: ((kind: string) => void) | null,
  *   activePropKind?: string | null,
  *   children?: import('react').ReactNode
  * }} props `children` are extra actors placed in stage coordinates (the
  *   arrival ceremony puts you and its spotlight there). Passing `onWalkTo`
  *   makes the floor itself walkable (slice 7); passing `onUseProp` makes its
- *   furniture usable (slice 9).
+ *   furniture usable (slice 9). `youTile` is where you are standing, so a
+ *   seat within a tile of you can light its name chip (slice 15).
  */
 export function FloorStage({
   scale,
@@ -108,6 +120,7 @@ export function FloorStage({
   youHolding,
   onWalkTo = null,
   roamOrigin = null,
+  youTile,
   onUseProp = null,
   activePropKind = null,
   children
@@ -142,6 +155,9 @@ export function FloorStage({
             seat={seat}
             {...seatDisplay(seat, copy)}
             selected={selectedId === seat.id}
+            // Slice 15: the room shows you who is near — a chip lights up
+            // within a tile of wherever you are standing, hit box untouched.
+            nearby={nearbySeat(youTile, seat)}
             idleIndex={index}
             // Whoever is up and about is drawn as their own actor instead — two
             // of them at once would give the game away. Their desk stays put.

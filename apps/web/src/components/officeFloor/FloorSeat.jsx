@@ -43,6 +43,7 @@ function SeatArt({ part, you, look }) {
  *   accent: string,
  *   isYou?: boolean,
  *   selected?: boolean,
+ *   nearby?: boolean,
  *   idleIndex?: number,
  *   vacant?: boolean,
  *   interactive?: boolean,
@@ -54,7 +55,10 @@ function SeatArt({ part, you, look }) {
  * }} props `look` is what is on their monitor (`officeDeskWork.js`) — always
  *   drawn, for everyone; walking over is only how you get close enough to read it.
  *   `activity` is the same row's other half (`officeFloorActivity.js`): what
- *   their hands are doing in front of that screen.
+ *   their hands are doing in front of that screen. `nearby` lights the name
+ *   chip without hover when you are within a tile of them (slice 15) — no
+ *   default, it is passed straight through to `FloorPersonButton`, which
+ *   defaults it itself.
  */
 export function FloorSeat({
   seat,
@@ -63,6 +67,7 @@ export function FloorSeat({
   accent,
   isYou = false,
   selected = false,
+  nearby,
   idleIndex = 0,
   vacant = false,
   interactive = true,
@@ -97,6 +102,7 @@ export function FloorSeat({
           accent={accent}
           seated={seat.desk}
           selected={selected}
+          nearby={nearby}
           isYou={isYou}
           speaking={speaking}
           idleIndex={idleIndex}

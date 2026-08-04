@@ -16,7 +16,10 @@ const BASE_PARAMS = {
   getContentType: () => 'mermaid',
   getSessionId: () => 'test-session',
   getUserTitle: () => 'Associate Slopitect',
-  random: () => 0.5
+  random: () => 0.5,
+  // Zero out the reply-thinking pause (docs/office-parody.md § Desk verbs) so
+  // these tests stay fast and deterministic; production computes it for real.
+  replyDelayMs: () => 0
 };
 
 /** Offline by default: every verb must still land via the canned banks. */

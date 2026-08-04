@@ -10,9 +10,11 @@ const MENU_GAP_PX = 6;
 const SAFE_INSET_PX = 8;
 const MAX_MENU_WIDTH_PX = 300;
 const MIN_MENU_WIDTH_PX = 210;
-/** Admin hosts long HR / headphones labels and a two-toggle ambience footer. */
-const MAX_WIDE_MENU_WIDTH_PX = 360;
-const MIN_WIDE_MENU_WIDTH_PX = 280;
+/** Admin hosts long HR / headphones labels, a two-toggle ambience footer, and
+ * the attribution strip's link list (Vega-Lite, Three.js, …) — wide enough
+ * that the last link doesn't crowd the panel edge. */
+const MAX_WIDE_MENU_WIDTH_PX = 384;
+const MIN_WIDE_MENU_WIDTH_PX = 304;
 /** Mailroom hosts a slip, not a verb list — tighter than Admin/Deliverable. */
 const COMPACT_MAX_MENU_WIDTH_PX = 212;
 const COMPACT_MIN_MENU_WIDTH_PX = 168;

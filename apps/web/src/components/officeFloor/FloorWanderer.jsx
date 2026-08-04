@@ -65,6 +65,7 @@ function awayLabel(sender, seatId, propKind, copy) {
  *   elementRef?: { current: HTMLElement | null },
  *   selected?: boolean,
  *   speaking?: boolean,
+ *   nearby?: boolean,
  *   onSelect?: ((id: string) => void) | null,
  *   onActivate?: ((id: string) => void) | null,
  *   onStep?: (tile: { x: number, y: number }, isYou?: boolean) => void
@@ -74,10 +75,11 @@ function awayLabel(sender, seatId, propKind, copy) {
  *   slice 11 wanderer, which is what the arrival ceremony still wants.
  *   `onActivate` is the double-click walk-and-talk shortcut.
  *
- *   `selected` and `speaking` take no defaults: both are forwarded to
- *   `FloorPersonButton`, which defaults them itself, so a default here would buy
- *   nothing but a branch each — and this component has a complexity budget to
- *   keep (§ 8's note that most of these warnings *are* the default parameters).
+ *   `selected`, `speaking` and `nearby` take no defaults: all three are
+ *   forwarded to `FloorPersonButton`, which defaults them itself, so a default
+ *   here would buy nothing but a branch each — and this component has a
+ *   complexity budget to keep (§ 8's note that most of these warnings *are*
+ *   the default parameters).
  */
 export function FloorWanderer({
   wanderer,
@@ -86,6 +88,7 @@ export function FloorWanderer({
   elementRef,
   selected,
   speaking,
+  nearby,
   onSelect,
   onActivate = null,
   onStep
@@ -135,6 +138,7 @@ export function FloorWanderer({
           accent={accent}
           selected={selected}
           speaking={speaking}
+          nearby={nearby}
           activity={activity}
           onSelect={onSelect}
           onActivate={onActivate}

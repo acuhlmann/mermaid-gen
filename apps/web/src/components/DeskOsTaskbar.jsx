@@ -32,6 +32,21 @@ const MAX_PANEL_WIDTH_PX = 352; // ~22rem
 function computeTrayPanelStyle(anchorRect) {
   const viewportWidth = window.innerWidth;
   const maxWidth = Math.min(MAX_PANEL_WIDTH_PX, viewportWidth - SAFE_INSET_PX * 2);
+
+  // Phone has no XP chip to anchor to (it retires below PHONE_MEDIA_QUERY —
+  // Admin still opens progression, per the doc comment above). Center it as a
+  // bottom sheet instead of anchoring to a tray element that doesn't exist.
+  if (!anchorRect) {
+    return {
+      position: 'fixed',
+      left: Math.max(SAFE_INSET_PX, (viewportWidth - maxWidth) / 2),
+      top: 'auto',
+      bottom: `calc(${SAFE_INSET_PX}px + env(safe-area-inset-bottom, 0px))`,
+      width: maxWidth,
+      maxWidth
+    };
+  }
+
   let left = anchorRect.right - maxWidth;
   left = Math.max(SAFE_INSET_PX, Math.min(left, viewportWidth - maxWidth - SAFE_INSET_PX));
   const width = Math.min(maxWidth, viewportWidth - left - SAFE_INSET_PX);
@@ -110,8 +125,12 @@ export default function DeskOsTaskbar({
   const levelUpZIndex = useOverlayLayer('levelup-info-panel', xpInfoPanelOpen);
   const onFloor = viewMode === 'floor';
   const showStatusHalf = !phone;
-  const hasLevel = Boolean(gamification?.level) && showStatusHalf;
-  const panelOpen = xpInfoPanelOpen && hasLevel && !onFloor;
+  const hasGamification = Boolean(gamification?.level);
+  // Inline chip visibility only — the chip retires on phone, but Admin's "HR
+  // progression" item must still be able to open the panel (see doc comment
+  // above), so panelOpen deliberately does not depend on showStatusHalf.
+  const hasLevel = hasGamification && showStatusHalf;
+  const panelOpen = xpInfoPanelOpen && hasGamification && !onFloor;
 
   useLayoutEffect(() => {
     if (!panelOpen) {
@@ -142,7 +161,7 @@ export default function DeskOsTaskbar({
   if (onFloor) return null;
 
   const levelPanel =
-    panelOpen && xpAnchorRect && typeof document !== 'undefined'
+    panelOpen && typeof document !== 'undefined'
       ? createPortal(
           <div
             id="levelup-info-panel"

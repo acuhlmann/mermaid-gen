@@ -43,6 +43,24 @@ export const TALK_LLM_CAP = OFFICE_TALK_LLM_CAP;
 export const DESK_IM_CAST = listMeetingDirectory().map((row) => row.id);
 
 /**
+ * A colleague doesn't see and answer your IM/email the instant you send it —
+ * without a pause, a push that lands the moment you hit send reads as the
+ * office replying before you finished typing (worse for the LLM path, which
+ * is supposedly still thinking). `talk` (composer speech) is exempt: that
+ * channel is a live conversation, not a message someone has to notice.
+ * Email gets a further stretch on top of the IM pause — inbox mail is
+ * inherently slower than chat, even in a parody office.
+ */
+const IM_REPLY_DELAY_MIN_MS = 500;
+const IM_REPLY_DELAY_JITTER_MS = 700;
+const EMAIL_REPLY_EXTRA_DELAY_MIN_MS = 700;
+const EMAIL_REPLY_EXTRA_DELAY_JITTER_MS = 1200;
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
  * Player-initiated office actions — the "ego perspective" verbs
  * (docs/office-parody.md § Desk verbs). Where `useOfficeAmbience` decides when
  * the office interrupts you, this is you deciding to get up from your desk.
@@ -69,6 +87,7 @@ export const DESK_IM_CAST = listMeetingDirectory().map((row) => row.id);
  *   onCheckInbox?: () => void,
  *   onTalkToTeam?: () => void,
  *   getModelProfile?: () => string,
+ *   replyDelayMs?: (channel: string) => number,
  *   random?: () => number
  * }} params
  */
@@ -81,6 +100,22 @@ export function useDeskActions(params) {
   const busyRef = useRef(false);
 
   const random = useCallback(() => (paramsRef.current.random ?? Math.random)(), []);
+
+  /**
+   * How long to wait before an IM/email reply lands. Overridable via
+   * `params.replyDelayMs` (tests pass a zero-cost stub); production gets a
+   * jittered pause, longer for email than IM.
+   */
+  const replyDelayMs = useCallback(
+    (channel) => {
+      const override = paramsRef.current.replyDelayMs;
+      if (typeof override === 'function') return override(channel);
+      const base = IM_REPLY_DELAY_MIN_MS + random() * IM_REPLY_DELAY_JITTER_MS;
+      if (channel !== 'email') return base;
+      return base + EMAIL_REPLY_EXTRA_DELAY_MIN_MS + random() * EMAIL_REPLY_EXTRA_DELAY_JITTER_MS;
+    },
+    [random]
+  );
 
   const memory = useCallback(() => {
     if (!memoryRef.current) memoryRef.current = readOfficeCadenceMemory();
@@ -204,6 +239,9 @@ export function useDeskActions(params) {
    */
   const deliverImReply = useCallback(
     async ({ target, replyContext, counterRef, cap, channel }) => {
+      if (channel !== 'talk') {
+        await sleep(replyDelayMs(channel ?? 'im'));
+      }
       const p = paramsRef.current;
       const ctx = readSlotContext(p, random);
       const userMessage =
@@ -241,7 +279,7 @@ export function useDeskActions(params) {
       }
       return delivered;
     },
-    [deliveryOptions, random]
+    [deliveryOptions, random, replyDelayMs]
   );
 
   /**
@@ -313,6 +351,7 @@ export function useDeskActions(params) {
   const emailSomeone = useCallback(
     (colleagueId, { subject = '', body = '' } = {}) =>
       runVerb(async () => {
+        await sleep(replyDelayMs('email'));
         const p = paramsRef.current;
         const ctx = readSlotContext(p, random);
         const target = colleagueId ?? pickRandomFrom(DESK_IM_CAST, random);
@@ -348,7 +387,7 @@ export function useDeskActions(params) {
         }
         return delivered;
       }),
-    [deliveryOptions, random, runVerb]
+    [deliveryOptions, random, replyDelayMs, runVerb]
   );
 
   const checkInbox = useCallback(() => {
