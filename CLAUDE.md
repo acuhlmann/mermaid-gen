@@ -187,6 +187,16 @@ Every session carries **six independent diagram slots** — `mermaid` (Mermaid t
   boundary.** Tests that pin a lane with a magic `random` value (`useOfficeAmbience.test.jsx`)
   will start asserting on the wrong surface — re-derive the value against the new total rather than
   hunting for a logic break.
+- **The stand-up/sit-down transition is one fact in two places: the JS exit timer and the CSS exit
+  fade.** `useFloorViewPhase` (`officeFloor/viewTransition.js`) keeps the floor mounted for the
+  sit-down beat after the store flips; `OfficeFloor.css` owns the camera choreography on
+  `data-view-phase`. `officeFloorViewTransition.test.js` pins the two durations to the same
+  number — change one, change both. Never animate `main.app-shell` or the OS chrome to sell the
+  transition: a transform/filter there re-anchors the fixed-position floor and every portaled
+  window. The desk side is `.office-view-desk-veil` (backdrop-filter, one z-layer below the
+  floor). Multi-line comma-terminated values in `OfficeFloor.css` are a separate trap — the
+  sheet's reduced-motion scanner (`officeFloorStyles.test.js`) mis-parses them as selectors. See
+  `docs/office-isometric-mode.md` § 1a.
 - **A second live `FormsRenderer` breaks the `forms` slot unless you opt out of two things.**
   Linda's training window (`OfficeTrainingWindow.jsx`, §10.1) is the first non-slot forms surface
   and the template for any future one. Pass `exportable={false}` — the exporter registry in

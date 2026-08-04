@@ -15,6 +15,7 @@ import {
   sitDown,
   standUp
 } from '../src/state/officeViewModeStore.js';
+import { FLOOR_VIEW_EXIT_MS } from '../src/components/officeFloor/viewTransition.js';
 import { WALK_BY_FIXTURE } from './helpers/officeFloorTestUtils.jsx';
 
 const BASE_PROPS = {
@@ -82,6 +83,12 @@ describe('OfficeLayer floor renderer guards', () => {
     act(() => sitDown());
 
     expect(document.querySelector('[data-floating-window="office-walkby"]')).toBeTruthy();
+    // The floor lingers for its sit-down exit beat (§ 1a) — fading out under
+    // the opaque room, never beside the desk card — then lets go.
+    expect(screen.getByTestId('office-floor').dataset.viewPhase).toBe('sit-down');
+    act(() => {
+      vi.advanceTimersByTime(FLOOR_VIEW_EXIT_MS + 50);
+    });
     expect(screen.queryByTestId('office-floor')).toBeNull();
   });
 
@@ -112,6 +119,11 @@ describe('OfficeLayer floor renderer guards', () => {
     act(() => sitDown());
 
     expect(screen.getByTestId('office-coffee-scene')).toBeTruthy();
+    // Same exit beat as the walk-by above: the desk scene is back while the
+    // room finishes its sit-down move, then the floor unmounts.
+    act(() => {
+      vi.advanceTimersByTime(FLOOR_VIEW_EXIT_MS + 50);
+    });
     expect(screen.queryByTestId('office-floor')).toBeNull();
 
     act(() => standUp());

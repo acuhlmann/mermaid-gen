@@ -53,6 +53,7 @@ Do not copy `standUp(); render(<OfficeFloor />)` into new suites — extend the 
 | `officeFloorMeeting.test.jsx`        | Glass room meeting renderer                                                |
 | `officeFloorWander.test.jsx`         | Ambient wander roster + yields                                             |
 | `officeFloorStyles.test.js`          | CSS facts (hit box, focus, reduced motion)                                 |
+| `officeFloorViewTransition.test.js`  | Stand-up/sit-down transition: JS exit timer ↔ CSS fade, veil z-order       |
 | `useWalkAnimation.test.jsx`          | Walk interrupts + `liveTileOf` read-back                                   |
 | `officeDeskWork.test.js`             | Fictional desk workloads for peek                                          |
 | `officeFloorActivity.test.jsx`       | Held items, headphones posture, who-is-talking derivation                  |

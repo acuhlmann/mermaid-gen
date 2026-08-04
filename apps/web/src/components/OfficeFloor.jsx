@@ -57,6 +57,7 @@ import { floorActivityFor } from '../utils/officeFloorActivity.js';
 import { tierOf } from '../utils/castTiers.js';
 import { resolveUserName, subscribe as subscribeUserName } from '../state/userIdentityStore.js';
 import { getOfficeViewMode, subscribe as subscribeViewMode } from '../state/officeViewModeStore.js';
+import { useFloorViewPhase } from './officeFloor/viewTransition.js';
 import {
   getOfficeSnapshot,
   setOfficeCaptions,
@@ -187,9 +188,13 @@ function youActivityFor(remoteMeeting, headphones, coffee, presence) {
  * machine: 'looking' is simply having arrived somewhere you went on purpose.
  */
 /**
- * @param {{ bridge: import('./officeFloor/officeFloorBridge.js').OfficeFloorBridge }} props
+ * @param {{
+ *   bridge: import('./officeFloor/officeFloorBridge.js').OfficeFloorBridge,
+ *   viewPhase: 'stand-up' | 'sit-down'
+ * }} props `viewPhase` lands on `data-view-phase` and drives the transition
+ *   choreography in OfficeFloor.css — the room's camera rise and sink.
  */
-function OfficeFloorView({ bridge }) {
+function OfficeFloorView({ bridge, viewPhase }) {
   const {
     imHistory = [],
     walkBy,
@@ -410,7 +415,7 @@ function OfficeFloorView({ bridge }) {
   });
 
   return (
-    <div className="office-floor" data-testid="office-floor">
+    <div className="office-floor" data-testid="office-floor" data-view-phase={viewPhase}>
       {/* Mounted before it has anything to say, which is the only shape a live
           region reliably announces in — see `FloorLiveRegion`. */}
       <FloorLiveRegion message={said.text} eventKey={said.key} />
@@ -531,6 +536,11 @@ function OfficeFloorView({ bridge }) {
  * `bridge` from `OfficeLayer`, which owns the store subscription for both
  * renderers.
  *
+ * The one exception to "nothing in desk mode" is the sit-down beat:
+ * `useFloorViewPhase` keeps the view mounted for the exit camera move after
+ * the store has already flipped back to the desk (docs/office-isometric-mode.md
+ * § 1a), so leaving the room is a transition too, not a cut.
+ *
  * @param {{
  *   bridge?: import('./officeFloor/officeFloorBridge.js').OfficeFloorBridge,
  *   imHistory?: Array<{ colleagueId: string, body: string, outbound?: boolean }>,
@@ -552,7 +562,8 @@ function OfficeFloorView({ bridge }) {
  */
 export default function OfficeFloor({ bridge: bridgeProp, ...legacy }) {
   const mode = useSyncExternalStore(subscribeViewMode, getOfficeViewMode, getOfficeViewMode);
-  if (mode !== 'floor') return null;
+  const viewPhase = useFloorViewPhase(mode);
+  if (viewPhase === 'closed') return null;
   const bridge = bridgeProp ?? createOfficeFloorBridge(legacy);
-  return <OfficeFloorView bridge={bridge} />;
+  return <OfficeFloorView bridge={bridge} viewPhase={viewPhase} />;
 }

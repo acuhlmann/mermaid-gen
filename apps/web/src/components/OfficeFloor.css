@@ -32,6 +32,214 @@
   }
 }
 
+/* ── stand up / sit down: the view transition (§ 1a) ─────────────────────
+   Standing up is a camera move, not a page swap: the room rushes in close
+   and soft, tilts up from your desk, and settles into the wide shot — your
+   eyes leaving the monitor, adjusting to the light, taking in the office.
+   Sitting down is the same move played back on a shorter fuse: you drop
+   toward the desk and the room lets go. The desk's half of the handshake is
+   `.office-view-desk-veil` at the bottom of this section; the exit timer's
+   JS twin is `officeFloor/viewTransition.js`, and the two are pinned to the
+   same number by `officeFloorViewTransition.test.js`. Change one, change
+   both. `FloorArrival` carries no `data-view-phase`, so none of this reaches
+   the first-run ceremony. */
+
+/* Quick cover: the cut to the room happens inside 140ms, then the camera
+   takes as long as it takes. */
+.office-floor[data-view-phase='stand-up'] {
+  animation: office-floor-cover 140ms ease-out both;
+}
+
+@keyframes office-floor-cover {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* The rise: from seated eye level — close, tilted down at the desk, a little
+   out of focus and a little over-exposed — to the crisp standing wide shot.
+   Origin near the bottom edge so the room visibly pivots up off your desk. */
+.office-floor[data-view-phase='stand-up'] .office-floor-viewport {
+  transform-origin: 50% 88%;
+  animation: office-camera-rise 640ms cubic-bezier(0.16, 0.84, 0.26, 1) both;
+}
+
+@keyframes office-camera-rise {
+  from {
+    opacity: 0.55;
+    transform: perspective(1500px) rotateX(4deg) translateY(2.6%) scale(1.11);
+    filter: blur(6px) brightness(1.16) saturate(1.06);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}
+
+.office-floor[data-view-phase='sit-down'] {
+  animation: office-floor-cover-out 380ms ease-in both;
+}
+
+/* Hold the room on screen until the sink registers, then let go. */
+@keyframes office-floor-cover-out {
+  0% {
+    opacity: 1;
+  }
+  55% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.office-floor[data-view-phase='sit-down'] .office-floor-viewport {
+  transform-origin: 50% 88%;
+  animation: office-camera-sink 380ms cubic-bezier(0.5, 0, 0.75, 0.4) both;
+}
+
+/* The sink: accelerating down toward the desk and slipping out of focus —
+   gravity, not a fade with delusions of grandeur. */
+@keyframes office-camera-sink {
+  to {
+    opacity: 0.9;
+    transform: perspective(1500px) rotateX(3deg) translateY(2%) scale(1.07);
+    filter: blur(3.5px) brightness(1.05);
+  }
+}
+
+/* The blink: edges dark where your screen used to fill your vision, clearing
+   outward as the room comes in; closing again on the way back down. */
+.office-floor::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(ellipse at 50% 46%, transparent 52%, rgba(8, 12, 22, 0.52) 100%);
+}
+
+.office-floor[data-view-phase='stand-up']::before {
+  animation: office-floor-iris 560ms ease-out both;
+}
+
+@keyframes office-floor-iris {
+  from {
+    opacity: 0.9;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+.office-floor[data-view-phase='sit-down']::before {
+  animation: office-floor-iris-close 380ms ease-in both;
+}
+
+@keyframes office-floor-iris-close {
+  to {
+    opacity: 0.7;
+  }
+}
+
+/* One catch of the fluorescents as you rise — a soft band crossing the room
+   once, then gone. */
+.office-floor::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 41;
+  pointer-events: none;
+  opacity: 0;
+  background: linear-gradient(112deg, transparent 38%, #ffffff99 50%, transparent 62%);
+}
+
+.office-floor[data-view-phase='stand-up']::after {
+  animation: office-floor-light-sweep 720ms cubic-bezier(0.25, 0.6, 0.35, 1) 90ms both;
+}
+
+@keyframes office-floor-light-sweep {
+  0% {
+    opacity: 0;
+    transform: translateX(-42%);
+  }
+  16% {
+    opacity: 0.16;
+  }
+  60% {
+    opacity: 0.1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(42%);
+  }
+}
+
+/* The chrome arrives after the world does — you notice the room first, the
+   way back to your desk a breath later. Leaving, it ducks out first. */
+.office-floor[data-view-phase='stand-up'] .office-floor-bar {
+  animation: office-floor-bar-in 340ms cubic-bezier(0.2, 0.8, 0.3, 1) 170ms both;
+}
+
+@keyframes office-floor-bar-in {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.office-floor[data-view-phase='sit-down'] .office-floor-bar {
+  animation: office-floor-bar-out 170ms ease-in both;
+}
+
+@keyframes office-floor-bar-out {
+  to {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+}
+
+/* The desk's half of the handshake. While the floor is up this haze sits
+   over the workstation — one layer below the floor (`--z-office-desk-veil`),
+   so the room itself stays crisp — and on the way back down it lifts as the
+   floor fades: the monitor refocusing under your eyes rather than snapping
+   back on. `backdrop-filter` rather than a filter on the chrome itself, so
+   no fixed-position element in the OS frame gets re-anchored mid-transition.
+
+   Each state carries its own transition: ramping in is quick (the room
+   covers the screen in 140ms anyway), while clearing is delayed into the
+   floor's fade and slow enough to still be settling after the room is gone
+   — the refocus you actually get to see. */
+.office-view-desk-veil {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-office-desk-veil, 149);
+  pointer-events: none;
+  opacity: 0;
+  backdrop-filter: blur(0) brightness(1) saturate(1);
+  transition:
+    opacity 340ms ease 140ms,
+    backdrop-filter 540ms ease 140ms;
+}
+
+.app-shell.is-floor-view .office-view-desk-veil {
+  opacity: 1;
+  background-color: rgba(214, 226, 240, 0.14);
+  backdrop-filter: blur(5px) brightness(1.07) saturate(0.92);
+  transition:
+    opacity 280ms ease,
+    backdrop-filter 400ms ease;
+}
+
 /*
  * The floor's one live region (slice 10). Off-screen rather than
  * `display: none` or `visibility: hidden`, either of which takes it out of the
@@ -132,22 +340,6 @@
   justify-content: flex-end;
   align-items: center;
   gap: 0.5rem;
-}
-
-/* Sit-down animation: zoom out and fade when returning to desk */
-.office-floor-bar.is-sitting-down {
-  animation: office-floor-sit-down 280ms ease-out forwards;
-}
-
-@keyframes office-floor-sit-down {
-  from {
-    opacity: 1;
-    transform: scale(1) translateY(0);
-  }
-  to {
-    opacity: 0;
-    transform: scale(0.92) translateY(20px);
-  }
 }
 
 /* ── the stage ───────────────────────────────────────────────────────────── */
@@ -1402,8 +1594,41 @@
   .office-floor-you-tile,
   .office-floor-bubble,
   .floor-screen,
-  .office-floor-bar.is-sitting-down {
+  .office-floor[data-view-phase='stand-up'] .office-floor-viewport,
+  .office-floor[data-view-phase='sit-down'] .office-floor-viewport,
+  .office-floor[data-view-phase='stand-up'] .office-floor-bar,
+  .office-floor[data-view-phase='sit-down'] .office-floor-bar,
+  .office-floor[data-view-phase='stand-up']::before,
+  .office-floor[data-view-phase='sit-down']::before,
+  .office-floor[data-view-phase='stand-up']::after {
     animation: none;
+  }
+
+  /*
+   * The view change still lands instantly legible under reduced motion — a
+   * plain crossfade in place of the camera move, the iris, and the sweep.
+   * The 160ms has a JS twin (`FLOOR_VIEW_EXIT_REDUCED_MS`): the floor stays
+   * mounted just long enough for the fade, no longer.
+   */
+  .office-floor[data-view-phase='stand-up'] {
+    animation: office-floor-cover 160ms ease-out both;
+  }
+
+  .office-floor[data-view-phase='sit-down'] {
+    animation: office-floor-fade-out 160ms ease both;
+  }
+
+  @keyframes office-floor-fade-out {
+    to {
+      opacity: 0;
+    }
+  }
+
+  .office-view-desk-veil,
+  .app-shell.is-floor-view .office-view-desk-veil {
+    transition-duration: 160ms;
+    transition-delay: 0ms;
+    backdrop-filter: none;
   }
 
   /*

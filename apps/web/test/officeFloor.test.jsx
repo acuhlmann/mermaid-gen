@@ -9,6 +9,7 @@ import {
   WALK_BY_FIXTURE
 } from './helpers/officeFloorTestUtils.jsx';
 import { getOfficeViewMode, sitDown, standUp } from '../src/state/officeViewModeStore.js';
+import { FLOOR_VIEW_EXIT_MS } from '../src/components/officeFloor/viewTransition.js';
 
 beforeEach(() => {
   enableFloorDialogueCaptions();
@@ -45,12 +46,13 @@ describe('OfficeFloor', () => {
     expect(screen.getByRole('button', { name: /^You/ })).toBeTruthy();
   });
 
-  it('sits you back down from the button and from Escape', async () => {
+  it('sits you back down from the button and from Escape', () => {
     renderFloor();
 
     fireEvent.click(screen.getByRole('button', { name: /Back to your screen/i }));
-    // Wait for the sit-down animation to complete
-    await vi.waitFor(() => expect(getOfficeViewMode()).toBe('desk'), { timeout: 500 });
+    // The store flips immediately; the sit-down camera move is the floor's own
+    // exit phase (see the view-transition suite below), not a delay here.
+    expect(getOfficeViewMode()).toBe('desk');
 
     act(() => standUp());
     fireEvent.keyDown(window, { key: 'Escape' });
@@ -83,6 +85,58 @@ describe('OfficeFloor', () => {
     fireEvent.click(screen.getByRole('button', { name: /^You/ }));
     fireEvent.click(screen.getByRole('button', { name: /Sit down here/i }));
     expect(getOfficeViewMode()).toBe('desk');
+  });
+});
+
+describe('the stand-up / sit-down view transition (§ 1a)', () => {
+  it('marks the room as standing-up while the camera settles', () => {
+    renderFloor();
+    expect(screen.getByTestId('office-floor').dataset.viewPhase).toBe('stand-up');
+  });
+
+  it('keeps the room mounted for the sit-down camera move, then lets go', () => {
+    vi.useFakeTimers();
+    try {
+      renderFloor();
+      act(() => sitDown());
+
+      const floor = screen.getByTestId('office-floor');
+      expect(getOfficeViewMode()).toBe('desk');
+      expect(floor.dataset.viewPhase).toBe('sit-down');
+
+      act(() => {
+        vi.advanceTimersByTime(FLOOR_VIEW_EXIT_MS - 50);
+      });
+      expect(screen.getByTestId('office-floor')).toBeTruthy();
+
+      act(() => {
+        vi.advanceTimersByTime(100);
+      });
+      expect(screen.queryByTestId('office-floor')).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('cancels the close if you stand back up mid-sit-down', () => {
+    vi.useFakeTimers();
+    try {
+      renderFloor();
+      act(() => sitDown());
+      act(() => {
+        vi.advanceTimersByTime(FLOOR_VIEW_EXIT_MS - 100);
+      });
+
+      act(() => standUp());
+      expect(screen.getByTestId('office-floor').dataset.viewPhase).toBe('stand-up');
+
+      act(() => {
+        vi.advanceTimersByTime(FLOOR_VIEW_EXIT_MS + 100);
+      });
+      expect(screen.getByTestId('office-floor')).toBeTruthy();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
 

@@ -811,7 +811,8 @@ export function ArchiSlop() {
         foldableDualScreen,
         hasCanvasContent,
         showDeskChrome,
-        officeBootPending
+        officeBootPending,
+        officeViewMode
       })}
       aria-label="ArchiSlop"
       data-live-variant={liveStreamingEntry ? liveVariant : undefined}
@@ -982,6 +983,11 @@ export function ArchiSlop() {
           liveStreamingEntry={liveStreamingEntry}
         />
       ) : null}
+      {/* The desk side of the stand-up transition (§ 1a): hazes the
+          workstation while the floor covers it, then lifts as you sit back
+          down — the monitor refocusing instead of snapping back on. Paints
+          one layer under the floor (`--z-office-desk-veil`). */}
+      <div className="office-view-desk-veil" aria-hidden="true" />
       {/* First run arrives through the floor (ADR-0011 slice 3); the card tour
           stays mounted afterwards for replays from the level panel. */}
       {officeBootPending ? (

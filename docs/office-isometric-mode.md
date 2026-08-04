@@ -20,6 +20,28 @@ First run **begins isometric**: reception check-in → walk the floor past the c
 at your desk → sit down → desktop screen mode. This replaces the card-based Meet-the-Office
 tour when ready; the card tour remains as the reduced-motion / "skip the ceremony" fallback.
 
+### 1a. The transition is a camera move, not a page swap
+
+Standing up plays as one continuous gesture (~640ms, fast enough to never tire of): the room
+covers inside 140ms, then the floor's camera settles from _seated eye level_ — close, tilted
+at your desk, slightly out of focus, slightly over-exposed — into the crisp standing wide
+shot, while a vignette iris opens and one band of fluorescent light crosses the room. The
+chrome bar arrives a breath after the world does: you notice the office first, the way back
+second. Sitting down is the same move played back on a shorter fuse (~380ms): the camera
+sinks toward your desk, defocuses, and the room lets go. Underneath it all the workstation
+never hard-cuts — a haze veil (`.office-view-desk-veil`, one z-layer below the floor) blurs
+the monitor while the floor is up and lifts as you sit, so the screen _refocuses_ instead of
+snapping back on. Reduced motion replaces the whole thing with a 160ms crossfade.
+
+The mechanics: `officeViewModeStore` still flips in one tick (state is never delayed for
+animation), and `useFloorViewPhase` (`officeFloor/viewTransition.js`) keeps the floor mounted
+for the exit beat, driving `data-view-phase="stand-up" | "sit-down"` on the floor root. The
+choreography lives in `OfficeFloor.css`; **the JS exit timer and the CSS exit fade are one
+fact in two places**, pinned to the same number by `officeFloorViewTransition.test.js` —
+change one, change both. Never animate `main.app-shell` or the OS chrome themselves: a
+transform or filter there re-anchors the fixed-position floor and every portaled window. The
+desk side is always the veil.
+
 ## 2. Binding rules
 
 1. **One state, two renderers.** All office life (moment store, cadence, threads, presence)

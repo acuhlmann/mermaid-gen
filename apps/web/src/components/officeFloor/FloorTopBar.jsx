@@ -9,9 +9,11 @@
  * The peek card carries its own way back, so this one stands in for every other
  * reason you are on your feet. Captions / CC hides spoken balloons when voice
  * is playing so the room stays readable on a phone.
+ *
+ * Sit down flips the store immediately; the sit-down camera move is the
+ * floor's own exit phase (`useFloorViewPhase`), not a delay here.
  */
 
-import { useState } from 'react';
 import IntroTranscriptButton from '../IntroTranscriptButton.jsx';
 import { sitDown } from '../../state/officeViewModeStore.js';
 
@@ -37,18 +39,8 @@ export function FloorTopBar({
   captionsTitle,
   onToggleCaptions
 }) {
-  const [sittingDown, setSittingDown] = useState(false);
-
-  const handleSitDown = () => {
-    setSittingDown(true);
-    // Wait for the animation to complete before actually switching modes
-    setTimeout(() => {
-      sitDown();
-    }, 280);
-  };
-
   return (
-    <header className={`office-floor-bar${sittingDown ? ' is-sitting-down' : ''}`}>
+    <header className="office-floor-bar">
       <div className="office-floor-bar-copy">
         <span className="office-floor-eyebrow">{copy.eyebrow}</span>
         <h2 className="office-floor-title">{copy.title}</h2>
@@ -67,8 +59,7 @@ export function FloorTopBar({
         <button
           type="button"
           className="office-floor-sit"
-          onClick={handleSitDown}
-          disabled={sittingDown}
+          onClick={() => sitDown()}
           title={copy.backTitle}
         >
           {copy.back}

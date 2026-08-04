@@ -50,6 +50,9 @@
   /* Portaled advisor speech / thinking bubble — above anchored popovers, below modals. */
   --z-advisor-float: 80;
   --z-radial-popover: 120;
+  /* The stand-up transition's desk haze — above the OS chrome it blurs, one
+     layer below the floor that is covering it. */
+  --z-office-desk-veil: 149;
   /* Isometric mode (ADR-0011): a *view*, not an overlay — it covers the whole
      workstation screen, but office windows (inbox, Slop Chat, meetings) still
      float above it, so standing up never takes functionality away. */

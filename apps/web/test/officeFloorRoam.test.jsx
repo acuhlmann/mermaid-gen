@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import OfficeFloor from '../src/components/OfficeFloor.jsx';
 import { projectIso, seatFor } from '../src/utils/officeFloorPlan.js';
 import {
@@ -84,10 +84,12 @@ describe('free roam (slice 7)', () => {
     clickTile(4, 3);
     fireEvent.click(screen.getByRole('button', { name: /Back to your screen/i }));
 
-    // Wait for the sit-down animation to complete before checking state
-    await new Promise((resolve) => setTimeout(resolve, 300));
+    // The store flips immediately; the room itself stays mounted for the
+    // sit-down camera move (§ 1a) before letting go.
+    await vi.waitFor(() => expect(screen.queryByTestId('office-floor-player')).toBeNull(), {
+      timeout: 1000
+    });
 
-    expect(screen.queryByTestId('office-floor-player')).toBeNull();
     expect(view.container.querySelector('[data-seat="you"]')?.dataset.vacant).toBeUndefined();
     // Back at your screen (desk view), not just your desk tile.
     expect(getOfficeViewMode()).toBe('desk');
