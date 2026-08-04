@@ -76,17 +76,17 @@ describe('free roam (slice 7)', () => {
     expect(screen.queryByTestId('office-floor-player')).toBeNull();
   });
 
-  it('offers a labelled way back to your chair while you are up', () => {
+  it('offers a labelled way back to your screen while you are up', () => {
     const view = renderFloor();
-    expect(screen.queryByRole('button', { name: /Back to my desk/i })).toBeNull();
+    expect(screen.queryByRole('button', { name: /Back to your screen/i })).toBeNull();
 
     clickTile(4, 3);
-    fireEvent.click(screen.getByRole('button', { name: /Back to my desk/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Back to your screen/i }));
 
     expect(screen.queryByTestId('office-floor-player')).toBeNull();
     expect(view.container.querySelector('[data-seat="you"]')?.dataset.vacant).toBeUndefined();
-    // Back at your desk on the floor, not back at your screen.
-    expect(getOfficeViewMode()).toBe('floor');
+    // Back at your screen (desk view), not just your desk tile.
+    expect(getOfficeViewMode()).toBe('desk');
   });
 
   it('walks you home on Escape before it sits you down', () => {

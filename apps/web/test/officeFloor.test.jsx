@@ -45,11 +45,12 @@ describe('OfficeFloor', () => {
     expect(screen.getByRole('button', { name: /^You/ })).toBeTruthy();
   });
 
-  it('sits you back down from the button and from Escape', () => {
+  it('sits you back down from the button and from Escape', async () => {
     renderFloor();
 
     fireEvent.click(screen.getByRole('button', { name: /Back to your screen/i }));
-    expect(getOfficeViewMode()).toBe('desk');
+    // Wait for the sit-down animation to complete
+    await vi.waitFor(() => expect(getOfficeViewMode()).toBe('desk'), { timeout: 500 });
 
     act(() => standUp());
     fireEvent.keyDown(window, { key: 'Escape' });

@@ -1401,7 +1401,8 @@
   .office-floor-prop--usable.is-active .office-floor-prop-art,
   .office-floor-you-tile,
   .office-floor-bubble,
-  .floor-screen {
+  .floor-screen,
+  .office-floor-bar.is-sitting-down {
     animation: none;
   }
 
