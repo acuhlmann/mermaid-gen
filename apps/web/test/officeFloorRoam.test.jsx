@@ -76,13 +76,16 @@ describe('free roam (slice 7)', () => {
     expect(screen.queryByTestId('office-floor-player')).toBeNull();
   });
 
-  it('offers a labelled way back to your screen while you are up', () => {
+  it('offers a labelled way back to your screen while you are up', async () => {
     const view = renderFloor();
     // The "Back to your screen" button is always present in the top bar
     expect(screen.getByRole('button', { name: /Back to your screen/i })).toBeTruthy();
 
     clickTile(4, 3);
     fireEvent.click(screen.getByRole('button', { name: /Back to your screen/i }));
+
+    // Wait for the sit-down animation to complete before checking state
+    await new Promise((resolve) => setTimeout(resolve, 300));
 
     expect(screen.queryByTestId('office-floor-player')).toBeNull();
     expect(view.container.querySelector('[data-seat="you"]')?.dataset.vacant).toBeUndefined();
