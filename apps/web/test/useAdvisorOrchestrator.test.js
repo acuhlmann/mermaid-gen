@@ -302,7 +302,7 @@ describe('useAdvisorOrchestrator', () => {
     expect(onUsage).not.toHaveBeenCalled();
   });
 
-  it('coerces explain persona to comment even when API says suggestion', async () => {
+  it('surfaces richard suggestion kind as-is (richard is action-capable now)', async () => {
     mockPersonaPick('richard');
     fetchMock.mockResolvedValue({
       ok: true,
@@ -321,7 +321,7 @@ describe('useAdvisorOrchestrator', () => {
       await Promise.resolve();
     });
 
-    expect(result.current.suggestionKind).toBe('comment');
+    expect(result.current.suggestionKind).toBe('suggestion');
   });
 
   it('accept is a no-op for comment-kind bubbles', async () => {

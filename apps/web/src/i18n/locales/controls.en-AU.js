@@ -61,27 +61,27 @@ export const CONTROLS_EN_AU = {
       {
         id: 'work-order',
         label: '1 · Work order',
-        text: 'Type what you want built here, then generate. Assignments from the floor are optional shortcuts.'
+        text: 'Type your topic here and click Go to generate. This is where every deliverable starts.'
       },
       {
         id: 'desk',
-        label: '2 · Your desk',
-        text: 'The helmet opens mail, export, and desk verbs. Stand up anytime to walk the floor again.'
+        label: '2 · Action menu',
+        text: 'Opens mail, export, and desk actions. Use Stand up to visit the office floor anytime.'
       },
       {
         id: 'notebook',
         label: '3 · Notebook',
-        text: 'Thinking notes, run history, and critiques land here once you have a deliverable.'
+        text: 'Shows thinking notes, run history, and critique results after you generate a deliverable.'
       },
       {
         id: 'team',
         label: '4 · Your Team',
-        text: 'Colleagues weigh in after the canvas has something to argue about.'
+        text: 'Your team chimes in with suggestions and critiques once the canvas has content.'
       },
       {
         id: 'format',
-        label: '5 · Deliverable',
-        text: 'The menu bar up top picks what this is — Diagram, Chart, Anything, and the rest. Pick one, then come back to the work order and pitch.'
+        label: '5 · Deliverable format',
+        text: 'The menu bar picks the format — Diagram, Chart, Infographic, 3D, or Anything. Pick one, then type your topic in the work order.'
       }
     ],
     entryTour: {

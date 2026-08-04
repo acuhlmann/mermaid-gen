@@ -11,6 +11,7 @@
  * is playing so the room stays readable on a phone.
  */
 
+import { useState } from 'react';
 import IntroTranscriptButton from '../IntroTranscriptButton.jsx';
 import { sitDown } from '../../state/officeViewModeStore.js';
 
@@ -36,8 +37,18 @@ export function FloorTopBar({
   captionsTitle,
   onToggleCaptions
 }) {
+  const [sittingDown, setSittingDown] = useState(false);
+
+  const handleSitDown = () => {
+    setSittingDown(true);
+    // Wait for the animation to complete before actually switching modes
+    setTimeout(() => {
+      sitDown();
+    }, 280);
+  };
+
   return (
-    <header className="office-floor-bar">
+    <header className={`office-floor-bar${sittingDown ? ' is-sitting-down' : ''}`}>
       <div className="office-floor-bar-copy">
         <span className="office-floor-eyebrow">{copy.eyebrow}</span>
         <h2 className="office-floor-title">{copy.title}</h2>
@@ -53,20 +64,11 @@ export function FloorTopBar({
             onToggle={onToggleCaptions}
           />
         ) : null}
-        {standing ? (
-          <button
-            type="button"
-            className="office-floor-sit office-floor-sit--home"
-            onClick={onGoHome}
-            title={copy.peek.backTitle}
-          >
-            {copy.peek.back}
-          </button>
-        ) : null}
         <button
           type="button"
           className="office-floor-sit"
-          onClick={() => sitDown()}
+          onClick={handleSitDown}
+          disabled={sittingDown}
           title={copy.backTitle}
         >
           {copy.back}

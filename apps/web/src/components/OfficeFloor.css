@@ -56,11 +56,11 @@
 
 .office-floor-bar {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  padding: 0.85rem 1.1rem 0.6rem;
-  padding-top: max(0.85rem, env(safe-area-inset-top));
+  padding: 0.55rem 1.1rem;
+  padding-top: max(0.55rem, env(safe-area-inset-top));
 }
 
 /* Flexible + min-width:0 so the copy yields and the sit button is never
@@ -68,10 +68,13 @@
 .office-floor-bar-copy {
   flex: 1 1 auto;
   min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
 }
 
 .office-floor-eyebrow {
-  display: block;
+  display: inline;
   font-size: 0.62rem;
   font-weight: 700;
   letter-spacing: 0.12em;
@@ -79,17 +82,19 @@
 }
 
 .office-floor-title {
-  margin: 0.1rem 0 0;
-  font-size: 1.12rem;
+  margin: 0;
+  font-size: 0.95rem;
   font-weight: 700;
-  line-height: 1.15;
+  line-height: 1;
+  display: inline;
 }
 
 .office-floor-subtitle {
-  margin: 0.12rem 0 0;
+  margin: 0;
   font-size: 0.78rem;
   color: var(--muted);
   max-width: 46ch;
+  display: inline;
 }
 
 .office-floor-sit {
@@ -127,6 +132,22 @@
   justify-content: flex-end;
   align-items: center;
   gap: 0.5rem;
+}
+
+/* Sit-down animation: zoom out and fade when returning to desk */
+.office-floor-bar.is-sitting-down {
+  animation: office-floor-sit-down 280ms ease-out forwards;
+}
+
+@keyframes office-floor-sit-down {
+  from {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.92) translateY(20px);
+  }
 }
 
 /* ── the stage ───────────────────────────────────────────────────────────── */

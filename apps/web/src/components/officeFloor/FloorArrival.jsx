@@ -185,6 +185,15 @@ export default function FloorArrival({
     }
   }, [audioContextRef, hasInteractedRef]);
 
+  // Auto-check-in after a brief delay to eliminate the dead period where nothing happens.
+  useEffect(() => {
+    if (phase !== 'reception') return;
+    const timer = setTimeout(() => {
+      handleCheckIn();
+    }, 800);
+    return () => clearTimeout(timer);
+  }, [phase, handleCheckIn]);
+
   /*
    * The door, one render after the check-in click rather than during it.
    *

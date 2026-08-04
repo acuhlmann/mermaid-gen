@@ -519,9 +519,7 @@ export function useAdvisorOrchestrator(params) {
         const text = typeof payload?.suggestion === 'string' ? payload.suggestion.trim() : '';
         const replyIds = Array.isArray(payload?.highlightIds) ? payload.highlightIds : [];
         const rawKind = typeof payload?.kind === 'string' ? payload.kind.toLowerCase() : '';
-        // Belt-and-suspenders: even if the model leaked a "suggestion" for explain,
-        // we never want Richard's bubble to show a Do-it button.
-        const kind = persona === 'richard' || rawKind === 'comment' ? 'comment' : 'suggestion';
+        const kind = rawKind === 'comment' ? 'comment' : 'suggestion';
         const focusId = focusDescriptor?.id ? String(focusDescriptor.id) : null;
         if (!text) {
           setThinking(null);

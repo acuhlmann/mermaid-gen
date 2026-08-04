@@ -42,11 +42,19 @@ test('parseAdvisorReply preserves explicit comment kind', () => {
   assert.equal(reply.kind, 'comment');
 });
 
-test('parseAdvisorReply coerces explain persona to comment regardless of model output', () => {
-  // Even when the model leaks an actionable-looking suggestion, Richard
-  // must never surface a Do-it button.
+test('parseAdvisorReply lets richard emit an actionable suggestion', () => {
+  // Richard is action-capable now (mirrors Dinesh/Erlich) — an explicit
+  // "suggestion" kind from the model should surface a Do-it button.
   const reply = parseAdvisorReply(
     '{"suggestion": "Rename Auth → Auth Gate.", "kind": "suggestion"}',
+    { persona: 'richard' }
+  );
+  assert.equal(reply.kind, 'suggestion');
+});
+
+test('parseAdvisorReply preserves richard comment kind when explicit', () => {
+  const reply = parseAdvisorReply(
+    '{"suggestion": "Gateway is a saga, if that makes sense.", "kind": "comment"}',
     { persona: 'richard' }
   );
   assert.equal(reply.kind, 'comment');
@@ -135,7 +143,7 @@ test('buildAdvisorSystemPrompt swaps to explainer voice for richard dumb-down', 
 
   const architectNormal = buildAdvisorSystemPrompt('richard', 'mermaid');
   assert.match(architectNormal, /Richard Hendricks from HBO's Silicon Valley/);
-  assert.match(architectNormal, /ALWAYS emit kind: "comment"/);
+  assert.match(architectNormal, /Comment ratio: about 1 in 4/);
   assert.doesNotMatch(architectNormal, /DUMB-DOWN TASK/);
 
   const barkerDumb = buildAdvisorSystemPrompt('barker', 'mermaid', { mode: 'dumb' });
