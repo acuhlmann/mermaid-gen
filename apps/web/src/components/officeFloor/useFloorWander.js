@@ -18,6 +18,13 @@
  * genuinely new thing here, and it means ambience must always lose. Three ways
  * it yields, all of them "somebody who outranks me wants this":
  *
+ * Since § 8's "a held item is drawn, never carried", a trip also **remembers one
+ * thing**: what they picked up (`carrying`). That is still not content — nothing
+ * is said, nothing is written, and the memory dies with the trip — but it is the
+ * first time this floor knows something about a colleague that the trait rows do
+ * not already say, so it is deliberately the smallest possible version: one
+ * field, one prop-to-hand lookup, gone when they sit down.
+ *
  * 1. A meeting takes the room, or a real moment claims the wanderer (a scene, a
  *    walk-by) — they are cleared outright, because whatever claimed them is
  *    already rendering them somewhere else and § 6 rule 5 does not allow two.
@@ -41,6 +48,7 @@ import { liveTileOf, prefersReducedMotion } from './useWalkAnimation.js';
 import { seatFor } from '../../utils/officeFloorPlan.js';
 import { sameTile } from '../../utils/officeFloorMovement.js';
 import { wanderTripsFor, wanderingSeatIds } from '../../utils/officeFloorWander.js';
+import { propHandsFor } from '../../utils/officeFloorProps.js';
 
 /** Long enough that the floor is not a train station; short enough to notice. */
 const FIRST_TRIP_MS = [4_000, 9_000];
@@ -62,8 +70,14 @@ function pick(list) {
  *   from: { x: number, y: number },
  *   to: { x: number, y: number },
  *   phase: 'out' | 'dwell' | 'home',
- *   leg: number
+ *   leg: number,
+ *   carrying: string | null
  * }} WanderTrip
+ *   `carrying` is the whole of what a wanderer remembers: what they picked up,
+ *   filled in on the turn for home. It lives on the trip rather than in a store
+ *   because it dies with the trip — the errand is over when they sit down, and
+ *   a mug that outlived the walk would be state about somebody else that the
+ *   floor kept (ADR-0011 rule 1, and slice 11's line).
  */
 
 /**
@@ -86,7 +100,16 @@ function departure(busy, avoid) {
 
   const { kind, mark } = pick(options);
   const seat = seatFor(seatId);
-  return { seatId, kind, from: { x: seat.x, y: seat.y }, to: mark, phase: 'out', leg: 1 };
+  return {
+    seatId,
+    kind,
+    from: { x: seat.x, y: seat.y },
+    to: mark,
+    phase: 'out',
+    leg: 1,
+    // Empty-handed on the way out — you fetch a coffee, you do not deliver one.
+    carrying: null
+  };
 }
 
 /**
@@ -135,6 +158,20 @@ export function useFloorWander({
       return {
         ...current,
         phase: 'home',
+        /*
+         * The one thing a wanderer remembers (§ 8's "a held item is drawn, never
+         * carried"). It is set on the turn for home rather than on arrival at
+         * the prop, because the fiction is the walk back: they used the machine
+         * and now they are carrying the result past your desk.
+         *
+         * **Only if they actually got there.** `goHome` is two callers, and the
+         * other one is you claiming the tile they were walking to — somebody
+         * turned round mid-stride never reached the machine, so they come back
+         * empty-handed. Reading `phase` rather than a "did they arrive" flag is
+         * what keeps that honest: `dwell` is the room's own record of having
+         * stood at the thing.
+         */
+        carrying: current.phase === 'dwell' ? propHandsFor(current.kind) : null,
         /*
          * § 6 rule 19's sibling, and the wanderer is the second walker it
          * applies to: a new leg re-places the figure at its new path's start,

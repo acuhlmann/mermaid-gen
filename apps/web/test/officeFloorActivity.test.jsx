@@ -102,6 +102,31 @@ describe('floorActivityFor precedence', () => {
     // it empty-handed is lost.
     expect(walking.hold).toBe('mug');
   });
+
+  it('puts what they picked up over the trait row, and a set piece over both', () => {
+    // Ulrich's own mug is what he has generally; the printout is what he has
+    // because he just walked to the printer.
+    expect(deskDoingFor('greybeard').hold).toBe('mug');
+    expect(floorActivityFor('greybeard', { carrying: 'papers' }).hold).toBe('papers');
+    // The two never collide today (`coffee` only ever describes you, `carrying`
+    // only ever a wanderer), but the order is the documented one.
+    expect(floorActivityFor('greybeard', { coffee: true, carrying: 'papers' }).hold).toBe('coffee');
+  });
+
+  it('leaves the hand alone when they picked nothing up', () => {
+    // The whiteboard hands over nothing, and "nothing" must not read as "empty
+    // hand" — they still have their own mug.
+    expect(floorActivityFor('greybeard', { carrying: null }).hold).toBe('mug');
+    expect(floorActivityFor('greybeard', {}).hold).toBe('mug');
+  });
+
+  it('carries what it was given across a walk', () => {
+    // The whole point: the hold has to survive `moving`, or the errand is only
+    // visible in the one frame they are stood still.
+    const walkingBack = floorActivityFor('greybeard', { moving: true, carrying: 'coffee' });
+    expect(walkingBack.pose).toBe('idle');
+    expect(walkingBack.hold).toBe('coffee');
+  });
 });
 
 describe('who is talking', () => {
