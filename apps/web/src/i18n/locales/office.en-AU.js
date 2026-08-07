@@ -1017,6 +1017,9 @@ export const OFFICE_EN_AU = {
     discussionNotesLabel: 'Discussion notes',
     speakPlaceholder: 'Say something to the room…',
     leaveLabel: 'Shoot through',
+    escalateLede: "This room's had a good run. Take it up a level.",
+    escalateToSteering: 'Escalate to steering committee',
+    escalateToCab: 'Escalate to CAB hearing',
     interjectCapLine: 'Pam: "Great point — let\'s parking-lot it. We\'re at time."'
   },
   OFFICE_IM_QUICK_REPLIES: [

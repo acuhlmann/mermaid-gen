@@ -25,7 +25,11 @@ import {
   resolveOfficeLane,
   resolveOfficeModelId,
   SENIOR_MEETING_VOICES,
-  STAKEHOLDER_MEETING_VOICES
+  STAKEHOLDER_MEETING_VOICES,
+  MEETING_VENUE_CAB,
+  MEETING_VENUE_STEERING,
+  MEETING_VENUE_WORKING_GROUP,
+  meetingVenueRules
 } from '../src/agents/officePersonas.js';
 import { buildOfficeLogBlock } from '../src/agents/_lib/officeLogPrompt.js';
 
@@ -807,4 +811,76 @@ test('an ordinary meeting carries no all-hands rules at all', () => {
   assert.doesNotMatch(ordinary, /NOTHING IS DECIDED/);
   // An absent audience must not leave a stray `undefined` in the joined prompt.
   assert.doesNotMatch(ordinary, /\bundefined\b/);
+});
+
+/**
+ * §10.10 — the escalation ladder changes the register of the room while the
+ * change under review stays the same. A working group (the default) adds
+ * nothing; a steering review is formal and recommends; the CAB hearing is the
+ * one meeting where something is actually decided — but the verdict is always
+ * "approved with conditions", and every condition resolves back into process
+ * (ADR-0010: the cast never ships anything).
+ */
+test('steering venue swaps the working-group register for a formal review', () => {
+  const prompt = buildMeetingSystemPrompt({
+    attendees: ['scrumMaster', 'barker', 'gilfoyle'],
+    facilitatorId: 'scrumMaster',
+    venue: MEETING_VENUE_STEERING
+  });
+  assert.match(prompt, /STEERING COMMITTEE/);
+  assert.match(prompt, /evaluates; it does not build/);
+  // A steering review ends in a recommendation to the CAB, never a decision.
+  assert.match(prompt, /take it to the CAB/);
+  // The default working-group skeleton is still underneath the venue rules.
+  assert.match(prompt, /parody corporate-IT working-group meeting/);
+});
+
+test('cab venue requires the facilitator to hand down a provisional verdict', () => {
+  const prompt = buildMeetingSystemPrompt({
+    attendees: ['scrumMaster', 'barker', 'belson', 'ciso', 'cfo'],
+    facilitatorId: 'scrumMaster',
+    venue: MEETING_VENUE_CAB
+  });
+  assert.match(prompt, /CHANGE ADVISORY BOARD HEARING/);
+  assert.match(prompt, /APPROVED WITH CONDITIONS/);
+  assert.match(prompt, /must hand down a VERDICT/);
+  // Conditions outnumber approvals; approval is provisional, never shipped.
+  assert.match(prompt, /Conditions outnumber approvals/);
+  // The parody holds: even the decision meeting resolves into more process.
+  assert.match(prompt, /never straight to "shipped"/);
+});
+
+test('working-group venue adds no venue-specific rules at all', () => {
+  const workingGroup = buildMeetingSystemPrompt({
+    attendees: ['gilfoyle', 'dinesh', 'scrumMaster'],
+    facilitatorId: 'scrumMaster',
+    venue: MEETING_VENUE_WORKING_GROUP
+  });
+  const defaulted = buildMeetingSystemPrompt({
+    attendees: ['gilfoyle', 'dinesh', 'scrumMaster'],
+    facilitatorId: 'scrumMaster'
+  });
+  assert.equal(workingGroup, defaulted, 'an explicit working group is the default');
+  assert.doesNotMatch(workingGroup, /STEERING COMMITTEE/);
+  assert.doesNotMatch(workingGroup, /CHANGE ADVISORY BOARD HEARING/);
+  // An unknown venue must never leak a `undefined`-flavoured rules block.
+  const unknown = buildMeetingSystemPrompt({
+    attendees: ['gilfoyle', 'dinesh', 'scrumMaster'],
+    facilitatorId: 'scrumMaster',
+    venue: 'court-martial'
+  });
+  assert.equal(unknown, defaulted, 'unknown venues fall back to the working group');
+});
+
+test('meetingVenueRules composes, so steering rules never carry cab wording', () => {
+  const steering = meetingVenueRules(MEETING_VENUE_STEERING);
+  const cab = meetingVenueRules(MEETING_VENUE_CAB);
+  assert.match(steering, /STEERING COMMITTEE/);
+  assert.doesNotMatch(steering, /APPROVED WITH CONDITIONS/);
+  assert.doesNotMatch(steering, /VERDICT/);
+  assert.match(cab, /APPROVED WITH CONDITIONS/);
+  assert.match(cab, /VERDICT/);
+  assert.doesNotMatch(cab, /take it to the CAB/);
+  assert.equal(meetingVenueRules('unknown'), '');
+  assert.equal(meetingVenueRules(undefined), '');
 });

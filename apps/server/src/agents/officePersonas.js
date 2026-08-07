@@ -35,6 +35,18 @@ import {
 const LATENCY_MOMENT_KINDS = new Set(['walkby', 'coffee', 'meeting-invite']);
 
 /**
+ * The meeting escalation ladder (docs/office-parody.md §10.10): a working group
+ * that runs its course escalates to the steering committee, then to a Change
+ * Advisory Board hearing. Shared by the client (`apps/web/src/utils/officeCast.js`)
+ * and the `/api/office/meeting` route — a venue both sides don't know is a
+ * meeting the other side scripts as a plain working group.
+ */
+export const MEETING_VENUES = ['workingGroup', 'steering', 'cab'];
+export const MEETING_VENUE_WORKING_GROUP = 'workingGroup';
+export const MEETING_VENUE_STEERING = 'steering';
+export const MEETING_VENUE_CAB = 'cab';
+
+/**
  * Office surfaces split into two lanes:
  * - **latency** — walk-bys, huddles, live meeting interjections (flash-lite)
  * - **quality** — email, IM, meeting scripts, training (DeepSeek when configured)
@@ -624,7 +636,8 @@ export function buildMeetingSystemPrompt({
   facilitatorId,
   uiLocale,
   contextSource,
-  audience
+  audience,
+  venue = MEETING_VENUE_WORKING_GROUP
 }) {
   const cards = attendees
     .map((id) => `### ${speakerLabel(id)} — speakerId "${id}"\n${speakerVoice(id)}`)
@@ -633,13 +646,14 @@ export function buildMeetingSystemPrompt({
   const intimacyRules = meetingIntimacyRules(attendees);
   const allHandsRules = meetingAllHandsRules(audience);
   const sourceRules = meetingSourceRules(contextSource);
+  const venueRules = meetingVenueRules(venue);
   return `You are the invisible showrunner of a parody corporate-IT working-group meeting about the
 user's current diagram. You script EVERY attendee's lines.
 
 ATTENDEES (use these speakerId values and NO others):
 
 ${cards}
-${intimacyRules}${allHandsRules}${sourceRules}
+${intimacyRules}${allHandsRules}${sourceRules}${venueRules}
 RULES:
 - Output STRICT JSON only — no prose, no backticks, no preamble.
 - Schema: {"scriptVersion": 1, "title": string, "beats": [{"speakerId": string, "kind": "procedural" |
@@ -735,6 +749,48 @@ SOURCE-DRIVEN CALL (from the user's ${label}):
 - Diagram edits still appear in 1–2 substantive beats, but they should connect to the ${label} (not a generic architecture review).
 - Title and opening procedural beat should name the actual subject from the source, not "Architecture Review Board".
 `;
+}
+
+/**
+ * The meeting escalation ladder (docs/office-parody.md §10.10): a working group
+ * that runs its course can be taken up to the steering committee, and a
+ * steering committee to a Change Advisory Board hearing. The register of the
+ * room changes while the change under review (the diagram) stays the same.
+ *
+ * `workingGroup` (the default) adds nothing — every venue's rules build on the
+ * shared working-group skeleton above.
+ *
+ * The CAB is deliberately the one meeting where something IS decided: a change
+ * hearing must hand down a verdict. The parody still lands because the verdict
+ * is always "approved with conditions", and every condition resolves back into
+ * more process (ADR-0010 — the cast never ships anything).
+ */
+export function meetingVenueRules(venue) {
+  if (venue === MEETING_VENUE_STEERING) {
+    return `
+
+STEERING COMMITTEE (architecture review board):
+- This is a formal review, not a working group. The committee evaluates; it does not build.
+- Senior attendees lead: they ask for the headline, the cost, and the risk; the facilitator keeps the parking lot.
+- Substantive beats must still name real diagram labels and carry an actionPrompt — the recommendation has to be concrete.
+- Close with a recommendation beat from the facilitator: the committee will take it to the CAB if it holds up.
+- Title should read like an Architecture Review Board invite, not "Working group sync".`;
+  }
+  if (venue === MEETING_VENUE_CAB) {
+    return `
+
+CHANGE ADVISORY BOARD HEARING (CAB):
+- The diagram is a change under review, and this is the escalation endpoint: the board must hand down a VERDICT.
+- Register is formal and approval-gated: roll call, the change request, the risk, the outage window, the rollback plan.
+- One procedural beat MUST be the verdict, spoken by the facilitator: the change is APPROVED WITH CONDITIONS.
+  The approval is real but provisional — every condition resolves into more process (a follow-up working group,
+  a review, a signed attestation), never straight to "shipped".
+- Substantive beats are the board's CONDITIONS: each must name a real diagram label and carry an actionPrompt
+  that satisfies it. Conditions outnumber approvals.
+- Smalltalk/offRails stays office-lite (a microphone left on, a slide nobody can see), but the verdict is never a joke.
+- Title should read like a Change Advisory Board hearing, not "Working group sync".`;
+  }
+  return '';
 }
 
 export function buildMeetingUserPrompt({

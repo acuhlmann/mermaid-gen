@@ -257,6 +257,7 @@ export function useMeetingPlayback({
       audience,
       topic,
       modality: modalityOpt,
+      venue,
       contextSource,
       contextDetail
     } = {}) => {
@@ -276,6 +277,10 @@ export function useMeetingPlayback({
         audience: crowd,
         facilitatorId: seats.includes(MEETING_FACILITATOR) ? MEETING_FACILITATOR : seats[0],
         modality,
+        // The escalation-ladder rung this room is playing as (§10.10). Absent
+        // callers default to a working group; the server defaults the same way,
+        // so omitting it is indistinguishable from sending `workingGroup`.
+        venue: venue === 'steering' || venue === 'cab' ? venue : 'workingGroup',
         transcript: [],
         completed: false,
         interjectionsLeft: MEETING_INTERJECTION_CAP
@@ -285,6 +290,7 @@ export function useMeetingPlayback({
         attendees: seats,
         ...(crowd.length > 0 ? { audience: crowd } : {}),
         ...(topic ? { topic } : {}),
+        ...(venue === 'steering' || venue === 'cab' ? { venue } : {}),
         ...(contextSource === 'email' || contextSource === 'chat' ? { contextSource } : {}),
         ...(contextDetail ? { contextDetail } : {})
       });

@@ -647,11 +647,39 @@ script ribs you for not having started and substantive beats suggest a first str
   ("Great point — parking-lotting that.") and the meeting rolls on.
 - **Outcomes**: substantive beats become **meeting minutes** — posted to the Thinking pane as an
   attributed note (origin "📅 WG Meeting") with per-item "Do it" buttons. Surviving a full meeting
-  is +25 XP and an achievement; leaving early is +5 XP and zero judgment (some judgment).
+  is +25 XP and an achievement; leaving early is +5 XP and zero judgment (some judgment). A
+  completed meeting below the top of the escalation ladder (§10.10) offers to carry the same
+  change up a level — one button, no picker, roster scripted.
 
-Roadmap: recurring meeting series with memory ("as discussed last sync"), the escalation ladder
-(WG → steering committee → CAB hearing, each stricter and less useful; CAB approval unlocks an
-achievement), and the all-hands (CEO cameo, everyone attends, nothing is decided, confetti).
+### §5a. The escalation ladder (WG → steering → CAB)
+
+A meeting that wrapped is the **same change under review, one rung up** — the ladder changes the
+register of the room, never the diagram. The rung rides the wire as `venue` on
+`POST /api/office/meeting` (`MEETING_VENUES = ['workingGroup','steering','cab']`, shared
+verbatim between `officePersonas.js` and `officeCast.js`; the server defaults an omitted venue
+to `workingGroup`).
+
+- **One button books the next rung.** `nextMeetingVenue` climbs workingGroup → steering → cab and
+  stops at the top (a `cab` meeting escalates nowhere). A working group that already seats the
+  steering committee (seniors + Pam) jumps straight to the CAB. Escalation is scripted, never a
+  picker: `escalationRosterFor` reuses the current room when it already qualifies, staffs steering
+  with `pickMeetingAttendees`, and staffs the CAB with the board (senior pool + the facilitator).
+  The topic rides up, so the review stays about the same diagram.
+- **The steering review evaluates; it does not build.** `meetingVenueRules('steering')` swaps the
+  working-group register for a formal review — seniors lead, the recommendation has to stay
+  concrete (real labels + `actionPrompt`), and the facilitator closes by taking it to the CAB.
+- **The CAB is the one meeting that decides.** `meetingVenueRules('cab')` turns the room into a
+  formal hearing: roll call, change request, risk, outage window, rollback plan — and a mandatory
+  procedural **verdict** from the facilitator: **APPROVED WITH CONDITIONS**. The approval is real
+  but provisional; substantive beats are the board's conditions, and every condition resolves into
+  more process, never straight to "shipped" (ADR-0010 — the cast never ships anything).
+- **A verdict pays out its own achievement.** Completing a CAB hearing fires `cabApproved` (not
+  `meetingSurvived`): +40 XP and the **CHANGE APPROVED (WITH CONDITIONS)** achievement, unlocked
+  once. Every rung's copy (escalate lede, button labels) lives in `OFFICE_MEETING_COPY` and is
+  translated in every `office.*.js` bundle.
+
+Roadmap: recurring meeting series with memory ("as discussed last sync") and the all-hands (CEO
+cameo, everyone attends, nothing is decided, confetti).
 
 ## 5b. The huddle slice — mob and pair (the face-to-face ones)
 
@@ -1003,10 +1031,11 @@ Slice 2 closed the loudest gaps in that list:
 ## 7. Gamification
 
 `applyOfficeEvent` (same reducer/emission contract as `applyCompletedRun`): email read +1, IM
-quick-reply +2, battle settled +5, coffee break +10, meeting left early +5, meeting survived +25.
-Deliberately small — attending meetings must never out-earn shipping slop. Achievements: 📭 INBOX
-ZERO, 📅 SURVIVED THE SYNC, ☕ THIRD SHIFT, 💬 REPLY GUY, 🥊 HOLY WAR REFEREE (three battles
-settled in one session).
+quick-reply +2, battle settled +5, coffee break +10, meeting left early +5, meeting survived +25,
+CAB verdict +40. Deliberately small — attending meetings must never out-earn shipping slop.
+Achievements: 📭 INBOX ZERO, 📅 SURVIVED THE SYNC, ☕ THIRD SHIFT, 💬 REPLY GUY, 🥊 HOLY WAR
+REFEREE (three battles settled in one session), ✅ CHANGE APPROVED (WITH CONDITIONS) (one per CAB
+hearing — §10.10).
 
 Roadmap: the **performance review** (quarterly A2UI self-assessment pre-filled from real XP/streak/
 Damage-Report stats), promotion ceremonies, "meeting-free day" streak bonuses (broken by the app
@@ -1022,8 +1051,10 @@ zod → 400, unconfigured LLM → 503, invoke → parse-with-rescue → 200 + `u
 - `POST /api/office/moment` — `{kind, colleagueId, contentType, diagramSource, visibleLabels,
 recentMoments}` → `{moment: {colleagueId, kind, subject?, body, actionPrompt?} | null, usage?,
 model?}`.
-- `POST /api/office/meeting` — `{contentType, diagramSource, visibleLabels, attendees, topic?}` →
-  `{script: MeetingScript | null, usage?, model?}`.
+- `POST /api/office/meeting` — `{contentType, diagramSource, visibleLabels, attendees, topic?,
+venue?}` → `{script: MeetingScript | null, usage?, model?}`. `venue` is the escalation rung
+  (`workingGroup` default | `steering` | `cab`, zod-validated against `MEETING_VENUES` — an
+  unknown rung is a 400).
 - `POST /api/office/meeting/interject` — `{…context, attendees, transcriptSoFar, interjection}` →
   `{beats: MeetingBeat[] | null, usage?, model?}`.
 
@@ -1174,7 +1205,12 @@ consumer). Reserved for later MCP-app parity: `office_moment` / `meeting_started
    the fictional cast via the session event bus. Superseded by the full multi-human design spec:
    [`docs/multi-human-office.md`](multi-human-office.md) (backburnered; adopted decisions + vocabulary).
 9. **Desk booking / hybrid days** — some days a colleague "isn't in" and IMs instead of walk-bys.
-10. **Meeting escalation ladder** — WG → steering committee → CAB hearing; CAB approval achievement.
+10. ~~**Meeting escalation ladder**~~ — ✅ shipped: WG → steering committee → CAB hearing (§10.10).
+    A completed meeting that is below the top of the ladder offers to carry the same change up a
+    level; the roster is scripted, not a picker. The CAB is the one meeting that decides — a
+    provisional verdict, **CHANGE APPROVED (WITH CONDITIONS)**, with its own XP award and
+    achievement — but every condition resolves back into more process, never straight to "shipped"
+    (ADR-0010).
 11. **The Consultant's invoice** — while the Consultant is in any meeting, the Damage Report ticks
     visibly per minute.
 

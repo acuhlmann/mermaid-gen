@@ -80,8 +80,11 @@ import { officeCueChime, playPropCues } from '../utils/officeCuePlayers.js';
 import { officeMinutesToInsightEntry } from '../utils/appInsightHelpers.js';
 import { fetchOfficeCloudAudio } from '../utils/officeSpeechClient.js';
 import {
+  escalationRosterFor,
   MEETING_FACILITATOR,
   MEETING_MODALITY_PHYSICAL,
+  MEETING_VENUE_CAB,
+  nextMeetingVenue,
   normalizeMeetingModality,
   normalizeMeetingRoster,
   officeChromeCopy,
@@ -1085,12 +1088,48 @@ export default function OfficeLayer({
           completed: true
         })
       );
-      onOfficeEvent?.('meetingSurvived');
+      // A CAB hearing pays out its own achievement (§10.10); every other
+      // completed room is just SURVIVED THE SYNC.
+      onOfficeEvent?.(current.venue === MEETING_VENUE_CAB ? 'cabApproved' : 'meetingSurvived');
     } else {
       onOfficeEvent?.('meetingLeftEarly');
     }
     closeMeeting();
   }, [meeting, onMeetingMinutes, onOfficeEvent, closeMeeting]);
+
+  /**
+   * The escalation ladder (§10.10): a completed working group can be taken up
+   * to the steering committee, and a steering meeting to a Change Advisory
+   * Board hearing. Escalation pays out the room that just wrapped (it was
+   * survived), closes it, and books the next rung on the same change — the
+   * roster is scripted, not a picker, and the topic rides up so the review
+   * stays about the same diagram.
+   */
+  const handleEscalate = useCallback(
+    ({ venue }) => {
+      const current = meeting;
+      if (!current || current.state !== 'ended' || !current.completed) return;
+      const next = nextMeetingVenue(current.venue, { attendees: current.attendees });
+      if (!next) return;
+      onMeetingMinutes?.(
+        officeMinutesToInsightEntry({
+          title: current.title,
+          minutes: meetingMinutes(current),
+          completed: true
+        })
+      );
+      onOfficeEvent?.(current.venue === MEETING_VENUE_CAB ? 'cabApproved' : 'meetingSurvived');
+      closeMeeting();
+      const attendees = escalationRosterFor(next, { current: current.attendees });
+      void startMeeting({
+        attendees,
+        venue: next,
+        modality: current.modality,
+        ...(current.title ? { topic: current.title.slice(0, 200) } : {})
+      });
+    },
+    [meeting, onMeetingMinutes, onOfficeEvent, closeMeeting, startMeeting]
+  );
 
   const canCallMeeting = !meeting;
 
@@ -1311,7 +1350,8 @@ export default function OfficeLayer({
         meeting,
         meetingHandlers: {
           onInterject: interject,
-          onLeave: handleMeetingDismiss
+          onLeave: handleMeetingDismiss,
+          onEscalate: handleEscalate
         },
         huddle,
         huddleHandlers: huddleHandlersForPerformances,
@@ -1350,7 +1390,8 @@ export default function OfficeLayer({
       requestSpeakerSuggestion,
       cancelOfficeNarration,
       interject,
-      handleMeetingDismiss
+      handleMeetingDismiss,
+      handleEscalate
     ]
   );
 
@@ -1521,6 +1562,7 @@ export default function OfficeLayer({
           onInterject={interject}
           onLeave={handleMeetingDismiss}
           onClose={handleMeetingDismiss}
+          onEscalate={handleEscalate}
           onAdoptPrompt={handleAdopt}
           onAdoptAllPrompts={handleAdoptAll}
         />

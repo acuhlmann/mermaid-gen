@@ -21585,6 +21585,39 @@ body.slopitect-rainbow-tint::before {
   color: var(--muted);
 }
 
+/* --- Escalation ladder (§10.10): take a wrapped room up a level --- */
+.office-meeting-escalate {
+  margin: 0 14px 14px;
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--accent) 28%, transparent);
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 8px 24px rgba(14, 165, 233, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.office-meeting-escalate-lede {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--muted);
+}
+.office-meeting-escalate-btn {
+  align-self: flex-start;
+  border: 1px solid var(--control-border);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 12%, white);
+  color: var(--accent, #0ea5e9);
+  font-size: 12px;
+  font-weight: 700;
+  padding: 6px 14px;
+  cursor: pointer;
+}
+.office-meeting-escalate-btn:hover {
+  background: color-mix(in srgb, var(--accent) 20%, white);
+}
+
 /* --- Who's-who chrome: roles beside names on every office surface --- */
 .office-im-title,
 .office-email-sender-role {

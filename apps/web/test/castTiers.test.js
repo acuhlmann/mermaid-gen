@@ -7,6 +7,9 @@ import {
   MEETING_MODALITY_REMOTE,
   MEETING_ROSTER_MAX,
   MEETING_SENIOR_POOL,
+  MEETING_VENUE_CAB,
+  MEETING_VENUE_STEERING,
+  MEETING_VENUE_WORKING_GROUP,
   OFFICE_COLLEAGUES,
   OFFICE_EMAIL_LLM_CAST,
   OFFICE_IM_LLM_CAST,
@@ -15,9 +18,11 @@ import {
   SENIOR_STAKEHOLDERS,
   TEAM_INTRO_LINES,
   buildMeetingAttendeesFromColleagues,
+  escalationRosterFor,
   listMeetingDirectory,
   meetingContextFromEmails,
   meetingTopicFromEmailSubjects,
+  nextMeetingVenue,
   normalizeMeetingRoster,
   officeSenderInfo,
   pickMeetingAttendees,
@@ -210,5 +215,62 @@ describe('meetingContextFromEmails', () => {
     expect(ctx.topic).toBe('FRIDGE CLEANOUT');
     expect(ctx.contextSource).toBe('email');
     expect(ctx.contextDetail).toContain('Label your leftovers.');
+  });
+});
+
+/**
+ * §10.10 — the escalation ladder. A room that wrapped goes up one rung and
+ * the change under review rides along; escalation is a scripted beat, not a
+ * picker, so the destination and the roster are both decided by the client.
+ */
+describe('nextMeetingVenue', () => {
+  it('climbs working group -> steering -> cab and stops at the top', () => {
+    expect(nextMeetingVenue(undefined, { attendees: ['gilfoyle', 'dinesh'] })).toBe(
+      MEETING_VENUE_STEERING
+    );
+    expect(
+      nextMeetingVenue(MEETING_VENUE_WORKING_GROUP, { attendees: ['gilfoyle', 'dinesh'] })
+    ).toBe(MEETING_VENUE_STEERING);
+    expect(nextMeetingVenue(MEETING_VENUE_STEERING)).toBe(MEETING_VENUE_CAB);
+    expect(nextMeetingVenue(MEETING_VENUE_CAB)).toBe(null);
+  });
+
+  it('skips the steering rung when the room already seats the committee', () => {
+    // Seniors + the facilitator already make it a steering room, so the next
+    // rung up is the CAB — one button takes the working group to the hearing.
+    expect(
+      nextMeetingVenue(MEETING_VENUE_WORKING_GROUP, {
+        attendees: [MEETING_FACILITATOR, 'barker', 'gilfoyle']
+      })
+    ).toBe(MEETING_VENUE_CAB);
+  });
+});
+
+describe('escalationRosterFor', () => {
+  it('staffs the CAB with the board: the senior pool plus the facilitator', () => {
+    const roster = escalationRosterFor(MEETING_VENUE_CAB, { random: () => 0 });
+    for (const id of [...MEETING_SENIOR_POOL, MEETING_FACILITATOR]) {
+      expect(roster).toContain(id);
+    }
+    // The board is deterministic — it is a board, not a lottery.
+    expect(roster).toEqual([...new Set([...MEETING_SENIOR_POOL, MEETING_FACILITATOR])]);
+  });
+
+  it('reuses the current room when it already has seniors and a facilitator', () => {
+    const current = [MEETING_FACILITATOR, 'barker', 'belson', 'gilfoyle'];
+    expect(escalationRosterFor(MEETING_VENUE_STEERING, { current })).toEqual(current);
+  });
+
+  it('books a steering roster when the current room is not already senior', () => {
+    const roster = escalationRosterFor(MEETING_VENUE_STEERING, {
+      current: ['gilfoyle', 'dinesh'],
+      random: () => 0
+    });
+    expect(roster).toContain(MEETING_FACILITATOR);
+    expect(roster.some((id) => MEETING_SENIOR_POOL.includes(id))).toBe(true);
+    // A team room that could not seat a steering review keeps its own seats.
+    expect(escalationRosterFor(MEETING_VENUE_WORKING_GROUP, { current: ['gilfoyle'] })).toEqual([
+      'gilfoyle'
+    ]);
   });
 });

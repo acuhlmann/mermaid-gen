@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
-import { afterEach, describe, expect, it } from 'vitest';
-import { cleanup, render, screen } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { MEETING_MAX_ATTENDEES } from '@archislop/shared';
 import MeetingOverlay from '../src/components/MeetingOverlay.jsx';
 import { deliverCannedMoment } from '../src/utils/officeMomentDelivery.js';
@@ -112,5 +112,61 @@ describe('MeetingOverlay crowd', () => {
 
     const { container: ordinary } = render(<MeetingOverlay meeting={baseMeeting} />);
     expect(ordinary.ownerDocument.querySelector('.office-meeting-audience')).toBeNull();
+  });
+});
+
+describe('MeetingOverlay escalation ladder', () => {
+  // §10.10 — a wrapped room that is below the top of the ladder offers to carry
+  // the same change up a level. A completed working group escalates to the
+  // steering committee; a room that already seats the committee jumps straight
+  // to the CAB; a CAB hearing is the end of the road and offers nothing.
+  const ended = (overrides) => ({
+    state: 'ended',
+    title: 'WG: Diagram Governance Sync',
+    attendees: ['scrumMaster', 'barker', 'greybeard'],
+    facilitatorId: 'scrumMaster',
+    modality: 'physical',
+    transcript: [{ speakerId: 'scrumMaster', kind: 'procedural', text: 'Parking-lotted.' }],
+    completed: true,
+    interjectionsLeft: 0,
+    ...overrides
+  });
+
+  it('offers the steering committee when the wrapped room is not already upstairs', () => {
+    render(<MeetingOverlay meeting={ended({ attendees: ['gilfoyle', 'dinesh'] })} />);
+    expect(screen.getByLabelText('This room has run its course. Take it up a level.')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Escalate to steering committee' })).toBeTruthy();
+  });
+
+  it('jumps a senior-heavy working group straight to the CAB hearing', () => {
+    render(
+      <MeetingOverlay
+        meeting={ended({ attendees: ['scrumMaster', 'barker', 'belson', 'ciso', 'cfo'] })}
+      />
+    );
+    expect(screen.getByRole('button', { name: 'Escalate to CAB hearing' })).toBeTruthy();
+  });
+
+  it('offers nothing once the meeting is already a CAB hearing', () => {
+    render(<MeetingOverlay meeting={ended({ venue: 'cab' })} />);
+    expect(screen.queryByLabelText('This room has run its course. Take it up a level.')).toBeNull();
+    expect(screen.queryByRole('button', { name: /escalate/i })).toBeNull();
+  });
+
+  it('never offers an escalation for a meeting that was not completed', () => {
+    render(<MeetingOverlay meeting={ended({ completed: false })} />);
+    expect(screen.queryByRole('button', { name: /escalate/i })).toBeNull();
+  });
+
+  it('fires onEscalate with the destination rung', () => {
+    const onEscalate = vi.fn();
+    render(
+      <MeetingOverlay
+        meeting={ended({ attendees: ['gilfoyle', 'dinesh'] })}
+        onEscalate={onEscalate}
+      />
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Escalate to steering committee' }));
+    expect(onEscalate).toHaveBeenCalledWith({ venue: 'steering' });
   });
 });

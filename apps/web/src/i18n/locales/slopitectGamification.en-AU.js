@@ -398,6 +398,11 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
       title: '🎣 SECURITY INCIDENT #1',
       subtitle: 'You clicked it. Everyone does, but. Straight in your file.'
     },
+    cabApproved: {
+      id: 'cabApproved',
+      title: '✅ CHANGE APPROVED (WITH CONDITIONS)',
+      subtitle: 'The CAB ticked the change off. Conditions apply, cobber. They always apply.'
+    },
     gilfoyle: {
       id: 'stackOwner',
       title: '🦇 THE STACK IS MINE',

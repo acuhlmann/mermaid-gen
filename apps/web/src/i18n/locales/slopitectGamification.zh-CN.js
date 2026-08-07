@@ -398,6 +398,11 @@ export const SLOPITECT_GAMIFICATION_ZH_CN = {
       title: '🎣 安全事件 #1',
       subtitle: '你点了那个链接。统计上人人都会点。已记入你的档案。'
     },
+    cabApproved: {
+      id: 'cabApproved',
+      title: '✅ 变更已批准(附条件)',
+      subtitle: 'CAB 已批准这项变更。条件适用。它们永远适用。'
+    },
     gilfoyle: {
       id: 'stackOwner',
       title: '🦇 这套系统是我的',

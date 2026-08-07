@@ -23,6 +23,7 @@ import {
   buildPairSystemPrompt,
   createOfficeChatModel,
   isOfficeSpeaker,
+  MEETING_VENUES,
   normalizeAttendees,
   officeUsageFromReply,
   parseHuddleScript,
@@ -113,6 +114,13 @@ const OfficeMeetingRequestSchema = z.object({
   visibleLabels: z.array(z.string().max(200)).max(60).default([]),
   attendees: z.array(z.string().max(40)).min(1).max(MEETING_MAX_ATTENDEES),
   audience: z.array(z.string().max(40)).max(MEETING_MAX_AUDIENCE).default([]),
+  /**
+   * The escalation ladder rung (docs/office-parody.md §10.10): the venue the
+   * room is playing as. Defaults to a plain working group; the client raises
+   * it to `steering` then `cab` as a meeting is escalated at its end. The
+   * shared array keeps the wire contract in lockstep with the prompt rules.
+   */
+  venue: z.enum(MEETING_VENUES).default('workingGroup'),
   topic: z.string().max(200).optional(),
   contextSource: z.enum(['email', 'chat']).optional(),
   contextDetail: z.string().max(1200).optional(),
@@ -494,6 +502,7 @@ export function createOfficeRouter({ env = process.env } = {}) {
       facilitatorId,
       uiLocale: payload.uiLocale,
       contextSource: payload.contextSource,
+      venue: payload.venue,
       // Silent by construction: the audience is named so the room feels full,
       // and explicitly forbidden a speakerId so it stays silent.
       audience: payload.audience.filter((id) => !attendees.includes(id))

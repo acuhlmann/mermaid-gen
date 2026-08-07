@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { meetingMinutes, MEETING_USER_SPEAKER } from '../hooks/useMeetingPlayback.js';
-import { officeChromeCopy, officeMeetingCopy, officeSenderInfo } from '../utils/officeCast.js';
+import {
+  MEETING_VENUE_CAB,
+  nextMeetingVenue,
+  officeChromeCopy,
+  officeMeetingCopy,
+  officeSenderInfo
+} from '../utils/officeCast.js';
 import { restoreOverlay } from '../state/overlayStack.js';
 import { activeCaptionIndex, shouldShowSpokenText } from '../utils/officeCaptions.js';
 import { formatLocale } from '../i18n/formatLocale.js';
@@ -191,6 +197,33 @@ function MeetingTranscript({
   );
 }
 
+/**
+ * The escalation-ladder affordance (§10.10): a completed meeting that is not
+ * already a CAB hearing offers to carry the same change up a level. The roster
+ * for the next rung is decided by OfficeLayer (via `escalationRosterFor`) — the
+ * button only names the destination.
+ */
+function MeetingEscalate({ meeting, copy, onEscalate }) {
+  // Escalation is a reward for sitting through the whole room: a meeting left
+  // early gets no next rung (OfficeLayer refuses it too). Only completed
+  // meetings below the top of the ladder (§10.10) offer to go up a level.
+  if (!meeting.completed) return null;
+  const nextVenue = nextMeetingVenue(meeting.venue, { attendees: meeting.attendees ?? [] });
+  if (!nextVenue) return null;
+  return (
+    <section className="office-meeting-escalate" aria-label={copy.escalateLede}>
+      <p className="office-meeting-escalate-lede">{copy.escalateLede}</p>
+      <button
+        type="button"
+        className="office-meeting-escalate-btn"
+        onClick={() => onEscalate?.({ venue: nextVenue })}
+      >
+        {nextVenue === MEETING_VENUE_CAB ? copy.escalateToCab : copy.escalateToSteering}
+      </button>
+    </section>
+  );
+}
+
 function MeetingMinutes({ minutes, copy, chrome, onAdoptAllPrompts }) {
   const [notesOpen, setNotesOpen] = useState(false);
   const actionItems = minutes.filter((beat) => beat.actionPrompt);
@@ -300,7 +333,8 @@ function MeetingMinutes({ minutes, copy, chrome, onAdoptAllPrompts }) {
  * The WG meeting room (docs/office-parody.md): speaker view when CC is off
  * (face + name of whoever is talking, like Zoom), transcript when CC is on or
  * voice is muted, raise-hand interjection, and a minutes card when the meeting
- * wraps.
+ * wraps. When a completed meeting is below the top of the escalation ladder
+ * (§10.10), the wrap-up offers to take the same change up a level.
  */
 export default function MeetingOverlay({
   meeting,
@@ -309,6 +343,7 @@ export default function MeetingOverlay({
   onInterject,
   onLeave,
   onClose,
+  onEscalate,
   onAdoptPrompt,
   onAdoptAllPrompts
 }) {
@@ -420,12 +455,15 @@ export default function MeetingOverlay({
           />
         ) : null}
         {ended ? (
-          <MeetingMinutes
-            minutes={minutes}
-            copy={copy}
-            chrome={chrome}
-            onAdoptAllPrompts={handleAdoptAll}
-          />
+          <div className="office-meeting-ended">
+            <MeetingMinutes
+              minutes={minutes}
+              copy={copy}
+              chrome={chrome}
+              onAdoptAllPrompts={handleAdoptAll}
+            />
+            <MeetingEscalate meeting={meeting} copy={copy} onEscalate={onEscalate} />
+          </div>
         ) : showTranscript ? (
           <MeetingTranscript
             transcript={meeting.transcript}

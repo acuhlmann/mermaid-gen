@@ -1007,6 +1007,9 @@ export const OFFICE_ZH_CN = {
     discussionNotesLabel: '讨论纪要',
     speakPlaceholder: '对全场说点什么…',
     leaveLabel: '离开会议',
+    escalateLede: '这个房间已经跑完了议程。再往上提一级。',
+    escalateToSteering: '升级到指导委员会',
+    escalateToCab: '升级到变更咨询委员会(CAB)听证会',
     interjectCapLine: 'Pam:“观点很棒 — 先放停车场。时间到了。”'
   },
   OFFICE_IM_QUICK_REPLIES: [

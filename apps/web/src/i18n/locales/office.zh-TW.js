@@ -1007,6 +1007,9 @@ export const OFFICE_ZH_TW = {
     discussionNotesLabel: '討論紀要',
     speakPlaceholder: '對大家說點什麼…',
     leaveLabel: '離開會議',
+    escalateLede: '這個房間已經跑完了議程。再往上提一級。',
+    escalateToSteering: '升級到指導委員會',
+    escalateToCab: '升級到變更諮詢委員會(CAB)聽證會',
     interjectCapLine: 'Pam:「很棒的觀點 — 先放進停車場。時間到了。」'
   },
   OFFICE_IM_QUICK_REPLIES: [

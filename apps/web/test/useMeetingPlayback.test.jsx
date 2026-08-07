@@ -248,4 +248,42 @@ describe('useMeetingPlayback', () => {
     });
     expect(result.current.meeting.transcript).toHaveLength(2);
   });
+
+  it('threads the escalation venue into the request and the meeting state', async () => {
+    const fetchMock = vi.fn(async (_url, init) => {
+      const body = JSON.parse(String(init?.body ?? '{}'));
+      return {
+        ok: true,
+        json: async () => ({ script: SCRIPT })
+      };
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const { result } = renderHook(() => useMeetingPlayback(PARAMS));
+
+    await act(async () => {
+      await result.current.startMeeting({ attendees: ATTENDEES, venue: 'cab' });
+    });
+    const sent = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body ?? '{}'));
+    expect(sent.venue).toBe('cab');
+    expect(result.current.meeting.venue).toBe('cab');
+  });
+
+  it('defaults the venue to a working group and omits it from the request', async () => {
+    const fetchMock = vi.fn(async (_url, init) => {
+      const body = JSON.parse(String(init?.body ?? '{}'));
+      return {
+        ok: true,
+        json: async () => ({ script: SCRIPT })
+      };
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const { result } = renderHook(() => useMeetingPlayback(PARAMS));
+
+    await act(async () => {
+      await result.current.startMeeting({ attendees: ATTENDEES });
+    });
+    const sent = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body ?? '{}'));
+    expect(sent.venue).toBeUndefined();
+    expect(result.current.meeting.venue).toBe('workingGroup');
+  });
 });

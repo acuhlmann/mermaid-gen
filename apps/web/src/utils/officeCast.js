@@ -258,6 +258,18 @@ export const MEETING_ROSTER_MAX = 8;
 export const MEETING_ROSTER_MIN = 1;
 
 /**
+ * The meeting escalation ladder (docs/office-parody.md §10.10): a working group
+ * that runs its course escalates to the steering committee, then to a Change
+ * Advisory Board hearing. Shared with the server (`officePersonas.js` / the
+ * `/api/office/meeting` route) — a venue one side doesn't know is a meeting the
+ * other side scripts as a plain working group.
+ */
+export const MEETING_VENUES = ['workingGroup', 'steering', 'cab'];
+export const MEETING_VENUE_WORKING_GROUP = 'workingGroup';
+export const MEETING_VENUE_STEERING = 'steering';
+export const MEETING_VENUE_CAB = 'cab';
+
+/**
  * Where a summoned sync happens on the floor:
  * - `physical` — everyone walks into the glass room (including you).
  * - `remote` — everyone stays at their desk with headsets; call chrome on screen.
@@ -447,6 +459,50 @@ export function pickMeetingAttendees(random = Math.random, { facilitator = 'some
   const presenter = pickRandomFrom(MEETING_PRESENTER_POOL, random) ?? 'gilfoyle';
   if (!seats.includes(presenter)) seats.push(presenter);
   return seats;
+}
+
+/**
+ * Where a meeting that just wrapped goes next on the escalation ladder
+ * (docs/office-parody.md §10.10). A `cab` meeting is the end of the road; a
+ * `steering` meeting goes to the CAB; a working group goes to steering — unless
+ * it already seats the steering committee (seniors + the facilitator), in which
+ * case the room is already "upstairs" and jumps straight to the CAB.
+ *
+ * @param {string | undefined} venue
+ * @param {{ attendees?: string[] }} [options]
+ * @returns {string | null} the next venue, or null at the top of the ladder.
+ */
+export function nextMeetingVenue(venue, { attendees = [] } = {}) {
+  if (venue === MEETING_VENUE_CAB) return null;
+  if (venue === MEETING_VENUE_STEERING) return MEETING_VENUE_CAB;
+  const alreadySteering =
+    attendees.includes(MEETING_FACILITATOR) &&
+    attendees.some((id) => MEETING_SENIOR_POOL.includes(id));
+  return alreadySteering ? MEETING_VENUE_CAB : MEETING_VENUE_STEERING;
+}
+
+/**
+ * The roster for the next rung of the escalation ladder. Escalation is a scripted
+ * beat, not a picker — the button just books the room. A steering review needs
+ * seniors and the facilitator (reuse the current room when it already has them);
+ * the CAB is staffed by the board, which is the senior pool plus Pam keeping time.
+ *
+ * @param {string | undefined} venue
+ * @param {{ current?: string[], random?: () => number }} [options]
+ * @returns {string[]}
+ */
+export function escalationRosterFor(venue, { current = [], random = Math.random } = {}) {
+  if (venue === MEETING_VENUE_CAB) {
+    return [...new Set([...MEETING_SENIOR_POOL, MEETING_FACILITATOR])];
+  }
+  if (venue === MEETING_VENUE_STEERING) {
+    const room = Array.isArray(current) ? current : [];
+    if (room.includes(MEETING_FACILITATOR) && room.some((id) => MEETING_SENIOR_POOL.includes(id))) {
+      return room;
+    }
+    return pickMeetingAttendees(random, { facilitator: true });
+  }
+  return Array.isArray(current) ? current : [];
 }
 
 /**
@@ -1679,6 +1735,10 @@ export const OFFICE_MEETING_COPY = {
   discussionNotesLabel: 'Discussion notes',
   speakPlaceholder: 'Say something to the room…',
   leaveLabel: 'Leave meeting',
+  /** Escalation ladder (§10.10) — the "take it up a level" affordance at a meeting's end. */
+  escalateLede: 'This room has run its course. Take it up a level.',
+  escalateToSteering: 'Escalate to steering committee',
+  escalateToCab: 'Escalate to CAB hearing',
   interjectCapLine: 'Pam: "Great point — let\'s parking-lot it. We\'re at time. Amazing energy."'
 };
 

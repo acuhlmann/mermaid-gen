@@ -179,6 +179,13 @@ Production deploy notes (Cloud Run, billing credits, GitHub Actions CI, optional
   audience is listed by speakerId and forbidden one in the same breath — `normalizeMeetingScript`
   drops beats from speakers outside `attendees`, so an audience member who "speaks" costs a beat
   and can push the script under `MEETING_MIN_BEATS`, which renders as a _cancelled_ meeting.
+- **The escalation rung is a wire contract duplicated verbatim (§10.10).** `MEETING_VENUES =
+['workingGroup','steering','cab']` exists in BOTH `officePersonas.js` and `officeCast.js`; the
+  server zod-defaults an omitted `venue` to `workingGroup` and 400s an unknown rung. Keep the two
+  copies in lockstep or one side books a room the other can't script. Escalation is a scripted beat,
+  never a picker: `escalationRosterFor` picks the roster, `nextMeetingVenue` picks the destination
+  (a senior+facilitator room jumps straight to the CAB). A completed CAB hearing fires `cabApproved`
+  (NOT `meetingSurvived`) — +40 XP and its own one-shot achievement.
 - **`MOMENT_WEIGHTS` in `apps/web/src/utils/officeCadence.js` is a cumulative roll, so adding a kind
   moves every lane boundary.** Tests pinning a lane with a magic `random` value
   (`useOfficeAmbience.test.jsx`) will assert on the wrong surface — re-derive against the new total

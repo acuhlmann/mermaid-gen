@@ -729,6 +729,11 @@ export const ACHIEVEMENTS = {
     title: '🎣 SECURITY INCIDENT #1',
     subtitle: 'You clicked the link. Statistically, everyone does. It is in your file now.'
   },
+  cabApproved: {
+    id: 'cabApproved',
+    title: '✅ CHANGE APPROVED (WITH CONDITIONS)',
+    subtitle: 'The CAB has approved the change. Conditions apply. They always apply.'
+  },
   ...VARIANT_MASTERY_ACHIEVEMENTS
 };
 

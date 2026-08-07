@@ -394,6 +394,11 @@ export const OFFICE_XP_AWARDS = {
   battleSettled: 5,
   meetingLeftEarly: 5,
   meetingSurvived: 25,
+  /**
+   * The Change Advisory Board hearing (§10.10) is the one meeting that decides —
+   * a provisional approval. Worth more than a sync, still well short of a run.
+   */
+  cabApproved: 40,
   /** Linda's compliance training (§10.1) — a real sit-down, but still not a run. */
   trainingCompleted: 20,
   phishingReported: 5,
@@ -446,6 +451,9 @@ export function applyOfficeEvent(state, input) {
   }
   if (kind === 'meetingSurvived') {
     unlock('survivedTheSync', achievementCopy.survivedTheSync);
+  }
+  if (kind === 'cabApproved') {
+    unlock('cabApproved', achievementCopy.cabApproved);
   }
   if (kind === 'emailRead' && input.inboxZero) {
     unlock('inboxZero', achievementCopy.inboxZero);

@@ -386,3 +386,40 @@ test('office huddle reports an unconfigured LLM rather than inventing a script',
     await closeServer();
   }
 });
+
+test('office meeting accepts the escalation venues and rejects unknown ones', async () => {
+  const { port, closeServer } = await bootServer();
+  try {
+    // The ladder rungs are on the wire contract (§10.10) — each reaches the
+    // (unconfigured) model gate like an ordinary meeting does.
+    const steering = await post(port, 'meeting', {
+      attendees: ['scrumMaster', 'barker', 'gilfoyle'],
+      venue: 'steering',
+      diagramSource: 'flowchart TD\n A-->B'
+    });
+    assert.equal(steering.status, 503);
+
+    const cab = await post(port, 'meeting', {
+      attendees: ['scrumMaster', 'barker', 'belson', 'ciso', 'cfo'],
+      venue: 'cab',
+      diagramSource: 'flowchart TD\n A-->B'
+    });
+    assert.equal(cab.status, 503);
+
+    // Venue is optional and defaults to a working group.
+    const omitted = await post(port, 'meeting', {
+      attendees: ['gilfoyle', 'dinesh'],
+      diagramSource: 'flowchart TD\n A-->B'
+    });
+    assert.equal(omitted.status, 503);
+
+    // A rung that is not on the ladder is a client bug — fail loudly.
+    const bogus = await post(port, 'meeting', {
+      attendees: ['gilfoyle', 'dinesh'],
+      venue: 'court-martial'
+    });
+    assert.equal(bogus.status, 400);
+  } finally {
+    await closeServer();
+  }
+});

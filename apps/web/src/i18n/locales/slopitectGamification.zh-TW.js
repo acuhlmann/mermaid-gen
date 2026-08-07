@@ -404,6 +404,11 @@ export const SLOPITECT_GAMIFICATION_ZH_TW = {
       title: '🎣 資安事件 #1',
       subtitle: '你點了那個連結。統計上人人都會點。已記入你的檔案。'
     },
+    cabApproved: {
+      id: 'cabApproved',
+      title: '✅ 變更已核准(附條件)',
+      subtitle: 'CAB 已核准這項變更。條件適用。它們永遠適用。'
+    },
     gilfoyle: {
       id: 'stackOwner',
       title: '🦇 這套系統是我的',

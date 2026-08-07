@@ -183,6 +183,13 @@ Every session carries **six independent diagram slots** — `mermaid` (Mermaid t
   client renders as a _cancelled_ meeting rather than a big one. Note `speakerLabel` returns the
   raw id for the whole team tier (their voices live in `STAKEHOLDER_MEETING_VOICES`, which stores
   strings, not `{name,title}`) — don't reach for it to pretty-print a roster.
+- **The escalation rung is a wire contract duplicated verbatim (§10.10).** `MEETING_VENUES =
+['workingGroup','steering','cab']` exists in BOTH `officePersonas.js` and `officeCast.js`; the
+  server zod-defaults an omitted `venue` to `workingGroup` and 400s an unknown rung. Keep the two
+  copies in lockstep or one side books a room the other can't script. Escalation is a scripted beat,
+  never a picker: `escalationRosterFor` picks the roster, `nextMeetingVenue` picks the destination
+  (a senior+facilitator room jumps straight to the CAB). A completed CAB hearing fires `cabApproved`
+  (NOT `meetingSurvived`) — +40 XP and its own one-shot achievement.
 - **`MOMENT_WEIGHTS` in `officeCadence.js` is a cumulative roll, so adding a kind moves every lane
   boundary.** Tests that pin a lane with a magic `random` value (`useOfficeAmbience.test.jsx`)
   will start asserting on the wrong surface — re-derive the value against the new total rather than

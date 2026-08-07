@@ -33,6 +33,18 @@ describe('applyOfficeEvent', () => {
     expect(second.emissions.some((e) => e.kind === 'achievement')).toBe(false);
   });
 
+  it('awards CHANGE APPROVED on a completed CAB hearing and unlocks once', () => {
+    let state = createInitialState();
+    const first = applyOfficeEvent(state, { kind: 'cabApproved' });
+    expect(first.state.xp).toBe(OFFICE_XP_AWARDS.cabApproved);
+    expect(first.emissions[0]).toMatchObject({ kind: 'xp', variant: 'office' });
+    expect(first.emissions.some((e) => e.kind === 'achievement' && e.id === 'cabApproved')).toBe(
+      true
+    );
+    const second = applyOfficeEvent(first.state, { kind: 'cabApproved' });
+    expect(second.emissions.some((e) => e.kind === 'achievement')).toBe(false);
+  });
+
   it('unlocks INBOX ZERO only when flagged by the caller', () => {
     let state = createInitialState();
     const plain = applyOfficeEvent(state, { kind: 'emailRead' });
