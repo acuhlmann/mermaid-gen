@@ -19,10 +19,29 @@ const lines = copy.narration;
 
 describe('ADR-0011 rule 2 — diegesis duplicates, never replaces', () => {
   it('only the coffee machine wires through to a desk verb', () => {
+    /*
+     * Asserted as "which kinds carry a verb" rather than as whole rows: the
+     * contract in the title is about the `verb` column alone, and pinning the
+     * entire object shape here made an unrelated column (`hands`) fail a test
+     * about ADR-0011 rule 2, which is a false alarm in the one file that should
+     * never cry wolf.
+     */
     const withVerb = FLOOR_PROP_USES.filter((row) => row.verb);
-    expect(withVerb).toEqual([{ kind: 'coffeeMachine', verb: 'coffee' }]);
+    expect(withVerb.map((row) => row.kind)).toEqual(['coffeeMachine']);
+    expect(propUseFor('coffeeMachine')?.verb).toBe('coffee');
     expect(propUseFor('printer')?.verb).toBeNull();
     expect(propUseFor('whiteboard')?.verb).toBeNull();
+  });
+
+  it('putting something in a hand is not wiring through to a verb', () => {
+    /*
+     * Rule 2's boundary, now that a prop can also hand something over. The
+     * printer fills a hand and still produces nothing — a printout somebody is
+     * carrying is scenery, not an artifact (ADR-0010's Sign-off rule). If a
+     * `hands` value ever starts implying a `verb`, that is the rule bending.
+     */
+    const handsWithoutVerb = FLOOR_PROP_USES.filter((row) => row.hands && !row.verb);
+    expect(handsWithoutVerb.map((row) => row.kind)).toEqual(['printer']);
   });
 
   it('lists every prop kind exactly once', () => {

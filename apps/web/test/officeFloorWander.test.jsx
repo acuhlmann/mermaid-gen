@@ -8,6 +8,7 @@ import { officeChromeCopy } from '../src/utils/officeCast.js';
 import { renderFloor } from './helpers/officeFloorTestUtils.jsx';
 import { wanderTripsFor, wanderingSeatIds } from '../src/utils/officeFloorWander.js';
 import { approachTileFor, propTileFor } from '../src/utils/officeFloorMovement.js';
+import { propHandsFor } from '../src/utils/officeFloorProps.js';
 import {
   FLOOR_SEATS,
   boxesOverlap,
@@ -165,6 +166,64 @@ describe('the trip machine', () => {
 
     arrive();
     expect(seen.wanderer).toBeNull();
+  });
+
+  it('comes back holding what the prop handed over', () => {
+    /*
+     * § 8's "a held item is drawn, never carried", closed. The trip is the only
+     * thing that remembers it, and it remembers it exactly once: empty-handed on
+     * the way out, carrying on the way back, forgotten when they sit down.
+     */
+    const { seen, arrive } = harness();
+    act(() => vi.advanceTimersByTime(9_000));
+    expect(seen.wanderer?.kind).toBe('coffeeMachine');
+    expect(seen.wanderer?.carrying).toBeNull();
+
+    arrive();
+    // Still at the machine — they are using it, not walking away with it yet.
+    expect(seen.wanderer?.phase).toBe('dwell');
+    expect(seen.wanderer?.carrying).toBeNull();
+
+    act(() => vi.advanceTimersByTime(9_000));
+    expect(seen.wanderer?.phase).toBe('home');
+    expect(seen.wanderer?.carrying).toBe('coffee');
+
+    // The errand ends with the trip; nothing outlives it.
+    arrive();
+    expect(seen.wanderer).toBeNull();
+  });
+
+  it('comes back empty-handed when you turn them round before they arrive', () => {
+    /*
+     * The honest half of the rule. `goHome` has two callers and only one of them
+     * means "they used the thing" — claiming their tile mid-stride sends them
+     * back from wherever they got to, which was not the coffee machine.
+     */
+    const { seen, view, Probe } = harness();
+    act(() => vi.advanceTimersByTime(9_000));
+    const mark = seen.wanderer.to;
+    expect(seen.wanderer.phase).toBe('out');
+
+    act(() => view.rerender(<Probe avoidTile={mark} />));
+    expect(seen.wanderer.phase).toBe('home');
+    expect(seen.wanderer.carrying).toBeNull();
+  });
+
+  it('takes the hand from the prop table rather than deciding for itself', () => {
+    /*
+     * Ties the trip to `FLOOR_PROP_USES` without asserting a literal, so the day
+     * somebody gives the whiteboard something to hand over — or takes the
+     * printer's away — this test follows rather than fails. Not every errand is
+     * a fetch, and which ones are is the table's call, not the hook's.
+     */
+    const { seen, arrive } = harness();
+    act(() => vi.advanceTimersByTime(9_000));
+    const { kind } = seen.wanderer;
+
+    arrive();
+    act(() => vi.advanceTimersByTime(9_000));
+    expect(seen.wanderer?.phase).toBe('home');
+    expect(seen.wanderer?.carrying).toBe(propHandsFor(kind));
   });
 
   it('never picks somebody a real moment already has', () => {
@@ -382,6 +441,38 @@ describe('somebody who is not at their desk', () => {
       />
     );
     expect(settled.container.querySelector('button.office-floor-person')).toBeTruthy();
+  });
+
+  it('actually draws what they are carrying on the walk back', () => {
+    /*
+     * The same reason the slice 13 suite renders its holds rather than trusting
+     * `data-hold`: every assertion above this one would still pass with
+     * `HeldItem` drawing nothing, which is what a renamed case looks like from
+     * the outside. Chad's row is `typing`, so he carries nothing of his own —
+     * anything in his hand here came off the trip.
+     */
+    const base = { seatId: CHAD, kind: 'coffeeMachine', from: seatFor(CHAD), to: WHITEBOARD };
+
+    const out = render(
+      <FloorWanderer
+        wanderer={{ ...base, phase: 'out', leg: 1, carrying: null }}
+        copy={FLOOR_COPY()}
+      />
+    );
+    expect(out.container.querySelector('.office-floor-person-hold')).toBeNull();
+    cleanup();
+
+    const back = render(
+      <FloorWanderer
+        wanderer={{ ...base, phase: 'home', leg: 2, carrying: 'coffee' }}
+        copy={FLOOR_COPY()}
+      />
+    );
+    const figure = back.container.querySelector('.office-floor-person-figure');
+    expect(figure.getAttribute('data-hold')).toBe('coffee');
+    const layer = figure.querySelector('.office-floor-person-hold');
+    expect(layer, 'carrying a coffee with no art').toBeTruthy();
+    expect(layer.innerHTML.length, 'the cup is empty').toBeGreaterThan(0);
   });
 
   it('opens a card that says where they are, with no shoulder to look over', () => {

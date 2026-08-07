@@ -5,6 +5,16 @@ on:
   push:
     branches:
       - main
+  # Manual re-run, for the case that has no code fix: a run poisoned by an
+  # Actions outage rather than by the diff. A job that dies in "Set up job"
+  # with `Failed to resolve action download info` never reached a test, but it
+  # still fails the `check` aggregate and fail-fast-cancels its siblings —
+  # leaving a red PR that no commit can turn green. Re-running the failed jobs
+  # needs `actions: write`, which the read-only CI token does not have, and
+  # closing/reopening the PR only re-triggers while no completed run exists for
+  # the head SHA. This gives that situation a lever that is not "push an empty
+  # commit".
+  workflow_dispatch:
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}

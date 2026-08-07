@@ -98,7 +98,15 @@ export function deskDoingFor(id) {
  * 3. **A coffee in your hand beats whatever else was in it**, because a set
  *    piece is a thing that is happening and a trait row is a thing that is
  *    generally true.
- * 4. Otherwise the trait row.
+ * 4. **Then whatever they picked up on the way**, which is the same argument one
+ *    rung quieter: an errand is also a thing that is happening, but a running
+ *    set piece outranks ambient traffic everywhere else on this floor and there
+ *    is no reason for the hand to be the exception. In practice the two never
+ *    collide — `coffee` is the moment store's set piece and only ever describes
+ *    *you*, while `carrying` only ever describes a wanderer — so the order is
+ *    written down for the day somebody makes them overlap rather than to settle
+ *    a fight happening today.
+ * 5. Otherwise the trait row.
  *
  * `moving` drops the pose but keeps the hold: the walk animation owns the body
  * while somebody is mid-stride (`.is-walking` retimes the same keyframes), and
@@ -110,16 +118,23 @@ export function deskDoingFor(id) {
  *   onCall?: boolean,
  *   headphones?: boolean,
  *   coffee?: boolean,
+ *   carrying?: string | null,
  *   moving?: boolean
  * }} [context]
  * @returns {FloorActivity}
  */
 export function floorActivityFor(id, context = {}) {
-  const { onCall = false, headphones = false, coffee = false, moving = false } = context;
+  const {
+    onCall = false,
+    headphones = false,
+    coffee = false,
+    carrying = null,
+    moving = false
+  } = context;
   const base = deskDoingFor(id);
   return {
     pose: onCall ? 'call' : moving ? 'idle' : base.pose,
-    hold: coffee ? 'coffee' : base.hold,
+    hold: coffee ? 'coffee' : (carrying ?? base.hold),
     headwear: onCall ? 'headset' : headphones ? 'headphones' : base.headwear
   };
 }

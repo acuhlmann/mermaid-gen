@@ -53,3 +53,40 @@ auto-rotate lasts 1.4s), then `page.screenshot()` composites DOM + WebGL fine.
 - Animated one-shot effects (e.g. shooting stars): burst-capture N screenshots
   ~700ms apart and inspect the largest files.
 - For a baseline comparison, `git stash push -u -- <paths>` → capture → `git stash pop`.
+
+## Capturing a CSS transition at an exact moment
+
+Racing the wall clock with `waitForTimeout` gives frames you cannot reproduce.
+Instead let the phase change land (one `requestAnimationFrame`), then pause and
+seek **every** live animation — `document.getAnimations()` covers CSS
+transitions and the floor's ambient loops as well as the keyframe animations:
+
+```js
+document.getAnimations().forEach((a) => {
+  try {
+    a.pause();
+    a.currentTime = ms;
+  } catch {
+    /* finished/idle reject a seek */
+  }
+});
+```
+
+Two traps this walks into, both found on the stand-up camera move
+(`docs/office-isometric-mode.md` § 1a):
+
+- **Never diff two frames across a remount.** `OfficeFloor` re-randomizes
+  walkers and idle phases every time it mounts, so a "with effect vs without"
+  diff taken as _sit down → stand up → shoot, repeat_ is dominated by people
+  standing somewhere else — it reported a 235/255 max delta for a band actually
+  worth 18/255. Mount **once**, park it with the seek above, and toggle only the
+  thing under test (`addStyleTag` an `opacity: 0 !important` override, shoot,
+  remove it). Contamination hides while the room is still blurred and explodes
+  the moment it goes crisp, which reads convincingly like a real effect.
+- **Driving the store twice in one `page.evaluate` is one React tick.**
+  `standUp()` immediately followed by `sitDown()` never enters the `sit-down`
+  phase at all — `useFloorViewPhase` sees only the final value. Each store call
+  needs its own `evaluate` so React commits in between.
+
+A white-on-near-white overlay needs measuring, not eyeballing: diff the frames
+and read `maxDelta`. Under ~20/255 nobody will ever see it.

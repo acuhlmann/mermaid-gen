@@ -25,10 +25,17 @@
  */
 
 /**
- * @typedef {{ kind: string, verb: 'coffee' | null }} FloorPropUse
+ * @typedef {{ kind: string, verb: 'coffee' | null, hands: string | null }} FloorPropUse
  *   `kind` matches a `FLOOR_PROPS` entry in `officeFloorPlan.js`; `verb` names
  *   the existing desk verb this prop duplicates, or `null` when using it
- *   produces nothing but the line.
+ *   produces nothing but the line. `hands` is what somebody walks away from it
+ *   holding — one of `FLOOR_HOLDS` (`officeFloorActivity.js`) or `null`.
+ *
+ *   `verb` and `hands` are deliberately separate. `verb` is what using the prop
+ *   *does to the session* (ADR-0011 rule 2 — it duplicates a desk verb); `hands`
+ *   is only what the errand looks like from across the room. The whiteboard
+ *   proves they are not the same field: it has neither, while the printer has a
+ *   `hands` and no `verb` at all.
  */
 
 /**
@@ -40,14 +47,25 @@
  * four things are usable teaches you to try things, and a room where thirty
  * things say "nothing happens" teaches you to stop.
  *
+ * The `hands` column is not a content decision somebody made up — each value is
+ * forced by what `HeldItem` already draws. Its `coffee` is documented as "what
+ * the machine hands you" and its `mug` as "the one you keep at your desk, as
+ * opposed to the one the machine gave you", so the machine can only hand over a
+ * `coffee`, and the printer can only hand over `papers`. Nothing is invented,
+ * and no fifth drawing is needed. The whiteboard hands over nothing because you
+ * cannot carry a whiteboard, which is the honest answer rather than a gap.
+ *
  * @type {FloorPropUse[]}
  */
 export const FLOOR_PROP_USES = [
   // Rule 2's own example. The floor's only prop that does something.
-  { kind: 'coffeeMachine', verb: 'coffee' },
-  { kind: 'waterCooler', verb: null },
-  { kind: 'printer', verb: null },
-  { kind: 'whiteboard', verb: null }
+  { kind: 'coffeeMachine', verb: 'coffee', hands: 'coffee' },
+  // No standable mark today (§ 6 rule 21), so nobody ever walks up to it — the
+  // row still declares a hand so that giving it a mark is a geometry change and
+  // not also a content one.
+  { kind: 'waterCooler', verb: null, hands: null },
+  { kind: 'printer', verb: null, hands: 'papers' },
+  { kind: 'whiteboard', verb: null, hands: null }
 ];
 
 /**
@@ -68,6 +86,24 @@ export function propUseFor(kind) {
  */
 export function isUsableProp(kind) {
   return propUseFor(kind) !== null;
+}
+
+/**
+ * What somebody walks away from this prop holding, or `null` for the ones you
+ * cannot take anything from.
+ *
+ * Its own accessor rather than a `propUseFor(kind)?.hands` at the call site,
+ * because the caller (`useFloorWander`) is deciding what a colleague remembers
+ * about a trip and should not also have to know that an unknown prop kind reads
+ * back as `undefined` rather than `null` — `FLOOR_HOLDS` has no `undefined` in
+ * it, and `HeldItem` draws nothing for either, so the difference is invisible
+ * right up until something compares it.
+ *
+ * @param {string} kind
+ * @returns {string | null}
+ */
+export function propHandsFor(kind) {
+  return propUseFor(kind)?.hands ?? null;
 }
 
 export default FLOOR_PROP_USES;

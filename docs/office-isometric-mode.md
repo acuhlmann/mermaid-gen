@@ -1188,10 +1188,22 @@ one that matters most: the offer survives when narration hides the bubble.
   in the first hour, nobody does after the stand-up), and the obvious trap is that this is
   ambient content with a timer, so § 11's budget applies and `officeCadence.js` owns the dial —
   not a new one here.
-- **A held item is drawn, never carried.** Nothing walks to the machine and comes back holding
-  something: a wanderer's mug is theirs the whole time. Making the trip _change_ the hand is the
-  first thing on this floor that would need a wanderer to remember something, which is floor-only
-  state about somebody else (slice 11's line) — cheap to build and worth being deliberate about.
+- ~~**A held item is drawn, never carried.** Nothing walks to the machine and comes back holding
+  something: a wanderer's mug is theirs the whole time.~~ ✅ **shipped** — a wander trip now
+  remembers one thing, `carrying`, filled in on the turn for home from the prop's own `hands`
+  column (`officeFloorProps.js`) and composed into the hand by `floorActivityFor` like every
+  other tell. Three things it settled. **The content question answered itself**: `HeldItem`
+  already documents its `coffee` as "what the machine hands you" and its `mug` as "the one you
+  keep at your desk, as opposed to the one the machine gave you", so the machine can only hand
+  over a `coffee` and the printer only `papers` — no fifth drawing, nothing invented, and the
+  whiteboard hands over nothing because you cannot carry a whiteboard. **`verb` and `hands` are
+  two columns**: the printer duplicates no desk verb (ADR-0011 rule 2 — it produces nothing) and
+  still fills a hand, because what an errand _does_ and what it _looks like_ are different
+  questions. And **the memory is honest about failure**: `goHome` has two callers, and the one
+  that fires when you claim a wanderer's tile mid-stride sends them back empty-handed, because
+  they never reached the machine — the rule reads `phase === 'dwell'` rather than a flag, since
+  dwell is the room's own record of having stood at the thing. The memory dies with the trip
+  (ADR-0011 rule 1); a mug that outlived the walk would be floor state about somebody else.
 - **`data-on-call` is now narrower than the drawing.** It marks a sync, not a headset, because
   Dave wears one all day and reading the art back would mark the helpdesk permanently on a call.
   If something later wants "is there a headset on this person", that is a second attribute, not a

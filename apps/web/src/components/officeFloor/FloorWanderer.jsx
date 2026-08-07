@@ -58,7 +58,8 @@ function awayLabel(sender, seatId, propKind, copy) {
  *     from: { x: number, y: number },
  *     to: { x: number, y: number },
  *     phase: 'out' | 'dwell' | 'home',
- *     leg: number
+ *     leg: number,
+ *     carrying?: string | null
  *   },
  *   copy: Record<string, any>,
  *   onArrive?: () => void,
@@ -116,8 +117,16 @@ export function FloorWanderer({
    * room with his mug is going somewhere, Gary crossing it empty-handed is
    * lost. `moving` only drops the idle rhythm, never the hand (see
    * `floorActivityFor`), and the walk animation owns the body meanwhile.
+   *
+   * `carrying` is what the trip *changed* about the hand: null on the way out,
+   * whatever the prop handed over on the way back (`useFloorWander`). The
+   * composition still happens in one place — this passes the context and reads
+   * the answer, it does not decide what a coffee machine gives you.
    */
-  const activity = floorActivityFor(seatId, { moving: !settled });
+  const activity = floorActivityFor(seatId, {
+    moving: !settled,
+    carrying: wanderer.carrying ?? null
+  });
 
   return (
     <div
