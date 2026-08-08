@@ -418,7 +418,7 @@ zero, and no horizontal overflow. All of it pinned in `test/deskOsFrameStyles.te
     of § 6 rule 22, and clearing it turned out to be the prerequisite rather than the
     housekeeping: taking the name chip out of the button's layout flow does not move a single
     pixel of the room — the before and after captures are identical — but it takes every seat's
-    clickable box from 34–116 px wide down to the 34 × 48 figure. See rule 23 for what the scan
+    clickable box from 34–116 px wide down to the 34 × 58 figure. See rule 23 for what the scan
     found, including a bug nobody knew about.
 
     **One live region instead of five.** `FloorLiveRegion` is mounted for as long as the floor
@@ -484,7 +484,7 @@ zero, and no horizontal overflow. All of it pinned in `test/deskOsFrameStyles.te
 
     **One person, one hit target, and it travels with them.** The button is not copied onto the
     empty chair; it moves to wherever the body is (`FloorPersonButton`, now shared by `FloorSeat`
-    and `FloorWanderer`, so § 6 rule 23's 34 × 48 invariant has one definition instead of two).
+    and `FloorWanderer`, so § 6 rule 23's 34 × 58 invariant has one definition instead of two).
     That is what keeps somebody out of the tab order twice, and it is why clicking their vacant
     chair still does what it did before — you walk over there, which now _reads_ correctly,
     because their body is visibly elsewhere with their name on it.
@@ -703,18 +703,23 @@ occupied briefly has only ever been tested briefly.**
     per-speaker it blankets the room and leaps across the table every beat. `liftToDepth`
     keeps the speaker's screen column — so the tail still points at them — while pinning
     every bubble to one baseline above the back row (`MEETING_BUBBLE_DEPTH`).
-14. **A figure is 48 px tall, not 58.** Head (34) plus torso (24) minus the head's −10 px
-    `margin-bottom`, which is what fuses them into one figure. Anything that reasons about
-    occlusion has to use the real number; `officeFloorPlan.test.js` measures with it, and
-    the value was confirmed against `getBoundingClientRect()` rather than read off the
-    stylesheet. It now lives in `officeFloorPlan.js` (`figureBox` / `headBox` /
-    `boxesOverlap`) so the marks and the tests measure with one definition.
+14. **A figure is 58 px tall, not 48.** The joke is on this rule's original title: the
+    number it was written to pin down moved when the figure grew legs. Head (34) plus torso
+    (24) plus legs (13), minus the head's −10 px `margin-bottom` and the legs' −3 px
+    overlap, which are what fuse the three layers into one figure. Anything that reasons
+    about occlusion has to use the real number; `officeFloorPlan.test.js` measures with it,
+    and the value was confirmed against `getBoundingClientRect()` rather than read off the
+    stylesheet. It lives in `officeFloorPlan.js` (`figureBox` / `headBox` / `boxesOverlap`)
+    so the marks and the tests measure with one definition — which is exactly what made
+    growing the figure safe: every lift, every face test and every hit box moved with the
+    same edit.
 15. **A bubble over a seated speaker must clear the figure, not the chair.** The seated
     anchor lifts by 30 px — the seat lift — which puts the balloon's bottom edge on their
     feet, and a ~70 px bubble then covers them from the chest up. It hid the colleague
     introducing themselves in the arrival ceremony (glow and all, since slice 3) and hid
-    the person you had walked across the floor to look at. The lift is 30 + 48 = the whole
-    figure: `.office-floor-walker-anchor--over-seat`, kept separate from `--seated`, which
+    the person you had walked across the floor to look at. The lift is 30 + 62: the seat
+    lift over the whole figure plus 4 px of air, so the balloon's bottom edge never touches
+    hair — 92 px in all, as `.office-floor-walker-anchor--over-seat`, kept separate from `--seated`, which
     still means "a figure sitting on a tile that owns no `FloorSeat`" in the glass room.
 16. **Stand to the screen-right of a desk, never one tile along `+y`.** The monitor sits
     ~34 px screen-left of its desk (rule 1) and is ~26 px wide, so the obvious "beside
@@ -756,11 +761,11 @@ occupied briefly has only ever been tested briefly.**
     in `useWalkAnimation.test.jsx` against a stubbed engine instead.
 
 20. **A bubble's lift has to match whether they are actually sitting.** Rule 15 established
-    that a bubble over a seated speaker clears 30 px of seat lift _plus_ the 48 px figure.
+    that a bubble over a seated speaker clears 30 px of seat lift _plus_ the 58 px figure.
     `FloorDeskSpeech` applied that to everyone — including Gary, who has no desk and is
     therefore never seat-lifted, so his balloon floated a clear tile above his head while
     everybody else's sat on theirs. The lift is a property of the _speaker_, not of the
-    component: `--over-seat` (82 px) for somebody at a desk, `--over-standing` (52 px) for
+    component: `--over-seat` (92 px) for somebody at a desk, `--over-standing` (62 px) for
     somebody on their feet at their own tile. Slice 6 never hit this because Gary has nothing
     to peek at; slice 8 walks up to him, which is the point of `approachTileFor` existing.
 
@@ -799,6 +804,9 @@ occupied briefly has only ever been tested briefly.**
     | …that hit russ instead               | **84**                   | 0                            |
     | stage samples reaching the floor     | 3313 / 3600              | 3449 / 3600                  |
     | printer's box: floor / Linda / Pam   | 376 / 36 / 12            | 406 / 12 / 6                 |
+
+    (Measured when the figure was 48 px tall. The scan still passes — the box follows the
+    figure, so today's "after" is the same width × the 58 px figure of rule 14.)
 
     The Critique row is the find. Two people's invisible boxes overlapped, so **19% of clicks
     aimed at one colleague selected a different one** — a bug that had been there since slice 1,
@@ -853,10 +861,14 @@ occupied briefly has only ever been tested briefly.**
     `FLOOR_SEATS` whoever it is asked for, so it knows where everybody **works**; it has no idea a
     body is stood at the printer, and it still believes that body is at the desk it left. So a
     mark derived _around_ somebody's live position has to re-ask both halves of the face test
-    about the position itself, which is `figuresClear` in `officeFloorMovement.js`. It currently
-    rejects nothing: the only offset in `APPROACH_OFFSETS` that shares a screen column with the
-    target is `{1, 1}`, and two tiles of depth is 56 px against a 48 px figure. That is the
-    constraint being encoded before the layout needs it rather than dead code — the ladder is what
+    about the position itself, which is `figuresClear` in `officeFloorMovement.js`. When it was
+    written it rejected nothing: the only offset in `APPROACH_OFFSETS` that shares a screen
+    column with the target is `{1, 1}`, and two tiles of depth is 56 px against what was
+    then a 48 px figure. The legs spent that margin — at 58 px the walker's head meets the
+    target's feet by 2 px on the `{1, 1}` mark, and the helper now rejects it. Nothing
+    reachable moved, measured seat by seat against all three prop marks: the ladder always
+    finds `{0, 1}` or `{1, 0}` first, so every seat still resolves to the same tile. That is
+    the constraint doing its job rather than dead code — the ladder is what
     makes "there is nowhere to stand" an answer the room gives. The distinction worth carrying:
     `excludeSeatId` says _whose chair to ignore_, and a live position is a body **no chair
     describes**.
@@ -932,21 +944,23 @@ occupied briefly has only ever been tested briefly.**
     box's _centre_ is empty air above the object and reaches the floor for all three usable props,
     with or without anybody standing there.
 
-31. **A seated figure has about six visible pixels that are not its own face.** The figure is
-    34 × 48: a 34 px `PersonaFace` disc over a 34 × 24 torso, overlapped 10 px. Seated, it is
-    lifted 30 px (rule 2) and its own desk's top-back edge is ~42 px above the tile centre — so
-    everything below figure-y 36 is behind furniture. The head disc occupies y 0–34. Subtract
-    them and what is left is a band **y 34–36 wide open, and a sliver either side of the disc**
-    that narrows as you go up: at y 30 the disc still covers x 6–28 of 34.
+31. **A seated figure's legs are invisible, and its face still owns the top.** The figure is
+    34 × 58: a 34 px `PersonaFace` disc over a 34 × 24 torso, overlapped 10 px, over 34 × 13
+    legs overlapped 3. Seated, it is lifted 30 px (rule 2) and its own desk's top-back edge
+    is ~42 px above the tile centre — so everything below figure-y 46 is behind furniture,
+    which is exactly where the legs live (they span y 45–58; one pixel of thigh peeks out).
+    The head disc occupies y 0–34. Subtract them and what is left is a band **y 34–46 wide
+    open, and a sliver either side of the disc** that narrows as you go up: at y 30 the disc
+    still covers x 6–28 of 34.
 
     This is why slice 13's held items are a **third layer over the head** rather than paths in
     the torso. Inside the torso SVG the only place a mug both survives the desk and clears the
-    face is that six-pixel band, and nothing legible fits in it. Lifted out (absolutely
+    face is that twelve-pixel band, and nothing legible fits in it. Lifted out (absolutely
     positioned over the figure's x18–34 / y16–40) an item can sit where a hand would hold it,
     and a phone can reach an ear — which is the one held item that is unmistakable at 34 px.
 
     Two constraints the layer inherits and must keep. It is **out of the flex flow**, so rule 23
-    still holds: a figure's hit box is still the 34 × 48 figure, with the mug hanging outside it.
+    still holds: a figure's hit box is still the 34 × 58 figure, with the mug hanging outside it.
     And it takes **`pointer-events: none`**, for the identical reason the name chip does — a
     child that accepted them would hand the oversized box straight back.
 
@@ -1072,7 +1086,7 @@ the ones you can use — mind § 6 rule 23 before making anything else on the st
 whoever is not looking at it — a new card needs a line here, in the same position),
 `FloorActors` (every figure on the stage that is not seated; a new actor is one more
 `x ? <X /> : null` here rather than another branch in the view component),
-`FloorPersonButton` (**the** clickable figure — one definition of § 6 rule 23's 34 × 48 box, and
+`FloorPersonButton` (**the** clickable figure — one definition of § 6 rule 23's 34 × 58 box, and
 where any new place a person can be clicked belongs; since slice 15 its name chip also lights
 up within a tile of you — paint only, hit box untouched),
 `useFloorAway` (everybody out of their chair, for either reason — a moment has them, or they got

@@ -389,7 +389,7 @@ describe('somebody who is not at their desk', () => {
      * One person, one hit target: it travels with them rather than being copied
      * onto the chair, which is what keeps them out of the tab order twice and out
      * of § 6 rule 23's way. Same class as a seated figure because it is literally
-     * the same component — the 34 × 48 box has one definition.
+     * the same component — the 34 × 58 box has one definition.
      */
     const button = figure.querySelector('button.office-floor-person');
     expect(button).toBeTruthy();

@@ -45,7 +45,7 @@ export const DESK_WORK_LOOKS = Object.freeze([
 /**
  * What they are visibly doing at that screen. Closed for the same reason
  * `DESK_WORK_LOOKS` is: each value is one held item plus one idle rhythm on a
- * 34 × 48 figure whose lower half a desk hides, and a sixth would be a
+ * 34 × 58 figure whose legs a desk hides, and a sixth would be a
  * distinction nobody could see. `officeFloorActivity.js` owns the mapping to
  * art; this file owns only which one each character is.
  *

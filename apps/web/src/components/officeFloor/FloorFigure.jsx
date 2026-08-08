@@ -16,6 +16,17 @@
  * Slice 13 added a third layer on top of both: whatever is **in their hand**.
  * The figure draws it; it does not decide it — `floorActivityFor` does, once,
  * for every surface (see `officeFloorActivity.js`).
+ *
+ * The figure stands on **legs**, and the split between the layers is what
+ * keeps it planted: head, torso and held item live in one `.office-floor-person-upper`
+ * wrapper that carries every bob animation, while the legs sit below it and
+ * stay on the floor. A bob that lifted the feet too was the old hover — a
+ * figure with legs reads as standing only when the ground does not move with
+ * it. Walking swaps the idle bob for a gait: the two legs swing in antiphase
+ * from the hips (`office-floor-stride` in OfficeFloor.css) and the upper body
+ * rides the matching bounce. The stride cadence arrives as `--walk-cycle`,
+ * derived from the walk's real pacing by `useWalkAnimation`, so the feet keep
+ * roughly the tempo the room is crossing at.
  */
 
 import { PersonaFace } from '../personaFaces/index.jsx';
@@ -136,6 +147,44 @@ function TorsoGarment({ top, s }) {
 }
 
 /**
+ * The legs (viewBox 34x13): trousers cut from a darker mix of the accent, so
+ * identity-by-colour survives but the legs still read as clothing, with shoes
+ * a shade darker still. One `<g>` per leg — the hips are the rotation origin
+ * for the stride (`transform-box: fill-box` in OfficeFloor.css), so each group
+ * holds its trouser and its shoe and they swing together. Seated, this whole
+ * layer sits below figure-y 46, which is behind the desk (§ 6 rule 31), so a
+ * sitting figure keeps its legs without anyone seeing the detail.
+ *
+ * The ellipse underneath is the floor contact: deliberately **outside** both
+ * bob wrappers, so the shadow stays on the ground while the body breathes or
+ * bounces above it — the single cheapest anti-hover there is.
+ */
+function Legs() {
+  const trouser = tint(46, '#0e1826');
+  const shoe = tint(30, '#090f1a');
+  return (
+    <svg
+      className="office-floor-person-legs"
+      viewBox="0 0 34 13"
+      width="34"
+      height="13"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <ellipse cx="17" cy="12.3" rx="9" ry="1.6" fill="rgba(15,23,42,0.16)" />
+      <g className="office-floor-leg office-floor-leg--left">
+        <path d="M12.2 0h3.6v9h-3.6Z" {...trouser} />
+        <rect x="11.5" y="8.8" width="4.9" height="3" rx="1.3" {...shoe} />
+      </g>
+      <g className="office-floor-leg office-floor-leg--right">
+        <path d="M18.2 0h3.6v9h-3.6Z" {...trouser} />
+        <rect x="17.6" y="8.8" width="4.9" height="3" rx="1.3" {...shoe} />
+      </g>
+    </svg>
+  );
+}
+
+/**
  * Body + side-anchor shift for a build: slim pulls side marks in, broad
  * pushes them out, anything missing gets the regular silhouette.
  */
@@ -215,39 +264,44 @@ export function FloorFigure({
       style={{ '--floor-accent': accent, '--idle-delay': `${(idleIndex % 7) * 0.53}s` }}
       data-hold={hold ?? undefined}
     >
-      <PersonaFace
-        id={id}
-        size={34}
-        accentRing={false}
-        fallbackEmoji={isYou ? '🙋' : undefined}
-        className="office-floor-person-head"
-        accessoryOverride={accessory}
-        expressionOverride={expressionOverride}
-      />
-      <svg
-        className="office-floor-person-body"
-        viewBox="0 0 34 24"
-        width="34"
-        height="24"
-        aria-hidden="true"
-        focusable="false"
-      >
-        <path d={body.torso} fill={ACCENT} />
-        <path d={body.shade} fill="rgba(15,23,42,0.16)" />
-        {traits ? <TorsoGarment top={traits.top} s={s} /> : null}
-      </svg>
-      {hold ? (
+      {/* The upper wrapper is the old 48 px figure — head, torso, held item —
+          and the only part that bobs, so the legs and the floor stay planted. */}
+      <span className="office-floor-person-upper">
+        <PersonaFace
+          id={id}
+          size={34}
+          accentRing={false}
+          fallbackEmoji={isYou ? '🙋' : undefined}
+          className="office-floor-person-head"
+          accessoryOverride={accessory}
+          expressionOverride={expressionOverride}
+        />
         <svg
-          className="office-floor-person-hold"
-          viewBox="0 0 16 24"
-          width="16"
+          className="office-floor-person-body"
+          viewBox="0 0 34 24"
+          width="34"
           height="24"
           aria-hidden="true"
           focusable="false"
         >
-          <HeldItem hold={hold} skin={skin} />
+          <path d={body.torso} fill={ACCENT} />
+          <path d={body.shade} fill="rgba(15,23,42,0.16)" />
+          {traits ? <TorsoGarment top={traits.top} s={s} /> : null}
         </svg>
-      ) : null}
+        {hold ? (
+          <svg
+            className="office-floor-person-hold"
+            viewBox="0 0 16 24"
+            width="16"
+            height="24"
+            aria-hidden="true"
+            focusable="false"
+          >
+            <HeldItem hold={hold} skin={skin} />
+          </svg>
+        ) : null}
+      </span>
+      <Legs />
     </span>
   );
 }

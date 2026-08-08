@@ -190,6 +190,83 @@ describe('useWalkAnimation onLeg (footsteps)', () => {
   });
 });
 
+describe('useWalkAnimation stride cadence (--walk-cycle)', () => {
+  /*
+   * The drawn gait is not a constant: it is derived from each leg's real pacing
+   * and clamped to a cadence band (OfficeFloor.css reads the variable back off
+   * the element). These pin both ends of the clamp and the derivation between
+   * them — a fixed tempo was the thing that made legs decorative.
+   */
+  it('stretches the cycle for a slow short hop', async () => {
+    const el = document.createElement('div');
+    stubAnimate(el);
+    const ref = { current: el };
+
+    function Harness() {
+      useWalkAnimation(
+        ref,
+        [
+          { x: 0, y: 0 },
+          { x: 1, y: 0 }
+        ],
+        { walkKey: 'hop' }
+      );
+      return null;
+    }
+
+    render(<Harness />);
+    await Promise.resolve();
+    // 420 ms minimum leg over one tile → 840 ms per stride cycle.
+    expect(el.style.getPropertyValue('--walk-cycle')).toBe('840ms');
+  });
+
+  it('floors the cycle for a brisk crossing', async () => {
+    const el = document.createElement('div');
+    stubAnimate(el);
+    const ref = { current: el };
+
+    function Harness() {
+      useWalkAnimation(
+        ref,
+        [
+          { x: 0, y: 0 },
+          { x: 6, y: 0 }
+        ],
+        { walkKey: 'cross' }
+      );
+      return null;
+    }
+
+    render(<Harness />);
+    await Promise.resolve();
+    // ~200 ms per tile at cruising speed → the cadence floor (420 ms) wins.
+    expect(el.style.getPropertyValue('--walk-cycle')).toBe('420ms');
+  });
+
+  it('never writes a tempo on a walk that does not travel', async () => {
+    // Reduced-motion / no-engine branch: still figures stand on still legs, and
+    // the variable staying unset is what keeps the CSS fallback honest.
+    const el = document.createElement('div');
+    const ref = { current: el };
+
+    function Harness() {
+      useWalkAnimation(
+        ref,
+        [
+          { x: 0, y: 0 },
+          { x: 5, y: 5 }
+        ],
+        { walkKey: 'still' }
+      );
+      return null;
+    }
+
+    render(<Harness />);
+    await Promise.resolve();
+    expect(el.style.getPropertyValue('--walk-cycle')).toBe('');
+  });
+});
+
 describe('liveTileOf', () => {
   it('reads a walker’s position back out of its transform', () => {
     const el = document.createElement('div');

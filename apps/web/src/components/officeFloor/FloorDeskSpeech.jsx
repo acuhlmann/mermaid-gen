@@ -5,7 +5,7 @@
  * § 6 rule 6 records: depth ordering is right for the *figure*, but a bubble
  * has to clear the zone-signage layer (z 9000) or the text ends up behind the
  * word POD. `--over-seat` then lifts it past the speaker themselves — 30 px of
- * seat lift *plus* the 48 px figure, or the balloon covers the person talking
+ * seat lift *plus* the 58 px figure, or the balloon covers the person talking
  * (§ 6 rule 15).
  *
  * Which lift depends on whether they are actually sitting: a colleague with no

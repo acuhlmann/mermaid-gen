@@ -21,6 +21,7 @@ export default defineConfig({
   base: normalizeBase(process.env.VITE_BASE_PATH),
   plugins: [react()],
   server: {
+    allowedHosts: ['.monkeycode-ai.live'],
     // Same-origin /api in dev so Visitor Badge cookies work when VISITOR_BADGE_SECRETS is set.
     proxy: {
       '/api': { target: `http://127.0.0.1:${devApiPort}`, changeOrigin: true },

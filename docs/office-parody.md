@@ -266,7 +266,7 @@ key-set matches `CAST_TIERS`, all faces' innerHTML distinct, low-detail shrinks 
 top-level circles with `accentRing={false}`, enum fields in range),
 `officeFloorModuleInventory.test.js` (file names), `officeFloorStyles.test.js` (person CSS
 rules), and the figure geometry `FIGURE_*` in `apps/web/src/utils/officeFloorPlan.js` if you
-ever change the 34×48 proportions.
+ever change the 34×58 proportions.
 
 Known rough edges, in priority order — each is a self-contained next step:
 

@@ -92,8 +92,8 @@ const BUBBLE_W = 264;
 const BUBBLE_H = 75;
 /** `--align-start` / `--align-end` shift (OfficeFloor.css). */
 const BUBBLE_SHIFT_RATIO = 0.42;
-const BUBBLE_OVER_SEAT_LIFT = 82;
-const BUBBLE_OVER_STANDING_LIFT = 52;
+const BUBBLE_OVER_SEAT_LIFT = 92;
+const BUBBLE_OVER_STANDING_LIFT = 62;
 
 /**
  * Screen-space box for a speech bubble anchored on a tile. Approximates the
@@ -579,10 +579,11 @@ export function meetingSeating(attendees, facilitatorId = '') {
 
 /**
  * A figure's screen footprint, in stage px: a 34 px `PersonaFace` head over a
- * 24 px torso pulled up 10 px to overlap it, so 34 wide by **48** tall — not 58
- * (§ 6 rule 14; the overlap is what fuses head and body into one figure).
- * Confirmed against `getBoundingClientRect()` in a capture rather than read off
- * the stylesheet, and lifted 30 px when seated (§ 6 rule 2).
+ * 24 px torso pulled up 10 px to overlap it, over legs pulled up 3 px more, so
+ * 34 wide by **58** tall — not 68 (§ 6 rule 14; the overlaps are what fuse the
+ * layers into one figure). Confirmed against `getBoundingClientRect()` in a
+ * capture rather than read off the stylesheet, and lifted 30 px when seated
+ * (§ 6 rule 2).
  *
  * These are the honest form of § 6 rule 10. "No mark may share `x - y` with a
  * desk" is the integer shorthand, and it does not survive fractional marks —
@@ -591,7 +592,7 @@ export function meetingSeating(attendees, facilitatorId = '') {
  * meeting seats is validated with these boxes rather than the shorthand.
  */
 export const FIGURE_HALF_W = 17;
-export const FIGURE_H = 48;
+export const FIGURE_H = 58;
 export const FIGURE_HEAD_H = 34;
 export const SEATED_LIFT = 30;
 
@@ -884,7 +885,7 @@ function clearsFurniture(mark) {
 
 /**
  * Nobody's face may be covered, in either direction — § 6 rules 10 and 14,
- * measured with the real 48 px figure rather than the stylesheet's apparent
+ * measured with the real 58 px figure rather than the stylesheet's apparent
  * height.
  */
 function clearsFaces(mark, excludeSeatId = YOU_SEAT_ID) {

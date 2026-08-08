@@ -50,8 +50,8 @@ import {
 /**
  * `figureBox` / `headBox` / `boxesOverlap` are the honest form of § 6 rule 10,
  * and they live in the layout module rather than here because `peekTileFor`
- * derives its marks with them — one definition of "a figure is 48 px tall, not
- * 58" (§ 6 rule 14), measured with `getBoundingClientRect()` in a capture.
+ * derives its marks with them — one definition of "a figure is 58 px tall, not
+ * 48" (§ 6 rule 14), measured with `getBoundingClientRect()` in a capture.
  *
  * "No mark may share `x - y` with a desk" is the integer shorthand for the same
  * rule, and it does not survive fractional marks: the glass room is a diagonal

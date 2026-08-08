@@ -19,9 +19,34 @@ const MS_PER_PX = 3.2;
 const LEG_MIN_MS = 420;
 const LEG_MAX_MS = 2000;
 
+/**
+ * Stride cadence bounds, in ms per full cycle (both feet). People change speed
+ * mostly by stride length, not cadence, so the cycle only wanders within a
+ * believable band however fast the room is being crossed.
+ */
+const STRIDE_CYCLE_MIN_MS = 420;
+const STRIDE_CYCLE_MAX_MS = 900;
+
 function legDuration(from, to) {
   const px = Math.hypot(to.left - from.left, to.top - from.top);
   return Math.min(LEG_MAX_MS, Math.max(LEG_MIN_MS, px * MS_PER_PX));
+}
+
+/**
+ * The stride cycle the walker's legs should animate at, written onto the
+ * element as `--walk-cycle` for OfficeFloor.css to read. Derived from this
+ * leg's real pacing — its duration divided by its tile length — with one step
+ * per half tile, so a long slow leg strides slower than a short brisk one,
+ * and clamped to the cadence band above.
+ *
+ * @param {{ x: number, y: number }} from
+ * @param {{ x: number, y: number }} to
+ * @param {number} durationMs
+ */
+function strideCycleFor(from, to, durationMs) {
+  const tiles = Math.hypot(to.x - from.x, to.y - from.y);
+  const perTileMs = durationMs / Math.max(1, tiles);
+  return Math.min(STRIDE_CYCLE_MAX_MS, Math.max(STRIDE_CYCLE_MIN_MS, Math.round(perTileMs * 2)));
 }
 
 function transformFor(point) {
@@ -72,9 +97,12 @@ export function liveTileOf(el) {
  *   so a caller can sound a footstep without this hook knowing what audio is —
  *   the leg loop is the only place in the app that knows how often a foot hits
  *   the floor, and a leg is already clamped to 420–2000 ms, which is a walking
- *   pace rather than an animation detail. Note that the reduced-motion and
+ *   pace rather than an animation detail. The same loop is also the only place
+ *   that knows the pacing, which is why it sets `--walk-cycle` on the element
+ *   as each leg starts: the drawn gait keeps the tempo the walk is actually
+ *   travelling at (see `strideCycleFor`). Note that the reduced-motion and
  *   no-engine branches below never enter the loop: stillness is silent for free,
- *   with no second preference check.
+ *   and still figures stand on still legs, with no second preference check.
  * @returns {{ tile: {x: number, y: number}, arrived: boolean }} current leg
  *   destination, for depth ordering.
  */
@@ -131,10 +159,17 @@ export function useWalkAnimation(ref, path, { walkKey, onArrive, onLeg, enabled 
         // painted behind or in front of it correctly.
         setTile(path[leg]);
         onLegRef.current?.(path[leg], leg);
+        const duration = legDuration(from, to);
+        // The drawn gait keeps this leg's tempo: one stride cycle per leg,
+        // read back off the element by OfficeFloor.css.
+        el.style.setProperty(
+          '--walk-cycle',
+          `${strideCycleFor(path[leg - 1], path[leg], duration)}ms`
+        );
         const animation = el.animate(
           [{ transform: transformFor(from) }, { transform: transformFor(to) }],
           {
-            duration: legDuration(from, to),
+            duration,
             easing: leg === 1 ? 'ease-in' : 'ease-out',
             fill: 'forwards'
           }

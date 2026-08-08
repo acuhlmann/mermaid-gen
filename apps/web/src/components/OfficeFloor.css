@@ -540,7 +540,7 @@
 }
 
 /*
- * The button *is* the figure — 34×48 and nothing else.
+ * The button *is* the figure — 34×58 and nothing else.
  *
  * The name chip below is out of flow on purpose. As a flex sibling it sized the
  * button, so every seat's clickable box was as wide as the longest name and
@@ -586,14 +586,36 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  /* Containing block for the held-item layer below, which is the only child
-     that is not in this flex flow. Costs the layout nothing and is what keeps
-     § 6 rule 23 true with a mug hanging off the shoulder: an absolutely
-     positioned child does not size the button. */
+  /* Containing block for the speaking ring's `::before`. The figure itself
+     never animates anymore — every rhythm runs on the upper wrapper below, so
+     a figure with legs can bob without its feet leaving the floor. */
   position: relative;
+  filter: drop-shadow(0 4px 5px rgba(15, 23, 42, 0.22));
+}
+
+/*
+ * Head + torso + whatever is in the hand, and the only part of the figure that
+ * moves to a rhythm — the idle breathing, the pose retimings, the walk bounce.
+ * The legs below it are its sibling, not its child, which is what keeps the
+ * feet (and the floor-contact shadow inside the legs layer) planted while the
+ * body bobs: the old whole-figure bob was half of what made people fly.
+ *
+ * Containing block for the held-item layer, which is the only descendant that
+ * is not in this flex flow. Costs the layout nothing and is what keeps § 6
+ * rule 23 true with a mug hanging off the shoulder: an absolutely positioned
+ * child does not size the button.
+ */
+.office-floor-person-upper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  /* Above its legs sibling (DOM-later would otherwise paint the trouser tops
+     over the torso hem) — a flex item honours z-index, and this keeps the
+     shirt over the trousers at the waist seam they share. */
+  z-index: 1;
   animation: office-floor-idle 4.6s ease-in-out infinite;
   animation-delay: var(--idle-delay, 0s);
-  filter: drop-shadow(0 4px 5px rgba(15, 23, 42, 0.22));
 }
 
 @keyframes office-floor-idle {
@@ -602,7 +624,7 @@
     transform: translateY(0);
   }
   50% {
-    transform: translateY(-2.5px);
+    transform: translateY(-1.5px);
   }
 }
 
@@ -628,22 +650,23 @@
 /*
  * What the body is doing, which is only ever a rhythm — at 34 px a shoulder
  * angle is not a signal and a mug is, so the art budget goes on the hand and
- * the pose only retimes the idle bob.
+ * the pose only retimes the idle bob. Every variant targets the **upper
+ * wrapper**, the one part of the figure that bobs; the legs keep their stance.
  *
  * A walking figure is given **no** pose class at all (`figureClassName` in
  * `FloorFigure.jsx`) rather than being out-specified here: `.is-walking` and
- * these are all single-class overrides of one property, so the winner would be
- * source order in a file where rules move.
+ * these are all single-class overrides of one animation, so the winner would
+ * be source order in a file where rules move.
  */
-.office-floor-person-figure.is-pose-typing {
+.office-floor-person-figure.is-pose-typing .office-floor-person-upper {
   animation: office-floor-typing 0.92s ease-in-out infinite;
 }
 
-.office-floor-person-figure.is-pose-call {
+.office-floor-person-figure.is-pose-call .office-floor-person-upper {
   animation: office-floor-call 3.4s ease-in-out infinite;
 }
 
-.office-floor-person-figure.is-pose-reading {
+.office-floor-person-figure.is-pose-reading .office-floor-person-upper {
   animation: office-floor-idle 6.4s ease-in-out infinite;
 }
 
@@ -682,8 +705,28 @@
 }
 
 /*
+ * The legs, and the floor they stand on. They are a flex **sibling** of the
+ * upper wrapper, not a child, which is what lets the body bob while the feet
+ * stay planted; the −3 px pull slides the trouser tops under the torso hem so
+ * the waist seam survives the bounce (and the torso hem paints over them —
+ * later in flow, so on top in paint). The shadow ellipse inside this layer
+ * rides neither animation, so it sits still on the floor the whole time.
+ */
+.office-floor-person-legs {
+  display: block;
+  margin-top: -3px;
+}
+
+/* Stride rotation happens about each leg's own hip — the top centre of its
+   drawn box — not about the SVG origin, or the swing would orbit the body. */
+.office-floor-leg {
+  transform-box: fill-box;
+  transform-origin: 50% 0;
+}
+
+/*
  * Floated above the head rather than stacked over it: `bottom: 100%` is the top
- * edge of the 48 px figure, and the margin is the gap the flex `gap` used to
+ * edge of the 58 px figure, and the margin is the gap the flex `gap` used to
  * give it. `pointer-events: none` is load-bearing here and not decoration —
  * the chip now hangs outside the button, and a child that took pointer events
  * would hand the oversized hit box straight back.
@@ -730,7 +773,7 @@
  * A real outline, which only became possible when the name chip left the flow:
  * against the old box this traced a rectangle as wide as the longest name and
  * ~20 px above the head, which is why it was turned off in the first place. Now
- * the button is the 34×48 figure and an outline is simply the right answer —
+ * the button is the 34×58 figure and an outline is simply the right answer —
  * system-drawn, forced-colors-safe, and nothing to keep in sync with the art.
  */
 .office-floor-person:focus-visible {
@@ -784,9 +827,58 @@
   align-items: center;
 }
 
-/* A quicker bob while travelling reads as walking rather than idling. */
-.office-floor-person-figure.is-walking {
-  animation-duration: 0.62s;
+/*
+ * The gait. Walking is the only thing on this floor with true limbs: the two
+ * legs swing from the hips in antiphase — the right leg starts half a cycle
+ * into the left leg's stride, so one is always forward when the other is back
+ * — and the upper body rides the bounce that a real stride puts on it, highest
+ * when a leg passes underneath (25 %/75 %), lowest at the contact moments.
+ *
+ * `--walk-cycle` is one full stride (both feet), and it is **measured, not
+ * chosen**: `useWalkAnimation` derives it from the leg's real duration and
+ * tile length, clamped to a cadence a person could plausibly keep, so a slow
+ * stroll and a dash across the room do not share a tempo. The fallback is the
+ * same value the old quicker bob ran at.
+ */
+.office-floor-person-figure.is-walking .office-floor-person-upper {
+  animation: office-floor-walk-bob var(--walk-cycle, 0.62s) ease-in-out infinite;
+}
+
+.office-floor-person-figure.is-walking .office-floor-leg--left {
+  animation: office-floor-stride var(--walk-cycle, 0.62s) ease-in-out infinite;
+}
+
+.office-floor-person-figure.is-walking .office-floor-leg--right {
+  animation: office-floor-stride var(--walk-cycle, 0.62s) ease-in-out infinite;
+  animation-delay: calc(var(--walk-cycle, 0.62s) / -2);
+}
+
+/* One full cycle starts and ends at the same contact pose, so a loop is
+   seamless; the passing pose (vertical) is at the quarter marks. */
+@keyframes office-floor-stride {
+  0%,
+  100% {
+    transform: rotate(-17deg);
+  }
+  25%,
+  75% {
+    transform: rotate(0deg);
+  }
+  50% {
+    transform: rotate(17deg);
+  }
+}
+
+@keyframes office-floor-walk-bob {
+  0%,
+  50%,
+  100% {
+    transform: translateY(0);
+  }
+  25%,
+  75% {
+    transform: translateY(-1.5px);
+  }
 }
 
 .office-floor-bubble {
@@ -1100,24 +1192,24 @@
 
 /*
  * A bubble *above* somebody who is sitting down — which is 30 px of seat lift
- * plus the whole 48 px figure, not just the lift. At 30 px the bubble's bottom
+ * plus the whole 58 px figure, not just the lift. At 30 px the bubble's bottom
  * edge lands on their feet and the balloon covers them from the chest up: in
  * the arrival ceremony that hid the colleague introducing themselves, glow and
  * all, and in a desk peek it hid the person you had just walked across the
  * floor to look at. Only a capture shows it (§ 6 rule 15).
  */
 .office-floor-walker-anchor--over-seat {
-  transform: translate(-50%, calc(-100% - 82px));
+  transform: translate(-50%, calc(-100% - 92px));
 }
 
 /*
  * The same bubble over somebody who is *standing* at their own tile — Gary, who
  * lives at the fridge and owns no desk. `--over-seat` clears 30 px of seat lift
  * he never gets, so his balloon floated a clear tile above his head while
- * everybody else's sat on theirs. 82 − 30: the figure, not the furniture.
+ * everybody else's sat on theirs. 92 − 30: the figure, not the furniture.
  */
 .office-floor-walker-anchor--over-standing {
-  transform: translate(-50%, calc(-100% - 52px));
+  transform: translate(-50%, calc(-100% - 62px));
 }
 
 /*
@@ -1588,10 +1680,13 @@
 
 @media (prefers-reduced-motion: reduce) {
   .office-floor,
-  .office-floor-person-figure,
-  .office-floor-person-figure.is-pose-typing,
-  .office-floor-person-figure.is-pose-call,
-  .office-floor-person-figure.is-pose-reading,
+  .office-floor-person-upper,
+  .office-floor-person-figure.is-pose-typing .office-floor-person-upper,
+  .office-floor-person-figure.is-pose-call .office-floor-person-upper,
+  .office-floor-person-figure.is-pose-reading .office-floor-person-upper,
+  .office-floor-person-figure.is-walking .office-floor-person-upper,
+  .office-floor-person-figure.is-walking .office-floor-leg--left,
+  .office-floor-person-figure.is-walking .office-floor-leg--right,
   .office-floor-person.is-speaking .office-floor-person-figure::before,
   .office-floor-walker.is-speaking .office-floor-person-figure::before,
   .office-floor-prop--usable.is-active .office-floor-prop-art,
@@ -1664,7 +1759,7 @@
   background: transparent;
   cursor: pointer;
   width: 34px;
-  height: 48px;
+  height: 58px;
 }
 
 .office-floor-huddle-hit:focus-visible {

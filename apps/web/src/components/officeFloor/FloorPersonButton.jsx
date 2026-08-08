@@ -5,7 +5,7 @@
  * figure can be clicked — somebody stood at the printer rather than sat at their
  * desk. § 6 rule 23 is the reason this is a component rather than copied markup:
  * a hit box bigger than what it draws steals from whatever is behind it, and the
- * fix (constrain the button to the 34 × 48 figure and hang the name chip off it
+ * fix (constrain the button to the 34 × 58 figure and hang the name chip off it
  * as an absolute overlay) is subtle enough that two copies of it would drift.
  * One definition, so "a figure's hit box is the figure" stays true of every
  * figure on the stage.

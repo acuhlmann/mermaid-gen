@@ -102,6 +102,47 @@ describe('who is talking is marked quietly (slice 13)', () => {
   });
 });
 
+describe('walking is a gait, not a hover', () => {
+  /*
+   * The cast flew until the figures grew legs: the bob animated the whole
+   * person, feet included, and nothing ever stepped. These pin the shape of
+   * the fix — rhythm on the upper wrapper only, antiphase stride on the two
+   * legs, and the tempo read off `--walk-cycle` (measured per leg by
+   * `useWalkAnimation`, which its own suite pins).
+   */
+  it('keeps the idle bob on the upper wrapper so the legs stay planted', () => {
+    expect(ruleBody('.office-floor-person-figure')).not.toMatch(/animation:\s*office-floor-idle/);
+    const upper = ruleBody('.office-floor-person-upper');
+    expect(upper).toMatch(/animation:\s*office-floor-idle/);
+  });
+
+  it('rides the walk bounce on the same wrapper', () => {
+    const upper = ruleBody('.office-floor-person-figure.is-walking .office-floor-person-upper');
+    expect(upper, 'the walk-time bob rule is gone').toBeTruthy();
+    expect(upper).toMatch(/animation:\s*office-floor-walk-bob/);
+    expect(upper).toMatch(/var\(--walk-cycle/);
+  });
+
+  it('steps the two legs in antiphase at the measured tempo', () => {
+    const left = ruleBody('.office-floor-person-figure.is-walking .office-floor-leg--left');
+    const right = ruleBody('.office-floor-person-figure.is-walking .office-floor-leg--right');
+    expect(left, 'the left-leg stride rule is gone').toBeTruthy();
+    expect(right, 'the right-leg stride rule is gone').toBeTruthy();
+    expect(left).toMatch(/animation:\s*office-floor-stride\s+var\(--walk-cycle/);
+    expect(right).toMatch(/animation:\s*office-floor-stride\s+var\(--walk-cycle/);
+    // Half a cycle behind the left leg — never mid-swing in the same direction.
+    expect(right).toMatch(/animation-delay:\s*calc\(var\(--walk-cycle[^)]*\)\s*\/\s*-2\)/);
+    const hip = ruleBody('.office-floor-leg');
+    expect(hip).toMatch(/transform-box:\s*fill-box/);
+  });
+
+  it('grew the huddle hit box with the figure', () => {
+    // § 6 rule 23: as big as it is drawn — the figure is 58 px tall now.
+    const hit = ruleBody('.office-floor-huddle-hit');
+    expect(hit).toMatch(/height:\s*58px/);
+  });
+});
+
 describe('indicators that actually render', () => {
   it('writes no drop-shadow with a spread, which no browser parses', () => {
     /*
