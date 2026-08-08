@@ -24,16 +24,13 @@ gcloud billing projects describe PROJECT_ID
 
 **CI** ([`.github/workflows/ci.yml`](../../.github/workflows/ci.yml)) runs on every PR and push to **`main`**: parallel jobs for sensors (format, typecheck, lint, verify:\*), workspace tests, and build. The aggregate job is named `check` (branch-protection friendly).
 
-**Deploy** ([`.github/workflows/deploy-cloud-run.yml`](../../.github/workflows/deploy-cloud-run.yml)) starts via **`workflow_run` after CI succeeds** on `main`/`master` (or `workflow_dispatch` for a manual deploy). It deploys **`mermaid-gen-main`** only (`UI_VARIANT=main-only`, image `…/web-main`), using the CI-validated commit SHA.
-
-The **hackathon** snapshot uses a **second Cloud Run service** and is **not** updated by GitHub Actions. After checking out the snapshot Git ref you want, run [`scripts/deploy-hackathon-cloud-run.sh`](../../scripts/deploy-hackathon-cloud-run.sh) (image `…/web-hackathon`). Two public URLs, one pipeline.
+**Deploy** ([`.github/workflows/deploy-cloud-run.yml`](../../.github/workflows/deploy-cloud-run.yml)) starts via **`workflow_run` after CI succeeds** on `main`/`master` (or `workflow_dispatch` for a manual deploy). It deploys **`mermaid-gen-main`** (`UI_VARIANT=main-only`, image `…/web-main`), using the CI-validated commit SHA.
 
 ### Example project [ArchiSlop](https://console.cloud.google.com/home/dashboard?project=mermaidgen&organizationId=0)
 
-Set **`GCP_PROJECT_ID`** (`mermaidgen`) plus Workload Identity secrets as below. Services (adjust region if you changed it):
+Set **`GCP_PROJECT_ID`** (`mermaidgen`) plus Workload Identity secrets as below. Service (adjust region if you changed it):
 
-- **Main (CI):** `mermaid-gen-main` → `https://mermaid-gen-main-<PROJECT_NUMBER>.us-central1.run.app/`
-- **Hackathon (manual):** `mermaid-gen-hackathon` → `https://mermaid-gen-hackathon-<PROJECT_NUMBER>.us-central1.run.app/`
+- **Production (CI):** `mermaid-gen-main` → `https://mermaid-gen-main-<PROJECT_NUMBER>.us-central1.run.app/`
 
 ### One-time GCP setup for GitHub Actions
 
@@ -80,26 +77,17 @@ Set **`GCP_PROJECT_ID`** (`mermaidgen`) plus Workload Identity secrets as below.
 
 6. Optional: create Secret Manager secrets **`deepseek-api-key`** (Brain Fast+Quality) and/or **`openrouter-api-key`** (backup / OpenRouter-preferred); grant the **runtime** SA `secretAccessor` on them (see below).
 
-## Two Cloud Run URLs (recommended): main vs hackathon snapshot
+## Deploy to Cloud Run
 
-**Main line:** [`scripts/deploy-cloud-run.sh`](../../scripts/deploy-cloud-run.sh) → service **`mermaid-gen-main`**, image **`web-main`**, SPA at **`/`**.
-
-**Hackathon snapshot:** [`scripts/deploy-hackathon-cloud-run.sh`](../../scripts/deploy-hackathon-cloud-run.sh) (run locally after `git checkout` of the tag or branch you want to freeze) → service **`mermaid-gen-hackathon`**, image **`web-hackathon`**, SPA at **`/`** on its **own hostname**.
-
-Both omit `VITE_API_BASE_URL` at build time so each service calls its **own** `/api/...`. Shared backend behavior unless you rebuild the hackathon image from an older commit.
+[`scripts/deploy-cloud-run.sh`](../../scripts/deploy-cloud-run.sh) → service **`mermaid-gen-main`**, image **`web-main`**, SPA at **`/`**. Omits `VITE_API_BASE_URL` at build time so the service calls its **own** `/api/...`.
 
 ```bash
-chmod +x scripts/deploy-cloud-run.sh scripts/deploy-hackathon-cloud-run.sh
+chmod +x scripts/deploy-cloud-run.sh
 export GCP_PROJECT_ID=mermaidgen   # example
 ./scripts/deploy-cloud-run.sh
-./scripts/deploy-hackathon-cloud-run.sh   # optional second URL; uses current tree / checkout
 ```
 
 Optional env overrides: `REGION` (default `us-central1`), `AR_REPO` (default `mermaid-gen`). Create Secret Manager secret **`deepseek-api-key`** for Brain Fast+Quality (DeepSeek Flash/Pro; Vertex still serves office flash-lite) and optionally **`openrouter-api-key`** (see below).
-
-### Legacy: one hostname with `/` and `/hackathon/` paths
-
-Build with **`UI_VARIANT=full`** (Docker default). [`apps/server/src/index.js`](../../apps/server/src/index.js) serves **`/hackathon/`** as a second bundle on the **same** service. Use this only if you prefer one `*.run.app` URL and path routing instead of two services.
 
 ## Prerequisites
 
@@ -116,13 +104,7 @@ Build with **`UI_VARIANT=full`** (Docker default). [`apps/server/src/index.js`](
    gcloud billing projects describe PROJECT_ID
    ```
 
-3. **GitHub CLI** (optional, for verifying tags/commits):
-
-   ```bash
-   gh release view hackathon-pre-deploy -R acuhlmann/mermaid-gen
-   ```
-
-4. **Enable APIs** (once per project):
+3. **Enable APIs** (once per project):
 
    ```bash
    gcloud services enable run.googleapis.com artifactregistry.googleapis.com secretmanager.googleapis.com aiplatform.googleapis.com --project=PROJECT_ID
@@ -171,7 +153,7 @@ Office narration prefers **Google Cloud Text-to-Speech** when a GCP project id r
 
 ## Secrets (DeepSeek for Brain Fast+Quality; OpenRouter optional)
 
-`.env` is **only for local development**. Cloud Run never reads your laptop’s `.env`; put keys in **Secret Manager** and expose them as env vars on the service (already wired in [`scripts/deploy-cloud-run.sh`](../../scripts/deploy-cloud-run.sh), [`scripts/deploy-hackathon-cloud-run.sh`](../../scripts/deploy-hackathon-cloud-run.sh), and the GitHub Actions workflow).
+`.env` is **only for local development**. Cloud Run never reads your laptop’s `.env`; put keys in **Secret Manager** and expose them as env vars on the service (already wired in [`scripts/deploy-cloud-run.sh`](../../scripts/deploy-cloud-run.sh) and the GitHub Actions workflow).
 
 ### DeepSeek (recommended for Brain + Vertex office lite)
 
@@ -182,7 +164,7 @@ GCP_PROJECT_ID=mermaidgen REGION=us-central1 bash scripts/push-deepseek-secret-c
 # or: npm run secret:deepseek:cloud-run
 ```
 
-That creates or updates secret **`deepseek-api-key`**, grants the default Cloud Run runtime service account **`secretAccessor`**, and attaches **`DEEPSEEK_API_KEY`** to **`mermaid-gen-main`** and **`mermaid-gen-hackathon`**.
+That creates or updates secret **`deepseek-api-key`**, grants the default Cloud Run runtime service account **`secretAccessor`**, and attaches **`DEEPSEEK_API_KEY`** to **`mermaid-gen-main`**.
 
 ### OpenRouter (optional backup / preferred)
 
@@ -194,7 +176,7 @@ export OPENROUTER_API_KEY='your-key-here'   # paste from local .env (never commi
 GCP_PROJECT_ID=mermaidgen REGION=us-central1 bash scripts/push-openrouter-secret-cloud-run.sh
 ```
 
-That creates or updates secret **`openrouter-api-key`**, grants the default Cloud Run runtime service account **`secretAccessor`**, and runs **`gcloud run services update`** on **`mermaid-gen-main`** and **`mermaid-gen-hackathon`** so both pick up the secret.
+That creates or updates secret **`openrouter-api-key`**, grants the default Cloud Run runtime service account **`secretAccessor`**, and runs **`gcloud run services update`** on **`mermaid-gen-main`** so it picks up the secret.
 
 Optional: set **`OPENROUTER_SITE_URL`** to your public app URL (e.g. `https://mermaid-gen-main-….run.app`) for OpenRouter metadata—either add `--set-env-vars` on update or redeploy with env vars.
 
@@ -207,7 +189,7 @@ chmod +x scripts/push-invite-token-secret-cloud-run.sh
 GCP_PROJECT_ID=mermaidgen REGION=us-central1 bash scripts/push-invite-token-secret-cloud-run.sh
 ```
 
-This creates or rotates secret **`invite-token-secret`**, grants the runtime service account access, and attaches **`INVITE_TOKEN_SECRET`** to **`mermaid-gen-main`** and **`mermaid-gen-hackathon`**. Deploy scripts also reference this secret when present ([`scripts/deploy-cloud-run.sh`](../../scripts/deploy-cloud-run.sh)).
+This creates or rotates secret **`invite-token-secret`**, grants the runtime service account access, and attaches **`INVITE_TOKEN_SECRET`** to **`mermaid-gen-main`**. Deploy scripts also reference this secret when present ([`scripts/deploy-cloud-run.sh`](../../scripts/deploy-cloud-run.sh)).
 
 ### Visitor Badge door codes (optional site gate)
 
@@ -229,7 +211,7 @@ VISITOR_BADGE_SECRETS='your-friends-door-code' \
 # or: npm run secret:visitor-badge:cloud-run
 ```
 
-That creates or rotates secret **`visitor-badge-secrets`**, grants the runtime SA access, and mounts **`VISITOR_BADGE_SECRETS`** on **`mermaid-gen-main`** and **`mermaid-gen-hackathon`**. Deploy scripts attach the secret when it exists. `/api/health` and `/mcp` stay ungated; a successful check-in sets an HttpOnly cookie for ~30 days.
+That creates or rotates secret **`visitor-badge-secrets`**, grants the runtime SA access, and mounts **`VISITOR_BADGE_SECRETS`** on **`mermaid-gen-main`**. Deploy scripts attach the secret when it exists. `/api/health` and `/mcp` stay ungated; a successful check-in sets an HttpOnly cookie for ~30 days.
 
 To store the secret in Secret Manager **without** rolling a new Cloud Run revision yet:
 
@@ -239,7 +221,7 @@ SKIP_CLOUD_RUN_UPDATE=1 VISITOR_BADGE_SECRETS='your-friends-door-code' \
   bash scripts/push-visitor-badge-secrets-cloud-run.sh
 ```
 
-The next `npm run deploy:cloud-run` (or hackathon deploy) picks up `visitor-badge-secrets:latest` automatically when the secret exists.
+The next `npm run deploy:cloud-run` picks up `visitor-badge-secrets:latest` automatically when the secret exists.
 
 ### Manual steps
 
@@ -259,13 +241,11 @@ gcloud secrets add-iam-policy-binding openrouter-api-key \
   --role="roles/secretmanager.secretAccessor"
 ```
 
-Attach the secret to **each** service that needs LLMs (new revisions only):
+Attach the secret to the Cloud Run service (new revision):
 
 ```bash
-for svc in mermaid-gen-main mermaid-gen-hackathon; do
-  gcloud run services update "$svc" --region=REGION --project=PROJECT_ID \
-    --set-secrets="OPENROUTER_API_KEY=openrouter-api-key:latest"
-done
+gcloud run services update mermaid-gen-main --region=REGION --project=PROJECT_ID \
+  --set-secrets="OPENROUTER_API_KEY=openrouter-api-key:latest"
 ```
 
 ## Artifact Registry
@@ -281,34 +261,53 @@ gcloud artifacts repositories create AR_REPO \
 gcloud auth configure-docker REGION-docker.pkg.dev
 ```
 
-## Build matrix (two app variants)
+### Image retention (automated)
 
-| Variant       | Git source                        | Docker image tag (example) | Purpose                                      |
-| ------------- | --------------------------------- | -------------------------- | -------------------------------------------- |
-| **main**      | `master` (or your default branch) | `main`                     | Primary URL; redeploy when you ship changes. |
-| **hackathon** | Tag `hackathon-pre-deploy`        | `hackathon`                | Frozen snapshot from the hackathon release.  |
+Every CI deploy tags `web-main` with the commit SHA. Without retention, Artifact Registry storage grows without bound.
 
-Check out the commit you want, then build with **`--build-arg`** so the browser bundle points at the correct public API origin.
+**Ongoing automation** is a repo cleanup policy (GCP evaluates it continuously):
 
-### A) Two Cloud Run URLs (recommended MVP)
+| Rule                       | Effect                                                       |
+| -------------------------- | ------------------------------------------------------------ |
+| `keep-minimum-10-versions` | Always keep the 10 newest `web-main` images                  |
+| `delete-older-than-14d`    | Delete `web-main` images older than 14 days (KEEP rules win) |
 
-Deploy **two separate services** at different `*.run.app` hostnames. No load balancer; fastest path to a public demo.
+Policy file: [`scripts/artifact-registry-cleanup-policy.json`](../../scripts/artifact-registry-cleanup-policy.json).
 
-**Main** (same-origin API + SPA — replace `MAIN_SERVICE_URL` with the URL Cloud Run prints after first deploy, or your predicted URL):
+Apply or re-sync (needs `artifactregistry.repositories.update` — Owner / Repo Admin):
+
+```bash
+export GCP_PROJECT_ID=mermaidgen
+chmod +x scripts/apply-artifact-registry-cleanup.sh
+scripts/apply-artifact-registry-cleanup.sh
+scripts/apply-artifact-registry-cleanup.sh --verify
+```
+
+Local [`scripts/deploy-cloud-run.sh`](../../scripts/deploy-cloud-run.sh) and the Deploy Cloud Run workflow call the apply script with `--soft` so missing IAM does not block deploys. One-shot bulk prune (rare; policy usually enough):
+
+```bash
+scripts/apply-artifact-registry-cleanup.sh --prune --dry-run
+scripts/apply-artifact-registry-cleanup.sh --prune
+# or: python3 scripts/cleanup-artifact-registry.py --dry-run
+```
+
+## Manual build / deploy (optional)
+
+Prefer [`scripts/deploy-cloud-run.sh`](../../scripts/deploy-cloud-run.sh) or the GitHub Actions workflow. For a one-off manual build, check out the commit you want, then build with **`--build-arg`** so the browser bundle points at the correct public API origin (or omit `VITE_API_BASE_URL` for same-origin `/api`):
 
 ```bash
 git checkout master
 docker build \
-  --build-arg VITE_API_BASE_URL=https://main-service-xxxxx.run.app \
+  --build-arg UI_VARIANT=main-only \
   --build-arg VITE_BASE_PATH=/ \
-  -t REGION-docker.pkg.dev/PROJECT_ID/AR_REPO/mermaid-gen:main .
+  -t REGION-docker.pkg.dev/PROJECT_ID/AR_REPO/web-main:manual .
 
-docker push REGION-docker.pkg.dev/PROJECT_ID/AR_REPO/mermaid-gen:main
+docker push REGION-docker.pkg.dev/PROJECT_ID/AR_REPO/web-main:manual
 
 gcloud run deploy mermaid-gen-main \
   --project=PROJECT_ID \
   --region=REGION \
-  --image=REGION-docker.pkg.dev/PROJECT_ID/AR_REPO/mermaid-gen:main \
+  --image=REGION-docker.pkg.dev/PROJECT_ID/AR_REPO/web-main:manual \
   --platform=managed \
   --allow-unauthenticated \
   --port=8080 \
@@ -316,34 +315,6 @@ gcloud run deploy mermaid-gen-main \
   --max-instances=1 \
   --set-secrets=OPENROUTER_API_KEY=openrouter-api-key:latest \
   --set-env-vars=OPENROUTER_SITE_URL=https://main-service-xxxxx.run.app
-```
-
-After the first deploy, copy the real HTTPS URL and **rebuild** the image with the matching `VITE_API_BASE_URL`, then redeploy (the SPA embeds this string at build time).
-
-**Hackathon** (checkout tag, build, deploy):
-
-```bash
-git fetch origin --tags
-git checkout hackathon-pre-deploy
-
-docker build \
-  --build-arg VITE_API_BASE_URL=https://hackathon-service-yyyyy.run.app \
-  --build-arg VITE_BASE_PATH=/ \
-  -t REGION-docker.pkg.dev/PROJECT_ID/AR_REPO/mermaid-gen:hackathon .
-
-docker push REGION-docker.pkg.dev/PROJECT_ID/AR_REPO/mermaid-gen:hackathon
-
-gcloud run deploy mermaid-gen-hackathon \
-  --project=PROJECT_ID \
-  --region=REGION \
-  --image=REGION-docker.pkg.dev/PROJECT_ID/AR_REPO/mermaid-gen:hackathon \
-  --platform=managed \
-  --allow-unauthenticated \
-  --port=8080 \
-  --min-instances=0 \
-  --max-instances=1 \
-  --set-secrets=OPENROUTER_API_KEY=openrouter-api-key:latest \
-  --set-env-vars=OPENROUTER_SITE_URL=https://hackathon-service-yyyyy.run.app
 ```
 
 Optional environment variables (model overrides, `MERMAID_*` tuning, etc.) can be appended with additional `--set-env-vars` flags or a comma-separated list; mirror variables from [`.env.example`](../../.env.example).
@@ -357,21 +328,6 @@ ArchiSlop serves **Streamable HTTP MCP** at `/mcp` on the same Cloud Run service
 ```
 
 If unset, invite links may fall back to `localhost` and external agents cannot join production rooms. Guest-agent flows (handshakes, proposals, MCP Apps) are documented in [`docs/architecture-external-agents.md`](../architecture-external-agents.md).
-
-### B) One custom domain with `/hackathon` path (optional)
-
-To present **one hostname** where `/` is **main** and `/hackathon/` is the frozen build:
-
-1. Deploy **two** Cloud Run services (same as above), built with:
-   - **main**: `VITE_BASE_PATH=/`, `VITE_API_BASE_URL=https://your-domain.example.com`
-   - **hackathon**: `VITE_BASE_PATH=/hackathon/`, `VITE_API_BASE_URL=https://your-domain.example.com/hackathon`
-2. Create an **External HTTPS Load Balancer** with a **URL map**:
-   - Route **`/hackathon/*`** to the hackathon service (serverless NEG).
-   - Default route **`/*`** to the main service.
-3. Add a **path rewrite** on the hackathon backend so the prefix `/hackathon` is stripped before the request reaches Cloud Run. The container then continues to serve `/`, `/api/*` as implemented today.
-4. Attach a **managed SSL certificate** and point **DNS** at the load balancer IP.
-
-This adds monthly load balancer cost and more moving parts; use it when you need a single branded URL.
 
 ## Smoke test
 

@@ -69,6 +69,7 @@ Examples:
 - `gcloud billing projects describe PROJECT_ID`
 - `gcloud run services list --region=REGION`
 - `gcloud logging read 'resource.type="cloud_run_revision"' --limit=20 --freshness=1h`
+- Artifact Registry retention: `npm run ar:cleanup:verify` (policy in `scripts/artifact-registry-cleanup-policy.json`; apply with `npm run ar:cleanup:apply`)
 
 ### `gh` (GitHub CLI)
 
@@ -76,8 +77,8 @@ Use for **repo and release inspection**: tags, releases, Actions, PRs.
 
 Examples for this repository:
 
-- `gh release view hackathon-pre-deploy -R acuhlmann/mermaid-gen`
-- `gh api repos/acuhlmann/mermaid-gen/git/refs/tags/hackathon-pre-deploy`
+- `gh release list -R acuhlmann/mermaid-gen --limit 5`
+- `gh api repos/acuhlmann/mermaid-gen/actions/runs --jq '.workflow_runs[:5] | .[] | {name,conclusion,head_branch}'`
 
 ### Public deployment (GCP)
 
@@ -338,7 +339,7 @@ test:floor`; the floor test map is [`docs/agents/isometric-floor-tests.md`](docs
 - **Build**: `npm run build` builds shared → server → web. The web build produces a Vite bundle with a chunk-size warning that can be ignored.
 - **AI features require a configured LLM backend** (typically `OPENROUTER_API_KEY` for local dev, or Vertex on GCP). If none resolves, `llmConfigured` is false and intent/transform/analyze/stream routes return 503. The app still loads and renders diagrams, but AI generation will not work.
 - **GCP access (`gcloud`)**: `npm run setup` / `npm run setup:gcloud` installs the SDK to `~/google-cloud-sdk` when absent. If `GOOGLE_APPLICATION_CREDENTIALS` or `GCP_MERMAID_GEN` points at a service-account JSON file, the script runs `gcloud auth activate-service-account`; it then sets project `mermaidgen` and region `us-central1` when that project is readable. Once authenticated, useful inspection commands include:
-  - `gcloud run services list` — list Cloud Run services (`mermaid-gen-main`, `mermaid-gen-hackathon`)
+  - `gcloud run services list` — list Cloud Run services (`mermaid-gen-main`)
   - `gcloud run services describe mermaid-gen-main` — inspect the main service
   - `gcloud logging read 'resource.type="cloud_run_revision"' --limit=20 --freshness=1h` — recent logs
   - `curl -sS "https://mermaid-gen-main-464241135431.us-central1.run.app/api/health"` — production health check

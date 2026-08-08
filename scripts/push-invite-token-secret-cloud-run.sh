@@ -15,7 +15,7 @@ fi
 
 REGION="${REGION:-us-central1}"
 SECRET_NAME="${INVITE_TOKEN_SECRET_NAME:-invite-token-secret}"
-SERVICES=(mermaid-gen-main mermaid-gen-hackathon)
+SERVICES=(mermaid-gen-main)
 OPENROUTER_SECRET="${OPENROUTER_SECRET_NAME:-openrouter-api-key}"
 DEEPSEEK_SECRET="${DEEPSEEK_SECRET_NAME:-deepseek-api-key}"
 VISITOR_BADGE_SECRET="${VISITOR_BADGE_SECRET_NAME:-visitor-badge-secrets}"

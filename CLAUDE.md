@@ -335,4 +335,4 @@ For semantic coupling analysis (not automatable), run `/modularity:review` in Cl
 - Recurring tasks: [`docs/recipes/`](docs/recipes/)
 - Past decisions: [`docs/decisions/`](docs/decisions/)
 - LLM config: [`docs/llm-config.md`](docs/llm-config.md)
-- Deploy: [`docs/deploy/gcp.md`](docs/deploy/gcp.md)
+- Deploy: [`docs/deploy/gcp.md`](docs/deploy/gcp.md) — Artifact Registry retention: `npm run ar:cleanup:verify` (policy in `scripts/artifact-registry-cleanup-policy.json`; apply with `npm run ar:cleanup:apply`)

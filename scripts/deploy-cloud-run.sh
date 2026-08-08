@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
-# Deploy the **main** line app to Cloud Run (single SPA at `/`). Matches GitHub Actions build.
-# Hackathon snapshot → scripts/deploy-hackathon-cloud-run.sh (second URL, not CI).
+# Deploy the production app to Cloud Run (single SPA at `/`). Matches GitHub Actions build.
 set -euo pipefail
 
 PROJECT_ID="${GCP_PROJECT_ID:-$(gcloud config get-value project 2>/dev/null)}"
@@ -34,6 +33,8 @@ if ! gcloud artifacts repositories describe "${AR_REPO}" --location="${REGION}" 
     --location="${REGION}" \
     --project="${PROJECT_ID}"
 fi
+# Keep image retention in sync (GCP runs the policy continuously after apply).
+"${ROOT}/scripts/apply-artifact-registry-cleanup.sh" --soft
 gcloud auth configure-docker "${REGION}-docker.pkg.dev" --quiet
 
 push_image() {
@@ -45,7 +46,7 @@ if push_image; then
   echo "Built and pushed with local Docker."
 else
   echo "" >&2
-  echo "Local docker build/push failed; trying Cloud Build (image includes both / and /hackathon bundles)." >&2
+  echo "Local docker build/push failed; trying Cloud Build (UI_VARIANT=main-only)." >&2
   if ! gcloud builds submit --project="${PROJECT_ID}" --tag "${IMAGE}:latest" .; then
     echo "" >&2
     echo "Cloud Build failed. Grant Cloud Build + Artifact Registry permissions, or fix Docker locally." >&2
@@ -108,5 +109,4 @@ DEPLOY_ARGS+=(--set-env-vars="${VERTEX_ENV_VARS}")
 gcloud "${DEPLOY_ARGS[@]}"
 
 echo ""
-echo "Main line URL (root): service URL from gcloud above."
-echo "Hackathon snapshot (second URL): checkout tag hackathon-pre-deploy then run scripts/deploy-hackathon-cloud-run.sh"
+echo "Service URL (root): see gcloud output above."

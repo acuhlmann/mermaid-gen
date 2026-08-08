@@ -20,7 +20,7 @@ fi
 
 REGION="${REGION:-us-central1}"
 SECRET_NAME="${OPENROUTER_SECRET_NAME:-openrouter-api-key}"
-SERVICES=(mermaid-gen-main mermaid-gen-hackathon)
+SERVICES=(mermaid-gen-main)
 
 gcloud services enable secretmanager.googleapis.com run.googleapis.com --project="${PROJECT_ID}"
 

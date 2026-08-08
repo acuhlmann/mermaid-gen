@@ -1,0 +1,19 @@
+[
+  {
+    "name": "keep-minimum-10-versions",
+    "action": { "type": "Keep" },
+    "mostRecentVersions": {
+      "keepCount": 10,
+      "packageNamePrefixes": ["web-main"]
+    }
+  },
+  {
+    "name": "delete-older-than-14d",
+    "action": { "type": "Delete" },
+    "condition": {
+      "tagState": "ANY",
+      "olderThan": "14d",
+      "packageNamePrefixes": ["web-main"]
+    }
+  }
+]

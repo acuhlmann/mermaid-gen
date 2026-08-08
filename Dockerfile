@@ -17,8 +17,8 @@ RUN npm ci
 
 COPY . .
 
-# `main-only`: single SPA at `/` (Cloud Run: separate services for main vs hackathon URLs).
-# `full`: also build `/hackathon/` bundle on one host (legacy).
+# `main-only` (production / CI): single SPA at `/`.
+# `full` (legacy): also build an empty-or-/hackathon/ second bundle for local dual-path experiments.
 # Omit VITE_API_BASE_URL so the bundle uses same-origin `/api/...` (see apps/web/src/state/diagramStore.js).
 RUN npm run build -w packages/shared && npm run build -w apps/server
 
@@ -27,7 +27,7 @@ ENV VITE_BASE_PATH=/
 RUN npm run build -w apps/web && mv apps/web/dist apps/web/dist-main
 
 # ARG placed here so changing UI_VARIANT invalidates only this layer (not entire npm ci cache).
-ARG UI_VARIANT=full
+ARG UI_VARIANT=main-only
 RUN if [ "$UI_VARIANT" = "full" ]; then \
   VITE_BASE_PATH=/hackathon/ npm run build -w apps/web && mv apps/web/dist apps/web/dist-hackathon; \
 else \

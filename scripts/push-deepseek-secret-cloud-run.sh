@@ -23,7 +23,7 @@ fi
 
 REGION="${REGION:-us-central1}"
 SECRET_NAME="${DEEPSEEK_SECRET_NAME:-deepseek-api-key}"
-SERVICES=(mermaid-gen-main mermaid-gen-hackathon)
+SERVICES=(mermaid-gen-main)
 
 gcloud services enable secretmanager.googleapis.com run.googleapis.com --project="${PROJECT_ID}"
 

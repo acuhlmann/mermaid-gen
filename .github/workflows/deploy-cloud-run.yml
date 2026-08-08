@@ -19,7 +19,6 @@ concurrency:
 env:
   REGION: us-central1 # pragma: allowlist secret
   AR_REPO: mermaid-gen
-  # Production “latest” app — hackathon snapshot is a separate service (manual deploy script).
   SERVICE_NAME: mermaid-gen-main
   IMAGE_NAME: web-main
   PUBLIC_BASE_URL: https://mermaid-gen-main-464241135431.us-central1.run.app # pragma: allowlist secret
@@ -57,6 +56,17 @@ jobs:
           export GCP_PROJECT_ID="${PROJECT_ID}"
           chmod +x scripts/verify-gcp-billing.sh
           scripts/verify-gcp-billing.sh
+
+      # Sync Artifact Registry retention (keep 10 web-main; delete web-main >14d).
+      # Soft: deployer SA may lack repositories.update; policy is still managed in-repo + local deploy.
+      - name: Ensure Artifact Registry cleanup policy
+        env:
+          PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+        run: |
+          set -euo pipefail
+          export GCP_PROJECT_ID="${PROJECT_ID}"
+          chmod +x scripts/apply-artifact-registry-cleanup.sh
+          scripts/apply-artifact-registry-cleanup.sh --soft
 
       - name: Build and push image
         env:

@@ -195,7 +195,9 @@ Look up a concept here before grepping. Paths are repo-relative.
 | CI workflow                          | `.github/workflows/ci.yml`                      |
 | Cloud Run deploy workflow            | `.github/workflows/deploy-cloud-run.yml`        |
 | Cloud Run deploy script              | `scripts/deploy-cloud-run.sh`                   |
-| Hackathon Cloud Run deploy script    | `scripts/deploy-hackathon-cloud-run.sh`         |
+| Artifact Registry cleanup policy     | `scripts/artifact-registry-cleanup-policy.json` |
+| Artifact Registry cleanup apply      | `scripts/apply-artifact-registry-cleanup.sh`    |
+| Artifact Registry one-shot prune     | `scripts/cleanup-artifact-registry.py`          |
 | Secret Manager push (invite token)   | `scripts/push-invite-token-secret-cloud-run.sh` |
 | Secret Manager push (OpenRouter key) | `scripts/push-openrouter-secret-cloud-run.sh`   |
 | gcloud SDK bootstrap                 | `scripts/setup-gcloud.sh`                       |
