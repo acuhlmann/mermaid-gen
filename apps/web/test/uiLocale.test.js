@@ -145,4 +145,63 @@ describe('ui locale bundles', () => {
       }
     }
   );
+
+  // A dropped `{placeholder}` never throws — `formatLocale` simply has nothing to
+  // substitute, so the personalisation silently disappears in that locale only.
+  // All three had lost `{userName}` from the welcome mail/IM this way.
+  it.each(['zh-CN', 'zh-TW', 'en-AU'])('keeps every {placeholder} English has (%s)', (locale) => {
+    const en = getUiLocaleBundle('en');
+    const localized = getUiLocaleBundle(locale);
+    const tokens = (value) => (value.match(/\{[a-zA-Z0-9_]+\}/g) ?? []).sort().join(',');
+    const drift = [];
+
+    const walk = (base, loc, path) => {
+      if (typeof base === 'string') {
+        if (typeof loc === 'string' && tokens(base) !== tokens(loc)) {
+          drift.push(`${path}: en[${tokens(base)}] ${locale}[${tokens(loc)}]`);
+        }
+        return;
+      }
+      if (Array.isArray(base) && Array.isArray(loc)) {
+        for (let i = 0; i < Math.min(base.length, loc.length); i += 1) {
+          walk(base[i], loc[i], `${path}[${i}]`);
+        }
+        return;
+      }
+      if (base && typeof base === 'object' && loc && typeof loc === 'object') {
+        for (const key of Object.keys(base)) walk(base[key], loc[key], `${path}.${key}`);
+      }
+    };
+    for (const section of ['controls', 'slopitect', 'office']) {
+      walk(en[section], localized[section], section);
+    }
+    expect(drift, drift.join('\n')).toEqual([]);
+  });
+
+  // `entryPointers` is an array, and arrays *replace* on merge — so a tour step
+  // added to English is silently absent from any locale that predates it, and
+  // `useEntryDeskFlow` derives its step list from this copy. en-AU had shipped a
+  // five-step tour with no `selection` beat for exactly that reason.
+  it.each(['zh-CN', 'zh-TW', 'en-AU'])(
+    'walks the same desk-tour steps as English, in the same order (%s)',
+    (locale) => {
+      const ids = (bundle) => bundle.controls.prompt.entryPointers.map((pointer) => pointer.id);
+      expect(ids(getUiLocaleBundle(locale))).toEqual(ids(getUiLocaleBundle('en')));
+    }
+  );
+
+  it.each(['zh-CN', 'zh-TW'])('translates the first-run desk tour (%s)', (locale) => {
+    const en = getUiLocaleBundle('en').controls.prompt;
+    const localized = getUiLocaleBundle(locale).controls.prompt;
+    expect(localized.entryIntro.body).not.toBe(en.entryIntro.body);
+    expect(localized.renderAsHint).not.toBe(en.renderAsHint);
+    for (const key of ['next', 'skip', 'done', 'deskEyebrow']) {
+      expect(localized.entryTour[key], `${locale} entryTour.${key}`).not.toBe(en.entryTour[key]);
+    }
+    for (const [index, pointer] of en.entryPointers.entries()) {
+      expect(localized.entryPointers[index].text, `${locale} pointer ${pointer.id}`).not.toBe(
+        pointer.text
+      );
+    }
+  });
 });

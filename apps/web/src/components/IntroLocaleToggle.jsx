@@ -10,9 +10,25 @@ const LOCALE_OPTIONS = [
 ];
 
 /**
- * Compact language picker. Default: single pill that expands a menu (reception).
- * `variant="inline"`: all options laid out in a row (desk Language pack footer —
- * menu opens upward and a downward submenu would sit off-screen).
+ * Endonyms — each language written in itself, never translated. The whole point
+ * of the reception picker is that somebody who cannot read the *current* UI
+ * language can still find their own row, so these must not come from the copy
+ * bundle (which is, by definition, in the language they are trying to leave).
+ */
+const LOCALE_ENDONYMS = {
+  en: 'English',
+  'en-AU': 'Aussie Slang',
+  'zh-CN': '简体中文',
+  'zh-TW': '繁體中文'
+};
+
+/**
+ * Compact language picker. Default: single pill that expands a menu.
+ * `variant="inline"`: all options laid out in a row of short glyphs (desk
+ * Language pack footer — the menu opens upward and a downward submenu would sit
+ * off-screen).
+ * `variant="intro"`: all options laid out as full-width endonym rows
+ * (reception) — nothing to expand, and readable in any starting locale.
  */
 export default function IntroLocaleToggle({ locale, copy, onSelectLocale, variant = 'menu' }) {
   const [open, setOpen] = useState(false);
@@ -42,6 +58,41 @@ export default function IntroLocaleToggle({ locale, copy, onSelectLocale, varian
     onSelectLocale?.(nextLocale);
     setOpen(false);
   };
+
+  if (variant === 'intro') {
+    return (
+      <div
+        className="intro-locale-intro"
+        role="radiogroup"
+        aria-label={copy.aria}
+        data-testid="intro-locale-toggle"
+      >
+        {copy.aria ? <span className="intro-locale-intro-label">🌐 {copy.aria}</span> : null}
+        <div className="intro-locale-intro-options">
+          {LOCALE_OPTIONS.map((option) => {
+            const selected = option.id === current.id;
+            return (
+              <button
+                key={option.id}
+                type="button"
+                role="radio"
+                className={`intro-locale-intro-option${selected ? ' is-selected' : ''}`}
+                aria-checked={selected}
+                aria-label={optionLabels[option.id]}
+                title={optionLabels[option.id]}
+                onClick={() => handleSelect(/** @type {UiLocale} */ (option.id))}
+              >
+                <span className="intro-locale-intro-short" aria-hidden="true">
+                  {option.label}
+                </span>
+                <span className="intro-locale-intro-name">{LOCALE_ENDONYMS[option.id]}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
 
   if (variant === 'inline') {
     return (

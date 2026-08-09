@@ -43,6 +43,37 @@ describe('IntroLocaleToggle', () => {
     expect(onSelectLocale).toHaveBeenCalledWith('en-AU');
   });
 
+  // Reception is the one screen a user may not be able to read yet, so every
+  // option must be visible without expanding anything, and labelled with its own
+  // endonym rather than a name written in the language they are trying to leave.
+  it('offers every locale up front, labelled in its own language', () => {
+    const onSelectLocale = vi.fn();
+    const zhCopy = {
+      aria: '界面语言',
+      en: '英语',
+      enAu: '澳式俚语',
+      zhCn: '简体中文',
+      zhTw: '繁体中文'
+    };
+    render(
+      <IntroLocaleToggle
+        variant="intro"
+        locale="zh-CN"
+        copy={zhCopy}
+        onSelectLocale={onSelectLocale}
+      />
+    );
+    const group = screen.getByRole('radiogroup', { name: '界面语言' });
+    expect(group.textContent).toContain('English');
+    expect(group.textContent).toContain('繁體中文');
+    expect(screen.getByRole('radio', { name: '简体中文' }).getAttribute('aria-checked')).toBe(
+      'true'
+    );
+    expect(screen.queryByRole('listbox')).toBeNull();
+    fireEvent.click(screen.getByRole('radio', { name: '英语' }));
+    expect(onSelectLocale).toHaveBeenCalledWith('en');
+  });
+
   it('lays out all locales inline without a popup menu', () => {
     const onSelectLocale = vi.fn();
     render(

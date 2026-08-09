@@ -56,6 +56,16 @@
  * }} huddleHandlers
  * @property {import('../../hooks/useHuddleRingControls.js').default | ReturnType<import('../../hooks/useHuddleRingControls.js').useHuddleRingControls>} [huddleRing]
  * @property {{ coffeeVisibleLines?: number, coffeeLineSpoken?: boolean, battleVisibleLines?: number, battleLineSpoken?: boolean, battleLinesDone?: boolean }} [scenePacing]
+ * @property {import('../../utils/officeFloorBoard.js').BoardState | null} [board]
+ *   What *you* are working on, for the surfaces that can show it (§ 5 slice 16).
+ *
+ *   A **sample**, not a subscription, and that is the whole design. `OfficeLayer`
+ *   receives the diagram as getters precisely so the office does not re-render
+ *   while you type; putting a live diagram subscription behind this field would
+ *   repaint sixteen animated figures per keystroke. It is refreshed on the edges
+ *   that mean "the work changed" — a completed run, standing up, a meeting
+ *   opening — which is also the truer fiction: a whiteboard shows what was
+ *   *drawn* on it.
  */
 
 /** Empty bridge for tests and mount points that only need defaults. */
@@ -70,7 +80,8 @@ export const EMPTY_OFFICE_FLOOR_BRIDGE = /** @type {OfficeFloorBridge} */ ({
   huddle: null,
   huddleHandlers: {},
   huddleRing: null,
-  scenePacing: {}
+  scenePacing: {},
+  board: null
 });
 
 /**

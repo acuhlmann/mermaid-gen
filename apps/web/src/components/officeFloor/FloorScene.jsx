@@ -133,7 +133,8 @@ function SceneInvite({
   scale,
   onAccept,
   onDecline,
-  narrateLine
+  narrateLine,
+  showAsker = true
 }) {
   const snapshot = useSyncExternalStore(subscribe, getOfficeSnapshot, getOfficeSnapshot);
   const inviteLine = isBattle
@@ -157,7 +158,7 @@ function SceneInvite({
 
   return (
     <>
-      {!isBattle && scene.lines?.[0]?.speakerId ? (
+      {!isBattle && showAsker && scene.lines?.[0]?.speakerId ? (
         <SceneActor
           castId={scene.lines[0].speakerId}
           tile={tiles[0]}
@@ -272,7 +273,17 @@ export function FloorScene({
   onDecline,
   onVote,
   onDone,
-  showSpokenText: showSpokenTextProp
+  showSpokenText: showSpokenTextProp,
+  /*
+   * Slice 17: who has actually walked over yet. Until somebody arrives at their
+   * mark they are a commuter (`FloorCommuters`), and drawing them here as well
+   * would be two of the same person — § 6 rule 5.
+   *
+   * `null` means "don't ask", which is the honest default for a component that
+   * can be mounted on its own: a standalone `FloorScene` has no commute wiring
+   * behind it and should still stage its whole cast.
+   */
+  settledIds = null
 }) {
   const isBattle = kind === 'battle';
   const spec = SCENE_KINDS[kind] ?? SCENE_KINDS.coffee;
@@ -312,6 +323,7 @@ export function FloorScene({
 
   const copy = officeChromeCopy();
   const participants = sceneParticipants(scene.lines);
+  const hasArrived = (castId) => !settledIds || settledIds.has(castId);
   const votedFor = isBattle ? (scene.votedFor ?? null) : null;
   const currentLine = accepted && !votedFor ? (scene.lines?.[visibleLines - 1] ?? null) : null;
   const names = participants.map((id) => officeSenderInfo(id)?.name ?? id);
@@ -320,6 +332,7 @@ export function FloorScene({
     <>
       {accepted
         ? participants.map((castId, index) => {
+            if (!hasArrived(castId)) return null;
             const verdict = votedFor === castId ? scene.verdicts?.[castId] : null;
             const speaking = currentLine?.speakerId === castId ? currentLine.text : null;
             const line = verdict ?? speaking;
@@ -352,6 +365,10 @@ export function FloorScene({
           onAccept={onAccept}
           onDecline={onDecline}
           narrateLine={narrateLine}
+          /* The coffee invite draws its asker at the machine; they are still
+             walking there while the ask is on screen. The panel itself stays —
+             the ask is the moment, not the person. */
+          showAsker={hasArrived(scene.lines?.[0]?.speakerId ?? '')}
         />
       ) : null}
 

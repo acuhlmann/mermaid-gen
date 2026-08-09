@@ -215,7 +215,8 @@ function OfficeFloorView({ bridge, viewPhase }) {
     huddle = null,
     huddleHandlers = {},
     huddleRing = null,
-    scenePacing = {}
+    scenePacing = {},
+    board = null
   } = bridge;
   // Subscribes this component to locale changes; the copy itself comes from the
   // office bundle below, exactly like the desk comms cluster.
@@ -305,8 +306,19 @@ function OfficeFloorView({ bridge, viewPhase }) {
     [onFloorCue]
   );
 
-  /* Everybody who is out of their chair, for either reason (`useFloorAway`). */
-  const { awayIds, wanderer, handleWanderArrive, wandererRef, floorState } = useFloorAway({
+  /* Everybody who is out of their chair, for any reason (`useFloorAway`) —
+     including, since slice 17, whoever is still walking to or back from a
+     moment. Their desk stays empty for the whole trip. */
+  const {
+    awayIds,
+    wanderer,
+    handleWanderArrive,
+    wandererRef,
+    commuters,
+    settledIds,
+    handleCommuteArrive,
+    floorState
+  } = useFloorAway({
     coffee,
     battle,
     meeting,
@@ -465,6 +477,9 @@ function OfficeFloorView({ bridge, viewPhase }) {
           // of it light their name chip. In a glass-room sync that is the
           // chair in the room, not the desk you left.
           youTile={youTile}
+          // Slice 16: what you are working on, for your own monitor, the
+          // whiteboard and the glass room's table.
+          board={board}
         >
           <FloorActors
             scale={scale}
@@ -480,6 +495,10 @@ function OfficeFloorView({ bridge, viewPhase }) {
             wanderer={wanderer}
             onWandererArrive={handleWanderArrive}
             wandererRef={wandererRef}
+            // Slice 17: the walk to a moment and the walk back from it.
+            commuters={commuters}
+            settledIds={settledIds}
+            onCommuteArrive={handleCommuteArrive}
             // A figure on the stage is selectable whether it is in a chair or
             // stood at the printer, so the wanderer takes the stage's own three.
             selectedId={selectedId}
@@ -513,6 +532,9 @@ function OfficeFloorView({ bridge, viewPhase }) {
         prop={prop}
         propUse={propUse}
         person={person}
+        // The words for what the whiteboard is showing — 62 px of panel can
+        // carry the shape of your diagram, not its labels (slice 16).
+        board={board}
         onGoHome={goHome}
         onMessage={onMessage}
         // The mark that licensed the verb is the mark you walk to — see

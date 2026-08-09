@@ -34,13 +34,18 @@ const BUBBLE_Z = 9600;
  *   onRequestSuggestion?: (speakerId: string) => Promise<any>,
  *   narrateLine?: (line: any) => Promise<{ spoken?: boolean }>,
  *   prefetchLine?: (line: any) => void,
- *   onCancelNarration?: () => void
- * }} props
+ *   onCancelNarration?: () => void,
+ *   settledIds?: Set<string> | null
+ * }} props `settledIds` is slice 17: a teammate who has not walked over yet is
+ *   drawn by `FloorCommuters`, and drawing them in the ring as well would be two
+ *   of the same person (§ 6 rule 5). `null` means "don't ask", so a standalone
+ *   mount still stages the whole ring.
  */
 export function FloorHuddle({
   huddle,
   scale = 1,
   showSpokenText = true,
+  settledIds = null,
   /** When set, pacing/interaction is owned by `OfficeLayer`. */
   ringControls: ringControlsProp,
   onHardStop,
@@ -81,6 +86,7 @@ export function FloorHuddle({
   return (
     <>
       {huddle.attendees.map((id, index) => {
+        if (settledIds && !settledIds.has(id)) return null;
         const tile = HUDDLE_TILES[index % HUDDLE_TILES.length];
         const person = officeSenderInfo(id);
         const { left, top } = projectIso(tile.x, tile.y);

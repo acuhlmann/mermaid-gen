@@ -19,7 +19,9 @@ import FloorScene from './FloorScene.jsx';
  *   scale: number,
  *   sceneHandlers?: Record<string, any>,
  *   showSpokenText?: boolean,
- * }} props
+ *   settledIds?: Set<string> | null,
+ * }} props `settledIds` is slice 17 — who has actually walked over. Passed
+ *   straight through to both scenes; see `FloorScene`.
  */
 export function FloorScenes({
   coffee = null,
@@ -27,7 +29,8 @@ export function FloorScenes({
   scale,
   sceneHandlers = {},
   showSpokenText = true,
-  scenePacing = {}
+  scenePacing = {},
+  settledIds = null
 }) {
   const {
     coffeeVisibleLines,
@@ -51,6 +54,7 @@ export function FloorScenes({
           onDecline={sceneHandlers.onDeclineCoffee}
           onDone={sceneHandlers.onCoffeeDone}
           showSpokenText={showSpokenText}
+          settledIds={settledIds}
         />
       ) : null}
       {battle ? (
@@ -68,6 +72,7 @@ export function FloorScenes({
           onVote={sceneHandlers.onVoteBattle}
           onDone={sceneHandlers.onBattleDone}
           showSpokenText={showSpokenText}
+          settledIds={settledIds}
         />
       ) : null}
     </>

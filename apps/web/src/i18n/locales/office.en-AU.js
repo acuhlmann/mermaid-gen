@@ -50,12 +50,12 @@ export const OFFICE_EN_AU = {
     id: 'welcome-email-hr',
     colleagueId: 'hr',
     subject: 'Welcome aboard, {userTitle}! 🎉 (badge photo: pending)',
-    body: 'Welcome to the floor! Stoked to have you. A few faces from Your Team before orientation (rescheduled, TBD):\n\n🙋 Dinesh will catch the bug nobody else saw, then remind you he caught it.\n🕶 Erlich will ask if the diagram is courageous. Answer carefully.\n📋 Jared has already filed a finding about your onboarding handoff. Softly. Firmly.\n🤓 Richard thinks this office has a named pattern. He is probably right.\n🧘 Jack Barker is thrilled — and has taken the liberty of simplifying your first week for the board.\n\nGilfoyle and Russ are also on the floor. They will find you. They do not need an introduction.\n\nAnd I’m Linda — People Ops! Your compliance training is already overdue, which is honestly a record. Need quieter? Your desk menu has Focus, Noise, and Voice — and you can always stand up and wander over to the coffee machine.\n\nHR forever,\nLinda'
+    body: 'Welcome to the floor, {userName}! Stoked to have you. A few faces from Your Team before orientation (rescheduled, TBD):\n\n🙋 Dinesh will catch the bug nobody else saw, then remind you he caught it.\n🕶 Erlich will ask if the diagram is courageous. Answer carefully.\n📋 Jared has already filed a finding about your onboarding handoff. Softly. Firmly.\n🤓 Richard thinks this office has a named pattern. He is probably right.\n🧘 Jack Barker is thrilled — and has taken the liberty of simplifying your first week for the board.\n\nGilfoyle and Russ are also on the floor. They will find you. They do not need an introduction.\n\nAnd I’m Linda — People Ops! Your compliance training is already overdue, which is honestly a record. Need quieter? Your desk menu has Focus, Noise, and Voice — and you can always stand up and wander over to the coffee machine.\n\nHR forever,\nLinda'
   },
   OFFICE_WELCOME_IM: {
     id: 'welcome-im-intern',
     colleagueId: 'intern',
-    body: 'hey!! you must be the new {userTitle} — welcome!! the coffee machine has fourteen buttons and twelve are decorative. also gary WILL email you about the fridge. it’s not personal (it is)'
+    body: 'hey {userName}!! you must be the new {userTitle} — welcome!! the coffee machine has fourteen buttons and twelve are decorative. also gary WILL email you about the fridge. it’s not personal (it is)'
   },
   OFFICE_EMAIL_TEMPLATES: [
     {
@@ -291,7 +291,7 @@ export const OFFICE_EN_AU = {
     {
       id: 'im-intern-boxes',
       colleagueId: 'intern',
-      body: 'quick q — is {label} meant to have that many arrows? asking for my onboarding doc'
+      body: 'hey {userName}, quick q — is {label} meant to have that many arrows? asking for my onboarding doc'
     },
     {
       id: 'im-intern-lunch',
@@ -418,7 +418,7 @@ export const OFFICE_EN_AU = {
     {
       id: 'walkby-intern',
       colleagueId: 'intern',
-      body: 'whoa, {label} looks heaps official. did you make that with the AI? can I chuck it in my portfolio?'
+      body: 'whoa {userName}, {label} looks heaps official. did you make that with the AI? can I chuck it in my portfolio?'
     },
     {
       id: 'walkby-greybeard',
@@ -1302,6 +1302,8 @@ export const OFFICE_EN_AU = {
         blocked: 'Not right now — something else has ya attention.',
         back: '🪑 Back to my desk',
         backTitle: 'Walk back to ya own screen',
+        look: '🔍 Look closer',
+        lookTitle: 'Have a proper squiz',
         items: {
           coffeeMachine: {
             glyph: '☕',
@@ -1310,7 +1312,13 @@ export const OFFICE_EN_AU = {
             useLabel: 'Coffee machine — make one',
             useTitle: 'Walk over and make one',
             line: 'It grinds, it hisses, it produces something brown. Somebody will be along shortly to talk to you.',
-            blocked: 'It is already making one for somebody. Wait ya turn.'
+            blocked: 'It is already making one for somebody. Wait ya turn.',
+            details: [
+              'A laminated sign: DESCALE ROTA. The last initial belongs to someone who left.',
+              'Six mugs on the drainer. One says WORLD’S OKAYEST. It is everyone’s.',
+              'The "clean me" light has been covered with a little square of gaffer tape.',
+              'Gary’s label on the bean tin: PROPERTY OF FACILITIES. NOT A PERK.'
+            ]
           },
           printer: {
             glyph: '🖨️',
@@ -1318,7 +1326,13 @@ export const OFFICE_EN_AU = {
             note: 'Reception · MFP-3 "SLOPMASTER"',
             useLabel: 'Printer — have a squiz',
             useTitle: 'Walk over and look at it',
-            line: 'PC LOAD LETTER. Nobody on this floor has ever loaded letter. The queue says 41 jobs, all from 2023.'
+            line: 'PC LOAD LETTER. Nobody on this floor has ever loaded letter. The queue says 41 jobs, all from 2023.',
+            details: [
+              'Taped to the lid: "OUT OF ORDER — Dave". Under it, older tape: "OUT OF ORDER — Dave".',
+              'Top sheet in the output tray is a 60-page deck. Page one says DRAFT — DO NOT CIRCULATE.',
+              'Someone has written the wifi password on the paper drawer. It is wrong, and it has been corrected twice.',
+              'A sticky note: "if it beeps twice, walk away". It is beeping once.'
+            ]
           },
           whiteboard: {
             glyph: '📋',
@@ -1326,7 +1340,23 @@ export const OFFICE_EN_AU = {
             note: 'By the pod · DO NOT ERASE',
             useLabel: 'Whiteboard — read what is on it',
             useTitle: 'Walk over and read it',
-            line: 'An architecture from two re-orgs ago, in permanent marker. Three boxes, one arrow, and the word SYNERGY underlined twice.'
+            line: 'An architecture from two re-orgs ago, in permanent marker. Three boxes, one arrow, and the word SYNERGY underlined twice.',
+            details: [
+              'Bottom right, small: "this is the temporary one". Dated four years ago.',
+              'A fourth box has been half-erased. You can still read the word BILLING.',
+              'Someone has drawn a very good horse in the corner. Nobody has ever mentioned it.',
+              'Under DO NOT ERASE, in different handwriting: "why". Under that: "ask Ulrich".'
+            ],
+            // Slice 16 — see the note on the default bundle. `line` above stays
+            // the empty state.
+            lineYours:
+              'Somebody has wiped the old architecture. Yours is up there instead — {count} boxes in marker, already smudged where a sleeve went past.',
+            detailsYours: [
+              'The boxes read: {labels}. One of them has been starred. Nobody knows who did it, or which one they meant.',
+              'An arrow has turned up that was not on ya version. It leaves a box and comes back to the same box.',
+              'Underneath, in different handwriting: "who owns this". No arrow to say which one.',
+              'SYNERGY has survived in the corner, underlined twice. It always does.'
+            ]
           }
         }
       },

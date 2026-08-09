@@ -13,6 +13,7 @@ import { approachTileFor, propTileFor } from '../src/utils/officeFloorMovement.j
 import { officeChromeCopy, officeSenderInfo } from '../src/utils/officeCast.js';
 import { isStandableTile, seatFor, YOU_SEAT_ID } from '../src/utils/officeFloorPlan.js';
 import { wanderTripsFor, wanderingSeatIds } from '../src/utils/officeFloorWander.js';
+import { boardFrom } from '../src/utils/officeFloorBoard.js';
 
 const copy = officeChromeCopy().floor;
 const lines = copy.narration;
@@ -165,5 +166,49 @@ describe('card-slot narration order matches floorAnnouncement priority', () => {
         walkBy: null
       }).key
     ).toMatch(/^roam:/);
+  });
+});
+
+/**
+ * Slice 16 — the room shows your work. Three doctrines meet on this feature,
+ * and each of them is one line away from being broken by a well-meaning edit.
+ */
+describe('ADR-0010 / ADR-0011 — showing your work in the room', () => {
+  const source = 'flowchart LR\n  a[Client] --> b[API]';
+
+  it('derives and stores nothing (ADR-0011 rule 1)', () => {
+    // Same source, same board — twice, with nothing in between. A board that
+    // remembered anything (a last-seen count, a "has changed" flag) would show
+    // up here as two different answers.
+    const first = boardFrom({ contentType: 'mermaid', diagramSource: source });
+    const second = boardFrom({ contentType: 'mermaid', diagramSource: source });
+    expect(second).toEqual(first);
+    // And the empty slot never inherits the last one.
+    expect(boardFrom({ contentType: 'mermaid', diagramSource: '' })).toBeNull();
+  });
+
+  it('leaves the whiteboard producing nothing (ADR-0011 rule 2)', () => {
+    /*
+     * The board is a second *view* of your diagram, never a second editor. If a
+     * later slice gives the whiteboard a `verb`, it stops duplicating a desk
+     * control and starts being the only way to do something — which is the
+     * exact thing rule 2 forbids, and the reason `usablePropKinds()` treats it
+     * as a prop that produces nothing but a line.
+     */
+    expect(propUseFor('whiteboard')?.verb ?? null).toBeNull();
+  });
+
+  it('shows only your own content, never the cast’s (ADR-0010)', () => {
+    /*
+     * Every field the board carries is derived from `diagramSource`. Nothing on
+     * it is authored by a colleague, and the room has no way to write to it —
+     * which is what keeps "the office generates no artifacts" true even though
+     * the office now has something of yours on the wall.
+     */
+    const board = boardFrom({ contentType: 'mermaid', diagramSource: source });
+    expect(board.labels).toEqual(['Client', 'API']);
+    expect(Object.keys(board).sort()).toEqual(
+      ['bars', 'edges', 'kind', 'labels', 'mini', 'nodes', 'shape'].sort()
+    );
   });
 });

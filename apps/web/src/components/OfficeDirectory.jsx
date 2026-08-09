@@ -155,7 +155,6 @@ function OnboardingPage({
         eyebrow={copy.tourEyebrow}
         toolbar={
           <>
-            {localeToolbar}
             <IntroTranscriptButton
               enabled={showTranscript}
               label={copy.transcriptLabel}
@@ -169,6 +168,9 @@ function OnboardingPage({
 
       <div className="office-directory-onboarding-scroll" data-testid="office-directory-welcome">
         <section className="office-directory-onboarding-intro">
+          {/* Language before anything else: a newcomer who cannot read this screen
+              needs the way out at the top of it, not behind a pill in the header. */}
+          {touring ? null : localeToolbar}
           <p className="office-directory-chapter">{copy.welcomeChapter}</p>
           <NameTag copy={copy.nameTag} />
           {showTranscript ? (
@@ -539,6 +541,7 @@ export default function OfficeDirectory({
           onToggleTranscript={() => setOfficeCaptions(!showTranscript)}
           localeToolbar={
             <IntroLocaleToggle
+              variant="intro"
               locale={locale}
               copy={controls.introLocale}
               onSelectLocale={setLocale}

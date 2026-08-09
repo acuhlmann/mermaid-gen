@@ -262,7 +262,15 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
     'Story points are feelings with Fibonacci cosplay.',
     'The Department of No has already noted your optimism.',
     'Hot-desking means your snacks are now a shared economic zone.',
-    'When in doubt, form a working group and call it family.'
+    'When in doubt, form a working group and call it family.',
+    'Slopitect Tip™: "she\'ll be right on my machine" is not a deployment strategy. It is a lifestyle.',
+    'Pivot means we kept the logo and replaced the product. Again.',
+    'If your compression algorithm also compresses morale, call it culture.',
+    'Series A is when the fridge gets a name. Series B is when Gary locks the thermostat.',
+    'Minimum viable product means maximum viable PowerPoint.',
+    'The best middleware is the one nobody admits still runs in prod.',
+    'Six slots, one canvas: Mermaid for boxes, Chart for numbers, Anything for chaos.',
+    'Slop Chat™ colleagues remember what you said — try not to spiral.'
   ],
   PRESTIGE_TIERS: [
     { threshold: 0, label: 'Slop Trainee', short: 'Trainee' },

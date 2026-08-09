@@ -210,6 +210,46 @@ describe('office locale bundles', () => {
     expect(floor.narration?.inHuddle).toBeTruthy();
   });
 
+  /*
+   * The floor's prop copy is the one chrome branch where a *missing* key is a
+   * silently dead feature rather than an English fallback: `officeChromeCopy()`
+   * swaps whole bundles (`office()?.OFFICE_CHROME_COPY ?? OFFICE_CHROME_COPY`),
+   * it does not merge, and `FloorPropCard` hides the **Look closer** button
+   * entirely when `details` is empty. Nothing rendered, nothing to notice — the
+   * same failure mode the set-piece marker test above exists to catch.
+   *
+   * Found for real: en-AU shipped without `look`, `lookTitle` or any `details`
+   * at all, so slice 9's follow-up had never worked in that locale.
+   */
+  it.each(LOCALES)('keeps every usable prop lookable (%s)', (locale) => {
+    const props = getUiLocaleBundle(locale).office.OFFICE_CHROME_COPY.floor.props;
+    expect(props.look, `${locale} floor.props.look`).toBeTruthy();
+    expect(props.lookTitle, `${locale} floor.props.lookTitle`).toBeTruthy();
+    for (const kind of Object.keys(OFFICE_CHROME_COPY.floor.props.items)) {
+      const en = OFFICE_CHROME_COPY.floor.props.items[kind];
+      if (!en.details?.length) continue;
+      expect(props.items[kind]?.details?.length ?? 0, `${locale} ${kind}.details`).toBe(
+        en.details.length
+      );
+    }
+  });
+
+  /*
+   * Slice 16: the whiteboard's filled state. `lineYours` is what
+   * `FloorPropCard` branches on, so a locale missing it quietly keeps showing
+   * the empty-state architecture from two re-orgs ago even with your diagram on
+   * the board — and `{count}` / `{labels}` are the whole point of the line, so
+   * a translation that drops them loses the specificity the joke runs on.
+   */
+  it.each(LOCALES)('carries the board-aware whiteboard copy (%s)', (locale) => {
+    const item = getUiLocaleBundle(locale).office.OFFICE_CHROME_COPY.floor.props.items.whiteboard;
+    const en = OFFICE_CHROME_COPY.floor.props.items.whiteboard;
+    expect(item.lineYours, `${locale} whiteboard.lineYours`).toBeTruthy();
+    expect(item.lineYours).toContain('{count}');
+    expect(item.detailsYours?.length ?? 0).toBe(en.detailsYours.length);
+    expect(item.detailsYours.some((d) => d.includes('{labels}'))).toBe(true);
+  });
+
   it('routes localized copy through the officeCast accessors', () => {
     setActiveOfficeBundle(getUiLocaleBundle('zh-CN').office);
     expect(officeEmailTemplates()[0].subject).toContain('冰箱');

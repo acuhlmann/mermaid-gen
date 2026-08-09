@@ -17,6 +17,7 @@
  * rest of "what are you doing", not here.
  */
 
+import FloorCommuters from './FloorCommuters.jsx';
 import FloorHuddle from './FloorHuddle.jsx';
 import FloorMeeting from './FloorMeeting.jsx';
 import FloorPeek from './FloorPeek.jsx';
@@ -41,6 +42,9 @@ import { YOU_SEAT_ID, isWithinNameChipRange } from '../../utils/officeFloorPlan.
  *   wanderer?: any,
  *   onWandererArrive?: () => void,
  *   wandererRef?: { current: HTMLElement | null },
+ *   commuters?: import('../../utils/officeFloorCommute.js').Commute[],
+ *   settledIds?: Set<string> | null,
+ *   onCommuteArrive?: (id: string) => void,
  *   selectedId?: string | null,
  *   speakingId?: string | null,
  *   onSelect?: (id: string) => void,
@@ -82,6 +86,9 @@ export function FloorActors({
   wanderer,
   onWandererArrive,
   wandererRef,
+  commuters,
+  settledIds,
+  onCommuteArrive,
   selectedId,
   speakingId,
   onSelect,
@@ -106,7 +113,16 @@ export function FloorActors({
         sceneHandlers={sceneHandlers}
         scenePacing={scenePacing}
         showSpokenText={showSpokenText}
+        settledIds={settledIds}
       />
+
+      {/* Slice 17: on their way to a moment, or on their way back from one.
+          Placed with the other ambient traffic and for the same reason — a
+          commuter is somebody crossing the room, and the *event* they are
+          walking to or from is narrated by whichever surface owns it. */}
+      {commuters?.length ? (
+        <FloorCommuters commuters={commuters} onArrive={onCommuteArrive} onStep={onStep} />
+      ) : null}
 
       {/* Somebody who has got up for a minute. Still deliberately absent from
           `floorAnnouncement`: ambient traffic is the one class of event on this
@@ -140,6 +156,7 @@ export function FloorActors({
           scale={scale}
           showSpokenText={showSpokenText}
           ringControls={huddleRing ?? undefined}
+          settledIds={settledIds}
           onHardStop={huddleHandlers?.onHardStop}
           onAdoptPrompt={huddleHandlers?.onAdoptPrompt}
           onRequestSuggestion={huddleHandlers?.onRequestSuggestion}

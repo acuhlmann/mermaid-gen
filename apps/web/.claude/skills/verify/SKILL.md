@@ -72,6 +72,22 @@ document.getAnimations().forEach((a) => {
 });
 ```
 
+**Seek to the animation's END, not to `0`.** `ms = 0` is the tempting default and it is wrong
+for the floor: `.office-floor[data-view-phase='stand-up']` runs `office-floor-cover`, a `both`-
+filled fade **from `opacity: 0`**, so parking it at 0 pins the entire room invisible while every
+DOM measurement stays perfectly healthy. Every screenshot comes back an empty carpet-coloured
+rectangle that reads exactly like your change broke the room. Use
+`a.effect.getComputedTiming().endTime` unless you specifically want a mid-transition frame.
+
+**A floor harness must import `components/OfficeFloor.css` itself.** `ArchiSlop.jsx` is its only
+importer, so the `index.css` + `App.css` recipe above leaves `.office-floor` unfixed and
+`.office-floor-prop` unpositioned — every prop falls into static flow. The tell is _geometry_,
+not blankness: props measure at `y ≈ 2000` in an 844 px viewport, which looks like a projection
+bug and is a missing stylesheet.
+
+**Use `deviceScaleFactor: 4`** when judging small art (a 62 px whiteboard panel, a 19 px screen
+face). At 1× you cannot honestly say whether it reads.
+
 Two traps this walks into, both found on the stand-up camera move
 (`docs/office-isometric-mode.md` § 1a):
 

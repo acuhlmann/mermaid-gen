@@ -54,6 +54,51 @@ export const CONTROLS_ZH_CN = {
     topicPlaceholder: '输入任何主题 — 图表、数据图、表单…',
     starterHint: '或从同事那里接个任务：',
     starterAria: '用于快速开始的示例主题',
+    entryIntro: {
+      greeting: '工位魔法时间，{name}',
+      role: '架构师',
+      body: '你熬过了入职引导。这是最后一次来自公司的拥抱。在下面的工单里抛个主题——每份交付物都是这么开始的，你也是这么从「摆设」变成「同事」的。'
+    },
+    entryPointers: [
+      {
+        id: 'work-order',
+        label: '1 · 工单',
+        text: '在这里输入你的主题，点「开始」生成。每份交付物都从这里出发。'
+      },
+      {
+        id: 'desk',
+        label: '2 · 操作菜单',
+        text: '打开邮件、导出和工位操作。任何时候都能用「站起来」去办公室楼面走一圈。'
+      },
+      {
+        id: 'notebook',
+        label: '3 · 笔记本',
+        text: '生成交付物之后，这里会显示思考记录、运行历史和评审结果。'
+      },
+      {
+        id: 'team',
+        label: '4 · 你的团队',
+        text: '画布上一有内容，你的团队就会开始提建议、发评审。'
+      },
+      {
+        id: 'selection',
+        label: '5 · 精细编辑',
+        text: '点击画布上任意节点、连线或标签即可打开操作环——里面每个动作只改这一部分，不动整张图。'
+      },
+      {
+        id: 'format',
+        label: '6 · 交付物格式',
+        text: '菜单栏负责选格式——架构图、数据图、信息图、3D 或任意页面。先选一个，再去工单里写主题。'
+      }
+    ],
+    entryTour: {
+      next: '下一步',
+      skip: '跳过导览',
+      done: '抛出你的第一个主题',
+      deskEyebrow: '在你的工位上'
+    },
+    renderAsHint:
+      '生成前先在菜单栏的「交付物」里选一种格式。收发室负责把它寄出去；笔记本图标打开思考记录。',
     starters: [
       { label: '咖啡供应链', prompt: '拆解全球咖啡供应链' },
       { label: 'OAuth 2.0 流程', prompt: '讲解 OAuth 2.0 授权码流程的工作原理' },
@@ -84,13 +129,16 @@ export const CONTROLS_ZH_CN = {
   },
   introLocale: {
     aria: '界面语言',
-    en: 'English',
-    enAu: 'Aussie Slang',
+    en: '英语',
+    enAu: '澳式俚语',
     zhCn: '简体中文',
     zhTw: '繁体中文'
   },
   menuBar: {
     aria: '工作站菜单栏',
+    settings: '设置',
+    settingsTitle: '设置 · 赶工、深耕、外包、人事、耳机',
+    settingsAria: '设置 — 工位偏好',
     deliverable: '交付物',
     deliverableTitle: '交付物 · 这份东西到底是什么，以及怎么碎掉它',
     deliverableAria: '交付物格式',
@@ -126,7 +174,9 @@ export const CONTROLS_ZH_CN = {
     externalAgentFallback: '外部智能体',
     brain: '专注度',
     fast: '赶工',
+    fastShort: '赶工',
     quality: '深耕',
+    qualityShort: '深耕',
     concentrationTitle: '下一份交付物前你想想多认真',
     mode: '模式',
     thinking: '笔记本',

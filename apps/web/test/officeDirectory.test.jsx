@@ -78,6 +78,25 @@ describe('OfficeDirectory', () => {
     await waitFor(() => expect(getOfficeDirectoryUi().open).toBe(true));
   });
 
+  // Reception is the only screen shown before anyone commits to a language, so
+  // the picker belongs in the welcome body — not behind a pill in the header a
+  // non-English reader has no reason to open.
+  it('offers every language up front on the welcome step', () => {
+    renderDirectory({ isBoot: true });
+    const strip = screen.getByTestId('intro-locale-toggle');
+    expect(strip.closest('.office-directory-onboarding-intro')).toBeTruthy();
+    expect(screen.getByRole('radio', { name: 'Simplified Chinese' }).textContent).toContain(
+      '简体中文'
+    );
+    expect(screen.getByRole('radio', { name: 'Traditional Chinese' }).textContent).toContain(
+      '繁體中文'
+    );
+    expect(screen.getByRole('radio', { name: 'Aussie Slang' })).toBeTruthy();
+    expect(screen.getByRole('radio', { name: 'English' }).getAttribute('aria-checked')).toBe(
+      'true'
+    );
+  });
+
   it('hides spoken copy until transcript is enabled', () => {
     renderDirectory();
     expect(screen.queryByText(/newest architect/i)).toBeNull();

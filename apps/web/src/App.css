@@ -14793,6 +14793,88 @@ body.slopitect-rainbow-tint::before {
   display: block;
 }
 
+/* Reception language strip — all four options up front, each labelled with its
+   own endonym so it stays findable no matter which locale the app booted in. */
+.intro-locale-intro {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  width: 100%;
+  margin: 0 0 0.35rem;
+}
+
+.intro-locale-intro-label {
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.intro-locale-intro-options {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.3rem;
+  width: 100%;
+}
+
+.intro-locale-intro-option {
+  appearance: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1rem;
+  min-width: 0;
+  margin: 0;
+  padding: 0.34rem 0.3rem;
+  border: 1px solid rgba(148, 163, 184, 0.4);
+  border-radius: 0.55rem;
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--muted);
+  font: inherit;
+  line-height: 1.2;
+  cursor: pointer;
+  text-align: center;
+}
+
+.intro-locale-intro-short {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.intro-locale-intro-name {
+  font-size: 0.64rem;
+  font-weight: 650;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.intro-locale-intro-option:hover {
+  background: rgba(255, 255, 255, 0.95);
+  color: var(--text);
+}
+
+.intro-locale-intro-option.is-selected {
+  border-color: rgba(14, 165, 233, 0.65);
+  background: rgba(14, 165, 233, 0.12);
+  color: var(--accent, #0ea5e9);
+}
+
+.intro-locale-intro-option:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+@media (max-width: 460px) {
+  .intro-locale-intro-options {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 /* Work Order footer: legacy hook — concentration lives in the desk helmet menu. */
 .concentration-control--footer {
   padding: 0.15rem 0.35rem 0;

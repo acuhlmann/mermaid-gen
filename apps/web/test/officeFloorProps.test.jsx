@@ -238,3 +238,129 @@ describe('looking closer at a prop', () => {
     expect(screen.queryByTestId('office-floor-prop-look')).toBeNull();
   });
 });
+
+/**
+ * The board on the whiteboard (slice 16).
+ *
+ * The card is where the *readable* half of that slice lives — 62 px of panel
+ * can carry the shape of your diagram and not its labels — so these pin the
+ * pair of copy states rather than the drawing.
+ */
+describe('the whiteboard carries your diagram', () => {
+  const propCopy = () => officeChromeCopy().floor.props;
+
+  const renderCard = (board) =>
+    render(
+      <FloorPropCard
+        prop={{ propKind: 'whiteboard', phase: 'using' }}
+        phase="idle"
+        copy={officeChromeCopy().floor}
+        board={board}
+        onBack={vi.fn()}
+      />
+    );
+
+  const board = {
+    kind: 'mermaid',
+    shape: 'graph',
+    nodes: 4,
+    edges: 3,
+    labels: ['Client', 'API Gateway', 'Auth Service', 'Orders'],
+    bars: [],
+    mini: { nodes: [], edges: [] }
+  };
+
+  it('keeps the architecture from two re-orgs ago as the empty state', () => {
+    renderCard(null);
+    expect(screen.getByText(propCopy().items.whiteboard.line)).toBeTruthy();
+  });
+
+  it('names what is on the board once you have drawn something', () => {
+    renderCard(board);
+    expect(screen.queryByText(propCopy().items.whiteboard.line)).toBeNull();
+    // The node count is interpolated, so the empty-state line cannot pass by
+    // accident — this asserts the *filled* line specifically.
+    expect(screen.getByText(/4 boxes/)).toBeTruthy();
+  });
+
+  it('reads the real labels out on Look closer', () => {
+    renderCard(board);
+    fireEvent.click(screen.getByTestId('office-floor-prop-look'));
+    expect(screen.getByText(/Client, API Gateway, Auth Service/)).toBeTruthy();
+  });
+
+  it('leaves a prop with no board variant on its own copy', () => {
+    render(
+      <FloorPropCard
+        prop={{ propKind: 'printer', phase: 'using' }}
+        phase="idle"
+        copy={officeChromeCopy().floor}
+        board={board}
+        onBack={vi.fn()}
+      />
+    );
+    expect(screen.getByText(propCopy().items.printer.line)).toBeTruthy();
+  });
+});
+
+/**
+ * The drawing half of slice 16. Structural rather than pixel assertions —
+ * jsdom has no layout engine, so what these can honestly pin is *which
+ * surfaces gained marks*; the § 6 verify recipe is what says they are legible.
+ */
+describe('the room draws what you are working on', () => {
+  const board = {
+    kind: 'mermaid',
+    shape: 'graph',
+    nodes: 4,
+    edges: 3,
+    labels: ['Client', 'API Gateway'],
+    bars: [
+      { x: 0.08, y: 0.12, w: 0.3, h: 0.24, c: '#dbeafe' },
+      { x: 0.62, y: 0.12, w: 0.3, h: 0.24, c: '#dbeafe' }
+    ],
+    mini: {
+      nodes: [
+        { x: 0.12, y: 0.16, w: 0.2, h: 0.26 },
+        { x: 0.44, y: 0.16, w: 0.2, h: 0.26 }
+      ],
+      edges: [[0, 1]]
+    }
+  };
+
+  const yourScreen = (container) => container.querySelector('.floor-screen--you');
+  const whiteboard = (container) => container.querySelector('[data-prop="whiteboard"]');
+
+  it('puts bars on your monitor and leaves it alone when the slot is empty', () => {
+    const { container: empty } = renderFloor();
+    const bare = yourScreen(empty).querySelectorAll('polygon').length;
+    cleanup();
+
+    const { container: full } = renderFloor({ board });
+    expect(yourScreen(full).querySelectorAll('polygon').length).toBeGreaterThan(bare);
+  });
+
+  it('never puts your work on a colleague’s screen (ADR-0010)', () => {
+    const { container } = renderFloor({ board });
+    // Gilfoyle's monitor is his own fiction whatever you are working on.
+    const theirs = container.querySelector('[data-seat="gilfoyle"] .floor-screen');
+    expect(theirs.classList.contains('floor-screen--you')).toBe(false);
+    cleanup();
+
+    const { container: bare } = renderFloor();
+    expect(
+      bare.querySelector('[data-seat="gilfoyle"] .floor-screen').querySelectorAll('polygon').length
+    ).toBe(theirs.querySelectorAll('polygon').length);
+  });
+
+  it('inks the whiteboard, connectors and all', () => {
+    const { container: empty } = renderFloor();
+    // `IsoPanel` draws a `polyline` frame; a bare `line` only ever comes from
+    // the board's connectors, so this cannot pass on the empty state.
+    expect(whiteboard(empty).querySelectorAll('line').length).toBe(0);
+    cleanup();
+
+    const { container: full } = renderFloor({ board });
+    expect(whiteboard(full).querySelectorAll('line').length).toBe(1);
+  });
+});

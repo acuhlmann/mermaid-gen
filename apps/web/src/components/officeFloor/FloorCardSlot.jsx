@@ -40,6 +40,7 @@ import { sitDown } from '../../state/officeViewModeStore.js';
  *   prop?: { propKind: string, phase: string } | null,
  *   propUse?: { phase: 'idle' | 'working' | 'done' | 'blocked' } | null,
  *   person?: any,
+ *   board?: import('../../utils/officeFloorBoard.js').BoardState | null,
  *   onGoHome: () => void,
  *   onMessage?: (colleagueId: string) => void,
  *   onPeek?: (colleagueId: string) => void,
@@ -64,6 +65,8 @@ export function FloorCardSlot({
   prop = null,
   propUse = null,
   person = null,
+  // No default — § 8's complexity lever, and `FloorPropCard` defaults it itself.
+  board,
   onGoHome,
   onMessage,
   onPeek,
@@ -113,7 +116,15 @@ export function FloorCardSlot({
   if (peek) return <FloorPeekCard peek={peek} copy={copy} onBack={onGoHome} />;
 
   if (prop)
-    return <FloorPropCard prop={prop} phase={propUse?.phase} copy={copy} onBack={onGoHome} />;
+    return (
+      <FloorPropCard
+        prop={prop}
+        phase={propUse?.phase}
+        copy={copy}
+        board={board}
+        onBack={onGoHome}
+      />
+    );
 
   if (person) {
     return (

@@ -630,7 +630,127 @@ zero, and no horizontal overflow. All of it pinned in `test/deskOsFrameStyles.te
     name a bystander a tile away too. That is the arithmetic working, not a bug — the ring
     does not know who you mean.
 
-**There is no slice 16 yet, and that is deliberate.** The list above was written one slice at
+16. **The work is in the room** — ✅ **shipped**: the floor stopped being a diorama beside the
+    product and became a view of it. Your own monitor showed a flat `#3b82f6` rectangle while
+    every colleague's showed fiction; the whiteboard held somebody else's dead architecture; the
+    glass room's table screen was a blank 5 px plate during a meeting about your diagram. All
+    three now carry **your** current slot.
+
+    **One derivation, three surfaces** — `officeFloorBoard.js`, a sibling of
+    `officeFloorActivity.js` and there for the same reason: two surfaces deriving "what is on the
+    board" separately are two surfaces that can disagree. `boardFrom({contentType,
+diagramSource})` returns counts, labels, a `shape` (`graph` | `list` | `page`), monitor `bars`
+    in the exact row shape `SCREEN_LOOKS` already used, and a `mini` for the whiteboard — or
+    `null`, which is a designed state rather than a gap.
+
+    **The empty state is the joke that was already there.** With no board the monitor is the same
+    flat blue it always was and the whiteboard still carries the architecture from two re-orgs
+    ago, SYNERGY underlined twice — which is exactly what a whiteboard has on it before you draw
+    anything. `FloorPropCard` picks between the pairs on `lineYours` existing, so the whiteboard
+    opts in with a copy row and any future prop that could honestly reflect your work does too,
+    without a branch naming it.
+
+    **Sampled, never subscribed — the load-bearing decision.** `OfficeLayer` takes the diagram as
+    _getters_ (`getDiagramSource` / `getContentType`) precisely so the office does not re-render
+    while you type. A subscribed board would repaint sixteen animated figures, a walk animation
+    and a directed camera on every keystroke, to change a 62 px panel nobody is looking at yet.
+    So `useOfficeBoard` samples on three edges — a completed run (the same `runSignal` edge
+    `useOfficeRunReactions` already treats as "they shipped something"), standing up, and a
+    meeting opening — using the ref-and-one-dep shape that hook uses, because the getters are
+    inline arrows and anything reading them from a dependency array fires every render. The
+    constraint turned out to be the better fiction: **a whiteboard shows what was drawn on it**,
+    not what you are typing.
+
+    Two things it settled that the next surface will hit too. **The advisor's label extractor is
+    half unusable here**: `getAdvisorVisibleLabels` routes chart / anything / metaphor3d / forms
+    through source parsers (reused as-is) but mermaid and infographic through the _rendered_ SVG,
+    filtered by **viewport intersection** — so once the floor covers the canvas the answer is
+    about whatever happens to be scrolled into view. The floor needs what the diagram _is_, not
+    what is on screen. And **`collectFlowchartParticipantInfo` counts but cannot name**: its
+    `VERTEX_DEFINE_RE` is anchored to the start of a line because it was built for fingerprint
+    diffing, so `client[Client] --> gw[API Gateway]` files only the first of two labels. Counting
+    stays with the collectors; naming is a second pass here. Its own quirk came with it — that
+    collector's token scan clears `[]`, `()` and `{}` but not `|…|`, so `a -->|yes| b` files
+    `yes` as a participant, which is harmless for diffing and would have put "yes" on your
+    whiteboard as a box.
+
+    **It reproduces the shape of the work, deliberately not the layout.** At 62 px a faithful
+    five-node routing is five rectangles and a smudge, and building one would make the module a
+    second layout engine that can disagree with the real one. The whiteboard says how big the
+    thing is and how connected; the readable text lives on the **Look closer** card, where there
+    is room for it. Nothing moved geometrically — the whiteboard's box is byte-identical between
+    the two states, and your monitor keeps its size and screen-left shift, so § 6 rules 11, 21,
+    22, 30 and 31 are untouched.
+
+    Measured in Chrome at 1440 × 900 and 390 × 844 at 4× device density: the miniature reads as
+    boxes-and-arrows at both, including at the phone's 0.5 stage scale; the monitor's bars sit
+    inside the screen face and your head is never eclipsed (the boxes do not overlap
+    horizontally); and the empty board still reads as the SYNERGY panel. Two capture traps it
+    found are in § 6's Windows notes.
+
+    In passing, and reported rather than hidden: **en-AU had shipped with no `look`, `lookTitle`
+    or `details` at all**, so slice 9's follow-up had never worked in that locale — backfilled,
+    with a locale test that now pins it, since `officeChromeCopy()` swaps whole bundles rather
+    than merging and a missing key there is a silently dead feature, not an English fallback.
+
+17. **Getting there and getting back** — ✅ **shipped**: the scripted moments stopped teleporting
+    their cast. A coffee break used to begin with two people materializing at the machine and end
+    with them vanishing back into their chairs mid-sip; a huddle rang your desk out of thin air
+    and dissolved the same way. Walk-bys (slice 2) and ambient wanderers (slice 11) had always
+    walked, which made the _busiest_ parts of the office the least alive — the room only moved
+    when nothing was happening in it.
+
+    A **commute** is one colleague's trip to a mark and back, and it is a four-state machine:
+    `out ▸ there ▸ home ▸ gone`. `out` and `home` are drawn by `FloorCommuters` as travelling
+    figures; `there` is drawn by whichever surface claimed them, exactly as before. Only ever one
+    of the two, which is § 6 rule 5 surviving the addition — `settledIds` is the hand-off, and a
+    surface asked with `null` stages its whole cast, so a standalone `FloorScene` mount still
+    works.
+
+    **`home` is presentation state and nothing else.** The store has one truth (a moment is
+    happening or it is not); the room needs one beat more, in the way a CSS exit transition does.
+    That is `useFloorWalker`'s argument for the departing walk-by, generalized to N people, and
+    it never feeds back (ADR-0011 rule 1). The whole state machine is pure in
+    `utils/officeFloorCommute.js`, so the interesting cases are unit tests rather than something
+    you have to catch in a capture: a moment ending before somebody arrived (they turn round
+    where they stand), the same person claimed by two moments (§ 6 rule 5 — first claim wins),
+    and being re-claimed while walking home (a new leg from where the old one was heading, not a
+    teleport).
+
+    Three things it settled.
+
+    **The mark index must be the renderer's index, not a compacted one.** `momentMarksFor` skips
+    anybody a second moment already claimed, and the tempting move is to close the gap up — but
+    `FloorScene` and `FloorHuddle` both index their tiles by position in their own list, so a
+    compacted mark sends somebody walking to one tile and pops them to another on arrival. The
+    skipped slot stays empty instead, which is also the truthful picture.
+
+    **A desk has to stay empty for the whole trip, not just the moment.** `awayFromDeskIds` empties
+    a chair when the store claims somebody and refills it when the store lets go, so without
+    merging the commuting ids into `awayIds` a scene ends with people blinking back into their
+    seats while their own figures are still walking across the kitchen. `useFloorAway` composes
+    the two so no caller sees the seam.
+
+    **The hand is what makes it read as coming back from something.** `hands` rides the mark and
+    applies on the home leg only — the same `verb`/`hands` split `officeFloorProps.js` draws.
+    Measured in Chrome: Ulrich walks to the machine carrying his own mug (his `officeDeskWork`
+    row) and walks back with a coffee, and Chad walks out empty-handed and back with one.
+
+    **Reduced motion is unchanged behaviour, by construction.** `useWalkAnimation` settles
+    instantly without an engine or under `prefers-reduced-motion`, so the commute collapses to
+    the old teleport — verified in Chrome at both settings, and it is also why jsdom saw no
+    regression across 388 floor tests.
+
+    **The glass-room meeting is deliberately excluded**, and the reason is geometry rather than
+    appetite: its chairs are inside a **sealed box**. The west panel spans y 5.7–8.5, the north
+    panel x 9.4–11.5, and the other two sides are the floor plate's own edge, so there is no
+    route in that does not cross glass — which is exactly why slice 5 placed attendees directly.
+    Walking them in needs either a door (a geometry change that re-opens `pathCrossesGlass` for
+    free roam and § 6 rules 17–18, whose whole point is that a barrier you can walk around is a
+    bug) or a threshold with a queue, since eight attendees converging on one tile is a pile-up.
+    § 8 carries it as the defined follow-up.
+
+**There is no slice 18 yet, and that is deliberate.** The list above was written one slice at
 a time, each defined when it was picked up rather than planned in advance — so "continue with
 slice _n_" only means something once somebody has chosen what _n_ is. § 8 has the candidates,
 a recommendation, and the debts that argue for one over another. Pick from there, write the
@@ -1023,6 +1143,25 @@ The Windows gotchas, for whoever is on that machine:
   reliable lever is `page.emulateMedia({ reducedMotion: 'reduce' })` (or
   `newPage({ reducedMotion: 'reduce' })`), which `prefersReducedMotion()` does see.
 
+**Two traps that make a capture come back as an empty carpet-coloured rectangle** (slice 16 hit
+both, one cycle each, and both read as "my change broke the room" rather than as a harness
+fault):
+
+- **Freeze animations at their END, never at `currentTime = 0`.** The verify skill's snippet
+  seeks to a chosen `ms`, and 0 is the tempting default — but `.office-floor[data-view-phase='stand-up']`
+  runs `office-floor-cover`, which is `140ms both` **from `opacity: 0`**. Seeking to 0 pins the
+  entire floor invisible with a perfectly healthy DOM underneath, so every measurement passes and
+  every screenshot is blank. Read `effect.getComputedTiming().endTime` and seek there.
+- **A harness must import `components/OfficeFloor.css` itself.** `ArchiSlop.jsx` is its only
+  importer, so the recipe's `index.css` + `App.css` gets you an _unstyled_ floor: `.office-floor`
+  is no longer fixed, `.office-floor-prop` is no longer absolute, and every prop falls into static
+  flow. The tell is geometry, not blankness — the whiteboard measured at `y = 2095` in an 844 px
+  viewport, which looks like a projection bug and is a missing stylesheet.
+
+Also worth knowing: `deviceScaleFactor: 4` on the page is what makes a 62 px panel or a 19 px
+screen face judgeable at all. At 1× the miniature is real and present and you cannot honestly
+say whether it reads.
+
 **Hit-coverage recipe (slice 9, extended in slice 10).** Rules 21–23 are the ones a screenshot
 could not have found: the floor _looked_ right and the printer simply did not answer to a
 click. What finds them is `document.elementFromPoint` in the harness, scanned on a grid over
@@ -1158,6 +1297,36 @@ Nothing here is designed yet. The ordering below is a recommendation, not a queu
 
 ### The next slice
 
+**Chosen 2026-08-09, in this order, and recorded so nobody re-derives the pick.** Slice 16
+("the work is in the room") shipped as the first of three directions the owner picked together;
+the two below are the others. Slice 17 then jumped the queue on a direct owner complaint —
+_"when an action ends, can you make the people actually walk back… I want the office to feel
+alive and real"_ — which is the strongest signal in this doc's history and worth recording as
+the reason the order changed.
+
+- **The glass room needs a way in** (opened by slice 17, which had to skip it). Its chairs are
+  inside a sealed box, so attendees still appear in their seats and vanish from them while every
+  other moment now walks. Two designs, neither chosen: **a door** — shorten or split the west
+  panel, which is honest and re-opens `pathCrossesGlass` for free roam plus § 6 rules 17–18 and
+  wants its own coverage measurement; or **a threshold** — walk them to a fan of tiles outside
+  the room and cut to the chairs, no geometry change, but eight attendees need several approach
+  tiles or they pile up on one. The threshold version also gets the better half for free: a
+  meeting _dispersing_ is the legible beat, and it needs no door at all.
+- **The office day has a rhythm.** `doing` is static: `officeFloorActivity.js`
+  composes from a baked `deskWorkFor` row, so Dave is in his headset at 4 pm exactly as at 9 am,
+  and there is **no time-of-day anywhere in the office** — `grep getHours` hits only
+  `exportDiagram.js` and the log digest, and `officeCadence.js` is session-count-based, not
+  clock-based. A session arc (mugs early, headsets around the stand-up, papers at wind-down;
+  window tint cool → warm) is **one more input to `floorActivityFor` and one more dial in
+  `officeCadence.js`** — not a new store, and § 11's ambient budget applies because this is
+  ambient content with a timer. The trap § 8 already recorded still holds: `officeCadence.js`
+  owns the dial, not the floor.
+- **Slice 18 — point-and-click depth.** The two entries below that survived: **soft errands**
+  (Linda asks you to find Chad about the reply-all — existing talk verb, reactive IM, a small XP
+  beat, logged but never _scheduled_, or it becomes auto-fix-on-idle in a new hat) and
+  **Overhear → Join**. Join has to answer one design question before any code: what interrupting
+  a script that is already mid-beat does to it.
+
 Nothing is recommended over the others yet, and the reason is worth stating: slice 12 cleared
 the one item that was _getting worse with waiting_, and nothing on the list below is. Slices 10
 and 12 were both easy calls because ambient life had made a standing gap actively louder. Slice
@@ -1201,7 +1370,11 @@ one that matters most: the offer survives when narration hides the bubble.
   The obvious next move is to let the office log or the cadence nudge it (everyone holds a mug
   in the first hour, nobody does after the stand-up), and the obvious trap is that this is
   ambient content with a timer, so § 11's budget applies and `officeCadence.js` owns the dial —
-  not a new one here.
+  not a new one here. **Chosen, not yet built** — see "The next slice" above.
+- ~~**Nothing in the room shows what you are working on.**~~ ✅ **shipped as slice 16** — your
+  monitor, the whiteboard and the glass room's table all carry your current slot, derived by
+  `officeFloorBoard.js` and **sampled** on run / stand-up / meeting rather than subscribed,
+  because the office must not re-render while you type.
 - ~~**A held item is drawn, never carried.** Nothing walks to the machine and comes back holding
   something: a wanderer's mug is theirs the whole time.~~ ✅ **shipped** — a wander trip now
   remembers one thing, `carrying`, filled in on the turn for home from the prop's own `hands`
@@ -1260,9 +1433,10 @@ Kept here so appetite can pick without re-deriving. Each should stay bound by AD
   (ranked from the office log), then **removed**: they ate the talk card and the typed prompt /
   mic already cover "you speak first". The card is now composer-only.
 - **Soft errands** — Linda asks you to "find Chad and ask about the reply-all"; completing it
-  is a reactive IM exchange + a tiny XP beat, not a quest log UI.
+  is a reactive IM exchange + a tiny XP beat, not a quest log UI. **Chosen, not yet built.**
 - **Overhear → join** — standing next to a coffee/battle scene offers **Join in** once (already
-  considered for interrupting mid-script; still a content question).
+  considered for interrupting mid-script; still a content question). **Chosen, not yet built**,
+  and that content question is the thing it has to answer first.
 - ~~**Name-chip proximity**~~ — ✅ shipped as slice 15 (§ 5): show all names when you are
   within one tile — cleared the "name chip is hover-only" debt without growing hit boxes.
   Considered and not chosen, kept so nobody re-derives them: **a second wanderer at a time**
@@ -1275,6 +1449,14 @@ Kept here so appetite can pick without re-deriving. Each should stay bound by AD
   which is a content question rather than a geometry one.
 
 ### Debts the shipped slices left behind
+
+- **There are now four callers of `useWalkAnimation`**, and `FloorWanderer`'s header calls a
+  fourth "the moment to collapse them". Slice 17 added `FloorCommuters` and deliberately did not
+  collapse: the four differ in what they wrap the shared ten lines around — a bubble with
+  actions, a ref the camera follows, a person button, and nothing at all — so the honest shared
+  part is a positioned div with a depth, which is smaller than the wrapper that would hide it.
+  Worth revisiting only if a fifth arrives, or if one of the four grows a behaviour the others
+  want.
 
 - **The arrival ceremony has no live region.** ~~Slice 10 gave `OfficeFloorView` one and left
   `FloorArrival` — a sibling that renders its own `FloorStage` from `ArchiSlop.jsx` — with

@@ -24,6 +24,7 @@
 
 import { useState } from 'react';
 import { FloorPropArt } from './isoArt.jsx';
+import { formatLocale } from '../../i18n/formatLocale.js';
 import {
   FLOOR_PROPS,
   PROP_VIEW,
@@ -37,7 +38,7 @@ import { usablePropKinds } from '../../utils/officeFloorMovement.js';
  * One prop's art, positioned on its tile. Shared by both branches so a usable
  * prop and a scenic one are the same object drawn the same way.
  */
-function propArt(prop) {
+function propArt(prop, board) {
   return (
     <svg
       className="office-floor-prop-art"
@@ -47,7 +48,7 @@ function propArt(prop) {
       aria-hidden="true"
       focusable="false"
     >
-      <FloorPropArt kind={prop.kind} span={prop.span} axis={prop.axis} />
+      <FloorPropArt kind={prop.kind} span={prop.span} axis={prop.axis} board={board} />
     </svg>
   );
 }
@@ -66,13 +67,21 @@ function propStyle(prop) {
  *   copy: Record<string, any>,
  *   interactive?: boolean,
  *   onUseProp?: ((kind: string) => void) | null,
- *   activeKind?: string | null
+ *   activeKind?: string | null,
+ *   board?: import('../../utils/officeFloorBoard.js').BoardState | null
  * }} props `copy` is `officeChromeCopy().floor`. Without `onUseProp`, or with
  *   `interactive` off — the arrival ceremony, or a meeting holding the room —
  *   every prop is scenery, which is the rule `FloorRoam` follows for the floor
- *   itself.
+ *   itself. `board` is what you are working on (§ 5 slice 16); the two props
+ *   that can show it read it, the rest ignore it.
  */
-export function FloorProps({ copy, interactive = true, onUseProp = null, activeKind = null }) {
+export function FloorProps({
+  copy,
+  interactive = true,
+  onUseProp = null,
+  activeKind = null,
+  board = null
+}) {
   const usable = interactive && onUseProp ? usablePropKinds() : [];
   const items = copy.props?.items ?? {};
 
@@ -89,7 +98,7 @@ export function FloorProps({ copy, interactive = true, onUseProp = null, activeK
     if (!isUsable) {
       return (
         <div key={key} className="office-floor-prop" style={style} aria-hidden="true">
-          {propArt(prop)}
+          {propArt(prop, board)}
         </div>
       );
     }
@@ -108,12 +117,44 @@ export function FloorProps({ copy, interactive = true, onUseProp = null, activeK
         aria-label={item.useLabel ?? item.name ?? prop.kind}
         onClick={() => onUseProp?.(prop.kind)}
       >
-        {propArt(prop)}
+        {propArt(prop, board)}
       </button>
     );
   });
 
   return <>{rendered}</>;
+}
+
+/**
+ * The readable half of slice 16.
+ *
+ * At 62 px the whiteboard can show the *shape* of your diagram and nothing
+ * else; the words go here, where there is room for them. A prop opts in by
+ * declaring `lineYours` — the component never names the whiteboard, so a second
+ * prop that could honestly reflect your work costs a copy row rather than a
+ * branch.
+ *
+ * The empty state is the joke that was already there: with no board, the
+ * whiteboard still carries the architecture from two re-orgs ago, which is
+ * exactly what a whiteboard has on it before you draw anything.
+ *
+ * @param {Record<string, any>} item
+ * @param {import('../../utils/officeFloorBoard.js').BoardState | null} board
+ * @returns {{ line: string, details: string[] }}
+ */
+function propCopyFor(item, board) {
+  const fallback = { line: item.line, details: Array.isArray(item.details) ? item.details : [] };
+  if (!board || !item.lineYours) return fallback;
+
+  const vars = {
+    count: String(board.nodes),
+    labels: board.labels.slice(0, 3).join(', ')
+  };
+  const yours = Array.isArray(item.detailsYours) ? item.detailsYours : [];
+  return {
+    line: formatLocale(item.lineYours, vars),
+    details: yours.map((detail) => formatLocale(detail, vars))
+  };
 }
 
 /**
@@ -126,13 +167,15 @@ export function FloorProps({ copy, interactive = true, onUseProp = null, activeK
  *   prop: { propKind: string, phase: 'walking' | 'using' },
  *   phase?: 'idle' | 'working' | 'done' | 'blocked',
  *   copy: Record<string, any>,
- *   onBack?: () => void
+ *   onBack?: () => void,
+ *   board?: import('../../utils/officeFloorBoard.js').BoardState | null
  * }} props `copy` is `officeChromeCopy().floor`.
  */
-export function FloorPropCard({ prop, phase = 'idle', copy, onBack }) {
+export function FloorPropCard({ prop, phase = 'idle', copy, onBack, board = null }) {
   const propsCopy = copy.props ?? {};
   const item = propsCopy.items?.[prop.propKind] ?? {};
   const arrived = prop.phase === 'using';
+  const shown = propCopyFor(item, board);
 
   /*
    * Looking closer (§ 8 "examine / look at").
@@ -151,14 +194,14 @@ export function FloorPropCard({ prop, phase = 'idle', copy, onBack }) {
    * doodle again next time is the joke, not a continuity bug.
    */
   const [looked, setLooked] = useState(0);
-  const details = Array.isArray(item.details) ? item.details : [];
-  const showing = looked > 0 ? details[(looked - 1) % details.length] : null;
+  const details = shown.details;
+  const showing = looked > 0 && details.length ? details[(looked - 1) % details.length] : null;
 
   const body = () => {
     if (!arrived) return propsCopy.walking;
     if (phase === 'blocked') return item.blocked ?? propsCopy.blocked;
     if (phase === 'working') return propsCopy.working ?? propsCopy.walking;
-    return showing ?? item.line;
+    return showing ?? shown.line;
   };
 
   const canLook = arrived && phase !== 'working' && phase !== 'blocked' && details.length > 0;

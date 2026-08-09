@@ -89,6 +89,7 @@ function seatActivity(seatId, { onCallIds, headphones, youHolding }) {
  *   youTile?: { x: number, y: number } | null,
  *   onUseProp?: ((kind: string) => void) | null,
  *   activePropKind?: string | null,
+ *   board?: import('../../utils/officeFloorBoard.js').BoardState | null,
  *   children?: import('react').ReactNode
  * }} props `children` are extra actors placed in stage coordinates (the
  *   arrival ceremony puts you and its spotlight there). Passing `onWalkTo`
@@ -123,6 +124,9 @@ export function FloorStage({
   youTile,
   onUseProp = null,
   activePropKind = null,
+  // No default, same reason as `headphones` above: it is read for truthiness by
+  // three surfaces that each already handle its absence.
+  board,
   children
 }) {
   return (
@@ -147,6 +151,7 @@ export function FloorStage({
           interactive={interactive}
           onUseProp={onUseProp}
           activeKind={activePropKind}
+          board={board}
         />
 
         {FLOOR_SEATS.map((seat, index) => (
@@ -167,6 +172,7 @@ export function FloorStage({
             onCall={onCallIds.includes(seat.id)}
             activity={seatActivity(seat.id, { onCallIds, headphones, youHolding })}
             look={deskWorkFor(seat.id)?.look}
+            board={board}
             onSelect={onSelect}
             onActivate={onActivate}
           />

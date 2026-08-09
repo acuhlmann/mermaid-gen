@@ -11,6 +11,7 @@
  * a prop's SVG can be positioned by `projectIso` alone.
  */
 
+import { BOARD_INK } from '../../utils/officeFloorBoard.js';
 import { TILE_H, TILE_W } from '../../utils/officeFloorPlan.js';
 
 /** Half-tile screen deltas: one tile along +x is (UX, UY), along +y is (−UX, UY). */
@@ -111,6 +112,139 @@ export function IsoPanel({ span, axis = 'x', h, color, x = 0, y = 0, opacity = 0
   );
 }
 
+/**
+ * Ink on a vertical plane — the whiteboard's miniature of your own diagram
+ * (§ 5 slice 16).
+ *
+ * `IsoPanel` draws the surface; this draws *on* it, mapping panel fractions
+ * (`u` along the span, `v` down from the top) onto the same parallelogram, so a
+ * box in `boardFrom`'s 0…1 space lands where it would if the panel were a flat
+ * rectangle you were looking at square on.
+ *
+ * @param {{
+ *   span: number, axis?: 'x' | 'y', h: number,
+ *   x?: number, y?: number,
+ *   boxes: Array<{ x: number, y: number, w: number, h: number }>,
+ *   edges?: Array<[number, number]>,
+ *   boxColor: string, edgeColor: string
+ * }} props
+ */
+export function IsoPanelInk({
+  span,
+  axis = 'x',
+  h,
+  x = 0,
+  y = 0,
+  boxes,
+  edges = [],
+  boxColor,
+  edgeColor
+}) {
+  const cx = (x - y) * UX;
+  const cy = (x + y) * UY;
+  const half = span / 2;
+  const start = axis === 'x' ? corner(cx, cy, -half, 0) : corner(cx, cy, 0, -half);
+  const end = axis === 'x' ? corner(cx, cy, half, 0) : corner(cx, cy, 0, half);
+
+  /** @param {number} u @param {number} v */
+  const at = (u, v) => [
+    start[0] + (end[0] - start[0]) * u,
+    start[1] + (end[1] - start[1]) * u - h * (1 - v)
+  ];
+  const centre = (box) => at(box.x + box.w / 2, box.y + box.h / 2);
+
+  return (
+    <g>
+      {/*
+        Connectors first so a box always sits on top of the line reaching it —
+        the same reason `DeskFurniture` paints the desk after the occupant.
+      */}
+      {edges.map(([from, to], index) => {
+        const a = boxes[from];
+        const b = boxes[to];
+        if (!a || !b) return null;
+        const [x1, y1] = centre(a);
+        const [x2, y2] = centre(b);
+        return (
+          <line
+            key={`e${index}`}
+            x1={x1.toFixed(1)}
+            y1={y1.toFixed(1)}
+            x2={x2.toFixed(1)}
+            y2={y2.toFixed(1)}
+            stroke={edgeColor}
+            strokeWidth="1.6"
+            strokeLinecap="round"
+            opacity="0.75"
+          />
+        );
+      })}
+      {boxes.map((box, index) => (
+        <polygon
+          key={`b${index}`}
+          points={pts(
+            at(box.x, box.y),
+            at(box.x + box.w, box.y),
+            at(box.x + box.w, box.y + box.h),
+            at(box.x, box.y + box.h)
+          )}
+          fill={boxColor}
+          fillOpacity="0.16"
+          stroke={boxColor}
+          strokeWidth="1.4"
+        />
+      ))}
+    </g>
+  );
+}
+
+/**
+ * Ink on a horizontal face — the glass room's table screen (§ 5 slice 16).
+ *
+ * Sibling of `IsoPanelInk` and the same idea one plane over: `IsoBox` draws the
+ * lid, this draws on it. The two exist separately because a vertical plane is
+ * spanned by one tile axis and the up vector while a lid is spanned by both
+ * tile axes, and collapsing them into one helper would take four vectors to
+ * describe two shapes.
+ *
+ * @param {{
+ *   w: number, d: number, x?: number, y?: number, lift?: number,
+ *   bars: Array<{ x: number, y: number, w: number, h: number, c: string }>
+ * }} props `lift` is the height of the face being drawn on, not of the box.
+ */
+export function IsoTopInk({ w, d, x = 0, y = 0, lift = 0, bars }) {
+  const cx = (x - y) * UX;
+  const cy = (x + y) * UY - lift;
+  const hx = w / 2;
+  const hy = d / 2;
+  const A = corner(cx, cy, -hx, -hy);
+  const B = corner(cx, cy, hx, -hy);
+  const D = corner(cx, cy, -hx, hy);
+
+  /** @param {number} u @param {number} v */
+  const at = (u, v) => [
+    A[0] + (B[0] - A[0]) * u + (D[0] - A[0]) * v,
+    A[1] + (B[1] - A[1]) * u + (D[1] - A[1]) * v
+  ];
+
+  return (
+    <g>
+      {bars.map((bar, index) => (
+        <polygon
+          key={index}
+          points={pts(
+            at(bar.x, bar.y),
+            at(bar.x + bar.w, bar.y),
+            at(bar.x + bar.w, bar.y + bar.h),
+            at(bar.x, bar.y + bar.h)
+          )}
+          fill={bar.c}
+        />
+      ))}
+    </g>
+  );
+}
+
 const WOOD = '#c8a887';
 const GREY = '#b6bfcb';
 const DARK = '#5b6472';
@@ -202,17 +336,28 @@ const SCREEN_LOOKS = {
 };
 
 /**
- * The monitor, with whatever that character is pretending to work on.
+ * The monitor, with whatever that character is pretending to work on — or, at
+ * your own desk, with what you are actually working on (§ 5 slice 16).
  *
  * Bars are drawn *after* the panel in the same group — SVG paint order does the
  * layering, so they need no depth trickery, only a hair of `+y` to sit proud of
  * the face they are on.
  *
- * @param {{ look?: string, you?: boolean }} props
+ * The player's background stays `#3b82f6` whether the board is empty or not.
+ * It is a landmark — the blue screen is how you pick your own desk out of
+ * sixteen at a glance — so the board adds rows to it and never repaints it.
+ * An empty slot therefore renders exactly what it always did.
+ *
+ * @param {{
+ *   look?: string,
+ *   you?: boolean,
+ *   board?: import('../../utils/officeFloorBoard.js').BoardState | null
+ * }} props
  */
-export function MonitorScreen({ look, you = false }) {
+export function MonitorScreen({ look, you = false, board = null }) {
   const art = you ? null : SCREEN_LOOKS[look];
   const bg = you ? '#3b82f6' : (art?.bg ?? SCREEN);
+  const bars = you ? (board?.bars ?? []) : (art?.bars ?? []);
 
   return (
     <g className={you ? 'floor-screen floor-screen--you' : 'floor-screen'}>
@@ -225,7 +370,7 @@ export function MonitorScreen({ look, you = false }) {
         y={SCREEN_Y}
         lift={SCREEN_LIFT}
       />
-      {(art?.bars ?? []).map((bar, index) => (
+      {bars.map((bar, index) => (
         <IsoBox
           key={index}
           w={SCREEN_W * bar.w}
@@ -246,9 +391,15 @@ export function MonitorScreen({ look, you = false }) {
  * `part: 'chair'` renders behind the person, `'desk'` in front of them, which
  * is what makes them read as *sitting* rather than standing in a desk.
  *
- * @param {{ part: 'chair' | 'desk', you?: boolean, look?: string }} props
+ * @param {{
+ *   part: 'chair' | 'desk',
+ *   you?: boolean,
+ *   look?: string,
+ *   board?: import('../../utils/officeFloorBoard.js').BoardState | null
+ * }} props `board` reaches only the player's monitor — a colleague's screen
+ *   shows their own fiction, and always will (ADR-0010).
  */
-export function DeskFurniture({ part, you = false, look }) {
+export function DeskFurniture({ part, you = false, look, board = null }) {
   if (part === 'chair') {
     return (
       <g>
@@ -275,7 +426,7 @@ export function DeskFurniture({ part, you = false, look }) {
         y={DESK_Y + 0.26}
         lift={DESK_H}
       />
-      <MonitorScreen look={look} you={you} />
+      <MonitorScreen look={look} you={you} board={board} />
       <IsoBox
         w={0.3}
         d={0.14}
@@ -294,7 +445,16 @@ export function DeskFurniture({ part, you = false, look }) {
  * one entry and never touches control flow. Every prop is boxes; the comedy is
  * in the labels, not the polygons.
  *
- * @type {Record<string, (opts: { span: number, axis: 'x' | 'y' }) => import('react').ReactNode>}
+ * `board` is what *you* are working on, and reaches exactly the two props that
+ * can honestly show it: the whiteboard and the glass room's table. Every other
+ * entry ignores it, which is why it rides the same options object rather than
+ * becoming a second parameter.
+ *
+ * @type {Record<string, (opts: {
+ *   span: number,
+ *   axis: 'x' | 'y',
+ *   board: import('../../utils/officeFloorBoard.js').BoardState | null
+ * }) => import('react').ReactNode>}
  */
 const PROP_ART = {
   receptionDesk: () => (
@@ -310,11 +470,28 @@ const PROP_ART = {
       <IsoBox w={0.42} d={0.06} h={2} color="#f8fafc" lift={20} y={0.24} />
     </g>
   ),
-  whiteboard: () => (
+  /*
+   * The board carries *your* diagram when you have one, and the architecture
+   * from two re-orgs ago when you do not (§ 5 slice 16). The ink goes on last,
+   * over the shading wash rather than under it: a 8% dark wash across a 1.4 px
+   * stroke is the difference between a diagram and a smudge.
+   */
+  whiteboard: ({ board }) => (
     <g>
       <IsoBox w={0.1} d={1.5} h={12} color={DARK} />
       <IsoPanel span={1.5} axis="y" h={62} color="#f8fafc" opacity={0.95} />
       <IsoPanel span={1.5} axis="y" h={62} color={DARK} opacity={0.08} />
+      {board?.mini?.nodes?.length ? (
+        <IsoPanelInk
+          span={1.5}
+          axis="y"
+          h={62}
+          boxes={board.mini.nodes}
+          edges={board.mini.edges}
+          boxColor={BOARD_INK.box}
+          edgeColor={BOARD_INK.edge}
+        />
+      ) : null}
     </g>
   ),
   serverRack: () => (
@@ -353,10 +530,15 @@ const PROP_ART = {
       <IsoBox w={0.32} d={0.32} h={26} color="#7dd3fc" lift={30} opacity={0.85} />
     </g>
   ),
-  meetingTable: () => (
+  /*
+   * The laptop on the table shows what the meeting is about — which, since the
+   * only thing this office ever meets about is your diagram, is your diagram.
+   */
+  meetingTable: ({ board }) => (
     <g>
       <IsoBox w={1.9} d={1.1} h={24} color={WOOD} />
       <IsoBox w={0.3} d={0.24} h={5} color={SCREEN} lift={24} />
+      {board?.bars?.length ? <IsoTopInk w={0.3} d={0.24} lift={29} bars={board.bars} /> : null}
     </g>
   ),
   plant: () => (
@@ -373,8 +555,13 @@ const PROP_ART = {
 };
 
 /**
- * @param {{ kind: string, span?: number, axis?: 'x' | 'y' }} props
+ * @param {{
+ *   kind: string,
+ *   span?: number,
+ *   axis?: 'x' | 'y',
+ *   board?: import('../../utils/officeFloorBoard.js').BoardState | null
+ * }} props
  */
-export function FloorPropArt({ kind, span = 2, axis = 'x' }) {
-  return PROP_ART[kind]?.({ span, axis }) ?? null;
+export function FloorPropArt({ kind, span = 2, axis = 'x', board = null }) {
+  return PROP_ART[kind]?.({ span, axis, board }) ?? null;
 }

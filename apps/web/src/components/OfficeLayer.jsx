@@ -30,6 +30,7 @@ import { useHuddlePlayback } from '../hooks/useHuddlePlayback.js';
 import { useOfficeLayerPerformances } from '../hooks/useOfficeLayerPerformances.js';
 import { meetingMinutes, useMeetingPlayback } from '../hooks/useMeetingPlayback.js';
 import { useOfficeAmbience } from '../hooks/useOfficeAmbience.js';
+import { useOfficeBoard } from '../hooks/useOfficeBoard.js';
 import { useOfficeRunReactions } from '../hooks/useOfficeRunReactions.js';
 import { useOfficeWelcome } from '../hooks/useOfficeWelcome.js';
 import {
@@ -313,6 +314,20 @@ export default function OfficeLayer({
     getUserName,
     getModelProfile: () => modelProfile,
     onUsage
+  });
+
+  /*
+   * What of your work the room is showing (§ 5 slice 16) — your own monitor,
+   * the whiteboard, the glass room's table. Sampled on the same `runSignal`
+   * edge the reaction hook above uses, plus standing up and a meeting opening;
+   * never subscribed, because the office must not re-render while you type.
+   */
+  const board = useOfficeBoard({
+    getDiagramSource,
+    getContentType,
+    runSignal,
+    onFloor,
+    meetingOpen: Boolean(meeting)
   });
 
   // First-run onboarding: Linda's welcome email + Chad's IM, once ever.
@@ -1356,7 +1371,8 @@ export default function OfficeLayer({
         huddle,
         huddleHandlers: huddleHandlersForPerformances,
         huddleRing,
-        scenePacing
+        scenePacing,
+        board
       }),
     [
       snapshot.imHistory,
@@ -1391,7 +1407,8 @@ export default function OfficeLayer({
       cancelOfficeNarration,
       interject,
       handleMeetingDismiss,
-      handleEscalate
+      handleEscalate,
+      board
     ]
   );
 

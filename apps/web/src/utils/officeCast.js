@@ -2385,6 +2385,27 @@ export const OFFICE_CHROME_COPY = {
             'A fourth box has been half-erased. You can still read the word BILLING.',
             'Someone has drawn a very good horse in the corner. Nobody has ever mentioned it.',
             'Under DO NOT ERASE, in different handwriting: "why". Under that: "ask Ulrich".'
+          ],
+          /*
+           * Slice 16. `line` and `details` above are the **empty state** and
+           * stay exactly as they were: an architecture from two re-orgs ago is
+           * what a whiteboard has on it before you draw anything. These two
+           * replace them once the board is carrying your diagram, and
+           * `FloorPropCard` picks between the pairs on `lineYours` existing —
+           * so any prop that could honestly reflect your work opts in with a
+           * copy row rather than a branch.
+           *
+           * `{count}` is the node count and `{labels}` the first three, which
+           * is where the readable half of this slice lives: the 62 px panel can
+           * only show the shape.
+           */
+          lineYours:
+            'Somebody has wiped the old architecture. Yours is up there instead — {count} boxes in marker, already smudged where a sleeve went past.',
+          detailsYours: [
+            'The boxes read: {labels}. One of them has been starred. Nobody knows who did it, or which one they meant.',
+            'An arrow has appeared that was not on your version. It leaves a box and comes back to the same box.',
+            'Underneath, in different handwriting: "who owns this". No arrow to say which one.',
+            'SYNERGY has survived in the corner, underlined twice. It always does.'
           ]
         }
       }

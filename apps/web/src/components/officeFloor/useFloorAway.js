@@ -14,8 +14,11 @@
  * should stay off it.
  */
 
+import { useMemo } from 'react';
+import { useFloorCommute } from './useFloorCommute.js';
 import { useFloorWander } from './useFloorWander.js';
 import { awayFromDeskIds } from '../../utils/officeSceneCast.js';
+import { momentMarksFor } from '../../utils/officeFloorCommute.js';
 import { YOU_SEAT_ID } from '../../utils/officeFloorPlan.js';
 
 /**
@@ -35,9 +38,14 @@ import { YOU_SEAT_ID } from '../../utils/officeFloorPlan.js';
  *   wanderer: unknown,
  *   handleWanderArrive: () => void,
  *   wandererRef: { current: HTMLElement | null },
+ *   commuters: import('../../utils/officeFloorCommute.js').Commute[],
+ *   settledIds: Set<string>,
+ *   handleCommuteArrive: (id: string) => void,
  *   floorState: { wanderer: unknown, awayIds: string[] }
  * }} `floorState` is the pair `whereaboutsOf` takes, so its two consumers cannot
- *   be handed different halves.
+ *   be handed different halves. `settledIds` is what lets a surface draw its own
+ *   actor: until somebody has walked to their mark they are a commuter, and two
+ *   of anybody is § 6 rule 5.
  */
 export function useFloorAway({
   coffee,
@@ -48,7 +56,7 @@ export function useFloorAway({
   avoidTile = null,
   holdId = null
 }) {
-  const awayIds = awayFromDeskIds({
+  const momentAwayIds = awayFromDeskIds({
     coffee,
     battle,
     meeting,
@@ -56,6 +64,29 @@ export function useFloorAway({
     standing,
     playerId: YOU_SEAT_ID
   });
+
+  /*
+   * Slice 17: getting there and getting back takes time, and the desk has to
+   * stay empty for all of it. `awayFromDeskIds` empties a chair the instant the
+   * store claims somebody and refills it the instant the store lets go — which
+   * is why a scene used to end with two people blinking back into their seats
+   * while their own figures were still standing at the machine.
+   */
+  const marks = useMemo(() => momentMarksFor({ coffee, battle, huddle }), [coffee, battle, huddle]);
+  const { commuters, settledIds, commutingIds, handleCommuteArrive } = useFloorCommute(marks);
+
+  /* Whoever is mid-commute is out of their chair for the same reason everybody
+     else in this list is, so the three sources merge before anyone sees them.
+     Memoized on *content* rather than identity: both inputs are fresh arrays
+     every render, and `useFloorWander` keys its cadence off `busyIds`. The keys
+     are hoisted because a dependency list may only hold simple expressions. */
+  const momentAwayKey = momentAwayIds.join('|');
+  const commutingKey = commutingIds.join('|');
+  const awayIds = useMemo(
+    () => [...new Set([...momentAwayIds, ...commutingIds])],
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- (reason: the two `…Key` strings above are the content of the two arrays; depending on the arrays themselves would rebuild this every render)
+    [momentAwayKey, commutingKey]
+  );
 
   const { wanderer, handleArrive, figureRef } = useFloorWander({
     suspended: Boolean((meeting && meeting.modality !== 'remote') || huddle),
@@ -72,6 +103,9 @@ export function useFloorAway({
     wanderer,
     handleWanderArrive: handleArrive,
     wandererRef: figureRef,
+    commuters,
+    settledIds,
+    handleCommuteArrive,
     floorState: { wanderer, awayIds }
   };
 }

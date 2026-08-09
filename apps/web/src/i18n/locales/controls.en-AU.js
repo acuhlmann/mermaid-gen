@@ -79,8 +79,13 @@ export const CONTROLS_EN_AU = {
         text: 'Your team chimes in with suggestions and critiques once the canvas has content.'
       },
       {
+        id: 'selection',
+        label: '5 · Precision edits',
+        text: 'Click any node, edge, or label on the canvas to open the action ring — every verb in there only touches that bit, not the whole diagram.'
+      },
+      {
         id: 'format',
-        label: '5 · Deliverable format',
+        label: '6 · Deliverable format',
         text: 'The menu bar picks the format — Diagram, Chart, Infographic, 3D, or Anything. Pick one, then type your topic in the work order.'
       }
     ],

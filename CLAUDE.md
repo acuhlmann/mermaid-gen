@@ -262,6 +262,50 @@ Every session carries **six independent diagram slots** — `mermaid` (Mermaid t
   `pointer-events: none` or it re-inflates the hit box § 6 rule 23 shrank. **You** are drawn
   from `PLAYER_FACE_TRAITS`, which lives beside `PERSONA_FACE_TRAITS` because that object's
   keys are pinned to `CAST_TIERS`.
+- **A moment's cast walks to it and walks home; the desk stays empty for the whole trip.**
+  `officeFloorCommute.js` is the pure `out ▸ there ▸ home ▸ gone` machine, `useFloorCommute` holds
+  it, and `useFloorAway` merges the commuting ids into `awayIds` — miss that merge and a scene
+  ends with people blinking back into their chairs while their own figures are still crossing the
+  kitchen. `settledIds` is the hand-off: **exactly one** surface may draw a person (§ 6 rule 5), so
+  `FloorScene` / `FloorHuddle` skip anybody who has not arrived, and `null` means "don't ask" for
+  standalone mounts. Marks are indexed by the **renderer's** index, never a compacted one, or a
+  walker pops to a different tile on arrival. The glass-room meeting is excluded on purpose — its
+  chairs are inside sealed glass with no route in.
+- **The office never re-renders while you type, and anything showing your work must be
+  _sampled_.** `OfficeLayerSlot.jsx` hands `OfficeLayer` the diagram as **getters**
+  (`getDiagramSource` / `getContentType`), not props — that is load-bearing, not an accident.
+  Slice 16 puts your current slot on your monitor, the whiteboard and the glass-room table
+  (`officeFloorBoard.js` → `board` on the floor bridge), and it refreshes on three **edges** via
+  `useOfficeBoard`: a completed run (`runSignal`), standing up, a meeting opening. Do **not**
+  "fix" it into a `diagramStore` subscription — that repaints sixteen animated figures, a walk
+  animation and a directed camera on every keystroke. The constraint is also the better fiction:
+  a whiteboard shows what was _drawn_ on it. Two reuse traps it found:
+  `getAdvisorVisibleLabels`'s mermaid/infographic branches read the **rendered** SVG filtered by
+  viewport intersection (meaningless once the floor covers the canvas), and
+  `collectFlowchartParticipantInfo` anchors its definition regex to line start, so it counts
+  nodes but cannot name the ones defined mid-line.
+- **`officeChromeCopy()` swaps whole bundles, it does not merge** (`office()?.OFFICE_CHROME_COPY
+?? OFFICE_CHROME_COPY`), so a key missing from a locale is a **silently dead feature**, not an
+  English fallback. en-AU had shipped with no `floor.props.*.details` at all, which hid the
+  **Look closer** button entirely in that locale for months. `officeLocale.test.js` now pins the
+  prop copy; add a parity assertion there for any new chrome-copy branch a feature depends on.
+- **`getUiLocaleBundle` has the opposite failure mode — it merges too well, so "untranslated"
+  is invisible.** Overrides deep-merge onto English (`deepMergeLocale`), so a key a translator
+  never wrote renders in English forever and no key-shape check can see it; only comparing
+  **values** finds it. Two corollaries, both of which had shipped: **arrays replace wholesale**,
+  so a step added to English is silently missing from every older locale — `controls.prompt
+.entryPointers` is what `useEntryDeskFlow` actually walks, so en-AU ran a five-step desk tour
+  with no _Precision edits_ beat while EN and zh ran six; and **a dropped `{placeholder}` is
+  silent**, because `formatLocale` simply has nothing to substitute (all three locales had lost
+  `{userName}` from the welcome mail/IM). `uiLocale.test.js` now pins placeholder parity and
+  `entryPointers` id parity for every locale. Related trap when translating: the office zh
+  bundles are the **only** ones that had mixed half-width ASCII `,?!:;` with full-width CJK
+  punctuation — keep new Chinese copy full-width after a CJK character.
+- **The reception language picker is `IntroLocaleToggle` in its `intro` variant, and its labels
+  are endonyms on purpose.** All four locales sit at the top of the onboarding welcome body
+  (not in the header, not behind a pill): somebody who cannot read the current UI cannot be
+  asked to open a menu labelled in it. `LOCALE_ENDONYMS` lives in the component, never in a copy
+  bundle, for the same reason. The desk **Language pack** menu keeps the `inline` variant.
 - **After presence / TTS / desk-frame edits**, prefer `apps/web/test/officePresence.test.js`,
   `deskOsPresenceStrip.test.jsx`, `deskOsFrameStyles.test.js`, `apps/server/test/officeTts.test.js`,
   `officeRoute.test.js` (or `npm run test:affected`). **After isometric-floor edits**, `npm run

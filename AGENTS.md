@@ -128,6 +128,36 @@ Production deploy notes (Cloud Run, billing credits, GitHub Actions CI, optional
 - Built-in agents + collaboration: `/api/copilotkit/*` (including `session-events` SSE)
 - External agents: `POST/GET /mcp` (Streamable HTTP); set `PUBLIC_BASE_URL` and production `INVITE_TOKEN_SECRET` for invite URLs; optional `ARCHISLOP_WEB_URL` when UI and API origins differ
 - Never commit `.env` or secrets.
+- **Set-piece cast members walk to their marks and walk home.** The state machine is pure in
+  `apps/web/src/utils/officeFloorCommute.js`; `useFloorAway` merges anybody mid-trip into
+  `awayIds` so their desk stays empty until they are genuinely back, and `settledIds` decides
+  which of two surfaces draws them. Under `prefers-reduced-motion` (and in jsdom) the walk
+  settles instantly, which is the old teleport — so a green test suite proves nothing here.
+- **The office layer never re-renders while you type.** `OfficeLayerSlot.jsx` passes the diagram
+  to `OfficeLayer` as **getters** (`getDiagramSource` / `getContentType`), deliberately. Anything
+  on the isometric floor that reflects your work — your monitor, the whiteboard, the glass-room
+  table (`utils/officeFloorBoard.js`, `hooks/useOfficeBoard.js`) — is **sampled** on an edge (a
+  completed run, standing up, a meeting opening) and must not be converted into a `diagramStore`
+  subscription: that repaints sixteen animated figures and a directed camera per keystroke. See
+  `CLAUDE.md` § Office layer gotchas.
+- **Locale copy does not fall back.** `officeChromeCopy()` swaps whole bundles rather than
+  merging, so a key missing from `i18n/locales/office.*.js` is a feature that silently does not
+  exist in that locale. Add a parity assertion in `apps/web/test/officeLocale.test.js` for any
+  chrome-copy branch a feature depends on.
+- **The `getUiLocaleBundle` side has the opposite failure mode: it merges too well.** Overrides
+  deep-merge onto English, so a key a translator never wrote renders in English forever with no
+  error — "untranslated" is invisible to every check unless you compare _values_. Two corollaries
+  bit us: **arrays replace wholesale**, so a tour step or idle tip added to English is silently
+  absent from every locale that predates it (`entryPointers` drives the real desk tour via
+  `useEntryDeskFlow`, so en-AU shipped a five-step tour); and **a dropped `{placeholder}` is
+  silent too**, because `formatLocale` just has nothing to substitute. `uiLocale.test.js` now
+  pins placeholder parity and `entryPointers` id parity across all locales — extend it rather
+  than trusting a key-shape check.
+- **Verifying floor art needs a browser and two specific tricks**: freeze animations at their
+  **end** (`office-floor-cover` is `both`-filled from `opacity: 0`, so seeking to 0 renders the
+  whole floor invisible), and import `components/OfficeFloor.css` in the harness (`ArchiSlop.jsx`
+  is its only importer, so `index.css` + `App.css` alone gives you an unstyled floor). Recipe:
+  `apps/web/.claude/skills/verify/`, traps recorded in `docs/office-isometric-mode.md` § 6.
 
 ## Agent workflow guidance
 

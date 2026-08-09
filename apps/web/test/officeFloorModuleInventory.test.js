@@ -14,6 +14,7 @@ const EXPECTED_OFFICE_FLOOR_COMPONENTS = [
   'FloorArrival.jsx',
   'FloorBubble.jsx',
   'FloorCardSlot.jsx',
+  'FloorCommuters.jsx',
   'FloorDeskSpeech.jsx',
   'FloorFigure.jsx',
   'HeldItem.jsx',
@@ -42,6 +43,7 @@ const EXPECTED_OFFICE_FLOOR_COMPONENTS = [
   'useFloorAutoPan.js',
   'useFloorAway.js',
   'useFloorCamera.js',
+  'useFloorCommute.js',
   'useFloorKeyboard.js',
   'useFloorPresence.js',
   'useFloorPropUse.js',
@@ -60,6 +62,8 @@ const EXPECTED_FLOOR_UTILS = [
   'officeFloorProps.js',
   'officeDeskWork.js',
   'officeFloorActivity.js',
+  'officeFloorBoard.js',
+  'officeFloorCommute.js',
   'officeSceneCast.js'
 ];
 
@@ -77,6 +81,9 @@ const EXPECTED_FLOOR_TEST_FILES = [
   'officeFloorPeek.test.jsx',
   'officeFloorPlan.test.js',
   'officeFloorProps.test.jsx',
+  'officeFloorBoard.test.js',
+  'officeFloorCommute.test.js',
+  'officeFloorCommuters.test.jsx',
   'officeFloorPropsTable.test.js',
   'officeFloorReach.test.js',
   'officeFloorRoam.test.jsx',

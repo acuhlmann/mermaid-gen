@@ -19,7 +19,7 @@ const ART_STYLE = {
   height: PROP_VIEW.h
 };
 
-function SeatArt({ part, you, look }) {
+function SeatArt({ part, you, look, board }) {
   return (
     <svg
       className="office-floor-seat-art"
@@ -30,7 +30,7 @@ function SeatArt({ part, you, look }) {
       aria-hidden="true"
       focusable="false"
     >
-      <DeskFurniture part={part} you={you} look={look} />
+      <DeskFurniture part={part} you={you} look={look} board={board} />
     </svg>
   );
 }
@@ -50,6 +50,7 @@ function SeatArt({ part, you, look }) {
  *   activity?: { pose?: string, hold?: string | null, headwear?: string | null } | null,
  *   onCall?: boolean,
  *   look?: string,
+ *   board?: import('../../utils/officeFloorBoard.js').BoardState | null,
  *   onSelect: (id: string) => void,
  *   onActivate?: ((id: string) => void) | null
  * }} props `look` is what is on their monitor (`officeDeskWork.js`) — always
@@ -75,6 +76,13 @@ export function FloorSeat({
   activity = null,
   onCall = false,
   look,
+  /*
+   * What *you* are working on (§ 5 slice 16). Only your own monitor reads it —
+   * `MonitorScreen` ignores it unless `you`, so passing it to every seat costs
+   * nothing and keeps the stage's seat loop from having to know whose desk this
+   * is a second time.
+   */
+  board = null,
   onSelect,
   onActivate = null
 }) {
@@ -115,7 +123,7 @@ export function FloorSeat({
         />
       )}
 
-      {seat.desk ? <SeatArt part="desk" you={isYou} look={look} /> : null}
+      {seat.desk ? <SeatArt part="desk" you={isYou} look={look} board={board} /> : null}
     </div>
   );
 }
