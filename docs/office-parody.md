@@ -404,15 +404,17 @@ Three things make the orientation more than a static list:
   beat still falls back to the bubble so the line is never lost. The preference is shared
   (`archislop:office-captions`) across the card tour, isometric arrival, and ambient
   floor speech.
-- **Language at reception — and on the desk.** The orientation welcome step opens with
-  **IntroLocaleToggle** in its `intro` variant: all four locales laid out at the top of the
-  welcome body, above the name badge, each labelled with its **endonym** (English / Aussie
-  Slang / 简体中文 / 繁體中文). The endonyms are a constant inside the component, never copy —
-  reception is the one screen a user may not be able to read yet, so a language name written
-  in the language they are trying to leave is useless, and a collapsed pill is worse. After
+- **Language at reception — and on the desk.** First run opens on the isometric
+  `FloorArrival` reception card with **IntroLocaleToggle** in its `intro` variant: all four
+  locales laid out at the top, above the name badge, each labelled with its **endonym**
+  (English / Aussie Slang / 简体中文 / 繁體中文). The endonyms are a constant inside the
+  component, never copy — reception is the one screen a user may not be able to read yet, so a
+  language name written in the language they are trying to leave is useless, and a collapsed
+  pill is worse. `OfficeDirectory`'s card-tour welcome keeps the same strip for replays. After
   check-in the same control lives in the desk actions menu as **Language pack** (IT TICKET,
   `inline` variant), next to Concentration, because sticky `archislop.uiLocale` survives
-  session wipes and reception only shows sometimes.
+  session wipes and reception only shows sometimes. Do **not** auto-advance past reception —
+  Check in is both the name-badge edit window and the gesture that unlocks speech.
 - **Skip the ceremony.** A persistent "Skip the ceremony — just let me build →" button dismisses
   the whole orientation (marking it seen) and focuses the empty-state topic input, for anyone who
   has seen the bit or just wants the canvas.

@@ -143,7 +143,10 @@ Production deploy notes (Cloud Run, billing credits, GitHub Actions CI, optional
 - **Locale copy does not fall back.** `officeChromeCopy()` swaps whole bundles rather than
   merging, so a key missing from `i18n/locales/office.*.js` is a feature that silently does not
   exist in that locale. Add a parity assertion in `apps/web/test/officeLocale.test.js` for any
-  chrome-copy branch a feature depends on.
+  chrome-copy branch a feature depends on. `UiLocaleProvider` must sync
+  `setActiveOfficeBundle` **during render** (not only in an effect) — otherwise a language
+  switch re-renders with fresh `controls` while `officeChromeCopy()` still returns the previous
+  language until some unrelated update.
 - **The `getUiLocaleBundle` side has the opposite failure mode: it merges too well.** Overrides
   deep-merge onto English, so a key a translator never wrote renders in English forever with no
   error — "untranslated" is invisible to every check unless you compare _values_. Two corollaries
@@ -153,6 +156,10 @@ Production deploy notes (Cloud Run, billing credits, GitHub Actions CI, optional
   silent too**, because `formatLocale` just has nothing to substitute. `uiLocale.test.js` now
   pins placeholder parity and `entryPointers` id parity across all locales — extend it rather
   than trusting a key-shape check.
+- **First-run reception is `FloorArrival`, not `OfficeDirectory`.** Put `IntroLocaleToggle`
+  (`variant="intro"`, endonyms) and the name badge on the reception card, and leave **Check in**
+  as a real gesture — an auto-advance skips both and burns TTS on cold mount.
+  `officeFloorArrival.test.jsx` pins it; see `CLAUDE.md` § Office layer gotchas.
 - **Verifying floor art needs a browser and two specific tricks**: freeze animations at their
   **end** (`office-floor-cover` is `both`-filled from `opacity: 0`, so seeking to 0 renders the
   whole floor invisible), and import `components/OfficeFloor.css` in the harness (`ArchiSlop.jsx`

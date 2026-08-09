@@ -46,17 +46,22 @@ export function FloorLiveRegion({ message, eventKey }) {
    * An effect rather than a derivation during render, and deliberately: an
    * announcement *is* a DOM side effect, and flipping the pad while rendering
    * would re-run on every unrelated re-render and speak the same sentence
-   * again. The `eventKey` guard is what keeps this to one write per event.
+   * again. The `eventKey` guard is what keeps the pad flip to one write per
+   * event — but the *wording* must still update when the same event is
+   * re-voiced in a new locale (reception stays `arrival:reception`).
    */
   useEffect(() => {
-    if (eventKey === announced.current) return;
-    announced.current = eventKey;
-    setText((current) => {
-      // Nothing to say clears the region outright; padding emptiness would put
-      // a stray space where a screen reader expects silence.
-      if (!message) return '';
-      return bare(current) === message ? `${message}${PAD}` : message;
-    });
+    if (!message) {
+      announced.current = eventKey;
+      setText('');
+      return;
+    }
+    if (eventKey !== announced.current) {
+      announced.current = eventKey;
+      setText((current) => (bare(current) === message ? `${message}${PAD}` : message));
+      return;
+    }
+    setText((current) => (bare(current) === message ? current : message));
   }, [eventKey, message]);
 
   return (

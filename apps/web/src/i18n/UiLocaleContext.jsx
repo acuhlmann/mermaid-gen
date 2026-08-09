@@ -19,14 +19,19 @@ export function UiLocaleProvider({ children, initialLocale }) {
 
   const bundle = useMemo(() => getUiLocaleBundle(locale), [locale]);
 
+  // Sync module singletons during render, not in an effect. Consumers like
+  // FloorArrival call `officeChromeCopy()` while rendering; if the active
+  // bundle only flips after paint, the NameTag / Check in labels stay in the
+  // previous language until some unrelated state update re-renders them.
+  setActiveControlsCopy(bundle.controls);
+  setActiveSlopitectBundle(bundle.slopitect);
+  setActiveOfficeBundle(bundle.office);
+
   useEffect(() => {
-    setActiveControlsCopy(bundle.controls);
-    setActiveSlopitectBundle(bundle.slopitect);
-    setActiveOfficeBundle(bundle.office);
     if (typeof document !== 'undefined') {
       document.documentElement.lang = locale === 'en' ? 'en' : locale;
     }
-  }, [bundle, locale]);
+  }, [locale]);
 
   const setLocale = useCallback((next) => {
     const normalized = normalizeUiLocale(next);

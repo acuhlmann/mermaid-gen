@@ -1,10 +1,11 @@
 /**
  * Day One, staged on the floor (docs/office-isometric-mode.md § 5 slice 3).
  *
- * First run *begins* isometric: you stand at reception, check in, then walk to
- * People Ops — Linda welcomes you with a rapid cast rundown (no sequential
- * desk self-intros), and a distinct closing handoff plays while you
- * automatically walk to your own desk and sit down into the desktop wizard.
+ * First run *begins* isometric: you stand at reception, pick a language, fill
+ * in the name badge, check in, then walk to People Ops — Linda welcomes you
+ * with a rapid cast rundown (no sequential desk self-intros), and a distinct
+ * closing handoff plays while you automatically walk to your own desk and sit
+ * down into the desktop wizard.
  *
  * Content parity with the card tour is deliberate: same roster cards
  * (`DAY_ONE_WALK_IDS` for faces), same Linda welcome/closing lines, same
@@ -23,6 +24,7 @@ import FloorPlayer from './FloorPlayer.jsx';
 import FloorStage from './FloorStage.jsx';
 import { floorArrivalAnnouncement } from './floorArrivalAnnouncement.js';
 import { useFloorArrivalFocus } from './useFloorArrivalFocus.js';
+import IntroLocaleToggle from '../IntroLocaleToggle.jsx';
 import IntroTranscriptButton from '../IntroTranscriptButton.jsx';
 import NameTag from '../NameTag.jsx';
 import { useIntroNarrator } from '../../hooks/useIntroNarrator.js';
@@ -85,7 +87,7 @@ export default function FloorArrival({
   hasInteractedRef,
   soundEnabled = true
 }) {
-  useUiCopy();
+  const { controls, locale, setLocale } = useUiCopy();
   const chrome = officeChromeCopy();
   const copy = chrome.floor;
   const arrival = copy.arrival;
@@ -184,15 +186,6 @@ export default function FloorArrival({
       setArrivedForBeat(true);
     }
   }, [audioContextRef, hasInteractedRef]);
-
-  // Auto-check-in after a brief delay to eliminate the dead period where nothing happens.
-  useEffect(() => {
-    if (phase !== 'reception') return;
-    const timer = setTimeout(() => {
-      handleCheckIn();
-    }, 800);
-    return () => clearTimeout(timer);
-  }, [phase, handleCheckIn]);
 
   /*
    * The door, one render after the check-in click rather than during it.
@@ -405,6 +398,14 @@ export default function FloorArrival({
 
       {phase === 'reception' ? (
         <aside className="office-floor-card office-floor-card--reception">
+          {/* Language before anything else: a newcomer who cannot read this
+              screen needs the way out at the top of it (docs/office-parody.md). */}
+          <IntroLocaleToggle
+            variant="intro"
+            locale={locale}
+            copy={controls.introLocale}
+            onSelectLocale={setLocale}
+          />
           <span className="office-floor-eyebrow">{arrival.receptionEyebrow}</span>
           <p className="office-floor-card-blurb">{arrival.receptionBody}</p>
           <NameTag copy={chrome.directory?.nameTag} autoEditWhenEmpty />

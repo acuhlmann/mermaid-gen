@@ -289,6 +289,9 @@ Every session carries **six independent diagram slots** — `mermaid` (Mermaid t
   English fallback. en-AU had shipped with no `floor.props.*.details` at all, which hid the
   **Look closer** button entirely in that locale for months. `officeLocale.test.js` now pins the
   prop copy; add a parity assertion there for any new chrome-copy branch a feature depends on.
+  `UiLocaleProvider` must call `setActiveOfficeBundle` **during render** (not only in an
+  effect) — otherwise a language switch re-renders with fresh `controls` while
+  `officeChromeCopy()` still returns the previous language (NameTag "HELLO" stuck in English).
 - **`getUiLocaleBundle` has the opposite failure mode — it merges too well, so "untranslated"
   is invisible.** Overrides deep-merge onto English (`deepMergeLocale`), so a key a translator
   never wrote renders in English forever and no key-shape check can see it; only comparing
@@ -302,10 +305,12 @@ Every session carries **six independent diagram slots** — `mermaid` (Mermaid t
   bundles are the **only** ones that had mixed half-width ASCII `,?!:;` with full-width CJK
   punctuation — keep new Chinese copy full-width after a CJK character.
 - **The reception language picker is `IntroLocaleToggle` in its `intro` variant, and its labels
-  are endonyms on purpose.** All four locales sit at the top of the onboarding welcome body
-  (not in the header, not behind a pill): somebody who cannot read the current UI cannot be
-  asked to open a menu labelled in it. `LOCALE_ENDONYMS` lives in the component, never in a copy
-  bundle, for the same reason. The desk **Language pack** menu keeps the `inline` variant.
+  are endonyms on purpose.** First run mounts `FloorArrival`, not `OfficeDirectory` — put the
+  strip at the top of the **reception card** (above the name badge), not only on the card-tour
+  welcome body. Somebody who cannot read the current UI cannot be asked to open a menu labelled
+  in it. `LOCALE_ENDONYMS` lives in the component, never in a copy bundle, for the same reason.
+  Reception must wait for **Check in** (no auto-advance): that is the name-badge edit window
+  and the TTS cost guardrail. The desk **Language pack** menu keeps the `inline` variant.
 - **After presence / TTS / desk-frame edits**, prefer `apps/web/test/officePresence.test.js`,
   `deskOsPresenceStrip.test.jsx`, `deskOsFrameStyles.test.js`, `apps/server/test/officeTts.test.js`,
   `officeRoute.test.js` (or `npm run test:affected`). **After isometric-floor edits**, `npm run

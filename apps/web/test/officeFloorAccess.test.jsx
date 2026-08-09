@@ -120,6 +120,20 @@ describe('FloorLiveRegion', () => {
 
     expect(region.textContent).toBe(first);
   });
+
+  // Same event (still at reception) but the sentence was rewritten for a new
+  // locale — keep the region current without forcing a pad flip.
+  it('rewrites the wording when the same event changes language', () => {
+    const view = render(
+      <FloorLiveRegion message="At reception. Sign in to begin." eventKey="arrival:reception" />
+    );
+    const region = screen.getByTestId('office-floor-narration');
+    expect(region.textContent).toMatch(/At reception/);
+
+    view.rerender(<FloorLiveRegion message="在前台。签到开始。" eventKey="arrival:reception" />);
+
+    expect(region.textContent).toBe('在前台。签到开始。');
+  });
 });
 
 describe('the floor narrates itself', () => {
