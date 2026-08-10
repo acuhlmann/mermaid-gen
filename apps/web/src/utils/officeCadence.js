@@ -82,6 +82,18 @@ export const OFFICE_DESK_LLM_CAP = 4;
  */
 export const OFFICE_TALK_LLM_CAP = 12;
 /**
+ * Reactive: somebody notices you loitering next to them (isometric slice 19).
+ *
+ * Sized like the run reaction rather than like talking, and for the same reason
+ * that one sits between the tiers: you caused it — you crossed the room and
+ * stayed — but you did not *ask* for it the way typing a sentence asks for an
+ * answer. Three is enough that the room reads as awake and few enough that
+ * loitering deliberately, which is the first thing anybody does once they find
+ * this, runs out and falls back to the canned bank in character.
+ */
+export const OFFICE_DWELL_LLM_CAP = 3;
+
+/**
  * Reactive: Linda's compliance training (docs/office-parody.md §10.1). One call
  * authors one form, and the gauntlet is `TRAINING_STEPS` long — so this cap is
  * "the whole module, once, personalized", and a second sitting draws the canned

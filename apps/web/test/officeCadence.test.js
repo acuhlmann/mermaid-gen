@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { DESK_LLM_CAP, TALK_LLM_CAP } from '../src/hooks/useDeskActions.js';
+import { DESK_LLM_CAP, DWELL_LLM_CAP, TALK_LLM_CAP } from '../src/hooks/useDeskActions.js';
 import { RUN_REACTION_LLM_CAP } from '../src/hooks/useOfficeRunReactions.js';
 import {
   OFFICE_BATTLES_PER_SESSION,
   OFFICE_DESK_LLM_CAP,
+  OFFICE_DWELL_LLM_CAP,
   OFFICE_FIRST_MOMENT_MIN_MS,
   OFFICE_LLM_MOMENT_CAP,
   OFFICE_RUN_REACTION_LLM_CAP,
@@ -161,6 +162,19 @@ describe('the office LLM budget table', () => {
     expect(DESK_LLM_CAP).toBe(OFFICE_DESK_LLM_CAP);
     expect(TALK_LLM_CAP).toBe(OFFICE_TALK_LLM_CAP);
     expect(RUN_REACTION_LLM_CAP).toBe(OFFICE_RUN_REACTION_LLM_CAP);
+    expect(DWELL_LLM_CAP).toBe(OFFICE_DWELL_LLM_CAP);
+  });
+
+  /**
+   * Isometric slice 19. Somebody looking up because you loitered is caused by
+   * you but not *asked for* by you, so it belongs with the run reaction rather
+   * than with talking — the same middle rung, for the same reason. Pinned as an
+   * inequality rather than a literal so a tuning pass can move the numbers
+   * without moving the tiers.
+   */
+  it('rations an unasked-for remark below a conversation you started', () => {
+    expect(OFFICE_DWELL_LLM_CAP).toBeLessThan(OFFICE_TALK_LLM_CAP);
+    expect(OFFICE_DWELL_LLM_CAP).toBeGreaterThan(0);
   });
 
   /**

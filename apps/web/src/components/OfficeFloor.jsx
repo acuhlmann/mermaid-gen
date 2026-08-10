@@ -38,6 +38,7 @@ import { MEETING_USER_SPEAKER } from '../hooks/useMeetingPlayback.js';
 import { useStageScale } from '../hooks/useStageScale.js';
 import { reachTileFor, whereaboutsOf } from '../utils/officeFloorReach.js';
 import { interruptSpeech } from '../utils/officeFloorInterrupt.js';
+import { useFloorDwell } from './officeFloor/useFloorDwell.js';
 import {
   MEETING_PLAYER_TILE,
   YOU_SEAT_ID,
@@ -202,6 +203,7 @@ function OfficeFloorView({ bridge, viewPhase }) {
     onMessage,
     onTalkGreet,
     onTalkReply,
+    onDwellRemark,
     onTalkingChange,
     onGetCoffee,
     onPropCue,
@@ -367,6 +369,32 @@ function OfficeFloorView({ bridge, viewPhase }) {
    */
   const wandererSaid = useMemo(() => interruptSpeech(wanderer, copy), [wanderer, copy]);
 
+  /*
+   * Slice 19: who you are stood next to, and the line they eventually break the
+   * silence with.
+   *
+   * Gated on `standingFree`, which is the honest definition of loitering — a
+   * card open, a conversation running or a prop in your hands is a *reason* to
+   * be there, and each of those surfaces already speaks for itself.
+   *
+   * Derived here rather than fed back into `useFloorAway`'s `holdId`, and that
+   * is a real limitation rather than an oversight: the target needs
+   * `floorState`, which `useFloorAway` returns, and `holdId` is one of that
+   * hook's arguments — so holding somebody because you are loitering next to
+   * them is a cycle. The consequence is small and legible: a colleague who is
+   * only passing through may finish their errand and leave before the five
+   * seconds are up, which you watch happen. Everybody at a desk — which is
+   * almost everybody, almost always — is not going anywhere.
+   */
+  const dwell = useFloorDwell({
+    youTile,
+    floorState,
+    active: activity.standingFree,
+    imHistory,
+    suspended: physicalMeeting,
+    onRemark: onDwellRemark
+  });
+
   const person = usePersonDetails(selectedId, copy, whereaboutsOf(selectedId, floorState));
   const talk = talkView(activity.talk, floorState);
   const talkingColleagueId = talk?.phase === 'talking' ? talk.colleagueId : null;
@@ -377,6 +405,7 @@ function OfficeFloorView({ bridge, viewPhase }) {
     Boolean(peekColleagueId && peekLine) ||
     Boolean(walker?.body && !departing) ||
     Boolean(wandererSaid) ||
+    Boolean(dwell.said) ||
     Boolean(coffee?.accepted || battle?.accepted) ||
     Boolean(huddle?.phase === 'speaking' || huddle?.phase === 'watching');
 
@@ -396,6 +425,7 @@ function OfficeFloorView({ bridge, viewPhase }) {
     peekColleagueId,
     walkBy: walker,
     wandererSaid,
+    dwellSaid: dwell.said,
     hasActiveSpeech,
     liftedSceneSpeech,
     liftedLineSpoken
@@ -507,6 +537,9 @@ function OfficeFloorView({ bridge, viewPhase }) {
             huddleRing={huddleRing}
             wanderer={wanderer}
             wandererSaid={wandererSaid}
+            // Slice 19: somebody looking up because you have not moved on.
+            dwellSaid={showSpokenText ? dwell.said : null}
+            dwellAt={dwell.at}
             onWandererArrive={handleWanderArrive}
             wandererRef={wandererRef}
             // Slice 17: the walk to a moment and the walk back from it.

@@ -1292,6 +1292,13 @@ export default function OfficeLayer({
     // User speaks first — no auto-opener when walking up to someone.
   }, []);
 
+  /**
+   * Slice 19: you stood next to somebody long enough that they looked up. The
+   * floor only reports the loitering; which budget it spends and where the line
+   * lands are decided here, with the rest of the office's appetite.
+   */
+  const handleDwellRemark = useCallback((colleagueId) => desk.remarkTo(colleagueId), [desk]);
+
   const handleTalkReply = useCallback(
     async (colleagueId, body) => {
       pushOfficeImReply({ colleagueId, body });
@@ -1343,6 +1350,7 @@ export default function OfficeLayer({
         onMessage: handleFloorMessage,
         onTalkGreet: handleTalkGreet,
         onTalkReply: handleTalkReply,
+        onDwellRemark: handleDwellRemark,
         onTalkingChange: setFloorTalkingTo,
         onGetCoffee: desk.getCoffee,
         onPropCue: handlePropCue,

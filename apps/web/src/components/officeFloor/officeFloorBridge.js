@@ -30,6 +30,14 @@
  * @property {((colleagueId: string) => void) | undefined} onMessage
  * @property {((colleagueId: string) => Promise<void> | void) | undefined} onTalkGreet
  * @property {((colleagueId: string, body: string) => Promise<void> | void) | undefined} onTalkReply
+ * @property {((colleagueId: string) => Promise<unknown> | unknown) | undefined} onDwellRemark
+ *   Somebody looks up because you have been stood next to them (§ 5 slice 19).
+ *
+ *   Named for the *event*, not for the verb behind it, the same way `onPropCue`
+ *   and `onFloorCue` are: the floor reports that you loitered, and renderer #1
+ *   decides that this costs an LLM call from a capped budget and lands as a
+ *   `talk`-channel line. Moving that decision across the boundary would put the
+ *   office's appetite in two places (ADR-0011 — one wiring point).
  * @property {((colleagueId: string | null) => void) | undefined} onTalkingChange
  * @property {(() => Promise<boolean> | boolean) | undefined} onGetCoffee
  * @property {((propKind: string) => void) | undefined} onPropCue

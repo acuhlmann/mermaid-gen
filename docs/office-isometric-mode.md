@@ -806,7 +806,59 @@ diagramSource})` returns counts, labels, a `shape` (`graph` | `list` | `page`), 
     (`goHome({ byYou })` + `lingering`), `FloorWanderer`'s `WandererLine`, `useFloorSpokenText`'s
     `useNarratedAside`, and `floor.interrupt` in `officeCast.js` + all three locale bundles.
 
-**There is no slice 19 yet, and that is deliberate.** The list above was written one slice at
+19. **"You're hovering" — stand next to somebody and they break the silence.** ✅ shipped.
+    Stay within a tile of a colleague for five seconds while you are not doing anything else,
+    and they say something. One line per approach; leaving is what re-arms it.
+
+    **It exists because the talk verb deliberately leaves a silence.** `OfficeLayer`'s
+    `handleTalkGreet` is an empty function with a one-line reason — _"user speaks first — no
+    auto-opener when walking up to someone"_ — so walking over to somebody and not typing
+    produces nothing at all. That is right for a conversation you opened and wrong for a room.
+    Dwell fills exactly that gap and duplicates none of it: walk over and type, and it is a
+    conversation; walk over and stand there, and they look up.
+
+    **The first floor mechanic with a trigger of its own.** Slice 18 attached a line to an event
+    the room already raised; nothing in the room reported _loitering_, so this adds the signal as
+    well as the line. It is still reactive under § 11's test — you crossed the room and stayed,
+    and it cannot fire while you are sitting still or walking past — which is what earns it an
+    LLM call in persona rather than a bank entry, on its own `OFFICE_DWELL_LLM_CAP` of 3.
+
+    **A correction to what § 8 predicted.** The design note here warned that the line would
+    arrive as both a toast and a balloon unless `onTalkingChange` was widened. That turned out to
+    be wrong, and the reason is worth keeping: `pushOfficeImPing` already skips the desk arrival
+    for `channel: 'talk'`, and keeps those lines out of Slop Chat™ threads and unread counts. So
+    the channel closes the trap by itself and no suppression plumbing was needed — speech in a
+    room is not a notification, and the store had already been told so.
+
+    **What the room taught it, all three found by driving it:**
+
+    - **Range is `NAME_CHIP_RANGE_TILES`, reused rather than chosen.** Slice 15 already decided
+      what "next to somebody" means and lights the name chip at that distance, so the person
+      about to speak is the person whose name is showing. A second radius would put the two out
+      of step with no way to tell from the room which was in force.
+    - **The `senior` exclusion is about the glass, not manners.** `tileDistance` is Chebyshev
+      and the leadership seats sit at y 0–1, so `(7, 1)` is one tile from three executives — and
+      is also _inside_ the fishbowl, which the room refuses to walk you to at all (§ 6 rule 17).
+      The exclusion is a belt to that geometry's braces, and it is per person rather than per
+      tile: `(6, 1)` is beside two executives and Bryce, and Bryce still answers.
+    - **Dwelling on somebody away from their desk is reachable at two props out of three.**
+      Every tile beside the whiteboard mark is also beside a pod desk, and at equal distance the
+      seat order wins — so at the board it is Gilfoyle who looks up, not the person stood at it.
+      The coffee machine and the printer have a clear side. Left as it is: standing at the
+      whiteboard _is_ standing at Gilfoyle's desk.
+
+    **The one real limitation, and it is a cycle rather than an oversight.** The target is
+    derived from `floorState`, which `useFloorAway` returns, and `holdId` is one of that hook's
+    arguments — so holding somebody in place _because_ you are loitering next to them cannot be
+    wired without a loop. A colleague who is only passing through may therefore finish their
+    errand and leave before the five seconds are up, which you watch happen. Everybody at a desk
+    — which is almost everybody, almost always — is not going anywhere.
+
+    Code: `utils/officeFloorDwell.js` (who, and which line), `officeFloor/useFloorDwell.js` (how
+    long, and the composed beat), `remarkTo` in `useDeskActions.js`, `OFFICE_DWELL_LLM_CAP` in
+    `officeCadence.js`, `onDwellRemark` on the floor bridge.
+
+**There is no slice 20 yet, and that is deliberate.** The list above was written one slice at
 a time, each defined when it was picked up rather than planned in advance — so "continue with
 slice _n_" only means something once somebody has chosen what _n_ is. § 8 has the candidates,
 a recommendation, and the debts that argue for one over another. Pick from there, write the
@@ -1393,8 +1445,12 @@ LLM budget at all.
   a script that is already mid-beat does to it. (Slice 18 took a third entry off this list from
   a different angle — see below.)
 
-- **Proximity dwell — stand next to somebody too long and they say something.** The natural
-  sequel to slice 18 and asked for in the same breath, but a genuinely different mechanic:
+- ~~**Proximity dwell — stand next to somebody too long and they say something.**~~ ✅ **shipped
+  as slice 19.** Three of the four traps below were real and are handled (`standingFree` gating,
+  the `talk` channel keeping it out of scrollback, its own budget rung); the **toast** one was a
+  false alarm — `pushOfficeImPing` already skips the arrival for `channel: 'talk'`. The
+  `holdId` trap turned out to be a **cycle** rather than a wiring job; see the slice entry. Kept
+  below as written, because the reasoning is still the reasoning:
   slice 18 fires on an event the room already raises, and this one needs a **new** signal — a
   dwell timer over `isWithinNameChipRange`, armed on entering range while `standingFree` and
   disarmed only on leaving, one line per approach. Four traps already identified and none of
