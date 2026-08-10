@@ -37,6 +37,7 @@ import { useFloorWalker } from './officeFloor/useFloorWalker.js';
 import { MEETING_USER_SPEAKER } from '../hooks/useMeetingPlayback.js';
 import { useStageScale } from '../hooks/useStageScale.js';
 import { reachTileFor, whereaboutsOf } from '../utils/officeFloorReach.js';
+import { interruptSpeech } from '../utils/officeFloorInterrupt.js';
 import {
   MEETING_PLAYER_TILE,
   YOU_SEAT_ID,
@@ -356,6 +357,16 @@ function OfficeFloorView({ bridge, viewPhase }) {
    * two consumers that must agree: the card decides which verbs to offer from it
    * and the stage puts their speech bubble where their mouth is.
    */
+  /*
+   * Slice 18: what somebody says on the way back from an errand you walked
+   * into — `null` for every trip nobody interrupted, which is nearly all of
+   * them. Derived once here for the same reason `whereaboutsOf` is: two
+   * consumers that must agree. The narrator speaks it and the stage draws it,
+   * and a second `interruptSpeech` call would roll a different line out of the
+   * same bank.
+   */
+  const wandererSaid = useMemo(() => interruptSpeech(wanderer, copy), [wanderer, copy]);
+
   const person = usePersonDetails(selectedId, copy, whereaboutsOf(selectedId, floorState));
   const talk = talkView(activity.talk, floorState);
   const talkingColleagueId = talk?.phase === 'talking' ? talk.colleagueId : null;
@@ -365,6 +376,7 @@ function OfficeFloorView({ bridge, viewPhase }) {
     Boolean(talkingColleagueId && activity.talkLine) ||
     Boolean(peekColleagueId && peekLine) ||
     Boolean(walker?.body && !departing) ||
+    Boolean(wandererSaid) ||
     Boolean(coffee?.accepted || battle?.accepted) ||
     Boolean(huddle?.phase === 'speaking' || huddle?.phase === 'watching');
 
@@ -383,6 +395,7 @@ function OfficeFloorView({ bridge, viewPhase }) {
     talkLine: activity.talkLine,
     peekColleagueId,
     walkBy: walker,
+    wandererSaid,
     hasActiveSpeech,
     liftedSceneSpeech,
     liftedLineSpoken
@@ -493,6 +506,7 @@ function OfficeFloorView({ bridge, viewPhase }) {
             huddleHandlers={huddleHandlers}
             huddleRing={huddleRing}
             wanderer={wanderer}
+            wandererSaid={wandererSaid}
             onWandererArrive={handleWanderArrive}
             wandererRef={wandererRef}
             // Slice 17: the walk to a moment and the walk back from it.

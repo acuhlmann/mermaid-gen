@@ -750,7 +750,63 @@ diagramSource})` returns counts, labels, a `shape` (`graph` | `list` | `page`), 
     bug) or a threshold with a queue, since eight attendees converging on one tile is a pile-up.
     § 8 carries it as the defined follow-up.
 
-**There is no slice 18 yet, and that is deliberate.** The list above was written one slice at
+18. **"Excuse me" — the floor answers back when you get in its way.** ✅ shipped. Walk onto the
+    tile a wandering colleague is standing on, or heading for, and they say one line about it on
+    the way back to their desk. **No new physics**: `useFloorWander`'s `inYourWay` has turned
+    people round since slice 11 and the trip has remembered whether they reached the machine
+    since § 8's held-item work. What this adds is a mouth — the room modelled the whole beat,
+    including the empty hand, and said nothing about it.
+
+    **Why a wanderer may speak at all**, having been silent by design since slice 11 ("the
+    instant a wanderer could say something they would be a walk-by"). That rule is about
+    _ambient_ traffic and it still holds. `office-parody.md` § 11 draws the line by **who
+    started it**, not by where somebody is standing, and the trigger here is a tile you claimed
+    rather than a timer — nothing in this slice can fire while you are sitting still, which is
+    the same self-limiting property that makes every other reactive surface safe. Canned rather
+    than LLM for the matching reason: the reactive budget exists because a generated reply to a
+    sentence you _typed_ cannot be faked by a bank, and nobody typed anything here.
+
+    **The reaction and the hand are one fact.** `goHome` reads `phase === 'dwell'` to decide
+    what somebody carries home; `interruptionFor` reads the same field to pick between `gotIt`
+    (they had already used the thing — politeness) and `gaveUp` (they never got there — the
+    empty hand, said out loud). Deriving both from one field is what makes "apologising for a
+    coffee they are visibly holding" unreachable by construction rather than by review.
+
+    **Three things the capture taught, none of which a test could see.** Driven in Chrome with
+    `Math.random` pinned to 0.75, which puts Chad at the whiteboard.
+
+    - **A walk home is 420 ms at its shortest**, and four tenths of a second is a flash, not a
+      sentence. `walkPathBetween` gives Gilfoyle a single leg back from the whiteboard;
+      the range across the whole roster is 420–2404 ms. So an interrupted errand now ends
+      differently from an ordinary one: `LINGER_MS` (1.8 s) holds them at their own desk with
+      the line up before the figure clears. That is a beat rather than a workaround — nobody
+      says "all yours" and vanishes — and it keeps the line inside the trip's own lifetime,
+      which is what ADR-0011 rule 1 asks of anything this floor knows about somebody else. It
+      is a `lingering` flag rather than a fourth phase because `whereaboutsOf`, the
+      settled/button split and the away list all want `home`'s answer during the pause.
+    - **`bubbleAlignForSpeaker` assumes a speaker who is standing still.** Asked per leg off
+      `useWalkAnimation`'s `tile` it is no better than centred — it biases for a spot the
+      balloon has not reached, and a two-leg walk can flip the bias halfway and slide the
+      balloon sideways for nothing. Asked once about the trip's **destination** it is exact for
+      the linger, which is the frame that is actually read, and stable for the whole trip.
+      Measured head overlaps (§ 6 rule 29) across the walk: 1–3 seated colleagues during
+      transit either way, **0 during the linger** with the destination bias and 1 without.
+      Transit overlap is left as it is, consistent with walk-bys, which are the other moving
+      balloon and are also unaligned.
+    - **The balloon clears the speaker's own head by 7 px** at the linger (§ 6 rule 15), which
+      is the `--over-standing` lift doing its job on a figure that has no seat lift to clear.
+
+    **Deliberately not narrated in the live region.** Slice 11's answer survives intact and the
+    distinction is the one `floor.narration` was written around: the region reports where bodies
+    are, and what anybody _says_ stays in their balloon — narrating both is how every line on
+    this floor gets read out twice. It **is** spoken by TTS, through the same voice-first path
+    peek, talk and walk-bys use, so captions-off users hear it and see no balloon.
+
+    Code: `utils/officeFloorInterrupt.js` (the whole derivation, pure), `useFloorWander`
+    (`goHome({ byYou })` + `lingering`), `FloorWanderer`'s `WandererLine`, `useFloorSpokenText`'s
+    `useNarratedAside`, and `floor.interrupt` in `officeCast.js` + all three locale bundles.
+
+**There is no slice 19 yet, and that is deliberate.** The list above was written one slice at
 a time, each defined when it was picked up rather than planned in advance — so "continue with
 slice _n_" only means something once somebody has chosen what _n_ is. § 8 has the candidates,
 a recommendation, and the debts that argue for one over another. Pick from there, write the
@@ -1304,6 +1360,15 @@ _"when an action ends, can you make the people actually walk back… I want the 
 alive and real"_ — which is the strongest signal in this doc's history and worth recording as
 the reason the order changed.
 
+**Slice 18 came from the same signal, asked a second way** — _"little canned lines but
+interactive responsive participants that react to ur actions"_ — and the pick was made against
+a survey of what the floor already does. The finding worth keeping is that the office spends its
+**voice on a timer and its silence on you**: ambient moments interrupt you 10 times a session
+on a clock, while free roam, claiming somebody's tile, standing next to them and taking a third
+coffee were all completely silent. Slice 18 is the cheapest end of inverting that — the one
+already-firing physical event that had no line — and it is deliberately canned, so it moves no
+LLM budget at all.
+
 - **The glass room needs a way in** (opened by slice 17, which had to skip it). Its chairs are
   inside a sealed box, so attendees still appear in their seats and vanish from them while every
   other moment now walks. Two designs, neither chosen: **a door** — shorten or split the west
@@ -1321,11 +1386,27 @@ the reason the order changed.
   `officeCadence.js`** — not a new store, and § 11's ambient budget applies because this is
   ambient content with a timer. The trap § 8 already recorded still holds: `officeCadence.js`
   owns the dial, not the floor.
-- **Slice 18 — point-and-click depth.** The two entries below that survived: **soft errands**
+- **Point-and-click depth.** The two entries below that survived: **soft errands**
   (Linda asks you to find Chad about the reply-all — existing talk verb, reactive IM, a small XP
   beat, logged but never _scheduled_, or it becomes auto-fix-on-idle in a new hat) and
   **Overhear → Join**. Join has to answer one design question before any code: what interrupting
-  a script that is already mid-beat does to it.
+  a script that is already mid-beat does to it. (Slice 18 took a third entry off this list from
+  a different angle — see below.)
+
+- **Proximity dwell — stand next to somebody too long and they say something.** The natural
+  sequel to slice 18 and asked for in the same breath, but a genuinely different mechanic:
+  slice 18 fires on an event the room already raises, and this one needs a **new** signal — a
+  dwell timer over `isWithinNameChipRange`, armed on entering range while `standingFree` and
+  disarmed only on leaving, one line per approach. Four traps already identified and none of
+  them designed. **The narrator will say it twice**: `OfficeLayer` suppresses the IM toast only
+  for `floorTalkingTo`, so a line from somebody you are merely stood near arrives as both a
+  toast and a balloon — `onTalkingChange` would have to mean "who the floor is voicing" rather
+  than "who I clicked _Go and talk_ on". **The line cannot be floor state** if it is generated,
+  because a wanderer who speaks a written line is a walk-by (slice 11) — route it through
+  `imSomeone` into `imHistory`. **`holdId` must cover dwell**, or they walk off mid-sentence and
+  the balloon anchors to a tile they have left. And **it needs its own budget rung** beside
+  `OFFICE_RUN_REACTION_LLM_CAP` rather than the talk cap: you did cause it, but you did not ask
+  for it.
 
 Nothing is recommended over the others yet, and the reason is worth stating: slice 12 cleared
 the one item that was _getting worse with waiting_, and nothing on the list below is. Slices 10
@@ -1449,6 +1530,21 @@ Kept here so appetite can pick without re-deriving. Each should stay bound by AD
   which is a content question rather than a geometry one.
 
 ### Debts the shipped slices left behind
+
+- **A moving balloon covers bystanders' heads and nothing fixes that today** (§ 6 rule 29).
+  Measured on slice 18's capture: 1–3 seated colleagues under the balloon during transit,
+  whether or not `bubbleAlignForSpeaker` is applied, because that helper assumes a speaker who
+  is standing still. Walk-bys have always had the same property and are also unaligned, so this
+  is consistent rather than new — but it is now **measured**, and the honest fix if somebody
+  wants one is a per-frame bias, which means the balloon would have to be positioned by the
+  animation rather than by React. Not worth it for a beat that is over in two seconds; worth
+  knowing before a fourth moving bubble arrives.
+- **`useFloorSpokenText` now has four narration effects and a fifth would be too many.** Slice
+  18 extracted `useNarratedAside` for its own, which kept the hook at complexity 16 rather than
+  20 — but talk, peek and walk-by are still three near-identical effects in the body that the
+  same hook could absorb. The shapes differ in what they key on (a line, a `colleagueId:line`
+  pair, an id) and whether they cancel on clear, which is why slice 18 did not collapse them
+  while it was in there.
 
 - **There are now four callers of `useWalkAnimation`**, and `FloorWanderer`'s header calls a
   fourth "the moment to collapse them". Slice 17 added `FloorCommuters` and deliberately did not

@@ -2,13 +2,23 @@
  * A colleague who has got up for a minute (slice 11), and — since slice 12 —
  * somebody you can walk up to while they are up.
  *
- * Still the quietest actor on the floor: no bubble of its own, no card, nothing
- * written anywhere. An ambient wanderer is scenery that moves, and giving it
- * *content* would make it a feature (`office-parody.md` § 11). What it now has
- * is an **identity**, which is a different thing: while they are stood at the
- * machine their figure is the same `FloorPersonButton` their chair renders, so
- * selecting them, talking to them and glowing at them all work exactly where
- * they are standing instead of only where they normally sit.
+ * Still the quietest actor on the floor: no card, nothing written anywhere. An
+ * ambient wanderer is scenery that moves, and giving it *content* would make it
+ * a feature (`office-parody.md` § 11). What it now has is an **identity**, which
+ * is a different thing: while they are stood at the machine their figure is the
+ * same `FloorPersonButton` their chair renders, so selecting them, talking to
+ * them and glowing at them all work exactly where they are standing instead of
+ * only where they normally sit.
+ *
+ * Slice 18 gave it the one line it is allowed, and the exception is narrow
+ * enough to state in a sentence: **an errand you walked into**. `said` is only
+ * ever non-null on the leg home from a trip *you* turned round, so the trigger
+ * is a tile you claimed rather than a timer, and § 11's ambient/reactive split
+ * lands it on the reactive side. Every other trip on this floor is as silent as
+ * it was in slice 11. The balloon lives inside the walking anchor rather than at
+ * a tile of its own, because unlike `FloorDeskSpeech`'s speakers this one is
+ * moving: it has to travel on the same transform as the figure, which is what
+ * `FloorWalker` already does for a departing walk-by.
  *
  * **Only while they are settled.** Mid-stride there is no button at all: a
  * moving hit target is a coin flip, and a mark derived from a tile they have not
@@ -25,10 +35,11 @@
  */
 
 import { useRef } from 'react';
+import FloorBubble from './FloorBubble.jsx';
 import FloorFigure from './FloorFigure.jsx';
 import FloorPersonButton from './FloorPersonButton.jsx';
 import { useWalkAnimation } from './useWalkAnimation.js';
-import { depthOf, walkPathBetween } from '../../utils/officeFloorPlan.js';
+import { bubbleAlignForSpeaker, depthOf, walkPathBetween } from '../../utils/officeFloorPlan.js';
 import { officeSenderInfo } from '../../utils/officeCast.js';
 import { floorActivityFor } from '../../utils/officeFloorActivity.js';
 import { formatLocale } from '../../i18n/formatLocale.js';
@@ -51,6 +62,58 @@ function awayLabel(sender, seatId, propKind, copy) {
 }
 
 /**
+ * Above the zone-signage layer (9000), the lift every floor balloon takes.
+ * Same number as `FloorWalker`'s, and deliberately a second copy: one shared
+ * constant would be a module for one integer, which § 8's note about the four
+ * `useWalkAnimation` callers already rejected on the same grounds.
+ */
+const SPEAKING_Z = 9500;
+
+/**
+ * The one line an interrupted errand carries home.
+ *
+ * Its own component for the reason § 8 records about this file: slice 12 got
+ * `FloorWanderer` back *under* its complexity budget, and a component with no
+ * warning should not acquire one — the same lever that moved a guard out of
+ * `FloorTalkCard` into a `TalkPitch` sibling. The null check and the name
+ * fallback are the two branches that were going to cost it.
+ *
+ * No footer, no dismiss, no chrome of any kind: unlike a walk-by there is
+ * nothing here to keep when the body is hidden, which is why the caller passes
+ * `said` already gated on captions rather than passing a `hideBody` through.
+ *
+ * § 6 rules 28–29 apply to a moving speaker too, and this is the first bubble
+ * that had to decide *which* position to ask them about. Measured on a capture
+ * of the walk back from the whiteboard, and both findings are worth keeping:
+ *
+ * - **Per-leg, off `useWalkAnimation`'s `tile`, is not better.** The helper
+ *   assumes a speaker who is standing still, so biasing on the leg's
+ *   destination shifts the balloon for a spot it has not reached — head
+ *   overlaps during transit came out no better than centred, and a two-leg walk
+ *   can flip the bias halfway and slide the balloon sideways for no reason.
+ * - **The destination is the frame that matters.** The line is read during the
+ *   linger, when they are stationary at their own desk — which is the one
+ *   moment the helper's assumption actually holds. Aligning on `to` is exact
+ *   there and stable for the whole trip.
+ *
+ * Computed here rather than in the parent so the box tests behind it only run
+ * for the one trip in a session that has anything to say.
+ */
+function WandererLine({ said, sender, seatId, scale, to }) {
+  if (!said) return null;
+  return (
+    <FloorBubble
+      name={sender?.name ?? seatId}
+      title={sender?.title}
+      scale={scale}
+      align={bubbleAlignForSpeaker(to, seatId)}
+    >
+      {said.text}
+    </FloorBubble>
+  );
+}
+
+/**
  * @param {{
  *   wanderer: {
  *     seatId: string,
@@ -62,6 +125,8 @@ function awayLabel(sender, seatId, propKind, copy) {
  *     carrying?: string | null
  *   },
  *   copy: Record<string, any>,
+ *   said?: { text: string, reaction: string } | null,
+ *   scale?: number,
  *   onArrive?: () => void,
  *   elementRef?: { current: HTMLElement | null },
  *   selected?: boolean,
@@ -80,18 +145,31 @@ function awayLabel(sender, seatId, propKind, copy) {
  *   forwarded to `FloorPersonButton`, which defaults them itself, so a default
  *   here would buy nothing but a branch each — and this component has a
  *   complexity budget to keep (§ 8's note that most of these warnings *are*
- *   the default parameters).
+ *   the default parameters). `said` joins them for the same reason: it is read
+ *   for truthiness twice below and always passed.
+ *
+ *   `said` is `interruptSpeech`'s answer, derived once in `OfficeFloor` and
+ *   handed to the narrator as well as to here — asking twice would let the
+ *   balloon and the voice draw different lines out of the same bank. It arrives
+ *   already `null` when captions are off and the voice took the line, so this
+ *   component never has to ask whether anybody heard it.
  */
 export function FloorWanderer({
   wanderer,
   copy,
+  said,
+  scale,
   onArrive,
   elementRef,
   selected,
   speaking,
   nearby,
   onSelect,
-  onActivate = null,
+  /* No default, twice over: `FloorPersonButton` already applies `= null` to
+     both of these, and § 8's finding is that redundant defaults are most of
+     what puts a floor component over its complexity budget. Slice 18 needed
+     the two points back. */
+  onActivate,
   onStep
 }) {
   const ownRef = useRef(null);
@@ -125,7 +203,9 @@ export function FloorWanderer({
    */
   const activity = floorActivityFor(seatId, {
     moving: !settled,
-    carrying: wanderer.carrying ?? null
+    // `floorActivityFor` defaults this to null itself; coalescing here as well
+    // bought a branch and no behaviour.
+    carrying: wanderer.carrying
   });
 
   return (
@@ -135,9 +215,12 @@ export function FloorWanderer({
       data-testid="office-floor-wanderer"
       data-wanderer={seatId}
       data-settled={settled ? 'true' : undefined}
+      data-said={said ? said.reaction : undefined}
       /* +5 like every other travelling figure, so they pass in front of the
-         desk they are walking past rather than through it. */
-      style={{ zIndex: depthOf(tile.x, tile.y) + 5 }}
+         desk they are walking past rather than through it — until they say
+         something, which has to clear the zone signage like every other line on
+         this floor (§ 6 rule 6). */
+      style={{ zIndex: said ? SPEAKING_Z : depthOf(tile.x, tile.y) + 5 }}
     >
       {settled && onSelect ? (
         <FloorPersonButton
@@ -154,6 +237,7 @@ export function FloorWanderer({
         />
       ) : (
         <div className="office-floor-walker-anchor">
+          <WandererLine said={said} sender={sender} seatId={seatId} scale={scale} to={to} />
           <FloorFigure id={seatId} accent={accent} activity={activity} walking={!arrived} />
         </div>
       )}

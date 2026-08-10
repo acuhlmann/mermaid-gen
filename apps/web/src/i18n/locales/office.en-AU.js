@@ -1360,6 +1360,20 @@ export const OFFICE_EN_AU = {
           }
         }
       },
+      interrupt: {
+        gotIt: [
+          'All yours.',
+          'Was just off anyway.',
+          'Done with {prop} — go for it.',
+          'Yeah, go ahead.'
+        ],
+        gaveUp: [
+          'Oh — you go.',
+          'Didn’t need {prop} that bad.',
+          'I’ll come back.',
+          'You first. It’s fine. It’s all good.'
+        ]
+      },
       meeting: {
         eyebrow: 'GLASS ROOM',
         eyebrowRemote: 'HEADSET SYNC',

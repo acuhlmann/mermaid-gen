@@ -9,6 +9,7 @@ import { renderFloor } from './helpers/officeFloorTestUtils.jsx';
 import { wanderTripsFor, wanderingSeatIds } from '../src/utils/officeFloorWander.js';
 import { approachTileFor, propTileFor } from '../src/utils/officeFloorMovement.js';
 import { propHandsFor } from '../src/utils/officeFloorProps.js';
+import { interruptSpeech } from '../src/utils/officeFloorInterrupt.js';
 import {
   FLOOR_SEATS,
   boxesOverlap,
@@ -209,6 +210,54 @@ describe('the trip machine', () => {
     expect(seen.wanderer.carrying).toBeNull();
   });
 
+  it('has something to say about it, but only because you are the reason', () => {
+    /*
+     * Slice 18's whole trigger. `goHome` has two callers and the hook now knows
+     * which one rang: an errand that simply ended has nothing to say, and one
+     * you walked into does. That distinction is what keeps this on the reactive
+     * side of `office-parody.md` § 11 rather than making every ambient trip
+     * talkative — nothing here can fire while you are sitting still.
+     */
+    const { seen, view, Probe } = harness();
+    act(() => vi.advanceTimersByTime(9_000));
+    const mark = seen.wanderer.to;
+    expect(seen.wanderer.interrupted).toBeNull();
+
+    act(() => view.rerender(<Probe avoidTile={mark} />));
+    expect(seen.wanderer.interrupted?.reaction).toBe('gaveUp');
+  });
+
+  it('stays quiet when the errand just ended on its own', () => {
+    const { seen, arrive } = harness();
+    act(() => vi.advanceTimersByTime(9_000));
+    arrive();
+
+    act(() => vi.advanceTimersByTime(9_000));
+    expect(seen.wanderer?.phase).toBe('home');
+    // They got the coffee and are walking back with it, exactly as in slice 11.
+    // Nobody caused that, so nobody is owed a word about it.
+    expect(seen.wanderer?.carrying).toBe('coffee');
+    expect(seen.wanderer?.interrupted).toBeNull();
+  });
+
+  it('says the polite line when they had already used the thing', () => {
+    /*
+     * The pair, asserted together because they are one fact. `phase === 'dwell'`
+     * is what fills the hand *and* what picks the reaction, so somebody
+     * apologising for a coffee they are visibly holding is unreachable by
+     * construction rather than by review.
+     */
+    const { seen, view, Probe, arrive } = harness();
+    act(() => vi.advanceTimersByTime(9_000));
+    const mark = seen.wanderer.to;
+    arrive();
+    expect(seen.wanderer.phase).toBe('dwell');
+
+    act(() => view.rerender(<Probe avoidTile={mark} />));
+    expect(seen.wanderer.interrupted?.reaction).toBe('gotIt');
+    expect(seen.wanderer.carrying).toBe(propHandsFor(seen.wanderer.kind));
+  });
+
   it('takes the hand from the prop table rather than deciding for itself', () => {
     /*
      * Ties the trip to `FLOOR_PROP_USES` without asserting a literal, so the day
@@ -259,6 +308,31 @@ describe('the trip machine', () => {
 
     // Walked home rather than cleared: nothing else is drawing them, so they
     // have to actually leave rather than vanish.
+    arrive();
+    /*
+     * Slice 18: an errand *you* ended pauses at the desk before it clears, so
+     * the line it is carrying is readable however short the walk back was. An
+     * ordinary trip still clears on arrival — see below.
+     */
+    expect(seen.wanderer?.lingering).toBe(true);
+    act(() => vi.advanceTimersByTime(1_800));
+    expect(seen.wanderer).toBeNull();
+  });
+
+  it('pauses only for a trip that has something to say', () => {
+    /*
+     * The pause is the delivery, not a new resting state: slice 11's machine is
+     * untouched for every errand nobody walked into, which is nearly all of
+     * them. A wanderer who lingered after an ordinary trip would just be
+     * somebody standing at their own desk for no reason.
+     */
+    const { seen, arrive } = harness();
+    act(() => vi.advanceTimersByTime(9_000));
+    arrive();
+    act(() => vi.advanceTimersByTime(9_000));
+    expect(seen.wanderer?.phase).toBe('home');
+    expect(seen.wanderer?.interrupted).toBeNull();
+
     arrive();
     expect(seen.wanderer).toBeNull();
   });
@@ -564,5 +638,196 @@ describe('somebody who is not at their desk', () => {
     // clear, whatever their desk would imply.
     expect(bubble.querySelector('.office-floor-walker-anchor--over-standing')).toBeTruthy();
     expect(bubble.querySelector('.office-floor-walker-anchor--over-seat')).toBeNull();
+  });
+});
+
+/**
+ * "Excuse me" — the floor answering back (slice 18).
+ *
+ * The derivation is unit-tested in `officeFloorInterrupt.test.js`; what is left
+ * for here is the part that can only be seen on a stage: the balloon travels
+ * with the walker rather than hanging over the tile they left, it clears the
+ * signage layer while it is up, and it obeys the same voice-first hide every
+ * other line on this floor obeys.
+ */
+describe('what they say on the way back (slice 18)', () => {
+  const CHAD = 'intern';
+
+  /** A trip on its leg home, with or without you having caused it. */
+  const goingHome = (interrupted) => ({
+    seatId: CHAD,
+    kind: 'printer',
+    from: propTileFor('printer'),
+    to: { x: seatFor(CHAD).x, y: seatFor(CHAD).y },
+    phase: 'home',
+    leg: 2,
+    carrying: null,
+    interrupted
+  });
+
+  const drawWith = (interrupted) => {
+    const trip = goingHome(interrupted);
+    return render(
+      <FloorWanderer
+        wanderer={trip}
+        copy={FLOOR_COPY()}
+        said={interruptSpeech(trip, FLOOR_COPY())}
+        scale={1}
+      />
+    );
+  };
+
+  it('hangs the line on the figure, so it travels home with them', () => {
+    /*
+     * The reason this is a `FloorBubble` inside the walking anchor rather than a
+     * `FloorDeskSpeech` at a tile: every other speaker on this floor is standing
+     * still, and this one is walking away from you. A balloon pinned to the tile
+     * they were interrupted at points at an empty square by the time it is read.
+     */
+    const view = drawWith({ reaction: 'gaveUp', roll: 0.25 });
+    const anchor = view.container.querySelector('.office-floor-walker-anchor');
+    const bubble = anchor.querySelector('.office-floor-bubble');
+
+    expect(bubble, 'no balloon on the walk home').toBeTruthy();
+    expect(bubble.textContent).toContain(FLOOR_COPY().props.items.printer.name);
+    expect(view.container.querySelector('.office-floor-walker').dataset.said).toBe('gaveUp');
+  });
+
+  it('lifts them over the zone signage while the line is up, and not after', () => {
+    // § 6 rule 6: a bubble that keeps its depth ordering ends up behind the word
+    // POD. Every other floor balloon takes the same lift.
+    const speaking = drawWith({ reaction: 'gotIt', roll: 0 });
+    expect(
+      Number(speaking.container.querySelector('.office-floor-walker').style.zIndex)
+    ).toBeGreaterThan(9000);
+    cleanup();
+
+    const quiet = drawWith(null);
+    const wrapper = quiet.container.querySelector('.office-floor-walker');
+    expect(wrapper.querySelector('.office-floor-bubble')).toBeNull();
+    expect(wrapper.dataset.said).toBeUndefined();
+    expect(Number(wrapper.style.zIndex)).toBeLessThan(9000);
+  });
+});
+
+describe('walking into somebody else s errand, on a real floor', () => {
+  /** 0.75 puts Chad at the whiteboard, as the slice 12 suite above relies on. */
+  const CHAD = 'intern';
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    stubRandom(0.75);
+  });
+
+  it('takes the square, and gets a word about it', () => {
+    /*
+     * The whole slice, end to end and through the real wiring: Chad is stood at
+     * the whiteboard, you click the tile he is on, and the room does what it has
+     * always done — turns him round and walks him back — except that now he says
+     * something on the way. Nothing here is new physics; `inYourWay` has sent
+     * people home since slice 11.
+     */
+    renderFloor();
+    act(() => vi.advanceTimersByTime(9_000));
+    expect(screen.getByTestId('office-floor-wanderer').dataset.settled).toBe('true');
+
+    const mark = propTileFor('whiteboard');
+    const { left, top } = projectIso(mark.x, mark.y);
+    fireEvent.click(screen.getByTestId('office-floor-roam'), { clientX: left, clientY: top });
+
+    const figure = screen.getByTestId('office-floor-wanderer');
+    // He had already reached the board, so this is the polite line and not the
+    // sorry one — the same `phase === 'dwell'` that decides what is in his hand.
+    expect(figure.dataset.said).toBe('gotIt');
+    expect(figure.querySelector('.office-floor-bubble')).toBeTruthy();
+    expect(figure.dataset.wanderer).toBe(CHAD);
+  });
+
+  it('speaks it, and drops the balloon when the voice took the line', async () => {
+    /*
+     * Voice-first (slice 10), through the wiring rather than at a prop: captions
+     * off and TTS succeeded means the line was heard, so drawing it as well says
+     * it twice. Two things this pins that a direct render cannot — that the
+     * narrator is handed the *same* line the balloon would have drawn (one
+     * `interruptSpeech`, two consumers), and that the signage lift goes with the
+     * balloon rather than stranding the figure on top of the zone signs.
+     */
+    const narrateLine = vi.fn(() => Promise.resolve({ spoken: true }));
+    renderFloor({ sceneHandlers: { narrateLine } });
+    act(() => vi.advanceTimersByTime(9_000));
+
+    const mark = propTileFor('whiteboard');
+    const { left, top } = projectIso(mark.x, mark.y);
+    fireEvent.click(screen.getByTestId('office-floor-roam'), { clientX: left, clientY: top });
+
+    // Derived the same way the stage derives it, so this asserts the wiring and
+    // not the contents of the bank.
+    const expected = interruptSpeech(
+      { seatId: CHAD, kind: 'whiteboard', interrupted: { reaction: 'gotIt', roll: 0.75 } },
+      FLOOR_COPY()
+    );
+    expect(narrateLine).toHaveBeenCalledWith({ speakerId: CHAD, text: expected.text });
+
+    // Flush the optimistic-hide promise the narration hook is waiting on.
+    await act(async () => {});
+    const figure = screen.getByTestId('office-floor-wanderer');
+    expect(figure.querySelector('.office-floor-bubble')).toBeNull();
+    expect(figure.dataset.said).toBeUndefined();
+    expect(Number(figure.style.zIndex)).toBeLessThan(9000);
+  });
+
+  it('hands the chair back exactly once, after the line has been read', () => {
+    /*
+     * § 6 rule 5 across the new pause: while somebody is delivering the line
+     * they are drawn by the walker and their chair is empty, and when the trip
+     * finally clears the chair fills and the walker goes. Two of anybody — or a
+     * seat that refills while the figure is still standing in front of it — is
+     * what this rule exists to prevent, and the linger is the first thing on
+     * this floor to hold that handover open long enough to assert.
+     */
+    renderFloor();
+    act(() => vi.advanceTimersByTime(9_000));
+
+    const mark = propTileFor('whiteboard');
+    const { left, top } = projectIso(mark.x, mark.y);
+    fireEvent.click(screen.getByTestId('office-floor-roam'), { clientX: left, clientY: top });
+
+    const seat = () => document.querySelector(`[data-seat="${CHAD}"]`);
+    expect(screen.getByTestId('office-floor-wanderer').dataset.said).toBe('gotIt');
+    expect(seat().dataset.vacant).toBe('true');
+    expect(seat().querySelectorAll('.office-floor-person-figure')).toHaveLength(0);
+
+    act(() => vi.advanceTimersByTime(1_800));
+    expect(screen.queryByTestId('office-floor-wanderer')).toBeNull();
+    expect(seat().dataset.vacant).toBeUndefined();
+    expect(seat().querySelectorAll('.office-floor-person-figure')).toHaveLength(1);
+  });
+
+  it('keeps the line out of the live region, because a line is not a location', () => {
+    /*
+     * Slice 11's rule survives slice 18 intact, and the distinction is the one
+     * `floor.narration` was written around: the region reports where *bodies*
+     * are, and what anybody says stays in their balloon. Narrating both is how
+     * every line on this floor gets read out twice.
+     *
+     * Asserted as "the region never quotes the balloon" rather than as "the
+     * region does not change", because it does change and should: you just
+     * walked across the room, and where you are standing is exactly what this
+     * region is for.
+     */
+    renderFloor();
+    act(() => vi.advanceTimersByTime(9_000));
+
+    const mark = propTileFor('whiteboard');
+    const { left, top } = projectIso(mark.x, mark.y);
+    fireEvent.click(screen.getByTestId('office-floor-roam'), { clientX: left, clientY: top });
+
+    const figure = screen.getByTestId('office-floor-wanderer');
+    const said = figure.querySelector('.office-floor-bubble-body').textContent;
+    const region = screen.getByTestId('office-floor-narration').textContent;
+
+    expect(said.length).toBeGreaterThan(4);
+    expect(region).not.toContain(said);
+    expect(region.toLowerCase()).not.toContain('chad');
   });
 });
