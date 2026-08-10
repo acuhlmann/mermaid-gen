@@ -102,6 +102,91 @@ export const OFFICE_DWELL_LLM_CAP = 3;
  */
 export const OFFICE_TRAINING_LLM_CAP = 2;
 
+/*
+ * ---------------------------------------------------------------------------
+ * THE OFFICE DAY — the other clock, and the only one that is a wall clock.
+ * ---------------------------------------------------------------------------
+ *
+ * Everything above is session-relative: how long you have been here, how many
+ * moments have fired, how much budget is left. None of it knows what time it
+ * is, and until this table existed **nothing in the office did** — `doing` came
+ * from a baked `officeDeskWork` row, so Dave was in his headset at 4 pm exactly
+ * as he was at 9 am, and the room read the same at every hour anybody opened it.
+ *
+ * The dial lives **here rather than on the floor**, which is the trap
+ * `docs/office-isometric-mode.md` § 8 recorded before this was built: an office
+ * day is ambient content on a timer, and § 11's rule is that ambience is tuned
+ * in one place. The floor decides what a phase *looks like*
+ * (`officeFloorActivity.js` owns the art, `OfficeFloor.css` owns the light);
+ * this decides only **when**, and it spends no LLM budget doing it, because
+ * motion and light are not content.
+ *
+ * Deliberately a wall clock and not a session arc. A session arc would make the
+ * room brighten because you had been working a while, which is a different and
+ * much stranger fiction than an office that is simply on a clock — and the
+ * whole joke only lands if 9 am looks like 9 am to somebody arriving at 9 am.
+ */
+
+/**
+ * The office day, in order. Boundaries are local time on purpose: the fiction
+ * is the user's own working day, not a server's.
+ *
+ * @type {readonly string[]}
+ */
+export const OFFICE_DAY_PHASES = Object.freeze([
+  'earlyMorning',
+  'standUp',
+  'midday',
+  'windDown',
+  'afterHours'
+]);
+
+/**
+ * Where each phase starts, as minutes past midnight. Read in order; the last
+ * entry that has started wins, and anything before the first one is the
+ * overnight tail of `afterHours` — which is why that phase is both the first
+ * and the last thing in the day and gets no boundary of its own.
+ */
+const PHASE_STARTS = [
+  [6 * 60, 'earlyMorning'],
+  [9 * 60 + 30, 'standUp'],
+  [10 * 60 + 30, 'midday'],
+  [16 * 60 + 30, 'windDown'],
+  [20 * 60, 'afterHours']
+];
+
+/**
+ * What time the office thinks it is.
+ *
+ * Pure over an explicit instant so the whole arc unit-tests on plain numbers,
+ * the same way `pickNextMoment` does — a room that can only be checked by
+ * waiting until half past four is a room nobody checks.
+ *
+ * @param {Date | number} [now]
+ * @returns {'earlyMorning'|'standUp'|'midday'|'windDown'|'afterHours'}
+ */
+export function officeDayPhaseAt(now = Date.now()) {
+  const date = now instanceof Date ? now : new Date(now);
+  const minutes = date.getHours() * 60 + date.getMinutes();
+  let phase = 'afterHours';
+  for (const [startsAt, candidate] of PHASE_STARTS) {
+    if (minutes >= startsAt) phase = candidate;
+  }
+  return phase;
+}
+
+/**
+ * How often to re-read the clock while the floor is up.
+ *
+ * A phase changes at most four times a day and a visit to the floor is minutes
+ * long, so this almost never changes anything — which is the point. It is a
+ * cheap re-read that lets a session sitting open across half past four see the
+ * light change, and `useOfficeDayPhase` only re-renders when the answer is
+ * actually different, so the usual cost of the whole feature is one
+ * `Date.getHours()` a minute.
+ */
+export const OFFICE_DAY_PHASE_POLL_MS = 60_000;
+
 /** Relative frequency of each moment kind (before availability filters). */
 const MOMENT_WEIGHTS = [
   ['email', 3],

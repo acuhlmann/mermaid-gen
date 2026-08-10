@@ -249,11 +249,16 @@ export function useDeskActions(params) {
    * graceful floor) is identical, which is the point: the talk channel is not a
    * second conversation engine.
    *
+   * `situation` is the third axis and only applies to the LLM rung: it says why
+   * the colleague is speaking when the user has not typed at them. The canned
+   * bank ignores it by construction — a bank line was written for a situation
+   * already, and picking a per-situation bank is what template ids are for.
+   *
    * @param {{ target: string, replyContext?: object, counterRef: { current: number },
-   *   cap: number, channel?: string }} args
+   *   cap: number, channel?: string, situation?: string }} args
    */
   const deliverImReply = useCallback(
-    async ({ target, replyContext, counterRef, cap, channel }) => {
+    async ({ target, replyContext, counterRef, cap, channel, situation }) => {
       if (channel !== 'talk') {
         await sleep(replyDelayMs(channel ?? 'im'));
       }
@@ -280,6 +285,7 @@ export function useDeskActions(params) {
             onLlmSpent: () => {
               counterRef.current += 1;
             },
+            ...(situation ? { situation } : {}),
             ...channelOpts,
             ...replyOpts
           })
@@ -363,7 +369,7 @@ export function useDeskActions(params) {
    * Somebody looks up because you have been standing next to them (isometric
    * slice 19).
    *
-   * The same delivery ladder as every other line they could say, with two
+   * The same delivery ladder as every other line they could say, with three
    * things set deliberately. **No `replyContext`**, because you did not say
    * anything — this is them speaking first, which is the one conversational
    * move the office had no verb for. And **`channel: 'talk'`**, which is not
@@ -371,6 +377,15 @@ export function useDeskActions(params) {
    * and keeps them out of Slop Chat™ scrollback, so the line lands over their
    * head on the floor and nowhere else. Speech in a room is not a notification
    * and it is not a message you can scroll back to.
+   *
+   * The third is **`situation: 'dwell'`**, and it is the missing half of the
+   * first: sending no `replyContext` told the *server* there was nothing to
+   * answer, but it told the *model* nothing at all, so a line the user crossed
+   * the room to trigger was written under the cold-open framing an ambient
+   * moment gets. Correct voice, correct diagram, no idea anybody was standing
+   * there — which reads as a non-sequitur precisely when the user is paying
+   * the most attention. The circumstance is the joke; it has to reach the
+   * prompt.
    *
    * Not wrapped in `runVerb`, matching `talkOutLoud` rather than `imSomeone`:
    * being unable to hear somebody because a toast is up would be absurd, and
@@ -386,7 +401,8 @@ export function useDeskActions(params) {
         target: colleagueId,
         counterRef: dwellLlmCountRef,
         cap: DWELL_LLM_CAP,
-        channel: 'talk'
+        channel: 'talk',
+        situation: 'dwell'
       });
     },
     [deliverImReply]

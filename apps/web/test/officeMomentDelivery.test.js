@@ -129,4 +129,29 @@ describe('deliverLlmMoment carries a pitch to every surface', () => {
     const body = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body ?? '{}'));
     expect(body.modelProfile).toBe('quality');
   });
+
+  it('forwards the situation, and omits the key entirely without one', async () => {
+    // The field is the difference between "a colleague said something" and "a
+    // colleague said something *because you were standing there*". It is a
+    // forwarded field like `actionPrompt`, so it fails the same silent way.
+    const fetchMock = vi.fn(async () => ({
+      ok: true,
+      json: async () => ({ moment: { body: 'ping', colleagueId: 'intern', kind: 'im' } })
+    }));
+    globalThis.fetch = fetchMock;
+
+    await deliverLlmMoment('im', CTX, {
+      memory: memory(),
+      colleagueId: 'intern',
+      situation: 'dwell'
+    });
+    const withSituation = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body ?? '{}'));
+    expect(withSituation.situation).toBe('dwell');
+
+    // Absent, not empty-string: the route's enum has no '' member, so sending
+    // one would 400 every ambient moment in the office.
+    await deliverLlmMoment('im', CTX, { memory: memory(), colleagueId: 'intern' });
+    const ambient = JSON.parse(String(fetchMock.mock.calls[1]?.[1]?.body ?? '{}'));
+    expect('situation' in ambient).toBe(false);
+  });
 });

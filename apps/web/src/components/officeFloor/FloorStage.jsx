@@ -56,12 +56,15 @@ function nearbySeat(youTile, seat) {
  * in a coffee break is being drawn by whatever claimed them (§ 6 rule 5), so
  * their cup arrives from there rather than from here.
  */
-function seatActivity(seatId, { onCallIds, headphones, youHolding }) {
+function seatActivity(seatId, { onCallIds, headphones, youHolding, dayPhase }) {
   const isYou = seatId === YOU_SEAT_ID;
   return floorActivityFor(seatId, {
     onCall: onCallIds.includes(seatId),
     headphones: isYou && headphones,
-    coffee: isYou && youHolding === 'coffee'
+    coffee: isYou && youHolding === 'coffee',
+    // The one input here that is nobody's in particular: the hour belongs to
+    // the room, so every chair gets the same one (slice 20).
+    dayPhase
   });
 }
 
@@ -127,6 +130,8 @@ export function FloorStage({
   // No default, same reason as `headphones` above: it is read for truthiness by
   // three surfaces that each already handle its absence.
   board,
+  // Ditto — `floorActivityFor` defaults it to null itself.
+  dayPhase,
   children
 }) {
   return (
@@ -170,7 +175,7 @@ export function FloorStage({
             interactive={interactive}
             speaking={speakingId === seat.id}
             onCall={onCallIds.includes(seat.id)}
-            activity={seatActivity(seat.id, { onCallIds, headphones, youHolding })}
+            activity={seatActivity(seat.id, { onCallIds, headphones, youHolding, dayPhase })}
             look={deskWorkFor(seat.id)?.look}
             board={board}
             onSelect={onSelect}

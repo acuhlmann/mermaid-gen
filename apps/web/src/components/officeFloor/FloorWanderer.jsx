@@ -170,7 +170,10 @@ export function FloorWanderer({
      what puts a floor component over its complexity budget. Slice 18 needed
      the two points back. */
   onActivate,
-  onStep
+  onStep,
+  // Same reason again: `floorActivityFor` defaults it, so a default here would
+  // cost a complexity point for nothing.
+  dayPhase
 }) {
   const ownRef = useRef(null);
   const ref = elementRef ?? ownRef;
@@ -205,7 +208,8 @@ export function FloorWanderer({
     moving: !settled,
     // `floorActivityFor` defaults this to null itself; coalescing here as well
     // bought a branch and no behaviour.
-    carrying: wanderer.carrying
+    carrying: wanderer.carrying,
+    dayPhase
   });
 
   return (

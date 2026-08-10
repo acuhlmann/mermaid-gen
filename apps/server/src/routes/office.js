@@ -5,6 +5,7 @@ import {
   MEETING_MAX_ATTENDEES,
   ModelProfileSchema,
   OfficeMomentKindSchema,
+  OfficeMomentSituationSchema,
   OFFICE_DIAGRAM_SOURCE_MAX_CHARS
 } from '@archislop/shared';
 import { SystemMessage, HumanMessage } from '@langchain/core/messages';
@@ -86,6 +87,14 @@ const OfficeMomentRequestSchema = z.object({
   userName: z.string().max(80).optional(),
   userMessage: z.string().max(400).optional(),
   threadTranscript: z.array(OfficeThreadLineSchema).max(12).optional(),
+  /**
+   * Why the room is speaking, when nothing was typed at it — the reactive
+   * register of `office-parody.md` § 11. Optional and enum-bounded: a client
+   * that omits it gets the cold-open framing every ambient moment wants, and
+   * one that invents a value gets a 400 rather than a free hand at the system
+   * prompt.
+   */
+  situation: OfficeMomentSituationSchema.optional(),
   modelProfile: ModelProfileField
 });
 
@@ -444,7 +453,8 @@ export function createOfficeRouter({ env = process.env } = {}) {
       kind: payload.kind,
       colleagueId: payload.colleagueId,
       uiLocale: payload.uiLocale,
-      isReply: Boolean(payload.userMessage?.trim())
+      isReply: Boolean(payload.userMessage?.trim()),
+      situation: payload.situation
     });
     const user = buildMomentUserPrompt(payload);
     const officeModel = resolveOfficeModelId(env, {

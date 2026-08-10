@@ -167,6 +167,12 @@ export function useOfficeRunReactions(params) {
           sessionId: p.getSessionId?.() ?? '',
           recentMoments: recentRef.current,
           modelProfile: p.getModelProfile?.() ?? 'fast',
+          // The whole trigger for this hook is "a run just landed", and until
+          // this field existed that fact stopped at the hook — the prompt got a
+          // plain cold-open IM and the colleague reacted to the diagram as if
+          // they had wandered past it, never to the change that had this second
+          // happened. Same blind spot as the dwell remark, same one-word cure.
+          situation: 'run',
           onUsage: (usage) => paramsRef.current.onUsage?.(usage),
           onRemember: rememberMoment,
           onLlmSpent: () => {

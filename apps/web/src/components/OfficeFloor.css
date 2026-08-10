@@ -18,6 +18,11 @@
     radial-gradient(circle at 22% 12%, rgba(191, 219, 254, 0.55), transparent 42rem),
     linear-gradient(168deg, #e7edf7 0%, #dde5f2 46%, #cfd9ea 100%);
   color: var(--text);
+  /* What is coming through the windows — the office day's default, which is
+     midday, and the literal value `FloorRoom` shipped with before the day
+     existed. See "the office day" below; a mount with no `data-day-phase`
+     (the first-run `FloorArrival` stage) keeps this one. */
+  --office-window-tint: #bfe4fb;
   animation: office-floor-stand-up 260ms ease-out;
 }
 
@@ -30,6 +35,46 @@
     opacity: 1;
     transform: none;
   }
+}
+
+/* ── the office day: what is coming through the windows (§ 5 slice 20) ───
+   `officeCadence.js` decides which hour it is and `OfficeFloor.jsx` lands the
+   answer on `data-day-phase`; from there the light is entirely a stylesheet's
+   business, so no prop reaches `FloorRoom` for it and no component re-renders
+   to repaint a pane. The figures' half of the same hour is `PHASE_ART` in
+   `officeFloorActivity.js` — one clock, two renderers, § 2 rule 1 again.
+
+   Deliberately **not** transitioned. A phase turns over at most four times a
+   day, so a tween is something practically nobody will ever be looking at,
+   and every animated selector on this floor owes the reduced-motion block an
+   entry (`officeFloorStyles.test.js` fails until it has one). A hard cut buys
+   the same picture and stays out of that contract.
+
+   The default lives on `.office-floor` itself at the top of this sheet, so an
+   unphased mount looks exactly as it did before the day existed. */
+
+/* Low cool sun — the room is lit but the day has not started. */
+.office-floor[data-day-phase='earlyMorning'] {
+  --office-window-tint: #c3ddf7;
+}
+
+.office-floor[data-day-phase='standUp'] {
+  --office-window-tint: #c9e8fc;
+}
+
+/* Flat overhead glare: the brightest and least interesting hour. */
+.office-floor[data-day-phase='midday'] {
+  --office-window-tint: #dcf1ff;
+}
+
+/* The warm end of the arc — long light across the car park. */
+.office-floor[data-day-phase='windDown'] {
+  --office-window-tint: #f7d4a2;
+}
+
+/* Nobody should be here. The panes read as the dark outside, not as glass. */
+.office-floor[data-day-phase='afterHours'] {
+  --office-window-tint: #41597a;
 }
 
 /* ── stand up / sit down: the view transition (§ 1a) ─────────────────────

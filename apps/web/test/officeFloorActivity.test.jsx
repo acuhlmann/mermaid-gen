@@ -3,9 +3,11 @@ import { cleanup, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import OfficeFloor from '../src/components/OfficeFloor.jsx';
 import { PersonaFace } from '../src/components/personaFaces/index.jsx';
+import { PERSONA_FACE_TRAITS, personaFaceTraits } from '../src/components/personaFaces/registry.js';
 import {
   FLOOR_HOLDS,
   FLOOR_POSES,
+  baseDoingFor,
   conversationSpeakerId,
   deskDoingFor,
   floorActivityFor
@@ -17,6 +19,7 @@ import {
   setOfficeNarration
 } from '../src/state/officeMomentStore.js';
 import { _resetOfficeViewModeForTests, standUp } from '../src/state/officeViewModeStore.js';
+import { OFFICE_DAY_PHASES } from '../src/utils/officeCadence.js';
 
 /**
  * Slice 13 — what everybody is visibly doing.
@@ -249,5 +252,98 @@ describe('the drawing', () => {
     // the assertion is the invariant rather than the beat: the marked one is
     // the one with the balloon.
     expect(marked[0].querySelector('.office-floor-bubble')).toBeTruthy();
+  });
+});
+
+describe('the office day reaches the figures (slice 20)', () => {
+  /**
+   * Dave is the test subject throughout because his row is the one § 8 named:
+   * "in his headset at 4 pm exactly as at 9 am" was the whole complaint.
+   */
+  const DAVE = 'helpdesk';
+
+  it('leaves the trait rows alone at the two phases that have no art', () => {
+    // Midday is the baseline on purpose — the longest stretch of the day is
+    // the one where the baked characterization is what you see.
+    for (const phase of ['midday', 'afterHours']) {
+      expect(baseDoingFor(DAVE, phase)).toEqual(deskDoingFor(DAVE));
+    }
+    // And no phase at all is identical to midday, so an unphased mount (a
+    // standalone `FloorScene`, an older caller) draws exactly what it used to.
+    expect(baseDoingFor(DAVE, null)).toEqual(deskDoingFor(DAVE));
+  });
+
+  it('gives the whole room the hour, including the people with strong rows', () => {
+    // The premise § 8 complained about: Dave's row really is the headset, so
+    // the assertions below are overrides rather than coincidences.
+    expect(deskDoingFor(DAVE).headwear).toBe('headset');
+    // Whole-office rather than per-person: sixteen mugs reads as 9 am, four
+    // reads as four people who happen to have mugs.
+    expect(floorActivityFor(DAVE, { dayPhase: 'earlyMorning' }).hold).toBe('mug');
+    expect(floorActivityFor(DAVE, { dayPhase: 'earlyMorning' }).headwear).toBe(null);
+    expect(floorActivityFor(DAVE, { dayPhase: 'windDown' }).hold).toBe('papers');
+    // Russ's row is `phone`, so this is a real override rather than a value
+    // that happened to already be there.
+    expect(deskDoingFor('russ').hold).toBe('phone');
+    expect(floorActivityFor('russ', { dayPhase: 'earlyMorning' }).hold).toBe('mug');
+    // The remote stand-up: everybody on the call, nobody in the same room.
+    expect(floorActivityFor('russ', { dayPhase: 'standUp' }).headwear).toBe('headset');
+  });
+
+  it('never invents art outside the closed vocabularies', () => {
+    for (const phase of ['earlyMorning', 'standUp', 'midday', 'windDown', 'afterHours']) {
+      const art = floorActivityFor(DAVE, { dayPhase: phase });
+      expect(FLOOR_POSES).toContain(art.pose);
+      if (art.hold !== null) expect(FLOOR_HOLDS).toContain(art.hold);
+    }
+  });
+
+  it('loses to every live input, because those are things happening', () => {
+    // An actual call outranks the hour: Dave on a sync at 8 am wears the
+    // headset he would otherwise have swapped for a mug.
+    const onCall = floorActivityFor(DAVE, { dayPhase: 'earlyMorning', onCall: true });
+    expect(onCall.headwear).toBe('headset');
+    expect(onCall.pose).toBe('call');
+
+    // Your own Headphones posture is still yours at any hour.
+    expect(floorActivityFor(DAVE, { dayPhase: 'windDown', headphones: true }).headwear).toBe(
+      'headphones'
+    );
+
+    // A set piece and an errand both own the hand over the hour.
+    expect(floorActivityFor(DAVE, { dayPhase: 'windDown', coffee: true }).hold).toBe('coffee');
+    expect(floorActivityFor(DAVE, { dayPhase: 'earlyMorning', carrying: 'papers' }).hold).toBe(
+      'papers'
+    );
+  });
+
+  it('moves hands and posture, and leaves a baked face accessory alone', () => {
+    // Found in a browser capture, and recorded because it is a decision rather
+    // than a gap. `PersonaFace` resolves `accessoryOverride ?? traits.accessory`,
+    // so the `headwear: null` an hour like earlyMorning produces means "no
+    // override" and Dave keeps the headset that is part of his *face*. Only the
+    // explicit 'none' would strip it, and letting the clock erase somebody's
+    // face is a much larger claim than letting it hand them a mug.
+    expect(personaFaceTraits(DAVE).accessory).toBe('headset');
+    expect(floorActivityFor(DAVE, { dayPhase: 'earlyMorning' })).toEqual({
+      pose: 'idle',
+      hold: 'mug',
+      headwear: null
+    });
+    // He is the only one it could apply to, which is why it stays a footnote:
+    // every other baked accessory is a neck or chest item and nothing about the
+    // hour ever competes with it.
+    const headsets = Object.values(PERSONA_FACE_TRAITS).filter(
+      (row) => row.accessory === 'headset'
+    );
+    expect(headsets.length).toBe(1);
+  });
+
+  it('lands the hour on the floor root, where the light reads it', () => {
+    // The stylesheet is the only consumer of this attribute, so the contract
+    // is that it exists and carries a phase — not what colour it produces.
+    const view = renderFloor();
+    const floor = view.container.querySelector('.office-floor');
+    expect(OFFICE_DAY_PHASES).toContain(floor.dataset.dayPhase);
   });
 });

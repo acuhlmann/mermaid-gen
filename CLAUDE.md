@@ -234,6 +234,24 @@ Every session carries **six independent diagram slots** — `mermaid` (Mermaid t
   not at the use site. The governing split is §11's: **ambient** (a timer interrupted you) stays
   canned-heavy; **reactive** (you started it or answered it) leans LLM, because a canned reply to
   a sentence you typed is the clearest possible tell that nobody is home.
+- **`officeCadence.js` owns the office's other clock too — the wall clock.** `officeDayPhaseAt`
+  - `OFFICE_DAY_PHASES` are the office day (mugs early, the remote stand-up, trait rows midday,
+    papers at wind-down, cool→warm→dark light). The dial lives there and **not** on the floor,
+    because an office day is ambient content on a timer; the floor owns only what a phase looks
+    like (`PHASE_ART` in `officeFloorActivity.js`, `[data-day-phase]` in `OfficeFloor.css`). The
+    hour is **rung 5** in `floorActivityFor` — above the trait row, below everything live — so
+    anybody a moment is drawing (walk-by, set piece, commuter) deliberately gets no phase at all.
+    One trap it found: a `headwear: null` **cannot take a headset off**, because `PersonaFace`
+    resolves `accessoryOverride ?? traits.accessory` and only the literal `'none'` strips a baked
+    trait — Dave's headset is his face, not his activity.
+- **Why a colleague is speaking is a wire field, not an inference.** `situation` on
+  `POST /api/office/moment` (`OFFICE_MOMENT_SITUATIONS` in shared: `dwell` | `run`) picks one
+  rule block in `buildMomentSystemPrompt` and one terse restatement at the end of the user
+  prompt. **Enum, never free text** — it shapes a system prompt, so a client picks from the set
+  and cannot write into it. **Absent is the default** and keeps the cold-open "MUST SURPRISE"
+  framing every ambient moment wants; **a reply beats a situation**, since the dwell block's
+  premise is that nothing was said. Adding a third is a constant, a rule block and a reminder
+  line. See docs/office-parody.md §11.
 - **Office `diagramSource` is truncated, not rejected.** Cap is `OFFICE_DIAGRAM_SOURCE_MAX_CHARS`
   (shared). Tightening Zod to 400 oversized anything/forms slots turns meetings into Pam CANCELLED
   emails.
