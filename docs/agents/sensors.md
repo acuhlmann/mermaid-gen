@@ -15,6 +15,7 @@ archislop follows Martin Fowler's ["Sensors for Coding Agents"](https://martinfo
 | Doc-path check                 | `npm run verify:doc-paths`                                                                                                                                           | Broken `apps/` / `packages/` / `scripts/` references in `STRUCTURE.md`, `AGENTS.md`, `CLAUDE.md`, `docs/recipes/`, `docs/guide/`, and `docs/agents/`                                                                                                                                                                                                                 | Error message names the missing path                                                  |
 | Wire round-trip tests          | `npm run check:wire`                                                                                                                                                 | Contract drift between producer + consumer for AG-UI / MCP / Zod schemas                                                                                                                                                                                                                                                                                             | Failing test + the recipe under [`docs/recipes/`](../recipes/)                        |
 | Wire co-change (producer-only) | Soft warn inside `npm run check:affected` (`scripts/wire-cochange.mjs`)                                                                                              | Diff touches a wire producer (`diagramSchema`, AG-UI emitter, MCP tools, `sessionEventBus`) without the expected consumer/test files                                                                                                                                                                                                                                 | Warning text is the fix; see [`docs/agent-blast-radius.md`](../agent-blast-radius.md) |
+| Live `vi.mock` paths           | `vitest run test/viMockPathsResolve.test.js -w apps/web` (part of `npm test`)                                                                                        | A relative `vi.mock` specifier that resolves nowhere — vitest no-ops it silently, the real module runs, and the suite passes for the wrong reason                                                                                                                                                                                                                    | Failure names the `file:line -> specifier`; see below                                 |
 | Modularity (semantic, manual)  | `/modularity:review` (Claude) or [`.cursor/skills/modularity/review/SKILL.md`](../../.cursor/skills/modularity/review/SKILL.md) (Cursor)                             | Coupling imbalances, distributed-monolith risks, hub modules                                                                                                                                                                                                                                                                                                         | [`docs/agents/modularity.md`](modularity.md)                                          |
 
 The smallest meaningful loop is `npm run check:affected` — it inspects your diff, runs **Prettier on changed files**, and runs only the other sensors that apply (including **`verify:boundaries`** when `apps/web` changes, and **`typecheck:strict` for `apps/server`** when server files change — loose `typecheck` alone misses strict-island regressions). Staged commits are auto-formatted by the Husky pre-commit hook (`lint-staged`).
@@ -139,6 +140,19 @@ error no-cycles: Cycle detected. Break it by inverting a dependency or by hoisti
 ```
 
 The rule names are stable: `shared-must-be-leaf`, `web-not-server`, `server-not-web`, `server-prompts-leaf`, `server-tools-no-agents-routes`, `server-mcp-no-routes`, `web-non-component-no-components`, `no-cycles`, `no-orphans`.
+
+## How to read the `vi.mock` path check
+
+`apps/web/test/viMockPathsResolve.test.js` scans every test file under `apps/web/test/` and fails with the exact offenders:
+
+```
+vi.mock specifiers that resolve nowhere (they silently no-op):
+test/useOfficeRunReactions.test.js:10 -> ../utils/officeAmbienceStorage.js
+```
+
+The fix is almost always a missing `src/` segment (`../utils/x.js` → `../src/utils/x.js`). **Check what the mock was doing before you repair the path**: a mock that has never executed is not load-bearing, and making it live is a behaviour change, not a fix. If the suite has come to depend on the real module — as `useOfficeRunReactions.test.js` had — deleting the dead mock is the zero-risk edit and repairing it is not.
+
+Only **relative** specifiers are checked; a bare one (`vi.mock('react-dom')`) resolves through `node_modules`. The check maps `.js` → `.ts`/`.tsx` before deciding, because importing `./x.js` and meaning `./x.ts` is the ordinary TypeScript convention that Vite resolves — without that mapping every leaf converted by [`convert-js-leaf-to-ts.md`](../recipes/convert-js-leaf-to-ts.md) reports as broken.
 
 ## Suppression policy
 
