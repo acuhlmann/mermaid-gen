@@ -252,7 +252,14 @@ describe('loitering, on a real floor', () => {
      * The remark lands in `imHistory` like every other line the cast says
      * (ADR-0011 rule 1 — the floor renders shared state, it does not own it), so
      * this drives the real round trip: fire, then let the line arrive.
+     *
+     * Pin the fake clock: `useFloorDwell` stamps `spoke.at` with Date.now() when
+     * the timer fires, and `dwellLineFrom` rejects anything older than that mark.
+     * Calling Date.now() again outside the same act tick can land *before* the
+     * mark on slower CI runners, so derive the inbound line's `createdAt` from the
+     * same frozen timeline instead.
      */
+    vi.setSystemTime(1_000);
     const onDwellRemark = vi.fn();
     const stale = [
       { id: 'old', colleagueId: 'jared', body: 'Said an hour ago.', createdAt: 0, channel: 'talk' }
@@ -267,13 +274,14 @@ describe('loitering, on a real floor', () => {
     expect(onDwellRemark).toHaveBeenCalledWith('jared');
     expect(screen.queryByTestId('office-floor-dwell-line')).toBeNull();
 
+    const remarkAt = 1_000 + DWELL_MS;
     const arrived = [
       ...stale,
       {
         id: 'new',
         colleagueId: 'jared',
         body: 'Did you need something, or…?',
-        createdAt: Date.now(),
+        createdAt: remarkAt,
         channel: 'talk'
       }
     ];
