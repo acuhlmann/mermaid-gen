@@ -34,6 +34,7 @@ Do not copy `standUp(); render(<OfficeFloor />)` into new suites — extend the 
 | `officeFloorPlan.test.js`            | Pure geometry: projection, marks, glass, peek roster                       |
 | `officeFloorMovement.test.js`        | Where you may walk, approach/peek/prop marks                               |
 | `officeFloorReach.test.js`           | Where somebody is when away, and whether it is a mark                      |
+| `officeFloorInterrupt.test.js`       | What somebody says when you take the square they wanted (slice 18)         |
 | `officeFloorContracts.test.js`       | **ADR-0011 executable rules** (narration, props, POV)                      |
 | `officeFloorModuleInventory.test.js` | Bench components + test files still exist                                  |
 | `officeFloorPropsTable.test.js`      | `officeFloorProps.js` ↔ `propTileFor` alignment                            |
@@ -51,7 +52,7 @@ Do not copy `standUp(); render(<OfficeFloor />)` into new suites — extend the 
 | `officeFloorProps.test.jsx`          | Usable props + `getCoffee` verb                                            |
 | `officeFloorScene.test.jsx`          | Coffee + battle set pieces                                                 |
 | `officeFloorMeeting.test.jsx`        | Glass room meeting renderer                                                |
-| `officeFloorWander.test.jsx`         | Ambient wander roster + yields                                             |
+| `officeFloorWander.test.jsx`         | Ambient wander roster, yields, and the interrupted-errand line             |
 | `officeFloorStyles.test.js`          | CSS facts (hit box, focus, reduced motion)                                 |
 | `officeFloorViewTransition.test.js`  | Stand-up/sit-down transition: JS exit timer ↔ CSS fade, veil z-order       |
 | `useWalkAnimation.test.jsx`          | Walk interrupts + `liveTileOf` read-back                                   |

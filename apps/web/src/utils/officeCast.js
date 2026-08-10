@@ -2410,6 +2410,30 @@ export const OFFICE_CHROME_COPY = {
         }
       }
     },
+    // "Excuse me" — somebody whose errand you walked into (slice 18). Keyed by
+    // what the room already knows: `gotIt` is a trip that reached the machine,
+    // `gaveUp` is one that did not, which is the same `phase === 'dwell'` fact
+    // that decides whether they carry anything home. `{prop}` is
+    // `props.items[kind].name` and already carries its article, so lines say
+    // "{prop}" and never "the {prop}".
+    //
+    // Short on purpose. This is the aside somebody gives you over their
+    // shoulder while walking away, not a bit — the joke is that the office is
+    // relentlessly polite about it, and one bank entry admits otherwise.
+    interrupt: {
+      gotIt: [
+        'All yours.',
+        'Was just leaving.',
+        'Done with {prop} — help yourself.',
+        'Yep, go ahead.'
+      ],
+      gaveUp: [
+        'Oh — go on then.',
+        'I did not need {prop} that badly.',
+        'I will come back.',
+        'You first. It is fine. It is completely fine.'
+      ]
+    },
     // The meeting, staged in the glass room instead of a window on your screen.
     // Labels stay short: two of them share one row of a 21 rem card.
     meeting: {

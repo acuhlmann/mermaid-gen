@@ -106,3 +106,31 @@ Two traps this walks into, both found on the stand-up camera move
 
 A white-on-near-white overlay needs measuring, not eyeballing: diff the frames
 and read `maxDelta`. Under ~20/255 nobody will ever see it.
+
+## Driving a floor interaction (not just rendering one)
+
+Two traps, both found capturing slice 18's "excuse me" beat.
+
+**A walker is a zero-size anchor, so Playwright calls it hidden.** `.office-floor-walker` is a
+positioned point with an absolutely-positioned child, so `getBoundingClientRect()` is 0×0 and
+`waitForSelector` times out on the default `visible` state with a log line that reads like the
+room is broken. Use `{ state: 'attached' }`.
+
+**Click a tile through the figure's own rect, not through stage maths.** The obvious route —
+parse the walker's `transform: translate(Xpx, Ypx)`, scale it by
+`roamRect.width / roam.offsetWidth` and add `roamRect.left` — is wrong: the roam surface and the
+walker do not share an origin, and it lands ~430 px away, which silently clicks empty floor and
+looks exactly like the feature not firing. The walker's own `getBoundingClientRect()` already
+_is_ the tile's screen position:
+
+```js
+const fig = document.querySelector('[data-testid="office-floor-wanderer"]');
+const roam = document.querySelector('.office-floor-roam');
+const fr = fig.getBoundingClientRect();
+roam.dispatchEvent(new MouseEvent('click', { clientX: fr.x, clientY: fr.y, bubbles: true }));
+```
+
+**Pin `Math.random` in an init script** (`page.addInitScript(() => { Math.random = () => 0.75; })`)
+— 0.75 puts Chad at the whiteboard, the same pick the floor suite uses, so a capture and a test
+are talking about the same trip. Then `pause()` every animation before each shot and `play()`
+after, so a burst walks the beat instead of racing it.

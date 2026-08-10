@@ -40,6 +40,7 @@ import { YOU_SEAT_ID, isWithinNameChipRange } from '../../utils/officeFloorPlan.
  *   huddleHandlers?: any,
  *   huddleRing?: any,
  *   wanderer?: any,
+ *   wandererSaid?: { text: string, reaction: string } | null,
  *   onWandererArrive?: () => void,
  *   wandererRef?: { current: HTMLElement | null },
  *   commuters?: import('../../utils/officeFloorCommute.js').Commute[],
@@ -84,6 +85,7 @@ export function FloorActors({
   huddleHandlers,
   huddleRing,
   wanderer,
+  wandererSaid,
   onWandererArrive,
   wandererRef,
   commuters,
@@ -129,11 +131,23 @@ export function FloorActors({
           floor with nothing to say, and a live region that reads out every trip
           to the printer is a live region people turn off — and then it is not
           there for the walk-by that mattered. Slice 12 made them *selectable*,
-          which is not the same as newsworthy: what they are is on the button. */}
+          which is not the same as newsworthy: what they are is on the button.
+
+          Slice 18 does not reopen that either, and the distinction is the same
+          one: `wandererSaid` is speech, and speech has always lived in the
+          balloon rather than in the region (`floor.narration` is spatial only,
+          or every line on this floor is read out twice). */}
       {wanderer ? (
         <FloorWanderer
           wanderer={wanderer}
           copy={copy}
+          /* Slice 18: the one line an ambient trip is allowed, and only when
+             you are the reason it ended early. Gated here rather than passed
+             through as `hideBody` like its neighbours, because a wanderer's
+             balloon carries no chrome — no Do-it, no dismiss — so there is
+             nothing left to render once the voice has taken the body. */
+          said={showSpokenText ? wandererSaid : null}
+          scale={scale}
           onArrive={onWandererArrive}
           elementRef={wandererRef}
           selected={selectedId === wanderer.seatId}

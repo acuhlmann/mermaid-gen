@@ -262,6 +262,17 @@ Every session carries **six independent diagram slots** — `mermaid` (Mermaid t
   `pointer-events: none` or it re-inflates the hit box § 6 rule 23 shrank. **You** are drawn
   from `PLAYER_FACE_TRAITS`, which lives beside `PERSONA_FACE_TRAITS` because that object's
   keys are pinned to `CAST_TIERS`.
+- **A wanderer speaks only when _you_ caused it, and `goHome({ byYou })` is the whole gate.**
+  Ambient floor traffic is silent by design (slice 11: a wanderer with something to say is a
+  walk-by). Slice 18's "excuse me" is not an exception to that — it is §11's ambient/reactive
+  split applied to a **tile you claimed**, so nothing can fire while you sit still. Don't give
+  ambience a second reason to talk. Two facts the code leans on: `interrupted` and `carrying`
+  are both read off `phase === 'dwell'`, so somebody can never apologise for a coffee they are
+  visibly holding; and an interrupted trip **lingers** at the desk (`LINGER_MS`) before it
+  clears, because the walk home is as short as 420 ms and a line nobody can read is a flash.
+  Do not "simplify" `handleArrive` back to clearing on arrival. Copy is `floor.interrupt` in
+  `officeCast.js` — all three locale bundles or it is a silently dead feature in that language
+  (`officeLocale.test.js` pins the bank lengths and the `{prop}` count).
 - **A moment's cast walks to it and walks home; the desk stays empty for the whole trip.**
   `officeFloorCommute.js` is the pure `out ▸ there ▸ home ▸ gone` machine, `useFloorCommute` holds
   it, and `useFloorAway` merges the commuting ids into `awayIds` — miss that merge and a scene

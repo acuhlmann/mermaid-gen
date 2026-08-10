@@ -250,6 +250,38 @@ describe('office locale bundles', () => {
     expect(item.detailsYours.some((d) => d.includes('{labels}'))).toBe(true);
   });
 
+  /*
+   * Slice 18. Same failure mode as the two above and worth its own case for the
+   * reason `interruptSpeech` is built the way it is: an absent bank is not an
+   * English fallback, it is a colleague who walks away from an errand you ruined
+   * without a word, in that locale only, forever. The module degrades to silence
+   * rather than throwing, which is right at runtime and is exactly why nothing
+   * would ever surface it.
+   *
+   * Lengths are pinned rather than merely non-empty because the roll that picks
+   * a line is stored on the trip: a locale with a shorter bank still renders
+   * (`Math.min` clamps it), but it would quietly bias every reaction towards its
+   * last entry.
+   */
+  it.each(LOCALES)('has something to say when you take somebody s square (%s)', (locale) => {
+    const interrupt = getUiLocaleBundle(locale).office.OFFICE_CHROME_COPY.floor.interrupt;
+    for (const [reaction, en] of Object.entries(OFFICE_CHROME_COPY.floor.interrupt)) {
+      expect(interrupt?.[reaction]?.length ?? 0, `${locale} floor.interrupt.${reaction}`).toBe(
+        en.length
+      );
+      // Translated, not copied: a bank that came back in English is the other
+      // half of this suite's job (values, not key shapes).
+      expect(interrupt[reaction], `${locale} ${reaction} untranslated`).not.toEqual(en);
+      // `{prop}` is what names the machine they did not get to. `formatLocale`
+      // silently leaves a dropped placeholder unsubstituted, so nothing else
+      // notices a translator losing it.
+      expect(
+        interrupt[reaction].filter((line) => line.includes('{prop}')).length,
+        `${locale} ${reaction} {prop}`
+      ).toBe(en.filter((line) => line.includes('{prop}')).length);
+    }
+  });
+
   it('routes localized copy through the officeCast accessors', () => {
     setActiveOfficeBundle(getUiLocaleBundle('zh-CN').office);
     expect(officeEmailTemplates()[0].subject).toContain('冰箱');

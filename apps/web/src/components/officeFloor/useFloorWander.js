@@ -49,11 +49,29 @@ import { seatFor } from '../../utils/officeFloorPlan.js';
 import { sameTile } from '../../utils/officeFloorMovement.js';
 import { wanderTripsFor, wanderingSeatIds } from '../../utils/officeFloorWander.js';
 import { propHandsFor } from '../../utils/officeFloorProps.js';
+import { interruptionFor } from '../../utils/officeFloorInterrupt.js';
 
 /** Long enough that the floor is not a train station; short enough to notice. */
 const FIRST_TRIP_MS = [4_000, 9_000];
 const BETWEEN_TRIPS_MS = [11_000, 24_000];
 const DWELL_MS = [4_000, 9_000];
+/**
+ * How long an interrupted trip pauses at its own desk before the figure clears
+ * (slice 18).
+ *
+ * Measured rather than picked: the line rides the walk home, and the walk home
+ * is between 420 ms and 2.4 s depending on how far the prop is from the desk —
+ * `walkPathBetween` gives Gilfoyle a single 420 ms leg back from the whiteboard.
+ * Four tenths of a second is not a sentence, it is a flash, and no test can see
+ * it because a walk with no animation engine settles in the tick it starts.
+ *
+ * So an interrupted errand ends differently from an ordinary one: they get back
+ * to their desk, finish the thought, and *then* sit down. That is a beat rather
+ * than a workaround — nobody says "all yours" and vanishes — and it keeps the
+ * line inside the trip's own lifetime, which is what ADR-0011 rule 1 asks of
+ * anything this floor knows about somebody else.
+ */
+const LINGER_MS = 1_800;
 
 function jitter([low, high]) {
   return low + Math.random() * (high - low);
@@ -71,13 +89,22 @@ function pick(list) {
  *   to: { x: number, y: number },
  *   phase: 'out' | 'dwell' | 'home',
  *   leg: number,
- *   carrying: string | null
+ *   carrying: string | null,
+ *   interrupted: import('../../utils/officeFloorInterrupt.js').Interruption | null,
+ *   lingering?: boolean
  * }} WanderTrip
  *   `carrying` is the whole of what a wanderer remembers: what they picked up,
  *   filled in on the turn for home. It lives on the trip rather than in a store
  *   because it dies with the trip — the errand is over when they sit down, and
  *   a mug that outlived the walk would be state about somebody else that the
  *   floor kept (ADR-0011 rule 1, and slice 11's line).
+ *
+ *   `interrupted` is the slice 18 sibling and obeys the same rule for the same
+ *   reason: it is set only when *you* turned them round, it is what they say
+ *   about it on the way back, and it dies with the trip. Two fields rather than
+ *   one because they answer different questions — `carrying` is what the errand
+ *   achieved, `interrupted` is who ended it — and only the second one is ever
+ *   about you.
  */
 
 /**
@@ -108,7 +135,10 @@ function departure(busy, avoid) {
     phase: 'out',
     leg: 1,
     // Empty-handed on the way out — you fetch a coffee, you do not deliver one.
-    carrying: null
+    carrying: null,
+    // Nothing to say yet, and most trips never gain anything: this only fills
+    // in when somebody walks into the errand, which is always you.
+    interrupted: null
   };
 }
 
@@ -150,7 +180,24 @@ export function useFloorWander({
     latest.current = { busyIds, avoidTile };
   });
 
-  const goHome = useCallback(() => {
+  /**
+   * Turn the current trip round.
+   *
+   * @param {{ byYou?: boolean }} [opts] `byYou` is the difference between the
+   *   two callers, and it is the whole of what slice 18 needed the hook to
+   *   learn. The dwell timer expiring is the errand ending normally and has
+   *   nothing to say about it; you claiming their tile is somebody's plan
+   *   changing because of you, which is reactive and therefore allowed a line
+   *   (`officeFloorInterrupt.js`).
+   */
+  const goHome = useCallback((opts) => {
+    /*
+     * Rolled out here rather than inside the updater. React may run a state
+     * updater more than once and an impure one would pick a different line each
+     * time — which is invisible until the balloon and the narrator disagree
+     * about what was said, because both read the roll this stores.
+     */
+    const roll = Math.random();
     setWanderer((current) => {
       if (!current || current.phase === 'home') return current;
       const seat = seatFor(current.seatId);
@@ -173,6 +220,14 @@ export function useFloorWander({
          */
         carrying: current.phase === 'dwell' ? propHandsFor(current.kind) : null,
         /*
+         * The same `phase` read one line up, asked a different question. Whether
+         * they reached the machine decides both what is in their hand and what
+         * they say about the walk back, so both come off one fact and cannot
+         * contradict each other — somebody apologising for a coffee they are
+         * visibly not holding is the bug this shape prevents.
+         */
+        interrupted: opts?.byYou ? interruptionFor(current, () => roll) : null,
+        /*
          * § 6 rule 19's sibling, and the wanderer is the second walker it
          * applies to: a new leg re-places the figure at its new path's start,
          * so turning somebody round mid-stride snaps them forward onto the mark
@@ -188,12 +243,22 @@ export function useFloorWander({
     });
   }, []);
 
-  /** Arrived: out means settle in for a bit, home means the trip is over. */
+  /**
+   * Arrived: out means settle in for a bit, home means the trip is over —
+   * unless there is still something to say.
+   *
+   * `lingering` is a flag rather than a fourth phase on purpose. `phase` is read
+   * by `whereaboutsOf`, by `FloorWanderer`'s settled/button split and by the
+   * away list, and all three want the same answer during the pause as during the
+   * walk: they are on their feet, not at the machine, and not clickable. A new
+   * phase value would have to be taught to every one of them to arrive at the
+   * behaviour `home` already has.
+   */
   const handleArrive = useCallback(() => {
     setWanderer((current) => {
       if (current?.phase === 'out') return { ...current, phase: 'dwell' };
-      if (current?.phase === 'home') return null;
-      return current;
+      if (current?.phase !== 'home') return current;
+      return current.interrupted ? { ...current, lingering: true } : null;
     });
   }, []);
 
@@ -223,9 +288,23 @@ export function useFloorWander({
   // Standing at the machine: count down to going back.
   useEffect(() => {
     if (wanderer?.phase !== 'dwell' || held) return undefined;
-    const timer = setTimeout(goHome, jitter(DWELL_MS));
+    // Called through an arrow so a future `setTimeout` argument can never
+    // arrive as `opts` and turn an expired errand into an interrupted one.
+    const timer = setTimeout(() => goHome(), jitter(DWELL_MS));
     return () => clearTimeout(timer);
   }, [wanderer, held, goHome]);
+
+  /*
+   * Back at their desk with the last word still in the air. Nothing else is
+   * waiting on this — the trip is over in every sense but the balloon — so it is
+   * a plain countdown to clearing the figure.
+   */
+  const lingering = Boolean(wanderer?.lingering);
+  useEffect(() => {
+    if (!lingering) return undefined;
+    const timer = setTimeout(() => setWanderer(null), LINGER_MS);
+    return () => clearTimeout(timer);
+  }, [lingering]);
 
   /*
    * Ambience always loses. A meeting or a scene is already drawing this person
@@ -241,7 +320,7 @@ export function useFloorWander({
   // You want that square. They were only loitering.
   const inYourWay = wanderer ? sameTile(wanderer.to, avoidTile) : false;
   useEffect(() => {
-    if (inYourWay) goHome();
+    if (inYourWay) goHome({ byYou: true });
   }, [inYourWay, goHome]);
 
   return { wanderer, handleArrive, figureRef };

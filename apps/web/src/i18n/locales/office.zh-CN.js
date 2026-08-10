@@ -1570,6 +1570,15 @@ export const OFFICE_ZH_CN = {
           }
         }
       },
+      interrupt: {
+        gotIt: ['都归你了。', '我正好要走。', '{prop}我用完了，你来吧。', '嗯，你先。'],
+        gaveUp: [
+          '哦——你先吧。',
+          '我也没那么需要{prop}。',
+          '我待会儿再来。',
+          '你先。没事。真的没事。'
+        ]
+      },
       meeting: {
         eyebrow: '玻璃会议室',
         eyebrowRemote: '耳机同步会',

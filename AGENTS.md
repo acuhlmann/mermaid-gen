@@ -163,7 +163,11 @@ Production deploy notes (Cloud Run, billing credits, GitHub Actions CI, optional
 - **Verifying floor art needs a browser and two specific tricks**: freeze animations at their
   **end** (`office-floor-cover` is `both`-filled from `opacity: 0`, so seeking to 0 renders the
   whole floor invisible), and import `components/OfficeFloor.css` in the harness (`ArchiSlop.jsx`
-  is its only importer, so `index.css` + `App.css` alone gives you an unstyled floor). Recipe:
+  is its only importer, so `index.css` + `App.css` alone gives you an unstyled floor). **Driving
+  a floor interaction adds two more**: a walker is a zero-size positioned anchor, so Playwright
+  calls it hidden — wait with `state: 'attached'`; and click a tile through the figure's own
+  `getBoundingClientRect()`, never by scaling its `transform` against the roam element's rect,
+  which does not share its origin and lands ~430 px away. Recipe:
   `apps/web/.claude/skills/verify/`, traps recorded in `docs/office-isometric-mode.md` § 6.
 
 ## Agent workflow guidance

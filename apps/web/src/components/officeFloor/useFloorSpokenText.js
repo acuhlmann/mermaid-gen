@@ -15,6 +15,42 @@ import { deskWorkFor } from '../../utils/officeDeskWork.js';
 const NARRATION_BUSY_POLL_MS = 80;
 
 /**
+ * Speak a one-off aside exactly once, and never over the top of something else.
+ *
+ * Slice 18's line — what somebody says on the way back from an errand you walked
+ * into. Its own hook rather than a fifth effect in the body below, for the
+ * reason § 8 records: `useFloorSpokenText` is already over its complexity
+ * budget, and extracting is the fix that actually works when the cost is
+ * `?.`/`??` rather than logic.
+ *
+ * Keyed on the **text**, not on the object it arrives in: the trip carrying it
+ * is a fresh object on every leg of the walk home, so an identity-keyed effect
+ * would say the same sentence again each time the figure moved. The busy guard
+ * is the walk-by's, for the walk-by's reason — an aside that queues behind a
+ * scripted scene arrives after the speaker has sat back down.
+ *
+ * @param {{ speakerId: string, text: string } | null | undefined} said
+ * @param {(line: { speakerId: string, text: string }) => unknown} narrate
+ */
+function useNarratedAside(said, narrate) {
+  const spokenRef = useRef('');
+  const text = said?.text ?? '';
+  const speakerId = said?.speakerId ?? '';
+
+  useEffect(() => {
+    if (!text) {
+      spokenRef.current = '';
+      return undefined;
+    }
+    if (text === spokenRef.current) return undefined;
+    spokenRef.current = text;
+    if (isOfficeNarrationBusy()) return undefined;
+    void narrate({ speakerId, text });
+    return undefined;
+  }, [text, speakerId, narrate]);
+}
+
+/**
  * @param {{
  *   captions?: boolean,
  *   sceneHandlers?: Record<string, any>,
@@ -22,6 +58,7 @@ const NARRATION_BUSY_POLL_MS = 80;
  *   talkLine?: string,
  *   peekColleagueId?: string | null,
  *   walkBy?: { id?: string, colleagueId?: string, body?: string } | null,
+ *   wandererSaid?: { speakerId: string, text: string } | null,
  *   hasActiveSpeech?: boolean,
  *   liftedSceneSpeech?: boolean
  * }} options
@@ -33,6 +70,10 @@ export function useFloorSpokenText({
   talkLine = '',
   peekColleagueId = null,
   walkBy = null,
+  /* No default: `OfficeFloor` always passes it and it is only read for
+     truthiness, so `= null` would cost a branch for nothing (§ 8's finding
+     about what actually puts floor modules over their complexity budget). */
+  wandererSaid,
   hasActiveSpeech = false,
   /** Coffee/battle pacing lives in `OfficeLayer` — track busy TTS separately. */
   liftedSceneSpeech = false,
@@ -135,6 +176,8 @@ export function useFloorSpokenText({
     void narrateTracked({ speakerId: walkBy.colleagueId, text: walkBy.body });
     return undefined;
   }, [walkBy, narrateTracked]);
+
+  useNarratedAside(wandererSaid, narrateTracked);
 
   // Paced coffee/battle lines are narrated in `OfficeLayer`. Prefer the
   // per-line spoken flag from pacing so a failed TTS falls back to bubbles;
