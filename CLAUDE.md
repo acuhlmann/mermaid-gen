@@ -229,7 +229,7 @@ Every session carries **six independent diagram slots** — `mermaid` (Mermaid t
   `officeLocale.test.js` now pins the markers explicitly.
 - **The office's LLM appetite is one table in `officeCadence.js`.** `OFFICE_LLM_MOMENT_CAP`,
   `EMAIL_LLM_RATIO`/`IM_LLM_RATIO`, `OFFICE_RUN_REACTION_LLM_CAP`, `OFFICE_DESK_LLM_CAP`,
-  `OFFICE_TALK_LLM_CAP` — `useDeskActions.js` and `useOfficeRunReactions.js` re-export from it
+  `OFFICE_TALK_LLM_CAP`, `OFFICE_DWELL_LLM_CAP` — `useDeskActions.js` and `useOfficeRunReactions.js` re-export from it
   rather than declaring their own, and `officeCadence.test.js` pins that identity. Tune there,
   not at the use site. The governing split is §11's: **ambient** (a timer interrupted you) stays
   canned-heavy; **reactive** (you started it or answered it) leans LLM, because a canned reply to
@@ -273,6 +273,19 @@ Every session carries **six independent diagram slots** — `mermaid` (Mermaid t
   Do not "simplify" `handleArrive` back to clearing on arrival. Copy is `floor.interrupt` in
   `officeCast.js` — all three locale bundles or it is a silently dead feature in that language
   (`officeLocale.test.js` pins the bank lengths and the `{prop}` count).
+- **Standing next to somebody is the floor's one mechanic with a trigger of its own, and
+  `channel: 'talk'` is what makes it safe.** Slice 19 fires a remark after five seconds within
+  `NAME_CHIP_RANGE_TILES` — **reuse that constant**, never a second radius, or the person who
+  speaks stops being the person whose name chip is lit. The line goes out through
+  `desk.remarkTo` on `channel: 'talk'`, and that channel is load-bearing rather than cosmetic:
+  `pushOfficeImPing` skips the desk arrival toast for talk lines and keeps them out of Slop
+  Chat™ threads and unread counts, which is the only thing stopping one remark rendering as a
+  balloon _and_ a notification. Send it as `'im'` and you get both. Two more facts: the
+  `senior` exclusion is **the glass** (`tileDistance` is Chebyshev, so a legal tile is one step
+  from three executives), not politeness; and holding the target in place is a **cycle** —
+  the target needs `floorState`, which `useFloorAway` returns, and `holdId` is one of its
+  arguments — so a passing colleague can finish their errand and leave mid-countdown, which is
+  accepted rather than unfixed.
 - **A moment's cast walks to it and walks home; the desk stays empty for the whole trip.**
   `officeFloorCommute.js` is the pure `out ▸ there ▸ home ▸ gone` machine, `useFloorCommute` holds
   it, and `useFloorAway` merges the commuting ids into `awayIds` — miss that merge and a scene

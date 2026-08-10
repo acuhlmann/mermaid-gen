@@ -59,6 +59,7 @@ function useNarratedAside(said, narrate) {
  *   peekColleagueId?: string | null,
  *   walkBy?: { id?: string, colleagueId?: string, body?: string } | null,
  *   wandererSaid?: { speakerId: string, text: string } | null,
+ *   dwellSaid?: { speakerId: string, text: string } | null,
  *   hasActiveSpeech?: boolean,
  *   liftedSceneSpeech?: boolean
  * }} options
@@ -74,6 +75,10 @@ export function useFloorSpokenText({
      truthiness, so `= null` would cost a branch for nothing (§ 8's finding
      about what actually puts floor modules over their complexity budget). */
   wandererSaid,
+  /* Slice 19, and the second caller of `useNarratedAside` — which is the check
+     that slice 18's extraction was a shape rather than a one-off. Same rules:
+     said once, and never over the top of a scripted scene. */
+  dwellSaid,
   hasActiveSpeech = false,
   /** Coffee/battle pacing lives in `OfficeLayer` — track busy TTS separately. */
   liftedSceneSpeech = false,
@@ -178,6 +183,7 @@ export function useFloorSpokenText({
   }, [walkBy, narrateTracked]);
 
   useNarratedAside(wandererSaid, narrateTracked);
+  useNarratedAside(dwellSaid, narrateTracked);
 
   // Paced coffee/battle lines are narrated in `OfficeLayer`. Prefer the
   // per-line spoken flag from pacing so a failed TTS falls back to bubbles;

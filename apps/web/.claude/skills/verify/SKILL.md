@@ -130,6 +130,13 @@ const fr = fig.getBoundingClientRect();
 roam.dispatchEvent(new MouseEvent('click', { clientX: fr.x, clientY: fr.y, bubbles: true }));
 ```
 
+**Always assert that you actually moved.** A click computed from a hand-rolled pixel offset
+rather than from `projectIso` lands on nothing at all, and the room's response to an illegal
+tile is silence — so the capture reads exactly like the feature failing to clear. Read
+`[data-testid="office-floor-player"]`'s `transform` before and after; if it did not change, the
+click missed. (`projectIso` is importable in-page: `page.evaluate(() =>
+import('/src/utils/officeFloorPlan.js').then((m) => m.projectIso(x, y)))`.)
+
 **Pin `Math.random` in an init script** (`page.addInitScript(() => { Math.random = () => 0.75; })`)
 — 0.75 puts Chad at the whiteboard, the same pick the floor suite uses, so a capture and a test
 are talking about the same trip. Then `pause()` every animation before each shot and `play()`

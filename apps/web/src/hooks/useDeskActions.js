@@ -17,7 +17,11 @@ import {
   pushOfficeImReply
 } from '../state/officeMomentStore.js';
 import { threadTranscriptFor } from '../utils/officeImThreads.js';
-import { OFFICE_DESK_LLM_CAP, OFFICE_TALK_LLM_CAP } from '../utils/officeCadence.js';
+import {
+  OFFICE_DESK_LLM_CAP,
+  OFFICE_DWELL_LLM_CAP,
+  OFFICE_TALK_LLM_CAP
+} from '../utils/officeCadence.js';
 
 /**
  * Budget for verb-triggered LLM calls. Separate from the ambient
@@ -38,6 +42,16 @@ export const DESK_LLM_CAP = OFFICE_DESK_LLM_CAP;
  * spend it by typing, so the ceiling is a backstop, not a rationing device.
  */
 export const TALK_LLM_CAP = OFFICE_TALK_LLM_CAP;
+
+/**
+ * Somebody breaking the silence because you have been stood next to them
+ * (isometric slice 19). Its own budget rather than a share of `TALK_LLM_CAP`
+ * for the reason the tiers exist at all: talking is you asking a question, and
+ * this is somebody answering a question nobody asked. Re-exported from
+ * `officeCadence.js` like its siblings so the office's appetite stays readable
+ * in one table.
+ */
+export const DWELL_LLM_CAP = OFFICE_DWELL_LLM_CAP;
 
 /** Cast you can DM or email — anyone in the meeting directory. */
 export const DESK_IM_CAST = listMeetingDirectory().map((row) => row.id);
@@ -97,6 +111,7 @@ export function useDeskActions(params) {
   const memoryRef = useRef(null);
   const deskLlmCountRef = useRef(0);
   const talkLlmCountRef = useRef(0);
+  const dwellLlmCountRef = useRef(0);
   const busyRef = useRef(false);
 
   const random = useCallback(() => (paramsRef.current.random ?? Math.random)(), []);
@@ -345,6 +360,39 @@ export function useDeskActions(params) {
   );
 
   /**
+   * Somebody looks up because you have been standing next to them (isometric
+   * slice 19).
+   *
+   * The same delivery ladder as every other line they could say, with two
+   * things set deliberately. **No `replyContext`**, because you did not say
+   * anything — this is them speaking first, which is the one conversational
+   * move the office had no verb for. And **`channel: 'talk'`**, which is not
+   * decoration: `pushOfficeImPing` skips the desk arrival toast for talk lines
+   * and keeps them out of Slop Chat™ scrollback, so the line lands over their
+   * head on the floor and nowhere else. Speech in a room is not a notification
+   * and it is not a message you can scroll back to.
+   *
+   * Not wrapped in `runVerb`, matching `talkOutLoud` rather than `imSomeone`:
+   * being unable to hear somebody because a toast is up would be absurd, and
+   * you are stood in front of them.
+   *
+   * @param {string} colleagueId
+   * @returns {Promise<boolean>}
+   */
+  const remarkTo = useCallback(
+    async (colleagueId) => {
+      if (!colleagueId || paramsRef.current.meetingActive) return false;
+      return deliverImReply({
+        target: colleagueId,
+        counterRef: dwellLlmCountRef,
+        cap: DWELL_LLM_CAP,
+        channel: 'talk'
+      });
+    },
+    [deliverImReply]
+  );
+
+  /**
    * Email someone directly — their reply lands in your inbox. Pass subject/body
    * so the LLM (or canned bank) can respond in character.
    */
@@ -414,6 +462,7 @@ export function useDeskActions(params) {
       walkTheFloor,
       imSomeone,
       talkOutLoud,
+      remarkTo,
       emailSomeone,
       checkInbox,
       callMeeting,
@@ -430,6 +479,7 @@ export function useDeskActions(params) {
       emailSomeone,
       getCoffee,
       imSomeone,
+      remarkTo,
       talkOutLoud,
       talkToTeam,
       walkTheFloor,

@@ -18,6 +18,7 @@
  */
 
 import FloorCommuters from './FloorCommuters.jsx';
+import FloorDeskSpeech from './FloorDeskSpeech.jsx';
 import FloorHuddle from './FloorHuddle.jsx';
 import FloorMeeting from './FloorMeeting.jsx';
 import FloorPeek from './FloorPeek.jsx';
@@ -53,6 +54,8 @@ import { YOU_SEAT_ID, isWithinNameChipRange } from '../../utils/officeFloorPlan.
  *   peek?: { colleagueId: string, phase: string } | null,
  *   talk?: { colleagueId: string, phase: string, at?: { x: number, y: number } | null } | null,
  *   talkLine?: string,
+ *   dwellSaid?: { speakerId: string, text: string } | null,
+ *   dwellAt?: { x: number, y: number } | null,
  *   presence?: any,
  *   onPresenceArrive?: () => void,
  *   playerRef?: { current: HTMLElement | null },
@@ -98,6 +101,8 @@ export function FloorActors({
   peek,
   talk,
   talkLine,
+  dwellSaid,
+  dwellAt,
   presence,
   onPresenceArrive,
   onStep,
@@ -182,6 +187,23 @@ export function FloorActors({
       {peek ? <FloorPeek peek={peek} scale={scale} hideBody={!showSpokenText} /> : null}
       {talk ? (
         <FloorTalk talk={talk} line={talkLine} scale={scale} hideBody={!showSpokenText} />
+      ) : null}
+
+      {/* Slice 19: somebody looking up because you have been stood there a
+          while. A bare `FloorDeskSpeech` rather than a wrapper of its own,
+          because unlike peek and talk this beat has no card and no verbs — you
+          did not go there to do anything, which is the entire premise. `dwellAt`
+          is `null` for the common case of somebody in their own chair, which is
+          what earns them the over-seat lift (§ 6 rules 15 and 20).
+          Already gated on captions by the caller: there is no chrome to keep. */}
+      {dwellSaid ? (
+        <FloorDeskSpeech
+          castId={dwellSaid.speakerId}
+          line={dwellSaid.text}
+          tile={dwellAt}
+          scale={scale}
+          testId="office-floor-dwell-line"
+        />
       ) : null}
 
       {/* One of you on the floor, whatever your reason for being up. */}

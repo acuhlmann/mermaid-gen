@@ -35,6 +35,7 @@ Do not copy `standUp(); render(<OfficeFloor />)` into new suites — extend the 
 | `officeFloorMovement.test.js`        | Where you may walk, approach/peek/prop marks                               |
 | `officeFloorReach.test.js`           | Where somebody is when away, and whether it is a mark                      |
 | `officeFloorInterrupt.test.js`       | What somebody says when you take the square they wanted (slice 18)         |
+| `officeFloorDwell.test.jsx`          | Who you are stood next to, and the line it earns (slice 19)                |
 | `officeFloorContracts.test.js`       | **ADR-0011 executable rules** (narration, props, POV)                      |
 | `officeFloorModuleInventory.test.js` | Bench components + test files still exist                                  |
 | `officeFloorPropsTable.test.js`      | `officeFloorProps.js` ↔ `propTileFor` alignment                            |
