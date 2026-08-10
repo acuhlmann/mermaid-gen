@@ -114,6 +114,41 @@ describe('useDeskActions', () => {
     expect(email.body.toLowerCase()).toContain('spicy');
   });
 
+  it('tells the model why a dwell remark is happening, and only that verb', async () => {
+    // Slice 19 shipped this line with no situational context at all, so a
+    // colleague noticing you loitering was prompted exactly like a colleague
+    // pinging you out of nowhere — right voice, right diagram, no idea anybody
+    // was stood there. The wire field is the whole fix, so it is what is pinned.
+    const fetchMock = vi.fn(() =>
+      Promise.resolve({
+        ok: true,
+        json: async () => ({
+          moment: { body: 'can I help you', colleagueId: 'intern', kind: 'im' }
+        })
+      })
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    const { result } = renderHook(() => useDeskActions(BASE_PARAMS));
+
+    await act(async () => {
+      await result.current.remarkTo('intern');
+    });
+    const dwell = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body ?? '{}'));
+    expect(dwell.situation).toBe('dwell');
+    // Still nothing typed: the two are mutually exclusive on the server, and a
+    // dwell remark that arrived as a reply would lose its whole premise.
+    expect(dwell.userMessage).toBeUndefined();
+
+    // An ordinary desk ping is not a situation — you clicked a verb, which the
+    // cold-open framing already describes.
+    _resetForTests();
+    await act(async () => {
+      await result.current.imSomeone('intern');
+    });
+    const ping = JSON.parse(String(fetchMock.mock.calls[1]?.[1]?.body ?? '{}'));
+    expect('situation' in ping).toBe(false);
+  });
+
   it('stops spending LLM calls once the desk budget is gone', async () => {
     // Server answers, so each verb spends one desk LLM call.
     const fetchMock = vi.fn(() =>

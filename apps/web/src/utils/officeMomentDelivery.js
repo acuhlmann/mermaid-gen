@@ -324,7 +324,8 @@ export async function deliverLlmMoment(kind, ctx, options) {
     onLlmSpent,
     isAlive = () => true,
     registerAbort,
-    modelProfile
+    modelProfile,
+    situation
   } = options;
   if (!colleagueId) return false;
 
@@ -361,6 +362,10 @@ export async function deliverLlmMoment(kind, ctx, options) {
         userName: ctx.userName || undefined,
         userMessage: userMessage || undefined,
         threadTranscript: threadTranscript.length > 0 ? threadTranscript : undefined,
+        // Why the room is talking, when the user did something rather than said
+        // something (§ 11 reactive). Omitted for every ambient moment, which is
+        // what keeps the cold-open framing those are written for.
+        situation: situation || undefined,
         modelProfile: officeWireModelProfile(modelProfile)
       }),
       signal: controller.signal

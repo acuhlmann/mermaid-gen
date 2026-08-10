@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
+import { OFFICE_DAY_PHASES } from '../src/utils/officeCadence.js';
 
 /**
  * Three CSS facts about the floor with no runtime shape at all — jsdom has no
@@ -261,6 +262,36 @@ describe('reduced motion covers the whole floor', () => {
     expect(selectors.size).toBeGreaterThan(0);
     for (const one of selectors) {
       expect(reduced, `${one} keeps animating under reduced motion`).toContain(one);
+    }
+  });
+});
+
+describe('the office day has a light for every phase (slice 20)', () => {
+  it('tints a window for each phase the cadence can return', () => {
+    // The failure this prevents is silent: an unstyled phase inherits whatever
+    // the previous one set, so the room simply stops changing at that hour and
+    // nothing anywhere reports it. Keyed off the cadence's own list, so adding
+    // a sixth phase there fails here until it has a light.
+    for (const phase of OFFICE_DAY_PHASES) {
+      expect(css, `${phase} has no window tint`).toContain(`[data-day-phase='${phase}']`);
+    }
+  });
+
+  it('keeps a default tint on the floor itself, for an unphased mount', () => {
+    // `FloorArrival` renders its own stage without the phase attribute, and the
+    // pane has to stay painted there.
+    expect(ruleBody('.office-floor')).toMatch(/--office-window-tint:\s*#/);
+  });
+
+  it('never animates the light, so it owes the reduced-motion block nothing', () => {
+    // A phase turns over four times a day, so a tween is something practically
+    // nobody is ever looking at — and every animated selector on this floor has
+    // to name itself in the reduced-motion block (see above). A hard cut buys
+    // the same picture and stays out of that contract.
+    const dayRules = css.match(/\[data-day-phase='[^']+'\]\s*\{[^}]*\}/g) ?? [];
+    expect(dayRules.length).toBe(OFFICE_DAY_PHASES.length);
+    for (const rule of dayRules) {
+      expect(rule).not.toMatch(/animation:|transition:/);
     }
   });
 });

@@ -61,6 +61,37 @@ const DOING_ART = {
 const DEFAULT_ART = DOING_ART.typing;
 
 /**
+ * What the hour does to the room (`officeCadence.js` decides which hour it is).
+ *
+ * A phase is a **general truth about right now**, which is the same register as
+ * a trait row and a different one from anything that is *happening* — so it
+ * sits directly above `deskDoingFor` in the ladder below and under every live
+ * input. Dave keeps his headset on an actual call at 8 am; what he loses is the
+ * headset he was wearing at 8 am for no reason.
+ *
+ * Only three of the five phases have art, and the two blanks are the design
+ * rather than gaps in it. **Midday is the baseline** — the longest stretch of
+ * the day, and the one where the baked characterization the whole room was
+ * built on is what you see. **After hours has no art either**, because the
+ * people still at their desks at nine at night are doing their usual thing;
+ * what is different about that hour is the light, and the light is CSS.
+ *
+ * Whole-office rather than per-person, and that is a deliberate reversal of the
+ * usual "don't erase somebody's character" instinct: sixteen people holding a
+ * mug at the same time reads as *the office at 9 am*, while four holding one
+ * reads as four people who happen to have mugs. The set piece precedent is
+ * already here — a coffee break puts a cup in every hand including Dave's.
+ *
+ * @type {Record<string, { pose: string, hold: string | null, headwear: string | null }>}
+ */
+const PHASE_ART = {
+  earlyMorning: { pose: 'idle', hold: 'mug', headwear: null },
+  // The remote stand-up: everybody on the same call, nobody in the same room.
+  standUp: { pose: 'call', hold: null, headwear: 'headset' },
+  windDown: { pose: 'reading', hold: 'papers', headwear: null }
+};
+
+/**
  * The baked half: what they are doing when nothing is happening to them.
  *
  * You have no `OFFICE_DESK_WORK` row on purpose (your screen is the deliverable,
@@ -73,6 +104,22 @@ const DEFAULT_ART = DOING_ART.typing;
  */
 export function deskDoingFor(id) {
   return DOING_ART[deskWorkFor(id)?.doing] ?? DEFAULT_ART;
+}
+
+/**
+ * The baked half, as the hour leaves it: the phase's art when that hour has
+ * any, otherwise the person's own row.
+ *
+ * Split out rather than inlined because it is the one line of this module a
+ * reader is likely to disagree with — "the hour overrules the character" is a
+ * claim, and a named function is where a claim can be argued with.
+ *
+ * @param {string} id
+ * @param {string | null} [dayPhase]
+ * @returns {{ pose: string, hold: string | null, headwear: string | null }}
+ */
+export function baseDoingFor(id, dayPhase = null) {
+  return (dayPhase && PHASE_ART[dayPhase]) ?? deskDoingFor(id);
 }
 
 /**
@@ -106,12 +153,23 @@ export function deskDoingFor(id) {
  *    *you*, while `carrying` only ever describes a wanderer — so the order is
  *    written down for the day somebody makes them overlap rather than to settle
  *    a fight happening today.
- * 5. Otherwise the trait row.
+ * 5. **Then the hour**, which is the lowest rung that can still override
+ *    anybody, because it is the only other input here that is *general* rather
+ *    than *live*. Everything above this line is something happening to one
+ *    person; a phase is something true of the whole room, and the ladder has
+ *    always let the specific beat the general.
+ * 6. Otherwise the trait row.
  *
  * `moving` drops the pose but keeps the hold: the walk animation owns the body
  * while somebody is mid-stride (`.is-walking` retimes the same keyframes), and
  * a colleague carrying their mug to the kitchen is the entire point of letting
  * a hold survive a walk.
+ *
+ * `dayPhase` is absent for anybody a **moment** is drawing — a walk-by, a
+ * coffee break, somebody commuting to one. That is not an omission: those
+ * figures are mid-something, and rung 5's whole argument is that a thing
+ * happening outranks a thing generally true. The hour applies to the room's
+ * standing population — the chairs, you, and the ambient wanderer.
  *
  * @param {string} id
  * @param {{
@@ -119,7 +177,8 @@ export function deskDoingFor(id) {
  *   headphones?: boolean,
  *   coffee?: boolean,
  *   carrying?: string | null,
- *   moving?: boolean
+ *   moving?: boolean,
+ *   dayPhase?: string | null
  * }} [context]
  * @returns {FloorActivity}
  */
@@ -129,9 +188,10 @@ export function floorActivityFor(id, context = {}) {
     headphones = false,
     coffee = false,
     carrying = null,
-    moving = false
+    moving = false,
+    dayPhase = null
   } = context;
-  const base = deskDoingFor(id);
+  const base = baseDoingFor(id, dayPhase);
   return {
     pose: onCall ? 'call' : moving ? 'idle' : base.pose,
     hold: coffee ? 'coffee' : (carrying ?? base.hold),

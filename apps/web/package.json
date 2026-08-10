@@ -11,7 +11,7 @@
     "typecheck:strict": "tsc --noEmit -p tsconfig.strict.json",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:floor": "vitest run test/officeFloor test/officeFloorModuleInventory test/officeFloorContracts test/officeFloorPropsTable test/officeLayerFloorRenderer test/officeDeskWork test/useWalkAnimation",
+    "test:floor": "vitest run test/officeFloor test/officeFloorModuleInventory test/officeFloorContracts test/officeFloorPropsTable test/officeLayerFloorRenderer test/officeDeskWork test/useOfficeDayPhase test/useWalkAnimation",
     "test:wire": "vitest run test/wireAgUiTranslator.test.js"
   },
   "dependencies": {

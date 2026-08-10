@@ -267,6 +267,22 @@ Production deploy notes (Cloud Run, billing credits, GitHub Actions CI, optional
   own caps, and `officeCadence.test.js` pins that identity — tune there, not at the use site. The
   governing split is `docs/office-parody.md` §11's: **ambient** (a timer interrupted you) stays
   canned-heavy; **reactive** (you started it or answered it) leans LLM.
+- **The same file owns the office's wall clock.** `officeDayPhaseAt` + `OFFICE_DAY_PHASES` are
+  the office day (mugs early, the remote stand-up, trait rows midday, papers at wind-down, and
+  window light cool→warm→dark). The dial is in the cadence and **not** on the floor — an office
+  day is ambient content on a timer — and the floor owns only the look: `PHASE_ART` in
+  `apps/web/src/utils/officeFloorActivity.js` and `[data-day-phase]` in `OfficeFloor.css`. The
+  hour is **rung 5** of `floorActivityFor` (above the trait row, below everything live), so
+  anybody a moment is drawing gets no phase. Trap: `headwear: null` cannot remove a headset —
+  `PersonaFace` resolves `accessoryOverride ?? traits.accessory`, and only `'none'` strips a
+  baked face trait.
+- **Why a colleague is speaking is a wire field.** `situation` on `POST /api/office/moment`
+  (`OFFICE_MOMENT_SITUATIONS` in `packages/shared`: `dwell` | `run`) selects one rule block in
+  `buildMomentSystemPrompt` plus a terse restatement at the end of the user prompt. It is an
+  **enum, never free text**, because it shapes a system prompt; **absent is the default** and
+  keeps the cold-open framing ambient moments want; **a reply beats a situation**. Without it a
+  line the user crossed the room to trigger is written as a cold open and reads as a
+  non-sequitur. See `docs/office-parody.md` §11.
 - **Office sound is one posture, not four checkboxes.** Menu bar **Admin** carries 🎧 **Headphones**
   (how the office reaches you) and 🔕 **Focus** (whether it does), plus the Approved vendors strip.
   The composer band holds Mail / Chat / Meeting as direct icons (`DeskActionsDock`), not a helmet

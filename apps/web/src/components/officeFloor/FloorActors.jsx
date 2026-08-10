@@ -89,6 +89,8 @@ export function FloorActors({
   huddleRing,
   wanderer,
   wandererSaid,
+  // No default: `floorActivityFor` treats it as absent-or-not on its own.
+  dayPhase,
   onWandererArrive,
   wandererRef,
   commuters,
@@ -146,6 +148,9 @@ export function FloorActors({
         <FloorWanderer
           wanderer={wanderer}
           copy={copy}
+          // Slice 20: ambient traffic is standing population, so the hour
+          // applies. A commuter walking to a moment is not, and gets none.
+          dayPhase={dayPhase}
           /* Slice 18: the one line an ambient trip is allowed, and only when
              you are the reason it ended early. Gated here rather than passed
              through as `hideBody` like its neighbours, because a wanderer's

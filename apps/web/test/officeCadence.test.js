@@ -12,6 +12,9 @@ import {
   OFFICE_MIN_GAP_MS,
   OFFICE_SENIOR_EMAILS_PER_SESSION,
   OFFICE_SESSION_MOMENT_CAP,
+  OFFICE_DAY_PHASES,
+  OFFICE_DAY_PHASE_POLL_MS,
+  officeDayPhaseAt,
   OFFICE_WARMUP_GAP_JITTER_MS,
   OFFICE_WARMUP_MIN_GAP_MS,
   OFFICE_WARMUP_MOMENT_COUNT,
@@ -187,5 +190,49 @@ describe('the office LLM budget table', () => {
   it('gives reactive talk more room than ambient interruption', () => {
     expect(OFFICE_TALK_LLM_CAP).toBeGreaterThan(OFFICE_LLM_MOMENT_CAP);
     expect(OFFICE_DESK_LLM_CAP).toBeGreaterThanOrEqual(OFFICE_RUN_REACTION_LLM_CAP);
+  });
+});
+
+describe('the office day (slice 20)', () => {
+  /** Local-time instant, since the phases are the user's own working day. */
+  const at = (h, m = 0) => new Date(2026, 7, 10, h, m, 0, 0);
+
+  it('walks the whole day in order, with afterHours wrapping midnight', () => {
+    expect(officeDayPhaseAt(at(6))).toBe('earlyMorning');
+    expect(officeDayPhaseAt(at(9, 29))).toBe('earlyMorning');
+    expect(officeDayPhaseAt(at(9, 30))).toBe('standUp');
+    expect(officeDayPhaseAt(at(10, 29))).toBe('standUp');
+    expect(officeDayPhaseAt(at(10, 30))).toBe('midday');
+    expect(officeDayPhaseAt(at(16, 29))).toBe('midday');
+    expect(officeDayPhaseAt(at(16, 30))).toBe('windDown');
+    expect(officeDayPhaseAt(at(19, 59))).toBe('windDown');
+    expect(officeDayPhaseAt(at(20))).toBe('afterHours');
+
+    // The overnight tail is the same phase as the late evening, which is why
+    // it is the seed value rather than a boundary of its own.
+    expect(officeDayPhaseAt(at(23, 59))).toBe('afterHours');
+    expect(officeDayPhaseAt(at(0))).toBe('afterHours');
+    expect(officeDayPhaseAt(at(5, 59))).toBe('afterHours');
+  });
+
+  it('only ever answers with a phase the room knows how to draw', () => {
+    // The floor's art table and the stylesheet are both keyed on this list, so
+    // a sixth phase added here without art would render as nothing at all.
+    for (let h = 0; h < 24; h += 1) {
+      for (const m of [0, 29, 30, 59]) {
+        expect(OFFICE_DAY_PHASES).toContain(officeDayPhaseAt(at(h, m)));
+      }
+    }
+  });
+
+  it('takes a Date or an epoch, so callers need not agree on one', () => {
+    const noon = at(12);
+    expect(officeDayPhaseAt(noon)).toBe(officeDayPhaseAt(noon.getTime()));
+  });
+
+  it('polls slowly enough to cost nothing and often enough to notice', () => {
+    // A phase turns over four times a day; this is a heartbeat, not a clock.
+    expect(OFFICE_DAY_PHASE_POLL_MS).toBeGreaterThanOrEqual(30_000);
+    expect(OFFICE_DAY_PHASE_POLL_MS).toBeLessThanOrEqual(5 * 60_000);
   });
 });

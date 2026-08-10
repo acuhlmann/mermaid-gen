@@ -858,7 +858,87 @@ diagramSource})` returns counts, labels, a `shape` (`graph` | `list` | `page`), 
     long, and the composed beat), `remarkTo` in `useDeskActions.js`, `OFFICE_DWELL_LLM_CAP` in
     `officeCadence.js`, `onDwellRemark` on the floor bridge.
 
-**There is no slice 20 yet, and that is deliberate.** The list above was written one slice at
+20. **The office day — the room is on a clock.** ✅ shipped. The floor now knows what time it
+    is: mugs before half past nine, the whole room on the remote stand-up until half ten, the
+    baked trait rows through the middle of the day, papers from half four, and the light through
+    the windows running cool ▸ daylight ▸ warm ▸ dark. § 8's oldest chosen-not-built item, and
+    the one with the best ratio of picture to code — **zero LLM budget**, because light and a
+    held mug are not content.
+
+    **The complaint it answers was measured, not felt.** `grep getHours` hit nothing anywhere in
+    the office layer: `officeCadence.js` is session-relative (how long you have been here, how
+    many moments have fired) and `officeFloorActivity.js` composed from a baked `deskWorkFor`
+    row, so Dave was in his headset at 4 pm exactly as at 9 am and the room read identically at
+    every hour anybody opened it.
+
+    **The dial is in `officeCadence.js`, which is the trap § 8 recorded before this was built.**
+    An office day is ambient content on a timer, and § 11's rule is that ambience is tuned in one
+    place. So the cadence owns **when** (`officeDayPhaseAt`, pure over an explicit instant, and
+    `OFFICE_DAY_PHASES`) and the floor owns what a phase _looks like_ — `PHASE_ART` in
+    `officeFloorActivity.js` for the figures, `[data-day-phase]` in `OfficeFloor.css` for the
+    light. One clock, two renderers: § 2 rule 1 at the smallest scale it has been applied yet.
+
+    **A wall clock, deliberately, and not a session arc.** A session arc would make the room
+    brighten because you had been working a while, which is a stranger fiction than an office
+    simply being on a clock — and the joke only lands if 9 am looks like 9 am to somebody
+    arriving at 9 am.
+
+    **The hour is rung 5, above the trait row and below everything live.** It is the only other
+    input to `floorActivityFor` that is _general_ rather than _live_, and the ladder has always
+    let the specific beat the general — so a real call still puts a headset on Dave at 8 am, your
+    Headphones posture is still yours at any hour, and a coffee break still owns the hand. It
+    also means **anybody a moment is drawing gets no phase at all**: a walk-by, a set piece, a
+    commuter walking to one are all mid-something, and rung 5's own argument excludes them. The
+    hour applies to the room's standing population — the chairs, you, and the ambient wanderer.
+
+    **Whole-office rather than per-person, which is a deliberate reversal.** The instinct is not
+    to erase somebody's characterization; the picture says otherwise. Sixteen people holding a
+    mug at once reads as _the office at 9 am_; four reads as four people who happen to have mugs.
+    The precedent was already here — a coffee break puts a cup in every hand including Dave's.
+    Two of the five phases have **no** art, and both blanks are the design: **midday is the
+    baseline**, the longest stretch of the day and the one where the baked characterization the
+    whole room was built on is what you see, and **after hours** has none either, because the
+    people still at their desks at nine at night are doing their usual thing — what is different
+    about that hour is the light.
+
+    **Polled, not subscribed, and it re-renders only on a change.** A phase turns over four times
+    a day and a visit to the floor is minutes long, so `useOfficeDayPhase` re-reads the clock on a
+    slow interval and `setState`s the same string, which React bails out of. Steady-state cost is
+    one `Date.getHours()` a minute and zero repaints. That is the opposite trade from slice 16's
+    board — sampled on _edges_ because its input changes on every keystroke — and the difference
+    is the input, not the taste: inventing edges for something that changes four times a day
+    would be more machinery for a worse answer.
+
+    **Three things the capture taught.** Driven in Chromium at 1440 × 900 with `Date.now` frozen
+    to five instants, which is the real end-to-end path — the tint and the hands both fall out of
+    the frozen clock rather than out of an attribute poked in by hand.
+
+    - **A `headwear: null` cannot take a headset off, because Dave's headset is his face.**
+      `PersonaFace` resolves `accessoryOverride ?? traits.accessory`, so `null` means "no
+      override" and only the explicit `'none'` strips a baked trait. The hour therefore moves
+      hands and posture across the whole room and leaves that one accessory alone — which is
+      also the right answer: letting the clock erase somebody's face is a much larger claim than
+      letting it hand them a mug, and § 8 already records that Dave wears one all day. He is the
+      only face in the registry it could apply to; every other baked accessory is a neck or chest
+      item that nothing about the hour competes with. Pinned rather than left to be rediscovered.
+    - **The light is CSS all the way, so no prop reaches `FloorRoom` and nothing re-renders to
+      repaint a pane.** The window fill became `var(--office-window-tint)` with the old literal
+      as its fallback, the default lives on `.office-floor` itself, and the phase overrides ride
+      `[data-day-phase]` on the same root that already carries `data-view-phase`. An unphased
+      mount — the first-run `FloorArrival` stage — looks exactly as it did.
+    - **Not transitioned, on purpose.** Every animated selector on this floor owes the
+      reduced-motion block an entry (`officeFloorStyles.test.js` fails until it has one), and a
+      tween on something that turns over four times a day is a frame practically nobody will ever
+      be looking at. A hard cut buys the same picture and stays out of that contract entirely —
+      asserted, so a later `transition:` there fails rather than quietly acquiring the debt.
+
+    Code: `officeDayPhaseAt` / `OFFICE_DAY_PHASES` / `OFFICE_DAY_PHASE_POLL_MS` in
+    `utils/officeCadence.js`, `PHASE_ART` + `baseDoingFor` in `utils/officeFloorActivity.js`,
+    `officeFloor/useOfficeDayPhase.js`, `data-day-phase` in `OfficeFloor.jsx`, the tint block in
+    `OfficeFloor.css`, and the `dayPhase` thread through `FloorStage` / `FloorActors` /
+    `FloorWanderer`.
+
+**There is no slice 21 yet, and that is deliberate.** The list above was written one slice at
 a time, each defined when it was picked up rather than planned in advance — so "continue with
 slice _n_" only means something once somebody has chosen what _n_ is. § 8 has the candidates,
 a recommendation, and the debts that argue for one over another. Pick from there, write the
@@ -1429,15 +1509,15 @@ LLM budget at all.
   the room and cut to the chairs, no geometry change, but eight attendees need several approach
   tiles or they pile up on one. The threshold version also gets the better half for free: a
   meeting _dispersing_ is the legible beat, and it needs no door at all.
-- **The office day has a rhythm.** `doing` is static: `officeFloorActivity.js`
-  composes from a baked `deskWorkFor` row, so Dave is in his headset at 4 pm exactly as at 9 am,
-  and there is **no time-of-day anywhere in the office** — `grep getHours` hits only
-  `exportDiagram.js` and the log digest, and `officeCadence.js` is session-count-based, not
-  clock-based. A session arc (mugs early, headsets around the stand-up, papers at wind-down;
-  window tint cool → warm) is **one more input to `floorActivityFor` and one more dial in
-  `officeCadence.js`** — not a new store, and § 11's ambient budget applies because this is
-  ambient content with a timer. The trap § 8 already recorded still holds: `officeCadence.js`
-  owns the dial, not the floor.
+- ~~**The office day has a rhythm.**~~ ✅ **shipped as slice 20**, and it landed as predicted:
+  one more input to `floorActivityFor` (`dayPhase`, at rung 5) and one more dial in
+  `officeCadence.js` (`officeDayPhaseAt`), no new store, zero LLM budget. The trap held too —
+  the dial is in the cadence and only the _art_ is on the floor. What the sketch did not
+  anticipate is that a phase cannot take Dave's headset off, because that accessory is a
+  **face** trait rather than an activity; see the slice entry. **Kitchen traffic mid-afternoon
+  is the one part of the sketch not built**: it is a bias on `useFloorWander`'s target choice
+  rather than an input to `floorActivityFor`, which makes it a different change to a different
+  module, and it should stay in the cadence's hands when somebody wants it.
 - **Point-and-click depth.** The two entries below that survived: **soft errands**
   (Linda asks you to find Chad about the reply-all — existing talk verb, reactive IM, a small XP
   beat, logged but never _scheduled_, or it becomes auto-fix-on-idle in a new hat) and
@@ -1503,11 +1583,12 @@ one that matters most: the offer survives when narration hides the bubble.
   figure, so sixteen people sit round a table holding nothing. A mug or a laptop each would help,
   but it is a content question rather than a wiring one — the wiring is one prop — and the honest
   version needs a rule for _who_ brings what to a meeting, which nobody has written.
-- **`doing` is static.** Dave is in his headset at 4 pm on a Friday exactly as he was at 9 am.
-  The obvious next move is to let the office log or the cadence nudge it (everyone holds a mug
-  in the first hour, nobody does after the stand-up), and the obvious trap is that this is
-  ambient content with a timer, so § 11's budget applies and `officeCadence.js` owns the dial —
-  not a new one here. **Chosen, not yet built** — see "The next slice" above.
+- ~~**`doing` is static.**~~ ✅ **shipped as slice 20** — the cadence nudges it, exactly as this
+  bullet guessed ("everyone holds a mug in the first hour, nobody does after the stand-up"), and
+  `officeCadence.js` owns the dial. The office log was the other candidate source and was not
+  used: what somebody is doing at 9 am is a fact about the hour, not about anything that has
+  happened to you today, and reaching for the log would have made an ambient tell depend on
+  session history for no gain.
 - ~~**Nothing in the room shows what you are working on.**~~ ✅ **shipped as slice 16** — your
   monitor, the whiteboard and the glass room's table all carry your current slot, derived by
   `officeFloorBoard.js` and **sampled** on run / stand-up / meeting rather than subscribed,
@@ -1587,6 +1668,30 @@ Kept here so appetite can pick without re-deriving. Each should stay bound by AD
 
 ### Debts the shipped slices left behind
 
+- **Three `vi.mock` calls in `useOfficeRunReactions.test.js` have never mocked anything.** They
+  name `../utils/officeMomentDelivery.js`, `../state/officeMomentStore.js` and
+  `../utils/officeAmbienceStorage.js` — resolved from `apps/web/test/`, which puts them at
+  `apps/web/utils/…`, a directory that does not exist. The real modules run instead, and the
+  file's one original assertion is "does not throw", so nothing ever noticed. Found while adding
+  slice 20's sibling work; the new test in that file deliberately asserts against a stubbed
+  `fetch` rather than the mocks, and says so inline. **Not fixed here**: correcting the paths
+  changes what the existing test exercises, which is its own change with its own blast radius.
+  Worth doing, and worth grepping the rest of `apps/web/test/` for the same shape while somebody
+  is in there.
+- **`act()` in that file also hides the bug.** The original test does `rerender(...)` and
+  `advanceTimersByTimeAsync(...)` inside **one** `act` block, so the clock advances before the
+  effect that schedules the reaction timer has flushed and the reaction never fires at all. Two
+  separate `act` blocks are the fix (the new test does this). Same family as § 6's note about
+  driving the store twice in one `page.evaluate` — a React commit boundary that is invisible
+  until something depends on it.
+- **The office day tints the windows and nothing else** (slice 20). At 9 pm the panes read as
+  the dark outside while the room itself is still lit like a bright afternoon, which is
+  incongruous if you look for it. The honest fix is a room-wide grade — a filter or a set of
+  tokens over the floor plate, walls and zone plates — and it was left out on purpose: it
+  touches every surface the floor draws, and `OfficeFloor.css`'s reduced-motion contract plus
+  § 6's palette rules deserve their own pass rather than a rider on a slice about held items.
+  The tokens are already in place for it (`--office-window-tint` is the first of what would
+  become a small palette keyed on `[data-day-phase]`).
 - **A moving balloon covers bystanders' heads and nothing fixes that today** (§ 6 rule 29).
   Measured on slice 18's capture: 1–3 seated colleagues under the balloon during transit,
   whether or not `bubbleAlignForSpeaker` is applied, because that helper assumes a speaker who

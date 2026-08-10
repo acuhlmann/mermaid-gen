@@ -18,7 +18,8 @@ import {
   MeetingScriptSchema,
   normalizeMeetingScript,
   OfficeMomentKindSchema,
-  OfficeMomentResponseSchema
+  OfficeMomentResponseSchema,
+  OfficeMomentSituationSchema
 } from '@archislop/shared';
 import { llmUsageFromReply } from './_lib/llmUsageFromReply.js';
 import { buildOfficeLogBlock } from './_lib/officeLogPrompt.js';
@@ -504,7 +505,70 @@ diagram. Max 300 chars. Include "subject" as the meeting title (max 90 chars, re
 recurring corporate invite, e.g. "Architecture Review Board (steering)").`
 };
 
-export function buildMomentSystemPrompt({ kind, colleagueId, uiLocale, isReply = false }) {
+/**
+ * What the room did to make somebody speak, as a rule block that **overrides
+ * the cold open**.
+ *
+ * The default framing below is "MUST SURPRISE, avoid every recent angle",
+ * which is written for a moment a timer decided to fire. A moment the user
+ * physically caused is the opposite situation and needs the opposite
+ * instruction, in the same voice `replyRule` uses one rung over — the
+ * difference between the two being that a reply answers something the user
+ * *typed* and this answers something they *did*.
+ *
+ * Kept to one block each on purpose: the whole failure being fixed is that the
+ * model had no idea why it was talking, and one sentence of circumstance cures
+ * that. A paragraph of stage direction would start competing with the persona
+ * card above it, which is the thing actually making the line funny.
+ *
+ * @type {Record<string, string>}
+ */
+const MOMENT_SITUATION_RULES = {
+  dwell: `
+WHY YOU ARE SPEAKING (overrides the usual "surprise me" cold-open rule):
+- You are at your desk. The user has been standing right next to you for several seconds
+  WITHOUT saying anything, and you have finally looked up. They did not message you — they
+  are physically hovering, which is the entire joke.
+- Your line must acknowledge THAT, in your own voice: the silence, the hovering, or whatever
+  you assume they want. Do not open a fresh unrelated topic and do not greet them as if they
+  just walked in the door.
+- You are speaking ALOUD to somebody an arm's length away, not typing. Keep it to one short
+  sentence — anything longer reads as a monologue at a person who has not spoken yet.`,
+  run: `
+WHY YOU ARE SPEAKING (overrides the usual "surprise me" cold-open rule):
+- The user just finished a change to the diagram and it has this second landed on their
+  screen. You noticed. That is why you are pinging them now rather than at any other moment.
+- React to the WORK, not to the fact that work happened: "nice job" is what a bot says.
+  Reference something visible in it, in character.
+- Do not congratulate them on shipping and do not claim you had anything to do with it.`
+};
+
+/**
+ * Terse restatement for the END of the user prompt, for the same reason
+ * `buildOfficeLanguageReminder` exists: on short moments the persona card
+ * dominates whatever the system prompt said, and this is the last thing the
+ * model reads before it generates. One line, no restated stage direction.
+ *
+ * @param {string | undefined} situation
+ * @returns {string}
+ */
+export function buildMomentSituationReminder(situation) {
+  if (situation === 'dwell') {
+    return '\nThey have said NOTHING — they are just standing next to your desk. Answer the hovering.';
+  }
+  if (situation === 'run') {
+    return '\nThey just this second finished changing the diagram above. React to what changed.';
+  }
+  return '';
+}
+
+export function buildMomentSystemPrompt({
+  kind,
+  colleagueId,
+  uiLocale,
+  isReply = false,
+  situation
+}) {
   const voice = speakerVoice(colleagueId);
   const canvasReplyHint =
     '- When replying, weave in something you notice on their canvas (a visible label or the diagram shape) if it fits your character — not every line needs it, but at least acknowledge what they wrote.';
@@ -530,6 +594,12 @@ ${canvasReplyHint}
 ${pitchReplyHint}`
         : ''
     : '';
+  /* A reply answers what they typed; a situation answers what they did. Both
+     at once would contradict each other outright — the dwell block's whole
+     premise is that nothing has been said — so a reply wins and the physical
+     circumstance stays out of it. No caller sends both today, and this is what
+     keeps that from being something a future one has to know. */
+  const situationRule = isReply ? '' : (MOMENT_SITUATION_RULES[situation] ?? '');
   return `${voice}
 
 You are writing ONE office "${kind}" moment inside a parody corporate-IT workplace where the user
@@ -553,7 +623,7 @@ them, omit "actionPrompt" — staying in character beats producing a button.
 - Reference at least one visible label when the moment is about the diagram. Pure office noise
 (fridge, passwords, trainings) may ignore the diagram.
 - MUST SURPRISE. Avoid every angle listed under "recent moments".
-- Never claim you changed anything. Stay comedic, never mean, never blocking.${replyRule}${buildOfficeLanguageRule(uiLocale)}`;
+- Never claim you changed anything. Stay comedic, never mean, never blocking.${replyRule}${situationRule}${buildOfficeLanguageRule(uiLocale)}`;
 }
 
 export function buildMomentUserPrompt({
@@ -565,7 +635,8 @@ export function buildMomentUserPrompt({
   uiLocale,
   userName,
   userMessage,
-  threadTranscript
+  threadTranscript,
+  situation
 }) {
   const labels =
     Array.isArray(visibleLabels) && visibleLabels.length > 0
@@ -624,7 +695,10 @@ export function buildMomentUserPrompt({
     source,
     '```',
     '',
-    `Reply with strict JSON now.${buildOfficeLanguageReminder(uiLocale)}`
+    /* Gated on the same fact the system prompt gates on, read the only way this
+       builder can see it: a transcript means they typed, and the situation
+       block stands down for a reply. */
+    `Reply with strict JSON now.${safeUserMessage ? '' : buildMomentSituationReminder(situation)}${buildOfficeLanguageReminder(uiLocale)}`
   ]
     .flat()
     .filter((line) => line !== null)

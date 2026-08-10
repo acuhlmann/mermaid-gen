@@ -83,8 +83,18 @@ export function FloorRoom({ youTile = null }) {
         points={poly([n, w, wallPoint('nw', GRID_H, WALL_H), wallPoint('nw', 0, WALL_H)])}
         fill="#cdd7e6"
       />
+      {/* The fill is a CSS variable rather than a literal so the office day can
+          move it (slice 20): the hour lands on `data-day-phase` at the floor
+          root and the light is a stylesheet's business, not a prop's. The
+          fallback keeps the pane painted for any mount outside that root. */}
       {windows.map((pointsForWindow, i) => (
-        <polygon key={i} points={poly(pointsForWindow)} fill="#bfe4fb" opacity="0.9" />
+        <polygon
+          key={i}
+          className="office-floor-window"
+          points={poly(pointsForWindow)}
+          fill="var(--office-window-tint, #bfe4fb)"
+          opacity="0.9"
+        />
       ))}
 
       <polygon points={poly([n, e, s, w])} fill="#eef2f8" />

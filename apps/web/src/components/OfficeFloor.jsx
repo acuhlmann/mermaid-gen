@@ -39,6 +39,7 @@ import { useStageScale } from '../hooks/useStageScale.js';
 import { reachTileFor, whereaboutsOf } from '../utils/officeFloorReach.js';
 import { interruptSpeech } from '../utils/officeFloorInterrupt.js';
 import { useFloorDwell } from './officeFloor/useFloorDwell.js';
+import { useOfficeDayPhase } from './officeFloor/useOfficeDayPhase.js';
 import {
   MEETING_PLAYER_TILE,
   YOU_SEAT_ID,
@@ -175,12 +176,13 @@ function usePersonDetails(selectedId, copy, away) {
  * break and `useFloorCoffeeWalk` sends you to it, so `accepted` is the moment
  * you are holding a cup, whichever of the two paths poured it.
  */
-function youActivityFor(remoteMeeting, headphones, coffee, presence) {
+function youActivityFor(remoteMeeting, headphones, coffee, presence, dayPhase) {
   return floorActivityFor(YOU_SEAT_ID, {
     onCall: remoteMeeting,
     headphones,
     coffee: Boolean(coffee?.accepted),
-    moving: Boolean(presence && presence.phase !== 'standing')
+    moving: Boolean(presence && presence.phase !== 'standing'),
+    dayPhase
   });
 }
 
@@ -270,6 +272,13 @@ function OfficeFloorView({ bridge, viewPhase }) {
   const focus = cameraFocusFor({ meeting, huddle, coffee, battle, presence });
   const scale = useFloorCamera(viewportRef, focus, fitScale);
 
+  /*
+   * Slice 20: what time the office thinks it is. One value, two consumers that
+   * never disagree because there is only one — the figures read it through
+   * `floorActivityFor`, and the light reads it off `data-day-phase` in CSS.
+   */
+  const dayPhase = useOfficeDayPhase();
+
   useFloorKeyboard({ presence, origin, goHome, walkTo: activity.walkTo });
   /* While the camera is framing a moment it owns the pan; auto-pan remains
      the phone-overflow fallback for the camera-free walks. */
@@ -350,8 +359,8 @@ function OfficeFloorView({ bridge, viewPhase }) {
   const stageSpeakingId = meetingSpeakingId ?? activity.speakingId;
 
   const youActivity = useMemo(
-    () => youActivityFor(remoteMeeting, officeSnap.headphones, coffee, presence),
-    [remoteMeeting, officeSnap.headphones, coffee, presence]
+    () => youActivityFor(remoteMeeting, officeSnap.headphones, coffee, presence, dayPhase),
+    [remoteMeeting, officeSnap.headphones, coffee, presence, dayPhase]
   );
 
   /*
@@ -470,7 +479,12 @@ function OfficeFloorView({ bridge, viewPhase }) {
   });
 
   return (
-    <div className="office-floor" data-testid="office-floor" data-view-phase={viewPhase}>
+    <div
+      className="office-floor"
+      data-testid="office-floor"
+      data-view-phase={viewPhase}
+      data-day-phase={dayPhase}
+    >
       {/* Mounted before it has anything to say, which is the only shape a live
           region reliably announces in — see `FloorLiveRegion`. */}
       <FloorLiveRegion message={said.text} eventKey={said.key} />
@@ -523,10 +537,18 @@ function OfficeFloorView({ bridge, viewPhase }) {
           // Slice 16: what you are working on, for your own monitor, the
           // whiteboard and the glass room's table.
           board={board}
+          // Slice 20: the hour, for the chairs. No default — `seatActivity`
+          // reads it for truthiness, so `= null` would buy a branch and no
+          // behaviour (the lever § 8 records for this file's budget).
+          dayPhase={dayPhase}
         >
           <FloorActors
             scale={scale}
             copy={copy}
+            // Slice 20: the ambient wanderer is standing population too, so the
+            // hour reaches them. Anybody a *moment* is drawing is deliberately
+            // left out — see `floorActivityFor`'s rung 5.
+            dayPhase={dayPhase}
             coffee={coffee}
             battle={battle}
             sceneHandlers={sceneHandlersWithVoice}

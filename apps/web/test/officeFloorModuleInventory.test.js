@@ -51,6 +51,7 @@ const EXPECTED_OFFICE_FLOOR_COMPONENTS = [
   'useFloorTalk.js',
   'useFloorWander.js',
   'useFloorWalker.js',
+  'useOfficeDayPhase.js',
   'useWalkAnimation.js',
   'viewTransition.js'
 ];
@@ -100,6 +101,7 @@ const EXPECTED_FLOOR_TEST_FILES = [
   'floorCamera.test.js',
   'officeLayerFloorRenderer.test.jsx',
   'officeDeskWork.test.js',
+  'useOfficeDayPhase.test.jsx',
   'useWalkAnimation.test.jsx',
   'helpers/officeFloorTestUtils.jsx'
 ];

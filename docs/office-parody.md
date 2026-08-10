@@ -1051,13 +1051,18 @@ itself, obviously).
 ## 8. Wire contracts
 
 Shared schemas in `packages/shared/src/officeScript.ts` (`OfficeMomentKindSchema`,
-`OfficeMomentResponseSchema`, `MeetingBeatSchema`, `MeetingScriptSchema`,
-`normalizeMeetingScript`). Routes (`apps/server/src/routes/office.js`, advisor-route pattern:
+`OfficeMomentSituationSchema`, `OfficeMomentResponseSchema`, `MeetingBeatSchema`,
+`MeetingScriptSchema`, `normalizeMeetingScript`). Routes
+(`apps/server/src/routes/office.js`, advisor-route pattern:
 zod → 400, unconfigured LLM → 503, invoke → parse-with-rescue → 200 + `usage`/`model`):
 
 - `POST /api/office/moment` — `{kind, colleagueId, contentType, diagramSource, visibleLabels,
-recentMoments}` → `{moment: {colleagueId, kind, subject?, body, actionPrompt?} | null, usage?,
-model?}`.
+recentMoments, situation?}` → `{moment: {colleagueId, kind, subject?, body, actionPrompt?} |
+null, usage?, model?}`. `situation` is **why** the colleague is speaking when the user did
+  something rather than said something (`dwell` | `run`, zod-validated against
+  `OFFICE_MOMENT_SITUATIONS` — an invented value is a 400). Omitting it is the normal case and
+  keeps the cold-open framing every ambient moment is written for; see § 11's context contract
+  for what each one instructs and why it is an enum rather than free text.
 - `POST /api/office/meeting` — `{contentType, diagramSource, visibleLabels, attendees, topic?,
 venue?}` → `{script: MeetingScript | null, usage?, model?}`. `venue` is the escalation rung
   (`workingGroup` default | `steering` | `cab`, zod-validated against `MEETING_VENUES` — an
@@ -1286,6 +1291,37 @@ the backburnered multi-human future is [`multi-human-office.md`](multi-human-off
   to reference the day, it spends that budget on chit-chat and stops being a suggestion.
 
   Still open: deliverable context (last-run summary), and "their own work" below.
+
+  **The context contract had a hole beside the log, and it was the harder one to see.** The log
+  answers "what has happened today"; nothing answered **"why are you speaking right now"**.
+  `kind` says what shape a moment takes and `userMessage` says what it is answering, but between
+  them sat every moment the user physically _caused_ without addressing anybody — and for those
+  the prompt's default framing is a cold open ("MUST SURPRISE", avoid every recent angle), which
+  is exactly right for a timer and exactly wrong for something you crossed the room to trigger.
+  The model was being asked to open a conversation it was in fact continuing, so the line came
+  back a non-sequitur: right voice, right diagram, no connection to what had just happened —
+  and worst precisely when the user was paying most attention, because they had just done
+  something.
+
+  `situation` closes it: an optional, **enum-bounded** field on `POST /api/office/moment`
+  (`OFFICE_MOMENT_SITUATIONS` in `packages/shared/src/officeScript.ts`) that selects one rule
+  block in `buildMomentSystemPrompt`, restated in one terse line at the end of the user prompt
+  for the same recency reason `buildOfficeLanguageReminder` exists. Four things are deliberate:
+
+  - **A closed set, not free text.** Client-supplied prose interpolated into a system prompt is
+    an injection surface for no benefit — the server already knows how each circumstance should
+    read, and keeping the phrasing in `officePersonas.js` keeps tone and locale beside the rest
+    of the voice. The route 400s an invented value.
+  - **Absent is the honest default.** Every ambient, timer-driven moment omits the field and
+    keeps the cold-open framing it was written for. This is the § 11 split expressed on the
+    wire: the field only ever appears on the reactive side.
+  - **A reply beats a situation.** They contradict each other outright — the dwell block's whole
+    premise is that nothing has been said — so `isReply` suppresses it. No caller sends both
+    today; the guard is what keeps that from being something a future one has to know.
+  - **Two situations, because two surfaces were blind.** `dwell` (isometric slice 19 — you have
+    been standing next to somebody for five seconds) and `run` (a run has this second landed, the
+    trigger `useOfficeRunReactions` exists for and never told anybody about). Adding a third is a
+    constant, a rule block and a reminder line.
 
 - **Their own work.** Each character carries a slowly-evolving _fictional_ workload they
   reference and can discuss when asked — conversational color (and, later, desk-peeking
