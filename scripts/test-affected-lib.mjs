@@ -47,11 +47,14 @@ export const ISOMETRIC_FLOOR_BLAST_TESTS = [
   'apps/web/test/officeFloorScene.test.jsx',
   'apps/web/test/officeFloorStyles.test.js',
   'apps/web/test/officeFloorTalk.test.jsx',
+  'apps/web/test/officeFloorViewTransition.test.js',
   'apps/web/test/officeFloorWallClock.test.jsx',
   'apps/web/test/officeFloorWander.test.jsx',
   'apps/web/test/officeLayerFloorRenderer.test.jsx',
   'apps/web/test/officeDeskWork.test.js',
   'apps/web/test/personaFaces.test.jsx',
+  'apps/web/test/useFloorArrivalFocus.test.jsx',
+  'apps/web/test/useFloorAway.test.jsx',
   'apps/web/test/useWalkAnimation.test.jsx'
 ];
 
