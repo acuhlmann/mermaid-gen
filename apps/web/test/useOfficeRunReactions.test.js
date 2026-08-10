@@ -7,94 +7,104 @@ import {
 } from '../src/hooks/useOfficeRunReactions.js';
 import { _resetForTests } from '../src/state/officeMomentStore.js';
 
-vi.mock('../utils/officeAmbienceStorage.js', () => ({
-  readOfficeCadenceMemory: () => ({ lastFiredAt: 0 }),
-  writeOfficeCadenceMemory: vi.fn()
-}));
+/*
+ * This file deliberately runs against the REAL delivery modules, with `fetch`
+ * as the only seam.
+ *
+ * It used to open with three `vi.mock` calls for `officeAmbienceStorage`,
+ * `officeMomentDelivery` and `officeMomentStore` — all written as `../utils/…`
+ * and `../state/…`, which from `apps/web/test/` resolve to `apps/web/utils/`
+ * and `apps/web/state/`: directories that do not exist. Vitest does not fail a
+ * mock whose specifier resolves nowhere, so all three silently no-opped and the
+ * real modules ran anyway. They have been removed rather than repaired: making
+ * them live would stub out the very request these tests assert on, and would
+ * re-mock the store this file imports `_resetForTests` from.
+ *
+ * The general trap, worth remembering: a `vi.mock` path that resolves nowhere
+ * fails silently, so a suite can pass for the wrong reason. Note that a `.js`
+ * specifier pointing at a `.ts` file is NOT an instance of it — that is the
+ * ordinary TypeScript import convention and Vite resolves it.
+ */
 
-vi.mock('../utils/officeMomentDelivery.js', () => ({
-  deliverCannedMoment: vi.fn(() => true),
-  deliverLlmMoment: vi.fn(() => false),
-  readSlotContext: () => ({ diagramSource: 'graph TD\n  A-->B' }),
-  RECENT_MOMENTS_CAP: 8
-}));
+/** The shape `/api/office/moment` returns; the body text is never asserted on. */
+function stubOfficeFetch() {
+  const fetchMock = vi.fn(() =>
+    Promise.resolve({
+      ok: true,
+      json: async () => ({
+        moment: { body: 'those boxes multiplied', colleagueId: 'intern', kind: 'im' }
+      })
+    })
+  );
+  vi.stubGlobal('fetch', fetchMock);
+  return fetchMock;
+}
 
-vi.mock('../state/officeMomentStore.js', () => ({
-  getOfficeSnapshot: () => ({ focusTime: false }),
-  shouldHoldAmbientOfficeMoments: () => false
-}));
+/** `random: () => 0` clears both the reaction-chance and LLM-share rolls, so the LLM rung is taken. */
+function mountHook() {
+  return renderHook(
+    ({ runSignal }) =>
+      useOfficeRunReactions({
+        runSignal,
+        getDiagramSource: () => 'graph TD\n  A-->B',
+        random: () => 0
+      }),
+    { initialProps: { runSignal: null } }
+  );
+}
+
+/*
+ * Two `act` blocks, never one. The effect that schedules the reaction timer
+ * flushes when the act scope closes, so advancing the clock inside the same
+ * block advances it *before* the timer exists and nothing ever fires. Measured:
+ * one block leaves `fetch` on zero calls, two blocks land exactly one.
+ */
+async function fireRun(rerender, id) {
+  await act(async () => {
+    rerender({ runSignal: { id, variant: 'jared' } });
+  });
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(RUN_REACTION_DELAY_MS + 50);
+  });
+}
 
 describe('useOfficeRunReactions fire()', () => {
   beforeEach(() => {
     vi.useFakeTimers();
+    _resetForTests();
+    window.localStorage.clear();
   });
 
   afterEach(() => {
     vi.useRealTimers();
+    vi.unstubAllGlobals();
   });
 
-  it('does not throw when a run signal fires (memory read before planRunReaction)', async () => {
-    const { rerender } = renderHook(
-      ({ runSignal }) =>
-        useOfficeRunReactions({
-          runSignal,
-          getDiagramSource: () => 'graph TD\n  A-->B',
-          random: () => 0
-        }),
-      { initialProps: { runSignal: null } }
-    );
+  it('reaches delivery when a run signal fires (memory read before planRunReaction)', async () => {
+    // Guards the ordering bug this test was written for: `readOfficeCadenceMemory`
+    // must be read before `planRunReaction` consumes it. Asserting that the
+    // request actually goes out is what makes that guard real — the previous
+    // form only asserted "does not throw" while, as it turns out, never firing.
+    const fetchMock = stubOfficeFetch();
+    const { rerender } = mountHook();
 
-    await act(async () => {
-      rerender({ runSignal: { id: 1, variant: 'jared' } });
-      await vi.advanceTimersByTimeAsync(RUN_REACTION_DELAY_MS + 50);
-    });
+    await fireRun(rerender, 1);
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
   it('tells the model a run just landed, which is the only reason it is talking', async () => {
     // The trigger for this whole hook stopped at the hook: the prompt got a
     // plain cold-open IM, so the colleague commented on the diagram as if they
     // had wandered past it rather than on the change that had just happened.
-    //
-    // Asserted on the real request rather than on a module mock, because the
-    // three `vi.mock` calls at the top of this file resolve to `apps/web/utils`
-    // — a directory that does not exist — so nothing here is actually mocked.
-    _resetForTests();
-    window.localStorage.clear();
-    const fetchMock = vi.fn(() =>
-      Promise.resolve({
-        ok: true,
-        json: async () => ({
-          moment: { body: 'those boxes multiplied', colleagueId: 'intern', kind: 'im' }
-        })
-      })
-    );
-    vi.stubGlobal('fetch', fetchMock);
-    const { rerender } = renderHook(
-      ({ runSignal }) =>
-        useOfficeRunReactions({
-          runSignal,
-          getDiagramSource: () => 'graph TD\n  A-->B',
-          // 0 clears the reaction-chance roll and the LLM-share roll, so the
-          // LLM rung is the one taken.
-          random: () => 0
-        }),
-      { initialProps: { runSignal: null } }
-    );
+    const fetchMock = stubOfficeFetch();
+    const { rerender } = mountHook();
 
-    // Two `act` blocks, not one: the effect that schedules the reaction timer
-    // flushes when the act scope closes, so advancing the clock in the same
-    // block advances it *before* the timer exists and nothing ever fires.
-    await act(async () => {
-      rerender({ runSignal: { id: 2, variant: 'jared' } });
-    });
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(RUN_REACTION_DELAY_MS + 50);
-    });
+    await fireRun(rerender, 2);
 
     expect(fetchMock).toHaveBeenCalled();
     const body = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body ?? '{}'));
     expect(body.kind).toBe('im');
     expect(body.situation).toBe('run');
-    vi.unstubAllGlobals();
   });
 });

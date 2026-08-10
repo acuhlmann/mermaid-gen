@@ -1668,22 +1668,30 @@ Kept here so appetite can pick without re-deriving. Each should stay bound by AD
 
 ### Debts the shipped slices left behind
 
-- **Three `vi.mock` calls in `useOfficeRunReactions.test.js` have never mocked anything.** They
-  name `../utils/officeMomentDelivery.js`, `../state/officeMomentStore.js` and
-  `../utils/officeAmbienceStorage.js` — resolved from `apps/web/test/`, which puts them at
-  `apps/web/utils/…`, a directory that does not exist. The real modules run instead, and the
-  file's one original assertion is "does not throw", so nothing ever noticed. Found while adding
-  slice 20's sibling work; the new test in that file deliberately asserts against a stubbed
-  `fetch` rather than the mocks, and says so inline. **Not fixed here**: correcting the paths
-  changes what the existing test exercises, which is its own change with its own blast radius.
-  Worth doing, and worth grepping the rest of `apps/web/test/` for the same shape while somebody
-  is in there.
-- **`act()` in that file also hides the bug.** The original test does `rerender(...)` and
-  `advanceTimersByTimeAsync(...)` inside **one** `act` block, so the clock advances before the
-  effect that schedules the reaction timer has flushed and the reaction never fires at all. Two
-  separate `act` blocks are the fix (the new test does this). Same family as § 6's note about
-  driving the store twice in one `page.evaluate` — a React commit boundary that is invisible
-  until something depends on it.
+- ~~**Three `vi.mock` calls in `useOfficeRunReactions.test.js` have never mocked anything**~~ and
+  ~~**`act()` in that file also hides the bug**~~ — **both fixed**, and the sweep the entry asked
+  for came back clean. Kept here because the two findings underneath them are the durable part.
+
+  The mocks were **deleted rather than repaired**. Their paths (`../utils/…`, `../state/…`,
+  missing the `src/`) resolved nowhere, and a `vi.mock` whose specifier resolves nowhere is a
+  _silent_ no-op — vitest does not raise, the real module runs, and the suite passes for the
+  wrong reason. Making them live would have stubbed out the very request the file's newer test
+  asserts on and re-mocked the store it imports `_resetForTests` from; since they had never once
+  executed, deleting them is a provably zero-behaviour-change edit and repairing them would not
+  have been. The `act()` split is the half that actually changed behaviour: **measured**, one
+  block leaves `fetch` on **zero** calls and two blocks land exactly **one**, so the older test
+  had been asserting "does not throw" about a code path that never ran. It now asserts the
+  request goes out, which is what makes its "memory read before `planRunReaction`" guard real.
+
+  The sweep found **no others**: 26 relative `vi.mock` specifiers across 324 test files, 3 dead,
+  all of them in this one file. Two apparent hits in `App.test.jsx` and `sessionEventsClient.test.js`
+  were **false positives worth knowing about** — they name `../src/state/diagramSession.js` while
+  the file on disk is `diagramSession.ts`, which is just the TypeScript import convention that
+  Vite resolves. A checker for this class has to map `.js` → `.ts`/`.tsx` or it reports every leaf
+  converted by [`convert-js-leaf-to-ts.md`](recipes/convert-js-leaf-to-ts.md) as broken. That
+  checker is now a permanent sensor — `apps/web/test/viMockPathsResolve.test.js`, which fails with
+  the offending `file:line -> specifier`.
+
 - **The office day tints the windows and nothing else** (slice 20). At 9 pm the panes read as
   the dark outside while the room itself is still lit like a bright afternoon, which is
   incongruous if you look for it. The honest fix is a room-wide grade — a filter or a set of
