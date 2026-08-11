@@ -283,6 +283,51 @@ describe('the office day has a light for every phase (slice 20)', () => {
     expect(ruleBody('.office-floor')).toMatch(/--office-window-tint:\s*#/);
   });
 
+  it('grades the room, not just the panes, at every phase', () => {
+    /*
+     * The slice-20 debt: the day tinted the windows only, so at 9 pm the panes
+     * read as the dark outside while the room they are set into was still lit
+     * like a bright afternoon. Every phase now carries the room's surfaces too,
+     * and the same silent failure applies to each of them — a phase that omits
+     * one inherits the previous phase's value and simply stops changing there.
+     */
+    for (const phase of OFFICE_DAY_PHASES) {
+      const rule = css.match(new RegExp(`\\[data-day-phase='${phase}'\\]\\s*\\{[^}]*\\}`))?.[0];
+      expect(rule, `${phase} has no rule at all`).toBeTruthy();
+      for (const token of ['--office-wall-ne', '--office-wall-nw', '--office-floor-plate']) {
+        expect(rule, `${phase} does not grade ${token}`).toMatch(
+          new RegExp(`${token}:\\s*#[0-9a-f]{3,8}`, 'i')
+        );
+      }
+      // The backdrop the diorama sits on, which is a veil rather than a colour
+      // (midday's value is `transparent`), so it is matched loosely.
+      expect(rule, `${phase} does not grade the surround`).toMatch(/--office-surround-veil:\s*\S/);
+    }
+  });
+
+  it('veils the surround behind the children, never over them', () => {
+    /*
+     * The veil is a *background layer* on `.office-floor`, which paints behind
+     * its own children — so it grades the backdrop and cannot tint the room,
+     * the cast or the chrome. An overlay element would have caught all three,
+     * and the tell would have been amber faces at half four rather than
+     * anything a test asserts.
+     */
+    const floor = ruleBody('.office-floor');
+    expect(floor).toMatch(/--office-surround-veil:\s*transparent/);
+    expect(floor).toMatch(/background:[\s\S]*var\(--office-surround-veil/);
+  });
+
+  it('defaults the room surfaces too, so an unphased mount is unchanged', () => {
+    // Same contract as the pane above: `FloorArrival` mounts a stage with no
+    // phase attribute, and `FloorRoom`'s `var(--token, <literal>)` fallbacks
+    // only cover a mount outside this root entirely.
+    const floor = ruleBody('.office-floor');
+    expect(floor).toMatch(/--office-wall-ne:\s*#/);
+    expect(floor).toMatch(/--office-wall-nw:\s*#/);
+    expect(floor).toMatch(/--office-floor-plate:\s*#/);
+  });
+
   it('never animates the light, so it owes the reduced-motion block nothing', () => {
     // A phase turns over four times a day, so a tween is something practically
     // nobody is ever looking at — and every animated selector on this floor has

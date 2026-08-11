@@ -244,6 +244,26 @@ Every session carries **six independent diagram slots** — `mermaid` (Mermaid t
     One trap it found: a `headwear: null` **cannot take a headset off**, because `PersonaFace`
     resolves `accessoryOverride ?? traits.accessory` and only the literal `'none'` strips a baked
     trait — Dave's headset is his face, not his activity.
+- **The office day's light is a token palette on `[data-day-phase]`, and it must stay one rule
+  per phase.** `--office-window-tint` / `--office-wall-ne` / `--office-wall-nw` /
+  `--office-floor-plate` / `--office-surround-veil` all default on `.office-floor` to the
+  literals `FloorRoom` shipped with, so an unphased mount (first-run `FloorArrival`) is
+  unchanged. `officeFloorStyles.test.js` pins `dayRules.length === OFFICE_DAY_PHASES.length`, so
+  a **new token goes into the five existing phase rules, never into a rule of its own**. Zone
+  plates get no token on purpose — they are alpha washes and re-grade with the plate for free.
+  The surround veil is a **background layer, not an overlay element**: a background paints
+  behind the element's children, so it grades the backdrop and cannot tint the room, the cast or
+  the chrome. None of it is transitioned, which is what keeps it out of the reduced-motion
+  contract. **A blackout is the wrong reflex for `afterHours`** — you are standing in the room,
+  and the 7 %-alpha grid plus dark-glyph/white-halo zone labels both need the light.
+- **Any floor test that _mounts_ rather than calling `floorActivityFor` directly is
+  time-dependent.** The hour is rung 5, above the trait row, so a render test asserting what a
+  character's own row gives them is silently wrong whenever `PHASE_ART` has an entry —
+  `officeFloorActivity.test.jsx` was red for ~7.5 h a day (mugs in `earlyMorning`, empty hands
+  in `standUp`) and survived because CI kept landing in the quiet window. Pin the clock with
+  `vi.useFakeTimers({ shouldAdvanceTime: true, toFake: ['Date'] })` to a **midday** instant —
+  one of the two phases with no `PHASE_ART` — and fake `Date` only, or the floor's poll timer
+  and React's scheduling stop and nothing renders.
 - **Why a colleague is speaking is a wire field, not an inference.** `situation` on
   `POST /api/office/moment` (`OFFICE_MOMENT_SITUATIONS` in shared: `dwell` | `run`) picks one
   rule block in `buildMomentSystemPrompt` and one terse restatement at the end of the user

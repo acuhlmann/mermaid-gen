@@ -938,7 +938,51 @@ diagramSource})` returns counts, labels, a `shape` (`graph` | `list` | `page`), 
     `OfficeFloor.css`, and the `dayPhase` thread through `FloorStage` / `FloorActors` /
     `FloorWanderer`.
 
-**There is no slice 21 yet, and that is deliberate.** The list above was written one slice at
+21. **The room-wide light grade — the hour reaches the room, not just the panes.** ✅ shipped.
+    Slice 20 lit the windows and stopped there, which § 8 recorded the same day: at nine at
+    night three navy panes were set into a room still lit like a bright afternoon. The hour now
+    grades the room's own surfaces too. **Zero LLM budget**, no new state, no new prop — it is
+    the same CSS-all-the-way contract slice 20 established, extended by four tokens.
+
+    **The palette was already forecast, and the shape of it was the easy part.**
+    `--office-window-tint` was described in slice 20 as "the first of what would become a small
+    palette keyed on `[data-day-phase]`", and that is exactly what it became:
+    `--office-wall-ne`, `--office-wall-nw`, `--office-floor-plate` join it, each defaulting on
+    `.office-floor` to the literal `FloorRoom` shipped with, so an unphased mount — the
+    first-run `FloorArrival` stage — is unchanged to the pixel.
+
+    **The zone plates deliberately get no token, and that is not laziness.** Every one of them
+    is an alpha wash (`ZONE_FILL`), so it composites over whatever the plate beneath is lit to
+    and re-grades for free. Tokenising them would have been four more values a phase to keep in
+    step with a colour they already follow.
+
+    **After hours is dimmed, not darkened, for two reasons that agree.** The fiction: you are
+    standing in the room, so the lights are on — what is different about that hour is that the
+    _outside_ is dark, which the panes already say. The mechanics: this floor leans on a
+    7 %-alpha grid and on zone labels drawn as dark glyphs under a white halo, and a blackout
+    breaks both. The picture and the contrast budget wanted the same answer.
+
+    **What the capture taught, and it needed a capture.** With the room graded and the backdrop
+    left alone, after hours came back with **the backdrop brighter than the room** — the light
+    was fixed inside the walls and inverted outside them, which is not something the diff would
+    ever have shown. Hence the fourth token, `--office-surround-veil`, and the one structural
+    decision in the slice: it is a **background layer on `.office-floor`, not an overlay
+    element**. A background paints _behind_ the element's children, so it grades the backdrop
+    the diorama sits on and cannot reach the room, the cast or the chrome — all of which are
+    children, and none of which should be tinted by the hour. An overlay would have caught all
+    three, and the tell would have been amber faces at half four.
+
+    **One test contract shapes the whole edit**: `officeFloorStyles.test.js` asserts
+    `dayRules.length === OFFICE_DAY_PHASES.length`, so a new token goes **into the five existing
+    phase rules** and never into a rule of its own. That is worth knowing before adding a fifth
+    — the obvious instinct (a new block per surface) fails a test whose message is about counts,
+    not about what you were doing.
+
+    Code: the token block + the five `[data-day-phase]` rules in `OfficeFloor.css`, the three
+    `var(--token, <literal>)` fills in `officeFloor/FloorRoom.jsx`, and the grade assertions in
+    `test/officeFloorStyles.test.js`.
+
+**There is no slice 22 yet, and that is deliberate.** The list above was written one slice at
 a time, each defined when it was picked up rather than planned in advance — so "continue with
 slice _n_" only means something once somebody has chosen what _n_ is. § 8 has the candidates,
 a recommendation, and the debts that argue for one over another. Pick from there, write the
@@ -1713,14 +1757,29 @@ Kept here so appetite can pick without re-deriving. Each should stay bound by AD
   `OFFICE_DIAGRAM_SOURCE_MAX_CHARS` — a second copy doubles the payload of a decorative line that
   is capped at `OFFICE_RUN_REACTION_LLM_CAP` per session. Worth revisiting only if something else
   wants the previous source too; a diff computed client-side would be the cheaper shape.
-- **The office day tints the windows and nothing else** (slice 20). At 9 pm the panes read as
-  the dark outside while the room itself is still lit like a bright afternoon, which is
-  incongruous if you look for it. The honest fix is a room-wide grade — a filter or a set of
-  tokens over the floor plate, walls and zone plates — and it was left out on purpose: it
-  touches every surface the floor draws, and `OfficeFloor.css`'s reduced-motion contract plus
-  § 6's palette rules deserve their own pass rather than a rider on a slice about held items.
-  The tokens are already in place for it (`--office-window-tint` is the first of what would
-  become a small palette keyed on `[data-day-phase]`).
+- ~~**The office day tints the windows and nothing else** (slice 20)~~ — ✅ **cleared by slice
+  21**, and it went the way the entry predicted: a set of tokens rather than a filter, the
+  zone plates re-grading for free because they are alpha washes, and no reduced-motion debt
+  because none of it is transitioned. Two things it taught that the entry did not anticipate.
+  **The backdrop is part of the room's light even though it is not part of the room** — grading
+  only inside the walls left after hours with a backdrop brighter than the floor, an inversion
+  no diff shows and only a capture finds; the fix is a fourth token applied as a **background
+  layer**, which paints behind `.office-floor`'s children and so cannot tint the cast or the
+  chrome. And **after hours wants dimming, not darkness**: you are standing in the room, so the
+  lights are on, and a blackout would break both the 7 %-alpha grid and the dark-glyph/white-halo
+  zone labels.
+- **The render tests on the floor read the wall clock, and one of them was wrong for seven and a
+  half hours a day.** Found while verifying slice 21, unrelated to it, and fixed in the same
+  change. `officeFloorActivity.test.jsx`'s `describe('the drawing')` mounts the real floor, so
+  the hour reaches it — and the hour is rung 5 of `floorActivityFor`, **above** the trait row.
+  During `earlyMorning` the whole cast holds `PHASE_ART`'s mug, so "gives the cast what their row
+  says they are holding" asserted Russ's phone against a mug and failed; during `standUp` nobody
+  holds anything, so "actually draws the item" finds no art. Green only during `midday` and
+  `afterHours` — the two phases with no `PHASE_ART` — which is why it survived: CI had always
+  happened to run in the quiet window. Now pinned to midday with `toFake: ['Date']` only, so the
+  floor's poll timer and React's scheduling keep running. **The general trap: any floor test that
+  mounts rather than calling `floorActivityFor` directly is time-dependent unless it pins the
+  clock**, and the failure is a wrong-looking assertion rather than anything that mentions time.
 - **A moving balloon covers bystanders' heads and nothing fixes that today** (§ 6 rule 29).
   Measured on slice 18's capture: 1–3 seated colleagues under the balloon during transit,
   whether or not `bubbleAlignForSpeaker` is applied, because that helper assumes a speaker who

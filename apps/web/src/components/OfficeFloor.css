@@ -13,8 +13,18 @@
   flex-direction: column;
   overflow: hidden;
   /* Opaque: this is a view, not an overlay — the workstation screen is behind
-     it and must not show through the carpet. */
+     it and must not show through the carpet.
+
+     The first layer is the day's veil (see "the office day" below). It is a
+     background layer rather than an overlay element on purpose: a background
+     paints *behind* the element's children, so it grades the backdrop the
+     diorama sits on and never touches the room, the cast or the chrome — all
+     of which are children and none of which should be tinted by the hour. */
   background:
+    linear-gradient(
+      var(--office-surround-veil, transparent),
+      var(--office-surround-veil, transparent)
+    ),
     radial-gradient(circle at 22% 12%, rgba(191, 219, 254, 0.55), transparent 42rem),
     linear-gradient(168deg, #e7edf7 0%, #dde5f2 46%, #cfd9ea 100%);
   color: var(--text);
@@ -23,6 +33,16 @@
      existed. See "the office day" below; a mount with no `data-day-phase`
      (the first-run `FloorArrival` stage) keeps this one. */
   --office-window-tint: #bfe4fb;
+  /* The room's own surfaces, same contract as the pane above and the same
+     defaults `FloorRoom` shipped with, so an unphased mount is unchanged.
+     The zone plates deliberately get no token: they are alpha washes over
+     the plate, so they re-grade for free when it moves. */
+  --office-wall-ne: #dfe6f1;
+  --office-wall-nw: #cdd7e6;
+  --office-floor-plate: #eef2f8;
+  /* Transparent by default, which is also midday's value: an unphased mount
+     gets exactly the backdrop this sheet has always painted. */
+  --office-surround-veil: transparent;
   animation: office-floor-stand-up 260ms ease-out;
 }
 
@@ -56,25 +76,49 @@
 /* Low cool sun — the room is lit but the day has not started. */
 .office-floor[data-day-phase='earlyMorning'] {
   --office-window-tint: #c3ddf7;
+  --office-wall-ne: #d8e1ef;
+  --office-wall-nw: #c5cfe1;
+  --office-floor-plate: #e6ecf6;
+  --office-surround-veil: rgba(120, 140, 178, 0.14);
 }
 
 .office-floor[data-day-phase='standUp'] {
   --office-window-tint: #c9e8fc;
+  --office-wall-ne: #dde5f2;
+  --office-wall-nw: #cad4e5;
+  --office-floor-plate: #ebf1f9;
+  --office-surround-veil: rgba(120, 140, 178, 0.07);
 }
 
 /* Flat overhead glare: the brightest and least interesting hour. */
 .office-floor[data-day-phase='midday'] {
   --office-window-tint: #dcf1ff;
+  --office-wall-ne: #e3e9f3;
+  --office-wall-nw: #d1dae8;
+  --office-floor-plate: #f2f5fa;
+  --office-surround-veil: transparent;
 }
 
 /* The warm end of the arc — long light across the car park. */
 .office-floor[data-day-phase='windDown'] {
   --office-window-tint: #f7d4a2;
+  --office-wall-ne: #eee3d5;
+  --office-wall-nw: #dccebc;
+  --office-floor-plate: #f6f0e6;
+  --office-surround-veil: rgba(214, 150, 74, 0.16);
 }
 
-/* Nobody should be here. The panes read as the dark outside, not as glass. */
+/* Nobody should be here. The panes read as the dark outside, not as glass —
+   but the room is dimmed and cooled rather than darkened, because you are
+   standing in it, which means the lights are on. A blackout would also break
+   two contrast guarantees this floor leans on: the grid is 7%-alpha dark and
+   the zone labels are dark glyphs under a white halo. */
 .office-floor[data-day-phase='afterHours'] {
   --office-window-tint: #41597a;
+  --office-wall-ne: #c2cadb;
+  --office-wall-nw: #aeb8cc;
+  --office-floor-plate: #d3dae7;
+  --office-surround-veil: rgba(44, 60, 90, 0.36);
 }
 
 /* ── stand up / sit down: the view transition (§ 1a) ─────────────────────

@@ -74,14 +74,18 @@ export function FloorRoom({ youTile = null }) {
       aria-hidden="true"
       focusable="false"
     >
-      {/* Back walls, drawn before the floor so the floor's edge sits over them. */}
+      {/* Back walls, drawn before the floor so the floor's edge sits over them.
+          Same CSS-variable contract as the panes below: the hour lands on
+          `data-day-phase` at the floor root and the light stays a stylesheet's
+          business. Fallbacks are the literals these shipped with, so a mount
+          outside that root (the first-run `FloorArrival` stage) is unchanged. */}
       <polygon
         points={poly([n, e, wallPoint('ne', GRID_W, WALL_H), wallPoint('ne', 0, WALL_H)])}
-        fill="#dfe6f1"
+        fill="var(--office-wall-ne, #dfe6f1)"
       />
       <polygon
         points={poly([n, w, wallPoint('nw', GRID_H, WALL_H), wallPoint('nw', 0, WALL_H)])}
-        fill="#cdd7e6"
+        fill="var(--office-wall-nw, #cdd7e6)"
       />
       {/* The fill is a CSS variable rather than a literal so the office day can
           move it (slice 20): the hour lands on `data-day-phase` at the floor
@@ -97,8 +101,12 @@ export function FloorRoom({ youTile = null }) {
         />
       ))}
 
-      <polygon points={poly([n, e, s, w])} fill="#eef2f8" />
+      <polygon points={poly([n, e, s, w])} fill="var(--office-floor-plate, #eef2f8)" />
 
+      {/* The zone plates stay literal on purpose: every one is an alpha wash,
+          so they composite over whatever the plate above is currently lit to
+          and re-grade with it for free. Tokenising them would be five more
+          values a phase to keep in step with a colour they already follow. */}
       {FLOOR_ZONES.map((zone) => (
         <polygon key={zone.id} points={poly(zonePolygon(zone.rect))} fill={ZONE_FILL[zone.tone]} />
       ))}

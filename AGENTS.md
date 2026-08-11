@@ -276,6 +276,23 @@ Production deploy notes (Cloud Run, billing credits, GitHub Actions CI, optional
   anybody a moment is drawing gets no phase. Trap: `headwear: null` cannot remove a headset —
   `PersonaFace` resolves `accessoryOverride ?? traits.accessory`, and only `'none'` strips a
   baked face trait.
+- **The light is a token palette on `[data-day-phase]`, one rule per phase.**
+  `--office-window-tint` / `--office-wall-ne` / `--office-wall-nw` / `--office-floor-plate` /
+  `--office-surround-veil` default on `.office-floor` to the literals `FloorRoom` shipped with,
+  so an unphased mount is unchanged. `officeFloorStyles.test.js` pins
+  `dayRules.length === OFFICE_DAY_PHASES.length`, so a **new token goes into the five existing
+  phase rules, never a rule of its own**. Zone plates need no token (alpha washes re-grade with
+  the plate). The surround veil is a **background layer, not an overlay element** — a background
+  paints behind the element's children, so it grades the backdrop without tinting the cast or
+  the chrome. Nothing here is transitioned, which keeps it out of the reduced-motion contract;
+  and `afterHours` dims rather than blacks out, because the 7 %-alpha grid and the
+  dark-glyph/white-halo zone labels both need the light.
+- **A floor test that _mounts_ is time-dependent; one that calls `floorActivityFor` is not.**
+  The hour is rung 5, above the trait row, so a render test asserting a character's baked row is
+  silently wrong whenever `PHASE_ART` has an entry — `officeFloorActivity.test.jsx` was red for
+  ~7.5 h a day and survived only because CI kept landing in `midday`/`afterHours`. Pin with
+  `vi.useFakeTimers({ shouldAdvanceTime: true, toFake: ['Date'] })` to a midday instant, faking
+  `Date` **only**, or the poll timer and React's scheduling stop and nothing renders.
 - **Why a colleague is speaking is a wire field.** `situation` on `POST /api/office/moment`
   (`OFFICE_MOMENT_SITUATIONS` in `packages/shared`: `dwell` | `run`) selects one rule block in
   `buildMomentSystemPrompt` plus a terse restatement at the end of the user prompt. It is an
