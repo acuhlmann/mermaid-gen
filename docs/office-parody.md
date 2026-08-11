@@ -1322,6 +1322,22 @@ the backburnered multi-human future is [`multi-human-office.md`](multi-human-off
     been standing next to somebody for five seconds) and `run` (a run has this second landed, the
     trigger `useOfficeRunReactions` exists for and never told anybody about). Adding a third is a
     constant, a rule block and a reminder line.
+  - **A situation may say why you are speaking, never what you cannot see.** Learned by
+    auditioning the field for the first time (36 real DeepSeek calls, three colleagues, one
+    _fixed_ diagram, `situation` the only variable). `dwell` read right out of the box — 12 of 12
+    acknowledged the hovering in voice. `run` did not: it had ended the user prompt with "React to
+    what changed", and since the prompt carries **no diff — only the current diagram** — the model
+    obligingly invented the change in **8 of 12** samples ("you added the rejection branch", "the
+    archive got a cylinder", "the new validate branch"), every one of them describing something
+    that had always been there. The same prompt with **no situation at all fabricated 0 of 12**,
+    so the field was _causing_ the failure, and the block's own guard against blandness ("React to
+    the WORK, not to the fact that work happened") made the invention more specific rather than
+    less. This is strictly worse than the non-sequitur `situation` was added to fix: a cold open
+    reads as absent-minded, while a confident wrong account of what you just did reads as a lie,
+    in the same spotlight. The fix is one bullet and one reminder line telling the model it can
+    see the diagram only as it stands — after it, 0 of 12, with the reactions no less specific.
+    The general rule: tell a situation the **circumstance** (it is why they are pinging _now_);
+    never tell it a **delta the prompt does not carry**.
 
 - **Their own work.** Each character carries a slowly-evolving _fictional_ workload they
   reference and can discuss when asked — conversational color (and, later, desk-peeking

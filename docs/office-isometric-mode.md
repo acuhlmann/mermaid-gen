@@ -1692,6 +1692,27 @@ Kept here so appetite can pick without re-deriving. Each should stay bound by AD
   checker is now a permanent sensor — `apps/web/test/viMockPathsResolve.test.js`, which fails with
   the offending `file:line -> specifier`.
 
+- ~~**No line has ever been generated through `situation`**~~ — ✅ **auditioned**, and it was
+  worth doing: the field shipped unheard across three sessions (no key, then a reachable key
+  behind a blocked host), and the first 36 real calls found a defect that reading the prompt had
+  not. 3 colleagues × {`dwell`, `run`, absent} × 4 samples, one **fixed** diagram, `situation` the
+  only variable. **`dwell` needs no tuning** — 12 of 12 acknowledged the hovering, in voice, short,
+  spoken-aloud rather than typed. **`run` was inventing the diff in 8 of 12** (0 of 12 in the
+  control arm), because its reminder said "React to what changed" into a prompt that carries no
+  diff. Fixed in the rule block + reminder; re-auditioned at 0 of 12 with the specificity intact.
+  Full reasoning and the general rule it yields are in
+  [`office-parody.md`](office-parody.md) § 11 under `situation`. Two durable notes: an audition
+  is cheap and finds what review does not (the fabrication is invisible unless you hold the
+  diagram fixed and compare arms), and **the control arm is the load-bearing half** — without it
+  the 8 of 12 looks like the model being loose rather than the field causing it.
+- **`run` still cannot see what changed, and one day it should** — the branch not taken above.
+  The honest version sends the pre-run source (or a diff) so the reaction can name the change
+  truthfully instead of being told not to. It was declined for this pass on cost, not taste:
+  `readSlotContext` reads only the current slot through a getter, so there is no pre-run snapshot
+  anywhere in that path to send, and `diagramSource` is already truncated by
+  `OFFICE_DIAGRAM_SOURCE_MAX_CHARS` — a second copy doubles the payload of a decorative line that
+  is capped at `OFFICE_RUN_REACTION_LLM_CAP` per session. Worth revisiting only if something else
+  wants the previous source too; a diff computed client-side would be the cheaper shape.
 - **The office day tints the windows and nothing else** (slice 20). At 9 pm the panes read as
   the dark outside while the room itself is still lit like a bright afternoon, which is
   incongruous if you look for it. The honest fix is a room-wide grade — a filter or a set of

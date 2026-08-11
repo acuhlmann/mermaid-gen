@@ -251,7 +251,20 @@ Every session carries **six independent diagram slots** — `mermaid` (Mermaid t
   and cannot write into it. **Absent is the default** and keeps the cold-open "MUST SURPRISE"
   framing every ambient moment wants; **a reply beats a situation**, since the dwell block's
   premise is that nothing was said. Adding a third is a constant, a rule block and a reminder
-  line. See docs/office-parody.md §11.
+  line. **A situation may state the circumstance, never a delta the prompt does not carry** —
+  `run` used to end with "React to what changed" while the prompt ships only the current diagram,
+  and the first audition measured the model inventing that change in **8 of 12** samples against a
+  fixed diagram (**0 of 12** with no situation, so the field caused it). Naming the wrong change
+  to somebody looking at their own work is worse than the non-sequitur the field exists to fix.
+  See docs/office-parody.md §11.
+- **Prompt changes are auditionable now, and a fixed fixture + a control arm is the whole
+  method.** `api.deepseek.com` is reachable from the session proxy and `DEEPSEEK_API_KEY` is
+  live, so an office prompt can be driven for real instead of reasoned about: replicate the
+  route handler in a throwaway script (`buildMoment*Prompt` → `createOfficeChatModel` →
+  `parseMomentReply`), hold the diagram **constant**, vary one field, sample ~4× per arm, read
+  the arms side by side. The control arm is load-bearing — a failure rate means nothing without
+  it. Check reachability before promising an audition (`curl -sS -o /dev/null -w "%{http_code}"
+https://api.deepseek.com/` — 401 is reachable, 000 is blocked); never route around a block.
 - **Office `diagramSource` is truncated, not rejected.** Cap is `OFFICE_DIAGRAM_SOURCE_MAX_CHARS`
   (shared). Tightening Zod to 400 oversized anything/forms slots turns meetings into Pam CANCELLED
   emails.

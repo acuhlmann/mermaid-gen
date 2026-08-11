@@ -191,6 +191,12 @@ test('a situation tells the model why it is speaking, and overrides the cold ope
   assert.match(run, /just finished a change to the diagram/i);
   // "Nice job" is the exact failure this block exists to prevent.
   assert.match(run, /React to the WORK/);
+  // And this is the failure the *fix* for that one caused: told a change had
+  // landed and to react to it, with no diff in the prompt to read, the model
+  // fabricated the change 8 times in 12 against a fixed diagram (0 in 12 with
+  // no situation at all). The block must keep saying it cannot see the delta.
+  assert.match(run, /did NOT see what changed/);
+  assert.match(run, /no "you added…"/);
 
   // An ambient moment is a cold open and must stay one: the whole budget split
   // in § 11 rests on a timer-fired moment reading differently from one the user
@@ -242,7 +248,12 @@ test('the situation is restated last in the user prompt, where recency reaches s
     recentMoments: [],
     situation: 'run'
   });
-  assert.match(run, /React to what changed/);
+  // The reminder may tell the model the work just landed, but never to react to
+  // the delta: there is no diff in this prompt, and asking for one is what made
+  // the model invent it (see the audition note on `MOMENT_SITUATION_RULES`).
+  assert.match(run, /just this second finished working on the diagram/);
+  assert.match(run, /did NOT see what changed/);
+  assert.doesNotMatch(run, /React to what changed/);
 
   const ambient = buildMomentUserPrompt({
     contentType: 'mermaid',

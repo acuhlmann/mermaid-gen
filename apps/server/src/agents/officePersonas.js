@@ -521,6 +521,17 @@ recurring corporate invite, e.g. "Architecture Review Board (steering)").`
  * that. A paragraph of stage direction would start competing with the persona
  * card above it, which is the thing actually making the line funny.
  *
+ * The `run` block carries one bullet that reads like belt-and-braces and is
+ * not. **Measured** on the first audition of this field (36 real calls, one
+ * fixed diagram, `situation` the only variable): telling the model a change had
+ * just landed and to "react to what changed" made it *invent* the change 8 times
+ * in 12, while the same prompt with no situation at all fabricated 0 in 12.
+ * There is no diff in this prompt — only the current diagram — so an instruction
+ * to react to the delta is an instruction to guess at it, and "React to the WORK,
+ * not to the fact that work happened" pushed the guess toward naming a specific
+ * node as if it were new. The circumstance is worth telling the model (it is why
+ * they are pinging *now*); the delta is not, because they cannot see it.
+ *
  * @type {Record<string, string>}
  */
 const MOMENT_SITUATION_RULES = {
@@ -538,8 +549,12 @@ WHY YOU ARE SPEAKING (overrides the usual "surprise me" cold-open rule):
 WHY YOU ARE SPEAKING (overrides the usual "surprise me" cold-open rule):
 - The user just finished a change to the diagram and it has this second landed on their
   screen. You noticed. That is why you are pinging them now rather than at any other moment.
-- React to the WORK, not to the fact that work happened: "nice job" is what a bot says.
-  Reference something visible in it, in character.
+- You can see the diagram ONLY as it stands now. You did NOT see what changed, so never say
+  what they added, renamed, moved, removed or fixed — no "you added…", no "the new…", no
+  "finally…", no "now it has…". Naming the wrong change is the worst line you could send to
+  somebody looking straight at the work they just did.
+- React to the WORK AS IT STANDS, not to the fact that work happened: "nice job" is what a
+  bot says. Reference something visible in it, in character.
 - Do not congratulate them on shipping and do not claim you had anything to do with it.`
 };
 
@@ -557,7 +572,7 @@ export function buildMomentSituationReminder(situation) {
     return '\nThey have said NOTHING — they are just standing next to your desk. Answer the hovering.';
   }
   if (situation === 'run') {
-    return '\nThey just this second finished changing the diagram above. React to what changed.';
+    return '\nThey just this second finished working on the diagram above. React to how it stands now — you did NOT see what changed, so do not name it.';
   }
   return '';
 }
