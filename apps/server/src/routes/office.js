@@ -73,6 +73,16 @@ const OfficeThreadLineSchema = z.object({
  */
 const OfficeLogField = z.array(z.string().max(200)).max(12).default([]);
 
+/**
+ * The speaking colleague's own history with the user, from the same log. Same
+ * shape and the same both-sides-must-match reasoning as `OfficeLogField`, with
+ * its own (much smaller) line cap mirroring `OFFICE_RELATIONSHIP_MAX_LINES`.
+ *
+ * Only `/moment` takes it: it is the one office surface with a single speaker,
+ * and "your history with them" has no referent across a meeting roster.
+ */
+const OfficeRelationshipField = z.array(z.string().max(200)).max(3).default([]);
+
 const ModelProfileField = ModelProfileSchema.optional();
 
 const OfficeMomentRequestSchema = z.object({
@@ -83,6 +93,7 @@ const OfficeMomentRequestSchema = z.object({
   visibleLabels: z.array(z.string().max(200)).max(60).default([]),
   recentMoments: z.array(z.string().max(400)).max(5).default([]),
   officeLog: OfficeLogField,
+  officeRelationship: OfficeRelationshipField,
   uiLocale: UiLocaleField,
   userName: z.string().max(80).optional(),
   userMessage: z.string().max(400).optional(),

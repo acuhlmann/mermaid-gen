@@ -173,6 +173,20 @@ Every session carries **six independent diagram slots** — `mermaid` (Mermaid t
   in `_lib/` because `officePersonas.js` and `advisorPrompts.js` are deliberately separate
   prompt systems. Pass `purpose: 'work'` for the advisor: its 80-char envelope cannot afford the
   dialogue rule, so it is told to use the log **only** to avoid re-proposing what was just done.
+- **The log is read twice, and the second read is a projection, not a store.**
+  `buildOfficeRelationship(entries, colleagueId)` (`officeLogDigest.js`, bound as
+  `getOfficeRelationshipWith` in the store) answers "what have you and I been to each other
+  today", which the shared digest structurally cannot: that one is capped at 12 lines / 700
+  chars and drops from the front, so a colleague's own history scrolls off by mid-afternoon.
+  Ships as `officeRelationship` on `/moment` **only** — the one surface with a single speaker —
+  and covers only the four kinds carrying a `colleagueId` (`email`, `chat`, `walkby`, `pitch`).
+  `battle` is excluded on purpose: its id is in `detail` and means _winner_.
+- **In a prompt rule, prohibitions crowd out a hedged permission — lead with the register.**
+  Measured on the relationship block: three "do NOT"s against one "let this colour how you
+  sound" auditioned **inert**, its arm indistinguishable from the control. The killer is a
+  blanket escape hatch ("say nothing if nothing here earns it") — a model takes that branch
+  every time, and the block is only built when there _is_ something, so the branch was never
+  worth offering. Put the wanted behaviour first and in the imperative, keep one guard.
 - **A meeting's roster and its speakers are two different lists.** `POST /api/office/meeting` takes
   `attendees` (scripted, bounded by `MEETING_MAX_ATTENDEES`) and an optional `audience` (present,
   silent — the all-hands crowd, §10.4). Do **not** raise `MEETING_MAX_ATTENDEES` to seat a crowd:

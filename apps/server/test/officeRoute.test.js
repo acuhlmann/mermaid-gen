@@ -83,6 +83,44 @@ test('office moment accepts optional IM reply context fields', async () => {
   }
 });
 
+test('office moment accepts a capped relationship and refuses an oversized one', async () => {
+  const { port, closeServer } = await bootServer();
+  try {
+    // Optional with an empty default: a client that has never heard of the
+    // field, or a colleague the user has not dealt with today, is a normal
+    // request rather than a degraded one.
+    const none = await post(port, 'moment', {
+      kind: 'im',
+      colleagueId: 'intern',
+      diagramSource: 'flowchart TD\n A-->B'
+    });
+    assert.equal(none.status, 503, 'no relationship is a normal request');
+
+    const withHistory = await post(port, 'moment', {
+      kind: 'im',
+      colleagueId: 'intern',
+      diagramSource: 'flowchart TD\n A-->B',
+      officeRelationship: [
+        'you and intern have crossed paths 2 times today, most recently at 09:40',
+        'that was: 1 email from them, 1 chat'
+      ]
+    });
+    assert.equal(withHistory.status, 503, 'a relationship reaches the model gate');
+
+    // The cap must match `OFFICE_RELATIONSHIP_MAX_LINES` on the client, or a
+    // drifting client turns into a 400 the user experiences as office silence.
+    const tooMany = await post(port, 'moment', {
+      kind: 'im',
+      colleagueId: 'intern',
+      diagramSource: 'flowchart TD\n A-->B',
+      officeRelationship: ['a', 'b', 'c', 'd']
+    });
+    assert.equal(tooMany.status, 400);
+  } finally {
+    await closeServer();
+  }
+});
+
 test('office moment takes a bounded situation and refuses an invented one', async () => {
   const { port, closeServer } = await bootServer();
   try {

@@ -3,7 +3,9 @@ import {
   OFFICE_LOG_DIGEST_MAX_CHARS,
   OFFICE_LOG_DIGEST_MAX_LINES,
   OFFICE_LOG_LINE_MAX_CHARS,
-  buildOfficeLogDigest
+  OFFICE_RELATIONSHIP_MAX_LINES,
+  buildOfficeLogDigest,
+  buildOfficeRelationship
 } from '../src/utils/officeLogDigest.js';
 
 /**
@@ -112,5 +114,89 @@ describe('buildOfficeLogDigest', () => {
     }
     const total = digest.reduce((sum, line) => sum + line.length + 1, 0);
     expect(total).toBeLessThanOrEqual(OFFICE_LOG_DIGEST_MAX_CHARS);
+  });
+});
+
+describe('buildOfficeRelationship', () => {
+  it('counts only this colleague, and only the kinds that name one', () => {
+    const lines = buildOfficeRelationship(
+      [
+        { at: at(9, 2), kind: 'email', colleagueId: 'gilfoyle' },
+        // Another colleague's traffic must not reach Gilfoyle's history.
+        { at: at(9, 5), kind: 'email', colleagueId: 'jared' },
+        // No colleagueId at all — the office's business, not a relationship.
+        { at: at(9, 8), kind: 'run', detail: 'mermaid' },
+        { at: at(9, 40), kind: 'chat', colleagueId: 'gilfoyle' }
+      ],
+      'gilfoyle'
+    );
+    expect(lines[0]).toBe(
+      'you and gilfoyle have crossed paths 2 times today, most recently at 09:40'
+    );
+    // Noun phrases with counts: who did what stays unambiguous across items.
+    expect(lines[1]).toBe('that was: 1 email from them, 1 chat');
+  });
+
+  it('is empty for somebody with no history, so the block is dropped', () => {
+    // "We have not spoken today" is not a thing anybody remarks on in an office
+    // they have been sitting in all day — the caller drops the heading instead.
+    expect(
+      buildOfficeRelationship([{ at: at(9, 0), kind: 'email', colleagueId: 'jared' }], 'gilfoyle')
+    ).toEqual([]);
+    expect(buildOfficeRelationship([], 'gilfoyle')).toEqual([]);
+    expect(buildOfficeRelationship(undefined, 'gilfoyle')).toEqual([]);
+    expect(
+      buildOfficeRelationship([{ at: at(9, 0), kind: 'email', colleagueId: 'jared' }], '')
+    ).toEqual([]);
+  });
+
+  it('says a single meeting once rather than twice', () => {
+    // "crossed paths once" followed by "that was: 1 email" is the same fact
+    // stated twice, which is exactly the padding a small prompt cannot afford.
+    const lines = buildOfficeRelationship(
+      [{ at: at(11, 30), kind: 'walkby', colleagueId: 'gilfoyle' }],
+      'gilfoyle'
+    );
+    expect(lines).toEqual(['you and gilfoyle have crossed paths once today, at 11:30']);
+  });
+
+  it('gives a taken suggestion its own line, because it changed the work', () => {
+    const lines = buildOfficeRelationship(
+      [
+        { at: at(10, 0), kind: 'pitch', colleagueId: 'gilfoyle' },
+        { at: at(10, 5), kind: 'chat', colleagueId: 'gilfoyle' }
+      ],
+      'gilfoyle'
+    );
+    expect(lines.at(-1)).toBe("you took gilfoyle's suggestion earlier");
+
+    const twice = buildOfficeRelationship(
+      [
+        { at: at(10, 0), kind: 'pitch', colleagueId: 'gilfoyle' },
+        { at: at(12, 0), kind: 'pitch', colleagueId: 'gilfoyle' }
+      ],
+      'gilfoyle'
+    );
+    expect(twice.at(-1)).toBe("you have taken 2 of gilfoyle's suggestions");
+  });
+
+  it('leaves a cubicle battle out, because its colleague is the winner not the correspondent', () => {
+    // `battle` puts an id in `detail`, not `colleagueId`. Counting it would mean
+    // reading one kind's detail as an id, and the fact is about the argument
+    // rather than about the two of you — the global digest already says who won.
+    expect(
+      buildOfficeRelationship([{ at: at(9, 0), kind: 'battle', detail: 'gilfoyle' }], 'gilfoyle')
+    ).toEqual([]);
+  });
+
+  it('stays inside its line and count caps', () => {
+    const entries = [];
+    for (let i = 0; i < 40; i += 1) {
+      entries.push({ at: at(9, 0), kind: 'chat', colleagueId: 'gilfoyle' });
+      entries.push({ at: at(9, 1), kind: 'pitch', colleagueId: 'gilfoyle' });
+    }
+    const lines = buildOfficeRelationship(entries, 'gilfoyle');
+    expect(lines.length).toBeLessThanOrEqual(OFFICE_RELATIONSHIP_MAX_LINES);
+    for (const line of lines) expect(line.length).toBeLessThanOrEqual(OFFICE_LOG_LINE_MAX_CHARS);
   });
 });
