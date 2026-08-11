@@ -351,6 +351,36 @@ https://api.deepseek.com/` — 401 is reachable, 000 is blocked); never route ar
   the target needs `floorState`, which `useFloorAway` returns, and `holdId` is one of its
   arguments — so a passing colleague can finish their errand and leave mid-countdown, which is
   accepted rather than unfixed.
+- **The cast may talk to each other, and _your position_ is the whole licence.** Slice 22 has a
+  wanderer who settles at a prop trade two canned lines with whoever sits beside it — the first
+  line in this office not addressed to you. It does not contradict "don't give ambience a second
+  reason to talk" **only** because no exchange exists unless you are stood in earshot, so the
+  room never chatters to itself in a corner you are not in. Delete that gate and it still looks
+  right in every screenshot while becoming exactly the timer-driven chatter the program spent
+  eight slices unwinding; `officeFloorContracts.test.js` pins it. Two rules ride along: an
+  overheard line **may never ask for anything** (no Do-it, no thread, no unread count — the
+  moment it does it is a walk-by, which belongs in the moment store), and it is **canned**, like
+  the other two overheard performances (coffee, battles). Who replies is derived from the layout
+  (`shopTalkPartnerFor` — nearest seat within `NAME_CHIP_RANGE_TILES` of the _mark_), which is
+  why the copy bank is keyed by prop: the prop picks the voice.
+- **`NAME_CHIP_RANGE_TILES` and `EARSHOT_RANGE_TILES` are two rungs of one ladder.** Inside the
+  chip range somebody talks _to_ you (slice 19); between there and earshot (3) you overhear two
+  others (slice 22); past it the room is quiet. Each rung is defined as **what the one inside it
+  is not** — an exchange refuses to exist while you are within a tile of either speaker — and
+  that is the only thing stopping a single approach producing a dwell remark _and_ a two-hander
+  inside five seconds. The inner bound is measured **per speaker, not to the mark** (the replier
+  sits a tile off it, so you can be two tiles from the whiteboard and shoulder to shoulder with
+  Jared). Assert any new rung over **every standable tile**, not a sample: what breaks it is a
+  layout change. Two traps in doing that — `isStandableTile` takes a **tile object**, not `(x,
+y)`, so the obvious sweep silently iterates an empty list; and pacing the exchange through
+  `useScenePacing` needs a narrator **wrapper** returning `{spoken:false}`, never `undefined`,
+  or every line reveals at once and two balloons land in one square of screen.
+- **A sweep over a derived set needs a companion assertion that the set is non-empty.** Slice 22
+  shipped two probes that passed while examining nothing — the `isStandableTile` one above, and a
+  DOM overlap scan keyed on a class that does not exist (`covers no heads` was true because it
+  found no heads). Same family as the `vi.mock` paths that resolve nowhere: green for the wrong
+  reason. Pair every loop with a coverage claim, and get one positive hit out of a DOM probe
+  before trusting a negative.
 - **A moment's cast walks to it and walks home; the desk stays empty for the whole trip.**
   `officeFloorCommute.js` is the pure `out ▸ there ▸ home ▸ gone` machine, `useFloorCommute` holds
   it, and `useFloorAway` merges the commuting ids into `awayIds` — miss that merge and a scene

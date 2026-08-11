@@ -282,6 +282,36 @@ describe('office locale bundles', () => {
     }
   });
 
+  /*
+   * Slice 22, and the same failure mode as `interrupt` above with one extra way
+   * to go wrong: this bank is **pairs**, so a locale can be present, the right
+   * length, fully translated — and still ship an entry with one line in it,
+   * which `shopTalkExchange` drops on the floor. The result is a colleague who
+   * opens a conversation nobody answers, in that language only.
+   *
+   * Prop keys are pinned as a set rather than counted because they are not
+   * decorative: `shopTalkPartnerFor` derives *who replies* from the layout, and
+   * the key is what decides which voice the reply is written in. A locale
+   * missing `printer` is not a shorter bank, it is Ticket Bot Dave gone silent
+   * at his own desk.
+   */
+  it.each(LOCALES)('carries both halves of every overheard exchange (%s)', (locale) => {
+    const shopTalk = getUiLocaleBundle(locale).office.OFFICE_CHROME_COPY.floor.shopTalk;
+    const en = OFFICE_CHROME_COPY.floor.shopTalk;
+    expect(Object.keys(shopTalk ?? {}).sort(), `${locale} shopTalk props`).toEqual(
+      Object.keys(en).sort()
+    );
+    for (const [kind, pairs] of Object.entries(en)) {
+      expect(shopTalk[kind]?.length ?? 0, `${locale} shopTalk.${kind}`).toBe(pairs.length);
+      expect(shopTalk[kind], `${locale} shopTalk.${kind} untranslated`).not.toEqual(pairs);
+      for (const [index, pair] of shopTalk[kind].entries()) {
+        expect(pair, `${locale} shopTalk.${kind}[${index}] is not a pair`).toHaveLength(2);
+        for (const line of pair) expect(typeof line).toBe('string');
+        expect(pair.every((line) => line.trim().length > 0)).toBe(true);
+      }
+    }
+  });
+
   it('routes localized copy through the officeCast accessors', () => {
     setActiveOfficeBundle(getUiLocaleBundle('zh-CN').office);
     expect(officeEmailTemplates()[0].subject).toContain('冰箱');

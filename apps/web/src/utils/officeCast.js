@@ -2434,6 +2434,73 @@ export const OFFICE_CHROME_COPY = {
         'You first. It is fine. It is completely fine.'
       ]
     },
+    /*
+     * Shop talk — a conversation you are near rather than in (slice 22). Keyed
+     * by the prop somebody wandered to, because the prop decides *who answers*:
+     * the room puts Gary a tile from the coffee machine, Ticket Bot Dave a tile
+     * from the printer and the pod engineers a tile from the whiteboard, so a
+     * bank written per place is a bank written in the replier's voice for free.
+     * `shopTalkPartnerFor` derives that pairing from the layout — these three
+     * keys follow it rather than declaring it, and moving a desk moves the
+     * voice these lines land in.
+     *
+     * Each entry is an **[opener, reply] pair**, and the pairing is the whole
+     * point: a two-line exchange only reads as a conversation if the second
+     * line answers the first, so two independent rolls out of two banks would
+     * produce a non-sequitur every time. The wanderer opens because they are the
+     * one who just walked up.
+     *
+     * Nothing here is addressed to the user and nothing invites them in — no
+     * question they could answer, no Do-it, no thread. That is the line between
+     * this and a walk-by, and it is a copy rule as much as a wiring one: an
+     * opener that turned to camera would make the exchange a moment, and moments
+     * belong in the store.
+     *
+     * `{prop}` is available and mostly unused: at these three places the machine
+     * is what the conversation is *about*, so naming it in the sentence reads as
+     * a stage direction. It stays wired for the locales and for a fourth prop.
+     */
+    shopTalk: {
+      coffeeMachine: [
+        [
+          'Is it meant to be making that noise?',
+          'It has made that noise since March. I have logged it twice. It is now load-bearing.'
+        ],
+        [
+          'There is no oat milk again.',
+          'There was oat milk once. That was the pilot. The pilot was not renewed.'
+        ],
+        ['Someone has left a mug in the sink.', 'I know whose it is. I am letting it develop.']
+      ],
+      printer: [
+        [
+          'It says PC LOAD LETTER. What does that mean?',
+          'Ticket #48314 opened. Category: printer. Status: awaiting user. Have you tried the other tray.'
+        ],
+        [
+          'It is printing everything sideways.',
+          'That is by design. Closed as WONTFIX. Please rate this interaction: 🔥'
+        ],
+        [
+          'Did my thing come out?',
+          'Your thing is in the queue. The queue is 212 documents. Most of them are the same document.'
+        ]
+      ],
+      whiteboard: [
+        [
+          'Is anyone actually using this board?',
+          'Do not erase it. Do NOT erase it. Half of that is still in production.'
+        ],
+        [
+          'What is this arrow meant to mean?',
+          'That arrow predates me. I stopped asking in my second week.'
+        ],
+        [
+          'Should we just redo this properly?',
+          'We did redo it properly. In March. This is the properly one.'
+        ]
+      ]
+    },
     // The meeting, staged in the glass room instead of a window on your screen.
     // Labels stay short: two of them share one row of a 21 rem card.
     meeting: {

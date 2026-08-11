@@ -160,6 +160,20 @@ Production deploy notes (Cloud Run, billing credits, GitHub Actions CI, optional
   (`variant="intro"`, endonyms) and the name badge on the reception card, and leave **Check in**
   as a real gesture — an auto-advance skips both and burns TTS on cold mount.
   `officeFloorArrival.test.jsx` pins it; see `CLAUDE.md` § Office layer gotchas.
+- **The floor's proximity rules are one ladder, not two radii.** `NAME_CHIP_RANGE_TILES` (1) is
+  "they talk to you" (slice 19) and `EARSHOT_RANGE_TILES` (3) is "you overhear two other people"
+  (slice 22) — and an overheard exchange refuses to exist while you are within a tile of either
+  speaker, which is the only thing stopping one approach producing a remark **and** a two-hander
+  inside five seconds. Define any new rung as what the one inside it is not, and assert it over
+  **every standable tile** (`officeFloorShopTalk.test.jsx`), because what breaks it is a layout
+  change rather than a logic change. The cast talking to each other is licensed by the user's
+  _position_, never by a timer — see `CLAUDE.md` § Office layer gotchas.
+- **A test that loops over a derived set needs a companion assertion that the set is non-empty.**
+  Two probes in slice 22 came back green while examining nothing: `isStandableTile(x, y)` takes a
+  _tile_, not two numbers, so an every-tile invariant iterated an empty list; and a DOM overlap
+  scan used a class that does not exist, so "covers no heads" was vacuous. Both are the silent
+  `vi.mock` failure in a new hat — pair every sweep with a coverage claim, and get one hit out of
+  a DOM probe before believing its misses.
 - **Verifying floor art needs a browser and two specific tricks**: freeze animations at their
   **end** (`office-floor-cover` is `both`-filled from `opacity: 0`, so seeking to 0 renders the
   whole floor invisible), and import `components/OfficeFloor.css` in the harness (`ArchiSlop.jsx`

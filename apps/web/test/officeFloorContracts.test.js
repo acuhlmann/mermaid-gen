@@ -14,6 +14,7 @@ import { officeChromeCopy, officeSenderInfo } from '../src/utils/officeCast.js';
 import { isStandableTile, seatFor, YOU_SEAT_ID } from '../src/utils/officeFloorPlan.js';
 import { wanderTripsFor, wanderingSeatIds } from '../src/utils/officeFloorWander.js';
 import { boardFrom } from '../src/utils/officeFloorBoard.js';
+import { overheardPartnerFor, shopTalkExchange } from '../src/utils/officeFloorShopTalk.js';
 
 const copy = officeChromeCopy().floor;
 const lines = copy.narration;
@@ -210,5 +211,48 @@ describe('ADR-0010 / ADR-0011 — showing your work in the room', () => {
     expect(Object.keys(board).sort()).toEqual(
       ['bars', 'edges', 'kind', 'labels', 'mini', 'nodes', 'shape'].sort()
     );
+  });
+});
+
+describe('office-parody §11 — an overheard exchange is spent on you, not on a timer', () => {
+  const trip = {
+    seatId: 'gilfoyle',
+    kind: 'whiteboard',
+    to: propTileFor('whiteboard'),
+    phase: 'dwell',
+    leg: 1
+  };
+
+  /**
+   * The clause that licenses slice 22 at all, and the one a later slice is most
+   * likely to erode by accident.
+   *
+   * Slice 11 sealed ambient floor traffic silent — "the instant a wanderer could
+   * say something they would be a walk-by" — and CLAUDE.md states the durable
+   * form of it: do not give ambience a second reason to talk. Shop talk is legal
+   * because nothing is addressed to the user *and* nothing exists unless the
+   * user is stood near enough to hear it, so the room never chatters to itself
+   * in a corner nobody is in. Delete the earshot gate and the mechanic still
+   * looks fine in every screenshot while quietly becoming the thing this whole
+   * program has been unwinding.
+   */
+  it('cannot exist while nobody is there to overhear it', () => {
+    expect(overheardPartnerFor(trip, null, { wanderer: trip })).toBeNull();
+    const acrossTheRoom = { x: 1, y: 8 };
+    expect(overheardPartnerFor(trip, acrossTheRoom, { wanderer: trip })).toBeNull();
+  });
+
+  it('produces nothing — no pitch, no prompt, no way to answer', () => {
+    /*
+     * ADR-0010's one-producer clause seen from the audience's side. A walk-by
+     * carries an `actionPrompt` and lands in a thread because it is addressed to
+     * you; this carries a speaker and a string and nothing else, which is the
+     * whole difference between scenery with words and a moment.
+     */
+    const exchange = shopTalkExchange(trip, 'dinesh', copy, 0);
+    for (const line of exchange.lines) {
+      expect(Object.keys(line).sort()).toEqual(['speakerId', 'text']);
+      expect(line.speakerId).not.toBe(YOU_SEAT_ID);
+    }
   });
 });

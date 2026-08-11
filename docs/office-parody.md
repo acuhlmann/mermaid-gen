@@ -1372,6 +1372,36 @@ the backburnered multi-human future is [`multi-human-office.md`](multi-human-off
     The general rule: tell a situation the **circumstance** (it is why they are pinging _now_);
     never tell it a **delta the prompt does not carry**.
 
+- **Overheard is a third category, and it is not a hole in the ambient/reactive split.** The
+  split asks _who started it_, and both its answers assume the line is aimed at the user: an
+  ambient one interrupts them, a reactive one answers them. Isometric slice 22 ships the first
+  line in this office aimed at **somebody else** — a colleague stops at the printer and the
+  person whose desk is beside it replies, while the user happens to be stood near enough to
+  catch it. It is timer-adjacent (a wander trip starts it) and so cannot be reactive, yet it is
+  not what the ambient budget was written to restrain either, because nothing is asked of the
+  user and nothing can be answered.
+
+  Two clauses keep it honest, and dropping either turns it into the failure this doctrine
+  exists to prevent:
+
+  - **Canned, always.** Reactive spend is licensed by the fact that a bank cannot fake a reply
+    to a sentence somebody typed. Nobody typed anything here, and this office's two existing
+    overheard performances (coffee scenes, cubicle battles) are already carved out as canned
+    theatre — an overheard exchange is a third one, staged in the room rather than on a card.
+  - **Nothing exists unless the user is in earshot.** This is the load-bearing half. The
+    isometric floor's rule is that ambient movement never speaks (slice 11: "a wanderer with
+    something to say is a walk-by"), and `CLAUDE.md` states the durable form — do not give
+    ambience a second reason to talk. Making the _user's position_ the trigger is what keeps
+    that intact: the room never chatters to itself in a corner nobody is in, so the voice is
+    still spent on where the user is rather than on a clock. An overheard line that fired
+    regardless of where they were standing would be exactly the timer-driven chatter this
+    program spent eight slices unwinding, wearing a two-hander's hat.
+
+  Practical consequence for anything that comes next: **an overheard line may never ask for
+  anything.** No question the user could answer, no Do-it, no thread, no unread count — the
+  moment it acquires one it is addressed to them, which makes it a walk-by, and walk-bys belong
+  in the moment store (ADR-0011 rule 1). Pinned in `apps/web/test/officeFloorContracts.test.js`.
+
 - **Their own work.** Each character carries a slowly-evolving _fictional_ workload they
   reference and can discuss when asked — conversational color (and, later, desk-peeking
   visuals on the floor), never a real pipeline.
