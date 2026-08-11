@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { cleanup, render, screen } from '@testing-library/react';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import OfficeFloor from '../src/components/OfficeFloor.jsx';
 import { PersonaFace } from '../src/components/personaFaces/index.jsx';
 import { PERSONA_FACE_TRAITS, personaFaceTraits } from '../src/components/personaFaces/registry.js';
@@ -160,6 +160,31 @@ describe('who is talking', () => {
 });
 
 describe('the drawing', () => {
+  /*
+   * These mount the real floor, so unlike the pure-function tests below they
+   * read the *wall clock* — and the hour is rung 5 of `floorActivityFor`, above
+   * the trait row. That made every assertion here about what a character's own
+   * row says they hold silently time-dependent: during `earlyMorning` the whole
+   * cast holds `PHASE_ART`'s mug (so Russ's phone is a mug and Gilfoyle's empty
+   * hands are not empty), and during `standUp` nobody holds anything at all, so
+   * "actually draws the item" finds no art. Measured: red for roughly seven and
+   * a half hours a day (06:00–09:30 and 16:30–20:00 local) and green the rest,
+   * which is why it survived — CI happened to run in the quiet window.
+   *
+   * Pinned to midday, which is deliberately one of the two phases with no
+   * `PHASE_ART` entry, so the trait row is what reaches the drawing. Only
+   * `Date` is faked: the floor's own poll timer and React's scheduling must
+   * keep running or nothing renders.
+   */
+  beforeEach(() => {
+    vi.useFakeTimers({ shouldAdvanceTime: true, toFake: ['Date'] });
+    vi.setSystemTime(new Date(2026, 7, 11, 12, 0, 0));
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it('draws headphones differently from a headset', () => {
     // Both are a band and two cups at 34 px; the distinction is the boom, and a
     // shared drawing would make the Admin posture read as "you are on a call".
