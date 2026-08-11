@@ -23,6 +23,8 @@
 /** Mirrors the digest's own line cap (`officeLogDigest.js`). */
 const LOG_LINE_MAX_CHARS = 200;
 const LOG_MAX_LINES = 12;
+/** Mirrors `OFFICE_RELATIONSHIP_MAX_LINES` in `officeLogDigest.js`. */
+const RELATIONSHIP_MAX_LINES = 3;
 
 /**
  * The closing instruction is the load-bearing half of this block. Handed a list
@@ -46,6 +48,59 @@ const PURPOSE_RULES = {
 };
 
 /**
+ * The speaker's *own* history with the user — the private counterpart to the
+ * shared block below.
+ *
+ * Built client-side by `buildOfficeRelationship` and shipped as
+ * `officeRelationship`. It rides only on `/moment`, because it is the only
+ * office surface with a single speaker: a meeting or a huddle has a roster, and
+ * "your history with them" has no referent when there are eight of them. The
+ * advisor is excluded for the same reason `purpose: 'work'` exists — 80
+ * characters cannot afford a relationship.
+ *
+ * The closing rule is doing different work from the digest's. The shared log
+ * wants *a glance back at one thing*; this wants **familiarity, not recall** —
+ * the difference between somebody who remembers your morning and somebody who
+ * reads it back to you.
+ *
+ * **The balance of that rule was measured, and the first draft was inert.** It
+ * carried three prohibitions (don't recite, never count back, say nothing if
+ * nothing earns it) against one soft permission ("let this colour how familiar
+ * you sound"), and an audition against a fixed diagram could not tell its arm
+ * from the control at all — same register, same openers, no sign the block was
+ * read. Prohibitions crowd out a hedged instruction, and the third one is a
+ * blanket licence to ignore the block, which is what a model reaches for. The
+ * rule now leads with the **register** it wants in the imperative, keeps the
+ * single guard that is actually load-bearing, and drops the escape hatch: the
+ * block is only built when there *is* history, so "ignore this" was never a
+ * branch worth offering.
+ *
+ * @param {string[] | undefined} officeRelationship already-capped lines
+ * @returns {string[] | null} prompt lines, or null when there is no history —
+ *   callers drop the heading rather than announce an absence, same reason as
+ *   the digest block.
+ */
+export function buildOfficeRelationshipBlock(officeRelationship) {
+  const lines = Array.isArray(officeRelationship)
+    ? officeRelationship
+        .filter((line) => typeof line === 'string' && line.trim())
+        .slice(0, RELATIONSHIP_MAX_LINES)
+    : [];
+  if (lines.length === 0) return null;
+  return [
+    '',
+    'You and this user, today (yours alone — the rest of the office does not know this):',
+    ...lines.map((line) => `- ${line.slice(0, LOG_LINE_MAX_CHARS)}`),
+    '',
+    'You have already dealt with this person today, so do NOT talk to them like a stranger.',
+    'Skip the throat-clearing and pick up mid-thread: shorthand instead of explanation, an',
+    'assumption instead of an introduction, the tone of somebody continuing rather than starting.',
+    'Keep the history UNDER the line, never in it — do not read it back and never count it at',
+    'them ("our fourth chat today" is the one real failure here).'
+  ];
+}
+
+/**
  * @param {string[] | undefined} officeLog already-capped digest lines
  * @param {{purpose?: OfficeLogPurpose}} [options]
  * @returns {string[] | null} prompt lines, or null when the log is empty — so
@@ -54,6 +109,7 @@ const PURPOSE_RULES = {
  *   on, and the first minute of a session is exactly when nobody should open
  *   with "quiet morning so far".
  */
+
 export function buildOfficeLogBlock(officeLog, { purpose = 'dialogue' } = {}) {
   const lines = Array.isArray(officeLog)
     ? officeLog.filter((line) => typeof line === 'string' && line.trim()).slice(-LOG_MAX_LINES)

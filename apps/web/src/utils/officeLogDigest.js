@@ -169,6 +169,102 @@ function sentenceOf(entry) {
  * @returns {string[]} at most `OFFICE_LOG_DIGEST_MAX_LINES` lines, together no
  *   longer than `OFFICE_LOG_DIGEST_MAX_CHARS`.
  */
+/**
+ * The four kinds that name a colleague in `colleagueId`, which is the whole
+ * eligibility test for a relationship: they are the ways a *named* person and
+ * the user touch each other's day.
+ *
+ * `battle` is deliberately absent even though it looks like it belongs. Its
+ * colleague rides in `detail` (the winner of the argument) rather than in
+ * `colleagueId`, so counting it would mean reading one kind's `detail` as an
+ * id — and the fact it carries is about the argument, not about the two of you.
+ * The global digest already says who won.
+ */
+/*
+ * Noun phrases with an explicit count, never verb phrases. "emailed you,
+ * traded messages with you" loses track of who the subject is by the second
+ * item — and the one thing this block must not do is leave the model guessing
+ * which of you did what.
+ */
+const RELATIONSHIP_KINDS = {
+  email: { one: 'email from them', many: 'emails from them' },
+  chat: { one: 'chat', many: 'chats' },
+  walkby: { one: 'desk visit', many: 'desk visits' },
+  pitch: { one: 'suggestion of theirs you took', many: 'suggestions of theirs you took' }
+};
+
+/** At most this many lines — a moment prompt is already long. */
+export const OFFICE_RELATIONSHIP_MAX_LINES = 3;
+
+/**
+ * One colleague's private history with the user, today.
+ *
+ * **Why this exists when the digest already names colleagues.** The digest is
+ * the *shared* memory and it is budgeted as one: 12 lines, 700 characters,
+ * dropping from the front. So the four times you and Gilfoyle actually spoke
+ * are competing with everything else the office did, and by mid-afternoon they
+ * have scrolled off — the one person who should remember them is the one who
+ * cannot. This projection is over the same entries and answers a narrower
+ * question that survives that budget: *what have you and I been to each other
+ * today.* No new state, no new store, no second write path (ADR-0010 — this
+ * still only records).
+ *
+ * **Strictly relational.** Counts, recency and texture — never the clock's
+ * general facts and never the office's other business, which is slice 20's
+ * precedent (the log is not where you learn what time it is) and § 11's
+ * division of labour. A colleague with no history gets `[]` and the caller
+ * drops the block entirely: "we have not spoken today" is not a thing anyone
+ * remarks on in an office they have been sitting in all day.
+ *
+ * @param {Array<{at?: number, kind?: string, colleagueId?: string}> | null | undefined} entries
+ * @param {string} colleagueId
+ * @returns {string[]} at most `OFFICE_RELATIONSHIP_MAX_LINES` lines
+ */
+export function buildOfficeRelationship(entries, colleagueId) {
+  const who = clamp(colleagueId, 40);
+  if (!who) return [];
+
+  const counts = {};
+  let total = 0;
+  let lastAt = null;
+  for (const entry of entries ?? []) {
+    if (clamp(entry?.colleagueId, 40) !== who) continue;
+    if (!Object.prototype.hasOwnProperty.call(RELATIONSHIP_KINDS, entry?.kind)) continue;
+    counts[entry.kind] = (counts[entry.kind] ?? 0) + 1;
+    total += 1;
+    if (Number.isFinite(entry.at)) lastAt = entry.at;
+  }
+  if (total === 0) return [];
+
+  const lines = [
+    total === 1
+      ? `you and ${who} have crossed paths once today${lastAt === null ? '' : `, at ${clockOf(lastAt)}`}`
+      : `you and ${who} have crossed paths ${total} times today${lastAt === null ? '' : `, most recently at ${clockOf(lastAt)}`}`
+  ];
+
+  // The texture, only when there is more than one thing to distinguish —
+  // repeating "1 email" straight after "crossed paths once" says nothing twice.
+  const parts = Object.entries(RELATIONSHIP_KINDS)
+    .filter(([kind]) => counts[kind])
+    .map(([kind, label]) => `${counts[kind]} ${counts[kind] === 1 ? label.one : label.many}`);
+  if (total > 1 && parts.length > 0) lines.push(`that was: ${parts.join(', ')}`);
+
+  // Taking somebody's suggestion is the strongest relational fact the log holds
+  // — it is the one entry where they changed the user's work — so it gets its
+  // own line rather than sitting third in a list.
+  if (counts.pitch) {
+    lines.push(
+      counts.pitch === 1
+        ? `you took ${who}'s suggestion earlier`
+        : `you have taken ${counts.pitch} of ${who}'s suggestions`
+    );
+  }
+
+  return lines
+    .slice(0, OFFICE_RELATIONSHIP_MAX_LINES)
+    .map((line) => clamp(line, OFFICE_LOG_LINE_MAX_CHARS));
+}
+
 export function buildOfficeLogDigest(entries) {
   const lines = [];
   for (const entry of entries ?? []) {

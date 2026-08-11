@@ -31,7 +31,10 @@ import {
   MEETING_VENUE_WORKING_GROUP,
   meetingVenueRules
 } from '../src/agents/officePersonas.js';
-import { buildOfficeLogBlock } from '../src/agents/_lib/officeLogPrompt.js';
+import {
+  buildOfficeLogBlock,
+  buildOfficeRelationshipBlock
+} from '../src/agents/_lib/officeLogPrompt.js';
 
 const ATTENDEES = ['scrumMaster', 'barker', 'greybeard', 'intern'];
 
@@ -788,6 +791,70 @@ test('buildOfficeLogBlock carries the day and the rule not to recap it', () => {
   assert.match(block, /shared memory/);
   // The rule is the load-bearing half: handed bare facts, a model summarizes.
   assert.match(block, /Do NOT summarize the day/);
+});
+
+test('buildOfficeRelationshipBlock stays silent for somebody with no history', () => {
+  // Same reason the shared block does: "we have not spoken today" is not a
+  // thing anybody remarks on in an office they have sat in all day.
+  assert.equal(buildOfficeRelationshipBlock([]), null);
+  assert.equal(buildOfficeRelationshipBlock(undefined), null);
+  assert.equal(buildOfficeRelationshipBlock(['  ']), null);
+});
+
+test('buildOfficeRelationshipBlock asks for familiarity, not recall', () => {
+  const block = buildOfficeRelationshipBlock([
+    'you and gilfoyle have crossed paths 4 times today, most recently at 14:22'
+  ]).join('\n');
+  assert.match(block, /crossed paths 4 times/);
+  // Private to the speaker — the whole thing that makes it different from the
+  // shared digest, which is headed "everyone here lived through it".
+  assert.match(block, /yours alone/);
+  /*
+   * The rule leads with the register in the imperative, and that ordering is
+   * measured rather than stylistic: the first draft put three prohibitions
+   * against one hedged permission and auditioned *inert* — its arm was
+   * indistinguishable from the control. Keep the positive instruction first.
+   */
+  assert.match(block, /do NOT talk to them like a stranger/);
+  assert.match(block, /pick up mid-thread/);
+  // The one guard that stays, because it is the only real failure mode here.
+  assert.match(block, /never count it at/);
+  // And no blanket escape hatch: "say nothing if nothing earns it" is what the
+  // first draft offered, and a model takes that branch every time. The block is
+  // only built when there IS history, so the branch was never worth offering.
+  assert.doesNotMatch(block, /nothing here earns/i);
+});
+
+test('buildMomentUserPrompt carries the speaker’s own history beside the shared one', () => {
+  const prompt = buildMomentUserPrompt({
+    contentType: 'mermaid',
+    diagramSource: 'graph TD; A-->B;',
+    visibleLabels: [],
+    recentMoments: [],
+    officeLog: ['13:00 a cubicle argument was settled, gilfoyle won'],
+    officeRelationship: ["you took gilfoyle's suggestion earlier"],
+    uiLocale: 'en-US'
+  });
+  assert.match(prompt, /shared memory/);
+  assert.match(prompt, /yours alone/);
+  // Shared first, private second: the narrower block sits closer to the
+  // instruction that follows, which is the recency argument the situation
+  // reminder is built on.
+  assert.ok(prompt.indexOf('shared memory') < prompt.indexOf('yours alone'));
+});
+
+test('buildMomentUserPrompt omits the relationship section when there is no history', () => {
+  const prompt = buildMomentUserPrompt({
+    contentType: 'mermaid',
+    diagramSource: '',
+    visibleLabels: [],
+    recentMoments: [],
+    officeLog: ['13:00 you shipped a mermaid diagram'],
+    officeRelationship: [],
+    uiLocale: 'en-US'
+  });
+  assert.match(prompt, /shared memory/);
+  assert.doesNotMatch(prompt, /yours alone/);
 });
 
 test('buildMomentUserPrompt threads the office log in beside recent moments', () => {

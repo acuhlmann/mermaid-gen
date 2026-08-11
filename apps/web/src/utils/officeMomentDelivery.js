@@ -16,7 +16,7 @@ import { API_BASE_URL, SESSION_HEADER } from '../state/diagramSession.js';
 import { OFFICE_DIAGRAM_SOURCE_MAX_CHARS } from '@archislop/shared';
 import { getAdvisorVisibleLabels } from './advisorVisibleLabels.js';
 import { writeOfficeCadenceMemory } from './officeAmbienceStorage.js';
-import { getOfficeLogDigest } from '../state/officeLogStore.js';
+import { getOfficeLogDigest, getOfficeRelationshipWith } from '../state/officeLogStore.js';
 import {
   fillOfficeSlots,
   MEETING_FACILITATOR,
@@ -358,6 +358,11 @@ export async function deliverLlmMoment(kind, ctx, options) {
         // different thing and both are needed: that one is anti-repetition
         // ("don't say this again"), this one is memory ("this happened").
         officeLog: getOfficeLogDigest(),
+        // The same log read twice: the office's shared memory above, and this
+        // speaker's own history with the user here. Keyed on the colleague who
+        // is actually about to talk, so it is empty for anybody you have not
+        // dealt with today and the server drops the block entirely.
+        officeRelationship: getOfficeRelationshipWith(colleagueId),
         uiLocale: officeDialogueLocale(),
         userName: ctx.userName || undefined,
         userMessage: userMessage || undefined,

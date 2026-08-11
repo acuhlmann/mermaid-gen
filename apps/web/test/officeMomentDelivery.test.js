@@ -2,6 +2,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { deliverLlmMoment } from '../src/utils/officeMomentDelivery.js';
 import { _resetForTests, getOfficeSnapshot } from '../src/state/officeMomentStore.js';
+import { _resetOfficeLogForTests, recordOfficeLogEntry } from '../src/state/officeLogStore.js';
 
 /**
  * The delivery seam between `/api/office/moment` and the store.
@@ -153,5 +154,37 @@ describe('deliverLlmMoment carries a pitch to every surface', () => {
     await deliverLlmMoment('im', CTX, { memory: memory(), colleagueId: 'intern' });
     const ambient = JSON.parse(String(fetchMock.mock.calls[1]?.[1]?.body ?? '{}'));
     expect('situation' in ambient).toBe(false);
+  });
+
+  it('sends the speaking colleague their own history, keyed on who is talking', async () => {
+    // The shared digest names colleagues, but it is budgeted as one list and
+    // drops from the front — so by mid-afternoon the person who should remember
+    // your four exchanges is the one who cannot. This field is the same entries
+    // read for one speaker, so it survives that budget.
+    _resetOfficeLogForTests();
+    recordOfficeLogEntry('email', { colleagueId: 'intern', detail: 'onboarding' });
+    recordOfficeLogEntry('chat', { colleagueId: 'intern' });
+    recordOfficeLogEntry('walkby', { colleagueId: 'greybeard' });
+
+    const fetchMock = vi.fn(async () => ({
+      ok: true,
+      json: async () => ({ moment: { body: 'ping', colleagueId: 'intern', kind: 'im' } })
+    }));
+    globalThis.fetch = fetchMock;
+
+    await deliverLlmMoment('im', CTX, { memory: memory(), colleagueId: 'intern' });
+    const body = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body ?? '{}'));
+    expect(body.officeRelationship[0]).toContain('you and intern have crossed paths 2 times');
+    // Greybeard's walk-by is his history, not the intern's.
+    expect(String(body.officeRelationship)).not.toContain('greybeard');
+    // And the shared digest still carries everybody's, unchanged.
+    expect(String(body.officeLog)).toContain('greybeard');
+
+    // Somebody with no history sends an empty array, and the server drops the
+    // block rather than printing a heading over nothing.
+    await deliverLlmMoment('im', CTX, { memory: memory(), colleagueId: 'hr' });
+    const stranger = JSON.parse(String(fetchMock.mock.calls[1]?.[1]?.body ?? '{}'));
+    expect(stranger.officeRelationship).toEqual([]);
+    _resetOfficeLogForTests();
   });
 });

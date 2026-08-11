@@ -22,7 +22,7 @@ import {
   OfficeMomentSituationSchema
 } from '@archislop/shared';
 import { llmUsageFromReply } from './_lib/llmUsageFromReply.js';
-import { buildOfficeLogBlock } from './_lib/officeLogPrompt.js';
+import { buildOfficeLogBlock, buildOfficeRelationshipBlock } from './_lib/officeLogPrompt.js';
 import {
   createLlmChatModel,
   isLlmConfigured,
@@ -647,6 +647,7 @@ export function buildMomentUserPrompt({
   visibleLabels,
   recentMoments,
   officeLog,
+  officeRelationship,
   uiLocale,
   userName,
   userMessage,
@@ -695,6 +696,10 @@ export function buildMomentUserPrompt({
     'Recent moments (avoid repetition):',
     recent,
     buildOfficeLogBlock(officeLog),
+    /* The office's memory, then this speaker's. Ordered shared-before-private
+       so the narrower block sits closer to the instruction that follows it —
+       the same recency argument `buildMomentSituationReminder` is built on. */
+    buildOfficeRelationshipBlock(officeRelationship),
     transcript
       ? [
           '',

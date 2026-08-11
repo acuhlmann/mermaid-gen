@@ -214,6 +214,20 @@ Production deploy notes (Cloud Run, billing credits, GitHub Actions CI, optional
   **day-stamped** while Slop Chat scrollback is not. It ships as `officeLog` on every office LLM
   surface via `apps/server/src/agents/_lib/officeLogPrompt.js`; pass `purpose: 'work'` for the
   advisor, whose 80-char envelope cannot afford the dialogue rule.
+- **The log is read twice; the second read is a projection, not a store.**
+  `buildOfficeRelationship(entries, colleagueId)` in `apps/web/src/utils/officeLogDigest.js`
+  (bound as `getOfficeRelationshipWith`) answers "what have you and I been to each other today"
+  — which the shared digest structurally cannot, being capped at 12 lines / 700 chars and
+  dropping from the front, so a colleague's own history scrolls off by mid-afternoon. Ships as
+  `officeRelationship` on `/moment` **only** (the one single-speaker surface) and covers only
+  the four kinds carrying a `colleagueId`: `email`, `chat`, `walkby`, `pitch`. `battle` is
+  excluded deliberately — its id sits in `detail` and means _winner_.
+- **In a prompt rule, prohibitions crowd out a hedged permission — lead with the register.**
+  Measured: the relationship block's first draft put three "do NOT"s against one soft "let this
+  colour how you sound" and auditioned **inert**, indistinguishable from its control arm. The
+  worst offender is a blanket escape hatch ("say nothing if nothing here earns it") — the model
+  takes that branch every time, and the block is only built when there _is_ something to use.
+  Put the wanted behaviour first, in the imperative, and keep a single guard.
 - **A meeting's roster and its speakers are two different lists.** `POST /api/office/meeting` takes
   `attendees` (scripted, bounded by `MEETING_MAX_ATTENDEES`) and an optional `audience` (present,
   silent — the all-hands crowd). Do **not** raise `MEETING_MAX_ATTENDEES` to seat a crowd: it lets

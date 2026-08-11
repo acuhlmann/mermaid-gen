@@ -82,6 +82,30 @@ describe('officeLogStore', () => {
     const second = await freshStore();
     expect(second.getOfficeLogDigest()).toHaveLength(1);
   });
+
+  it('reads the same entries as one colleague\u2019s own history', async () => {
+    // A second projection over the same store, not a second store: nothing new
+    // is written and nothing new is observed, which is what keeps the office
+    // log on the recording side of ADR-0010.
+    const { getOfficeLogDigest, getOfficeRelationshipWith, recordOfficeLogEntry } =
+      await freshStore();
+    recordOfficeLogEntry('email', { now: at(9, 0), colleagueId: 'gilfoyle', detail: 'DNS again' });
+    recordOfficeLogEntry('walkby', { now: at(9, 30), colleagueId: 'jared' });
+    recordOfficeLogEntry('pitch', { now: at(10, 0), colleagueId: 'gilfoyle' });
+
+    const gilfoyle = getOfficeRelationshipWith('gilfoyle');
+    expect(gilfoyle[0]).toContain('crossed paths 2 times');
+    expect(gilfoyle.at(-1)).toBe("you took gilfoyle's suggestion earlier");
+    // Jared's single walk-by is his own history, not Gilfoyle's.
+    expect(getOfficeRelationshipWith('jared')).toEqual([
+      'you and jared have crossed paths once today, at 09:30'
+    ]);
+    // Somebody the user has not dealt with gets nothing, so the server drops
+    // the block rather than announcing an absence.
+    expect(getOfficeRelationshipWith('hr')).toEqual([]);
+    // And the shared digest is untouched by any of it.
+    expect(getOfficeLogDigest()).toHaveLength(3);
+  });
 });
 
 describe('office log day stamping', () => {

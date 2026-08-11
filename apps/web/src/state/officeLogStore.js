@@ -28,7 +28,7 @@ import {
   readOfficeLog,
   writeOfficeLog
 } from '../utils/officeAmbienceStorage.js';
-import { buildOfficeLogDigest } from '../utils/officeLogDigest.js';
+import { buildOfficeLogDigest, buildOfficeRelationship } from '../utils/officeLogDigest.js';
 
 /** @type {Array<{at: number, kind: string, colleagueId?: string, detail?: string}>} */
 let entries = readOfficeLog();
@@ -95,6 +95,22 @@ export function recordOfficeLogEntry(kind, meta = {}) {
  */
 export function getOfficeLogDigest() {
   return buildOfficeLogDigest(entries);
+}
+
+/**
+ * One colleague's own history with the user, from the same entries.
+ *
+ * A second *projection*, not a second store — which is the point. The log is
+ * already the record of who did what with whom; the digest reads it as the
+ * office's shared memory and this reads it as one person's. Nothing new is
+ * written and nothing new is observed, so the ADR-0010 line holds: still only
+ * records.
+ *
+ * @param {string} colleagueId
+ * @returns {string[]}
+ */
+export function getOfficeRelationshipWith(colleagueId) {
+  return buildOfficeRelationship(entries, colleagueId);
 }
 
 /** @internal Reset between tests. */

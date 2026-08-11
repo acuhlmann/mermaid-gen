@@ -1290,6 +1290,39 @@ the backburnered multi-human future is [`multi-human-office.md`](multi-human-off
   did. A suggestion is one fragment under 80 characters that must name a visible label; invited
   to reference the day, it spends that budget on chit-chat and stops being a suggestion.
 
+  **The same entries, read twice.** The digest is the office's _shared_ memory and it is
+  budgeted as one — 12 lines, 700 characters, dropping from the front — so a colleague's own
+  history with the user competes with everything else the office did, and by mid-afternoon it
+  has scrolled off. The one person who should remember your four exchanges is the one who
+  cannot. `buildOfficeRelationship(entries, colleagueId)` is a second **projection** over the
+  same store (no new state, no new write path, still only recording — ADR-0010) answering the
+  narrower question that survives that budget: counts, recency and texture for one speaker,
+  shipped as `officeRelationship` and rendered by `buildOfficeRelationshipBlock`.
+
+  - **Only `/moment` takes it.** It is the one office surface with a single speaker; "your
+    history with them" has no referent across a meeting roster, and the advisor is excluded for
+    the same reason `purpose: 'work'` exists.
+  - **Only the four kinds that name a colleague** (`email`, `chat`, `walkby`, `pitch`).
+    `battle` is deliberately out: its id rides in `detail` as the _winner_, so counting it would
+    mean reading one kind's detail as an id, and the fact is about the argument rather than
+    about the two of you.
+  - **No history means no block**, same as the digest — "we have not spoken today" is not a
+    thing anyone remarks on in an office they have sat in all day.
+
+  **Its rule had to be rebalanced, and the first draft was measured inert.** Written as three
+  prohibitions (don't recite, never count back, say nothing if nothing earns it) against one
+  hedged permission, an audition against a fixed diagram could not tell its arm from the
+  control at all — same register, same openers, no sign the block had been read. Prohibitions
+  crowd out a hedged instruction, and "say nothing if nothing earns it" is a blanket licence to
+  ignore the block, which is the branch a model takes. Leading with the **register** in the
+  imperative ("you have already dealt with this person today, so do not talk to them like a
+  stranger; pick up mid-thread"), keeping the single load-bearing guard and dropping the escape
+  hatch makes the arms separable — fewer greetings, mid-thread openers ("re: the reject
+  branch", "okay but real talk", "finally"). The effect is **modest and was measured on one
+  fixture at n=5 per colleague**, so it is worth re-auditioning before anybody builds on it.
+  The failure the guard exists for — counting the history back at the user — ran **1 in 27**
+  against 0 in 27 for the control.
+
   Still open: deliverable context (last-run summary), and "their own work" below.
 
   **The context contract had a hole beside the log, and it was the harder one to see.** The log
