@@ -282,7 +282,19 @@ Production deploy notes (Cloud Run, billing credits, GitHub Actions CI, optional
   **enum, never free text**, because it shapes a system prompt; **absent is the default** and
   keeps the cold-open framing ambient moments want; **a reply beats a situation**. Without it a
   line the user crossed the room to trigger is written as a cold open and reads as a
-  non-sequitur. See `docs/office-parody.md` §11.
+  non-sequitur. **But a situation may only state the circumstance, never a delta the prompt does
+  not carry**: `run` used to end with "React to what changed" while the prompt ships only the
+  current diagram, and the first audition measured the model inventing that change in **8 of 12**
+  samples against a fixed diagram (**0 of 12** with no situation — the field caused it). See
+  `docs/office-parody.md` §11.
+- **Prompt changes are auditionable now, and a fixed fixture + a control arm is the whole
+  method.** `api.deepseek.com` is reachable from the session proxy and `DEEPSEEK_API_KEY` is
+  live, so an office prompt can be driven for real rather than reasoned about: replicate the
+  route handler in a throwaway script (`buildMoment*Prompt` → `createOfficeChatModel` →
+  `parseMomentReply`), hold the diagram **constant**, vary one field, sample ~4× per arm, read
+  the arms side by side. The control arm is load-bearing — a failure rate means nothing without
+  it. Check reachability first (`curl -sS -o /dev/null -w "%{http_code}"
+https://api.deepseek.com/` — 401 is reachable, 000 is blocked); never route around a block.
 - **Office sound is one posture, not four checkboxes.** Menu bar **Admin** carries 🎧 **Headphones**
   (how the office reaches you) and 🔕 **Focus** (whether it does), plus the Approved vendors strip.
   The composer band holds Mail / Chat / Meeting as direct icons (`DeskActionsDock`), not a helmet
