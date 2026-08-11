@@ -239,6 +239,42 @@ export function isWithinNameChipRange(from, to) {
 }
 
 /**
+ * How far a conversation you are not in carries (slice 22). Three tiles — a
+ * quarter of the room's width, which on an open-plan floor this size is "the
+ * same end of the office".
+ *
+ * It is the **outer ring of one proximity ladder**, not a second radius, and
+ * that is the whole reason it is defined here beside the chip range rather
+ * than in the slice's own module. Inside `NAME_CHIP_RANGE_TILES` somebody
+ * talks *to* you (slice 19); between there and here you overhear them talking
+ * to somebody else; past here the room is quiet. Each rung is what the one
+ * inside it is not, so they cannot both be in force at the same distance and
+ * there is never a tile where the room owes you two different lines.
+ *
+ * Sized so the mechanic is findable rather than to be conservative: your own
+ * chair at (7, 7) is exactly three tiles from the whiteboard mark, so standing
+ * up and doing nothing puts you in earshot of the room's busiest prop. A
+ * tighter ring would have made this a feature you only meet by walking into
+ * the kitchen on purpose.
+ */
+export const EARSHOT_RANGE_TILES = 3;
+
+/**
+ * Whether a conversation over there is audible from here — and, deliberately,
+ * *only* that. Whether you are too close to be overhearing rather than being
+ * spoken to is `isWithinNameChipRange`'s question, asked separately by the
+ * caller, because the two rungs have different subjects: earshot is about a
+ * place, the chip range is about a person.
+ *
+ * @param {{ x: number, y: number } | null} from
+ * @param {{ x: number, y: number } | null} to
+ * @returns {boolean}
+ */
+export function isWithinEarshot(from, to) {
+  return tileDistance(from, to) <= EARSHOT_RANGE_TILES;
+}
+
+/**
  * Zone plates: tinted floor regions with a label. `rect` is
  * `[x0, y0, x1, y1]` in tiles and projects to a parallelogram. `copyKey` looks
  * the label up in `officeChromeCopy().floor.zones` so zones localize like the

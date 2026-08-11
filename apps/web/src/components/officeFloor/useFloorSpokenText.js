@@ -79,6 +79,15 @@ export function useFloorSpokenText({
      that slice 18's extraction was a shape rather than a one-off. Same rules:
      said once, and never over the top of a scripted scene. */
   dwellSaid,
+  /**
+   * Slice 22, and the third posture in this file rather than a third caller of
+   * `useNarratedAside`: shop talk is **paced**, so its narration is driven by
+   * `useScenePacing` inside `useFloorShopTalk` and all this hook is told is
+   * whether the line currently in the air was actually heard. Same shape as
+   * `liftedLineSpoken` above and for the same reason — an aside speaks once and
+   * a performance speaks per line, so only the performance can report per line.
+   */
+  pacedSpeech = false,
   hasActiveSpeech = false,
   /** Coffee/battle pacing lives in `OfficeLayer` — track busy TTS separately. */
   liftedSceneSpeech = false,
@@ -191,7 +200,8 @@ export function useFloorSpokenText({
   // the result.
   const showSpokenText = shouldShowSpokenText({
     captions,
-    voiceActive: voiceActive || liftedNarrationBusy || (liftedSceneSpeech && liftedLineSpoken)
+    voiceActive:
+      voiceActive || liftedNarrationBusy || (liftedSceneSpeech && liftedLineSpoken) || pacedSpeech
   });
 
   return { showSpokenText, sceneHandlersWithVoice };

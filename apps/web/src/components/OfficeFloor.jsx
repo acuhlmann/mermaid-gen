@@ -39,6 +39,7 @@ import { useStageScale } from '../hooks/useStageScale.js';
 import { reachTileFor, whereaboutsOf } from '../utils/officeFloorReach.js';
 import { interruptSpeech } from '../utils/officeFloorInterrupt.js';
 import { useFloorDwell } from './officeFloor/useFloorDwell.js';
+import { useFloorShopTalk } from './officeFloor/useFloorShopTalk.js';
 import { useOfficeDayPhase } from './officeFloor/useOfficeDayPhase.js';
 import {
   MEETING_PLAYER_TILE,
@@ -409,7 +410,14 @@ function OfficeFloorView({ bridge, viewPhase }) {
   const talkingColleagueId = talk?.phase === 'talking' ? talk.colleagueId : null;
   const peekColleagueId = peek?.phase === 'looking' ? peek.colleagueId : null;
   const peekLine = peekColleagueId ? (deskWorkFor(peekColleagueId)?.line ?? '') : '';
-  const hasActiveSpeech =
+  /*
+   * Everything that can be speaking *except* shop talk, which is split out
+   * because slice 22 has to be gated on it: a conversation you are only near is
+   * the lowest-priority voice in the room and must never talk over one that is
+   * addressed to you. Folding it back in below keeps `hasActiveSpeech` meaning
+   * what it has always meant to everybody downstream.
+   */
+  const hasOtherSpeech =
     Boolean(talkingColleagueId && activity.talkLine) ||
     Boolean(peekColleagueId && peekLine) ||
     Boolean(walker?.body && !departing) ||
@@ -417,6 +425,30 @@ function OfficeFloorView({ bridge, viewPhase }) {
     Boolean(dwell.said) ||
     Boolean(coffee?.accepted || battle?.accepted) ||
     Boolean(huddle?.phase === 'speaking' || huddle?.phase === 'watching');
+
+  /*
+   * Slice 22: two colleagues talking to each other, with you near enough to
+   * catch it. The geometry keeps it clear of slice 19 — an exchange refuses to
+   * exist while you are within a tile of either speaker, which is where they
+   * would be talking to *you* instead — so this gate is about the rest of the
+   * room rather than about dwell.
+   *
+   * Narrated with the raw `sceneHandlers.narrateLine`, the same source the
+   * coffee break and the battle use, because `useScenePacing` awaits the voice
+   * before revealing the reply. Routing it through `useFloorSpokenText`'s
+   * wrapper instead would need that hook's output as its own input.
+   */
+  const shopTalk = useFloorShopTalk({
+    wanderer,
+    youTile,
+    floorState,
+    copy,
+    active: activity.standingFree && !hasOtherSpeech,
+    suspended: physicalMeeting,
+    narrateLine: sceneHandlers?.narrateLine
+  });
+
+  const hasActiveSpeech = hasOtherSpeech || Boolean(shopTalk.said);
 
   const liftedSceneSpeech = Boolean(
     officeSnap.narration && sceneHandlers?.narrateLine && (coffee?.accepted || battle?.accepted)
@@ -435,6 +467,9 @@ function OfficeFloorView({ bridge, viewPhase }) {
     walkBy: walker,
     wandererSaid,
     dwellSaid: dwell.said,
+    // Slice 22: paced rather than a one-off aside, so its own spoken flag is
+    // what hides the balloon — same posture as the lifted coffee/battle lines.
+    pacedSpeech: Boolean(shopTalk.said) && shopTalk.lineSpoken,
     hasActiveSpeech,
     liftedSceneSpeech,
     liftedLineSpoken
@@ -562,6 +597,11 @@ function OfficeFloorView({ bridge, viewPhase }) {
             // Slice 19: somebody looking up because you have not moved on.
             dwellSaid={showSpokenText ? dwell.said : null}
             dwellAt={dwell.at}
+            // Slice 22: the one line of an overheard exchange that is currently
+            // in the air — never both, so two adjacent heads never wear a
+            // balloon each (§ 6 rule 29).
+            shopTalkSaid={showSpokenText ? shopTalk.said : null}
+            shopTalkAt={shopTalk.at}
             onWandererArrive={handleWanderArrive}
             wandererRef={wandererRef}
             // Slice 17: the walk to a moment and the walk back from it.

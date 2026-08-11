@@ -1374,6 +1374,47 @@ export const OFFICE_EN_AU = {
           'You first. It’s fine. It’s all good.'
         ]
       },
+      shopTalk: {
+        coffeeMachine: [
+          [
+            'Is it s’posed to make that noise?',
+            'It’s made that noise since March. Logged it twice. It’s load-bearing now.'
+          ],
+          [
+            'We’re out of oat milk again.',
+            'We had oat milk once. That was the trial. The trial didn’t get up.'
+          ],
+          ['Someone’s left a mug in the sink.', 'I know whose it is. I’m letting it develop.']
+        ],
+        printer: [
+          [
+            'It reckons PC LOAD LETTER. What’s that mean?',
+            'Ticket #48314 raised. Category: printer. Status: awaiting user. Have you tried the other tray.'
+          ],
+          [
+            'It’s printing everything sideways.',
+            'That’s by design. Closed as WONTFIX. Please rate this interaction: 🔥'
+          ],
+          [
+            'Did my thing come out?',
+            'Your thing’s in the queue. The queue’s 212 documents. Most of them are the same document.'
+          ]
+        ],
+        whiteboard: [
+          [
+            'Is anyone actually using this board?',
+            'Don’t rub it out. Do NOT rub it out. Half of that’s still in prod.'
+          ],
+          [
+            'What’s this arrow meant to mean?',
+            'That arrow was here before me. Gave up asking in week two.'
+          ],
+          [
+            'Should we just redo this properly?',
+            'We already redid it properly. March. This is the properly one.'
+          ]
+        ]
+      },
       meeting: {
         eyebrow: 'GLASS ROOM',
         eyebrowRemote: 'HEADSET SYNC',

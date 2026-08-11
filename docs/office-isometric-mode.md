@@ -982,7 +982,101 @@ diagramSource})` returns counts, labels, a `shape` (`graph` | `list` | `page`), 
     `var(--token, <literal>)` fills in `officeFloor/FloorRoom.jsx`, and the grade assertions in
     `test/officeFloorStyles.test.js`.
 
-**There is no slice 22 yet, and that is deliberate.** The list above was written one slice at
+22. **Shop talk — two colleagues, one conversation, none of it about you.** ✅ shipped. Stand
+    near enough to a prop somebody has wandered to, and the person whose desk is beside it
+    answers them: a two-line canned exchange you overhear rather than take part in. **Zero LLM
+    budget**, no new state, no new store — and the first line this office has ever spoken that
+    was not addressed to the user.
+
+    **It is the deepest tell the program had left.** Every earlier slice inverted "voice on a
+    timer, silence on you" by giving the room something to say _to_ you — a walk-by comes to your
+    desk, an interrupted errand apologises to you (18), somebody you loiter next to looks up at
+    you (19). All of it points one way, and a room where sixteen people only ever speak to the
+    one human is a room with one real person in it. This is the other direction, and it needed no
+    new physics at all: slice 11 already walks somebody to a prop and stands them there, and the
+    layout already put a desk beside every prop.
+
+    **The pairing is derived, not written down**, which is slice 11's pay-off collected one step
+    further. A wander mark _is_ a prop mark, prop marks were placed so a figure could stand at
+    them and be seen, so "who sits within `NAME_CHIP_RANGE_TILES` of one" is a question the room
+    has already answered — and it answers it well: the coffee machine has Gary next to it, the
+    printer has Ticket Bot Dave, the whiteboard has the two pod engineers. Nobody wrote down who
+    chats to whom, and moving a desk moves the pairing with it. That is also why the copy bank is
+    keyed by **prop**: the prop decides who replies, so a bank written per place is a bank written
+    in the replier's voice for free (`officeFloorShopTalk.test.jsx` pins that every wanderable
+    prop has somebody, so a layout change that orphans one fails rather than going quiet).
+
+    **The rule this had to get past, and it is the one CLAUDE.md states outright: do not give
+    ambience a second reason to talk.** Slice 11 sealed ambient traffic silent — "the instant a
+    wanderer could say something they would be a walk-by" — and slice 18 was careful to be an
+    exception only because _you_ caused it. Two things make this legal rather than a loophole.
+    First, **nothing is addressed to the user**: there is no reply, no Do-it, no thread, no unread
+    count, and walking away mid-sentence costs nothing because it was never yours. § 11 already
+    keeps this office's two overheard performances — coffee scenes and cubicle battles — as canned
+    theatre for exactly that reason; this is a third one, staged in the room instead of on a card.
+    Second, and this is the load-bearing half, **the trigger is your position**. No exchange exists
+    unless you are stood near enough to hear it, so the room never chatters to itself in a corner
+    you are not in, and the voice is spent on where you are rather than on a clock. Pinned in
+    `officeFloorContracts.test.js`, because deleting the earshot gate would still look right in
+    every screenshot while quietly becoming the thing this whole program has been unwinding.
+
+    **The proximity ladder is the design, and it is why slices 19 and 22 can share a radius.**
+    `NAME_CHIP_RANGE_TILES` and `EARSHOT_RANGE_TILES` (3) are two rungs of one idea rather than
+    two features that both happen to measure distance: stand next to somebody and they talk to
+    _you_; step back one tile and you overhear them talking to _each other_; walk away and the
+    room is quiet. Each rung is defined as what the one inside it is not, so an exchange refuses
+    to exist while you are within a tile of either speaker — which is the only thing stopping a
+    single approach producing a dwell remark **and** a two-line exchange inside five seconds,
+    three lines from two people, one of them to you. That invariant is asserted over **every
+    standable tile against every prop** rather than at a sample, because what would break it is a
+    layout change rather than a logic change.
+
+    Three things worth keeping about the sizing. Earshot is **3** so your own chair at (7, 7) is
+    exactly in range of the whiteboard — a mechanic you only meet by walking into the kitchen on
+    purpose is one nobody meets. The **inner bound is measured per speaker, not to the mark**,
+    because the replier sits a tile off it in an arbitrary direction: you can be two tiles from
+    the whiteboard and shoulder to shoulder with Jared. And the cap (`OFFICE_SHOP_TALK_CAP`, 4)
+    sits in `officeCadence.js` **even though this costs nothing**, because § 11's rule is about how
+    often the office makes a noise at you and "free" is a statement about spend, not attention.
+    It is per visit to the floor, and the reset is free — the hook unmounts when you sit down.
+
+    **One line at a time, which is where it parts company with the scene cards.** They accumulate,
+    because a card is a transcript you read down; two speakers a tile apart on the floor are two
+    balloons in one square of screen. `useScenePacing` is the third performance it drives, and the
+    trap CLAUDE.md records about that hook is exactly the one this walks into: with **no** narrator
+    it reveals every line at once, so the narrator is a wrapper returning `{ spoken: false }`
+    rather than `undefined`. The hand-off turned out to earn its keep twice over — see § 6 rule 32.
+
+    **What the capture taught**, driven in Chromium at 1440 × 900 with `Math.random` pinned to
+    0.75 (Chad to the whiteboard, the floor suite's own seed) and the player walked to a listening
+    tile through `projectIso`:
+
+    - **It plays end to end and the hand-off reads.** Chad opens at the board, his balloon clears,
+      Dinesh answers from his chair. The opener gets `--over-standing` and the reply gets the seat
+      lift, which is `FloorDeskSpeech`'s `tile`/`null` convention doing its job across two speakers
+      in one exchange — the replier is the one you pass `null` for, which looks backwards and is
+      what earns them the 30 px they need (§ 6 rules 15 and 20).
+    - **The speaker's own head is clear, and a bystander's is not.** Measured on the DOM rather
+      than eyeballed: Chad's balloon clears Chad and covers **all** of Ulrich's head (1399 px² of a
+      1399 px² box). That is `bubbleAlignForSpeaker` already picking the best of three, not a
+      regression — § 6 rule 32 has the full table and the reason it is recorded rather than
+      repaired.
+    - **A vacuous measurement looks exactly like a clean one.** Both the first overlap probe
+      (`.office-floor-face`, a class that does not exist) and the first version of the
+      every-tile invariant (`isStandableTile(x, y)` — it takes a _tile_, not two numbers) came
+      back green while examining nothing at all. The tile one was caught only because the suite
+      also asserts the room _can_ be overheard from somewhere at every prop; the selector one only
+      because a coverage claim of "NONE" was too good. **Any test that loops over a derived set
+      needs a companion assertion that the set is non-empty**, and any DOM probe needs one hit
+      before its misses mean anything.
+
+    Code: `utils/officeFloorShopTalk.js` (the pairing, the earshot gate, the exchange roll — all
+    pure), `officeFloor/useFloorShopTalk.js` (arming, pacing, the cap), `EARSHOT_RANGE_TILES` /
+    `isWithinEarshot` in `officeFloorPlan.js`, `OFFICE_SHOP_TALK_CAP` in `officeCadence.js`,
+    `floor.shopTalk` in `officeCast.js` + all three locale bundles, and the `shopTalkSaid` /
+    `shopTalkAt` pair through `OfficeFloor` → `FloorActors` → `FloorDeskSpeech`.
+
+**There is no slice 23 yet, and that is deliberate.** The list above was written one slice at
 a time, each defined when it was picked up rather than planned in advance — so "continue with
 slice _n_" only means something once somebody has chosen what _n_ is. § 8 has the candidates,
 a recommendation, and the debts that argue for one over another. Pick from there, write the
@@ -1315,6 +1409,38 @@ occupied briefly has only ever been tested briefly.**
     still holds: a figure's hit box is still the 34 × 58 figure, with the mug hanging outside it.
     And it takes **`pointer-events: none`**, for the identical reason the name chip does — a
     child that accepted them would hand the oversized box straight back.
+
+32. **At a prop mark, "clears everybody" is usually not on the menu — `bubbleAlignForSpeaker`
+    picks the least-bad of three, and at one prop the head it cannot clear is the person about
+    to reply.** Rule 29 shipped the sideways bias and predicted a `start` bias at the whiteboard
+    "clears Ulrich outright". Measured across all three wander marks now that two people talk at
+    them (slice 22), the bias is doing its job and the prediction was optimistic — it trades
+    victims rather than eliminating them:
+
+    | mark                 | `start`      | `center`            | `end`               | chosen  |
+    | -------------------- | ------------ | ------------------- | ------------------- | ------- |
+    | whiteboard (8, 4)    | `greybeard`  | `gilfoyle`+`dinesh` | `gilfoyle`+`dinesh` | `start` |
+    | printer (3, 1)       | **nobody**   | `helpdesk`          | `helpdesk`          | `start` |
+    | coffeeMachine (2, 7) | `facilities` | `facilities`        | `facilities`        | `start` |
+
+    The printer is the only mark in the room where a standing speaker's balloon covers nobody.
+    The whiteboard is a genuine two-for-one and the helper takes it. **The coffee machine is the
+    one worth knowing**: `facilities` is covered at every alignment, and Gary is not a bystander
+    there — he is the seated neighbour, which means he is _always the one who answers_. So the
+    opener's balloon reliably hides the person who speaks next.
+
+    **What makes that survivable is the sequential reveal**, and this is a second reason for it
+    beyond the one it was chosen for. Slice 22 shows one line at a time because two balloons a
+    tile apart would land in the same square of screen — but it also means the opener's balloon is
+    _gone_ before the reply arrives, so Gary is never hidden and speaking at the same time. A
+    version that accumulated the exchange the way the coffee-break card does would have covered
+    the replier for the whole scene. Measured on the seated half: `helpdesk` and `facilities` both
+    clear everybody from their own chairs, and `dinesh` covers two whichever way he is biased.
+
+    Do not read this as an argument for a bigger lift or a per-conversation exclusion: rule 29
+    already recorded why the lift-based fixes are worse, and teaching `bubbleAlignForSpeaker`
+    about a _second participant_ would be a placement-policy change to a helper four surfaces
+    share, for a face that is hidden for one beat.
 
 Note on rule 10: "no mark may share `x − y` with a desk" is the integer shorthand, and it
 does not survive fractional marks — the glass room is a diagonal strip in column space, so
@@ -1698,7 +1824,18 @@ Kept here so appetite can pick without re-deriving. Each should stay bound by AD
   is a reactive IM exchange + a tiny XP beat, not a quest log UI. **Chosen, not yet built.**
 - **Overhear → join** — standing next to a coffee/battle scene offers **Join in** once (already
   considered for interrupting mid-script; still a content question). **Chosen, not yet built**,
-  and that content question is the thing it has to answer first.
+  and that content question is the thing it has to answer first. **Slice 22 changed what this
+  costs**, in both directions. It built the half nobody had: a conversation between two other
+  people that you are positioned to hear, with a proximity ladder saying exactly when you are
+  near enough to be involved and near enough to only listen — so Join has a trigger and a
+  geometry already. What it also did is make the content question sharper rather than softer,
+  because there are now **two** kinds of thing you can overhear and they want different answers.
+  A coffee/battle scene is a scripted performance with a fixed line count, so joining it means
+  deciding what an inserted beat does to a script mid-flight (the original question, unchanged).
+  Shop talk is two lines and then silence, so "joining" it is not an interruption at all — it is
+  just the talk verb, which already exists, aimed at whichever of the two you walked up to. The
+  cheap version of this feature may therefore be **shop talk plus a nudge**, and the expensive
+  one is still the scene.
 - ~~**Name-chip proximity**~~ — ✅ shipped as slice 15 (§ 5): show all names when you are
   within one tile — cleared the "name chip is hover-only" debt without growing hit boxes.
   Considered and not chosen, kept so nobody re-derives them: **a second wanderer at a time**
@@ -1711,6 +1848,29 @@ Kept here so appetite can pick without re-deriving. Each should stay bound by AD
   which is a content question rather than a geometry one.
 
 ### Debts the shipped slices left behind
+
+- **Shop talk has one bank per prop and three props, so a visit can exhaust the room's
+  material.** `OFFICE_SHOP_TALK_CAP` is 4 and each prop carries 3 pairs, so a user who stands
+  in earshot through four exchanges has a real chance of hearing the same pair twice — the roll
+  is uniform and has no memory. Deliberately not fixed on day one: the canned email/IM banks
+  solved this with a seen-template memory, and adding one here would be the slice's first piece
+  of state about anything, against the whole reason it holds nothing. The cheaper fix if
+  somebody wants it is **more copy**, not more machinery. Note the cap and the bank size are
+  the two dials and they are in different files on purpose (`officeCadence.js` for how often,
+  `officeCast.js` for how much) — raising one without the other is what makes repeats visible.
+- **The pairing is a tie-break away from being a different joke.** At the whiteboard both
+  `dinesh` (7, 4) and `jared` (8, 5) are exactly one tile from the mark, and `FLOOR_SEATS`
+  order is the only reason Dinesh answers rather than Jared. That is stable and deterministic —
+  and it means the whiteboard bank is written in an engineer's voice for a reply that becomes
+  Jared's the moment Dinesh is the one who walked over, which is a reachable state rather than a
+  theoretical one (Dinesh is on the wander roster). The lines were chosen to survive both
+  mouths; a future bank with sharper voice should either exclude the second-nearest seat or key
+  on the **replier** rather than on the prop.
+- **A third participant is unreachable by construction.** Only the nearest eligible seat is
+  nominated, so a prop with two neighbours still produces a two-hander. That is right for the
+  pacing (`useScenePacing` reveals one speaker at a time and a three-line exchange doubles the
+  time you must stand still for) and it is worth stating, because "why does Jared never join in
+  at the whiteboard" is a question the room now invites.
 
 - ~~**Three `vi.mock` calls in `useOfficeRunReactions.test.js` have never mocked anything**~~ and
   ~~**`act()` in that file also hides the bug**~~ — **both fixed**, and the sweep the entry asked

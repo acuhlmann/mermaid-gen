@@ -102,6 +102,29 @@ export const OFFICE_DWELL_LLM_CAP = 3;
  */
 export const OFFICE_TRAINING_LLM_CAP = 2;
 
+/**
+ * How many conversations between two colleagues you may overhear per visit to
+ * the floor (isometric slice 22). **Not an LLM budget** — shop talk is canned
+ * theatre and costs nothing — which is exactly why it belongs in this table
+ * rather than beside the geometry: § 11's rule is that how often the office
+ * makes a noise at you is tuned in one place, and "free" is a statement about
+ * spend, not about attention.
+ *
+ * Four is sized against the thing it is protecting. One wanderer is out at a
+ * time on an 11–24 s cadence, roughly a third of trips land at a prop within
+ * earshot of where you tend to stand, and an exchange takes about six seconds —
+ * so an unbounded version is a line every minute or so at a user who is stood
+ * still. That is not enough to be maddening, which is the trap: it is enough to
+ * become wallpaper, and wallpaper is what the office's anti-annoyance policy
+ * exists to prevent (a surface people tune out is not there for the moment that
+ * mattered). Four is a room that is alive when you arrive and settles.
+ *
+ * **Per visit, and the reset is free.** The counter lives in the hook, which
+ * unmounts when you sit down — so sitting down and standing back up is a fresh
+ * office, which is both the honest fiction and one less thing to persist.
+ */
+export const OFFICE_SHOP_TALK_CAP = 4;
+
 /*
  * ---------------------------------------------------------------------------
  * THE OFFICE DAY — the other clock, and the only one that is a wall clock.

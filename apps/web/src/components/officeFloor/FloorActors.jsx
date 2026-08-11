@@ -56,6 +56,8 @@ import { YOU_SEAT_ID, isWithinNameChipRange } from '../../utils/officeFloorPlan.
  *   talkLine?: string,
  *   dwellSaid?: { speakerId: string, text: string } | null,
  *   dwellAt?: { x: number, y: number } | null,
+ *   shopTalkSaid?: { speakerId: string, text: string } | null,
+ *   shopTalkAt?: { x: number, y: number } | null,
  *   presence?: any,
  *   onPresenceArrive?: () => void,
  *   playerRef?: { current: HTMLElement | null },
@@ -105,6 +107,8 @@ export function FloorActors({
   talkLine,
   dwellSaid,
   dwellAt,
+  shopTalkSaid,
+  shopTalkAt,
   presence,
   onPresenceArrive,
   onStep,
@@ -208,6 +212,22 @@ export function FloorActors({
           tile={dwellAt}
           scale={scale}
           testId="office-floor-dwell-line"
+        />
+      ) : null}
+
+      {/* Slice 22: half of a conversation between two other people. The same
+          bare `FloorDeskSpeech` as dwell above, and deliberately *one* of them
+          rather than a pair — `useFloorShopTalk` hands over whichever line is
+          currently in the air, so the element that draws the wanderer's opener
+          at the prop is the element that draws the reply over the chair a tile
+          away. Two at once would be two balloons in one square of screen. */}
+      {shopTalkSaid ? (
+        <FloorDeskSpeech
+          castId={shopTalkSaid.speakerId}
+          line={shopTalkSaid.text}
+          tile={shopTalkAt}
+          scale={scale}
+          testId="office-floor-shop-talk-line"
         />
       ) : null}
 
