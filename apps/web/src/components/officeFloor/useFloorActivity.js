@@ -20,6 +20,7 @@ import { useFloorTalk } from './useFloorTalk.js';
 import { propTileFor } from '../../utils/officeFloorMovement.js';
 import { conversationSpeakerId } from '../../utils/officeFloorActivity.js';
 import { YOU_SEAT_ID, seatFor } from '../../utils/officeFloorPlan.js';
+import { isSpokenLine } from '../../utils/officeImThreads.js';
 /**
  * `phase` names differ because the cards read as sentences: looking / talking /
  * using. `subjectKey` is which field of the intent names what you went there
@@ -58,12 +59,27 @@ const NO_TALK = Object.freeze({ line: '', pitch: null });
  * and § 8's finding is that these operators are most of what puts floor modules
  * over. Destructuring the result costs the hook nothing.
  *
+ * **Spoken lines only** (`isSpokenLine`), which is the half this was missing and
+ * the half that matters most here. `imHistory` carries two media, and this
+ * result is narrated — so without the filter the floor lifts a *typed* Slop
+ * Chat™ message into a balloon over somebody's head and reads it aloud in their
+ * voice. The desk renderer of this same conversation has always filtered
+ * (`latestSpokenInbound`), so the two disagreed about what the conversation
+ * even was, which is precisely what ADR-0011 rule 1 forbids of two renderers of
+ * one state.
+ *
+ * Worst on a **restored** session rather than a live one: only Slop Chat lines
+ * persist, so after a reload every candidate here is written, and walking up to
+ * anybody you had ever messaged made them say it — a line from another day,
+ * delivered as though they had just thought of it.
+ *
  * @returns {{ line: string, pitch: string | null }}
  */
 function lastInboundFrom(imHistory, colleagueId) {
   if (!colleagueId) return NO_TALK;
   for (let i = (imHistory?.length ?? 0) - 1; i >= 0; i -= 1) {
     const msg = imHistory[i];
+    if (!isSpokenLine(msg)) continue;
     if (msg.colleagueId === colleagueId && !msg.outbound) {
       return { line: msg.body ?? '', pitch: msg.actionPrompt ?? null };
     }

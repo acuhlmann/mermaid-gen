@@ -1442,6 +1442,17 @@ occupied briefly has only ever been tested briefly.**
     about a _second participant_ would be a placement-policy change to a helper four surfaces
     share, for a face that is hidden for one beat.
 
+    > **Rules 29 and 32 are closed, and the reason is the medium rule rather than the geometry.**
+    > Decided by the product owner, 2026-08-11: _"I don't actually use the CC features… just use
+    > voice if voice is there and not speech bubbles."_ Text is the **fallback** channel — with
+    > narration on and CC off, `shouldShowSpokenText` suppresses the balloon for everything
+    > spoken, so the frames these two rules measure are ones a user with working TTS never sees.
+    > Both stay documented because the measurements are still true and a future surface that
+    > renders text unconditionally will want them; neither should attract another capture. Spend
+    > the effort on what the room _says_ instead. **This is not licence to delete captions** —
+    > they are the accessibility path and the TTS-failure path, and a line lost because voice
+    > failed silently is a worse bug than any overlap in the table above.
+
 Note on rule 10: "no mark may share `x − y` with a desk" is the integer shorthand, and it
 does not survive fractional marks — the glass room is a diagonal strip in column space, so
 every seat around its table has a fractional column. The precise form of the rule (screen

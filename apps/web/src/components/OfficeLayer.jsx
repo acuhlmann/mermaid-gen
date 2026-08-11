@@ -100,7 +100,7 @@ import {
   speakOfficeLine
 } from '../utils/officeNarration.js';
 import { duckRoomTone, unduckRoomTone } from '../utils/officeRoomTone.js';
-import { threadTranscriptFor } from '../utils/officeImThreads.js';
+import { isSpokenLine, threadTranscriptFor } from '../utils/officeImThreads.js';
 import { officeStatusOf } from '../utils/officePresence.js';
 import { officeSpeakerSting } from '../utils/officeSpeakerStings.js';
 import { getDeskSlotElement, subscribeDeskSlotElement } from '../state/deskSlotStore.js';
@@ -194,10 +194,23 @@ export default function OfficeLayer({
     [getSessionId]
   );
 
-  // Overheard spoken surfaces only: walk-bys, meetings, battles, coffee.
-  // Emails / IMs stay silent (realistic office — you read those yourself).
-  // Gated through playChime so the global sound toggle / first-gesture
-  // policy still applies on mobile and desktop.
+  /*
+   * **The medium rule** (`office-parody.md` § 11): speech is spoken, writing is
+   * read. Everything that reaches this callback is a mouth moving in a room —
+   * walk-bys, meetings, battles, coffee, huddles, desk and floor talk, dwell
+   * remarks, overheard shop talk. Emails and Slop Chat™ messages never do,
+   * because you read those yourself.
+   *
+   * Deliberately *not* enumerated here any more. This comment listed four
+   * surfaces and was stale by six, and a list is the wrong shape for a rule
+   * anyway — what decides the medium is `isSpokenLine` in `officeImThreads.js`,
+   * because the two media share one `imHistory` and are told apart by one
+   * field. `officeVoiceMedium.test.jsx` is what actually holds the line: the
+   * floor once lifted a typed IM into somebody's mouth and nothing failed.
+   *
+   * Gated through playChime so the global sound toggle / first-gesture
+   * policy still applies on mobile and desktop.
+   */
   const narrateLine = useCallback(
     (line) => {
       if (!getOfficeSnapshot().narration) return Promise.resolve({ spoken: false });
@@ -1196,7 +1209,10 @@ export default function OfficeLayer({
   const latestTalkLine = useMemo(() => {
     for (let i = snapshot.imHistory.length - 1; i >= 0; i -= 1) {
       const msg = snapshot.imHistory[i];
-      if (msg?.channel !== 'talk') continue;
+      // The medium rule, shared with the floor renderer of this same
+      // conversation (`officeImThreads.js`) rather than spelled inline twice —
+      // the two disagreeing is what let a typed IM be spoken aloud on the floor.
+      if (!isSpokenLine(msg)) continue;
       return msg.outbound ? null : msg;
     }
     return null;

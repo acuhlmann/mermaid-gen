@@ -160,6 +160,18 @@ Production deploy notes (Cloud Run, billing credits, GitHub Actions CI, optional
   (`variant="intro"`, endonyms) and the name badge on the reception card, and leave **Check in**
   as a real gesture — an auto-advance skips both and burns TTS on cold mount.
   `officeFloorArrival.test.jsx` pins it; see `CLAUDE.md` § Office layer gotchas.
+- **Speech is spoken, writing is read.** Room lines (walk-by, meeting, battle, coffee, huddle,
+  desk/floor talk, dwell, shop talk) get TTS; **emails and Slop Chat™ messages never do.** Both
+  media share `imHistory` and are told apart by `channel` — and `pushOfficeImPing` omits the
+  field for `'im'`, so **written is the unmarked default** and a reader that forgets the question
+  voices it. Ask `isSpokenLine` (`officeImThreads.js`), never an inline check: the floor and desk
+  each had their own and disagreed, so a typed IM got read aloud in somebody's voice. A fixture
+  without `channel: 'talk'` is a _written_ message — several floor suites had to gain it.
+  `officeVoiceMedium.test.jsx` pins the rule. See `CLAUDE.md` § Office layer gotchas.
+- **Text is the fallback channel. Do not optimize bubbles; do not delete captions.** Voice leads
+  (`shouldShowSpokenText` hides the balloon whenever TTS actually speaks), so isometric § 6 rules
+  29/32 are closed — no more overlap captures. Captions stay: they are the accessibility path and
+  the TTS-failure path.
 - **The floor's proximity rules are one ladder, not two radii.** `NAME_CHIP_RANGE_TILES` (1) is
   "they talk to you" (slice 19) and `EARSHOT_RANGE_TILES` (3) is "you overhear two other people"
   (slice 22) — and an overheard exchange refuses to exist while you are within a tile of either
