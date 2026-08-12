@@ -351,6 +351,22 @@ https://api.deepseek.com/` — 401 is reachable, 000 is blocked); never route ar
   the target needs `floorState`, which `useFloorAway` returns, and `holdId` is one of its
   arguments — so a passing colleague can finish their errand and leave mid-countdown, which is
   accepted rather than unfixed.
+- **Speech is spoken, writing is read — and `imHistory` holds both, so the medium is one
+  field.** Walk-bys, meetings, battles, coffee, huddles, desk/floor talk, dwell remarks and shop
+  talk get a voice; **an email or a Slop Chat™ message never does** (you read those yourself).
+  `isSpokenLine` (`officeImThreads.js`) is the only answer, the exact complement of
+  `isSlopChatMessage`. The trap is the **default**: `pushOfficeImPing` omits `channel` entirely
+  for `'im'`, so _written is unmarked_ and any reader that forgets the question treats writing as
+  speech. That is not hypothetical — the floor's `lastInboundFrom` had no channel filter and so
+  lifted a typed IM into a balloon over somebody's head and narrated it in their voice, worst
+  after a reload, since `persistImHistory` keeps Slop Chat lines **only** and a restored session
+  therefore offers nothing else. Pinned by `officeVoiceMedium.test.jsx`, including the companion
+  claim that genuinely-spoken lines still speak — without it, a floor gone silent passes.
+- **Text is the fallback channel, not the primary — but never delete it.** With narration on and
+  CC off, `shouldShowSpokenText` suppresses the balloon for anything spoken, which is why § 6
+  rules 29/32 (bubble overlap geometry) are **closed** and should not attract another capture.
+  Captions remain the accessibility path and the TTS-failure path; "voice-first" orders the two
+  channels, it does not remove one.
 - **The cast may talk to each other, and _your position_ is the whole licence.** Slice 22 has a
   wanderer who settles at a prop trade two canned lines with whoever sits beside it — the first
   line in this office not addressed to you. It does not contradict "don't give ambience a second

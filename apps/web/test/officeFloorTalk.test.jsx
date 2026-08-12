@@ -31,8 +31,22 @@ function walkOverToTalk(name = /Chad/) {
   fireEvent.click(screen.getByRole('button', { name: /Go and talk/i }));
 }
 
+/**
+ * A line somebody **said** to you — `channel: 'talk'`, which is what these tests
+ * have always meant and never stated. The channel was implicit while the floor
+ * narrated whatever was newest; it is load-bearing now that it only narrates
+ * speech, because a fixture without it is a *typed* Slop Chat™ message and the
+ * floor must refuse to put one in somebody's mouth (`officeVoiceMedium.test.jsx`).
+ */
 function imFrom(colleagueId, body, outbound = false) {
-  return { id: `${colleagueId}-${body}`, colleagueId, body, createdAt: Date.now(), outbound };
+  return {
+    id: `${colleagueId}-${body}`,
+    colleagueId,
+    body,
+    channel: 'talk',
+    createdAt: Date.now(),
+    outbound
+  };
 }
 
 afterEach(() => {

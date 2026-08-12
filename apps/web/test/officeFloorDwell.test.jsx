@@ -119,7 +119,20 @@ describe('who you are stood next to', () => {
 });
 
 describe('finding the line they broke the silence with', () => {
-  const msg = (over) => ({ colleagueId: 'jared', body: 'Morning.', createdAt: 1_000, ...over });
+  /*
+   * `channel: 'talk'` because a dwell remark is answered out loud — `remarkTo`
+   * pushes on the talk channel. It was implicit while `dwellLineFrom` filtered
+   * on the timestamp alone; it is explicit now that the medium rule is enforced
+   * too, and a fixture without it is a typed Slop Chat™ message that the office
+   * must refuse to speak (`officeVoiceMedium.test.jsx`).
+   */
+  const msg = (over) => ({
+    colleagueId: 'jared',
+    body: 'Morning.',
+    channel: 'talk',
+    createdAt: 1_000,
+    ...over
+  });
 
   it('ignores anything older than the remark', () => {
     /*

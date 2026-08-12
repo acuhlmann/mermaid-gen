@@ -34,6 +34,37 @@ export function isSlopChatMessage(msg) {
 }
 
 /**
+ * The other half of the same split, and the rule that decides **what may reach
+ * a voice**: a line is spoken only if it was spoken.
+ *
+ * `imHistory` holds two different media in one array — physical speech
+ * (`channel: 'talk'`: say-it-out-loud, turning to the person next to you, a
+ * dwell remark, floor conversation) and typed Slop Chat™ (everything else).
+ * Only the first is a mouth moving in a room. An office where a message you
+ * *typed* comes back at you in somebody's voice is the tell the whole narration
+ * layer exists to avoid — you read an IM, you do not hear it (`office-parody.md`
+ * § 11, the medium rule).
+ *
+ * The exact complement of `isSlopChatMessage`, deliberately: two predicates over
+ * one field, so "which medium is this" has exactly one answer and adding a third
+ * channel forces a decision in both places rather than defaulting into one.
+ *
+ * **This is not a nicety, and the reason is persistence.** `persistImHistory`
+ * stores Slop Chat lines only — talk is speech and speech should not come back —
+ * so after any reload `imHistory` consists *entirely* of written messages. A
+ * consumer that reads "newest inbound from X" without this predicate therefore
+ * does not merely risk voicing an IM occasionally; on a restored session it can
+ * voice nothing else.
+ *
+ * @param {OfficeImMessage | null | undefined} msg
+ * @returns {boolean}
+ */
+export function isSpokenLine(msg) {
+  if (!msg) return false;
+  return msg.channel === 'talk';
+}
+
+/**
  * Group a flat IM log into per-colleague threads, most recently active first —
  * the ordering a real messenger uses, so a fresh ping surfaces its thread to
  * the top. Outbound (user-authored) messages never count as unread. Talk-channel

@@ -32,6 +32,7 @@
  */
 
 import { tierOf } from './castTiers.js';
+import { isSpokenLine } from './officeImThreads.js';
 import { whereaboutsOf } from './officeFloorReach.js';
 import {
   FLOOR_SEATS,
@@ -142,6 +143,11 @@ export function dwellLineFrom(imHistory, spoke) {
   for (let i = (imHistory?.length ?? 0) - 1; i >= 0; i -= 1) {
     const msg = imHistory[i];
     if ((msg.createdAt ?? 0) < spoke.at) return '';
+    // Belt to the time bound's braces, and the two guard different things: the
+    // timestamp keeps an *old* line out, `isSpokenLine` keeps a *written* one
+    // out. A remark is only ever answered on the talk channel, so this changes
+    // nothing today — it stops the medium rule depending on that staying true.
+    if (!isSpokenLine(msg)) continue;
     if (msg.colleagueId === spoke.colleagueId && !msg.outbound) return msg.body ?? '';
   }
   return '';

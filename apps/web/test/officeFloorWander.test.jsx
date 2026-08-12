@@ -623,6 +623,9 @@ describe('somebody who is not at their desk', () => {
         id: 'a',
         colleagueId: CHAD,
         body: 'Have you tried turning the diagram off and on again?',
+        // Answering you where they stand is speech, so it rides the talk
+        // channel — the floor only voices what was spoken (medium rule).
+        channel: 'talk',
         createdAt: Date.now()
       }
     ];

@@ -1372,6 +1372,38 @@ the backburnered multi-human future is [`multi-human-office.md`](multi-human-off
     The general rule: tell a situation the **circumstance** (it is why they are pinging _now_);
     never tell it a **delta the prompt does not carry**.
 
+- **The medium rule: speech is spoken, writing is read.** The ambient/reactive split decides
+  _how much a line costs_; this one decides _whether it reaches a voice at all_, and the two are
+  independent. A colleague standing in front of you gets a voice — walk-bys, meetings, battles,
+  coffee, huddles, desk and floor talk, dwell remarks, overheard shop talk. An **email or a Slop
+  Chat™ message does not**, because in an office you read those yourself. Nobody recites their
+  inbox at you, and a message the user _typed_ coming back in somebody's voice is the single
+  clearest tell that nothing in the room is real.
+
+  Text is the **fallback channel, not the primary one.** With narration on and CC off the balloon
+  is suppressed for anything actually spoken (`shouldShowSpokenText`), so voice carries the line
+  and the bubble exists for when voice cannot: TTS off, TTS failed, or a user who wants captions.
+  That ordering is why bubble _geometry_ is no longer worth optimizing (isometric § 6 rules 29 and
+  32 are closed on exactly this reasoning) — and why **captions are not therefore removable**.
+  They are the accessibility path and the failure path; "voice-first" is a statement about which
+  channel leads, never about deleting the other one.
+
+  **The rule lived as a comment for a year and was false in one renderer the whole time.** Both
+  media share a single `imHistory`, told apart only by `channel` — and `pushOfficeImPing` omits
+  the field entirely for `'im'`, so _written is the unmarked default_ and any consumer that
+  forgets the question treats writing as speech rather than the other way round. The desk asked
+  it; the floor did not. So walking up to somebody lifted their newest **typed** message into a
+  balloon over their head and read it aloud in their voice — worst on a restored session, since
+  `persistImHistory` keeps Slop Chat lines only, which means after any reload every candidate the
+  floor could find was written. A message from another day, delivered as though they had just
+  thought of it. Two renderers of one conversation disagreeing about what the conversation _is_
+  is precisely what ADR-0011 rule 1 forbids, which is what settles it without appeal to taste.
+
+  `isSpokenLine` (`officeImThreads.js`) is now the one answer, the exact complement of
+  `isSlopChatMessage`, and `officeVoiceMedium.test.jsx` pins it — including the companion claim
+  that the floor still speaks what was genuinely said, without which "it never voices an IM" is
+  satisfied by a floor that has gone silent altogether.
+
 - **Overheard is a third category, and it is not a hole in the ambient/reactive split.** The
   split asks _who started it_, and both its answers assume the line is aimed at the user: an
   ambient one interrupts them, a reactive one answers them. Isometric slice 22 ships the first
