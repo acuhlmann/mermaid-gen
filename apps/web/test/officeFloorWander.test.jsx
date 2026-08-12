@@ -418,6 +418,99 @@ describe('the floor with somebody up and about', () => {
 });
 
 /**
+ * The afternoon slump (slice 24) — the hour with its thumb on the scale.
+ *
+ * Driven through the hook with a *real* random rather than a pinned one,
+ * because a bias is a distribution: one trip proves nothing either way, and a
+ * fixed roll would only prove which entry index the weighting happens to land
+ * on. The two arms are the same code at two different clock readings.
+ */
+describe('where the room drifts at three in the afternoon', () => {
+  /** Somebody whose errands include the kitchen *and* somewhere else. */
+  const CHOOSY = wanderingSeatIds().find((id) => {
+    const kinds = wanderTripsFor(id).map((t) => t.kind);
+    return kinds.includes('coffeeMachine') && kinds.length > 1;
+  });
+
+  function tripsAt(hour, runs = 60) {
+    const kinds = [];
+    for (let run = 0; run < runs; run += 1) {
+      vi.setSystemTime(new Date(2026, 7, 10, hour, 15, 0, 0));
+      const { seen } = (() => {
+        const box = { wanderer: null };
+        function Probe() {
+          Object.assign(box, useFloorWander({ busyIds: BUSY_EXCEPT_CHOOSY }));
+          return null;
+        }
+        const view = render(<Probe />);
+        act(() => vi.advanceTimersByTime(9_000));
+        const result = { seen: box };
+        view.unmount();
+        return result;
+      })();
+      if (seen.wanderer?.kind) kinds.push(seen.wanderer.kind);
+    }
+    return kinds;
+  }
+
+  /** Everybody except the one person we want picked, so the arm is about the destination. */
+  const BUSY_EXCEPT_CHOOSY = wanderingSeatIds().filter((id) => id !== CHOOSY);
+
+  beforeEach(() => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+  });
+
+  it('has somebody with a real choice to make, or the rest of this is vacuous', () => {
+    expect(CHOOSY, 'nobody has the kitchen plus another errand').toBeTruthy();
+    expect(wanderTripsFor(CHOOSY).map((t) => t.kind)).toContain('coffeeMachine');
+  });
+
+  it('sends more of them to the kitchen in the slump than at eleven', () => {
+    const morning = tripsAt(11);
+    const slump = tripsAt(15);
+    expect(morning.length, 'no trips started at all').toBeGreaterThan(20);
+    expect(slump.length).toBeGreaterThan(20);
+
+    const share = (kinds) => kinds.filter((k) => k === 'coffeeMachine').length / kinds.length;
+    // A bias, not a schedule: the morning still sends people for coffee and the
+    // afternoon still sends them elsewhere. Only the proportion moves.
+    expect(share(slump)).toBeGreaterThan(share(morning));
+    expect(share(slump)).toBeLessThan(1);
+    expect(share(morning)).toBeGreaterThan(0);
+  });
+
+  /**
+   * The property that keeps this change invisible to every other floor suite.
+   *
+   * Slice 23 learned that an unpinned suite shares one `Math.random` stream
+   * across a file, so a change that consumes a *different number* of randoms
+   * re-seeds who is wandering everywhere else — a red assertion in a test about
+   * something else entirely. Weighting by repeating list entries and rolling
+   * once keeps the count identical in both arms.
+   */
+  it('costs the same number of randoms biased or not', () => {
+    const rolls = (hour) => {
+      const spy = vi.spyOn(Math, 'random');
+      vi.setSystemTime(new Date(2026, 7, 10, hour, 15, 0, 0));
+      function Probe() {
+        useFloorWander({ busyIds: BUSY_EXCEPT_CHOOSY });
+        return null;
+      }
+      const view = render(<Probe />);
+      act(() => vi.advanceTimersByTime(9_000));
+      const count = spy.mock.calls.length;
+      view.unmount();
+      spy.mockRestore();
+      return count;
+    };
+
+    const unbiased = rolls(11);
+    expect(unbiased, 'no randoms consumed — the trip never started').toBeGreaterThan(0);
+    expect(rolls(15)).toBe(unbiased);
+  });
+});
+
+/**
  * Reaching them while they are up (slice 12).
  *
  * Without a WAAPI engine a walk settles in the tick it starts, so `handleArrive`

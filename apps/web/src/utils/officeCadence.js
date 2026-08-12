@@ -210,6 +210,60 @@ export function officeDayPhaseAt(now = Date.now()) {
  */
 export const OFFICE_DAY_PHASE_POLL_MS = 60_000;
 
+/**
+ * Where the room drifts at a given hour — the last unbuilt piece of slice 20's
+ * sketch, and the second thing on this floor that the clock decides.
+ *
+ * **Why this is not a day phase.** The obvious shape is a sixth entry in
+ * `OFFICE_DAY_PHASES`, and it is wrong for a reason worth keeping: a phase is
+ * what the room *looks* like, and three in the afternoon looks exactly like
+ * eleven in the morning. Adding a phase to express the slump would force the
+ * light to change at 2 pm (and owe `officeFloorStyles.test.js` a sixth rule,
+ * since it pins one light rule per phase) to buy a fact about where people
+ * *walk*. The two rhythms are genuinely different: the light turns over four
+ * times a day, the coffee run is one window inside the longest phase there is.
+ * So this is its own small table, in the same file, under the same rule — the
+ * cadence owns *when*, the floor owns what it looks like.
+ *
+ * **One row, and the emptiness of the rest of the table is the design.** The
+ * hours that would obviously want a row already have a tell: `PHASE_ART` puts a
+ * mug in every hand through `earlyMorning` and papers in every hand through
+ * `windDown`, so biasing traffic toward the machine at nine or the printer at
+ * five would be a second telling of something the room already says. The slump
+ * is the one stretch of the day with nothing to distinguish it, which is
+ * precisely why the sketch asked for it.
+ *
+ * `weight` is a multiplier against a uniform pick, not a probability: a
+ * colleague whose errands do not include the favoured prop is unaffected, which
+ * is what keeps this a *bias* rather than a schedule. Three is enough to read
+ * as a trend over a handful of trips and not enough to make the printer look
+ * broken.
+ */
+export const WANDER_BIAS_WINDOWS = Object.freeze([
+  Object.freeze({ from: 14 * 60, until: 16 * 60 + 30, kind: 'coffeeMachine', weight: 3 })
+]);
+
+/**
+ * The bias in force at `now`, or `null` for the great majority of the day.
+ *
+ * Pure over an explicit instant for `officeDayPhaseAt`'s reason — an arc you
+ * can only check by waiting until three in the afternoon is an arc nobody
+ * checks.
+ *
+ * @param {Date | number} [now]
+ * @returns {{ kind: string, weight: number } | null}
+ */
+export function wanderBiasAt(now = Date.now()) {
+  const date = now instanceof Date ? now : new Date(now);
+  const minutes = date.getHours() * 60 + date.getMinutes();
+  for (const window of WANDER_BIAS_WINDOWS) {
+    if (minutes >= window.from && minutes < window.until) {
+      return { kind: window.kind, weight: window.weight };
+    }
+  }
+  return null;
+}
+
 /** Relative frequency of each moment kind (before availability filters). */
 const MOMENT_WEIGHTS = [
   ['email', 3],

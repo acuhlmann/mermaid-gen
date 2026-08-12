@@ -35,6 +35,12 @@
  *    reduced motion a decision; this is the first slice to decide *against*
  *    doing something at all.
  *
+ * Since slice 24 the *destination* knows what time it is (`wanderBiasAt`): from
+ * two until half four the room drifts to the coffee machine. It is a thumb on
+ * the scale of an existing pick rather than a new mechanism — no new state, no
+ * schedule, and somebody whose errands do not include the kitchen is picked
+ * from exactly as before.
+ *
  * Slice 12 added a fourth, and it is the same rule wearing the opposite face:
  * `holdId` **stops the clock** while you have their card open or are stood in
  * front of them talking. Ambience still loses — it loses by waiting instead of
@@ -48,6 +54,7 @@ import { liveTileOf, prefersReducedMotion } from './useWalkAnimation.js';
 import { seatFor } from '../../utils/officeFloorPlan.js';
 import { sameTile } from '../../utils/officeFloorMovement.js';
 import { wanderTripsFor, wanderingSeatIds } from '../../utils/officeFloorWander.js';
+import { wanderBiasAt } from '../../utils/officeCadence.js';
 import { propHandsFor } from '../../utils/officeFloorProps.js';
 import { interruptionFor } from '../../utils/officeFloorInterrupt.js';
 
@@ -79,6 +86,32 @@ function jitter([low, high]) {
 
 function pick(list) {
   return list[Math.floor(Math.random() * list.length)];
+}
+
+/**
+ * Where they are heading, with the hour's thumb on the scale (slice 24).
+ *
+ * **One `Math.random()` either way**, which is not an optimisation — it is the
+ * property that keeps this change invisible to every suite that mounts the
+ * floor without pinning the PRNG. Slice 23 learned that the hard way: an
+ * unpinned suite shares one random stream across the file, so consuming a
+ * different *number* of randoms re-seeds who is wandering everywhere else and
+ * turns an unrelated assertion red. Weighting by repeating entries in a list
+ * and then rolling once preserves the count; rolling a second time to decide
+ * "biased or not" would not.
+ *
+ * A multiplier rather than a schedule: somebody whose errands do not include
+ * the favoured prop is picked from exactly as before, so the room drifts to the
+ * kitchen without anybody being ordered there.
+ */
+function pickTrip(options, bias) {
+  if (!bias) return pick(options);
+  const weighted = [];
+  for (const trip of options) {
+    const share = trip.kind === bias.kind ? bias.weight : 1;
+    for (let copy = 0; copy < share; copy += 1) weighted.push(trip);
+  }
+  return pick(weighted);
 }
 
 /**
@@ -125,7 +158,13 @@ function departure(busy, avoid) {
   const options = wanderTripsFor(seatId).filter((trip) => !sameTile(trip.mark, avoid));
   if (options.length === 0) return null;
 
-  const { kind, mark } = pick(options);
+  /*
+   * The hour, read at fire time rather than depended on (slice 24). A trip's
+   * destination is decided when the errand starts, so this is a one-shot read
+   * of the same pure function `useOfficeDayPhase` polls — not a second sampler,
+   * and nothing here re-renders when it changes.
+   */
+  const { kind, mark } = pickTrip(options, wanderBiasAt());
   const seat = seatFor(seatId);
   return {
     seatId,

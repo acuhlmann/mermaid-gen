@@ -1156,7 +1156,73 @@ diagramSource})` returns counts, labels, a `shape` (`graph` | `list` | `page`), 
     `FloorCardSlot` and in `floorAnnouncement`, `joinOffer` + `onJoin` in `OfficeFloor.jsx`, and
     `floor.join` / `floor.narration.overhearing` in `officeCast.js` + all three locale bundles.
 
-**There is no slice 24 yet, and that is deliberate.** The list above was written one slice at
+24. **The afternoon slump — the room drifts to the kitchen at three.** ✅ shipped. From two
+    until half four, an ambient errand is three times likelier to be a coffee run. Slice 20's
+    last unbuilt piece, and the smallest thing in this document: **zero LLM budget**, no new
+    state, no new mechanism — one table in `officeCadence.js` and a weighted pick where a
+    uniform one used to be.
+
+    **Why it is not a sixth day phase, which is the obvious shape and the wrong one.** A phase
+    is what the room _looks_ like, and three in the afternoon looks exactly like eleven in the
+    morning. Promoting the slump to a phase would force the light to change at 2 pm — and owe
+    `officeFloorStyles.test.js` a sixth rule, since it pins one light rule per phase — to buy a
+    fact about where people _walk_. So the office now has **two clocks in the cadence and one
+    rule covering both**: the phase table says what the hour looks like, this one says where it
+    sends people, and neither is allowed onto the floor. The rhythms are genuinely different —
+    the light turns over four times a day, the coffee run is one window inside the longest
+    phase there is. `officeCadence.test.js` asserts the slump sits inside `midday` rather than
+    beside it, so anybody tempted to promote it has to delete that first.
+
+    **One row, and the empty rest of the table is the design.** The hours that would obviously
+    want a row already have a tell: `PHASE_ART` puts a mug in every hand through `earlyMorning`
+    and papers in every hand through `windDown`, so biasing traffic toward the machine at nine
+    or the printer at five would be a second telling of something the room already says. The
+    slump is the one stretch of the day with nothing to distinguish it, which is exactly why the
+    sketch asked for it.
+
+    **A bias, not a schedule.** `weight` is a multiplier against a uniform pick, so somebody
+    whose errands do not include the kitchen is picked from exactly as before, the morning still
+    sends people for coffee and the afternoon still sends them elsewhere. Only the proportion
+    moves — which is what a slump is.
+
+    **The constraint that shaped the implementation came from slice 23.** Weighting is done by
+    repeating entries in a list and rolling **once**, so a biased pick and an unbiased one
+    consume the _same number_ of `Math.random()` calls. That is not tidiness: slice 23 learned
+    that an unpinned floor suite shares one PRNG stream across a file, so a change that consumes
+    a different number of randoms re-seeds who is wandering everywhere else and turns an
+    unrelated assertion red. Rolling a second time to decide "biased or not" would have shipped
+    that landmine. `officeFloorWander.test.jsx` pins the count in both arms.
+
+    **It had to pay a debt to be allowed to exist.** Biasing traffic toward one prop biases
+    which exchange you overhear (slice 22), and shop talk's roll is memoryless against
+    `OFFICE_SHOP_TALK_CAP` of 4 — so three pairs at the coffee machine meant a repeat was
+    likelier than not for the prop this slice makes people visit. The bank went to **six**, and
+    the printer and whiteboard deliberately stayed at three: nothing sends anybody to those on
+    purpose. `officeFloorShopTalk.test.jsx` now asserts the _relationship_ rather than the
+    number — a prop the clock favours must carry at least as many pairs as the cap allows
+    exchanges — so a future window over a thin bank fails rather than repeating itself at
+    somebody.
+
+    **How it was checked, and why there is no capture.** This slice has no visual surface: it
+    changes a probability, and a screenshot of one wanderer says nothing about a distribution.
+    The evidence is a two-arm measurement instead — the real hook, a real `Math.random`, 60
+    trips per arm at 11:00 and 15:00, asserting the share moves and that neither arm is 0 or 1
+    — plus a frozen-clock check in Chromium that the shipped bundle answers
+    `{ coffeeMachine, 3 }` at 15:15 and `null` at 11:00 while the phase stays `midday`.
+
+    One trap worth keeping from that browser run: **a wanderer's DOM transform is not its
+    destination.** The first probe sampled `[data-testid="office-floor-wanderer"]`'s transform
+    and got fourteen desks — the figure carries its starting position until the walk lands, and
+    waiting for `data-settled` did not fix it either, because only the _player_'s transform is
+    the projected tile. It came back "0 to the kitchen" in **both** arms, which reads exactly
+    like the feature doing nothing. Printing the raw values rather than only the tally is what
+    caught it.
+
+    Code: `WANDER_BIAS_WINDOWS` + `wanderBiasAt` in `utils/officeCadence.js`, `pickTrip` in
+    `officeFloor/useFloorWander.js`, and the enlarged `shopTalk.coffeeMachine` bank in
+    `officeCast.js` + all three locale bundles.
+
+**There is no slice 25 yet, and that is deliberate.** The list above was written one slice at
 a time, each defined when it was picked up rather than planned in advance — so "continue with
 slice _n_" only means something once somebody has chosen what _n_ is. § 8 has the candidates,
 a recommendation, and the debts that argue for one over another. Pick from there, write the
@@ -1775,10 +1841,12 @@ LLM budget at all.
   `officeCadence.js` (`officeDayPhaseAt`), no new store, zero LLM budget. The trap held too —
   the dial is in the cadence and only the _art_ is on the floor. What the sketch did not
   anticipate is that a phase cannot take Dave's headset off, because that accessory is a
-  **face** trait rather than an activity; see the slice entry. **Kitchen traffic mid-afternoon
-  is the one part of the sketch not built**: it is a bias on `useFloorWander`'s target choice
-  rather than an input to `floorActivityFor`, which makes it a different change to a different
-  module, and it should stay in the cadence's hands when somebody wants it.
+  **face** trait rather than an activity; see the slice entry. ~~**Kitchen traffic mid-afternoon
+  is the one part of the sketch not built**~~ ✅ **shipped as slice 24**, and the prediction held
+  exactly: a bias on `useFloorWander`'s target choice, the dial in the cadence, a different
+  change to a different module. What the bullet did not anticipate is that it could not be a
+  day phase — the slump is a fact about where people walk, and a phase is a fact about what the
+  room looks like, so the cadence now carries two clocks rather than one longer list.
 - **Point-and-click depth.** The two entries below that survived: **soft errands**
   (Linda asks you to find Chad about the reply-all — existing talk verb, reactive IM, a small XP
   beat, logged but never _scheduled_, or it becomes auto-fix-on-idle in a new hat) and
@@ -1947,15 +2015,19 @@ Kept here so appetite can pick without re-deriving. Each should stay bound by AD
 
 ### Debts the shipped slices left behind
 
-- **Shop talk has one bank per prop and three props, so a visit can exhaust the room's
-  material.** `OFFICE_SHOP_TALK_CAP` is 4 and each prop carries 3 pairs, so a user who stands
-  in earshot through four exchanges has a real chance of hearing the same pair twice — the roll
-  is uniform and has no memory. Deliberately not fixed on day one: the canned email/IM banks
-  solved this with a seen-template memory, and adding one here would be the slice's first piece
-  of state about anything, against the whole reason it holds nothing. The cheaper fix if
-  somebody wants it is **more copy**, not more machinery. Note the cap and the bank size are
-  the two dials and they are in different files on purpose (`officeCadence.js` for how often,
-  `officeCast.js` for how much) — raising one without the other is what makes repeats visible.
+- **Shop talk has one bank per prop, so a visit can still exhaust the printer and the
+  whiteboard.** ~~`OFFICE_SHOP_TALK_CAP` is 4 and each prop carries 3 pairs~~ — **half cleared
+  by slice 24**, which took the coffee machine to **6** because it made the room walk there on
+  purpose. The two props nothing favours are still at 3 against a cap of 4, so a user who
+  stands in earshot of the printer through four exchanges still has a real chance of hearing
+  the same pair twice; the roll is uniform and has no memory. Deliberately still not a
+  seen-template store: that would be the slice's first piece of state about anything, against
+  the whole reason it holds nothing, and the cheaper fix remains **more copy**. What slice 24
+  added is a **sensor** rather than a rule — `officeFloorShopTalk.test.jsx` asserts that any
+  prop a `WANDER_BIAS_WINDOWS` row favours carries at least `OFFICE_SHOP_TALK_CAP` pairs, so
+  the next window over a thin bank fails rather than repeating itself at somebody. The cap and
+  the bank size are still the two dials and still in different files on purpose
+  (`officeCadence.js` for how often, `officeCast.js` for how much).
 - **The pairing is a tie-break away from being a different joke.** At the whiteboard both
   `dinesh` (7, 4) and `jared` (8, 5) are exactly one tile from the mark, and `FLOOR_SEATS`
   order is the only reason Dinesh answers rather than Jared. That is stable and deterministic —

@@ -1385,7 +1385,19 @@ export const OFFICE_EN_AU = {
             'We’re out of oat milk again.',
             'We had oat milk once. That was the trial. The trial didn’t get up.'
           ],
-          ['Someone’s left a mug in the sink.', 'I know whose it is. I’m letting it develop.']
+          ['Someone’s left a mug in the sink.', 'I know whose it is. I’m letting it develop.'],
+          [
+            'Why’s there a spreadsheet taped to the fridge?',
+            'That’s the roster. Nobody’s ever been on the roster. It’s aspirational.'
+          ],
+          [
+            'This says decaf.',
+            'It says decaf. It’s always said decaf. Ask yourself why you’re still up at eleven.'
+          ],
+          [
+            'D’you ever go outside for one of these?',
+            'I went outside in spring. It was alright. There was weather.'
+          ]
         ],
         printer: [
           [
