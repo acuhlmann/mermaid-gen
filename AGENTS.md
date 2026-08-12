@@ -348,6 +348,14 @@ Production deploy notes (Cloud Run, billing credits, GitHub Actions CI, optional
   ~7.5 h a day and survived only because CI kept landing in `midday`/`afterHours`. Pin with
   `vi.useFakeTimers({ shouldAdvanceTime: true, toFake: ['Date'] })` to a midday instant, faking
   `Date` **only**, or the poll timer and React's scheduling stop and nothing renders.
+- **The cadence carries two wall clocks; pick by what the fact changes.** `OFFICE_DAY_PHASES`
+  is what the room _looks_ like (mugs, papers, light); `WANDER_BIAS_WINDOWS` / `wanderBiasAt` is
+  where people _go_ (slice 24's afternoon slump). Do not add a sixth day phase to express an
+  hour-shaped fact about movement — 3 pm looks like 11 am, so a phase would change the light and
+  owe `officeFloorStyles.test.js` a sixth rule for nothing. Both dials live in `officeCadence.js`;
+  the floor still owns only the art. And a **weighted pick must consume the same number of
+  `Math.random()` calls as the uniform one** — repeat list entries and roll once, never roll again
+  to decide whether the bias applies, or you re-seed every unpinned floor suite (see below).
 - **A mounting floor test inherits `Math.random` too, and that one is shared across the file.**
   `useFloorWander` sends somebody out on an unstubbed roll, so an unpinned suite depends on the
   PRNG stream — and any change anywhere that consumes a different number of randoms re-seeds who

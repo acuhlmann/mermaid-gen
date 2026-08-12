@@ -258,6 +258,22 @@ Every session carries **six independent diagram slots** — `mermaid` (Mermaid t
     One trap it found: a `headwear: null` **cannot take a headset off**, because `PersonaFace`
     resolves `accessoryOverride ?? traits.accessory` and only the literal `'none'` strips a baked
     trait — Dave's headset is his face, not his activity.
+- **`officeCadence.js` now carries two wall clocks, and which one a fact belongs to is
+  "does it change how the room looks, or where people go".** `OFFICE_DAY_PHASES` is the first
+  (mugs, papers, light); `WANDER_BIAS_WINDOWS` / `wanderBiasAt` is the second (slice 24: from
+  two until half four an errand is 3× likelier to be a coffee run). The slump is deliberately
+  **not** a sixth phase — three in the afternoon _looks_ exactly like eleven in the morning, so
+  promoting it would change the light at 2 pm and owe `officeFloorStyles.test.js` a sixth rule
+  to buy a fact about walking. Both dials stay in the cadence; the floor still owns only what a
+  phase looks like. The bias table's one row is also the design: `PHASE_ART` already puts a mug
+  in every hand at nine and papers at five, so biasing traffic there would tell the same thing
+  twice.
+- **A weighted random pick must consume the same number of `Math.random()` calls as the
+  unweighted one it replaced.** Weight by repeating entries in a list and roll **once**; never
+  roll a second time to decide whether the bias applies. This is the direct consequence of the
+  PRNG-stream finding below — an unpinned floor suite shares one stream across a file, so
+  changing the _count_ of randoms re-seeds who is wandering in every other test in that file.
+  `officeFloorWander.test.jsx` pins the count in both the biased and unbiased arms.
 - **The office day's light is a token palette on `[data-day-phase]`, and it must stay one rule
   per phase.** `--office-window-tint` / `--office-wall-ne` / `--office-wall-nw` /
   `--office-floor-plate` / `--office-surround-veil` all default on `.office-floor` to the

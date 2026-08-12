@@ -2465,6 +2465,16 @@ export const OFFICE_CHROME_COPY = {
      * a stage direction. It stays wired for the locales and for a fourth prop.
      */
     shopTalk: {
+      /*
+       * Six pairs where the other two props have three, which is slice 24
+       * paying for itself. That slice biases the room toward this machine from
+       * two until half four, so this is the bank a user actually hears — and
+       * `OFFICE_SHOP_TALK_CAP` is 4 against a memoryless roll, so three pairs
+       * meant a repeat was likelier than not. The debt § 8 recorded said the
+       * cheap fix is more copy rather than a seen-template store, and that it
+       * should be spent where the traffic is. The printer and the whiteboard
+       * stay at three: nothing sends anybody to them on purpose.
+       */
       coffeeMachine: [
         [
           'Is it meant to be making that noise?',
@@ -2474,7 +2484,19 @@ export const OFFICE_CHROME_COPY = {
           'There is no oat milk again.',
           'There was oat milk once. That was the pilot. The pilot was not renewed.'
         ],
-        ['Someone has left a mug in the sink.', 'I know whose it is. I am letting it develop.']
+        ['Someone has left a mug in the sink.', 'I know whose it is. I am letting it develop.'],
+        [
+          'Why is there a spreadsheet taped to the fridge?',
+          'That is the rota. Nobody has ever been on the rota. It is aspirational.'
+        ],
+        [
+          'This says decaf.',
+          'It says decaf. It has always said decaf. Ask yourself why you are still awake at eleven.'
+        ],
+        [
+          'Do you ever go outside for one of these?',
+          'I went outside in the spring. It was fine. There was weather.'
+        ]
       ],
       printer: [
         [

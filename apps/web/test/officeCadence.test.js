@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { DESK_LLM_CAP, DWELL_LLM_CAP, TALK_LLM_CAP } from '../src/hooks/useDeskActions.js';
 import { RUN_REACTION_LLM_CAP } from '../src/hooks/useOfficeRunReactions.js';
+import { wanderTripsFor, wanderingSeatIds } from '../src/utils/officeFloorWander.js';
 import {
   OFFICE_BATTLES_PER_SESSION,
   OFFICE_DESK_LLM_CAP,
@@ -15,6 +16,8 @@ import {
   OFFICE_DAY_PHASES,
   OFFICE_DAY_PHASE_POLL_MS,
   officeDayPhaseAt,
+  wanderBiasAt,
+  WANDER_BIAS_WINDOWS,
   OFFICE_WARMUP_GAP_JITTER_MS,
   OFFICE_WARMUP_MIN_GAP_MS,
   OFFICE_WARMUP_MOMENT_COUNT,
@@ -234,5 +237,60 @@ describe('the office day (slice 20)', () => {
     // A phase turns over four times a day; this is a heartbeat, not a clock.
     expect(OFFICE_DAY_PHASE_POLL_MS).toBeGreaterThanOrEqual(30_000);
     expect(OFFICE_DAY_PHASE_POLL_MS).toBeLessThanOrEqual(5 * 60_000);
+  });
+});
+
+describe('the afternoon slump (slice 24)', () => {
+  const at = (h, m = 0) => new Date(2026, 7, 10, h, m, 0, 0);
+
+  it('opens at two and closes at half four', () => {
+    expect(wanderBiasAt(at(13, 59))).toBeNull();
+    expect(wanderBiasAt(at(14))?.kind).toBe('coffeeMachine');
+    expect(wanderBiasAt(at(16, 29))?.kind).toBe('coffeeMachine');
+    expect(wanderBiasAt(at(16, 30))).toBeNull();
+  });
+
+  /*
+   * The great majority of the day has no bias at all, which is the half that
+   * makes the slump readable: a room that drifts somewhere at every hour is a
+   * room that drifts nowhere.
+   */
+  it('is quiet for most of the day', () => {
+    let biased = 0;
+    for (let h = 0; h < 24; h += 1) {
+      for (const m of [0, 30]) if (wanderBiasAt(at(h, m))) biased += 1;
+    }
+    expect(biased).toBeGreaterThan(0);
+    expect(biased).toBeLessThan(8);
+  });
+
+  /*
+   * It sits deliberately *inside* `midday` rather than being a sixth phase:
+   * three in the afternoon looks exactly like eleven in the morning, and a
+   * phase is what the room looks like. Asserted so that anybody tempted to
+   * promote it has to delete this first.
+   */
+  it('lives inside a phase rather than being one', () => {
+    expect(officeDayPhaseAt(at(15))).toBe('midday');
+    expect(OFFICE_DAY_PHASES).not.toContain('slump');
+    expect(WANDER_BIAS_WINDOWS.every((w) => w.from < w.until)).toBe(true);
+  });
+
+  it('only ever favours a prop somebody can actually be sent to', () => {
+    // A window naming a prop with no wander trip is a dial that does nothing,
+    // and nothing else would ever notice.
+    const reachable = new Set(
+      wanderingSeatIds().flatMap((id) => wanderTripsFor(id).map((t) => t.kind))
+    );
+    expect(reachable.size).toBeGreaterThan(0);
+    for (const window of WANDER_BIAS_WINDOWS) {
+      expect(reachable, `${window.kind} is not a wander destination`).toContain(window.kind);
+      expect(window.weight).toBeGreaterThan(1);
+    }
+  });
+
+  it('takes a Date or an epoch, like the phase dial beside it', () => {
+    const three = at(15);
+    expect(wanderBiasAt(three)).toEqual(wanderBiasAt(three.getTime()));
   });
 });

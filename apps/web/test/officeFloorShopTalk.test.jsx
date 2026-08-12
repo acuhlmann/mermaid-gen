@@ -3,7 +3,7 @@ import { act, cleanup, renderHook } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { useFloorShopTalk } from '../src/components/officeFloor/useFloorShopTalk.js';
 import { officeChromeCopy } from '../src/utils/officeCast.js';
-import { OFFICE_SHOP_TALK_CAP } from '../src/utils/officeCadence.js';
+import { OFFICE_SHOP_TALK_CAP, WANDER_BIAS_WINDOWS } from '../src/utils/officeCadence.js';
 import { propTileFor, usablePropKinds } from '../src/utils/officeFloorMovement.js';
 import { dwellTargetAt } from '../src/utils/officeFloorDwell.js';
 import { tierOf } from '../src/utils/castTiers.js';
@@ -212,6 +212,29 @@ describe('the exchange', () => {
       const roll = index / bank.length;
       const exchange = shopTalkExchange(trip, 'facilities', FLOOR_COPY(), roll);
       expect(exchange.lines.map((line) => line.text)).toEqual(bank[index]);
+    }
+  });
+
+  /**
+   * Slice 24 moved this from "a debt" to "a number", so it is worth pinning.
+   *
+   * The roll is uniform and has no memory, so the chance of hearing the same
+   * pair twice inside a visit is a function of two dials that live in two files
+   * on purpose — `OFFICE_SHOP_TALK_CAP` for how often, the bank for how much.
+   * Raising one without the other is exactly what makes repeats visible, and
+   * slice 24 raised the *traffic* to the coffee machine, so its bank had to
+   * grow with it. This asserts the relationship rather than the number: the
+   * prop the room drifts toward must carry at least as many pairs as the cap
+   * allows exchanges.
+   */
+  it('gives the prop the room drifts toward enough material for a whole visit', () => {
+    const biased = WANDER_BIAS_WINDOWS.map((window) => window.kind);
+    expect(biased.length, 'nothing is biased — this proves nothing').toBeGreaterThan(0);
+    for (const kind of biased) {
+      expect(
+        FLOOR_COPY().shopTalk[kind]?.length ?? 0,
+        `${kind} is favoured by the clock and can exhaust itself`
+      ).toBeGreaterThanOrEqual(OFFICE_SHOP_TALK_CAP);
     }
   });
 
