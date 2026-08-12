@@ -29,37 +29,38 @@ Do not copy `standUp(); render(<OfficeFloor />)` into new suites — extend the 
 
 ## Test file map
 
-| File                                 | What it guards                                                             |
-| ------------------------------------ | -------------------------------------------------------------------------- |
-| `officeFloorPlan.test.js`            | Pure geometry: projection, marks, glass, peek roster                       |
-| `officeFloorMovement.test.js`        | Where you may walk, approach/peek/prop marks                               |
-| `officeFloorReach.test.js`           | Where somebody is when away, and whether it is a mark                      |
-| `officeFloorInterrupt.test.js`       | What somebody says when you take the square they wanted (slice 18)         |
-| `officeFloorDwell.test.jsx`          | Who you are stood next to, and the line it earns (slice 19)                |
-| `officeFloorContracts.test.js`       | **ADR-0011 executable rules** (narration, props, POV)                      |
-| `officeFloorModuleInventory.test.js` | Bench components + test files still exist                                  |
-| `officeFloorPropsTable.test.js`      | `officeFloorProps.js` ↔ `propTileFor` alignment                            |
-| `officeLayerFloorRenderer.test.jsx`  | Desk overlay **or** floor scene — never both                               |
-| `officeFloor.test.jsx`               | Substrate, person cards, walk-bys, mode toggle                             |
-| `officeFloorArrival.test.jsx`        | First-run ceremony on the floor                                            |
-| `officeFloorAccess.test.jsx`         | Live region, `floorAnnouncement`, reduced motion                           |
-| `officeFloorRoam.test.jsx`           | Free roam click + keyboard                                                 |
-| `officeFloorTalk.test.jsx`           | Floor as second renderer of IM thread; voice-first bubble hide when CC off |
-| `useFloorSpokenText.test.js`         | Voice-first narration hook: CC off + spoken → hide bubble                  |
-| `officeCaptions.test.js`             | `shouldShowSpokenText` policy (captions × voiceActive)                     |
-| `officeWalkBy.test.jsx`              | Desk-mode shoulder lean-in + voice-first caption hide                      |
-| `deskActionsDock.test.jsx`           | Stand up primary control; Walk the floor removed from menu                 |
-| `officeFloorPeek.test.jsx`           | Desk peeking marks and fiction                                             |
-| `officeFloorProps.test.jsx`          | Usable props + `getCoffee` verb                                            |
-| `officeFloorScene.test.jsx`          | Coffee + battle set pieces                                                 |
-| `officeFloorMeeting.test.jsx`        | Glass room meeting renderer                                                |
-| `officeFloorWander.test.jsx`         | Ambient wander roster, yields, and the interrupted-errand line             |
-| `officeFloorStyles.test.js`          | CSS facts (hit box, focus, reduced motion)                                 |
-| `officeFloorViewTransition.test.js`  | Stand-up/sit-down transition: JS exit timer ↔ CSS fade, veil z-order       |
-| `useWalkAnimation.test.jsx`          | Walk interrupts + `liveTileOf` read-back                                   |
-| `officeDeskWork.test.js`             | Fictional desk workloads for peek                                          |
-| `officeFloorActivity.test.jsx`       | Held items, headphones posture, who-is-talking derivation, the office day  |
-| `useOfficeDayPhase.test.jsx`         | The wall-clock sampler: catch-up, no-repaint-on-no-change, teardown        |
+| File                                 | What it guards                                                            |
+| ------------------------------------ | ------------------------------------------------------------------------- |
+| `officeFloorPlan.test.js`            | Pure geometry: projection, marks, glass, peek roster                      |
+| `officeFloorMovement.test.js`        | Where you may walk, approach/peek/prop marks                              |
+| `officeFloorReach.test.js`           | Where somebody is when away, and whether it is a mark                     |
+| `officeFloorInterrupt.test.js`       | What somebody says when you take the square they wanted (slice 18)        |
+| `officeFloorDwell.test.jsx`          | Who you are stood next to, and the line it earns (slice 19)               |
+| `officeFloorContracts.test.js`       | **ADR-0011 executable rules** (narration, props, POV)                     |
+| `officeFloorModuleInventory.test.js` | Bench components + test files still exist                                 |
+| `officeFloorPropsTable.test.js`      | `officeFloorProps.js` ↔ `propTileFor` alignment                           |
+| `officeLayerFloorRenderer.test.jsx`  | Desk overlay **or** floor scene — never both                              |
+| `officeFloor.test.jsx`               | Substrate, person cards, walk-bys, mode toggle                            |
+| `officeFloorArrival.test.jsx`        | First-run ceremony on the floor                                           |
+| `officeFloorAccess.test.jsx`         | Live region, `floorAnnouncement`, reduced motion                          |
+| `officeFloorRoam.test.jsx`           | Free roam click + keyboard                                                |
+| `officeFloorShopTalk.test.jsx`       | The proximity ladder, the overheard pair, and the offer to join (22, 23)  |
+| `officeFloorTalk.test.jsx`           | Floor as second renderer of IM thread; CC-off bubble hide; joining (23)   |
+| `useFloorSpokenText.test.js`         | Voice-first narration hook: CC off + spoken → hide bubble                 |
+| `officeCaptions.test.js`             | `shouldShowSpokenText` policy (captions × voiceActive)                    |
+| `officeWalkBy.test.jsx`              | Desk-mode shoulder lean-in + voice-first caption hide                     |
+| `deskActionsDock.test.jsx`           | Stand up primary control; Walk the floor removed from menu                |
+| `officeFloorPeek.test.jsx`           | Desk peeking marks and fiction                                            |
+| `officeFloorProps.test.jsx`          | Usable props + `getCoffee` verb                                           |
+| `officeFloorScene.test.jsx`          | Coffee + battle set pieces                                                |
+| `officeFloorMeeting.test.jsx`        | Glass room meeting renderer                                               |
+| `officeFloorWander.test.jsx`         | Ambient wander roster, yields, and the interrupted-errand line            |
+| `officeFloorStyles.test.js`          | CSS facts (hit box, focus, reduced motion)                                |
+| `officeFloorViewTransition.test.js`  | Stand-up/sit-down transition: JS exit timer ↔ CSS fade, veil z-order      |
+| `useWalkAnimation.test.jsx`          | Walk interrupts + `liveTileOf` read-back                                  |
+| `officeDeskWork.test.js`             | Fictional desk workloads for peek                                         |
+| `officeFloorActivity.test.jsx`       | Held items, headphones posture, who-is-talking derivation, the office day |
+| `useOfficeDayPhase.test.jsx`         | The wall-clock sampler: catch-up, no-repaint-on-no-change, teardown       |
 
 ## Rules encoded as tests (add here when you learn new ones)
 
@@ -70,6 +71,8 @@ Do not copy `standUp(); render(<OfficeFloor />)` into new suites — extend the 
 5. **One live region on the floor** — `officeFloorAccess.test.jsx` counts `[aria-live]`.
 6. **Only a settled figure is reachable** — `officeFloorContracts.test.js` + `officeFloorReach.test.js`: a walker and anybody a moment has claimed get no mark, so the verb does not render.
 7. **One derivation of what somebody is doing** — `officeFloorActivity.test.jsx`: the precedence (call ▸ your headphones ▸ coffee ▸ carried item ▸ the hour ▸ trait row) is asserted once, and no surface composes it itself. The hour is rung 5, so anybody a moment is drawing gets no phase; the boundaries themselves live in `officeCadence.test.js`.
+8. **An overheard exchange offers a walk, never a reply** — `officeFloorContracts.test.js`: slice 23's offer carries two seat ids and a prop kind, and none of the exchange's text. A `line`, a quote or an `actionPrompt` on it would make the exchange something addressed to the user, which belongs in the moment store as a walk-by.
+9. **The card slot's order is the live region's order** — `officeFloorContracts.test.js` walks the whole chain (meeting ▸ talk ▸ peek ▸ prop ▸ walk-by ▸ join ▸ roam). A card added without a sentence in the same position is two surfaces disagreeing about what you are doing.
 
 ## Adding a new floor slice
 
@@ -84,3 +87,12 @@ Do not copy `standUp(); render(<OfficeFloor />)` into new suites — extend the 
 Vitest jsdom has **no layout engine** — hit-box overlap and CSS size facts live in `officeFloorStyles.test.js` (stylesheet text) or Playwright harness (see `docs/office-isometric-mode.md` §6 verification recipe). Do not assert `getBoundingClientRect` overlap in jsdom component tests.
 
 Walking uses **no WAAPI** in jsdom — `useWalkAnimation` settles immediately (same as `prefers-reduced-motion`). Floor suites rely on that; see `useWalkAnimation.test.jsx`.
+
+## Two inputs a mounting floor test does not name, and both have bitten
+
+Any suite that renders the whole floor inherits ambient life, and ambient life reads two globals that a test which is not about ambient life will forget to control.
+
+- **The wall clock.** The hour is rung 5 of `floorActivityFor`, above the trait row, so a render assertion about what somebody is holding is only true in the two day phases with no `PHASE_ART`. Pin it: `vi.useFakeTimers({ shouldAdvanceTime: true, toFake: ['Date'] })` at a **midday** instant, faking `Date` only.
+- **`Math.random`.** `useFloorWander` sends somebody out on an unstubbed random, so an unpinned suite shares one PRNG stream across the **file** — and any change anywhere that consumes a different number of randoms re-seeds who is wandering and where. Found by slice 23, which consumes one fewer: `officeFloorDwell.test.jsx` went red on a test that passed in isolation and failed in file order, which is this class's signature. Pin with `vi.spyOn(Math, 'random').mockReturnValue(0.75)` (the floor suites' seed: Chad to the whiteboard) unless the suite is genuinely about the roll.
+
+Neither failure mentions time or randomness in its message; both look like a broken assertion about the feature under test.

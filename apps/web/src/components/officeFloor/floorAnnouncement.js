@@ -83,7 +83,8 @@ function nameOf(colleagueId) {
  *   prop?: { propKind: string, phase: string } | null,
  *   presence?: { phase: string, homeward?: boolean, key: number } | null,
  *   walkBy?: { id: string, colleagueId: string } | null,
- *   walkerDeparting?: boolean
+ *   walkerDeparting?: boolean,
+ *   join?: { colleagueId: string, partnerId: string } | null
  * }} state `copy` is `officeChromeCopy().floor`; the rest is what
  *   `OfficeFloorView` already holds, passed rather than re-derived. Taken as
  *   one object and destructured without defaults on purpose: every field is
@@ -92,7 +93,8 @@ function nameOf(colleagueId) {
  * @returns {FloorAnnouncement}
  */
 export function floorAnnouncement(state) {
-  const { copy, meeting, huddle, talk, peek, prop, presence, walkBy, walkerDeparting } = state;
+  const { copy, meeting, huddle, talk, peek, prop, presence, walkBy, walkerDeparting, join } =
+    state;
   const lines = copy.narration;
 
   if (meeting) return announce('meeting', lines.inMeeting);
@@ -118,6 +120,27 @@ export function floorAnnouncement(state) {
       walkerDeparting ? lines.leaving : lines.arriving,
       { name: nameOf(walkBy.colleagueId) }
     );
+  }
+
+  /*
+   * Slice 23's rung, in the card slot's own position: below a colleague coming
+   * to your desk, above the bare fact that you are stood on the floor.
+   *
+   * This does **not** reopen "ambient traffic is not narrated" (slice 11), and
+   * the distinction is worth stating because the two look alike. That answer
+   * was about trips — a region reading out every walk to the printer is one
+   * people switch off, and then it is not there for the walk-by that mattered.
+   * This announces an **offer**, which exists only where you are stood and at
+   * most `OFFICE_SHOP_TALK_CAP` times a visit; the trips themselves are as
+   * silent here as they have always been. A control that appears has to say so,
+   * which is the same conclusion § 8 reached for the name on a wanderer's
+   * button: narration reports what is happening, a control reports what it is.
+   */
+  if (join) {
+    return announce(`join:${join.colleagueId}:${join.partnerId}`, lines.overhearing, {
+      name: nameOf(join.colleagueId),
+      partner: nameOf(join.partnerId)
+    });
   }
 
   if (presence) {

@@ -312,6 +312,47 @@ describe('office locale bundles', () => {
     }
   });
 
+  /*
+   * Slice 23. `officeChromeCopy()` swaps bundles rather than merging, so a
+   * locale with no `join` block is a floor that overhears conversations and
+   * never offers a way into one — in that language only, with nothing rendered
+   * to notice. `FloorJoinCard` degrades to no card rather than an untitled one,
+   * which is right at runtime and is exactly why this has to be pinned here.
+   *
+   * `{name}` / `{partner}` / `{prop}` are checked by name because
+   * `formatLocale` leaves a dropped placeholder unsubstituted in silence: a
+   * translator who loses `{partner}` ships a card that names one half of a
+   * two-hander, and the only thing that ever sees it is this assertion.
+   */
+  it.each(LOCALES)('offers a way into a conversation you overhear (%s)', (locale) => {
+    const join = getUiLocaleBundle(locale).office.OFFICE_CHROME_COPY.floor.join;
+    const en = OFFICE_CHROME_COPY.floor.join;
+    expect(Object.keys(join ?? {}).sort(), `${locale} floor.join`).toEqual(Object.keys(en).sort());
+    /*
+     * The block as a whole rather than key by key: a locale that never wrote
+     * this key at all deep-merges to English and comes back *identical*, which
+     * is the failure this catches, while an `eyebrow` that happens to read the
+     * same in en-AU is a label rather than a missing translation.
+     */
+    expect(join, `${locale} floor.join untranslated`).not.toEqual(en);
+    for (const key of Object.keys(en)) {
+      expect(String(join[key]).trim().length, `${locale} floor.join.${key} empty`).toBeGreaterThan(
+        0
+      );
+    }
+    for (const slot of ['{name}', '{partner}', '{prop}']) {
+      expect(join.body, `${locale} floor.join.body lost ${slot}`).toContain(slot);
+    }
+    // The live region says the same thing in its own register, and it names the
+    // same two people.
+    const narration = getUiLocaleBundle(locale).office.OFFICE_CHROME_COPY.floor.narration;
+    expect(narration.overhearing, `${locale} floor.narration.overhearing`).toBeTruthy();
+    expect(narration.overhearing).not.toBe(OFFICE_CHROME_COPY.floor.narration.overhearing);
+    for (const slot of ['{name}', '{partner}']) {
+      expect(narration.overhearing, `${locale} overhearing lost ${slot}`).toContain(slot);
+    }
+  });
+
   it('routes localized copy through the officeCast accessors', () => {
     setActiveOfficeBundle(getUiLocaleBundle('zh-CN').office);
     expect(officeEmailTemplates()[0].subject).toContain('冰箱');

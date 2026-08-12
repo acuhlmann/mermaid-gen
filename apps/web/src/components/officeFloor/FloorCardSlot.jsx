@@ -5,9 +5,15 @@
  * has you in a chair, a conversation has you stood in front of somebody
  * waiting for you to say something, a peek has you on your feet at somebody
  * else's desk, using a prop has you on your feet at a machine, a person card is
- * idle curiosity, and the hint is what is left when you are doing nothing at
- * all. That ordering is the rule § 7 asks new surfaces to respect, so it lives
- * in one place rather than as a ternary chain inside the view component.
+ * idle curiosity, an offer to join a conversation commits nothing yet, and the
+ * hint is what is left when you are doing nothing at all. That ordering is the
+ * rule § 7 asks new surfaces to respect, so it lives in one place rather than
+ * as a ternary chain inside the view component.
+ *
+ * Slice 23's rung is the first one the *room* offers rather than one you
+ * opened, which is why it sits second from bottom: a person card is idle
+ * curiosity you acted on, and this is a door held open. It outranks only the
+ * hint, and the hint is what it replaces while it is up.
  *
  * A prop ranks below a peek only because a person outranks a machine; the two
  * are mutually exclusive anyway, since you have one body and `useFloorPresence`
@@ -23,7 +29,7 @@ import { FloorHuddleCard } from './FloorHuddle.jsx';
 import { FloorMeetingCard } from './FloorMeeting.jsx';
 import { FloorPeekCard } from './FloorPeek.jsx';
 import { FloorPropCard } from './FloorProps.jsx';
-import { FloorTalkCard } from './FloorTalk.jsx';
+import { FloorJoinCard, FloorTalkCard } from './FloorTalk.jsx';
 import { sitDown } from '../../state/officeViewModeStore.js';
 
 /**
@@ -40,11 +46,13 @@ import { sitDown } from '../../state/officeViewModeStore.js';
  *   prop?: { propKind: string, phase: string } | null,
  *   propUse?: { phase: 'idle' | 'working' | 'done' | 'blocked' } | null,
  *   person?: any,
+ *   join?: { colleagueId: string, partnerId: string, kind: string } | null,
  *   board?: import('../../utils/officeFloorBoard.js').BoardState | null,
  *   onGoHome: () => void,
  *   onMessage?: (colleagueId: string) => void,
  *   onPeek?: (colleagueId: string) => void,
  *   onTalk?: (colleagueId: string) => void,
+ *   onJoin?: (colleagueId: string) => void,
  *   onAdoptPrompt?: (prompt: string, colleagueId: string) => void,
  *   onClosePerson: () => void
  * }} props `copy` is `officeChromeCopy().floor`. `onAdoptPrompt` is declared
@@ -65,12 +73,15 @@ export function FloorCardSlot({
   prop = null,
   propUse = null,
   person = null,
-  // No default — § 8's complexity lever, and `FloorPropCard` defaults it itself.
+  // No defaults — § 8's complexity lever, and `FloorPropCard` / `FloorJoinCard`
+  // each guard their own.
   board,
+  join,
   onGoHome,
   onMessage,
   onPeek,
   onTalk,
+  onJoin,
   onAdoptPrompt,
   onClosePerson
 }) {
@@ -142,6 +153,8 @@ export function FloorCardSlot({
       />
     );
   }
+
+  if (join) return <FloorJoinCard join={join} copy={copy} onJoin={onJoin} />;
 
   return <p className="office-floor-hint">{copy.hint}</p>;
 }

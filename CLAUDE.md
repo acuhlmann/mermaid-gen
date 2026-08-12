@@ -270,6 +270,14 @@ Every session carries **six independent diagram slots** — `mermaid` (Mermaid t
   the chrome. None of it is transitioned, which is what keeps it out of the reduced-motion
   contract. **A blackout is the wrong reflex for `afterHours`** — you are standing in the room,
   and the 7 %-alpha grid plus dark-glyph/white-halo zone labels both need the light.
+- **A floor test that _mounts_ inherits two globals it never named: the wall clock and
+  `Math.random`.** The random half was found by slice 23 — `useFloorWander` sends somebody out on
+  an unstubbed roll, so an unpinned suite shares one PRNG stream across the whole **file**, and any
+  change anywhere that consumes a different number of randoms re-seeds who is wandering.
+  `officeFloorDwell.test.jsx` went red on a test that **passed in isolation and failed in file
+  order**, which is this class's signature; pin with `vi.spyOn(Math, 'random').mockReturnValue(0.75)`
+  (the floor suites' seed) unless the suite is about the roll. Neither failure mentions time or
+  randomness — both read as a broken assertion about the feature under test.
 - **Any floor test that _mounts_ rather than calling `floorActivityFor` directly is
   time-dependent.** The hour is rung 5, above the trait row, so a render test asserting what a
   character's own row gives them is silently wrong whenever `PHASE_ART` has an entry —
@@ -379,6 +387,23 @@ https://api.deepseek.com/` — 401 is reachable, 000 is blocked); never route ar
   the other two overheard performances (coffee, battles). Who replies is derived from the layout
   (`shopTalkPartnerFor` — nearest seat within `NAME_CHIP_RANGE_TILES` of the _mark_), which is
   why the copy bank is keyed by prop: the prop picks the voice.
+- **Joining an overheard conversation is a walk, not a reply — and that is the only reason it is
+  allowed to exist.** Slice 23's _Join in_ fires `startTalk` at a `talkTileFor` mark, which is
+  what the person card's _Go and talk_ and a double-click already do; the offer carries two seat
+  ids and a prop kind and **none of the exchange's text**. Put a line, a quote or an
+  `actionPrompt` on it and the exchange has started addressing the user, which makes it a walk-by
+  and moves it to the moment store (`officeFloorContracts.test.js` pins the payload). The
+  composer opens **empty** on arrival — `handleTalkGreet` is still slice 8's deliberate silence,
+  and joining must not become the exception that seeds an opener. Two facts worth reusing: the
+  offer must **outlive** its exchange (`armed.done` rather than clearing, or an invitation dies
+  seven seconds after it appears), and it is read off the **exchange** so an untranslated locale
+  offers nothing rather than inviting you to join two people standing in silence.
+- **A verb you pressed can hold somebody in place; a place you are standing cannot.** Joining
+  gets `useFloorAway`'s hold for free — `startTalk` sets `activity.talk` immediately and that is
+  `holdId`, so the wanderer's dwell clock stops while you cross the room. Slice 19's dwell wanted
+  the identical hold and could not have it, because its target is derived from `floorState`, which
+  is `useFloorAway`'s output, and `holdId` is its input. The difference is not effort, it is which
+  side of that hook the signal starts on — check that before recording another "limitation".
 - **`NAME_CHIP_RANGE_TILES` and `EARSHOT_RANGE_TILES` are two rungs of one ladder.** Inside the
   chip range somebody talks _to_ you (slice 19); between there and earshot (3) you overhear two
   others (slice 22); past it the room is quiet. Each rung is defined as **what the one inside it

@@ -138,7 +138,7 @@ describe('only a settled figure is reachable (slice 12)', () => {
 });
 
 describe('card-slot narration order matches floorAnnouncement priority', () => {
-  it('meeting beats talk beats peek beats prop beats walk-by beats roam', () => {
+  it('meeting beats talk beats peek beats prop beats walk-by beats join beats roam', () => {
     const stack = {
       copy,
       meeting: { state: 'playing' },
@@ -146,7 +146,8 @@ describe('card-slot narration order matches floorAnnouncement priority', () => {
       peek: { colleagueId: 'intern', phase: 'looking' },
       prop: { propKind: 'printer', phase: 'using' },
       presence: { phase: 'standing', key: 1 },
-      walkBy: { id: 'w1', colleagueId: 'intern' }
+      walkBy: { id: 'w1', colleagueId: 'intern' },
+      join: { colleagueId: 'intern', partnerId: 'dinesh', kind: 'whiteboard' }
     };
     expect(floorAnnouncement(stack).text).toBe(lines.inMeeting);
     expect(floorAnnouncement({ ...stack, meeting: null }).key).toMatch(/^talk:/);
@@ -157,16 +158,16 @@ describe('card-slot narration order matches floorAnnouncement priority', () => {
     expect(
       floorAnnouncement({ ...stack, meeting: null, talk: null, peek: null, prop: null }).key
     ).toMatch(/^walkby:/);
-    expect(
-      floorAnnouncement({
-        ...stack,
-        meeting: null,
-        talk: null,
-        peek: null,
-        prop: null,
-        walkBy: null
-      }).key
-    ).toMatch(/^roam:/);
+    /*
+     * Slice 23's rung, and the reason the whole chain is asserted rather than
+     * the new pair alone: the live region is a *third renderer* of the card
+     * slot's ordering (ADR-0011 rule 1 applied to narration), so a card added
+     * without its sentence — or with the sentence in a different place — is two
+     * surfaces disagreeing about what you are doing.
+     */
+    const idle = { ...stack, meeting: null, talk: null, peek: null, prop: null, walkBy: null };
+    expect(floorAnnouncement(idle).key).toMatch(/^join:/);
+    expect(floorAnnouncement({ ...idle, join: null }).key).toMatch(/^roam:/);
   });
 });
 
@@ -254,5 +255,40 @@ describe('office-parody §11 — an overheard exchange is spent on you, not on a
       expect(Object.keys(line).sort()).toEqual(['speakerId', 'text']);
       expect(line.speakerId).not.toBe(YOU_SEAT_ID);
     }
+  });
+
+  /**
+   * Slice 23, and the clause it had to get past to exist at all.
+   *
+   * The test above says the exchange offers no way to answer; joining looks at
+   * first glance like exactly such a way, and the distinction that keeps both
+   * true is that **join is a walk, not a reply**. What the offer carries is two
+   * seat ids and a prop kind — no line, no quote of what was said, no
+   * `actionPrompt` — so nothing you press is attached to the sentence you
+   * overheard. Taking it walks you over and hands you an empty composer, which
+   * is what walking up to anybody has always done (slice 8: you speak first).
+   *
+   * If a `text`, a `line` or a prompt ever appears on this object, the exchange
+   * has started addressing the user and belongs in the moment store as a
+   * walk-by instead.
+   */
+  it('offers a walk, never a reply (slice 23)', () => {
+    const listening = { x: propTileFor('whiteboard').x, y: propTileFor('whiteboard').y + 2 };
+    const partner = overheardPartnerFor(trip, listening, { wanderer: trip });
+    expect(partner, 'nobody to overhear — the rest of this proves nothing').toBeTruthy();
+
+    // The shape the view is handed, built the way `useFloorShopTalk` builds it.
+    const offer = { colleagueId: trip.seatId, partnerId: partner, kind: trip.kind };
+    expect(Object.keys(offer).sort()).toEqual(['colleagueId', 'kind', 'partnerId']);
+
+    const exchange = shopTalkExchange(trip, partner, copy, 0);
+    const spoken = exchange.lines.map((line) => line.text).join(' ');
+    for (const value of Object.values(offer)) {
+      expect(spoken, 'the offer must not carry the line it came from').not.toContain(value);
+    }
+
+    // And the two people it names are the two who were talking — you are not
+    // one of them, before or after.
+    expect([offer.colleagueId, offer.partnerId]).not.toContain(YOU_SEAT_ID);
   });
 });

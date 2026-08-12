@@ -2251,7 +2251,11 @@ export const OFFICE_CHROME_COPY = {
       standingFloor: 'Standing on the floor. Arrow keys step; Escape walks you back.',
       arriving: '{name} is walking over to your desk.',
       leaving: '{name} is walking back to their desk.',
-      inHuddle: 'Your team is huddled around your desk.'
+      inHuddle: 'Your team is huddled around your desk.',
+      // Slice 23. Spatial, like everything else here: who is standing near you
+      // and that there is a way in — never a word of what they are saying,
+      // which stays in the bubbles the two speakers already have.
+      overhearing: '{name} and {partner} are talking nearby. You can join in.'
     },
     // Day One, staged on the floor (isometric arrival).
     arrival: {
@@ -2500,6 +2504,28 @@ export const OFFICE_CHROME_COPY = {
           'We did redo it properly. In March. This is the properly one.'
         ]
       ]
+    },
+    /*
+     * Joining a conversation you were only near (slice 23).
+     *
+     * The offer is a **walk, not a reply**. Taking it fires the same _Go and
+     * talk_ verb the person card offers and a double-click already runs — so
+     * nothing here answers the exchange, which was never addressed to you, and
+     * the room does not pretend otherwise once you arrive: you still speak
+     * first, exactly as you would walking up to anybody (slice 8's silence).
+     *
+     * It names the wanderer because they are the half of the pair who is about
+     * to leave; `body` names the replier too so the card says whose
+     * conversation it is rather than just whose desk you are near.
+     *
+     * `{prop}` is `props.items[kind].name` and already carries its article, so
+     * the line says "at {prop}" and never "at the {prop}".
+     */
+    join: {
+      eyebrow: 'WITHIN EARSHOT',
+      body: '{name} is at {prop} with {partner}. Neither of them has noticed you.',
+      action: '💬 Join in',
+      actionTitle: 'Walk over and say something — they will not include you on their own'
     },
     // The meeting, staged in the glass room instead of a window on your screen.
     // Labels stay short: two of them share one row of a 21 rem card.

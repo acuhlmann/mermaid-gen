@@ -18,6 +18,7 @@
 import FloorDeskSpeech from './FloorDeskSpeech.jsx';
 import { PersonaFace } from '../personaFaces/index.jsx';
 import VoiceMicButton from '../VoiceMicButton.jsx';
+import { formatLocale } from '../../i18n/formatLocale.js';
 import { officeChromeCopy, officeSenderInfo } from '../../utils/officeCast.js';
 
 /**
@@ -205,6 +206,89 @@ export function FloorTalkCard({
           onClick={onLeave}
         >
           {talkCopy.leave}
+        </button>
+      </div>
+    </aside>
+  );
+}
+
+/**
+ * The way into a conversation you are only near
+ * (docs/office-isometric-mode.md § 5 slice 23).
+ *
+ * **It lives in this file because joining is the talk verb.** Slice 22 built
+ * the half nobody had — two colleagues talking to each other with you placed to
+ * hear it — and left "and then what" open. The answer turned out to need no new
+ * verb at all: pressing this fires the same `startTalk` the person card's _Go
+ * and talk_ and a double-click already fire, at a mark derived the same way. So
+ * the offer sits next to the card it opens rather than in a module of its own,
+ * and if the two ever disagree about what talking *is*, they are ten lines
+ * apart.
+ *
+ * **It is a walk, not a reply**, which is the clause that keeps slice 22 legal
+ * (ADR-0010, `office-parody.md` § 11). Nothing here answers the line you
+ * overheard — there is no quote, no Do-it, no thread, no unread count, and the
+ * exchange is not addressed to you before or after. Taking it walks you over
+ * and hands you a composer, and you still speak first, exactly as you would
+ * walking up to anybody (slice 8's deliberate silence). The exchange itself
+ * ends as you accept, for free: `standingFree` goes false the instant you have
+ * a reason to be somewhere, and `useFloorShopTalk` clears on it.
+ *
+ * In the card slot rather than on the balloon, for the reason `FloorTalkCard`
+ * records about its own Do-it: `FloorDeskSpeech` returns `null` under
+ * `hideBody`, so an offer hung on the bubble would come and go with a captions
+ * preference that has nothing to do with it.
+ *
+ * @param {{
+ *   join: { colleagueId: string, partnerId: string, kind: string },
+ *   copy: Record<string, any>,
+ *   onJoin?: (colleagueId: string) => void
+ * }} props `copy` is `officeChromeCopy().floor`.
+ */
+export function FloorJoinCard({ join, copy, onJoin }) {
+  const joinCopy = copy.join;
+  /*
+   * The handler is part of the guard, and the copy is too — the same check
+   * `TalkPitch` makes, for the same reason (a button that silently does nothing
+   * is worse than no offer), plus `officeChromeCopy()`'s: a locale that never
+   * translated this block has no card rather than an untitled one.
+   */
+  if (!joinCopy || typeof onJoin !== 'function') return null;
+
+  const speaker = officeSenderInfo(join.colleagueId);
+  const partner = officeSenderInfo(join.partnerId);
+  const theirName = speaker?.name ?? join.colleagueId;
+
+  return (
+    <aside
+      className="office-floor-card office-floor-card--join"
+      data-testid="office-floor-join-card"
+    >
+      <span className="office-floor-eyebrow">{joinCopy.eyebrow}</span>
+      <div className="office-floor-card-head">
+        <PersonaFace id={join.colleagueId} size={44} />
+        <div className="office-floor-card-id">
+          <strong>{theirName}</strong>
+          <span>{speaker?.title ?? ''}</span>
+        </div>
+      </div>
+      <p className="office-floor-card-blurb">
+        {formatLocale(joinCopy.body, {
+          name: theirName,
+          partner: partner?.name ?? join.partnerId,
+          // The same lookup the narration and the interrupt bank use; it
+          // already carries its article.
+          prop: copy.props?.items?.[join.kind]?.name ?? ''
+        })}
+      </p>
+      <div className="office-floor-card-actions">
+        <button
+          type="button"
+          className="office-floor-card-action office-floor-card-action--primary"
+          title={joinCopy.actionTitle}
+          onClick={() => onJoin(join.colleagueId)}
+        >
+          {joinCopy.action}
         </button>
       </div>
     </aside>

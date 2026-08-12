@@ -1440,7 +1440,8 @@ export const OFFICE_ZH_TW = {
         standingFloor: '站在地板上。方向鍵邁步；Esc 走回工位。',
         arriving: '{name} 正朝你的工位走來。',
         leaving: '{name} 正走回自己的工位。',
-        inHuddle: '你的團隊圍在你工位旁開小會。'
+        inHuddle: '你的團隊圍在你工位旁開小會。',
+        overhearing: '{name} 和 {partner} 正在旁邊聊天。你可以加入。'
       },
       arrival: {
         eyebrow: 'ARCHISLOP CORP. · 入職第一天',
@@ -1601,6 +1602,12 @@ export const OFFICE_ZH_TW = {
           ['這個箭頭是什麼意思？', '這個箭頭比我來得早。我第二週就不問了。'],
           ['我們要不要乾脆重畫一遍？', '我們重畫過了。三月。這就是重畫過的版本。']
         ]
+      },
+      join: {
+        eyebrow: '在你耳邊',
+        body: '{name} 正在{prop}那邊和 {partner} 聊天。兩個人都沒注意到你。',
+        action: '💬 加入他們',
+        actionTitle: '走過去說點什麼 — 他們自己是不會帶上你的'
       },
       meeting: {
         eyebrow: '玻璃會議室',

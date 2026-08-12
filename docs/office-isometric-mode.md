@@ -1076,7 +1076,87 @@ diagramSource})` returns counts, labels, a `shape` (`graph` | `list` | `page`), 
     `floor.shopTalk` in `officeCast.js` + all three locale bundles, and the `shopTalkSaid` /
     `shopTalkAt` pair through `OfficeFloor` → `FloorActors` → `FloorDeskSpeech`.
 
-**There is no slice 23 yet, and that is deliberate.** The list above was written one slice at
+23. **Join in — the conversation you were only near becomes yours.** ✅ shipped. While you are
+    stood in the ring listening to two colleagues, the card slot offers a way in. Taking it walks
+    you over and opens the conversation. **Zero LLM budget of its own**, no new verb, no new
+    store, and one changed line in `useFloorShopTalk`.
+
+    **The whole slice is a negative claim: joining is not a new verb.** § 8 had carried
+    _Overhear → join_ as "chosen, not yet built" behind a content question — what an inserted beat
+    does to a script that is already mid-flight. Slice 22 split that question in two without
+    meaning to. A coffee break or a cubicle battle is a scripted performance with a fixed line
+    count, and joining one is still the hard version. **Shop talk is two lines and then silence**,
+    so joining it is not an interruption at all — it is the talk verb, which has existed since
+    slice 8, aimed at somebody standing three tiles away. This is that half, and it is the reason
+    the diff is mostly copy: `startTalk` at a mark from `talkTileFor`, which is what the person
+    card's _Go and talk_ and a double-click already do.
+
+    **It is a walk, not a reply, and that clause is what keeps slice 22 legal.**
+    `officeFloorContracts.test.js` pins the exchange as producing nothing — no pitch, no prompt,
+    no way to answer — and an offer to join looks at first glance exactly like such a way. What
+    the offer carries is two seat ids and a prop kind: no line, no quote, no `actionPrompt`, so
+    nothing you press is attached to the sentence you overheard. And the room does not pretend
+    otherwise once you arrive — the composer opens **empty**, because `handleTalkGreet` is still
+    slice 8's deliberate silence. You overheard something and then went and said hello; the two
+    lines were never addressed to you and still are not. If a `text` or a prompt ever appears on
+    that object, the exchange has started answering the user and belongs in the moment store as a
+    walk-by.
+
+    **The offer had to outlive the exchange, which is the one thing in the hook that changed.**
+    Two lines are over in about seven seconds and the pair are still standing there, so an
+    invitation that died with the last balloon would be a reflex test rather than an invitation.
+    `handleDone` now marks the roll `done` instead of clearing it: the balloon still goes (a null
+    exchange is how it goes), the offer stays, and — the part that pays for itself — the arming
+    effect still sees `current.key === wanderKey`, so an errand you have already overheard cannot
+    replay itself while you stand there. The offer is read off the **exchange** rather than off
+    the arming, which is what keeps an untranslated locale honest: no bank, no exchange, no
+    invitation to join two people standing in silence.
+
+    **It names the wanderer, and that is not a coin toss.** The replier is in their chair and will
+    be there all day; the wanderer's errand ends in four to nine seconds and then they are back at
+    a desk you may be nowhere near. The offer is for the speaker who is about to leave — and the
+    geometry agrees, because the conversation is happening at the prop.
+
+    **The hold comes free, and it is the thing slice 19 could not have.** Pressing the offer sets
+    `activity.talk` immediately, which is `useFloorAway`'s `holdId`, so the wanderer's dwell clock
+    stops while you cross the room — measured in a browser: nine seconds of walking and Chad is
+    still at the board. Slice 19 wanted the same hold and could not have it, because its target is
+    derived from where you are _stood_, which needs `floorState`, which needs `holdId`. This one is
+    downstream of a button you pressed, so there is no loop to close. **A verb you pressed can hold
+    somebody; a place you are standing cannot.**
+
+    **Card chrome, not bubble furniture**, for the reason the floor-pitch work recorded:
+    `FloorDeskSpeech` returns `null` outright under `hideBody`, so an offer hung on the balloon
+    would come and go with a captions preference that has nothing to do with it. It sits second
+    from bottom in the card slot — below the person card, above the hint — because it is the first
+    rung the _room_ offers rather than one you opened, and the live region gets the matching rung
+    in the same position (ADR-0011 rule 1 applied to narration).
+
+    **What the capture taught**, driven in Chromium at 1440 × 900 and 390 × 844 with `Math.random`
+    pinned to 0.75:
+
+    - **The offer and the exchange are up together, and the hand-off reads.** Chad's opener is in
+      the air with _Within earshot_ underneath it; the balloon clears, the card stays, the wanderer
+      stays. Pressing it swaps the offer for _Having a word_ with an empty composer — the same card
+      walking up to anybody gives you.
+    - **Every listening tile on this floor is within one tile of _somebody_.** Measured over the
+      whole grid: the room is dense enough that overhearing always puts you shoulder to shoulder
+      with a bystander — never with one of the two speakers, which is all the ladder ever promised.
+      The capture shows it plainly, with Jared's and Russ's name chips lit while Chad and Dinesh
+      talk past you. It is also a debt: a bystander's dwell remark withdraws the offer (§ 8).
+    - **A floor test that mounts is at the mercy of the PRNG, not just the clock.** § 8's earlier
+      finding was about the wall clock; this is its sibling. `officeFloorDwell.test.jsx` never
+      stubbed `Math.random`, so its tests shared one stream across the file — and this slice
+      consumes one fewer random (a played-out exchange no longer re-rolls), which re-seeded who was
+      wandering and turned one test red. It passed alone and failed in file order, which is the
+      signature. Now pinned in that suite's `beforeEach`.
+
+    Code: `join` in `officeFloor/useFloorShopTalk.js`, `FloorJoinCard` in `officeFloor/FloorTalk.jsx`
+    (beside the card it opens, because joining _is_ the talk verb), the `join` rung in
+    `FloorCardSlot` and in `floorAnnouncement`, `joinOffer` + `onJoin` in `OfficeFloor.jsx`, and
+    `floor.join` / `floor.narration.overhearing` in `officeCast.js` + all three locale bundles.
+
+**There is no slice 24 yet, and that is deliberate.** The list above was written one slice at
 a time, each defined when it was picked up rather than planned in advance — so "continue with
 slice _n_" only means something once somebody has chosen what _n_ is. § 8 has the candidates,
 a recommendation, and the debts that argue for one over another. Pick from there, write the
@@ -1702,9 +1782,12 @@ LLM budget at all.
 - **Point-and-click depth.** The two entries below that survived: **soft errands**
   (Linda asks you to find Chad about the reply-all — existing talk verb, reactive IM, a small XP
   beat, logged but never _scheduled_, or it becomes auto-fix-on-idle in a new hat) and
-  **Overhear → Join**. Join has to answer one design question before any code: what interrupting
-  a script that is already mid-beat does to it. (Slice 18 took a third entry off this list from
-  a different angle — see below.)
+  ~~**Overhear → Join**~~ (**half shipped as slice 23** — the shop-talk half needed no design
+  question answered; the scene half still owes the mid-beat one). Soft errands is now the
+  strongest remaining pick on this list, and slice 23 makes it cheaper: an errand's payoff is
+  "go and talk to Chad", which is the verb slice 23 just demonstrated can be handed to you from
+  a card with the mark already derived. (Slice 18 took a third entry off this list from a
+  different angle — see below.)
 
 - ~~**Proximity dwell — stand next to somebody too long and they say something.**~~ ✅ **shipped
   as slice 19.** Three of the four traps below were real and are handled (`standingFree` gating,
@@ -1833,20 +1916,24 @@ Kept here so appetite can pick without re-deriving. Each should stay bound by AD
   mic already cover "you speak first". The card is now composer-only.
 - **Soft errands** — Linda asks you to "find Chad and ask about the reply-all"; completing it
   is a reactive IM exchange + a tiny XP beat, not a quest log UI. **Chosen, not yet built.**
-- **Overhear → join** — standing next to a coffee/battle scene offers **Join in** once (already
-  considered for interrupting mid-script; still a content question). **Chosen, not yet built**,
-  and that content question is the thing it has to answer first. **Slice 22 changed what this
-  costs**, in both directions. It built the half nobody had: a conversation between two other
-  people that you are positioned to hear, with a proximity ladder saying exactly when you are
-  near enough to be involved and near enough to only listen — so Join has a trigger and a
-  geometry already. What it also did is make the content question sharper rather than softer,
-  because there are now **two** kinds of thing you can overhear and they want different answers.
-  A coffee/battle scene is a scripted performance with a fixed line count, so joining it means
-  deciding what an inserted beat does to a script mid-flight (the original question, unchanged).
-  Shop talk is two lines and then silence, so "joining" it is not an interruption at all — it is
-  just the talk verb, which already exists, aimed at whichever of the two you walked up to. The
-  cheap version of this feature may therefore be **shop talk plus a nudge**, and the expensive
-  one is still the scene.
+- **Overhear → join** — ~~standing next to a coffee/battle scene offers **Join in** once~~
+  **half shipped as slice 23**, and the split the entry predicted is exactly the split that
+  happened. Slice 22 gave Join a trigger and a geometry; the cheap half — **shop talk plus a
+  nudge** — turned out to need no content answer at all, because two lines and then silence is
+  not a script you can interrupt. Joining it is the talk verb aimed at the speaker who is about
+  to walk away, and the whole slice is that sentence plus copy.
+
+  **The expensive half is untouched and is now the only part left**: joining a coffee break or a
+  cubicle battle, where the original question stands unchanged — what does an inserted beat do to
+  a script that is already mid-flight? Three things slice 23 learned that bear on it. The offer
+  surface exists and is reusable (a card-slot rung below the person card, `FloorJoinCard`). The
+  hold does **not** transfer for free: slice 23 gets it from `holdId`, which covers a wanderer, and
+  a scene's participants are `awayIds` — a different mechanism with no equivalent pause. And the
+  clean exit slice 23 relies on (accepting ends the exchange, because `standingFree` goes false)
+  has no counterpart in a scene, which goes on performing whether or not you are in it. Worth
+  asking before building: does joining a scene mean _ending_ it — everybody turns to you and the
+  script stops — which is cheap and possibly funnier than an inserted beat.
+
 - ~~**Name-chip proximity**~~ — ✅ shipped as slice 15 (§ 5): show all names when you are
   within one tile — cleared the "name chip is hover-only" debt without growing hit boxes.
   Considered and not chosen, kept so nobody re-derives them: **a second wanderer at a time**
@@ -1881,7 +1968,25 @@ Kept here so appetite can pick without re-deriving. Each should stay bound by AD
   nominated, so a prop with two neighbours still produces a two-hander. That is right for the
   pacing (`useScenePacing` reveals one speaker at a time and a three-line exchange doubles the
   time you must stand still for) and it is worth stating, because "why does Jared never join in
-  at the whiteboard" is a question the room now invites.
+  at the whiteboard" is a question the room now invites — and slice 23 sharpens it, since **you**
+  can now join and he still cannot.
+- **A bystander's dwell remark withdraws the offer** (slice 23). Shop talk is gated on
+  `!hasOtherSpeech`, and slice 19 fires at whoever you are within a tile of — so five seconds
+  into listening, an unrelated colleague looks up at you, the exchange clears and _Within
+  earshot_ goes with it. That is not a stray case: **every listening tile on this floor is within
+  one tile of somebody**, measured over the whole grid, because the room is dense. The ladder is
+  still intact (the person who speaks to you is never one of the two you are overhearing) and the
+  precedence is right (a line _to_ you outranks one _past_ you), but the offer's lifetime is
+  therefore shorter and less predictable than it reads. Left alone deliberately: the fixes are
+  either a second radius — which is exactly what `NAME_CHIP_RANGE_TILES` being one ladder exists
+  to prevent — or letting the offer survive `hasOtherSpeech`, which would put a card about one
+  conversation under a balloon from another. Worth revisiting only with a measurement of how
+  often it actually happens in a session.
+- **Nothing offers a way into a scene, and the card now invites the question.** Standing next to
+  a coffee break gets you no _Join in_, because slice 23 only knows how to join shop talk. The
+  asymmetry is invisible until you have seen the card once; then a coffee break two tiles away
+  with no offer on it reads as a bug rather than as a boundary. That is the strongest argument
+  for building the expensive half, and it did not exist before this slice shipped.
 
 - ~~**Three `vi.mock` calls in `useOfficeRunReactions.test.js` have never mocked anything**~~ and
   ~~**`act()` in that file also hides the bug**~~ — **both fixed**, and the sweep the entry asked
