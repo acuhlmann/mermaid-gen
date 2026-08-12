@@ -450,6 +450,30 @@ function OfficeFloorView({ bridge, viewPhase }) {
 
   const hasActiveSpeech = hasOtherSpeech || Boolean(shopTalk.said);
 
+  /*
+   * Slice 23: the way into a conversation you are only near.
+   *
+   * `talkTileFor` is the derivation the person card and a double-click already
+   * use, asked a third time about the person stood at the prop — so the offer
+   * exists only where the room can honour it (slice 9's rule: a verb the room
+   * cannot deliver does not render), and taking it is the ordinary talk verb
+   * rather than anything new. A wanderer mid-stride has no whereabouts and
+   * therefore no mark, which is the same reason they are not clickable.
+   *
+   * The hold comes free, and it is the thing slice 19 could not have: pressing
+   * this sets `activity.talk` immediately, which is `holdId` above, so the
+   * wanderer's dwell clock stops while you cross the room. Slice 19's target is
+   * derived from where you are *stood*, which needs `floorState`, which needs
+   * `holdId` — a cycle. This one is downstream of a button you pressed, so
+   * there is no loop to close.
+   */
+  const joinOffer = useMemo(() => {
+    if (!shopTalk.join) return null;
+    const { colleagueId } = shopTalk.join;
+    const mark = talkTileFor(colleagueId, whereaboutsOf(colleagueId, floorState));
+    return mark ? { ...shopTalk.join, mark } : null;
+  }, [shopTalk.join, floorState]);
+
   const liftedSceneSpeech = Boolean(
     officeSnap.narration && sceneHandlers?.narrateLine && (coffee?.accepted || battle?.accepted)
   );
@@ -510,7 +534,8 @@ function OfficeFloorView({ bridge, viewPhase }) {
     prop,
     presence,
     walkBy: walker,
-    walkerDeparting: departing
+    walkerDeparting: departing,
+    join: joinOffer
   });
 
   return (
@@ -651,6 +676,11 @@ function OfficeFloorView({ bridge, viewPhase }) {
         // card can press these, and a missing mark is a no-op at the other end.
         onPeek={(id) => activity.startPeek(id, person?.peekTile)}
         onTalk={(id) => activity.startTalk(id, person?.talkTile)}
+        // Slice 23. Deliberately the *same* verb as the line above, aimed at
+        // the speaker who is about to walk away — joining a conversation is
+        // walking up to somebody in it, and the room already knew how.
+        join={joinOffer}
+        onJoin={(id) => activity.startTalk(id, joinOffer?.mark)}
         // The same handler the walker's bubble gets — one adopt path for the
         // whole floor, so a pitch runs your pipeline identically wherever it
         // was offered (ADR-0012).

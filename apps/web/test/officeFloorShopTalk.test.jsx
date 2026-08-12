@@ -392,6 +392,124 @@ describe('overhearing one, in a renderer', () => {
     expect(heard).toEqual(['gilfoyle', 'dinesh']);
   });
 
+  /**
+   * Slice 23. The offer is the middle rung of the ladder wearing a button, so
+   * everything asserted above about *hearing* an exchange has to hold for
+   * *joining* one — with a single deliberate exception, which is the first case
+   * below: two lines are over in seven seconds and the pair are still standing
+   * there, so an offer that died with the last balloon would be a reflex test.
+   */
+  it('outlives the exchange it came from', async () => {
+    vi.useFakeTimers();
+    const { result } = mountShopTalk();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(result.current.join).toEqual({
+      colleagueId: 'gilfoyle',
+      partnerId: 'dinesh',
+      kind: KIND
+    });
+
+    // Both lines, the tail, and `onDone`.
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(20_000);
+    });
+    expect(result.current.said, 'the balloon should have cleared').toBeNull();
+    expect(result.current.join, 'the offer should not have').toBeTruthy();
+  });
+
+  /*
+   * Not a coin toss between the two speakers: the replier is in their chair and
+   * will be all day, and the wanderer's errand ends in seconds. The offer is
+   * for the one who is about to leave.
+   */
+  it('names the speaker who is about to walk away', async () => {
+    vi.useFakeTimers();
+    const { result } = mountShopTalk();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(result.current.join.colleagueId).toBe('gilfoyle');
+    expect(result.current.join.colleagueId).not.toBe(result.current.join.partnerId);
+  });
+
+  it('is withdrawn when you walk out of earshot', async () => {
+    vi.useFakeTimers();
+    const { result, rerender } = mountShopTalk();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(result.current.join).toBeTruthy();
+
+    const trip = tripTo('gilfoyle', KIND);
+    const props = {
+      wanderer: trip,
+      youTile: { x: MARK.x, y: MARK.y + EARSHOT_RANGE_TILES + 1 },
+      floorState: { wanderer: trip },
+      copy: FLOOR_COPY(),
+      active: true,
+      suspended: false,
+      narrateLine: () => Promise.resolve({ spoken: false })
+    };
+    await act(async () => {
+      rerender(props);
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(result.current.join).toBeNull();
+  });
+
+  /*
+   * The other half of the same rule, and the one that matters when you *take*
+   * the offer: `active` goes false the instant you have a reason to be
+   * somewhere, so accepting ends the exchange rather than leaving it playing
+   * over the conversation you just started.
+   */
+  it('is withdrawn once something has your attention', async () => {
+    vi.useFakeTimers();
+    const { result, rerender } = mountShopTalk();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(result.current.join).toBeTruthy();
+
+    const trip = tripTo('gilfoyle', KIND);
+    await act(async () => {
+      rerender({
+        wanderer: trip,
+        youTile: LISTENING,
+        floorState: { wanderer: trip },
+        copy: FLOOR_COPY(),
+        active: false,
+        suspended: false,
+        narrateLine: () => Promise.resolve({ spoken: false })
+      });
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(result.current.said).toBeNull();
+    expect(result.current.join).toBeNull();
+  });
+
+  /*
+   * A locale with no bank has two people standing in silence, and inviting you
+   * to join a conversation that is not happening is worse than the silence. The
+   * offer is read off the exchange for exactly this reason.
+   */
+  it('offers nothing to join when the bank is missing', async () => {
+    vi.useFakeTimers();
+    const { result } = mountShopTalk({ copy: { shopTalk: {} } });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(result.current.said).toBeNull();
+    expect(result.current.join).toBeNull();
+  });
+
   it('does not draw the audience into it', () => {
     // Nothing this slice produces names the player, and nothing invites a
     // reply: no thread, no unread count, no Do-it. That is the line between an

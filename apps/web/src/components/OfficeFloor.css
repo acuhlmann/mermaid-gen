@@ -1550,6 +1550,25 @@
   margin: 0;
 }
 
+/*
+ * Joining a conversation you are near (slice 23). Same column layout as the
+ * peek card — it is the same shape of thing, a face and a sentence and one
+ * button — and no animation of its own: the offer replaces the hint in a slot
+ * that is already there, so anything that drew the eye would be the room
+ * tapping you on the shoulder, which is exactly what an overheard conversation
+ * must not do.
+ */
+.office-floor-card--join {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.office-floor-card--join .office-floor-card-blurb,
+.office-floor-card--join .office-floor-card-actions {
+  margin: 0;
+}
+
 /* ── talking to somebody on the floor (slice 8) ──────────────────────────── */
 
 .office-floor-talk-quick {

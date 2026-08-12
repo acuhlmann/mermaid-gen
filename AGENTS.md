@@ -180,6 +180,21 @@ Production deploy notes (Cloud Run, billing credits, GitHub Actions CI, optional
   **every standable tile** (`officeFloorShopTalk.test.jsx`), because what breaks it is a layout
   change rather than a logic change. The cast talking to each other is licensed by the user's
   _position_, never by a timer — see `CLAUDE.md` § Office layer gotchas.
+- **Joining an overheard conversation is a walk, not a reply.** Slice 23's _Join in_ card fires
+  `startTalk` at a `talkTileFor` mark — the verb the person card and a double-click already use —
+  and the offer carries two seat ids and a prop kind with **none of the exchange's text**. A line,
+  a quote or an `actionPrompt` on it would make the exchange something addressed to the user,
+  which is a walk-by and belongs in the moment store (`officeFloorContracts.test.js` pins the
+  payload). The composer opens **empty**: `handleTalkGreet` is still slice 8's deliberate silence
+  and joining is not the exception that seeds an opener. The offer must **outlive** its exchange
+  (mark the roll `done`, do not clear it) and must be read off the exchange, so an untranslated
+  locale offers nothing instead of inviting you to join two people standing in silence.
+- **A verb you pressed can hold somebody in place; a place you are standing cannot.** Joining
+  gets `useFloorAway`'s hold free — `startTalk` sets `activity.talk`, which is `holdId`, so a
+  wanderer's dwell clock stops while you walk over. Slice 19's dwell wanted the same hold and
+  could not have it: its target comes from `floorState`, which is that hook's _output_, and
+  `holdId` is its _input_. Check which side of `useFloorAway` a signal starts on before recording
+  another cycle as a limitation.
 - **A test that loops over a derived set needs a companion assertion that the set is non-empty.**
   Two probes in slice 22 came back green while examining nothing: `isStandableTile(x, y)` takes a
   _tile_, not two numbers, so an every-tile invariant iterated an empty list; and a DOM overlap
@@ -333,6 +348,13 @@ Production deploy notes (Cloud Run, billing credits, GitHub Actions CI, optional
   ~7.5 h a day and survived only because CI kept landing in `midday`/`afterHours`. Pin with
   `vi.useFakeTimers({ shouldAdvanceTime: true, toFake: ['Date'] })` to a midday instant, faking
   `Date` **only**, or the poll timer and React's scheduling stop and nothing renders.
+- **A mounting floor test inherits `Math.random` too, and that one is shared across the file.**
+  `useFloorWander` sends somebody out on an unstubbed roll, so an unpinned suite depends on the
+  PRNG stream — and any change anywhere that consumes a different number of randoms re-seeds who
+  is wandering and where. Slice 23 consumes one fewer and turned `officeFloorDwell.test.jsx` red
+  on a test that **passed in isolation and failed in file order**, which is the signature of this
+  class. Pin with `vi.spyOn(Math, 'random').mockReturnValue(0.75)` (the floor suites' seed: Chad
+  to the whiteboard) unless the suite is genuinely about the roll.
 - **Why a colleague is speaking is a wire field.** `situation` on `POST /api/office/moment`
   (`OFFICE_MOMENT_SITUATIONS` in `packages/shared`: `dwell` | `run`) selects one rule block in
   `buildMomentSystemPrompt` plus a terse restatement at the end of the user prompt. It is an

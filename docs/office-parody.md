@@ -1434,6 +1434,20 @@ the backburnered multi-human future is [`multi-human-office.md`](multi-human-off
   moment it acquires one it is addressed to them, which makes it a walk-by, and walk-bys belong
   in the moment store (ADR-0011 rule 1). Pinned in `apps/web/test/officeFloorContracts.test.js`.
 
+  **Slice 23 tested that clause and did not break it, which is worth recording because it looks
+  like it should have.** Standing in the ring now offers _Join in_, and an offer is plainly
+  something the user can act on — so why is that not the exchange asking for something? Because
+  **joining is a walk, not a reply**. The offer carries two seat ids and a prop kind and none of
+  the exchange's text; pressing it runs the ordinary talk verb, the same one a double-click has
+  run since slice 8; and the composer opens **empty**, so nothing is said on the user's behalf
+  and nothing they overheard is answered. The line still asks for nothing — the _room_ points at
+  a door. The distinction is the reusable part: a surface may offer a way to start something of
+  the user's own without the ambient thing it sits next to becoming addressed to them.
+
+  Its budget follows the split above rather than an exception to it. Joining costs **nothing of
+  its own**; the conversation it opens is the existing reactive ladder, paid for the moment the
+  user types — which is self-limiting exactly as § 11's reactive class is supposed to be.
+
 - **Their own work.** Each character carries a slowly-evolving _fictional_ workload they
   reference and can discuss when asked — conversational color (and, later, desk-peeking
   visuals on the floor), never a real pipeline.

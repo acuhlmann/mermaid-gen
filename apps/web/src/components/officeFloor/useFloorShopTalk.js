@@ -30,6 +30,13 @@
  * and wrong here, where two speakers a tile apart would get simultaneous
  * balloons over adjacent heads (§ 6 rule 29). A wrapper returning
  * `{ spoken: false }` keeps the one-at-a-time reveal when TTS is off.
+ *
+ * **Since slice 23 it also answers "can I be part of this".** `join` is the
+ * offer, and it is deliberately the *same* fact the exchange is built from
+ * rather than a second derivation: you may join precisely while you are placed
+ * to overhear, which is the ladder's middle rung and nothing more. What joining
+ * *does* is not this hook's business at all — it hands the view two ids and the
+ * view fires the talk verb it already has.
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -83,10 +90,13 @@ function speechTileFor(said, wandererId, mark) {
  * @returns {{
  *   said: { speakerId: string, text: string } | null,
  *   at: { x: number, y: number } | null,
- *   lineSpoken: boolean
+ *   lineSpoken: boolean,
+ *   join: { colleagueId: string, partnerId: string, kind: string } | null
  * }} `said` is the single line currently in the air — never both — and `at`
  *   follows `FloorDeskSpeech`'s convention: a tile for the speaker who is stood
- *   at the prop, `null` for the one who never left their chair.
+ *   at the prop, `null` for the one who never left their chair. `join` outlives
+ *   `said`: the two lines are over in seven seconds and they are still standing
+ *   there.
  */
 export function useFloorShopTalk({
   wanderer,
@@ -142,10 +152,46 @@ export function useFloorShopTalk({
     );
   }, [eligible, wanderKey]);
 
+  /*
+   * `done` rather than clearing `armed`, which is the one thing slice 23 had to
+   * change in here. The balloon still has to go when the exchange ends — a null
+   * exchange is how it goes — but the *offer* must not, because two people who
+   * have finished a sentence are still two people standing next to each other,
+   * and an invitation that expires seven seconds after it appears is a reflex
+   * test rather than an invitation. Keeping the same roll under a flag also
+   * keeps the effect below from re-rolling: `current.key === wanderKey` still
+   * matches, so an errand you have already overheard cannot replay itself while
+   * you stand there.
+   */
   const exchange = useMemo(() => {
-    if (!armed || armed.key !== wanderKey || !partnerId) return null;
+    if (!armed || armed.done || armed.key !== wanderKey || !partnerId) return null;
     return shopTalkExchange(wanderer, partnerId, copy, armed.roll);
   }, [armed, wanderKey, partnerId, wanderer, copy]);
+
+  /*
+   * The way in (slice 23), and it is the *same* gate as the exchange rather
+   * than a second one: you may join exactly while you are placed to overhear.
+   * `armed.key === wanderKey` is what makes it an offer about a conversation
+   * that is actually happening — without it the card would appear at the cap,
+   * or while another voice has the room, next to two people saying nothing.
+   *
+   * It names the **wanderer** and not the replier, which is not a coin toss.
+   * The replier is in their chair and will be there all day; the wanderer's
+   * errand ends in four to nine seconds and then they are back at a desk you
+   * may be nowhere near. The offer is for the speaker who is about to leave —
+   * and the geometry agrees, since the conversation is happening at the prop.
+   *
+   * Read off the **exchange** rather than off `armed` alone, which is what
+   * keeps the untranslated-locale path honest: a missing bank yields no
+   * exchange and therefore no offer, instead of inviting you to join two people
+   * who are standing in silence. `done` is the second half of the same fact —
+   * an exchange that played is one you heard.
+   */
+  const joinable = Boolean(exchange) || Boolean(armed?.done && armed.key === wanderKey);
+  const join = useMemo(
+    () => (joinable ? { colleagueId: wanderer.seatId, partnerId, kind: wanderer.kind } : null),
+    [joinable, partnerId, wanderer]
+  );
 
   const lines = exchange?.lines ?? [];
 
@@ -166,7 +212,7 @@ export function useFloorShopTalk({
 
   const handleDone = useCallback(() => {
     setOverheard((count) => count + 1);
-    setArmed(null);
+    setArmed((current) => (current ? { ...current, done: true } : current));
   }, []);
 
   const { visibleLines, lineSpoken } = useScenePacing({
@@ -190,7 +236,7 @@ export function useFloorShopTalk({
   const index = Math.min(visibleLines, lines.length) - 1;
   const said = index >= 0 ? lines[index] : null;
 
-  return { said, at: speechTileFor(said, wanderer?.seatId, exchange?.at), lineSpoken };
+  return { said, at: speechTileFor(said, wanderer?.seatId, exchange?.at), lineSpoken, join };
 }
 
 export default useFloorShopTalk;

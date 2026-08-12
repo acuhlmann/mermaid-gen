@@ -1,11 +1,11 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import OfficeFloor from '../src/components/OfficeFloor.jsx';
 import { FloorTalkCard } from '../src/components/officeFloor/FloorTalk.jsx';
 import { officeChromeCopy } from '../src/utils/officeCast.js';
 import { approachTileFor } from '../src/utils/officeFloorMovement.js';
-import { projectIso } from '../src/utils/officeFloorPlan.js';
+import { isStandableTile, projectIso } from '../src/utils/officeFloorPlan.js';
 import {
   _resetOfficeViewModeForTests,
   getOfficeViewMode,
@@ -415,5 +415,125 @@ describe('adopting a pitch on the floor (ADR-0012)', () => {
 
     const button = await screen.findByTestId('office-floor-talk-adopt');
     expect(button.textContent).toBe(officeChromeCopy().doIt);
+  });
+});
+
+/**
+ * Joining a conversation you were only near (slice 23).
+ *
+ * The claim worth pinning is the whole of the slice, and it is a *negative* one:
+ * joining is not a new verb. Pressing the offer has to land you in the same card
+ * that walking up to somebody lands you in — same composer, same silence waiting
+ * for you to speak — because the moment it becomes its own conversation surface
+ * the exchange has started answering you back, which is what ADR-0010 and
+ * `office-parody.md` § 11 keep shop talk out of.
+ *
+ * Driven through the whole floor rather than through `FloorJoinCard`, since the
+ * half that can silently rot is the wiring: an offer that renders beautifully
+ * and hands `startTalk` no mark is a button that does nothing.
+ */
+describe('joining shop talk (slice 23)', () => {
+  /** Where 0.75 sends Chad — the floor suite's own seed (see officeFloorWander). */
+  const BOARD = { x: 8, y: 4 };
+  /**
+   * In the ring: two tiles from the mark and two from Dinesh, who answers. Every
+   * listening tile on this floor is within a tile of *some* seat — the room is
+   * that dense — but never of one of the two speakers, which is the only thing
+   * the ladder promises.
+   */
+  const LISTENING = { x: 8, y: 6 };
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.spyOn(Math, 'random').mockReturnValue(0.75);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
+
+  function clickTile(tile) {
+    const { left, top } = projectIso(tile.x, tile.y);
+    fireEvent.click(screen.getByTestId('office-floor-roam'), { clientX: left, clientY: top });
+  }
+
+  /**
+   * Chad settled at the whiteboard with you standing where you can hear him.
+   *
+   * The two `expect`s are the coverage claim rather than decoration: without a
+   * settled wanderer at the board there is no exchange, and every assertion
+   * below would pass while examining nothing.
+   */
+  function floorWithinEarshot(props = {}) {
+    const view = renderFloor(props);
+    act(() => vi.advanceTimersByTime(9_000));
+    const figure = screen.getByTestId('office-floor-wanderer');
+    expect(figure.dataset.wanderer, 'the seed stopped picking Chad').toBe(CHAD);
+    expect(figure.dataset.settled, 'nobody is standing at the board').toBe('true');
+    expect(isStandableTile(LISTENING)).toBe(true);
+    act(() => clickTile(LISTENING));
+    return view;
+  }
+
+  it('offers a way in, naming both of them and the place', () => {
+    floorWithinEarshot();
+
+    const card = screen.getByTestId('office-floor-join-card');
+    expect(card.textContent).toContain('Chad');
+    expect(card.textContent).toContain('Dinesh');
+    expect(card.textContent).toContain('the whiteboard');
+  });
+
+  it('opens the ordinary conversation card, at the speaker who is about to leave', () => {
+    floorWithinEarshot({ onTalkGreet: vi.fn() });
+
+    fireEvent.click(screen.getByRole('button', { name: /Join in/i }));
+
+    const card = screen.getByTestId('office-floor-talk-card');
+    expect(card.textContent).toContain('Chad');
+    // The offer is spent — one card slot, and you are in the conversation now.
+    expect(screen.queryByTestId('office-floor-join-card')).toBeNull();
+  });
+
+  /*
+   * The composer arrives empty and nothing has been said on your behalf. Slice
+   * 8's `handleTalkGreet` is an empty function with a one-line reason — you
+   * speak first — and joining must not become the exception that seeds an
+   * opener, or the overheard lines would have turned into something addressed
+   * to you after all.
+   */
+  it('puts no words in your mouth on the way in', () => {
+    const onTalkReply = vi.fn();
+    floorWithinEarshot({ onTalkGreet: vi.fn(), onTalkReply });
+
+    fireEvent.click(screen.getByRole('button', { name: /Join in/i }));
+
+    expect(onTalkReply).not.toHaveBeenCalled();
+    expect(screen.getByLabelText(/Say something/i).value).toBe('');
+  });
+
+  /*
+   * The hold slice 19 could not have. `startTalk` sets `activity.talk`
+   * immediately, which is `useFloorAway`'s `holdId`, so Chad's dwell clock stops
+   * while you cross the room — nine seconds is past the longest dwell, and
+   * without the hold he is back in his chair before you arrive.
+   */
+  it('keeps them standing there while you walk over', () => {
+    floorWithinEarshot({ onTalkGreet: vi.fn() });
+    fireEvent.click(screen.getByRole('button', { name: /Join in/i }));
+
+    act(() => vi.advanceTimersByTime(9_000));
+
+    expect(screen.getByTestId('office-floor-wanderer').dataset.wanderer).toBe(CHAD);
+    expect(screen.getByTestId('office-floor-talk-card').textContent).toContain('Chad');
+  });
+
+  it('says so in the live region, in the card slot s own order', () => {
+    floorWithinEarshot();
+
+    const region = screen.getByTestId('office-floor-narration');
+    expect(region.textContent).toContain('Chad');
+    expect(region.textContent).toContain('Dinesh');
   });
 });

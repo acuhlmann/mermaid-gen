@@ -168,6 +168,22 @@ describe('finding the line they broke the silence with', () => {
 describe('loitering, on a real floor', () => {
   beforeEach(() => {
     vi.useFakeTimers();
+    /*
+     * **Ambient traffic was leaking into a suite that is not about traffic.**
+     * `renderFloor` mounts the whole floor, so `useFloorWander` sends somebody
+     * out on an unstubbed `Math.random()` — which means these tests shared one
+     * PRNG stream across the *file*, and any change anywhere that consumed a
+     * different number of randoms re-rolled who was up and where. Slice 23
+     * consumed one fewer (an overheard exchange no longer re-rolls its pair
+     * after it has played) and "re-arms when you leave and come back" went red
+     * with a wanderer standing in a place it had never had one — passing alone,
+     * failing in file order, which is the signature of this class.
+     *
+     * Pinned rather than made reduced-motion: the tests want a *populated* room,
+     * they only want the same one every run. Same lesson as § 8's clock finding
+     * — a floor test that mounts is at the mercy of an input it never named.
+     */
+    vi.spyOn(Math, 'random').mockReturnValue(0.75);
   });
 
   /** Walk to a tile by clicking the roam surface, the way a player would. */

@@ -1230,7 +1230,8 @@ export const OFFICE_EN_AU = {
         standingFloor: 'Standing on the floor. Arrow keys step; Escape walks you back.',
         arriving: '{name} is walking over to ya desk.',
         leaving: '{name} is walking back to their desk.',
-        inHuddle: 'Ya team is huddled around ya desk.'
+        inHuddle: 'Ya team is huddled around ya desk.',
+        overhearing: '{name} and {partner} are having a chat nearby. You can join in.'
       },
       arrival: {
         eyebrow: 'ARCHISLOP CORP. · YA FIRST DAY',
@@ -1414,6 +1415,12 @@ export const OFFICE_EN_AU = {
             'We already redid it properly. March. This is the properly one.'
           ]
         ]
+      },
+      join: {
+        eyebrow: 'WITHIN EARSHOT',
+        body: '{name} is over at {prop} with {partner}. Neither of them has clocked you.',
+        action: '💬 Get amongst it',
+        actionTitle: 'Wander over and say something — they won’t include you on their own'
       },
       meeting: {
         eyebrow: 'GLASS ROOM',
