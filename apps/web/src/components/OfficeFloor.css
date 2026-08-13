@@ -468,6 +468,53 @@
   top: 0;
 }
 
+/* The wall clock (slice 25) hangs on the windowless north-west wall and reads
+   the same instant the day-phase dial reads — the hands and the light can
+   never disagree about the hour. DOM order alone places it, same as the room
+   SVG it sits after: above the walls, below everything walkable (roam is
+   z-index 1, props start at depth 20), so it needs no z-index of its own.
+   pointer-events none: the clock is the wall, and floor clicks belong to
+   FloorRoam. No animation anywhere in this block — the hands hard-cut each
+   minute like the light hard-cuts each phase, so the reduced-motion block
+   owes nothing and nothing is owed to it. */
+.office-floor-wall-clock {
+  position: absolute;
+  left: 0;
+  top: 0;
+  pointer-events: none;
+}
+
+/* The face carries its own light: a near-white disc and slate ink read against
+   every wall colour all five phases can produce (the dimmed after-hours one
+   included), so the dial owes the per-phase palette nothing. */
+.office-floor-wall-clock-face {
+  fill: #f8fafc;
+  stroke: rgba(15, 23, 42, 0.4);
+  stroke-width: 1.5;
+}
+
+.office-floor-wall-clock-tick {
+  stroke: rgba(15, 23, 42, 0.55);
+  stroke-width: 2;
+}
+
+.office-floor-wall-clock-hand {
+  stroke: #1e293b;
+  stroke-linecap: round;
+}
+
+.office-floor-wall-clock-hand--hour {
+  stroke-width: 3.5;
+}
+
+.office-floor-wall-clock-hand--minute {
+  stroke-width: 2;
+}
+
+.office-floor-wall-clock-pin {
+  fill: #1e293b;
+}
+
 /* Signage layer: above the furniture, never in the way of it. */
 .office-floor-signage {
   position: absolute;

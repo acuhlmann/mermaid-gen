@@ -267,7 +267,14 @@ Every session carries **six independent diagram slots** — `mermaid` (Mermaid t
   to buy a fact about walking. Both dials stay in the cadence; the floor still owns only what a
   phase looks like. The bias table's one row is also the design: `PHASE_ART` already puts a mug
   in every hand at nine and papers at five, so biasing traffic there would tell the same thing
-  twice.
+  twice. **The wall clock (slice 25) is a third _face_ of the same clock, not a third clock**:
+  `FloorWallClock` reads `officeWallClockAt` (cadence), the same instant the phase dial reads,
+  so hands and light can never disagree. A clock that read its own `Date`, or polled on a
+  one-second second-hand, would repaint the floor continuously against the
+  "re-render only on change" budget — `OFFICE_WALL_CLOCK_POLL_MS` is a heartbeat, and the poll
+  bails on a same-value set. Placement is `FLOOR_WALL_CLOCK` in `officeFloorPlan.js`, drawn via
+  the plan module's `wallPoint` (the windows share it); the face is self-lit (reads on all five
+  phase walls) and unanimated (owes the reduced-motion block nothing).
 - **A weighted random pick must consume the same number of `Math.random()` calls as the
   unweighted one it replaced.** Weight by repeating entries in a list and roll **once**; never
   roll a second time to decide whether the bias applies. This is the direct consequence of the

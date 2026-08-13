@@ -356,6 +356,14 @@ Production deploy notes (Cloud Run, billing credits, GitHub Actions CI, optional
   the floor still owns only the art. And a **weighted pick must consume the same number of
   `Math.random()` calls as the uniform one** — repeat list entries and roll once, never roll again
   to decide whether the bias applies, or you re-seed every unpinned floor suite (see below).
+- **The wall clock (slice 25) is a third _face_ of the same clock, not a third clock.**
+  `FloorWallClock` reads `officeWallClockAt` (cadence), the same instant the phase dial reads, so
+  the hands and the light can never disagree about the hour. A clock that read its own `Date`, or
+  a one-second second-hand poll, would repaint the floor continuously against the
+  "re-render only on change" budget — `OFFICE_WALL_CLOCK_POLL_MS` is a heartbeat and the poll
+  bails on a same-value set. Placement is `FLOOR_WALL_CLOCK` in `officeFloorPlan.js`, drawn via
+  the plan module's `wallPoint` (the windows share it); the face is self-lit (reads on all five
+  phase walls) and unanimated (owes the reduced-motion block nothing).
 - **A mounting floor test inherits `Math.random` too, and that one is shared across the file.**
   `useFloorWander` sends somebody out on an unstubbed roll, so an unpinned suite depends on the
   PRNG stream — and any change anywhere that consumes a different number of randoms re-seeds who
