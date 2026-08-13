@@ -29,39 +29,41 @@ Do not copy `standUp(); render(<OfficeFloor />)` into new suites — extend the 
 
 ## Test file map
 
-| File                                 | What it guards                                                               |
-| ------------------------------------ | ---------------------------------------------------------------------------- |
-| `officeFloorPlan.test.js`            | Pure geometry: projection, marks, glass, peek roster                         |
-| `officeFloorMovement.test.js`        | Where you may walk, approach/peek/prop marks                                 |
-| `officeFloorReach.test.js`           | Where somebody is when away, and whether it is a mark                        |
-| `officeFloorInterrupt.test.js`       | What somebody says when you take the square they wanted (slice 18)           |
-| `officeFloorDwell.test.jsx`          | Who you are stood next to, and the line it earns (slice 19)                  |
-| `officeFloorContracts.test.js`       | **ADR-0011 executable rules** (narration, props, POV)                        |
-| `officeFloorModuleInventory.test.js` | Bench components + test files still exist                                    |
-| `officeFloorPropsTable.test.js`      | `officeFloorProps.js` ↔ `propTileFor` alignment                              |
-| `officeLayerFloorRenderer.test.jsx`  | Desk overlay **or** floor scene — never both                                 |
-| `officeFloor.test.jsx`               | Substrate, person cards, walk-bys, mode toggle                               |
-| `officeFloorArrival.test.jsx`        | First-run ceremony on the floor                                              |
-| `officeFloorAccess.test.jsx`         | Live region, `floorAnnouncement`, reduced motion                             |
-| `officeFloorRoam.test.jsx`           | Free roam click + keyboard                                                   |
-| `officeFloorShopTalk.test.jsx`       | The proximity ladder, the overheard pair, and the offer to join (22, 23)     |
-| `officeFloorTalk.test.jsx`           | Floor as second renderer of IM thread; CC-off bubble hide; joining (23)      |
-| `useFloorSpokenText.test.js`         | Voice-first narration hook: CC off + spoken → hide bubble                    |
-| `officeCaptions.test.js`             | `shouldShowSpokenText` policy (captions × voiceActive)                       |
-| `officeWalkBy.test.jsx`              | Desk-mode shoulder lean-in + voice-first caption hide                        |
-| `deskActionsDock.test.jsx`           | Stand up primary control; Walk the floor removed from menu                   |
-| `officeFloorPeek.test.jsx`           | Desk peeking marks and fiction                                               |
-| `officeFloorProps.test.jsx`          | Usable props + `getCoffee` verb                                              |
-| `officeFloorScene.test.jsx`          | Coffee + battle set pieces                                                   |
-| `officeFloorMeeting.test.jsx`        | Glass room meeting renderer                                                  |
-| `officeFloorWander.test.jsx`         | Ambient wander roster, yields, and the interrupted-errand line               |
-| `officeFloorStyles.test.js`          | CSS facts (hit box, focus, reduced motion)                                   |
-| `officeFloorViewTransition.test.js`  | Stand-up/sit-down transition: JS exit timer ↔ CSS fade, veil z-order         |
-| `useWalkAnimation.test.jsx`          | Walk interrupts + `liveTileOf` read-back                                     |
-| `officeDeskWork.test.js`             | Fictional desk workloads for peek                                            |
-| `officeFloorActivity.test.jsx`       | Held items, headphones posture, who-is-talking derivation, the office day    |
-| `officeFloorWallClock.test.jsx`      | The wall clock: placement, hand angles, heartbeat poll, both stages mount it |
-| `useOfficeDayPhase.test.jsx`         | The wall-clock sampler: catch-up, no-repaint-on-no-change, teardown          |
+| File                                 | What it guards                                                                           |
+| ------------------------------------ | ---------------------------------------------------------------------------------------- |
+| `officeFloorPlan.test.js`            | Pure geometry: projection, marks, glass, peek roster                                     |
+| `officeFloorMovement.test.js`        | Where you may walk, approach/peek/prop marks                                             |
+| `officeFloorReach.test.js`           | Where somebody is when away, and whether it is a mark                                    |
+| `officeFloorInterrupt.test.js`       | What somebody says when you take the square they wanted (slice 18)                       |
+| `officeFloorDwell.test.jsx`          | Who you are stood next to, and the line it earns (slice 19)                              |
+| `officeFloorContracts.test.js`       | **ADR-0011 executable rules** (narration, props, POV)                                    |
+| `officeFloorModuleInventory.test.js` | Bench components + test files still exist                                                |
+| `officeFloorPropsTable.test.js`      | `officeFloorProps.js` ↔ `propTileFor` alignment                                          |
+| `officeLayerFloorRenderer.test.jsx`  | Desk overlay **or** floor scene — never both                                             |
+| `officeFloor.test.jsx`               | Substrate, person cards, walk-bys, mode toggle                                           |
+| `officeFloorArrival.test.jsx`        | First-run ceremony on the floor                                                          |
+| `officeFloorAccess.test.jsx`         | Live region, `floorAnnouncement`, reduced motion                                         |
+| `officeFloorRoam.test.jsx`           | Free roam click + keyboard                                                               |
+| `officeFloorShopTalk.test.jsx`       | The proximity ladder, the overheard pair, and the offer to join (22, 23)                 |
+| `officeFloorTalk.test.jsx`           | Floor as second renderer of IM thread; CC-off bubble hide; joining (23)                  |
+| `useFloorSpokenText.test.js`         | Voice-first narration hook: CC off + spoken → hide bubble                                |
+| `officeCaptions.test.js`             | `shouldShowSpokenText` policy (captions × voiceActive)                                   |
+| `officeWalkBy.test.jsx`              | Desk-mode shoulder lean-in + voice-first caption hide                                    |
+| `deskActionsDock.test.jsx`           | Stand up primary control; Walk the floor removed from menu                               |
+| `officeFloorPeek.test.jsx`           | Desk peeking marks and fiction                                                           |
+| `officeFloorProps.test.jsx`          | Usable props + `getCoffee` verb                                                          |
+| `officeFloorScene.test.jsx`          | Coffee + battle set pieces                                                               |
+| `officeFloorMeeting.test.jsx`        | Glass room meeting renderer                                                              |
+| `officeFloorWander.test.jsx`         | Ambient wander roster, yields, and the interrupted-errand line                           |
+| `officeFloorStyles.test.js`          | CSS facts (hit box, focus, reduced motion)                                               |
+| `officeFloorViewTransition.test.js`  | Stand-up/sit-down transition: JS exit timer ↔ CSS fade, veil z-order, light-sweep timing |
+| `useFloorArrivalFocus.test.jsx`      | Day One follow-cam scale boost and ceiling clamp                                         |
+| `useFloorAway.test.jsx`              | Commute ids merged into awayIds; wanderer vs floorState split                            |
+| `useWalkAnimation.test.jsx`          | Walk interrupts + `liveTileOf` read-back                                                 |
+| `officeDeskWork.test.js`             | Fictional desk workloads for peek                                                        |
+| `officeFloorActivity.test.jsx`       | Held items, headphones posture, who-is-talking derivation, the office day                |
+| `officeFloorWallClock.test.jsx`      | The wall clock: placement, hand angles, heartbeat poll, both stages mount it             |
+| `useOfficeDayPhase.test.jsx`         | The wall-clock sampler: catch-up, no-repaint-on-no-change, teardown                      |
 
 ## Rules encoded as tests (add here when you learn new ones)
 

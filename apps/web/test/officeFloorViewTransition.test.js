@@ -84,4 +84,21 @@ describe('the stand-up / sit-down view transition (§ 1a)', () => {
      */
     expect(ruleBody('.app-shell.is-floor-view .office-view-desk-veil')).toMatch(/backdrop-filter:/);
   });
+
+  it('finishes the fluorescent sweep inside the stand-up gesture', () => {
+    /*
+     * White over a near-white floor: a low peak reads as nothing at all, and a
+     * tail past ~640ms keeps glowing after the rise has landed. Measured in
+     * headless Chrome — pinned here so a "softer" tweak cannot silently regress
+     * to invisible again.
+     */
+    const sweep = css.match(/@keyframes office-floor-light-sweep[\s\S]*?^\}/m)?.[0];
+    expect(sweep).toBeTruthy();
+    expect(sweep).toMatch(/20%\s*\{\s*opacity:\s*0\.34/);
+
+    const band = ruleBody(".office-floor[data-view-phase='stand-up']::after");
+    expect(band).toMatch(/office-floor-light-sweep\s+560ms/);
+    expect(band).toMatch(/90ms\s+both/);
+    expect(band).not.toMatch(/720ms/);
+  });
 });

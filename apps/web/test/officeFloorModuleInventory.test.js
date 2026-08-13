@@ -104,6 +104,8 @@ const EXPECTED_FLOOR_TEST_FILES = [
   'officeFloorViewTransition.test.js',
   'officeFloorWallClock.test.jsx',
   'officeFloorWander.test.jsx',
+  'useFloorArrivalFocus.test.jsx',
+  'useFloorAway.test.jsx',
   'floorCamera.test.js',
   'officeLayerFloorRenderer.test.jsx',
   'officeDeskWork.test.js',
