@@ -200,16 +200,22 @@ describe('loitering, on a real floor', () => {
     expect(onDwellRemark).toHaveBeenCalledWith('gilfoyle');
   });
 
-  it('re-arms when you leave and come back', () => {
+  it('re-arms when you leave and come back', async () => {
     const onDwellRemark = vi.fn();
     renderFloor({ onDwellRemark });
 
     walkTo(BESIDE_JARED);
-    act(() => vi.advanceTimersByTime(DWELL_MS));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(DWELL_MS);
+    });
     walkTo(BESIDE_THE_POD);
-    act(() => vi.advanceTimersByTime(DWELL_MS));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(DWELL_MS);
+    });
     walkTo(BESIDE_JARED);
-    act(() => vi.advanceTimersByTime(DWELL_MS));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(DWELL_MS);
+    });
 
     expect(onDwellRemark.mock.calls.map(([id]) => id)).toEqual(['jared', 'gilfoyle', 'jared']);
   });
