@@ -133,6 +133,16 @@ Production deploy notes (Cloud Run, billing credits, GitHub Actions CI, optional
   `awayIds` so their desk stays empty until they are genuinely back, and `settledIds` decides
   which of two surfaces draws them. Under `prefers-reduced-motion` (and in jsdom) the walk
   settles instantly, which is the old teleport — so a green test suite proves nothing here.
+- **The glass room is entered through a threshold, and its cast is bigger than its commuters.**
+  Slice 27 walks meeting attendees to `MEETING_THRESHOLD_TILES` (a fan of eight tiles _outside_
+  the sealed room) and cuts them into their chairs on arrival — **no geometry changed**, and
+  `pathCrossesGlass` still refuses every route through the glass. The leadership tier sits in
+  its own fishbowl and can never walk, so `FloorMeeting` gates on **`walkingIds`**, not the
+  `settledIds` its siblings take: absent-from-settled means "still walking" only when the whole
+  cast commutes, and here it would delete every executive from the meeting. A mark may also
+  carry **`arriving`** to opt out of `useFloorCommute`'s first-pass seed — calling a physical
+  meeting from your desk stands you up, so the floor mounts on a room that has not started, and
+  seeding it teleports everybody into the chairs the slice exists to walk them into.
 - **The office layer never re-renders while you type.** `OfficeLayerSlot.jsx` passes the diagram
   to `OfficeLayer` as **getters** (`getDiagramSource` / `getContentType`), deliberately. Anything
   on the isometric floor that reflects your work — your monitor, the whiteboard, the glass-room

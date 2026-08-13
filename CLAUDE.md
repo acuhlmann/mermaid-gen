@@ -466,6 +466,20 @@ y)`, so the obvious sweep silently iterates an empty list; and pacing the exchan
   found no heads). Same family as the `vi.mock` paths that resolve nowhere: green for the wrong
   reason. Pair every loop with a coverage claim, and get one positive hit out of a DOM probe
   before trusting a negative.
+- **The glass room is entered through a threshold, and its cast is bigger than its
+  commuters.** Slice 27 walks meeting attendees to `MEETING_THRESHOLD_TILES` — a fan of eight
+  tiles _outside_ the sealed room — and cuts them into their chairs on arrival; **no geometry
+  changed**, `pathCrossesGlass` still refuses every route through the glass. Three facts are
+  load-bearing. The **leadership tier can never walk**: they sit inside their own fishbowl, so
+  no glass-free route to a threshold exists and they keep appearing in their chair — which is
+  why `FloorMeeting` takes `walkingIds` and **not** the `settledIds` its siblings take. Absent-
+  from-settled means "still walking" only when the whole cast commutes; here it deletes every
+  executive from the meeting. The fan is as long as `MEETING_SEATS` because attendees set off
+  together, and it is deliberately **out** of `reservedMarks()` for the reason `HUDDLE_TILES`
+  is. And a mark may carry **`arriving`** to opt out of `useFloorCommute`'s first-pass seed:
+  calling a physical meeting from your desk stands you up, so the floor mounts on a room that
+  has not started, and seeding it teleports everybody into the chairs the slice exists to walk
+  them into. An empty `transcript` is the test for "still convening".
 - **A moment's cast walks to it and walks home; the desk stays empty for the whole trip.**
   `officeFloorCommute.js` is the pure `out ▸ there ▸ home ▸ gone` machine, `useFloorCommute` holds
   it, and `useFloorAway` merges the commuting ids into `awayIds` — miss that merge and a scene

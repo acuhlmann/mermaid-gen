@@ -34,8 +34,12 @@ import {
   COFFEE_TILES,
   BATTLE_TILES,
   HUDDLE_TILES,
+  MEETING_THRESHOLD_TILES,
   YOU_SEAT_ID,
-  seatFor
+  meetingSeating,
+  pathCrossesGlass,
+  seatFor,
+  walkPathBetween
 } from './officeFloorPlan.js';
 import { sceneParticipants } from './officeSceneCast.js';
 
@@ -61,16 +65,119 @@ function seatTile(id) {
   return seat ? { x: seat.x, y: seat.y } : null;
 }
 
+function tileKey(tile) {
+  return `${tile.x},${tile.y}`;
+}
+
+function distanceBetween(a, b) {
+  return Math.hypot(a.x - b.x, a.y - b.y);
+}
+
+/**
+ * The nearest place outside the glass room this person can actually get to, or
+ * `null` when the room cannot be reached from where they sit.
+ *
+ * **Nearest to them, not nearest to the door**, which is what makes the fan
+ * read as an approach rather than an allocation: people arrive from their own
+ * side of the floor and stop at the first free spot. `taken` makes it a queue —
+ * first come, first served, in seating order, so the facilitator gets first
+ * pick and nobody shares a tile.
+ *
+ * The glass check is the whole reason this is a search rather than an index.
+ * `walkPathBetween` picks its L-route on *furniture* cost and knows nothing
+ * about walls, so the route it returns for a given pair may cross the north
+ * panel while the other L would not — asking `pathCrossesGlass` about the route
+ * that will actually be walked is the only honest test.
+ *
+ * @param {{ x: number, y: number }} from where they sit
+ * @param {string} walkerId excluded from the obstacle set
+ * @param {Set<string>} taken tiles already promised to somebody else
+ * @returns {{ x: number, y: number } | null}
+ */
+function thresholdFor(from, walkerId, taken) {
+  let best = null;
+  for (const tile of MEETING_THRESHOLD_TILES) {
+    if (taken.has(tileKey(tile))) continue;
+    if (pathCrossesGlass(walkPathBetween(from, tile, walkerId))) continue;
+    const gap = distanceBetween(from, tile);
+    if (!best || gap < best.gap) best = { tile, gap };
+  }
+  return best?.tile ?? null;
+}
+
+/**
+ * Who walks to the glass room, and which threshold tile they walk to
+ * (§ 5 slice 27).
+ *
+ * **Not everybody does, and that is the finding rather than a shortcut.** The
+ * leadership tier sits inside its *own* fishbowl along the back wall, so every
+ * route out of it crosses glass — there is no threshold that helps them, and
+ * there never can be without a door in a second room. They keep slice 5's
+ * behaviour and appear in their chair. That is also the truthful picture: you
+ * cannot watch an executive cross the floor, because you cannot see the route.
+ *
+ * The consequence for the renderer is the one thing to get right: this returns
+ * a **subset** of the attendees, so the glass room may not gate its actors on
+ * "has arrived" the way `FloorScene` and `FloorHuddle` do. It has to ask the
+ * opposite question — who is still walking — or everybody sealed in would
+ * vanish from the meeting entirely. See `walkingIds` in `useFloorCommute`.
+ *
+ * Seating order is deliberate and load-bearing twice: it is the order the queue
+ * fills in, and it is stable across re-renders, so `marksKey` does not change
+ * mid-walk and restart everybody's trip.
+ *
+ * **`arriving` is what makes the common path work at all.** Calling a physical
+ * meeting from your desk stands you up (`OfficeLayer`), so the floor *mounts*
+ * with the meeting already in state — and `useFloorCommute`'s first pass seeds
+ * every commute straight to `there`, which is right for a coffee break that was
+ * already running and exactly wrong here: you stood up **for** this meeting, it
+ * has not started, and seeding it teleports everybody into the chairs this
+ * slice exists to walk them into. An empty transcript is the honest test for
+ * "still convening" — `startMeeting` goes to `playing` immediately and then
+ * waits on the server for a script, so nobody has spoken yet and the room is
+ * filling up.
+ *
+ * @param {{ attendees?: string[], facilitatorId?: string, modality?: string, transcript?: unknown[] } | null} meeting
+ * @returns {Array<{ id: string, tile: { x: number, y: number }, arriving: boolean }>}
+ */
+export function meetingThresholdMarks(meeting) {
+  // A remote sync happens at everybody's own desk with a headset on — there is
+  // nothing to walk to, and marching the cast to a room they are not in would
+  // be the one modality mistake this feature can make.
+  if (!meeting || meeting.modality === 'remote') return [];
+
+  const arriving = (meeting.transcript?.length ?? 0) === 0;
+  const taken = new Set();
+  /** @type {Array<{ id: string, tile: { x: number, y: number }, arriving: boolean }>} */
+  const marks = [];
+  for (const { id } of meetingSeating(meeting.attendees, meeting.facilitatorId)) {
+    const from = seatTile(id);
+    if (!from || id === YOU_SEAT_ID) continue;
+    const tile = thresholdFor(from, id, taken);
+    if (!tile) continue;
+    taken.add(tileKey(tile));
+    marks.push({ id, tile, arriving });
+  }
+  return marks;
+}
+
 /**
  * Who a moment has claimed, and the tile they stand on.
  *
- * **The glass-room meeting is deliberately absent.** Its chairs are inside a
- * sealed box: the west panel spans y 5.7–8.5, the north panel x 9.4–11.5, and
- * the other two sides are the floor plate's own edge, so there is no route in
- * that does not cross glass — which is exactly why slice 5 placed attendees
- * directly. Walking them in needs either a door (a geometry change that
- * re-opens `pathCrossesGlass` for free roam and § 6 rules 17–18) or a threshold
- * with a queue, and both deserve their own slice. § 8 records the choice.
+ * **The glass-room meeting joins in at slice 27**, and it is the one moment
+ * whose mark is not where the person ends up: its chairs are inside a sealed
+ * box (the west panel spans y 5.7–8.5, the north panel x 9.4–11.5, the other
+ * two sides are the floor plate's own edge), so attendees walk to a *threshold*
+ * outside it and the room cuts them into their chairs on arrival. No geometry
+ * changed and `pathCrossesGlass` still refuses every route through the glass —
+ * the alternative § 8 recorded, cutting a real door, would have re-opened it
+ * for free roam and § 6 rules 17–18 and wanted its own coverage measurement.
+ *
+ * The threshold pays for the other half for free: `nextCommutes` starts a
+ * `home` leg from wherever the `out` leg was heading, so a meeting *ending*
+ * puts everybody at the door and walks them back to their desks — which is the
+ * beat you actually notice, and the one that was worst before (sixteen people
+ * blinking out of sealed chairs).
  *
  * `hands` is what the trip *gives* you, and it only applies on the way back —
  * the same split `officeFloorProps.js` draws between a prop's `verb` and its
@@ -80,10 +187,10 @@ function seatTile(id) {
  * (`useFloorCoffeeWalk` already walks you to the machine), so a commute for
  * `you` would be the second of two people wearing your face.
  *
- * @param {{ coffee?: any, battle?: any, huddle?: any }} moments
+ * @param {{ coffee?: any, battle?: any, huddle?: any, meeting?: any }} moments
  * @returns {Array<{ id: string, tile: { x: number, y: number }, hands: string | null }>}
  */
-export function momentMarksFor({ coffee, battle, huddle } = {}) {
+export function momentMarksFor({ coffee, battle, huddle, meeting } = {}) {
   /** @type {Array<{ id: string, tile: { x: number, y: number }, hands: string | null }>} */
   const marks = [];
   const claimed = new Set();
@@ -110,6 +217,23 @@ export function momentMarksFor({ coffee, battle, huddle } = {}) {
   claim(sceneParticipants(coffee?.lines), COFFEE_TILES, 'coffee');
   claim(sceneParticipants(battle?.lines), BATTLE_TILES, null);
   claim(huddle?.attendees ?? [], HUDDLE_TILES, null);
+
+  /*
+   * The meeting cannot go through `claim`: every other moment indexes a fixed
+   * tile list by position, and this one has already solved a harder problem —
+   * which threshold each attendee can reach without crossing glass, with no two
+   * of them promised the same tile. So it arrives pre-paired and only needs the
+   * same first-claim guard, which keeps § 6 rule 5 honest across all four.
+   *
+   * Last, so a person a scene has already claimed keeps that scene's mark.
+   * Nothing upstream should hold somebody twice; if it does, the coffee they
+   * are already standing at wins over a meeting they have not walked to.
+   */
+  for (const mark of meetingThresholdMarks(meeting)) {
+    if (claimed.has(mark.id)) continue;
+    claimed.add(mark.id);
+    marks.push({ id: mark.id, tile: mark.tile, hands: null, arriving: mark.arriving });
+  }
 
   return marks;
 }
@@ -139,6 +263,12 @@ export function momentMarksFor({ coffee, battle, huddle } = {}) {
  *   into `there`. Used for the first pass only: standing up into a coffee break
  *   that is already running should show two people at the machine, not two
  *   people setting off for it after the fact.
+ *
+ *   A mark may opt out with `arriving`, and slice 27 is the only caller that
+ *   does. The seed's premise is that the moment predates the mount, which is
+ *   false for a meeting you called from your desk — the app stands you up *for*
+ *   it, so the floor mounts on a room that is still filling. `arriving` is that
+ *   moment saying so.
  * @returns {Commute[]}
  */
 export function nextCommutes(prev, marks, { seed = false } = {}) {
@@ -160,7 +290,7 @@ export function nextCommutes(prev, marks, { seed = false } = {}) {
       id: mark.id,
       from,
       to: mark.tile,
-      phase: seed ? 'there' : 'out',
+      phase: seed && !mark.arriving ? 'there' : 'out',
       hands: mark.hands ?? null,
       trip: (current?.trip ?? 0) + 1
     });

@@ -122,10 +122,26 @@ function RemoteMeetingBubble({ speakerId, text, scale, copy }) {
  *   },
  *   copy: Record<string, any>,
  *   scale?: number,
- *   showSpokenText?: boolean
- * }} props
+ *   showSpokenText?: boolean,
+ *   walkingIds?: Set<string> | null
+ * }} props `walkingIds` is slice 27: an attendee still crossing the floor to
+ *   the threshold is being drawn by `FloorCommuters`, and two of anybody is
+ *   § 6 rule 5. `null` means "don't ask" — a standalone mount with no commute
+ *   hook seats the whole roster, exactly as slice 5 did.
+ *
+ *   Note this is the **complement** of the `settledIds` that `FloorScene` and
+ *   `FloorHuddle` take, and the difference is not stylistic. Their casts commute
+ *   in full, so "absent from settled" means "still walking". This one's does
+ *   not — the leadership tier is sealed in its own fishbowl and never sets off —
+ *   so gating on arrival would empty every executive out of the meeting.
  */
-export function FloorMeeting({ meeting, copy, scale = 1, showSpokenText = true }) {
+export function FloorMeeting({
+  meeting,
+  copy,
+  scale = 1,
+  showSpokenText = true,
+  walkingIds = null
+}) {
   const remote = isRemoteMeeting(meeting);
   const seating = remote ? [] : meetingSeating(meeting.attendees, meeting.facilitatorId);
   const lastBeat = meeting.transcript[meeting.transcript.length - 1] ?? null;
@@ -139,17 +155,19 @@ export function FloorMeeting({ meeting, copy, scale = 1, showSpokenText = true }
 
   return (
     <>
-      {seating.map(({ id, tile }, index) => (
-        <MeetingActor
-          key={id}
-          castId={id}
-          tile={tile}
-          speaking={speakingId === id}
-          idleIndex={index}
-          isYou={false}
-          copy={copy}
-        />
-      ))}
+      {seating.map(({ id, tile }, index) =>
+        walkingIds?.has(id) ? null : (
+          <MeetingActor
+            key={id}
+            castId={id}
+            tile={tile}
+            speaking={speakingId === id}
+            idleIndex={index}
+            isYou={false}
+            copy={copy}
+          />
+        )
+      )}
       <MeetingActor
         castId={MEETING_USER_SPEAKER}
         tile={MEETING_PLAYER_TILE}

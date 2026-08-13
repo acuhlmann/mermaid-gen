@@ -1344,7 +1344,70 @@ diagramSource})` returns counts, labels, a `shape` (`graph` | `list` | `page`), 
     and all three locale bundles. Tests: `officeErrand.test.jsx`, plus the ordering claims in
     `officeFloorContracts.test.js` and the copy parity in `officeLocale.test.js`.
 
-**There is no slice 27 yet, and that is deliberate.** The list above was written one slice at
+27. **The way into the glass room — a threshold, not a door.** ✅ shipped. The oldest open item
+    on § 8, opened by slice 17, which walked every set piece's cast to its mark and had to skip
+    this one. Its chairs are inside a sealed box — the west panel spans y 5.7–8.5, the north
+    panel x 9.4–11.5, and the other two sides are the floor plate's own edge — so attendees
+    still appeared in their seats and vanished from them while everything else in the office
+    walked. **Zero LLM budget, zero new verbs, zero store state.**
+
+    **Of § 8's two designs this is the threshold, and the headline is that no geometry
+    changed.** `MEETING_THRESHOLD_TILES` is a fan of eight tiles _outside_ the room; attendees
+    walk to one and the room cuts them into their chairs on arrival. `pathCrossesGlass` still
+    refuses every route through the glass, § 6 rules 17–18 are untouched, and free roam is
+    exactly as sealed out as it was. Cutting a real door would have re-opened all of that and
+    wanted its own coverage measurement, for a beat you see once per meeting.
+
+    **The threshold pays for the better half for free**, exactly as § 8 predicted:
+    `nextCommutes` starts a `home` leg from wherever the `out` leg was heading, so a meeting
+    _ending_ now puts everybody at the door and walks them back to their desks. That was the
+    worst beat in the room — sixteen people blinking out of sealed chairs — and it needed no
+    code of its own.
+
+    **The finding the sketch did not have: some of the cast cannot walk at all.** The
+    leadership tier sits inside its _own_ fishbowl along the back wall, so every route out of
+    it crosses glass and no threshold can ever help them. They keep slice 5's behaviour and
+    appear in their chair, which is also the truthful picture — you cannot watch an executive
+    cross the floor, because you cannot see the route. The consequence is the one wiring
+    decision in the slice: the glass room's cast is a **superset** of its commuters, so it may
+    not gate on `settledIds` the way `FloorScene` and `FloorHuddle` do. Absent-from-settled
+    means "still walking" only when everybody set off; here it would have deleted every
+    executive from the meeting. `useFloorCommute` grew `walkingIds` — the same fact asked the
+    other way round — and `officeFloorCommuters.test.jsx` pins both halves, because the version
+    that only checks the walker passes while the room is quietly empty.
+
+    **The seed had to learn one exception, and without it the slice does nothing in the common
+    case.** Calling a physical meeting from your desk stands you up, so the floor _mounts_ with
+    the meeting already in state — and `useFloorCommute` seeds every commute on its first pass
+    straight to `there`, which is right for a coffee break that was already running and exactly
+    wrong here. The seed's premise is that the moment predates the mount; for a meeting you
+    stood up _for_, it does not. An **empty transcript** is the honest test for "still
+    convening" (`startMeeting` goes to `playing` immediately and then waits on the server for a
+    script), so a mark may now carry `arriving` and opt out of the seed. Stand up into a
+    meeting that is already talking and everybody is still seated at once.
+
+    **Allocation is a queue, and nearest-to-them rather than nearest-to-the-door.** People
+    approach from their own side of the floor and stop at the first free spot, which is what
+    makes a fan read as an approach rather than an allocation. It runs in seating order, so the
+    facilitator gets first pick and the order is stable across re-renders — `marksKey` must not
+    change mid-walk or everybody's trip restarts. The fan is eight tiles, matching
+    `MEETING_SEATS`, because attendees set off together and a shorter fan is the pile-up § 8
+    predicted. It is deliberately **not** in `reservedMarks()`, for the reason `HUDDLE_TILES` is
+    not: it only exists while somebody is walking into a meeting, and permanently reserving
+    eight tiles this close to the pod would strand peek and approach marks all session.
+
+    One thing deliberately left: **you still appear in your own chair**. Free roam owns where
+    you are and `momentMarksFor` has never commuted the player, so walking yourself in is a
+    different question — `useFloorCoffeeWalk`'s, not this slice's.
+
+    Code: `MEETING_THRESHOLD_TILES` in `utils/officeFloorPlan.js`, `meetingThresholdMarks` +
+    the `arriving` seed opt-out in `utils/officeFloorCommute.js`, `walkingIds` in
+    `officeFloor/useFloorCommute.js` and `useFloorAway.js`, the gate in
+    `officeFloor/FloorMeeting.jsx`. Tests: `officeFloorCommute.test.js` (geometry, the queue,
+    the sealed-in case, dispersal), `officeFloorCommuters.test.jsx` (the hand-off),
+    `officeFloorMeeting.test.jsx` (nobody is lost on the way in).
+
+**There is no slice 28 yet, and that is deliberate.** The list above was written one slice at
 a time, each defined when it was picked up rather than planned in advance — so "continue with
 slice _n_" only means something once somebody has chosen what _n_ is. § 8 has the candidates,
 a recommendation, and the debts that argue for one over another. Pick from there, write the
@@ -1950,14 +2013,14 @@ coffee were all completely silent. Slice 18 is the cheapest end of inverting tha
 already-firing physical event that had no line — and it is deliberately canned, so it moves no
 LLM budget at all.
 
-- **The glass room needs a way in** (opened by slice 17, which had to skip it). Its chairs are
-  inside a sealed box, so attendees still appear in their seats and vanish from them while every
-  other moment now walks. Two designs, neither chosen: **a door** — shorten or split the west
-  panel, which is honest and re-opens `pathCrossesGlass` for free roam plus § 6 rules 17–18 and
-  wants its own coverage measurement; or **a threshold** — walk them to a fan of tiles outside
-  the room and cut to the chairs, no geometry change, but eight attendees need several approach
-  tiles or they pile up on one. The threshold version also gets the better half for free: a
-  meeting _dispersing_ is the legible beat, and it needs no door at all.
+- ~~**The glass room needs a way in**~~ ✅ **shipped as slice 27**, as the **threshold**, and
+  every prediction in this bullet held: no geometry changed, the fan needed to be as long as the
+  roster (eight tiles) or attendees piled up, and dispersal came free — `nextCommutes` starts the
+  home leg from the door, so a meeting ending walks everybody back with no code of its own. What
+  the bullet did not anticipate is that **part of the cast cannot use a threshold at all**: the
+  leadership tier is sealed in its _own_ fishbowl, so no route out of it exists, and the glass
+  room therefore became the first surface whose cast is a superset of its commuters. That is the
+  whole reason `walkingIds` exists — see the slice entry.
 - ~~**The office day has a rhythm.**~~ ✅ **shipped as slice 20**, and it landed as predicted:
   one more input to `floorActivityFor` (`dayPhase`, at rung 5) and one more dial in
   `officeCadence.js` (`officeDayPhaseAt`), no new store, zero LLM budget. The trap held too —

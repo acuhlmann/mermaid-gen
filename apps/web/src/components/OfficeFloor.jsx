@@ -330,6 +330,7 @@ function OfficeFloorView({ bridge, viewPhase }) {
     wandererRef,
     commuters,
     settledIds,
+    walkingIds,
     handleCommuteArrive,
     floorState
   } = useFloorAway({
@@ -655,6 +656,7 @@ function OfficeFloorView({ bridge, viewPhase }) {
             // Slice 17: the walk to a moment and the walk back from it.
             commuters={commuters}
             settledIds={settledIds}
+            walkingIds={walkingIds}
             onCommuteArrive={handleCommuteArrive}
             // A figure on the stage is selectable whether it is in a chair or
             // stood at the printer, so the wanderer takes the stage's own three.

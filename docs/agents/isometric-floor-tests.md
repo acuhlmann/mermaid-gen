@@ -53,12 +53,14 @@ Do not copy `standUp(); render(<OfficeFloor />)` into new suites — extend the 
 | `officeFloorPeek.test.jsx`           | Desk peeking marks and fiction                                                           |
 | `officeFloorProps.test.jsx`          | Usable props + `getCoffee` verb                                                          |
 | `officeFloorScene.test.jsx`          | Coffee + battle set pieces                                                               |
-| `officeFloorMeeting.test.jsx`        | Glass room meeting renderer                                                              |
+| `officeFloorMeeting.test.jsx`        | Glass room meeting renderer; nobody lost walking in (27)                                 |
 | `officeFloorWander.test.jsx`         | Ambient wander roster, yields, and the interrupted-errand line                           |
 | `officeFloorStyles.test.js`          | CSS facts (hit box, focus, reduced motion)                                               |
 | `officeFloorViewTransition.test.js`  | Stand-up/sit-down transition: JS exit timer ↔ CSS fade, veil z-order, light-sweep timing |
 | `useFloorArrivalFocus.test.jsx`      | Day One follow-cam scale boost and ceiling clamp                                         |
 | `useFloorAway.test.jsx`              | Commute ids merged into awayIds; wanderer vs floorState split                            |
+| `officeFloorCommute.test.js`         | The commute state machine; the glass-room threshold, its queue and dispersal (17, 27)    |
+| `officeFloorCommuters.test.jsx`      | The one-surface-draws-a-person hand-off, both ways round (17, 27)                        |
 | `useWalkAnimation.test.jsx`          | Walk interrupts + `liveTileOf` read-back                                                 |
 | `officeDeskWork.test.js`             | Fictional desk workloads for peek                                                        |
 | `officeFloorActivity.test.jsx`       | Held items, headphones posture, who-is-talking derivation, the office day                |
@@ -76,7 +78,8 @@ Do not copy `standUp(); render(<OfficeFloor />)` into new suites — extend the 
 6. **Only a settled figure is reachable** — `officeFloorContracts.test.js` + `officeFloorReach.test.js`: a walker and anybody a moment has claimed get no mark, so the verb does not render.
 7. **One derivation of what somebody is doing** — `officeFloorActivity.test.jsx`: the precedence (call ▸ your headphones ▸ coffee ▸ carried item ▸ the hour ▸ trait row) is asserted once, and no surface composes it itself. The hour is rung 5, so anybody a moment is drawing gets no phase; the boundaries themselves live in `officeCadence.test.js`.
 8. **An overheard exchange offers a walk, never a reply** — `officeFloorContracts.test.js`: slice 23's offer carries two seat ids and a prop kind, and none of the exchange's text. A `line`, a quote or an `actionPrompt` on it would make the exchange something addressed to the user, which belongs in the moment store as a walk-by.
-9. **The card slot's order is the live region's order** — `officeFloorContracts.test.js` walks the whole chain (meeting ▸ talk ▸ peek ▸ prop ▸ walk-by ▸ join ▸ roam). A card added without a sentence in the same position is two surfaces disagreeing about what you are doing.
+9. **A surface whose cast does not all commute asks the opposite question** — `officeFloorCommuters.test.jsx`: `FloorScene` and `FloorHuddle` gate on `settledIds` because everybody in them sets off, so absent-from-settled means still walking. The glass room's roster includes people sealed behind their own glass who never commute at all, so it takes `walkingIds` instead — gating it on arrival deletes every executive from the meeting. Assert both halves: the version that only checks the walker passes while the room is quietly empty.
+10. **The card slot's order is the live region's order** — `officeFloorContracts.test.js` walks the whole chain (meeting ▸ talk ▸ peek ▸ prop ▸ walk-by ▸ join ▸ roam). A card added without a sentence in the same position is two surfaces disagreeing about what you are doing.
 
 ## Adding a new floor slice
 
