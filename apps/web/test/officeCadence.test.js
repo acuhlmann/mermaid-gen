@@ -15,7 +15,9 @@ import {
   OFFICE_SESSION_MOMENT_CAP,
   OFFICE_DAY_PHASES,
   OFFICE_DAY_PHASE_POLL_MS,
+  OFFICE_WALL_CLOCK_POLL_MS,
   officeDayPhaseAt,
+  officeWallClockAt,
   wanderBiasAt,
   WANDER_BIAS_WINDOWS,
   OFFICE_WARMUP_GAP_JITTER_MS,
@@ -237,6 +239,55 @@ describe('the office day (slice 20)', () => {
     // A phase turns over four times a day; this is a heartbeat, not a clock.
     expect(OFFICE_DAY_PHASE_POLL_MS).toBeGreaterThanOrEqual(30_000);
     expect(OFFICE_DAY_PHASE_POLL_MS).toBeLessThanOrEqual(5 * 60_000);
+  });
+});
+
+describe('the wall clock (slice 25)', () => {
+  const at = (h, m = 0) => new Date(2026, 7, 10, h, m, 0, 0);
+
+  it('points both hands where a wall clock would', () => {
+    expect(officeWallClockAt(at(3, 0))).toEqual({ hour: 3, minute: 0, hourDeg: 90, minuteDeg: 0 });
+    expect(officeWallClockAt(at(15, 30))).toEqual({
+      hour: 15,
+      minute: 30,
+      hourDeg: 105,
+      minuteDeg: 180
+    });
+    // Midnight and noon both read twelve o'clock.
+    expect(officeWallClockAt(at(0)).hourDeg).toBe(0);
+    expect(officeWallClockAt(at(12)).hourDeg).toBe(0);
+  });
+
+  it('sweeps the hour hand with the minutes instead of jumping it', () => {
+    // Half past three sits between the three and the four; a jumping hand
+    // would still point at the three and read as two sticks, not a clock.
+    expect(officeWallClockAt(at(3, 30)).hourDeg).toBe(105);
+    expect(officeWallClockAt(at(3, 45)).hourDeg).toBe(112.5);
+  });
+
+  it('wraps both hands inside one full turn', () => {
+    for (let h = 0; h < 24; h += 1) {
+      for (const m of [0, 15, 30, 45, 59]) {
+        const { hourDeg, minuteDeg } = officeWallClockAt(at(h, m));
+        expect(hourDeg).toBeGreaterThanOrEqual(0);
+        expect(hourDeg).toBeLessThan(360);
+        expect(minuteDeg).toBeGreaterThanOrEqual(0);
+        expect(minuteDeg).toBeLessThan(360);
+      }
+    }
+  });
+
+  it('takes a Date or an epoch, like the phase dial beside it', () => {
+    const quarter = at(15, 15);
+    expect(officeWallClockAt(quarter)).toEqual(officeWallClockAt(quarter.getTime()));
+  });
+
+  it('polls like a heartbeat, not a metronome', () => {
+    // The hands only move once a minute, so polling faster than the phase
+    // dial is pure waste, and slower than a minute makes the clock visibly
+    // wrong. Same contract shape as the phase poll's own bounds test.
+    expect(OFFICE_WALL_CLOCK_POLL_MS).toBeGreaterThanOrEqual(5_000);
+    expect(OFFICE_WALL_CLOCK_POLL_MS).toBeLessThanOrEqual(60_000);
   });
 });
 

@@ -182,6 +182,34 @@ export function unprojectIso(left, top) {
 }
 
 /**
+ * A point on one of the two back walls: `t` tiles along it, `h` stage pixels
+ * up from the floor line. The windows are placed with it and so is the wall
+ * clock (slice 25) — one definition of "on the wall", so anything hung there
+ * sits where the room says walls are.
+ *
+ * @param {'ne' | 'nw'} axis which back wall: `ne` runs north→east along
+ *   `y = minY`, `nw` runs north→west along `x = minX`.
+ * @param {number} t tiles along the wall from the north corner
+ * @param {number} h height above the floor line, in stage pixels
+ * @returns {{ left: number, top: number }}
+ */
+export function wallPoint(axis, t, h) {
+  const base =
+    axis === 'ne'
+      ? projectIso(FLOOR_BOUNDS.minX + t, FLOOR_BOUNDS.minY)
+      : projectIso(FLOOR_BOUNDS.minX, FLOOR_BOUNDS.minY + t);
+  return { left: base.left, top: base.top - h };
+}
+
+/**
+ * Where the wall clock hangs (slice 25): the north-west wall, the one wall
+ * with no windows, clear of the reception desk and the printer below it.
+ * `h` and `r` are stage pixels; the face must fit inside `WALL_H`, which its
+ * test asserts rather than eyeballs.
+ */
+export const FLOOR_WALL_CLOCK = Object.freeze({ axis: 'nw', t: 3.4, h: 96, r: 26 });
+
+/**
  * Painter's-algorithm depth for a tile: things closer to the viewer (larger
  * x + y) paint on top. Scaled by 10 so a seat's own parts (chair / person /
  * desk) can interleave within one tile without colliding with the next.

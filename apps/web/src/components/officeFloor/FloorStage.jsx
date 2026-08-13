@@ -10,6 +10,7 @@ import FloorRoam from './FloorRoam.jsx';
 import FloorRoom, { FloorZoneLabels } from './FloorRoom.jsx';
 import FloorSeat from './FloorSeat.jsx';
 import FloorWalker from './FloorWalker.jsx';
+import FloorWallClock from './FloorWallClock.jsx';
 import {
   FLOOR_SEATS,
   STAGE_H,
@@ -143,6 +144,12 @@ export function FloorStage({
         aria-label={copy.stageAria}
       >
         <FloorRoom youTile={seatFor(YOU_SEAT_ID)} />
+
+        {/* The wall clock hangs on the wall the room SVG just drew — right
+            after it, so everything walkable paints over it. It reads the
+            instant the day-phase dial reads, so the hands and the light can
+            never disagree (slice 25). */}
+        <FloorWallClock />
 
         {/* Under everything that paints (lowest prop depth is 20), so people
             keep their clicks and only bare floor reaches it. During the

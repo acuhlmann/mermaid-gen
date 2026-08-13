@@ -14,6 +14,7 @@ import {
   STAGE_W,
   WALL_H,
   projectIso,
+  wallPoint,
   zoneCentre,
   zonePolygon
 } from '../../utils/officeFloorPlan.js';
@@ -27,15 +28,6 @@ const ZONE_FILL = {
 
 function poly(points) {
   return points.map((p) => `${p.left.toFixed(1)},${p.top.toFixed(1)}`).join(' ');
-}
-
-/** A point on a back wall: `t` tiles along it, `h` px up from the floor. */
-function wallPoint(axis, t, h) {
-  const base =
-    axis === 'ne'
-      ? projectIso(FLOOR_BOUNDS.minX + t, FLOOR_BOUNDS.minY)
-      : projectIso(FLOOR_BOUNDS.minX, FLOOR_BOUNDS.minY + t);
-  return { left: base.left, top: base.top - h };
 }
 
 /**

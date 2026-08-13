@@ -127,7 +127,10 @@ export const OFFICE_SHOP_TALK_CAP = 4;
 
 /*
  * ---------------------------------------------------------------------------
- * THE OFFICE DAY — the other clock, and the only one that is a wall clock.
+ * THE OFFICE DAY — the other clock. Since slice 25 there is also a *literal*
+ * wall clock on the floor (`FloorWallClock`), and it renders the time this
+ * section reads — one clock, two faces, so the light and the hands can never
+ * disagree about the hour.
  * ---------------------------------------------------------------------------
  *
  * Everything above is session-relative: how long you have been here, how many
@@ -197,6 +200,54 @@ export function officeDayPhaseAt(now = Date.now()) {
   }
   return phase;
 }
+
+/**
+ * What the floor's wall clock says — the **same instant the office day is read
+ * from**, projected into the two hands that paint (slice 25).
+ *
+ * The split `officeDayPhaseAt` draws applies here too: the cadence answers
+ * *what time it is*, and `FloorWallClock` only draws the answer. Returning the
+ * two hand angles rather than a `Date` keeps this pure arithmetic — unit-tested
+ * on plain instants — and lets the renderer own drawing (and the accessible
+ * label, which needs the raw hour and minute back).
+ *
+ * **Minute granularity, deliberately.** The clock exists so the hour is
+ * *legible* — it is a phase-reading device, not a precision instrument. A
+ * second hand would need a one-second poll and repaint the floor continuously,
+ * against the "re-render only on change" budget this section sets. Minute hands
+ * that advance 6° a minute are smooth enough to read as working, and the poll
+ * beside this stays a heartbeat rather than a metronome.
+ *
+ * The hour hand **sweeps** rather than jumping: `hourDeg` folds the minutes in,
+ * so half past three points between the three and the four, which is what makes
+ * it a clock instead of two sticks.
+ *
+ * @param {Date | number} [now]
+ * @returns {{ hour: number, minute: number, hourDeg: number, minuteDeg: number }}
+ *   `hour` is 0–23 for labelling; both angles are degrees clockwise from
+ *   twelve, in [0, 360).
+ */
+export function officeWallClockAt(now = Date.now()) {
+  const date = now instanceof Date ? now : new Date(now);
+  const hour = date.getHours();
+  const minute = date.getMinutes();
+  return {
+    hour,
+    minute,
+    hourDeg: (((hour * 60 + minute) / 60) % 12) * 30,
+    minuteDeg: minute * 6
+  };
+}
+
+/**
+ * How often the hands re-read the clock. A heartbeat, not a metronome: the
+ * sampled value only changes when the minute rolls over, and `useState` bails
+ * out of a same-value set, so this costs one `Date` read every half-minute and
+ * repaints the hands once a minute. Thirty seconds bounds the staleness to half
+ * a minute — a phase poll can afford a whole minute because a phase turns over
+ * four times a day, but the minute hand *is* the signal here.
+ */
+export const OFFICE_WALL_CLOCK_POLL_MS = 30_000;
 
 /**
  * How often to re-read the clock while the floor is up.

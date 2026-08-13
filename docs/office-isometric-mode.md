@@ -1222,7 +1222,60 @@ diagramSource})` returns counts, labels, a `shape` (`graph` | `list` | `page`), 
     `officeFloor/useFloorWander.js`, and the enlarged `shopTalk.coffeeMachine` bank in
     `officeCast.js` + all three locale bundles.
 
-**There is no slice 25 yet, and that is deliberate.** The list above was written one slice at
+25. **The wall clock — the hour, read aloud.** ✅ shipped. Since slice 20 the office has run
+    on a wall clock (`officeDayPhaseAt`) but only ever _shown_ it as mood: window tint, wall
+    colour, mugs at nine, papers at five — and since slice 24 a drift toward the kitchen
+    between two and half four. All of it is felt; nothing states it. This slice puts a literal
+    clock on the north-west wall, reading the same instant the light reads. **Zero LLM budget,
+    zero store state, zero locale copy** (an HH:MM accessible label needs no bundle).
+
+    **One clock, two faces — the hands and the light cannot disagree.** The cadence's own rule
+    says it owns _when_ and the floor owns what it looks like, so the time lands on
+    `officeWallClockAt` beside `officeDayPhaseAt`, and `FloorWallClock` only draws the answer.
+    The second hand was the one thing left out, deliberately: it would need a one-second poll
+    and repaint the floor continuously, against the "re-render only on change" budget the phase
+    dial set. The minute hand advances 6° a minute — smooth enough to read as working — and
+    `OFFICE_WALL_CLOCK_POLL_MS` is a heartbeat (30 s), with the functional `setState` comparing
+    values and keeping the old object so a mid-minute poll bails out of the repaint entirely.
+
+    **A screen-space circle on the wall, not a projected ellipse.** The windows are skewed
+    parallelograms because they are two tiles wide — the skew is visible there. A 26 px face has
+    almost nothing to skew, and this is the one art on the floor whose job is to be _read_: a
+    tilted dial with foreshortened hands would cost legibility for a projection accuracy nobody
+    can see at this size. Zone labels and name chips set the precedent — chrome on the room
+    stays flat.
+
+    **Its own layer rather than part of `FloorRoom`.** The room SVG is static by design; the
+    hands move, so they live on a separate `<svg>` that repaints alone, drawn right after the
+    room (DOM order, no z-index — the same placement contract the room rides) and before
+    everything walkable. `pointer-events: none` keeps it from catching a click meant for
+    `FloorRoam`. **The face carries its own light** — near-white disc, slate ink — so it reads
+    against every wall colour all five phases can produce and owes the per-phase palette
+    nothing; and nothing here is _animated_ (the hands hard-cut each minute like the light
+    hard-cuts each phase), so the clock owes the reduced-motion block nothing either. Both
+    scanners in `officeFloorStyles.test.js` pass untouched.
+
+    **Placement is layout data, not a component constant.** `FLOOR_WALL_CLOCK` sits in
+    `officeFloorPlan.js` beside the seats and props, and `wallPoint` — which the windows were
+    drawn with — was promoted into the plan module so the clock and the panes share one
+    definition of "on the wall". The face must fit inside the wall band at its **own** `t` —
+    the floor line drops as the wall runs toward the viewer, so bounds measured at the north
+    corner are wrong — which `officeFloorWallClock.test.jsx` asserts rather than eyeballs.
+
+    **What the tests pin.** Pure angles on plain instants beside the phase dial
+    (`officeCadence.test.js`); the drawing in `officeFloorWallClock.test.jsx` — placement in
+    the wall band, hand angles under a pinned Date, the HH:MM accessible label, catch-up on
+    the minute roll, no-repaint mid-minute, teardown, and that both the standing floor **and**
+    the arrival stage hang it. The mount tests pin the clock to midday for § 8's trap: a
+    mounting floor test reads the hour at rung 5, and asserting geometry at an arbitrary
+    instant is how `officeFloorActivity.test.jsx` was red for seven and a half hours a day.
+
+    Code: `officeWallClockAt` + `OFFICE_WALL_CLOCK_POLL_MS` in `utils/officeCadence.js`,
+    `wallPoint` + `FLOOR_WALL_CLOCK` in `utils/officeFloorPlan.js`,
+    `officeFloor/FloorWallClock.jsx`, `officeFloor/useOfficeWallClock.js`, the clock layer in
+    `FloorStage.jsx`, and the `.office-floor-wall-clock*` rules in `OfficeFloor.css`.
+
+**There is no slice 26 yet, and that is deliberate.** The list above was written one slice at
 a time, each defined when it was picked up rather than planned in advance — so "continue with
 slice _n_" only means something once somebody has chosen what _n_ is. § 8 has the candidates,
 a recommendation, and the debts that argue for one over another. Pick from there, write the
