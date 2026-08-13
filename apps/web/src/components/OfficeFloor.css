@@ -1616,6 +1616,24 @@
   margin: 0;
 }
 
+/*
+ * The errand you are carrying (slice 26). Identical column layout to the two
+ * cards above, and identically unanimated — this one is the strongest case for
+ * staying still, because it is the only card that can be on screen for the
+ * whole session. Anything that pulsed or slid here would be the office nagging
+ * you, which is the exact shape ADR-0010 consequence #4 rules out.
+ */
+.office-floor-card--errand {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.office-floor-card--errand .office-floor-card-blurb,
+.office-floor-card--errand .office-floor-card-actions {
+  margin: 0;
+}
+
 /* ── talking to somebody on the floor (slice 8) ──────────────────────────── */
 
 .office-floor-talk-quick {

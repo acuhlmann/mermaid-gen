@@ -42,6 +42,7 @@ export const OFFICE_LOG_KINDS = /** @type {const} */ ([
   'battle',
   'meeting',
   'huddle',
+  'errand',
   'training',
   'security',
   'levelUp'
@@ -136,6 +137,16 @@ function sentenceOf(entry) {
       return detail === 'left' ? 'you left a meeting early' : 'you sat through a meeting';
     case 'huddle':
       return 'the team crowded around your screen';
+    /*
+     * Slice 26. `detail` is who *sent* you, which is the half that makes this
+     * office business rather than a private chat: the whole floor knows Linda
+     * outsources her difficult conversations. What was actually said stays out,
+     * for the same reason `chat` is bodiless.
+     */
+    case 'errand':
+      return who
+        ? `you went and had a word with ${who}${detail ? `, at ${detail}'s asking` : ''}`
+        : '';
     // §10.1 / §10.2. Both are things the whole office would plausibly know
     // about by lunchtime — which is exactly the test for what belongs here.
     case 'training':
@@ -179,6 +190,14 @@ function sentenceOf(entry) {
  * `colleagueId`, so counting it would mean reading one kind's `detail` as an
  * id — and the fact it carries is about the argument, not about the two of you.
  * The global digest already says who won.
+ *
+ * `errand` (slice 26) is absent for a different reason and is worth recording
+ * so nobody re-derives it: it *would* qualify — it names the person you crossed
+ * the room for. It is left out because this projection's own effect on the
+ * model has only been measured once, on one fixture at n=5, and came back
+ * modest; widening what feeds it before that measurement is redone would be
+ * building on an unaudited result. Every errand is accompanied by a `chat`
+ * entry anyway, so nothing about the two of you is lost — only the framing.
  */
 /*
  * Noun phrases with an explicit count, never verb phrases. "emailed you,

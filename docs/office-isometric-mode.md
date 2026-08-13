@@ -1275,7 +1275,76 @@ diagramSource})` returns counts, labels, a `shape` (`graph` | `list` | `page`), 
     `officeFloor/FloorWallClock.jsx`, `officeFloor/useOfficeWallClock.js`, the clock layer in
     `FloorStage.jsx`, and the `.office-floor-wall-clock*` rules in `OfficeFloor.css`.
 
-**There is no slice 26 yet, and that is deliberate.** The list above was written one slice at
+26. **Soft errands — Linda sends you to go and have a word with Chad.** ✅ shipped. The office
+    has never been able to ask you for anything. It interrupts you, it answers you, and since
+    slice 22 it talks past you — but nothing in it has ever given you a reason to cross the
+    room. This slice is the smallest honest version of that: an email from People Ops grows a
+    **Go and find Chad** button, pressing it stands you up with an errand, and saying anything
+    to Chad discharges it for 5 XP and a line in the office log. **Zero LLM budget, zero new
+    verbs, zero server changes.**
+
+    **The whole design is what it refuses to do.** ADR-0010 consequence #4 rules out office
+    machinery that acts on its own, and a quest that nags is the quietest way to break it — so
+    the errand has **no timer of any kind**: no TTL, no reminder, no second ask, no re-offer.
+    It is raised by a press, it waits, and it ends when you speak to them or press _Not today_.
+    The marker on the email raises nothing on arrival, either, which is the difference between
+    mail asking and mail being read: an errand you never opened cannot exist. Single occupancy
+    like `walkBy`, because two open errands is a quest log and the § 8 entry that chose this
+    slice ruled a quest log out by name.
+
+    **Slice 23 made it cheap, exactly as § 8 predicted.** An errand's payoff is "go and talk to
+    Chad", which is `startTalk` at a `talkTileFor` mark — the same derivation the person card,
+    a double-click and _Join in_ already use, asked a fourth time. Nothing was added to the
+    floor's verb list. The card is withheld when the target has no mark (slice 9's rule: a verb
+    the room cannot deliver does not render), and it comes back the moment they sit down,
+    because the offer is derived per render while the errand itself lives in the store.
+
+    **Its rung is decided by lifetime, not by commitment**, which is the one place it parts
+    company with `FloorCardSlot`'s stated ordering. Every other card there is momentary; this
+    one is durable, so ranking it above _Join in_ would mean a single open errand suppressing
+    every transient offer for the rest of the session. It sits last, immediately above the
+    hint — and last is also the honest place, because while you carry an errand, "what you are
+    doing on this floor" _is_ the errand.
+
+    **The live region needed the same reasoning, and a different answer.** § 6 rule 24 and the
+    card-slot ordering say a new card gets a sentence in the same position, but a durable fact
+    ranked among momentary ones would silence free roam for as long as you carried it — a
+    region that stops reporting movement is worse than one that never mentioned the errand. So
+    it replaces the **at-rest** lines only (`standingFloor` / `atDesk`), which is precisely the
+    live region's counterpart of the hint the card replaces. Walking still announces walking.
+
+    **Both renderers settle it, because the errand is about having the conversation.** Walking
+    over is the route it was written for and the button picks it, but typing at Chad in Slop
+    Chat™ discharges it identically — `settleErrandWith` hangs off both send funnels
+    (`handleTalkReply`, `handleMessengerSend`), which are the two places the user's own line
+    already passes through. No observer was added to feed it, the same rule the office log
+    follows.
+
+    **Two things the implementation had to get right that the sketch did not anticipate.** A
+    card that self-guards to `null` inside a slot branch the slot has _already taken_ renders
+    an empty box — harmless for a join that lasts seconds, and for an errand it would sit there
+    all session with the floor's only hint gone, so the errand branch tests the handler itself
+    rather than leaving it to the card. And `settleOfficeErrand` returns the **errand** rather
+    than a boolean, because the log line needs `fromId` and the store has dropped it a line
+    later; the store still awards nothing, so XP and the log keep their single `onOfficeEvent`
+    funnel.
+
+    **What it is not.** No quest log, no progress UI, no completed-errand state — once it
+    settles, the office log line is the only trace, which is what keeps it _soft_ rather than a
+    ticket with a history. It is deliberately **not** counted by `hasActiveOfficeSurface`: that
+    predicate gates the ambient director, and something with no expiry counted there would hold
+    the entire office silent until you ran it.
+
+    Code: `errand` + `pushOfficeErrand` / `settleOfficeErrand` / `dismissOfficeErrand` in
+    `state/officeMomentStore.js`, `officeFloor/FloorErrand.jsx`, the rung in `FloorCardSlot.jsx`,
+    `errandOffer` in `OfficeFloor.jsx`, `handleStartErrand` + `settleErrandWith` in
+    `OfficeLayer.jsx`, the CTA in `OfficeInboxDock.jsx`, `errandRun` in `runGamificationStore.js`,
+    the `errand` log kind in `utils/officeLogDigest.js`, and the `email-hr-errand-intern`
+    template plus `errand` / `floor.errand` / `narration.onErrand` copy in `utils/officeCast.js`
+    and all three locale bundles. Tests: `officeErrand.test.jsx`, plus the ordering claims in
+    `officeFloorContracts.test.js` and the copy parity in `officeLocale.test.js`.
+
+**There is no slice 27 yet, and that is deliberate.** The list above was written one slice at
 a time, each defined when it was picked up rather than planned in advance — so "continue with
 slice _n_" only means something once somebody has chosen what _n_ is. § 8 has the candidates,
 a recommendation, and the debts that argue for one over another. Pick from there, write the
@@ -1900,15 +1969,16 @@ LLM budget at all.
   change to a different module. What the bullet did not anticipate is that it could not be a
   day phase — the slump is a fact about where people walk, and a phase is a fact about what the
   room looks like, so the cadence now carries two clocks rather than one longer list.
-- **Point-and-click depth.** The two entries below that survived: **soft errands**
-  (Linda asks you to find Chad about the reply-all — existing talk verb, reactive IM, a small XP
-  beat, logged but never _scheduled_, or it becomes auto-fix-on-idle in a new hat) and
-  ~~**Overhear → Join**~~ (**half shipped as slice 23** — the shop-talk half needed no design
-  question answered; the scene half still owes the mid-beat one). Soft errands is now the
-  strongest remaining pick on this list, and slice 23 makes it cheaper: an errand's payoff is
-  "go and talk to Chad", which is the verb slice 23 just demonstrated can be handed to you from
-  a card with the mark already derived. (Slice 18 took a third entry off this list from a
-  different angle — see below.)
+- **Point-and-click depth.** ~~The two entries below that survived: **soft errands**~~
+  ✅ **shipped as slice 26**, and the prediction about cost held exactly: the payoff was
+  `startTalk` at a `talkTileFor` mark, so the slice added no verb, no server change and no LLM
+  budget. What the bullet did not anticipate is that the interesting question was not the
+  errand but its **rung** — an errand is the first card-slot entry with no expiry, and a
+  durable fact ranked among momentary ones suppresses them all, in the card slot and in the
+  live region alike. It sits last in both. ~~**Overhear → Join**~~ (**half shipped as slice
+  23** — the shop-talk half needed no design question answered; the scene half still owes the
+  mid-beat one). (Slice 18 took a third entry off this list from a different angle — see
+  below.)
 
 - ~~**Proximity dwell — stand next to somebody too long and they say something.**~~ ✅ **shipped
   as slice 19.** Three of the four traps below were real and are handled (`standingFree` gating,
@@ -2035,8 +2105,13 @@ Kept here so appetite can pick without re-deriving. Each should stay bound by AD
 - ~~**Topic hotspots from the diagram**~~ — tried as opener chips above the floor composer
   (ranked from the office log), then **removed**: they ate the talk card and the typed prompt /
   mic already cover "you speak first". The card is now composer-only.
-- **Soft errands** — Linda asks you to "find Chad and ask about the reply-all"; completing it
-  is a reactive IM exchange + a tiny XP beat, not a quest log UI. **Chosen, not yet built.**
+- ~~**Soft errands**~~ — ✅ **shipped as slice 26.** Linda's email grows a **Go and find Chad**
+  button, pressing it stands you up carrying one, and speaking to Chad on either renderer
+  settles it for 5 XP and a log line. Built as sketched — no quest log, no progress UI, no
+  completed-errand state — and the clause that did the most work was "logged but never
+  _scheduled_": the slice's whole shape is the absence of a timer. The one thing the entry did
+  not foresee is recorded in the slice: the design question was where a **durable** card ranks
+  among momentary ones, and the answer is last, in the card slot and the live region both.
 - **Overhear → join** — ~~standing next to a coffee/battle scene offers **Join in** once~~
   **half shipped as slice 23**, and the split the entry predicted is exactly the split that
   happened. Slice 22 gave Join a trigger and a geometry; the cheap half — **shop talk plus a

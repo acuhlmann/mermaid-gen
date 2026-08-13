@@ -102,6 +102,13 @@ export const OFFICE_EN_AU = {
       body: 'G\'day! Just a friendly nudge that your "Working Safely With Diagrams" compliance training is 847 days overdue! It only takes 4 hours and features 11 unskippable modules.\n\nHR forever,\nLinda — People Ops'
     },
     {
+      id: 'email-hr-errand-intern',
+      colleagueId: 'hr',
+      errand: 'intern',
+      subject: 'Quick favour — re: the reply-all situation',
+      body: 'Chad has reply-alled the "{label}" thread four times, twice to apologise for the last reply-all. People Ops research says this lands better peer-to-peer, so could you have a quiet word? Face to face is best. Warm, curious, non-escalatory — you know the tone.\n\nThis is not a formal conversation and mustn’t be documented, which is why I’m emailing you about it.\n\nHR forever,\nLinda — People Ops'
+    },
+    {
       id: 'email-birthday-card',
       colleagueId: 'hr',
       subject: 'Card for Craig — sign by EOD!',
@@ -1117,6 +1124,10 @@ export const OFFICE_EN_AU = {
         inputAria: 'Your name for the office'
       }
     },
+    errand: {
+      startCta: '🚶 Go and find {name}',
+      startCtaTitle: 'Get up and wander over. The errand waits on the floor till you have a word.'
+    },
     inbox: {
       mailAnnounce: 'You’ve got mail, mate!',
       mailAnnounceLang: 'en-AU',
@@ -1231,7 +1242,8 @@ export const OFFICE_EN_AU = {
         arriving: '{name} is walking over to ya desk.',
         leaving: '{name} is walking back to their desk.',
         inHuddle: 'Ya team is huddled around ya desk.',
-        overhearing: '{name} and {partner} are having a chat nearby. You can join in.'
+        overhearing: '{name} and {partner} are having a chat nearby. You can join in.',
+        onErrand: 'Standing on the floor. {from} asked you to go and have a word with {name}.'
       },
       arrival: {
         eyebrow: 'ARCHISLOP CORP. · YA FIRST DAY',
@@ -1427,6 +1439,14 @@ export const OFFICE_EN_AU = {
             'We already redid it properly. March. This is the properly one.'
           ]
         ]
+      },
+      errand: {
+        eyebrow: 'ON YOUR WAY',
+        body: '{from} asked you to have a quiet word with {name}. Whatever you say stays between you.',
+        action: '🚶 Go and have a word',
+        actionTitle: 'Wander over — the errand clears the moment you say something to them',
+        drop: 'Nah, not today',
+        dropTitle: 'Drop it. Nobody is tracking this. Linda reckons nobody is tracking this.'
       },
       join: {
         eyebrow: 'WITHIN EARSHOT',

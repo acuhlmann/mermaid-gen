@@ -530,6 +530,17 @@ describe('somebody who is not at their desk', () => {
 
   beforeEach(() => {
     vi.useFakeTimers();
+    /*
+     * The seed alone stopped being enough at slice 24: `wanderBiasAt` gives the
+     * wall clock a say in *where* a wanderer goes (3× the coffee machine from
+     * two until half four), so an unpinned hour sends Chad to the kitchen for
+     * two and a half hours a day and every geometry assertion below is suddenly
+     * about the wrong prop. The coverage checks in `floorWithWanderer` do not
+     * catch it — he is still Chad and still settled. Midday for
+     * `officeFloorActivity.test.jsx`'s reason too: no `PHASE_ART`, so nobody is
+     * handed a mug the tests would then have to know about.
+     */
+    vi.setSystemTime(new Date(2026, 7, 11, 12, 0, 0));
     stubRandom(0.75);
   });
 
@@ -807,11 +818,15 @@ describe('what they say on the way back (slice 18)', () => {
 });
 
 describe('walking into somebody else s errand, on a real floor', () => {
-  /** 0.75 puts Chad at the whiteboard, as the slice 12 suite above relies on. */
+  /**
+   * 0.75 puts Chad at the whiteboard, as the slice 12 suite above relies on —
+   * and only once the hour is pinned as well, for the reason recorded there.
+   */
   const CHAD = 'intern';
 
   beforeEach(() => {
     vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 7, 11, 12, 0, 0));
     stubRandom(0.75);
   });
 

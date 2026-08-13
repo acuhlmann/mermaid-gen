@@ -39,6 +39,7 @@ export default function OfficeInboxDock({
   onCallMeeting,
   onComposeEmail,
   onStartTraining,
+  onStartErrand,
   onPhishingClick,
   onPhishingReport,
   composeBusy = false,
@@ -354,6 +355,22 @@ export default function OfficeInboxDock({
                   onClick={() => onStartTraining?.(selected.training)}
                 >
                   {formatLocale(copy.training.startCta, { module: selected.training })}
+                </button>
+              ) : null}
+              {/* Slice 26. Guarded on the handler as well as the marker, the
+                  same check the floor's cards make: a CTA that stands you up
+                  and raises nothing would be the one set piece that fails
+                  silently, because its payoff is on the other renderer. */}
+              {selected.errand && onStartErrand ? (
+                <button
+                  type="button"
+                  className="office-do-it office-email-errand"
+                  title={copy.errand.startCtaTitle}
+                  onClick={() => onStartErrand(selected.errand, selected.colleagueId)}
+                >
+                  {formatLocale(copy.errand.startCta, {
+                    name: officeSenderInfo(selected.errand)?.name ?? selected.errand
+                  })}
                 </button>
               ) : null}
               {selected.phishing ? (

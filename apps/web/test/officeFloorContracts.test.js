@@ -169,6 +169,29 @@ describe('card-slot narration order matches floorAnnouncement priority', () => {
     expect(floorAnnouncement(idle).key).toMatch(/^join:/);
     expect(floorAnnouncement({ ...idle, join: null }).key).toMatch(/^roam:/);
   });
+
+  /*
+   * Slice 26's rung, asserted apart from the chain above because it is the one
+   * card that does not join the chain. An errand is durable — no timer, open
+   * until you speak to them or drop it — so ranking it among the momentary
+   * rungs would mean it suppressed every one of them for as long as you carried
+   * it. It replaces what you are told while standing still, which is the live
+   * region's counterpart of the hint that `FloorCardSlot` gives it.
+   */
+  it('an errand replaces the standing line and never the walking one', () => {
+    const errand = { colleagueId: 'intern', fromId: 'hr' };
+    const standing = { copy, presence: { phase: 'standing', key: 1 }, errand };
+
+    expect(floorAnnouncement(standing).key).toMatch(/errand/);
+    expect(floorAnnouncement(standing).text).not.toBe(lines.standingFloor);
+    expect(floorAnnouncement({ ...standing, presence: { phase: 'walking', key: 2 } }).text).toBe(
+      lines.walkingFloor
+    );
+    // And it still yields to everything transient, the card slot's own order.
+    expect(
+      floorAnnouncement({ ...standing, join: { colleagueId: 'intern', partnerId: 'dinesh' } }).key
+    ).toMatch(/^join:/);
+  });
 });
 
 /**

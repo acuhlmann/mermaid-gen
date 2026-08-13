@@ -634,6 +634,16 @@ export const OFFICE_EMAIL_TEMPLATES = [
     body: 'Just a friendly nudge that your "Working Safely With Diagrams" compliance training is 847 days overdue! Completing it takes only 4 hours and features 11 unskippable modules, a quiz you cannot fail (we track attempts), and a certificate nobody will ask for until an audit.\n\nHR forever,\nLinda — People Ops'
   },
   {
+    id: 'email-hr-errand-intern',
+    colleagueId: 'hr',
+    // A soft errand (docs/office-isometric-mode.md § 5 slice 26). The marker is
+    // who you are being sent to see; the joke is that People Ops has decided
+    // the intervention works better coming from a peer, i.e. from anybody else.
+    errand: 'intern',
+    subject: 'Quick favour — re: the reply-all situation',
+    body: 'Chad has reply-all\'d the "{label}" thread four times, twice to apologise for the previous reply-all. People Ops research shows this lands better peer-to-peer, so could you have a quiet word? In person is best. Warm, curious, non-escalatory — you know the tone.\n\nThis is not a formal conversation and must not be documented, which is why I am emailing you about it.\n\nHR forever,\nLinda — People Ops'
+  },
+  {
     id: 'email-birthday-card',
     colleagueId: 'hr',
     subject: 'Card for Craig — sign by EOD!',
@@ -1987,6 +1997,14 @@ export const OFFICE_CHROME_COPY = {
     certificateBody:
       'Congratulations! You have completed Module {module} of {total} of "Working Safely With Diagrams".\n\nYour certificate is attached. It is not attached — certificates are issued by a system decommissioned in 2019, and your completion has been recorded in a spreadsheet nobody owns.\n\nModule {next} is now overdue.\n\nHR forever,\nLinda — People Ops'
   },
+  /* Soft errands (docs/office-isometric-mode.md § 5 slice 26). The CTA on the
+     email is the only thing that raises one — mail arriving never does — and it
+     says out loud that it stands you up, because a button that changes which
+     renderer you are looking at has to. */
+  errand: {
+    startCta: '🚶 Go and find {name}',
+    startCtaTitle: 'Stand up and go over. The errand waits on the floor until you speak to them.'
+  },
   /* Sasha's simulated phishing test (docs/office-parody.md §10.2). Both verbs
      are offered on the same email — spotting it and falling for it are equally
      valid endings, and only one of them is funny. */
@@ -2255,7 +2273,20 @@ export const OFFICE_CHROME_COPY = {
       // Slice 23. Spatial, like everything else here: who is standing near you
       // and that there is a way in — never a word of what they are saying,
       // which stays in the bubbles the two speakers already have.
-      overhearing: '{name} and {partner} are talking nearby. You can join in.'
+      overhearing: '{name} and {partner} are talking nearby. You can join in.',
+      /*
+       * Slice 26, and the one line here that is not spatial — an errand is why
+       * you are stood somewhere, not where you are stood. It earns the place
+       * `join` earned: a control has appeared in the card slot and a live region
+       * has to say so.
+       *
+       * It replaces the **at-rest** lines only, never a walking one. Every other
+       * rung in this chain is momentary and an errand is durable, so ranking it
+       * above `walkingFloor` would silence free roam for as long as you carry
+       * one — a region that stops reporting movement is worse than one that
+       * never mentioned the errand.
+       */
+      onErrand: 'Standing on the floor. {from} asked you to go and speak to {name}.'
     },
     // Day One, staged on the floor (isometric arrival).
     arrival: {
@@ -2548,6 +2579,27 @@ export const OFFICE_CHROME_COPY = {
       body: '{name} is at {prop} with {partner}. Neither of them has noticed you.',
       action: '💬 Join in',
       actionTitle: 'Walk over and say something — they will not include you on their own'
+    },
+    /**
+     * A soft errand you are carrying (§ 5 slice 26).
+     *
+     * The lowest rung in the card slot, and the only durable one: every other
+     * card is something happening now, and this is a thing you agreed to do and
+     * have not done. It sits where the hint sits because that is honest — while
+     * you carry an errand, "what you are doing here" *is* the errand.
+     *
+     * `action` is the ordinary talk verb, the third surface to fire it after the
+     * person card and slice 23's Join in. `drop` is what makes it soft: an
+     * errand you cannot put down is a ticket, and nobody wants Linda issuing
+     * tickets.
+     */
+    errand: {
+      eyebrow: 'ON YOUR WAY',
+      body: '{from} asked you to have a quiet word with {name}. Whatever you say is between you.',
+      action: '🚶 Go and talk',
+      actionTitle: 'Walk over — the errand clears as soon as you say something to them',
+      drop: 'Not today',
+      dropTitle: 'Drop it. Nobody is tracking this. Linda says nobody is tracking this.'
     },
     // The meeting, staged in the glass room instead of a window on your screen.
     // Labels stay short: two of them share one row of a 21 rem card.

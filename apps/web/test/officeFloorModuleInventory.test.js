@@ -16,6 +16,7 @@ const EXPECTED_OFFICE_FLOOR_COMPONENTS = [
   'FloorCardSlot.jsx',
   'FloorCommuters.jsx',
   'FloorDeskSpeech.jsx',
+  'FloorErrand.jsx',
   'FloorFigure.jsx',
   'HeldItem.jsx',
   'FloorLiveRegion.jsx',

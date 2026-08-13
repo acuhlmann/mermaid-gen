@@ -161,6 +161,20 @@ Every session carries **six independent diagram slots** — `mermaid` (Mermaid t
   (never wire Cloud TTS or ElevenLabs into CI, routes, or deploy). Kill switch `OFFICE_TTS=0`.
   **zh-TW has no Chirp rung** — missing `CHIRP_LANG_CODE['zh-TW']` is intentional; verify with
   `listVoices` before re-adding. See [`docs/office-narration-roadmap.md`](docs/office-narration-roadmap.md).
+- **A soft errand is defined by the timer it does not have.** `officeMomentStore.errand`
+  (slice 26) is the office's one standing request — Linda's email grows a **Go and find Chad**
+  CTA, pressing it stands you up carrying one, speaking to Chad on _either_ renderer settles it.
+  Three things are load-bearing and each looks like an oversight. It has **no TTL, reminder or
+  re-offer** — ADR-0010 consequence #4, and a quest that nags is the quietest way to break it.
+  The email marker **raises nothing on arrival**; only the press does, so an errand you never
+  read cannot exist. And it is deliberately **absent from `hasActiveOfficeSurface`**: that
+  predicate gates the ambient director, and something with no expiry counted there would hold
+  the whole office silent until you ran it. Its card is the **last** rung in `FloorCardSlot`
+  and its line replaces only the **at-rest** narration, both for the same reason — it is the
+  first durable entry in two orderings built for momentary ones, so ranking it higher
+  suppresses every transient offer (and, in the live region, stops reporting that you are
+  walking). `settleOfficeErrand` returns the errand rather than a boolean because the log needs
+  `fromId`; it still awards nothing, so XP and the log keep one `onOfficeEvent` funnel.
 - **The office log records; it never triggers.** `officeLogStore.js` is what lets the cast say
   "since this morning's thing" (docs/office-parody.md §11 context contract). Writers hook the
   funnels that already exist — `onOfficeEvent` in `useRunCeremony.js`, the moment-store push
@@ -299,7 +313,14 @@ Every session carries **six independent diagram slots** — `mermaid` (Mermaid t
   change anywhere that consumes a different number of randoms re-seeds who is wandering.
   `officeFloorDwell.test.jsx` went red on a test that **passed in isolation and failed in file
   order**, which is this class's signature; pin with `vi.spyOn(Math, 'random').mockReturnValue(0.75)`
-  (the floor suites' seed) unless the suite is about the roll. Neither failure mentions time or
+  (the floor suites' seed) unless the suite is about the roll. **Since slice 24 the seed alone
+  is not enough**: `wanderBiasAt` gave the clock a say in _where_ a seeded wanderer goes (3× the
+  coffee machine from 14:00 to 16:30), so the two globals stopped being independent — and it
+  shipped that way, leaving slice 23's join tests and two `officeFloorWander.test.jsx` describes
+  red on `main` every afternoon and green the rest of the day. The signature is that the
+  **coverage assertions still pass** (he is Chad, he is settled — just at the wrong prop), so it
+  reads as a broken card rather than a clock. A mounting floor suite that asserts geometry needs
+  **both** `vi.setSystemTime(new Date(2026, 7, 11, 12, 0, 0))` and the 0.75 seed. Neither failure mentions time or
   randomness — both read as a broken assertion about the feature under test.
 - **Any floor test that _mounts_ rather than calling `floorActivityFor` directly is
   time-dependent.** The hour is rung 5, above the trait row, so a render test asserting what a

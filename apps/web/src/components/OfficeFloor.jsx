@@ -63,6 +63,7 @@ import { resolveUserName, subscribe as subscribeUserName } from '../state/userId
 import { getOfficeViewMode, subscribe as subscribeViewMode } from '../state/officeViewModeStore.js';
 import { useFloorViewPhase } from './officeFloor/viewTransition.js';
 import {
+  dismissOfficeErrand,
   getOfficeSnapshot,
   setOfficeCaptions,
   subscribe as subscribeOffice
@@ -474,6 +475,27 @@ function OfficeFloorView({ bridge, viewPhase }) {
     return mark ? { ...shopTalk.join, mark } : null;
   }, [shopTalk.join, floorState]);
 
+  /*
+   * Slice 26: the errand you are carrying, resolved to a tile.
+   *
+   * The *same* derivation a third time, which is the whole reason this slice is
+   * small — an errand's payoff is "go and talk to Chad", and the room has known
+   * how to do that since slice 8. Withholding the card when there is no mark is
+   * slice 9's rule rather than politeness: somebody mid-stride, in a meeting or
+   * behind the glass cannot be walked up to, and an errand card offering a walk
+   * the room will refuse is worse than no card. It comes back the moment they
+   * sit down, because this is derived per render from where they are now.
+   *
+   * The errand itself survives all of that untouched — it is in the store, not
+   * on this card, so a colleague being briefly unreachable cannot lose it.
+   */
+  const errandOffer = useMemo(() => {
+    const open = officeSnap.errand;
+    if (!open) return null;
+    const mark = talkTileFor(open.colleagueId, whereaboutsOf(open.colleagueId, floorState));
+    return mark ? { ...open, mark } : null;
+  }, [officeSnap.errand, floorState]);
+
   const liftedSceneSpeech = Boolean(
     officeSnap.narration && sceneHandlers?.narrateLine && (coffee?.accepted || battle?.accepted)
   );
@@ -535,7 +557,8 @@ function OfficeFloorView({ bridge, viewPhase }) {
     presence,
     walkBy: walker,
     walkerDeparting: departing,
-    join: joinOffer
+    join: joinOffer,
+    errand: errandOffer
   });
 
   return (
@@ -681,6 +704,14 @@ function OfficeFloorView({ bridge, viewPhase }) {
         // walking up to somebody in it, and the room already knew how.
         join={joinOffer}
         onJoin={(id) => activity.startTalk(id, joinOffer?.mark)}
+        // Slice 26. The same verb a third time — an errand is a walk, so it
+        // gets no machinery of its own. Dropping it is the store's business and
+        // nothing else's: the errand does not belong to the floor, and speaking
+        // to them settles it back on `OfficeLayer`'s side (ADR-0011 — one
+        // wiring point for what an office event costs).
+        errand={errandOffer}
+        onErrandTalk={(id) => activity.startTalk(id, errandOffer?.mark)}
+        onDropErrand={() => dismissOfficeErrand()}
         // The same handler the walker's bubble gets — one adopt path for the
         // whole floor, so a pitch runs your pipeline identically wherever it
         // was offered (ADR-0012).

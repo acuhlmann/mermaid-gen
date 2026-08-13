@@ -63,6 +63,7 @@ Do not copy `standUp(); render(<OfficeFloor />)` into new suites — extend the 
 | `officeDeskWork.test.js`             | Fictional desk workloads for peek                                                        |
 | `officeFloorActivity.test.jsx`       | Held items, headphones posture, who-is-talking derivation, the office day                |
 | `officeFloorWallClock.test.jsx`      | The wall clock: placement, hand angles, heartbeat poll, both stages mount it             |
+| `officeErrand.test.jsx`              | Soft errands (26): the absent timer, the card-slot rung, settling, the inbox CTA         |
 | `useOfficeDayPhase.test.jsx`         | The wall-clock sampler: catch-up, no-repaint-on-no-change, teardown                      |
 
 ## Rules encoded as tests (add here when you learn new ones)
