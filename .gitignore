@@ -4,7 +4,8 @@ pnpm-lock.yaml
 pnpm-debug.log*
 .agents/
 .atomic/
-.claude/skills/
+.claude/skills/*
+!.claude/skills/mattpocock/
 .claude/settings.local.json
 .claude/worktrees/
 
