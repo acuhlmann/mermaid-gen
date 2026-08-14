@@ -10,6 +10,14 @@
  * @property {((line: { speakerId?: string, text?: string }) => void) | undefined} prefetchLine
  * @property {(() => void) | undefined} onAcceptCoffee
  * @property {(() => void) | undefined} onDeclineCoffee
+ * @property {(() => void) | undefined} onJoinCoffee
+ *   Walking into a break you declined (§ 5 slice 28).
+ *
+ *   Crosses the bridge rather than staying on the floor because joining *ends*
+ *   the scene: it needs the store, the copy for the closing beat and the rule
+ *   that a break you skipped pays nothing while one you joined pays
+ *   `coffeeBreak`. The floor only reports the press — same division as
+ *   `onDwellRemark`.
  * @property {(() => void) | undefined} onCoffeeDone
  * @property {(() => void) | undefined} onAcceptBattle
  * @property {(() => void) | undefined} onDeclineBattle

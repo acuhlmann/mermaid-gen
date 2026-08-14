@@ -58,6 +58,7 @@ import {
 } from '../utils/officeCast.js';
 import { deskWorkFor } from '../utils/officeDeskWork.js';
 import { floorActivityFor } from '../utils/officeFloorActivity.js';
+import { sceneJoinOfferFor } from '../utils/officeFloorSceneJoin.js';
 import { tierOf } from '../utils/castTiers.js';
 import { resolveUserName, subscribe as subscribeUserName } from '../state/userIdentityStore.js';
 import { getOfficeViewMode, subscribe as subscribeViewMode } from '../state/officeViewModeStore.js';
@@ -425,7 +426,16 @@ function OfficeFloorView({ bridge, viewPhase }) {
     Boolean(walker?.body && !departing) ||
     Boolean(wandererSaid) ||
     Boolean(dwell.said) ||
-    Boolean(coffee?.accepted || battle?.accepted) ||
+    /*
+     * Slice 28: `declined` counts here exactly as `accepted` does. A break you
+     * turned down still puts two balloons over the kitchen, and shop talk is
+     * the lowest-priority voice in the room — letting a wanderer strike up an
+     * exchange over a performance already in progress is the two-voices
+     * collision this gate exists to prevent. It is *not* added to
+     * `liftedSceneSpeech` / `liftedLineSpoken` below, which is not an oversight:
+     * those are about the narrator, and an unattended scene is silent.
+     */
+    Boolean(coffee?.accepted || coffee?.declined || battle?.accepted) ||
     Boolean(huddle?.phase === 'speaking' || huddle?.phase === 'watching');
 
   /*
@@ -475,6 +485,21 @@ function OfficeFloorView({ bridge, viewPhase }) {
     const mark = talkTileFor(colleagueId, whereaboutsOf(colleagueId, floorState));
     return mark ? { ...shopTalk.join, mark } : null;
   }, [shopTalk.join, floorState]);
+
+  /*
+   * Slice 28: a coffee break you turned down, happening across the room.
+   *
+   * `standingFree` rather than a bespoke gate, the same posture shop talk
+   * takes: an offer to walk into the kitchen is meaningless while you are in a
+   * conversation, in a meeting or already walking somewhere, and the card slot
+   * is a single slot anyway. No mark is resolved because none is needed —
+   * `COFFEE_TILES` are reserved, so the cast's positions are fixed, and joining
+   * ends the scene where it stands rather than walking you anywhere.
+   */
+  const sceneJoinOffer = useMemo(
+    () => (activity.standingFree ? sceneJoinOfferFor(coffee, youTile) : null),
+    [activity.standingFree, coffee, youTile]
+  );
 
   /*
    * Slice 26: the errand you are carrying, resolved to a tile.
@@ -706,6 +731,13 @@ function OfficeFloorView({ bridge, viewPhase }) {
         // walking up to somebody in it, and the room already knew how.
         join={joinOffer}
         onJoin={(id) => activity.startTalk(id, joinOffer?.mark)}
+        // Slice 28, and the one join in this list that is *not* the talk verb.
+        // Walking into a coffee break ends it, so there is nobody left to open
+        // a composer with — the handler crosses the bridge to renderer #1,
+        // which owns the store, the copy for the closing beat and what the
+        // break is worth (ADR-0011 — one wiring point).
+        sceneJoin={sceneJoinOffer}
+        onJoinScene={() => sceneHandlers?.onJoinCoffee?.()}
         // Slice 26. The same verb a third time — an errand is a walk, so it
         // gets no machinery of its own. Dropping it is the store's business and
         // nothing else's: the errand does not belong to the floor, and speaking

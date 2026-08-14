@@ -2596,6 +2596,32 @@ export const OFFICE_CHROME_COPY = {
       actionTitle: 'Walk over and say something — they will not include you on their own'
     },
     /**
+     * Changing your mind about a coffee break (§ 5 slice 28).
+     *
+     * Its own block rather than a `{kind}` variant of `join` above, because the
+     * two offers are different verbs: that one opens a conversation, this one
+     * ends a performance. Sharing the block would let a translator reword one
+     * by touching the other.
+     *
+     * `line` is the closing beat itself — the single thing anybody says once
+     * you walk up — and it lives here rather than in `coffee` because it only
+     * exists on this path. It has to work in **every** cast member's mouth, so
+     * it names nobody and refers to nothing in the script it is interrupting:
+     * you missed that conversation, and a callback to a line you never heard
+     * would be the same non-sequitur § 11 measured on the `run` situation.
+     * Trailing off is the joke, and it is the whole content of the beat.
+     *
+     * No `{prop}`: there is one coffee machine and the body can say "the
+     * kitchen" plainly, unlike shop talk where the prop picks the voice.
+     */
+    sceneJoin: {
+      eyebrow: 'STILL GOING',
+      body: '{name} took the coffee break without you. They are still in the kitchen.',
+      action: '☕ Go and join them',
+      actionTitle: 'Walk over — though arriving late tends to end a conversation',
+      line: '…anyway. Oh — hello.'
+    },
+    /**
      * A soft errand you are carrying (§ 5 slice 26).
      *
      * The lowest rung in the card slot, and the only durable one: every other

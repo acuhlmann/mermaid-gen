@@ -175,6 +175,22 @@ Every session carries **six independent diagram slots** — `mermaid` (Mermaid t
   suppresses every transient offer (and, in the live region, stops reporting that you are
   walking). `settleOfficeErrand` returns the errand rather than a boolean because the log needs
   `fromId`; it still awards nothing, so XP and the log keep one `onOfficeEvent` funnel.
+- **Declining a set piece no longer cancels it, and pacing is what keeps that safe.** Slice 28:
+  `declineOfficeCoffee` marks the break `declined` instead of nulling it, so the cast still
+  walks to the machine and talks and the floor can offer a way in (`sceneJoinOfferFor` →
+  `FloorSceneJoinCard`). The trap is `hasActiveOfficeSurface`, which counts `coffee`: a scene
+  that survives declining is a **live surface nobody is watching**, so if it is not paced it
+  never reaches `onDone`, never dismisses, and holds the ambient director silent for the rest
+  of the session — the errand trap by another door. Hence `useOfficeLayerPerformances` runs on
+  `accepted || declined`, and the **award** moved to the `accepted` test instead (a break you
+  skipped is worth nothing; joining is what earns `coffeeBreak`). An unattended scene is
+  **silent**, and the silence must be a wrapper returning `{spoken:false}` — never `undefined`,
+  which makes `useScenePacing` flush the whole script in a tick. Joining **ends** the scene:
+  `joinOfficeCoffee` swaps the remaining script for one canned beat and mints a **fresh `id`**,
+  because pacing keys on `sceneId` and reusing it leaves `visibleLines` past the end of a
+  one-line script. Unlike shop talk the offer has **no inner bound** — a scene's cast are
+  `awayIds`, so `dwellTargetAt` cannot pick them and there is no collision to dodge. The
+  cubicle battle is deliberately not converted (its verdict panel makes "ends it" ambiguous).
 - **The office log records; it never triggers.** `officeLogStore.js` is what lets the cast say
   "since this morning's thing" (docs/office-parody.md §11 context contract). Writers hook the
   funnels that already exist — `onOfficeEvent` in `useRunCeremony.js`, the moment-store push
@@ -289,6 +305,15 @@ Every session carries **six independent diagram slots** — `mermaid` (Mermaid t
   bails on a same-value set. Placement is `FLOOR_WALL_CLOCK` in `officeFloorPlan.js`, drawn via
   the plan module's `wallPoint` (the windows share it); the face is self-lit (reads on all five
   phase walls) and unanimated (owes the reduced-motion block nothing).
+- **A sensor swept over a _filtered_ set only ever fails inside the filter.** The shop-talk
+  bank check swept `WANDER_BIAS_WINDOWS`, so it asserted the cap only for props the clock
+  favours — the printer and whiteboard sat under the floor for two slices, invisible to it by
+  construction, and the test was green the whole time. The tell is a sweep whose set is
+  narrower than the invariant: `OFFICE_SHOP_TALK_CAP` counts exchanges **per visit**, so it was
+  never a fact about favoured props. Sweep the widest set the invariant actually covers
+  (`usablePropKinds()` here), and if a subset deserves a stronger claim make that a **second**
+  assertion rather than narrowing the first. Same family as the non-empty companion rule below:
+  both are ways a passing test can be examining almost nothing.
 - **A weighted random pick must consume the same number of `Math.random()` calls as the
   unweighted one it replaced.** Weight by repeating entries in a list and roll **once**; never
   roll a second time to decide whether the bias applies. This is the direct consequence of the

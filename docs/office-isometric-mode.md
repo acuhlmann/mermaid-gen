@@ -2182,16 +2182,37 @@ Kept here so appetite can pick without re-deriving. Each should stay bound by AD
   not a script you can interrupt. Joining it is the talk verb aimed at the speaker who is about
   to walk away, and the whole slice is that sentence plus copy.
 
-  **The expensive half is untouched and is now the only part left**: joining a coffee break or a
-  cubicle battle, where the original question stands unchanged — what does an inserted beat do to
-  a script that is already mid-flight? Three things slice 23 learned that bear on it. The offer
-  surface exists and is reusable (a card-slot rung below the person card, `FloorJoinCard`). The
-  hold does **not** transfer for free: slice 23 gets it from `holdId`, which covers a wanderer, and
-  a scene's participants are `awayIds` — a different mechanism with no equivalent pause. And the
-  clean exit slice 23 relies on (accepting ends the exchange, because `standingFree` goes false)
-  has no counterpart in a scene, which goes on performing whether or not you are in it. Worth
-  asking before building: does joining a scene mean _ending_ it — everybody turns to you and the
-  script stops — which is cheap and possibly funnier than an inserted beat.
+  **The expensive half shipped as slice 28**, for the coffee break, and the question the entry
+  said to ask first turned out to be the whole design: joining a scene **ends** it. Everybody
+  turns to you, one canned closing beat (`floor.sceneJoin.line`), and the break is over. Every
+  worry in the paragraph above dissolves at that answer rather than being solved — there is no
+  inserted beat, so nothing has to absorb an arrival; there is no hold, because pressing the
+  button _is_ the arrival and nobody needs pausing while you cross the room; and the missing
+  clean exit stops mattering when joining is itself the exit.
+
+  **What the entry did not foresee is that the offer had no subject.** Declining a break called
+  `dismissOfficeCoffee`, so saying no deleted it — there was no such thing as a set piece
+  happening near you that you were not in, which is the one state the verb needs. So the slice
+  is really two changes, and the smaller-sounding one is the load-bearing one: **decline now
+  means "not for me" rather than "not happening"**. The cast still walks to the machine and
+  still talks; the desk overlay is suppressed, the floor draws it, and you can wander over.
+
+  **The trap that shaped the implementation** is `hasActiveOfficeSurface`, which counts
+  `coffee`. A scene that survives declining is a live surface with nobody watching it, so if it
+  is not paced it never reaches `onDone`, never dismisses, and holds the ambient director
+  silent for the rest of the session — the errand's trap arriving by a different door. Hence
+  `useOfficeLayerPerformances` paces on `accepted || declined`, and the award is what moved to
+  the `accepted` test instead: a break you skipped is worth nothing, which is exactly what
+  makes joining one worth offering. An unattended scene is also **silent** — narrating it would
+  be two voices from an empty corner, since TTS has no proximity — and the silence is spent
+  through a wrapper returning `{spoken:false}`, never `undefined`, or `useScenePacing` flushes
+  the whole script in a tick and the break ends before anybody reaches the kitchen.
+
+  Two things deliberately left: the **cubicle battle** (its verdict panel makes "ends it" mean
+  something different — an unsettled holy war needs a decision about whether joining lets you
+  vote), and any inner bound on the offer. Shop talk needs one because slice 19 would otherwise
+  talk _to_ you at the same range; a scene's cast are `awayIds`, so `dwellTargetAt` cannot pick
+  them and standing at the machine is the most natural moment to be let in.
 
 - ~~**Name-chip proximity**~~ — ✅ shipped as slice 15 (§ 5): show all names when you are
   within one tile — cleared the "name chip is hover-only" debt without growing hit boxes.
@@ -2206,19 +2227,26 @@ Kept here so appetite can pick without re-deriving. Each should stay bound by AD
 
 ### Debts the shipped slices left behind
 
-- **Shop talk has one bank per prop, so a visit can still exhaust the printer and the
-  whiteboard.** ~~`OFFICE_SHOP_TALK_CAP` is 4 and each prop carries 3 pairs~~ — **half cleared
-  by slice 24**, which took the coffee machine to **6** because it made the room walk there on
-  purpose. The two props nothing favours are still at 3 against a cap of 4, so a user who
-  stands in earshot of the printer through four exchanges still has a real chance of hearing
-  the same pair twice; the roll is uniform and has no memory. Deliberately still not a
-  seen-template store: that would be the slice's first piece of state about anything, against
-  the whole reason it holds nothing, and the cheaper fix remains **more copy**. What slice 24
-  added is a **sensor** rather than a rule — `officeFloorShopTalk.test.jsx` asserts that any
-  prop a `WANDER_BIAS_WINDOWS` row favours carries at least `OFFICE_SHOP_TALK_CAP` pairs, so
-  the next window over a thin bank fails rather than repeating itself at somebody. The cap and
-  the bank size are still the two dials and still in different files on purpose
-  (`officeCadence.js` for how often, `officeCast.js` for how much).
+- ~~**Shop talk has one bank per prop, so a visit can still exhaust the printer and the
+  whiteboard.**~~ — ✅ **cleared.** Slice 24 took the coffee machine to **6** because it made
+  the room walk there on purpose, and left the other two at 3 against a cap of 4 on the
+  reasoning that nothing sends anybody to them. That reasoning was **true about the odds and
+  irrelevant to the failure**: `OFFICE_SHOP_TALK_CAP` counts exchanges per _visit_, not per
+  prop, so any prop can be the one you overhear four times — being unfavoured makes a repeat
+  rarer, never impossible. The printer and the whiteboard now carry four pairs each, in all
+  four banks.
+
+  The more useful half is what it says about the **sensor**. Slice 24's assertion swept
+  `WANDER_BIAS_WINDOWS`, so it could only ever fail for a prop the clock already favoured —
+  the two banks under the floor were invisible to it by construction, and stayed that way for
+  two slices. It is now split into the two claims it was conflating: **every** reachable prop
+  meets the floor (swept over `usablePropKinds()`, so a prop somebody can walk to with nothing
+  to say fails too), and a **favoured** prop carries strictly more than the floor, which is the
+  only part the bias table has anything to do with. Deliberately still not a seen-template
+  store — that would be the slice's first piece of state about anything — and the cap and the
+  bank size are still the two dials in two files (`officeCadence.js` for how often,
+  `officeCast.js` for how much).
+
 - **The pairing is a tie-break away from being a different joke.** At the whiteboard both
   `dinesh` (7, 4) and `jared` (8, 5) are exactly one tile from the mark, and `FLOOR_SEATS`
   order is the only reason Dinesh answers rather than Jared. That is stable and deterministic —

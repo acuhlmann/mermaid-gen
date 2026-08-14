@@ -1640,6 +1640,13 @@ export const OFFICE_ZH_TW = {
         action: '💬 加入他們',
         actionTitle: '走過去說點什麼 — 他們自己是不會帶上你的'
       },
+      sceneJoin: {
+        eyebrow: '還在聊',
+        body: '{name} 沒等你就去喝咖啡了。他們還在茶水間。',
+        action: '☕ 過去加入他們',
+        actionTitle: '走過去 — 不過遲到通常就是聊天結束的時候',
+        line: '……總之就這樣。喔 — 你來啦。'
+      },
       meeting: {
         eyebrow: '玻璃會議室',
         eyebrowRemote: '耳機同步會',

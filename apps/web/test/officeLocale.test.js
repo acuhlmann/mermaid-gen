@@ -389,6 +389,44 @@ describe('office locale bundles', () => {
     }
   });
 
+  /*
+   * Slice 28, and the same failure mode as `join` above with one extra way to
+   * hurt: `line` is not chrome, it is a **spoken beat**. A locale missing this
+   * block has no card — that much matches the join rung — but `handleJoinCoffee`
+   * also reads `line` from it, and refuses the verb when it is blank. So an
+   * untranslated bundle does not ship a broken button; it ships a coffee break
+   * that cannot be joined at all, in that language only, with nothing rendered
+   * to notice. That is precisely the class `officeChromeCopy()`'s swap-don't-
+   * merge behaviour keeps producing, so it gets pinned the same way.
+   *
+   * `{name}` by name for `formatLocale`'s reason: a dropped placeholder is
+   * substituted with nothing and in silence, and this body names the one person
+   * whose invitation you turned down.
+   */
+  it.each(LOCALES)('offers a way into a break you turned down (%s)', (locale) => {
+    const sceneJoin = getUiLocaleBundle(locale).office.OFFICE_CHROME_COPY.floor.sceneJoin;
+    const en = OFFICE_CHROME_COPY.floor.sceneJoin;
+    expect(Object.keys(sceneJoin ?? {}).sort(), `${locale} floor.sceneJoin`).toEqual(
+      Object.keys(en).sort()
+    );
+    expect(sceneJoin, `${locale} floor.sceneJoin untranslated`).not.toEqual(en);
+    for (const key of Object.keys(en)) {
+      expect(
+        String(sceneJoin[key]).trim().length,
+        `${locale} floor.sceneJoin.${key} empty`
+      ).toBeGreaterThan(0);
+    }
+    expect(sceneJoin.body, `${locale} floor.sceneJoin.body lost {name}`).toContain('{name}');
+    /*
+     * The closing beat must name nobody: it is spoken by whichever colleague
+     * asked you, so a `{placeholder}` here would go unsubstituted and a proper
+     * noun would put one cast member's name in another's mouth.
+     */
+    expect(sceneJoin.line, `${locale} floor.sceneJoin.line takes a placeholder`).not.toMatch(
+      /\{[a-z]+\}/i
+    );
+  });
+
   it('routes localized copy through the officeCast accessors', () => {
     setActiveOfficeBundle(getUiLocaleBundle('zh-CN').office);
     expect(officeEmailTemplates()[0].subject).toContain('冰箱');

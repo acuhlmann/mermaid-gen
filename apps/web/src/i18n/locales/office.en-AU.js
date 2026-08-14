@@ -1462,6 +1462,13 @@ export const OFFICE_EN_AU = {
         action: '💬 Get amongst it',
         actionTitle: 'Wander over and say something — they won’t include you on their own'
       },
+      sceneJoin: {
+        eyebrow: 'STILL GOING',
+        body: '{name} went for the coffee without you. They’re still in the kitchen.',
+        action: '☕ Go and join them',
+        actionTitle: 'Wander over — though turning up late tends to end a conversation',
+        line: '…anyway. Oh — g’day.'
+      },
       meeting: {
         eyebrow: 'GLASS ROOM',
         eyebrowRemote: 'HEADSET SYNC',
