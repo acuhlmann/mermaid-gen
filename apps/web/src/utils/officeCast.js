@@ -2497,14 +2497,21 @@ export const OFFICE_CHROME_COPY = {
      */
     shopTalk: {
       /*
-       * Six pairs where the other two props have three, which is slice 24
-       * paying for itself. That slice biases the room toward this machine from
-       * two until half four, so this is the bank a user actually hears — and
-       * `OFFICE_SHOP_TALK_CAP` is 4 against a memoryless roll, so three pairs
-       * meant a repeat was likelier than not. The debt § 8 recorded said the
-       * cheap fix is more copy rather than a seen-template store, and that it
-       * should be spent where the traffic is. The printer and the whiteboard
-       * stay at three: nothing sends anybody to them on purpose.
+       * Six pairs where the other two have four, which is slice 24 paying for
+       * itself. That slice biases the room toward this machine from two until
+       * half four, so this is the bank a user actually hears, and extra copy
+       * buys the most here.
+       *
+       * **Four is the floor everywhere, though, and the bias is not what sets
+       * it.** `OFFICE_SHOP_TALK_CAP` is 4 against a memoryless roll, and the
+       * cap counts exchanges per visit rather than exchanges per prop — so
+       * *any* prop can be the one you overhear four times, bias or no bias.
+       * The printer and the whiteboard sat at three for two slices on the
+       * reasoning that nothing sends anybody to them on purpose, which is true
+       * about the odds and irrelevant to the failure: an unfavoured prop hit
+       * three times still repeats itself, just less often. Raising the floor is
+       * the fix § 8 recorded (more copy, not a seen-template store); the bias
+       * only decides where the *surplus* goes.
        */
       coffeeMachine: [
         [
@@ -2541,6 +2548,10 @@ export const OFFICE_CHROME_COPY = {
         [
           'Did my thing come out?',
           'Your thing is in the queue. The queue is 212 documents. Most of them are the same document.'
+        ],
+        [
+          'There is a tiny door open on the side of it.',
+          'That door is not in the manual. I have escalated the door. The door is now a known issue.'
         ]
       ],
       whiteboard: [
@@ -2555,6 +2566,10 @@ export const OFFICE_CHROME_COPY = {
         [
           'Should we just redo this properly?',
           'We did redo it properly. In March. This is the properly one.'
+        ],
+        [
+          'Half of this is in a different handwriting.',
+          'That half is from before the reorg. Nobody here can read it and nobody here will erase it.'
         ]
       ]
     },
