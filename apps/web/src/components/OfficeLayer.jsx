@@ -36,6 +36,8 @@ import { useOfficeWelcome } from '../hooks/useOfficeWelcome.js';
 import {
   acceptOfficeBattle,
   acceptOfficeCoffee,
+  declineOfficeCoffee,
+  joinOfficeCoffee,
   dismissOfficeBattle,
   dismissOfficeCoffee,
   dismissDeskArrival,
@@ -94,6 +96,7 @@ import {
   officeDialogueLocale,
   officeMeetingCopy
 } from '../utils/officeCast.js';
+import { sceneParticipants } from '../utils/officeSceneCast.js';
 import { formatLocale } from '../i18n/formatLocale.js';
 import {
   cancelOfficeNarration,
@@ -831,20 +834,60 @@ export default function OfficeLayer({
     dismissOfficeWalkBy(id);
   }, []);
 
+  /*
+   * Slice 28: declining takes you out of the break, not the break out of the
+   * office. `declineOfficeCoffee` leaves the scene standing so the floor can
+   * play it and offer a way in; the narration still stops, because the reason
+   * you are hearing it is that you were being invited.
+   */
   const handleDeclineCoffee = useCallback(() => {
     cancelOfficeNarration();
-    dismissOfficeCoffee();
+    declineOfficeCoffee();
   }, []);
 
+  /*
+   * Reached by both endings now, and only one of them pays.
+   *
+   * The guard used to be `accepted`, which was also what stopped a dismissed
+   * scene double-firing. A declined scene reaches here too — it has to, or it
+   * never leaves the store and the ambient director stays silent behind it —
+   * so the guard moved to "is there still a scene" and the *award* kept the
+   * `accepted` test. Skipping a coffee break earns nothing, which is the whole
+   * reason joining one is worth an offer.
+   */
   const handleCoffeeDone = useCallback(() => {
-    if (!getOfficeSnapshot().coffee?.accepted) return;
+    const coffee = getOfficeSnapshot().coffee;
+    if (!coffee) return;
     cancelOfficeNarration();
     dismissOfficeCoffee();
-    onOfficeEvent?.('coffeeBreak');
+    if (coffee.accepted) onOfficeEvent?.('coffeeBreak');
   }, [onOfficeEvent]);
 
   const handleAcceptCoffee = useCallback(() => {
     acceptOfficeCoffee();
+  }, []);
+
+  /*
+   * Slice 28: walking into a break you turned down.
+   *
+   * Renderer #1's job rather than the floor's, for ADR-0011's reason — the
+   * store, the copy and what an office event costs all live on this side, and
+   * the floor only reports that you pressed the button. The closing beat is
+   * read from the chrome bundle here so an untranslated locale withholds the
+   * whole verb (`joinOfficeCoffee` refuses a blank line) rather than joining
+   * you into a scene whose one remaining line is empty.
+   *
+   * The speaker is the first participant, who is whoever asked you in the first
+   * place, so the person you turned down is the person who trails off at you.
+   */
+  const handleJoinCoffee = useCallback(() => {
+    const coffee = getOfficeSnapshot().coffee;
+    const speakerId = sceneParticipants(coffee?.lines)[0];
+    if (!speakerId) return;
+    const text = officeChromeCopy().floor?.sceneJoin?.line;
+    if (!text) return;
+    cancelOfficeNarration();
+    joinOfficeCoffee({ speakerId, text });
   }, []);
 
   const handleAcceptBattle = useCallback(() => {
@@ -1427,6 +1470,7 @@ export default function OfficeLayer({
           prefetchLine: snapshot.narration ? prefetchLine : undefined,
           onAcceptCoffee: handleAcceptCoffee,
           onDeclineCoffee: handleDeclineCoffee,
+          onJoinCoffee: handleJoinCoffee,
           onCoffeeDone: handleCoffeeDone,
           onAcceptBattle: handleAcceptBattle,
           onDeclineBattle: handleBattleDone,
@@ -1580,7 +1624,10 @@ export default function OfficeLayer({
           {onFloor ? null : (
             <>
               <CoffeeBreakOverlay
-                coffee={snapshot.coffee}
+                /* A break you declined is happening somewhere you are not
+                   (slice 28). It keeps playing — it just stops being on your
+                   screen, which is what makes standing up to find it a verb. */
+                coffee={snapshot.coffee?.declined ? null : snapshot.coffee}
                 visibleLines={coffeeVisibleLines}
                 lineSpoken={coffeeLineSpoken}
                 onAccept={handleAcceptCoffee}

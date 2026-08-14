@@ -114,7 +114,7 @@ function initialState(imHistory = restoredImHistory) {
     imUnreadCount: countUnreadIms(imHistory),
     /** @type {{id: string, colleagueId: string, body: string, actionPrompt?: string, createdAt: number} | null} */
     walkBy: null,
-    /** @type {{id: string, lines: Array<{speakerId: string, text: string}>, accepted: boolean, createdAt: number} | null} */
+    /** @type {{id: string, lines: Array<{speakerId: string, text: string}>, accepted: boolean, declined: boolean, createdAt: number} | null} */
     coffee: null,
     /** @type {{id: string, topic: string, lines: Array<{speakerId: string, text: string}>, verdicts: Record<string, string>, accepted: boolean, votedFor: string | null, createdAt: number} | null} */
     battle: null,
@@ -694,6 +694,7 @@ export function pushOfficeCoffeeInvite({ lines }) {
     id: makeId('coffee'),
     lines: Array.isArray(lines) ? lines : [],
     accepted: false,
+    declined: false,
     createdAt: Date.now()
   };
   update({ coffee });
@@ -703,6 +704,78 @@ export function pushOfficeCoffeeInvite({ lines }) {
 export function acceptOfficeCoffee() {
   if (!state.coffee || state.coffee.accepted) return;
   update({ coffee: { ...state.coffee, accepted: true } });
+}
+
+/**
+ * "Not for me" — which is not the same as "not happening" (§ 5 slice 28).
+ *
+ * Declining used to call `dismissOfficeCoffee`, so saying no deleted two other
+ * people's coffee break. That reads as a cancel button on somebody else's
+ * morning, and it is also the reason the floor could never offer a way *into* a
+ * scene: there was no such thing as a set piece happening near you that you
+ * were not already in. A declined break keeps its cast, walks them to the
+ * machine and plays out without you.
+ *
+ * **It must still end by itself, and that is the whole risk in this slice.**
+ * `hasActiveOfficeSurface` counts `coffee`, so a scene left in the store holds
+ * the ambient director silent for as long as it sits there — the same trap the
+ * errand is kept out of that predicate to avoid. A declined scene therefore
+ * paces exactly like an accepted one (`useOfficeLayerPerformances` runs on
+ * `accepted || declined`) and dismisses itself on `onDone`. What it does *not*
+ * do is pay out: `handleCoffeeDone` awards `coffeeBreak` only when you were in
+ * it, so a break you skipped is worth nothing, and joining is what earns it.
+ *
+ * Idempotent against both flags rather than just `declined`: accepting and then
+ * declining the same scene is not reachable through the panel (it swaps for the
+ * script) but is trivially reachable through the store, and a scene that is
+ * both would render the invite and the performance at once.
+ */
+export function declineOfficeCoffee() {
+  if (!state.coffee || state.coffee.accepted || state.coffee.declined) return;
+  update({ coffee: { ...state.coffee, declined: true } });
+}
+
+/**
+ * Changing your mind, which ends the break rather than extending it
+ * (§ 5 slice 28).
+ *
+ * You walked over, everybody turned round, and there is nothing to do with a
+ * conversation whose thread you missed except close it — so joining swaps the
+ * remaining script for a single closing beat and lets the ordinary `onDone`
+ * path dismiss it. The alternative, splicing you into the middle of a written
+ * scene, needs a hold that `awayIds` has no equivalent of and a script that can
+ * absorb an arrival; this is the cheap ending, and two people trailing off
+ * because you appeared is the funnier one.
+ *
+ * **A fresh `id` is what makes it work.** `useScenePacing` keys on `sceneId`,
+ * so reusing the old one would leave `visibleLines` wherever the abandoned
+ * script had got to — past the end of a one-line replacement, which renders
+ * nothing and then dismisses instantly. A new id restarts the pacing cleanly on
+ * the new script.
+ *
+ * `accepted: true` rather than a third flag: from here on this *is* your coffee
+ * break, which is what pays out `coffeeBreak` when it finishes and what stops
+ * the floor offering the join a second time. The line is passed in rather than
+ * read from `officeChromeCopy()` here, because the store holds no copy — the
+ * view owns the words in every other office surface and this is not the one to
+ * break that in.
+ *
+ * @param {{ speakerId: string, text: string }} line
+ * @returns {boolean} whether there was an unattended break to join
+ */
+export function joinOfficeCoffee(line) {
+  if (!state.coffee || state.coffee.accepted || !state.coffee.declined) return false;
+  if (!line || typeof line.text !== 'string' || !line.text) return false;
+  update({
+    coffee: {
+      ...state.coffee,
+      id: makeId('coffee'),
+      lines: [line],
+      accepted: true,
+      declined: false
+    }
+  });
+  return true;
 }
 
 export function dismissOfficeCoffee() {

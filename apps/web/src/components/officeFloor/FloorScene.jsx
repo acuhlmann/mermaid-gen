@@ -289,6 +289,15 @@ export function FloorScene({
   const spec = SCENE_KINDS[kind] ?? SCENE_KINDS.coffee;
   const tiles = spec.tiles;
   const accepted = Boolean(scene?.accepted);
+  /*
+   * Slice 28. Two ways to be a performance and only one of them is yours: a
+   * scene you accepted, and a scene you turned down that is happening anyway.
+   * The invite is the exact complement — an offer only exists while the scene
+   * is neither — so `performing` and `!performing` cover the three states
+   * without a third branch, and a scene cannot draw its cast and ask you to
+   * join it in the same frame.
+   */
+  const performing = accepted || Boolean(scene?.declined);
   const [internalLinesDone, setInternalLinesDone] = useState(false);
   const sceneId = scene?.id ?? null;
 
@@ -298,7 +307,7 @@ export function FloorScene({
 
   const paced = useScenePacing({
     lines: scene?.lines ?? [],
-    active: visibleLinesProp === undefined && accepted,
+    active: visibleLinesProp === undefined && performing,
     narrateLine,
     prefetchLine,
     paceMs: spec.paceMs,
@@ -325,12 +334,12 @@ export function FloorScene({
   const participants = sceneParticipants(scene.lines);
   const hasArrived = (castId) => !settledIds || settledIds.has(castId);
   const votedFor = isBattle ? (scene.votedFor ?? null) : null;
-  const currentLine = accepted && !votedFor ? (scene.lines?.[visibleLines - 1] ?? null) : null;
+  const currentLine = performing && !votedFor ? (scene.lines?.[visibleLines - 1] ?? null) : null;
   const names = participants.map((id) => officeSenderInfo(id)?.name ?? id);
 
   return (
     <>
-      {accepted
+      {performing
         ? participants.map((castId, index) => {
             if (!hasArrived(castId)) return null;
             const verdict = votedFor === castId ? scene.verdicts?.[castId] : null;
@@ -354,7 +363,7 @@ export function FloorScene({
           })
         : null}
 
-      {!accepted ? (
+      {!performing ? (
         <SceneInvite
           isBattle={isBattle}
           scene={scene}

@@ -221,20 +221,54 @@ describe('the exchange', () => {
    * The roll is uniform and has no memory, so the chance of hearing the same
    * pair twice inside a visit is a function of two dials that live in two files
    * on purpose — `OFFICE_SHOP_TALK_CAP` for how often, the bank for how much.
-   * Raising one without the other is exactly what makes repeats visible, and
-   * slice 24 raised the *traffic* to the coffee machine, so its bank had to
-   * grow with it. This asserts the relationship rather than the number: the
-   * prop the room drifts toward must carry at least as many pairs as the cap
-   * allows exchanges.
+   * Raising one without the other is exactly what makes repeats visible.
+   *
+   * **The floor is every prop's, and the bias is not what sets it.** Slice 24
+   * pinned this over the *favoured* props only, on the reasoning that nothing
+   * sends anybody to the printer or the whiteboard on purpose — which is true
+   * about the odds and irrelevant to the failure. The cap counts exchanges per
+   * **visit**, not per prop, so any prop can be the one you overhear four
+   * times; being unfavoured makes that rarer, never impossible. Asserting it
+   * over the biased set left two banks at three pairs with nothing watching
+   * them, which is the debt § 8 carried for two slices.
+   *
+   * Over `usablePropKinds()` rather than the bank's own keys, which is the
+   * stronger question: a prop a wanderer can walk to and has nothing to say at
+   * is the same silence as a missing locale, and reading the bank's keys back
+   * to itself could never see it. `waterCooler` is excluded for free — it has
+   * no standable mark (§ 6 rule 21), so nobody ever arrives to talk.
    */
-  it('gives the prop the room drifts toward enough material for a whole visit', () => {
+  it('gives every prop enough material for a whole visit', () => {
+    const kinds = usablePropKinds();
+    expect(kinds.length, 'no prop is reachable — this proves nothing').toBeGreaterThan(0);
+    for (const kind of kinds) {
+      expect(
+        FLOOR_COPY().shopTalk[kind]?.length ?? 0,
+        `${kind} can be overheard ${OFFICE_SHOP_TALK_CAP} times and can exhaust itself`
+      ).toBeGreaterThanOrEqual(OFFICE_SHOP_TALK_CAP);
+    }
+  });
+
+  /**
+   * The other half of slice 24's claim, and the only part the floor above does
+   * not already cover: where the *surplus* goes.
+   *
+   * A prop the clock drifts the room toward is not merely able to exhaust its
+   * bank, it is the bank a user actually hears — so meeting the same floor as
+   * an unfavoured prop is what "raised the traffic without raising the copy"
+   * looks like after the floor exists. Strictly greater, therefore, rather
+   * than the floor's `>=`: without this, adding a second biased window and
+   * leaving that prop at four would pass while reintroducing exactly the
+   * repeats slice 24 spent copy to fix.
+   */
+  it('spends the surplus where the room actually drifts', () => {
     const biased = WANDER_BIAS_WINDOWS.map((window) => window.kind);
     expect(biased.length, 'nothing is biased — this proves nothing').toBeGreaterThan(0);
     for (const kind of biased) {
       expect(
         FLOOR_COPY().shopTalk[kind]?.length ?? 0,
-        `${kind} is favoured by the clock and can exhaust itself`
-      ).toBeGreaterThanOrEqual(OFFICE_SHOP_TALK_CAP);
+        `${kind} is favoured by the clock and needs more than the floor`
+      ).toBeGreaterThan(OFFICE_SHOP_TALK_CAP);
     }
   });
 

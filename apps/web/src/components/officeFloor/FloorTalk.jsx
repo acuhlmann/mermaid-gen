@@ -295,4 +295,65 @@ export function FloorJoinCard({ join, copy, onJoin }) {
   );
 }
 
+/**
+ * The way into a coffee break you turned down (§ 5 slice 28).
+ *
+ * **A separate card from `FloorJoinCard` above, on purpose.** They are the same
+ * shape and a different verb, and folding them together would have cost more
+ * than it saved: that one opens a composer and leaves two people talking, this
+ * one *ends* a performance. Sharing a component would mean a `kind` branch
+ * through the body, the action and the handler — and the two would then share
+ * a copy block, so a translator changing "join in" for shop talk would silently
+ * reword the offer to walk into somebody's coffee break.
+ *
+ * It names the colleague who asked you in the first place, so the card reads as
+ * a second chance at a specific invitation rather than as a generic offer. No
+ * `{prop}`: the kitchen is where the break is and the copy can say so plainly,
+ * unlike shop talk where the prop picks the voice.
+ *
+ * Same two-part guard as every other rung — handler *and* copy — because
+ * `officeChromeCopy()` swaps whole bundles, so a locale that never translated
+ * this block must render no card rather than an untitled one.
+ *
+ * @param {{
+ *   sceneJoin: { colleagueId: string, participants: string[], kind: string },
+ *   copy: Record<string, any>,
+ *   onJoinScene?: (colleagueId: string) => void
+ * }} props `copy` is `officeChromeCopy().floor`.
+ */
+export function FloorSceneJoinCard({ sceneJoin, copy, onJoinScene }) {
+  const joinCopy = copy.sceneJoin;
+  if (!joinCopy || typeof onJoinScene !== 'function') return null;
+
+  const speaker = officeSenderInfo(sceneJoin.colleagueId);
+  const theirName = speaker?.name ?? sceneJoin.colleagueId;
+
+  return (
+    <aside
+      className="office-floor-card office-floor-card--join"
+      data-testid="office-floor-scene-join-card"
+    >
+      <span className="office-floor-eyebrow">{joinCopy.eyebrow}</span>
+      <div className="office-floor-card-head">
+        <PersonaFace id={sceneJoin.colleagueId} size={44} />
+        <div className="office-floor-card-id">
+          <strong>{theirName}</strong>
+          <span>{speaker?.title ?? ''}</span>
+        </div>
+      </div>
+      <p className="office-floor-card-blurb">{formatLocale(joinCopy.body, { name: theirName })}</p>
+      <div className="office-floor-card-actions">
+        <button
+          type="button"
+          className="office-floor-card-action office-floor-card-action--primary"
+          title={joinCopy.actionTitle}
+          onClick={() => onJoinScene(sceneJoin.colleagueId)}
+        >
+          {joinCopy.action}
+        </button>
+      </div>
+    </aside>
+  );
+}
+
 export default FloorTalk;

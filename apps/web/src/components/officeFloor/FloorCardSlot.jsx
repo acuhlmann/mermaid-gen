@@ -38,7 +38,7 @@ import { FloorHuddleCard } from './FloorHuddle.jsx';
 import { FloorMeetingCard } from './FloorMeeting.jsx';
 import { FloorPeekCard } from './FloorPeek.jsx';
 import { FloorPropCard } from './FloorProps.jsx';
-import { FloorJoinCard, FloorTalkCard } from './FloorTalk.jsx';
+import { FloorJoinCard, FloorSceneJoinCard, FloorTalkCard } from './FloorTalk.jsx';
 import { sitDown } from '../../state/officeViewModeStore.js';
 
 /**
@@ -88,6 +88,7 @@ export function FloorCardSlot({
   // No defaults — § 8's complexity lever, and `FloorPropCard` / `FloorJoinCard`
   // / `FloorErrandCard` each guard their own.
   board,
+  sceneJoin,
   join,
   errand,
   onGoHome,
@@ -95,6 +96,7 @@ export function FloorCardSlot({
   onPeek,
   onTalk,
   onJoin,
+  onJoinScene,
   onErrandTalk,
   onDropErrand,
   onAdoptPrompt,
@@ -168,6 +170,18 @@ export function FloorCardSlot({
       />
     );
   }
+
+  /*
+   * Slice 28, and it sits **above** the shop-talk join rather than beside it.
+   * Both can be live at once — a wanderer can strike up an exchange at the
+   * printer while a break you declined runs in the kitchen — and the scripted
+   * set piece is the one with a clock on it: the break ends when its script
+   * does, whereas an overheard exchange re-arms on the wanderer's next errand.
+   * Offering the perishable one first is the same ranking the errand rung gets
+   * for the opposite reason (durable, so it goes last).
+   */
+  if (sceneJoin)
+    return <FloorSceneJoinCard sceneJoin={sceneJoin} copy={copy} onJoinScene={onJoinScene} />;
 
   if (join) return <FloorJoinCard join={join} copy={copy} onJoin={onJoin} />;
 

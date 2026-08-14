@@ -1423,6 +1423,10 @@ export const OFFICE_EN_AU = {
           [
             'Did my thing come out?',
             'Your thing’s in the queue. The queue’s 212 documents. Most of them are the same document.'
+          ],
+          [
+            'There’s a little door open on the side of it.',
+            'That door’s not in the manual. I’ve escalated the door. The door’s now a known issue.'
           ]
         ],
         whiteboard: [
@@ -1437,6 +1441,10 @@ export const OFFICE_EN_AU = {
           [
             'Should we just redo this properly?',
             'We already redid it properly. March. This is the properly one.'
+          ],
+          [
+            'Half of this is in different handwriting.',
+            'That half’s from before the restructure. No one here can read it and no one here’ll rub it out.'
           ]
         ]
       },
@@ -1453,6 +1461,13 @@ export const OFFICE_EN_AU = {
         body: '{name} is over at {prop} with {partner}. Neither of them has clocked you.',
         action: '💬 Get amongst it',
         actionTitle: 'Wander over and say something — they won’t include you on their own'
+      },
+      sceneJoin: {
+        eyebrow: 'STILL GOING',
+        body: '{name} went for the coffee without you. They’re still in the kitchen.',
+        action: '☕ Go and join them',
+        actionTitle: 'Wander over — though turning up late tends to end a conversation',
+        line: '…anyway. Oh — g’day.'
       },
       meeting: {
         eyebrow: 'GLASS ROOM',
