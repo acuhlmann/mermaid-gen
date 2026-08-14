@@ -47,8 +47,10 @@ import {
   markOfficeEmailRead,
   markOfficeImsRead,
   pushOfficeEmail,
+  pushOfficeErrand,
   pushOfficeImPing,
   pushOfficeImReply,
+  settleOfficeErrand,
   subscribe,
   voteOfficeBattle
 } from '../state/officeMomentStore.js';
@@ -670,6 +672,45 @@ export default function OfficeLayer({
   );
 
   /**
+   * A soft errand (docs/office-isometric-mode.md § 5 slice 26): Linda has asked
+   * you to go and have a word with somebody, and you pressed the button.
+   *
+   * **The press is the only trigger there is.** The marker on the email raises
+   * nothing on arrival, nothing here schedules a reminder, and dropping it is
+   * one press with no confirmation — ADR-0010 consequence #4 rules out office
+   * machinery that acts on its own, and a task that nags is the quietest way to
+   * break that rule.
+   *
+   * It stands you up because "go and find Chad" is a physical verb and the
+   * payoff is on the other renderer. Typing at him in Slop Chat™ discharges it
+   * just the same (`settleErrandWith` below hangs off both send paths) — the
+   * button picks the funnier route, it does not own the errand.
+   */
+  const handleStartErrand = useCallback((colleagueId, fromId) => {
+    if (!pushOfficeErrand({ fromId, colleagueId })) return;
+    standUp();
+  }, []);
+
+  /**
+   * You said something to somebody; if it was who you were sent to see, that is
+   * the errand done.
+   *
+   * Both send paths call this rather than the store directly, because the check
+   * and the XP beat are one decision — `settleOfficeErrand` deliberately does
+   * not pay out on its own, so that the office log and the ceremony keep their
+   * single funnel (`onOfficeEvent`). What you actually said is nobody's
+   * business, including Linda's.
+   */
+  const settleErrandWith = useCallback(
+    (colleagueId) => {
+      const settled = settleOfficeErrand(colleagueId);
+      if (!settled) return;
+      onOfficeEvent?.('errandRun', { colleagueId, fromId: settled.fromId });
+    },
+    [onOfficeEvent]
+  );
+
+  /**
    * Sasha's phishing test (§10.2). The chain is the payoff — falling for it is
    * what enrols you in Linda's module. Both halves are ordinary office surfaces
    * (an IM and an email), so nothing here produces slot content or starts a run.
@@ -1254,6 +1295,7 @@ export default function OfficeLayer({
     async (colleagueId, body) => {
       pushOfficeImReply({ colleagueId, body });
       onOfficeEvent?.('imReply', { colleagueId });
+      settleErrandWith(colleagueId);
       playChime?.(playSendTick);
       setMessengerBusy(true);
       try {
@@ -1264,7 +1306,7 @@ export default function OfficeLayer({
         setMessengerBusy(false);
       }
     },
-    [desk, onOfficeEvent, playChime]
+    [desk, onOfficeEvent, playChime, settleErrandWith]
   );
 
   const handleMessageSomeone = useCallback(() => {
@@ -1319,11 +1361,16 @@ export default function OfficeLayer({
     async (colleagueId, body) => {
       pushOfficeImReply({ colleagueId, body });
       onOfficeEvent?.('imReply', { colleagueId });
+      // Slice 26's other half. Walking over and speaking is the route the
+      // errand was written for; the messenger settles it identically, because
+      // an errand is about having the conversation, not about which renderer
+      // you had it in (ADR-0011 rule 1).
+      settleErrandWith(colleagueId);
       const history = getOfficeSnapshot().imHistory;
       const threadTranscript = threadTranscriptFor(history, colleagueId);
       await desk.imSomeone(colleagueId, { userMessage: body, threadTranscript });
     },
-    [desk, onOfficeEvent]
+    [desk, onOfficeEvent, settleErrandWith]
   );
 
   const deskDock = (
@@ -1460,6 +1507,7 @@ export default function OfficeLayer({
         onCallMeeting={handleCallMeeting}
         onComposeEmail={handleComposeEmail}
         onStartTraining={handleStartTraining}
+        onStartErrand={handleStartErrand}
         onPhishingClick={handlePhishingClick}
         onPhishingReport={handlePhishingReport}
         composeBusy={composeBusy}

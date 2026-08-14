@@ -46,6 +46,7 @@ import { YOU_SEAT_ID, isWithinNameChipRange } from '../../utils/officeFloorPlan.
  *   wandererRef?: { current: HTMLElement | null },
  *   commuters?: import('../../utils/officeFloorCommute.js').Commute[],
  *   settledIds?: Set<string> | null,
+ *   walkingIds?: Set<string> | null,
  *   onCommuteArrive?: (id: string) => void,
  *   selectedId?: string | null,
  *   speakingId?: string | null,
@@ -97,6 +98,7 @@ export function FloorActors({
   wandererRef,
   commuters,
   settledIds,
+  walkingIds,
   onCommuteArrive,
   selectedId,
   speakingId,
@@ -176,7 +178,13 @@ export function FloorActors({
       ) : null}
 
       {meeting ? (
-        <FloorMeeting meeting={meeting} copy={copy} scale={scale} showSpokenText={showSpokenText} />
+        <FloorMeeting
+          meeting={meeting}
+          copy={copy}
+          scale={scale}
+          showSpokenText={showSpokenText}
+          walkingIds={walkingIds}
+        />
       ) : null}
       {huddle ? (
         <FloorHuddle

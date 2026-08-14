@@ -133,6 +133,16 @@ Production deploy notes (Cloud Run, billing credits, GitHub Actions CI, optional
   `awayIds` so their desk stays empty until they are genuinely back, and `settledIds` decides
   which of two surfaces draws them. Under `prefers-reduced-motion` (and in jsdom) the walk
   settles instantly, which is the old teleport — so a green test suite proves nothing here.
+- **The glass room is entered through a threshold, and its cast is bigger than its commuters.**
+  Slice 27 walks meeting attendees to `MEETING_THRESHOLD_TILES` (a fan of eight tiles _outside_
+  the sealed room) and cuts them into their chairs on arrival — **no geometry changed**, and
+  `pathCrossesGlass` still refuses every route through the glass. The leadership tier sits in
+  its own fishbowl and can never walk, so `FloorMeeting` gates on **`walkingIds`**, not the
+  `settledIds` its siblings take: absent-from-settled means "still walking" only when the whole
+  cast commutes, and here it would delete every executive from the meeting. A mark may also
+  carry **`arriving`** to opt out of `useFloorCommute`'s first-pass seed — calling a physical
+  meeting from your desk stands you up, so the floor mounts on a room that has not started, and
+  seeding it teleports everybody into the chairs the slice exists to walk them into.
 - **The office layer never re-renders while you type.** `OfficeLayerSlot.jsx` passes the diagram
   to `OfficeLayer` as **getters** (`getDiagramSource` / `getContentType`), deliberately. Anything
   on the isometric floor that reflects your work — your monitor, the whiteboard, the glass-room
@@ -246,6 +256,17 @@ Production deploy notes (Cloud Run, billing credits, GitHub Actions CI, optional
 - Avoid destructive git commands unless explicitly requested.
 - Keep docs and commands aligned with actual `package.json` scripts.
 - New baked audio assets go under `apps/web/src/assets/audio/` via `scripts/generate-office-audio.sh`, not by hand-editing `.mp3` files.
+- **A soft errand is defined by the timer it does not have.** `errand` in
+  `apps/web/src/state/officeMomentStore.js` (slice 26): Linda's email grows a **Go and find
+  Chad** CTA, pressing it stands you up carrying one, and speaking to Chad on _either_ renderer
+  settles it for 5 XP plus a log line. Three things look like oversights and are not. **No TTL,
+  reminder or re-offer** — ADR-0010 consequence #4, since a quest that nags is the quietest way
+  to break it. The email marker **raises nothing on arrival**; only the press does. And it is
+  **not** in `hasActiveOfficeSurface`, which gates the ambient director — counting something
+  with no expiry there would hold the office silent until you ran it. Its card is the **last**
+  rung in `FloorCardSlot` and its narration replaces only the **at-rest** line: it is the first
+  durable entry in two orderings built for momentary ones, so ranking it higher suppresses
+  every transient offer and stops the live region reporting movement.
 - **The office log records; it never triggers.** `apps/web/src/state/officeLogStore.js` is what
   lets the cast say "since this morning's thing". Writers hook funnels that already exist —
   `onOfficeEvent` in `useRunCeremony.js`, the moment-store push mutators, the adopt handler in
@@ -371,6 +392,15 @@ Production deploy notes (Cloud Run, billing credits, GitHub Actions CI, optional
   on a test that **passed in isolation and failed in file order**, which is the signature of this
   class. Pin with `vi.spyOn(Math, 'random').mockReturnValue(0.75)` (the floor suites' seed: Chad
   to the whiteboard) unless the suite is genuinely about the roll.
+- **Since slice 24 the seed alone is not enough — pin the hour as well, or "0.75 puts Chad at
+  the whiteboard" is only true 21.5 hours a day.** The two globals above stopped being
+  independent when `wanderBiasAt` gave the clock a say in _where_ a seeded wanderer goes (3× the
+  coffee machine from 14:00 to 16:30), and it shipped that way: slice 23's join tests and two
+  `officeFloorWander.test.jsx` describes were red on `main` every afternoon and green the rest of
+  the day. The signature is brutal — the coverage assertions still pass (he _is_ Chad, he _is_
+  settled, just at the wrong prop), so the failure reads as a broken card rather than a clock,
+  and nothing in it mentions the time. Any floor suite that mounts and asserts on geometry needs
+  **both** `vi.setSystemTime(new Date(2026, 7, 11, 12, 0, 0))` and the 0.75 seed.
 - **Why a colleague is speaking is a wire field.** `situation` on `POST /api/office/moment`
   (`OFFICE_MOMENT_SITUATIONS` in `packages/shared`: `dwell` | `run`) selects one rule block in
   `buildMomentSystemPrompt` plus a terse restatement at the end of the user prompt. It is an

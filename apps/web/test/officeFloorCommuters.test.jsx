@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import FloorScene from '../src/components/officeFloor/FloorScene.jsx';
 import FloorHuddle from '../src/components/officeFloor/FloorHuddle.jsx';
 import FloorCommuters from '../src/components/officeFloor/FloorCommuters.jsx';
+import { FloorMeeting } from '../src/components/officeFloor/FloorMeeting.jsx';
 import { officeChromeCopy } from '../src/utils/officeCast.js';
 import { seatFor, COFFEE_TILES } from '../src/utils/officeFloorPlan.js';
 
@@ -131,5 +132,59 @@ describe('FloorCommuters', () => {
   it('renders nothing when nobody is on the move', () => {
     const { container } = render(<FloorCommuters commuters={[]} onArrive={vi.fn()} />);
     expect(container.querySelector('[data-testid="office-floor-commuter"]')).toBeNull();
+  });
+});
+
+/**
+ * The glass room asks the opposite question (§ 5 slice 27).
+ *
+ * `FloorScene` and `FloorHuddle` gate on `settledIds` — absent means still
+ * walking — and that works because their whole cast commutes. The meeting's
+ * does not: the leadership tier is sealed in its own fishbowl with no glass-free
+ * route to a threshold, so it never sets off. Gating on arrival would delete
+ * every executive from the meeting, which is why this surface takes
+ * `walkingIds` instead. Both halves are asserted, because the version that only
+ * checks the walker passes while the room is quietly empty.
+ */
+describe('the glass room draws whoever is not still walking', () => {
+  const meeting = {
+    state: 'playing',
+    title: 'Architecture Review Board',
+    attendees: ['scrumMaster', 'cfo'],
+    facilitatorId: 'scrumMaster',
+    transcript: [],
+    completed: false,
+    interjectionsLeft: 2
+  };
+
+  const renderMeeting = (walkingIds) =>
+    render(
+      <FloorMeeting
+        meeting={meeting}
+        copy={officeChromeCopy().floor}
+        scale={1}
+        walkingIds={walkingIds}
+      />
+    );
+
+  it('holds a chair empty while its owner is crossing the floor', () => {
+    renderMeeting(new Set(['scrumMaster']));
+    expect(screen.queryByTestId('office-floor-meeting-seat-scrumMaster')).toBeNull();
+    // The half that matters more: somebody who never commuted is still in the
+    // room. This is the assertion that fails if the surface is switched to the
+    // `settledIds` test its siblings use.
+    expect(screen.getByTestId('office-floor-meeting-seat-cfo')).toBeTruthy();
+  });
+
+  it('seats them the moment they arrive', () => {
+    renderMeeting(new Set());
+    expect(screen.getByTestId('office-floor-meeting-seat-scrumMaster')).toBeTruthy();
+    expect(screen.getByTestId('office-floor-meeting-seat-cfo')).toBeTruthy();
+  });
+
+  it('seats the whole roster for a standalone mount that has no commute hook', () => {
+    renderMeeting(null);
+    expect(screen.getByTestId('office-floor-meeting-seat-scrumMaster')).toBeTruthy();
+    expect(screen.getByTestId('office-floor-meeting-seat-cfo')).toBeTruthy();
   });
 });

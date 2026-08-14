@@ -137,6 +137,13 @@ describe('office locale bundles', () => {
         expect(Boolean(localizedTemplate.phishing), `${locale} ${bank}[${index}] phishing`).toBe(
           Boolean(template.phishing)
         );
+        // Slice 26's marker is the same class again, and the *value* matters
+        // rather than its presence: it names who you are being sent to see, so
+        // a locale that mistranslated it into a different cast id would send
+        // you across the room to the wrong person.
+        expect(localizedTemplate.errand ?? null, `${locale} ${bank}[${index}] errand`).toBe(
+          template.errand ?? null
+        );
         // Same class again: an email's Do-it is a field, not a slot-bearing
         // string. A locale that drops it loses the whole action — the Re-org
         // (§10.5) is nothing but its actionPrompt.
@@ -231,6 +238,35 @@ describe('office locale bundles', () => {
       expect(props.items[kind]?.details?.length ?? 0, `${locale} ${kind}.details`).toBe(
         en.details.length
       );
+    }
+  });
+
+  /*
+   * Slice 26. Third instance of the dead-feature class, and the one with the
+   * longest fuse: `FloorErrandCard` withholds itself when `floor.errand` is
+   * missing, so an untranslated locale hands you an errand from the inbox and
+   * then offers no way to run it on the floor — the card slot silently falls
+   * back to the hint and nothing anywhere says why. `{from}` and `{name}` carry
+   * the two people, so a translation that drops them loses which of them sent
+   * you and which you are looking for.
+   */
+  it.each(LOCALES)('carries the errand copy onto both renderers (%s)', (locale) => {
+    const office = getUiLocaleBundle(locale).office.OFFICE_CHROME_COPY;
+    for (const key of ['startCta', 'startCtaTitle']) {
+      expect(office.errand?.[key], `${locale} errand.${key}`).toBeTruthy();
+    }
+    expect(office.errand.startCta).toContain('{name}');
+
+    const card = office.floor?.errand;
+    for (const key of ['eyebrow', 'body', 'action', 'actionTitle', 'drop', 'dropTitle']) {
+      expect(card?.[key], `${locale} floor.errand.${key}`).toBeTruthy();
+    }
+    for (const slot of ['{from}', '{name}']) {
+      expect(card.body, `${locale} floor.errand.body ${slot}`).toContain(slot);
+      expect(
+        office.floor.narration.onErrand,
+        `${locale} floor.narration.onErrand ${slot}`
+      ).toContain(slot);
     }
   });
 

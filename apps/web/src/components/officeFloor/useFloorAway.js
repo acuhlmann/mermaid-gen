@@ -40,12 +40,14 @@ import { YOU_SEAT_ID } from '../../utils/officeFloorPlan.js';
  *   wandererRef: { current: HTMLElement | null },
  *   commuters: import('../../utils/officeFloorCommute.js').Commute[],
  *   settledIds: Set<string>,
+ *   walkingIds: Set<string>,
  *   handleCommuteArrive: (id: string) => void,
  *   floorState: { wanderer: unknown, awayIds: string[] }
  * }} `floorState` is the pair `whereaboutsOf` takes, so its two consumers cannot
  *   be handed different halves. `settledIds` is what lets a surface draw its own
  *   actor: until somebody has walked to their mark they are a commuter, and two
- *   of anybody is § 6 rule 5.
+ *   of anybody is § 6 rule 5. `walkingIds` is the same fact for a surface whose
+ *   cast does not all commute — see `useFloorCommute`.
  */
 export function useFloorAway({
   coffee,
@@ -72,8 +74,15 @@ export function useFloorAway({
    * is why a scene used to end with two people blinking back into their seats
    * while their own figures were still standing at the machine.
    */
-  const marks = useMemo(() => momentMarksFor({ coffee, battle, huddle }), [coffee, battle, huddle]);
-  const { commuters, settledIds, commutingIds, handleCommuteArrive } = useFloorCommute(marks);
+  const marks = useMemo(
+    // Slice 27: the glass room joins the commute. Its attendees walk to a
+    // threshold outside the sealed box and the room cuts them into their
+    // chairs, so the marks this returns are doorways rather than seats.
+    () => momentMarksFor({ coffee, battle, huddle, meeting }),
+    [coffee, battle, huddle, meeting]
+  );
+  const { commuters, settledIds, walkingIds, commutingIds, handleCommuteArrive } =
+    useFloorCommute(marks);
 
   /* Whoever is mid-commute is out of their chair for the same reason everybody
      else in this list is, so the three sources merge before anyone sees them.
@@ -105,6 +114,7 @@ export function useFloorAway({
     wandererRef: figureRef,
     commuters,
     settledIds,
+    walkingIds,
     handleCommuteArrive,
     floorState: { wanderer, awayIds }
   };

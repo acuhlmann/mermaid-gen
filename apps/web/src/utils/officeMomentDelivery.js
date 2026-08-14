@@ -156,10 +156,12 @@ export function deliverCannedMoment(kind, ctx, options) {
       subject: fillOfficeSlots(template.subject, slots),
       body: fillOfficeSlots(template.body, slots),
       ...(template.actionPrompt ? { actionPrompt: template.actionPrompt } : {}),
-      // Set-piece markers (§10.1 training, §10.2 phishing) ride along with the
-      // template so the bank stays the single place a set piece is authored.
+      // Set-piece markers (§10.1 training, §10.2 phishing, slice 26 errand)
+      // ride along with the template so the bank stays the single place a set
+      // piece is authored.
       ...(template.training ? { training: template.training } : {}),
-      ...(template.phishing ? { phishing: true } : {})
+      ...(template.phishing ? { phishing: true } : {}),
+      ...(template.errand ? { errand: template.errand } : {})
     });
     remember(template.subject);
     markFired(memory, template.id, onFired);

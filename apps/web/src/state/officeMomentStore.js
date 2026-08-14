@@ -138,7 +138,23 @@ function initialState(imHistory = restoredImHistory) {
      * `suggestions` holds on-spot pin-able remarks that are not in the spoken queue.
      * @type {{id: string, mode: 'mob' | 'pair', attendees: string[], beats: Array<{speakerId: string, text: string, actionPrompt?: string}>, suggestions?: Record<string, {speakerId: string, text: string, actionPrompt?: string}>, phase: 'gathering' | 'speaking' | 'watching', createdAt: number} | null}
      */
-    huddle: null
+    huddle: null,
+    /**
+     * A soft errand — somebody asked you to go and speak to somebody else
+     * (docs/office-isometric-mode.md § 5 slice 26).
+     *
+     * The one moment in this store with **no timer of any kind**: no TTL, no
+     * reminder, no second ask. ADR-0010 consequence #4 rules out the shape
+     * where an office task nags — an errand that chased you would be
+     * `auto-fix-on-idle` in a lanyard. It is raised by a button you pressed,
+     * it waits, and it ends when you speak to the person or drop it.
+     *
+     * Single occupancy, like `walkBy` and for the same reason: two open
+     * errands is a quest log, and the entry that chose this slice ruled a quest
+     * log out by name.
+     * @type {{id: string, fromId: string, colleagueId: string, createdAt: number} | null}
+     */
+    errand: null
   };
 }
 
@@ -235,7 +251,16 @@ export function setOfficeHeadphones(enabled) {
   update({ headphones: on, narration: !on, soundscape: !on, captions: on });
 }
 
-/** True when any interruptive office surface is currently on screen. */
+/**
+ * True when any interruptive office surface is currently on screen.
+ *
+ * `errand` is deliberately absent, and it is the one slice where leaving it out
+ * needs saying. An errand is a *standing* fact rather than a surface with your
+ * attention — it has no timer, so it can sit open for the rest of the session,
+ * and counting it here would hold the entire ambient office silent until you
+ * ran it. That is the difference between something interrupting you and
+ * something waiting for you.
+ */
 export function hasActiveOfficeSurface() {
   return Boolean(
     state.walkBy ||
@@ -404,15 +429,29 @@ export function endOfficeHuddle(id = null) {
  *   body?: string,
  *   actionPrompt?: string,
  *   training?: number,
- *   phishing?: boolean
+ *   phishing?: boolean,
+ *   errand?: string
  * }} email
- *   `training` (a module number) and `phishing` are inert markers that let the
- *   inbox render an extra affordance — Linda's "Begin Module N", Sasha's
- *   too-good-to-be-true link. They are offers, never actions: nothing happens
+ *   `training` (a module number), `phishing` and `errand` (the cast id you are
+ *   being sent to see) are inert markers that let the inbox render an extra
+ *   affordance — Linda's "Begin Module N", Sasha's too-good-to-be-true link,
+ *   Linda's "go and find Chad". They are offers, never actions: nothing happens
  *   until the human clicks, which is ADR-0010's whole line. Same shape as the
  *   existing `actionPrompt`, which is likewise inert text until Do-it.
+ *
+ *   `errand` in particular is a marker and **not** the errand: arriving mail
+ *   does not put a task on you. Pressing the button it grows is what calls
+ *   `pushOfficeErrand`, so an errand you never read cannot exist.
  */
-export function pushOfficeEmail({ colleagueId, subject, body, actionPrompt, training, phishing }) {
+export function pushOfficeEmail({
+  colleagueId,
+  subject,
+  body,
+  actionPrompt,
+  training,
+  phishing,
+  errand
+}) {
   const email = {
     id: makeId('email'),
     colleagueId,
@@ -421,6 +460,7 @@ export function pushOfficeEmail({ colleagueId, subject, body, actionPrompt, trai
     ...(actionPrompt ? { actionPrompt } : {}),
     ...(Number.isFinite(training) ? { training } : {}),
     ...(phishing ? { phishing: true } : {}),
+    ...(errand ? { errand: String(errand) } : {}),
     createdAt: Date.now(),
     read: false
   };
@@ -587,6 +627,66 @@ export function dismissOfficeWalkBy(id) {
   if (!state.walkBy || (id != null && state.walkBy.id !== id)) return;
   clearExpiry(state.walkBy.id);
   update({ walkBy: null });
+}
+
+/**
+ * Take on a soft errand: `fromId` has asked you to go and speak to
+ * `colleagueId` (§ 5 slice 26).
+ *
+ * **Nothing is scheduled here and nothing may be.** The three lines below are
+ * the whole lifecycle — raised by a press, settled by a sentence, dropped by a
+ * press — and the absence of a `scheduleExpiry` call is the feature, not an
+ * omission somebody should tidy up later. ADR-0010 consequence #4 names the
+ * failure mode this avoids: an office task that fires on its own is the
+ * retracted commission machinery wearing a lanyard.
+ *
+ * Rejects an errand to nobody and an errand to the asker, which are the two
+ * ways a bad marker in a copy bank could produce a card offering to walk you
+ * to yourself.
+ *
+ * @param {{ fromId: string, colleagueId: string }} errand
+ * @returns {string | null} the new errand's id, or null when it was refused
+ */
+export function pushOfficeErrand({ fromId, colleagueId }) {
+  if (!colleagueId || !fromId || colleagueId === fromId) return null;
+  const errand = {
+    id: makeId('errand'),
+    fromId: String(fromId),
+    colleagueId: String(colleagueId),
+    createdAt: Date.now()
+  };
+  update({ errand });
+  return errand.id;
+}
+
+/**
+ * You said something to somebody; if that is who you were sent to see, the
+ * errand is discharged.
+ *
+ * Returns the errand it settled — truthy is how the caller knows to spend an XP
+ * beat, and the object carries `fromId`, which the log line needs and which is
+ * gone from the store a line later. Deliberately **not** self-awarding: XP and
+ * the office log both live behind `onOfficeEvent`, and a store that paid out
+ * would be a second funnel into the ceremony.
+ *
+ * What you said is not inspected. Linda asked you to have a conversation, not
+ * to file a report, and the office has never been able to tell whether you
+ * actually raised the subject — which is also true of Linda.
+ *
+ * @param {string} colleagueId
+ * @returns {{id: string, fromId: string, colleagueId: string, createdAt: number} | null}
+ */
+export function settleOfficeErrand(colleagueId) {
+  if (!colleagueId || state.errand?.colleagueId !== colleagueId) return null;
+  const settled = state.errand;
+  update({ errand: null });
+  return settled;
+}
+
+/** Drop it. Soft means droppable — an errand you cannot refuse is a ticket. */
+export function dismissOfficeErrand(id) {
+  if (!state.errand || (id != null && state.errand.id !== id)) return;
+  update({ errand: null });
 }
 
 export function pushOfficeCoffeeInvite({ lines }) {

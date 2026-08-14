@@ -84,7 +84,8 @@ function nameOf(colleagueId) {
  *   presence?: { phase: string, homeward?: boolean, key: number } | null,
  *   walkBy?: { id: string, colleagueId: string } | null,
  *   walkerDeparting?: boolean,
- *   join?: { colleagueId: string, partnerId: string } | null
+ *   join?: { colleagueId: string, partnerId: string } | null,
+ *   errand?: { colleagueId: string, fromId: string } | null
  * }} state `copy` is `officeChromeCopy().floor`; the rest is what
  *   `OfficeFloorView` already holds, passed rather than re-derived. Taken as
  *   one object and destructured without defaults on purpose: every field is
@@ -93,9 +94,39 @@ function nameOf(colleagueId) {
  * @returns {FloorAnnouncement}
  */
 export function floorAnnouncement(state) {
-  const { copy, meeting, huddle, talk, peek, prop, presence, walkBy, walkerDeparting, join } =
-    state;
+  const {
+    copy,
+    meeting,
+    huddle,
+    talk,
+    peek,
+    prop,
+    presence,
+    walkBy,
+    walkerDeparting,
+    join,
+    errand
+  } = state;
   const lines = copy.narration;
+
+  /**
+   * The at-rest line, which is the one place slice 26's errand may speak.
+   *
+   * Every other rung in this chain is momentary; an errand is durable and can
+   * sit open for the rest of the session. Ranked among the others it would
+   * silence free roam for as long as you carry one — a region that stops
+   * reporting movement is worse than one that never mentioned the errand — so
+   * it replaces what you are told while standing still and nothing else. That
+   * still puts it exactly where `FloorCardSlot` puts its card: one rung above
+   * the generic hint, and replacing it.
+   */
+  const atRest = (key, resting) =>
+    errand
+      ? announce(`${key}:errand:${errand.colleagueId}`, lines.onErrand, {
+          name: nameOf(errand.colleagueId),
+          from: nameOf(errand.fromId)
+        })
+      : announce(key, resting);
 
   if (meeting) return announce('meeting', lines.inMeeting);
   if (huddle) return announce(`huddle:${huddle.id}`, lines.inHuddle ?? lines.atDesk);
@@ -145,7 +176,7 @@ export function floorAnnouncement(state) {
 
   if (presence) {
     if (presence.phase !== 'walking') {
-      return announce(`roam:${presence.key}:standing`, lines.standingFloor);
+      return atRest(`roam:${presence.key}:standing`, lines.standingFloor);
     }
     return announce(
       `roam:${presence.key}:walking`,
@@ -158,7 +189,7 @@ export function floorAnnouncement(state) {
    * so this doubles as the "you are here" a screen-reader user gets on standing
    * up, rather than being an announcement only ever heard on the way back.
    */
-  return announce('desk', lines.atDesk);
+  return atRest('desk', lines.atDesk);
 }
 
 export default floorAnnouncement;

@@ -597,6 +597,45 @@ export const MEETING_SEATS = [
 export const MEETING_PLAYER_TILE = { x: 10.5, y: 7.7 };
 
 /**
+ * The way into the glass room — a fan of tiles **outside** it
+ * (docs/office-isometric-mode.md § 5 slice 27).
+ *
+ * Slice 17 walked every set piece's cast to its mark and had to skip this one,
+ * because the meeting room has no door: the west panel spans y 5.7–8.5, the
+ * north panel x 9.4–11.5, and the other two sides are the floor plate's own
+ * edge. § 8 recorded the two ways out of that — cut a door, or walk them to a
+ * threshold and cut inside — and this is the threshold. **No geometry changed**:
+ * the room is exactly as sealed as it was, `pathCrossesGlass` still refuses
+ * every route through it, and § 6 rules 17–18 are untouched.
+ *
+ * Ordered by how much the tile reads as *at the door* — the four that hug the
+ * two glass walls first, then the queue standing behind them. `meetingThresholdMarks`
+ * hands each attendee the nearest one they can actually reach, so the order here
+ * is a tie-break rather than a priority.
+ *
+ * Eight of them, matching `MEETING_SEATS`, because they are all occupied at
+ * once: attendees set off together, so a fan shorter than the roster puts two
+ * people on one tile — the pile-up § 8 predicted.
+ *
+ * Deliberately **not** in `reservedMarks()`, for the reason `HUDDLE_TILES` is
+ * not: the fan only exists while somebody is walking into a meeting, and
+ * permanently reserving eight tiles this close to the pod would strand peek and
+ * approach marks for the rest of the session.
+ *
+ * @type {Array<{ x: number, y: number }>}
+ */
+export const MEETING_THRESHOLD_TILES = [
+  { x: 9, y: 8 }, // west wall, at the near end — the closest thing to a doorway
+  { x: 10, y: 5 }, // north wall, centre
+  { x: 11, y: 5 }, // north wall, far
+  { x: 9, y: 5 }, // the north-west corner, where the two walls meet
+  { x: 8, y: 8 }, // the queue: one step back from the west wall
+  { x: 8, y: 6 },
+  { x: 9, y: 4 },
+  { x: 11, y: 4 }
+];
+
+/**
  * The depth line (`x + y`) a meeting speech bubble sits on, whoever is talking.
  *
  * Anchored on the speaker's own tile the bubble is a disaster, and only a

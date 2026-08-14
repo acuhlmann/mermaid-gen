@@ -123,6 +123,13 @@ export const OFFICE_ZH_TW = {
       body: '溫馨提醒：您的《安全使用圖表》法遵訓練已逾期 847 天！只需 4 小時即可完成，內含 11 個不可跳過的單元。\n\n人資營運永遠，\nLinda — 人資營運'
     },
     {
+      id: 'email-hr-errand-intern',
+      colleagueId: 'hr',
+      errand: 'intern',
+      subject: '小忙一件 — 關於回覆所有人那件事',
+      body: 'Chad 已經在「{label}」那條討論串上回覆所有人四次，其中兩次是為了上一次回覆所有人道歉。人資營運的研究顯示，這種事同事之間講效果比較好，所以能不能麻煩你私下提一句？最好當面。語氣溫和、帶點好奇、別上綱上線 — 你懂的。\n\n這不是正式談話，也不得留下紀錄，所以我才用電子郵件跟你講這件事。\n\n人資營運永遠，\nLinda — 人資營運'
+    },
+    {
       id: 'email-birthday-card',
       colleagueId: 'hr',
       subject: '給 Craig 的卡片 — 今天下班前簽名！',
@@ -1235,6 +1242,10 @@ export const OFFICE_ZH_TW = {
       callMeetingDisabledTitle: '已經在開會 — 先離開那場',
       callMeetingAboutEmail: '📅 就此郵件撥個電話'
     },
+    errand: {
+      startCta: '🚶 去找 {name}',
+      startCtaTitle: '站起來走過去。這件事會一直掛在辦公區，直到你跟對方說上話。'
+    },
     phishing: {
       link: '🔗 立即重新驗證你的憑證',
       linkTitle: '這看起來很正式。',
@@ -1441,7 +1452,8 @@ export const OFFICE_ZH_TW = {
         arriving: '{name} 正朝你的工位走來。',
         leaving: '{name} 正走回自己的工位。',
         inHuddle: '你的團隊圍在你工位旁開小會。',
-        overhearing: '{name} 和 {partner} 正在旁邊聊天。你可以加入。'
+        overhearing: '{name} 和 {partner} 正在旁邊聊天。你可以加入。',
+        onErrand: '站在辦公區。{from} 請你去找 {name} 私下聊一句。'
       },
       arrival: {
         eyebrow: 'ARCHISLOP CORP. · 入職第一天',
@@ -1608,6 +1620,14 @@ export const OFFICE_ZH_TW = {
           ['這個箭頭是什麼意思？', '這個箭頭比我來得早。我第二週就不問了。'],
           ['我們要不要乾脆重畫一遍？', '我們重畫過了。三月。這就是重畫過的版本。']
         ]
+      },
+      errand: {
+        eyebrow: '你還欠一趟',
+        body: '{from} 請你去跟 {name} 私下聊一句。你們說什麼，只有你們知道。',
+        action: '🚶 走過去聊聊',
+        actionTitle: '走過去 — 只要你開口說話，這件事就算辦完了',
+        drop: '今天算了',
+        dropTitle: '放著不管。沒有人在追蹤這件事。Linda 說沒有人在追蹤這件事。'
       },
       join: {
         eyebrow: '在你耳邊',

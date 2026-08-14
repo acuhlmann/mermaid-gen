@@ -393,6 +393,13 @@ export const OFFICE_XP_AWARDS = {
   coffeeBreak: 10,
   battleSettled: 5,
   meetingLeftEarly: 5,
+  /**
+   * A soft errand run (§ 5 slice 26) — you were asked to go and speak to
+   * somebody and you did. Priced like settling an argument rather than like a
+   * meeting: it costs one walk and one sentence, and the entry that chose the
+   * slice asked for "a tiny XP beat", not a quest reward.
+   */
+  errandRun: 5,
   meetingSurvived: 25,
   /**
    * The Change Advisory Board hearing (§10.10) is the one meeting that decides —

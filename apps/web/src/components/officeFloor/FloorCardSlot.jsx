@@ -5,15 +5,23 @@
  * has you in a chair, a conversation has you stood in front of somebody
  * waiting for you to say something, a peek has you on your feet at somebody
  * else's desk, using a prop has you on your feet at a machine, a person card is
- * idle curiosity, an offer to join a conversation commits nothing yet, and the
- * hint is what is left when you are doing nothing at all. That ordering is the
- * rule § 7 asks new surfaces to respect, so it lives in one place rather than
- * as a ternary chain inside the view component.
+ * idle curiosity, an offer to join a conversation commits nothing yet, an
+ * errand is a thing you agreed to and have not done, and the hint is what is
+ * left when you are doing nothing at all. That ordering is the rule § 7 asks
+ * new surfaces to respect, so it lives in one place rather than as a ternary
+ * chain inside the view component.
  *
  * Slice 23's rung is the first one the *room* offers rather than one you
- * opened, which is why it sits second from bottom: a person card is idle
- * curiosity you acted on, and this is a door held open. It outranks only the
- * hint, and the hint is what it replaces while it is up.
+ * opened, which is why it sits third from bottom: a person card is idle
+ * curiosity you acted on, and this is a door held open.
+ *
+ * Slice 26's errand sits below it, immediately above the hint, and the reason
+ * is **lifetime rather than commitment**. An errand is the only card here that
+ * is durable: it has no timer and can sit open for the rest of the session, so
+ * ranking it any higher would mean a standing errand permanently suppressing
+ * every momentary offer beneath it — you would never see another Join in. Last
+ * place is also the honest one: while you carry an errand, "what you are doing
+ * on this floor" is the errand, and the generic hint is what deserves replacing.
  *
  * A prop ranks below a peek only because a person outranks a machine; the two
  * are mutually exclusive anyway, since you have one body and `useFloorPresence`
@@ -25,6 +33,7 @@
  */
 
 import FloorPersonCard from './FloorPersonCard.jsx';
+import { FloorErrandCard } from './FloorErrand.jsx';
 import { FloorHuddleCard } from './FloorHuddle.jsx';
 import { FloorMeetingCard } from './FloorMeeting.jsx';
 import { FloorPeekCard } from './FloorPeek.jsx';
@@ -47,12 +56,15 @@ import { sitDown } from '../../state/officeViewModeStore.js';
  *   propUse?: { phase: 'idle' | 'working' | 'done' | 'blocked' } | null,
  *   person?: any,
  *   join?: { colleagueId: string, partnerId: string, kind: string } | null,
+ *   errand?: { colleagueId: string, fromId: string } | null,
  *   board?: import('../../utils/officeFloorBoard.js').BoardState | null,
  *   onGoHome: () => void,
  *   onMessage?: (colleagueId: string) => void,
  *   onPeek?: (colleagueId: string) => void,
  *   onTalk?: (colleagueId: string) => void,
  *   onJoin?: (colleagueId: string) => void,
+ *   onErrandTalk?: (colleagueId: string) => void,
+ *   onDropErrand?: () => void,
  *   onAdoptPrompt?: (prompt: string, colleagueId: string) => void,
  *   onClosePerson: () => void
  * }} props `copy` is `officeChromeCopy().floor`. `onAdoptPrompt` is declared
@@ -74,14 +86,17 @@ export function FloorCardSlot({
   propUse = null,
   person = null,
   // No defaults — § 8's complexity lever, and `FloorPropCard` / `FloorJoinCard`
-  // each guard their own.
+  // / `FloorErrandCard` each guard their own.
   board,
   join,
+  errand,
   onGoHome,
   onMessage,
   onPeek,
   onTalk,
   onJoin,
+  onErrandTalk,
+  onDropErrand,
   onAdoptPrompt,
   onClosePerson
 }) {
@@ -155,6 +170,19 @@ export function FloorCardSlot({
   }
 
   if (join) return <FloorJoinCard join={join} copy={copy} onJoin={onJoin} />;
+
+  /*
+   * The handler is part of *this* branch's condition, not only of the card's
+   * own guard — the one place the errand rung has to differ from the join rung
+   * above it. Both cards withhold themselves when nothing is wired to honour
+   * them, but a slot branch that has already been taken renders an empty box:
+   * for a join that lasts seconds, and for an errand it would last the rest of
+   * the session, taking the floor's only hint with it.
+   */
+  if (errand && typeof onErrandTalk === 'function')
+    return (
+      <FloorErrandCard errand={errand} copy={copy} onTalk={onErrandTalk} onDrop={onDropErrand} />
+    );
 
   return <p className="office-floor-hint">{copy.hint}</p>;
 }

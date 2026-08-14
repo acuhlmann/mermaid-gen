@@ -260,6 +260,21 @@ export function useRunCeremony({
         case 'imReply':
           recordOfficeLogEntry('chat', { now, colleagueId: extras.colleagueId });
           break;
+        /*
+         * Slice 26. The log is the errand's only record — there is no quest
+         * state left behind once it settles, which is what keeps it a *soft*
+         * errand rather than a ticket with a history. `detail` is who sent you;
+         * the office finding out that Linda outsources her difficult
+         * conversations is the joke, and it is the sort of thing an office would
+         * know by lunchtime, which is this file's test for what earns a line.
+         */
+        case 'errandRun':
+          recordOfficeLogEntry('errand', {
+            now,
+            colleagueId: extras.colleagueId,
+            detail: extras.fromId ?? ''
+          });
+          break;
         case 'trainingCompleted':
           recordOfficeLogEntry('training', {
             now,

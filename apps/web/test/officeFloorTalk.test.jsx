@@ -445,6 +445,23 @@ describe('joining shop talk (slice 23)', () => {
 
   beforeEach(() => {
     vi.useFakeTimers();
+    /*
+     * Pinned to midday, and this suite is the case CLAUDE.md's warning was
+     * written for: a floor test that *mounts* inherits the wall clock along with
+     * `Math.random`, and slice 24 gave the clock a say in where a wanderer goes
+     * (`WANDER_BIAS_WINDOWS` — from two until half four an errand is 3× likelier
+     * to be a coffee run). With the hour unpinned this whole describe went red
+     * every afternoon between 14:00 and 16:30 and passed the rest of the day:
+     * the seed still picks Chad and he still settles, so the coverage assertions
+     * in `floorWithinEarshot` stay green while he is stood at the coffee machine
+     * instead of the whiteboard, three tiles from where the test is listening.
+     * Nothing in the failure mentions the time.
+     *
+     * Midday is chosen for `officeFloorActivity.test.jsx`'s reason as well — one
+     * of the two day phases with no `PHASE_ART`, so nobody is handed a mug that
+     * the geometry assertions would then have to know about.
+     */
+    vi.setSystemTime(new Date(2026, 7, 11, 12, 0, 0));
     vi.spyOn(Math, 'random').mockReturnValue(0.75);
   });
 

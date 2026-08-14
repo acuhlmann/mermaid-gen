@@ -20,12 +20,21 @@ import { arriveCommute, marksKey, nextCommutes } from '../../utils/officeFloorCo
  * @returns {{
  *   commuters: import('../../utils/officeFloorCommute.js').Commute[],
  *   settledIds: Set<string>,
+ *   walkingIds: Set<string>,
  *   commutingIds: string[],
  *   handleCommuteArrive: (id: string) => void
  * }} `commuters` are the ones on their feet (`out` / `home`) — the only ones
  *   `FloorCommuters` draws. `settledIds` are the ones a surface may now draw at
  *   their mark. `commutingIds` is everybody in any phase, which is what keeps a
  *   desk empty until its owner is genuinely back in it.
+ *
+ *   `walkingIds` is `settledIds` asked the other way round, and slice 27 is why
+ *   it has to exist. A surface whose whole cast commutes can gate on "has
+ *   arrived": absent from `settledIds` means still walking. The glass room's
+ *   cast does **not** all commute — the leadership tier is sealed in its own
+ *   fishbowl and has no route to a threshold — so the same test would erase
+ *   every executive from the meeting. Asking "is this person mid-walk" is the
+ *   question that stays correct when only some of the cast ever set off.
  */
 export function useFloorCommute(marks) {
   const [commutes, setCommutes] = useState(
@@ -61,6 +70,9 @@ export function useFloorCommute(marks) {
       commuters: commutes.filter((commute) => commute.phase !== 'there'),
       settledIds: new Set(
         commutes.filter((commute) => commute.phase === 'there').map((commute) => commute.id)
+      ),
+      walkingIds: new Set(
+        commutes.filter((commute) => commute.phase !== 'there').map((commute) => commute.id)
       ),
       commutingIds: commutes.map((commute) => commute.id),
       handleCommuteArrive

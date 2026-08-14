@@ -192,3 +192,53 @@ describe('meetings in the glass room (slice 5)', () => {
     expect(screen.queryByTestId('office-floor-meeting-seat-you')).toBeNull();
   });
 });
+
+/**
+ * The way into the glass room (§ 5 slice 27).
+ *
+ * jsdom has no WAAPI engine, so `useWalkAnimation` settles every walk in one
+ * tick — the *walk* is not observable through a full-floor mount, and the
+ * hand-off contract is asserted against `FloorMeeting` directly in
+ * `officeFloorCommuters.test.jsx` where the other slice-17 surfaces are. What a
+ * mount can still prove is that nobody is **lost** on the way in, which is this
+ * slice's one way of breaking the room.
+ */
+describe('walking into the glass room (slice 27)', () => {
+  /** Nobody has spoken yet: the room is still filling up. */
+  const CONVENING = {
+    ...PLAYING,
+    attendees: ['scrumMaster', 'gilfoyle', 'jared'],
+    transcript: []
+  };
+
+  it('gets every attendee into a chair, walk or no walk', () => {
+    const view = renderFloor({ meeting: CONVENING });
+    for (const id of CONVENING.attendees) {
+      expect(
+        screen.getByTestId(`office-floor-meeting-seat-${id}`),
+        `${id} never made it into the room`
+      ).toBeTruthy();
+      expect(view.container.querySelector(`[data-seat="${id}"]`)?.dataset.vacant).toBe('true');
+    }
+    expect(screen.getByTestId('office-floor-meeting-seat-you')).toBeTruthy();
+  });
+
+  /*
+   * The finding that shaped the slice, asserted where it would bite. Leadership
+   * are sealed in their own fishbowl with no glass-free route out, so they never
+   * commute at all — and a room that gated its actors on "has arrived" would
+   * erase them from the meeting rather than merely skipping their walk.
+   */
+  it('still seats an executive who has no way to walk there', () => {
+    renderFloor({ meeting: { ...CONVENING, attendees: ['scrumMaster', 'cfo'] } });
+    expect(screen.getByTestId('office-floor-meeting-seat-cfo')).toBeTruthy();
+    expect(screen.getByTestId('office-floor-meeting-seat-scrumMaster')).toBeTruthy();
+  });
+
+  it('seats everyone when you stand up into a meeting already talking', () => {
+    renderFloor({ meeting: PLAYING });
+    for (const id of PLAYING.attendees) {
+      expect(screen.getByTestId(`office-floor-meeting-seat-${id}`)).toBeTruthy();
+    }
+  });
+});
