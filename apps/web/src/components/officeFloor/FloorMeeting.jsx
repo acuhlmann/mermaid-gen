@@ -23,6 +23,7 @@ import {
   officeSenderInfo
 } from '../../utils/officeCast.js';
 import { formatLocale } from '../../i18n/formatLocale.js';
+import { meetingActivityFor } from '../../utils/officeFloorActivity.js';
 import {
   MEETING_PLAYER_TILE,
   YOU_SEAT_ID,
@@ -57,8 +58,11 @@ function isRemoteMeeting(meeting) {
  * One attendee in their chair. Seated (the 30 px lift, § 6 rule 2) so heads
  * clear the table; whether the table then hides their lap or their torso sits
  * in front of it is pure paint order, which `MEETING_SEATS` arranges.
+ *
+ * `activity` is slice 29 and arrives derived, like every other figure on this
+ * floor — `meetingActivityFor`, never composed here (see `officeFloorActivity.js`).
  */
-function MeetingActor({ castId, tile, speaking, isYou, idleIndex, copy }) {
+function MeetingActor({ castId, tile, speaking, isYou, idleIndex, copy, activity }) {
   const { left, top } = projectIso(tile.x, tile.y);
   const { name, title, accent } = actorInfo(castId, copy);
 
@@ -75,7 +79,13 @@ function MeetingActor({ castId, tile, speaking, isYou, idleIndex, copy }) {
       style={{ left, top, zIndex: depthOf(tile.x, tile.y) }}
     >
       <div className="office-floor-walker-anchor office-floor-walker-anchor--seated">
-        <FloorFigure id={castId} accent={accent} isYou={isYou} idleIndex={idleIndex} />
+        <FloorFigure
+          id={castId}
+          accent={accent}
+          isYou={isYou}
+          idleIndex={idleIndex}
+          activity={activity}
+        />
       </div>
     </div>
   );
@@ -123,8 +133,14 @@ function RemoteMeetingBubble({ speakerId, text, scale, copy }) {
  *   copy: Record<string, any>,
  *   scale?: number,
  *   showSpokenText?: boolean,
- *   walkingIds?: Set<string> | null
- * }} props `walkingIds` is slice 27: an attendee still crossing the floor to
+ *   walkingIds?: Set<string> | null,
+ *   dayPhase?: string | null
+ * }} props `dayPhase` is slice 29 — the hour, which is what everybody who did
+ *   not call the meeting is holding. No default for the same reason `FloorStage`
+ *   has none: `meetingActivityFor` reads it for truthiness, so `= null` would
+ *   buy a branch on the complexity budget and no behaviour.
+ *
+ *   `walkingIds` is slice 27: an attendee still crossing the floor to
  *   the threshold is being drawn by `FloorCommuters`, and two of anybody is
  *   § 6 rule 5. `null` means "don't ask" — a standalone mount with no commute
  *   hook seats the whole roster, exactly as slice 5 did.
@@ -140,7 +156,8 @@ export function FloorMeeting({
   copy,
   scale = 1,
   showSpokenText = true,
-  walkingIds = null
+  walkingIds = null,
+  dayPhase
 }) {
   const remote = isRemoteMeeting(meeting);
   const seating = remote ? [] : meetingSeating(meeting.attendees, meeting.facilitatorId);
@@ -165,6 +182,14 @@ export function FloorMeeting({
             idleIndex={index}
             isYou={false}
             copy={copy}
+            // Keyed on the id rather than on `index === 0`: `meetingSeating`
+            // only promotes the facilitator to the head seat when they are
+            // actually on the invite, so a meeting whose facilitator was not
+            // invited has nobody holding the agenda — which is correct.
+            activity={meetingActivityFor(id, {
+              facilitator: id === meeting.facilitatorId,
+              dayPhase
+            })}
           />
         )
       )}
@@ -175,6 +200,9 @@ export function FloorMeeting({
         idleIndex={seating.length}
         isYou
         copy={copy}
+        // You never chair one of these (the server picks a cast id), so you get
+        // the hour like everybody else who was summoned.
+        activity={meetingActivityFor(MEETING_USER_SPEAKER, { dayPhase })}
       />
     </>
   );

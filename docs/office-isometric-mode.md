@@ -1407,7 +1407,119 @@ diagramSource})` returns counts, labels, a `shape` (`graph` | `list` | `page`), 
     the sealed-in case, dispersal), `officeFloorCommuters.test.jsx` (the hand-off),
     `officeFloorMeeting.test.jsx` (nobody is lost on the way in).
 
-**There is no slice 28 yet, and that is deliberate.** The list above was written one slice at
+28. **Walking into a break you turned down.** ✅ shipped (#313) — declining a coffee break now
+    means "not for me" rather than "not happening", so the cast still walks to the machine and
+    you can wander over and join. Its record is in **§ 8** under _Overhear → join_ rather than
+    here; the reasoning is all there, and this line exists so the numbering is not a mystery.
+
+29. **What people bring to a meeting — the glass room stops being a waiting room.** ✅ shipped.
+    Sixteen people sat round a table holding nothing, because `MeetingActor` was the one figure
+    on this floor that never asked `officeFloorActivity.js` anything. § 8 had it as the top item
+    slice 13 left on the table, called the wiring "one prop" and the blocker a content question
+    — _who brings what to a meeting_ — and both halves turned out to be exactly right. The
+    wiring really is one prop: `FloorFigure` has taken an `activity` since slice 13 and this was
+    the only caller that never passed one. The rule is `meetingActivityFor`:
+
+    1. **The person who called it brought the agenda** — papers, reading. It is the only role a
+       meeting actually has, `meetingSeating` already knows who holds it (they take the head of
+       the table), and it needs no per-character data to be true.
+    2. **Then the hour, but only what it puts in a hand.** `PHASE_ART`'s own argument is that a
+       tell everybody shows at once reads as _the time of day_ rather than as coincidence, and
+       eight people in one room are the most synchronised group in the building — so it lands
+       harder here than it does across the desks, and it reuses art that already exists.
+    3. **Otherwise they are listening**, empty-handed.
+
+    **The content question was answerable because most of the answer is "not that".** What
+    unlocked it was noticing that the desk trait row is the one thing a meeting can be _certain_
+    is wrong: seven of the sixteen rows say `typing` and two say `phone`, so the obvious
+    implementation — hand `MeetingActor` a plain `floorActivityFor` — seats a table of people
+    typing through the meeting they walked to, with Russ taking another call in it. Ruling the
+    trait row out leaves a gap small enough that one role and one clock fill it.
+
+    **The hour's headset is the trap, and it is the physical/remote split wearing a hat.** At
+    the `standUp` hour `PHASE_ART`'s whole-office tell _is_ a headset — correctly, since that
+    phase is the remote stand-up. Passing the phase through unfiltered puts one on everybody in
+    the glass room, which draws the **remote** modality on top of the **physical** one: the
+    single distinction this module exists to make. So only the **hold** is copied and the
+    headwear is dropped by construction, which holds for any phase added later rather than
+    special-casing the one that has a headset today. Dave keeps his, but that is his _face_ —
+    a `null` headwear cannot strip a baked trait, the same limit slice 20 hit.
+
+    **It is not an exception to `floorActivityFor`'s rung 5** (`dayPhase` is absent for anybody
+    a _moment_ is drawing) so much as the case rung 5 never covered. That rung assumes a moment
+    supplies a tell of its own — a walk-by is moving, a coffee break puts a cup in every hand —
+    and the meeting was the one moment that supplied none, which is precisely why the room
+    looked dead. Where a moment has nothing of its own to say, the hour beats the desk they are
+    not sitting at.
+
+    **Verified in a browser, because § 6 rule 31 made it a real question**: a held item lives in
+    a ~6 px window beside the shoulder, and `MEETING_SEATS` notes the table may paint over a
+    lap. It does not reach the hands — captures at three hours show the agenda and seven mugs
+    clearing the table on **both** rows, near and far. The near row's items sit above the
+    tabletop edge, so nothing needed moving.
+
+    Deliberately left: **the current speaker is not re-posed.** `is-speaking` already marks them
+    and the bubble names them, and re-posing a figure on every beat is churn at 34 px.
+
+    Code: `meetingActivityFor` in `utils/officeFloorActivity.js`, the `activity` prop in
+    `officeFloor/FloorMeeting.jsx`, the `dayPhase` hand-off in `officeFloor/FloorActors.jsx`.
+    Tests: `officeFloorActivity.test.jsx` (the rule, plus the sweep that no phase leaks
+    headwear), `officeFloorMeeting.test.jsx` (the drawing — and every one of its five
+    assertions was checked red against the unmodified component before it was kept, because
+    three of them are negatives and a negative passes for free on a room that draws nothing).
+
+30. **Joining the holy war — the argument you turned down is still going.** ✅ shipped. Slice 28
+    made declining a coffee break mean "not for me" rather than "not happening", and deliberately
+    left the cubicle battle, naming the reason: a break ends when its script ends, so "joining
+    ends it" is unambiguous there, while **a battle ends when somebody settles it**. This slice
+    is that question answered, and the answer is what makes the two scenes different rather than
+    one mechanic with two skins.
+
+    **An argument nobody refereed goes unsettled.** That is the design answer and the trap fix in
+    one sentence. `battlePace`'s `onDone` only raises `battleLinesDone`; what actually clears the
+    store is a click on the verdict panel, and that panel is gated on `accepted`. So a declined
+    battle would run out of lines, render no panel, and sit in `hasActiveOfficeSurface` forever —
+    holding the ambient director silent for the rest of the session. It is **slice 28's own trap
+    in the one costume that survives slice 28's fix**, because pacing a declined scene is
+    sufficient for the break and not for this. `onBattleUnsettled` dismisses it instead, which
+    also arms the re-entry cooldown for free, and pays nothing: `battleSettled` is for settling
+    one.
+
+    **Joining hands you the casting vote**, where joining a break merely ends it. A battle has a
+    pending question and a verdict panel already built for it, so the join swaps the remaining
+    script for one closing beat — the two of them turning to you — and marks it `accepted`, which
+    raises the panel. The existing vote → zinger → `battleSettled` path takes over unchanged.
+    **No new state machine**, and that is the whole reason the expensive-sounding half was cheap:
+    the battle already knew how to end, it just had no way of being handed to a late arrival.
+
+    **What the design did not anticipate is that the two set pieces are neighbours.** Measured
+    while writing the earshot sweep: `COFFEE_TILES` and `BATTLE_TILES` are **2–4 tiles apart**
+    against an `EARSHOT_RANGE_TILES` of 3, so standing at the coffee machine is genuinely within
+    earshot of the cubicle argument and vice versa. That is a fact about a small room rather than
+    a bug, and the fix is _not_ a second tighter radius — that is exactly what
+    `NAME_CHIP_RANGE_TILES` being one ladder exists to prevent. What it makes load-bearing is the
+    **scan order**: the card slot holds one card, coffee is checked first, so an overlap resolves
+    deterministically rather than by render timing. In practice the state is unreachable
+    (`canOfferOfficeBattle` refuses while another surface is up), so the test pins a tie-break
+    rather than a live behaviour — but it is pinned, because a floor-plan change that separates
+    them should be a visible decision.
+
+    **One copy block per kind, never a `{kind}` branch into a shared one** — the same argument
+    `FloorSceneJoinCard` already makes against sharing a component with `FloorJoinCard`. A
+    translator softening "settle it" for the holy war must not silently reword the offer to walk
+    into somebody's coffee break, and the two-part guard (handler _and_ copy) then works per
+    kind: a locale that translated only one offers only that one. `officeLocale.test.js` now
+    sweeps both blocks rather than `sceneJoin` alone.
+
+    Code: `declineOfficeBattle` / `joinOfficeBattle` in `state/officeMomentStore.js`, the pacing
+    gate + `onBattleUnsettled` in `hooks/useOfficeLayerPerformances.js`, `SCENE_TILES` and the
+    two-kind scan in `utils/officeFloorSceneJoin.js`, the handlers in `OfficeLayer.jsx`, the
+    per-kind copy lookup in `officeFloor/FloorTalk.jsx`. Tests: `officeFloorSceneJoin.test.jsx`
+    (the lifecycle first, as slice 28's file does — including the companion claim that an
+    _attended_ battle does **not** take the unsettled exit, without which "the hook calls its
+    callback" would pass for the wrong reason), `officeLocale.test.js` (both blocks, all locales).
+
+**There is no slice 31 yet, and that is deliberate.** The list above was written one slice at
 a time, each defined when it was picked up rather than planned in advance — so "continue with
 slice _n_" only means something once somebody has chosen what _n_ is. § 8 has the candidates,
 a recommendation, and the debts that argue for one over another. Pick from there, write the
@@ -2097,10 +2209,22 @@ one that matters most: the offer survives when narration hides the bubble.
 
 **What slice 13 left on the table**, in the order somebody should want them:
 
-- **The glass room is the one surface with no activity at all.** `MeetingActor` draws a plain
-  figure, so sixteen people sit round a table holding nothing. A mug or a laptop each would help,
-  but it is a content question rather than a wiring one — the wiring is one prop — and the honest
-  version needs a rule for _who_ brings what to a meeting, which nobody has written.
+- ~~**The glass room is the one surface with no activity at all.**~~ ✅ **shipped as slice 29**,
+  and both halves of the bullet held exactly. The wiring really was **one prop** — `FloorFigure`
+  had taken an `activity` since slice 13 and `MeetingActor` was the only caller in the building
+  that never passed one — and the blocker really was the content question, not the code. The
+  rule it names is: the person who called it brought the agenda, everybody else brought the
+  hour, and the rest are listening.
+
+  What the bullet did not anticipate is **why the content question was answerable**: most of
+  the answer is _"not that"_. The desk trait row is the one thing a meeting can be certain is
+  wrong (seven rows say `typing`, two say `phone`), so ruling it out leaves a gap small enough
+  for one role and one clock to fill — and the obvious implementation, handing `MeetingActor` a
+  plain `floorActivityFor`, is the wrong one for exactly that reason. Nor did it anticipate the
+  **headset**: the `standUp` hour's whole-office tell is one, so passing the phase through
+  unfiltered draws the _remote_ modality on top of the _physical_ one. Only the hold crosses;
+  headwear is dropped by construction.
+
 - ~~**`doing` is static.**~~ ✅ **shipped as slice 20** — the cadence nudges it, exactly as this
   bullet guessed ("everyone holds a mug in the first hour, nobody does after the stand-up"), and
   `officeCadence.js` owns the dial. The office log was the other candidate source and was not
@@ -2208,9 +2332,17 @@ Kept here so appetite can pick without re-deriving. Each should stay bound by AD
   through a wrapper returning `{spoken:false}`, never `undefined`, or `useScenePacing` flushes
   the whole script in a tick and the break ends before anybody reaches the kitchen.
 
-  Two things deliberately left: the **cubicle battle** (its verdict panel makes "ends it" mean
+  Two things deliberately left. ~~The **cubicle battle** (its verdict panel makes "ends it" mean
   something different — an unsettled holy war needs a decision about whether joining lets you
-  vote), and any inner bound on the offer. Shop talk needs one because slice 19 would otherwise
+  vote)~~ ✅ **shipped as slice 30**, and the deferred question turned out to be the whole
+  design: **yes, joining lets you vote** — that is what a battle has and a break does not, so
+  joining hands you the casting vote instead of merely ending the scene, and the existing
+  vote → zinger → `battleSettled` path absorbs it with no new state machine. What the deferral
+  did not see is that the harder half was the _other_ ending: an argument nobody refereed has no
+  verdict panel (it is gated on `accepted`), so a declined battle would never clear
+  `hasActiveOfficeSurface` — slice 28's trap in the one costume that survives slice 28's fix.
+  Pacing a declined scene is sufficient for the break and not for this one. And the second item,
+  any inner bound on the offer: shop talk needs one because slice 19 would otherwise
   talk _to_ you at the same range; a scene's cast are `awayIds`, so `dwellTargetAt` cannot pick
   them and standing at the machine is the most natural moment to be let in.
 
@@ -2278,6 +2410,33 @@ Kept here so appetite can pick without re-deriving. Each should stay bound by AD
   asymmetry is invisible until you have seen the card once; then a coffee break two tiles away
   with no offer on it reads as a bug rather than as a boundary. That is the strongest argument
   for building the expensive half, and it did not exist before this slice shipped.
+
+- **A remote sync wears the headset _and_ keeps the phone** — measured while writing slice 29,
+  pre-existing since slice 13 and left alone. `floorActivityFor('russ', { onCall: true })` is
+  `{ pose: 'call', hold: 'phone', headwear: 'headset' }`, because rung 1 owns the headwear and
+  the hand falls through to the trait row: two call tells on one person, which is the same
+  duplication the glass room's rule exists to avoid one rung further down. It is the physical
+  meeting's sibling case and the fix is the same shape (a call is a thing that is happening, so
+  it should own the hand as well as the head) — but it is one character at one desk during one
+  modality, where the meeting was eight people in the middle of the frame, so it did not earn
+  the change on its own. Worth folding in if anything else touches rung 1.
+
+- **A meeting is now the only moment with a derivation of its own, and the two must not drift.**
+  `meetingActivityFor` sits beside `floorActivityFor` in the same module deliberately — that is
+  what stops the room and the glass room disagreeing about a headset — but it is a _second_
+  ladder rather than a branch of the first, and the reason is that a meeting shares almost no
+  rungs with a desk. If a third surface ever wants one of these (a huddle is the obvious
+  candidate — it is a meeting standing up), the question to ask first is whether it shares
+  rungs with the meeting or only with the desk, because a third near-copy is where "derived
+  once" quietly becomes three things that can disagree.
+
+- **Slice 28 shipped without a § 5 entry**, which is how § 5 came to close with "there is no
+  slice 28 yet" while slice 28 was in `main`. Its reasoning is not lost — all of it is in § 8
+  under _Overhear → join_ — but the two sections are read for different questions ("what is in
+  the room" vs "what did we decide not to do"), and a slice that answers only the second is
+  invisible to anybody scanning the first. Slice 29 added a one-line stub pointing at § 8
+  rather than reconstructing an entry for work it did not do; a fuller entry is still owed by
+  whoever remembers it.
 
 - ~~**Three `vi.mock` calls in `useOfficeRunReactions.test.js` have never mocked anything**~~ and
   ~~**`act()` in that file also hides the bug**~~ — **both fixed**, and the sweep the entry asked

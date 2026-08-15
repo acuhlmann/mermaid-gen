@@ -1640,6 +1640,13 @@ export const OFFICE_ZH_TW = {
         action: '💬 加入他們',
         actionTitle: '走過去說點什麼 — 他們自己是不會帶上你的'
       },
+      sceneJoinBattle: {
+        eyebrow: '還在吵',
+        body: '{name} 還在走道那頭爭不休。沒人能定下來。',
+        action: '⚔️ 過去做個了斷',
+        actionTitle: '走過去 — 他們會讓你選邊站',
+        line: '……好吧。你。你來定。'
+      },
       sceneJoin: {
         eyebrow: '還在聊',
         body: '{name} 沒等你就去喝咖啡了。他們還在茶水間。',

@@ -1640,6 +1640,13 @@ export const OFFICE_ZH_CN = {
         action: '💬 加入他们',
         actionTitle: '走过去说点什么 — 他们自己是不会带上你的'
       },
+      sceneJoinBattle: {
+        eyebrow: '还在吵',
+        body: '{name} 还在过道那头争不休。没人能定下来。',
+        action: '⚔️ 过去做个了断',
+        actionTitle: '走过去 — 他们会让你选边站',
+        line: '……行吧。你。你来定。'
+      },
       sceneJoin: {
         eyebrow: '还在聊',
         body: '{name} 没等你就去喝咖啡了。他们还在茶水间。',

@@ -8,6 +8,7 @@ import {
   standUp
 } from '../src/state/officeViewModeStore.js';
 import { setOfficeCaptions, setOfficeNarration } from '../src/state/officeMomentStore.js';
+import { deskDoingFor } from '../src/utils/officeFloorActivity.js';
 
 /** The shape useMeetingPlayback exposes — the floor only ever reads it. */
 const PLAYING = {
@@ -240,5 +241,105 @@ describe('walking into the glass room (slice 27)', () => {
     for (const id of PLAYING.attendees) {
       expect(screen.getByTestId(`office-floor-meeting-seat-${id}`)).toBeTruthy();
     }
+  });
+});
+
+describe('the table has something on it (slice 29)', () => {
+  /**
+   * These mount the floor, so the hour reaches them — and after this slice it
+   * reaches the glass room too. Pinning `Date` only keeps React's scheduling
+   * and the floor's poll timer alive (§ 8's standing trap).
+   */
+  function atHour(hour) {
+    vi.setSystemTime(new Date(2026, 7, 11, hour, 0, 0));
+  }
+
+  /** The figure in a chair, which is where `data-hold` and the face live. */
+  const actor = (id) =>
+    screen
+      .getByTestId(`office-floor-meeting-seat-${id}`)
+      .querySelector('.office-floor-person-figure');
+
+  beforeEach(() => {
+    vi.useFakeTimers({ shouldAdvanceTime: true, toFake: ['Date'] });
+    atHour(12); // midday — the baseline, and the phase with no art
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('hands the agenda to whoever called it', () => {
+    renderFloor({ meeting: PLAYING });
+    expect(actor(PLAYING.facilitatorId).dataset.hold).toBe('papers');
+    expect(actor(PLAYING.facilitatorId).className).toMatch(/is-pose-reading/);
+    // Everybody else is listening at this hour, so the agenda is the one thing
+    // on the table rather than a value the whole room happened to share.
+    expect(actor('gilfoyle').dataset.hold).toBeUndefined();
+    expect(actor('you').dataset.hold).toBeUndefined();
+  });
+
+  it('actually draws the agenda, not just the marker attribute', () => {
+    // Same guard the desk drawings carry: `data-hold` would keep passing with
+    // `HeldItem` rendering nothing, which is what a broken import looks like.
+    renderFloor({ meeting: PLAYING });
+    const layer = actor(PLAYING.facilitatorId).querySelector('.office-floor-person-hold');
+    expect(layer).toBeTruthy();
+    expect(layer.innerHTML.length).toBeGreaterThan(0);
+  });
+
+  it('gives the rest of the table the hour', () => {
+    atHour(8); // earlyMorning — everybody has a mug
+    renderFloor({ meeting: PLAYING });
+    for (const id of ['gilfoyle', 'cfo', 'you']) {
+      expect(actor(id).dataset.hold, `${id} came to an 8am meeting empty-handed`).toBe('mug');
+    }
+    // And the person running it is still running it.
+    expect(actor(PLAYING.facilitatorId).dataset.hold).toBe('papers');
+  });
+
+  it('never puts a headset on somebody sitting in the room', () => {
+    // 9:45 is the remote stand-up hour, whose whole-office tell is a headset.
+    // A physical meeting at that hour must not draw it: a headset means "on a
+    // call from your desk", and these people walked here.
+    atHour(9);
+    vi.setSystemTime(new Date(2026, 7, 11, 9, 45, 0));
+    const view = renderFloor({ meeting: PLAYING });
+
+    for (const id of ['gilfoyle', 'cfo', 'you']) {
+      expect(actor(id).querySelector('[data-accessory="headset"]'), id).toBeNull();
+      expect(actor(id).className, id).not.toMatch(/is-pose-call/);
+    }
+
+    /*
+     * Both claims above are negatives, and a negative passes for free on a room
+     * that draws nothing — which is precisely what this room did before the
+     * slice. So they get two companions. The hour really is the headset one:
+     */
+    expect(view.container.querySelector('.office-floor').dataset.dayPhase).toBe('standUp');
+    const deskFigure = view.container.querySelector(
+      '[data-seat="greybeard"] .office-floor-person-figure'
+    );
+    expect(deskFigure.querySelector('[data-accessory="headset"]')).toBeTruthy();
+    // …and the glass room is deriving at that hour rather than skipping it.
+    expect(actor(PLAYING.facilitatorId).dataset.hold).toBe('papers');
+  });
+
+  it('leaves the desk trait row behind — nobody types through a meeting', () => {
+    renderFloor({ meeting: { ...PLAYING, attendees: ['scrumMaster', 'gilfoyle', 'russ'] } });
+    // Gilfoyle types and Russ takes calls, at their desks — assert that first,
+    // so the two negatives below are overrides rather than rows that were
+    // already blank.
+    const desk = (id) =>
+      screen.getByTestId(`office-floor-meeting-seat-${id}`) &&
+      document.querySelector(`[data-seat="${id}"] .office-floor-person-figure`);
+    expect(desk('russ')).toBeNull(); // summoned, so his desk figure is gone
+    expect(deskDoingFor('russ').hold).toBe('phone');
+    expect(deskDoingFor('gilfoyle').pose).toBe('typing');
+
+    expect(actor('gilfoyle').className).not.toMatch(/is-pose-typing/);
+    expect(actor('russ').dataset.hold).toBeUndefined();
+    // Same companion as above: the room is deriving, not returning nothing.
+    expect(actor('scrumMaster').dataset.hold).toBe('papers');
   });
 });

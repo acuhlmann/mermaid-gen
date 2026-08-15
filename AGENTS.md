@@ -267,6 +267,23 @@ Production deploy notes (Cloud Run, billing credits, GitHub Actions CI, optional
   rung in `FloorCardSlot` and its narration replaces only the **at-rest** line: it is the first
   durable entry in two orderings built for momentary ones, so ranking it higher suppresses
   every transient offer and stops the live region reporting movement.
+- **Declining a set piece leaves it running, and how it then _ends_ differs per scene.** Slice
+  28 did this for the coffee break, slice 30 for the cubicle battle, and the second one is where
+  the reusable rule is. A declined scene stays in the store, so it counts toward
+  `hasActiveOfficeSurface` — and if it never reaches an ending the ambient director stays silent
+  for the rest of the session. Pacing it (`useOfficeLayerPerformances` runs on
+  `accepted || declined`) is **sufficient for the break and not for the battle**: `battlePace`'s
+  `onDone` only raises `battleLinesDone`, and what actually clears the store is a click on the
+  verdict panel, which is gated on `accepted`. So an unattended battle takes a second exit —
+  `onBattleUnsettled` dismisses it, unsettled, paying no XP. Before adding a third joinable
+  scene, ask **what clears it when nobody is watching**, not merely whether it is paced. Joining
+  is per-scene for the same reason: a break has nothing pending so joining ends it, a battle has
+  a question so joining hands you the casting vote (`accepted` raises the panel the battle
+  already had). Copy is **one block per kind** (`sceneJoin`, `sceneJoinBattle`) — never a
+  `{kind}` branch into a shared one, or a translator softening one reword the other. Note the
+  kitchen and the cubicles are **2-4 tiles apart** against an earshot of 3, so the two offers'
+  catchments genuinely overlap; the fix is the fixed scan order in `sceneJoinOfferFor`, never a
+  second radius.
 - **The office log records; it never triggers.** `apps/web/src/state/officeLogStore.js` is what
   lets the cast say "since this morning's thing". Writers hook funnels that already exist —
   `onOfficeEvent` in `useRunCeremony.js`, the moment-store push mutators, the adopt handler in
@@ -517,6 +534,19 @@ https://api.deepseek.com/` — 401 is reachable, 000 is blocked); never route ar
   `pointer-events: none` or it re-inflates the hit box § 6 rule 23 shrank. **You** are drawn
   from `PLAYER_FACE_TRAITS`, which lives beside `PERSONA_FACE_TRAITS` because that object's
   keys are pinned to `CAST_TIERS`.
+- **A physical meeting derives separately, and the hour crosses into the glass room only as far
+  as the hand.** `MeetingActor` takes `meetingActivityFor`, **not** `floorActivityFor` — the
+  glass room shares almost no rungs with a desk, so it is a second ladder in the same module
+  rather than a branch of the first (same module on purpose: that is what stops the room and
+  the meeting disagreeing about a headset). Two rules it encodes, both counter-intuitive. The
+  **desk trait row never survives being summoned**: seven of the sixteen `officeDeskWork` rows
+  say `typing` and two say `phone`, so handing `MeetingActor` a plain `floorActivityFor` seats
+  a table of people typing through the meeting they walked to, with Russ taking another call in
+  it. And **only the phase's `hold` crosses, never its `headwear`** — at the `standUp` hour
+  `PHASE_ART`'s whole-office tell is a headset, which means "on a call from your desk", so
+  drawing it on somebody sitting in the room paints the **remote** modality on top of the
+  **physical** one, the single distinction `FloorMeeting` exists to make. The rule is: whoever
+  called it holds the agenda, everybody else holds the hour, the rest are listening.
 - **After presence / TTS / desk-frame edits**, prefer `apps/web/test/officePresence.test.js`,
   `deskOsPresenceStrip.test.jsx`, `deskOsFrameStyles.test.js`, `apps/server/test/officeTts.test.js`,
   `officeRoute.test.js` (or `npm run test:affected`). **After isometric-floor edits**, `npm run

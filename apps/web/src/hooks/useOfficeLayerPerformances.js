@@ -25,6 +25,7 @@ import { useScenePacing } from './useScenePacing.js';
  *   narrateLine?: (line: any) => Promise<{ spoken?: boolean }> | void,
  *   prefetchLine?: (line: any) => void,
  *   onCoffeeDone?: () => void,
+ *   onBattleUnsettled?: () => void,
  *   huddleHandlers?: {
  *     onHardStop?: () => void,
  *     onAdoptPrompt?: (prompt: string, colleagueId: string) => void,
@@ -42,6 +43,7 @@ export function useOfficeLayerPerformances({
   narrateLine,
   prefetchLine,
   onCoffeeDone,
+  onBattleUnsettled,
   huddleHandlers = {}
 }) {
   const [battleLinesDone, setBattleLinesDone] = useState(false);
@@ -86,15 +88,44 @@ export function useOfficeLayerPerformances({
     onDone: onCoffeeDone
   });
 
+  /*
+   * Slice 30: the same bargain for the battle, with the one difference that made
+   * slice 28 defer it.
+   *
+   * A coffee break ends when its script ends. A battle ends when somebody
+   * **settles** it — `onDone` here only raises `battleLinesDone`, and what
+   * actually clears the store is a click on the verdict panel. That panel is
+   * gated on `accepted`, so an unattended battle would reach the end of its
+   * lines, render no panel, and sit in the store forever with
+   * `hasActiveOfficeSurface` holding the ambient director silent for the rest of
+   * the session. It is slice 28's trap wearing the one costume that survives
+   * slice 28's fix.
+   *
+   * So an argument nobody refereed **goes unsettled**: `onBattleUnsettled`
+   * dismisses it where an attended one would wait for a verdict. That is the
+   * design answer and the joke at once — the holy war is still on, and pressing
+   * the join card is what turns it into a question you get to answer.
+   *
+   * `onDone` is read through a ref that `useScenePacing` refreshes every render,
+   * so closing over `battleUnattended` reads the current value rather than the
+   * one from the render that started the scene.
+   */
+  const battleUnattended = Boolean(battle?.declined && !battle?.accepted);
   const battlePace = useScenePacing({
     lines: battle?.lines ?? [],
-    active: Boolean(battle?.accepted && battle),
-    narrateLine: typeof narrateLine === 'function' ? narrateLine : () => ({ spoken: false }),
-    prefetchLine,
+    active: Boolean(battle && (battle.accepted || battle.declined)),
+    // Silent, and a wrapper rather than `undefined`, for the reason spelled out
+    // on the coffee break above: no narrator flushes the whole script in a tick.
+    narrateLine: battleUnattended
+      ? () => ({ spoken: false })
+      : typeof narrateLine === 'function'
+        ? narrateLine
+        : () => ({ spoken: false }),
+    prefetchLine: battleUnattended ? undefined : prefetchLine,
     paceMs: BATTLE_LINE_PACE_MS,
     silentDurationMs: BATTLE_SILENT_DURATION_MS,
     sceneId: battle?.id ?? null,
-    onDone: () => setBattleLinesDone(true)
+    onDone: () => (battleUnattended ? onBattleUnsettled?.() : setBattleLinesDone(true))
   });
 
   const huddleRing = useHuddleRingControls({

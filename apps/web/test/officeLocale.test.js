@@ -403,29 +403,42 @@ describe('office locale bundles', () => {
    * substituted with nothing and in silence, and this body names the one person
    * whose invitation you turned down.
    */
-  it.each(LOCALES)('offers a way into a break you turned down (%s)', (locale) => {
-    const sceneJoin = getUiLocaleBundle(locale).office.OFFICE_CHROME_COPY.floor.sceneJoin;
-    const en = OFFICE_CHROME_COPY.floor.sceneJoin;
-    expect(Object.keys(sceneJoin ?? {}).sort(), `${locale} floor.sceneJoin`).toEqual(
-      Object.keys(en).sort()
-    );
-    expect(sceneJoin, `${locale} floor.sceneJoin untranslated`).not.toEqual(en);
-    for (const key of Object.keys(en)) {
-      expect(
-        String(sceneJoin[key]).trim().length,
-        `${locale} floor.sceneJoin.${key} empty`
-      ).toBeGreaterThan(0);
+  /*
+   * Slice 30 gave the cubicle battle its own block rather than a `{kind}`
+   * branch inside this one, so the sweep is over both. A locale that translated
+   * only the coffee break offers only the coffee break — which is the intended
+   * degradation, and exactly what an untranslated `sceneJoinBattle` would look
+   * like if nothing swept it.
+   */
+  const JOIN_BLOCKS = ['sceneJoin', 'sceneJoinBattle'];
+
+  it.each(LOCALES.flatMap((locale) => JOIN_BLOCKS.map((block) => [locale, block])))(
+    'offers a way into a set piece you turned down (%s %s)',
+    (locale, block) => {
+      const sceneJoin = getUiLocaleBundle(locale).office.OFFICE_CHROME_COPY.floor[block];
+      const en = OFFICE_CHROME_COPY.floor[block];
+      expect(Object.keys(en ?? {}).length, `${block} missing from English`).toBeGreaterThan(0);
+      expect(Object.keys(sceneJoin ?? {}).sort(), `${locale} floor.${block}`).toEqual(
+        Object.keys(en).sort()
+      );
+      expect(sceneJoin, `${locale} floor.${block} untranslated`).not.toEqual(en);
+      for (const key of Object.keys(en)) {
+        expect(
+          String(sceneJoin[key]).trim().length,
+          `${locale} floor.${block}.${key} empty`
+        ).toBeGreaterThan(0);
+      }
+      expect(sceneJoin.body, `${locale} floor.${block}.body lost {name}`).toContain('{name}');
+      /*
+       * The closing beat must name nobody: it is spoken by whichever colleague
+       * asked you, so a `{placeholder}` here would go unsubstituted and a proper
+       * noun would put one cast member's name in another's mouth.
+       */
+      expect(sceneJoin.line, `${locale} floor.${block}.line takes a placeholder`).not.toMatch(
+        /\{[a-z]+\}/i
+      );
     }
-    expect(sceneJoin.body, `${locale} floor.sceneJoin.body lost {name}`).toContain('{name}');
-    /*
-     * The closing beat must name nobody: it is spoken by whichever colleague
-     * asked you, so a `{placeholder}` here would go unsubstituted and a proper
-     * noun would put one cast member's name in another's mouth.
-     */
-    expect(sceneJoin.line, `${locale} floor.sceneJoin.line takes a placeholder`).not.toMatch(
-      /\{[a-z]+\}/i
-    );
-  });
+  );
 
   it('routes localized copy through the officeCast accessors', () => {
     setActiveOfficeBundle(getUiLocaleBundle('zh-CN').office);

@@ -36,7 +36,9 @@ import { useOfficeWelcome } from '../hooks/useOfficeWelcome.js';
 import {
   acceptOfficeBattle,
   acceptOfficeCoffee,
+  declineOfficeBattle,
   declineOfficeCoffee,
+  joinOfficeBattle,
   joinOfficeCoffee,
   dismissOfficeBattle,
   dismissOfficeCoffee,
@@ -894,6 +896,49 @@ export default function OfficeLayer({
     acceptOfficeBattle();
   }, []);
 
+  /*
+   * Slice 30, and the exact counterpart of `handleDeclineCoffee`: turning down
+   * an argument takes you out of it rather than taking it out of the office.
+   */
+  const handleDeclineBattle = useCallback(() => {
+    cancelOfficeNarration();
+    declineOfficeBattle();
+  }, []);
+
+  /*
+   * An argument nobody refereed. Reached only from the pacing hook, when a
+   * declined battle runs out of lines with no verdict panel to click — see
+   * `useOfficeLayerPerformances`. It dismisses (which also arms the re-entry
+   * cooldown) and pays nothing: `battleSettled` is for settling one, and this is
+   * the outcome where nobody did.
+   */
+  const handleBattleUnsettled = useCallback(() => {
+    cancelOfficeNarration();
+    dismissOfficeBattle();
+  }, []);
+
+  /*
+   * Walking into the holy war — where this stops mirroring the coffee break.
+   *
+   * Joining a break ends it, because a conversation you missed has nothing left
+   * to offer. A battle has a pending question, so joining hands it to you: one
+   * closing beat, then `accepted` raises the verdict panel the battle has always
+   * had, and the ordinary vote → zinger → `battleSettled` path takes over.
+   *
+   * Copy read here rather than in the store for `handleJoinCoffee`'s reason —
+   * an untranslated locale withholds the whole verb (`joinOfficeBattle` refuses
+   * a blank line) rather than joining you into a scene with an empty line.
+   */
+  const handleJoinBattle = useCallback(() => {
+    const battle = getOfficeSnapshot().battle;
+    const speakerId = sceneParticipants(battle?.lines)[0];
+    if (!speakerId) return;
+    const text = officeChromeCopy().floor?.sceneJoinBattle?.line;
+    if (!text) return;
+    cancelOfficeNarration();
+    joinOfficeBattle({ speakerId, text });
+  }, []);
+
   // Settling a battle (voting) is the XP moment; walking away earns nothing
   // but judgment-free peace. Dismiss happens on "Back to work" either way.
   const handleBattleVote = useCallback(
@@ -1172,6 +1217,7 @@ export default function OfficeLayer({
     narrateLine: snapshot.narration ? narrateLine : undefined,
     prefetchLine: snapshot.narration ? prefetchLine : undefined,
     onCoffeeDone: handleCoffeeDone,
+    onBattleUnsettled: handleBattleUnsettled,
     huddleHandlers: huddleHandlersForPerformances
   });
 
@@ -1471,9 +1517,10 @@ export default function OfficeLayer({
           onAcceptCoffee: handleAcceptCoffee,
           onDeclineCoffee: handleDeclineCoffee,
           onJoinCoffee: handleJoinCoffee,
+          onJoinBattle: handleJoinBattle,
           onCoffeeDone: handleCoffeeDone,
           onAcceptBattle: handleAcceptBattle,
-          onDeclineBattle: handleBattleDone,
+          onDeclineBattle: handleDeclineBattle,
           onVoteBattle: handleBattleVote,
           onBattleDone: handleBattleDone
         },
@@ -1506,6 +1553,8 @@ export default function OfficeLayer({
       handleDeclineCoffee,
       handleAcceptCoffee,
       handleAcceptBattle,
+      handleDeclineBattle,
+      handleJoinBattle,
       narrateLine,
       prefetchLine,
       handleCoffeeDone,

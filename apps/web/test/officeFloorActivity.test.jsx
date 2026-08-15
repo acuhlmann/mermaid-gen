@@ -10,7 +10,8 @@ import {
   baseDoingFor,
   conversationSpeakerId,
   deskDoingFor,
-  floorActivityFor
+  floorActivityFor,
+  meetingActivityFor
 } from '../src/utils/officeFloorActivity.js';
 import { DESK_WORK_DOING, OFFICE_DESK_WORK } from '../src/utils/officeDeskWork.js';
 import {
@@ -370,5 +371,68 @@ describe('the office day reaches the figures (slice 20)', () => {
     const view = renderFloor();
     const floor = view.container.querySelector('.office-floor');
     expect(OFFICE_DAY_PHASES).toContain(floor.dataset.dayPhase);
+  });
+});
+
+describe('what people bring to a meeting (slice 29)', () => {
+  it('gives the agenda to whoever called it, and to nobody else', () => {
+    expect(meetingActivityFor('scrumMaster', { facilitator: true })).toEqual({
+      pose: 'reading',
+      hold: 'papers',
+      headwear: null
+    });
+    expect(meetingActivityFor('scrumMaster', { facilitator: false }).hold).toBe(null);
+  });
+
+  it('seats everybody else with the hour, and empty-handed when it has none', () => {
+    expect(meetingActivityFor('gilfoyle', { dayPhase: 'earlyMorning' }).hold).toBe('mug');
+    expect(meetingActivityFor('gilfoyle', { dayPhase: 'windDown' }).hold).toBe('papers');
+    // Midday is the baseline hour and has no art, so the table is listening.
+    expect(meetingActivityFor('gilfoyle', { dayPhase: 'midday' })).toEqual({
+      pose: 'idle',
+      hold: null,
+      headwear: null
+    });
+    // An unphased mount is the same, so a standalone `FloorMeeting` with no
+    // day-phase prop draws exactly what a midday one does.
+    expect(meetingActivityFor('gilfoyle', {})).toEqual(
+      meetingActivityFor('gilfoyle', { dayPhase: 'midday' })
+    );
+  });
+
+  it('never wears the hour’s headset, because that is the other modality', () => {
+    // The premise: `standUp` really is a headset for the room's standing
+    // population, so this is an override rather than a value that was absent.
+    expect(floorActivityFor('gilfoyle', { dayPhase: 'standUp' }).headwear).toBe('headset');
+    // But these people walked to a room, and a headset in the glass room draws
+    // the *remote* modality on top of the physical one.
+    for (const phase of OFFICE_DAY_PHASES) {
+      expect(meetingActivityFor('gilfoyle', { dayPhase: phase }).headwear, phase).toBe(null);
+      expect(meetingActivityFor('gilfoyle', { dayPhase: phase }).pose, phase).not.toBe('call');
+    }
+  });
+
+  it('never seats the desk trait row, which is the one thing a meeting is sure is wrong', () => {
+    // Russ takes calls and Gilfoyle types — at their desks. Neither survives
+    // being summoned, at any hour, which is the whole claim of the rule.
+    expect(deskDoingFor('russ').hold).toBe('phone');
+    expect(deskDoingFor('gilfoyle').pose).toBe('typing');
+    for (const phase of [...OFFICE_DAY_PHASES, null]) {
+      expect(meetingActivityFor('russ', { dayPhase: phase }).hold, phase).not.toBe('phone');
+      expect(meetingActivityFor('gilfoyle', { dayPhase: phase }).pose, phase).not.toBe('typing');
+    }
+    // The companion claim: the sweep above is examining something. Without it,
+    // an `OFFICE_DAY_PHASES` that went empty would pass every assertion in it.
+    expect(OFFICE_DAY_PHASES.length).toBeGreaterThan(0);
+  });
+
+  it('never invents art outside the closed vocabularies', () => {
+    for (const facilitator of [true, false]) {
+      for (const phase of [...OFFICE_DAY_PHASES, null]) {
+        const art = meetingActivityFor('gilfoyle', { facilitator, dayPhase: phase });
+        expect(FLOOR_POSES).toContain(art.pose);
+        if (art.hold !== null) expect(FLOOR_HOLDS).toContain(art.hold);
+      }
+    }
   });
 });
