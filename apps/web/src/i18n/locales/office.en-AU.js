@@ -1462,6 +1462,13 @@ export const OFFICE_EN_AU = {
         action: '💬 Get amongst it',
         actionTitle: 'Wander over and say something — they won’t include you on their own'
       },
+      sceneJoinBattle: {
+        eyebrow: 'STILL ARGUING',
+        body: '{name} is still going at it across the aisle. Nobody’s settled it.',
+        action: '⚔️ Go and settle it',
+        actionTitle: 'Wander over — they’ll want you to pick a side',
+        line: '…right. You. You call it.'
+      },
       sceneJoin: {
         eyebrow: 'STILL GOING',
         body: '{name} went for the coffee without you. They’re still in the kitchen.',

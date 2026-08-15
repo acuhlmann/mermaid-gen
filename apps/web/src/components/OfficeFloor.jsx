@@ -497,8 +497,10 @@ function OfficeFloorView({ bridge, viewPhase }) {
    * ends the scene where it stands rather than walking you anywhere.
    */
   const sceneJoinOffer = useMemo(
-    () => (activity.standingFree ? sceneJoinOfferFor(coffee, youTile) : null),
-    [activity.standingFree, coffee, youTile]
+    // Slice 30: the cubicle battle is the second joinable scene, and it stands
+    // across the aisle rather than in the kitchen — hence the per-kind tiles.
+    () => (activity.standingFree ? sceneJoinOfferFor(coffee, youTile, battle) : null),
+    [activity.standingFree, coffee, youTile, battle]
   );
 
   /*
@@ -737,7 +739,14 @@ function OfficeFloorView({ bridge, viewPhase }) {
         // which owns the store, the copy for the closing beat and what the
         // break is worth (ADR-0011 — one wiring point).
         sceneJoin={sceneJoinOffer}
-        onJoinScene={() => sceneHandlers?.onJoinCoffee?.()}
+        // Slice 30: the floor reports which scene you pressed on and renderer #1
+        // owns what that costs (ADR-0011) — the store, the copy and the XP all
+        // live there, so the kind is all that crosses.
+        onJoinScene={() =>
+          sceneJoinOffer?.kind === 'battle'
+            ? sceneHandlers?.onJoinBattle?.()
+            : sceneHandlers?.onJoinCoffee?.()
+        }
         // Slice 26. The same verb a third time — an errand is a walk, so it
         // gets no machinery of its own. Dropping it is the store's business and
         // nothing else's: the errand does not belong to the floor, and speaking

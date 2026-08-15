@@ -40,12 +40,21 @@
  * is canned copy, and § 11's reactive spend is for sentences you typed.
  */
 
-import { COFFEE_TILES, isWithinEarshot } from './officeFloorPlan.js';
+import { BATTLE_TILES, COFFEE_TILES, isWithinEarshot } from './officeFloorPlan.js';
 import { sceneParticipants } from './officeSceneCast.js';
 
 /**
- * @typedef {{ colleagueId: string, participants: string[], kind: 'coffee' }} SceneJoinOffer
+ * @typedef {{ colleagueId: string, participants: string[], kind: 'coffee' | 'battle' }} SceneJoinOffer
  */
+
+/**
+ * Where each joinable set piece stands. Both are fixed marks in
+ * `reservedMarks()`, which is what lets the offer be derived without waiting for
+ * anybody to finish walking (see the module header).
+ *
+ * @type {Record<string, Array<{ x: number, y: number }>>}
+ */
+const SCENE_TILES = { coffee: COFFEE_TILES, battle: BATTLE_TILES };
 
 /**
  * Whether this scene is running with nobody from your desk in it.
@@ -63,18 +72,19 @@ export function isUnattendedScene(scene) {
 }
 
 /**
- * Near enough to walk into the kitchen and be part of it.
+ * Near enough to walk into the scene and be part of it.
  *
  * Either tile rather than both: the cast stand a tile apart, so requiring
  * earshot of both would carve a notch out of the range on the far side of
  * whichever one you approached from.
  *
  * @param {{ x: number, y: number } | null} youTile
+ * @param {'coffee' | 'battle'} [kind]
  * @returns {boolean}
  */
-export function withinSceneEarshot(youTile) {
+export function withinSceneEarshot(youTile, kind = 'coffee') {
   if (!youTile) return false;
-  return COFFEE_TILES.some((tile) => isWithinEarshot(youTile, tile));
+  return (SCENE_TILES[kind] ?? []).some((tile) => isWithinEarshot(youTile, tile));
 }
 
 /**
@@ -89,18 +99,31 @@ export function withinSceneEarshot(youTile) {
  * Returns `null` for a scene with no cast, which is how an empty or malformed
  * script degrades: an offer to join nobody is worse than no offer.
  *
+ * Slice 30 added the battle as a second kind. The two are scanned in a fixed
+ * order rather than merged, because they stand in different places and the card
+ * can only hold one — and the order barely matters in practice, since
+ * `canOfferOfficeBattle` refuses while another surface is up, so two unattended
+ * scenes at once is a store-only state.
+ *
  * @param {{ accepted?: boolean, declined?: boolean, lines?: Array<{ speakerId: string }> } | null} coffee
  * @param {{ x: number, y: number } | null} youTile
+ * @param {{ accepted?: boolean, declined?: boolean, lines?: Array<{ speakerId: string }> } | null} [battle]
  * @returns {SceneJoinOffer | null}
  */
-export function sceneJoinOfferFor(coffee, youTile) {
-  if (!isUnattendedScene(coffee)) return null;
-  if (!withinSceneEarshot(youTile)) return null;
+export function sceneJoinOfferFor(coffee, youTile, battle = null) {
+  for (const [kind, scene] of [
+    ['coffee', coffee],
+    ['battle', battle]
+  ]) {
+    if (!isUnattendedScene(scene)) continue;
+    if (!withinSceneEarshot(youTile, kind)) continue;
 
-  const participants = sceneParticipants(coffee.lines);
-  if (participants.length === 0) return null;
+    const participants = sceneParticipants(scene.lines);
+    if (participants.length === 0) continue;
 
-  return { colleagueId: participants[0], participants, kind: 'coffee' };
+    return { colleagueId: participants[0], participants, kind };
+  }
+  return null;
 }
 
 export default sceneJoinOfferFor;

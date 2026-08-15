@@ -2614,6 +2614,13 @@ export const OFFICE_CHROME_COPY = {
      * No `{prop}`: there is one coffee machine and the body can say "the
      * kitchen" plainly, unlike shop talk where the prop picks the voice.
      */
+    sceneJoinBattle: {
+      eyebrow: 'STILL ARGUING',
+      body: '{name} is still going at it across the aisle. Nobody has settled it.',
+      action: '⚔️ Go and settle it',
+      actionTitle: 'Walk over — they will want you to pick a side',
+      line: '…right. You. You decide.'
+    },
     sceneJoin: {
       eyebrow: 'STILL GOING',
       body: '{name} took the coffee break without you. They are still in the kitchen.',

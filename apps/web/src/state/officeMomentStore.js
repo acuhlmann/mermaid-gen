@@ -800,6 +800,7 @@ export function pushOfficeBattleInvite({ topic, lines, verdicts }) {
     lines: Array.isArray(lines) ? lines : [],
     verdicts: verdicts && typeof verdicts === 'object' ? verdicts : {},
     accepted: false,
+    declined: false,
     votedFor: null,
     createdAt: Date.now()
   };
@@ -810,6 +811,69 @@ export function pushOfficeBattleInvite({ topic, lines, verdicts }) {
 export function acceptOfficeBattle() {
   if (!state.battle || state.battle.accepted) return;
   update({ battle: { ...state.battle, accepted: true } });
+}
+
+/**
+ * "Not my holy war" — the battle's half of slice 28's distinction (§ 5 slice 30).
+ *
+ * Declining used to call `dismissOfficeBattle`, so saying no deleted an argument
+ * two other people were having. Slice 28 fixed exactly this for the coffee break
+ * and deliberately left the battle, because the battle asks a question the break
+ * does not: a break ends when its script ends, a battle ends when somebody
+ * **settles** it. That is what made "joining ends it" ambiguous here.
+ *
+ * The answer is that an unattended battle settles nothing — see the pacing in
+ * `useOfficeLayerPerformances`, which dismisses it when the lines run out
+ * instead of waiting for a verdict panel that nobody is looking at. Without
+ * that, a declined battle sits in the store forever and `hasActiveOfficeSurface`
+ * holds the ambient director silent for the rest of the session.
+ *
+ * Idempotent against both flags, for `declineOfficeCoffee`'s reason: a scene
+ * carrying `accepted` *and* `declined` would render the invite and the arena at
+ * once.
+ */
+export function declineOfficeBattle() {
+  if (!state.battle || state.battle.accepted || state.battle.declined) return;
+  update({ battle: { ...state.battle, declined: true } });
+}
+
+/**
+ * Wandering into an argument you turned down — and being handed the casting vote
+ * (§ 5 slice 30).
+ *
+ * This is where the battle stops mirroring the coffee break. Joining a break
+ * *ends* it, because there is nothing to do with a conversation whose thread you
+ * missed. A battle has something to do: it has a pending question and a verdict
+ * panel already built for it. So joining swaps the remaining script for one
+ * closing beat — the two of them turning to you — and marks it `accepted`, which
+ * is what makes `FloorScene` raise the verdict panel once the beat has played.
+ * You settle it, the winner's zinger fires, `battleSettled` pays out. No new
+ * state machine: the existing accepted→linesDone→vote→verdict path takes over.
+ *
+ * A fresh `id` for `useScenePacing`'s reason (see `joinOfficeCoffee`): it keys on
+ * `sceneId`, so reusing the old one leaves `visibleLines` past the end of a
+ * one-line script and the panel would never appear.
+ *
+ * `votedFor` is untouched rather than reset, and that is safe rather than lucky:
+ * `voteOfficeBattle` refuses a battle that is not `accepted`, so an unattended
+ * one cannot have been voted on.
+ *
+ * @param {{ speakerId: string, text: string }} line
+ * @returns {boolean} whether there was an unattended battle to join
+ */
+export function joinOfficeBattle(line) {
+  if (!state.battle || state.battle.accepted || !state.battle.declined) return false;
+  if (!line || typeof line.text !== 'string' || !line.text) return false;
+  update({
+    battle: {
+      ...state.battle,
+      id: makeId('battle'),
+      lines: [line],
+      accepted: true,
+      declined: false
+    }
+  });
+  return true;
 }
 
 export function voteOfficeBattle(colleagueId) {

@@ -322,7 +322,15 @@ export function FloorJoinCard({ join, copy, onJoin }) {
  * }} props `copy` is `officeChromeCopy().floor`.
  */
 export function FloorSceneJoinCard({ sceneJoin, copy, onJoinScene }) {
-  const joinCopy = copy.sceneJoin;
+  /*
+   * Slice 30: one block per kind, never a `{kind}` interpolation into a shared
+   * one. Same argument this card makes against sharing a component with
+   * `FloorJoinCard` — a translator softening "settle it" for the holy war must
+   * not silently reword the offer to walk into somebody's coffee break. The
+   * two-part guard then works per kind as well: a locale that translated only
+   * one of them offers only that one, rather than an untitled card.
+   */
+  const joinCopy = sceneJoin.kind === 'battle' ? copy.sceneJoinBattle : copy.sceneJoin;
   if (!joinCopy || typeof onJoinScene !== 'function') return null;
 
   const speaker = officeSenderInfo(sceneJoin.colleagueId);

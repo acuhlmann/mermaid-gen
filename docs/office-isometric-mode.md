@@ -1468,7 +1468,58 @@ diagramSource})` returns counts, labels, a `shape` (`graph` | `list` | `page`), 
     assertions was checked red against the unmodified component before it was kept, because
     three of them are negatives and a negative passes for free on a room that draws nothing).
 
-**There is no slice 30 yet, and that is deliberate.** The list above was written one slice at
+30. **Joining the holy war — the argument you turned down is still going.** ✅ shipped. Slice 28
+    made declining a coffee break mean "not for me" rather than "not happening", and deliberately
+    left the cubicle battle, naming the reason: a break ends when its script ends, so "joining
+    ends it" is unambiguous there, while **a battle ends when somebody settles it**. This slice
+    is that question answered, and the answer is what makes the two scenes different rather than
+    one mechanic with two skins.
+
+    **An argument nobody refereed goes unsettled.** That is the design answer and the trap fix in
+    one sentence. `battlePace`'s `onDone` only raises `battleLinesDone`; what actually clears the
+    store is a click on the verdict panel, and that panel is gated on `accepted`. So a declined
+    battle would run out of lines, render no panel, and sit in `hasActiveOfficeSurface` forever —
+    holding the ambient director silent for the rest of the session. It is **slice 28's own trap
+    in the one costume that survives slice 28's fix**, because pacing a declined scene is
+    sufficient for the break and not for this. `onBattleUnsettled` dismisses it instead, which
+    also arms the re-entry cooldown for free, and pays nothing: `battleSettled` is for settling
+    one.
+
+    **Joining hands you the casting vote**, where joining a break merely ends it. A battle has a
+    pending question and a verdict panel already built for it, so the join swaps the remaining
+    script for one closing beat — the two of them turning to you — and marks it `accepted`, which
+    raises the panel. The existing vote → zinger → `battleSettled` path takes over unchanged.
+    **No new state machine**, and that is the whole reason the expensive-sounding half was cheap:
+    the battle already knew how to end, it just had no way of being handed to a late arrival.
+
+    **What the design did not anticipate is that the two set pieces are neighbours.** Measured
+    while writing the earshot sweep: `COFFEE_TILES` and `BATTLE_TILES` are **2–4 tiles apart**
+    against an `EARSHOT_RANGE_TILES` of 3, so standing at the coffee machine is genuinely within
+    earshot of the cubicle argument and vice versa. That is a fact about a small room rather than
+    a bug, and the fix is _not_ a second tighter radius — that is exactly what
+    `NAME_CHIP_RANGE_TILES` being one ladder exists to prevent. What it makes load-bearing is the
+    **scan order**: the card slot holds one card, coffee is checked first, so an overlap resolves
+    deterministically rather than by render timing. In practice the state is unreachable
+    (`canOfferOfficeBattle` refuses while another surface is up), so the test pins a tie-break
+    rather than a live behaviour — but it is pinned, because a floor-plan change that separates
+    them should be a visible decision.
+
+    **One copy block per kind, never a `{kind}` branch into a shared one** — the same argument
+    `FloorSceneJoinCard` already makes against sharing a component with `FloorJoinCard`. A
+    translator softening "settle it" for the holy war must not silently reword the offer to walk
+    into somebody's coffee break, and the two-part guard (handler _and_ copy) then works per
+    kind: a locale that translated only one offers only that one. `officeLocale.test.js` now
+    sweeps both blocks rather than `sceneJoin` alone.
+
+    Code: `declineOfficeBattle` / `joinOfficeBattle` in `state/officeMomentStore.js`, the pacing
+    gate + `onBattleUnsettled` in `hooks/useOfficeLayerPerformances.js`, `SCENE_TILES` and the
+    two-kind scan in `utils/officeFloorSceneJoin.js`, the handlers in `OfficeLayer.jsx`, the
+    per-kind copy lookup in `officeFloor/FloorTalk.jsx`. Tests: `officeFloorSceneJoin.test.jsx`
+    (the lifecycle first, as slice 28's file does — including the companion claim that an
+    _attended_ battle does **not** take the unsettled exit, without which "the hook calls its
+    callback" would pass for the wrong reason), `officeLocale.test.js` (both blocks, all locales).
+
+**There is no slice 31 yet, and that is deliberate.** The list above was written one slice at
 a time, each defined when it was picked up rather than planned in advance — so "continue with
 slice _n_" only means something once somebody has chosen what _n_ is. § 8 has the candidates,
 a recommendation, and the debts that argue for one over another. Pick from there, write the
@@ -2281,9 +2332,17 @@ Kept here so appetite can pick without re-deriving. Each should stay bound by AD
   through a wrapper returning `{spoken:false}`, never `undefined`, or `useScenePacing` flushes
   the whole script in a tick and the break ends before anybody reaches the kitchen.
 
-  Two things deliberately left: the **cubicle battle** (its verdict panel makes "ends it" mean
+  Two things deliberately left. ~~The **cubicle battle** (its verdict panel makes "ends it" mean
   something different — an unsettled holy war needs a decision about whether joining lets you
-  vote), and any inner bound on the offer. Shop talk needs one because slice 19 would otherwise
+  vote)~~ ✅ **shipped as slice 30**, and the deferred question turned out to be the whole
+  design: **yes, joining lets you vote** — that is what a battle has and a break does not, so
+  joining hands you the casting vote instead of merely ending the scene, and the existing
+  vote → zinger → `battleSettled` path absorbs it with no new state machine. What the deferral
+  did not see is that the harder half was the _other_ ending: an argument nobody refereed has no
+  verdict panel (it is gated on `accepted`), so a declined battle would never clear
+  `hasActiveOfficeSurface` — slice 28's trap in the one costume that survives slice 28's fix.
+  Pacing a declined scene is sufficient for the break and not for this one. And the second item,
+  any inner bound on the offer: shop talk needs one because slice 19 would otherwise
   talk _to_ you at the same range; a scene's cast are `awayIds`, so `dwellTargetAt` cannot pick
   them and standing at the machine is the most natural moment to be let in.
 
