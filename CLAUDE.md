@@ -404,6 +404,19 @@ https://api.deepseek.com/` — 401 is reachable, 000 is blocked); never route ar
   `pointer-events: none` or it re-inflates the hit box § 6 rule 23 shrank. **You** are drawn
   from `PLAYER_FACE_TRAITS`, which lives beside `PERSONA_FACE_TRAITS` because that object's
   keys are pinned to `CAST_TIERS`.
+- **A physical meeting derives separately, and the hour crosses into the glass room only as far
+  as the hand.** `MeetingActor` takes `meetingActivityFor`, **not** `floorActivityFor` — the
+  glass room shares almost no rungs with a desk, so it is a second ladder in the same module
+  rather than a branch of the first (same module on purpose: that is what stops the room and
+  the meeting disagreeing about a headset). Two rules it encodes, both counter-intuitive. The
+  **desk trait row never survives being summoned**: seven of the sixteen `officeDeskWork` rows
+  say `typing` and two say `phone`, so handing `MeetingActor` a plain `floorActivityFor` seats
+  a table of people typing through the meeting they walked to, with Russ taking another call in
+  it. And **only the phase's `hold` crosses, never its `headwear`** — at the `standUp` hour
+  `PHASE_ART`'s whole-office tell is a headset, which means "on a call from your desk", so
+  drawing it on somebody sitting in the room paints the **remote** modality on top of the
+  **physical** one, the single distinction `FloorMeeting` exists to make. The rule is: whoever
+  called it holds the agenda, everybody else holds the hour, the rest are listening.
 - **A wanderer speaks only when _you_ caused it, and `goHome({ byYou })` is the whole gate.**
   Ambient floor traffic is silent by design (slice 11: a wanderer with something to say is a
   walk-by). Slice 18's "excuse me" is not an exception to that — it is §11's ambient/reactive

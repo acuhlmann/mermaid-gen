@@ -200,6 +200,75 @@ export function floorActivityFor(id, context = {}) {
 }
 
 /**
+ * The agenda: what the person who called the meeting is working from.
+ *
+ * @type {FloorActivity}
+ */
+const MEETING_AGENDA = Object.freeze({ pose: 'reading', hold: 'papers', headwear: null });
+
+/** Everybody else, which is the honest answer for most of a meeting. */
+const MEETING_LISTENING = Object.freeze({ pose: 'idle', hold: null, headwear: null });
+
+/**
+ * What somebody has in front of them **in the glass room**
+ * (docs/office-isometric-mode.md § 5 slice 29).
+ *
+ * The glass room was the last surface that drew a figure without asking this
+ * module anything, so sixteen people sat round a table holding nothing. § 8
+ * recorded the wiring as one prop and the blocker as a content question —
+ * *who brings what to a meeting* — and this is the answer:
+ *
+ * 1. **The person who called it brought the agenda.** It is the only role a
+ *    meeting actually has, `meetingSeating` already knows who it is (they take
+ *    the head of the table), and it needs no per-character data to be true.
+ * 2. **Then the hour, but only what it puts in a hand.** `PHASE_ART`'s own
+ *    argument is that a tell everybody shows at once reads as *the time of
+ *    day* rather than as a coincidence — and eight people in one room are the
+ *    most synchronised group in the building, so it lands harder here than it
+ *    does across the desks. It reuses art that already exists; nothing new is
+ *    drawn.
+ * 3. **Otherwise they are listening**, empty-handed.
+ *
+ * Two things it deliberately does **not** do.
+ *
+ * It never takes the hour's **headwear**. At the `standUp` hour `PHASE_ART`'s
+ * tell is a headset, and a headset means *on a call from your desk* — these
+ * people walked to a room. Drawing it would paint the **remote** modality on
+ * top of the **physical** one, which is the single distinction `FloorMeeting`
+ * exists to make. (Only the hold is copied, so that holds for any phase added
+ * later, not just for the one that has a headset today.) Dave keeps his, but
+ * that is his **face** and not his activity — a `null` headwear cannot take a
+ * baked trait off, the same limit a day phase hit in slice 20.
+ *
+ * And it never falls through to the **desk trait row**, which is the one thing
+ * a meeting can be certain is wrong: seven of the sixteen rows say `typing` and
+ * two say `phone`, so `floorActivityFor`'s rung 6 would seat a table of people
+ * typing through the meeting they walked to, with Russ taking another call in
+ * it. This is not an exception to that ladder's rung 5 (`dayPhase` is absent
+ * for anybody a *moment* is drawing) so much as the case it never covered:
+ * rung 5 assumes a moment supplies a tell of its own — a walk-by is moving, a
+ * coffee break puts a cup in every hand — and the meeting was the one moment
+ * that supplied none. Where a moment has nothing of its own to say, the hour
+ * is a better answer than the desk they are not sitting at.
+ *
+ * Whether the person currently **speaking** should look different is left
+ * alone on purpose: `is-speaking` already marks them and the bubble names them,
+ * and re-posing a figure on every beat is churn at 34 px.
+ *
+ * @param {string} _id present for symmetry with `floorActivityFor`; the rule is
+ *   deliberately about the role and the hour, never about who they are.
+ * @param {{ facilitator?: boolean, dayPhase?: string | null }} [context]
+ * @returns {FloorActivity}
+ */
+export function meetingActivityFor(_id, context = {}) {
+  const { facilitator = false, dayPhase = null } = context;
+  if (facilitator) return MEETING_AGENDA;
+  const phase = (dayPhase && PHASE_ART[dayPhase]) ?? null;
+  if (!phase?.hold) return MEETING_LISTENING;
+  return { pose: phase.pose, hold: phase.hold, headwear: null };
+}
+
+/**
  * Who is talking in a conversation you are stood in, or `null` while nobody has
  * said anything yet.
  *

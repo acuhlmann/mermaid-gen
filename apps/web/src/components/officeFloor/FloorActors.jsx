@@ -184,6 +184,9 @@ export function FloorActors({
           scale={scale}
           showSpokenText={showSpokenText}
           walkingIds={walkingIds}
+          // Slice 29: the glass room is the one moment with no tell of its own,
+          // so it takes the hour rather than falling back to nothing.
+          dayPhase={dayPhase}
         />
       ) : null}
       {huddle ? (
