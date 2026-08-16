@@ -662,8 +662,8 @@ script ribs you for not having started and substantive beats suggest a first str
 
 A meeting that wrapped is the **same change under review, one rung up** — the ladder changes the
 register of the room, never the diagram. The rung rides the wire as `venue` on
-`POST /api/office/meeting` (`MEETING_VENUES = ['workingGroup','steering','cab']`, shared
-verbatim between `officePersonas.js` and `officeCast.js`; the server defaults an omitted venue
+`POST /api/office/meeting` (`MEETING_VENUES` in `packages/shared/src/officeScript.ts`;
+re-exported from `officeCast.js` and `officePersonas.js`; the server defaults an omitted venue
 to `workingGroup`).
 
 - **One button books the next rung.** `nextMeetingVenue` climbs workingGroup → steering → cab and

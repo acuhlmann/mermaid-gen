@@ -100,9 +100,13 @@ they need access to outer-closure state.
 ### Other targets
 
 - ⏳ `InsightsPane.jsx`, `DiagramCanvas.jsx`, `mermaidLangChainAgent.js`,
-  `infographicLangChainAgent.js`, `copilot.ts`, `diagramStore.js`,
-  `RadialActionMenu.jsx`. Same pattern: extract helpers first, then per-feature
-  modules. No work scheduled yet.
+  `infographicLangChainAgent.js`, `copilot.ts`, `RadialActionMenu.jsx`.
+  Same pattern: extract helpers first, then per-feature modules.
+- ✅ **`diagramStore.js` (slice 1):** localStorage diagram cache + session wipe helpers
+  → `apps/web/src/state/diagramCacheStorage.js`; `diagramStore.js` re-exports.
+  Remaining: mode-switch helpers, REST submitters, streaming (see
+  [`docs/agents/balanced-coupling-priorities.md`](../agents/balanced-coupling-priorities.md)
+  § Next steps for agents).
 
 ## Consequences
 

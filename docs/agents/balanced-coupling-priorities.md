@@ -71,11 +71,11 @@ Desk chrome (`OfficeLayer`) and the isometric floor (`OfficeFloor`) share `offic
 
 [`docs/agent-blast-radius.md`](../agent-blast-radius.md) lists the correct touch set for each contract (shared → server → web → tests → docs). Pain appears when **knowledge is duplicated** instead of imported from shared.
 
-| Hotspot                                                                                             | Symptom                                       | Fix                                                           |
-| --------------------------------------------------------------------------------------------------- | --------------------------------------------- | ------------------------------------------------------------- |
-| Office enums copied verbatim (e.g. `MEETING_VENUES` in `officePersonas.js` **and** `officeCast.js`) | One side books a room the other cannot script | One constant in `packages/shared`; both sides import          |
-| AG-UI / session-events / MCP behaviour reimplemented per layer                                      | Producer-only diffs that pass lint            | Types and parsers in shared; translators only map shape       |
-| New `contentType` or route field                                                                    | Server works; web silent                      | Schema in `diagramSchema.ts` first; follow blast-radius table |
+| Hotspot                                                                                             | Symptom                                       | Fix                                                                                                                   |
+| --------------------------------------------------------------------------------------------------- | --------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| Office enums copied verbatim (e.g. `MEETING_VENUES` in `officePersonas.js` **and** `officeCast.js`) | One side books a room the other cannot script | One constant in `packages/shared`; both sides import — **done for venues** (see [Progress](#implementation-progress)) |
+| AG-UI / session-events / MCP behaviour reimplemented per layer                                      | Producer-only diffs that pass lint            | Types and parsers in shared; translators only map shape                                                               |
+| New `contentType` or route field                                                                    | Server works; web silent                      | Schema in `diagramSchema.ts` first; follow blast-radius table                                                         |
 
 **Focus rule:** every new wire field or enum → **`packages/shared` first**, then blast-radius checklist.
 
@@ -95,11 +95,11 @@ Related ADRs and docs: [0011](../decisions/0011-two-office-renderers.md), [`docs
 
 ### 3. `diagramStore.js` — web-side hub
 
-~1,045 LOC central state for intent/transform/analyze, streaming, collaboration, and locale. Theoretically cohesive; in practice **accidental volatility** — unrelated features serialize through one file.
+~930 LOC central state for intent/transform/analyze, streaming, and collaboration (cache/storage moved to `diagramCacheStorage.js`). Theoretically cohesive; in practice **accidental volatility** — unrelated features still serialize through one file.
 
-ADR-0005 already split `App.jsx` into `features/*` hooks. **`diagramStore` is the next bottleneck** for diagram and collaboration work.
+ADR-0005 already split `App.jsx` into `features/*` hooks and extracted **`diagramCacheStorage.js`** (localStorage cache + session wipe). **`diagramStore` remains the next bottleneck** for diagram HTTP/streaming work.
 
-**Focus:** extract along existing seams (streaming, session hydrate, per-verb actions) **when you touch that area** — not a standalone "split diagramStore" project unless blocked.
+**Focus:** extract along existing seams (mode-switch helpers, per-verb submitters, streaming) **when you touch that area** — not a standalone "split diagramStore" project unless blocked.
 
 ---
 
@@ -191,14 +191,79 @@ flowchart TD
 
 ## Anti-patterns to watch for
 
-| Symptom                                                                | Likely imbalance                                             |
-| ---------------------------------------------------------------------- | ------------------------------------------------------------ |
-| Fixed server; forgot web translator                                    | Contract not centralized in shared                           |
-| Floor and desk disagree about headset / coffee / meeting               | Second composition site — violates `floorActivityFor`        |
-| Green floor tests; wrong card after layout change                      | Functional coupling to geometry without full-tile assertions |
-| New `contentType` works server-side only                               | High-distance change without shared schema                   |
-| Feature missing in `en-AU` only                                        | Locale functional coupling without parity test               |
-| PR touches `officePersonas.js` but not `officeCast.js` (or vice versa) | Model coupling across prompt and client cast                 |
+| Symptom                                                                                    | Likely imbalance                                             |
+| ------------------------------------------------------------------------------------------ | ------------------------------------------------------------ |
+| Fixed server; forgot web translator                                                        | Contract not centralized in shared                           |
+| Floor and desk disagree about headset / coffee / meeting                                   | Second composition site — violates `floorActivityFor`        |
+| Green floor tests; wrong card after layout change                                          | Functional coupling to geometry without full-tile assertions |
+| New `contentType` works server-side only                                                   | High-distance change without shared schema                   |
+| Feature missing in `en-AU` only                                                            | Locale functional coupling without parity test               |
+| PR touches `officePersonas.js` but not `officeCast.js` (or vice versa) for a **wire enum** | Model coupling — enum should live in `packages/shared` first |
+
+---
+
+## Implementation progress
+
+Tracked against the priority list above. Update this section when you land coupling work.
+
+| Item                                             | Status         | Notes                                                                                                                                             |
+| ------------------------------------------------ | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **P1.1** `MEETING_VENUES` single source of truth | Done           | `packages/shared/src/officeScript.ts` (`MeetingVenueSchema`); re-exported from `officeCast.js` and `officePersonas.js`; route imports from shared |
+| **P1.1** Roster caps alias shared bounds         | Done           | `MEETING_ROSTER_MAX` / `MIN` → `MEETING_MAX_ATTENDEES` / `MIN` in `officeCast.js`                                                                 |
+| **P1.1** Office wire contract sensor             | Done           | `apps/web/test/officeWireContract.test.js`, `apps/server/test/officePersonas.test.js` (venues), `packages/shared/test/officeScript.test.ts`       |
+| **P1.3** `diagramStore` cache extraction         | Done (slice 1) | `apps/web/src/state/diagramCacheStorage.js`; `diagramStore.js` re-exports for compat                                                              |
+| **P1.2** Office dual-renderer discipline         | Ongoing        | ADR-0011 + gotchas in `AGENTS.md` / `CLAUDE.md` — no new parallel stores                                                                          |
+| **P2.4** Agent ladder convergence                | Partial        | `invokePatchAgentWithRepair` for 4/6 slots; Mermaid/Infographic bespoke                                                                           |
+| **P2.5** Monolith splits                         | Partial        | See [ADR-0005](../decisions/0005-monolith-splits.md)                                                                                              |
+
+---
+
+## Next steps for agents
+
+Pick the **highest unfinished row** that matches your diff. Do not start hub splits unless you are already editing that file for a feature.
+
+### Wire contracts (P1.1 — continue)
+
+1. **Audit remaining office wire duplicates** — grep for `as const` / `z.enum` literals in `officeCast.js`, `officePersonas.js`, and `office.js` that are not imported from `@archislop/shared`. Candidates when they hit the wire: `MEETING_MODALITY_*` (if added to `POST /api/office/meeting`), huddle mode enums, training step ids (`officeTraining.ts` already exists — align client).
+2. **When adding a new office enum:** `packages/shared/src/officeScript.ts` (or `officeTraining.ts`) → Zod schema → blast-radius row → `officeWireContract.test.js` or shared test → re-export from cast/personas only if legacy imports need it.
+3. **AG-UI / session-events:** follow [`docs/agent-blast-radius.md`](../agent-blast-radius.md); never add event shapes only on server or only in `agUiTranslator.ts`.
+
+### Office layer (P1.2 — discipline, not a refactor)
+
+1. New set piece → `officeMomentStore` mutator + both renderers (or document why floor-only interaction with no store write).
+2. New floor figure state → `officeFloorActivity.js` rung, not a component-local composition.
+3. Extend `officeFloorContracts.test.js` when adding joinable / overheard mechanics.
+
+### `diagramStore` hub (P1.3 — slice 2+)
+
+Extract **on contact** into siblings under `apps/web/src/state/`:
+
+| Seam                    | Suggested module           | What moves                                                                                                                 |
+| ----------------------- | -------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| Mode switch / peer sync | `diagramModeSwitch.js`     | `siblingContentModes`, `mergeLeavingSlotSnapshot`, `peerRequiresModeSwitchTranslation`, …                                  |
+| REST mutations          | `diagramStoreMutations.js` | `submitDiagramIntent`, `submitDiagramTransform`, `submitDiagramAnalyze`, `submitDiagramStyle`, `submitDiagramRenderRepair` |
+| Streaming               | `diagramStoreStreaming.js` | `streamDiagramAgent` + timeout constants                                                                                   |
+
+Keep `diagramStore.js` as a thin re-export barrel until call sites are updated. Session hydrate already lives in `features/session/useSessionHydrate.js`.
+
+### Agent symmetry (P2.4)
+
+1. When touching Mermaid or Infographic repair, compare with `invokePatchAgentWithRepair.js` — extract shared transcript handling before duplicating again.
+2. New content type: copy the chart/forms checklist (shared parser → tool → fixer → agent → renderer).
+
+### Monoliths (P2.5)
+
+Continue ADR-0005 pattern: `mcpServer.js` → `register{Tool}.js`; `InsightsPane.jsx` → `features/insights/*`; `copilot.ts` → route modules by concern.
+
+### Verification after coupling edits
+
+```bash
+npm run build -w packages/shared    # when shared exports change
+npm run test -w packages/shared
+npm run test -w apps/server         # officePersonas + officeRoute when office wire changes
+npm run test -w apps/web            # officeWireContract + cast suites when officeCast changes
+npm run check:affected
+```
 
 ---
 
