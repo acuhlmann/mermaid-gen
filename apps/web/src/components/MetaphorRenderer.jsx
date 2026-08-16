@@ -1,7 +1,7 @@
 import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { OrbitControls, Bounds, Center, Environment, Line } from '@react-three/drei';
+import { OrbitControls, Center, Environment, Line } from '@react-three/drei';
 import {
   parsePartialMetaphorDsl,
   partialToRenderableMetaphorDsl,
@@ -13,7 +13,8 @@ import {
   resolveDistrictColor,
   resolveArchipelagoDaylightTheme,
   resolveGardenDaylightTheme,
-  resolveRiverDaylightTheme
+  resolveRiverDaylightTheme,
+  resolveTreeNatureTheme
 } from '../utils/metaphorThemePresets.js';
 import { applyMoodToTheme } from '../utils/metaphorMoods.js';
 import { cityDistrictLayout } from '../utils/metaphorLayouts/cityDistrictLayout.js';
@@ -41,9 +42,13 @@ import {
   GradientSkySphere,
   HoverableItem,
   ItemLabel,
+  LabelDeclutterRunner,
   MetaphorGroundShadow,
   MetaphorLinks
 } from './metaphorScenes/MetaphorSceneChrome.jsx';
+import { MetaphorAccents } from './metaphorScenes/MetaphorAccents.jsx';
+import { LabelDeclutterContext } from './metaphorScenes/labelDeclutterContext.js';
+import { createLabelDeclutterStore } from './metaphorScenes/labelDeclutter.js';
 import MetaphorChangeHighlightProvider from './MetaphorChangeHighlightProvider.jsx';
 import {
   CakeSprinkles,
@@ -65,12 +70,19 @@ import { ArchipelagoScene, ArchipelagoSky } from './metaphorScenes/ArchipelagoSc
 import { MachineScene, MachineSky } from './metaphorScenes/MachineScene.jsx';
 import { BridgeScene, BridgeSky } from './metaphorScenes/BridgeScene.jsx';
 import { CycleScene, CycleSky } from './metaphorScenes/CycleScene.jsx';
+import { SubwayScene, SubwaySky } from './metaphorScenes/SubwayScene.jsx';
+import { IcebergScene, IcebergSky } from './metaphorScenes/IcebergScene.jsx';
 import { CompositeScene } from './metaphorScenes/CompositeScene.jsx';
 import { resolveCompositeAtmosphere } from './metaphorScenes/fusedCompositePlanner.js';
 import {
   resolveMetaphorMotionPolicy,
   usePrefersReducedMotion
 } from './metaphorScenes/metaphorMotionPolicy.js';
+import { SceneFrame } from './metaphorScenes/SceneFrame.jsx';
+import { SceneKeyLight, SceneShadowFlags } from './metaphorScenes/SceneKeyLight.jsx';
+import { createSceneFit } from './metaphorScenes/sceneFraming.js';
+import { AdaptiveFog } from './metaphorScenes/AdaptiveFog.jsx';
+import { DEFAULT_GROUND_HAZE, sceneWantsHaze } from './metaphorScenes/metaphorAtmosphere.js';
 
 const STREAMING_RENDER_THROTTLE_MS = 90;
 
@@ -78,20 +90,30 @@ const ORBIT_CAMERA = { position: [18, 14, 18], fov: 45 };
 
 const CUTAWAY_THETA = (330 / 360) * Math.PI * 2;
 
+/**
+ * Breathing room around the exact fit that `SceneFrame` solves — 1.0 is
+ * edge-to-edge. These are small because the fit is now tight: the old numbers
+ * sat on top of drei `Bounds`' largest-axis solve, which was already leaving
+ * 35–45% of the frame empty before any margin was applied.
+ */
 const BOUNDS_MARGIN_BY_KIND = {
-  city: 1.06,
-  layercake: 1.08,
-  galaxy: 1.08,
+  city: 1.05,
+  layercake: 1.06,
+  galaxy: 1.04,
   tree: 1.04,
   terrain: 1.04,
-  orrery: 1.08,
-  river: 0.84,
-  garden: 1.12,
-  archipelago: 1.05,
-  machine: 1.06,
-  bridge: 1.08,
-  cycle: 1.08,
-  composite: 1.1
+  orrery: 1.05,
+  river: 1.02,
+  garden: 1.06,
+  archipelago: 1.04,
+  machine: 1.05,
+  bridge: 1.06,
+  cycle: 1.06,
+  subway: 1.05,
+  // The iceberg's sea plane runs 1.35x the berg ring so the horizon reads as
+  // open water; framing that edge-to-edge would crop the keels.
+  iceberg: 1.08,
+  composite: 1.05
 };
 
 const LIGHTING_BOOST = { lit: 0.2, dim: 0.08, dark: 0 };
@@ -325,6 +347,7 @@ function CityBuilding({ item, position, theme, accentGlow }) {
         fontSize={Math.max(0.45, Math.min(0.95, footprint * 0.42))}
         color={theme.labelColor}
         outlineColor={theme.labelOutline}
+        importance={height}
       />
     </group>
   );
@@ -389,6 +412,7 @@ function DistrictPatch({ district, theme, index }) {
         fontSize={0.52}
         color={theme.labelColor}
         outlineColor={theme.labelOutline}
+        pinned
       />
     </group>
   );
@@ -929,7 +953,7 @@ function CityFooting({ theme, radius }) {
 
 function CityScene({ dsl, theme }) {
   const layout = useMemo(() => cityDistrictLayout(dsl.items), [dsl.items]);
-  const footingRadius = Math.max(6, (layout.bounds?.radius ?? 0) * 1.18 + 2.5);
+  const footingRadius = Math.max(5, (layout.bounds?.radius ?? 0) * 1.06 + 1.4);
   const heightThreshold = useMemo(() => {
     const heights = dsl.items.map((i) => i.height ?? 4).sort((a, b) => b - a);
     const topCount = Math.max(1, Math.ceil(heights.length * 0.2));
@@ -966,6 +990,7 @@ function CityScene({ dsl, theme }) {
       <CityFooting theme={theme} radius={footingRadius} />
       <CityTraffic radius={footingRadius} theme={theme} />
       <MetaphorGroundShadow theme={theme} scale={footingRadius * 2.1} />
+      <MetaphorAccents items={dsl.items} anchors={anchors} theme={theme} />
       <MetaphorLinks links={dsl.links} anchors={anchors} theme={theme} />
     </group>
   );
@@ -1032,6 +1057,7 @@ function LayercakeScene({ dsl, theme }) {
       })}
       {/* Shadow plane sits just below the stand's foot (foot bottom is y=-1.2). */}
       <MetaphorGroundShadow theme={theme} y={-1.21} scale={(maxRadius + 3) * 2.6} />
+      <MetaphorAccents items={dsl.items} anchors={anchors} theme={theme} />
       <MetaphorLinks links={dsl.links} anchors={anchors} theme={theme} />
     </group>
   );
@@ -1050,6 +1076,8 @@ function MetaphorBaseScene({ dsl, theme }) {
   if (dsl.metaphor === 'machine') return <MachineScene dsl={dsl} theme={theme} />;
   if (dsl.metaphor === 'bridge') return <BridgeScene dsl={dsl} theme={theme} />;
   if (dsl.metaphor === 'cycle') return <CycleScene dsl={dsl} theme={theme} />;
+  if (dsl.metaphor === 'subway') return <SubwayScene dsl={dsl} theme={theme} />;
+  if (dsl.metaphor === 'iceberg') return <IcebergScene dsl={dsl} theme={theme} />;
   return null;
 }
 
@@ -1225,8 +1253,45 @@ function MetaphorRendererImpl(
     return applyMoodToTheme(resolved, moodId, { soften: daylight });
   }, [primaryLayerKind, themeId, moodId]);
   const postfx = resolveMetaphorPostfx(theme);
-  const boundsMargin = BOUNDS_MARGIN_BY_KIND[dsl?.metaphor] ?? 1.08;
+  const boundsMargin = BOUNDS_MARGIN_BY_KIND[dsl?.metaphor] ?? 1.06;
   const skyKind = primaryLayerKind;
+
+  // Refit the camera when the scene's structure changes (a new kind, items
+  // added/removed while streaming) but not on every incidental re-render, which
+  // would fight the viewer's own orbiting.
+  const contentKey = useMemo(() => {
+    if (!dsl) return 'empty';
+    const layerSig = Array.isArray(dsl.layers)
+      ? dsl.layers.map((layer) => `${layer.id}:${layer.as}:${layer.items?.length ?? 0}`).join('|')
+      : '';
+    return `${dsl.metaphor}:${dsl.items?.length ?? 0}:${dsl.links?.length ?? 0}:${layerSig}`;
+  }, [dsl]);
+
+  const sceneFitRef = useRef(null);
+  if (sceneFitRef.current === null) sceneFitRef.current = createSceneFit();
+  const sceneFit = sceneFitRef.current;
+
+  const contentRootRef = useRef(null);
+
+  const declutterRef = useRef(null);
+  if (declutterRef.current === null) declutterRef.current = createLabelDeclutterStore();
+  const declutter = declutterRef.current;
+
+  // Haze colour follows whichever sky this kind actually paints — the tree's is
+  // nature-locked to daylight blue regardless of `scene.theme`, so reading the
+  // base theme's horizon here used to hang a dark band over a bright sky.
+  const haze = useMemo(() => {
+    if (!skyKind || !sceneWantsHaze(skyKind)) return null;
+    const moodFog = theme.moodFx?.fog;
+    const skyHorizon =
+      skyKind === 'tree'
+        ? (resolveTreeNatureTheme(theme).treeSkyHorizonColor ?? theme.skyHorizonColor)
+        : theme.skyHorizonColor;
+    return {
+      color: moodFog?.color ?? skyHorizon ?? theme.background,
+      amount: moodFog?.haze ?? DEFAULT_GROUND_HAZE
+    };
+  }, [skyKind, theme]);
   // Space kinds have their own star fields; ground-weather particles (rain,
   // snow, petals, fireflies) would read wrong there.
   const moodParticles =
@@ -1251,42 +1316,28 @@ function MetaphorRendererImpl(
         <Canvas
           camera={ORBIT_CAMERA}
           dpr={[1, 2]}
+          shadows="soft"
           gl={{ preserveDrawingBuffer: true }}
           style={{ width: '100%', height: '100%' }}
         >
           <color attach="background" args={[theme.background]} />
-          {/* Mood fog applies to every kind (storm closes in, dawn haze); the
-              city's own gentle horizon fog stays as the no-mood default. Fog is
-              kept far enough out that Bounds framing never greys the subject. */}
-          {theme.moodFx?.fog ? (
-            <fog
-              attach="fog"
-              args={[theme.moodFx.fog.color, theme.moodFx.fog.near, theme.moodFx.fog.far]}
-            />
-          ) : skyKind === 'city' ? (
-            <fog attach="fog" args={[theme.skyHorizonColor ?? theme.background, 42, 150]} />
-          ) : null}
+          {/* Haze is expressed as a fraction of the content radius and re-solved
+              against the live camera distance, so pulling back never walks the
+              subject into the fog (see metaphorAtmosphere.jsx). Every grounded
+              kind gets a faint default band for depth; space kinds get none. */}
+          {haze ? <AdaptiveFog color={haze.color} haze={haze.amount} fitRef={sceneFit} /> : null}
           <ambientLight intensity={theme.ambientIntensity} />
           <hemisphereLight args={theme.hemisphere} />
-          <directionalLight
-            position={theme.directional.position}
+          {/* Shadow-mapped key light, with its ortho frustum fitted to the same
+              content the camera framed — a fixed frustum clips a large scene's
+              shadows to its middle. See SceneKeyLight.jsx. */}
+          <SceneKeyLight
+            direction={theme.directional.position}
             intensity={theme.directional.intensity}
             color={theme.directional.color ?? '#ffffff'}
-          />
-          {/* Soft complementary fill from the opposite side lifts the shadowed
-              faces so forms read as rounded and dimensional instead of flat.
-              Tinting it with the theme's horizon colour auto-gates its strength:
-              bright themes (near-white horizon) get a real fill, while dark/noir
-              themes (near-black horizon) stay dramatic — the light contributes
-              almost nothing. */}
-          <directionalLight
-            position={[
-              -theme.directional.position[0],
-              theme.directional.position[1] * 0.6,
-              -theme.directional.position[2]
-            ]}
-            intensity={theme.directional.intensity * 0.28}
-            color={theme.skyHorizonColor ?? theme.background ?? '#ffffff'}
+            fillColor={theme.skyHorizonColor ?? theme.background ?? '#ffffff'}
+            fitRef={sceneFit}
+            contentKey={contentKey}
           />
           {theme.environment ? <Environment preset={theme.environment} /> : null}
           {/* Layercake shares the city's calm gradient backdrop so the cake
@@ -1304,28 +1355,35 @@ function MetaphorRendererImpl(
           {skyKind === 'machine' ? <MachineSky theme={theme} /> : null}
           {skyKind === 'bridge' ? <BridgeSky theme={theme} /> : null}
           {skyKind === 'cycle' ? <CycleSky theme={theme} /> : null}
+          {skyKind === 'subway' ? <SubwaySky theme={theme} /> : null}
+          {skyKind === 'iceberg' ? <IcebergSky theme={theme} /> : null}
           <MetaphorClockProvider enabled={motionPolicy.animated} intensity={motionPolicy.intensity}>
             {/* Mood ambience renders outside <Bounds> at a fixed spread, so the
                 particle layer never reframes the subject. */}
             {moodParticles ? <MoodAmbience fx={moodParticles} /> : null}
             <MetaphorHoverContext.Provider value={streamingPreview ? null : hoverStore}>
-              <MetaphorChangeHighlightProvider highlight={changeHighlight}>
-                <Bounds fit clip observe margin={boundsMargin}>
-                  <Center disableY>
-                    <group
-                      name={METAPHOR_CONTENT_ROOT_NAME}
-                      userData={{
-                        archislop: {
-                          contentType: 'metaphor3d',
-                          metaphor: dsl.metaphor
-                        }
-                      }}
-                    >
-                      <MetaphorScene dsl={dsl} theme={theme} />
-                    </group>
-                  </Center>
-                </Bounds>
-              </MetaphorChangeHighlightProvider>
+              <LabelDeclutterContext.Provider value={declutter}>
+                <MetaphorChangeHighlightProvider highlight={changeHighlight}>
+                  <SceneFrame margin={boundsMargin} contentKey={contentKey} fitRef={sceneFit}>
+                    <Center disableY>
+                      <group
+                        ref={contentRootRef}
+                        name={METAPHOR_CONTENT_ROOT_NAME}
+                        userData={{
+                          archislop: {
+                            contentType: 'metaphor3d',
+                            metaphor: dsl.metaphor
+                          }
+                        }}
+                      >
+                        <MetaphorScene dsl={dsl} theme={theme} />
+                      </group>
+                    </Center>
+                  </SceneFrame>
+                  <LabelDeclutterRunner store={declutter} />
+                  <SceneShadowFlags contentKey={contentKey} targetRef={contentRootRef} />
+                </MetaphorChangeHighlightProvider>
+              </LabelDeclutterContext.Provider>
             </MetaphorHoverContext.Provider>
           </MetaphorClockProvider>
           <OrbitControls enableDamping makeDefault />

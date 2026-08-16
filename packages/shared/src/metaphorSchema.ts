@@ -13,7 +13,9 @@ export const METAPHOR_BASE_KINDS = [
   'archipelago',
   'machine',
   'bridge',
-  'cycle'
+  'cycle',
+  'subway',
+  'iceberg'
 ] as const;
 export const MetaphorBaseKindSchema = z.enum(METAPHOR_BASE_KINDS);
 
@@ -101,7 +103,13 @@ export const MetaphorLegendSchema = z
     side: z.string().max(80).optional(),
     strain: z.string().max(80).optional(),
     phase: z.string().max(80).optional(),
-    friction: z.string().max(80).optional()
+    friction: z.string().max(80).optional(),
+    line: z.string().max(80).optional(),
+    stop: z.string().max(80).optional(),
+    traffic: z.string().max(80).optional(),
+    depth: z.string().max(80).optional(),
+    berg: z.string().max(80).optional(),
+    peril: z.string().max(80).optional()
   })
   .strict();
 
@@ -158,7 +166,14 @@ const MetaphorItemBase = z.object({
   position: MetaphorPositionSchema.optional(),
   glyph: MetaphorGlyphSchema.optional(),
   // Optional one-line annotation shown in the hover tooltip.
-  note: z.string().max(140).optional()
+  note: z.string().max(140).optional(),
+  /**
+   * Marks the item that IS the scene's headline insight. The renderer gives it
+   * a light shaft and a halo, and its label is exempt from screen-space
+   * decluttering — so the thesis survives a crowded scene. Meant for one item
+   * (two at the very most); the sanitizer keeps only the first few.
+   */
+  accent: z.boolean().optional()
 });
 
 const MetaphorLinksField = z.array(MetaphorLinkSchema).max(METAPHOR_MAX_LINKS).default([]);
@@ -366,6 +381,57 @@ export const CycleMetaphorSchema = z.object({
   links: MetaphorLinksField
 });
 
+export const SUBWAY_MAX_ITEMS = 40;
+export const SubwayItemSchema = MetaphorItemBase.extend({
+  /**
+   * Comma-free route name this stop belongs to. Stops sharing a `line` are
+   * threaded onto one coloured track in `stop` order.
+   */
+  line: z.string().min(1).max(64).optional(),
+  /** Position along its line, low → high. Ties keep authoring order. */
+  stop: z.number().min(0).max(100).default(0),
+  /**
+   * Traffic through the station — drives platform size. An interchange (a stop
+   * id repeated across lines is impossible, so use `interchange`) reads bigger.
+   */
+  traffic: z.number().positive().max(20).default(5),
+  /**
+   * Ids of other stops this one is the same physical station as. That is what
+   * makes a subway a NETWORK rather than a bundle of parallel rivers: the
+   * shared station is where two journeys actually meet.
+   */
+  interchange: z.array(z.string().min(1).max(64)).max(6).optional()
+});
+
+export const SubwayMetaphorSchema = z.object({
+  metaphor: z.literal('subway'),
+  scene: MetaphorSceneSchema,
+  items: z.array(SubwayItemSchema).max(SUBWAY_MAX_ITEMS).default([]),
+  links: MetaphorLinksField
+});
+
+export const ICEBERG_MAX_ITEMS = 30;
+export const IcebergItemSchema = MetaphorItemBase.extend({
+  /**
+   * −1 (deep below the waterline) … +1 (high above it). The waterline at 0 is
+   * the whole point of the metaphor: what people see vs what carries it.
+   */
+  depth: z.number().min(-1).max(1).default(0.4),
+  /** Relative bulk — cost, effort, headcount, lines of code. */
+  mass: z.number().positive().max(20).default(5),
+  /** Which berg this block belongs to; each named berg is one floating mass. */
+  berg: z.string().max(64).optional(),
+  /** 0–1 risk that this hidden block is what sinks the visible part. */
+  peril: z.number().min(0).max(1).optional()
+});
+
+export const IcebergMetaphorSchema = z.object({
+  metaphor: z.literal('iceberg'),
+  scene: MetaphorSceneSchema,
+  items: z.array(IcebergItemSchema).max(ICEBERG_MAX_ITEMS).default([]),
+  links: MetaphorLinksField
+});
+
 /**
  * Composite v2 fuses semantic layers into one planned world. The v1
  * `adjacent` and `overlay` layouts remain accepted for authored compatibility.
@@ -414,7 +480,9 @@ const BASE_METAPHOR_SCHEMA_BY_KIND = {
   archipelago: ArchipelagoMetaphorSchema,
   machine: MachineMetaphorSchema,
   bridge: BridgeMetaphorSchema,
-  cycle: CycleMetaphorSchema
+  cycle: CycleMetaphorSchema,
+  subway: SubwayMetaphorSchema,
+  iceberg: IcebergMetaphorSchema
 } as const;
 
 export const CompositeMetaphorSchema = z
@@ -500,6 +568,8 @@ export const MetaphorDslSchema = z.discriminatedUnion('metaphor', [
   MachineMetaphorSchema,
   BridgeMetaphorSchema,
   CycleMetaphorSchema,
+  SubwayMetaphorSchema,
+  IcebergMetaphorSchema,
   CompositeMetaphorSchema
 ]);
 
@@ -528,6 +598,8 @@ export type ArchipelagoItem = z.infer<typeof ArchipelagoItemSchema>;
 export type MachineItem = z.infer<typeof MachineItemSchema>;
 export type BridgeItem = z.infer<typeof BridgeItemSchema>;
 export type CycleItem = z.infer<typeof CycleItemSchema>;
+export type SubwayItem = z.infer<typeof SubwayItemSchema>;
+export type IcebergItem = z.infer<typeof IcebergItemSchema>;
 export type CityMetaphor = z.infer<typeof CityMetaphorSchema>;
 export type LayercakeMetaphor = z.infer<typeof LayercakeMetaphorSchema>;
 export type GalaxyMetaphor = z.infer<typeof GalaxyMetaphorSchema>;
@@ -540,6 +612,8 @@ export type ArchipelagoMetaphor = z.infer<typeof ArchipelagoMetaphorSchema>;
 export type MachineMetaphor = z.infer<typeof MachineMetaphorSchema>;
 export type BridgeMetaphor = z.infer<typeof BridgeMetaphorSchema>;
 export type CycleMetaphor = z.infer<typeof CycleMetaphorSchema>;
+export type SubwayMetaphor = z.infer<typeof SubwayMetaphorSchema>;
+export type IcebergMetaphor = z.infer<typeof IcebergMetaphorSchema>;
 export type CompositeLayout = z.infer<typeof CompositeLayoutSchema>;
 export type CompositeSeed = z.infer<typeof CompositeSeedSchema>;
 export type MetaphorCompositeLayer = z.infer<typeof MetaphorCompositeLayerSchema>;

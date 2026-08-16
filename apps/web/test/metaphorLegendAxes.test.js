@@ -46,10 +46,12 @@ describe('legendAxesFor', () => {
       'cycle',
       'galaxy',
       'garden',
+      'iceberg',
       'layercake',
       'machine',
       'orrery',
       'river',
+      'subway',
       'terrain',
       'tree'
     ]);

@@ -589,6 +589,60 @@ y)`, so the obvious sweep silently iterates an empty list; and pacing the exchan
   `officeRoute.test.js` (or `npm run test:affected`). **After isometric-floor edits**, `npm run
 test:floor`; the floor test map is [`docs/agents/isometric-floor-tests.md`](docs/agents/isometric-floor-tests.md).
 
+## Metaphor3D scene gotchas
+
+- **Camera framing is solved against real geometry, not a bounding box.** `sceneFraming.js`
+  samples every visible mesh's **vertices** (falling back to box corners only above 512 verts)
+  because a `circleGeometry`'s bounding box is a SQUARE — its diagonal corners sit √2 outside a
+  ground disc no geometry reaches, and being nearest the camera they win the fit. Measured on the
+  city: a footing of radius 24 pushed the camera to 95 units and the subject rendered at 39% of
+  the frame. Ambient decoration (birds, pollen, embers, traffic, steam) opts out with
+  `userData[FRAME_IGNORE]` — a 3-pixel bird wheeling above the treeline otherwise shrinks the
+  whole scene to make room for it. **Any new ambience component must carry that flag**, and any
+  new substrate disc must be sized from the content it holds, not padded by a constant.
+- **Fog is a fraction of the content radius, never a world distance.** `metaphorAtmosphere.js`
+  re-solves the band against the _live_ camera distance, so the same `haze` reads identically on a
+  5-item cycle and a 60-node grove. The old absolute `near: 40` sat behind a small scene and in
+  front of a large one — that was the reported "trees are too foggy at distance", and it hit
+  terrain and city just as hard. A mood preset carries `haze` (0–1); it must not carry near/far.
+- **`cylinderGeometry` is already axis-up; `circleGeometry` is not.** Applying the
+  `rotation={[-Math.PI / 2, 0, 0]}` idiom (correct for circles/rings/planes) to a cylinder tips it
+  onto its side. That shipped in `MachineScene` and every gear, hub, bearing and plinth rendered
+  as a dark wedge rolling on edge — and because the spin is `rotation.y`, it read as a modelling
+  bug rather than a rotation bug.
+- **Labels are decluttered in screen space, so a scene declares priority, not visibility.**
+  `ItemLabel` takes `importance` (higher keeps contested space) and `pinned` (never hidden).
+  Group names — district / bed / axle / cluster / line / berg — are pinned; item labels rank by
+  their own metric. An item with `accent: true` pins its own label automatically through
+  `ItemAccentContext`, which is why a scene never threads `pinned` down to fourteen call sites.
+- **`accent` is capped at two by the sanitizer on purpose.** It is the scene's thesis marker and
+  its label is exempt from decluttering, so an over-marked scene re-creates exactly the smear the
+  declutter pass exists to stop. Models over-mark boolean flags reliably; the cap is enforced in
+  `metaphorSanitizer.ts`, not trusted to the prompt.
+- **The accent marker rides each scene's `anchors` map**, the same one `MetaphorLinks` uses —
+  a new scene gets emphasis for free by rendering `<MetaphorAccents items anchors theme />` beside
+  its `<MetaphorLinks>`.
+- **A subway is lanes, not spokes and not chords.** Two earlier models both died on the
+  interchange, which is the only thing the kind exists for: spokes meet only at the hub, and two
+  straight chords cross exactly **once** — so a network where two routes share both an Auth stop
+  and a Checkout stop pinned both to the same point and collapsed into it. Lanes let routes
+  converge, separate, and converge again. Pinned by `metaphorNewKindLayouts.test.js`.
+- **The iceberg's submerged blocks must stay opaque.** Three sorts transparent objects by centroid
+  distance, so a big submerged block's centroid can sit nearer than the sea plane's centroid at
+  the origin — the hidden mass then paints OVER the water and the waterline, the one thing the
+  kind exists to show, disappears. Opaque ice draws in the depth-sorted pass; the transparent sea
+  (with a high `renderOrder`) blends over it correctly.
+- **Adding a metaphor kind touches ten places.** `metaphorSchema.ts` (kind list, item schema,
+  union, legend axes, types), `metaphorSanitizer.ts` (caps + clamps), `metaphorUsda.ts`
+  (`KIND_ITEM_FIELDS` — the build fails without it), a layout under `utils/metaphorLayouts/`, a
+  scene + sky under `components/metaphorScenes/`, `MetaphorRenderer.jsx` (dispatch, sky, bounds
+  margin), `metaphorLegendAxes.js` (legend + tooltip rows), `switchMetaphorKind.js` (magnitude
+  mapping + positional normalisation + composite layer label), `compositePrimitiveRegistry.js`,
+  and both `metaphorSystemPrompt.js` + `metaphorSyntaxGuard.js`.
+- **Verify metaphor changes by rendering them.** The scoped skill under
+  `apps/web/.claude/skills/verify/` has the headless-capture recipe; every finding above came from
+  a screenshot, not from reading the code.
+
 ## File-size budgets (work in progress)
 
 Files above ~800 LOC are slated for splits per [ADR-0005](docs/decisions/0005-monolith-splits.md). If you need to make a change in one of these, prefer extracting the slice you touch into a sibling module rather than growing the monolith:

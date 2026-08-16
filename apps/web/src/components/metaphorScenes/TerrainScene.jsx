@@ -18,9 +18,13 @@ import {
 } from '../../utils/metaphorLayouts/terrainHeightmap.js';
 import { Glyph } from '../metaphorGlyphs/index.jsx';
 import { GlowSprite, HoverableItem, ItemLabel, MetaphorLinks } from './MetaphorSceneChrome.jsx';
+import { MetaphorAccents } from './MetaphorAccents.jsx';
 import { SoaringBirds, TerrainClouds } from './MetaphorSceneDecorations.jsx';
 import { useMetaphorClock } from './metaphorClock.js';
 import { idHash, idHash2, shiftColor } from './sceneUtils.js';
+
+/** Cool off-white for snow caps — see the blend below. */
+const SNOW_RGB = [0.88, 0.91, 0.96];
 
 function TerrainSurface({ heightmap }) {
   const geometry = useMemo(() => {
@@ -35,10 +39,12 @@ function TerrainSurface({ heightmap }) {
       const h = heightmap.vertices[i + 1];
       const [r, g, b] = heightColor(h, heightmap.bounds);
       if (h > snowThreshold) {
-        const mix = Math.min(1, (h - snowThreshold) / snowSpan);
-        colors[i] = r + (1 - r) * mix;
-        colors[i + 1] = g + (1 - g) * mix;
-        colors[i + 2] = b + (1 - b) * mix;
+        // Capped, and toward a cool off-white rather than #ffffff: blending the
+        // summits to pure white erased them against a bright sky.
+        const mix = Math.min(0.82, (h - snowThreshold) / snowSpan);
+        colors[i] = r + (SNOW_RGB[0] - r) * mix;
+        colors[i + 1] = g + (SNOW_RGB[1] - g) * mix;
+        colors[i + 2] = b + (SNOW_RGB[2] - b) * mix;
       } else {
         colors[i] = r;
         colors[i + 1] = g;
@@ -405,6 +411,7 @@ export function TerrainScene({ dsl, theme }) {
           outlineColor={theme.labelOutline}
         />
       ) : null}
+      <MetaphorAccents items={dsl.items} anchors={anchors} theme={theme} />
       <MetaphorLinks links={dsl.links} anchors={anchors} theme={theme} />
     </group>
   );

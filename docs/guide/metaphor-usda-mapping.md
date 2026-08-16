@@ -33,7 +33,7 @@ Every export starts:
 | Key                         | Value                                                                    |
 | --------------------------- | ------------------------------------------------------------------------ |
 | `archislop:mappingVersion`  | This mapping's version (`0.1.0`). Bump on any breaking change below.     |
-| `archislop:metaphor`        | DSL discriminator (`city` … `machine`, `composite`).                     |
+| `archislop:metaphor`        | DSL discriminator (`city` … `iceberg`, `composite`).                     |
 | `archislop:layout`          | Composite only: `fused` / `adjacent` / `overlay`.                        |
 | `archislop:seed`            | Composite only: planner seed, stringified (schema allows string or int). |
 | `archislop:novelty`         | Composite only: `0`–`1` as a decimal string.                             |
@@ -106,6 +106,10 @@ are `string`, enums are `token`, string lists are `string[]`:
 | `garden`      | `maturity` dbl · `impact` dbl · `bed` str? · `health` tok                             |
 | `archipelago` | `mass` dbl · `relief` dbl · `chain` str?                                              |
 | `machine`     | `size` dbl · `speed` dbl · `axle` str? · `torque` dbl? · `mesh` **rel?**              |
+| `bridge`      | `span` dbl · `load` dbl · `side` str? · `strain` dbl?                                 |
+| `cycle`       | `phase` dbl · `size` dbl · `friction` dbl?                                            |
+| `subway`      | `line` str? · `stop` dbl · `traffic` dbl                                              |
+| `iceberg`     | `depth` dbl · `mass` dbl · `berg` str? · `peril` dbl?                                 |
 
 Composite layer items re-validate against the per-kind mini schemas but keep optional fields
 absent when the agent omitted them; only present fields are emitted. Base-kind documents carry

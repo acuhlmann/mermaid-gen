@@ -15,6 +15,7 @@ import { orreryOrbitLayout } from '../../utils/metaphorLayouts/orreryOrbitLayout
 import { resolveClusterColor, resolveGalaxyVividTheme } from '../../utils/metaphorThemePresets.js';
 import { Glyph } from '../metaphorGlyphs/index.jsx';
 import { GlowSprite, HoverableItem, ItemLabel, MetaphorLinks } from './MetaphorSceneChrome.jsx';
+import { MetaphorAccents } from './MetaphorAccents.jsx';
 import { SpinningGroup } from './MetaphorSceneDecorations.jsx';
 import { useMetaphorClock } from './metaphorClock.js';
 import { getRadialSpriteTexture, idHash, idHash2, shiftColor } from './sceneUtils.js';
@@ -351,6 +352,7 @@ export function OrreryScene({ dsl, theme }) {
       {beltRadius ? (
         <AsteroidBelt radius={beltRadius} color={spaceTheme.nebulaDustColor ?? sunColor} />
       ) : null}
+      <MetaphorAccents items={dsl.items} anchors={anchors} theme={theme} />
       <MetaphorLinks links={dsl.links} anchors={anchors} theme={theme} variant="arc" />
     </group>
   );

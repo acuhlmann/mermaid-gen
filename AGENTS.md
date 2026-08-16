@@ -94,6 +94,31 @@ Production deploy notes (Cloud Run, billing credits, GitHub Actions CI, optional
 - Web app entry/UI: `apps/web/src/`
 - Session event bus: `apps/server/src/state/sessionEventBus.ts`; web client: `apps/web/src/state/sessionEventsClient.js`
 
+## Metaphor3D scene gotchas
+
+Durable traps found by rendering these scenes headlessly (the recipe is the scoped skill under
+`apps/web/.claude/skills/verify/`). The full list lives in [`CLAUDE.md`](CLAUDE.md); these are the
+ones that will bite an edit.
+
+- **Camera framing samples real vertices, not bounding boxes** (`sceneFraming.js`). A
+  `circleGeometry`'s bounding box is a SQUARE, so a ground disc's phantom diagonal corners — the
+  points nearest the camera — used to dominate the fit and push the subject to ~40% of the frame.
+  New ambience components must set `userData[FRAME_IGNORE]`, and new substrate discs must be sized
+  from their content rather than padded by a constant.
+- **Fog is a fraction of the content radius, re-solved against the live camera distance**
+  (`metaphorAtmosphere.js`). Never reintroduce absolute `near`/`far`: a fixed band sits behind a
+  small scene and in front of a large one, which is what made big tree groves wash out.
+- **`cylinderGeometry` is already axis-up.** The `rotation={[-Math.PI / 2, 0, 0]}` idiom is correct
+  for circles/rings/planes and tips a cylinder onto its side — that shipped in `MachineScene` and
+  rendered every gear as a wedge rolling on edge.
+- **Labels declare priority, not visibility.** `ItemLabel` takes `importance` and `pinned`; a
+  screen-space pass hides the loser of an overlapping pair. Group names are pinned; `accent: true`
+  pins an item's own label through context.
+- **`accent` is capped at two in the sanitizer** — it is the thesis marker and its label skips
+  decluttering, so an over-marked scene re-creates the smear the pass exists to stop.
+- **Adding a metaphor kind touches ten places**, and `metaphorUsda.ts`'s `KIND_ITEM_FIELDS` is the
+  one that fails the build rather than failing silently. Full list in `CLAUDE.md`.
+
 ## Architecture docs (read before changing wire contracts)
 
 | Doc                                                                            | Topic                                                            |

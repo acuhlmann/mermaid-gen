@@ -21,8 +21,10 @@ import {
   MetaphorGroundShadow,
   MetaphorLinks
 } from './MetaphorSceneChrome.jsx';
+import { MetaphorAccents } from './MetaphorAccents.jsx';
 import { useMetaphorClock } from './metaphorClock.js';
 import { idHash2, shiftColor } from './sceneUtils.js';
+import { FRAME_IGNORE_DATA } from './sceneFraming.js';
 
 function axleTint(theme, index) {
   const palette = theme.machineAxlePalette ??
@@ -72,11 +74,11 @@ function AxleBed({ axle, theme, index }) {
     <group position={[axle.center[0], 0, axle.center[2]]}>
       {/* Raised plinth under each axle group — subsystems read as mounted
           machinery, not a translucent sticker on the plate. */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.02, 0]}>
+      <mesh position={[0, -0.02, 0]}>
         <cylinderGeometry args={[axle.radius * 0.98, axle.radius * 1.04, 0.1, 48]} />
         <meshStandardMaterial color={plinth} roughness={0.75} metalness={0.4} />
       </mesh>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.032, 0]}>
+      <mesh position={[0, 0.032, 0]}>
         <cylinderGeometry args={[axle.radius * 0.92, axle.radius * 0.95, 0.012, 48]} />
         <meshStandardMaterial color={plinthTop} roughness={0.6} metalness={0.45} />
       </mesh>
@@ -94,6 +96,7 @@ function AxleBed({ axle, theme, index }) {
         fontSize={0.42}
         color={theme.labelColor}
         outlineColor={theme.labelOutline}
+        pinned
       />
     </group>
   );
@@ -136,7 +139,7 @@ function GearBody({ gear, item, theme, color }) {
   return (
     <group position={gear.position}>
       <group ref={groupRef} rotation={[0, phase, 0]}>
-        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.08, 0]}>
+        <mesh position={[0, 0.08, 0]}>
           <cylinderGeometry args={[gear.radius * 0.88, gear.radius * 0.88, 0.22, 32]} />
           <meshStandardMaterial
             color={brass}
@@ -148,15 +151,15 @@ function GearBody({ gear, item, theme, color }) {
         </mesh>
         {toothMeshes.map((tooth, i) => (
           <mesh key={`tooth-${i}`} position={[tooth.x, 0.08, tooth.z]} rotation={[0, tooth.rot, 0]}>
-            <boxGeometry args={[toothDepth * 1.1, 0.2, gear.radius * 0.22]} />
+            <boxGeometry args={[toothDepth * 1.6, 0.22, gear.radius * 0.26]} />
             <meshStandardMaterial color={steel} roughness={0.45} metalness={0.65} />
           </mesh>
         ))}
-        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.2, 0]}>
+        <mesh position={[0, 0.2, 0]}>
           <cylinderGeometry args={[hubR, hubR * 1.1, 0.28, 16]} />
           <meshStandardMaterial color={steel} roughness={0.35} metalness={0.8} />
         </mesh>
-        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.36, 0]}>
+        <mesh position={[0, 0.36, 0]}>
           <cylinderGeometry args={[hubR * 0.35, hubR * 0.35, 0.18, 10]} />
           <meshStandardMaterial
             color={theme.machineRimColor ?? '#a78b5a'}
@@ -167,7 +170,7 @@ function GearBody({ gear, item, theme, color }) {
       </group>
       {/* Static axle shaft + bearing cap — the gear visibly spins ON a shaft,
           which is what the `axle` grouping vocabulary means. */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.24, 0]}>
+      <mesh position={[0, 0.24, 0]}>
         <cylinderGeometry args={[hubR * 0.28, hubR * 0.34, 0.62, 10]} />
         <meshStandardMaterial
           color={shiftColor(steel, { lightness: -0.16, satScale: 0.6 })}
@@ -202,6 +205,7 @@ function GearBody({ gear, item, theme, color }) {
         fontSize={Math.max(0.38, Math.min(0.7, gear.radius * 0.55))}
         color={theme.labelColor}
         outlineColor={theme.labelOutline}
+        importance={gear.radius}
       />
     </group>
   );
@@ -297,7 +301,7 @@ function FloatingSparks({ radius, theme }) {
   });
   const color = theme.machineSparkColor ?? '#fbbf24';
   return (
-    <group ref={groupRef}>
+    <group ref={groupRef} userData={FRAME_IGNORE_DATA}>
       {sparks.map((s, i) => (
         <mesh key={`spark-${i}`} position={[s.x, s.y, s.z]}>
           <sphereGeometry args={[0.045, 6, 6]} />
@@ -319,7 +323,7 @@ function FactoryFloor({ radius, theme }) {
   return (
     <group>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.2, 0]}>
-        <circleGeometry args={[radius * 1.55, 72]} />
+        <circleGeometry args={[radius * 1.18, 72]} />
         <meshStandardMaterial color={floor} roughness={0.95} metalness={0.15} />
       </mesh>
       {[0.72, 0.88].map((scale, i) => (
@@ -328,13 +332,13 @@ function FactoryFloor({ radius, theme }) {
           rotation={[-Math.PI / 2, 0, 0]}
           position={[0, -0.19 + i * 0.004, 0]}
         >
-          <ringGeometry args={[radius * 1.55 * scale - 0.05, radius * 1.55 * scale + 0.05, 72]} />
+          <ringGeometry args={[radius * 1.18 * scale - 0.05, radius * 1.18 * scale + 0.05, 72]} />
           <meshStandardMaterial color={seam} roughness={0.9} metalness={0.2} />
         </mesh>
       ))}
       {Array.from({ length: 8 }, (_, i) => {
         const a = (i / 8) * Math.PI * 2;
-        const len = radius * 1.5;
+        const len = radius * 1.14;
         return (
           <mesh
             key={`floor-seam-${i}`}
@@ -434,7 +438,7 @@ function SteamVents({ radius, theme }) {
           <meshStandardMaterial color={stackColor} roughness={0.5} metalness={0.6} />
         </mesh>
       ))}
-      <group ref={groupRef}>
+      <group ref={groupRef} userData={FRAME_IGNORE_DATA}>
         {vents.flatMap((vent, v) =>
           vent.puffs.map((puff, p) => (
             <mesh key={`puff-${v}-${p}`} position={[vent.x, 0.4, vent.z]}>
@@ -469,7 +473,7 @@ export function MachineScene({ dsl, theme }) {
     return map;
   }, [layout.gears]);
 
-  const plateR = Math.max(7, layout.bounds.radius * 0.95);
+  const plateR = Math.max(5.5, layout.bounds.radius * 0.95);
 
   return (
     <group>
@@ -505,6 +509,7 @@ export function MachineScene({ dsl, theme }) {
       )}
       <FloatingSparks radius={plateR * 0.7} theme={theme} />
       <MetaphorGroundShadow theme={theme} y={-0.14} scale={plateR * 2.1} />
+      <MetaphorAccents items={dsl.items} anchors={anchors} theme={theme} />
       <MetaphorLinks links={dsl.links} anchors={anchors} theme={theme} variant="arc" />
     </group>
   );

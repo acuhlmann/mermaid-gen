@@ -15,7 +15,7 @@ const MOOD_PRESETS = {
   dawn: {
     skyTopColor: '#6f5f9b',
     skyHorizonColor: '#ffd9a8',
-    fog: { color: '#e8c9a8', near: 46, far: 170 },
+    fog: { color: '#e8c9a8', haze: 0.24 },
     directionalColor: '#ffd9a8',
     directionalScale: 0.92,
     ambientScale: 0.95,
@@ -25,7 +25,7 @@ const MOOD_PRESETS = {
   dusk: {
     skyTopColor: '#3b2f5a',
     skyHorizonColor: '#ff9e6d',
-    fog: { color: '#c98a6a', near: 40, far: 150 },
+    fog: { color: '#c98a6a', haze: 0.3 },
     directionalColor: '#ffb37a',
     directionalScale: 0.78,
     ambientScale: 0.85,
@@ -35,7 +35,7 @@ const MOOD_PRESETS = {
   night: {
     skyTopColor: '#050914',
     skyHorizonColor: '#101c33',
-    fog: { color: '#0a1224', near: 46, far: 180 },
+    fog: { color: '#0a1224', haze: 0.26 },
     directionalColor: '#8fb2e8',
     directionalScale: 0.5,
     ambientScale: 0.62,
@@ -45,7 +45,7 @@ const MOOD_PRESETS = {
   storm: {
     skyTopColor: '#1c2330',
     skyHorizonColor: '#3a4356',
-    fog: { color: '#39424f', near: 20, far: 85 },
+    fog: { color: '#39424f', haze: 0.62 },
     directionalColor: '#9aa7bd',
     directionalScale: 0.55,
     ambientScale: 0.72,
@@ -55,7 +55,7 @@ const MOOD_PRESETS = {
   ember: {
     skyTopColor: '#221016',
     skyHorizonColor: '#57281f',
-    fog: { color: '#331915', near: 40, far: 150 },
+    fog: { color: '#331915', haze: 0.34 },
     directionalColor: '#ff9a5c',
     directionalScale: 0.85,
     ambientScale: 0.78,
@@ -65,7 +65,7 @@ const MOOD_PRESETS = {
   aurora: {
     skyTopColor: '#06121f',
     skyHorizonColor: '#123b3a',
-    fog: { color: '#0c2430', near: 48, far: 190 },
+    fog: { color: '#0c2430', haze: 0.2 },
     directionalColor: '#7be8c9',
     directionalScale: 0.72,
     ambientScale: 0.75,
@@ -122,9 +122,10 @@ export function applyMoodToTheme(theme, moodId, { soften = false } = {}) {
             color: soften
               ? blendHex(theme.skyHorizonColor ?? '#c9e8f0', preset.fog.color, mix)
               : preset.fog.color,
-            // Softened moods keep fog far away so daylight scenes stay clear.
-            near: soften ? preset.fog.near + 26 : preset.fog.near,
-            far: soften ? preset.fog.far + 60 : preset.fog.far
+            // Softened moods pull the haze back toward the horizon so daylight
+            // scenes stay clear. `haze` is a fraction of the content radius, not
+            // a world distance — see metaphorAtmosphere.js.
+            haze: soften ? preset.fog.haze * 0.5 : preset.fog.haze
           }
         : null,
       particles: preset.particles ?? null,

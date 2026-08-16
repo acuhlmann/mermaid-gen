@@ -163,6 +163,14 @@ const KIND_FIXTURES: Record<
   cycle: {
     items: [{ id: 'a', label: 'A', phase: 25, size: 4, friction: 0.3 }],
     fields: ['phase', 'size', 'friction']
+  },
+  subway: {
+    items: [{ id: 'a', label: 'A', line: 'Blue', stop: 30, traffic: 9 }],
+    fields: ['line', 'stop', 'traffic']
+  },
+  iceberg: {
+    items: [{ id: 'a', label: 'A', depth: -0.6, mass: 12, berg: 'One', peril: 0.4 }],
+    fields: ['depth', 'mass', 'berg', 'peril']
   }
 };
 

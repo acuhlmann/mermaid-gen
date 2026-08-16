@@ -6,7 +6,7 @@ export const METAPHOR_RULE_PACK = METAPHOR_SYSTEM_PROMPT;
 
 export const METAPHOR_SELF_CHECK = `Self-check before calling apply_metaphor_patch:
 - Valid JSON object (no trailing commas, double-quoted keys/strings).
-- "metaphor" is exactly "city", "layercake", "galaxy", "tree", "terrain", "orrery", "river", "garden", "archipelago", "machine", "bridge", "cycle", or "composite".
+- "metaphor" is exactly "city", "layercake", "galaxy", "tree", "terrain", "orrery", "river", "garden", "archipelago", "machine", "bridge", "cycle", "subway", "iceberg", or "composite".
 - Every item has unique "id" (kebab-case) and non-empty "label"; composite item ids are globally unique across layers.
 - City items: numeric height and footprint; meaningful district when >6 items. Optional lighting (lit/dim/dark), condition (new/aging/crumbling).
 - Layercake items: thickness + components[]. Optional cracks (0-1) and tilt (0-15).

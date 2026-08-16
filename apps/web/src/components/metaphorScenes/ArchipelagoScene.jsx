@@ -21,6 +21,7 @@ import {
   MetaphorGroundShadow,
   MetaphorLinks
 } from './MetaphorSceneChrome.jsx';
+import { MetaphorAccents } from './MetaphorAccents.jsx';
 import { DaylightPollen, SkySunGlow, SoaringBirds } from './MetaphorSceneDecorations.jsx';
 import { useMetaphorClock } from './metaphorClock.js';
 import { idHash2, shiftColor } from './sceneUtils.js';
@@ -48,14 +49,14 @@ function OceanPlane({ radius, theme }) {
   return (
     <group>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.08, 0]}>
-        <circleGeometry args={[radius * 1.18, 72]} />
+        <circleGeometry args={[radius * 1.07, 72]} />
         <meshStandardMaterial
           color={shiftColor(theme.waterColor ?? '#27afe2', { lightness: -0.12, satScale: 0.85 })}
           roughness={0.55}
         />
       </mesh>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.02, 0]}>
-        <circleGeometry args={[radius * 1.08, 72]} />
+        <circleGeometry args={[radius * 1.0, 72]} />
         <meshStandardMaterial
           ref={matRef}
           color={theme.waterColor ?? '#27afe2'}
@@ -487,6 +488,7 @@ export function ArchipelagoScene({ dsl, theme }) {
         idSeed="arch-birds"
       />
       <MetaphorGroundShadow theme={theme} y={-0.12} scale={oceanR * 1.6} />
+      <MetaphorAccents items={dsl.items} anchors={anchors} theme={theme} />
       <MetaphorLinks links={dsl.links} anchors={anchors} theme={theme} variant="arc" />
     </group>
   );

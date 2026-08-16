@@ -10,6 +10,7 @@ import {
   GALAXY_MAX_ITEMS,
   GARDEN_HEALTH,
   GARDEN_MAX_ITEMS,
+  ICEBERG_MAX_ITEMS,
   LAYERCAKE_MAX_ITEMS,
   MACHINE_MAX_ITEMS,
   METAPHOR_BASE_KINDS,
@@ -21,6 +22,7 @@ import {
   MetaphorDslSchema,
   ORRERY_MAX_ITEMS,
   RIVER_MAX_ITEMS,
+  SUBWAY_MAX_ITEMS,
   TERRAIN_MAX_ITEMS,
   TREE_MAX_ITEMS,
   type MetaphorBaseKind,
@@ -58,6 +60,8 @@ const MAX_ITEMS_BY_KIND: Record<MetaphorKind, number> = {
   machine: MACHINE_MAX_ITEMS,
   bridge: BRIDGE_MAX_ITEMS,
   cycle: CYCLE_MAX_ITEMS,
+  subway: SUBWAY_MAX_ITEMS,
+  iceberg: ICEBERG_MAX_ITEMS,
   // Composite stores items on layers; top-level items stay empty.
   composite: 0
 };
@@ -341,6 +345,47 @@ function rescueNumericRanges(working: Record<string, unknown>, applied: string[]
       }
     }
 
+    if (kind === 'subway') {
+      if (typeof item.stop === 'number' && Number.isFinite(item.stop)) {
+        const clamped = clampNumber(item.stop, 0, 100);
+        if (clamped !== item.stop) {
+          item.stop = clamped;
+          applied.push('clamp-stop');
+        }
+      }
+      if (typeof item.traffic === 'number' && Number.isFinite(item.traffic)) {
+        const clamped = clampNumber(item.traffic, 0.1, 20);
+        if (clamped !== item.traffic) {
+          item.traffic = clamped;
+          applied.push('clamp-traffic');
+        }
+      }
+    }
+
+    if (kind === 'iceberg') {
+      if (typeof item.depth === 'number' && Number.isFinite(item.depth)) {
+        const clamped = clampNumber(item.depth, -1, 1);
+        if (clamped !== item.depth) {
+          item.depth = clamped;
+          applied.push('clamp-depth');
+        }
+      }
+      if (typeof item.mass === 'number' && Number.isFinite(item.mass)) {
+        const clamped = clampNumber(item.mass, 0.1, 20);
+        if (clamped !== item.mass) {
+          item.mass = clamped;
+          applied.push('clamp-mass');
+        }
+      }
+      if (typeof item.peril === 'number' && Number.isFinite(item.peril)) {
+        const clamped = clampNumber(item.peril, 0, 1);
+        if (clamped !== item.peril) {
+          item.peril = clamped;
+          applied.push('clamp-peril');
+        }
+      }
+    }
+
     if (kind === 'cycle') {
       if (typeof item.phase === 'number' && Number.isFinite(item.phase)) {
         const clamped = clampNumber(item.phase, 0, 100);
@@ -387,6 +432,60 @@ function rescueGlyphField(working: Record<string, unknown>, applied: string[]): 
       delete item.glyph;
       applied.push('drop-invalid-glyph');
     }
+  }
+}
+
+/**
+ * `accent` marks the scene's headline insight, so more than a couple of them
+ * means none of them. Models reliably over-mark when given a boolean flag, and
+ * an "everything is emphasised" scene is strictly worse than an unmarked one:
+ * every accented label is exempt from decluttering, so over-marking re-creates
+ * exactly the label smear the declutter pass exists to stop.
+ */
+const MAX_ACCENTS = 2;
+
+function rescueItemAccents(working: Record<string, unknown>, applied: string[]): void {
+  if (!Array.isArray(working.items)) return;
+  let kept = 0;
+  for (const item of working.items as unknown[]) {
+    if (!isObject(item)) continue;
+    if (!('accent' in item)) continue;
+    if (item.accent !== true) {
+      delete item.accent;
+      applied.push('drop-invalid-accent');
+      continue;
+    }
+    kept += 1;
+    if (kept > MAX_ACCENTS) {
+      delete item.accent;
+      applied.push('drop-excess-accent');
+    }
+  }
+}
+
+/**
+ * A subway interchange must name a stop that exists and must not name itself;
+ * a dangling id would draw a transfer walkway to nowhere.
+ */
+function rescueSubwayInterchanges(working: Record<string, unknown>, applied: string[]): void {
+  if (working.metaphor !== 'subway' || !Array.isArray(working.items)) return;
+  const ids = new Set<string>();
+  for (const item of working.items as unknown[]) {
+    if (isObject(item) && typeof item.id === 'string') ids.add(item.id);
+  }
+  for (const item of working.items as unknown[]) {
+    if (!isObject(item) || !('interchange' in item)) continue;
+    if (!Array.isArray(item.interchange)) {
+      delete item.interchange;
+      applied.push('drop-invalid-interchange');
+      continue;
+    }
+    const cleaned = item.interchange.filter(
+      (id): id is string => typeof id === 'string' && id !== item.id && ids.has(id)
+    );
+    if (cleaned.length !== item.interchange.length) applied.push('drop-unknown-interchange');
+    if (cleaned.length === 0) delete item.interchange;
+    else item.interchange = cleaned;
   }
 }
 
@@ -974,6 +1073,8 @@ export function sanitizeMetaphorDsl(
     rescueGardenHealth(working, applied);
     rescueGlyphField(working, applied);
     rescueItemNotes(working, applied);
+    rescueItemAccents(working, applied);
+    rescueSubwayInterchanges(working, applied);
     rescueTreeStructure(working, applied);
     rescueGalaxyBinary(working, applied);
     rescueOrreryMoons(working, applied);

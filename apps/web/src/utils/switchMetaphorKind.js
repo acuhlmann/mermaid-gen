@@ -52,6 +52,10 @@ function primaryMagnitude(item, kind) {
       return finiteNumber(item.load, 3);
     case 'cycle':
       return finiteNumber(item.size, 3);
+    case 'subway':
+      return finiteNumber(item.traffic, 5);
+    case 'iceberg':
+      return finiteNumber(item.mass, 5);
     default:
       return 10;
   }
@@ -70,6 +74,8 @@ function secondaryMagnitude(item, kind) {
       return finiteNumber(item.relief, 0.45);
     case 'machine':
       return finiteNumber(item.speed, 3);
+    case 'iceberg':
+      return finiteNumber(item.depth, 0.4);
     default:
       return null;
   }
@@ -187,6 +193,20 @@ function mapItemToKind(item, fromKind, toKind, index) {
       next.phase = index;
       next.size = Math.max(0.1, Math.min(10, primary));
       break;
+    case 'subway':
+      // stop is normalized across the item set after mapping, like span/phase.
+      next.stop = index;
+      next.traffic = Math.max(0.1, Math.min(20, primary));
+      if (group) next.line = group;
+      break;
+    case 'iceberg':
+      next.mass = Math.max(0.1, Math.min(20, primary));
+      // Without a source depth there is nothing honest to claim about what is
+      // hidden, so a switched-in item starts just above the waterline and the
+      // author decides what actually sinks.
+      next.depth = secondary != null && secondary >= -1 && secondary <= 1 ? secondary : 0.35;
+      if (group) next.berg = group;
+      break;
     default:
       break;
   }
@@ -197,7 +217,12 @@ function mapItemToKind(item, fromKind, toKind, index) {
 /** Evenly spread positional encodings (bridge span, cycle phase) after a kind
  *  switch — index placeholders would bunch every item at the start edge. */
 function normalizePositionalAxes(kind, items) {
-  if (kind === 'bridge') {
+  if (kind === 'subway') {
+    const last = Math.max(1, items.length - 1);
+    items.forEach((item, i) => {
+      item.stop = Math.round((i / last) * 100);
+    });
+  } else if (kind === 'bridge') {
     const last = Math.max(1, items.length - 1);
     items.forEach((item, i) => {
       item.span = Math.round((i / last) * 100);
@@ -222,6 +247,8 @@ const COMPOSITE_LAYER_LABELS = {
   garden: 'Portfolio',
   archipelago: 'Domains',
   machine: 'Mechanism',
+  subway: 'Routes',
+  iceberg: 'Seen & unseen',
   bridge: 'Crossing',
   cycle: 'Loop'
 };

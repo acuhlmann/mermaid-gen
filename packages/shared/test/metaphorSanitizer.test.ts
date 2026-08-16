@@ -1118,3 +1118,85 @@ test('MetaphorLegendSchema accepts the bridge and cycle axes', () => {
   });
   assert.equal(ok.success, true);
 });
+
+test('sanitizeMetaphorDsl keeps at most two accented items', () => {
+  // `accent` is the scene's thesis marker and its label is exempt from
+  // decluttering, so an over-marked scene re-creates exactly the label smear
+  // the declutter pass exists to prevent. Models over-mark boolean flags
+  // reliably, so the cap is enforced here rather than trusted to the prompt.
+  const input = JSON.stringify({
+    metaphor: 'city',
+    items: [
+      { id: 'a', label: 'A', accent: true },
+      { id: 'b', label: 'B', accent: true },
+      { id: 'c', label: 'C', accent: true },
+      { id: 'd', label: 'D', accent: true }
+    ]
+  });
+
+  const result = sanitizeMetaphorDsl(input, { allowStructureRewrite: true });
+
+  assert.ok(result.dsl);
+  const accented = result.dsl.items.filter((item) => item.accent === true);
+  assert.equal(accented.length, 2);
+  assert.deepEqual(
+    accented.map((item) => item.id),
+    ['a', 'b']
+  );
+  assert.ok(result.applied.includes('drop-excess-accent'));
+});
+
+test('sanitizeMetaphorDsl drops a non-boolean accent', () => {
+  const input = JSON.stringify({
+    metaphor: 'city',
+    items: [{ id: 'a', label: 'A', accent: 'yes' }]
+  });
+
+  const result = sanitizeMetaphorDsl(input, { allowStructureRewrite: true });
+
+  assert.ok(result.dsl);
+  assert.equal(result.dsl.items[0].accent, undefined);
+  assert.ok(result.applied.includes('drop-invalid-accent'));
+});
+
+test('sanitizeMetaphorDsl drops subway interchanges pointing at unknown stops', () => {
+  // A dangling id would merge a station with nothing, or draw a transfer to a
+  // stop that is not in the document.
+  const input = JSON.stringify({
+    metaphor: 'subway',
+    items: [
+      { id: 'a', label: 'A', line: 'One', stop: 0, interchange: ['b', 'ghost', 'a'] },
+      { id: 'b', label: 'B', line: 'Two', stop: 0 }
+    ]
+  });
+
+  const result = sanitizeMetaphorDsl(input, { allowStructureRewrite: true });
+
+  assert.ok(result.dsl);
+  assert.equal(result.dsl.metaphor, 'subway');
+  if (result.dsl.metaphor === 'subway') {
+    assert.deepEqual(result.dsl.items[0].interchange, ['b']);
+  }
+  assert.ok(result.applied.includes('drop-unknown-interchange'));
+});
+
+test('sanitizeMetaphorDsl clamps iceberg depth across the waterline', () => {
+  const input = JSON.stringify({
+    metaphor: 'iceberg',
+    items: [
+      { id: 'tip', label: 'Tip', depth: 4, mass: 2 },
+      { id: 'keel', label: 'Keel', depth: -9, mass: 40, peril: 3 }
+    ]
+  });
+
+  const result = sanitizeMetaphorDsl(input, { allowStructureRewrite: true });
+
+  assert.ok(result.dsl);
+  assert.equal(result.dsl.metaphor, 'iceberg');
+  if (result.dsl.metaphor === 'iceberg') {
+    assert.equal(result.dsl.items[0].depth, 1);
+    assert.equal(result.dsl.items[1].depth, -1);
+    assert.equal(result.dsl.items[1].mass, 20);
+    assert.equal(result.dsl.items[1].peril, 1);
+  }
+});

@@ -64,6 +64,17 @@ export const METAPHOR_LEGEND_AXES = {
     ['size', 'Size'],
     ['friction', 'Friction']
   ],
+  subway: [
+    ['line', 'Line'],
+    ['stop', 'Stop'],
+    ['traffic', 'Traffic']
+  ],
+  iceberg: [
+    ['depth', 'Depth'],
+    ['mass', 'Mass'],
+    ['berg', 'Berg'],
+    ['peril', 'Peril']
+  ],
   // Composite layers keep their own encodings; no shared legend axes yet.
   composite: []
 };
@@ -125,6 +136,17 @@ const ITEM_METRICS = {
     { key: 'phase', label: 'Phase', type: 'number' },
     { key: 'size', label: 'Size', type: 'number' },
     { key: 'friction', label: 'Friction', type: 'number' }
+  ],
+  subway: [
+    { key: 'line', label: 'Line', type: 'text' },
+    { key: 'stop', label: 'Stop', type: 'number' },
+    { key: 'traffic', label: 'Traffic', type: 'number' }
+  ],
+  iceberg: [
+    { key: 'depth', label: 'Depth', type: 'number' },
+    { key: 'mass', label: 'Mass', type: 'number' },
+    { key: 'berg', label: 'Berg', type: 'text' },
+    { key: 'peril', label: 'Peril', type: 'number' }
   ],
   composite: []
 };

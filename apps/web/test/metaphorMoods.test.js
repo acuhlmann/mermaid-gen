@@ -24,9 +24,13 @@ describe('applyMoodToTheme', () => {
     expect(themed.buildingColor).toBe(base.buildingColor);
   });
 
-  it('attaches moodFx with fog and a particle descriptor', () => {
+  it('attaches moodFx with haze and a particle descriptor', () => {
     const storm = applyMoodToTheme(base, 'storm');
-    expect(storm.moodFx?.fog?.near).toBeLessThan(storm.moodFx?.fog?.far);
+    // Haze is a fraction of the content radius, not a world distance — the
+    // renderer re-solves the band against the live camera distance so the same
+    // mood reads identically on a 5-item and a 60-item scene.
+    expect(storm.moodFx?.fog?.haze).toBeGreaterThan(0);
+    expect(storm.moodFx?.fog?.haze).toBeLessThanOrEqual(1);
     expect(storm.moodFx?.particles?.type).toBe('rain');
     expect(storm.moodFx?.particleSpaceSafe).toBe(false);
 
@@ -39,15 +43,14 @@ describe('applyMoodToTheme', () => {
     expect(aurora.moodFx?.particles?.color2).toBeTruthy();
   });
 
-  it('soften blends only partway and pushes fog further out (daylight scenes)', () => {
+  it('soften blends only partway and pulls haze back (daylight scenes)', () => {
     const full = applyMoodToTheme(base, 'dusk');
     const soft = applyMoodToTheme(base, 'dusk', { soften: true });
     expect(soft.skyTopColor).not.toBe(full.skyTopColor);
     // Softened directional stays brighter than the full-strength mood.
     expect(soft.directional.intensity).toBeGreaterThan(full.directional.intensity);
-    // Softened fog sits further away so the scene stays readable.
-    expect(soft.moodFx.fog.near).toBeGreaterThan(full.moodFx.fog.near);
-    expect(soft.moodFx.fog.far).toBeGreaterThan(full.moodFx.fog.far);
+    // Less haze means the band sits further back toward the horizon.
+    expect(soft.moodFx.fog.haze).toBeLessThan(full.moodFx.fog.haze);
     // Particles still apply in softened mode.
     expect(soft.moodFx.particles?.type).toBe('fireflies');
   });

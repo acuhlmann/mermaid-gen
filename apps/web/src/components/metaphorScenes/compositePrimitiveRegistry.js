@@ -93,6 +93,26 @@ export const COMPOSITE_PRIMITIVE_REGISTRY = Object.freeze({
     placement: 'on-path',
     motionStyle: 'flow',
     estimatedCost: 3
+  }),
+  // A bridge layer is a crossing between sites, so it reads as a path like the
+  // river's waypoints rather than as another landmark planted on one island.
+  pylon: Object.freeze({
+    role: 'path',
+    bounds: Object.freeze({ radius: [0.3, 0.9], height: [1.2, 4.2] }),
+    anchor: 'marker-top',
+    placement: 'on-path',
+    motionStyle: 'flow',
+    estimatedCost: 4
+  }),
+  // A cycle layer is a recurring loop; an orbiting accent is the closest the
+  // fused vocabulary gets to "this comes round again".
+  pod: Object.freeze({
+    role: 'accent',
+    bounds: Object.freeze({ radius: [0.4, 1.2], height: [0.4, 1.2] }),
+    anchor: 'center',
+    placement: 'orbit-site',
+    motionStyle: 'orbit',
+    estimatedCost: 4
   })
 });
 
@@ -106,7 +126,18 @@ export const COMPOSITE_CAPABILITY_BY_KIND = Object.freeze({
   garden: Object.freeze({ role: 'landmark', primitive: 'bloom', metric: 'impact' }),
   galaxy: Object.freeze({ role: 'accent', primitive: 'star', metric: 'magnitude' }),
   orrery: Object.freeze({ role: 'accent', primitive: 'orb', metric: 'size' }),
-  machine: Object.freeze({ role: 'connector', primitive: 'gear', metric: 'size' })
+  machine: Object.freeze({ role: 'connector', primitive: 'gear', metric: 'size' }),
+  // Without these two, a bridge or cycle layer fell through to the generic
+  // landmark/tower default and every crossing or ceremony was drawn as an
+  // anonymous block on whichever island it happened to bind to.
+  bridge: Object.freeze({ role: 'path', primitive: 'pylon', metric: 'load' }),
+  cycle: Object.freeze({ role: 'accent', primitive: 'pod', metric: 'size' }),
+  // A subway layer is a set of routes between sites — the same "path" role a
+  // river plays. An iceberg layer is bulk sitting on a site, so it lands as a
+  // landmark; the waterline it needs cannot exist inside a fused world that
+  // already has ground at y = 0, which is why iceberg is better used alone.
+  subway: Object.freeze({ role: 'path', primitive: 'waypoint', metric: 'traffic' }),
+  iceberg: Object.freeze({ role: 'landmark', primitive: 'tower', metric: 'mass' })
 });
 
 export function getCompositeCapability(kind) {
