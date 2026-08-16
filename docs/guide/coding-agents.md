@@ -68,4 +68,5 @@ Edit [`.cursor/skills/`](../../.cursor/skills/) only. [`.claude/skills/mermaid`]
 - Keep operational tips mirrored in both files; domain depth stays in `CLAUDE.md` with a pointer from `AGENTS.md`
 - [`docs/agents/testing.md`](../agents/testing.md) — diff-scoped tests, helpers, slow suites
 - [`docs/agents/sensors.md`](../agents/sensors.md) — lint, dep-cruiser, and formatter guidance
+- [`docs/agents/balanced-coupling-priorities.md`](../agents/balanced-coupling-priorities.md) — ranked modularity focus areas (Balanced Coupling model)
 - [`change-diagram-schema.md`](../recipes/change-diagram-schema.md) — schema change playbook
