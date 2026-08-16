@@ -44,7 +44,9 @@ describe('resolveGalaxyVividTheme', () => {
 describe('outdoor daylight themes', () => {
   it('keeps a noir-authored river sunny with clear water', () => {
     const river = resolveRiverDaylightTheme(METAPHOR_THEME_PRESETS.noir);
-    expect(river.environment).toBeNull();
+    // The daylight override must also replace the dark theme's IBL strength,
+    // or a noir-authored river reflects a night sky into sunny water.
+    expect(river.envIntensity).toBe(0.7);
     expect(river.background).toBe('#9fd5f2');
     expect(river.skyTopColor).toBe('#258fce');
     expect(river.treeMeadowColor).not.toBe(METAPHOR_THEME_PRESETS.noir.treeMeadowColor);
@@ -54,7 +56,7 @@ describe('outdoor daylight themes', () => {
 
   it('gives garden scenes a daylight botanical palette', () => {
     const garden = resolveGardenDaylightTheme(METAPHOR_THEME_PRESETS.blueprint);
-    expect(garden.environment).toBeNull();
+    expect(garden.envIntensity).toBe(0.7);
     expect(garden.gardenBloomPalette.length).toBeGreaterThan(2);
     expect(garden.gardenThrivingColor).toBeTruthy();
     expect(garden.gardenRiskColor).toBeTruthy();
@@ -62,7 +64,7 @@ describe('outdoor daylight themes', () => {
 
   it('gives archipelago scenes a sunny tropical ocean palette', () => {
     const arch = resolveArchipelagoDaylightTheme(METAPHOR_THEME_PRESETS.noir);
-    expect(arch.environment).toBeNull();
+    expect(arch.envIntensity).toBe(0.7);
     expect(arch.skyTopColor).toBe('#258fce');
     expect(arch.waterColor).toBeTruthy();
     expect(arch.ambientIntensity).toBeGreaterThan(0.7);

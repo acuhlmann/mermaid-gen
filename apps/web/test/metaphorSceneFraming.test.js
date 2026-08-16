@@ -2,9 +2,11 @@ import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
 import {
   FRAME_IGNORE,
+  FRAME_IGNORE_DATA,
   collectFramePoints,
   solveFrameFit
 } from '../src/components/metaphorScenes/sceneFraming.js';
+import { MetaphorGroundShadow } from '../src/components/metaphorScenes/MetaphorSceneChrome.jsx';
 import {
   DEFAULT_GROUND_HAZE,
   hazeBand,
@@ -105,6 +107,19 @@ describe('collectFramePoints', () => {
 
     const reach = Math.max(...collectFramePoints(root).map((p) => p.length()));
     expect(reach).toBeLessThan(2);
+  });
+
+  it('keeps the contact-shadow catcher out of the fit', () => {
+    // The catcher is deliberately sized past the subject so the blur has
+    // somewhere to fall, and it is invisible except where a shadow lands. Left
+    // in the fit it became the binding constraint on nearly every grounded kind
+    // and the camera framed a rectangle nobody can see: measured, the city
+    // needed 44 units for its skyline and 57 for this plane, and the fused
+    // composite 20 against 30. Asserted on the element rather than through a
+    // renderer because R3F cannot mount in jsdom.
+    const element = MetaphorGroundShadow({ theme: { postfx: {} } });
+    expect(element.props.userData).toBe(FRAME_IGNORE_DATA);
+    expect(FRAME_IGNORE_DATA[FRAME_IGNORE]).toBe(true);
   });
 });
 

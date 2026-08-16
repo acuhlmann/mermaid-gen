@@ -9,6 +9,7 @@ import {
   ItemLabel,
   MetaphorGroundShadow
 } from './MetaphorSceneChrome.jsx';
+import { MetaphorAccents } from './MetaphorAccents.jsx';
 import { useMetaphorClock } from './metaphorClock.js';
 import {
   planFusedCompositeWorld,
@@ -65,12 +66,15 @@ function IslandPrimitive({ entity, theme, emphasized }) {
       {entity.item ? (
         <>
           <TopicGlyph item={entity.item} theme={theme} position={[0, entity.height + 0.45, 0]} />
+          {/* A site is the substrate everything else stands on, so it outranks
+              the landmarks attached to it when their labels collide. */}
           <ItemLabel
             text={entity.item.label}
             position={[0, entity.height + (entity.item.glyph ? 1.3 : 0.75), 0]}
             fontSize={0.52}
             color={theme.labelColor}
             outlineColor={theme.labelOutline}
+            importance={entity.radius * 3}
           />
         </>
       ) : null}
@@ -110,27 +114,112 @@ function towerMaterialParams(presentation, theme, emphasized) {
   return {
     color: bodyColor,
     roof,
+    lighting,
     emissiveIntensity: (emphasized ? 0.32 : lightingBoost) + (emphasized ? 0.08 : 0),
     roughness: conditionRoughness
   };
 }
 
+/** Lit-window density per `lighting` value — mirrors the city scene's reading. */
+const TOWER_WINDOW_PROB = { lit: 0.5, dim: 0.22, dark: 0.05 };
+
+/**
+ * Window grid on a fused landmark.
+ *
+ * The fused world's towers stand for exactly the same thing the city's
+ * buildings do, and `lighting` ("active / idle / offline") is one of the
+ * storytelling fields the prompt tells the agent to carry into composite
+ * layers — but a bare box could only express it as a small change in emissive
+ * tint, which is invisible next to an island. Lit windows are what make the
+ * distinction legible, and they are the cheapest detail that stops a landmark
+ * reading as a placeholder block: two facades, capped grids, no per-window
+ * component. Only the two camera-facing sides are drawn (the default view looks
+ * down +X/+Z) — the back two are never seen from the orbit range and would
+ * double the mesh count of the busiest layer in the scene.
+ */
+function TowerWindows({ id, width, height, lighting, theme }) {
+  const cells = useMemo(() => {
+    const prob = TOWER_WINDOW_PROB[lighting ?? 'lit'] ?? TOWER_WINDOW_PROB.lit;
+    const cols = Math.max(2, Math.min(4, Math.floor(width / 0.42)));
+    const rows = Math.max(2, Math.min(7, Math.floor(height / 0.62)));
+    const colStep = width / (cols + 1);
+    const rowStep = height / (rows + 1);
+    const half = width / 2 + 0.006;
+    const out = [];
+    for (const face of [0, 1]) {
+      for (let r = 0; r < rows; r += 1) {
+        for (let c = 0; c < cols; c += 1) {
+          if (idHash2(`${id}|c${face}|${r}|${c}`, 'fused-window') > prob) continue;
+          const along = (c + 1) * colStep - width / 2;
+          const y = (r + 1) * rowStep;
+          out.push({
+            position: face === 0 ? [along, y, half] : [half, y, along],
+            rotY: face === 0 ? 0 : Math.PI / 2
+          });
+        }
+      }
+    }
+    return out;
+  }, [id, width, height, lighting]);
+
+  if (!cells.length) return null;
+  const windowColor = theme.windowEmissiveColor ?? theme.windowColor ?? '#fef3c7';
+  const glow = lighting === 'dark' ? 0.14 : 0.62;
+  return (
+    <group>
+      {cells.map((cell, index) => (
+        <mesh key={`fw-${index}`} position={cell.position} rotation={[0, cell.rotY, 0]}>
+          <planeGeometry args={[0.16, 0.16]} />
+          <meshStandardMaterial
+            color={windowColor}
+            emissive={windowColor}
+            emissiveIntensity={glow}
+            toneMapped={false}
+          />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
 function TowerPrimitive({ entity, theme, emphasized }) {
   const params = towerMaterialParams(entity.presentation, theme, emphasized);
+  const width = entity.radius * 1.45;
   return (
     <SemanticMotion motion={entity.motion} emphasized={emphasized}>
+      {/* Plinth — the same trick the city uses: a slightly wider, darker base
+          gives the tower a footing to sit on instead of a seam where it meets
+          the island, which is where the contact shadow and AO now land. */}
+      <mesh position={[0, 0.07, 0]}>
+        <boxGeometry args={[width * 1.14, 0.14, width * 1.14]} />
+        <meshStandardMaterial color={params.roof} roughness={0.7} />
+      </mesh>
       <mesh position={[0, entity.height / 2, 0]}>
-        <boxGeometry args={[entity.radius * 1.45, entity.height, entity.radius * 1.45]} />
+        <boxGeometry args={[width, entity.height, width]} />
         <meshStandardMaterial
           color={params.color}
           emissive={emphasized ? params.roof : params.color}
           emissiveIntensity={params.emissiveIntensity}
           roughness={params.roughness}
+          metalness={0.08}
         />
       </mesh>
-      <mesh position={[0, entity.height + 0.2, 0]}>
-        <coneGeometry args={[entity.radius * 0.8, 0.7, 5]} />
-        <meshStandardMaterial color={params.roof} roughness={0.45} />
+      <TowerWindows
+        id={entity.id}
+        width={width}
+        height={entity.height}
+        lighting={params.lighting}
+        theme={theme}
+      />
+      {/* Parapet + cap: a flat crown band under the spire reads as a building
+          top rather than a sharpened pencil. */}
+      <mesh position={[0, entity.height + 0.09, 0]}>
+        <boxGeometry args={[width * 1.06, 0.18, width * 1.06]} />
+        <meshStandardMaterial color={params.roof} roughness={0.5} metalness={0.12} />
+      </mesh>
+      <mesh position={[0, entity.height + 0.5, 0]}>
+        <coneGeometry args={[entity.radius * 0.72, 0.66, 5]} />
+        <meshStandardMaterial color={params.roof} roughness={0.45} metalness={0.12} />
       </mesh>
     </SemanticMotion>
   );
@@ -396,21 +485,46 @@ function PlannedNode({ entity, theme, emphasized, onActiveIdChange, lod }) {
       <HoverableItem item={entity.item} metaphor={entity.kind} onActiveIdChange={onActiveIdChange}>
         <PrimitiveBody entity={entity} theme={theme} emphasized={emphasized} lod={lod} />
         <TopicGlyph item={entity.item} theme={theme} position={[0, labelY - 0.3, 0]} scale={0.68} />
+        {/* Rank by the entity's own size, the same rule the base kinds use. The
+            fused world used to pass no `importance` at all, so every label tied
+            and the declutter pass fell back to nearest-to-camera — which
+            resolves a collision by hiding whichever landmark happens to be
+            further away rather than whichever matters less. */}
         <ItemLabel
           text={entity.item.label}
           position={labelPosition}
           fontSize={0.46}
           color={theme.labelColor}
           outlineColor={theme.labelOutline}
+          importance={entity.height + entity.radius}
         />
       </HoverableItem>
     </group>
   );
 }
 
+/**
+ * The affinity rings, and — new — the grouping noun each one stands for.
+ *
+ * The rings on their own were the composite's largest loss of meaning. Aligning
+ * grouping nouns across layers is the single instruction the fused planner asks
+ * the agent to follow ("reuse the same district / chain / bed strings"), it is
+ * what binds a service landmark to the right domain island, and the renderer
+ * drew the result as unlabelled circles on the floor. A composite of Buy /
+ * Browse / Ship domains rendered three anonymous rings, so the one thing the
+ * author was asked to encode was the one thing a viewer could not read. Every
+ * base kind names its groups — the city has district placards, the garden bed
+ * signs, the archipelago chain labels — and the fused world is the kind that
+ * needs it most, because its whole premise is several layers sharing a floor.
+ *
+ * The placard is pinned: a group name is scene structure, not one more item
+ * label competing for space, and it must survive the declutter pass the same
+ * way a city district name does.
+ */
 function AffinityGroups({ groups, theme }) {
   return groups.map((group) => {
     const color = resolveDistrictColor(theme, group.colorIndex);
+    const plaqueColor = shiftColor(color, { lightness: -0.06, satScale: 0.85 });
     return (
       <group key={group.id} position={group.center}>
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0]}>
@@ -421,6 +535,22 @@ function AffinityGroups({ groups, theme }) {
           <ringGeometry args={[group.radius, group.radius + 0.06, 48]} />
           <meshBasicMaterial color={theme.labelColor} transparent opacity={0.18} />
         </mesh>
+        {group.display ? (
+          <group position={[0, 0, group.radius * 0.86]}>
+            <mesh position={[0, 0.16, 0]}>
+              <boxGeometry args={[Math.min(group.radius * 1.25, 4.4), 0.1, 0.42]} />
+              <meshStandardMaterial color={plaqueColor} roughness={0.7} metalness={0.15} />
+            </mesh>
+            <ItemLabel
+              text={group.display}
+              position={[0, 0.62, 0]}
+              fontSize={0.5}
+              color={theme.labelColor}
+              outlineColor={theme.labelOutline}
+              pinned
+            />
+          </group>
+        ) : null}
       </group>
     );
   });
@@ -712,6 +842,16 @@ function FusedLinks({ links, theme, activeId, lod }) {
 export function FusedCompositeScene({ dsl, theme }) {
   const plan = useMemo(() => planFusedCompositeWorld(dsl), [dsl]);
   const [activeId, setActiveId] = useState(null);
+  // Every base kind draws the accent marker; the fused world did not, so a
+  // composite was the one kind that could state a thesis in its DSL and then
+  // silently drop it. The planner already publishes `anchors` (id → the world
+  // point at the top of that entity) for sites, nodes and path stations, which
+  // is precisely the contract `MetaphorAccents` reads — so this needed the
+  // items flattened back out of the layers and nothing else.
+  const accentItems = useMemo(
+    () => (Array.isArray(dsl.layers) ? dsl.layers : []).flatMap((layer) => layer.items ?? []),
+    [dsl.layers]
+  );
   const relatedIds = useMemo(() => {
     if (!activeId) return new Set();
     const ids = new Set([activeId]);
@@ -769,6 +909,7 @@ export function FusedCompositeScene({ dsl, theme }) {
       ))}
       <TreeConnectors connectors={plan.connectors ?? []} theme={theme} activeId={activeId} />
       <FusedLinks links={plan.links} theme={theme} activeId={activeId} lod={lod} />
+      <MetaphorAccents items={accentItems} anchors={plan.anchors} theme={theme} />
       <MetaphorGroundShadow
         theme={theme}
         y={-0.31}

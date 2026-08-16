@@ -1,6 +1,6 @@
 /**
- * Renders the `accent` marker: a light shaft and a halo over the item that IS
- * the scene's headline insight.
+ * Renders the `accent` marker: the callout over the item that IS the scene's
+ * headline insight.
  *
  * The prompt has always told the agent to compose so its most extreme element
  * carries the thesis ("if everything is medium, the scene has no thesis"), but
@@ -12,25 +12,166 @@
  * uses, because that map already answers the only question a marker needs: the
  * world point at the top of the thing. Fourteen scenes build it; none of them
  * needed a new concept to light one item up.
+ *
+ * Two things here are corrections to what shipped first, and both are about the
+ * marker being *readable* rather than merely present:
+ *
+ * 1. A ring drawn AT the anchor is buried by whatever the scene draws on top of
+ *    it. A city anchor is the building's roof line, and the roof, its fixtures
+ *    and a spire all sit above that — measured on the whiteboard theme, the
+ *    marker on the tallest tower was completely hidden inside its own roof. The
+ *    marker is now a map pin: a stem rising from the anchor to a pin head that
+ *    clears the item, so it cannot be occluded by the thing it points at.
+ * 2. The item's `note` is the topic's own sentence about why this item is the
+ *    thesis, and it used to be reachable only by hovering — which is to say,
+ *    invisible in a screenshot, in fullscreen presentation mode, and to anybody
+ *    who does not think to point at things. The accented item's note now renders
+ *    as a caption on the pin, so the scene states its claim out loud.
  */
 import { useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
+import { Billboard, Text } from '@react-three/drei';
 import { GlowSprite } from './MetaphorSceneChrome.jsx';
 import { useMetaphorClock } from './metaphorClock.js';
 import { isDarkBackdrop } from './sceneUtils.js';
 
-/** Height of the shaft above the anchor, in world units. */
+/** Height of the light shaft above the anchor, in world units. */
 const SHAFT_HEIGHT = 5.5;
 
 /** The marker's hue, held constant across every theme. */
 const ACCENT_MARKER_COLOR = '#fbbf24';
 
-function AccentBeam({ position, color, additive }) {
+/** Caption type size and its wrap width, in world units. */
+const CAPTION_SIZE = 0.38;
+const CAPTION_MAX_WIDTH = 7;
+
+/**
+ * Draw order for the caption. It is an annotation about the scene, not a thing
+ * inside it, so it ignores depth entirely: the marker exists precisely because
+ * the accented item is often the one buried behind other geometry (a submerged
+ * iceberg block, a gear behind a plate rim, a low tower in a dense skyline),
+ * and a caption the subject can hide is a caption you cannot read exactly when
+ * you need it. Measured on the iceberg, depth-tested text lost its middle third
+ * to the berg in front of it.
+ */
+const CAPTION_RENDER_ORDER = 30;
+
+/**
+ * Camera distance at which the caption renders at its authored size, and the
+ * bounds it may scale between.
+ *
+ * The caption is authored in world units, and these scenes are not one size: a
+ * layer cake is framed from ~14 units away and a bridge from ~60. Left at a
+ * fixed world size the same caption is a banner across the cake and unreadable
+ * three-point type on the bridge — measured on both. It is an annotation, so
+ * what should stay constant is how big it looks, not how big it is; scaling by
+ * camera distance does that, and it also keeps the caption legible when the
+ * viewer orbits out, which a fixed size does not.
+ */
+const CAPTION_REFERENCE_DISTANCE = 34;
+const CAPTION_MIN_SCALE = 0.6;
+const CAPTION_MAX_SCALE = 2.1;
+
+/**
+ * The note, as a caption plate on the pin.
+ *
+ * It carries its own dark backing plate rather than relying on a text outline:
+ * a note is a sentence, not a one-word label, and at this type size an outline
+ * alone loses against a lit facade or a bright sky. The plate is sized from a
+ * glyph-count estimate for the same reason `ItemLabel` estimates its own
+ * footprint — troika only publishes real bounds an async sync later, and a
+ * plate that appears two frames after its text reads as a flicker.
+ */
+function AccentCaption({ text, y, color }) {
+  const scaleRef = useRef(null);
+  const probe = useMemo(() => new THREE.Vector3(), []);
+  useFrame((state) => {
+    const group = scaleRef.current;
+    if (!group) return;
+    group.getWorldPosition(probe);
+    const distance = state.camera.position.distanceTo(probe);
+    group.scale.setScalar(
+      THREE.MathUtils.clamp(
+        distance / CAPTION_REFERENCE_DISTANCE,
+        CAPTION_MIN_SCALE,
+        CAPTION_MAX_SCALE
+      )
+    );
+  });
+
+  const { lines, width } = useMemo(() => {
+    const perLine = Math.max(12, Math.floor(CAPTION_MAX_WIDTH / (CAPTION_SIZE * 0.56)));
+    const words = String(text).split(/\s+/);
+    const out = [];
+    let current = '';
+    for (const word of words) {
+      if (current && current.length + 1 + word.length > perLine) {
+        out.push(current);
+        current = word;
+      } else {
+        current = current ? `${current} ${word}` : word;
+      }
+    }
+    if (current) out.push(current);
+    const longest = out.reduce((max, line) => Math.max(max, line.length), 0);
+    return { lines: out, width: Math.min(CAPTION_MAX_WIDTH, longest * CAPTION_SIZE * 0.56) };
+  }, [text]);
+
+  const plateWidth = width + CAPTION_SIZE * 1.4;
+  const plateHeight = lines.length * CAPTION_SIZE * 1.32 + CAPTION_SIZE * 0.8;
+
+  return (
+    <Billboard position={[0, y, 0]}>
+      <group ref={scaleRef}>
+        <mesh position={[0, 0, -0.02]} renderOrder={CAPTION_RENDER_ORDER}>
+          <planeGeometry args={[plateWidth, plateHeight]} />
+          <meshBasicMaterial
+            color="#0f172a"
+            transparent
+            opacity={0.86}
+            depthWrite={false}
+            depthTest={false}
+          />
+        </mesh>
+        <mesh position={[0, -plateHeight / 2 + 0.03, -0.01]} renderOrder={CAPTION_RENDER_ORDER + 1}>
+          <planeGeometry args={[plateWidth, 0.055]} />
+          <meshBasicMaterial
+            color={color}
+            transparent
+            opacity={0.95}
+            depthWrite={false}
+            depthTest={false}
+            toneMapped={false}
+          />
+        </mesh>
+        <Text
+          fontSize={CAPTION_SIZE}
+          color="#f8fafc"
+          anchorX="center"
+          anchorY="middle"
+          lineHeight={1.32}
+          maxWidth={CAPTION_MAX_WIDTH}
+          renderOrder={CAPTION_RENDER_ORDER + 2}
+          material-depthTest={false}
+          material-depthWrite={false}
+          material-toneMapped={false}
+        >
+          {lines.join('\n')}
+        </Text>
+      </group>
+    </Billboard>
+  );
+}
+
+function AccentBeam({ position, color, additive, note }) {
   const haloRef = useRef(null);
   const ringRef = useRef(null);
   const pinRef = useRef(null);
   const { getTime, animated } = useMetaphorClock();
+
+  // Without a shaft to cap, the pin sits closer to the item it marks.
+  const pinHeight = additive ? SHAFT_HEIGHT + 1.35 : 2.6;
 
   useFrame(() => {
     const t = animated ? getTime() : 0;
@@ -48,9 +189,6 @@ function AccentBeam({ position, color, additive }) {
     }
   });
 
-  // Without a shaft to cap, the pin sits closer to the item it marks.
-  const pinHeight = additive ? SHAFT_HEIGHT + 1.35 : 2.6;
-
   const shaftGeometry = useMemo(
     () => new THREE.CylinderGeometry(0.5, 0.16, SHAFT_HEIGHT, 16, 1, true),
     []
@@ -65,7 +203,7 @@ function AccentBeam({ position, color, additive }) {
           but a pale translucent cone over a pale sky reads as a smudge sitting
           on the subject, and it dulled the very flower it was pointing at. A
           beam is a light effect and light effects need darkness. On bright
-          themes the ring and the pin carry the marker on their own. */}
+          themes the stem, ring and pin carry the marker on their own. */}
       {additive ? (
         <mesh geometry={shaftGeometry} position={[0, SHAFT_HEIGHT / 2 + 0.45, 0]}>
           <meshBasicMaterial
@@ -84,16 +222,47 @@ function AccentBeam({ position, color, additive }) {
           <GlowSprite size={3.2} color={color} opacity={0.3} />
         </group>
       ) : null}
+      {/* Stem: a lit rod from the anchor to the pin, tying the floating pin back
+          to one specific item — a pin alone hovering over a crowded skyline is
+          ambiguous about what it marks.
+
+          Stem and pin are depth-test-free for the same reason the caption is.
+          An anchor is "the world point at the top of the thing", but several
+          scenes keep drawing ABOVE that point: a city building stacks a roof, a
+          spire and a rooftop glyph over its own anchor, and measured on the
+          whiteboard city the entire marker rendered inside the spire of the
+          tower it was marking. Chasing that with a taller stem only moves the
+          problem to the next kind. The callout is an annotation about the scene
+          rather than an object within it, so it is drawn over the scene — which
+          is also what a leader line does on any annotated drawing. The ring
+          below stays depth-tested: it is a decal on the item, and it should be
+          hidden when the item is. */}
+      <mesh position={[0, pinHeight / 2, 0]} renderOrder={CAPTION_RENDER_ORDER}>
+        <cylinderGeometry args={[0.055, 0.055, pinHeight, 8]} />
+        <meshStandardMaterial
+          color={color}
+          emissive={color}
+          emissiveIntensity={0.4}
+          roughness={0.4}
+          metalness={0.2}
+          depthTest={false}
+        />
+      </mesh>
       <mesh ref={ringRef} position={[0, 0.12, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <ringGeometry args={[1.15, 1.4, 44]} />
         <meshBasicMaterial color={color} transparent opacity={0.92} depthWrite={false} />
       </mesh>
-      {/* An OPAQUE, lit pin above the shaft. The shaft and halo are translucent,
-          which makes them a matter of contrast — and against the whiteboard
-          theme's near-white sky there is barely any contrast to spend. A solid
-          shape carries the marker on any background, and a slow bob keeps it
-          reading as a pointer rather than as scene furniture. */}
-      <mesh ref={pinRef} position={[0, pinHeight, 0]} rotation={[Math.PI, 0, 0]}>
+      {/* An OPAQUE, lit pin at the top of the stem. The shaft and halo are
+          translucent, which makes them a matter of contrast — and against the
+          whiteboard theme's near-white sky there is barely any contrast to
+          spend. A solid shape carries the marker on any background, and a slow
+          bob keeps it reading as a pointer rather than as scene furniture. */}
+      <mesh
+        ref={pinRef}
+        position={[0, pinHeight, 0]}
+        rotation={[Math.PI, 0, 0]}
+        renderOrder={CAPTION_RENDER_ORDER + 1}
+      >
         <coneGeometry args={[0.42, 0.95, 5]} />
         <meshStandardMaterial
           color={color}
@@ -101,8 +270,10 @@ function AccentBeam({ position, color, additive }) {
           emissiveIntensity={0.55}
           roughness={0.35}
           metalness={0.15}
+          depthTest={false}
         />
       </mesh>
+      {note ? <AccentCaption text={note} y={pinHeight + 1.05} color={color} /> : null}
     </group>
   );
 }
@@ -135,6 +306,7 @@ export function MetaphorAccents({ items, anchors, theme }) {
           position={anchors.get(item.id)}
           color={color}
           additive={additive}
+          note={typeof item.note === 'string' && item.note.trim() ? item.note.trim() : null}
         />
       ))}
     </group>
