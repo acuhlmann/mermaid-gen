@@ -560,6 +560,22 @@ function layerSlabShade(theme, index, total) {
 }
 
 /**
+ * Type size for a slab's name.
+ *
+ * The old rule scaled it by `thickness`, which is the slab's HEIGHT — but a
+ * label's problem is its WIDTH, and it is billboarded onto the near rim of the
+ * cake it names. A thick slab therefore earned a 0.95 font whose text ran about
+ * 45% of the cake's diameter and covered the slab it labelled. Size is now
+ * bounded by the width actually available, so a long name shrinks to fit rather
+ * than spilling across the subject.
+ */
+function layercakeLabelSize(text, radius, thickness) {
+  const available = radius * 1.7;
+  const glyphs = Math.max(4, (text?.length ?? 0) * 0.55);
+  return Math.max(0.32, Math.min(0.6, thickness * 0.5, available / glyphs));
+}
+
+/**
  * Slab label that orbits to whichever side faces the camera, so it's always on
  * the near rim and never occluded by the cake as the user rotates the view.
  * Billboarded so the glyph-free text stays upright and screen-facing.
@@ -891,7 +907,7 @@ function LayerSlab({ item, yOffset, theme, showCutaway, index = 0, total = 1, is
         centerY={slabCenterY}
         radius={radius}
         text={item.label}
-        fontSize={Math.max(0.55, Math.min(0.95, thickness * 0.55))}
+        fontSize={layercakeLabelSize(item.label, radius, thickness)}
         color={theme.labelColor}
         outlineColor={theme.labelOutline}
       />

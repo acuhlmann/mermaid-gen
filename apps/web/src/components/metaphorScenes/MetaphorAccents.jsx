@@ -18,11 +18,15 @@ import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
 import { GlowSprite } from './MetaphorSceneChrome.jsx';
 import { useMetaphorClock } from './metaphorClock.js';
+import { isDarkBackdrop } from './sceneUtils.js';
 
 /** Height of the shaft above the anchor, in world units. */
 const SHAFT_HEIGHT = 5.5;
 
-function AccentBeam({ position, color }) {
+/** The marker's hue, held constant across every theme. */
+const ACCENT_MARKER_COLOR = '#fbbf24';
+
+function AccentBeam({ position, color, additive }) {
   const haloRef = useRef(null);
   const ringRef = useRef(null);
   const pinRef = useRef(null);
@@ -39,10 +43,13 @@ function AccentBeam({ position, color }) {
       ringRef.current.scale.setScalar(0.94 + 0.06 * Math.sin(t * 1.15 + 1));
     }
     if (pinRef.current) {
-      pinRef.current.position.y = SHAFT_HEIGHT + 1.35 + Math.sin(t * 1.15) * 0.22;
+      pinRef.current.position.y = pinHeight + Math.sin(t * 1.15) * 0.22;
       pinRef.current.rotation.y = t * 0.6;
     }
   });
+
+  // Without a shaft to cap, the pin sits closer to the item it marks.
+  const pinHeight = additive ? SHAFT_HEIGHT + 1.35 : 2.6;
 
   const shaftGeometry = useMemo(
     () => new THREE.CylinderGeometry(0.5, 0.16, SHAFT_HEIGHT, 16, 1, true),
@@ -51,22 +58,32 @@ function AccentBeam({ position, color }) {
 
   return (
     <group position={position}>
-      {/* Light shaft: additive, no depth write, so it reads as light rather than
-          as a translucent cone parked on top of the item. */}
-      <mesh geometry={shaftGeometry} position={[0, SHAFT_HEIGHT / 2 + 0.45, 0]}>
-        <meshBasicMaterial
-          color={color}
-          transparent
-          opacity={0.1}
-          side={THREE.DoubleSide}
-          depthWrite={false}
-          blending={THREE.AdditiveBlending}
-          toneMapped={false}
-        />
-      </mesh>
-      <group ref={haloRef} position={[0, 0.35, 0]}>
-        <GlowSprite size={3.2} color={color} opacity={0.26} />
-      </group>
+      {/* Light shaft — dark backdrops only, and that is a real conclusion rather
+          than a shortcut. Additive blending can only ADD light, so over
+          whiteboard's near-white sky it is mathematically incapable of showing
+          up; switching that same cone to normal blending does make it visible,
+          but a pale translucent cone over a pale sky reads as a smudge sitting
+          on the subject, and it dulled the very flower it was pointing at. A
+          beam is a light effect and light effects need darkness. On bright
+          themes the ring and the pin carry the marker on their own. */}
+      {additive ? (
+        <mesh geometry={shaftGeometry} position={[0, SHAFT_HEIGHT / 2 + 0.45, 0]}>
+          <meshBasicMaterial
+            color={color}
+            transparent
+            opacity={0.18}
+            side={THREE.DoubleSide}
+            depthWrite={false}
+            blending={THREE.AdditiveBlending}
+            toneMapped={false}
+          />
+        </mesh>
+      ) : null}
+      {additive ? (
+        <group ref={haloRef} position={[0, 0.35, 0]}>
+          <GlowSprite size={3.2} color={color} opacity={0.3} />
+        </group>
+      ) : null}
       <mesh ref={ringRef} position={[0, 0.12, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <ringGeometry args={[1.15, 1.4, 44]} />
         <meshBasicMaterial color={color} transparent opacity={0.92} depthWrite={false} />
@@ -76,7 +93,7 @@ function AccentBeam({ position, color }) {
           theme's near-white sky there is barely any contrast to spend. A solid
           shape carries the marker on any background, and a slow bob keeps it
           reading as a pointer rather than as scene furniture. */}
-      <mesh ref={pinRef} position={[0, SHAFT_HEIGHT + 1.35, 0]} rotation={[Math.PI, 0, 0]}>
+      <mesh ref={pinRef} position={[0, pinHeight, 0]} rotation={[Math.PI, 0, 0]}>
         <coneGeometry args={[0.42, 0.95, 5]} />
         <meshStandardMaterial
           color={color}
@@ -102,13 +119,23 @@ export function MetaphorAccents({ items, anchors, theme }) {
     [items, anchors]
   );
   if (!accented.length) return null;
-  // Amber by default: it is the one hue no metaphor palette uses for an
-  // encoding, so the marker can never be mistaken for a district or cluster.
-  const color = theme.accentMarkerColor ?? theme.slabTrimColor ?? theme.starColor ?? '#fbbf24';
+  // Fixed amber, not a theme colour. Falling back through `slabTrimColor` /
+  // `starColor` looked harmless and defeated the point: those ARE encoding
+  // colours, so on noir the marker came out the same slate as the cake trim and
+  // stopped reading as "look here". The marker has to be one hue no palette
+  // spends on meaning; a theme that genuinely needs another sets
+  // `accentMarkerColor` explicitly.
+  const color = theme.accentMarkerColor ?? ACCENT_MARKER_COLOR;
+  const additive = isDarkBackdrop(theme);
   return (
     <group>
       {accented.map((item) => (
-        <AccentBeam key={`accent-${item.id}`} position={anchors.get(item.id)} color={color} />
+        <AccentBeam
+          key={`accent-${item.id}`}
+          position={anchors.get(item.id)}
+          color={color}
+          additive={additive}
+        />
       ))}
     </group>
   );

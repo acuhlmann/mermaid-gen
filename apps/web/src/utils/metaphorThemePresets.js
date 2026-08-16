@@ -39,6 +39,15 @@ function blendHexColors(base, tint, amount) {
   return `#${out.getHexString()}`;
 }
 
+/**
+ * A theme's `hemisphere` is `[skyColor, groundColor, intensity]`, and the second
+ * entry is the ground bounce that lights whatever faces away from the sky. On
+ * the dark themes it used to be near-black, which reads as "no bounce exists" —
+ * and with real cast shadows now in the scene that turned the bridge's shores
+ * and the machine's floor into shapes with no surface. Keep the bounce dark but
+ * never black; drama belongs to the key light and the vignette, not to
+ * withholding every last photon from the shadow side.
+ */
 export const METAPHOR_THEME_PRESETS = {
   whiteboard: {
     background: '#e9eef5',
@@ -111,7 +120,7 @@ export const METAPHOR_THEME_PRESETS = {
     skyTopColor: '#04060c',
     skyHorizonColor: '#1a2433',
     ambientIntensity: 0.35,
-    hemisphere: ['#1e293b', '#020617', 0.55],
+    hemisphere: ['#1e293b', '#1a2233', 0.55],
     directional: { position: [8, 20, 6], intensity: 0.95 },
     environment: 'night',
     buildingColor: '#334155',
@@ -152,7 +161,7 @@ export const METAPHOR_THEME_PRESETS = {
     machineAxlePalette: ['#8a97a8', '#6b7a8c', '#a5b4c4', '#55626f'],
     bridgeDeckColor: '#4a3b2e',
     bridgeCableColor: '#94a3b8',
-    bridgeRockColor: '#232a35',
+    bridgeRockColor: '#5c6675',
     cycleFrameColor: '#334155',
     cyclePaveColor: '#1e293b',
     cycleLampColor: '#fde047',
@@ -175,7 +184,7 @@ export const METAPHOR_THEME_PRESETS = {
     skyTopColor: '#0c0220',
     skyHorizonColor: '#37105e',
     ambientIntensity: 0.5,
-    hemisphere: ['#ff6b6b', '#2d1b69', 0.6],
+    hemisphere: ['#ff6b6b', '#3d2a80', 0.6],
     directional: { position: [14, 18, 10], intensity: 1.1 },
     environment: 'sunset',
     buildingColor: '#ff6bcb',
@@ -239,7 +248,7 @@ export const METAPHOR_THEME_PRESETS = {
     skyTopColor: '#05122a',
     skyHorizonColor: '#123a63',
     ambientIntensity: 0.55,
-    hemisphere: ['#1e3a8a', '#0a1e3a', 0.55],
+    hemisphere: ['#1e3a8a', '#1c3555', 0.55],
     directional: { position: [10, 18, 8], intensity: 0.9 },
     environment: null,
     buildingColor: '#bfdbfe',
@@ -280,7 +289,7 @@ export const METAPHOR_THEME_PRESETS = {
     machineAxlePalette: ['#9db8d6', '#7f9cc4', '#c0d4ea', '#5f7a9c'],
     bridgeDeckColor: '#35507a',
     bridgeCableColor: '#bae6fd',
-    bridgeRockColor: '#16304f',
+    bridgeRockColor: '#54759e',
     cycleFrameColor: '#5b8bc4',
     cyclePaveColor: '#0d2c52',
     cycleLampColor: '#e0f2fe',

@@ -236,7 +236,7 @@ function GardenPlant({ item, position, theme, bloomColor }) {
           leafColor={leafColor}
         />
         {item.glyph ? (
-          <Billboard position={[top[0], stemHeight + bloomRadius + 0.78, 0]}>
+          <Billboard position={[top[0], stemHeight + bloomRadius + 0.6, 0]}>
             <group scale={0.82}>
               <Glyph kind={item.glyph} theme={theme} />
             </group>
@@ -245,7 +245,7 @@ function GardenPlant({ item, position, theme, bloomColor }) {
       </SwayGroup>
       <ItemLabel
         text={item.label}
-        position={[top[0], stemHeight + bloomRadius + (item.glyph ? 1.65 : 0.7), 0]}
+        position={[top[0], stemHeight + bloomRadius + (item.glyph ? 1.28 : 0.52), 0]}
         fontSize={0.44 + Math.min(0.12, impact * 0.012)}
         color={theme.labelColor}
         outlineColor={theme.labelOutline}
