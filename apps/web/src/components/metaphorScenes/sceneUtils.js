@@ -16,13 +16,43 @@ export function truncateLabel(text, maxLen = 14) {
 export function shiftColor(input, { lightness = 0, satScale = 1, hueShift = 0 } = {}) {
   const c = new THREE.Color(input);
   const hsl = { h: 0, s: 0, l: 0 };
-  c.getHSL(hsl);
+  // HSL in sRGB, not in the working (linear) space. three's colour management
+  // converts on construction, and in linear space an ordinary mid-tone has a
+  // lightness around 0.09 — so the −0.1 deltas every caller here passes went
+  // NEGATIVE and clamped to pure black. That is what painted the bridge's shore
+  // slabs and outcrops solid black on every theme (measured #020000), and it
+  // silently flattened every other "slightly darker" shade in the scenes.
+  // Callers write these deltas as perceptual nudges, which is what sRGB HSL is.
+  c.getHSL(hsl, THREE.SRGBColorSpace);
   c.setHSL(
     (hsl.h + hueShift + 1) % 1,
     THREE.MathUtils.clamp(hsl.s * satScale, 0, 1),
-    THREE.MathUtils.clamp(hsl.l + lightness, 0, 1)
+    THREE.MathUtils.clamp(hsl.l + lightness, 0, 1),
+    THREE.SRGBColorSpace
   );
   return c;
+}
+
+const backdropProbe = new THREE.Color();
+
+/**
+ * Is there headroom to ADD light to this scene's backdrop?
+ *
+ * Additive blending can only brighten, so an additive glow needs a dark sky to
+ * register against — over the whiteboard theme's near-white one it is
+ * mathematically incapable of showing up. Effects that read as light gate on
+ * this rather than being tuned to one theme and quietly vanishing on the rest.
+ */
+export function isDarkBackdrop(theme) {
+  const source = theme?.skyHorizonColor ?? theme?.background;
+  if (!source) return false;
+  try {
+    backdropProbe.set(source);
+  } catch {
+    return false;
+  }
+  // Rec. 709 luma; 0.5 sits comfortably clear of both palette families.
+  return backdropProbe.r * 0.2126 + backdropProbe.g * 0.7152 + backdropProbe.b * 0.0722 < 0.5;
 }
 
 /** Sample a polyline (array of [x,y,z] points) at t in [0,1], piecewise-linear. */

@@ -34,7 +34,9 @@ function sideTint(theme, index) {
 /** Rock mesas at both shores with flat tops; the chasm drops to water below. */
 function BridgeShores({ spanLength, theme }) {
   const rock = theme.bridgeRockColor ?? '#7a6a58';
-  const rockDark = useMemo(() => shiftColor(rock, { lightness: -0.1 }), [rock]);
+  // Shallow delta: the rim slab and outcrops read as the same rock in shade,
+  // not as a second, much darker material.
+  const rockDark = useMemo(() => shiftColor(rock, { lightness: -0.06 }), [rock]);
   const half = spanLength / 2;
   const shoreW = 7;
   const depth = 8.5;

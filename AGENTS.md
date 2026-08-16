@@ -116,6 +116,19 @@ ones that will bite an edit.
   pins an item's own label through context.
 - **`accent` is capped at two in the sanitizer** — it is the thesis marker and its label skips
   decluttering, so an over-marked scene re-creates the smear the pass exists to stop.
+- **`shiftColor`'s deltas are perceptual, and that only works because it forces
+  sRGB.** `new THREE.Color(hex)` converts to the LINEAR working space, where an
+  ordinary mid-tone has HSL lightness ≈ 0.09 — so the ±0.04–0.2 nudges its ~80
+  call sites pass went negative and clamped to **pure black**. It shipped that
+  way: the bridge's shore slabs and outcrops measured `#020000` on every theme,
+  which reads as "the lighting is broken" and sent two separate investigations
+  after shadows and hemisphere lights first. `getHSL`/`setHSL` now take
+  `THREE.SRGBColorSpace` explicitly; keep it that way, and treat "a dark surface
+  renders black" as a colour-space question before a lighting one.
+- **A near-black albedo cannot be lit.** PBR multiplies albedo by irradiance, so
+  no amount of ambient, hemisphere bounce or key light rescues a `#1d314a`
+  surface — measured, it renders `#080810`. When a dark theme's ground reads as
+  a silhouette, raise the material rather than the lights.
 - **Adding a metaphor kind touches ten places**, and `metaphorUsda.ts`'s `KIND_ITEM_FIELDS` is the
   one that fails the build rather than failing silently. Full list in `CLAUDE.md`.
 
