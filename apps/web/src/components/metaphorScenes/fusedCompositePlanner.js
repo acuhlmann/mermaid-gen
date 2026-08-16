@@ -13,7 +13,11 @@ const METRIC_RANGE_BY_KIND = Object.freeze({
   orrery: [0.1, 10],
   river: [0.1, 20],
   garden: [0.1, 10],
-  machine: [0.1, 10]
+  machine: [0.1, 10],
+  bridge: [0.1, 10],
+  cycle: [0.1, 10],
+  subway: [0.1, 20],
+  iceberg: [0.1, 20]
 });
 
 const AFFINITY_FIELDS = Object.freeze(['district', 'chain', 'bed', 'axle', 'label', 'id']);
@@ -152,26 +156,84 @@ function makePresentation(item, kind) {
   };
 }
 
+/** Island/platform radius a substrate entry claims. Shared with the world sizing. */
+function siteRadiusFor(item) {
+  if (!item) return 2.5;
+  return clamp(
+    1.9 + Math.sqrt(Math.max(0.5, metricValue(item, 'archipelago', 'mass').raw)) * 0.48,
+    1.8,
+    4.6
+  );
+}
+
+/**
+ * How big the fused world is.
+ *
+ * This used to be `8.5 + √itemCount · 2.15`, which sized the ocean from the
+ * *item* count while the sites that fill it come from the *substrate* count.
+ * A three-island composite carrying nine items got a radius-15 world, its
+ * islands landed on a ring at 0.48·15 ≈ 7, and the result was three specks in
+ * an empty sea — the single worst-looking scene in the set.
+ *
+ * The ring instead has to be long enough to seat the islands that go on it, so
+ * we derive it from their circumference: N sites of radius r need
+ * `2πR ≥ Σ(2r + gap)`. `sitePosition` then places on `0.48·worldRadius` for the
+ * ring topology, so that factor is divided back out here.
+ */
+export function resolveWorldRadius(substrateEntries, itemCount) {
+  const sites =
+    substrateEntries.length > 0
+      ? substrateEntries.map((entry) => siteRadiusFor(entry.item))
+      : new Array(clamp(Math.ceil(Math.sqrt(Math.max(1, itemCount))) + 1, 3, 7)).fill(2.5);
+  const gap = 1.5;
+  const circumference = sites.reduce((sum, radius) => sum + 2 * radius + gap, 0);
+  const ringRadius = Math.max(
+    circumference / (2 * Math.PI),
+    // Two sites sit opposite each other, so the ring only needs to separate them.
+    Math.max(...sites) + gap
+  );
+  const RING_PLACEMENT_FACTOR = 0.48;
+  return clamp(ringRadius / RING_PLACEMENT_FACTOR, 7, 26);
+}
+
+/**
+ * The four topologies place sites at very different radial fractions —
+ * `ring` at 0.48·R, `constellation` anywhere in 0.24–0.82·R, `spiral` in
+ * 0.22–0.80·R. The ground disc is then sized to whatever they happened to
+ * reach, so a spiral or constellation world drew a big ocean whose islands
+ * occupied its middle 45% and a ring world filled it. Rescaling every site so
+ * the outermost one lands on the canonical ring keeps each topology's *shape*
+ * (which is what novelty is for) while making the world's fill consistent.
+ */
+function normalizeSiteSpread(positions, targetRadius) {
+  let reach = 0;
+  for (const [x, , z] of positions) reach = Math.max(reach, Math.hypot(x, z));
+  if (reach < 0.001) return positions;
+  const scale = targetRadius / reach;
+  return positions.map(([x, y, z]) => [x * scale, y, z * scale]);
+}
+
 function makeSites({ substrateEntries, itemCount, worldRadius, topology, novelty, worldKey }) {
   const siteCount =
     substrateEntries.length > 0
       ? substrateEntries.length
       : clamp(Math.ceil(Math.sqrt(Math.max(1, itemCount))) + 1, 3, 7);
+
+  const basePositions = normalizeSiteSpread(
+    Array.from({ length: siteCount }, (_, index) =>
+      sitePosition({ index, count: siteCount, radius: worldRadius, topology, novelty, worldKey })
+    ),
+    // `resolveWorldRadius` sizes the world by dividing the ring it needs by this
+    // same factor, so multiplying it back recovers that ring.
+    worldRadius * 0.48
+  );
+
   const sites = [];
   for (let index = 0; index < siteCount; index += 1) {
     const entry = substrateEntries[index];
     const item = entry?.item;
-    const metric = metricValue(item, 'archipelago', 'mass');
-    const basePosition = sitePosition({
-      index,
-      count: siteCount,
-      radius: worldRadius,
-      topology,
-      novelty,
-      worldKey
-    });
-    const position = explicitPosition(item, basePosition);
-    const radius = entry ? 1.9 + Math.sqrt(Math.max(0.5, metric.raw)) * 0.48 : 2.5;
+    const position = explicitPosition(item, basePositions[index]);
+    const radius = entry ? siteRadiusFor(item) : 2.5;
     const height = entry
       ? 0.45 + clamp(finite(item.relief, 0.45), 0, 1) * 1.15
       : 0.38 + seeded(worldKey, index, 'auto-site-height') * 0.34;
@@ -184,7 +246,7 @@ function makeSites({ substrateEntries, itemCount, worldRadius, topology, novelty
       kind: entry?.layer.as ?? 'generated',
       primitive: entry ? 'island' : 'platform',
       position,
-      radius: clamp(radius, 1.8, 4.6),
+      radius,
       height,
       anchor,
       affinity: [...affinityTokens(item)],
@@ -372,8 +434,21 @@ function makeNodes({ layers, sites, novelty, worldKey, anchors, linkNeighbors })
   return nodes;
 }
 
+/**
+ * Sequence field for a path layer. A river orders by `stage`, a bridge by
+ * `span` along the crossing — sorting a bridge by `stage` (which it never sets)
+ * left every pylon at 0 and the crossing came out in authoring order.
+ */
+function pathOrderValue(item, kind) {
+  if (kind === 'bridge') return finite(item.span, 0);
+  if (kind === 'subway') return finite(item.stop, 0);
+  return finite(item.stage, 0);
+}
+
 function orderedPathItems(layer) {
-  return [...(layer.items ?? [])].sort((a, b) => finite(a.stage, 0) - finite(b.stage, 0));
+  return [...(layer.items ?? [])].sort(
+    (a, b) => pathOrderValue(a, layer.as) - pathOrderValue(b, layer.as)
+  );
 }
 
 function routePoint(site, worldKey, id, index) {
@@ -469,14 +544,22 @@ function makePaths({ layers, sites, novelty, worldKey, anchors, linkNeighbors, m
         [point[0] + dx, point[1], point[2] + dz]
       ];
     } else {
+      // Short tails: these are only there to give the spline a sane tangent at
+      // each end. At 3.2 units they shot the river well past the outermost
+      // island, and since the ground disc is sized to reach whatever the path
+      // reaches, every composite paid for that overshoot in empty water.
       controls = [
-        pathEnd(controls[0], controls[1], 3.2),
+        pathEnd(controls[0], controls[1], 1.2),
         ...controls,
-        pathEnd(controls.at(-1), controls.at(-2), 3.2)
+        pathEnd(controls.at(-1), controls.at(-2), 1.2)
       ];
     }
+    // A river's channel widens with `flow`; a bridge's deck widens with the
+    // `load` it carries. Reading `flow` on a bridge just returned the fallback
+    // for every pylon, so every crossing came out the same width.
+    const widthField = layer.as === 'bridge' ? 'load' : layer.as === 'subway' ? 'traffic' : 'flow';
     const averageFlow =
-      items.reduce((sum, item) => sum + finite(item.flow, 5), 0) / Math.max(1, items.length);
+      items.reduce((sum, item) => sum + finite(item[widthField], 5), 0) / Math.max(1, items.length);
     const averageHazard =
       items.reduce((sum, item) => sum + clamp(finite(item.hazard, 0), 0, 1), 0) /
       Math.max(1, items.length);
@@ -667,7 +750,7 @@ function resolveGroundRadius(sites, nodes, paths) {
       extent = Math.max(extent, Math.hypot(point[0], point[2]) + path.width);
     }
   }
-  return Math.max(7, extent + 1.4);
+  return Math.max(6, extent + 0.9);
 }
 
 /**
@@ -680,13 +763,13 @@ export function planFusedCompositeWorld(dsl) {
   const motionIntensity = clamp(finite(dsl.motionIntensity, 0.65), 0, 1);
   const worldKey = sourceSignature(dsl);
   const itemCount = layers.reduce((sum, layer) => sum + (layer.items?.length ?? 0), 0);
-  const worldRadius = clamp(8.5 + Math.sqrt(Math.max(1, itemCount)) * 2.15, 10, 23);
   const topology = resolveTopology(worldKey, novelty);
   const substrateEntries = layers.flatMap((layer) =>
     getCompositeCapability(layer.as).role === 'substrate'
       ? (layer.items ?? []).map((item) => ({ layer, item }))
       : []
   );
+  const worldRadius = resolveWorldRadius(substrateEntries, itemCount);
   const linkNeighbors = buildLinkNeighbors(dsl, layers);
   const anchors = new Map();
   const sites = makeSites({

@@ -561,27 +561,35 @@ function FusedPath({ path, theme, activeId, onActiveIdChange, lod }) {
       ),
     [path.points]
   );
-  const color = theme.waterColor ?? theme.binaryGlowColor ?? '#38bdf8';
+  // A path layer is a river OR a bridge. Both route between sites, but water
+  // and a deck should not look the same: a crossing gets deck timber, no
+  // emissive shimmer, and none of the drifting motes that read as current.
+  const isCrossing = path.kind === 'bridge';
+  const color = isCrossing
+    ? (theme.bridgeDeckColor ?? '#a1724f')
+    : (theme.waterColor ?? theme.binaryGlowColor ?? '#38bdf8');
   const moteCount = lod === 'low' ? 4 : lod === 'medium' ? 6 : 8;
   return (
     <group>
-      <mesh>
-        <tubeGeometry args={[curve, 72, path.width, 8, false]} />
+      <mesh scale={isCrossing ? [1, 0.45, 1] : [1, 1, 1]}>
+        <tubeGeometry args={[curve, 72, isCrossing ? path.width * 1.7 : path.width, 8, false]} />
         <meshStandardMaterial
           color={color}
-          emissive={theme.riverDeepColor ?? color}
-          emissiveIntensity={0.16 + (path.hazard ?? 0) * 0.12}
-          roughness={0.24}
-          metalness={0.14}
+          emissive={isCrossing ? '#000000' : (theme.riverDeepColor ?? color)}
+          emissiveIntensity={isCrossing ? 0 : 0.16 + (path.hazard ?? 0) * 0.12}
+          roughness={isCrossing ? 0.82 : 0.24}
+          metalness={isCrossing ? 0.05 : 0.14}
         />
       </mesh>
-      <FlowMotes
-        curve={curve}
-        motion={path.motion}
-        color="#e0f2fe"
-        count={moteCount}
-        moteSpeed={path.moteSpeed ?? 0.05}
-      />
+      {isCrossing ? null : (
+        <FlowMotes
+          curve={curve}
+          motion={path.motion}
+          color="#e0f2fe"
+          count={moteCount}
+          moteSpeed={path.moteSpeed ?? 0.05}
+        />
+      )}
       {path.stations.map((station) => {
         const emphasized = activeId === station.id;
         const hazard = station.presentation?.hazard ?? 0;

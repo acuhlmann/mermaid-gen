@@ -98,6 +98,17 @@ const KIND_ITEM_FIELDS: Record<MetaphorBaseKind, ItemFieldMapping[]> = {
     { field: 'phase', type: 'double' },
     { field: 'size', type: 'double' },
     { field: 'friction', type: 'double' }
+  ],
+  subway: [
+    { field: 'line', type: 'string' },
+    { field: 'stop', type: 'double' },
+    { field: 'traffic', type: 'double' }
+  ],
+  iceberg: [
+    { field: 'depth', type: 'double' },
+    { field: 'mass', type: 'double' },
+    { field: 'berg', type: 'string' },
+    { field: 'peril', type: 'double' }
   ]
 };
 

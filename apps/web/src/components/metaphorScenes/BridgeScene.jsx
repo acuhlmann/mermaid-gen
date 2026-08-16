@@ -22,6 +22,7 @@ import {
   MetaphorGroundShadow,
   MetaphorLinks
 } from './MetaphorSceneChrome.jsx';
+import { MetaphorAccents } from './MetaphorAccents.jsx';
 import { SkySunGlow, SoaringBirds } from './MetaphorSceneDecorations.jsx';
 import { idHash2, shiftColor } from './sceneUtils.js';
 
@@ -304,6 +305,7 @@ export function BridgeScene({ dsl, theme }) {
         idSeed="bridge-birds"
       />
       <MetaphorGroundShadow theme={theme} y={BRIDGE_CHASM_FLOOR_Y - 0.04} scale={groundScale} />
+      <MetaphorAccents items={dsl.items} anchors={anchors} theme={theme} />
       <MetaphorLinks links={dsl.links} anchors={anchors} theme={theme} variant="arc" />
     </group>
   );

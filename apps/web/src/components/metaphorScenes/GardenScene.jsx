@@ -16,6 +16,7 @@ import {
   MetaphorGroundShadow,
   MetaphorLinks
 } from './MetaphorSceneChrome.jsx';
+import { MetaphorAccents } from './MetaphorAccents.jsx';
 import {
   DaylightPollen,
   SkySunGlow,
@@ -24,6 +25,7 @@ import {
 } from './MetaphorSceneDecorations.jsx';
 import { useMetaphorClock } from './metaphorClock.js';
 import { idHash2, shiftColor } from './sceneUtils.js';
+import { FRAME_IGNORE_DATA } from './sceneFraming.js';
 
 const HEALTH_POSTURE = {
   thriving: { bend: 0, saturation: 1.08 },
@@ -65,6 +67,7 @@ function GardenBed({ bed, theme, index }) {
         fontSize={0.46}
         color={theme.labelColor}
         outlineColor={theme.labelOutline}
+        pinned
       />
     </group>
   );
@@ -246,6 +249,7 @@ function GardenPlant({ item, position, theme, bloomColor }) {
         fontSize={0.44 + Math.min(0.12, impact * 0.012)}
         color={theme.labelColor}
         outlineColor={theme.labelOutline}
+        importance={impact}
       />
     </group>
   );
@@ -308,7 +312,7 @@ function GardenButterflies({ radius, palette }) {
     });
   });
   return (
-    <group ref={groupRef}>
+    <group ref={groupRef} userData={FRAME_IGNORE_DATA}>
       {butterflies.map((b, i) => (
         <group key={`butterfly-${i}`} position={[b.radius, b.height, 0]} scale={0.55}>
           <mesh position={[-0.1, 0, 0]}>
@@ -329,7 +333,7 @@ export function GardenScene({ dsl, theme }) {
   const layout = useMemo(() => gardenBedLayout(dsl.items), [dsl.items]);
   const itemById = useMemo(() => new Map(dsl.items.map((item) => [item.id, item])), [dsl.items]);
   const palette = theme.gardenBloomPalette ?? ['#f472b6', '#fbbf24', '#a78bfa', '#fb7185'];
-  const radius = Math.max(6.5, (layout.bounds.radius ?? 0) + 2.2);
+  const radius = Math.max(5.5, (layout.bounds.radius ?? 0) + 1.05);
   const anchors = useMemo(() => {
     const map = new Map();
     for (const [id, position] of layout.positions) {
@@ -374,6 +378,7 @@ export function GardenScene({ dsl, theme }) {
         idSeed="garden-birds"
       />
       <MetaphorGroundShadow theme={theme} y={-0.13} scale={radius * 2.15} />
+      <MetaphorAccents items={dsl.items} anchors={anchors} theme={theme} />
       <MetaphorLinks links={dsl.links} anchors={anchors} theme={theme} variant="arc" />
     </group>
   );

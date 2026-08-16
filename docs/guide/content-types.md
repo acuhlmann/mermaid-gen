@@ -57,6 +57,8 @@ The `metaphor3d` slot stores a JSON DSL with a `metaphor` discriminator picking 
 | `garden`      | ≤ 40       | Living portfolio: `maturity` grows each plant, `impact` sizes its bloom, `bed` groups strategic themes, and `health` (`thriving` / `steady` / `at-risk`) changes colour and posture.                                                                                                                                                                                                                                                                       |
 | `archipelago` | ≤ 40       | Peer domains as islands: `mass` sizes each island, `relief` (0–1) raises its peak, `chain` clusters related islands; `links` span as bridges across the ocean.                                                                                                                                                                                                                                                                                             |
 | `machine`     | ≤ 40       | Interlocking gears on a shared plate: `size` is gear radius / importance, `speed` is spin rate / activity, `axle` groups subsystems, optional `torque` (0–1) heats strained gears, optional `mesh` (partner id) pulls coupled gears into contact.                                                                                                                                                                                                          |
+| `subway`      | ≤ 40       | Transit network: `line` names a route, `stop` (0–100) orders a station along it, `traffic` sizes the platform, and `interchange` (ids of the same physical station on other lines) merges them into one shared stop. Routes lay out as lanes and converge on their shared stations — the interchange is the point of the kind.                                                                                                                             |
+| `iceberg`     | ≤ 30       | Visible vs hidden across a waterline at y = 0: `depth` runs −1 (deep below) to +1 (high above), `mass` is bulk, `berg` groups blocks into one floating mass, optional `peril` (0–1) warms a submerged block toward red. The only kind with a semantic zero.                                                                                                                                                                                                |
 | `composite`   | ≤ 4 layers | Fuses 1–4 semantic layers (`as` + per-layer `items`) into one deterministic kinetic world. The generic planner maps layer kinds to substrate, landmark, container, path, connector, field, or accent capabilities; it does not mount full scenes or use a fixed pair matrix. New documents use `layout: "fused"` plus optional `seed`, `novelty`, and `motionIntensity`. Explicit `"adjacent"` / `"overlay"` remain as Composite v1 compatibility layouts. |
 
 Scene-level options (apply to every kind):
@@ -66,6 +68,17 @@ Scene-level options (apply to every kind):
 - `scene.title` / `scene.subtitle`: rendered in a compact topic strip in the inline canvas and as a larger title card in fullscreen.
 - `scene.legend.<axis>`: short phrases naming each encoding axis (`height` = "team size", `elevation` = "risk score"); shown as compact semantic chips inline, expanded into a fullscreen legend panel, and reused as hover-tooltip metric labels.
 - Outdoor `river`, `garden`, and `archipelago` scenes resolve to a bright daylight palette (sunny sky, green landscape / tropical ocean, clear water) even when a dark theme was authored; other metaphor kinds still honor the selected theme directly.
+- `scene.mood`: `day` (default) · `dawn` · `dusk` · `night` · `storm` · `ember` · `aurora`. A mood re-tints sky, light, ambient particles, and the depth haze; it never touches encodings. Haze is expressed as a fraction of the content radius and re-solved against the live camera distance (`metaphorAtmosphere.js`), so a 5-item scene and a 60-item one get the same look and pulling back never walks the subject into the fog.
+
+### Framing, shadows, and labels
+
+Three renderer-wide behaviours apply to every kind:
+
+- **Framing** — `SceneFrame` solves an exact perspective fit against the real geometry (per-mesh vertices, not one scene-wide bounding box) and re-fits on structural change or resize. Ambient decoration opts out via `userData[FRAME_IGNORE]` so a drifting bird never dictates the composition. See `sceneFraming.js`.
+- **Shadows** — one shadow-mapped key light whose orthographic frustum is fitted to the same content the camera framed (`SceneKeyLight.jsx`). Unlit/transparent decoration never casts.
+- **Label declutter** — labels register with a screen-space pass that ranks by importance then nearness and fades the loser of an overlapping pair (`labelDeclutter.js`). Group names (district / bed / axle / cluster / line) and the accented item are pinned and never hidden.
+
+**Emphasis** — any item may set `accent: true` to mark the scene's headline insight. The renderer gives it a light shaft, a halo ring, and a label exempt from decluttering; the sanitizer keeps at most two so the marker keeps its meaning.
 
 Per-item and per-link extras:
 

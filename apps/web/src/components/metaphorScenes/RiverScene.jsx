@@ -20,6 +20,7 @@ import {
   MetaphorGroundShadow,
   MetaphorLinks
 } from './MetaphorSceneChrome.jsx';
+import { MetaphorAccents } from './MetaphorAccents.jsx';
 import { DaylightPollen, SkySunGlow, SoaringBirds } from './MetaphorSceneDecorations.jsx';
 import { useMetaphorClock } from './metaphorClock.js';
 import { idHash2, shiftColor } from './sceneUtils.js';
@@ -806,6 +807,7 @@ export function RiverScene({ dsl, theme }) {
         idSeed="river-birds"
       />
       <MetaphorGroundShadow theme={theme} y={-0.02} scale={meadowX * 1.7} />
+      <MetaphorAccents items={dsl.items} anchors={anchors} theme={theme} />
       <MetaphorLinks links={dsl.links} anchors={anchors} theme={theme} variant="arc" />
     </group>
   );

@@ -20,6 +20,7 @@ import {
   MetaphorGroundShadow,
   MetaphorLinks
 } from './MetaphorSceneChrome.jsx';
+import { MetaphorAccents } from './MetaphorAccents.jsx';
 import { SkySunGlow } from './MetaphorSceneDecorations.jsx';
 import { useMetaphorClock } from './metaphorClock.js';
 import { idHash2, shiftColor } from './sceneUtils.js';
@@ -165,7 +166,9 @@ export function CycleScene({ dsl, theme }) {
     }
   });
 
-  const plazaRadius = layout.wheelRadius + 4;
+  // Proportional, not a flat +4: on the smallest wheel (radius 4.6) a fixed
+  // margin nearly doubled the plaza and the wheel read as a toy on a field.
+  const plazaRadius = layout.wheelRadius * 1.22 + 0.8;
 
   return (
     <group>
@@ -235,6 +238,7 @@ export function CycleScene({ dsl, theme }) {
               </HoverableItem>
             );
           })}
+          <MetaphorAccents items={dsl.items} anchors={anchors} theme={theme} />
           <MetaphorLinks links={dsl.links} anchors={anchors} theme={theme} variant="arc" />
         </group>
       </group>

@@ -116,7 +116,7 @@ export function archipelagoLayout(items) {
 
   let radius = 6;
   for (const isle of islands) {
-    radius = Math.max(radius, Math.hypot(isle.position[0], isle.position[2]) + isle.radius + 2.2);
+    radius = Math.max(radius, Math.hypot(isle.position[0], isle.position[2]) + isle.radius + 1.1);
   }
 
   return {

@@ -21,6 +21,7 @@ import {
   MetaphorGroundShadow,
   MetaphorLinks
 } from './MetaphorSceneChrome.jsx';
+import { MetaphorAccents } from './MetaphorAccents.jsx';
 import {
   FallingLeaves,
   MeadowFireflies,
@@ -743,6 +744,10 @@ export function TreeScene({ dsl, theme }) {
                 fontSize={isLeaf ? 0.42 : 0.55}
                 color={theme.labelColor}
                 outlineColor={theme.labelOutline}
+                // Depth dominates weight: in a crowded grove the reader wants
+                // the divisions before the individual teams.
+                importance={100 - info.depth * 20 + Math.min(info.weight, 20)}
+                pinned={isTrunk}
               />
             </group>
           </HoverableItem>
@@ -751,6 +756,7 @@ export function TreeScene({ dsl, theme }) {
       {/* Kept inside the meadow disc so the blur tail never paints a dark halo
           on the backdrop around it. */}
       <MetaphorGroundShadow theme={treeTheme} scale={meadowRadius * 1.7} />
+      <MetaphorAccents items={dsl.items} anchors={anchors} theme={theme} />
       <MetaphorLinks links={dsl.links} anchors={anchors} theme={theme} variant="arc" />
     </group>
   );

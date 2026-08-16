@@ -14,6 +14,7 @@ import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
 import { Billboard } from '@react-three/drei';
 import { useMetaphorClock } from './metaphorClock.js';
+import { FRAME_IGNORE_DATA } from './sceneFraming.js';
 import { GlowSprite } from './MetaphorSceneChrome.jsx';
 import { getRadialSpriteTexture, idHash2 } from './sceneUtils.js';
 
@@ -123,7 +124,7 @@ export function CakeSprinkles({ radius, topY, thetaLength, palette, idSeed }) {
     return out;
   }, [radius, thetaLength, idSeed, colors.length]);
   return (
-    <group>
+    <group userData={FRAME_IGNORE_DATA}>
       {sprinkles.map((s, i) => (
         <mesh key={`spr-${i}`} position={[s.x, topY + 0.05, s.z]} rotation={s.rot}>
           <capsuleGeometry args={[0.035, 0.12, 3, 6]} />
@@ -236,7 +237,7 @@ const SHOOTING_STAR_SEEDS = [0.13, 0.47, 0.82];
  *  provider (sky level), so it gates on `animated` and uses the frame clock. */
 export function ShootingStars({ animated = true, color = '#f8fafc' }) {
   return (
-    <group>
+    <group userData={FRAME_IGNORE_DATA}>
       {SHOOTING_STAR_SEEDS.map((seed) => (
         <ShootingStar key={`meteor-${seed}`} seed={seed} animated={animated} color={color} />
       ))}
@@ -293,7 +294,7 @@ export function MeadowFireflies({ radius, color = '#ffe28a', count = 22, idSeed 
     });
   });
   return (
-    <group ref={groupRef}>
+    <group ref={groupRef} userData={FRAME_IGNORE_DATA}>
       {flies.map((f, i) => (
         <mesh key={`fly-${i}`} position={[f.x, f.y, f.z]}>
           <sphereGeometry args={[0.055, 6, 6]} />
@@ -340,7 +341,7 @@ export function DaylightPollen({ radius, count = 18, idSeed = 'pollen' }) {
     });
   });
   return (
-    <group ref={groupRef}>
+    <group ref={groupRef} userData={FRAME_IGNORE_DATA}>
       {motes.map((mote, i) => (
         <group
           key={`pollen-${i}`}
@@ -407,7 +408,7 @@ export function TerrainClouds({ halfExtent, maxHeight, idSeed = 'terrain-clouds'
     });
   });
   return (
-    <group ref={groupRef}>
+    <group ref={groupRef} userData={FRAME_IGNORE_DATA}>
       {clouds.map((c, i) => (
         <group key={`cloud-${i}`} position={[c.x, c.y, c.z]} scale={c.scale}>
           {c.puffs.map((p, j) => (
@@ -456,7 +457,7 @@ export function CityTraffic({ radius, theme, count = 9, idSeed = 'traffic' }) {
     });
   });
   return (
-    <group ref={groupRef}>
+    <group ref={groupRef} userData={FRAME_IGNORE_DATA}>
       {cars.map((car, i) => (
         <group
           key={`car-${i}`}
@@ -516,7 +517,7 @@ export function RisingSparkles({ radius, height, palette, count = 22, idSeed = '
     });
   });
   return (
-    <group ref={groupRef}>
+    <group ref={groupRef} userData={FRAME_IGNORE_DATA}>
       {sparks.map((s, i) => (
         <mesh key={`spark-${i}`} position={[s.x, -0.9, s.z]}>
           <sphereGeometry args={[0.05, 6, 6]} />
@@ -632,7 +633,7 @@ export function FallingLeaves({ radius, height, color, count = 14, idSeed = 'lea
     });
   });
   return (
-    <group ref={groupRef}>
+    <group ref={groupRef} userData={FRAME_IGNORE_DATA}>
       {leaves.map((leaf, i) => (
         <mesh key={`fall-${i}`} position={[leaf.x, height, leaf.z]}>
           <planeGeometry args={[0.16, 0.22]} />
@@ -686,7 +687,7 @@ export function SoaringBirds({
     });
   });
   return (
-    <group ref={groupRef}>
+    <group ref={groupRef} userData={FRAME_IGNORE_DATA}>
       {birds.map((b, i) => (
         <group key={`bird-${i}`} position={[Math.cos(b.phase) * b.r, b.h, Math.sin(b.phase) * b.r]}>
           <mesh position={[0.2, 0, 0]} rotation={[0, 0, 0.25]}>

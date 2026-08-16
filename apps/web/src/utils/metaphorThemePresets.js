@@ -41,15 +41,17 @@ function blendHexColors(base, tint, amount) {
 
 export const METAPHOR_THEME_PRESETS = {
   whiteboard: {
-    background: '#f8fafc',
-    skyTopColor: '#d4e0f0',
-    skyHorizonColor: '#e9eff7',
-    ambientIntensity: 0.65,
+    background: '#e9eef5',
+    skyTopColor: '#b9cde4',
+    skyHorizonColor: '#dde5ef',
+    ambientIntensity: 0.6,
     hemisphere: ['#e0e7ff', '#1f2937', 0.45],
-    directional: { position: [12, 16, 8], intensity: 0.85 },
+    // Pushed further off the camera axis (which looks down [18, 14, 18]) so cast
+    // shadows fall across the scene instead of hiding behind their own casters.
+    directional: { position: [9, 15, -6], intensity: 1.05 },
     environment: null,
-    buildingColor: '#9ec5fe',
-    buildingRoofColor: '#c7ddff',
+    buildingColor: '#8fb6f0',
+    buildingRoofColor: '#b6cff2',
     slabColor: '#f3c95b',
     starColor: '#ffd166',
     groundColor: '#1a1a2e',

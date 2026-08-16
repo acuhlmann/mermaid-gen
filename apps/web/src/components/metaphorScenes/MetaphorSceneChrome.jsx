@@ -7,12 +7,14 @@
  */
 import { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
-import { useFrame } from '@react-three/fiber';
+import { useFrame, useThree } from '@react-three/fiber';
 import { Billboard, ContactShadows, Line, Text } from '@react-three/drei';
 import { useMetaphorHover } from '../metaphorHover.js';
 import { useMetaphorChangeHighlight } from '../metaphorChangeHighlightContext.js';
 import { MetaphorChangeHighlightRing } from '../MetaphorChangeHighlightRing.jsx';
 import { useMetaphorClock } from './metaphorClock.js';
+import { useLabelDeclutter } from './labelDeclutterContext.js';
+import { ItemAccentContext, useItemAccent } from './itemAccentContext.js';
 import {
   getRadialSpriteTexture,
   idHash2,
@@ -41,17 +43,64 @@ export function GlowSprite({ size, color, opacity }) {
   );
 }
 
+/**
+ * Billboarded item label.
+ *
+ * `importance` (higher = keeps its space) and `pinned` (never hidden) feed the
+ * screen-space declutter pass — see labelDeclutter.js. A scene that passes
+ * neither still works: everything ranks equal and nearest-to-camera wins, which
+ * is the right default for an unordered scene.
+ *
+ * Opacity is written imperatively onto the troika text object rather than
+ * through props: the pass runs every ~110 ms and re-rendering a hundred labels
+ * at that rate would cost more than the labels themselves.
+ */
 export function ItemLabel({
   text,
   position,
   fontSize = 0.55,
   color = '#0f172a',
-  outlineColor = '#ffffff'
+  outlineColor = '#ffffff',
+  importance = 0,
+  pinned = false
 }) {
+  const billboardRef = useRef(null);
+  const textRef = useRef(null);
+  const declutter = useLabelDeclutter();
+  // An accented item's own label inherits the pin, so a scene only has to mark
+  // the item — it never has to thread `pinned` down to every ItemLabel call.
+  const accented = useItemAccent();
+  const isPinned = pinned || accented;
+
+  // Approximate the label's world footprint from its glyph count — troika only
+  // publishes real bounds after an async sync, and the pass needs a size the
+  // first time it runs, not two frames later.
+  const width = Math.min(fontSize * 16, (text?.length ?? 0) * fontSize * 0.55);
+  const height = fontSize * 1.35;
+
+  useEffect(() => {
+    if (!declutter || !text) return undefined;
+    return declutter.register({
+      object: billboardRef.current,
+      importance,
+      pinned: isPinned,
+      width,
+      height,
+      apply: (opacity) => {
+        const label = textRef.current;
+        if (!label) return;
+        label.fillOpacity = opacity;
+        label.outlineOpacity = opacity;
+        if (label.material) label.material.transparent = true;
+      }
+    });
+  }, [declutter, text, importance, isPinned, width, height]);
+
   if (!text) return null;
   return (
-    <Billboard position={position}>
+    <Billboard position={position} ref={billboardRef}>
       <Text
+        ref={textRef}
         fontSize={fontSize}
         color={color}
         anchorX="center"
@@ -65,6 +114,20 @@ export function ItemLabel({
       </Text>
     </Billboard>
   );
+}
+
+/**
+ * Drives the declutter pass and the label fades from one frame subscription.
+ * Mounted once by MetaphorRenderer inside the canvas.
+ */
+export function LabelDeclutterRunner({ store }) {
+  const camera = useThree((state) => state.camera);
+  const size = useThree((state) => state.size);
+  useFrame((_, delta) => {
+    if (!store) return;
+    store.update(camera, size, performance.now(), delta);
+  });
+  return null;
 }
 
 /** Soft grounded contact shadow — used by the flat-ground scenes (city, tree). */
@@ -130,7 +193,9 @@ export function HoverableItem({ item, metaphor, children, onActiveIdChange }) {
       onPointerOut={handleOut}
     >
       {highlightCategory ? <MetaphorChangeHighlightRing category={highlightCategory} /> : null}
-      {children}
+      <ItemAccentContext.Provider value={item?.accent === true}>
+        {children}
+      </ItemAccentContext.Provider>
     </group>
   );
 }

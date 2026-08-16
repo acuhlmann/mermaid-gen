@@ -26,6 +26,7 @@ import {
   ItemLabel,
   MetaphorLinks
 } from './MetaphorSceneChrome.jsx';
+import { MetaphorAccents } from './MetaphorAccents.jsx';
 import { ShootingStars, SpinningGroup, SupernovaPulse } from './MetaphorSceneDecorations.jsx';
 import { useMetaphorClock } from './metaphorClock.js';
 import { getRadialSpriteTexture, idHash, idHash2, shiftColor } from './sceneUtils.js';
@@ -129,6 +130,7 @@ function GalaxyStar({ item, position, theme, clusterIndex, showGlyph }) {
         fontSize={0.45}
         color={theme.labelColor}
         outlineColor={theme.labelOutline}
+        importance={rawMagnitude}
       />
     </group>
   );
@@ -357,6 +359,7 @@ function ClusterLabel({ cluster, theme }) {
       fontSize={0.6}
       color={theme.labelColor}
       outlineColor={theme.labelOutline}
+      pinned
     />
   );
 }
@@ -483,6 +486,7 @@ export function GalaxyScene({ dsl, theme }) {
           idSeed={brightest.id}
         />
       ) : null}
+      <MetaphorAccents items={dsl.items} anchors={anchors} theme={theme} />
       <MetaphorLinks links={dsl.links} anchors={anchors} theme={theme} variant="arc" />
     </group>
   );
