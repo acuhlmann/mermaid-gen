@@ -1,7 +1,7 @@
 import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { OrbitControls, Center, Environment, Line } from '@react-three/drei';
+import { OrbitControls, Center, Line } from '@react-three/drei';
 import {
   parsePartialMetaphorDsl,
   partialToRenderableMetaphorDsl,
@@ -80,6 +80,7 @@ import {
 } from './metaphorScenes/metaphorMotionPolicy.js';
 import { SceneFrame } from './metaphorScenes/SceneFrame.jsx';
 import { SceneKeyLight, SceneShadowFlags } from './metaphorScenes/SceneKeyLight.jsx';
+import { SceneEnvironment } from './metaphorScenes/SceneEnvironment.jsx';
 import { createSceneFit } from './metaphorScenes/sceneFraming.js';
 import { AdaptiveFog } from './metaphorScenes/AdaptiveFog.jsx';
 import { DEFAULT_GROUND_HAZE, sceneWantsHaze } from './metaphorScenes/metaphorAtmosphere.js';
@@ -1352,10 +1353,17 @@ function MetaphorRendererImpl(
             intensity={theme.directional.intensity}
             color={theme.directional.color ?? '#ffffff'}
             fillColor={theme.skyHorizonColor ?? theme.background ?? '#ffffff'}
+            // The rim takes the sky's TOP colour while the fill takes its
+            // horizon, so the two never collapse into the same light: on every
+            // preset the zenith is the cooler and more saturated of the pair,
+            // which is exactly the contrast a back light needs against the key.
+            rimColor={theme.skyTopColor ?? theme.skyHorizonColor ?? '#ffffff'}
             fitRef={sceneFit}
             contentKey={contentKey}
           />
-          {theme.environment ? <Environment preset={theme.environment} /> : null}
+          {/* IBL generated from this theme's own sky colours — see
+              SceneEnvironment.jsx for why that beats a fetched HDR preset. */}
+          <SceneEnvironment theme={theme} />
           {/* Layercake shares the city's calm gradient backdrop so the cake
               doesn't float against a flat void. */}
           {skyKind === 'city' || skyKind === 'layercake' ? <CitySky theme={theme} /> : null}

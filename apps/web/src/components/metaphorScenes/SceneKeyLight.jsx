@@ -46,6 +46,9 @@ export function SceneShadowFlags({ contentKey, targetRef }) {
   return null;
 }
 
+/** Rim intensity as a fraction of the key. Enough to draw an edge, not a face. */
+const RIM_RATIO = 0.45;
+
 /**
  * The scene's key light. `direction` is the theme's authored light position,
  * normalised and re-placed at a distance that suits the fitted content.
@@ -54,6 +57,8 @@ export function SceneShadowFlags({ contentKey, targetRef }) {
  * @param {[number, number, number]} props.direction
  * @param {number} props.intensity
  * @param {string} [props.color]
+ * @param {string} [props.fillColor]
+ * @param {string} [props.rimColor]
  * @param {{ radius: number, center: number[], ready: boolean }} props.fitRef
  * @param {string} props.contentKey — re-fits the shadow frustum on scene change
  */
@@ -62,6 +67,7 @@ export function SceneKeyLight({
   intensity,
   color = '#ffffff',
   fillColor = '#ffffff',
+  rimColor = '#ffffff',
   fitRef,
   contentKey
 }) {
@@ -129,6 +135,22 @@ export function SceneKeyLight({
         position={[-direction[0], direction[1] * 0.6, -direction[2]]}
         intensity={intensity * 0.28}
         color={fillColor}
+      />
+      {/* Rim (back) light — the third point of the rig, and the one that makes a
+          scene look photographed rather than diagrammed. It sits BEHIND the
+          subject and LOW (0.22 of the key's elevation), which is what puts a
+          bright edge along silhouettes and separates a tower from the sky
+          behind it. It is not a second fill: a fill comes from the front and
+          lifts whole faces, a rim comes from behind and catches only edges, so
+          it adds separation without adding flatness. It casts no shadow — a
+          second shadow map is the single most expensive thing in this rig and
+          buys nothing, because the surfaces it lights are the ones facing away
+          from the camera. Cool-tinted so it reads as sky bounce next to the
+          warm key. */}
+      <directionalLight
+        position={[-direction[0] * 0.75, Math.abs(direction[1]) * 0.22 + 1, -direction[2] * 0.75]}
+        intensity={intensity * RIM_RATIO}
+        color={rimColor}
       />
     </>
   );

@@ -652,6 +652,69 @@ test:floor`; the floor test map is [`docs/agents/isometric-floor-tests.md`](docs
   no amount of ambient, hemisphere bounce or key light rescues a `#1d314a`
   surface — measured, it renders `#080810`. When a dark theme's ground reads as
   a silhouette, raise the material rather than the lights.
+- **The camera fit is a claim about what the SUBJECT is, and the loudest thing in
+  it was invisible.** `MetaphorGroundShadow` is a _catcher_ plane: deliberately
+  sized past the subject so the blur has somewhere to fall, and invisible except
+  where a shadow lands. Left in the fit it became the binding constraint on
+  nearly every grounded kind, so the camera framed a rectangle nobody can see —
+  measured, the city needed 44 units for its skyline against 57 for the plane,
+  the garden 22 against 30, and the fused composite 20 against 30 (a subject
+  38% smaller than it should be). It now carries `FRAME_IGNORE_DATA`, the same
+  opt-out the ambience layers use, and `metaphorSceneFraming.test.js` pins it.
+  The general rule is wider than ambience: **before adding any mesh, ask whether
+  it is the subject or scaffolding for the subject**, and flag the scaffolding.
+  Shadow catchers, glow discs and reach-beyond water planes are all scaffolding.
+- **Anything sized against the VIEWER must be screen-relative, and this trap has
+  now been hit three times.** The fog band learned it (a fraction of content
+  radius, not a world distance); the AO radius takes `screenSpaceRadius: true`
+  for it; and the accent caption scales by camera distance for it. These scenes
+  run from a 14-unit cake to a 60-unit bridge, so one authored world size is a
+  banner on the small scene and unreadable type on the large one. If a new
+  effect has a "radius" or a "size" and its job is described in terms of what
+  the viewer sees, it is screen-relative — pick the reference distance, do not
+  pick a world number.
+- **The gradient sky writes no depth, so AO thinks the background is an
+  occluder.** GTAO's `thickness` is how far behind a sample still counts, and
+  the stock 1.0 drew a black halo around every silhouette in the scene — the
+  sky is a back-faced sphere and contributes nothing to the depth prepass, so
+  the whole background sits at the far plane and reads as "an occluder just
+  behind the edge". `aoThickness` is held under `aoRadius` in
+  `metaphorThemePresets.js`. Per-theme `aoIntensity` exists for the other half
+  of the problem: occlusion spends contrast, and noir/arcade have almost none
+  left to spend.
+- **IBL is generated from the theme's own sky, not fetched.** `SceneEnvironment.jsx`
+  PMREMs a three-stop gradient (zenith → horizon → ground) out of the colours
+  the theme already paints, replacing the two `<Environment preset>` HDR fetches
+  that only noir and arcade ever had. Two consequences worth keeping: there is
+  no CDN dependency inside the renderer, and whiteboard/blueprint now have an
+  environment at all — before this, `metalness` and `roughness` did almost
+  nothing on those themes because there was nothing to reflect, which is why
+  every surface resolved to flat plastic no matter what its material said.
+- **The accent callout is depth-test-free on purpose, and that is not laziness.**
+  An anchor is "the world point at the top of the thing", but several scenes keep
+  drawing above their own anchor — a city building stacks a roof, a spire and a
+  rooftop glyph over its — so the marker rendered _inside_ the spire of the tower
+  it was marking. Chasing that with a taller stem only moves the problem to the
+  next kind. The stem, pin and caption are an annotation about the scene rather
+  than objects within it, so they draw over it; only the ground ring stays
+  depth-tested, because it is a decal on the item and should vanish with it.
+- **The accented item's `note` is now permanent scene copy, not a hover string.**
+  `MetaphorAccents` prints it as a caption on the pin, so `accent: true` without
+  a `note` throws away half the marker. The prompt says so; if you change one
+  side, change `metaphorSystemPrompt.js` too.
+- **A composite's shared grouping nouns are the thing it is for, and they used to
+  render as anonymous circles.** Aligning `district`/`chain`/`bed` strings across
+  layers is the one instruction the fused planner asks the author to follow, and
+  `AffinityGroups` drew the result as unlabelled rings on the floor. They now
+  carry a placard. Note the planner keeps two strings per group: `label` is the
+  normalized matching token (lowercased, filler words stripped, so "Checkout
+  domain" binds to "Checkout") and `display` is the first raw value seen — the
+  placard must show `display`, or the world rewrites the user's own noun.
+- **`FusedCompositeScene` is not exempt from the shared chrome.** It shipped
+  without `MetaphorAccents`, so a composite was the one kind that could state a
+  thesis in its DSL and silently drop it; the planner's `anchors` map was
+  already exactly the contract that component reads. When a base kind grows a
+  scene-wide affordance, check the fused scene for it — it does not inherit.
 - **Verify metaphor changes by rendering them.** The scoped skill under
   `apps/web/.claude/skills/verify/` has the headless-capture recipe; every finding above came from
   a screenshot, not from reading the code.

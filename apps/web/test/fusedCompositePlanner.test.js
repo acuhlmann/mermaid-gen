@@ -216,6 +216,14 @@ describe('planFusedCompositeWorld', () => {
     expect(payments.presentation.lighting).toBe('lit');
     expect(search.presentation.lighting).toBe('dim');
     expect(plan.groups.some((group) => group.memberIds.includes('payments-api'))).toBe(true);
+
+    // The floor placard shows `display`, not `label`. `label` is the matching
+    // token — lowercased and stripped of filler words so "Checkout domain" and
+    // "Checkout" bind to one another — and printing that on the floor would
+    // rewrite the user's own noun, which every scene is required to preserve.
+    const checkout = plan.groups.find((group) => group.memberIds.includes('payments-api'));
+    expect(checkout.display).toBe('Checkout');
+    expect(checkout.label).toBe('checkout');
   });
 
   it('encodes storytelling fields, connectors, LOD, and atmosphere on the plan', () => {

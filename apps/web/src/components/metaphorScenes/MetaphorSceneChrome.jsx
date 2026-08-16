@@ -15,6 +15,7 @@ import { MetaphorChangeHighlightRing } from '../MetaphorChangeHighlightRing.jsx'
 import { useMetaphorClock } from './metaphorClock.js';
 import { useLabelDeclutter } from './labelDeclutterContext.js';
 import { ItemAccentContext, useItemAccent } from './itemAccentContext.js';
+import { FRAME_IGNORE_DATA } from './sceneFraming.js';
 import {
   getRadialSpriteTexture,
   idHash2,
@@ -130,7 +131,19 @@ export function LabelDeclutterRunner({ store }) {
   return null;
 }
 
-/** Soft grounded contact shadow — used by the flat-ground scenes (city, tree). */
+/**
+ * Soft grounded contact shadow — used by the flat-ground scenes (city, tree).
+ *
+ * `FRAME_IGNORE_DATA` is load-bearing, not tidiness. This is a *catcher* plane:
+ * it is sized well beyond the subject so the blur has somewhere to fall, and it
+ * is invisible except where a shadow lands on it. Left in the camera fit it
+ * therefore became the binding constraint on almost every grounded kind, and
+ * the scene was framed around a rectangle nobody can see — measured, the city
+ * needed 44 units for its actual skyline and 57 for this plane (‑23% subject
+ * size), the garden 22 vs 30, and the fused composite 20 vs 30, which is why
+ * every scene read as small and far away. Same rule as the ambience layers:
+ * anything that is not the subject must not decide how the subject is framed.
+ */
 export function MetaphorGroundShadow({ theme, y = 0.01, scale }) {
   const sfx = theme.postfx ?? {};
   return (
@@ -142,6 +155,7 @@ export function MetaphorGroundShadow({ theme, y = 0.01, scale }) {
       color={sfx.shadowColor ?? '#0a0f1e'}
       far={50}
       resolution={512}
+      userData={FRAME_IGNORE_DATA}
     />
   );
 }

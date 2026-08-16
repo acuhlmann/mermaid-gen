@@ -129,6 +129,28 @@ ones that will bite an edit.
   no amount of ambient, hemisphere bounce or key light rescues a `#1d314a`
   surface — measured, it renders `#080810`. When a dark theme's ground reads as
   a silhouette, raise the material rather than the lights.
+- **A shadow catcher is not the subject.** `MetaphorGroundShadow` carries
+  `FRAME_IGNORE_DATA` because it is sized past the subject and invisible except where a shadow
+  lands; left in the fit it framed the camera around a rectangle nobody can see (city 57 units
+  against a 44-unit skyline, fused composite 30 against 20). Ask of any new mesh whether it is the
+  subject or scaffolding, and flag the scaffolding.
+- **Anything sized against the viewer is screen-relative, not world-relative.** The fog band, the
+  GTAO radius (`screenSpaceRadius: true`) and the accent caption (scales by camera distance) all
+  exist because these scenes run from a 14-unit cake to a 60-unit bridge and one world size cannot
+  serve both.
+- **AO thickness is capped under its radius.** The gradient sky is back-faced and writes no depth,
+  so the background sits at the far plane and a stock `thickness: 1` rings every silhouette in
+  black. `aoIntensity` is per theme because occlusion spends contrast the dark themes do not have.
+- **IBL is generated, not fetched** (`SceneEnvironment.jsx` PMREMs the theme's own sky gradient).
+  Do not reintroduce drei `<Environment preset>` — it puts a CDN fetch inside the renderer.
+- **The accent callout draws over the scene** (stem, pin, caption are depth-test-free) because
+  scenes keep drawing above their own anchors; and the accented item's `note` is now permanent
+  caption copy, so `accent` without `note` is half a marker. Changing either side means changing
+  `apps/server/src/prompts/metaphorSystemPrompt.js` too.
+- **The fused composite does not inherit shared chrome.** It shipped without `MetaphorAccents` and
+  with unlabelled affinity rings; when a base kind grows a scene-wide affordance, check
+  `FusedCompositeScene.jsx` for it. Group placards must show `group.display` (the user's raw noun),
+  never `group.label` (the normalized matching token).
 - **Adding a metaphor kind touches ten places**, and `metaphorUsda.ts`'s `KIND_ITEM_FIELDS` is the
   one that fails the build rather than failing silently. Full list in `CLAUDE.md`.
 

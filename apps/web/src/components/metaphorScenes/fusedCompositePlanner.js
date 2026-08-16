@@ -649,6 +649,12 @@ function makeGroups(sites, nodes, worldKey) {
       buckets.set(key, {
         id: `group:${key}`,
         label: key,
+        // The token is lowercased and stripped of filler words so that
+        // "Checkout domain" and "checkout" bind to one another; that is right
+        // for MATCHING and wrong for DISPLAY. The scene is required to preserve
+        // the user's nouns, so the first raw value that produced this key is
+        // kept alongside it and is what the floor placard shows.
+        display: null,
         colorIndex: Math.floor(seeded(worldKey, key, 'group-color') * 8),
         positions: [],
         memberIds: new Set()
@@ -658,18 +664,20 @@ function makeGroups(sites, nodes, worldKey) {
   };
 
   const groupKeysFor = (item) => {
-    const keys = new Set();
+    const keys = new Map();
     for (const field of ['chain', 'district', 'bed', 'label']) {
-      const key = normalizeAffinityToken(item?.[field]);
-      if (key) keys.add(key);
+      const raw = item?.[field];
+      const key = normalizeAffinityToken(raw);
+      if (key && !keys.has(key)) keys.set(key, typeof raw === 'string' ? raw.trim() : null);
     }
     return keys;
   };
 
   const addMember = (item, position) => {
     if (!item?.id) return;
-    for (const key of groupKeysFor(item)) {
+    for (const [key, raw] of groupKeysFor(item)) {
       const group = ensure(key);
+      if (!group.display && raw) group.display = raw;
       if (group.memberIds.has(item.id)) continue;
       group.memberIds.add(item.id);
       group.positions.push(position);
@@ -703,6 +711,7 @@ function makeGroups(sites, nodes, worldKey) {
       return {
         id: group.id,
         label: group.label,
+        display: group.display ?? group.label,
         colorIndex: group.colorIndex,
         center: midpoint,
         radius: clamp(radius, 2.4, 9),

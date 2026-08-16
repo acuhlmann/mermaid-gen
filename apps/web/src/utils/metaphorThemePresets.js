@@ -21,7 +21,7 @@ const DAYLIGHT_OUTDOOR_BASE = {
   ambientIntensity: 0.72,
   hemisphere: ['#dff5ff', '#557a3d', 0.65],
   directional: { position: [16, 24, 10], intensity: 1.45 },
-  environment: null,
+  envIntensity: 0.7,
   waterColor: '#27afe2',
   riverDeepColor: '#087fb8',
   treeMeadowColor: '#53b95e',
@@ -58,12 +58,18 @@ export const METAPHOR_THEME_PRESETS = {
     // Pushed further off the camera axis (which looks down [18, 14, 18]) so cast
     // shadows fall across the scene instead of hiding behind their own casters.
     directional: { position: [9, 15, -6], intensity: 1.05 },
-    environment: null,
+    envIntensity: 0.62,
     buildingColor: '#8fb6f0',
     buildingRoofColor: '#b6cff2',
     slabColor: '#f3c95b',
     starColor: '#ffd166',
-    groundColor: '#1a1a2e',
+    // A pale plaza, not the near-black `#1a1a2e` this used to be. Every other
+    // preset pairs its ground with its sky; whiteboard paired a near-white sky
+    // with a near-black plate, so the city footing and the fused world's ground
+    // read as a hockey puck the scene was balanced on. It also feeds the IBL's
+    // ground bounce now (SceneEnvironment), where a black nadir means the
+    // undersides of everything reflect nothing at all.
+    groundColor: '#c2cad8',
     labelColor: '#0f172a',
     labelOutline: '#ffffff',
     districtPalette: ['#dbeafe', '#bfdbfe', '#93c5fd', '#60a5fa'],
@@ -101,7 +107,9 @@ export const METAPHOR_THEME_PRESETS = {
     cycleFrameColor: '#475569',
     cyclePaveColor: '#c9cdd6',
     cycleLampColor: '#fbbf24',
-    // Clean/flat: restrained bloom, soft pale shadow, no depth-of-field.
+    // Clean/flat: restrained bloom, soft pale shadow, no depth-of-field. The
+    // brightest theme has the most contrast to spend, so it carries the
+    // strongest occlusion — it is what gives a pale skyline its corners.
     postfx: {
       enabled: true,
       bloomStrength: 0.18,
@@ -112,7 +120,8 @@ export const METAPHOR_THEME_PRESETS = {
       shadowOpacity: 0.26,
       shadowBlur: 2.8,
       shadowColor: '#334155',
-      shadowScale: 46
+      shadowScale: 46,
+      aoIntensity: 0.9
     }
   },
   noir: {
@@ -122,7 +131,9 @@ export const METAPHOR_THEME_PRESETS = {
     ambientIntensity: 0.35,
     hemisphere: ['#1e293b', '#1a2233', 0.55],
     directional: { position: [8, 20, 6], intensity: 0.95 },
-    environment: 'night',
+    // Deliberately the strongest: on a near-black palette the sky reflection is
+    // most of what separates a metal flank from the void behind it.
+    envIntensity: 0.85,
     buildingColor: '#334155',
     buildingRoofColor: '#475569',
     slabColor: '#475569',
@@ -176,7 +187,9 @@ export const METAPHOR_THEME_PRESETS = {
       shadowOpacity: 0.5,
       shadowBlur: 2.4,
       shadowColor: '#01040c',
-      shadowScale: 44
+      shadowScale: 44,
+      // Already the darkest palette; a full occlusion term reads as mud.
+      aoIntensity: 0.45
     }
   },
   arcade: {
@@ -186,7 +199,7 @@ export const METAPHOR_THEME_PRESETS = {
     ambientIntensity: 0.5,
     hemisphere: ['#ff6b6b', '#3d2a80', 0.6],
     directional: { position: [14, 18, 10], intensity: 1.1 },
-    environment: 'sunset',
+    envIntensity: 0.75,
     buildingColor: '#ff6bcb',
     buildingRoofColor: '#ff9de6',
     slabColor: '#ffd166',
@@ -240,7 +253,9 @@ export const METAPHOR_THEME_PRESETS = {
       shadowOpacity: 0.42,
       shadowBlur: 2.6,
       shadowColor: '#1a0533',
-      shadowScale: 44
+      shadowScale: 44,
+      // Neon wants its saturation intact; occlusion desaturates as it darkens.
+      aoIntensity: 0.5
     }
   },
   blueprint: {
@@ -250,7 +265,7 @@ export const METAPHOR_THEME_PRESETS = {
     ambientIntensity: 0.55,
     hemisphere: ['#1e3a8a', '#1c3555', 0.55],
     directional: { position: [10, 18, 8], intensity: 0.9 },
-    environment: null,
+    envIntensity: 0.7,
     buildingColor: '#bfdbfe',
     buildingRoofColor: '#dbeafe',
     slabColor: '#e0f2fe',
@@ -304,7 +319,8 @@ export const METAPHOR_THEME_PRESETS = {
       shadowOpacity: 0.34,
       shadowBlur: 2.7,
       shadowColor: '#020a1a',
-      shadowScale: 46
+      shadowScale: 46,
+      aoIntensity: 0.65
     }
   }
 };
@@ -313,7 +329,20 @@ export function resolveMetaphorThemePreset(theme) {
   return METAPHOR_THEME_PRESETS[theme] ?? METAPHOR_THEME_PRESETS.whiteboard;
 }
 
-/** Safe defaults so the post-processing composer never reads undefined params. */
+/**
+ * Ambient occlusion defaults.
+ *
+ * `aoScreenSpace` is the important one and it is the same lesson the fog band
+ * already learned: GTAO's `radius` is a WORLD distance, and these scenes run
+ * from a 10-unit cake to a 60-unit grove, so one authored radius is a heavy
+ * smudge on the small scene and invisible on the large one. In screen-space
+ * mode the radius is instead the world size of `aoRadius × 100` pixels at each
+ * fragment's own depth, which is scale-independent by construction.
+ *
+ * `aoIntensity` is per theme rather than global because AO spends contrast, and
+ * the dark themes have very little left to spend — the same occlusion term that
+ * gives whiteboard's skyline its corners turns noir's flanks to mud.
+ */
 export const DEFAULT_POSTFX = {
   enabled: true,
   bloomStrength: 0.28,
@@ -324,7 +353,13 @@ export const DEFAULT_POSTFX = {
   shadowOpacity: 0.35,
   shadowBlur: 2.6,
   shadowColor: '#0a0f1e',
-  shadowScale: 44
+  shadowScale: 44,
+  ao: true,
+  aoIntensity: 0.7,
+  aoRadius: 0.5,
+  aoThickness: 0.3,
+  aoScreenSpace: true,
+  aoSamples: 16
 };
 
 /** Merge a theme's `postfx` block over the defaults (theme may omit any key). */
@@ -391,7 +426,10 @@ export function resolveRiverDaylightTheme(theme) {
       bloomThreshold: 0.92,
       vignette: 0.18,
       shadowOpacity: 0.3,
-      shadowColor: '#31543f'
+      shadowColor: '#31543f',
+      // Open-air daylight: contact darkening is what stops a bank, a bed or a
+      // hull reading as a flat sticker against the ground it sits on.
+      aoIntensity: 0.8
     }
   };
 }
@@ -427,7 +465,8 @@ export function resolveArchipelagoDaylightTheme(theme) {
       bloomThreshold: 0.9,
       vignette: 0.16,
       shadowOpacity: 0.28,
-      shadowColor: '#1e4d5c'
+      shadowColor: '#1e4d5c',
+      aoIntensity: 0.8
     }
   };
 }
