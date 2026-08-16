@@ -14,6 +14,14 @@
 
 import { CAST_TIERS } from './castTiers.js';
 import { getVariantPersona } from './slopitectCopy.js';
+import {
+  MEETING_MAX_ATTENDEES,
+  MEETING_MIN_ATTENDEES,
+  MEETING_VENUE_CAB,
+  MEETING_VENUE_STEERING,
+  MEETING_VENUE_WORKING_GROUP,
+  MEETING_VENUES
+} from '@archislop/shared';
 
 let activeOfficeBundle = null;
 
@@ -252,22 +260,12 @@ export const MEETING_SENIOR_POOL = ['ciso', 'belson', 'cfo', 'barker'];
 /** Team members who can be sent upstairs to defend the diagram. */
 export const MEETING_PRESENTER_POOL = ['gilfoyle', 'jared', 'richard'];
 export const MEETING_FACILITATOR = 'scrumMaster';
-/** Matches packages/shared MEETING_MAX_ATTENDEES / the /meeting route. */
-export const MEETING_ROSTER_MAX = 8;
-/** Matches packages/shared MEETING_MIN_ATTENDEES — a 1:1 with one colleague counts. */
-export const MEETING_ROSTER_MIN = 1;
+/** Matches `MEETING_MAX_ATTENDEES` in `@archislop/shared` / the `/meeting` route. */
+export const MEETING_ROSTER_MAX = MEETING_MAX_ATTENDEES;
+/** Matches `MEETING_MIN_ATTENDEES` in `@archislop/shared` — a 1:1 with one colleague counts. */
+export const MEETING_ROSTER_MIN = MEETING_MIN_ATTENDEES;
 
-/**
- * The meeting escalation ladder (docs/office-parody.md §10.10): a working group
- * that runs its course escalates to the steering committee, then to a Change
- * Advisory Board hearing. Shared with the server (`officePersonas.js` / the
- * `/api/office/meeting` route) — a venue one side doesn't know is a meeting the
- * other side scripts as a plain working group.
- */
-export const MEETING_VENUES = ['workingGroup', 'steering', 'cab'];
-export const MEETING_VENUE_WORKING_GROUP = 'workingGroup';
-export const MEETING_VENUE_STEERING = 'steering';
-export const MEETING_VENUE_CAB = 'cab';
+export { MEETING_VENUES, MEETING_VENUE_WORKING_GROUP, MEETING_VENUE_STEERING, MEETING_VENUE_CAB };
 
 /**
  * Where a summoned sync happens on the floor:

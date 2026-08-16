@@ -16,6 +16,7 @@ import {
   createOfficeChatModel,
   isOfficeColleague,
   isOfficeSpeaker,
+  MEETING_VENUES,
   normalizeAttendees,
   OFFICE_COLLEAGUES,
   parseInterjectReply,
@@ -35,8 +36,13 @@ import {
   buildOfficeLogBlock,
   buildOfficeRelationshipBlock
 } from '../src/agents/_lib/officeLogPrompt.js';
+import { MEETING_VENUES as SHARED_MEETING_VENUES } from '@archislop/shared';
 
 const ATTENDEES = ['scrumMaster', 'barker', 'greybeard', 'intern'];
+
+test('MEETING_VENUES re-exports the shared escalation ladder', () => {
+  assert.deepEqual([...MEETING_VENUES], [...SHARED_MEETING_VENUES]);
+});
 
 test('office colleague registry covers the v1 cast and stakeholders stay separate', () => {
   for (const id of ['intern', 'scrumMaster', 'helpdesk', 'facilities', 'hr', 'greybeard']) {

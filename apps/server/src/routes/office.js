@@ -3,6 +3,7 @@ import { z } from 'zod';
 import {
   ContentTypeSchema,
   MEETING_MAX_ATTENDEES,
+  MEETING_VENUES,
   ModelProfileSchema,
   OfficeMomentKindSchema,
   OfficeMomentSituationSchema,
@@ -24,7 +25,6 @@ import {
   buildPairSystemPrompt,
   createOfficeChatModel,
   isOfficeSpeaker,
-  MEETING_VENUES,
   normalizeAttendees,
   officeUsageFromReply,
   parseHuddleScript,
