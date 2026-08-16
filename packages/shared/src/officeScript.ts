@@ -84,6 +84,24 @@ export const MEETING_MAX_BEATS = 14;
 export const MEETING_MIN_ATTENDEES = 1;
 /** Ceiling for a pulled-together group (route + client roster share this). */
 export const MEETING_MAX_ATTENDEES = 8;
+
+/**
+ * The meeting escalation ladder (docs/office-parody.md §10.10): a working group
+ * that runs its course escalates to the steering committee, then to a Change
+ * Advisory Board hearing. Shared by the web cast (`officeCast.js`), server
+ * prompts (`officePersonas.js`), and `POST /api/office/meeting` — a venue one
+ * side does not know is a meeting the other scripts as a plain working group.
+ */
+export const MEETING_VENUES = ['workingGroup', 'steering', 'cab'] as const;
+
+export const MeetingVenueSchema = z.enum(MEETING_VENUES);
+
+export type MeetingVenue = z.infer<typeof MeetingVenueSchema>;
+
+export const MEETING_VENUE_WORKING_GROUP = 'workingGroup' satisfies MeetingVenue;
+export const MEETING_VENUE_STEERING = 'steering' satisfies MeetingVenue;
+export const MEETING_VENUE_CAB = 'cab' satisfies MeetingVenue;
+
 /**
  * Ceiling for `diagramSource` on office LLM routes (meeting / moment / huddle).
  * Slot content (especially anything / forms) can be far larger; callers must

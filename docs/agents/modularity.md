@@ -4,6 +4,8 @@ The semantic counterpart to the static sensors. Uses Vlad Khononov's [Balanced C
 
 Run a modularity review when you finish a feature, before splitting a monolith file (ADR-0005), or any time `npm run verify:boundaries` is clean but something still _feels_ tangled.
 
+**Standing priorities for archislop** (what to fix first, ranked by strength × distance × volatility): [`balanced-coupling-priorities.md`](balanced-coupling-priorities.md).
+
 ## Claude Code
 
 Install the plugin once per machine:
@@ -50,11 +52,16 @@ Then copies `skills/*` into `.cursor/skills/modularity/`. Commit the result.
 
 ## Where modularity hits in archislop
 
-The most-leveraged targets today:
+See [`balanced-coupling-priorities.md`](balanced-coupling-priorities.md) for the ranked priority list, domain map, anti-patterns, and focus order.
+
+Quick index of high-leverage files (detail and rationale in that doc):
 
 - `apps/web/src/state/diagramStore.js` — central state hub (ADR-0005)
+- `apps/web/src/state/officeMomentStore.js` — office hub; ADR-0011 discipline
 - `apps/server/src/mcp/mcpServer.js` — MCP tool registration (ADR-0005)
-- `apps/web/src/App.jsx` and `InsightsPane.jsx` — UI monoliths
-- The `Mermaid` and `Infographic` agent pair (`apps/server/src/agents/`) — symmetric design opportunity per ADR-0001
+- `apps/web/src/components/InsightsPane.jsx`, `DiagramCanvas.jsx` — UI monoliths
+- `apps/server/src/routes/copilot.ts` — collaboration + built-in agent routes
+- Per-slot agents under `apps/server/src/agents/` — symmetry via `_lib/` and shared parsers
+- `packages/shared` — contract boundary; wire enums belong here first
 
 For ADR conflicts surfaced by a review, see [`docs/agents/domain.md`](domain.md).

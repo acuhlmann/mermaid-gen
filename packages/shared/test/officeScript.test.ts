@@ -1,6 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  MEETING_MAX_ATTENDEES,
+  MEETING_VENUES,
+  MeetingVenueSchema,
   MEETING_MAX_BEATS,
   MeetingScriptSchema,
   normalizeMeetingScript,
@@ -21,6 +24,16 @@ function beat(overrides: Record<string, unknown> = {}) {
 function script(beats: unknown[]) {
   return { scriptVersion: 1, title: 'WG: Diagram Governance Sync (recurring)', beats };
 }
+
+test('MeetingVenueSchema accepts the escalation ladder', () => {
+  assert.deepEqual([...MEETING_VENUES], ['workingGroup', 'steering', 'cab']);
+  assert.equal(MeetingVenueSchema.parse('cab'), 'cab');
+  assert.equal(MeetingVenueSchema.safeParse('boardroom').success, false);
+});
+
+test('MEETING_MAX_ATTENDEES matches client roster ceiling', () => {
+  assert.equal(MEETING_MAX_ATTENDEES, 8);
+});
 
 test('OfficeMomentResponseSchema accepts a minimal email moment', () => {
   const parsed = OfficeMomentResponseSchema.parse({

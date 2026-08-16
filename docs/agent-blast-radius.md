@@ -118,13 +118,16 @@ Run: `npm run check:fast` when only shared changed; `npm run check` otherwise.
 
 ## Office cast + meetings (roster helpers)
 
-| Layer              | Location                                                                                                                                                                                                            |
-| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Cast + roster APIs | [`apps/web/src/utils/officeCast.js`](../apps/web/src/utils/officeCast.js) (`normalizeMeetingRoster`, `buildMeetingAttendeesFromColleagues`, `pickMeetingAttendees`, chrome copy)                                    |
-| Meeting UI         | [`MeetingOverlay.jsx`](../apps/web/src/components/MeetingOverlay.jsx), [`CallMeetingPicker.jsx`](../apps/web/src/components/CallMeetingPicker.jsx), [`OfficeLayer.jsx`](../apps/web/src/components/OfficeLayer.jsx) |
-| Unit               | [`apps/web/test/castTiers.test.js`](../apps/web/test/castTiers.test.js), [`apps/web/test/officeComponents.test.jsx`](../apps/web/test/officeComponents.test.jsx)                                                    |
+| Layer              | Location                                                                                                                                                                                                                                                    |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Wire enums**     | [`packages/shared/src/officeScript.ts`](../packages/shared/src/officeScript.ts) (`MEETING_VENUES`, `MeetingVenueSchema`, attendee caps) — import here first; re-export from cast/personas only for legacy paths                                             |
+| Cast + roster APIs | [`apps/web/src/utils/officeCast.js`](../apps/web/src/utils/officeCast.js) (`normalizeMeetingRoster`, `buildMeetingAttendeesFromColleagues`, `pickMeetingAttendees`, chrome copy)                                                                            |
+| Server prompts     | [`apps/server/src/agents/officePersonas.js`](../apps/server/src/agents/officePersonas.js)                                                                                                                                                                   |
+| Meeting route      | [`apps/server/src/routes/office.js`](../apps/server/src/routes/office.js)                                                                                                                                                                                   |
+| Meeting UI         | [`MeetingOverlay.jsx`](../apps/web/src/components/MeetingOverlay.jsx), [`CallMeetingPicker.jsx`](../apps/web/src/components/CallMeetingPicker.jsx), [`OfficeLayer.jsx`](../apps/web/src/components/OfficeLayer.jsx)                                         |
+| Unit               | [`apps/web/test/castTiers.test.js`](../apps/web/test/castTiers.test.js), [`apps/web/test/officeComponents.test.jsx`](../apps/web/test/officeComponents.test.jsx), [`apps/web/test/officeWireContract.test.js`](../apps/web/test/officeWireContract.test.js) |
 
-`test:affected` pulls `castTiers.test.js` and `officeComponents.test.jsx` when `officeCast.js` or office locale bundles change — basename mirror alone misses roster helpers.
+`test:affected` pulls `castTiers.test.js` and `officeComponents.test.jsx` when `officeCast.js` or office locale bundles change — basename mirror alone misses roster helpers. Changing `officeScript.ts` venue/attendee constants → shared tests + `officeWireContract.test.js` + `officePersonas.test.js` + `officeRoute.test.js`.
 
 ## Desk work order (SlopNextPrompt)
 

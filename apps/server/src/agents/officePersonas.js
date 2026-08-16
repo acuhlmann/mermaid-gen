@@ -15,6 +15,10 @@ import {
   MEETING_MIN_ATTENDEES,
   MEETING_MIN_BEATS,
   MEETING_MIN_BEATS_DYAD,
+  MEETING_VENUE_CAB,
+  MEETING_VENUE_STEERING,
+  MEETING_VENUE_WORKING_GROUP,
+  MEETING_VENUES,
   MeetingScriptSchema,
   normalizeMeetingScript,
   OfficeMomentKindSchema,
@@ -35,17 +39,7 @@ import {
 /** Moment kinds that should stay on the latency-first decorative tier. */
 const LATENCY_MOMENT_KINDS = new Set(['walkby', 'coffee', 'meeting-invite']);
 
-/**
- * The meeting escalation ladder (docs/office-parody.md §10.10): a working group
- * that runs its course escalates to the steering committee, then to a Change
- * Advisory Board hearing. Shared by the client (`apps/web/src/utils/officeCast.js`)
- * and the `/api/office/meeting` route — a venue both sides don't know is a
- * meeting the other side scripts as a plain working group.
- */
-export const MEETING_VENUES = ['workingGroup', 'steering', 'cab'];
-export const MEETING_VENUE_WORKING_GROUP = 'workingGroup';
-export const MEETING_VENUE_STEERING = 'steering';
-export const MEETING_VENUE_CAB = 'cab';
+export { MEETING_VENUES, MEETING_VENUE_WORKING_GROUP, MEETING_VENUE_STEERING, MEETING_VENUE_CAB };
 
 /**
  * Office surfaces split into two lanes:
