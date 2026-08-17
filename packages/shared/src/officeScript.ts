@@ -46,8 +46,30 @@ export const OFFICE_ACTION_PROMPT_MAX_CHARS = 300;
  * Absent is the honest default and means "nobody caused this" — every ambient,
  * timer-driven moment omits the field and keeps the cold-open framing it was
  * written for.
+ *
+ * The set splits in two, and the split is what the server branches on rather
+ * than the individual values (`isSpokenMomentSituation` in `officePersonas.js`).
+ *
+ * - **Silent** (`dwell`, `run`): nothing was said. These cannot coexist with a
+ *   `userMessage` — the dwell block's whole premise is the silence — so a reply
+ *   stands them down.
+ * - **Spoken** (`outLoud`, `turnedTo`, `walkover`): something *was* said, out of
+ *   a mouth rather than a keyboard. These arrive *with* a `userMessage` and
+ *   **replace** the typed reply mode instead of standing down for it. Without
+ *   them the composer's say-it-out-loud channel reached the model as "the user
+ *   just sent you a chat message", so an open-plan remark came back written like
+ *   Slack: the office's most physical verb rendered in its least physical voice.
+ *   The three are three different physical circumstances, which is the only
+ *   reason there are three — who heard it (the room, or one person), and whether
+ *   the answer comes from a chair or from somebody standing behind you.
  */
-export const OFFICE_MOMENT_SITUATIONS = ['dwell', 'run'] as const;
+export const OFFICE_MOMENT_SITUATIONS = [
+  'dwell',
+  'run',
+  'outLoud',
+  'turnedTo',
+  'walkover'
+] as const;
 
 export const OfficeMomentSituationSchema = z.enum(OFFICE_MOMENT_SITUATIONS);
 

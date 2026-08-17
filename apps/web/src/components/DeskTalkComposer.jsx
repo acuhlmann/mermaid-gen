@@ -1,5 +1,6 @@
 import { useId, useState } from 'react';
 import { PersonaFace } from './personaFaces/index.jsx';
+import VoiceMicButton from './VoiceMicButton.jsx';
 import { officeChromeCopy, officeSenderInfo } from '../utils/officeCast.js';
 import { formatLocale } from '../i18n/formatLocale.js';
 
@@ -20,6 +21,14 @@ import { formatLocale } from '../i18n/formatLocale.js';
  *
  * Nothing here can produce slot content. Worst case a reply carries a pitch,
  * and a pitch is a button you press.
+ *
+ * **The mic is the lane's own, not a copy of the work order's.** Lane 1 has had
+ * one since the beginning, so the composer band read as "the expensive input
+ * takes dictation, the free one makes you type" — which is backwards for the one
+ * lane whose entire fiction is that you are talking rather than writing. It is
+ * the shared `VoiceMicButton` (Slop Chat, floor talk, the meeting raise-hand all
+ * use it), so hold-to-speak, tap-to-toggle on a phone and the unsupported-browser
+ * disable all come with it and cannot drift from the other four surfaces.
  *
  * @param {{
  *   target?: string | null,
@@ -105,6 +114,14 @@ export default function DeskTalkComposer({
         disabled={disabled}
         title={disabled ? (disabledReason ?? undefined) : undefined}
         onChange={(event) => setText(event.target.value)}
+      />
+      {/* Between the field and Say it, which is where dictation belongs: you
+          speak into it, then you send what it heard. */}
+      <VoiceMicButton
+        value={text}
+        onChange={setText}
+        disabled={disabled || busy}
+        className="desk-talk-mic overlay-button is-mic-toggle"
       />
       <button
         type="submit"

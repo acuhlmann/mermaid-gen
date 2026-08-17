@@ -208,6 +208,30 @@ Every session carries **six independent diagram slots** — `mermaid` (Mermaid t
   kitchen and the cubicles are **2-4 tiles apart** against an earshot of 3, so the two offers'
   catchments genuinely overlap; the fix is the fixed scan order in `sceneJoinOfferFor`, never a
   second radius.
+- **Saying something out loud has four answers, and the one that walks over is a `walkby`.**
+  `talkOutLoud` used to have exactly one outcome — a reply card, every time — which is a chat
+  window in a costume. `pickTalkAnswer` (`officeCadence.js`, beside the rest of the office's
+  appetite) rolls **shout** / **walkover** / **ignored**; naming somebody never rolls (they are
+  looking at you) and yields **turnedTo**. Two rules are easy to undo by accident. A walk-over must
+  go through `pushOfficeWalkBy` rather than growing a renderer of its own: that is what buys both
+  the desk head-over-shoulder and the floor colleague who **actually gets up and walks**, and its
+  prompt already demands the line name something visible — which is the whole difference between
+  coming over for a reason and saying something you could have said from your chair. And silence
+  needs a **delay** (`TALK_SILENCE_DELAY_MIN_MS`) plus a self-clearing card: instant silence reads
+  as a broken send button, and a silence you have to dismiss is paperwork about nobody answering.
+  The user's line is recorded either way — you said it. Pin the roll by driving `random` at the
+  weight bands, never by stubbing `pickTalkAnswer`; the weights _are_ the design, and the desk
+  suites' `random: () => 0` seed must keep landing on an answer.
+- **A talk reply is speech, and the wire has to say so or it comes back written like Slack.**
+  `kind: 'im'` carries "Lowercase chat energy welcome" and reply mode opens "The user just sent you
+  a chat message" — both false about somebody who said it out loud. `OFFICE_MOMENT_SITUATIONS`
+  (shared) therefore splits: the **silent** ones (`dwell`, `run`) stand down for a `userMessage`,
+  the **spoken** ones (`outLoud`, `turnedTo`, `walkover`) arrive _with_ one and **replace** the
+  typed reply mode (`isSpokenMomentSituation` in `officePersonas.js`), swapping the body rule for
+  `imSpoken`. Adding a spoken situation is a constant, a rule block, a reminder line _and_ the
+  predicate — miss the predicate and the block is dead code that the typed rule silently outranks.
+  Each block must state its **geometry** (how far away, who else heard), because that sets the
+  length and register and it is the only thing the model cannot read off the words.
 - **The office log records; it never triggers.** `officeLogStore.js` is what lets the cast say
   "since this morning's thing" (docs/office-parody.md §11 context contract). Writers hook the
   funnels that already exist — `onOfficeEvent` in `useRunCeremony.js`, the moment-store push

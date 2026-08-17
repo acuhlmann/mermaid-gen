@@ -109,7 +109,7 @@ function initialState(imHistory = restoredImHistory) {
      * @type {Array<{id: string, kind: 'email' | 'im', colleagueId: string, subject?: string, createdAt: number}>} */
     deskArrivals: [],
     /** Durable scrollback for the messenger, oldest first. Never TTL-expired.
-     * @type {Array<{id: string, colleagueId: string, body: string, channel?: string, actionPrompt?: string, createdAt: number, outbound?: boolean, read: boolean}>} */
+     * @type {Array<{id: string, colleagueId: string, body: string, channel?: string, voice?: string, actionPrompt?: string, createdAt: number, outbound?: boolean, read: boolean}>} */
     imHistory,
     imUnreadCount: countUnreadIms(imHistory),
     /** @type {{id: string, colleagueId: string, body: string, actionPrompt?: string, createdAt: number} | null} */
@@ -536,8 +536,16 @@ export function markAllOfficeEmailsRead() {
  * colleague could have an idea and no way to hand it over. Storing it does not
  * weaken ADR-0010 — a pitch is still inert text until the user presses the
  * button a renderer puts under it.
+ *
+ * `voice` says **where in the room the line came from**, and only one value is
+ * ever set: `'across'`, meaning they shouted it back from their own desk rather
+ * than saying it beside you. Unmarked is the existing and much commoner case —
+ * somebody an arm's length away — which is what the desk card's "At your desk"
+ * label has always assumed. A marker rather than a derivation because the
+ * distance is known once, at delivery, by whoever rolled the answer shape
+ * (`pickTalkAnswer`); nothing downstream can work it out from the words.
  */
-export function pushOfficeImPing({ colleagueId, body, channel = 'im', actionPrompt }) {
+export function pushOfficeImPing({ colleagueId, body, channel = 'im', actionPrompt, voice }) {
   const talk = channel === 'talk';
   const ping = {
     id: makeId('im'),
@@ -545,6 +553,7 @@ export function pushOfficeImPing({ colleagueId, body, channel = 'im', actionProm
     body: String(body ?? ''),
     ...(channel && channel !== 'im' ? { channel } : {}),
     ...(actionPrompt ? { actionPrompt: String(actionPrompt) } : {}),
+    ...(voice ? { voice: String(voice) } : {}),
     createdAt: Date.now()
   };
   const imHistory = [...state.imHistory, { ...ping, read: talk }].slice(-IM_HISTORY_MAX);

@@ -8,7 +8,11 @@ import {
   deliverLlmMoment,
   readSlotContext
 } from '../utils/officeMomentDelivery.js';
-import { pickRandomFrom, listMeetingDirectory } from '../utils/officeCast.js';
+import {
+  pickRandomFrom,
+  listMeetingDirectory,
+  OFFICE_WALKBY_LLM_CAST
+} from '../utils/officeCast.js';
 import {
   acceptOfficeCoffee,
   canOfferOfficeBattle,
@@ -20,7 +24,8 @@ import { threadTranscriptFor } from '../utils/officeImThreads.js';
 import {
   OFFICE_DESK_LLM_CAP,
   OFFICE_DWELL_LLM_CAP,
-  OFFICE_TALK_LLM_CAP
+  OFFICE_TALK_LLM_CAP,
+  pickTalkAnswer
 } from '../utils/officeCadence.js';
 
 /**
@@ -69,6 +74,25 @@ const IM_REPLY_DELAY_MIN_MS = 500;
 const IM_REPLY_DELAY_JITTER_MS = 700;
 const EMAIL_REPLY_EXTRA_DELAY_MIN_MS = 700;
 const EMAIL_REPLY_EXTRA_DELAY_JITTER_MS = 1200;
+
+/**
+ * How long the room takes to answer something you said out loud, per shape.
+ *
+ * The talk channel is exempt from the IM pause above — a live conversation is
+ * not a message somebody has to notice — and a shout keeps that exemption, so
+ * these two are the exceptions to the exception, and both are physical rather
+ * than social. **Somebody has to stand up and cross the floor**, so a walk-over
+ * that lands instantly is a teleport; the isometric renderer animates the walk,
+ * and this is the desk renderer paying the same fare. **Silence takes a beat to
+ * become silence** — "nobody answered" is only legible after the moment in which
+ * they might have, so a zero-delay version reads as the send button failing.
+ *
+ * Both are short enough to stay under the user's own next keystroke.
+ */
+const TALK_WALKOVER_DELAY_MIN_MS = 1100;
+const TALK_WALKOVER_DELAY_JITTER_MS = 1300;
+const TALK_SILENCE_DELAY_MIN_MS = 900;
+const TALK_SILENCE_DELAY_JITTER_MS = 700;
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -128,6 +152,28 @@ export function useDeskActions(params) {
       const base = IM_REPLY_DELAY_MIN_MS + random() * IM_REPLY_DELAY_JITTER_MS;
       if (channel !== 'email') return base;
       return base + EMAIL_REPLY_EXTRA_DELAY_MIN_MS + random() * EMAIL_REPLY_EXTRA_DELAY_JITTER_MS;
+    },
+    [random]
+  );
+
+  /**
+   * The other two pauses, keyed by talk shape rather than by channel. Shares
+   * `params.replyDelayMs` so a test still has one seam for "make the office
+   * instant" — it is handed `'walkover'` / `'ignored'` where the IM path hands
+   * it `'im'` / `'email'`.
+   *
+   * `shout` is deliberately absent: it is the one that keeps the talk channel's
+   * exemption, because answering across a room is not something you have to
+   * notice first.
+   */
+  const talkDelayMs = useCallback(
+    (shape) => {
+      const override = paramsRef.current.replyDelayMs;
+      if (typeof override === 'function') return override(shape);
+      if (shape === 'walkover') {
+        return TALK_WALKOVER_DELAY_MIN_MS + random() * TALK_WALKOVER_DELAY_JITTER_MS;
+      }
+      return TALK_SILENCE_DELAY_MIN_MS + random() * TALK_SILENCE_DELAY_JITTER_MS;
     },
     [random]
   );
@@ -254,11 +300,17 @@ export function useDeskActions(params) {
    * bank ignores it by construction — a bank line was written for a situation
    * already, and picking a per-situation bank is what template ids are for.
    *
+   * `kind` is the fourth axis and the one that changes where the answer *lands*:
+   * `'im'` puts it in `imHistory` (desk speech, floor balloon), `'walkby'` puts
+   * the speaker at your shoulder instead. Same ladder either way, which is what
+   * makes a walk-over an outcome of this verb rather than a second one.
+   *
    * @param {{ target: string, replyContext?: object, counterRef: { current: number },
-   *   cap: number, channel?: string, situation?: string }} args
+   *   cap: number, channel?: string, situation?: string, kind?: 'im' | 'walkby',
+   *   voice?: string }} args
    */
   const deliverImReply = useCallback(
-    async ({ target, replyContext, counterRef, cap, channel, situation }) => {
+    async ({ target, replyContext, counterRef, cap, channel, situation, kind = 'im', voice }) => {
       if (channel !== 'talk') {
         await sleep(replyDelayMs(channel ?? 'im'));
       }
@@ -273,10 +325,11 @@ export function useDeskActions(params) {
         ? { replyContext: { colleagueId: target, userMessage, threadTranscript } }
         : {};
       const channelOpts = channel ? { channel } : {};
+      const voiceOpts = voice ? { voice } : {};
       let delivered = false;
       if (target && counterRef.current < cap) {
         delivered = await deliverLlmMoment(
-          'im',
+          kind,
           ctx,
           deliveryOptions({
             colleagueId: target,
@@ -287,15 +340,16 @@ export function useDeskActions(params) {
             },
             ...(situation ? { situation } : {}),
             ...channelOpts,
+            ...voiceOpts,
             ...replyOpts
           })
         );
       }
       if (!delivered) {
         delivered = deliverCannedMoment(
-          'im',
+          kind,
           ctx,
-          deliveryOptions({ colleagueId: target, ...channelOpts, ...replyOpts })
+          deliveryOptions({ colleagueId: target, ...channelOpts, ...voiceOpts, ...replyOpts })
         );
       }
       return delivered;
@@ -326,8 +380,27 @@ export function useDeskActions(params) {
    * Say something from your chair. `colleagueId` null means **out loud** — you
    * said it to the room and whoever is apt picks it up; an id means you turned
    * to that person. Same verb, and `imSomeone` has always resolved null the same
-   * way; what is new is that the user's own line is recorded first, so the
-   * exchange reads as a conversation rather than an unprompted reply.
+   * way; the user's own line is recorded first, so the exchange reads as a
+   * conversation rather than an unprompted reply.
+   *
+   * **The room now answers in one of four ways, and three of them are new.**
+   * Until this, saying something to an open-plan office produced exactly one
+   * outcome — a reply card at your desk, every single time, from somebody who
+   * had apparently been waiting for you to speak. That is a chat window wearing
+   * a costume. `pickTalkAnswer` (officeCadence.js) rolls the other two, and
+   * being addressed by name is the fourth:
+   *
+   * | Shape      | Who | What happens                                            |
+   * | ---------- | --- | ------------------------------------------------------- |
+   * | `turnedTo` | you named them | they answer from the next desk (never rolled — you asked them) |
+   * | `shout`    | the room | somebody answers from their chair, marked `voice: 'across'` |
+   * | `walkover` | the room | somebody gets up and comes over — delivered as a **walk-by** |
+   * | `ignored`  | the room | nobody looks up. Your line still happened |
+   *
+   * `walkover` is the whole reason this fans out rather than branching on a
+   * flag: it is a `walkby` moment, so it inherits the two renderers the
+   * over-the-shoulder moment already owns (`OfficeWalkBy` at the desk,
+   * `FloorWalker` on the floor, who actually walks). Nothing new draws a person.
    *
    * Gated only by an open meeting. Unlike the ambient verbs it deliberately
    * ignores `pause` and one-surface-at-a-time: talking while a run streams is
@@ -335,34 +408,74 @@ export function useDeskActions(params) {
    * would be absurd.
    *
    * ADR-0010: this never produces slot content. Whatever comes back is a remark,
-   * and only *you* can turn a remark into a run.
+   * and only *you* can turn a remark into a run — including the walk-over, which
+   * carries a pitch exactly as an ambient walk-by does.
    *
    * @param {string | null} colleagueId
    * @param {{ userMessage: string, threadTranscript?: Array<object> }} said
-   * @returns {Promise<{ ok: boolean, colleagueId: string | null }>} who picked it up
+   * @returns {Promise<{
+   *   ok: boolean,
+   *   colleagueId: string | null,
+   *   shape: 'turnedTo' | 'shout' | 'walkover' | 'ignored' | null
+   * }>} who picked it up, and how
    */
   const talkOutLoud = useCallback(
     async (colleagueId, said) => {
-      if (paramsRef.current.meetingActive) return { ok: false, colleagueId: null };
+      if (paramsRef.current.meetingActive) return { ok: false, colleagueId: null, shape: null };
       const body = typeof said?.userMessage === 'string' ? said.userMessage.trim() : '';
-      if (!body) return { ok: false, colleagueId: null };
-      const target = colleagueId ?? pickRandomFrom(DESK_IM_CAST, random);
-      if (!target) return { ok: false, colleagueId: null };
+      if (!body) return { ok: false, colleagueId: null, shape: null };
+      /* Naming somebody is not a gamble — they are looking at you. Only the
+         undirected act rolls, because only it asked nobody in particular. */
+      const hasDiagram = Boolean((paramsRef.current.getDiagramSource?.() ?? '').trim());
+      const shape = colleagueId ? 'turnedTo' : pickTalkAnswer({ hasDiagram, random });
+
+      /* The shape decides the pool, which is why it is rolled first. A voice can
+         come from anywhere in the directory, but a **body** has to be able to
+         get here: the senior tier sits inside the sealed glass room, and
+         `walkPathFrom` would route one of them out through the wall. That is the
+         same reason the ambient director draws walk-bys from this list — a
+         walk-over is a walk-by, so it inherits the constraint along with the
+         renderer. */
+      const pool = shape === 'walkover' ? OFFICE_WALKBY_LLM_CAST : DESK_IM_CAST;
+      const target = colleagueId ?? pickRandomFrom(pool, random);
+      if (!target) return { ok: false, colleagueId: null, shape: null };
+
       // Your line lands before theirs, attributed to whoever answers — shared
       // history for desk speech + floor balloons; Slop Chat stays typed-IM only.
+      // Recorded even when nobody answers: you said it, and the next thing that
+      // colleague says should know you did.
       pushOfficeImReply({ colleagueId: target, body, channel: 'talk' });
       paramsRef.current.onOfficeEvent?.('talked');
+
+      if (shape === 'ignored') {
+        // The pause is what makes this legible as silence rather than as a
+        // broken send button — see TALK_SILENCE_DELAY_MIN_MS.
+        await sleep(talkDelayMs('ignored'));
+        return { ok: false, colleagueId: null, shape };
+      }
+
       const threadTranscript = threadTranscriptFor(getOfficeSnapshot().imHistory, target);
+      // They have to cross the floor first. The isometric renderer animates it;
+      // this is the desk renderer paying the same fare.
+      if (shape === 'walkover') await sleep(talkDelayMs('walkover'));
+
       const ok = await deliverImReply({
         target,
         replyContext: { userMessage: body, threadTranscript },
         counterRef: talkLlmCountRef,
         cap: TALK_LLM_CAP,
-        channel: 'talk'
+        channel: 'talk',
+        kind: shape === 'walkover' ? 'walkby' : 'im',
+        /* The wire's spoken situations, one per shape. They stand the typed
+           "the user just sent you a chat message" framing down on the server —
+           see `isSpokenMomentSituation` — which is what stops a remark said
+           across a room coming back written like Slack. */
+        situation: shape === 'walkover' ? 'walkover' : shape === 'shout' ? 'outLoud' : 'turnedTo',
+        ...(shape === 'shout' ? { voice: 'across' } : {})
       });
-      return { ok, colleagueId: target };
+      return { ok, colleagueId: target, shape };
     },
-    [deliverImReply, random]
+    [deliverImReply, random, talkDelayMs]
   );
 
   /**

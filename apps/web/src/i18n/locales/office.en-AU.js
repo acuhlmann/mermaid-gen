@@ -1504,6 +1504,9 @@ export const OFFICE_EN_AU = {
     },
     talk: {
       kindLabel: 'At your desk',
+      kindLabelAcross: 'From across the floor',
+      kindLabelRoom: 'To the room',
+      ignored: 'Nobody looks up.',
       placeholder: 'Sing out…',
       placeholderNamed: 'Have a word with {name}…',
       aria: 'Sing out — whoever is across from you answers',

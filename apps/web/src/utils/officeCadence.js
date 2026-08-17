@@ -127,6 +127,74 @@ export const OFFICE_SHOP_TALK_CAP = 4;
 
 /*
  * ---------------------------------------------------------------------------
+ * WHAT THE ROOM DOES WHEN YOU SAY SOMETHING OUT LOUD (docs/office-parody.md
+ * § "The talk channel").
+ * ---------------------------------------------------------------------------
+ *
+ * Also not an LLM budget, and here for the same reason `OFFICE_SHOP_TALK_CAP`
+ * is: it decides how much of a noise the office makes back at you, which is the
+ * one question this table exists to answer in one place.
+ *
+ * Saying something to an open-plan room has three honest outcomes and the
+ * channel only ever shipped the middle one, always, which is what made it read
+ * as a chat window with a costume on. The other two are what a room actually
+ * does:
+ *
+ * - **shout** — somebody answers from where they sit, without getting up. The
+ *   common case, and the only one that used to exist.
+ * - **walkover** — it was interesting enough that somebody comes over. Delivered
+ *   as a `walkby` (`useDeskActions.talkOutLoud`), so it inherits both renderers
+ *   the over-the-shoulder moment already has: a head in your screen at the desk,
+ *   a colleague who gets up and walks across the floor in isometric mode.
+ * - **ignored** — nobody looks up. The one nobody would think to build and the
+ *   one that does the most work: an office where every remark is answered is a
+ *   room full of people waiting for you to speak, and *that* is the tell.
+ *
+ * Weighted so the room is mostly responsive — this is a comedy office, not a
+ * simulation of being unpopular — and ordered answer-first so `random: () => 0`
+ * (the floor suites' and the desk suites' seed) lands on a reply rather than on
+ * silence. Being ignored one time in six is noticeable without being a feature
+ * people learn to resent.
+ *
+ * Directed speech does not roll at all: turning to somebody and saying their
+ * name always gets an answer, from their chair. Only the undirected act is a
+ * gamble, because only it asked nobody in particular.
+ */
+export const TALK_ANSWER_WEIGHTS = [
+  ['shout', 5],
+  ['walkover', 2],
+  ['ignored', 1.4]
+];
+
+/**
+ * Roll for how the room answers an undirected remark.
+ *
+ * `hasDiagram` gates the walk-over for the reason `pickNextMoment` gates an
+ * ambient walk-by on the same fact: a walk-over's whole point is that they came
+ * to look at your screen, and its prompt is told to name something visible on
+ * it. With an empty canvas there is nothing to have got up for, so the roll
+ * collapses to shout-or-silence rather than staging an arrival with no payoff.
+ *
+ * @param {{ hasDiagram?: boolean, random?: () => number }} [args]
+ * @returns {'shout' | 'walkover' | 'ignored'}
+ */
+export function pickTalkAnswer({ hasDiagram = true, random = Math.random } = {}) {
+  const eligible = TALK_ANSWER_WEIGHTS.filter(([shape]) => hasDiagram || shape !== 'walkover');
+  const total = eligible.reduce((sum, [, weight]) => sum + weight, 0);
+  let roll = random() * total;
+  let shape = eligible[eligible.length - 1][0];
+  for (const [candidate, weight] of eligible) {
+    roll -= weight;
+    if (roll <= 0) {
+      shape = candidate;
+      break;
+    }
+  }
+  return /** @type {'shout' | 'walkover' | 'ignored'} */ (shape);
+}
+
+/*
+ * ---------------------------------------------------------------------------
  * THE OFFICE DAY — the other clock. Since slice 25 there is also a *literal*
  * wall clock on the floor (`FloorWallClock`), and it renders the time this
  * section reads — one clock, two faces, so the light and the hands can never

@@ -187,6 +187,7 @@ export function deliverCannedMoment(kind, ctx, options) {
       pushOfficeImPing({
         colleagueId: targetId,
         channel: options.channel,
+        voice: options.voice,
         body: fillOfficeSlots(template.body, {
           ...slots,
           snippet: userMessage.slice(0, 48)
@@ -209,6 +210,46 @@ export function deliverCannedMoment(kind, ctx, options) {
   }
 
   if (kind === 'walkby') {
+    /*
+     * A walk-by that is *answering* something the user said out loud — the
+     * `walkover` shape of the talk channel. It reads the same reply bank as a
+     * spoken IM rather than the walk-by bank, and that is the point rather than
+     * a shortcut: the walk-by bank is cold-open material ("just so you know…"),
+     * which is exactly the wrong thing to say to somebody whose question you got
+     * up to answer. What makes this a walk-over is where it is *delivered*, not
+     * which words it uses.
+     *
+     * It also honours `colleagueId`, which the ambient branch below cannot —
+     * there the template picks the person, here the person was picked before we
+     * knew what they would say, because they are the one who stood up.
+     */
+    const replyContext = options.replyContext;
+    const userMessage =
+      typeof replyContext?.userMessage === 'string' ? replyContext.userMessage.trim() : '';
+    if (userMessage) {
+      const targetId = replyContext.colleagueId ?? options.colleagueId;
+      if (!targetId) return false;
+      const bank = officeImReplyTemplates().filter(
+        (template) => !template.colleagueId || template.colleagueId === targetId
+      );
+      const template = pickUnseenTemplate(
+        bank.length > 0 ? bank : officeImReplyTemplates(),
+        memory.seenTemplateIds,
+        random
+      );
+      if (!template) return false;
+      pushOfficeWalkBy({
+        colleagueId: targetId,
+        body: fillOfficeSlots(template.body, {
+          ...slots,
+          snippet: userMessage.slice(0, 48)
+        })
+      });
+      remember(userMessage);
+      markFired(memory, template.id, onFired);
+      return true;
+    }
+
     const template = pickUnseenTemplate(officeWalkbyFallbacks(), memory.seenTemplateIds, random);
     if (!template) return false;
     pushOfficeWalkBy({
@@ -418,6 +459,7 @@ export async function deliverLlmMoment(kind, ctx, options) {
         colleagueId,
         body: moment.body,
         channel: options.channel,
+        voice: options.voice,
         ...(moment.actionPrompt ? { actionPrompt: moment.actionPrompt } : {})
       });
     }

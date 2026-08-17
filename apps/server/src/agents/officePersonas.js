@@ -489,6 +489,16 @@ const MOMENT_BODY_RULES = {
 sentence case or ominous caps, no emoji spam). "body" is 2–4 short sentences plus an in-character
 sign-off, max 500 chars.`,
   im: `- kind im: "body" is one chat message, max 200 chars. Lowercase chat energy welcome. No subject.`,
+  /*
+   * The same kind, out of a mouth. `im` is the *shape* a talk-channel reply is
+   * delivered in (it lands in `imHistory` and renders as desk speech), which is
+   * why the spoken situations arrive on it — but "lowercase chat energy" is the
+   * single line most responsible for a said-out-loud answer reading like Slack.
+   * Chosen by situation rather than by kind; see `isSpokenMomentSituation`.
+   */
+  imSpoken: `- "body" is one thing said ALOUD in an open-plan office, max 200 chars. It is speech: no
+emoji, no "lol", no lowercase-chat affectation, no @-mentions, no greeting and no sign-off. Write
+only the words that leave your mouth — never stage directions, never *asterisks*. No subject.`,
   walkby: `- kind walkby: "body" is one thing said ALOUD over the user's shoulder while looking at the
 diagram, max 200 chars. MUST reference a visible label by name. No subject.`,
   coffee: `- kind coffee: "body" is one watercooler line, max 200 chars — smalltalk first, work second.
@@ -498,6 +508,26 @@ architecture-review summons: senior stakeholders will attend and the user's team
 diagram. Max 300 chars. Include "subject" as the meeting title (max 90 chars, reads like a
 recurring corporate invite, e.g. "Architecture Review Board (steering)").`
 };
+
+/**
+ * The situations that arrive **with** a `userMessage` because the user opened
+ * their mouth rather than a text field (`OFFICE_MOMENT_SITUATIONS` in shared).
+ *
+ * They are the exception to "a reply wins" below, and they have to be, because
+ * they disagree with the typed reply rule about the one thing that matters:
+ * `IM REPLY MODE` opens "The user just sent you a chat message", which is a
+ * false statement about somebody who said it out loud across an open-plan
+ * office. Composing the two would have the model reading both; so a spoken
+ * situation **replaces** the typed reply mode rather than joining it, and the
+ * blocks below carry their own "answer what they said" clause because they are
+ * now the only reply instruction the model gets.
+ *
+ * @param {string | undefined} situation
+ * @returns {boolean}
+ */
+export function isSpokenMomentSituation(situation) {
+  return situation === 'outLoud' || situation === 'turnedTo' || situation === 'walkover';
+}
 
 /**
  * What the room did to make somebody speak, as a rule block that **overrides
@@ -549,7 +579,47 @@ WHY YOU ARE SPEAKING (overrides the usual "surprise me" cold-open rule):
   somebody looking straight at the work they just did.
 - React to the WORK AS IT STANDS, not to the fact that work happened: "nice job" is what a
   bot says. Reference something visible in it, in character.
-- Do not congratulate them on shipping and do not claim you had anything to do with it.`
+- Do not congratulate them on shipping and do not claim you had anything to do with it.`,
+  /*
+   * The three spoken blocks. Each one states the geometry — how far away the
+   * user is and who else heard them — because that is what decides the length
+   * and the register of the answer, and it is the only thing the model cannot
+   * infer from the text it is answering. Each also carries its own "answer what
+   * they said" clause: these replace the typed reply mode, so nothing else in
+   * the prompt tells the model it is replying at all.
+   */
+  outLoud: `
+HOW THIS REACHED YOU (this is the reply mode, and it overrides the usual "surprise me"
+cold-open rule — there is no chat window):
+- The user did NOT message you. They said it OUT LOUD from their own desk, to the room in
+  general, without naming anybody. You are several desks away and you happened to hear it.
+- You are answering ACROSS THE OFFICE from your chair, without getting up. That is a raised
+  voice over other people's heads, so: ONE short spoken sentence, max ~15 words. Nobody
+  shouts a paragraph across an open-plan floor.
+- Answer the thing they actually said. You are allowed to be blunt, unhelpful or barely
+  interested — that is realistic — but do not open a new unrelated topic.
+- No chat mannerisms: no "hey", no @-mentions, no emoji, no greeting, no sign-off. You are
+  talking, not typing. Do not narrate your own tone or actions, just say the words.`,
+  turnedTo: `
+HOW THIS REACHED YOU (this is the reply mode, and it overrides the usual "surprise me"
+cold-open rule — there is no chat window):
+- The user did NOT message you. They swivelled round in their chair and said this to YOU, by
+  name, from an arm's length away. Nobody else was addressed.
+- Answer them directly, the way you answer somebody looking straight at you: one or two
+  short spoken sentences, max ~30 words.
+- No greeting and no chat mannerisms — you are two feet apart, so you are already
+  mid-conversation. Do not narrate your own tone or actions, just say the words.`,
+  walkover: `
+HOW THIS REACHED YOU (this is the reply mode, and it overrides the usual "surprise me"
+cold-open rule — there is no chat window):
+- The user said this OUT LOUD to the room from their desk. It was interesting enough that you
+  got up, walked over, and you are now standing behind them looking at their screen.
+- So your line must do BOTH: answer what they said, AND land on what you can now see on the
+  diagram — name something visible in it. Getting up and then saying something you could
+  have said from your own chair is the one wrong answer here; you came over for a reason.
+- You are speaking over their shoulder, out loud, standing up. One or two sentences, max ~30
+  words. No greeting, no chat mannerisms, no emoji. Do not narrate walking over — by the
+  time you speak you are already there.`
 };
 
 /**
@@ -568,6 +638,15 @@ export function buildMomentSituationReminder(situation) {
   if (situation === 'run') {
     return '\nThey just this second finished working on the diagram above. React to how it stands now — you did NOT see what changed, so do not name it.';
   }
+  if (situation === 'outLoud') {
+    return '\nThey did not type that — they said it out loud to the room. Shout one short sentence back from your desk.';
+  }
+  if (situation === 'turnedTo') {
+    return '\nThey did not type that — they turned round in their chair and said it to your face. Answer out loud.';
+  }
+  if (situation === 'walkover') {
+    return '\nThey said that out loud to the room and you have walked over. Answer it while looking at what is on their screen.';
+  }
   return '';
 }
 
@@ -585,30 +664,40 @@ export function buildMomentSystemPrompt({
   // this the model reads the base rate below as a quota and buttons every turn.
   const pitchReplyHint =
     '- What they said decides whether you pitch: carry an "actionPrompt" when they asked what to change, pushed back on the design, or handed you an obvious opening — omit it when they were just making conversation. A "Do it" button under small talk is noise.';
-  const replyRule = isReply
-    ? kind === 'email'
-      ? `
+  /* A spoken situation IS the reply mode — see `isSpokenMomentSituation`. The
+     typed rules below stand down for it rather than stacking, because their
+     opening sentence ("the user just sent you a chat message") is a false
+     statement about somebody who said it out loud two desks away. */
+  const spoken = isSpokenMomentSituation(situation);
+  const replyRule =
+    isReply && !spoken
+      ? kind === 'email'
+        ? `
 EMAIL REPLY MODE (overrides the usual "surprise me" rule):
 - The user just emailed you (subject and/or body below). Your reply must directly address what they wrote.
 - Do NOT send a cold-open broadcast or unrelated office noise.
 ${canvasReplyHint}
 ${pitchReplyHint}`
-      : kind === 'im'
-        ? `
+        : kind === 'im'
+          ? `
 IM REPLY MODE (overrides the usual "surprise me" rule):
 - The user just sent you a chat message. Your "body" must directly acknowledge what they said —
 answer their question, react to their tone, or continue the thread naturally.
 - Do NOT pivot to a random new topic or send a cold-open ping.
 ${canvasReplyHint}
 ${pitchReplyHint}`
-        : ''
-    : '';
-  /* A reply answers what they typed; a situation answers what they did. Both
-     at once would contradict each other outright — the dwell block's whole
+          : ''
+      : '';
+  /* A reply answers what they typed; a *silent* situation answers what they did.
+     Both at once would contradict each other outright — the dwell block's whole
      premise is that nothing has been said — so a reply wins and the physical
      circumstance stays out of it. No caller sends both today, and this is what
-     keeps that from being something a future one has to know. */
-  const situationRule = isReply ? '' : (MOMENT_SITUATION_RULES[situation] ?? '');
+     keeps that from being something a future one has to know.
+
+     A *spoken* situation is the third case and inverts that: it arrives with a
+     userMessage on purpose, because something was said — out loud. It survives
+     the reply, having just stood the typed rule down above. */
+  const situationRule = isReply && !spoken ? '' : (MOMENT_SITUATION_RULES[situation] ?? '');
   return `${voice}
 
 You are writing ONE office "${kind}" moment inside a parody corporate-IT workplace where the user
@@ -617,7 +706,7 @@ is drawing a diagram.
 RULES (apply to every reply):
 - Output STRICT JSON only — no prose, no backticks, no preamble.
 - Schema: {"subject": string (only when asked below), "body": string, "actionPrompt": string (optional)}.
-${MOMENT_BODY_RULES[kind] ?? MOMENT_BODY_RULES.im}
+${(spoken && kind === 'im' ? MOMENT_BODY_RULES.imSpoken : MOMENT_BODY_RULES[kind]) ?? MOMENT_BODY_RULES.im}
 - "actionPrompt" is OPTIONAL and uncommon: a concrete, self-contained diagram edit instruction (max
 200 chars, imperative, e.g. "Add a rejection branch to Review"). It renders as a one-click button
 under your line, so it is a PITCH, not a quota — include it when you genuinely have a specific
@@ -680,6 +769,15 @@ export function buildMomentUserPrompt({
     typeof userName === 'string' && userName.trim() ? userName.trim().slice(0, 80) : null;
   const safeUserMessage =
     typeof userMessage === 'string' && userMessage.trim() ? userMessage.trim().slice(0, 400) : null;
+  /* The same split the system prompt makes, applied to the two labels that
+     name the medium out loud. `threadTranscriptFor` does not separate spoken
+     from typed — one colleague, one history — so calling the log a Slop Chat
+     thread is only right when the newest turn was typed. */
+  const spoken = isSpokenMomentSituation(situation);
+  const transcriptHeading = spoken
+    ? 'Earlier with them today (oldest first):'
+    : 'Slop Chat thread so far (oldest first):';
+  const saidHeading = spoken ? 'THE USER JUST SAID, OUT LOUD' : 'THE USER JUST SENT';
   return [
     safeUserName ? `The user's name is ${safeUserName}.` : null,
     `Diagram type: ${contentType || 'mermaid'}`,
@@ -695,13 +793,7 @@ export function buildMomentUserPrompt({
        the same recency argument `buildMomentSituationReminder` is built on. */
     buildOfficeRelationshipBlock(officeRelationship),
     transcript
-      ? [
-          '',
-          'Slop Chat thread so far (oldest first):',
-          transcript,
-          '',
-          `THE USER JUST SENT: "${safeUserMessage}"`
-        ]
+      ? ['', transcriptHeading, transcript, '', `${saidHeading}: "${safeUserMessage}"`]
       : null,
     '',
     'Current diagram source (for context):',
@@ -710,9 +802,10 @@ export function buildMomentUserPrompt({
     '```',
     '',
     /* Gated on the same fact the system prompt gates on, read the only way this
-       builder can see it: a transcript means they typed, and the situation
-       block stands down for a reply. */
-    `Reply with strict JSON now.${safeUserMessage ? '' : buildMomentSituationReminder(situation)}${buildOfficeLanguageReminder(uiLocale)}`
+       builder can see it: a userMessage means they said something, and a silent
+       situation stands down for that. A spoken one does not — it is *about* what
+       they said, so the last line the model reads has to keep saying so. */
+    `Reply with strict JSON now.${safeUserMessage && !spoken ? '' : buildMomentSituationReminder(situation)}${buildOfficeLanguageReminder(uiLocale)}`
   ]
     .flat()
     .filter((line) => line !== null)
