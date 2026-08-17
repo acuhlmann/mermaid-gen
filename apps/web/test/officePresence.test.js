@@ -148,6 +148,63 @@ describe('officeNextOf', () => {
     });
     expect(next?.ids).toEqual(['jared']);
   });
+
+  it('surfaces floor join offers before desk obligations when you are standing', () => {
+    const snapshot = {
+      walkBy: { colleagueId: 'erlich' },
+      imHistory: [{ colleagueId: 'intern', read: false }]
+    };
+    const floorNext = {
+      shopJoin: {
+        colleagueId: 'chad',
+        partnerId: 'intern',
+        mark: { x: 4, y: 6 }
+      },
+      sceneJoin: null
+    };
+    expect(officeNextOf(snapshot, { viewMode: 'floor', floorNext })).toEqual({
+      kind: 'shopJoin',
+      ids: ['chad', 'intern'],
+      meta: { partnerId: 'intern', mark: { x: 4, y: 6 } }
+    });
+  });
+
+  it('prefers shop join over scene join on the floor', () => {
+    const floorNext = {
+      shopJoin: {
+        colleagueId: 'chad',
+        partnerId: 'intern',
+        mark: { x: 4, y: 6 }
+      },
+      sceneJoin: {
+        colleagueId: 'gilfoyle',
+        participants: ['gilfoyle', 'dinesh'],
+        kind: 'battle'
+      }
+    };
+    expect(officeNextOf({}, { viewMode: 'floor', floorNext })?.kind).toBe('shopJoin');
+  });
+
+  it('reads a scene join on the floor when no shop join is offered', () => {
+    const floorNext = {
+      shopJoin: null,
+      sceneJoin: {
+        colleagueId: 'gilfoyle',
+        participants: ['gilfoyle', 'dinesh'],
+        kind: 'coffee'
+      }
+    };
+    expect(officeNextOf({}, { viewMode: 'floor', floorNext })).toEqual({
+      kind: 'sceneJoin',
+      ids: ['gilfoyle', 'dinesh'],
+      meta: { sceneKind: 'coffee' }
+    });
+  });
+
+  it('skips walk-by on the floor even when the moment store still has one', () => {
+    const snapshot = { walkBy: { colleagueId: 'erlich' } };
+    expect(officeNextOf(snapshot, { viewMode: 'floor', floorNext: null })).toBeNull();
+  });
 });
 
 describe('officeNextOf over the real store', () => {
@@ -236,5 +293,29 @@ describe('presenceFollowOf', () => {
     for (const kind of ['walkby', 'errand']) {
       expect(presenceFollowOf({ kind, ids: ['jared'] }).action).toBe('standUp');
     }
+  });
+
+  it('walks you into overheard shop talk on the floor', () => {
+    expect(
+      presenceFollowOf({
+        kind: 'shopJoin',
+        ids: ['chad', 'intern'],
+        meta: { mark: { x: 1, y: 2 }, partnerId: 'intern' }
+      })
+    ).toEqual({
+      action: 'floorTalk',
+      colleagueId: 'chad',
+      mark: { x: 1, y: 2 }
+    });
+  });
+
+  it('joins a declined set piece from the floor strip', () => {
+    expect(
+      presenceFollowOf({
+        kind: 'sceneJoin',
+        ids: ['gilfoyle', 'dinesh'],
+        meta: { sceneKind: 'battle' }
+      })
+    ).toEqual({ action: 'floorSceneJoin', sceneKind: 'battle' });
   });
 });

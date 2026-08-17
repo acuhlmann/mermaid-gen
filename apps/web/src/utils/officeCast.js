@@ -2171,7 +2171,14 @@ export const OFFICE_CHROME_COPY = {
       talk: '{name} is waiting on you',
       talkMany: '{count} waiting on you',
       errand: 'Find {name} for {from}',
-      email: '{name} needs you'
+      email: '{name} needs you',
+      shopJoin: '{name} and {partner} nearby',
+      sceneJoin: '{name} is still at the coffee machine',
+      sceneJoinBattle: '{name} is still in the holy war',
+      ariaFloorTalk: '{status}. Walk over and join in.',
+      ariaFloorSceneJoin: '{status}. Walk over and join them.',
+      titleFloorTalk: 'Walk over and join in',
+      titleFloorSceneJoin: 'Walk over and join them'
     }
   },
   huddle: {

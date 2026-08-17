@@ -9,9 +9,8 @@
  * participant in it.
  *
  * The strip is **actionable-only**: when nothing expects you, it is absent.
- * Pod faces and ambient floor scenes (battle, coffee, huddle at your screen)
- * are deliberately excluded — they either lied about who was "around" or routed
- * a click somewhere useless.
+ * On the floor it also surfaces join offers the card slot already knows about.
+ * Plain unread mail is excluded — the mail and chat icons carry those badges.
  *
  * Renderer-agnostic on purpose (ADR-0011 rule 1).
  */
@@ -24,14 +23,20 @@ import { sceneParticipants } from './officeSceneCast.js';
 const POD_ZONE = 'pod';
 
 /**
- * @typedef {'walkby' | 'meeting' | 'talk' | 'errand' | 'email'} OfficeNextKind
+ * @typedef {'walkby' | 'meeting' | 'talk' | 'errand' | 'email' | 'shopJoin' | 'sceneJoin'} OfficeNextKind
  */
 
 /**
  * @typedef {{
  *   kind: OfficeNextKind,
  *   ids: string[],
- *   meta?: { fromId?: string, emailId?: string }
+ *   meta?: {
+ *     fromId?: string,
+ *     emailId?: string,
+ *     partnerId?: string,
+ *     mark?: { x: number, y: number },
+ *     sceneKind?: 'coffee' | 'battle'
+ *   }
  * }} OfficeNext
  *   `ids` are cast ids in display order, deduped, never including you.
  */
@@ -99,27 +104,43 @@ function newestActionableEmail(emails) {
 /**
  * The next obligation on you, or null when the strip should be hidden.
  *
- * Ordered by how directly someone is waiting on **you**:
+ * At the desk: walk-by → unread IM → meeting → errand → actionable email.
  *
- * 1. `walkby`  — at your desk.
- * 2. `talk`    — unread Slop Chat.
- * 3. `meeting` — invite pending.
- * 4. `errand`  — go and speak to somebody.
- * 5. `email`   — unread mail with a CTA marker.
- *
- * Huddles, battles, coffee, and the idle pod are excluded — either already on
- * screen, ambient theatre, or not an obligation.
+ * On the floor: shop-talk join → scene join → then the same desk obligations
+ * except walk-by (you are already up). Join offers are published by the floor
+ * renderer via `officeFloorNextStore`.
  *
  * @param {object | null | undefined} snapshot `getOfficeSnapshot()`
+ * @param {{ viewMode?: 'desk' | 'floor', floorNext?: { shopJoin?: object | null, sceneJoin?: object | null } | null }} [ctx]
  * @returns {OfficeNext | null}
  */
-export function officeNextOf(snapshot) {
+export function officeNextOf(snapshot, ctx = {}) {
   const { walkBy, meetingInvite, imHistory, errand, emails, huddle } = snapshot ?? {};
+  const onFloor = ctx.viewMode === 'floor';
+  const floorNext = ctx.floorNext ?? null;
 
   // Already consuming the screen — a second nudge in the taskbar is noise.
   if (others(huddle?.attendees).length) return null;
 
-  if (walkBy?.colleagueId) {
+  if (onFloor && floorNext?.shopJoin?.colleagueId && floorNext.shopJoin.mark) {
+    const { colleagueId, partnerId, mark } = floorNext.shopJoin;
+    return {
+      kind: 'shopJoin',
+      ids: others([colleagueId, partnerId]),
+      meta: { partnerId, mark }
+    };
+  }
+
+  if (onFloor && floorNext?.sceneJoin?.colleagueId) {
+    const { colleagueId, participants, kind } = floorNext.sceneJoin;
+    return {
+      kind: 'sceneJoin',
+      ids: others(participants?.length ? participants : [colleagueId]),
+      meta: { sceneKind: kind === 'battle' ? 'battle' : 'coffee' }
+    };
+  }
+
+  if (!onFloor && walkBy?.colleagueId) {
     return { kind: 'walkby', ids: [walkBy.colleagueId] };
   }
 
@@ -186,7 +207,7 @@ export function officeStatusOf(snapshot, colleagueId) {
  * Where pressing the presence strip should take you.
  *
  * @param {OfficeNext | null | undefined} next
- * @returns {{ action: 'standUp' | 'messenger' | 'inbox' | 'invite', colleagueId?: string, emailId?: string }}
+ * @returns {{ action: 'standUp' | 'messenger' | 'inbox' | 'invite' | 'floorTalk' | 'floorSceneJoin', colleagueId?: string, emailId?: string, mark?: { x: number, y: number }, sceneKind?: 'coffee' | 'battle' }}
  */
 export function presenceFollowOf(next) {
   switch (next?.kind) {
@@ -203,6 +224,17 @@ export function presenceFollowOf(next) {
       };
     case 'meeting':
       return { action: 'invite' };
+    case 'shopJoin':
+      return {
+        action: 'floorTalk',
+        colleagueId: next.ids?.[0] || undefined,
+        mark: next.meta?.mark
+      };
+    case 'sceneJoin':
+      return {
+        action: 'floorSceneJoin',
+        sceneKind: next.meta?.sceneKind === 'battle' ? 'battle' : 'coffee'
+      };
     case 'walkby':
     case 'errand':
       return { action: 'standUp' };

@@ -1721,7 +1721,14 @@ export const OFFICE_ZH_CN = {
         talk: '{name} 在等你回复',
         talkMany: '{count} 人在等你回复',
         errand: '替 {from} 去找 {name}',
-        email: '{name} 需要你处理'
+        email: '{name} 需要你处理',
+        shopJoin: '{name} 和 {partner} 在附近聊天',
+        sceneJoin: '{name} 还在咖啡机那边',
+        sceneJoinBattle: '{name} 还在隔间里吵',
+        ariaFloorTalk: '{status}。走过去加入。',
+        ariaFloorSceneJoin: '{status}。走过去加入他们。',
+        titleFloorTalk: '走过去加入',
+        titleFloorSceneJoin: '走过去加入他们'
       }
     }
   }

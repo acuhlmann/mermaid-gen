@@ -15,9 +15,15 @@ import { createPortal } from 'react-dom';
 import { PersonaFace } from './personaFaces/index.jsx';
 import { formatLocale } from '../i18n/formatLocale.js';
 import { openDeskCommsPanel, readDeskCommsAnchorRect } from '../state/deskCommsUiStore.js';
+import { requestFloorSceneJoin, requestFloorShopJoin } from '../state/officeFloorActionStore.js';
+import { getOfficeFloorNext, subscribeOfficeFloorNext } from '../state/officeFloorNextStore.js';
 import { requestOfficeMessengerOpen } from '../state/officeMessengerUiStore.js';
 import { getOfficeSnapshot, subscribe } from '../state/officeMomentStore.js';
-import { standUp } from '../state/officeViewModeStore.js';
+import {
+  getOfficeViewMode,
+  standUp,
+  subscribe as subscribeOfficeViewMode
+} from '../state/officeViewModeStore.js';
 import { OFFICE_CHROME_COPY, officeChromeCopy, officeSenderInfo } from '../utils/officeCast.js';
 import { officeNextOf, presenceFollowOf } from '../utils/officePresence.js';
 
@@ -68,6 +74,15 @@ function captionFor({ kind, ids, meta }, copy) {
       });
     case 'email':
       return formatLocale(copy.email, { name: firstNameOf(ids[0]) });
+    case 'shopJoin':
+      return formatLocale(copy.shopJoin, {
+        name: firstNameOf(ids[0]),
+        partner: firstNameOf(meta?.partnerId ?? ids[1] ?? '')
+      });
+    case 'sceneJoin':
+      return meta?.sceneKind === 'battle'
+        ? formatLocale(copy.sceneJoinBattle, { name: firstNameOf(ids[0]) })
+        : formatLocale(copy.sceneJoin, { name: firstNameOf(ids[0]) });
     default:
       return '';
   }
@@ -122,6 +137,16 @@ function pressCopy(follow, caption, copy) {
         aria: formatLocale(copy.ariaInvite, { status: caption }),
         title: `${caption} — ${copy.titleInvite}`
       };
+    case 'floorTalk':
+      return {
+        aria: formatLocale(copy.ariaFloorTalk, { status: caption }),
+        title: `${caption} — ${copy.titleFloorTalk}`
+      };
+    case 'floorSceneJoin':
+      return {
+        aria: formatLocale(copy.ariaFloorSceneJoin, { status: caption }),
+        title: `${caption} — ${copy.titleFloorSceneJoin}`
+      };
     default:
       return {
         aria: formatLocale(copy.aria, { status: caption }),
@@ -145,14 +170,32 @@ function followPresence(follow) {
     document.querySelector('.office-meeting-invite .office-meeting-accept')?.focus();
     return;
   }
+  if (follow.action === 'floorTalk' && follow.colleagueId && follow.mark) {
+    requestFloorShopJoin(follow.colleagueId, follow.mark);
+    return;
+  }
+  if (follow.action === 'floorSceneJoin' && follow.sceneKind) {
+    requestFloorSceneJoin(follow.sceneKind);
+    return;
+  }
   standUp();
 }
 
 export default function DeskOsPresenceStrip() {
   const snapshot = useSyncExternalStore(subscribe, getOfficeSnapshot, getOfficeSnapshot);
+  const viewMode = useSyncExternalStore(
+    subscribeOfficeViewMode,
+    getOfficeViewMode,
+    getOfficeViewMode
+  );
+  const floorNext = useSyncExternalStore(
+    subscribeOfficeFloorNext,
+    getOfficeFloorNext,
+    getOfficeFloorNext
+  );
   const copy = { ...FALLBACK, ...(officeChromeCopy().osTray?.presence ?? {}) };
 
-  const next = officeNextOf(snapshot);
+  const next = officeNextOf(snapshot, { viewMode, floorNext });
 
   const buttonRef = useRef(/** @type {HTMLButtonElement | null} */ (null));
   const longPressTimerRef = useRef(/** @type {ReturnType<typeof setTimeout> | null} */ (null));
