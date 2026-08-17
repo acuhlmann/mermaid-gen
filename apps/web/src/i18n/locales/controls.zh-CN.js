@@ -28,7 +28,13 @@ export const CONTROLS_ZH_CN = {
     facilities: '找物业',
     facilitiesTitle: '呼叫物业 · 修好这坨烂图',
     prepForCeo: '协同',
-    prepForCeoTitle: '给 CEO 准备稿 · 送上楼前先熬干水分'
+    prepForCeoTitle: '给 CEO 准备稿 · 送上楼前先熬干水分',
+    connect: '连接',
+    connectTitle: '连接 · 连到另一个框，或点空白处新建',
+    delete: '删除',
+    deleteTitle: '删除 · 从图表中去掉这个',
+    rename: '重命名',
+    renameTitle: '重命名 · 改标签'
   },
   prompt: {
     yourTopic: '你的主题',
@@ -578,6 +584,15 @@ export const CONTROLS_ZH_CN = {
   fullscreen: {
     enter: '进入全屏',
     exit: '退出全屏'
+  },
+  graphEdit: {
+    connectHint: '点击一个框或空白处 · Esc 取消',
+    undo: '撤销',
+    deleted: '已删除',
+    linked: '已连接',
+    failed: '无法更新图表',
+    stale: '图表已变化，请再试一次',
+    renamePlaceholder: '标签'
   },
   advisorThinking: {
     gilfoyle: '不为所动',

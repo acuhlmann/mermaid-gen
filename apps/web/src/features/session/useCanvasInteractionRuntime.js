@@ -3,6 +3,7 @@ import { useAnimateAcceptedSource } from '../streaming/useAnimateAcceptedSource.
 import { useDiagramAutoFix } from '../canvas/useDiagramAutoFix.js';
 import { useDiagramChangeHighlight } from '../insights/useDiagramChangeHighlight.js';
 import { useSessionCacheLifecycle } from './useSessionCacheLifecycle.js';
+import { useFlowchartGraphEdit } from '../canvas/useFlowchartGraphEdit.js';
 
 /**
  * Radial menu, diagram validation/highlight, and per-session cache lifecycle.
@@ -84,6 +85,19 @@ export function useCanvasInteractionRuntime({
     slopPromptExpandedRef,
     slopPromptSourceRef,
     closeRadialMenuRef
+  });
+
+  const flowchartGraphEdit = useFlowchartGraphEdit({
+    activeSessionId,
+    busy: loading || streamingPreview,
+    closeRadialMenu,
+    contentMode,
+    controls,
+    selectedNode,
+    setSelectedNode,
+    setState,
+    stateRef,
+    toolbarAnchor
   });
 
   const { animateAcceptedSource } = useAnimateAcceptedSource({
@@ -218,6 +232,7 @@ export function useCanvasInteractionRuntime({
     changeHighlightForCanvas,
     changeHighlightContentType,
     diagramChangeHighlightSummary,
-    entryDiagramDiffById
+    entryDiagramDiffById,
+    flowchartGraphEdit
   };
 }

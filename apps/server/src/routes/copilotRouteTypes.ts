@@ -9,7 +9,8 @@ import {
   DiagramIntentSchema,
   DiagramStyleSchema,
   DiagramTransformIntentSchema,
-  StyleIntentSchema
+  StyleIntentSchema,
+  UserDiagramEditSchema
 } from '@archislop/shared';
 
 export type DiagramIntentBody = z.infer<typeof DiagramIntentSchema>;
@@ -18,6 +19,7 @@ export type DiagramAnalyzeBody = z.infer<typeof DiagramAnalyzeSchema>;
 export type DiagramStyleBody = z.infer<typeof DiagramStyleSchema>;
 export type StyleIntentBody = z.infer<typeof StyleIntentSchema>;
 export type AgentStreamPayloadBody = z.infer<typeof AgentStreamPayloadSchema>;
+export type UserDiagramEditBody = z.infer<typeof UserDiagramEditSchema>;
 
 export {
   AgentStreamPayloadSchema,
@@ -25,5 +27,6 @@ export {
   DiagramIntentSchema,
   DiagramStyleSchema,
   DiagramTransformIntentSchema,
-  StyleIntentSchema
+  StyleIntentSchema,
+  UserDiagramEditSchema
 };

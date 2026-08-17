@@ -49,4 +49,23 @@ describe('buildRadialActions', () => {
     expect(gilfoyle.label).toBe('Refine');
     expect(dinesh.personaEmoji).not.toBe(gilfoyle.personaEmoji);
   });
+
+  it('puts Connect and Delete first on a flowchart node selection', () => {
+    const list = actions({
+      graphEdit: { enabled: true, kind: 'node', busy: false }
+    }).filter((entry) => !entry.hidden);
+    expect(list[0].id).toBe('connect');
+    expect(list[1].id).toBe('delete');
+    expect(list[2].id).toBe('rename');
+  });
+
+  it('hides Connect on an edge and hides all three on a cluster', () => {
+    const edge = actions({ graphEdit: { enabled: true, kind: 'edge' } });
+    expect(edge.find((entry) => entry.id === 'connect').hidden).toBe(true);
+    expect(edge.find((entry) => entry.id === 'delete').hidden).toBe(false);
+    const cluster = actions({ graphEdit: { enabled: true, kind: 'cluster' } });
+    expect(cluster.find((entry) => entry.id === 'connect').hidden).toBe(true);
+    expect(cluster.find((entry) => entry.id === 'delete').hidden).toBe(true);
+    expect(cluster.find((entry) => entry.id === 'rename').hidden).toBe(true);
+  });
 });

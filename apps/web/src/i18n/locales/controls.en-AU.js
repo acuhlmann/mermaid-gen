@@ -28,7 +28,13 @@ export const CONTROLS_EN_AU = {
     clearTitle: 'File a demo permit · chuck it and start fresh',
     demolish: 'Shredder',
     prepForCeo: 'Synergize',
-    prepForCeoTitle: 'Synergize · Boil it down before it goes upstairs'
+    prepForCeoTitle: 'Synergize · Boil it down before it goes upstairs',
+    connect: 'Join up',
+    connectTitle: 'Join up · Link this box to another, or tap empty space for a new one',
+    delete: 'Bin it',
+    deleteTitle: 'Bin it · Chuck this off the diagram',
+    rename: 'Rename',
+    renameTitle: 'Rename · Change the label'
   },
   prompt: {
     yourTopic: 'Your topic, mate',
@@ -582,6 +588,15 @@ export const CONTROLS_EN_AU = {
   fullscreen: {
     enter: 'Enter fullscreen',
     exit: 'Exit fullscreen'
+  },
+  graphEdit: {
+    connectHint: 'Tap a box or empty space · Esc to bail',
+    undo: 'Undo',
+    deleted: 'Binned',
+    linked: 'Joined',
+    failed: 'Couldn’t update the diagram',
+    stale: 'Diagram moved on — have another go',
+    renamePlaceholder: 'Label'
   },
   advisorThinking: {
     gilfoyle: 'is unimpressed',

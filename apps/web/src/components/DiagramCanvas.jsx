@@ -12,7 +12,8 @@ import { useNarrowLayout } from '../hooks/useAppLayoutMedia.js';
 import { useDelayedUnmount } from '../utils/useDelayedUnmount.js';
 import {
   findMermaidSourceRangeForDiagramSelection,
-  findSequenceMessageRange
+  findSequenceMessageRange,
+  logicalIdFromDiagramSelection
 } from '../utils/mermaidSourceLocate.js';
 import { applyDiagramHighlightToSvg } from '../utils/applyDiagramHighlightToSvg.js';
 import { applyChartHighlight } from '../utils/applyChartHighlight.js';
@@ -242,7 +243,10 @@ export default function DiagramCanvas({
   /** True while the surface is in native fullscreen — gates the metaphor3d title/legend overlays. */
   isFullscreen = false,
   /** Forms mode: fired when the user submits a form; App turns it into the next-form intent. */
-  onFormSubmit = null
+  onFormSubmit = null,
+  /** Flowchart Connect targeting: logical id of the source node, or null. */
+  connectSourceId = null,
+  onConnectTarget = null
 }) {
   const { controls } = useUiCopy();
   const { mounted: editorMounted, closing: editorClosing } = useDelayedUnmount(editorOpen, 240);
@@ -1540,6 +1544,18 @@ export default function DiagramCanvas({
       }
       if (moved <= TAP_MOVE_THRESHOLD_PX) {
         const descriptor = descriptorFromTap(tap);
+        if (connectSourceId) {
+          if (!descriptor || descriptor.kind === 'edge' || descriptor.kind === 'cluster') {
+            return;
+          }
+          const logicalId = logicalIdFromDiagramSelection(descriptor);
+          if (!logicalId || logicalId === connectSourceId) {
+            onConnectTarget?.({ type: 'source' });
+            return;
+          }
+          onConnectTarget?.({ type: 'node', descriptor, logicalId });
+          return;
+        }
         if (descriptor) {
           onSelectedNodeChange?.(descriptor);
         }
@@ -1582,8 +1598,16 @@ export default function DiagramCanvas({
         if (stillBackground) {
           const movedBg = Math.hypot(event.clientX - bgTap.sx, event.clientY - bgTap.sy);
           if (movedBg <= TAP_MOVE_THRESHOLD_PX) {
-            onSelectedNodeChange?.(null);
-            scheduleHoverClose();
+            if (connectSourceId) {
+              onConnectTarget?.({
+                type: 'empty',
+                clientX: event.clientX,
+                clientY: event.clientY
+              });
+            } else {
+              onSelectedNodeChange?.(null);
+              scheduleHoverClose();
+            }
           }
         }
       }
@@ -1640,7 +1664,7 @@ export default function DiagramCanvas({
         {ceremonySlot}
         <div
           ref={bindDiagramSurfaceRef}
-          className={`diagram-output${contentType === 'metaphor3d' ? ' is-metaphor3d' : ''}${contentType === 'chart' ? ' is-chart' : ''}${contentType === 'anything' ? ' is-anything' : ''}${contentType === 'forms' ? ' is-forms' : ''}${isPanning ? ' is-panning' : ''}${agentThinking ? ' is-agent-thinking' : ''}`}
+          className={`diagram-output${contentType === 'metaphor3d' ? ' is-metaphor3d' : ''}${contentType === 'chart' ? ' is-chart' : ''}${contentType === 'anything' ? ' is-anything' : ''}${contentType === 'forms' ? ' is-forms' : ''}${isPanning ? ' is-panning' : ''}${agentThinking ? ' is-agent-thinking' : ''}${connectSourceId ? ' is-connect-mode' : ''}`}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={endPointerGesture}

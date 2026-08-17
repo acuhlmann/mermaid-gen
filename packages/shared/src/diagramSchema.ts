@@ -231,6 +231,14 @@ export const DiagramAnalyzeSchema = z.object({
   uiLocale: UiLocaleSchema.optional()
 });
 
+/** Discrete canvas graph edit (Connect / Delete / Rename) — not the Monaco debounce sync. */
+export const UserDiagramEditSchema = z.object({
+  contentType: ContentTypeSchema.default('mermaid'),
+  diagramSource: z.string().min(1),
+  previousRevisionId: z.number().int().nonnegative(),
+  reason: z.string().min(1).max(200)
+});
+
 /**
  * Strips invalid `transformPersona` values from intent stream payloads so a UI bug
  * cannot turn into HTTP 400 before the agent runs.

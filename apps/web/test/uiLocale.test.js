@@ -146,6 +146,20 @@ describe('ui locale bundles', () => {
     }
   );
 
+  it.each(['zh-CN', 'zh-TW', 'en-AU'])('translates flowchart graph-edit chrome (%s)', (locale) => {
+    const en = getUiLocaleBundle('en').controls;
+    const localized = getUiLocaleBundle(locale).controls;
+    expect(localized.actions.connect).toBeTruthy();
+    expect(localized.actions.delete).toBeTruthy();
+    expect(localized.actions.rename).toBeTruthy();
+    expect(localized.graphEdit.connectHint).toBeTruthy();
+    expect(localized.graphEdit.undo).toBeTruthy();
+    if (locale.startsWith('zh')) {
+      expect(localized.actions.connect).not.toBe(en.actions.connect);
+      expect(localized.graphEdit.failed).not.toBe(en.graphEdit.failed);
+    }
+  });
+
   // A dropped `{placeholder}` never throws — `formatLocale` simply has nothing to
   // substitute, so the personalisation silently disappears in that locale only.
   // All three had lost `{userName}` from the welcome mail/IM this way.

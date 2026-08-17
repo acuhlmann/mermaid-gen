@@ -17,6 +17,7 @@ import { russShapeLabel, selectableRenderModes } from '../utils/renderModeAction
  *   contentMode: string;
  *   contentModeOptions: Array<{ id: string, label: string }>;
  *   canFixFromCritique: boolean;
+ *   graphEdit?: { enabled?: boolean, kind?: string | null, busy?: boolean } | null;
  * }} params
  */
 export function buildRadialActions({
@@ -25,11 +26,63 @@ export function buildRadialActions({
   russStreak,
   contentMode,
   contentModeOptions,
-  canFixFromCritique
+  canFixFromCritique,
+  graphEdit = null
 }) {
   const a = controls.actions;
   const promptCopy = slopitect.PROMPT_ACTION_COPY;
+  const editOn = Boolean(graphEdit?.enabled);
+  const kind = graphEdit?.kind;
+  const editBusy = Boolean(graphEdit?.busy);
+  const graphActions = [
+    {
+      id: 'connect',
+      label: a.connect,
+      icon: (
+        <span className="action-persona-icon is-connect" aria-hidden="true">
+          +
+        </span>
+      ),
+      variant: 'connect',
+      group: 'primary',
+      persona: a.connect,
+      personaTitle: a.connectTitle,
+      hidden: !editOn || kind !== 'node',
+      disabled: editBusy
+    },
+    {
+      id: 'delete',
+      label: a.delete,
+      icon: (
+        <span className="action-persona-icon is-delete" aria-hidden="true">
+          ×
+        </span>
+      ),
+      variant: 'delete',
+      group: 'primary',
+      persona: a.delete,
+      personaTitle: a.deleteTitle,
+      hidden: !editOn || (kind !== 'node' && kind !== 'edge'),
+      disabled: editBusy
+    },
+    {
+      id: 'rename',
+      label: a.rename,
+      icon: (
+        <span className="action-persona-icon is-rename" aria-hidden="true">
+          ✎
+        </span>
+      ),
+      variant: 'rename',
+      group: 'primary',
+      persona: a.rename,
+      personaTitle: a.renameTitle,
+      hidden: !editOn || (kind !== 'node' && kind !== 'edge'),
+      disabled: editBusy
+    }
+  ];
   return [
+    ...graphActions,
     {
       id: 'definition',
       label: a.definition,
