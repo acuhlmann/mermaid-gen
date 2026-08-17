@@ -23177,9 +23177,8 @@ body.slopitect-rainbow-tint::before {
   }
 }
 
-/* Presence strip — who is around, and the diegetic way onto the floor. A quiet
-   chip by default: it is on screen for the whole session, so it may not read
-   like a notification when nothing is happening. */
+/* Presence strip — what expects you next. Absent when idle; only mounts for a
+   real obligation, so it may read like a notification. */
 .desk-os-presence {
   /* Grows as well as shrinks: this is the one resident whose content is a
      sentence about the room, and it is now the bar's office half. It still
@@ -23206,7 +23205,7 @@ body.slopitect-rainbow-tint::before {
   border-radius: 999px;
   border: 1px solid transparent;
   background: transparent;
-  color: var(--muted);
+  color: var(--text);
   font: inherit;
   font-size: 0.7rem;
   line-height: 1;
@@ -23218,17 +23217,6 @@ body.slopitect-rainbow-tint::before {
   border-color: color-mix(in srgb, var(--control-border) 80%, transparent);
   color: var(--text);
   outline: none;
-}
-
-/* Something is happening. Colour and weight only — a taskbar that animates
-   every time a colleague walks past is a slot machine, and a motion cue would
-   need a reduced-motion answer that says the same thing this already says. */
-.desk-os-presence:not([data-kind='quiet']) {
-  color: var(--text);
-}
-
-.desk-os-presence:not([data-kind='quiet']) .desk-os-presence-caption {
-  font-weight: 600;
 }
 
 .desk-os-presence-faces {
@@ -23260,6 +23248,7 @@ body.slopitect-rainbow-tint::before {
 
 .desk-os-presence-caption {
   min-width: 0;
+  font-weight: 600;
   /* Cap before the flex squeeze so mid-widths get a clean ellipsis instead of
      the whole chip fighting the tray for leftover pixels and looking hard-cut. */
   max-width: min(11rem, 22vw);

@@ -11,8 +11,8 @@
 
 /** @typedef {{ left: number, top: number, width: number, height: number } | null} DeskCommsAnchorRect */
 
-/** @type {{ activePanel: DeskCommsPanelId | null, anchorRect: DeskCommsAnchorRect }} */
-let state = { activePanel: null, anchorRect: null };
+/** @type {{ activePanel: DeskCommsPanelId | null, anchorRect: DeskCommsAnchorRect, inboxEmailId: string | null }} */
+let state = { activePanel: null, anchorRect: null, inboxEmailId: null };
 const listeners = new Set();
 
 function emit() {
@@ -34,9 +34,9 @@ export function getDeskCommsUi() {
  */
 export function toggleDeskCommsPanel(panel, anchorRect = null) {
   if (state.activePanel === panel) {
-    state = { activePanel: null, anchorRect: null };
+    state = { activePanel: null, anchorRect: null, inboxEmailId: null };
   } else {
-    state = { activePanel: panel, anchorRect };
+    state = { activePanel: panel, anchorRect, inboxEmailId: null };
   }
   emit();
 }
@@ -44,15 +44,20 @@ export function toggleDeskCommsPanel(panel, anchorRect = null) {
 /**
  * @param {DeskCommsPanelId} panel
  * @param {DeskCommsAnchorRect} [anchorRect]
+ * @param {{ emailId?: string }} [opts]
  */
-export function openDeskCommsPanel(panel, anchorRect = null) {
-  state = { activePanel: panel, anchorRect };
+export function openDeskCommsPanel(panel, anchorRect = null, { emailId } = {}) {
+  state = {
+    activePanel: panel,
+    anchorRect,
+    inboxEmailId: emailId ? String(emailId) : null
+  };
   emit();
 }
 
 export function closeDeskCommsPanel() {
-  if (!state.activePanel) return;
-  state = { activePanel: null, anchorRect: null };
+  if (!state.activePanel && !state.inboxEmailId) return;
+  state = { activePanel: null, anchorRect: null, inboxEmailId: null };
   emit();
 }
 
@@ -92,6 +97,6 @@ export function readDeskCommsAnchorRect(panel) {
 
 /** Test helper — reset without touching localStorage. */
 export function _resetDeskCommsUiForTests() {
-  state = { activePanel: null, anchorRect: null };
+  state = { activePanel: null, anchorRect: null, inboxEmailId: null };
   emit();
 }

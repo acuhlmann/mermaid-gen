@@ -1709,20 +1709,19 @@ export const OFFICE_ZH_CN = {
       presence: {
         aria: '{status}。起身去看看。',
         ariaChat: '{status}。打开 Slop Chat。',
-        ariaStay: '{status}。',
+        ariaInbox: '{status}。打开收件箱。',
+        ariaInvite: '{status}。回复会议邀请。',
         title: '起身去看看',
         titleChat: '打开 Slop Chat',
-        titleStay: '已在你的屏幕上',
+        titleInbox: '打开收件箱',
+        titleInvite: '回复会议邀请',
         overflow: '+{count}',
-        pair: '{name} 正在和你结对',
-        mob: '{count} 人围着你的屏幕',
         walkby: '{name} 就在你工位旁',
-        battle: '{name} 对阵 {other}',
-        coffee: '咖啡时间',
         meeting: '{name} 正在召集会议',
         talk: '{name} 在等你回复',
         talkMany: '{count} 人在等你回复',
-        quiet: '办公区一片安静'
+        errand: '替 {from} 去找 {name}',
+        email: '{name} 需要你处理'
       }
     }
   }

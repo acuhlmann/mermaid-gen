@@ -1,36 +1,26 @@
 /**
- * Presence strip — who is around, in the taskbar (plan slice 6;
+ * Presence strip — what expects you next, in the taskbar (plan slice 6;
  * docs/office-isometric-mode.md § 4).
  *
- * The diegetic half of an ADR-0011 rule-3 pair: it sits beside the labelled
- * `Stand up` button. Glancing at it tells you what the room is doing; pressing
- * it follows that presence — usually onto the floor, but unread IMs open Slop
- * Chat, and a huddle / meeting invite already on your screen stays put
- * (`presenceFollowOf`). Stand up remains the always-floor control.
+ * Sits beside the labelled `Stand up` button. Only mounts when
+ * `officeNextOf` finds an obligation; otherwise absent so the bar does not
+ * pretend the pod is "around" you when nothing is waiting.
  *
- * **It produces nothing.** The whole render is `officePresenceOf` over the
- * moment store — no timer, no fetch, no write. That is the carve-out it stands
- * on, and it is why a permanent taskbar resident that watches the office is
- * allowed to exist at all.
- *
- * It reads its state from the store directly, exactly as `DeskOsTray` reads the
- * overlay stack, so it costs the shell's ~150-prop wall nothing.
+ * **It produces nothing.** The whole render is `officeNextOf` over the moment
+ * store — no timer, no fetch, no write.
  */
 
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
 import { PersonaFace } from './personaFaces/index.jsx';
 import { formatLocale } from '../i18n/formatLocale.js';
+import { openDeskCommsPanel, readDeskCommsAnchorRect } from '../state/deskCommsUiStore.js';
 import { requestOfficeMessengerOpen } from '../state/officeMessengerUiStore.js';
 import { getOfficeSnapshot, subscribe } from '../state/officeMomentStore.js';
 import { standUp } from '../state/officeViewModeStore.js';
 import { OFFICE_CHROME_COPY, officeChromeCopy, officeSenderInfo } from '../utils/officeCast.js';
-import { officePresenceOf, presenceFollowOf } from '../utils/officePresence.js';
+import { officeNextOf, presenceFollowOf } from '../utils/officePresence.js';
 
-/**
- * Three is what a 2.3 rem bar affords next to a window list, and it is also
- * enough to read as "a group" — the count carries the rest.
- */
 const MAX_FACES = 3;
 
 const FACE_PX = 17;
@@ -55,37 +45,31 @@ function firstNameOf(id) {
 }
 
 /**
- * One line for the room. Every branch is a template so the whole strip
- * translates; `officePresenceOf` guarantees the ids each branch reaches for
- * (a battle always has two sides, `quiet` always has a pod).
+ * One line for the obligation. Every branch is a template so the whole strip
+ * translates.
  *
- * @param {import('../utils/officePresence.js').OfficePresence} presence
+ * @param {import('../utils/officePresence.js').OfficeNext} next
  * @param {Record<string, string>} copy
  */
-function captionFor({ kind, ids }, copy) {
+function captionFor({ kind, ids, meta }, copy) {
   switch (kind) {
-    case 'pair':
-      return formatLocale(copy.pair, { name: firstNameOf(ids[0]) });
-    case 'mob':
-      return formatLocale(copy.mob, { count: ids.length });
     case 'walkby':
       return formatLocale(copy.walkby, { name: firstNameOf(ids[0]) });
-    case 'battle':
-      return formatLocale(copy.battle, {
-        name: firstNameOf(ids[0]),
-        other: firstNameOf(ids[1])
-      });
-    case 'coffee':
-      return copy.coffee;
     case 'meeting':
       return formatLocale(copy.meeting, { name: firstNameOf(ids[0]) });
     case 'talk':
       return ids.length > 1
         ? formatLocale(copy.talkMany, { count: ids.length })
         : formatLocale(copy.talk, { name: firstNameOf(ids[0]) });
-    case 'quiet':
+    case 'errand':
+      return formatLocale(copy.errand, {
+        name: firstNameOf(ids[0]),
+        from: firstNameOf(meta?.fromId ?? '')
+      });
+    case 'email':
+      return formatLocale(copy.email, { name: firstNameOf(ids[0]) });
     default:
-      return copy.quiet;
+      return '';
   }
 }
 
@@ -115,30 +99,35 @@ function computePeekStyle(anchorRect) {
 
 /**
  * Accessible name + native title for the press — lead with the visible caption
- * (WCAG 2.5.3), then say where the press goes. Chat / stay verbs replace the
- * default "Stand up" when `presenceFollowOf` says the floor is the wrong room.
+ * (WCAG 2.5.3), then say where the press goes.
  *
- * @param {'standUp' | 'messenger' | 'stay'} action
+ * @param {ReturnType<typeof presenceFollowOf>} follow
  * @param {string} caption
  * @param {Record<string, string>} copy
  */
-function pressCopy(action, caption, copy) {
-  if (action === 'messenger') {
-    return {
-      aria: formatLocale(copy.ariaChat, { status: caption }),
-      title: `${caption} — ${copy.titleChat}`
-    };
+function pressCopy(follow, caption, copy) {
+  switch (follow.action) {
+    case 'messenger':
+      return {
+        aria: formatLocale(copy.ariaChat, { status: caption }),
+        title: `${caption} — ${copy.titleChat}`
+      };
+    case 'inbox':
+      return {
+        aria: formatLocale(copy.ariaInbox, { status: caption }),
+        title: `${caption} — ${copy.titleInbox}`
+      };
+    case 'invite':
+      return {
+        aria: formatLocale(copy.ariaInvite, { status: caption }),
+        title: `${caption} — ${copy.titleInvite}`
+      };
+    default:
+      return {
+        aria: formatLocale(copy.aria, { status: caption }),
+        title: `${caption} — ${copy.title}`
+      };
   }
-  if (action === 'stay') {
-    return {
-      aria: formatLocale(copy.ariaStay, { status: caption }),
-      title: `${caption} — ${copy.titleStay}`
-    };
-  }
-  return {
-    aria: formatLocale(copy.aria, { status: caption }),
-    title: `${caption} — ${copy.title}`
-  };
 }
 
 function followPresence(follow) {
@@ -146,21 +135,24 @@ function followPresence(follow) {
     requestOfficeMessengerOpen(follow.colleagueId);
     return;
   }
-  if (follow.action === 'standUp') {
-    standUp();
+  if (follow.action === 'inbox') {
+    openDeskCommsPanel('inbox', readDeskCommsAnchorRect('inbox'), {
+      emailId: follow.emailId
+    });
+    return;
   }
+  if (follow.action === 'invite') {
+    document.querySelector('.office-meeting-invite .office-meeting-accept')?.focus();
+    return;
+  }
+  standUp();
 }
 
 export default function DeskOsPresenceStrip() {
   const snapshot = useSyncExternalStore(subscribe, getOfficeSnapshot, getOfficeSnapshot);
   const copy = { ...FALLBACK, ...(officeChromeCopy().osTray?.presence ?? {}) };
 
-  const presence = officePresenceOf(snapshot);
-  const follow = presenceFollowOf(presence);
-  const caption = captionFor(presence, copy);
-  const press = pressCopy(follow.action, caption, copy);
-  const shown = presence.ids.slice(0, MAX_FACES);
-  const overflow = presence.ids.length - shown.length;
+  const next = officeNextOf(snapshot);
 
   const buttonRef = useRef(/** @type {HTMLButtonElement | null} */ (null));
   const longPressTimerRef = useRef(/** @type {ReturnType<typeof setTimeout> | null} */ (null));
@@ -186,7 +178,13 @@ export default function DeskOsPresenceStrip() {
   };
 
   useEffect(() => {
-    if (!peekOpen) return undefined;
+    if (!next) {
+      setPeekStyle(null);
+    }
+  }, [next]);
+
+  useEffect(() => {
+    if (!peekOpen || !next) return undefined;
 
     const onKeyDown = (event) => {
       if (event.key === 'Escape') closePeek();
@@ -208,9 +206,17 @@ export default function DeskOsPresenceStrip() {
       window.removeEventListener('resize', onReposition);
       window.removeEventListener('scroll', onReposition, true);
     };
-  }, [peekOpen]);
+  }, [peekOpen, next]);
 
   useEffect(() => () => clearLongPress(), []);
+
+  if (!next) return null;
+
+  const follow = presenceFollowOf(next);
+  const caption = captionFor(next, copy);
+  const press = pressCopy(follow, caption, copy);
+  const shown = next.ids.slice(0, MAX_FACES);
+  const overflow = next.ids.length - shown.length;
 
   const peek =
     peekOpen && typeof document !== 'undefined'
@@ -219,8 +225,6 @@ export default function DeskOsPresenceStrip() {
             className="desk-os-presence-peek"
             data-testid="desk-os-presence-peek"
             style={peekStyle}
-            /* Duplicate of the visible status for eyes that cannot fit the bar;
-               the button's aria-label already carries it for AT. */
             aria-hidden="true"
           >
             <span className="desk-os-presence-faces">
@@ -246,15 +250,10 @@ export default function DeskOsPresenceStrip() {
         type="button"
         className="desk-os-presence"
         data-testid="desk-os-presence"
-        data-kind={presence.kind}
+        data-kind={next.kind}
         data-follow={follow.action}
         data-peek-open={peekOpen ? 'true' : undefined}
-        /* The visible caption leads the accessible name (WCAG 2.5.3), then says
-           where the press goes — the caption alone reads as a status, not a verb. */
         aria-label={press.aria}
-        /* Native fallback when the custom peek is not up (slow hover, or a
-           browser that never fires our pointer path). Leads with the status so
-           a truncated or demoted caption is still recoverable. */
         title={press.title}
         onClick={() => {
           if (skipClickRef.current) {

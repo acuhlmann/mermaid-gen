@@ -18,13 +18,30 @@ describe('deskCommsUiStore', () => {
   it('opens a panel with its anchor rect', () => {
     const rect = { left: 10, top: 20, width: 30, height: 40 };
     openDeskCommsPanel('inbox', rect);
-    expect(getDeskCommsUi()).toEqual({ activePanel: 'inbox', anchorRect: rect });
+    expect(getDeskCommsUi()).toEqual({
+      activePanel: 'inbox',
+      anchorRect: rect,
+      inboxEmailId: null
+    });
+  });
+
+  it('opens inbox targeting a specific email', () => {
+    openDeskCommsPanel('inbox', null, { emailId: 'email-7' });
+    expect(getDeskCommsUi()).toEqual({
+      activePanel: 'inbox',
+      anchorRect: null,
+      inboxEmailId: 'email-7'
+    });
   });
 
   it('toggles the same panel closed', () => {
     openDeskCommsPanel('slopChat', null);
     toggleDeskCommsPanel('slopChat');
-    expect(getDeskCommsUi()).toEqual({ activePanel: null, anchorRect: null });
+    expect(getDeskCommsUi()).toEqual({
+      activePanel: null,
+      anchorRect: null,
+      inboxEmailId: null
+    });
   });
 
   it('replaces the active panel when another opens', () => {
@@ -36,7 +53,11 @@ describe('deskCommsUiStore', () => {
 
   it('closeDeskCommsPanel is a no-op when already closed', () => {
     closeDeskCommsPanel();
-    expect(getDeskCommsUi()).toEqual({ activePanel: null, anchorRect: null });
+    expect(getDeskCommsUi()).toEqual({
+      activePanel: null,
+      anchorRect: null,
+      inboxEmailId: null
+    });
   });
 
   it('serializes DOMRect-like values', () => {

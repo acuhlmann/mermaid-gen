@@ -212,7 +212,7 @@ describe('taskbar office cluster', () => {
     // Same cluster as Stand up — ADR-0011 rule 3 only allows the diegetic
     // presence strip to sit here because the labelled control is beside it.
     expect(anchor.closest('.desk-os-taskbar-lead')).toBeTruthy();
-    expect(anchor.closest('.desk-os-taskbar-lead').querySelector('.desk-os-presence')).toBeTruthy();
+    expect(anchor.closest('.desk-os-taskbar-lead').querySelector('.desk-os-presence')).toBeNull();
   });
 
   it('keeps Concentration and the HR chip on a tablet', () => {
@@ -244,6 +244,6 @@ describe('taskbar office cluster', () => {
     expect(document.querySelector('.concentration-control')).toBeNull();
     // The office half survives intact — that is the whole point of the trade.
     expect(document.getElementById('office-desk-bottom-slot')).toBeTruthy();
-    expect(document.querySelector('.desk-os-presence')).toBeTruthy();
+    expect(document.querySelector('.desk-os-presence')).toBeNull();
   });
 });
