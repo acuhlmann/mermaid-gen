@@ -2,7 +2,7 @@
 
 Isometric mode is **renderer #2** of the office (ADR-0011). These tests guard the two-renderer rule, geometry derivations, and mount-one-renderer guards in `OfficeLayer`.
 
-Human design doc: [`docs/office-isometric-mode.md`](../../docs/office-isometric-mode.md). Blast-radius row: [`docs/agent-blast-radius.md`](../agent-blast-radius.md).
+Human design doc: [`docs/office-isometric-mode.md`](../../docs/office-isometric-mode.md). Next designed slice (working memory + runWalk): [`docs/office-continuity.md`](../../docs/office-continuity.md). Blast-radius row: [`docs/agent-blast-radius.md`](../agent-blast-radius.md).
 
 ## Run the full floor suite
 

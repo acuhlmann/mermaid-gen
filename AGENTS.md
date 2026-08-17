@@ -156,17 +156,18 @@ ones that will bite an edit.
 
 ## Architecture docs (read before changing wire contracts)
 
-| Doc                                                                            | Topic                                                            |
-| ------------------------------------------------------------------------------ | ---------------------------------------------------------------- |
-| [`docs/architecture-generative-ui.md`](docs/architecture-generative-ui.md)     | **AG-UI + A2UI + MCP Apps map**, MCP connectivity, host matrix   |
-| [`docs/architecture-external-agents.md`](docs/architecture-external-agents.md) | MCP join, handshakes, proposals, MCP Apps, session-events        |
-| [`docs/architecture-ag-ui.md`](docs/architecture-ag-ui.md)                     | AG-UI SSE for built-in `agent-stream`                            |
-| [`docs/architecture-a2ui.md`](docs/architecture-a2ui.md)                       | A2UI critique `CUSTOM` on AG-UI streams                          |
-| [`docs/agent-blast-radius.md`](docs/agent-blast-radius.md)                     | **Impact map** — if you change X, also change Y (wire contracts) |
-| [`README.md`](README.md)                                                       | Human-facing hub (links to guides below)                         |
-| [`docs/guide/README.md`](docs/guide/README.md)                                 | Split human guides: setup, agents, MCP, API, config              |
-| [`docs/guide/coding-agents.md`](docs/guide/coding-agents.md)                   | Agent onboarding: read order, verification table, PR checklist   |
-| [`docs/agents/sensors.md`](docs/agents/sensors.md)                             | Lint, dep-cruiser, verify:deps — how to read sensor output       |
+| Doc                                                                            | Topic                                                                  |
+| ------------------------------------------------------------------------------ | ---------------------------------------------------------------------- |
+| [`docs/architecture-generative-ui.md`](docs/architecture-generative-ui.md)     | **AG-UI + A2UI + MCP Apps map**, MCP connectivity, host matrix         |
+| [`docs/architecture-external-agents.md`](docs/architecture-external-agents.md) | MCP join, handshakes, proposals, MCP Apps, session-events              |
+| [`docs/architecture-ag-ui.md`](docs/architecture-ag-ui.md)                     | AG-UI SSE for built-in `agent-stream`                                  |
+| [`docs/architecture-a2ui.md`](docs/architecture-a2ui.md)                       | A2UI critique `CUSTOM` on AG-UI streams                                |
+| [`docs/agent-blast-radius.md`](docs/agent-blast-radius.md)                     | **Impact map** — if you change X, also change Y (wire contracts)       |
+| [`docs/office-continuity.md`](docs/office-continuity.md)                       | **Office continuity** — working memory + `runWalk` (spec; not shipped) |
+| [`README.md`](README.md)                                                       | Human-facing hub (links to guides below)                               |
+| [`docs/guide/README.md`](docs/guide/README.md)                                 | Split human guides: setup, agents, MCP, API, config                    |
+| [`docs/guide/coding-agents.md`](docs/guide/coding-agents.md)                   | Agent onboarding: read order, verification table, PR checklist         |
+| [`docs/agents/sensors.md`](docs/agents/sensors.md)                             | Lint, dep-cruiser, verify:deps — how to read sensor output             |
 
 ## Documentation map
 
@@ -361,6 +362,13 @@ ones that will bite an edit.
   `officeRelationship` on `/moment` **only** (the one single-speaker surface) and covers only
   the four kinds carrying a `colleagueId`: `email`, `chat`, `walkby`, `pitch`. `battle` is
   excluded deliberately — its id sits in `detail` and means _winner_.
+- **Office continuity (working memory + runWalk) is specified, not shipped.** Colleagues feel
+  real because the same person remembers you, not because they talk more. Build v1 from
+  [`docs/office-continuity.md`](docs/office-continuity.md) and
+  [ADR-0013](docs/decisions/0013-office-continuity.md). Working memory records and never
+  triggers. The only new initiation is a completed run (`runWalk` on the floor, IM at the desk,
+  existing run-reaction budget). Adding `runWalk` is a spoken `situation`: enum, predicate, rule
+  block, reminder — never reuse `run` or `walkover`.
 - **In a prompt rule, prohibitions crowd out a hedged permission — lead with the register.**
   Measured: the relationship block's first draft put three "do NOT"s against one soft "let this
   colour how you sound" and auditioned **inert**, indistinguishable from its control arm. The

@@ -252,6 +252,13 @@ Every session carries **six independent diagram slots** — `mermaid` (Mermaid t
   Ships as `officeRelationship` on `/moment` **only** — the one surface with a single speaker —
   and covers only the four kinds carrying a `colleagueId` (`email`, `chat`, `walkby`, `pitch`).
   `battle` is excluded on purpose: its id is in `detail` and means _winner_.
+- **Office continuity (working memory + runWalk) is specified, not shipped.** Colleagues feel
+  real because the same person remembers you, not because they talk more. Build v1 from
+  [`docs/office-continuity.md`](docs/office-continuity.md) and
+  [ADR-0013](docs/decisions/0013-office-continuity.md). Working memory records and never
+  triggers. The only new initiation is a completed run (`runWalk` on the floor, IM at the desk,
+  existing run-reaction budget). Adding `runWalk` is a spoken `situation`: enum, predicate, rule
+  block, reminder — never reuse `run` or `walkover`.
 - **In a prompt rule, prohibitions crowd out a hedged permission — lead with the register.**
   Measured on the relationship block: three "do NOT"s against one "let this colour how you
   sound" auditioned **inert**, its arm indistinguishable from the control. The killer is a
@@ -814,5 +821,6 @@ For semantic coupling analysis (not automatable), run `/modularity:review` in Cl
 - Terms: [`GLOSSARY.md`](GLOSSARY.md)
 - Recurring tasks: [`docs/recipes/`](docs/recipes/)
 - Past decisions: [`docs/decisions/`](docs/decisions/)
+- Office continuity (working memory + runWalk, not shipped): [`docs/office-continuity.md`](docs/office-continuity.md)
 - LLM config: [`docs/llm-config.md`](docs/llm-config.md)
 - Deploy: [`docs/deploy/gcp.md`](docs/deploy/gcp.md) — Artifact Registry retention: `npm run ar:cleanup:verify` (policy in `scripts/artifact-registry-cleanup-policy.json`; apply with `npm run ar:cleanup:apply`)
