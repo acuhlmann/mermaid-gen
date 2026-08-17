@@ -43,9 +43,7 @@ describe('GraphEditChrome', () => {
     expect(form?.style.left).toBe('120px');
     expect(form?.style.top).toBe('80px');
     expect(screen.queryByText(CONTROLS_EN.graphEdit.nameNodeTitle)).toBeNull();
-    expect(
-      screen.getByRole('textbox', { name: CONTROLS_EN.graphEdit.nameNodeTitle })
-    ).toBeTruthy();
+    expect(screen.getByRole('textbox', { name: CONTROLS_EN.graphEdit.nameNodeTitle })).toBeTruthy();
   });
 
   it('shows connect hint and undo toast without a label form', () => {

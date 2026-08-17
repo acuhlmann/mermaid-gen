@@ -269,7 +269,16 @@ export function useFlowchartGraphEdit({
         });
       }
     },
-    [busy, cancelConnect, commitSource, connectFrom, copy.failed, copy.linked, setSelectedNode, stateRef]
+    [
+      busy,
+      cancelConnect,
+      commitSource,
+      connectFrom,
+      copy.failed,
+      copy.linked,
+      setSelectedNode,
+      stateRef
+    ]
   );
 
   const handleLabelCommit = useCallback(
