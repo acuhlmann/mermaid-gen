@@ -22,50 +22,8 @@
  * material actually samples, so a higher-resolution gradient buys nothing.
  */
 import { useEffect } from 'react';
-import * as THREE from 'three';
 import { useThree } from '@react-three/fiber';
-
-/** Vertical fraction at which the horizon band sits. */
-const HORIZON = 0.5;
-
-/**
- * Equirectangular gradient: `top` at the zenith, `horizon` across the middle,
- * `ground` at the nadir. Returns a texture the caller owns and must dispose.
- */
-function buildGradientEquirect(top, horizon, ground) {
-  const width = 16;
-  const height = 64;
-  const data = new Uint8Array(width * height * 4);
-  const topColor = new THREE.Color(top);
-  const horizonColor = new THREE.Color(horizon);
-  const groundColor = new THREE.Color(ground);
-  const mixed = new THREE.Color();
-
-  for (let y = 0; y < height; y += 1) {
-    // Row 0 is the top of an equirect map, so v runs 1 (zenith) → 0 (nadir).
-    const v = 1 - y / (height - 1);
-    if (v >= HORIZON) {
-      mixed.copy(horizonColor).lerp(topColor, (v - HORIZON) / (1 - HORIZON));
-    } else {
-      mixed.copy(groundColor).lerp(horizonColor, v / HORIZON);
-    }
-    for (let x = 0; x < width; x += 1) {
-      const i = (y * width + x) * 4;
-      data[i] = Math.round(mixed.r * 255);
-      data[i + 1] = Math.round(mixed.g * 255);
-      data[i + 2] = Math.round(mixed.b * 255);
-      data[i + 3] = 255;
-    }
-  }
-
-  const texture = new THREE.DataTexture(data, width, height, THREE.RGBAFormat);
-  texture.mapping = THREE.EquirectangularReflectionMapping;
-  // The colours above are authored sRGB; without this the IBL comes back
-  // washed out and desaturated, which reads as "the theme lost its palette".
-  texture.colorSpace = THREE.SRGBColorSpace;
-  texture.needsUpdate = true;
-  return texture;
-}
+import { buildGradientEquirect } from './sceneUtils.js';
 
 /**
  * Installs the theme's sky as `scene.environment`.

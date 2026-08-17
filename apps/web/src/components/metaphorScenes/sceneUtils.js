@@ -55,6 +55,46 @@ export function isDarkBackdrop(theme) {
   return backdropProbe.r * 0.2126 + backdropProbe.g * 0.7152 + backdropProbe.b * 0.0722 < 0.5;
 }
 
+/** Vertical fraction at which the IBL gradient horizon band sits. */
+const IBL_HORIZON = 0.5;
+
+/**
+ * Equirectangular gradient for image-based lighting: `top` at the zenith,
+ * `horizon` across the middle, `ground` at the nadir. Returns a texture the
+ * caller owns and must dispose.
+ */
+export function buildGradientEquirect(top, horizon, ground) {
+  const width = 16;
+  const height = 64;
+  const data = new Uint8Array(width * height * 4);
+  const topColor = new THREE.Color(top);
+  const horizonColor = new THREE.Color(horizon);
+  const groundColor = new THREE.Color(ground);
+  const mixed = new THREE.Color();
+
+  for (let y = 0; y < height; y += 1) {
+    const v = 1 - y / (height - 1);
+    if (v >= IBL_HORIZON) {
+      mixed.copy(horizonColor).lerp(topColor, (v - IBL_HORIZON) / (1 - IBL_HORIZON));
+    } else {
+      mixed.copy(groundColor).lerp(horizonColor, v / IBL_HORIZON);
+    }
+    for (let x = 0; x < width; x += 1) {
+      const i = (y * width + x) * 4;
+      data[i] = Math.round(mixed.r * 255);
+      data[i + 1] = Math.round(mixed.g * 255);
+      data[i + 2] = Math.round(mixed.b * 255);
+      data[i + 3] = 255;
+    }
+  }
+
+  const texture = new THREE.DataTexture(data, width, height, THREE.RGBAFormat);
+  texture.mapping = THREE.EquirectangularReflectionMapping;
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.needsUpdate = true;
+  return texture;
+}
+
 /** Sample a polyline (array of [x,y,z] points) at t in [0,1], piecewise-linear. */
 export function samplePolyline(points, t) {
   const segments = points.length - 1;

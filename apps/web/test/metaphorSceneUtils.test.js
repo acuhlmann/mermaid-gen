@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
-import { shiftColor } from '../src/components/metaphorScenes/sceneUtils.js';
+import { isDarkBackdrop, shiftColor } from '../src/components/metaphorScenes/sceneUtils.js';
+import { METAPHOR_THEME_PRESETS } from '../src/utils/metaphorThemePresets.js';
 
 const hex = (color) => `#${color.getHexString()}`;
 
@@ -47,5 +48,25 @@ describe('shiftColor', () => {
     desaturated.getHSL(hsl, THREE.SRGBColorSpace);
     expect(hsl.s).toBeLessThan(0.2);
     expect(hsl.l).toBeCloseTo(lightnessOf(new THREE.Color('#3d9a4a')), 2);
+  });
+});
+
+describe('isDarkBackdrop', () => {
+  // MetaphorAccents gates its additive light shaft on this: additive blending can
+  // only brighten, so over whiteboard's near-white sky a beam is invisible and a
+  // normal-blended cone reads as a smudge on the subject.
+  it('treats noir and blueprint as dark enough for additive glow', () => {
+    expect(isDarkBackdrop({ skyHorizonColor: '#1a2433' })).toBe(true);
+    expect(isDarkBackdrop({ background: '#0b0f19' })).toBe(true);
+    expect(isDarkBackdrop(METAPHOR_THEME_PRESETS.noir)).toBe(true);
+    expect(isDarkBackdrop(METAPHOR_THEME_PRESETS.blueprint)).toBe(true);
+  });
+
+  it('treats whiteboard as too bright for additive glow', () => {
+    expect(isDarkBackdrop(METAPHOR_THEME_PRESETS.whiteboard)).toBe(false);
+  });
+
+  it('returns false when no backdrop colour is available', () => {
+    expect(isDarkBackdrop({})).toBe(false);
   });
 });

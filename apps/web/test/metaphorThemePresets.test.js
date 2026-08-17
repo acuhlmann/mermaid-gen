@@ -1,9 +1,13 @@
 import { describe, expect, it } from 'vitest';
+import * as THREE from 'three';
+import { shiftColor } from '../src/components/metaphorScenes/sceneUtils.js';
 import {
+  DEFAULT_POSTFX,
   METAPHOR_THEME_PRESETS,
   resolveArchipelagoDaylightTheme,
   resolveGalaxyVividTheme,
   resolveGardenDaylightTheme,
+  resolveMetaphorPostfx,
   resolveRiverDaylightTheme,
   resolveTreeNatureTheme
 } from '../src/utils/metaphorThemePresets.js';
@@ -68,5 +72,47 @@ describe('outdoor daylight themes', () => {
     expect(arch.skyTopColor).toBe('#258fce');
     expect(arch.waterColor).toBeTruthy();
     expect(arch.ambientIntensity).toBeGreaterThan(0.7);
+  });
+});
+
+describe('resolveMetaphorPostfx', () => {
+  it('merges theme postfx over the shared defaults', () => {
+    const merged = resolveMetaphorPostfx(METAPHOR_THEME_PRESETS.whiteboard);
+    expect(merged.ao).toBe(true);
+    expect(merged.aoScreenSpace).toBe(true);
+    expect(merged.aoIntensity).toBe(0.9);
+    expect(merged.bloomStrength).toBe(0.18);
+  });
+
+  it('keeps aoThickness under aoRadius so GTAO does not ring silhouettes', () => {
+    // The gradient sky writes no depth, so a stock thickness of 1.0 drew a black
+    // halo around every edge. Defaults cap thickness under radius; every theme
+    // override must preserve that relationship.
+    const defaults = resolveMetaphorPostfx({});
+    expect(defaults.aoThickness).toBeLessThan(defaults.aoRadius);
+
+    for (const [name, theme] of Object.entries(METAPHOR_THEME_PRESETS)) {
+      const postfx = resolveMetaphorPostfx(theme);
+      expect(postfx.aoThickness, `${name} aoThickness`).toBeLessThan(postfx.aoRadius);
+    }
+  });
+});
+
+describe('theme colour regressions (PR #317 / #318)', () => {
+  /** Rec. 709 luma — catches near-black albedos that PBR cannot light. */
+  function luma(hex) {
+    const c = new THREE.Color(hex);
+    return c.r * 0.2126 + c.g * 0.7152 + c.b * 0.0722;
+  }
+
+  it('whiteboard ground is a pale plaza, not a near-black IBL nadir', () => {
+    expect(luma(METAPHOR_THEME_PRESETS.whiteboard.groundColor)).toBeGreaterThan(0.35);
+  });
+
+  it('shiftColor darkens bridge rock instead of clamping to black on noir', () => {
+    const rock = METAPHOR_THEME_PRESETS.noir.bridgeRockColor;
+    const shifted = shiftColor(rock, { lightness: -0.1 });
+    expect(`#${shifted.getHexString()}`).not.toBe('#000000');
+    expect(luma(`#${shifted.getHexString()}`)).toBeGreaterThan(0.05);
   });
 });
