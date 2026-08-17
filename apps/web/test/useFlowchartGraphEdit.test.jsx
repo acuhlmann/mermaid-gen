@@ -80,7 +80,7 @@ describe('useFlowchartGraphEdit', () => {
 
   it('arms Connect from a canvas descriptor that only has an SVG id', () => {
     const { result } = mount({
-      props: { selectedNode: { id: 'flowchart-A-0', partName: 'Start' } }
+      props: { selectedNode: { id: 'diagram-1-flowchart-A-0', partName: 'Start' } }
     });
     act(() => {
       result.current.handleGraphEditAction({ id: 'connect' });

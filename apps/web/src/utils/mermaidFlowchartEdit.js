@@ -200,13 +200,23 @@ function requireNodeId(id) {
   return null;
 }
 
+function requireExistingNode(source, id) {
+  if (!collectIds(source).has(id)) return fail('missing');
+  return null;
+}
+
 /**
  * @param {string} source
  * @param {string} fromId
  * @param {string} toId
  */
 export function connectFlowchartNodes(source, fromId, toId) {
-  const blocked = requireFlowchart(source) || requireNodeId(fromId) || requireNodeId(toId);
+  const blocked =
+    requireFlowchart(source) ||
+    requireNodeId(fromId) ||
+    requireNodeId(toId) ||
+    requireExistingNode(source, fromId) ||
+    requireExistingNode(source, toId);
   if (blocked) return blocked;
   if (fromId === toId) return fail('self');
   if (hasDirectedEdge(source, fromId, toId)) return fail('duplicate');
@@ -226,7 +236,8 @@ export function connectFlowchartNodes(source, fromId, toId) {
  * @param {string} [label]
  */
 export function addLinkedFlowchartNode(source, fromId, label = '') {
-  const blocked = requireFlowchart(source) || requireNodeId(fromId);
+  const blocked =
+    requireFlowchart(source) || requireNodeId(fromId) || requireExistingNode(source, fromId);
   if (blocked) return blocked;
   const newId = allocateFlowchartNodeId(source);
   const shape = formatMermaidNodeShape(String(label || '').trim() || newId);
@@ -344,7 +355,8 @@ export function deleteFlowchartEdge(source, fromId, toId) {
  * @param {string} label
  */
 export function renameFlowchartNode(source, nodeId, label) {
-  const blocked = requireFlowchart(source) || requireNodeId(nodeId);
+  const blocked =
+    requireFlowchart(source) || requireNodeId(nodeId) || requireExistingNode(source, nodeId);
   if (blocked) return blocked;
   const shape = formatMermaidNodeShape(String(label ?? '').trim() || nodeId);
   const lines = String(source).split(/\r?\n/);
@@ -364,10 +376,7 @@ export function renameFlowchartNode(source, nodeId, label) {
       .join('\n');
   });
   if (found) return ok(next.join('\n'));
-  const insertAt = lastNonEmptyIndex(lines) + 1;
-  const withDef = [...lines];
-  withDef.splice(insertAt, 0, `  ${nodeId}${shape}`);
-  return ok(withDef.join('\n'));
+  return fail('missing');
 }
 
 /**

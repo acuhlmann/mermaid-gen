@@ -456,7 +456,7 @@ describe('DiagramCanvas', () => {
   it('routes flowchart node taps to onConnectTarget while Connect is armed', async () => {
     const nodeSvg = `
 <svg viewBox="0 0 200 100">
-  <g class="node" id="flowchart-B-0"><rect width="40" height="20"/><text>B</text></g>
+  <g class="node" id="diagram-1-flowchart-B-0"><rect width="40" height="20"/><text>B</text></g>
 </svg>`;
     renderMermaidSvgMock.mockResolvedValueOnce({ svg: nodeSvg, sanitizerApplied: [] });
     const onConnectTarget = vi.fn();

@@ -47,6 +47,8 @@ export function normalizeDiagramElementId(raw, kind) {
   let s = raw.trim();
   if (!s) return null;
 
+  // mermaid.render(diagramId) prefixes every SVG id with `${diagramId}-`.
+  s = s.replace(/^diagram-\d+-/i, '');
   if (kind === 'cluster') {
     s = s.replace(/^cluster[-_]?/i, '');
   }
@@ -100,6 +102,7 @@ export function collectLogicalIdCandidates(sel) {
     add(normalizeDiagramElementId(rawDom, kind) || rawDom);
     add(rawDom);
     let stripped = rawDom;
+    stripped = stripped.replace(/^diagram-\d+-/i, '');
     if (kind === 'cluster') {
       stripped = stripped.replace(/^cluster[-_]?/i, '');
     }

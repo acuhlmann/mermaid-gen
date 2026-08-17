@@ -41,6 +41,13 @@ describe('connectFlowchartNodes', () => {
     expect(result.ok).toBe(true);
     expect(result.source).toMatch(/B --> A/);
   });
+
+  it('refuses to invent a node that is not on the canvas', () => {
+    expect(connectFlowchartNodes(FLOW, 'A', 'diagram-1-flowchart-C')).toEqual({
+      ok: false,
+      reason: 'missing'
+    });
+  });
 });
 
 describe('addLinkedFlowchartNode', () => {
@@ -99,6 +106,10 @@ describe('renameFlowchartNode', () => {
     expect(result.ok).toBe(true);
     expect(result.source).toMatch(/A\[Kickoff\]/);
     expect(result.source).not.toMatch(/A\[Start\]/);
+  });
+
+  it('does not invent a node when the id is missing', () => {
+    expect(renameFlowchartNode(FLOW, 'Z', 'Nope')).toEqual({ ok: false, reason: 'missing' });
   });
 });
 
