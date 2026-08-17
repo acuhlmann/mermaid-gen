@@ -1630,6 +1630,124 @@ export default function DiagramCanvas({
     .filter(Boolean)
     .join(' ');
 
+  const stackEditorInNotebook = Boolean(insightsOpen && insightsSlot && editorMounted);
+
+  const editorPanel = editorMounted ? (
+    <aside
+      className={`diagram-editor-panel ${editorClosing ? 'is-closing' : ''}`.trim()}
+      aria-label={editorPanelLabel}
+    >
+      {streamingPreview ? (
+        <p className="streaming-note" role="status">
+          <span className="streaming-note-inner">
+            <StreamingWaveIcon />
+            <span>{controls.diagramCanvas.streamingSource}</span>
+          </span>
+        </p>
+      ) : null}
+      {narrowLayout ? (
+        <div className="mobile-code-editor-wrap">
+          <div className="mobile-code-editor-toolbar">
+            <span className="mobile-code-editor-title">{editorPanelShortTitle}</span>
+            <div className="mobile-code-editor-actions">
+              <button
+                type="button"
+                className="overlay-button compact-button"
+                onClick={handleCopyEditor}
+              >
+                {controls.diagramCanvas.copy}
+              </button>
+              <button
+                type="button"
+                className="overlay-button compact-button"
+                onClick={handleSelectAllEditor}
+              >
+                {controls.diagramCanvas.selectAll}
+              </button>
+              {onEditorClose ? (
+                <button
+                  type="button"
+                  className="overlay-button compact-button primary-button"
+                  onClick={onEditorClose}
+                  aria-label={controls.editor?.closeEditor ?? controls.diagramCanvas.done}
+                  title={controls.editor?.closeEditor ?? controls.diagramCanvas.done}
+                  data-testid="diagram-editor-close"
+                >
+                  {controls.diagramCanvas.done}
+                </button>
+              ) : null}
+            </div>
+          </div>
+          <div className="diagram-monaco-wrap mobile-monaco-wrap">
+            <Suspense
+              fallback={
+                <div className="monaco-editor-loading" role="status">
+                  {monacoLoadingLabel}
+                </div>
+              }
+            >
+              <MonacoCodeEditor
+                language={editorLanguage}
+                value={editorSource}
+                onMount={handleEditorMount}
+                onChange={handleEditorChange}
+                options={monacoEditorOptions}
+                loadingLabel={monacoLoadingLabel}
+              />
+            </Suspense>
+          </div>
+        </div>
+      ) : (
+        <div className="diagram-monaco-wrap">
+          <div className="diagram-editor-toolbar">
+            <button
+              type="button"
+              className="overlay-button compact-button"
+              onClick={handleCopyEditor}
+            >
+              {controls.diagramCanvas.copy}
+            </button>
+            <button
+              type="button"
+              className="overlay-button compact-button"
+              onClick={handleSelectAllEditor}
+            >
+              {controls.diagramCanvas.selectAll}
+            </button>
+            {onEditorClose ? (
+              <button
+                type="button"
+                className="overlay-button compact-button primary-button"
+                onClick={onEditorClose}
+                aria-label={controls.editor?.closeEditor ?? controls.diagramCanvas.done}
+                title={controls.editor?.closeEditor ?? controls.diagramCanvas.done}
+                data-testid="diagram-editor-close"
+              >
+                {controls.diagramCanvas.done}
+              </button>
+            ) : null}
+          </div>
+          <Suspense
+            fallback={
+              <div className="monaco-editor-loading" role="status">
+                {monacoLoadingLabel}
+              </div>
+            }
+          >
+            <MonacoCodeEditor
+              language={editorLanguage}
+              value={editorSource}
+              onMount={handleEditorMount}
+              onChange={handleEditorChange}
+              options={monacoEditorOptions}
+              loadingLabel={monacoLoadingLabel}
+            />
+          </Suspense>
+        </div>
+      )}
+    </aside>
+  ) : null;
+
   const aria =
     contentType === 'metaphor3d'
       ? '3D renderer. Drag to orbit. Scroll or pinch to zoom.'
@@ -1751,123 +1869,17 @@ export default function DiagramCanvas({
         </div>
       </div>
 
-      {insightsSlot}
-
-      {editorMounted ? (
-        <aside
-          className={`diagram-editor-panel ${editorClosing ? 'is-closing' : ''}`.trim()}
-          aria-label={editorPanelLabel}
-        >
-          {streamingPreview ? (
-            <p className="streaming-note" role="status">
-              <span className="streaming-note-inner">
-                <StreamingWaveIcon />
-                <span>{controls.diagramCanvas.streamingSource}</span>
-              </span>
-            </p>
-          ) : null}
-          {narrowLayout ? (
-            <div className="mobile-code-editor-wrap">
-              <div className="mobile-code-editor-toolbar">
-                <span className="mobile-code-editor-title">{editorPanelShortTitle}</span>
-                <div className="mobile-code-editor-actions">
-                  <button
-                    type="button"
-                    className="overlay-button compact-button"
-                    onClick={handleCopyEditor}
-                  >
-                    {controls.diagramCanvas.copy}
-                  </button>
-                  <button
-                    type="button"
-                    className="overlay-button compact-button"
-                    onClick={handleSelectAllEditor}
-                  >
-                    {controls.diagramCanvas.selectAll}
-                  </button>
-                  {onEditorClose ? (
-                    <button
-                      type="button"
-                      className="overlay-button compact-button primary-button"
-                      onClick={onEditorClose}
-                      aria-label={controls.editor?.closeEditor ?? controls.diagramCanvas.done}
-                      title={controls.editor?.closeEditor ?? controls.diagramCanvas.done}
-                      data-testid="diagram-editor-close"
-                    >
-                      {controls.diagramCanvas.done}
-                    </button>
-                  ) : null}
-                </div>
-              </div>
-              <div className="diagram-monaco-wrap mobile-monaco-wrap">
-                <Suspense
-                  fallback={
-                    <div className="monaco-editor-loading" role="status">
-                      {monacoLoadingLabel}
-                    </div>
-                  }
-                >
-                  <MonacoCodeEditor
-                    language={editorLanguage}
-                    value={editorSource}
-                    onMount={handleEditorMount}
-                    onChange={handleEditorChange}
-                    options={monacoEditorOptions}
-                    loadingLabel={monacoLoadingLabel}
-                  />
-                </Suspense>
-              </div>
-            </div>
-          ) : (
-            <div className="diagram-monaco-wrap">
-              <div className="diagram-editor-toolbar">
-                <button
-                  type="button"
-                  className="overlay-button compact-button"
-                  onClick={handleCopyEditor}
-                >
-                  {controls.diagramCanvas.copy}
-                </button>
-                <button
-                  type="button"
-                  className="overlay-button compact-button"
-                  onClick={handleSelectAllEditor}
-                >
-                  {controls.diagramCanvas.selectAll}
-                </button>
-                {onEditorClose ? (
-                  <button
-                    type="button"
-                    className="overlay-button compact-button primary-button"
-                    onClick={onEditorClose}
-                    aria-label={controls.editor?.closeEditor ?? controls.diagramCanvas.done}
-                    title={controls.editor?.closeEditor ?? controls.diagramCanvas.done}
-                    data-testid="diagram-editor-close"
-                  >
-                    {controls.diagramCanvas.done}
-                  </button>
-                ) : null}
-              </div>
-              <Suspense
-                fallback={
-                  <div className="monaco-editor-loading" role="status">
-                    {monacoLoadingLabel}
-                  </div>
-                }
-              >
-                <MonacoCodeEditor
-                  language={editorLanguage}
-                  value={editorSource}
-                  onMount={handleEditorMount}
-                  onChange={handleEditorChange}
-                  options={monacoEditorOptions}
-                  loadingLabel={monacoLoadingLabel}
-                />
-              </Suspense>
-            </div>
-          )}
-        </aside>
-      ) : null}
+      {stackEditorInNotebook ? (
+        <div className="diagram-side-stack" data-testid="diagram-side-stack">
+          {insightsSlot}
+          {editorPanel}
+        </div>
+      ) : (
+        <>
+          {insightsSlot}
+          {editorPanel}
+        </>
+      )}
     </section>
   );
 }

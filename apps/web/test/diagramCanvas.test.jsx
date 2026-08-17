@@ -550,4 +550,27 @@ describe('DiagramCanvas', () => {
       expect.objectContaining({ type: 'empty', clientX: 180, clientY: 80 })
     );
   });
+
+  it('stacks the code editor under the notebook instead of a third column', async () => {
+    render(
+      <DiagramCanvas
+        diagramSource={'flowchart TD\nA --> B'}
+        revisionId={1}
+        onManualEdit={vi.fn()}
+        editorOpen
+        insightsOpen
+        insightsSlot={<aside className="insights-pane" data-testid="insights-pane-fixture" />}
+      />
+    );
+
+    await act(async () => {
+      vi.advanceTimersByTime(250);
+    });
+
+    const stack = screen.getByTestId('diagram-side-stack');
+    expect(stack.className).toContain('diagram-side-stack');
+    expect(stack.querySelector('.insights-pane')).toBeTruthy();
+    expect(stack.querySelector('.diagram-editor-panel')).toBeTruthy();
+    expect(document.querySelector('.diagram-canvas.is-insights-open.is-editor-open')).toBeTruthy();
+  });
 });

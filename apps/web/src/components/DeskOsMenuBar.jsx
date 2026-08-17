@@ -15,8 +15,18 @@ import { officeChromeCopy } from '../utils/officeCast.js';
  * row's function "Deliverable format", and a drawer violates ADR-0011's
  * clean-desk policy on screen.
  */
-function DeliverableMenu({ menu, copy, controls, actions, options }) {
-  const { modes, currentMode, onPickMode, modeDisabled, onClearDiagram, clearDisabled } = options;
+function DeliverableMenu({ menu, copy, controls, actions, desk, options }) {
+  const {
+    modes,
+    currentMode,
+    onPickMode,
+    modeDisabled,
+    onClearDiagram,
+    clearDisabled,
+    editorOpen,
+    onToggleEditor,
+    canToggleEditor
+  } = options;
   return (
     <DeskOsMenu
       {...menu}
@@ -46,6 +56,32 @@ function DeliverableMenu({ menu, copy, controls, actions, options }) {
               );
             })}
           </DeskOsMenuSection>
+          {typeof onToggleEditor === 'function' ? (
+            <DeskOsMenuSection label={copy.viewSection ?? copy.view ?? 'View'}>
+              <DeskOsMenuItem
+                emoji="</>"
+                label={
+                  editorOpen
+                    ? (desk.codeDrawerCloseShort ?? desk.codeDrawerClose)
+                    : (desk.codeDrawerShort ?? desk.codeDrawer)
+                }
+                title={
+                  canToggleEditor
+                    ? editorOpen
+                      ? desk.codeDrawerClose
+                      : desk.codeDrawerTitle
+                    : desk.blocked?.noCode
+                }
+                pressed={editorOpen}
+                disabled={!canToggleEditor}
+                testId="menubar-spaghetti"
+                onSelect={() => {
+                  close();
+                  onToggleEditor();
+                }}
+              />
+            </DeskOsMenuSection>
+          ) : null}
           <DeskOsMenuSection>
             <DeskOsMenuItem
               emoji="🗑️"
@@ -275,6 +311,9 @@ export default function DeskOsMenuBar({
   modeDisabled = false,
   onClearDiagram,
   clearDisabled = false,
+  editorOpen = false,
+  onToggleEditor = null,
+  canToggleEditor = false,
   // Mailroom
   contentType = null,
   diagramSource = '',
@@ -330,13 +369,17 @@ export default function DeskOsMenuBar({
         copy={copy}
         controls={controls}
         actions={controls.actions ?? {}}
+        desk={desk}
         options={{
           modes: Array.isArray(modes) ? modes.filter((m) => m && m.id && m.label) : [],
           currentMode,
           onPickMode,
           modeDisabled,
           onClearDiagram,
-          clearDisabled
+          clearDisabled,
+          editorOpen,
+          onToggleEditor,
+          canToggleEditor
         }}
       />
       <MailroomMenu

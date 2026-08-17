@@ -26,6 +26,9 @@ function setup(overrides = {}) {
     focusTime: false,
     onToggleHeadphones: vi.fn(),
     onToggleFocusTime: vi.fn(),
+    editorOpen: false,
+    onToggleEditor: vi.fn(),
+    canToggleEditor: false,
     ...overrides
   };
   render(<DeskOsMenuBar {...handlers} />);
@@ -81,6 +84,28 @@ describe('DeskOsMenuBar', () => {
     openMenu('deliverable');
     fireEvent.click(screen.getByTestId('menubar-shredder'));
     expect(handlers.onClearDiagram).toHaveBeenCalledTimes(1);
+  });
+
+  it('toggles spaghetti from the Deliverable menu when a deliverable exists', () => {
+    const handlers = setup({ canToggleEditor: true, editorOpen: false });
+    openMenu('deliverable');
+    const spaghetti = screen.getByTestId('menubar-spaghetti');
+    expect(spaghetti.textContent).toMatch(/Spaghetti/);
+    fireEvent.click(spaghetti);
+    expect(handlers.onToggleEditor).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole('menu')).toBeNull();
+  });
+
+  it('disables spaghetti in the Deliverable menu when there is nothing to edit', () => {
+    setup({ canToggleEditor: false });
+    openMenu('deliverable');
+    expect(screen.getByTestId('menubar-spaghetti').disabled).toBe(true);
+  });
+
+  it('marks spaghetti as pressed while the code drawer is open', () => {
+    setup({ canToggleEditor: true, editorOpen: true });
+    openMenu('deliverable');
+    expect(screen.getByTestId('menubar-spaghetti').getAttribute('aria-pressed')).toBe('true');
   });
 
   // Eleven export formats used to sit behind an expandable row inside a menu
