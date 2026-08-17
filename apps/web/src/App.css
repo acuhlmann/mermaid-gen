@@ -238,7 +238,8 @@
   text-align: center;
   color: var(--text);
   background: #fff;
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent),
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent),
     var(--control-shadow);
 }
 
@@ -249,12 +250,14 @@
 @keyframes graph-edit-label-pulse {
   0%,
   100% {
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent),
+    box-shadow:
+      0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent),
       var(--control-shadow);
   }
 
   50% {
-    box-shadow: 0 0 0 5px color-mix(in srgb, var(--accent) 35%, transparent),
+    box-shadow:
+      0 0 0 5px color-mix(in srgb, var(--accent) 35%, transparent),
       var(--control-shadow);
   }
 }
