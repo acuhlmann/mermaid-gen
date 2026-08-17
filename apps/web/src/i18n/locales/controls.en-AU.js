@@ -596,7 +596,10 @@ export const CONTROLS_EN_AU = {
     linked: 'Joined',
     failed: 'Couldn’t update the diagram',
     stale: 'Diagram moved on — have another go',
-    renamePlaceholder: 'Label'
+    renamePlaceholder: 'Label',
+    nameNodeTitle: 'Name this node',
+    nameNodeSkip: 'Keep default',
+    nameNodeConfirm: 'Name it'
   },
   advisorThinking: {
     gilfoyle: 'is unimpressed',

@@ -592,7 +592,10 @@ export const CONTROLS_ZH_CN = {
     linked: '已连接',
     failed: '无法更新图表',
     stale: '图表已变化，请再试一次',
-    renamePlaceholder: '标签'
+    renamePlaceholder: '标签',
+    nameNodeTitle: '命名此节点',
+    nameNodeSkip: '保留默认',
+    nameNodeConfirm: '命名'
   },
   advisorThinking: {
     gilfoyle: '不为所动',

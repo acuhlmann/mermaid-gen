@@ -255,18 +255,21 @@ export function useFlowchartGraphEdit({
         }
         void commitSource(result.source, 'Connect node', { toast: copy.linked }).then((applied) => {
           if (!applied) return;
+          setSelectedNode?.({
+            dataId: result.newId,
+            partName: result.newId,
+            partKind: 'node'
+          });
           setLabelSession({
             kind: 'node',
             logicalId: result.newId,
             draft: result.newId,
-            x: target.clientX ?? 0,
-            y: target.clientY ?? 0,
             created: true
           });
         });
       }
     },
-    [busy, cancelConnect, commitSource, connectFrom, copy.failed, copy.linked, stateRef]
+    [busy, cancelConnect, commitSource, connectFrom, copy.failed, copy.linked, setSelectedNode, stateRef]
   );
 
   const handleLabelCommit = useCallback(
@@ -317,6 +320,11 @@ export function useFlowchartGraphEdit({
         return;
       }
       if (event.key === 'Escape') {
+        if (labelSession) {
+          event.preventDefault();
+          cancelLabel();
+          return;
+        }
         if (connectFrom) {
           event.preventDefault();
           cancelConnect();
@@ -337,6 +345,8 @@ export function useFlowchartGraphEdit({
     busy,
     cancelConnect,
     connectFrom,
+    cancelLabel,
+    labelSession,
     enabled,
     handleGraphEditAction,
     kind,

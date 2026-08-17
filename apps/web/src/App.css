@@ -188,50 +188,93 @@
   cursor: crosshair;
 }
 
-.flowchart-connect-hint {
+.graph-edit-chrome {
   position: absolute;
-  top: 12px;
-  left: 50%;
-  z-index: 6;
-  transform: translateX(-50%);
-  margin: 0;
-  padding: 0.35rem 0.7rem;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--bg, #0f172a) 88%, transparent);
-  color: var(--text, #e2e8f0);
-  font-size: 0.78rem;
+  inset: 0;
+  z-index: var(--z-radial-popover);
   pointer-events: none;
 }
 
-.flowchart-label-field {
-  position: fixed;
-  z-index: 40;
-  transform: translate(-50%, -120%);
+.graph-edit-chrome > * {
+  pointer-events: auto;
 }
 
-.flowchart-label-field input {
-  min-width: 8rem;
-  padding: 0.35rem 0.55rem;
-  border: 1px solid color-mix(in srgb, var(--accent, #2563eb) 55%, #94a3b8);
+.graph-edit-connect-hint {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  z-index: 1;
+  transform: translateX(-50%);
+  margin: 0;
+  padding: 0.45rem 0.85rem;
+  border-radius: 999px;
+  border: 1px solid var(--control-border);
+  background: var(--office-surface-bg);
+  color: var(--text);
+  font-size: 0.82rem;
+  box-shadow: var(--control-shadow);
+}
+
+.graph-edit-chrome.is-fullscreen .graph-edit-undo-toast {
+  bottom: 56px;
+}
+
+.graph-edit-label-inline {
+  position: fixed;
+  z-index: 2;
+  margin: 0;
+  pointer-events: auto;
+}
+
+.graph-edit-label-inline input {
+  width: 100%;
+  min-width: 0;
+  padding: 0.3rem 0.45rem;
+  border: 2px solid var(--accent);
   border-radius: 6px;
   font: inherit;
   font-size: 0.85rem;
+  font-weight: 600;
+  text-align: center;
+  color: var(--text);
+  background: #fff;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent),
+    var(--control-shadow);
+}
+
+.graph-edit-label-inline.is-new-node input {
+  animation: graph-edit-label-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes graph-edit-label-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent),
+      var(--control-shadow);
+  }
+
+  50% {
+    box-shadow: 0 0 0 5px color-mix(in srgb, var(--accent) 35%, transparent),
+      var(--control-shadow);
+  }
 }
 
 .graph-edit-undo-toast {
   position: absolute;
-  bottom: calc(var(--desk-taskbar-h, 48px) + 12px);
+  bottom: 16px;
   left: 50%;
-  z-index: 8;
+  z-index: 1;
   display: flex;
   align-items: center;
   gap: 0.6rem;
   transform: translateX(-50%);
-  padding: 0.4rem 0.7rem;
+  padding: 0.45rem 0.75rem;
   border-radius: 999px;
-  background: color-mix(in srgb, var(--bg, #0f172a) 90%, transparent);
-  color: var(--text, #e2e8f0);
+  border: 1px solid var(--control-border);
+  background: var(--office-surface-bg);
+  color: var(--text);
   font-size: 0.82rem;
+  box-shadow: var(--control-shadow);
 }
 
 .graph-edit-undo-toast button {
@@ -798,6 +841,23 @@
   filter: drop-shadow(0 0 12px color-mix(in srgb, var(--accent) 65%, transparent))
     drop-shadow(0 0 5px color-mix(in srgb, var(--accent) 45%, transparent));
   cursor: pointer;
+}
+
+.diagram-viewport svg g.node.is-connect-source,
+.diagram-viewport svg g.timeline-node.is-connect-source {
+  filter: drop-shadow(0 0 10px color-mix(in srgb, #22c55e 55%, transparent))
+    drop-shadow(0 0 4px color-mix(in srgb, #22c55e 35%, transparent));
+}
+
+.diagram-viewport svg g.node.is-connect-source path,
+.diagram-viewport svg g.node.is-connect-source rect,
+.diagram-viewport svg g.node.is-connect-source polygon,
+.diagram-viewport svg g.node.is-connect-source circle,
+.diagram-viewport svg g.node.is-connect-source ellipse,
+.diagram-viewport svg g.timeline-node.is-connect-source path,
+.diagram-viewport svg g.timeline-node.is-connect-source line {
+  stroke: #22c55e !important;
+  stroke-width: 3px !important;
 }
 
 .diagram-viewport svg g.node.is-diagram-selected path,

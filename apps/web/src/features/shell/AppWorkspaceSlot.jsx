@@ -20,8 +20,7 @@ import { DiagramFullscreenToolbarSlot } from './DiagramFullscreenToolbarSlot.jsx
 import { OfficeLayerSlot } from './OfficeLayerSlot.jsx';
 import { SessionCollaborationSlot } from '../session/SessionCollaborationSlot.jsx';
 import { ShellBottomRowSlot } from './ShellBottomRowSlot.jsx';
-import FlowchartLabelField from '../../components/FlowchartLabelField.jsx';
-import GraphEditUndoToast from '../../components/GraphEditUndoToast.jsx';
+import { GraphEditChromeSlot } from './GraphEditChromeSlot.jsx';
 
 /**
  * Post-boot workspace: canvas, desk overlays, shell chrome, and bottom row.
@@ -58,13 +57,14 @@ export function AppWorkspaceSlot({
   onConnectTarget = null,
   graphEditHint = null,
   graphEditLabelSession = null,
-  graphEditLabelPlaceholder = 'Label',
+  graphEditLabelCopy = null,
   onGraphEditLabelCommit,
   onGraphEditLabelCancel,
   graphEditUndoToast = null,
   graphEditUndoLabel = 'Undo',
   onGraphEditUndo,
   onDismissGraphEditUndo,
+  toolbarAnchor = null,
   modeRevealActive,
   modeRevealCopy,
   onModeRevealPick,
@@ -260,22 +260,22 @@ export function AppWorkspaceSlot({
         connectSourceId={connectSourceId}
         onConnectTarget={onConnectTarget}
       />
-      {graphEditHint ? (
-        <p className="flowchart-connect-hint" role="status">
-          {graphEditHint}
-        </p>
-      ) : null}
-      <FlowchartLabelField
-        session={graphEditLabelSession}
-        placeholder={graphEditLabelPlaceholder}
-        onCommit={onGraphEditLabelCommit}
-        onCancel={onGraphEditLabelCancel}
-      />
-      <GraphEditUndoToast
-        message={graphEditUndoToast?.message}
+      <GraphEditChromeSlot
+        diagramSurfaceRef={diagramSurfaceRef}
+        hasCanvasContent={hasCanvasContent}
+        contentType={contentMode === 'auto' ? 'mermaid' : contentMode}
+        diagramSource={state.diagramSource}
+        isFullscreen={isFullscreen}
+        connectHint={graphEditHint}
+        labelSession={graphEditLabelSession}
+        labelCopy={graphEditLabelCopy}
+        onLabelCommit={onGraphEditLabelCommit}
+        onLabelCancel={onGraphEditLabelCancel}
+        undoToast={graphEditUndoToast}
         undoLabel={graphEditUndoLabel}
         onUndo={onGraphEditUndo}
-        onDismiss={onDismissGraphEditUndo}
+        onDismissUndo={onDismissGraphEditUndo}
+        toolbarAnchor={toolbarAnchor}
       />
 
       <ModeRevealSlot

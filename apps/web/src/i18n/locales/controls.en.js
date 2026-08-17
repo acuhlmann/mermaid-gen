@@ -645,7 +645,10 @@ export const CONTROLS_EN = {
     linked: 'Linked',
     failed: 'Could not update the diagram',
     stale: 'Diagram changed — try again',
-    renamePlaceholder: 'Label'
+    renamePlaceholder: 'Label',
+    nameNodeTitle: 'Name this node',
+    nameNodeSkip: 'Keep default',
+    nameNodeConfirm: 'Name it'
   },
   advisorThinking: {
     gilfoyle: 'is unimpressed',

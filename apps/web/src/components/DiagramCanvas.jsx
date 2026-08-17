@@ -13,7 +13,8 @@ import { useDelayedUnmount } from '../utils/useDelayedUnmount.js';
 import {
   findMermaidSourceRangeForDiagramSelection,
   findSequenceMessageRange,
-  logicalIdFromDiagramSelection
+  logicalIdFromDiagramSelection,
+  normalizeDiagramElementId
 } from '../utils/mermaidSourceLocate.js';
 import { applyDiagramHighlightToSvg } from '../utils/applyDiagramHighlightToSvg.js';
 import { applyChartHighlight } from '../utils/applyChartHighlight.js';
@@ -211,6 +212,31 @@ function diagramSelectedWrap(root, domId) {
   } catch {
     return null;
   }
+}
+
+function logicalIdFromNodeWrap(node) {
+  if (!node) return null;
+  const anchor = diagramDomAnchor(node);
+  if (!anchor) return null;
+  const dataId = anchor.getAttribute?.('data-id');
+  if (dataId) return dataId;
+  return normalizeDiagramElementId(anchor.id, 'node');
+}
+
+function findFlowchartNodeWrapByLogicalId(root, logicalId) {
+  if (!root || !logicalId) return null;
+  const nodes = root.querySelectorAll('g.node, g.timeline-node');
+  for (const node of nodes) {
+    if (logicalIdFromNodeWrap(node) === logicalId) return node;
+  }
+  return null;
+}
+
+function resolveDiagramNodeWrap(root, descriptor) {
+  if (!root || !descriptor) return null;
+  if (descriptor.id) return diagramSelectedWrap(root, descriptor.id);
+  if (descriptor.dataId) return findFlowchartNodeWrapByLogicalId(root, descriptor.dataId);
+  return null;
 }
 
 export default function DiagramCanvas({
@@ -834,7 +860,7 @@ export default function DiagramCanvas({
     root
       .querySelectorAll('[data-et="participant"].is-diagram-selected')
       .forEach((el) => el.classList.remove('is-diagram-selected'));
-    if (!selectedNode?.id) return;
+    if (!selectedNode?.id && !selectedNode?.dataId) return;
     if (selectedNode.kind === 'edge') {
       try {
         const pathEl =
@@ -847,9 +873,20 @@ export default function DiagramCanvas({
       }
       return;
     }
-    const wrap = diagramSelectedWrap(root, selectedNode.id);
+    const wrap = resolveDiagramNodeWrap(root, selectedNode);
     wrap?.classList?.add('is-diagram-selected');
   }, [svgMarkup, selectedNode]);
+
+  useLayoutEffect(() => {
+    const root = viewportRef.current;
+    if (!root) return;
+    root
+      .querySelectorAll('g.node.is-connect-source, g.timeline-node.is-connect-source')
+      .forEach((el) => el.classList.remove('is-connect-source'));
+    if (!connectSourceId) return;
+    const sourceWrap = findFlowchartNodeWrapByLogicalId(root, connectSourceId);
+    sourceWrap?.classList?.add('is-connect-source');
+  }, [svgMarkup, connectSourceId, viewport]);
 
   useEffect(() => {
     const root = viewportRef.current;
@@ -900,7 +937,7 @@ export default function DiagramCanvas({
     }
 
     const target = selectedNode;
-    if (!target?.id || !root) {
+    if ((!target?.id && !target?.dataId) || !root) {
       clearToolbarAnchor();
       return;
     }
@@ -922,7 +959,7 @@ export default function DiagramCanvas({
         const candidate = target.anchorEl || target.domNode;
         el = candidate && root.contains(candidate) ? candidate : null;
       } else {
-        el = diagramSelectedWrap(root, target.id);
+        el = resolveDiagramNodeWrap(root, target);
       }
       if (!el) {
         clearToolbarAnchor();
@@ -937,9 +974,10 @@ export default function DiagramCanvas({
       const nodeRight = rect.right;
       const centerY = rect.top + rect.height / 2;
       const prev = lastToolbarAnchorReportRef.current;
+      const nodeKey = target.id || target.dataId;
       if (
         prev &&
-        prev.nodeId === target.id &&
+        prev.nodeId === nodeKey &&
         Math.abs(prev.left - left) < 0.5 &&
         Math.abs(prev.top - top) < 0.5 &&
         Math.abs(prev.nodeTop - nodeTop) < 0.5 &&
@@ -950,7 +988,7 @@ export default function DiagramCanvas({
         return;
       }
       lastToolbarAnchorReportRef.current = {
-        nodeId: target.id,
+        nodeId: nodeKey,
         left,
         top,
         nodeTop,

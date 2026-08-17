@@ -857,7 +857,8 @@ export function ArchiSlop() {
           onConnectTarget={flowchartGraphEdit.handleConnectTarget}
           graphEditHint={flowchartGraphEdit.connectHint}
           graphEditLabelSession={flowchartGraphEdit.labelSession}
-          graphEditLabelPlaceholder={controls.graphEdit.renamePlaceholder}
+          graphEditLabelCopy={controls.graphEdit}
+          toolbarAnchor={toolbarAnchor}
           onGraphEditLabelCommit={flowchartGraphEdit.handleLabelCommit}
           onGraphEditLabelCancel={flowchartGraphEdit.cancelLabel}
           graphEditUndoToast={flowchartGraphEdit.undoToast}
