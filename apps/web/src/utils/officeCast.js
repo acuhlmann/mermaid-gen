@@ -2166,20 +2166,26 @@ export const OFFICE_CHROME_COPY = {
     presence: {
       aria: '{status}. Stand up and go see.',
       ariaChat: '{status}. Open Slop Chat.',
-      ariaStay: '{status}.',
+      ariaInbox: '{status}. Open inbox.',
+      ariaInvite: '{status}. Respond to invite.',
       title: 'Stand up and go see',
       titleChat: 'Open Slop Chat',
-      titleStay: 'Already on your screen',
+      titleInbox: 'Open inbox',
+      titleInvite: 'Respond to invite',
       overflow: '+{count}',
-      pair: 'Pairing with {name}',
-      mob: '{count} at your screen',
       walkby: '{name} is at your desk',
-      battle: '{name} vs {other}',
-      coffee: 'Coffee break',
       meeting: '{name} is convening',
       talk: '{name} is waiting on you',
       talkMany: '{count} waiting on you',
-      quiet: 'The floor is quiet'
+      errand: 'Find {name} for {from}',
+      email: '{name} needs you',
+      shopJoin: '{name} and {partner} nearby',
+      sceneJoin: '{name} is still at the coffee machine',
+      sceneJoinBattle: '{name} is still in the holy war',
+      ariaFloorTalk: '{status}. Walk over and join in.',
+      ariaFloorSceneJoin: '{status}. Walk over and join them.',
+      titleFloorTalk: 'Walk over and join in',
+      titleFloorSceneJoin: 'Walk over and join them'
     }
   },
   huddle: {

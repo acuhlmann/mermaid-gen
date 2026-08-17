@@ -1,24 +1,18 @@
 /**
- * Who is around you, read from your chair (plan slice 6;
+ * What expects you next, read from your chair (plan slice 6;
  * docs/office-isometric-mode.md § 4).
  *
  * **This produces nothing**, and that is the carve-out licensing it — the same
  * one `useFloorPresence` and `useFloorWander` stand on. Everything below is a
- * projection of state the moment store already holds, or of the seating plan,
- * which is a module constant. No timer, no store write, no LLM call: the strip
- * that renders this is a window onto the room, not a participant in it.
+ * projection of state the moment store already holds. No timer, no store write,
+ * no LLM call: the strip that renders this is a window onto obligations, not a
+ * participant in it.
  *
- * **The desk cannot see the floor.** `useFloorWander` — who is actually up and
- * loitering at the printer — is floor-local by construction: it dies when the
- * floor unmounts, which is every moment you are sitting down. The plan offered
- * that roster as the source for "who is up"; taken literally it would dress
- * *who could get up* as *who is up*. So the question is answered instead from
- * the two things a seated person genuinely knows: whoever a moment has brought
- * to them, and whoever sits within sight.
+ * The strip is **actionable-only**: when nothing expects you, it is absent.
+ * On the floor it also surfaces join offers the card slot already knows about.
+ * Plain unread mail is excluded — the mail and chat icons carry those badges.
  *
- * Renderer-agnostic on purpose (ADR-0011 rule 1) — it takes a snapshot and
- * returns an answer, so the floor could caption itself off the same derivation
- * without forking. The taskbar strip is renderer #1.
+ * Renderer-agnostic on purpose (ADR-0011 rule 1).
  */
 
 import { FLOOR_SEATS, YOU_SEAT_ID } from './officeFloorPlan.js';
@@ -29,29 +23,30 @@ import { sceneParticipants } from './officeSceneCast.js';
 const POD_ZONE = 'pod';
 
 /**
- * @typedef {'pair' | 'mob' | 'walkby' | 'battle' | 'coffee' | 'meeting' | 'talk' | 'quiet'}
- *   OfficePresenceKind
+ * @typedef {'walkby' | 'meeting' | 'talk' | 'errand' | 'email' | 'shopJoin' | 'sceneJoin'} OfficeNextKind
  */
 
 /**
- * @typedef {{ kind: OfficePresenceKind, ids: string[] }} OfficePresence
- *   `ids` are cast ids in the order they should be shown, deduped, and never
- *   including you — the strip answers "who is around *you*", so putting the
- *   viewer in it is the one wrong answer.
+ * @typedef {{
+ *   kind: OfficeNextKind,
+ *   ids: string[],
+ *   meta?: {
+ *     fromId?: string,
+ *     emailId?: string,
+ *     partnerId?: string,
+ *     mark?: { x: number, y: number },
+ *     sceneKind?: 'coffee' | 'battle'
+ *   }
+ * }} OfficeNext
+ *   `ids` are cast ids in display order, deduped, never including you.
  */
 
 /** @type {string[] | null} */
 let pod = null;
 
 /**
- * The desks adjoining yours. Computed once: `FLOOR_SEATS` is a constant, and
- * this is the whole answer to "who can you see without standing up".
- *
- * Deliberately *not* `wanderingSeatIds()`, which is everybody who ever gets up
- * — a roster of eleven that includes reception and the HR corner. From your
- * chair you cannot see reception. The pod is the honest answer, and it lands on
- * the same six faces the composer band already puts under your hands, so the
- * quiet strip reads as continuous with the roster rather than as a new cast.
+ * The desks adjoining yours. Still exported for roster continuity tests and
+ * Slop Chat status — not shown on the idle strip anymore.
  *
  * @returns {string[]}
  */
@@ -75,12 +70,6 @@ function others(ids) {
 /**
  * Whoever has said something you have not read, newest first.
  *
- * Unread **IMs** count as presence and unread email does not, which is a
- * distinction about the medium rather than the backlog: Slop Chat is somebody
- * typing at you now, and an inbox is somebody who typed at you at some point.
- * The inbox carries its own unread badge for that. Talk-channel speech
- * (`channel: 'talk'`) is physical — desk / floor — and never counts here.
- *
  * @param {Array<{colleagueId?: string, read?: boolean, outbound?: boolean, channel?: string}> | undefined} imHistory
  * @returns {string[]}
  */
@@ -95,62 +84,99 @@ function unreadImSenders(imHistory) {
 }
 
 /**
- * The room in one glance.
+ * Unread mail with a human obligation — CTA marker, training, phishing drill,
+ * or errand button. Plain unread thread does not count; the inbox badge carries that.
  *
- * Exactly one kind wins, ordered by **how close the thing is to your chair**
- * rather than by how loud it is:
+ * @param {Array<{id?: string, colleagueId?: string, read?: boolean, actionPrompt?: string, training?: number, phishing?: boolean, errand?: string}> | undefined} emails
+ * @returns {{ id: string, colleagueId: string } | null}
+ */
+function newestActionableEmail(emails) {
+  for (let i = (emails?.length ?? 0) - 1; i >= 0; i -= 1) {
+    const email = emails[i];
+    if (!email?.id || !email.colleagueId || email.read) continue;
+    if (email.actionPrompt || Number.isFinite(email.training) || email.phishing || email.errand) {
+      return { id: email.id, colleagueId: email.colleagueId };
+    }
+  }
+  return null;
+}
+
+/**
+ * The next obligation on you, or null when the strip should be hidden.
  *
- * 1. `pair` / `mob` — they are at your screen. Nothing outranks that.
- * 2. `walkby`      — somebody is stood at your desk.
- * 3. `battle`      — the arena has the room.
- * 4. `coffee`      — the kitchen has it.
- * 5. `meeting`     — an invite is pending; nobody has moved yet.
- * 6. `talk`        — somebody messaged and is waiting on you.
- * 7. `quiet`       — your pod, at their desks, which is the truth most of the
- *                    time and still a real answer to "who is around".
+ * At the desk: walk-by → unread IM → meeting → errand → actionable email.
  *
- * The moment store mostly prevents overlap (`shouldHoldAmbientOfficeMoments`
- * holds the ambient director while any surface is up), but a user-started
- * huddle can land on top of a live walk-by, so the order is load-bearing rather
- * than theoretical.
- *
- * `quiet` is the only kind that is never empty, which is what lets the strip be
- * a permanent taskbar resident: a presence strip that vanished whenever the
- * office went quiet would flicker in and out all session, and a taskbar that
- * changes width on its own is worse than one that shows six idle colleagues.
+ * On the floor: shop-talk join → scene join → then the same desk obligations
+ * except walk-by (you are already up). Join offers are published by the floor
+ * renderer via `officeFloorNextStore`.
  *
  * @param {object | null | undefined} snapshot `getOfficeSnapshot()`
- * @returns {OfficePresence}
+ * @param {{ viewMode?: 'desk' | 'floor', floorNext?: { shopJoin?: object | null, sceneJoin?: object | null } | null }} [ctx]
+ * @returns {OfficeNext | null}
  */
-// eslint-disable-next-line complexity -- (reason: the rule's own guidance allows a written reason when the branches are a small, stable state machine, and this is one: seven mutually exclusive kinds read in a fixed order. The count is one `if` per kind plus a `?.` per nullable slice — getting under 12 means either merging kinds or splitting the ladder across functions, and the order *is* the decision this function exists to express.)
-export function officePresenceOf(snapshot) {
-  const { huddle, walkBy, battle, coffee, meetingInvite, imHistory } = snapshot ?? {};
+export function officeNextOf(snapshot, ctx = {}) {
+  const { walkBy, meetingInvite, imHistory, errand, emails, huddle } = snapshot ?? {};
+  const onFloor = ctx.viewMode === 'floor';
+  const floorNext = ctx.floorNext ?? null;
 
-  const gathered = others(huddle?.attendees);
-  if (gathered.length) {
-    return { kind: huddle.mode === 'pair' ? 'pair' : 'mob', ids: gathered };
+  // Already consuming the screen — a second nudge in the taskbar is noise.
+  if (others(huddle?.attendees).length) return null;
+
+  if (onFloor && floorNext?.shopJoin?.colleagueId && floorNext.shopJoin.mark) {
+    const { colleagueId, partnerId, mark } = floorNext.shopJoin;
+    return {
+      kind: 'shopJoin',
+      ids: others([colleagueId, partnerId]),
+      meta: { partnerId, mark }
+    };
   }
 
-  if (walkBy?.colleagueId) return { kind: 'walkby', ids: [walkBy.colleagueId] };
+  if (onFloor && floorNext?.sceneJoin?.colleagueId) {
+    const { colleagueId, participants, kind } = floorNext.sceneJoin;
+    return {
+      kind: 'sceneJoin',
+      ids: others(participants?.length ? participants : [colleagueId]),
+      meta: { sceneKind: kind === 'battle' ? 'battle' : 'coffee' }
+    };
+  }
 
-  // A holy war is a two-hander — that is what `OFFICE_BATTLE_SCENES` are, and
-  // the caption is "X vs Y". Enforcing it here rather than in the view means
-  // the renderer never has to own a "vs nobody" string: a malformed scene falls
-  // through to the next kind instead of captioning half a fight.
-  const fighting = others(sceneParticipants(battle?.lines));
-  if (fighting.length >= 2) return { kind: 'battle', ids: fighting };
-
-  const brewing = others(sceneParticipants(coffee?.lines));
-  if (brewing.length) return { kind: 'coffee', ids: brewing };
-
-  // The convener leads, because they are who the caption names.
-  const invited = others([meetingInvite?.colleagueId, ...(meetingInvite?.attendees ?? [])]);
-  if (invited.length) return { kind: 'meeting', ids: invited };
+  if (!onFloor && walkBy?.colleagueId) {
+    return { kind: 'walkby', ids: [walkBy.colleagueId] };
+  }
 
   const messaged = unreadImSenders(imHistory);
-  if (messaged.length) return { kind: 'talk', ids: messaged };
+  if (messaged.length) {
+    return { kind: 'talk', ids: messaged };
+  }
 
-  return { kind: 'quiet', ids: podSeatIds() };
+  const invited = others([meetingInvite?.colleagueId, ...(meetingInvite?.attendees ?? [])]);
+  if (invited.length) {
+    return { kind: 'meeting', ids: invited };
+  }
+
+  if (errand?.colleagueId) {
+    return {
+      kind: 'errand',
+      ids: [errand.colleagueId],
+      meta: errand.fromId ? { fromId: errand.fromId } : undefined
+    };
+  }
+
+  const email = newestActionableEmail(emails);
+  if (email) {
+    return {
+      kind: 'email',
+      ids: [email.colleagueId],
+      meta: { emailId: email.id }
+    };
+  }
+
+  return null;
+}
+
+/** @deprecated Use `officeNextOf` — kept for tests migrating off the old ladder. */
+export function officePresenceOf(snapshot) {
+  return officeNextOf(snapshot);
 }
 
 /**
@@ -159,25 +185,6 @@ export function officePresenceOf(snapshot) {
 
 /**
  * What one named colleague is doing right now.
- *
- * A sibling of `officePresenceOf`, not a slice of it. That one answers "what is
- * the room doing", collapses to a single winning kind, and deliberately never
- * reports per-person state — asking it about one person would mean reading the
- * room's kind and hoping that person is in `ids`, which is wrong the moment
- * anybody is doing something the room-level answer lost to.
- *
- * The immediate consumer is Slop Chat, whose title bar has advertised "Now with
- * 40% more presence indicators" over an empty roster since it shipped, and
- * whose `statusOnline` / `statusBusy` copy keys have sat in `officeCast.js`
- * rendered by nobody. Same derivation is available to the floor person card and
- * the Directory (ADR-0011: one state, N renderers).
- *
- * **Produces nothing** — the same carve-out the rest of this module stands on
- * (ADR-0012). It reads the moment store and answers.
- *
- * `available` is the honest default rather than a fallback: somebody at their
- * desk with nothing claiming them *is* reachable, which is exactly what a
- * messenger wants to tell you.
  *
  * @param {object | null | undefined} snapshot `getOfficeSnapshot()`
  * @param {string} colleagueId
@@ -192,8 +199,6 @@ export function officeStatusOf(snapshot, colleagueId) {
   if (huddle?.attendees?.includes(colleagueId)) return 'huddle';
   if (sceneParticipants(battle?.lines).includes(colleagueId)) return 'battle';
   if (sceneParticipants(coffee?.lines).includes(colleagueId)) return 'coffee';
-  // Standing at your desk mid-walk-by is the one status that is *about you*,
-  // so it reads as "here", not as "busy elsewhere".
   if (walkBy?.colleagueId === colleagueId) return 'desk';
   return 'available';
 }
@@ -201,33 +206,38 @@ export function officeStatusOf(snapshot, colleagueId) {
 /**
  * Where pressing the presence strip should take you.
  *
- * The strip started life as a diegetic Stand up (ADR-0011 rule 3). That is
- * right when the presence is embodied on the floor, and wrong when it is a
- * desk medium: unread IMs live in Slop Chat, a huddle is already at your
- * screen, and a meeting invite is already a desk toast. Email never appears
- * here — the inbox carries its own badge (see `unreadImSenders`).
- *
- * Pure, like `officePresenceOf`: the strip dispatches; it still produces
- * nothing of its own.
- *
- * @param {OfficePresence | null | undefined} presence
- * @returns {{ action: 'standUp' | 'messenger' | 'stay', colleagueId?: string }}
+ * @param {OfficeNext | null | undefined} next
+ * @returns {{ action: 'standUp' | 'messenger' | 'inbox' | 'invite' | 'floorTalk' | 'floorSceneJoin', colleagueId?: string, emailId?: string, mark?: { x: number, y: number }, sceneKind?: 'coffee' | 'battle' }}
  */
-export function presenceFollowOf(presence) {
-  switch (presence?.kind) {
+export function presenceFollowOf(next) {
+  switch (next?.kind) {
     case 'talk':
       return {
         action: 'messenger',
-        colleagueId: presence.ids?.[0] || undefined
+        colleagueId: next.ids?.[0] || undefined
       };
-    case 'pair':
-    case 'mob':
+    case 'email':
+      return {
+        action: 'inbox',
+        colleagueId: next.ids?.[0] || undefined,
+        emailId: next.meta?.emailId
+      };
     case 'meeting':
-      return { action: 'stay' };
+      return { action: 'invite' };
+    case 'shopJoin':
+      return {
+        action: 'floorTalk',
+        colleagueId: next.ids?.[0] || undefined,
+        mark: next.meta?.mark
+      };
+    case 'sceneJoin':
+      return {
+        action: 'floorSceneJoin',
+        sceneKind: next.meta?.sceneKind === 'battle' ? 'battle' : 'coffee'
+      };
     case 'walkby':
-    case 'battle':
-    case 'coffee':
-    case 'quiet':
+    case 'errand':
+      return { action: 'standUp' };
     default:
       return { action: 'standUp' };
   }

@@ -5,10 +5,14 @@ import DeskOsPresenceStrip from '../src/components/DeskOsPresenceStrip.jsx';
 import DeskOsTaskbar from '../src/components/DeskOsTaskbar.jsx';
 import {
   _resetForTests,
+  pushOfficeEmail,
   pushOfficeImPing,
   pushOfficeWalkBy,
+  pushOfficeErrand,
+  pushOfficeMeetingInvite,
   startOfficeHuddle
 } from '../src/state/officeMomentStore.js';
+import { _resetDeskCommsUiForTests, getDeskCommsUi } from '../src/state/deskCommsUiStore.js';
 import {
   _resetOfficeMessengerUiForTests,
   getOfficeMessengerUi
@@ -17,11 +21,10 @@ import {
   _resetOfficeViewModeForTests,
   getOfficeViewMode
 } from '../src/state/officeViewModeStore.js';
-import { _resetOfficePresenceForTests, podSeatIds } from '../src/utils/officePresence.js';
+import { _resetOfficePresenceForTests } from '../src/utils/officePresence.js';
 import { OFFICE_CHROME_COPY, officeSenderInfo } from '../src/utils/officeCast.js';
 import { formatLocale } from '../src/i18n/formatLocale.js';
 
-/** Copy comes from the real bundle — a relabel must not need a test edit. */
 const copy = OFFICE_CHROME_COPY.osTray.presence;
 
 const firstName = (id) => officeSenderInfo(id).name.split(' ')[0];
@@ -31,6 +34,7 @@ beforeEach(() => {
   _resetOfficeViewModeForTests();
   _resetOfficePresenceForTests();
   _resetOfficeMessengerUiForTests();
+  _resetDeskCommsUiForTests();
 });
 
 afterEach(() => {
@@ -38,20 +42,13 @@ afterEach(() => {
   _resetForTests();
   _resetOfficeViewModeForTests();
   _resetOfficeMessengerUiForTests();
+  _resetDeskCommsUiForTests();
 });
 
 describe('DeskOsPresenceStrip', () => {
-  it('shows your pod and says so when the office is quiet', () => {
+  it('is absent when nothing expects you', () => {
     render(<DeskOsPresenceStrip />);
-    const strip = screen.getByTestId('desk-os-presence');
-
-    expect(strip.dataset.kind).toBe('quiet');
-    expect(strip.textContent).toContain(copy.quiet);
-    // Three of six shown, the rest as a count.
-    expect(strip.querySelectorAll('[data-persona-face]')).toHaveLength(3);
-    expect(strip.textContent).toContain(
-      formatLocale(copy.overflow, { count: podSeatIds().length - 3 })
-    );
+    expect(screen.queryByTestId('desk-os-presence')).toBeNull();
   });
 
   it('names whoever is at your desk', () => {
@@ -61,25 +58,6 @@ describe('DeskOsPresenceStrip', () => {
     const strip = screen.getByTestId('desk-os-presence');
     expect(strip.dataset.kind).toBe('walkby');
     expect(strip.textContent).toContain(formatLocale(copy.walkby, { name: firstName('erlich') }));
-  });
-
-  it('names your pairing partner', () => {
-    render(<DeskOsPresenceStrip />);
-    act(() => startOfficeHuddle(['jared'], { mode: 'pair' }));
-
-    const strip = screen.getByTestId('desk-os-presence');
-    expect(strip.dataset.kind).toBe('pair');
-    expect(strip.textContent).toContain(formatLocale(copy.pair, { name: firstName('jared') }));
-  });
-
-  it('counts a mob rather than listing it', () => {
-    render(<DeskOsPresenceStrip />);
-    act(() => startOfficeHuddle(['jared', 'gilfoyle', 'dinesh', 'erlich']));
-
-    const strip = screen.getByTestId('desk-os-presence');
-    expect(strip.dataset.kind).toBe('mob');
-    expect(strip.textContent).toContain(formatLocale(copy.mob, { count: 4 }));
-    expect(strip.querySelectorAll('[data-persona-face]')).toHaveLength(3);
   });
 
   it('switches between the one-sender and many-sender talk captions', () => {
@@ -95,23 +73,16 @@ describe('DeskOsPresenceStrip', () => {
     );
   });
 
-  // Floor-native presence still stands you up; the accessible name leads with
-  // the visible caption so the press reads as a verb, not only a status.
-  it('stands you up when the floor is where the presence lives', () => {
+  it('stands you up when somebody is at your desk', () => {
     render(<DeskOsPresenceStrip />);
+    act(() => pushOfficeWalkBy({ colleagueId: 'erlich', body: 'hear me out' }));
+
     const strip = screen.getByTestId('desk-os-presence');
-
     expect(strip.dataset.follow).toBe('standUp');
-    expect(strip.getAttribute('aria-label')).toBe(formatLocale(copy.aria, { status: copy.quiet }));
-    // Native title carries the status too — recovery path when the in-bar
-    // caption is ellipsized or demoted away on a phone.
-    expect(strip.getAttribute('title')).toBe(`${copy.quiet} — ${copy.title}`);
-
     fireEvent.click(strip);
     expect(getOfficeViewMode()).toBe('floor');
   });
 
-  // Unread IMs are a desk medium — standing up to read a chat is the wrong room.
   it('opens Slop Chat for unread talk instead of standing up', () => {
     render(<DeskOsPresenceStrip />);
     act(() => pushOfficeImPing({ colleagueId: 'intern', body: 'quick q' }));
@@ -130,47 +101,95 @@ describe('DeskOsPresenceStrip', () => {
     });
   });
 
-  // Pairing is already at your screen — the strip should not yank you onto the
-  // floor away from the huddle overlay.
-  it('stays put for a huddle already at your screen', () => {
+  it('opens the inbox for actionable mail', () => {
     render(<DeskOsPresenceStrip />);
-    act(() => startOfficeHuddle(['jared'], { mode: 'pair' }));
+    act(() =>
+      pushOfficeEmail({
+        colleagueId: 'hr',
+        subject: 'Training',
+        body: 'Module 1',
+        training: 1
+      })
+    );
 
     const strip = screen.getByTestId('desk-os-presence');
-    expect(strip.dataset.follow).toBe('stay');
+    expect(strip.dataset.kind).toBe('email');
     fireEvent.click(strip);
-    expect(getOfficeViewMode()).toBe('desk');
-    expect(getOfficeMessengerUi().openNonce).toBe(0);
+    expect(getDeskCommsUi().activePanel).toBe('inbox');
+    expect(getDeskCommsUi().inboxEmailId).toMatch(/^email-/);
+  });
+
+  it('names an errand target', () => {
+    render(<DeskOsPresenceStrip />);
+    act(() => pushOfficeErrand({ fromId: 'hr', colleagueId: 'chad' }));
+
+    const strip = screen.getByTestId('desk-os-presence');
+    expect(strip.dataset.kind).toBe('errand');
+    expect(strip.textContent).toContain(
+      formatLocale(copy.errand, { name: firstName('chad'), from: firstName('hr') })
+    );
+  });
+
+  it('hides during a huddle already on screen', () => {
+    render(<DeskOsPresenceStrip />);
+    act(() => startOfficeHuddle(['jared'], { mode: 'pair' }));
+    expect(screen.queryByTestId('desk-os-presence')).toBeNull();
+  });
+
+  it('names a meeting convener', () => {
+    render(<DeskOsPresenceStrip />);
+    act(() =>
+      pushOfficeMeetingInvite({
+        colleagueId: 'scrumMaster',
+        title: 'Stand-ish',
+        body: 'Mandatory fun',
+        attendees: ['jared']
+      })
+    );
+
+    const strip = screen.getByTestId('desk-os-presence');
+    expect(strip.dataset.kind).toBe('meeting');
+    expect(strip.dataset.follow).toBe('invite');
+    expect(strip.textContent).toContain(
+      formatLocale(copy.meeting, { name: firstName('scrumMaster') })
+    );
   });
 
   it('peeks the full caption on hover, and a long-press does not stand you up', () => {
     render(<DeskOsPresenceStrip />);
+    act(() => pushOfficeImPing({ colleagueId: 'intern', body: 'quick q' }));
+
     const strip = screen.getByTestId('desk-os-presence');
+    const status = formatLocale(copy.talk, { name: firstName('intern') });
 
     fireEvent.pointerEnter(strip, { pointerType: 'mouse' });
     const peek = screen.getByTestId('desk-os-presence-peek');
-    expect(peek.textContent).toContain(copy.quiet);
+    expect(peek.textContent).toContain(status);
 
     fireEvent.pointerLeave(strip, { pointerType: 'mouse' });
     expect(screen.queryByTestId('desk-os-presence-peek')).toBeNull();
 
-    // Touch: hold to read, release without standing up — tap still stands up.
     vi.useFakeTimers();
     fireEvent.pointerDown(strip, { pointerType: 'touch' });
     act(() => {
       vi.advanceTimersByTime(420);
     });
-    expect(screen.getByTestId('desk-os-presence-peek').textContent).toContain(copy.quiet);
+    expect(screen.getByTestId('desk-os-presence-peek').textContent).toContain(status);
     fireEvent.pointerUp(strip, { pointerType: 'touch' });
     fireEvent.click(strip);
     expect(getOfficeViewMode()).toBe('desk');
     vi.useRealTimers();
   });
 
-  it('sits beside Stand up in the taskbar, not instead of it', () => {
+  it('sits beside Stand up in the taskbar when an obligation exists', () => {
     render(<DeskOsTaskbar />);
-    const strip = screen.getByTestId('desk-os-presence');
+    expect(screen.queryByTestId('desk-os-presence')).toBeNull();
 
+    act(() => pushOfficeImPing({ colleagueId: 'intern', body: 'quick q' }));
+    cleanup();
+    render(<DeskOsTaskbar />);
+
+    const strip = screen.getByTestId('desk-os-presence');
     expect(screen.getByTestId('desk-standup-button')).toBeTruthy();
     expect(strip.closest('.desk-os-taskbar-lead')).toBeTruthy();
   });

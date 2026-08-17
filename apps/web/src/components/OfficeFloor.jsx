@@ -69,6 +69,11 @@ import {
   setOfficeCaptions,
   subscribe as subscribeOffice
 } from '../state/officeMomentStore.js';
+import { clearOfficeFloorNext, setOfficeFloorNext } from '../state/officeFloorNextStore.js';
+import {
+  getOfficeFloorAction,
+  subscribeOfficeFloorAction
+} from '../state/officeFloorActionStore.js';
 import { useUiCopy } from '../i18n/useUiLocale.js';
 import { formatLocale } from '../i18n/formatLocale.js';
 
@@ -502,6 +507,44 @@ function OfficeFloorView({ bridge, viewPhase }) {
     () => (activity.standingFree ? sceneJoinOfferFor(coffee, youTile, battle) : null),
     [activity.standingFree, coffee, youTile, battle]
   );
+
+  useEffect(() => {
+    setOfficeFloorNext({
+      shopJoin: joinOffer?.mark
+        ? {
+            colleagueId: joinOffer.colleagueId,
+            partnerId: joinOffer.partnerId,
+            mark: joinOffer.mark
+          }
+        : null,
+      sceneJoin: sceneJoinOffer
+    });
+    return () => clearOfficeFloorNext();
+  }, [joinOffer, sceneJoinOffer]);
+
+  const floorAction = useSyncExternalStore(
+    subscribeOfficeFloorAction,
+    getOfficeFloorAction,
+    getOfficeFloorAction
+  );
+  const handledFloorActionRef = useRef(0);
+  useEffect(() => {
+    if (floorAction.actionNonce <= handledFloorActionRef.current) return;
+    handledFloorActionRef.current = floorAction.actionNonce;
+    const { request } = floorAction;
+    if (!request) return;
+    if (request.type === 'floorTalk') {
+      activity.startTalk(request.colleagueId, request.mark);
+      return;
+    }
+    if (request.type === 'floorSceneJoin') {
+      if (request.kind === 'battle') {
+        sceneHandlers?.onJoinBattle?.();
+      } else {
+        sceneHandlers?.onJoinCoffee?.();
+      }
+    }
+  }, [floorAction, activity, sceneHandlers]);
 
   /*
    * Slice 26: the errand you are carrying, resolved to a tile.

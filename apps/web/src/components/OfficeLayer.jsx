@@ -1613,6 +1613,7 @@ export default function OfficeLayer({
         taskbarAnchor={taskbarAnchor}
         emails={snapshot.emails}
         unreadCount={snapshot.unreadCount}
+        initialEmailId={commsUi.inboxEmailId}
         focusTime={snapshot.focusTime}
         onMarkRead={handleMarkRead}
         onMarkAllRead={markAllOfficeEmailsRead}

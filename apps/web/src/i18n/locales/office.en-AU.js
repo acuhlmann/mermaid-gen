@@ -1534,20 +1534,26 @@ export const OFFICE_EN_AU = {
       presence: {
         aria: '{status}. Get up and have a look.',
         ariaChat: '{status}. Open Slop Chat.',
-        ariaStay: '{status}.',
+        ariaInbox: '{status}. Open inbox.',
+        ariaInvite: '{status}. Respond to invite.',
         title: 'Get up and have a look',
         titleChat: 'Open Slop Chat',
-        titleStay: 'Already on your screen',
+        titleInbox: 'Open inbox',
+        titleInvite: 'Respond to invite',
         overflow: '+{count}',
-        pair: 'Pairing with {name}',
-        mob: '{count} round your screen',
         walkby: '{name} is at your desk',
-        battle: '{name} vs {other}',
-        coffee: 'Cuppa break',
         meeting: '{name} is rounding everyone up',
         talk: '{name} is waiting on you',
         talkMany: '{count} waiting on you',
-        quiet: 'Floor is dead quiet'
+        errand: 'Find {name} for {from}',
+        email: '{name} needs you',
+        shopJoin: '{name} and {partner} nearby',
+        sceneJoin: '{name} is still at the coffee machine',
+        sceneJoinBattle: '{name} is still in the holy war',
+        ariaFloorTalk: '{status}. Walk over and join in.',
+        ariaFloorSceneJoin: '{status}. Walk over and join them.',
+        titleFloorTalk: 'Walk over and join in',
+        titleFloorSceneJoin: 'Walk over and join them'
       }
     }
   }

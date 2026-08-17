@@ -30,6 +30,7 @@ export default function OfficeInboxDock({
   open: openControlled,
   onClose,
   openSignal = 0,
+  initialEmailId = null,
   emails,
   unreadCount,
   focusTime = false,
@@ -145,6 +146,14 @@ export default function OfficeInboxDock({
     setSelectedId(email.id);
     if (!email.read) onMarkRead?.(email.id);
   };
+
+  useEffect(() => {
+    if (!open || !initialEmailId) return;
+    const email = emails.find((entry) => entry.id === initialEmailId);
+    if (!email) return;
+    setSelectedId(email.id);
+    if (!email.read) onMarkRead?.(email.id);
+  }, [open, initialEmailId, emails, onMarkRead]);
 
   const toggleEmailSelection = (emailId) => {
     setSelectedEmailIds((prev) => {
