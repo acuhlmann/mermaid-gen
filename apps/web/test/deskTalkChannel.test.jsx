@@ -6,6 +6,8 @@ import DeskTalkComposer from '../src/components/DeskTalkComposer.jsx';
 import OfficeDeskSpeech from '../src/components/OfficeDeskSpeech.jsx';
 import { useDeskActions, TALK_LLM_CAP, DESK_LLM_CAP } from '../src/hooks/useDeskActions.js';
 import { _resetForTests, getOfficeSnapshot } from '../src/state/officeMomentStore.js';
+import { OFFICE_WALKBY_LLM_CAST } from '../src/utils/officeCast.js';
+import { CAST_TIERS } from '../src/utils/castTiers.js';
 
 vi.mock('../src/utils/officeMomentDelivery.js', async (importOriginal) => {
   const actual = await importOriginal();
@@ -73,6 +75,24 @@ describe('DeskTalkComposer', () => {
     fireEvent.change(input, { target: { value: 'ship it' } });
     fireEvent.submit(screen.getByTestId('desk-talk-composer'));
     expect(input.value).toBe('');
+  });
+
+  // Lane 1 has had dictation since the beginning, which left the band reading
+  // "the expensive input takes dictation, the free one makes you type" —
+  // backwards for the one lane whose whole fiction is that you are talking.
+  it('offers dictation, because the lane is about speaking rather than writing', () => {
+    render(<DeskTalkComposer onSubmit={vi.fn()} />);
+    const mic = document.querySelector('.desk-talk-mic');
+    expect(mic).toBeTruthy();
+    expect(mic.textContent).toMatch(/🎤|🎙️/);
+    // The shared button, so hold-to-speak / tap-to-toggle / unsupported-browser
+    // handling cannot drift from the other four voice surfaces.
+    expect(mic.classList.contains('is-mic-toggle')).toBe(true);
+  });
+
+  it('will not take dictation into a field it will not let you send', () => {
+    render(<DeskTalkComposer onSubmit={vi.fn()} disabled disabledReason="in a meeting" />);
+    expect(document.querySelector('.desk-talk-mic').disabled).toBe(true);
   });
 });
 
@@ -155,6 +175,57 @@ describe('OfficeDeskSpeech', () => {
   it('shows who is looking up while the reply is in flight', () => {
     render(<OfficeDeskSpeech pending pendingColleagueId="jared" />);
     expect(screen.getByRole('status').textContent).toMatch(/looks up/i);
+    // Named: somebody specific is about to answer, so the card can say where.
+    expect(screen.getByRole('status').textContent).toMatch(/At your desk/i);
+  });
+
+  // Undirected, nobody picked yet — and one of the outcomes is that nobody
+  // will. Heading it "At your desk" would promise somebody standing there
+  // before the roll, and then contradict itself when the room ignored you.
+  it('waits under your own half of the exchange when you addressed the room', () => {
+    render(<OfficeDeskSpeech pending pendingColleagueId={null} />);
+    const text = screen.getByRole('status').textContent;
+    expect(text).toMatch(/To the room/i);
+    expect(text).not.toMatch(/At your desk/i);
+  });
+
+  // Two of the four answer shapes reach this card, and they are told apart by
+  // one marker: unmarked is somebody an arm's length away, `across` is somebody
+  // shouting back from their own desk.
+  it('says where the voice came from when it was shouted across the room', () => {
+    const { rerender } = render(<OfficeDeskSpeech line={LINE} />);
+    expect(screen.getByRole('status').textContent).toMatch(/At your desk/i);
+
+    rerender(<OfficeDeskSpeech line={{ ...LINE, voice: 'across' }} />);
+    expect(screen.getByRole('status').textContent).toMatch(/across the room/i);
+    // The line itself is unchanged — distance is chrome, not a second copy of
+    // the same words.
+    expect(screen.getByText(LINE.body)).toBeTruthy();
+  });
+
+  // Saying something into an office and getting no acknowledgement at all is
+  // indistinguishable from a send button that failed. The beat is what makes it
+  // read as the room rather than as the app.
+  it('shows that nobody looked up, and clears itself', () => {
+    vi.useFakeTimers();
+    try {
+      render(<OfficeDeskSpeech line={null} ignoredSeq={1} />);
+      expect(screen.getByTestId('desk-speech-ignored')).toBeTruthy();
+      act(() => {
+        vi.advanceTimersByTime(5000);
+      });
+      expect(screen.queryByTestId('desk-speech-ignored')).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  // What you last heard from somebody else is not an answer to what you just
+  // said, so the silence has to beat a stale line rather than sit under it.
+  it('beats a stale line, which is not an answer to what you just said', () => {
+    render(<OfficeDeskSpeech line={LINE} ignoredSeq={1} />);
+    expect(screen.getByTestId('desk-speech-ignored')).toBeTruthy();
+    expect(screen.queryByText(LINE.body)).toBeNull();
   });
 });
 
@@ -220,6 +291,132 @@ describe('talkOutLoud', () => {
     }
     // Still reaching the LLM after the ambient cap would have been exhausted.
     expect(delivery.deliverLlmMoment.mock.calls.length).toBe(DESK_LLM_CAP + 2);
+  });
+
+  // ── The four answer shapes (see `talkOutLoud`) ──────────────────────────
+  //
+  // Saying something to an open-plan room used to have exactly one outcome —
+  // a reply card, every time, from somebody who had apparently been waiting for
+  // you to speak. These pin the three that fix that, plus the one that already
+  // existed, by driving `random` at each weight band rather than by mocking the
+  // roll: the weights are the design, so a test that stubbed `pickTalkAnswer`
+  // would keep passing after somebody re-tuned them to never walk over.
+  //
+  // Bands over TALK_ANSWER_WEIGHTS ([shout 5][walkover 2][ignored 1.4], total
+  // 8.4): shout < 0.595, walkover < 0.833, ignored above.
+  const SHOUT_ROLL = 0.1;
+  const WALKOVER_ROLL = 0.7;
+  const IGNORED_ROLL = 0.95;
+
+  it('shouts back from across the room — the common case, and no longer the only one', async () => {
+    const { result } = setup({ random: () => SHOUT_ROLL });
+    let outcome;
+    await act(async () => {
+      outcome = await result.current.talkOutLoud(null, { userMessage: 'anyone seen the spec?' });
+    });
+
+    expect(outcome.shape).toBe('shout');
+    expect(outcome.ok).toBe(true);
+    expect(delivery.deliverLlmMoment).toHaveBeenCalledWith(
+      'im',
+      expect.anything(),
+      // `voice: 'across'` is what lets the desk card say where the voice came
+      // from; `outLoud` is what stops the server framing it as a chat message.
+      expect.objectContaining({ channel: 'talk', voice: 'across', situation: 'outLoud' })
+    );
+  });
+
+  // The ask this whole slice is built around: somebody who comes to your desk
+  // must be a *walk-by*, because that is the moment with a floor renderer who
+  // actually gets up and walks (`FloorWalker`) and a desk renderer who leans
+  // over your shoulder (`OfficeWalkBy`).
+  it('sends somebody over as a walk-by, so the floor can draw them walking', async () => {
+    const { result } = setup({ random: () => WALKOVER_ROLL, replyDelayMs: () => 0 });
+    let outcome;
+    await act(async () => {
+      outcome = await result.current.talkOutLoud(null, { userMessage: 'is this over-engineered?' });
+    });
+
+    expect(outcome.shape).toBe('walkover');
+    expect(delivery.deliverLlmMoment).toHaveBeenCalledWith(
+      'walkby',
+      expect.anything(),
+      expect.objectContaining({ situation: 'walkover', colleagueId: outcome.colleagueId })
+    );
+    // The person who answers is the person who walks: a walk-over that fell back
+    // to the canned bank's own colleague would put a different face at your desk
+    // from the one the pending line named.
+    expect(delivery.deliverLlmMoment.mock.calls[0][2].replyContext.colleagueId).toBe(
+      outcome.colleagueId
+    );
+  });
+
+  // A voice can come from anywhere in the directory; a body has to be able to
+  // get here. The senior tier sits inside the sealed glass room, so a walk-over
+  // by one of them would be routed out through the wall.
+  it('only sends over somebody who can actually walk to your desk', async () => {
+    for (const seed of [0.62, 0.7, 0.78, 0.82]) {
+      const { result } = setup({ random: () => seed, replyDelayMs: () => 0 });
+      let outcome;
+      await act(async () => {
+        outcome = await result.current.talkOutLoud(null, { userMessage: 'thoughts on this?' });
+      });
+      expect(outcome.shape).toBe('walkover');
+      expect(OFFICE_WALKBY_LLM_CAST).toContain(outcome.colleagueId);
+      expect(CAST_TIERS.senior).not.toContain(outcome.colleagueId);
+    }
+  });
+
+  it('lets the room ignore you, and still records that you said it', async () => {
+    const { result } = setup({ random: () => IGNORED_ROLL, replyDelayMs: () => 0 });
+    let outcome;
+    await act(async () => {
+      outcome = await result.current.talkOutLoud(null, { userMessage: 'morning' });
+    });
+
+    expect(outcome.shape).toBe('ignored');
+    expect(outcome.ok).toBe(false);
+    // Nobody answered — nothing was delivered, by either rung.
+    expect(delivery.deliverLlmMoment).not.toHaveBeenCalled();
+    expect(delivery.deliverCannedMoment).not.toHaveBeenCalled();
+    // But you did say it, and the next thing that colleague says should know.
+    expect(getOfficeSnapshot().imHistory.filter((m) => m.outbound)).toHaveLength(1);
+  });
+
+  // Naming somebody is not a gamble — they are looking at you.
+  it('always answers when you turned to somebody, whatever the dice say', async () => {
+    const { result } = setup({ random: () => IGNORED_ROLL, replyDelayMs: () => 0 });
+    let outcome;
+    await act(async () => {
+      outcome = await result.current.talkOutLoud('gilfoyle', { userMessage: 'thoughts?' });
+    });
+
+    expect(outcome.shape).toBe('turnedTo');
+    expect(outcome.ok).toBe(true);
+    expect(delivery.deliverLlmMoment).toHaveBeenCalledWith(
+      'im',
+      expect.anything(),
+      expect.objectContaining({ situation: 'turnedTo', colleagueId: 'gilfoyle' })
+    );
+    // They are beside you, so there is nothing to mark: unmarked *is* "at your
+    // desk", which is what the card has always assumed.
+    expect(delivery.deliverLlmMoment.mock.calls[0][2].voice).toBeUndefined();
+  });
+
+  // A walk-over's whole point is that they came to look at your screen, and its
+  // prompt is told to name something visible on it. With nothing on the canvas
+  // there is nothing to have got up for.
+  it('never sends anybody over to look at an empty canvas', async () => {
+    const { result } = setup({
+      getDiagramSource: () => '   ',
+      random: () => WALKOVER_ROLL,
+      replyDelayMs: () => 0
+    });
+    let outcome;
+    await act(async () => {
+      outcome = await result.current.talkOutLoud(null, { userMessage: 'anyone about?' });
+    });
+    expect(outcome.shape).not.toBe('walkover');
   });
 
   it('says nothing when the line is blank', async () => {

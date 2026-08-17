@@ -23,7 +23,9 @@ import {
   OFFICE_WARMUP_GAP_JITTER_MS,
   OFFICE_WARMUP_MIN_GAP_MS,
   OFFICE_WARMUP_MOMENT_COUNT,
-  pickNextMoment
+  pickNextMoment,
+  pickTalkAnswer,
+  TALK_ANSWER_WEIGHTS
 } from '../src/utils/officeCadence.js';
 
 const BASE = {
@@ -343,5 +345,41 @@ describe('the afternoon slump (slice 24)', () => {
   it('takes a Date or an epoch, like the phase dial beside it', () => {
     const three = at(15);
     expect(wanderBiasAt(three)).toEqual(wanderBiasAt(three.getTime()));
+  });
+});
+
+describe('what the room does when you say something out loud', () => {
+  const shapesOf = (rolls, opts = {}) =>
+    rolls.map((roll) => pickTalkAnswer({ random: () => roll, ...opts }));
+
+  it('offers all three outcomes, not just the one the channel shipped with', () => {
+    // The bug this table exists to fix: saying something to an open-plan office
+    // produced a reply card every single time, from somebody who had apparently
+    // been waiting for you to speak. A room does three things, not one.
+    const seen = new Set(shapesOf([0, 0.25, 0.5, 0.65, 0.75, 0.9, 0.99]));
+    expect(seen).toEqual(new Set(['shout', 'walkover', 'ignored']));
+  });
+
+  it('leans answered, because this is a comedy office and not a study of being unpopular', () => {
+    const total = TALK_ANSWER_WEIGHTS.reduce((sum, [, weight]) => sum + weight, 0);
+    const ignored = TALK_ANSWER_WEIGHTS.find(([shape]) => shape === 'ignored')[1];
+    expect(ignored / total).toBeLessThan(0.25);
+    expect(ignored / total).toBeGreaterThan(0.05);
+  });
+
+  // The desk suites seed `random: () => 0`, and a seed that lands on silence
+  // would make every unrelated talk test assert on an office that said nothing.
+  it('answers on the zero seed the desk suites use', () => {
+    expect(pickTalkAnswer({ random: () => 0 })).toBe('shout');
+  });
+
+  it('never sends anybody over to look at an empty canvas', () => {
+    // A walk-over's whole point is that they came to look at your screen, and
+    // its prompt is told to name something visible on it.
+    const rolls = [0, 0.2, 0.4, 0.6, 0.8, 0.95, 0.999];
+    expect(shapesOf(rolls, { hasDiagram: false })).not.toContain('walkover');
+    // …and the roll still spans the shapes that remain, rather than collapsing
+    // to one — a gate that quietly silenced the room would pass a `not.toContain`.
+    expect(new Set(shapesOf(rolls, { hasDiagram: false }))).toEqual(new Set(['shout', 'ignored']));
   });
 });

@@ -1682,6 +1682,9 @@ export const OFFICE_ZH_TW = {
     },
     talk: {
       kindLabel: '在你座位旁',
+      kindLabelAcross: '從大廳那頭',
+      kindLabelRoom: '對著整間辦公室',
+      ignored: '沒人抬頭。',
       placeholder: '隨口說一句…',
       placeholderNamed: '跟 {name} 說一句…',
       aria: '隨口說一句 —— 誰適合誰接話',

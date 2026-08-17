@@ -272,6 +272,97 @@ test('the situation is restated last in the user prompt, where recency reaches s
   assert.doesNotMatch(ambient, /They have said NOTHING/);
 });
 
+test('a spoken situation replaces the typed reply mode instead of standing down for it', () => {
+  // The exception to the rule above, and the reason it exists: IM REPLY MODE
+  // opens "The user just sent you a chat message", which is a false statement
+  // about somebody who said it out loud across an open-plan floor. Left
+  // stacked, the model reads both; left standing down, the physical
+  // circumstance never reaches it at all and the answer comes back as Slack.
+  for (const situation of ['outLoud', 'turnedTo', 'walkover']) {
+    const prompt = buildMomentSystemPrompt({
+      kind: 'im',
+      colleagueId: 'jared',
+      isReply: true,
+      situation
+    });
+    assert.match(prompt, /HOW THIS REACHED YOU/);
+    assert.match(prompt, /overrides the usual "surprise me"/);
+    assert.doesNotMatch(prompt, /IM REPLY MODE/);
+    assert.doesNotMatch(prompt, /just sent you a chat message/);
+    // Each block is the only reply instruction the model now gets, so each has
+    // to carry its own "answer what they said".
+    assert.match(prompt, /answer (them|the thing they actually said|what they said)/i);
+  }
+});
+
+test('each spoken situation states its own geometry — who heard it, and from how far', () => {
+  const outLoud = buildMomentSystemPrompt({
+    kind: 'im',
+    colleagueId: 'jared',
+    isReply: true,
+    situation: 'outLoud'
+  });
+  assert.match(outLoud, /to the room in\s+general, without naming anybody/);
+  assert.match(outLoud, /ACROSS THE OFFICE from your chair/);
+
+  const turnedTo = buildMomentSystemPrompt({
+    kind: 'im',
+    colleagueId: 'jared',
+    isReply: true,
+    situation: 'turnedTo'
+  });
+  assert.match(turnedTo, /arm's length/);
+  assert.doesNotMatch(turnedTo, /ACROSS THE OFFICE/);
+
+  // The one that has to justify getting up: a walk-over that says something you
+  // could have said from your own chair is the failure this block prevents.
+  const walkover = buildMomentSystemPrompt({
+    kind: 'walkby',
+    colleagueId: 'jared',
+    isReply: true,
+    situation: 'walkover'
+  });
+  assert.match(walkover, /got up, walked over/);
+  assert.match(walkover, /name something visible in it/);
+});
+
+test('a spoken IM is speech, so it loses the "lowercase chat energy" body rule', () => {
+  // The single line most responsible for a said-out-loud answer reading like a
+  // chat message. `im` is only the *shape* a talk reply is delivered in.
+  const typed = buildMomentSystemPrompt({ kind: 'im', colleagueId: 'jared' });
+  assert.match(typed, /Lowercase chat energy welcome/);
+
+  const spoken = buildMomentSystemPrompt({
+    kind: 'im',
+    colleagueId: 'jared',
+    isReply: true,
+    situation: 'outLoud'
+  });
+  assert.doesNotMatch(spoken, /Lowercase chat energy welcome/);
+  assert.match(spoken, /said ALOUD in an open-plan office/);
+  assert.match(spoken, /never stage directions/);
+});
+
+test('the user prompt names the medium: said out loud, not sent', () => {
+  const spoken = buildMomentUserPrompt({
+    contentType: 'mermaid',
+    visibleLabels: [],
+    recentMoments: [],
+    situation: 'outLoud',
+    userMessage: 'why is auth in here twice',
+    threadTranscript: [{ from: 'user', body: 'why is auth in here twice' }]
+  });
+  assert.match(spoken, /THE USER JUST SAID, OUT LOUD/);
+  assert.doesNotMatch(spoken, /THE USER JUST SENT/);
+  // `threadTranscriptFor` does not separate spoken from typed, so calling the
+  // log a Slop Chat thread is only right when the newest turn was typed.
+  assert.doesNotMatch(spoken, /Slop Chat thread so far/);
+  assert.match(spoken, /Earlier with them today/);
+  // And unlike a silent situation, the reminder survives the user message —
+  // this one is *about* what they said.
+  assert.match(spoken.trimEnd(), /Shout one short sentence back from your desk\.$/);
+});
+
 test('the user-prompt reminder stands down for a reply, matching the system prompt', () => {
   // Two builders, one rule: "they said nothing" must never be appended under a
   // transcript of them saying something.

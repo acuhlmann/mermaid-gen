@@ -1316,6 +1316,22 @@ export default function OfficeLayer({
    */
   const [talkPendingFor, setTalkPendingFor] = useState(/** @type {string | null} */ (null));
   const [talkPending, setTalkPending] = useState(false);
+  /**
+   * "Nobody looked up."
+   *
+   * Presentation, not office state, and therefore local — the same argument
+   * `OfficeDeskSpeech`'s own `dismissedId` makes. A shape the room *declined* to
+   * take leaves nothing behind: no colleague, no line, nothing for a second
+   * renderer to read, so there is nothing for the store to hold (ADR-0011
+   * rule 1). It has to be shown, though. Saying something into an office and
+   * getting no acknowledgement at all is indistinguishable from a send button
+   * that failed, and the whole point of the outcome is that it reads as the room
+   * rather than as the app.
+   *
+   * A counter rather than a boolean so saying two unanswered things in a row
+   * re-arms the beat instead of silently reusing the first one's timer.
+   */
+  const [talkIgnoredSeq, setTalkIgnoredSeq] = useState(0);
   const talkHandledRef = useRef(0);
   useEffect(() => {
     const seq = talkSignal?.seq ?? 0;
@@ -1325,9 +1341,13 @@ export default function OfficeLayer({
     if (!text.trim()) return;
     setTalkPendingFor(talkSignal.colleagueId ?? null);
     setTalkPending(true);
+    setTalkIgnoredSeq(0);
     playChime?.(playSendTick);
     void desk
       .talkOutLoud(talkSignal.colleagueId ?? null, { userMessage: text })
+      .then((outcome) => {
+        if (outcome?.shape === 'ignored') setTalkIgnoredSeq(seq);
+      })
       .finally(() => setTalkPending(false));
   }, [talkSignal, desk, playChime]);
 
@@ -1635,6 +1655,7 @@ export default function OfficeLayer({
               line={latestTalkLine}
               pending={talkPending}
               pendingColleagueId={talkPendingFor}
+              ignoredSeq={talkIgnoredSeq}
               captions={snapshot.captions}
               narration={snapshot.narration}
               narrateLine={snapshot.narration ? narrateLine : undefined}

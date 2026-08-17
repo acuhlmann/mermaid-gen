@@ -2124,6 +2124,13 @@ export const OFFICE_CHROME_COPY = {
    */
   talk: {
     kindLabel: 'At your desk',
+    /* The other two answer shapes that reach the desk card. `kindLabelAcross`
+       is somebody shouting back from their own desk; `kindLabelRoom` heads the
+       card where nobody answered at all, and names *your* half of it, since
+       there is no colleague to name. */
+    kindLabelAcross: 'From across the room',
+    kindLabelRoom: 'To the room',
+    ignored: 'Nobody looks up.',
     placeholder: 'Say it out loud…',
     placeholderNamed: 'Say something to {name}…',
     aria: 'Say something out loud — whoever is apt answers',

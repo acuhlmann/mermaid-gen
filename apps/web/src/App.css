@@ -24071,6 +24071,54 @@ body.slopitect-rainbow-tint::before {
   outline: none;
 }
 
+/* Dictation for lane 2. Sized to the pill it sits in rather than to the floor
+   card's 2.25rem square — this composer is a 1.5rem-tall band, so the shared
+   button's own minimums would burst it. */
+.desk-talk-mic {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.6rem;
+  min-height: 1.6rem;
+  padding: 0.12rem 0.3rem;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background: transparent;
+  font-size: 0.78rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.desk-talk-mic:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.desk-talk-mic:hover:not(:disabled),
+.desk-talk-mic:focus-visible:not(:disabled) {
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  outline: none;
+}
+
+.desk-talk-mic.is-listening {
+  border-color: color-mix(in srgb, var(--accent) 70%, transparent);
+  background: color-mix(in srgb, var(--accent) 20%, transparent);
+}
+
+/* Icon + aria-label carry it; the band has no room for the word "Mic". */
+.desk-talk-mic .button-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
 .desk-talk-send {
   flex: 0 0 auto;
   padding: 0.18rem 0.6rem;
@@ -24149,6 +24197,24 @@ body.slopitect-rainbow-tint::before {
   font-size: 0.8rem;
   font-style: italic;
   color: var(--muted);
+}
+
+/* Nobody looked up. Same italic-muted register as the pending line on purpose —
+   it is the same beat, ending the other way — and dimmer than either, because
+   the whole content of this card is that nothing happened. */
+.office-desk-speech-ignored {
+  margin: 0;
+  font-size: 0.8rem;
+  font-style: italic;
+  color: var(--muted);
+  opacity: 0.75;
+}
+
+/* Shouted back from their own desk rather than said beside you. The dashed left
+   edge is the say-it-out-loud composer's own signal (that lane is dashed for
+   "this is talk"), reused here so distance reads the same way in both places. */
+.office-moment-shell--desk-speech.is-across .office-desk-speech {
+  border-left-style: dashed;
 }
 
 .office-desk-speech-actions {

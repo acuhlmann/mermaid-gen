@@ -514,7 +514,7 @@ of the composer band is that missing channel.
 
 | Act                         | Composer           | Verb                                 | Yields                        |
 | --------------------------- | ------------------ | ------------------------------------ | ----------------------------- |
-| Say something out loud      | lane 2, no target  | `talkOutLoud(null, { userMessage })` | a reply, sometimes a pitch    |
+| Say something out loud      | lane 2, no target  | `talkOutLoud(null, { userMessage })` | one of **four** answers below |
 | Turn to the person next you | lane 2, target set | `talkOutLoud(id, { userMessage })`   | a reply, sometimes a pitch    |
 | Get everyone over (mob)     | roster team block  | `startHuddle(team, {mode:'mob'})`    | a remark each, then it ends   |
 | Sit with one of them (pair) | roster 🪑 chip     | `startHuddle([id], {mode:'pair'})`   | a train of thought that stays |
@@ -537,6 +537,55 @@ Three things are new:
   shared `OfficeMomentShell` chrome. It is not `OfficeDeskArrival`: an arrival announces _that_
   somebody messaged you, this is the line itself, because you are standing in the conversation.
   `pushOfficeImPing` skips the arrival toast for `channel: 'talk'` so the two never double up.
+
+#### What the room does back (the four answer shapes)
+
+Saying something out loud shipped with exactly **one** outcome — a reply card, every time, from
+somebody who had apparently been waiting for you to speak. That is a chat window in a costume, and
+it is the tell: an office where every remark is answered is a room full of people facing you.
+`pickTalkAnswer` (`officeCadence.js`, weights beside the rest of the office's appetite) rolls the
+other two; being addressed by name is the fourth and never rolls.
+
+| Shape      | Rolled?             | Renders as                                                     | Wire `situation` |
+| ---------- | ------------------- | -------------------------------------------------------------- | ---------------- |
+| `turnedTo` | no — you named them | `OfficeDeskSpeech`, unmarked ("At your desk")                  | `turnedTo`       |
+| `shout`    | ~59 %               | `OfficeDeskSpeech`, `voice: 'across'` ("From across the room") | `outLoud`        |
+| `walkover` | ~24 %               | **a `walkby` moment** — `OfficeWalkBy` / `FloorWalker`         | `walkover`       |
+| `ignored`  | ~17 %               | a self-clearing "Nobody looks up." beat                        | —                |
+
+Three things are load-bearing:
+
+- **A walk-over is a walk-by, not a fifth renderer.** It goes through `pushOfficeWalkBy`, so it
+  inherits both renderers the over-the-shoulder moment already owns: a head dropping into your
+  screen at the desk, and a colleague who actually **gets up and walks across the floor** in
+  isometric mode, then walks back. Nothing new draws a person, and the `walkby` prompt already
+  demands the line name something visible on the canvas — which is the difference between somebody
+  who came over for a reason and somebody who could have said it from their chair. It is gated on
+  there being a diagram for the same reason an ambient walk-by is.
+- **Silence is a feature and it needs a beat.** `TALK_SILENCE_DELAY_MIN_MS` exists because "nobody
+  answered" is only legible after the moment in which they might have; instant silence reads as a
+  broken send button. Your line is still recorded — you said it — so the next thing that colleague
+  says knows you did. The card clears itself: there is nothing to read in it, so leaving it up
+  would turn "nobody answered" into paperwork about nobody answering.
+- **A walk-over pauses first.** Somebody has to stand up and cross the floor. The isometric
+  renderer animates that; `TALK_WALKOVER_DELAY_MIN_MS` is the desk renderer paying the same fare.
+
+**The reply used to reach the model as a chat message, and that was the other half of the problem.**
+`kind: 'im'` carries "Lowercase chat energy welcome", and reply mode opens "The user just sent you a
+chat message" — both false about somebody who said it out loud two desks away, and together they
+are why the channel came back written like Slack. The wire's `situation` field grew a **spoken**
+half for it (`outLoud` / `turnedTo` / `walkover`, `OFFICE_MOMENT_SITUATIONS` in shared). Unlike the
+silent ones (`dwell`, `run`), which stand down when the user typed, a spoken situation **replaces**
+the typed reply mode — see `isSpokenMomentSituation` — and swaps the body rule for `imSpoken`.
+Each block states its own geometry (how far away they are, who else heard it), because that is what
+sets the length and register of the answer and it is the one thing the model cannot infer from the
+words it is answering: a shout across a floor is one short sentence, a swivel-chair answer is two.
+
+**Lane 2 has its own mic.** Lane 1 had dictation from the beginning, which left the band reading
+"the expensive input takes dictation, the free one makes you type" — backwards for the one lane
+whose whole fiction is that you are talking rather than writing. It is the shared `VoiceMicButton`
+(Slop Chat, floor talk and the meeting raise-hand all use it), so hold-to-speak, tap-to-toggle on a
+phone and unsupported-browser handling cannot drift from the other surfaces.
 
 **The floor mirror still shares state.** Talk lands in the same `imHistory`
 `FloorTalk` already reads, so a line said at your desk is over their head if you
