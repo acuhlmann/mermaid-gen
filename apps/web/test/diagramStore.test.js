@@ -22,6 +22,7 @@ import {
   submitDiagramIntent,
   submitDiagramTransform,
   syncClientDiagramState,
+  applyUserDiagramEdit,
   clearAllArchislopAppStorage,
   isDiagramCacheSubstantial,
   isServerSessionPristine,
@@ -280,6 +281,34 @@ describe('syncClientDiagramState', () => {
       expect(JSON.parse(requestBody).styleConfig.theme).toBe('forest');
       expect(requestHeaders[SESSION_HEADER]).toBeTruthy();
       expect(payload.revisionId).toBe(3);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it('posts a user-edit with previousRevisionId and surfaces stale as code', async () => {
+    const originalFetch = globalThis.fetch;
+    try {
+      globalThis.fetch = async (url, options) => {
+        expect(url).toContain('/api/copilotkit/user-edit');
+        expect(JSON.parse(options.body).previousRevisionId).toBe(4);
+        expect(JSON.parse(options.body).reason).toBe('Connect node');
+        return {
+          ok: false,
+          status: 409,
+          async json() {
+            return { error: 'Diagram changed', code: 'stale_revision' };
+          }
+        };
+      };
+
+      await expect(
+        applyUserDiagramEdit({
+          diagramSource: 'flowchart TD\n  A --> B',
+          previousRevisionId: 4,
+          reason: 'Connect node'
+        })
+      ).rejects.toMatchObject({ code: 'stale_revision' });
     } finally {
       globalThis.fetch = originalFetch;
     }

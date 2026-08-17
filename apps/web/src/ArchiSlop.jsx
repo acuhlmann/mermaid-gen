@@ -329,7 +329,8 @@ export function ArchiSlop() {
     changeHighlightForCanvas,
     changeHighlightContentType,
     diagramChangeHighlightSummary,
-    entryDiagramDiffById
+    entryDiagramDiffById,
+    flowchartGraphEdit
   } = canvas;
 
   const {
@@ -730,7 +731,9 @@ export function ArchiSlop() {
     setHotkeyOverlayOpen,
     setSelectedNode,
     slopitect,
-    tryAgentSound
+    tryAgentSound,
+    graphEdit: flowchartGraphEdit.graphEdit,
+    onGraphEditAction: flowchartGraphEdit.handleGraphEditAction
   });
 
   const { mounted: insightsMounted, closing: insightsClosing } = useDelayedUnmount(
@@ -850,6 +853,17 @@ export function ArchiSlop() {
           onFormSubmit={handleFormSubmit}
           onManualEdit={handleManualEdit}
           onValidationChange={handleValidationChange}
+          connectSourceId={flowchartGraphEdit.connectSourceId}
+          onConnectTarget={flowchartGraphEdit.handleConnectTarget}
+          graphEditHint={flowchartGraphEdit.connectHint}
+          graphEditLabelSession={flowchartGraphEdit.labelSession}
+          graphEditLabelPlaceholder={controls.graphEdit.renamePlaceholder}
+          onGraphEditLabelCommit={flowchartGraphEdit.handleLabelCommit}
+          onGraphEditLabelCancel={flowchartGraphEdit.cancelLabel}
+          graphEditUndoToast={flowchartGraphEdit.undoToast}
+          graphEditUndoLabel={controls.graphEdit.undo}
+          onGraphEditUndo={flowchartGraphEdit.undoLast}
+          onDismissGraphEditUndo={flowchartGraphEdit.dismissUndoToast}
           modeRevealActive={modeRevealActive}
           modeRevealCopy={controls.modeReveal}
           onModeRevealPick={handleModeRevealPick}

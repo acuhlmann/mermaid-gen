@@ -24,6 +24,10 @@ describe('normalizeDiagramElementId', () => {
   it('strips flowchart prefix and numeric suffix for nodes', () => {
     expect(normalizeDiagramElementId('flowchart-A-12', 'node')).toBe('A');
     expect(normalizeDiagramElementId('flowchart-v2-B-3', 'node')).toBe('B');
+    expect(normalizeDiagramElementId('diagram-1-flowchart-A-0', 'node')).toBe('A');
+    expect(normalizeDiagramElementId('diagram-12-flowchart-user-service-3', 'node')).toBe(
+      'user-service'
+    );
   });
 
   it('strips cluster prefix for clusters', () => {
@@ -40,6 +44,11 @@ describe('logicalIdFromDiagramSelection', () => {
         kind: 'node'
       })
     ).toBe('Alpha');
+  });
+
+  it('reads the canvas descriptor `id` when elementId is absent', () => {
+    expect(logicalIdFromDiagramSelection({ id: 'flowchart-B-0' })).toBe('B');
+    expect(logicalIdFromDiagramSelection({ id: 'diagram-1-flowchart-A-0' })).toBe('A');
   });
 });
 

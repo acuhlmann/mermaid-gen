@@ -47,6 +47,8 @@ export function normalizeDiagramElementId(raw, kind) {
   let s = raw.trim();
   if (!s) return null;
 
+  // mermaid.render(diagramId) prefixes every SVG id with `${diagramId}-`.
+  s = s.replace(/^diagram-\d+-/i, '');
   if (kind === 'cluster') {
     s = s.replace(/^cluster[-_]?/i, '');
   }
@@ -55,16 +57,22 @@ export function normalizeDiagramElementId(raw, kind) {
   return s || raw.trim();
 }
 
+function selectionDomId(sel) {
+  const fromElement =
+    sel.elementId != null && String(sel.elementId).trim() ? String(sel.elementId).trim() : '';
+  if (fromElement) return fromElement;
+  // Canvas node descriptors store the SVG id as `id`, not `elementId`.
+  return sel.id != null && String(sel.id).trim() ? String(sel.id).trim() : '';
+}
+
 /**
  * Resolve logical id from SVG element attributes.
- * @param {{ elementId?: string, dataId?: string|null, kind?: 'node'|'cluster' }} sel
+ * @param {{ elementId?: string, id?: string, dataId?: string|null, kind?: 'node'|'cluster' }} sel
  */
 export function logicalIdFromDiagramSelection(sel) {
   const kind = sel.kind === 'cluster' ? 'cluster' : 'node';
   const data = sel.dataId != null && String(sel.dataId).trim() ? String(sel.dataId).trim() : '';
-  const domId =
-    sel.elementId != null && String(sel.elementId).trim() ? String(sel.elementId).trim() : '';
-  const primary = data || domId;
+  const primary = data || selectionDomId(sel);
   if (!primary) return null;
   const normalized = normalizeDiagramElementId(primary, kind);
   return normalized || primary;
@@ -77,7 +85,7 @@ export function logicalIdFromDiagramSelection(sel) {
  */
 export function collectLogicalIdCandidates(sel) {
   const kind = sel.kind === 'cluster' ? 'cluster' : 'node';
-  const rawDom = sel.elementId != null ? String(sel.elementId).trim() : '';
+  const rawDom = selectionDomId(sel);
   const rawData = sel.dataId != null ? String(sel.dataId).trim() : '';
   /** @type {string[]} */
   const out = [];
@@ -94,6 +102,7 @@ export function collectLogicalIdCandidates(sel) {
     add(normalizeDiagramElementId(rawDom, kind) || rawDom);
     add(rawDom);
     let stripped = rawDom;
+    stripped = stripped.replace(/^diagram-\d+-/i, '');
     if (kind === 'cluster') {
       stripped = stripped.replace(/^cluster[-_]?/i, '');
     }

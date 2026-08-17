@@ -21,6 +21,7 @@ import {
   DiagramStyleSchema,
   DiagramTransformIntentSchema,
   StyleIntentSchema,
+  UserDiagramEditSchema,
   AGUI_CUSTOM_NAME_HEARTBEAT,
   createAgentStreamEmitter,
   customEvent,
@@ -583,6 +584,66 @@ export async function handleClientStateSync({
   };
 }
 
+export async function handleUserDiagramEdit({
+  body,
+  stateStore
+}: SyncHandlerDeps): Promise<JsonRouteResult> {
+  const parsed = UserDiagramEditSchema.safeParse(body);
+  if (!parsed.success) {
+    return {
+      status: 400,
+      body: {
+        error: 'Invalid user edit payload',
+        details: parsed.error.flatten()
+      }
+    };
+  }
+
+  if (parsed.data.contentType !== 'mermaid') {
+    return {
+      status: 400,
+      body: { error: 'Canvas graph edits are mermaid-only' }
+    };
+  }
+
+  const slot = stateStore.getSlot('mermaid');
+  if (slot.revisionId !== parsed.data.previousRevisionId) {
+    return {
+      status: 409,
+      body: {
+        error: 'Diagram changed',
+        code: 'stale_revision'
+      }
+    };
+  }
+
+  const applied = await stateStore.applyDiagramSource({
+    contentType: 'mermaid',
+    diagramSource: parsed.data.diagramSource,
+    reason: parsed.data.reason,
+    origin: { kind: 'user' }
+  });
+
+  if (!applied.accepted) {
+    const rejected = applied as Extract<ApplyStoreResult, { accepted: false }>;
+    return {
+      status: 422,
+      body: {
+        error: rejected.error ?? 'User edit rejected'
+      }
+    };
+  }
+
+  const accepted = applied as Extract<ApplyStoreResult, { accepted: true }>;
+  return {
+    status: 200,
+    body: {
+      state: accepted.state as unknown as Record<string, unknown>,
+      patch: accepted.patch as Record<string, unknown>
+    }
+  };
+}
+
 function resolveStateContentType(req: Request): ContentType | null {
   const candidate = req?.query?.contentType;
   const parsed = ContentTypeSchema.safeParse(candidate);
@@ -692,6 +753,17 @@ export function createCopilotRouter({
   router.post('/state', async (req, res) => {
     const { sessionId, stateStore } = resolveServices(req);
     const result = await handleClientStateSync({
+      body: req.body,
+      stateStore
+    });
+
+    res.setHeader(SESSION_HEADER, sessionId);
+    return res.status(result.status).json(result.body);
+  });
+
+  router.post('/user-edit', async (req, res) => {
+    const { sessionId, stateStore } = resolveServices(req);
+    const result = await handleUserDiagramEdit({
       body: req.body,
       stateStore
     });

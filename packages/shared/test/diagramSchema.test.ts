@@ -20,6 +20,7 @@ import {
   StyleIntentSchema,
   TransformModeSchema,
   ToolApplyResultSchema,
+  UserDiagramEditSchema,
   applyMermaidStyleDirective,
   applyPatch,
   createInitialDiagramState,
@@ -681,4 +682,22 @@ test('ToolApplyResultSchema rejects envelope without accepted discriminator', ()
     state: { revisionId: 1 }
   });
   assert.equal(parsed.success, false);
+});
+
+test('UserDiagramEditSchema requires source, revision, and reason', () => {
+  assert.equal(
+    UserDiagramEditSchema.safeParse({
+      diagramSource: 'flowchart TD\n  A --> B',
+      previousRevisionId: 0,
+      reason: 'Connect node'
+    }).success,
+    true
+  );
+  assert.equal(
+    UserDiagramEditSchema.safeParse({
+      diagramSource: 'flowchart TD\n  A --> B',
+      previousRevisionId: 0
+    }).success,
+    false
+  );
 });

@@ -20,6 +20,8 @@ import { DiagramFullscreenToolbarSlot } from './DiagramFullscreenToolbarSlot.jsx
 import { OfficeLayerSlot } from './OfficeLayerSlot.jsx';
 import { SessionCollaborationSlot } from '../session/SessionCollaborationSlot.jsx';
 import { ShellBottomRowSlot } from './ShellBottomRowSlot.jsx';
+import FlowchartLabelField from '../../components/FlowchartLabelField.jsx';
+import GraphEditUndoToast from '../../components/GraphEditUndoToast.jsx';
 
 /**
  * Post-boot workspace: canvas, desk overlays, shell chrome, and bottom row.
@@ -52,6 +54,17 @@ export function AppWorkspaceSlot({
   onFormSubmit,
   onManualEdit,
   onValidationChange,
+  connectSourceId = null,
+  onConnectTarget = null,
+  graphEditHint = null,
+  graphEditLabelSession = null,
+  graphEditLabelPlaceholder = 'Label',
+  onGraphEditLabelCommit,
+  onGraphEditLabelCancel,
+  graphEditUndoToast = null,
+  graphEditUndoLabel = 'Undo',
+  onGraphEditUndo,
+  onDismissGraphEditUndo,
   modeRevealActive,
   modeRevealCopy,
   onModeRevealPick,
@@ -241,6 +254,25 @@ export function AppWorkspaceSlot({
         diagramSurfaceRef={diagramSurfaceRef}
         isFullscreen={isFullscreen}
         onFormSubmit={onFormSubmit}
+        connectSourceId={connectSourceId}
+        onConnectTarget={onConnectTarget}
+      />
+      {graphEditHint ? (
+        <p className="flowchart-connect-hint" role="status">
+          {graphEditHint}
+        </p>
+      ) : null}
+      <FlowchartLabelField
+        session={graphEditLabelSession}
+        placeholder={graphEditLabelPlaceholder}
+        onCommit={onGraphEditLabelCommit}
+        onCancel={onGraphEditLabelCancel}
+      />
+      <GraphEditUndoToast
+        message={graphEditUndoToast?.message}
+        undoLabel={graphEditUndoLabel}
+        onUndo={onGraphEditUndo}
+        onDismiss={onDismissGraphEditUndo}
       />
 
       <ModeRevealSlot

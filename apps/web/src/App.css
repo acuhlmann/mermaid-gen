@@ -159,6 +159,70 @@
   cursor: grabbing;
 }
 
+.diagram-output.is-connect-mode {
+  cursor: crosshair;
+}
+
+.flowchart-connect-hint {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  z-index: 6;
+  transform: translateX(-50%);
+  margin: 0;
+  padding: 0.35rem 0.7rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bg, #0f172a) 88%, transparent);
+  color: var(--text, #e2e8f0);
+  font-size: 0.78rem;
+  pointer-events: none;
+}
+
+.flowchart-label-field {
+  position: fixed;
+  z-index: 40;
+  transform: translate(-50%, -120%);
+}
+
+.flowchart-label-field input {
+  min-width: 8rem;
+  padding: 0.35rem 0.55rem;
+  border: 1px solid color-mix(in srgb, var(--accent, #2563eb) 55%, #94a3b8);
+  border-radius: 6px;
+  font: inherit;
+  font-size: 0.85rem;
+}
+
+.graph-edit-undo-toast {
+  position: absolute;
+  bottom: calc(var(--desk-taskbar-h, 48px) + 12px);
+  left: 50%;
+  z-index: 8;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  transform: translateX(-50%);
+  padding: 0.4rem 0.7rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bg, #0f172a) 90%, transparent);
+  color: var(--text, #e2e8f0);
+  font-size: 0.82rem;
+}
+
+.graph-edit-undo-toast button {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.graph-edit-undo-toast-dismiss {
+  text-decoration: none !important;
+  opacity: 0.7;
+}
+
 .diagram-output.is-agent-thinking::after {
   content: '';
   position: absolute;
@@ -7898,6 +7962,24 @@
   --slop-action-accent: #7c3aed;
   --slop-action-accent-2: #06b6d4;
   --slop-action-glow: rgba(124, 58, 237, 0.32);
+}
+
+.radial-action-button.is-connect {
+  --slop-action-accent: #059669;
+  --slop-action-accent-2: #34d399;
+  --slop-action-glow: rgba(5, 150, 105, 0.32);
+}
+
+.radial-action-button.is-delete {
+  --slop-action-accent: #dc2626;
+  --slop-action-accent-2: #fb7185;
+  --slop-action-glow: rgba(220, 38, 38, 0.32);
+}
+
+.radial-action-button.is-rename {
+  --slop-action-accent: #ca8a04;
+  --slop-action-accent-2: #facc15;
+  --slop-action-glow: rgba(202, 138, 4, 0.32);
 }
 
 .slop-action-button {

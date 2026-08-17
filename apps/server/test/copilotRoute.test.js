@@ -8,7 +8,8 @@ import {
   handleDiagramAnalyze,
   handleDiagramIntent,
   handleDiagramTransformIntent,
-  handleStyleIntent
+  handleStyleIntent,
+  handleUserDiagramEdit
 } from '../src/routes/copilot.js';
 import { createDiagramStateStore } from '../src/state/diagramStateStore.js';
 
@@ -594,4 +595,66 @@ test('client state sync route accepts infographic DSL', async () => {
   assert.match(result.body.diagramSource, /infographic /);
   // Mermaid slot is untouched.
   assert.equal(stateStore.getSlot('mermaid').revisionId, 0);
+});
+
+test('user-edit route applies a mermaid patch with origin user', async () => {
+  const stateStore = createDiagramStateStore();
+  const result = await handleUserDiagramEdit({
+    body: {
+      contentType: 'mermaid',
+      diagramSource: 'flowchart TD\n  A[Start] --> B[End]\n  B --> C[Next]',
+      previousRevisionId: 0,
+      reason: 'Connect node'
+    },
+    stateStore
+  });
+
+  assert.equal(result.status, 200);
+  assert.match(result.body.state.diagramSource, /C\[Next\]/);
+  assert.equal(result.body.patch.origin.kind, 'user');
+  assert.equal(result.body.patch.previousRevisionId, 0);
+  assert.equal(stateStore.getSlot('mermaid').revisionId, 1);
+});
+
+test('user-edit route refuses a stale revision', async () => {
+  const stateStore = createDiagramStateStore();
+  await handleUserDiagramEdit({
+    body: {
+      contentType: 'mermaid',
+      diagramSource: 'flowchart TD\n  A --> B',
+      previousRevisionId: 0,
+      reason: 'Connect node'
+    },
+    stateStore
+  });
+  const result = await handleUserDiagramEdit({
+    body: {
+      contentType: 'mermaid',
+      diagramSource: 'flowchart TD\n  A --> Z',
+      previousRevisionId: 0,
+      reason: 'Connect node'
+    },
+    stateStore
+  });
+
+  assert.equal(result.status, 409);
+  assert.equal(result.body.code, 'stale_revision');
+  assert.match(stateStore.getSlot('mermaid').diagramSource, /A --> B/);
+});
+
+test('user-edit route rejects invalid mermaid without mutating', async () => {
+  const stateStore = createDiagramStateStore();
+  const before = stateStore.getSlot('mermaid');
+  const result = await handleUserDiagramEdit({
+    body: {
+      contentType: 'mermaid',
+      diagramSource: 'flowchart TD\n  Broken[',
+      previousRevisionId: 0,
+      reason: 'Connect node'
+    },
+    stateStore
+  });
+
+  assert.equal(result.status, 422);
+  assert.equal(stateStore.getSlot('mermaid'), before);
 });

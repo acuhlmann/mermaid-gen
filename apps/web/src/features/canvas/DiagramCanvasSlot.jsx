@@ -28,7 +28,9 @@ export function DiagramCanvasSlot({
   runFx,
   diagramSurfaceRef,
   isFullscreen,
-  onFormSubmit
+  onFormSubmit,
+  connectSourceId = null,
+  onConnectTarget = null
 }) {
   return (
     <DiagramCanvas
@@ -58,6 +60,8 @@ export function DiagramCanvasSlot({
       diagramSurfaceRef={diagramSurfaceRef}
       isFullscreen={isFullscreen}
       onFormSubmit={onFormSubmit}
+      connectSourceId={connectSourceId}
+      onConnectTarget={onConnectTarget}
     />
   );
 }

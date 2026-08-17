@@ -33,6 +33,8 @@ import {
  *   setSelectedNode: (node: object | null) => void;
  *   slopitect: object;
  *   tryAgentSound: (playFn: (ctx: unknown) => void) => void;
+ *   graphEdit?: { enabled?: boolean, kind?: string | null, busy?: boolean } | null;
+ *   onGraphEditAction?: (action: { id: string }, descriptor: object) => void;
  * }} deps
  */
 export function useRadialActionHandler({
@@ -54,7 +56,9 @@ export function useRadialActionHandler({
   setHotkeyOverlayOpen,
   setSelectedNode,
   slopitect,
-  tryAgentSound
+  tryAgentSound,
+  graphEdit = null,
+  onGraphEditAction = null
 }) {
   const handleRadialAction = useCallback(
     (action, descriptor) => {
@@ -62,6 +66,10 @@ export function useRadialActionHandler({
       setSelectedNode(descriptor);
       if (action.id === 'prompt') {
         openRadialSlopPrompt();
+        return;
+      }
+      if (action.id === 'connect' || action.id === 'delete' || action.id === 'rename') {
+        onGraphEditAction?.(action, descriptor);
         return;
       }
       if (action.id === 'renderMode') {
@@ -101,6 +109,7 @@ export function useRadialActionHandler({
     [
       closeRadialMenu,
       handleFixFromCritique,
+      onGraphEditAction,
       openRadialSlopPrompt,
       renderSelectionInMode,
       runAnalyze,
@@ -126,9 +135,18 @@ export function useRadialActionHandler({
         russStreak,
         contentMode,
         contentModeOptions,
-        canFixFromCritique
+        canFixFromCritique,
+        graphEdit
       }),
-    [canFixFromCritique, contentMode, contentModeOptions, controls, russStreak, slopitect]
+    [
+      canFixFromCritique,
+      contentMode,
+      contentModeOptions,
+      controls,
+      graphEdit,
+      russStreak,
+      slopitect
+    ]
   );
 
   return { handleRadialAction, radialActions };

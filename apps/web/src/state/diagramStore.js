@@ -603,6 +603,40 @@ export async function syncClientDiagramState({
 }
 
 /**
+ * Discrete canvas graph edit. Unlike `syncClientDiagramState`, this records an
+ * `origin: user` history patch and refuses stale revisions (409).
+ */
+export async function applyUserDiagramEdit({
+  contentType = 'mermaid',
+  diagramSource,
+  previousRevisionId,
+  reason,
+  sessionId
+}) {
+  const response = await fetch(`${API_BASE_URL}/api/copilotkit/user-edit`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', ...createSessionHeaders(sessionId) },
+    body: JSON.stringify({
+      contentType,
+      diagramSource,
+      previousRevisionId,
+      reason
+    })
+  });
+
+  const payload = await response.json();
+  if (response.status === 409) {
+    const err = new Error(payload?.error ?? 'Diagram changed');
+    err.code = 'stale_revision';
+    throw err;
+  }
+  if (!response.ok) {
+    throwApiPayloadError(payload, 'Failed to apply diagram edit');
+  }
+  return payload;
+}
+
+/**
  * Cheap render-error repair: posts the current source plus the browser's Mermaid render error
  * to the dedicated render-error endpoint. The server runs only the single-shot syntax-fixer
  * model (no full agent loop), so this returns in roughly one LLM call instead of an entire

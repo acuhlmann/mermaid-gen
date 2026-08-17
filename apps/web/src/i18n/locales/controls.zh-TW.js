@@ -28,7 +28,13 @@ export const CONTROLS_ZH_TW = {
     facilities: '找物業',
     facilitiesTitle: '呼叫物業 · 修好這坨爛圖',
     prepForCeo: '協同',
-    prepForCeoTitle: '給 CEO 準備稿 · 送上樓前先熬乾水分'
+    prepForCeoTitle: '給 CEO 準備稿 · 送上樓前先熬乾水分',
+    connect: '連接',
+    connectTitle: '連接 · 連到另一個框，或點空白處新建',
+    delete: '刪除',
+    deleteTitle: '刪除 · 從圖表中去掉這個',
+    rename: '重新命名',
+    renameTitle: '重新命名 · 改標籤'
   },
   prompt: {
     yourTopic: '你的主題',
@@ -578,6 +584,15 @@ export const CONTROLS_ZH_TW = {
   fullscreen: {
     enter: '進入全螢幕',
     exit: '退出全螢幕'
+  },
+  graphEdit: {
+    connectHint: '點擊一個框或空白處 · Esc 取消',
+    undo: '復原',
+    deleted: '已刪除',
+    linked: '已連接',
+    failed: '無法更新圖表',
+    stale: '圖表已變化，請再試一次',
+    renamePlaceholder: '標籤'
   },
   advisorThinking: {
     gilfoyle: '不為所動',

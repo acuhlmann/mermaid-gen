@@ -31,7 +31,13 @@ export const CONTROLS_EN = {
     clearTitle: 'File a demolition permit · clear the desk and start fresh',
     demolish: 'Shredder',
     prepForCeo: 'Synergize',
-    prepForCeoTitle: 'Synergize · Boil it down before it goes upstairs'
+    prepForCeoTitle: 'Synergize · Boil it down before it goes upstairs',
+    connect: 'Connect',
+    connectTitle: 'Connect · Link this box to another, or click empty space for a new one',
+    delete: 'Delete',
+    deleteTitle: 'Delete · Remove this from the diagram',
+    rename: 'Rename',
+    renameTitle: 'Rename · Change the label'
   },
   prompt: {
     yourTopic: 'Your Topic',
@@ -631,6 +637,15 @@ export const CONTROLS_EN = {
   fullscreen: {
     enter: 'Enter fullscreen',
     exit: 'Exit fullscreen'
+  },
+  graphEdit: {
+    connectHint: 'Click a box or empty space · Esc to cancel',
+    undo: 'Undo',
+    deleted: 'Deleted',
+    linked: 'Linked',
+    failed: 'Could not update the diagram',
+    stale: 'Diagram changed — try again',
+    renamePlaceholder: 'Label'
   },
   advisorThinking: {
     gilfoyle: 'is unimpressed',
