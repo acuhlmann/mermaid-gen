@@ -286,7 +286,9 @@ export function useFlowchartGraphEdit({
         return;
       }
       if (result.source === source) return;
-      void commitSource(result.source, 'Rename', {});
+      // Rename is a discrete apply but must not recapture undo — Cmd/Z and the
+      // Connect/Delete toast still revert the last structural edit.
+      void commitSource(result.source, 'Rename', { captureUndo: false });
     },
     [commitSource, copy.failed, labelSession, stateRef]
   );

@@ -41,6 +41,10 @@ describe('logicalIdFromDiagramSelection', () => {
       })
     ).toBe('Alpha');
   });
+
+  it('reads the canvas descriptor `id` when elementId is absent', () => {
+    expect(logicalIdFromDiagramSelection({ id: 'flowchart-B-0' })).toBe('B');
+  });
 });
 
 describe('parseSubgraphHeaderId', () => {

@@ -452,4 +452,102 @@ describe('DiagramCanvas', () => {
     expect(screen.getByLabelText('Mermaid DSL').getAttribute('data-language')).toBe('html');
     expect(screen.getByText('HTML')).toBeTruthy();
   });
+
+  it('routes flowchart node taps to onConnectTarget while Connect is armed', async () => {
+    const nodeSvg = `
+<svg viewBox="0 0 200 100">
+  <g class="node" id="flowchart-B-0"><rect width="40" height="20"/><text>B</text></g>
+</svg>`;
+    renderMermaidSvgMock.mockResolvedValueOnce({ svg: nodeSvg, sanitizerApplied: [] });
+    const onConnectTarget = vi.fn();
+    const onSelectedNodeChange = vi.fn();
+    render(
+      <DiagramCanvas
+        diagramSource={'flowchart TD\nA --> B'}
+        revisionId={1}
+        connectSourceId="A"
+        onConnectTarget={onConnectTarget}
+        onSelectedNodeChange={onSelectedNodeChange}
+      />
+    );
+
+    await act(async () => {
+      vi.advanceTimersByTime(250);
+    });
+    await act(async () => {});
+
+    const renderer = screen.getByLabelText(/Mermaid renderer/i);
+    expect(renderer.className).toContain('is-connect-mode');
+    const node = renderer.querySelector('g.node');
+    expect(node).toBeTruthy();
+    const pointerInit = {
+      pointerId: 1,
+      pointerType: 'mouse',
+      button: 0,
+      buttons: 1,
+      clientX: 20,
+      clientY: 10,
+      bubbles: true
+    };
+    node.dispatchEvent(new PointerEvent('pointerdown', pointerInit));
+    node.dispatchEvent(new PointerEvent('pointerup', pointerInit));
+
+    expect(onConnectTarget).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'node', logicalId: 'B' })
+    );
+    expect(onSelectedNodeChange).not.toHaveBeenCalled();
+  });
+
+  it('cancels Connect when the source node is clicked, and births on empty canvas', async () => {
+    const nodeSvg = `
+<svg viewBox="0 0 200 100">
+  <g class="node" id="flowchart-A-0"><rect width="40" height="20"/><text>A</text></g>
+</svg>`;
+    renderMermaidSvgMock.mockResolvedValueOnce({ svg: nodeSvg, sanitizerApplied: [] });
+    const onConnectTarget = vi.fn();
+    render(
+      <DiagramCanvas
+        diagramSource={'flowchart TD\nA --> B'}
+        revisionId={1}
+        connectSourceId="A"
+        onConnectTarget={onConnectTarget}
+      />
+    );
+
+    await act(async () => {
+      vi.advanceTimersByTime(250);
+    });
+    await act(async () => {});
+
+    const renderer = screen.getByLabelText(/Mermaid renderer/i);
+    const node = renderer.querySelector('g.node');
+    const pointerInit = {
+      pointerId: 1,
+      pointerType: 'mouse',
+      button: 0,
+      buttons: 1,
+      clientX: 20,
+      clientY: 10,
+      bubbles: true
+    };
+    node.dispatchEvent(new PointerEvent('pointerdown', pointerInit));
+    node.dispatchEvent(new PointerEvent('pointerup', pointerInit));
+    expect(onConnectTarget).toHaveBeenCalledWith(expect.objectContaining({ type: 'source' }));
+
+    onConnectTarget.mockClear();
+    const emptyInit = {
+      pointerId: 2,
+      pointerType: 'mouse',
+      button: 0,
+      buttons: 1,
+      clientX: 180,
+      clientY: 80,
+      bubbles: true
+    };
+    renderer.dispatchEvent(new PointerEvent('pointerdown', emptyInit));
+    renderer.dispatchEvent(new PointerEvent('pointerup', emptyInit));
+    expect(onConnectTarget).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'empty', clientX: 180, clientY: 80 })
+    );
+  });
 });

@@ -68,4 +68,11 @@ describe('buildRadialActions', () => {
     expect(cluster.find((entry) => entry.id === 'delete').hidden).toBe(true);
     expect(cluster.find((entry) => entry.id === 'rename').hidden).toBe(true);
   });
+
+  it('disables Connect, Delete, and Rename while an agent run is streaming', () => {
+    const list = actions({ graphEdit: { enabled: true, kind: 'node', busy: true } });
+    expect(list.find((entry) => entry.id === 'connect').disabled).toBe(true);
+    expect(list.find((entry) => entry.id === 'delete').disabled).toBe(true);
+    expect(list.find((entry) => entry.id === 'rename').disabled).toBe(true);
+  });
 });
