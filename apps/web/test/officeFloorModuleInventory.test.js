@@ -73,7 +73,8 @@ const EXPECTED_FLOOR_UTILS = [
   'officeFloorActivity.js',
   'officeFloorBoard.js',
   'officeFloorCommute.js',
-  'officeSceneCast.js'
+  'officeSceneCast.js',
+  'officeFloorRunIdle.js'
 ];
 
 const EXPECTED_FLOOR_TEST_FILES = [
@@ -98,6 +99,7 @@ const EXPECTED_FLOOR_TEST_FILES = [
   'officeFloorReach.test.js',
   'officeFloorInterrupt.test.js',
   'officeFloorDwell.test.jsx',
+  'officeFloorRunIdle.test.js',
   'officeFloorRoam.test.jsx',
   'officeFloorScene.test.jsx',
   'officeFloorStyles.test.js',

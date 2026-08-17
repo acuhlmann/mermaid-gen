@@ -362,13 +362,13 @@ ones that will bite an edit.
   `officeRelationship` on `/moment` **only** (the one single-speaker surface) and covers only
   the four kinds carrying a `colleagueId`: `email`, `chat`, `walkby`, `pitch`. `battle` is
   excluded deliberately — its id sits in `detail` and means _winner_.
-- **Office continuity (working memory + runWalk) is specified, not shipped.** Colleagues feel
-  real because the same person remembers you, not because they talk more. Build v1 from
+- **Office continuity (working memory + runWalk) shipped in v1.** Colleagues feel
+  real because the same person remembers you, not because they talk more. Spec:
   [`docs/office-continuity.md`](docs/office-continuity.md) and
   [ADR-0013](docs/decisions/0013-office-continuity.md). Working memory records and never
   triggers. The only new initiation is a completed run (`runWalk` on the floor, IM at the desk,
-  existing run-reaction budget). Adding `runWalk` is a spoken `situation`: enum, predicate, rule
-  block, reminder — never reuse `run` or `walkover`.
+  existing run-reaction budget). Adding a situation is still a four-place contract: enum,
+  predicate, rule block, reminder — never reuse `run` or `walkover` for this beat.
 - **In a prompt rule, prohibitions crowd out a hedged permission — lead with the register.**
   Measured: the relationship block's first draft put three "do NOT"s against one soft "let this
   colour how you sound" and auditioned **inert**, indistinguishable from its control arm. The

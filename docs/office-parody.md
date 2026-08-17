@@ -1424,10 +1424,10 @@ floor run-walk, implementation pending) is [`office-continuity.md`](office-conti
     The general rule: tell a situation the **circumstance** (it is why they are pinging _now_);
     never tell it a **delta the prompt does not carry**.
 
-  - **`runWalk` is specified, not shipped.** A run landing while the user is idle on the floor
-    cannot reuse `run` (silent IM) or `walkover` (they answered a shout). The locked slice is
-    [`office-continuity.md`](office-continuity.md). Adding it is the usual four-place contract:
-    enum, `isSpokenMomentSituation`, rule block, reminder.
+  - **`runWalk` shipped in v1.** A run landing while the user is idle on the floor
+    cannot reuse `run` (silent IM) or `walkover` (they answered a shout). Spec:
+    [`office-continuity.md`](office-continuity.md). Adding a situation is still the usual
+    four-place contract: enum, `isSpokenMomentSituation`, rule block, reminder.
 
 - **The medium rule: speech is spoken, writing is read.** The ambient/reactive split decides
   _how much a line costs_; this one decides _whether it reaches a voice at all_, and the two are

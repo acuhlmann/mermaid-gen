@@ -25,6 +25,8 @@ const LOG_LINE_MAX_CHARS = 200;
 const LOG_MAX_LINES = 12;
 /** Mirrors `OFFICE_RELATIONSHIP_MAX_LINES` in `officeLogDigest.js`. */
 const RELATIONSHIP_MAX_LINES = 3;
+/** Beats + fingerprint lines from the client working-memory store. */
+const WORKING_MEMORY_MAX_LINES = 6;
 
 /**
  * The closing instruction is the load-bearing half of this block. Handed a list
@@ -97,6 +99,33 @@ export function buildOfficeRelationshipBlock(officeRelationship) {
     'assumption instead of an introduction, the tone of somebody continuing rather than starting.',
     'Keep the history UNDER the line, never in it — do not read it back and never count it at',
     'them ("our fourth chat today" is the one real failure here).'
+  ];
+}
+
+/**
+ * The beats and board this speaker already shares with the user today —
+ * distinct from the count-only relationship block. Lead with the register;
+ * one guard; no "say nothing if nothing earns it" hatch (the block is only
+ * built when there is something).
+ *
+ * @param {string[] | undefined} officeWorkingMemory
+ * @returns {string[] | null}
+ */
+export function buildOfficeWorkingMemoryBlock(officeWorkingMemory) {
+  const lines = Array.isArray(officeWorkingMemory)
+    ? officeWorkingMemory
+        .filter((line) => typeof line === 'string' && line.trim())
+        .slice(0, WORKING_MEMORY_MAX_LINES)
+    : [];
+  if (lines.length === 0) return null;
+  return [
+    '',
+    'What you already share with this user today (pick up; this is not a first meeting):',
+    ...lines.map((line) => `- ${line.slice(0, LOG_LINE_MAX_CHARS)}`),
+    '',
+    'You have already spoken with this person today, or you already looked at their board.',
+    'Pick up mid-thread — shorthand, an assumption, the tone of somebody continuing.',
+    'Keep these beats UNDER the line: do not recite them and never count them.'
   ];
 }
 

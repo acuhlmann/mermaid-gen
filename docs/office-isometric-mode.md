@@ -2106,10 +2106,10 @@ Still open, and what to do next: §8.
 
 ## 8. Where to take this next
 
-Most candidates below are still undesigned. **Office continuity** (working memory + runWalk) is
-specified and waiting to ship: [`office-continuity.md`](office-continuity.md),
-[ADR-0013](decisions/0013-office-continuity.md). Do not re-grill those forks; implement v1 from
-that doc. The rest of this section is appetite, not a queue.
+Most candidates below are still undesigned. **Office continuity** (working memory + runWalk) v1
+shipped: [`office-continuity.md`](office-continuity.md),
+[ADR-0013](decisions/0013-office-continuity.md). Do not re-grill those forks. The rest of this
+section is appetite, not a queue.
 
 ### The next slice
 

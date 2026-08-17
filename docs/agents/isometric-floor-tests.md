@@ -2,7 +2,7 @@
 
 Isometric mode is **renderer #2** of the office (ADR-0011). These tests guard the two-renderer rule, geometry derivations, and mount-one-renderer guards in `OfficeLayer`.
 
-Human design doc: [`docs/office-isometric-mode.md`](../../docs/office-isometric-mode.md). Next designed slice (working memory + runWalk): [`docs/office-continuity.md`](../../docs/office-continuity.md). Blast-radius row: [`docs/agent-blast-radius.md`](../agent-blast-radius.md).
+Human design doc: [`docs/office-isometric-mode.md`](../../docs/office-isometric-mode.md). Continuity v1 (working memory + runWalk): [`docs/office-continuity.md`](../../docs/office-continuity.md). Blast-radius row: [`docs/agent-blast-radius.md`](../agent-blast-radius.md).
 
 ## Run the full floor suite
 
@@ -35,7 +35,8 @@ Do not copy `standUp(); render(<OfficeFloor />)` into new suites — extend the 
 | `officeFloorMovement.test.js`        | Where you may walk, approach/peek/prop marks                                             |
 | `officeFloorReach.test.js`           | Where somebody is when away, and whether it is a mark                                    |
 | `officeFloorInterrupt.test.js`       | What somebody says when you take the square they wanted (slice 18)                       |
-| `officeFloorDwell.test.jsx`          | Who you are stood next to, and the line it earns (slice 19)                              |
+| `officeFloorRunIdle.test.js`         | When a completed run may walk someone over (continuity v1 idle snapshot)                 |
+| `officeRunReactionPicker.test.js`    | Who walks over after a run (memory-bias ∩ intern/scrum/greybeard, never senior/away)     |
 | `officeFloorContracts.test.js`       | **ADR-0011 executable rules** (narration, props, POV)                                    |
 | `officeFloorModuleInventory.test.js` | Bench components + test files still exist                                                |
 | `officeFloorPropsTable.test.js`      | `officeFloorProps.js` ↔ `propTileFor` alignment                                          |

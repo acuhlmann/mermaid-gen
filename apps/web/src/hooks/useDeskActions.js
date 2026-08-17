@@ -21,6 +21,7 @@ import {
   pushOfficeImReply
 } from '../state/officeMomentStore.js';
 import { threadTranscriptFor } from '../utils/officeImThreads.js';
+import { hasWorkingMemoryFact } from '../state/officeWorkingMemoryStore.js';
 import {
   OFFICE_DESK_LLM_CAP,
   OFFICE_DWELL_LLM_CAP,
@@ -339,6 +340,7 @@ export function useDeskActions(params) {
               counterRef.current += 1;
             },
             ...(situation ? { situation } : {}),
+            recordWorkingMemory: true,
             ...channelOpts,
             ...voiceOpts,
             ...replyOpts
@@ -349,7 +351,13 @@ export function useDeskActions(params) {
         delivered = deliverCannedMoment(
           kind,
           ctx,
-          deliveryOptions({ colleagueId: target, ...channelOpts, ...voiceOpts, ...replyOpts })
+          deliveryOptions({
+            colleagueId: target,
+            recordWorkingMemory: true,
+            ...channelOpts,
+            ...voiceOpts,
+            ...replyOpts
+          })
         );
       }
       return delivered;
@@ -513,7 +521,7 @@ export function useDeskActions(params) {
       return deliverImReply({
         target: colleagueId,
         counterRef: dwellLlmCountRef,
-        cap: DWELL_LLM_CAP,
+        cap: hasWorkingMemoryFact(colleagueId) ? DWELL_LLM_CAP : 0,
         channel: 'talk',
         situation: 'dwell'
       });

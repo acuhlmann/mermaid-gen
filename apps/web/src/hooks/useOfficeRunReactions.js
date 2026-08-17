@@ -10,7 +10,9 @@ import {
   RECENT_MOMENTS_CAP
 } from '../utils/officeMomentDelivery.js';
 import { getOfficeSnapshot, shouldHoldAmbientOfficeMoments } from '../state/officeMomentStore.js';
+import { listWorkingMemoryColleagueIds } from '../state/officeWorkingMemoryStore.js';
 import { OFFICE_RUN_REACTION_LLM_CAP } from '../utils/officeCadence.js';
+import { pickRunReactionColleague } from '../utils/officeRunReactionPicker.js';
 
 /** Let the completion delight (confetti/sound) and the fresh render settle first. */
 export const RUN_REACTION_DELAY_MS = 2_200;
@@ -40,18 +42,22 @@ function isHidden() {
  * over a streaming run, a meeting, the advisor bubble, another office surface,
  * a hidden tab, or Focus Time.
  *
+ * `floorActive` is **not** a gate here. Continuity v1 lifts it for this
+ * producer only so a completed run can walk someone over while you are idle
+ * on the floor (docs/office-continuity.md). Talk / a floor card / commute /
+ * a live dwell line still divert to IM via `getRunContext`, they do not
+ * swallow the producer.
+ *
  * @param {{
  *   pause?: boolean,
  *   advisorBusy?: boolean,
  *   agentBusy?: boolean,
- *   meetingActive?: boolean,
- *   floorActive?: boolean
+ *   meetingActive?: boolean
  * }} p
  * @returns {boolean}
  */
 function reactionBlocked(p) {
   if (p.pause || p.advisorBusy || p.agentBusy || p.meetingActive) return true;
-  if (p.floorActive) return true;
   if (isHidden() || shouldHoldAmbientOfficeMoments()) return true;
   if (getOfficeSnapshot().focusTime) return true;
   return false;
@@ -102,12 +108,11 @@ export function planRunReaction({
  * a fresh diagram, a colleague pings you about the thing you just made. Content
  * flows through the same canned/LLM IM ladder as every other moment.
  *
- * The reaction is deliberately an **IM** (low interruption, non-modal, silent —
- * nobody reads your chat out loud) and is capped hard so it reads as the floor
- * noticing your work, not spam. It stamps the shared cadence memory so the
- * ambient director backs off afterwards, and it holds its fire while a run
- * streams, a meeting or advisor bubble is up, another office surface is on
- * screen, the tab is hidden, or Focus Time is on.
+ * The reaction is an **IM** while you are seated, and a **walk-by** when a
+ * run lands while you are idle on the floor (`situation: runWalk`). Caps stay
+ * the existing run-reaction budget. Initiation never carries `actionPrompt`.
+ * LLM failure on the floor falls back to canned IM, never a mismatched walk-by
+ * bank (docs/office-continuity.md).
  *
  * @param {{
  *   runSignal?: { id: number, variant?: string } | null,
@@ -115,7 +120,12 @@ export function planRunReaction({
  *   advisorBusy?: boolean,
  *   agentBusy?: boolean,
  *   meetingActive?: boolean,
- *   floorActive?: boolean,
+ *   onFloor?: boolean,
+ *   getRunContext?: () => {
+ *     idle?: boolean,
+ *     awayIds?: string[],
+ *     youTile?: { x: number, y: number } | null
+ *   },
  *   getDiagramSource?: () => string,
  *   getContentType?: () => string,
  *   getSessionId?: () => string,
@@ -157,31 +167,58 @@ export function useOfficeRunReactions(params) {
       if (recentRef.current.length > RECENT_MOMENTS_CAP) recentRef.current.shift();
     };
 
-    /** Deliver the planned IM (LLM first when opted in, canned fallback). */
+    /** Deliver the planned reaction (LLM first when opted in, canned IM fallback). */
     async function deliver(plan, ctx, memory) {
       const p = paramsRef.current;
-      if (plan.useLlm) {
+      const runCtx = p.getRunContext?.() ?? { idle: true, awayIds: [], youTile: null };
+      const onFloor = Boolean(p.onFloor);
+      const pick = pickRunReactionColleague({
+        wantWalk: Boolean(onFloor && runCtx.idle),
+        awayIds: runCtx.awayIds,
+        youTile: runCtx.youTile,
+        memoryIds: listWorkingMemoryColleagueIds()
+      });
+      if (!pick.colleagueId) return false;
+
+      const shared = {
+        memory,
+        random,
+        colleagueId: pick.colleagueId,
+        sessionId: p.getSessionId?.() ?? '',
+        recentMoments: recentRef.current,
+        modelProfile: p.getModelProfile?.() ?? 'fast',
+        allowPitch: false,
+        recordWorkingMemory: true,
+        onUsage: (usage) => paramsRef.current.onUsage?.(usage),
+        onRemember: rememberMoment,
+        onLlmSpent: () => {
+          stateRef.current.llmCount += 1;
+        }
+      };
+
+      // Walk-by only via a successful LLM call. Canned path and LLM failure
+      // stay IM — no fake walk from the walk-by bank.
+      if (pick.kind === 'walkby' && plan.useLlm) {
+        const viaWalk = await deliverLlmMoment('walkby', ctx, {
+          ...shared,
+          situation: 'runWalk'
+        });
+        if (viaWalk) return true;
+      } else if (plan.useLlm) {
         const viaLlm = await deliverLlmMoment('im', ctx, {
-          memory,
-          random,
-          sessionId: p.getSessionId?.() ?? '',
-          recentMoments: recentRef.current,
-          modelProfile: p.getModelProfile?.() ?? 'fast',
-          // The whole trigger for this hook is "a run just landed", and until
-          // this field existed that fact stopped at the hook — the prompt got a
-          // plain cold-open IM and the colleague reacted to the diagram as if
-          // they had wandered past it, never to the change that had this second
-          // happened. Same blind spot as the dwell remark, same one-word cure.
-          situation: 'run',
-          onUsage: (usage) => paramsRef.current.onUsage?.(usage),
-          onRemember: rememberMoment,
-          onLlmSpent: () => {
-            stateRef.current.llmCount += 1;
-          }
+          ...shared,
+          situation: 'run'
         });
         if (viaLlm) return true;
       }
-      return deliverCannedMoment('im', ctx, { memory, random, onRemember: rememberMoment });
+      return deliverCannedMoment('im', ctx, {
+        memory,
+        random,
+        colleagueId: pick.colleagueId,
+        allowPitch: false,
+        recordWorkingMemory: true,
+        onRemember: rememberMoment
+      });
     }
 
     async function fire() {

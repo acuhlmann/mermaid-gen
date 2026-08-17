@@ -8,6 +8,10 @@ import {
   pushOfficeWalkBy,
   setOfficeFocusTime
 } from '../src/state/officeMomentStore.js';
+import {
+  _resetOfficeWorkingMemoryForTests,
+  stampWorkingMemoryBoard
+} from '../src/state/officeWorkingMemoryStore.js';
 
 const BASE_PARAMS = {
   pause: false,
@@ -32,6 +36,7 @@ function goOffline() {
 
 beforeEach(() => {
   _resetForTests();
+  _resetOfficeWorkingMemoryForTests();
   window.localStorage.clear();
   goOffline();
 });
@@ -119,6 +124,8 @@ describe('useDeskActions', () => {
     // colleague noticing you loitering was prompted exactly like a colleague
     // pinging you out of nowhere — right voice, right diagram, no idea anybody
     // was stood there. The wire field is the whole fix, so it is what is pinned.
+    // Continuity v1 spends the dwell LLM only when working memory has a fact.
+    stampWorkingMemoryBoard('intern', 'mermaid:Bake:20');
     const fetchMock = vi.fn(() =>
       Promise.resolve({
         ok: true,
@@ -147,6 +154,26 @@ describe('useDeskActions', () => {
     });
     const ping = JSON.parse(String(fetchMock.mock.calls[1]?.[1]?.body ?? '{}'));
     expect('situation' in ping).toBe(false);
+  });
+
+  it('keeps an empty-memory dwell on the canned deck', async () => {
+    const fetchMock = vi.fn(() =>
+      Promise.resolve({
+        ok: true,
+        json: async () => ({
+          moment: { body: 'can I help you', colleagueId: 'intern', kind: 'im' }
+        })
+      })
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    const { result } = renderHook(() => useDeskActions(BASE_PARAMS));
+
+    await act(async () => {
+      await result.current.remarkTo('intern');
+    });
+    expect(fetchMock).not.toHaveBeenCalled();
+    const line = getOfficeSnapshot().imHistory.find((m) => !m.outbound);
+    expect(line).toBeTruthy();
   });
 
   it('stops spending LLM calls once the desk budget is gone', async () => {

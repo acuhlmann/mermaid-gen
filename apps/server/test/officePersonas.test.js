@@ -30,11 +30,13 @@ import {
   MEETING_VENUE_CAB,
   MEETING_VENUE_STEERING,
   MEETING_VENUE_WORKING_GROUP,
-  meetingVenueRules
+  meetingVenueRules,
+  isSpokenMomentSituation
 } from '../src/agents/officePersonas.js';
 import {
   buildOfficeLogBlock,
-  buildOfficeRelationshipBlock
+  buildOfficeRelationshipBlock,
+  buildOfficeWorkingMemoryBlock
 } from '../src/agents/_lib/officeLogPrompt.js';
 import { MEETING_VENUES as SHARED_MEETING_VENUES } from '@archislop/shared';
 
@@ -324,6 +326,35 @@ test('each spoken situation states its own geometry — who heard it, and from h
   });
   assert.match(walkover, /got up, walked over/);
   assert.match(walkover, /name something visible in it/);
+});
+
+test('runWalk is spoken, names no delta, and does not pitch', () => {
+  assert.equal(isSpokenMomentSituation('runWalk'), true);
+  assert.equal(isSpokenMomentSituation('run'), false);
+
+  const prompt = buildMomentSystemPrompt({
+    kind: 'walkby',
+    colleagueId: 'intern',
+    situation: 'runWalk'
+  });
+  assert.match(prompt, /WHY YOU ARE SPEAKING/);
+  assert.match(prompt, /got up and walked over/i);
+  assert.match(prompt, /did NOT see what changed/);
+  assert.match(prompt, /no "you added…"/);
+  assert.match(prompt, /Do not\s+attach an actionPrompt/i);
+  assert.doesNotMatch(prompt, /answer what they said/i);
+  assert.doesNotMatch(prompt, /React to what changed/);
+  assert.doesNotMatch(prompt, /IM REPLY MODE/);
+
+  const reminder = buildMomentUserPrompt({
+    contentType: 'mermaid',
+    visibleLabels: [],
+    recentMoments: [],
+    situation: 'runWalk'
+  });
+  assert.match(reminder, /you walked over to look/);
+  assert.match(reminder, /did NOT see what changed/);
+  assert.doesNotMatch(reminder, /React to what changed/);
 });
 
 test('a spoken IM is speech, so it loses the "lowercase chat energy" body rule', () => {
@@ -952,6 +983,32 @@ test('buildMomentUserPrompt omits the relationship section when there is no hist
   });
   assert.match(prompt, /shared memory/);
   assert.doesNotMatch(prompt, /yours alone/);
+});
+
+test('buildOfficeWorkingMemoryBlock asks to pick up, not to recite', () => {
+  const block = buildOfficeWorkingMemoryBlock([
+    'last board they noticed: mermaid:Auth:40',
+    'they said: those boxes multiplied'
+  ]).join('\n');
+  assert.match(block, /not a first meeting/);
+  assert.match(block, /Pick up mid-thread/);
+  assert.match(block, /do not recite/);
+  assert.doesNotMatch(block, /nothing here earns/i);
+});
+
+test('buildMomentUserPrompt carries working memory beside the relationship', () => {
+  const prompt = buildMomentUserPrompt({
+    contentType: 'mermaid',
+    diagramSource: 'graph TD; A-->B;',
+    visibleLabels: [],
+    recentMoments: [],
+    officeRelationship: ["you took gilfoyle's suggestion earlier"],
+    officeWorkingMemory: ['last board they noticed: mermaid:Auth:40'],
+    uiLocale: 'en-US'
+  });
+  assert.match(prompt, /yours alone/);
+  assert.match(prompt, /not a first meeting/);
+  assert.ok(prompt.indexOf('yours alone') < prompt.indexOf('not a first meeting'));
 });
 
 test('buildMomentUserPrompt threads the office log in beside recent moments', () => {

@@ -47,6 +47,13 @@
  *   `talk`-channel line. Moving that decision across the boundary would put the
  *   office's appetite in two places (ADR-0011 — one wiring point).
  * @property {((colleagueId: string | null) => void) | undefined} onTalkingChange
+ * @property {((ctx: {
+ *   idle: boolean,
+ *   awayIds: string[],
+ *   youTile: { x: number, y: number } | null
+ * }) => void) | undefined} onRunContextChange
+ *   Fire-time snapshot for runWalk (docs/office-continuity.md). The floor
+ *   reports idle / away / you-tile; renderer #1 reads it when a run lands.
  * @property {(() => Promise<boolean> | boolean) | undefined} onGetCoffee
  * @property {((propKind: string) => void) | undefined} onPropCue
  * @property {((cue: 'step' | 'jam' | 'door', options?: { near?: boolean, pan?: number, surface?: 'carpet' | 'hard' }) => void) | undefined} onFloorCue

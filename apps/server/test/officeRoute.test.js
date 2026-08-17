@@ -133,7 +133,7 @@ test('office moment takes a bounded situation and refuses an invented one', asyn
     });
     assert.equal(withoutSituation.status, 503, 'no situation is a normal request');
 
-    for (const situation of ['dwell', 'run', 'outLoud', 'turnedTo', 'walkover']) {
+    for (const situation of ['dwell', 'run', 'outLoud', 'turnedTo', 'walkover', 'runWalk']) {
       const res = await post(port, 'moment', {
         kind: 'im',
         colleagueId: 'intern',

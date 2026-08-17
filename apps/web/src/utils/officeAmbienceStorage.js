@@ -28,6 +28,14 @@ export const OFFICE_CADENCE_STORAGE_KEY = 'archislop:office-cadence';
  */
 export const OFFICE_LOG_STORAGE_KEY = 'archislop:office-log';
 /**
+ * Per-colleague working memory for this office day (docs/office-continuity.md).
+ * Same day-stamp rule as the log: a same-day reload keeps it, a new calendar
+ * day clears it. It records; it never fires a moment.
+ */
+export const OFFICE_WORKING_MEMORY_STORAGE_KEY = 'archislop:office-working-memory';
+/** Last few beats kept per colleague — enough for a second approach, not a memoir. */
+export const OFFICE_WORKING_MEMORY_BEAT_CAP = 4;
+/**
  * Slop Chat™ scrollback. Deliberately *not* day-stamped, unlike the log above:
  * a messenger that forgets your threads overnight is a broken messenger, and
  * the scrollback is the user's own record rather than the cast's memory.
@@ -464,6 +472,79 @@ export function writeOfficeLog(entries, now = Date.now()) {
       JSON.stringify({
         day: dayStampOf(now),
         entries: Array.isArray(entries) ? entries.slice(-OFFICE_LOG_ENTRY_CAP) : []
+      })
+    );
+  } catch {
+    // Ignore quota / privacy errors.
+  }
+}
+
+/**
+ * @param {unknown} beat
+ * @returns {{ at: number, theirs?: string, yours?: string, pitchTaken?: boolean } | null}
+ */
+function sanitizeWorkingMemoryBeat(beat) {
+  if (!beat || typeof beat !== 'object') return null;
+  if (!Number.isFinite(beat.at)) return null;
+  const next = { at: beat.at };
+  if (typeof beat.theirs === 'string' && beat.theirs.trim()) {
+    next.theirs = beat.theirs.trim().slice(0, 200);
+  }
+  if (typeof beat.yours === 'string' && beat.yours.trim()) {
+    next.yours = beat.yours.trim().slice(0, 200);
+  }
+  if (beat.pitchTaken === true) next.pitchTaken = true;
+  if (!next.theirs && !next.yours && !next.pitchTaken) return null;
+  return next;
+}
+
+/**
+ * @param {number} [now] epoch ms, for tests
+ * @returns {{ [colleagueId: string]: { beats: Array<object>, boardFingerprint?: string } }}
+ */
+export function readOfficeWorkingMemory(now = Date.now()) {
+  if (typeof window === 'undefined') return {};
+  try {
+    const raw = window.localStorage.getItem(OFFICE_WORKING_MEMORY_STORAGE_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') return {};
+    if (parsed.day !== dayStampOf(now)) return {};
+    if (!parsed.byColleague || typeof parsed.byColleague !== 'object') return {};
+    const byColleague = {};
+    for (const [id, row] of Object.entries(parsed.byColleague)) {
+      if (!id || !row || typeof row !== 'object') continue;
+      const beats = Array.isArray(row.beats)
+        ? row.beats
+            .map(sanitizeWorkingMemoryBeat)
+            .filter(Boolean)
+            .slice(-OFFICE_WORKING_MEMORY_BEAT_CAP)
+        : [];
+      const boardFingerprint =
+        typeof row.boardFingerprint === 'string' && row.boardFingerprint.trim()
+          ? row.boardFingerprint.trim().slice(0, 240)
+          : undefined;
+      if (!beats.length && !boardFingerprint) continue;
+      byColleague[id] = boardFingerprint ? { beats, boardFingerprint } : { beats };
+    }
+    return byColleague;
+  } catch {
+    return {};
+  }
+}
+
+/**
+ * @param {{ [colleagueId: string]: { beats?: Array<object>, boardFingerprint?: string } }} byColleague
+ * @param {number} [now] epoch ms, for tests
+ */
+export function writeOfficeWorkingMemory(byColleague, now = Date.now()) {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(
+      OFFICE_WORKING_MEMORY_STORAGE_KEY,
+      JSON.stringify({
+        day: dayStampOf(now),
+        byColleague: byColleague && typeof byColleague === 'object' ? byColleague : {}
       })
     );
   } catch {

@@ -33,4 +33,14 @@ The obvious upgrades — more ambient LLM, LLM shop talk, unsolicited pitches af
 
 ## Where this lives in code
 
-Nothing yet — this ADR constrains the v1 slice. Target files and the four-place `runWalk` contract are listed in [`docs/office-continuity.md`](../office-continuity.md). Update this section when the slice ships.
+| Concern                            | Path                                                                               |
+| ---------------------------------- | ---------------------------------------------------------------------------------- |
+| Situation enum                     | `packages/shared/src/officeScript.ts` (`runWalk`)                                  |
+| Spoken predicate + rule + reminder | `apps/server/src/agents/officePersonas.js`                                         |
+| Working memory store               | `apps/web/src/state/officeWorkingMemoryStore.js`                                   |
+| Day-stamped persistence            | `apps/web/src/utils/officeAmbienceStorage.js`                                      |
+| Picker                             | `apps/web/src/utils/officeRunReactionPicker.js`                                    |
+| Floor idle snapshot                | `apps/web/src/utils/officeFloorRunIdle.js`                                         |
+| Run-reaction producer              | `apps/web/src/hooks/useOfficeRunReactions.js`                                      |
+| Dwell LLM gate                     | `apps/web/src/hooks/useDeskActions.js` (`remarkTo`)                                |
+| Prompt block                       | `apps/server/src/agents/_lib/officeLogPrompt.js` (`buildOfficeWorkingMemoryBlock`) |

@@ -1,6 +1,6 @@
 # Office continuity — working memory + runWalk
 
-> **Status: adopted design (2026-08-17), implementation pending.**
+> **Status: shipped (v1, 2026-08-17).**
 > Grilling locked this spec; do not re-derive the product forks.
 > ADR: [`docs/decisions/0013-office-continuity.md`](decisions/0013-office-continuity.md).
 > Doctrine it sits on: [`office-parody.md`](office-parody.md) §11, [ADR-0010](decisions/0010-cast-agency-sign-off.md), [ADR-0011](decisions/0011-two-office-renderers.md).

@@ -53,22 +53,28 @@ export const OFFICE_ACTION_PROMPT_MAX_CHARS = 300;
  * - **Silent** (`dwell`, `run`): nothing was said. These cannot coexist with a
  *   `userMessage` — the dwell block's whole premise is the silence — so a reply
  *   stands them down.
- * - **Spoken** (`outLoud`, `turnedTo`, `walkover`): something *was* said, out of
- *   a mouth rather than a keyboard. These arrive *with* a `userMessage` and
- *   **replace** the typed reply mode instead of standing down for it. Without
- *   them the composer's say-it-out-loud channel reached the model as "the user
- *   just sent you a chat message", so an open-plan remark came back written like
- *   Slack: the office's most physical verb rendered in its least physical voice.
- *   The three are three different physical circumstances, which is the only
- *   reason there are three — who heard it (the room, or one person), and whether
- *   the answer comes from a chair or from somebody standing behind you.
+ * - **Spoken with a line** (`outLoud`, `turnedTo`, `walkover`): something *was*
+ *   said, out of a mouth rather than a keyboard. These arrive *with* a
+ *   `userMessage` and **replace** the typed reply mode instead of standing down
+ *   for it. Without them the composer's say-it-out-loud channel reached the
+ *   model as "the user just sent you a chat message", so an open-plan remark
+ *   came back written like Slack: the office's most physical verb rendered in
+ *   its least physical voice. The three are three different physical
+ *   circumstances — who heard it (the room, or one person), and whether the
+ *   answer comes from a chair or from somebody standing behind you.
+ * - **Spoken without a line** (`runWalk`): they walked over because a run just
+ *   landed. Same spoken register as a walk-over (aloud, at the screen) but
+ *   **no** `userMessage` — they initiated, they did not answer a shout. Reusing
+ *   `run` (silent IM) or `walkover` (they answered you) is a medium lie; see
+ *   [`docs/office-continuity.md`](../../docs/office-continuity.md).
  */
 export const OFFICE_MOMENT_SITUATIONS = [
   'dwell',
   'run',
   'outLoud',
   'turnedTo',
-  'walkover'
+  'walkover',
+  'runWalk'
 ] as const;
 
 export const OfficeMomentSituationSchema = z.enum(OFFICE_MOMENT_SITUATIONS);
