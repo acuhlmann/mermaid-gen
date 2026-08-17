@@ -59,6 +59,7 @@ import {
 import { deskWorkFor } from '../utils/officeDeskWork.js';
 import { floorActivityFor } from '../utils/officeFloorActivity.js';
 import { sceneJoinOfferFor } from '../utils/officeFloorSceneJoin.js';
+import { floorRunContextFor } from '../utils/officeFloorRunIdle.js';
 import { tierOf } from '../utils/castTiers.js';
 import { resolveUserName, subscribe as subscribeUserName } from '../state/userIdentityStore.js';
 import { getOfficeViewMode, subscribe as subscribeViewMode } from '../state/officeViewModeStore.js';
@@ -215,6 +216,7 @@ function OfficeFloorView({ bridge, viewPhase }) {
     onTalkReply,
     onDwellRemark,
     onTalkingChange,
+    onRunContextChange,
     onGetCoffee,
     onPropCue,
     onFloorCue,
@@ -521,6 +523,32 @@ function OfficeFloorView({ bridge, viewPhase }) {
     });
     return () => clearOfficeFloorNext();
   }, [joinOffer, sceneJoinOffer]);
+
+  useEffect(() => {
+    onRunContextChange?.(
+      floorRunContextFor({
+        standingFree: activity.standingFree,
+        phase: presence?.phase,
+        dwellSaid: dwell.said,
+        person,
+        join: joinOffer,
+        sceneJoin: sceneJoinOffer,
+        awayIds,
+        youTile
+      })
+    );
+    return () => onRunContextChange?.({ idle: false, awayIds: [], youTile: null });
+  }, [
+    activity.standingFree,
+    presence?.phase,
+    dwell.said,
+    person,
+    joinOffer,
+    sceneJoinOffer,
+    awayIds,
+    youTile,
+    onRunContextChange
+  ]);
 
   const floorAction = useSyncExternalStore(
     subscribeOfficeFloorAction,

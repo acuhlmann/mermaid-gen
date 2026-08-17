@@ -3,9 +3,10 @@
 > **Status: adopted design (2026-07-25), near-term program.** Vision text:
 > [`original-prompt-isometric-mode.md`](original-prompt-isometric-mode.md). Vocabulary:
 > [`GLOSSARY.md`](../GLOSSARY.md) — _Desktop screen mode / Isometric mode_, _One state, two
-> renderers_, _Workstation diegesis_. Cast behavior doctrine:
-> [`office-parody.md`](office-parody.md) §11. The multi-human future of this floor:
-> [`multi-human-office.md`](multi-human-office.md) (backburnered).
+> renderers_, _Workstation diegesis_, _Working memory_, _runWalk_. Cast behavior doctrine:
+> [`office-parody.md`](office-parody.md) §11. Next designed slice (continuity — not numbered
+> until it ships): [`office-continuity.md`](office-continuity.md). The multi-human future of
+> this floor: [`multi-human-office.md`](multi-human-office.md) (backburnered).
 
 ## 1. The two modes
 
@@ -2105,9 +2106,19 @@ Still open, and what to do next: §8.
 
 ## 8. Where to take this next
 
-Nothing here is designed yet. The ordering below is a recommendation, not a queue.
+Most candidates below are still undesigned. **Office continuity** (working memory + runWalk) v1
+shipped: [`office-continuity.md`](office-continuity.md),
+[ADR-0013](decisions/0013-office-continuity.md). Do not re-grill those forks. The rest of this
+section is appetite, not a queue.
 
 ### The next slice
+
+**Chosen 2026-08-17: continuity.** The owner asked again for “little canned lines but interactive
+responsive participants that react to ur actions” (the same signal slice 18 recorded). The grill
+found the gap is **memory + one run-caused walk-over**, not more ambient speech. Slice 18 inverted
+silence-on-you for an interrupt; this inverts the other silence: a completed run is eaten on the
+floor because `useOfficeRunReactions` holds fire while `floorActive`. Spec locked; not numbered
+until it ships.
 
 **Chosen 2026-08-09, in this order, and recorded so nobody re-derives the pick.** Slice 16
 ("the work is in the room") shipped as the first of three directions the owner picked together;

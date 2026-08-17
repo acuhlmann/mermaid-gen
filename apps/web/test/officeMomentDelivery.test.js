@@ -187,4 +187,41 @@ describe('deliverLlmMoment carries a pitch to every surface', () => {
     expect(stranger.officeRelationship).toEqual([]);
     _resetOfficeLogForTests();
   });
+
+  it('sends working-memory beats and can strip a pitch on initiation', async () => {
+    const {
+      stampWorkingMemoryBoard,
+      rememberWorkingMemoryBeat,
+      _resetOfficeWorkingMemoryForTests
+    } = await import('../src/state/officeWorkingMemoryStore.js');
+    _resetOfficeWorkingMemoryForTests();
+    stampWorkingMemoryBoard('intern', 'mermaid:Auth:40');
+    rememberWorkingMemoryBeat('intern', { theirs: 'those boxes multiplied' });
+
+    const fetchMock = vi.fn(async () => ({
+      ok: true,
+      json: async () => ({
+        moment: {
+          body: 'auth is still doing too much',
+          colleagueId: 'intern',
+          kind: 'walkby',
+          actionPrompt: 'split auth'
+        }
+      })
+    }));
+    globalThis.fetch = fetchMock;
+
+    await deliverLlmMoment('walkby', CTX, {
+      memory: memory(),
+      colleagueId: 'intern',
+      situation: 'runWalk',
+      allowPitch: false
+    });
+    const body = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body ?? '{}'));
+    expect(body.officeWorkingMemory.some((line) => line.includes('those boxes multiplied'))).toBe(
+      true
+    );
+    expect(getOfficeSnapshot().walkBy.actionPrompt).toBeUndefined();
+    _resetOfficeWorkingMemoryForTests();
+  });
 });

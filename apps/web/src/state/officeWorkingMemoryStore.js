@@ -1,0 +1,203 @@
+/**
+ * Per-colleague working memory for this office day
+ * (docs/office-continuity.md, ADR-0013).
+ *
+ * Not the office log (shared, lossy, 12 lines). Not `buildOfficeRelationship`
+ * (counts and recency only). Those stay. This is what makes a second approach
+ * the same day not a first meeting: the last few beats between you and them,
+ * plus the last board fingerprint they "saw".
+ *
+ * **It only records.** Nothing here schedules, triggers, or decides — writing
+ * a beat never causes a moment. That is ADR-0010: the cast gets a past to
+ * talk about, not a reason to act on its own. Cadence and ambience must not
+ * import this module as a trigger.
+ *
+ * **It is state, not a component.** Presentation-agnostic per ADR-0011 rule 1,
+ * so the desk and the isometric floor can both read it.
+ *
+ * Fingerprint writers are deliberately few: the run-reaction speaker, plus
+ * anyone the user later dwells or talks with. Stamping everyone on a
+ * board-sample edge would be omniscience.
+ */
+
+import {
+  OFFICE_WORKING_MEMORY_BEAT_CAP,
+  readOfficeWorkingMemory,
+  writeOfficeWorkingMemory
+} from '../utils/officeAmbienceStorage.js';
+
+/** @typedef {{ at: number, theirs?: string, yours?: string, pitchTaken?: boolean }} WorkingMemoryBeat */
+/** @typedef {{ beats: WorkingMemoryBeat[], boardFingerprint?: string }} WorkingMemoryRow */
+
+/** @type {{ [colleagueId: string]: WorkingMemoryRow }} */
+let byColleague = readOfficeWorkingMemory();
+const listeners = new Set();
+
+function emit() {
+  for (const fn of listeners) {
+    try {
+      fn();
+    } catch (err) {
+      console.warn('officeWorkingMemoryStore: listener threw:', err?.message ?? err);
+    }
+  }
+}
+
+function persist(now) {
+  writeOfficeWorkingMemory(byColleague, now);
+  emit();
+}
+
+function rowFor(colleagueId) {
+  const existing = byColleague[colleagueId];
+  if (existing) return existing;
+  const created = { beats: [] };
+  byColleague = { ...byColleague, [colleagueId]: created };
+  return created;
+}
+
+/**
+ * Compact fingerprint of the board as it stands — content type, a handful of
+ * labels, source length. Display-only `boardFrom()` is the wrong input: that
+ * is what the room draws, not what this colleague noticed.
+ *
+ * @param {{ contentType?: string, labels?: string[], diagramSource?: string }} ctx
+ * @returns {string}
+ */
+export function boardFingerprintOf(ctx = {}) {
+  const type = typeof ctx.contentType === 'string' && ctx.contentType ? ctx.contentType : 'mermaid';
+  const labels = Array.isArray(ctx.labels)
+    ? ctx.labels
+        .filter((label) => typeof label === 'string' && label.trim())
+        .slice(0, 8)
+        .join('|')
+    : '';
+  const len = typeof ctx.diagramSource === 'string' ? ctx.diagramSource.length : 0;
+  return `${type}:${labels}:${len}`;
+}
+
+export function subscribe(listener) {
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+  };
+}
+
+/**
+ * @param {string} colleagueId
+ * @returns {WorkingMemoryRow | null}
+ */
+export function getWorkingMemoryWith(colleagueId) {
+  if (!colleagueId) return null;
+  return byColleague[colleagueId] ?? null;
+}
+
+/**
+ * True when this colleague has anything from today worth noticing — a beat or
+ * a board they already saw. The dwell LLM gate spends its cap only then.
+ *
+ * @param {string} colleagueId
+ * @returns {boolean}
+ */
+export function hasWorkingMemoryFact(colleagueId) {
+  const row = getWorkingMemoryWith(colleagueId);
+  if (!row) return false;
+  return row.beats.length > 0 || Boolean(row.boardFingerprint);
+}
+
+/**
+ * Colleague ids that already have memory today, most-recent beat first so the
+ * run-reaction picker prefers someone you have already dealt with.
+ *
+ * @returns {string[]}
+ */
+export function listWorkingMemoryColleagueIds() {
+  return Object.entries(byColleague)
+    .filter(([, row]) => row.beats.length > 0 || row.boardFingerprint)
+    .sort((a, b) => {
+      const lastA = a[1].beats.at(-1)?.at ?? 0;
+      const lastB = b[1].beats.at(-1)?.at ?? 0;
+      return lastB - lastA;
+    })
+    .map(([id]) => id);
+}
+
+/**
+ * @param {string} colleagueId
+ * @param {{ theirs?: string, yours?: string, pitchTaken?: boolean, now?: number }} beat
+ */
+export function rememberWorkingMemoryBeat(colleagueId, beat = {}) {
+  if (typeof colleagueId !== 'string' || !colleagueId) return;
+  const at = Number.isFinite(beat.now) ? beat.now : Date.now();
+  const next = { at };
+  if (typeof beat.theirs === 'string' && beat.theirs.trim()) {
+    next.theirs = beat.theirs.trim().slice(0, 200);
+  }
+  if (typeof beat.yours === 'string' && beat.yours.trim()) {
+    next.yours = beat.yours.trim().slice(0, 200);
+  }
+  if (beat.pitchTaken === true) next.pitchTaken = true;
+  if (!next.theirs && !next.yours && !next.pitchTaken) return;
+
+  const current = rowFor(colleagueId);
+  const row = {
+    ...current,
+    beats: [...current.beats, next].slice(-OFFICE_WORKING_MEMORY_BEAT_CAP)
+  };
+  byColleague = { ...byColleague, [colleagueId]: row };
+  persist(at);
+}
+
+/**
+ * @param {string} colleagueId
+ * @param {string} fingerprint
+ * @param {number} [now]
+ */
+export function stampWorkingMemoryBoard(colleagueId, fingerprint, now = Date.now()) {
+  if (typeof colleagueId !== 'string' || !colleagueId) return;
+  if (typeof fingerprint !== 'string' || !fingerprint.trim()) return;
+  const current = rowFor(colleagueId);
+  const row = {
+    ...current,
+    beats: [...current.beats],
+    boardFingerprint: fingerprint.trim().slice(0, 240)
+  };
+  byColleague = { ...byColleague, [colleagueId]: row };
+  persist(now);
+}
+
+/**
+ * @param {string} colleagueId
+ * @param {number} [now]
+ */
+export function markWorkingMemoryPitchTaken(colleagueId, now = Date.now()) {
+  rememberWorkingMemoryBeat(colleagueId, { pitchTaken: true, now });
+}
+
+/**
+ * Prompt lines for `/moment`'s `officeWorkingMemory` field. Empty when there
+ * is nothing, so the server drops the heading rather than announcing an absence.
+ *
+ * @param {string} colleagueId
+ * @returns {string[]}
+ */
+export function workingMemoryPromptLines(colleagueId) {
+  const row = getWorkingMemoryWith(colleagueId);
+  if (!row) return [];
+  const lines = [];
+  if (row.boardFingerprint) {
+    lines.push(`last board they noticed: ${row.boardFingerprint}`);
+  }
+  for (const beat of row.beats) {
+    if (beat.yours) lines.push(`you said: ${beat.yours}`);
+    if (beat.theirs) lines.push(`they said: ${beat.theirs}`);
+    if (beat.pitchTaken) lines.push('you took their suggestion earlier');
+  }
+  return lines.slice(-6);
+}
+
+/** @internal Reset between tests. */
+export function _resetOfficeWorkingMemoryForTests() {
+  byColleague = {};
+  listeners.clear();
+}

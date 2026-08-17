@@ -5,7 +5,8 @@ import {
   useOfficeRunReactions,
   RUN_REACTION_DELAY_MS
 } from '../src/hooks/useOfficeRunReactions.js';
-import { _resetForTests } from '../src/state/officeMomentStore.js';
+import { _resetForTests, getOfficeSnapshot } from '../src/state/officeMomentStore.js';
+import { _resetOfficeWorkingMemoryForTests } from '../src/state/officeWorkingMemoryStore.js';
 
 /*
  * This file deliberately runs against the REAL delivery modules, with `fetch`
@@ -41,13 +42,14 @@ function stubOfficeFetch() {
 }
 
 /** `random: () => 0` clears both the reaction-chance and LLM-share rolls, so the LLM rung is taken. */
-function mountHook() {
+function mountHook(extra = {}) {
   return renderHook(
     ({ runSignal }) =>
       useOfficeRunReactions({
         runSignal,
         getDiagramSource: () => 'graph TD\n  A-->B',
-        random: () => 0
+        random: () => 0,
+        ...extra
       }),
     { initialProps: { runSignal: null } }
   );
@@ -72,6 +74,7 @@ describe('useOfficeRunReactions fire()', () => {
   beforeEach(() => {
     vi.useFakeTimers();
     _resetForTests();
+    _resetOfficeWorkingMemoryForTests();
     window.localStorage.clear();
   });
 
@@ -106,5 +109,64 @@ describe('useOfficeRunReactions fire()', () => {
     const body = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body ?? '{}'));
     expect(body.kind).toBe('im');
     expect(body.situation).toBe('run');
+  });
+
+  it('walks over when a run lands while the floor is idle', async () => {
+    const fetchMock = stubOfficeFetch();
+    const { rerender } = mountHook({
+      onFloor: true,
+      getRunContext: () => ({ idle: true, awayIds: [], youTile: { x: 8, y: 7 } })
+    });
+
+    await fireRun(rerender, 3);
+
+    expect(fetchMock).toHaveBeenCalled();
+    const body = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body ?? '{}'));
+    expect(body.kind).toBe('walkby');
+    expect(body.situation).toBe('runWalk');
+    expect(body.colleagueId).toBe('intern');
+    expect(getOfficeSnapshot().walkBy?.actionPrompt).toBeUndefined();
+  });
+
+  it('does not let floorActive swallow the producer; a busy floor stays IM', async () => {
+    const fetchMock = stubOfficeFetch();
+    const { rerender } = mountHook({
+      floorActive: true,
+      onFloor: true,
+      getRunContext: () => ({ idle: false, awayIds: [], youTile: { x: 8, y: 7 } })
+    });
+
+    await fireRun(rerender, 4);
+
+    expect(fetchMock).toHaveBeenCalled();
+    const body = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body ?? '{}'));
+    expect(body.kind).toBe('im');
+    expect(body.situation).toBe('run');
+  });
+
+  it('strips actionPrompt from this producer even when the model sends one', async () => {
+    const fetchMock = vi.fn(() =>
+      Promise.resolve({
+        ok: true,
+        json: async () => ({
+          moment: {
+            body: 'those boxes multiplied',
+            colleagueId: 'intern',
+            kind: 'walkby',
+            actionPrompt: 'split the node'
+          }
+        })
+      })
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    const { rerender } = mountHook({
+      onFloor: true,
+      getRunContext: () => ({ idle: true, awayIds: [], youTile: { x: 8, y: 7 } })
+    });
+
+    await fireRun(rerender, 5);
+
+    expect(getOfficeSnapshot().walkBy?.body).toMatch(/boxes/);
+    expect(getOfficeSnapshot().walkBy?.actionPrompt).toBeUndefined();
   });
 });

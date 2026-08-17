@@ -18,6 +18,12 @@ import { getAdvisorVisibleLabels } from './advisorVisibleLabels.js';
 import { writeOfficeCadenceMemory } from './officeAmbienceStorage.js';
 import { getOfficeLogDigest, getOfficeRelationshipWith } from '../state/officeLogStore.js';
 import {
+  boardFingerprintOf,
+  rememberWorkingMemoryBeat,
+  stampWorkingMemoryBoard,
+  workingMemoryPromptLines
+} from '../state/officeWorkingMemoryStore.js';
+import {
   fillOfficeSlots,
   MEETING_FACILITATOR,
   MEETING_SENIOR_POOL,
@@ -96,6 +102,21 @@ function markFired(memory, templateId, onFired) {
   }
   writeOfficeCadenceMemory(memory);
   onFired?.(templateId);
+}
+
+/**
+ * Fingerprint + beat writers for dwell, talk, and this producer's run reaction.
+ * Ambient cadence must not pass `recordWorkingMemory`.
+ *
+ * @param {{ recordWorkingMemory?: boolean }} options
+ * @param {string} colleagueId
+ * @param {ReturnType<typeof readSlotContext>} ctx
+ * @param {{ theirs?: string, yours?: string, pitchTaken?: boolean }} beat
+ */
+function recordWorkingMemoryIfAsked(options, colleagueId, ctx, beat) {
+  if (!options?.recordWorkingMemory || !colleagueId) return;
+  stampWorkingMemoryBoard(colleagueId, boardFingerprintOf(ctx));
+  rememberWorkingMemoryBeat(colleagueId, beat);
 }
 
 /**
@@ -184,28 +205,43 @@ export function deliverCannedMoment(kind, ctx, options) {
         random
       );
       if (!template) return false;
+      const body = fillOfficeSlots(template.body, {
+        ...slots,
+        snippet: userMessage.slice(0, 48)
+      });
       pushOfficeImPing({
         colleagueId: targetId,
         channel: options.channel,
         voice: options.voice,
-        body: fillOfficeSlots(template.body, {
-          ...slots,
-          snippet: userMessage.slice(0, 48)
-        })
+        body
       });
       remember(userMessage);
+      recordWorkingMemoryIfAsked(options, targetId, ctx, { theirs: body, yours: userMessage });
       markFired(memory, template.id, onFired);
       return true;
     }
 
-    const template = pickUnseenTemplate(officeImTemplates(), memory.seenTemplateIds, random);
-    if (!template) return false;
+    const bank = officeImTemplates();
+    const preferred = options.colleagueId
+      ? bank.filter((entry) => entry.colleagueId === options.colleagueId)
+      : bank;
+    const picked = pickUnseenTemplate(
+      preferred.length > 0 ? preferred : bank,
+      memory.seenTemplateIds,
+      random
+    );
+    if (!picked) return false;
+    const body = fillOfficeSlots(picked.body, slots);
+    const colleagueId = options.colleagueId || picked.colleagueId;
     pushOfficeImPing({
-      colleagueId: template.colleagueId,
-      body: fillOfficeSlots(template.body, slots)
+      colleagueId,
+      body,
+      channel: options.channel,
+      voice: options.voice
     });
-    remember(template.body);
-    markFired(memory, template.id, onFired);
+    remember(picked.body);
+    recordWorkingMemoryIfAsked(options, colleagueId, ctx, { theirs: body });
+    markFired(memory, picked.id, onFired);
     return true;
   }
 
@@ -238,14 +274,16 @@ export function deliverCannedMoment(kind, ctx, options) {
         random
       );
       if (!template) return false;
+      const body = fillOfficeSlots(template.body, {
+        ...slots,
+        snippet: userMessage.slice(0, 48)
+      });
       pushOfficeWalkBy({
         colleagueId: targetId,
-        body: fillOfficeSlots(template.body, {
-          ...slots,
-          snippet: userMessage.slice(0, 48)
-        })
+        body
       });
       remember(userMessage);
+      recordWorkingMemoryIfAsked(options, targetId, ctx, { theirs: body, yours: userMessage });
       markFired(memory, template.id, onFired);
       return true;
     }
@@ -406,6 +444,7 @@ export async function deliverLlmMoment(kind, ctx, options) {
         // is actually about to talk, so it is empty for anybody you have not
         // dealt with today and the server drops the block entirely.
         officeRelationship: getOfficeRelationshipWith(colleagueId),
+        officeWorkingMemory: workingMemoryPromptLines(colleagueId),
         uiLocale: officeDialogueLocale(),
         userName: ctx.userName || undefined,
         userMessage: userMessage || undefined,
@@ -440,19 +479,22 @@ export async function deliverLlmMoment(kind, ctx, options) {
     // and is the point: the IM branch used to drop it, so a colleague who spoke
     // up in Slop Chat or at your desk could propose something and hand you no
     // way to take them up on it. A pitch belongs to whoever had it, not to the
-    // surface it happened to arrive on.
+    // surface it happened to arrive on. Initiation from a completed run is the
+    // exception: docs/office-continuity.md strips the pitch until the user
+    // replies or talks (`allowPitch: false`).
+    const actionPrompt = options.allowPitch === false ? undefined : moment.actionPrompt;
     if (kind === 'email') {
       pushOfficeEmail({
         colleagueId,
         subject: moment.subject || '(no subject)',
         body: moment.body,
-        ...(moment.actionPrompt ? { actionPrompt: moment.actionPrompt } : {})
+        ...(actionPrompt ? { actionPrompt } : {})
       });
     } else if (kind === 'walkby') {
       pushOfficeWalkBy({
         colleagueId,
         body: moment.body,
-        ...(moment.actionPrompt ? { actionPrompt: moment.actionPrompt } : {})
+        ...(actionPrompt ? { actionPrompt } : {})
       });
     } else {
       pushOfficeImPing({
@@ -460,9 +502,13 @@ export async function deliverLlmMoment(kind, ctx, options) {
         body: moment.body,
         channel: options.channel,
         voice: options.voice,
-        ...(moment.actionPrompt ? { actionPrompt: moment.actionPrompt } : {})
+        ...(actionPrompt ? { actionPrompt } : {})
       });
     }
+    recordWorkingMemoryIfAsked(options, colleagueId, ctx, {
+      theirs: moment.body,
+      yours: userMessage || undefined
+    });
     onRemember?.(moment.body);
     markFired(memory, null, onFired);
     return true;

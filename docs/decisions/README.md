@@ -16,6 +16,7 @@ Short prose records of non-obvious past decisions. Read these before re-litigati
 | [0010](0010-cast-agency-sign-off.md)          | Cast agency: Sign-off rule, one producer, pitch/proposal split                         |
 | [0011](0011-two-office-renderers.md)          | One office state, two renderers; isometric floor is DOM/CSS + SVG                      |
 | [0012](0012-collaboration-model.md)           | Five collaboration acts, one of which produces (talk / mob / pair / delegate)          |
+| [0013](0013-office-continuity.md)             | Office continuity: working memory never triggers; runWalk is the only new initiation   |
 
 ## Format
 

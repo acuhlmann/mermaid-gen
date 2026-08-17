@@ -83,6 +83,13 @@ const OfficeLogField = z.array(z.string().max(200)).max(12).default([]);
  */
 const OfficeRelationshipField = z.array(z.string().max(200)).max(3).default([]);
 
+/**
+ * Beats + board fingerprint for this speaker today (docs/office-continuity.md).
+ * Same both-sides-must-match reasoning as `OfficeRelationshipField`; a slightly
+ * larger line cap because a fingerprint line sits beside the last few beats.
+ */
+const OfficeWorkingMemoryField = z.array(z.string().max(200)).max(6).default([]);
+
 const ModelProfileField = ModelProfileSchema.optional();
 
 const OfficeMomentRequestSchema = z.object({
@@ -94,6 +101,7 @@ const OfficeMomentRequestSchema = z.object({
   recentMoments: z.array(z.string().max(400)).max(5).default([]),
   officeLog: OfficeLogField,
   officeRelationship: OfficeRelationshipField,
+  officeWorkingMemory: OfficeWorkingMemoryField,
   uiLocale: UiLocaleField,
   userName: z.string().max(80).optional(),
   userMessage: z.string().max(400).optional(),

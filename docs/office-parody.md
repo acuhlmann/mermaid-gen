@@ -1281,8 +1281,11 @@ consumer). Reserved for later MCP-app parity: `office_moment` / `meeting_started
 
 Decisions from the design grilling; canonical vocabulary in [`GLOSSARY.md`](../GLOSSARY.md)
 (entries: _Sign-off rule / one-producer model_, _Pitch_, _Reactive vs. ambient_, _Office log_,
-_Their own work_). The isometric floor design is [`office-isometric-mode.md`](office-isometric-mode.md);
-the backburnered multi-human future is [`multi-human-office.md`](multi-human-office.md).
+_Working memory_, _runWalk_, _Two-beat proximity_, _Their own work_). The isometric floor design is
+[`office-isometric-mode.md`](office-isometric-mode.md); the locked continuity slice (working memory +
+floor run-walk, implementation pending) is [`office-continuity.md`](office-continuity.md) and
+[ADR-0013](decisions/0013-office-continuity.md); the backburnered multi-human future is
+[`multi-human-office.md`](multi-human-office.md).
 
 - **One producer, many commentators.** The human's pipeline is the sole producer of slot
   content. The built-in cast (all tiers) never generates DSLs or code and never initiates
@@ -1420,6 +1423,11 @@ the backburnered multi-human future is [`multi-human-office.md`](multi-human-off
     see the diagram only as it stands — after it, 0 of 12, with the reactions no less specific.
     The general rule: tell a situation the **circumstance** (it is why they are pinging _now_);
     never tell it a **delta the prompt does not carry**.
+
+  - **`runWalk` shipped in v1.** A run landing while the user is idle on the floor
+    cannot reuse `run` (silent IM) or `walkover` (they answered a shout). Spec:
+    [`office-continuity.md`](office-continuity.md). Adding a situation is still the usual
+    four-place contract: enum, `isSpokenMomentSituation`, rule block, reminder.
 
 - **The medium rule: speech is spoken, writing is read.** The ambient/reactive split decides
   _how much a line costs_; this one decides _whether it reaches a voice at all_, and the two are

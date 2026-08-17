@@ -26,7 +26,11 @@ import {
   OfficeMomentSituationSchema
 } from '@archislop/shared';
 import { llmUsageFromReply } from './_lib/llmUsageFromReply.js';
-import { buildOfficeLogBlock, buildOfficeRelationshipBlock } from './_lib/officeLogPrompt.js';
+import {
+  buildOfficeLogBlock,
+  buildOfficeRelationshipBlock,
+  buildOfficeWorkingMemoryBlock
+} from './_lib/officeLogPrompt.js';
 import {
   createLlmChatModel,
   isLlmConfigured,
@@ -510,23 +514,32 @@ recurring corporate invite, e.g. "Architecture Review Board (steering)").`
 };
 
 /**
- * The situations that arrive **with** a `userMessage` because the user opened
- * their mouth rather than a text field (`OFFICE_MOMENT_SITUATIONS` in shared).
+ * Spoken situations (`OFFICE_MOMENT_SITUATIONS` in shared). Most arrive **with**
+ * a `userMessage` because the user opened their mouth rather than a text field
+ * (`outLoud`, `turnedTo`, `walkover`). `runWalk` is the exception: they walked
+ * over because a run landed, so it is spoken (aloud, at the screen) but has
+ * **no** `userMessage`. Reusing `run` (silent IM) or `walkover` (they answered a
+ * shout) is the class of medium lie this predicate exists to stop.
  *
  * They are the exception to "a reply wins" below, and they have to be, because
  * they disagree with the typed reply rule about the one thing that matters:
  * `IM REPLY MODE` opens "The user just sent you a chat message", which is a
  * false statement about somebody who said it out loud across an open-plan
  * office. Composing the two would have the model reading both; so a spoken
- * situation **replaces** the typed reply mode rather than joining it, and the
- * blocks below carry their own "answer what they said" clause because they are
- * now the only reply instruction the model gets.
+ * situation **replaces** the typed reply mode rather than joining it. The
+ * reply-shaped blocks carry their own "answer what they said" clause; `runWalk`
+ * must not — there is nothing to answer.
  *
  * @param {string | undefined} situation
  * @returns {boolean}
  */
 export function isSpokenMomentSituation(situation) {
-  return situation === 'outLoud' || situation === 'turnedTo' || situation === 'walkover';
+  return (
+    situation === 'outLoud' ||
+    situation === 'turnedTo' ||
+    situation === 'walkover' ||
+    situation === 'runWalk'
+  );
 }
 
 /**
@@ -619,7 +632,30 @@ cold-open rule — there is no chat window):
   have said from your own chair is the one wrong answer here; you came over for a reason.
 - You are speaking over their shoulder, out loud, standing up. One or two sentences, max ~30
   words. No greeting, no chat mannerisms, no emoji. Do not narrate walking over — by the
-  time you speak you are already there.`
+  time you speak you are already there.`,
+  /*
+   * Circumstance only: they walked over because work just landed. Copy the `run`
+   * no-delta bullets verbatim — that instruction was measured, and telling the
+   * model to react to a change it cannot see made it invent one. No userMessage,
+   * no "answer what they said", no actionPrompt, no escape hatch.
+   */
+  runWalk: `
+WHY YOU ARE SPEAKING (overrides the usual "surprise me" cold-open rule):
+- The user just finished a change to the diagram and it has this second landed on their
+  screen. You got up and walked over. You are now standing at the screen. That is why you
+  are speaking now rather than from your chair, and why you are speaking at all.
+- You can see the diagram ONLY as it stands now. You did NOT see what changed, so never say
+  what they added, renamed, moved, removed or fixed — no "you added…", no "the new…", no
+  "finally…", no "now it has…". Naming the wrong change is the worst line you could send to
+  somebody looking straight at the work they just did.
+- Comment on how the work STANDS NOW: name something visible on the screen, in character.
+  Getting up and then saying something you could have said from your chair is the one wrong
+  answer; you walked over to look.
+- You are speaking ALOUD over their shoulder. One short sentence. No greeting, no chat
+  mannerisms, no emoji. Do not narrate walking over — by the time you speak you are already
+  there.
+- Do not congratulate them on shipping. Do not claim you had anything to do with it. Do not
+  attach an actionPrompt — this is a look, not a pitch.`
 };
 
 /**
@@ -646,6 +682,9 @@ export function buildMomentSituationReminder(situation) {
   }
   if (situation === 'walkover') {
     return '\nThey said that out loud to the room and you have walked over. Answer it while looking at what is on their screen.';
+  }
+  if (situation === 'runWalk') {
+    return '\nThey just this second finished working on the diagram and you walked over to look. React to how it stands now — you did NOT see what changed, so do not name it.';
   }
   return '';
 }
@@ -731,6 +770,7 @@ export function buildMomentUserPrompt({
   recentMoments,
   officeLog,
   officeRelationship,
+  officeWorkingMemory,
   uiLocale,
   userName,
   userMessage,
@@ -792,6 +832,7 @@ export function buildMomentUserPrompt({
        so the narrower block sits closer to the instruction that follows it —
        the same recency argument `buildMomentSituationReminder` is built on. */
     buildOfficeRelationshipBlock(officeRelationship),
+    buildOfficeWorkingMemoryBlock(officeWorkingMemory),
     transcript
       ? ['', transcriptHeading, transcript, '', `${saidHeading}: "${safeUserMessage}"`]
       : null,

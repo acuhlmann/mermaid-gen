@@ -58,6 +58,7 @@ import {
   subscribe,
   voteOfficeBattle
 } from '../state/officeMomentStore.js';
+import { markWorkingMemoryPitchTaken } from '../state/officeWorkingMemoryStore.js';
 import { subscribeFloatingWindowReset } from '../state/floatingWindowControl.js';
 import {
   getFocusedOverlayId,
@@ -318,14 +319,18 @@ export default function OfficeLayer({
     onUsage
   });
 
-  // A colleague reacts to the diagram you just generated (IM, capped hard).
+  // A colleague reacts to the diagram you just generated. Seated → IM;
+  // idle on the floor → one walk-by (`runWalk`). `floorActive` no longer
+  // swallows this producer (docs/office-continuity.md).
+  const floorRunContextRef = useRef({ idle: false, awayIds: [], youTile: null });
   useOfficeRunReactions({
     runSignal,
     pause,
     advisorBusy,
     agentBusy,
     meetingActive: Boolean(meeting || huddle),
-    floorActive: onFloor,
+    onFloor,
+    getRunContext: () => floorRunContextRef.current,
     getDiagramSource,
     getContentType,
     getSessionId,
@@ -817,6 +822,7 @@ export default function OfficeLayer({
     (prompt, colleagueId) => {
       cancelOfficeNarration();
       dismissOfficeWalkBy();
+      if (colleagueId) markWorkingMemoryPitchTaken(colleagueId);
       onAdoptPrompt?.(prompt, colleagueId);
     },
     [onAdoptPrompt]
@@ -1454,6 +1460,9 @@ export default function OfficeLayer({
    * messenger, because it was never anywhere else.
    */
   const [floorTalkingTo, setFloorTalkingTo] = useState(null);
+  const handleRunContextChange = useCallback((ctx) => {
+    floorRunContextRef.current = ctx;
+  }, []);
 
   const handleTalkGreet = useCallback(async () => {
     // User speaks first — no auto-opener when walking up to someone.
@@ -1524,6 +1533,7 @@ export default function OfficeLayer({
         onTalkReply: handleTalkReply,
         onDwellRemark: handleDwellRemark,
         onTalkingChange: setFloorTalkingTo,
+        onRunContextChange: handleRunContextChange,
         onGetCoffee: desk.getCoffee,
         onPropCue: handlePropCue,
         onFloorCue: handleFloorCue,
@@ -1565,6 +1575,7 @@ export default function OfficeLayer({
       handleFloorMessage,
       handleTalkGreet,
       handleTalkReply,
+      handleRunContextChange,
       desk.getCoffee,
       handlePropCue,
       handleFloorCue,
