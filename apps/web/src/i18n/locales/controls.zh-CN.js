@@ -706,6 +706,9 @@ export const CONTROLS_ZH_CN = {
   },
   metaphor: {
     legend: '图例',
+    reading: '如何阅读此场景',
+    layers: '图层',
+    layer: '图层',
     type: '隐喻类型',
     viewAs: '查看为',
     kinds: {
@@ -719,6 +722,10 @@ export const CONTROLS_ZH_CN = {
       garden: '花园',
       archipelago: '群岛',
       machine: '机械',
+      bridge: '桥梁',
+      cycle: '循环',
+      subway: '地铁',
+      iceberg: '冰山',
       composite: '组合'
     },
     compositeHintTitle: '组合模式',

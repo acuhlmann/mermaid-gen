@@ -113,6 +113,14 @@ export const COMPOSITE_PRIMITIVE_REGISTRY = Object.freeze({
     placement: 'orbit-site',
     motionStyle: 'orbit',
     estimatedCost: 4
+  }),
+  berg: Object.freeze({
+    role: 'landmark',
+    bounds: Object.freeze({ radius: [0.7, 2.2], height: [0.8, 4.2] }),
+    anchor: 'summit',
+    placement: 'attach-to-site',
+    motionStyle: 'pulse',
+    estimatedCost: 6
   })
 });
 
@@ -137,7 +145,7 @@ export const COMPOSITE_CAPABILITY_BY_KIND = Object.freeze({
   // landmark; the waterline it needs cannot exist inside a fused world that
   // already has ground at y = 0, which is why iceberg is better used alone.
   subway: Object.freeze({ role: 'path', primitive: 'waypoint', metric: 'traffic' }),
-  iceberg: Object.freeze({ role: 'landmark', primitive: 'tower', metric: 'mass' })
+  iceberg: Object.freeze({ role: 'landmark', primitive: 'berg', metric: 'mass' })
 });
 
 export function getCompositeCapability(kind) {

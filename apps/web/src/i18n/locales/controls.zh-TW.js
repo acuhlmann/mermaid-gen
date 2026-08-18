@@ -706,6 +706,9 @@ export const CONTROLS_ZH_TW = {
   },
   metaphor: {
     legend: '圖例',
+    reading: '如何閱讀此場景',
+    layers: '圖層',
+    layer: '圖層',
     type: '隱喻類型',
     viewAs: '檢視為',
     kinds: {
@@ -719,6 +722,10 @@ export const CONTROLS_ZH_TW = {
       garden: '花園',
       archipelago: '群島',
       machine: '機械',
+      bridge: '橋樑',
+      cycle: '循環',
+      subway: '地鐵',
+      iceberg: '冰山',
       composite: '組合'
     },
     compositeHintTitle: '組合模式',

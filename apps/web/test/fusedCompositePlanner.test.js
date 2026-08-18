@@ -286,6 +286,15 @@ describe('planFusedCompositeWorld', () => {
     expect(plan.paths[0].moteSpeed).toBeGreaterThan(0.04);
   });
 
+  it('draws iceberg layers as berg landmarks, not anonymous towers', () => {
+    const dsl = dslFor(['archipelago', 'iceberg'], 'iceberg-berg');
+    dsl.layers[1].items = [{ id: 'debt', label: 'Tech debt', mass: 14, peril: 0.8 }];
+    const plan = planFusedCompositeWorld(dsl);
+    const debt = plan.nodes.find((node) => node.id === 'debt');
+    expect(debt.primitive).toBe('berg');
+    expect(debt.presentation.peril).toBeCloseTo(0.8);
+  });
+
   it('produces finite plans and stable anchors for every ordered layer-kind pair', () => {
     for (const firstKind of BASE_KINDS) {
       for (const secondKind of BASE_KINDS) {

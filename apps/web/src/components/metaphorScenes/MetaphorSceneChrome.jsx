@@ -67,6 +67,7 @@ export function ItemLabel({
 }) {
   const billboardRef = useRef(null);
   const textRef = useRef(null);
+  const plateRef = useRef(null);
   const declutter = useLabelDeclutter();
   // An accented item's own label inherits the pin, so a scene only has to mark
   // the item — it never has to thread `pinned` down to every ItemLabel call.
@@ -78,6 +79,9 @@ export function ItemLabel({
   // first time it runs, not two frames later.
   const width = Math.min(fontSize * 16, (text?.length ?? 0) * fontSize * 0.55);
   const height = fontSize * 1.35;
+  const plateWidth = width + fontSize * 0.9;
+  const plateHeight = height + fontSize * 0.22;
+  const plateOpacity = 0.58;
 
   useEffect(() => {
     if (!declutter || !text) return undefined;
@@ -85,21 +89,45 @@ export function ItemLabel({
       object: billboardRef.current,
       importance,
       pinned: isPinned,
-      width,
-      height,
+      width: plateWidth,
+      height: plateHeight,
       apply: (opacity) => {
         const label = textRef.current;
-        if (!label) return;
-        label.fillOpacity = opacity;
-        label.outlineOpacity = opacity;
-        if (label.material) label.material.transparent = true;
+        if (label) {
+          label.fillOpacity = opacity;
+          label.outlineOpacity = opacity;
+          if (label.material) label.material.transparent = true;
+        }
+        const plate = plateRef.current;
+        if (plate?.material) {
+          plate.material.opacity = opacity * plateOpacity;
+          plate.visible = opacity > 0.05;
+        }
       }
     });
-  }, [declutter, text, importance, isPinned, width, height]);
+  }, [declutter, text, importance, isPinned, plateWidth, plateHeight]);
 
   if (!text) return null;
   return (
     <Billboard position={position} ref={billboardRef}>
+      {/* Chip behind every label so one-word names stay readable against a
+          lit facade, a bright sky, or a busy fused landscape. The plate is
+          scaffolding, not subject — keep it out of the camera fit. */}
+      <mesh
+        ref={plateRef}
+        position={[0, 0, -fontSize * 0.05]}
+        userData={FRAME_IGNORE_DATA}
+        renderOrder={8}
+      >
+        <planeGeometry args={[plateWidth, plateHeight]} />
+        <meshBasicMaterial
+          color={outlineColor}
+          transparent
+          opacity={plateOpacity}
+          depthWrite={false}
+          toneMapped={false}
+        />
+      </mesh>
       <Text
         ref={textRef}
         fontSize={fontSize}
@@ -107,7 +135,7 @@ export function ItemLabel({
         anchorX="center"
         anchorY="middle"
         maxWidth={fontSize * 16}
-        outlineWidth={fontSize * 0.14}
+        outlineWidth={fontSize * 0.08}
         outlineColor={outlineColor}
         outlineOpacity={1}
       >
@@ -166,13 +194,19 @@ export function MetaphorGroundShadow({ theme, y = 0.01, scale }) {
  * propagation so it coexists with OrbitControls (drag still rotates the view).
  * No-ops when hover is disabled (store is null during streaming).
  */
-export function HoverableItem({ item, metaphor, children, onActiveIdChange }) {
+export function HoverableItem({ item, metaphor, layerLabel, children, onActiveIdChange }) {
   const store = useMetaphorHover();
   const highlightCategory = useMetaphorChangeHighlight(item?.id);
   const update = (event) => {
     if (!store) return;
     event.stopPropagation();
-    store.set({ item, metaphor, x: event.clientX, y: event.clientY });
+    store.set({
+      item,
+      metaphor,
+      layerLabel: typeof layerLabel === 'string' && layerLabel.trim() ? layerLabel.trim() : null,
+      x: event.clientX,
+      y: event.clientY
+    });
   };
   const handleOver = (event) => {
     if (!store) return;

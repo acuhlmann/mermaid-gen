@@ -20,7 +20,7 @@ export const METAPHOR_SELF_CHECK = `Self-check before calling apply_metaphor_pat
 - Machine items: size (0.1-10), speed (0-10), optional axle, optional torque (0-1), optional mesh (id of coupled gear).
 - Bridge items: span (0-100 position along the crossing), load (0.1-10), optional side (shore/system name), optional strain (0-1).
 - Cycle items: phase (0-100 around the loop), size (0.1-10), optional friction (0-1).
-- Composite: layout is "fused" for new scenes; 1-4 non-composite layers each have id/as/label/items; top-level items is []; seed is a stable string or non-negative integer; novelty and motionIntensity are 0-1. "adjacent"/"overlay" are legacy compatibility layouts, not new output.
+- Composite: layout is "fused" for new scenes; 1-4 non-composite layers each have id/as/label/items; layer labels are reading keys ("X as islands"), not the kind name; top-level items is []; seed is a stable string or non-negative integer; novelty and motionIntensity are 0-1. "adjacent"/"overlay" are legacy compatibility layouts, not new output.
 - "links" is an array (may be empty). Each link has "from" and "to" ids that exist in items; optional "label"; optional "kind" (flow/dependency/ownership).
 - Optional item "note": a short string (≤ 140 chars) shown on hover.
 - Optional item "position": [x,y,z] with numbers in −30…30.

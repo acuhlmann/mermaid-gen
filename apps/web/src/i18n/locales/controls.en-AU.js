@@ -711,6 +711,9 @@ export const CONTROLS_EN_AU = {
   },
   metaphor: {
     legend: 'Legend',
+    reading: 'How to read this scene',
+    layers: 'Layers',
+    layer: 'Layer',
     type: 'Metaphor type',
     viewAs: 'View as',
     kinds: {
@@ -724,6 +727,10 @@ export const CONTROLS_EN_AU = {
       garden: 'Garden',
       archipelago: 'Archipelago',
       machine: 'Machine',
+      bridge: 'Bridge',
+      cycle: 'Cycle',
+      subway: 'Subway',
+      iceberg: 'Iceberg',
       composite: 'Composite'
     },
     compositeHintTitle: 'Composite mode',

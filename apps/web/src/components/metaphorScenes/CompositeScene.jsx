@@ -26,9 +26,6 @@ function LegacyCompositeScene({ dsl, theme, renderBaseScene }) {
     }));
   }, [dsl.layers, layout]);
 
-  // Approximate cross-layer link anchors: layer origin + a small lift. Exact
-  // per-item anchors would require each base scene to export them; good enough
-  // for the experiment so cross-layer edges remain visible.
   const anchors = useMemo(() => {
     const map = new Map();
     for (const { layer, transform } of layerWorld) {
@@ -49,7 +46,6 @@ function LegacyCompositeScene({ dsl, theme, renderBaseScene }) {
           metaphor: layer.as,
           scene: dsl.scene ?? {},
           items: Array.isArray(layer.items) ? layer.items : [],
-          // Per-layer links stay empty; composite-level links draw once below.
           links: []
         };
         const label = layer.label || layer.as;

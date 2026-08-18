@@ -27,7 +27,9 @@ import { Glyph } from './metaphorGlyphs/index.jsx';
 import {
   MetaphorTitleOverlay,
   MetaphorLegendOverlay,
+  MetaphorReadingOverlay,
   MetaphorCompositeHint,
+  MetaphorCompositeLayersOverlay,
   MetaphorKindSwitcher,
   MetaphorHoverTooltip
 } from './MetaphorOverlays.jsx';
@@ -84,6 +86,7 @@ import { SceneEnvironment } from './metaphorScenes/SceneEnvironment.jsx';
 import { createSceneFit } from './metaphorScenes/sceneFraming.js';
 import { AdaptiveFog } from './metaphorScenes/AdaptiveFog.jsx';
 import { DEFAULT_GROUND_HAZE, sceneWantsHaze } from './metaphorScenes/metaphorAtmosphere.js';
+import { accentThesisFromDsl } from '../utils/metaphorReading.js';
 
 const STREAMING_RENDER_THROTTLE_MS = 90;
 
@@ -1246,6 +1249,7 @@ function MetaphorRendererImpl(
   const dsl = streamingPreview ? (streamDsl ?? lastGoodDslRef.current) : finalResolved.dsl;
   const hasSource = Boolean(diagramSource?.trim());
   const renderError = !streamingPreview && hasSource && !dsl ? finalResolved.renderError : '';
+  const thesis = useMemo(() => accentThesisFromDsl(dsl), [dsl]);
 
   const themeId = dsl?.scene?.theme ?? 'whiteboard';
   const moodId = dsl?.scene?.mood ?? null;
@@ -1420,13 +1424,12 @@ function MetaphorRendererImpl(
       ) : null}
       {dsl && !streamingPreview ? (
         <>
-          {/* The inline view keeps the canvas clean: no persistent title card,
-              legend, or kind-switcher panels — they collide with the app's logo
-              and corner controls and clutter the scene. Those chrome panels are
-              surfaced only in fullscreen, where the canvas owns the whole
-              viewport. The hover tooltip stays in both modes: it's transient,
-              appears only while pointing at an item, and never occludes the
-              scene. */}
+          {/* Fullscreen owns the roomy title card, legend, and kind switcher.
+              Inline keeps a compact reading strip so the topic is still named
+              without colliding with the app logo and corner controls. The hover
+              tooltip stays in both modes. Composite layer keys render in both:
+              they are the fused world's only explanation of what each grammar
+              is doing. */}
           {isFullscreen ? (
             <>
               <MetaphorKindSwitcher
@@ -1439,10 +1442,21 @@ function MetaphorRendererImpl(
                   layerCount={Array.isArray(dsl.layers) ? dsl.layers.length : 0}
                 />
               ) : null}
-              <MetaphorTitleOverlay scene={dsl.scene} />
+              <MetaphorTitleOverlay scene={dsl.scene} thesis={thesis} />
               <MetaphorLegendOverlay metaphor={dsl.metaphor} legend={dsl.scene?.legend} />
+              <MetaphorCompositeLayersOverlay dsl={dsl} />
             </>
-          ) : null}
+          ) : (
+            <>
+              <MetaphorReadingOverlay
+                scene={dsl.scene}
+                metaphor={dsl.metaphor}
+                legend={dsl.scene?.legend}
+                thesis={thesis}
+              />
+              <MetaphorCompositeLayersOverlay dsl={dsl} />
+            </>
+          )}
           <MetaphorHoverTooltip store={hoverStore} legend={dsl.scene?.legend} />
         </>
       ) : null}
