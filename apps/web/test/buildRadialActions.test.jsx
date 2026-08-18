@@ -95,10 +95,12 @@ describe('buildRadialActions', () => {
     expect(cluster.find((entry) => entry.id === 'rename').hidden).toBe(true);
   });
 
-  it('disables Connect, Delete, and Rename while an agent run is streaming', () => {
-    const list = actions({ graphEdit: { enabled: true, kind: 'node', busy: true } });
-    expect(list.find((entry) => entry.id === 'connect').disabled).toBe(true);
-    expect(list.find((entry) => entry.id === 'delete').disabled).toBe(true);
-    expect(list.find((entry) => entry.id === 'rename').disabled).toBe(true);
+  it('hides Link when the adapter cannot grow free edges', () => {
+    const list = actions({
+      graphEdit: { enabled: true, kind: 'node', busy: false, canLink: false },
+      touchGraphEdit: true
+    });
+    expect(list.find((entry) => entry.id === 'link')?.hidden).toBe(true);
+    expect(list.find((entry) => entry.id === 'connect')?.hidden).toBe(false);
   });
 });

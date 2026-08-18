@@ -41,6 +41,10 @@ flowchart LR
 
 Each HTTP request and SSE payload carries `contentType`, which is forwarded from the UI to the `DiagramAgentDispatcher` (after Auto resolution when applicable). The dispatcher selects the Mermaid, Infographic, Metaphor3D, Chart, Anything, or Forms service transparently; routes and stream events are otherwise identical from the client's perspective.
 
+## Canvas graph edit
+
+Some layouts can be grown or trimmed from the canvas without a prompt: **Add**, **Delete**, **Rename**, and (when the layout has free edges) **Link**. Today that is Mermaid **flowchart** plus Infographic **hierarchy-tree / mindmap**, **relation-dagre**, and **relation-network**. The verbs land as `origin: user` patches on `POST /api/copilotkit/user-edit`. Lists, mermaid mindmap/state/sequence, and Metaphor3D tree are later slices — see [`docs/canvas-graph-edit.md`](../canvas-graph-edit.md).
+
 ## metaphor3d kinds
 
 The `metaphor3d` slot stores a JSON DSL with a `metaphor` discriminator picking one spatial story:

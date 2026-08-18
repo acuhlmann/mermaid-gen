@@ -881,6 +881,11 @@
   stroke-width: 3px !important;
 }
 
+.diagram-viewport .infographic-canvas .is-connect-source {
+  outline: 2px solid #22c55e;
+  outline-offset: 2px;
+}
+
 .diagram-viewport svg g.node.is-diagram-selected path,
 .diagram-viewport svg g.node.is-diagram-selected rect,
 .diagram-viewport svg g.node.is-diagram-selected polygon,

@@ -1,0 +1,115 @@
+# Canvas graph edit
+
+Point-and-click **Add / Delete / Rename / Link** on a rendered graph, without a prompt. The verbs land as `origin: user` patches through [`POST /api/copilotkit/user-edit`](guide/api-endpoints.md) and sit in the same undo/history as agent patches.
+
+This is **not** a second editor. The source of truth stays the slot's DSL. The canvas only names a node (or two) and a verb; a pure mutator rewrites the text.
+
+## Who owns what
+
+| Layer                                                                 | Owns                                                            | Does not own           |
+| --------------------------------------------------------------------- | --------------------------------------------------------------- | ---------------------- |
+| Canvas (`DiagramCanvas`)                                              | Hit-test, connect-mode highlight, `data-indexes` / mermaid `id` | DSL shape              |
+| Radial + `GraphEditChrome`                                            | The four verbs + inline rename + undo toast                     | Per-family rules       |
+| `useFlowchartGraphEdit`                                               | Session: connect mode, pending rename, apply + toast            | Which mutator to call  |
+| `canvasGraphEdit.js`                                                  | Adapter lookup (`graphEditAdapterFor`)                          | Rendering              |
+| Family mutator (`mermaidFlowchartEdit.js`, `infographicGraphEdit.js`) | Parse → mutate → serialize                                      | HTTP                   |
+| `POST /user-edit`                                                     | Slot apply + sanitizer + revision                               | Family-specific syntax |
+
+A new family is a mutator module + an adapter row. Do not grow a second hook or a second chrome.
+
+## Families
+
+A **family** is a (content type, layout/kind) pair that shares one node identity and one set of verbs.
+
+| Family                        | Content type | How you recognise it                                    | Node identity                                      | Add                          | Delete                                  | Rename       | Link                                               | Status         |
+| ----------------------------- | ------------ | ------------------------------------------------------- | -------------------------------------------------- | ---------------------------- | --------------------------------------- | ------------ | -------------------------------------------------- | -------------- |
+| Flowchart                     | mermaid      | `flowchart` / `graph` header                            | mermaid node id                                    | child of selected            | node + incident edges                   | node label   | new edge                                           | **shipped**    |
+| Infographic hierarchy         | infographic  | `infographic type hierarchy-tree` / `hierarchy-mindmap` | AntV `data-indexes` (`"0"`, `"0,0"`)               | child of selected            | node + descendants; **root is refused** | item `label` | n/a (tree edge is parentage)                       | **this slice** |
+| Infographic dagre             | infographic  | `type relation-dagre`                                   | `data-indexes` (`"0"`…`"n"`) or `~label:` fallback | sibling + `from -> new`      | node + incident relations               | item `label` | `from -> to`                                       | **this slice** |
+| Infographic network           | infographic  | `type relation-network-*`                               | same as dagre                                      | append a spoke (`- label X`) | node                                    | item `label` | **off** — extra `relations` do not change the star | **this slice** |
+| Infographic lists / sequences | infographic  | `list-*`, `sequence-*`                                  | list index                                         | sibling item                 | item                                    | label        | n/a                                                | later          |
+| Mermaid mindmap               | mermaid      | `mindmap` header                                        | indent path                                        | child                        | node + descendants                      | label        | n/a                                                | later          |
+| Mermaid state                 | mermaid      | `stateDiagram-v2`                                       | state id                                           | new state + transition       | state                                   | label        | transition                                         | later          |
+| Mermaid sequence              | mermaid      | `sequenceDiagram`                                       | participant id                                     | participant / message        | participant or message                  | alias        | n/a (messages are ordered)                         | later          |
+| Metaphor3D tree               | metaphor3d   | `kind: "tree"`                                          | item `id` + `parent`                               | child item                   | item + descendants                      | `label`      | n/a                                                | later          |
+| Chart values                  | chart        | Vega-Lite `data.values`                                 | row index                                          | row                          | row                                     | field        | n/a                                                | later, if ever |
+
+Out of scope on purpose: **anything** (free HTML), **forms** (A2UI). Those are not node graphs.
+
+## Verbs
+
+Same four names everywhere. A family that cannot support a verb returns `canLink: false` (or the mutator returns `{ok:false, reason}`) — the radial hides or no-ops; it does not grow a fifth name.
+
+| Verb   | User gesture                     | Mutator                            | Refused when                                   |
+| ------ | -------------------------------- | ---------------------------------- | ---------------------------------------------- |
+| Add    | radial + on a selected node      | `addLinkedNode(source, id, label)` | no selection                                   |
+| Delete | radial trash                     | `deleteNode` / `deleteEdge`        | hierarchy root (`reason: 'root'`)              |
+| Rename | radial or Enter; inline field    | `renameNode`                       | empty / identical label                        |
+| Link   | radial link, then click a target | `connectNodes`                     | `canLink === false`; self-loop; duplicate edge |
+
+## Adapter contract
+
+`graphEditAdapterFor(contentType, source)` returns `null` or:
+
+```
+{
+  contentType,     // 'mermaid' | 'infographic' (posted on /user-edit)
+  canLink,         // false hides the Link radial item
+  addLinked(source, fromId, label?),
+  connect(source, fromId, toId),
+  deleteNode, deleteEdge, renameNode, renameEdge
+}
+```
+
+Each method returns `{ ok, source, newId?, newLabel? }` or `{ ok: false, reason }`. `graphEditIdFromDescriptor` is the canvas-side helper: mermaid uses `id` / `match`; infographic uses `data-indexes`, then `~label:<text>` when AntV painted a title-only hit (no indexes).
+
+### Infographic identity (load-bearing)
+
+AntV writes `data-indexes` from the **rendered** item list, not from `parseInfographicTree` in `@archislop/shared`.
+
+- Hierarchy: root is `"0"`; first child `"0,0"`; that child's first child `"0,0,0"`. This is **not** the shared highlighter's path (that one numbers the first child as `"0"`). Graph edit must keep using AntV's scheme or clicks land on the wrong item.
+- Dagre / network: nodes are `"0"` … `"n-1"` in source order.
+
+Do not "fix" this by routing edits through `parseInfographicTree`. Fix the highlighter in its own slice if it still disagrees.
+
+### Network vs dagre
+
+`relation-network-*` is a **star**: item 0 is the hub, everyone else is a spoke. Extra `relations:` lines do not change the layout (verified against `@antv/infographic` `parseSyntax` + `getItemList`). Add therefore appends `- label X` with **no** `id` and **no** new edge. Link stays off.
+
+`relation-dagre` is a real DAG. Add mints `id nK` and `hub -> nK`; Link writes `from -> to`.
+
+## Incremental slices
+
+Land one family per change. Each slice is: mutator + tests, adapter row, `user-edit` allowlist if the content type is new, canvas identity if the renderer uses a new hit key, a row in this table, a recipe tick.
+
+1. **Flowchart** — shipped (`mermaidFlowchartEdit.js`).
+2. **Infographic hierarchy + dagre + network** — this change. One mutator covers all three because they share the structured-list source; verbs differ by `canLink` / root / star.
+3. **Infographic lists and sequences** — Add sibling / Delete / Rename. No Link. Same `data-indexes` identity.
+4. **Mermaid mindmap** — indent-tree mutator. Reuse the radial; `canLink: false`.
+5. **Mermaid `stateDiagram-v2`** — states + transitions. Closest remaining mermaid cousin to flowchart.
+6. **Mermaid sequence** — different objects (participants, messages). Likely a second chrome label set ("Add participant" / "Add message") still mapped onto Add / Link.
+7. **Metaphor3D tree** — JSON `parent` field. Hit-test is a Three.js mesh, not SVG; needs a descriptor bridge before the mutator is useful.
+8. **Chart values** — last, and only if a row in `data.values` is a better edit than the prompt. Skip if it feels like a spreadsheet.
+
+Skip a slice rather than stretching a mutator across two identities.
+
+## Adding a family
+
+Follow [`docs/recipes/add-graph-edit-family.md`](recipes/add-graph-edit-family.md).
+
+## Tests
+
+- Mutator: `apps/web/test/<family>GraphEdit.test.js` (or `mermaidFlowchartEdit.test.js`). Assert `{ok, source}` and at least one refuse path.
+- Hook: drive `useFlowchartGraphEdit` with a non-flowchart `contentType` and assert `applyUserDiagramEdit` sees the mutated source (`useFlowchartGraphEdit.test.jsx`).
+- Radial: `canLink: false` hides Link (`buildRadialActions.test.jsx`).
+- Wire: `POST /user-edit` accepts the content type and rejects the others (`copilotRoute.test.js`).
+
+Infographic mutators should stay parseable: `parseSyntax` from `@antv/infographic` on the mutated DSL is the cheap compiler check.
+
+## Traps
+
+- **`useFlowchartGraphEdit` is the canvas graph-edit hook.** The name is leftover from slice 1. Rename it to `useCanvasGraphEdit` in a dedicated cleanup, not in a family slice.
+- **Sanitizer rewrite.** `sanitizeInfographicDsl` / `rewriteInfographicHubAndSpokeToTree` can still fold a star with generic edge labels into a hierarchy-tree after `user-edit`. Prefer a `label` that does not look like a default spoke if you are testing network round-trip through the route.
+- **Connect highlight.** Infographic uses `.is-connect-source` on `[data-indexes]`. Title-only dagre hits (`~label:`) have nothing to paint; the click still works.
+- **Remount.** AntV wipes the DOM on every source change. `InfographicRenderer` re-selects by `data-indexes` after paint; mermaid keeps the node id.
+- **`origin: user`.** Canvas edits must keep this so undo / history stay distinct from agent patches. Do not send them through the agent stream.

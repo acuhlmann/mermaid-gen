@@ -599,14 +599,17 @@ export async function handleUserDiagramEdit({
     };
   }
 
-  if (parsed.data.contentType !== 'mermaid') {
+  const allowed =
+    parsed.data.contentType === 'mermaid' || parsed.data.contentType === 'infographic';
+  if (!allowed) {
     return {
       status: 400,
-      body: { error: 'Canvas graph edits are mermaid-only' }
+      body: { error: 'Canvas graph edits support mermaid and infographic' }
     };
   }
 
-  const slot = stateStore.getSlot('mermaid');
+  const contentType = parsed.data.contentType;
+  const slot = stateStore.getSlot(contentType);
   if (slot.revisionId !== parsed.data.previousRevisionId) {
     return {
       status: 409,
@@ -618,7 +621,7 @@ export async function handleUserDiagramEdit({
   }
 
   const applied = await stateStore.applyDiagramSource({
-    contentType: 'mermaid',
+    contentType,
     diagramSource: parsed.data.diagramSource,
     reason: parsed.data.reason,
     origin: { kind: 'user' }

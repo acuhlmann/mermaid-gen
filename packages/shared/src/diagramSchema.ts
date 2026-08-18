@@ -231,7 +231,7 @@ export const DiagramAnalyzeSchema = z.object({
   uiLocale: UiLocaleSchema.optional()
 });
 
-/** Discrete canvas graph edit (Connect / Delete / Rename) — not the Monaco debounce sync. */
+/** Discrete canvas graph edit (Connect / Delete / Rename) — mermaid + infographic. */
 export const UserDiagramEditSchema = z.object({
   contentType: ContentTypeSchema.default('mermaid'),
   diagramSource: z.string().min(1),

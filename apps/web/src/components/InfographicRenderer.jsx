@@ -208,14 +208,21 @@ function InfographicRendererImpl(
       lastSelectedElRef.current.style.outlineOffset = '';
       lastSelectedElRef.current = null;
     }
-    const el = selectedNode?.domNode;
+    const indexes = selectedNode?.indexes ? String(selectedNode.indexes) : '';
+    const liveDom = selectedNode?.domNode;
+    const el =
+      liveDom && containerRef.current?.contains(liveDom)
+        ? liveDom
+        : indexes
+          ? containerRef.current?.querySelector(`[data-indexes="${CSS.escape(indexes)}"]`)
+          : null;
     if (el && containerRef.current?.contains(el)) {
       el.classList?.add('is-infographic-selected');
       el.style.outline = '2px solid #58cc02';
       el.style.outlineOffset = '2px';
       lastSelectedElRef.current = el;
     }
-  }, [selectedNode]);
+  }, [selectedNode, renderDsl]);
 
   return (
     <div

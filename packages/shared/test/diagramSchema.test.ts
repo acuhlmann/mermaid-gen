@@ -695,6 +695,16 @@ test('UserDiagramEditSchema requires source, revision, and reason', () => {
   );
   assert.equal(
     UserDiagramEditSchema.safeParse({
+      contentType: 'infographic',
+      diagramSource:
+        'infographic hierarchy-tree-curved-line-rounded-rect-node\ndata\n  root\n    label A\n',
+      previousRevisionId: 0,
+      reason: 'Connect node'
+    }).success,
+    true
+  );
+  assert.equal(
+    UserDiagramEditSchema.safeParse({
       diagramSource: 'flowchart TD\n  A --> B',
       previousRevisionId: 0
     }).success,

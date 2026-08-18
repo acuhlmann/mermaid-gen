@@ -7,7 +7,7 @@ Operator guide for Claude Code, Cursor, Copilot, and other agents editing **arch
 1. [`GLOSSARY.md`](../../GLOSSARY.md) — vocabulary (slot, AG-UI vs session-events, etc.)
 2. [`STRUCTURE.md`](../../STRUCTURE.md) — concept → file index
 3. [`docs/agent-blast-radius.md`](../agent-blast-radius.md) — what else must change when you touch a contract
-4. [`docs/recipes/`](../recipes/) — step-by-step for MCP tools, stream events, schemas
+4. [`docs/recipes/`](../recipes/) — step-by-step for MCP tools, stream events, schemas, canvas graph-edit families
 5. [`AGENTS.md`](../../AGENTS.md) — commands and key paths
 
 ## Architecture axes (do not conflate)
@@ -71,3 +71,4 @@ Edit [`.cursor/skills/`](../../.cursor/skills/) only. [`.claude/skills/mermaid`]
 - [`docs/agents/balanced-coupling-priorities.md`](../agents/balanced-coupling-priorities.md) — ranked modularity focus areas (Balanced Coupling model)
 - [`docs/office-continuity.md`](../office-continuity.md) — office working memory + `runWalk` (v1 shipped)
 - [`change-diagram-schema.md`](../recipes/change-diagram-schema.md) — schema change playbook
+- [`add-graph-edit-family.md`](../recipes/add-graph-edit-family.md) — canvas Add / Delete / Rename / Link for a new diagram family ([plan](../canvas-graph-edit.md))

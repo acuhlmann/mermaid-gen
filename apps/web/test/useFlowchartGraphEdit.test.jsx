@@ -287,4 +287,39 @@ describe('useFlowchartGraphEdit', () => {
     });
     expect(pushError).toHaveBeenCalledWith(CONTROLS_EN.graphEdit.stale);
   });
+
+  it('adds a child on an infographic hierarchy tree', async () => {
+    const tree = `infographic hierarchy-tree-curved-line-rounded-rect-node
+data
+  root
+    label Company
+    children
+      - label Engineering
+`;
+    const { result } = mount({
+      diagramSource: tree,
+      props: {
+        contentMode: 'infographic',
+        selectedNode: {
+          kind: 'infographic-item',
+          indexes: '0,0',
+          label: 'Engineering',
+          partName: 'Engineering'
+        }
+      }
+    });
+    expect(result.current.graphEdit.enabled).toBe(true);
+    expect(result.current.graphEdit.canLink).toBe(false);
+    await act(async () => {
+      result.current.handleGraphEditAction({ id: 'connect' });
+    });
+    expect(applyUserDiagramEdit).toHaveBeenCalledTimes(1);
+    expect(applyUserDiagramEdit.mock.calls[0][0].contentType).toBe('infographic');
+    expect(applyUserDiagramEdit.mock.calls[0][0].diagramSource).toMatch(/- label Item 1/);
+    expect(result.current.labelSession).toMatchObject({
+      kind: 'node',
+      logicalId: '0,0,0',
+      created: true
+    });
+  });
 });
