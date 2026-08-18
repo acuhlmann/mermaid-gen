@@ -1,8 +1,9 @@
 /**
  * Deterministic Connect / Delete / Rename for AntV infographic families that
- * behave like a graph: hierarchy trees (root + children) and relation maps
- * (nodes + relations). Indexes match what AntV stamps on `data-indexes`
- * (`"0"` is the hierarchy root; children are `"0,0"`, `"0,1"`, …).
+ * behave like a graph: hierarchy trees (root + children), relation maps
+ * (nodes + relations), and flat lists / sequences (sibling items). Indexes
+ * match what AntV stamps on `data-indexes` (`"0"` is the hierarchy root or
+ * first list item; tree children are `"0,0"`, `"0,1"`, …).
  */
 
 const LABEL_REF_PREFIX = '~label:';
@@ -53,7 +54,7 @@ export function readInfographicTemplate(source) {
 
 /**
  * @param {string} source
- * @returns {'hierarchy' | 'relation' | null}
+ * @returns {'hierarchy' | 'relation' | 'list' | 'sequence' | null}
  */
 export function infographicGraphFamily(source) {
   const template = readInfographicTemplate(source);
@@ -61,6 +62,19 @@ export function infographicGraphFamily(source) {
   const family = template.split('-')[0];
   if (family === 'hierarchy' && template !== 'hierarchy-structure') return 'hierarchy';
   if (family === 'relation') return 'relation';
+  if (family === 'list') return 'list';
+  if (family === 'sequence') return 'sequence';
+  return null;
+}
+
+/**
+ * @param {string} template
+ * @returns {'lists' | 'sequences' | null}
+ */
+function listArrayFieldForTemplate(template) {
+  const family = String(template ?? '').split('-')[0];
+  if (family === 'list') return 'lists';
+  if (family === 'sequence') return 'sequences';
   return null;
 }
 
@@ -343,6 +357,7 @@ export function addLinkedInfographicNode(source, fromId, label = '') {
   const family = infographicGraphFamily(source);
   if (!family) return fail('not-graph');
   if (family === 'hierarchy') return addHierarchyChild(source, fromId, label);
+  if (family === 'list' || family === 'sequence') return addListSibling(source, fromId, label);
   return addRelationNode(source, fromId, label);
 }
 
@@ -383,6 +398,7 @@ export function deleteInfographicNode(source, nodeId) {
   const family = infographicGraphFamily(source);
   if (!family) return fail('not-graph');
   if (family === 'hierarchy') return deleteHierarchyNode(source, nodeId);
+  if (family === 'list' || family === 'sequence') return deleteListItem(source, nodeId);
   return deleteRelationNode(source, nodeId);
 }
 
@@ -414,6 +430,7 @@ export function renameInfographicNode(source, nodeId, label) {
     if (!node) return fail('missing');
     return ok(joinLines(source, setLabelOnSpan(tree.lines, node, text)));
   }
+  if (family === 'list' || family === 'sequence') return renameListItem(source, nodeId, text);
   return renameRelationNode(source, nodeId, text);
 }
 
@@ -673,7 +690,77 @@ function deleteRelationEdge(source, fromId, toId) {
   return ok(joinLines(source, next));
 }
 
+function parseListDoc(source) {
+  const template = readInfographicTemplate(source);
+  const field = listArrayFieldForTemplate(template);
+  if (!field) return null;
+  const lines = String(source ?? '').split(/\r?\n/);
+  const block = parseArrayItems(lines, field);
+  if (!block) return null;
+  return { lines, field, ...block };
+}
+
+function findListItem(doc, id) {
+  const parsed = parseInfographicGraphId(id);
+  if (parsed.indexes) {
+    const path = indexPathOf(parsed.indexes);
+    const hit = doc.items.find((item) => item.path === path);
+    if (hit) return hit;
+  }
+  const key = parsed.label || String(id ?? '').trim();
+  return (
+    doc.items.find((item) => item.label === key || item.id === key || item.path === key) ?? null
+  );
+}
+
+function collectListLabels(doc) {
+  const labels = new Set();
+  for (const item of doc.items) {
+    if (item.label) labels.add(item.label);
+  }
+  return labels;
+}
+
+function listItemIndent(doc) {
+  return doc.itemIndent > 0
+    ? ' '.repeat(doc.itemIndent)
+    : `${indentChars(doc.lines[doc.fieldLine])}  `;
+}
+
+function addListSibling(source, fromId, label) {
+  const doc = parseListDoc(source);
+  if (!doc) return fail('not-graph');
+  const item = findListItem(doc, fromId);
+  if (!item) return fail('missing');
+  const text = String(label || '').trim() || allocateLabel(collectListLabels(doc));
+  const next = [...doc.lines];
+  const itemPad = listItemIndent(doc);
+  next.splice(item.end, 0, `${itemPad}- label ${text}`);
+  const newIndex = Number.parseInt(item.path, 10) + 1;
+  return ok(joinLines(source, next), { newId: String(newIndex), newLabel: text });
+}
+
+function deleteListItem(source, nodeId) {
+  const doc = parseListDoc(source);
+  if (!doc) return fail('not-graph');
+  const item = findListItem(doc, nodeId);
+  if (!item) return fail('missing');
+  if (doc.items.length <= 1) return fail('last');
+  const next = [...doc.lines];
+  next.splice(item.start, item.end - item.start);
+  return ok(joinLines(source, next));
+}
+
+function renameListItem(source, nodeId, label) {
+  const doc = parseListDoc(source);
+  if (!doc) return fail('not-graph');
+  const item = findListItem(doc, nodeId);
+  if (!item) return fail('missing');
+  return ok(joinLines(source, setLabelOnSpan(doc.lines, item, label)));
+}
+
 export const __internal = {
   parseHierarchyTree,
-  parseRelationDoc
+  parseRelationDoc,
+  parseListDoc
 };

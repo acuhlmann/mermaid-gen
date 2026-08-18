@@ -685,6 +685,30 @@ data
   assert.equal(stateStore.getSlot('infographic').revisionId, 1);
 });
 
+test('user-edit route applies an infographic list patch with origin user', async () => {
+  const stateStore = createDiagramStateStore();
+  const source = `infographic list-row-simple-horizontal-arrow
+data
+  lists
+    - label Acquire
+    - label Convert
+`;
+  const result = await handleUserDiagramEdit({
+    body: {
+      contentType: 'infographic',
+      diagramSource: `${source}    - label Retain\n`,
+      previousRevisionId: 0,
+      reason: 'Connect node'
+    },
+    stateStore
+  });
+
+  assert.equal(result.status, 200);
+  assert.match(result.body.state.diagramSource, /Retain/);
+  assert.equal(result.body.patch.origin.kind, 'user');
+  assert.equal(stateStore.getSlot('infographic').revisionId, 1);
+});
+
 test('user-edit route rejects chart contentType', async () => {
   const stateStore = createDiagramStateStore();
   const result = await handleUserDiagramEdit({

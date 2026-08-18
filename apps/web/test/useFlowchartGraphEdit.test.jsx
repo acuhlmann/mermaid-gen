@@ -322,4 +322,39 @@ data
       created: true
     });
   });
+
+  it('adds a sibling on an infographic list', async () => {
+    const list = `infographic list-row-simple-horizontal-arrow
+data
+  lists
+    - label Acquire
+    - label Convert
+`;
+    const { result } = mount({
+      diagramSource: list,
+      props: {
+        contentMode: 'infographic',
+        selectedNode: {
+          kind: 'infographic-item',
+          indexes: '0',
+          label: 'Acquire',
+          partName: 'Acquire'
+        }
+      }
+    });
+    expect(result.current.graphEdit.enabled).toBe(true);
+    expect(result.current.graphEdit.canLink).toBe(false);
+    await act(async () => {
+      result.current.handleGraphEditAction({ id: 'connect' });
+    });
+    expect(applyUserDiagramEdit.mock.calls[0][0].contentType).toBe('infographic');
+    expect(applyUserDiagramEdit.mock.calls[0][0].diagramSource).toMatch(
+      /- label Acquire[\s\S]*- label Item 1/
+    );
+    expect(result.current.labelSession).toMatchObject({
+      kind: 'node',
+      logicalId: '1',
+      created: true
+    });
+  });
 });
