@@ -709,6 +709,8 @@ export const CONTROLS_ZH_CN = {
     reading: '如何阅读此场景',
     layers: '图层',
     layer: '图层',
+    selected: '选中的元素',
+    dismiss: '取消选择',
     type: '隐喻类型',
     viewAs: '查看为',
     kinds: {

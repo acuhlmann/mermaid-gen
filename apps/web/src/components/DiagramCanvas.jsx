@@ -1814,7 +1814,7 @@ export default function DiagramCanvas({
 
   const aria =
     contentType === 'metaphor3d'
-      ? '3D renderer. Drag to orbit. Scroll or pinch to zoom.'
+      ? '3D renderer. Drag to orbit. Scroll or pinch to zoom. Tap an item to inspect what it encodes; tap empty space or press Escape to dismiss.'
       : contentType === 'chart'
         ? 'Vega-Lite chart renderer. Drag to pan from anywhere. Pinch or wheel to zoom. Tap a mark, axis, legend, or title to select. Press question mark for keyboard shortcuts.'
         : contentType === 'anything'

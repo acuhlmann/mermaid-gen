@@ -714,6 +714,8 @@ export const CONTROLS_EN_AU = {
     reading: 'How to read this scene',
     layers: 'Layers',
     layer: 'Layer',
+    selected: 'Selected item',
+    dismiss: 'Dismiss selection',
     type: 'Metaphor type',
     viewAs: 'View as',
     kinds: {

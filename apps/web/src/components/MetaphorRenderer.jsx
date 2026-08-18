@@ -31,10 +31,12 @@ import {
   MetaphorCompositeHint,
   MetaphorCompositeLayersOverlay,
   MetaphorKindSwitcher,
-  MetaphorHoverTooltip
+  MetaphorHoverTooltip,
+  MetaphorInspectorPanel
 } from './MetaphorOverlays.jsx';
 import { MetaphorEffects } from './MetaphorEffects.jsx';
 import { MetaphorHoverContext, createMetaphorHoverStore } from './metaphorHover.js';
+import { MetaphorSelectionContext, createMetaphorSelectionStore } from './metaphorSelection.js';
 import { MetaphorPngExportBridge } from '../utils/viewportPngExport.js';
 
 const METAPHOR_CONTENT_ROOT_NAME = 'archislop-metaphor-root';
@@ -49,6 +51,7 @@ import {
   MetaphorLinks
 } from './metaphorScenes/MetaphorSceneChrome.jsx';
 import { MetaphorAccents } from './metaphorScenes/MetaphorAccents.jsx';
+import { MetaphorSelectionMarker } from './metaphorScenes/MetaphorSelectionMarker.jsx';
 import { LabelDeclutterContext } from './metaphorScenes/labelDeclutterContext.js';
 import { createLabelDeclutterStore } from './metaphorScenes/labelDeclutter.js';
 import MetaphorChangeHighlightProvider from './MetaphorChangeHighlightProvider.jsx';
@@ -1199,6 +1202,10 @@ function MetaphorRendererImpl(
   const hoverStoreRef = useRef(null);
   if (hoverStoreRef.current === null) hoverStoreRef.current = createMetaphorHoverStore();
   const hoverStore = hoverStoreRef.current;
+  const selectionStoreRef = useRef(null);
+  if (selectionStoreRef.current === null)
+    selectionStoreRef.current = createMetaphorSelectionStore();
+  const selectionStore = selectionStoreRef.current;
   const reducedMotion = usePrefersReducedMotion();
 
   useImperativeHandle(ref, () => ({ getContainer: () => containerRef.current }), []);
@@ -1288,6 +1295,24 @@ function MetaphorRendererImpl(
     return `${dsl.metaphor}:${dsl.items?.length ?? 0}:${dsl.links?.length ?? 0}:${layerSig}`;
   }, [dsl]);
 
+  // A re-run rebuilds every mesh, so a pick made against the old scene names an
+  // object that no longer exists — the panel would keep describing a tower that
+  // has been replaced. Streaming drops it for the same reason.
+  useEffect(() => {
+    selectionStore.clear();
+  }, [selectionStore, contentKey, streamingPreview]);
+
+  // Escape is the keyboard's dismiss; the panel's close button and a second tap
+  // on the same item are the pointer's.
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    const onKeyDown = (event) => {
+      if (event.key === 'Escape') selectionStore.clear();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [selectionStore]);
+
   const sceneFitRef = useRef(null);
   if (sceneFitRef.current === null) sceneFitRef.current = createSceneFit();
   const sceneFit = sceneFitRef.current;
@@ -1340,6 +1365,10 @@ function MetaphorRendererImpl(
           shadows="soft"
           gl={{ preserveDrawingBuffer: true }}
           style={{ width: '100%', height: '100%' }}
+          // Tapping the scene's empty space dismisses the pick. R3F only raises
+          // this when the release landed within 2px of the press, so ending an
+          // orbit over open sky never clears what you were reading.
+          onPointerMissed={() => selectionStore.clear()}
         >
           <color attach="background" args={[theme.background]} />
           {/* Haze is expressed as a fraction of the content radius and re-solved
@@ -1390,29 +1419,37 @@ function MetaphorRendererImpl(
                 particle layer never reframes the subject. */}
             {moodParticles ? <MoodAmbience fx={moodParticles} /> : null}
             <MetaphorHoverContext.Provider value={streamingPreview ? null : hoverStore}>
-              <LabelDeclutterContext.Provider value={declutter}>
-                <MetaphorChangeHighlightProvider highlight={changeHighlight}>
-                  <SceneFrame margin={boundsMargin} contentKey={contentKey} fitRef={sceneFit}>
-                    <Center disableY>
-                      <group
-                        ref={contentRootRef}
-                        name={METAPHOR_CONTENT_ROOT_NAME}
-                        userData={{
-                          archislop: {
-                            contentType: 'metaphor3d',
-                            metaphor: dsl.metaphor
-                          }
-                        }}
-                      >
-                        <MetaphorScene dsl={dsl} theme={theme} />
-                      </group>
-                    </Center>
-                  </SceneFrame>
-                  <LabelDeclutterRunner store={declutter} />
-                  <SceneShadowFlags contentKey={contentKey} targetRef={contentRootRef} />
-                </MetaphorChangeHighlightProvider>
-              </LabelDeclutterContext.Provider>
+              <MetaphorSelectionContext.Provider value={streamingPreview ? null : selectionStore}>
+                <LabelDeclutterContext.Provider value={declutter}>
+                  <MetaphorChangeHighlightProvider highlight={changeHighlight}>
+                    <SceneFrame margin={boundsMargin} contentKey={contentKey} fitRef={sceneFit}>
+                      <Center disableY>
+                        <group
+                          ref={contentRootRef}
+                          name={METAPHOR_CONTENT_ROOT_NAME}
+                          userData={{
+                            archislop: {
+                              contentType: 'metaphor3d',
+                              metaphor: dsl.metaphor
+                            }
+                          }}
+                        >
+                          <MetaphorScene dsl={dsl} theme={theme} />
+                        </group>
+                      </Center>
+                    </SceneFrame>
+                    <LabelDeclutterRunner store={declutter} />
+                    <SceneShadowFlags contentKey={contentKey} targetRef={contentRootRef} />
+                  </MetaphorChangeHighlightProvider>
+                </LabelDeclutterContext.Provider>
+              </MetaphorSelectionContext.Provider>
             </MetaphorHoverContext.Provider>
+            {/* Outside every content transform on purpose: the marker follows
+                the picked object's WORLD position, so re-applying the frame's
+                fit and centering would double them. */}
+            {!streamingPreview ? (
+              <MetaphorSelectionMarker store={selectionStore} contentKey={contentKey} />
+            ) : null}
           </MetaphorClockProvider>
           <OrbitControls enableDamping makeDefault />
           <MetaphorIntro streamingPreview={streamingPreview} />
@@ -1424,6 +1461,13 @@ function MetaphorRendererImpl(
       ) : null}
       {dsl && !streamingPreview ? (
         <>
+          {/* The inspector renders FIRST among the overlay siblings, and that
+              order is load-bearing: the legend, the layer key, and the hover
+              tooltip all yield to an open pick through a general-sibling
+              selector (`.metaphor-inspector ~ …`), which needs the inspector
+              earlier in the DOM. Doing it in CSS keeps the mutual exclusion off
+              React state, so a tap still never re-renders the scene. */}
+          <MetaphorInspectorPanel store={selectionStore} legend={dsl.scene?.legend} />
           {/* Fullscreen owns the roomy title card, legend, and kind switcher.
               Inline keeps a compact reading strip so the topic is still named
               without colliding with the app logo and corner controls. The hover

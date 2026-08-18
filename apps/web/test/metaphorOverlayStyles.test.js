@@ -64,6 +64,37 @@ describe('metaphor overlay geometry', () => {
     expect(phoneBlock).toBeGreaterThan(kindBase);
   });
 
+  it('gives an open pick the only panel on screen', () => {
+    // One panel budget: the ambient keys and the mouse tooltip yield to a pick
+    // so a phone never stacks three cards over a small canvas. Done with a
+    // general sibling combinator, which is why the inspector must be declared
+    // before them — see MetaphorRenderer's overlay order.
+    expect(css).toMatch(
+      /\.metaphor-inspector\s*~\s*\.metaphor-legend-overlay[\s\S]{0,200}?display:\s*none/
+    );
+    expect(css).toMatch(/\.metaphor-inspector\s*~\s*\.metaphor-layers-overlay/);
+    expect(css).toMatch(/\.metaphor-inspector\s*~\s*\.metaphor-hover-tooltip/);
+  });
+
+  it('drops the hover tooltip on touch, where it can only flash under the finger', () => {
+    expect(css).toMatch(
+      /@media\s*\(pointer:\s*coarse\)[\s\S]*\.metaphor-hover-tooltip\s*\{[\s\S]{0,80}?display:\s*none/
+    );
+  });
+
+  it('turns the pick into a full-width bottom sheet on phones, after the base rule', () => {
+    const base = css.indexOf('.metaphor-inspector {');
+    const phone = css.search(
+      /@media\s*\(max-width:\s*720px\)[\s\S]*?\.metaphor-inspector\s*\{[\s\S]{0,320}?env\(safe-area-inset-bottom/
+    );
+    expect(base).toBeGreaterThan(-1);
+    expect(phone).toBeGreaterThan(base);
+    // A 38vh sheet would swallow a landscape cover screen — it caps there.
+    expect(css).toMatch(
+      /@media\s*\(max-width:\s*1024px\)\s+and\s+\(max-height:\s*500px\)[\s\S]*\.metaphor-inspector[\s\S]{0,200}?max-height:\s*min\(52vh/
+    );
+  });
+
   it('keeps fullscreen chrome off the hinge on dual-screen foldables', () => {
     expect(css).toMatch(
       /horizontal-viewport-segments:\s*2[\s\S]*\.metaphor-kind-switcher[\s\S]*viewport-segment-width 1 0/

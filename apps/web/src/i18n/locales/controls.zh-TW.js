@@ -709,6 +709,8 @@ export const CONTROLS_ZH_TW = {
     reading: '如何閱讀此場景',
     layers: '圖層',
     layer: '圖層',
+    selected: '選取的元素',
+    dismiss: '取消選取',
     type: '隱喻類型',
     viewAs: '檢視為',
     kinds: {

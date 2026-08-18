@@ -10,6 +10,7 @@ import * as THREE from 'three';
 import { useFrame, useThree } from '@react-three/fiber';
 import { Billboard, ContactShadows, Line, Text } from '@react-three/drei';
 import { useMetaphorHover } from '../metaphorHover.js';
+import { createTapGesture, useMetaphorSelection } from '../metaphorSelection.js';
 import { useMetaphorChangeHighlight } from '../metaphorChangeHighlightContext.js';
 import { MetaphorChangeHighlightRing } from '../MetaphorChangeHighlightRing.jsx';
 import { useMetaphorClock } from './metaphorClock.js';
@@ -189,21 +190,32 @@ export function MetaphorGroundShadow({ theme, y = 0.01, scale }) {
 }
 
 /**
- * Wraps a per-item group with pointer handlers that drive the hover tooltip.
- * Writes only to the external hover store (no scene re-render) and stops event
- * propagation so it coexists with OrbitControls (drag still rotates the view).
- * No-ops when hover is disabled (store is null during streaming).
+ * Wraps a per-item group with pointer handlers that drive the hover tooltip and
+ * the tap-to-inspect selection. Writes only to the external stores (no scene
+ * re-render) and stops event propagation so it coexists with OrbitControls
+ * (drag still rotates the view). No-ops when a store is absent (hover is null
+ * during streaming).
+ *
+ * Tap detection is ours rather than R3F's `onClick`: the canvas is a single DOM
+ * element, so an orbit drag that starts and ends inside it still produces a DOM
+ * click, and a phone would select whatever the finger happened to be over when
+ * the rotation stopped. Down/up with a `TAP_SLOP_PX` budget is the gesture the
+ * viewer actually means.
  */
 export function HoverableItem({ item, metaphor, layerLabel, children, onActiveIdChange }) {
   const store = useMetaphorHover();
+  const selection = useMetaphorSelection();
+  const tapRef = useRef(null);
   const highlightCategory = useMetaphorChangeHighlight(item?.id);
+  const resolvedLayerLabel =
+    typeof layerLabel === 'string' && layerLabel.trim() ? layerLabel.trim() : null;
   const update = (event) => {
     if (!store) return;
     event.stopPropagation();
     store.set({
       item,
       metaphor,
-      layerLabel: typeof layerLabel === 'string' && layerLabel.trim() ? layerLabel.trim() : null,
+      layerLabel: resolvedLayerLabel,
       x: event.clientX,
       y: event.clientY
     });
@@ -220,6 +232,17 @@ export function HoverableItem({ item, metaphor, layerLabel, children, onActiveId
     store.set(null);
     onActiveIdChange?.(null);
     if (typeof document !== 'undefined') document.body.style.cursor = '';
+  };
+  const handleTapStart = (event) => {
+    if (!selection) return;
+    if (!tapRef.current) tapRef.current = createTapGesture();
+    tapRef.current.start(event);
+  };
+  const handleTapEnd = (event) => {
+    if (!selection || !tapRef.current) return;
+    if (!tapRef.current.end(event)) return;
+    event.stopPropagation();
+    selection.toggle({ item, metaphor, layerLabel: resolvedLayerLabel });
   };
   const itemId = typeof item?.id === 'string' ? item.id : undefined;
   return (
@@ -239,6 +262,8 @@ export function HoverableItem({ item, metaphor, layerLabel, children, onActiveId
       onPointerOver={handleOver}
       onPointerMove={update}
       onPointerOut={handleOut}
+      onPointerDown={handleTapStart}
+      onPointerUp={handleTapEnd}
     >
       {highlightCategory ? <MetaphorChangeHighlightRing category={highlightCategory} /> : null}
       <ItemAccentContext.Provider value={item?.accent === true}>
