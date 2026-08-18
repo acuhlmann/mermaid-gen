@@ -150,6 +150,7 @@ describe('ui locale bundles', () => {
     const en = getUiLocaleBundle('en').controls;
     const localized = getUiLocaleBundle(locale).controls;
     expect(localized.actions.connect).toBeTruthy();
+    expect(localized.actions.link).toBeTruthy();
     expect(localized.actions.delete).toBeTruthy();
     expect(localized.actions.rename).toBeTruthy();
     expect(localized.graphEdit.connectHint).toBeTruthy();

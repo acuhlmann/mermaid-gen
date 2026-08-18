@@ -191,11 +191,12 @@ export function useFlowchartGraphEdit({
       if (busy || !enabled) return;
       const target = descriptor || selectedNode;
       if (!target) return;
-      if (action.id === 'connect') {
+      if (action.id === 'connect' || action.id === 'link') {
         const logicalId = nodeLogicalId(target);
         if (!logicalId) return;
         closeRadialMenu?.();
-        if (action.linkMode) {
+        const linkMode = action.id === 'link' || action.linkMode;
+        if (linkMode) {
           if (connectFrom && nodeLogicalId(connectFrom) === logicalId) {
             cancelConnect();
             return;

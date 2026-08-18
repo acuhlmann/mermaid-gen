@@ -103,6 +103,16 @@ describe('useFlowchartGraphEdit', () => {
     expect(result.current.connectSourceId).toBe('A');
   });
 
+  it('arms link mode from the touch Link action', () => {
+    const { result } = mount({
+      props: { selectedNode: { id: 'diagram-1-flowchart-A-0', partName: 'Start' } }
+    });
+    act(() => {
+      result.current.handleGraphEditAction({ id: 'link' });
+    });
+    expect(result.current.connectSourceId).toBe('A');
+  });
+
   it('links an existing node and offers Undo', async () => {
     const { result } = mount({
       props: { selectedNode: { dataId: 'B', partName: 'End' } }

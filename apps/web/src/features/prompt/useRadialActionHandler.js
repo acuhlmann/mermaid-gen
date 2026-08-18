@@ -1,4 +1,5 @@
 import { useCallback, useMemo } from 'react';
+import { useCoarsePointer } from '../../hooks/useAppLayoutMedia.js';
 import { useDiagramHotkeys } from '../../hooks/useDiagramHotkeys.js';
 import { buildRadialActions } from '../../components/buildRadialActions.jsx';
 import {
@@ -60,6 +61,8 @@ export function useRadialActionHandler({
   graphEdit = null,
   onGraphEditAction = null
 }) {
+  const touchGraphEdit = useCoarsePointer();
+
   const handleRadialAction = useCallback(
     (action, descriptor) => {
       if (!descriptor) return;
@@ -68,7 +71,12 @@ export function useRadialActionHandler({
         openRadialSlopPrompt();
         return;
       }
-      if (action.id === 'connect' || action.id === 'delete' || action.id === 'rename') {
+      if (
+        action.id === 'connect' ||
+        action.id === 'link' ||
+        action.id === 'delete' ||
+        action.id === 'rename'
+      ) {
         onGraphEditAction?.(action, descriptor);
         return;
       }
@@ -136,7 +144,8 @@ export function useRadialActionHandler({
         contentMode,
         contentModeOptions,
         canFixFromCritique,
-        graphEdit
+        graphEdit,
+        touchGraphEdit
       }),
     [
       canFixFromCritique,
@@ -145,7 +154,8 @@ export function useRadialActionHandler({
       controls,
       graphEdit,
       russStreak,
-      slopitect
+      slopitect,
+      touchGraphEdit
     ]
   );
 

@@ -31,6 +31,8 @@ export const CONTROLS_ZH_CN = {
     prepForCeoTitle: '给 CEO 准备稿 · 送上楼前先熬干水分',
     connect: '新增',
     connectTitle: '新增链接框 · Shift+点击可连到现有框',
+    link: '连接',
+    linkTitle: '连接 · 点另一个框以连线',
     delete: '删除',
     deleteTitle: '删除 · 从图表中去掉这个',
     rename: '重命名',

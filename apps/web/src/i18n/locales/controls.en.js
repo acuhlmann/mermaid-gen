@@ -34,6 +34,8 @@ export const CONTROLS_EN = {
     prepForCeoTitle: 'Synergize · Boil it down before it goes upstairs',
     connect: 'Add',
     connectTitle: 'Add a linked box · Shift+click to link to an existing one',
+    link: 'Link',
+    linkTitle: 'Link · Tap another box to connect',
     delete: 'Delete',
     deleteTitle: 'Delete · Remove this from the diagram',
     rename: 'Rename',
