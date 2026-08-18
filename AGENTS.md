@@ -153,6 +153,15 @@ ones that will bite an edit.
   never `group.label` (the normalized matching token).
 - **Adding a metaphor kind touches ten places**, and `metaphorUsda.ts`'s `KIND_ITEM_FIELDS` is the
   one that fails the build rather than failing silently. Full list in `CLAUDE.md`.
+- **Inspecting an item has two devices and one budget.** Hover (`metaphorHover.js`) answers a
+  mouse; tap (`metaphorSelection.js`) answers a finger, because a touch "hover" is a flash under
+  the finger. Never wire the tap through R3F's `onClick` — an orbit drag inside the canvas still
+  fires a DOM click, so use `createTapGesture`'s down/up slop. The exclusion between the pick,
+  the legend, the layer key and the tooltip is a `.metaphor-inspector ~ …` CSS rule, so
+  `MetaphorInspectorPanel` must stay **first** among the overlay siblings in `MetaphorRenderer`.
+  Size `MetaphorSelectionMarker` from the item's horizontal footprint with labels excluded — a
+  bounding sphere around a tall tower rings the whole scene. Verify by rendering
+  (`apps/web/.claude/skills/verify/`), never by reading.
 
 ## Architecture docs (read before changing wire contracts)
 

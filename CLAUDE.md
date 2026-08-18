@@ -748,6 +748,24 @@ test:floor`; the floor test map is [`docs/agents/isometric-floor-tests.md`](docs
   thesis in its DSL and silently drop it; the planner's `anchors` map was
   already exactly the contract that component reads. When a base kind grows a
   scene-wide affordance, check the fused scene for it — it does not inherit.
+- **Hover is a mouse affordance; a phone needs a tap, and the two must never both
+  answer.** A touch "hover" is pointerover→pointerout inside one tap, so the tooltip flashed
+  once _under the finger_ and died — which meant a phone had no route at all to an item's
+  encoded metrics, i.e. to most of what makes a scene mean anything. `metaphorSelection.js` is
+  the touch answer: a sticky pick, a panel anchored to the canvas rather than to the pointer,
+  and `MetaphorSelectionMarker` in-canvas so the card is not disconnected copy. Four things are
+  load-bearing. **Do not use R3F's `onClick`** — the canvas is one DOM element, so an orbit
+  drag that starts and ends inside it still fires a DOM click and the scene selects whatever
+  the finger stopped over; `createTapGesture` (down/up within `TAP_SLOP_PX`) is the gesture the
+  viewer means. `onPointerMissed` **is** safe for clear-on-empty-space — R3F gates it on a 2px
+  `initialClick` delta, so ending an orbit over open sky never clears what you were reading.
+  The **one-panel budget** (an open pick hides the legend, the layer key and the tooltip) is a
+  general-sibling rule in CSS, not React state, which is why the inspector must render **first**
+  among the overlay siblings in `MetaphorRenderer` — moving it later silently kills the
+  exclusion and a phone goes back to three cards over one small canvas. And the marker is sized
+  from the item's **horizontal footprint with labels excluded**: a bounding sphere around an
+  18-unit tower is a hoop around the whole skyline (measured — it read as a rendering bug), and
+  a one-word name is a ~7-unit plate that doubles a 3-unit tower's apparent width.
 - **Verify metaphor changes by rendering them.** The scoped skill under
   `apps/web/.claude/skills/verify/` has the headless-capture recipe; every finding above came from
   a screenshot, not from reading the code.

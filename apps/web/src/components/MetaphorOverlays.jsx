@@ -4,8 +4,14 @@
  * tone-mapping / bloom / depth-of-field applied inside the canvas).
  *
  * These surface what the metaphor agent authors: the scene title/subtitle, the
- * per-axis legend, the accent thesis, and (for fused composites) the layer
- * reading key. See metaphorLegendAxes.js and metaphorReading.js.
+ * per-axis legend, the accent thesis, (for fused composites) the layer reading
+ * key, and — on a tap — one item's encoded metrics. See metaphorLegendAxes.js
+ * and metaphorReading.js.
+ *
+ * Two of them answer the same question for different input devices:
+ * `MetaphorHoverTooltip` follows a mouse, `MetaphorInspectorPanel` holds a
+ * touch pick. They are mutually exclusive in CSS, not in JS — see the
+ * `.metaphor-inspector ~ …` rule and the DOM order it depends on.
  */
 
 import { useId, useSyncExternalStore } from 'react';
@@ -169,6 +175,71 @@ export function MetaphorKindSwitcher({ metaphor, disabled = false, onSelectKind 
           </option>
         ))}
       </select>
+    </div>
+  );
+}
+
+/**
+ * Bottom-anchored detail card for the tap-selected item — the touch answer to
+ * the hover tooltip.
+ *
+ * It is anchored to the canvas rather than to the pointer for the reason the
+ * tooltip cannot be: on a phone the pointer is a finger, and a card under it is
+ * a card you cannot read. It stays until dismissed, so the metrics survive the
+ * lift. Row labels come from `formatItemMetric`, which prefers the author's own
+ * legend phrase — "Monthly transaction volume: 12", not "Height: 12".
+ */
+export function MetaphorInspectorPanel({ store, legend }) {
+  const { controls } = useUiCopy();
+  const selected = useSyncExternalStore(store.subscribe, store.get, store.get);
+  if (!selected?.item) return null;
+
+  const info = formatItemMetric(selected.metaphor, selected.item, legend);
+  const note = typeof selected.item.note === 'string' ? selected.item.note.trim() : '';
+  const layerLabel = typeof selected.layerLabel === 'string' ? selected.layerLabel.trim() : '';
+  const label = info.label || (typeof selected.item.id === 'string' ? selected.item.id : '');
+  if (!label && info.rows.length === 0 && !note) return null;
+
+  return (
+    <div
+      className="metaphor-overlay metaphor-inspector"
+      role="group"
+      aria-label={controls.metaphor.selected}
+    >
+      <div className="metaphor-inspector-head">
+        <p className="metaphor-inspector-label">
+          {info.glyph ? (
+            <span className="metaphor-inspector-glyph" aria-hidden="true">
+              {info.glyph}
+            </span>
+          ) : null}
+          <span>{label}</span>
+        </p>
+        <button
+          type="button"
+          className="metaphor-inspector-close"
+          aria-label={controls.metaphor.dismiss}
+          onClick={() => store.clear()}
+        >
+          ×
+        </button>
+      </div>
+      {layerLabel ? (
+        <p className="metaphor-inspector-layer">
+          {controls.metaphor.layer}: {layerLabel}
+        </p>
+      ) : null}
+      {info.rows.length ? (
+        <dl className="metaphor-inspector-rows">
+          {info.rows.map((row) => (
+            <div className="metaphor-inspector-row" key={row.label}>
+              <dt>{row.label}</dt>
+              <dd>{row.value}</dd>
+            </div>
+          ))}
+        </dl>
+      ) : null}
+      {note ? <p className="metaphor-inspector-note">{note}</p> : null}
     </div>
   );
 }

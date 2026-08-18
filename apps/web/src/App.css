@@ -744,6 +744,16 @@
   right: var(--diagram-fullscreen-corner-inset);
 }
 
+/* The pick takes the legend's bottom-left corner in fullscreen — the legend
+   yields to it (one-panel rule), and the kind switcher keeps bottom-right. */
+.diagram-output:fullscreen .metaphor-inspector,
+.diagram-output:-webkit-full-screen .metaphor-inspector {
+  top: auto;
+  bottom: var(--diagram-fullscreen-corner-inset);
+  left: var(--diagram-fullscreen-corner-inset);
+  right: auto;
+}
+
 .diagram-viewport.is-revision-transition {
   animation: diagram-revision-fade 420ms ease-out;
 }
@@ -10375,6 +10385,125 @@ button {
   text-align: right;
 }
 
+/* --- Tap-to-inspect panel ---
+   The touch counterpart to the hover tooltip: anchored to the canvas instead of
+   to the pointer (a card under the finger is a card you cannot read) and sticky
+   until dismissed. The left edge is the same sky-400 as the in-canvas selection
+   ring, which is the only thing tying the card to the shape it describes. */
+.metaphor-inspector {
+  bottom: 14px;
+  left: 14px;
+  right: auto;
+  top: auto;
+  z-index: 5;
+  max-width: min(46%, 320px);
+  border-left: 3px solid rgba(56, 189, 248, 0.9);
+  pointer-events: auto;
+}
+
+/* One panel budget: an open pick outranks the ambient keys and the mouse
+   tooltip, so a phone never stacks three cards over a small canvas. General
+   sibling, so it costs no React state — see MetaphorRenderer's overlay order. */
+.metaphor-inspector ~ .metaphor-legend-overlay,
+.metaphor-inspector ~ .metaphor-layers-overlay,
+.metaphor-inspector ~ .metaphor-hover-tooltip {
+  display: none;
+}
+
+.metaphor-inspector-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.metaphor-inspector-label {
+  margin: 0;
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 0.88rem;
+  font-weight: 750;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.metaphor-inspector-glyph {
+  flex: 0 0 auto;
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+.metaphor-inspector-close {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  margin: -3px -4px 0 0;
+  padding: 0;
+  border: 1px solid rgba(148, 163, 184, 0.32);
+  border-radius: 50%;
+  background: rgba(15, 23, 42, 0.5);
+  color: #e2e8f0;
+  font-size: 1.05rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.metaphor-inspector-close:hover {
+  border-color: rgba(148, 163, 184, 0.7);
+  background: rgba(30, 41, 59, 0.85);
+}
+
+.metaphor-inspector-close:focus-visible {
+  outline: 2px solid rgba(96, 165, 250, 0.75);
+  outline-offset: 2px;
+}
+
+.metaphor-inspector-layer {
+  margin: 3px 0 0;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: #93c5fd;
+}
+
+.metaphor-inspector-rows {
+  margin: 7px 0 0;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 3px 12px;
+}
+
+.metaphor-inspector-row {
+  display: contents;
+}
+
+.metaphor-inspector-row dt {
+  margin: 0;
+  font-size: 0.72rem;
+  color: #94a3b8;
+}
+
+.metaphor-inspector-row dd {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 650;
+  color: #f1f5f9;
+  text-align: right;
+}
+
+.metaphor-inspector-note {
+  margin: 7px 0 0;
+  padding-top: 7px;
+  border-top: 1px solid rgba(148, 163, 184, 0.24);
+  font-size: 0.73rem;
+  line-height: 1.35;
+  color: #cbd5e1;
+}
+
 /* Phone / foldable overlay geometry MUST sit after the desktop overlay rules.
    Same specificity: a 720px block further up the file loses the cascade and
    the compact select silently grows back to the desktop max-width. */
@@ -10444,6 +10573,21 @@ button {
     max-width: none;
     transform: none;
   }
+
+  /* The pick is the whole point of a tap, so on a phone it takes the full width
+     as a bottom sheet rather than a quarter-screen card. Everything it would
+     have shared that edge with is already hidden by the one-panel rule. */
+  .metaphor-inspector {
+    bottom: max(10px, env(safe-area-inset-bottom, 0px));
+    left: max(10px, env(safe-area-inset-left, 0px));
+    right: max(10px, env(safe-area-inset-right, 0px));
+    max-width: none;
+    max-height: min(38vh, 15rem);
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    padding: 9px 11px;
+  }
 }
 
 /* Landscape phones / foldable cover: keep the scene, drop secondary copy.
@@ -10476,6 +10620,14 @@ button {
 
   .metaphor-context-axes {
     display: none;
+  }
+
+  /* A landscape cover screen is ~400px tall — a 38vh sheet would eat the scene
+     it is describing. Half width, capped height, still scrollable. */
+  .metaphor-inspector {
+    right: auto;
+    max-width: min(calc(60% - 14px), 17rem);
+    max-height: min(52vh, 8.5rem);
   }
 }
 
@@ -23361,6 +23513,14 @@ body.slopitect-rainbow-tint::before {
       max-width: min(18rem, calc(env(viewport-segment-width 0 0, 50vw) - 1.5rem));
     }
 
+    /* Keep the pick on the left segment so the hinge never runs through it —
+       the phone block would otherwise stretch it right across both panels. */
+    .metaphor-inspector {
+      right: auto;
+      left: max(0.75rem, env(safe-area-inset-left, 0px));
+      max-width: min(20rem, calc(env(viewport-segment-width 0 0, 50vw) - 1.5rem));
+    }
+
     .diagram-output:fullscreen .metaphor-kind-switcher,
     .diagram-output:-webkit-full-screen .metaphor-kind-switcher,
     .diagram-output:fullscreen .metaphor-layers-overlay,
@@ -23396,6 +23556,18 @@ body.slopitect-rainbow-tint::before {
   .metaphor-kind-switcher-select {
     min-height: 2.75rem;
     font-size: 16px;
+  }
+
+  /* A touch "hover" is pointerover→pointerout in the same tap, so the tooltip
+     flashes once under the finger and dies. Tap-to-inspect is this device's
+     affordance; leaving the tooltip in would double-report the same item. */
+  .metaphor-hover-tooltip {
+    display: none;
+  }
+
+  .metaphor-inspector-close {
+    width: 2.25rem;
+    height: 2.25rem;
   }
 
   /* Taller closed trigger → layers key needs more clearance above it. */
