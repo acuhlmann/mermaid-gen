@@ -47,7 +47,7 @@ data
 `;
 
 describe('infographicGraphFamily', () => {
-  it('accepts hierarchy trees and relation maps, not lists', () => {
+  it('accepts hierarchy trees, relation maps, lists, and sequences', () => {
     expect(infographicGraphFamily(TREE)).toBe('hierarchy');
     expect(infographicGraphFamily(DAGRE)).toBe('relation');
     expect(isInfographicGraphSource(NETWORK)).toBe(true);
@@ -56,6 +56,20 @@ describe('infographicGraphFamily', () => {
 data
   lists
     - label A
+`)
+    ).toBe(true);
+    expect(
+      infographicGraphFamily(`infographic sequence-steps-simple
+data
+  sequences
+    - label Step 1
+`)
+    ).toBe('sequence');
+    expect(
+      isInfographicGraphSource(`infographic compare-swot-simple
+data
+  compares
+    - label Strengths
 `)
     ).toBe(false);
     expect(infographicGraphAllowsLink(DAGRE)).toBe(true);
@@ -161,5 +175,73 @@ describe('relation network add', () => {
     expect(result.source).toMatch(/- label Education/);
     expect(result.source).not.toMatch(/- id /);
     expect(result.source).not.toMatch(/relations/i);
+  });
+});
+
+const LIST = `infographic list-row-simple-horizontal-arrow
+data
+  title Steps
+  lists
+    - label Acquire
+      desc Multi-channel
+    - label Convert
+      desc Reduce drop-off
+`;
+
+const SEQUENCE = `infographic sequence-steps-simple
+data
+  title Flow
+  sequences
+    - label Step 1
+    - label Step 2
+`;
+
+describe('list and sequence Connect / Delete / Rename', () => {
+  it('adds a sibling after the selected list item', () => {
+    const result = addLinkedInfographicNode(LIST, '0', 'Retain');
+    expect(result.ok).toBe(true);
+    expect(result.newId).toBe('1');
+    expect(result.source).toMatch(/- label Acquire[\s\S]*- label Retain[\s\S]*- label Convert/);
+  });
+
+  it('adds a sibling after the last list item', () => {
+    const result = addLinkedInfographicNode(LIST, '1', 'Delight');
+    expect(result.ok).toBe(true);
+    expect(result.newId).toBe('2');
+    expect(result.source).toMatch(/- label Convert[\s\S]*- label Delight/);
+  });
+
+  it('renames a list item in place', () => {
+    const result = renameInfographicNode(LIST, '1', 'Close');
+    expect(result.ok).toBe(true);
+    expect(result.source).toMatch(/- label Close/);
+    expect(result.source).not.toMatch(/- label Convert\n/);
+    expect(result.source).toMatch(/desc Reduce drop-off/);
+  });
+
+  it('deletes a list item and leaves siblings', () => {
+    const result = deleteInfographicNode(LIST, '0');
+    expect(result.ok).toBe(true);
+    expect(result.source).not.toMatch(/Acquire/);
+    expect(result.source).toMatch(/- label Convert/);
+  });
+
+  it('refuses to delete the only list item', () => {
+    const solo = `infographic list-grid-simple
+data
+  lists
+    - label Only
+`;
+    expect(deleteInfographicNode(solo, '0')).toEqual({ ok: false, reason: 'last' });
+  });
+
+  it('works on sequence templates via the sequences field', () => {
+    const result = addLinkedInfographicNode(SEQUENCE, '0', 'Step 1b');
+    expect(result.ok).toBe(true);
+    expect(result.newId).toBe('1');
+    expect(result.source).toMatch(/- label Step 1[\s\S]*- label Step 1b[\s\S]*- label Step 2/);
+    const renamed = renameInfographicNode(SEQUENCE, '1', 'Step 2 renamed');
+    expect(renamed.ok).toBe(true);
+    expect(renamed.source).toMatch(/- label Step 2 renamed/);
   });
 });

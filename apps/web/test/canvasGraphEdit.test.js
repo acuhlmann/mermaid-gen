@@ -36,13 +36,16 @@ describe('graphEditAdapterFor', () => {
     expect(graphEditAdapterFor('mermaid', 'sequenceDiagram\nA->>B: hi')).toBeNull();
   });
 
-  it('enables infographic trees without Link and dagre with Link', () => {
+  it('enables infographic trees without Link, dagre with Link, and flat lists', () => {
     const tree = graphEditAdapterFor('infographic', TREE);
     expect(tree?.contentType).toBe('infographic');
     expect(tree?.canLink).toBe(false);
     const dagre = graphEditAdapterFor('infographic', DAGRE);
     expect(dagre?.canLink).toBe(true);
-    expect(graphEditAdapterFor('infographic', LIST)).toBeNull();
+    const list = graphEditAdapterFor('infographic', LIST);
+    expect(list?.contentType).toBe('infographic');
+    expect(list?.canLink).toBe(false);
+    expect(list?.addLinked(LIST, '0', 'New')).toMatchObject({ ok: true });
   });
 });
 
