@@ -18,6 +18,7 @@ import { russShapeLabel, selectableRenderModes } from '../utils/renderModeAction
  *   contentModeOptions: Array<{ id: string, label: string }>;
  *   canFixFromCritique: boolean;
  *   graphEdit?: { enabled?: boolean, kind?: string | null, busy?: boolean } | null;
+ *   touchGraphEdit?: boolean;
  * }} params
  */
 export function buildRadialActions({
@@ -27,7 +28,8 @@ export function buildRadialActions({
   contentMode,
   contentModeOptions,
   canFixFromCritique,
-  graphEdit = null
+  graphEdit = null,
+  touchGraphEdit = false
 }) {
   const a = controls.actions;
   const promptCopy = slopitect.PROMPT_ACTION_COPY;
@@ -48,6 +50,21 @@ export function buildRadialActions({
       persona: a.connect,
       personaTitle: a.connectTitle,
       hidden: !editOn || kind !== 'node',
+      disabled: editBusy
+    },
+    {
+      id: 'link',
+      label: a.link,
+      icon: (
+        <span className="action-persona-icon is-link" aria-hidden="true">
+          ⇢
+        </span>
+      ),
+      variant: 'link',
+      group: 'primary',
+      persona: a.link,
+      personaTitle: a.linkTitle,
+      hidden: !editOn || kind !== 'node' || !touchGraphEdit,
       disabled: editBusy
     },
     {

@@ -8058,6 +8058,12 @@
   --slop-action-glow: rgba(5, 150, 105, 0.32);
 }
 
+.radial-action-button.is-link {
+  --slop-action-accent: #0284c7;
+  --slop-action-accent-2: #38bdf8;
+  --slop-action-glow: rgba(2, 132, 199, 0.32);
+}
+
 .radial-action-button.is-delete {
   --slop-action-accent: #dc2626;
   --slop-action-accent-2: #fb7185;

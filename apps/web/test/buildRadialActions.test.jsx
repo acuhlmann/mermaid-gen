@@ -50,13 +50,39 @@ describe('buildRadialActions', () => {
     expect(dinesh.personaEmoji).not.toBe(gilfoyle.personaEmoji);
   });
 
-  it('puts Connect and Delete first on a flowchart node selection', () => {
+  it('puts Add and Delete first on a flowchart node selection', () => {
     const list = actions({
       graphEdit: { enabled: true, kind: 'node', busy: false }
     }).filter((entry) => !entry.hidden);
     expect(list[0].id).toBe('connect');
     expect(list[1].id).toBe('delete');
     expect(list[2].id).toBe('rename');
+  });
+
+  it('shows Link on touch-first graph edit and hides it on desktop', () => {
+    const touch = actions({
+      graphEdit: { enabled: true, kind: 'node', busy: false },
+      touchGraphEdit: true
+    });
+    const desktop = actions({
+      graphEdit: { enabled: true, kind: 'node', busy: false },
+      touchGraphEdit: false
+    });
+    expect(touch.find((entry) => entry.id === 'link')?.hidden).toBe(false);
+    expect(desktop.find((entry) => entry.id === 'link')?.hidden).toBe(true);
+  });
+
+  it('orders touch graph edit as Add, Link, Delete, Rename', () => {
+    const list = actions({
+      graphEdit: { enabled: true, kind: 'node', busy: false },
+      touchGraphEdit: true
+    }).filter((entry) => !entry.hidden);
+    expect(list.slice(0, 4).map((entry) => entry.id)).toEqual([
+      'connect',
+      'link',
+      'delete',
+      'rename'
+    ]);
   });
 
   it('hides Connect on an edge and hides all three on a cluster', () => {

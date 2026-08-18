@@ -749,7 +749,7 @@ export default function RadialActionMenu({
             const isExpander = behavior === 'expandStakeholders';
             const isExplainer = behavior === 'showExplanation';
             const isModeRenderer = behavior === 'expandRenderModes';
-            const handleClick = () => {
+            const handleClick = (event) => {
               dismissSelectionIntro();
               if (isExplainer) {
                 setStakeholdersExpanded(false);
@@ -769,7 +769,9 @@ export default function RadialActionMenu({
                 setRenderModesExpanded(true);
                 return;
               }
-              onActionPick?.(action, descriptor);
+              const picked =
+                action.id === 'connect' && event.shiftKey ? { ...action, linkMode: true } : action;
+              onActionPick?.(picked, descriptor);
             };
             const className =
               `radial-action-button ${action.variant ? `is-${action.variant}` : ''}`.trim();
