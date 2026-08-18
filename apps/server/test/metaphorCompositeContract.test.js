@@ -35,7 +35,8 @@ test('metaphor prompt defines fused composition without a fixed pair matrix', ()
   assert.match(METAPHOR_SYSTEM_PROMPT, /one integrated kinetic world/i);
   assert.match(METAPHOR_SYSTEM_PROMPT, /without a fixed pair matrix/i);
   assert.match(METAPHOR_SYSTEM_PROMPT, /layout: "fused"/);
-  assert.match(METAPHOR_SYSTEM_PROMPT, /Preserve exact user nouns/i);
+  assert.match(METAPHOR_SYSTEM_PROMPT, /Layer `label` is a reading key/i);
+  assert.match(METAPHOR_SYSTEM_PROMPT, /as islands/i);
   assert.match(METAPHOR_SYSTEM_PROMPT, /Align grouping nouns across layers/i);
   assert.match(METAPHOR_SYSTEM_PROMPT, /binds by those affinities/i);
   assert.doesNotMatch(METAPHOR_SYSTEM_PROMPT, /Prefer `layout: "adjacent"`/);

@@ -75,8 +75,47 @@ export const METAPHOR_LEGEND_AXES = {
     ['berg', 'Berg'],
     ['peril', 'Peril']
   ],
-  // Composite layers keep their own encodings; no shared legend axes yet.
-  composite: []
+  // A fused world mixes encodings. Show every axis the author actually filled
+  // (legendAxesFor still drops blanks), in substrate → landmark → path order
+  // so the panel reads as "what the islands mean, then the towers, then the
+  // river" rather than as a dump of schema keys.
+  composite: [
+    ['mass', 'Mass'],
+    ['relief', 'Relief'],
+    ['chain', 'Chain'],
+    ['height', 'Height'],
+    ['footprint', 'Footprint'],
+    ['district', 'District'],
+    ['thickness', 'Thickness'],
+    ['maturity', 'Maturity'],
+    ['impact', 'Impact'],
+    ['bed', 'Bed'],
+    ['health', 'Health'],
+    ['stage', 'Stage'],
+    ['flow', 'Flow'],
+    ['weight', 'Weight'],
+    ['elevation', 'Elevation'],
+    ['intensity', 'Intensity'],
+    ['orbit', 'Orbit'],
+    ['size', 'Size'],
+    ['magnitude', 'Magnitude'],
+    ['cluster', 'Cluster'],
+    ['speed', 'Speed'],
+    ['axle', 'Axle'],
+    ['torque', 'Torque'],
+    ['span', 'Span'],
+    ['load', 'Load'],
+    ['side', 'Side'],
+    ['strain', 'Strain'],
+    ['phase', 'Phase'],
+    ['friction', 'Friction'],
+    ['line', 'Line'],
+    ['stop', 'Stop'],
+    ['traffic', 'Traffic'],
+    ['depth', 'Depth'],
+    ['berg', 'Berg'],
+    ['peril', 'Peril']
+  ]
 };
 
 /**

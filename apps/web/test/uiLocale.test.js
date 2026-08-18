@@ -160,6 +160,21 @@ describe('ui locale bundles', () => {
     }
   });
 
+  it.each(['zh-CN', 'zh-TW'])(
+    'translates metaphor kind labels including newer kinds (%s)',
+    (locale) => {
+      const en = getUiLocaleBundle('en').controls.metaphor;
+      const localized = getUiLocaleBundle(locale).controls.metaphor;
+      expect(Object.keys(localized.kinds).sort()).toEqual(Object.keys(en.kinds).sort());
+      expect(localized.reading).not.toBe(en.reading);
+      expect(localized.layers).not.toBe(en.layers);
+      for (const kind of ['bridge', 'cycle', 'subway', 'iceberg', 'composite']) {
+        expect(localized.kinds[kind], `${locale} kinds.${kind}`).toBeTruthy();
+        expect(localized.kinds[kind]).not.toBe(en.kinds[kind]);
+      }
+    }
+  );
+
   // A dropped `{placeholder}` never throws — `formatLocale` simply has nothing to
   // substitute, so the personalisation silently disappears in that locale only.
   // All three had lost `{userName}` from the welcome mail/IM this way.

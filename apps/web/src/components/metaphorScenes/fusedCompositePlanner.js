@@ -152,6 +152,8 @@ function makePresentation(item, kind) {
     tilt: clamp(finite(item?.tilt, 0), 0, 15),
     relief: clamp(finite(item?.relief, 0.5), 0, 1),
     torque: clamp(finite(item?.torque, 0), 0, 1),
+    friction: clamp(finite(item?.friction, 0), 0, 1),
+    peril: clamp(finite(item?.peril, 0), 0, 1),
     affinity: [...affinityTokens(item)]
   };
 }
@@ -329,6 +331,10 @@ function nodeDimensions(item, kind, normalized) {
       height: 2 + normalized * 5.3
     };
   }
+  if (kind === 'iceberg')
+    return { radius: 0.85 + normalized * 1.15, height: 1.1 + normalized * 3.1 };
+  if (kind === 'machine')
+    return { radius: 0.55 + normalized * 0.85, height: 0.45 + normalized * 0.55 };
   if (kind === 'terrain') return { radius: 1.1 + normalized * 1.5, height: 0.7 + normalized * 3 };
   if (kind === 'layercake') {
     const cracks = clamp(finite(item.cracks, 0), 0, 1);

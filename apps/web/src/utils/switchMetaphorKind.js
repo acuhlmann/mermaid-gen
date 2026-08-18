@@ -14,6 +14,8 @@ export const METAPHOR_KIND_LABELS = {
   machine: 'Machine',
   bridge: 'Bridge',
   cycle: 'Cycle wheel',
+  subway: 'Subway',
+  iceberg: 'Iceberg',
   composite: 'Composite'
 };
 

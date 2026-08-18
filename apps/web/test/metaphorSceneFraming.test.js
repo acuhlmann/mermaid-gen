@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
 import {
@@ -120,6 +121,20 @@ describe('collectFramePoints', () => {
     const element = MetaphorGroundShadow({ theme: { postfx: {} } });
     expect(element.props.userData).toBe(FRAME_IGNORE_DATA);
     expect(FRAME_IGNORE_DATA[FRAME_IGNORE]).toBe(true);
+  });
+
+  it('flags the fused ocean disc as framing scaffolding', () => {
+    // circleGeometry's bounding box is a square; a disc sized to the world
+    // otherwise becomes the fit the same way the city footing did. WorldGround
+    // uses hooks so it cannot be called like MetaphorGroundShadow — pin the
+    // flag on the function body instead.
+    const source = readFileSync(
+      new URL('../src/components/metaphorScenes/fusedCompositePrimitives.jsx', import.meta.url),
+      'utf8'
+    );
+    const worldGround = source.slice(source.indexOf('export function WorldGround'));
+    expect(worldGround.length).toBeGreaterThan(80);
+    expect(worldGround).toContain('FRAME_IGNORE_DATA');
   });
 });
 

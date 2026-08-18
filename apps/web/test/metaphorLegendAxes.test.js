@@ -57,6 +57,20 @@ describe('legendAxesFor', () => {
     ]);
   });
 
+  it('shows populated composite axes from mixed layer encodings', () => {
+    const rows = legendAxesFor('composite', {
+      mass: 'domain scale',
+      height: 'service importance',
+      flow: 'journey volume',
+      magnitude: '   '
+    });
+    expect(rows).toEqual([
+      { key: 'mass', label: 'Mass', text: 'domain scale' },
+      { key: 'height', label: 'Height', text: 'service importance' },
+      { key: 'flow', label: 'Flow', text: 'journey volume' }
+    ]);
+  });
+
   it('exposes bridge span, load, side, and strain axes', () => {
     const axes = legendAxesFor('bridge', {
       span: 'migration stage',
