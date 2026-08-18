@@ -78,12 +78,27 @@ describe('useFlowchartGraphEdit', () => {
     cleanup();
   });
 
-  it('arms Connect from a canvas descriptor that only has an SVG id', () => {
+  it('adds a linked node immediately from Connect on a canvas descriptor that only has an SVG id', async () => {
+    const { result } = mount({
+      props: { selectedNode: { id: 'diagram-1-flowchart-A-0', partName: 'Start' } }
+    });
+    await act(async () => {
+      result.current.handleGraphEditAction({ id: 'connect' });
+    });
+    expect(result.current.connectSourceId).toBeNull();
+    expect(result.current.labelSession).toMatchObject({
+      kind: 'node',
+      logicalId: 'n1',
+      created: true
+    });
+  });
+
+  it('arms link mode when Connect is picked with Shift', () => {
     const { result } = mount({
       props: { selectedNode: { id: 'diagram-1-flowchart-A-0', partName: 'Start' } }
     });
     act(() => {
-      result.current.handleGraphEditAction({ id: 'connect' });
+      result.current.handleGraphEditAction({ id: 'connect', linkMode: true });
     });
     expect(result.current.connectSourceId).toBe('A');
   });
@@ -93,7 +108,7 @@ describe('useFlowchartGraphEdit', () => {
       props: { selectedNode: { dataId: 'B', partName: 'End' } }
     });
     act(() => {
-      result.current.handleGraphEditAction({ id: 'connect' });
+      result.current.handleGraphEditAction({ id: 'connect', linkMode: true });
     });
     expect(result.current.connectSourceId).toBe('B');
 
@@ -111,7 +126,7 @@ describe('useFlowchartGraphEdit', () => {
   it('treats a duplicate edge as a silent no-op', async () => {
     const { result } = mount();
     act(() => {
-      result.current.handleGraphEditAction({ id: 'connect' });
+      result.current.handleGraphEditAction({ id: 'connect', linkMode: true });
     });
     await act(async () => {
       result.current.handleConnectTarget({
@@ -128,7 +143,7 @@ describe('useFlowchartGraphEdit', () => {
   it('cancels Connect on the source node, Escape, or a second Connect pick', () => {
     const { result } = mount();
     act(() => {
-      result.current.handleGraphEditAction({ id: 'connect' });
+      result.current.handleGraphEditAction({ id: 'connect', linkMode: true });
     });
     act(() => {
       result.current.handleConnectTarget({ type: 'source' });
@@ -136,7 +151,7 @@ describe('useFlowchartGraphEdit', () => {
     expect(result.current.connectSourceId).toBeNull();
 
     act(() => {
-      result.current.handleGraphEditAction({ id: 'connect' });
+      result.current.handleGraphEditAction({ id: 'connect', linkMode: true });
     });
     act(() => {
       fireEvent.keyDown(window, { key: 'Escape' });
@@ -144,19 +159,19 @@ describe('useFlowchartGraphEdit', () => {
     expect(result.current.connectSourceId).toBeNull();
 
     act(() => {
-      result.current.handleGraphEditAction({ id: 'connect' });
+      result.current.handleGraphEditAction({ id: 'connect', linkMode: true });
     });
     act(() => {
-      result.current.handleGraphEditAction({ id: 'connect' });
+      result.current.handleGraphEditAction({ id: 'connect', linkMode: true });
     });
     expect(result.current.connectSourceId).toBeNull();
     expect(applyUserDiagramEdit).not.toHaveBeenCalled();
   });
 
-  it('births a sibling node on empty canvas and focuses the label field', async () => {
+  it('births a sibling node on empty canvas while in link mode and focuses the label field', async () => {
     const { result } = mount();
     act(() => {
-      result.current.handleGraphEditAction({ id: 'connect' });
+      result.current.handleGraphEditAction({ id: 'connect', linkMode: true });
     });
     await act(async () => {
       result.current.handleConnectTarget({ type: 'empty', clientX: 80, clientY: 40 });
@@ -239,7 +254,7 @@ describe('useFlowchartGraphEdit', () => {
   it('clears Connect when a run starts', () => {
     const { result, rerender } = mount();
     act(() => {
-      result.current.handleGraphEditAction({ id: 'connect' });
+      result.current.handleGraphEditAction({ id: 'connect', linkMode: true });
     });
     expect(result.current.connectSourceId).toBe('A');
     act(() => {

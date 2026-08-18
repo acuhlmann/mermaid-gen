@@ -29,8 +29,8 @@ export const CONTROLS_ZH_CN = {
     facilitiesTitle: '呼叫物业 · 修好这坨烂图',
     prepForCeo: '协同',
     prepForCeoTitle: '给 CEO 准备稿 · 送上楼前先熬干水分',
-    connect: '连接',
-    connectTitle: '连接 · 连到另一个框，或点空白处新建',
+    connect: '新增',
+    connectTitle: '新增链接框 · Shift+点击可连到现有框',
     delete: '删除',
     deleteTitle: '删除 · 从图表中去掉这个',
     rename: '重命名',
@@ -586,7 +586,7 @@ export const CONTROLS_ZH_CN = {
     exit: '退出全屏'
   },
   graphEdit: {
-    connectHint: '点击一个框或空白处 · Esc 取消',
+    connectHint: '点击一个框以链接 · Esc 取消',
     undo: '撤销',
     deleted: '已删除',
     linked: '已连接',

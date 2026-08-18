@@ -32,8 +32,8 @@ export const CONTROLS_EN = {
     demolish: 'Shredder',
     prepForCeo: 'Synergize',
     prepForCeoTitle: 'Synergize · Boil it down before it goes upstairs',
-    connect: 'Connect',
-    connectTitle: 'Connect · Link this box to another, or click empty space for a new one',
+    connect: 'Add',
+    connectTitle: 'Add a linked box · Shift+click to link to an existing one',
     delete: 'Delete',
     deleteTitle: 'Delete · Remove this from the diagram',
     rename: 'Rename',
@@ -639,7 +639,7 @@ export const CONTROLS_EN = {
     exit: 'Exit fullscreen'
   },
   graphEdit: {
-    connectHint: 'Click a box or empty space · Esc to cancel',
+    connectHint: 'Click a box to link · Esc to cancel',
     undo: 'Undo',
     deleted: 'Deleted',
     linked: 'Linked',

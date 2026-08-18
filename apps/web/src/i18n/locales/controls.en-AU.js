@@ -29,8 +29,8 @@ export const CONTROLS_EN_AU = {
     demolish: 'Shredder',
     prepForCeo: 'Synergize',
     prepForCeoTitle: 'Synergize · Boil it down before it goes upstairs',
-    connect: 'Join up',
-    connectTitle: 'Join up · Link this box to another, or tap empty space for a new one',
+    connect: 'Add',
+    connectTitle: 'Add a linked box · Shift+click to link to an existing one',
     delete: 'Bin it',
     deleteTitle: 'Bin it · Chuck this off the diagram',
     rename: 'Rename',
@@ -590,7 +590,7 @@ export const CONTROLS_EN_AU = {
     exit: 'Exit fullscreen'
   },
   graphEdit: {
-    connectHint: 'Tap a box or empty space · Esc to bail',
+    connectHint: 'Tap a box to link · Esc to bail',
     undo: 'Undo',
     deleted: 'Binned',
     linked: 'Joined',

@@ -160,6 +160,32 @@ export function useFlowchartGraphEdit({
     [toolbarAnchor]
   );
 
+  const birthLinkedNode = useCallback(
+    (fromId) => {
+      const source = stateRef.current.diagramSource;
+      const result = addLinkedFlowchartNode(source, fromId);
+      if (!result.ok) {
+        pushError(copy.failed);
+        return;
+      }
+      void commitSource(result.source, 'Connect node', { toast: copy.linked }).then((applied) => {
+        if (!applied) return;
+        setSelectedNode?.({
+          dataId: result.newId,
+          partName: result.newId,
+          partKind: 'node'
+        });
+        setLabelSession({
+          kind: 'node',
+          logicalId: result.newId,
+          draft: result.newId,
+          created: true
+        });
+      });
+    },
+    [commitSource, copy.failed, copy.linked, setSelectedNode, stateRef]
+  );
+
   const handleGraphEditAction = useCallback(
     (action, descriptor) => {
       if (busy || !enabled) return;
@@ -168,13 +194,16 @@ export function useFlowchartGraphEdit({
       if (action.id === 'connect') {
         const logicalId = nodeLogicalId(target);
         if (!logicalId) return;
-        if (connectFrom && nodeLogicalId(connectFrom) === logicalId) {
-          cancelConnect();
-          closeRadialMenu?.();
+        closeRadialMenu?.();
+        if (action.linkMode) {
+          if (connectFrom && nodeLogicalId(connectFrom) === logicalId) {
+            cancelConnect();
+            return;
+          }
+          setConnectFrom(target);
           return;
         }
-        setConnectFrom(target);
-        closeRadialMenu?.();
+        birthLinkedNode(logicalId);
         return;
       }
       if (action.id === 'delete') {
@@ -201,6 +230,7 @@ export function useFlowchartGraphEdit({
       }
     },
     [
+      birthLinkedNode,
       busy,
       cancelConnect,
       closeRadialMenu,
@@ -247,36 +277,18 @@ export function useFlowchartGraphEdit({
         return;
       }
       if (target?.type === 'empty') {
-        const result = addLinkedFlowchartNode(source, fromId);
         cancelConnect();
-        if (!result.ok) {
-          pushError(copy.failed);
-          return;
-        }
-        void commitSource(result.source, 'Connect node', { toast: copy.linked }).then((applied) => {
-          if (!applied) return;
-          setSelectedNode?.({
-            dataId: result.newId,
-            partName: result.newId,
-            partKind: 'node'
-          });
-          setLabelSession({
-            kind: 'node',
-            logicalId: result.newId,
-            draft: result.newId,
-            created: true
-          });
-        });
+        birthLinkedNode(fromId);
       }
     },
     [
+      birthLinkedNode,
       busy,
       cancelConnect,
       commitSource,
       connectFrom,
       copy.failed,
       copy.linked,
-      setSelectedNode,
       stateRef
     ]
   );
