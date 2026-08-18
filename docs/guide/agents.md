@@ -93,7 +93,7 @@ Validation and repair ladders: [Validation & repair](validation.md).
 ## Interaction flow
 
 1. User picks **Mode** (**Auto**, Diagram, Infographic, 3D, Chart, Forms, or Anything) from the AI corner controls; the UI persists the choice in `archislop:content-mode` and includes `contentType` in every subsequent request.
-2. User edits source or loads state; client syncs via `GET`/`POST /api/copilotkit/state` with `contentType`. Flowchart **Connect / Delete / Rename** on the canvas is a discrete `POST /api/copilotkit/user-edit` (`origin: user`) so it does not go through Monaco debounce or auto-fix.
+2. User edits source or loads state; client syncs via `GET`/`POST /api/copilotkit/state` with `contentType`. Canvas **Add / Delete / Rename / Link** (Mermaid flowchart; Infographic tree, dagre, and network) is a discrete `POST /api/copilotkit/user-edit` (`origin: user`) so it does not go through Monaco debounce or auto-fix. Family list and next slices: [`docs/canvas-graph-edit.md`](../canvas-graph-edit.md).
 3. **Go** and **Fix from critique** use the **intent** operation: `POST /api/copilotkit/agent-stream` with `operation: intent`, or `POST /api/copilotkit/intent` without streaming. The active `contentType` is forwarded. **Syntax auto-fix** for Mermaid and Anything tries the fast-path `POST /api/diagram/render-error` first (one fixer call, no agent loop) and only falls back to the intent operation on rejection.
 4. **Gilfoyle / Dinesh / Erlich / Russ / Barker** use `agent-stream` or `POST /api/copilotkit/transform` with `mode` and optional `russDepth`.
 5. **Jared / Richard** (radial **Critique** / **Explain**) use `analyze` or `agent-stream` with `operation: analyze` and `kind: jared` \| `richard`; responses patch insights only, not diagram state.

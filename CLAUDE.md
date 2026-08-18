@@ -767,7 +767,7 @@ If you change an HTTP route, AG-UI event, MCP tool, or schema, update **all four
 3. The Zod schema in `packages/shared/src/diagramSchema.ts` if shape changes.
 4. The corresponding guide under [`docs/guide/`](docs/guide/) or the relevant `docs/architecture-*.md` (hub: [`README.md`](README.md)).
 
-See [`docs/recipes/`](docs/recipes/) for templates of recurring changes (new MCP tool, new rule pack, new intent variant, new stream event).
+See [`docs/recipes/`](docs/recipes/) for templates of recurring changes (new MCP tool, new rule pack, new intent variant, new stream event, new canvas graph-edit family).
 
 ## LLM backend resolution
 
@@ -822,6 +822,7 @@ For semantic coupling analysis (not automatable), run `/modularity:review` in Cl
 - Concept→file index: [`STRUCTURE.md`](STRUCTURE.md)
 - Terms: [`GLOSSARY.md`](GLOSSARY.md)
 - Recurring tasks: [`docs/recipes/`](docs/recipes/)
+- Canvas graph-edit families: [`docs/canvas-graph-edit.md`](docs/canvas-graph-edit.md)
 - Past decisions: [`docs/decisions/`](docs/decisions/)
 - Office continuity (working memory + runWalk, not shipped): [`docs/office-continuity.md`](docs/office-continuity.md)
 - LLM config: [`docs/llm-config.md`](docs/llm-config.md)

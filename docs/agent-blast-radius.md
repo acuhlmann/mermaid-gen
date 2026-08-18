@@ -58,6 +58,8 @@ Run: `npm run check:wire`
 
 When you change **`uiLocale` on diagram POST bodies**, also run [`apps/web/test/diagramStore.test.js`](../apps/web/test/diagramStore.test.js) (omit/include on intent/transform/analyze) and [`packages/shared/test/promptLanguage.test.ts`](../packages/shared/test/promptLanguage.test.ts).
 
+When you change **which `contentType` values `POST /user-edit` accepts**, add a family adapter in [`apps/web/src/utils/canvasGraphEdit.js`](../apps/web/src/utils/canvasGraphEdit.js), mutator tests, a `copilotRoute.test.js` apply/reject case, and a row in [`docs/canvas-graph-edit.md`](canvas-graph-edit.md). Recipe: [`add-graph-edit-family.md`](recipes/add-graph-edit-family.md).
+
 When you change **`createLazyAgentService`** or per-slot `runAgentStream` wiring, run [`apps/server/test/createLazyAgentService.test.js`](../apps/server/test/createLazyAgentService.test.js).
 
 Run: `npm run check:fast` when only shared changed; `npm run check` otherwise.
