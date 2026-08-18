@@ -29,8 +29,10 @@ export const CONTROLS_ZH_TW = {
     facilitiesTitle: '呼叫物業 · 修好這坨爛圖',
     prepForCeo: '協同',
     prepForCeoTitle: '給 CEO 準備稿 · 送上樓前先熬乾水分',
-    connect: '連接',
-    connectTitle: '連接 · 連到另一個框，或點空白處新建',
+    connect: '新增',
+    connectTitle: '新增連結框 · Shift+點擊可連到現有框',
+    link: '連接',
+    linkTitle: '連接 · 點另一個框以連線',
     delete: '刪除',
     deleteTitle: '刪除 · 從圖表中去掉這個',
     rename: '重新命名',
@@ -586,7 +588,7 @@ export const CONTROLS_ZH_TW = {
     exit: '退出全螢幕'
   },
   graphEdit: {
-    connectHint: '點擊一個框或空白處 · Esc 取消',
+    connectHint: '點擊一個框以連結 · Esc 取消',
     undo: '復原',
     deleted: '已刪除',
     linked: '已連接',
