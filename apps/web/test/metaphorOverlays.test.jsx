@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
-import { render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { fireEvent, render, screen } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
 import {
   MetaphorCompositeLayersOverlay,
+  MetaphorKindSwitcher,
   MetaphorReadingOverlay,
   MetaphorTitleOverlay
 } from '../src/components/MetaphorOverlays.jsx';
@@ -97,5 +98,26 @@ describe('MetaphorHoverTooltip', () => {
     expect(screen.getByText('Layer: Services as towers')).toBeTruthy();
     expect(screen.getByText('Importance')).toBeTruthy();
     expect(screen.getByText('14')).toBeTruthy();
+  });
+});
+
+describe('MetaphorKindSwitcher', () => {
+  it('is a compact select of every metaphor kind, not a wrap of pills', () => {
+    const onSelectKind = vi.fn();
+    const { container } = render(
+      <MetaphorKindSwitcher metaphor="city" onSelectKind={onSelectKind} />
+    );
+    const select = container.querySelector('select');
+    expect(select).toBeTruthy();
+    expect(select.value).toBe('city');
+    expect(select.querySelectorAll('option').length).toBeGreaterThan(10);
+    expect(container.querySelector('button')).toBeNull();
+    fireEvent.change(select, { target: { value: 'river' } });
+    expect(onSelectKind).toHaveBeenCalledWith('river');
+  });
+
+  it('disables the select when switching is not available', () => {
+    const { container } = render(<MetaphorKindSwitcher metaphor="city" disabled />);
+    expect(container.querySelector('select').disabled).toBe(true);
   });
 });

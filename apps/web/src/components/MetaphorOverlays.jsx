@@ -8,7 +8,7 @@
  * reading key. See metaphorLegendAxes.js and metaphorReading.js.
  */
 
-import { useSyncExternalStore } from 'react';
+import { useId, useSyncExternalStore } from 'react';
 import { legendAxesFor, formatItemMetric } from '../utils/metaphorLegendAxes.js';
 import { METAPHOR_KINDS, METAPHOR_KIND_LABELS } from '../utils/switchMetaphorKind.js';
 import { compositeLayerSummaries } from '../utils/metaphorReading.js';
@@ -141,29 +141,34 @@ export function MetaphorCompositeHint({ layerCount = 0 }) {
 
 export function MetaphorKindSwitcher({ metaphor, disabled = false, onSelectKind }) {
   const { controls } = useUiCopy();
+  const selectId = useId();
   if (!metaphor) return null;
+  const stopScene = (event) => event.stopPropagation();
   return (
-    <div
-      className="metaphor-overlay metaphor-kind-switcher"
-      role="group"
-      aria-label={controls.metaphor.type}
-    >
-      <span className="metaphor-kind-switcher-label">{controls.metaphor.viewAs}</span>
-      <div className="metaphor-kind-switcher-segment">
+    <div className="metaphor-overlay metaphor-kind-switcher">
+      <label className="metaphor-kind-switcher-label" htmlFor={selectId}>
+        {controls.metaphor.viewAs}
+      </label>
+      <select
+        id={selectId}
+        className="metaphor-kind-switcher-select"
+        value={metaphor}
+        disabled={disabled || !onSelectKind}
+        aria-label={controls.metaphor.type}
+        onPointerDown={stopScene}
+        onMouseDown={stopScene}
+        onClick={stopScene}
+        onChange={(event) => {
+          const next = event.target.value;
+          if (next && next !== metaphor) onSelectKind?.(next);
+        }}
+      >
         {METAPHOR_KINDS.map((kind) => (
-          <button
-            key={kind}
-            type="button"
-            className={`metaphor-kind-switcher-option${metaphor === kind ? ' is-selected' : ''}`}
-            aria-pressed={metaphor === kind}
-            disabled={disabled || metaphor === kind}
-            onPointerDown={(event) => event.stopPropagation()}
-            onClick={() => onSelectKind?.(kind)}
-          >
+          <option key={kind} value={kind}>
             {kindLabel(controls, kind)}
-          </button>
+          </option>
         ))}
-      </div>
+      </select>
     </div>
   );
 }
