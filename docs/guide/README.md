@@ -16,6 +16,7 @@ Human-readable documentation split into focused pages so GitHub preview stays fa
 | [Development](development.md)                     | Stack layout, tests, VS Code launch configs                          |
 | [Coding agents](coding-agents.md)                 | Agent read order, verification table, PR checklist                   |
 | [Metaphor USDA mapping](metaphor-usda-mapping.md) | Versioned Metaphor3D DSL → `.usda` mapping (ADR-0009 steps 1–2)      |
+| [OpenUSD approach](openusd-approach.md)           | Remaining OpenUSD path: stub round-trip, official runtime, no WASM   |
 
 ## Integrator & operator docs (elsewhere)
 

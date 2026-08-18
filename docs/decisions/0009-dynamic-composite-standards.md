@@ -35,7 +35,7 @@ The migration path to an actual USD Stage is:
 4. Evaluate an official OpenUSD WASM build in a separate lazy worker/chunk: startup bytes, memory, CSP, cross-origin isolation, resolver cancellation, browser support, and Node parity are release gates. Three's USD loader may remain a rendering adapter, but not the conformance boundary.
 5. Offer glTF 2.0.1 as an optional baked delivery/export representation when needed, with stable ids/semantic metadata in a documented extension or sidecar. Re-evaluate glTF 2.1 only after ratification and production loader support.
 
-**Export status (updated 2026-07-18):** the web Export menu offers **Scene JSON** (authoring round-trip) and **PNG** for metaphor3d. The earlier `metaphor-gltf` (`.glb`) baked export was removed (`a9df0bf`) when its renderer bridge created a dependency cycle; glTF 2.0.1 delivery may return under step 5 above with a documented extension/sidecar. Migration steps 1–2 are now implemented: the versioned Metaphor3D→USDA mapping lives in [`docs/guide/metaphor-usda-mapping.md`](../guide/metaphor-usda-mapping.md), and `authorMetaphorUsda` authors a semantics-only `.usda` interchange stub from the canonical DSL — no geometry, no planner output, no conformance claim.
+**Export status (updated 2026-08-18):** the web Export menu offers **Scene JSON** (authoring round-trip), **PNG**, and a **USDA semantic stub** (`.usda`) for metaphor3d. The earlier `metaphor-gltf` (`.glb`) baked export was removed (`a9df0bf`) when its renderer bridge created a dependency cycle; glTF 2.0.1 delivery may return under step 5 above with a documented extension/sidecar. Migration steps 1–2 plus the inverse parse of the stub (mapping v0.2.0) are implemented: [`docs/guide/metaphor-usda-mapping.md`](../guide/metaphor-usda-mapping.md), `authorMetaphorUsda` / `parseMetaphorUsda`. Remaining OpenUSD work (official `usd-core` validation, composition arcs, WASM worker, baked glTF) is staged in [`docs/guide/openusd-approach.md`](../guide/openusd-approach.md) and is still out of scope for the canonical boundary.
 
 ## Follow-on dynamics (still ADR-0009)
 
@@ -48,7 +48,7 @@ Without changing the canonical boundary, the fused planner/renderer now also:
 5. **Applies cost-aware LOD** — `estimatedCost` / item count select `high` | `medium` | `low` detail (motes, glow, hazard foam, group rings).
 6. **Chooses composite atmosphere from roles** — sky/theme family prefers substrate (ocean) then path (river daylight) over `layers[0].as`.
 
-OpenUSD / WASM / persisted Stage work remains on the migration path above and is still out of scope.
+OpenUSD / WASM / persisted Stage work remains on the migration path above and is still out of scope. The staged approach (stub round-trip → official `usd-core` CI → arcs → optional WASM worker) lives in [`docs/guide/openusd-approach.md`](../guide/openusd-approach.md).
 
 ## Consequences
 
@@ -79,7 +79,7 @@ Trade-offs:
 - Internal planner: `apps/web/src/components/metaphorScenes/fusedCompositePlanner.js`
 - R3F renderer: `apps/web/src/components/metaphorScenes/FusedCompositeScene.jsx`
 - Agent contract: `apps/server/src/prompts/metaphorSystemPrompt.js`
-- USDA mapping + author (steps 1–2): [`docs/guide/metaphor-usda-mapping.md`](../guide/metaphor-usda-mapping.md), `packages/shared/src/metaphorUsda.ts` + `metaphor-usda` in `apps/web/src/utils/exportDiagram.js`
+- USDA mapping + author + subset parse: [`docs/guide/metaphor-usda-mapping.md`](../guide/metaphor-usda-mapping.md), [`docs/guide/openusd-approach.md`](../guide/openusd-approach.md), `packages/shared/src/metaphorUsda.ts`, `metaphorUsdaParse.ts` + `metaphor-usda` in `apps/web/src/utils/exportDiagram.js`
 
 ## Evidence reviewed
 

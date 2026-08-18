@@ -1,9 +1,11 @@
-# Metaphor3D → USDA mapping (v0.1.0)
+# Metaphor3D → USDA mapping (v0.2.0)
 
 This is the versioned mapping between the canonical Metaphor3D JSON DSL and USD ASCII (`.usda`)
-output, implementing migration steps 1–2 of [ADR-0009](../decisions/0009-dynamic-composite-standards.md).
-The adapter (`authorMetaphorUsda` in `packages/shared/src/metaphorUsda.ts`) authors USDA text from a
-validated DSL document; the web Export menu offers it as **USD scene (.usda)** on the metaphor3d slot.
+output, implementing migration steps 1–2 of [ADR-0009](../decisions/0009-dynamic-composite-standards.md)
+plus the field-complete inverse parse in [OpenUSD approach](openusd-approach.md).
+The adapter (`authorMetaphorUsda` / `parseMetaphorUsda` in `packages/shared/src/metaphorUsda.ts`
+and `metaphorUsdaParse.ts`) authors USDA text from a validated DSL document and parses that stub
+back into the DSL; the web Export menu offers it as **USD scene (.usda)** on the metaphor3d slot.
 
 The JSON DSL remains the canonical semantic source. The USDA artifact is a **semantic interchange
 stub**: it carries the document's items, fields, and relationships in USD vocabulary so DCC tools,
@@ -22,7 +24,7 @@ Every export starts:
     upAxis = "Y"
     metersPerUnit = 1
     customLayerData = {
-        string "archislop:mappingVersion" = "0.1.0"
+        string "archislop:mappingVersion" = "0.2.0"
         ...
     }
 )
@@ -30,21 +32,22 @@ Every export starts:
 
 `customLayerData` keys, in stable emission order:
 
-| Key                         | Value                                                                    |
-| --------------------------- | ------------------------------------------------------------------------ |
-| `archislop:mappingVersion`  | This mapping's version (`0.1.0`). Bump on any breaking change below.     |
-| `archislop:metaphor`        | DSL discriminator (`city` … `iceberg`, `composite`).                     |
-| `archislop:layout`          | Composite only: `fused` / `adjacent` / `overlay`.                        |
-| `archislop:seed`            | Composite only: planner seed, stringified (schema allows string or int). |
-| `archislop:novelty`         | Composite only: `0`–`1` as a decimal string.                             |
-| `archislop:motionIntensity` | Composite only: `0`–`1` as a decimal string.                             |
-| `archislop:sceneTheme`      | `whiteboard` / `noir` / `arcade` / `blueprint`.                          |
-| `archislop:sceneCamera`     | Schema value (`orbit` default; renderer currently always orbits).        |
-| `archislop:sceneTitle`      | Optional.                                                                |
-| `archislop:sceneSubtitle`   | Optional.                                                                |
-| `archislop:sceneLegend`     | Optional. JSON-encoded legend object (`{"height":"team size",…}`).       |
-| `archislop:sceneNebula`     | Optional. JSON-encoded `scene.nebula` array (galaxy).                    |
-| `archislop:sceneSurface`    | Optional. JSON-encoded `scene.surface` object (terrain).                 |
+| Key                         | Value                                                                       |
+| --------------------------- | --------------------------------------------------------------------------- |
+| `archislop:mappingVersion`  | This mapping's version (`0.2.0`). Bump on any breaking change below.        |
+| `archislop:metaphor`        | DSL discriminator (`city` … `iceberg`, `composite`).                        |
+| `archislop:layout`          | Composite only: `fused` / `adjacent` / `overlay`.                           |
+| `archislop:seed`            | Composite only: planner seed, stringified (schema allows string or int).    |
+| `archislop:novelty`         | Composite only: `0`–`1` as a decimal string.                                |
+| `archislop:motionIntensity` | Composite only: `0`–`1` as a decimal string.                                |
+| `archislop:sceneTheme`      | `whiteboard` / `noir` / `arcade` / `blueprint`.                             |
+| `archislop:sceneCamera`     | Schema value (`orbit` default; renderer currently always orbits).           |
+| `archislop:sceneMood`       | Optional. `day` / `dawn` / `dusk` / `night` / `storm` / `ember` / `aurora`. |
+| `archislop:sceneTitle`      | Optional.                                                                   |
+| `archislop:sceneSubtitle`   | Optional.                                                                   |
+| `archislop:sceneLegend`     | Optional. JSON-encoded legend object (`{"height":"team size",…}`).          |
+| `archislop:sceneNebula`     | Optional. JSON-encoded `scene.nebula` array (galaxy).                       |
+| `archislop:sceneSurface`    | Optional. JSON-encoded `scene.surface` object (terrain).                    |
 
 Structured values (legend, nebula, surface) are JSON strings inside `customLayerData` because
 `customLayerData` is a flat `string → string` dictionary; the JSON encoding is part of this mapping
@@ -90,6 +93,7 @@ Common attributes, emitted first, in this order:
 | `archislop:position` | `double3` | Optional author hint — deliberately **not** a real `xformOp`; deterministic placement is planner-owned and internal |
 | `archislop:glyph`    | `token`   | Optional procedural icon id                                                                                         |
 | `archislop:note`     | `string`  | Optional ≤140-char hover note                                                                                       |
+| `archislop:accent`   | `bool`    | Optional. `true` only when the item is a scene thesis marker (sanitizer cap: two)                                   |
 
 Then per-kind fields, named `archislop:<field>`, in schema order. Numbers are `double`, free strings
 are `string`, enums are `token`, string lists are `string[]`:
@@ -108,7 +112,7 @@ are `string`, enums are `token`, string lists are `string[]`:
 | `machine`     | `size` dbl · `speed` dbl · `axle` str? · `torque` dbl? · `mesh` **rel?**              |
 | `bridge`      | `span` dbl · `load` dbl · `side` str? · `strain` dbl?                                 |
 | `cycle`       | `phase` dbl · `size` dbl · `friction` dbl?                                            |
-| `subway`      | `line` str? · `stop` dbl · `traffic` dbl                                              |
+| `subway`      | `line` str? · `stop` dbl · `traffic` dbl · `interchange` **rel[]?**                   |
 | `iceberg`     | `depth` dbl · `mass` dbl · `berg` str? · `peril` dbl?                                 |
 
 Composite layer items re-validate against the per-kind mini schemas but keep optional fields
@@ -117,7 +121,8 @@ schema defaults, so their non-optional fields always appear.
 
 ### Item→item references (UsdRelationship)
 
-Fields that reference another item (`binary`, `parent`, `moon`, `mesh`) become relationships:
+Fields that reference another item (`binary`, `parent`, `moon`, `mesh`, `interchange`) become
+relationships:
 
 ```usda
 custom rel archislop:parent = </World/tree/root>
@@ -129,6 +134,9 @@ the adapter falls back to the raw value so no information is lost:
 ```usda
 custom string archislop:parent = "missing-id"
 ```
+
+Multi-target references (`subway.interchange`) use the same rule on the whole list: every id
+resolves → `custom rel … = [<path>, …]`; any dangling id → `custom string[]` of the raw ids.
 
 ### Links
 
@@ -155,7 +163,7 @@ custom string[] archislop:linkLabels = ["calls", ""]
     upAxis = "Y"
     metersPerUnit = 1
     customLayerData = {
-        string "archislop:mappingVersion" = "0.1.0"
+        string "archislop:mappingVersion" = "0.2.0"
         string "archislop:metaphor" = "city"
         string "archislop:sceneTheme" = "noir"
         string "archislop:sceneCamera" = "orbit"
@@ -199,18 +207,19 @@ def Xform "World"
 }
 ```
 
-## Explicit non-goals (v0.1)
+## Explicit non-goals (v0.2)
 
 - **No geometry, materials, or `xformOp`s.** Procedural visuals belong to the internal render plan
   (ADR-0009 decision 2). A baked delivery format is ADR-0009 step 5 (glTF 2.0.1), not this artifact.
 - **No composition arcs.** Layers are sibling scopes in one file; `subLayers` / `references` /
-  `payloads` with a real asset resolver come with ADR-0009 step 2's later iterations.
+  `payloads` with a real asset resolver come with later OpenUSD-approach stages.
 - **No time-sampled motion.** `motionIntensity` and per-item motion style stay planner concerns;
   time-sampled attributes or a procedural schema are named in ADR-0009 step 1 as follow-up work.
-- **No USDA parser / round-trip.** Field-coverage tests in
-  `packages/shared/test/metaphorUsda.test.ts` are the current guard; a real inverse mapping and
-  conformance validation belong to ADR-0009 steps 2–3.
-- **No USDZ/USDC output and no OpenUSD dependency.** Authoring is pure text generation.
+- **No general USDA parser and no USD Core 1.0.1 conformance claim.** `parseMetaphorUsda` is the
+  inverse of this mapping only — it round-trips the stub we emit. Official OpenUSD runtime
+  validation is a later stage (see [OpenUSD approach](openusd-approach.md)).
+- **No USDZ/USDC output and no OpenUSD dependency.** Authoring and the subset parse are pure
+  TypeScript.
 
 ## Versioning
 
@@ -220,10 +229,15 @@ def Xform "World"
   `METAPHOR_USDA_MAPPING_VERSION`.
 - Consumers must treat unknown `archislop:*` attributes as ignorable, matching USD's own custom-data
   conventions.
+- v0.2.0 is additive on v0.1.0: `sceneMood`, `accent`, and subway `interchange`.
 
 ## Where this lives in code
 
-- Adapter: `packages/shared/src/metaphorUsda.ts` (`authorMetaphorUsda`)
+- Author: `packages/shared/src/metaphorUsda.ts` (`authorMetaphorUsda`)
+- Field table: `packages/shared/src/metaphorUsdaFields.ts` (`KIND_ITEM_FIELDS`)
+- Inverse parse (mapping subset): `packages/shared/src/metaphorUsdaParse.ts` (`parseMetaphorUsda`)
+  — scan helpers in `metaphorUsdaScan.ts`
 - Canonical DSL contract: `packages/shared/src/metaphorSchema.ts`, `metaphorSanitizer.ts`
+- Approach / remaining stages: [OpenUSD approach](openusd-approach.md)
 - Export wiring: `metaphor-usda` in `apps/web/src/utils/exportDiagram.js`
 - Tests: `packages/shared/test/metaphorUsda.test.ts`, `apps/web/test/exportDiagram.test.js`

@@ -667,7 +667,9 @@ test:floor`; the floor test map is [`docs/agents/isometric-floor-tests.md`](docs
   (with a high `renderOrder`) blends over it correctly.
 - **Adding a metaphor kind touches ten places.** `metaphorSchema.ts` (kind list, item schema,
   union, legend axes, types), `metaphorSanitizer.ts` (caps + clamps), `metaphorUsda.ts`
-  (`KIND_ITEM_FIELDS` — the build fails without it), a layout under `utils/metaphorLayouts/`, a
+  (`KIND_ITEM_FIELDS` in `metaphorUsdaFields.ts` — the build fails without it; bump `METAPHOR_USDA_MAPPING_VERSION` and the
+  mapping doc for additive fields, then extend the round-trip in `metaphorUsda.test.ts`), a layout
+  under `utils/metaphorLayouts/`, a
   scene + sky under `components/metaphorScenes/`, `MetaphorRenderer.jsx` (dispatch, sky, bounds
   margin), `metaphorLegendAxes.js` (legend + tooltip rows), `switchMetaphorKind.js` (magnitude
   mapping + positional normalisation + composite layer label), `compositePrimitiveRegistry.js`,
