@@ -17,7 +17,7 @@ import { russShapeLabel, selectableRenderModes } from '../utils/renderModeAction
  *   contentMode: string;
  *   contentModeOptions: Array<{ id: string, label: string }>;
  *   canFixFromCritique: boolean;
- *   graphEdit?: { enabled?: boolean, kind?: string | null, busy?: boolean } | null;
+ *   graphEdit?: { enabled?: boolean, kind?: string | null, busy?: boolean, canLink?: boolean } | null;
  *   touchGraphEdit?: boolean;
  * }} params
  */
@@ -64,7 +64,7 @@ export function buildRadialActions({
       group: 'primary',
       persona: a.link,
       personaTitle: a.linkTitle,
-      hidden: !editOn || kind !== 'node' || !touchGraphEdit,
+      hidden: !editOn || kind !== 'node' || !touchGraphEdit || graphEdit?.canLink === false,
       disabled: editBusy
     },
     {

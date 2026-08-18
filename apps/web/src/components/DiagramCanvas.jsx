@@ -19,6 +19,7 @@ import {
 import { applyDiagramHighlightToSvg } from '../utils/applyDiagramHighlightToSvg.js';
 import { applyChartHighlight } from '../utils/applyChartHighlight.js';
 import { applyInfographicHighlight } from '@archislop/shared';
+import { graphEditIdFromDescriptor } from '../utils/canvasGraphEdit.js';
 import {
   flowchartEdgeLabelText,
   parseFlowchartEdgeDataId,
@@ -221,6 +222,27 @@ function logicalIdFromNodeWrap(node) {
   const dataId = anchor.getAttribute?.('data-id');
   if (dataId) return dataId;
   return normalizeDiagramElementId(anchor.id, 'node');
+}
+
+function findInfographicConnectSource(root, connectSourceId) {
+  if (!root || !connectSourceId) return null;
+  const raw = String(connectSourceId);
+  if (!raw.startsWith('~label:')) {
+    try {
+      const hit = root.querySelector(`[data-indexes="${CSS.escape(raw)}"]`);
+      if (hit) return hit;
+    } catch {
+      // ignore invalid ids
+    }
+  }
+  const label = raw.startsWith('~label:') ? raw.slice('~label:'.length) : '';
+  if (!label) return null;
+  const titles = root.querySelectorAll('[data-element-type="shape"] > title');
+  for (const title of titles) {
+    const text = (title.textContent || '').replace(/\s+/g, ' ').trim();
+    if (text === label) return title.parentElement;
+  }
+  return null;
 }
 
 function findFlowchartNodeWrapByLogicalId(root, logicalId) {
@@ -881,10 +903,14 @@ export default function DiagramCanvas({
     const root = viewportRef.current;
     if (!root) return;
     root
-      .querySelectorAll('g.node.is-connect-source, g.timeline-node.is-connect-source')
+      .querySelectorAll(
+        'g.node.is-connect-source, g.timeline-node.is-connect-source, .is-connect-source'
+      )
       .forEach((el) => el.classList.remove('is-connect-source'));
     if (!connectSourceId) return;
-    const sourceWrap = findFlowchartNodeWrapByLogicalId(root, connectSourceId);
+    const sourceWrap =
+      findFlowchartNodeWrapByLogicalId(root, connectSourceId) ||
+      findInfographicConnectSource(root, connectSourceId);
     sourceWrap?.classList?.add('is-connect-source');
   }, [svgMarkup, connectSourceId, viewport]);
 
@@ -1586,7 +1612,7 @@ export default function DiagramCanvas({
           if (!descriptor || descriptor.kind === 'edge' || descriptor.kind === 'cluster') {
             return;
           }
-          const logicalId = logicalIdFromDiagramSelection(descriptor);
+          const logicalId = graphEditIdFromDescriptor(descriptor);
           if (!logicalId || logicalId === connectSourceId) {
             onConnectTarget?.({ type: 'source' });
             return;

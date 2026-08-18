@@ -1,16 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { applyUserDiagramEdit } from '../../state/diagramStore.js';
 import { pushError } from '../../state/errorToastStore.js';
-import { logicalIdFromDiagramSelection } from '../../utils/mermaidSourceLocate.js';
-import {
-  addLinkedFlowchartNode,
-  connectFlowchartNodes,
-  deleteFlowchartEdge,
-  deleteFlowchartNode,
-  isFlowchartFamilySource,
-  renameFlowchartEdge,
-  renameFlowchartNode
-} from '../../utils/mermaidFlowchartEdit.js';
+import { graphEditAdapterFor, graphEditIdFromDescriptor } from '../../utils/canvasGraphEdit.js';
 
 function isTypingTarget(el) {
   if (!el) return false;
@@ -28,11 +19,29 @@ function selectionKind(descriptor) {
 
 function nodeLogicalId(descriptor) {
   if (!descriptor || selectionKind(descriptor) !== 'node') return null;
-  return logicalIdFromDiagramSelection(descriptor);
+  return graphEditIdFromDescriptor(descriptor);
+}
+
+function nextSelection(adapter, result) {
+  if (adapter.contentType === 'infographic') {
+    return {
+      kind: 'infographic-item',
+      dataId: result.newId,
+      indexes: result.newId,
+      partName: result.newLabel || result.newId,
+      partKind: 'item',
+      label: result.newLabel || result.newId
+    };
+  }
+  return {
+    dataId: result.newId,
+    partName: result.newLabel || result.newId,
+    partKind: 'node'
+  };
 }
 
 /**
- * Flowchart Connect / Delete / Rename on the mermaid canvas.
+ * Canvas Connect / Delete / Rename. Flowchart mermaid plus infographic tree/relation.
  */
 export function useFlowchartGraphEdit({
   activeSessionId,
@@ -52,18 +61,19 @@ export function useFlowchartGraphEdit({
   const undoRef = useRef(null);
   const toastTimerRef = useRef(null);
   const copy = controls.graphEdit;
-
-  const enabled =
-    contentMode === 'mermaid' && isFlowchartFamilySource(stateRef.current?.diagramSource);
+  const source = stateRef.current?.diagramSource;
+  const adapter = graphEditAdapterFor(contentMode, source);
+  const enabled = Boolean(adapter);
   const kind = selectionKind(selectedNode);
 
   const graphEdit = useMemo(
     () => ({
       enabled: enabled && kind !== 'cluster',
       kind,
-      busy: Boolean(busy)
+      busy: Boolean(busy),
+      canLink: Boolean(adapter?.canLink)
     }),
-    [busy, enabled, kind]
+    [adapter, busy, enabled, kind]
   );
 
   const clearToastTimer = useCallback(() => {
@@ -98,7 +108,7 @@ export function useFlowchartGraphEdit({
       const previous = stateRef.current;
       try {
         const payload = await applyUserDiagramEdit({
-          contentType: 'mermaid',
+          contentType: adapter?.contentType ?? contentMode ?? 'mermaid',
           diagramSource: nextSource,
           previousRevisionId: previous.revisionId,
           reason,
@@ -121,7 +131,16 @@ export function useFlowchartGraphEdit({
         return null;
       }
     },
-    [activeSessionId, copy.failed, copy.stale, setState, showUndoToast, stateRef]
+    [
+      activeSessionId,
+      adapter,
+      contentMode,
+      copy.failed,
+      copy.stale,
+      setState,
+      showUndoToast,
+      stateRef
+    ]
   );
 
   const undoLast = useCallback(async () => {
@@ -162,28 +181,25 @@ export function useFlowchartGraphEdit({
 
   const birthLinkedNode = useCallback(
     (fromId) => {
-      const source = stateRef.current.diagramSource;
-      const result = addLinkedFlowchartNode(source, fromId);
+      if (!adapter) return;
+      const current = stateRef.current.diagramSource;
+      const result = adapter.addLinked(current, fromId);
       if (!result.ok) {
         pushError(copy.failed);
         return;
       }
       void commitSource(result.source, 'Connect node', { toast: copy.linked }).then((applied) => {
         if (!applied) return;
-        setSelectedNode?.({
-          dataId: result.newId,
-          partName: result.newId,
-          partKind: 'node'
-        });
+        setSelectedNode?.(nextSelection(adapter, result));
         setLabelSession({
           kind: 'node',
           logicalId: result.newId,
-          draft: result.newId,
+          draft: result.newLabel || result.newId,
           created: true
         });
       });
     },
-    [commitSource, copy.failed, copy.linked, setSelectedNode, stateRef]
+    [adapter, commitSource, copy.failed, copy.linked, setSelectedNode, stateRef]
   );
 
   const handleGraphEditAction = useCallback(
@@ -195,7 +211,7 @@ export function useFlowchartGraphEdit({
         const logicalId = nodeLogicalId(target);
         if (!logicalId) return;
         closeRadialMenu?.();
-        const linkMode = action.id === 'link' || action.linkMode;
+        const linkMode = (action.id === 'link' || action.linkMode) && adapter?.canLink;
         if (linkMode) {
           if (connectFrom && nodeLogicalId(connectFrom) === logicalId) {
             cancelConnect();
@@ -209,11 +225,11 @@ export function useFlowchartGraphEdit({
       }
       if (action.id === 'delete') {
         closeRadialMenu?.();
-        const source = stateRef.current.diagramSource;
+        const current = stateRef.current.diagramSource;
         const result =
           selectionKind(target) === 'edge'
-            ? deleteFlowchartEdge(source, target.edgeFrom, target.edgeTo)
-            : deleteFlowchartNode(source, nodeLogicalId(target));
+            ? adapter.deleteEdge(current, target.edgeFrom, target.edgeTo)
+            : adapter.deleteNode(current, nodeLogicalId(target));
         if (!result.ok) {
           if (result.reason !== 'duplicate' && result.reason !== 'self') {
             pushError(copy.failed);
@@ -243,13 +259,14 @@ export function useFlowchartGraphEdit({
       openRename,
       selectedNode,
       setSelectedNode,
-      stateRef
+      stateRef,
+      adapter
     ]
   );
 
   const handleConnectTarget = useCallback(
     (target) => {
-      if (!connectFrom || busy) return;
+      if (!connectFrom || busy || !adapter) return;
       const fromId = nodeLogicalId(connectFrom);
       if (!fromId) {
         cancelConnect();
@@ -259,17 +276,21 @@ export function useFlowchartGraphEdit({
         cancelConnect();
         return;
       }
-      const source = stateRef.current.diagramSource;
+      const current = stateRef.current.diagramSource;
       if (target?.type === 'node') {
         const toId = target.logicalId || nodeLogicalId(target.descriptor);
         if (!toId || toId === fromId) {
           cancelConnect();
           return;
         }
-        const result = connectFlowchartNodes(source, fromId, toId);
+        const result = adapter.connect(current, fromId, toId);
         cancelConnect();
         if (!result.ok) {
-          if (result.reason !== 'duplicate' && result.reason !== 'self') {
+          if (
+            result.reason !== 'duplicate' &&
+            result.reason !== 'self' &&
+            result.reason !== 'no-link'
+          ) {
             pushError(copy.failed);
           }
           return;
@@ -290,7 +311,8 @@ export function useFlowchartGraphEdit({
       connectFrom,
       copy.failed,
       copy.linked,
-      stateRef
+      stateRef,
+      adapter
     ]
   );
 
@@ -299,23 +321,24 @@ export function useFlowchartGraphEdit({
       const session = labelSession;
       setLabelSession(null);
       if (!session) return;
-      const source = stateRef.current.diagramSource;
+      if (!adapter) return;
+      const current = stateRef.current.diagramSource;
       const label = String(nextDraft ?? '').trim();
       if (session.created && !label) return;
       const result =
         session.kind === 'edge'
-          ? renameFlowchartEdge(source, session.fromId, session.toId, label)
-          : renameFlowchartNode(source, session.logicalId, label);
+          ? adapter.renameEdge(current, session.fromId, session.toId, label)
+          : adapter.renameNode(current, session.logicalId, label);
       if (!result.ok) {
         pushError(copy.failed);
         return;
       }
-      if (result.source === source) return;
+      if (result.source === current) return;
       // Rename is a discrete apply but must not recapture undo — Cmd/Z and the
       // Connect/Delete toast still revert the last structural edit.
       void commitSource(result.source, 'Rename', { captureUndo: false });
     },
-    [commitSource, copy.failed, labelSession, stateRef]
+    [adapter, commitSource, copy.failed, labelSession, stateRef]
   );
 
   useEffect(() => {

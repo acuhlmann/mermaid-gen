@@ -658,3 +658,43 @@ test('user-edit route rejects invalid mermaid without mutating', async () => {
   assert.equal(result.status, 422);
   assert.equal(stateStore.getSlot('mermaid'), before);
 });
+
+test('user-edit route applies an infographic hierarchy patch with origin user', async () => {
+  const stateStore = createDiagramStateStore();
+  const source = `infographic hierarchy-tree-curved-line-rounded-rect-node
+data
+  root
+    label Company
+    children
+      - label Engineering
+      - label Sales
+`;
+  const result = await handleUserDiagramEdit({
+    body: {
+      contentType: 'infographic',
+      diagramSource: `${source}      - label Legal\n`,
+      previousRevisionId: 0,
+      reason: 'Connect node'
+    },
+    stateStore
+  });
+
+  assert.equal(result.status, 200);
+  assert.match(result.body.state.diagramSource, /Legal/);
+  assert.equal(result.body.patch.origin.kind, 'user');
+  assert.equal(stateStore.getSlot('infographic').revisionId, 1);
+});
+
+test('user-edit route rejects chart contentType', async () => {
+  const stateStore = createDiagramStateStore();
+  const result = await handleUserDiagramEdit({
+    body: {
+      contentType: 'chart',
+      diagramSource: '{"mark":"bar"}',
+      previousRevisionId: 0,
+      reason: 'Connect node'
+    },
+    stateStore
+  });
+  assert.equal(result.status, 400);
+});
