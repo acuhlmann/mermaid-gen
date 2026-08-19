@@ -357,4 +357,34 @@ data
       created: true
     });
   });
+
+  it('adds a child on a mermaid mindmap', async () => {
+    const mindmap = `mindmap
+  root((Root Topic))
+    Child1
+`;
+    const { result } = mount({
+      diagramSource: mindmap,
+      props: {
+        contentMode: 'mermaid',
+        selectedNode: {
+          id: 'node_1',
+          partName: 'Child1',
+          label: 'Child1'
+        }
+      }
+    });
+    expect(result.current.graphEdit.enabled).toBe(true);
+    expect(result.current.graphEdit.canLink).toBe(false);
+    await act(async () => {
+      result.current.handleGraphEditAction({ id: 'connect' });
+    });
+    expect(applyUserDiagramEdit.mock.calls[0][0].contentType).toBe('mermaid');
+    expect(applyUserDiagramEdit.mock.calls[0][0].diagramSource).toMatch(/Child1\n\n      Item 1/);
+    expect(result.current.labelSession).toMatchObject({
+      kind: 'node',
+      logicalId: '0,0,0',
+      created: true
+    });
+  });
 });

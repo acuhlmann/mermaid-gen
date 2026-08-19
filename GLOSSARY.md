@@ -122,7 +122,7 @@ Vocabulary fixed during the multi-human/NPC-participant design sessions. No code
 
 ## Misc
 
-**Canvas graph edit.** Point-and-click Add / Delete / Rename / Link on a rendered graph (`origin: user` via `POST /api/copilotkit/user-edit`). Not a second editor — a mutator rewrites the slot DSL. Shipped: Mermaid flowchart; Infographic hierarchy-tree/mindmap, relation-dagre, relation-network. Plan and next slices: `docs/canvas-graph-edit.md`.
+**Canvas graph edit.** Point-and-click Add / Delete / Rename / Link on a rendered graph (`origin: user` via `POST /api/copilotkit/user-edit`). Not a second editor — a mutator rewrites the slot DSL. Shipped: Mermaid flowchart and mindmap; Infographic hierarchy-tree/mindmap, relation-dagre, relation-network, lists/sequences. Plan and next slices: `docs/canvas-graph-edit.md`.
 
 **USDA export.** The Metaphor3D → USD ASCII interchange stub (`metaphor-usda` export format on the metaphor3d slot), implementing ADR-0009 migration steps 1–2 plus the v0.2.0 inverse parse. Semantics only — no geometry, no planner output, no USD Core conformance claim; the JSON DSL stays canonical. Mapping spec: `docs/guide/metaphor-usda-mapping.md`; approach: `docs/guide/openusd-approach.md`; author: `packages/shared/src/metaphorUsda.ts`; parse: `packages/shared/src/metaphorUsdaParse.ts`.
 

@@ -22,6 +22,7 @@ export function peekDiagramDirective(source) {
     if (low.startsWith('sequencediagram')) return 'sequence';
     if (/^statediagram(?:-v2)?\b/i.test(t)) return 'state';
     if (/^(flowchart|graph)\b/i.test(low)) return 'flowchart';
+    if (/^mindmap\b/i.test(t)) return 'mindmap';
     return 'unknown';
   }
   return 'unknown';

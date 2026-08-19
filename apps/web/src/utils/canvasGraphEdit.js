@@ -18,6 +18,16 @@ import {
   isInfographicGraphSource,
   renameInfographicNode
 } from './infographicGraphEdit.js';
+import {
+  addLinkedMindmapNode,
+  connectMindmapNodes,
+  deleteMindmapEdge,
+  deleteMindmapNode,
+  isMindmapFamilySource,
+  mindmapLabelRef,
+  renameMindmapEdge,
+  renameMindmapNode
+} from './mermaidMindmapEdit.js';
 
 function fail(reason) {
   return { ok: false, reason };
@@ -47,6 +57,17 @@ const INFOGRAPHIC_ADAPTER = {
   renameEdge: () => fail('not-graph')
 };
 
+const MINDMAP_ADAPTER = {
+  contentType: 'mermaid',
+  canLink: false,
+  addLinked: addLinkedMindmapNode,
+  connect: connectMindmapNodes,
+  deleteNode: deleteMindmapNode,
+  deleteEdge: deleteMindmapEdge,
+  renameNode: renameMindmapNode,
+  renameEdge: renameMindmapEdge
+};
+
 /**
  * Logical id for Connect targeting: mermaid node id, AntV `data-indexes`, or `~label:`.
  * @param {object | null | undefined} descriptor
@@ -60,7 +81,11 @@ export function graphEditIdFromDescriptor(descriptor) {
     if (descriptor.label) return infographicLabelRef(descriptor.label);
     return null;
   }
-  return logicalIdFromDiagramSelection(descriptor);
+  const logical = logicalIdFromDiagramSelection(descriptor);
+  if (logical && !/^node_\d+$/i.test(logical)) return logical;
+  if (descriptor.label) return mindmapLabelRef(descriptor.label);
+  if (descriptor.partName) return mindmapLabelRef(descriptor.partName);
+  return logical;
 }
 
 /**
@@ -70,6 +95,9 @@ export function graphEditIdFromDescriptor(descriptor) {
 export function graphEditAdapterFor(contentType, source) {
   if (contentType === 'mermaid' && isFlowchartFamilySource(source)) {
     return FLOWCHART_ADAPTER;
+  }
+  if (contentType === 'mermaid' && isMindmapFamilySource(source)) {
+    return MINDMAP_ADAPTER;
   }
   if (contentType === 'infographic' && isInfographicGraphSource(source)) {
     return {

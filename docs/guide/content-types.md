@@ -43,7 +43,7 @@ Each HTTP request and SSE payload carries `contentType`, which is forwarded from
 
 ## Canvas graph edit
 
-Some layouts can be grown or trimmed from the canvas without a prompt: **Add**, **Delete**, **Rename**, and (when the layout has free edges) **Link**. Today that is Mermaid **flowchart** plus Infographic **hierarchy-tree / mindmap**, **relation-dagre**, and **relation-network**. The verbs land as `origin: user` patches on `POST /api/copilotkit/user-edit`. Lists, mermaid mindmap/state/sequence, and Metaphor3D tree are later slices — see [`docs/canvas-graph-edit.md`](../canvas-graph-edit.md).
+Some layouts can be grown or trimmed from the canvas without a prompt: **Add**, **Delete**, **Rename**, and (when the layout has free edges) **Link**. Today that is Mermaid **flowchart** and **mindmap**, plus Infographic **hierarchy-tree / mindmap**, **relation-dagre**, **relation-network**, and flat **lists / sequences**. The verbs land as `origin: user` patches on `POST /api/copilotkit/user-edit`. Mermaid state/sequence and Metaphor3D tree are later slices — see [`docs/canvas-graph-edit.md`](../canvas-graph-edit.md).
 
 ## metaphor3d kinds
 

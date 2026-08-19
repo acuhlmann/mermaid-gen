@@ -136,6 +136,10 @@ describe('peekDiagramDirective', () => {
     const src = '%%{init: {}}%%\nsequenceDiagram\n  A->>B';
     expect(peekDiagramDirective(src)).toBe('sequence');
   });
+
+  it('detects mindmap diagrams', () => {
+    expect(peekDiagramDirective('mindmap\n  root((X))')).toBe('mindmap');
+  });
 });
 
 describe('findMermaidSourceRange', () => {

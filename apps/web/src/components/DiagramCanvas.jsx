@@ -245,6 +245,24 @@ function findInfographicConnectSource(root, connectSourceId) {
   return null;
 }
 
+function findMindmapConnectSource(root, connectSourceId) {
+  if (!root || !connectSourceId) return null;
+  const raw = String(connectSourceId);
+  const label = raw.startsWith('~label:') ? raw.slice('~label:'.length) : raw;
+  if (!label) return null;
+  const nodes = root.querySelectorAll('g.node, g.section-root, g.section--1');
+  for (const node of nodes) {
+    const text = (node.textContent || '').replace(/\s+/g, ' ').trim();
+    if (text === label) return node;
+    const title = node.querySelector(':scope > title');
+    if (title) {
+      const titled = (title.textContent || '').replace(/\s+/g, ' ').trim();
+      if (titled === label) return node;
+    }
+  }
+  return null;
+}
+
 function findFlowchartNodeWrapByLogicalId(root, logicalId) {
   if (!root || !logicalId) return null;
   const nodes = root.querySelectorAll('g.node, g.timeline-node');
@@ -910,7 +928,8 @@ export default function DiagramCanvas({
     if (!connectSourceId) return;
     const sourceWrap =
       findFlowchartNodeWrapByLogicalId(root, connectSourceId) ||
-      findInfographicConnectSource(root, connectSourceId);
+      findInfographicConnectSource(root, connectSourceId) ||
+      findMindmapConnectSource(root, connectSourceId);
     sourceWrap?.classList?.add('is-connect-source');
   }, [svgMarkup, connectSourceId, viewport]);
 

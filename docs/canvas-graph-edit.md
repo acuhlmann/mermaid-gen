@@ -28,7 +28,7 @@ A **family** is a (content type, layout/kind) pair that shares one node identity
 | Infographic dagre             | infographic  | `type relation-dagre`                                   | `data-indexes` (`"0"`…`"n"`) or `~label:` fallback | sibling + `from -> new`      | node + incident relations               | item `label` | `from -> to`                                       | **shipped**    |
 | Infographic network           | infographic  | `type relation-network-*`                               | same as dagre                                      | append a spoke (`- label X`) | node                                    | item `label` | **off** — extra `relations` do not change the star | **shipped**    |
 | Infographic lists / sequences | infographic  | `list-*`, `sequence-*`                                  | list index (`"0"`…`"n-1"`)                         | sibling of selected          | item                                    | item `label` | n/a                                                | **shipped**    |
-| Mermaid mindmap               | mermaid      | `mindmap` header                                        | indent path                                        | child                        | node + descendants                      | label        | n/a                                                | later          |
+| Mermaid mindmap               | mermaid      | `mindmap` header                                        | indent path                                        | child                        | node + descendants                      | label        | n/a                                                | **shipped**    |
 | Mermaid state                 | mermaid      | `stateDiagram-v2`                                       | state id                                           | new state + transition       | state                                   | label        | transition                                         | later          |
 | Mermaid sequence              | mermaid      | `sequenceDiagram`                                       | participant id                                     | participant / message        | participant or message                  | alias        | n/a (messages are ordered)                         | later          |
 | Metaphor3D tree               | metaphor3d   | `kind: "tree"`                                          | item `id` + `parent`                               | child item                   | item + descendants                      | `label`      | n/a                                                | later          |
@@ -85,8 +85,8 @@ Land one family per change. Each slice is: mutator + tests, adapter row, `user-e
 
 1. **Flowchart** — shipped (`mermaidFlowchartEdit.js`).
 2. **Infographic hierarchy + dagre + network** — shipped. One mutator covers all three because they share the structured-list source; verbs differ by `canLink` / root / star.
-3. **Infographic lists and sequences** — this change. Add sibling / Delete / Rename on flat `lists` / `sequences` items. No Link. Same `data-indexes` identity (`"0"`…`"n-1"`).
-4. **Mermaid mindmap** — indent-tree mutator. Reuse the radial; `canLink: false`.
+3. **Infographic lists and sequences** — shipped. Add sibling / Delete / Rename on flat `lists` / `sequences` items. No Link. Same `data-indexes` identity (`"0"`…`"n-1"`).
+4. **Mermaid mindmap** — shipped. Indent-tree mutator; `canLink: false`. Canvas resolves clicks via `~label:` when Mermaid only stamps `node_N` ids.
 5. **Mermaid `stateDiagram-v2`** — states + transitions. Closest remaining mermaid cousin to flowchart.
 6. **Mermaid sequence** — different objects (participants, messages). Likely a second chrome label set ("Add participant" / "Add message") still mapped onto Add / Link.
 7. **Metaphor3D tree** — JSON `parent` field. Hit-test is a Three.js mesh, not SVG; needs a descriptor bridge before the mutator is useful.
@@ -111,6 +111,6 @@ Infographic mutators should stay parseable: `parseSyntax` from `@antv/infographi
 
 - **`useFlowchartGraphEdit` is the canvas graph-edit hook.** The name is leftover from slice 1. Rename it to `useCanvasGraphEdit` in a dedicated cleanup, not in a family slice.
 - **Sanitizer rewrite.** `sanitizeInfographicDsl` / `rewriteInfographicHubAndSpokeToTree` can still fold a star with generic edge labels into a hierarchy-tree after `user-edit`. Prefer a `label` that does not look like a default spoke if you are testing network round-trip through the route.
-- **Connect highlight.** Infographic uses `.is-connect-source` on `[data-indexes]`. Title-only dagre hits (`~label:`) have nothing to paint; the click still works.
+- **Connect highlight.** Infographic uses `.is-connect-source` on `[data-indexes]`. Title-only dagre hits (`~label:`) have nothing to paint; the click still works. Mindmap paints by matching node label text in `g.node` when the logical id is `~label:…`.
 - **Remount.** AntV wipes the DOM on every source change. `InfographicRenderer` re-selects by `data-indexes` after paint; mermaid keeps the node id.
 - **`origin: user`.** Canvas edits must keep this so undo / history stay distinct from agent patches. Do not send them through the agent stream.
