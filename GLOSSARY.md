@@ -124,7 +124,7 @@ Vocabulary fixed during the multi-human/NPC-participant design sessions. No code
 
 **Canvas graph edit.** Point-and-click Add / Delete / Rename / Link on a rendered graph (`origin: user` via `POST /api/copilotkit/user-edit`). Not a second editor — a mutator rewrites the slot DSL. Shipped: Mermaid flowchart; Infographic hierarchy-tree/mindmap, relation-dagre, relation-network. Plan and next slices: `docs/canvas-graph-edit.md`.
 
-**USDA export.** The Metaphor3D → USD ASCII interchange stub (`metaphor-usda` export format on the metaphor3d slot), implementing ADR-0009 migration steps 1–2. Semantics only — no geometry, no planner output, no USD Core conformance claim; the JSON DSL stays canonical. Mapping spec: `docs/guide/metaphor-usda-mapping.md`; author: `packages/shared/src/metaphorUsda.ts`.
+**USDA export.** The Metaphor3D → USD ASCII interchange stub (`metaphor-usda` export format on the metaphor3d slot), implementing ADR-0009 migration steps 1–2 plus the v0.2.0 inverse parse. Semantics only — no geometry, no planner output, no USD Core conformance claim; the JSON DSL stays canonical. Mapping spec: `docs/guide/metaphor-usda-mapping.md`; approach: `docs/guide/openusd-approach.md`; author: `packages/shared/src/metaphorUsda.ts`; parse: `packages/shared/src/metaphorUsdaParse.ts`.
 
 **Bench corpus.** A fixed offline corpus replayed through `validateAndPreparePatch` to track sanitizer-rescue rate and validator latency over time. Run with `node apps/server/scripts/benchMermaid.js --tag <label>`; snapshots in `apps/server/bench-results/`.
 

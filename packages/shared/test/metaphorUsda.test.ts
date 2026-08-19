@@ -1,8 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { authorMetaphorUsda, METAPHOR_USDA_MAPPING_VERSION } from '../src/metaphorUsda.js';
+import { parseMetaphorUsda, MetaphorUsdaParseError } from '../src/metaphorUsdaParse.js';
 import { MetaphorDslSchema } from '../src/metaphorSchema.js';
-import type { MetaphorBaseKind } from '../src/metaphorSchema.js';
+import type { MetaphorBaseKind, MetaphorDsl } from '../src/metaphorSchema.js';
 
 function author(doc: unknown): string {
   return authorMetaphorUsda(MetaphorDslSchema.parse(doc));
@@ -165,8 +166,11 @@ const KIND_FIXTURES: Record<
     fields: ['phase', 'size', 'friction']
   },
   subway: {
-    items: [{ id: 'a', label: 'A', line: 'Blue', stop: 30, traffic: 9 }],
-    fields: ['line', 'stop', 'traffic']
+    items: [
+      { id: 'a', label: 'A', line: 'Blue', stop: 30, traffic: 9, interchange: ['b'] },
+      { id: 'b', label: 'B', line: 'Red', stop: 10, traffic: 4 }
+    ],
+    fields: ['line', 'stop', 'traffic', 'interchange']
   },
   iceberg: {
     items: [{ id: 'a', label: 'A', depth: -0.6, mass: 12, berg: 'One', peril: 0.4 }],
@@ -320,6 +324,167 @@ test('authorMetaphorUsda encodes structured scene extras as JSON layer data', ()
   assert.ok(
     galaxy.includes('string "archislop:sceneNebula" = "[{\\"center\\":[0,0,0],\\"radius\\":6}]"')
   );
+});
+
+test('authorMetaphorUsda emits scene mood, item accent, and subway interchange rels', () => {
+  const usda = author({
+    metaphor: 'subway',
+    scene: { ...baseScene, mood: 'dusk' },
+    items: [
+      {
+        id: 'auth',
+        label: 'Auth',
+        line: 'Blue',
+        stop: 10,
+        traffic: 8,
+        accent: true,
+        interchange: ['hub']
+      },
+      { id: 'hub', label: 'Hub', line: 'Red', stop: 20, traffic: 12 },
+      {
+        id: 'ghost-stop',
+        label: 'Ghost',
+        line: 'Green',
+        stop: 30,
+        traffic: 2,
+        interchange: ['missing']
+      }
+    ],
+    links: []
+  });
+
+  assert.ok(usda.includes('string "archislop:sceneMood" = "dusk"'));
+  assert.ok(usda.includes('custom bool archislop:accent = true'));
+  assert.ok(usda.includes('custom rel archislop:interchange = [</World/subway/hub>]'));
+  assert.ok(usda.includes('custom string[] archislop:interchange = ["missing"]'));
+});
+
+function roundTrip(doc: unknown): { dsl: MetaphorDsl; usda: string; again: string } {
+  const parsed = MetaphorDslSchema.parse(doc);
+  const usda = authorMetaphorUsda(parsed);
+  const dsl = parseMetaphorUsda(usda);
+  return { dsl, usda, again: authorMetaphorUsda(dsl) };
+}
+
+test('parseMetaphorUsda round-trips every base kind fixture', () => {
+  for (const [kind, fixture] of Object.entries(KIND_FIXTURES)) {
+    const { usda, again } = roundTrip({
+      metaphor: kind,
+      scene: baseScene,
+      items: fixture.items,
+      links: []
+    });
+    assert.equal(again, usda, `${kind}: re-authored USDA drifted`);
+  }
+});
+
+test('parseMetaphorUsda round-trips links, dangling rels, composite, and scene extras', () => {
+  const linked = roundTrip({
+    metaphor: 'city',
+    scene: { theme: 'noir', camera: 'orbit', title: 'Payments platform' },
+    items: [
+      { id: 'api', label: 'API', height: 12, footprint: 3, accent: true },
+      { id: 'db', label: 'DB', height: 6, footprint: 4 },
+      { id: 'cache', label: 'Cache', height: 2, footprint: 1 }
+    ],
+    links: [
+      { from: 'api', to: 'db', kind: 'flow', label: 'writes' },
+      { from: 'api', to: 'cache' },
+      { from: 'db', to: 'api', kind: 'dependency' }
+    ]
+  });
+  assert.equal(linked.again, linked.usda);
+  assert.equal(linked.dsl.metaphor, 'city');
+  if (linked.dsl.metaphor === 'city') {
+    assert.equal(linked.dsl.items[0]?.accent, true);
+  }
+
+  const tree = roundTrip({
+    metaphor: 'tree',
+    scene: { ...baseScene, mood: 'storm' },
+    items: [
+      { id: 'oak', label: 'Oak', weight: 5 },
+      { id: 'leaf1', label: 'Leaf', parent: 'oak', weight: 1 },
+      { id: 'leaf2', label: 'Orphan', parent: 'ghost', weight: 1 }
+    ],
+    links: []
+  });
+  assert.equal(tree.again, tree.usda);
+  assert.equal(tree.dsl.scene.mood, 'storm');
+  if (tree.dsl.metaphor === 'tree') {
+    assert.equal(tree.dsl.items[2]?.parent, 'ghost');
+  }
+
+  const composite = roundTrip({
+    metaphor: 'composite',
+    scene: { theme: 'arcade', camera: 'orbit' },
+    layout: 'fused',
+    seed: 'demo',
+    novelty: 0.4,
+    motionIntensity: 0.8,
+    layers: [
+      {
+        id: 'flow-layer',
+        as: 'river',
+        label: 'Flow',
+        items: [{ id: 's1', label: 'Source', stage: 0, flow: 4 }]
+      },
+      {
+        id: 'beds',
+        as: 'garden',
+        transform: { position: [2, 0, 1], scale: 1.5 },
+        items: [{ id: 'p1', label: 'Plant', maturity: 0.6, impact: 3 }]
+      }
+    ],
+    links: [{ from: 's1', to: 'p1', kind: 'flow', label: 'feeds' }]
+  });
+  assert.equal(composite.again, composite.usda);
+  assert.equal(composite.dsl.metaphor, 'composite');
+
+  const extras = roundTrip({
+    metaphor: 'terrain',
+    scene: {
+      theme: 'whiteboard',
+      camera: 'orbit',
+      legend: { elevation: 'risk score' },
+      surface: { metric: 'risk', baseline: 1 }
+    },
+    items: [{ id: 'a', label: 'A', elevation: 5, intensity: 2 }],
+    links: []
+  });
+  assert.equal(extras.again, extras.usda);
+
+  const galaxy = roundTrip({
+    metaphor: 'galaxy',
+    scene: { ...baseScene, nebula: [{ center: [0, 0, 0], radius: 6 }] },
+    items: [{ id: 'a', label: 'A', magnitude: 4 }],
+    links: []
+  });
+  assert.equal(galaxy.again, galaxy.usda);
+});
+
+test('parseMetaphorUsda round-trips escaped labels and dashed ids', () => {
+  const { usda, again, dsl } = roundTrip({
+    metaphor: 'terrain',
+    scene: baseScene,
+    items: [
+      { id: 'a-b', label: 'Say "hello"', elevation: 1, intensity: 1 },
+      { id: 'a_b', label: 'Underscore', elevation: 2, intensity: 1 },
+      { id: '1st', label: 'Leading digit', elevation: 3, intensity: 1 }
+    ],
+    links: []
+  });
+  assert.equal(again, usda);
+  if (dsl.metaphor === 'terrain') {
+    assert.equal(dsl.items[0]?.id, 'a-b');
+    assert.equal(dsl.items[0]?.label, 'Say "hello"');
+    assert.equal(dsl.items[2]?.id, '1st');
+  }
+});
+
+test('parseMetaphorUsda rejects non-stub USDA', () => {
+  assert.throws(() => parseMetaphorUsda('not usda'), MetaphorUsdaParseError);
+  assert.throws(() => parseMetaphorUsda('#usda 1.0\n'), MetaphorUsdaParseError);
 });
 
 test('authorMetaphorUsda is deterministic and structurally balanced', () => {

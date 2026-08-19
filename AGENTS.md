@@ -151,8 +151,10 @@ ones that will bite an edit.
   with unlabelled affinity rings; when a base kind grows a scene-wide affordance, check
   `FusedCompositeScene.jsx` for it. Group placards must show `group.display` (the user's raw noun),
   never `group.label` (the normalized matching token).
-- **Adding a metaphor kind touches ten places**, and `metaphorUsda.ts`'s `KIND_ITEM_FIELDS` is the
-  one that fails the build rather than failing silently. Full list in `CLAUDE.md`.
+- **Adding a metaphor kind touches ten places**, and `metaphorUsdaFields.ts`'s `KIND_ITEM_FIELDS`
+  is the one that fails the build rather than failing silently. Additive USDA fields also bump
+  `METAPHOR_USDA_MAPPING_VERSION` and must round-trip (`docs/guide/openusd-approach.md`). Full list
+  in `CLAUDE.md`.
 - **Inspecting an item has two devices and one budget.** Hover (`metaphorHover.js`) answers a
   mouse; tap (`metaphorSelection.js`) answers a finger, because a touch "hover" is a flash under
   the finger. Never wire the tap through R3F's `onClick` — an orbit drag inside the canvas still

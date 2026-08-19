@@ -17,100 +17,9 @@ import type {
   MetaphorLink,
   MetaphorScene
 } from './metaphorSchema.js';
+import { KIND_ITEM_FIELDS, type ItemFieldMapping } from './metaphorUsdaFields.js';
 
-export const METAPHOR_USDA_MAPPING_VERSION = '0.1.0';
-
-type ItemFieldType = 'double' | 'string' | 'token' | 'string[]' | 'rel';
-
-interface ItemFieldMapping {
-  field: string;
-  type: ItemFieldType;
-}
-
-/**
- * Per-kind item fields beyond the common id/label/position/glyph/note, in
- * stable emission order. `rel` fields reference another item id and become
- * UsdRelationship targets when they resolve.
- */
-const KIND_ITEM_FIELDS: Record<MetaphorBaseKind, ItemFieldMapping[]> = {
-  city: [
-    { field: 'height', type: 'double' },
-    { field: 'footprint', type: 'double' },
-    { field: 'district', type: 'string' },
-    { field: 'lighting', type: 'token' },
-    { field: 'condition', type: 'token' }
-  ],
-  layercake: [
-    { field: 'thickness', type: 'double' },
-    { field: 'components', type: 'string[]' },
-    { field: 'cracks', type: 'double' },
-    { field: 'tilt', type: 'double' }
-  ],
-  galaxy: [
-    { field: 'magnitude', type: 'double' },
-    { field: 'cluster', type: 'string' },
-    { field: 'binary', type: 'rel' }
-  ],
-  tree: [
-    { field: 'parent', type: 'rel' },
-    { field: 'weight', type: 'double' },
-    { field: 'kind', type: 'token' }
-  ],
-  terrain: [
-    { field: 'elevation', type: 'double' },
-    { field: 'intensity', type: 'double' }
-  ],
-  orrery: [
-    { field: 'orbit', type: 'double' },
-    { field: 'size', type: 'double' },
-    { field: 'moon', type: 'rel' }
-  ],
-  river: [
-    { field: 'stage', type: 'double' },
-    { field: 'flow', type: 'double' },
-    { field: 'hazard', type: 'double' }
-  ],
-  garden: [
-    { field: 'maturity', type: 'double' },
-    { field: 'impact', type: 'double' },
-    { field: 'bed', type: 'string' },
-    { field: 'health', type: 'token' }
-  ],
-  archipelago: [
-    { field: 'mass', type: 'double' },
-    { field: 'relief', type: 'double' },
-    { field: 'chain', type: 'string' }
-  ],
-  machine: [
-    { field: 'size', type: 'double' },
-    { field: 'speed', type: 'double' },
-    { field: 'axle', type: 'string' },
-    { field: 'torque', type: 'double' },
-    { field: 'mesh', type: 'rel' }
-  ],
-  bridge: [
-    { field: 'span', type: 'double' },
-    { field: 'load', type: 'double' },
-    { field: 'side', type: 'string' },
-    { field: 'strain', type: 'double' }
-  ],
-  cycle: [
-    { field: 'phase', type: 'double' },
-    { field: 'size', type: 'double' },
-    { field: 'friction', type: 'double' }
-  ],
-  subway: [
-    { field: 'line', type: 'string' },
-    { field: 'stop', type: 'double' },
-    { field: 'traffic', type: 'double' }
-  ],
-  iceberg: [
-    { field: 'depth', type: 'double' },
-    { field: 'mass', type: 'double' },
-    { field: 'berg', type: 'string' },
-    { field: 'peril', type: 'double' }
-  ]
-};
+export const METAPHOR_USDA_MAPPING_VERSION = '0.2.0';
 
 type ItemRecord = Record<string, unknown>;
 
@@ -232,13 +141,22 @@ function collectCompositeLayerData(composite: CompositeMetaphor): Array<[string,
   ];
 }
 
+function pushIfPresent(
+  entries: Array<[string, string]>,
+  key: string,
+  value: string | undefined
+): void {
+  if (value) entries.push([key, value]);
+}
+
 function collectSceneLayerData(scene: MetaphorScene): Array<[string, string]> {
   const entries: Array<[string, string]> = [
     ['archislop:sceneTheme', scene.theme ?? 'whiteboard'],
     ['archislop:sceneCamera', scene.camera ?? 'orbit']
   ];
-  if (scene.title) entries.push(['archislop:sceneTitle', scene.title]);
-  if (scene.subtitle) entries.push(['archislop:sceneSubtitle', scene.subtitle]);
+  pushIfPresent(entries, 'archislop:sceneMood', scene.mood);
+  pushIfPresent(entries, 'archislop:sceneTitle', scene.title);
+  pushIfPresent(entries, 'archislop:sceneSubtitle', scene.subtitle);
   if (scene.legend && Object.keys(scene.legend).length > 0) {
     entries.push(['archislop:sceneLegend', JSON.stringify(scene.legend)]);
   }
@@ -299,16 +217,40 @@ function formatRelAttr(
   return `custom string archislop:${field} = "${usdaEscape(value)}"`;
 }
 
+function formatRelListAttr(
+  field: string,
+  value: unknown,
+  itemPathIndex: Map<string, string>
+): string | null {
+  if (!Array.isArray(value)) return null;
+  const ids = value.filter((entry): entry is string => typeof entry === 'string');
+  if (ids.length === 0) return null;
+  const paths = ids.map((id) => itemPathIndex.get(id));
+  if (paths.every((path): path is string => Boolean(path))) {
+    return `custom rel archislop:${field} = [${paths.map((path) => `<${path}>`).join(', ')}]`;
+  }
+  return `custom string[] archislop:${field} = [${ids
+    .map((id) => `"${usdaEscape(id)}"`)
+    .join(', ')}]`;
+}
+
+function formatKindAttr(
+  mapping: ItemFieldMapping,
+  value: unknown,
+  itemPathIndex: Map<string, string>
+): string | null {
+  if (mapping.type === 'rel') return formatRelAttr(mapping.field, value, itemPathIndex);
+  if (mapping.type === 'rel[]') return formatRelListAttr(mapping.field, value, itemPathIndex);
+  return formatScalarAttr(mapping, value);
+}
+
 function emitKindField(
   ctx: EmitContext,
   indent: string,
   mapping: ItemFieldMapping,
   value: unknown
 ): void {
-  const line =
-    mapping.type === 'rel'
-      ? formatRelAttr(mapping.field, value, ctx.itemPathIndex)
-      : formatScalarAttr(mapping, value);
+  const line = formatKindAttr(mapping, value, ctx.itemPathIndex);
   if (line) ctx.lines.push(`${indent}${line}`);
 }
 
@@ -355,6 +297,9 @@ function emitItem(ctx: EmitContext, collected: CollectedItem): void {
   }
   if (typeof item.note === 'string') {
     lines.push(`            custom string archislop:note = "${usdaEscape(item.note)}"`);
+  }
+  if (item.accent === true) {
+    lines.push('            custom bool archislop:accent = true');
   }
   for (const mapping of KIND_ITEM_FIELDS[kind]) {
     const value = item[mapping.field];

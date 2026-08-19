@@ -31,6 +31,7 @@ Human guides (split for faster GitHub preview — diagrams live on focused pages
 | [API endpoints](docs/guide/api-endpoints.md)                 | REST + SSE routes                                                   |
 | [Development](docs/guide/development.md)                     | Stack, tests, VS Code                                               |
 | [Metaphor USDA mapping](docs/guide/metaphor-usda-mapping.md) | Metaphor3D DSL → `.usda` interchange stub (ADR-0009 steps 1–2)      |
+| [OpenUSD approach](docs/guide/openusd-approach.md)           | Remaining OpenUSD path: stub round-trip now; Stage not canonical    |
 
 Integrator & operator references:
 
