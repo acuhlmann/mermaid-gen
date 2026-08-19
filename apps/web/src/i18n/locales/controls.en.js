@@ -786,7 +786,28 @@ export const CONTROLS_EN = {
     },
     compositeHintTitle: 'Composite mode',
     compositeHintBody:
-      'The fused world is waiting for at least one semantic layer. Ask Go to complete the scene.'
+      'The fused world is waiting for at least one semantic layer. Ask Go to complete the scene.',
+    tour: {
+      start: 'Guided read',
+      startTitle: 'Step through this scene: what it is, how to read it, and what the point is',
+      aria: 'Guided read of this scene',
+      step: 'Step {step} of {total}',
+      close: 'End the guided read',
+      back: 'Back',
+      next: 'Next',
+      done: 'Done',
+      overview: 'The scene',
+      overviewBody: 'Drag to orbit. Each step zooms to the part it is talking about.',
+      legend: 'How to read it',
+      peak: 'What stands out',
+      peakBody: 'Largest by {axis}: {value}.',
+      layer: 'Layer',
+      layerBody: 'Drawn as {kind}, {count} items.',
+      layerBodyWithPeak: 'Drawn as {kind}, {count} items — largest is {item}.',
+      link: 'How it connects',
+      linkBody: '{from} → {to}',
+      accent: 'The point'
+    }
   },
   styleEdits: {
     region: 'Style edits',

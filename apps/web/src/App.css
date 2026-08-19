@@ -754,6 +754,17 @@
   right: auto;
 }
 
+/* The read takes the same corner as the pick in fullscreen, and for the same
+   reason: it is the panel that survives the one-panel rule, so the corner the
+   legend used to hold is free. */
+.diagram-output:fullscreen .metaphor-tour,
+.diagram-output:-webkit-full-screen .metaphor-tour {
+  top: auto;
+  bottom: var(--diagram-fullscreen-corner-inset);
+  left: var(--diagram-fullscreen-corner-inset);
+  right: auto;
+}
+
 .diagram-viewport.is-revision-transition {
   animation: diagram-revision-fade 420ms ease-out;
 }
@@ -10410,6 +10421,190 @@ button {
   display: none;
 }
 
+/* --- Guided read (tour) ---
+   The read outranks every other panel including the pick: it is narrating one
+   beat AND flying the camera to it, so a second card would hide the arrival.
+   Same general-sibling mechanism as the pick, one rung up, which is why
+   MetaphorRenderer declares the tour panel before the inspector. */
+.metaphor-tour ~ .metaphor-inspector,
+.metaphor-tour ~ .metaphor-legend-overlay,
+.metaphor-tour ~ .metaphor-layers-overlay,
+.metaphor-tour ~ .metaphor-hover-tooltip,
+.metaphor-tour ~ .metaphor-context-overlay,
+.metaphor-tour ~ .metaphor-title-overlay {
+  display: none;
+}
+
+.metaphor-tour {
+  bottom: 14px;
+  left: 14px;
+  right: auto;
+  top: auto;
+  z-index: 7;
+  max-width: min(52%, 380px);
+  border-left: 3px solid rgba(250, 204, 21, 0.9);
+  pointer-events: auto;
+}
+
+.metaphor-tour-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.metaphor-tour-step {
+  margin: 0;
+  font-size: 0.62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: #fde68a;
+}
+
+.metaphor-tour-close {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  border: 1px solid rgba(148, 163, 184, 0.4);
+  border-radius: 50%;
+  background: rgba(15, 23, 42, 0.55);
+  color: #e2e8f0;
+  font-size: 0.95rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.metaphor-tour-close:hover {
+  background: rgba(30, 41, 59, 0.9);
+}
+
+.metaphor-tour-close:focus-visible,
+.metaphor-tour-nav-btn:focus-visible,
+.metaphor-tour-start:focus-visible {
+  outline: 2px solid rgba(96, 165, 250, 0.75);
+  outline-offset: 2px;
+}
+
+.metaphor-tour-title {
+  margin: 5px 0 0;
+  font-size: 0.95rem;
+  font-weight: 750;
+  line-height: 1.25;
+  color: #f8fafc;
+}
+
+.metaphor-tour-body {
+  margin: 5px 0 0;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: #e2e8f0;
+}
+
+.metaphor-tour-rows {
+  margin: 8px 0 0;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 2px 10px;
+}
+
+.metaphor-tour-row {
+  display: contents;
+}
+
+.metaphor-tour-row dt {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #94a3b8;
+}
+
+.metaphor-tour-row dd {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #f1f5f9;
+}
+
+/* Sticky inside the panel's own scroll box. The read is height-capped on every
+   small screen, so on a short one the beat's text pushes Back/Next below the
+   fold — and the one control the whole feature depends on becomes something
+   you have to discover by scrolling a translucent card. */
+.metaphor-tour-nav {
+  position: sticky;
+  bottom: -1px;
+  margin-top: 10px;
+  padding-top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: linear-gradient(to top, rgba(15, 23, 42, 0.92) 62%, rgba(15, 23, 42, 0));
+}
+
+.metaphor-tour-nav-btn {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 2rem;
+  padding: 0.3rem 0.6rem;
+  border: 1px solid rgba(148, 163, 184, 0.45);
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.62);
+  color: #e2e8f0;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.metaphor-tour-nav-btn:hover:not(:disabled) {
+  background: rgba(30, 41, 59, 0.9);
+}
+
+.metaphor-tour-nav-btn:disabled {
+  opacity: 0.42;
+  cursor: default;
+}
+
+.metaphor-tour-nav-btn.is-primary {
+  border-color: rgba(250, 204, 21, 0.55);
+  background: rgba(120, 84, 8, 0.72);
+  color: #fef3c7;
+}
+
+/* The start affordance is a control INSIDE the title/reading card, not a panel
+   of its own — offering the read must cost the canvas no extra box. */
+.metaphor-tour-start {
+  margin-top: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 1.9rem;
+  padding: 0.28rem 0.62rem;
+  border: 1px solid rgba(250, 204, 21, 0.5);
+  border-radius: 999px;
+  background: rgba(120, 84, 8, 0.55);
+  color: #fde68a;
+  font: inherit;
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.metaphor-tour-start:hover {
+  background: rgba(146, 103, 10, 0.85);
+}
+
+.metaphor-layers-count {
+  color: #cbd5e1;
+  font-weight: 600;
+}
+
 .metaphor-inspector-head {
   display: flex;
   align-items: flex-start;
@@ -10588,6 +10783,30 @@ button {
     overscroll-behavior: contain;
     padding: 9px 11px;
   }
+
+  /* The read is a bottom sheet on a phone: it is the only panel on screen (it
+     hides the rest), it holds the Back/Next targets, and the bottom edge is
+     the only part of a tall phone a thumb reaches. It is capped BELOW the
+     inspector's height because the camera has just flown somewhere and a sheet
+     that eats half the canvas hides the arrival. */
+  .metaphor-tour {
+    bottom: max(10px, env(safe-area-inset-bottom, 0px));
+    left: max(10px, env(safe-area-inset-left, 0px));
+    right: max(10px, env(safe-area-inset-right, 0px));
+    max-width: none;
+    max-height: min(34vh, 14rem);
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    padding: 9px 11px;
+  }
+
+  /* The reading strip is a top band on a phone, so the pill sits inline with
+     the axis chips rather than under a title it would push off-screen. */
+  .metaphor-context-overlay .metaphor-tour-start {
+    margin-top: 4px;
+    align-self: center;
+  }
 }
 
 /* Landscape phones / foldable cover: keep the scene, drop secondary copy.
@@ -10628,6 +10847,20 @@ button {
     right: auto;
     max-width: min(calc(60% - 14px), 17rem);
     max-height: min(52vh, 8.5rem);
+  }
+}
+
+/* Short-and-wide screens — a foldable cover, a landscape phone, a small window.
+   The bottom-sheet geometry from the phone block is wrong here: it takes the
+   full width of a 512px-tall screen and the scene it has just flown to ends up
+   entirely behind it. This is deliberately a wider net than the 500px cover
+   query its siblings use — a 717x512 cover screen misses that one by twelve
+   pixels, and there is nothing about twelve pixels that changes the answer. */
+@media (max-height: 620px) and (orientation: landscape) {
+  .metaphor-tour {
+    right: auto;
+    max-width: min(calc(62% - 14px), 21rem);
+    max-height: min(78vh, 13rem);
   }
 }
 
@@ -23521,6 +23754,14 @@ body.slopitect-rainbow-tint::before {
       max-width: min(20rem, calc(env(viewport-segment-width 0 0, 50vw) - 1.5rem));
     }
 
+    /* Same reason as the pick: a full-width sheet on a dual-screen foldable
+       runs the hinge straight through the sentence you are reading. */
+    .metaphor-tour {
+      right: auto;
+      left: max(0.75rem, env(safe-area-inset-left, 0px));
+      max-width: min(22rem, calc(env(viewport-segment-width 0 0, 50vw) - 1.5rem));
+    }
+
     .diagram-output:fullscreen .metaphor-kind-switcher,
     .diagram-output:-webkit-full-screen .metaphor-kind-switcher,
     .diagram-output:fullscreen .metaphor-layers-overlay,
@@ -23568,6 +23809,16 @@ body.slopitect-rainbow-tint::before {
   .metaphor-inspector-close {
     width: 2.25rem;
     height: 2.25rem;
+  }
+
+  .metaphor-tour-close {
+    width: 2.25rem;
+    height: 2.25rem;
+  }
+
+  .metaphor-tour-nav-btn,
+  .metaphor-tour-start {
+    min-height: 2.5rem;
   }
 
   /* Taller closed trigger → layers key needs more clearance above it. */

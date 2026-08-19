@@ -32,7 +32,9 @@ import {
   MetaphorCompositeLayersOverlay,
   MetaphorKindSwitcher,
   MetaphorHoverTooltip,
-  MetaphorInspectorPanel
+  MetaphorInspectorPanel,
+  MetaphorTourButton,
+  MetaphorTourPanel
 } from './MetaphorOverlays.jsx';
 import { MetaphorEffects } from './MetaphorEffects.jsx';
 import { MetaphorHoverContext, createMetaphorHoverStore } from './metaphorHover.js';
@@ -52,6 +54,8 @@ import {
 } from './metaphorScenes/MetaphorSceneChrome.jsx';
 import { MetaphorAccents } from './metaphorScenes/MetaphorAccents.jsx';
 import { MetaphorSelectionMarker } from './metaphorScenes/MetaphorSelectionMarker.jsx';
+import { MetaphorTourCamera } from './metaphorScenes/MetaphorTourCamera.jsx';
+import { createMetaphorTourStore } from './metaphorTourStore.js';
 import { LabelDeclutterContext } from './metaphorScenes/labelDeclutterContext.js';
 import { createLabelDeclutterStore } from './metaphorScenes/labelDeclutter.js';
 import MetaphorChangeHighlightProvider from './MetaphorChangeHighlightProvider.jsx';
@@ -1206,6 +1210,9 @@ function MetaphorRendererImpl(
   if (selectionStoreRef.current === null)
     selectionStoreRef.current = createMetaphorSelectionStore();
   const selectionStore = selectionStoreRef.current;
+  const tourStoreRef = useRef(null);
+  if (tourStoreRef.current === null) tourStoreRef.current = createMetaphorTourStore();
+  const tourStore = tourStoreRef.current;
   const reducedMotion = usePrefersReducedMotion();
 
   useImperativeHandle(ref, () => ({ getContainer: () => containerRef.current }), []);
@@ -1300,18 +1307,23 @@ function MetaphorRendererImpl(
   // has been replaced. Streaming drops it for the same reason.
   useEffect(() => {
     selectionStore.clear();
-  }, [selectionStore, contentKey, streamingPreview]);
+    // A read describes items that a re-run has just replaced — beat 3 of 5
+    // would go on naming a tower that no longer exists.
+    tourStore.stop();
+  }, [selectionStore, tourStore, contentKey, streamingPreview]);
 
   // Escape is the keyboard's dismiss; the panel's close button and a second tap
   // on the same item are the pointer's.
   useEffect(() => {
     if (typeof window === 'undefined') return undefined;
     const onKeyDown = (event) => {
-      if (event.key === 'Escape') selectionStore.clear();
+      if (event.key !== 'Escape') return;
+      selectionStore.clear();
+      tourStore.stop();
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [selectionStore]);
+  }, [selectionStore, tourStore]);
 
   const sceneFitRef = useRef(null);
   if (sceneFitRef.current === null) sceneFitRef.current = createSceneFit();
@@ -1451,6 +1463,17 @@ function MetaphorRendererImpl(
               <MetaphorSelectionMarker store={selectionStore} contentKey={contentKey} />
             ) : null}
           </MetaphorClockProvider>
+          {/* Outside the clock provider and every content transform, like the
+              marker: it drives the shared camera, which knows nothing about
+              either. It only ever moves while a guided read is running. */}
+          {!streamingPreview ? (
+            <MetaphorTourCamera
+              store={tourStore}
+              fitRef={sceneFit}
+              contentKey={contentKey}
+              reducedMotion={reducedMotion}
+            />
+          ) : null}
           <OrbitControls enableDamping makeDefault />
           <MetaphorIntro streamingPreview={streamingPreview} />
           {!streamingPreview && postfx.enabled ? <MetaphorEffects postfx={postfx} /> : null}
@@ -1467,6 +1490,14 @@ function MetaphorRendererImpl(
               selector (`.metaphor-inspector ~ …`), which needs the inspector
               earlier in the DOM. Doing it in CSS keeps the mutual exclusion off
               React state, so a tap still never re-renders the scene. */}
+          {/* The guided read outranks the pick for the same reason the pick
+              outranks the legend — see the `~` rules in App.css — so it is
+              declared before it. */}
+          <MetaphorTourPanel
+            store={tourStore}
+            selectionStore={selectionStore}
+            legend={dsl.scene?.legend}
+          />
           <MetaphorInspectorPanel store={selectionStore} legend={dsl.scene?.legend} />
           {/* Fullscreen owns the roomy title card, legend, and kind switcher.
               Inline keeps a compact reading strip so the topic is still named
@@ -1486,7 +1517,11 @@ function MetaphorRendererImpl(
                   layerCount={Array.isArray(dsl.layers) ? dsl.layers.length : 0}
                 />
               ) : null}
-              <MetaphorTitleOverlay scene={dsl.scene} thesis={thesis} />
+              <MetaphorTitleOverlay
+                scene={dsl.scene}
+                thesis={thesis}
+                action={<MetaphorTourButton store={tourStore} dsl={dsl} />}
+              />
               <MetaphorLegendOverlay metaphor={dsl.metaphor} legend={dsl.scene?.legend} />
               <MetaphorCompositeLayersOverlay dsl={dsl} />
             </>
@@ -1497,6 +1532,7 @@ function MetaphorRendererImpl(
                 metaphor={dsl.metaphor}
                 legend={dsl.scene?.legend}
                 thesis={thesis}
+                action={<MetaphorTourButton store={tourStore} dsl={dsl} />}
               />
               <MetaphorCompositeLayersOverlay dsl={dsl} />
             </>

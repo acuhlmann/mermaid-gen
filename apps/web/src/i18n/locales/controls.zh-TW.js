@@ -731,7 +731,28 @@ export const CONTROLS_ZH_TW = {
       composite: '組合'
     },
     compositeHintTitle: '組合模式',
-    compositeHintBody: '融合世界正在等待至少一個語意圖層。請讓 Go 完成場景。'
+    compositeHintBody: '融合世界正在等待至少一個語意層。請讓 Go 完成場景。',
+    tour: {
+      start: '導覽解說',
+      startTitle: '逐步了解這個場景：它是什麼、如何閱讀、重點在哪裡',
+      aria: '本場景的導覽解說',
+      step: '第 {step} 步，共 {total} 步',
+      close: '結束導覽',
+      back: '上一步',
+      next: '下一步',
+      done: '完成',
+      overview: '場景概覽',
+      overviewBody: '拖曳可環繞檢視。每一步都會拉近到正在解說的部分。',
+      legend: '如何閱讀',
+      peak: '最突出的元素',
+      peakBody: '{axis}最大：{value}。',
+      layer: '圖層',
+      layerBody: '以{kind}呈現，共 {count} 個元素。',
+      layerBodyWithPeak: '以{kind}呈現，共 {count} 個元素——最大的是{item}。',
+      link: '彼此如何連接',
+      linkBody: '{from} → {to}',
+      accent: '重點'
+    }
   },
   styleEdits: {
     region: '樣式編輯',

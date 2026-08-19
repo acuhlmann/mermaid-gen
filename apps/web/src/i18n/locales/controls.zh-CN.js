@@ -731,7 +731,28 @@ export const CONTROLS_ZH_CN = {
       composite: '组合'
     },
     compositeHintTitle: '组合模式',
-    compositeHintBody: '融合世界正在等待至少一个语义层。请让 Go 完成场景。'
+    compositeHintBody: '融合世界正在等待至少一个语义层。请让 Go 完成场景。',
+    tour: {
+      start: '导览讲解',
+      startTitle: '逐步了解这个场景：它是什么、如何阅读、重点在哪里',
+      aria: '本场景的导览讲解',
+      step: '第 {step} 步，共 {total} 步',
+      close: '结束导览',
+      back: '上一步',
+      next: '下一步',
+      done: '完成',
+      overview: '场景概览',
+      overviewBody: '拖动可环绕查看。每一步都会拉近到正在讲解的部分。',
+      legend: '如何阅读',
+      peak: '最突出的元素',
+      peakBody: '{axis}最大：{value}。',
+      layer: '图层',
+      layerBody: '以{kind}呈现，共 {count} 个元素。',
+      layerBodyWithPeak: '以{kind}呈现，共 {count} 个元素——最大的是{item}。',
+      link: '彼此如何连接',
+      linkBody: '{from} → {to}',
+      accent: '重点'
+    }
   },
   styleEdits: {
     region: '样式编辑',

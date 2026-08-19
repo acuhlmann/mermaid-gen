@@ -160,8 +160,18 @@ ones that will bite an edit.
   the legend, the layer key and the tooltip is a `.metaphor-inspector ~ …` CSS rule, so
   `MetaphorInspectorPanel` must stay **first** among the overlay siblings in `MetaphorRenderer`.
   Size `MetaphorSelectionMarker` from the item's horizontal footprint with labels excluded — a
-  bounding sphere around a tall tower rings the whole scene. Verify by rendering
-  (`apps/web/.claude/skills/verify/`), never by reading.
+  bounding sphere around a tall tower rings the whole scene — that measurement now lives in
+  `metaphorScenes/itemBounds.js`, shared with the guided read's camera so a ring and a framing
+  cannot disagree. Verify by rendering (`apps/web/.claude/skills/verify/`), never by reading.
+- **The guided read outranks every other panel, and its camera is aspect-solved.** `metaphorTour.js`
+  orders what the DSL already says (title → legend → standout → link → thesis, thesis LAST; a
+  composite goes layer by layer, never a global peak). `MetaphorTourPanel` must stay **first**
+  among the overlay siblings — the `.metaphor-tour ~ …` exclusion is the same mechanism as the
+  pick's, one rung up. `MetaphorTourCamera` solves its distance against `min(tanV, tanH)`: a fixed
+  radius multiple that frames a tower on a desktop runs it off both sides of a ~0.46-aspect phone.
+  A short landscape screen (717x512 foldable cover) misses the 500px cover query, so the read has
+  its own `(max-height: 620px) and (orientation: landscape)` rule plus a sticky nav row. Full
+  reasoning in `CLAUDE.md`.
 
 ## Architecture docs (read before changing wire contracts)
 

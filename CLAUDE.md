@@ -766,6 +766,44 @@ test:floor`; the floor test map is [`docs/agents/isometric-floor-tests.md`](docs
   from the item's **horizontal footprint with labels excluded**: a bounding sphere around an
   18-unit tower is a hoop around the whole skyline (measured — it read as a rendering bug), and
   a one-word name is a ~7-unit plate that doubles a 3-unit tower's apparent width.
+- **The guided read is the scene explaining itself, and its three rules are all
+  about not lying.** `metaphorTour.js` orders what the DSL already says — title,
+  legend phrases, the extreme item, a labelled link, the accent note — into the
+  sequence a person would narrate. **The thesis goes last** (leading with the
+  conclusion means the viewer reads it before the encoding it rests on); **a
+  composite is narrated layer by layer** rather than by a global peak, because
+  an island's `mass` against a tower's `height` is two scales wearing one word;
+  and **a beat with no author text is dropped, never padded** — one "How to read
+  it: (nothing)" teaches the viewer the whole read is noise. `METAPHOR_PRIMARY_METRIC`
+  is the axis each grammar is actually _drawn_ large in (city = height, river =
+  flow — not `stage`, which is an ordering, so its maximum is just "the last
+  one"); `composite` is deliberately absent from it.
+- **A camera framing multiplier is a claim about the viewport, not about the
+  item — this is the fourth time that trap has been hit here.** (Fog band, AO
+  radius, accent caption, now the tour flight.) `MetaphorTourCamera` solves the
+  distance against **both** half-angles — `radius / min(tanV, tanH)` — because a
+  phone canvas is ~0.46 aspect and its horizontal half-angle is less than half
+  its vertical one: measured, a fixed multiple that framed a tower perfectly on
+  a desktop ran it off both sides of a portrait screen. Two more facts it
+  encodes: it keeps the **viewer's own viewing angle** (only distance and
+  look-at move — yanking the azimuth on every Next throws away the angle they
+  chose by orbiting), and on portrait it drops the look-at **below** the item,
+  because whatever sits at the target lands at screen centre and the read is a
+  bottom sheet covering the lower third.
+- **A short-and-wide screen is not covered by the 500px cover query, and the
+  twelve pixels are not a real boundary.** A 717x512 foldable cover misses
+  `(max-width: 1024px) and (max-height: 500px)` and therefore inherits the phone
+  block's full-width bottom sheet — measured, the read's Back/Next landed below
+  the fold on the one control the feature depends on. The tour uses a wider net
+  (`(max-height: 620px) and (orientation: landscape)`) **and** a `position:
+sticky` nav row, because the height cap makes every small screen a scrolling
+  panel. Pinned by `metaphorOverlayStyles.test.js`.
+- **Item world measurement is one module, shared, or a ring and a framing
+  disagree.** `metaphorScenes/itemBounds.js` prunes `FRAME_IGNORE` subtrees and
+  troika text (a one-word label is a ~7-unit plate over a 3-unit tower), and
+  returns **both** a base offset + horizontal radius (what the selection ring
+  needs) and a centre offset + bounding radius (what the camera needs). Aiming a
+  camera at an item's anchor puts a city tower's whole body below the frame.
 - **Verify metaphor changes by rendering them.** The scoped skill under
   `apps/web/.claude/skills/verify/` has the headless-capture recipe; every finding above came from
   a screenshot, not from reading the code.

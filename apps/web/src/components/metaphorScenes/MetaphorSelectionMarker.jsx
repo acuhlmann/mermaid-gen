@@ -10,11 +10,10 @@
  *    bounding sphere. A city tower is 18 units tall and 3 wide, so a
  *    billboarded ring big enough to enclose it is a hoop around the entire
  *    skyline — measured, it swallowed the whole scene and read as a rendering
- *    bug rather than a selection.
- * 2. Labels are excluded from that measurement. A one-word name is a ~7-unit
- *    wide plate hovering over a 3-unit tower, so a box that counts it reports
- *    an item twice its real width. The plate already carries `FRAME_IGNORE`;
- *    the troika text beside it is found through its material.
+ *    bug rather than a selection. That measurement (and the label pruning it
+ *    depends on) lives in itemBounds.js, shared with the guided read's camera.
+ * 2. It rests at the item's BASE, where a spotlight would fall — the camera
+ *    wants the item's centre instead, which is why itemBounds returns both.
  * 3. It renders at the **scene root** in world coordinates rather than inside
  *    `<SceneFrame><Center>`, because the object's world position already
  *    carries those transforms — re-applying them would double them.
@@ -29,7 +28,8 @@
 import { useMemo, useRef, useSyncExternalStore } from 'react';
 import * as THREE from 'three';
 import { useFrame, useThree } from '@react-three/fiber';
-import { FRAME_IGNORE, FRAME_IGNORE_DATA } from './sceneFraming.js';
+import { FRAME_IGNORE_DATA } from './sceneFraming.js';
+import { measureItemPlacement } from './itemBounds.js';
 import { useMetaphorClock } from './metaphorClock.js';
 
 /** Sky-400 — matches the inspector panel's left edge, which is the only thing
@@ -40,67 +40,22 @@ const MARKER_COLOR = '#38bdf8';
 /** Floor so a pinhead item (a subway stop, a distant star) still reads. */
 const MIN_RADIUS = 0.7;
 
-const scratchBox = new THREE.Box3();
-const scratchGeometryBox = new THREE.Box3();
-const scratchCenter = new THREE.Vector3();
-const scratchSize = new THREE.Vector3();
 const scratchWorld = new THREE.Vector3();
 
 /**
- * World bounds of an item's own geometry — its shape, not the annotations that
- * describe it. Prunes `FRAME_IGNORE` subtrees (the label's backing plate, glow
- * discs) and troika text, which is detected through its material because the
- * class carries no marker of its own.
- */
-function measureShape(object) {
-  object.updateWorldMatrix(true, true);
-  scratchBox.makeEmpty();
-  let found = false;
-  const visit = (node) => {
-    if (!node.visible || node.userData?.[FRAME_IGNORE]) return;
-    if (node.material?.isTroikaTextMaterial) return;
-    const geometry = node.geometry;
-    if (geometry) {
-      if (!geometry.boundingBox) geometry.computeBoundingBox();
-      const local = geometry.boundingBox;
-      if (local && !local.isEmpty()) {
-        scratchGeometryBox.copy(local).applyMatrix4(node.matrixWorld);
-        scratchBox.union(scratchGeometryBox);
-        found = true;
-      }
-    }
-    for (const child of node.children) visit(child);
-  };
-  visit(object);
-  return found && !scratchBox.isEmpty() ? scratchBox : null;
-}
-
-/**
  * Resolve the selected id to a live scene object plus the offset from its group
- * origin to the ring's resting place, and the radius that rings it.
- *
- * The offset is measured once per selection rather than every frame: walking an
- * item group's geometry is far too costly at 60fps, and an item that animates
- * (an orbiting planet, a cycling pod) moves its group without changing its own
- * shape — so the offset stays true while the world position does the moving.
+ * origin to the ring's resting place, and the radius that rings it. The
+ * measurement itself lives in itemBounds.js, shared with the guided read's
+ * camera so a ring and a framing can never disagree about where an item is.
  */
 function measureSelected(scene, id, contentKey) {
-  if (!scene || !id) return null;
-  const object = scene.getObjectByName(id);
-  if (!object) return null;
-  const box = measureShape(object);
-  if (!box) return null;
-  box.getCenter(scratchCenter);
-  box.getSize(scratchSize);
-  object.getWorldPosition(scratchWorld);
-  // The ring rests at the item's base, where a spotlight would fall. For a
-  // floating item (a star, a submerged block) that is simply its underside.
-  const anchor = new THREE.Vector3(scratchCenter.x, box.min.y, scratchCenter.z);
+  const placement = measureItemPlacement(scene, id);
+  if (!placement) return null;
   return {
-    object,
+    object: placement.object,
     contentKey,
-    offset: anchor.sub(scratchWorld),
-    radius: Math.max(MIN_RADIUS, Math.max(scratchSize.x, scratchSize.z) * 0.62)
+    offset: placement.baseOffset,
+    radius: Math.max(MIN_RADIUS, placement.groundRadius)
   };
 }
 

@@ -190,6 +190,37 @@ const ITEM_METRICS = {
   composite: []
 };
 
+/**
+ * The one axis that answers "which of these is the biggest" for each grammar.
+ *
+ * Every kind encodes several numbers, but only one of them is the size the
+ * viewer reads off the silhouette — a city is read by height, not footprint; a
+ * river by flow, not stage (stage is an ordering, so its maximum is just "the
+ * last one"); a bridge by the load it carries. The guided read uses this to
+ * name the standout item, which is a claim about the scene and must therefore
+ * pick the metric the scene is actually drawing large.
+ *
+ * `composite` is deliberately absent: a fused world mixes grammars, so there is
+ * no scale on which an island's mass and a tower's height can be compared. The
+ * tour narrates such worlds layer by layer instead.
+ */
+export const METAPHOR_PRIMARY_METRIC = {
+  city: 'height',
+  layercake: 'thickness',
+  galaxy: 'magnitude',
+  tree: 'weight',
+  terrain: 'elevation',
+  orrery: 'size',
+  river: 'flow',
+  garden: 'impact',
+  archipelago: 'mass',
+  machine: 'size',
+  bridge: 'load',
+  cycle: 'size',
+  subway: 'traffic',
+  iceberg: 'mass'
+};
+
 function capitalizeFirst(text) {
   if (!text) return text;
   return text.charAt(0).toUpperCase() + text.slice(1);
@@ -226,6 +257,21 @@ export function legendAxesFor(metaphor, legend) {
   return axes
     .filter(([key]) => typeof legend[key] === 'string' && legend[key].trim())
     .map(([key, label]) => ({ key, label, text: String(legend[key]).trim() }));
+}
+
+/**
+ * Display name for one axis of a metaphor: the author's legend phrase when they
+ * wrote one, else the generic label. Shared with the guided read so a tour line
+ * and an inspector row can never call the same encoding two different things.
+ *
+ * @param {string} metaphor
+ * @param {string} key — an axis key (`height`, `mass`, …)
+ * @param {Record<string, unknown> | null | undefined} [legend]
+ * @returns {string}
+ */
+export function axisLabel(metaphor, key, legend = null) {
+  const generic = (METAPHOR_LEGEND_AXES[metaphor] ?? []).find(([axisKey]) => axisKey === key);
+  return legendLabel(legend, key, generic ? generic[1] : capitalizeFirst(key));
 }
 
 /** One tooltip row from a metric spec, or null when the field is absent/invalid. */
