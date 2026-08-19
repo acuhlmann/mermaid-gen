@@ -674,16 +674,25 @@ function makeGroups(sites, nodes, worldKey) {
     for (const field of ['chain', 'district', 'bed', 'label']) {
       const raw = item?.[field];
       const key = normalizeAffinityToken(raw);
-      if (key && !keys.has(key)) keys.set(key, typeof raw === 'string' ? raw.trim() : null);
+      if (key && !keys.has(key)) {
+        keys.set(key, { raw: typeof raw === 'string' ? raw.trim() : null, field });
+      }
     }
     return keys;
   };
 
-  const addMember = (item, position) => {
+  const addMember = (item, position, top = 0, ownLabelNamesIt = false) => {
     if (!item?.id) return;
-    for (const [key, raw] of groupKeysFor(item)) {
+    for (const [key, { raw, field }] of groupKeysFor(item)) {
       const group = ensure(key);
       if (!group.display && raw) group.display = raw;
+      // A territory whose name IS a substrate item's own name is already
+      // labelled — the island carries it. Drawing the placard too puts the same
+      // word twice within a few pixels, which reads as a rendering fault.
+      if (ownLabelNamesIt && field === 'label') group.namedByMember = true;
+      // The tallest thing standing in the territory, so the placard can stand
+      // ON the ground the group covers instead of inside it — see below.
+      group.surfaceY = Math.max(group.surfaceY ?? 0, top);
       if (group.memberIds.has(item.id)) continue;
       group.memberIds.add(item.id);
       group.positions.push(position);
@@ -692,10 +701,10 @@ function makeGroups(sites, nodes, worldKey) {
 
   for (const site of sites) {
     if (!site.item) continue;
-    addMember(site.item, site.position);
+    addMember(site.item, site.position, (site.position?.[1] ?? 0) + (site.height ?? 0), true);
   }
   for (const node of nodes) {
-    addMember(node.item, node.position);
+    addMember(node.item, node.position, node.position?.[1] ?? 0);
   }
 
   return [...buckets.values()]
@@ -721,6 +730,14 @@ function makeGroups(sites, nodes, worldKey) {
         colorIndex: group.colorIndex,
         center: midpoint,
         radius: clamp(radius, 2.4, 9),
+        // Where the group's name has to stand to be seen. A shared noun with an
+        // island in it draws its floor ring on the OCEAN, which the island then
+        // sits on top of — placard included. Measured on the commerce
+        // composite, "Checkout" and "Fulfilment" were both buried inside the
+        // island they name, which is exactly the one thing a fused world asks
+        // the author to align across layers.
+        surfaceY: clamp(group.surfaceY ?? 0, 0, 12),
+        namedByMember: group.namedByMember === true,
         memberIds: [...group.memberIds]
       };
     });
@@ -750,6 +767,37 @@ export function resolveCompositeAtmosphere(dsl) {
   if (kinds.includes('city')) return 'city';
   if (kinds.includes('terrain')) return 'terrain';
   return kinds[0] ?? 'city';
+}
+
+/**
+ * Park each substrate's own name on its OUTWARD shoulder — the side facing away
+ * from the middle of the world.
+ *
+ * An island's label used to sit dead centre, which is precisely where the
+ * towers, gears and beds attached to that island are planted: on the commerce
+ * composite "Checkout" and "Fulfilment" both rendered as three clipped letters
+ * behind their own tower. Two nearer-looking answers both fail. A fixed near
+ * corner only changes which islands lose, because attachment offsets are
+ * seeded. Pointing away from the attached landmarks fails too — "away" in world
+ * space is often "behind" in screen space, so the label lands on the far side of
+ * the tower and is occluded anyway.
+ *
+ * Outward from the world centre is the one direction that is reliably clear:
+ * whatever else a fused world contains, the space outside its outermost sites
+ * is open ground or open water. A site sitting at the origin has no outward, so
+ * it keeps a near corner.
+ */
+function assignSiteLabelOffsets(sites) {
+  for (const site of sites) {
+    const x = site.position?.[0] ?? 0;
+    const z = site.position?.[2] ?? 0;
+    const length = Math.hypot(x, z);
+    const reach = site.radius * 0.68;
+    site.labelOffset =
+      length > 0.01
+        ? [(x / length) * reach, 0, (z / length) * reach]
+        : [reach * Math.SQRT1_2, 0, reach * Math.SQRT1_2];
+  }
 }
 
 function resolveGroundRadius(sites, nodes, paths) {
@@ -808,6 +856,7 @@ export function planFusedCompositeWorld(dsl) {
     linkNeighbors,
     motionIntensity
   });
+  assignSiteLabelOffsets(sites);
   const links = makeLinks(dsl, layers, anchors);
   const connectors = makeConnectors(nodes, anchors);
   const groups = makeGroups(sites, nodes, worldKey);

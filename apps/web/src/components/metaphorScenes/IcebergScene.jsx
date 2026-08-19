@@ -32,6 +32,7 @@ import { MetaphorAccents } from './MetaphorAccents.jsx';
 import { SkySunGlow, SoaringBirds } from './MetaphorSceneDecorations.jsx';
 import { useMetaphorClock } from './metaphorClock.js';
 import { idHash2, shiftColor } from './sceneUtils.js';
+import { FRAME_IGNORE_DATA } from './sceneFraming.js';
 
 function blendHex(base, target, amount) {
   return `#${new THREE.Color(base).lerp(new THREE.Color(target), amount).getHexString()}`;
@@ -136,7 +137,18 @@ function SeaSurface({ radius, bergs, theme }) {
   });
   return (
     <group>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} renderOrder={4}>
+      {/* Open water reaching past the bergs is scaffolding, not subject — the
+          same rule the ground-shadow catcher and the fused ocean disc follow.
+          Left in the camera fit this 1.22x disc was the binding constraint on
+          every iceberg: measured, the bergs rendered at 43% of the frame height
+          with the above-water tip pushed under the reading strip, which is the
+          one thing the kind exists to show. */}
+      <mesh
+        rotation={[-Math.PI / 2, 0, 0]}
+        position={[0, 0, 0]}
+        renderOrder={4}
+        userData={FRAME_IGNORE_DATA}
+      >
         <circleGeometry args={[radius * 1.22, 96]} />
         <meshStandardMaterial
           ref={matRef}

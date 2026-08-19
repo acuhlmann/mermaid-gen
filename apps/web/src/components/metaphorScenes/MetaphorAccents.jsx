@@ -28,11 +28,13 @@
  *    who does not think to point at things. The accented item's note now renders
  *    as a caption on the pin, so the scene states its claim out loud.
  */
-import { useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
 import { Billboard, Text } from '@react-three/drei';
 import { GlowSprite } from './MetaphorSceneChrome.jsx';
+import { useLabelDeclutter } from './labelDeclutterContext.js';
+import { useScreenConstantScale } from './metaphorScreenScale.js';
 import { useMetaphorClock } from './metaphorClock.js';
 import { isDarkBackdrop } from './sceneUtils.js';
 
@@ -58,20 +60,21 @@ const CAPTION_MAX_WIDTH = 7;
 const CAPTION_RENDER_ORDER = 30;
 
 /**
- * Camera distance at which the caption renders at its authored size, and the
- * bounds it may scale between.
+ * On-screen type size of the caption, in CSS pixels.
  *
  * The caption is authored in world units, and these scenes are not one size: a
  * layer cake is framed from ~14 units away and a bridge from ~60. Left at a
  * fixed world size the same caption is a banner across the cake and unreadable
  * three-point type on the bridge — measured on both. It is an annotation, so
- * what should stay constant is how big it looks, not how big it is; scaling by
- * camera distance does that, and it also keeps the caption legible when the
- * viewer orbits out, which a fixed size does not.
+ * what should stay constant is how big it looks, not how big it is.
+ *
+ * It used to approximate that from camera distance alone, which is only half the
+ * answer: the same distance on a 390 px phone canvas and a 2560 px desktop one
+ * is not the same number of pixels. `metaphorScreenScale.js` converts exactly,
+ * and the caption sits a touch under the item labels so the thing being pointed
+ * at still outranks the sentence about it.
  */
-const CAPTION_REFERENCE_DISTANCE = 34;
-const CAPTION_MIN_SCALE = 0.6;
-const CAPTION_MAX_SCALE = 2.1;
+const CAPTION_TARGET_PX = 12;
 
 /**
  * The note, as a caption plate on the pin.
@@ -84,21 +87,10 @@ const CAPTION_MAX_SCALE = 2.1;
  * plate that appears two frames after its text reads as a flicker.
  */
 function AccentCaption({ text, y, color }) {
+  const billboardRef = useRef(null);
   const scaleRef = useRef(null);
-  const probe = useMemo(() => new THREE.Vector3(), []);
-  useFrame((state) => {
-    const group = scaleRef.current;
-    if (!group) return;
-    group.getWorldPosition(probe);
-    const distance = state.camera.position.distanceTo(probe);
-    group.scale.setScalar(
-      THREE.MathUtils.clamp(
-        distance / CAPTION_REFERENCE_DISTANCE,
-        CAPTION_MIN_SCALE,
-        CAPTION_MAX_SCALE
-      )
-    );
-  });
+  const declutter = useLabelDeclutter();
+  useScreenConstantScale(scaleRef, CAPTION_SIZE, CAPTION_TARGET_PX);
 
   const { lines, width } = useMemo(() => {
     const perLine = Math.max(12, Math.floor(CAPTION_MAX_WIDTH / (CAPTION_SIZE * 0.56)));
@@ -120,9 +112,29 @@ function AccentCaption({ text, y, color }) {
 
   const plateWidth = width + CAPTION_SIZE * 1.4;
   const plateHeight = lines.length * CAPTION_SIZE * 1.32 + CAPTION_SIZE * 0.8;
+  const screenWidthPx = (plateWidth / CAPTION_SIZE) * CAPTION_TARGET_PX;
+  const screenHeightPx = (plateHeight / CAPTION_SIZE) * CAPTION_TARGET_PX;
+
+  // The caption claims its box in the declutter pass rather than merely being
+  // drawn over everything. It is the one sentence the scene wants read, and a
+  // depth-test-free plate that item labels do not know about lands on top of the
+  // accented item's OWN name — measured on the city, the caption covered both
+  // "API Gateway" and the tower beside it. Pinned, so it never yields; it is the
+  // labels around it that step aside.
+  useEffect(() => {
+    if (!declutter || !text) return undefined;
+    return declutter.register({
+      object: billboardRef.current,
+      importance: 100,
+      pinned: true,
+      screenWidthPx,
+      screenHeightPx,
+      apply: () => {}
+    });
+  }, [declutter, text, screenWidthPx, screenHeightPx]);
 
   return (
-    <Billboard position={[0, y, 0]}>
+    <Billboard position={[0, y, 0]} ref={billboardRef}>
       <group ref={scaleRef}>
         <mesh position={[0, 0, -0.02]} renderOrder={CAPTION_RENDER_ORDER}>
           <planeGeometry args={[plateWidth, plateHeight]} />

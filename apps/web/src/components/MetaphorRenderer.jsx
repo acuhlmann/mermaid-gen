@@ -90,7 +90,8 @@ import {
 import { SceneFrame } from './metaphorScenes/SceneFrame.jsx';
 import { SceneKeyLight, SceneShadowFlags } from './metaphorScenes/SceneKeyLight.jsx';
 import { SceneEnvironment } from './metaphorScenes/SceneEnvironment.jsx';
-import { createSceneFit } from './metaphorScenes/sceneFraming.js';
+import { createSceneFit, FULL_SAFE_AREA } from './metaphorScenes/sceneFraming.js';
+import { measureOverlaySafeArea, safeAreaChanged } from './metaphorScenes/overlaySafeArea.js';
 import { AdaptiveFog } from './metaphorScenes/AdaptiveFog.jsx';
 import { DEFAULT_GROUND_HAZE, sceneWantsHaze } from './metaphorScenes/metaphorAtmosphere.js';
 import { accentThesisFromDsl } from '../utils/metaphorReading.js';
@@ -412,14 +413,20 @@ function DistrictPatch({ district, theme, index }) {
         <meshStandardMaterial color={color} transparent opacity={0.4} />
       </mesh>
       <DistrictGrid size={district.size} color={gridColor} />
-      {/* Raised district placard so neighborhood names read as topic labels. */}
-      <mesh position={[0, 0.35, -district.size[1] / 2 + 0.4]}>
+      {/* Raised district placard so neighborhood names read as topic labels.
+          It stands on the patch's NEAR edge, not its far one: the default view
+          direction is (+x, +y, +z), so a placard on the far edge is behind the
+          district's own towers and its text is depth-tested away. Measured on
+          the city, every district name — the only thing naming what the legend
+          calls the district axis — was invisible from the angle the scene opens
+          at, which reads as "the model did not label them". */}
+      <mesh position={[0, 0.35, district.size[1] / 2 - 0.4]}>
         <boxGeometry args={[Math.min(district.size[0] * 0.7, 4.2), 0.12, 0.55]} />
         <meshStandardMaterial color={bannerColor} roughness={0.7} metalness={0.15} />
       </mesh>
       <ItemLabel
         text={district.name}
-        position={[0, 0.72, -district.size[1] / 2 + 0.4]}
+        position={[0, 0.72, district.size[1] / 2 - 0.4]}
         fontSize={0.52}
         color={theme.labelColor}
         outlineColor={theme.labelOutline}
@@ -1214,6 +1221,9 @@ function MetaphorRendererImpl(
   if (tourStoreRef.current === null) tourStoreRef.current = createMetaphorTourStore();
   const tourStore = tourStoreRef.current;
   const reducedMotion = usePrefersReducedMotion();
+  // What the metaphor's own panels are standing on, so the camera frames the
+  // scene into what they leave instead of behind them. See overlaySafeArea.js.
+  const [safeArea, setSafeArea] = useState(FULL_SAFE_AREA);
 
   useImperativeHandle(ref, () => ({ getContainer: () => containerRef.current }), []);
 
@@ -1301,6 +1311,35 @@ function MetaphorRendererImpl(
       : '';
     return `${dsl.metaphor}:${dsl.items?.length ?? 0}:${dsl.links?.length ?? 0}:${layerSig}`;
   }, [dsl]);
+
+  // Measure the persistent panels and hand the result to the camera fit. It
+  // runs after paint (the panels' height depends on how their own text wrapped)
+  // and again whenever the canvas resizes, which is also when the phone/desktop
+  // overlay geometry swaps. Quantised through `safeAreaChanged` so a one-pixel
+  // reflow cannot loop: a new safe area refits the camera, and the camera never
+  // resizes the panels.
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container || typeof window === 'undefined') return undefined;
+    let frame = 0;
+    const measure = () => {
+      frame = 0;
+      const next = measureOverlaySafeArea(container);
+      if (!next) return;
+      setSafeArea((current) => (safeAreaChanged(current, next) ? next : current));
+    };
+    const schedule = () => {
+      if (frame) return;
+      frame = requestAnimationFrame(measure);
+    };
+    schedule();
+    const observer = typeof ResizeObserver === 'function' ? new ResizeObserver(schedule) : null;
+    observer?.observe(container);
+    return () => {
+      if (frame) cancelAnimationFrame(frame);
+      observer?.disconnect();
+    };
+  }, [contentKey, isFullscreen, streamingPreview]);
 
   // A re-run rebuilds every mesh, so a pick made against the old scene names an
   // object that no longer exists — the panel would keep describing a tower that
@@ -1434,7 +1473,12 @@ function MetaphorRendererImpl(
               <MetaphorSelectionContext.Provider value={streamingPreview ? null : selectionStore}>
                 <LabelDeclutterContext.Provider value={declutter}>
                   <MetaphorChangeHighlightProvider highlight={changeHighlight}>
-                    <SceneFrame margin={boundsMargin} contentKey={contentKey} fitRef={sceneFit}>
+                    <SceneFrame
+                      margin={boundsMargin}
+                      contentKey={contentKey}
+                      safeArea={safeArea}
+                      fitRef={sceneFit}
+                    >
                       <Center disableY>
                         <group
                           ref={contentRootRef}

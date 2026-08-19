@@ -40,8 +40,10 @@ const FADE_SECONDS = 0.18;
  * @property {import('three').Object3D | null} object — billboard, for its world position
  * @property {number} importance — higher wins contested space
  * @property {boolean} pinned — never hidden
- * @property {number} width — label width in world units
- * @property {number} height — label height in world units
+ * @property {number} [width] — label width in world units (world-sized entries)
+ * @property {number} [height] — label height in world units (world-sized entries)
+ * @property {number} [screenWidthPx] — drawn width in CSS pixels; wins over `width`
+ * @property {number} [screenHeightPx] — drawn height in CSS pixels; wins over `height`
  * @property {(opacity: number) => void} apply — receives the eased 0–1 opacity
  * @property {number} target — internal: resolved target opacity
  * @property {number} current — internal: eased opacity
@@ -109,17 +111,22 @@ export function resolveLabels(entries, camera, viewport) {
       entry.target = 0;
       continue;
     }
-    // World units → NDC. `fov` is vertical, so height converts directly and
-    // width divides out the viewport aspect.
-    const perUnit = 1 / Math.max(0.001, depth * Math.tan((camera.fov * Math.PI) / 360));
-    projected.push({
-      entry,
-      x: scratch.x,
-      y: scratch.y,
-      halfW: (entry.width * perUnit) / 2 / aspect,
-      halfH: (entry.height * perUnit) / 2,
-      depth
-    });
+    // A screen-constant label reports the box it is actually drawn at, so it
+    // needs no projection: NDC spans 2 across the viewport, so `p` pixels is
+    // `p / viewportWidth` of half-width. A world-sized entry still converts —
+    // `fov` is vertical, so height converts directly and width divides out the
+    // viewport aspect.
+    let halfW;
+    let halfH;
+    if (entry.screenWidthPx > 0 && entry.screenHeightPx > 0) {
+      halfW = entry.screenWidthPx / Math.max(1, viewport.width);
+      halfH = entry.screenHeightPx / Math.max(1, viewport.height);
+    } else {
+      const perUnit = 1 / Math.max(0.001, depth * Math.tan((camera.fov * Math.PI) / 360));
+      halfW = (entry.width * perUnit) / 2 / aspect;
+      halfH = (entry.height * perUnit) / 2;
+    }
+    projected.push({ entry, x: scratch.x, y: scratch.y, halfW, halfH, depth });
   }
 
   projected.sort((a, b) => {

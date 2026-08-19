@@ -18,6 +18,11 @@ import { useLabelDeclutter } from './labelDeclutterContext.js';
 import { ItemAccentContext, useItemAccent } from './itemAccentContext.js';
 import { FRAME_IGNORE_DATA } from './sceneFraming.js';
 import {
+  LABEL_TARGET_PX,
+  LINK_LABEL_TARGET_PX,
+  useScreenConstantScale
+} from './metaphorScreenScale.js';
+import {
   getRadialSpriteTexture,
   idHash2,
   resolveLinkAppearance,
@@ -46,7 +51,14 @@ export function GlowSprite({ size, color, opacity }) {
 }
 
 /**
- * Billboarded item label.
+ * Billboarded item label, drawn at a constant size on screen.
+ *
+ * The size is the reason this is not just a `<Text>`: a world-authored label is
+ * three times bigger at the front of a scene than at the back, and on a phone
+ * the back half falls under the size anyone can read. `metaphorScreenScale.js`
+ * carries the conversion and why it is the same rule the fog band, the AO radius
+ * and the tour camera already follow. The billboard still moves in perspective —
+ * only its size stops arguing with the camera.
  *
  * `importance` (higher = keeps its space) and `pinned` (never hidden) feed the
  * screen-space declutter pass — see labelDeclutter.js. A scene that passes
@@ -64,9 +76,11 @@ export function ItemLabel({
   color = '#0f172a',
   outlineColor = '#ffffff',
   importance = 0,
-  pinned = false
+  pinned = false,
+  targetPx = LABEL_TARGET_PX
 }) {
   const billboardRef = useRef(null);
+  const scaleRef = useRef(null);
   const textRef = useRef(null);
   const plateRef = useRef(null);
   const declutter = useLabelDeclutter();
@@ -75,7 +89,7 @@ export function ItemLabel({
   const accented = useItemAccent();
   const isPinned = pinned || accented;
 
-  // Approximate the label's world footprint from its glyph count — troika only
+  // Approximate the label's footprint from its glyph count — troika only
   // publishes real bounds after an async sync, and the pass needs a size the
   // first time it runs, not two frames later.
   const width = Math.min(fontSize * 16, (text?.length ?? 0) * fontSize * 0.55);
@@ -83,6 +97,13 @@ export function ItemLabel({
   const plateWidth = width + fontSize * 0.9;
   const plateHeight = height + fontSize * 0.22;
   const plateOpacity = 0.58;
+  // The declutter pass wants screen boxes, and a screen-constant label knows its
+  // own directly: the world size never reaches the screen unscaled any more, so
+  // projecting it would report the authored size instead of the drawn one.
+  const screenWidthPx = (plateWidth / fontSize) * targetPx;
+  const screenHeightPx = (plateHeight / fontSize) * targetPx;
+
+  useScreenConstantScale(scaleRef, fontSize, targetPx);
 
   useEffect(() => {
     if (!declutter || !text) return undefined;
@@ -90,8 +111,8 @@ export function ItemLabel({
       object: billboardRef.current,
       importance,
       pinned: isPinned,
-      width: plateWidth,
-      height: plateHeight,
+      screenWidthPx,
+      screenHeightPx,
       apply: (opacity) => {
         const label = textRef.current;
         if (label) {
@@ -106,42 +127,44 @@ export function ItemLabel({
         }
       }
     });
-  }, [declutter, text, importance, isPinned, plateWidth, plateHeight]);
+  }, [declutter, text, importance, isPinned, screenWidthPx, screenHeightPx]);
 
   if (!text) return null;
   return (
     <Billboard position={position} ref={billboardRef}>
-      {/* Chip behind every label so one-word names stay readable against a
-          lit facade, a bright sky, or a busy fused landscape. The plate is
-          scaffolding, not subject — keep it out of the camera fit. */}
-      <mesh
-        ref={plateRef}
-        position={[0, 0, -fontSize * 0.05]}
-        userData={FRAME_IGNORE_DATA}
-        renderOrder={8}
-      >
-        <planeGeometry args={[plateWidth, plateHeight]} />
-        <meshBasicMaterial
-          color={outlineColor}
-          transparent
-          opacity={plateOpacity}
-          depthWrite={false}
-          toneMapped={false}
-        />
-      </mesh>
-      <Text
-        ref={textRef}
-        fontSize={fontSize}
-        color={color}
-        anchorX="center"
-        anchorY="middle"
-        maxWidth={fontSize * 16}
-        outlineWidth={fontSize * 0.08}
-        outlineColor={outlineColor}
-        outlineOpacity={1}
-      >
-        {text}
-      </Text>
+      <group ref={scaleRef}>
+        {/* Chip behind every label so one-word names stay readable against a
+            lit facade, a bright sky, or a busy fused landscape. The plate is
+            scaffolding, not subject — keep it out of the camera fit. */}
+        <mesh
+          ref={plateRef}
+          position={[0, 0, -fontSize * 0.05]}
+          userData={FRAME_IGNORE_DATA}
+          renderOrder={8}
+        >
+          <planeGeometry args={[plateWidth, plateHeight]} />
+          <meshBasicMaterial
+            color={outlineColor}
+            transparent
+            opacity={plateOpacity}
+            depthWrite={false}
+            toneMapped={false}
+          />
+        </mesh>
+        <Text
+          ref={textRef}
+          fontSize={fontSize}
+          color={color}
+          anchorX="center"
+          anchorY="middle"
+          maxWidth={fontSize * 16}
+          outlineWidth={fontSize * 0.08}
+          outlineColor={outlineColor}
+          outlineOpacity={1}
+        >
+          {text}
+        </Text>
+      </group>
     </Billboard>
   );
 }
@@ -345,6 +368,7 @@ export function MetaphorLinks({ links, anchors, theme, variant = 'elbow' }) {
                 text={link.label}
                 position={route.midpoint}
                 fontSize={0.35}
+                targetPx={LINK_LABEL_TARGET_PX}
                 color={theme.labelColor}
                 outlineColor={theme.labelOutline}
               />

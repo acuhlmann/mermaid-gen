@@ -52,6 +52,84 @@ export const FRAME_IGNORE_DATA = Object.freeze({ [FRAME_IGNORE]: true });
 /** Default view direction before OrbitControls has published a target. */
 export const DEFAULT_FRAME_DIRECTION = new THREE.Vector3(18, 14, 18).normalize();
 
+/** Elevation of that default, in degrees — the desktop three-quarter view. */
+const BASE_ELEVATION_DEG = THREE.MathUtils.radToDeg(Math.asin(DEFAULT_FRAME_DIRECTION.y));
+/** Elevation a portrait canvas is viewed from. */
+const TALL_ELEVATION_DEG = 52;
+/** Aspect at which the portrait lift is fully applied (≈ a phone in portrait). */
+const TALL_ASPECT = 0.4;
+
+/**
+ * The angle a scene should first be seen from on THIS canvas.
+ *
+ * Almost every kind here is a wide, flat world — a plate of towers, an ocean of
+ * islands, a grove. Seen from the desktop three-quarter angle its footprint
+ * projects to under half its width in height, which is exactly right in a
+ * landscape frame and wasteful in a portrait one: measured on a 390×844 phone,
+ * the fused composite was width-bound and left 46% of the canvas empty above and
+ * below the world. Raising the camera toward top-down makes that footprint
+ * project rounder, so the same width-bound fit fills the height too.
+ *
+ * Azimuth is untouched — the diagonal is what makes these scenes read as
+ * built rather than plotted, and a phone has no reason to lose it.
+ *
+ * @param {number} aspect — canvas width / height
+ * @returns {THREE.Vector3} unit direction from subject toward camera
+ */
+export function frameDirectionForAspect(aspect) {
+  const safe = typeof aspect === 'number' && Number.isFinite(aspect) ? aspect : 1;
+  if (safe >= 1) return DEFAULT_FRAME_DIRECTION.clone();
+  const t = Math.min(1, Math.max(0, (1 - safe) / (1 - TALL_ASPECT)));
+  const elevation = THREE.MathUtils.degToRad(
+    BASE_ELEVATION_DEG + (TALL_ELEVATION_DEG - BASE_ELEVATION_DEG) * t
+  );
+  const horizontal = Math.cos(elevation);
+  return new THREE.Vector3(
+    horizontal * Math.SQRT1_2,
+    Math.sin(elevation),
+    horizontal * Math.SQRT1_2
+  );
+}
+
+/**
+ * Cap on what one edge of chrome may claim. Past this the camera has to retreat
+ * so far that the subject is a speck framed politely between two panels, which
+ * reads worse than a panel over one corner of it. The cap also guarantees the
+ * window still contains the frame centre, which the solve below relies on.
+ */
+const MAX_SAFE_EDGE = 0.3;
+
+/** No chrome — the whole canvas is the frame. */
+export const FULL_SAFE_AREA = Object.freeze({ top: 0, right: 0, bottom: 0, left: 0 });
+
+function edge(value) {
+  return typeof value === 'number' && Number.isFinite(value)
+    ? Math.min(MAX_SAFE_EDGE, Math.max(0, value))
+    : 0;
+}
+
+/**
+ * Turn a chrome inset (fractions of the canvas covered on each edge) into the
+ * NDC window the subject must fit inside.
+ *
+ * The overlays are HTML siblings of the canvas, so the camera has always fitted
+ * the subject to the *whole* canvas and then had a title strip drawn across the
+ * top of it. On a phone that strip is a fifth of the screen, and on a tall
+ * subject — the iceberg's above-water blocks, a city's tallest tower — the part
+ * it covers is exactly the part the metaphor exists to show.
+ *
+ * @param {{top?: number, right?: number, bottom?: number, left?: number}} [safeArea]
+ * @returns {{ xMin: number, xMax: number, yMin: number, yMax: number }}
+ */
+export function safeAreaWindow(safeArea) {
+  return {
+    xMin: -1 + 2 * edge(safeArea?.left),
+    xMax: 1 - 2 * edge(safeArea?.right),
+    yMin: -1 + 2 * edge(safeArea?.bottom),
+    yMax: 1 - 2 * edge(safeArea?.top)
+  };
+}
+
 /** Mutable fit record shared with the atmosphere layer. */
 export function createSceneFit() {
   return { distance: 32, radius: 12, center: [0, 0, 0], ready: false };
@@ -113,6 +191,76 @@ export function collectFramePoints(root) {
   return points;
 }
 
+/** Extent of `points` about `seed`, in the camera basis. */
+function projectedExtent(points, seed, basis) {
+  const local = new THREE.Vector3();
+  const out = {
+    uMin: Infinity,
+    uMax: -Infinity,
+    vMin: Infinity,
+    vMax: -Infinity,
+    wMin: Infinity,
+    wMax: -Infinity
+  };
+  for (const point of points) {
+    local.copy(point).sub(seed);
+    const u = local.dot(basis.right);
+    const v = local.dot(basis.up);
+    const w = local.dot(basis.dir);
+    if (u < out.uMin) out.uMin = u;
+    if (u > out.uMax) out.uMax = u;
+    if (v < out.vMin) out.vMin = v;
+    if (v > out.vMax) out.vMax = v;
+    if (w < out.wMin) out.wMin = w;
+    if (w > out.wMax) out.wMax = w;
+  }
+  return out;
+}
+
+/** Rounds of the coupled distance/shift solve; two is enough on real scenes. */
+const RECENTRE_ROUNDS = 4;
+
+function isFullFrame(window_) {
+  return window_.xMin === -1 && window_.xMax === 1 && window_.yMin === -1 && window_.yMax === 1;
+}
+
+/** Smallest camera distance at which every point sits inside the window. */
+function bindingDistance(points, center, basis, half, shift) {
+  const local = new THREE.Vector3();
+  let need = 0;
+  for (const point of points) {
+    local.copy(point).sub(center);
+    const w = local.dot(basis.dir);
+    const u = local.dot(basis.right) - shift.u;
+    const v = local.dot(basis.up) - shift.v;
+    const forV = w + (v >= 0 ? v / half.vTop : -v / half.vBottom);
+    const forU = w + (u >= 0 ? u / half.uRight : -u / half.uLeft);
+    if (forV > need) need = forV;
+    if (forU > need) need = forU;
+  }
+  return need;
+}
+
+/** Where the subject actually lands, in NDC, at `distance`. */
+function ndcExtent(points, center, basis, distance, shift) {
+  const local = new THREE.Vector3();
+  let xLo = Infinity;
+  let xHi = -Infinity;
+  let yLo = Infinity;
+  let yHi = -Infinity;
+  for (const point of points) {
+    local.copy(point).sub(center);
+    const depth = Math.max(0.01, distance - local.dot(basis.dir));
+    const x = (local.dot(basis.right) - shift.u) / (depth * basis.tanH);
+    const y = (local.dot(basis.up) - shift.v) / (depth * basis.tanV);
+    if (x < xLo) xLo = x;
+    if (x > xHi) xHi = x;
+    if (y < yLo) yLo = y;
+    if (y > yHi) yHi = y;
+  }
+  return { midX: (xLo + xHi) / 2, midY: (yLo + yHi) / 2 };
+}
+
 /**
  * Tight perspective fit for a point cloud along unit view direction `dir`
  * (pointing from the subject toward the camera).
@@ -121,14 +269,28 @@ export function collectFramePoints(root) {
  * projected extent, not their bounding-box centre, so tall-and-off-centre
  * scenes (a ferris wheel over a small plaza) sit in the middle of the frame.
  *
+ * `safeArea` reserves the edges the HTML overlays cover, as fractions of the
+ * canvas. The subject is then fitted into that window and shifted to its centre,
+ * so a title strip across the top of a phone canvas costs the scene height
+ * rather than covering the top of it. `margin` is applied here rather than by
+ * the caller because the recentring offset is proportional to the final
+ * distance: multiplying afterwards would slide the subject back under the chrome
+ * by exactly the margin.
+ *
  * @param {THREE.Vector3[]} points
  * @param {THREE.Vector3} dir
  * @param {number} fovDegrees — vertical field of view
  * @param {number} aspect — viewport width / height
+ * @param {{ safeArea?: object, margin?: number }} [options]
  * @returns {{ distance: number, center: THREE.Vector3, radius: number } | null}
  */
-export function solveFrameFit(points, dir, fovDegrees, aspect) {
+export function solveFrameFit(points, dir, fovDegrees, aspect, options = {}) {
   if (!points.length) return null;
+  const window_ = safeAreaWindow(options.safeArea);
+  const margin =
+    typeof options.margin === 'number' && Number.isFinite(options.margin)
+      ? Math.max(1, options.margin)
+      : 1;
 
   const right = new THREE.Vector3().crossVectors(WORLD_UP, dir);
   if (right.lengthSq() < 1e-6) right.set(1, 0, 0);
@@ -137,50 +299,55 @@ export function solveFrameFit(points, dir, fovDegrees, aspect) {
 
   const tanV = Math.tan(THREE.MathUtils.degToRad(fovDegrees) / 2);
   const tanH = tanV * Math.max(0.2, aspect);
+  // Half-extents of the window the chrome leaves, in world units per unit of
+  // camera depth. Asymmetric: a top strip shrinks `vTop` alone.
+  const vTop = tanV * window_.yMax;
+  const vBottom = tanV * -window_.yMin;
+  const uRight = tanH * window_.xMax;
+  const uLeft = tanH * -window_.xMin;
 
   const seed = new THREE.Vector3();
   for (const point of points) seed.add(point);
   seed.divideScalar(points.length);
 
   // Pass 1 — projected extent about the centroid, to find the true centre.
-  let uMin = Infinity;
-  let uMax = -Infinity;
-  let vMin = Infinity;
-  let vMax = -Infinity;
-  let wMin = Infinity;
-  let wMax = -Infinity;
-  const local = new THREE.Vector3();
-  for (const point of points) {
-    local.copy(point).sub(seed);
-    const u = local.dot(right);
-    const v = local.dot(up);
-    const w = local.dot(dir);
-    if (u < uMin) uMin = u;
-    if (u > uMax) uMax = u;
-    if (v < vMin) vMin = v;
-    if (v > vMax) vMax = v;
-    if (w < wMin) wMin = w;
-    if (w > wMax) wMax = w;
-  }
-
+  const extent = projectedExtent(points, seed, { right, up, dir });
   const center = seed
     .clone()
-    .addScaledVector(right, (uMin + uMax) / 2)
-    .addScaledVector(up, (vMin + vMax) / 2)
-    .addScaledVector(dir, (wMin + wMax) / 2);
+    .addScaledVector(right, (extent.uMin + extent.uMax) / 2)
+    .addScaledVector(up, (extent.vMin + extent.vMax) / 2)
+    .addScaledVector(dir, (extent.wMin + extent.wMax) / 2);
 
-  // Pass 2 — solve the binding distance about the recentred target.
+  // Pass 2 — distance and off-centre shift together.
+  //
+  // With chrome the two are coupled: the shift that clears a top strip is
+  // proportional to the distance, and the distance needed depends on where the
+  // subject sits inside the asymmetric window. A single closed-form pass gets
+  // one of them wrong — a shift applied after the solve slides the near face
+  // back under the strip, because a point closer to the camera moves further
+  // per unit of target shift. A few fixed-point rounds settle both; with no
+  // chrome the shift stays zero and one round is the exact solve.
+  const basis = { right, up, dir, tanV, tanH };
+  const half = { vTop, vBottom, uRight, uLeft };
+  const rounds = isFullFrame(window_) ? 1 : RECENTRE_ROUNDS;
   let distance = 0;
-  for (const point of points) {
-    local.copy(point).sub(center);
-    const w = local.dot(dir);
-    const need = Math.max(
-      w + Math.abs(local.dot(up)) / tanV,
-      w + Math.abs(local.dot(right)) / tanH
-    );
-    if (need > distance) distance = need;
+  const shift = { u: 0, v: 0 };
+  for (let round = 0; round < rounds; round += 1) {
+    distance = Math.max(0.5, bindingDistance(points, center, basis, half, shift) * margin);
+    if (rounds === 1) break;
+    const landed = ndcExtent(points, center, basis, distance, shift);
+    shift.u += (landed.midX - (window_.xMin + window_.xMax) / 2) * distance * tanH;
+    shift.v += (landed.midY - (window_.yMin + window_.yMax) / 2) * distance * tanV;
   }
+  center.addScaledVector(right, shift.u).addScaledVector(up, shift.v);
 
-  const radius = Math.max(0.5, Math.hypot((uMax - uMin) / 2, (vMax - vMin) / 2, (wMax - wMin) / 2));
-  return { distance: Math.max(0.5, distance), center, radius };
+  const radius = Math.max(
+    0.5,
+    Math.hypot(
+      (extent.uMax - extent.uMin) / 2,
+      (extent.vMax - extent.vMin) / 2,
+      (extent.wMax - extent.wMin) / 2
+    )
+  );
+  return { distance, center, radius };
 }

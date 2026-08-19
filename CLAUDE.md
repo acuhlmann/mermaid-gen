@@ -806,6 +806,74 @@ sticky` nav row, because the height cap makes every small screen a scrolling
   returns **both** a base offset + horizontal radius (what the selection ring
   needs) and a centre offset + bounding radius (what the camera needs). Aiming a
   camera at an item's anchor puts a city tower's whole body below the frame.
+- **The camera frames the scene into what the PANELS leave, not into the canvas.** The overlays
+  are HTML siblings of the `<Canvas>`, so for a long time the fit solved against the whole canvas
+  rect and then had a title strip drawn across the top of the answer. That is invisible on a wide
+  desktop scene with room to spare and ruinous everywhere else: on a 390x844 phone the reading
+  strip is a fifth of the screen, and the part of a tall subject it covers — the iceberg's
+  above-water blocks, a city's tallest tower — is the part the metaphor exists to show.
+  `overlaySafeArea.js` measures the **persistent** chrome (`[data-metaphor-chrome]`: the reading
+  strip, title card, legend, layer key, kind switcher) and `solveFrameFit` reserves those edges.
+  Four rules are load-bearing. **One edge per panel**, nearest, ties to the horizontal — a corner
+  card is not a frame and reserving both its edges pays for it twice. **A corner card costs less
+  than a band**: the claim scales with how much of the perpendicular axis the panel spans, because
+  a scene can lean away from a card and cannot lean away from a strip. **The transient panels are
+  excluded** — the read and the pick are user-raised and already own the screen through the
+  one-panel CSS rule, so refitting when one opens would slide the scene sideways at the moment the
+  viewer is reading about one item. And the **margin is applied inside** `solveFrameFit`, not by
+  the caller: the off-centre shift is proportional to the final distance, so multiplying afterwards
+  slides the subject straight back under the chrome by exactly the margin. Adding a persistent
+  panel means tagging it; `metaphorOverlays.test.jsx` pins the tagging panel by panel, because a
+  sweep over a set nothing joins passes while examining nothing.
+- **A portrait canvas is looked at from higher up.** Almost every kind here is a wide flat world,
+  and from the desktop three-quarter angle its footprint projects to under half its width in
+  height — right in a landscape frame, wasteful in a portrait one (measured: the fused composite
+  left 46% of a phone canvas empty above and below a width-bound world). `frameDirectionForAspect`
+  lifts the elevation toward 52° as the aspect falls, and **touches only elevation** — the diagonal
+  azimuth is what makes these read as built rather than plotted. It applies to the FIRST fit only,
+  and a resize re-opens the question **only while the viewer has not orbited**: OrbitControls'
+  `start` event fires on input and not on the intro's programmatic auto-rotate, which is exactly
+  the difference between "nobody has chosen an angle" and "this is the angle they chose". A
+  foldable opening from a cover to an inner screen is a resize nobody asked for.
+- **Item labels are sized for the reader, not for the camera — the fifth time that rule has been
+  paid for here.** `metaphorScreenScale.js` converts exactly: at distance `d`, one screen pixel
+  spans `2·d·tan(fov/2) / viewportHeightPx` world units. Before it, a near label rendered ~3x a far
+  one in the same scene (measured on the fused composite: 26 px against 9 px of cap height), which
+  reads as a rendering fault rather than as perspective, and the far half of every phone scene fell
+  under the size anyone can read. Two traps in doing this. **Keep the clamps pathological** — an
+  earlier 0.35 floor pinned a 14-unit layercake to the bottom of the range and threw the
+  conversion away on exactly the small scenes it mattered most on. And the declutter pass must be
+  told the **pixel** box (`screenWidthPx`/`screenHeightPx`), never left to project the authored
+  world size, which now reaches the screen unscaled at exactly one camera distance.
+- **A screen-constant label makes the camera fit a fixed point, so the fit iterates.** The first
+  solve measures labels at the _pre-fit_ distance; on a scene the fit pulls back from, every name
+  then grows and the outermost ones hang off the edge of the frame the solve just chose.
+  `SceneFrame` re-solves until the distance stops moving (≤1%, at most four passes); with no
+  chrome and no labels the second pass agrees immediately and it costs one frame.
+- **The accent caption has to CLAIM its box, not merely be drawn over everything.** It is
+  depth-test-free by design (the accented item is often the buried one), which meant item labels
+  knew nothing about it and landed underneath — measured on the city, the caption covered both
+  "API Gateway" and the tower beside it. It now registers with the declutter store as a pinned,
+  high-importance entry, so the labels around it step aside instead.
+- **A group's name must not be drawn where its own members stand.** Three separate versions of one
+  bug. City district placards sat on the patch's FAR edge, so from the default (+x, +y, +z) view
+  every district name — the only thing naming what the legend calls the district axis — was behind
+  its own towers and read as "the model did not label them". A fused composite's affinity ring is
+  drawn on the ocean, which its islands then sit **on top of**, placard included; groups now carry
+  `surfaceY` so the placard stands on the ground it covers. And an island's own label sat dead
+  centre, which is precisely where its landmarks are planted. The fix that holds is **outward from
+  the world centre** (`assignSiteLabelOffsets`): a fixed near corner only changes which islands
+  lose, because attachment offsets are seeded, and "away from the landmarks" in world space is
+  often "behind them" in screen space. Outside the outermost sites is reliably open ground.
+- **A territory named after one of its own members gets no placard.** When an island's label and a
+  tower's `district` are the same noun — which is exactly what the composite prompt asks authors to
+  do — the group and the island name the same thing, and drawing both puts the same word twice
+  within a few pixels. `namedByMember` on the plan suppresses the duplicate; a shared chain nobody
+  is named after still earns its placard.
+- **Open water reaching past the subject is scaffolding.** The iceberg's sea plane runs 1.22x the
+  berg ring and was the binding constraint on every iceberg — measured, the bergs rendered at 43%
+  of the frame height with the tip pushed under the reading strip. It now carries
+  `FRAME_IGNORE_DATA`, like the ground-shadow catcher and the fused ocean disc.
 - **Verify metaphor changes by rendering them.** The scoped skill under
   `apps/web/.claude/skills/verify/` has the headless-capture recipe; every finding above came from
   a screenshot, not from reading the code.

@@ -154,3 +154,38 @@ describe('metaphor overlay geometry', () => {
     );
   });
 });
+
+describe('metaphor overlay chrome and the camera fit', () => {
+  it('keeps the layer key readable on a phone instead of slicing its last row', () => {
+    // Composite's layer key is the fused world's only explanation of what each
+    // grammar is doing. At 11.5rem every label wrapped to two or three lines and
+    // the scroll box cut the last row in half.
+    expect(css).toMatch(
+      /@media\s*\(max-width:\s*720px\)[\s\S]*\.metaphor-layers-overlay\s*\{[\s\S]*?max-width:\s*min\(calc\(100% - 20px\),\s*17rem\)/
+    );
+    expect(css).toMatch(
+      /@media\s*\(max-width:\s*720px\)[\s\S]*\.metaphor-layers-label\s*\{[\s\S]*?text-overflow:\s*ellipsis/
+    );
+  });
+
+  it('lets the layer key track shrink so the count is never clipped', () => {
+    // An implicit `auto` grid track refuses to go below the row's min-content,
+    // so an ellipsized label still measured its full text and pushed the kind
+    // chip past the panel's right edge.
+    expect(css).toMatch(
+      /\.metaphor-layers-list\s*\{[\s\S]*?grid-template-columns:\s*minmax\(0,\s*1fr\)/
+    );
+  });
+
+  it('compacts the reading strip on a short landscape screen, not only at 500px', () => {
+    // A 717x512 foldable cover misses the (max-height: 500px) cover query by
+    // twelve pixels and inherits the phone block's stacked full-width band,
+    // which costs it a quarter of its height before the scene gets any.
+    const shortLandscape = css.search(
+      /@media\s*\(max-height:\s*620px\)\s+and\s+\(orientation:\s*landscape\)/
+    );
+    expect(shortLandscape).toBeGreaterThan(-1);
+    const block = css.slice(shortLandscape, shortLandscape + 1200);
+    expect(block).toMatch(/\.metaphor-context-overlay\s*\{[\s\S]*?flex-direction:\s*row/);
+  });
+});

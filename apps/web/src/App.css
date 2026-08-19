@@ -10294,10 +10294,16 @@ button {
   padding: 0;
   list-style: none;
   display: grid;
+  /* `minmax(0, 1fr)`, not the implicit `auto`: an auto track refuses to shrink
+     below the row's min-content, so a one-line row with an ellipsized label
+     still measured its full text and pushed the kind chip past the panel's
+     right edge — the layer counts were clipped mid-character. */
+  grid-template-columns: minmax(0, 1fr);
   gap: 5px;
 }
 
 .metaphor-layers-row {
+  min-width: 0;
   display: flex;
   align-items: baseline;
   justify-content: space-between;
@@ -10746,13 +10752,28 @@ button {
     padding: 8px 10px;
   }
 
+  /* The layer key is a composite's only explanation of what each grammar is
+     doing, and at 11.5rem every label wrapped to two or three lines — a
+     three-layer world then needed more height than the cap allowed and the last
+     row was sliced in half by the scroll box. Wider, one line per layer, and a
+     cap that clears four of them (the schema maximum). */
   .metaphor-layers-overlay {
-    max-width: min(calc(50% - 14px), 11.5rem);
-    max-height: min(28vh, 10rem);
+    max-width: min(calc(100% - 20px), 17rem);
+    max-height: min(34vh, 11rem);
     overflow: auto;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
     padding: 8px 10px;
+  }
+
+  .metaphor-layers-row {
+    flex-wrap: nowrap;
+  }
+
+  .metaphor-layers-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .metaphor-kind-switcher {
@@ -10861,6 +10882,38 @@ button {
     right: auto;
     max-width: min(calc(62% - 14px), 21rem);
     max-height: min(78vh, 13rem);
+  }
+
+  /* The phone block turns the reading strip into a stacked full-width band,
+     which costs a 717x512 cover screen a quarter of its height before the scene
+     gets any. Same twelve pixels, same answer: go back to a row, and let the
+     camera's safe-area reservation shrink with it. */
+  .metaphor-context-overlay {
+    flex-direction: row;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 4px 10px;
+    padding: 5px 9px;
+  }
+
+  .metaphor-context-heading {
+    text-align: left;
+  }
+
+  .metaphor-context-thesis {
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .metaphor-context-overlay .metaphor-tour-start {
+    margin-top: 0;
+  }
+
+  .metaphor-layers-overlay {
+    max-height: min(46vh, 9rem);
   }
 }
 
