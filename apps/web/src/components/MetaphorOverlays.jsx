@@ -14,10 +14,13 @@
  * `.metaphor-inspector ~ …` rule and the DOM order it depends on.
  */
 
-import { useId, useSyncExternalStore } from 'react';
+import { useEffect, useId, useMemo, useRef, useSyncExternalStore } from 'react';
 import { legendAxesFor, formatItemMetric } from '../utils/metaphorLegendAxes.js';
 import { METAPHOR_KINDS, METAPHOR_KIND_LABELS } from '../utils/switchMetaphorKind.js';
 import { compositeLayerSummaries } from '../utils/metaphorReading.js';
+import { buildMetaphorTour } from '../utils/metaphorTour.js';
+import { currentBeat } from './metaphorTourStore.js';
+import { formatLocale } from '../i18n/formatLocale.js';
 import { useUiCopy } from '../i18n/useUiLocale.js';
 
 function kindLabel(controls, kind) {
@@ -25,16 +28,17 @@ function kindLabel(controls, kind) {
 }
 
 /** Top-left card: title, subtitle, and the accented item's thesis sentence. */
-export function MetaphorTitleOverlay({ scene, thesis = '' }) {
+export function MetaphorTitleOverlay({ scene, thesis = '', action = null }) {
   const title = typeof scene?.title === 'string' ? scene.title.trim() : '';
   const subtitle = typeof scene?.subtitle === 'string' ? scene.subtitle.trim() : '';
   const claim = typeof thesis === 'string' ? thesis.trim() : '';
-  if (!title && !subtitle && !claim) return null;
+  if (!title && !subtitle && !claim && !action) return null;
   return (
     <div className="metaphor-overlay metaphor-title-overlay" aria-hidden="false">
       {title ? <p className="metaphor-title-overlay-title">{title}</p> : null}
       {subtitle ? <p className="metaphor-title-overlay-subtitle">{subtitle}</p> : null}
       {claim ? <p className="metaphor-title-overlay-thesis">{claim}</p> : null}
+      {action}
     </div>
   );
 }
@@ -71,13 +75,13 @@ export function MetaphorLegendOverlay({ metaphor, legend }) {
  * the larger title card and legend panel; this is the inline canvas's way of
  * saying what the scene is about without colliding with the app chrome.
  */
-export function MetaphorReadingOverlay({ scene, metaphor, legend, thesis = '' }) {
+export function MetaphorReadingOverlay({ scene, metaphor, legend, thesis = '', action = null }) {
   const { controls } = useUiCopy();
   const title = typeof scene?.title === 'string' ? scene.title.trim() : '';
   const subtitle = typeof scene?.subtitle === 'string' ? scene.subtitle.trim() : '';
   const claim = typeof thesis === 'string' ? thesis.trim() : '';
   const rows = legendAxesFor(metaphor, legend);
-  if (!title && !subtitle && !claim && rows.length === 0) return null;
+  if (!title && !subtitle && !claim && rows.length === 0 && !action) return null;
   return (
     <div
       className="metaphor-overlay metaphor-context-overlay"
@@ -99,6 +103,7 @@ export function MetaphorReadingOverlay({ scene, metaphor, legend, thesis = '' })
           ))}
         </dl>
       ) : null}
+      {action}
     </div>
   );
 }
@@ -123,7 +128,15 @@ export function MetaphorCompositeLayersOverlay({ dsl }) {
         {layers.map((layer) => (
           <li key={layer.id} className="metaphor-layers-row">
             <span className="metaphor-layers-label">{layer.label}</span>
-            <span className="metaphor-layers-kind">{kindLabel(controls, layer.as)}</span>
+            {/* The count is the layer's weight in the world. Without it two
+                rows read as equal partners when one holds twelve islands and
+                the other holds a single tower. */}
+            <span className="metaphor-layers-kind">
+              {kindLabel(controls, layer.as)}
+              {layer.itemCount > 0 ? (
+                <span className="metaphor-layers-count"> · {layer.itemCount}</span>
+              ) : null}
+            </span>
           </li>
         ))}
       </ul>
@@ -284,6 +297,165 @@ export function MetaphorHoverTooltip({ store, legend }) {
         </dl>
       ) : null}
       {note ? <p className="metaphor-hover-note">{note}</p> : null}
+    </div>
+  );
+}
+
+/**
+ * The affordance that starts a guided read. It is deliberately NOT a panel: it
+ * renders inside the reading strip (inline) or the title card (fullscreen), so
+ * offering the tour costs the canvas no additional card. A scene the builder
+ * found nothing to say about offers nothing.
+ */
+export function MetaphorTourButton({ store, dsl }) {
+  const { controls } = useUiCopy();
+  const state = useSyncExternalStore(store.subscribe, store.get, store.get);
+  const copy = controls.metaphor.tour;
+  // Built here rather than in the renderer so the localized copy never reaches
+  // MetaphorRendererImpl — a locale switch must not re-render the R3F tree.
+  const beats = useMemo(
+    () => buildMetaphorTour(dsl, { copy, kindLabel: (kind) => kindLabel(controls, kind) }),
+    [dsl, copy, controls]
+  );
+  if (beats.length === 0) return null;
+  if (state.index >= 0) return null;
+  const stopScene = (event) => event.stopPropagation();
+  return (
+    <button
+      type="button"
+      className="metaphor-tour-start"
+      title={copy.startTitle}
+      onPointerDown={stopScene}
+      onClick={(event) => {
+        stopScene(event);
+        store.start(beats);
+      }}
+    >
+      <span aria-hidden="true">▸</span>
+      <span>{copy.start}</span>
+    </button>
+  );
+}
+
+/**
+ * The guided read itself: one beat at a time, with Back / Next and the picked
+ * item's own metrics.
+ *
+ * It renders FIRST among the overlay siblings, ahead of the inspector, because
+ * it inherits that panel's exclusive budget: a read in progress owns the screen
+ * (the CSS is `.metaphor-tour ~ …`, which needs this DOM order). The reason is
+ * the same one the inspector had — on a phone the canvas is small and three
+ * translucent cards over it leave nothing to read them against — but stronger,
+ * since the tour is also flying the camera and a card stack would hide the
+ * arrival.
+ *
+ * It owns two side effects, both of which have to be here rather than in the
+ * store, because the store must stay free of React and of the selection:
+ *
+ * 1. It rings the beat's item through the selection store, which is what ties
+ *    the sentence to the shape. Ending the read clears the ring.
+ * 2. It ENDS the read when the viewer picks something else. A tap that lands on
+ *    a different item is the viewer taking over; leaving the tour running would
+ *    then narrate one item while the ring marks another.
+ */
+export function MetaphorTourPanel({ store, selectionStore, legend }) {
+  const { controls } = useUiCopy();
+  const copy = controls.metaphor.tour;
+  const state = useSyncExternalStore(store.subscribe, store.get, store.get);
+  const beat = currentBeat(state);
+
+  // The ring the tour raised, so it can retract that one and only that one.
+  const ownedIdRef = useRef(null);
+  useEffect(() => {
+    if (!beat) return undefined;
+    if (beat.focus) {
+      // The id is recorded BEFORE the store write, because the handover
+      // subscription below fires synchronously inside `set` — recording after
+      // would make the tour's own ring look like the viewer's pick and end the
+      // read on every step that focuses something.
+      ownedIdRef.current = beat.focus.id;
+      selectionStore.set({ ...beat.focus });
+    } else {
+      if (ownedIdRef.current) selectionStore.clear();
+      ownedIdRef.current = null;
+    }
+    return () => {
+      // Retract only a ring the tour itself put up. A viewer who taps a
+      // different item ends the read (below) — clearing unconditionally here
+      // would then wipe the pick they just made, one frame after making it.
+      const owned = ownedIdRef.current;
+      if (owned && selectionStore.get()?.item?.id === owned) selectionStore.clear();
+      ownedIdRef.current = null;
+    };
+  }, [beat, selectionStore]);
+
+  // Subscribed rather than derived from a render, because "who picked this"
+  // has to be answered at the moment of the write: a render-time comparison
+  // reads last render's pick against this render's beat, which reports every
+  // ordinary step forward as the viewer taking over.
+  useEffect(
+    () =>
+      selectionStore.subscribe(() => {
+        const picked = selectionStore.get()?.item?.id ?? null;
+        if (picked && picked !== ownedIdRef.current) store.stop();
+      }),
+    [selectionStore, store]
+  );
+
+  if (!beat) return null;
+  const info = beat.focus ? formatItemMetric(beat.focus.metaphor, beat.focus.item, legend) : null;
+  const total = state.beats.length;
+  const step = state.index + 1;
+  const last = step >= total;
+  const stopScene = (event) => event.stopPropagation();
+
+  return (
+    <div
+      className="metaphor-overlay metaphor-tour"
+      role="group"
+      aria-label={copy.aria}
+      onPointerDown={stopScene}
+    >
+      <div className="metaphor-tour-head">
+        <p className="metaphor-tour-step">{formatLocale(copy.step, { step, total })}</p>
+        <button
+          type="button"
+          className="metaphor-tour-close"
+          aria-label={copy.close}
+          onClick={() => store.stop()}
+        >
+          ×
+        </button>
+      </div>
+      <p className="metaphor-tour-title">{beat.title}</p>
+      {beat.body ? <p className="metaphor-tour-body">{beat.body}</p> : null}
+      {info?.rows.length ? (
+        <dl className="metaphor-tour-rows">
+          {info.rows.map((row) => (
+            <div className="metaphor-tour-row" key={row.label}>
+              <dt>{row.label}</dt>
+              <dd>{row.value}</dd>
+            </div>
+          ))}
+        </dl>
+      ) : null}
+      <div className="metaphor-tour-nav">
+        <button
+          type="button"
+          className="metaphor-tour-nav-btn"
+          disabled={state.index <= 0}
+          onClick={() => store.prev()}
+        >
+          {copy.back}
+        </button>
+        <button
+          type="button"
+          className="metaphor-tour-nav-btn is-primary"
+          onClick={() => store.next()}
+        >
+          {last ? copy.done : copy.next}
+        </button>
+      </div>
     </div>
   );
 }
