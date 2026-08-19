@@ -139,6 +139,40 @@ function MailroomMenu({ menu, settings, options }) {
 }
 
 /**
+ * One-click code drawer — the same `</>` affordance the Thinking pane header
+ * carries, surfaced on the menu bar so you do not have to open Deliverable to
+ * peek at the spaghetti.
+ */
+function SpaghettiToggle({ desk, editorOpen, canToggleEditor, onToggleEditor }) {
+  if (typeof onToggleEditor !== 'function') return null;
+  const label = editorOpen
+    ? (desk.codeDrawerCloseShort ?? desk.codeDrawerClose)
+    : (desk.codeDrawerShort ?? desk.codeDrawer);
+  const title = canToggleEditor
+    ? editorOpen
+      ? desk.codeDrawerClose
+      : desk.codeDrawerTitle
+    : desk.blocked?.noCode;
+
+  return (
+    <button
+      type="button"
+      className={`desk-os-menu-trigger desk-os-spaghetti-toggle${editorOpen ? ' is-open' : ''}`}
+      aria-pressed={editorOpen}
+      disabled={!canToggleEditor}
+      title={title}
+      data-testid="menubar-spaghetti-toggle"
+      onClick={() => onToggleEditor()}
+    >
+      <span className="desk-os-menu-trigger-emoji desk-os-spaghetti-emoji" aria-hidden="true">
+        {'</>'}
+      </span>
+      <span className="desk-os-menu-trigger-label">{label}</span>
+    </button>
+  );
+}
+
+/**
  * Workstation prefs: once-a-session admin verbs, the two office sound postures
  * (Headphones / Focus), and the Approved vendors attribution strip. "Onboard a
  * contractor" is the single doorway to external agents (docs/multi-human-office.md).
@@ -386,6 +420,12 @@ export default function DeskOsMenuBar({
         menu={menuFor('mailroom')}
         settings={shared.settings}
         options={{ contentType, diagramSource }}
+      />
+      <SpaghettiToggle
+        desk={desk}
+        editorOpen={editorOpen}
+        canToggleEditor={canToggleEditor}
+        onToggleEditor={onToggleEditor}
       />
       <AdminMenu
         menu={menuFor('admin')}
