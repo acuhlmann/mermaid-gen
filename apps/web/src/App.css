@@ -9600,7 +9600,9 @@ button {
 @media (max-width: 1024px) {
   :root {
     --app-vvh: 100svh;
-    --mobile-bottom-chrome-est: 11.75rem;
+    /* Two stacked composer lanes (talk + work order) plus roster/notebook
+       inline — 11.75rem left the lower input crowding the taskbar on phones. */
+    --mobile-bottom-chrome-est: 13.5rem;
   }
 
   .insights-pane-footer {
@@ -9651,11 +9653,11 @@ button {
   .bottom-chrome {
     left: max(0.45rem, env(safe-area-inset-left, 0px));
     right: max(0.45rem, env(safe-area-inset-right, 0px));
-    bottom: calc(var(--desk-taskbar-h) + env(safe-area-inset-bottom, 0px) + 0.15rem);
+    bottom: calc(var(--desk-taskbar-h) + env(safe-area-inset-bottom, 0px) + 0.35rem);
     flex-direction: column;
     align-items: flex-start;
     justify-content: flex-end;
-    gap: 0.55rem;
+    gap: 0.4rem;
     overflow: visible;
   }
 
@@ -16380,6 +16382,13 @@ body.slopitect-rainbow-tint::before {
   width: 100%;
 }
 
+.prompt-actions--mobile .desk-talk-group {
+  order: 11;
+  flex: 1 1 100%;
+  width: 100%;
+  min-width: 0;
+}
+
 .prompt-actions--mobile .slop-prompt-panel--desk {
   flex: 1 1 auto;
   min-width: 0;
@@ -16431,7 +16440,7 @@ body.slopitect-rainbow-tint::before {
 
 @media (max-width: 1024px) {
   .app-shell.is-insights-open.has-slop-prompt-chrome:not(.is-editor-open) {
-    --mobile-bottom-chrome-est: 12.5rem;
+    --mobile-bottom-chrome-est: 14.25rem;
   }
 
   .slop-prompt-panel.is-narrow {
@@ -16448,6 +16457,44 @@ body.slopitect-rainbow-tint::before {
   .slop-prompt-panel--chrome.is-narrow .slop-prompt-panel-eyebrow,
   .slop-prompt-panel--chrome.is-narrow .slop-prompt-panel-title {
     display: none;
+  }
+}
+
+@media (max-width: 639px) {
+  .prompt-actions--mobile .desk-chrome-layout {
+    gap: 0.28rem 0.35rem;
+  }
+
+  .prompt-actions--mobile .slop-prompt-panel--desk {
+    padding: 0.2rem 0.32rem 0.2rem 0.38rem;
+  }
+
+  .prompt-actions--mobile .slop-prompt-panel--desk .slop-prompt-panel-input {
+    padding: 0.42rem 0.55rem;
+    font-size: 0.88rem;
+  }
+
+  .prompt-actions--mobile .slop-prompt-panel--desk .slop-prompt-panel-actions .overlay-button {
+    min-height: 2rem;
+    min-width: 2.35rem;
+    padding-inline: 0.45rem;
+  }
+
+  .prompt-actions--mobile .desk-talk-composer {
+    padding: 0.16rem 0.24rem 0.16rem 0.34rem;
+    gap: 0.22rem;
+  }
+
+  .prompt-actions--mobile .desk-talk-input {
+    font-size: 0.88rem;
+    padding: 0.38rem 0.45rem;
+  }
+
+  .prompt-actions--mobile .desk-talk-mic,
+  .prompt-actions--mobile .desk-talk-send {
+    min-width: 2rem;
+    min-height: 2rem;
+    padding: 0.2rem;
   }
 }
 
@@ -24516,6 +24563,19 @@ body.slopitect-rainbow-tint::before {
   width: 1rem;
   height: 1rem;
   color: var(--text-muted, #475569);
+}
+
+.desk-os-spaghetti-emoji {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+}
+
+.desk-os-spaghetti-toggle.is-open {
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  color: var(--accent, #0ea5e9);
 }
 
 .desk-os-admin-concentration {

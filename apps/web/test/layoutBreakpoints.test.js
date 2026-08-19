@@ -44,6 +44,6 @@ describe('layoutBreakpoints', () => {
   });
 
   it('exports bottom chrome reserve aligned with CSS --mobile-bottom-chrome-est', () => {
-    expect(MOBILE_BOTTOM_CHROME_RESERVE_PX).toBe(140);
+    expect(MOBILE_BOTTOM_CHROME_RESERVE_PX).toBe(216);
   });
 });

@@ -55,6 +55,27 @@ describe('DeskOsMenuBar', () => {
     expect(screen.queryByTestId('desk-os-menu-trigger-view')).toBeNull();
   });
 
+  it('exposes spaghetti as a one-click menu-bar toggle when a deliverable exists', () => {
+    const handlers = setup({ canToggleEditor: true, editorOpen: false });
+    const toggle = screen.getByTestId('menubar-spaghetti-toggle');
+    expect(toggle.textContent).toMatch(/Spaghetti/);
+    expect(toggle.getAttribute('aria-pressed')).toBe('false');
+    fireEvent.click(toggle);
+    expect(handlers.onToggleEditor).toHaveBeenCalledTimes(1);
+  });
+
+  it('disables the menu-bar spaghetti toggle when there is nothing to edit', () => {
+    setup({ canToggleEditor: false });
+    expect(screen.getByTestId('menubar-spaghetti-toggle').disabled).toBe(true);
+  });
+
+  it('marks the menu-bar spaghetti toggle pressed while the code drawer is open', () => {
+    setup({ canToggleEditor: true, editorOpen: true });
+    expect(screen.getByTestId('menubar-spaghetti-toggle').getAttribute('aria-pressed')).toBe(
+      'true'
+    );
+  });
+
   // The dismantled DeskDrawer's job, one level up.
   it('lists every deliverable format and tags the current one', () => {
     setup();
