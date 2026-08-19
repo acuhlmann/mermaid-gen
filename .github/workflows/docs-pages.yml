@@ -15,7 +15,10 @@ permissions:
 
 concurrency:
   group: pages
-  cancel-in-progress: false
+  # Latest docs push should win. A job stuck in "waiting" behind the github-pages
+  # environment gate held this mutex for 7 days (run 31553410218) and blocked every
+  # subsequent deploy until it was cancelled manually.
+  cancel-in-progress: true
 
 jobs:
   deploy:
@@ -23,6 +26,7 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v5
       - name: Prepare Pages artifact
