@@ -66,8 +66,8 @@ function AffinityGroups({ groups, theme }) {
           <ringGeometry args={[group.radius, group.radius + 0.07, 48]} />
           <meshBasicMaterial color={theme.labelColor} transparent opacity={0.22} />
         </mesh>
-        {group.display ? (
-          <group position={[0, 0, group.radius * 0.86]}>
+        {group.display && !group.namedByMember ? (
+          <group position={[0, group.surfaceY ?? 0, group.radius * 0.86]}>
             <mesh position={[0, 0.16, 0]}>
               <boxGeometry args={[Math.min(group.radius * 1.25, 4.4), 0.12, 0.46]} />
               <meshStandardMaterial color={plaqueColor} roughness={0.62} metalness={0.18} />

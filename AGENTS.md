@@ -165,6 +165,30 @@ ones that will bite an edit.
   bounding sphere around a tall tower rings the whole scene — that measurement now lives in
   `metaphorScenes/itemBounds.js`, shared with the guided read's camera so a ring and a framing
   cannot disagree. Verify by rendering (`apps/web/.claude/skills/verify/`), never by reading.
+- **The camera frames the scene into what the panels leave.** Overlays are HTML siblings of the
+  canvas, so the fit used to solve against the whole canvas and then have a title strip drawn over
+  the answer — on a phone that strip is a fifth of the screen, over the part a tall subject needs.
+  `metaphorScenes/overlaySafeArea.js` measures the persistent chrome (`[data-metaphor-chrome]`) and
+  `solveFrameFit` reserves those edges. Tag any NEW persistent panel with that attribute; leave the
+  read and the pick untagged (they are transient and already own the screen). The margin is applied
+  inside `solveFrameFit` — multiplying the distance afterwards slides the subject back under the
+  chrome. Full reasoning in `CLAUDE.md`.
+- **A portrait canvas is looked at from higher up, and only until the viewer orbits.**
+  `frameDirectionForAspect` lifts elevation toward 52° as the aspect falls (azimuth untouched). It
+  applies to the first fit, and a resize may re-pick it only while OrbitControls has raised no
+  `start` event — the intro's programmatic auto-rotate does not count as the viewer choosing an
+  angle. That is what makes a foldable unfolding behave and an orbited scene stay put.
+- **Scene text is sized in pixels, not world units** (`metaphorScenes/metaphorScreenScale.js`).
+  Keep its clamps pathological; a tight floor silently reinstates the bug on small scenes. A
+  screen-constant label makes the fit a fixed point, so `SceneFrame` re-solves until the distance
+  settles. Labels and the accent caption report their **pixel** box to the declutter pass.
+- **A group's name never goes where its own members stand.** City district placards go on the
+  patch's near edge, fused affinity placards stand at `group.surfaceY` (their ring is on the ocean
+  the islands sit on), and an island's own label goes outward from the world centre. A territory
+  named after one of its members (`namedByMember`) gets no placard at all — the member already
+  carries the word.
+- **Open water past the subject is scaffolding** — the iceberg's sea plane carries
+  `FRAME_IGNORE_DATA`, like the shadow catcher and the fused ocean disc.
 - **The guided read outranks every other panel, and its camera is aspect-solved.** `metaphorTour.js`
   orders what the DSL already says (title → legend → standout → link → thesis, thesis LAST; a
   composite goes layer by layer, never a global peak). `MetaphorTourPanel` must stay **first**

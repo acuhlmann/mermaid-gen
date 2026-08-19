@@ -226,6 +226,116 @@ describe('planFusedCompositeWorld', () => {
     expect(checkout.label).toBe('checkout');
   });
 
+  it('does not print a territory name an island already carries', () => {
+    // "Checkout" here is both an island's own label and the district its tower
+    // claims, so the group and the island name the same thing. Drawing the
+    // placard as well put the same word twice within a few pixels of itself,
+    // which reads as a rendering fault rather than as two facts.
+    const dsl = {
+      metaphor: 'composite',
+      layout: 'fused',
+      seed: 'placard-dedupe',
+      novelty: 0.4,
+      motionIntensity: 0.6,
+      scene: {},
+      layers: [
+        {
+          id: 'domains',
+          as: 'archipelago',
+          items: [
+            { id: 'checkout-domain', label: 'Checkout', mass: 12, relief: 0.8, chain: 'Buy' },
+            { id: 'catalog-domain', label: 'Catalog', mass: 9, relief: 0.5, chain: 'Buy' }
+          ]
+        },
+        {
+          id: 'services',
+          as: 'city',
+          items: [
+            {
+              id: 'payments-api',
+              label: 'Payments API',
+              height: 16,
+              footprint: 3,
+              district: 'Checkout'
+            },
+            { id: 'search-api', label: 'Search API', height: 10, footprint: 2, district: 'Buy' }
+          ]
+        }
+      ],
+      items: [],
+      links: []
+    };
+    const plan = planFusedCompositeWorld(dsl);
+    const checkout = plan.groups.find((group) => group.label === 'checkout');
+    const buy = plan.groups.find((group) => group.label === 'buy');
+    expect(checkout.namedByMember).toBe(true);
+    // "Buy" is a shared chain nobody is named after — it still earns a placard.
+    expect(buy.namedByMember).toBe(false);
+  });
+
+  it('stands a territory placard on the ground it covers, not inside it', () => {
+    const dsl = {
+      metaphor: 'composite',
+      layout: 'fused',
+      seed: 'placard-height',
+      novelty: 0.4,
+      motionIntensity: 0.6,
+      scene: {},
+      layers: [
+        {
+          id: 'domains',
+          as: 'archipelago',
+          items: [
+            { id: 'a', label: 'Alpha', mass: 14, relief: 0.9, chain: 'Stream' },
+            { id: 'b', label: 'Beta', mass: 12, relief: 0.8, chain: 'Stream' }
+          ]
+        }
+      ],
+      items: [],
+      links: []
+    };
+    const plan = planFusedCompositeWorld(dsl);
+    const stream = plan.groups.find((group) => group.label === 'stream');
+    // An island sits ON the ocean the group ring is drawn on, so a placard left
+    // at ring height is buried inside the island it names.
+    expect(stream.surfaceY).toBeGreaterThan(0);
+    expect(stream.surfaceY).toBeLessThanOrEqual(12);
+  });
+
+  it('parks each island name on its outward shoulder, clear of its own landmarks', () => {
+    const dsl = {
+      metaphor: 'composite',
+      layout: 'fused',
+      seed: 'label-offsets',
+      novelty: 0.5,
+      motionIntensity: 0.6,
+      scene: {},
+      layers: [
+        {
+          id: 'domains',
+          as: 'archipelago',
+          items: [
+            { id: 'a', label: 'Alpha', mass: 12, relief: 0.7 },
+            { id: 'b', label: 'Beta', mass: 10, relief: 0.6 },
+            { id: 'c', label: 'Gamma', mass: 8, relief: 0.5 }
+          ]
+        }
+      ],
+      items: [],
+      links: []
+    };
+    const plan = planFusedCompositeWorld(dsl);
+    expect(plan.sites.length).toBeGreaterThan(0);
+    for (const site of plan.sites) {
+      const [dx, , dz] = site.labelOffset;
+      expect(Math.hypot(dx, dz)).toBeGreaterThan(0);
+      expect(Math.hypot(dx, dz)).toBeLessThanOrEqual(site.radius);
+      const outward = site.position[0] * dx + site.position[2] * dz;
+      // Points away from the middle of the world, where the open water is.
+      expect(outward).toBeGreaterThan(0);
+    }
+  });
+
   it('encodes storytelling fields, connectors, LOD, and atmosphere on the plan', () => {
     const dsl = {
       metaphor: 'composite',

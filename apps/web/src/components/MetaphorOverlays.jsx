@@ -20,6 +20,7 @@ import { METAPHOR_KINDS, METAPHOR_KIND_LABELS } from '../utils/switchMetaphorKin
 import { compositeLayerSummaries } from '../utils/metaphorReading.js';
 import { buildMetaphorTour } from '../utils/metaphorTour.js';
 import { currentBeat } from './metaphorTourStore.js';
+import { CHROME_ATTR } from './metaphorScenes/overlaySafeArea.js';
 import { formatLocale } from '../i18n/formatLocale.js';
 import { useUiCopy } from '../i18n/useUiLocale.js';
 
@@ -34,7 +35,11 @@ export function MetaphorTitleOverlay({ scene, thesis = '', action = null }) {
   const claim = typeof thesis === 'string' ? thesis.trim() : '';
   if (!title && !subtitle && !claim && !action) return null;
   return (
-    <div className="metaphor-overlay metaphor-title-overlay" aria-hidden="false">
+    <div
+      className="metaphor-overlay metaphor-title-overlay"
+      aria-hidden="false"
+      {...{ [CHROME_ATTR]: 'title' }}
+    >
       {title ? <p className="metaphor-title-overlay-title">{title}</p> : null}
       {subtitle ? <p className="metaphor-title-overlay-subtitle">{subtitle}</p> : null}
       {claim ? <p className="metaphor-title-overlay-thesis">{claim}</p> : null}
@@ -56,6 +61,7 @@ export function MetaphorLegendOverlay({ metaphor, legend }) {
       className="metaphor-overlay metaphor-legend-overlay"
       role="group"
       aria-label={controls.metaphor.legend}
+      {...{ [CHROME_ATTR]: 'legend' }}
     >
       <p className="metaphor-legend-heading">{controls.metaphor.legend}</p>
       <dl className="metaphor-legend-rows">
@@ -87,6 +93,7 @@ export function MetaphorReadingOverlay({ scene, metaphor, legend, thesis = '', a
       className="metaphor-overlay metaphor-context-overlay"
       role="group"
       aria-label={controls.metaphor.reading}
+      {...{ [CHROME_ATTR]: 'reading' }}
     >
       <div className="metaphor-context-heading">
         {title ? <p className="metaphor-context-title">{title}</p> : null}
@@ -122,6 +129,7 @@ export function MetaphorCompositeLayersOverlay({ dsl }) {
       className="metaphor-overlay metaphor-layers-overlay"
       role="group"
       aria-label={controls.metaphor.layers}
+      {...{ [CHROME_ATTR]: 'layers' }}
     >
       <p className="metaphor-layers-heading">{controls.metaphor.layers}</p>
       <ul className="metaphor-layers-list">
@@ -164,7 +172,7 @@ export function MetaphorKindSwitcher({ metaphor, disabled = false, onSelectKind 
   if (!metaphor) return null;
   const stopScene = (event) => event.stopPropagation();
   return (
-    <div className="metaphor-overlay metaphor-kind-switcher">
+    <div className="metaphor-overlay metaphor-kind-switcher" {...{ [CHROME_ATTR]: 'kinds' }}>
       <label className="metaphor-kind-switcher-label" htmlFor={selectId}>
         {controls.metaphor.viewAs}
       </label>

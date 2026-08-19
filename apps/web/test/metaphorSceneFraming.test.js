@@ -2,9 +2,12 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
 import {
+  DEFAULT_FRAME_DIRECTION,
   FRAME_IGNORE,
   FRAME_IGNORE_DATA,
   collectFramePoints,
+  frameDirectionForAspect,
+  safeAreaWindow,
   solveFrameFit
 } from '../src/components/metaphorScenes/sceneFraming.js';
 import { MetaphorGroundShadow } from '../src/components/metaphorScenes/MetaphorSceneChrome.jsx';
@@ -15,6 +18,7 @@ import {
 } from '../src/components/metaphorScenes/metaphorAtmosphere.js';
 
 const DIR = new THREE.Vector3(18, 14, 18).normalize();
+const FULL = { top: 0, right: 0, bottom: 0, left: 0 };
 
 /** Fraction of the frame the solved fit gives the content, on each axis. */
 function frameFill(points, dir, fov, aspect) {
@@ -32,6 +36,27 @@ function frameFill(points, dir, fov, aspect) {
     maxV = Math.max(maxV, Math.abs(local.dot(up)) / (depth * tanV));
   }
   return { width: maxU, height: maxV, distance: solved.distance };
+}
+
+/** Where every point lands in NDC for a solved fit — what the viewer sees. */
+function ndcBox(points, dir, fov, aspect, options) {
+  const solved = solveFrameFit(points, dir, fov, aspect, options);
+  const right = new THREE.Vector3().crossVectors(new THREE.Vector3(0, 1, 0), dir).normalize();
+  const up = new THREE.Vector3().crossVectors(dir, right).normalize();
+  const tanV = Math.tan(THREE.MathUtils.degToRad(fov) / 2);
+  const tanH = tanV * aspect;
+  const box = { xMin: Infinity, xMax: -Infinity, yMin: Infinity, yMax: -Infinity };
+  for (const point of points) {
+    const local = point.clone().sub(solved.center);
+    const depth = solved.distance - local.dot(dir);
+    const x = local.dot(right) / (depth * tanH);
+    const y = local.dot(up) / (depth * tanV);
+    box.xMin = Math.min(box.xMin, x);
+    box.xMax = Math.max(box.xMax, x);
+    box.yMin = Math.min(box.yMin, y);
+    box.yMax = Math.max(box.yMax, y);
+  }
+  return { ...box, distance: solved.distance };
 }
 
 /** Ring of points approximating a flat ground disc of `radius`. */
@@ -79,6 +104,83 @@ describe('solveFrameFit', () => {
       vMax = Math.max(vMax, v);
     }
     expect(Math.abs(vMin + vMax)).toBeLessThan(0.01);
+  });
+});
+
+describe('solveFrameFit with overlay chrome', () => {
+  // A tall subject on a wide plate — the shape every reported collision had:
+  // the reading strip sat across the top of the canvas and the top of the
+  // subject was drawn behind it.
+  const SUBJECT = [...disc(12), new THREE.Vector3(0, 16, 0), new THREE.Vector3(2, 14, -1)];
+
+  it('keeps the subject out of the band the chrome covers', () => {
+    const top = 0.22;
+    const box = ndcBox(SUBJECT, DIR, 45, 390 / 844, { safeArea: { top } });
+    expect(box.yMax).toBeLessThanOrEqual(1 - 2 * top + 0.02);
+    expect(box.yMin).toBeGreaterThanOrEqual(-1.02);
+  });
+
+  it('clears both a top strip and a bottom card at once', () => {
+    const box = ndcBox(SUBJECT, DIR, 45, 390 / 844, {
+      safeArea: { top: 0.2, bottom: 0.14 }
+    });
+    expect(box.yMax).toBeLessThanOrEqual(1 - 0.4 + 0.02);
+    expect(box.yMin).toBeGreaterThanOrEqual(-1 + 0.28 - 0.02);
+  });
+
+  it('pulls back rather than cropping when the chrome takes height', () => {
+    const bare = solveFrameFit(SUBJECT, DIR, 45, 1280 / 820);
+    const chromed = solveFrameFit(SUBJECT, DIR, 45, 1280 / 820, { safeArea: { top: 0.22 } });
+    expect(chromed.distance).toBeGreaterThan(bare.distance);
+  });
+
+  it('changes nothing at all when there is no chrome', () => {
+    const bare = solveFrameFit(SUBJECT, DIR, 45, 1.6);
+    const empty = solveFrameFit(SUBJECT, DIR, 45, 1.6, { safeArea: FULL });
+    expect(empty.distance).toBeCloseTo(bare.distance, 6);
+    expect(empty.center.distanceTo(bare.center)).toBeLessThan(1e-6);
+  });
+
+  it('folds the margin in rather than leaving it to the caller', () => {
+    // The margin has to be applied before the off-centre shift is computed:
+    // multiplying the distance afterwards slides the subject back under the
+    // chrome by exactly the margin.
+    const plain = solveFrameFit(SUBJECT, DIR, 45, 1.6);
+    const roomy = solveFrameFit(SUBJECT, DIR, 45, 1.6, { margin: 1.2 });
+    expect(roomy.distance / plain.distance).toBeCloseTo(1.2, 6);
+  });
+
+  it('caps what one edge of chrome may claim', () => {
+    const window_ = safeAreaWindow({ top: 0.9, bottom: 0.9 });
+    expect(window_.yMax).toBeGreaterThan(0);
+    expect(window_.yMin).toBeLessThan(0);
+  });
+});
+
+describe('frameDirectionForAspect', () => {
+  it('keeps the desktop three-quarter angle on a landscape canvas', () => {
+    expect(frameDirectionForAspect(1440 / 900).distanceTo(DEFAULT_FRAME_DIRECTION)).toBeLessThan(
+      1e-6
+    );
+  });
+
+  it('looks down harder on a portrait canvas so a flat world fills it', () => {
+    const phone = frameDirectionForAspect(390 / 844);
+    expect(phone.y).toBeGreaterThan(DEFAULT_FRAME_DIRECTION.y);
+    expect(phone.length()).toBeCloseTo(1, 6);
+  });
+
+  it('fills more of a portrait canvas than the landscape angle would', () => {
+    const world = disc(14);
+    const aspect = 390 / 844;
+    const flat = ndcBox(world, DEFAULT_FRAME_DIRECTION, 45, aspect);
+    const lifted = ndcBox(world, frameDirectionForAspect(aspect), 45, aspect);
+    expect(lifted.yMax - lifted.yMin).toBeGreaterThan((flat.yMax - flat.yMin) * 1.3);
+  });
+
+  it('keeps the diagonal — a phone loses elevation, not azimuth', () => {
+    const phone = frameDirectionForAspect(0.46);
+    expect(phone.x).toBeCloseTo(phone.z, 6);
   });
 });
 

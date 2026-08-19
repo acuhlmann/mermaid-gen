@@ -9,6 +9,10 @@ import {
   MetaphorTourButton,
   MetaphorTourPanel
 } from '../src/components/MetaphorOverlays.jsx';
+import {
+  CHROME_ATTR,
+  measureOverlaySafeArea
+} from '../src/components/metaphorScenes/overlaySafeArea.js';
 import { createMetaphorHoverStore } from '../src/components/metaphorHover.js';
 import { createMetaphorSelectionStore } from '../src/components/metaphorSelection.js';
 import { createMetaphorTourStore } from '../src/components/metaphorTourStore.js';
@@ -205,5 +209,42 @@ describe('MetaphorTourPanel', () => {
     expect(store.get().index).toBe(-1);
     // The pick they just made must survive the tour tearing down its own ring.
     expect(selectionStore.get()?.item?.id).toBe('gateway');
+  });
+});
+
+describe('persistent chrome is measurable', () => {
+  // The camera fits the scene into what the panels leave (overlaySafeArea.js).
+  // That measurement sweeps `[data-metaphor-chrome]`, and a sweep over a set
+  // nothing joins passes while examining nothing — so pin the marking itself,
+  // panel by panel, rather than only pinning the maths.
+  it.each([
+    ['reading strip', <MetaphorReadingOverlay key="r" scene={COMPOSITE.scene} metaphor="city" />],
+    ['title card', <MetaphorTitleOverlay key="t" scene={COMPOSITE.scene} />],
+    ['layer key', <MetaphorCompositeLayersOverlay key="l" dsl={COMPOSITE} />],
+    ['kind switcher', <MetaphorKindSwitcher key="k" metaphor="city" onSelectKind={() => {}} />]
+  ])('marks the %s', (_name, element) => {
+    const { container } = render(element);
+    expect(container.querySelector(`[${CHROME_ATTR}]`)).not.toBeNull();
+  });
+
+  it('leaves transient panels out of it', () => {
+    // The read and the pick are user-raised and already own the screen through
+    // the one-panel CSS rule. Refitting the camera when one opens would slide
+    // the scene sideways at the moment the viewer is reading about one item.
+    const tourStore = createMetaphorTourStore();
+    act(() => tourStore.start([{ id: 'a', title: 'Beat', body: 'Body', focus: null }]));
+    const { container } = render(
+      <MetaphorTourPanel
+        store={tourStore}
+        selectionStore={createMetaphorSelectionStore()}
+        legend={{}}
+      />
+    );
+    expect(container.querySelector('.metaphor-tour')).not.toBeNull();
+    expect(container.querySelector(`[${CHROME_ATTR}]`)).toBeNull();
+  });
+
+  it('reports nothing for a container with no measurable box', () => {
+    expect(measureOverlaySafeArea(null)).toBeNull();
   });
 });

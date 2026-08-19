@@ -198,9 +198,16 @@ export function IslandPrimitive({ entity, theme, emphasized, lod = 'high' }) {
       {entity.item ? (
         <>
           <TopicGlyph item={entity.item} theme={theme} position={[0, entity.height + 0.45, 0]} />
+          {/* Offset onto the shoulder the island's own landmarks are not on —
+              see `assignSiteLabelOffsets`. A centred label is behind its own
+              tower, and a fixed corner only moves which islands lose. */}
           <ItemLabel
             text={entity.item.label}
-            position={[0, entity.height + (entity.item.glyph ? 1.3 : 0.75), 0]}
+            position={[
+              entity.labelOffset?.[0] ?? 0,
+              entity.height + (entity.item.glyph ? 1.3 : 0.75),
+              entity.labelOffset?.[2] ?? 0
+            ]}
             fontSize={0.52}
             color={theme.labelColor}
             outlineColor={theme.labelOutline}
