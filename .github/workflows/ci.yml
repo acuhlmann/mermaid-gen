@@ -89,6 +89,14 @@ jobs:
           cache: npm
       - name: Install dependencies
         run: npm ci
+      # Anything runtime check prefers a real browser when one resolves. The
+      # production image installs Debian chromium (see Dockerfile); match that
+      # here so CI exercises the same engine rather than the preinstalled
+      # Chrome snap, which cold-starts slowly enough to hit the 6s budget.
+      - name: Install Chromium for Anything runtime check
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends chromium fonts-liberation
       - name: Test apps/server
         run: npm run test -w apps/server
 

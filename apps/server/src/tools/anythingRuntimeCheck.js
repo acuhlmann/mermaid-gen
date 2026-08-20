@@ -109,15 +109,23 @@ export async function runAnythingRuntimeCheck(
       settleMs: settle,
       rejectOnVisual: isAnythingVisualRejectionEnabled(env)
     });
-    // A browser that could not run at all is an infrastructure failure, and the
+    // A browser that could not run at all — or could not finish within the
+    // budget on a cold/slow host — is an infrastructure failure, and the
     // rung's rule is that those fail open rather than block a valid page. jsdom
     // is still here and still correct on everything except layout and paint, so
     // falling back to it is strictly better than skipping the rung entirely.
-    if (result.skipped) {
+    // A genuine infinite loop still fails: jsdom gets the same budget and
+    // times out too.
+    const browserInfraFailure =
+      result.skipped || (result.ok === false && result.code === 'runtime_timeout');
+    if (browserInfraFailure) {
       const jsdomResult = await runAnythingJsdomCheck(html, { budgetMs, settle });
+      const browserWarnings = result.skipped
+        ? (result.warnings ?? [])
+        : [`Runtime check: browser timed out after ${budgetMs}ms, retrying with jsdom.`];
       return {
         ...jsdomResult,
-        warnings: [...(result.warnings ?? []), ...(jsdomResult.warnings ?? [])]
+        warnings: [...browserWarnings, ...(jsdomResult.warnings ?? [])]
       };
     }
     return result;
