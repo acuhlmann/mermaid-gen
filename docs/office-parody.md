@@ -482,13 +482,13 @@ items now, and Facilities (Fix) rejoins the team beside Jared, whose critique it
 
 **Zones on the desk**
 
-| Zone                | Fiction                      | Controls                                                                                                                         |
-| ------------------- | ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| Your seat           | Personal cognition           | Notebook (Thinking pane), Concentration (Rush job / Deep work → wire `fast` / `quality`)                                         |
-| Work surface        | The deliverable              | Work order; Deliverable format + Shredder on the menu bar                                                                        |
-| People around you   | Colleagues at adjacent desks | Your Team menu (delegate to a teammate, Huddle up) + desk **Have a meeting**                                                     |
-| Get up              | Leave the chair              | Mail, IM (+ Stand up in the taskbar's leading corner; coffee is on the floor)                                                    |
-| Under the desk / IT | Cubicle plumbing             | Menu bar → Admin (contractors, HR, headphones, language, hotkeys, Approved vendors); code drawer on the notebook / canvas chrome |
+| Zone                | Fiction                      | Controls                                                                                                                                                      |
+| ------------------- | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Your seat           | Personal cognition           | Notebook (Thinking pane), Concentration (Rush job / Deep work → wire `fast` / `quality`)                                                                      |
+| Work surface        | The deliverable              | Work order; Deliverable format + Shredder on the menu bar; **Spaghetti** (🍝) code drawer as a one-click menu-bar toggle or inside Deliverable                |
+| People around you   | Colleagues at adjacent desks | Your Team menu (delegate to a teammate, Huddle up) + desk **Have a meeting**                                                                                  |
+| Get up              | Leave the chair              | Mail, IM (+ Stand up in the taskbar's leading corner; coffee is on the floor)                                                                                 |
+| Under the desk / IT | Cubicle plumbing             | Menu bar → Admin (contractors, HR, headphones, language, hotkeys, Approved vendors); code drawer (**Spaghetti**) on the menu bar and notebook / canvas chrome |
 
 | Verb                        | Does                                                                                                                                                                                                                                                                                                                                                                                                                  |
 | --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
