@@ -86,6 +86,10 @@ node apps/server/scripts/benchMetaphor.js --tag review-$(date +%F)
 node apps/server/scripts/benchAnything.js --tag review-$(date +%F)
 ```
 
+**Not `benchAnythingGeneration.js`.** That one drives a real model, so it costs tokens and needs a
+key — it is a human-initiated measurement, not something a daily unattended run should spend. The
+five above are corpus-only.
+
 Report `acceptRate`, `expectationMatch` and `latency.p95` against the newest committed snapshot in
 `apps/server/bench-results/`. **Do not commit new snapshots** — that directory is on the don't-touch
 list, and a daily run would bury the meaningful baselines under noise. Latency on a shared runner is

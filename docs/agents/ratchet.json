@@ -65,12 +65,12 @@
     },
     "suite": {
       "files": {
-        "budget": 365,
-        "initial": 365
+        "budget": 366,
+        "initial": 366
       },
       "cases": {
-        "budget": 3669,
-        "initial": 3669
+        "budget": 3675,
+        "initial": 3675
       }
     }
   }
