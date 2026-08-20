@@ -1,0 +1,77 @@
+{
+  "updated": "2026-08-20",
+  "metrics": {
+    "monolithLoc": {
+      "apps/web/src/ArchiSlop.jsx": {
+        "budget": 1036,
+        "initial": 1036
+      },
+      "apps/web/src/components/InsightsPane.jsx": {
+        "budget": 1835,
+        "initial": 1835
+      },
+      "apps/web/src/components/DiagramCanvas.jsx": {
+        "budget": 1968,
+        "initial": 1968
+      },
+      "apps/web/src/components/RadialActionMenu.jsx": {
+        "budget": 1164,
+        "initial": 1164
+      },
+      "apps/web/src/state/diagramStore.js": {
+        "budget": 955,
+        "initial": 955
+      },
+      "apps/server/src/mcp/mcpServer.js": {
+        "budget": 1406,
+        "initial": 1406
+      },
+      "apps/server/src/agents/mermaidLangChainAgent.js": {
+        "budget": 1159,
+        "initial": 1159
+      },
+      "apps/server/src/agents/infographicLangChainAgent.js": {
+        "budget": 863,
+        "initial": 863
+      },
+      "apps/server/src/routes/copilot.ts": {
+        "budget": 1270,
+        "initial": 1270
+      }
+    },
+    "lintWarnings": {
+      "packages/shared": {
+        "budget": 126,
+        "initial": 126
+      },
+      "apps/server": {
+        "budget": 229,
+        "initial": 229
+      },
+      "apps/web": {
+        "budget": 851,
+        "initial": 851
+      }
+    },
+    "strictIslandFiles": {
+      "apps/web/tsconfig.strict.json": {
+        "budget": 15,
+        "initial": 15
+      },
+      "apps/server/tsconfig.strict.json": {
+        "budget": 22,
+        "initial": 22
+      }
+    },
+    "suite": {
+      "files": {
+        "budget": 365,
+        "initial": 365
+      },
+      "cases": {
+        "budget": 3669,
+        "initial": 3669
+      }
+    }
+  }
+}

@@ -44,6 +44,8 @@ Domain depth (slots, validation ladders, wire-contract habits, where-to-put tabl
   - `npm run verify:deps` — override pins and singleton npm installs (e.g. `@a2ui/web_core` hoisted vs nested); error output includes the `npm install` fix
   - `npm run verify:boundaries` — dependency-cruiser graph rules (cycles + workspace + intra-server layers); each rule's `comment` is the agent-readable fix
   - `npm run lint` — all three workspaces, formatter appends per-rule "Agent guidance" footer with the canonical fix and suppression syntax (`packages/eslint-config/formatter.cjs`)
+  - `npm run verify:ratchet` — quality ratchet: monolith LOC and lint warnings may only fall, strict-island and suite counts may only rise (`docs/agents/ratchet.json`); `--with-lint` adds the ESLint pass, which `check` deliberately skips
+  - `npm run routine:guard -- --preflight|--postflight <name>` — budget enforcement for a scheduled NFR routine (`docs/routines/`)
   - `npm run verify:modularity` — reminder of how to run a semantic modularity review (Claude `/modularity:review` or Cursor `.cursor/skills/modularity/review/SKILL.md`); see [`docs/agents/modularity.md`](docs/agents/modularity.md)
 - **Workspace-scoped** (faster when you know the blast radius):
   - `npm run typecheck -w apps/server && npm run test -w apps/server`
@@ -222,6 +224,34 @@ ones that will bite an edit.
 | **Humans** (setup, product, API)          | [`README.md`](README.md) → [`docs/guide/README.md`](docs/guide/README.md)                                                                                       |
 | **Coding agents** (edits, wire contracts) | [`docs/guide/coding-agents.md`](docs/guide/coding-agents.md) → [`GLOSSARY.md`](GLOSSARY.md) → [`STRUCTURE.md`](STRUCTURE.md) → [`docs/recipes/`](docs/recipes/) |
 | **Sensors** (lint / boundaries / deps)    | [`docs/agents/sensors.md`](docs/agents/sensors.md) — canonical fix lives in the tool output                                                                     |
+
+## Scheduled NFR routines
+
+Non-functional work — post-merge review, doc drift, test hardening — runs on a schedule as
+**NFR routines** ([ADR-0014](docs/decisions/0014-autonomous-nfr-routines.md)). Four facts matter
+when you touch one, and each is a trap if you assume the obvious:
+
+- **The playbook is the repo file, not the cron prompt.** `docs/routines/<name>.md` holds what the
+  routine does and its budget; the trigger prompt is three lines pointing at it. Pasting
+  instructions into a trigger recreates the unversioned, unreviewable blob this shelf replaced.
+- **The budget is enforced, not described.** `npm run routine:guard -- --postflight <name>` re-reads
+  the playbook's `maxFiles` / `allowedPaths` / `forbiddenPaths` and checks the real diff, plus an
+  always-forbidden list mirroring the don't-touch list, deleted test files, and any test file whose
+  case count fell. Widening a routine means editing its frontmatter, in a PR.
+- **`npm run verify:ratchet` binds every PR, not only routine PRs.** It runs inside `npm run check`.
+  Monolith LOC and lint warnings may only fall; strict-island and suite counts may only rise.
+  Budgets live in `docs/agents/ratchet.json`. To loosen one, raise it **in the same PR** and add a
+  `reason` — a budget differing from its `initial` without one is itself a failure, which is what
+  stops the ratchet being unwound to make a red build green. Lint counting is behind `--with-lint`
+  (an extra ESLint pass on every `check` costs more than it returns).
+- **A routine records; it does not refactor.** `docs/agents/balanced-coupling-priorities.md` says
+  split _on contact_, and a schedule has no feature to be on contact with — so coupling findings
+  become issues and priority-doc updates, never unprompted hub splits. Same reason ADR-0007's
+  two-week quiet period still gates every `warn` → `error` promotion: a routine may present the
+  evidence, a human decides.
+
+Ledgers under `docs/routines/ledger/` are the durable memory across cold-start runs — read one
+before starting, append a row when finishing, including runs that changed nothing.
 
 ## CopilotKit skill note
 
