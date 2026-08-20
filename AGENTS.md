@@ -57,6 +57,30 @@ Package-specific commands:
 - Server dev: `npm run dev -w apps/server`
 - Web dev: `npm run dev -w apps/web`
 
+### Benches — two kinds, easy to confuse
+
+- **Corpus benches** (`benchMermaid.js`, `benchAnything.js`) replay fixed documents through the
+  validators. No LLM, safe to run anytime. They measure the **gate**, not the model — and
+  `benchAnything.js`'s `acceptRate` is a property of the corpus (how many fixtures are _supposed_
+  to pass), **not** a quality signal. Read `expectationMatch`.
+- **Generation bench** (`benchAnythingGeneration.js`) sends real prompts through the real agent
+  and **spends tokens**. It is not part of `npm test`. Reports first-pass accept rate, the
+  rejection-code histogram, and repair convergence.
+  **Always `--samples 3` or more for a baseline you will compare against** — two consecutive
+  single-sample runs of the same 12 cases measured 66.7% and 91.7% first-pass, a 25-point swing
+  from nondeterminism alone. Read the accept rate next to `failureKinds`: a `transport` entry is
+  a model call cut off mid-stream, which depresses the rate exactly like a page the model could
+  not fix.
+  It needs **both** `--import` flags —
+  `node --import ./scripts/register-antv-layout-esm.mjs --import tsx …` — because the agent's
+  import graph reaches TypeScript leaves behind `.js` specifiers _and_ transitively reaches
+  `@antv/infographic`. Neither flag alone works; the failures are two different, unhelpful
+  module errors.
+- `--browser` on the generation bench renders accepted pages in real Chromium and reports what
+  jsdom structurally cannot see (blank canvases, collapsed layout, contrast). It is an
+  **observer, not a rung** — it changes no verdict. It exists to measure how much _more_ a
+  browser would reject, since each extra rejection costs a 12–60 s repair turn.
+
 ## Operator CLIs
 
 Agents often have **`gcloud`** and **`gh`** available in the terminal. Use them to inspect real account state instead of guessing projects, billing, or Git refs.
