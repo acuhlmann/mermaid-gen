@@ -16,7 +16,12 @@ import { fileURLToPath } from 'node:url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 export const ROOT = path.resolve(__dirname, '..');
 
-export const ROUTINE_TIERS = ['report', 'mechanical', 'proposal'];
+/**
+ * `report` writes no code at all; `code-writing` may edit within its declared paths. There is no
+ * third "opens a PR and waits" tier — both shipped routines merge their own green PR, and what
+ * keeps that safe is the budget below, not a human in the loop.
+ */
+export const ROUTINE_TIERS = ['report', 'code-writing'];
 
 /** Paths no routine may touch, whatever its playbook says. Mirrors AGENTS.md § Don't-touch list. */
 export const ALWAYS_FORBIDDEN = [

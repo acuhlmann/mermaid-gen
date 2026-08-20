@@ -197,14 +197,14 @@ Look up a concept here before grepping. Paths are repo-relative.
 
 ## Scheduled NFR routines (`docs/routines/`)
 
-| Concept                      | File                         |
-| ---------------------------- | ---------------------------- |
-| Contract every routine obeys | `docs/routines/README.md`    |
-| Post-merge review playbook   | `docs/routines/review.md`    |
-| Repo hygiene playbook        | `docs/routines/hygiene.md`   |
-| Durable memory per routine   | `docs/routines/ledger/`      |
-| Budget enforcement           | `scripts/routine-guard.mjs`  |
-| Quality ratchet              | `scripts/verify-ratchet.mjs` |
+| Concept                        | File                         |
+| ------------------------------ | ---------------------------- |
+| Contract every routine obeys   | `docs/routines/README.md`    |
+| Post-merge review playbook     | `docs/routines/review.md`    |
+| Daily NFR improvement playbook | `docs/routines/improve.md`   |
+| Durable memory per routine     | `docs/routines/ledger/`      |
+| Budget enforcement             | `scripts/routine-guard.mjs`  |
+| Quality ratchet                | `scripts/verify-ratchet.mjs` |
 
 ## Build & deploy
 

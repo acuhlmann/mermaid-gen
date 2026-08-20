@@ -13,7 +13,7 @@ archislop follows Martin Fowler's ["Sensors for Coding Agents"](https://martinfo
 | ESLint + custom formatter      | `npm run lint` (all three workspaces)                                                                                                                                | Threshold rules (`max-lines`, `max-lines-per-function`, `max-params`, `complexity`), Factory plugin rules, `@typescript-eslint` `recommended` (warn) on `.ts`/`.tsx`, **type-aware** rules (`no-unsafe-*`, `no-floating-promises`, …) on `packages/shared/src` and each app's **strict island** (see `@archislop/eslint-config/type-checked-island`), React 19 hooks | Per-rule footer block at end of lint output                                                                               |
 | dependency-cruiser             | `npm run verify:boundaries`                                                                                                                                          | Workspace + layer boundary violations, cycles, orphans                                                                                                                                                                                                                                                                                                               | `comment` field of each rule in `.dependency-cruiser.cjs`                                                                 |
 | Doc-path check                 | `npm run verify:doc-paths`                                                                                                                                           | Broken `apps/` / `packages/` / `scripts/` references in `STRUCTURE.md`, `AGENTS.md`, `CLAUDE.md`, `docs/recipes/`, `docs/guide/`, `docs/agents/`, and `docs/routines/`                                                                                                                                                                                               | Error message names the missing path                                                                                      |
-| Quality ratchet                | `npm run verify:ratchet` (inside `npm run check`; `-- --with-lint` adds the ESLint pass)                                                                             | A quality metric moving the wrong way: monolith LOC or lint warnings growing, strict-island or suite counts shrinking                                                                                                                                                                                                                                                | Failure names the metric, the measured value, and the budget; budgets live in `ratchet.json`                              |
+| Quality trend (gates nothing)  | `npm run verify:ratchet` (**not** in `check`; `-- --json`, `-- --with-lint`)                                                                                         | A quality metric moving the wrong way: monolith LOC or lint warnings growing, strict-island or suite counts shrinking                                                                                                                                                                                                                                                | Failure names the metric, the measured value, and the budget; budgets live in `ratchet.json`                              |
 | Routine budget                 | `npm run routine:guard -- --postflight <name>`                                                                                                                       | A scheduled NFR routine exceeding its declared `maxFiles`, writing outside `allowedPaths`, touching a don't-touch path, deleting a test file, or shrinking one                                                                                                                                                                                                       | Failure names the file and which budget rule it broke; budgets live in the playbook front-matter                          |
 | Wire round-trip tests          | `npm run check:wire`                                                                                                                                                 | Contract drift between producer + consumer for AG-UI / MCP / Zod schemas                                                                                                                                                                                                                                                                                             | Failing test + the recipe under [`docs/recipes/`](../recipes/)                                                            |
 | Wire co-change (producer-only) | Soft warn inside `npm run check:affected` (`scripts/wire-cochange.mjs`)                                                                                              | Diff touches a wire producer (`diagramSchema`, AG-UI emitter, MCP tools, `sessionEventBus`) without the expected consumer/test files                                                                                                                                                                                                                                 | Warning text is the fix; see [`docs/agent-blast-radius.md`](../agent-blast-radius.md)                                     |
@@ -185,9 +185,15 @@ The full rationale is in [ADR-0007](../decisions/0007-sensors-for-coding-agents.
 
 ## How to read the quality ratchet
 
-`npm run verify:ratchet` compares the repo against budgets in `docs/agents/ratchet.json`. It is the
-generalisation of the mechanism ADR-0006 already applies to TypeScript: a strict-island regression
-fails `typecheck:strict`, and these metrics fail the same way.
+`npm run verify:ratchet` compares the repo against budgets in `docs/agents/ratchet.json`.
+
+**It gates no build, on purpose.** Two unattended feature automations run against this repo daily,
+and a quality metric that reddens their build at an hour nobody is watching does not get the code
+fixed — it teaches the agent that raising the budget is how you get green. So the ratchet is not in
+`npm run check`, not in CI, and not in any hook. It is an instrument the `improve` routine reads
+(`--json`) and acts on: a number that moved the wrong way becomes that routine's next task.
+
+Anyone can run it to see where things stand.
 
 | Metric                                                                      | Direction     |
 | --------------------------------------------------------------------------- | ------------- |
@@ -196,14 +202,13 @@ fails `typecheck:strict`, and these metrics fail the same way.
 | `strictIslandFiles` — `include` length of each `tsconfig.strict.json`       | may only rise |
 | `suite` — test file and test case counts                                    | may only rise |
 
-**When it fails, fix the code first.** If the growth is genuinely warranted, raise that entry's
-`budget` **in the same PR** and add a `reason`. The script cross-checks `budget` against `initial`
-and fails when they differ with no reason recorded — so the ratchet cannot be quietly unwound to
-turn a red build green, and the file itself carries the history of every concession.
+**When it reports a regression, fix the code first.** If the growth is genuinely warranted, raise
+that entry's `budget` and add a `reason`. The script cross-checks `budget` against `initial` and
+reports when they differ with no reason recorded — so the file itself carries the history of every
+concession rather than quietly forgetting them.
 
 A run also prints `improved — …` lines when a metric has moved past its budget in the good
 direction. Those are free wins: tighten the budget to lock them in.
 
-**Lint is opt-in.** `npm run check` runs the cheap metrics only (well under a second). Counting lint
-warnings needs a second full ESLint pass, and adding two to three minutes to the loop agents run
-most often would cost more than the metric returns. The `hygiene` routine runs `--with-lint`.
+**Lint is opt-in.** The default run does the cheap metrics only (well under a second). Counting
+lint warnings needs a second full ESLint pass; the `improve` routine runs `--with-lint`.

@@ -17,8 +17,8 @@ import {
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 const PLAYBOOK = {
-  name: 'hygiene',
-  tier: 'mechanical',
+  name: 'improve',
+  tier: 'code-writing',
   maxFiles: '3',
   allowedPaths: ['docs/**', '*.md', 'scripts/verify-*.mjs'],
   forbiddenPaths: ['apps/**']
@@ -81,7 +81,7 @@ test('checkRoutineDiff accepts a diff inside its budget', () => {
   const result = checkRoutineDiff({
     playbook: PLAYBOOK,
     changes: [
-      { status: 'M', file: 'docs/routines/hygiene.md' },
+      { status: 'M', file: 'docs/routines/improve.md' },
       { status: 'M', file: 'CLAUDE.md' }
     ]
   });
@@ -158,7 +158,7 @@ test('ALWAYS_FORBIDDEN covers the AGENTS.md cost and lockfile traps', () => {
 });
 
 test('every shipped playbook loads with a valid budget and a ledger', () => {
-  for (const name of ['review', 'hygiene']) {
+  for (const name of ['review', 'improve']) {
     const { playbook, errors } = loadPlaybook(ROOT, name);
     assert.deepEqual(errors, [], `${name} playbook should be valid`);
     assert.ok(ROUTINE_TIERS.includes(String(playbook.tier)));
@@ -171,11 +171,34 @@ test('loadPlaybook reports a missing playbook rather than throwing', () => {
   assert.match(errors.join('\n'), /missing playbook/);
 });
 
-test('the report-tier routine cannot write outside its ledger', () => {
+test('a routine cannot write to a path its playbook forbids, whatever its tier', () => {
   const { playbook } = loadPlaybook(ROOT, 'review');
   const result = checkRoutineDiff({
     playbook,
-    changes: [{ status: 'M', file: 'apps/server/src/routes/copilot.ts' }]
+    changes: [{ status: 'M', file: 'apps/server/src/mcp/apps/anythingApp.js' }]
   });
-  assert.equal(result.ok, false);
+  assert.equal(result.ok, false, "MCP App HTML is on the don't-touch list");
+});
+
+test('review may fix a bug in product code, within its file budget', () => {
+  const { playbook } = loadPlaybook(ROOT, 'review');
+  const result = checkRoutineDiff({
+    playbook,
+    changes: [
+      { status: 'M', file: 'apps/web/src/utils/officeCadence.js' },
+      { status: 'M', file: 'apps/web/test/officeCadence.test.js' },
+      { status: 'M', file: 'docs/routines/ledger/review.md' }
+    ],
+    testCounts: [{ file: 'apps/web/test/officeCadence.test.js', before: 20, after: 21 }]
+  });
+  assert.deepEqual(result.violations, []);
+});
+
+test('improve may not touch product source outside its allowlist', () => {
+  const { playbook } = loadPlaybook(ROOT, 'improve');
+  const result = checkRoutineDiff({
+    playbook,
+    changes: [{ status: 'M', file: 'apps/web/src/components/DiagramCanvas.jsx' }]
+  });
+  assert.equal(result.ok, false, 'improve does no unprompted refactors');
 });

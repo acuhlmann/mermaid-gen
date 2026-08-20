@@ -77,7 +77,7 @@ Every session carries **six independent diagram slots** — `mermaid` (Mermaid t
 | Anything **generation** bench (tokens) | `node --import ./scripts/register-antv-layout-esm.mjs --import tsx apps/server/scripts/benchAnythingGeneration.js --tag <label> [--browser]` |
 | Regenerate **one** baked audio asset   | `./scripts/generate-office-audio.sh <name>` — bare = whole manifest, 900 credits, overwrites everything                                      |
 | Check the committed audio bank         | `./scripts/generate-office-audio.sh --verify` (free, no key, no network)                                                                     |
-| Quality ratchet (in `check`)           | `npm run verify:ratchet`; `npm run verify:ratchet -- --with-lint` for the ESLint pass                                                        |
+| Quality trend (gates nothing)          | `npm run verify:ratchet`; add `-- --json` or `-- --with-lint`                                                                                |
 | Routine budget check                   | `npm run routine:guard -- --postflight <name>`                                                                                               |
 
 `npm run check` includes `verify:deps` (override/singleton npm pins), `format:check`, `lint` for all three workspaces, and the rest of the sensor stack, plus `typecheck:strict` — full-strict typechecking of the files listed in each app's `tsconfig.strict.json` (the ADR-0006 "strict islands"; add a `.ts`/`.tsx` path there to opt it into strict, and a regression fails CI). Lint messages go through a custom formatter (`packages/eslint-config/formatter.cjs`) that appends a per-rule "Agent guidance" footer with the canonical fix and suppression syntax — read it before suppressing. `@typescript-eslint`'s `recommended` rules now fire as warnings on every `.ts`/`.tsx` file, so converting `.js`→`.ts` ([recipe](docs/recipes/convert-js-leaf-to-ts.md)) gains both Factory and ts-eslint guidance. Thresholds (`max-lines`, `complexity`, …) ship as warnings; ADR-0005 monoliths are pre-suppressed in `packages/eslint-config/legacy-monoliths.js`. A `.husky/pre-commit` hook runs `lint-staged` (Prettier on staged files). `.husky/pre-push` runs `npm run check:affected`. Architecture rules now live in `.dependency-cruiser.cjs` (replaces the older regex-based boundary script); each rule's `comment` field is the agent-readable fix. See [`docs/agents/sensors.md`](docs/agents/sensors.md) for the full sensor map.
@@ -933,12 +933,13 @@ when you touch one, and each is a trap if you assume the obvious:
   the playbook's `maxFiles` / `allowedPaths` / `forbiddenPaths` and checks the real diff, plus an
   always-forbidden list mirroring the don't-touch list, deleted test files, and any test file whose
   case count fell. Widening a routine means editing its frontmatter, in a PR.
-- **`npm run verify:ratchet` binds every PR, not only routine PRs.** It runs inside `npm run check`.
-  Monolith LOC and lint warnings may only fall; strict-island and suite counts may only rise.
-  Budgets live in `docs/agents/ratchet.json`. To loosen one, raise it **in the same PR** and add a
-  `reason` — a budget differing from its `initial` without one is itself a failure, which is what
-  stops the ratchet being unwound to make a red build green. Lint counting is behind `--with-lint`
-  (an extra ESLint pass on every `check` costs more than it returns).
+- **`npm run verify:ratchet` gates nothing — it is the `improve` routine's work queue.** Monolith
+  LOC and lint warnings should only fall; strict-island and suite counts should only rise. Budgets
+  live in `docs/agents/ratchet.json`. It is deliberately **out** of `npm run check`: two unattended
+  feature automations run daily here, and a quality metric that reddens their build at an hour
+  nobody is watching teaches an agent to raise the budget instead of fixing the code. Run it
+  yourself when you want the numbers (`--json` for machine-readable, `--with-lint` for the ESLint
+  pass); when a budget genuinely has to rise, raise it with a written `reason`.
 - **A routine records; it does not refactor.** `docs/agents/balanced-coupling-priorities.md` says
   split _on contact_, and a schedule has no feature to be on contact with — so coupling findings
   become issues and priority-doc updates, never unprompted hub splits. Same reason ADR-0007's

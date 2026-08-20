@@ -44,7 +44,7 @@ Domain depth (slots, validation ladders, wire-contract habits, where-to-put tabl
   - `npm run verify:deps` — override pins and singleton npm installs (e.g. `@a2ui/web_core` hoisted vs nested); error output includes the `npm install` fix
   - `npm run verify:boundaries` — dependency-cruiser graph rules (cycles + workspace + intra-server layers); each rule's `comment` is the agent-readable fix
   - `npm run lint` — all three workspaces, formatter appends per-rule "Agent guidance" footer with the canonical fix and suppression syntax (`packages/eslint-config/formatter.cjs`)
-  - `npm run verify:ratchet` — quality ratchet: monolith LOC and lint warnings may only fall, strict-island and suite counts may only rise (`docs/agents/ratchet.json`); `--with-lint` adds the ESLint pass, which `check` deliberately skips
+  - `npm run verify:ratchet` — quality trend: monolith LOC and lint warnings should only fall, strict-island and suite counts should only rise (`docs/agents/ratchet.json`). **Not part of `check`** — it gates no build; `--json` for machine-readable, `--with-lint` to include the ESLint pass
   - `npm run routine:guard -- --preflight|--postflight <name>` — budget enforcement for a scheduled NFR routine (`docs/routines/`)
   - `npm run verify:modularity` — reminder of how to run a semantic modularity review (Claude `/modularity:review` or Cursor `.cursor/skills/modularity/review/SKILL.md`); see [`docs/agents/modularity.md`](docs/agents/modularity.md)
 - **Workspace-scoped** (faster when you know the blast radius):
@@ -262,12 +262,13 @@ when you touch one, and each is a trap if you assume the obvious:
   the playbook's `maxFiles` / `allowedPaths` / `forbiddenPaths` and checks the real diff, plus an
   always-forbidden list mirroring the don't-touch list, deleted test files, and any test file whose
   case count fell. Widening a routine means editing its frontmatter, in a PR.
-- **`npm run verify:ratchet` binds every PR, not only routine PRs.** It runs inside `npm run check`.
-  Monolith LOC and lint warnings may only fall; strict-island and suite counts may only rise.
-  Budgets live in `docs/agents/ratchet.json`. To loosen one, raise it **in the same PR** and add a
-  `reason` — a budget differing from its `initial` without one is itself a failure, which is what
-  stops the ratchet being unwound to make a red build green. Lint counting is behind `--with-lint`
-  (an extra ESLint pass on every `check` costs more than it returns).
+- **`npm run verify:ratchet` gates nothing — it is the `improve` routine's work queue.** Monolith
+  LOC and lint warnings should only fall; strict-island and suite counts should only rise. Budgets
+  live in `docs/agents/ratchet.json`. It is deliberately **out** of `npm run check`: two unattended
+  feature automations run daily here, and a quality metric that reddens their build at an hour
+  nobody is watching teaches an agent to raise the budget instead of fixing the code. Run it
+  yourself when you want the numbers (`--json` for machine-readable, `--with-lint` for the ESLint
+  pass); when a budget genuinely has to rise, raise it with a written `reason`.
 - **A routine records; it does not refactor.** `docs/agents/balanced-coupling-priorities.md` says
   split _on contact_, and a schedule has no feature to be on contact with — so coupling findings
   become issues and priority-doc updates, never unprompted hub splits. Same reason ADR-0007's

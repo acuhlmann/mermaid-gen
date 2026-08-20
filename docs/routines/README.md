@@ -27,19 +27,24 @@ you are building the thing this shelf exists to replace.
 See [ADR-0014](../decisions/0014-autonomous-nfr-routines.md) for why these exist and what they are
 deliberately not allowed to do.
 
-## Risk tiers
+## Tiers, and what actually keeps this safe
 
-A routine declares its `tier` in the playbook frontmatter. The tier decides what it may do with a
-green build, and nothing else about the routine changes.
+A routine declares a `tier` in its playbook front-matter:
 
-| Tier         | May write code | On green CI               | Examples             |
-| ------------ | -------------- | ------------------------- | -------------------- |
-| `report`     | no             | files issues; opens no PR | `review`             |
-| `mechanical` | yes, bounded   | merges its own PR         | `hygiene`            |
-| `proposal`   | yes, bounded   | opens a PR and **stops**  | future refactor work |
+| Tier           | Writes code                    | Examples            |
+| -------------- | ------------------------------ | ------------------- |
+| `report`       | no                             | —                   |
+| `code-writing` | yes, within its declared paths | `review`, `improve` |
 
-A `report` routine that finds itself wanting to edit code has found a `proposal`-tier task. File
-the issue; do not promote yourself mid-run.
+**Both shipped routines open a PR and merge it themselves once CI is green.** The PR exists so the
+owner has something to skim, not as a gate — a routine that waits for review is a routine that saves
+nobody any time.
+
+What keeps that safe is **the budget, not the tier and not a human in the loop**: a small `maxFiles`,
+an explicit path allowlist, `npm run check` green, and — for any fix to a bug — a test that fails
+without it. If a routine's output is ever wrong, the correction is one line in its playbook
+(`maxFiles` down, or a path into `forbiddenPaths`); the guard enforces it mechanically from the next
+run.
 
 ## The rules every routine inherits
 
@@ -53,6 +58,12 @@ that has never executed is not load-bearing — see the `vi.mock` note in
 [`docs/agents/sensors.md`](../agents/sensors.md) — but establish that before removing it, because
 repairing such a mock is a real behaviour change while deleting it is not.
 
+**A bug fix ships only with a test that fails without it.** Write the regression test first, run it
+against the unfixed code and observe it red, then fix. This is what "confident enough to merge
+unattended" has to mean — a routine cannot be the sole judge of its own confidence, and this repo's
+own notes are full of tests that pass while examining nothing. A bug you cannot make a test fail for
+gets filed, not fixed.
+
 ### 2. Spend only your budget
 
 The playbook's frontmatter declares `maxFiles`, `allowedPaths`, and `forbiddenPaths`.
@@ -63,9 +74,10 @@ its playbook — do the smallest useful slice, write the rest to the ledger, and
 
 ### 3. Green, or nothing
 
-`npm run check` must pass before anything is pushed. If the run cannot get to green, it pushes
-**nothing**: delete the branch and file an issue describing the blocker. A half-fixed branch left
-open is worse than no run at all, because the next firing's preflight will refuse to start behind it.
+`npm run check` must pass before anything is pushed, and CI must be green before the PR is merged.
+If the run cannot get to green, it pushes **nothing**: delete the branch and file an issue
+describing the blocker. A half-fixed branch left open is worse than no run at all, because the next
+firing's preflight will refuse to start behind it — which is the intended stop, not a bug.
 
 **One documented exception.** `apps/server/test/anythingRuntimeCheck.test.js` fails up to six tests
 at once under full-suite load contention while passing 16/16 in isolation. The tell is a uniform
@@ -134,9 +146,9 @@ answers a rule the repo already wrote down:
   presenting that evidence; a human makes the call.
 - **No new dependencies.** Adding a package is a decision with a licence, a supply chain and a
   bundle cost. File an issue.
-- **No ratchet loosening without a reason.** `docs/agents/ratchet.json` may be relaxed in the same
-  PR that needs it, with a written reason — never silently, and never as a way to make a red build
-  green.
+- **No silent ratchet loosening.** `docs/agents/ratchet.json` gates no build, so relaxing an entry
+  never unblocks anything — it only erases the record that something got worse. Raise a budget with
+  a written `reason` or not at all.
 
 ## Adding a routine
 

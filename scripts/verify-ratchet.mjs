@@ -6,8 +6,14 @@
  * This generalises that mechanism to the numbers nothing was watching: monolith size, lint
  * warning volume, and suite size. Budgets live in docs/agents/ratchet.json.
  *
- *   node scripts/verify-ratchet.mjs              # cheap metrics, runs inside `npm run check`
+ *   node scripts/verify-ratchet.mjs              # cheap metrics
  *   node scripts/verify-ratchet.mjs --with-lint  # adds an ESLint pass (~2-3 min)
+ *   node scripts/verify-ratchet.mjs --json       # machine-readable, for a routine to act on
+ *
+ * Deliberately NOT wired into `npm run check`. Two unattended feature automations run daily
+ * against this repo, and a quality metric that fails their build at an hour nobody is watching
+ * teaches an agent to raise the budget rather than fix the code. The `improve` routine owns this
+ * instead: it reads the numbers, records the trend, and a wrong-way move becomes its next task.
  *
  * To loosen a budget: raise it in ratchet.json **in the same PR** and add a `reason`. A budget
  * that differs from its `initial` without a reason is itself a failure — that is what stops the
@@ -204,6 +210,7 @@ export function measureAll(root, baseline, options = {}) {
 function main() {
   const args = process.argv.slice(2);
   const withLint = args.includes('--with-lint');
+  const asJson = args.includes('--json');
   const abs = path.join(ROOT, RATCHET_PATH);
   if (!fs.existsSync(abs)) {
     console.error(`verify:ratchet: missing ${RATCHET_PATH}`);
@@ -222,6 +229,12 @@ function main() {
   const measured = measureAll(ROOT, baseline, { withLint });
   const result = compareRatchet(baseline, measured);
 
+  if (asJson) {
+    // Exit 0 either way: a routine reading this wants the numbers, not a build verdict.
+    console.log(JSON.stringify({ updated: baseline.updated, measured, ...result }, null, 2));
+    return;
+  }
+
   for (const improvement of result.improvements) {
     console.log(`  improved — ${improvement}`);
   }
@@ -236,7 +249,8 @@ function main() {
   console.error('verify:ratchet: a quality metric moved the wrong way');
   for (const violation of result.violations) console.error(`  ${violation}`);
   console.error(
-    `\nFix the code, or raise the budget in ${RATCHET_PATH} in this same PR with a written "reason".`
+    `\nThis gates no build. Fix the code, or — when the growth is warranted — raise the budget in ` +
+      `${RATCHET_PATH} with a written "reason".`
   );
   process.exit(1);
 }

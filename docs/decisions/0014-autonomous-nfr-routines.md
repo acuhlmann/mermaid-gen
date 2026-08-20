@@ -6,10 +6,11 @@ Accepted — 2026-08-20
 
 ## Context
 
-Most of this repo's changes now arrive from scheduled or human-prompted agent runs. One scheduled
-routine already exists — a daily Claude Routine that improves the Metaphor3D deliverables and merges
-its own PRs. It works, and it has three properties that are fine for one feature routine and would
-not survive being copied:
+Most of this repo's changes now arrive from scheduled or human-prompted agent runs. **Two**
+unattended feature automations already run daily: a Cursor automation at 08:00 HKT (00:00 UTC), and
+a Claude Routine at 20:00 UTC that improves the Metaphor3D deliverables and merges its own PRs. They
+work, and they have three properties that are fine for feature work and would not survive being
+copied into a quality-enforcement mechanism:
 
 1. **Nothing reviews its output.** Its PRs merge minutes after opening. The repo has had zero open
    issues and no PR that ever waited for a human. Feature work lands unreviewed by construction.
@@ -50,22 +51,32 @@ and adds nothing to them. A playbook can therefore be reviewed in a PR, diffed, 
 including by the routine that runs it. [`docs/routines/README.md`](../routines/README.md) holds the
 rules every playbook inherits.
 
-**2. Three risk tiers decide what a green build permits.** `report` writes no code and files issues;
-`mechanical` merges its own PR; `proposal` opens a PR and stops. The tier is declared in the
-playbook, and the budget — not the tier — is what makes any of it safe.
+**2. Both routines write code, open a PR, and merge it themselves once CI is green.** The PR exists
+so the owner has a reference to skim, not as a gate. What keeps that safe is the **budget**, not a
+human in the loop: a small `maxFiles`, an explicit path allowlist, and — for `review` — the rule
+that a fix ships only with a test that fails without it. A playbook may still declare
+`tier: report` to write no code at all; the two shipped routines do not.
 
 **3. The budget is mechanical.** `npm run routine:guard` re-reads the playbook and checks the actual
 diff: file count, allowed and forbidden path globs, an always-forbidden list mirroring
 `AGENTS.md` § Don't-touch, no deleted test files, and no test file whose case count fell. Preflight
 additionally refuses to start a second branch while the routine's previous PR is open.
 
-**4. Quality metrics ratchet.** `docs/agents/ratchet.json` records a budget and an `initial` value
-for monolith size, lint warning volume, strict-island coverage and suite size;
-`npm run verify:ratchet` fails when one moves the wrong way, and runs inside `npm run check` — so it
-binds every PR, not only routine PRs. Loosening a budget requires raising it **in the same PR** with
-a written `reason`; a budget that differs from its `initial` without one is itself a failure. Lint
-counting is behind `--with-lint` because an extra ESLint pass on every `check` would cost more than
-it returns.
+**4. Quality metrics are tracked, and gate nothing.** `docs/agents/ratchet.json` records a budget
+and an `initial` value for monolith size, lint warning volume, strict-island coverage and suite
+size. `npm run verify:ratchet` reports which have moved the wrong way, and is deliberately **not**
+in `npm run check`, not in CI, and not in any hook.
+
+A hard gate was the first design and was wrong. With two unattended feature automations, a metric
+that reddens a build at 00:00 or 20:00 UTC does not get the code fixed — the agent is blocked by
+something unrelated to its task, and the cheapest way out is raising the budget. That teaches
+exactly the habit the ratchet exists to prevent, and costs an unattended run.
+
+So the ratchet is an **instrument the `improve` routine owns**: it reads the numbers (`--json`),
+writes them to its ledger, and a wrong-way move becomes its next work item. Quality is pulled by the
+routine rather than pushed by a red build. Raising a budget still needs a written `reason`, and the
+script reports a budget that differs from its `initial` without one — so the file carries the
+history of every concession.
 
 **5. The three constraints above are honoured, not overridden:**
 
@@ -84,38 +95,45 @@ it returns.
 Positive:
 
 - Feature work gets a second pair of eyes the morning after it lands, without blocking it.
-- The ratchet turns "don't regress" from a hope into a build failure. `DiagramCanvas.jsx` gaining
-  592 lines past its ADR-0005 budget would have been caught the day it happened.
+- Regressions become visible and owned. `DiagramCanvas.jsx` gaining 592 lines past its ADR-0005
+  budget went unnoticed for months because no one was measuring; now something measures daily and
+  has to either fix it or say why not.
 - Routine instructions become reviewable artifacts, so the routines can be improved like code.
 - The ledger makes "did this actually improve anything?" answerable months later.
 
 Negative:
 
-- **The ratchet binds every contributor**, including the existing feature routine. A legitimate
-  growth in a monolith now costs one line in `ratchet.json` and a written reason. That friction is
-  the mechanism, not a side effect — but it will occasionally be paid on feature work.
+- **Nothing enforces the ratchet.** Quality improves only as fast as the `improve` routine actually
+  works its queue. If that routine stalls or is disabled, the numbers drift again with nobody
+  noticing — the same failure this ADR set out to fix, one level up. The ledger is the tell: a run
+  log that stops is the signal to look.
+- **`review` writes product code, self-merges, and `main` auto-deploys to Cloud Run.** The
+  failing-test rule, a small `maxFiles`, and green CI are the entire safety model. Tightening
+  `maxFiles` or moving a path into `forbiddenPaths` is one line in the playbook, enforced
+  mechanically from the next run.
 - Baselines are a snapshot. `ratchet.json` records where the repo stood on 2026-08-20; a metric that
   was already bad is frozen at bad rather than fixed.
 - Lint counting is opt-in, so lint volume can drift between routine runs.
 - More scheduled surface to keep honest: two more cron jobs, two playbooks and two ledgers, all of
   which can themselves go stale. `verify:agent-infra` and `verify:doc-paths` now scan
   `docs/routines/` to limit that.
-- The `mechanical` tier self-merges, and `main` auto-deploys to Cloud Run. The mitigation is path
-  budget rather than review: `hygiene` cannot write to `apps/**` or `packages/shared/**`.
 
 ## Alternatives considered
 
 - **Clone the feature routine's shape — one big prompt, self-merge, no guard.** Cheapest, and how
   the existing routine works. Rejected because the three gaps in Context are properties of that
   shape, and copying it multiplies them instead of fixing them.
-- **Keep prompts in triggers, add only the ratchet.** Gets the regression gate without the doc
-  shelf. Rejected because an unversioned prompt cannot be improved, and "improve over time" was the
-  point.
-- **Advisory ratchet — report drift, never fail.** Zero friction. Rejected because the drift this
-  ADR documents happened _while_ the numbers were visible in `CLAUDE.md`; visibility without a gate
-  is what we already had.
-- **Ratchet only routine-authored PRs.** Avoids ever blocking feature work. Rejected because the
-  measured regressions came from feature work, so it would guard everything except the source.
+- **Keep prompts in triggers, add only the ratchet.** Gets the measurement without the doc shelf.
+  Rejected because an unversioned prompt cannot be improved, "improve over time" was the point, and
+  with no routine owning the numbers the ratchet would report into the void.
+- **Ratchet as a hard gate in `npm run check`.** Shipped first, then reverted before this ADR was
+  accepted. The objection that killed it: with two unattended daily automations, the gate's first
+  real effect would be failing a run nobody is watching, over a metric unrelated to that run's task
+  — and the cheapest way out of that is raising the budget, which is the habit the gate existed to
+  prevent. Visibility without a gate is genuinely weaker; visibility **plus a routine whose job is
+  to act on it** is not the unowned visibility we had before, which is what let the drift happen.
+- **Ratchet only routine-authored PRs.** Avoids ever blocking feature work. Rejected as the worst of
+  both: it would guard everything except the source of the measured regressions.
 - **Let routines refactor monoliths directly.** Highest value on paper. Rejected: it contradicts
   "split on contact" in writing, and an unattended refactor is the change least suited to a diff
   nobody reads.
@@ -127,7 +145,7 @@ Negative:
 | Concern             | File                                                                                                                                           |
 | ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
 | Shared contract     | [`docs/routines/README.md`](../routines/README.md)                                                                                             |
-| Playbooks           | [`docs/routines/review.md`](../routines/review.md), [`docs/routines/hygiene.md`](../routines/hygiene.md)                                       |
+| Playbooks           | [`docs/routines/review.md`](../routines/review.md), [`docs/routines/improve.md`](../routines/improve.md)                                       |
 | Durable memory      | `docs/routines/ledger/*.md`                                                                                                                    |
 | Budget enforcement  | [`scripts/routine-guard.mjs`](../../scripts/routine-guard.mjs)                                                                                 |
 | Quality ratchet     | [`scripts/verify-ratchet.mjs`](../../scripts/verify-ratchet.mjs), `docs/agents/ratchet.json`                                                   |

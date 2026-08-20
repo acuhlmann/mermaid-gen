@@ -82,7 +82,7 @@ test('verifyAgentInfra reports a missing blast-radius test path', () => {
 test('collectRoutineDocs discovers playbooks without listing them', () => {
   const docs = collectRoutineDocs(ROOT);
   assert.ok(docs.includes('docs/routines/review.md'));
-  assert.ok(docs.includes('docs/routines/hygiene.md'));
+  assert.ok(docs.includes('docs/routines/improve.md'));
   assert.ok(
     !docs.includes('docs/routines/README.md'),
     'the contract is added separately, not as a playbook'
