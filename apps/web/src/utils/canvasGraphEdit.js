@@ -25,6 +25,7 @@ import {
   deleteMindmapNode,
   isMindmapFamilySource,
   mindmapLabelRef,
+  mindmapNodeRef,
   renameMindmapEdge,
   renameMindmapNode
 } from './mermaidMindmapEdit.js';
@@ -102,7 +103,9 @@ export function graphEditIdFromDescriptor(descriptor) {
     return null;
   }
   const logical = logicalIdFromDiagramSelection(descriptor);
-  if (logical && !/^node_\d+$/i.test(logical)) return logical;
+  const nodeIndexMatch = logical?.match(/^node_(\d+)$/i);
+  if (nodeIndexMatch) return mindmapNodeRef(Number.parseInt(nodeIndexMatch[1], 10));
+  if (logical) return logical;
   if (descriptor.label) return mindmapLabelRef(descriptor.label);
   if (descriptor.partName) return mindmapLabelRef(descriptor.partName);
   return logical;

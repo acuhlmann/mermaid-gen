@@ -50,7 +50,7 @@ describe('graphEditAdapterFor', () => {
     const adapter = graphEditAdapterFor('mermaid', MINDMAP);
     expect(adapter?.contentType).toBe('mermaid');
     expect(adapter?.canLink).toBe(false);
-    expect(adapter?.addLinked(MINDMAP, '~label:Child1', 'New')).toMatchObject({
+    expect(adapter?.addLinked(MINDMAP, '~node:1', 'New')).toMatchObject({
       ok: true,
       newId: '0,0,0'
     });
@@ -94,7 +94,7 @@ describe('graphEditIdFromDescriptor', () => {
     expect(graphEditIdFromDescriptor({ dataId: 'A', partName: 'Start' })).toBe('A');
     expect(
       graphEditIdFromDescriptor({ id: 'node_0', partName: 'Root Topic', label: 'Root Topic' })
-    ).toBe('~label:Root Topic');
+    ).toBe('~node:0');
     expect(graphEditIdFromDescriptor({ kind: 'edge', dataId: 'A_B' })).toBeNull();
   });
 });
