@@ -98,3 +98,41 @@ describe('connectMindmapNode', () => {
     expect(connectMindmapNodes(MINDMAP, '0', '0,0')).toEqual({ ok: false, reason: 'no-link' });
   });
 });
+
+describe('mindmap edit guards', () => {
+  it('refuses non-mindmap sources', () => {
+    const flowchart = 'flowchart TD\n  A --> B';
+    expect(addLinkedMindmapNode(flowchart, '0')).toEqual({ ok: false, reason: 'not-mindmap' });
+    expect(deleteMindmapNode(flowchart, '0,0')).toEqual({ ok: false, reason: 'not-mindmap' });
+    expect(renameMindmapNode(flowchart, '0,0', 'X')).toEqual({ ok: false, reason: 'not-mindmap' });
+  });
+
+  it('returns missing when the node id does not exist', () => {
+    expect(addLinkedMindmapNode(MINDMAP, '9,9')).toEqual({ ok: false, reason: 'missing' });
+    expect(deleteMindmapNode(MINDMAP, '9,9')).toEqual({ ok: false, reason: 'missing' });
+    expect(renameMindmapNode(MINDMAP, '9,9', 'Ghost')).toEqual({ ok: false, reason: 'missing' });
+  });
+
+  it('is a no-op when rename label is unchanged', () => {
+    const result = renameMindmapNode(MINDMAP, '0,0', 'Child1');
+    expect(result).toEqual({ ok: true, source: MINDMAP });
+  });
+});
+
+describe('parseMindmapNodeText shaped nodes', () => {
+  it.each([
+    ['nodeA[Square]', { kind: 'square-id', nodeId: 'nodeA', label: 'Square' }],
+    ['[Plain square]', { kind: 'square', nodeId: null, label: 'Plain square' }],
+    ['nodeB(Round)', { kind: 'round-id', nodeId: 'nodeB', label: 'Round' }],
+    ['nodeC))Cloud((', { kind: 'cloud-id', nodeId: 'nodeC', label: 'Cloud' }],
+    ['nodeD{Hexagon}', { kind: 'hex-id', nodeId: 'nodeD', label: 'Hexagon' }]
+  ])('parses %s', (line, expected) => {
+    expect(parseMindmapNodeText(line)).toMatchObject(expected);
+    expect(formatMindmapNodeText(parseMindmapNodeText(line), expected.label)).toBe(line);
+  });
+
+  it('ignores meta and decoration lines', () => {
+    expect(parseMindmapNodeText('classDef foo fill:#fff')).toBeNull();
+    expect(parseMindmapNodeText('::icon(fa fa-star)')).toBeNull();
+  });
+});
