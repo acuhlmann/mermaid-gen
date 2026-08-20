@@ -61,9 +61,8 @@ working interactive page", "rejects a page whose script throws at load", …) du
 cd apps/server && node --import ../../scripts/register-antv-layout-esm.mjs --import tsx --test test/anythingRuntimeCheck.test.js
 ```
 
-It is load contention, not a regression. Each case spawns a jsdom child process with a
-deadline; alone they take ~2 s each, and under a loaded full-suite run the same cases take
-~4 s and miss it. **The tell is the timing** — a real failure does not shift every duration in
+It is load contention, not a regression. Each case spawns a child process (browser or jsdom, per `ANYTHING_RUNTIME_ENGINE`) with a
+deadline; alone they take ~2 s each on browser (~4 s under jsdom), and under a loaded full-suite run the same cases can miss the deadline. **The tell is the timing** — a real failure does not shift every duration in
 the file from 2 s to 4 s. Before assuming you broke something, check whether your diff touches
 `apps/server` at all, then re-run the file alone.
 

@@ -108,11 +108,11 @@ The rule is now **frequency, not category**: what you reach for on most runs sta
 bottom composer band; what you reach for a few times a session moves to the frame, one
 click deep.
 
-| Region                | Component       | Holds                                                                                      |
-| --------------------- | --------------- | ------------------------------------------------------------------------------------------ |
-| Menu bar (top)        | `DeskOsMenuBar` | brand (leading slot) · Deliverable · Mailroom · Admin (incl. Headphones / Focus / vendors) |
-| Composer band         | `BottomRow`     | Work order · **Mail / Chat / Meeting** icons · Your Team · Notebook                        |
-| Taskbar (bottom edge) | `DeskOsTaskbar` | Stand up · **presence strip** · window list (`DeskOsTray`) · tray end                      |
+| Region                | Component       | Holds                                                                                                                              |
+| --------------------- | --------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| Menu bar (top)        | `DeskOsMenuBar` | brand (leading slot) · Deliverable (incl. Spaghetti) · 🍝 Spaghetti toggle · Mailroom · Admin (incl. Headphones / Focus / vendors) |
+| Composer band         | `BottomRow`     | Work order · **Mail / Chat / Meeting** icons · Your Team · Notebook                                                                |
+| Taskbar (bottom edge) | `DeskOsTaskbar` | Stand up · **presence strip** · window list (`DeskOsTray`) · tray end                                                              |
 
 Fullscreen lives on the canvas corner control (`DiagramFullscreenButton` in
 `BrandChromeSlot`), not the menu bar — the View menu was removed.
@@ -123,6 +123,10 @@ What moved, and why it was somewhere worse before:
   function was already documented as "Deliverable format" ([`office-parody.md`](office-parody.md)),
   and `GLOSSARY.md` already calls the six slots "your deliverables", so the menu introduces
   no new vocabulary. It also retires a drawer, which the clean-desk policy forbids on screen.
+- **Spaghetti (code drawer)** — the Monaco source peek is now a one-click 🍝 toggle on the
+  menu bar (`menubar-spaghetti-toggle`) when a deliverable exists, in addition to the
+  Deliverable menu item and the notebook / canvas chrome. Disabled when there is nothing to
+  edit; `aria-pressed` while the drawer is open.
 - **Export (11 formats)** — was an expandable row _inside_ the desk-stamp menu, two clicks
   deep behind a menu you had to know to open. Now the **Mailroom** menu.
 - **Contractor · HR · Language · Hotkeys** — off the desk stamp into **Admin**.

@@ -1,12 +1,12 @@
 # Recipe: add a library to the Anything-mode allowlist
 
-Use when a class of Anything-mode asks keeps failing or degrading because vanilla JS can't reasonably do the work (real scales/axes, physics, …) and a single pinned library would fix it. Read [ADR-0008](../decisions/0008-anything-inline-libraries.md) first — the allowlist is meant to stay **short**, and the ADR's addendum records why Tone.js was evaluated and rejected (its build can't execute under the jsdom runtime check). Marker form is stored; vendored bytes are spliced in only where the page executes.
+Use when a class of Anything-mode asks keeps failing or degrading because vanilla JS can't reasonably do the work (real scales/axes, physics, …) and a single pinned library would fix it. Read [ADR-0008](../decisions/0008-anything-inline-libraries.md) first — the allowlist is meant to stay **short**, and the ADR's addendum records why Tone.js was evaluated and rejected (its build can't execute under the runtime check). Marker form is stored; vendored bytes are spliced in only where the page executes.
 
 ## Gate questions (answer before writing code)
 
 1. **Does it earn its bytes?** Every entry grows the repo and the lazy client vendor chunk that all lib-using pages share. d3 is 273KB, matter 81KB; a ~600KB library needs an exceptional case.
 2. **Does its dist build survive inlining?** The generator rejects sources containing `</script`, `<!--`, or `<script` (they'd terminate/corrupt the inline `<script>` block). Check the minified UMD build the package ships.
-3. **Does it execute under the jsdom runtime check?** Pipe a small page using the library through `apps/server/src/tools/anythingRuntimeSandbox.js` (stdin → JSON verdict on stdout) before committing to anything. Libraries that eagerly validate real browser API semantics at load (Tone.js's Web Audio graph) will fail every page that imports them — that's a disqualifier, not something to patch around per-lib.
+3. **Does it execute under the runtime check?** Pipe a small page using the library through `validateAndPrepareAnythingPatch` or `runAnythingRuntimeCheck` (browser by default; jsdom when `ANYTHING_RUNTIME_ENGINE=jsdom`). For quick stdin probes, `apps/server/src/tools/anythingRuntimeSandbox.js` still works. Libraries that eagerly validate real browser API semantics at load (Tone.js's Web Audio graph) will fail every page that imports them — that's a disqualifier, not something to patch around per-lib.
 4. **Does it define one global?** The mechanism assumes a classic script that attaches a single global (`d3`, `Matter`).
 
 ## Steps

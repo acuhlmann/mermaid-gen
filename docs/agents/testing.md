@@ -37,7 +37,7 @@ GitHub CI (`.github/workflows/ci.yml`) splits sensors, workspace tests, and buil
 1. **Basename mirror** — `apps/server/src/agents/diagramAgentDispatcher.js` → `apps/server/test/diagramAgentDispatcher.test.js`; `scripts/test-affected-lib.mjs` → `scripts/test-affected.test.mjs` via the `*-lib.mjs` runner mirror (there is no separate lib-only test file)
 2. **Blast-radius rules** — e.g. `diagramSchema.ts` also runs `copilotRoute.test.js` and wire tests
 3. **Fallback** — unmapped server paths use `test:fast`; unmapped shared/web paths use the workspace full suite; unmapped `scripts/` paths use `test:scripts`
-4. **Slow skip** — Anything runtime tests (~40s of jsdom child processes) are skipped unless the diff touches `anything*` paths. Set `TEST_AFFECTED_SLOW=1` to force them.
+4. **Slow skip** — Anything runtime tests (~40s; browser or jsdom child processes depending on `ANYTHING_RUNTIME_ENGINE`) are skipped unless the diff touches `anything*` paths. Set `TEST_AFFECTED_SLOW=1` to force them.
 
 **`check:affected` vs `test:affected`:** any `scripts/` change (including
 `scripts/test-affected-lib.mjs`) is classified as `root` tooling and runs the full
@@ -95,9 +95,10 @@ The MCP harness in `apps/server/test/mcpServer.test.js` (`setupServer`, `connect
 
 ## Slow tests (Anything slot)
 
-These spawn isolated jsdom child processes by design (ADR-0008):
+These spawn isolated child processes by design (ADR-0008). The runtime engine is **browser by default** when Chromium resolves (`anythingRuntimeBrowser.js`); `ANYTHING_RUNTIME_ENGINE=jsdom` forces the original jsdom sandbox:
 
 - `apps/server/test/anythingRuntimeCheck.test.js`
+- `apps/server/test/anythingRuntimeBrowser.test.js`
 - `apps/server/test/anythingLangChainAgent.test.js`
 - `apps/server/test/anythingHtmlTool.test.js`
 
@@ -105,10 +106,11 @@ They still run in CI (`npm test`) and when your diff touches Anything code. For 
 
 ## Offline benches (not in `npm test`)
 
-| Slot     | Command                                                   |
-| -------- | --------------------------------------------------------- |
-| Mermaid  | `node apps/server/scripts/benchMermaid.js --tag <label>`  |
-| Anything | `node apps/server/scripts/benchAnything.js --tag <label>` |
+| Slot                          | Command                                                                                                                                        |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| Mermaid                       | `node apps/server/scripts/benchMermaid.js --tag <label>`                                                                                       |
+| Anything                      | `node apps/server/scripts/benchAnything.js --tag <label>`                                                                                      |
+| Anything (generation, tokens) | `node --import ./scripts/register-antv-layout-esm.mjs --import tsx apps/server/scripts/benchAnythingGeneration.js --tag <label> [--samples 3]` |
 
 Use after sanitizer / validation ladder changes when unit tests are not enough.
 

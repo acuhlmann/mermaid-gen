@@ -99,6 +99,6 @@ ArchiSlop uses **three UI strategies** on purpose — full map: [`docs/architect
 - **Validation (Infographic)**: local `parseSyntax` only.
 - **Validation (Metaphor3D)**: JSON schema + sanitizer + syntax fixer; same repair ladder shape as Mermaid.
 - **Validation (Chart)**: `parseChartDsl` (shared package) + Vega schema check.
-- **Validation (Anything)**: shape + policy + quality + lib-marker lint + jsdom runtime check (no HTML sanitizer).
+- **Validation (Anything)**: shape + policy + quality + lib-marker lint + runtime check in a real browser by default (`anythingRuntimeBrowser.js`; `ANYTHING_RUNTIME_ENGINE=jsdom` rollback) — no HTML sanitizer.
 - **Validation (Forms)**: `parseFormsA2ui` allowlist gate + syntax fixer ladder (model-authored A2UI).
 - **External edits**: validated at proposal time; applied only after human accept (same validators as built-in tools).
