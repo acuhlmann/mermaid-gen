@@ -387,4 +387,36 @@ data
       created: true
     });
   });
+
+  it('adds a linked state on a mermaid stateDiagram-v2', async () => {
+    const state = `stateDiagram-v2
+  [*] --> Draft
+  Draft --> PendingReview : submit
+`;
+    const { result } = mount({
+      diagramSource: state,
+      props: {
+        contentMode: 'mermaid',
+        selectedNode: {
+          dataId: 'Draft',
+          partName: 'Draft',
+          label: 'Draft'
+        }
+      }
+    });
+    expect(result.current.graphEdit.enabled).toBe(true);
+    expect(result.current.graphEdit.canLink).toBe(true);
+    await act(async () => {
+      result.current.handleGraphEditAction({ id: 'connect' });
+    });
+    expect(applyUserDiagramEdit).toHaveBeenCalledTimes(1);
+    expect(applyUserDiagramEdit.mock.calls[0][0].contentType).toBe('mermaid');
+    expect(applyUserDiagramEdit.mock.calls[0][0].diagramSource).toMatch(/Draft --> n1/);
+    expect(applyUserDiagramEdit.mock.calls[0][0].diagramSource).toMatch(/n1 : Item 1/);
+    expect(result.current.labelSession).toMatchObject({
+      kind: 'node',
+      logicalId: 'n1',
+      created: true
+    });
+  });
 });
