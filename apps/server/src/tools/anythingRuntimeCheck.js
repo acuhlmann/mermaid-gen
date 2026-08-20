@@ -15,6 +15,8 @@
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
+import { resolveAnythingBrowserBinary, runAnythingBrowserCheck } from './anythingRuntimeBrowser.js';
+
 export const DEFAULT_ANYTHING_RUNTIME_TIMEOUT_MS = 6000;
 export const DEFAULT_ANYTHING_RUNTIME_SETTLE_MS = 250;
 
@@ -31,6 +33,43 @@ export function isAnythingRuntimeCheckEnabled(env = process.env) {
     .trim()
     .toLowerCase();
   return raw !== '0' && raw !== 'false' && raw !== 'off';
+}
+
+/**
+ * Which engine executes the page.
+ *
+ * `browser` runs it inside the real client sandbox (an `allow-scripts` iframe
+ * with the same CSP the renderer applies), so it sees real layout and real
+ * canvas pixels. `jsdom` is the original engine: no layout engine, canvas
+ * stubbed with an inert Proxy, and the sandbox contract emulated by hand.
+ *
+ * `auto` prefers the browser and falls back to jsdom when no binary resolves,
+ * so a contributor without Chromium still gets a working gate and `jsdom` is a
+ * one-variable rollback if the browser path misbehaves in production.
+ */
+export function resolveAnythingRuntimeEngine(env = process.env) {
+  const raw = String(env?.ANYTHING_RUNTIME_ENGINE ?? 'auto')
+    .trim()
+    .toLowerCase();
+  if (raw === 'jsdom') return 'jsdom';
+  if (raw === 'browser') return 'browser';
+  return resolveAnythingBrowserBinary(env) ? 'browser' : 'jsdom';
+}
+
+/**
+ * Whether the browser engine may reject on visual breakage (a canvas that drew
+ * nothing, a box that collapsed to zero size) rather than only warning.
+ *
+ * Off by default: turning it on adds a rejection reason, and every extra
+ * rejection costs a 12-60s repair turn. The generation bench measured the
+ * ceiling at ~8.6% of accepted pages, so this is enabled deliberately and
+ * measured, never as a side effect of the engine swap.
+ */
+export function isAnythingVisualRejectionEnabled(env = process.env) {
+  const raw = String(env?.ANYTHING_RUNTIME_VISUAL_REJECT ?? '')
+    .trim()
+    .toLowerCase();
+  return raw === '1' || raw === 'true' || raw === 'on';
 }
 
 function resolveTimeoutMs(env, override) {
@@ -56,12 +95,44 @@ function failOpen(warning) {
  */
 export async function runAnythingRuntimeCheck(
   html,
-  { env = process.env, timeoutMs, settleMs } = {}
+  { env = process.env, timeoutMs, settleMs, engine } = {}
 ) {
   const budgetMs = resolveTimeoutMs(env, timeoutMs);
   const settle =
     Number.isFinite(settleMs) && settleMs >= 0 ? settleMs : DEFAULT_ANYTHING_RUNTIME_SETTLE_MS;
 
+  const selected = engine ?? resolveAnythingRuntimeEngine(env);
+  if (selected === 'browser') {
+    const result = await runAnythingBrowserCheck(html, {
+      env,
+      timeoutMs: budgetMs,
+      settleMs: settle,
+      rejectOnVisual: isAnythingVisualRejectionEnabled(env)
+    });
+    // A browser that could not run at all is an infrastructure failure, and the
+    // rung's rule is that those fail open rather than block a valid page. jsdom
+    // is still here and still correct on everything except layout and paint, so
+    // falling back to it is strictly better than skipping the rung entirely.
+    if (result.skipped) {
+      const jsdomResult = await runAnythingJsdomCheck(html, { budgetMs, settle });
+      return {
+        ...jsdomResult,
+        warnings: [...(result.warnings ?? []), ...(jsdomResult.warnings ?? [])]
+      };
+    }
+    return result;
+  }
+
+  return runAnythingJsdomCheck(html, { budgetMs, settle });
+}
+
+/**
+ * The original jsdom engine, unchanged. Kept as the fallback and as the
+ * reference implementation the browser engine has to agree with — both are
+ * exercised by the same contract suite (anythingRuntimeCheck.test.js) rather
+ * than by two suites that could drift apart.
+ */
+function runAnythingJsdomCheck(html, { budgetMs, settle }) {
   return new Promise((resolve) => {
     let child;
     try {
