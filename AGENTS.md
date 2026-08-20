@@ -55,6 +55,21 @@ Package-specific commands:
 - Server dev: `npm run dev -w apps/server`
 - Web dev: `npm run dev -w apps/web`
 
+### Anything runtime rung — two engines
+
+- The rung executes agent pages in a **real browser** by default (`anythingRuntimeBrowser.js`), inside the actual
+  client sandbox rather than an emulation of it: it builds the same
+  `<iframe sandbox="allow-scripts" srcdoc={wrapAnythingSrcDoc(html)}>` the renderer does. Measured p50 through the
+  full 23-fixture corpus: **139 ms vs jsdom's 1,009 ms, identical verdicts**.
+- `ANYTHING_RUNTIME_ENGINE=browser|jsdom|auto` (default `auto` = browser when a binary resolves). **`jsdom` is the
+  rollback.** Both engines are held to the same suite — `apps/server/test/anythingRuntimeCheck.test.js` runs
+  unchanged against either, and that identity is what stops them drifting.
+- The probe goes in **`<head>`, never the end of `<body>`** — console capture must install before page scripts, and
+  a body element would defeat the `blank_render` check.
+- **Visual findings warn, they do not reject** unless `ANYTHING_RUNTIME_VISUAL_REJECT=1`, and then only on hard
+  ones. `low_contrast` stays a warning permanently: 32 of 35 accepted pages carry one, and each extra rejection
+  costs a 12–60 s repair turn.
+
 ### Benches — two kinds, easy to confuse
 
 - **Corpus benches** (`benchMermaid.js`, `benchAnything.js`) replay fixed documents through the

@@ -97,6 +97,7 @@ jobs:
             --port=8080
             --min-instances=0
             --max-instances=1
+            --memory=1Gi
           )
           CLOUD_RUN_SECRETS=()
           if gcloud secrets describe openrouter-api-key --project="${PROJECT_ID}" &>/dev/null; then
