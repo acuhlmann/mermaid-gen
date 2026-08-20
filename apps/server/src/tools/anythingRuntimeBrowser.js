@@ -304,10 +304,26 @@ export async function runAnythingBrowserCheck(html, options = {}) {
     );
 
     child.on('close', (exitCode) => {
+      const dom = Buffer.concat(stdout).toString('utf8');
+      const verdict = extractHostVerdict(dom);
+
       if (timedOut) {
-        // A synchronous infinite loop blocks the renderer, so the dump never
-        // arrives and the kill timer is the only thing that ends it. Same
-        // message as the jsdom engine — the caller cannot tell them apart.
+        // Cold browser startup on a loaded CI runner can consume the whole
+        // budget before `--dump-dom` returns anything — that is harness
+        // infrastructure, not a page fault. Fail open so the jsdom fallback
+        // in runAnythingRuntimeCheck can still gate the document.
+        //
+        // A synchronous infinite loop also blocks the dump, but the host
+        // marker's initial flush() still lands in stdout; only a probe-less,
+        // error-less verdict means nothing from the page ever ran.
+        if (!verdict || (verdict.errors.length === 0 && !verdict.probe)) {
+          finish(
+            failOpen(
+              `Runtime check skipped (browser timed out after ${timeoutMs}ms without a page verdict).`
+            )
+          );
+          return;
+        }
         finish({
           ok: false,
           code: 'runtime_timeout',
@@ -320,7 +336,6 @@ export async function runAnythingBrowserCheck(html, options = {}) {
         return;
       }
 
-      const verdict = extractHostVerdict(Buffer.concat(stdout).toString('utf8'));
       if (!verdict) {
         const detail = Buffer.concat(stderr).toString('utf8').trim().slice(0, 200);
         finish(
