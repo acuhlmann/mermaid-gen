@@ -126,7 +126,7 @@ Anything validation runs through `validateAndPrepareAnythingPatch` (`apps/server
 2. **Policy lint** — `lintAnythingPolicy` (shared): reject external URLs, parent escape, nested frames, `javascript:` URLs, and other sandbox-contract violations.
 3. **Quality lint** — `lintAnythingQuality` (shared): require `<html>/<head>/<body>`, balanced tags/CSS, valid inline JS (`acorn`; `type="module"` scripts parse as modules, non-JS data blocks are skipped). Spec-valid optional end tags (`<p>`, `<li>`, `<td>`, …) are tolerated — only genuinely unclosed or mis-nested elements are rejected.
 4. **Lib-marker lint** — `lintAnythingLibMarkers` (shared): documents may opt into allowlisted vendored libraries (`<!-- @lib:d3 -->`, `<!-- @lib:matter -->`) with HTML comment markers; unknown ids are rejected (`unknown_lib`) with the allowlist in the error. The vendored source itself is deliberately never linted — library comments contain URLs that would false-positive the policy lint. Accepted patches report the injected lib ids as `metadata.libs`. See [ADR-0008](../decisions/0008-anything-inline-libraries.md).
-5. **Runtime check** — `runAnythingRuntimeCheck` (`apps/server/src/tools/anythingRuntimeCheck.js`): executes the page's scripts — with `@lib:` markers expanded to the vendored source via `expandAnythingLibs`, the same bytes the client will inject — in an isolated jsdom child process (clean env, capped heap, hard kill timeout) that emulates the client sandbox — opaque-origin storage and `document.cookie` throw, `fetch` rejects, and browser APIs jsdom lacks (canvas contexts, `matchMedia`, observers, audio) get inert stubs so good pages aren't falsely rejected — the stubs answer property-descriptor introspection consistently, since libraries that monkey-patch host objects walk `hasOwnProperty`/`getOwnPropertyDescriptor` chains at load. Rejects uncaught errors and unhandled rejections (`runtime_error`), infinite loops (`runtime_timeout`), and empty-`<body>` renders (`blank_render`); `console.error` output surfaces as warnings. Runs on agent patches only — client sync skips it so in-progress user edits (and broken source synced for an auto-fix) are never blocked. Infra failures (spawn/crash) fail open. Kill switch: `ANYTHING_RUNTIME_CHECK=0`; budget: `ANYTHING_RUNTIME_CHECK_TIMEOUT_MS` (default 4000 ms).
+5. **Runtime check** — `runAnythingRuntimeCheck` (`apps/server/src/tools/anythingRuntimeCheck.js`): executes the page's scripts — with `@lib:` markers expanded to the vendored source via `expandAnythingLibs`, the same bytes the client will inject — in an isolated jsdom child process (clean env, capped heap, hard kill timeout) that emulates the client sandbox — opaque-origin storage and `document.cookie` throw, `fetch` rejects, and browser APIs jsdom lacks (canvas contexts, `matchMedia`, observers, audio) get inert stubs so good pages aren't falsely rejected — the stubs answer property-descriptor introspection consistently, since libraries that monkey-patch host objects walk `hasOwnProperty`/`getOwnPropertyDescriptor` chains at load. Rejects uncaught errors and unhandled rejections (`runtime_error`), infinite loops (`runtime_timeout`), and empty-`<body>` renders (`blank_render`); `console.error` output surfaces as warnings. Runs on agent patches only — client sync skips it so in-progress user edits (and broken source synced for an auto-fix) are never blocked. Infra failures (spawn/crash) fail open. Kill switch: `ANYTHING_RUNTIME_CHECK=0`; budget: `ANYTHING_RUNTIME_CHECK_TIMEOUT_MS` (default 6000 ms).
 6. **Single-shot fixer** — `repairAnythingWithFixer` (`anythingSyntaxFixer.js`), one fast-model call before full agent repair. The fixer vets its candidate with static checks only; the store apply that follows re-runs the full ladder including the runtime check.
 7. **Agent repair** — bounded by `ANYTHING_REPAIR_MAX_ATTEMPTS`. Deliberately **no HTML sanitizer** — safety at render time is the sandboxed iframe + CSP in `AnythingRenderer.jsx` — see [Content types](content-types.md#anything).
 
@@ -172,14 +172,33 @@ Default session id is `default` when nothing is sent; the web client generates a
 
 ## Offline bench
 
-Replay a fixed corpus through the validators (no LLM):
+Two different things, easy to confuse. **Corpus benches** replay fixed documents through the validators and ask whether the gate still classifies them as declared — a regression suite for the ladder, no LLM involved. The **generation bench** sends real prompts through the real agent and measures the model — a quality measurement, not a contract.
+
+### Corpus benches (no LLM)
 
 ```bash
 node apps/server/scripts/benchMermaid.js --tag <label>    # Mermaid: validateAndPreparePatch
 node apps/server/scripts/benchAnything.js --tag <label>   # Anything: validateAndPrepareAnythingPatch (full ladder incl. runtime check)
 ```
 
-`benchAnything.js` replays valid, policy-violating, statically broken, and runtime-failing HTML documents (corpus in `benchAnythingCorpus.js`) and reports accept rate, per-code rejection breakdown, runtime-catch rate, doc sizes, and latency percentiles. A "must stay rejected" case being accepted is treated as a safety regression (non-zero exit).
+`benchAnything.js` replays valid, policy-violating, statically broken, and runtime-failing HTML documents (corpus in `benchAnythingCorpus.js`) and reports accept rate, per-code rejection breakdown, runtime-catch rate, doc sizes, and latency percentiles. A "must stay rejected" case being accepted is treated as a safety regression (non-zero exit). Note the `acceptRate` it reports is a property of the corpus (how many fixtures are _supposed_ to pass), **not** a quality signal — the number to read is `expectationMatch`.
+
+### Generation bench (real LLM — spends tokens)
+
+```bash
+node --import ./scripts/register-antv-layout-esm.mjs --import tsx \
+  apps/server/scripts/benchAnythingGeneration.js --tag <label> [--browser]
+```
+
+Sends the prompt corpus in `benchAnythingGenerationCorpus.js` through `applyIntent` on the real agent and reports **first-pass accept rate** (how often the model gets it right with no repair), the rejection-code histogram (which rung actually bites), repair convergence (`converged` / `stuck-same-code` / `reshuffled`), which mechanism won (first try / syntax fixer / repair turn N), tokens, and latency. Not part of `npm test`; it needs a configured backend ([LLM config](../llm-config.md)).
+
+**Always pass `--samples 3` or more for a baseline you intend to compare against.** Two consecutive single-sample runs of the same 12 cases measured first-pass accept rates of 66.7% and 91.7% — a 25-point swing from nondeterminism alone. A one-sample run is a smoke test, not a measurement.
+
+Read `firstPassAcceptRate` next to `failureKinds`. A `transport` failure is a model call cut off mid-stream — infrastructure, not generation quality — and it depresses the accept rate exactly like a page the model could not fix. One appeared in the very first baseline run.
+
+Both `--import` flags are required: the agent's import graph reaches TypeScript leaves behind `.js` specifiers, and transitively reaches `@antv/infographic`, whose `{ DagreLayout }` import only resolves through the repo's ESM layout hook — the same pair `scripts/run-server-tests.mjs` uses.
+
+`--browser` additionally renders every **accepted** page in a real headless Chromium (`anythingBrowserProbe.js`) and records what the jsdom rung structurally cannot see: blank canvases (jsdom's `getContext` is an inert Proxy, so nothing is ever drawn), collapsed layout (no layout engine — every `getBoundingClientRect()` is zeros), and text below the 4.5:1 contrast floor the [design guide](../../apps/server/src/prompts/anythingDesignGuide.js) asks for. It is an **observer, not a rung** — it changes no verdict; it exists to measure how much more a browser would reject, which is the number that decides whether a browser is worth promoting into the request path. It needs no new dependency (`spawn` + `--dump-dom` + an in-page probe) and fails open when no Chromium is present.
 
 Snapshots land in `apps/server/bench-results/` (committed baselines for regression comparison; regenerate with the script — do not hand-edit). See [Development](development.md).
 
@@ -189,7 +208,9 @@ Phases 0–4 of the Mermaid reliability ladder are shipped (sanitizer in [`packa
 
 ### bench-with-llm
 
-Extend the bench (or add a sibling script) to drive `applyIntent` / `applyTransformIntent` across modes and model profiles on a fixed prompt corpus with real API keys. (`RUSS_TEMP_MAX` has since been trimmed to ~1.15 — Russ chaos is now prompt-driven; a bench like this would confirm the accept-rate gain and whether the JSON intermediate below is still worth building.)
+**Shipped for `anything`** as `benchAnythingGeneration.js` (see [Generation bench](#generation-bench-real-llm--spends-tokens) above) — it drives `applyIntent` on a fixed prompt corpus with real keys and reports first-pass accept rate, the rung histogram, and repair convergence. Still open for the other slots: extend it to `applyTransformIntent` and to mermaid / infographic / chart / metaphor3d / forms. The per-slot work is a corpus and a store adapter; the harness (event capture, attempt trail, reporting) is slot-agnostic apart from the validator it calls.
+
+(`RUSS_TEMP_MAX` has since been trimmed to ~1.15 — Russ chaos is now prompt-driven; a mermaid arm of this bench would confirm the accept-rate gain and whether the JSON intermediate below is still worth building.)
 
 ### JSON-graph intermediate (Russ only)
 
