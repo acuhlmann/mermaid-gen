@@ -28,6 +28,15 @@ import {
   renameMindmapEdge,
   renameMindmapNode
 } from './mermaidMindmapEdit.js';
+import {
+  addLinkedStateNode,
+  connectStateNodes,
+  deleteStateEdge,
+  deleteStateNode,
+  isStateFamilySource,
+  renameStateEdge,
+  renameStateNode
+} from './mermaidStateEdit.js';
 
 function fail(reason) {
   return { ok: false, reason };
@@ -68,6 +77,17 @@ const MINDMAP_ADAPTER = {
   renameEdge: renameMindmapEdge
 };
 
+const STATE_ADAPTER = {
+  contentType: 'mermaid',
+  canLink: true,
+  addLinked: addLinkedStateNode,
+  connect: connectStateNodes,
+  deleteNode: deleteStateNode,
+  deleteEdge: deleteStateEdge,
+  renameNode: renameStateNode,
+  renameEdge: renameStateEdge
+};
+
 /**
  * Logical id for Connect targeting: mermaid node id, AntV `data-indexes`, or `~label:`.
  * @param {object | null | undefined} descriptor
@@ -98,6 +118,9 @@ export function graphEditAdapterFor(contentType, source) {
   }
   if (contentType === 'mermaid' && isMindmapFamilySource(source)) {
     return MINDMAP_ADAPTER;
+  }
+  if (contentType === 'mermaid' && isStateFamilySource(source)) {
+    return STATE_ADAPTER;
   }
   if (contentType === 'infographic' && isInfographicGraphSource(source)) {
     return {

@@ -33,6 +33,11 @@ const MINDMAP = `mindmap
     Child1
 `;
 
+const STATE = `stateDiagram-v2
+  [*] --> Draft
+  Draft --> PendingReview : submit
+`;
+
 describe('graphEditAdapterFor', () => {
   it('returns the flowchart adapter for mermaid flowcharts only', () => {
     const adapter = graphEditAdapterFor('mermaid', FLOWCHART);
@@ -48,6 +53,20 @@ describe('graphEditAdapterFor', () => {
     expect(adapter?.addLinked(MINDMAP, '~label:Child1', 'New')).toMatchObject({
       ok: true,
       newId: '0,0,0'
+    });
+  });
+
+  it('returns the state adapter with Link for stateDiagram-v2', () => {
+    const adapter = graphEditAdapterFor('mermaid', STATE);
+    expect(adapter?.contentType).toBe('mermaid');
+    expect(adapter?.canLink).toBe(true);
+    expect(adapter?.connect(STATE, 'Draft', 'PendingReview')).toEqual({
+      ok: false,
+      reason: 'duplicate'
+    });
+    expect(adapter?.addLinked(STATE, 'Draft', 'Revision')).toMatchObject({
+      ok: true,
+      newId: 'n1'
     });
   });
 
