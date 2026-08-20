@@ -91,7 +91,11 @@ import { SceneFrame } from './metaphorScenes/SceneFrame.jsx';
 import { SceneKeyLight, SceneShadowFlags } from './metaphorScenes/SceneKeyLight.jsx';
 import { SceneEnvironment } from './metaphorScenes/SceneEnvironment.jsx';
 import { createSceneFit, FULL_SAFE_AREA } from './metaphorScenes/sceneFraming.js';
-import { measureOverlaySafeArea, safeAreaChanged } from './metaphorScenes/overlaySafeArea.js';
+import {
+  measureExternalChromeInsets,
+  measureOverlaySafeArea,
+  safeAreaChanged
+} from './metaphorScenes/overlaySafeArea.js';
 import { AdaptiveFog } from './metaphorScenes/AdaptiveFog.jsx';
 import { DEFAULT_GROUND_HAZE, sceneWantsHaze } from './metaphorScenes/metaphorAtmosphere.js';
 import { accentThesisFromDsl } from '../utils/metaphorReading.js';
@@ -1324,9 +1328,27 @@ function MetaphorRendererImpl(
     let frame = 0;
     const measure = () => {
       frame = 0;
-      const next = measureOverlaySafeArea(container);
-      if (!next) return;
-      setSafeArea((current) => (safeAreaChanged(current, next) ? next : current));
+      const nextArea = measureOverlaySafeArea(container);
+      if (!nextArea) return;
+      setSafeArea((current) => (safeAreaChanged(current, nextArea) ? nextArea : current));
+      // Write the raw pixel top-inset for external app chrome (the top-shell)
+      // as a CSS variable so the inline reading strip and title card can
+      // position themselves BELOW it rather than under it. Fullscreen removes
+      // the app chrome entirely, so the value collapses to 0 naturally — the
+      // measurement finds no marked chrome inside :fullscreen's containing
+      // rect. See overlaySafeArea.js for the reservation contract.
+      const insets = measureExternalChromeInsets(container);
+      if (insets) {
+        // Round to keep the style-string stable — sub-pixel jitter would
+        // re-trigger the ResizeObserver every frame during a viewport resize.
+        const top = Math.max(0, Math.round(insets.top));
+        const currentInset = container.style.getPropertyValue('--metaphor-app-top-inset');
+        const nextInset = top > 0 ? `${top}px` : '';
+        if (currentInset !== nextInset) {
+          if (nextInset) container.style.setProperty('--metaphor-app-top-inset', nextInset);
+          else container.style.removeProperty('--metaphor-app-top-inset');
+        }
+      }
     };
     const schedule = () => {
       if (frame) return;
