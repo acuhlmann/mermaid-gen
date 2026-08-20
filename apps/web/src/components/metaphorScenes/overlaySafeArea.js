@@ -29,6 +29,21 @@
 /** Marks an overlay as persistent chrome the camera must fit around. */
 export const CHROME_ATTR = 'data-metaphor-chrome';
 
+/**
+ * Marks a fixed / absolute element OUTSIDE the metaphor container that still
+ * paints over its canvas — the app's top-shell (brand chip + corner controls)
+ * is the one that matters today. Two things go wrong when this is not measured:
+ * the reading strip is drawn under the brand chip on phones (occluded), and
+ * the camera flies the accented item into the same band on landscape foldables
+ * (framed into what the app chrome will later cover).
+ *
+ * The attribute is on a global element rather than on `data-metaphor-chrome`
+ * because the container's own overlays already scale with content — reserving
+ * the same rect twice would compound. External chrome is claimed at its raw
+ * rect projected onto the canvas box.
+ */
+export const EXTERNAL_CHROME_ATTR = 'data-app-chrome';
+
 /** Below this a panel is noise (a one-line pill), not a claim on the frame. */
 const MIN_EDGE_FRACTION = 0.02;
 
@@ -116,10 +131,103 @@ export function safeAreaChanged(a, b, epsilon = 0.02) {
 }
 
 /**
- * Measure the persistent chrome inside `container` against the canvas box.
- * Returns null when there is nothing to measure (SSR, unmounted, zero-size).
+ * How far, in raw pixels within `container`'s box, external app chrome extends
+ * from each edge. Used to write the `--metaphor-app-*-inset` CSS variables the
+ * inline reading strip and title card push away from — so the strip lands
+ * BELOW the brand chip on phones rather than under it.
+ *
+ * Returns `null` when there's nothing to measure. Zero on every edge is a
+ * meaningful answer (no chrome overlaps the canvas), so it's kept distinct
+ * from null.
+ *
+ * @param {Element | null | undefined} container
+ * @param {{ document?: Document }} [options]
+ * @returns {{ top: number, right: number, bottom: number, left: number } | null}
  */
-export function measureOverlaySafeArea(container) {
+export function measureExternalChromeInsets(container, options = {}) {
+  if (!container || typeof container.getBoundingClientRect !== 'function') return null;
+  const box = container.getBoundingClientRect();
+  if (!(box.width > 0) || !(box.height > 0)) return null;
+  const ownerDocument =
+    options.document ??
+    container.ownerDocument ??
+    (typeof globalThis !== 'undefined' ? globalThis.document : null);
+  const panels = readExternalChromePanels(box, ownerDocument);
+  const insets = { top: 0, right: 0, bottom: 0, left: 0 };
+  for (const panel of panels) {
+    // Choose the panel's own nearest edge, then account for its thickness from
+    // that edge — same "one edge per panel" rule as the fractional path.
+    const distances = {
+      top: panel.top,
+      bottom: box.height - panel.bottom,
+      left: panel.left,
+      right: box.width - panel.right
+    };
+    let bestEdge = 'top';
+    let bestGap = distances.top;
+    for (const edge of ['top', 'bottom', 'left', 'right']) {
+      if (distances[edge] < bestGap) {
+        bestEdge = edge;
+        bestGap = distances[edge];
+      }
+    }
+    const claim =
+      bestEdge === 'top'
+        ? panel.bottom
+        : bestEdge === 'bottom'
+          ? box.height - panel.top
+          : bestEdge === 'left'
+            ? panel.right
+            : box.width - panel.left;
+    if (claim > insets[bestEdge]) insets[bestEdge] = claim;
+  }
+  return insets;
+}
+
+/**
+ * Read every element in `root` tagged with `data-app-chrome` and project its
+ * rect into `box`'s coordinate space, clipped to the box. Returns panels the
+ * camera fit should reserve for, or an empty array when no external chrome is
+ * present or none overlaps the canvas.
+ *
+ * The app's top-shell is a `position: fixed` layer higher in the z-stack than
+ * the metaphor canvas — its rect always paints over any pixel the camera aimed
+ * at that location. `overlaySafeArea` already reserves for the metaphor's own
+ * overlays; this adds the same treatment for panels that live outside the
+ * container but still cover pixels inside the canvas rect.
+ */
+function readExternalChromePanels(box, root) {
+  const document = root ?? (typeof globalThis !== 'undefined' ? globalThis.document : null);
+  if (!document || typeof document.querySelectorAll !== 'function') return [];
+  const panels = [];
+  const nodes = document.querySelectorAll(`[${EXTERNAL_CHROME_ATTR}]`);
+  for (const node of nodes) {
+    if (typeof node.getBoundingClientRect !== 'function') continue;
+    const rect = node.getBoundingClientRect();
+    if (!(rect.width > 0) || !(rect.height > 0)) continue;
+    // Clip to the canvas box — a top-shell that spans the whole viewport should
+    // only claim the strip that actually paints over the canvas.
+    const top = Math.max(0, rect.top - box.top);
+    const left = Math.max(0, rect.left - box.left);
+    const bottom = Math.min(box.height, rect.bottom - box.top);
+    const right = Math.min(box.width, rect.right - box.left);
+    if (bottom <= 0 || right <= 0 || top >= box.height || left >= box.width) continue;
+    if (bottom - top <= 0 || right - left <= 0) continue;
+    panels.push({ top, left, bottom, right });
+  }
+  return panels;
+}
+
+/**
+ * Measure the persistent chrome inside `container` against the canvas box, plus
+ * any external app chrome (e.g. the top-shell) that paints over pixels within
+ * the same box. Returns null when there is nothing to measure (SSR, unmounted,
+ * zero-size).
+ *
+ * @param {Element | null | undefined} container
+ * @param {{ document?: Document, includeExternal?: boolean }} [options]
+ */
+export function measureOverlaySafeArea(container, options = {}) {
   if (!container || typeof container.getBoundingClientRect !== 'function') return null;
   const box = container.getBoundingClientRect();
   if (!(box.width > 0) || !(box.height > 0)) return null;
@@ -134,6 +242,16 @@ export function measureOverlaySafeArea(container) {
       bottom: rect.bottom - box.top,
       left: rect.left - box.left
     });
+  }
+  const includeExternal = options.includeExternal !== false;
+  if (includeExternal) {
+    const ownerDocument =
+      options.document ??
+      container.ownerDocument ??
+      (typeof globalThis !== 'undefined' ? globalThis.document : null);
+    for (const external of readExternalChromePanels(box, ownerDocument)) {
+      panels.push(external);
+    }
   }
   return overlaySafeArea({ width: box.width, height: box.height }, panels);
 }

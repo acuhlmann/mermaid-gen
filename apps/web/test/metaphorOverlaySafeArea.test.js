@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
   CHROME_ATTR,
+  EXTERNAL_CHROME_ATTR,
+  measureExternalChromeInsets,
+  measureOverlaySafeArea,
   overlaySafeArea,
   safeAreaChanged
 } from '../src/components/metaphorScenes/overlaySafeArea.js';
@@ -76,5 +79,145 @@ describe('chrome marking', () => {
     // a transient panel (the read, the pick) cannot accidentally join the set
     // the camera fits around.
     expect(CHROME_ATTR).toBe('data-metaphor-chrome');
+  });
+
+  it('names the external-chrome attribute the top-shell tags itself with', () => {
+    // The metaphor camera fit reserves for the app's fixed top-shell too, so
+    // the accented item is not framed under the brand chip on phones. See
+    // TopShell.jsx.
+    expect(EXTERNAL_CHROME_ATTR).toBe('data-app-chrome');
+  });
+});
+
+/** Build a stub Element the measure functions can consume. */
+function stubElement(rect, options = {}) {
+  const chromeNodes = (options.chrome ?? []).map((chromeRect) => ({
+    getBoundingClientRect() {
+      return chromeRect;
+    }
+  }));
+  return {
+    ownerDocument: null,
+    style: {
+      _values: {},
+      getPropertyValue(key) {
+        return this._values[key] ?? '';
+      },
+      setProperty(key, value) {
+        this._values[key] = value;
+      },
+      removeProperty(key) {
+        delete this._values[key];
+      }
+    },
+    getBoundingClientRect() {
+      return rect;
+    },
+    querySelectorAll(selector) {
+      // Very small selector engine: only the two attribute selectors the
+      // production code uses. Returning `chrome` for CHROME_ATTR keeps the
+      // existing measurement path stable.
+      if (selector === `[${CHROME_ATTR}]`) return chromeNodes;
+      return [];
+    }
+  };
+}
+
+/** Build a stub document that returns tagged external-chrome elements. */
+function stubDocument(externalRects) {
+  const nodes = externalRects.map((rect) => ({
+    getBoundingClientRect() {
+      return rect;
+    }
+  }));
+  return {
+    querySelectorAll(selector) {
+      if (selector === `[${EXTERNAL_CHROME_ATTR}]`) return nodes;
+      return [];
+    }
+  };
+}
+
+describe('measureOverlaySafeArea with external chrome', () => {
+  it('reserves for a top-shell that paints over the top of the canvas', () => {
+    // The phone case: a 390x844 canvas with a top-shell running full-width at
+    // top: 16px for ~48px of height. Without external chrome we would report
+    // a zero safe area; with it, the top band is claimed and the camera can
+    // frame the scene BELOW the brand chip.
+    const canvas = { left: 0, top: 0, right: 390, bottom: 844, width: 390, height: 844 };
+    const chrome = { left: 16, top: 16, right: 374, bottom: 64, width: 358, height: 48 };
+    const container = stubElement(canvas);
+    const area = measureOverlaySafeArea(container, { document: stubDocument([chrome]) });
+    expect(area?.top).toBeGreaterThan(0);
+    expect(area?.top).toBeCloseTo(64 / 844, 2);
+    expect(area?.bottom).toBe(0);
+  });
+
+  it('opts out of external chrome when includeExternal is false', () => {
+    // The insights embed does not paint the app's top-shell over its canvas,
+    // so it needs an escape hatch that turns the external-chrome reservation
+    // off. Without this flag every embedded scene would refit for chrome that
+    // is not covering it.
+    const canvas = { left: 0, top: 0, right: 390, bottom: 844, width: 390, height: 844 };
+    const chrome = { left: 16, top: 16, right: 374, bottom: 64, width: 358, height: 48 };
+    const container = stubElement(canvas);
+    const area = measureOverlaySafeArea(container, {
+      document: stubDocument([chrome]),
+      includeExternal: false
+    });
+    expect(area).toEqual({ top: 0, right: 0, bottom: 0, left: 0 });
+  });
+
+  it('clips the reservation to the canvas — a top-shell above the canvas box costs nothing', () => {
+    // Not every embed sits under the top-shell — some inline canvases start
+    // 200px below the shell. Reserving for chrome that is not actually
+    // covering the canvas would push the scene into a gap for no reason.
+    const canvas = { left: 0, top: 200, right: 390, bottom: 900, width: 390, height: 700 };
+    const chrome = { left: 16, top: 16, right: 374, bottom: 64, width: 358, height: 48 };
+    const container = stubElement(canvas);
+    const area = measureOverlaySafeArea(container, { document: stubDocument([chrome]) });
+    expect(area).toEqual({ top: 0, right: 0, bottom: 0, left: 0 });
+  });
+});
+
+describe('measureExternalChromeInsets', () => {
+  it('returns raw pixels — the CSS variable format the reading strip reads', () => {
+    // measureOverlaySafeArea returns fractions for the camera; the reading
+    // strip needs pixels for its `top:` offset. Both paths are driven off the
+    // same rects but shape their result differently.
+    const canvas = { left: 0, top: 0, right: 390, bottom: 844, width: 390, height: 844 };
+    const chrome = { left: 16, top: 16, right: 374, bottom: 64, width: 358, height: 48 };
+    const container = stubElement(canvas);
+    const insets = measureExternalChromeInsets(container, { document: stubDocument([chrome]) });
+    expect(insets).toEqual({ top: 64, right: 0, bottom: 0, left: 0 });
+  });
+
+  it('reports zero for every edge when nothing external is tagged', () => {
+    // Fullscreen mode removes the top-shell entirely — the measurement finds
+    // no marked chrome and the reading strip's `top` collapses to its base
+    // 12px through the `var(..., 0px)` fallback.
+    const canvas = { left: 0, top: 0, right: 1440, bottom: 900, width: 1440, height: 900 };
+    const container = stubElement(canvas);
+    const insets = measureExternalChromeInsets(container, { document: stubDocument([]) });
+    expect(insets).toEqual({ top: 0, right: 0, bottom: 0, left: 0 });
+  });
+
+  it('gives one panel one edge — a corner card does not claim both', () => {
+    // A hypothetical bottom-right corner control marked as app chrome must
+    // pick one edge, not both, or the reservation would double-charge and
+    // squeeze the scene into the middle. Same rule as the fractional path.
+    const canvas = { left: 0, top: 0, right: 1440, bottom: 900, width: 1440, height: 900 };
+    const chrome = {
+      left: 1240,
+      top: 780,
+      right: 1400,
+      bottom: 860,
+      width: 160,
+      height: 80
+    };
+    const container = stubElement(canvas);
+    const insets = measureExternalChromeInsets(container, { document: stubDocument([chrome]) });
+    const claimed = ['top', 'right', 'bottom', 'left'].filter((edge) => insets[edge] > 0);
+    expect(claimed).toHaveLength(1);
   });
 });

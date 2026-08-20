@@ -10114,7 +10114,11 @@ button {
 }
 
 .metaphor-context-overlay {
-  top: 12px;
+  /* --metaphor-app-top-inset is measured off the app's fixed top-shell (brand
+     chip + corner controls) — the reading strip sits BELOW it rather than
+     under it. Falls back to 12px when no external chrome overlaps the canvas
+     (fullscreen, insights embed). See overlaySafeArea.js. */
+  top: calc(var(--metaphor-app-top-inset, 0px) + 12px);
   left: 50%;
   width: min(58%, 680px);
   max-width: min(58%, 680px);
@@ -10716,7 +10720,12 @@ button {
   }
 
   .metaphor-context-overlay {
-    top: max(8px, env(safe-area-inset-top, 0px));
+    /* On phones the top-shell (brand chip + corner controls) runs the full
+       width of the viewport and paints over the top of the canvas. Push the
+       reading strip below its measured bottom edge — see the base rule and
+       overlaySafeArea.js. Falls back to the safe-area alone when nothing
+       overlaps (fullscreen, embed). */
+    top: calc(var(--metaphor-app-top-inset, 0px) + max(8px, env(safe-area-inset-top, 0px)));
     left: max(8px, env(safe-area-inset-left, 0px));
     right: max(8px, env(safe-area-inset-right, 0px));
     width: auto;
