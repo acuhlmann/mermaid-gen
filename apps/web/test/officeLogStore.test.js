@@ -83,6 +83,25 @@ describe('officeLogStore', () => {
     expect(second.getOfficeLogDigest()).toHaveLength(1);
   });
 
+  it('drops in-memory entries when the calendar day rolls over without reload', async () => {
+    const yesterday = new Date(2026, 6, 31, 23, 30).getTime();
+    const today = new Date(2026, 7, 1, 0, 5).getTime();
+    vi.setSystemTime(yesterday);
+    const store = await freshStore();
+    store.recordOfficeLogEntry('coffee', { now: yesterday });
+    expect(store.getOfficeLogDigest()).toHaveLength(1);
+
+    vi.setSystemTime(today);
+    expect(store.getOfficeLogDigest()).toEqual([]);
+    store.recordOfficeLogEntry('run', { now: today, detail: 'mermaid' });
+    expect(store.getOfficeLogDigest()).toEqual(['00:05 you shipped a mermaid diagram']);
+
+    vi.resetModules();
+    const reloaded = await freshStore();
+    expect(reloaded.getOfficeLogDigest()).toEqual(['00:05 you shipped a mermaid diagram']);
+    vi.useRealTimers();
+  });
+
   it('reads the same entries as one colleague\u2019s own history', async () => {
     // A second projection over the same store, not a second store: nothing new
     // is written and nothing new is observed, which is what keeps the office

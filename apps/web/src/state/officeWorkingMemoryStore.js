@@ -22,6 +22,7 @@
 
 import {
   OFFICE_WORKING_MEMORY_BEAT_CAP,
+  officeDayStamp,
   readOfficeWorkingMemory,
   writeOfficeWorkingMemory
 } from '../utils/officeAmbienceStorage.js';
@@ -31,7 +32,16 @@ import {
 
 /** @type {{ [colleagueId: string]: WorkingMemoryRow }} */
 let byColleague = readOfficeWorkingMemory();
+/** Calendar day the in-memory rows belong to — cleared when the day rolls over without reload. */
+let loadedDay = officeDayStamp();
 const listeners = new Set();
+
+function reconcileOfficeDay() {
+  const today = officeDayStamp();
+  if (today === loadedDay) return;
+  byColleague = {};
+  loadedDay = today;
+}
 
 function emit() {
   for (const fn of listeners) {
@@ -44,6 +54,7 @@ function emit() {
 }
 
 function persist(now) {
+  reconcileOfficeDay();
   writeOfficeWorkingMemory(byColleague, now);
   emit();
 }
@@ -88,6 +99,7 @@ export function subscribe(listener) {
  * @returns {WorkingMemoryRow | null}
  */
 export function getWorkingMemoryWith(colleagueId) {
+  reconcileOfficeDay();
   if (!colleagueId) return null;
   return byColleague[colleagueId] ?? null;
 }
@@ -112,6 +124,7 @@ export function hasWorkingMemoryFact(colleagueId) {
  * @returns {string[]}
  */
 export function listWorkingMemoryColleagueIds() {
+  reconcileOfficeDay();
   return Object.entries(byColleague)
     .filter(([, row]) => row.beats.length > 0 || row.boardFingerprint)
     .sort((a, b) => {
@@ -199,5 +212,6 @@ export function workingMemoryPromptLines(colleagueId) {
 /** @internal Reset between tests. */
 export function _resetOfficeWorkingMemoryForTests() {
   byColleague = {};
+  loadedDay = officeDayStamp();
   listeners.clear();
 }

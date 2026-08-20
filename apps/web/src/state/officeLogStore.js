@@ -25,6 +25,7 @@
 
 import {
   OFFICE_LOG_ENTRY_CAP,
+  officeDayStamp,
   readOfficeLog,
   writeOfficeLog
 } from '../utils/officeAmbienceStorage.js';
@@ -32,7 +33,16 @@ import { buildOfficeLogDigest, buildOfficeRelationship } from '../utils/officeLo
 
 /** @type {Array<{at: number, kind: string, colleagueId?: string, detail?: string}>} */
 let entries = readOfficeLog();
+/** Calendar day the in-memory entries belong to — cleared when the day rolls over without reload. */
+let loadedDay = officeDayStamp();
 const listeners = new Set();
+
+function reconcileOfficeDay() {
+  const today = officeDayStamp();
+  if (today === loadedDay) return;
+  entries = [];
+  loadedDay = today;
+}
 
 function emit() {
   for (const fn of listeners) {
@@ -53,6 +63,7 @@ export function subscribe(listener) {
 
 /** @returns {Array<{at: number, kind: string, colleagueId?: string, detail?: string}>} */
 export function getOfficeLogSnapshot() {
+  reconcileOfficeDay();
   return entries;
 }
 
@@ -73,6 +84,7 @@ export function getOfficeLogSnapshot() {
 export function recordOfficeLogEntry(kind, meta = {}) {
   if (typeof kind !== 'string' || !kind) return;
   const at = Number.isFinite(meta.now) ? meta.now : Date.now();
+  reconcileOfficeDay();
   const entry = { at, kind };
   if (meta.colleagueId) entry.colleagueId = String(meta.colleagueId);
   if (meta.detail) entry.detail = String(meta.detail);
@@ -94,6 +106,7 @@ export function recordOfficeLogEntry(kind, meta = {}) {
  * @returns {string[]}
  */
 export function getOfficeLogDigest() {
+  reconcileOfficeDay();
   return buildOfficeLogDigest(entries);
 }
 
@@ -110,11 +123,13 @@ export function getOfficeLogDigest() {
  * @returns {string[]}
  */
 export function getOfficeRelationshipWith(colleagueId) {
+  reconcileOfficeDay();
   return buildOfficeRelationship(entries, colleagueId);
 }
 
 /** @internal Reset between tests. */
 export function _resetOfficeLogForTests() {
   entries = [];
+  loadedDay = officeDayStamp();
   listeners.clear();
 }
