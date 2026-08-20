@@ -1,10 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 
 import { extractHostVerdict, interpretVerdict } from '../src/tools/anythingRuntimeBrowser.js';
 import {
   isAnythingVisualRejectionEnabled,
-  resolveAnythingRuntimeEngine
+  resolveAnythingRuntimeEngine,
+  runAnythingRuntimeCheck
 } from '../src/tools/anythingRuntimeCheck.js';
 
 /**
@@ -148,4 +152,45 @@ test('extractHostVerdict returns null rather than throwing on a missing payload'
   assert.equal(extractHostVerdict('<html><body>nothing</body></html>'), null);
   assert.equal(extractHostVerdict('<div id="__archislop_host__"></div>'), null);
   assert.equal(extractHostVerdict('<div id="__archislop_host__">not json</div>'), null);
+});
+
+test('a browser that hangs on startup does not reject a valid page', async (t) => {
+  // Regression for a CI failure that is also a production path. The wall clock
+  // covers the browser's startup AND the page's execution, so a cold launch is
+  // indistinguishable from a hung page: on a GitHub runner the first two
+  // launches took 6043ms and 6047ms against a 6000ms budget and were reported
+  // as the page failing to settle, while every warm launch after finished in
+  // 1-2.7s. Cloud Run scales to zero, so the first request after an idle period
+  // pays exactly that cost, and a good page would be rejected into a repair turn.
+  //
+  // The engine distinguishes the two by evidence rather than by timing: a
+  // timeout that produced no page verdict at all is treated as infrastructure
+  // and fails open, so runAnythingRuntimeCheck falls back to jsdom — which has
+  // no meaningful startup and can be trusted on the question.
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'anything-hangbin-'));
+  const fakeBin = path.join(dir, 'hanging-browser');
+  fs.writeFileSync(fakeBin, '#!/bin/sh\nexec sleep 600\n', { mode: 0o755 });
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+
+  const result = await runAnythingRuntimeCheck(
+    '<!DOCTYPE html><html><head></head><body><h1>fine</h1></body></html>',
+    { env: { ANYTHING_RUNTIME_ENGINE: 'browser', ANYTHING_BROWSER_BIN: fakeBin }, timeoutMs: 1200 }
+  );
+
+  // jsdom ran the page and found nothing wrong, so the page is accepted even
+  // though the browser never produced a verdict.
+  assert.equal(result.ok, true, JSON.stringify(result));
+});
+
+test('a genuinely hanging page is still rejected when the browser times out', async () => {
+  // The other half, and the reason the carve-out is by evidence and not by
+  // timing: failing open on an evidence-free timeout must not make genuinely
+  // hanging pages acceptable. A sync loop blocks the dump too, so this also
+  // reaches jsdom — which times out on its own and supplies the real verdict.
+  const result = await runAnythingRuntimeCheck(
+    '<!DOCTYPE html><html><head></head><body><h1>spin</h1><script>while(true){}</script></body></html>',
+    { env: { ANYTHING_RUNTIME_ENGINE: 'browser' }, timeoutMs: 1500 }
+  );
+  assert.equal(result.ok, false, JSON.stringify(result));
+  assert.equal(result.code, 'runtime_timeout');
 });
