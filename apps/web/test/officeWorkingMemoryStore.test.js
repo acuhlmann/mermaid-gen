@@ -82,6 +82,25 @@ describe('officeWorkingMemoryStore', () => {
     rememberWorkingMemoryBeat('greybeard', { theirs: 'batch job', now: at(10, 0) });
     expect(listWorkingMemoryColleagueIds()).toEqual(['greybeard', 'intern']);
   });
+
+  it('drops in-memory rows when the calendar day rolls over without reload', async () => {
+    const yesterday = new Date(2026, 6, 31, 23, 30).getTime();
+    const today = new Date(2026, 7, 1, 0, 5).getTime();
+    vi.setSystemTime(yesterday);
+    const store = await freshStore();
+    store.rememberWorkingMemoryBeat('intern', { theirs: 'yesterday line', now: yesterday });
+    expect(store.hasWorkingMemoryFact('intern')).toBe(true);
+
+    vi.setSystemTime(today);
+    expect(store.hasWorkingMemoryFact('intern')).toBe(false);
+    store.rememberWorkingMemoryBeat('intern', { theirs: 'fresh today', now: today });
+    expect(store.workingMemoryPromptLines('intern')).toEqual(['they said: fresh today']);
+
+    vi.resetModules();
+    const reloaded = await freshStore();
+    expect(reloaded.workingMemoryPromptLines('intern')).toEqual(['they said: fresh today']);
+    vi.useRealTimers();
+  });
 });
 
 describe('working memory day stamping', () => {

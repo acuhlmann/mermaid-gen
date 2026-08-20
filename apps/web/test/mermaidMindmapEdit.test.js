@@ -4,6 +4,7 @@ import {
   deleteMindmapNode,
   formatMindmapNodeText,
   isMindmapFamilySource,
+  mindmapNodeRef,
   parseMindmapNodeText,
   parseMindmapTree,
   renameMindmapNode,
@@ -59,6 +60,31 @@ describe('deleteMindmapNode', () => {
     expect(result.source).toMatch(/Child1/);
     expect(result.source).not.toMatch(/Child2/);
     expect(result.source).not.toMatch(/Grandchild/);
+  });
+
+  it('targets the correct node when labels duplicate via ~node: index', () => {
+    const dup = `mindmap
+  root((Root))
+    BranchA
+      TODO
+    BranchB
+      TODO
+`;
+    const tree = parseMindmapTree(dup);
+    expect(tree?.flat.map((node) => node.label)).toEqual([
+      'Root',
+      'BranchA',
+      'TODO',
+      'BranchB',
+      'TODO'
+    ]);
+    const secondTodoIndex = tree.flat.findIndex((node) => node.path === '0,1,0');
+    expect(secondTodoIndex).toBe(4);
+    const result = deleteMindmapNode(dup, mindmapNodeRef(secondTodoIndex));
+    expect(result.ok).toBe(true);
+    expect(result.source).toMatch(/BranchA[\s\S]*TODO/);
+    expect(result.source).toMatch(/BranchB/);
+    expect(result.source).not.toMatch(/BranchB[\s\S]*TODO/);
   });
 
   it('refuses to delete the root', () => {

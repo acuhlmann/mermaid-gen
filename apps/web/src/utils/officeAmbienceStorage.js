@@ -431,10 +431,14 @@ export const OFFICE_LOG_ENTRY_CAP = 24;
  * @param {number} at epoch ms
  * @returns {string}
  */
-function dayStampOf(at) {
+export function officeDayStamp(at = Date.now()) {
   const date = new Date(at);
   if (Number.isNaN(date.getTime())) return '';
   return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`;
+}
+
+function dayStampOf(at) {
+  return officeDayStamp(at);
 }
 
 /**

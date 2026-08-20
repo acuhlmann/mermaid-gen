@@ -3,6 +3,7 @@ import { infographicLabelRef, parseInfographicGraphId } from './infographicGraph
 
 const META_LINE_RE = /^(classDef|class|style|linkStyle)\b/i;
 const DECORATION_RE = /^::(?:icon\(|:)/;
+const NODE_REF_PREFIX = '~node:';
 
 function fail(reason) {
   return { ok: false, reason };
@@ -45,6 +46,29 @@ export function isMindmapFamilySource(source) {
 }
 
 export { infographicLabelRef as mindmapLabelRef, parseInfographicGraphId as parseMindmapGraphId };
+
+/**
+ * Stable ref for a mindmap node by Mermaid's flat `node_N` render index.
+ * @param {number} index
+ */
+export function mindmapNodeRef(index) {
+  return `${NODE_REF_PREFIX}${index}`;
+}
+
+/**
+ * @param {string} id
+ * @returns {number | null}
+ */
+export function parseMindmapNodeIndex(id) {
+  const raw = String(id ?? '').trim();
+  if (raw.startsWith(NODE_REF_PREFIX)) {
+    const n = Number.parseInt(raw.slice(NODE_REF_PREFIX.length), 10);
+    return Number.isInteger(n) && n >= 0 ? n : null;
+  }
+  const match = /^node_(\d+)$/i.exec(raw);
+  if (match) return Number.parseInt(match[1], 10);
+  return null;
+}
 
 /**
  * @param {string} stripped
@@ -186,6 +210,10 @@ export function parseMindmapTree(source) {
 }
 
 function findMindmapNode(tree, id) {
+  const nodeIndex = parseMindmapNodeIndex(id);
+  if (nodeIndex != null) {
+    return tree.flat[nodeIndex] ?? null;
+  }
   const { indexes, label } = parseInfographicGraphId(id);
   if (indexes) {
     const path = indexPathOf(indexes);
