@@ -188,9 +188,12 @@ Two different things, easy to confuse. **Corpus benches** replay fixed documents
 ### Corpus benches (no LLM)
 
 ```bash
-node apps/server/scripts/benchMermaid.js --tag <label>    # Mermaid: validateAndPreparePatch
+node --import ./scripts/register-antv-layout-esm.mjs --import tsx \
+  apps/server/scripts/benchMermaid.js --tag <label>    # Mermaid: validateAndPreparePatch
 node apps/server/scripts/benchAnything.js --tag <label>   # Anything: validateAndPrepareAnythingPatch (full ladder incl. runtime check)
 ```
+
+`benchMermaid.js` needs both `--import` flags because its subject (`mermaidDiffTool.js`) reaches TypeScript-only modules and `@antv/infographic`; bare `node` dies with `ERR_MODULE_NOT_FOUND` before a case runs (issue #349). The other corpus benches run under plain `node`.
 
 `benchAnything.js` replays valid, policy-violating, statically broken, and runtime-failing HTML documents (corpus in `benchAnythingCorpus.js`) and reports accept rate, per-code rejection breakdown, runtime-catch rate, doc sizes, and latency percentiles. A "must stay rejected" case being accepted is treated as a safety regression (non-zero exit). Note the `acceptRate` it reports is a property of the corpus (how many fixtures are _supposed_ to pass), **not** a quality signal — the number to read is `expectationMatch`.
 
@@ -201,7 +204,7 @@ node --import ./scripts/register-antv-layout-esm.mjs --import tsx \
   apps/server/scripts/benchAnythingGeneration.js --tag <label> [--browser]
 ```
 
-Sends the prompt corpus in `benchAnythingGenerationCorpus.js` through `applyIntent` on the real agent and reports **first-pass accept rate** (how often the model gets it right with no repair), the rejection-code histogram (which rung actually bites), repair convergence (`converged` / `stuck-same-code` / `reshuffled`), which mechanism won (first try / syntax fixer / repair turn N), tokens, and latency. Not part of `npm test`; it needs a configured backend ([LLM config](../llm-config.md)).
+Sends the prompt corpus in `benchAnythingGenerationCorpus.js` through the real agent and reports **first-pass accept rate** (how often the model gets it right with no repair), the rejection-code histogram (which rung actually bites), repair convergence (`converged` / `stuck-same-code` / `reshuffled`), which mechanism won (first try / syntax fixer / repair turn N), tokens, and latency. Most cases use `applyIntent` (mode `go`); the **refine** family seeds a document with one prompt, then runs a follow-up through `applyTransformIntent` (`transformMode: 'barker'` on `refine-add-control`) so scoped edits exercise `apply_anything_edit`. The summary includes an `editTool` block (`transformRuns`, `editToolUsed`, `editToolRate`) for that arm. Not part of `npm test`; it needs a configured backend ([LLM config](../llm-config.md)).
 
 **Always pass `--samples 3` or more for a baseline you intend to compare against.** Two consecutive single-sample runs of the same 12 cases measured first-pass accept rates of 66.7% and 91.7% — a 25-point swing from nondeterminism alone. A one-sample run is a smoke test, not a measurement.
 
@@ -282,7 +285,7 @@ Traps, all of which have been paid for once already:
 
 ### bench-with-llm
 
-**Shipped for `anything`** as `benchAnythingGeneration.js` (see [Generation bench](#generation-bench-real-llm--spends-tokens) above) — it drives `applyIntent` on a fixed prompt corpus with real keys and reports first-pass accept rate, the rung histogram, and repair convergence. Still open for the other slots: extend it to `applyTransformIntent` and to mermaid / infographic / chart / metaphor3d / forms. The `applyTransformIntent` arm is also a **known gap in the anything bench itself**: its refine case never exercises `apply_anything_edit`, because the bench drives `applyIntent` (mode `go`) and the prompt only prefers the edit tool for Gilfoyle / Exec / Fix — so the search/replace path ships unmeasured. Noted in `benchAnythingGenerationCorpus.js` too. The per-slot work is a corpus and a store adapter; the harness (event capture, attempt trail, reporting) is slot-agnostic apart from the validator it calls.
+**Shipped for `anything`** as `benchAnythingGeneration.js` (see [Generation bench](#generation-bench-real-llm--spends-tokens) above) — it drives `applyIntent` on most cases and `applyTransformIntent` on the refine family, reports first-pass accept rate, the rung histogram, repair convergence, and (for transform runs) whether the model reached for `apply_anything_edit`. Still open for the **other slots**: extend the same harness to mermaid / infographic / chart / metaphor3d / forms (each needs a corpus and a store adapter). Still open for **anything transform breadth**: only Barker is wired today; add Gilfoyle / Fix refine cases when bench evidence shows scoped-edit failures Barker does not cover. The per-slot work is a corpus and a store adapter; the harness (event capture, attempt trail, reporting) is slot-agnostic apart from the validator it calls.
 
 (`RUSS_TEMP_MAX` has since been trimmed to ~1.15 — Russ chaos is now prompt-driven; a mermaid arm of this bench would confirm the accept-rate gain and whether the JSON intermediate below is still worth building.)
 

@@ -87,7 +87,8 @@ that fills with speculation gets ignored, which costs more than the findings wer
 Five corpus-only drivers, no API key, non-zero exit on expectation drift:
 
 ```bash
-node apps/server/scripts/benchMermaid.js --tag review-$(date +%F)
+node --import ./scripts/register-antv-layout-esm.mjs --import tsx \
+  apps/server/scripts/benchMermaid.js --tag review-$(date +%F)
 node apps/server/scripts/benchInfographic.js --tag review-$(date +%F)
 node apps/server/scripts/benchChart.js --tag review-$(date +%F)
 node apps/server/scripts/benchMetaphor.js --tag review-$(date +%F)
@@ -112,3 +113,7 @@ verdict. Open the PR, wait for CI, merge it when green.
 
 If the same finding recurs three runs running with no issue actioned, say so once in the digest and
 then stop repeating it. Nagging is how a routine gets muted.
+
+```
+
+```

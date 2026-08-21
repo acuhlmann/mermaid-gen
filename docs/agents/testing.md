@@ -108,7 +108,7 @@ They still run in CI (`npm test`) and when your diff touches Anything code. For 
 
 | Slot                          | Command                                                                                                                                        |
 | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| Mermaid                       | `node apps/server/scripts/benchMermaid.js --tag <label>`                                                                                       |
+| Mermaid                       | `node --import ./scripts/register-antv-layout-esm.mjs --import tsx apps/server/scripts/benchMermaid.js --tag <label>`                          |
 | Anything                      | `node apps/server/scripts/benchAnything.js --tag <label>`                                                                                      |
 | Anything (generation, tokens) | `node --import ./scripts/register-antv-layout-esm.mjs --import tsx apps/server/scripts/benchAnythingGeneration.js --tag <label> [--samples 3]` |
 

@@ -88,11 +88,13 @@ agent, not the corpus author.
 Prefer families that stress blind spots: `canvas` and `layout` (jsdom cannot see blank canvases or
 collapsed layout). See the file header for the full family list.
 
-### 5. Edit-tool coverage
+### 5. ~~Edit-tool coverage~~ — shipped (#359)
 
-The generation bench's refine arm does not yet exercise `apply_anything_edit` — only full rewrites
-via `applyIntent`. When this item surfaces, extend the bench harness or corpus so at least one case
-runs `seedPrompt` → refine and reports whether the edit tool was used. One wiring change per run.
+The refine case (`refine-add-control` in `benchAnythingGenerationCorpus.js`) routes through
+`applyTransformIntent` with `transformMode: 'barker'` and reports `editToolUsed` /
+`editToolRate` in the generation bench summary. Do not revert refine cases to `applyIntent`
+(mode `go`). Extend with **additional** transform families (Gilfoyle, Fix) only when bench
+evidence shows a class of scoped-edit failures the Barker arm does not cover.
 
 ### 6. Prompt and design-guide craft
 

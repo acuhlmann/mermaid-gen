@@ -62,27 +62,27 @@ Every session carries **six independent diagram slots** — `mermaid` (Mermaid t
 
 ## Canonical commands
 
-| Goal                                   | Command                                                                                                                                      |
-| -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| Run web + server together              | `npm run dev`                                                                                                                                |
-| Run all tests                          | `npm test`                                                                                                                                   |
-| **Diff-scoped tests (agents)**         | `npm run test:affected` (basename + blast-radius map; skips slow Anything unless diff touches `anything*`)                                   |
-| **Verify (diff-scoped, agents)**       | `npm run check:affected` (includes Prettier on changed files)                                                                                |
-| **Verify a change end-to-end**         | `npm run check` (typecheck + typecheck:strict + lint + test + wire)                                                                          |
-| Shared-only / schema touch             | `npm run check:fast`                                                                                                                         |
-| Before PR / local CI parity            | `npm run check:full` (`check` + build); GitHub CI parallels the same coverage                                                                |
-| Wire + doc paths only                  | `npm run check:wire`                                                                                                                         |
-| Blast-radius map                       | [`docs/agent-blast-radius.md`](docs/agent-blast-radius.md)                                                                                   |
-| Format the diff you're about to commit | `npm run format:affected` (agents); `npm run format` for whole repo                                                                          |
-| Build all workspaces                   | `npm run build`                                                                                                                              |
-| Health probe                           | `curl http://localhost:\$PORT/api/health`                                                                                                    |
-| Mermaid offline bench                  | `node apps/server/scripts/benchMermaid.js --tag <label>`                                                                                     |
-| Anything offline bench (no LLM)        | `node apps/server/scripts/benchAnything.js --tag <label>`                                                                                    |
-| Anything **generation** bench (tokens) | `node --import ./scripts/register-antv-layout-esm.mjs --import tsx apps/server/scripts/benchAnythingGeneration.js --tag <label> [--browser]` |
-| Regenerate **one** baked audio asset   | `./scripts/generate-office-audio.sh <name>` — bare = whole manifest, 900 credits, overwrites everything                                      |
-| Check the committed audio bank         | `./scripts/generate-office-audio.sh --verify` (free, no key, no network)                                                                     |
-| Quality trend (gates nothing)          | `npm run verify:ratchet`; add `-- --json` or `-- --with-lint`                                                                                |
-| Routine budget check                   | `npm run routine:guard -- --postflight <name>`                                                                                               |
+| Goal                                   | Command                                                                                                                                                                    |
+| -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Run web + server together              | `npm run dev`                                                                                                                                                              |
+| Run all tests                          | `npm test`                                                                                                                                                                 |
+| **Diff-scoped tests (agents)**         | `npm run test:affected` (basename + blast-radius map; skips slow Anything unless diff touches `anything*`)                                                                 |
+| **Verify (diff-scoped, agents)**       | `npm run check:affected` (includes Prettier on changed files)                                                                                                              |
+| **Verify a change end-to-end**         | `npm run check` (typecheck + typecheck:strict + lint + test + wire)                                                                                                        |
+| Shared-only / schema touch             | `npm run check:fast`                                                                                                                                                       |
+| Before PR / local CI parity            | `npm run check:full` (`check` + build); GitHub CI parallels the same coverage                                                                                              |
+| Wire + doc paths only                  | `npm run check:wire`                                                                                                                                                       |
+| Blast-radius map                       | [`docs/agent-blast-radius.md`](docs/agent-blast-radius.md)                                                                                                                 |
+| Format the diff you're about to commit | `npm run format:affected` (agents); `npm run format` for whole repo                                                                                                        |
+| Build all workspaces                   | `npm run build`                                                                                                                                                            |
+| Health probe                           | `curl http://localhost:\$PORT/api/health`                                                                                                                                  |
+| Mermaid offline bench                  | `node --import ./scripts/register-antv-layout-esm.mjs --import tsx apps/server/scripts/benchMermaid.js --tag <label>` (both flags required — see `benchMermaid.js` header) |
+| Anything offline bench (no LLM)        | `node apps/server/scripts/benchAnything.js --tag <label>`                                                                                                                  |
+| Anything **generation** bench (tokens) | `node --import ./scripts/register-antv-layout-esm.mjs --import tsx apps/server/scripts/benchAnythingGeneration.js --tag <label> [--browser]`                               |
+| Regenerate **one** baked audio asset   | `./scripts/generate-office-audio.sh <name>` — bare = whole manifest, 900 credits, overwrites everything                                                                    |
+| Check the committed audio bank         | `./scripts/generate-office-audio.sh --verify` (free, no key, no network)                                                                                                   |
+| Quality trend (gates nothing)          | `npm run verify:ratchet`; add `-- --json` or `-- --with-lint`                                                                                                              |
+| Routine budget check                   | `npm run routine:guard -- --postflight <name>`                                                                                                                             |
 
 `npm run check` includes `verify:deps` (override/singleton npm pins), `format:check`, `lint` for all three workspaces, and the rest of the sensor stack, plus `typecheck:strict` — full-strict typechecking of the files listed in each app's `tsconfig.strict.json` (the ADR-0006 "strict islands"; add a `.ts`/`.tsx` path there to opt it into strict, and a regression fails CI). Lint messages go through a custom formatter (`packages/eslint-config/formatter.cjs`) that appends a per-rule "Agent guidance" footer with the canonical fix and suppression syntax — read it before suppressing. `@typescript-eslint`'s `recommended` rules now fire as warnings on every `.ts`/`.tsx` file, so converting `.js`→`.ts` ([recipe](docs/recipes/convert-js-leaf-to-ts.md)) gains both Factory and ts-eslint guidance. Thresholds (`max-lines`, `complexity`, …) ship as warnings; ADR-0005 monoliths are pre-suppressed in `packages/eslint-config/legacy-monoliths.js`. A `.husky/pre-commit` hook runs `lint-staged` (Prettier on staged files). `.husky/pre-push` runs `npm run check:affected`. Architecture rules now live in `.dependency-cruiser.cjs` (replaces the older regex-based boundary script); each rule's `comment` field is the agent-readable fix. See [`docs/agents/sensors.md`](docs/agents/sensors.md) for the full sensor map.
 
@@ -988,6 +988,6 @@ For semantic coupling analysis (not automatable), run `/modularity:review` in Cl
 - Recurring tasks: [`docs/recipes/`](docs/recipes/)
 - Canvas graph-edit families: [`docs/canvas-graph-edit.md`](docs/canvas-graph-edit.md)
 - Past decisions: [`docs/decisions/`](docs/decisions/)
-- Office continuity (working memory + runWalk, not shipped): [`docs/office-continuity.md`](docs/office-continuity.md)
+- Office continuity (working memory + runWalk, v1 shipped): [`docs/office-continuity.md`](docs/office-continuity.md)
 - LLM config: [`docs/llm-config.md`](docs/llm-config.md)
 - Deploy: [`docs/deploy/gcp.md`](docs/deploy/gcp.md) — Artifact Registry retention: `npm run ar:cleanup:verify` (policy in `scripts/artifact-registry-cleanup-policy.json`; apply with `npm run ar:cleanup:apply`)
