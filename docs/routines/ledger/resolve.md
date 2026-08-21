@@ -12,6 +12,12 @@ todos:
     status: pending
   - id: 348-owned-elsewhere
     content: 'Issue #348 (officeWorkingMemoryStore day-rollover write path) is already carried by open PR #350 from the review routine — not a resolve pick until that PR lands or closes. The fix it describes as already applied is NOT on main.'
+    status: completed
+  - id: 353-slow-list-half
+    content: 'Issue #353 (anythingRuntimeBrowser.test.js load contention) is two-thirds out of budget. The reported case is fixed in-file, but the ROOT CAUSE is that this file spawns jsdom children like its sibling anythingRuntimeCheck.test.js yet is missing from SERVER_SLOW_TEST_FILES in scripts/test-affected-lib.mjs, so it runs in the parallel batch — and scripts/ is outside allowedPaths. The doc widening the issue asks for (docs/routines/README.md, docs/agents/sensors.md) is outside it too. Left open, ready-for-human.'
+    status: pending
+  - id: 353-floor-path-sibling
+    content: 'anythingRuntimeBrowser.test.js line ~223 (a browser budget too tight to spawn jsdom still does not reject a valid page) carries the SAME latent exposure and was deliberately not pinned: it is the deterministic regression test for the separate-clock bug and its subject IS the floor, so an env pin would swap the floor path for the env path already covered a few lines above. It goes green only while the 6,000 ms floor outruns jsdom under load. Cured by the slow-list fix, not by anything in apps/**.'
     status: pending
 ---
 
@@ -41,6 +47,20 @@ Things seen but not yet worth a locked decision. Promote to `Locked` when a seco
   to mirror durable learnings into `CLAUDE.md` and `AGENTS.md`. The `review` routine files doc bugs
   (both of the first backlog's issues touch docs), so this will recur. Either the budget grows a
   narrow doc lane or the ledger keeps accumulating half-done issues.
+- **2026-08-21 (confirmed a second time, run 2) — the out-of-budget pattern is now the norm, not an
+  edge case.** Both of run 2's candidates landed on it: #348 was already fixed on `main` (closed, no
+  code), and #353's real fix is one line in `scripts/test-affected-lib.mjs` with a mirror in
+  `docs/`. Two runs, three issues, and every one of them has had a half that `apps/**`/`packages/**`
+  cannot reach. The routine is not short of judgement, it is short of two paths. If a third run
+  repeats this, the answer is a narrow lane for `scripts/**` and the two mirror docs rather than
+  another ledger row.
+- **2026-08-21 — a load-contention flake can be reproduced deterministically by shrinking the
+  budget it is racing, instead of trying to recreate the load.** #353 would not reproduce in a quiet
+  container (676/676 green, twice). Temporarily lowering `DEFAULT_ANYTHING_RUNTIME_TIMEOUT_MS` from
+  6000 to 300 turned the exact reported case red on demand, showed that the sibling floor-path test
+  fails identically, and then showed the fix green under a floor deliberately too small — which is a
+  stronger claim than "it passed on a quiet machine". Revert the constant before committing; the
+  probe belongs in the transcript, not the diff.
 - **2026-08-21 — check whether an issue already has an open PR before picking it.** `preflight`
   only refuses when **this** routine has one; a sibling routine's open PR is invisible to it.
   Issue #348 reads as a clean `ready-for-agent` pick and is already carried by PR #350.
@@ -61,6 +81,7 @@ Things seen but not yet worth a locked decision. Promote to `Locked` when a seco
 
 Append one row per firing, including quiet runs (empty backlog).
 
-| Date       | Issue picked                                                 | Outcome                                                                                                                   | PR   | Notes                                                                                                                                                                                                                           |
-| ---------- | ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------- | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 2026-08-21 | #349 benchMermaid.js documented invocation crashes (partial) | Merged — script's own usage block corrected + a sensor pinning it; issue left open for the three doc sites outside budget | #352 | Skipped #348 (already carried by open PR #350 from `review`) and #347 (unlabelled, outside the `ready-for-agent`/`needs-triage` gather filter). Labels confirmed live. Verified the issue's second suggested fix is non-viable. |
+| Date       | Issue picked                                                  | Outcome                                                                                                                                                 | PR   | Notes                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| ---------- | ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-08-21 | #353 anythingRuntimeBrowser.test.js load contention (partial) | Merged — the reported case no longer races the runner; issue left open + `ready-for-human` for the root cause and the doc widening, both outside budget | #TBD | Closed #348 first with no code: PR #350 landed on `main`, so both halves of the fix it records (`rowFor` reconciling at its top, and the `does not drop the beat that itself rolls the day over` test) were already there. Reproduced #353 deterministically by shrinking the fallback floor rather than recreating suite load. Deliberately did **not** pin the sibling floor-path test — see the `353-floor-path-sibling` todo. |
+| 2026-08-21 | #349 benchMermaid.js documented invocation crashes (partial)  | Merged — script's own usage block corrected + a sensor pinning it; issue left open for the three doc sites outside budget                               | #352 | Skipped #348 (already carried by open PR #350 from `review`) and #347 (unlabelled, outside the `ready-for-agent`/`needs-triage` gather filter). Labels confirmed live. Verified the issue's second suggested fix is non-viable.                                                                                                                                                                                                   |
