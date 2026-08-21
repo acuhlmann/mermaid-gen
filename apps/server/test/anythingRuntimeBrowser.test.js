@@ -174,9 +174,26 @@ test('a browser that hangs on startup does not reject a valid page', async (t) =
   fs.writeFileSync(fakeBin, '#!/bin/sh\nexec sleep 600\n', { mode: 0o755 });
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
 
+  // The fallback's clock is pinned rather than left at its floor, because the
+  // subject here is the fail-open *rule* — an evidence-free browser timeout
+  // must not reject a good page — and not how fast jsdom happens to be. Left
+  // at the floor this asserted both at once, and the second half is decided by
+  // suite load: jsdom's measured p50 is ~1,009 ms (CLAUDE.md, Anything ladder)
+  // against a 6,000 ms floor, and under a saturated full-suite run that
+  // headroom disappears. It duly failed on clean `main` as one case out of 671
+  // while passing 13/13 alone (issue #353). A number well clear of the floor
+  // takes the runner's load out of the verdict; a fallback that still cannot
+  // finish inside it is a real fault, which is what this should go red for.
   const result = await runAnythingRuntimeCheck(
     '<!DOCTYPE html><html><head></head><body><h1>fine</h1></body></html>',
-    { env: { ANYTHING_RUNTIME_ENGINE: 'browser', ANYTHING_BROWSER_BIN: fakeBin }, timeoutMs: 1200 }
+    {
+      env: {
+        ANYTHING_RUNTIME_ENGINE: 'browser',
+        ANYTHING_BROWSER_BIN: fakeBin,
+        ANYTHING_RUNTIME_FALLBACK_TIMEOUT_MS: '30000'
+      },
+      timeoutMs: 1200
+    }
   );
 
   // jsdom ran the page and found nothing wrong, so the page is accepted even
