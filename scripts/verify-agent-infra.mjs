@@ -17,6 +17,9 @@ const AGENT_DOC_FILES = [
   'docs/agents/sensors.md'
 ];
 
+/** Routine playbooks are agent instructions too, and unattended runs cannot ask what a command was. */
+const ROUTINE_DOC_DIR = 'docs/routines';
+
 const NPM_RUN_RE = /npm run ([a-z][\w:-]*)(?=\s|$|`|\.)/gi;
 const BLAST_RADIUS_TEST_RE = /`((?:apps|packages)[^`]+\.test\.(?:ts|js|jsx))`/g;
 
@@ -68,6 +71,21 @@ export function extractBlastRadiusTestPaths(markdown) {
 }
 
 /**
+ * Discovered rather than listed, so a new playbook is checked the day it lands.
+ * @param {string} root
+ * @returns {string[]}
+ */
+export function collectRoutineDocs(root) {
+  const dir = path.join(root, ROUTINE_DOC_DIR);
+  if (!fs.existsSync(dir)) return [];
+  return fs
+    .readdirSync(dir)
+    .filter((entry) => entry.endsWith('.md') && entry !== 'README.md')
+    .map((entry) => `${ROUTINE_DOC_DIR}/${entry}`)
+    .sort();
+}
+
+/**
  * @param {string} root
  * @returns {Set<string>}
  */
@@ -80,14 +98,19 @@ export function collectRootPackageScripts(root) {
  * @param {string} root
  * @param {string[]} [docFiles]
  */
-export function verifyAgentInfra(root, docFiles = AGENT_DOC_FILES) {
+export function verifyAgentInfra(root, docFiles = null) {
+  const files = docFiles ?? [
+    ...AGENT_DOC_FILES,
+    `${ROUTINE_DOC_DIR}/README.md`,
+    ...collectRoutineDocs(root)
+  ];
   const rootScripts = collectRootPackageScripts(root);
   const missingScripts = [];
   const missingTests = [];
   const checkedScripts = new Set();
   const checkedTests = new Set();
 
-  for (const rel of docFiles) {
+  for (const rel of files) {
     const abs = path.join(root, rel);
     if (!fs.existsSync(abs)) {
       missingScripts.push({ script: `(missing doc ${rel})`, source: rel });

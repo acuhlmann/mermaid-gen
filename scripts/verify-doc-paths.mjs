@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Verify repo-relative paths cited in operator docs.
- * Scans STRUCTURE.md, AGENTS.md, CLAUDE.md, docs/recipes/, docs/guide/, and docs/agents/.
+ * Scans STRUCTURE.md, AGENTS.md, CLAUDE.md, docs/recipes/, docs/guide/, docs/agents/, and docs/routines/.
  * Exits 1 when a cited source file is missing (with .js → .ts/.tsx fallback for migrated modules).
  */
 import fs from 'node:fs';
@@ -15,7 +15,13 @@ export const ROOT = path.resolve(__dirname, '..');
 const ROOT_MD_FILES = ['STRUCTURE.md', 'AGENTS.md', 'CLAUDE.md'];
 
 /** @type {string[]} */
-const DOC_DIRS = ['docs/recipes', 'docs/guide', 'docs/agents'];
+const DOC_DIRS = [
+  'docs/recipes',
+  'docs/guide',
+  'docs/agents',
+  'docs/routines',
+  'docs/routines/ledger'
+];
 
 const SKIP_PREFIXES = [
   'node_modules/',

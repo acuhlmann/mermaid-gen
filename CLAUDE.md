@@ -79,6 +79,8 @@ Every session carries **six independent diagram slots** — `mermaid` (Mermaid t
 | Anything **generation** bench (tokens) | `node --import ./scripts/register-antv-layout-esm.mjs --import tsx apps/server/scripts/benchAnythingGeneration.js --tag <label> [--browser]` |
 | Regenerate **one** baked audio asset   | `./scripts/generate-office-audio.sh <name>` — bare = whole manifest, 900 credits, overwrites everything                                      |
 | Check the committed audio bank         | `./scripts/generate-office-audio.sh --verify` (free, no key, no network)                                                                     |
+| Quality trend (gates nothing)          | `npm run verify:ratchet`; add `-- --json` or `-- --with-lint`                                                                                |
+| Routine budget check                   | `npm run routine:guard -- --postflight <name>`                                                                                               |
 
 `npm run check` includes `verify:deps` (override/singleton npm pins), `format:check`, `lint` for all three workspaces, and the rest of the sensor stack, plus `typecheck:strict` — full-strict typechecking of the files listed in each app's `tsconfig.strict.json` (the ADR-0006 "strict islands"; add a `.ts`/`.tsx` path there to opt it into strict, and a regression fails CI). Lint messages go through a custom formatter (`packages/eslint-config/formatter.cjs`) that appends a per-rule "Agent guidance" footer with the canonical fix and suppression syntax — read it before suppressing. `@typescript-eslint`'s `recommended` rules now fire as warnings on every `.ts`/`.tsx` file, so converting `.js`→`.ts` ([recipe](docs/recipes/convert-js-leaf-to-ts.md)) gains both Factory and ts-eslint guidance. Thresholds (`max-lines`, `complexity`, …) ship as warnings; ADR-0005 monoliths are pre-suppressed in `packages/eslint-config/legacy-monoliths.js`. A `.husky/pre-commit` hook runs `lint-staged` (Prettier on staged files). `.husky/pre-push` runs `npm run check:affected`. Architecture rules now live in `.dependency-cruiser.cjs` (replaces the older regex-based boundary script); each rule's `comment` field is the agent-readable fix. See [`docs/agents/sensors.md`](docs/agents/sensors.md) for the full sensor map.
 
@@ -919,6 +921,35 @@ Three backends: **DeepSeek**, **OpenRouter**, **Vertex** (Gemini). Selection is 
 | A new web state slice            | `apps/web/src/state/`                                                   |
 | A baked audio asset              | `apps/web/src/assets/audio/` via `scripts/generate-office-audio.sh`     |
 | A new React hook                 | `apps/web/src/hooks/`                                                   |
+
+## Scheduled NFR routines
+
+Non-functional work — post-merge review, doc drift, test hardening — runs on a schedule as
+**NFR routines** ([ADR-0014](docs/decisions/0014-autonomous-nfr-routines.md)). Four facts matter
+when you touch one, and each is a trap if you assume the obvious:
+
+- **The playbook is the repo file, not the cron prompt.** `docs/routines/<name>.md` holds what the
+  routine does and its budget; the trigger prompt is three lines pointing at it. Pasting
+  instructions into a trigger recreates the unversioned, unreviewable blob this shelf replaced.
+- **The budget is enforced, not described.** `npm run routine:guard -- --postflight <name>` re-reads
+  the playbook's `maxFiles` / `allowedPaths` / `forbiddenPaths` and checks the real diff, plus an
+  always-forbidden list mirroring the don't-touch list, deleted test files, and any test file whose
+  case count fell. Widening a routine means editing its frontmatter, in a PR.
+- **`npm run verify:ratchet` gates nothing — it is the `improve` routine's work queue.** Monolith
+  LOC and lint warnings should only fall; strict-island and suite counts should only rise. Budgets
+  live in `docs/agents/ratchet.json`. It is deliberately **out** of `npm run check`: two unattended
+  feature automations run daily here, and a quality metric that reddens their build at an hour
+  nobody is watching teaches an agent to raise the budget instead of fixing the code. Run it
+  yourself when you want the numbers (`--json` for machine-readable, `--with-lint` for the ESLint
+  pass); when a budget genuinely has to rise, raise it with a written `reason`.
+- **A routine records; it does not refactor.** `docs/agents/balanced-coupling-priorities.md` says
+  split _on contact_, and a schedule has no feature to be on contact with — so coupling findings
+  become issues and priority-doc updates, never unprompted hub splits. Same reason ADR-0007's
+  two-week quiet period still gates every `warn` → `error` promotion: a routine may present the
+  evidence, a human decides.
+
+Ledgers under `docs/routines/ledger/` are the durable memory across cold-start runs — read one
+before starting, append a row when finishing, including runs that changed nothing.
 
 ## Agent skills
 

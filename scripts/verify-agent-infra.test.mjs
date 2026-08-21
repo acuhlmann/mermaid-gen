@@ -6,6 +6,7 @@ import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 import {
   collectRootPackageScripts,
+  collectRoutineDocs,
   extractBlastRadiusTestPaths,
   extractNpmScriptNames,
   verifyAgentInfra
@@ -76,4 +77,35 @@ test('verifyAgentInfra reports a missing blast-radius test path', () => {
   assert.deepEqual(result.missingTests, [
     { path: 'apps/server/test/__missing__.test.js', source: 'docs/agent-blast-radius.md' }
   ]);
+});
+
+test('collectRoutineDocs discovers playbooks without listing them', () => {
+  const docs = collectRoutineDocs(ROOT);
+  assert.ok(docs.includes('docs/routines/review.md'));
+  assert.ok(docs.includes('docs/routines/improve.md'));
+  assert.ok(
+    !docs.includes('docs/routines/README.md'),
+    'the contract is added separately, not as a playbook'
+  );
+});
+
+test('routine playbooks are covered by the default scan', () => {
+  const scripts = collectRootPackageScripts(ROOT);
+  assert.ok(scripts.has('routine:guard'));
+  assert.ok(scripts.has('verify:ratchet'));
+
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'agent-infra-'));
+  fs.mkdirSync(path.join(dir, 'docs/routines/ledger'), { recursive: true });
+  fs.writeFileSync(path.join(dir, 'package.json'), JSON.stringify({ scripts: { check: 'x' } }));
+  fs.writeFileSync(path.join(dir, 'docs/routines/README.md'), 'Run `npm run check`.\n');
+  fs.writeFileSync(path.join(dir, 'docs/routines/ghost.md'), 'Run `npm run not-a-script`.\n');
+
+  const result = verifyAgentInfra(dir);
+  assert.equal(result.ok, false, 'a playbook naming a missing script must fail');
+  assert.ok(
+    result.missingScripts.some(
+      (miss) => miss.source === 'docs/routines/ghost.md' && miss.script === 'not-a-script'
+    ),
+    `expected the playbook's bad script to be reported, got ${JSON.stringify(result.missingScripts)}`
+  );
 });

@@ -186,13 +186,25 @@ Look up a concept here before grepping. Paths are repo-relative.
 
 ## Agent operator docs (`docs/agents/`)
 
-| Concept              | File                           |
-| -------------------- | ------------------------------ |
-| Sensors (lint stack) | `docs/agents/sensors.md`       |
-| Modularity review    | `docs/agents/modularity.md`    |
-| Issue tracker        | `docs/agents/issue-tracker.md` |
-| Triage labels        | `docs/agents/triage-labels.md` |
-| Domain doc layout    | `docs/agents/domain.md`        |
+| Concept                 | File                           |
+| ----------------------- | ------------------------------ |
+| Sensors (lint stack)    | `docs/agents/sensors.md`       |
+| Modularity review       | `docs/agents/modularity.md`    |
+| Issue tracker           | `docs/agents/issue-tracker.md` |
+| Triage labels           | `docs/agents/triage-labels.md` |
+| Domain doc layout       | `docs/agents/domain.md`        |
+| Quality ratchet budgets | `docs/agents/ratchet.json`     |
+
+## Scheduled NFR routines (`docs/routines/`)
+
+| Concept                        | File                         |
+| ------------------------------ | ---------------------------- |
+| Contract every routine obeys   | `docs/routines/README.md`    |
+| Post-merge review playbook     | `docs/routines/review.md`    |
+| Daily NFR improvement playbook | `docs/routines/improve.md`   |
+| Durable memory per routine     | `docs/routines/ledger/`      |
+| Budget enforcement             | `scripts/routine-guard.mjs`  |
+| Quality ratchet                | `scripts/verify-ratchet.mjs` |
 
 ## Build & deploy
 

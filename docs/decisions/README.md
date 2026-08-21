@@ -17,6 +17,7 @@ Short prose records of non-obvious past decisions. Read these before re-litigati
 | [0011](0011-two-office-renderers.md)          | One office state, two renderers; isometric floor is DOM/CSS + SVG                      |
 | [0012](0012-collaboration-model.md)           | Five collaboration acts, one of which produces (talk / mob / pair / delegate)          |
 | [0013](0013-office-continuity.md)             | Office continuity: working memory never triggers; runWalk is the only new initiation   |
+| [0014](0014-autonomous-nfr-routines.md)       | Autonomous NFR routines: playbooks in the repo, budgets enforced, quality ratcheted    |
 
 ## Format
 
