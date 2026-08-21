@@ -6,8 +6,10 @@ import path from 'node:path';
 
 import { extractHostVerdict, interpretVerdict } from '../src/tools/anythingRuntimeBrowser.js';
 import {
+  DEFAULT_ANYTHING_RUNTIME_TIMEOUT_MS,
   isAnythingVisualRejectionEnabled,
   resolveAnythingRuntimeEngine,
+  resolveAnythingRuntimeFallbackTimeoutMs,
   runAnythingRuntimeCheck
 } from '../src/tools/anythingRuntimeCheck.js';
 
@@ -182,14 +184,84 @@ test('a browser that hangs on startup does not reject a valid page', async (t) =
   assert.equal(result.ok, true, JSON.stringify(result));
 });
 
+test("the jsdom fallback does not reshare the browser rung's clock", () => {
+  // A budget tightened for the browser was meant for the browser. The fallback
+  // has to spawn a child process and load jsdom inside whatever clock is left,
+  // so resharing one turned an infrastructure shortfall into a page rejection.
+  assert.equal(
+    resolveAnythingRuntimeFallbackTimeoutMs({}, 200),
+    DEFAULT_ANYTHING_RUNTIME_TIMEOUT_MS
+  );
+  assert.equal(
+    resolveAnythingRuntimeFallbackTimeoutMs({}, 1200),
+    DEFAULT_ANYTHING_RUNTIME_TIMEOUT_MS
+  );
+
+  // A budget RAISED for the browser was meant for both — heavy pages are heavy
+  // in either engine — so the floor lifts rather than capping.
+  assert.equal(resolveAnythingRuntimeFallbackTimeoutMs({}, 20000), 20000);
+
+  // And it stays independently tunable, which is what makes it a budget rather
+  // than a constant.
+  assert.equal(
+    resolveAnythingRuntimeFallbackTimeoutMs(
+      { ANYTHING_RUNTIME_FALLBACK_TIMEOUT_MS: '2500' },
+      20000
+    ),
+    2500
+  );
+  assert.equal(
+    resolveAnythingRuntimeFallbackTimeoutMs({ ANYTHING_RUNTIME_FALLBACK_TIMEOUT_MS: '0' }, 1200),
+    DEFAULT_ANYTHING_RUNTIME_TIMEOUT_MS
+  );
+  assert.equal(
+    resolveAnythingRuntimeFallbackTimeoutMs({ ANYTHING_RUNTIME_FALLBACK_TIMEOUT_MS: 'soon' }, 1200),
+    DEFAULT_ANYTHING_RUNTIME_TIMEOUT_MS
+  );
+});
+
+test('a browser budget too tight to spawn jsdom still does not reject a valid page', async (t) => {
+  // The deterministic half of the flake above, and the test that fails without
+  // the fix. 200ms cannot cover a child-process spawn plus a jsdom import graph
+  // on ANY machine, warm or cold — so while the two rungs shared a clock this
+  // returned `runtime_timeout` every time, blaming a page that never ran for
+  // the fallback's startup. The sibling test only caught it on a slow host,
+  // which is why it was filed as a flake rather than as the bug it was pinning.
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'anything-tightbin-'));
+  const fakeBin = path.join(dir, 'hanging-browser');
+  fs.writeFileSync(fakeBin, '#!/bin/sh\nexec sleep 600\n', { mode: 0o755 });
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+
+  const result = await runAnythingRuntimeCheck(
+    '<!DOCTYPE html><html><head></head><body><h1>fine</h1></body></html>',
+    { env: { ANYTHING_RUNTIME_ENGINE: 'browser', ANYTHING_BROWSER_BIN: fakeBin }, timeoutMs: 200 }
+  );
+
+  assert.equal(result.ok, true, JSON.stringify(result));
+  // The browser's fail-open warning survives into the fallback's result — that
+  // warning is the evidence that the rung skipped rather than passed.
+  assert.ok(
+    result.warnings.some((w) => w.includes('browser timed out')),
+    JSON.stringify(result)
+  );
+});
+
 test('a genuinely hanging page is still rejected when the browser times out', async () => {
   // The other half, and the reason the carve-out is by evidence and not by
   // timing: failing open on an evidence-free timeout must not make genuinely
   // hanging pages acceptable. A sync loop blocks the dump too, so this also
   // reaches jsdom — which times out on its own and supplies the real verdict.
+  //
+  // The fallback budget is pinned rather than left at its floor only to keep
+  // the test short: a page that never settles times out under any budget, so
+  // the number cannot change the verdict here — which is exactly the property
+  // that makes the separate clock safe.
   const result = await runAnythingRuntimeCheck(
     '<!DOCTYPE html><html><head></head><body><h1>spin</h1><script>while(true){}</script></body></html>',
-    { env: { ANYTHING_RUNTIME_ENGINE: 'browser' }, timeoutMs: 1500 }
+    {
+      env: { ANYTHING_RUNTIME_ENGINE: 'browser', ANYTHING_RUNTIME_FALLBACK_TIMEOUT_MS: '2500' },
+      timeoutMs: 1500
+    }
   );
   assert.equal(result.ok, false, JSON.stringify(result));
   assert.equal(result.code, 'runtime_timeout');

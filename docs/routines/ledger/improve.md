@@ -30,7 +30,7 @@ todos:
     status: pending
   - id: runtime-fallback-budget
     content: "Give runAnythingJsdomCheck its own budget instead of resharing the browser rung's — the shared clock makes anythingRuntimeBrowser.test.js flaky on cold machines (needs apps/server/src/tools, outside this routine's allowlist — filed as issue #347)"
-    status: pending
+    status: completed
   - id: lint-promotion-evidence
     content: 'All 1206 ESLint findings are warnings and zero are errors; gather quiet-period evidence for one rule and file it for a human decision'
     status: pending
@@ -54,7 +54,7 @@ Owner decisions this routine must not re-litigate. Add a dated row rather than a
 
 ## Open observations
 
-- **2026-08-21 — the browser rung's jsdom fallback reshares the browser's clock.**
+- **2026-08-21 — the browser rung's jsdom fallback reshares the browser's clock.** _(Resolved — see below.)_
   `apps/server/test/anythingRuntimeBrowser.test.js` → "a browser that hangs on startup does not
   reject a valid page" is flaky on cold containers, and unlike the `anythingRuntimeCheck.test.js`
   flake it fails **in isolation**, so the standing "re-run it alone" advice does not identify it.
@@ -63,6 +63,9 @@ Owner decisions this routine must not re-litigate. Add a dated row rather than a
   spawn a child process and load its `tsx` import graph inside whatever clock is left. Documented
   in [`docs/agents/sensors.md`](../../agents/sensors.md); filed as `runtime-fallback-budget` below (issue #347)
   because the fix touches `apps/server/src/tools/`, outside this routine's allowlist.
+  **Resolved outside the routine** by `resolveAnythingRuntimeFallbackTimeoutMs`: the fallback now runs on
+  its own `ANYTHING_RUNTIME_FALLBACK_TIMEOUT_MS` (default `max(browser budget, 6000 ms)`). It was never a
+  flake — the `sensors.md` entry is kept as a worked example of that distinction.
 
 ## Run log
 

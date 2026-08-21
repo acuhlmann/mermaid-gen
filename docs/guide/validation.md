@@ -134,6 +134,8 @@ Anything validation runs through `validateAndPrepareAnythingPatch` (`apps/server
 
    The **jsdom** engine is the original: no layout engine (`getBoundingClientRect()` returns zeros for everything), canvas stubbed with an inert Proxy so a chart that draws nothing passes, and the sandbox contract emulated by hand. Still correct on everything except layout and paint, which is why it remains the fallback.
 
+   **Each engine gets its own clock.** When the browser rung fails open (a cold Chromium launch that produced no page verdict), the jsdom fallback runs on `ANYTHING_RUNTIME_FALLBACK_TIMEOUT_MS` — default `max(browser budget, 6000 ms)` — never on the browser's remaining budget. The two engines exist as a pair _because_ their startup costs differ, so resharing one clock made a budget tightened for the browser starve the fallback, which then reported `runtime_timeout` — a page rejection — for what was only the second rung running out of time ([#347](https://github.com/acuhlmann/mermaid-gen/issues/347)). A budget _raised_ for the browser still lifts the fallback; only tightening was ever browser-specific. Worst case the two budgets run back to back, which is what a fail-open fallback costs.
+
    **Visual findings warn; they do not reject** unless `ANYTHING_RUNTIME_VISUAL_REJECT=1`, and then only on _hard_ findings (`blank_canvas`, `canvas_zero_size`, `collapsed_element`, `body_no_height` → `visual_broken`). `low_contrast` is always a warning: the generation bench measured 32 of 35 accepted pages carrying one between ~3:1 and 4.4:1, and rejecting on legible-but-imperfect contrast would thrash the repair loop for craft rather than correctness. The hard-finding rate on accepted pages measured **8.57%** — that is the extra rejection this switch buys, against a 12–60 s repair turn each.
 
 6. **Single-shot fixer** — `repairAnythingWithFixer` (`anythingSyntaxFixer.js`), one fast-model call before full agent repair. The fixer vets its candidate with static checks only; the store apply that follows re-runs the full ladder including the runtime check.
@@ -215,9 +217,49 @@ Snapshots land in `apps/server/bench-results/` (committed baselines for regressi
 
 Phases 0–4 of the Mermaid reliability ladder are shipped (sanitizer in [`packages/shared/src/mermaidSanitizer.ts`](../../packages/shared/src/mermaidSanitizer.ts), validator reorder, syntax fixer, repair defaults — see [ADR-0002](../decisions/0002-shared-mermaid-sanitizer.md)). Remaining ideas, gated on measurement:
 
+### Anything runtime rung: gated on measurement
+
+The browser rung is live and at parity — visual findings warn, nothing rejects on them yet. What is left is deliberately gated: each item below is a decision that wants a number, not a patch. Reference baselines are committed under `apps/server/bench-results/`:
+
+| tag                                         | first-pass | eventual | hard-flagged |
+| ------------------------------------------- | ---------- | -------- | ------------ |
+| `baseline-2026-08-20T06-45-15-328Z` (jsdom) | 83.33%     | 97.22%   | 8.57%        |
+| `browser-engine-2026-08-20T09-34-06-801Z`   | 72.22%     | 100%     | 11.11%       |
+
+The first-pass gap between them is **not** the engine: it is the static rungs 1–4 (`external_url` 5→7, `script_syntax` 0→3). Rung 5 rejected _fewer_ on the browser (5→3). Do not re-derive that — it is in the `browser-engine` commit message.
+
+**1. Verify the Dockerfile Chromium layer.** The one thing from the browser-engine work never exercised: no Docker daemon in the sessions it was written in, and CI's build job is `npm run build`, not a container build — so the layer first runs at deploy.
+
+```bash
+docker build --build-arg UI_VARIANT=main-only -t archislop-verify .
+docker run --rm archislop-verify /usr/bin/chromium --version
+docker images archislop-verify --format '{{.Size}}'   # expect ~+400MB vs main
+```
+
+Confirm the size delta **before** trusting the `--memory=1Gi` sizing in `scripts/deploy-cloud-run.sh`. Do this before the next deploy, not after.
+
+**2. Turn on visual rejection.** The measured decision the whole bench exists for. Set `ANYTHING_RUNTIME_VISUAL_REJECT=1`, then:
+
+```bash
+node --import ./scripts/register-antv-layout-esm.mjs --import tsx \
+  apps/server/scripts/benchAnythingGeneration.js --tag visual-reject --browser --samples 3
+```
+
+Expect ~8–11% more rejections. Ship **only if repair converges on them** — read `convergenceHistogram` for `stuck-same-code` / `reshuffled`, not just the accept rate. A page that gets rejected and cannot be fixed is worse than one that ships imperfect. `low_contrast` stays a warning permanently; that is settled, not pending.
+
+**3. Tighten `external_url` in the prompt.** The cheapest quality win on this list: `external_url` fires about as often as `runtime_error`, is detected in under a millisecond, and costs a 12–60 s repair turn — and it is a _prompt_ problem, the model reaching for a font/CDN/image URL. Tighten `ANYTHING_CORE_RULES` in `apps/server/src/prompts/anythingSystemPrompt.js`, then re-bench against the baseline. Highest ratio of value to risk here.
+
+**4. Remove the cold-start cost.** Today the first check after idle pays the browser budget _and then_ a jsdom run before returning — correct, but wasteful, and Cloud Run scales to zero so it is a real user-facing path. A one-off warm render (`about:blank`) per process would remove it. Correctness is already handled by the fail-open in `anythingRuntimeBrowser.js` and, since [#347](https://github.com/acuhlmann/mermaid-gen/issues/347), by the fallback's own budget — so this is an optimization, not a fix.
+
+Traps, all of which have been paid for once already:
+
+- **Both `--import` flags or neither.** The generation bench needs `--import ./scripts/register-antv-layout-esm.mjs --import tsx`; each missing one fails with a different unhelpful module error.
+- **`--samples 3` minimum.** Two single-sample runs of the same corpus measured 66.7% and 91.7%.
+- **Read `failureKinds` beside the accept rate.** A `transport` entry is a model call cut off mid-stream — infrastructure, not quality.
+
 ### bench-with-llm
 
-**Shipped for `anything`** as `benchAnythingGeneration.js` (see [Generation bench](#generation-bench-real-llm--spends-tokens) above) — it drives `applyIntent` on a fixed prompt corpus with real keys and reports first-pass accept rate, the rung histogram, and repair convergence. Still open for the other slots: extend it to `applyTransformIntent` and to mermaid / infographic / chart / metaphor3d / forms. The per-slot work is a corpus and a store adapter; the harness (event capture, attempt trail, reporting) is slot-agnostic apart from the validator it calls.
+**Shipped for `anything`** as `benchAnythingGeneration.js` (see [Generation bench](#generation-bench-real-llm--spends-tokens) above) — it drives `applyIntent` on a fixed prompt corpus with real keys and reports first-pass accept rate, the rung histogram, and repair convergence. Still open for the other slots: extend it to `applyTransformIntent` and to mermaid / infographic / chart / metaphor3d / forms. The `applyTransformIntent` arm is also a **known gap in the anything bench itself**: its refine case never exercises `apply_anything_edit`, because the bench drives `applyIntent` (mode `go`) and the prompt only prefers the edit tool for Gilfoyle / Exec / Fix — so the search/replace path ships unmeasured. Noted in `benchAnythingGenerationCorpus.js` too. The per-slot work is a corpus and a store adapter; the harness (event capture, attempt trail, reporting) is slot-agnostic apart from the validator it calls.
 
 (`RUSS_TEMP_MAX` has since been trimmed to ~1.15 — Russ chaos is now prompt-driven; a mermaid arm of this bench would confirm the accept-rate gain and whether the JSON intermediate below is still worth building.)
 

@@ -68,6 +68,11 @@ Package-specific commands:
   unchanged against either, and that identity is what stops them drifting.
 - The probe goes in **`<head>`, never the end of `<body>`** — console capture must install before page scripts, and
   a body element would defeat the `blank_render` check.
+- **Each engine gets its own clock.** When the browser rung fails open, the jsdom fallback runs on
+  `ANYTHING_RUNTIME_FALLBACK_TIMEOUT_MS` (default `max(browser budget, 6000 ms)`), never on the browser's budget —
+  the engines are a pair _because_ their startup costs differ, and resharing one clock made a tightened browser
+  budget starve the fallback, which then reported `runtime_timeout` (a page rejection) for its own spawn cost
+  (#347). Raising the budget still lifts both; only tightening was ever browser-specific.
 - **Visual findings warn, they do not reject** unless `ANYTHING_RUNTIME_VISUAL_REJECT=1`, and then only on hard
   ones. `low_contrast` stays a warning permanently: 32 of 35 accepted pages carry one, and each extra rejection
   costs a 12–60 s repair turn.

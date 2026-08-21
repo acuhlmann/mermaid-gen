@@ -79,6 +79,32 @@ function resolveTimeoutMs(env, override) {
   return DEFAULT_ANYTHING_RUNTIME_TIMEOUT_MS;
 }
 
+/**
+ * The budget the jsdom fallback gets when the browser rung fails open.
+ *
+ * It must NOT be the browser's budget. The two engines exist as a pair
+ * precisely because their startup costs differ: the browser's clock is sized
+ * for a Chromium launch, while jsdom's has to cover a child-process spawn plus
+ * a jsdom import graph. Resharing one clock meant a caller who tightened the
+ * budget for the browser silently starved the fallback, and the fallback then
+ * reported `runtime_timeout` — a page rejection — for what was only the second
+ * rung running out of clock. That shipped, and it is a production path too:
+ * Cloud Run scales to zero, so the first request after an idle period pays
+ * both cold starts back to back.
+ *
+ * So the fallback keeps its own floor. A caller who *raised* the budget still
+ * gets the benefit (`Math.max`) — generosity was meant for both engines; only
+ * tightening was meant for the browser.
+ */
+export function resolveAnythingRuntimeFallbackTimeoutMs(env = process.env, browserBudgetMs = 0) {
+  const raw = Number(env?.ANYTHING_RUNTIME_FALLBACK_TIMEOUT_MS);
+  if (Number.isFinite(raw) && raw > 0) return raw;
+  return Math.max(
+    Number.isFinite(browserBudgetMs) ? browserBudgetMs : 0,
+    DEFAULT_ANYTHING_RUNTIME_TIMEOUT_MS
+  );
+}
+
 function failOpen(warning) {
   return { ok: true, skipped: true, warnings: [warning] };
 }
@@ -114,7 +140,11 @@ export async function runAnythingRuntimeCheck(
     // is still here and still correct on everything except layout and paint, so
     // falling back to it is strictly better than skipping the rung entirely.
     if (result.skipped) {
-      const jsdomResult = await runAnythingJsdomCheck(html, { budgetMs, settle });
+      // Its own clock, not the browser's — see resolveAnythingRuntimeFallbackTimeoutMs.
+      const jsdomResult = await runAnythingJsdomCheck(html, {
+        budgetMs: resolveAnythingRuntimeFallbackTimeoutMs(env, budgetMs),
+        settle
+      });
       return {
         ...jsdomResult,
         warnings: [...(result.warnings ?? []), ...(jsdomResult.warnings ?? [])]

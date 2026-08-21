@@ -91,10 +91,15 @@ jobs:
       # real browser when one resolves. Without Chromium the gate falls back to
       # jsdom, but a slow system Chrome on the runner can cold-start past the
       # 6000 ms budget and flake the ladder tests.
+      #
+      # fonts-liberation is not cosmetic and must stay in lockstep with the
+      # Dockerfile: the visual probe's low_contrast and collapsed_element checks
+      # both read text metrics, so a different font fallback lets CI and
+      # production disagree about whether a page is broken.
       - name: Install Chromium (Anything runtime check)
         run: |
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends chromium
+          sudo apt-get install -y --no-install-recommends chromium fonts-liberation
       - name: Install dependencies
         run: npm ci
       - name: Test apps/server
