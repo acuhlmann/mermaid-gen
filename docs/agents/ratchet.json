@@ -1,5 +1,6 @@
 {
   "updated": "2026-08-21",
+  "$comment": "monolithLoc.apps/web/src/components/DiagramCanvas.jsx budget intentionally left at 1968 (not raised) despite the measured 1983 regression — see issue #363; loosening it would erase the record instead of fixing it.",
   "metrics": {
     "monolithLoc": {
       "apps/web/src/ArchiSlop.jsx": {
@@ -65,11 +66,11 @@
     },
     "suite": {
       "files": {
-        "budget": 370,
+        "budget": 372,
         "initial": 366
       },
       "cases": {
-        "budget": 3733,
+        "budget": 3774,
         "initial": 3675
       }
     }

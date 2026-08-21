@@ -124,10 +124,10 @@ Split **on contact** when a feature already requires editing the file. Pattern: 
 | File                                        | ~LOC  | Primary concern                                              |
 | ------------------------------------------- | ----- | ------------------------------------------------------------ |
 | `apps/web/src/components/InsightsPane.jsx`  | 1,835 | Thinking pane + critique + explain + timeline                |
-| `apps/web/src/components/DiagramCanvas.jsx` | 1,849 | Renderer + selection + diff + highlight                      |
+| `apps/web/src/components/DiagramCanvas.jsx` | 1,983 | Renderer + selection + diff + highlight                      |
 | `apps/server/src/mcp/mcpServer.js`          | 1,406 | Tool registration hub (`register*.js` pattern started)       |
-| `apps/server/src/routes/copilot.ts`         | 1,195 | Routes + collaboration surface                               |
-| `apps/web/src/state/officeMomentStore.js`   | 930   | Growing office hub — extract mutators when adding set pieces |
+| `apps/server/src/routes/copilot.ts`         | 1,270 | Routes + collaboration surface                               |
+| `apps/web/src/state/officeMomentStore.js`   | 938   | Growing office hub — extract mutators when adding set pieces |
 
 Progress tracker: [`docs/decisions/0005-monolith-splits.md`](../decisions/0005-monolith-splits.md).
 
