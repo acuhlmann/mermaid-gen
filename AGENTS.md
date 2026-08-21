@@ -219,6 +219,22 @@ ones that will bite an edit.
   read and the pick untagged (they are transient and already own the screen). The margin is applied
   inside `solveFrameFit` — multiplying the distance afterwards slides the subject back under the
   chrome. Full reasoning in `CLAUDE.md`.
+- **The app's own fixed bands are chrome over this canvas too.** `.diagram-output` is full-bleed, so
+  the composer band and the OS taskbar cover the bottom 139px of a phone and 101px of a desktop —
+  every bottom-anchored metaphor panel used to be drawn under them. `TopShell.jsx`, `BottomRow.jsx`
+  and `DeskOsTaskbar.jsx` carry `data-app-chrome`; the panels read
+  `--metaphor-app-top-inset` / `--metaphor-app-bottom-inset`, and **each phone-block `bottom` has to
+  re-state the variable** or the override silently puts the panel back under the band. A panel's
+  edge is chosen by **thinnest claim, not nearest edge** (nearest read a wide band 7px off the left
+  as a left-hand panel). Fullscreen keeps the chrome's layout rect and paints none of it, so the
+  measurement skips anything outside `document.fullscreenElement`; the insights embed opts out with
+  `measureAppChrome={false}`. Verify geometry by driving a browser, not by reading CSS.
+- **Pressing a row in the composite's layer key reads that layer alone.** The rest of the world
+  recedes by **colour, never opacity** (`recedeTheme` in `metaphorScenes/sceneUtils.js` hands muted
+  layers a theme lerped into the scene horizon) — a dozen faded bodies re-open three's
+  transparency-sorting trap. That theme substitution is why focus touches almost no primitive; keep
+  it that way, and remember additive extras (flow motes, link pulses) ignore colour and must be
+  dropped explicitly. Store + contract: `apps/web/src/components/metaphorLayerFocus.js`.
 - **A portrait canvas is looked at from higher up, and only until the viewer orbits.**
   `frameDirectionForAspect` lifts elevation toward 52° as the aspect falls (azimuth untouched). It
   applies to the first fit, and a resize may re-pick it only while OrbitControls has raised no

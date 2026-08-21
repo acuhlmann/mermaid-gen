@@ -131,7 +131,13 @@ function IslandShrub({ kind, trunkColor, leafColor, scale = 1 }) {
   );
 }
 
-export function IslandPrimitive({ entity, theme, emphasized, lod = 'high' }) {
+/**
+ * `muted` is the one focus-aware prop in this module, and only because an
+ * island draws its own name. Every other primitive recedes purely through the
+ * theme it is handed (`recedeTheme`), which is what keeps focus out of thirteen
+ * component signatures.
+ */
+export function IslandPrimitive({ entity, theme, emphasized, lod = 'high', muted = false }) {
   const land = theme.treeLeafColor ?? '#3d9a4a';
   const soil = theme.treeSoilColor ?? '#806443';
   const relief = entity.presentation?.relief ?? 0.5;
@@ -195,7 +201,7 @@ export function IslandPrimitive({ entity, theme, emphasized, lod = 'high' }) {
           />
         </group>
       ))}
-      {entity.item ? (
+      {entity.item && !muted ? (
         <>
           <TopicGlyph item={entity.item} theme={theme} position={[0, entity.height + 0.45, 0]} />
           {/* Offset onto the shoulder the island's own landmarks are not on —

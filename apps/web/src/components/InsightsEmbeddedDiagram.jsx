@@ -232,6 +232,10 @@ export default function InsightsEmbeddedDiagram({
               diagramSource={source}
               streamingPreview={streamingPreview}
               enableGltfExport={false}
+              // The app's fixed bands are not painting over THIS canvas — the
+              // pane already sits clear of them — so reserving for them would
+              // squeeze a small embed for nothing. See overlaySafeArea.js.
+              measureAppChrome={false}
             />
           ) : null}
         </div>

@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import {
   CHROME_ATTR,
@@ -32,6 +34,24 @@ describe('overlaySafeArea', () => {
     const card = overlaySafeArea(PHONE, [panel(200, 700, 180, 144)]);
     expect(card.bottom).toBeGreaterThan(0);
     expect(card.bottom).toBeLessThan(band.bottom * 0.75);
+  });
+
+  it('gives a wide bottom band the bottom edge, not the left one it sits nearest', () => {
+    // The measured phone case for the app's composer band: it is 7px from the
+    // left of a 390px canvas and 42px from the bottom, so a nearest-edge rule
+    // read it as a left-hand panel and reserved 94% of the left edge for a band
+    // 97px tall. The band is 705..802 of 844, and the bottom is the only edge a
+    // reservation for it costs anything reasonable on.
+    const area = overlaySafeArea(PHONE, [
+      { left: 7, top: 705, right: 365, bottom: 802 },
+      { left: 0, top: 807, right: 390, bottom: 844 }
+    ]);
+    expect(area.left).toBe(0);
+    expect(area.right).toBe(0);
+    expect(area.top).toBe(0);
+    // The deeper of the two, not their sum: the taskbar sits inside the band
+    // the composer already claimed.
+    expect(area.bottom).toBeCloseTo(139 / 844, 2);
   });
 
   it('gives a panel one edge, not two', () => {
@@ -81,6 +101,19 @@ describe('chrome marking', () => {
     expect(CHROME_ATTR).toBe('data-metaphor-chrome');
   });
 
+  it('has the insights embed opt out, so the hatch is not tested and dead', () => {
+    // `includeExternal: false` existed from the day external chrome was first
+    // measured and nothing in production passed it. It matters now that the
+    // bottom band is marked too: `.bottom-chrome` keeps the width it pads away
+    // when the insights pane is open, so an embed inside that pane would
+    // reserve a band for chrome that has already stepped aside for it.
+    const source = readFileSync(
+      fileURLToPath(new URL('../src/components/InsightsEmbeddedDiagram.jsx', import.meta.url)),
+      'utf8'
+    );
+    expect(source).toMatch(/<MetaphorRenderer[\s\S]{0,600}?measureAppChrome=\{false\}/);
+  });
+
   it('names the external-chrome attribute the top-shell tags itself with', () => {
     // The metaphor camera fit reserves for the app's fixed top-shell too, so
     // the accented item is not framed under the brand chip on phones. See
@@ -123,14 +156,21 @@ function stubElement(rect, options = {}) {
   };
 }
 
-/** Build a stub document that returns tagged external-chrome elements. */
-function stubDocument(externalRects) {
+/**
+ * Build a stub document that returns tagged external-chrome elements.
+ *
+ * `fullscreenContains` stands in for `document.fullscreenElement.contains(node)`
+ * — null means no element is fullscreen, which is the ordinary case.
+ */
+function stubDocument(externalRects, { fullscreenContains = null } = {}) {
   const nodes = externalRects.map((rect) => ({
     getBoundingClientRect() {
       return rect;
     }
   }));
   return {
+    fullscreenElement:
+      fullscreenContains === null ? null : { contains: (node) => fullscreenContains(node) },
     querySelectorAll(selector) {
       if (selector === `[${EXTERNAL_CHROME_ATTR}]`) return nodes;
       return [];
@@ -168,6 +208,20 @@ describe('measureOverlaySafeArea with external chrome', () => {
     expect(area).toEqual({ top: 0, right: 0, bottom: 0, left: 0 });
   });
 
+  it('ignores app chrome outside the fullscreen element, which paints nothing', () => {
+    // Native fullscreen renders only the fullscreen element's own subtree, but
+    // the rest of the document keeps its layout: getBoundingClientRect still
+    // reports the top-shell at its usual 16px. Without the containment check a
+    // fullscreen scene frames itself around chrome nobody can see.
+    const canvas = { left: 0, top: 0, right: 390, bottom: 844, width: 390, height: 844 };
+    const chrome = { left: 16, top: 16, right: 374, bottom: 64, width: 358, height: 48 };
+    const container = stubElement(canvas);
+    const area = measureOverlaySafeArea(container, {
+      document: stubDocument([chrome], { fullscreenContains: () => false })
+    });
+    expect(area).toEqual({ top: 0, right: 0, bottom: 0, left: 0 });
+  });
+
   it('clips the reservation to the canvas — a top-shell above the canvas box costs nothing', () => {
     // Not every embed sits under the top-shell — some inline canvases start
     // 200px below the shell. Reserving for chrome that is not actually
@@ -200,6 +254,22 @@ describe('measureExternalChromeInsets', () => {
     const container = stubElement(canvas);
     const insets = measureExternalChromeInsets(container, { document: stubDocument([]) });
     expect(insets).toEqual({ top: 0, right: 0, bottom: 0, left: 0 });
+  });
+
+  it('reports the bottom band the composer and the taskbar make together', () => {
+    // The pixel path is what the panels read: the layer key, the tap inspector
+    // and the guided read all push up off `--metaphor-app-bottom-inset`. The
+    // measured phone case — composer band 705..802, taskbar 807..844 of an
+    // 844px canvas — has to come back as one 139px reservation covering both,
+    // not as the taskbar's 37px and not as the two added together.
+    const canvas = { left: 0, top: 0, right: 390, bottom: 844, width: 390, height: 844 };
+    const composer = { left: 7, top: 705, right: 365, bottom: 802, width: 358, height: 97 };
+    const taskbar = { left: 0, top: 807, right: 390, bottom: 844, width: 390, height: 37 };
+    const container = stubElement(canvas);
+    const insets = measureExternalChromeInsets(container, {
+      document: stubDocument([composer, taskbar])
+    });
+    expect(insets).toEqual({ top: 0, right: 0, bottom: 139, left: 0 });
   });
 
   it('gives one panel one edge — a corner card does not claim both', () => {

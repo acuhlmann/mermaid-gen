@@ -33,6 +33,76 @@ export function shiftColor(input, { lightness = 0, satScale = 1, hueShift = 0 } 
   return c;
 }
 
+/**
+ * How far a receded colour travels toward the horizon, and how much saturation
+ * survives the trip. Tuned so a receded body still reads as a body — it keeps
+ * its silhouette, its shading and its material — while nothing about it
+ * competes for attention with the layer standing in front of it.
+ */
+const RECEDE_TOWARD_HORIZON = 0.62;
+const RECEDE_SAT_SCALE = 0.22;
+
+/** Every theme value that is a colour, and therefore recedes. */
+function isColorString(value) {
+  return typeof value === 'string' && value.startsWith('#');
+}
+
+/**
+ * Push one colour toward `horizon` and drain most of its saturation — aerial
+ * perspective, the way distance actually desaturates a landscape.
+ *
+ * The saturation is pulled toward *the horizon's own* saturation rather than
+ * scaled toward grey, which is what makes the operation monotone: a colour
+ * already sitting on the horizon comes back unchanged. Scaling toward grey
+ * instead desaturates the horizon away from itself, so the sky colours in a
+ * receded theme drifted — small, but it means "recede" could move a colour
+ * further from the thing it is receding into, which is not a recession.
+ *
+ * The final mix runs in three's working (linear) space, the right space for
+ * blending two lights; the saturation goes through `shiftColor`, which forces
+ * sRGB HSL for the reason that function documents at length. Doing the
+ * saturation in linear space instead is how "slightly duller" becomes black.
+ */
+export function recedeColor(input, horizon, amount = RECEDE_TOWARD_HORIZON) {
+  const horizonColor = new THREE.Color(horizon);
+  const horizonHsl = { h: 0, s: 0, l: 0 };
+  horizonColor.getHSL(horizonHsl, THREE.SRGBColorSpace);
+  const hsl = { h: 0, s: 0, l: 0 };
+  new THREE.Color(input).getHSL(hsl, THREE.SRGBColorSpace);
+  const saturation = THREE.MathUtils.lerp(hsl.s, horizonHsl.s, 1 - RECEDE_SAT_SCALE);
+  const faded = new THREE.Color().setHSL(hsl.h, saturation, hsl.l, THREE.SRGBColorSpace);
+  return faded.lerp(horizonColor, THREE.MathUtils.clamp(amount, 0, 1));
+}
+
+/**
+ * A copy of `theme` with every colour receded toward the scene's own horizon.
+ *
+ * Substituting the theme is what lets a layer recede without a single primitive
+ * learning about focus: every body in the fused world already derives its
+ * colours from `theme.*`, so handing a muted theme to the muted layers is the
+ * whole mechanism. Non-colour entries (intensities, light positions, the
+ * hemisphere triple) pass through untouched — a receded layer is lit by the
+ * same lights as the rest of the world, because it is standing in it.
+ *
+ * The horizon defaults to the theme's own sky, so this reads correctly on the
+ * pale whiteboard preset and on noir without a per-theme table.
+ */
+export function recedeTheme(theme, amount = RECEDE_TOWARD_HORIZON) {
+  if (!theme || typeof theme !== 'object') return theme;
+  const horizon = theme.skyHorizonColor ?? theme.background ?? '#94a3b8';
+  const muted = { ...theme };
+  for (const [key, value] of Object.entries(theme)) {
+    if (isColorString(value)) {
+      muted[key] = `#${recedeColor(value, horizon, amount).getHexString()}`;
+      continue;
+    }
+    if (Array.isArray(value) && value.length > 0 && value.every(isColorString)) {
+      muted[key] = value.map((entry) => `#${recedeColor(entry, horizon, amount).getHexString()}`);
+    }
+  }
+  return muted;
+}
+
 const backdropProbe = new THREE.Color();
 
 /**

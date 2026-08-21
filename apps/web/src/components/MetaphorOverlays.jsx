@@ -28,6 +28,10 @@ function kindLabel(controls, kind) {
   return controls.metaphor.kinds[kind] ?? METAPHOR_KIND_LABELS[kind] ?? kind;
 }
 
+/** Stable no-op store shape for a layer key mounted without a focus store. */
+const NO_LAYER_FOCUS_SUBSCRIBE = () => () => {};
+const NO_LAYER_FOCUS_GET = () => null;
+
 /** Top-left card: title, subtitle, and the accented item's thesis sentence. */
 export function MetaphorTitleOverlay({ scene, thesis = '', action = null }) {
   const title = typeof scene?.title === 'string' ? scene.title.trim() : '';
@@ -119,34 +123,74 @@ export function MetaphorReadingOverlay({ scene, metaphor, legend, thesis = '', a
  * Fused-world reading key: each layer's label next to the spatial grammar it
  * is drawn in (islands, towers, river…). Without this a composite is a pretty
  * landscape whose layers the viewer has to reverse-engineer.
+ *
+ * Each row is also the control that reads that layer: pressing it recedes the
+ * others into the scene's haze and drops their names, which is what finally
+ * ties the row "Services · City · 3" to three particular shapes among a dozen.
+ * See metaphorLayerFocus.js. Without a `store` — the fullscreen embed, a
+ * standalone mount — the rows stay plain list items rather than dead buttons.
  */
-export function MetaphorCompositeLayersOverlay({ dsl }) {
+export function MetaphorCompositeLayersOverlay({ dsl, store = null }) {
   const { controls } = useUiCopy();
   const layers = compositeLayerSummaries(dsl);
+  const focused = useSyncExternalStore(
+    store?.subscribe ?? NO_LAYER_FOCUS_SUBSCRIBE,
+    store?.get ?? NO_LAYER_FOCUS_GET,
+    store?.get ?? NO_LAYER_FOCUS_GET
+  );
   if (layers.length === 0) return null;
+  const copy = controls.metaphor;
+  const stopScene = (event) => event.stopPropagation();
   return (
     <div
-      className="metaphor-overlay metaphor-layers-overlay"
+      className={`metaphor-overlay metaphor-layers-overlay${focused ? ' is-focusing' : ''}`}
       role="group"
-      aria-label={controls.metaphor.layers}
+      aria-label={copy.layers}
       {...{ [CHROME_ATTR]: 'layers' }}
     >
-      <p className="metaphor-layers-heading">{controls.metaphor.layers}</p>
+      <p className="metaphor-layers-heading">{copy.layers}</p>
       <ul className="metaphor-layers-list">
-        {layers.map((layer) => (
-          <li key={layer.id} className="metaphor-layers-row">
-            <span className="metaphor-layers-label">{layer.label}</span>
-            {/* The count is the layer's weight in the world. Without it two
-                rows read as equal partners when one holds twelve islands and
-                the other holds a single tower. */}
-            <span className="metaphor-layers-kind">
-              {kindLabel(controls, layer.as)}
-              {layer.itemCount > 0 ? (
-                <span className="metaphor-layers-count"> · {layer.itemCount}</span>
-              ) : null}
-            </span>
-          </li>
-        ))}
+        {layers.map((layer) => {
+          const isFocused = focused === layer.id;
+          const body = (
+            <>
+              <span className="metaphor-layers-label">{layer.label}</span>
+              {/* The count is the layer's weight in the world. Without it two
+                  rows read as equal partners when one holds twelve islands and
+                  the other holds a single tower. */}
+              <span className="metaphor-layers-kind">
+                {kindLabel(controls, layer.as)}
+                {layer.itemCount > 0 ? (
+                  <span className="metaphor-layers-count"> · {layer.itemCount}</span>
+                ) : null}
+              </span>
+            </>
+          );
+          if (!store) {
+            return (
+              <li key={layer.id} className="metaphor-layers-row">
+                {body}
+              </li>
+            );
+          }
+          return (
+            <li key={layer.id} className="metaphor-layers-item">
+              <button
+                type="button"
+                className={`metaphor-layers-row is-pressable${isFocused ? ' is-focused' : ''}`}
+                aria-pressed={isFocused}
+                title={isFocused ? copy.layerFocusClear : copy.layerFocus}
+                onPointerDown={stopScene}
+                onClick={(event) => {
+                  stopScene(event);
+                  store.toggle(layer.id);
+                }}
+              >
+                {body}
+              </button>
+            </li>
+          );
+        })}
       </ul>
     </div>
   );

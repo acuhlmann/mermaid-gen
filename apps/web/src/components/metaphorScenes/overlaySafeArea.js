@@ -12,9 +12,15 @@
  * `overlaySafeArea` turns measured panel rects into per-edge fractions that
  * `solveFrameFit` reserves. Two rules make it behave:
  *
- * 1. **One edge per panel** — whichever it sits closest to, ties to the
- *    horizontal. A panel is not a frame; reserving both edges for one corner
- *    card would pay for it twice.
+ * 1. **One edge per panel, the one a reservation costs least on.** A panel is
+ *    not a frame; reserving both edges for one corner card would pay for it
+ *    twice. The edge is picked by how much of the canvas each reservation would
+ *    swallow, not by which edge the panel sits nearest to — a nearest-edge rule
+ *    reads a rect's smallest margin as its allegiance, and the app's composer
+ *    band sits 7px from the left of a phone and 42px from the bottom, so it
+ *    claimed 94% of the left edge for a band 97px tall. Thinnest-claim cannot
+ *    make that mistake: a band along one edge is always cheapest to reserve on
+ *    that edge.
  * 2. **A corner card costs less than a band.** The reservation is scaled by how
  *    much of the perpendicular axis the panel spans, saturating at half. A
  *    full-width strip claims its whole height; a narrow bottom-right layer key
@@ -77,23 +83,24 @@ function panelClaim(canvas, panel) {
 
   const across = panelWidth / canvas.width;
   const down = panelHeight / canvas.height;
-  // Ordered top, bottom, left, right, and the pick below is strict, so a corner
-  // card equidistant from two edges lands on the horizontal one — the edge a
-  // scene can most cheaply lean away from.
+  // The edge is chosen on raw thickness — how much of the canvas a reservation
+  // on that edge would swallow — and the span discount is applied only after,
+  // to the winner. Discounting before the comparison decides nothing useful: a
+  // thin full-width strip spans almost nothing perpendicular, so its left and
+  // right claims shrink to within a rounding error of its (correct) top claim,
+  // and which edge the reading strip lands on becomes a coin toss.
+  //
+  // Ordered top, bottom, left, right, and the pick below is strict, so a card
+  // equally thick on two edges lands on the horizontal one.
   const candidates = [
-    { edge: 'top', gap: top, thickness: bottom / canvas.height, span: across },
-    {
-      edge: 'bottom',
-      gap: canvas.height - bottom,
-      thickness: 1 - top / canvas.height,
-      span: across
-    },
-    { edge: 'left', gap: left, thickness: right / canvas.width, span: down },
-    { edge: 'right', gap: canvas.width - right, thickness: 1 - left / canvas.width, span: down }
+    { edge: 'top', thickness: bottom / canvas.height, span: across },
+    { edge: 'bottom', thickness: 1 - top / canvas.height, span: across },
+    { edge: 'left', thickness: right / canvas.width, span: down },
+    { edge: 'right', thickness: 1 - left / canvas.width, span: down }
   ];
   let best = candidates[0];
   for (const candidate of candidates) {
-    if (candidate.gap < best.gap) best = candidate;
+    if (candidate.thickness < best.thickness) best = candidate;
   }
   return { edge: best.edge, claim: clamp01(best.thickness) * clamp01(best.span / FULL_SPAN) };
 }
@@ -155,31 +162,20 @@ export function measureExternalChromeInsets(container, options = {}) {
   const panels = readExternalChromePanels(box, ownerDocument);
   const insets = { top: 0, right: 0, bottom: 0, left: 0 };
   for (const panel of panels) {
-    // Choose the panel's own nearest edge, then account for its thickness from
-    // that edge — same "one edge per panel" rule as the fractional path.
-    const distances = {
-      top: panel.top,
-      bottom: box.height - panel.bottom,
-      left: panel.left,
-      right: box.width - panel.right
+    // Same "one edge per panel, the cheapest one" rule as the fractional path,
+    // in raw pixels: the band a panel is part of is always the band it is
+    // cheapest to push a card clear of.
+    const costs = {
+      top: panel.bottom,
+      bottom: box.height - panel.top,
+      left: panel.right,
+      right: box.width - panel.left
     };
     let bestEdge = 'top';
-    let bestGap = distances.top;
-    for (const edge of ['top', 'bottom', 'left', 'right']) {
-      if (distances[edge] < bestGap) {
-        bestEdge = edge;
-        bestGap = distances[edge];
-      }
+    for (const edge of ['bottom', 'left', 'right']) {
+      if (costs[edge] < costs[bestEdge]) bestEdge = edge;
     }
-    const claim =
-      bestEdge === 'top'
-        ? panel.bottom
-        : bestEdge === 'bottom'
-          ? box.height - panel.top
-          : bestEdge === 'left'
-            ? panel.right
-            : box.width - panel.left;
-    if (claim > insets[bestEdge]) insets[bestEdge] = claim;
+    if (costs[bestEdge] > insets[bestEdge]) insets[bestEdge] = costs[bestEdge];
   }
   return insets;
 }
@@ -190,19 +186,35 @@ export function measureExternalChromeInsets(container, options = {}) {
  * camera fit should reserve for, or an empty array when no external chrome is
  * present or none overlaps the canvas.
  *
- * The app's top-shell is a `position: fixed` layer higher in the z-stack than
- * the metaphor canvas — its rect always paints over any pixel the camera aimed
- * at that location. `overlaySafeArea` already reserves for the metaphor's own
- * overlays; this adds the same treatment for panels that live outside the
- * container but still cover pixels inside the canvas rect.
+ * The app's top-shell and its bottom band (the prompt composer plus the OS
+ * taskbar) are `position: fixed` layers higher in the z-stack than the metaphor
+ * canvas — their rects always paint over any pixel the camera aimed at that
+ * location. `overlaySafeArea` already reserves for the metaphor's own overlays;
+ * this adds the same treatment for panels that live outside the container but
+ * still cover pixels inside the canvas rect.
+ *
+ * Native fullscreen is the one case where a marked element keeps its layout
+ * rect and paints nothing: only the fullscreen element's own subtree renders,
+ * so app chrome outside it is invisible and must not be reserved for. Layout
+ * alone cannot tell you that — `getBoundingClientRect` reports the top-shell at
+ * its usual 16px whether the canvas is fullscreen or not — so the containment
+ * check is the only thing keeping a fullscreen scene from framing itself around
+ * chrome nobody can see.
  */
 function readExternalChromePanels(box, root) {
   const document = root ?? (typeof globalThis !== 'undefined' ? globalThis.document : null);
   if (!document || typeof document.querySelectorAll !== 'function') return [];
   const panels = [];
+  // Both spellings, the same pair `useDiagramFullscreen` resolves — Safari
+  // reports only the prefixed one, and reading only the standard property there
+  // would leave a fullscreen scene framed around invisible chrome.
+  const fullscreenElement = document.fullscreenElement ?? document.webkitFullscreenElement ?? null;
   const nodes = document.querySelectorAll(`[${EXTERNAL_CHROME_ATTR}]`);
   for (const node of nodes) {
     if (typeof node.getBoundingClientRect !== 'function') continue;
+    if (fullscreenElement && typeof fullscreenElement.contains === 'function') {
+      if (!fullscreenElement.contains(node)) continue;
+    }
     const rect = node.getBoundingClientRect();
     if (!(rect.width > 0) || !(rect.height > 0)) continue;
     // Clip to the canvas box — a top-shell that spans the whole viewport should

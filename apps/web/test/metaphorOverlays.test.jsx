@@ -11,11 +11,15 @@ import {
 } from '../src/components/MetaphorOverlays.jsx';
 import {
   CHROME_ATTR,
+  EXTERNAL_CHROME_ATTR,
   measureOverlaySafeArea
 } from '../src/components/metaphorScenes/overlaySafeArea.js';
+import { TopShell } from '../src/components/TopShell.jsx';
+import { BottomRow } from '../src/components/BottomRow.jsx';
 import { createMetaphorHoverStore } from '../src/components/metaphorHover.js';
 import { createMetaphorSelectionStore } from '../src/components/metaphorSelection.js';
 import { createMetaphorTourStore } from '../src/components/metaphorTourStore.js';
+import { createMetaphorLayerFocusStore } from '../src/components/metaphorLayerFocus.js';
 import { MetaphorHoverTooltip } from '../src/components/MetaphorOverlays.jsx';
 
 const COMPOSITE = {
@@ -246,5 +250,69 @@ describe('persistent chrome is measurable', () => {
 
   it('reports nothing for a container with no measurable box', () => {
     expect(measureOverlaySafeArea(null)).toBeNull();
+  });
+});
+
+describe('the app bands the 3D canvas measures', () => {
+  // `.diagram-output` runs the whole viewport, so both of the app's fixed bands
+  // paint over the metaphor canvas. The measurement is by attribute — an
+  // unmarked band is invisible to it, and the feature is then silently dead
+  // rather than visibly broken. TopShell has carried the top marker since the
+  // reading strip stopped landing under the brand chip; the composer band is
+  // the bottom half of the same contract.
+  it.each([
+    ['top-shell', <TopShell key="t">chip</TopShell>, 'top'],
+    ['composer band', <BottomRow key="b" actions={null} aiControls={null} />, 'bottom']
+  ])('marks the %s as app chrome', (_name, element, edge) => {
+    const { container } = render(element);
+    const marked = container.querySelector(`[${EXTERNAL_CHROME_ATTR}]`);
+    expect(marked).not.toBeNull();
+    expect(marked.getAttribute(EXTERNAL_CHROME_ATTR)).toBe(edge);
+  });
+});
+
+describe('layer focus from the layer key', () => {
+  // The key named the layers and stopped there: nothing tied the row
+  // "Services · City · 3" to three particular shapes among a dozen, so the
+  // denser the composite the less the panel explained. Pressing a row is what
+  // closes that gap — see metaphorLayerFocus.js.
+  it('makes each row a toggle that presses and un-presses', () => {
+    const store = createMetaphorLayerFocusStore();
+    const { container } = render(<MetaphorCompositeLayersOverlay dsl={COMPOSITE} store={store} />);
+    const rows = container.querySelectorAll('button.metaphor-layers-row');
+    expect(rows).toHaveLength(2);
+    expect([...rows].every((row) => row.getAttribute('aria-pressed') === 'false')).toBe(true);
+
+    fireEvent.click(rows[1]);
+    expect(store.get()).toBe('services');
+    expect(rows[1].getAttribute('aria-pressed')).toBe('true');
+    expect(rows[0].getAttribute('aria-pressed')).toBe('false');
+    expect(container.querySelector('.metaphor-layers-overlay').className).toContain('is-focusing');
+
+    // A viewer who presses the same row twice expects the second press to undo
+    // the first — the whole world is otherwise only reachable via Escape.
+    fireEvent.click(rows[1]);
+    expect(store.get()).toBeNull();
+    expect(container.querySelector('.metaphor-layers-overlay').className).not.toContain(
+      'is-focusing'
+    );
+  });
+
+  it('moves the focus rather than stacking it when another row is pressed', () => {
+    const store = createMetaphorLayerFocusStore();
+    const { container } = render(<MetaphorCompositeLayersOverlay dsl={COMPOSITE} store={store} />);
+    const rows = container.querySelectorAll('button.metaphor-layers-row');
+    fireEvent.click(rows[0]);
+    fireEvent.click(rows[1]);
+    expect(store.get()).toBe('services');
+    expect(rows[0].getAttribute('aria-pressed')).toBe('false');
+  });
+
+  it('renders plain rows, not dead buttons, without a store', () => {
+    // Mounted standalone (or in a preview) there is nothing to focus. A button
+    // that looks pressable and does nothing is worse than a list item.
+    const { container } = render(<MetaphorCompositeLayersOverlay dsl={COMPOSITE} />);
+    expect(container.querySelector('button')).toBeNull();
+    expect(container.querySelectorAll('.metaphor-layers-row')).toHaveLength(2);
   });
 });
