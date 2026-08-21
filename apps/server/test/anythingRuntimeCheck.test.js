@@ -92,9 +92,15 @@ test('runtime sandbox integration', { concurrency: false }, async (t) => {
   });
 
   await t.test('kills an infinite loop and reports a timeout', async () => {
+    // Both budgets, because `timeoutMs` is not an end-to-end bound: a sync loop
+    // blocks the browser's dump too, so on a browser host the verdict comes
+    // from the jsdom fallback, which runs on its OWN clock
+    // (resolveAnythingRuntimeFallbackTimeoutMs). Pinning only the browser's
+    // would leave the reported number engine-dependent — and this suite's whole
+    // job is to read identically on either engine.
     const result = await runAnythingRuntimeCheck(
       doc(`<h1>Spin</h1><script>while (true) {}</script>`),
-      { env: {}, timeoutMs: 2000 }
+      { env: { ANYTHING_RUNTIME_FALLBACK_TIMEOUT_MS: '2000' }, timeoutMs: 2000 }
     );
     assert.equal(result.ok, false);
     assert.equal(result.code, 'runtime_timeout');
@@ -214,7 +220,14 @@ test('runtime sandbox integration', { concurrency: false }, async (t) => {
   });
 
   await t.test('fails open when the sandbox cannot produce a verdict', async () => {
-    const result = await runAnythingRuntimeCheck(doc('<h1>x</h1>'), { env: {}, timeoutMs: 1 });
+    // Same reason: starving one engine no longer starves the other, so a budget
+    // meant to leave NO engine any clock has to say so twice. Without the
+    // fallback's, this passes on a jsdom-only host and fails on a browser host
+    // — which is exactly the drift this suite exists to catch.
+    const result = await runAnythingRuntimeCheck(doc('<h1>x</h1>'), {
+      env: { ANYTHING_RUNTIME_FALLBACK_TIMEOUT_MS: '1' },
+      timeoutMs: 1
+    });
     assert.equal(result.ok, false);
     assert.equal(result.code, 'runtime_timeout');
   });
