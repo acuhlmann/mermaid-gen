@@ -17,7 +17,8 @@ The trigger prompt is deliberately almost empty:
 ```
 Run the feature automation `<name>`.
 Read docs/automations/README.md (the contract), then docs/automations/<name>.md (the playbook),
-and follow them exactly. Those two files are authoritative; this message adds nothing to them.
+then docs/automations/ledger/<name>.md (durable memory).
+Follow them exactly. Those three files are authoritative; this message adds nothing to them.
 ```
 
 **That indirection is the point.** A prompt living only in the cron job is invisible to the repo,
@@ -88,14 +89,21 @@ If a run discovers something a future agent would otherwise rediscover the hard 
 - **No generation bench on a schedule without a key.** `benchAnythingGeneration.js` spends tokens.
   Run it only when the queue item calls for measurement and a backend resolves.
 
+## Registered automations
+
+| Playbook                  | Cursor automation                                                                                        |
+| ------------------------- | -------------------------------------------------------------------------------------------------------- |
+| [`anything`](anything.md) | [Anything mode — daily improvement](https://cursor.com/automations/ca0aeb36-9d76-11f1-a7d1-d6b4613131ce) |
+
 ## Adding a feature automation
 
 1. Write `docs/automations/<name>.md` with frontmatter (`name`, `tier`, `schedule`, `maxFiles`,
    `allowedPaths`, `forbiddenPaths`) and a numbered work queue.
 2. Create `docs/automations/ledger/<name>.md` from an existing ledger.
 3. Create the Cursor automation at [cursor.com/automations](https://cursor.com/automations) with
-   the three-line loader prompt above, on a cron that does not collide with an existing automation.
+   the loader prompt above, on a cron that does not collide with an existing automation.
    Stagger by at least an hour from [`docs/routines/`](../routines/) and other feature automations.
-4. Fire it once by hand and watch the whole run before leaving it on a schedule.
+4. Record the automation URL in the ledger's **Locked** section and fire it once by hand before
+   leaving it on a schedule.
 
 `npm run verify:agent-infra` checks that every `npm run <script>` a playbook names actually exists.
