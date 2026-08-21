@@ -158,7 +158,7 @@ test('ALWAYS_FORBIDDEN covers the AGENTS.md cost and lockfile traps', () => {
 });
 
 test('every shipped playbook loads with a valid budget and a ledger', () => {
-  for (const name of ['review', 'improve']) {
+  for (const name of ['review', 'improve', 'anything']) {
     const { playbook, errors } = loadPlaybook(ROOT, name);
     assert.deepEqual(errors, [], `${name} playbook should be valid`);
     assert.ok(ROUTINE_TIERS.includes(String(playbook.tier)));
@@ -201,4 +201,18 @@ test('improve may not touch product source outside its allowlist', () => {
     changes: [{ status: 'M', file: 'apps/web/src/components/DiagramCanvas.jsx' }]
   });
   assert.equal(result.ok, false, 'improve does no unprompted refactors');
+});
+
+test('the anything feature automation may touch its blast-radius paths', () => {
+  const { playbook } = loadPlaybook(ROOT, 'anything');
+  const result = checkRoutineDiff({
+    playbook,
+    changes: [
+      { status: 'M', file: 'apps/server/src/prompts/anythingDesignGuide.js' },
+      { status: 'M', file: 'apps/server/test/anythingRuntimeCheck.test.js' },
+      { status: 'M', file: 'docs/automations/ledger/anything.md' }
+    ],
+    testCounts: [{ file: 'apps/server/test/anythingRuntimeCheck.test.js', before: 40, after: 41 }]
+  });
+  assert.deepEqual(result.violations, []);
 });

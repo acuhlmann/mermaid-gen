@@ -20,7 +20,9 @@ const DOC_DIRS = [
   'docs/guide',
   'docs/agents',
   'docs/routines',
-  'docs/routines/ledger'
+  'docs/routines/ledger',
+  'docs/automations',
+  'docs/automations/ledger'
 ];
 
 const SKIP_PREFIXES = [
