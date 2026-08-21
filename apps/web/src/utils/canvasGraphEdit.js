@@ -38,6 +38,15 @@ import {
   renameStateEdge,
   renameStateNode
 } from './mermaidStateEdit.js';
+import {
+  addLinkedSequenceNode,
+  connectSequenceNodes,
+  deleteSequenceEdge,
+  deleteSequenceNode,
+  isSequenceFamilySource,
+  renameSequenceEdge,
+  renameSequenceNode
+} from './mermaidSequenceEdit.js';
 
 function fail(reason) {
   return { ok: false, reason };
@@ -89,6 +98,17 @@ const STATE_ADAPTER = {
   renameEdge: renameStateEdge
 };
 
+const SEQUENCE_ADAPTER = {
+  contentType: 'mermaid',
+  canLink: true,
+  addLinked: addLinkedSequenceNode,
+  connect: connectSequenceNodes,
+  deleteNode: deleteSequenceNode,
+  deleteEdge: deleteSequenceEdge,
+  renameNode: renameSequenceNode,
+  renameEdge: renameSequenceEdge
+};
+
 /**
  * Logical id for Connect targeting: mermaid node id, AntV `data-indexes`, or `~label:`.
  * @param {object | null | undefined} descriptor
@@ -124,6 +144,9 @@ export function graphEditAdapterFor(contentType, source) {
   }
   if (contentType === 'mermaid' && isStateFamilySource(source)) {
     return STATE_ADAPTER;
+  }
+  if (contentType === 'mermaid' && isSequenceFamilySource(source)) {
+    return SEQUENCE_ADAPTER;
   }
   if (contentType === 'infographic' && isInfographicGraphSource(source)) {
     return {

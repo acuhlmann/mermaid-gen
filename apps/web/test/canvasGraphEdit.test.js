@@ -38,12 +38,29 @@ const STATE = `stateDiagram-v2
   Draft --> PendingReview : submit
 `;
 
+const SEQUENCE = `sequenceDiagram
+  participant Alice
+  participant Bob
+  Alice->>Bob: Hello
+`;
+
 describe('graphEditAdapterFor', () => {
   it('returns the flowchart adapter for mermaid flowcharts only', () => {
     const adapter = graphEditAdapterFor('mermaid', FLOWCHART);
     expect(adapter?.contentType).toBe('mermaid');
     expect(adapter?.canLink).toBe(true);
-    expect(graphEditAdapterFor('mermaid', 'sequenceDiagram\nA->>B: hi')).toBeNull();
+    expect(graphEditAdapterFor('mermaid', 'classDiagram\n  A --> B')).toBeNull();
+  });
+
+  it('returns the sequence adapter with Link for sequenceDiagram', () => {
+    const adapter = graphEditAdapterFor('mermaid', SEQUENCE);
+    expect(adapter?.contentType).toBe('mermaid');
+    expect(adapter?.canLink).toBe(true);
+    expect(adapter?.connect(SEQUENCE, 'Alice', 'Bob')).toMatchObject({ ok: true });
+    expect(adapter?.addLinked(SEQUENCE, 'Alice', 'Charlie')).toMatchObject({
+      ok: true,
+      newId: 'p1'
+    });
   });
 
   it('returns the mindmap adapter without Link', () => {

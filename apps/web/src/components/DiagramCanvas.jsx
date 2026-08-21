@@ -272,10 +272,24 @@ function findFlowchartNodeWrapByLogicalId(root, logicalId) {
   return null;
 }
 
+function findSequenceParticipantByLogicalId(root, logicalId) {
+  if (!root || !logicalId) return null;
+  try {
+    return root.querySelector(`[data-et="participant"][data-id="${CSS.escape(logicalId)}"]`);
+  } catch {
+    return null;
+  }
+}
+
 function resolveDiagramNodeWrap(root, descriptor) {
   if (!root || !descriptor) return null;
   if (descriptor.id) return diagramSelectedWrap(root, descriptor.id);
-  if (descriptor.dataId) return findFlowchartNodeWrapByLogicalId(root, descriptor.dataId);
+  if (descriptor.dataId) {
+    return (
+      findFlowchartNodeWrapByLogicalId(root, descriptor.dataId) ||
+      findSequenceParticipantByLogicalId(root, descriptor.dataId)
+    );
+  }
   return null;
 }
 
@@ -928,6 +942,7 @@ export default function DiagramCanvas({
     if (!connectSourceId) return;
     const sourceWrap =
       findFlowchartNodeWrapByLogicalId(root, connectSourceId) ||
+      findSequenceParticipantByLogicalId(root, connectSourceId) ||
       findInfographicConnectSource(root, connectSourceId) ||
       findMindmapConnectSource(root, connectSourceId);
     sourceWrap?.classList?.add('is-connect-source');
