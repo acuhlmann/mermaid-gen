@@ -336,11 +336,24 @@ async function runCase(sample, { profile, browser, browserBin }) {
   let threw = null;
   const measureStart = performance.now();
   try {
-    result = await agent.applyIntent({
-      prompt: sample.prompt,
-      modelProfile: profile,
-      emit: capture.emit
-    });
+    if (sample.transformMode) {
+      if (!seeded) {
+        threw = 'Refine case did not seed a document before transform';
+      } else {
+        result = await agent.applyTransformIntent({
+          mode: sample.transformMode,
+          modelProfile: profile,
+          emit: capture.emit,
+          advisorPrompt: sample.prompt
+        });
+      }
+    } else {
+      result = await agent.applyIntent({
+        prompt: sample.prompt,
+        modelProfile: profile,
+        emit: capture.emit
+      });
+    }
   } catch (error) {
     threw = error instanceof Error ? error.message : String(error);
   }
@@ -451,6 +464,8 @@ function shapeCaseResult({
     libs: attempts.find((a) => a.accepted)?.libs ?? [],
     expectLibs: sample.expectLibs ?? null,
     toolsUsed: captureSummary.toolsUsed,
+    transformMode: sample.transformMode ?? null,
+    editToolUsed: captureSummary.toolsUsed.includes('apply_anything_edit'),
     fixer: captureSummary.fixer,
     tokens: captureSummary.totalTokens,
     modelCalls: captureSummary.modelCalls,
@@ -499,6 +514,9 @@ function buildSummary(results, args) {
     (f) => f.code
   );
 
+  const transformRuns = attempted.filter((r) => r.transformMode);
+  const editToolRuns = transformRuns.filter((r) => r.editToolUsed);
+
   const latencies = attempted.map((r) => r.totalMs);
   const docSizes = acceptedRuns.map((r) => r.docSize);
 
@@ -535,6 +553,15 @@ function buildSummary(results, args) {
     codeHistogram,
     outcomeHistogram,
     convergenceHistogram,
+
+    // Refine / transform arm: did the model reach for search/replace?
+    editTool: transformRuns.length
+      ? {
+          transformRuns: transformRuns.length,
+          editToolUsed: editToolRuns.length,
+          editToolRate: Math.round((editToolRuns.length / transformRuns.length) * 10000) / 100
+        }
+      : null,
 
     // The number the browser decision turns on: of the pages the ladder ACCEPTED,
     // how many would a real browser have objected to?

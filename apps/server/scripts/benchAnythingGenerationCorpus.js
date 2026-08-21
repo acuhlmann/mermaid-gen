@@ -23,8 +23,12 @@
  * @property {string} family
  * @property {string} prompt        What the user asks for.
  * @property {string} stresses      Which part of the pipeline this case is for.
- * @property {string} [seedPrompt]  When set, run this first, then `prompt` as a refine
- *                                  (exercises apply_anything_edit rather than a rewrite).
+ * @property {string} [seedPrompt]  When set, run this first to seed a document, then the
+ *                                  measured turn runs against it.
+ * @property {string} [transformMode] When set with `seedPrompt`, the measured turn uses
+ *                                    `applyTransformIntent` (Gilfoyle/Dinesh/Barker prefer
+ *                                    `apply_anything_edit`) and passes `prompt` as the
+ *                                    stakeholder suggestion — exercises the edit path.
  * @property {string[]} [expectLibs] Lib ids this case is expected to opt into, if any.
  */
 
@@ -115,20 +119,16 @@ export const ANYTHING_GENERATION_CORPUS = [
 
   // ── refine: a second turn against a document that already exists. ────────
   //
-  // NOTE this does NOT reliably exercise `apply_anything_edit`. The bench drives
-  // `applyIntent`, which runs as mode `go`, and anythingSystemPrompt.js only
-  // tells the agent to prefer the edit tool for Gilfoyle / Exec / Fix — so a
-  // full rewrite here is correct behaviour, not a defect. Measured: this case
-  // used `apply_anything_patch`. Covering the edit path properly needs an
-  // `applyTransformIntent` arm, which is follow-up work (see
-  // docs/guide/validation.md § bench-with-llm). What this case does measure is
-  // the second-turn behaviour: whether an existing document survives a scoped
-  // follow-up ask intact.
+  // `transformMode: 'barker'` routes the measured turn through applyTransformIntent
+  // (not applyIntent / mode `go`), with the follow-up ask in advisorPrompt. Barker
+  // prefers apply_anything_edit for scoped changes — the path the prompt bar never
+  // hits. The bench reports `editToolUsed` so we can track whether the model obeyed.
   {
     id: 'refine-add-control',
     family: 'refine',
     seedPrompt: 'A countdown timer that counts down from 60 seconds with a start button.',
     prompt: 'Add a reset button next to start, and show the remaining time as mm:ss.',
-    stresses: 'second turn against an existing document (tool choice is the agent’s)'
+    transformMode: 'barker',
+    stresses: 'applyTransformIntent + apply_anything_edit on a scoped follow-up'
   }
 ];
