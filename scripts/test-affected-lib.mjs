@@ -10,9 +10,17 @@ import path from 'node:path';
 /**
  * Server tests that spawn jsdom child processes (~0.8–2s each).
  * Skipped by `test:fast` unless Anything paths appear in the diff.
+ *
+ * anythingRuntimeBrowser.test.js reaches the same spawn as
+ * anythingRuntimeCheck.test.js (both exercise runAnythingRuntimeCheck's
+ * jsdom fallback) and was missing here — which meant it ran in the parallel
+ * fast batch this list exists to keep such files out of, and its
+ * evidence-free-timeout case raced the runner under full-suite load
+ * contention (issue #353).
  */
 export const SERVER_SLOW_TEST_FILES = [
   'apps/server/test/anythingRuntimeCheck.test.js',
+  'apps/server/test/anythingRuntimeBrowser.test.js',
   'apps/server/test/anythingLangChainAgent.test.js',
   'apps/server/test/anythingHtmlTool.test.js'
 ];
