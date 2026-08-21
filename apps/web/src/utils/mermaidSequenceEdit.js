@@ -1,4 +1,8 @@
-import { peekDiagramDirective, stripLineComment } from './mermaidSourceLocate.js';
+import {
+  findSequenceMessageRange,
+  peekDiagramDirective,
+  stripLineComment
+} from './mermaidSourceLocate.js';
 
 const PARTICIPANT_ID_RE = /^[A-Za-z][A-Za-z0-9_]*(?:-[A-Za-z0-9_]+)*$/;
 const PARTICIPANT_ID_CAPTURE = '([A-Za-z][A-Za-z0-9_]*(?:-[A-Za-z0-9_]+)*)';
@@ -13,6 +17,9 @@ const MESSAGE_RE = new RegExp(
 const META_LINE_RE =
   /^(?:sequenceDiagram|participant|actor|autonumber|title|link|links|box|rect|activate|deactivate|note|alt|opt|loop|par|and|else|end|break|critical|option|also|create|destroy)\b/i;
 const ACTIVATE_RE = /^\s*(?:activate|deactivate)\s+(\S+)\s*$/i;
+const CREATE_PARTICIPANT_RE = /^\s*create\s+(?:(?:participant|actor)\s+)?(\S+)\s*$/i;
+const DESTROY_PARTICIPANT_RE = /^\s*destroy\s+(\S+)\s*$/i;
+const NOTE_PARTICIPANTS_RE = /^\s*note\s+(?:over|left of|right of)\s+([^:]+)/i;
 
 function fail(reason) {
   return { ok: false, reason };
@@ -132,6 +139,23 @@ function requireExistingParticipant(source, id) {
 }
 
 /**
+ * @param {string} stripped
+ * @param {string} participantId
+ */
+function metaLineReferencesParticipant(stripped, participantId) {
+  const created = stripped.match(CREATE_PARTICIPANT_RE);
+  if (created && created[1] === participantId) return true;
+  const destroyed = stripped.match(DESTROY_PARTICIPANT_RE);
+  if (destroyed && destroyed[1] === participantId) return true;
+  const note = stripped.match(NOTE_PARTICIPANTS_RE);
+  if (note) {
+    const ids = note[1].split(',').map((part) => part.trim());
+    if (ids.includes(participantId)) return true;
+  }
+  return false;
+}
+
+/**
  * @param {string[]} lines
  * @returns {number}
  */
@@ -242,6 +266,10 @@ export function deleteSequenceNode(source, participantId) {
       removed = true;
       continue;
     }
+    if (metaLineReferencesParticipant(stripped, participantId)) {
+      removed = true;
+      continue;
+    }
     next.push(line);
   }
   if (!removed) return fail('missing');
@@ -252,8 +280,9 @@ export function deleteSequenceNode(source, participantId) {
  * @param {string} source
  * @param {string} fromId
  * @param {string} toId
+ * @param {string} [messageLabel]
  */
-export function deleteSequenceEdge(source, fromId, toId) {
+export function deleteSequenceEdge(source, fromId, toId, messageLabel) {
   const blocked =
     requireSequence(source) ||
     requireParticipantId(fromId) ||
@@ -261,19 +290,15 @@ export function deleteSequenceEdge(source, fromId, toId) {
     requireExistingParticipant(source, fromId) ||
     requireExistingParticipant(source, toId);
   if (blocked) return blocked;
+  const range = findSequenceMessageRange(source, {
+    from: fromId,
+    to: toId,
+    label: messageLabel
+  });
+  if (!range) return fail('missing');
   const lines = String(source).split(/\r?\n/);
-  /** @type {string[]} */
-  const next = [];
-  let removed = false;
-  for (const line of lines) {
-    const message = parseSequenceMessage(line);
-    if (!removed && message && message.from === fromId && message.to === toId) {
-      removed = true;
-      continue;
-    }
-    next.push(line);
-  }
-  if (!removed) return fail('missing');
+  const lineIndex = range.startLineNumber - 1;
+  const next = lines.filter((_, index) => index !== lineIndex);
   return ok(next.join('\n'));
 }
 
@@ -319,8 +344,9 @@ export function renameSequenceNode(source, participantId, label) {
  * @param {string} fromId
  * @param {string} toId
  * @param {string} label
+ * @param {string} [messageLabel]
  */
-export function renameSequenceEdge(source, fromId, toId, label) {
+export function renameSequenceEdge(source, fromId, toId, label, messageLabel) {
   const blocked =
     requireSequence(source) ||
     requireParticipantId(fromId) ||
@@ -329,17 +355,17 @@ export function renameSequenceEdge(source, fromId, toId, label) {
     requireExistingParticipant(source, toId);
   if (blocked) return blocked;
   const text = String(label ?? '').trim();
-  const lines = String(source).split(/\r?\n/);
-  let found = false;
-  const next = lines.map((line) => {
-    const message = parseSequenceMessage(line);
-    if (!message || message.from !== fromId || message.to !== toId) return line;
-    if (found) return line;
-    found = true;
-    const indent = indentOf(line);
-    const suffix = text ? `: ${text}` : '';
-    return `${indent}${fromId}->>${toId}${suffix}`;
+  const range = findSequenceMessageRange(source, {
+    from: fromId,
+    to: toId,
+    label: messageLabel
   });
-  if (!found) return fail('missing');
+  if (!range) return fail('missing');
+  const lines = String(source).split(/\r?\n/);
+  const lineIndex = range.startLineNumber - 1;
+  const indent = indentOf(lines[lineIndex]);
+  const suffix = text ? `: ${text}` : '';
+  const next = [...lines];
+  next[lineIndex] = `${indent}${fromId}->>${toId}${suffix}`;
   return ok(next.join('\n'));
 }

@@ -88,6 +88,19 @@ describe('deleteSequenceEdge', () => {
     expect(result.source).not.toMatch(/Alice->>Bob: Hello/);
     expect(result.source).toMatch(/Bob-->>Alice: Hi there/);
   });
+
+  it('removes the message that matches the label when duplicates exist', () => {
+    const duplicate = `sequenceDiagram
+  participant Alice
+  participant Bob
+  Alice->>Bob: first
+  Alice->>Bob: second
+`;
+    const result = deleteSequenceEdge(duplicate, 'Alice', 'Bob', 'second');
+    expect(result.ok).toBe(true);
+    expect(result.source).toMatch(/Alice->>Bob: first/);
+    expect(result.source).not.toMatch(/: second/);
+  });
 });
 
 describe('renameSequenceNode', () => {
@@ -116,6 +129,20 @@ describe('renameSequenceEdge', () => {
     expect(result.ok).toBe(true);
     expect(result.source).toMatch(/Alice->>Bob: Howdy/);
     expect(result.source).not.toMatch(/: Hello/);
+  });
+
+  it('updates the message that matches the label when duplicates exist', () => {
+    const duplicate = `sequenceDiagram
+  participant Alice
+  participant Bob
+  Alice->>Bob: first
+  Alice->>Bob: second
+`;
+    const result = renameSequenceEdge(duplicate, 'Alice', 'Bob', 'changed', 'second');
+    expect(result.ok).toBe(true);
+    expect(result.source).toMatch(/Alice->>Bob: first/);
+    expect(result.source).toMatch(/Alice->>Bob: changed/);
+    expect(result.source).not.toMatch(/: second/);
   });
 
   it('refuses a missing message', () => {
@@ -187,5 +214,21 @@ describe('deleteSequenceNode lifecycle lines', () => {
     expect(result.ok).toBe(true);
     expect(result.source).not.toMatch(/\bBob\b/);
     expect(result.source).not.toMatch(/activate|deactivate/);
+  });
+
+  it('removes create, destroy, and note lines for the participant', () => {
+    const withLifecycle = `sequenceDiagram
+  participant Alice
+  participant Bob
+  create participant Alice
+  Alice->>Bob: hi
+  note over Bob: waiting
+  destroy Bob
+`;
+    const result = deleteSequenceNode(withLifecycle, 'Bob');
+    expect(result.ok).toBe(true);
+    expect(result.source).not.toMatch(/\bBob\b/);
+    expect(result.source).not.toMatch(/destroy|note over/);
+    expect(result.source).toMatch(/create participant Alice/);
   });
 });

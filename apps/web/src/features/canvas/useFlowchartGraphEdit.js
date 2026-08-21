@@ -161,6 +161,7 @@ export function useFlowchartGraphEdit({
           fromId: descriptor.edgeFrom,
           toId: descriptor.edgeTo,
           draft: descriptor.label || '',
+          edgeLabel: descriptor.label || '',
           x: extra.x ?? toolbarAnchor?.left ?? 0,
           y: extra.y ?? toolbarAnchor?.nodeTop ?? 0
         });
@@ -228,7 +229,7 @@ export function useFlowchartGraphEdit({
         const current = stateRef.current.diagramSource;
         const result =
           selectionKind(target) === 'edge'
-            ? adapter.deleteEdge(current, target.edgeFrom, target.edgeTo)
+            ? adapter.deleteEdge(current, target.edgeFrom, target.edgeTo, target.label)
             : adapter.deleteNode(current, nodeLogicalId(target));
         if (!result.ok) {
           if (result.reason !== 'duplicate' && result.reason !== 'self') {
@@ -327,7 +328,7 @@ export function useFlowchartGraphEdit({
       if (session.created && !label) return;
       const result =
         session.kind === 'edge'
-          ? adapter.renameEdge(current, session.fromId, session.toId, label)
+          ? adapter.renameEdge(current, session.fromId, session.toId, label, session.edgeLabel)
           : adapter.renameNode(current, session.logicalId, label);
       if (!result.ok) {
         pushError(copy.failed);
