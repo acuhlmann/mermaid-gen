@@ -36,15 +36,32 @@ A routine declares a `tier` in its playbook front-matter:
 | `report`       | no                             | —                   |
 | `code-writing` | yes, within its declared paths | `review`, `improve` |
 
-**Both shipped routines open a PR and merge it themselves once CI is green.** The PR exists so the
-owner has something to skim, not as a gate — a routine that waits for review is a routine that saves
-nobody any time.
+**Every `code-writing` routine opens a PR and merges it itself once CI is green, by default.** The PR
+exists so the owner has something to skim, not as a gate — a routine that waits for review on every
+change is a routine that saves nobody any time.
 
 What keeps that safe is **the budget, not the tier and not a human in the loop**: a small `maxFiles`,
 an explicit path allowlist, `npm run check` green, and — for any fix to a bug — a test that fails
 without it. If a routine's output is ever wrong, the correction is one line in its playbook
 (`maxFiles` down, or a path into `forbiddenPaths`); the guard enforces it mechanically from the next
 run.
+
+### The one exception: escalation
+
+A routine may push a fix, open the PR, and **not** merge it — when the fix is correct (test-proven)
+but the routine itself judges the unattended-merge risk high: a trust-boundary sanitizer/allowlist,
+an ambiguous "correct" approach, a regression test that needed real product judgement rather than a
+direct transcription of the bug, or a diff adjacent to the don't-touch list. It says what it's unsure
+of in the PR, and — for a routine working off the issue tracker — relabels the issue `ready-for-human`
+instead of closing it. See [`docs/routines/resolve.md`](resolve.md) § 4 for the concrete bar and
+[ADR-0015](../decisions/0015-resolve-routine-and-escalation.md) for why this is a per-run judgement
+call rather than a new tier.
+
+Escalation is narrow by design: a routine that escalates by default has just reinvented "always ask a
+human" (the overhead this whole shelf exists to remove), and a routine that never escalates has no
+honest way to represent "I'm not sure." Escalating on the same finding three runs running with no
+human action is a nag, not a service — stop repeating it and say so once instead (see `resolve.md`'s
+Escalation section for the concrete rule).
 
 ## The rules every routine inherits
 
