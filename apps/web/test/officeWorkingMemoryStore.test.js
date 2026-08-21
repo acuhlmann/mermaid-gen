@@ -101,6 +101,22 @@ describe('officeWorkingMemoryStore', () => {
     expect(reloaded.workingMemoryPromptLines('intern')).toEqual(['they said: fresh today']);
     vi.useRealTimers();
   });
+
+  it('does not drop the beat that itself rolls the day over', async () => {
+    const yesterday = new Date(2026, 6, 31, 23, 30).getTime();
+    const today = new Date(2026, 7, 1, 0, 5).getTime();
+    vi.setSystemTime(yesterday);
+    const store = await freshStore();
+    store.rememberWorkingMemoryBeat('intern', { theirs: 'yesterday line', now: yesterday });
+
+    vi.setSystemTime(today);
+    // No read call in between — this write is the first thing to notice the day rolled over.
+    store.rememberWorkingMemoryBeat('intern', { theirs: 'first today', now: today });
+
+    expect(store.hasWorkingMemoryFact('intern')).toBe(true);
+    expect(store.workingMemoryPromptLines('intern')).toEqual(['they said: first today']);
+    vi.useRealTimers();
+  });
 });
 
 describe('working memory day stamping', () => {

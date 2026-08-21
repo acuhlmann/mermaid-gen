@@ -60,6 +60,7 @@ function persist(now) {
 }
 
 function rowFor(colleagueId) {
+  reconcileOfficeDay();
   const existing = byColleague[colleagueId];
   if (existing) return existing;
   const created = { beats: [] };
