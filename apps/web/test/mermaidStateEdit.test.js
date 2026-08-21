@@ -118,4 +118,66 @@ describe('renameStateEdge', () => {
     expect(result.source).toMatch(/Draft --> PendingReview : send for review/);
     expect(result.source).not.toMatch(/: submit/);
   });
+
+  it('refuses a missing transition', () => {
+    expect(renameStateEdge(STATE, 'Approved', 'Draft', 'reopen')).toEqual({
+      ok: false,
+      reason: 'missing'
+    });
+  });
+});
+
+describe('state edit guards', () => {
+  const flowchart = 'flowchart TD\n  A --> B';
+
+  it('refuses non-state sources', () => {
+    expect(addLinkedStateNode(flowchart, 'Draft')).toEqual({ ok: false, reason: 'not-state' });
+    expect(connectStateNodes(flowchart, 'Draft', 'PendingReview')).toEqual({
+      ok: false,
+      reason: 'not-state'
+    });
+    expect(deleteStateNode(flowchart, 'Draft')).toEqual({ ok: false, reason: 'not-state' });
+    expect(renameStateNode(flowchart, 'Draft', 'Work')).toEqual({ ok: false, reason: 'not-state' });
+  });
+
+  it('refuses the start/end pseudo-state for mutating ops', () => {
+    expect(deleteStateNode(STATE, '[*]')).toEqual({ ok: false, reason: 'special' });
+    expect(renameStateNode(STATE, '[*]', 'Start')).toEqual({ ok: false, reason: 'special' });
+    expect(addLinkedStateNode(STATE, '[*]')).toEqual({ ok: false, reason: 'special' });
+    expect(connectStateNodes(STATE, '[*]', 'Draft')).toEqual({ ok: false, reason: 'special' });
+  });
+
+  it('returns missing when the state does not exist', () => {
+    expect(deleteStateNode(STATE, 'Missing')).toEqual({ ok: false, reason: 'missing' });
+    expect(deleteStateEdge(STATE, 'Draft', 'Missing')).toEqual({ ok: false, reason: 'missing' });
+  });
+
+  it('is a no-op when rename label is unchanged', () => {
+    expect(renameStateNode(STATE, 'PendingReview', 'Waiting for approval')).toEqual({
+      ok: true,
+      source: STATE
+    });
+  });
+});
+
+describe('state alias declarations', () => {
+  const ALIAS = `stateDiagram-v2
+  state "Work in progress" as Draft
+  [*] --> Draft
+  Draft --> Done
+`;
+
+  it('renames through the alias line', () => {
+    const result = renameStateNode(ALIAS, 'Draft', 'Editing');
+    expect(result.ok).toBe(true);
+    expect(result.source).toMatch(/state "Editing" as Draft/);
+    expect(result.source).not.toMatch(/Work in progress/);
+  });
+
+  it('collects aliased ids for connect and delete', () => {
+    expect(connectStateNodes(ALIAS, 'Draft', 'Done')).toEqual({ ok: false, reason: 'duplicate' });
+    const removed = deleteStateNode(ALIAS, 'Draft');
+    expect(removed.ok).toBe(true);
+    expect(removed.source).not.toMatch(/\bDraft\b/);
+  });
 });

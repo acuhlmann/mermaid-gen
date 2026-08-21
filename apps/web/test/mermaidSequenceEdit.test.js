@@ -117,4 +117,75 @@ describe('renameSequenceEdge', () => {
     expect(result.source).toMatch(/Alice->>Bob: Howdy/);
     expect(result.source).not.toMatch(/: Hello/);
   });
+
+  it('refuses a missing message', () => {
+    expect(renameSequenceEdge(SEQUENCE, 'Bob', 'Charlie', 'Nope')).toEqual({
+      ok: false,
+      reason: 'missing'
+    });
+  });
+});
+
+describe('sequence edit guards', () => {
+  const flowchart = 'flowchart TD\n  A --> B';
+
+  it('refuses non-sequence sources', () => {
+    expect(addLinkedSequenceNode(flowchart, 'Alice')).toEqual({
+      ok: false,
+      reason: 'not-sequence'
+    });
+    expect(connectSequenceNodes(flowchart, 'Alice', 'Bob')).toEqual({
+      ok: false,
+      reason: 'not-sequence'
+    });
+    expect(deleteSequenceNode(flowchart, 'Alice')).toEqual({ ok: false, reason: 'not-sequence' });
+    expect(renameSequenceNode(flowchart, 'Alice', 'Ann')).toEqual({
+      ok: false,
+      reason: 'not-sequence'
+    });
+  });
+
+  it('refuses malformed participant ids', () => {
+    expect(connectSequenceNodes(SEQUENCE, '9bad', 'Bob')).toEqual({ ok: false, reason: 'bad-id' });
+    expect(addLinkedSequenceNode(SEQUENCE, 'bad id')).toEqual({ ok: false, reason: 'bad-id' });
+  });
+
+  it('returns missing when the participant does not exist', () => {
+    expect(deleteSequenceNode(SEQUENCE, 'Missing')).toEqual({ ok: false, reason: 'missing' });
+    expect(deleteSequenceEdge(SEQUENCE, 'Alice', 'Missing')).toEqual({
+      ok: false,
+      reason: 'missing'
+    });
+  });
+
+  it('is a no-op when rename label is unchanged', () => {
+    expect(renameSequenceNode(SEQUENCE, 'Bob', 'Robert')).toEqual({ ok: true, source: SEQUENCE });
+  });
+});
+
+describe('parseSequenceMessage arrow variants', () => {
+  it('parses dashed reply arrows', () => {
+    expect(parseSequenceMessage('  Bob-->>Alice: Hi there')).toEqual({
+      from: 'Bob',
+      to: 'Alice',
+      text: 'Hi there'
+    });
+  });
+});
+
+describe('deleteSequenceNode lifecycle lines', () => {
+  it('removes activate and deactivate lines for the participant', () => {
+    const withActivate = `sequenceDiagram
+  participant Alice
+  participant Bob
+  Alice->>Bob: ping
+  activate Bob
+  Bob-->>Alice: pong
+  deactivate Bob
+`;
+    const result = deleteSequenceNode(withActivate, 'Bob');
+    expect(result.ok).toBe(true);
+    expect(result.source).not.toMatch(/\bBob\b/);
+    expect(result.source).not.toMatch(/activate|deactivate/);
+  });
 });
