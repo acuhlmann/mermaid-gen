@@ -71,7 +71,39 @@ function stripJsComments(source: string): string {
   return out;
 }
 
-/** Strip comments and xmlns namespace URIs (not network loads). */
+/**
+ * XML namespace URIs. These are identifiers, not addresses: no browser ever
+ * fetches one, and `createElementNS` / `setAttributeNS` require them verbatim —
+ * they are the only way to build SVG or MathML from script.
+ *
+ * The `xmlns=` ATTRIBUTE form was already exempt, which left the lint accepting
+ * a namespace in markup and rejecting the identical string in a JS literal. A
+ * document that draws its SVG from script therefore burned a repair turn on
+ * correct code, and the repair error told it to inline assets it had not
+ * requested. Measured: `external_url` was the single largest rejection code in
+ * the generation baseline, and the offender a probe caught was
+ * `var ns = "http://www.w3.org/2000/svg"`.
+ *
+ * Exempting these five is not a hole. The security boundary is the client's
+ * `allow-scripts` iframe and its CSP (`connect-src 'none'`), not this lint; a
+ * page that actually fetched one of these would be refused at runtime and
+ * rejected by the runtime rung. The list is exact URIs with a boundary, never
+ * prefixes, so a lookalike host does not slip through.
+ */
+const XML_NAMESPACE_URIS = [
+  'http://www.w3.org/2000/svg',
+  'http://www.w3.org/1999/xlink',
+  'http://www.w3.org/1999/xhtml',
+  'http://www.w3.org/1998/Math/MathML',
+  'http://www.w3.org/XML/1998/namespace'
+];
+
+const XML_NAMESPACE_PATTERN = new RegExp(
+  `(?:${XML_NAMESPACE_URIS.map((uri) => uri.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})(?![\\w./-])`,
+  'gi'
+);
+
+/** Strip comments and XML namespace URIs (identifiers, not network loads). */
 function stripNonLoadContexts(html: string): string {
   return html
     .replace(/<!--[\s\S]*?-->/g, '')
@@ -81,7 +113,8 @@ function stripNonLoadContexts(html: string): string {
     .replace(/(<style\b[^>]*>)([\s\S]*?)(<\/style>)/gi, (_m, open, body, close) => {
       return `${open}${String(body).replace(/\/\*[\s\S]*?\*\//g, ' ')}${close}`;
     })
-    .replace(/\sxmlns\s*=\s*["']https?:\/\/[^"']*["']/gi, '');
+    .replace(/\sxmlns(?::\w+)?\s*=\s*["']https?:\/\/[^"']*["']/gi, '')
+    .replace(XML_NAMESPACE_PATTERN, '');
 }
 
 const EXTERNAL_URL_PATTERN = /(?:https?:\/\/|\/\/|wss?:\/\/)/i;

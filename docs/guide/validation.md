@@ -123,7 +123,7 @@ Forms validation runs through `validateAndPrepareFormsPatch` (`apps/server/src/t
 Anything validation runs through `validateAndPrepareAnythingPatch` (`apps/server/src/tools/anythingHtmlTool.js`). Both mutation tools funnel into it: `apply_anything_patch` (full-document rewrite) and `apply_anything_edit` (server-applied aider-style search/replace blocks, `apps/server/src/agents/_lib/searchReplaceEdits.js` — atomic, exact-match-or-fail, preferred for Gilfoyle/Dinesh/Barker/Fix). The edited result is validated exactly like a full rewrite; incremental edits never bypass a gate.
 
 1. **Shape check** — `parseAnythingHtml` (shared): string, code-fence strip, size cap, contains at least one HTML tag. The `ANYTHING_HTML_MAX_LENGTH` budget applies to the agent-authored (marker-form) document — bytes injected for `@lib:` markers are exempt.
-2. **Policy lint** — `lintAnythingPolicy` (shared): reject external URLs, parent escape, nested frames, `javascript:` URLs, and other sandbox-contract violations.
+2. **Policy lint** — `lintAnythingPolicy` (shared): reject external URLs, parent escape, nested frames, `javascript:` URLs, and other sandbox-contract violations. Comments (HTML, JS, CSS) and **XML namespace URIs** are stripped before the URL test: a namespace is an identifier, not an address — `createElementNS` / `setAttributeNS` require it verbatim and no browser fetches it. The exemption is five exact URIs with a trailing boundary, never a `w3.org` prefix, so a lookalike host or a traversal is still rejected.
 3. **Quality lint** — `lintAnythingQuality` (shared): require `<html>/<head>/<body>`, balanced tags/CSS, valid inline JS (`acorn`; `type="module"` scripts parse as modules, non-JS data blocks are skipped). Spec-valid optional end tags (`<p>`, `<li>`, `<td>`, …) are tolerated — only genuinely unclosed or mis-nested elements are rejected.
 4. **Lib-marker lint** — `lintAnythingLibMarkers` (shared): documents may opt into allowlisted vendored libraries (`<!-- @lib:d3 -->`, `<!-- @lib:matter -->`) with HTML comment markers; unknown ids are rejected (`unknown_lib`) with the allowlist in the error. The vendored source itself is deliberately never linted — library comments contain URLs that would false-positive the policy lint. Accepted patches report the injected lib ids as `metadata.libs`. See [ADR-0008](../decisions/0008-anything-inline-libraries.md).
 5. **Runtime check** — `runAnythingRuntimeCheck` (`apps/server/src/tools/anythingRuntimeCheck.js`): executes the page's scripts — with `@lib:` markers expanded to the vendored source via `expandAnythingLibs`, the same bytes the client will inject — in an isolated child process (clean env, hard kill timeout) and rejects uncaught errors and unhandled rejections (`runtime_error`), infinite loops (`runtime_timeout`), and empty-`<body>` renders (`blank_render`); `console.error` output surfaces as warnings. Runs on agent patches only — client sync skips it so in-progress user edits (and broken source synced for an auto-fix) are never blocked. Infra failures (spawn/crash) fail open. Kill switch: `ANYTHING_RUNTIME_CHECK=0`; budget: `ANYTHING_RUNTIME_CHECK_TIMEOUT_MS` (default 6000 ms).
@@ -245,9 +245,32 @@ node --import ./scripts/register-antv-layout-esm.mjs --import tsx \
   apps/server/scripts/benchAnythingGeneration.js --tag visual-reject --browser --samples 3
 ```
 
-Expect ~8–11% more rejections. Ship **only if repair converges on them** — read `convergenceHistogram` for `stuck-same-code` / `reshuffled`, not just the accept rate. A page that gets rejected and cannot be fixed is worse than one that ships imperfect. `low_contrast` stays a warning permanently; that is settled, not pending.
+Expect ~8–11% more rejections — but re-measure first: the run that fixed the namespace lint saw hard findings drop to 0 (see item 3), so that ceiling may no longer hold. Ship **only if repair converges on them** — read `convergenceHistogram` for `stuck-same-code` / `reshuffled`, not just the accept rate. A page that gets rejected and cannot be fixed is worse than one that ships imperfect. `low_contrast` stays a warning permanently; that is settled, not pending.
 
-**3. Tighten `external_url` in the prompt.** The cheapest quality win on this list: `external_url` fires about as often as `runtime_error`, is detected in under a millisecond, and costs a 12–60 s repair turn — and it is a _prompt_ problem, the model reaching for a font/CDN/image URL. Tighten `ANYTHING_CORE_RULES` in `apps/server/src/prompts/anythingSystemPrompt.js`, then re-bench against the baseline. Highest ratio of value to risk here.
+**3. ~~Tighten `external_url` in the prompt.~~ Done differently — it was not a prompt problem.** `external_url` was the largest rejection code in the browser baseline (7, against `runtime_error`'s 3), and the standing theory was that the model reaches for a font or CDN URL. A probe that replayed corpus prompts and printed the offending line found something else:
+
+```js
+var ns = 'http://www.w3.org/2000/svg';
+```
+
+That is `createElementNS` — correct, entirely offline code, and the only way to build SVG from script. The lint stripped the namespace in its `xmlns=` **attribute** form and not in a **string literal**, so the identical URI passed in markup and was rejected in JS, and the repair error then told a page that had drawn its own SVG to go and inline its assets. Fixed in `lintAnythingPolicy` rather than in the prompt; tightening the prompt would have pushed the model _away_ from the right API.
+
+Measured through the full generation bench, same flags and sample count as the `browser-engine` baseline (`ns-lint-fix-2026-08-21T08-00-57-108Z`):
+
+| metric            | `browser-engine` | `ns-lint-fix` |
+| ----------------- | ---------------- | ------------- |
+| first-pass accept | 72.22%           | **88.89%**    |
+| eventual accept   | 100%             | 100%          |
+| mean attempts     | 1.42             | **1.25**      |
+| `external_url`    | 7                | **0**         |
+| `script_syntax`   | 3                | 1             |
+| `runtime_error`   | 3                | 3             |
+
+`external_url` going to zero is causal and certain — the rung mechanically no longer fires on a namespace — and the first-pass gain follows from it. `runtime_error` is unchanged, which is the control you want: the fix touched one rung and left the others alone.
+
+Two things in that run are **not** established and should not be acted on from one sample set. `script_syntax` 3→1 is within the nondeterminism this bench is known for. More interesting, the browser observer's hard findings went 4→0 (`collapsed_element` 19→0): plausibly causal, since a page repaired out of its rejected `createElementNS` code can leave the container it was going to fill empty — but that is exactly the number gating the visual-rejection rollout above, so re-measure it before reading anything into it.
+
+Worth keeping as method: the handoff asserted a cause, and one probe that printed the actual offending line refuted it in a few model calls. Do that before rewriting a prompt — there is still no evidence in this corpus of a genuine font or CDN reach, so no prompt change was made.
 
 **4. Remove the cold-start cost.** Today the first check after idle pays the browser budget _and then_ a jsdom run before returning — correct, but wasteful, and Cloud Run scales to zero so it is a real user-facing path. A one-off warm render (`about:blank`) per process would remove it. Correctness is already handled by the fail-open in `anythingRuntimeBrowser.js` and, since [#347](https://github.com/acuhlmann/mermaid-gen/issues/347), by the fallback's own budget — so this is an optimization, not a fix.
 
