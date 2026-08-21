@@ -27,6 +27,6 @@ rest back into `todos`.
 
 ## Run log
 
-| Date       | Slice taken            | PR  | Bench verdict                                                                 | Notes                                                                                                                                  |
-| ---------- | ---------------------- | --- | ----------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| 2026-08-21 | Edit-tool bench wiring |     | corpus `expectationMatch` 100; gen first-pass 97.22% (36 runs, `--samples 3`) | Routed `refine-add-control` through `applyTransformIntent` (`barker`); smoke `editToolRate` 100% (1/1). Summary adds `editTool` block. |
+| Date       | Slice taken            | PR   | Bench verdict                                                                 | Notes                                                                                                                                  |
+| ---------- | ---------------------- | ---- | ----------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-08-21 | Edit-tool bench wiring | #359 | corpus `expectationMatch` 100; gen first-pass 97.22% (36 runs, `--samples 3`) | Routed `refine-add-control` through `applyTransformIntent` (`barker`); smoke `editToolRate` 100% (1/1). Summary adds `editTool` block. |
