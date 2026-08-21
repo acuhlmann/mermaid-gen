@@ -8,10 +8,10 @@ todos:
     content: 'ready-for-agent / needs-triage / needs-info / ready-for-human must exist as real GitHub labels before this routine can filter on them — review.md ledger flagged the same gap and it may still be open; confirm on first run'
     status: completed
   - id: 349-docs-half
-    content: 'Issue #349 (benchMermaid documented invocation crashes) is only half-resolvable here: the three wrong invocations live in CLAUDE.md, AGENTS.md and docs/routines/review.md, all outside this playbook allowedPaths. The script own usage block is fixed and pinned by a sensor; the doc half needs a human or a routine whose budget reaches root docs.'
-    status: pending
+    content: 'Issue #349 (benchMermaid documented invocation crashes) — doc sites updated 2026-08-21 doc automation: CLAUDE.md, GLOSSARY.md, validation/development/coding-agents guides, testing.md, add-rule-pack recipe, review routine. Script header + benchScriptUsage.test.js sensor were already fixed in PR #352.'
+    status: completed
   - id: 348-owned-elsewhere
-    content: 'Issue #348 (officeWorkingMemoryStore day-rollover write path) is already carried by open PR #350 from the review routine — not a resolve pick until that PR lands or closes. The fix it describes as already applied is NOT on main.'
+    content: 'Issue #348 (officeWorkingMemoryStore day-rollover write path) — fixed on main via PR #350 (2026-08-21). rowFor() reconciles before merge; test "does not drop the beat that itself rolls the day over" pins it.'
     status: completed
   - id: 353-slow-list-half
     content: 'Issue #353 root cause fixed directly by the human owner (not this routine — the fix lives in scripts/, outside allowedPaths): anythingRuntimeBrowser.test.js added to SERVER_SLOW_TEST_FILES in scripts/test-affected-lib.mjs, PR #357. It now runs in the serial slow-Anything batch alongside anythingRuntimeCheck.test.js instead of the parallel fast batch, which removes the load contention at its source. Issue closed. No doc widening was needed in the end — the file no longer races anything, so docs/routines/README.md § 3 and docs/agents/sensors.md gained no new flake exception.'

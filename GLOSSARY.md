@@ -106,9 +106,9 @@ Vocabulary fixed during the multi-human/NPC-participant design sessions. No code
 
 **Office log.** A rolling client-built digest of session happenings (commissioned runs and their effects, pitches accepted/rejected, meetings, notable moments), sent as compact context lines with every reactive LLM call — the artifact that makes the cast one office instead of isolated chatbots. Part of the **context contract**: thread memory (token-capped history per character), office log, deliverable context, persistence across reloads (capped localStorage), and DM privacy (a character never sees your threads with other characters — the context boundary preserves the illusion of separate minds).
 
-**Working memory.** Per-colleague, office-day beats between you and them (lines + whether a pitch was taken) plus a board fingerprint they “saw.” Distinct from the [[Office log]] (shared, lossy) and from `officeRelationship` (counts/recency only). It **records; it never triggers** a moment. Spec (not shipped): [`docs/office-continuity.md`](docs/office-continuity.md), [ADR-0013](docs/decisions/0013-office-continuity.md).
+**Working memory.** Per-colleague, office-day beats between you and them (lines + whether a pitch was taken) plus a board fingerprint they “saw.” Distinct from the [[Office log]] (shared, lossy) and from `officeRelationship` (counts/recency only). It **records; it never triggers** a moment. Shipped (v1): [`docs/office-continuity.md`](docs/office-continuity.md), [ADR-0013](docs/decisions/0013-office-continuity.md).
 
-**runWalk.** Spoken `situation` on `POST /api/office/moment`: a colleague walked over because a run just landed. Comment on how the diagram stands now; they did not see a delta; no `userMessage`; no `actionPrompt`. Not `run` (silent IM) and not `walkover` (they answered a shout). Spec: [`docs/office-continuity.md`](docs/office-continuity.md).
+**runWalk.** Spoken `situation` on `POST /api/office/moment`: a colleague walked over because a run just landed. Comment on how the diagram stands now; they did not see a delta; no `userMessage`; no `actionPrompt`. Not `run` (silent IM) and not `walkover` (they answered a shout). Shipped (v1): [`docs/office-continuity.md`](docs/office-continuity.md).
 
 **Two-beat proximity.** Floor dwell is one social notice per approach; the helpful beat happens only if the user talks or joins. Standing still is them going back to work.
 
@@ -126,7 +126,7 @@ Vocabulary fixed during the multi-human/NPC-participant design sessions. No code
 
 **USDA export.** The Metaphor3D → USD ASCII interchange stub (`metaphor-usda` export format on the metaphor3d slot), implementing ADR-0009 migration steps 1–2 plus the v0.2.0 inverse parse. Semantics only — no geometry, no planner output, no USD Core conformance claim; the JSON DSL stays canonical. Mapping spec: `docs/guide/metaphor-usda-mapping.md`; approach: `docs/guide/openusd-approach.md`; author: `packages/shared/src/metaphorUsda.ts`; parse: `packages/shared/src/metaphorUsdaParse.ts`.
 
-**Bench corpus.** A fixed offline corpus replayed through `validateAndPreparePatch` to track sanitizer-rescue rate and validator latency over time. Run with `node apps/server/scripts/benchMermaid.js --tag <label>`; snapshots in `apps/server/bench-results/`.
+**Bench corpus.** A fixed offline corpus replayed through `validateAndPreparePatch` to track sanitizer-rescue rate and validator latency over time. Mermaid: `node --import ./scripts/register-antv-layout-esm.mjs --import tsx apps/server/scripts/benchMermaid.js --tag <label>` (both flags required). Snapshots in `apps/server/bench-results/`.
 
 **Web Companion.** The hybrid default UI for MCP hosts when the human also has the browser open. Read-only queue + activity feed; the human controls accept/reject in the web UI. Bundle: `apps/server/src/mcp/apps/webCompanionAppHtml.js`.
 

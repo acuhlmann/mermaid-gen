@@ -75,6 +75,8 @@ Per colleague, for **this office day**:
 
 Reload the same calendar day keeps it. A new calendar day clears it. “We have not spoken today” is still not a line anyone says.
 
+**Day rollover without reload.** Both `officeWorkingMemoryStore.js` and `officeLogStore.js` hydrate once at module load. A tab left open past midnight must reconcile against the real clock on every read/write path — not only inside `persist()` — or the first write of the new day merges into stale pre-rollover rows and then wipes them. `rowFor()` in the working-memory store is the choke point: it must call `reconcileOfficeDay()` before building the row a mutator merges into, or the beat that triggered the rollover is dropped. Regression: `officeWorkingMemoryStore.test.js` (“does not drop the beat that itself rolls the day over”).
+
 Stamping everyone on a board-sample edge is omniscience. Desk peek is display, not “they read the labels.”
 
 ## `runWalk` on the wire

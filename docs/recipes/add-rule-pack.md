@@ -10,8 +10,16 @@ Use when a specific diagram type (e.g. a new Mermaid `quadrantChart` or a new An
    - The single-shot fixer (`apps/server/src/agents/mermaidSyntaxFixer.js`) — it already pulls packs by diagram type.
    - The agent repair-turn message (constructed in `mermaidLangChainAgent.js`).
 4. **Add cases** to the offline bench corpus (`apps/server/scripts/benchMermaid.js` reads from a fixed corpus) — pair each new pack rule with at least one broken source string that demonstrates the rule pays off.
-5. **Run the bench** to confirm sanitizer-rescue rate doesn't regress: `node apps/server/scripts/benchMermaid.js --tag before` (before your change) and `--tag after`.
-6. **Update tests** in `apps/server/test/mermaidLangChainAgent.test.js` if the pack changes a repair path that's covered.
+5. **Run the bench** to confirm sanitizer-rescue rate doesn't regress:
+
+```bash
+node --import ./scripts/register-antv-layout-esm.mjs --import tsx \
+  apps/server/scripts/benchMermaid.js --tag before
+node --import ./scripts/register-antv-layout-esm.mjs --import tsx \
+  apps/server/scripts/benchMermaid.js --tag after
+```
+
+Both `--import` flags are required — bare `node` crashes before the first case (issue #349). 6. **Update tests** in `apps/server/test/mermaidLangChainAgent.test.js` if the pack changes a repair path that's covered.
 
 ## Infographic
 
