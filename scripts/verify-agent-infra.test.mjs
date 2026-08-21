@@ -83,6 +83,7 @@ test('collectRoutineDocs discovers playbooks without listing them', () => {
   const docs = collectRoutineDocs(ROOT);
   assert.ok(docs.includes('docs/routines/review.md'));
   assert.ok(docs.includes('docs/routines/improve.md'));
+  assert.ok(docs.includes('docs/automations/anything.md'));
   assert.ok(
     !docs.includes('docs/routines/README.md'),
     'the contract is added separately, not as a playbook'

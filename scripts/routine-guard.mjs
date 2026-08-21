@@ -207,19 +207,39 @@ function toList(value) {
   return [];
 }
 
+/** @type {readonly { dir: string, ledgerDir: string }[]} */
+export const PLAYBOOK_SHELVES = [
+  { dir: 'docs/routines', ledgerDir: 'docs/routines/ledger' },
+  { dir: 'docs/automations', ledgerDir: 'docs/automations/ledger' }
+];
+
 /**
  * @param {string} root
  * @param {string} name
- * @returns {{ playbook: Record<string, string | string[]>, errors: string[] }}
+ * @returns {{ playbook: Record<string, string | string[]>, errors: string[], rel: string, ledger: string } | { playbook: Record<string, string | string[]>, errors: string[], rel?: undefined, ledger?: undefined }}
  */
 export function loadPlaybook(root, name) {
   /** @type {string[]} */
   const errors = [];
-  const rel = path.join('docs/routines', `${name}.md`);
-  const abs = path.join(root, rel);
-  if (!fs.existsSync(abs)) {
-    return { playbook: {}, errors: [`missing playbook ${rel}`] };
+  /** @type {{ dir: string, ledgerDir: string } | undefined} */
+  let shelf;
+  /** @type {string | undefined} */
+  let rel;
+  for (const candidate of PLAYBOOK_SHELVES) {
+    const candidateRel = path.join(candidate.dir, `${name}.md`);
+    if (fs.existsSync(path.join(root, candidateRel))) {
+      shelf = candidate;
+      rel = candidateRel;
+      break;
+    }
   }
+  if (!shelf || !rel) {
+    const expected = PLAYBOOK_SHELVES.map((entry) => path.join(entry.dir, `${name}.md`)).join(
+      ' or '
+    );
+    return { playbook: {}, errors: [`missing playbook ${expected}`] };
+  }
+  const abs = path.join(root, rel);
   const playbook = parseFrontmatter(fs.readFileSync(abs, 'utf8'));
   if (!playbook) {
     return { playbook: {}, errors: [`${rel} has no YAML front-matter block`] };
@@ -236,11 +256,11 @@ export function loadPlaybook(root, name) {
   if (!toList(playbook.allowedPaths).length) {
     errors.push(`${rel} must declare at least one allowedPaths entry`);
   }
-  const ledger = path.join('docs/routines/ledger', `${name}.md`);
+  const ledger = path.join(shelf.ledgerDir, `${name}.md`);
   if (!fs.existsSync(path.join(root, ledger))) {
     errors.push(`missing ledger ${ledger}`);
   }
-  return { playbook, errors };
+  return { playbook, errors, rel, ledger };
 }
 
 /**

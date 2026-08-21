@@ -206,6 +206,15 @@ Look up a concept here before grepping. Paths are repo-relative.
 | Budget enforcement             | `scripts/routine-guard.mjs`  |
 | Quality ratchet                | `scripts/verify-ratchet.mjs` |
 
+## Scheduled feature automations (`docs/automations/`)
+
+| Concept                         | File                           |
+| ------------------------------- | ------------------------------ |
+| Contract every automation obeys | `docs/automations/README.md`   |
+| Anything slot improvement       | `docs/automations/anything.md` |
+| Durable memory per automation   | `docs/automations/ledger/`     |
+| Budget enforcement              | `scripts/routine-guard.mjs`    |
+
 ## Build & deploy
 
 | Concept                              | File(s)                                         |

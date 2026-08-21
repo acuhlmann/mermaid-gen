@@ -19,9 +19,9 @@ forbiddenPaths:
 Reviews everything that landed on `main` in the last 24 hours, fixes at most one bug it can prove,
 and files the rest as issues. Opens a PR, merges it when CI is green.
 
-`0 6 * * *` (14:00 HKT) sits about four hours after the last of the two feature automations settles
-— Cursor at 00:00 UTC, the Metaphor3D routine at 20:00 UTC with PRs landing 1.5–6 h later. Their
-work gets reviewed by nobody else.
+`0 6 * * *` (14:00 HKT) sits about four hours after the last of the feature automations settles
+— Cursor at 00:00 UTC, Anything at 17:00 UTC (01:00 HKT), the Metaphor3D routine at 20:00 UTC
+with PRs landing 1.5–6 h later. Their work gets reviewed by nobody else.
 
 ## 1. Window
 

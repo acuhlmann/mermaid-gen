@@ -1,0 +1,3 @@
+Run the feature automation `anything`.
+Read docs/automations/README.md (the contract), then docs/automations/anything.md (the playbook),
+and follow them exactly. Those two files are authoritative; this message adds nothing to them.

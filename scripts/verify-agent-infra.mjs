@@ -17,8 +17,8 @@ const AGENT_DOC_FILES = [
   'docs/agents/sensors.md'
 ];
 
-/** Routine playbooks are agent instructions too, and unattended runs cannot ask what a command was. */
-const ROUTINE_DOC_DIR = 'docs/routines';
+/** Routine and feature-automation playbooks are agent instructions; unattended runs cannot ask what a command was. */
+const PLAYBOOK_DOC_DIRS = ['docs/routines', 'docs/automations'];
 
 const NPM_RUN_RE = /npm run ([a-z][\w:-]*)(?=\s|$|`|\.)/gi;
 const BLAST_RADIUS_TEST_RE = /`((?:apps|packages)[^`]+\.test\.(?:ts|js|jsx))`/g;
@@ -76,13 +76,18 @@ export function extractBlastRadiusTestPaths(markdown) {
  * @returns {string[]}
  */
 export function collectRoutineDocs(root) {
-  const dir = path.join(root, ROUTINE_DOC_DIR);
-  if (!fs.existsSync(dir)) return [];
-  return fs
-    .readdirSync(dir)
-    .filter((entry) => entry.endsWith('.md') && entry !== 'README.md')
-    .map((entry) => `${ROUTINE_DOC_DIR}/${entry}`)
-    .sort();
+  /** @type {string[]} */
+  const docs = [];
+  for (const dirRel of PLAYBOOK_DOC_DIRS) {
+    const dir = path.join(root, dirRel);
+    if (!fs.existsSync(dir)) continue;
+    for (const entry of fs.readdirSync(dir)) {
+      if (entry.endsWith('.md') && entry !== 'README.md') {
+        docs.push(`${dirRel}/${entry}`);
+      }
+    }
+  }
+  return docs.sort();
 }
 
 /**
@@ -101,7 +106,7 @@ export function collectRootPackageScripts(root) {
 export function verifyAgentInfra(root, docFiles = null) {
   const files = docFiles ?? [
     ...AGENT_DOC_FILES,
-    `${ROUTINE_DOC_DIR}/README.md`,
+    ...PLAYBOOK_DOC_DIRS.map((dirRel) => `${dirRel}/README.md`),
     ...collectRoutineDocs(root)
   ];
   const rootScripts = collectRootPackageScripts(root);
