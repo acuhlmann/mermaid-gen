@@ -7,10 +7,21 @@
 //   - validator outcome counts
 //   - latency percentiles
 //
-// Usage:
-//   node apps/server/scripts/benchMermaid.js                 # corpus-only (no LLM)
-//   node apps/server/scripts/benchMermaid.js --tag before    # tag the JSON snapshot
-//   node apps/server/scripts/benchMermaid.js --tag after-p1
+// Usage (note both --import flags; see "Why two loaders" below):
+//   node --import ./scripts/register-antv-layout-esm.mjs --import tsx \
+//     apps/server/scripts/benchMermaid.js                 # corpus-only (no LLM)
+//
+//   … --tag before                # tag the JSON snapshot
+//   … --tag after-p1
+//
+// Why two loaders, when benchInfographic/benchChart/benchMetaphor/benchAnything all run
+// under bare `node`: this bench's subject, `../src/tools/mermaidDiffTool.js`, imports
+// `../utils/redactSecrets.js` and `../mcp/diagramDiffSummary.js`, both of which exist only
+// as `.ts` (the plain TS-specifier convention Vite/tsx resolve and bare `node` does not) —
+// hence `--import tsx`. Its graph also reaches `@antv/infographic`, which needs the ESM
+// layout shim — hence `--import ./scripts/register-antv-layout-esm.mjs`. Neither flag is
+// removable by trimming this file's own imports: both requirements live below
+// `mermaidDiffTool.js`, not in the bench. (issue #349)
 //
 // Output: apps/server/bench-results/<tag>-<isoDate>.json (auditable across phases).
 
