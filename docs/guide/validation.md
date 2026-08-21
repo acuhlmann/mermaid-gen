@@ -245,7 +245,7 @@ node --import ./scripts/register-antv-layout-esm.mjs --import tsx \
   apps/server/scripts/benchAnythingGeneration.js --tag visual-reject --browser --samples 3
 ```
 
-Expect ~8–11% more rejections. Ship **only if repair converges on them** — read `convergenceHistogram` for `stuck-same-code` / `reshuffled`, not just the accept rate. A page that gets rejected and cannot be fixed is worse than one that ships imperfect. `low_contrast` stays a warning permanently; that is settled, not pending.
+Expect ~8–11% more rejections — but re-measure first: the run that fixed the namespace lint saw hard findings drop to 0 (see item 3), so that ceiling may no longer hold. Ship **only if repair converges on them** — read `convergenceHistogram` for `stuck-same-code` / `reshuffled`, not just the accept rate. A page that gets rejected and cannot be fixed is worse than one that ships imperfect. `low_contrast` stays a warning permanently; that is settled, not pending.
 
 **3. ~~Tighten `external_url` in the prompt.~~ Done differently — it was not a prompt problem.** `external_url` was the largest rejection code in the browser baseline (7, against `runtime_error`'s 3), and the standing theory was that the model reaches for a font or CDN URL. A probe that replayed corpus prompts and printed the offending line found something else:
 
@@ -254,6 +254,21 @@ var ns = 'http://www.w3.org/2000/svg';
 ```
 
 That is `createElementNS` — correct, entirely offline code, and the only way to build SVG from script. The lint stripped the namespace in its `xmlns=` **attribute** form and not in a **string literal**, so the identical URI passed in markup and was rejected in JS, and the repair error then told a page that had drawn its own SVG to go and inline its assets. Fixed in `lintAnythingPolicy` rather than in the prompt; tightening the prompt would have pushed the model _away_ from the right API.
+
+Measured through the full generation bench, same flags and sample count as the `browser-engine` baseline (`ns-lint-fix-2026-08-21T08-00-57-108Z`):
+
+| metric            | `browser-engine` | `ns-lint-fix` |
+| ----------------- | ---------------- | ------------- |
+| first-pass accept | 72.22%           | **88.89%**    |
+| eventual accept   | 100%             | 100%          |
+| mean attempts     | 1.42             | **1.25**      |
+| `external_url`    | 7                | **0**         |
+| `script_syntax`   | 3                | 1             |
+| `runtime_error`   | 3                | 3             |
+
+`external_url` going to zero is causal and certain — the rung mechanically no longer fires on a namespace — and the first-pass gain follows from it. `runtime_error` is unchanged, which is the control you want: the fix touched one rung and left the others alone.
+
+Two things in that run are **not** established and should not be acted on from one sample set. `script_syntax` 3→1 is within the nondeterminism this bench is known for. More interesting, the browser observer's hard findings went 4→0 (`collapsed_element` 19→0): plausibly causal, since a page repaired out of its rejected `createElementNS` code can leave the container it was going to fill empty — but that is exactly the number gating the visual-rejection rollout above, so re-measure it before reading anything into it.
 
 Worth keeping as method: the handoff asserted a cause, and one probe that printed the actual offending line refuted it in a few model calls. Do that before rewriting a prompt — there is still no evidence in this corpus of a genuine font or CDN reach, so no prompt change was made.
 

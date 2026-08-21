@@ -1,0 +1,2415 @@
+{
+  "summary": {
+    "tag": "ns-lint-fix",
+    "timestamp": "2026-08-21T08:00:57.108Z",
+    "profile": "fast",
+    "totalRuns": 36,
+    "benchErrors": 0,
+    "firstPassAcceptRate": 88.89,
+    "eventualAcceptRate": 100,
+    "meanAttempts": 1.25,
+    "failureKinds": {},
+    "codeHistogram": {
+      "script_syntax": 1,
+      "accepted": 41,
+      "runtime_error": 3
+    },
+    "outcomeHistogram": {
+      "repair-attempt-1": 4,
+      "first-try": 32
+    },
+    "convergenceHistogram": {
+      "converged": 7,
+      "no-repair-needed": 29
+    },
+    "browser": {
+      "observed": 36,
+      "flagged": 17,
+      "flaggedRate": 47.22,
+      "hardFlagged": 0,
+      "hardFlaggedRate": 0,
+      "findingHistogram": {
+        "low_contrast": 28
+      }
+    },
+    "tokens": {
+      "inputTokens": 1242329,
+      "outputTokens": 172806
+    },
+    "latencyMs": {
+      "p50": 19063.4,
+      "p95": 79241.72,
+      "max": 107023.12
+    },
+    "docSize": {
+      "p50": 9925,
+      "max": 19548
+    }
+  },
+  "results": [
+    {
+      "id": "static-explainer",
+      "family": "static",
+      "stresses": "baseline — no JS, no canvas; should never fail",
+      "seeded": false,
+      "seedError": null,
+      "accepted": true,
+      "firstPassAccepted": false,
+      "attemptsUsed": 4,
+      "outcome": "repair-attempt-1",
+      "failureKind": null,
+      "firstFailureCode": "script_syntax",
+      "firstFailureError": "Script block 1: Unexpected token (102:16)",
+      "convergence": {
+        "codes": [
+          "script_syntax",
+          "accepted",
+          "accepted",
+          "accepted"
+        ],
+        "verdict": "converged"
+      },
+      "attempts": [
+        {
+          "accepted": false,
+          "code": "script_syntax",
+          "docSize": 18552,
+          "validationMs": 19.49,
+          "runtimeChecked": null,
+          "error": "Script block 1: Unexpected token (102:16)"
+        },
+        {
+          "accepted": true,
+          "code": null,
+          "docSize": 17014,
+          "validationMs": 364.67,
+          "runtimeChecked": true,
+          "error": null
+        },
+        {
+          "accepted": true,
+          "code": null,
+          "docSize": 17004,
+          "validationMs": 308.25,
+          "runtimeChecked": true,
+          "error": null
+        },
+        {
+          "accepted": true,
+          "code": null,
+          "docSize": 17004,
+          "validationMs": 310.22,
+          "runtimeChecked": true,
+          "error": null
+        }
+      ],
+      "libs": [],
+      "expectLibs": null,
+      "toolsUsed": [
+        "apply_anything_patch",
+        "apply_anything_edit"
+      ],
+      "fixer": null,
+      "tokens": {
+        "inputTokens": 232224,
+        "outputTokens": 13226
+      },
+      "modelCalls": 6,
+      "docSize": 17004,
+      "totalMs": 79241.72,
+      "wallMs": 79518.51,
+      "agentMessage": "The document now passes validation with no contrast warnings and runtime-checked successfully.\n\nI've created **\"How Tides Work\"** — a polished, interactive one-page explainer. Here's what it delivers:\n\n**Design & typography**\n- A calm sea-blue palette (deep-blue accent, muted text, warm sun-gold hig",
+      "threw": null,
+      "browser": {
+        "skipped": false,
+        "reason": null,
+        "findingCount": 0,
+        "findings": [],
+        "stats": {
+          "canvases": 1,
+          "drawnCanvases": 1,
+          "lowContrast": 0,
+          "checked": 96
+        }
+      },
+      "sample": 1
+    },
+    {
+      "id": "static-explainer",
+      "family": "static",
+      "stresses": "baseline — no JS, no canvas; should never fail",
+      "seeded": false,
+      "seedError": null,
+      "accepted": true,
+      "firstPassAccepted": false,
+      "attemptsUsed": 2,
+      "outcome": "repair-attempt-1",
+      "failureKind": null,
+      "firstFailureCode": "runtime_error",
+      "firstFailureError": "Page JavaScript failed at runtime:\n- Uncaught TypeError: Assignment to constant variable.",
+      "convergence": {
+        "codes": [
+          "runtime_error",
+          "accepted"
+        ],
+        "verdict": "converged"
+      },
+      "attempts": [
+        {
+          "accepted": false,
+          "code": "runtime_error",
+          "docSize": 22964,
+          "validationMs": 277.63,
+          "runtimeChecked": null,
+          "error": "Page JavaScript failed at runtime:\n- Uncaught TypeError: Assignment to constant variable."
+        },
+        {
+          "accepted": true,
+          "code": null,
+          "docSize": 19548,
+          "validationMs": 255.53,
+          "runtimeChecked": true,
+          "error": null
+        }
+      ],
+      "libs": [],
+      "expectLibs": null,
+      "toolsUsed": [
+        "apply_anything_patch",
+        "apply_anything_edit"
+      ],
+      "fixer": null,
+      "tokens": {
+        "inputTokens": 62629,
+        "outputTokens": 14340
+      },
+      "modelCalls": 4,
+      "docSize": 19548,
+      "totalMs": 77900.15,
+      "wallMs": 78135.25,
+      "agentMessage": "The document was accepted. I built a nicely typeset one-page explainer on how tides work. Here's what it includes:\n\n**Structure — four numbered sections, each explaining one core idea:**\n\n1. **It starts with the Moon** — a clean SVG diagram of the Earth with two tidal bulges (near the Moon and the i",
+      "threw": null,
+      "browser": {
+        "skipped": false,
+        "reason": null,
+        "findingCount": 0,
+        "findings": [],
+        "stats": {
+          "canvases": 0,
+          "drawnCanvases": 0,
+          "lowContrast": 0,
+          "checked": 93
+        }
+      },
+      "sample": 2
+    },
+    {
+      "id": "static-explainer",
+      "family": "static",
+      "stresses": "baseline — no JS, no canvas; should never fail",
+      "seeded": false,
+      "seedError": null,
+      "accepted": true,
+      "firstPassAccepted": true,
+      "attemptsUsed": 2,
+      "outcome": "first-try",
+      "failureKind": null,
+      "firstFailureCode": null,
+      "firstFailureError": null,
+      "convergence": {
+        "codes": [
+          "accepted",
+          "accepted"
+        ],
+        "verdict": "converged"
+      },
+      "attempts": [
+        {
+          "accepted": true,
+          "code": null,
+          "docSize": 18895,
+          "validationMs": 313.67,
+          "runtimeChecked": true,
+          "error": null
+        },
+        {
+          "accepted": true,
+          "code": null,
+          "docSize": 18889,
+          "validationMs": 298.45,
+          "runtimeChecked": true,
+          "error": null
+        }
+      ],
+      "libs": [],
+      "expectLibs": null,
+      "toolsUsed": [
+        "apply_anything_patch",
+        "apply_anything_edit"
+      ],
+      "fixer": null,
+      "tokens": {
+        "inputTokens": 91796,
+        "outputTokens": 6807
+      },
+      "modelCalls": 3,
+      "docSize": 18889,
+      "totalMs": 43147.41,
+      "wallMs": 43410.47,
+      "agentMessage": "Fixed. I've built the tide explainer as a single, self-contained HTML page.\n\nThe page includes:\n- A **dark cosmic aesthetic** styled as a nicely typeset one-page explainer, with a consistent color system (deep ocean blues, one cyan accent, a warm sun).\n- An **interactive canvas diagram** showing Ear",
+      "threw": null,
+      "browser": {
+        "skipped": false,
+        "reason": null,
+        "findingCount": 0,
+        "findings": [],
+        "stats": {
+          "canvases": 1,
+          "drawnCanvases": 1,
+          "lowContrast": 0,
+          "checked": 73
+        }
+      },
+      "sample": 3
+    },
+    {
+      "id": "static-comparison",
+      "family": "static",
+      "stresses": "table/grid markup, structure lint",
+      "seeded": false,
+      "seedError": null,
+      "accepted": true,
+      "firstPassAccepted": true,
+      "attemptsUsed": 1,
+      "outcome": "first-try",
+      "failureKind": null,
+      "firstFailureCode": null,
+      "firstFailureError": null,
+      "convergence": {
+        "codes": [
+          "accepted"
+        ],
+        "verdict": "no-repair-needed"
+      },
+      "attempts": [
+        {
+          "accepted": true,
+          "code": null,
+          "docSize": 7989,
+          "validationMs": 232.35,
+          "runtimeChecked": true,
+          "error": null
+        }
+      ],
+      "libs": [],
+      "expectLibs": null,
+      "toolsUsed": [
+        "apply_anything_patch"
+      ],
+      "fixer": null,
+      "tokens": {
+        "inputTokens": 17166,
+        "outputTokens": 2853
+      },
+      "modelCalls": 2,
+      "docSize": 7988,
+      "totalMs": 17504.26,
+      "wallMs": 17717.09,
+      "agentMessage": "The comparison page is complete and validated. \n\nI built a clean, self-contained side-by-side TCP vs UDP comparison:\n\n- **Header** with a short explanatory subtitle\n- **Two mirrored cards** — TCP (blue) and UDP (orange) — each covering the same seven criteria side by side: Connection, Reliability, O",
+      "threw": null,
+      "browser": {
+        "skipped": false,
+        "reason": null,
+        "findingCount": 4,
+        "findings": [
+          {
+            "code": "low_contrast",
+            "detail": "ratio 3.97:1 (floor 4.5) for \"Protocol · TCP\""
+          },
+          {
+            "code": "low_contrast",
+            "detail": "ratio 3.26:1 (floor 4.5) for \"Reliable — lost & corrupted pack\""
+          },
+          {
+            "code": "low_contrast",
+            "detail": "ratio 2.88:1 (floor 4.5) for \"Protocol · UDP\""
+          },
+          {
+            "code": "low_contrast",
+            "detail": "ratio 3.26:1 (floor 4.5) for \"Verdict\""
+          }
+        ],
+        "stats": {
+          "canvases": 0,
+          "drawnCanvases": 0,
+          "lowContrast": 4,
+          "checked": 84
+        }
+      },
+      "sample": 1
+    },
+    {
+      "id": "static-comparison",
+      "family": "static",
+      "stresses": "table/grid markup, structure lint",
+      "seeded": false,
+      "seedError": null,
+      "accepted": true,
+      "firstPassAccepted": true,
+      "attemptsUsed": 1,
+      "outcome": "first-try",
+      "failureKind": null,
+      "firstFailureCode": null,
+      "firstFailureError": null,
+      "convergence": {
+        "codes": [
+          "accepted"
+        ],
+        "verdict": "no-repair-needed"
+      },
+      "attempts": [
+        {
+          "accepted": true,
+          "code": null,
+          "docSize": 7237,
+          "validationMs": 256.79,
+          "runtimeChecked": true,
+          "error": null
+        }
+      ],
+      "libs": [],
+      "expectLibs": null,
+      "toolsUsed": [
+        "apply_anything_patch"
+      ],
+      "fixer": null,
+      "tokens": {
+        "inputTokens": 16569,
+        "outputTokens": 2809
+      },
+      "modelCalls": 2,
+      "docSize": 7237,
+      "totalMs": 17387.98,
+      "wallMs": 17624.29,
+      "agentMessage": "The comparison page is ready. Here's what was built:\n\n**Layout** — A clean side-by-side comparison with two visually distinct columns (blue for TCP, orange for UDP), each with its own color-coded header, headers, and matching verdict card.\n\n**The comparison table** covers seven parallel traits so di",
+      "threw": null,
+      "browser": {
+        "skipped": false,
+        "reason": null,
+        "findingCount": 1,
+        "findings": [
+          {
+            "code": "low_contrast",
+            "detail": "ratio 4.34:1 (floor 4.5) for \"UDP\""
+          }
+        ],
+        "stats": {
+          "canvases": 0,
+          "drawnCanvases": 0,
+          "lowContrast": 1,
+          "checked": 79
+        }
+      },
+      "sample": 2
+    },
+    {
+      "id": "static-comparison",
+      "family": "static",
+      "stresses": "table/grid markup, structure lint",
+      "seeded": false,
+      "seedError": null,
+      "accepted": true,
+      "firstPassAccepted": true,
+      "attemptsUsed": 1,
+      "outcome": "first-try",
+      "failureKind": null,
+      "firstFailureCode": null,
+      "firstFailureError": null,
+      "convergence": {
+        "codes": [
+          "accepted"
+        ],
+        "verdict": "no-repair-needed"
+      },
+      "attempts": [
+        {
+          "accepted": true,
+          "code": null,
+          "docSize": 6554,
+          "validationMs": 239.53,
+          "runtimeChecked": true,
+          "error": null
+        }
+      ],
+      "libs": [],
+      "expectLibs": null,
+      "toolsUsed": [
+        "apply_anything_patch"
+      ],
+      "fixer": null,
+      "tokens": {
+        "inputTokens": 15278,
+        "outputTokens": 2319
+      },
+      "modelCalls": 2,
+      "docSize": 6553,
+      "totalMs": 14991.08,
+      "wallMs": 15220.12,
+      "agentMessage": "Built a side-by-side TCP vs UDP comparison page.\n\nThe layout:\n- **Two cards** side by side (stacking on narrow screens), each color-coded — blue for TCP, amber for UDP — sharing identical row structure so the contrast reads instantly: reliability, ordering, handshake, speed, connection state.\n- **Be",
+      "threw": null,
+      "browser": {
+        "skipped": false,
+        "reason": null,
+        "findingCount": 0,
+        "findings": [],
+        "stats": {
+          "canvases": 0,
+          "drawnCanvases": 0,
+          "lowContrast": 0,
+          "checked": 67
+        }
+      },
+      "sample": 3
+    },
+    {
+      "id": "widget-tip-calculator",
+      "family": "widget",
+      "stresses": "event listeners, live recomputation, empty/edge states",
+      "seeded": false,
+      "seedError": null,
+      "accepted": true,
+      "firstPassAccepted": true,
+      "attemptsUsed": 1,
+      "outcome": "first-try",
+      "failureKind": null,
+      "firstFailureCode": null,
+      "firstFailureError": null,
+      "convergence": {
+        "codes": [
+          "accepted"
+        ],
+        "verdict": "no-repair-needed"
+      },
+      "attempts": [
+        {
+          "accepted": true,
+          "code": null,
+          "docSize": 8312,
+          "validationMs": 242.46,
+          "runtimeChecked": true,
+          "error": null
+        }
+      ],
+      "libs": [],
+      "expectLibs": null,
+      "toolsUsed": [
+        "apply_anything_patch"
+      ],
+      "fixer": null,
+      "tokens": {
+        "inputTokens": 17738,
+        "outputTokens": 2768
+      },
+      "modelCalls": 2,
+      "docSize": 8311,
+      "totalMs": 15296.36,
+      "wallMs": 15489.19,
+      "agentMessage": "Built a tip calculator in a single self-contained HTML document.\n\n**What it does:**\n- **Bill amount** — direct numeric entry with validation (highlights invalid input).\n- **Tip percent** — synced slider + number field, plus preset chips (10/15/18/20/25%).\n- **People splitting** — slider from 1 to 20",
+      "threw": null,
+      "browser": {
+        "skipped": false,
+        "reason": null,
+        "findingCount": 2,
+        "findings": [
+          {
+            "code": "low_contrast",
+            "detail": "ratio 4.05:1 (floor 4.5) for \"Tip amount\""
+          },
+          {
+            "code": "low_contrast",
+            "detail": "ratio 3.55:1 (floor 4.5) for \"$59.00\""
+          }
+        ],
+        "stats": {
+          "canvases": 0,
+          "drawnCanvases": 0,
+          "lowContrast": 2,
+          "checked": 30
+        }
+      },
+      "sample": 1
+    },
+    {
+      "id": "widget-tip-calculator",
+      "family": "widget",
+      "stresses": "event listeners, live recomputation, empty/edge states",
+      "seeded": false,
+      "seedError": null,
+      "accepted": true,
+      "firstPassAccepted": true,
+      "attemptsUsed": 1,
+      "outcome": "first-try",
+      "failureKind": null,
+      "firstFailureCode": null,
+      "firstFailureError": null,
+      "convergence": {
+        "codes": [
+          "accepted"
+        ],
+        "verdict": "no-repair-needed"
+      },
+      "attempts": [
+        {
+          "accepted": true,
+          "code": null,
+          "docSize": 7526,
+          "validationMs": 274.95,
+          "runtimeChecked": true,
+          "error": null
+        }
+      ],
+      "libs": [],
+      "expectLibs": null,
+      "toolsUsed": [
+        "apply_anything_patch"
+      ],
+      "fixer": null,
+      "tokens": {
+        "inputTokens": 16925,
+        "outputTokens": 2626
+      },
+      "modelCalls": 2,
+      "docSize": 7525,
+      "totalMs": 14363.49,
+      "wallMs": 14587.37,
+      "agentMessage": "Your tip calculator is ready. It's a clean, self-contained card layout with all three inputs you asked for:\n\n- **Bill amount** — a direct currency input with a `$` prefix\n- **Tip percentage** — a draggable slider (0–40%) plus quick-select buttons for No tip / 15% / 18% / 20% / 25%\n- **Number of peop",
+      "threw": null,
+      "browser": {
+        "skipped": false,
+        "reason": null,
+        "findingCount": 2,
+        "findings": [
+          {
+            "code": "low_contrast",
+            "detail": "ratio 4.34:1 (floor 4.5) for \"18%\""
+          },
+          {
+            "code": "low_contrast",
+            "detail": "ratio 4.34:1 (floor 4.5) for \"18%\""
+          }
+        ],
+        "stats": {
+          "canvases": 0,
+          "drawnCanvases": 0,
+          "lowContrast": 2,
+          "checked": 29
+        }
+      },
+      "sample": 2
+    },
+    {
+      "id": "widget-tip-calculator",
+      "family": "widget",
+      "stresses": "event listeners, live recomputation, empty/edge states",
+      "seeded": false,
+      "seedError": null,
+      "accepted": true,
+      "firstPassAccepted": true,
+      "attemptsUsed": 1,
+      "outcome": "first-try",
+      "failureKind": null,
+      "firstFailureCode": null,
+      "firstFailureError": null,
+      "convergence": {
+        "codes": [
+          "accepted"
+        ],
+        "verdict": "no-repair-needed"
+      },
+      "attempts": [
+        {
+          "accepted": true,
+          "code": null,
+          "docSize": 7993,
+          "validationMs": 260.21,
+          "runtimeChecked": true,
+          "error": null
+        }
+      ],
+      "libs": [],
+      "expectLibs": null,
+      "toolsUsed": [
+        "apply_anything_patch"
+      ],
+      "fixer": null,
+      "tokens": {
+        "inputTokens": 17308,
+        "outputTokens": 2743
+      },
+      "modelCalls": 2,
+      "docSize": 7992,
+      "totalMs": 16059.62,
+      "wallMs": 16264.54,
+      "agentMessage": "I built a tip calculator with live-updating results. It's a single self-contained HTML document.\n\n**What it does:**\n- **Bill amount** — input the total bill in dollars\n- **Tip percent** — quick preset buttons (10%, 15%, 18%, 20%) plus a custom percentage field so you can type any value\n- **Split bet",
+      "threw": null,
+      "browser": {
+        "skipped": false,
+        "reason": null,
+        "findingCount": 0,
+        "findings": [],
+        "stats": {
+          "canvases": 0,
+          "drawnCanvases": 0,
+          "lowContrast": 0,
+          "checked": 26
+        }
+      },
+      "sample": 3
+    },
+    {
+      "id": "widget-unit-converter",
+      "family": "widget",
+      "stresses": "two-way binding, number parsing edge cases",
+      "seeded": false,
+      "seedError": null,
+      "accepted": true,
+      "firstPassAccepted": true,
+      "attemptsUsed": 2,
+      "outcome": "first-try",
+      "failureKind": null,
+      "firstFailureCode": null,
+      "firstFailureError": null,
+      "convergence": {
+        "codes": [
+          "accepted",
+          "accepted"
+        ],
+        "verdict": "converged"
+      },
+      "attempts": [
+        {
+          "accepted": true,
+          "code": null,
+          "docSize": 9810,
+          "validationMs": 229.48,
+          "runtimeChecked": true,
+          "error": null
+        },
+        {
+          "accepted": true,
+          "code": null,
+          "docSize": 9789,
+          "validationMs": 262.32,
+          "runtimeChecked": true,
+          "error": null
+        }
+      ],
+      "libs": [],
+      "expectLibs": null,
+      "toolsUsed": [
+        "apply_anything_patch",
+        "apply_anything_edit"
+      ],
+      "fixer": null,
+      "tokens": {
+        "inputTokens": 52229,
+        "outputTokens": 3721
+      },
+      "modelCalls": 3,
+      "docSize": 9789,
+      "totalMs": 23889.26,
+      "wallMs": 24100.26,
+      "agentMessage": "The temperature converter is complete and validated with no remaining warnings. Here's what I built:\n\n**Live bidirectional conversion** between all three scales — type into any of the Celsius, Fahrenheit, or Kelvin fields and the other two update on every keystroke. The field you're typing into stay",
+      "threw": null,
+      "browser": {
+        "skipped": false,
+        "reason": null,
+        "findingCount": 0,
+        "findings": [],
+        "stats": {
+          "canvases": 0,
+          "drawnCanvases": 0,
+          "lowContrast": 0,
+          "checked": 32
+        }
+      },
+      "sample": 1
+    },
+    {
+      "id": "widget-unit-converter",
+      "family": "widget",
+      "stresses": "two-way binding, number parsing edge cases",
+      "seeded": false,
+      "seedError": null,
+      "accepted": true,
+      "firstPassAccepted": true,
+      "attemptsUsed": 1,
+      "outcome": "first-try",
+      "failureKind": null,
+      "firstFailureCode": null,
+      "firstFailureError": null,
+      "convergence": {
+        "codes": [
+          "accepted"
+        ],
+        "verdict": "no-repair-needed"
+      },
+      "attempts": [
+        {
+          "accepted": true,
+          "code": null,
+          "docSize": 7737,
+          "validationMs": 222.51,
+          "runtimeChecked": true,
+          "error": null
+        }
+      ],
+      "libs": [],
+      "expectLibs": null,
+      "toolsUsed": [
+        "apply_anything_patch"
+      ],
+      "fixer": null,
+      "tokens": {
+        "inputTokens": 16609,
+        "outputTokens": 2739
+      },
+      "modelCalls": 2,
+      "docSize": 7736,
+      "totalMs": 17351.72,
+      "wallMs": 17537.15,
+      "agentMessage": "I've built a clean, self-contained temperature converter. Here's what it does:\n\n**Core function** — Type into any of the three fields (Celsius, Fahrenheit, Kelvin) and the other two update live on every keystroke, with no button clicks or waiting.\n\n**Details:**\n- **Live conversion** — Each field is ",
+      "threw": null,
+      "browser": {
+        "skipped": false,
+        "reason": null,
+        "findingCount": 1,
+        "findings": [
+          {
+            "code": "low_contrast",
+            "detail": "ratio 4.49:1 (floor 4.5) for \"Celsius\""
+          }
+        ],
+        "stats": {
+          "canvases": 0,
+          "drawnCanvases": 0,
+          "lowContrast": 1,
+          "checked": 19
+        }
+      },
+      "sample": 2
+    },
+    {
+      "id": "widget-unit-converter",
+      "family": "widget",
+      "stresses": "two-way binding, number parsing edge cases",
+      "seeded": false,
+      "seedError": null,
+      "accepted": true,
+      "firstPassAccepted": true,
+      "attemptsUsed": 1,
+      "outcome": "first-try",
+      "failureKind": null,
+      "firstFailureCode": null,
+      "firstFailureError": null,
+      "convergence": {
+        "codes": [
+          "accepted"
+        ],
+        "verdict": "no-repair-needed"
+      },
+      "attempts": [
+        {
+          "accepted": true,
+          "code": null,
+          "docSize": 10058,
+          "validationMs": 226.31,
+          "runtimeChecked": true,
+          "error": null
+        }
+      ],
+      "libs": [],
+      "expectLibs": null,
+      "toolsUsed": [
+        "apply_anything_patch"
+      ],
+      "fixer": null,
+      "tokens": {
+        "inputTokens": 20091,
+        "outputTokens": 3361
+      },
+      "modelCalls": 2,
+      "docSize": 10058,
+      "totalMs": 18830.06,
+      "wallMs": 19050.9,
+      "agentMessage": "I've built the temperature converter. Here's what it does:\n\n- **Three linked fields** for Celsius, Fahrenheit, and Kelvin — typing into any one updates the other two instantly as you type.\n- **Live validation**: invalid numbers and empty fields are handled gracefully; typing into Kelvin below absolu",
+      "threw": null,
+      "browser": {
+        "skipped": false,
+        "reason": null,
+        "findingCount": 1,
+        "findings": [
+          {
+            "code": "low_contrast",
+            "detail": "ratio 4.04:1 (floor 4.5) for \"°C\""
+          }
+        ],
+        "stats": {
+          "canvases": 0,
+          "drawnCanvases": 0,
+          "lowContrast": 1,
+          "checked": 18
+        }
+      },
+      "sample": 3
+    },
+    {
+      "id": "canvas-solar-system",
+      "family": "canvas",
+      "stresses": "canvas + requestAnimationFrame — jsdom stubs the context entirely",
+      "seeded": false,
+      "seedError": null,
+      "accepted": true,
+      "firstPassAccepted": true,
+      "attemptsUsed": 1,
+      "outcome": "first-try",
+      "failureKind": null,
+      "firstFailureCode": null,
+      "firstFailureError": null,
+      "convergence": {
+        "codes": [
+          "accepted"
+        ],
+        "verdict": "no-repair-needed"
+      },
+      "attempts": [
+        {
+          "accepted": true,
+          "code": null,
+          "docSize": 11630,
+          "validationMs": 276.18,
+          "runtimeChecked": true,
+          "error": null
+        }
+      ],
+      "libs": [],
+      "expectLibs": null,
+      "toolsUsed": [
+        "apply_anything_patch"
+      ],
+      "fixer": null,
+      "tokens": {
+        "inputTokens": 21887,
+        "outputTokens": 3792
+      },
+      "modelCalls": 2,
+      "docSize": 11629,
+      "totalMs": 23710.67,
+      "wallMs": 23931.66,
+      "agentMessage": "The animated inner solar system is complete. Here's what was built:\n\n**The scene**\n- A glowing Sun at the center with a subtle pulsing animation\n- Four inner planets — Mercury, Venus, Earth, and Mars — each orbiting on their own ring at realistic relative speeds (Mercury fastest, Mars slowest)\n- Orb",
+      "threw": null,
+      "browser": {
+        "skipped": false,
+        "reason": null,
+        "findingCount": 2,
+        "findings": [
+          {
+            "code": "low_contrast",
+            "detail": "ratio 1.32:1 (floor 4.5) for \"☀️ Inner Solar System\""
+          },
+          {
+            "code": "low_contrast",
+            "detail": "ratio 4.34:1 (floor 4.5) for \"Mercury · Venus · Earth · Mars —\""
+          }
+        ],
+        "stats": {
+          "canvases": 0,
+          "drawnCanvases": 0,
+          "lowContrast": 2,
+          "checked": 8
+        }
+      },
+      "sample": 1
+    },
+    {
+      "id": "canvas-solar-system",
+      "family": "canvas",
+      "stresses": "canvas + requestAnimationFrame — jsdom stubs the context entirely",
+      "seeded": false,
+      "seedError": null,
+      "accepted": true,
+      "firstPassAccepted": true,
+      "attemptsUsed": 1,
+      "outcome": "first-try",
+      "failureKind": null,
+      "firstFailureCode": null,
+      "firstFailureError": null,
+      "convergence": {
+        "codes": [
+          "accepted"
+        ],
+        "verdict": "no-repair-needed"
+      },
+      "attempts": [
+        {
+          "accepted": true,
+          "code": null,
+          "docSize": 7760,
+          "validationMs": 229.84,
+          "runtimeChecked": true,
+          "error": null
+        }
+      ],
+      "libs": [],
+      "expectLibs": null,
+      "toolsUsed": [
+        "apply_anything_patch"
+      ],
+      "fixer": null,
+      "tokens": {
+        "inputTokens": 17120,
+        "outputTokens": 2768
+      },
+      "modelCalls": 2,
+      "docSize": 7760,
+      "totalMs": 17223.78,
+      "wallMs": 17437.22,
+      "agentMessage": "Your animated inner solar system is ready. Here's what's in the page:\n\n- **The Sun** at the center with a soft glow halo.\n- **Four inner planets** — Mercury, Venus, Earth, and Mars — each with its own distinct color, size, and circular orbit ring, animated in real time.\n- **Realistic relative speeds",
+      "threw": null,
+      "browser": {
+        "skipped": false,
+        "reason": null,
+        "findingCount": 2,
+        "findings": [
+          {
+            "code": "low_contrast",
+            "detail": "ratio 1.17:1 (floor 4.5) for \"☀️ Inner Solar System\""
+          },
+          {
+            "code": "low_contrast",
+            "detail": "ratio 3.00:1 (floor 4.5) for \"Mercury · Venus · Earth · Mars o\""
+          }
+        ],
+        "stats": {
+          "canvases": 0,
+          "drawnCanvases": 0,
+          "lowContrast": 2,
+          "checked": 12
+        }
+      },
+      "sample": 2
+    },
+    {
+      "id": "canvas-solar-system",
+      "family": "canvas",
+      "stresses": "canvas + requestAnimationFrame — jsdom stubs the context entirely",
+      "seeded": false,
+      "seedError": null,
+      "accepted": true,
+      "firstPassAccepted": true,
+      "attemptsUsed": 1,
+      "outcome": "first-try",
+      "failureKind": null,
+      "firstFailureCode": null,
+      "firstFailureError": null,
+      "convergence": {
+        "codes": [
+          "accepted"
+        ],
+        "verdict": "no-repair-needed"
+      },
+      "attempts": [
+        {
+          "accepted": true,
+          "code": null,
+          "docSize": 9926,
+          "validationMs": 287.78,
+          "runtimeChecked": true,
+          "error": null
+        }
+      ],
+      "libs": [],
+      "expectLibs": null,
+      "toolsUsed": [
+        "apply_anything_patch"
+      ],
+      "fixer": null,
+      "tokens": {
+        "inputTokens": 20999,
+        "outputTokens": 3616
+      },
+      "modelCalls": 2,
+      "docSize": 9925,
+      "totalMs": 20437.87,
+      "wallMs": 20681.98,
+      "agentMessage": "The animated inner solar system is ready. Here's what it features:\n\n**The scene**\n- A glowing, radial-gradient **Sun** at the center with a subtle outer ring\n- **Mercury, Venus, Earth, and Mars** orbiting it — each with realistic relative orbital speeds (Mercury fastest, Mars slowest) and staggered ",
+      "threw": null,
+      "browser": {
+        "skipped": false,
+        "reason": null,
+        "findingCount": 0,
+        "findings": [],
+        "stats": {
+          "canvases": 1,
+          "drawnCanvases": 1,
+          "lowContrast": 0,
+          "checked": 17
+        }
+      },
+      "sample": 3
+    },
+    {
+      "id": "canvas-sorting-visual",
+      "family": "canvas",
+      "stresses": "canvas drawing driven by a timer; blank-canvas risk",
+      "seeded": false,
+      "seedError": null,
+      "accepted": true,
+      "firstPassAccepted": true,
+      "attemptsUsed": 1,
+      "outcome": "first-try",
+      "failureKind": null,
+      "firstFailureCode": null,
+      "firstFailureError": null,
+      "convergence": {
+        "codes": [
+          "accepted"
+        ],
+        "verdict": "no-repair-needed"
+      },
+      "attempts": [
+        {
+          "accepted": true,
+          "code": null,
+          "docSize": 8675,
+          "validationMs": 228.94,
+          "runtimeChecked": true,
+          "error": null
+        }
+      ],
+      "libs": [],
+      "expectLibs": null,
+      "toolsUsed": [
+        "apply_anything_patch"
+      ],
+      "fixer": null,
+      "tokens": {
+        "inputTokens": 17421,
+        "outputTokens": 2740
+      },
+      "modelCalls": 2,
+      "docSize": 8674,
+      "totalMs": 15868.73,
+      "wallMs": 16087.08,
+      "agentMessage": "The bubble sort visualizer is built and validated. Here's what it does:\n\n- **30 random bars** render on load, each with a height proportional to its random value (0–1).\n- **▶ Start** runs the bubble sort step-by-step with async delays, animating each comparison (purple) and swap (yellow).\n- **Shuffl",
+      "threw": null,
+      "browser": {
+        "skipped": false,
+        "reason": null,
+        "findingCount": 1,
+        "findings": [
+          {
+            "code": "low_contrast",
+            "detail": "ratio 3.16:1 (floor 4.5) for \"Shuffle\""
+          }
+        ],
+        "stats": {
+          "canvases": 0,
+          "drawnCanvases": 0,
+          "lowContrast": 1,
+          "checked": 17
+        }
+      },
+      "sample": 1
+    },
+    {
+      "id": "canvas-sorting-visual",
+      "family": "canvas",
+      "stresses": "canvas drawing driven by a timer; blank-canvas risk",
+      "seeded": false,
+      "seedError": null,
+      "accepted": true,
+      "firstPassAccepted": true,
+      "attemptsUsed": 1,
+      "outcome": "first-try",
+      "failureKind": null,
+      "firstFailureCode": null,
+      "firstFailureError": null,
+      "convergence": {
+        "codes": [
+          "accepted"
+        ],
+        "verdict": "no-repair-needed"
+      },
+      "attempts": [
+        {
+          "accepted": true,
+          "code": null,
+          "docSize": 8841,
+          "validationMs": 236.46,
+          "runtimeChecked": true,
+          "error": null
+        }
+      ],
+      "libs": [],
+      "expectLibs": null,
+      "toolsUsed": [
+        "apply_anything_patch"
+      ],
+      "fixer": null,
+      "tokens": {
+        "inputTokens": 18048,
+        "outputTokens": 2984
+      },
+      "modelCalls": 2,
+      "docSize": 8840,
+      "totalMs": 17668.72,
+      "wallMs": 17881.17,
+      "agentMessage": "The bubble sort visualizer is built and accepted. Here's what it does:\n\n**Behavior**\n- Renders **30 random bars** (heights scaled 1–100) in a flexbox chart.\n- Press **Start** to run bubble sort — adjacent bars flash **amber** while being compared, **red/pink** when swapped, and turn **green** once t",
+      "threw": null,
+      "browser": {
+        "skipped": false,
+        "reason": null,
+        "findingCount": 0,
+        "findings": [],
+        "stats": {
+          "canvases": 0,
+          "drawnCanvases": 0,
+          "lowContrast": 0,
+          "checked": 26
+        }
+      },
+      "sample": 2
+    },
+    {
+      "id": "canvas-sorting-visual",
+      "family": "canvas",
+      "stresses": "canvas drawing driven by a timer; blank-canvas risk",
+      "seeded": false,
+      "seedError": null,
+      "accepted": true,
+      "firstPassAccepted": true,
+      "attemptsUsed": 1,
+      "outcome": "first-try",
+      "failureKind": null,
+      "firstFailureCode": null,
+      "firstFailureError": null,
+      "convergence": {
+        "codes": [
+          "accepted"
+        ],
+        "verdict": "no-repair-needed"
+      },
+      "attempts": [
+        {
+          "accepted": true,
+          "code": null,
+          "docSize": 8642,
+          "validationMs": 247.09,
+          "runtimeChecked": true,
+          "error": null
+        }
+      ],
+      "libs": [],
+      "expectLibs": null,
+      "toolsUsed": [
+        "apply_anything_patch"
+      ],
+      "fixer": null,
+      "tokens": {
+        "inputTokens": 17610,
+        "outputTokens": 2801
+      },
+      "modelCalls": 2,
+      "docSize": 8641,
+      "totalMs": 14797.47,
+      "wallMs": 14999.55,
+      "agentMessage": "The bubble sort visualization has been created and validated successfully.\n\nThe page renders **30 randomly shuffled bars** and includes:\n\n- **Start Sort button** — runs the bubble sort animation in real time\n- **Shuffle button** — regenerates a new random array\n- **Speed slider** — controls animatio",
+      "threw": null,
+      "browser": {
+        "skipped": false,
+        "reason": null,
+        "findingCount": 0,
+        "findings": [],
+        "stats": {
+          "canvases": 0,
+          "drawnCanvases": 0,
+          "lowContrast": 0,
+          "checked": 17
+        }
+      },
+      "sample": 3
+    },
+    {
+      "id": "layout-dashboard",
+      "family": "layout",
+      "stresses": "multi-region grid/flex layout — collapse is invisible to jsdom",
+      "seeded": false,
+      "seedError": null,
+      "accepted": true,
+      "firstPassAccepted": false,
+      "attemptsUsed": 2,
+      "outcome": "repair-attempt-1",
+      "failureKind": null,
+      "firstFailureCode": "runtime_error",
+      "firstFailureError": "Page JavaScript failed at runtime:\n- Uncaught TypeError: d.createElementNS is not a function",
+      "convergence": {
+        "codes": [
+          "runtime_error",
+          "accepted"
+        ],
+        "verdict": "converged"
+      },
+      "attempts": [
+        {
+          "accepted": false,
+          "code": "runtime_error",
+          "docSize": 17579,
+          "validationMs": 261.08,
+          "runtimeChecked": null,
+          "error": "Page JavaScript failed at runtime:\n- Uncaught TypeError: d.createElementNS is not a function"
+        },
+        {
+          "accepted": true,
+          "code": null,
+          "docSize": 17493,
+          "validationMs": 272.76,
+          "runtimeChecked": true,
+          "error": null
+        }
+      ],
+      "libs": [],
+      "expectLibs": null,
+      "toolsUsed": [
+        "apply_anything_patch",
+        "apply_anything_edit"
+      ],
+      "fixer": null,
+      "tokens": {
+        "inputTokens": 56595,
+        "outputTokens": 12388
+      },
+      "modelCalls": 4,
+      "docSize": 17492,
+      "totalMs": 58810.52,
+      "wallMs": 59070.32,
+      "agentMessage": "The dashboard is accepted and rendered successfully. \n\nI've built a coffee shop analytics dashboard for \"Bean & Press\" featuring:\n\n- **KPI cards** — Revenue, Cups Sold, Avg Ticket, and Unique Items, each with a week-over-week change badge (↗ percents with up/down/flat coloring) and comparative subte",
+      "threw": null,
+      "browser": {
+        "skipped": false,
+        "reason": null,
+        "findingCount": 1,
+        "findings": [
+          {
+            "code": "low_contrast",
+            "detail": "ratio 1.08:1 (floor 4.5) for \"1\""
+          }
+        ],
+        "stats": {
+          "canvases": 0,
+          "drawnCanvases": 0,
+          "lowContrast": 1,
+          "checked": 133
+        }
+      },
+      "sample": 1
+    },
+    {
+      "id": "layout-dashboard",
+      "family": "layout",
+      "stresses": "multi-region grid/flex layout — collapse is invisible to jsdom",
+      "seeded": false,
+      "seedError": null,
+      "accepted": true,
+      "firstPassAccepted": true,
+      "attemptsUsed": 2,
+      "outcome": "first-try",
+      "failureKind": null,
+      "firstFailureCode": null,
+      "firstFailureError": null,
+      "convergence": {
+        "codes": [
+          "accepted",
+          "accepted"
+        ],
+        "verdict": "converged"
+      },
+      "attempts": [
+        {
+          "accepted": true,
+          "code": null,
+          "docSize": 17239,
+          "validationMs": 268.04,
+          "runtimeChecked": true,
+          "error": null
+        },
+        {
+          "accepted": true,
+          "code": null,
+          "docSize": 16359,
+          "validationMs": 282.47,
+          "runtimeChecked": true,
+          "error": null
+        }
+      ],
+      "libs": [],
+      "expectLibs": null,
+      "toolsUsed": [
+        "apply_anything_patch",
+        "apply_anything_edit"
+      ],
+      "fixer": null,
+      "tokens": {
+        "inputTokens": 83492,
+        "outputTokens": 6760
+      },
+      "modelCalls": 3,
+      "docSize": 16359,
+      "totalMs": 40955.54,
+      "wallMs": 41208.78,
+      "agentMessage": "The dashboard is complete and validated. Here's what I built:\n\n**Café Dashboard — \"Roast & Rust · Daily Brief\"**\n\nA warm, editorial-styled analytics dashboard for a coffee shop covering all four requested dimensions:\n\n- **Revenue** — today's total with sparkline trend\n- **Cups Sold** — running count",
+      "threw": null,
+      "browser": {
+        "skipped": false,
+        "reason": null,
+        "findingCount": 1,
+        "findings": [
+          {
+            "code": "low_contrast",
+            "detail": "ratio 3.99:1 (floor 4.5) for \"▲\""
+          }
+        ],
+        "stats": {
+          "canvases": 0,
+          "drawnCanvases": 0,
+          "lowContrast": 1,
+          "checked": 99
+        }
+      },
+      "sample": 2
+    },
+    {
+      "id": "layout-dashboard",
+      "family": "layout",
+      "stresses": "multi-region grid/flex layout — collapse is invisible to jsdom",
+      "seeded": false,
+      "seedError": null,
+      "accepted": true,
+      "firstPassAccepted": true,
+      "attemptsUsed": 1,
+      "outcome": "first-try",
+      "failureKind": null,
+      "firstFailureCode": null,
+      "firstFailureError": null,
+      "convergence": {
+        "codes": [
+          "accepted"
+        ],
+        "verdict": "no-repair-needed"
+      },
+      "attempts": [
+        {
+          "accepted": true,
+          "code": null,
+          "docSize": 17604,
+          "validationMs": 289,
+          "runtimeChecked": true,
+          "error": null
+        }
+      ],
+      "libs": [],
+      "expectLibs": null,
+      "toolsUsed": [
+        "apply_anything_patch"
+      ],
+      "fixer": null,
+      "tokens": {
+        "inputTokens": 31051,
+        "outputTokens": 5990
+      },
+      "modelCalls": 2,
+      "docSize": 17604,
+      "totalMs": 34021.81,
+      "wallMs": 34295.78,
+      "agentMessage": "The dashboard is complete and accepted. Here's what I built:\n\n**Coffee Shop Dashboard — Bean & Co.**\n\n- **KPI cards** — Revenue ($72,842), Cups sold (15,852), Avg ticket ($4.60), and Peak day (Sat), each showing a week-over-week % delta with color-coded up/down badges.\n- **Weekly revenue chart** — I",
+      "threw": null,
+      "browser": {
+        "skipped": false,
+        "reason": null,
+        "findingCount": 3,
+        "findings": [
+          {
+            "code": "low_contrast",
+            "detail": "ratio 3.84:1 (floor 4.5) for \"Bean & Co. · 214 Alder Ave\""
+          },
+          {
+            "code": "low_contrast",
+            "detail": "ratio 4.14:1 (floor 4.5) for \"Revenue\""
+          },
+          {
+            "code": "low_contrast",
+            "detail": "ratio 4.33:1 (floor 4.5) for \"▲ 8.7%\""
+          }
+        ],
+        "stats": {
+          "canvases": 0,
+          "drawnCanvases": 0,
+          "lowContrast": 3,
+          "checked": 90
+        }
+      },
+      "sample": 3
+    },
+    {
+      "id": "layout-pricing",
+      "family": "layout",
+      "stresses": "equal-height columns, contrast on the highlighted card",
+      "seeded": false,
+      "seedError": null,
+      "accepted": true,
+      "firstPassAccepted": true,
+      "attemptsUsed": 1,
+      "outcome": "first-try",
+      "failureKind": null,
+      "firstFailureCode": null,
+      "firstFailureError": null,
+      "convergence": {
+        "codes": [
+          "accepted"
+        ],
+        "verdict": "no-repair-needed"
+      },
+      "attempts": [
+        {
+          "accepted": true,
+          "code": null,
+          "docSize": 10088,
+          "validationMs": 266.02,
+          "runtimeChecked": true,
+          "error": null
+        }
+      ],
+      "libs": [],
+      "expectLibs": null,
+      "toolsUsed": [
+        "apply_anything_patch"
+      ],
+      "fixer": null,
+      "tokens": {
+        "inputTokens": 20325,
+        "outputTokens": 3477
+      },
+      "modelCalls": 2,
+      "docSize": 10087,
+      "totalMs": 19063.4,
+      "wallMs": 19338.01,
+      "agentMessage": "The pricing page is built and validated. Here's what's included:\n\n**Three-tier layout** — Starter ($0), Pro ($19), and Business ($49) side by side in a responsive grid.\n\n**Pro highlighted as \"Most Popular\"**:\n- A prominent badge floats over the top edge\n- Accent border + soft glow shadow distinguish",
+      "threw": null,
+      "browser": {
+        "skipped": false,
+        "reason": null,
+        "findingCount": 1,
+        "findings": [
+          {
+            "code": "low_contrast",
+            "detail": "ratio 1.84:1 (floor 4.5) for \"✓\""
+          }
+        ],
+        "stats": {
+          "canvases": 0,
+          "drawnCanvases": 0,
+          "lowContrast": 1,
+          "checked": 81
+        }
+      },
+      "sample": 1
+    },
+    {
+      "id": "layout-pricing",
+      "family": "layout",
+      "stresses": "equal-height columns, contrast on the highlighted card",
+      "seeded": false,
+      "seedError": null,
+      "accepted": true,
+      "firstPassAccepted": true,
+      "attemptsUsed": 1,
+      "outcome": "first-try",
+      "failureKind": null,
+      "firstFailureCode": null,
+      "firstFailureError": null,
+      "convergence": {
+        "codes": [
+          "accepted"
+        ],
+        "verdict": "no-repair-needed"
+      },
+      "attempts": [
+        {
+          "accepted": true,
+          "code": null,
+          "docSize": 10659,
+          "validationMs": 267.87,
+          "runtimeChecked": true,
+          "error": null
+        }
+      ],
+      "libs": [],
+      "expectLibs": null,
+      "toolsUsed": [
+        "apply_anything_patch"
+      ],
+      "fixer": null,
+      "tokens": {
+        "inputTokens": 20942,
+        "outputTokens": 3642
+      },
+      "modelCalls": 2,
+      "docSize": 10658,
+      "totalMs": 19452.11,
+      "wallMs": 19654.76,
+      "agentMessage": "I've created the three-tier pricing page. Here's what it includes:\n\n**Design highlights:**\n- **Three clear tiers** — Starter, Pro, and Business — arranged in a responsive 3-column grid that collapses to a single column on smaller screens.\n- **Middle tier emphasized as \"Most Popular\"** with an accent",
+      "threw": null,
+      "browser": {
+        "skipped": false,
+        "reason": null,
+        "findingCount": 2,
+        "findings": [
+          {
+            "code": "low_contrast",
+            "detail": "ratio 4.37:1 (floor 4.5) for \"Start free, upgrade when you gro\""
+          },
+          {
+            "code": "low_contrast",
+            "detail": "ratio 1.65:1 (floor 4.5) for \"✓\""
+          }
+        ],
+        "stats": {
+          "canvases": 0,
+          "drawnCanvases": 0,
+          "lowContrast": 2,
+          "checked": 65
+        }
+      },
+      "sample": 2
+    },
+    {
+      "id": "layout-pricing",
+      "family": "layout",
+      "stresses": "equal-height columns, contrast on the highlighted card",
+      "seeded": false,
+      "seedError": null,
+      "accepted": true,
+      "firstPassAccepted": true,
+      "attemptsUsed": 1,
+      "outcome": "first-try",
+      "failureKind": null,
+      "firstFailureCode": null,
+      "firstFailureError": null,
+      "convergence": {
+        "codes": [
+          "accepted"
+        ],
+        "verdict": "no-repair-needed"
+      },
+      "attempts": [
+        {
+          "accepted": true,
+          "code": null,
+          "docSize": 10714,
+          "validationMs": 246.71,
+          "runtimeChecked": true,
+          "error": null
+        }
+      ],
+      "libs": [],
+      "expectLibs": null,
+      "toolsUsed": [
+        "apply_anything_patch"
+      ],
+      "fixer": null,
+      "tokens": {
+        "inputTokens": 20735,
+        "outputTokens": 3596
+      },
+      "modelCalls": 2,
+      "docSize": 10713,
+      "totalMs": 19084.05,
+      "wallMs": 19297.01,
+      "agentMessage": "The pricing page was built and validated successfully. Here's what was created:\n\n## Three-Tier Pricing Page\n\n**Structure** — a responsive grid of three plan cards:\n\n1. **Starter** ($0) — Free tier with basic features\n2. **Pro** ($29) — **Highlighted as \"Most Popular\"** with an accent border, gradien",
+      "threw": null,
+      "browser": {
+        "skipped": false,
+        "reason": null,
+        "findingCount": 1,
+        "findings": [
+          {
+            "code": "low_contrast",
+            "detail": "ratio 4.25:1 (floor 4.5) for \"Monthly\""
+          }
+        ],
+        "stats": {
+          "canvases": 0,
+          "drawnCanvases": 0,
+          "lowContrast": 1,
+          "checked": 65
+        }
+      },
+      "sample": 3
+    },
+    {
+      "id": "game-memory",
+      "family": "game",
+      "stresses": "largest document, most state, size budget",
+      "seeded": false,
+      "seedError": null,
+      "accepted": true,
+      "firstPassAccepted": true,
+      "attemptsUsed": 1,
+      "outcome": "first-try",
+      "failureKind": null,
+      "firstFailureCode": null,
+      "firstFailureError": null,
+      "convergence": {
+        "codes": [
+          "accepted"
+        ],
+        "verdict": "no-repair-needed"
+      },
+      "attempts": [
+        {
+          "accepted": true,
+          "code": null,
+          "docSize": 8409,
+          "validationMs": 229.72,
+          "runtimeChecked": true,
+          "error": null
+        }
+      ],
+      "libs": [],
+      "expectLibs": null,
+      "toolsUsed": [
+        "apply_anything_patch"
+      ],
+      "fixer": null,
+      "tokens": {
+        "inputTokens": 18060,
+        "outputTokens": 2982
+      },
+      "modelCalls": 2,
+      "docSize": 8409,
+      "totalMs": 17404.24,
+      "wallMs": 17609.05,
+      "agentMessage": "The memory matching game is complete and validated. Here's a summary of what I built:\n\n## Memory Match — a 12-card matching game\n\n**Core gameplay:**\n- **12 cards** arranged in a 4×3 grid (6 pairs of symbols — I used 6 distinct glyphs, each appearing twice)\n- **3D flip animation** via CSS `perspectiv",
+      "threw": null,
+      "browser": {
+        "skipped": false,
+        "reason": null,
+        "findingCount": 2,
+        "findings": [
+          {
+            "code": "low_contrast",
+            "detail": "ratio 4.40:1 (floor 4.5) for \"0\""
+          },
+          {
+            "code": "low_contrast",
+            "detail": "ratio 3.16:1 (floor 4.5) for \"New Game\""
+          }
+        ],
+        "stats": {
+          "canvases": 0,
+          "drawnCanvases": 0,
+          "lowContrast": 2,
+          "checked": 63
+        }
+      },
+      "sample": 1
+    },
+    {
+      "id": "game-memory",
+      "family": "game",
+      "stresses": "largest document, most state, size budget",
+      "seeded": false,
+      "seedError": null,
+      "accepted": true,
+      "firstPassAccepted": true,
+      "attemptsUsed": 1,
+      "outcome": "first-try",
+      "failureKind": null,
+      "firstFailureCode": null,
+      "firstFailureError": null,
+      "convergence": {
+        "codes": [
+          "accepted"
+        ],
+        "verdict": "no-repair-needed"
+      },
+      "attempts": [
+        {
+          "accepted": true,
+          "code": null,
+          "docSize": 9194,
+          "validationMs": 259.26,
+          "runtimeChecked": true,
+          "error": null
+        }
+      ],
+      "libs": [],
+      "expectLibs": null,
+      "toolsUsed": [
+        "apply_anything_patch"
+      ],
+      "fixer": null,
+      "tokens": {
+        "inputTokens": 18469,
+        "outputTokens": 3073
+      },
+      "modelCalls": 2,
+      "docSize": 9193,
+      "totalMs": 16512.53,
+      "wallMs": 16734.94,
+      "agentMessage": "The memory matching card game is complete. Here's what I built:\n\n**Memory Match** — a 12-card (6 pairs) matching game:\n\n- **4×3 grid** of 3D flip cards (CSS `transform-style: preserve-3d` for a realistic flip) with cute animal emoji faces.\n- **Move counter** that increments once per pair of flips, d",
+      "threw": null,
+      "browser": {
+        "skipped": false,
+        "reason": null,
+        "findingCount": 0,
+        "findings": [],
+        "stats": {
+          "canvases": 0,
+          "drawnCanvases": 0,
+          "lowContrast": 0,
+          "checked": 49
+        }
+      },
+      "sample": 2
+    },
+    {
+      "id": "game-memory",
+      "family": "game",
+      "stresses": "largest document, most state, size budget",
+      "seeded": false,
+      "seedError": null,
+      "accepted": true,
+      "firstPassAccepted": true,
+      "attemptsUsed": 1,
+      "outcome": "first-try",
+      "failureKind": null,
+      "firstFailureCode": null,
+      "firstFailureError": null,
+      "convergence": {
+        "codes": [
+          "accepted"
+        ],
+        "verdict": "no-repair-needed"
+      },
+      "attempts": [
+        {
+          "accepted": true,
+          "code": null,
+          "docSize": 9047,
+          "validationMs": 249.24,
+          "runtimeChecked": true,
+          "error": null
+        }
+      ],
+      "libs": [],
+      "expectLibs": null,
+      "toolsUsed": [
+        "apply_anything_patch"
+      ],
+      "fixer": null,
+      "tokens": {
+        "inputTokens": 18658,
+        "outputTokens": 3027
+      },
+      "modelCalls": 2,
+      "docSize": 9047,
+      "totalMs": 16815.27,
+      "wallMs": 17014.15,
+      "agentMessage": "I've built the memory matching card game. Here's what's included:\n\n**Core mechanics**\n- **12 cards** arranged in a 4×3 grid (6 pairs of emoji)\n- **Move counter** tracking each pair of flips, plus a pairs-found counter\n- Cards are shuffled on every restart\n- Flip animation with a 3D rotate effect\n\n**",
+      "threw": null,
+      "browser": {
+        "skipped": false,
+        "reason": null,
+        "findingCount": 0,
+        "findings": [],
+        "stats": {
+          "canvases": 0,
+          "drawnCanvases": 0,
+          "lowContrast": 0,
+          "checked": 15
+        }
+      },
+      "sample": 3
+    },
+    {
+      "id": "lib-d3-network",
+      "family": "lib",
+      "stresses": "@lib:d3 marker + expandAnythingLibs inside rung 5",
+      "seeded": false,
+      "seedError": null,
+      "accepted": true,
+      "firstPassAccepted": true,
+      "attemptsUsed": 1,
+      "outcome": "first-try",
+      "failureKind": null,
+      "firstFailureCode": null,
+      "firstFailureError": null,
+      "convergence": {
+        "codes": [
+          "accepted"
+        ],
+        "verdict": "no-repair-needed"
+      },
+      "attempts": [
+        {
+          "accepted": true,
+          "code": null,
+          "docSize": 10989,
+          "validationMs": 509.69,
+          "runtimeChecked": true,
+          "error": null
+        }
+      ],
+      "libs": [
+        "d3"
+      ],
+      "expectLibs": [
+        "d3"
+      ],
+      "toolsUsed": [
+        "apply_anything_patch"
+      ],
+      "fixer": null,
+      "tokens": {
+        "inputTokens": 22801,
+        "outputTokens": 4101
+      },
+      "modelCalls": 2,
+      "docSize": 10988,
+      "totalMs": 25398.11,
+      "wallMs": 25776.88,
+      "agentMessage": "I've created a force-directed graph of 12 microservices showing their call relationships.\n\n**What's on the page:**\n\n- **12 service nodes** across realistic layers — an API Gateway at the edge, core services (Auth, User, Order, Billing, Payment, Notification), data services (Inventory, Search, Recomm",
+      "threw": null,
+      "browser": {
+        "skipped": false,
+        "reason": null,
+        "findingCount": 0,
+        "findings": [],
+        "stats": {
+          "canvases": 0,
+          "drawnCanvases": 0,
+          "lowContrast": 0,
+          "checked": 60
+        }
+      },
+      "sample": 1
+    },
+    {
+      "id": "lib-d3-network",
+      "family": "lib",
+      "stresses": "@lib:d3 marker + expandAnythingLibs inside rung 5",
+      "seeded": false,
+      "seedError": null,
+      "accepted": true,
+      "firstPassAccepted": true,
+      "attemptsUsed": 1,
+      "outcome": "first-try",
+      "failureKind": null,
+      "firstFailureCode": null,
+      "firstFailureError": null,
+      "convergence": {
+        "codes": [
+          "accepted"
+        ],
+        "verdict": "no-repair-needed"
+      },
+      "attempts": [
+        {
+          "accepted": true,
+          "code": null,
+          "docSize": 13623,
+          "validationMs": 461.59,
+          "runtimeChecked": true,
+          "error": null
+        }
+      ],
+      "libs": [
+        "d3"
+      ],
+      "expectLibs": [
+        "d3"
+      ],
+      "toolsUsed": [
+        "apply_anything_patch"
+      ],
+      "fixer": null,
+      "tokens": {
+        "inputTokens": 26531,
+        "outputTokens": 4978
+      },
+      "modelCalls": 2,
+      "docSize": 13622,
+      "totalMs": 29237.8,
+      "wallMs": 30144.42,
+      "agentMessage": "I've created the force-directed graph. Here's what it includes:\n\n**12 microservices** wired into a realistic e-commerce backend topology:\n- **API Gateway** (only public/entry node, highlighted in orange)\n- **Auth, User, Profiles, Orders, Cart, Inventory, Payments, Shipping, Notifications, Search, Re",
+      "threw": null,
+      "browser": {
+        "skipped": false,
+        "reason": null,
+        "findingCount": 0,
+        "findings": [],
+        "stats": {
+          "canvases": 0,
+          "drawnCanvases": 0,
+          "lowContrast": 0,
+          "checked": 48
+        }
+      },
+      "sample": 2
+    },
+    {
+      "id": "lib-d3-network",
+      "family": "lib",
+      "stresses": "@lib:d3 marker + expandAnythingLibs inside rung 5",
+      "seeded": false,
+      "seedError": null,
+      "accepted": true,
+      "firstPassAccepted": false,
+      "attemptsUsed": 2,
+      "outcome": "repair-attempt-1",
+      "failureKind": null,
+      "firstFailureCode": "runtime_error",
+      "firstFailureError": "Page JavaScript failed at runtime:\n- Uncaught TypeError: Cannot read properties of undefined (reading 'color')",
+      "convergence": {
+        "codes": [
+          "runtime_error",
+          "accepted"
+        ],
+        "verdict": "converged"
+      },
+      "attempts": [
+        {
+          "accepted": false,
+          "code": "runtime_error",
+          "docSize": 15640,
+          "validationMs": 515.19,
+          "runtimeChecked": null,
+          "error": "Page JavaScript failed at runtime:\n- Uncaught TypeError: Cannot read properties of undefined (reading 'color')"
+        },
+        {
+          "accepted": true,
+          "code": null,
+          "docSize": 14804,
+          "validationMs": 1227.83,
+          "runtimeChecked": true,
+          "error": null
+        }
+      ],
+      "libs": [
+        "d3"
+      ],
+      "expectLibs": [
+        "d3"
+      ],
+      "toolsUsed": [
+        "apply_anything_patch"
+      ],
+      "fixer": null,
+      "tokens": {
+        "inputTokens": 77831,
+        "outputTokens": 18871
+      },
+      "modelCalls": 4,
+      "docSize": 14803,
+      "totalMs": 107023.12,
+      "wallMs": 107896.59,
+      "agentMessage": "The document rendered successfully. The force-directed graph of 12 microservices is now live.\n\n**What's built:**\n\n- **12 microservices** rendered as a D3 force-directed graph, with bubble size proportional to connection count and color-coded by service type:\n  - **Edge** (blue): `auth-api`, `api-gw`",
+      "threw": null,
+      "browser": {
+        "skipped": false,
+        "reason": null,
+        "findingCount": 0,
+        "findings": [],
+        "stats": {
+          "canvases": 0,
+          "drawnCanvases": 0,
+          "lowContrast": 0,
+          "checked": 30
+        }
+      },
+      "sample": 3
+    },
+    {
+      "id": "lib-matter-stack",
+      "family": "lib",
+      "stresses": "@lib:matter marker; canvas render loop owned by the engine",
+      "seeded": false,
+      "seedError": null,
+      "accepted": true,
+      "firstPassAccepted": true,
+      "attemptsUsed": 1,
+      "outcome": "first-try",
+      "failureKind": null,
+      "firstFailureCode": null,
+      "firstFailureError": null,
+      "convergence": {
+        "codes": [
+          "accepted"
+        ],
+        "verdict": "no-repair-needed"
+      },
+      "attempts": [
+        {
+          "accepted": true,
+          "code": null,
+          "docSize": 17968,
+          "validationMs": 1157.42,
+          "runtimeChecked": true,
+          "error": null
+        }
+      ],
+      "libs": [
+        "matter"
+      ],
+      "expectLibs": [
+        "matter"
+      ],
+      "toolsUsed": [
+        "apply_anything_patch"
+      ],
+      "fixer": null,
+      "tokens": {
+        "inputTokens": 32035,
+        "outputTokens": 6275
+      },
+      "modelCalls": 2,
+      "docSize": 17967,
+      "totalMs": 36828.67,
+      "wallMs": 37311.72,
+      "agentMessage": "Your physics toy is ready. Let me point out what it does.\n\n## 🏗️ Box Stack — a Matter.js physics sandbox\n\n**Click anywhere on the canvas** to drop a box. Watch them land, pile up, and topple — with real rigid-body physics, friction, and gravity.\n\n### What you can drop\nFour box types, selectable fro",
+      "threw": null,
+      "browser": {
+        "skipped": false,
+        "reason": null,
+        "findingCount": 0,
+        "findings": [],
+        "stats": {
+          "canvases": 1,
+          "drawnCanvases": 1,
+          "lowContrast": 0,
+          "checked": 26
+        }
+      },
+      "sample": 1
+    },
+    {
+      "id": "lib-matter-stack",
+      "family": "lib",
+      "stresses": "@lib:matter marker; canvas render loop owned by the engine",
+      "seeded": false,
+      "seedError": null,
+      "accepted": true,
+      "firstPassAccepted": true,
+      "attemptsUsed": 1,
+      "outcome": "first-try",
+      "failureKind": null,
+      "firstFailureCode": null,
+      "firstFailureError": null,
+      "convergence": {
+        "codes": [
+          "accepted"
+        ],
+        "verdict": "no-repair-needed"
+      },
+      "attempts": [
+        {
+          "accepted": true,
+          "code": null,
+          "docSize": 10424,
+          "validationMs": 1279.44,
+          "runtimeChecked": true,
+          "error": null
+        }
+      ],
+      "libs": [
+        "matter"
+      ],
+      "expectLibs": [
+        "matter"
+      ],
+      "toolsUsed": [
+        "apply_anything_patch"
+      ],
+      "fixer": null,
+      "tokens": {
+        "inputTokens": 20618,
+        "outputTokens": 3559
+      },
+      "modelCalls": 2,
+      "docSize": 10424,
+      "totalMs": 22907.82,
+      "wallMs": 23560.12,
+      "agentMessage": "Your physics box-drop toy is ready.\n\n**How to play:**\n- **Click / tap** in the arena to drop a random-sized box\n- **Hold** a spot for ~0.4s to drop a big, heavy box\n- **Drag** an existing box to grab and toss it around\n- **Scroll** up/down in the arena to adjust gravity strength\n- **Flip gravity** b",
+      "threw": null,
+      "browser": {
+        "skipped": false,
+        "reason": null,
+        "findingCount": 0,
+        "findings": [],
+        "stats": {
+          "canvases": 1,
+          "drawnCanvases": 1,
+          "lowContrast": 0,
+          "checked": 18
+        }
+      },
+      "sample": 2
+    },
+    {
+      "id": "lib-matter-stack",
+      "family": "lib",
+      "stresses": "@lib:matter marker; canvas render loop owned by the engine",
+      "seeded": false,
+      "seedError": null,
+      "accepted": true,
+      "firstPassAccepted": true,
+      "attemptsUsed": 1,
+      "outcome": "first-try",
+      "failureKind": null,
+      "firstFailureCode": null,
+      "firstFailureError": null,
+      "convergence": {
+        "codes": [
+          "accepted"
+        ],
+        "verdict": "no-repair-needed"
+      },
+      "attempts": [
+        {
+          "accepted": true,
+          "code": null,
+          "docSize": 12515,
+          "validationMs": 397.7,
+          "runtimeChecked": true,
+          "error": null
+        }
+      ],
+      "libs": [
+        "matter"
+      ],
+      "expectLibs": [
+        "matter"
+      ],
+      "toolsUsed": [
+        "apply_anything_patch"
+      ],
+      "fixer": null,
+      "tokens": {
+        "inputTokens": 23362,
+        "outputTokens": 4273
+      },
+      "modelCalls": 2,
+      "docSize": 12514,
+      "totalMs": 25639.9,
+      "wallMs": 26070.59,
+      "agentMessage": "Accepted and runtime-checked. I've built **Box Topple** — a Matter.js physics sandbox toy.\n\nWhat it does:\n- **Drop boxes** — click anywhere on the canvas to spawn a box right where you clicked.\n- **Stack & topple** — boxes have mass, friction, and random size, so building towers works, and yanking o",
+      "threw": null,
+      "browser": {
+        "skipped": false,
+        "reason": null,
+        "findingCount": 0,
+        "findings": [],
+        "stats": {
+          "canvases": 1,
+          "drawnCanvases": 1,
+          "lowContrast": 0,
+          "checked": 23
+        }
+      },
+      "sample": 3
+    },
+    {
+      "id": "refine-add-control",
+      "family": "refine",
+      "stresses": "second turn against an existing document (tool choice is the agent’s)",
+      "seeded": true,
+      "seedError": null,
+      "accepted": true,
+      "firstPassAccepted": true,
+      "attemptsUsed": 1,
+      "outcome": "first-try",
+      "failureKind": null,
+      "firstFailureCode": null,
+      "firstFailureError": null,
+      "convergence": {
+        "codes": [
+          "accepted"
+        ],
+        "verdict": "no-repair-needed"
+      },
+      "attempts": [
+        {
+          "accepted": true,
+          "code": null,
+          "docSize": 5799,
+          "validationMs": 333.78,
+          "runtimeChecked": true,
+          "error": null
+        }
+      ],
+      "libs": [],
+      "expectLibs": null,
+      "toolsUsed": [
+        "apply_anything_patch"
+      ],
+      "fixer": null,
+      "tokens": {
+        "inputTokens": 18095,
+        "outputTokens": 2011
+      },
+      "modelCalls": 2,
+      "docSize": 5799,
+      "totalMs": 10879.98,
+      "wallMs": 21458.98,
+      "agentMessage": "I've updated the timer with both requested changes:\n\n1. **Reset button** — Added a \"Reset\" button next to Start. It's disabled when the timer is already at 01:00 (no state to reset), and becomes enabled once the countdown has begun or paused. Resetting stops the timer, clears the interval, restores ",
+      "threw": null,
+      "browser": {
+        "skipped": false,
+        "reason": null,
+        "findingCount": 0,
+        "findings": [],
+        "stats": {
+          "canvases": 0,
+          "drawnCanvases": 0,
+          "lowContrast": 0,
+          "checked": 7
+        }
+      },
+      "sample": 1
+    },
+    {
+      "id": "refine-add-control",
+      "family": "refine",
+      "stresses": "second turn against an existing document (tool choice is the agent’s)",
+      "seeded": true,
+      "seedError": null,
+      "accepted": true,
+      "firstPassAccepted": true,
+      "attemptsUsed": 1,
+      "outcome": "first-try",
+      "failureKind": null,
+      "firstFailureCode": null,
+      "firstFailureError": null,
+      "convergence": {
+        "codes": [
+          "accepted"
+        ],
+        "verdict": "no-repair-needed"
+      },
+      "attempts": [
+        {
+          "accepted": true,
+          "code": null,
+          "docSize": 6654,
+          "validationMs": 243.12,
+          "runtimeChecked": true,
+          "error": null
+        }
+      ],
+      "libs": [],
+      "expectLibs": null,
+      "toolsUsed": [
+        "apply_anything_patch"
+      ],
+      "fixer": null,
+      "tokens": {
+        "inputTokens": 20621,
+        "outputTokens": 2190
+      },
+      "modelCalls": 2,
+      "docSize": 6653,
+      "totalMs": 12875.28,
+      "wallMs": 25106.97,
+      "agentMessage": "Done. The timer now has:\n\n- **Reset button** placed next to Start — it's an outlined secondary-style button that sits in a flex row with Start and works anytime (while running it stops the countdown and resets to full time; when idle it just restores 01:00 and the initial status).\n- **mm:ss display*",
+      "threw": null,
+      "browser": {
+        "skipped": false,
+        "reason": null,
+        "findingCount": 0,
+        "findings": [],
+        "stats": {
+          "canvases": 0,
+          "drawnCanvases": 0,
+          "lowContrast": 0,
+          "checked": 11
+        }
+      },
+      "sample": 2
+    },
+    {
+      "id": "refine-add-control",
+      "family": "refine",
+      "stresses": "second turn against an existing document (tool choice is the agent’s)",
+      "seeded": true,
+      "seedError": null,
+      "accepted": true,
+      "firstPassAccepted": true,
+      "attemptsUsed": 1,
+      "outcome": "first-try",
+      "failureKind": null,
+      "firstFailureCode": null,
+      "firstFailureError": null,
+      "convergence": {
+        "codes": [
+          "accepted"
+        ],
+        "verdict": "no-repair-needed"
+      },
+      "attempts": [
+        {
+          "accepted": true,
+          "code": null,
+          "docSize": 7334,
+          "validationMs": 261.98,
+          "runtimeChecked": true,
+          "error": null
+        }
+      ],
+      "libs": [],
+      "expectLibs": null,
+      "toolsUsed": [
+        "apply_anything_patch"
+      ],
+      "fixer": null,
+      "tokens": {
+        "inputTokens": 22461,
+        "outputTokens": 2600
+      },
+      "modelCalls": 2,
+      "docSize": 7333,
+      "totalMs": 14263.73,
+      "wallMs": 29727.52,
+      "agentMessage": "The document was updated successfully. Here's what changed:\n\n**1. Reset button next to Start** — The controls row already had both buttons side-by-side in a flex container, and I confirmed the layout places them adjacent. The Reset button is now properly wired into the interaction cycle:\n- Disabled ",
+      "threw": null,
+      "browser": {
+        "skipped": false,
+        "reason": null,
+        "findingCount": 1,
+        "findings": [
+          {
+            "code": "low_contrast",
+            "detail": "ratio 3.22:1 (floor 4.5) for \"Start\""
+          }
+        ],
+        "stats": {
+          "canvases": 0,
+          "drawnCanvases": 0,
+          "lowContrast": 1,
+          "checked": 11
+        }
+      },
+      "sample": 3
+    }
+  ]
+}
