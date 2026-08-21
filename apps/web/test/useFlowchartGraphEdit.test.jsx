@@ -254,11 +254,69 @@ describe('useFlowchartGraphEdit', () => {
     input.remove();
   });
 
-  it('stays off for sequence diagrams', () => {
+  it('adds a linked participant on a mermaid sequenceDiagram', async () => {
+    const sequence = `sequenceDiagram
+  participant Alice
+  participant Bob
+  Alice->>Bob: Hello
+`;
     const { result } = mount({
-      diagramSource: 'sequenceDiagram\n  Alice->>Bob: hi'
+      diagramSource: sequence,
+      props: {
+        contentMode: 'mermaid',
+        selectedNode: {
+          dataId: 'Alice',
+          partName: 'Alice',
+          label: 'Alice'
+        }
+      }
     });
-    expect(result.current.graphEdit.enabled).toBe(false);
+    expect(result.current.graphEdit.enabled).toBe(true);
+    expect(result.current.graphEdit.canLink).toBe(true);
+    await act(async () => {
+      result.current.handleGraphEditAction({ id: 'connect' });
+    });
+    expect(applyUserDiagramEdit).toHaveBeenCalledTimes(1);
+    expect(applyUserDiagramEdit.mock.calls[0][0].contentType).toBe('mermaid');
+    expect(applyUserDiagramEdit.mock.calls[0][0].diagramSource).toMatch(/participant p1 as Item 1/);
+    expect(applyUserDiagramEdit.mock.calls[0][0].diagramSource).toMatch(/Alice->>p1: Item 1/);
+    expect(result.current.labelSession).toMatchObject({
+      kind: 'node',
+      logicalId: 'p1',
+      created: true
+    });
+  });
+
+  it('inserts a message when Link targets another participant', async () => {
+    const sequence = `sequenceDiagram
+  participant Alice
+  participant Bob
+  Alice->>Bob: Hello
+`;
+    const { result } = mount({
+      diagramSource: sequence,
+      props: {
+        contentMode: 'mermaid',
+        selectedNode: {
+          dataId: 'Alice',
+          partName: 'Alice',
+          label: 'Alice'
+        }
+      }
+    });
+    await act(async () => {
+      result.current.handleGraphEditAction({ id: 'link' });
+    });
+    expect(result.current.connectSourceId).toBe('Alice');
+    await act(async () => {
+      result.current.handleConnectTarget({
+        type: 'node',
+        logicalId: 'Bob',
+        descriptor: { dataId: 'Bob', partName: 'Bob' }
+      });
+    });
+    expect(applyUserDiagramEdit).toHaveBeenCalledTimes(1);
+    expect(applyUserDiagramEdit.mock.calls[0][0].diagramSource).toMatch(/Alice->>Bob: Item 1/);
   });
 
   it('clears Connect when a run starts', () => {
