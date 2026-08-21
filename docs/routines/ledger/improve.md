@@ -3,10 +3,10 @@ name: improve
 todos:
   - id: register-loc
     content: 'Recompute the CLAUDE.md file-size budget table — every row was stale when this routine was written'
-    status: pending
+    status: completed
   - id: register-coupling
     content: 'Refresh balanced-coupling-priorities.md Implementation progress rows and the Last reviewed date'
-    status: pending
+    status: completed
   - id: scoreboard-unlisted
     content: 'File issues for over-threshold files absent from legacy-monoliths.js (officeCast.js 2789, officeMomentStore.js 938) — issue, never a new suppression'
     status: pending
@@ -27,6 +27,9 @@ todos:
     status: pending
   - id: ts-leaves
     content: 'Begin apps/web/src/utils leaf conversions per convert-js-leaf-to-ts.md — apps/web is 3.8% TypeScript'
+    status: pending
+  - id: runtime-fallback-budget
+    content: "Give runAnythingJsdomCheck its own budget instead of resharing the browser rung's — the shared clock makes anythingRuntimeBrowser.test.js flaky on cold machines (needs apps/server/src/tools, outside this routine's allowlist — filed as issue #347)"
     status: pending
   - id: lint-promotion-evidence
     content: 'All 1206 ESLint findings are warnings and zero are errors; gather quiet-period evidence for one rule and file it for a human decision'
@@ -51,12 +54,20 @@ Owner decisions this routine must not re-litigate. Add a dated row rather than a
 
 ## Open observations
 
-_(none yet)_
+- **2026-08-21 — the browser rung's jsdom fallback reshares the browser's clock.**
+  `apps/server/test/anythingRuntimeBrowser.test.js` → "a browser that hangs on startup does not
+  reject a valid page" is flaky on cold containers, and unlike the `anythingRuntimeCheck.test.js`
+  flake it fails **in isolation**, so the standing "re-run it alone" advice does not identify it.
+  Root cause is in the production path, not the test: `runAnythingRuntimeCheck` passes
+  `runAnythingJsdomCheck` the same `budgetMs` the browser rung already had, so the fallback has to
+  spawn a child process and load its `tsx` import graph inside whatever clock is left. Documented
+  in [`docs/agents/sensors.md`](../../agents/sensors.md); filed as `runtime-fallback-budget` below (issue #347)
+  because the fix touches `apps/server/src/tools/`, outside this routine's allowlist.
 
 ## Run log
 
 One row per firing, including runs that changed nothing. The ratchet numbers are the trend line.
 
-| Date                | Slice taken | PR  | Ratchet numbers | Notes |
-| ------------------- | ----------- | --- | --------------- | ----- |
-| _pending first run_ | —           | —   | —               | —     |
+| Date       | Slice taken                                                                                                                                                                                                                                                                                                                                                                                 | PR                                                        | Ratchet numbers                                                                                                                                                                                                                    | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-08-21 | Register accuracy: recomputed CLAUDE.md § File-size budgets and ADR-0005's progress LOC notes against measured values; refreshed balanced-coupling-priorities.md's Implementation progress review date (rows still accurate). Ratchet drift: no violations; suite grew the right way (366→370 files, 3675→3733 cases) so tightened `docs/agents/ratchet.json`'s suite budget to lock it in. | [#346](https://github.com/acuhlmann/mermaid-gen/pull/346) | monolithLoc: all 9 files exactly at budget (no drift); suite files 366→370 (budget tightened to 370); suite cases 3675→3733 (budget tightened to 3733); strictIslandFiles unchanged (15/22); lintWarnings not re-measured this run | First-ever firing. Left items 3–6 (test hardening, sensor gaps, TS leaves, doc drift) in `todos` for a future run — register accuracy was the highest unfinished queue item and filled the slice on its own. `npm run check` surfaced one red test that is not this diff's (docs-only diff; CI green on the same `main`): documented as a second known flake in `sensors.md` and filed as `runtime-fallback-budget`, since the real fix is outside this routine's allowlist. |

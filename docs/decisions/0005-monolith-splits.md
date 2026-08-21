@@ -31,7 +31,7 @@ they need access to outer-closure state.
 
 ## Progress
 
-### `mcpServer.js` (~1 542 → ~1 413 LOC)
+### `mcpServer.js` (~1 542 → ~1 406 LOC)
 
 - ✅ Helpers extracted to `apps/server/src/mcp/mcpHelpers.js`
   (`textResult`, `jsonResult`, `safeError`, `humanOnlyMcpToolBlocked`,
@@ -51,7 +51,7 @@ they need access to outer-closure state.
   Mermaid and Infographic keep bespoke loops (stable-agent fallback) until they
   converge on the same helper.
 
-### `App.jsx` / `ArchiSlop.jsx` (4 292 → 12 LOC entry + ~949 LOC shell, -~3 300 LOC total)
+### `App.jsx` / `ArchiSlop.jsx` (4 292 → 12 LOC entry + ~1 036 LOC shell, -~3 250 LOC total)
 
 - ✅ Module-scope helpers extracted to `apps/web/src/utils/app*.js`
   (`appConfetti`, `appToolLabels`, `appStreamDebug`, `appInsightHelpers`,
@@ -95,7 +95,7 @@ they need access to outer-closure state.
   (JSX that imports `components/` must not live under `utils/` — see
   `web-non-component-no-components` in `.dependency-cruiser.cjs`.)
 - ⏳ Larger seam: lift remaining major JSX sections into wrapper components. Target: `ArchiSlop.jsx` < 1 000 LOC, mostly
-  layout + composition. **Reached ~949 LOC** (batch 5).
+  layout + composition. **Currently ~1 036 LOC** (grew past the ~949 LOC batch-5 mark as new features landed; extraction is ongoing, not regressed).
 
 ### Other targets
 
