@@ -1,5 +1,5 @@
 {
-  "updated": "2026-08-20",
+  "updated": "2026-08-21",
   "metrics": {
     "monolithLoc": {
       "apps/web/src/ArchiSlop.jsx": {
@@ -65,11 +65,11 @@
     },
     "suite": {
       "files": {
-        "budget": 366,
+        "budget": 370,
         "initial": 366
       },
       "cases": {
-        "budget": 3675,
+        "budget": 3733,
         "initial": 3675
       }
     }

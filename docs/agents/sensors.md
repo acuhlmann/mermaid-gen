@@ -89,6 +89,29 @@ with each other.
 An agent who has just changed unrelated tooling still sees six red tests and a non-zero
 `npm run check` when load wins anyway — re-run the file alone before assuming a regression.
 
+## Known flake: the browser rung's jsdom fallback under a cold start
+
+`apps/server/test/anythingRuntimeBrowser.test.js` → **"a browser that hangs on startup does not
+reject a valid page"** fails intermittently on slow or cold machines, and — unlike the flake above
+— it fails **in isolation too**, so "re-run the file alone" does not identify it. Measured in a
+cloud container on an untouched `main`: red on the first run, green on the immediate next one,
+with CI green on the same commit.
+
+The tell is the shape of the result, not the timing: `ok:false`, `code:"runtime_timeout"`, and a
+`warnings` array that already contains `"Runtime check skipped (browser timed out …)"`. That
+warning means the browser rung **did** fail open as designed; what then timed out was the
+**fallback**. `runAnythingRuntimeCheck` hands `runAnythingJsdomCheck` the same `budgetMs` the
+browser rung was given, so the test's deliberately tight 1200 ms has to cover a jsdom child-process
+spawn plus its `tsx` import graph — comfortably under budget on a warm GitHub runner, not
+guaranteed on a cold container.
+
+So the assertion is sound and the page is fine; only the second rung ran out of clock. Do **not**
+"fix" it by loosening the fail-open path or by accepting a `runtime_timeout` as success — that
+would delete the very distinction (evidence-free infrastructure timeout vs. a genuinely hanging
+page) that the sibling test "a genuinely hanging page is still rejected when the browser times out"
+pins. If it needs fixing, the honest fix is to give the fallback its own budget rather than
+resharing the browser's.
+
 ## How to read verify:deps output
 
 On failure the script prints the mismatched install paths and a one-line `npm install` fix. No separate guidance file — the error _is_ the fix.
