@@ -177,6 +177,57 @@ describe('metaphor overlay chrome and the camera fit', () => {
     );
   });
 
+  it('lets a layer row be pressed without letting the panel swallow an orbit', () => {
+    // `.metaphor-overlay` is `pointer-events: none` so the scene can be dragged
+    // through every panel. The rows opt back in — and only the rows, so the
+    // key's own padding stays a hole you can turn the world through.
+    expect(css).toMatch(
+      /\.metaphor-layers-row\.is-pressable\s*\{[\s\S]{0,400}?pointer-events:\s*auto/
+    );
+    expect(css).not.toMatch(/\.metaphor-layers-overlay\s*\{[\s\S]{0,200}?pointer-events:\s*auto/);
+    // A row is a real control on touch, and the schema allows four layers — see
+    // the rule's own note on why it is 2.25rem and not the read's 2.5rem.
+    expect(css).toMatch(
+      /@media\s*\(pointer:\s*coarse\)[\s\S]*\.metaphor-layers-row\.is-pressable\s*\{[\s\S]{0,120}?min-height:\s*2\.25rem/
+    );
+  });
+
+  it('stands every bottom-anchored panel off the app’s composer band and taskbar', () => {
+    // The 3D canvas is full-bleed: the app's bottom band covers 139px of a
+    // 390x844 phone, 141px of a 717x512 foldable cover and 101px of a 1440x900
+    // desktop. Anything anchored to the canvas's bottom edge is drawn
+    // underneath it — including the guided read's Back/Next, the one control
+    // that feature depends on. `--metaphor-app-bottom-inset` is measured off
+    // the marked bands; see overlaySafeArea.js.
+    for (const panel of [
+      '.metaphor-legend-overlay',
+      '.metaphor-layers-overlay',
+      '.metaphor-inspector',
+      '.metaphor-tour'
+    ]) {
+      expect(css, `${panel} base rule ignores the app chrome inset`).toMatch(
+        new RegExp(
+          `\\${panel}\\s*\\{[\\s\\S]{0,200}?bottom:\\s*calc\\(\\s*var\\(--metaphor-app-bottom-inset`
+        )
+      );
+    }
+  });
+
+  it('re-states the bottom inset in the phone block, which overrides bottom', () => {
+    // Same specificity, later in the file: a phone override that sets `bottom`
+    // without the variable silently puts the panel back under the band on
+    // exactly the screens where the band is tallest.
+    const phone = css.search(/@media\s*\(max-width:\s*720px\)/);
+    expect(phone).toBeGreaterThan(-1);
+    const block = css.slice(phone);
+    for (const panel of ['.metaphor-inspector', '.metaphor-tour', '.metaphor-legend-overlay']) {
+      const rule = new RegExp(
+        `\\${panel}\\s*\\{[\\s\\S]{0,120}?bottom:\\s*calc\\(\\s*var\\(--metaphor-app-bottom-inset[\\s\\S]{0,80}?env\\(safe-area-inset-bottom`
+      );
+      expect(block, `${panel} phone override drops the app chrome inset`).toMatch(rule);
+    }
+  });
+
   it('compacts the reading strip on a short landscape screen, not only at 500px', () => {
     // A 717x512 foldable cover misses the (max-height: 500px) cover query by
     // twelve pixels and inherits the phone block's stacked full-width band,

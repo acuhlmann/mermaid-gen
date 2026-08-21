@@ -39,6 +39,7 @@ import {
 import { MetaphorEffects } from './MetaphorEffects.jsx';
 import { MetaphorHoverContext, createMetaphorHoverStore } from './metaphorHover.js';
 import { MetaphorSelectionContext, createMetaphorSelectionStore } from './metaphorSelection.js';
+import { MetaphorLayerFocusContext, createMetaphorLayerFocusStore } from './metaphorLayerFocus.js';
 import { MetaphorPngExportBridge } from '../utils/viewportPngExport.js';
 
 const METAPHOR_CONTENT_ROOT_NAME = 'archislop-metaphor-root';
@@ -101,6 +102,20 @@ import { DEFAULT_GROUND_HAZE, sceneWantsHaze } from './metaphorScenes/metaphorAt
 import { accentThesisFromDsl } from '../utils/metaphorReading.js';
 
 const STREAMING_RENDER_THROTTLE_MS = 90;
+
+/**
+ * The measured app-chrome insets, and the CSS variable each is published as.
+ * Only the horizontal bands are written: the app's fixed chrome is a top-shell
+ * and a bottom band (composer + taskbar), and a variable no rule reads is dead
+ * weight. A vertical dock would earn `left`/`right` the same way.
+ */
+const APP_CHROME_INSET_PROPERTIES = [
+  ['top', '--metaphor-app-top-inset'],
+  ['bottom', '--metaphor-app-bottom-inset']
+];
+
+/** Past this much of the canvas, chrome stops being an inset and becomes a wall. */
+const MAX_APP_CHROME_INSET_FRACTION = 0.34;
 
 const ORBIT_CAMERA = { position: [18, 14, 18], fov: 45 };
 
@@ -1203,7 +1218,15 @@ function MetaphorRendererImpl(
     onMetaphorKindChange = null,
     metaphorKindSwitchDisabled = false,
     /** Register live-canvas GLB export (disable for insights embeds). */
-    enableGltfExport = true
+    enableGltfExport = true,
+    /**
+     * Reserve for the app's fixed bands (top-shell, composer, taskbar). True
+     * for the main canvas, which is full-bleed behind all three. False for an
+     * embed: `.bottom-chrome`'s rect keeps the width it pads away when the
+     * insights pane is open, so an embedded canvas inside that pane would
+     * reserve a band for chrome that has already stepped aside for it.
+     */
+    measureAppChrome = true
   },
   ref
 ) {
@@ -1214,16 +1237,15 @@ function MetaphorRendererImpl(
   const streamingTimeoutRef = useRef(0);
   const lastStreamingRenderRef = useRef(0);
   const [streamDsl, setStreamDsl] = useState(null);
-  const hoverStoreRef = useRef(null);
-  if (hoverStoreRef.current === null) hoverStoreRef.current = createMetaphorHoverStore();
-  const hoverStore = hoverStoreRef.current;
-  const selectionStoreRef = useRef(null);
-  if (selectionStoreRef.current === null)
-    selectionStoreRef.current = createMetaphorSelectionStore();
-  const selectionStore = selectionStoreRef.current;
-  const tourStoreRef = useRef(null);
-  if (tourStoreRef.current === null) tourStoreRef.current = createMetaphorTourStore();
-  const tourStore = tourStoreRef.current;
+  // Four external stores, each built once and never replaced. Held through
+  // `useState`'s lazy initialiser rather than the `if (ref.current === null)`
+  // idiom this file used to repeat: that idiom reads a ref during render, which
+  // is exactly what react-hooks/refs is there to catch, and every store added
+  // to the pile multiplied the warning.
+  const [hoverStore] = useState(createMetaphorHoverStore);
+  const [selectionStore] = useState(createMetaphorSelectionStore);
+  const [tourStore] = useState(createMetaphorTourStore);
+  const [layerFocusStore] = useState(createMetaphorLayerFocusStore);
   const reducedMotion = usePrefersReducedMotion();
   // What the metaphor's own panels are standing on, so the camera frames the
   // scene into what they leave instead of behind them. See overlaySafeArea.js.
@@ -1328,25 +1350,32 @@ function MetaphorRendererImpl(
     let frame = 0;
     const measure = () => {
       frame = 0;
-      const nextArea = measureOverlaySafeArea(container);
+      const nextArea = measureOverlaySafeArea(container, { includeExternal: measureAppChrome });
       if (!nextArea) return;
       setSafeArea((current) => (safeAreaChanged(current, nextArea) ? nextArea : current));
-      // Write the raw pixel top-inset for external app chrome (the top-shell)
-      // as a CSS variable so the inline reading strip and title card can
-      // position themselves BELOW it rather than under it. Fullscreen removes
-      // the app chrome entirely, so the value collapses to 0 naturally — the
-      // measurement finds no marked chrome inside :fullscreen's containing
-      // rect. See overlaySafeArea.js for the reservation contract.
-      const insets = measureExternalChromeInsets(container);
+      // Write the raw pixel insets for external app chrome as CSS variables so
+      // the metaphor's own panels position themselves clear of it rather than
+      // under it: the reading strip and title card push down off the top-shell,
+      // and the layer key, the tap inspector and the guided read push up off
+      // the composer band and the OS taskbar. Fullscreen collapses both to 0 —
+      // the measurement skips chrome outside the fullscreen element, which is
+      // chrome that keeps its layout rect but paints nothing. See
+      // overlaySafeArea.js for the reservation contract.
+      const insets = measureAppChrome ? measureExternalChromeInsets(container) : null;
       if (insets) {
-        // Round to keep the style-string stable — sub-pixel jitter would
-        // re-trigger the ResizeObserver every frame during a viewport resize.
-        const top = Math.max(0, Math.round(insets.top));
-        const currentInset = container.style.getPropertyValue('--metaphor-app-top-inset');
-        const nextInset = top > 0 ? `${top}px` : '';
-        if (currentInset !== nextInset) {
-          if (nextInset) container.style.setProperty('--metaphor-app-top-inset', nextInset);
-          else container.style.removeProperty('--metaphor-app-top-inset');
+        // Capped so a small embedded canvas cannot have its whole height
+        // reserved by chrome that happens to cross it: past this the panel
+        // would have nowhere left to stand, which is worse than overlapping.
+        const limit = container.getBoundingClientRect().height * MAX_APP_CHROME_INSET_FRACTION;
+        for (const [edge, property] of APP_CHROME_INSET_PROPERTIES) {
+          // Round to keep the style-string stable — sub-pixel jitter would
+          // re-trigger the ResizeObserver every frame during a viewport resize.
+          const value = Math.max(0, Math.round(Math.min(insets[edge], limit)));
+          const current = container.style.getPropertyValue(property);
+          const next = value > 0 ? `${value}px` : '';
+          if (current === next) continue;
+          if (next) container.style.setProperty(property, next);
+          else container.style.removeProperty(property);
         }
       }
     };
@@ -1361,7 +1390,7 @@ function MetaphorRendererImpl(
       if (frame) cancelAnimationFrame(frame);
       observer?.disconnect();
     };
-  }, [contentKey, isFullscreen, streamingPreview]);
+  }, [contentKey, isFullscreen, streamingPreview, measureAppChrome]);
 
   // A re-run rebuilds every mesh, so a pick made against the old scene names an
   // object that no longer exists — the panel would keep describing a tower that
@@ -1371,7 +1400,11 @@ function MetaphorRendererImpl(
     // A read describes items that a re-run has just replaced — beat 3 of 5
     // would go on naming a tower that no longer exists.
     tourStore.stop();
-  }, [selectionStore, tourStore, contentKey, streamingPreview]);
+    // Same reason, one level up: the layer ids come from the document, so a
+    // re-run can leave the world receded around a layer that is gone, with no
+    // pressed row left to press again.
+    layerFocusStore.clear();
+  }, [selectionStore, tourStore, layerFocusStore, contentKey, streamingPreview]);
 
   // Escape is the keyboard's dismiss; the panel's close button and a second tap
   // on the same item are the pointer's.
@@ -1381,20 +1414,18 @@ function MetaphorRendererImpl(
       if (event.key !== 'Escape') return;
       selectionStore.clear();
       tourStore.stop();
+      layerFocusStore.clear();
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [selectionStore, tourStore]);
+  }, [selectionStore, tourStore, layerFocusStore]);
 
-  const sceneFitRef = useRef(null);
-  if (sceneFitRef.current === null) sceneFitRef.current = createSceneFit();
-  const sceneFit = sceneFitRef.current;
+  // Same lazy-once shape as the stores above, and for the same reason.
+  const [sceneFit] = useState(createSceneFit);
 
   const contentRootRef = useRef(null);
 
-  const declutterRef = useRef(null);
-  if (declutterRef.current === null) declutterRef.current = createLabelDeclutterStore();
-  const declutter = declutterRef.current;
+  const [declutter] = useState(createLabelDeclutterStore);
 
   // Haze colour follows whichever sky this kind actually paints — the tree's is
   // nature-locked to daylight blue regardless of `scene.theme`, so reading the
@@ -1492,35 +1523,37 @@ function MetaphorRendererImpl(
                 particle layer never reframes the subject. */}
             {moodParticles ? <MoodAmbience fx={moodParticles} /> : null}
             <MetaphorHoverContext.Provider value={streamingPreview ? null : hoverStore}>
-              <MetaphorSelectionContext.Provider value={streamingPreview ? null : selectionStore}>
-                <LabelDeclutterContext.Provider value={declutter}>
-                  <MetaphorChangeHighlightProvider highlight={changeHighlight}>
-                    <SceneFrame
-                      margin={boundsMargin}
-                      contentKey={contentKey}
-                      safeArea={safeArea}
-                      fitRef={sceneFit}
-                    >
-                      <Center disableY>
-                        <group
-                          ref={contentRootRef}
-                          name={METAPHOR_CONTENT_ROOT_NAME}
-                          userData={{
-                            archislop: {
-                              contentType: 'metaphor3d',
-                              metaphor: dsl.metaphor
-                            }
-                          }}
-                        >
-                          <MetaphorScene dsl={dsl} theme={theme} />
-                        </group>
-                      </Center>
-                    </SceneFrame>
-                    <LabelDeclutterRunner store={declutter} />
-                    <SceneShadowFlags contentKey={contentKey} targetRef={contentRootRef} />
-                  </MetaphorChangeHighlightProvider>
-                </LabelDeclutterContext.Provider>
-              </MetaphorSelectionContext.Provider>
+              <MetaphorLayerFocusContext.Provider value={streamingPreview ? null : layerFocusStore}>
+                <MetaphorSelectionContext.Provider value={streamingPreview ? null : selectionStore}>
+                  <LabelDeclutterContext.Provider value={declutter}>
+                    <MetaphorChangeHighlightProvider highlight={changeHighlight}>
+                      <SceneFrame
+                        margin={boundsMargin}
+                        contentKey={contentKey}
+                        safeArea={safeArea}
+                        fitRef={sceneFit}
+                      >
+                        <Center disableY>
+                          <group
+                            ref={contentRootRef}
+                            name={METAPHOR_CONTENT_ROOT_NAME}
+                            userData={{
+                              archislop: {
+                                contentType: 'metaphor3d',
+                                metaphor: dsl.metaphor
+                              }
+                            }}
+                          >
+                            <MetaphorScene dsl={dsl} theme={theme} />
+                          </group>
+                        </Center>
+                      </SceneFrame>
+                      <LabelDeclutterRunner store={declutter} />
+                      <SceneShadowFlags contentKey={contentKey} targetRef={contentRootRef} />
+                    </MetaphorChangeHighlightProvider>
+                  </LabelDeclutterContext.Provider>
+                </MetaphorSelectionContext.Provider>
+              </MetaphorLayerFocusContext.Provider>
             </MetaphorHoverContext.Provider>
             {/* Outside every content transform on purpose: the marker follows
                 the picked object's WORLD position, so re-applying the frame's
@@ -1589,7 +1622,7 @@ function MetaphorRendererImpl(
                 action={<MetaphorTourButton store={tourStore} dsl={dsl} />}
               />
               <MetaphorLegendOverlay metaphor={dsl.metaphor} legend={dsl.scene?.legend} />
-              <MetaphorCompositeLayersOverlay dsl={dsl} />
+              <MetaphorCompositeLayersOverlay dsl={dsl} store={layerFocusStore} />
             </>
           ) : (
             <>
@@ -1600,7 +1633,7 @@ function MetaphorRendererImpl(
                 thesis={thesis}
                 action={<MetaphorTourButton store={tourStore} dsl={dsl} />}
               />
-              <MetaphorCompositeLayersOverlay dsl={dsl} />
+              <MetaphorCompositeLayersOverlay dsl={dsl} store={layerFocusStore} />
             </>
           )}
           <MetaphorHoverTooltip store={hoverStore} legend={dsl.scene?.legend} />

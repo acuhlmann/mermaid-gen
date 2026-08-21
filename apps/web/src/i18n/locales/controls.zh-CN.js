@@ -730,6 +730,8 @@ export const CONTROLS_ZH_CN = {
       iceberg: '冰山',
       composite: '组合'
     },
+    layerFocus: '单独查看这一层，世界的其余部分会后退',
+    layerFocusClear: '恢复完整世界',
     compositeHintTitle: '组合模式',
     compositeHintBody: '融合世界正在等待至少一个语义层。请让 Go 完成场景。',
     tour: {

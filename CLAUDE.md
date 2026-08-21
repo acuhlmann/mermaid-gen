@@ -823,17 +823,53 @@ sticky` nav row, because the height cap makes every small screen a scrolling
   above-water blocks, a city's tallest tower — is the part the metaphor exists to show.
   `overlaySafeArea.js` measures the **persistent** chrome (`[data-metaphor-chrome]`: the reading
   strip, title card, legend, layer key, kind switcher) and `solveFrameFit` reserves those edges.
-  Four rules are load-bearing. **One edge per panel**, nearest, ties to the horizontal — a corner
-  card is not a frame and reserving both its edges pays for it twice. **A corner card costs less
-  than a band**: the claim scales with how much of the perpendicular axis the panel spans, because
-  a scene can lean away from a card and cannot lean away from a strip. **The transient panels are
-  excluded** — the read and the pick are user-raised and already own the screen through the
-  one-panel CSS rule, so refitting when one opens would slide the scene sideways at the moment the
-  viewer is reading about one item. And the **margin is applied inside** `solveFrameFit`, not by
+  Four rules are load-bearing. **One edge per panel**, the one a reservation is _thinnest_ on — a
+  corner card is not a frame and reserving both its edges pays for it twice. **A corner card costs
+  less than a band**: the claim scales with how much of the perpendicular axis the panel spans,
+  because a scene can lean away from a card and cannot lean away from a strip. **The transient
+  panels are excluded** — the read and the pick are user-raised and already own the screen through
+  the one-panel CSS rule, so refitting when one opens would slide the scene sideways at the moment
+  the viewer is reading about one item. And the **margin is applied inside** `solveFrameFit`, not by
   the caller: the off-centre shift is proportional to the final distance, so multiplying afterwards
   slides the subject straight back under the chrome by exactly the margin. Adding a persistent
   panel means tagging it; `metaphorOverlays.test.jsx` pins the tagging panel by panel, because a
   sweep over a set nothing joins passes while examining nothing.
+- **The app's own bands are chrome over this canvas too, and the bottom one had never been
+  measured.** `.diagram-output` runs the whole viewport, so the composer band and the OS taskbar
+  paint over the bottom **139px of a 390x844 phone, 141px of a 717x512 foldable cover and 101px of
+  a 1440x900 desktop** — and every panel anchored to the canvas's bottom edge was drawn underneath
+  them, the guided read's Back/Next included. `TopShell.jsx`, `BottomRow.jsx` and `DeskOsTaskbar.jsx`
+  carry `data-app-chrome`, and `measureExternalChromeInsets` publishes
+  `--metaphor-app-top-inset` / `--metaphor-app-bottom-inset` for the panels while the fractional
+  path reserves the same bands for the camera. Four things this cost, each worth keeping. The
+  edge-choice rule had to become **thinnest claim, not nearest edge**: the composer band sits 7px
+  from a phone's left and 42px from its bottom, so nearest-edge read a 97px-tall band as a
+  left-hand panel and claimed 94% of the left edge. The edge is picked on **raw** thickness and the
+  span discount applied only to the winner — discounting first makes a thin full-width strip's
+  left, right and top claims agree to within a rounding error, and which edge the reading strip
+  lands on becomes a coin toss (it flipped to `left`, and the reading strip's own test caught it).
+  Every `bottom` in the phone block has to **re-state the variable**, same specificity and later in
+  the file, or the panel goes back under the band on exactly the screens where the band is tallest.
+  And **native fullscreen keeps the chrome's layout rect while painting none of it**, so the
+  measurement skips anything outside `document.fullscreenElement` — layout alone cannot tell you a
+  fixed element is invisible. The insights embed opts out entirely (`measureAppChrome={false}`):
+  `.bottom-chrome` keeps the width it pads away when the pane is open, so an embed inside that pane
+  would reserve a band for chrome that has already stepped aside for it.
+- **The composite's layer key is a control now, and receding beats hiding.** Pressing a row in the
+  fused world's layer key reads that layer on its own; the others recede and drop their names
+  (`metaphorLayerFocus.js`). Three decisions carry it. It recedes **by colour, never by opacity** —
+  three sorts transparent objects by centroid distance, so fading a dozen bodies re-opens the
+  sorting trap the iceberg's submerged blocks are opaque to avoid; `recedeTheme` in `sceneUtils.js`
+  hands the muted layers a whole theme lerped into the scene's own horizon, which is aerial
+  perspective and correct in the depth pass. That substitution is also what keeps focus out of
+  thirteen primitive signatures: every body already derives its colours from `theme.*`, so only
+  `IslandPrimitive` learns a `muted` prop, and only because it draws its own name. And the loud
+  additive things — the river's flow motes, a link's pulse — are **unaffected by a colour
+  substitution**, so they are dropped explicitly or a muted layer still wins the eye. Note the
+  saturation is pulled toward _the horizon's own_, not scaled toward grey: scaling desaturates the
+  horizon away from itself, so "recede" could move a colour further from what it recedes into.
+  Links are judged by their endpoints — one that touches the focused layer survives, because what a
+  layer is wired to is most of what reading it means.
 - **A portrait canvas is looked at from higher up.** Almost every kind here is a wide flat world,
   and from the desktop three-quarter angle its footprint projects to under half its width in
   height — right in a landscape frame, wasteful in a portrait one (measured: the fused composite

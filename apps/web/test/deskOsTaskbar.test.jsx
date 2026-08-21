@@ -129,6 +129,15 @@ describe('DeskOsTaskbar', () => {
     expect(screen.getByTestId('levelup-info-panel')).toBeTruthy();
   });
 
+  // The metaphor3d canvas is full-bleed behind this bar, and the measurement
+  // that keeps its panels clear of the bar is by attribute — an unmarked
+  // taskbar is invisible to it, so the whole reservation is silently dead and
+  // the guided read's Back/Next goes back under the bar. See overlaySafeArea.js.
+  it('marks itself as app chrome the 3D canvas must stay clear of', () => {
+    render(<DeskOsTaskbar />);
+    expect(screen.getByTestId('desk-os-taskbar').getAttribute('data-app-chrome')).toBe('bottom');
+  });
+
   it('omits the XP chip entirely before the first level lands', () => {
     render(<DeskOsTaskbar gamification={null} />);
     expect(screen.queryByTestId('xp-progress-bar')).toBeNull();

@@ -6,7 +6,8 @@ import { HoverableItem, ItemLabel, MetaphorGroundShadow } from './MetaphorSceneC
 import { MetaphorAccents } from './MetaphorAccents.jsx';
 import { useMetaphorClock } from './metaphorClock.js';
 import { planFusedCompositeWorld } from './fusedCompositePlanner.js';
-import { idHash2, samplePolyline, shiftColor } from './sceneUtils.js';
+import { useMetaphorLayerFocusId } from '../metaphorLayerFocus.js';
+import { idHash2, recedeTheme, samplePolyline, shiftColor } from './sceneUtils.js';
 import { resolveDistrictColor } from '../../utils/metaphorThemePresets.js';
 import { DaylightPollen, SoaringBirds } from './MetaphorSceneDecorations.jsx';
 import {
@@ -18,7 +19,7 @@ import {
   WorldGround
 } from './fusedCompositePrimitives.jsx';
 
-function PlannedNode({ entity, theme, emphasized, onActiveIdChange, lod, layerLabel }) {
+function PlannedNode({ entity, theme, emphasized, onActiveIdChange, lod, layerLabel, muted }) {
   const labelY = entity.role === 'accent' ? entity.radius + 0.8 : entity.height + 0.9;
   const labelPosition = [
     entity.labelOffset?.[0] ?? 0,
@@ -34,15 +35,28 @@ function PlannedNode({ entity, theme, emphasized, onActiveIdChange, lod, layerLa
         onActiveIdChange={onActiveIdChange}
       >
         <PrimitiveBody entity={entity} theme={theme} emphasized={emphasized} lod={lod} />
-        <TopicGlyph item={entity.item} theme={theme} position={[0, labelY - 0.3, 0]} scale={0.68} />
-        <ItemLabel
-          text={entity.item.label}
-          position={labelPosition}
-          fontSize={0.46}
-          color={theme.labelColor}
-          outlineColor={theme.labelOutline}
-          importance={entity.height + entity.radius}
-        />
+        {/* A receded layer keeps its bodies and loses its names. Dimming the
+            label instead would leave it competing for the same screen space in
+            the declutter pass, which is the space the focused layer's own names
+            need most. The body stays pickable either way. */}
+        {muted ? null : (
+          <>
+            <TopicGlyph
+              item={entity.item}
+              theme={theme}
+              position={[0, labelY - 0.3, 0]}
+              scale={0.68}
+            />
+            <ItemLabel
+              text={entity.item.label}
+              position={labelPosition}
+              fontSize={0.46}
+              color={theme.labelColor}
+              outlineColor={theme.labelOutline}
+              importance={entity.height + entity.radius}
+            />
+          </>
+        )}
       </HoverableItem>
     </group>
   );
@@ -96,9 +110,10 @@ function AffinityGroups({ groups, theme }) {
   });
 }
 
-function TreeConnectors({ connectors, theme, activeId }) {
+function TreeConnectors({ connectors, theme, mutedTheme, activeId, isLinkMuted }) {
   return connectors.map((connector) => {
     const related = activeId === connector.from || activeId === connector.to;
+    const muted = isLinkMuted(connector);
     const from = connector.fromAnchor;
     const to = connector.toAnchor;
     const mid = [
@@ -110,10 +125,10 @@ function TreeConnectors({ connectors, theme, activeId }) {
       <Line
         key={connector.id}
         points={[from, mid, to]}
-        color={theme.treeTrunkColor ?? '#7c4a1e'}
+        color={(muted ? mutedTheme : theme).treeTrunkColor ?? '#7c4a1e'}
         lineWidth={related ? 2 : 1.2}
         transparent
-        opacity={activeId ? (related ? 0.9 : 0.16) : 0.55}
+        opacity={muted ? 0.2 : activeId ? (related ? 0.9 : 0.16) : 0.55}
       />
     );
   });
@@ -232,13 +247,57 @@ function PathStationMarker({ pathKind, hazard, emphasized, theme }) {
   );
 }
 
+/**
+ * Everything the scene needs to draw one layer in front of the others, derived
+ * once per focus change.
+ *
+ * Kept out of the component because the alternative is four closures over the
+ * same three variables inline in a render body that is already the densest in
+ * the module — and because "which layer is this, and does that mute it" is a
+ * question about the document, not about React.
+ *
+ * @param {object} dsl — the composite document
+ * @param {string | null} focusedLayerId — the pressed layer, or null for all
+ * @param {object} theme — the scene's own theme
+ * @param {object} mutedTheme — the same theme receded into the horizon
+ */
+function resolveLayerFocus(dsl, focusedLayerId, theme, mutedTheme) {
+  const layers = Array.isArray(dsl?.layers) ? dsl.layers : [];
+  const layerOfItem = new Map();
+  for (const layer of layers) {
+    for (const item of layer?.items ?? []) {
+      if (item?.id) layerOfItem.set(item.id, layer.id);
+    }
+  }
+  const isMuted = (layerId) => Boolean(focusedLayerId) && layerId !== focusedLayerId;
+  return {
+    isMuted,
+    themeFor: (layerId) => (isMuted(layerId) ? mutedTheme : theme),
+    // A link that touches the focused layer survives: what a layer is wired to
+    // is most of what reading that layer means, and a composite's cross-layer
+    // links are the one thing only the fused view can show.
+    isLinkMuted: (link) =>
+      Boolean(focusedLayerId) &&
+      layerOfItem.get(link.from) !== focusedLayerId &&
+      layerOfItem.get(link.to) !== focusedLayerId,
+    // The accent marker is depth-test-free and captioned — it is the loudest
+    // annotation in the scene, so it belongs to the layer being read. Leaving a
+    // glowing pin over a receded tower states the thesis about a layer the
+    // viewer has just stepped away from.
+    accentItems: (focusedLayerId
+      ? layers.filter((layer) => layer?.id === focusedLayerId)
+      : layers
+    ).flatMap((layer) => layer.items ?? [])
+  };
+}
+
 function pathStationMetaphor(kind) {
   if (kind === 'subway') return 'subway';
   if (kind === 'bridge') return 'bridge';
   return 'river';
 }
 
-function FusedPath({ path, theme, activeId, onActiveIdChange, lod, layerLabel }) {
+function FusedPath({ path, theme, activeId, onActiveIdChange, lod, layerLabel, muted }) {
   const curve = useMemo(
     () =>
       new THREE.CatmullRomCurve3(
@@ -266,7 +325,11 @@ function FusedPath({ path, theme, activeId, onActiveIdChange, lod, layerLabel })
           metalness={isCrossing ? 0.05 : 0.14}
         />
       </mesh>
-      {isCrossing ? null : (
+      {/* Motes are the loudest thing a receded layer owns — they are additive,
+          animated, and unaffected by the theme substitution that quiets
+          everything else, so a muted river would still be the first thing the
+          eye lands on. */}
+      {isCrossing || muted ? null : (
         <FlowMotes
           curve={curve}
           motion={path.motion}
@@ -294,18 +357,27 @@ function FusedPath({ path, theme, activeId, onActiveIdChange, lod, layerLabel })
                   theme={theme}
                 />
               </SemanticMotion>
-              <TopicGlyph item={station.item} theme={theme} position={[0, 1.15, 0]} scale={0.6} />
-              <ItemLabel
-                text={station.item.label}
-                position={[
-                  station.labelOffset?.[0] ?? 0,
-                  station.item.glyph ? 2 : 1.35,
-                  station.labelOffset?.[2] ?? 0
-                ]}
-                fontSize={0.41}
-                color={theme.labelColor}
-                outlineColor={theme.labelOutline}
-              />
+              {muted ? null : (
+                <>
+                  <TopicGlyph
+                    item={station.item}
+                    theme={theme}
+                    position={[0, 1.15, 0]}
+                    scale={0.6}
+                  />
+                  <ItemLabel
+                    text={station.item.label}
+                    position={[
+                      station.labelOffset?.[0] ?? 0,
+                      station.item.glyph ? 2 : 1.35,
+                      station.labelOffset?.[2] ?? 0
+                    ]}
+                    fontSize={0.41}
+                    color={theme.labelColor}
+                    outlineColor={theme.labelOutline}
+                  />
+                </>
+              )}
             </HoverableItem>
           </group>
         );
@@ -342,9 +414,11 @@ function FusedLinkPulse({ points, seed, color }) {
   );
 }
 
-function FusedLinks({ links, theme, activeId, lod }) {
+function FusedLinks({ links, theme, mutedTheme, activeId, lod, isLinkMuted }) {
   return links.map((link, index) => {
     const related = activeId === link.from || activeId === link.to;
+    const muted = isLinkMuted(link);
+    const linkTheme = muted ? mutedTheme : theme;
     const from = link.fromAnchor;
     const to = link.toAnchor;
     const distance = Math.hypot(to[0] - from[0], to[2] - from[2]);
@@ -356,9 +430,11 @@ function FusedLinks({ links, theme, activeId, lod }) {
     const points = [from, mid, to];
     const color =
       link.kind === 'ownership'
-        ? (theme.treeAccentColor ?? '#f59e0b')
-        : (theme.binaryGlowColor ?? theme.linkColor ?? '#60a5fa');
-    const showPulse = lod !== 'low' && (link.kind === 'flow' || !link.kind);
+        ? (linkTheme.treeAccentColor ?? '#f59e0b')
+        : (linkTheme.binaryGlowColor ?? linkTheme.linkColor ?? '#60a5fa');
+    // The pulse is additive and animated, like the river's motes — a muted link
+    // keeps its line and loses its traffic.
+    const showPulse = lod !== 'low' && !muted && (link.kind === 'flow' || !link.kind);
     return (
       <group key={`${link.from}-${link.to}-${index}`}>
         <Line
@@ -366,7 +442,7 @@ function FusedLinks({ links, theme, activeId, lod }) {
           color={color}
           lineWidth={related ? 2.2 : 1}
           transparent
-          opacity={activeId ? (related ? 0.96 : 0.18) : 0.66}
+          opacity={muted ? 0.22 : activeId ? (related ? 0.96 : 0.18) : 0.66}
         />
         {showPulse ? (
           <FusedLinkPulse
@@ -375,7 +451,7 @@ function FusedLinks({ links, theme, activeId, lod }) {
             color={color}
           />
         ) : null}
-        {link.label ? (
+        {link.label && !muted ? (
           <ItemLabel
             text={link.label}
             position={[mid[0], mid[1] + 0.35, mid[2]]}
@@ -392,10 +468,16 @@ function FusedLinks({ links, theme, activeId, lod }) {
 export function FusedCompositeScene({ dsl, theme }) {
   const plan = useMemo(() => planFusedCompositeWorld(dsl), [dsl]);
   const [activeId, setActiveId] = useState(null);
-  const accentItems = useMemo(
-    () => (Array.isArray(dsl.layers) ? dsl.layers : []).flatMap((layer) => layer.items ?? []),
-    [dsl.layers]
+  // Subscribed rather than lifted into MetaphorRenderer: a layer press must
+  // re-render this scene and nothing above it, the same reason hover and the
+  // pick are external stores.
+  const focusedLayerId = useMetaphorLayerFocusId();
+  const mutedTheme = useMemo(() => recedeTheme(theme), [theme]);
+  const focus = useMemo(
+    () => resolveLayerFocus(dsl, focusedLayerId, theme, mutedTheme),
+    [dsl, focusedLayerId, theme, mutedTheme]
   );
+  const { isMuted, themeFor, isLinkMuted, accentItems } = focus;
   const layerLabels = useMemo(() => {
     const map = new Map();
     for (const layer of Array.isArray(dsl.layers) ? dsl.layers : []) {
@@ -438,13 +520,14 @@ export function FusedCompositeScene({ dsl, theme }) {
             >
               <IslandPrimitive
                 entity={site}
-                theme={theme}
+                theme={themeFor(site.layerId)}
                 emphasized={relatedIds.has(site.item.id)}
                 lod={lod}
+                muted={isMuted(site.layerId)}
               />
             </HoverableItem>
           ) : (
-            <PlatformPrimitive entity={site} theme={theme} />
+            <PlatformPrimitive entity={site} theme={themeFor(site.layerId)} />
           )}
         </group>
       ))}
@@ -452,26 +535,41 @@ export function FusedCompositeScene({ dsl, theme }) {
         <PlannedNode
           key={node.id}
           entity={node}
-          theme={theme}
+          theme={themeFor(node.layerId)}
           emphasized={relatedIds.has(node.id)}
           onActiveIdChange={setActiveId}
           lod={lod}
           layerLabel={layerLabels.get(node.layerId)}
+          muted={isMuted(node.layerId)}
         />
       ))}
       {plan.paths.map((path) => (
         <FusedPath
           key={path.id}
           path={path}
-          theme={theme}
+          theme={themeFor(path.layerId)}
           activeId={activeId}
           onActiveIdChange={setActiveId}
           lod={lod}
           layerLabel={layerLabels.get(path.layerId)}
+          muted={isMuted(path.layerId)}
         />
       ))}
-      <TreeConnectors connectors={plan.connectors ?? []} theme={theme} activeId={activeId} />
-      <FusedLinks links={plan.links} theme={theme} activeId={activeId} lod={lod} />
+      <TreeConnectors
+        connectors={plan.connectors ?? []}
+        theme={theme}
+        mutedTheme={mutedTheme}
+        activeId={activeId}
+        isLinkMuted={isLinkMuted}
+      />
+      <FusedLinks
+        links={plan.links}
+        theme={theme}
+        mutedTheme={mutedTheme}
+        activeId={activeId}
+        lod={lod}
+        isLinkMuted={isLinkMuted}
+      />
       {hasIslands && lod !== 'low' ? (
         <>
           <DaylightPollen

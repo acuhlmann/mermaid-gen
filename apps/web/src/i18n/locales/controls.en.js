@@ -784,6 +784,8 @@ export const CONTROLS_EN = {
       iceberg: 'Iceberg',
       composite: 'Composite'
     },
+    layerFocus: 'Read this layer on its own — the rest of the world steps back',
+    layerFocusClear: 'Bring the whole world back',
     compositeHintTitle: 'Composite mode',
     compositeHintBody:
       'The fused world is waiting for at least one semantic layer. Ask Go to complete the scene.',

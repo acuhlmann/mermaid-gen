@@ -15,12 +15,20 @@ import { useUiCopy } from '../i18n/useUiLocale.js';
  *
  * `narrowLayout` toggles mobile class hooks so the right cluster keeps the
  * existing inline-stacked settings panel layout instead of popover mode.
+ *
+ * `data-app-chrome` marks the band as external chrome the metaphor3d canvas
+ * must stay clear of. The 3D canvas is full-bleed — `.diagram-output` runs the
+ * whole viewport — so this band paints over the bottom 97px of a phone canvas
+ * and the bottom 60px of a desktop one. Without the marker the metaphor's own
+ * bottom-anchored panels (the layer key, the tap inspector, the guided read and
+ * its Back/Next) are drawn underneath it, and the camera frames the subject
+ * into pixels the composer covers. See overlaySafeArea.js.
  */
 export function BottomRow({ actions, aiControls, narrowLayout }) {
   const { controls } = useUiCopy();
   const aiClass = narrowLayout ? 'bottom-row-ai is-narrow' : 'bottom-row-ai';
   return (
-    <div className="corner-control bottom-chrome">
+    <div className="corner-control bottom-chrome" data-app-chrome="bottom">
       <div className="bottom-row">
         <div className="bottom-row-actions">{actions}</div>
         <div className={aiClass} aria-label={controls.settings.aiCluster}>

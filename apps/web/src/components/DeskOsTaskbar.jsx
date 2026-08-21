@@ -197,6 +197,12 @@ export default function DeskOsTaskbar({
     <div
       className="desk-os-taskbar"
       data-testid="desk-os-taskbar"
+      // External chrome the metaphor3d canvas stays clear of — the bar is fixed
+      // at the bottom of a viewport the 3D canvas fills edge to edge, so an
+      // unmarked taskbar is a taskbar drawn over the guided read's Back/Next.
+      // See overlaySafeArea.js; the composer band above it carries the same
+      // marker, and the reservation is the deeper of the two.
+      data-app-chrome="bottom"
       role="toolbar"
       aria-label={copy.taskbarAria ?? copy.aria}
     >
