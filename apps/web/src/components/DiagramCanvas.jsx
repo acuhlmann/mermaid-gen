@@ -987,6 +987,7 @@ export default function DiagramCanvas({
 
   useLayoutEffect(() => {
     if (!onNodeToolbarAnchor) return;
+    if (contentType === 'metaphor3d') return;
     const root = viewportRef.current;
 
     function clearToolbarAnchor() {
@@ -1917,6 +1918,9 @@ export default function DiagramCanvas({
                   isFullscreen={isFullscreen}
                   onMetaphorKindChange={handleMetaphorKindChange}
                   metaphorKindSwitchDisabled={streamingPreview}
+                  selectedNode={selectedNode}
+                  onSelectedNodeChange={onSelectedNodeChange}
+                  onNodeToolbarAnchor={onNodeToolbarAnchor}
                 />
               </>
             ) : contentType === 'anything' ? (

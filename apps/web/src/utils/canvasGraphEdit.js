@@ -47,6 +47,15 @@ import {
   renameSequenceEdge,
   renameSequenceNode
 } from './mermaidSequenceEdit.js';
+import {
+  addLinkedTreeNode,
+  connectTreeNodes,
+  deleteTreeEdge,
+  deleteTreeNode,
+  isTreeFamilySource,
+  renameTreeEdge,
+  renameTreeNode
+} from './metaphorTreeEdit.js';
 
 function fail(reason) {
   return { ok: false, reason };
@@ -109,6 +118,17 @@ const SEQUENCE_ADAPTER = {
   renameEdge: renameSequenceEdge
 };
 
+const METAPHOR_TREE_ADAPTER = {
+  contentType: 'metaphor3d',
+  canLink: false,
+  addLinked: addLinkedTreeNode,
+  connect: connectTreeNodes,
+  deleteNode: deleteTreeNode,
+  deleteEdge: deleteTreeEdge,
+  renameNode: renameTreeNode,
+  renameEdge: renameTreeEdge
+};
+
 /**
  * Logical id for Connect targeting: mermaid node id, AntV `data-indexes`, or `~label:`.
  * @param {object | null | undefined} descriptor
@@ -117,7 +137,13 @@ const SEQUENCE_ADAPTER = {
 export function graphEditIdFromDescriptor(descriptor) {
   if (!descriptor) return null;
   if (descriptor.kind === 'edge' || descriptor.kind === 'cluster') return null;
-  if (descriptor.kind === 'infographic-item' || descriptor.indexes || descriptor.elementType) {
+  if (
+    descriptor.kind === 'metaphor-item' ||
+    descriptor.kind === 'infographic-item' ||
+    descriptor.indexes ||
+    descriptor.elementType
+  ) {
+    if (descriptor.dataId) return String(descriptor.dataId);
     if (descriptor.indexes) return String(descriptor.indexes);
     if (descriptor.label) return infographicLabelRef(descriptor.label);
     return null;
@@ -153,6 +179,9 @@ export function graphEditAdapterFor(contentType, source) {
       ...INFOGRAPHIC_ADAPTER,
       canLink: infographicGraphAllowsLink(source)
     };
+  }
+  if (contentType === 'metaphor3d' && isTreeFamilySource(source)) {
+    return METAPHOR_TREE_ADAPTER;
   }
   return null;
 }

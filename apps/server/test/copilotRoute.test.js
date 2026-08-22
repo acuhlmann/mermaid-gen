@@ -722,3 +722,37 @@ test('user-edit route rejects chart contentType', async () => {
   });
   assert.equal(result.status, 400);
 });
+
+test('user-edit route applies a metaphor3d tree patch with origin user', async () => {
+  const stateStore = createDiagramStateStore();
+  const tree = JSON.stringify(
+    {
+      metaphor: 'tree',
+      scene: { theme: 'whiteboard', camera: 'orbit' },
+      items: [
+        { id: 'ceo', label: 'CEO', weight: 8 },
+        { id: 'cto', label: 'CTO', parent: 'ceo', weight: 6 }
+      ],
+      links: []
+    },
+    null,
+    2
+  );
+  await stateStore.syncClientDiagramSource({ contentType: 'metaphor3d', diagramSource: tree });
+  const parsed = JSON.parse(tree);
+  parsed.items.push({ id: 'n1', label: 'Branch', parent: 'cto', weight: 3 });
+  const result = await handleUserDiagramEdit({
+    body: {
+      contentType: 'metaphor3d',
+      diagramSource: JSON.stringify(parsed, null, 2),
+      previousRevisionId: stateStore.getSlot('metaphor3d').revisionId,
+      reason: 'Connect node'
+    },
+    stateStore
+  });
+
+  assert.equal(result.status, 200);
+  assert.match(result.body.state.diagramSource, /"id": "n1"/);
+  assert.equal(result.body.patch.origin.kind, 'user');
+  assert.equal(stateStore.getSlot('metaphor3d').revisionId, 2);
+});

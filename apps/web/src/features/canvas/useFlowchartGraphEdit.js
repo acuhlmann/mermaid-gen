@@ -33,6 +33,16 @@ function nextSelection(adapter, result) {
       label: result.newLabel || result.newId
     };
   }
+  if (adapter.contentType === 'metaphor3d') {
+    return {
+      kind: 'metaphor-item',
+      id: `metaphor3d-${result.newId}`,
+      dataId: result.newId,
+      partName: result.newLabel || result.newId,
+      label: result.newLabel || result.newId,
+      metaphor: 'tree'
+    };
+  }
   return {
     dataId: result.newId,
     partName: result.newLabel || result.newId,

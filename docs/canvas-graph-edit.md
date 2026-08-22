@@ -31,7 +31,7 @@ A **family** is a (content type, layout/kind) pair that shares one node identity
 | Mermaid mindmap               | mermaid      | `mindmap` header                                        | indent path                                        | child                        | node + descendants                      | label        | n/a                                                | **shipped**    |
 | Mermaid state                 | mermaid      | `stateDiagram-v2`                                       | state id                                           | new state + transition       | state                                   | label        | transition                                         | **shipped**    |
 | Mermaid sequence              | mermaid      | `sequenceDiagram`                                       | participant id                                     | participant + message        | participant or message                  | alias        | message between participants                       | **shipped**    |
-| Metaphor3D tree               | metaphor3d   | `kind: "tree"`                                          | item `id` + `parent`                               | child item                   | item + descendants                      | `label`      | n/a                                                | later          |
+| Metaphor3D tree               | metaphor3d   | `kind: "tree"`                                          | item `id` + `parent`                               | child item                   | item + descendants; **root is refused** | `label`      | n/a                                                | **shipped**    |
 | Chart values                  | chart        | Vega-Lite `data.values`                                 | row index                                          | row                          | row                                     | field        | n/a                                                | later, if ever |
 
 Out of scope on purpose: **anything** (free HTML), **forms** (A2UI). Those are not node graphs.
@@ -53,7 +53,7 @@ Same four names everywhere. A family that cannot support a verb returns `canLink
 
 ```
 {
-  contentType,     // 'mermaid' | 'infographic' (posted on /user-edit)
+  contentType,     // 'mermaid' | 'infographic' | 'metaphor3d' (posted on /user-edit)
   canLink,         // false hides the Link radial item
   addLinked(source, fromId, label?),
   connect(source, fromId, toId),
@@ -89,7 +89,7 @@ Land one family per change. Each slice is: mutator + tests, adapter row, `user-e
 4. **Mermaid mindmap** — shipped. Indent-tree mutator; `canLink: false`. Canvas resolves clicks via `~label:` when Mermaid only stamps `node_N` ids.
 5. **Mermaid `stateDiagram-v2`** — shipped. States + transitions; closest mermaid cousin to flowchart. Refuses delete/rename on `[*]`.
 6. **Mermaid sequence** — shipped. Participants + ordered messages. **+** declares a new participant and a message from the source; **Link** picks a target participant and inserts a message (order preserved after the source's last line). `canLink: true` — messages are ordered in source, not a free edge graph.
-7. **Metaphor3D tree** — JSON `parent` field. Hit-test is a Three.js mesh, not SVG; needs a descriptor bridge before the mutator is useful.
+7. **Metaphor3D tree** — shipped. JSON `parent` field; hit identity is item `id` via the Metaphor3D selection bridge (`MetaphorGraphEditBridge`). `canLink: false`.
 8. **Chart values** — last, and only if a row in `data.values` is a better edit than the prompt. Skip if it feels like a spreadsheet.
 
 Skip a slice rather than stretching a mutator across two identities.
@@ -112,6 +112,7 @@ Infographic mutators should stay parseable: `parseSyntax` from `@antv/infographi
 - **`useFlowchartGraphEdit` is the canvas graph-edit hook.** The name is leftover from slice 1. Rename it to `useCanvasGraphEdit` in a dedicated cleanup, not in a family slice.
 - **Sanitizer rewrite.** `sanitizeInfographicDsl` / `rewriteInfographicHubAndSpokeToTree` can still fold a star with generic edge labels into a hierarchy-tree after `user-edit`. Prefer a `label` that does not look like a default spoke if you are testing network round-trip through the route.
 - **Sequence identity is participant id for structure, line order for messages.** Add declares `participant pN as …` and inserts a `->>` message after the source participant's last activity. Link inserts a message only (no new participant). Delete on a participant removes their declaration and every message/activate line that names them; delete on a message uses the edge pair (`fromId`, `toId`) and removes the first matching arrow. Rename updates the `as` alias, not the id.
-- **Connect highlight.** Infographic uses `.is-connect-source` on `[data-indexes]`. Title-only dagre hits (`~label:`) have nothing to paint; the click still works. Mindmap paints by matching node label text in `g.node` when the logical id is `~label:…`. State diagrams use mermaid node ids like flowcharts — no label fallback needed when the renderer stamps stable state ids. Sequence diagrams paint connect source on `[data-et="participant"][data-id]`.
+- **Metaphor3D tree identity is item `id`.** The radial stack receives descriptors from `MetaphorGraphEditBridge`, which mirrors the tap-selection store and projects a screen anchor for the menu. Only `metaphor: "tree"` scenes get an adapter — composite and other kinds stay prompt-only. Delete refuses any root (no valid `parent`); Add appends `{ id, label, parent, weight }`.
+- **Connect highlight.** Infographic uses `.is-connect-source` on `[data-indexes]`. Title-only dagre hits (`~label:`) have nothing to paint; the click still works. Mindmap paints by matching node label text in `g.node` when the logical id is `~label:…`. State diagrams use mermaid node ids like flowcharts — no label fallback needed when the renderer stamps stable state ids. Sequence diagrams paint connect source on `[data-et="participant"][data-id]`. Metaphor3D tree has `canLink: false`, so Connect adds a child immediately and never arms link mode.
 - **Remount.** AntV wipes the DOM on every source change. `InfographicRenderer` re-selects by `data-indexes` after paint; mermaid keeps the node id.
 - **`origin: user`.** Canvas edits must keep this so undo / history stay distinct from agent patches. Do not send them through the agent stream.

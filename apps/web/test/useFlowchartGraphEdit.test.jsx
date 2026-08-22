@@ -477,4 +477,47 @@ data
       created: true
     });
   });
+
+  it('adds a child on a metaphor3d tree scene', async () => {
+    const tree = JSON.stringify(
+      {
+        metaphor: 'tree',
+        scene: { theme: 'whiteboard', camera: 'orbit' },
+        items: [
+          { id: 'ceo', label: 'CEO', weight: 8 },
+          { id: 'cto', label: 'CTO', parent: 'ceo', weight: 6 }
+        ],
+        links: []
+      },
+      null,
+      2
+    );
+    const { result } = mount({
+      diagramSource: tree,
+      props: {
+        contentMode: 'metaphor3d',
+        selectedNode: {
+          kind: 'metaphor-item',
+          id: 'metaphor3d-ceo',
+          dataId: 'ceo',
+          partName: 'CEO',
+          label: 'CEO',
+          metaphor: 'tree'
+        }
+      }
+    });
+    expect(result.current.graphEdit.enabled).toBe(true);
+    expect(result.current.graphEdit.canLink).toBe(false);
+    await act(async () => {
+      result.current.handleGraphEditAction({ id: 'connect' });
+    });
+    expect(applyUserDiagramEdit).toHaveBeenCalledTimes(1);
+    expect(applyUserDiagramEdit.mock.calls[0][0].contentType).toBe('metaphor3d');
+    expect(applyUserDiagramEdit.mock.calls[0][0].diagramSource).toMatch(/"parent": "ceo"/);
+    expect(result.current.labelSession).toMatchObject({
+      kind: 'node',
+      logicalId: 'n1',
+      created: true
+    });
+  });
 });

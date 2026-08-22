@@ -705,6 +705,15 @@ test('UserDiagramEditSchema requires source, revision, and reason', () => {
   );
   assert.equal(
     UserDiagramEditSchema.safeParse({
+      contentType: 'metaphor3d',
+      diagramSource: '{"metaphor":"tree","items":[{"id":"root","label":"Root","weight":4}]}',
+      previousRevisionId: 0,
+      reason: 'Connect node'
+    }).success,
+    true
+  );
+  assert.equal(
+    UserDiagramEditSchema.safeParse({
       diagramSource: 'flowchart TD\n  A --> B',
       previousRevisionId: 0
     }).success,
