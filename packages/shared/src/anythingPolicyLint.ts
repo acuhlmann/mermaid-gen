@@ -135,6 +135,12 @@ const BASE_HREF_PATTERN = /<base\b[^>]*\bhref\s*=\s*["'][^"']+["']/i;
 
 const EMBEDDED_BROWSING_PATTERN = /<(?:iframe|object|embed)\b/i;
 
+/** Nested contexts created from script — markup-only checks miss these. */
+const JS_EMBEDDED_BROWSING_PATTERN = /createElement\s*\(\s*['"](?:iframe|object|embed)['"]/i;
+
+/** Accessing a nested frame's window throws SecurityError in the sandbox. */
+const CONTENT_WINDOW_PATTERN = /\.\s*contentWindow\b|\bcontentWindow\s*\./i;
+
 const JAVASCRIPT_URL_PATTERN =
   /\b(?:href|src|action|formaction|data|poster)\s*=\s*["']javascript:/i;
 
@@ -187,10 +193,14 @@ export function lintAnythingPolicy(html: string): AnythingPolicyLintResult {
     return fail('base_href', 'Anything HTML must not use <base href="…">.');
   }
 
-  if (EMBEDDED_BROWSING_PATTERN.test(text)) {
+  if (
+    EMBEDDED_BROWSING_PATTERN.test(text) ||
+    JS_EMBEDDED_BROWSING_PATTERN.test(text) ||
+    CONTENT_WINDOW_PATTERN.test(text)
+  ) {
     return fail(
       'embedded_browsing',
-      'Anything HTML must not embed nested browsing contexts (<iframe>, <object>, <embed>).'
+      'Anything HTML must not embed nested browsing contexts (<iframe>, <object>, <embed>) or access frame contentWindow — build UI in the page itself.'
     );
   }
 

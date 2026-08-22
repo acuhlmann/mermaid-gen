@@ -172,6 +172,21 @@ export const ANYTHING_BENCH_CORPUS = [
     html: page('<h1>Frame</h1><iframe srcdoc="<p>inner</p>"></iframe>')
   },
   {
+    // Markup-only lint used to miss JS-created frames; runtime then reported
+    // SecurityError on contentWindow access (generation bench: layout-dashboard).
+    id: 'policy-js-iframe-create',
+    kind: 'policy',
+    expectedAccept: false,
+    expectedCode: 'embedded_browsing',
+    html: page(`<h1>Preview</h1><div id="host"></div>
+<script>
+  const frame = document.createElement('iframe');
+  frame.srcdoc = '<p>inner</p>';
+  document.getElementById('host').appendChild(frame);
+  frame.contentWindow.document.title = 'x';
+</script>`)
+  },
+  {
     // Lib markers are an allowlist: unknown ids must stay rejected (regression
     // = arbitrary marker ids silently pass and render as dead comments).
     id: 'policy-unknown-lib',
