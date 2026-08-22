@@ -139,6 +139,40 @@ function requireExistingParticipant(source, id) {
 }
 
 /**
+ * Guard chain every single-participant mutator shares: the source must be a
+ * sequence diagram, the id must be well formed, and the participant must exist.
+ *
+ * @param {string} source
+ * @param {string} id
+ * @returns {{ ok: false, reason: string } | null}
+ */
+function requireParticipant(source, id) {
+  return (
+    requireSequence(source) || requireParticipantId(id) || requireExistingParticipant(source, id)
+  );
+}
+
+/**
+ * Guard chain every message mutator shares. Both id shapes are checked before
+ * either existence lookup, so a malformed endpoint is reported as `bad-id` even
+ * when the other endpoint is also missing.
+ *
+ * @param {string} source
+ * @param {string} fromId
+ * @param {string} toId
+ * @returns {{ ok: false, reason: string } | null}
+ */
+function requireEdgeParticipants(source, fromId, toId) {
+  return (
+    requireSequence(source) ||
+    requireParticipantId(fromId) ||
+    requireParticipantId(toId) ||
+    requireExistingParticipant(source, fromId) ||
+    requireExistingParticipant(source, toId)
+  );
+}
+
+/**
  * @param {string} stripped
  * @param {string} participantId
  */
@@ -194,12 +228,7 @@ function insertIndexAfterParticipantActivity(lines, participantId) {
  * @param {string} toId
  */
 export function connectSequenceNodes(source, fromId, toId) {
-  const blocked =
-    requireSequence(source) ||
-    requireParticipantId(fromId) ||
-    requireParticipantId(toId) ||
-    requireExistingParticipant(source, fromId) ||
-    requireExistingParticipant(source, toId);
+  const blocked = requireEdgeParticipants(source, fromId, toId);
   if (blocked) return blocked;
   if (fromId === toId) return fail('self');
 
@@ -218,10 +247,7 @@ export function connectSequenceNodes(source, fromId, toId) {
  * @param {string} [label]
  */
 export function addLinkedSequenceNode(source, fromId, label = '') {
-  const blocked =
-    requireSequence(source) ||
-    requireParticipantId(fromId) ||
-    requireExistingParticipant(source, fromId);
+  const blocked = requireParticipant(source, fromId);
   if (blocked) return blocked;
 
   const newId = allocateSequenceParticipantId(source);
@@ -283,12 +309,7 @@ export function deleteSequenceNode(source, participantId) {
  * @param {string} [messageLabel]
  */
 export function deleteSequenceEdge(source, fromId, toId, messageLabel) {
-  const blocked =
-    requireSequence(source) ||
-    requireParticipantId(fromId) ||
-    requireParticipantId(toId) ||
-    requireExistingParticipant(source, fromId) ||
-    requireExistingParticipant(source, toId);
+  const blocked = requireEdgeParticipants(source, fromId, toId);
   if (blocked) return blocked;
   const range = findSequenceMessageRange(source, {
     from: fromId,
@@ -308,10 +329,7 @@ export function deleteSequenceEdge(source, fromId, toId, messageLabel) {
  * @param {string} label
  */
 export function renameSequenceNode(source, participantId, label) {
-  const blocked =
-    requireSequence(source) ||
-    requireParticipantId(participantId) ||
-    requireExistingParticipant(source, participantId);
+  const blocked = requireParticipant(source, participantId);
   if (blocked) return blocked;
   const nextLabel = String(label ?? '').trim();
   if (!nextLabel) return fail('empty');
@@ -347,12 +365,7 @@ export function renameSequenceNode(source, participantId, label) {
  * @param {string} [messageLabel]
  */
 export function renameSequenceEdge(source, fromId, toId, label, messageLabel) {
-  const blocked =
-    requireSequence(source) ||
-    requireParticipantId(fromId) ||
-    requireParticipantId(toId) ||
-    requireExistingParticipant(source, fromId) ||
-    requireExistingParticipant(source, toId);
+  const blocked = requireEdgeParticipants(source, fromId, toId);
   if (blocked) return blocked;
   const text = String(label ?? '').trim();
   const range = findSequenceMessageRange(source, {

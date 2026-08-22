@@ -232,3 +232,46 @@ describe('deleteSequenceNode lifecycle lines', () => {
     expect(result.source).toMatch(/create participant Alice/);
   });
 });
+
+describe('sequence edit guard precedence', () => {
+  const flowchart = 'flowchart TD\n  A --> B';
+
+  /** Mutators that guard a single participant id before doing any work. */
+  const singleIdMutators = [
+    ['addLinkedSequenceNode', (source, id) => addLinkedSequenceNode(source, id)],
+    ['renameSequenceNode', (source, id) => renameSequenceNode(source, id, 'Renamed')],
+    ['deleteSequenceNode', (source, id) => deleteSequenceNode(source, id)]
+  ];
+
+  /** Mutators that guard both endpoints of a message before doing any work. */
+  const edgeMutators = [
+    ['connectSequenceNodes', (source, from, to) => connectSequenceNodes(source, from, to)],
+    ['deleteSequenceEdge', (source, from, to) => deleteSequenceEdge(source, from, to)],
+    ['renameSequenceEdge', (source, from, to) => renameSequenceEdge(source, from, to, 'Label')]
+  ];
+
+  it('covers every guarded mutator', () => {
+    expect(singleIdMutators).toHaveLength(3);
+    expect(edgeMutators).toHaveLength(3);
+  });
+
+  it.each(singleIdMutators)('%s rejects in the order sequence, id shape, existence', (_, run) => {
+    expect(run(flowchart, '9bad')).toEqual({ ok: false, reason: 'not-sequence' });
+    expect(run(SEQUENCE, '9bad')).toEqual({ ok: false, reason: 'bad-id' });
+    expect(run(SEQUENCE, 'Missing')).toEqual({ ok: false, reason: 'missing' });
+  });
+
+  it.each(edgeMutators)('%s rejects in the order sequence, id shape, existence', (_, run) => {
+    expect(run(flowchart, '9bad', 'Bob')).toEqual({ ok: false, reason: 'not-sequence' });
+    expect(run(SEQUENCE, '9bad', 'Bob')).toEqual({ ok: false, reason: 'bad-id' });
+    expect(run(SEQUENCE, 'Alice', '9bad')).toEqual({ ok: false, reason: 'bad-id' });
+    expect(run(SEQUENCE, 'Missing', 'Bob')).toEqual({ ok: false, reason: 'missing' });
+    expect(run(SEQUENCE, 'Alice', 'Missing')).toEqual({ ok: false, reason: 'missing' });
+  });
+
+  it.each(edgeMutators)('%s checks both id shapes before either existence', (_, run) => {
+    // Grouping the guards per-argument instead would report the missing `from`
+    // before the malformed `to`; the shared chain checks both shapes first.
+    expect(run(SEQUENCE, 'Missing', '9bad')).toEqual({ ok: false, reason: 'bad-id' });
+  });
+});
