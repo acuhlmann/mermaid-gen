@@ -81,6 +81,22 @@ export function MetaphorLegendOverlay({ metaphor, legend }) {
 }
 
 /**
+ * Axes the compact strip keeps on a small canvas. The rest are marked and
+ * hidden by the phone / short-landscape CSS blocks rather than dropped here,
+ * so a roomy canvas still shows the whole legend from the same markup.
+ *
+ * The number is not a taste call. Every chip is a full phrase the author wrote
+ * ("relative service importance from prompt"), so on a phone each one takes a
+ * row of its own: the fused commerce composite's six axes turned the strip into
+ * a 277px band on an 844px screen — a third of the phone spent explaining a
+ * scene that then had two thirds left to be in. Three chips is one row of a
+ * foldable cover and three of a phone, and the axes that do not fit are not
+ * lost: the guided read speaks every legend phrase, the tap inspector labels
+ * each metric it prints, and fullscreen restores the full legend panel.
+ */
+const COMPACT_AXIS_LIMIT = 3;
+
+/**
  * Compact inline reading strip: title + thesis + axis chips. Fullscreen keeps
  * the larger title card and legend panel; this is the inline canvas's way of
  * saying what the scene is about without colliding with the app chrome.
@@ -91,6 +107,7 @@ export function MetaphorReadingOverlay({ scene, metaphor, legend, thesis = '', a
   const subtitle = typeof scene?.subtitle === 'string' ? scene.subtitle.trim() : '';
   const claim = typeof thesis === 'string' ? thesis.trim() : '';
   const rows = legendAxesFor(metaphor, legend);
+  const overflow = rows.slice(COMPACT_AXIS_LIMIT);
   if (!title && !subtitle && !claim && rows.length === 0 && !action) return null;
   return (
     <div
@@ -106,12 +123,30 @@ export function MetaphorReadingOverlay({ scene, metaphor, legend, thesis = '', a
       </div>
       {rows.length ? (
         <dl className="metaphor-context-axes">
-          {rows.map((row) => (
-            <div className="metaphor-context-axis" key={row.key}>
+          {rows.map((row, index) => (
+            <div
+              className={
+                index < COMPACT_AXIS_LIMIT
+                  ? 'metaphor-context-axis'
+                  : 'metaphor-context-axis metaphor-context-axis--extra'
+              }
+              key={row.key}
+            >
               <dt>{row.label}</dt>
               <dd>{row.text}</dd>
             </div>
           ))}
+          {/* Counts what the small-canvas rules hide, and names them in its
+              tooltip — a chip that silently swallowed three encodings would
+              make the scene less readable than the band it saved. */}
+          {overflow.length ? (
+            <div
+              className="metaphor-context-axis metaphor-context-axis-more"
+              title={overflow.map((row) => `${row.label}: ${row.text}`).join(' · ')}
+            >
+              <dt>{`+${overflow.length}`}</dt>
+            </div>
+          ) : null}
         </dl>
       ) : null}
       {action}

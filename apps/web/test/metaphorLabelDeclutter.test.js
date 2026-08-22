@@ -118,4 +118,98 @@ describe('resolveLabels with screen-sized labels', () => {
     expect(caption.target).toBe(1);
     expect(label.target).toBe(0);
   });
+
+  describe('unreadable labels', () => {
+    /** World x that puts a label's centre at `ndcX` for this camera. */
+    function atNdcX(ndcX) {
+      const cam = camera();
+      const tanH = Math.tan((45 * Math.PI) / 360) * (VIEWPORT.width / VIEWPORT.height);
+      return ndcX * cam.position.z * tanH;
+    }
+
+    it('drops a label the canvas edge would clip', () => {
+      // Measured on a 390px phone: "Fulfillment" hung 6px off the right edge
+      // and the fused composite rendered "Fulfillmen", which reads as a
+      // rendering fault rather than as a crowded scene.
+      const clipped = pxEntry(atNdcX(0.94), 0, { importance: 9, w: 120 });
+      resolveLabels([clipped], camera(), VIEWPORT);
+      expect(clipped.target).toBe(0);
+    });
+
+    it('keeps a label that merely sits near the edge', () => {
+      const near = pxEntry(atNdcX(0.7), 0, { importance: 9, w: 120 });
+      resolveLabels([near], camera(), VIEWPORT);
+      expect(near.target).toBe(1);
+    });
+
+    it('drops a label a panel covers', () => {
+      // The reading strip and the layer key are opaque: a name behind one is
+      // gone, and it was still holding its box against every label that fitted.
+      const covered = pxEntry(0, 0, { importance: 9 });
+      resolveLabels([covered], camera(), VIEWPORT, [{ xMin: -1, xMax: 1, yMin: -0.2, yMax: 1 }]);
+      expect(covered.target).toBe(0);
+    });
+
+    it('keeps a label a panel only grazes', () => {
+      const grazed = pxEntry(0, 0, { importance: 9 });
+      resolveLabels([grazed], camera(), VIEWPORT, [{ xMin: -1, xMax: 1, yMin: 0.02, yMax: 1 }]);
+      expect(grazed.target).toBe(1);
+    });
+
+    it('reads two stacked panels as one cover, not two', () => {
+      // The composer band and the OS taskbar sit one on top of the other on
+      // every phone. Summing their coverage would read a grazed corner as a
+      // fully buried label.
+      const grazed = pxEntry(0, 0, { importance: 9 });
+      resolveLabels([grazed], camera(), VIEWPORT, [
+        { xMin: -1, xMax: 1, yMin: 0.02, yMax: 1 },
+        { xMin: -1, xMax: 1, yMin: 0.03, yMax: 1 }
+      ]);
+      expect(grazed.target).toBe(1);
+    });
+
+    it('holds a pinned label to a higher bar, not an exemption', () => {
+      // Pinning is what keeps a group placard on screen at the frame edge: it
+      // is the only thing naming its territory and there is no second copy, so
+      // it must not yield for a third of its box.
+      const grazed = pxEntry(0, 0, { importance: 0, pinned: true });
+      resolveLabels([grazed], camera(), VIEWPORT, [{ xMin: -1, xMax: 1, yMin: 0.005, yMax: 1 }]);
+      expect(grazed.target).toBe(1);
+    });
+
+    it('drops a pinned label a panel has almost entirely buried', () => {
+      // Measured on a 717x512 foldable cover: the accented item is the tallest
+      // thing in the scene, so its (pinned) name floats up into the reading
+      // strip — 87% behind it, drawn anyway, and the strip is translucent, so
+      // the result read as a rendering glitch rather than as a label.
+      const buried = pxEntry(0, 0, { importance: 0, pinned: true });
+      resolveLabels([buried], camera(), VIEWPORT, [{ xMin: -1, xMax: 1, yMin: -0.2, yMax: 1 }]);
+      expect(buried.target).toBe(0);
+    });
+
+    it('keeps a pinned placard the frame edge only nicks', () => {
+      // A composite's affinity placards are placed outward from the world
+      // centre, so they sit at the frame edge by construction — at the
+      // non-pinned bar every group name in a fused world would disappear.
+      const placard = pxEntry(atNdcX(0.94), 0, { importance: 0, pinned: true, w: 120 });
+      resolveLabels([placard], camera(), VIEWPORT);
+      expect(placard.target).toBe(1);
+    });
+
+    it('hides a pinned label that asked to yield when unreadable', () => {
+      // The accent caption: pinned so no item label can push it aside, and
+      // still willing to disappear behind the reading strip, because the strip
+      // is printing that exact sentence.
+      const caption = pxEntry(0, 0, { importance: 100, pinned: true, w: 260, h: 54 });
+      caption.yieldWhenUnreadable = true;
+      resolveLabels([caption], camera(), VIEWPORT, [{ xMin: -1, xMax: 1, yMin: -0.2, yMax: 1 }]);
+      expect(caption.target).toBe(0);
+    });
+
+    it('leaves every label alone when no panel is passed', () => {
+      const label = pxEntry(0, 0, { importance: 9 });
+      resolveLabels([label], camera(), VIEWPORT);
+      expect(label.target).toBe(1);
+    });
+  });
 });

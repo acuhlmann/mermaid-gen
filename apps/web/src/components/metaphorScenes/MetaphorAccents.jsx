@@ -30,13 +30,14 @@
  */
 import { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
-import { useFrame } from '@react-three/fiber';
+import { useFrame, useThree } from '@react-three/fiber';
 import { Billboard, Text } from '@react-three/drei';
 import { GlowSprite } from './MetaphorSceneChrome.jsx';
 import { useLabelDeclutter } from './labelDeclutterContext.js';
 import { useScreenConstantScale } from './metaphorScreenScale.js';
 import { useMetaphorClock } from './metaphorClock.js';
 import { isDarkBackdrop } from './sceneUtils.js';
+import { captionFitsCanvas } from './accentCaptionFit.js';
 
 /** Height of the light shaft above the anchor, in world units. */
 const SHAFT_HEIGHT = 5.5;
@@ -89,7 +90,11 @@ const CAPTION_TARGET_PX = 12;
 function AccentCaption({ text, y, color }) {
   const billboardRef = useRef(null);
   const scaleRef = useRef(null);
+  const textRef = useRef(null);
+  const plateRef = useRef(null);
+  const ruleRef = useRef(null);
   const declutter = useLabelDeclutter();
+  const size = useThree((state) => state.size);
   useScreenConstantScale(scaleRef, CAPTION_SIZE, CAPTION_TARGET_PX);
 
   const { lines, width } = useMemo(() => {
@@ -114,29 +119,61 @@ function AccentCaption({ text, y, color }) {
   const plateHeight = lines.length * CAPTION_SIZE * 1.32 + CAPTION_SIZE * 0.8;
   const screenWidthPx = (plateWidth / CAPTION_SIZE) * CAPTION_TARGET_PX;
   const screenHeightPx = (plateHeight / CAPTION_SIZE) * CAPTION_TARGET_PX;
+  const fits = captionFitsCanvas(
+    { widthPx: screenWidthPx, heightPx: screenHeightPx },
+    { width: size?.width ?? 0, height: size?.height ?? 0 }
+  );
 
   // The caption claims its box in the declutter pass rather than merely being
   // drawn over everything. It is the one sentence the scene wants read, and a
   // depth-test-free plate that item labels do not know about lands on top of the
   // accented item's OWN name — measured on the city, the caption covered both
-  // "API Gateway" and the tower beside it. Pinned, so it never yields; it is the
-  // labels around it that step aside.
+  // "API Gateway" and the tower beside it. Pinned, so no item label can push it
+  // out of contested space.
+  //
+  // `yieldWhenUnreadable` is the other half, and it is what stops the pin from
+  // becoming the panel conflict it was meant to escape. The accented item is
+  // usually the tallest thing in the scene, so the caption floating above it
+  // lands at the top of the frame — which on a phone or a foldable cover is
+  // where the reading strip is. Measured on a 717x512 cover: the plate was
+  // drawn straight through the strip's lower edge. It can afford to vanish
+  // there because the strip is printing that exact sentence (see
+  // accentCaptionFit.js).
   useEffect(() => {
-    if (!declutter || !text) return undefined;
+    if (!declutter || !text || !fits) return undefined;
     return declutter.register({
       object: billboardRef.current,
       importance: 100,
       pinned: true,
+      yieldWhenUnreadable: true,
       screenWidthPx,
       screenHeightPx,
-      apply: () => {}
+      apply: (opacity) => {
+        const label = textRef.current;
+        if (label) {
+          label.fillOpacity = opacity;
+          if (label.material) label.material.transparent = true;
+        }
+        const plate = plateRef.current;
+        if (plate?.material) {
+          plate.material.opacity = opacity * 0.86;
+          plate.visible = opacity > 0.05;
+        }
+        const rule = ruleRef.current;
+        if (rule?.material) {
+          rule.material.opacity = opacity * 0.95;
+          rule.visible = opacity > 0.05;
+        }
+      }
     });
-  }, [declutter, text, screenWidthPx, screenHeightPx]);
+  }, [declutter, text, screenWidthPx, screenHeightPx, fits]);
+
+  if (!fits) return null;
 
   return (
     <Billboard position={[0, y, 0]} ref={billboardRef}>
       <group ref={scaleRef}>
-        <mesh position={[0, 0, -0.02]} renderOrder={CAPTION_RENDER_ORDER}>
+        <mesh ref={plateRef} position={[0, 0, -0.02]} renderOrder={CAPTION_RENDER_ORDER}>
           <planeGeometry args={[plateWidth, plateHeight]} />
           <meshBasicMaterial
             color="#0f172a"
@@ -146,7 +183,11 @@ function AccentCaption({ text, y, color }) {
             depthTest={false}
           />
         </mesh>
-        <mesh position={[0, -plateHeight / 2 + 0.03, -0.01]} renderOrder={CAPTION_RENDER_ORDER + 1}>
+        <mesh
+          ref={ruleRef}
+          position={[0, -plateHeight / 2 + 0.03, -0.01]}
+          renderOrder={CAPTION_RENDER_ORDER + 1}
+        >
           <planeGeometry args={[plateWidth, 0.055]} />
           <meshBasicMaterial
             color={color}
@@ -158,6 +199,7 @@ function AccentCaption({ text, y, color }) {
           />
         </mesh>
         <Text
+          ref={textRef}
           fontSize={CAPTION_SIZE}
           color="#f8fafc"
           anchorX="center"

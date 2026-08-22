@@ -155,6 +155,33 @@ describe('metaphor overlay geometry', () => {
   });
 });
 
+describe('the compact strip caps its axis chips', () => {
+  it('hides the overflow chips and shows their count on a phone', () => {
+    expect(css).toMatch(
+      /@media\s*\(max-width:\s*720px\)[\s\S]*\.metaphor-context-axis--extra\s*\{[\s\S]{0,80}?display:\s*none/
+    );
+    expect(css).toMatch(
+      /@media\s*\(max-width:\s*720px\)[\s\S]*\.metaphor-context-axis-more\s*\{[\s\S]{0,80}?display:\s*flex/
+    );
+  });
+
+  it('does the same on a short landscape screen, which has the least to spare', () => {
+    const shortBlock = css.indexOf('@media (max-height: 620px) and (orientation: landscape)');
+    expect(shortBlock).toBeGreaterThan(-1);
+    const block = css.slice(shortBlock, shortBlock + 2000);
+    expect(block).toMatch(/\.metaphor-context-axis--extra\s*\{[\s\S]{0,80}?display:\s*none/);
+    expect(block).toMatch(/\.metaphor-context-axis-more\s*\{[\s\S]{0,80}?display:\s*flex/);
+  });
+
+  it('shows every chip and no counter on a roomy canvas', () => {
+    // The base rule, before any media block: the counter has nothing to count
+    // when nothing is hidden, and a "+0" chip would be pure noise.
+    const base = css.slice(0, css.indexOf('@media (max-width: 720px)'));
+    expect(base).toMatch(/\.metaphor-context-axis-more\s*\{[\s\S]{0,80}?display:\s*none/);
+    expect(base).not.toMatch(/\.metaphor-context-axis--extra\s*\{/);
+  });
+});
+
 describe('metaphor overlay chrome and the camera fit', () => {
   it('keeps the layer key readable on a phone instead of slicing its last row', () => {
     // Composite's layer key is the fused world's only explanation of what each

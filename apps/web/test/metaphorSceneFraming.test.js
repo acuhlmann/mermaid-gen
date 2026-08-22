@@ -7,6 +7,7 @@ import {
   FRAME_IGNORE_DATA,
   collectFramePoints,
   frameDirectionForAspect,
+  framedAspect,
   safeAreaWindow,
   solveFrameFit
 } from '../src/components/metaphorScenes/sceneFraming.js';
@@ -155,6 +156,71 @@ describe('solveFrameFit with overlay chrome', () => {
     expect(window_.yMax).toBeGreaterThan(0);
     expect(window_.yMin).toBeLessThan(0);
   });
+
+  it('leaves the subject a majority of an axis both panels squeeze', () => {
+    // The foldable-cover case: a legal top claim and a legal bottom claim that
+    // together left a 717x512 city 46% of the height and it rendered as a
+    // speck. Neither panel is at fault on its own, which is why the cap has to
+    // be per AXIS rather than per edge.
+    const window_ = safeAreaWindow({ top: 0.28, bottom: 0.26 });
+    expect((window_.yMax - window_.yMin) / 2).toBeGreaterThanOrEqual(0.55 - 1e-9);
+  });
+
+  it('scales two opposed claims in proportion, not to the same number', () => {
+    const window_ = safeAreaWindow({ top: 0.3, bottom: 0.15 });
+    const top = (1 - window_.yMax) / 2;
+    const bottom = (1 + window_.yMin) / 2;
+    expect(top).toBeGreaterThan(bottom);
+    expect(top / bottom).toBeCloseTo(2, 6);
+  });
+
+  it('reserves a line of annotation above the subject', () => {
+    // Labels are out of the fit (a name is not the thing it names) but they are
+    // drawn ABOVE their items, so a fit ending at the tallest item ends where
+    // its label starts. Measured on a 717x512 foldable cover: the accented
+    // tower's name landed astride the reading strip's lower edge.
+    const bare = safeAreaWindow(FULL);
+    const roomy = safeAreaWindow(FULL, 26 / 512);
+    expect(roomy.yMax).toBeLessThan(bare.yMax);
+    expect(roomy.yMin).toBe(bare.yMin);
+  });
+
+  it('spends the headroom on top of the chrome, not out of it', () => {
+    // It is the subject's own margin, not a claim by a panel, so the rule that
+    // stops two panels squeezing the subject must not spend it.
+    const squeezed = safeAreaWindow({ top: 0.28, bottom: 0.26 });
+    const withRoom = safeAreaWindow({ top: 0.28, bottom: 0.26 }, 0.05);
+    expect(squeezed.yMax - withRoom.yMax).toBeCloseTo(0.1, 9);
+  });
+
+  it('caps the headroom so a tiny canvas cannot reserve its whole top', () => {
+    expect(safeAreaWindow(FULL, 5).yMax).toBeCloseTo(1 - 2 * 0.1, 9);
+    expect(safeAreaWindow(FULL, Number.NaN).yMax).toBe(1);
+  });
+
+  it('leaves a pair that already fits completely alone', () => {
+    const window_ = safeAreaWindow({ top: 0.2, bottom: 0.2 });
+    expect(window_.yMax).toBeCloseTo(1 - 0.4, 9);
+    expect(window_.yMin).toBeCloseTo(-1 + 0.4, 9);
+  });
+});
+
+describe('framedAspect', () => {
+  it('reports the canvas aspect when nothing is over the canvas', () => {
+    expect(framedAspect(1.6, FULL)).toBeCloseTo(1.6, 9);
+  });
+
+  it('reads a foldable cover between two bands as the letterbox it is', () => {
+    // 717x512 is a comfortable 1.4 landscape; the window the reading strip and
+    // the composer band leave is nothing like it, and the view angle is a claim
+    // about the window.
+    expect(framedAspect(717 / 512, { top: 0.28, bottom: 0.26 })).toBeGreaterThan(2.4);
+  });
+
+  it('survives a nonsense aspect', () => {
+    expect(framedAspect(Number.NaN, FULL)).toBe(1);
+    expect(framedAspect(0, FULL)).toBe(1);
+  });
 });
 
 describe('frameDirectionForAspect', () => {
@@ -182,6 +248,34 @@ describe('frameDirectionForAspect', () => {
     const phone = frameDirectionForAspect(0.46);
     expect(phone.x).toBeCloseTo(phone.z, 6);
   });
+
+  it('drops toward the ground on a letterbox window', () => {
+    // The other end of the portrait argument: a window three times wider than
+    // it is tall ran out of HEIGHT, and a flat world seen from high up projects
+    // rounder, which is exactly the wrong direction there.
+    const letterbox = frameDirectionForAspect(3);
+    expect(letterbox.y).toBeLessThan(DEFAULT_FRAME_DIRECTION.y);
+    expect(letterbox.length()).toBeCloseTo(1, 6);
+    expect(letterbox.x).toBeCloseTo(letterbox.z, 6);
+  });
+
+  it('stays a built three-quarter view rather than becoming a plan', () => {
+    // Both ends are bounded: no window drops the camera to the horizon and
+    // none takes it overhead, because either loses what makes these read as
+    // constructed rather than plotted.
+    for (const aspect of [0.2, 0.46, 1, 1.6, 3, 12]) {
+      const elevation = Math.asin(frameDirectionForAspect(aspect).y) * (180 / Math.PI);
+      expect(elevation).toBeGreaterThan(15);
+      expect(elevation).toBeLessThan(60);
+    }
+  });
+
+  it('fills more of a letterbox window than the desktop angle would', () => {
+    const world = disc(14);
+    const flat = ndcBox(world, DEFAULT_FRAME_DIRECTION, 45, 3);
+    const dropped = ndcBox(world, frameDirectionForAspect(3), 45, 3);
+    expect(dropped.xMax - dropped.xMin).toBeGreaterThan(flat.xMax - flat.xMin);
+  });
 });
 
 describe('collectFramePoints', () => {
@@ -197,6 +291,26 @@ describe('collectFramePoints', () => {
     expect(points.length).toBeGreaterThan(40);
     const reach = Math.max(...points.map((p) => Math.hypot(p.x, p.z)));
     expect(reach).toBeLessThan(10.01);
+  });
+
+  it('prunes scene text — a name is not the thing it names', () => {
+    // Labels are sized for the READER, so their world size grows as the camera
+    // pulls back: left in the fit they are a fixed point of it rather than a
+    // constraint on it, and the solve settles wherever the labels stop growing.
+    // Measured on a 717x512 foldable cover, the city's geometry needed 45 units
+    // and its labels pushed the answer to 118. Troika publishes no marker, so
+    // it is recognised the same way itemBounds.js recognises it.
+    const root = new THREE.Group();
+    root.add(new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1)));
+    const label = new THREE.Mesh(
+      new THREE.PlaneGeometry(40, 6),
+      Object.assign(new THREE.MeshBasicMaterial(), { isTroikaTextMaterial: true })
+    );
+    label.position.set(30, 20, 0);
+    root.add(label);
+
+    const reach = Math.max(...collectFramePoints(root).map((p) => p.length()));
+    expect(reach).toBeLessThan(2);
   });
 
   it('prunes subtrees flagged as ambience', () => {

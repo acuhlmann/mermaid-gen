@@ -7,10 +7,12 @@ import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { useFrame, useThree } from '@react-three/fiber';
 import {
+  ANNOTATION_HEADROOM_PX,
   DEFAULT_FRAME_DIRECTION,
   FULL_SAFE_AREA,
   collectFramePoints,
   frameDirectionForAspect,
+  framedAspect,
   solveFrameFit
 } from './sceneFraming.js';
 
@@ -96,7 +98,12 @@ export function SceneFrame({
     // whatever direction the viewer is currently looking from, so a refit after
     // an edit does not yank the camera back out of the angle they orbited to.
     if (firstFitRef.current && !viewerOrbitedRef.current) {
-      directionRef.current.copy(frameDirectionForAspect(camera.aspect));
+      // The framed aspect, not the canvas aspect: the angle is a claim about
+      // the window the chrome leaves, and on a short screen those two disagree
+      // by more than a phone differs from a desktop.
+      directionRef.current.copy(
+        frameDirectionForAspect(framedAspect(camera.aspect, { top, right, bottom, left }))
+      );
     } else {
       const target = controls?.target ?? new THREE.Vector3();
       const current = camera.position.clone().sub(target);
@@ -106,6 +113,10 @@ export function SceneFrame({
 
     const solved = solveFrameFit(points, dir, camera.fov, camera.aspect, {
       safeArea: { top, right, bottom, left },
+      // One label's height above the subject. Labels are not in the fit (a name
+      // is not the thing it names) but they are drawn above their items, so a
+      // fit that ends at the tallest item ends where its label starts.
+      headroom: ANNOTATION_HEADROOM_PX / Math.max(1, size.height),
       margin
     });
     if (!solved) return;

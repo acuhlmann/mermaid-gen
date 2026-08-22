@@ -231,6 +231,57 @@ function readExternalChromePanels(box, root) {
 }
 
 /**
+ * The panels, as NDC rectangles over the canvas.
+ *
+ * This is a different question from the safe area above, and it needs a
+ * different answer. The safe area is a *reservation*: it is discounted by how
+ * much of the perpendicular axis a panel spans, capped per edge, and scaled
+ * back again so two opposed bands cannot squeeze the subject to nothing — all
+ * of which is right for deciding how far the camera pulls back, and all of
+ * which makes it a poor map of which pixels are actually covered. The label
+ * declutter pass needs the map: a name behind an opaque panel is gone, and the
+ * slack the fit deliberately leaves is exactly where that happens.
+ *
+ * Returns `[]` when there is nothing to measure, which is a real answer (no
+ * chrome), so it is not distinguished from "could not measure".
+ *
+ * @param {Element | null | undefined} container
+ * @param {{ document?: Document, includeExternal?: boolean }} [options]
+ * @returns {Array<{xMin: number, xMax: number, yMin: number, yMax: number}>}
+ */
+export function measureChromeRects(container, options = {}) {
+  if (!container || typeof container.getBoundingClientRect !== 'function') return [];
+  const box = container.getBoundingClientRect();
+  if (!(box.width > 0) || !(box.height > 0)) return [];
+  const panels = [];
+  for (const node of container.querySelectorAll?.(`[${CHROME_ATTR}]`) ?? []) {
+    const rect = node.getBoundingClientRect();
+    if (!(rect.width > 0) || !(rect.height > 0)) continue;
+    panels.push({
+      top: rect.top - box.top,
+      left: rect.left - box.left,
+      bottom: rect.bottom - box.top,
+      right: rect.right - box.left
+    });
+  }
+  if (options.includeExternal !== false) {
+    const ownerDocument =
+      options.document ??
+      container.ownerDocument ??
+      (typeof globalThis !== 'undefined' ? globalThis.document : null);
+    for (const external of readExternalChromePanels(box, ownerDocument)) panels.push(external);
+  }
+  // NDC: x runs −1 (left) → +1 (right), y runs −1 (bottom) → +1 (top), so the
+  // vertical axis flips against the DOM's.
+  return panels.map((panel) => ({
+    xMin: (panel.left / box.width) * 2 - 1,
+    xMax: (panel.right / box.width) * 2 - 1,
+    yMin: 1 - (panel.bottom / box.height) * 2,
+    yMax: 1 - (panel.top / box.height) * 2
+  }));
+}
+
+/**
  * Measure the persistent chrome inside `container` against the canvas box, plus
  * any external app chrome (e.g. the top-shell) that paints over pixels within
  * the same box. Returns null when there is nothing to measure (SSR, unmounted,

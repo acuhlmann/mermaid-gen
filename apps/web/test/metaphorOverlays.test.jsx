@@ -48,6 +48,23 @@ const COMPOSITE = {
   ]
 };
 
+/** The measured worst case: the fused commerce composite's six legend axes. */
+const FUSED = {
+  metaphor: 'composite',
+  scene: {
+    title: 'Commerce platform current',
+    legend: {
+      mass: 'relative domain scale from prompt',
+      relief: 'inferred operational maturity',
+      height: 'relative service importance from prompt',
+      footprint: 'relative ownership surface',
+      stage: 'order journey stage',
+      flow: 'relative activity from prompt'
+    }
+  },
+  layers: []
+};
+
 describe('MetaphorReadingOverlay', () => {
   it('renders title, thesis, and populated legend chips', () => {
     render(
@@ -62,6 +79,55 @@ describe('MetaphorReadingOverlay', () => {
     expect(screen.getAllByText('Checkout carries the load').length).toBeGreaterThan(0);
     expect(screen.getByText('domain scale')).toBeTruthy();
     expect(screen.getByText('service importance')).toBeTruthy();
+  });
+
+  it('marks the axes past the third so a small canvas can hide them', () => {
+    // Every chip is a whole authored phrase, so a phone gives each one a row:
+    // six axes turned the strip into a 277px band on an 844px screen and the
+    // camera reserved all of it. The markup is the same on every canvas; the
+    // phone and short-landscape CSS blocks decide.
+    const { container } = render(
+      <MetaphorReadingOverlay
+        scene={FUSED.scene}
+        metaphor="composite"
+        legend={FUSED.scene.legend}
+      />
+    );
+    const axes = container.querySelectorAll(
+      '.metaphor-context-axis:not(.metaphor-context-axis-more)'
+    );
+    expect(axes.length).toBe(6);
+    expect(container.querySelectorAll('.metaphor-context-axis--extra').length).toBe(3);
+    for (const kept of [...axes].slice(0, 3)) {
+      expect(kept.className).not.toContain('--extra');
+    }
+  });
+
+  it('counts what a small canvas hides, and names it in the tooltip', () => {
+    // A chip that silently swallowed three encodings would make the scene less
+    // readable than the band it saved.
+    const { container } = render(
+      <MetaphorReadingOverlay
+        scene={FUSED.scene}
+        metaphor="composite"
+        legend={FUSED.scene.legend}
+      />
+    );
+    const more = container.querySelector('.metaphor-context-axis-more');
+    expect(more?.textContent).toBe('+3');
+    expect(more?.getAttribute('title')).toContain('ownership surface');
+  });
+
+  it('grows no counter when every axis is shown anyway', () => {
+    const { container } = render(
+      <MetaphorReadingOverlay
+        scene={COMPOSITE.scene}
+        metaphor="composite"
+        legend={COMPOSITE.scene.legend}
+      />
+    );
+    expect(container.querySelector('.metaphor-context-axis-more')).toBeNull();
+    expect(container.querySelector('.metaphor-context-axis--extra')).toBeNull();
   });
 });
 
