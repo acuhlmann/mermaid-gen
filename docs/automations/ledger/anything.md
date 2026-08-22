@@ -29,5 +29,5 @@ rest back into `todos`.
 
 | Date       | Slice taken            | PR   | Bench verdict                                                                 | Notes                                                                                                                                    |
 | ---------- | ---------------------- | ---- | ----------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| 2026-08-22 | Policy: JS iframe lint | —    | corpus `expectationMatch` 100 (24 cases); gen first-pass 80.56% (36 runs)     | Caught `createElement('iframe')` + `contentWindow` as `embedded_browsing` before runtime; corpus `policy-js-iframe-create`. Prompt rule. |
+| 2026-08-22 | Policy: JS iframe lint | #372 | corpus `expectationMatch` 100 (24 cases); gen first-pass 80.56% (36 runs)     | Caught `createElement('iframe')` + `contentWindow` as `embedded_browsing` before runtime; corpus `policy-js-iframe-create`. Prompt rule. |
 | 2026-08-21 | Edit-tool bench wiring | #359 | corpus `expectationMatch` 100; gen first-pass 97.22% (36 runs, `--samples 3`) | Routed `refine-add-control` through `applyTransformIntent` (`barker`); smoke `editToolRate` 100% (1/1). Summary adds `editTool` block.   |
