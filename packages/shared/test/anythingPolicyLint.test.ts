@@ -109,6 +109,20 @@ test('lintAnythingPolicy rejects nested iframes', () => {
   assert.equal(result.code, 'embedded_browsing');
 });
 
+test('lintAnythingPolicy rejects JS-created iframes and contentWindow access', () => {
+  const bad = VALID_DOC.replace(
+    "document.title='x';",
+    `const f = document.createElement('iframe');
+f.srcdoc = '<p>x</p>';
+document.body.appendChild(f);
+f.contentWindow.document.title = 'y';`
+  );
+  const result = lintAnythingPolicy(bad);
+  assert.equal(result.ok, false);
+  if (result.ok) return;
+  assert.equal(result.code, 'embedded_browsing');
+});
+
 test('lintAnythingPolicy rejects javascript: URLs', () => {
   const bad = `<!DOCTYPE html><html><head></head><body><a href="javascript:alert(1)">x</a></body></html>`;
   const result = lintAnythingPolicy(bad);

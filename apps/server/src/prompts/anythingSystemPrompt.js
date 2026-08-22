@@ -13,6 +13,7 @@ export const ANYTHING_CORE_RULES = `Sandbox contract — the document is rendere
 - NO network: no external scripts, stylesheets, fonts, images, fetch/XHR, or WebSockets. Everything must be inline; embed images as data: URIs or draw with SVG/canvas.
 - NO storage: cookies, localStorage, sessionStorage, and IndexedDB are unavailable and will throw — do not use them. Keep state in JS variables.
 - NO escape: no window.top / window.parent access, no navigation, no popups, no downloads, no forms that submit anywhere. Do not try.
+- NO nested browsing: no <iframe>/<object>/<embed> in markup and no document.createElement('iframe') — never access contentWindow. Build every widget in the page itself.
 - alert/confirm/prompt are blocked in sandboxed iframes — build any messaging into the page itself.
 
 Document rules:

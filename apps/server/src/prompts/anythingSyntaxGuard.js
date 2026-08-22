@@ -13,7 +13,7 @@ export const ANYTHING_SELF_CHECK = `Self-check before calling apply_anything_pat
 - Every stylesheet and script is inline — zero external URLs (no CDN, no fonts, no remote images).
 - Library markers (<!-- @lib:… -->) only use allowlisted ids (${ANYTHING_LIB_IDS.join(', ')}), placed in <head> before the scripts that use them. Never paste library source yourself.
 - No fetch/XHR/WebSocket, no cookies/localStorage/sessionStorage/IndexedDB, no window.parent/top, no alert/confirm/prompt.
-- No nested iframes/objects/embeds, no javascript: URLs, no meta refresh, no base href.
+- No nested iframes/objects/embeds (markup or createElement), no contentWindow access, no javascript: URLs, no meta refresh, no base href.
 - Inline script blocks must be valid JavaScript; inline style blocks must have balanced braces.
 - Scripts run after the DOM exists (end of <body> or DOMContentLoaded).
 - Scripts must not throw, hang, or leave <body> empty — the server executes the page before accepting it.
