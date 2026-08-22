@@ -55,6 +55,7 @@ import {
 } from './metaphorScenes/MetaphorSceneChrome.jsx';
 import { MetaphorAccents } from './metaphorScenes/MetaphorAccents.jsx';
 import { MetaphorSelectionMarker } from './metaphorScenes/MetaphorSelectionMarker.jsx';
+import { MetaphorGraphEditBridge } from './metaphorScenes/MetaphorGraphEditBridge.jsx';
 import { MetaphorTourCamera } from './metaphorScenes/MetaphorTourCamera.jsx';
 import { createMetaphorTourStore } from './metaphorTourStore.js';
 import { LabelDeclutterContext } from './metaphorScenes/labelDeclutterContext.js';
@@ -1226,7 +1227,11 @@ function MetaphorRendererImpl(
      * insights pane is open, so an embedded canvas inside that pane would
      * reserve a band for chrome that has already stepped aside for it.
      */
-    measureAppChrome = true
+    measureAppChrome = true,
+    /** Canvas graph-edit selection mirrored from the shared radial stack. */
+    selectedNode = null,
+    onSelectedNodeChange = null,
+    onNodeToolbarAnchor = null
   },
   ref
 ) {
@@ -1560,6 +1565,17 @@ function MetaphorRendererImpl(
                 fit and centering would double them. */}
             {!streamingPreview ? (
               <MetaphorSelectionMarker store={selectionStore} contentKey={contentKey} />
+            ) : null}
+            {!streamingPreview && onSelectedNodeChange ? (
+              <MetaphorGraphEditBridge
+                selectionStore={selectionStore}
+                selectedNode={selectedNode}
+                onSelectedNodeChange={onSelectedNodeChange}
+                onNodeToolbarAnchor={onNodeToolbarAnchor}
+                containerRef={containerRef}
+                contentKey={contentKey}
+                defaultMetaphor={dsl?.metaphor ?? null}
+              />
             ) : null}
           </MetaphorClockProvider>
           {/* Outside the clock provider and every content transform, like the

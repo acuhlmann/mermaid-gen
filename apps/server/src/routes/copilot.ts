@@ -600,11 +600,13 @@ export async function handleUserDiagramEdit({
   }
 
   const allowed =
-    parsed.data.contentType === 'mermaid' || parsed.data.contentType === 'infographic';
+    parsed.data.contentType === 'mermaid' ||
+    parsed.data.contentType === 'infographic' ||
+    parsed.data.contentType === 'metaphor3d';
   if (!allowed) {
     return {
       status: 400,
-      body: { error: 'Canvas graph edits support mermaid and infographic' }
+      body: { error: 'Canvas graph edits support mermaid, infographic, and metaphor3d tree' }
     };
   }
 

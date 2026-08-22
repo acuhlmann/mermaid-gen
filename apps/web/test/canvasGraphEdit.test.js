@@ -44,6 +44,20 @@ const SEQUENCE = `sequenceDiagram
   Alice->>Bob: Hello
 `;
 
+const METAPHOR_TREE = JSON.stringify(
+  {
+    metaphor: 'tree',
+    scene: { theme: 'whiteboard', camera: 'orbit' },
+    items: [
+      { id: 'ceo', label: 'CEO', weight: 8 },
+      { id: 'cto', label: 'CTO', parent: 'ceo', weight: 6 }
+    ],
+    links: []
+  },
+  null,
+  2
+);
+
 describe('graphEditAdapterFor', () => {
   it('returns the flowchart adapter for mermaid flowcharts only', () => {
     const adapter = graphEditAdapterFor('mermaid', FLOWCHART);
@@ -98,6 +112,17 @@ describe('graphEditAdapterFor', () => {
     expect(list?.canLink).toBe(false);
     expect(list?.addLinked(LIST, '0', 'New')).toMatchObject({ ok: true });
   });
+
+  it('returns the metaphor tree adapter without Link', () => {
+    const adapter = graphEditAdapterFor('metaphor3d', METAPHOR_TREE);
+    expect(adapter?.contentType).toBe('metaphor3d');
+    expect(adapter?.canLink).toBe(false);
+    expect(adapter?.addLinked(METAPHOR_TREE, 'ceo', 'Branch')).toMatchObject({
+      ok: true,
+      newId: 'n1'
+    });
+    expect(graphEditAdapterFor('metaphor3d', '{"metaphor":"city","items":[]}')).toBeNull();
+  });
 });
 
 describe('graphEditIdFromDescriptor', () => {
@@ -105,6 +130,9 @@ describe('graphEditIdFromDescriptor', () => {
     expect(
       graphEditIdFromDescriptor({ kind: 'infographic-item', indexes: '0,0', label: 'Eng' })
     ).toBe('0,0');
+    expect(graphEditIdFromDescriptor({ kind: 'metaphor-item', dataId: 'ceo', label: 'CEO' })).toBe(
+      'ceo'
+    );
     expect(graphEditIdFromDescriptor({ kind: 'infographic-item', label: 'Eng' })).toBe(
       '~label:Eng'
     );
