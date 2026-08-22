@@ -10205,6 +10205,12 @@ button {
   font-weight: 700;
 }
 
+/* The "+N" chip counts the axes a small canvas hides. A roomy canvas shows
+   every chip, so it has nothing to count and stays out of the way. */
+.metaphor-context-axis-more {
+  display: none;
+}
+
 .metaphor-context-axis dd {
   margin: 0;
   color: #cbd5e1;
@@ -10904,6 +10910,19 @@ button {
     margin-top: 4px;
     align-self: center;
   }
+
+  /* Every axis chip is a whole authored phrase, so on a phone each one takes a
+     row of its own — six of them (the fused commerce composite) built a 277px
+     band on an 844px screen, and the camera then reserved all of it. Keep the
+     first three and count the rest. See COMPACT_AXIS_LIMIT in
+     MetaphorOverlays.jsx for why the axes are not lost. */
+  .metaphor-context-axis--extra {
+    display: none;
+  }
+
+  .metaphor-context-axis-more {
+    display: flex;
+  }
 }
 
 /* Landscape phones / foldable cover: keep the scene, drop secondary copy.
@@ -10986,6 +11005,16 @@ button {
 
   .metaphor-context-overlay .metaphor-tour-start {
     margin-top: 0;
+  }
+
+  /* Same cap as the phone block, same reason: a short screen pays for a second
+     row of chips out of the scene's height, and it has the least to spare. */
+  .metaphor-context-axis--extra {
+    display: none;
+  }
+
+  .metaphor-context-axis-more {
+    display: flex;
   }
 
   .metaphor-layers-overlay {

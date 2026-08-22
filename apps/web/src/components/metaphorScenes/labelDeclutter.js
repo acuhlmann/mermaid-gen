@@ -15,8 +15,17 @@
  *      node in a tree); nearness breaks ties so the front reads first.
  *   2. Walk the ranking and keep a label only when its screen box clears every
  *      label already kept.
- *   3. `pinned` labels — group names, the emphasised item — never lose. They are
- *      the scene's thesis; hiding one to save a leaf label inverts the point.
+ *   3. `pinned` labels — group names, the emphasised item — never lose a
+ *      CONTEST. They are the scene's thesis; hiding one to save a leaf label
+ *      inverts the point of the pass.
+ *   4. A label the viewer cannot read whole yields anyway, and this is the one
+ *      test pinning does not simply win — it buys a laxer bar, not an
+ *      exemption, because a name nobody can see is not in the contest. Two ways
+ *      it happens, both worse than the label being absent: the canvas edge
+ *      CLIPS it ("Partner Gateway" came out as "Partner Gatew" on a 390px
+ *      phone, which reads as a rendering fault), and a persistent panel COVERS
+ *      it while it goes on holding its box against every label that would have
+ *      fitted.
  *
  * Resolved visibility is eased over ~0.18 s rather than switched, so orbiting a
  * dense scene reads as labels surfacing and receding rather than as flicker.
@@ -34,12 +43,127 @@ const MAX_PAIRWISE = 240;
 const GUTTER = 0.008;
 /** Seconds for a label to fade fully in or out. */
 const FADE_SECONDS = 0.18;
+/**
+ * Share of a label that must be inside the CANVAS for it to be drawn.
+ *
+ * Effectively "not clipped at all", and that is the point: a clipped word is a
+ * defect rather than a degraded reading, so there is no interesting middle
+ * ground to leave room for. It was 0.9 first, and 0.9 is not close enough —
+ * measured on a 390px phone, "Fulfillment" hung 6px off the right edge and
+ * scored 0.94, so the fused composite still rendered "Fulfillmen" while the
+ * rule that exists to stop exactly that reported everything fine.
+ */
+const MIN_ON_CANVAS = 0.97;
+/**
+ * Share of a label a panel may cover before the label yields.
+ *
+ * Not as tight as the canvas rule, because a label plate is wider than its
+ * glyphs (`ItemLabel` pads it by 0.9 of the type size on each side), so a small
+ * overlap costs padding rather than letters. It cannot be as loose as a half,
+ * though, which is where this started: at 0.5 the panel edge runs down the
+ * middle of the word, and on a 717x512 foldable cover the fused composite still
+ * showed "Payments API" and "Fulfillment" each cut in half by a panel — the
+ * exact defect the rule exists to remove, passing it.
+ */
+const MAX_COVERED = 0.3;
+
+/**
+ * The same question for a PINNED label, at a much higher bar.
+ *
+ * Pinning says "this name has no second copy" — a group placard is the only
+ * thing naming its territory, and the accented item's own label is the name of
+ * the thesis — so it must not yield for a corner or a third. But it is not a
+ * licence to draw text nobody can read: the accented item is usually the
+ * tallest thing in the scene, its label sits above it, and on a foldable cover
+ * that puts it inside the reading strip. Measured there, "Payments API" was 87%
+ * behind the strip and drawn anyway; the panel is translucent, so the result
+ * read as a rendering glitch rather than as a label. Past this bar the pin,
+ * stem and ring still say which item it is, the strip states the thesis, and
+ * the guided read still names it — and one orbit brings the label back.
+ *
+ * It was 0.7 first, which is the bar for being almost entirely buried, and that
+ * left the case this exists for still on screen: a name lying ACROSS a panel's
+ * edge is roughly half covered by construction, and half a word is the thing
+ * that reads as a defect.
+ */
+const MAX_COVERED_PINNED = 0.45;
+
+/**
+ * The canvas-clip bar for a pinned label, relaxed for the same reason.
+ *
+ * A composite's affinity placards are placed OUTWARD from the world centre
+ * (`assignSiteLabelOffsets` — the only reliably open ground is outside the
+ * outermost sites), which puts them within a few pixels of the frame edge by
+ * construction. At the non-pinned bar every group name in a fused world would
+ * disappear, which is the thing a composite exists to say.
+ */
+const MIN_ON_CANVAS_PINNED = 0.7;
+
+/** NDC rectangle covering the whole canvas. */
+const FULL_WINDOW = Object.freeze({ xMin: -1, xMax: 1, yMin: -1, yMax: 1 });
+
+/** No chrome — a shared empty list, so the common case allocates nothing. */
+const NO_RECTS = Object.freeze([]);
+
+/** Area of the intersection of a label's box with an NDC rectangle. */
+function overlapArea(box, rect) {
+  const width = Math.max(
+    0,
+    Math.min(box.x + box.halfW, rect.xMax) - Math.max(box.x - box.halfW, rect.xMin)
+  );
+  const height = Math.max(
+    0,
+    Math.min(box.y + box.halfH, rect.yMax) - Math.max(box.y - box.halfH, rect.yMin)
+  );
+  return width * height;
+}
+
+/**
+ * Fraction of a label's screen box that lies inside `rect`.
+ *
+ * @param {{x: number, y: number, halfW: number, halfH: number}} box — NDC
+ * @param {{xMin: number, xMax: number, yMin: number, yMax: number}} rect
+ * @returns {number} 0–1
+ */
+export function insideFraction(box, rect) {
+  const area = 4 * box.halfW * box.halfH;
+  if (!(area > 0)) return 1;
+  return overlapArea(box, rect) / area;
+}
+
+/**
+ * Fraction of a label's box covered by the panels, taking the LARGEST single
+ * panel rather than the sum.
+ *
+ * The sum double-counts, and it double-counts precisely where the panels
+ * overlap — which on this app is every phone screen, because the composer band
+ * and the OS taskbar sit one on top of the other. Two panels that between them
+ * clip a corner would then read as covering the whole label. The largest single
+ * cover is the honest question anyway: "is this word behind something".
+ *
+ * @param {{x: number, y: number, halfW: number, halfH: number}} box — NDC
+ * @param {Array<{xMin: number, xMax: number, yMin: number, yMax: number}>} rects
+ * @returns {number} 0–1
+ */
+export function coveredFraction(box, rects) {
+  const area = 4 * box.halfW * box.halfH;
+  if (!(area > 0) || !rects?.length) return 0;
+  let worst = 0;
+  for (const rect of rects) {
+    const covered = overlapArea(box, rect) / area;
+    if (covered > worst) worst = covered;
+  }
+  return worst;
+}
 
 /**
  * @typedef {object} LabelEntry
  * @property {import('three').Object3D | null} object — billboard, for its world position
  * @property {number} importance — higher wins contested space
- * @property {boolean} pinned — never hidden
+ * @property {boolean} pinned — never loses a contest for space
+ * @property {boolean} [yieldWhenUnreadable] — pinned, but hides when clipped by
+ *   the canvas or covered by a panel; for annotations whose text is on screen
+ *   somewhere else anyway
  * @property {number} [width] — label width in world units (world-sized entries)
  * @property {number} [height] — label height in world units (world-sized entries)
  * @property {number} [screenWidthPx] — drawn width in CSS pixels; wins over `width`
@@ -63,11 +187,17 @@ export function createLabelDeclutterStore() {
       return () => entries.delete(entry);
     },
 
-    /** Re-rank (throttled) and ease every label toward its target. */
-    update(camera, viewport, now, delta) {
+    /**
+     * Re-rank (throttled) and ease every label toward its target.
+     *
+     * `chromeRects` are the persistent panels as NDC rectangles over the canvas
+     * (see `measureChromeRects`). Omit them and only the canvas edge is
+     * respected.
+     */
+    update(camera, viewport, now, delta, chromeRects = NO_RECTS) {
       if (now - lastPass >= PASS_INTERVAL_MS) {
         lastPass = now;
-        resolveLabels([...entries], camera, viewport);
+        resolveLabels([...entries], camera, viewport, chromeRects);
       }
       const step = FADE_SECONDS > 0 ? Math.min(1, delta / FADE_SECONDS) : 1;
       for (const entry of entries) {
@@ -95,8 +225,9 @@ const scratch = new THREE.Vector3();
  * @param {LabelEntry[]} entries
  * @param {import('three').Camera} camera
  * @param {{ width: number, height: number }} viewport
+ * @param {Array<{xMin: number, xMax: number, yMin: number, yMax: number}>} [chromeRects]
  */
-export function resolveLabels(entries, camera, viewport) {
+export function resolveLabels(entries, camera, viewport, chromeRects = NO_RECTS) {
   if (!entries.length) return;
   const aspect = viewport.width / Math.max(1, viewport.height);
 
@@ -140,12 +271,22 @@ export function resolveLabels(entries, camera, viewport) {
   const kept = [];
   for (let i = 0; i < projected.length; i += 1) {
     const candidate = projected[i];
+    // Unreadable is decided before contested, and it is the one test pinning
+    // does not simply win: pinning is a claim about which label deserves
+    // CONTESTED space, and a label nobody can see is not in the contest. What
+    // pinning buys here is a higher bar, not an exemption — plus
+    // `yieldWhenUnreadable` for annotations whose text is on screen somewhere
+    // else anyway (the accent caption, which the reading strip prints).
+    const pinned = candidate.entry.pinned === true && !candidate.entry.yieldWhenUnreadable;
+    const unreadable =
+      insideFraction(candidate, FULL_WINDOW) < (pinned ? MIN_ON_CANVAS_PINNED : MIN_ON_CANVAS) ||
+      coveredFraction(candidate, chromeRects) > (pinned ? MAX_COVERED_PINNED : MAX_COVERED);
     if (candidate.entry.pinned) {
-      candidate.entry.target = 1;
-      kept.push(candidate);
+      candidate.entry.target = unreadable ? 0 : 1;
+      if (!unreadable) kept.push(candidate);
       continue;
     }
-    let blocked = i >= MAX_PAIRWISE;
+    let blocked = i >= MAX_PAIRWISE || unreadable;
     for (let k = 0; !blocked && k < kept.length; k += 1) {
       const other = kept[k];
       if (

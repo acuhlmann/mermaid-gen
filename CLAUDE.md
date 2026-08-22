@@ -870,16 +870,29 @@ sticky` nav row, because the height cap makes every small screen a scrolling
   horizon away from itself, so "recede" could move a colour further from what it recedes into.
   Links are judged by their endpoints — one that touches the focused layer survives, because what a
   layer is wired to is most of what reading it means.
-- **A portrait canvas is looked at from higher up.** Almost every kind here is a wide flat world,
-  and from the desktop three-quarter angle its footprint projects to under half its width in
+- **A portrait canvas is looked at from higher up, a letterbox one from lower down — and the
+  aspect that decides is the FRAMED one, not the canvas.** Almost every kind here is a wide flat
+  world, and from the desktop three-quarter angle its footprint projects to under half its width in
   height — right in a landscape frame, wasteful in a portrait one (measured: the fused composite
   left 46% of a phone canvas empty above and below a width-bound world). `frameDirectionForAspect`
-  lifts the elevation toward 52° as the aspect falls, and **touches only elevation** — the diagonal
-  azimuth is what makes these read as built rather than plotted. It applies to the FIRST fit only,
-  and a resize re-opens the question **only while the viewer has not orbited**: OrbitControls'
-  `start` event fires on input and not on the intro's programmatic auto-rotate, which is exactly
-  the difference between "nobody has chosen an angle" and "this is the angle they chose". A
-  foldable opening from a cover to an inner screen is a resize nobody asked for.
+  lifts the elevation toward 52° as the aspect falls and drops it toward 19° as it rises past 1.6,
+  and **touches only elevation** — the diagonal azimuth is what makes these read as built rather
+  than plotted. The letterbox end is the one a foldable cover hands you: a 717x512 cover is a
+  comfortable 1.4 landscape, while the window its reading strip and the app's composer band leave
+  is a **3.0**, and those two want the scene seen from very different heights. `framedAspect`
+  computes it; pass that, never `camera.aspect`. It applies to the FIRST fit only, and a resize
+  re-opens the question **only while the viewer has not orbited**: OrbitControls' `start` event
+  fires on input and not on the intro's programmatic auto-rotate, which is exactly the difference
+  between "nobody has chosen an angle" and "this is the angle they chose". A foldable opening from
+  a cover to an inner screen is a resize nobody asked for.
+- **Two opposed panels are the one case where reserving honestly is worse than overlapping.** The
+  per-edge cap is a rule about ONE panel, and a short screen has a band at each end: on a 717x512
+  foldable cover the reading strip claimed 0.28 of the top and the composer band plus taskbar 0.26
+  of the bottom — each legal, and together they left the city 46% of the height, so it rendered as
+  a small island of towers in a frame of nothing. `MIN_AXIS_WINDOW` (0.55) floors what an axis
+  keeps for the subject and scales the excess back across the pair **in proportion**, so the
+  thicker band still claims more. The annotation headroom is applied AFTER that scaling, because it
+  is the subject's own margin rather than a claim by a panel.
 - **Item labels are sized for the reader, not for the camera — the fifth time that rule has been
   paid for here.** `metaphorScreenScale.js` converts exactly: at distance `d`, one screen pixel
   spans `2·d·tan(fov/2) / viewportHeightPx` world units. Before it, a near label rendered ~3x a far
@@ -890,16 +903,61 @@ sticky` nav row, because the height cap makes every small screen a scrolling
   conversion away on exactly the small scenes it mattered most on. And the declutter pass must be
   told the **pixel** box (`screenWidthPx`/`screenHeightPx`), never left to project the authored
   world size, which now reaches the screen unscaled at exactly one camera distance.
-- **A screen-constant label makes the camera fit a fixed point, so the fit iterates.** The first
-  solve measures labels at the _pre-fit_ distance; on a scene the fit pulls back from, every name
-  then grows and the outermost ones hang off the edge of the frame the solve just chose.
-  `SceneFrame` re-solves until the distance stops moving (≤1%, at most four passes); with no
-  chrome and no labels the second pass agrees immediately and it costs one frame.
+- **A screen-constant label is not a constraint on the fit, it is a fixed point of it — so text is
+  out of the fit entirely.** A label's world size grows as the camera pulls back, so a solve that
+  contains labels settles wherever the labels stop growing rather than where the subject fits.
+  Measured on a 717x512 foldable cover: the city's own geometry needed 45 units and its labels
+  pushed the answer to 118, so the towers rendered at **22% of the canvas width** inside a frame of
+  empty gradient. `collectFramePoints` now prunes troika text by its material, the same way
+  `itemBounds.js` does — the same "is it the subject or scaffolding" rule the shadow catcher and
+  the ambience layers are pruned by, applied to the one thing that had been missed: **a name is not
+  the thing it names.** Two things carry the other half. `SceneFrame` reserves
+  `ANNOTATION_HEADROOM_PX` (one label's drawn height) above the subject, because labels are drawn
+  ABOVE their items and a fit ending at the tallest item ends where its label starts — that is a
+  pixel constant, not a fraction, so it costs a 4K display nothing and a foldable cover a visible
+  slice. And the declutter pass decides readability in screen space, where the question actually
+  lives (below). `SceneFrame` still re-solves until the distance stops moving; with text out of the
+  fit the second pass now agrees immediately on most scenes.
+- **The declutter pass knows where the panels are, and "unreadable" outranks "contested".** A label
+  the canvas CLIPS or a panel COVERS is worse than an absent one, and it was still holding its box
+  against every label that would have fitted. Both bars are near-absolute for an ordinary label
+  (`MIN_ON_CANVAS` 0.97 — 0.9 was not close enough; "Fulfillment" hung 6px off a 390px phone,
+  scored 0.94 and rendered as "Fulfillmen") and laxer for a **pinned** one, because pinning means
+  "this name has no second copy". Pinning is a claim about CONTESTED space, so it buys a laxer bar
+  rather than an exemption: a fused world's affinity placards sit at the frame edge by
+  construction (`assignSiteLabelOffsets` puts them outward from the world centre), and the accented
+  item's own label floats above the tallest thing in the scene, which on a short screen is inside
+  the reading strip. `yieldWhenUnreadable` is the third setting, for an annotation whose text is on
+  screen anyway — only the accent caption uses it. Two implementation notes: coverage is the
+  **largest single panel**, never the sum (the composer band and the taskbar overlap on every
+  phone, so summing reads a grazed corner as a buried label), and it is measured against
+  `measureChromeRects` — the panels' real rectangles — **not** the camera's safe area, which is a
+  reservation (span-discounted, capped, scaled back) and a poor map of which pixels are covered.
 - **The accent caption has to CLAIM its box, not merely be drawn over everything.** It is
   depth-test-free by design (the accented item is often the buried one), which meant item labels
   knew nothing about it and landed underneath — measured on the city, the caption covered both
   "API Gateway" and the tower beside it. It now registers with the declutter store as a pinned,
   high-importance entry, so the labels around it step aside instead.
+- **The caption stands down where the reading strip is a band, and that is a deduplication rather
+  than a compromise.** The strip prints the accented item's note as the scene's thesis
+  (`accentThesisFromDsl`), so below the 720px phone breakpoint — the same number App.css uses,
+  because the layout is what the rule is about — the pin's copy is the same sentence twice within
+  one glance, and the second copy is drawn across the subject. Measured on the fused commerce
+  composite: 224 CSS px of a 390px phone and 220 px of a 717px foldable cover, over two item labels
+  and a link caption. The pin, stem and ring stay; they carry the part the strip cannot — WHICH
+  item. `accentCaptionFit.js` holds the rule (a sibling module, because a component file that also
+  exports a function loses fast refresh); a second bar catches a four-line note in a short
+  landscape window, and there is deliberately no width bar because `CAPTION_MAX_WIDTH` already caps
+  the plate at ~238 CSS px, which no canvas past the band threshold cares about.
+- **The compact reading strip caps its axis chips on a small canvas.** Every chip is a whole
+  authored phrase ("relative service importance from prompt"), so a phone gives each one a row of
+  its own: the fused commerce composite's six axes built a **277px band on an 844px screen**, a
+  third of the phone spent explaining a scene that then had two thirds left to be in — and the
+  camera dutifully reserved all of it. Three chips plus a `+N` counter that names the rest in its
+  tooltip. Nothing is lost: the guided read speaks every legend phrase, the tap inspector labels
+  each metric it prints, and fullscreen restores the full legend panel. The markup is identical on
+  every canvas — the phone and short-landscape CSS blocks decide — so the safe-area measurement
+  picks the change up on its own.
 - **A group's name must not be drawn where its own members stand.** Three separate versions of one
   bug. City district placards sat on the patch's FAR edge, so from the default (+x, +y, +z) view
   every district name — the only thing naming what the legend calls the district axis — was behind

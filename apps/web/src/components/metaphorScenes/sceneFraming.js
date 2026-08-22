@@ -58,6 +58,10 @@ const BASE_ELEVATION_DEG = THREE.MathUtils.radToDeg(Math.asin(DEFAULT_FRAME_DIRE
 const TALL_ELEVATION_DEG = 52;
 /** Aspect at which the portrait lift is fully applied (≈ a phone in portrait). */
 const TALL_ASPECT = 0.4;
+/** Elevation a letterbox window is viewed from — still a three-quarter view. */
+const WIDE_ELEVATION_DEG = 19;
+/** Aspect at which the letterbox drop is fully applied. */
+const WIDE_ASPECT = 3;
 
 /**
  * The angle a scene should first be seen from on THIS canvas.
@@ -70,19 +74,39 @@ const TALL_ASPECT = 0.4;
  * below the world. Raising the camera toward top-down makes that footprint
  * project rounder, so the same width-bound fit fills the height too.
  *
+ * The other end of the same argument is a LETTERBOX, and it is the one a
+ * foldable cover hands you: between a full-width reading strip and the app's
+ * composer band, a 717x512 cover leaves a window of aspect 3. A flat world seen
+ * from high up projects rounder — which is exactly wrong there, because the
+ * height is the axis that ran out. Dropping toward 19° foreshortens the
+ * footprint back into the band the chrome left, and 19° is still a built
+ * three-quarter view rather than a plan.
+ *
+ * Pass the FRAMED aspect (see `framedAspect`), not the canvas aspect: the two
+ * disagree most on exactly the short screens this exists for.
+ *
  * Azimuth is untouched — the diagonal is what makes these scenes read as
  * built rather than plotted, and a phone has no reason to lose it.
  *
- * @param {number} aspect — canvas width / height
+ * @param {number} aspect — framed width / height
  * @returns {THREE.Vector3} unit direction from subject toward camera
  */
 export function frameDirectionForAspect(aspect) {
   const safe = typeof aspect === 'number' && Number.isFinite(aspect) ? aspect : 1;
-  if (safe >= 1) return DEFAULT_FRAME_DIRECTION.clone();
+  if (safe >= 1) {
+    if (safe <= 1.6) return DEFAULT_FRAME_DIRECTION.clone();
+    const wide = Math.min(1, (safe - 1.6) / (WIDE_ASPECT - 1.6));
+    return directionAtElevation(
+      BASE_ELEVATION_DEG + (WIDE_ELEVATION_DEG - BASE_ELEVATION_DEG) * wide
+    );
+  }
   const t = Math.min(1, Math.max(0, (1 - safe) / (1 - TALL_ASPECT)));
-  const elevation = THREE.MathUtils.degToRad(
-    BASE_ELEVATION_DEG + (TALL_ELEVATION_DEG - BASE_ELEVATION_DEG) * t
-  );
+  return directionAtElevation(BASE_ELEVATION_DEG + (TALL_ELEVATION_DEG - BASE_ELEVATION_DEG) * t);
+}
+
+/** The default azimuth, raised or dropped to `degrees` above the ground plane. */
+function directionAtElevation(degrees) {
+  const elevation = THREE.MathUtils.degToRad(degrees);
   const horizontal = Math.cos(elevation);
   return new THREE.Vector3(
     horizontal * Math.SQRT1_2,
@@ -99,6 +123,35 @@ export function frameDirectionForAspect(aspect) {
  */
 const MAX_SAFE_EDGE = 0.3;
 
+/**
+ * Floor under the window an axis keeps for the subject, whatever the chrome on
+ * BOTH its edges adds up to. The per-edge cap alone does not provide one: it is
+ * a rule about one panel, and a short canvas has a band on each end. Measured on
+ * a 717x512 foldable cover, the reading strip claimed 0.28 of the top and the
+ * app's composer band plus taskbar claimed 0.26 of the bottom — each legal, and
+ * together they left the city 46% of the height to live in, so it rendered as a
+ * small island of towers inside a frame of empty gradient.
+ *
+ * Two opposed panels are the case where reserving honestly is worse than
+ * overlapping slightly: the subject cannot lean away from both, so every pixel
+ * reserved is paid twice. Past this floor the excess is scaled back across the
+ * pair, in proportion — the thicker band still claims more, and the thinner one
+ * is not asked to give up what the thick one wants.
+ */
+const MIN_AXIS_WINDOW = 0.55;
+
+/** Cap on the annotation line, so a tiny canvas cannot reserve its whole top. */
+const MAX_HEADROOM = 0.1;
+
+/**
+ * The annotation line above the subject, in CSS pixels — one item label's drawn
+ * height (`ItemLabel` plates ~13.5px type into ~21px) plus a little air. It is
+ * a pixel constant rather than a fraction because labels are screen-constant:
+ * the room a name needs is the same on every canvas, so it costs a 4K display
+ * almost nothing and a foldable cover a visible slice, which is exactly right.
+ */
+export const ANNOTATION_HEADROOM_PX = 26;
+
 /** No chrome — the whole canvas is the frame. */
 export const FULL_SAFE_AREA = Object.freeze({ top: 0, right: 0, bottom: 0, left: 0 });
 
@@ -106,6 +159,22 @@ function edge(value) {
   return typeof value === 'number' && Number.isFinite(value)
     ? Math.min(MAX_SAFE_EDGE, Math.max(0, value))
     : 0;
+}
+
+/**
+ * The pair of claims on one axis, scaled back together if they would leave the
+ * subject less than `MIN_AXIS_WINDOW` of it.
+ *
+ * @param {number} low — claim on the near edge (bottom / left)
+ * @param {number} high — claim on the far edge (top / right)
+ * @returns {[number, number]}
+ */
+export function scaleAxisClaims(low, high) {
+  const total = low + high;
+  const budget = 1 - MIN_AXIS_WINDOW;
+  if (total <= budget || total <= 0) return [low, high];
+  const factor = budget / total;
+  return [low * factor, high * factor];
 }
 
 /**
@@ -118,16 +187,53 @@ function edge(value) {
  * subject — the iceberg's above-water blocks, a city's tallest tower — the part
  * it covers is exactly the part the metaphor exists to show.
  *
+ * `headroom` is a line of annotation above the subject, as a fraction of the
+ * canvas height. Item labels are not part of the fit — a name is not the thing
+ * it names — but they are drawn ABOVE their items, so a fit that ends exactly
+ * at the tallest item ends exactly where its label starts. Measured on a
+ * 717x512 foldable cover: the accented tower's name landed astride the reading
+ * strip's lower edge, half of it dimmed by a translucent panel, which reads as
+ * a glitch. It is applied AFTER the axis scaling because it is the subject's
+ * own margin, not a claim by a panel, so the rule that stops two panels
+ * squeezing the subject must not spend it.
+ *
  * @param {{top?: number, right?: number, bottom?: number, left?: number}} [safeArea]
+ * @param {number} [headroom] — annotation line above the subject, 0–0.1
  * @returns {{ xMin: number, xMax: number, yMin: number, yMax: number }}
  */
-export function safeAreaWindow(safeArea) {
+export function safeAreaWindow(safeArea, headroom = 0) {
+  const [bottom, top] = scaleAxisClaims(edge(safeArea?.bottom), edge(safeArea?.top));
+  const [left, right] = scaleAxisClaims(edge(safeArea?.left), edge(safeArea?.right));
+  const room =
+    typeof headroom === 'number' && Number.isFinite(headroom)
+      ? Math.min(MAX_HEADROOM, Math.max(0, headroom))
+      : 0;
   return {
-    xMin: -1 + 2 * edge(safeArea?.left),
-    xMax: 1 - 2 * edge(safeArea?.right),
-    yMin: -1 + 2 * edge(safeArea?.bottom),
-    yMax: 1 - 2 * edge(safeArea?.top)
+    xMin: -1 + 2 * left,
+    xMax: 1 - 2 * right,
+    yMin: -1 + 2 * bottom,
+    yMax: 1 - 2 * (top + room)
   };
+}
+
+/**
+ * The aspect the subject is actually framed into: the canvas aspect stretched
+ * by how much of each axis the chrome left. This is what the view angle should
+ * be chosen from, not the canvas aspect — a 717x512 foldable cover reads as a
+ * comfortable 1.4 landscape while the window between its two bands is a 3.0
+ * letterbox, and those two want the scene seen from very different heights.
+ *
+ * @param {number} aspect — canvas width / height
+ * @param {{top?: number, right?: number, bottom?: number, left?: number}} [safeArea]
+ * @returns {number}
+ */
+export function framedAspect(aspect, safeArea) {
+  const safe = typeof aspect === 'number' && Number.isFinite(aspect) && aspect > 0 ? aspect : 1;
+  const window_ = safeAreaWindow(safeArea);
+  const width = (window_.xMax - window_.xMin) / 2;
+  const height = (window_.yMax - window_.yMin) / 2;
+  if (!(width > 0) || !(height > 0)) return safe;
+  return safe * (width / height);
 }
 
 /** Mutable fit record shared with the atmosphere layer. */
@@ -136,9 +242,36 @@ export function createSceneFit() {
 }
 
 /**
+ * True for troika text — the glyph mesh drei's `<Text>` renders. It carries no
+ * marker of its own, so it is found through its material, exactly as
+ * `itemBounds.js` finds it.
+ *
+ * @param {THREE.Object3D} object
+ */
+function isSceneText(object) {
+  const material = object.material;
+  if (!material) return false;
+  if (Array.isArray(material)) return material.some((entry) => entry?.isTroikaTextMaterial);
+  return Boolean(material.isTroikaTextMaterial);
+}
+
+/**
  * World-space sample points describing what the camera must contain: every
  * visible mesh's vertices when it is small enough to walk, its bounding-box
  * corners otherwise. Subtrees flagged `userData[FRAME_IGNORE]` are pruned.
+ *
+ * Scene text is pruned too, and it is the same rule the ground-shadow catcher
+ * and the ambience layers are pruned by: **a name is not the thing it names.**
+ * A label is sized for the READER (`metaphorScreenScale.js`), so its world size
+ * grows as the camera pulls back — which makes it a fixed point of the fit, not
+ * a constraint on it. Left in, that feedback loop settles wherever the labels
+ * stop growing rather than where the subject fits: measured on a 717x512
+ * foldable cover, the city's own geometry needed 45 units and its labels pushed
+ * the solve to 118, so the towers rendered at 22% of the canvas width inside a
+ * frame of empty gradient. The labels are still kept readable — they simply
+ * yield when they would be drawn clipped or under a panel, which the declutter
+ * pass decides in screen space where the question actually lives (see
+ * `labelDeclutter.js`).
  *
  * @param {THREE.Object3D} root
  * @returns {THREE.Vector3[]}
@@ -169,6 +302,7 @@ export function collectFramePoints(root) {
   // Manual walk (not traverseVisible) so a flagged subtree can be skipped whole.
   const visit = (object) => {
     if (!object.visible || object.userData?.[FRAME_IGNORE]) return;
+    if (isSceneText(object)) return;
     const geometry = object.geometry;
     if (geometry && points.length < MAX_SAMPLE_POINTS) {
       const position = geometry.attributes?.position;
@@ -281,12 +415,12 @@ function ndcExtent(points, center, basis, distance, shift) {
  * @param {THREE.Vector3} dir
  * @param {number} fovDegrees — vertical field of view
  * @param {number} aspect — viewport width / height
- * @param {{ safeArea?: object, margin?: number }} [options]
+ * @param {{ safeArea?: object, margin?: number, headroom?: number }} [options]
  * @returns {{ distance: number, center: THREE.Vector3, radius: number } | null}
  */
 export function solveFrameFit(points, dir, fovDegrees, aspect, options = {}) {
   if (!points.length) return null;
-  const window_ = safeAreaWindow(options.safeArea);
+  const window_ = safeAreaWindow(options.safeArea, options.headroom);
   const margin =
     typeof options.margin === 'number' && Number.isFinite(options.margin)
       ? Math.max(1, options.margin)

@@ -235,15 +235,43 @@ ones that will bite an edit.
   transparency-sorting trap. That theme substitution is why focus touches almost no primitive; keep
   it that way, and remember additive extras (flow motes, link pulses) ignore colour and must be
   dropped explicitly. Store + contract: `apps/web/src/components/metaphorLayerFocus.js`.
-- **A portrait canvas is looked at from higher up, and only until the viewer orbits.**
-  `frameDirectionForAspect` lifts elevation toward 52° as the aspect falls (azimuth untouched). It
-  applies to the first fit, and a resize may re-pick it only while OrbitControls has raised no
-  `start` event — the intro's programmatic auto-rotate does not count as the viewer choosing an
-  angle. That is what makes a foldable unfolding behave and an orbited scene stay put.
+- **A portrait canvas is looked at from higher up, a letterbox one from lower down — and the aspect
+  that decides is the FRAMED one.** `frameDirectionForAspect` lifts elevation toward 52° as the
+  aspect falls and drops it toward 19° as it rises past 1.6 (azimuth untouched). Pass
+  `framedAspect(camera.aspect, safeArea)`, never `camera.aspect`: a 717x512 foldable cover is a
+  comfortable 1.4 landscape while the window between its two bands is a 3.0 letterbox. It applies
+  to the first fit, and a resize may re-pick it only while OrbitControls has raised no `start`
+  event — the intro's programmatic auto-rotate does not count as the viewer choosing an angle.
+  That is what makes a foldable unfolding behave and an orbited scene stay put.
 - **Scene text is sized in pixels, not world units** (`metaphorScenes/metaphorScreenScale.js`).
-  Keep its clamps pathological; a tight floor silently reinstates the bug on small scenes. A
-  screen-constant label makes the fit a fixed point, so `SceneFrame` re-solves until the distance
-  settles. Labels and the accent caption report their **pixel** box to the declutter pass.
+  Keep its clamps pathological; a tight floor silently reinstates the bug on small scenes. Labels
+  and the accent caption report their **pixel** box to the declutter pass.
+- **Scene text is OUT of the camera fit — a name is not the thing it names.** A screen-constant
+  label grows as the camera pulls back, so a fit containing labels is a fixed point rather than a
+  constraint: measured on a 717x512 foldable cover, the city's geometry needed 45 units and its
+  labels pushed the solve to 118, so the towers rendered at 22% of the canvas width.
+  `collectFramePoints` prunes troika text by its material (as `itemBounds.js` does). Two things pay
+  for it: `SceneFrame` reserves `ANNOTATION_HEADROOM_PX` above the subject (labels are drawn above
+  their items), and the declutter pass drops labels that would be clipped or covered. Before adding
+  any mesh, ask whether it is the subject or scaffolding for it.
+- **The declutter pass knows where the panels are, and "unreadable" beats "contested".**
+  `measureChromeRects` (the panels' real rects, NOT the camera's span-discounted safe area) feeds
+  `resolveLabels`; a clipped or covered label yields instead of holding its box. Pinning buys a
+  **laxer bar, not an exemption** — a fused world's placards sit at the frame edge by construction
+  and the accented item's label floats into the reading strip on short screens. Coverage is the
+  largest single panel, never the sum (composer band and taskbar overlap on every phone).
+- **Two opposed panels are the one case where reserving honestly is worse than overlapping.**
+  `MIN_AXIS_WINDOW` floors what an axis keeps for the subject (0.55) and scales the excess back
+  across the pair in proportion; the annotation headroom is applied after that, being the subject's
+  own margin rather than a panel's claim.
+- **The accent caption stands down where the reading strip is a band** (`accentCaptionFit.js`,
+  720px — the same breakpoint App.css uses). The strip already prints that exact sentence, so below
+  it the caption is the thesis twice within one glance, drawn over the subject. The pin, stem and
+  ring stay.
+- **The compact reading strip caps its axis chips at three on a small canvas**, with a `+N` counter
+  naming the rest in its tooltip. Six authored phrases built a 277px band on an 844px phone and the
+  camera reserved all of it. Same markup on every canvas; the phone and short-landscape CSS blocks
+  decide, so the safe-area measurement follows for free.
 - **A group's name never goes where its own members stand.** City district placards go on the
   patch's near edge, fused affinity placards stand at `group.surfaceY` (their ring is on the ocean
   the islands sit on), and an island's own label goes outward from the world centre. A territory

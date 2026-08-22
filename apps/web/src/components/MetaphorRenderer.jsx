@@ -94,6 +94,7 @@ import { SceneKeyLight, SceneShadowFlags } from './metaphorScenes/SceneKeyLight.
 import { SceneEnvironment } from './metaphorScenes/SceneEnvironment.jsx';
 import { createSceneFit, FULL_SAFE_AREA } from './metaphorScenes/sceneFraming.js';
 import {
+  measureChromeRects,
   measureExternalChromeInsets,
   measureOverlaySafeArea,
   safeAreaChanged
@@ -117,6 +118,23 @@ const APP_CHROME_INSET_PROPERTIES = [
 
 /** Past this much of the canvas, chrome stops being an inset and becomes a wall. */
 const MAX_APP_CHROME_INSET_FRACTION = 0.34;
+
+/** Stable identity for "no panels", so the common case never re-renders. */
+const EMPTY_CHROME_RECTS = Object.freeze([]);
+
+/** NDC movement below which a panel has not meaningfully moved (≈ half a pixel). */
+const CHROME_RECT_EPSILON = 0.004;
+
+/** True when the panels moved enough for the label pass to care. */
+function chromeRectsChanged(a, b) {
+  if (a.length !== b.length) return true;
+  for (let i = 0; i < a.length; i += 1) {
+    for (const key of ['xMin', 'xMax', 'yMin', 'yMax']) {
+      if (Math.abs(a[i][key] - b[i][key]) > CHROME_RECT_EPSILON) return true;
+    }
+  }
+  return false;
+}
 
 const ORBIT_CAMERA = { position: [18, 14, 18], fov: 45 };
 
@@ -1255,6 +1273,10 @@ function MetaphorRendererImpl(
   // What the metaphor's own panels are standing on, so the camera frames the
   // scene into what they leave instead of behind them. See overlaySafeArea.js.
   const [safeArea, setSafeArea] = useState(FULL_SAFE_AREA);
+  // Where those panels actually are, which is a different question from how much
+  // of the frame they cost — the labels need the map, the camera needs the
+  // reservation. See measureChromeRects in overlaySafeArea.js.
+  const [chromeRects, setChromeRects] = useState(EMPTY_CHROME_RECTS);
 
   useImperativeHandle(ref, () => ({ getContainer: () => containerRef.current }), []);
 
@@ -1358,6 +1380,11 @@ function MetaphorRendererImpl(
       const nextArea = measureOverlaySafeArea(container, { includeExternal: measureAppChrome });
       if (!nextArea) return;
       setSafeArea((current) => (safeAreaChanged(current, nextArea) ? nextArea : current));
+      // Quantised the same way and for the same reason: this feeds a per-frame
+      // pass, so a new array identity on every reflow would re-run the label
+      // resolve for a rect that moved by a pixel.
+      const nextRects = measureChromeRects(container, { includeExternal: measureAppChrome });
+      setChromeRects((current) => (chromeRectsChanged(current, nextRects) ? nextRects : current));
       // Write the raw pixel insets for external app chrome as CSS variables so
       // the metaphor's own panels position themselves clear of it rather than
       // under it: the reading strip and title card push down off the top-shell,
@@ -1553,7 +1580,7 @@ function MetaphorRendererImpl(
                           </group>
                         </Center>
                       </SceneFrame>
-                      <LabelDeclutterRunner store={declutter} />
+                      <LabelDeclutterRunner store={declutter} chromeRects={chromeRects} />
                       <SceneShadowFlags contentKey={contentKey} targetRef={contentRootRef} />
                     </MetaphorChangeHighlightProvider>
                   </LabelDeclutterContext.Provider>

@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import {
   CHROME_ATTR,
   EXTERNAL_CHROME_ATTR,
+  measureChromeRects,
   measureExternalChromeInsets,
   measureOverlaySafeArea,
   overlaySafeArea,
@@ -231,6 +232,41 @@ describe('measureOverlaySafeArea with external chrome', () => {
     const container = stubElement(canvas);
     const area = measureOverlaySafeArea(container, { document: stubDocument([chrome]) });
     expect(area).toEqual({ top: 0, right: 0, bottom: 0, left: 0 });
+  });
+});
+
+describe('measureChromeRects', () => {
+  const CANVAS = { left: 0, top: 0, right: 390, bottom: 844, width: 390, height: 844 };
+
+  it('reports where a panel is, not what it costs', () => {
+    // The safe area discounts a panel by its span, caps it per edge and scales
+    // it back per axis — all right for deciding how far the camera pulls back,
+    // and all wrong as a map of which pixels are covered. The label pass needs
+    // the map.
+    const strip = { left: 8, top: 0, right: 382, bottom: 185, width: 374, height: 185 };
+    const rects = measureChromeRects(stubElement(CANVAS, { chrome: [strip] }), {
+      includeExternal: false
+    });
+    expect(rects).toHaveLength(1);
+    expect(rects[0].xMin).toBeCloseTo((8 / 390) * 2 - 1, 5);
+    expect(rects[0].xMax).toBeCloseTo((382 / 390) * 2 - 1, 5);
+    // NDC's y axis runs the other way from the DOM's.
+    expect(rects[0].yMax).toBeCloseTo(1, 5);
+    expect(rects[0].yMin).toBeCloseTo(1 - (185 / 844) * 2, 5);
+  });
+
+  it('includes the app chrome, which paints over the canvas too', () => {
+    const shell = { left: 16, top: 16, right: 374, bottom: 64, width: 358, height: 48 };
+    const rects = measureChromeRects(stubElement(CANVAS), { document: stubDocument([shell]) });
+    expect(rects).toHaveLength(1);
+    expect(rects[0].yMin).toBeCloseTo(1 - (64 / 844) * 2, 5);
+  });
+
+  it('reports nothing rather than throwing when there is nothing to measure', () => {
+    expect(measureChromeRects(null)).toEqual([]);
+    expect(
+      measureChromeRects(stubElement({ left: 0, top: 0, right: 0, bottom: 0, width: 0, height: 0 }))
+    ).toEqual([]);
   });
 });
 

@@ -173,12 +173,12 @@ export function ItemLabel({
  * Drives the declutter pass and the label fades from one frame subscription.
  * Mounted once by MetaphorRenderer inside the canvas.
  */
-export function LabelDeclutterRunner({ store }) {
+export function LabelDeclutterRunner({ store, chromeRects = null }) {
   const camera = useThree((state) => state.camera);
   const size = useThree((state) => state.size);
   useFrame((_, delta) => {
     if (!store) return;
-    store.update(camera, size, performance.now(), delta);
+    store.update(camera, size, performance.now(), delta, chromeRects ?? undefined);
   });
   return null;
 }
