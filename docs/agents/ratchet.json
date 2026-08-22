@@ -1,6 +1,6 @@
 {
-  "updated": "2026-08-21",
-  "$comment": "monolithLoc.apps/web/src/components/DiagramCanvas.jsx budget intentionally left at 1968 (not raised) despite the measured 1983 regression — see issue #363; loosening it would erase the record instead of fixing it.",
+  "updated": "2026-08-22",
+  "$comment": "monolithLoc.apps/web/src/components/DiagramCanvas.jsx budget intentionally left at 1968 (not raised) despite the measured 1987 regression — see issue #363; monolithLoc.apps/server/src/routes/copilot.ts budget intentionally left at 1270 (not raised) despite the measured 1272 regression — see issue #381; loosening either would erase the record instead of fixing it.",
   "metrics": {
     "monolithLoc": {
       "apps/web/src/ArchiSlop.jsx": {
@@ -66,11 +66,11 @@
     },
     "suite": {
       "files": {
-        "budget": 372,
+        "budget": 376,
         "initial": 366
       },
       "cases": {
-        "budget": 3774,
+        "budget": 3867,
         "initial": 3675
       }
     }
