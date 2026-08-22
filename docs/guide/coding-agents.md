@@ -69,6 +69,7 @@ Edit [`.cursor/skills/`](../../.cursor/skills/) only. [`.claude/skills/mermaid`]
 - [`docs/agents/testing.md`](../agents/testing.md) — diff-scoped tests, helpers, slow suites
 - [`docs/agents/sensors.md`](../agents/sensors.md) — lint, dep-cruiser, and formatter guidance
 - [`docs/agents/balanced-coupling-priorities.md`](../agents/balanced-coupling-priorities.md) — ranked modularity focus areas (Balanced Coupling model)
+- [`docs/automations/README.md`](../automations/README.md) — scheduled **feature** automations (slot quality; playbook + ledger + budget guard)
 - [`docs/office-continuity.md`](../office-continuity.md) — office working memory + `runWalk` (v1 shipped)
 - [`docs/guide/openusd-approach.md`](openusd-approach.md) — Metaphor3D USDA stub vs OpenUSD Stage; do not claim Core compliance
 - [`change-diagram-schema.md`](../recipes/change-diagram-schema.md) — schema change playbook

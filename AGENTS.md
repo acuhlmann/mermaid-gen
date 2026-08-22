@@ -316,6 +316,16 @@ when you touch one, and each is a trap if you assume the obvious:
 Ledgers under `docs/routines/ledger/` are the durable memory across cold-start runs — read one
 before starting, append a row when finishing, including runs that changed nothing.
 
+## Scheduled feature automations
+
+Slot-quality work — validation gates, prompts, benches, renderer fixes for one diagram mode — runs
+on a separate shelf: [`docs/automations/`](docs/automations/README.md). Same three-piece contract
+(playbook + ledger + cron trigger), same `npm run routine:guard` budget enforcement, but these
+**do** touch product code (and never write slot content — ADR-0010 still applies). Today:
+[`docs/automations/anything.md`](docs/automations/anything.md) (daily Anything improvements).
+When you learn something durable from a feature-automation run, mirror it in **both** this file and
+[`CLAUDE.md`](CLAUDE.md), same as NFR routines.
+
 ## CopilotKit skill note
 
 - You have access to the CopilotKit skill set in the local `.agents/` folder.
