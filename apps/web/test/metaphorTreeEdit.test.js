@@ -76,3 +76,47 @@ describe('metaphor tree graph edit', () => {
     expect(renameTreeEdge(TREE, 'ceo', 'cto', 'x')).toEqual({ ok: false, reason: 'not-graph' });
   });
 });
+
+describe('metaphor tree edit guards', () => {
+  const city = '{"metaphor":"city","items":[]}';
+
+  it('refuses non-tree sources', () => {
+    expect(addLinkedTreeNode(city, 'ceo')).toEqual({ ok: false, reason: 'not-tree' });
+    expect(deleteTreeNode(city, 'ceo')).toEqual({ ok: false, reason: 'not-tree' });
+    expect(renameTreeNode(city, 'ceo', 'Chief')).toEqual({ ok: false, reason: 'not-tree' });
+  });
+
+  it('returns missing when the node or parent does not exist', () => {
+    expect(addLinkedTreeNode(TREE, 'missing')).toEqual({ ok: false, reason: 'missing' });
+    expect(deleteTreeNode(TREE, 'missing')).toEqual({ ok: false, reason: 'missing' });
+    expect(renameTreeNode(TREE, 'missing', 'Ghost')).toEqual({ ok: false, reason: 'missing' });
+  });
+
+  it('allocates a default label when add receives a blank name', () => {
+    const result = addLinkedTreeNode(TREE, 'ceo', '   ');
+    expect(result).toMatchObject({ ok: true, newId: 'n1', newLabel: 'Item 1' });
+  });
+
+  it('is a no-op when rename label is unchanged', () => {
+    expect(renameTreeNode(TREE, 'platform', 'Platform Team')).toEqual({ ok: true, source: TREE });
+  });
+
+  it('removes links touching deleted nodes', () => {
+    const withLinks = JSON.stringify(
+      {
+        metaphor: 'tree',
+        scene: { theme: 'whiteboard', camera: 'orbit' },
+        items: [
+          { id: 'ceo', label: 'CEO', weight: 8 },
+          { id: 'cto', label: 'CTO', parent: 'ceo', weight: 6 }
+        ],
+        links: [{ from: 'ceo', to: 'cto', label: 'reports' }]
+      },
+      null,
+      2
+    );
+    const result = deleteTreeNode(withLinks, 'cto');
+    expect(result.ok).toBe(true);
+    expect(JSON.parse(result.source).links).toEqual([]);
+  });
+});
