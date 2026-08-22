@@ -305,11 +305,13 @@ when you touch one, and each is a trap if you assume the obvious:
   nobody is watching teaches an agent to raise the budget instead of fixing the code. Run it
   yourself when you want the numbers (`--json` for machine-readable, `--with-lint` for the ESLint
   pass); when a budget genuinely has to rise, raise it with a written `reason`.
-- **A routine records; it does not refactor.** `docs/agents/balanced-coupling-priorities.md` says
-  split _on contact_, and a schedule has no feature to be on contact with — so coupling findings
-  become issues and priority-doc updates, never unprompted hub splits. Same reason ADR-0007's
-  two-week quiet period still gates every `warn` → `error` promotion: a routine may present the
-  evidence, a human decides.
+- **As of ADR-0016, `improve` acts on coupling and lint findings instead of only reporting them.**
+  It may split a monolith itself when the fix matches an extraction pattern already used elsewhere
+  in the file (self-merged, one slice per run — see `docs/routines/improve.md` § 7), and may promote
+  a lint rule from `warn` to `error` itself once a mechanical grep shows ADR-0007's two-week quiet
+  period held (§ 8). Neither needs a human decision anymore; both still go through the same
+  budget/green-CI/escalation rules as every other routine change. ADR-0010 (no slot content) and "no
+  new dependencies" are unchanged.
 
 Ledgers under `docs/routines/ledger/` are the durable memory across cold-start runs — read one
 before starting, append a row when finishing, including runs that changed nothing.

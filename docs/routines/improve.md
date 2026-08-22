@@ -2,7 +2,7 @@
 name: improve
 tier: code-writing
 schedule: '0 8 * * *'
-maxFiles: 8
+maxFiles: 10
 allowedPaths:
   - docs/**
   - '*.md'
@@ -13,10 +13,9 @@ allowedPaths:
   - packages/shared/test/**
   - apps/*/tsconfig.strict.json
   - apps/web/src/utils/**
-  - apps/server/src/agents/**
-forbiddenPaths:
   - apps/web/src/components/**
   - apps/web/src/state/**
+  - apps/server/src/agents/**
   - apps/server/src/routes/**
   - apps/server/src/mcp/**
 ---
@@ -39,8 +38,6 @@ Three hand-maintained registers claim numbers reality has moved past. Recompute 
 the `CLAUDE.md` § File-size budgets table, [`docs/decisions/0005-monolith-splits.md`](../decisions/0005-monolith-splits.md),
 and [`docs/agents/balanced-coupling-priorities.md`](../agents/balanced-coupling-priorities.md)
 § Implementation progress (including its **Last reviewed** date).
-
-Correcting a number is in budget. Deciding a file should be _split_ is not.
 
 ### 2. Ratchet drift
 
@@ -97,17 +94,40 @@ tells every agent to prefer its terms — so glossary drift silently degrades ev
 title and test name. `README.md` and [`docs/guide/README.md`](../guide/README.md) carry
 near-identical operator tables that will diverge.
 
+### 7. Coupling splits (ADR-0016)
+
+A file over its [ADR-0005](../decisions/0005-monolith-splits.md) budget, or a duplicated wire
+constant flagged in [`docs/agents/balanced-coupling-priorities.md`](../agents/balanced-coupling-priorities.md),
+is in budget **when it matches an extraction pattern already used elsewhere in the file** —
+closure helpers into a sibling `*Helpers.{js,ts}`, a per-feature `register*`/feature hook, a
+duplicated enum into `packages/shared`. Do the smallest slice that clears the specific violation
+(e.g. the one family of graph-edit handlers that pushed the file over budget), not a full
+reorganisation. Update the ADR-0005 table and `balanced-coupling-priorities.md` § Implementation
+progress in the same PR.
+
+If the extraction isn't a clear instance of an existing pattern — the seam is ambiguous, or fixing
+it means picking between two reasonable designs — push the branch, open the PR, do **not** merge,
+and say what's unsure in the PR body (ADR-0015's escalation exception). One split per run.
+
+### 8. Lint severity promotion (ADR-0016)
+
+For a rule that has sat at `warn` for at least two weeks: `git log --since="2 weeks ago" -S'<rule
+name>' -- '**/*.js' '**/*.jsx' '**/*.ts' '**/*.tsx'` (or grep the diff of each commit touching
+`eslint-disable` lines) for any suppression added in that window. If the window since the later of
+the rule's introduction or its last promotion attempt (check the ledger) is at least two weeks and
+turns up nothing, flip the rule to `error` in `packages/eslint-config/**`, run `npm run check`, and
+record the evidence (the command and its empty output, the date range) in the PR body and ledger. If
+the window isn't old enough yet or turns up a suppression, leave it as a ledger `todo` — nothing to
+decide, just not ready.
+
 ## Not this routine's job
 
-No unprompted hub splits or refactors. `docs/agents/balanced-coupling-priorities.md` says split _on
-contact_, and a schedule has no feature to be on contact with — so coupling findings become issues
-and priority-doc updates. That is also why `components/`, `state/`, `routes/` and `mcp/` are
-forbidden paths here.
+No new dependencies. Adding a package is a licence/supply-chain/bundle decision — file an issue.
 
-No lint-severity promotion: ADR-0007 wants a two-week quiet period first. Present the evidence in an
-issue; a human decides.
-
-No new dependencies.
+No slot content, ever — ADR-0010 reserves the product's six diagram slots (mermaid, infographic,
+metaphor3d, chart, anything, forms) for the user's own pipeline. Refactoring the code that manages a
+slot (e.g. splitting `diagramStore.js`) is in scope; generating or editing what a slot actually
+contains is not.
 
 ## Verification
 

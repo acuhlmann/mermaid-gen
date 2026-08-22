@@ -194,13 +194,25 @@ test('review may fix a bug in product code, within its file budget', () => {
   assert.deepEqual(result.violations, []);
 });
 
-test('improve may not touch product source outside its allowlist', () => {
+test('improve may split a monolith under ADR-0016 (components/state/routes/mcp are in budget)', () => {
   const { playbook } = loadPlaybook(ROOT, 'improve');
   const result = checkRoutineDiff({
     playbook,
-    changes: [{ status: 'M', file: 'apps/web/src/components/DiagramCanvas.jsx' }]
+    changes: [
+      { status: 'M', file: 'apps/web/src/components/DiagramCanvas.jsx' },
+      { status: 'A', file: 'apps/web/src/components/diagramCanvasSequenceEdit.js' }
+    ]
   });
-  assert.equal(result.ok, false, 'improve does no unprompted refactors');
+  assert.deepEqual(result.violations, []);
+});
+
+test('improve still cannot touch the always-forbidden don’t-touch list even inside a newly allowed directory', () => {
+  const { playbook } = loadPlaybook(ROOT, 'improve');
+  const result = checkRoutineDiff({
+    playbook,
+    changes: [{ status: 'M', file: 'apps/server/src/mcp/apps/someApp.js' }]
+  });
+  assert.equal(result.ok, false, 'ALWAYS_FORBIDDEN overrides a playbook allowedPaths entry');
 });
 
 test('the anything feature automation may touch its blast-radius paths', () => {

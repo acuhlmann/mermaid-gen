@@ -220,7 +220,7 @@ Tracked against the priority list above. Update this section when you land coupl
 
 ## Next steps for agents
 
-Pick the **highest unfinished row** that matches your diff. Do not start hub splits unless you are already editing that file for a feature.
+Pick the **highest unfinished row** that matches your diff. Do not start hub splits unless you are already editing that file for a feature — that rule is for feature work. The `improve` NFR routine is the deliberate exception: per [ADR-0016](../decisions/0016-routine-autonomy-for-splits-and-lint-promotion.md) it may split a monolith or dedupe a wire constant on its own schedule when the fix matches an extraction pattern already used elsewhere in the file (see [`docs/routines/improve.md`](../routines/improve.md) § 7), because a schedule has no feature to be on contact with in the first place.
 
 ### Wire contracts (P1.1 — continue)
 
