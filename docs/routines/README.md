@@ -24,8 +24,9 @@ reviewed, and cannot improve. A playbook in `docs/` is diffable, reviewable in a
 sharpened by the routine that runs it. If you find yourself pasting instructions into a trigger,
 you are building the thing this shelf exists to replace.
 
-See [ADR-0014](../decisions/0014-autonomous-nfr-routines.md) for why these exist and what they are
-deliberately not allowed to do.
+See [ADR-0014](../decisions/0014-autonomous-nfr-routines.md) for why these exist, and
+[ADR-0016](../decisions/0016-routine-autonomy-for-splits-and-lint-promotion.md) for what they are
+allowed to do that ADR-0014 originally reserved for a human.
 
 ## Tiers, and what actually keeps this safe
 
@@ -149,23 +150,24 @@ repo's existing mirroring rule, not a new one.
 
 ## What routines may not do
 
-These are the boundaries [ADR-0014](../decisions/0014-autonomous-nfr-routines.md) sets, and each
-answers a rule the repo already wrote down:
+These are the boundaries [ADR-0014](../decisions/0014-autonomous-nfr-routines.md) sets, as amended by
+[ADR-0016](../decisions/0016-routine-autonomy-for-splits-and-lint-promotion.md), and each answers a
+rule the repo already wrote down:
 
-- **No unprompted hub splits or refactors.** `docs/agents/balanced-coupling-priorities.md` says
-  split _on contact_ — when a feature already requires editing the file. A scheduled run has no
-  feature to be on contact with. Coupling work is therefore **report-only**: it updates the
-  priorities doc and files issues.
 - **No slot content, ever.** ADR-0010 reserves diagram generation for the human's own pipeline.
   Routines operate on the repository, not on the product's six slots.
-- **No unilateral lint-severity promotion.** ADR-0007 requires a two-week quiet period with no
-  unexplained suppressions before a rule moves from `warn` to `error`. A routine may open an issue
-  presenting that evidence; a human makes the call.
 - **No new dependencies.** Adding a package is a decision with a licence, a supply chain and a
   bundle cost. File an issue.
 - **No silent ratchet loosening.** `docs/agents/ratchet.json` gates no build, so relaxing an entry
   never unblocks anything — it only erases the record that something got worse. Raise a budget with
   a written `reason` or not at all.
+
+Two boundaries that used to be here are gone as of ADR-0016: `improve` may now perform coupling
+splits and refactors itself (not just report them), and may promote a lint rule from `warn` to
+`error` itself once it can show ADR-0007's two-week quiet period held. Neither is a new safety
+mechanism — both still go through the same rules above (behaviour-preserving, budgeted, green CI,
+escalate when unsure) that already decide whether any routine change is safe to self-merge. See
+`docs/routines/improve.md` for exactly what that looks like in practice.
 
 ## Adding a routine
 

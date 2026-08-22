@@ -57,6 +57,8 @@ Negative:
 
 This ADR ships in one PR alongside the implementation. The threshold rules ship as warnings; promotion to errors happens per-rule after a two-week quiet period with no unexplained suppressions. `legacy-monoliths.js` is the visible scoreboard — file removals from it are encouraged during ADR-0005 work.
 
+As of [ADR-0016](0016-routine-autonomy-for-splits-and-lint-promotion.md), the `improve` NFR routine may carry out this promotion itself once it can show the quiet period held — that ADR does not change the two-week bar, only who acts on it.
+
 ## References
 
 - [Sensors for Coding Agents — Martin Fowler](https://martinfowler.com/articles/sensors-for-coding-agents.html)
