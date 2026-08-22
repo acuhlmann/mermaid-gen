@@ -168,6 +168,16 @@ describe('findSequenceMessageRange', () => {
     expect(r?.startLineNumber).toBe(2);
     expect(r?.endLineNumber).toBe(2);
   });
+
+  it('returns null when a label is provided but does not match', () => {
+    const src = ['sequenceDiagram', '  Alice->>Bob: first', '  Alice->>Bob: second'].join('\n');
+    expect(
+      findSequenceMessageRange(src, { from: 'Alice', to: 'Bob', label: 'second' })?.startLineNumber
+    ).toBe(3);
+    expect(
+      findSequenceMessageRange(src, { from: 'Alice', to: 'Bob', label: 'missing' })
+    ).toBeNull();
+  });
 });
 
 describe('findMermaidSourceRangeForDiagramSelection', () => {

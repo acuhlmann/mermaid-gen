@@ -232,11 +232,12 @@ export function findSequenceMessageRange(source, { from, to, label }) {
   if (matches.length === 0) return null;
 
   const wanted = typeof label === 'string' ? label.trim() : '';
-  const picked =
-    wanted.length > 0
-      ? (matches.find((entry) => entry.messageText === wanted) ?? matches[0])
-      : matches[0];
-  return rangeForLines(lines, picked.lineIndex, picked.lineIndex);
+  if (wanted.length > 0) {
+    const picked = matches.find((entry) => entry.messageText === wanted);
+    if (!picked) return null;
+    return rangeForLines(lines, picked.lineIndex, picked.lineIndex);
+  }
+  return rangeForLines(lines, matches[0].lineIndex, matches[0].lineIndex);
 }
 
 export function findSequenceParticipantRange(source, logicalId) {

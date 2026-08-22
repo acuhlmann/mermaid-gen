@@ -101,6 +101,19 @@ describe('deleteSequenceEdge', () => {
     expect(result.source).toMatch(/Alice->>Bob: first/);
     expect(result.source).not.toMatch(/: second/);
   });
+
+  it('refuses delete when the label no longer matches the source', () => {
+    const duplicate = `sequenceDiagram
+  participant Alice
+  participant Bob
+  Alice->>Bob: first
+  Alice->>Bob: second
+`;
+    expect(deleteSequenceEdge(duplicate, 'Alice', 'Bob', 'missing')).toEqual({
+      ok: false,
+      reason: 'missing'
+    });
+  });
 });
 
 describe('renameSequenceNode', () => {
@@ -129,6 +142,19 @@ describe('renameSequenceEdge', () => {
     expect(result.ok).toBe(true);
     expect(result.source).toMatch(/Alice->>Bob: Howdy/);
     expect(result.source).not.toMatch(/: Hello/);
+  });
+
+  it('refuses rename when the label no longer matches the source', () => {
+    const duplicate = `sequenceDiagram
+  participant Alice
+  participant Bob
+  Alice->>Bob: first
+  Alice->>Bob: second
+`;
+    expect(renameSequenceEdge(duplicate, 'Alice', 'Bob', 'changed', 'missing')).toEqual({
+      ok: false,
+      reason: 'missing'
+    });
   });
 
   it('updates the message that matches the label when duplicates exist', () => {
