@@ -42,4 +42,9 @@ Libraries (the @lib: markers from the sandbox contract — when to reach for one
 - Default to vanilla. A page with no marker renders instantly; every library you opt into is real weight. Import a library because the page NEEDS its engine, never for one call you could write yourself.
 - @lib:d3 earns its import for data joins over changing data, real scales and axes (time, log, band), force/hierarchy layouts (network graphs, trees, treemaps, packing), and geo projections. It does NOT earn it for a counter widget, a static bar chart (a few divs or hand-written SVG rects do that), simple tweens (CSS transitions), or basic math.
 - @lib:matter earns its import when things should fall, collide, swing, stack, or be dragged with believable physics — games, toys, simulations (Russ territory). It does NOT earn it for scripted motion on a fixed path — CSS animation or a small requestAnimationFrame loop is lighter and easier to control.
-- Use the library's idiom once imported: with d3, bind data and let joins update the DOM instead of innerHTML rebuilds; with matter, let the engine own positions and only read them out to render — don't fight the physics with manual coordinates.`;
+- Use the library's idiom once imported: with d3, bind data and let joins update the DOM instead of innerHTML rebuilds; with matter, let the engine own positions and only read them out to render — don't fight the physics with manual coordinates.
+
+Runtime-safe JS (the runtime check executes your page — these throw and burn a repair turn):
+- querySelector / getElementById can return null. Guard before .classList, .textContent, or any property access — or run init inside DOMContentLoaded after the nodes you query exist in <body>.
+- getTotalLength() exists only on SVGPathElement (<path>). Stroke-draw animations need a real path d="...", not rect/line/circle — calling it on anything else throws at runtime.
+- With @lib:d3, variables from d3.select(...) are selections — chain .append / .attr on them. Never reassign a selection to a DOM node, datum, or array and then call .append (that is what produces "append is not a function").`;
