@@ -8,9 +8,9 @@ import {
   handleDiagramAnalyze,
   handleDiagramIntent,
   handleDiagramTransformIntent,
-  handleStyleIntent,
-  handleUserDiagramEdit
+  handleStyleIntent
 } from '../src/routes/copilot.js';
+import { handleUserDiagramEdit } from '../src/routes/copilotUserEdit.js';
 import { createDiagramStateStore } from '../src/state/diagramStateStore.js';
 
 function intentPayload(overrides = {}) {

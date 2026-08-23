@@ -21,7 +21,6 @@ import {
   DiagramStyleSchema,
   DiagramTransformIntentSchema,
   StyleIntentSchema,
-  UserDiagramEditSchema,
   AGUI_CUSTOM_NAME_HEARTBEAT,
   createAgentStreamEmitter,
   customEvent,
@@ -56,11 +55,14 @@ import {
 import type { DiagramStateStore } from '../state/diagramStateStore.js';
 import type { SessionEventEnvelope } from '../state/sessionEventBus.js';
 import type {
+  ApplyStoreResult,
   DiagramAnalyzeBody,
   DiagramIntentBody,
   DiagramTransformIntentBody,
+  JsonRouteResult,
   StyleIntentBody
 } from './copilotRouteTypes.js';
+import { handleUserDiagramEdit, resolveStateContentType } from './copilotUserEdit.js';
 
 /** Dispatcher routes by contentType before delegating to per-slot agent services. */
 export type CopilotAgentService = {
@@ -82,15 +84,6 @@ export type CopilotAgentService = {
 type SyncStoreResult =
   | { accepted: true; state: import('@archislop/shared').DiagramState }
   | { accepted: false; error?: string; styleConfig?: unknown };
-
-type ApplyStoreResult =
-  | { accepted: true; state: import('@archislop/shared').DiagramState; patch: unknown }
-  | { accepted: false; error?: string };
-
-type JsonRouteResult = {
-  status: number;
-  body: Record<string, unknown>;
-};
 
 type IntentHandlerDeps = {
   body: DiagramIntentBody;
@@ -582,77 +575,6 @@ export async function handleClientStateSync({
     status: 200,
     body: accepted.state as unknown as Record<string, unknown>
   };
-}
-
-export async function handleUserDiagramEdit({
-  body,
-  stateStore
-}: SyncHandlerDeps): Promise<JsonRouteResult> {
-  const parsed = UserDiagramEditSchema.safeParse(body);
-  if (!parsed.success) {
-    return {
-      status: 400,
-      body: {
-        error: 'Invalid user edit payload',
-        details: parsed.error.flatten()
-      }
-    };
-  }
-
-  const allowed =
-    parsed.data.contentType === 'mermaid' ||
-    parsed.data.contentType === 'infographic' ||
-    parsed.data.contentType === 'metaphor3d';
-  if (!allowed) {
-    return {
-      status: 400,
-      body: { error: 'Canvas graph edits support mermaid, infographic, and metaphor3d tree' }
-    };
-  }
-
-  const contentType = parsed.data.contentType;
-  const slot = stateStore.getSlot(contentType);
-  if (slot.revisionId !== parsed.data.previousRevisionId) {
-    return {
-      status: 409,
-      body: {
-        error: 'Diagram changed',
-        code: 'stale_revision'
-      }
-    };
-  }
-
-  const applied = await stateStore.applyDiagramSource({
-    contentType,
-    diagramSource: parsed.data.diagramSource,
-    reason: parsed.data.reason,
-    origin: { kind: 'user' }
-  });
-
-  if (!applied.accepted) {
-    const rejected = applied as Extract<ApplyStoreResult, { accepted: false }>;
-    return {
-      status: 422,
-      body: {
-        error: rejected.error ?? 'User edit rejected'
-      }
-    };
-  }
-
-  const accepted = applied as Extract<ApplyStoreResult, { accepted: true }>;
-  return {
-    status: 200,
-    body: {
-      state: accepted.state as unknown as Record<string, unknown>,
-      patch: accepted.patch as Record<string, unknown>
-    }
-  };
-}
-
-function resolveStateContentType(req: Request): ContentType | null {
-  const candidate = req?.query?.contentType;
-  const parsed = ContentTypeSchema.safeParse(candidate);
-  return parsed.success ? parsed.data : null;
 }
 
 function writeSseData(res: Response, payload: unknown, eventId?: string | number | null) {

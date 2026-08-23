@@ -1,6 +1,6 @@
 {
-  "updated": "2026-08-22",
-  "$comment": "monolithLoc.apps/web/src/components/DiagramCanvas.jsx budget intentionally left at 1968 (not raised) despite the measured 1987 regression — see issue #363; monolithLoc.apps/server/src/routes/copilot.ts budget intentionally left at 1270 (not raised) despite the measured 1272 regression — see issue #381; loosening either would erase the record instead of fixing it.",
+  "updated": "2026-08-23",
+  "$comment": "monolithLoc.apps/web/src/components/DiagramCanvas.jsx and monolithLoc.apps/server/src/routes/copilot.ts were tightened to their measured 1889/1194 after the sibling-module extractions that closed #363 and #381 (diagramGraphEditNodeResolve.js and copilotUserEdit.ts respectively) — tightening a budget that moved the right way needs no written reason, only loosening does.",
   "metrics": {
     "monolithLoc": {
       "apps/web/src/ArchiSlop.jsx": {
@@ -12,7 +12,7 @@
         "initial": 1835
       },
       "apps/web/src/components/DiagramCanvas.jsx": {
-        "budget": 1968,
+        "budget": 1889,
         "initial": 1968
       },
       "apps/web/src/components/RadialActionMenu.jsx": {
@@ -36,7 +36,7 @@
         "initial": 863
       },
       "apps/server/src/routes/copilot.ts": {
-        "budget": 1270,
+        "budget": 1194,
         "initial": 1270
       }
     },
