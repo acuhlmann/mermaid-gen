@@ -231,7 +231,7 @@ export const DiagramAnalyzeSchema = z.object({
   uiLocale: UiLocaleSchema.optional()
 });
 
-/** Discrete canvas graph edit (Connect / Delete / Rename) — mermaid, infographic, metaphor3d tree. */
+/** Discrete canvas graph edit (Connect / Delete / Rename) — mermaid, infographic, metaphor3d tree, chart values. */
 export const UserDiagramEditSchema = z.object({
   contentType: ContentTypeSchema.default('mermaid'),
   diagramSource: z.string().min(1),

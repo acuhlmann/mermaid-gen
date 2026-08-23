@@ -709,12 +709,54 @@ data
   assert.equal(stateStore.getSlot('infographic').revisionId, 1);
 });
 
-test('user-edit route rejects chart contentType', async () => {
+test('user-edit route applies a chart values patch with origin user', async () => {
   const stateStore = createDiagramStateStore();
+  const chart = JSON.stringify(
+    {
+      archislopVersion: 1,
+      theme: 'whiteboard',
+      spec: {
+        mark: 'bar',
+        encoding: {
+          x: { field: 'category', type: 'nominal' },
+          y: { field: 'amount', type: 'quantitative' }
+        },
+        data: {
+          values: [
+            { category: 'Widgets', amount: 42 },
+            { category: 'Gadgets', amount: 28 }
+          ]
+        }
+      }
+    },
+    null,
+    2
+  );
+  await stateStore.syncClientDiagramSource({ contentType: 'chart', diagramSource: chart });
+  const parsed = JSON.parse(chart);
+  parsed.spec.data.values.push({ category: 'Item 1', amount: 0 });
   const result = await handleUserDiagramEdit({
     body: {
       contentType: 'chart',
-      diagramSource: '{"mark":"bar"}',
+      diagramSource: JSON.stringify(parsed, null, 2),
+      previousRevisionId: stateStore.getSlot('chart').revisionId,
+      reason: 'Connect node'
+    },
+    stateStore
+  });
+
+  assert.equal(result.status, 200);
+  assert.match(result.body.state.diagramSource, /Item 1/);
+  assert.equal(result.body.patch.origin.kind, 'user');
+  assert.equal(stateStore.getSlot('chart').revisionId, 2);
+});
+
+test('user-edit route rejects anything contentType', async () => {
+  const stateStore = createDiagramStateStore();
+  const result = await handleUserDiagramEdit({
+    body: {
+      contentType: 'anything',
+      diagramSource: '<html></html>',
       previousRevisionId: 0,
       reason: 'Connect node'
     },

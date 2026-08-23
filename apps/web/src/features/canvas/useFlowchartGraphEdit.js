@@ -43,6 +43,16 @@ function nextSelection(adapter, result) {
       metaphor: 'tree'
     };
   }
+  if (adapter.contentType === 'chart') {
+    return {
+      kind: 'chart-mark',
+      indexes: result.newId,
+      elementType: 'mark',
+      label: result.newLabel || result.newId,
+      partName: result.newLabel || result.newId,
+      partKind: 'mark'
+    };
+  }
   return {
     dataId: result.newId,
     partName: result.newLabel || result.newId,
@@ -76,15 +86,15 @@ export function useFlowchartGraphEdit({
   const enabled = Boolean(adapter);
   const kind = selectionKind(selectedNode);
 
-  const graphEdit = useMemo(
-    () => ({
-      enabled: enabled && kind !== 'cluster',
+  const graphEdit = useMemo(() => {
+    const hasTarget = kind === 'edge' || Boolean(graphEditIdFromDescriptor(selectedNode));
+    return {
+      enabled: enabled && kind !== 'cluster' && hasTarget,
       kind,
       busy: Boolean(busy),
       canLink: Boolean(adapter?.canLink)
-    }),
-    [adapter, busy, enabled, kind]
-  );
+    };
+  }, [adapter, busy, enabled, kind, selectedNode]);
 
   const clearToastTimer = useCallback(() => {
     if (toastTimerRef.current != null) {

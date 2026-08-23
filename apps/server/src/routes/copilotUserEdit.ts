@@ -38,11 +38,14 @@ export async function handleUserDiagramEdit({
   const allowed =
     parsed.data.contentType === 'mermaid' ||
     parsed.data.contentType === 'infographic' ||
-    parsed.data.contentType === 'metaphor3d';
+    parsed.data.contentType === 'metaphor3d' ||
+    parsed.data.contentType === 'chart';
   if (!allowed) {
     return {
       status: 400,
-      body: { error: 'Canvas graph edits support mermaid, infographic, and metaphor3d tree' }
+      body: {
+        error: 'Canvas graph edits support mermaid, infographic, metaphor3d tree, and chart values'
+      }
     };
   }
 

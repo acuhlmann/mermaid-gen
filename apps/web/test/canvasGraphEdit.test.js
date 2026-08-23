@@ -58,6 +58,28 @@ const METAPHOR_TREE = JSON.stringify(
   2
 );
 
+const CHART_VALUES = JSON.stringify(
+  {
+    archislopVersion: 1,
+    theme: 'whiteboard',
+    spec: {
+      mark: 'bar',
+      encoding: {
+        x: { field: 'category', type: 'nominal' },
+        y: { field: 'amount', type: 'quantitative' }
+      },
+      data: {
+        values: [
+          { category: 'Widgets', amount: 42 },
+          { category: 'Gadgets', amount: 28 }
+        ]
+      }
+    }
+  },
+  null,
+  2
+);
+
 describe('graphEditAdapterFor', () => {
   it('returns the flowchart adapter for mermaid flowcharts only', () => {
     const adapter = graphEditAdapterFor('mermaid', FLOWCHART);
@@ -123,6 +145,26 @@ describe('graphEditAdapterFor', () => {
     });
     expect(graphEditAdapterFor('metaphor3d', '{"metaphor":"city","items":[]}')).toBeNull();
   });
+
+  it('returns the chart values adapter without Link', () => {
+    const adapter = graphEditAdapterFor('chart', CHART_VALUES);
+    expect(adapter?.contentType).toBe('chart');
+    expect(adapter?.canLink).toBe(false);
+    expect(adapter?.addLinked(CHART_VALUES, '0', 'New')).toMatchObject({
+      ok: true,
+      newId: '1'
+    });
+    expect(
+      graphEditAdapterFor(
+        'chart',
+        JSON.stringify({
+          archislopVersion: 1,
+          theme: 'whiteboard',
+          spec: { mark: 'bar', data: { url: 'https://example.com/data.json' } }
+        })
+      )
+    ).toBeNull();
+  });
 });
 
 describe('graphEditIdFromDescriptor', () => {
@@ -133,6 +175,17 @@ describe('graphEditIdFromDescriptor', () => {
     expect(graphEditIdFromDescriptor({ kind: 'metaphor-item', dataId: 'ceo', label: 'CEO' })).toBe(
       'ceo'
     );
+    expect(
+      graphEditIdFromDescriptor({
+        kind: 'chart-mark',
+        indexes: '2',
+        label: 'Widgets',
+        elementType: 'mark'
+      })
+    ).toBe('2');
+    expect(
+      graphEditIdFromDescriptor({ kind: 'chart-mark', elementType: 'axis-title', label: 'Revenue' })
+    ).toBeNull();
     expect(graphEditIdFromDescriptor({ kind: 'infographic-item', label: 'Eng' })).toBe(
       '~label:Eng'
     );
