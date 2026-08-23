@@ -520,4 +520,56 @@ data
       created: true
     });
   });
+
+  it('adds a sibling row on a chart with inline data.values', async () => {
+    const chart = JSON.stringify(
+      {
+        archislopVersion: 1,
+        theme: 'whiteboard',
+        spec: {
+          mark: 'bar',
+          encoding: {
+            x: { field: 'category', type: 'nominal' },
+            y: { field: 'amount', type: 'quantitative' }
+          },
+          data: {
+            values: [
+              { category: 'Widgets', amount: 42 },
+              { category: 'Gadgets', amount: 28 }
+            ]
+          }
+        }
+      },
+      null,
+      2
+    );
+    const { result } = mount({
+      diagramSource: chart,
+      props: {
+        contentMode: 'chart',
+        selectedNode: {
+          kind: 'chart-mark',
+          indexes: '0',
+          elementType: 'mark',
+          label: 'Widgets',
+          partName: 'Widgets'
+        }
+      }
+    });
+    expect(result.current.graphEdit.enabled).toBe(true);
+    expect(result.current.graphEdit.canLink).toBe(false);
+    await act(async () => {
+      result.current.handleGraphEditAction({ id: 'connect' });
+    });
+    expect(applyUserDiagramEdit).toHaveBeenCalledTimes(1);
+    expect(applyUserDiagramEdit.mock.calls[0][0].contentType).toBe('chart');
+    expect(
+      JSON.parse(applyUserDiagramEdit.mock.calls[0][0].diagramSource).spec.data.values
+    ).toHaveLength(3);
+    expect(result.current.labelSession).toMatchObject({
+      kind: 'node',
+      logicalId: '1',
+      created: true
+    });
+  });
 });

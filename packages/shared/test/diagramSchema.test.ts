@@ -714,6 +714,16 @@ test('UserDiagramEditSchema requires source, revision, and reason', () => {
   );
   assert.equal(
     UserDiagramEditSchema.safeParse({
+      contentType: 'chart',
+      diagramSource:
+        '{"archislopVersion":1,"theme":"whiteboard","spec":{"mark":"bar","data":{"values":[{"category":"A","amount":1}]}}}',
+      previousRevisionId: 0,
+      reason: 'Connect node'
+    }).success,
+    true
+  );
+  assert.equal(
+    UserDiagramEditSchema.safeParse({
       diagramSource: 'flowchart TD\n  A --> B',
       previousRevisionId: 0
     }).success,

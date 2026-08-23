@@ -56,6 +56,15 @@ import {
   renameTreeEdge,
   renameTreeNode
 } from './metaphorTreeEdit.js';
+import {
+  addLinkedChartRow,
+  connectChartRows,
+  deleteChartEdge as deleteChartGraphEdge,
+  deleteChartRow,
+  isChartValuesFamilySource,
+  renameChartEdge as renameChartGraphEdge,
+  renameChartRow
+} from './chartGraphEdit.js';
 
 function fail(reason) {
   return { ok: false, reason };
@@ -129,6 +138,17 @@ const METAPHOR_TREE_ADAPTER = {
   renameEdge: renameTreeEdge
 };
 
+const CHART_VALUES_ADAPTER = {
+  contentType: 'chart',
+  canLink: false,
+  addLinked: addLinkedChartRow,
+  connect: connectChartRows,
+  deleteNode: deleteChartRow,
+  deleteEdge: deleteChartGraphEdge,
+  renameNode: renameChartRow,
+  renameEdge: renameChartGraphEdge
+};
+
 /**
  * Logical id for Connect targeting: mermaid node id, AntV `data-indexes`, or `~label:`.
  * @param {object | null | undefined} descriptor
@@ -137,6 +157,12 @@ const METAPHOR_TREE_ADAPTER = {
 export function graphEditIdFromDescriptor(descriptor) {
   if (!descriptor) return null;
   if (descriptor.kind === 'edge' || descriptor.kind === 'cluster') return null;
+  if (descriptor.kind === 'chart-mark') {
+    if (descriptor.indexes != null && String(descriptor.indexes) !== '') {
+      return String(descriptor.indexes);
+    }
+    return null;
+  }
   if (
     descriptor.kind === 'metaphor-item' ||
     descriptor.kind === 'infographic-item' ||
@@ -182,6 +208,9 @@ export function graphEditAdapterFor(contentType, source) {
   }
   if (contentType === 'metaphor3d' && isTreeFamilySource(source)) {
     return METAPHOR_TREE_ADAPTER;
+  }
+  if (contentType === 'chart' && isChartValuesFamilySource(source)) {
+    return CHART_VALUES_ADAPTER;
   }
   return null;
 }
