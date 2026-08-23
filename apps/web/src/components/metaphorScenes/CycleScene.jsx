@@ -24,13 +24,18 @@ import { MetaphorAccents } from './MetaphorAccents.jsx';
 import { SkySunGlow } from './MetaphorSceneDecorations.jsx';
 import { useMetaphorClock } from './metaphorClock.js';
 import { idHash2, shiftColor } from './sceneUtils.js';
+import { FRAME_IGNORE_DATA } from './sceneFraming.js';
 
 function podTint(theme, index) {
   const palette = theme.clusterPalette ?? ['#ffd166', '#4cc9f0', '#ff6bcb', '#06d6a0'];
   return palette[index % palette.length];
 }
 
-/** Plaza: grass disc, paved ring under the wheel, lamp posts with warm glows. */
+/**
+ * Plaza: grass disc, paved ring under the wheel, lamp posts with warm glows.
+ * Out of the camera fit — the wheel is the subject, the plaza is what it stands
+ * on. See the substrate note in sceneFraming.js.
+ */
 function CyclePlaza({ radius, theme }) {
   const grass = theme.treeMeadowColor ?? '#53b95e';
   const pave = theme.cyclePaveColor ?? '#c9cdd6';
@@ -44,7 +49,7 @@ function CyclePlaza({ radius, theme }) {
     [radius]
   );
   return (
-    <group>
+    <group userData={FRAME_IGNORE_DATA}>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.05, 0]}>
         <circleGeometry args={[radius, 64]} />
         <meshStandardMaterial color={grass} roughness={0.95} />

@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
 import {
+  ANNOTATION_GUTTER_PX,
   DEFAULT_FRAME_DIRECTION,
   FRAME_IGNORE,
   FRAME_IGNORE_DATA,
@@ -198,6 +199,49 @@ describe('solveFrameFit with overlay chrome', () => {
     expect(safeAreaWindow(FULL, Number.NaN).yMax).toBe(1);
   });
 
+  it('keeps the gutter to a few glyphs, not half a plate', () => {
+    // Measured, not reasoned: at half a plate (58px) the fused composite came
+    // back smaller than before the substrate opt-out AND one label short,
+    // because its ocean was already out of the fit — it paid and collected
+    // nothing. The gutter only has to buy back the last glyph of a name the
+    // pinning rule has already decided to keep.
+    expect(ANNOTATION_GUTTER_PX).toBeGreaterThan(0);
+    expect(ANNOTATION_GUTTER_PX).toBeLessThan(40);
+  });
+
+  it('reserves the same line of annotation beside the subject, on both sides', () => {
+    // The lateral counterpart, and the reason it had to exist: with the ground
+    // substrate out of the fit (see the note at the top of sceneFraming.js) the
+    // outermost item now reaches the frame edge, and a name is centred over its
+    // item — so half a plate hangs past it, and the declutter pass drops any
+    // label that is not ~97% on canvas. Reserving the overhang is what turns a
+    // bigger subject into a more readable one rather than a wider one with
+    // fewer names on it. Both ends of the range were measured — see the constant,
+    // which is deliberately a few glyphs rather than half a plate.
+    const bare = safeAreaWindow(FULL);
+    const roomy = safeAreaWindow(FULL, 0, ANNOTATION_GUTTER_PX / 390);
+    expect(roomy.xMax).toBeLessThan(bare.xMax);
+    expect(roomy.xMin).toBeGreaterThan(bare.xMin);
+    // Symmetric: the leftmost and rightmost items each carry a name.
+    expect(roomy.xMax).toBeCloseTo(-roomy.xMin, 9);
+    expect(roomy.yMax).toBe(bare.yMax);
+  });
+
+  it('spends the gutter on top of the chrome, like the headroom', () => {
+    const squeezed = safeAreaWindow({ left: 0.24, right: 0.22 });
+    const withRoom = safeAreaWindow({ left: 0.24, right: 0.22 }, 0, 0.05);
+    expect(squeezed.xMax - withRoom.xMax).toBeCloseTo(0.1, 9);
+    expect(withRoom.xMin - squeezed.xMin).toBeCloseTo(0.1, 9);
+  });
+
+  it('caps the gutter so a narrow canvas cannot reserve both its sides', () => {
+    // A per-side pixel constant is a bigger fraction of a narrower canvas, and
+    // uncapped the pair would take more of the width than the phone's own
+    // chrome does.
+    expect(safeAreaWindow(FULL, 0, 5).xMax).toBeCloseTo(1 - 2 * 0.09, 9);
+    expect(safeAreaWindow(FULL, 0, Number.NaN).xMax).toBe(1);
+  });
+
   it('leaves a pair that already fits completely alone', () => {
     const window_ = safeAreaWindow({ top: 0.2, bottom: 0.2 });
     expect(window_.yMax).toBeCloseTo(1 - 0.4, 9);
@@ -351,6 +395,49 @@ describe('collectFramePoints', () => {
     const worldGround = source.slice(source.indexOf('export function WorldGround'));
     expect(worldGround.length).toBeGreaterThan(80);
     expect(worldGround).toContain('FRAME_IGNORE_DATA');
+  });
+
+  /**
+   * Every grounded kind stands on a disc sized `max(floor, contentRadius × pad)`
+   * — 1.3–1.5× the widest item on an ordinary 6–10 item scene, and a CIRCLE
+   * around a layout that is rarely circular, so its rim reaches furthest exactly
+   * where nothing stands. Left in the fit that is the binding constraint on the
+   * whole kind: measured, the city's subject at 77% of the width it could have,
+   * the garden's at 65%. Same rule as the shadow catcher and the ambience
+   * layers — anything that is not the subject must not decide how the subject
+   * is framed.
+   *
+   * Pinned on the source because these all use hooks and R3F cannot mount in
+   * jsdom, the same way the fused ocean disc above is. Each entry names the
+   * geometry it is about as well as the flag, so a slice that silently stopped
+   * matching the substrate fails instead of passing on an unrelated hit.
+   */
+  const SUBSTRATES = [
+    ['MetaphorRenderer.jsx', 'function CityFooting', 'circleGeometry'],
+    ['metaphorScenes/CycleScene.jsx', 'function CyclePlaza', 'circleGeometry'],
+    ['metaphorScenes/MachineScene.jsx', 'function MachinePlate', 'circleGeometry'],
+    ['metaphorScenes/TreeScene.jsx', 'function TreeMeadow', 'circleGeometry'],
+    ['metaphorScenes/RiverScene.jsx', 'function RiverMeadow', 'circleGeometry'],
+    ['metaphorScenes/ArchipelagoScene.jsx', 'function OceanPlane', 'circleGeometry'],
+    ['metaphorScenes/GardenScene.jsx', 'export function GardenScene', 'treeMeadowColor'],
+    ['metaphorScenes/SubwayScene.jsx', 'export function SubwayScene', 'circleGeometry']
+  ];
+
+  it("keeps every grounded kind's substrate out of the fit", () => {
+    // A sweep over a set nothing joins passes while examining nothing; assert
+    // the set is what it claims to be before trusting any member of it.
+    expect(SUBSTRATES.length).toBe(8);
+    for (const [file, marker, geometry] of SUBSTRATES) {
+      const source = readFileSync(new URL(`../src/components/${file}`, import.meta.url), 'utf8');
+      const at = source.indexOf(marker);
+      expect(at, `${file}: ${marker}`).toBeGreaterThan(-1);
+      // Bounded slice: the substrate is drawn at the top of the component, and
+      // an unbounded one would happily match a FRAME_IGNORE_DATA belonging to
+      // some ambience layer three hundred lines further down.
+      const body = source.slice(at, at + 2600);
+      expect(body, `${file}: ${geometry}`).toContain(geometry);
+      expect(body, `${file}: FRAME_IGNORE_DATA`).toContain('FRAME_IGNORE_DATA');
+    }
   });
 });
 

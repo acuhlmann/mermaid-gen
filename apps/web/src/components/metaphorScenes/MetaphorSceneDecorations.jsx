@@ -644,16 +644,50 @@ export function FallingLeaves({ radius, height, color, count = 14, idSeed = 'lea
   );
 }
 
-/** Silhouette birds circling lazily over a scene, wings flapping — shared by the
- *  nature scenes (terrain, tree, river). Reads the metaphor clock, so birds hold
- *  still during streaming like every other animated flourish. */
+/** One wing, root to tip. */
+const BIRD_WING_SPAN = 0.4;
+/** Wing depth. ~7:1 is a gull; the old 3.5:1 was a plank. */
+const BIRD_WING_CHORD = 0.055;
+/** How far the silhouette is pulled toward the sky it is seen against. */
+const BIRD_HAZE = 0.42;
+/** Distant things are also thinner in the air, not only paler. */
+const BIRD_OPACITY = 0.55;
+
+/**
+ * Silhouette birds circling lazily over a scene, wings flapping — shared by the
+ * nature scenes (terrain, tree, river, garden, archipelago, bridge, iceberg,
+ * fused). Reads the metaphor clock, so birds hold still during streaming like
+ * every other animated flourish.
+ *
+ * A bird is only ever read as a bird if it reads as FAR. Each wing used to be a
+ * 0.52 × 0.15 quad in near-black at 0.8 alpha — a 3.5:1 rectangle, which at the
+ * camera distances these scenes actually solve to draws a pair of hard dark
+ * slabs. Measured on the fused composite at desktop, they landed as ~30 px dark
+ * chevrons in an otherwise pale sky, and read as rendering artefacts rather than
+ * as wildlife (they were reported as "stray dark checkmarks"). Three things fix
+ * it, all of them the aerial-perspective rule this codebase already applies to a
+ * receded composite layer: a real wing proportion, less alpha, and — the one
+ * that matters most — a silhouette lerped TOWARD the sky it is seen against
+ * rather than a fixed near-black. Anything genuinely distant loses contrast with
+ * its background; a bird that does not is a hole punched in the sky.
+ */
 export function SoaringBirds({
   radius = 10,
   height = 8,
   count = 3,
   color = '#1f2937',
+  /** The sky the birds are seen against; the silhouette is pulled toward it. */
+  hazeColor = null,
   idSeed = 'birds'
 }) {
+  const wingColor = useMemo(() => {
+    if (!hazeColor) return color;
+    try {
+      return `#${new THREE.Color(color).lerp(new THREE.Color(hazeColor), BIRD_HAZE).getHexString()}`;
+    } catch {
+      return color;
+    }
+  }, [color, hazeColor]);
   const groupRef = useRef(null);
   const { getTime, animated } = useMetaphorClock();
   const birds = useMemo(
@@ -690,13 +724,25 @@ export function SoaringBirds({
     <group ref={groupRef} userData={FRAME_IGNORE_DATA}>
       {birds.map((b, i) => (
         <group key={`bird-${i}`} position={[Math.cos(b.phase) * b.r, b.h, Math.sin(b.phase) * b.r]}>
-          <mesh position={[0.2, 0, 0]} rotation={[0, 0, 0.25]}>
-            <planeGeometry args={[0.52, 0.15]} />
-            <meshBasicMaterial color={color} side={THREE.DoubleSide} transparent opacity={0.8} />
+          <mesh position={[BIRD_WING_SPAN / 2, 0, 0]} rotation={[0, 0, 0.25]}>
+            <planeGeometry args={[BIRD_WING_SPAN, BIRD_WING_CHORD]} />
+            <meshBasicMaterial
+              color={wingColor}
+              side={THREE.DoubleSide}
+              transparent
+              opacity={BIRD_OPACITY}
+              depthWrite={false}
+            />
           </mesh>
-          <mesh position={[-0.2, 0, 0]} rotation={[0, 0, -0.25]}>
-            <planeGeometry args={[0.52, 0.15]} />
-            <meshBasicMaterial color={color} side={THREE.DoubleSide} transparent opacity={0.8} />
+          <mesh position={[-BIRD_WING_SPAN / 2, 0, 0]} rotation={[0, 0, -0.25]}>
+            <planeGeometry args={[BIRD_WING_SPAN, BIRD_WING_CHORD]} />
+            <meshBasicMaterial
+              color={wingColor}
+              side={THREE.DoubleSide}
+              transparent
+              opacity={BIRD_OPACITY}
+              depthWrite={false}
+            />
           </mesh>
         </group>
       ))}

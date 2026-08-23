@@ -968,6 +968,14 @@ sticky` nav row, because the height cap makes every small screen a scrolling
   the world centre** (`assignSiteLabelOffsets`): a fixed near corner only changes which islands
   lose, because attachment offsets are seeded, and "away from the landmarks" in world space is
   often "behind them" in screen space. Outside the outermost sites is reliably open ground.
+  A fourth instance was the **garden beds**, fixed the city's way (near edge, `+z`). The
+  **archipelago `chain` is the open exception**, and it is worth knowing why the same move fails
+  there: a chain circle is a poor anchor, because the chains overlap and their centres cluster at
+  the world centre, so `± radius` on any single axis lands the name on open water nowhere near its
+  islands — measured at 717x512, near-edge put DISCOVER in the bottom-left corner and BUY
+  off-canvas entirely, which is strictly worse than being hidden. It is left on the far edge with
+  the reasoning at the call site rather than moved to a different wrong place; the real answer is
+  to give the chain plan an offset the way a fused site has one.
 - **A territory named after one of its own members gets no placard.** When an island's label and a
   tower's `district` are the same noun — which is exactly what the composite prompt asks authors to
   do — the group and the island name the same thing, and drawing both puts the same word twice
@@ -977,6 +985,74 @@ sticky` nav row, because the height cap makes every small screen a scrolling
   berg ring and was the binding constraint on every iceberg — measured, the bergs rendered at 43%
   of the frame height with the tip pushed under the reading strip. It now carries
   `FRAME_IGNORE_DATA`, like the ground-shadow catcher and the fused ocean disc.
+- **The GROUND is scaffolding too, and it was the largest instance of the rule.** Every grounded
+  kind stands on a disc sized `max(floor, contentRadius × pad)`, so on an ordinary 6–10 item scene
+  the ground is 1.3–1.5× the widest item — and because it is a **circle** around a layout that is
+  rarely circular, its rim reaches furthest exactly where nothing stands. Measured: the city's
+  subject at 77% of the width it could have, the garden's at 65%. City footing, cycle plaza,
+  machine plate, tree and river meadows, garden lawn, subway plate and archipelago ocean all carry
+  `FRAME_IGNORE_DATA`; `metaphorSceneFraming.test.js` sweeps the set on source, the way the fused
+  ocean disc already was, and asserts each slice contains its own geometry so a slice that stops
+  matching fails rather than passing on an unrelated hit. Cutting a ground plane off at the frame
+  edge is also the better picture: a floor that runs out of frame reads as a world, a disc with
+  margin all round reads as a coaster.
+- **What the ground owed the subject was LATERAL room for the labels, and it is a few glyphs.**
+  `ANNOTATION_GUTTER_PX` is the horizontal twin of `ANNOTATION_HEADROOM_PX` (both pixel constants,
+  because a screen-constant label needs the same room on every canvas). The number is the whole
+  finding, and both ends were measured on a 390x844 phone rather than reasoned about. At **58**
+  (half a plate) the reservation cost more than the substrate opt-out gained — the fused composite
+  came back **smaller than before either change and one label short**, because its ocean was
+  already out of the fit, so it paid the gutter and collected nothing. At **0** the city and the
+  composite were both bigger _and_ showed more names, which nearly makes the case for dropping it;
+  what stops that is the subway, where "SIGNUP" rendered as "SIGNU". A pinned placard survives at
+  the relaxed on-canvas bar precisely so a fused world's edge placards are not all dropped, and
+  that relaxation is what lets a genuinely cut one through. So the gutter's job is **not** to fit a
+  whole label past the subject — the declutter pass already drops one that lands too far out — but
+  to buy back the last glyph of a name the pinning rule has decided to keep. Hence **26**.
+- **A label's RANK is now visible, and it is the difference between a scene and a list.** Every
+  name used to be the same white chip, so a district placard, a service and a link caption were
+  indistinguishable — measured on the city, six identical chips down one diagonal where three were
+  towers, two were districts and one was an edge, and nothing in the picture said which. A scene
+  that encodes four metrics in geometry and then flattens its own vocabulary in the one layer that
+  names things is harder to read than the list it replaced. `labelRoles.js` (a pure sibling module,
+  like `accentCaptionFit.js`, so it is testable and does not cost `MetaphorSceneChrome.jsx` its
+  fast refresh) holds three ranks, and they cost no new colour: `item` — a thing, chip + name,
+  **unchanged**; `group` — a territory (district, bed, chain, line, berg, axle, cluster), uppercase,
+  letter-spaced and with **no chip**, because a region name is written ACROSS the ground it covers
+  rather than stamped on a card standing in it, its heavier outline doing the work the chip did;
+  `link` — a relation, smaller with a fainter chip, because an edge caption is a footnote on a line
+  and at item weight it competed with the things it joins. A scene passes the **noun**, never a
+  font size. Two traps: the declutter box estimate must carry the tracking **and** the capitals
+  (`labelPlateEm`), or a placard claims a box a third narrower than it draws; and the rank's size
+  is spent in **screen** pixels (`targetPx * scale`), never in world units, since these labels are
+  screen-constant and a world-size bump is undone by the next frame. `metaphorLabelRoles.test.js`
+  sweeps all eight placards and both link captions — a missed one still renders, just wearing the
+  wrong rank, which is exactly the kind of failure nothing else notices.
+- **A scene-identity colour is chosen as a SURFACE and has to be re-chosen as type.** Dropping the
+  group placard's chip left the subway's route names standing on nothing but their own halo, and a
+  route colour is picked to look right lit and shaded on a 3D track: "SIGNUP" and "BUY" measured
+  contrast **1.16 and 1.35** against the light outline they were drawn with — invisible, and route
+  names are the one thing a transit map exists to publish. `ensureReadableInk(ink, halo)` in
+  `sceneUtils.js` walks lightness away from the halo until it clears 3.4:1 and stops at the first
+  step that does, so a darkened yellow still reads as the yellow line. Nudging rather than
+  substituting a neutral is what keeps the point; reading the direction off the halo is what means
+  a dark theme needs no second rule. Applied to every rank, because an item label's chip IS the
+  outline colour, so the same problem was always there.
+- **A distant bird must LOSE contrast with its sky, or it is a hole punched in it.** `SoaringBirds`
+  drew each wing as a 0.52 × 0.15 quad — a 3.5:1 rectangle — in near-black at 0.8 alpha, which at
+  the distances these scenes actually solve to landed as ~30px hard dark chevrons in a pale sky and
+  read as rendering artefacts (they were reported as "stray dark checkmarks"). Now ~7:1, 0.55
+  alpha, and lerped 42% toward `hazeColor`, which every call site passes as the scene's own
+  horizon. That is aerial perspective — the same rule `recedeTheme` applies to a muted composite
+  layer — and it is the part that matters: proportion and alpha alone still leave a hard silhouette.
+- **The reading strip's squeeze is spent on its chips, never on the scene's name.** The strip is a
+  flex row of heading + axes and the axes are `flex: 0 1 auto`, so with only `min-width: 0` on the
+  heading the name lost every fight: on a 1440x900 desktop the fused commerce world rendered
+  "Commerce plat…" and "Domains, service la…" beside 700px of empty strip. A floor on the heading
+  spends the squeeze on the axes, which is right twice over — an axis chip already has somewhere to
+  go (it wraps, and below the small-canvas limit it folds into the `+N` counter that names the rest
+  in its tooltip), and a truncated title is the one line in the whole overlay that cannot be
+  recovered from anywhere else on screen.
 - **Verify metaphor changes by rendering them.** The scoped skill under
   `apps/web/.claude/skills/verify/` has the headless-capture recipe; every finding above came from
   a screenshot, not from reading the code.

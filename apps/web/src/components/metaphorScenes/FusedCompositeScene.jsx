@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
 import { Line } from '@react-three/drei';
 import { HoverableItem, ItemLabel, MetaphorGroundShadow } from './MetaphorSceneChrome.jsx';
+import { LINK_LABEL_TARGET_PX } from './metaphorScreenScale.js';
 import { MetaphorAccents } from './MetaphorAccents.jsx';
 import { useMetaphorClock } from './metaphorClock.js';
 import { planFusedCompositeWorld } from './fusedCompositePlanner.js';
@@ -97,6 +98,7 @@ function AffinityGroups({ groups, theme }) {
             </mesh>
             <ItemLabel
               text={group.display}
+              role="group"
               position={[0, 0.62, 0]}
               fontSize={0.5}
               color={theme.labelColor}
@@ -456,6 +458,8 @@ function FusedLinks({ links, theme, mutedTheme, activeId, lod, isLinkMuted }) {
             text={link.label}
             position={[mid[0], mid[1] + 0.35, mid[2]]}
             fontSize={0.34}
+            role="link"
+            targetPx={LINK_LABEL_TARGET_PX}
             color={theme.labelColor}
             outlineColor={theme.labelOutline}
           />
@@ -582,6 +586,7 @@ export function FusedCompositeScene({ dsl, theme }) {
             height={6.2}
             count={3}
             color={theme.labelColor ?? '#1f2937'}
+            hazeColor={theme.skyHorizonColor ?? theme.background ?? null}
             idSeed="fused-birds"
           />
         </>

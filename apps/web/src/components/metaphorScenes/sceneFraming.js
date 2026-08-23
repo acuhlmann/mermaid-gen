@@ -34,6 +34,17 @@
  * `userData[FRAME_IGNORE]`. A bird wheeling above the treeline is not part of
  * the subject, and letting one dictate the framing shrinks everything else to
  * make room for a 3-pixel silhouette.
+ *
+ * The **substrate** opts out for the same reason, and it is the larger win.
+ * Every grounded kind stands on a disc sized `max(floor, contentRadius × pad)`,
+ * so the ground is 1.3–1.5× the widest item on an ordinary 6–10 item scene —
+ * and because it is a *circle* around a layout that is rarely circular, its rim
+ * reaches furthest exactly where nothing stands. Measured on the city that is a
+ * subject at 77% of the width it could have; on the garden, 65%. Cutting a
+ * ground plane off at the frame edge is also the better picture: a floor that
+ * runs out of frame reads as a world, a disc with margin all round reads as a
+ * coaster. What the ground still owes the subject is *lateral* room for the
+ * labels, which is `SceneFrame`'s annotation margin, not the disc's padding.
  */
 import * as THREE from 'three';
 
@@ -152,6 +163,37 @@ const MAX_HEADROOM = 0.1;
  */
 export const ANNOTATION_HEADROOM_PX = 26;
 
+/**
+ * The lateral counterpart, in CSS pixels per side. A name is centred over its
+ * item, so the outermost item hangs part of a plate past its own geometry — and
+ * with the substrate out of the fit (see the note at the top of this file) that
+ * geometry now reaches the frame edge. Like the headroom it is a pixel constant,
+ * because a screen-constant label needs the same room on every canvas.
+ *
+ * It is deliberately much smaller than half a plate, and both ends were
+ * measured on a 390x844 phone rather than reasoned about:
+ *
+ * - At **58px** (half a typical plate) the reservation cost more than the
+ *   substrate opt-out gained. The fused composite came back SMALLER than before
+ *   either change, showing one label fewer, because its ocean was already out of
+ *   the fit — so it paid the gutter and collected nothing.
+ * - At **0** the city and the composite were both bigger AND showed more names,
+ *   which very nearly makes the case for dropping this outright. What stops it
+ *   is the subway: "SIGNUP" rendered as "SIGNU", clipped by the canvas edge. A
+ *   pinned placard survives at the relaxed on-canvas bar precisely so a fused
+ *   world's edge placards are not all dropped, and that relaxation is what lets
+ *   a genuinely cut one through.
+ *
+ * So the job is not to fit a whole label past the subject — the declutter pass
+ * already drops one that lands too far out. It is to buy back the last glyph of
+ * a name the pinning rule has decided to keep, which is a few characters, not
+ * half a plate.
+ */
+export const ANNOTATION_GUTTER_PX = 26;
+
+/** Cap on the lateral line — a narrow canvas must not reserve both its sides. */
+const MAX_GUTTER = 0.09;
+
 /** No chrome — the whole canvas is the frame. */
 export const FULL_SAFE_AREA = Object.freeze({ top: 0, right: 0, bottom: 0, left: 0 });
 
@@ -197,20 +239,31 @@ export function scaleAxisClaims(low, high) {
  * own margin, not a claim by a panel, so the rule that stops two panels
  * squeezing the subject must not spend it.
  *
+ * `gutter` is the same idea on the horizontal axis — see ANNOTATION_GUTTER_PX —
+ * and is applied to both sides, because the leftmost and rightmost items each
+ * carry a name centred over them. Both are applied AFTER the axis scaling
+ * because they are the subject's own margin, not a claim by a panel, so the
+ * rule that stops two panels squeezing the subject must not spend them.
+ *
  * @param {{top?: number, right?: number, bottom?: number, left?: number}} [safeArea]
  * @param {number} [headroom] — annotation line above the subject, 0–0.1
+ * @param {number} [gutter] — annotation line beside the subject, per side, 0–0.09
  * @returns {{ xMin: number, xMax: number, yMin: number, yMax: number }}
  */
-export function safeAreaWindow(safeArea, headroom = 0) {
+export function safeAreaWindow(safeArea, headroom = 0, gutter = 0) {
   const [bottom, top] = scaleAxisClaims(edge(safeArea?.bottom), edge(safeArea?.top));
   const [left, right] = scaleAxisClaims(edge(safeArea?.left), edge(safeArea?.right));
   const room =
     typeof headroom === 'number' && Number.isFinite(headroom)
       ? Math.min(MAX_HEADROOM, Math.max(0, headroom))
       : 0;
+  const side =
+    typeof gutter === 'number' && Number.isFinite(gutter)
+      ? Math.min(MAX_GUTTER, Math.max(0, gutter))
+      : 0;
   return {
-    xMin: -1 + 2 * left,
-    xMax: 1 - 2 * right,
+    xMin: -1 + 2 * (left + side),
+    xMax: 1 - 2 * (right + side),
     yMin: -1 + 2 * bottom,
     yMax: 1 - 2 * (top + room)
   };
@@ -415,12 +468,12 @@ function ndcExtent(points, center, basis, distance, shift) {
  * @param {THREE.Vector3} dir
  * @param {number} fovDegrees — vertical field of view
  * @param {number} aspect — viewport width / height
- * @param {{ safeArea?: object, margin?: number, headroom?: number }} [options]
+ * @param {{ safeArea?: object, margin?: number, headroom?: number, gutter?: number }} [options]
  * @returns {{ distance: number, center: THREE.Vector3, radius: number } | null}
  */
 export function solveFrameFit(points, dir, fovDegrees, aspect, options = {}) {
   if (!points.length) return null;
-  const window_ = safeAreaWindow(options.safeArea, options.headroom);
+  const window_ = safeAreaWindow(options.safeArea, options.headroom, options.gutter);
   const margin =
     typeof options.margin === 'number' && Number.isFinite(options.margin)
       ? Math.max(1, options.margin)

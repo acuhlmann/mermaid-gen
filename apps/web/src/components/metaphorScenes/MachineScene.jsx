@@ -32,11 +32,15 @@ function axleTint(theme, index) {
   return palette[index % palette.length];
 }
 
+/**
+ * Bedplate the gearing is bolted to. Out of the camera fit — the gears are the
+ * subject, the plate is the bench. See the substrate note in sceneFraming.js.
+ */
 function MachinePlate({ radius, theme }) {
   const plate = theme.machinePlateColor ?? '#3d4454';
   const rim = theme.machineRimColor ?? '#8b7355';
   return (
-    <group>
+    <group userData={FRAME_IGNORE_DATA}>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.12, 0]}>
         <circleGeometry args={[radius * 1.08, 72]} />
         <meshStandardMaterial color={shiftColor(plate, { lightness: -0.08 })} roughness={0.92} />
@@ -92,6 +96,7 @@ function AxleBed({ axle, theme, index }) {
       </mesh>
       <ItemLabel
         text={axle.name}
+        role="group"
         position={[0, 0.26, -axle.radius * 0.78]}
         fontSize={0.42}
         color={theme.labelColor}

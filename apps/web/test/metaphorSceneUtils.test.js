@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
 import {
+  contrastRatio,
+  ensureReadableInk,
   isDarkBackdrop,
   recedeColor,
   recedeTheme,
@@ -168,5 +170,62 @@ describe('recedeTheme', () => {
 
   it('passes a non-theme through rather than throwing', () => {
     expect(recedeTheme(null)).toBeNull();
+  });
+});
+
+describe('ensureReadableInk', () => {
+  // A label is read against its own outline and nothing else — as a halo for a
+  // group placard, as the chip itself for the other two. Scene-identity colours
+  // are picked to look right as a lit SURFACE, and as type they are routinely
+  // the same brightness as that halo: measured on the subway, the route names
+  // "SIGNUP" and "BUY" came out at contrast 1.16 and 1.35 against white, which
+  // is invisible, and route names are the one thing a transit map publishes.
+  const PALE = ['#f2b134', '#4cc9f0', '#06d6a0', '#ffd166', '#a8dadc'];
+
+  it('lifts a pale identity colour clear of a light halo', () => {
+    for (const pale of PALE) {
+      expect(contrastRatio(pale, '#ffffff')).toBeLessThan(3.4);
+      expect(contrastRatio(ensureReadableInk(pale, '#ffffff'), '#ffffff')).toBeGreaterThanOrEqual(
+        3.4
+      );
+    }
+  });
+
+  it('keeps the hue, so a darkened yellow still reads as the yellow line', () => {
+    const hsl = { h: 0, s: 0, l: 0 };
+    new THREE.Color('#f2b134').getHSL(hsl, THREE.SRGBColorSpace);
+    const fixedHsl = { h: 0, s: 0, l: 0 };
+    new THREE.Color(ensureReadableInk('#f2b134', '#ffffff')).getHSL(fixedHsl, THREE.SRGBColorSpace);
+    expect(Math.abs(fixedHsl.h - hsl.h)).toBeLessThan(0.02);
+    expect(fixedHsl.s).toBeGreaterThan(0.4);
+  });
+
+  it('walks away from the halo in whichever direction that is', () => {
+    // No second rule for dark themes: the direction is read off the halo, so a
+    // near-black ink on a near-black outline gets LIGHTER, not darker.
+    const onDark = ensureReadableInk('#1b2433', '#0b1020');
+    expect(contrastRatio(onDark, '#0b1020')).toBeGreaterThanOrEqual(3.4);
+    expect(contrastRatio('#1b2433', '#0b1020')).toBeLessThan(3.4);
+  });
+
+  it('leaves a colour that already clears the bar exactly as authored', () => {
+    // The least change that makes the name readable — a scene whose palette was
+    // chosen with contrast in mind must not be repainted by this.
+    for (const ink of ['#0f172a', '#ffffff', '#7f1d1d']) {
+      const halo = ink === '#ffffff' ? '#0f172a' : '#ffffff';
+      expect(ensureReadableInk(ink, halo)).toBe(ink);
+    }
+  });
+
+  it('is a no-op without both colours', () => {
+    expect(ensureReadableInk(null, '#ffffff')).toBe(null);
+    expect(ensureReadableInk('#f2b134', null)).toBe('#f2b134');
+  });
+});
+
+describe('contrastRatio', () => {
+  it('spans the WCAG range', () => {
+    expect(contrastRatio('#000000', '#ffffff')).toBeCloseTo(21, 1);
+    expect(contrastRatio('#3d4454', '#3d4454')).toBeCloseTo(1, 5);
   });
 });

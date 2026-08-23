@@ -355,6 +355,7 @@ function ClusterLabel({ cluster, theme }) {
   return (
     <ItemLabel
       text={cluster.name}
+      role="group"
       position={[cluster.center[0], cluster.center[1] - radius * 0.4 - 1.3, cluster.center[2]]}
       fontSize={0.6}
       color={theme.labelColor}

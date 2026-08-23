@@ -304,6 +304,7 @@ export function BridgeScene({ dsl, theme }) {
         height={8}
         count={3}
         color={theme.labelColor ?? '#1f2937'}
+        hazeColor={theme.skyHorizonColor ?? theme.background ?? null}
         idSeed="bridge-birds"
       />
       <MetaphorGroundShadow theme={theme} y={BRIDGE_CHASM_FLOOR_Y - 0.04} scale={groundScale} />

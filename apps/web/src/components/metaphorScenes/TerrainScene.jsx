@@ -378,6 +378,7 @@ export function TerrainScene({ dsl, theme }) {
         height={heightmap.bounds.maxHeight + 3}
         count={3}
         color={theme.labelColor ?? '#1f2937'}
+        hazeColor={theme.skyHorizonColor ?? theme.background ?? null}
         idSeed="terrain-birds"
       />
       {summitPos ? (

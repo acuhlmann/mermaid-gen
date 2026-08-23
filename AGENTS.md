@@ -272,13 +272,60 @@ ones that will bite an edit.
   naming the rest in its tooltip. Six authored phrases built a 277px band on an 844px phone and the
   camera reserved all of it. Same markup on every canvas; the phone and short-landscape CSS blocks
   decide, so the safe-area measurement follows for free.
+- **The reading strip's squeeze is spent on its chips, never on the scene's name.** The strip is a
+  flex row of heading + axes, and with only `min-width: 0` the heading lost every fight: on a
+  1440x900 desktop the fused commerce world rendered "Commerce plat…" over 700px of empty strip. A
+  chip already has somewhere to go (it wraps, and below the small-canvas limit it folds into the
+  `+N` counter that names the rest in its tooltip); a truncated title is nowhere else on screen.
 - **A group's name never goes where its own members stand.** City district placards go on the
-  patch's near edge, fused affinity placards stand at `group.surfaceY` (their ring is on the ocean
-  the islands sit on), and an island's own label goes outward from the world centre. A territory
-  named after one of its members (`namedByMember`) gets no placard at all — the member already
-  carries the word.
+  patch's near edge, garden bed placards likewise (they were on the far edge and behind their own
+  plants until this pass), fused affinity placards stand at `group.surfaceY` (their ring is on the
+  ocean the islands sit on), and an island's own label goes outward from the world centre. A
+  territory named after one of its members (`namedByMember`) gets no placard at all — the member
+  already carries the word. **The archipelago `chain` is the open exception**: its circles overlap
+  and their centres cluster at the world centre, so `± radius` on any single axis lands the name on
+  open water nowhere near its islands or past the frame edge — measured at 717x512, the near-edge
+  move put DISCOVER in a corner and BUY off-canvas, strictly worse than hidden. The real answer is
+  the planner's `assignSiteLabelOffsets`, which needs the chain plan to carry an offset the way a
+  fused site does; the code says so at the call site rather than shipping a different wrong place.
 - **Open water past the subject is scaffolding** — the iceberg's sea plane carries
   `FRAME_IGNORE_DATA`, like the shadow catcher and the fused ocean disc.
+- **So is the ground itself, and that is the bigger win.** Every grounded kind stands on a disc
+  sized `max(floor, contentRadius x pad)` — 1.3-1.5x the widest item on an ordinary 6-10 item
+  scene, and a CIRCLE around a layout that is rarely circular, so its rim reaches furthest exactly
+  where nothing stands (city subject at 77% of the width it could have, garden 65%). City footing,
+  cycle plaza, machine plate, tree and river meadows, garden lawn, subway plate and the
+  archipelago ocean all carry `FRAME_IGNORE_DATA` now; `metaphorSceneFraming.test.js` sweeps all
+  eight. Cutting a ground plane off at the frame edge is also the better picture — a floor that
+  runs out of frame reads as a world, a disc with margin all round reads as a coaster.
+- **The lateral gutter that pays for it is a few glyphs, not half a label.**
+  `ANNOTATION_GUTTER_PX` (26) is the horizontal `ANNOTATION_HEADROOM_PX`. Both ends were measured
+  on a 390x844 phone: at 58 (half a plate) the fused composite came back SMALLER than before the
+  substrate change and one label short, because its ocean was already out of the fit — it paid and
+  collected nothing; at 0 the city and composite were bigger with MORE names, but the subway's
+  "SIGNUP" clipped to "SIGNU". The job is only to buy back the last glyph of a name the pinned
+  on-canvas relaxation has already decided to keep.
+- **A label's RANK is visible now, and a scene passes the noun, never a font size.**
+  `labelRoles.js`: `item` (chip + name, unchanged), `group` (a territory — uppercase,
+  letter-spaced, **no chip**, heavier outline: a region name is written across its ground, not
+  stamped on a card standing in it), `link` (a relation — smaller, fainter chip). Before this a
+  district placard, a service and an edge caption were the same white chip; measured on the city,
+  six identical chips down one diagonal where three were towers, two were districts and one was an
+  edge. Adding a placard means passing `role="group"` — `metaphorLabelRoles.test.js` sweeps all
+  eight placards and both link captions, because a missed one still renders, just wearing the
+  wrong rank.
+- **A scene-identity colour is picked as a SURFACE and has to be re-picked as type.**
+  `ensureReadableInk(ink, halo)` in `sceneUtils.js` walks lightness away from the outline until it
+  clears 3.4:1, keeping the hue — a darkened yellow still reads as the yellow line. It exists
+  because dropping the group placard's chip left the subway's route names on nothing but their own
+  halo: "SIGNUP" and "BUY" measured 1.16 and 1.35 against white, i.e. invisible, and route names
+  are the one thing a transit map publishes. Direction is read off the halo, so dark themes need
+  no second rule.
+- **A distant bird has to LOSE contrast with its sky.** `SoaringBirds` wings were 3.5:1 quads in
+  near-black at 0.8 alpha and drew as ~30px hard dark chevrons that read as rendering artefacts
+  (reported as "stray dark checkmarks"). Now ~7:1, 0.55 alpha, and lerped 42% toward `hazeColor`
+  (the scene's own horizon) — aerial perspective, the same rule `recedeTheme` follows. Anything
+  genuinely distant that does not lose contrast is a hole punched in the sky.
 - **The guided read outranks every other panel, and its camera is aspect-solved.** `metaphorTour.js`
   orders what the DSL already says (title → legend → standout → link → thesis, thesis LAST; a
   composite goes layer by layer, never a global peak). `MetaphorTourPanel` must stay **first**

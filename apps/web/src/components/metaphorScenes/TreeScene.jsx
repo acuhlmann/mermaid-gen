@@ -30,6 +30,7 @@ import {
   SwayGroup
 } from './MetaphorSceneDecorations.jsx';
 import { idHash, idHash2, shiftColor } from './sceneUtils.js';
+import { FRAME_IGNORE_DATA } from './sceneFraming.js';
 
 /**
  * TubeGeometry along a curve with a linearly tapering radius — three's stock
@@ -344,7 +345,9 @@ function TreeMeadow({ theme, radius }) {
     [meadowColor]
   );
   return (
-    <group>
+    // Out of the camera fit — the tree is the subject, the meadow is the ground
+    // it grows out of. See the substrate note in sceneFraming.js.
+    <group userData={FRAME_IGNORE_DATA}>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.05, 0]}>
         <circleGeometry args={[radius, 64]} />
         <meshStandardMaterial color={rimColor} />
@@ -692,6 +695,7 @@ export function TreeScene({ dsl, theme }) {
         height={canopyTop + 2.5}
         count={3}
         color={theme.labelColor ?? '#1f2937'}
+        hazeColor={theme.skyHorizonColor ?? theme.background ?? null}
         idSeed="tree-birds"
       />
       {dsl.items.map((item) => {

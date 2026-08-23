@@ -33,6 +33,56 @@ export function shiftColor(input, { lightness = 0, satScale = 1, hueShift = 0 } 
   return c;
 }
 
+/** WCAG relative luminance of an sRGB colour, 0 (black) → 1 (white). */
+function relativeLuminance(color) {
+  const channel = (v) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4);
+  const rgb = { r: 0, g: 0, b: 0 };
+  new THREE.Color(color).getRGB(rgb, THREE.SRGBColorSpace);
+  return 0.2126 * channel(rgb.r) + 0.7152 * channel(rgb.g) + 0.0722 * channel(rgb.b);
+}
+
+/** Contrast ratio between two colours, 1 (identical) → 21 (black on white). */
+export function contrastRatio(a, b) {
+  const la = relativeLuminance(a);
+  const lb = relativeLuminance(b);
+  return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
+}
+
+/** Below this, ink and its halo are the same colour to anyone actually reading. */
+const MIN_INK_CONTRAST = 3.4;
+/** Darkening step; ~10 rounds spans the full range without a solve. */
+const INK_STEP = 0.06;
+
+/**
+ * `ink` darkened or lightened until it is legible against `halo`.
+ *
+ * A scene-coloured label is how a subway route, a district or a chain keeps its
+ * identity in its own name — but the identity colour is chosen to look right as
+ * a 3D SURFACE, where it is lit, shaded and seen against the ground. As text it
+ * is seen against nothing but its own outline, and the two are frequently the
+ * same brightness: measured on the subway, the pale yellow "SIGNUP" and pale
+ * blue "BUY" terminus placards came out at contrast 1.16 and 1.35 against the
+ * light halo they were drawn with — the route names, which are the one thing a
+ * transit map exists to publish, were invisible on a phone.
+ *
+ * Nudging lightness rather than substituting a neutral is what keeps the point:
+ * a darkened yellow still reads as the yellow line. The walk runs away from the
+ * halo (down when the halo is light, up when it is dark), so a theme flip needs
+ * no second rule, and it stops at the first step that clears — the least change
+ * that makes the name readable.
+ */
+export function ensureReadableInk(ink, halo, minRatio = MIN_INK_CONTRAST) {
+  if (!ink || !halo) return ink;
+  if (contrastRatio(ink, halo) >= minRatio) return ink;
+  const direction = relativeLuminance(halo) > 0.45 ? -1 : 1;
+  let candidate = new THREE.Color(ink);
+  for (let step = 0; step < 12; step += 1) {
+    candidate = shiftColor(candidate, { lightness: direction * INK_STEP });
+    if (contrastRatio(candidate, halo) >= minRatio) break;
+  }
+  return `#${candidate.getHexString(THREE.SRGBColorSpace)}`;
+}
+
 /**
  * How far a receded colour travels toward the horizon, and how much saturation
  * survives the trip. Tuned so a receded body still reads as a body — it keeps

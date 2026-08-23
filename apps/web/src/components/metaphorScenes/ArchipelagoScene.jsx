@@ -25,6 +25,7 @@ import { MetaphorAccents } from './MetaphorAccents.jsx';
 import { DaylightPollen, SkySunGlow, SoaringBirds } from './MetaphorSceneDecorations.jsx';
 import { useMetaphorClock } from './metaphorClock.js';
 import { idHash2, shiftColor } from './sceneUtils.js';
+import { FRAME_IGNORE_DATA } from './sceneFraming.js';
 
 /** Chain tint stays in the green/teal family so islands read as land, not pastel blobs. */
 function chainTint(theme, index) {
@@ -38,7 +39,11 @@ function chainTint(theme, index) {
   return palette[index % palette.length];
 }
 
-/** Soft rolling ocean disc with a travelling highlight — no opacity flicker. */
+/**
+ * Soft rolling ocean disc with a travelling highlight — no opacity flicker.
+ * Out of the camera fit: open water reaching past the islands is scaffolding,
+ * and it was the binding constraint on every archipelago. See sceneFraming.js.
+ */
 function OceanPlane({ radius, theme }) {
   const matRef = useRef(null);
   const { getTime, animated } = useMetaphorClock();
@@ -47,7 +52,7 @@ function OceanPlane({ radius, theme }) {
     matRef.current.emissiveIntensity = 0.1 + 0.05 * Math.sin(getTime() * 0.7);
   });
   return (
-    <group>
+    <group userData={FRAME_IGNORE_DATA}>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.08, 0]}>
         <circleGeometry args={[radius * 1.07, 72]} />
         <meshStandardMaterial
@@ -370,6 +375,22 @@ function ChainLabel({ chain, theme }) {
   return (
     <ItemLabel
       text={chain.name}
+      role="group"
+      // KNOWN WRONG, and left alone deliberately. This is the far side of the
+      // chain from the default (+x, +y, +z) view, so the placard is behind the
+      // chain's own islands — the bug the city district placards were fixed for
+      // by moving to the near edge, and the garden beds in the same pass.
+      //
+      // The chain is the one case that move does not fix, because a chain circle
+      // is a poor anchor: the chains here overlap and their centres cluster near
+      // the world centre, so `± radius` in any single axis lands the name on
+      // open water nowhere near its islands, or past the frame edge where the
+      // declutter pass drops it. Measured on a four-island, two-chain scene at
+      // 717x512: near-edge put DISCOVER in the bottom-left corner and BUY
+      // off-canvas entirely — strictly worse than being hidden. The real answer
+      // is the composite planner's `assignSiteLabelOffsets` (outward from the
+      // WORLD centre, past the outermost site), which needs the chain plan to
+      // carry an offset the way a fused site does.
       position={[chain.center[0], 0.35, chain.center[2] - chain.radius * 0.85]}
       fontSize={0.5}
       color={theme.labelColor}
@@ -485,6 +506,7 @@ export function ArchipelagoScene({ dsl, theme }) {
         height={6.5}
         count={3}
         color={theme.labelColor ?? '#1f2937'}
+        hazeColor={theme.skyHorizonColor ?? theme.background ?? null}
         idSeed="arch-birds"
       />
       <MetaphorGroundShadow theme={theme} y={-0.12} scale={oceanR * 1.6} />
