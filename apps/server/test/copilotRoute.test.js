@@ -10,7 +10,7 @@ import {
   handleDiagramTransformIntent,
   handleStyleIntent
 } from '../src/routes/copilot.js';
-import { handleUserDiagramEdit } from '../src/routes/copilotUserEdit.js';
+import { handleUserDiagramEdit, resolveStateContentType } from '../src/routes/copilotUserEdit.js';
 import { createDiagramStateStore } from '../src/state/diagramStateStore.js';
 
 function intentPayload(overrides = {}) {
@@ -763,6 +763,38 @@ test('user-edit route rejects anything contentType', async () => {
     stateStore
   });
   assert.equal(result.status, 400);
+});
+
+test('user-edit route rejects forms contentType', async () => {
+  const stateStore = createDiagramStateStore();
+  const result = await handleUserDiagramEdit({
+    body: {
+      contentType: 'forms',
+      diagramSource: '{"surfaces":[]}',
+      previousRevisionId: 0,
+      reason: 'Connect node'
+    },
+    stateStore
+  });
+  assert.equal(result.status, 400);
+  assert.match(result.body.error, /chart values/);
+});
+
+test('user-edit route rejects malformed payloads before touching the store', async () => {
+  const stateStore = createDiagramStateStore();
+  const result = await handleUserDiagramEdit({
+    body: { contentType: 'mermaid', diagramSource: 'flowchart TD\n  A --> B' },
+    stateStore
+  });
+  assert.equal(result.status, 400);
+  assert.match(result.body.error, /Invalid user edit payload/);
+  assert.equal(stateStore.getSlot('mermaid').revisionId, 0);
+});
+
+test('resolveStateContentType parses query contentType and rejects unknown values', () => {
+  assert.equal(resolveStateContentType({ query: { contentType: 'chart' } }), 'chart');
+  assert.equal(resolveStateContentType({ query: { contentType: 'not-a-slot' } }), null);
+  assert.equal(resolveStateContentType({ query: {} }), null);
 });
 
 test('user-edit route applies a metaphor3d tree patch with origin user', async () => {
