@@ -10138,7 +10138,18 @@ button {
 }
 
 .metaphor-context-heading {
-  min-width: 0;
+  /* The strip is a row of two: the scene's name, and the axes that say how to
+     read it. `min-width: 0` alone lets the name lose every fight — the axes are
+     `flex: 0 1 auto` and a fused world brings six of them, so on a 1440px
+     desktop "Commerce platform current" ellipsized to "Commerce plat…" and its
+     subtitle to "Domains, service la…" with 700px of empty strip beside them.
+     A floor here spends the squeeze on the axes instead, which is right twice
+     over: an axis chip already has somewhere to go (it wraps, and below the
+     small-canvas limit it collapses into the `+N` chip that names the rest in
+     its tooltip), and a truncated TITLE is the one line in the whole overlay
+     that cannot be recovered from anywhere else on screen. */
+  flex: 1 1 auto;
+  min-width: min(100%, 14rem);
   text-align: left;
 }
 

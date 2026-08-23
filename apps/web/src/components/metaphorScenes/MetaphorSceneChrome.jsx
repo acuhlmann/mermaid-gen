@@ -17,12 +17,14 @@ import { useMetaphorClock } from './metaphorClock.js';
 import { useLabelDeclutter } from './labelDeclutterContext.js';
 import { ItemAccentContext, useItemAccent } from './itemAccentContext.js';
 import { FRAME_IGNORE_DATA } from './sceneFraming.js';
+import { labelPlateEm, labelRoleStyle, labelRoleText } from './labelRoles.js';
 import {
   LABEL_TARGET_PX,
   LINK_LABEL_TARGET_PX,
   useScreenConstantScale
 } from './metaphorScreenScale.js';
 import {
+  ensureReadableInk,
   getRadialSpriteTexture,
   idHash2,
   resolveLinkAppearance,
@@ -65,6 +67,10 @@ export function GlowSprite({ size, color, opacity }) {
  * neither still works: everything ranks equal and nearest-to-camera wins, which
  * is the right default for an unordered scene.
  *
+ * `role` says what the label NAMES — a thing, a territory, or a relation — and
+ * that is what picks the chip, the tracking, the case and the size. See
+ * labelRoles.js; a scene passes the noun, never a font size.
+ *
  * Opacity is written imperatively onto the troika text object rather than
  * through props: the pass runs every ~110 ms and re-rendering a hundred labels
  * at that rate would cost more than the labels themselves.
@@ -77,6 +83,7 @@ export function ItemLabel({
   outlineColor = '#ffffff',
   importance = 0,
   pinned = false,
+  role = 'item',
   targetPx = LABEL_TARGET_PX
 }) {
   const billboardRef = useRef(null);
@@ -89,21 +96,30 @@ export function ItemLabel({
   const accented = useItemAccent();
   const isPinned = pinned || accented;
 
-  // Approximate the label's footprint from its glyph count — troika only
-  // publishes real bounds after an async sync, and the pass needs a size the
-  // first time it runs, not two frames later.
-  const width = Math.min(fontSize * 16, (text?.length ?? 0) * fontSize * 0.55);
-  const height = fontSize * 1.35;
-  const plateWidth = width + fontSize * 0.9;
-  const plateHeight = height + fontSize * 0.22;
-  const plateOpacity = 0.58;
+  const style = labelRoleStyle(role);
+  const drawn = labelRoleText(text, style);
+  const size = fontSize * style.scale;
+  // Every label is read against `outlineColor` — as a halo for a group placard,
+  // as the chip itself for the other two — so that is the only background the
+  // ink has, and a scene-coloured name (a subway route, a district) is picked
+  // to look right as a lit surface rather than as type. See ensureReadableInk.
+  const ink = useMemo(() => ensureReadableInk(color, outlineColor), [color, outlineColor]);
+
+  // The chip footprint, estimated from the glyph count — see labelPlateEm.
+  const plateEm = labelPlateEm(drawn, style);
+  const plateWidth = plateEm.width * size;
+  const plateHeight = plateEm.height * size;
+  const plateOpacity = style.plate;
   // The declutter pass wants screen boxes, and a screen-constant label knows its
   // own directly: the world size never reaches the screen unscaled any more, so
   // projecting it would report the authored size instead of the drawn one.
-  const screenWidthPx = (plateWidth / fontSize) * targetPx;
-  const screenHeightPx = (plateHeight / fontSize) * targetPx;
+  // The rank's size is spent on screen, not in world units: these labels are
+  // screen-constant, so a world-size bump would be undone by the very next frame.
+  const drawnPx = targetPx * style.scale;
+  const screenWidthPx = plateEm.width * drawnPx;
+  const screenHeightPx = plateEm.height * drawnPx;
 
-  useScreenConstantScale(scaleRef, fontSize, targetPx);
+  useScreenConstantScale(scaleRef, size, drawnPx);
 
   useEffect(() => {
     if (!declutter || !text) return undefined;
@@ -135,34 +151,41 @@ export function ItemLabel({
       <group ref={scaleRef}>
         {/* Chip behind every label so one-word names stay readable against a
             lit facade, a bright sky, or a busy fused landscape. The plate is
-            scaffolding, not subject — keep it out of the camera fit. */}
-        <mesh
-          ref={plateRef}
-          position={[0, 0, -fontSize * 0.05]}
-          userData={FRAME_IGNORE_DATA}
-          renderOrder={8}
-        >
-          <planeGeometry args={[plateWidth, plateHeight]} />
-          <meshBasicMaterial
-            color={outlineColor}
-            transparent
-            opacity={plateOpacity}
-            depthWrite={false}
-            toneMapped={false}
-          />
-        </mesh>
+            scaffolding, not subject — keep it out of the camera fit. A group
+            placard has none: it is written across its ground, and its heavier
+            outline is what carries it. Not rendered at all rather than drawn at
+            zero alpha — an invisible transparent quad still costs a sorted draw
+            call, and a fused world can hold a dozen placards. */}
+        {plateOpacity > 0 ? (
+          <mesh
+            ref={plateRef}
+            position={[0, 0, -size * 0.05]}
+            userData={FRAME_IGNORE_DATA}
+            renderOrder={8}
+          >
+            <planeGeometry args={[plateWidth, plateHeight]} />
+            <meshBasicMaterial
+              color={outlineColor}
+              transparent
+              opacity={plateOpacity}
+              depthWrite={false}
+              toneMapped={false}
+            />
+          </mesh>
+        ) : null}
         <Text
           ref={textRef}
-          fontSize={fontSize}
-          color={color}
+          fontSize={size}
+          color={ink}
           anchorX="center"
           anchorY="middle"
-          maxWidth={fontSize * 16}
-          outlineWidth={fontSize * 0.08}
+          letterSpacing={style.tracking}
+          maxWidth={size * 16}
+          outlineWidth={size * style.outline}
           outlineColor={outlineColor}
           outlineOpacity={1}
         >
-          {text}
+          {drawn}
         </Text>
       </group>
     </Billboard>
@@ -368,6 +391,7 @@ export function MetaphorLinks({ links, anchors, theme, variant = 'elbow' }) {
                 text={link.label}
                 position={route.midpoint}
                 fontSize={0.35}
+                role="link"
                 targetPx={LINK_LABEL_TARGET_PX}
                 color={theme.labelColor}
                 outlineColor={theme.labelOutline}

@@ -180,6 +180,23 @@ describe('the compact strip caps its axis chips', () => {
     expect(base).toMatch(/\.metaphor-context-axis-more\s*\{[\s\S]{0,80}?display:\s*none/);
     expect(base).not.toMatch(/\.metaphor-context-axis--extra\s*\{/);
   });
+
+  it("spends the strip's squeeze on the chips, never on the scene's name", () => {
+    // The strip is a row of two, and the axes are `flex: 0 1 auto`, so with only
+    // `min-width: 0` on the heading the name lost every fight: on a 1440x900
+    // desktop the fused commerce world rendered "Commerce plat…" and "Domains,
+    // service la…" with 700px of empty strip beside them. An axis chip already
+    // has somewhere to go — it wraps, and below the small-canvas limit it folds
+    // into the `+N` counter above, which names the rest in its tooltip — while a
+    // truncated title is the one line in the overlay that is nowhere else on
+    // screen.
+    const base = css.slice(0, css.indexOf('@media (max-width: 720px)'));
+    const at = base.indexOf('.metaphor-context-heading');
+    expect(at).toBeGreaterThan(-1);
+    const rule = base.slice(at, base.indexOf('}', at));
+    expect(rule).toMatch(/min-width:\s*min\(100%,\s*\d+(\.\d+)?rem\)/);
+    expect(rule).toMatch(/flex:\s*1\s+1\s+auto/);
+  });
 });
 
 describe('metaphor overlay chrome and the camera fit', () => {

@@ -7,6 +7,7 @@ import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { useFrame, useThree } from '@react-three/fiber';
 import {
+  ANNOTATION_GUTTER_PX,
   ANNOTATION_HEADROOM_PX,
   DEFAULT_FRAME_DIRECTION,
   FULL_SAFE_AREA,
@@ -117,6 +118,10 @@ export function SceneFrame({
       // is not the thing it names) but they are drawn above their items, so a
       // fit that ends at the tallest item ends where its label starts.
       headroom: ANNOTATION_HEADROOM_PX / Math.max(1, size.height),
+      // And half a name's width beside it, for the same reason: with the ground
+      // out of the fit the outermost item now reaches the frame edge, and the
+      // declutter pass drops any label that is not almost entirely on canvas.
+      gutter: ANNOTATION_GUTTER_PX / Math.max(1, size.width),
       margin
     });
     if (!solved) return;

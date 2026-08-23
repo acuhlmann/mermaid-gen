@@ -92,7 +92,11 @@ import {
 import { SceneFrame } from './metaphorScenes/SceneFrame.jsx';
 import { SceneKeyLight, SceneShadowFlags } from './metaphorScenes/SceneKeyLight.jsx';
 import { SceneEnvironment } from './metaphorScenes/SceneEnvironment.jsx';
-import { createSceneFit, FULL_SAFE_AREA } from './metaphorScenes/sceneFraming.js';
+import {
+  createSceneFit,
+  FRAME_IGNORE_DATA,
+  FULL_SAFE_AREA
+} from './metaphorScenes/sceneFraming.js';
 import {
   measureChromeRects,
   measureExternalChromeInsets,
@@ -464,6 +468,7 @@ function DistrictPatch({ district, theme, index }) {
       </mesh>
       <ItemLabel
         text={district.name}
+        role="group"
         position={[0, 0.72, district.size[1] / 2 - 0.4]}
         fontSize={0.52}
         color={theme.labelColor}
@@ -991,6 +996,9 @@ function CitySky({ theme }) {
  * slightly lifted + lighter plinth, a bright accent rim at the plinth edge, and
  * one faint concentric ring — so the buildings read as standing on a deliberate
  * platform rather than drifting on an open floor.
+ *
+ * Out of the camera fit: it is the ground the skyline stands on, not the
+ * skyline. See the substrate note in sceneFraming.js.
  */
 function CityFooting({ theme, radius }) {
   const baseColor = theme.groundColor ?? '#1a1a2e';
@@ -1002,7 +1010,7 @@ function CityFooting({ theme, radius }) {
   const gridColor = theme.districtGridColor ?? theme.labelColor ?? '#cbd5e1';
   const plinthR = radius * 0.94;
   return (
-    <group>
+    <group userData={FRAME_IGNORE_DATA}>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.06, 0]}>
         <circleGeometry args={[radius, 96]} />
         <meshStandardMaterial color={baseColor} />

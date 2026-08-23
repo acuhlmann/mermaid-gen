@@ -33,6 +33,7 @@ import {
 import { MetaphorAccents } from './MetaphorAccents.jsx';
 import { useMetaphorClock } from './metaphorClock.js';
 import { idHash2, shiftColor } from './sceneUtils.js';
+import { FRAME_IGNORE_DATA } from './sceneFraming.js';
 
 /** Height of the whole network above its plate. */
 const TRACK_Y = 0.42;
@@ -85,6 +86,7 @@ function SubwayLine({ line, theme }) {
           label at the midpoint lands on top of whatever crosses there. */}
       <ItemLabel
         text={line.name}
+        role="group"
         position={[terminus.x, TRACK_Y + 1.7, terminus.z]}
         fontSize={0.46}
         color={color}
@@ -176,15 +178,19 @@ export function SubwayScene({ dsl, theme }) {
 
   return (
     <group>
-      {/* Plain plate: the coloured routes own the scene's whole colour budget. */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.05, 0]}>
-        <circleGeometry args={[radius, 72]} />
-        <meshStandardMaterial color={shiftColor(plate, { lightness: -0.07 })} roughness={0.95} />
-      </mesh>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.03, 0]}>
-        <circleGeometry args={[radius * 0.95, 72]} />
-        <meshStandardMaterial color={plate} roughness={0.92} />
-      </mesh>
+      {/* Plain plate: the coloured routes own the scene's whole colour budget.
+          Out of the camera fit — a network's lines and stations are the subject,
+          the plate is the paper they are printed on. See sceneFraming.js. */}
+      <group userData={FRAME_IGNORE_DATA}>
+        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.05, 0]}>
+          <circleGeometry args={[radius, 72]} />
+          <meshStandardMaterial color={shiftColor(plate, { lightness: -0.07 })} roughness={0.95} />
+        </mesh>
+        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.03, 0]}>
+          <circleGeometry args={[radius * 0.95, 72]} />
+          <meshStandardMaterial color={plate} roughness={0.92} />
+        </mesh>
+      </group>
 
       {layout.lines.map((line) => (
         <SubwayLine key={`line-${line.name}`} line={line} theme={theme} />

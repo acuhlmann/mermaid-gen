@@ -24,6 +24,7 @@ import { MetaphorAccents } from './MetaphorAccents.jsx';
 import { DaylightPollen, SkySunGlow, SoaringBirds } from './MetaphorSceneDecorations.jsx';
 import { useMetaphorClock } from './metaphorClock.js';
 import { idHash2, shiftColor } from './sceneUtils.js';
+import { FRAME_IGNORE_DATA } from './sceneFraming.js';
 
 /** Perpendicular (left) of the centreline at each sample. */
 function sampleNormals(samples) {
@@ -648,7 +649,9 @@ function RiverMeadow({ theme, radiusX, radiusZ }) {
   // world Z — scale Y to squash the disc into an ellipse along the course.
   const squash = radiusZ / radiusX;
   return (
-    <group>
+    // Out of the camera fit — the course and its stations are the subject, the
+    // meadow is the land it runs through. See the note in sceneFraming.js.
+    <group userData={FRAME_IGNORE_DATA}>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.06, 0]} scale={[1, squash, 1]}>
         <circleGeometry args={[radiusX, 72]} />
         <meshStandardMaterial color={rimColor} />
@@ -804,6 +807,7 @@ export function RiverScene({ dsl, theme }) {
         height={7}
         count={3}
         color={theme.labelColor ?? '#1f2937'}
+        hazeColor={theme.skyHorizonColor ?? theme.background ?? null}
         idSeed="river-birds"
       />
       <MetaphorGroundShadow theme={theme} y={-0.02} scale={meadowX * 1.7} />

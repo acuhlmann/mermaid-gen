@@ -206,6 +206,7 @@ function BergLabel({ berg, theme }) {
   return (
     <ItemLabel
       text={berg.name}
+      role="group"
       position={[berg.center[0], 0.35, berg.center[2] + berg.radius + 0.9]}
       fontSize={0.5}
       color={theme.labelColor}
@@ -293,6 +294,7 @@ export function IcebergScene({ dsl, theme }) {
         height={ICEBERG_VERTICAL_SCALE * 0.9 + 2}
         count={3}
         color={theme.labelColor ?? '#1f2937'}
+        hazeColor={theme.skyHorizonColor ?? theme.background ?? null}
         idSeed="iceberg-birds"
       />
       <MetaphorAccents items={dsl.items} anchors={anchors} theme={theme} />

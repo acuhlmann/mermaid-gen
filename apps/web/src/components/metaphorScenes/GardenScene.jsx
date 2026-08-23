@@ -61,9 +61,16 @@ function GardenBed({ bed, theme, index }) {
         <boxGeometry args={[bed.size[0], 0.16, bed.size[1]]} />
         <meshStandardMaterial color={soil} roughness={1} />
       </mesh>
+      {/* On the bed's NEAR edge (+z), not its far one. The default view
+          direction is (+x, +y, +z), so a placard on the far edge is drawn
+          behind the bed's own plants and depth-tested away — the same bug the
+          city district placards were fixed for, and the same tell: the axis the
+          legend calls `bed` reads as unlabelled from the angle the scene opens
+          at. See the city's DistrictPatch for the original. */}
       <ItemLabel
         text={bed.name}
-        position={[0, 0.36, -bed.size[1] / 2 - 0.42]}
+        role="group"
+        position={[0, 0.36, bed.size[1] / 2 + 0.42]}
         fontSize={0.46}
         color={theme.labelColor}
         outlineColor={theme.labelOutline}
@@ -346,7 +353,9 @@ export function GardenScene({ dsl, theme }) {
 
   return (
     <group>
-      <mesh position={[0, -0.15, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+      {/* Lawn: out of the camera fit — the beds and plants are the subject, the
+          lawn is what they are planted in. See sceneFraming.js. */}
+      <mesh position={[0, -0.15, 0]} rotation={[-Math.PI / 2, 0, 0]} userData={FRAME_IGNORE_DATA}>
         <circleGeometry args={[radius, 96]} />
         <meshStandardMaterial color={theme.treeMeadowColor ?? '#71c96b'} roughness={0.92} />
       </mesh>
@@ -375,6 +384,7 @@ export function GardenScene({ dsl, theme }) {
         height={7}
         count={3}
         color="#294936"
+        hazeColor={theme.skyHorizonColor ?? theme.background ?? null}
         idSeed="garden-birds"
       />
       <MetaphorGroundShadow theme={theme} y={-0.13} scale={radius * 2.15} />
