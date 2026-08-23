@@ -340,7 +340,7 @@ test('parser-rejection messages quote the offending source line', async () => {
     // unknown key the test is effectively a no-op (and the schema-validation surface area
     // isn't ours to police). Skip rather than fail to keep the test stable across releases.
     if (/\(line \d+\)/.test(result.error)) {
-      assert.match(result.error, /\n  > /);
+      assert.match(result.error, /\n {2}> /);
     }
   }
 });

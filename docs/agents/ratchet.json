@@ -1,6 +1,6 @@
 {
   "updated": "2026-08-23",
-  "$comment": "monolithLoc.apps/web/src/components/DiagramCanvas.jsx and monolithLoc.apps/server/src/routes/copilot.ts were tightened to their measured 1889/1194 after the sibling-module extractions that closed #363 and #381 (diagramGraphEditNodeResolve.js and copilotUserEdit.ts respectively) — tightening a budget that moved the right way needs no written reason, only loosening does.",
+  "$comment": "monolithLoc.apps/web/src/components/DiagramCanvas.jsx and monolithLoc.apps/server/src/routes/copilot.ts were tightened to their measured 1889/1194 after the sibling-module extractions that closed #363 and #381 (diagramGraphEditNodeResolve.js and copilotUserEdit.ts respectively) — tightening a budget that moved the right way needs no written reason, only loosening does. lintWarnings.apps/server (229) is a known-stale budget, not fresh drift: --with-lint was last run at the commit that created it and never re-checked since, so a genuine but pre-existing gap (234, now 233 after a trivial fix) went unnoticed; kept at 229 rather than silently raised — see the ledger and the filed issue.",
   "metrics": {
     "monolithLoc": {
       "apps/web/src/ArchiSlop.jsx": {
@@ -50,7 +50,7 @@
         "initial": 229
       },
       "apps/web": {
-        "budget": 851,
+        "budget": 846,
         "initial": 851
       }
     },
@@ -66,11 +66,11 @@
     },
     "suite": {
       "files": {
-        "budget": 376,
+        "budget": 379,
         "initial": 366
       },
       "cases": {
-        "budget": 3867,
+        "budget": 3915,
         "initial": 3675
       }
     }

@@ -13,7 +13,7 @@ test('refineInfographicDsl trims label and desc whitespace', () => {
   const { dsl, applied } = refineInfographicDsl(DSL);
   assert.ok(applied.includes('trim-labels'));
   assert.match(dsl, /label Step 1/);
-  assert.doesNotMatch(dsl, /label   Step/);
+  assert.doesNotMatch(dsl, /label {3}Step/);
 });
 
 test('refineInfographicDsl leaves template line untouched', () => {
