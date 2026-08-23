@@ -6,14 +6,15 @@ This is **not** a second editor. The source of truth stays the slot's DSL. The c
 
 ## Who owns what
 
-| Layer                                                                 | Owns                                                            | Does not own           |
-| --------------------------------------------------------------------- | --------------------------------------------------------------- | ---------------------- |
-| Canvas (`DiagramCanvas`)                                              | Hit-test, connect-mode highlight, `data-indexes` / mermaid `id` | DSL shape              |
-| Radial + `GraphEditChrome`                                            | The four verbs + inline rename + undo toast                     | Per-family rules       |
-| `useFlowchartGraphEdit`                                               | Session: connect mode, pending rename, apply + toast            | Which mutator to call  |
-| `canvasGraphEdit.js`                                                  | Adapter lookup (`graphEditAdapterFor`)                          | Rendering              |
-| Family mutator (`mermaidFlowchartEdit.js`, `infographicGraphEdit.js`) | Parse → mutate → serialize                                      | HTTP                   |
-| `POST /user-edit`                                                     | Slot apply + sanitizer + revision                               | Family-specific syntax |
+| Layer                                                                 | Owns                                                                     | Does not own           |
+| --------------------------------------------------------------------- | ------------------------------------------------------------------------ | ---------------------- |
+| Canvas (`DiagramCanvas`)                                              | Wires selection/hover to the resolvers below, connect-mode highlight     | DSL shape              |
+| `diagramGraphEditNodeResolve.js`                                      | Per-family DOM node lookup by logical id / `data-indexes` / mermaid `id` | Rendering, mutation    |
+| Radial + `GraphEditChrome`                                            | The four verbs + inline rename + undo toast                              | Per-family rules       |
+| `useFlowchartGraphEdit`                                               | Session: connect mode, pending rename, apply + toast                     | Which mutator to call  |
+| `canvasGraphEdit.js`                                                  | Adapter lookup (`graphEditAdapterFor`)                                   | Rendering              |
+| Family mutator (`mermaidFlowchartEdit.js`, `infographicGraphEdit.js`) | Parse → mutate → serialize                                               | HTTP                   |
+| `POST /user-edit`                                                     | Slot apply + sanitizer + revision                                        | Family-specific syntax |
 
 A new family is a mutator module + an adapter row. Do not grow a second hook or a second chrome.
 

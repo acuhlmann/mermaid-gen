@@ -3,6 +3,7 @@
  * Import types here when adding handlers; keep validation in route modules via shared schemas.
  */
 import type { z } from 'zod';
+import type { DiagramState } from '@archislop/shared';
 import {
   AgentStreamPayloadSchema,
   DiagramAnalyzeSchema,
@@ -29,4 +30,13 @@ export {
   DiagramTransformIntentSchema,
   StyleIntentSchema,
   UserDiagramEditSchema
+};
+
+/** Shared result shape for route handlers that apply a diagram-source patch to a slot. */
+export type ApplyStoreResult =
+  { accepted: true; state: DiagramState; patch: unknown } | { accepted: false; error?: string };
+
+export type JsonRouteResult = {
+  status: number;
+  body: Record<string, unknown>;
 };

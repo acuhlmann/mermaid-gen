@@ -30,16 +30,23 @@ are visible in the backlog before this routine reads it.
 git fetch origin main
 ```
 
-List open issues labelled `ready-for-agent` or `needs-triage` (`docs/agents/triage-labels.md`).
+List open issues labelled `ready-for-agent` or `needs-triage`, **plus open issues carrying no
+triage label at all** (`docs/agents/triage-labels.md`). The unlabelled case is not hypothetical:
+`improve`'s own ratchet-violation issues (e.g. #381) are filed by `gh issue create` with no label
+argument, and nothing else in this repo ever labels them after the fact — an issue that starts
+unlabelled stays invisible to a gather step that only looks for `ready-for-agent`/`needs-triage`
+forever, not just until the next triage pass. Do not treat "no label" as "not yet triaged and
+therefore not this routine's problem"; treat it as `needs-triage` that a filer forgot to stamp.
+
+For a `needs-triage` issue, or an unlabelled one: read it in full. If it already names the file,
+the symptom, and what correct looks like, treat it as scoped even though the label hasn't caught
+up. If it genuinely does not — no repro, no file, no clear "correct" — this routine cannot safely
+act on it: leave a comment asking for the missing piece, apply `needs-info`, and move on. Guessing
+at an underspecified report is exactly the shape of mistake this routine exists to avoid.
+
 Read the ledger's run log and `Locked`/`Open observations` sections first — an issue already
 attempted twice with no human action is not a fresh pick (see Escalation below), and an issue
 already escalated is not re-escalated on the same finding.
-
-For a `needs-triage` issue: read it in full. If it already names the file, the symptom, and what
-correct looks like, treat it as scoped even though the label hasn't caught up. If it genuinely does
-not — no repro, no file, no clear "correct" — this routine cannot safely act on it: leave a comment
-asking for the missing piece, relabel `needs-info`, and move on. Guessing at an underspecified
-report is exactly the shape of mistake this routine exists to avoid.
 
 ## 2. Pick one
 
