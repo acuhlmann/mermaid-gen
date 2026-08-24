@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { applyUserDiagramEdit } from '../../state/diagramStore.js';
 import { pushError } from '../../state/errorToastStore.js';
 import { graphEditAdapterFor, graphEditIdFromDescriptor } from '../../utils/canvasGraphEdit.js';
+import { parseFlowchartEdgeDataId } from '../../utils/diagramSvgSelection.js';
 
 function isTypingTarget(el) {
   if (!el) return false;
@@ -20,6 +21,15 @@ function selectionKind(descriptor) {
 function nodeLogicalId(descriptor) {
   if (!descriptor || selectionKind(descriptor) !== 'node') return null;
   return graphEditIdFromDescriptor(descriptor);
+}
+
+function flowchartEdgeDisambiguation(descriptor) {
+  if (!descriptor || descriptor.kind !== 'edge') return {};
+  const parsed = descriptor.id ? parseFlowchartEdgeDataId(descriptor.id) : null;
+  return {
+    edgeLabel: descriptor.label,
+    edgeIndex: parsed?.index
+  };
 }
 
 function nextSelection(adapter, result) {
@@ -176,12 +186,14 @@ export function useFlowchartGraphEdit({
     (descriptor, extra = {}) => {
       const kindNow = selectionKind(descriptor);
       if (kindNow === 'edge') {
+        const { edgeIndex } = flowchartEdgeDisambiguation(descriptor);
         setLabelSession({
           kind: 'edge',
           fromId: descriptor.edgeFrom,
           toId: descriptor.edgeTo,
           draft: descriptor.label || '',
           edgeLabel: descriptor.label || '',
+          ...(edgeIndex != null ? { edgeIndex } : {}),
           x: extra.x ?? toolbarAnchor?.left ?? 0,
           y: extra.y ?? toolbarAnchor?.nodeTop ?? 0
         });
@@ -247,9 +259,10 @@ export function useFlowchartGraphEdit({
       if (action.id === 'delete') {
         closeRadialMenu?.();
         const current = stateRef.current.diagramSource;
+        const { edgeLabel, edgeIndex } = flowchartEdgeDisambiguation(target);
         const result =
           selectionKind(target) === 'edge'
-            ? adapter.deleteEdge(current, target.edgeFrom, target.edgeTo, target.label)
+            ? adapter.deleteEdge(current, target.edgeFrom, target.edgeTo, edgeLabel, edgeIndex)
             : adapter.deleteNode(current, nodeLogicalId(target));
         if (!result.ok) {
           if (result.reason !== 'duplicate' && result.reason !== 'self') {
@@ -348,7 +361,14 @@ export function useFlowchartGraphEdit({
       if (session.created && !label) return;
       const result =
         session.kind === 'edge'
-          ? adapter.renameEdge(current, session.fromId, session.toId, label, session.edgeLabel)
+          ? adapter.renameEdge(
+              current,
+              session.fromId,
+              session.toId,
+              label,
+              session.edgeLabel,
+              session.edgeIndex
+            )
           : adapter.renameNode(current, session.logicalId, label);
       if (!result.ok) {
         pushError(copy.failed);

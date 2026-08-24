@@ -98,6 +98,39 @@ describe('deleteFlowchartEdge', () => {
     expect(result.source).not.toMatch(/A --> B/);
     expect(result.source).toMatch(/A\[Start\]/);
   });
+
+  it('removes the edge that matches the label when duplicates exist', () => {
+    const duplicate = `flowchart TD
+  A[Start] -->|first| B[End]
+  A -->|second| B
+`;
+    const result = deleteFlowchartEdge(duplicate, 'A', 'B', 'second');
+    expect(result.ok).toBe(true);
+    expect(result.source).toMatch(/A\[Start\] -->|first| B\[End\]/);
+    expect(result.source).not.toMatch(/\|second\|/);
+  });
+
+  it('refuses delete when the label no longer matches the source', () => {
+    const duplicate = `flowchart TD
+  A[Start] -->|first| B[End]
+  A -->|second| B
+`;
+    expect(deleteFlowchartEdge(duplicate, 'A', 'B', 'missing')).toEqual({
+      ok: false,
+      reason: 'missing'
+    });
+  });
+
+  it('removes one parallel edge by Mermaid edge index', () => {
+    const duplicate = `flowchart TD
+  A[Start] -->|first| B[End]
+  A -->|second| B
+`;
+    const result = deleteFlowchartEdge(duplicate, 'A', 'B', undefined, 1);
+    expect(result.ok).toBe(true);
+    expect(result.source).toMatch(/A\[Start\] -->|first| B\[End\]/);
+    expect(result.source).not.toMatch(/\|second\|/);
+  });
 });
 
 describe('renameFlowchartNode', () => {
@@ -118,6 +151,29 @@ describe('renameFlowchartEdge', () => {
     const result = renameFlowchartEdge(FLOW, 'A', 'B', 'yes');
     expect(result.ok).toBe(true);
     expect(result.source).toMatch(/A\[Start\] -->|yes| B\[End\]/);
+  });
+
+  it('refuses rename when the label no longer matches the source', () => {
+    const duplicate = `flowchart TD
+  A[Start] -->|first| B[End]
+  A -->|second| B
+`;
+    expect(renameFlowchartEdge(duplicate, 'A', 'B', 'changed', 'missing')).toEqual({
+      ok: false,
+      reason: 'missing'
+    });
+  });
+
+  it('updates the edge that matches the label when duplicates exist', () => {
+    const duplicate = `flowchart TD
+  A[Start] -->|first| B[End]
+  A -->|second| B
+`;
+    const result = renameFlowchartEdge(duplicate, 'A', 'B', 'changed', 'second');
+    expect(result.ok).toBe(true);
+    expect(result.source).toMatch(/A\[Start\] -->|first| B\[End\]/);
+    expect(result.source).toMatch(/A -->|changed| B/);
+    expect(result.source).not.toMatch(/\|second\|/);
   });
 });
 
