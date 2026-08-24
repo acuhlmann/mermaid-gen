@@ -310,42 +310,106 @@ function prefixIndent(original, rebuilt) {
 }
 
 /**
+ * @typedef {{ lineIndex: number, edgeIndex: number, text: string }} FlowchartEdgeRef
+ */
+
+/**
  * @param {string} source
  * @param {string} fromId
  * @param {string} toId
+ * @returns {{ lines: string[], refs: FlowchartEdgeRef[] }}
  */
-export function deleteFlowchartEdge(source, fromId, toId) {
+function collectFlowchartEdgeRefs(source, fromId, toId) {
+  const lines = String(source).split(/\r?\n/);
+  /** @type {FlowchartEdgeRef[]} */
+  const refs = [];
+  for (let lineIndex = 0; lineIndex < lines.length; lineIndex += 1) {
+    const stmt = parseFlowchartStatement(lines[lineIndex]);
+    if (!stmt) continue;
+    stmt.edges.forEach((edge, edgeIndex) => {
+      if (edge.from === fromId && edge.to === toId) {
+        refs.push({ lineIndex, edgeIndex, text: edge.text || '' });
+      }
+    });
+  }
+  return { lines, refs };
+}
+
+/**
+ * Pick one edge among parallel links. Mirrors `findSequenceMessageRange`:
+ * Mermaid's per-pair index wins, then an explicit label, then the first match
+ * when the label is absent — and a provided label that no longer matches refuses.
+ *
+ * @param {FlowchartEdgeRef[]} refs
+ * @param {{ edgeLabel?: string, edgeIndex?: number }} opts
+ * @returns {FlowchartEdgeRef | null}
+ */
+function pickFlowchartEdgeRef(refs, { edgeLabel, edgeIndex }) {
+  if (refs.length === 0) return null;
+  if (typeof edgeIndex === 'number' && Number.isInteger(edgeIndex) && edgeIndex >= 0) {
+    return refs[edgeIndex] ?? null;
+  }
+  const wanted = typeof edgeLabel === 'string' ? edgeLabel.trim() : '';
+  if (wanted.length > 0) {
+    return refs.find((ref) => ref.text === wanted) ?? null;
+  }
+  return refs[0];
+}
+
+/**
+ * @param {string[]} lines
+ * @param {number} lineIndex
+ * @param {string} originalLine
+ * @param {{ nodes: Array<{ id: string, shape: string, label: string }>, edges: Array<{ from: string, to: string, text: string }> }} stmt
+ */
+function replaceFlowchartStatementLine(lines, lineIndex, originalLine, stmt) {
+  const next = [...lines];
+  if (stmt.edges.length === 0) {
+    const defs = [];
+    for (const node of stmt.nodes) {
+      const token = `${node.id}${node.shape || ''}`;
+      if (!defs.includes(token)) defs.push(token);
+    }
+    if (defs.length === 0) {
+      next.splice(lineIndex, 1);
+      return next;
+    }
+    next.splice(lineIndex, 1, ...defs.map((part) => prefixIndent(originalLine, part)));
+    return next;
+  }
+  const rebuilt = reconstructStatement(stmt);
+  if (!rebuilt) {
+    next.splice(lineIndex, 1);
+    return next;
+  }
+  next.splice(lineIndex, 1, ...rebuilt.split('\n').map((part) => prefixIndent(originalLine, part)));
+  return next;
+}
+
+/**
+ * @param {string} source
+ * @param {string} fromId
+ * @param {string} toId
+ * @param {string} [edgeLabel]
+ * @param {number} [edgeIndex] Mermaid `L_<from>_<to>_<n>` index when known
+ */
+export function deleteFlowchartEdge(source, fromId, toId, edgeLabel, edgeIndex) {
   const blocked = requireFlowchart(source) || requireNodeId(fromId) || requireNodeId(toId);
   if (blocked) return blocked;
-  const lines = String(source).split(/\r?\n/);
-  /** @type {string[]} */
-  const next = [];
-  let removed = false;
-  for (const line of lines) {
-    const stmt = parseFlowchartStatement(line);
-    if (!stmt) {
-      next.push(line);
-      continue;
-    }
-    const remaining = stmt.edges.filter((edge) => !(edge.from === fromId && edge.to === toId));
-    if (remaining.length === stmt.edges.length) {
-      next.push(line);
-      continue;
-    }
-    removed = true;
-    if (remaining.length === 0) {
-      const defs = [];
-      for (const node of stmt.nodes) {
-        const token = `${node.id}${node.shape || ''}`;
-        if (!defs.includes(token)) defs.push(token);
-      }
-      if (defs.length) next.push(...defs.map((part) => prefixIndent(line, part)));
-      continue;
-    }
-    const rebuilt = reconstructStatement({ nodes: stmt.nodes, edges: remaining });
-    if (rebuilt) next.push(...rebuilt.split('\n').map((part) => prefixIndent(line, part)));
-  }
-  if (!removed) return fail('missing');
+
+  const { lines, refs } = collectFlowchartEdgeRefs(source, fromId, toId);
+  const picked = pickFlowchartEdgeRef(refs, { edgeLabel, edgeIndex });
+  if (!picked) return fail('missing');
+
+  const originalLine = lines[picked.lineIndex];
+  const stmt = parseFlowchartStatement(originalLine);
+  if (!stmt) return fail('missing');
+
+  const remaining = stmt.edges.filter((_, index) => index !== picked.edgeIndex);
+  const next = replaceFlowchartStatementLine(lines, picked.lineIndex, originalLine, {
+    nodes: stmt.nodes,
+    edges: remaining
+  });
   return ok(next.join('\n'));
 }
 
@@ -383,31 +447,29 @@ export function renameFlowchartNode(source, nodeId, label) {
  * @param {string} source
  * @param {string} fromId
  * @param {string} toId
- * @param {string} label
+ * @param {string} label new edge label
+ * @param {string} [previousEdgeLabel] disambiguates parallel links (canvas selection)
+ * @param {number} [edgeIndex] Mermaid `L_<from>_<to>_<n>` index when known
  */
-export function renameFlowchartEdge(source, fromId, toId, label) {
+export function renameFlowchartEdge(source, fromId, toId, label, previousEdgeLabel, edgeIndex) {
   const blocked = requireFlowchart(source) || requireNodeId(fromId) || requireNodeId(toId);
   if (blocked) return blocked;
   const text = String(label ?? '').trim();
-  const lines = String(source).split(/\r?\n/);
-  let found = false;
-  const next = lines.map((line) => {
-    const stmt = parseFlowchartStatement(line);
-    if (!stmt) return line;
-    let changed = false;
-    const edges = stmt.edges.map((edge) => {
-      if (edge.from !== fromId || edge.to !== toId) return edge;
-      changed = true;
-      return { ...edge, text };
-    });
-    if (!changed) return line;
-    found = true;
-    const rebuilt = reconstructStatement({ nodes: stmt.nodes, edges });
-    return rebuilt
-      .split('\n')
-      .map((part) => prefixIndent(line, part))
-      .join('\n');
+
+  const { lines, refs } = collectFlowchartEdgeRefs(source, fromId, toId);
+  const picked = pickFlowchartEdgeRef(refs, { edgeLabel: previousEdgeLabel, edgeIndex });
+  if (!picked) return fail('missing');
+
+  const originalLine = lines[picked.lineIndex];
+  const stmt = parseFlowchartStatement(originalLine);
+  if (!stmt) return fail('missing');
+
+  const edges = stmt.edges.map((edge, index) =>
+    index === picked.edgeIndex ? { ...edge, text } : edge
+  );
+  const next = replaceFlowchartStatementLine(lines, picked.lineIndex, originalLine, {
+    nodes: stmt.nodes,
+    edges
   });
-  if (!found) return fail('missing');
   return ok(next.join('\n'));
 }
