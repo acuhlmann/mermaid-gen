@@ -230,11 +230,57 @@ export function deleteStateNode(source, stateId) {
 }
 
 /**
+ * @typedef {{ lineIndex: number, edgeIndex: number, text: string }} StateEdgeRef
+ */
+
+/**
  * @param {string} source
  * @param {string} fromId
  * @param {string} toId
+ * @returns {{ lines: string[], refs: StateEdgeRef[] }}
  */
-export function deleteStateEdge(source, fromId, toId) {
+function collectStateEdgeRefs(source, fromId, toId) {
+  const lines = String(source).split(/\r?\n/);
+  /** @type {StateEdgeRef[]} */
+  const refs = [];
+  for (let lineIndex = 0; lineIndex < lines.length; lineIndex += 1) {
+    const transition = parseStateTransition(lines[lineIndex]);
+    if (transition && transition.from === fromId && transition.to === toId) {
+      refs.push({ lineIndex, edgeIndex: refs.length, text: transition.text || '' });
+    }
+  }
+  return { lines, refs };
+}
+
+/**
+ * Pick one transition among parallel links. Mirrors `pickFlowchartEdgeRef`:
+ * Mermaid's per-pair index wins, then an explicit label, then the first match
+ * when the label is absent — and a provided label that no longer matches refuses.
+ *
+ * @param {StateEdgeRef[]} refs
+ * @param {{ edgeLabel?: string, edgeIndex?: number }} opts
+ * @returns {StateEdgeRef | null}
+ */
+function pickStateEdgeRef(refs, { edgeLabel, edgeIndex }) {
+  if (refs.length === 0) return null;
+  if (typeof edgeIndex === 'number' && Number.isInteger(edgeIndex) && edgeIndex >= 0) {
+    return refs[edgeIndex] ?? null;
+  }
+  const wanted = typeof edgeLabel === 'string' ? edgeLabel.trim() : '';
+  if (wanted.length > 0) {
+    return refs.find((ref) => ref.text === wanted) ?? null;
+  }
+  return refs[0];
+}
+
+/**
+ * @param {string} source
+ * @param {string} fromId
+ * @param {string} toId
+ * @param {string} [edgeLabel]
+ * @param {number} [edgeIndex] Mermaid `L_<from>_<to>_<n>` index when known
+ */
+export function deleteStateEdge(source, fromId, toId, edgeLabel, edgeIndex) {
   const blocked =
     requireState(source) ||
     requireStateId(fromId) ||
@@ -242,19 +288,13 @@ export function deleteStateEdge(source, fromId, toId) {
     requireExistingState(source, fromId) ||
     requireExistingState(source, toId);
   if (blocked) return blocked;
-  const lines = String(source).split(/\r?\n/);
-  /** @type {string[]} */
-  const next = [];
-  let removed = false;
-  for (const line of lines) {
-    const transition = parseStateTransition(line);
-    if (transition && transition.from === fromId && transition.to === toId) {
-      removed = true;
-      continue;
-    }
-    next.push(line);
-  }
-  if (!removed) return fail('missing');
+
+  const { lines, refs } = collectStateEdgeRefs(source, fromId, toId);
+  const picked = pickStateEdgeRef(refs, { edgeLabel, edgeIndex });
+  if (!picked) return fail('missing');
+
+  const next = [...lines];
+  next.splice(picked.lineIndex, 1);
   return ok(next.join('\n'));
 }
 
@@ -305,9 +345,11 @@ export function renameStateNode(source, stateId, label) {
  * @param {string} source
  * @param {string} fromId
  * @param {string} toId
- * @param {string} label
+ * @param {string} label new transition label
+ * @param {string} [previousEdgeLabel] disambiguates parallel transitions (canvas selection)
+ * @param {number} [edgeIndex] Mermaid `L_<from>_<to>_<n>` index when known
  */
-export function renameStateEdge(source, fromId, toId, label) {
+export function renameStateEdge(source, fromId, toId, label, previousEdgeLabel, edgeIndex) {
   const blocked =
     requireState(source) ||
     requireStateId(fromId) ||
@@ -316,16 +358,15 @@ export function renameStateEdge(source, fromId, toId, label) {
     requireExistingState(source, toId);
   if (blocked) return blocked;
   const text = String(label ?? '').trim();
-  const lines = String(source).split(/\r?\n/);
-  let found = false;
-  const next = lines.map((line) => {
-    const transition = parseStateTransition(line);
-    if (!transition || transition.from !== fromId || transition.to !== toId) return line;
-    found = true;
-    const indent = indentOf(line);
-    const suffix = text ? ` : ${text}` : '';
-    return `${indent}${fromId} --> ${toId}${suffix}`;
-  });
-  if (!found) return fail('missing');
+
+  const { lines, refs } = collectStateEdgeRefs(source, fromId, toId);
+  const picked = pickStateEdgeRef(refs, { edgeLabel: previousEdgeLabel, edgeIndex });
+  if (!picked) return fail('missing');
+
+  const next = [...lines];
+  const originalLine = lines[picked.lineIndex];
+  const indent = indentOf(originalLine);
+  const suffix = text ? ` : ${text}` : '';
+  next[picked.lineIndex] = `${indent}${fromId} --> ${toId}${suffix}`;
   return ok(next.join('\n'));
 }
