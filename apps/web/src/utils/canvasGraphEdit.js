@@ -57,6 +57,24 @@ import {
   renameTreeNode
 } from './metaphorTreeEdit.js';
 import {
+  addLinkedCityNode,
+  connectCityNodes,
+  deleteCityEdge,
+  deleteCityNode,
+  isCityFamilySource,
+  renameCityEdge as renameCityGraphEdge,
+  renameCityNode
+} from './metaphorCityEdit.js';
+import {
+  addLinkedGardenNode,
+  connectGardenNodes,
+  deleteGardenEdge,
+  deleteGardenNode,
+  isGardenFamilySource,
+  renameGardenEdge,
+  renameGardenNode
+} from './metaphorGardenEdit.js';
+import {
   addLinkedChartRow,
   connectChartRows,
   deleteChartEdge as deleteChartGraphEdge,
@@ -138,6 +156,28 @@ const METAPHOR_TREE_ADAPTER = {
   renameEdge: renameTreeEdge
 };
 
+const METAPHOR_CITY_ADAPTER = {
+  contentType: 'metaphor3d',
+  canLink: true,
+  addLinked: addLinkedCityNode,
+  connect: connectCityNodes,
+  deleteNode: deleteCityNode,
+  deleteEdge: deleteCityEdge,
+  renameNode: renameCityNode,
+  renameEdge: renameCityGraphEdge
+};
+
+const METAPHOR_GARDEN_ADAPTER = {
+  contentType: 'metaphor3d',
+  canLink: false,
+  addLinked: addLinkedGardenNode,
+  connect: connectGardenNodes,
+  deleteNode: deleteGardenNode,
+  deleteEdge: deleteGardenEdge,
+  renameNode: renameGardenNode,
+  renameEdge: renameGardenEdge
+};
+
 const CHART_VALUES_ADAPTER = {
   contentType: 'chart',
   canLink: false,
@@ -208,6 +248,12 @@ export function graphEditAdapterFor(contentType, source) {
   }
   if (contentType === 'metaphor3d' && isTreeFamilySource(source)) {
     return METAPHOR_TREE_ADAPTER;
+  }
+  if (contentType === 'metaphor3d' && isCityFamilySource(source)) {
+    return METAPHOR_CITY_ADAPTER;
+  }
+  if (contentType === 'metaphor3d' && isGardenFamilySource(source)) {
+    return METAPHOR_GARDEN_ADAPTER;
   }
   if (contentType === 'chart' && isChartValuesFamilySource(source)) {
     return CHART_VALUES_ADAPTER;

@@ -58,6 +58,34 @@ const METAPHOR_TREE = JSON.stringify(
   2
 );
 
+const METAPHOR_CITY = JSON.stringify(
+  {
+    metaphor: 'city',
+    scene: { theme: 'whiteboard', camera: 'orbit' },
+    items: [
+      { id: 'auth', label: 'Auth', height: 10, footprint: 2 },
+      { id: 'api', label: 'API', height: 14, footprint: 3 }
+    ],
+    links: []
+  },
+  null,
+  2
+);
+
+const METAPHOR_GARDEN = JSON.stringify(
+  {
+    metaphor: 'garden',
+    scene: { theme: 'whiteboard', camera: 'orbit' },
+    items: [
+      { id: 'signup', label: 'Signup', maturity: 0.6, impact: 4, health: 'steady' },
+      { id: 'checkout', label: 'Checkout', maturity: 0.4, impact: 3, health: 'steady' }
+    ],
+    links: []
+  },
+  null,
+  2
+);
+
 const CHART_VALUES = JSON.stringify(
   {
     archislopVersion: 1,
@@ -143,7 +171,30 @@ describe('graphEditAdapterFor', () => {
       ok: true,
       newId: 'n1'
     });
-    expect(graphEditAdapterFor('metaphor3d', '{"metaphor":"city","items":[]}')).toBeNull();
+    expect(graphEditAdapterFor('metaphor3d', METAPHOR_CITY)?.canLink).toBe(true);
+    expect(graphEditAdapterFor('metaphor3d', METAPHOR_GARDEN)?.canLink).toBe(false);
+    expect(graphEditAdapterFor('metaphor3d', '{"metaphor":"galaxy","items":[]}')).toBeNull();
+  });
+
+  it('returns the metaphor city adapter with Link', () => {
+    const adapter = graphEditAdapterFor('metaphor3d', METAPHOR_CITY);
+    expect(adapter?.contentType).toBe('metaphor3d');
+    expect(adapter?.canLink).toBe(true);
+    expect(adapter?.addLinked(METAPHOR_CITY, 'auth', 'Billing')).toMatchObject({
+      ok: true,
+      newId: 'n1'
+    });
+    expect(adapter?.connect(METAPHOR_CITY, 'auth', 'api')).toMatchObject({ ok: true });
+  });
+
+  it('returns the metaphor garden adapter without Link', () => {
+    const adapter = graphEditAdapterFor('metaphor3d', METAPHOR_GARDEN);
+    expect(adapter?.contentType).toBe('metaphor3d');
+    expect(adapter?.canLink).toBe(false);
+    expect(adapter?.addLinked(METAPHOR_GARDEN, 'signup', 'Referrals')).toMatchObject({
+      ok: true,
+      newId: 'n1'
+    });
   });
 
   it('returns the chart values adapter without Link', () => {

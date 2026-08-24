@@ -830,3 +830,82 @@ test('user-edit route applies a metaphor3d tree patch with origin user', async (
   assert.equal(result.body.patch.origin.kind, 'user');
   assert.equal(stateStore.getSlot('metaphor3d').revisionId, 2);
 });
+
+test('user-edit route applies a metaphor3d city patch with origin user', async () => {
+  const stateStore = createDiagramStateStore();
+  const city = JSON.stringify(
+    {
+      metaphor: 'city',
+      scene: { theme: 'whiteboard', camera: 'orbit' },
+      items: [
+        { id: 'auth', label: 'Auth', height: 10, footprint: 2 },
+        { id: 'api', label: 'API', height: 14, footprint: 3 }
+      ],
+      links: []
+    },
+    null,
+    2
+  );
+  await stateStore.syncClientDiagramSource({ contentType: 'metaphor3d', diagramSource: city });
+  const parsed = JSON.parse(city);
+  parsed.items.splice(1, 0, {
+    id: 'n1',
+    label: 'Billing',
+    height: 10,
+    footprint: 2
+  });
+  parsed.links.push({ from: 'auth', to: 'n1' });
+  const result = await handleUserDiagramEdit({
+    body: {
+      contentType: 'metaphor3d',
+      diagramSource: JSON.stringify(parsed, null, 2),
+      previousRevisionId: stateStore.getSlot('metaphor3d').revisionId,
+      reason: 'Connect node'
+    },
+    stateStore
+  });
+
+  assert.equal(result.status, 200);
+  assert.match(result.body.state.diagramSource, /"id": "n1"/);
+  assert.match(result.body.state.diagramSource, /"from": "auth"/);
+  assert.equal(result.body.patch.origin.kind, 'user');
+});
+
+test('user-edit route applies a metaphor3d garden patch with origin user', async () => {
+  const stateStore = createDiagramStateStore();
+  const garden = JSON.stringify(
+    {
+      metaphor: 'garden',
+      scene: { theme: 'whiteboard', camera: 'orbit' },
+      items: [
+        { id: 'signup', label: 'Signup', maturity: 0.6, impact: 4, health: 'steady' },
+        { id: 'checkout', label: 'Checkout', maturity: 0.4, impact: 3, health: 'steady' }
+      ],
+      links: []
+    },
+    null,
+    2
+  );
+  await stateStore.syncClientDiagramSource({ contentType: 'metaphor3d', diagramSource: garden });
+  const parsed = JSON.parse(garden);
+  parsed.items.push({
+    id: 'n1',
+    label: 'Referrals',
+    maturity: 0.5,
+    impact: 3,
+    health: 'steady'
+  });
+  const result = await handleUserDiagramEdit({
+    body: {
+      contentType: 'metaphor3d',
+      diagramSource: JSON.stringify(parsed, null, 2),
+      previousRevisionId: stateStore.getSlot('metaphor3d').revisionId,
+      reason: 'Connect node'
+    },
+    stateStore
+  });
+
+  assert.equal(result.status, 200);
+  assert.match(result.body.state.diagramSource, /"label": "Referrals"/);
+  assert.equal(result.body.patch.origin.kind, 'user');
+});

@@ -44,13 +44,19 @@ function nextSelection(adapter, result) {
     };
   }
   if (adapter.contentType === 'metaphor3d') {
+    let metaphor = 'tree';
+    try {
+      metaphor = JSON.parse(result.source)?.metaphor ?? 'tree';
+    } catch {
+      /* keep default */
+    }
     return {
       kind: 'metaphor-item',
       id: `metaphor3d-${result.newId}`,
       dataId: result.newId,
       partName: result.newLabel || result.newId,
       label: result.newLabel || result.newId,
-      metaphor: 'tree'
+      metaphor
     };
   }
   if (adapter.contentType === 'chart') {
