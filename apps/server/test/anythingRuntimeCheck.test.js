@@ -5,6 +5,7 @@ import {
   isAnythingRuntimeCheckEnabled,
   runAnythingRuntimeCheck
 } from '../src/tools/anythingRuntimeCheck.js';
+import { ANYTHING_BENCH_CORPUS } from '../scripts/benchAnythingCorpus.js';
 
 function doc(body, { head = '' } = {}) {
   return `<!DOCTYPE html><html><head>${head}</head><body>${body}</body></html>`;
@@ -217,6 +218,25 @@ test('runtime sandbox integration', { concurrency: false }, async (t) => {
     );
     assert.equal(result.ok, true);
     assert.ok(result.warnings.length >= 1, JSON.stringify(result.warnings));
+  });
+
+  // The bench corpus is the only place a runtime-rung expectation is written down, and
+  // benchAnything.js is not part of `npm test` — so a fixture that stops reproducing its
+  // failure under one engine is invisible until somebody runs the bench by hand. This
+  // sweep runs those fixtures through whichever engine the suite is configured for, which
+  // is what makes the "both engines are held to the same suite" identity actually hold for
+  // them. The runtime_error subset only: blank_render is cheap but unrelated, and the
+  // runtime_timeout fixture deliberately spins for the whole budget.
+  await t.test('bench corpus runtime_error fixtures still throw under this engine', async () => {
+    const fixtures = ANYTHING_BENCH_CORPUS.filter(
+      (c) => c.kind === 'runtime' && c.expectedCode === 'runtime_error'
+    );
+    assert.ok(fixtures.length >= 2, `expected runtime_error fixtures, got ${fixtures.length}`);
+    for (const fixture of fixtures) {
+      const result = await runAnythingRuntimeCheck(fixture.html, { env: {} });
+      assert.equal(result.ok, false, `${fixture.id}: ${JSON.stringify(result)}`);
+      assert.equal(result.code, 'runtime_error', `${fixture.id}: ${JSON.stringify(result)}`);
+    }
   });
 
   await t.test('fails open when the sandbox cannot produce a verdict', async () => {
