@@ -2,8 +2,21 @@ import { useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
 import { Line } from '@react-three/drei';
-import { HoverableItem, ItemLabel, MetaphorGroundShadow } from './MetaphorSceneChrome.jsx';
+import {
+  HoverableItem,
+  ItemLabel,
+  LinkArrowhead,
+  MetaphorGroundShadow
+} from './MetaphorSceneChrome.jsx';
 import { LINK_LABEL_TARGET_PX } from './metaphorScreenScale.js';
+import { FRAME_IGNORE_DATA } from './sceneFraming.js';
+import {
+  LINK_CASING_OPACITY,
+  arrowFromRoute,
+  fusedLinkPresentation,
+  linkInk,
+  linkMetricsFor
+} from './linkRoutes.js';
 import { MetaphorAccents } from './MetaphorAccents.jsx';
 import { useMetaphorClock } from './metaphorClock.js';
 import { planFusedCompositeWorld } from './fusedCompositePlanner.js';
@@ -416,10 +429,23 @@ function FusedLinkPulse({ points, seed, color }) {
   );
 }
 
+/**
+ * The fused world's cross-layer relations — what an island's service owes a
+ * river stage, which is the one thing a composite says that no single-kind scene
+ * can. They got the same treatment the base scenes' links did (`linkRoutes.js`:
+ * a casing that carries its own contrast, plus an arrowhead, because `from`→`to`
+ * is a claim and a hairline states neither half of it).
+ *
+ * The muted/dimmed states the base version has no equivalent of are decided in
+ * `fusedLinkPresentation`; the reasoning lives with the rule.
+ */
 function FusedLinks({ links, theme, mutedTheme, activeId, lod, isLinkMuted }) {
+  const metrics = linkMetricsFor(links.length);
+  const casingColor = theme.labelOutline ?? '#ffffff';
   return links.map((link, index) => {
     const related = activeId === link.from || activeId === link.to;
     const muted = isLinkMuted(link);
+    const { cased, emphasis, opacity } = fusedLinkPresentation({ related, muted, activeId });
     const linkTheme = muted ? mutedTheme : theme;
     const from = link.fromAnchor;
     const to = link.toAnchor;
@@ -430,27 +456,50 @@ function FusedLinks({ links, theme, mutedTheme, activeId, lod, isLinkMuted }) {
       (from[2] + to[2]) / 2
     ];
     const points = [from, mid, to];
-    const color =
+    const rawColor =
       link.kind === 'ownership'
         ? (linkTheme.treeAccentColor ?? '#f59e0b')
         : (linkTheme.binaryGlowColor ?? linkTheme.linkColor ?? '#60a5fa');
+    const color = muted ? rawColor : linkInk(rawColor, casingColor);
+    const arrow = cased ? arrowFromRoute(points) : null;
     // The pulse is additive and animated, like the river's motes — a muted link
     // keeps its line and loses its traffic.
     const showPulse = lod !== 'low' && !muted && (link.kind === 'flow' || !link.kind);
     return (
-      <group key={`${link.from}-${link.to}-${index}`}>
+      <group key={`${link.from}-${link.to}-${index}`} userData={FRAME_IGNORE_DATA}>
+        {cased ? (
+          <Line
+            points={points}
+            color={casingColor}
+            lineWidth={metrics.casingPx * emphasis}
+            transparent
+            opacity={LINK_CASING_OPACITY}
+            depthWrite={false}
+            renderOrder={-1}
+          />
+        ) : null}
         <Line
           points={points}
           color={color}
-          lineWidth={related ? 2.2 : 1}
+          lineWidth={metrics.corePx * emphasis}
           transparent
-          opacity={muted ? 0.22 : activeId ? (related ? 0.96 : 0.18) : 0.66}
+          opacity={opacity}
         />
+        {arrow ? (
+          <LinkArrowhead
+            position={arrow.position}
+            direction={arrow.direction}
+            color={color}
+            casingColor={casingColor}
+            opacity={opacity}
+            targetPx={metrics.arrowPx * emphasis}
+          />
+        ) : null}
         {showPulse ? (
           <FusedLinkPulse
             points={points}
             seed={idHash2(`${link.from}-${link.to}`, 'fused-link')}
-            color={color}
+            color={rawColor}
           />
         ) : null}
         {link.label && !muted ? (

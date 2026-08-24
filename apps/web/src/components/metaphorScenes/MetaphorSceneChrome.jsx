@@ -30,6 +30,13 @@ import {
   resolveLinkAppearance,
   samplePolyline
 } from './sceneUtils.js';
+import {
+  LINK_CASING_OPACITY,
+  arrowFromRoute,
+  linkCoreOpacity,
+  linkInk,
+  linkMetricsFor
+} from './linkRoutes.js';
 
 /** Billboarded additive glow using the soft radial sprite (round, not square). */
 export function GlowSprite({ size, color, opacity }) {
@@ -358,11 +365,120 @@ function arcRoute(from, to) {
   return { points, midpoint: [labelAt.x, labelAt.y + 0.35, labelAt.z] };
 }
 
-export function MetaphorLinks({ links, anchors, theme, variant = 'elbow' }) {
-  if (!links?.length) return null;
+/**
+ * How far the tip stands off the anchor, in arrow lengths. An anchor is "the
+ * top of the item", and several scenes then draw ABOVE their own anchor, so a
+ * tip placed exactly on one lands inside whatever the scene stacked there.
+ * Screen-relative like the arrow itself: the whole group is scaled, so a
+ * fraction of its own length is the only standoff that survives a 14-unit
+ * layercake and a 60-unit bridge.
+ */
+const ARROW_STANDOFF = 0.4;
+
+/**
+ * Draw order for the arrowhead — an annotation about the scene rather than an
+ * object in it, so it ignores depth, the same call `MetaphorAccents` documents
+ * at length for the accent pin. It is the same trap by the same door: a city
+ * building stacks a roof, a spire and a rooftop glyph over its anchor, and the
+ * first depth-tested version of this arrow was invisible on EVERY city link —
+ * buried inside the spire of the tower it was pointing at. Chasing that with a
+ * taller standoff only moves the problem to the next kind. Ranked below the
+ * accent caption, which outranks everything.
+ */
+const ARROW_RENDER_ORDER = 20;
+
+/** How much bigger the arrow's casing cone is than its core — the halo width. */
+const ARROW_CASING_SCALE = 1.34;
+
+/**
+ * Which way a relation points, as a cone aimed at the `to` anchor.
+ *
+ * Screen-constant like every other annotation in these scenes: authored one
+ * world unit long and scaled each frame, so the same arrow reads at the same
+ * size on a 14-unit layercake and a 60-unit bridge. The mesh hangs at negative
+ * local Y so the group's ORIGIN is where the arrow points — which is what lets
+ * the caller place the group on the anchor and have the body trail back up the
+ * route however the scale works out.
+ */
+export function LinkArrowhead({ position, direction, color, casingColor, opacity, targetPx }) {
+  const ref = useRef(null);
+  useScreenConstantScale(ref, 1, targetPx);
+  const quaternion = useMemo(() => {
+    const dir = new THREE.Vector3(direction[0], direction[1], direction[2]).normalize();
+    // The cone points +Y; turn that into the route's own heading. `setFromUnitVectors`
+    // degenerates on an exactly-opposite pair, which a straight-down elbow leg is.
+    const up = new THREE.Vector3(0, 1, 0);
+    const q = new THREE.Quaternion();
+    if (dir.dot(up) < -0.9999) q.setFromAxisAngle(new THREE.Vector3(1, 0, 0), Math.PI);
+    else q.setFromUnitVectors(up, dir);
+    return q;
+  }, [direction]);
 
   return (
-    <group>
+    <group ref={ref} position={position} quaternion={quaternion} userData={FRAME_IGNORE_DATA}>
+      {/* The arrow carries the line's casing for the line's reason, and needs it
+          more: drawing over the scene means it is as often on a dark tower as on
+          the sky, and a grey cone on a grey spire states nothing. */}
+      {casingColor ? (
+        <mesh
+          position={[0, -(0.5 + ARROW_STANDOFF), 0]}
+          scale={ARROW_CASING_SCALE}
+          renderOrder={ARROW_RENDER_ORDER - 1}
+        >
+          <coneGeometry args={[0.32, 1, 14]} />
+          <meshBasicMaterial
+            color={casingColor}
+            transparent
+            opacity={LINK_CASING_OPACITY}
+            depthTest={false}
+            depthWrite={false}
+            toneMapped={false}
+          />
+        </mesh>
+      ) : null}
+      <mesh position={[0, -(0.5 + ARROW_STANDOFF), 0]} renderOrder={ARROW_RENDER_ORDER}>
+        <coneGeometry args={[0.32, 1, 14]} />
+        <meshBasicMaterial
+          color={color}
+          transparent
+          opacity={opacity}
+          depthTest={false}
+          depthWrite={false}
+          toneMapped={false}
+        />
+      </mesh>
+    </group>
+  );
+}
+
+/**
+ * The scene's relations: a cased line per link, an arrowhead at the end it
+ * points to, a travelling pulse where the kind carries movement, and the
+ * author's own caption at the midpoint.
+ *
+ * The casing/contrast/direction reasoning lives in `linkRoutes.js`. Two
+ * renderer-side facts:
+ *
+ * - **Links are out of the camera fit.** They join items already in it, so they
+ *   constrain nothing it does not already know, and the arrowheads are
+ *   screen-constant — a fixed point of the solve rather than an input to it,
+ *   the same reason scene text is pruned in `collectFramePoints`. (Line2's
+ *   `attributes.position` is the unit quad template, not the polyline, so an
+ *   unflagged link was contributing a phantom 2-unit box at the origin anyway.)
+ * - **The casing does not write depth.** Core and casing are coplanar by
+ *   construction; equal depth plus the default `LessEqualDepth` means whichever
+ *   draws second wins, so the order is set explicitly rather than left to the
+ *   traversal.
+ */
+export function MetaphorLinks({ links, anchors, theme, variant = 'elbow' }) {
+  const metrics = linkMetricsFor(links?.length ?? 0);
+  if (!links?.length) return null;
+
+  const casingColor = theme.labelOutline ?? '#ffffff';
+  const coreOpacity = linkCoreOpacity(theme.linkOpacity);
+
+  return (
+    <group userData={FRAME_IGNORE_DATA}>
       {links.map((link, idx) => {
         const from = anchors.get(link.from);
         const to = anchors.get(link.to);
@@ -370,15 +486,36 @@ export function MetaphorLinks({ links, anchors, theme, variant = 'elbow' }) {
 
         const route = variant === 'arc' ? arcRoute(from, to) : elbowRoute(from, to);
         const appearance = resolveLinkAppearance(link.kind, theme);
+        const ink = linkInk(appearance.lineColor, casingColor);
+        const arrow = arrowFromRoute(route.points);
         return (
           <group key={`${link.from}-${link.to}-${idx}`}>
             <Line
               points={route.points}
-              color={appearance.lineColor}
-              lineWidth={1}
+              color={casingColor}
+              lineWidth={metrics.casingPx}
               transparent
-              opacity={theme.linkOpacity ?? 0.75}
+              opacity={LINK_CASING_OPACITY}
+              depthWrite={false}
+              renderOrder={-1}
             />
+            <Line
+              points={route.points}
+              color={ink}
+              lineWidth={metrics.corePx}
+              transparent
+              opacity={coreOpacity}
+            />
+            {arrow ? (
+              <LinkArrowhead
+                position={arrow.position}
+                direction={arrow.direction}
+                color={ink}
+                casingColor={casingColor}
+                opacity={coreOpacity}
+                targetPx={metrics.arrowPx}
+              />
+            ) : null}
             {appearance.showPulse ? (
               <LinkFlowPulse
                 points={route.points}
