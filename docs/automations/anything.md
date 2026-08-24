@@ -102,8 +102,10 @@ Tune `apps/server/src/prompts/anythingSystemPrompt.js`, `anythingDesignGuide.js`
 `anythingSyntaxGuard.js` when bench evidence shows a **class** of failures, not a one-off. Read
 [`docs/recipes/add-anything-lib.md`](../recipes/add-anything-lib.md) before touching the allowlist.
 When the top rejection code is `runtime_error`, check whether the page was doing the right thing
-and the fix belongs in the design guide (null DOM guards, `getTotalLength` on `<path>` only, d3
-selection chaining) before tightening policy lint.
+and the fix belongs in the design guide (null DOM guards, `getTotalLength` on geometry elements
+only, d3 selection chaining, d3 `forceLink` node ids) before tightening policy lint. Corpus
+fixtures must reject under **both** browser and jsdom engines — a jsdom-only expectation is a
+drift trap ([#393](https://github.com/acuhlmann/mermaid-gen/issues/393)).
 
 A prompt change that might shift model behaviour should be justified by corpus or generation-bench
 numbers in the PR body — not by intuition alone.
