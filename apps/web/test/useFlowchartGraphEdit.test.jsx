@@ -521,6 +521,85 @@ data
     });
   });
 
+  it('adds a sibling building on a metaphor3d city scene', async () => {
+    const city = JSON.stringify(
+      {
+        metaphor: 'city',
+        scene: { theme: 'whiteboard', camera: 'orbit' },
+        items: [
+          { id: 'auth', label: 'Auth', height: 10, footprint: 2 },
+          { id: 'api', label: 'API', height: 14, footprint: 3 }
+        ],
+        links: []
+      },
+      null,
+      2
+    );
+    const { result } = mount({
+      diagramSource: city,
+      props: {
+        contentMode: 'metaphor3d',
+        selectedNode: {
+          kind: 'metaphor-item',
+          id: 'metaphor3d-auth',
+          dataId: 'auth',
+          partName: 'Auth',
+          label: 'Auth',
+          metaphor: 'city'
+        }
+      }
+    });
+    expect(result.current.graphEdit.enabled).toBe(true);
+    expect(result.current.graphEdit.canLink).toBe(true);
+    await act(async () => {
+      result.current.handleGraphEditAction({ id: 'connect' });
+    });
+    expect(applyUserDiagramEdit).toHaveBeenCalledTimes(1);
+    expect(applyUserDiagramEdit.mock.calls[0][0].contentType).toBe('metaphor3d');
+    expect(applyUserDiagramEdit.mock.calls[0][0].diagramSource).toMatch(/"id": "n1"/);
+    expect(result.current.labelSession).toMatchObject({
+      kind: 'node',
+      logicalId: 'n1',
+      created: true
+    });
+  });
+
+  it('adds a sibling plant on a metaphor3d garden scene', async () => {
+    const garden = JSON.stringify(
+      {
+        metaphor: 'garden',
+        scene: { theme: 'whiteboard', camera: 'orbit' },
+        items: [
+          { id: 'signup', label: 'Signup', maturity: 0.6, impact: 4, health: 'steady' },
+          { id: 'checkout', label: 'Checkout', maturity: 0.4, impact: 3, health: 'steady' }
+        ],
+        links: []
+      },
+      null,
+      2
+    );
+    const { result } = mount({
+      diagramSource: garden,
+      props: {
+        contentMode: 'metaphor3d',
+        selectedNode: {
+          kind: 'metaphor-item',
+          id: 'metaphor3d-signup',
+          dataId: 'signup',
+          partName: 'Signup',
+          label: 'Signup',
+          metaphor: 'garden'
+        }
+      }
+    });
+    expect(result.current.graphEdit.enabled).toBe(true);
+    expect(result.current.graphEdit.canLink).toBe(false);
+    await act(async () => {
+      result.current.handleGraphEditAction({ id: 'connect' });
+    });
+    expect(applyUserDiagramEdit.mock.calls[0][0].diagramSource).toMatch(/"label": "Item 1"/);
+  });
+
   it('adds a sibling row on a chart with inline data.values', async () => {
     const chart = JSON.stringify(
       {
