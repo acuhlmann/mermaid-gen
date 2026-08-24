@@ -278,6 +278,27 @@ export const ANYTHING_BENCH_CORPUS = [
 </script>`
     )
   },
+  {
+    // d3.forceLink resolves source/target against node ids — a link pointing at a name
+    // absent from the nodes array is the dominant generation-bench runtime_error class
+    // (lib-d3-network "node not found: undefined"). Regression = the runtime check stopped
+    // executing force simulations.
+    id: 'runtime-d3-force-link-mismatch',
+    kind: 'runtime',
+    expectedAccept: false,
+    expectedCode: 'runtime_error',
+    html: page(
+      `<h1>Graph</h1><svg width="200" height="200"></svg>
+<script>
+  const nodes = [{ id: 'a' }, { id: 'b' }];
+  const links = [{ source: 'a', target: 'missing' }];
+  d3.forceSimulation(nodes)
+    .force('link', d3.forceLink(links).id((d) => d.id))
+    .force('charge', d3.forceManyBody());
+</script>`,
+      { head: '<!-- @lib:d3 -->' }
+    )
+  },
 
   // ── shape: not a document, must stay rejected ────────────────────────────
   {
