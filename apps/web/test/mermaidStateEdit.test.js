@@ -90,6 +90,40 @@ describe('deleteStateEdge', () => {
     expect(result.source).not.toMatch(/Draft --> PendingReview/);
     expect(result.source).toMatch(/PendingReview --> Approved/);
   });
+
+  it('removes the transition that matches the label when duplicates exist', () => {
+    const duplicate = `stateDiagram-v2
+  Draft --> PendingReview : submit
+  Draft --> PendingReview : cancel
+  PendingReview --> Approved : approve
+`;
+    const result = deleteStateEdge(duplicate, 'Draft', 'PendingReview', 'cancel');
+    expect(result.ok).toBe(true);
+    expect(result.source).toMatch(/Draft --> PendingReview : submit/);
+    expect(result.source).not.toMatch(/: cancel/);
+  });
+
+  it('refuses delete when the label no longer matches the source', () => {
+    const duplicate = `stateDiagram-v2
+  Draft --> PendingReview : submit
+  Draft --> PendingReview : cancel
+`;
+    expect(deleteStateEdge(duplicate, 'Draft', 'PendingReview', 'missing')).toEqual({
+      ok: false,
+      reason: 'missing'
+    });
+  });
+
+  it('removes one parallel transition by Mermaid edge index', () => {
+    const duplicate = `stateDiagram-v2
+  Draft --> PendingReview : submit
+  Draft --> PendingReview : cancel
+`;
+    const result = deleteStateEdge(duplicate, 'Draft', 'PendingReview', undefined, 1);
+    expect(result.ok).toBe(true);
+    expect(result.source).toMatch(/Draft --> PendingReview : submit/);
+    expect(result.source).not.toMatch(/: cancel/);
+  });
 });
 
 describe('renameStateNode', () => {
@@ -124,6 +158,29 @@ describe('renameStateEdge', () => {
       ok: false,
       reason: 'missing'
     });
+  });
+
+  it('refuses rename when the label no longer matches the source', () => {
+    const duplicate = `stateDiagram-v2
+  Draft --> PendingReview : submit
+  Draft --> PendingReview : cancel
+`;
+    expect(renameStateEdge(duplicate, 'Draft', 'PendingReview', 'changed', 'missing')).toEqual({
+      ok: false,
+      reason: 'missing'
+    });
+  });
+
+  it('updates the transition that matches the label when duplicates exist', () => {
+    const duplicate = `stateDiagram-v2
+  Draft --> PendingReview : submit
+  Draft --> PendingReview : cancel
+`;
+    const result = renameStateEdge(duplicate, 'Draft', 'PendingReview', 'withdraw', 'cancel');
+    expect(result.ok).toBe(true);
+    expect(result.source).toMatch(/Draft --> PendingReview : submit/);
+    expect(result.source).toMatch(/Draft --> PendingReview : withdraw/);
+    expect(result.source).not.toMatch(/: cancel/);
   });
 });
 
