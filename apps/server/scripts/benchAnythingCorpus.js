@@ -261,14 +261,17 @@ export const ANYTHING_BENCH_CORPUS = [
     html: page(`<h1>No marker</h1><svg id="viz"></svg><script>d3.select('#viz');</script>`)
   },
   {
-    // getTotalLength is SVGPathElement-only; generation bench hit this on layout dashboards.
+    // getTotalLength lives on SVGGeometryElement, so <rect> HAS it in a real browser and
+    // only jsdom's stub throws — reaching for a <g> wrapper (or any non-geometry node) is
+    // the mistake the generation bench actually hit on layout dashboards, and it throws in
+    // both engines. Regression = the engines have drifted apart again.
     id: 'runtime-svg-gettotallength',
     kind: 'runtime',
     expectedAccept: false,
     expectedCode: 'runtime_error',
     html: page(
       `<h1>Bad stroke</h1>
-<svg width="200" height="40"><rect id="bar" x="0" y="10" width="180" height="20" fill="#06c"/></svg>
+<svg width="200" height="40"><g id="bar"><rect x="0" y="10" width="180" height="20" fill="#06c"/></g></svg>
 <script>
   const bar = document.getElementById('bar');
   bar.style.strokeDasharray = bar.getTotalLength();

@@ -46,5 +46,5 @@ Libraries (the @lib: markers from the sandbox contract — when to reach for one
 
 Runtime-safe JS (the runtime check executes your page — these throw and burn a repair turn):
 - querySelector / getElementById can return null. Guard before .classList, .textContent, or any property access — or run init inside DOMContentLoaded after the nodes you query exist in <body>.
-- getTotalLength() exists only on SVGPathElement (<path>). Stroke-draw animations need a real path d="...", not rect/line/circle — calling it on anything else throws at runtime.
+- getTotalLength() lives on SVGGeometryElement — <path>, <rect>, <circle>, <ellipse>, <line>, <polygon>, <polyline> all have it. What throws is calling it on a node that is not a geometry element at all: a <g> wrapper, the <svg> root, a <text>, or a plain <div>. Grab the shape you are stroking, not its container.
 - With @lib:d3, variables from d3.select(...) are selections — chain .append / .attr on them. Never reassign a selection to a DOM node, datum, or array and then call .append (that is what produces "append is not a function").`;
