@@ -33,6 +33,17 @@ import {
   WorldGround
 } from './fusedCompositePrimitives.jsx';
 
+function fusedLayerLabelsFor(layers) {
+  const map = new Map();
+  for (const layer of Array.isArray(layers) ? layers : []) {
+    if (!layer?.id) continue;
+    const label =
+      typeof layer.label === 'string' && layer.label.trim() ? layer.label.trim() : layer.as;
+    map.set(layer.id, label);
+  }
+  return map;
+}
+
 function PlannedNode({ entity, theme, emphasized, onActiveIdChange, lod, layerLabel, muted }) {
   const labelY = entity.role === 'accent' ? entity.radius + 0.8 : entity.height + 0.9;
   const labelPosition = [
@@ -518,6 +529,48 @@ function FusedLinks({ links, theme, mutedTheme, activeId, lod, isLinkMuted }) {
   });
 }
 
+function FusedSite({ site, layerLabels, relatedIds, onActiveIdChange, lod, isMuted, themeFor }) {
+  if (!site.item) {
+    return <PlatformPrimitive entity={site} theme={themeFor(site.layerId)} />;
+  }
+  return (
+    <HoverableItem
+      item={site.item}
+      metaphor="archipelago"
+      layerLabel={layerLabels.get(site.layerId)}
+      onActiveIdChange={onActiveIdChange}
+    >
+      <IslandPrimitive
+        entity={site}
+        theme={themeFor(site.layerId)}
+        emphasized={relatedIds.has(site.item.id)}
+        lod={lod}
+        muted={isMuted(site.layerId)}
+      />
+    </HoverableItem>
+  );
+}
+
+function FusedAmbience({ oceanR, lod, theme }) {
+  return (
+    <>
+      <DaylightPollen
+        radius={oceanR * 0.95}
+        count={lod === 'medium' ? 10 : 16}
+        idSeed="fused-pollen"
+      />
+      <SoaringBirds
+        radius={oceanR * 0.95}
+        height={6.2}
+        count={3}
+        color={theme.labelColor ?? '#1f2937'}
+        hazeColor={theme.skyHorizonColor ?? theme.background ?? null}
+        idSeed="fused-birds"
+      />
+    </>
+  );
+}
+
 export function FusedCompositeScene({ dsl, theme }) {
   const plan = useMemo(() => planFusedCompositeWorld(dsl), [dsl]);
   const [activeId, setActiveId] = useState(null);
@@ -531,16 +584,7 @@ export function FusedCompositeScene({ dsl, theme }) {
     [dsl, focusedLayerId, theme, mutedTheme]
   );
   const { isMuted, themeFor, isLinkMuted, accentItems } = focus;
-  const layerLabels = useMemo(() => {
-    const map = new Map();
-    for (const layer of Array.isArray(dsl.layers) ? dsl.layers : []) {
-      if (!layer?.id) continue;
-      const label =
-        typeof layer.label === 'string' && layer.label.trim() ? layer.label.trim() : layer.as;
-      map.set(layer.id, label);
-    }
-    return map;
-  }, [dsl.layers]);
+  const layerLabels = useMemo(() => fusedLayerLabelsFor(dsl.layers), [dsl.layers]);
   const relatedIds = useMemo(() => {
     if (!activeId) return new Set();
     const ids = new Set([activeId]);
@@ -564,24 +608,15 @@ export function FusedCompositeScene({ dsl, theme }) {
       {lod !== 'low' ? <AffinityGroups groups={plan.groups ?? []} theme={theme} /> : null}
       {plan.sites.map((site) => (
         <group key={site.id} position={site.position}>
-          {site.item ? (
-            <HoverableItem
-              item={site.item}
-              metaphor="archipelago"
-              layerLabel={layerLabels.get(site.layerId)}
-              onActiveIdChange={setActiveId}
-            >
-              <IslandPrimitive
-                entity={site}
-                theme={themeFor(site.layerId)}
-                emphasized={relatedIds.has(site.item.id)}
-                lod={lod}
-                muted={isMuted(site.layerId)}
-              />
-            </HoverableItem>
-          ) : (
-            <PlatformPrimitive entity={site} theme={themeFor(site.layerId)} />
-          )}
+          <FusedSite
+            site={site}
+            layerLabels={layerLabels}
+            relatedIds={relatedIds}
+            onActiveIdChange={setActiveId}
+            lod={lod}
+            isMuted={isMuted}
+            themeFor={themeFor}
+          />
         </group>
       ))}
       {plan.nodes.map((node) => (
@@ -624,21 +659,7 @@ export function FusedCompositeScene({ dsl, theme }) {
         isLinkMuted={isLinkMuted}
       />
       {hasIslands && lod !== 'low' ? (
-        <>
-          <DaylightPollen
-            radius={oceanR * 0.95}
-            count={lod === 'medium' ? 10 : 16}
-            idSeed="fused-pollen"
-          />
-          <SoaringBirds
-            radius={oceanR * 0.95}
-            height={6.2}
-            count={3}
-            color={theme.labelColor ?? '#1f2937'}
-            hazeColor={theme.skyHorizonColor ?? theme.background ?? null}
-            idSeed="fused-birds"
-          />
-        </>
+        <FusedAmbience oceanR={oceanR} lod={lod} theme={theme} />
       ) : null}
       <MetaphorAccents items={accentItems} anchors={plan.anchors} theme={theme} />
       <MetaphorGroundShadow
