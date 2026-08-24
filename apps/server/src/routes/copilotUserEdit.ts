@@ -44,7 +44,8 @@ export async function handleUserDiagramEdit({
     return {
       status: 400,
       body: {
-        error: 'Canvas graph edits support mermaid, infographic, metaphor3d tree, and chart values'
+        error:
+          'Canvas graph edits support mermaid, infographic, metaphor3d (tree/city/garden), and chart values'
       }
     };
   }
