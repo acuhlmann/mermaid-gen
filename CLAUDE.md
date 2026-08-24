@@ -742,6 +742,40 @@ test:floor`; the floor test map is [`docs/agents/isometric-floor-tests.md`](docs
   next kind. The stem, pin and caption are an annotation about the scene rather
   than objects within it, so they draw over it; only the ground ring stays
   depth-tested, because it is a decal on the item and should vanish with it.
+- **A relation is a claim, and it was drawn as a scratch — links now carry their own
+  halo and state a direction.** The items say what the topic is made of; the LINKS
+  say how the parts stand to one another, which is most of what understanding it
+  means, and they were the least legible thing in every scene. Three measurements
+  on the default whiteboard theme. A `dependency` line came to **2.56:1 nominal and
+  1.70:1 as actually rendered** — a 1 px line is mostly antialiasing, so it never
+  reaches its own colour — against the **3.4:1** bar `ensureReadableInk` already
+  holds the caption printed on that same line to. A `flow` line was worse and
+  invisible for a reason nobody would look for: it is drawn in `binaryGlowColor`,
+  the same pale yellow the scene glows with, and its peak pixel in a 1440×900 city
+  capture measured **lum 219 against a sky of 218** — one part in 255, not faint but
+  **absent**. And there was **no direction at all**: `from`→`to` is directional in all
+  three kinds, only `flow` carried a pulse, so "Orders depends on Payments" and its
+  opposite rendered identically. The fix is the one the labels already use — a
+  **casing** in `theme.labelOutline` under a core in the link colour (`linkRoutes.js`),
+  which is what makes a link readable against the sky, against a tower it crosses,
+  and on a dark theme _without any scene knowing which backdrop it painted_: galaxy's
+  near-black space and garden's pale blue take the identical treatment. Four things
+  are load-bearing. **`linkInk` is not a precaution** — swept over every theme × kind,
+  exactly one pair fails and it is the default theme's most common link (`#fef08a` at
+  1.16:1 → `#928001` at 3.95:1, still yellow, because nudging lightness rather than
+  substituting a neutral is what keeps a kind readable off its colour); adding a theme
+  means keeping that sweep in `metaphorLinkRoutes.test.js`. The **arrowhead is
+  depth-test-free**, the accent pin's call by the same door — the first depth-tested
+  version was invisible on _every_ city link, buried inside the spire its own tower
+  stacks above the anchor, and a taller standoff only moves that to the next kind.
+  Widths and the arrow are **screen pixels** (the sixth time that rule has been paid
+  for here), tapering only past ~24 links and never back to the hairline. And in the
+  fused composite a **muted or dimmed link loses the casing rather than gaining one**
+  — a haloed line is louder, so haloing what the layer key just dismissed makes
+  receding a way of shouting. Links are also out of the camera fit now: they join
+  items already in it, and Line2's `attributes.position` is the unit quad template
+  rather than the polyline, so an unflagged link was contributing a phantom 2-unit
+  box at the origin.
 - **The accented item's `note` is now permanent scene copy, not a hover string.**
   `MetaphorAccents` prints it as a caption on the pin, so `accent: true` without
   a `note` throws away half the marker. The prompt says so; if you change one

@@ -193,6 +193,19 @@ ones that will bite an edit.
   scenes keep drawing above their own anchors; and the accented item's `note` is now permanent
   caption copy, so `accent` without `note` is half a marker. Changing either side means changing
   `apps/server/src/prompts/metaphorSystemPrompt.js` too.
+- **A link carries its own halo, and it states a direction** (`linkRoutes.js`). Relations were the
+  least legible thing in every scene: a `dependency` line measured 1.70:1 as rendered against the
+  bar its own caption clears (3.4:1), and a whiteboard `flow` line measured **lum 219 against a sky
+  of 218** — one part in 255, i.e. absent. The fix is the labels' own: a casing in
+  `theme.labelOutline` under a core in the link colour, so a link is readable against the sky, a
+  tower it crosses, and a dark theme without any scene knowing which backdrop it painted. Two
+  consequences to keep. `linkInk` is **not a no-op** — swept over every theme × kind exactly one
+  pair fails and it is the default theme's most common link; keep the sweep in
+  `metaphorLinkRoutes.test.js` when adding a theme. And the arrowhead is **depth-test-free** for
+  the accent pin's reason: the first depth-tested version was invisible on every city link, buried
+  inside the spire its own tower stacks above the anchor. Widths and the arrow are screen pixels;
+  a muted or dimmed composite link **loses** the casing rather than gaining one, or receding makes
+  the layer you dismissed louder.
 - **The fused composite does not inherit shared chrome.** It shipped without `MetaphorAccents` and
   with unlabelled affinity rings; when a base kind grows a scene-wide affordance, check
   `FusedCompositeScene.jsx` for it. Group placards must show `group.display` (the user's raw noun),
