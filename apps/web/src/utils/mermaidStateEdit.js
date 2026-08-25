@@ -1,3 +1,4 @@
+import { pickParallelEdgeRef } from './mermaidEdgeDisambiguation.js';
 import { peekDiagramDirective, stripLineComment } from './mermaidSourceLocate.js';
 
 const STATE_ID_RE = /^(\[\*\]|[A-Za-z][A-Za-z0-9_-]*)$/;
@@ -253,27 +254,6 @@ function collectStateEdgeRefs(source, fromId, toId) {
 }
 
 /**
- * Pick one transition among parallel links. Mirrors `pickFlowchartEdgeRef`:
- * Mermaid's per-pair index wins, then an explicit label, then the first match
- * when the label is absent — and a provided label that no longer matches refuses.
- *
- * @param {StateEdgeRef[]} refs
- * @param {{ edgeLabel?: string, edgeIndex?: number }} opts
- * @returns {StateEdgeRef | null}
- */
-function pickStateEdgeRef(refs, { edgeLabel, edgeIndex }) {
-  if (refs.length === 0) return null;
-  if (typeof edgeIndex === 'number' && Number.isInteger(edgeIndex) && edgeIndex >= 0) {
-    return refs[edgeIndex] ?? null;
-  }
-  const wanted = typeof edgeLabel === 'string' ? edgeLabel.trim() : '';
-  if (wanted.length > 0) {
-    return refs.find((ref) => ref.text === wanted) ?? null;
-  }
-  return refs[0];
-}
-
-/**
  * @param {string} source
  * @param {string} fromId
  * @param {string} toId
@@ -290,7 +270,7 @@ export function deleteStateEdge(source, fromId, toId, edgeLabel, edgeIndex) {
   if (blocked) return blocked;
 
   const { lines, refs } = collectStateEdgeRefs(source, fromId, toId);
-  const picked = pickStateEdgeRef(refs, { edgeLabel, edgeIndex });
+  const picked = pickParallelEdgeRef(refs, { edgeLabel, edgeIndex });
   if (!picked) return fail('missing');
 
   const next = [...lines];
@@ -360,7 +340,7 @@ export function renameStateEdge(source, fromId, toId, label, previousEdgeLabel, 
   const text = String(label ?? '').trim();
 
   const { lines, refs } = collectStateEdgeRefs(source, fromId, toId);
-  const picked = pickStateEdgeRef(refs, { edgeLabel: previousEdgeLabel, edgeIndex });
+  const picked = pickParallelEdgeRef(refs, { edgeLabel: previousEdgeLabel, edgeIndex });
   if (!picked) return fail('missing');
 
   const next = [...lines];
