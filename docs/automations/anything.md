@@ -103,7 +103,8 @@ Tune `apps/server/src/prompts/anythingSystemPrompt.js`, `anythingDesignGuide.js`
 [`docs/recipes/add-anything-lib.md`](../recipes/add-anything-lib.md) before touching the allowlist.
 When the top rejection code is `runtime_error`, check whether the page was doing the right thing
 and the fix belongs in the design guide (null DOM guards, `getTotalLength` on geometry elements
-only, d3 selection chaining, d3 `forceLink` node ids) before tightening policy lint. Corpus
+only, d3 selection chaining, d3 `forceLink` node ids, d3 drag handler order / TDZ, Matter
+`body.isSleeping` vs `Matter.Sleeping.isSleeping`) before tightening policy lint. Corpus
 fixtures must reject under **both** browser and jsdom engines — a jsdom-only expectation is a
 drift trap ([#393](https://github.com/acuhlmann/mermaid-gen/issues/393)).
 

@@ -40,6 +40,7 @@ Do **not** add a second hook, a second chrome, or a fifth verb name. Families th
 - Keep `origin: user` on the patch. Canvas edits must not go through the agent stream or Monaco debounce.
 - `canLink: false` is how a tree or star says "Add is a child/spoke, not a free edge." Do not invent Connect-as-child as a fifth radial id — Add already does that (`connect` without `linkMode`).
 - Infographic hierarchy indexes are AntV's (`"0"` = root, `"0,0"` = first child). Do not route edits through `parseInfographicTree` in shared — that path numbers the first child as `"0"`.
+- Mermaid families with **parallel edges** between the same ordered pair (flowchart, state) must call `pickParallelEdgeRef` from `mermaidEdgeDisambiguation.js` for delete/rename — do not copy the rule. Sequence diagrams use line-order lookup in `mermaidSourceLocate.js` instead. See [`docs/canvas-graph-edit.md`](../canvas-graph-edit.md) § Traps.
 - Infographic `user-edit` still runs `sanitizeInfographicDsl`. A star with generic spoke labels can still be rewritten into a hierarchy-tree; pick labels that do not look like default spokes when asserting network round-trip through the route.
 - After shared-schema comment-only changes you do not need `npm run build -w packages/shared`. After a real export change, you do.
 - Verify with `npm run test:affected` (or the web + server files above) and `npm run precommit` before commit.

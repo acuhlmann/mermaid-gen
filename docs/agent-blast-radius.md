@@ -60,6 +60,8 @@ When you change **`uiLocale` on diagram POST bodies**, also run [`apps/web/test/
 
 When you change **which `contentType` values `POST /user-edit` accepts**, add a family adapter in [`apps/web/src/utils/canvasGraphEdit.js`](../apps/web/src/utils/canvasGraphEdit.js), mutator tests, a `copilotRoute.test.js` apply/reject case, and a row in [`docs/canvas-graph-edit.md`](canvas-graph-edit.md). Recipe: [`add-graph-edit-family.md`](recipes/add-graph-edit-family.md).
 
+When you change **parallel-edge disambiguation** for a mermaid family with free edges (flowchart, state), prefer extending [`pickParallelEdgeRef`](../apps/web/src/utils/mermaidEdgeDisambiguation.js) rather than copying the rule — flowchart and state already share it. Update [`mermaidEdgeDisambiguation.test.js`](../apps/web/test/mermaidEdgeDisambiguation.test.js), the family mutator tests, and the trap bullet in [`docs/canvas-graph-edit.md`](canvas-graph-edit.md). Sequence diagrams stay on `findSequenceMessageRange` in [`mermaidSourceLocate.js`](../apps/web/src/utils/mermaidSourceLocate.js) (line-order identity, not per-pair index).
+
 When you change **`createLazyAgentService`** or per-slot `runAgentStream` wiring, run [`apps/server/test/createLazyAgentService.test.js`](../apps/server/test/createLazyAgentService.test.js).
 
 Run: `npm run check:fast` when only shared changed; `npm run check` otherwise.
