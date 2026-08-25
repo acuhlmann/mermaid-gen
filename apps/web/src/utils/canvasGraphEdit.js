@@ -83,6 +83,7 @@ import {
   renameChartEdge as renameChartGraphEdge,
   renameChartRow
 } from './chartGraphEdit.js';
+import { flatGraphEditAdapter, metaphorFlatGraphEditForSource } from './metaphorFlatKindEdit.js';
 
 function fail(reason) {
   return { ok: false, reason };
@@ -254,6 +255,10 @@ export function graphEditAdapterFor(contentType, source) {
   }
   if (contentType === 'metaphor3d' && isGardenFamilySource(source)) {
     return METAPHOR_GARDEN_ADAPTER;
+  }
+  if (contentType === 'metaphor3d') {
+    const flatEdit = metaphorFlatGraphEditForSource(source);
+    if (flatEdit) return flatGraphEditAdapter(flatEdit);
   }
   if (contentType === 'chart' && isChartValuesFamilySource(source)) {
     return CHART_VALUES_ADAPTER;

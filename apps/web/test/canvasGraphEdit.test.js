@@ -173,7 +173,16 @@ describe('graphEditAdapterFor', () => {
     });
     expect(graphEditAdapterFor('metaphor3d', METAPHOR_CITY)?.canLink).toBe(true);
     expect(graphEditAdapterFor('metaphor3d', METAPHOR_GARDEN)?.canLink).toBe(false);
-    expect(graphEditAdapterFor('metaphor3d', '{"metaphor":"galaxy","items":[]}')).toBeNull();
+    expect(
+      graphEditAdapterFor(
+        'metaphor3d',
+        JSON.stringify({
+          metaphor: 'machine',
+          items: [{ id: 'a', label: 'A', size: 3 }]
+        })
+      )?.canLink
+    ).toBe(true);
+    expect(graphEditAdapterFor('metaphor3d', '{"metaphor":"composite","layers":[]}')).toBeNull();
   });
 
   it('returns the metaphor city adapter with Link', () => {
@@ -195,6 +204,59 @@ describe('graphEditAdapterFor', () => {
       ok: true,
       newId: 'n1'
     });
+  });
+
+  it('returns flat metaphor adapters for machine and galaxy scenes', () => {
+    const machine = JSON.stringify({
+      metaphor: 'machine',
+      scene: { theme: 'whiteboard', camera: 'orbit' },
+      items: [
+        { id: 'drive', label: 'Drive', size: 4, speed: 5 },
+        { id: 'idle', label: 'Idle', size: 2, speed: 1 }
+      ],
+      links: []
+    });
+    const machineAdapter = graphEditAdapterFor('metaphor3d', machine);
+    expect(machineAdapter?.contentType).toBe('metaphor3d');
+    expect(machineAdapter?.canLink).toBe(true);
+    expect(machineAdapter?.addLinked(machine, 'drive', 'Reducer')).toMatchObject({
+      ok: true,
+      newId: 'n1'
+    });
+
+    const galaxy = JSON.stringify({
+      metaphor: 'galaxy',
+      scene: { theme: 'whiteboard', camera: 'orbit' },
+      items: [{ id: 'sol', label: 'Sol', magnitude: 8 }],
+      links: []
+    });
+    const galaxyAdapter = graphEditAdapterFor('metaphor3d', galaxy);
+    expect(galaxyAdapter?.canLink).toBe(true);
+    expect(galaxyAdapter?.addLinked(galaxy, 'sol', 'Proxima')).toMatchObject({ ok: true });
+  });
+
+  it('returns flat metaphor adapters without Link for river and archipelago', () => {
+    const river = JSON.stringify({
+      metaphor: 'river',
+      items: [
+        { id: 'head', label: 'Headwaters', stage: 0, flow: 4 },
+        { id: 'mouth', label: 'Mouth', stage: 90, flow: 12 }
+      ],
+      links: []
+    });
+    const riverAdapter = graphEditAdapterFor('metaphor3d', river);
+    expect(riverAdapter?.canLink).toBe(false);
+    expect(riverAdapter?.addLinked(river, 'head', 'Rapids')).toMatchObject({ ok: true });
+
+    const archipelago = JSON.stringify({
+      metaphor: 'archipelago',
+      items: [
+        { id: 'alpha', label: 'Alpha', mass: 5, relief: 0.6 },
+        { id: 'beta', label: 'Beta', mass: 3, relief: 0.3 }
+      ],
+      links: []
+    });
+    expect(graphEditAdapterFor('metaphor3d', archipelago)?.canLink).toBe(false);
   });
 
   it('returns the chart values adapter without Link', () => {
