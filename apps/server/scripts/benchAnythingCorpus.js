@@ -299,6 +299,23 @@ export const ANYTHING_BENCH_CORPUS = [
       { head: '<!-- @lib:d3 -->' }
     )
   },
+  {
+    // d3.drag().on('end', dragended) with no dragended binding — lib-d3-network
+    // first-pass "dragended is not defined". Regression = runtime check stopped
+    // executing drag setup.
+    id: 'runtime-d3-drag-handler-missing',
+    kind: 'runtime',
+    expectedAccept: false,
+    expectedCode: 'runtime_error',
+    html: page(
+      `<h1>Graph</h1><svg width="200" height="200"></svg>
+<script>
+  const svg = d3.select('svg');
+  svg.selectAll('circle').data([{ id: 'a' }]).join('circle').call(d3.drag().on('end', dragended));
+</script>`,
+      { head: '<!-- @lib:d3 -->' }
+    )
+  },
 
   // ── shape: not a document, must stay rejected ────────────────────────────
   {
