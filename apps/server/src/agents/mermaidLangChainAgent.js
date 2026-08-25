@@ -103,7 +103,6 @@ export function extractMermaidFromAssistantResult(result) {
 import {
   appendLastValidationError,
   buildAgentRunBudgetExceededMessage,
-  inferMermaidTopKeyword,
   isMermaidTransformConstraintError,
   MIN_AGENT_REPAIR_TURN_BUDGET_MS,
   MIN_SYNTAX_FIXER_BUDGET_MS,
@@ -115,8 +114,6 @@ import { createRunDeadlineSignal } from './_lib/agentRunDeadline.js';
 import {
   createLlmChatModel,
   createOpenRouterModel,
-  isLlmConfigured,
-  LlmNotConfiguredError,
   normalizeModelProfile,
   resolveLlmBackend,
   resolveModelId

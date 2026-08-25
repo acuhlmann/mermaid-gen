@@ -1,8 +1,4 @@
-import {
-  registerAppResource,
-  registerAppTool,
-  RESOURCE_MIME_TYPE
-} from '@modelcontextprotocol/ext-apps/server';
+import { registerAppResource, RESOURCE_MIME_TYPE } from '@modelcontextprotocol/ext-apps/server';
 import { MCP_APP_HTML_BY_URI } from './apps/index.js';
 import { MCP_APP_CSP_CONNECT, MCP_APP_CSP_RESOURCES } from './apps/mcpAppStyles.js';
 import {

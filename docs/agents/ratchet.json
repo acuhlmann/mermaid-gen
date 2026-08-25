@@ -1,6 +1,6 @@
 {
-  "updated": "2026-08-24",
-  "$comment": "monolithLoc.apps/web/src/components/DiagramCanvas.jsx and monolithLoc.apps/server/src/routes/copilot.ts were tightened to their measured 1889/1194 after the sibling-module extractions that closed #363 and #381 (diagramGraphEditNodeResolve.js and copilotUserEdit.ts respectively) — tightening a budget that moved the right way needs no written reason, only loosening does. lintWarnings.apps/server (229) is a known-stale budget, not fresh drift: --with-lint was last run at the commit that created it and never re-checked since, so a genuine but pre-existing gap (234, now 233 after a trivial fix) went unnoticed; kept at 229 rather than silently raised — see the ledger and the filed issue. lintWarnings.apps/web (846) stays put too: the flowchart/state parallel-edge disambiguation work (b1bd846, e7042d8) pushed it to 849 (one FusedCompositeScene complexity warning fixed in place, dropping it to 848 — the other two are a max-params pair whose only fix touches a call site outside this routine's allowedPaths, see issue #402), a real regression under this routine's watch, not stale bookkeeping like apps/server's — kept at 846 rather than raised.",
+  "updated": "2026-08-25",
+  "$comment": "monolithLoc.apps/web/src/components/DiagramCanvas.jsx and monolithLoc.apps/server/src/routes/copilot.ts were tightened to their measured 1889/1194 after the sibling-module extractions that closed #363 and #381 (diagramGraphEditNodeResolve.js and copilotUserEdit.ts respectively) — tightening a budget that moved the right way needs no written reason, only loosening does. monolithLoc.apps/server/src/agents/mermaidLangChainAgent.js (1156) and .../infographicLangChainAgent.js (846) were tightened the same way after removing dead code (unused imports/vars/an uncalled helper) surfaced by the 2026-08-25 lintWarnings pass. lintWarnings.apps/server dropped 229 → 222 in that same pass — a real fix (11 unused-var/import warnings removed across chartLangChainAgent.js, infographicLangChainAgent.js, mermaidLangChainAgent.js, officePersonas.js, infographicTransformPrompts.js, registerMcpApps.js; two more in mcpServer.js were reverted despite being equally dead, since that file trips the `mcp-tool-without-test` wire-cochange sensor on any touch and the fix wasn't worth padding mcpServer.test.js for), not stale bookkeeping — tightened to lock it in. lintWarnings.apps/web (846) stays put: the flowchart/state parallel-edge disambiguation work (b1bd846, e7042d8) pushed it to 849 (one FusedCompositeScene complexity warning fixed in place, dropping it to 848 — the other two are a max-params pair whose only fix touches a call site outside this routine's allowedPaths, see issue #402), a real regression under this routine's watch, not stale bookkeeping like apps/server's was — kept at 846 rather than raised.",
   "metrics": {
     "monolithLoc": {
       "apps/web/src/ArchiSlop.jsx": {
@@ -28,11 +28,11 @@
         "initial": 1406
       },
       "apps/server/src/agents/mermaidLangChainAgent.js": {
-        "budget": 1159,
+        "budget": 1156,
         "initial": 1159
       },
       "apps/server/src/agents/infographicLangChainAgent.js": {
-        "budget": 863,
+        "budget": 846,
         "initial": 863
       },
       "apps/server/src/routes/copilot.ts": {
@@ -46,7 +46,7 @@
         "initial": 126
       },
       "apps/server": {
-        "budget": 229,
+        "budget": 222,
         "initial": 229
       },
       "apps/web": {
@@ -66,11 +66,11 @@
     },
     "suite": {
       "files": {
-        "budget": 382,
+        "budget": 385,
         "initial": 366
       },
       "cases": {
-        "budget": 3968,
+        "budget": 4012,
         "initial": 3675
       }
     }
