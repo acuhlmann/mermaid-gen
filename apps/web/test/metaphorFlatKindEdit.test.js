@@ -59,6 +59,41 @@ describe('metaphor machine graph edit', () => {
     expect(edit.connect(MACHINE, 'drive', 'idle')).toEqual({ ok: false, reason: 'duplicate' });
   });
 
+  it('purges links when a gear is deleted', () => {
+    const linked = sample(
+      'machine',
+      [
+        { id: 'drive', label: 'Drive', size: 4, speed: 5 },
+        { id: 'idle', label: 'Idle', size: 2, speed: 1 }
+      ],
+      [{ from: 'drive', to: 'idle' }]
+    );
+    const removed = edit.deleteNode(linked, 'drive');
+    expect(removed.ok).toBe(true);
+    expect(JSON.parse(removed.source).links).toEqual([]);
+    expect(JSON.parse(removed.source).items.map((item) => item.id)).toEqual(['idle']);
+  });
+
+  it('removes one directed link without touching the nodes', () => {
+    const linked = sample(
+      'machine',
+      [
+        { id: 'drive', label: 'Drive', size: 4, speed: 5 },
+        { id: 'idle', label: 'Idle', size: 2, speed: 1 }
+      ],
+      [{ from: 'drive', to: 'idle' }]
+    );
+    const result = edit.deleteEdge(linked, 'drive', 'idle');
+    expect(result.ok).toBe(true);
+    expect(JSON.parse(result.source).links).toEqual([]);
+    expect(JSON.parse(result.source).items).toHaveLength(2);
+  });
+
+  it('refuses self-links and missing endpoints', () => {
+    expect(edit.connect(MACHINE, 'drive', 'drive')).toEqual({ ok: false, reason: 'self' });
+    expect(edit.connect(MACHINE, 'drive', 'missing')).toEqual({ ok: false, reason: 'missing' });
+  });
+
   it('refuses deleting the last gear', () => {
     const lone = sample('machine', [{ id: 'only', label: 'Only', size: 3 }]);
     expect(edit.deleteNode(lone, 'only')).toEqual({ ok: false, reason: 'last' });
