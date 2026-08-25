@@ -1,6 +1,6 @@
 {
-  "updated": "2026-08-23",
-  "$comment": "monolithLoc.apps/web/src/components/DiagramCanvas.jsx and monolithLoc.apps/server/src/routes/copilot.ts were tightened to their measured 1889/1194 after the sibling-module extractions that closed #363 and #381 (diagramGraphEditNodeResolve.js and copilotUserEdit.ts respectively) — tightening a budget that moved the right way needs no written reason, only loosening does. lintWarnings.apps/server (229) is a known-stale budget, not fresh drift: --with-lint was last run at the commit that created it and never re-checked since, so a genuine but pre-existing gap (234, now 233 after a trivial fix) went unnoticed; kept at 229 rather than silently raised — see the ledger and the filed issue.",
+  "updated": "2026-08-24",
+  "$comment": "monolithLoc.apps/web/src/components/DiagramCanvas.jsx and monolithLoc.apps/server/src/routes/copilot.ts were tightened to their measured 1889/1194 after the sibling-module extractions that closed #363 and #381 (diagramGraphEditNodeResolve.js and copilotUserEdit.ts respectively) — tightening a budget that moved the right way needs no written reason, only loosening does. lintWarnings.apps/server (229) is a known-stale budget, not fresh drift: --with-lint was last run at the commit that created it and never re-checked since, so a genuine but pre-existing gap (234, now 233 after a trivial fix) went unnoticed; kept at 229 rather than silently raised — see the ledger and the filed issue. lintWarnings.apps/web (846) stays put too: the flowchart/state parallel-edge disambiguation work (b1bd846, e7042d8) pushed it to 849 (one FusedCompositeScene complexity warning fixed in place, dropping it to 848 — the other two are a max-params pair whose only fix touches a call site outside this routine's allowedPaths, see issue #402), a real regression under this routine's watch, not stale bookkeeping like apps/server's — kept at 846 rather than raised.",
   "metrics": {
     "monolithLoc": {
       "apps/web/src/ArchiSlop.jsx": {
@@ -66,11 +66,11 @@
     },
     "suite": {
       "files": {
-        "budget": 379,
+        "budget": 382,
         "initial": 366
       },
       "cases": {
-        "budget": 3915,
+        "budget": 3968,
         "initial": 3675
       }
     }
