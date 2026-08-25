@@ -600,6 +600,48 @@ data
     expect(applyUserDiagramEdit.mock.calls[0][0].diagramSource).toMatch(/"label": "Item 1"/);
   });
 
+  it('adds a sibling gear on a metaphor3d machine scene', async () => {
+    const machine = JSON.stringify(
+      {
+        metaphor: 'machine',
+        scene: { theme: 'whiteboard', camera: 'orbit' },
+        items: [
+          { id: 'drive', label: 'Drive', size: 4, speed: 5, axle: 'main' },
+          { id: 'idle', label: 'Idle', size: 2, speed: 1, axle: 'main' }
+        ],
+        links: []
+      },
+      null,
+      2
+    );
+    const { result } = mount({
+      diagramSource: machine,
+      props: {
+        contentMode: 'metaphor3d',
+        selectedNode: {
+          kind: 'metaphor-item',
+          id: 'metaphor3d-drive',
+          dataId: 'drive',
+          partName: 'Drive',
+          label: 'Drive',
+          metaphor: 'machine'
+        }
+      }
+    });
+    expect(result.current.graphEdit.enabled).toBe(true);
+    expect(result.current.graphEdit.canLink).toBe(true);
+    await act(async () => {
+      result.current.handleGraphEditAction({ id: 'connect' });
+    });
+    expect(applyUserDiagramEdit.mock.calls[0][0].contentType).toBe('metaphor3d');
+    expect(applyUserDiagramEdit.mock.calls[0][0].diagramSource).toMatch(/"label": "Item 1"/);
+    expect(result.current.labelSession).toMatchObject({
+      kind: 'node',
+      logicalId: 'n1',
+      created: true
+    });
+  });
+
   it('adds a sibling row on a chart with inline data.values', async () => {
     const chart = JSON.stringify(
       {
