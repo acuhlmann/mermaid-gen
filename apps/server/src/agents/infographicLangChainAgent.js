@@ -22,7 +22,6 @@ import {
   extractTextContent,
   extractToolFailureError,
   forwardNormalizedAgentStreamEvent,
-  invokeChatModelToClient,
   normalizeAgentStreamEvent,
   streamChatModelToClient,
   toLangChainMessages
@@ -216,21 +215,6 @@ function extractInfographicDslFromAssistantResult(result) {
     return lines.slice(start).join('\n').trim();
   }
   return null;
-}
-
-async function emitTokens(stream, emit) {
-  let full = '';
-  for await (const chunk of stream) {
-    const piece =
-      extractTextContent(chunk?.content) ||
-      extractTextContent(chunk?.kwargs?.content) ||
-      (typeof chunk?.text === 'string' ? chunk.text : '');
-    if (piece) {
-      full += piece;
-      if (typeof emit === 'function') emit({ type: 'token', text: piece });
-    }
-  }
-  return full;
 }
 
 async function invokeWithRepair(agent, userMessages, opts, stateStore, env) {
@@ -672,7 +656,6 @@ export function createInfographicLangChainAgent({
       abortSignal,
       uiLocale
     }) {
-      const slot = stateStore.getSlot('infographic');
       const focusScope = buildFocusScopeInstructions(focusNode);
       const agent = getDefaultAgent(modelProfile);
       const peerMermaid =

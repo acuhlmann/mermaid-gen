@@ -105,14 +105,13 @@ ${exoticHint}- Palette MUST swing (4–5 loud hex colors).
 }
 
 /**
- * @param {{ mode: string, focusScope?: string, currentDsl: string, russDepth?: number, originalRequest?: string | null, advisorPrompt?: string | null }} args
+ * @param {{ mode: string, focusScope?: string, currentDsl: string, russDepth?: number, advisorPrompt?: string | null }} args
  */
 export function buildInfographicTransformUserContent({
   mode,
   focusScope = '',
   currentDsl,
   russDepth,
-  originalRequest,
   advisorPrompt
 }) {
   const directive =

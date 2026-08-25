@@ -3,11 +3,7 @@ import { createAgent } from 'langchain';
 import { createChartTools } from './diagramTools.js';
 import { redactSecrets } from '../utils/redactSecrets.js';
 import { CHART_SYSTEM_PROMPT } from '../prompts/chartSystemPrompt.js';
-import {
-  appendLanguageInstruction,
-  appendProseLanguageInstruction,
-  MATCH_USER_LANGUAGE_RULE
-} from '@archislop/shared';
+import { appendLanguageInstruction, appendProseLanguageInstruction } from '@archislop/shared';
 import {
   buildChartRepairInstruction,
   CHART_ANALYSIS_SYSTEM_PROMPT,
