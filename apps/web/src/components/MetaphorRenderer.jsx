@@ -1672,8 +1672,15 @@ function MetaphorRendererImpl(
                 thesis={thesis}
                 action={<MetaphorTourButton store={tourStore} dsl={dsl} />}
               />
-              <MetaphorLegendOverlay metaphor={dsl.metaphor} legend={dsl.scene?.legend} />
+              {/* The layer key is declared BEFORE the legend, and only for the
+                  same reason the pick is declared before both: on a narrow
+                  screen the legend yields to it through a general-sibling rule
+                  (`.metaphor-layers-overlay ~ .metaphor-legend-overlay`), which
+                  needs the key earlier in the DOM. Measured in real fullscreen
+                  on a 390x844 phone, the two overlapped by 87x84px — the key
+                  drawn across the legend's own rows. */}
               <MetaphorCompositeLayersOverlay dsl={dsl} store={layerFocusStore} />
+              <MetaphorLegendOverlay metaphor={dsl.metaphor} legend={dsl.scene?.legend} />
             </>
           ) : (
             <>

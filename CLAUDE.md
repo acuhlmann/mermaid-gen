@@ -919,6 +919,40 @@ sticky` nav row, because the height cap makes every small screen a scrolling
   fires on input and not on the intro's programmatic auto-rotate, which is exactly the difference
   between "nobody has chosen an angle" and "this is the angle they chose". A foldable opening from
   a cover to an inner screen is a resize nobody asked for.
+- **A short landscape window is height-bound twice, so its chrome must stop standing on the height.**
+  A 717x512 foldable cover spends ~29% of its height on the app's own bands before the metaphor
+  draws anything, and what is left is a letterbox. Every grounded kind here projects roughly square
+  — towers and all — so it fits to the HEIGHT and leaves about 60% of the width as empty gradient.
+  A full-width reading strip in that window is spending the axis that ran out to decorate the axis
+  that did not. Under `@media (max-height: 620px) and (orientation: landscape)` the strip is now a
+  **side rail** instead, and the rest follows for free: `overlaySafeArea` picks the edge a panel is
+  cheapest to reserve on, and a tall narrow card is cheapest on the side, so the camera's window
+  goes from **717x282 (framed aspect 2.55) to 589x364 (1.62)** — about a third more subject in
+  every direction, with the panel now standing in emptiness it was never using. Three things carry
+  it. The width is capped in **both** units (`min(38%, 15rem)`): past ~38% a rail stops being a
+  margin and becomes a second column, and past 15rem it is just a desktop panel on a small screen.
+  Every line inside it has to be allowed to **wrap** — the base rules ellipsize the title and
+  `nowrap` the axis chips because a band is wide and short, and in a rail the only alternative to
+  wrapping is overflowing the card ("Commerce platform current" rendered as "Commerce plat…" beside
+  400px of empty sky). And the subtitle comes back, for the same reason the phone block dropped it:
+  a band pays for a row out of the scene's height and a rail's rows are free. Pinned by
+  `metaphorOverlayStyles.test.js`; the earlier "go back to a row" rule this replaced was still a
+  band, and a band was the shape that was wrong.
+- **The panels can collide with each other, not only with the app's bands.** In fullscreen the
+  legend is left-anchored at `min(50% - 14px, 12.5rem)` and a composite's layer key right-anchored
+  at `min(100% - 20px, 17rem)`, so the two clear each other above ~492px of canvas width and
+  overlap below it. Measured by driving **real** fullscreen (`requestFullscreen` after a click —
+  the `isFullscreen` prop alone does not raise `:fullscreen`, so the stacking rules that deconflict
+  the key from the kind switcher never applied) on a 390x844 phone: **87x84px**, the key drawn
+  straight across the legend's own rows, three of six axes already scrolled out of sight
+  underneath. The layer key takes that corner under `@media (max-width: 500px)`: it is the fused
+  world's only explanation of what each grammar is doing, while every legend phrase is still
+  reachable from the guided read (which speaks them), the tap inspector (which labels each metric)
+  and the reading strip's `+N` tooltip. It is a **sibling** rule (`.metaphor-layers-overlay ~
+.metaphor-legend-overlay`), not a blanket hide, because only a composite raises a key and a base
+  kind's legend is in no conflict — which makes the overlay DOM order load-bearing one rung
+  further: read ▸ pick ▸ layer key ▸ legend, pinned in `metaphorOverlayStyles.test.js` against
+  `MetaphorRenderer.jsx`'s source, since jsdom has nothing to notice a reorder with.
 - **Two opposed panels are the one case where reserving honestly is worse than overlapping.** The
   per-edge cap is a rule about ONE panel, and a short screen has a band at each end: on a 717x512
   foldable cover the reading strip claimed 0.28 of the top and the composer band plus taskbar 0.26
