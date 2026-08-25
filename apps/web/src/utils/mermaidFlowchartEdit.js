@@ -1,3 +1,4 @@
+import { pickParallelEdgeRef } from './mermaidEdgeDisambiguation.js';
 import { peekDiagramDirective, stripLineComment } from './mermaidSourceLocate.js';
 
 const NODE_ID_RE = /^[A-Za-z][A-Za-z0-9_-]*$/;
@@ -336,27 +337,6 @@ function collectFlowchartEdgeRefs(source, fromId, toId) {
 }
 
 /**
- * Pick one edge among parallel links. Mirrors `findSequenceMessageRange`:
- * Mermaid's per-pair index wins, then an explicit label, then the first match
- * when the label is absent — and a provided label that no longer matches refuses.
- *
- * @param {FlowchartEdgeRef[]} refs
- * @param {{ edgeLabel?: string, edgeIndex?: number }} opts
- * @returns {FlowchartEdgeRef | null}
- */
-function pickFlowchartEdgeRef(refs, { edgeLabel, edgeIndex }) {
-  if (refs.length === 0) return null;
-  if (typeof edgeIndex === 'number' && Number.isInteger(edgeIndex) && edgeIndex >= 0) {
-    return refs[edgeIndex] ?? null;
-  }
-  const wanted = typeof edgeLabel === 'string' ? edgeLabel.trim() : '';
-  if (wanted.length > 0) {
-    return refs.find((ref) => ref.text === wanted) ?? null;
-  }
-  return refs[0];
-}
-
-/**
  * @param {string[]} lines
  * @param {number} lineIndex
  * @param {string} originalLine
@@ -398,7 +378,7 @@ export function deleteFlowchartEdge(source, fromId, toId, edgeLabel, edgeIndex) 
   if (blocked) return blocked;
 
   const { lines, refs } = collectFlowchartEdgeRefs(source, fromId, toId);
-  const picked = pickFlowchartEdgeRef(refs, { edgeLabel, edgeIndex });
+  const picked = pickParallelEdgeRef(refs, { edgeLabel, edgeIndex });
   if (!picked) return fail('missing');
 
   const originalLine = lines[picked.lineIndex];
@@ -457,7 +437,7 @@ export function renameFlowchartEdge(source, fromId, toId, label, previousEdgeLab
   const text = String(label ?? '').trim();
 
   const { lines, refs } = collectFlowchartEdgeRefs(source, fromId, toId);
-  const picked = pickFlowchartEdgeRef(refs, { edgeLabel: previousEdgeLabel, edgeIndex });
+  const picked = pickParallelEdgeRef(refs, { edgeLabel: previousEdgeLabel, edgeIndex });
   if (!picked) return fail('missing');
 
   const originalLine = lines[picked.lineIndex];
