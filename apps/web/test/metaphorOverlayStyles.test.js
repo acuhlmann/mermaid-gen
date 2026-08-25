@@ -12,6 +12,12 @@ const css = readFileSync(fileURLToPath(new URL('../src/App.css', import.meta.url
   ''
 );
 
+/** The panels' DOM order is half of every general-sibling rule below. */
+const renderer = readFileSync(
+  fileURLToPath(new URL('../src/components/MetaphorRenderer.jsx', import.meta.url)),
+  'utf8'
+);
+
 describe('metaphor overlay geometry', () => {
   it('uses a compact native select, not a wrapping pill row', () => {
     expect(css).toMatch(/\.metaphor-kind-switcher-select[\s\S]{0,800}appearance:\s*none/);
@@ -74,6 +80,44 @@ describe('metaphor overlay geometry', () => {
     );
     expect(css).toMatch(/\.metaphor-inspector\s*~\s*\.metaphor-layers-overlay/);
     expect(css).toMatch(/\.metaphor-inspector\s*~\s*\.metaphor-hover-tooltip/);
+  });
+
+  it('gives a fused layer key the legend’s corner on a narrow canvas', () => {
+    // In fullscreen the legend is left-anchored at min(50% - 14px, 12.5rem) and
+    // the layer key right-anchored at min(100% - 20px, 17rem), so the two
+    // collide below ~492px of canvas width. Measured in real fullscreen on a
+    // 390x844 phone: an 87x84px overlap, the key drawn across the legend's own
+    // axis rows. The key wins — it is a composite's only explanation of what
+    // each grammar is doing, and every legend phrase is still reachable from
+    // the guided read, the pick, and the reading strip's `+N` tooltip.
+    const narrow = css.search(/@media\s*\(max-width:\s*500px\)/);
+    expect(narrow).toBeGreaterThan(-1);
+    expect(css.slice(narrow, narrow + 400)).toMatch(
+      /\.metaphor-layers-overlay\s*~\s*\.metaphor-legend-overlay[\s\S]{0,120}?display:\s*none/
+    );
+    // Only a composite raises a key, so a base kind's legend is untouched — the
+    // rule is a sibling selector rather than a blanket hide for that reason.
+    expect(css).not.toMatch(
+      /@media\s*\(max-width:\s*500px\)\s*\{\s*\.metaphor-legend-overlay\s*\{[\s\S]{0,80}?display:\s*none/
+    );
+  });
+
+  it('declares the overlays in the order the one-panel rules need', () => {
+    // Every rung of the budget is a general-sibling selector, so it can only
+    // reach panels declared AFTER the one that outranks them. Reordering these
+    // four JSX elements silently disarms the rules above with nothing in jsdom
+    // to notice: read, then pick, then a fused world's layer key, then legend.
+    const jsx = renderer.slice(renderer.indexOf('dsl && !streamingPreview'));
+    const order = [
+      '<MetaphorTourPanel',
+      '<MetaphorInspectorPanel',
+      '<MetaphorCompositeLayersOverlay',
+      '<MetaphorLegendOverlay'
+    ].map((tag) => jsx.indexOf(tag));
+    for (const [index, at] of order.entries()) {
+      expect(at, `${index} not found in MetaphorRenderer's overlay block`).toBeGreaterThan(-1);
+      if (index > 0) expect(at).toBeGreaterThan(order[index - 1]);
+    }
   });
 
   it('drops the hover tooltip on touch, where it can only flash under the finger', () => {
@@ -168,7 +212,7 @@ describe('the compact strip caps its axis chips', () => {
   it('does the same on a short landscape screen, which has the least to spare', () => {
     const shortBlock = css.indexOf('@media (max-height: 620px) and (orientation: landscape)');
     expect(shortBlock).toBeGreaterThan(-1);
-    const block = css.slice(shortBlock, shortBlock + 2000);
+    const block = css.slice(shortBlock, shortBlock + 3200);
     expect(block).toMatch(/\.metaphor-context-axis--extra\s*\{[\s\S]{0,80}?display:\s*none/);
     expect(block).toMatch(/\.metaphor-context-axis-more\s*\{[\s\S]{0,80}?display:\s*flex/);
   });
@@ -272,15 +316,32 @@ describe('metaphor overlay chrome and the camera fit', () => {
     }
   });
 
-  it('compacts the reading strip on a short landscape screen, not only at 500px', () => {
-    // A 717x512 foldable cover misses the (max-height: 500px) cover query by
-    // twelve pixels and inherits the phone block's stacked full-width band,
-    // which costs it a quarter of its height before the scene gets any.
+  it('turns the reading strip into a side rail on a short landscape screen', () => {
+    // A short landscape window is height-bound twice: the app's own bands take
+    // ~29% of a 717x512 cover, and what is left is a letterbox a roughly
+    // square-projecting world fits to the HEIGHT of, leaving ~60% of the width
+    // as empty gradient. A full-width strip there spends the axis that ran out
+    // on the axis that did not — measured through overlaySafeArea, a band drops
+    // the camera's window to 717x282 (aspect 2.55) while the same panel as a
+    // rail leaves 589x364 (aspect 1.62).
+    //
+    // So it must be a COLUMN anchored to one side, not a row across the top,
+    // and its width capped in both units — a rail past ~38% stops being a
+    // margin and becomes a second column.
     const shortLandscape = css.search(
       /@media\s*\(max-height:\s*620px\)\s+and\s+\(orientation:\s*landscape\)/
     );
     expect(shortLandscape).toBeGreaterThan(-1);
-    const block = css.slice(shortLandscape, shortLandscape + 1200);
-    expect(block).toMatch(/\.metaphor-context-overlay\s*\{[\s\S]*?flex-direction:\s*row/);
+    const block = css.slice(shortLandscape, shortLandscape + 2600);
+    const rail = block.match(/\.metaphor-context-overlay\s*\{[\s\S]*?\}/)?.[0] ?? '';
+    expect(rail).toMatch(/flex-direction:\s*column/);
+    expect(rail).toMatch(/right:\s*auto/);
+    expect(rail).toMatch(/transform:\s*none/);
+    expect(rail).toMatch(/max-width:\s*min\(38%,\s*15rem\)/);
+    // A rail is narrow, so every line in it has to be allowed to wrap: the base
+    // rules ellipsize the title and nowrap the chips because a band is wide and
+    // short, and in a rail that is pure loss.
+    expect(block).toMatch(/\.metaphor-context-title\s*\{[\s\S]{0,160}?white-space:\s*normal/);
+    expect(block).toMatch(/\.metaphor-context-axis\s*\{[\s\S]{0,160}?white-space:\s*normal/);
   });
 });

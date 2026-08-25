@@ -10936,6 +10936,30 @@ button {
   }
 }
 
+/* One panel budget, third rung: on a canvas this narrow a fused world's layer
+   key outranks the legend, because the two do not fit side by side and both
+   want the bottom edge.
+
+   The number is the geometry, not a taste call. In fullscreen the legend is
+   left-anchored at `min(50% - 14px, 12.5rem)` and the layer key right-anchored
+   at `min(100% - 20px, 17rem)`, so they collide below ~492px of canvas width
+   and clear each other above it. Measured in real fullscreen on a 390x844
+   phone: an 87x84px overlap, the key drawn straight across the legend's own
+   rows with three of six axes already scrolled out of sight underneath.
+
+   The key wins because it is the composite's ONLY explanation of what each
+   grammar is doing, while the axes are still reachable from the guided read
+   (which speaks every legend phrase), the tap inspector (which labels each
+   metric it prints), and the inline reading strip's `+N` tooltip. A base kind
+   raises no key, so its legend is untouched. Same general-sibling mechanism as
+   the pick and the read — which is why MetaphorRenderer declares the key
+   before the legend. */
+@media (max-width: 500px) {
+  .metaphor-layers-overlay ~ .metaphor-legend-overlay {
+    display: none;
+  }
+}
+
 /* Landscape phones / foldable cover: keep the scene, drop secondary copy.
    After the desktop overlay rules so `display: none` on the legend sticks. */
 @media (max-width: 1024px) and (max-height: 500px) and (orientation: landscape) {
@@ -10990,32 +11014,89 @@ button {
     max-height: min(78vh, 13rem);
   }
 
-  /* The phone block turns the reading strip into a stacked full-width band,
-     which costs a 717x512 cover screen a quarter of its height before the scene
-     gets any. Same twelve pixels, same answer: go back to a row, and let the
-     camera's safe-area reservation shrink with it. */
+  /* The reading strip is a RAIL here, not a band — the one screen shape where
+     that is worth the width it costs.
+
+     A short landscape window is height-bound twice over. The app's own bands
+     already claim ~29% of a 717x512 cover before the metaphor draws anything,
+     and what is left is a letterbox: measured, the window between them is 717
+     wide and 276 tall, aspect 2.6. A world whose projection is roughly square —
+     which every grounded kind's is, towers and all — then fits to the HEIGHT
+     and leaves about 60% of the width as empty gradient. Spending any more of
+     the short axis on a full-width strip is spending the axis that ran out to
+     decorate the axis that did not.
+
+     So the strip moves into the emptiness it was never using. The camera's
+     reservation follows it automatically (overlaySafeArea picks the edge a
+     panel is cheapest to reserve on, and a tall narrow card is cheapest on the
+     side), which hands the vertical axis back: on the 717x512 cover the
+     window goes from 276px to ~364px of height, and the subject renders about
+     a third larger in every direction with no panel moved on top of it.
+
+     Two things keep it honest. The width is capped in BOTH units — a rail wider
+     than ~38% stops being a margin and starts being a column, and one wider
+     than 15rem is just a desktop panel on a small screen. And the axis chips
+     drop `nowrap` here: a chip is a whole authored phrase, and in a rail the
+     only alternative to wrapping is overflowing the card it is standing in. */
   .metaphor-context-overlay {
-    flex-direction: row;
-    align-items: center;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 4px 10px;
-    padding: 5px 9px;
+    top: calc(var(--metaphor-app-top-inset, 0px) + max(8px, env(safe-area-inset-top, 0px)));
+    left: max(8px, env(safe-area-inset-left, 0px));
+    right: auto;
+    width: min(38%, 15rem);
+    max-width: min(38%, 15rem);
+    transform: none;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-start;
+    flex-wrap: nowrap;
+    gap: 5px;
+    padding: 7px 9px;
   }
 
   .metaphor-context-heading {
+    min-width: 0;
+    max-width: 100%;
     text-align: left;
+  }
+
+  /* A rail is narrow, so every line in it has to be allowed to wrap. The base
+     rules ellipsize the title and subtitle because a band is wide and short and
+     a second row there costs the scene its height; in a rail the rows are free
+     and the ellipsis is pure loss — "Commerce platform current" would render as
+     "Commerce plat…" beside 400px of empty sky. The subtitle comes back for the
+     same reason: the phone block hides it because it cost a band a whole row. */
+  .metaphor-context-title {
+    overflow: visible;
+    white-space: normal;
+  }
+
+  .metaphor-context-subtitle {
+    display: -webkit-box;
+    overflow: hidden;
+    white-space: normal;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
   }
 
   .metaphor-context-thesis {
     display: -webkit-box;
-    -webkit-line-clamp: 1;
+    -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
 
+  .metaphor-context-axes {
+    max-width: 100%;
+    justify-content: flex-start;
+  }
+
+  .metaphor-context-axis {
+    max-width: 100%;
+    white-space: normal;
+  }
+
   .metaphor-context-overlay .metaphor-tour-start {
-    margin-top: 0;
+    margin-top: 2px;
   }
 
   /* Same cap as the phone block, same reason: a short screen pays for a second

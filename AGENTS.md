@@ -242,6 +242,25 @@ ones that will bite an edit.
   as a left-hand panel). Fullscreen keeps the chrome's layout rect and paints none of it, so the
   measurement skips anything outside `document.fullscreenElement`; the insights embed opts out with
   `measureAppChrome={false}`. Verify geometry by driving a browser, not by reading CSS.
+- **On a short landscape window the chrome moves OFF the axis that ran out.** A foldable cover is
+  height-bound twice: the app's own bands take ~29% of a 717x512 cover, and the letterbox that is
+  left is fitted to by the height, so a roughly square-projecting world leaves ~60% of the width as
+  empty gradient. A full-width reading strip there spends the scarce axis to decorate the abundant
+  one. Under `@media (max-height: 620px) and (orientation: landscape)` the strip is a **side rail**
+  — `overlaySafeArea` then picks the side edge on its own (a tall narrow card is cheapest to
+  reserve there), and the camera's window goes from 717x282 (aspect 2.55) to 589x364 (1.62), about
+  a third more subject in every direction with no panel moved on top of it. Cap a rail's width in
+  **both** units (`min(38%, 15rem)`) and let its lines wrap: the base rules ellipsize the title and
+  `nowrap` the axis chips because a band is wide and short, and in a rail that is pure loss.
+- **Two metaphor panels can collide with each other, not only with the app.** In fullscreen the
+  legend is left-anchored at `min(50% - 14px, 12.5rem)` and a composite's layer key right-anchored
+  at `min(100% - 20px, 17rem)`, so below ~492px of canvas width they overlap — measured in real
+  fullscreen on a 390x844 phone, 87x84px of key drawn across the legend's own axis rows. The layer
+  key wins that corner (`@media (max-width: 500px)`): it is the fused world's only explanation of
+  what each grammar is, and every legend phrase is still reachable from the guided read, the pick,
+  and the reading strip's `+N` tooltip. It is a **sibling** rule, not a blanket hide, so a base
+  kind's legend is untouched — which means `MetaphorCompositeLayersOverlay` must be declared
+  **before** `MetaphorLegendOverlay`, one more rung of the one-panel DOM order below.
 - **Pressing a row in the composite's layer key reads that layer alone.** The rest of the world
   recedes by **colour, never opacity** (`recedeTheme` in `metaphorScenes/sceneUtils.js` hands muted
   layers a theme lerped into the scene horizon) — a dozen faded bodies re-open three's
