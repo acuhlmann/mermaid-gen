@@ -335,6 +335,130 @@ describe('useFlowchartGraphEdit', () => {
     expect(result.current.connectSourceId).toBeNull();
   });
 
+  it('deletes one parallel flowchart edge by Mermaid edge index from the canvas id', async () => {
+    const duplicate = `flowchart TD
+  A[Start] -->|first| B[End]
+  A -->|second| B
+`;
+    const { result, stateRef } = mount({
+      diagramSource: duplicate,
+      props: {
+        selectedNode: {
+          kind: 'edge',
+          id: 'L_A_B_1',
+          edgeFrom: 'A',
+          edgeTo: 'B',
+          label: 'second',
+          partName: 'A → B'
+        }
+      }
+    });
+    await act(async () => {
+      result.current.handleGraphEditAction({ id: 'delete' });
+    });
+    expect(applyUserDiagramEdit).toHaveBeenCalledTimes(1);
+    expect(applyUserDiagramEdit.mock.calls[0][0].diagramSource).toMatch(
+      /A\[Start\] -->|first| B\[End\]/
+    );
+    expect(applyUserDiagramEdit.mock.calls[0][0].diagramSource).not.toMatch(/\|second\|/);
+    expect(stateRef.current.diagramSource).not.toMatch(/\|second\|/);
+  });
+
+  it('refuses delete when the edge label no longer matches and no Mermaid index is known', async () => {
+    const duplicate = `flowchart TD
+  A[Start] -->|first| B[End]
+  A -->|second| B
+`;
+    const { result } = mount({
+      diagramSource: duplicate,
+      props: {
+        selectedNode: {
+          kind: 'edge',
+          edgeFrom: 'A',
+          edgeTo: 'B',
+          label: 'gone',
+          partName: 'A → B'
+        }
+      }
+    });
+    await act(async () => {
+      result.current.handleGraphEditAction({ id: 'delete' });
+    });
+    expect(applyUserDiagramEdit).not.toHaveBeenCalled();
+    expect(pushError).toHaveBeenCalledWith(CONTROLS_EN.graphEdit.failed);
+  });
+
+  it('lets a Mermaid edge index win over a stale label on delete', async () => {
+    const duplicate = `flowchart TD
+  A[Start] -->|first| B[End]
+  A -->|second| B
+`;
+    const { result } = mount({
+      diagramSource: duplicate,
+      props: {
+        selectedNode: {
+          kind: 'edge',
+          id: 'L_A_B_0',
+          edgeFrom: 'A',
+          edgeTo: 'B',
+          label: 'gone',
+          partName: 'A → B'
+        }
+      }
+    });
+    await act(async () => {
+      result.current.handleGraphEditAction({ id: 'delete' });
+    });
+    expect(applyUserDiagramEdit).toHaveBeenCalledTimes(1);
+    expect(applyUserDiagramEdit.mock.calls[0][0].diagramSource).toMatch(
+      /A\[Start\] -->|second| B\[End\]/
+    );
+    expect(applyUserDiagramEdit.mock.calls[0][0].diagramSource).not.toMatch(/\|first\|/);
+  });
+
+  it('renames one parallel state transition using the label session edge index', async () => {
+    const duplicate = `stateDiagram-v2
+  Draft --> PendingReview : submit
+  Draft --> PendingReview : cancel
+`;
+    const { result, stateRef } = mount({
+      diagramSource: duplicate,
+      props: {
+        contentMode: 'mermaid',
+        selectedNode: {
+          kind: 'edge',
+          id: 'L_Draft_PendingReview_1',
+          edgeFrom: 'Draft',
+          edgeTo: 'PendingReview',
+          label: 'cancel',
+          partName: 'Draft → PendingReview'
+        }
+      }
+    });
+    act(() => {
+      result.current.handleGraphEditAction({ id: 'rename' });
+    });
+    expect(result.current.labelSession).toMatchObject({
+      kind: 'edge',
+      fromId: 'Draft',
+      toId: 'PendingReview',
+      edgeLabel: 'cancel',
+      edgeIndex: 1
+    });
+    await act(async () => {
+      result.current.handleLabelCommit('withdraw');
+    });
+    expect(applyUserDiagramEdit).toHaveBeenCalledTimes(1);
+    expect(applyUserDiagramEdit.mock.calls[0][0].diagramSource).toMatch(
+      /Draft --> PendingReview : submit/
+    );
+    expect(applyUserDiagramEdit.mock.calls[0][0].diagramSource).toMatch(
+      /Draft --> PendingReview : withdraw/
+    );
+    expect(applyUserDiagramEdit.mock.calls[0][0].diagramSource).not.toMatch(/: cancel/);
+    expect(stateRef.current.diagramSource).toMatch(/: withdraw/);
+  });
+
   it('toasts stale_revision without applying', async () => {
     const { result } = mount();
     applyUserDiagramEdit.mockRejectedValueOnce(

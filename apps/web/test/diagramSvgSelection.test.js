@@ -1,10 +1,34 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from 'vitest';
 import {
+  parseFlowchartEdgeDataId,
   resolveSequenceActorInteractionRoot,
   resolveSequenceMessageInteractionRoot,
   resolveTimelineNodeInteractionRoot
 } from '../src/utils/diagramSvgSelection.js';
+
+describe('parseFlowchartEdgeDataId', () => {
+  it('parses Mermaid L_from_to_index ids', () => {
+    expect(parseFlowchartEdgeDataId('L_A_B_0')).toEqual({
+      from: 'A',
+      to: 'B',
+      index: 0,
+      raw: 'L_A_B_0'
+    });
+    expect(parseFlowchartEdgeDataId('L_Draft_PendingReview_1')).toEqual({
+      from: 'Draft',
+      to: 'PendingReview',
+      index: 1,
+      raw: 'L_Draft_PendingReview_1'
+    });
+  });
+
+  it('returns null for non-edge ids', () => {
+    expect(parseFlowchartEdgeDataId('flowchart-A-0')).toBeNull();
+    expect(parseFlowchartEdgeDataId('')).toBeNull();
+    expect(parseFlowchartEdgeDataId(null)).toBeNull();
+  });
+});
 
 const SEQUENCE_SVG = `
 <svg>
