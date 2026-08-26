@@ -336,6 +336,65 @@ describe('planFusedCompositeWorld', () => {
     }
   });
 
+  it('lifts each island name clear of the tallest landmark planted on it', () => {
+    const dsl = {
+      metaphor: 'composite',
+      layout: 'fused',
+      seed: 'label-lift',
+      novelty: 0.5,
+      motionIntensity: 0.6,
+      scene: {},
+      layers: [
+        {
+          id: 'domains',
+          as: 'archipelago',
+          items: [
+            { id: 'a', label: 'Alpha', mass: 12, relief: 0.7 },
+            { id: 'b', label: 'Beta', mass: 10, relief: 0.6 },
+            { id: 'c', label: 'Gamma', mass: 8, relief: 0.5 }
+          ]
+        },
+        {
+          id: 'services',
+          as: 'city',
+          items: [
+            { id: 's1', label: 'One', height: 40, footprint: 2 },
+            { id: 's2', label: 'Two', height: 18, footprint: 2 }
+          ]
+        }
+      ],
+      items: [],
+      links: []
+    };
+    const plan = planFusedCompositeWorld(dsl);
+    expect(plan.nodes.length).toBe(2);
+    const crest = new Map();
+    for (const node of plan.nodes) {
+      const top = node.position[1] + node.height;
+      crest.set(node.attachedTo, Math.max(crest.get(node.attachedTo) ?? -Infinity, top));
+    }
+    let carried = 0;
+    for (const site of plan.sites) {
+      expect(Number.isFinite(site.labelLift)).toBe(true);
+      expect(site.labelLift).toBeGreaterThanOrEqual(0);
+      const top = crest.get(site.id);
+      if (top === undefined) {
+        // Nothing is standing on this one, so its name has nothing to clear.
+        expect(site.labelLift).toBe(0);
+        continue;
+      }
+      carried += 1;
+      // The name is drawn at `height + lift`, in the site's own local space.
+      const labelY = site.position[1] + site.height + site.labelLift;
+      // Clear of the crest by more than the 0.9 a node's OWN name sits above
+      // its top — otherwise the two names land in one square of screen and the
+      // declutter pass drops the tower's, which outranks nothing.
+      expect(labelY - top).toBeGreaterThan(0.9);
+    }
+    // A test that found no loaded island would pass while examining nothing.
+    expect(carried).toBeGreaterThan(0);
+  });
+
   it('encodes storytelling fields, connectors, LOD, and atmosphere on the plan', () => {
     const dsl = {
       metaphor: 'composite',

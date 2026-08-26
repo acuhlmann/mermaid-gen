@@ -206,6 +206,17 @@ ones that will bite an edit.
   inside the spire its own tower stacks above the anchor. Widths and the arrow are screen pixels;
   a muted or dimmed composite link **loses** the casing rather than gaining one, or receding makes
   the layer you dismissed louder.
+- **In a fused world, a site's name goes UP, because no lateral answer can work.** Towers stand on
+  islands, so an island's own label is inside its own landmark, and every planned sideways offset
+  (near corner, away-from-landmarks, outward-from-centre) puts some fraction of the world's names
+  behind a tower — the direction that clears one depends on where the viewer stands, which a plan
+  cannot know. `assignSiteLabelPlacement` keeps the outward shoulder and adds `labelLift`: above
+  the crest of the tallest node `attachedTo` that site, which IS a fact about the island. The glyph
+  rides up with the name. Measured by ray-testing every label from the camera (recipe in
+  `apps/web/.claude/skills/verify/`) over 3 composite fixtures × phone/cover/desktop: 71→80 of 148
+  legible, 4→0 buried, no viewport worse. A camera-facing shoulder resolved per frame measured
+  _worse_ (74) — it walks a back island's name into the tower of the island in front. Labels are
+  pruned from the camera fit by material, so lifting one costs the subject no room.
 - **The fused composite does not inherit shared chrome.** It shipped without `MetaphorAccents` and
   with unlabelled affinity rings; when a base kind grows a scene-wide affordance, check
   `FusedCompositeScene.jsx` for it. Group placards must show `group.display` (the user's raw noun),

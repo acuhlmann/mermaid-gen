@@ -54,6 +54,45 @@ auto-rotate lasts 1.4s), then `page.screenshot()` composites DOM + WebGL fine.
   ~700ms apart and inspect the largest files.
 - For a baseline comparison, `git stash push -u -- <paths>` → capture → `git stash pop`.
 
+## Measuring whether a 3D label is actually READABLE
+
+A screenshot tells you a name came out as `og`; it does not tell you how many
+names did, across three fixtures and three viewports, or whether a candidate fix
+traded one victim for another. Both label placements tried on the fused
+composite looked like wins in the frame that motivated them and lost ground
+elsewhere — the decision only became decidable once every label was scored.
+
+The probe: reach into the live scene, walk every troika `Text`, sample a grid of
+points across its drawn plate, and for each point ask (a) does an opaque mesh
+sit between it and the camera (`Raycaster` with `far = distance - ε`), and (b)
+does a `[data-metaphor-chrome]` panel cover its projected pixel. Report
+`legible / hidden / buried`, where **hidden** is a label the declutter pass
+already faded to zero (`fillOpacity <= 0.1`) and **buried** is one it kept and
+the scene ate. Both numbers matter: a placement that raises `legible` by burying
+fewer is a real win; one that raises it by hiding fewer may just be crowding.
+
+Three things it takes to get there, none of them obvious:
+
+- **`canvas.__r3f` is empty in R3F v9**, so the documented route to the scene
+  does not exist — `Object.getOwnPropertyNames` on it returns `[]` and the probe
+  reports "no store" as if the canvas were broken. Patching
+  `THREE.WebGLRenderer.prototype.render` does not work either. What does: in the
+  harness, before `createRoot`, wrap `THREE.Object3D.prototype.add` (record
+  `this` when `this.isScene`) and `THREE.PerspectiveCamera.prototype.updateProjectionMatrix`
+  (record `this`). Both fire during mount and neither depends on R3F internals.
+- **`intersectObjects` throws on the scene's own contents.** Line2, points,
+  instanced meshes and a geometry with no position attribute all reach it, and
+  one throw kills the whole evaluate with a stack inside `three.module.js` that
+  reads like a renderer bug. Filter blockers to plain opaque meshes
+  (`!transparent`, `depthWrite !== false`, real `attributes.position`, not
+  `isLine`/`isPoints`/`isInstancedMesh`/`isSprite`) and wrap the call anyway.
+- **Exclude the labels from their own blocker list** (`typeof o.text === 'string'`)
+  or every name occludes itself and scores 0%.
+
+Numbers from the run that shipped `assignSiteLabelPlacement`, as a calibration:
+the three composite fixtures × phone/cover/desktop carry 148 labels, of which
+the baseline drew 71 legibly, hid 73 and buried 4.
+
 ## Capturing a CSS transition at an exact moment
 
 Racing the wall clock with `waitForTimeout` gives frames you cannot reproduce.

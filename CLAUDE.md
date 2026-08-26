@@ -1032,10 +1032,24 @@ sticky` nav row, because the height cap makes every small screen a scrolling
   its own towers and read as "the model did not label them". A fused composite's affinity ring is
   drawn on the ocean, which its islands then sit **on top of**, placard included; groups now carry
   `surfaceY` so the placard stands on the ground it covers. And an island's own label sat dead
-  centre, which is precisely where its landmarks are planted. The fix that holds is **outward from
-  the world centre** (`assignSiteLabelOffsets`): a fixed near corner only changes which islands
-  lose, because attachment offsets are seeded, and "away from the landmarks" in world space is
-  often "behind them" in screen space. Outside the outermost sites is reliably open ground.
+  centre, which is precisely where its landmarks are planted. Outward from the world centre helps
+  — a fixed near corner only changes which islands lose, because attachment offsets are seeded, and
+  "away from the landmarks" in world space is often "behind them" in screen space — but it is not
+  the fix, and the reason generalizes: **no lateral answer can be, because a tower is about as wide
+  as the shoulder is long, and which side clears it depends on where the viewer is standing, which
+  a plan cannot know.** Outward is simply the direction that fails for the half of the world whose
+  outward points away from the camera; at the default azimuth "Catalog" still rendered as "og".
+  `assignSiteLabelPlacement` keeps the shoulder and adds `labelLift` — above the crest of the
+  tallest node `attachedTo` that site, which IS a fact about the island — and the glyph rides up
+  with the name, or the icon reads as a second, unrelated mark. It was decided by measurement, not
+  by looking: ray-test every label from the camera (recipe in `apps/web/.claude/skills/verify/`)
+  and score `legible / hidden / buried`, where **hidden** is what the declutter pass already faded
+  and **buried** is what it kept and the scene ate. Over 3 composite fixtures × phone/cover/desktop
+  (148 labels): 71→80 legible, 4→0 buried, no viewport worse. Two rival placements looked like wins
+  in the frame that motivated them and lost ground elsewhere — a camera-facing shoulder resolved
+  per frame came out **worse** (74), because it walks a back island's name into the tower of the
+  island in FRONT of it, and writing the name on the near shore at ground level buried six.
+  Lifting a label costs the camera fit nothing: text is pruned from it by material.
   A fourth instance was the **garden beds**, fixed the city's way (near edge, `+z`). The
   **archipelago `chain` is the open exception**, and it is worth knowing why the same move fails
   there: a chain circle is a poor anchor, because the chains overlap and their centres cluster at
