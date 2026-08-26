@@ -171,6 +171,34 @@ describe('renameSequenceEdge', () => {
     expect(result.source).not.toMatch(/: second/);
   });
 
+  it('lets a Mermaid message id win over a stale label when duplicates exist', () => {
+    const duplicate = `sequenceDiagram
+  participant Alice
+  participant Bob
+  Alice->>Bob: ping
+  Bob-->>Alice: ack
+  Alice->>Bob: ping
+`;
+    const result = renameSequenceEdge(duplicate, 'Alice', 'Bob', 'changed', 'gone', 2);
+    expect(result.ok).toBe(true);
+    expect(result.source).toMatch(/Alice->>Bob: changed/);
+    expect(result.source.match(/Alice->>Bob: ping/g)?.length).toBe(1);
+  });
+
+  it('removes the message selected by Mermaid id when labels are identical', () => {
+    const duplicate = `sequenceDiagram
+  participant Alice
+  participant Bob
+  Alice->>Bob: ping
+  Bob-->>Alice: ack
+  Alice->>Bob: ping
+`;
+    const result = deleteSequenceEdge(duplicate, 'Alice', 'Bob', 'ping', 2);
+    expect(result.ok).toBe(true);
+    expect(result.source).toMatch(/Alice->>Bob: ping/);
+    expect(result.source).not.toMatch(/ack[\s\S]*Alice->>Bob: ping/);
+  });
+
   it('refuses a missing message', () => {
     expect(renameSequenceEdge(SEQUENCE, 'Bob', 'Charlie', 'Nope')).toEqual({
       ok: false,

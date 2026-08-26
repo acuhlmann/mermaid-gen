@@ -2,6 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   parseFlowchartEdgeDataId,
+  parseSequenceMessageDataId,
   resolveSequenceActorInteractionRoot,
   resolveSequenceMessageInteractionRoot,
   resolveTimelineNodeInteractionRoot
@@ -27,6 +28,25 @@ describe('parseFlowchartEdgeDataId', () => {
     expect(parseFlowchartEdgeDataId('flowchart-A-0')).toBeNull();
     expect(parseFlowchartEdgeDataId('')).toBeNull();
     expect(parseFlowchartEdgeDataId(null)).toBeNull();
+  });
+});
+
+describe('parseSequenceMessageDataId', () => {
+  it('parses Mermaid iN message ids', () => {
+    expect(parseSequenceMessageDataId('i0')).toEqual({
+      messageId: 0,
+      raw: 'i0'
+    });
+    expect(parseSequenceMessageDataId('i12')).toEqual({
+      messageId: 12,
+      raw: 'i12'
+    });
+  });
+
+  it('returns null for non-message ids', () => {
+    expect(parseSequenceMessageDataId('L_A_B_0')).toBeNull();
+    expect(parseSequenceMessageDataId('')).toBeNull();
+    expect(parseSequenceMessageDataId(null)).toBeNull();
   });
 });
 
