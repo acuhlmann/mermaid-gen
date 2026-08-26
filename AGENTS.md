@@ -62,7 +62,7 @@ Package-specific commands:
 - The rung executes agent pages in a **real browser** by default (`anythingRuntimeBrowser.js`), inside the actual
   client sandbox rather than an emulation of it: it builds the same
   `<iframe sandbox="allow-scripts" srcdoc={wrapAnythingSrcDoc(html)}>` the renderer does. Measured p50 through the
-  full 26-fixture corpus: **139 ms vs jsdom's 1,009 ms, identical verdicts**.
+  full 28-fixture corpus: **139 ms vs jsdom's 1,009 ms, identical verdicts**.
 - `ANYTHING_RUNTIME_ENGINE=browser|jsdom|auto` (default `auto` = browser when a binary resolves). **`jsdom` is the
   rollback.** Both engines are held to the same suite — `apps/server/test/anythingRuntimeCheck.test.js` runs
   unchanged against either, and that identity is what stops them drifting.

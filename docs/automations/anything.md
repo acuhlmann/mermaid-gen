@@ -104,9 +104,10 @@ Tune `apps/server/src/prompts/anythingSystemPrompt.js`, `anythingDesignGuide.js`
 When the top rejection code is `runtime_error`, check whether the page was doing the right thing
 and the fix belongs in the design guide (null DOM guards, `getTotalLength` on geometry elements
 only, d3 selection chaining, d3 `forceLink` node ids, d3 drag handler order / TDZ, Matter
-`body.isSleeping` vs `Matter.Sleeping.isSleeping`) before tightening policy lint. Corpus
-fixtures must reject under **both** browser and jsdom engines — a jsdom-only expectation is a
-drift trap ([#393](https://github.com/acuhlmann/mermaid-gen/issues/393)).
+`body.isSleeping` vs `Matter.Sleeping.isSleeping`, standalone KPI formatters rather than
+`k.fmt` on data rows, no top-level `await` in classic scripts) before tightening policy lint.
+Corpus fixtures must reject under **both** browser and jsdom engines — a jsdom-only expectation
+is a drift trap ([#393](https://github.com/acuhlmann/mermaid-gen/issues/393)).
 
 A prompt change that might shift model behaviour should be justified by corpus or generation-bench
 numbers in the PR body — not by intuition alone.
