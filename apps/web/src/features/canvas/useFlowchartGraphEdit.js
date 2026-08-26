@@ -45,10 +45,14 @@ function nextSelection(adapter, result) {
   }
   if (adapter.contentType === 'metaphor3d') {
     let metaphor = 'tree';
-    try {
-      metaphor = JSON.parse(result.source)?.metaphor ?? 'tree';
-    } catch {
-      /* keep default */
+    if (typeof result.metaphorKind === 'string') {
+      metaphor = result.metaphorKind;
+    } else {
+      try {
+        metaphor = JSON.parse(result.source)?.metaphor ?? 'tree';
+      } catch {
+        /* keep default */
+      }
     }
     return {
       kind: 'metaphor-item',

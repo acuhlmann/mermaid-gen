@@ -766,6 +766,58 @@ data
     });
   });
 
+  it('adds a sibling building in a metaphor3d composite city layer', async () => {
+    const composite = JSON.stringify(
+      {
+        metaphor: 'composite',
+        scene: { theme: 'whiteboard', camera: 'orbit' },
+        layout: 'fused',
+        layers: [
+          {
+            id: 'platform',
+            as: 'city',
+            items: [{ id: 'auth', label: 'Auth', height: 12, footprint: 3, district: 'Core' }]
+          },
+          {
+            id: 'domains',
+            as: 'garden',
+            items: [{ id: 'signup', label: 'Signup', maturity: 0.5, impact: 0.5, health: 0.5 }]
+          }
+        ],
+        items: [],
+        links: []
+      },
+      null,
+      2
+    );
+    const { result } = mount({
+      diagramSource: composite,
+      props: {
+        contentMode: 'metaphor3d',
+        selectedNode: {
+          kind: 'metaphor-item',
+          id: 'metaphor3d-auth',
+          dataId: 'auth',
+          label: 'Auth',
+          partName: 'Auth',
+          metaphor: 'city'
+        }
+      }
+    });
+    expect(result.current.graphEdit.enabled).toBe(true);
+    expect(result.current.graphEdit.canLink).toBe(true);
+    await act(async () => {
+      result.current.handleGraphEditAction({ id: 'connect' });
+    });
+    expect(applyUserDiagramEdit.mock.calls[0][0].contentType).toBe('metaphor3d');
+    expect(applyUserDiagramEdit.mock.calls[0][0].diagramSource).toMatch(/"label": "Item 1"/);
+    expect(result.current.labelSession).toMatchObject({
+      kind: 'node',
+      logicalId: 'n1',
+      created: true
+    });
+  });
+
   it('adds a sibling row on a chart with inline data.values', async () => {
     const chart = JSON.stringify(
       {
