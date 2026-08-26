@@ -210,7 +210,7 @@ export function findVertexIdColumn(line, logicalId) {
  * @returns {SourceRange|null}
  */
 const SEQUENCE_MSG_LINE_RE = new RegExp(
-  /^(\s*)([A-Za-z][A-Za-z0-9_]*(?:-[A-Za-z0-9_]+)*)\s*([<\-\=\~.\[\]()xo>]+(?:\+-|-\+)?)\s*([A-Za-z][A-Za-z0-9_]*(?:-[A-Za-z0-9_]+)*)\s*:\s*(.*)$/i
+  /^(\s*)([A-Za-z][A-Za-z0-9_]*(?:-[A-Za-z0-9_]+)*)\s*([<\-=~.[\]()xo>]+(?:\+-|-\+)?)\s*([A-Za-z][A-Za-z0-9_]*(?:-[A-Za-z0-9_]+)*)\s*:\s*(.*)$/i
 );
 
 /**
@@ -225,30 +225,23 @@ function parseSequenceMessageLine(line) {
   return { from: match[2], to: match[4], text: (match[5] || '').trim() };
 }
 
-export function findSequenceMessageRange(source, { from, to, label, messageId }) {
-  if (!from || !to) return null;
-  const lines = source.split(/\r?\n/);
-  const fromEsc = escapeRegExp(from);
-  const toEsc = escapeRegExp(to);
-  const arrowRe = new RegExp(
-    `^\\s*${fromEsc}\\s*(?:->>?|-->>?|->>?\\+|-->>\\+|->>?-|x->>?|--)\\s*${toEsc}\\s*:\\s*(.+)$`,
-    'i'
-  );
-
-  if (typeof messageId === 'number' && Number.isInteger(messageId) && messageId >= 0) {
-    let globalIndex = 0;
-    for (let i = 0; i < lines.length; i++) {
-      const parsed = parseSequenceMessageLine(lines[i]);
-      if (!parsed) continue;
-      if (globalIndex === messageId) {
-        if (parsed.from !== from || parsed.to !== to) return null;
-        return rangeForLines(lines, i, i);
-      }
-      globalIndex += 1;
+/** Locate a sequence message line by its zero-based position among parsed message lines. */
+function findSequenceMessageRangeById(lines, from, to, messageId) {
+  let globalIndex = 0;
+  for (let i = 0; i < lines.length; i++) {
+    const parsed = parseSequenceMessageLine(lines[i]);
+    if (!parsed) continue;
+    if (globalIndex === messageId) {
+      if (parsed.from !== from || parsed.to !== to) return null;
+      return rangeForLines(lines, i, i);
     }
-    return null;
+    globalIndex += 1;
   }
+  return null;
+}
 
+/** Collect every sequence message line matching the from/to arrow pattern. */
+function collectSequenceMessageMatches(lines, arrowRe) {
   const matches = [];
   for (let i = 0; i < lines.length; i++) {
     const line = stripLineComment(lines[i]);
@@ -256,9 +249,27 @@ export function findSequenceMessageRange(source, { from, to, label, messageId })
     if (!trimmed || trimmed.startsWith('%%')) continue;
     const m = line.match(arrowRe);
     if (!m) continue;
-    const messageText = m[1].trim();
-    matches.push({ lineIndex: i, line, messageText });
+    matches.push({ lineIndex: i, line, messageText: m[1].trim() });
   }
+  return matches;
+}
+
+export function findSequenceMessageRange(source, { from, to, label, messageId }) {
+  if (!from || !to) return null;
+  const lines = source.split(/\r?\n/);
+
+  if (typeof messageId === 'number' && Number.isInteger(messageId) && messageId >= 0) {
+    return findSequenceMessageRangeById(lines, from, to, messageId);
+  }
+
+  const fromEsc = escapeRegExp(from);
+  const toEsc = escapeRegExp(to);
+  const arrowRe = new RegExp(
+    `^\\s*${fromEsc}\\s*(?:->>?|-->>?|->>?\\+|-->>\\+|->>?-|x->>?|--)\\s*${toEsc}\\s*:\\s*(.+)$`,
+    'i'
+  );
+
+  const matches = collectSequenceMessageMatches(lines, arrowRe);
   if (matches.length === 0) return null;
 
   const wanted = typeof label === 'string' ? label.trim() : '';

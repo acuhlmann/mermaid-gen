@@ -1,6 +1,6 @@
 {
-  "updated": "2026-08-25",
-  "$comment": "monolithLoc.apps/web/src/components/DiagramCanvas.jsx and monolithLoc.apps/server/src/routes/copilot.ts were tightened to their measured 1889/1194 after the sibling-module extractions that closed #363 and #381 (diagramGraphEditNodeResolve.js and copilotUserEdit.ts respectively) — tightening a budget that moved the right way needs no written reason, only loosening does. monolithLoc.apps/server/src/agents/mermaidLangChainAgent.js (1156) and .../infographicLangChainAgent.js (846) were tightened the same way after removing dead code (unused imports/vars/an uncalled helper) surfaced by the 2026-08-25 lintWarnings pass. lintWarnings.apps/server dropped 229 → 222 in that same pass — a real fix (11 unused-var/import warnings removed across chartLangChainAgent.js, infographicLangChainAgent.js, mermaidLangChainAgent.js, officePersonas.js, infographicTransformPrompts.js, registerMcpApps.js; two more in mcpServer.js were reverted despite being equally dead, since that file trips the `mcp-tool-without-test` wire-cochange sensor on any touch and the fix wasn't worth padding mcpServer.test.js for), not stale bookkeeping — tightened to lock it in. lintWarnings.apps/web (846) stays put: the flowchart/state parallel-edge disambiguation work (b1bd846, e7042d8) pushed it to 849 (one FusedCompositeScene complexity warning fixed in place, dropping it to 848 — the other two are a max-params pair whose only fix touches a call site outside this routine's allowedPaths, see issue #402), a real regression under this routine's watch, not stale bookkeeping like apps/server's was — kept at 846 rather than raised.",
+  "updated": "2026-08-26",
+  "$comment": "suite.files/cases tightened to their measured 386/4040 — genuine growth, needs no written reason. lintWarnings.apps/web stays at 846 despite measuring 850: the sequenceDiagram parallel-edge-disambiguation work (b50d077) and a Metaphor3D label-placement fix (3159665) added two more warnings on top of issue #402's original two (renameFlowchartEdge/renameStateEdge max-params) — a third max-params instance (renameSequenceEdge, same call site and same fix shape as #402, noted there) and a new complexity violation (assignSiteLabelPlacement in fusedCompositePlanner.js, filed separately since its fix isn't the same shape). This run fixed the other three warnings that same diff introduced in apps/web/src/utils/mermaidSourceLocate.js — three no-useless-escape (harmless-but-flagged escapes in a character class) and a complexity violation on the new findSequenceMessageRange, cleared by extracting findSequenceMessageRangeById and collectSequenceMessageMatches — dropping apps/web from 854 to 850. The remaining 4-over-budget gap is real drift with call sites outside this routine's allowedPaths, not stale bookkeeping — kept at 846 rather than raised, per the no-silent-loosening rule.",
   "metrics": {
     "monolithLoc": {
       "apps/web/src/ArchiSlop.jsx": {
@@ -66,11 +66,11 @@
     },
     "suite": {
       "files": {
-        "budget": 385,
+        "budget": 386,
         "initial": 366
       },
       "cases": {
-        "budget": 4012,
+        "budget": 4040,
         "initial": 3675
       }
     }
