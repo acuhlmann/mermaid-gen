@@ -7,6 +7,7 @@ import {
   deleteCompositeEdge,
   deleteCompositeNode,
   isCompositeFamilySource,
+  renameCompositeEdge,
   renameCompositeNode
 } from '../src/utils/metaphorCompositeEdit.js';
 
@@ -178,5 +179,125 @@ describe('metaphor composite graph edit', () => {
     const result = deleteCompositeEdge(COMPOSITE, 'auth', 'api');
     expect(result.ok).toBe(true);
     expect(JSON.parse(result.source).links).toEqual([]);
+  });
+
+  it('delegates add/delete/rename to a flat kind layer', () => {
+    const machineComposite = JSON.stringify({
+      metaphor: 'composite',
+      scene: {},
+      layout: 'fused',
+      layers: [
+        {
+          id: 'plant',
+          as: 'machine',
+          items: [
+            { id: 'drive', label: 'Drive', size: 4, speed: 5, axle: 'main' },
+            { id: 'idle', label: 'Idle', size: 2, speed: 1, axle: 'main' }
+          ]
+        }
+      ],
+      items: [],
+      links: []
+    });
+    const added = addLinkedCompositeNode(machineComposite, 'drive', 'Reducer');
+    expect(added).toMatchObject({ ok: true, newId: 'n1', metaphorKind: 'machine' });
+    expect(JSON.parse(added.source).layers[0].items.map((item) => item.id)).toEqual([
+      'drive',
+      'n1',
+      'idle'
+    ]);
+
+    const renamed = renameCompositeNode(added.source, 'n1', 'Gearbox');
+    expect(renamed.ok).toBe(true);
+    const gear = JSON.parse(renamed.source).layers[0].items.find((row) => row.id === 'n1');
+    expect(gear.label).toBe('Gearbox');
+  });
+
+  it('purges composite links when a tree delete removes a node', () => {
+    const treeComposite = JSON.stringify({
+      metaphor: 'composite',
+      scene: {},
+      layout: 'fused',
+      layers: [
+        {
+          id: 'org',
+          as: 'tree',
+          items: [
+            { id: 'ceo', label: 'CEO', weight: 5 },
+            { id: 'eng', label: 'Engineering', parent: 'ceo', weight: 4 },
+            { id: 'ops', label: 'Ops', parent: 'ceo', weight: 3 }
+          ]
+        },
+        {
+          id: 'platform',
+          as: 'city',
+          items: [{ id: 'api', label: 'API', height: 10, footprint: 2 }]
+        }
+      ],
+      items: [],
+      links: [
+        { from: 'eng', to: 'api' },
+        { from: 'ceo', to: 'api' }
+      ]
+    });
+    const result = deleteCompositeNode(treeComposite, 'eng');
+    expect(result.ok).toBe(true);
+    const parsed = JSON.parse(result.source);
+    expect(parsed.layers[0].items.map((item) => item.id)).toEqual(['ceo', 'ops']);
+    expect(parsed.links).toEqual([{ from: 'ceo', to: 'api' }]);
+  });
+});
+
+describe('metaphor composite graph edit guards', () => {
+  it('refuses connect when fewer than two items exist', () => {
+    const lone = JSON.stringify({
+      metaphor: 'composite',
+      scene: {},
+      layout: 'fused',
+      layers: [
+        { id: 'solo', as: 'city', items: [{ id: 'only', label: 'Only', height: 5, footprint: 2 }] }
+      ],
+      items: [],
+      links: []
+    });
+    expect(connectCompositeNodes(lone, 'only', 'only')).toEqual({ ok: false, reason: 'no-link' });
+  });
+
+  it('refuses self-links and missing endpoints', () => {
+    expect(connectCompositeNodes(COMPOSITE, 'auth', 'auth')).toEqual({ ok: false, reason: 'self' });
+    expect(connectCompositeNodes(COMPOSITE, 'auth', 'missing')).toEqual({
+      ok: false,
+      reason: 'missing'
+    });
+  });
+
+  it('refuses add/delete/rename on unknown ids and invalid documents', () => {
+    expect(addLinkedCompositeNode(COMPOSITE, 'missing', 'X')).toEqual({
+      ok: false,
+      reason: 'missing'
+    });
+    expect(deleteCompositeNode(COMPOSITE, 'missing')).toEqual({ ok: false, reason: 'missing' });
+    expect(renameCompositeNode(COMPOSITE, 'missing', 'X')).toEqual({
+      ok: false,
+      reason: 'missing'
+    });
+    expect(addLinkedCompositeNode('not json', 'auth', 'X')).toEqual({
+      ok: false,
+      reason: 'not-graph'
+    });
+  });
+
+  it('refuses deleting a link that is not present', () => {
+    expect(deleteCompositeEdge(COMPOSITE, 'auth', 'checkout')).toEqual({
+      ok: false,
+      reason: 'missing'
+    });
+  });
+
+  it('refuses renameCompositeEdge because links carry no labels', () => {
+    expect(renameCompositeEdge(COMPOSITE, 'auth', 'api')).toEqual({
+      ok: false,
+      reason: 'not-graph'
+    });
   });
 });
