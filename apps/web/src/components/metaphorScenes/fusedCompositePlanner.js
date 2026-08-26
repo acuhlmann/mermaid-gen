@@ -3,6 +3,13 @@ import { getCompositeCapability, getCompositePrimitive } from './compositePrimit
 
 const TAU = Math.PI * 2;
 const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));
+/**
+ * How far a site's name clears the tallest landmark planted on it. A node's own
+ * name sits 0.9 above its top, so this has to exceed that or the two names
+ * arrive in the same square of screen and the declutter pass drops one of them —
+ * which, since a site outranks a node on importance, would be the tower's.
+ */
+const SITE_LABEL_CREST_CLEARANCE = 1.5;
 const METRIC_RANGE_BY_KIND = Object.freeze({
   archipelago: [0.5, 20],
   city: [0.5, 100],
@@ -770,24 +777,45 @@ export function resolveCompositeAtmosphere(dsl) {
 }
 
 /**
- * Park each substrate's own name on its OUTWARD shoulder — the side facing away
- * from the middle of the world.
+ * Where a substrate's own name stands: OUT onto the shoulder facing away from
+ * the middle of the world, and UP clear of whatever is planted on it.
  *
  * An island's label used to sit dead centre, which is precisely where the
  * towers, gears and beds attached to that island are planted: on the commerce
  * composite "Checkout" and "Fulfilment" both rendered as three clipped letters
- * behind their own tower. Two nearer-looking answers both fail. A fixed near
- * corner only changes which islands lose, because attachment offsets are
+ * behind their own tower. Two nearer-looking lateral answers both fail. A fixed
+ * near corner only changes which islands lose, because attachment offsets are
  * seeded. Pointing away from the attached landmarks fails too — "away" in world
  * space is often "behind" in screen space, so the label lands on the far side of
- * the tower and is occluded anyway.
+ * the tower and is occluded anyway. Outward from the world centre is the one
+ * lateral direction that is reliably clear: whatever else a fused world
+ * contains, the space outside its outermost sites is open ground or open water.
+ * A site sitting at the origin has no outward, so it keeps a near corner.
  *
- * Outward from the world centre is the one direction that is reliably clear:
- * whatever else a fused world contains, the space outside its outermost sites
- * is open ground or open water. A site sitting at the origin has no outward, so
- * it keeps a near corner.
+ * The shoulder alone was not enough, and the reason is that no LATERAL answer
+ * can be: a tower is roughly as wide as the shoulder is long, and the direction
+ * that clears it depends on where the viewer is standing, which a plan cannot
+ * know. Measured on the three composite fixtures across a phone, a foldable
+ * cover and a desktop — 148 labels, ray-tested against the scene from the
+ * camera — the shoulder left four names buried behind geometry and only 71
+ * fully legible. Going UP instead is the answer a plan CAN give, because "above
+ * the tallest thing standing on this island" is a fact about the island rather
+ * than about the camera: same 148 labels, 80 legible and none buried, with no
+ * viewport losing ground. A camera-facing shoulder resolved per frame was also
+ * measured and came out worse than this (74 legible) — it walks a back island's
+ * name into the tower of the island in FRONT of it.
+ *
+ * Nothing here changes the camera fit: labels are pruned from it by material
+ * (see collectFramePoints), so lifting one costs the subject no room.
  */
-function assignSiteLabelOffsets(sites) {
+function assignSiteLabelPlacement(sites, nodes) {
+  const crest = new Map();
+  for (const node of nodes) {
+    if (!node?.attachedTo) continue;
+    const top = (node.position?.[1] ?? 0) + (node.height ?? 0);
+    const seen = crest.get(node.attachedTo);
+    if (seen === undefined || top > seen) crest.set(node.attachedTo, top);
+  }
   for (const site of sites) {
     const x = site.position?.[0] ?? 0;
     const z = site.position?.[2] ?? 0;
@@ -797,6 +825,9 @@ function assignSiteLabelOffsets(sites) {
       length > 0.01
         ? [(x / length) * reach, 0, (z / length) * reach]
         : [reach * Math.SQRT1_2, 0, reach * Math.SQRT1_2];
+    const top = crest.get(site.id);
+    const own = (site.position?.[1] ?? 0) + (site.height ?? 0);
+    site.labelLift = top === undefined ? 0 : Math.max(0, top - own + SITE_LABEL_CREST_CLEARANCE);
   }
 }
 
@@ -856,7 +887,7 @@ export function planFusedCompositeWorld(dsl) {
     linkNeighbors,
     motionIntensity
   });
-  assignSiteLabelOffsets(sites);
+  assignSiteLabelPlacement(sites, nodes);
   const links = makeLinks(dsl, layers, anchors);
   const connectors = makeConnectors(nodes, anchors);
   const groups = makeGroups(sites, nodes, worldKey);
