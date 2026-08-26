@@ -790,7 +790,7 @@ data
       null,
       2
     );
-    const { result } = mount({
+    const { result, setSelectedNode } = mount({
       diagramSource: composite,
       props: {
         contentMode: 'metaphor3d',
@@ -816,6 +816,14 @@ data
       logicalId: 'n1',
       created: true
     });
+    // Post-Add selection must keep the layer kind, not the composite wrapper.
+    expect(setSelectedNode).toHaveBeenCalledWith(
+      expect.objectContaining({
+        kind: 'metaphor-item',
+        dataId: 'n1',
+        metaphor: 'city'
+      })
+    );
   });
 
   it('adds a sibling row on a chart with inline data.values', async () => {
