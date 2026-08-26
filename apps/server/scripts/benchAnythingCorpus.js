@@ -316,6 +316,21 @@ export const ANYTHING_BENCH_CORPUS = [
       { head: '<!-- @lib:d3 -->' }
     )
   },
+  {
+    // layout-dashboard first-pass "k.fmt is not a function": the model treats a KPI
+    // data row as if it carried its own formatter. Regression = both engines drift.
+    id: 'runtime-fmt-on-data-row',
+    kind: 'runtime',
+    expectedAccept: false,
+    expectedCode: 'runtime_error',
+    html: page(
+      `<h1>Dashboard</h1><output id="kpi">…</output>
+<script>
+  const k = { label: 'Revenue', value: 10810 };
+  document.getElementById('kpi').textContent = k.fmt(k.value);
+</script>`
+    )
+  },
 
   // ── shape: not a document, must stay rejected ────────────────────────────
   {
