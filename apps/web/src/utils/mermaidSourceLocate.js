@@ -209,7 +209,23 @@ export function findVertexIdColumn(line, logicalId) {
  * @param {{ from: string, to: string, label?: string }} opts
  * @returns {SourceRange|null}
  */
-export function findSequenceMessageRange(source, { from, to, label }) {
+const SEQUENCE_MSG_LINE_RE = new RegExp(
+  /^(\s*)([A-Za-z][A-Za-z0-9_]*(?:-[A-Za-z0-9_]+)*)\s*([<\-\=\~.\[\]()xo>]+(?:\+-|-\+)?)\s*([A-Za-z][A-Za-z0-9_]*(?:-[A-Za-z0-9_]+)*)\s*:\s*(.*)$/i
+);
+
+/**
+ * @param {string} line
+ * @returns {{ from: string, to: string, text: string } | null}
+ */
+function parseSequenceMessageLine(line) {
+  const stripped = stripLineComment(line).trim();
+  if (!stripped || stripped.startsWith('%%')) return null;
+  const match = stripped.match(SEQUENCE_MSG_LINE_RE);
+  if (!match) return null;
+  return { from: match[2], to: match[4], text: (match[5] || '').trim() };
+}
+
+export function findSequenceMessageRange(source, { from, to, label, messageId }) {
   if (!from || !to) return null;
   const lines = source.split(/\r?\n/);
   const fromEsc = escapeRegExp(from);
@@ -218,6 +234,20 @@ export function findSequenceMessageRange(source, { from, to, label }) {
     `^\\s*${fromEsc}\\s*(?:->>?|-->>?|->>?\\+|-->>\\+|->>?-|x->>?|--)\\s*${toEsc}\\s*:\\s*(.+)$`,
     'i'
   );
+
+  if (typeof messageId === 'number' && Number.isInteger(messageId) && messageId >= 0) {
+    let globalIndex = 0;
+    for (let i = 0; i < lines.length; i++) {
+      const parsed = parseSequenceMessageLine(lines[i]);
+      if (!parsed) continue;
+      if (globalIndex === messageId) {
+        if (parsed.from !== from || parsed.to !== to) return null;
+        return rangeForLines(lines, i, i);
+      }
+      globalIndex += 1;
+    }
+    return null;
+  }
 
   const matches = [];
   for (let i = 0; i < lines.length; i++) {

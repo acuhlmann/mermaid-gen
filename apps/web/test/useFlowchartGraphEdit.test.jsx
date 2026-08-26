@@ -459,6 +459,39 @@ describe('useFlowchartGraphEdit', () => {
     expect(stateRef.current.diagramSource).toMatch(/: withdraw/);
   });
 
+  it('deletes one duplicate sequence message by Mermaid message id from the canvas', async () => {
+    const duplicate = `sequenceDiagram
+  participant Alice
+  participant Bob
+  Alice->>Bob: ping
+  Bob-->>Alice: ack
+  Alice->>Bob: ping
+`;
+    const { result, stateRef } = mount({
+      diagramSource: duplicate,
+      props: {
+        selectedNode: {
+          kind: 'edge',
+          id: 'i2',
+          edgeFrom: 'Alice',
+          edgeTo: 'Bob',
+          label: 'ping',
+          partName: 'Alice → Bob'
+        }
+      }
+    });
+    await act(async () => {
+      result.current.handleGraphEditAction({ id: 'delete' });
+    });
+    expect(applyUserDiagramEdit).toHaveBeenCalledTimes(1);
+    expect(applyUserDiagramEdit.mock.calls[0][0].diagramSource).toMatch(/Alice->>Bob: ping/);
+    expect(applyUserDiagramEdit.mock.calls[0][0].diagramSource).toMatch(/Bob-->>Alice: ack/);
+    expect(applyUserDiagramEdit.mock.calls[0][0].diagramSource).not.toMatch(
+      /ack[\s\S]*Alice->>Bob: ping/
+    );
+    expect(stateRef.current.diagramSource).not.toMatch(/ack[\s\S]*Alice->>Bob: ping/);
+  });
+
   it('toasts stale_revision without applying', async () => {
     const { result } = mount();
     applyUserDiagramEdit.mockRejectedValueOnce(

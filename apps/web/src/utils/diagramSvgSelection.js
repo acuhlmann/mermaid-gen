@@ -28,6 +28,21 @@ export function parseFlowchartEdgeDataId(dataId) {
 }
 
 /**
+ * Sequence message arrows carry Mermaid ids like `i0`, `i1` on `data-id`
+ * (see sequenceDiagram drawMessage: `data-id`, "i" + msgModel.id).
+ *
+ * @param {string | null | undefined} dataId
+ * @returns {{ messageId: number, raw: string } | null}
+ */
+export function parseSequenceMessageDataId(dataId) {
+  if (!dataId || typeof dataId !== 'string') return null;
+  const trimmed = dataId.trim();
+  const m = trimmed.match(/^i(\d+)$/);
+  if (!m) return null;
+  return { messageId: Number.parseInt(m[1], 10), raw: trimmed };
+}
+
+/**
  * @param {EventTarget | null | undefined} target
  * @returns {SVGPathElement | null}
  */

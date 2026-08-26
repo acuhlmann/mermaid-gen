@@ -178,6 +178,28 @@ describe('findSequenceMessageRange', () => {
       findSequenceMessageRange(src, { from: 'Alice', to: 'Bob', label: 'missing' })
     ).toBeNull();
   });
+
+  it('picks the message by Mermaid id when duplicates share a label', () => {
+    const src = [
+      'sequenceDiagram',
+      '  Alice->>Bob: ping',
+      '  Bob-->>Alice: ack',
+      '  Alice->>Bob: ping'
+    ].join('\n');
+    expect(
+      findSequenceMessageRange(src, { from: 'Alice', to: 'Bob', label: 'ping', messageId: 2 })
+        ?.startLineNumber
+    ).toBe(4);
+    expect(
+      findSequenceMessageRange(src, { from: 'Alice', to: 'Bob', label: 'ping', messageId: 0 })
+        ?.startLineNumber
+    ).toBe(2);
+  });
+
+  it('refuses a message id whose endpoints do not match', () => {
+    const src = ['sequenceDiagram', '  Alice->>Bob: first', '  Bob-->>Alice: hi'].join('\n');
+    expect(findSequenceMessageRange(src, { from: 'Alice', to: 'Bob', messageId: 1 })).toBeNull();
+  });
 });
 
 describe('findMermaidSourceRangeForDiagramSelection', () => {

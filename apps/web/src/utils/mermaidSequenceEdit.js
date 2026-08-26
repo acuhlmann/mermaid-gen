@@ -307,14 +307,16 @@ export function deleteSequenceNode(source, participantId) {
  * @param {string} fromId
  * @param {string} toId
  * @param {string} [messageLabel]
+ * @param {number} [messageId]
  */
-export function deleteSequenceEdge(source, fromId, toId, messageLabel) {
+export function deleteSequenceEdge(source, fromId, toId, messageLabel, messageId) {
   const blocked = requireEdgeParticipants(source, fromId, toId);
   if (blocked) return blocked;
   const range = findSequenceMessageRange(source, {
     from: fromId,
     to: toId,
-    label: messageLabel
+    label: messageLabel,
+    messageId
   });
   if (!range) return fail('missing');
   const lines = String(source).split(/\r?\n/);
@@ -363,15 +365,17 @@ export function renameSequenceNode(source, participantId, label) {
  * @param {string} toId
  * @param {string} label
  * @param {string} [messageLabel]
+ * @param {number} [messageId]
  */
-export function renameSequenceEdge(source, fromId, toId, label, messageLabel) {
+export function renameSequenceEdge(source, fromId, toId, label, messageLabel, messageId) {
   const blocked = requireEdgeParticipants(source, fromId, toId);
   if (blocked) return blocked;
   const text = String(label ?? '').trim();
   const range = findSequenceMessageRange(source, {
     from: fromId,
     to: toId,
-    label: messageLabel
+    label: messageLabel,
+    messageId
   });
   if (!range) return fail('missing');
   const lines = String(source).split(/\r?\n/);
