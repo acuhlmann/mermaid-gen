@@ -183,6 +183,54 @@ describe('graphEditAdapterFor', () => {
       )?.canLink
     ).toBe(true);
     expect(graphEditAdapterFor('metaphor3d', '{"metaphor":"composite","layers":[]}')).toBeNull();
+    const loneComposite = JSON.stringify({
+      metaphor: 'composite',
+      scene: {},
+      layout: 'fused',
+      layers: [
+        {
+          id: 'platform',
+          as: 'city',
+          items: [{ id: 'auth', label: 'Auth', height: 10, footprint: 2 }]
+        }
+      ],
+      items: [],
+      links: []
+    });
+    expect(graphEditAdapterFor('metaphor3d', loneComposite)?.canLink).toBe(false);
+  });
+
+  it('returns the metaphor composite adapter with cross-layer Link', () => {
+    const composite = JSON.stringify({
+      metaphor: 'composite',
+      scene: { theme: 'whiteboard', camera: 'orbit' },
+      layout: 'fused',
+      layers: [
+        {
+          id: 'platform',
+          as: 'city',
+          items: [
+            { id: 'auth', label: 'Auth', height: 12, footprint: 3 },
+            { id: 'api', label: 'API', height: 10, footprint: 2 }
+          ]
+        },
+        {
+          id: 'domains',
+          as: 'garden',
+          items: [{ id: 'signup', label: 'Signup', maturity: 0.5, impact: 0.5, health: 0.5 }]
+        }
+      ],
+      items: [],
+      links: []
+    });
+    const adapter = graphEditAdapterFor('metaphor3d', composite);
+    expect(adapter?.contentType).toBe('metaphor3d');
+    expect(adapter?.canLink).toBe(true);
+    expect(adapter?.addLinked(composite, 'auth', 'Billing')).toMatchObject({
+      ok: true,
+      newId: 'n1'
+    });
+    expect(adapter?.connect(composite, 'api', 'signup')).toMatchObject({ ok: true });
   });
 
   it('returns the metaphor city adapter with Link', () => {

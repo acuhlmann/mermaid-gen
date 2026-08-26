@@ -84,6 +84,16 @@ import {
   renameChartRow
 } from './chartGraphEdit.js';
 import { flatGraphEditAdapter, metaphorFlatGraphEditForSource } from './metaphorFlatKindEdit.js';
+import {
+  addLinkedCompositeNode,
+  compositeGraphAllowsLink,
+  connectCompositeNodes,
+  deleteCompositeEdge,
+  deleteCompositeNode,
+  isCompositeFamilySource,
+  renameCompositeEdge,
+  renameCompositeNode
+} from './metaphorCompositeEdit.js';
 
 function fail(reason) {
   return { ok: false, reason };
@@ -179,6 +189,17 @@ const METAPHOR_GARDEN_ADAPTER = {
   renameEdge: renameGardenEdge
 };
 
+const METAPHOR_COMPOSITE_ADAPTER = {
+  contentType: 'metaphor3d',
+  canLink: true,
+  addLinked: addLinkedCompositeNode,
+  connect: connectCompositeNodes,
+  deleteNode: deleteCompositeNode,
+  deleteEdge: deleteCompositeEdge,
+  renameNode: renameCompositeNode,
+  renameEdge: renameCompositeEdge
+};
+
 const CHART_VALUES_ADAPTER = {
   contentType: 'chart',
   canLink: false,
@@ -255,6 +276,12 @@ export function graphEditAdapterFor(contentType, source) {
   }
   if (contentType === 'metaphor3d' && isGardenFamilySource(source)) {
     return METAPHOR_GARDEN_ADAPTER;
+  }
+  if (contentType === 'metaphor3d' && isCompositeFamilySource(source)) {
+    return {
+      ...METAPHOR_COMPOSITE_ADAPTER,
+      canLink: compositeGraphAllowsLink(source)
+    };
   }
   if (contentType === 'metaphor3d') {
     const flatEdit = metaphorFlatGraphEditForSource(source);
