@@ -113,7 +113,17 @@ describe('graphEditAdapterFor', () => {
     const adapter = graphEditAdapterFor('mermaid', FLOWCHART);
     expect(adapter?.contentType).toBe('mermaid');
     expect(adapter?.canLink).toBe(true);
-    expect(graphEditAdapterFor('mermaid', 'classDiagram\n  A --> B')).toBeNull();
+    expect(graphEditAdapterFor('mermaid', 'classDiagram\n  A --> B')).toMatchObject({
+      contentType: 'mermaid',
+      canLink: true
+    });
+    expect(
+      graphEditAdapterFor('mermaid', 'classDiagram\n  Animal <|-- Duck')?.addLinked(
+        'classDiagram\n  Animal <|-- Duck',
+        'Animal',
+        'Goose'
+      )
+    ).toMatchObject({ ok: true, newId: 'Class1' });
   });
 
   it('returns the sequence adapter with Link for sequenceDiagram', () => {

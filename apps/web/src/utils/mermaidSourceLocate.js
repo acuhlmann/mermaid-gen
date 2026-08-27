@@ -23,6 +23,7 @@ export function peekDiagramDirective(source) {
     if (/^statediagram(?:-v2)?\b/i.test(t)) return 'state';
     if (/^(flowchart|graph)\b/i.test(low)) return 'flowchart';
     if (/^mindmap\b/i.test(t)) return 'mindmap';
+    if (/^classdiagram\b/i.test(t)) return 'class';
     return 'unknown';
   }
   return 'unknown';
