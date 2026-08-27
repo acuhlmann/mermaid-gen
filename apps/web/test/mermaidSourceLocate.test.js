@@ -200,6 +200,22 @@ describe('findSequenceMessageRange', () => {
     const src = ['sequenceDiagram', '  Alice->>Bob: first', '  Bob-->>Alice: hi'].join('\n');
     expect(findSequenceMessageRange(src, { from: 'Alice', to: 'Bob', messageId: 1 })).toBeNull();
   });
+
+  it('counts label-less messages in Mermaid id order', () => {
+    const src = [
+      'sequenceDiagram',
+      '  participant Alice',
+      '  participant Bob',
+      '  Alice->>Bob',
+      '  Alice->>Bob: hi'
+    ].join('\n');
+    expect(
+      findSequenceMessageRange(src, { from: 'Alice', to: 'Bob', messageId: 0 })?.startLineNumber
+    ).toBe(4);
+    expect(
+      findSequenceMessageRange(src, { from: 'Alice', to: 'Bob', messageId: 1 })?.startLineNumber
+    ).toBe(5);
+  });
 });
 
 describe('findMermaidSourceRangeForDiagramSelection', () => {
