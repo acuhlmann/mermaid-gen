@@ -7,7 +7,7 @@
  */
 
 const LABEL_REF_PREFIX = '~label:';
-const ITEM_KV_RE = /^(label|desc|value|icon|illus|id|category)\s+(.*)$/i;
+const ITEM_KV_RE = /^(label|desc|value|icon|illus|id|category|text|weight)\s+(.*)$/i;
 
 function fail(reason) {
   return { ok: false, reason };
@@ -61,9 +61,11 @@ export function infographicGraphFamily(source) {
   if (!template) return null;
   const family = template.split('-')[0];
   if (family === 'hierarchy' && template !== 'hierarchy-structure') return 'hierarchy';
+  if (template === 'hierarchy-structure') return 'flat';
   if (family === 'relation') return 'relation';
   if (family === 'list') return 'list';
   if (family === 'sequence') return 'sequence';
+  if (family === 'chart') return 'flat';
   return null;
 }
 
@@ -72,9 +74,30 @@ export function infographicGraphFamily(source) {
  * @returns {'lists' | 'sequences' | null}
  */
 function listArrayFieldForTemplate(template) {
-  const family = String(template ?? '').split('-')[0];
+  const normalized = String(template ?? '').toLowerCase();
+  const family = normalized.split('-')[0];
+  if (normalized === 'hierarchy-structure') return 'items';
   if (family === 'list') return 'lists';
   if (family === 'sequence') return 'sequences';
+  if (family === 'chart') return 'values';
+  return null;
+}
+
+function isFlatArrayInfographic(source) {
+  return listArrayFieldForTemplate(readInfographicTemplate(source)) != null;
+}
+
+/** @param {string | null | undefined} template */
+function flatItemLabelKey(template) {
+  const normalized = String(template ?? '').toLowerCase();
+  return normalized.includes('wordcloud') ? 'text' : 'label';
+}
+
+/** @param {string | null | undefined} template */
+function flatItemDefaultAttrs(template) {
+  const normalized = String(template ?? '').toLowerCase();
+  if (normalized.includes('wordcloud')) return { weight: '1' };
+  if (normalized.startsWith('chart-')) return { value: '0' };
   return null;
 }
 
@@ -155,7 +178,7 @@ function parseDashItem(lines, start, itemIndent, path) {
     children: []
   };
   const first = parseInlineKv(stripped.slice(2));
-  if (first?.key === 'label') node.label = first.value;
+  if (first?.key === 'label' || first?.key === 'text') node.label = first.value;
   if (first?.key === 'id') node.id = first.value;
 
   let i = start + 1;
@@ -202,7 +225,7 @@ function parseDashItem(lines, start, itemIndent, path) {
     }
     const kv = parseInlineKv(inner);
     if (kv) {
-      if (kv.key === 'label' && node.label == null) node.label = kv.value;
+      if ((kv.key === 'label' || kv.key === 'text') && node.label == null) node.label = kv.value;
       if (kv.key === 'id' && node.id == null) node.id = kv.value;
     }
     if (ind < attrIndent && !kv) break;
@@ -322,7 +345,7 @@ function allocateLabel(existing) {
   return `Item ${n}`;
 }
 
-function setLabelOnSpan(lines, node, label) {
+function setLabelOnSpan(lines, node, label, labelKey = 'label') {
   const next = [...lines];
   for (let i = node.start; i < node.end; i += 1) {
     const raw = next[i];
@@ -331,20 +354,20 @@ function setLabelOnSpan(lines, node, label) {
     if (stripped.startsWith('- ')) {
       const rest = stripped.slice(2);
       const kv = parseInlineKv(rest);
-      if (kv?.key === 'label') {
-        next[i] = `${indentChars(raw)}- label ${label}`;
+      if (kv?.key === labelKey) {
+        next[i] = `${indentChars(raw)}- ${labelKey} ${label}`;
         return next;
       }
       continue;
     }
     const kv = parseInlineKv(stripped);
-    if (kv?.key === 'label') {
-      next[i] = `${indentChars(raw)}label ${label}`;
+    if (kv?.key === labelKey) {
+      next[i] = `${indentChars(raw)}${labelKey} ${label}`;
       return next;
     }
   }
   const pad = ' '.repeat(node.indent + 2);
-  next.splice(node.start + 1, 0, `${pad}label ${label}`);
+  next.splice(node.start + 1, 0, `${pad}${labelKey} ${label}`);
   return next;
 }
 
@@ -357,7 +380,9 @@ export function addLinkedInfographicNode(source, fromId, label = '') {
   const family = infographicGraphFamily(source);
   if (!family) return fail('not-graph');
   if (family === 'hierarchy') return addHierarchyChild(source, fromId, label);
-  if (family === 'list' || family === 'sequence') return addListSibling(source, fromId, label);
+  if (family === 'list' || family === 'sequence' || family === 'flat') {
+    return addListSibling(source, fromId, label);
+  }
   return addRelationNode(source, fromId, label);
 }
 
@@ -398,7 +423,9 @@ export function deleteInfographicNode(source, nodeId) {
   const family = infographicGraphFamily(source);
   if (!family) return fail('not-graph');
   if (family === 'hierarchy') return deleteHierarchyNode(source, nodeId);
-  if (family === 'list' || family === 'sequence') return deleteListItem(source, nodeId);
+  if (family === 'list' || family === 'sequence' || family === 'flat') {
+    return deleteListItem(source, nodeId);
+  }
   return deleteRelationNode(source, nodeId);
 }
 
@@ -430,7 +457,9 @@ export function renameInfographicNode(source, nodeId, label) {
     if (!node) return fail('missing');
     return ok(joinLines(source, setLabelOnSpan(tree.lines, node, text)));
   }
-  if (family === 'list' || family === 'sequence') return renameListItem(source, nodeId, text);
+  if (family === 'list' || family === 'sequence' || family === 'flat') {
+    return renameListItem(source, nodeId, text);
+  }
   return renameRelationNode(source, nodeId, text);
 }
 
@@ -732,10 +761,20 @@ function addListSibling(source, fromId, label) {
   if (!doc) return fail('not-graph');
   const item = findListItem(doc, fromId);
   if (!item) return fail('missing');
+  const template = readInfographicTemplate(source);
+  const labelKey = flatItemLabelKey(template);
+  const defaults = flatItemDefaultAttrs(template);
   const text = String(label || '').trim() || allocateLabel(collectListLabels(doc));
   const next = [...doc.lines];
   const itemPad = listItemIndent(doc);
-  next.splice(item.end, 0, `${itemPad}- label ${text}`);
+  const insertLines = [`${itemPad}- ${labelKey} ${text}`];
+  if (defaults) {
+    const attrPad = `${itemPad}  `;
+    for (const [key, value] of Object.entries(defaults)) {
+      insertLines.push(`${attrPad}${key} ${value}`);
+    }
+  }
+  next.splice(item.end, 0, ...insertLines);
   const newIndex = Number.parseInt(item.path, 10) + 1;
   return ok(joinLines(source, next), { newId: String(newIndex), newLabel: text });
 }
@@ -756,7 +795,8 @@ function renameListItem(source, nodeId, label) {
   if (!doc) return fail('not-graph');
   const item = findListItem(doc, nodeId);
   if (!item) return fail('missing');
-  return ok(joinLines(source, setLabelOnSpan(doc.lines, item, label)));
+  const labelKey = flatItemLabelKey(readInfographicTemplate(source));
+  return ok(joinLines(source, setLabelOnSpan(doc.lines, item, label, labelKey)));
 }
 
 export const __internal = {

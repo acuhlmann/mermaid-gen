@@ -66,6 +66,21 @@ data
 `)
     ).toBe('sequence');
     expect(
+      isInfographicGraphSource(`infographic hierarchy-structure
+data
+  items
+    - label Engineering
+`)
+    ).toBe(true);
+    expect(
+      infographicGraphFamily(`infographic chart-bar-plain-text
+data
+  values
+    - label Q1
+      value 10
+`)
+    ).toBe('flat');
+    expect(
       isInfographicGraphSource(`infographic compare-swot-simple
 data
   compares
@@ -243,5 +258,48 @@ data
     const renamed = renameInfographicNode(SEQUENCE, '1', 'Step 2 renamed');
     expect(renamed.ok).toBe(true);
     expect(renamed.source).toMatch(/- label Step 2 renamed/);
+  });
+});
+
+const CHART = `infographic chart-bar-plain-text
+data
+  title Revenue
+  values
+    - label Q1
+      value 10
+    - label Q2
+      value 18
+`;
+
+const HIERARCHY_STRUCTURE = `infographic hierarchy-structure
+data
+  title Org units
+  items
+    - label Engineering
+    - label Product
+`;
+
+describe('chart and hierarchy-structure flat arrays', () => {
+  it('adds a sibling chart value with a default numeric value', () => {
+    const result = addLinkedInfographicNode(CHART, '0', 'Q3');
+    expect(result.ok).toBe(true);
+    expect(result.newId).toBe('1');
+    expect(result.source).toMatch(/- label Q3[\s\S]*value 0[\s\S]*- label Q2/);
+  });
+
+  it('renames a chart value label', () => {
+    const result = renameInfographicNode(CHART, '1', 'Quarter 2');
+    expect(result.ok).toBe(true);
+    expect(result.source).toMatch(/- label Quarter 2/);
+    expect(result.source).toMatch(/value 18/);
+  });
+
+  it('works on hierarchy-structure items', () => {
+    const result = addLinkedInfographicNode(HIERARCHY_STRUCTURE, '0', 'Sales');
+    expect(result.ok).toBe(true);
+    expect(result.source).toMatch(/- label Engineering[\s\S]*- label Sales[\s\S]*- label Product/);
+    const deleted = deleteInfographicNode(HIERARCHY_STRUCTURE, '1');
+    expect(deleted.ok).toBe(true);
+    expect(deleted.source).not.toMatch(/Product/);
   });
 });
