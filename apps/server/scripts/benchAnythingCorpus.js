@@ -317,6 +317,23 @@ export const ANYTHING_BENCH_CORPUS = [
     )
   },
   {
+    // game-memory first-pass "a.slice is not a function": the model shuffles a
+    // NodeList from querySelectorAll as if it were an Array. Regression = both
+    // engines drift.
+    id: 'runtime-nodelist-slice',
+    kind: 'runtime',
+    expectedAccept: false,
+    expectedCode: 'runtime_error',
+    html: page(
+      `<h1>Cards</h1>
+<div class="card">A</div><div class="card">B</div><div class="card">C</div>
+<script>
+  const cards = document.querySelectorAll('.card');
+  cards.slice(0, 2);
+</script>`
+    )
+  },
+  {
     // layout-dashboard first-pass "k.fmt is not a function": the model treats a KPI
     // data row as if it carried its own formatter. Regression = both engines drift.
     id: 'runtime-fmt-on-data-row',
