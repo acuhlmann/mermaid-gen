@@ -74,6 +74,10 @@ export function GlowSprite({ size, color, opacity }) {
  * neither still works: everything ranks equal and nearest-to-camera wins, which
  * is the right default for an unordered scene.
  *
+ * `layerKey` says which of a composite's grammars this name belongs to, so the
+ * pass can guarantee each of them one surviving name before any of them gets a
+ * second — see `resolveLabels`. A base kind leaves it null and the rule no-ops.
+ *
  * `role` says what the label NAMES — a thing, a territory, or a relation — and
  * that is what picks the chip, the tracking, the case and the size. See
  * labelRoles.js; a scene passes the noun, never a font size.
@@ -91,6 +95,7 @@ export function ItemLabel({
   importance = 0,
   pinned = false,
   role = 'item',
+  layerKey = null,
   targetPx = LABEL_TARGET_PX
 }) {
   const billboardRef = useRef(null);
@@ -134,6 +139,7 @@ export function ItemLabel({
       object: billboardRef.current,
       importance,
       pinned: isPinned,
+      layerKey,
       screenWidthPx,
       screenHeightPx,
       apply: (opacity) => {
@@ -150,7 +156,7 @@ export function ItemLabel({
         }
       }
     });
-  }, [declutter, text, importance, isPinned, screenWidthPx, screenHeightPx]);
+  }, [declutter, text, importance, isPinned, layerKey, screenWidthPx, screenHeightPx]);
 
   if (!text) return null;
   return (

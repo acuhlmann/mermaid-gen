@@ -19,7 +19,7 @@ import {
 } from './linkRoutes.js';
 import { MetaphorAccents } from './MetaphorAccents.jsx';
 import { useMetaphorClock } from './metaphorClock.js';
-import { planFusedCompositeWorld } from './fusedCompositePlanner.js';
+import { fusedLabelImportance, planFusedCompositeWorld } from './fusedCompositePlanner.js';
 import { useMetaphorLayerFocusId } from '../metaphorLayerFocus.js';
 import { idHash2, recedeTheme, samplePolyline, shiftColor } from './sceneUtils.js';
 import { resolveDistrictColor } from '../../utils/metaphorThemePresets.js';
@@ -78,7 +78,10 @@ function PlannedNode({ entity, theme, emphasized, onActiveIdChange, lod, layerLa
               fontSize={0.46}
               color={theme.labelColor}
               outlineColor={theme.labelOutline}
-              importance={entity.height + entity.radius}
+              // Ranked against its own layer, not against the other grammars'
+              // world sizes — see `assignLabelRanks`.
+              importance={fusedLabelImportance(entity.labelRank)}
+              layerKey={entity.layerId}
             />
           </>
         )}
@@ -401,6 +404,12 @@ function FusedPath({ path, theme, activeId, onActiveIdChange, lod, layerLabel, m
                     fontSize={0.41}
                     color={theme.labelColor}
                     outlineColor={theme.labelOutline}
+                    // A station carried no importance at all before this, so
+                    // every path layer's names tied with the link captions at
+                    // the bottom of the ranking and a crowded canvas dropped
+                    // the whole journey. See `assignLabelRanks`.
+                    importance={fusedLabelImportance(station.labelRank)}
+                    layerKey={path.layerId}
                   />
                 </>
               )}

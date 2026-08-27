@@ -18,7 +18,10 @@
  *   3. `pinned` labels — group names, the emphasised item — never lose a
  *      CONTEST. They are the scene's thesis; hiding one to save a leaf label
  *      inverts the point of the pass.
- *   4. A label the viewer cannot read whole yields anyway, and this is the one
+ *   4. In a composite, every layer's FIRST surviving name is walked before any
+ *      layer's second, so a canvas too small for every name still names every
+ *      grammar rather than spending all its room on one.
+ *   5. A label the viewer cannot read whole yields anyway, and this is the one
  *      test pinning does not simply win — it buys a laxer bar, not an
  *      exemption, because a name nobody can see is not in the contest. Two ways
  *      it happens, both worse than the label being absent: the canvas edge
@@ -161,6 +164,8 @@ export function coveredFraction(box, rects) {
  * @property {import('three').Object3D | null} object — billboard, for its world position
  * @property {number} importance — higher wins contested space
  * @property {boolean} pinned — never loses a contest for space
+ * @property {string | null} [layerKey] — which composite layer this name belongs
+ *   to; each distinct key sends its best candidate to the front of the walk
  * @property {boolean} [yieldWhenUnreadable] — pinned, but hides when clipped by
  *   the canvas or covered by a panel; for annotations whose text is on screen
  *   somewhere else anyway
@@ -269,8 +274,12 @@ export function resolveLabels(entries, camera, viewport, chromeRects = NO_RECTS)
   });
 
   const kept = [];
-  for (let i = 0; i < projected.length; i += 1) {
-    const candidate = projected[i];
+
+  /**
+   * Decide one label and record it if it survives.
+   * @returns {boolean} true when the label is drawn
+   */
+  const settle = (candidate, rank) => {
     // Unreadable is decided before contested, and it is the one test pinning
     // does not simply win: pinning is a claim about which label deserves
     // CONTESTED space, and a label nobody can see is not in the contest. What
@@ -284,9 +293,9 @@ export function resolveLabels(entries, camera, viewport, chromeRects = NO_RECTS)
     if (candidate.entry.pinned) {
       candidate.entry.target = unreadable ? 0 : 1;
       if (!unreadable) kept.push(candidate);
-      continue;
+      return !unreadable;
     }
-    let blocked = i >= MAX_PAIRWISE || unreadable;
+    let blocked = rank >= MAX_PAIRWISE || unreadable;
     for (let k = 0; !blocked && k < kept.length; k += 1) {
       const other = kept[k];
       if (
@@ -298,5 +307,42 @@ export function resolveLabels(entries, camera, viewport, chromeRects = NO_RECTS)
     }
     candidate.entry.target = blocked ? 0 : 1;
     if (!blocked) kept.push(candidate);
+    return !blocked;
+  };
+
+  // Pinned first, in rank order. They cannot be blocked, so anything walked
+  // ahead of one would claim the placard's space and then be drawn over.
+  for (let i = 0; i < projected.length; i += 1) {
+    if (projected[i].entry.pinned) settle(projected[i], i);
   }
+
+  // Round one — each layer's FIRST surviving name, in rank order.
+  //
+  // A composite's claim is that several grammars describe one topic, and the
+  // layer key goes on listing a layer whether or not the scene still names
+  // anything in it. Ranking alone cannot keep that promise even when the
+  // planner interleaves the layers: a layer's top pick may be the one the
+  // canvas edge clips or a panel covers, and the walk then goes straight on to
+  // everyone else's second name. So a layer that has nothing yet keeps getting
+  // tried — its second and third names are still round one — until one lands.
+  //
+  // This is a reordering, not an exemption: a first name still yields when it
+  // is unreadable and still loses a contest to another layer's first name.
+  // Every label with no layer of its own (a base kind's items, a composite's
+  // link captions) simply falls to round two, which is the unchanged walk.
+  const later = [];
+  const named = new Set();
+  for (let i = 0; i < projected.length; i += 1) {
+    const candidate = projected[i];
+    if (candidate.entry.pinned) continue;
+    const layerKey = candidate.entry.layerKey;
+    if (!layerKey || named.has(layerKey)) {
+      later.push({ candidate, rank: i });
+      continue;
+    }
+    if (settle(candidate, i)) named.add(layerKey);
+  }
+
+  // Round two — the rest of the ranking, unchanged.
+  for (const { candidate, rank } of later) settle(candidate, rank);
 }
