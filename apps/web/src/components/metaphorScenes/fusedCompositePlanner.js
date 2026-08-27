@@ -10,6 +10,8 @@ const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));
  * which, since a site outranks a node on importance, would be the tower's.
  */
 const SITE_LABEL_CREST_CLEARANCE = 1.5;
+/** How far out along the shoulder a site's name stands, as a fraction of its radius. */
+const SITE_LABEL_REACH = 0.68;
 const METRIC_RANGE_BY_KIND = Object.freeze({
   archipelago: [0.5, 20],
   city: [0.5, 100],
@@ -809,26 +811,49 @@ export function resolveCompositeAtmosphere(dsl) {
  * (see collectFramePoints), so lifting one costs the subject no room.
  */
 function assignSiteLabelPlacement(sites, nodes) {
+  const crest = collectAttachedCrests(nodes);
+  for (const site of sites) {
+    site.labelOffset = resolveSiteLabelOffset(site);
+    const top = crest.get(site.id);
+    site.labelLift =
+      top === undefined ? 0 : Math.max(0, top - bodyTopY(site) + SITE_LABEL_CREST_CLEARANCE);
+  }
+}
+
+/** World-Y of the top of a placed body: whatever it stands on, plus its height. */
+function bodyTopY(body) {
+  return (body.position?.[1] ?? 0) + (body.height ?? 0);
+}
+
+/**
+ * The highest thing standing on each substrate, keyed by site id. A node with
+ * no `attachedTo` is planted on the ground rather than on a site, so it is
+ * nobody's crest and no name has to clear it.
+ */
+function collectAttachedCrests(nodes) {
   const crest = new Map();
   for (const node of nodes) {
     if (!node?.attachedTo) continue;
-    const top = (node.position?.[1] ?? 0) + (node.height ?? 0);
+    const top = bodyTopY(node);
     const seen = crest.get(node.attachedTo);
     if (seen === undefined || top > seen) crest.set(node.attachedTo, top);
   }
-  for (const site of sites) {
-    const x = site.position?.[0] ?? 0;
-    const z = site.position?.[2] ?? 0;
-    const length = Math.hypot(x, z);
-    const reach = site.radius * 0.68;
-    site.labelOffset =
-      length > 0.01
-        ? [(x / length) * reach, 0, (z / length) * reach]
-        : [reach * Math.SQRT1_2, 0, reach * Math.SQRT1_2];
-    const top = crest.get(site.id);
-    const own = (site.position?.[1] ?? 0) + (site.height ?? 0);
-    site.labelLift = top === undefined ? 0 : Math.max(0, top - own + SITE_LABEL_CREST_CLEARANCE);
-  }
+  return crest;
+}
+
+/**
+ * The shoulder a site's own name stands on — see the block above
+ * `assignSiteLabelPlacement` for why it points OUT from the middle of the
+ * world. Exported because a site the planner itself lays out is never at the
+ * origin, so the near-corner fallback has no other way to be tested.
+ */
+export function resolveSiteLabelOffset(site) {
+  const x = site.position?.[0] ?? 0;
+  const z = site.position?.[2] ?? 0;
+  const length = Math.hypot(x, z);
+  const reach = site.radius * SITE_LABEL_REACH;
+  if (length > 0.01) return [(x / length) * reach, 0, (z / length) * reach];
+  return [reach * Math.SQRT1_2, 0, reach * Math.SQRT1_2];
 }
 
 function resolveGroundRadius(sites, nodes, paths) {

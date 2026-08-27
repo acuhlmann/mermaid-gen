@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
   planFusedCompositeWorld,
   resolveCompositeAtmosphere,
-  resolveCompositeMotionTransform
+  resolveCompositeMotionTransform,
+  resolveSiteLabelOffset
 } from '../src/components/metaphorScenes/fusedCompositePlanner.js';
 import {
   COMPOSITE_CAPABILITY_BY_KIND,
@@ -47,6 +48,92 @@ function expectFiniteVector(vector) {
   expect(vector).toHaveLength(3);
   for (const value of vector) expect(Number.isFinite(value)).toBe(true);
 }
+
+// The whole visual contract of a site's own name is two fields: labelOffset's
+// x/z (FusedCompositeScene.jsx, fusedCompositePrimitives.jsx) and labelLift
+// (fusedCompositePrimitives.jsx). Nothing else in the renderer reads the
+// placement, so exact agreement on these numbers IS "the label has not moved" —
+// no capture needed to know a refactor of the planner left the picture alone.
+// Re-derived here from the doc block above assignSiteLabelPlacement rather than
+// from its code: outward unit ray scaled to 0.68 of the site radius (a site at
+// the middle of the world has no outward and keeps a near corner), lifted by
+// however far the tallest thing attached to it rises above its own top, plus a
+// fixed clearance.
+const SITE_LABEL_REACH = 0.68;
+const SITE_LABEL_CREST_CLEARANCE = 1.5;
+
+function expectedLabelPlacement(site, nodes) {
+  const x = site.position[0];
+  const z = site.position[2];
+  const length = Math.hypot(x, z);
+  const reach = site.radius * SITE_LABEL_REACH;
+  const offset =
+    length > 0.01
+      ? [(x / length) * reach, (z / length) * reach]
+      : [reach * Math.SQRT1_2, reach * Math.SQRT1_2];
+  let crest;
+  for (const node of nodes) {
+    if (node.attachedTo !== site.id) continue;
+    const top = node.position[1] + node.height;
+    if (crest === undefined || top > crest) crest = top;
+  }
+  const own = site.position[1] + site.height;
+  return {
+    offset,
+    lift: crest === undefined ? 0 : Math.max(0, crest - own + SITE_LABEL_CREST_CLEARANCE)
+  };
+}
+
+const LABEL_PLACEMENT_GOLDEN_DSL = {
+  metaphor: 'composite',
+  layout: 'fused',
+  seed: 'label-placement-golden',
+  novelty: 0.55,
+  motionIntensity: 0.65,
+  scene: {},
+  layers: [
+    {
+      id: 'domains',
+      as: 'archipelago',
+      items: [
+        { id: 'checkout', label: 'Checkout', mass: 14, relief: 0.8 },
+        { id: 'catalog', label: 'Catalog', mass: 11, relief: 0.6 },
+        { id: 'fulfilment', label: 'Fulfilment', mass: 9, relief: 0.5 },
+        { id: 'identity', label: 'Identity', mass: 6, relief: 0.35 }
+      ]
+    },
+    {
+      id: 'services',
+      as: 'city',
+      items: [
+        { id: 'gateway', label: 'Gateway', height: 38, footprint: 3, district: 'Checkout' },
+        { id: 'orders', label: 'Orders', height: 22, footprint: 2.4, district: 'Checkout' },
+        { id: 'search', label: 'Search', height: 16, footprint: 2, district: 'Catalog' },
+        { id: 'pickers', label: 'Pickers', height: 9, footprint: 1.8, district: 'Fulfilment' }
+      ]
+    }
+  ],
+  items: [],
+  links: []
+};
+
+// Captured from the planner before the assignSiteLabelPlacement extraction
+// (issue #422). Three loaded islands and one bare one, each on a different
+// outward bearing.
+const LABEL_PLACEMENT_GOLDEN = [
+  { id: 'site:checkout', offset: [-0.1977823888042746, 2.505482640102307], lift: 5.49748743718593 },
+  {
+    id: 'site:catalog',
+    offset: [-2.353317939282824, -0.31680428884675454],
+    lift: 4.325628140703518
+  },
+  {
+    id: 'site:fulfilment',
+    offset: [0.42638247280519936, -2.2308176588158255],
+    lift: 3.9527638190954772
+  },
+  { id: 'site:identity', offset: [2.0296149233047616, 0.505066117633536], lift: 0 }
+];
 
 describe('Composite v2 primitive registry', () => {
   it('declares bounded anchors, placement, motion, and cost for every capability', () => {
@@ -393,6 +480,70 @@ describe('planFusedCompositeWorld', () => {
     }
     // A test that found no loaded island would pass while examining nothing.
     expect(carried).toBeGreaterThan(0);
+  });
+
+  it('keeps the exact island-name placement the fixed composite fixture shipped with', () => {
+    const plan = planFusedCompositeWorld(LABEL_PLACEMENT_GOLDEN_DSL);
+    const actual = plan.sites.map((site) => ({
+      id: site.id,
+      offset: [site.labelOffset[0], site.labelOffset[2]],
+      lift: site.labelLift
+    }));
+    // Exact, not approximate: the placement is a pure function of the plan, so
+    // any drift at all means some name landed somewhere else on screen.
+    expect(actual).toEqual(LABEL_PLACEMENT_GOLDEN);
+  });
+
+  it('places every island name by the outward-shoulder + crest-clearance rule', () => {
+    const fixtures = [
+      LABEL_PLACEMENT_GOLDEN_DSL,
+      ...BASE_KINDS.flatMap((first) =>
+        BASE_KINDS.map((second) => dslFor([first, second], `label-sweep-${first}-${second}`))
+      )
+    ];
+    let checked = 0;
+    let lifted = 0;
+    for (const dsl of fixtures) {
+      const plan = planFusedCompositeWorld(dsl);
+      for (const site of plan.sites) {
+        const want = expectedLabelPlacement(site, plan.nodes);
+        expect(site.labelOffset[0]).toBe(want.offset[0]);
+        expect(site.labelOffset[1]).toBe(0);
+        expect(site.labelOffset[2]).toBe(want.offset[1]);
+        expect(site.labelLift).toBe(want.lift);
+        checked += 1;
+        if (want.lift > 0) lifted += 1;
+        // No planner-laid-out site is ever at the middle of the world, so the
+        // near-corner fallback is unreachable from here — it is covered
+        // directly against resolveSiteLabelOffset in the next case instead.
+        expect(Math.hypot(site.position[0], site.position[2])).toBeGreaterThan(0.01);
+      }
+    }
+    // A sweep that found no sites, or only bare ones, would pass while
+    // examining almost nothing — both branches of the lift have to be covered.
+    expect(checked).toBeGreaterThan(80);
+    expect(lifted).toBeGreaterThan(0);
+  });
+
+  it('gives a site with no outward a near corner instead of dividing by zero', () => {
+    const reach = 4 * 0.68;
+    expect(resolveSiteLabelOffset({ position: [0, 0, 0], radius: 4 })).toEqual([
+      reach * Math.SQRT1_2,
+      0,
+      reach * Math.SQRT1_2
+    ]);
+    // Just inside the 0.01 dead zone still counts as no outward...
+    expect(resolveSiteLabelOffset({ position: [0.004, 0, 0.004], radius: 4 })[0]).toBe(
+      reach * Math.SQRT1_2
+    );
+    // ...and just outside it takes the real ray.
+    expect(resolveSiteLabelOffset({ position: [1, 0, 0], radius: 4 })).toEqual([reach, 0, 0]);
+    // A site with no position at all resolves rather than throwing.
+    expect(resolveSiteLabelOffset({ radius: 4 })).toEqual([
+      reach * Math.SQRT1_2,
+      0,
+      reach * Math.SQRT1_2
+    ]);
   });
 
   it('encodes storytelling fields, connectors, LOD, and atmosphere on the plan', () => {
