@@ -199,6 +199,26 @@ describe('renameSequenceEdge', () => {
     expect(result.source).not.toMatch(/ack[\s\S]*Alice->>Bob: ping/);
   });
 
+  it('targets a label-less message by Mermaid id when a labeled one follows', () => {
+    const mixed = `sequenceDiagram
+  participant Alice
+  participant Bob
+  Alice->>Bob
+  Alice->>Bob: hi
+`;
+    expect(deleteSequenceEdge(mixed, 'Alice', 'Bob', undefined, 0).source).toMatch(
+      /Alice->>Bob: hi/
+    );
+    expect(deleteSequenceEdge(mixed, 'Alice', 'Bob', undefined, 0).source).not.toMatch(
+      /^[^\n]*Alice->>Bob\s*$/m
+    );
+
+    const renamed = renameSequenceEdge(mixed, 'Alice', 'Bob', 'CHANGED', undefined, 0);
+    expect(renamed.ok).toBe(true);
+    expect(renamed.source).toMatch(/Alice->>Bob: CHANGED/);
+    expect(renamed.source).toMatch(/Alice->>Bob: hi/);
+  });
+
   it('refuses a missing message', () => {
     expect(renameSequenceEdge(SEQUENCE, 'Bob', 'Charlie', 'Nope')).toEqual({
       ok: false,

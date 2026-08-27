@@ -211,7 +211,7 @@ export function findVertexIdColumn(line, logicalId) {
  * @returns {SourceRange|null}
  */
 const SEQUENCE_MSG_LINE_RE = new RegExp(
-  /^(\s*)([A-Za-z][A-Za-z0-9_]*(?:-[A-Za-z0-9_]+)*)\s*([<\-=~.[\]()xo>]+(?:\+-|-\+)?)\s*([A-Za-z][A-Za-z0-9_]*(?:-[A-Za-z0-9_]+)*)\s*:\s*(.*)$/i
+  /^(\s*)([A-Za-z][A-Za-z0-9_]*(?:-[A-Za-z0-9_]+)*)\s*([<\-=~.[\]()xo>]+(?:\+-|-\+)?)\s*([A-Za-z][A-Za-z0-9_]*(?:-[A-Za-z0-9_]+)*)(?:\s*:\s*(.*))?$/i
 );
 
 /**
