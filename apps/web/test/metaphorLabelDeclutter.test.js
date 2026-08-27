@@ -213,3 +213,62 @@ describe('resolveLabels with screen-sized labels', () => {
     });
   });
 });
+
+describe('resolveLabels across composite layers', () => {
+  // Two boxes of screen space and three names that want them. The city's own
+  // second name outranks the river's only name, so a pure ranking spends both
+  // boxes on the city and the river layer goes unnamed.
+  function contested() {
+    const cityHead = entry(-8, 0, { importance: 100 });
+    cityHead.layerKey = 'city';
+    const citySecond = entry(8, 0, { importance: 99 });
+    citySecond.layerKey = 'city';
+    const riverHead = entry(8.2, 0, { importance: 97 });
+    riverHead.layerKey = 'river';
+    return { cityHead, citySecond, riverHead };
+  }
+
+  it('gives every layer a name before any layer gets a second', () => {
+    const { cityHead, citySecond, riverHead } = contested();
+    resolveLabels([cityHead, citySecond, riverHead], camera(), VIEWPORT);
+    expect(cityHead.target).toBe(1);
+    expect(riverHead.target).toBe(1);
+    expect(citySecond.target).toBe(0);
+  });
+
+  it('leaves a scene that declares no layers exactly as it was', () => {
+    const { cityHead, citySecond, riverHead } = contested();
+    for (const label of [cityHead, citySecond, riverHead]) delete label.layerKey;
+    resolveLabels([cityHead, citySecond, riverHead], camera(), VIEWPORT);
+    expect(cityHead.target).toBe(1);
+    // Ranking alone: the city's second takes the box and the river is silent.
+    expect(citySecond.target).toBe(1);
+    expect(riverHead.target).toBe(0);
+  });
+
+  it('keeps trying a layer until one of its names lands', () => {
+    // The river's best name is off the frame, so the layer falls back to its
+    // second rather than going unnamed — one delegate per layer is not enough.
+    const cityHead = entry(-8, 0, { importance: 100 });
+    cityHead.layerKey = 'city';
+    const citySecond = entry(8, 0, { importance: 99 });
+    citySecond.layerKey = 'city';
+    const riverOffFrame = entry(400, 0, { importance: 98 });
+    riverOffFrame.layerKey = 'river';
+    const riverSecond = entry(8.2, 0, { importance: 97 });
+    riverSecond.layerKey = 'river';
+    resolveLabels([cityHead, citySecond, riverOffFrame, riverSecond], camera(), VIEWPORT);
+    expect(riverOffFrame.target).toBe(0);
+    expect(riverSecond.target).toBe(1);
+    expect(citySecond.target).toBe(0);
+  });
+
+  it("still walks pinned labels first, so a name cannot take a placard's space", () => {
+    const placard = entry(0.04, 0, { importance: 1, pinned: true });
+    const delegate = entry(0, 0, { importance: 100 });
+    delegate.layerKey = 'river';
+    resolveLabels([delegate, placard], camera(), VIEWPORT);
+    expect(placard.target).toBe(1);
+    expect(delegate.target).toBe(0);
+  });
+});

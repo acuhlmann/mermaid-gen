@@ -517,6 +517,11 @@ function makePaths({ layers, sites, novelty, worldKey, anchors, linkNeighbors, m
     if (capability.role !== 'path') return [];
     const items = orderedPathItems(layer);
     if (items.length === 0) return [];
+    // A river's channel widens with `flow`; a bridge's deck widens with the
+    // `load` it carries. Reading `flow` on a bridge just returned the fallback
+    // for every pylon, so every crossing came out the same width. Resolved up
+    // here because it is also the magnitude a station's NAME is ranked by.
+    const widthField = layer.as === 'bridge' ? 'load' : layer.as === 'subway' ? 'traffic' : 'flow';
     const rotation = Math.floor(seeded(worldKey, layer.id, 'path-site-rotation') * sites.length);
     const stations = items.map((item, index) => {
       const siteIndex = choosePathSiteIndex({
@@ -543,6 +548,7 @@ function makePaths({ layers, sites, novelty, worldKey, anchors, linkNeighbors, m
         attachedTo: site.id,
         affinityBound: affinityOverlap(affinityTokens(item), affinityTokens(site.item)) > 0,
         labelOffset: [(labelDx / labelDistance) * 0.72, 0, (labelDz / labelDistance) * 0.72],
+        labelMagnitude: finite(item[widthField], 5),
         presentation: makePresentation(item, 'river'),
         motion: makeMotion(worldKey, item.id, 'flow', novelty)
       };
@@ -569,10 +575,6 @@ function makePaths({ layers, sites, novelty, worldKey, anchors, linkNeighbors, m
         pathEnd(controls.at(-1), controls.at(-2), 1.2)
       ];
     }
-    // A river's channel widens with `flow`; a bridge's deck widens with the
-    // `load` it carries. Reading `flow` on a bridge just returned the fallback
-    // for every pylon, so every crossing came out the same width.
-    const widthField = layer.as === 'bridge' ? 'load' : layer.as === 'subway' ? 'traffic' : 'flow';
     const averageFlow =
       items.reduce((sum, item) => sum + finite(item[widthField], 5), 0) / Math.max(1, items.length);
     const averageHazard =
@@ -856,6 +858,126 @@ export function resolveSiteLabelOffset(site) {
   return [reach * Math.SQRT1_2, 0, reach * Math.SQRT1_2];
 }
 
+/**
+ * Importance the declutter pass ranks a fused label by, from its standing
+ * inside its OWN layer.
+ *
+ * Every layer's first name ties at the base, every layer's second name ties one
+ * step below it, and so on — so when a canvas cannot hold every name, what it
+ * drops is the weakest member of each grammar rather than every member of one.
+ *
+ * The step is small against the base so the whole ladder stays clear of the
+ * link captions and other unranked labels at 0: a footnote written on a line
+ * should yield to a name, however far down its layer that name sits.
+ */
+const FUSED_LABEL_BASE = 100;
+const FUSED_LABEL_STEP = 1;
+
+/**
+ * The substrate's own ladder, clear above the one the landmarks stand on.
+ *
+ * A site is the territory its landmarks are planted in, and its name is the
+ * noun the layer key, the affinity groups and half the links are phrased in.
+ * `SITE_LABEL_CREST_CLEARANCE` is placed on the stated understanding that "a
+ * site outranks a node on importance" — which was not true as shipped: at
+ * `radius * 3` against a node's `height + radius`, any tower over about 12
+ * units outranked the island it stands on, the same not-one-scale mistake in a
+ * second place. The gap is wide enough that no plausible layer closes it.
+ *
+ * Folding the substrate into the shared round-robin instead was measured and is
+ * worse: on the festival composite at 390x844 it traded two island names for one
+ * tower and one stage, six named things where the separate ladder names seven.
+ */
+const FUSED_SITE_LABEL_BASE = 140;
+
+/** @param {number} rank — 0-based position on the interleaved ladder @returns {number} */
+export function fusedLabelImportance(rank) {
+  const safe = Number.isFinite(rank) && rank > 0 ? rank : 0;
+  return FUSED_LABEL_BASE - safe * FUSED_LABEL_STEP;
+}
+
+/** As above, for a substrate site's own name. */
+export function fusedSiteLabelImportance(rank) {
+  const safe = Number.isFinite(rank) && rank > 0 ? rank : 0;
+  return FUSED_SITE_LABEL_BASE - safe * FUSED_LABEL_STEP;
+}
+
+/**
+ * Rank a fused world's names by taking one layer at a time, in turn.
+ *
+ * A composite draws several grammars at once, and until this ran it ranked
+ * their names against each other by WORLD SIZE — `height + radius` for a node,
+ * and nothing at all for a path station, which fell to the default 0 and so tied
+ * with the link captions at the very bottom. Those numbers are not one scale: a
+ * city tower is tall because towers are tall, not because it matters more than
+ * the stage of the river beside it. Measured on the three composite fixtures,
+ * the journey layer — the one the scene exists to tell — came out at 1 named
+ * stage of 4 on a phone, and the toaster's river was silent altogether.
+ *
+ * Losing a name from each layer costs detail. Losing every name from one layer
+ * deletes a grammar the layer key still lists, and leaves the viewer anonymous
+ * shapes with no way to learn what they are.
+ *
+ * So the ladder is drained round-robin: every layer's first name outranks every
+ * layer's second, in the order the author declared the layers. Ranks are
+ * DISTINCT for the same reason — an earlier attempt gave each layer's head the
+ * same importance and let the pass break the tie, which it does by nearness, and
+ * nearness knows nothing about layers: the toaster's two-tower city lost both
+ * its names on all three viewports. Within a layer the order is that layer's own
+ * metric, so its head items are still the ones that survive.
+ *
+ * The substrate keeps a ladder of its own, above this one — see
+ * `FUSED_SITE_LABEL_BASE` for why, and for what folding it in here measured.
+ */
+function assignLabelRanks(layers, sites, nodes, paths) {
+  const substrate = new Map();
+  for (const site of sites) {
+    // A site with no item is bare ground — a platform, drawn with no name.
+    if (!site?.layerId || !site.item) continue;
+    if (!substrate.has(site.layerId)) substrate.set(site.layerId, []);
+    substrate.get(site.layerId).push(site);
+  }
+  for (const group of substrate.values()) {
+    group
+      .sort((a, b) => (b.radius ?? 0) - (a.radius ?? 0))
+      .forEach((site, rank) => {
+        site.labelRank = rank;
+      });
+  }
+
+  // Landmarks and journey stations share one ladder: they are the same rung of
+  // the scene — a thing standing in a territory — whatever grammar drew them.
+  const queues = new Map();
+  const queueFor = (layerId) => {
+    if (!queues.has(layerId)) queues.set(layerId, []);
+    return queues.get(layerId);
+  };
+  for (const layer of layers) queueFor(layer.id);
+  for (const node of nodes) {
+    queueFor(node.layerId).push({ body: node, magnitude: node.metric?.normalized ?? 0 });
+  }
+  for (const path of paths) {
+    for (const station of path.stations) {
+      queueFor(path.layerId).push({ body: station, magnitude: station.labelMagnitude ?? 0 });
+    }
+  }
+  for (const queue of queues.values()) queue.sort((a, b) => b.magnitude - a.magnitude);
+
+  const order = [...queues.keys()];
+  let rank = 0;
+  for (let round = 0; ; round += 1) {
+    let placed = false;
+    for (const layerId of order) {
+      const queue = queues.get(layerId);
+      if (round >= queue.length) continue;
+      queue[round].body.labelRank = rank;
+      rank += 1;
+      placed = true;
+    }
+    if (!placed) break;
+  }
+}
+
 function resolveGroundRadius(sites, nodes, paths) {
   let extent = 0;
   for (const site of sites) {
@@ -913,6 +1035,7 @@ export function planFusedCompositeWorld(dsl) {
     motionIntensity
   });
   assignSiteLabelPlacement(sites, nodes);
+  assignLabelRanks(layers, sites, nodes, paths);
   const links = makeLinks(dsl, layers, anchors);
   const connectors = makeConnectors(nodes, anchors);
   const groups = makeGroups(sites, nodes, worldKey);

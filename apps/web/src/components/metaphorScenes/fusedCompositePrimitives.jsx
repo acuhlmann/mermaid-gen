@@ -13,7 +13,10 @@ import { Billboard } from '@react-three/drei';
 import { Glyph } from '../metaphorGlyphs/index.jsx';
 import { GlowSprite, ItemLabel } from './MetaphorSceneChrome.jsx';
 import { useMetaphorClock } from './metaphorClock.js';
-import { resolveCompositeMotionTransform } from './fusedCompositePlanner.js';
+import {
+  fusedSiteLabelImportance,
+  resolveCompositeMotionTransform
+} from './fusedCompositePlanner.js';
 import { FRAME_IGNORE_DATA } from './sceneFraming.js';
 import { idHash2, shiftColor } from './sceneUtils.js';
 
@@ -222,7 +225,10 @@ export function IslandPrimitive({ entity, theme, emphasized, lod = 'high', muted
             fontSize={0.52}
             color={theme.labelColor}
             outlineColor={theme.labelOutline}
-            importance={entity.radius * 3}
+            // Its standing among the other sites, on a ladder clear above the
+            // landmarks planted on it — see `assignLabelRanks`.
+            importance={fusedSiteLabelImportance(entity.labelRank)}
+            layerKey={entity.layerId}
           />
         </>
       ) : null}

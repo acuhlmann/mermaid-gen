@@ -1135,6 +1135,42 @@ sticky` nav row, because the height cap makes every small screen a scrolling
   go (it wraps, and below the small-canvas limit it folds into the `+N` counter that names the rest
   in its tooltip), and a truncated title is the one line in the whole overlay that cannot be
   recovered from anywhere else on screen.
+- **A composite ranks its names one layer at a time, and world size is not one scale.** A fused
+  world draws several grammars at once, and it ranked their names against each other by geometry:
+  `height + radius` for a landmark, and **nothing at all** for a journey station, which fell to
+  `importance = 0` and so tied with the link captions at the very bottom. A city tower is tall
+  because towers are tall, not because it matters more than the river stage beside it — measured
+  over the three composite fixtures at phone/cover/desktop, the journey layer came out at 15 named
+  stages of 36, and on a phone the toaster's river was silent altogether. `assignLabelRanks`
+  (`fusedCompositePlanner.js`) now drains the layers **round-robin**: every layer's first name
+  outranks every layer's second, in the order the author declared them, ordered inside a layer by
+  that layer's own metric. Ranks must be **distinct** — an earlier attempt tied each layer's head
+  and let the pass break it, which it does by nearness, and nearness knows nothing about layers
+  (the toaster's two-tower city then lost both names on all three viewports). The substrate keeps
+  a ladder of its own above the landmarks (`FUSED_SITE_LABEL_BASE`), which is what
+  `SITE_LABEL_CREST_CLEARANCE` already assumed and `radius * 3` did not deliver; folding it into
+  the shared round-robin was measured and is worse. Result: 22 named stages of 36, the same total
+  label count, and what it trades away is link captions. Pinned placards are unaffected.
+- **`layerKey` is the declutter pass's half of that, and the invariant is worth more than the
+  count.** `resolveLabels` walks every layer's FIRST surviving name before any layer's second, and
+  keeps trying a layer until one of its names lands — one delegate per layer is not enough, because
+  a layer's top pick may be the one the canvas edge clips or a panel covers. Pinned labels are
+  still walked first (they cannot be blocked, so anything ahead of one would claim a placard's
+  space and be drawn over). A base kind passes no `layerKey` and the rule no-ops, which
+  `metaphorLabelDeclutter.test.js` pins with a control arm — without it, a passing test proves
+  nothing, since the same three labels resolve identically when nothing declares a layer.
+- **Searching the camera's AZIMUTH for a better fit was tried and does not earn its keep — do not
+  redo it.** `frameDirectionForAspect` leaves azimuth alone; restricting a search to the four
+  diagonals (so "built, not plotted" survives) and picking the shortest solve looked compelling on
+  paper: over three composites and a five-service city at phone/cover/desktop, the default corner
+  solved 2–23% further away than the best. It is a trap. **Distance is the wrong score** — the
+  corner that frames an elongated world most cheaply is often the one that runs its long axis into
+  depth, which lines the items up behind one another; the phone city came out 18% taller and lost
+  three of its nine names. Scoring instead by how far apart the names land (which contains the
+  distance term, since a bigger frame spreads them) measured **+3 legible labels out of 257**:
+  three wins, three losses, noise. The general lesson is the one the label-placement work already
+  paid for — a framing change only becomes decidable once every label is scored, and a picture that
+  is bigger but reads worse is not an improvement.
 - **Verify metaphor changes by rendering them.** The scoped skill under
   `apps/web/.claude/skills/verify/` has the headless-capture recipe; every finding above came from
   a screenshot, not from reading the code.

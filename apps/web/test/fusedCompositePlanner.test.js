@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
+  fusedLabelImportance,
+  fusedSiteLabelImportance,
   planFusedCompositeWorld,
   resolveCompositeAtmosphere,
   resolveCompositeMotionTransform,
@@ -701,5 +703,96 @@ describe('resolveCompositeAtmosphere', () => {
         ]
       })
     ).toBe('river');
+  });
+});
+
+describe('label ranks across a fused world', () => {
+  const dsl = {
+    metaphor: 'composite',
+    layout: 'fused',
+    seed: 'ranks',
+    scene: {},
+    layers: [
+      {
+        id: 'domains',
+        as: 'archipelago',
+        items: [
+          { id: 'd1', label: 'Big', mass: 15 },
+          { id: 'd2', label: 'Small', mass: 6 }
+        ]
+      },
+      {
+        id: 'services',
+        as: 'city',
+        items: [
+          { id: 's1', label: 'Tall', height: 18, footprint: 3 },
+          { id: 's2', label: 'Short', height: 4, footprint: 2 }
+        ]
+      },
+      {
+        id: 'journey',
+        as: 'river',
+        items: [
+          { id: 'r1', label: 'Start', stage: 0, flow: 16 },
+          { id: 'r2', label: 'End', stage: 100, flow: 3 }
+        ]
+      }
+    ],
+    items: [],
+    links: []
+  };
+
+  const rankOf = (world, id) =>
+    [...world.nodes, ...world.paths.flatMap((path) => path.stations)].find((body) => body.id === id)
+      ?.labelRank;
+
+  it('gives a journey station a rank at all', () => {
+    // It carried no importance before, so every path layer tied with the link
+    // captions at the bottom and a crowded canvas dropped the whole journey.
+    const world = planFusedCompositeWorld(dsl);
+    expect(typeof rankOf(world, 'r1')).toBe('number');
+    // Above the 0 an unranked label falls to, which is where link captions sit.
+    expect(fusedLabelImportance(rankOf(world, 'r1'))).toBeGreaterThan(0);
+  });
+
+  it('takes one layer at a time, so a tower cannot outrank a whole river', () => {
+    const world = planFusedCompositeWorld(dsl);
+    // Every layer's first name outranks every layer's second.
+    expect(rankOf(world, 's1')).toBeLessThan(rankOf(world, 'r2'));
+    expect(rankOf(world, 'r1')).toBeLessThan(rankOf(world, 's2'));
+  });
+
+  it('orders within a layer by that layer own metric', () => {
+    const world = planFusedCompositeWorld(dsl);
+    expect(rankOf(world, 's1')).toBeLessThan(rankOf(world, 's2'));
+    expect(rankOf(world, 'r1')).toBeLessThan(rankOf(world, 'r2'));
+  });
+
+  it('ranks are distinct, so nearness never decides between layers', () => {
+    const world = planFusedCompositeWorld(dsl);
+    const ranks = [...world.nodes, ...world.paths.flatMap((p) => p.stations)].map(
+      (body) => body.labelRank
+    );
+    expect(new Set(ranks).size).toBe(ranks.length);
+  });
+
+  it('keeps every site above every landmark', () => {
+    const world = planFusedCompositeWorld(dsl);
+    const worstSite = Math.min(
+      ...world.sites
+        .filter((site) => site.item)
+        .map((site) => fusedSiteLabelImportance(site.labelRank))
+    );
+    const bestNode = Math.max(...world.nodes.map((node) => fusedLabelImportance(node.labelRank)));
+    expect(worstSite).toBeGreaterThan(bestNode);
+  });
+
+  it('carries a layerKey on every ranked body, for the declutter pass', () => {
+    const world = planFusedCompositeWorld(dsl);
+    for (const node of world.nodes) expect(typeof node.layerId).toBe('string');
+    for (const path of world.paths) expect(typeof path.layerId).toBe('string');
+    for (const site of world.sites.filter((s) => s.item)) {
+      expect(typeof site.layerId).toBe('string');
+    }
   });
 });
