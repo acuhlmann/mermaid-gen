@@ -432,23 +432,44 @@ describe('where the room drifts at three in the afternoon', () => {
     return kinds.includes('coffeeMachine') && kinds.length > 1;
   });
 
-  function tripsAt(hour, runs = 60) {
+  /**
+   * A uniform stream that does not inherit whatever the rest of the suite left
+   * on `Math.random`, but is still a distribution rather than one pinned roll.
+   * Slice 23's lesson stands: we do not consume a different *number* of randoms
+   * in the biased arm — only the list we roll against changes with the hour.
+   */
+  function seededRandomFor(hour) {
+    let state = hour * 2_654_435_761;
+    return () => {
+      state = (state + 0x6d2b79f5) | 0;
+      let t = Math.imul(state ^ (state >>> 15), 1 | state);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4_294_967_296;
+    };
+  }
+
+  function tripsAt(hour, runs = 200) {
+    const randomSpy = vi.spyOn(Math, 'random').mockImplementation(seededRandomFor(hour));
     const kinds = [];
-    for (let run = 0; run < runs; run += 1) {
-      vi.setSystemTime(new Date(2026, 7, 10, hour, 15, 0, 0));
-      const { seen } = (() => {
-        const box = { wanderer: null };
-        function Probe() {
-          Object.assign(box, useFloorWander({ busyIds: BUSY_EXCEPT_CHOOSY }));
-          return null;
-        }
-        const view = render(<Probe />);
-        act(() => vi.advanceTimersByTime(9_000));
-        const result = { seen: box };
-        view.unmount();
-        return result;
-      })();
-      if (seen.wanderer?.kind) kinds.push(seen.wanderer.kind);
+    try {
+      for (let run = 0; run < runs; run += 1) {
+        vi.setSystemTime(new Date(2026, 7, 10, hour, 15, 0, 0));
+        const { seen } = (() => {
+          const box = { wanderer: null };
+          function Probe() {
+            Object.assign(box, useFloorWander({ busyIds: BUSY_EXCEPT_CHOOSY }));
+            return null;
+          }
+          const view = render(<Probe />);
+          act(() => vi.advanceTimersByTime(9_000));
+          const result = { seen: box };
+          view.unmount();
+          return result;
+        })();
+        if (seen.wanderer?.kind) kinds.push(seen.wanderer.kind);
+      }
+    } finally {
+      randomSpy.mockRestore();
     }
     return kinds;
   }
@@ -468,8 +489,8 @@ describe('where the room drifts at three in the afternoon', () => {
   it('sends more of them to the kitchen in the slump than at eleven', () => {
     const morning = tripsAt(11);
     const slump = tripsAt(15);
-    expect(morning.length, 'no trips started at all').toBeGreaterThan(20);
-    expect(slump.length).toBeGreaterThan(20);
+    expect(morning.length, 'no trips started at all').toBeGreaterThan(50);
+    expect(slump.length).toBeGreaterThan(50);
 
     const share = (kinds) => kinds.filter((k) => k === 'coffeeMachine').length / kinds.length;
     // A bias, not a schedule: the morning still sends people for coffee and the
