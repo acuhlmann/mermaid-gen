@@ -83,10 +83,6 @@ function listArrayFieldForTemplate(template) {
   return null;
 }
 
-function isFlatArrayInfographic(source) {
-  return listArrayFieldForTemplate(readInfographicTemplate(source)) != null;
-}
-
 /** @param {string | null | undefined} template */
 function flatItemLabelKey(template) {
   const normalized = String(template ?? '').toLowerCase();

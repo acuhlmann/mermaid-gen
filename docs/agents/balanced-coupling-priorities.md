@@ -2,7 +2,7 @@
 
 Where **archislop** should invest modularity work, ranked with Vlad Khononov's [Balanced Coupling Model](https://coupling.dev). This is the repo-specific companion to [`modularity.md`](modularity.md) (how to run a review) and the static sensors in [`sensors.md`](sensors.md).
 
-**Last reviewed:** 2026-08-23
+**Last reviewed:** 2026-08-27
 
 ## How to use this doc
 

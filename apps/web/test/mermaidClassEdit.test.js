@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest';
-import { parseSyntax } from '@antv/infographic';
 import {
   addLinkedClassNode,
   connectClassNodes,

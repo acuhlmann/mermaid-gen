@@ -208,22 +208,7 @@ export function deleteClassNode(source, classId) {
       if (stripped === '}') inTargetBlock = false;
       continue;
     }
-    const relation = parseClassRelation(line);
-    if (relation) {
-      if (relation.from === classId || relation.to === classId) {
-        removed = true;
-        continue;
-      }
-      next.push(line);
-      continue;
-    }
-    const member = stripped.match(CLASS_MEMBER_RE);
-    if (member && member[1] === classId) {
-      removed = true;
-      continue;
-    }
-    const annotation = stripped.match(CLASS_ANNOTATION_RE);
-    if (annotation && annotation[1] === classId) {
+    if (classEditLineMatchesId(line, stripped, classId)) {
       removed = true;
       continue;
     }
@@ -231,6 +216,20 @@ export function deleteClassNode(source, classId) {
   }
   if (!removed) return fail('missing');
   return ok(next.join('\n'));
+}
+
+/**
+ * @param {string} line
+ * @param {string} stripped
+ * @param {string} classId
+ */
+function classEditLineMatchesId(line, stripped, classId) {
+  const relation = parseClassRelation(line);
+  if (relation) return relation.from === classId || relation.to === classId;
+  const member = stripped.match(CLASS_MEMBER_RE);
+  if (member && member[1] === classId) return true;
+  const annotation = stripped.match(CLASS_ANNOTATION_RE);
+  return Boolean(annotation && annotation[1] === classId);
 }
 
 /**
