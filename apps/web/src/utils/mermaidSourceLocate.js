@@ -24,6 +24,7 @@ export function peekDiagramDirective(source) {
     if (/^(flowchart|graph)\b/i.test(low)) return 'flowchart';
     if (/^mindmap\b/i.test(t)) return 'mindmap';
     if (/^classdiagram\b/i.test(t)) return 'class';
+    if (/^erdiagram\b/i.test(t)) return 'er';
     return 'unknown';
   }
   return 'unknown';
