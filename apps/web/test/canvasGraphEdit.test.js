@@ -5,6 +5,13 @@ const FLOWCHART = `flowchart TD
   A[Start] --> B[End]
 `;
 
+const ER_SAMPLE = `erDiagram
+  CUSTOMER ||--o{ ORDER : places
+  CUSTOMER {
+    string id PK
+  }
+`;
+
 const TREE = `infographic hierarchy-tree-curved-line-rounded-rect-node
 data
   root
@@ -124,6 +131,13 @@ describe('graphEditAdapterFor', () => {
         'Goose'
       )
     ).toMatchObject({ ok: true, newId: 'Class1' });
+    expect(graphEditAdapterFor('mermaid', 'erDiagram\n  A ||--o{ B : x')).toMatchObject({
+      contentType: 'mermaid',
+      canLink: true
+    });
+    expect(
+      graphEditAdapterFor('mermaid', ER_SAMPLE)?.addLinked(ER_SAMPLE, 'CUSTOMER', 'Invoice')
+    ).toMatchObject({ ok: true, newId: 'Entity1' });
   });
 
   it('returns the sequence adapter with Link for sequenceDiagram', () => {

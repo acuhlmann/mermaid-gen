@@ -56,6 +56,14 @@ import {
   renameClassNode
 } from './mermaidClassEdit.js';
 import {
+  addLinkedErNode,
+  connectErNodes,
+  deleteErEdge,
+  deleteErNode,
+  isErFamilySource,
+  renameErNode
+} from './mermaidErEdit.js';
+import {
   addLinkedTreeNode,
   connectTreeNodes,
   deleteTreeEdge,
@@ -175,6 +183,17 @@ const CLASS_ADAPTER = {
   renameEdge: () => fail('not-graph')
 };
 
+const ER_ADAPTER = {
+  contentType: 'mermaid',
+  canLink: true,
+  addLinked: addLinkedErNode,
+  connect: connectErNodes,
+  deleteNode: deleteErNode,
+  deleteEdge: deleteErEdge,
+  renameNode: renameErNode,
+  renameEdge: () => fail('not-graph')
+};
+
 const METAPHOR_TREE_ADAPTER = {
   contentType: 'metaphor3d',
   canLink: false,
@@ -283,6 +302,9 @@ export function graphEditAdapterFor(contentType, source) {
   }
   if (contentType === 'mermaid' && isClassFamilySource(source)) {
     return CLASS_ADAPTER;
+  }
+  if (contentType === 'mermaid' && isErFamilySource(source)) {
+    return ER_ADAPTER;
   }
   if (contentType === 'infographic' && isInfographicGraphSource(source)) {
     return {
