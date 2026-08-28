@@ -40,7 +40,7 @@ function isClassRelationArrow(token) {
 
 /**
  * @param {string} line
- * @returns {{ from: string, arrow: string, to: string } | null}
+ * @returns {{ from: string, arrow: string, to: string, label: string } | null}
  */
 export function parseClassRelation(line) {
   const stripped = stripLineComment(line).trim();
@@ -49,12 +49,14 @@ export function parseClassRelation(line) {
     return null;
   }
   if (CLASS_ANNOTATION_RE.test(stripped)) return null;
-  const parts = stripped.split(/\s+/);
+  const colonIdx = stripped.indexOf(':');
+  const head = colonIdx === -1 ? stripped : stripped.slice(0, colonIdx).trim();
+  const label = colonIdx === -1 ? '' : stripped.slice(colonIdx + 1).trim();
+  const parts = head.split(/\s+/);
   if (parts.length !== 3) return null;
   const [from, arrow, to] = parts;
   if (!isClassRelationArrow(arrow)) return null;
-  if (stripped.includes(':')) return null;
-  return { from, arrow, to };
+  return { from, arrow, to, label };
 }
 
 /**
@@ -249,7 +251,7 @@ function collectClassEdgeRefs(source, fromId, toId) {
   for (let lineIndex = 0; lineIndex < lines.length; lineIndex += 1) {
     const relation = parseClassRelation(lines[lineIndex]);
     if (relation && relation.from === fromId && relation.to === toId) {
-      refs.push({ lineIndex, edgeIndex: refs.length, text: '' });
+      refs.push({ lineIndex, edgeIndex: refs.length, text: relation.label ?? '' });
     }
   }
   return { lines, refs };
@@ -320,7 +322,8 @@ export function renameClassNode(source, classId, label) {
       const to = replaceClassIdToken(relation.to, classId, nextLabel);
       if (from !== relation.from || to !== relation.to) {
         found = true;
-        return `${indentOf(line)}${from} ${relation.arrow} ${to}`;
+        const suffix = relation.label ? ` : ${relation.label}` : '';
+        return `${indentOf(line)}${from} ${relation.arrow} ${to}${suffix}`;
       }
       return line;
     }

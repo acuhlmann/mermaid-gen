@@ -41,6 +41,12 @@ describe('parseErRelation', () => {
       to: 'LINE_ITEM',
       label: 'contains'
     });
+    expect(parseErRelation('  CUSTOMER ||--o{ ORDER')).toEqual({
+      from: 'CUSTOMER',
+      cardinality: '||--o{',
+      to: 'ORDER',
+      label: ''
+    });
   });
 });
 
@@ -105,5 +111,26 @@ describe('er diagram graph edit', () => {
       ok: false,
       reason: 'missing'
     });
+  });
+
+  it('deletes and renames through colon-less relations', () => {
+    const colonless = `erDiagram
+  CUSTOMER ||--o{ ORDER
+  CUSTOMER {
+    string id
+  }
+  ORDER {
+    uuid id
+  }
+`;
+    const deleted = deleteErNode(colonless, 'CUSTOMER');
+    expect(deleted.ok).toBe(true);
+    expect(deleted.source).not.toMatch(/CUSTOMER/);
+
+    const renamed = renameErNode(colonless, 'ORDER', 'Purchase');
+    expect(renamed.ok).toBe(true);
+    expect(renamed.source).toMatch(/CUSTOMER \|\|--o\{ Purchase/);
+    expect(renamed.source).toMatch(/Purchase \{/);
+    expect(renamed.source).not.toMatch(/\bORDER\b/);
   });
 });

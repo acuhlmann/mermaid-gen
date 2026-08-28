@@ -45,9 +45,8 @@ export function parseErRelation(line) {
     return null;
   }
   const colonIdx = stripped.indexOf(':');
-  if (colonIdx === -1) return null;
-  const head = stripped.slice(0, colonIdx).trim();
-  const label = stripped.slice(colonIdx + 1).trim();
+  const head = colonIdx === -1 ? stripped : stripped.slice(0, colonIdx).trim();
+  const label = colonIdx === -1 ? '' : stripped.slice(colonIdx + 1).trim();
   const parts = head.split(/\s+/);
   if (parts.length !== 3) return null;
   const [from, cardinality, to] = parts;
