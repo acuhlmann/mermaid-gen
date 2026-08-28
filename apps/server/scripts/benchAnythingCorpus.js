@@ -334,6 +334,27 @@ export const ANYTHING_BENCH_CORPUS = [
     )
   },
   {
+    // lib-matter-stack first-pass "box.setStatic is not a function": the model treats
+    // Matter bodies like OOP instances. Regression = both engines drift.
+    id: 'runtime-matter-setstatic',
+    kind: 'runtime',
+    expectedAccept: false,
+    expectedCode: 'runtime_error',
+    html: page(
+      `<h1>Stack</h1><canvas id="stage" width="320" height="240"></canvas>
+<script>
+  const { Engine, Render, Bodies, Runner } = Matter;
+  const engine = Engine.create();
+  const box = Bodies.rectangle(160, 40, 40, 40);
+  box.setStatic(true);
+  const render = Render.create({ canvas: document.getElementById('stage'), engine });
+  Runner.run(Runner.create(), engine);
+  Render.run(render);
+</script>`,
+      { head: '<!-- @lib:matter -->' }
+    )
+  },
+  {
     // layout-dashboard first-pass "k.fmt is not a function": the model treats a KPI
     // data row as if it carried its own formatter. Regression = both engines drift.
     id: 'runtime-fmt-on-data-row',
