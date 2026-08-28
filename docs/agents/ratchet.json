@@ -1,6 +1,6 @@
 {
-  "updated": "2026-08-26",
-  "$comment": "suite.files/cases tightened to their measured 386/4040 — genuine growth, needs no written reason. lintWarnings.apps/web stays at 846 despite measuring 850: the sequenceDiagram parallel-edge-disambiguation work (b50d077) and a Metaphor3D label-placement fix (3159665) added two more warnings on top of issue #402's original two (renameFlowchartEdge/renameStateEdge max-params) — a third max-params instance (renameSequenceEdge, same call site and same fix shape as #402, noted there) and a new complexity violation (assignSiteLabelPlacement in fusedCompositePlanner.js, filed separately since its fix isn't the same shape). This run fixed the other three warnings that same diff introduced in apps/web/src/utils/mermaidSourceLocate.js — three no-useless-escape (harmless-but-flagged escapes in a character class) and a complexity violation on the new findSequenceMessageRange, cleared by extracting findSequenceMessageRangeById and collectSequenceMessageMatches — dropping apps/web from 854 to 850. The remaining 4-over-budget gap is real drift with call sites outside this routine's allowedPaths, not stale bookkeeping — kept at 846 rather than raised, per the no-silent-loosening rule.",
+  "updated": "2026-08-27",
+  "$comment": "suite.files/cases tightened to their measured 387/4066 — genuine growth, needs no written reason. lintWarnings.apps/web stays at 846 despite measuring 851: #422 (assignSiteLabelPlacement complexity) was fixed upstream by #426 and closed, but PR #430 ('rank a composite's names one layer at a time') immediately introduced two more complexity violations in the same file family (assignLabelRanks in fusedCompositePlanner.js, an arrow function in labelDeclutter.js) — filed as #431 for the same render-and-measure-verification reason #422 was. This run also fixed two dead-code warnings (an unused test import in test/mermaidClassEdit.test.js, an unused helper in infographicGraphEdit.js) and cleared the new mermaidClassEdit.js deleteClassNode complexity warning (16, then 13 after a first extraction) by extracting classEditLineMatchesId, mirroring the file's own collectClassEdgeRefs precedent — dropping apps/web from 854 to 851. The remaining 5-over-budget gap (#402's three max-params instances + #431's two complexity instances) is real drift with fixes outside this routine's allowedPaths or requiring render verification, not stale bookkeeping — kept at 846 rather than raised, per the no-silent-loosening rule.",
   "metrics": {
     "monolithLoc": {
       "apps/web/src/ArchiSlop.jsx": {
@@ -66,11 +66,11 @@
     },
     "suite": {
       "files": {
-        "budget": 386,
+        "budget": 387,
         "initial": 366
       },
       "cases": {
-        "budget": 4040,
+        "budget": 4066,
         "initial": 3675
       }
     }
