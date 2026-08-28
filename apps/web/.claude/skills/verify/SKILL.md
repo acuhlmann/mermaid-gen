@@ -93,6 +93,23 @@ Numbers from the run that shipped `assignSiteLabelPlacement`, as a calibration:
 the three composite fixtures × phone/cover/desktop carry 148 labels, of which
 the baseline drew 71 legibly, hid 73 and buried 4.
 
+**Prove the captured camera before you trust a single number from it.** On the
+archipelago run the `updateProjectionMatrix` capture above handed back a camera
+whose projections were confidently wrong — every label landed at roughly half
+its true screen position, so the probe reported a clean sweep of wins that the
+screenshots did not show. Nothing about the result looks broken: the label list
+is right, the scene is right, the verdicts are plausible, and only `faded`
+(read straight off `fillOpacity`, so independent of the camera) was actually
+trustworthy. `WebGLRenderer.prototype.render` is no help — three assigns
+`render` on the INSTANCE, so the prototype patch never fires — and counting
+`updateMatrixWorld` calls just re-elects the same camera. The cheap check that
+would have caught it in one shot: project two or three labels, append a fixed
+`<div>` marker at each computed pixel, and screenshot. If the markers are not
+sitting on the names, throw the run away and fall back to reading screenshots.
+That fallback is not a consolation prize — on a change this visible, counting
+names across two fixtures × three viewports decided it, and it also showed the
+overlap (`BÙYments`) that a legible/hidden/buried tally has no category for.
+
 ## Capturing a CSS transition at an exact moment
 
 Racing the wall clock with `waitForTimeout` gives frames you cannot reproduce.

@@ -16,6 +16,8 @@ import {
 import { gardenBedLayout } from '../src/utils/metaphorLayouts/gardenBedLayout.js';
 import {
   archipelagoLayout,
+  islandCrestY,
+  ISLAND_LABEL_CLEARANCE,
   islandRadiusForMass
 } from '../src/utils/metaphorLayouts/archipelagoLayout.js';
 import {
@@ -249,6 +251,81 @@ describe('metaphorLayouts', () => {
     const c = positions.get('c');
     const b = positions.get('b');
     expect(Math.hypot(a[0] - c[0], a[2] - c[2])).toBeLessThan(Math.hypot(a[0] - b[0], a[2] - b[2]));
+  });
+
+  it('stands each chain name above the highest island NAME in its own group', () => {
+    // The placard used to sit at the far edge of the chain circle, behind the
+    // islands it names. A chain circle is a poor lateral anchor — the chains
+    // overlap and their centres cluster at the world centre — so the answer is
+    // the fused planner's: go up, above a fact about the chain rather than about
+    // the camera. Any lift under the tallest island's own label is a placard
+    // drawn through the group.
+    const items = [
+      { id: 'a', label: 'A', chain: 'Europe', mass: 12, relief: 0.9 },
+      { id: 'b', label: 'B', chain: 'Americas', mass: 2, relief: 0.1 },
+      { id: 'c', label: 'C', chain: 'Europe', mass: 3, relief: 0.2 }
+    ];
+    const { chains, islands } = archipelagoLayout(items);
+    const europe = chains.find((c) => c.name === 'Europe');
+    const americas = chains.find((c) => c.name === 'Americas');
+
+    const tallestEuropeLabel = Math.max(
+      ...islands
+        .filter((isle) => isle.chain === 'Europe')
+        .map((isle) => islandCrestY(isle) + ISLAND_LABEL_CLEARANCE)
+    );
+    expect(europe.labelLift).toBeGreaterThan(tallestEuropeLabel);
+    // A chain is measured against its OWN islands, never the world's tallest:
+    // a small group's name floating at the big group's height reads as an
+    // unmoored caption rather than as a territory.
+    expect(americas.labelLift).toBeLessThan(europe.labelLift);
+  });
+
+  it('steps a chain name off the shoulder of its own tallest island', () => {
+    // The lift is measured from that island's crest, so without a shoulder the
+    // placard lands squarely on that island's own name — and when the island is
+    // also the accented one, both labels are pinned, neither yields, and they
+    // render on top of each other ("BUY" over "Payments" at 390x844).
+    const items = [
+      { id: 'a', label: 'A', chain: 'Europe', mass: 16, relief: 0.95 },
+      { id: 'b', label: 'B', chain: 'Europe', mass: 2, relief: 0.1 },
+      { id: 'c', label: 'C', chain: 'Americas', mass: 6, relief: 0.5 }
+    ];
+    const { chains, islands } = archipelagoLayout(items);
+    const europe = chains.find((c) => c.name === 'Europe');
+    const tallest = islands.find((isle) => isle.id === 'a');
+
+    const near = Math.hypot(
+      europe.center[0] - tallest.position[0],
+      europe.center[2] - tallest.position[2]
+    );
+    const shifted = Math.hypot(
+      europe.center[0] + europe.labelOffset[0] - tallest.position[0],
+      europe.center[2] + europe.labelOffset[2] - tallest.position[2]
+    );
+    expect(shifted).toBeGreaterThan(near);
+
+    for (const chain of chains) {
+      // A shoulder, not a leap: the earlier ±radius move landed one name
+      // off-canvas at 717x512, and the fused planner's 0.68 walked another off
+      // the left of a phone.
+      expect(Math.hypot(chain.labelOffset[0], chain.labelOffset[2])).toBeLessThan(
+        chain.radius * 0.5
+      );
+      expect(chain.labelOffset[1]).toBe(0);
+    }
+  });
+
+  it('gives a chain named after one of its own islands no placard', () => {
+    // The group and the island would name the same thing, and drawing both puts
+    // one word twice within a few pixels — the fused planner's rule, ported.
+    const { chains } = archipelagoLayout([
+      { id: 'a', label: 'Checkout', chain: 'Checkout', mass: 5 },
+      { id: 'b', label: 'Cart', chain: 'Checkout', mass: 5 },
+      { id: 'c', label: 'Search', chain: 'Discovery', mass: 5 }
+    ]);
+    expect(chains.find((c) => c.name === 'Checkout').namedByMember).toBe(true);
+    expect(chains.find((c) => c.name === 'Discovery').namedByMember).toBe(false);
   });
 
   it('machineGearLayout groups by axle, sizes by size, and pulls mesh pairs together', () => {

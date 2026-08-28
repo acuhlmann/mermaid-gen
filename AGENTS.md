@@ -361,12 +361,19 @@ ones that will bite an edit.
   plants until this pass), fused affinity placards stand at `group.surfaceY` (their ring is on the
   ocean the islands sit on), and an island's own label goes outward from the world centre. A
   territory named after one of its members (`namedByMember`) gets no placard at all — the member
-  already carries the word. **The archipelago `chain` is the open exception**: its circles overlap
-  and their centres cluster at the world centre, so `± radius` on any single axis lands the name on
-  open water nowhere near its islands or past the frame edge — measured at 717x512, the near-edge
-  move put DISCOVER in a corner and BUY off-canvas, strictly worse than hidden. The real answer is
-  the planner's `assignSiteLabelOffsets`, which needs the chain plan to carry an offset the way a
-  fused site does; the code says so at the call site rather than shipping a different wrong place.
+  already carries the word (the archipelago chain does this too now). **The archipelago `chain` was
+  the open exception, and closing it says what a group placard's plan owes.** No lateral move fixed
+  it — its circles overlap and their centres cluster at the world centre, so `± radius` on any axis
+  lands the name on open water or past the frame edge (at 717x512 the near-edge move put DISCOVER
+  in a corner and BUY off-canvas). The chain plan now carries `labelLift` + `labelOffset` the way a
+  fused site does, and `ChainLabel` is `pinned` — it was the only group placard in any kind the
+  declutter pass could drop outright. Three things were measured on 390x844 / 717x512 / 1440x900:
+  the lift is a **ridge, not a floor** (raising it bought one island name on the phone and cost two
+  placards on the cover); the shoulder points **away from the chain's own tallest island**, not out
+  from the world, because the lift is measured from that island's crest and lands on its name —
+  and when that island is the accented one, both labels are pinned, neither yields, and they draw
+  on top of each other ("BUY" over "Payments"); and the shoulder is 0.32 of the chain radius, not
+  the fused planner's 0.68, because the islands already reach the frame edge.
 - **Open water past the subject is scaffolding** — the iceberg's sea plane carries
   `FRAME_IGNORE_DATA`, like the shadow catcher and the fused ocean disc.
 - **So is the ground itself, and that is the bigger win.** Every grounded kind stands on a disc

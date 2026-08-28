@@ -1051,13 +1051,27 @@ sticky` nav row, because the height cap makes every small screen a scrolling
   island in FRONT of it, and writing the name on the near shore at ground level buried six.
   Lifting a label costs the camera fit nothing: text is pruned from it by material.
   A fourth instance was the **garden beds**, fixed the city's way (near edge, `+z`). The
-  **archipelago `chain` is the open exception**, and it is worth knowing why the same move fails
-  there: a chain circle is a poor anchor, because the chains overlap and their centres cluster at
-  the world centre, so `± radius` on any single axis lands the name on open water nowhere near its
-  islands — measured at 717x512, near-edge put DISCOVER in the bottom-left corner and BUY
-  off-canvas entirely, which is strictly worse than being hidden. It is left on the far edge with
-  the reasoning at the call site rather than moved to a different wrong place; the real answer is
-  to give the chain plan an offset the way a fused site has one.
+  **archipelago `chain` was the open exception, and closing it is what says why no lateral move
+  could have worked**: a chain circle is a poor anchor, because the chains overlap and their
+  centres cluster at the world centre, so `± radius` on any single axis lands the name on open
+  water nowhere near its islands — measured at 717x512, near-edge put DISCOVER in the bottom-left
+  corner and BUY off-canvas entirely, which is strictly worse than being hidden. The chain plan
+  now carries `labelLift` + `labelOffset` the way a fused site does (`archipelagoLayout`), and the
+  placard is **`pinned`** — it was the only group placard in any kind the declutter pass was
+  allowed to drop outright, which is what let the earlier bug read as "the model did not label
+  them". Measured over three fixtures × phone / foldable cover / desktop, all three chain names
+  come back on every viewport where the baseline drew none, and what pays for them is two link
+  captions and one island name — exactly the bottom of the rank ladder. Three findings are worth
+  keeping. **The lift is a ridge, not a floor**: raising the crest clearance from 1.15 to 2.4
+  bought one island name on the phone and cost two placards on the cover (FULFIL dimmed under the
+  reading strip, BUY faded out) — a portrait screen is width-bound, so its spare vertical room is
+  real, and a short landscape one has none. **The shoulder points away from the chain's own
+  tallest island, not out from the world**, which is the fused planner's rule and is wrong here:
+  the lift is measured from that island's crest, so it lands on that island's own name, and when
+  that island is also the accented one **both labels are pinned, neither yields, and they render
+  on top of each other** ("BUY" over "Payments" came out as `BÙYments`). And the shoulder is 0.32
+  of the chain radius rather than 0.68, because the islands already reach the frame edge — at the
+  fused number FULFIL walked off the left of a 390x844 phone.
 - **A territory named after one of its own members gets no placard.** When an island's label and a
   tower's `district` are the same noun — which is exactly what the composite prompt asks authors to
   do — the group and the island name the same thing, and drawing both puts the same word twice
