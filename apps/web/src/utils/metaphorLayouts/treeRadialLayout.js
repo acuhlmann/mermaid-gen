@@ -105,7 +105,7 @@ export function treeRadialLayout(items) {
   const roots = childrenOf.get('__root__') ?? [];
   const rootCount = roots.length;
 
-  function place(node, position, depth, parentId, startAngle, endAngle) {
+  function place(node, position, depth, { parentId, startAngle, endAngle }) {
     positions.set(node.id, position);
     const children = childrenOf.get(node.id) ?? [];
     const derivedKind = depth === 0 ? 'trunk' : children.length === 0 ? 'leaf' : 'branch';
@@ -139,14 +139,11 @@ export function treeRadialLayout(items) {
         Array.isArray(child.position) && child.position.length === 3
           ? [child.position[0], child.position[1], child.position[2]]
           : autoPos;
-      place(
-        child,
-        childPos,
-        depth + 1,
-        node.id,
-        startAngle + idx * childWedge,
-        startAngle + (idx + 1) * childWedge
-      );
+      place(child, childPos, depth + 1, {
+        parentId: node.id,
+        startAngle: startAngle + idx * childWedge,
+        endAngle: startAngle + (idx + 1) * childWedge
+      });
     });
   }
 
@@ -172,7 +169,7 @@ export function treeRadialLayout(items) {
       Array.isArray(root.position) && root.position.length === 3
         ? [root.position[0], root.position[1], root.position[2]]
         : autoPos;
-    place(root, rootPos, 0, null, -Math.PI, Math.PI);
+    place(root, rootPos, 0, { parentId: null, startAngle: -Math.PI, endAngle: Math.PI });
   });
 
   let boundsRadius = 0;

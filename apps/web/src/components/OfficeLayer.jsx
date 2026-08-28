@@ -1425,11 +1425,11 @@ export default function OfficeLayer({
   );
 
   const handleMessageSomeone = useCallback(() => {
-    setMessengerOpen(true);
+    openDeskCommsPanel('slopChat', readDeskCommsAnchorRect('slopChat'));
   }, []);
 
   const handleStartThread = useCallback(() => {
-    setMessengerOpen(true);
+    openDeskCommsPanel('slopChat', readDeskCommsAnchorRect('slopChat'));
   }, []);
 
   const handleComposeEmail = useCallback(
@@ -1449,7 +1449,7 @@ export default function OfficeLayer({
   const handleFloorMessage = useCallback((colleagueId) => {
     clearDeskArrivals();
     setMessengerTargetId(colleagueId);
-    setMessengerOpen(true);
+    openDeskCommsPanel('slopChat', readDeskCommsAnchorRect('slopChat'));
   }, []);
 
   /*
