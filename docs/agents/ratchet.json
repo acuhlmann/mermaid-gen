@@ -1,6 +1,6 @@
 {
-  "updated": "2026-08-27",
-  "$comment": "suite.files/cases tightened to their measured 387/4066 — genuine growth, needs no written reason. lintWarnings.apps/web stays at 846 despite measuring 851: #422 (assignSiteLabelPlacement complexity) was fixed upstream by #426 and closed, but PR #430 ('rank a composite's names one layer at a time') immediately introduced two more complexity violations in the same file family (assignLabelRanks in fusedCompositePlanner.js, an arrow function in labelDeclutter.js) — filed as #431 for the same render-and-measure-verification reason #422 was. This run also fixed two dead-code warnings (an unused test import in test/mermaidClassEdit.test.js, an unused helper in infographicGraphEdit.js) and cleared the new mermaidClassEdit.js deleteClassNode complexity warning (16, then 13 after a first extraction) by extracting classEditLineMatchesId, mirroring the file's own collectClassEdgeRefs precedent — dropping apps/web from 854 to 851. The remaining 5-over-budget gap (#402's three max-params instances + #431's two complexity instances) is real drift with fixes outside this routine's allowedPaths or requiring render verification, not stale bookkeeping — kept at 846 rather than raised, per the no-silent-loosening rule.",
+  "updated": "2026-08-28",
+  "$comment": "suite.files/cases tightened to their measured 389/4085 — genuine growth, needs no written reason. lintWarnings.apps/web stays at 846 despite measuring 847 (down from 851 last firing): a fresh full-repo lint pass turned up three real, previously-untracked bugs beyond #402/#431 — OfficeLayer.jsx called an undefined `setMessengerOpen` in three handlers (a live ReferenceError crash in the Slop Chat 'start a new thread' flow and the floor's 'Message' verb, fixed to call the real `openDeskCommsPanel('slopChat', ...)` API, with a regression test in officeLayerMessenger.test.jsx that reproduces the crash red before the fix), a duplicate-object-key bug in useVoiceInput.test.jsx's createDeps() helper that silently discarded any override of promptRef/deskPromptRef/slopNextPromptRef (dead code removed — no test currently overrides those fields, so this was zero-behaviour-change), and a max-params instance on treeRadialLayout.js's local `place()` helper (unlike #402's blocked instances, every call site is in-file, so the trailing params were grouped into an options object cleanly). #402's three max-params instances and #431's two complexity instances (assignLabelRanks, labelDeclutter.js) were both re-confirmed still open and unchanged — both stay ready-for-human per their own render-and-measure-verification concern — so the budget stays at 846 rather than raised, per the no-silent-loosening rule.",
   "metrics": {
     "monolithLoc": {
       "apps/web/src/ArchiSlop.jsx": {
@@ -66,11 +66,11 @@
     },
     "suite": {
       "files": {
-        "budget": 387,
+        "budget": 389,
         "initial": 366
       },
       "cases": {
-        "budget": 4066,
+        "budget": 4085,
         "initial": 3675
       }
     }
