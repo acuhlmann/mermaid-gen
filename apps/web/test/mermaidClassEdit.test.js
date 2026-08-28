@@ -27,13 +27,25 @@ describe('parseClassRelation', () => {
     expect(parseClassRelation('  Animal <|-- Duck')).toEqual({
       from: 'Animal',
       arrow: '<|--',
-      to: 'Duck'
+      to: 'Duck',
+      label: ''
     });
     expect(parseClassRelation('  Service --> Repository')).toEqual({
       from: 'Service',
       arrow: '-->',
-      to: 'Repository'
+      to: 'Repository',
+      label: ''
     });
+    expect(parseClassRelation('  Service --> Repository : uses')).toEqual({
+      from: 'Service',
+      arrow: '-->',
+      to: 'Repository',
+      label: 'uses'
+    });
+  });
+
+  it('does not treat member shorthand as a relation', () => {
+    expect(parseClassRelation('  Animal : +int age')).toBeNull();
   });
 });
 
@@ -85,5 +97,26 @@ describe('class diagram graph edit', () => {
     const result = deleteClassEdge(parallel, 'Service', 'Repository', undefined, 1);
     expect(result.ok).toBe(true);
     expect(result.source.match(/Service --> Repository/g)?.length).toBe(1);
+  });
+
+  it('deletes and renames through labeled relations', () => {
+    const labeled = `classDiagram
+  class Service {
+    +run()
+  }
+  class Repository {
+    +store()
+  }
+  Service --> Repository : uses
+`;
+    const deleted = deleteClassNode(labeled, 'Service');
+    expect(deleted.ok).toBe(true);
+    expect(deleted.source).not.toMatch(/Service/);
+
+    const renamed = renameClassNode(labeled, 'Repository', 'Repo');
+    expect(renamed.ok).toBe(true);
+    expect(renamed.source).toMatch(/Service --> Repo : uses/);
+    expect(renamed.source).toMatch(/class Repo \{/);
+    expect(renamed.source).not.toMatch(/\bRepository\b/);
   });
 });
