@@ -137,14 +137,32 @@ describe('label rank at the call sites', () => {
     expect(garden.slice(bedLabel, bedLabel + 300)).toContain('bed.size[1] / 2 + 0.42');
     expect(garden.slice(bedLabel, bedLabel + 300)).not.toContain('-bed.size[1]');
 
-    // The archipelago chain is the documented exception, and the comment is the
-    // deliverable: a chain circle is a poor anchor (the chains overlap and their
-    // centres cluster at the world centre), so the same move put one placard in
-    // a corner and the other off-canvas — strictly worse than hidden. Pinned so
-    // the next pass finds the reasoning instead of re-running the experiment.
+    // The archipelago chain was the documented exception for two passes: a chain
+    // circle is a poor LATERAL anchor (the chains overlap and their centres
+    // cluster at the world centre), so the near-edge move put one placard in a
+    // corner and the other off-canvas. It now takes the answer the fused
+    // planner reached instead — the plan carries a lift and a shoulder, and the
+    // scene must read them rather than re-deriving a half-extent of its own.
     const arch = read('metaphorScenes/ArchipelagoScene.jsx');
     const chainLabel = arch.indexOf('text={chain.name}');
     expect(chainLabel).toBeGreaterThan(-1);
-    expect(arch.slice(chainLabel, chainLabel + 1400)).toContain('assignSiteLabelOffsets');
+    // Widened backwards: the offset is read into a local above the JSX.
+    const chainProps = arch.slice(chainLabel - 600, chainLabel + 400);
+    expect(chainProps).toContain('chain.labelLift');
+    expect(chainProps).toContain('chain.labelOffset');
+    expect(chainProps).not.toContain('chain.radius');
+  });
+
+  it('pins every group placard, the archipelago chain included', () => {
+    // A territory's name has no second copy anywhere in the scene, which is why
+    // pinning buys a laxer on-canvas bar rather than an exemption. The chain was
+    // the one placard in any kind the declutter pass could drop outright — and
+    // it is the noun the archipelago legend's own axis is phrased in.
+    for (const [file, marker] of GROUP_PLACARDS) {
+      const source = read(file);
+      const at = source.indexOf(marker);
+      expect(at, `${file}: ${marker}`).toBeGreaterThan(-1);
+      expect(source.slice(at - 400, at + 400), `${file}: pinned`).toMatch(/\bpinned\b/);
+    }
   });
 });

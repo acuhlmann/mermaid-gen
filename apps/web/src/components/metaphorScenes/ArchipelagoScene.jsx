@@ -11,7 +11,9 @@ import { useFrame } from '@react-three/fiber';
 import { Billboard } from '@react-three/drei';
 import {
   archipelagoLayout,
-  islandRadiusForMass
+  islandCrestY,
+  islandRadiusForMass,
+  ISLAND_LABEL_CLEARANCE
 } from '../../utils/metaphorLayouts/archipelagoLayout.js';
 import { Glyph } from '../metaphorGlyphs/index.jsx';
 import {
@@ -274,8 +276,8 @@ function IslandBody({ island, theme, item }) {
     });
   }, [island]);
 
-  const hillTop = island.height * (0.36 + island.relief * 0.2);
-  const labelY = hillTop + 1.45;
+  const hillTop = islandCrestY(island);
+  const labelY = hillTop + ISLAND_LABEL_CLEARANCE;
 
   return (
     <group position={island.position}>
@@ -369,29 +371,32 @@ function IslandBody({ island, theme, item }) {
   );
 }
 
-/** Soft chain-name plaque floating above each island group. */
+/**
+ * Soft chain-name plaque floating above each island group.
+ *
+ * Placement is the layout's (`labelOffset` / `labelLift`), not the scene's: it
+ * stands above the tallest island NAME in the chain and steps off that island's
+ * own shoulder, which is the answer `assignSiteLabelPlacement` reached for a
+ * fused site. A chain circle is a poor lateral anchor — the chains overlap and
+ * their centres cluster near the world centre — so the earlier near-edge move
+ * that fixed the city districts and the garden beds put one placard in a corner
+ * and the other off-canvas at 717x512. Going up is a fact about the chain rather
+ * than about the camera, and the camera fit prunes text by material, so the lift
+ * costs the islands no room.
+ *
+ * `pinned` because a territory's name has no second copy anywhere in the scene:
+ * the chain is what the legend's own axis is phrased in, and this was the only
+ * group placard in any kind the declutter pass was allowed to drop outright.
+ */
 function ChainLabel({ chain, theme }) {
-  if (!chain.name || chain.name === 'Open sea') return null;
+  if (!chain.name || chain.name === 'Open sea' || chain.namedByMember) return null;
+  const offset = chain.labelOffset ?? [0, 0, 0];
   return (
     <ItemLabel
       text={chain.name}
       role="group"
-      // KNOWN WRONG, and left alone deliberately. This is the far side of the
-      // chain from the default (+x, +y, +z) view, so the placard is behind the
-      // chain's own islands — the bug the city district placards were fixed for
-      // by moving to the near edge, and the garden beds in the same pass.
-      //
-      // The chain is the one case that move does not fix, because a chain circle
-      // is a poor anchor: the chains here overlap and their centres cluster near
-      // the world centre, so `± radius` in any single axis lands the name on
-      // open water nowhere near its islands, or past the frame edge where the
-      // declutter pass drops it. Measured on a four-island, two-chain scene at
-      // 717x512: near-edge put DISCOVER in the bottom-left corner and BUY
-      // off-canvas entirely — strictly worse than being hidden. The real answer
-      // is the composite planner's `assignSiteLabelOffsets` (outward from the
-      // WORLD centre, past the outermost site), which needs the chain plan to
-      // carry an offset the way a fused site does.
-      position={[chain.center[0], 0.35, chain.center[2] - chain.radius * 0.85]}
+      pinned
+      position={[chain.center[0] + offset[0], chain.labelLift ?? 0.35, chain.center[2] + offset[2]]}
       fontSize={0.5}
       color={theme.labelColor}
       outlineColor={theme.labelOutline}
@@ -476,8 +481,7 @@ export function ArchipelagoScene({ dsl, theme }) {
   const anchors = useMemo(() => {
     const map = new Map();
     for (const isle of enriched) {
-      const top = isle.height * (0.36 + isle.relief * 0.2);
-      map.set(isle.id, [isle.position[0], top + 0.9, isle.position[2]]);
+      map.set(isle.id, [isle.position[0], islandCrestY(isle) + 0.9, isle.position[2]]);
     }
     return map;
   }, [enriched]);
