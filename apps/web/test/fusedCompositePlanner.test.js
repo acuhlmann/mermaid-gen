@@ -778,10 +778,11 @@ describe('label ranks across a fused world', () => {
 
   it('keeps every site above every landmark', () => {
     const world = planFusedCompositeWorld(dsl);
+    const loadedSites = world.sites.filter((site) => site.item);
+    expect(loadedSites.length).toBeGreaterThan(0);
+    expect(world.nodes.length).toBeGreaterThan(0);
     const worstSite = Math.min(
-      ...world.sites
-        .filter((site) => site.item)
-        .map((site) => fusedSiteLabelImportance(site.labelRank))
+      ...loadedSites.map((site) => fusedSiteLabelImportance(site.labelRank))
     );
     const bestNode = Math.max(...world.nodes.map((node) => fusedLabelImportance(node.labelRank)));
     expect(worstSite).toBeGreaterThan(bestNode);
@@ -789,9 +790,13 @@ describe('label ranks across a fused world', () => {
 
   it('carries a layerKey on every ranked body, for the declutter pass', () => {
     const world = planFusedCompositeWorld(dsl);
+    const loadedSites = world.sites.filter((s) => s.item);
+    expect(world.nodes.length).toBeGreaterThan(0);
+    expect(world.paths.length).toBeGreaterThan(0);
+    expect(loadedSites.length).toBeGreaterThan(0);
     for (const node of world.nodes) expect(typeof node.layerId).toBe('string');
     for (const path of world.paths) expect(typeof path.layerId).toBe('string');
-    for (const site of world.sites.filter((s) => s.item)) {
+    for (const site of loadedSites) {
       expect(typeof site.layerId).toBe('string');
     }
   });

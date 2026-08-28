@@ -279,6 +279,16 @@ data
     - label Product
 `;
 
+const WORDCLOUD = `infographic chart-wordcloud
+data
+  title Buzzwords
+  values
+    - text synergy
+      weight 5
+    - text pivot
+      weight 2
+`;
+
 describe('chart and hierarchy-structure flat arrays', () => {
   it('adds a sibling chart value with a default numeric value', () => {
     const result = addLinkedInfographicNode(CHART, '0', 'Q3');
@@ -292,6 +302,22 @@ describe('chart and hierarchy-structure flat arrays', () => {
     expect(result.ok).toBe(true);
     expect(result.source).toMatch(/- label Quarter 2/);
     expect(result.source).toMatch(/value 18/);
+  });
+
+  it('adds a sibling wordcloud word with a default weight, using `text` not `label`', () => {
+    const result = addLinkedInfographicNode(WORDCLOUD, '0', 'growth');
+    expect(result.ok).toBe(true);
+    expect(result.newId).toBe('1');
+    expect(result.source).toMatch(/- text growth[\s\S]*weight 1[\s\S]*- text pivot/);
+    expect(result.source).not.toMatch(/label growth/);
+  });
+
+  it('renames a wordcloud word via its `text` field, not `label`', () => {
+    const result = renameInfographicNode(WORDCLOUD, '1', 'rebrand');
+    expect(result.ok).toBe(true);
+    expect(result.source).toMatch(/- text rebrand/);
+    expect(result.source).toMatch(/weight 2/);
+    expect(result.source).not.toMatch(/label rebrand/);
   });
 
   it('works on hierarchy-structure items', () => {
