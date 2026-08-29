@@ -380,4 +380,31 @@ describe('graphEditIdFromDescriptor', () => {
     ).toBe('~node:0');
     expect(graphEditIdFromDescriptor({ kind: 'edge', dataId: 'A_B' })).toBeNull();
   });
+
+  it('maps timeline and pie rendered SVG ids to slice indexes', () => {
+    expect(
+      graphEditIdFromDescriptor({
+        id: 'diagram-1-node-0',
+        partKind: 'timeline',
+        kind: 'node',
+        label: 'Twitter'
+      })
+    ).toBe('0');
+    expect(
+      graphEditIdFromDescriptor({
+        id: 'diagram-1-node-2',
+        partKind: 'timeline',
+        kind: 'node',
+        label: 'Facebook'
+      })
+    ).toBe('2');
+    expect(
+      graphEditIdFromDescriptor({
+        id: 'diagram-1-node-1',
+        partKind: 'node',
+        kind: 'node',
+        label: 'Dogs'
+      })
+    ).toBe('1');
+  });
 });

@@ -43,6 +43,19 @@ function escapeRegExp(s) {
 }
 
 /**
+ * Timeline and pie diagrams stamp every slice as `diagram-<n>-node-<index>`; the trailing
+ * numeric suffix is the graph-edit row id and must survive normalization.
+ * @param {string} raw
+ * @returns {string | null}
+ */
+export function mermaidRenderedSliceIndex(raw) {
+  const text = String(raw ?? '').trim();
+  const match = /^diagram-\d+-node-(\d+)$/i.exec(text);
+  if (!match) return null;
+  return match[1];
+}
+
+/**
  * Strip common Mermaid SVG id prefixes/suffixes so DOM ids map back to vertex/subgraph ids.
  * @param {string} raw
  * @param {'node'|'cluster'} kind
@@ -79,6 +92,8 @@ export function logicalIdFromDiagramSelection(sel) {
   const data = sel.dataId != null && String(sel.dataId).trim() ? String(sel.dataId).trim() : '';
   const primary = data || selectionDomId(sel);
   if (!primary) return null;
+  const sliceIndex = mermaidRenderedSliceIndex(primary);
+  if (sliceIndex != null) return sliceIndex;
   const normalized = normalizeDiagramElementId(primary, kind);
   return normalized || primary;
 }
