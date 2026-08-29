@@ -21,7 +21,6 @@
  * map collapsed into it. Lanes have no such limit — routes can converge, share
  * a stop, separate, and converge again, which is what real networks do.
  */
-import { hash01Salted } from '../seededHash.js';
 
 const DEFAULT_LINE = 'Main line';
 /** Distance between consecutive stops along a route. */

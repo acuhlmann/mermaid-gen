@@ -98,7 +98,6 @@ export function parseTimelineDoc(source) {
   /** @type {TimelineEvent[]} */
   const events = [];
   let sectionIndex = -1;
-  let eventIndex = 0;
 
   for (let i = 0; i < lines.length; i += 1) {
     const raw = lines[i];
@@ -113,7 +112,6 @@ export function parseTimelineDoc(source) {
     if (!parsed || parsed.lineKind === 'meta') continue;
     if (parsed.lineKind === 'section') {
       sectionIndex += 1;
-      eventIndex = 0;
       continue;
     }
     events.push({
@@ -125,7 +123,6 @@ export function parseTimelineDoc(source) {
       tail: parsed.tail,
       sectionIndex: Math.max(sectionIndex, 0)
     });
-    eventIndex += 1;
   }
 
   if (!sawHeader || events.length === 0) return null;

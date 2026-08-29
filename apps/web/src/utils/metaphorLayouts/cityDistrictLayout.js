@@ -57,7 +57,6 @@ export function cityDistrictLayout(items) {
     const maxFootprint = Math.max(0.5, ...group.map((i) => i.footprint ?? 2));
     const span = patchSpan(group.length, maxFootprint);
     const col = patchIndex % cols;
-    const row = Math.floor(patchIndex / cols);
 
     if (col === 0 && patchIndex > 0) {
       cursorZ += rowMaxDepth + DISTRICT_GAP;
