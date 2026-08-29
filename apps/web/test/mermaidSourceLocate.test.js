@@ -50,6 +50,11 @@ describe('logicalIdFromDiagramSelection', () => {
     expect(logicalIdFromDiagramSelection({ id: 'flowchart-B-0' })).toBe('B');
     expect(logicalIdFromDiagramSelection({ id: 'diagram-1-flowchart-A-0' })).toBe('A');
   });
+
+  it('preserves timeline and pie slice indexes from rendered SVG ids', () => {
+    expect(logicalIdFromDiagramSelection({ id: 'diagram-1-node-0' })).toBe('0');
+    expect(logicalIdFromDiagramSelection({ id: 'diagram-12-node-3' })).toBe('3');
+  });
 });
 
 describe('parseSubgraphHeaderId', () => {

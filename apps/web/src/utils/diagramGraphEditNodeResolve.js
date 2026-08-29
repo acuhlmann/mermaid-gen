@@ -7,7 +7,7 @@
  * these are pure `(root, id) => Element | null` lookups with no closure over component state.
  */
 
-import { normalizeDiagramElementId } from './mermaidSourceLocate.js';
+import { mermaidRenderedSliceIndex, normalizeDiagramElementId } from './mermaidSourceLocate.js';
 
 /** Mermaid often sets `id` on a child shape; selection + CSS need a stable element with `id`. */
 export function diagramDomAnchor(group) {
@@ -42,6 +42,8 @@ export function logicalIdFromNodeWrap(node) {
   if (!anchor) return null;
   const dataId = anchor.getAttribute?.('data-id');
   if (dataId) return dataId;
+  const sliceIndex = mermaidRenderedSliceIndex(anchor.id);
+  if (sliceIndex != null) return sliceIndex;
   return normalizeDiagramElementId(anchor.id, 'node');
 }
 
