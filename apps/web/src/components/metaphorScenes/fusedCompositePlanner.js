@@ -253,6 +253,13 @@ function makeSites({ substrateEntries, itemCount, worldRadius, topology, novelty
     sites.push({
       id,
       item: item ?? null,
+      // A site's slot on the shared grouping ladder (`groupIdentity.js`). A
+      // fused world's substrate IS its grouping axis — one island per domain —
+      // and every island drew `theme.treeLeafColor` over `theme.treeSoilColor`,
+      // so on the commerce composite the three domains merged into one brown
+      // landmass and the layer key's "Archipelago · 3" was the only place in
+      // the picture that said there were three of anything.
+      groupIndex: index,
       layerId: entry?.layer.id ?? null,
       kind: entry?.layer.as ?? 'generated',
       primitive: entry ? 'island' : 'platform',
@@ -659,7 +666,7 @@ function makeConnectors(nodes, anchors) {
   });
 }
 
-function makeGroups(sites, nodes, worldKey) {
+function makeGroups(sites, nodes) {
   const buckets = new Map();
   const ensure = (key) => {
     if (!buckets.has(key)) {
@@ -672,7 +679,6 @@ function makeGroups(sites, nodes, worldKey) {
         // the user's nouns, so the first raw value that produced this key is
         // kept alongside it and is what the floor placard shows.
         display: null,
-        colorIndex: Math.floor(seeded(worldKey, key, 'group-color') * 8),
         positions: [],
         memberIds: new Set()
       });
@@ -720,7 +726,7 @@ function makeGroups(sites, nodes, worldKey) {
 
   return [...buckets.values()]
     .filter((group) => group.memberIds.size >= 2)
-    .map((group) => {
+    .map((group, colorIndex) => {
       const center = group.positions.reduce(
         (acc, position) => [acc[0] + position[0], acc[1] + position[1], acc[2] + position[2]],
         [0, 0, 0]
@@ -738,7 +744,16 @@ function makeGroups(sites, nodes, worldKey) {
         id: group.id,
         label: group.label,
         display: group.display ?? group.label,
-        colorIndex: group.colorIndex,
+        // Assigned by ORDINAL, and after the `memberIds.size >= 2` filter, so
+        // that N surviving groups always get N different colours. It used to be
+        // `Math.floor(seeded(worldKey, key, 'group-color') * 8)` — a uniform
+        // draw over eight slots, which for a three-group world collides about a
+        // third of the time (1 − 7/8 · 6/8) and for a five-group world more than
+        // half. A collision does not look like a bug: two territories simply
+        // agree, which is the one thing the shared grouping noun is there to
+        // deny. Seeding buys nothing here — the groups are already in a stable
+        // declaration order, and there is no second world to stay distinct from.
+        colorIndex,
         center: midpoint,
         radius: clamp(radius, 2.4, 9),
         // Where the group's name has to stand to be seen. A shared noun with an
@@ -1038,7 +1053,7 @@ export function planFusedCompositeWorld(dsl) {
   assignLabelRanks(layers, sites, nodes, paths);
   const links = makeLinks(dsl, layers, anchors);
   const connectors = makeConnectors(nodes, anchors);
-  const groups = makeGroups(sites, nodes, worldKey);
+  const groups = makeGroups(sites, nodes);
   const groundRadius = resolveGroundRadius(sites, nodes, paths);
   const estimatedCost =
     sites.reduce((sum, item) => sum + item.estimatedCost, 0) +

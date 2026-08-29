@@ -27,7 +27,7 @@ function patchSpan(count, maxFootprint, gap = 1.2) {
  * instead of the city drifting to one edge of it. `bounds.radius` is the
  * half-diagonal of the recentred footprint, used to size that footing.
  *
- * @returns {{ positions: Map<string, [number, number, number]>, districts: Array<{ name: string, center: [number, number, number], size: [number, number] }>, bounds: { width: number, depth: number, radius: number } }}
+ * @returns {{ positions: Map<string, [number, number, number]>, districts: Array<{ name: string, center: [number, number, number], size: [number, number] }>, districtIndexOf: Map<string, number>, bounds: { width: number, depth: number, radius: number } }}
  */
 export function cityDistrictLayout(items) {
   /** @type {Map<string, typeof items>} */
@@ -124,5 +124,18 @@ export function cityDistrictLayout(items) {
   const depth = Math.max(0, maxZ - minZ);
   const radius = Math.hypot(width, depth) / 2;
 
-  return { positions, districts, bounds: { width, depth, radius } };
+  // Which district slot each building belongs to. The scene needs this to give
+  // a tower its neighbourhood's colour (see `groupIdentity.js`), and it is
+  // returned from here rather than re-derived at the use site so the tint and
+  // the patch a tower stands on can never disagree about what `districtKey`
+  // means — an item with no `district` falls into the same default bucket as
+  // its patch does.
+  /** @type {Map<string, number>} */
+  const districtIndexOf = new Map();
+  const slotOfName = new Map(districtNames.map((name, idx) => [name, idx]));
+  for (const item of items) {
+    districtIndexOf.set(item.id, slotOfName.get(districtKey(item)) ?? 0);
+  }
+
+  return { positions, districts, districtIndexOf, bounds: { width, depth, radius } };
 }

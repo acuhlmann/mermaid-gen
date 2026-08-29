@@ -19,6 +19,7 @@ import {
 } from './fusedCompositePlanner.js';
 import { FRAME_IGNORE_DATA } from './sceneFraming.js';
 import { idHash2, shiftColor } from './sceneUtils.js';
+import { GROUP_TINT_EARTH, tintByGroup } from './groupIdentity.js';
 
 export function SemanticMotion({ motion, children, emphasized = false }) {
   const ref = useRef(null);
@@ -141,8 +142,16 @@ function IslandShrub({ kind, trunkColor, leafColor, scale = 1 }) {
  * component signatures.
  */
 export function IslandPrimitive({ entity, theme, emphasized, lod = 'high', muted = false }) {
-  const land = theme.treeLeafColor ?? '#3d9a4a';
-  const soil = theme.treeSoilColor ?? '#806443';
+  // Each island wears its own vegetation and earth (`groupIdentity.js`). Both
+  // move at `GROUP_TINT_EARTH` rather than the full ladder, because these are
+  // real substances and an island of blue grass stops being an island: a third
+  // of the ladder walks a leaf green out to a teal and back to an olive, and a
+  // warm brown to a clay and a khaki, which is the range real islands come in.
+  // The sand deliberately does not move — a shoreline is the one thing all the
+  // islands genuinely share, and holding it fixed is what keeps three tinted
+  // islands reading as one archipelago rather than three unrelated worlds.
+  const land = tintByGroup(theme.treeLeafColor ?? '#3d9a4a', entity.groupIndex, GROUP_TINT_EARTH);
+  const soil = tintByGroup(theme.treeSoilColor ?? '#806443', entity.groupIndex, GROUP_TINT_EARTH);
   const relief = entity.presentation?.relief ?? 0.5;
   const grass = useMemo(
     () => shiftColor(land, { lightness: emphasized ? 0.08 : 0, satScale: 1.08 }),
