@@ -86,7 +86,7 @@ data
   compares
     - label Strengths
 `)
-    ).toBe(false);
+    ).toBe(true);
     expect(infographicGraphAllowsLink(DAGRE)).toBe(true);
     expect(infographicGraphAllowsLink(NETWORK)).toBe(false);
     expect(infographicGraphAllowsLink(TREE)).toBe(false);
@@ -327,5 +327,42 @@ describe('chart and hierarchy-structure flat arrays', () => {
     const deleted = deleteInfographicNode(HIERARCHY_STRUCTURE, '1');
     expect(deleted.ok).toBe(true);
     expect(deleted.source).not.toMatch(/Product/);
+  });
+});
+
+const COMPARE_SWOT = `infographic compare-swot
+data
+  title SWOT
+  compares
+    - label Strengths
+      children
+        - label Strong brand
+    - label Weaknesses
+      children
+        - label Cost pressure
+`;
+
+describe('compare Connect / Delete / Rename', () => {
+  it('adds a child under the selected compare root', () => {
+    const result = addLinkedInfographicNode(COMPARE_SWOT, '0', 'Fast shipping');
+    expect(result.ok).toBe(true);
+    expect(result.newId).toBe('0,1');
+    expect(result.source).toMatch(/- label Strengths[\s\S]*- label Fast shipping/);
+  });
+
+  it('refuses deleting the last compare root', () => {
+    const single = `infographic compare-quadrant-quarter-simple-card
+data
+  compares
+    - label Only quadrant
+`;
+    expect(deleteInfographicNode(single, '0')).toMatchObject({ ok: false, reason: 'last' });
+  });
+
+  it('renames a compare item label', () => {
+    const result = renameInfographicNode(COMPARE_SWOT, '0,0', 'Iconic brand');
+    expect(result.ok).toBe(true);
+    expect(result.source).toMatch(/- label Iconic brand/);
+    expect(result.source).not.toMatch(/Strong brand/);
   });
 });

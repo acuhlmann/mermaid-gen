@@ -64,6 +64,25 @@ import {
   renameErNode
 } from './mermaidErEdit.js';
 import {
+  addLinkedPieNode,
+  connectPieNodes,
+  deletePieEdge,
+  deletePieNode,
+  isPieFamilySource,
+  renamePieEdge,
+  renamePieNode
+} from './mermaidPieEdit.js';
+import {
+  addLinkedTimelineNode,
+  connectTimelineNodes,
+  deleteTimelineEdge,
+  deleteTimelineNode,
+  isTimelineFamilySource,
+  parseTimelineNodeIndex,
+  renameTimelineEdge,
+  renameTimelineNode
+} from './mermaidTimelineEdit.js';
+import {
   addLinkedTreeNode,
   connectTreeNodes,
   deleteTreeEdge,
@@ -194,6 +213,28 @@ const ER_ADAPTER = {
   renameEdge: () => fail('not-graph')
 };
 
+const PIE_ADAPTER = {
+  contentType: 'mermaid',
+  canLink: false,
+  addLinked: addLinkedPieNode,
+  connect: connectPieNodes,
+  deleteNode: deletePieNode,
+  deleteEdge: deletePieEdge,
+  renameNode: renamePieNode,
+  renameEdge: renamePieEdge
+};
+
+const TIMELINE_ADAPTER = {
+  contentType: 'mermaid',
+  canLink: false,
+  addLinked: addLinkedTimelineNode,
+  connect: connectTimelineNodes,
+  deleteNode: deleteTimelineNode,
+  deleteEdge: deleteTimelineEdge,
+  renameNode: renameTimelineNode,
+  renameEdge: renameTimelineEdge
+};
+
 const METAPHOR_TREE_ADAPTER = {
   contentType: 'metaphor3d',
   canLink: false,
@@ -277,6 +318,10 @@ export function graphEditIdFromDescriptor(descriptor) {
   const logical = logicalIdFromDiagramSelection(descriptor);
   const nodeIndexMatch = logical?.match(/^node_(\d+)$/i);
   if (nodeIndexMatch) return mindmapNodeRef(Number.parseInt(nodeIndexMatch[1], 10));
+  if (descriptor.partKind === 'timeline') {
+    const timelineIndex = parseTimelineNodeIndex(logical);
+    if (timelineIndex != null) return String(timelineIndex);
+  }
   if (logical) return logical;
   if (descriptor.label) return mindmapLabelRef(descriptor.label);
   if (descriptor.partName) return mindmapLabelRef(descriptor.partName);
@@ -305,6 +350,12 @@ export function graphEditAdapterFor(contentType, source) {
   }
   if (contentType === 'mermaid' && isErFamilySource(source)) {
     return ER_ADAPTER;
+  }
+  if (contentType === 'mermaid' && isPieFamilySource(source)) {
+    return PIE_ADAPTER;
+  }
+  if (contentType === 'mermaid' && isTimelineFamilySource(source)) {
+    return TIMELINE_ADAPTER;
   }
   if (contentType === 'infographic' && isInfographicGraphSource(source)) {
     return {

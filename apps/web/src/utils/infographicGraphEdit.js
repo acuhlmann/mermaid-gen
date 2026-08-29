@@ -66,6 +66,7 @@ export function infographicGraphFamily(source) {
   if (family === 'list') return 'list';
   if (family === 'sequence') return 'sequence';
   if (family === 'chart') return 'flat';
+  if (family === 'compare') return 'compare';
   return null;
 }
 
@@ -80,6 +81,7 @@ function listArrayFieldForTemplate(template) {
   if (family === 'list') return 'lists';
   if (family === 'sequence') return 'sequences';
   if (family === 'chart') return 'values';
+  if (family === 'compare') return 'compares';
   return null;
 }
 
@@ -308,6 +310,123 @@ function parseHierarchyTree(source) {
   return { lines, root };
 }
 
+function parseCompareForest(source) {
+  const lines = String(source ?? '').split(/\r?\n/);
+  let fieldLine = -1;
+  let fieldIndent = -1;
+  for (let i = 0; i < lines.length; i += 1) {
+    if (lines[i].trim().toLowerCase() === 'compares' && indentOf(lines[i]) > 0) {
+      fieldLine = i;
+      fieldIndent = indentOf(lines[i]);
+      break;
+    }
+  }
+  if (fieldLine < 0) return null;
+  const end = blockEnd(lines, fieldLine, fieldIndent);
+  let itemIndent = -1;
+  for (let i = fieldLine + 1; i < end; i += 1) {
+    const raw = lines[i];
+    if (!raw.trim()) continue;
+    const ind = indentOf(raw);
+    if (ind <= fieldIndent) break;
+    if (raw.slice(ind).startsWith('- ')) {
+      itemIndent = ind;
+      break;
+    }
+  }
+  if (itemIndent < 0) return null;
+  /** @type {Array<ReturnType<typeof parseDashItem> & { isRoot?: boolean }>} */
+  const roots = [];
+  let i = fieldLine + 1;
+  let idx = 0;
+  while (i < end) {
+    const item = parseDashItem(lines, skipBlanks(lines, i), itemIndent, String(idx));
+    if (!item || item.start >= end) break;
+    roots.push({ ...item, isRoot: true });
+    idx += 1;
+    i = item.end;
+  }
+  if (roots.length === 0) return null;
+  return { lines, roots, end, itemIndent };
+}
+
+function flattenCompareForest(roots) {
+  /** @type {Array<ReturnType<typeof parseDashItem> & { isRoot?: boolean }>} */
+  const nodes = [];
+  for (const root of roots) flattenTree(root, nodes);
+  return nodes;
+}
+
+function findCompareNode(forest, ref) {
+  const nodes = flattenCompareForest(forest.roots);
+  if (ref.indexes) {
+    const path = indexPathOf(ref.indexes);
+    return nodes.find((node) => node.path === path) ?? null;
+  }
+  if (ref.label) {
+    return nodes.find((node) => node.label === ref.label || node.id === ref.label) ?? null;
+  }
+  return null;
+}
+
+function collectCompareLabels(forest) {
+  const labels = new Set();
+  for (const node of flattenCompareForest(forest.roots)) {
+    if (node.label) labels.add(node.label);
+  }
+  return labels;
+}
+
+function addCompareChild(source, fromId, label) {
+  const forest = parseCompareForest(source);
+  if (!forest) return fail('not-graph');
+  const parent = findCompareNode(forest, parseInfographicGraphId(fromId));
+  if (!parent) return fail('missing');
+  const text = String(label || '').trim() || allocateLabel(collectCompareLabels(forest));
+  const next = [...forest.lines];
+  const childIndex = parent.children.length;
+  const newPath = childPath(parent.path, childIndex);
+
+  if (parent.childrenKeyLine >= 0 && parent.children.length > 0) {
+    const sibling = parent.children[parent.children.length - 1];
+    const itemIndent = indentChars(forest.lines[sibling.start]);
+    next.splice(sibling.end, 0, `${itemIndent}- label ${text}`);
+    return ok(joinLines(source, next), { newId: newPath, newLabel: text });
+  }
+
+  const childIndent = parent.indent + 2;
+  const itemIndent = childIndent + 2;
+  const childrenPad = ' '.repeat(childIndent);
+  const itemPad = ' '.repeat(itemIndent);
+  const insertAt = parent.end;
+  const block = [];
+  if (parent.childrenKeyLine < 0) block.push(`${childrenPad}children`);
+  block.push(`${itemPad}- label ${text}`);
+  next.splice(insertAt, 0, ...block);
+  return ok(joinLines(source, next), { newId: newPath, newLabel: text });
+}
+
+function deleteCompareNode(source, nodeId) {
+  const forest = parseCompareForest(source);
+  if (!forest) return fail('not-graph');
+  const node = findCompareNode(forest, parseInfographicGraphId(nodeId));
+  if (!node) return fail('missing');
+  if (node.isRoot && forest.roots.length <= 1) return fail('last');
+  const next = [...forest.lines];
+  next.splice(node.start, node.end - node.start);
+  return ok(joinLines(source, next));
+}
+
+function renameCompareNode(source, nodeId, text) {
+  const forest = parseCompareForest(source);
+  if (!forest) return fail('not-graph');
+  const label = String(text ?? '').trim();
+  if (!label) return fail('empty');
+  const node = findCompareNode(forest, parseInfographicGraphId(nodeId));
+  if (!node) return fail('missing');
+  return ok(joinLines(source, setLabelOnSpan(forest.lines, node, label)));
+}
+
 function flattenTree(node, into = []) {
   into.push(node);
   for (const child of node.children ?? []) flattenTree(child, into);
@@ -376,6 +495,7 @@ export function addLinkedInfographicNode(source, fromId, label = '') {
   const family = infographicGraphFamily(source);
   if (!family) return fail('not-graph');
   if (family === 'hierarchy') return addHierarchyChild(source, fromId, label);
+  if (family === 'compare') return addCompareChild(source, fromId, label);
   if (family === 'list' || family === 'sequence' || family === 'flat') {
     return addListSibling(source, fromId, label);
   }
@@ -419,6 +539,7 @@ export function deleteInfographicNode(source, nodeId) {
   const family = infographicGraphFamily(source);
   if (!family) return fail('not-graph');
   if (family === 'hierarchy') return deleteHierarchyNode(source, nodeId);
+  if (family === 'compare') return deleteCompareNode(source, nodeId);
   if (family === 'list' || family === 'sequence' || family === 'flat') {
     return deleteListItem(source, nodeId);
   }
@@ -453,6 +574,7 @@ export function renameInfographicNode(source, nodeId, label) {
     if (!node) return fail('missing');
     return ok(joinLines(source, setLabelOnSpan(tree.lines, node, text)));
   }
+  if (family === 'compare') return renameCompareNode(source, nodeId, text);
   if (family === 'list' || family === 'sequence' || family === 'flat') {
     return renameListItem(source, nodeId, text);
   }
