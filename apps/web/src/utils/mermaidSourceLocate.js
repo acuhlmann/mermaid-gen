@@ -25,6 +25,8 @@ export function peekDiagramDirective(source) {
     if (/^mindmap\b/i.test(t)) return 'mindmap';
     if (/^classdiagram\b/i.test(t)) return 'class';
     if (/^erdiagram\b/i.test(t)) return 'er';
+    if (/^pie(?:\s+showData)?\b/i.test(t)) return 'pie';
+    if (/^timeline\b/i.test(t)) return 'timeline';
     return 'unknown';
   }
   return 'unknown';

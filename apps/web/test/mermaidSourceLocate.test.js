@@ -140,6 +140,12 @@ describe('peekDiagramDirective', () => {
   it('detects mindmap diagrams', () => {
     expect(peekDiagramDirective('mindmap\n  root((X))')).toBe('mindmap');
   });
+
+  it('detects pie and timeline diagrams', () => {
+    expect(peekDiagramDirective('pie title T\n  "A" : 1')).toBe('pie');
+    expect(peekDiagramDirective('pie showData\n  "A" : 1')).toBe('pie');
+    expect(peekDiagramDirective('timeline\n  title T\n  2024 : Launch')).toBe('timeline');
+  });
 });
 
 describe('findMermaidSourceRange', () => {

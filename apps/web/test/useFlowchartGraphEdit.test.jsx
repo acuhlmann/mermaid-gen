@@ -910,4 +910,74 @@ data
       created: true
     });
   });
+
+  it('adds a sibling event on a mermaid timeline', async () => {
+    const timeline = `timeline
+  title Product history
+  section 2000s
+    Facebook : 2004
+    Twitter : 2006
+`;
+    const { result } = mount({
+      diagramSource: timeline,
+      props: {
+        contentMode: 'mermaid',
+        selectedNode: {
+          dataId: '0',
+          partName: 'Facebook',
+          label: 'Facebook',
+          partKind: 'timeline'
+        }
+      }
+    });
+    expect(result.current.graphEdit.enabled).toBe(true);
+    expect(result.current.graphEdit.canLink).toBe(false);
+    await act(async () => {
+      result.current.handleGraphEditAction({ id: 'connect' });
+    });
+    expect(applyUserDiagramEdit).toHaveBeenCalledTimes(1);
+    expect(applyUserDiagramEdit.mock.calls[0][0].contentType).toBe('mermaid');
+    expect(applyUserDiagramEdit.mock.calls[0][0].diagramSource).toMatch(
+      /Facebook : 2004\n\s+Event 1 : 2004/
+    );
+    expect(result.current.labelSession).toMatchObject({
+      kind: 'node',
+      logicalId: '1',
+      created: true
+    });
+  });
+
+  it('adds a sibling slice on a mermaid pie chart', async () => {
+    const pie = `pie showData
+  title Pets adopted
+  "Dogs" : 386
+  "Cats" : 85
+`;
+    const { result } = mount({
+      diagramSource: pie,
+      props: {
+        contentMode: 'mermaid',
+        selectedNode: {
+          dataId: '0',
+          partName: 'Dogs',
+          label: 'Dogs'
+        }
+      }
+    });
+    expect(result.current.graphEdit.enabled).toBe(true);
+    expect(result.current.graphEdit.canLink).toBe(false);
+    await act(async () => {
+      result.current.handleGraphEditAction({ id: 'connect' });
+    });
+    expect(applyUserDiagramEdit).toHaveBeenCalledTimes(1);
+    expect(applyUserDiagramEdit.mock.calls[0][0].contentType).toBe('mermaid');
+    expect(applyUserDiagramEdit.mock.calls[0][0].diagramSource).toMatch(
+      /"Dogs" : 386\n\s+"Slice 1" : 386/
+    );
+    expect(result.current.labelSession).toMatchObject({
+      kind: 'node',
+      logicalId: '1',
+      created: true
+    });
+  });
 });
