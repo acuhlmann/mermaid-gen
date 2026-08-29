@@ -129,7 +129,7 @@ describe('er diagram graph edit', () => {
 
     const renamed = renameErNode(colonless, 'ORDER', 'Purchase');
     expect(renamed.ok).toBe(true);
-    expect(renamed.source).toMatch(/CUSTOMER \|\|--o\{ Purchase/);
+    expect(renamed.source).toMatch(/^ {2}CUSTOMER \|\|--o\{ Purchase *$/m);
     expect(renamed.source).toMatch(/Purchase \{/);
     expect(renamed.source).not.toMatch(/\bORDER\b/);
   });

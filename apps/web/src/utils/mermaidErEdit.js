@@ -328,7 +328,8 @@ export function renameErNode(source, entityId, label) {
       const to = replaceEntityToken(relation.to, entityId, nextLabel);
       if (from !== relation.from || to !== relation.to) {
         found = true;
-        return `${indentOf(line)}${from} ${relation.cardinality} ${to} : ${relation.label}`;
+        const suffix = relation.label ? ` : ${relation.label}` : '';
+        return `${indentOf(line)}${from} ${relation.cardinality} ${to}${suffix}`;
       }
       return line;
     }
