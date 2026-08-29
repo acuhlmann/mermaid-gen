@@ -633,6 +633,48 @@ test:floor`; the floor test map is [`docs/agents/isometric-floor-tests.md`](docs
 
 ## Metaphor3D scene gotchas
 
+- **A scene's categorical grouping axis was drawn as a placard and nothing else, and a placard is
+  the first thing a small screen throws away.** `district`, `bed`, `chain`, a fused world's
+  affinity group — the legend names one of these in almost every scene, which is a promise that
+  grouping is among the things the picture draws. It was not drawing it. Measured on the whiteboard
+  theme: every `CityBuilding` painted `theme.buildingColor` regardless of district, so a
+  four-district commerce city rendered in one blue; every `GardenBed`'s edging was built from
+  `districtPalette` (a pale `#dbeafe`) and then lifted another 0.12 in lightness, which clamps, so
+  every bed in every theme drew the same white border; and every `IslandPrimitive` drew
+  `treeLeafColor` over `treeSoilColor`, so the commerce composite's three domains merged into one
+  brown landmass and the layer key's "Archipelago · 3" was the only thing in the frame that said
+  there were three of anything. **The mobile case is the whole argument**: a group placard is a
+  label, so the declutter pass drops it first — on the 390×844 baseline `EDGE` came out as `GE`
+  behind its own towers and `CATALOG` was gone entirely, leaving an axis with no representation on
+  screen at all. A tint cannot be decluttered, costs no screen space, and survives at any distance.
+  `metaphorScenes/groupIdentity.js` holds it, and four things are load-bearing. **Nudge the scene's
+  own colour, never substitute a palette entry** — the same idiom as `ensureReadableInk` and
+  `recedeTheme`; `districtPalette` is four shades of one hue and `clusterPalette`'s four hues are
+  unevenly spread (190° sits next to 155°), so either one makes two groups of a four-group scene
+  agree, which is the exact failure being fixed. **Group 0 is the identity**, so a one-district city
+  is byte-identical to before and only a scene that has the axis pays for it. **Every rung LIFTS
+  lightness**: the first pass laddered both ways and the worst district was the one that had barely
+  moved in hue, because darkening a saturated colour is the fastest way to make it look more
+  saturated — `-0.08` turned the theme's own blue into an indigo that shouted over the four it was
+  meant to sit beside. And **saturation falls as the hue travels**: at full saturation the ladder is
+  correct and unusable (blue, mint, magenta, indigo — unmistakable, and nothing anyone would put in
+  front of an architecture review), while muting in proportion to the distance leaves the chalked
+  versions of those hues, which is what neighbourhoods should look like. Where a body **already**
+  carries a colour encoding the group takes the ground under it instead — a garden plant's colour is
+  its `health`, and two encodings in one channel would stop an at-risk plant reading as at-risk.
+  `GROUP_TINT_EARTH` is the reduced strength for a real substance: the full ladder walks a warm
+  brown a third of the way round the wheel, which in the garden lands the second bed on a green
+  that argues with the lawn it is set into. An island's **sand deliberately does not move** — a
+  shoreline is the one thing the islands genuinely share, and holding it fixed is what keeps three
+  tinted islands reading as one archipelago rather than three unrelated worlds.
+- **A grouping colour is an ordinal, never a hash.** `makeGroups` drew `colorIndex` from
+  `Math.floor(seeded(worldKey, key, 'group-color') * 8)` — a uniform draw over eight slots, so a
+  three-group world had two territories the same colour about a third of the time (1 − 7/8 · 6/8)
+  and a five-group world more than half. It is a bad failure to have left to chance because it does
+  not look like a bug: two territories simply agree, which is the one thing a shared grouping noun
+  exists to deny. Seeding bought nothing — the groups are already in a stable declaration order and
+  there is no second world to stay distinct from. Assign by array index, and do it **after** the
+  `memberIds.size >= 2` filter, or the dropped groups eat slots and the survivors collide anyway.
 - **Camera framing is solved against real geometry, not a bounding box.** `sceneFraming.js`
   samples every visible mesh's **vertices** (falling back to box corners only above 512 verts)
   because a `circleGeometry`'s bounding box is a SQUARE — its diagonal corners sit √2 outside a

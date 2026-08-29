@@ -45,6 +45,7 @@ import { MetaphorPngExportBridge } from '../utils/viewportPngExport.js';
 const METAPHOR_CONTENT_ROOT_NAME = 'archislop-metaphor-root';
 import { MetaphorClockProvider } from './metaphorScenes/MetaphorClockProvider.jsx';
 import { idHash, idHash2, shiftColor, truncateLabel } from './metaphorScenes/sceneUtils.js';
+import { GROUP_TINT_PLATE, tintByGroup } from './metaphorScenes/groupIdentity.js';
 import {
   GradientSkySphere,
   HoverableItem,
@@ -330,10 +331,27 @@ function RooftopFixtures({ id, footprint, height, theme }) {
   );
 }
 
-function CityBuilding({ item, position, theme, accentGlow }) {
+function CityBuilding({ item, position, theme: sceneTheme, accentGlow, districtIndex = 0 }) {
   const height = Math.max(0.5, item.height ?? 4);
   const footprint = Math.max(0.5, item.footprint ?? 2);
   const roofHeight = Math.max(0.18, height * 0.1);
+  // A tower wears its neighbourhood. The tint is applied by swapping the two
+  // colours on a copy of the theme rather than by threading a colour prop down
+  // — `CityRoof`, `BuildingWindows` and `RooftopFixtures` all read the theme
+  // themselves, and a district that stopped at the walls would leave a tower
+  // wearing another district's roof. `tintByGroup` returns the base unchanged
+  // for district 0, so a one-district city is byte-identical to before.
+  const theme = useMemo(() => {
+    if (!districtIndex) return sceneTheme;
+    return {
+      ...sceneTheme,
+      buildingColor: tintByGroup(sceneTheme.buildingColor, districtIndex),
+      buildingRoofColor: tintByGroup(
+        sceneTheme.buildingRoofColor ?? sceneTheme.buildingColor,
+        districtIndex
+      )
+    };
+  }, [sceneTheme, districtIndex]);
   const accentEmissive = accentGlow ? theme.accentGlow * accentGlow * 0.5 : 0;
   const lightingBoost = LIGHTING_BOOST[item.lighting] ?? 0;
   const emissiveIntensity = accentEmissive + lightingBoost;
@@ -445,7 +463,13 @@ function DistrictGrid({ size, color }) {
 }
 
 function DistrictPatch({ district, theme, index }) {
-  const color = resolveDistrictColor(theme, index);
+  // The patch and the towers standing on it move along the SAME ladder, so a
+  // neighbourhood reads as one thing rather than as a plate that happens to sit
+  // under some buildings. `resolveDistrictColor` supplies the base — index 0,
+  // not `index`, because the ladder does the separating now and the palette's
+  // own four entries are four shades of one blue, which is what made three
+  // districts render as one colour in the first place.
+  const color = tintByGroup(resolveDistrictColor(theme, 0), index, GROUP_TINT_PLATE);
   const gridColor = theme.districtGridColor ?? theme.labelColor ?? '#cbd5e1';
   const bannerColor = shiftColor(color, { lightness: -0.08, satScale: 0.85 });
   return (
@@ -1063,7 +1087,13 @@ function CityScene({ dsl, theme }) {
         const accentGlow = height >= heightThreshold ? 1 : 0;
         return (
           <HoverableItem key={item.id} item={item} metaphor="city">
-            <CityBuilding item={item} theme={theme} position={position} accentGlow={accentGlow} />
+            <CityBuilding
+              item={item}
+              theme={theme}
+              position={position}
+              accentGlow={accentGlow}
+              districtIndex={layout.districtIndexOf?.get(item.id) ?? 0}
+            />
           </HoverableItem>
         );
       })}

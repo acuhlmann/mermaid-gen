@@ -23,6 +23,7 @@ import { fusedLabelImportance, planFusedCompositeWorld } from './fusedCompositeP
 import { useMetaphorLayerFocusId } from '../metaphorLayerFocus.js';
 import { idHash2, recedeTheme, samplePolyline, shiftColor } from './sceneUtils.js';
 import { resolveDistrictColor } from '../../utils/metaphorThemePresets.js';
+import { GROUP_TINT_PLATE, tintByGroup } from './groupIdentity.js';
 import { DaylightPollen, SoaringBirds } from './MetaphorSceneDecorations.jsx';
 import {
   IslandPrimitive,
@@ -92,7 +93,12 @@ function PlannedNode({ entity, theme, emphasized, onActiveIdChange, lod, layerLa
 
 function AffinityGroups({ groups, theme }) {
   return groups.map((group) => {
-    const color = resolveDistrictColor(theme, group.colorIndex);
+    // Same grouping ladder as the city's districts and the garden's beds. A
+    // fused world is where it matters most and where it was worst: these rings
+    // paint at 0.1/0.2 opacity onto an ocean, so four shades of one pale blue
+    // came to nothing at all — and the shared grouping noun is the single thing
+    // a composite exists to align across its layers.
+    const color = tintByGroup(resolveDistrictColor(theme, 0), group.colorIndex, GROUP_TINT_PLATE);
     const plaqueColor = shiftColor(color, { lightness: -0.06, satScale: 0.85 });
     return (
       <group key={group.id} position={group.center}>

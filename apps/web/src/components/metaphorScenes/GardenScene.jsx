@@ -25,6 +25,7 @@ import {
 } from './MetaphorSceneDecorations.jsx';
 import { useMetaphorClock } from './metaphorClock.js';
 import { idHash2, shiftColor } from './sceneUtils.js';
+import { GROUP_TINT_EARTH, tintByGroup } from './groupIdentity.js';
 import { FRAME_IGNORE_DATA } from './sceneFraming.js';
 
 const HEALTH_POSTURE = {
@@ -33,9 +34,28 @@ const HEALTH_POSTURE = {
   'at-risk': { bend: 0.32, saturation: 0.58 }
 };
 
-function bedColor(theme, index) {
-  const palette = theme.districtPalette ?? theme.clusterPalette ?? ['#8bcf74'];
-  return palette[index % palette.length];
+/**
+ * A bed's EARTH, on the shared grouping ladder (`groupIdentity.js`).
+ *
+ * The garden is why that ladder goes on the ground and not on the bodies: a
+ * plant's colour is already its `health`, so tinting the plant by its bed would
+ * put two encodings in one channel and an at-risk plant in the second bed would
+ * stop reading as at-risk. The soil carries the group instead, and it carries
+ * it at `GROUP_TINT_EARTH` rather than the full ladder so each bed stays a
+ * believable earth — a third of the ladder takes a warm brown to a khaki and
+ * back to a red clay, where the whole of it reaches a green that argues with
+ * the lawn the bed is set into.
+ *
+ * It is the SOIL and not the edging because the edging could not hold a tint at
+ * all: it was built from `districtPalette` (a city plate palette, pale blue at
+ * `#dbeafe`) and then lifted another 0.12 in lightness, which clamps to white.
+ * Every bed in every theme drew the same white border, so the axis the legend
+ * calls `bed` had no colour anywhere in the scene. The border is now a pale
+ * stone struck from the bed's own earth, which is both a real thing and a
+ * second, quieter copy of the same signal.
+ */
+function bedSoilColor(theme, index) {
+  return tintByGroup(theme.gardenSoilColor ?? '#795438', index, GROUP_TINT_EARTH);
 }
 
 function gardenStemColor(theme, health) {
@@ -49,8 +69,8 @@ function shouldShowCompanionBlooms(maturity, impact) {
 }
 
 function GardenBed({ bed, theme, index }) {
-  const soil = theme.gardenSoilColor ?? '#795438';
-  const edging = shiftColor(bedColor(theme, index), { lightness: 0.12, satScale: 0.75 });
+  const soil = bedSoilColor(theme, index);
+  const edging = shiftColor(soil, { lightness: 0.42, satScale: 0.42 });
   return (
     <group position={[bed.center[0], 0, bed.center[2]]}>
       <mesh position={[0, -0.02, 0]}>

@@ -146,6 +146,24 @@ Durable traps found by rendering these scenes headlessly (the recipe is the scop
 `apps/web/.claude/skills/verify/`). The full list lives in [`CLAUDE.md`](CLAUDE.md); these are the
 ones that will bite an edit.
 
+- **A categorical grouping axis has to be visible on the BODIES that carry it**
+  (`metaphorScenes/groupIdentity.js`). District, bed, chain, affinity group — the legend promises
+  the viewer that grouping is drawn, and it was not: every city tower was `theme.buildingColor`
+  whatever its district, every garden bed's edging clamped to white, and every fused island was one
+  green over one brown, so the commerce composite's three domains merged into a single landmass.
+  `tintByGroup(base, index, strength)` nudges the scene's OWN colour along a fixed hue ladder —
+  group 0 is the identity, so an ungrouped scene is unchanged. Three rules if you extend it: never
+  substitute a palette entry (`districtPalette` is four shades of one hue, `clusterPalette`'s four
+  hues are unevenly spread, and both make two groups agree); never darken (a darkened saturated
+  colour reads as louder, which is how the first pass produced a shouting indigo district); and put
+  the tint on the GROUND wherever a body already carries an encoding — a garden plant's colour is
+  its `health`, so the soil takes the group instead. `GROUP_TINT_EARTH` is the reduced strength for
+  a real substance (soil, foliage) whose believable hue band is narrow.
+- **A grouping colour must be an ordinal, never a hash.** The fused planner drew `colorIndex` from
+  a seeded uniform over eight slots, so a three-group world had two territories the same colour
+  about a third of the time and a five-group world more than half — and a collision does not read
+  as a bug, it reads as two territories agreeing, which is the one thing a shared grouping noun
+  exists to deny. Assign after the `memberIds.size >= 2` filter, by array index.
 - **Camera framing samples real vertices, not bounding boxes** (`sceneFraming.js`). A
   `circleGeometry`'s bounding box is a SQUARE, so a ground disc's phantom diagonal corners — the
   points nearest the camera — used to dominate the fit and push the subject to ~40% of the frame.
