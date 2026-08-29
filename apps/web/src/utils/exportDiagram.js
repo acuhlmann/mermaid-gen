@@ -1,10 +1,6 @@
 import { parseChartDsl, sanitizeMetaphorDsl, authorMetaphorUsda } from '@archislop/shared';
 import { renderMermaidPreviewSvg } from './renderMermaidPreview.js';
-import {
-  MERMAID_EXPORT_MAX_WIDTH_PX,
-  normalizeSvgMarkupForExport,
-  svgMarkupToPngBlob
-} from './svgPngRaster.js';
+import { normalizeSvgMarkupForExport, svgMarkupToPngBlob } from './svgPngRaster.js';
 
 export {
   MERMAID_EXPORT_MAX_WIDTH_PX,

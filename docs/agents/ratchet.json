@@ -1,6 +1,6 @@
 {
-  "updated": "2026-08-28",
-  "$comment": "suite.files/cases tightened to their measured 389/4085 — genuine growth, needs no written reason. lintWarnings.apps/web stays at 846 despite measuring 847 (down from 851 last firing): a fresh full-repo lint pass turned up three real, previously-untracked bugs beyond #402/#431 — OfficeLayer.jsx called an undefined `setMessengerOpen` in three handlers (a live ReferenceError crash in the Slop Chat 'start a new thread' flow and the floor's 'Message' verb, fixed to call the real `openDeskCommsPanel('slopChat', ...)` API, with a regression test in officeLayerMessenger.test.jsx that reproduces the crash red before the fix), a duplicate-object-key bug in useVoiceInput.test.jsx's createDeps() helper that silently discarded any override of promptRef/deskPromptRef/slopNextPromptRef (dead code removed — no test currently overrides those fields, so this was zero-behaviour-change), and a max-params instance on treeRadialLayout.js's local `place()` helper (unlike #402's blocked instances, every call site is in-file, so the trailing params were grouped into an options object cleanly). #402's three max-params instances and #431's two complexity instances (assignLabelRanks, labelDeclutter.js) were both re-confirmed still open and unchanged — both stay ready-for-human per their own render-and-measure-verification concern — so the budget stays at 846 rather than raised, per the no-silent-loosening rule.",
+  "updated": "2026-08-29",
+  "$comment": "monolithLoc.diagramStore.js tightened 955→945 and lintWarnings.apps/web tightened 846→836, suite.files/cases tightened to their measured 392/4122 — all genuine improvements, need no written reason. The lint drop came from 6 dead-code fixes, each verified genuinely unreferenced before deletion: 8 imports in diagramStore.js (clearBrowserBackupSessionId, clearAllArchislopAppStorage, clearAllDiagramCachesFromStorage, clearSessionScopedArchislopStorage, isDiagramCacheSubstantial, PERSISTENT_ARCHISLOP_STORAGE_KEYS, readDiagramCache, writeDiagramCache) that were already independently re-exported via separate `export {...} from` statements — same dead-weight-import pattern as the 2026-08-25 firing's mermaidLangChainAgent.js fix; a duplicate, unused `unionSvgBBox` in embeddedDiagramFocus.js (a live copy already exists and is used in focusDiagramHighlightIds.js); one dead import each in exportDiagram.js (`MERMAID_EXPORT_MAX_WIDTH_PX`, same import-vs-re-export pattern) and metaphorLayouts/subwayNetworkLayout.js (`hash01Salted`, never referenced at all); a dead local `row` in metaphorLayouts/cityDistrictLayout.js (computed, never read — predates this firing, from the 2026-08-24 creation commit, so an old miss rather than fresh drift); and an unused `eventIndex` in the brand-new mermaidTimelineEdit.js plus a `no-useless-escape` on `\\|` inside mermaidErEdit.js's character class (both genuinely new, from this run's own graph-edit-family commits). A seventh, equally safe fix (a stray `\\{` in officeFloorBoard.js's character class, pre-existing since 2026-08-24) was found but left unfixed this run purely to stay inside maxFiles: 10 — noted as a ledger todo, not filed as an issue, since it needs no more than the one-line mechanical fix already scoped. #402's three max-params instances and #431's two complexity instances (assignLabelRanks, labelDeclutter.js) were both re-confirmed still open and unchanged — both stay ready-for-human per their own render-and-measure-verification concern. Also newly surfaced but NOT fixed this run (file budget spent; see ledger): infographicGraphEdit.js's `parseCompareForest` (complexity 15, new today from the timeline/pie/compare feature), mermaidClassEdit.js's line-307 arrow function (complexity 13, unflagged since the 2026-08-27 labeled-class fix), and mermaidSourceLocate.js's `peekDiagramDirective` (complexity 17, grown incrementally as this week's erDiagram/timeline/pie additions each added another dispatch branch) — filed as a fresh issue, tracked as a ledger todo.",
   "metrics": {
     "monolithLoc": {
       "apps/web/src/ArchiSlop.jsx": {
@@ -20,7 +20,7 @@
         "initial": 1164
       },
       "apps/web/src/state/diagramStore.js": {
-        "budget": 955,
+        "budget": 945,
         "initial": 955
       },
       "apps/server/src/mcp/mcpServer.js": {
@@ -50,7 +50,7 @@
         "initial": 229
       },
       "apps/web": {
-        "budget": 846,
+        "budget": 836,
         "initial": 851
       }
     },
@@ -66,11 +66,11 @@
     },
     "suite": {
       "files": {
-        "budget": 389,
+        "budget": 392,
         "initial": 366
       },
       "cases": {
-        "budget": 4085,
+        "budget": 4122,
         "initial": 3675
       }
     }

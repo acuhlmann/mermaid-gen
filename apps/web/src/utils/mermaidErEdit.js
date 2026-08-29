@@ -3,7 +3,7 @@ import { peekDiagramDirective, stripLineComment } from './mermaidSourceLocate.js
 
 const ENTITY_ID_RE = /^[A-Za-z][A-Za-z0-9_-]*$/;
 const ENTITY_BLOCK_OPEN_RE = /^\s*(\S+)\s*\{\s*$/;
-const ER_CARDINALITY_RE = /^[\|oxON{}.\-*]+$/i;
+const ER_CARDINALITY_RE = /^[|oxON{}.\-*]+$/i;
 const META_LINE_RE = /^erDiagram\b/i;
 const DEFAULT_CARDINALITY = '||--o{';
 const RESERVED_IDS = new Set(['erDiagram']);

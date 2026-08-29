@@ -10,21 +10,11 @@ import { createAgUiTranslator } from './agUiTranslator.js';
 import {
   API_BASE_URL,
   SESSION_HEADER,
-  clearBrowserBackupSessionId,
   createSessionId,
   getOrCreateBrowserSessionId,
   normalizeSessionId
 } from './diagramSession.js';
-import {
-  clearAllArchislopAppStorage,
-  clearAllDiagramCachesFromStorage,
-  clearSessionScopedArchislopStorage,
-  isDiagramCacheSubstantial,
-  PERSISTENT_ARCHISLOP_STORAGE_KEYS,
-  readDiagramCache,
-  wipeClientCachesAfterLostServerSession,
-  writeDiagramCache
-} from './diagramCacheStorage.js';
+import { wipeClientCachesAfterLostServerSession } from './diagramCacheStorage.js';
 
 export { createAgUiTranslator } from './agUiTranslator.js';
 export {

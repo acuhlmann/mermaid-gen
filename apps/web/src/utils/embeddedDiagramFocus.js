@@ -41,28 +41,6 @@ function groupMatchesIds(group, idSet) {
   return false;
 }
 
-function unionSvgBBox(elements) {
-  let minX = Infinity;
-  let minY = Infinity;
-  let maxX = -Infinity;
-  let maxY = -Infinity;
-  for (const el of elements) {
-    let box;
-    try {
-      box = el.getBBox?.();
-    } catch {
-      box = null;
-    }
-    if (!box || box.width <= 0 || box.height <= 0) continue;
-    minX = Math.min(minX, box.x);
-    minY = Math.min(minY, box.y);
-    maxX = Math.max(maxX, box.x + box.width);
-    maxY = Math.max(maxY, box.y + box.height);
-  }
-  if (!Number.isFinite(minX)) return null;
-  return { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
-}
-
 function readViewBoxString(svgEl) {
   const vb = svgEl.viewBox?.baseVal;
   if (vb && vb.width > 0 && vb.height > 0) {
