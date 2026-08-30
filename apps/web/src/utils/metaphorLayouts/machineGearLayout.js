@@ -21,6 +21,11 @@ export function gearRadiusForSize(size) {
   return 0.55 + Math.sqrt(Math.max(0.1, size)) * 0.55;
 }
 
+/** Clearance between an axle bed's outermost gear and the bed's name placard. */
+const AXLE_PLACARD_STANDOFF = 0.42;
+/** Placard height: above the plinth, below where the gears carry their own names. */
+const AXLE_PLACARD_Y = 0.36;
+
 /**
  * Pack interlocking gears onto a shared machine plate. Items group by `axle`
  * (shared shaft / subsystem); within an axle they orbit a local centre. When
@@ -40,7 +45,7 @@ export function gearRadiusForSize(size) {
  *     mesh: string | null,
  *     spinSign: 1 | -1
  *   }>,
- *   axles: Array<{ name: string, center: [number, number, number], radius: number }>,
+ *   axles: Array<{ name: string, center: [number, number, number], radius: number, placard: [number, number, number] }>,
  *   positions: Map<string, [number, number, number]>,
  *   bounds: { radius: number }
  * }}
@@ -127,12 +132,32 @@ export function machineGearLayout(items) {
     partner.spinSign = /** @type {1 | -1} */ (-gear.spinSign);
   }
 
+  // Write each bed's name on its NEAR edge (+z), clear of everything mounted on
+  // it. The far edge (-z) draws a group's name behind its own gears from the
+  // angle the scene opens at, and the old -0.78 x radius put it INSIDE the bed
+  // — the same bug the city districts and the garden beds were both fixed for.
+  // Measured from where the gears actually ended up, because the mesh pull
+  // above moves them after the bed's own radius was recorded.
+  for (const axle of axles) {
+    let reach = axle.radius;
+    for (const gear of gears) {
+      if (gear.axle !== axle.name) continue;
+      const offset = Math.hypot(
+        gear.position[0] - axle.center[0],
+        gear.position[2] - axle.center[2]
+      );
+      reach = Math.max(reach, offset + gear.radius);
+    }
+    axle.placard = [axle.center[0], AXLE_PLACARD_Y, axle.center[2] + reach + AXLE_PLACARD_STANDOFF];
+  }
+
   let maxR = 6;
   for (const gear of gears) {
     maxR = Math.max(maxR, Math.hypot(gear.position[0], gear.position[2]) + gear.radius + 1.5);
   }
   for (const axle of axles) {
     maxR = Math.max(maxR, Math.hypot(axle.center[0], axle.center[2]) + axle.radius + 1.2);
+    maxR = Math.max(maxR, Math.hypot(axle.placard[0], axle.placard[2]) + 0.6);
   }
 
   return { gears, axles, positions, bounds: { radius: maxR } };
