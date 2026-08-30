@@ -1,8 +1,12 @@
 ---
 name: improve
 tier: code-writing
-schedule: '0 8 * * *'
+schedule: '0 21 * * *'
 maxFiles: 10
+prTitlePrefix:
+  - 'improve:'
+branchPrefix:
+  - claude/eager-hopper
 allowedPaths:
   - docs/**
   - '*.md'
@@ -27,8 +31,36 @@ allowedPaths:
 Makes the project a little better every day. One slice per run, then stop. Opens a PR, merges it
 when CI is green.
 
-Take the **highest unfinished queue item that fits the budget**. Push the rest back into the
-ledger's `todos`. A run that does one thing properly beats a run that half-does four.
+## Picking tonight's slice
+
+**Rotate by weekday. Do not walk the queue top-down.**
+
+| Weekday   | Slice                                                      |
+| --------- | ---------------------------------------------------------- |
+| Monday    | 3. Test hardening                                          |
+| Tuesday   | 5. TypeScript leaves                                       |
+| Wednesday | 7. Coupling splits                                         |
+| Thursday  | 4. Sensor gaps                                             |
+| Friday    | 8. Lint severity promotion                                 |
+| Saturday  | 6. Doc drift                                               |
+| Sunday    | 3–8, whichever the ledger shows has gone longest untouched |
+
+Items **1 (register accuracy)** and **2 (ratchet drift)** are a **preamble, not a slice**: run them
+every night, take the numbers, and record them in the ledger row. They only _become_ the slice when
+they turn up something that actually moved the wrong way. Otherwise the run continues to the
+weekday's item.
+
+If the rotated item has nothing to do tonight, say so in the ledger row and take the next weekday's
+item — not item 1. A run that does one thing properly beats a run that half-does four.
+
+> **Why a rotation and not a priority order.** "Highest unfinished item that fits the budget" ran
+> for ten consecutive runs and reached items **1 and 2 every single time**. Items 3–8 were never
+> started; `strictIslandFiles` sat at 15/22 from the day the ratchet was created; and both powers
+> ADR-0016 granted on 2026-08-22 — self-merged coupling splits and lint-severity promotion — were
+> still unused eight days later. The registers and the ratchet drift _slightly_ every night by
+> construction, because the other automations keep landing code, so a top-down queue whose first
+> two items are "notice that something drifted" can never reach its third. That is a defect in the
+> selection rule, not in the routine's judgement.
 
 ## Queue
 
@@ -53,6 +85,28 @@ only thing that can answer "is this project actually getting better?" in three m
 
 The ratchet gates no build. Nothing is blocked by a regression here — it is simply this routine's
 work.
+
+**When you file rather than fix, label it `needs-triage` — never `ready-for-human`.**
+
+```bash
+gh issue create --title '…' --body '…' --label needs-triage
+```
+
+Escalation is a judgement a routine earns by _inspecting_ the work and refusing it; `resolve` has a
+whole section (`resolve.md` § 4) defining that bar. A filer that pre-stamps its own finding
+`ready-for-human` is asserting that judgement about something it never attempted, and it closes the
+hand-back before it opens: `resolve` gathers `ready-for-agent`, `needs-triage` and unlabelled
+issues, so a `ready-for-human` filing **never enters its gather set at all** — not skipped, never
+seen.
+
+That is not hypothetical. #431 was filed here already carrying `ready-for-human`, and `resolve`
+logged two of its next three runs as "quiet" for precisely that reason, with the issue sitting in
+front of it. If you genuinely believe a finding needs a human, say so **in the issue body** and let
+the routine whose job it is decide.
+
+Also: `gh issue create` with no `--label` argument leaves an issue unlabelled forever, because
+nothing in this repo ever labels one after the fact. `resolve` compensates by gathering unlabelled
+issues too, but that is a workaround for this routine's omission — pass the flag.
 
 ### 3. Test hardening
 
@@ -88,6 +142,21 @@ split, `diagramStore.js` likewise, `App.jsx` converts _as_ it splits and never b
 `apps/web/src` path in this routine's allowlist.
 
 ### 6. Doc drift
+
+**Start by reading the backlog, not the docs.**
+
+```bash
+gh issue list --state open --label ready-for-agent --json number,title,body
+```
+
+Any of those whose fix lives under `docs/**` or a root `*.md` is **this routine's** work on this
+night. `review` files such findings precisely because they are outside its own `allowedPaths`, and
+until 2026-08-30 `resolve` had those same paths, so a doc finding was visible only to routines that
+could not act on it (#441 sat that way, correctly labelled, for days). `resolve` can reach `docs/**`
+now, but this routine gets first refusal on the doc-shaped ones because it already carries the
+whole doc surface and `resolve`'s budget is better spent on `apps/**`.
+
+Then, if the backlog is clear:
 
 `GLOSSARY.md` is scanned by no check at all, while [`docs/agents/domain.md`](../agents/domain.md)
 tells every agent to prefer its terms — so glossary drift silently degrades every downstream issue
@@ -132,8 +201,20 @@ contains is not.
 ## Verification
 
 ```bash
+npm run routine:guard -- --preflight improve    # BEFORE starting
 npm run precommit
 npm run check
+npm run routine:guard -- --postflight improve   # BEFORE pushing
 ```
+
+The guard is the safety model, not a formality: it re-reads `maxFiles` / `allowedPaths` /
+`forbiddenPaths` from this playbook's own front-matter and checks the real diff, because a routine
+runs unattended and its safety cannot rest on the model having read the prose.
+
+Preflight also enforces README rule 5 — it refuses to start behind an open PR of this routine's
+own, matched on the PR title prefix (branch names are generated by the cloud runner, so the branch
+alone cannot identify who opened a PR). If it _warns_ that it could not read open PRs, `gh` is
+missing or unauthenticated and that check did not run: confirm by hand before pushing. An absent
+answer is not "no open PR".
 
 A sensor or script change also needs `npm run test:scripts` plus the negative case from § 4.

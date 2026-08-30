@@ -1,17 +1,22 @@
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 import {
   ALWAYS_FORBIDDEN,
   ROUTINE_TIERS,
+  PLAYBOOK_SHELVES,
   checkRoutineDiff,
   countTestCases,
+  fetchOpenPrs,
   globToRegExp,
   isTestPath,
   loadPlaybook,
+  matchOpenRoutinePrs,
   matchesAny,
-  parseFrontmatter
+  parseFrontmatter,
+  routinePrMatchers
 } from './routine-guard.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -227,4 +232,212 @@ test('the anything feature automation may touch its blast-radius paths', () => {
     testCounts: [{ file: 'apps/server/test/anythingRuntimeCheck.test.js', before: 40, after: 41 }]
   });
   assert.deepEqual(result.violations, []);
+});
+
+// --- preflight: one branch at a time -----------------------------------------------------------
+// README rule 5 and ADR-0014 clause 3 both promise this check. It did not exist until 2026-08-30,
+// and its absence stranded PR #442 for two days while `review` opened a second branch behind it.
+
+const OPEN_PRS = [
+  {
+    number: 442,
+    title: 'review: 2026-08-29 run — fix renameErNode',
+    headRefName: 'review/nfr-2026-08-29'
+  },
+  {
+    number: 448,
+    title: 'improve: dead-code cleanup drops lintWarnings',
+    headRefName: 'claude/eager-hopper-74jcfu'
+  },
+  {
+    number: 446,
+    title: 'fix(web): timeline/pie graph-edit ids',
+    headRefName: 'cursor/critical-bug-memory-55bc'
+  },
+  { number: 379, title: 'build(deps): bump hono', headRefName: 'dependabot/npm_and_yarn/x' }
+];
+
+test('routinePrMatchers defaults both prefixes from the routine name', () => {
+  assert.deepEqual(routinePrMatchers('review', {}), {
+    titlePrefixes: ['review:'],
+    branchPrefixes: ['review/']
+  });
+});
+
+test('routinePrMatchers honours playbook overrides', () => {
+  const matchers = routinePrMatchers('metaphor3d', {
+    prTitlePrefix: ['Metaphor3D:'],
+    branchPrefix: ['claude/gifted-davinci-']
+  });
+  assert.deepEqual(matchers.titlePrefixes, ['Metaphor3D:']);
+  assert.deepEqual(matchers.branchPrefixes, ['claude/gifted-davinci-']);
+});
+
+test('matchOpenRoutinePrs finds a routine PR by its title prefix when the branch is generated', () => {
+  const found = matchOpenRoutinePrs({ name: 'improve', playbook: {}, openPrs: OPEN_PRS });
+  assert.deepEqual(
+    found.map((pr) => pr.number),
+    [448],
+    'the cloud runner generates `claude/eager-hopper-*`, so only the title identifies the routine'
+  );
+});
+
+test('matchOpenRoutinePrs finds a routine PR by its branch prefix', () => {
+  const found = matchOpenRoutinePrs({
+    name: 'review',
+    playbook: {},
+    openPrs: [{ number: 442, title: 'wip', headRefName: 'review/nfr-2026-08-29' }]
+  });
+  assert.deepEqual(
+    found.map((pr) => pr.number),
+    [442]
+  );
+});
+
+test('matchOpenRoutinePrs ignores another fleet’s PR and dependabot', () => {
+  for (const name of ['review', 'improve', 'resolve']) {
+    const found = matchOpenRoutinePrs({
+      name,
+      playbook: {},
+      openPrs: OPEN_PRS.filter((pr) => pr.number === 446 || pr.number === 379)
+    });
+    assert.deepEqual(found, [], `${name} must not claim a Cursor or dependabot PR`);
+  }
+});
+
+test('matchOpenRoutinePrs is case-insensitive so `Metaphor3D:` matches a lowercase name', () => {
+  const found = matchOpenRoutinePrs({
+    name: 'metaphor3d',
+    playbook: {},
+    openPrs: [{ number: 445, title: 'Metaphor3D: draw the grouping axis', headRefName: 'claude/x' }]
+  });
+  assert.equal(found.length, 1);
+});
+
+test('fetchOpenPrs parses a gh payload', () => {
+  const prs = fetchOpenPrs(() => JSON.stringify(OPEN_PRS));
+  assert.equal(prs?.length, 4);
+});
+
+test('fetchOpenPrs returns null — not [] — when gh is unavailable', () => {
+  const prs = fetchOpenPrs(() => {
+    throw new Error('gh: command not found');
+  });
+  assert.equal(
+    prs,
+    null,
+    'an absent answer and an empty answer mean opposite things; conflating them would make ' +
+      'preflight silently report "no open PR" on every box without gh'
+  );
+});
+
+test('fetchOpenPrs returns null when gh answers with something that is not a list', () => {
+  assert.equal(
+    fetchOpenPrs(() => '{"message":"Bad credentials"}'),
+    null
+  );
+});
+
+test('every shipped playbook resolves to a usable PR matcher', () => {
+  const names = PLAYBOOK_SHELVES.flatMap((shelf) =>
+    fs
+      .readdirSync(path.join(ROOT, shelf.dir))
+      .filter((file) => file.endsWith('.md') && file !== 'README.md')
+      .map((file) => file.replace(/\.md$/, ''))
+  );
+  assert.ok(names.length >= 4, `expected the shelves to hold playbooks, found ${names.length}`);
+  for (const name of names) {
+    const { playbook } = loadPlaybook(ROOT, name);
+    const matchers = routinePrMatchers(name, playbook);
+    assert.ok(matchers.titlePrefixes.length > 0, `${name} has no title prefix`);
+    assert.ok(matchers.branchPrefixes.length > 0, `${name} has no branch prefix`);
+  }
+});
+
+// --- tier: report ------------------------------------------------------------------------------
+// Until 2026-08-30 `report` was validated as if it wrote code — it had to declare a budget it was
+// forbidden to spend — so nothing mechanically stopped a report routine from committing.
+
+test('a report routine may not change a single file', () => {
+  const result = checkRoutineDiff({
+    playbook: { name: 'digest', tier: 'report' },
+    changes: [{ status: 'M', file: 'docs/routines/ledger/digest.md' }]
+  });
+  assert.equal(result.ok, false, 'even its own ledger is off limits to a report routine');
+  assert.match(result.violations[0], /report tier/);
+});
+
+test('a report routine passes on an empty diff', () => {
+  const result = checkRoutineDiff({ playbook: { name: 'digest', tier: 'report' }, changes: [] });
+  assert.deepEqual(result.violations, []);
+});
+
+test('the report tier outranks a permissive playbook rather than reading its budget', () => {
+  const result = checkRoutineDiff({
+    playbook: { name: 'digest', tier: 'report', maxFiles: '99', allowedPaths: ['**'] },
+    changes: [{ status: 'M', file: 'README.md' }]
+  });
+  assert.equal(result.ok, false);
+});
+
+test('loadPlaybook rejects a report routine that declares a budget it cannot spend', () => {
+  const shipped = loadPlaybook(ROOT, 'digest');
+  assert.deepEqual(shipped.errors, [], 'the shipped digest playbook must be valid');
+  assert.equal(shipped.playbook.tier, 'report');
+  assert.equal(
+    Number(shipped.playbook.maxFiles || 0),
+    0,
+    'a report routine declares no maxFiles — see docs/routines/README.md § Tiers'
+  );
+});
+
+test('code-writing routines still have to declare a budget', () => {
+  for (const name of ['review', 'improve', 'resolve', 'anything']) {
+    const { playbook, errors } = loadPlaybook(ROOT, name);
+    assert.deepEqual(errors, [], `${name} playbook should load clean`);
+    assert.ok(Number(playbook.maxFiles) > 0, `${name} must declare maxFiles`);
+  }
+});
+
+test('every shipped playbook declares prefixes that match the PR titles it actually writes', () => {
+  // Regression: the `<name>:` default silently misses `resolve ledger:` and `anything automation:`,
+  // both of which are real PR titles in this repo's history. A preflight that cannot see a
+  // routine's own open PR is the failure this whole check exists to prevent.
+  const cases = [
+    ['resolve', 'resolve ledger: record PR #434 and the Actions reporting-lag lesson'],
+    ['resolve', 'resolve: delete groupIdentity’s never-called groupSlots()'],
+    ['anything', 'anything automation: Matter.Body API craft rules and corpus fixture'],
+    ['review', 'review: 2026-08-30 run — no bug found'],
+    ['improve', 'improve: dead-code cleanup drops apps/web lintWarnings to 836'],
+    ['metaphor3d', 'Metaphor3D: draw the grouping axis on the bodies that carry it'],
+    ['canvas-graph-edit', 'canvas graph edit: mermaid gantt family']
+  ];
+  assert.ok(cases.length >= 7, 'sweep must cover every shipped playbook');
+  for (const [name, title] of cases) {
+    const { playbook } = loadPlaybook(ROOT, name);
+    const found = matchOpenRoutinePrs({
+      name,
+      playbook,
+      openPrs: [{ number: 1, title, headRefName: 'claude/unrelated-generated-name' }]
+    });
+    assert.equal(found.length, 1, `${name} must claim its own PR titled "${title}"`);
+  }
+});
+
+test('the generated branch names this repo actually uses are recognised', () => {
+  const cases = [
+    ['review', 'claude/practical-newton-giqjy6'],
+    ['improve', 'claude/eager-hopper-74jcfu'],
+    ['resolve', 'claude/awesome-hawking-pmin47'],
+    ['metaphor3d', 'claude/gifted-davinci-4radwc']
+  ];
+  for (const [name, branch] of cases) {
+    const { playbook } = loadPlaybook(ROOT, name);
+    const found = matchOpenRoutinePrs({
+      name,
+      playbook,
+      openPrs: [{ number: 1, title: 'wip, no conventional prefix', headRefName: branch }]
+    });
+    assert.equal(found.length, 1, `${name} must recognise ${branch}`);
+  }
 });

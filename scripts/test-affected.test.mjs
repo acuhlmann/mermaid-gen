@@ -1,12 +1,15 @@
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 import test from 'node:test';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
+  GRAPH_EDIT_BLAST_TESTS,
+  METAPHOR_BLAST_TESTS,
+  SERVER_SLOW_TEST_FILES,
   basenameTestCandidates,
   isWireSourcePath,
   resolveAffectedTests,
-  SERVER_SLOW_TEST_FILES,
   summarizeAffectedTestPlan,
   touchesAnythingRuntime
 } from './test-affected-lib.mjs';
@@ -143,4 +146,69 @@ test('resolveAffectedTests pulls agent tooling blast tests for test-affected-lib
 test('resolveAffectedTests marks unknown scripts paths for fallback', () => {
   const plan = resolveAffectedTests(['scripts/noMatchingAgentScript.mjs'], { root: ROOT });
   assert.ok(plan.fallbacks.includes('scripts'));
+});
+
+// --- metaphor3d and canvas graph-edit --------------------------------------------------------
+// Neither area had a blast-radius rule until 2026-08-30, so both relied on the basename mirror
+// alone: a shared-schema edit selected one test file and missed every consumer of that schema.
+
+test('a shared metaphor schema edit reaches its server and web consumers, not just its own test', () => {
+  const plan = resolveAffectedTests(['packages/shared/src/metaphorSanitizer.ts'], { root: ROOT });
+  assert.ok(
+    plan.tests.includes('packages/shared/test/metaphorSanitizer.test.ts'),
+    'basename mirror'
+  );
+  assert.ok(
+    plan.tests.includes('apps/server/test/metaphorCompositeContract.test.js'),
+    'the server ladder consumes the same schema and the mirror cannot see it'
+  );
+  assert.ok(plan.tests.includes('apps/web/test/metaphorLayouts.test.js'), 'web consumers');
+  assert.ok(
+    plan.tests.length > 20,
+    `expected the whole metaphor set, got ${plan.tests.length} — a rule that selects almost nothing is the bug being fixed`
+  );
+});
+
+test('a metaphor scene module edit pulls the metaphor set', () => {
+  const plan = resolveAffectedTests(['apps/web/src/components/metaphorScenes/linkRoutes.js'], {
+    root: ROOT
+  });
+  assert.ok(plan.tests.includes('apps/web/test/metaphorLinkRoutes.test.js'));
+  assert.ok(plan.tests.includes('apps/web/test/metaphorSceneFraming.test.js'));
+});
+
+test('one graph-edit family edit pulls its sibling families', () => {
+  const plan = resolveAffectedTests(['apps/web/src/utils/mermaidErEdit.js'], { root: ROOT });
+  assert.ok(plan.tests.includes('apps/web/test/mermaidErEdit.test.js'), 'basename mirror');
+  assert.ok(
+    plan.tests.includes('apps/web/test/mermaidClassEdit.test.js'),
+    'ER and class share pickParallelEdgeRef — the 2026-08-28/29 colon-less bug crossed exactly this seam'
+  );
+  assert.ok(plan.tests.includes('apps/web/test/canvasGraphEdit.test.js'), 'the shared dispatcher');
+});
+
+test('the negative case: an unrelated file pulls neither new set', () => {
+  const plan = resolveAffectedTests(['apps/web/src/utils/officeCast.js'], { root: ROOT });
+  for (const file of METAPHOR_BLAST_TESTS) {
+    assert.ok(!plan.tests.includes(file), `officeCast must not pull ${file}`);
+  }
+  assert.ok(
+    !plan.tests.includes('apps/web/test/canvasGraphEdit.test.js'),
+    'a rule that fires on everything is the same as no rule'
+  );
+});
+
+test('both new bundles are non-empty and every path in them exists', () => {
+  for (const [label, bundle] of [
+    ['METAPHOR_BLAST_TESTS', METAPHOR_BLAST_TESTS],
+    ['GRAPH_EDIT_BLAST_TESTS', GRAPH_EDIT_BLAST_TESTS]
+  ]) {
+    assert.ok(bundle.length > 0, `${label} is empty — a sweep over nothing passes vacuously`);
+    for (const file of bundle) {
+      assert.ok(
+        fs.existsSync(path.join(ROOT, file)),
+        `${label} names ${file}, which does not exist — resolveAffectedTests drops it silently`
+      );
+    }
+  }
 });

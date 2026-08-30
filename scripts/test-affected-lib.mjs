@@ -83,11 +83,104 @@ export const AGENT_TOOLING_BLAST_TESTS = [
 ];
 
 /**
+ * Full Metaphor3D regression set — shared schema/sanitizer/USDA, the server ladder, and every
+ * web scene, layout, overlay and graph-edit module.
+ *
+ * Metaphor had **no** blast-radius rule until 2026-08-30, so it relied entirely on the basename
+ * mirror: editing `packages/shared/src/metaphorSanitizer.ts` selected `metaphorSanitizer.test.ts`
+ * and nothing else — not the server's `metaphorCompositeContract`, not any of the 30+ web suites
+ * that consume the same schema. Compare `mermaidSanitizer`, `chartSchema` and `formsA2ui`, which
+ * all carry an explicit cross-workspace rule. Keep in sync with `docs/agent-blast-radius.md`.
+ */
+export const METAPHOR_BLAST_TESTS = [
+  'packages/shared/test/metaphorDiff.test.ts',
+  'packages/shared/test/metaphorPartialParse.test.ts',
+  'packages/shared/test/metaphorSanitizer.test.ts',
+  'packages/shared/test/metaphorUsda.test.ts',
+  'apps/server/test/metaphorCompositeContract.test.js',
+  'apps/server/test/metaphorFocusInstructions.test.js',
+  'apps/server/test/metaphorLangChainAgent.test.js',
+  'apps/server/test/metaphorSyntaxFixer.test.js',
+  'apps/web/test/compositeScene.test.js',
+  'apps/web/test/fusedCompositePlanner.test.js',
+  'apps/web/test/metaphorAccentCaption.test.js',
+  'apps/web/test/metaphorCityEdit.test.js',
+  'apps/web/test/metaphorCompositeEdit.test.js',
+  'apps/web/test/metaphorFlatItemsCore.test.js',
+  'apps/web/test/metaphorFlatKindEdit.test.js',
+  'apps/web/test/metaphorGardenEdit.test.js',
+  'apps/web/test/metaphorGlyphRegistry.test.js',
+  'apps/web/test/metaphorGraphEdit.test.js',
+  'apps/web/test/metaphorGroupIdentity.test.js',
+  'apps/web/test/metaphorLabelDeclutter.test.js',
+  'apps/web/test/metaphorLabelRoles.test.js',
+  'apps/web/test/metaphorLayerFocus.test.js',
+  'apps/web/test/metaphorLayouts.test.js',
+  'apps/web/test/metaphorLegendAxes.test.js',
+  'apps/web/test/metaphorLinkRoutes.test.js',
+  'apps/web/test/metaphorMoods.test.js',
+  'apps/web/test/metaphorMotionPolicy.test.js',
+  'apps/web/test/metaphorNewKindLayouts.test.js',
+  'apps/web/test/metaphorOverlaySafeArea.test.js',
+  'apps/web/test/metaphorOverlayStyles.test.js',
+  'apps/web/test/metaphorOverlays.test.jsx',
+  'apps/web/test/metaphorReading.test.js',
+  'apps/web/test/metaphorSceneFraming.test.js',
+  'apps/web/test/metaphorSceneUtils.test.js',
+  'apps/web/test/metaphorScreenScale.test.js',
+  'apps/web/test/metaphorSelection.test.jsx',
+  'apps/web/test/metaphorThemePresets.test.js',
+  'apps/web/test/metaphorTour.test.js',
+  'apps/web/test/metaphorTreeEdit.test.js',
+  'apps/web/test/switchMetaphorKind.test.js'
+];
+
+/**
+ * Canvas graph-edit family set. The 28 shipped families share four dispatch points
+ * (`canvasGraphEdit.js`'s `graphEditAdapterFor`, `diagramGraphEditNodeResolve.js`,
+ * `useFlowchartGraphEdit`, and the metaphor bridge), so a change to any one adapter can break a
+ * sibling family the basename mirror never selects. Keep in sync with
+ * `docs/canvas-graph-edit.md` and `docs/agent-blast-radius.md`.
+ */
+export const GRAPH_EDIT_BLAST_TESTS = [
+  'apps/web/test/canvasGraphEdit.test.js',
+  'apps/web/test/chartGraphEdit.test.js',
+  'apps/web/test/diagramGraphEditNodeResolve.test.js',
+  'apps/web/test/graphEditChrome.test.jsx',
+  'apps/web/test/infographicGraphEdit.test.js',
+  'apps/web/test/mermaidClassEdit.test.js',
+  'apps/web/test/mermaidErEdit.test.js',
+  'apps/web/test/mermaidFlowchartEdit.test.js',
+  'apps/web/test/mermaidMindmapEdit.test.js',
+  'apps/web/test/mermaidPieEdit.test.js',
+  'apps/web/test/mermaidSequenceEdit.test.js',
+  'apps/web/test/mermaidStateEdit.test.js',
+  'apps/web/test/mermaidTimelineEdit.test.js',
+  'apps/web/test/metaphorCityEdit.test.js',
+  'apps/web/test/metaphorCompositeEdit.test.js',
+  'apps/web/test/metaphorFlatKindEdit.test.js',
+  'apps/web/test/metaphorGardenEdit.test.js',
+  'apps/web/test/metaphorGraphEdit.test.js',
+  'apps/web/test/metaphorTreeEdit.test.js',
+  'apps/web/test/useFlowchartGraphEdit.test.jsx'
+];
+
+/**
  * Prefix → extra tests beyond the basename mirror rule.
  * Keep in sync with `docs/agent-blast-radius.md`.
  * @type {Array<{ match: RegExp, tests: string[] }>}
  */
 export const BLAST_RADIUS_RULES = [
+  {
+    match:
+      /packages\/shared\/src\/metaphor|apps\/server\/src\/(tools\/metaphorDslTool|agents\/metaphor|prompts\/metaphor)|apps\/web\/src\/(components\/(metaphorScenes|MetaphorRenderer)|utils\/metaphor|utils\/switchMetaphorKind)/,
+    tests: METAPHOR_BLAST_TESTS
+  },
+  {
+    match:
+      /apps\/web\/src\/utils\/(canvasGraphEdit|diagramGraphEditNodeResolve|mermaid\w+Edit|infographicGraphEdit|chartGraphEdit|metaphor\w*Edit|pickParallelEdgeRef)|apps\/web\/src\/hooks\/useFlowchartGraphEdit/,
+    tests: GRAPH_EDIT_BLAST_TESTS
+  },
   {
     match:
       /packages\/shared\/src\/(diagramSchema|legacyStreamEvents|agUiWireConstants|agentStreamEmitter)/,

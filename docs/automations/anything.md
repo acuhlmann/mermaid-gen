@@ -1,9 +1,15 @@
 ---
 name: anything
 tier: code-writing
-schedule: '0 1 * * *'
-timezone: Asia/Hong_Kong
+schedule: '15 17 * * *'
 maxFiles: 12
+prTitlePrefix:
+  - 'anything automation:'
+  - 'anything:'
+branchPrefix:
+  - claude/anything-automation
+  - cursor/feature-automation-anything
+  - cursor/anything-daily-automation
 allowedPaths:
   - docs/automations/ledger/anything.md
   - apps/server/src/agents/anything*
@@ -29,8 +35,12 @@ forbiddenPaths:
 Incrementally improves the **Anything** slot: validation ladder, prompts, benches, and renderer.
 One slice per run, then stop. Opens a PR and merges it when CI is green.
 
-`0 1 * * *` at **GMT+8** (01:00 Hong Kong) — `0 17 * * *` UTC the previous calendar day. Sits
-between the Metaphor3D routine (20:00 UTC) and the NFR `resolve` routine (03:00 UTC / 11:00 HKT).
+`15 17 * * *` **UTC** (01:15 HKT). Sits between the `metaphor3d` automation (`0 15`) and
+`canvas-graph-edit` (`30 18`), with the three NFR routines reviewing the night's work afterwards.
+
+Every playbook on both shelves declares its schedule in **UTC**. `routine-guard` does not read the
+`schedule` key at all, so a second timezone convention is invisible to every mechanical check and
+is precisely how four of these drifted out of sync with their live crons.
 
 Take the **highest unfinished queue item that fits the budget**. Push the rest back into the
 ledger's `todos`.
