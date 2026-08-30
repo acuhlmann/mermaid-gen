@@ -94,10 +94,17 @@ function AxleBed({ axle, theme, index }) {
           metalness={0.7}
         />
       </mesh>
+      {/* On the bed's NEAR edge (+z) and OUTSIDE its outermost gear, from the
+          layout. The old `-axle.radius * 0.78` was both the far edge and inside
+          the bed, so every subsystem's name was written across its own gears —
+          the same bug the city districts and garden beds were fixed for, and
+          with three pinned placards holding the middle of the plate it was also
+          why the gears' own names lost the declutter pass. `placard` is in the
+          scene group's space, so it is applied outside this bed's group. */}
       <ItemLabel
         text={axle.name}
         role="group"
-        position={[0, 0.26, -axle.radius * 0.78]}
+        position={[0, axle.placard[1], axle.placard[2] - axle.center[2]]}
         fontSize={0.42}
         color={theme.labelColor}
         outlineColor={theme.labelOutline}

@@ -89,18 +89,21 @@ Metaphor3D uses the same **validate → single-shot fixer → agent repair** sha
 
 ```mermaid
 flowchart TB
-  Raw["Proposed Metaphor DSL JSON"] --> S["Sanitizer\n(metaphorSanitizer.ts)"]
+  Raw["Proposed Metaphor DSL JSON"] --> FS["Fence strip\n(stripJsonCodeFence)"]
+  FS --> S["Sanitizer\n(metaphorSanitizer.ts)"]
   S --> SC["Schema check\n(metaphorSchema.ts)"]
   SC -->|valid| P["Patch accepted"]
-  SC -->|invalid| F["Single-shot syntax fixer\n(metaphorSyntaxFixer.js)"]
+  SC -->|invalid| F["Syntax fixer ladder\n(metaphorSyntaxFixer.js)"]
   F -->|accepted| P
   F -->|fail| A["Agent repair up to N attempts"]
 ```
 
 - **Sanitizer** (`packages/shared/src/metaphorSanitizer.ts`) strips code fences, normalises JSON, and coerces obvious type mismatches. On an unrecoverable input it returns a **root-cause `error`** — the verbatim `JSON.parse` message, or the failing Zod issues formatted path-by-path (`items.0.height: …`), mirroring `parseChartDsl` — instead of a generic notice. `validateAndPrepareMetaphorPatch` / `validateMetaphorStrict` relay it verbatim, so the fixer and repair prompts see exactly which field failed (upholds the "parser errors are verbatim" principle above).
-- **Schema check** (`packages/shared/src/metaphorSchema.ts`) validates the discriminated `metaphor` union (city / layercake / galaxy / tree / terrain / orrery / river / garden / archipelago / machine) and all item/link/scene fields; failures surface as the formatted Zod issues described above.
-- **Single-shot syntax fixer** (`apps/server/src/agents/metaphorSyntaxFixer.js`) — one LLM call with the schema error and broken DSL; references `metaphorSyntaxGuard.js`.
+- **Schema check** (`packages/shared/src/metaphorSchema.ts`) validates the discriminated `metaphor` union — all **fifteen** kinds: city / layercake / galaxy / tree / terrain / orrery / river / garden / archipelago / machine / bridge / cycle / subway / iceberg / composite — and all item/link/scene fields; failures surface as the formatted Zod issues described above. A `composite` document re-validates each layer's items against that layer's `as` base kind.
+- **Syntax fixer ladder** (`apps/server/src/agents/metaphorSyntaxFixer.js`) — `repairMetaphorWithFixer` climbs lite → flash → DeepSeek, the same latency→quality escalation chart and forms use; it is not a single shot. References `metaphorSyntaxGuard.js`.
 - **Agent repair turns** — bounded by `METAPHOR_REPAIR_MAX_ATTEMPTS` env var.
+
+Two entry points share the ladder and differ in one flag. `validateAndPrepareMetaphorPatch` (agent patches) runs with `allowStructureRewrite: true`, so the sanitizer may default a missing `metaphor`, drop malformed items and clamp out-of-range numbers; `validateMetaphorStrict` (used where a rewrite would silently change what the author wrote) runs with it `false`. Both strip a JSON code fence first.
 
 ## Chart validation pipeline
 

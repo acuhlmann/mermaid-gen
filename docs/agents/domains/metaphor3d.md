@@ -290,6 +290,32 @@ ones that will bite an edit.
   and when that island is the accented one, both labels are pinned, neither yields, and they draw
   on top of each other ("BUY" over "Payments"); and the shoulder is 0.32 of the chain radius, not
   the fused planner's 0.68, because the islands already reach the frame edge.
+- **That rule had two more open violators, and nothing mechanical was checking.** The subway wrote
+  each route's name at `curve.getPoint(1)` — its own terminus platform — and the machine wrote each
+  axle's name at `-axle.radius * 0.78`, which is both the FAR edge and _inside_ the bed. Both
+  placards are `pinned` and so is an interchange's name, so neither yields: on a 390x844 phone the
+  subway drew 3 of 6 station names and the machine 1 of 5 gear names. Fixed by moving the geometry
+  into the layouts (`subwayRouteSign`, `axle.placard`) where it can be asserted —
+  `metaphorGroupPlacards.test.js` fails 5 of 7 against the old positions. Three things the fix
+  taught, each of which cost a capture round:
+  - **A route sign belongs PAST its terminus, along the direction of travel** — where a real
+    platform signs a destination — not at it and not at the midpoint (which lands on whatever
+    crosses there, the reason it was moved to the terminus in the first place).
+  - **A lane diagram's long axis is the one a portrait canvas runs out of.** Pushing the sign along
+    the track ran FULFIL off a 390px phone, because the camera frames the stations and the plate is
+    `FRAME_IGNORE`. `subwayRouteSign` clamps to the network's own reach on both axes and spends
+    what the clamp takes back on the near edge (+z), the short axis, which is free.
+  - **Height and lateral offset fix different cameras, and height is not free.** A steep phone
+    camera collides the sign with the platform it names (lateral offset fixes that); a flat 717x512
+    cover projects it down onto the platform's face (only height lifts it off). But the sign is
+    pinned and a station name is not, so raising it back to its old 1.7 won the declutter pass
+    against the very names it had just stopped colliding with: 5 of 6 station names down to 3 of 6
+    on the cover. Lateral offset is the fix; height only trades. It sits at `TRACK_Y + 1.15`.
+  - The machine's placard is measured from where the gears **actually ended up**, not from
+    `axle.radius`: the `mesh` pull drags partners into contact _after_ each bed's radius is
+    recorded, so a placard sized off the bed alone ends up under a gear that has since slid out.
+  - Counted across 390x844 / 717x512 / 1440x900: subway 22 → 24 readable of 27, machine 9 → 18 of
+    24, and zero group placards left drawn on their own members in any of the six captures.
 - **Open water past the subject is scaffolding** — the iceberg's sea plane carries
   `FRAME_IGNORE_DATA`, like the shadow catcher and the fused ocean disc.
 - **So is the ground itself, and that is the bigger win.** Every grounded kind stands on a disc

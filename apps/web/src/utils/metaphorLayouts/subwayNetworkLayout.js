@@ -28,9 +28,91 @@ const STOP_SPACING = 4.2;
 /** Separation between two routes' lanes, across the direction of travel. */
 const LANE_GAP = 3.6;
 
+/**
+ * Clearance between a terminus platform's rim and its route's name sign. The
+ * bounds below already reserve `platformRadius + 0.9` of plate past the
+ * furthest station, so a sign inside that margin never leaves the paper.
+ */
+const ROUTE_SIGN_STANDOFF = 0.9;
+
 /** Platform radius from the traffic passing through a station. */
 export function subwayPlatformRadius(traffic) {
   return 0.46 + Math.sqrt(Math.max(0.1, traffic ?? 5)) * 0.15;
+}
+
+/**
+ * Drawn radius of a station's platform. An interchange is the network's whole
+ * claim, so it gets the wider pill. Lives here rather than in the scene so the
+ * route sign below and the disc the scene draws cannot disagree about where a
+ * platform ends.
+ */
+export function subwayStationRadius(traffic, isInterchange) {
+  return subwayPlatformRadius(traffic) * (isInterchange ? 1.25 : 0.8);
+}
+
+/**
+ * Where a route's name is written: PAST its last platform, along the direction
+ * the route was travelling when it got there — the way a terminus is signed on
+ * a real platform, and the way `getPoint(1)` was never going to be.
+ *
+ * The sign used to sit exactly on the terminus, so every route name was drawn
+ * into its own last station's name. A group's name never goes where its own
+ * members stand; see `docs/agents/domains/metaphor3d.md`.
+ *
+ * @param {Array<{ id: string, position: [number, number, number] }>} stops
+ * @param {(itemId: string) => number} radiusOf drawn platform radius by item id
+ * @param {number} reachX how far the network's own platforms reach along x
+ * @param {number} reachZ how far the network's own platforms reach along z
+ * @returns {[number, number, number] | null}
+ */
+export function subwayRouteSign(stops, radiusOf, reachX = Infinity, reachZ = Infinity) {
+  const terminus = stops[stops.length - 1];
+  if (!terminus) return null;
+  const [tx, , tz] = terminus.position;
+
+  let dx = 0;
+  let dz = 0;
+  // Walk back until a stop that is not AT the terminus — an interchange can
+  // put two consecutive stops on one platform, and their difference is zero.
+  for (let i = stops.length - 2; i >= 0; i -= 1) {
+    const [px, , pz] = stops[i].position;
+    dx = tx - px;
+    dz = tz - pz;
+    if (Math.hypot(dx, dz) > 1e-3) break;
+  }
+  let length = Math.hypot(dx, dz);
+  if (length < 1e-3) {
+    // A one-stop route has no direction of travel, so it heads outward from
+    // the middle of the map; at the middle itself, +x is as good as any.
+    dx = tx;
+    dz = tz;
+    length = Math.hypot(dx, dz);
+    if (length < 1e-3) {
+      dx = 1;
+      dz = 0;
+      length = 1;
+    }
+  }
+  const standoff = radiusOf(terminus.id) + ROUTE_SIGN_STANDOFF;
+  let sx = tx + (dx / length) * standoff;
+  let sz = tz + (dz / length) * standoff;
+
+  // A sign may stand off its platform, but never further out than the network
+  // itself reaches: the camera frames the stations (the plate is out of the
+  // fit), so a sign past them is drawn off the edge — which is how the first
+  // version of this clipped FULFIL off a 390px phone. Clamp both axes, then
+  // spend whatever the clamp took back on the NEAR edge (+z), the same edge the
+  // city districts and the garden beds are named on, and for the same reason.
+  const clampedX = Math.min(reachX, Math.max(-reachX, sx));
+  const clampedZ = Math.min(reachZ, Math.max(-reachZ, sz));
+  if (clampedX !== sx || clampedZ !== sz) {
+    sx = clampedX;
+    sz = clampedZ;
+    const spentX = Math.abs(sx - tx);
+    const owed = Math.sqrt(Math.max(0, standoff * standoff - spentX * spentX));
+    sz = Math.min(reachZ, Math.max(sz, tz + owed));
+  }
+  return [sx, 0, sz];
 }
 
 function lineKey(item) {
@@ -82,8 +164,8 @@ export function resolveInterchangeGroups(items) {
  * @param {Array<Record<string, unknown>>} items
  * @returns {{
  *   positions: Map<string, [number, number, number]>,
- *   lines: Array<{ name: string, index: number, stops: Array<{ id: string, position: [number, number, number], traffic: number }> }>,
- *   stations: Array<{ id: string, position: [number, number, number], members: string[], primary: string, lines: string[], lineIndices: number[], traffic: number }>,
+ *   lines: Array<{ name: string, index: number, stops: Array<{ id: string, position: [number, number, number], traffic: number }>, sign: [number, number, number] | null }>,
+ *   stations: Array<{ id: string, position: [number, number, number], members: string[], primary: string, lines: string[], lineIndices: number[], traffic: number, platformRadius: number }>,
  *   stationOf: Map<string, string>,
  *   bounds: { radius: number }
  * }}
@@ -198,11 +280,23 @@ export function subwayNetworkLayout(items) {
       primary: ids[0],
       lines: stationLines,
       lineIndices: stationLines.map((name) => lineIndexByName.get(name) ?? 0),
-      traffic
+      traffic,
+      platformRadius: subwayStationRadius(traffic, stationLines.length > 1)
     };
   });
 
   const stationOf = new Map(groups);
+
+  const radiusByStation = new Map(stations.map((station) => [station.id, station.platformRadius]));
+  const radiusOf = (itemId) => radiusByStation.get(stationOf.get(itemId)) ?? 0.8;
+  const reachOn = (axis) =>
+    stations.reduce(
+      (far, station) => Math.max(far, Math.abs(station.position[axis]) + station.platformRadius),
+      0
+    );
+  const reachX = reachOn(0);
+  const reachZ = reachOn(2);
+  for (const line of lines) line.sign = subwayRouteSign(line.stops, radiusOf, reachX, reachZ);
 
   let radius = 4;
   for (const station of stations) {
