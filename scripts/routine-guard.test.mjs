@@ -564,3 +564,18 @@ test('fetchOpenPrs returns null rather than guessing when the remote is not GitH
   });
   assert.equal(prs, null);
 });
+
+test('the report tier passes with no diff and says so without printing "undefined"', () => {
+  // This line is the proof an unattended run prints that it stayed in budget. A report routine has
+  // no maxFiles, so the code-writing message rendered "0/undefined files" — the wrong shape of
+  // proof, observed on the digest routine's first successful firing.
+  const { playbook } = loadPlaybook(ROOT, 'digest');
+  assert.equal(playbook.tier, 'report');
+  assert.equal(
+    Number(playbook.maxFiles || 0),
+    0,
+    'if a report routine ever declares maxFiles, the message branch below is no longer needed'
+  );
+  const result = checkRoutineDiff({ playbook, changes: [] });
+  assert.deepEqual(result.violations, []);
+});
