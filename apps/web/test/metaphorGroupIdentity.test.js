@@ -5,10 +5,10 @@ import {
   GROUP_TINT_EARTH,
   GROUP_TINT_PLATE,
   groupLadderLength,
-  groupSlots,
   tintByGroup
 } from '../src/components/metaphorScenes/groupIdentity.js';
 import { cityDistrictLayout } from '../src/utils/metaphorLayouts/cityDistrictLayout.js';
+import { planFusedCompositeWorld } from '../src/components/metaphorScenes/fusedCompositePlanner.js';
 import { METAPHOR_THEME_PRESETS } from '../src/utils/metaphorThemePresets.js';
 
 function hsl(hex) {
@@ -88,14 +88,88 @@ describe('tintByGroup', () => {
   });
 });
 
-describe('groupSlots', () => {
-  it('numbers groups in first-declared order and ignores empty keys', () => {
-    const slots = groupSlots(['Edge', 'Catalog', 'Edge', undefined, '  ', 'Checkout']);
-    expect([...slots]).toEqual([
-      ['Edge', 0],
+// The other production numbering of the same axis. `cityDistrictLayout` (below)
+// and `makeGroups` in the fused planner are the two places that decide which
+// ordinal a territory gets, and both feed the one `tintByGroup` ladder — so
+// they live in one test file, and neither may drift into a hash.
+describe('fused composite group colorIndex', () => {
+  // Three territories that each hold two members, plus a fourth ("Legacy") that
+  // holds only the island declaring it. Legacy is registered FIRST — the key
+  // order within an item is chain ▸ district ▸ bed ▸ label — so it is the case
+  // that separates "number the survivors" from "number them, then filter".
+  const DSL = {
+    metaphor: 'composite',
+    layout: 'fused',
+    seed: 'group-colour-ordinal',
+    novelty: 0.4,
+    motionIntensity: 0.6,
+    scene: {},
+    layers: [
+      {
+        id: 'domains',
+        as: 'archipelago',
+        items: [
+          { id: 'checkout-domain', label: 'Checkout', mass: 12, relief: 0.8, chain: 'Legacy' },
+          { id: 'catalog-domain', label: 'Catalog', mass: 9, relief: 0.5 },
+          { id: 'fulfil-domain', label: 'Fulfilment', mass: 10, relief: 0.6 }
+        ]
+      },
+      {
+        id: 'services',
+        as: 'city',
+        items: [
+          {
+            id: 'payments-api',
+            label: 'Payments API',
+            height: 16,
+            footprint: 3,
+            district: 'Checkout'
+          },
+          { id: 'search-api', label: 'Search API', height: 10, footprint: 2, district: 'Catalog' },
+          {
+            id: 'ship-api',
+            label: 'Shipping API',
+            height: 12,
+            footprint: 2,
+            district: 'Fulfilment'
+          }
+        ]
+      }
+    ],
+    items: [],
+    links: []
+  };
+
+  it('numbers surviving territories 0..N-1 in first-declared order', () => {
+    // Assigned by ORDINAL and AFTER the `memberIds.size >= 2` filter. The
+    // one-member "Legacy" bucket is declared before "Checkout" and dropped, so
+    // Checkout is 0 — numbering before the filter would make it 1 and leave the
+    // ladder with a hole.
+    const groups = planFusedCompositeWorld(DSL).groups;
+    expect(groups.map((group) => [group.display, group.colorIndex])).toEqual([
+      ['Checkout', 0],
       ['Catalog', 1],
-      ['Checkout', 2]
+      ['Fulfilment', 2]
     ]);
+  });
+
+  it('gives N surviving territories N different colours', () => {
+    // The claim the ordinal exists for. The predecessor drew the slot from
+    // `Math.floor(seeded(...) * 8)`, which collides about a third of the time on
+    // a three-group world — and a collision does not look like a bug, it looks
+    // like two territories agreeing, which is the one thing a shared grouping
+    // noun is there to deny.
+    const groups = planFusedCompositeWorld(DSL).groups;
+    expect(groups.length).toBeGreaterThan(1);
+    expect(groups.length).toBeLessThanOrEqual(groupLadderLength());
+    const tints = groups.map((group) =>
+      tintByGroup(
+        METAPHOR_THEME_PRESETS.whiteboard.buildingColor,
+        group.colorIndex,
+        GROUP_TINT_PLATE
+      )
+    );
+    expect(new Set(tints).size).toBe(groups.length);
   });
 });
 

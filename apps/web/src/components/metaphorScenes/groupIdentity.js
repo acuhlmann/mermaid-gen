@@ -136,21 +136,3 @@ export function tintByGroup(base, index, strength = GROUP_TINT_BODY) {
   });
   return `#${shifted.getHexString(THREE.SRGBColorSpace)}`;
 }
-
-/**
- * Index every item by which group it belongs to, in the order the groups were
- * first declared. Returns a `Map` from group key to slot, so a caller that
- * already has the group list (the city layout, the fused planner) and one that
- * only has items (a scene reading `item.bed`) agree on the same numbering.
- *
- * @param {Iterable<string|undefined|null>} keys — one group key per item, in author order
- * @returns {Map<string, number>}
- */
-export function groupSlots(keys) {
-  const slots = new Map();
-  for (const key of keys) {
-    if (typeof key !== 'string' || key.trim() === '') continue;
-    if (!slots.has(key)) slots.set(key, slots.size);
-  }
-  return slots;
-}
