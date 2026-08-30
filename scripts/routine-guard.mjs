@@ -327,31 +327,98 @@ export function matchOpenRoutinePrs({ name, playbook, openPrs }) {
 }
 
 /**
- * Reads open PRs through `gh`. Returns `null` — not `[]` — when `gh` is missing, unauthenticated
- * or offline, so the caller can warn instead of silently reporting "no open PR". An absent answer
- * and an empty answer mean opposite things here, and conflating them is how this check would go
- * back to carrying no information.
- * @param {(args: string[]) => string} [run]
+ * `git@github.com:owner/repo.git` and `https://github.com/owner/repo` both become `owner/repo`.
+ * @param {string} remoteUrl
+ * @returns {string | null}
+ */
+export function parseRepoSlug(remoteUrl) {
+  const match = /(?:github\.com[:/])([^/\s]+)\/([^/\s]+?)(?:\.git)?\s*$/.exec(
+    String(remoteUrl ?? '')
+  );
+  return match ? `${match[1]}/${match[2]}` : null;
+}
+
+/**
+ * @param {unknown} parsed
  * @returns {{ number: number, title: string, headRefName: string }[] | null}
  */
-export function fetchOpenPrs(run) {
-  const exec =
-    run ??
+function normalizePrList(parsed) {
+  if (!Array.isArray(parsed)) return null;
+  return parsed.map((pr) => ({
+    number: Number(pr?.number),
+    title: String(pr?.title ?? ''),
+    // `gh --json headRefName` and the REST API's `head.ref` are the same field, named differently.
+    headRefName: String(pr?.headRefName ?? pr?.head?.ref ?? '')
+  }));
+}
+
+/**
+ * Reads open PRs, through `gh` when it is logged in and through the REST API when it is not.
+ *
+ * The fallback is load-bearing, not a nicety: **`gh` is unauthenticated in the cloud sandbox these
+ * routines actually run in.** Measured on the digest routine's first live firing — preflight
+ * printed its "could not read open PRs" warning and skipped the one-branch-at-a-time check
+ * entirely, which is the whole property this function exists to provide. The routines have always
+ * reached GitHub through MCP tools rather than `gh`; the `gh` snippets in the playbooks are
+ * aspirational.
+ *
+ * Listing open PRs on a public repository needs no credentials, so the fallback works with none.
+ * `GH_TOKEN` / `GITHUB_TOKEN` are used when present, for a private repo and for the higher rate
+ * limit; one call per run sits far inside the 60/hour unauthenticated budget either way.
+ *
+ * Returns `null` — not `[]` — when neither route answers, so the caller can warn instead of
+ * silently reporting "no open PR". An absent answer and an empty answer mean opposite things here.
+ * @param {{ runGh?: (args: string[]) => string, runCurl?: (args: string[]) => string, remoteUrl?: string }} [deps]
+ * @returns {{ number: number, title: string, headRefName: string }[] | null}
+ */
+export function fetchOpenPrs(deps = {}) {
+  const runGh =
+    deps.runGh ??
     ((args) =>
       execFileSync('gh', args, { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }));
   try {
-    const raw = exec([
-      'pr',
-      'list',
-      '--state',
-      'open',
-      '--limit',
-      '100',
-      '--json',
-      'number,title,headRefName'
-    ]);
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : null;
+    const viaGh = normalizePrList(
+      JSON.parse(
+        runGh([
+          'pr',
+          'list',
+          '--state',
+          'open',
+          '--limit',
+          '100',
+          '--json',
+          'number,title,headRefName'
+        ])
+      )
+    );
+    if (viaGh) return viaGh;
+  } catch {
+    // fall through to REST
+  }
+
+  const runCurl =
+    deps.runCurl ??
+    ((args) =>
+      execFileSync('curl', args, {
+        cwd: ROOT,
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'pipe']
+      }));
+  try {
+    const remoteUrl = deps.remoteUrl ?? git(['remote', 'get-url', 'origin']);
+    const slug = parseRepoSlug(remoteUrl);
+    if (!slug) return null;
+    const token = process.env.GH_TOKEN || process.env.GITHUB_TOKEN;
+    const args = [
+      '-sS',
+      '--max-time',
+      '20',
+      '-H',
+      'Accept: application/vnd.github+json',
+      ...(token ? ['-H', `Authorization: Bearer ${token}`] : []),
+      `https://api.github.com/repos/${slug}/pulls?state=open&per_page=100`
+    ];
+    return normalizePrList(JSON.parse(runCurl(args)));
   } catch {
     return null;
   }

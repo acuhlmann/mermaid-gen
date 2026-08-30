@@ -51,8 +51,37 @@ gh run list --branch main --limit 6 --json name,conclusion,createdAt,event
 node scripts/verify-ratchet.mjs --json
 ```
 
-Then read the tail of every ledger on both shelves — `docs/routines/ledger/*.md` and
-`docs/automations/ledger/*.md` — and the `schedule:` front-matter of every playbook beside them.
+Then the ledgers — **the tails only, never the whole file**:
+
+```bash
+for f in docs/routines/ledger/*.md docs/automations/ledger/*.md; do
+  echo "### $f"; grep -c '^| 20' "$f"; grep '^| 20' "$f" | tail -2 | cut -c1-400
+done
+head -12 docs/routines/*.md docs/automations/*.md | grep -E '^(==>|schedule:|name:)'
+```
+
+**Do not `Read` a ledger file whole.** `improve.md` is 74 KB, `resolve.md` 67 KB and `review.md`
+61 KB — over 200 KB together, and a single run-log row can be 4 KB of prose on its own. The first
+live firing of this routine read all three in full, hit auto-compaction mid-run, lost the gathered
+data, and then wrote a digest containing several claims it had invented. What this routine needs
+from a ledger is the row count and the last two rows.
+
+## 1b. Report only what you gathered
+
+**Every line of the digest must be traceable to output from § 1.** This routine summarises; it does
+not reason about what probably happened.
+
+Specifically, and each of these was invented by the first live firing:
+
+- A job "ran" only if it has a `main` commit, a PR, or a ledger row in the window. Do not infer it
+  from its cron. **A job that fired and did nothing looks exactly like a job that did not fire, and
+  telling them apart is this routine's entire watchdog value** — so if the evidence is absent, the
+  finding is "no evidence it ran", not "it ran".
+- Quote issue and PR numbers from the gathered JSON. Do not describe an issue you did not read.
+- Ratchet numbers come from `verify-ratchet.mjs --json` and nowhere else. "No violations" and "no
+  improvements" are different statements; print the deltas it actually reported.
+- If you cannot establish something, write "unknown" and say what you would have needed. An honest
+  gap is useful; a confident wrong line teaches the reader to stop believing the whole digest.
 
 ## 2. The five sections
 
@@ -110,11 +139,17 @@ regression is visible here or nowhere.
 
 Which jobs ran, and roughly how long each took (PR open→merge is a good enough proxy). One line.
 
-## 3. Post
+## 3. Post — and this is the step the routine exists for
 
-```bash
-gh issue comment 452 --body-file <file>
-```
+**`gh` is not authenticated in the cloud sandbox.** Measured on the first live firing: the guard's
+own preflight printed `could not read open PRs (gh missing, unauthenticated or offline)`. Reads in
+§ 1 that go through `gh` will fail the same way; use the **GitHub MCP tools** for anything that
+touches the API, and keep the `gh` forms above only as the local-development equivalent.
+
+Post the comment with the GitHub MCP tool for adding an issue comment, on issue **452**. Confirm it
+landed by reading the issue's comment count back. **A run that composes the digest and returns it
+as its final message has failed** — that is what the first firing did, and it reported `success`.
+The digest is a comment on #452 or it is nothing.
 
 Title the comment with the date. Keep the whole thing under ~60 lines: it is read on a phone,
 before coffee, by someone deciding whether anything needs them today. **If the answer is "no", say
