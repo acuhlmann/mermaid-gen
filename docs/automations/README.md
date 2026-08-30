@@ -88,6 +88,13 @@ agent through a glob-scoped `.cursor/rules/<domain>.mdc`, a nested `CLAUDE.md`, 
 
 See `docs/routines/README.md` rule 8 for why this stopped being "both files, always".
 
+### 8. `gh` is not authenticated in the cloud sandbox
+
+The `gh` snippets in these playbooks are the local-development form; in the cloud environment
+these automations run in, `gh` has no token and GitHub access goes through the **GitHub MCP
+tools**. See `docs/routines/README.md` rule 9 for what that costs and how `routine-guard` works
+around it.
+
 ## What feature automations may not do
 
 - **No slot content.** ADR-0010 reserves diagram generation for the human's own pipeline. These

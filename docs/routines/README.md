@@ -201,6 +201,26 @@ blind.
 > right about the goal and wrong about the mechanism: what matters is that the finding reaches the
 > agent that needs it, not that it appears in a particular file.
 
+### 9. `gh` is not authenticated in the cloud sandbox
+
+Every `gh` snippet in every playbook on both shelves is the **local-development** form. In the
+cloud environment these routines actually run in, `gh` has no token: measured 2026-08-30, the
+`digest` routine's preflight printed `could not read open PRs (gh missing, unauthenticated or
+offline)` and skipped its check. Reads and writes that touch the GitHub API go through the
+**GitHub MCP tools** — which is what the shipped routines have always done, whatever their
+playbooks say.
+
+Two consequences worth knowing before you rely on either:
+
+- `routine-guard`'s open-PR check falls back to the GitHub REST API when `gh` fails. Listing open
+  PRs on a public repo needs no credentials; `GH_TOKEN` / `GITHUB_TOKEN` are used when present.
+  Without that fallback the check would warn-and-skip on every real run — present in the tests,
+  absent in production, which is the same failure it was written to fix.
+- A routine whose only output is a GitHub write (posting a comment, applying a label) **must
+  confirm the write landed** by reading it back. A run that composes the text and returns it as
+  its final message reports `success` and has done nothing; that is exactly what the `digest`
+  routine's first firing did.
+
 ## What routines may not do
 
 These are the boundaries [ADR-0014](../decisions/0014-autonomous-nfr-routines.md) sets, as amended by

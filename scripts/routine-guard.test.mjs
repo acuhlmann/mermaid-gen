@@ -5,8 +5,8 @@ import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 import {
   ALWAYS_FORBIDDEN,
-  ROUTINE_TIERS,
   PLAYBOOK_SHELVES,
+  ROUTINE_TIERS,
   checkRoutineDiff,
   countTestCases,
   fetchOpenPrs,
@@ -16,6 +16,7 @@ import {
   matchOpenRoutinePrs,
   matchesAny,
   parseFrontmatter,
+  parseRepoSlug,
   routinePrMatchers
 } from './routine-guard.mjs';
 
@@ -315,13 +316,19 @@ test('matchOpenRoutinePrs is case-insensitive so `Metaphor3D:` matches a lowerca
 });
 
 test('fetchOpenPrs parses a gh payload', () => {
-  const prs = fetchOpenPrs(() => JSON.stringify(OPEN_PRS));
+  const prs = fetchOpenPrs({ runGh: () => JSON.stringify(OPEN_PRS) });
   assert.equal(prs?.length, 4);
 });
 
 test('fetchOpenPrs returns null — not [] — when gh is unavailable', () => {
-  const prs = fetchOpenPrs(() => {
-    throw new Error('gh: command not found');
+  const prs = fetchOpenPrs({
+    runGh: () => {
+      throw new Error('gh: command not found');
+    },
+    runCurl: () => {
+      throw new Error('no network');
+    },
+    remoteUrl: 'git@github.com:o/r.git'
   });
   assert.equal(
     prs,
@@ -331,9 +338,13 @@ test('fetchOpenPrs returns null — not [] — when gh is unavailable', () => {
   );
 });
 
-test('fetchOpenPrs returns null when gh answers with something that is not a list', () => {
+test('fetchOpenPrs returns null when neither route answers with a list', () => {
   assert.equal(
-    fetchOpenPrs(() => '{"message":"Bad credentials"}'),
+    fetchOpenPrs({
+      runGh: () => '{"message":"Bad credentials"}',
+      runCurl: () => '{"message":"Bad credentials"}',
+      remoteUrl: 'git@github.com:o/r.git'
+    }),
     null
   );
 });
@@ -440,4 +451,116 @@ test('the generated branch names this repo actually uses are recognised', () => 
     });
     assert.equal(found.length, 1, `${name} must recognise ${branch}`);
   }
+});
+
+// --- fetchOpenPrs: the REST fallback ----------------------------------------------------------
+// `gh` is UNAUTHENTICATED in the cloud sandbox these routines run in. Measured on the digest
+// routine's first live firing: preflight printed its "could not read open PRs" warning and skipped
+// the one-branch-at-a-time check entirely — the whole property it exists to provide.
+
+const REST_PAYLOAD = JSON.stringify([
+  { number: 442, title: 'review: 2026-08-29 run', head: { ref: 'review/nfr-2026-08-29' } }
+]);
+
+test('parseRepoSlug handles both remote URL forms', () => {
+  assert.equal(parseRepoSlug('git@github.com:acuhlmann/mermaid-gen.git'), 'acuhlmann/mermaid-gen');
+  assert.equal(parseRepoSlug('https://github.com/acuhlmann/mermaid-gen'), 'acuhlmann/mermaid-gen');
+  assert.equal(
+    parseRepoSlug('https://github.com/acuhlmann/mermaid-gen.git\n'),
+    'acuhlmann/mermaid-gen'
+  );
+  assert.equal(
+    parseRepoSlug('https://gitlab.com/x/y.git'),
+    null,
+    'only GitHub has this REST shape'
+  );
+});
+
+test('fetchOpenPrs falls back to REST when gh is unauthenticated', () => {
+  const prs = fetchOpenPrs({
+    runGh: () => {
+      throw new Error('gh auth: no token');
+    },
+    runCurl: () => REST_PAYLOAD,
+    remoteUrl: 'git@github.com:acuhlmann/mermaid-gen.git'
+  });
+  assert.equal(prs?.length, 1);
+  assert.equal(
+    prs?.[0].headRefName,
+    'review/nfr-2026-08-29',
+    'REST names the branch `head.ref`, gh names it `headRefName` — both must normalise'
+  );
+});
+
+test('fetchOpenPrs prefers gh when it works, without calling curl', () => {
+  let curlCalls = 0;
+  const prs = fetchOpenPrs({
+    runGh: () => JSON.stringify([{ number: 1, title: 't', headRefName: 'b' }]),
+    runCurl: () => {
+      curlCalls += 1;
+      return REST_PAYLOAD;
+    }
+  });
+  assert.equal(prs?.length, 1);
+  assert.equal(curlCalls, 0, 'the REST call is a fallback, not a second request every run');
+});
+
+test('fetchOpenPrs sends an Authorization header only when a token is set', () => {
+  /** @type {string[]} */
+  let seen = [];
+  const capture = (args) => {
+    seen = args;
+    return REST_PAYLOAD;
+  };
+  const prev = process.env.GH_TOKEN;
+  delete process.env.GH_TOKEN;
+  const prevGithub = process.env.GITHUB_TOKEN;
+  delete process.env.GITHUB_TOKEN;
+  fetchOpenPrs({
+    runGh: () => {
+      throw new Error('x');
+    },
+    runCurl: capture,
+    remoteUrl: 'git@github.com:o/r.git'
+  });
+  assert.ok(
+    !seen.some((a) => a.startsWith('Authorization:')),
+    'listing open PRs on a public repo needs no credentials'
+  );
+  process.env.GH_TOKEN = 'secret-value';
+  fetchOpenPrs({
+    runGh: () => {
+      throw new Error('x');
+    },
+    runCurl: capture,
+    remoteUrl: 'git@github.com:o/r.git'
+  });
+  assert.ok(seen.some((a) => a === 'Authorization: Bearer secret-value'));
+  if (prev === undefined) delete process.env.GH_TOKEN;
+  else process.env.GH_TOKEN = prev;
+  if (prevGithub !== undefined) process.env.GITHUB_TOKEN = prevGithub;
+});
+
+test('fetchOpenPrs still returns null when neither route answers', () => {
+  const prs = fetchOpenPrs({
+    runGh: () => {
+      throw new Error('no gh');
+    },
+    runCurl: () => {
+      throw new Error('no network');
+    },
+    remoteUrl: 'git@github.com:o/r.git'
+  });
+  assert.equal(prs, null, 'warn, never report "no open PR" from an absent answer');
+});
+
+test('fetchOpenPrs returns null rather than guessing when the remote is not GitHub', () => {
+  const prs = fetchOpenPrs({
+    runGh: () => {
+      throw new Error('no gh');
+    },
+    runCurl: () => REST_PAYLOAD,
+    remoteUrl: 'git@gitlab.com:o/r.git'
+  });
+  assert.equal(prs, null);
 });
