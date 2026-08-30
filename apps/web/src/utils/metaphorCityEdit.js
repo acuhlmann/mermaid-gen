@@ -18,6 +18,21 @@ import {
   serializeMetaphorFlatDoc
 } from './metaphorFlatItemsCore.js';
 
+/**
+ * @param {Record<string, unknown>} doc
+ * @param {string} fromId
+ * @param {string} toId
+ * @returns {Record<string, unknown> | null}
+ */
+function findCityLink(doc, fromId, toId) {
+  if (!Array.isArray(doc.links)) return null;
+  return (
+    doc.links.find(
+      (link) => link && typeof link === 'object' && link.from === fromId && link.to === toId
+    ) ?? null
+  );
+}
+
 const METAPHOR = 'city';
 
 /**
@@ -144,6 +159,24 @@ export function deleteCityEdge(source, fromId, toId) {
   return ok(serializeMetaphorFlatDoc(doc, source));
 }
 
-export function renameCityEdge() {
-  return fail('not-graph');
+/**
+ * @param {string} source
+ * @param {string} fromId
+ * @param {string} toId
+ * @param {string} label new link label; empty clears it
+ */
+export function renameCityEdge(source, fromId, toId, label) {
+  const blocked = requireCity(source);
+  if (blocked) return blocked;
+  const doc = parseMetaphorFlatDoc(source, METAPHOR);
+  if (!doc) return fail('not-graph');
+  const link = findCityLink(doc, fromId, toId);
+  if (!link) return fail('missing');
+  const next = String(label ?? '').trim();
+  if (next) {
+    link.label = next;
+  } else {
+    delete link.label;
+  }
+  return ok(serializeMetaphorFlatDoc(doc, source));
 }

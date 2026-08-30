@@ -97,11 +97,31 @@ describe('metaphor city graph edit', () => {
     expect(JSON.parse(result.source).links).toEqual([]);
   });
 
-  it('does not support rename edge', () => {
-    expect(renameCityEdge(CITY, 'auth', 'api', 'calls')).toEqual({
-      ok: false,
-      reason: 'not-graph'
+  it('renames a link label', () => {
+    const result = renameCityEdge(CITY, 'auth', 'api', 'calls');
+    expect(result.ok).toBe(true);
+    const links = JSON.parse(result.source).links;
+    expect(links).toContainEqual({ from: 'auth', to: 'api', label: 'calls' });
+  });
+
+  it('clears a link label when renamed to empty', () => {
+    const labeled = JSON.stringify({
+      metaphor: 'city',
+      scene: {},
+      items: [
+        { id: 'auth', label: 'Auth', height: 12, footprint: 3 },
+        { id: 'api', label: 'API Gateway', height: 18, footprint: 4 }
+      ],
+      links: [{ from: 'auth', to: 'api', label: 'calls' }]
     });
+    const result = renameCityEdge(labeled, 'auth', 'api', '   ');
+    expect(result.ok).toBe(true);
+    const links = JSON.parse(result.source).links;
+    expect(links).toEqual([{ from: 'auth', to: 'api' }]);
+  });
+
+  it('refuses to rename a link that does not exist', () => {
+    expect(renameCityEdge(CITY, 'api', 'db', 'calls')).toEqual({ ok: false, reason: 'missing' });
   });
 });
 
@@ -113,5 +133,6 @@ describe('metaphor city edit guards', () => {
     expect(deleteCityNode(tree, 'a')).toEqual({ ok: false, reason: 'not-city' });
     expect(renameCityNode(tree, 'a', 'x')).toEqual({ ok: false, reason: 'not-city' });
     expect(connectCityNodes(tree, 'a', 'b')).toEqual({ ok: false, reason: 'not-city' });
+    expect(renameCityEdge(tree, 'a', 'b', 'x')).toEqual({ ok: false, reason: 'not-city' });
   });
 });
