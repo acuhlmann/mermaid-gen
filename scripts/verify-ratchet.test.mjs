@@ -10,6 +10,7 @@ import {
   compareRatchet,
   countTestCases,
   measureAll,
+  measureContextBytes,
   measureFileLoc,
   measureStrictIslands,
   measureTests,
@@ -140,6 +141,44 @@ test('every legacy monolith carries a recorded budget', async () => {
     assert.ok(
       baseline.metrics.monolithLoc[file],
       `${file} is suppressed in legacy-monoliths.js but has no ratchet budget`
+    );
+  }
+});
+
+// --- contextBytes ------------------------------------------------------------------------------
+// The always-loaded agent context files. A byte here is paid by every interactive session and
+// every nightly unattended run, before any work starts.
+
+test('measureContextBytes reports byte sizes for the always-loaded root files', () => {
+  const measured = measureContextBytes(ROOT, ['CLAUDE.md', 'AGENTS.md']);
+  assert.ok(measured['CLAUDE.md'] > 0, 'CLAUDE.md must be measured, not silently skipped');
+  assert.ok(measured['AGENTS.md'] > 0);
+});
+
+test('measureContextBytes skips a file that does not exist rather than throwing', () => {
+  const measured = measureContextBytes(ROOT, ['CLAUDE.md', 'docs/agents/domains/nope.md']);
+  assert.deepEqual(Object.keys(measured), ['CLAUDE.md']);
+});
+
+test('contextBytes is a descending metric — these files may only shrink', () => {
+  assert.ok(
+    DESCENDING_METRICS.has('contextBytes'),
+    'an ascending contextBytes would ratchet the context tax upward, which is the bug it exists to stop'
+  );
+});
+
+test('the scoped domain files are deliberately NOT counted', () => {
+  const baseline = JSON.parse(fs.readFileSync(path.join(ROOT, RATCHET_PATH), 'utf8'));
+  const tracked = Object.keys(baseline.metrics.contextBytes ?? {});
+  assert.ok(
+    tracked.length > 0,
+    'contextBytes must track something — an empty family passes vacuously'
+  );
+  for (const file of tracked) {
+    assert.ok(
+      !file.startsWith('docs/agents/domains/'),
+      `${file} loads only for a session touching the code it describes; counting it would penalise ` +
+        'moving content out of the root files, which is the whole point of the split'
     );
   }
 });

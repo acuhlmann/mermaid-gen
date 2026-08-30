@@ -64,6 +64,12 @@ anything; see [`docs/agents/sensors.md`](../agents/sensors.md) § Known flakes.
 `npm run routine:guard -- --preflight <name>` refuses to start when this automation already has an
 open PR. Finish or close the open PR before the next firing.
 
+It matches on the PR **title** prefix (`prTitlePrefix`, defaulting to `<name>:`) or the branch
+prefix (`branchPrefix`, defaulting to `<name>/`) — the cloud runner generates branch names, so a
+branch alone cannot say who opened a PR. When `gh` is unreachable the guard warns and continues
+rather than reporting "no open PR"; see `docs/routines/README.md` rule 5 for why that distinction
+is the whole point of the check.
+
 ### 5. Never touch the don't-touch list
 
 Inherited verbatim from [`AGENTS.md`](../../AGENTS.md) § Don't-touch list.
@@ -73,10 +79,14 @@ Inherited verbatim from [`AGENTS.md`](../../AGENTS.md) § Don't-touch list.
 Append a run-log row every time, including runs that changed nothing. Move finished `todos` to
 `completed` rather than deleting them.
 
-### 7. Write durable learnings in both places
+### 7. Write durable learnings once, where the code is
 
-If a run discovers something a future agent would otherwise rediscover the hard way, mirror it in
-**both** [`AGENTS.md`](../../AGENTS.md) and [`CLAUDE.md`](../../CLAUDE.md).
+Domain findings go in `docs/agents/domains/<domain>.md` — one file per domain, auto-loaded by every
+agent through a glob-scoped `.cursor/rules/<domain>.mdc`, a nested `CLAUDE.md`, and the index in
+[`AGENTS.md`](../../AGENTS.md) § Domain gotchas. Repo-wide findings still go in **both**
+[`AGENTS.md`](../../AGENTS.md) and [`CLAUDE.md`](../../CLAUDE.md).
+
+See `docs/routines/README.md` rule 8 for why this stopped being "both files, always".
 
 ## What feature automations may not do
 
@@ -91,16 +101,33 @@ If a run discovers something a future agent would otherwise rediscover the hard 
 
 ## Registered automations
 
-| Playbook                  | Cursor automation                                                                                        |
-| ------------------------- | -------------------------------------------------------------------------------------------------------- |
-| [`anything`](anything.md) | [Anything mode — daily improvement](https://cursor.com/automations/ca0aeb36-9d76-11f1-a7d1-d6b4613131ce) |
+| Playbook                                    | Schedule (UTC) | Trigger                                                |
+| ------------------------------------------- | -------------- | ------------------------------------------------------ |
+| [`metaphor3d`](metaphor3d.md)               | `0 15 * * *`   | Claude Routine "Feature automation: metaphor3d"        |
+| [`anything`](anything.md)                   | `15 17 * * *`  | Claude Routine "Feature automation: anything"          |
+| [`canvas-graph-edit`](canvas-graph-edit.md) | `30 18 * * *`  | Claude Routine "Feature automation: canvas-graph-edit" |
+
+Every schedule on both shelves is **UTC**. `routine-guard` does not read the `schedule` key, so a
+second timezone convention is invisible to every mechanical check — which is how four live crons
+drifted out of sync with their playbooks by 2026-08-30. The `digest` routine now diffs the two
+nightly (`docs/routines/digest.md` § Watchdog 4).
+
+All three sit at the head of the night ladder in [`docs/routines/review.md`](../routines/review.md),
+so the three NFR routines review what they land a few hours later.
+
+`anything` and `canvas-graph-edit` moved off Cursor on 2026-08-30. `anything` had been dark since
+2026-08-28 with nothing anywhere to notice; `canvas-graph-edit` had no playbook at all and its
+prompt lived only in Cursor's UI. Both now carry the same three-piece contract as everything else
+on this shelf.
 
 ## Adding a feature automation
 
 1. Write `docs/automations/<name>.md` with frontmatter (`name`, `tier`, `schedule`, `maxFiles`,
    `allowedPaths`, `forbiddenPaths`) and a numbered work queue.
 2. Create `docs/automations/ledger/<name>.md` from an existing ledger.
-3. Create the Cursor automation at [cursor.com/automations](https://cursor.com/automations) with
+3. Create the trigger — a Cursor automation at [cursor.com/automations](https://cursor.com/automations)
+   or a Claude Routine at [claude.ai/code/routines](https://claude.ai/code/routines); this shelf is
+   host-agnostic and both are in use — with
    the loader prompt above, on a cron that does not collide with an existing automation.
    Stagger by at least an hour from [`docs/routines/`](../routines/) and other feature automations.
 4. Record the automation URL in the ledger's **Locked** section and fire it once by hand before

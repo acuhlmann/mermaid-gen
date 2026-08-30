@@ -89,6 +89,67 @@ with each other.
 An agent who has just changed unrelated tooling still sees six red tests and a non-zero
 `npm run check` when load wins anyway — re-run the file alone before assuming a regression.
 
+## Not a flake: a stale local checkout (`node_modules`, `packages/shared/dist`)
+
+Two failures that look like a red `main`, are reproducible, are not flaky, and are not real. Both
+were hit in a single session on 2026-08-30, and neither error message points anywhere near the
+cause.
+
+**Stale `packages/shared/dist`.** `@archislop/shared` resolves to `dist`, so a checkout whose
+`dist/` predates a `src/` change imports a module that does not export what the caller wants:
+
+```
+apps/web/test/useMeetingPlayback.test.jsx
+  TypeError: expected value must be number or bigint, received "undefined"
+apps/server/src/routes/copilot.ts(234,7): error TS2353: 'uiLocale' does not exist in type ...
+apps/server/src/routes/copilotRouteTypes.ts(14,3): error TS2305:
+  Module '"@archislop/shared"' has no exported member 'UserDiagramEditSchema'.
+```
+
+A constant silently became `undefined`; a type silently lost a field. **Fix:
+`npm run build -w packages/shared`.** CI never sees this because it builds from clean.
+
+**Stale `node_modules`.** A `package.json` bump that was never installed locally leaves an older
+transitive dependency in place. Measured instance: `apps/web` requires `jsdom: ^30.0.1`, the
+lockfile pins 30.0.1, and the installed copy was 29.1.1 — which has no `CSS.escape`. Seven tests
+across `diagramGraphEditNodeResolve.test.js` and `infographicRenderer.test.jsx` failed with:
+
+```
+TypeError: Cannot read properties of undefined (reading 'escape')
+  ❯ src/components/InfographicRenderer.jsx:217   querySelector(`[data-indexes="${CSS.escape(...)}"]`)
+```
+
+Nothing in that message says "your install is old". **Fix: `npm ci`** (never `npm install` — it can
+rewrite `package-lock.json`, which is on the don't-touch list).
+
+**Before concluding `main` is red, do this.** It costs three minutes and it is cheaper than the
+investigation it replaces:
+
+```bash
+npm ci
+npm run build -w packages/shared
+```
+
+Then re-run. If it still fails, `git stash -u` and run the same test on clean `main` — if it fails
+there too, it is not your diff. An unattended routine that reports "main is red" without those two
+steps has spent its whole run on its own checkout.
+
+## Never pipe a gate through `tail` without `pipefail`
+
+`npm run check 2>&1 | tail -50` exits with **`tail`'s** status, not the check's. Measured the same
+day: a run that reported `exit code 0` had `npm run test -w apps/web exited with code 1` and
+`npm run test -w apps/server exited with code 1` inside the output it printed. Truncating to the
+last 50 lines also cut the failure detail, so the visible tail was a passing test file.
+
+This matters most for exactly the callers that use it — a scheduled routine deciding whether it is
+allowed to push. Either `set -o pipefail` first, or redirect to a file and read the file:
+
+```bash
+set -o pipefail && npm run check 2>&1 | tail -50
+# or
+npm run check > check.log 2>&1; echo "EXIT=$?"; grep -E 'Test Files|exited with code' check.log
+```
+
 ## Fixed: the browser rung's jsdom fallback under a cold start (#347)
 
 Kept as a worked example, because the diagnosis generalises and the shape recurs.

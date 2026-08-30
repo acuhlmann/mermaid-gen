@@ -11,6 +11,10 @@ Every routine is three things:
 | **Ledger**   | `docs/routines/ledger/<name>.md` | What it has already done — durable memory across runs |
 | **Trigger**  | a Claude Routine (cron)          | Three lines that point at the two files above         |
 
+Four routines ship today: `review`, `improve` and `resolve` (code-writing) and
+[`digest`](digest.md) (report). Their crons and the feature automations' form one **night ladder**
+— see [`review.md`](review.md) for the table. `digest` is last and reports on everything before it.
+
 The trigger prompt is deliberately almost empty:
 
 ```
@@ -32,10 +36,15 @@ allowed to do that ADR-0014 originally reserved for a human.
 
 A routine declares a `tier` in its playbook front-matter:
 
-| Tier           | Writes code                    | Examples            |
-| -------------- | ------------------------------ | ------------------- |
-| `report`       | no                             | —                   |
-| `code-writing` | yes, within its declared paths | `review`, `improve` |
+| Tier           | Writes code                    | Declares a budget           | Examples                       |
+| -------------- | ------------------------------ | --------------------------- | ------------------------------ |
+| `report`       | no — **enforced**              | no `maxFiles`, no paths     | `digest`                       |
+| `code-writing` | yes, within its declared paths | `maxFiles` + `allowedPaths` | `review`, `improve`, `resolve` |
+
+`report` is mechanical as of 2026-08-30: such a playbook declares neither `maxFiles` nor
+`allowedPaths`, and `routine:guard --postflight` **fails on a non-empty diff**. Before that the
+tier was validated as if it wrote code — it had to name a budget it was forbidden to spend — so
+the one property distinguishing the two tiers was the one nothing checked.
 
 **Every `code-writing` routine opens a PR and merges it itself once CI is green, by default.** The PR
 exists so the owner has something to skim, not as a gate — a routine that waits for review on every
@@ -97,6 +106,14 @@ If the run cannot get to green, it pushes **nothing**: delete the branch and fil
 describing the blocker. A half-fixed branch left open is worse than no run at all, because the next
 firing's preflight will refuse to start behind it — which is the intended stop, not a bug.
 
+**Before you conclude the tree is red, rule out your own checkout.** `npm ci` and
+`npm run build -w packages/shared`, then re-run. A stale `node_modules` or a stale
+`packages/shared/dist` produces reproducible, non-flaky failures whose error messages point
+nowhere near the cause — a constant that became `undefined`, a type that lost a field, a missing
+`CSS.escape`. See [`docs/agents/sensors.md`](../agents/sensors.md) § Not a flake. And never read a
+gate's result through `tail` without `set -o pipefail`: the pipeline exits with `tail`'s status,
+so a failing `npm run check` reports success.
+
 **One documented exception.** `apps/server/test/anythingRuntimeCheck.test.js` fails up to six tests
 at once under full-suite load contention while passing 16/16 in isolation. The tell is a uniform
 timing shift across every case in the file, not assertion content. Re-run that file alone before
@@ -124,6 +141,24 @@ open PR. Two overlapping branches from one routine is how a scheduled job starts
 If preflight refuses, the correct action is to **finish or close the open PR**, not to start a
 second branch under a different name.
 
+**How it identifies "this routine's PR", and why that matters.** Branch names come from the cloud
+runner (`claude/eager-hopper-74jcfu`), so a branch cannot say which routine opened a PR. The
+_title_ can, and every playbook already enforces one — so the match is on `prTitlePrefix`
+(defaulting to `<name>:`) or `branchPrefix` (defaulting to `<name>/`), either declared in the
+front-matter. A Cursor branch or a dependabot bump matches neither and is correctly ignored.
+
+**A warning is not a pass.** When `gh` is missing, unauthenticated or offline the guard prints a
+warning and lets the run continue, because a routine that cannot reach GitHub still has useful
+work to do. It deliberately does not report "no open PR" in that case: an absent answer and an
+empty answer mean opposite things, and conflating them is what this check existed on paper — and
+not in code — to prevent.
+
+> This check was documented here, in `docs/automations/README.md` § 4 and in ADR-0014 clause 3
+> from day one, and **was not implemented until 2026-08-30**. In the interim PR #442 sat open for
+> two days holding a `review` ledger row hostage, the next firing started a second branch behind
+> it, and that run then reasoned _from preflight's silence_ that the previous night had never
+> fired. A safety property that exists only in prose reads exactly like one that works.
+
 ### 6. Never touch the don't-touch list
 
 Inherited verbatim from [`AGENTS.md`](../../AGENTS.md) § Don't-touch list: `.agents/`, `.env*`,
@@ -141,12 +176,30 @@ Append a run-log row every time, including runs that changed nothing. "Nothing t
 information; a gap in the log is not. Move finished `todos` to `completed` rather than deleting
 them, so a month from now the question "did this actually improve anything?" has an answer.
 
-### 8. Write durable learnings in both places
+### 8. Write durable learnings once, where the code is
 
-If a run discovers something a future agent would otherwise rediscover the hard way, it goes in
-**both** [`AGENTS.md`](../../AGENTS.md) and [`CLAUDE.md`](../../CLAUDE.md). Cursor tends to start
-from the first, Claude Code from the second; a tip in only one leaves the other blind. That is the
-repo's existing mirroring rule, not a new one.
+If a run discovers something a future agent would otherwise rediscover the hard way, write it down
+— **once**.
+
+**Domain findings go in `docs/agents/domains/<domain>.md`**, as a short-form entry naming the
+file it lives in, plus its full-findings counterpart. Two exist today, `metaphor3d.md` and `office.md`. Each is auto-loaded by the
+agents that need it: a glob-scoped `.cursor/rules/<domain>.mdc` for Cursor, nested `CLAUDE.md`
+files in the described directories for Claude Code, and the index table in
+[`AGENTS.md`](../../AGENTS.md) § Domain gotchas for qwen and anything else. Adding a domain means
+adding those three pointers; the content itself stays in one file.
+
+**Repo-wide findings** — something true of the whole codebase rather than of one domain — still go
+in **both** [`AGENTS.md`](../../AGENTS.md) and [`CLAUDE.md`](../../CLAUDE.md), because Cursor tends
+to start from the first and Claude Code from the second, and a tip in only one leaves the other
+blind.
+
+> **Why the split.** Until 2026-08-30 this rule said "both files, always", for every finding. Two
+> domains grew under it — Metaphor3D to 54 KB + 27 KB, Office to 48 KB + 27 KB — and both root files
+> are read in full at the start of every session, so ~152 KB (about 38 k tokens) was loaded before
+> any work began, whether or not the work went near a 3D scene or the office. `CLAUDE.md` went
+> 14 KB → 136 KB between May and August and doubled in the last two weeks of it. The rule was
+> right about the goal and wrong about the mechanism: what matters is that the finding reaches the
+> agent that needs it, not that it appears in a particular file.
 
 ## What routines may not do
 
@@ -172,7 +225,9 @@ escalate when unsure) that already decide whether any routine change is safe to 
 ## Adding a routine
 
 1. Write `docs/routines/<name>.md` with the frontmatter block (`name`, `tier`, `schedule`,
-   `maxFiles`, `allowedPaths`, `forbiddenPaths`) and a numbered work queue.
+   `maxFiles`, `allowedPaths`, `forbiddenPaths`, and optionally `prTitlePrefix` /
+   `branchPrefix` when the PR titles this routine writes do not start with `<name>:`)
+   and a numbered work queue.
 2. Create `docs/routines/ledger/<name>.md` from an existing ledger.
 3. Create the Claude Routine with the three-line loader prompt above, on a cron that does not
    collide with an existing routine. Stagger by at least an hour.

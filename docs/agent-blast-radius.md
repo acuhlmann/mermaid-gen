@@ -177,6 +177,45 @@ Four coupling traps worth knowing before you touch this:
 - **A `SAMPLES` row whose `.mp3` does not exist is a build failure, not a fallback.** Vite resolves the `import` at build time. Add the manifest row and generate the asset _first_, wire `officeCueSamples.js` last. Everything else about a new cue (the synth fallback, the trigger, the weight) can land before the asset does — and should, because that keeps the moment audible while the asset is pending.
 - **A cue needs a row in `SYNTH_CUE_PLAYERS` or it is silent on first play.** Sampling is best-effort; the fallback is what makes that safe. `officeCuePlayers.test.js` asserts every `SOUNDSCAPE_CUES` and `SAMPLED_CUES` entry has one, and that every `FLOOR_PROP_USES` entry has a `cuesForProp` row — the guard that would have caught the whiteboard being reachable and silent for three slices.
 
+## Metaphor3D (schema → ladder → scenes)
+
+| Layer           | Location                                                                                                                                                                                            |
+| --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Shared schema   | [`packages/shared/src/metaphorSchema.ts`](../packages/shared/src/metaphorSchema.ts), [`metaphorSanitizer.ts`](../packages/shared/src/metaphorSanitizer.ts)                                          |
+| USDA mapping    | [`packages/shared/src/metaphorUsda.ts`](../packages/shared/src/metaphorUsda.ts), [`metaphorUsdaFields.ts`](../packages/shared/src/metaphorUsdaFields.ts)                                            |
+| Server ladder   | [`apps/server/src/tools/metaphorDslTool.js`](../apps/server/src/tools/metaphorDslTool.js), [`agents/metaphorSyntaxFixer.js`](../apps/server/src/agents/metaphorSyntaxFixer.js), `prompts/metaphor*` |
+| Layouts         | [`apps/web/src/utils/metaphorLayouts/`](../apps/web/src/utils/metaphorLayouts/)                                                                                                                     |
+| Scenes + chrome | [`apps/web/src/components/metaphorScenes/`](../apps/web/src/components/metaphorScenes/), [`MetaphorRenderer.jsx`](../apps/web/src/components/MetaphorRenderer.jsx)                                  |
+| Bench           | [`apps/server/scripts/benchMetaphor.js`](../apps/server/scripts/benchMetaphor.js) — read `expectationMatch`, not `acceptRate`                                                                       |
+| Tests           | `METAPHOR_BLAST_TESTS` in [`scripts/test-affected-lib.mjs`](../scripts/test-affected-lib.mjs) (40 files across all three workspaces)                                                                |
+| Docs            | [`docs/guide/validation.md`](guide/validation.md) § Metaphor3D, [`docs/automations/metaphor3d.md`](automations/metaphor3d.md), [`docs/agents/domains/metaphor3d.md`](agents/domains/metaphor3d.md)  |
+
+Adding a **kind** is a ten-place change — the list is in
+[`docs/agents/domains/metaphor3d.md`](agents/domains/metaphor3d.md).
+
+> This area had **no** blast-radius rule until 2026-08-30 and relied on the basename mirror alone,
+> so editing `metaphorSanitizer.ts` selected `metaphorSanitizer.test.ts` and nothing else — not the
+> server contract tests, not any of the 30-odd web suites built on the same schema. Compare
+> `mermaidSanitizer`, `chartSchema` and `formsA2ui`, which have carried explicit cross-workspace
+> rules from the start.
+
+## Canvas graph edit (one family, four shared seams)
+
+| Layer           | Location                                                                                                                                                                                             |
+| --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Dispatcher      | `graphEditAdapterFor` in [`apps/web/src/utils/canvasGraphEdit.js`](../apps/web/src/utils/canvasGraphEdit.js)                                                                                         |
+| DOM hit-test    | [`apps/web/src/utils/diagramGraphEditNodeResolve.js`](../apps/web/src/utils/diagramGraphEditNodeResolve.js) (mermaid / infographic / mindmap / sequence only)                                        |
+| Metaphor bridge | [`apps/web/src/components/metaphorScenes/MetaphorGraphEditBridge.jsx`](../apps/web/src/components/metaphorScenes/MetaphorGraphEditBridge.jsx) — bypasses the DOM resolver; three.js owns hit-testing |
+| Family mutators | `apps/web/src/utils/mermaid*Edit.js`, `infographicGraphEdit.js`, `chartGraphEdit.js`, `metaphor*Edit.js`                                                                                             |
+| Shared helpers  | `pickParallelEdgeRef` (flowchart / state / class / ER), `findSequenceMessageRange` (a **deliberately** separate third implementation — do not fork a fourth)                                         |
+| Tests           | `GRAPH_EDIT_BLAST_TESTS` in [`scripts/test-affected-lib.mjs`](../scripts/test-affected-lib.mjs) (20 files, ~6 s)                                                                                     |
+| Docs            | [`docs/canvas-graph-edit.md`](canvas-graph-edit.md), recipe [`add-graph-edit-family.md`](recipes/add-graph-edit-family.md)                                                                           |
+
+`DiagramCanvas.jsx` is on the ratchet at **1889 lines and may not grow** — a new family extracts,
+it does not append. The 2026-08-28/29 colon-less-ER defect crossed the `pickParallelEdgeRef` seam
+between the ER and class families, which is exactly the class of break the basename mirror cannot
+see.
+
 ## Agent tooling (diff-scoped tests + verify)
 
 | Layer      | Location                                                                                                                                                                                                                        |

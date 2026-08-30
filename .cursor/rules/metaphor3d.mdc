@@ -1,0 +1,39 @@
+---
+description: Metaphor3D scene gotchas — camera framing, label declutter, link legibility, themes, the fused composite, and the panel/safe-area contract.
+globs:
+  - apps/web/src/components/metaphorScenes/**
+  - apps/web/src/components/MetaphorRenderer.jsx
+  - apps/web/src/utils/metaphorLayouts/**
+  - apps/web/src/utils/metaphor*
+  - packages/shared/src/metaphor*
+  - apps/server/src/tools/metaphorDslTool.js
+  - apps/server/src/agents/metaphor*
+  - apps/server/src/prompts/metaphor*
+alwaysApply: false
+---
+
+# Metaphor3D — read the domain file before editing
+
+**[`docs/agents/domains/metaphor3d.md`](../../docs/agents/domains/metaphor3d.md)**
+
+Roughly 50 findings, each one measured from a headless render rather than reasoned about from the
+code. Read its **Short form** first, then the **Full findings** entry for whatever you are about
+to change.
+
+This content used to sit in the root `CLAUDE.md` (54 KB) and `AGENTS.md` (27 KB) at once, loaded
+by every session in this repo whether or not it touched a 3D scene. It is now scoped to the files
+this rule globs. Same content, one copy, four agents — this rule for Cursor, a nested `CLAUDE.md`
+for Claude Code, the root `AGENTS.md` index for everything else.
+
+Two rules that catch everyone:
+
+- **Verify by rendering, not by reading.** `apps/web/.claude/skills/verify/SKILL.md` is the
+  headless-capture recipe. A visual change is not done until it has been looked at, and the
+  measurement itself needs proving — a mis-captured camera once reported a clean sweep of wins the
+  screenshots did not show.
+- **Is this mesh the subject, or scaffolding for the subject?** Shadow catchers, ground discs,
+  water planes and ambience carry `FRAME_IGNORE_DATA` so the camera does not frame them. Miss it
+  and the subject renders at a fraction of the frame.
+
+**Add findings to the domain file, once.** Do not copy them back into the root files; that
+mirroring rule is retired for domain content (`docs/routines/README.md` rule 8).

@@ -29,7 +29,7 @@ export const ROOT = path.resolve(__dirname, '..');
 export const RATCHET_PATH = 'docs/agents/ratchet.json';
 
 /** Metrics whose measured value must stay at or below budget; the rest must stay at or above. */
-export const DESCENDING_METRICS = new Set(['monolithLoc', 'lintWarnings']);
+export const DESCENDING_METRICS = new Set(['monolithLoc', 'lintWarnings', 'contextBytes']);
 
 const TEST_CASE_RE = /\b(?:it|test)(?:\.\w+)*\s*(?:<[^>]*>)?\s*\(/g;
 
@@ -40,6 +40,31 @@ const TEST_CASE_RE = /\b(?:it|test)(?:\.\w+)*\s*(?:<[^>]*>)?\s*\(/g;
 export function countTestCases(source) {
   const matches = source.match(TEST_CASE_RE);
   return matches ? matches.length : 0;
+}
+
+/**
+ * Size of the always-loaded agent context files, in bytes.
+ *
+ * These are read in full at the start of every session by every agent in this repo, so a byte
+ * here is paid by every interactive session and every one of the seven nightly unattended runs —
+ * before any work starts. Between May and August 2026 `CLAUDE.md` went 14 KB → 136 KB and
+ * `AGENTS.md` 12 KB → 88 KB, doubling in the final fortnight, because the mirroring rule required
+ * every durable finding in both. Domain findings moved to `docs/agents/domains/` on 2026-08-30,
+ * which is scoping rather than deletion — those files are excluded here on purpose, because they
+ * are loaded only by a session that touches the code they describe.
+ * @param {string} root
+ * @param {string[]} files
+ * @returns {Record<string, number>}
+ */
+export function measureContextBytes(root, files) {
+  /** @type {Record<string, number>} */
+  const out = {};
+  for (const file of files) {
+    const abs = path.join(root, file);
+    if (!fs.existsSync(abs)) continue;
+    out[file] = fs.statSync(abs).size;
+  }
+  return out;
 }
 
 /**
@@ -198,6 +223,7 @@ export function measureAll(root, baseline, options = {}) {
   /** @type {Record<string, Record<string, number>>} */
   const measured = {
     monolithLoc: measureFileLoc(root, Object.keys(metrics.monolithLoc ?? {})),
+    contextBytes: measureContextBytes(root, Object.keys(metrics.contextBytes ?? {})),
     strictIslandFiles: measureStrictIslands(root, Object.keys(metrics.strictIslandFiles ?? {})),
     suite: { files: tests.files, cases: tests.cases }
   };

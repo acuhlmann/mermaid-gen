@@ -1,10 +1,17 @@
 ---
 name: resolve
 tier: code-writing
-schedule: '0 3 * * *'
+schedule: '15 22 * * *'
 maxFiles: 6
+prTitlePrefix:
+  - 'resolve:'
+  - 'resolve ledger:'
+branchPrefix:
+  - claude/awesome-hawking
 allowedPaths:
   - docs/routines/ledger/resolve.md
+  - docs/**
+  - '*.md'
   - apps/**
   - packages/**
 forbiddenPaths:
@@ -21,8 +28,33 @@ findings and fix at most one bug each per run — nothing previously came back f
 sat waiting for a human to hand them back to an agent. `resolve` is that hand-back, done on a
 schedule.
 
-`0 3 * * *` (11:00 HKT) sits two hours after `review` (`0 1 * * *`), so today's freshly filed issues
-are visible in the backlog before this routine reads it.
+`15 22 * * *` (06:15 HKT) is the last code-writing rung of the night: `review` (`0 20`) and
+`improve` (`0 21`) have both merged by then, so tonight's freshly filed issues are visible in the
+backlog before this routine reads it, and the `digest` at `0 23` reports on everything including
+this run.
+
+Until 2026-08-30 this playbook claimed it sat "two hours after `review` (`0 1 * * *`)". Neither
+number was the live cron, and the real firing order was the exact inverse of the one this
+rationale depends on.
+
+## Why `docs/**` is in this routine's budget
+
+`review` and `resolve` shipped with **byte-identical** `allowedPaths`, and this routine's own
+ledger diagnosed what that costs on 2026-08-23, -26, -28 and -29 before anyone acted on it:
+
+> `review` files a `docs/**` finding _precisely because_ it is out of `review`'s own budget. If
+> `resolve` has the same budget, that class of issue is not merely often unresolvable by this
+> routine — it is **never** resolvable by it. A hand-back that cannot reach the work it is handed
+> is not a hand-back.
+
+#441 was the concrete case: a one-line markdown-table fix in `docs/canvas-graph-edit.md`, filed by
+`review`, labelled `ready-for-agent`, and unreachable by the only routine that reads the backlog —
+so the 2026-08-29 run logged "quiet" with an actionable issue sitting in front of it.
+
+`docs/**` here is for **fixing what the backlog asks for**, not for rewriting playbooks. Editing
+this file, another routine's playbook, an ADR or a ledger that is not this routine's own is
+`improve`'s queue item, and doing it from here would mean a routine quietly widening its own
+budget — which is the one edit that must always be visible in a PR a human reads.
 
 ## 1. Gather
 
@@ -37,6 +69,11 @@ argument, and nothing else in this repo ever labels them after the fact — an i
 unlabelled stays invisible to a gather step that only looks for `ready-for-agent`/`needs-triage`
 forever, not just until the next triage pass. Do not treat "no label" as "not yet triaged and
 therefore not this routine's problem"; treat it as `needs-triage` that a filer forgot to stamp.
+
+**Exclude anything labelled `log`.** That label marks an append-only thread, not work — today
+that is #452, the nightly digest. It carries no other label precisely so a human reading
+`gh issue list` sees it, which means the unlabelled-issues rule above would otherwise hand this
+routine a log to "fix" every night.
 
 For a `needs-triage` issue, or an unlabelled one: read it in full. If it already names the file,
 the symptom, and what correct looks like, treat it as scoped even though the label hasn't caught
@@ -61,7 +98,32 @@ Skip on sight, leave filed, do nothing further this run:
   on contact, and a schedule has no feature to be on contact with).
 - Anything asking for a new dependency, a lint-severity promotion, or slot content (ADR-0014's three
   carve-outs — see `README.md` § What routines may not do).
-- Anything whose fix cannot be expressed as `apps/**` / `packages/**` changes within `maxFiles`.
+- Anything whose fix cannot be expressed as a change inside this routine's `allowedPaths`, within
+  `maxFiles`.
+
+## 2b. Stale dependency PRs — one per run, merge only
+
+Dependabot opens PRs that nothing in this repo ever reads. #378 (mermaid 11.16→11.17) and #379
+(hono) sat open and green for eight days before a human noticed.
+
+Once per run, after the issue pick and only if the pick left budget:
+
+```bash
+gh pr list --state open --author app/dependabot --json number,title,createdAt,statusCheckRollup
+```
+
+Merge **at most one** that satisfies all four: open more than 7 days, every check green, a
+**patch or minor** bump of a dependency the repo already has, and no conflict with `main`. That is
+merging someone else's PR, not writing one — this routine's own branch diff is unchanged, and
+`package-lock.json` stays on the always-forbidden list for anything it authors itself.
+
+A **major** bump is escalated, never merged: label it `ready-for-human` and say why in one line. A
+red or conflicted one is left alone and named in the ledger row.
+
+This does not contradict "no new dependencies" (README § What routines may not do). That rule is
+about **adding** a package — a licence, a supply chain and a bundle cost, each a decision. Moving
+an existing one forward a patch release with green CI is the boring maintenance this shelf exists
+to absorb, and leaving it undone is how a security bump waits a week.
 
 ## 3. Fix — same bar as `review`, one issue per run
 
@@ -116,3 +178,22 @@ If the same issue gets escalated three runs running with no human action on the 
 the ledger and stop re-touching it that run — pick the next candidate instead. Re-escalating the same
 finding every night is the routine version of the review nag rule, and it burns budget that could
 fix something else.
+
+## Verification
+
+```bash
+npm run routine:guard -- --preflight resolve    # BEFORE starting
+npm run precommit
+npm run check
+npm run routine:guard -- --postflight resolve   # BEFORE pushing
+```
+
+The guard is the safety model, not a formality: it re-reads `maxFiles` / `allowedPaths` /
+`forbiddenPaths` from this playbook's own front-matter and checks the real diff, because a routine
+runs unattended and its safety cannot rest on the model having read the prose.
+
+Preflight also enforces README rule 5 — it refuses to start behind an open PR of this routine's
+own, matched on the PR title prefix (branch names are generated by the cloud runner, so the branch
+alone cannot identify who opened a PR). If it _warns_ that it could not read open PRs, `gh` is
+missing or unauthenticated and that check did not run: confirm by hand before pushing. An absent
+answer is not "no open PR".

@@ -1,0 +1,45 @@
+---
+description: Office layer gotchas — desk frame, isometric floor, cast, moments and set pieces, narration/TTS, locale bundles.
+globs:
+  - apps/web/src/components/OfficeFloor*
+  - apps/web/src/components/officeFloor/**
+  - apps/web/src/components/OfficeLayer*
+  - apps/web/src/components/DeskOs*
+  - apps/web/src/components/personaFaces/**
+  - apps/web/src/state/office*
+  - apps/web/src/state/deskSlotStore.js
+  - apps/web/src/utils/office*
+  - apps/web/src/hooks/useOffice*
+  - apps/web/src/i18n/locales/office.*
+  - apps/server/src/agents/office*
+  - apps/server/src/routes/office*
+alwaysApply: false
+---
+
+# Office layer — read the domain file before editing
+
+**[`docs/agents/domains/office.md`](../../docs/agents/domains/office.md)**
+
+Read its **Short form** first, then the **Full findings** entry for whatever you are changing.
+This content used to sit in the root `CLAUDE.md` (48 KB) and `AGENTS.md` (27 KB) at once, loaded by
+every session in this repo. Same content, one copy, four agents.
+
+The two rules everything else follows from:
+
+- **Ambient vs reactive** (`docs/office-parody.md` § 11). A timer interrupted you → stay
+  canned-heavy. You started it or answered it → lean LLM, because a canned reply to a sentence you
+  typed is the clearest possible tell that nobody is home. The appetite table is one file:
+  `officeCadence.js`. Tune there, not at the use site.
+- **Record, never trigger** (ADR-0010 consequence #4). The office log, working memory and the
+  errand all *record*. The moment one of them schedules or fires something, it is
+  auto-fix-on-idle in a new hat.
+
+Two that will cost you an afternoon:
+
+- **Any floor test that _mounts_ inherits the wall clock and `Math.random`.** Pin both. A suite
+  that passes standalone and fails in file order — or passes for 16 hours a day — is this.
+- **Exactly one surface may draw a person.** `settledIds` is the hand-off; miss it and a scene
+  ends with people blinking back into chairs while their own figures are still crossing the room.
+
+**Add findings to the domain file, once.** Do not copy them back into the root files; that
+mirroring rule is retired for domain content (`docs/routines/README.md` rule 8).
