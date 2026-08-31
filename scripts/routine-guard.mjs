@@ -550,8 +550,12 @@ function main() {
     testCounts: collectTestCounts(base, changes)
   });
   if (result.ok) {
+    // A `report` routine has no maxFiles to spend, so "0/undefined files" is the wrong shape of
+    // proof — and this line IS the proof an unattended run prints that it stayed in budget.
     console.log(
-      `routine-guard: postflight OK for "${name}" (${changes.length}/${String(playbook.maxFiles)} files)`
+      String(playbook.tier) === 'report'
+        ? `routine-guard: postflight OK for "${name}" (report tier, ${changes.length} files changed)`
+        : `routine-guard: postflight OK for "${name}" (${changes.length}/${String(playbook.maxFiles)} files)`
     );
     return;
   }
