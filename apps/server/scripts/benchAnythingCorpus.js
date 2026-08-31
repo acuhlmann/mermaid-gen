@@ -375,6 +375,25 @@ export const ANYTHING_BENCH_CORPUS = [
     )
   },
   {
+    // lib-matter-stack first-pass "Matter.Sleeping.setEnabled is not a function": the
+    // model hallucinates a toggle method on the Sleeping module instead of setting the
+    // Engine's own enableSleeping boolean. Regression = both engines drift.
+    id: 'runtime-matter-sleeping-setenabled',
+    kind: 'runtime',
+    expectedAccept: false,
+    expectedCode: 'runtime_error',
+    html: page(
+      `<h1>Stack</h1><canvas id="stage" width="320" height="240"></canvas>
+<script>
+  const { Engine, Bodies, Composite } = Matter;
+  const engine = Engine.create();
+  Matter.Sleeping.setEnabled(engine, true);
+  Composite.add(engine.world, Bodies.rectangle(160, 40, 40, 40));
+</script>`,
+      { head: '<!-- @lib:matter -->' }
+    )
+  },
+  {
     // layout-dashboard first-pass "k.fmt is not a function": the model treats a KPI
     // data row as if it carried its own formatter. Regression = both engines drift.
     id: 'runtime-fmt-on-data-row',
