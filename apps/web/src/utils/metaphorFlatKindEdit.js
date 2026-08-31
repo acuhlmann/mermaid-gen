@@ -22,6 +22,21 @@ import {
 /** @typedef {(template: Record<string, unknown> | undefined, id: string, label: string) => Record<string, unknown>} DefaultItemFn */
 
 /**
+ * @param {Record<string, unknown>} doc
+ * @param {string} fromId
+ * @param {string} toId
+ * @returns {Record<string, unknown> | null}
+ */
+function findFlatLink(doc, fromId, toId) {
+  if (!Array.isArray(doc.links)) return null;
+  return (
+    doc.links.find(
+      (link) => link && typeof link === 'object' && link.from === fromId && link.to === toId
+    ) ?? null
+  );
+}
+
+/**
  * @param {string} metaphor
  * @param {string} rejectReason
  * @param {DefaultItemFn} defaultItem
@@ -112,8 +127,21 @@ export function createMetaphorFlatGraphEdit(metaphor, rejectReason, defaultItem,
     return ok(serializeMetaphorFlatDoc(doc, source));
   }
 
-  function renameEdge() {
-    return fail('not-graph');
+  function renameEdge(source, fromId, toId, label) {
+    if (!canLink) return fail('not-graph');
+    const blocked = requireKind(source);
+    if (blocked) return blocked;
+    const doc = parseMetaphorFlatDoc(source, metaphor);
+    if (!doc) return fail('not-graph');
+    const link = findFlatLink(doc, fromId, toId);
+    if (!link) return fail('missing');
+    const next = String(label ?? '').trim();
+    if (next) {
+      link.label = next;
+    } else {
+      delete link.label;
+    }
+    return ok(serializeMetaphorFlatDoc(doc, source));
   }
 
   function connectNodes(source, fromId, toId) {
