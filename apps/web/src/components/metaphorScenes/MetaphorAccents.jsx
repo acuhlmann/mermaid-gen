@@ -38,6 +38,11 @@ import { useScreenConstantScale } from './metaphorScreenScale.js';
 import { useMetaphorClock } from './metaphorClock.js';
 import { isDarkBackdrop } from './sceneUtils.js';
 import { captionFitsCanvas } from './accentCaptionFit.js';
+import {
+  ACCENT_CAPTION_TEXT_ORDER,
+  ACCENT_MARKER_ORDER,
+  ACCENT_PIN_ORDER
+} from './metaphorDrawOrder.js';
 
 /** Height of the light shaft above the anchor, in world units. */
 const SHAFT_HEIGHT = 5.5;
@@ -57,8 +62,12 @@ const CAPTION_MAX_WIDTH = 7;
  * and a caption the subject can hide is a caption you cannot read exactly when
  * you need it. Measured on the iceberg, depth-tested text lost its middle third
  * to the berg in front of it.
+ *
+ * The number itself now lives in `metaphorDrawOrder.js` with the rest of the
+ * ladder, because the accented item's OWN name has to sit above every rung of
+ * it — see that file for why no camera or anchor change can substitute.
  */
-const CAPTION_RENDER_ORDER = 30;
+const CAPTION_RENDER_ORDER = ACCENT_MARKER_ORDER;
 
 /**
  * On-screen type size of the caption, in CSS pixels.
@@ -186,7 +195,7 @@ function AccentCaption({ text, y, color }) {
         <mesh
           ref={ruleRef}
           position={[0, -plateHeight / 2 + 0.03, -0.01]}
-          renderOrder={CAPTION_RENDER_ORDER + 1}
+          renderOrder={ACCENT_PIN_ORDER}
         >
           <planeGeometry args={[plateWidth, 0.055]} />
           <meshBasicMaterial
@@ -206,7 +215,7 @@ function AccentCaption({ text, y, color }) {
           anchorY="middle"
           lineHeight={1.32}
           maxWidth={CAPTION_MAX_WIDTH}
-          renderOrder={CAPTION_RENDER_ORDER + 2}
+          renderOrder={ACCENT_CAPTION_TEXT_ORDER}
           material-depthTest={false}
           material-depthWrite={false}
           material-toneMapped={false}
@@ -290,7 +299,19 @@ function AccentBeam({ position, color, additive, note }) {
           rather than an object within it, so it is drawn over the scene — which
           is also what a leader line does on any annotated drawing. The ring
           below stays depth-tested: it is a decal on the item, and it should be
-          hidden when the item is. */}
+          hidden when the item is.
+
+          `depthWrite={false}` is the other half of that sentence and it was
+          missing. A mesh that ignores depth and still WRITES it stamps its own
+          distance into the buffer, and every depth-tested thing drawn later is
+          then rejected against a rod that was never supposed to be part of the
+          scene's geometry. The victim is the accented item's own name: measured
+          on the subway fixture at 717x512, "Pay" rendered as "P y" with no
+          amber pixel anywhere near the missing glyph, because the stem deleted
+          it rather than painting over it. That is why it survived a screenshot
+          diff of the marker's colour — the standing theory in the ledger had
+          it as the stem drawn ON the name, and the stem is `meshStandardMaterial`,
+          whose `depthWrite` defaults to true. An annotation writes no depth. */}
       <mesh position={[0, pinHeight / 2, 0]} renderOrder={CAPTION_RENDER_ORDER}>
         <cylinderGeometry args={[0.055, 0.055, pinHeight, 8]} />
         <meshStandardMaterial
@@ -300,6 +321,7 @@ function AccentBeam({ position, color, additive, note }) {
           roughness={0.4}
           metalness={0.2}
           depthTest={false}
+          depthWrite={false}
         />
       </mesh>
       <mesh ref={ringRef} position={[0, 0.12, 0]} rotation={[-Math.PI / 2, 0, 0]}>
@@ -315,7 +337,7 @@ function AccentBeam({ position, color, additive, note }) {
         ref={pinRef}
         position={[0, pinHeight, 0]}
         rotation={[Math.PI, 0, 0]}
-        renderOrder={CAPTION_RENDER_ORDER + 1}
+        renderOrder={ACCENT_PIN_ORDER}
       >
         <coneGeometry args={[0.42, 0.95, 5]} />
         <meshStandardMaterial
@@ -325,6 +347,7 @@ function AccentBeam({ position, color, additive, note }) {
           roughness={0.35}
           metalness={0.15}
           depthTest={false}
+          depthWrite={false}
         />
       </mesh>
       {note ? <AccentCaption text={note} y={pinHeight + 1.05} color={color} /> : null}
