@@ -109,6 +109,10 @@ describe('MetaphorAccents draws from the ladder', () => {
 
 describe('ItemLabel lifts the accented name over the callout', () => {
   const source = read('../src/components/metaphorScenes/MetaphorSceneChrome.jsx');
+  // The depth write moved to its own module so the accent-change case could be
+  // driven without a renderer — see metaphorLabelDepth.test.js. The invariants
+  // below are unchanged; two of them now read that file.
+  const depthSource = read('../src/components/metaphorScenes/metaphorLabelDepth.js');
 
   it('draws the accented name last', () => {
     expect(source).toMatch(/renderOrder=\{accented \? ACCENT_ITEM_LABEL_ORDER : 0\}/);
@@ -121,8 +125,8 @@ describe('ItemLabel lifts the accented name over the callout', () => {
     // sees it. Silent: no warning, and a screenshot identical to doing nothing.
     expect(source).not.toMatch(/material-depthTest=/);
     expect(source).toMatch(/onSync=\{applyLabelDepth\}/);
-    expect(source).toMatch(/material\.depthTest = !accented/);
-    expect(source).toMatch(/Array\.isArray\(troikaMesh\?\.material\)/);
+    expect(depthSource).toMatch(/material\.depthTest = !accented/);
+    expect(depthSource).toMatch(/Array\.isArray\(troikaMesh\?\.material\)/);
   });
 
   it('lifts the accented chip with it', () => {
@@ -149,6 +153,6 @@ describe('ItemLabel lifts the accented name over the callout', () => {
     // this pins that nobody made the lift unconditional.
     expect(source).toMatch(/const accented = useItemAccent\(\);/);
     expect(source).not.toMatch(/renderOrder=\{ACCENT_ITEM_LABEL/);
-    expect(source).not.toMatch(/material\.depthTest = false/);
+    expect(depthSource).not.toMatch(/material\.depthTest = false/);
   });
 });
