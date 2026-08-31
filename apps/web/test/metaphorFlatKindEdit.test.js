@@ -89,6 +89,27 @@ describe('metaphor machine graph edit', () => {
     expect(JSON.parse(result.source).items).toHaveLength(2);
   });
 
+  it('renames a link label and clears it when renamed to empty', () => {
+    const renamed = edit.renameEdge(MACHINE, 'drive', 'idle', 'drives');
+    expect(renamed.ok).toBe(true);
+    expect(JSON.parse(renamed.source).links).toContainEqual({
+      from: 'drive',
+      to: 'idle',
+      label: 'drives'
+    });
+
+    const cleared = edit.renameEdge(renamed.source, 'drive', 'idle', '   ');
+    expect(cleared.ok).toBe(true);
+    expect(JSON.parse(cleared.source).links).toEqual([{ from: 'drive', to: 'idle' }]);
+  });
+
+  it('refuses to rename a link that does not exist', () => {
+    expect(edit.renameEdge(MACHINE, 'idle', 'drive', 'x')).toEqual({
+      ok: false,
+      reason: 'missing'
+    });
+  });
+
   it('refuses self-links and missing endpoints', () => {
     expect(edit.connect(MACHINE, 'drive', 'drive')).toEqual({ ok: false, reason: 'self' });
     expect(edit.connect(MACHINE, 'drive', 'missing')).toEqual({ ok: false, reason: 'missing' });
@@ -138,6 +159,10 @@ describe('metaphor ordered flat kinds without Link', () => {
       chain: 'North'
     });
     expect(edit.connect(source, 'alpha', 'beta')).toEqual({ ok: false, reason: 'no-link' });
+    expect(edit.renameEdge(source, 'alpha', 'beta', 'x')).toEqual({
+      ok: false,
+      reason: 'not-graph'
+    });
   });
 
   it('river clones stage and flow without Link', () => {
