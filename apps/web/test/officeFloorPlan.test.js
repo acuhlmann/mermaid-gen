@@ -124,11 +124,15 @@ describe('floor layout', () => {
   it('seats the player and nobody else twice', () => {
     expect(seatFor(YOU_SEAT_ID)).toBeTruthy();
     const ids = floorSeatIds();
+    // Coverage claim: an emptied floor plan would pass the uniqueness check
+    // below while examining nothing.
+    expect(ids.length).toBeGreaterThan(0);
     expect(new Set(ids).size).toBe(ids.length);
   });
 
   it('never puts two people on the same tile', () => {
     const tiles = FLOOR_SEATS.map((seat) => `${seat.x},${seat.y}`);
+    expect(tiles.length).toBeGreaterThan(0);
     expect(new Set(tiles).size).toBe(tiles.length);
   });
 
@@ -495,6 +499,7 @@ describe('zones', () => {
 
   it('has a unique id per zone', () => {
     const ids = FLOOR_ZONES.map((zone) => zone.id);
+    expect(ids.length).toBeGreaterThan(0);
     expect(new Set(ids).size).toBe(ids.length);
   });
 });

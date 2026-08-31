@@ -48,6 +48,9 @@ describe('ADR-0011 rule 2 — diegesis duplicates, never replaces', () => {
 
   it('lists every prop kind exactly once', () => {
     const kinds = FLOOR_PROP_USES.map((row) => row.kind);
+    // Coverage claim: an emptied FLOOR_PROP_USES would pass the uniqueness
+    // check below while examining nothing.
+    expect(kinds.length).toBeGreaterThan(0);
     expect(new Set(kinds).size).toBe(kinds.length);
   });
 });

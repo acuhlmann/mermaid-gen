@@ -76,6 +76,10 @@ describe('Slop Chat scrollback', () => {
     const second = await freshStore();
     second.pushOfficeImPing({ colleagueId: 'intern', body: 'three' });
     const ids = second.getOfficeSnapshot().imHistory.map((m) => m.id);
+    // Two restored pings plus the new one — a counter that failed to resume
+    // would collapse ids into duplicates while an empty history would pass
+    // the uniqueness check below on nothing.
+    expect(ids.length).toBe(3);
     expect(new Set(ids).size).toBe(ids.length);
   });
 

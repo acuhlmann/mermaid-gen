@@ -34,6 +34,9 @@ const ALL_IDS = Object.values(CAST_TIERS).flat();
 
 describe('cast tiers', () => {
   it('assigns every cast member to exactly one tier', () => {
+    // Coverage claim: an emptied CAST_TIERS would pass both checks below
+    // while examining nothing.
+    expect(ALL_IDS.length).toBeGreaterThan(0);
     expect(new Set(ALL_IDS).size).toBe(ALL_IDS.length);
     for (const id of ALL_IDS) expect(tierOf(id)).toBeTruthy();
     expect(tierOf('nobody')).toBeNull();
