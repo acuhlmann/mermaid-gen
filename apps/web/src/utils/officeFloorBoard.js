@@ -177,7 +177,7 @@ function shapeLabelText(raw) {
 }
 
 /** An id followed by a shape opener, anywhere on the line. */
-const SHAPE_OPEN_RE = /([A-Za-z][A-Za-z0-9_-]*)\s*([[({>\{])/g;
+const SHAPE_OPEN_RE = /([A-Za-z][A-Za-z0-9_-]*)\s*([[({>{])/g;
 
 /**
  * Pipe-delimited edge labels, which are **not** nodes.

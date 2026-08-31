@@ -773,6 +773,9 @@ describe('label ranks across a fused world', () => {
     const ranks = [...world.nodes, ...world.paths.flatMap((p) => p.stations)].map(
       (body) => body.labelRank
     );
+    // Coverage claim: an unpopulated world would pass the uniqueness check
+    // below while examining nothing.
+    expect(ranks.length).toBeGreaterThan(0);
     expect(new Set(ranks).size).toBe(ranks.length);
   });
 
