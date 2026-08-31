@@ -2,8 +2,9 @@
 // benchMetaphor.js
 //
 // Offline driver that replays a fixed corpus of Metaphor DSL sources through
-// `validateAndPrepareMetaphorPatch` (fence strip → JSON.parse → ~14 deterministic rescue
-// passes → Zod discriminated union) and reports:
+// `validateAndPrepareMetaphorPatch` (fence strip → JSON.parse → 17 deterministic rescue
+// functions emitting 80+ distinct labelled fixes → Zod discriminated union over all 15
+// metaphor kinds) and reports:
 //   - sanitizer-rescue rate (how many otherwise-rejected sources now pass)
 //   - validator outcome counts
 //   - latency percentiles

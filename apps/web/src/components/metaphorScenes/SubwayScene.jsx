@@ -17,10 +17,7 @@
 import { useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
-import {
-  subwayNetworkLayout,
-  subwayPlatformRadius
-} from '../../utils/metaphorLayouts/subwayNetworkLayout.js';
+import { subwayNetworkLayout } from '../../utils/metaphorLayouts/subwayNetworkLayout.js';
 import { resolveClusterColor } from '../../utils/metaphorThemePresets.js';
 import { Glyph } from '../metaphorGlyphs/index.jsx';
 import {
@@ -67,7 +64,7 @@ function SubwayLine({ line, theme }) {
   const color = lineColor(theme, line.index);
   const curve = useMemo(() => routeCurve(line.stops), [line.stops]);
   if (!curve) return null;
-  const terminus = curve.getPoint(1);
+  const sign = line.sign;
   return (
     <group>
       <mesh>
@@ -82,17 +79,32 @@ function SubwayLine({ line, theme }) {
           metalness={0.12}
         />
       </mesh>
-      {/* Named at the terminus, the way a route is named on a platform sign. A
-          label at the midpoint lands on top of whatever crosses there. */}
-      <ItemLabel
-        text={line.name}
-        role="group"
-        position={[terminus.x, TRACK_Y + 1.7, terminus.z]}
-        fontSize={0.46}
-        color={color}
-        outlineColor={theme.labelOutline}
-        pinned
-      />
+      {/* Signed PAST the terminus, along the direction the route was travelling
+          when it got there — where a real platform sign stands. A label at the
+          midpoint lands on top of whatever crosses there, and one AT the
+          terminus (`getPoint(1)`, which this was) lands on that station's own
+          name: a pinned route placard drawn into a pinned interchange name,
+          with neither able to yield. `subwayRouteSign` owns the geometry so
+          the sign and the platform disc cannot disagree about where the
+          platform ends. */}
+      {sign ? (
+        <ItemLabel
+          text={line.name}
+          role="group"
+          // Lower than the 1.7 this label used to sit at, and deliberately so.
+          // Raising it clears the terminus platform's FACE on a flat foldable
+          // cover — but the sign is pinned and a station name is not, so the
+          // higher sign wins the declutter pass against the very names it just
+          // stopped colliding with: measured on 717x512, 1.7 cleared the discs
+          // and cost Deliver and Resolve, 5/6 station names down to 3/6. The
+          // lateral standoff is what fixes the collision; height only trades.
+          position={[sign[0], TRACK_Y + 1.15, sign[2]]}
+          fontSize={0.46}
+          color={color}
+          outlineColor={theme.labelOutline}
+          pinned
+        />
+      ) : null}
     </group>
   );
 }
@@ -130,7 +142,9 @@ function SubwayTrain({ line, theme }) {
  * subway grammar exists to make.
  */
 function SubwayStation({ station, theme, isInterchange }) {
-  const radius = subwayPlatformRadius(station.traffic) * (isInterchange ? 1.25 : 0.8);
+  // From the layout, not recomputed here: the route sign stands off this exact
+  // rim, so two definitions of "where the platform ends" would drift apart.
+  const radius = station.platformRadius;
   const rim = theme.labelColor ?? '#0f172a';
   const lantern = theme.slabTrimColor ?? '#fbbf24';
   return (
