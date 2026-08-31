@@ -109,6 +109,20 @@ ones that will bite an edit.
   scenes keep drawing above their own anchors; and the accented item's `note` is now permanent
   caption copy, so `accent` without `note` is half a marker. Changing either side means changing
   `apps/server/src/prompts/metaphorSystemPrompt.js` too.
+- **The one thing the callout must never eat is the name of the item it marks**
+  (`metaphorScenes/metaphorDrawOrder.js`). Every scene writes an item's name directly above that
+  item, at the same `(x, z)` as its accent anchor, and a vertical stem at that `(x, z)` projects to
+  a screen line through the projection of every point on it — so no camera, framing or anchor
+  change can separate them, and draw order is the only thing that decides it. The accented item's
+  chip and glyphs are the last things drawn and the only labels exempt from depth. Two traps sit
+  underneath and each is invisible to the check that catches the others: **a mesh with
+  `depthTest: false` must also set `depthWrite: false`** (it otherwise stamps its distance into the
+  buffer and DELETES later depth-tested glyphs, leaving no coloured pixel where the letter was, so
+  a diff of the marker's colour scores it clean); and **`material-depthTest` on an outlined troika
+  `<Text>` is a silent no-op** — with an outline the `material` getter returns an ARRAY, so r3f's
+  pierce assigns onto the array. Use drei's `onSync` and set every entry. Measured over six kinds ×
+  phone/cover/desktop: 8.2% of the accented name's own area was being altered by its own callout,
+  13 of 18 cases over 1%, worst 30%; after, 18 of 18 render every glyph on a clean card.
 - **A link carries its own halo, and it states a direction** (`linkRoutes.js`). Relations were the
   least legible thing in every scene: a `dependency` line measured 1.70:1 as rendered against the
   bar its own caption clears (3.4:1), and a whiteboard `flow` line measured **lum 219 against a sky

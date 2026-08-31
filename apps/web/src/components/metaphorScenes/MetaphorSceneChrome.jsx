@@ -5,7 +5,7 @@
  * sky sphere. Extracted from MetaphorRenderer.jsx (ADR-0005 sibling-module
  * pattern); pure helpers live in sceneUtils.js.
  */
-import { useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { useFrame, useThree } from '@react-three/fiber';
 import { Billboard, ContactShadows, Line, Text } from '@react-three/drei';
@@ -18,6 +18,12 @@ import { useLabelDeclutter } from './labelDeclutterContext.js';
 import { ItemAccentContext, useItemAccent } from './itemAccentContext.js';
 import { FRAME_IGNORE_DATA } from './sceneFraming.js';
 import { labelPlateEm, labelRoleStyle, labelRoleText } from './labelRoles.js';
+import {
+  ACCENT_ITEM_LABEL_ORDER,
+  ACCENT_ITEM_LABEL_PLATE_OPACITY,
+  ACCENT_ITEM_LABEL_PLATE_ORDER,
+  LABEL_PLATE_ORDER
+} from './metaphorDrawOrder.js';
 import {
   LABEL_TARGET_PX,
   LINK_LABEL_TARGET_PX,
@@ -121,7 +127,13 @@ export function ItemLabel({
   const plateEm = labelPlateEm(drawn, style);
   const plateWidth = plateEm.width * size;
   const plateHeight = plateEm.height * size;
-  const plateOpacity = style.plate;
+  // An accented item's chip carries a saturated amber rod behind it now that the
+  // name is drawn over its own callout, and a 0.58 chip lets that rod read as a
+  // line struck through the word. See metaphorDrawOrder.js.
+  const plateOpacity =
+    accented && style.plate > 0
+      ? Math.max(style.plate, ACCENT_ITEM_LABEL_PLATE_OPACITY)
+      : style.plate;
   // The declutter pass wants screen boxes, and a screen-constant label knows its
   // own directly: the world size never reaches the screen unscaled any more, so
   // projecting it would report the authored size instead of the drawn one.
@@ -132,6 +144,26 @@ export function ItemLabel({
   const screenHeightPx = plateEm.height * drawnPx;
 
   useScreenConstantScale(scaleRef, size, drawnPx);
+
+  // Depth has to be set through troika's own object, not through a
+  // `material-depthTest` prop, and that is a trap rather than a preference.
+  // With an outline configured — every label here has one — troika's `material`
+  // getter returns an ARRAY of two materials, so r3f's `material-*` pierce
+  // assigns the key onto the array itself and the render reads nothing: no
+  // warning, no error, and a screenshot that looks exactly like the fix not
+  // being needed. `onSync` hands back the mesh after troika has built both, and
+  // the outline material is `Object.create(mainMaterial)` so either assignment
+  // alone would do — both are set because that prototype link is troika's
+  // private business, not a contract.
+  const applyLabelDepth = useCallback(
+    (troikaMesh) => {
+      const materials = Array.isArray(troikaMesh?.material)
+        ? troikaMesh.material
+        : [troikaMesh?.material];
+      for (const material of materials) if (material) material.depthTest = !accented;
+    },
+    [accented]
+  );
 
   useEffect(() => {
     if (!declutter || !text) return undefined;
@@ -174,7 +206,7 @@ export function ItemLabel({
             ref={plateRef}
             position={[0, 0, -size * 0.05]}
             userData={FRAME_IGNORE_DATA}
-            renderOrder={8}
+            renderOrder={accented ? ACCENT_ITEM_LABEL_PLATE_ORDER : LABEL_PLATE_ORDER}
           >
             <planeGeometry args={[plateWidth, plateHeight]} />
             <meshBasicMaterial
@@ -182,10 +214,26 @@ export function ItemLabel({
               transparent
               opacity={plateOpacity}
               depthWrite={false}
+              depthTest={!accented}
               toneMapped={false}
             />
           </mesh>
         ) : null}
+        {/* The accented item's name is drawn LAST and without depth, above its
+            own callout. The stem, pin and caption are all depth-test-free, so
+            once the marker exists `renderOrder` is the only thing deciding
+            which of the two a viewer can read — and the marker was winning
+            against the very name it points at. The full argument, including why
+            no camera or anchor change can substitute for a draw order, is in
+            metaphorDrawOrder.js.
+
+            Dropping depth as well is what the scene's own geometry forces:
+            measured on the subway fixture, the amber route tube ENDS at its
+            terminus station and rises toward the camera, so it stands in front
+            of the very name it terminates at. Marking an item is a claim that
+            it is the one to read, and the kinds where the claim is worth making
+            — a submerged iceberg block, a gear behind a plate rim, a terminus
+            under its own track — are exactly the ones that bury it. */}
         <Text
           ref={textRef}
           fontSize={size}
@@ -197,6 +245,8 @@ export function ItemLabel({
           outlineWidth={size * style.outline}
           outlineColor={outlineColor}
           outlineOpacity={1}
+          renderOrder={accented ? ACCENT_ITEM_LABEL_ORDER : 0}
+          onSync={applyLabelDepth}
         >
           {drawn}
         </Text>
