@@ -7,6 +7,7 @@ import {
   allocateFlatItemId,
   allocateFlatItemLabel,
   appendLink,
+  deleteLinkedEdge,
   fail,
   hasDirectedLink,
   insertSiblingAfter,
@@ -15,23 +16,9 @@ import {
   ok,
   parseMetaphorFlatDoc,
   purgeLinksForNode,
+  renameLinkedEdge,
   serializeMetaphorFlatDoc
 } from './metaphorFlatItemsCore.js';
-
-/**
- * @param {Record<string, unknown>} doc
- * @param {string} fromId
- * @param {string} toId
- * @returns {Record<string, unknown> | null}
- */
-function findCityLink(doc, fromId, toId) {
-  if (!Array.isArray(doc.links)) return null;
-  return (
-    doc.links.find(
-      (link) => link && typeof link === 'object' && link.from === fromId && link.to === toId
-    ) ?? null
-  );
-}
 
 const METAPHOR = 'city';
 
@@ -150,13 +137,7 @@ export function deleteCityEdge(source, fromId, toId) {
   if (blocked) return blocked;
   const doc = parseMetaphorFlatDoc(source, METAPHOR);
   if (!doc) return fail('not-graph');
-  if (!Array.isArray(doc.links)) return fail('missing');
-  const before = doc.links.length;
-  doc.links = doc.links.filter(
-    (link) => !(link && typeof link === 'object' && link.from === fromId && link.to === toId)
-  );
-  if (doc.links.length === before) return fail('missing');
-  return ok(serializeMetaphorFlatDoc(doc, source));
+  return deleteLinkedEdge(doc, source, fromId, toId);
 }
 
 /**
@@ -170,13 +151,5 @@ export function renameCityEdge(source, fromId, toId, label) {
   if (blocked) return blocked;
   const doc = parseMetaphorFlatDoc(source, METAPHOR);
   if (!doc) return fail('not-graph');
-  const link = findCityLink(doc, fromId, toId);
-  if (!link) return fail('missing');
-  const next = String(label ?? '').trim();
-  if (next) {
-    link.label = next;
-  } else {
-    delete link.label;
-  }
-  return ok(serializeMetaphorFlatDoc(doc, source));
+  return renameLinkedEdge(doc, source, fromId, toId, label);
 }

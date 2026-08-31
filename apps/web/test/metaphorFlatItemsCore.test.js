@@ -3,7 +3,9 @@ import {
   allocateFlatItemId,
   allocateFlatItemLabel,
   appendLink,
+  deleteLinkedEdge,
   fail,
+  findLinkedEdge,
   hasDirectedLink,
   insertSiblingAfter,
   isMetaphorFlatSource,
@@ -11,6 +13,7 @@ import {
   ok,
   parseMetaphorFlatDoc,
   purgeLinksForNode,
+  renameLinkedEdge,
   serializeMetaphorFlatDoc
 } from '../src/utils/metaphorFlatItemsCore.js';
 
@@ -139,5 +142,63 @@ describe('link helpers', () => {
     );
     purgeLinksForNode(doc, 'only');
     expect(doc.links).toEqual([]);
+  });
+});
+
+describe('findLinkedEdge', () => {
+  it('finds a directed link and returns null when absent or unlinked', () => {
+    const doc = parseMetaphorFlatDoc(MACHINE, 'machine');
+    expect(findLinkedEdge(doc, 'drive', 'idle')).toEqual({ from: 'drive', to: 'idle' });
+    expect(findLinkedEdge(doc, 'idle', 'drive')).toBeNull();
+
+    const noLinks = parseMetaphorFlatDoc(
+      JSON.stringify({ metaphor: 'machine', items: [{ id: 'only', label: 'Only' }] }),
+      'machine'
+    );
+    expect(findLinkedEdge(noLinks, 'a', 'b')).toBeNull();
+  });
+});
+
+describe('deleteLinkedEdge', () => {
+  it('removes the matching link and fails when it is absent', () => {
+    const doc = parseMetaphorFlatDoc(MACHINE, 'machine');
+    const result = deleteLinkedEdge(doc, MACHINE, 'drive', 'idle');
+    expect(result.ok).toBe(true);
+    expect(doc.links).toEqual([]);
+    expect(JSON.parse(result.source).links).toEqual([]);
+
+    expect(deleteLinkedEdge(doc, MACHINE, 'drive', 'idle')).toEqual({
+      ok: false,
+      reason: 'missing'
+    });
+  });
+
+  it('fails when the doc has no links array', () => {
+    const doc = parseMetaphorFlatDoc(
+      JSON.stringify({ metaphor: 'machine', items: [{ id: 'only', label: 'Only' }] }),
+      'machine'
+    );
+    expect(deleteLinkedEdge(doc, MACHINE, 'a', 'b')).toEqual({ ok: false, reason: 'missing' });
+  });
+});
+
+describe('renameLinkedEdge', () => {
+  it('sets a link label and clears it when renamed to blank', () => {
+    const doc = parseMetaphorFlatDoc(MACHINE, 'machine');
+    const renamed = renameLinkedEdge(doc, MACHINE, 'drive', 'idle', 'drives');
+    expect(renamed.ok).toBe(true);
+    expect(doc.links).toContainEqual({ from: 'drive', to: 'idle', label: 'drives' });
+
+    const cleared = renameLinkedEdge(doc, renamed.source, 'drive', 'idle', '   ');
+    expect(cleared.ok).toBe(true);
+    expect(doc.links).toEqual([{ from: 'drive', to: 'idle' }]);
+  });
+
+  it('fails to rename a link that does not exist', () => {
+    const doc = parseMetaphorFlatDoc(MACHINE, 'machine');
+    expect(renameLinkedEdge(doc, MACHINE, 'idle', 'drive', 'x')).toEqual({
+      ok: false,
+      reason: 'missing'
+    });
   });
 });
