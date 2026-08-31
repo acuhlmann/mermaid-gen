@@ -5,7 +5,7 @@
  * sky sphere. Extracted from MetaphorRenderer.jsx (ADR-0005 sibling-module
  * pattern); pure helpers live in sceneUtils.js.
  */
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { useFrame, useThree } from '@react-three/fiber';
 import { Billboard, ContactShadows, Line, Text } from '@react-three/drei';
@@ -16,6 +16,7 @@ import { MetaphorChangeHighlightRing } from '../MetaphorChangeHighlightRing.jsx'
 import { useMetaphorClock } from './metaphorClock.js';
 import { useLabelDeclutter } from './labelDeclutterContext.js';
 import { ItemAccentContext, useItemAccent } from './itemAccentContext.js';
+import { useLabelDepthTest } from './metaphorLabelDepth.js';
 import { FRAME_IGNORE_DATA } from './sceneFraming.js';
 import { labelPlateEm, labelRoleStyle, labelRoleText } from './labelRoles.js';
 import {
@@ -145,25 +146,12 @@ export function ItemLabel({
 
   useScreenConstantScale(scaleRef, size, drawnPx);
 
-  // Depth has to be set through troika's own object, not through a
-  // `material-depthTest` prop, and that is a trap rather than a preference.
-  // With an outline configured — every label here has one — troika's `material`
-  // getter returns an ARRAY of two materials, so r3f's `material-*` pierce
-  // assigns the key onto the array itself and the render reads nothing: no
-  // warning, no error, and a screenshot that looks exactly like the fix not
-  // being needed. `onSync` hands back the mesh after troika has built both, and
-  // the outline material is `Object.create(mainMaterial)` so either assignment
-  // alone would do — both are set because that prototype link is troika's
-  // private business, not a contract.
-  const applyLabelDepth = useCallback(
-    (troikaMesh) => {
-      const materials = Array.isArray(troikaMesh?.material)
-        ? troikaMesh.material
-        : [troikaMesh?.material];
-      for (const material of materials) if (material) material.depthTest = !accented;
-    },
-    [accented]
-  );
+  // Depth has to be set through troika's own object rather than a
+  // `material-depthTest` prop, AND re-applied whenever the accent moves —
+  // `onSync` fires once and then never again for a change of accent, because
+  // being accented is not one of troika's syncable props. Both halves, and why
+  // neither is visible to a screenshot, are in metaphorLabelDepth.js.
+  const applyLabelDepth = useLabelDepthTest(accented);
 
   useEffect(() => {
     if (!declutter || !text) return undefined;
