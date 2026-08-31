@@ -139,3 +139,53 @@ export function appendLink(doc, fromId, toId) {
   if (!Array.isArray(doc.links)) doc.links = [];
   doc.links.push({ from: fromId, to: toId });
 }
+
+/**
+ * @param {Record<string, unknown>} doc
+ * @param {string} fromId
+ * @param {string} toId
+ * @returns {Record<string, unknown> | null}
+ */
+export function findLinkedEdge(doc, fromId, toId) {
+  if (!Array.isArray(doc.links)) return null;
+  return (
+    doc.links.find(
+      (link) => link && typeof link === 'object' && link.from === fromId && link.to === toId
+    ) ?? null
+  );
+}
+
+/**
+ * @param {Record<string, unknown>} doc
+ * @param {string} source
+ * @param {string} fromId
+ * @param {string} toId
+ */
+export function deleteLinkedEdge(doc, source, fromId, toId) {
+  if (!Array.isArray(doc.links)) return fail('missing');
+  const before = doc.links.length;
+  doc.links = doc.links.filter(
+    (link) => !(link && typeof link === 'object' && link.from === fromId && link.to === toId)
+  );
+  if (doc.links.length === before) return fail('missing');
+  return ok(serializeMetaphorFlatDoc(doc, source));
+}
+
+/**
+ * @param {Record<string, unknown>} doc
+ * @param {string} source
+ * @param {string} fromId
+ * @param {string} toId
+ * @param {string} label new link label; empty clears it
+ */
+export function renameLinkedEdge(doc, source, fromId, toId, label) {
+  const link = findLinkedEdge(doc, fromId, toId);
+  if (!link) return fail('missing');
+  const next = String(label ?? '').trim();
+  if (next) {
+    link.label = next;
+  } else {
+    delete link.label;
+  }
+  return ok(serializeMetaphorFlatDoc(doc, source));
+}
