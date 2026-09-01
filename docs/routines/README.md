@@ -268,8 +268,13 @@ is paged by four things, and only four:
    regenerable asset bank (`generate-office-audio.sh` bare costs 900 ElevenLabs credits and
    overwrites every committed `.mp3`), a token spend the playbook does not already authorise.
 2. **Credentials and permissions.** Secrets, IAM, billing, a service-account key, or an action that
-   needs a login no routine holds — including creating or deleting a scheduled trigger, which lives
-   in a web UI neither CLI can reach.
+   needs a login no routine holds. On the trigger shelf that means: **deleting** a routine, creating
+   or revoking an **API** trigger/token, and anything on the Cursor side — `agent` has no
+   `automations` command. Creating a _cron_ routine is **not** on the page bar: `claude -p '/schedule
+…'` does it (list/create/update/fire), and a playbook that declares a `schedule:` with no trigger
+   behind it is a routine that silently never runs, which is this shelf's oldest failure mode. Mind
+   rule 1 while doing it — a new rung spends the owner's subscription, so stand up exactly what the
+   playbook declares, at the cadence it declares, and nothing more.
 3. **Irreversible destruction.** Deleting a branch with unmerged work, dropping data, dismissing a
    security advisory, force-pushing, closing somebody else's PR.
 4. **The product's direction.** What ArchiSlop should be, not how a file should be written. ADR-level
@@ -346,16 +351,19 @@ hold when unsure) that already decide whether any routine change is safe to self
    `branchPrefix` when the PR titles this routine writes do not start with `<name>:`)
    and a numbered work queue.
 2. Create `docs/routines/ledger/<name>.md` from an existing ledger.
-3. Choose the host — a Claude Routine at [claude.ai/code/routines](https://claude.ai/code/routines)
-   or a Cursor automation at [cursor.com/automations](https://cursor.com/automations) — and put it in
-   the `host:` key and the table above. Neither CLI can list or create these, so this step is the
-   owner's (page bar #2), and the shelf's schedule-drift watchdog compares the live cron against
-   `schedule:` because nothing else can see it. Split on duty, not on load: an automation that files
-   issues and the one that fixes them gain something from living on different hosts.
+3. Choose the host — a Claude Routine or a Cursor automation — and put it in the `host:` key and the
+   table above. Split on duty, not on load: an automation that files issues and the one that fixes
+   them gain something from living on different hosts.
 4. Create the trigger with the three-line loader prompt above, on a cron that does not collide with an
-   existing routine. Stagger by at least an hour.
-5. Fire it once by hand and watch the whole run before leaving it on a schedule. Then pin its observed
-   branch slug in `branchPrefix` — cloud runners generate names, and a fleet-wide prefix like
+   existing routine. Stagger by at least an hour. On the Claude side this is a CLI call, not a web
+   visit: `claude -p '/schedule Create a routine named "NFR routine: <name>" for <repo>, cron
+<expression>, model <model>, prompt exactly: …'`, then **read it back** with `/schedule list` the
+   way rule 9 demands of every other write — and check what it inherited (MCP connections and the
+   environment arrive by default, and a default-granted Google Drive in an unattended job is not
+   something anyone chose). Deleting a routine, API triggers, and all Cursor-side setup stay the
+   owner's (page bar #2).
+5. Fire it once (`/schedule run`) and read the whole run before leaving it on a schedule. Then pin its
+   observed branch slug in `branchPrefix` — cloud runners generate names, and a fleet-wide prefix like
    `cursor/` would make preflight refuse to start behind a _different_ fleet's PR.
 
 `npm run verify:agent-infra` checks that every `npm run <script>` a playbook names actually exists,

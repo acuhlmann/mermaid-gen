@@ -275,11 +275,13 @@ More facts, added 2026-08-30 and 2026-09-01:
   automation; everything else on the ladder is a Claude Routine. The point is that the routines which
   _find_ work and the one which _pays_ for it are not one account's two failures — when `anything`
   went dark for four nights in late August, every job that could have noticed ran on the same host as
-  the one that went quiet. Neither CLI can list or create these triggers
-  (`claude` has no `routines` command; `agent` has no `automations` command), so standing one up or
-  retiring it is a web-UI action and belongs to the owner (page bar #2). `digest` watchdog 4
-  compensates by comparing each declared `schedule:` against when the PRs actually landed for any
-  rung the connector cannot see.
+  the one that went quiet. **Claude routines are scriptable; Cursor automations are not.**
+  `claude -p '/schedule …'` creates, lists, updates (any cron expression) and manually fires a cron
+  routine — measured 2026-09-01, when `deps` was stood up from the CLI. It cannot delete a routine,
+  cannot create or revoke API triggers/tokens, and needs a claude.ai subscription login (not a Console
+  API key, Bedrock or Vertex). Cursor's `agent` CLI has no `automations` command at all, so a Cursor
+  rung is still a [cursor.com/automations](https://cursor.com/automations) action. Retiring anything,
+  and every Cursor-side change, stays the owner's (page bar #2).
 - **One fleet per 24-hour window.** Cursor's unregistered `critical-bug-memory` automation and
   `review` both found the same `renameErNode` bug on 2026-08-29 and each shipped a PR; #442 closed
   unmerged, redundant with #446. Any automation with write access to product code needs a row in
