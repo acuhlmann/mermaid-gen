@@ -21,7 +21,13 @@ import { MetaphorAccents } from './MetaphorAccents.jsx';
 import { useMetaphorClock } from './metaphorClock.js';
 import { fusedLabelImportance, planFusedCompositeWorld } from './fusedCompositePlanner.js';
 import { useMetaphorLayerFocusId } from '../metaphorLayerFocus.js';
-import { idHash2, recedeTheme, samplePolyline, shiftColor } from './sceneUtils.js';
+import {
+  ensureReadableInk,
+  idHash2,
+  recedeTheme,
+  samplePolyline,
+  shiftColor
+} from './sceneUtils.js';
 import { resolveDistrictColor } from '../../utils/metaphorThemePresets.js';
 import { GROUP_TINT_PLATE, tintByGroup } from './groupIdentity.js';
 import { DaylightPollen, SoaringBirds } from './MetaphorSceneDecorations.jsx';
@@ -332,7 +338,28 @@ function pathStationMetaphor(kind) {
   return 'river';
 }
 
-function FusedPath({ path, theme, activeId, onActiveIdChange, lod, layerLabel, muted }) {
+/**
+ * The floor a channel's ink has to clear against the surface it runs across.
+ *
+ * A route is a solid body against another solid body, not text on a plate, so
+ * this is far under `ensureReadableInk`'s 3.4:1 default for type: at that bar
+ * the channel came back near-white and read as foam rather than as water.
+ * `riverDeepColor` already clears 1.76–2.66 against every shipped theme's
+ * `waterColor`, so in practice this only catches a theme that sets the two to
+ * the same value.
+ */
+const CHANNEL_SURFACE_CONTRAST = 1.7;
+
+function FusedPath({
+  path,
+  theme,
+  activeId,
+  onActiveIdChange,
+  lod,
+  layerLabel,
+  muted,
+  surfaceColor
+}) {
   const curve = useMemo(
     () =>
       new THREE.CatmullRomCurve3(
@@ -344,14 +371,42 @@ function FusedPath({ path, theme, activeId, onActiveIdChange, lod, layerLabel, m
     [path.points]
   );
   const isCrossing = path.kind === 'bridge';
+  // The channel and the ocean it crosses were BOTH `theme.waterColor`, and
+  // until the route was solved onto the surface only its altitude told them
+  // apart — so the moment the journey stopped flying it vanished into the sea
+  // it lies in. `riverDeepColor` is the theme's own answer to "water, but not
+  // this water"; `ensureReadableInk` is only a floor under it. Muted layers
+  // deliberately keep the flat ink: lifting a receded layer's contrast makes
+  // the layer the viewer just stepped away from the loudest thing on screen,
+  // which is the trap `recedeTheme` and the link casings already document.
+  const channelInk = theme.riverDeepColor ?? theme.waterColor ?? theme.binaryGlowColor ?? '#087fb8';
   const color = isCrossing
     ? (theme.bridgeDeckColor ?? '#a1724f')
-    : (theme.waterColor ?? theme.binaryGlowColor ?? '#38bdf8');
+    : muted
+      ? channelInk
+      : ensureReadableInk(channelInk, surfaceColor ?? channelInk, CHANNEL_SURFACE_CONTRAST);
   const moteCount = lod === 'low' ? 4 : lod === 'medium' ? 6 : 8;
   return (
     <group>
+      {/* `scale` here squashes the whole CURVE, not the tube's cross-section —
+          a mesh transform cannot flatten a profile. So a channel stays round
+          and earns its "water, not plumbing" reading from riding the surface
+          (`routeAlongSurface`) instead; the crossing's 0.45 is left alone
+          because changing it moves the deck rather than thinning it. */}
       <mesh scale={isCrossing ? [1, 0.45, 1] : [1, 1, 1]}>
-        <tubeGeometry args={[curve, 72, isCrossing ? path.width * 1.7 : path.width, 8, false]} />
+        {/* 72 segments was enough while a route was a straight run between two
+            crests. A surface-following channel (`routeAlongSurface`) carries
+            several times the control points, and at 72 the dip into each strait
+            came out as a chain of flat facets. */}
+        <tubeGeometry
+          args={[
+            curve,
+            Math.min(240, Math.max(72, path.points.length * 12)),
+            isCrossing ? path.width * 1.7 : path.width,
+            8,
+            false
+          ]}
+        />
         <meshStandardMaterial
           color={color}
           emissive={isCrossing ? '#000000' : (theme.riverDeepColor ?? color)}
@@ -616,6 +671,13 @@ export function FusedCompositeScene({ dsl, theme }) {
   const hasIslands = plan.sites.some((site) => site.item);
   const lod = plan.lod ?? 'high';
   const oceanR = plan.groundRadius ?? plan.worldRadius;
+  // What `WorldGround` paints between the sites — the backdrop every route now
+  // lies against. Same expression as the disc's own, and the only reason it is
+  // resolved up here is that `FusedPath` has no way to know whether the world
+  // came out an ocean or a plaza.
+  const surfaceColor = hasIslands
+    ? (theme.waterColor ?? '#27afe2')
+    : (theme.groundColor ?? '#1e293b');
 
   return (
     <group>
@@ -656,6 +718,7 @@ export function FusedCompositeScene({ dsl, theme }) {
           lod={lod}
           layerLabel={layerLabels.get(path.layerId)}
           muted={isMuted(path.layerId)}
+          surfaceColor={surfaceColor}
         />
       ))}
       <TreeConnectors

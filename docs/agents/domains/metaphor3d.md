@@ -147,6 +147,34 @@ ones that will bite an edit.
   legible, 4→0 buried, no viewport worse. A camera-facing shoulder resolved per frame measured
   _worse_ (74) — it walks a back island's name into the tower of the island in front. Labels are
   pruned from the camera fit by material, so lifting one costs the subject no room.
+- **A fused route is solved against the world's surface, and the moment it stopped flying it
+  needed its own ink.** A path layer's stations sit on the sites they bind to and the spline used to
+  run straight from one island's crest to the next, so the channel held island-top height over open
+  water and over any third island in the way — a blue pipe laid across the map. Measured over the
+  three composite fixtures, mean clearance over the ground beneath was 0.55–0.72 world units (worst
+  1.69) and 42–86% of each route was more than a full channel width clear of it; after
+  `routeAlongSurface` (`fusedCompositePlanner.js`) it is 0.154–0.157 mean, 0.35 worst, **0% aloft**.
+  Four things are load-bearing. The surface model is a **smoothstep dome** per site over a flat sea
+  — a cylinder puts a wall at the shoreline and a cone or hemispheroid has its steepest slope
+  exactly AT the rim, which is where a channel spends most of its samples, so both put a kink where
+  the route crosses the beach. **Stations keep their own height and are never re-solved by the pass**
+  (they are what the labels, glyphs, markers and hover anchors are placed from); only the samples
+  between them and the two tangent tails are. A **bridge is exempt** — a crossing's whole thesis is
+  the gap it spans. And the one that is not obvious until you look: **the channel and the ocean were
+  both `theme.waterColor`, so only ALTITUDE had been telling them apart** — the first correct-looking
+  version of this change made the journey layer vanish into the sea it now lies in. The ink is
+  `theme.riverDeepColor` with `ensureReadableInk` at **1.7:1** as a floor, not the 3.4:1 type bar,
+  which came back near-white and read as foam. A muted layer keeps the flat ink for the reason the
+  link casings already document. Framing and labels both measured neutral across 3 fixtures ×
+  390x844 / 717x512 / 1440x900 (subject pixels up in 8 of 9, net +1 legible name).
+- **`scale` on a tube mesh squashes the CURVE, not the profile.** `FusedPath`'s crossing branch
+  carries `scale={[1, 0.45, 1]}`, which reads like "flatten the deck" and actually pulls the whole
+  bridge's elevation to 45% of what the planner placed. Flattening a channel the same way was tried
+  and reverted: it would have undone the surface-following above and moved the route 24% outward on
+  the other two axes. A profile cannot be changed by a mesh transform — three's `TubeGeometry` has
+  no elliptical cross-section, so it would take post-processing the vertices against the curve. The
+  crossing's 0.45 is left alone deliberately: no composite fixture carries a `bridge` layer, and
+  changing it blind is exactly the move this domain's screenshot rule exists to stop.
 - **The fused composite does not inherit shared chrome.** It shipped without `MetaphorAccents` and
   with unlabelled affinity rings; when a base kind grows a scene-wide affordance, check
   `FusedCompositeScene.jsx` for it. Group placards must show `group.display` (the user's raw noun),
