@@ -379,12 +379,16 @@ export function collectPlaybooks(root = ROOT) {
 export function ownersOfPath(filePath, playbooks = collectPlaybooks()) {
   if (matchesAny(filePath, ALWAYS_FORBIDDEN)) return [];
   return playbooks
-    .filter(({ playbook }) => {
+    .filter(({ name, playbook }) => {
       const allowed = toList(playbook.allowedPaths);
       const forbidden = toList(playbook.forbiddenPaths);
       if (!allowed.length) return false;
       if (matchesAny(filePath, forbidden)) return false;
-      return matchesAny(filePath, allowed);
+      if (!matchesAny(filePath, allowed)) return false;
+      // `allowedPaths` is only half of who may write a file since ADR-0017. Reporting a routine that
+      // postflight would refuse is the same wrong promise `ready-for-agent` used to make: #476's
+      // remaining item names a playbook path, and `resolve` must not be told it can reach it.
+      return shelfOwnershipViolation({ routineName: name, file: filePath }) === null;
     })
     .map(({ name }) => name);
 }

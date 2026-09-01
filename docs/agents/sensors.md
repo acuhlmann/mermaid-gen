@@ -333,6 +333,10 @@ shrinking test files, and **shelf ownership**. The last is the one that surprise
 
 **`--reachable <path>…`** — which routine may write this file? Prints `path -> improve`, or
 `path -> frozen (always-forbidden; outside every routine by design)`, or `path -> NONE` and **exits 1**.
+It applies **both** halves of the answer — the playbook's `allowedPaths` and the ownership rule above —
+so a playbook path prints `improve` alone rather than every routine whose allowlist happens to cover
+`docs/**`. A sensor that reported a routine postflight would refuse is the same wrong promise
+`ready-for-agent` used to make.
 Run it before labelling an issue `ready-for-agent`: that label promises an agent can reach the file,
 and three issues (#461, #462, #473) sat labelled for a week behind `scripts/` paths that no
 `allowedPaths` contained. `NONE` is not a reason to skip the finding — it is a reason to label it

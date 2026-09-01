@@ -302,7 +302,10 @@ and permanently stuck: #461 needed `scripts/routine-guard.mjs`, #462 and #473 ne
 npm run routine:guard -- --reachable apps/web/src/utils/foo.js scripts/test-affected-lib.mjs
 ```
 
-The guard prints the owning routine(s), `frozen` for an always-forbidden path, or `NONE` and exits 1.
+The guard prints the owning routine(s) — after **both** halves of the answer: the playbook's
+`allowedPaths` and rule 2's ownership restriction, so a playbook path prints `improve` alone and never
+a routine whose postflight would refuse it. It prints `frozen` for an always-forbidden path, or `NONE`
+and exits 1.
 **Run it before applying `ready-for-agent`.** `NONE` means the finding is real and the shelf has an
 ownership gap: label it `needs-triage`, name the file, and `improve` § 2b widens someone's budget —
 which is a one-line PR that unblocks a class, versus an issue that gets skipped every night forever.
