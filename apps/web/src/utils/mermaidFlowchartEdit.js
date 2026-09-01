@@ -428,16 +428,15 @@ export function renameFlowchartNode(source, nodeId, label) {
  * @param {string} fromId
  * @param {string} toId
  * @param {string} label new edge label
- * @param {string} [previousEdgeLabel] disambiguates parallel links (canvas selection)
- * @param {number} [edgeIndex] Mermaid `L_<from>_<to>_<n>` index when known
+ * @param {{ edgeLabel?: string, edgeIndex?: number }} [disambiguation] parallel-link pick context
  */
-export function renameFlowchartEdge(source, fromId, toId, label, previousEdgeLabel, edgeIndex) {
+export function renameFlowchartEdge(source, fromId, toId, label, disambiguation = {}) {
   const blocked = requireFlowchart(source) || requireNodeId(fromId) || requireNodeId(toId);
   if (blocked) return blocked;
   const text = String(label ?? '').trim();
 
   const { lines, refs } = collectFlowchartEdgeRefs(source, fromId, toId);
-  const picked = pickParallelEdgeRef(refs, { edgeLabel: previousEdgeLabel, edgeIndex });
+  const picked = pickParallelEdgeRef(refs, disambiguation);
   if (!picked) return fail('missing');
 
   const originalLine = lines[picked.lineIndex];

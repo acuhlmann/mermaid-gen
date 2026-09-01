@@ -459,6 +459,47 @@ describe('useFlowchartGraphEdit', () => {
     expect(stateRef.current.diagramSource).toMatch(/: withdraw/);
   });
 
+  it('renames one duplicate sequence message via the label session message id', async () => {
+    const duplicate = `sequenceDiagram
+  participant Alice
+  participant Bob
+  Alice->>Bob: first
+  Alice->>Bob: second
+`;
+    const { result, stateRef } = mount({
+      diagramSource: duplicate,
+      props: {
+        contentMode: 'mermaid',
+        selectedNode: {
+          kind: 'edge',
+          id: 'i1',
+          edgeFrom: 'Alice',
+          edgeTo: 'Bob',
+          label: 'second',
+          partName: 'Alice → Bob'
+        }
+      }
+    });
+    act(() => {
+      result.current.handleGraphEditAction({ id: 'rename' });
+    });
+    expect(result.current.labelSession).toMatchObject({
+      kind: 'edge',
+      fromId: 'Alice',
+      toId: 'Bob',
+      edgeLabel: 'second',
+      messageId: 1
+    });
+    await act(async () => {
+      result.current.handleLabelCommit('changed');
+    });
+    expect(applyUserDiagramEdit).toHaveBeenCalledTimes(1);
+    expect(applyUserDiagramEdit.mock.calls[0][0].diagramSource).toMatch(/Alice->>Bob: first/);
+    expect(applyUserDiagramEdit.mock.calls[0][0].diagramSource).toMatch(/Alice->>Bob: changed/);
+    expect(applyUserDiagramEdit.mock.calls[0][0].diagramSource).not.toMatch(/: second/);
+    expect(stateRef.current.diagramSource).toMatch(/Alice->>Bob: changed/);
+  });
+
   it('deletes one duplicate sequence message by Mermaid message id from the canvas', async () => {
     const duplicate = `sequenceDiagram
   participant Alice

@@ -364,13 +364,13 @@ export function renameSequenceNode(source, participantId, label) {
  * @param {string} fromId
  * @param {string} toId
  * @param {string} label
- * @param {string} [messageLabel]
- * @param {number} [messageId]
+ * @param {{ messageLabel?: string, messageId?: number }} [disambiguation] duplicate-message pick context
  */
-export function renameSequenceEdge(source, fromId, toId, label, messageLabel, messageId) {
+export function renameSequenceEdge(source, fromId, toId, label, disambiguation = {}) {
   const blocked = requireEdgeParticipants(source, fromId, toId);
   if (blocked) return blocked;
   const text = String(label ?? '').trim();
+  const { messageLabel, messageId } = disambiguation;
   const range = findSequenceMessageRange(source, {
     from: fromId,
     to: toId,

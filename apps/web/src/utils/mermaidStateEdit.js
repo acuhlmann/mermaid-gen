@@ -326,10 +326,9 @@ export function renameStateNode(source, stateId, label) {
  * @param {string} fromId
  * @param {string} toId
  * @param {string} label new transition label
- * @param {string} [previousEdgeLabel] disambiguates parallel transitions (canvas selection)
- * @param {number} [edgeIndex] Mermaid `L_<from>_<to>_<n>` index when known
+ * @param {{ edgeLabel?: string, edgeIndex?: number }} [disambiguation] parallel-transition pick context
  */
-export function renameStateEdge(source, fromId, toId, label, previousEdgeLabel, edgeIndex) {
+export function renameStateEdge(source, fromId, toId, label, disambiguation = {}) {
   const blocked =
     requireState(source) ||
     requireStateId(fromId) ||
@@ -340,7 +339,7 @@ export function renameStateEdge(source, fromId, toId, label, previousEdgeLabel, 
   const text = String(label ?? '').trim();
 
   const { lines, refs } = collectStateEdgeRefs(source, fromId, toId);
-  const picked = pickParallelEdgeRef(refs, { edgeLabel: previousEdgeLabel, edgeIndex });
+  const picked = pickParallelEdgeRef(refs, disambiguation);
   if (!picked) return fail('missing');
 
   const next = [...lines];
