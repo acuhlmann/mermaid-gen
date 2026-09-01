@@ -95,6 +95,26 @@ these automations run in, `gh` has no token and GitHub access goes through the *
 tools**. See `docs/routines/README.md` rule 9 for what that costs and how `routine-guard` works
 around it.
 
+### 9. Playbooks and budgets belong to `improve`
+
+`routine-guard` refuses a diff from any routine but `improve` that touches a playbook, either shelf's
+README, or another routine's ledger — and `scripts/routine-guard.mjs` itself is always-forbidden for
+everyone (`BUDGET_OWNERS`, `shelfOwnershipViolation`, ADR-0017). This applies to this shelf exactly as
+it does to the NFR one, because the failure it prevents is the same: a run whose `allowedPaths` covers
+`docs/**` can otherwise raise its own `maxFiles` and pass the check that was supposed to bound it.
+
+So when an automation needs a wider budget — a new file to touch, one more file than it is allowed —
+it records `blocked-by-paths` or `blocked-by-budget` in its ledger and carries on. `improve` § 2b
+greps for those two strings and prices them in its own PR. Editing this file's front-matter from an
+automation run is not a shortcut; it is a postflight failure.
+
+### 10. The owner is not a gate
+
+[`docs/routines/README.md`](../routines/README.md) rule 10 carries the four conditions that may reach
+the owner (money, credentials or permissions, irreversible destruction, product direction) and the
+rule that `ready-for-human` is reserved for them. It binds this shelf too: an automation that cannot
+act writes a ledger row, not a label.
+
 ## What feature automations may not do
 
 - **No slot content.** ADR-0010 reserves diagram generation for the human's own pipeline. These
@@ -126,6 +146,23 @@ so the three NFR routines review what they land a few hours later.
 2026-08-28 with nothing anywhere to notice; `canvas-graph-edit` had no playbook at all and its
 prompt lived only in Cursor's UI. Both now carry the same three-piece contract as everything else
 on this shelf.
+
+**A table row is the registry, and an automation with no row is invisible to everything that
+notices problems.** Cursor's `critical-bug-memory` automation had no row here; on 2026-08-29 it
+found the same `renameErNode` bug `review` had already filed and shipped a second PR for it, so the
+repo paid twice for one finding and neither run's ledger said anything about the other. The NFR
+`digest` routine now checks for exactly that (watchdog 7 in
+[`docs/routines/digest.md`](../routines/digest.md)). If you stand up an automation on either host,
+add its row to the table above **in the same change**, with a playbook and a ledger — a prompt that
+lives only in a vendor's UI cannot be reviewed, cannot be budgeted, and cannot be detected when it
+goes wrong.
+
+**Where the fleet lives.** As of 2026-09-01 this shelf runs on Claude Routines, and so does every
+NFR rung except [`resolve`](../routines/resolve.md), which moved to Cursor
+([cursor.com/automations](https://cursor.com/automations)) so that the routine which finds work and
+the one which fixes it are not the same account's single point of failure. The split is meant to grow
+across duties, not across runs of the same duty — see
+[`docs/routines/README.md`](../routines/README.md) § Adding a routine, step 3.
 
 ## Adding a feature automation
 

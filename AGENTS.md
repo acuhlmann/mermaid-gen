@@ -46,6 +46,7 @@ Domain depth (slots, validation ladders, wire-contract habits, where-to-put tabl
   - `npm run lint` — all three workspaces, formatter appends per-rule "Agent guidance" footer with the canonical fix and suppression syntax (`packages/eslint-config/formatter.cjs`)
   - `npm run verify:ratchet` — quality trend: monolith LOC and lint warnings should only fall, strict-island and suite counts should only rise (`docs/agents/ratchet.json`). **Not part of `check`** — it gates no build; `--json` for machine-readable, `--with-lint` to include the ESLint pass
   - `npm run routine:guard -- --preflight|--postflight <name>` — budget enforcement for a scheduled NFR routine (`docs/routines/`)
+  - `npm run routine:guard -- --reachable <path>` — which routine may write this file? Prints the owner, `frozen` (always-forbidden), or `NONE` + exit 1. Run it before labelling anything `ready-for-agent`: a label that points at a path no budget reaches is a stuck issue, not work (ADR-0017)
   - `npm run verify:modularity` — reminder of how to run a semantic modularity review (Claude `/modularity:review` or Cursor `.cursor/skills/modularity/review/SKILL.md`); see [`docs/agents/modularity.md`](docs/agents/modularity.md)
 - **Workspace-scoped** (faster when you know the blast radius):
   - `npm run typecheck -w apps/server && npm run test -w apps/server`
@@ -217,9 +218,11 @@ goes in the root files, and still in both.
 
 ## Scheduled NFR routines
 
-Non-functional work — post-merge review, doc drift, test hardening — runs on a schedule as
-**NFR routines** ([ADR-0014](docs/decisions/0014-autonomous-nfr-routines.md)). Four facts matter
-when you touch one, and each is a trap if you assume the obvious:
+Non-functional work — post-merge review, doc drift, test hardening, dependency upkeep — runs on a
+schedule as **NFR routines** ([ADR-0014](docs/decisions/0014-autonomous-nfr-routines.md),
+[ADR-0017](docs/decisions/0017-routine-ownership-dependabot-and-the-attention-bar.md)). Five ship
+today — `review`, `improve`, `resolve`, `deps`, `digest` — and each is a trap if you assume the
+obvious:
 
 - **The playbook is the repo file, not the cron prompt.** `docs/routines/<name>.md` holds what the
   routine does and its budget; the trigger prompt is three lines pointing at it. Pasting
@@ -227,7 +230,17 @@ when you touch one, and each is a trap if you assume the obvious:
 - **The budget is enforced, not described.** `npm run routine:guard -- --postflight <name>` re-reads
   the playbook's `maxFiles` / `allowedPaths` / `forbiddenPaths` and checks the real diff, plus an
   always-forbidden list mirroring the don't-touch list, deleted test files, and any test file whose
-  case count fell. Widening a routine means editing its frontmatter, in a PR.
+  case count fell.
+- **Only `improve` may change a budget, and the guard is outside everyone's reach.** A routine that
+  needs a wider path list or more files writes `blocked-by-budget` / `blocked-by-paths` in its own
+  ledger; `improve` § 2b reads those rows and raises the number in its own PR. `routine-guard`
+  refuses any other routine's diff to a playbook, a shelf README, or another routine's ledger, and
+  `scripts/routine-guard.mjs` is always-forbidden — the referee cannot be edited by a player (#461).
+- **Nothing on either shelf may label an issue `ready-for-human`, and only four things reach the
+  owner.** Money, credentials or permissions, irreversible destruction, the product's direction —
+  `docs/routines/README.md` rule 10. Everything else is decided, done, and logged. `resolve`
+  re-gathers any `ready-for-human` older than three days on the assumption that a routine flinched,
+  because that label has no reader: #402 waited a week on `maxFiles: 6` needing nine files.
 - **`npm run verify:ratchet` gates nothing — it is the `improve` routine's work queue.** Monolith
   LOC and lint warnings should only fall; strict-island and suite counts should only rise. Budgets
   live in `docs/agents/ratchet.json`. It is deliberately **out** of `npm run check`: two unattended
@@ -246,15 +259,32 @@ when you touch one, and each is a trap if you assume the obvious:
 Ledgers under `docs/routines/ledger/` are the durable memory across cold-start runs — read one
 before starting, append a row when finishing, including runs that changed nothing.
 
-Three more facts, all added on 2026-08-30:
+More facts, added 2026-08-30 and 2026-09-01:
 
 - **There is a night ladder, and it is a dependency order.** Seven jobs run between `0 15` and
   `0 23` UTC (23:00–07:00 in the owner's GMT+8), so the whole fleet finishes while nobody is
   watching and a digest is waiting at 07:00. Feature automations produce code, `review` reads what
   landed, `improve` works the quality queue, `resolve` works the backlog the first two just filed,
-  `digest` reports. The table is in [`docs/routines/review.md`](docs/routines/review.md). Until this
-  date the live crons ran `improve` → `review` → `resolve` with `review` firing _during_ `improve`'s
-  run, and every playbook's declared `schedule` disagreed with its actual cron.
+  `digest` reports. The table — with which host runs which rung — is in
+  [`docs/routines/review.md`](docs/routines/review.md). Until 2026-08-30 the live crons ran
+  `improve` → `review` → `resolve` with `review` firing _during_ `improve`'s run, and every
+  playbook's declared `schedule` disagreed with its actual cron. `deps` (`30 4,16 * * *`) is
+  deliberately off the ladder: advisories arrive in bursts and a short twice-daily read should never
+  queue behind an hour-long review.
+- **The fleet is split across hosts by duty, since 2026-09-01.** `resolve` runs as a Cursor
+  automation; everything else on the ladder is a Claude Routine. The point is that the routines which
+  _find_ work and the one which _pays_ for it are not one account's two failures — when `anything`
+  went dark for four nights in late August, every job that could have noticed ran on the same host as
+  the one that went quiet. Neither CLI can list or create these triggers
+  (`claude` has no `routines` command; `agent` has no `automations` command), so standing one up or
+  retiring it is a web-UI action and belongs to the owner (page bar #2). `digest` watchdog 4
+  compensates by comparing each declared `schedule:` against when the PRs actually landed for any
+  rung the connector cannot see.
+- **One fleet per 24-hour window.** Cursor's unregistered `critical-bug-memory` automation and
+  `review` both found the same `renameErNode` bug on 2026-08-29 and each shipped a PR; #442 closed
+  unmerged, redundant with #446. Any automation with write access to product code needs a row in
+  `docs/routines/README.md` or `docs/automations/README.md`, and `digest` watchdog 7 reports branches
+  that match no registered `prTitlePrefix`.
 - **`--preflight` now really does refuse to start behind an open PR.** README rule 5,
   `docs/automations/README.md` § 4 and ADR-0014 clause 3 promised that from day one and nothing
   implemented it. In the gap, PR #442 sat open for two days holding a `review` ledger row hostage,
@@ -439,6 +469,7 @@ area — see `docs/routines/README.md` rule 8; it is no longer "both root files,
 
 - Respect existing uncommitted user changes; do not revert unrelated diffs.
 - Avoid destructive git commands unless explicitly requested.
+- **`gh` issue/PR edits overwrite — they do not append, and empty input is a valid empty body.** `gh issue edit N --body-file -` with a heredoc that arrives empty silently deletes the description, and GitHub exposes no REST-recoverable revision of an issue body. Read the current body before writing one, and when a note is what you meant, use `gh issue comment`. Lost on 2026-09-01: #402's original body, reconstructed from its own run comments.
 - Keep docs and commands aligned with actual `package.json` scripts.
 - New baked audio assets go under `apps/web/src/assets/audio/` via `scripts/generate-office-audio.sh`, not by hand-editing `.mp3` files.
 

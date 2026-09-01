@@ -5,9 +5,11 @@ import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 import {
   ALWAYS_FORBIDDEN,
+  BUDGET_OWNERS,
   PLAYBOOK_SHELVES,
   ROUTINE_TIERS,
   checkRoutineDiff,
+  collectPlaybooks,
   countTestCases,
   fetchOpenPrs,
   globToRegExp,
@@ -15,9 +17,11 @@ import {
   loadPlaybook,
   matchOpenRoutinePrs,
   matchesAny,
+  ownersOfPath,
   parseFrontmatter,
   parseRepoSlug,
-  routinePrMatchers
+  routinePrMatchers,
+  shelfOwnershipViolation
 } from './routine-guard.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -421,9 +425,18 @@ test('every shipped playbook declares prefixes that match the PR titles it actua
     ['review', 'review: 2026-08-30 run — no bug found'],
     ['improve', 'improve: dead-code cleanup drops apps/web lintWarnings to 836'],
     ['metaphor3d', 'Metaphor3D: draw the grouping axis on the bodies that carry it'],
-    ['canvas-graph-edit', 'canvas graph edit: mermaid gantt family']
+    ['canvas-graph-edit', 'canvas graph edit: mermaid gantt family'],
+    ['deps', 'deps: merge npm_and_yarn group #455']
   ];
-  assert.ok(cases.length >= 7, 'sweep must cover every shipped playbook');
+  const shipped = collectPlaybooks(ROOT)
+    .filter(({ playbook }) => String(playbook.tier) !== 'report')
+    .map(({ name }) => name);
+  const covered = new Set(cases.map(([name]) => name));
+  assert.deepEqual(
+    shipped.filter((name) => !covered.has(name)),
+    [],
+    'the sweep must cover every playbook on disk, or it proves nothing about the missing ones'
+  );
   for (const [name, title] of cases) {
     const { playbook } = loadPlaybook(ROOT, name);
     const found = matchOpenRoutinePrs({
@@ -439,7 +452,6 @@ test('the generated branch names this repo actually uses are recognised', () => 
   const cases = [
     ['review', 'claude/practical-newton-giqjy6'],
     ['improve', 'claude/eager-hopper-74jcfu'],
-    ['resolve', 'claude/awesome-hawking-pmin47'],
     ['metaphor3d', 'claude/gifted-davinci-4radwc']
   ];
   for (const [name, branch] of cases) {
@@ -451,6 +463,34 @@ test('the generated branch names this repo actually uses are recognised', () => 
     });
     assert.equal(found.length, 1, `${name} must recognise ${branch}`);
   }
+});
+
+test('resolve is identified by its title prefix, not a generated branch (ADR-0017 host move)', () => {
+  // It moved to Cursor on 2026-09-01, where the runner generates a different slug every firing.
+  // A fleet-wide `cursor/` prefix would make preflight refuse to start behind *another* fleet's PR
+  // (`cursor/critical-bug-memory-*`, `cursor/ci-autofix-*` are real branches in this repo), so the
+  // branch half of the matcher is deliberately inert until the observed slug is pinned.
+  const { playbook } = loadPlaybook(ROOT, 'resolve');
+  const foreign = [
+    {
+      number: 1,
+      title: 'fix(web): something from another fleet',
+      headRefName: 'cursor/critical-bug-memory-55bc'
+    },
+    { number: 2, title: 'build(deps): bump foo', headRefName: 'dependabot/npm_and_yarn-foo-1' }
+  ];
+  assert.deepEqual(matchOpenRoutinePrs({ name: 'resolve', playbook, openPrs: foreign }), []);
+  assert.equal(
+    matchOpenRoutinePrs({
+      name: 'resolve',
+      playbook,
+      openPrs: [
+        { number: 3, title: 'resolve: 2026-09-01 run — #402', headRefName: 'cursor/whatever-x1' }
+      ]
+    }).length,
+    1,
+    'the title prefix alone must claim its own PR'
+  );
 });
 
 // --- fetchOpenPrs: the REST fallback ----------------------------------------------------------
@@ -578,4 +618,145 @@ test('the report tier passes with no diff and says so without printing "undefine
   );
   const result = checkRoutineDiff({ playbook, changes: [] });
   assert.deepEqual(result.violations, []);
+});
+
+// --- ADR-0017: owned budgets, a frozen referee, and a path→owner answer ---------------------
+
+const EVERY_CODE_WRITING = collectPlaybooks(ROOT)
+  .filter(({ playbook }) => String(playbook.tier) === 'code-writing')
+  .map(({ playbook }) => playbook);
+
+test('no routine can edit the guard that enforces its own budget', () => {
+  // The budget is the safety model, so the reader of the budget cannot sit inside it. Issue #461.
+  assert.ok(
+    matchesAny('scripts/routine-guard.mjs', ALWAYS_FORBIDDEN),
+    'the referee must be on the always-forbidden list'
+  );
+  assert.ok(EVERY_CODE_WRITING.length >= 4, 'sweep must cover the shipped code-writing playbooks');
+  for (const playbook of EVERY_CODE_WRITING) {
+    const result = checkRoutineDiff({
+      playbook,
+      changes: [{ status: 'M', file: 'scripts/routine-guard.mjs' }]
+    });
+    assert.equal(result.ok, false, `${playbook.name} must not reach routine-guard.mjs`);
+  }
+});
+
+test('a routine cannot widen its own playbook budget (issue #461)', () => {
+  const { playbook } = loadPlaybook(ROOT, 'resolve');
+  const selfEdit = checkRoutineDiff({
+    playbook,
+    changes: [{ status: 'M', file: 'docs/routines/resolve.md' }]
+  });
+  assert.equal(
+    selfEdit.ok,
+    false,
+    'resolve declares docs/** — without the ownership rule it could raise its own maxFiles and pass'
+  );
+  assert.match(selfEdit.violations.join('\n'), /not "resolve".s to edit/);
+});
+
+test('improve is the designated budget owner', () => {
+  // ADR-0016 made improve the quality owner; ADR-0017 made that the one route a budget ever moves.
+  assert.deepEqual(BUDGET_OWNERS, ['improve'], 'if a second routine owns budgets, say why here');
+  const { playbook } = loadPlaybook(ROOT, 'improve');
+  const result = checkRoutineDiff({
+    playbook,
+    changes: [
+      { status: 'M', file: 'docs/routines/resolve.md' },
+      { status: 'M', file: 'docs/automations/canvas-graph-edit.md' },
+      { status: 'M', file: 'docs/routines/README.md' }
+    ]
+  });
+  assert.deepEqual(result.violations, []);
+});
+
+test('a routine appends its own ledger and no one else’s', () => {
+  const { playbook } = loadPlaybook(ROOT, 'resolve');
+  assert.deepEqual(
+    checkRoutineDiff({
+      playbook,
+      changes: [{ status: 'M', file: 'docs/routines/ledger/resolve.md' }]
+    }).violations,
+    [],
+    'rule 7 requires every routine to write its own ledger'
+  );
+  const other = checkRoutineDiff({
+    playbook,
+    changes: [{ status: 'M', file: 'docs/automations/ledger/anything.md' }]
+  });
+  assert.equal(other.ok, false);
+  assert.match(other.violations.join('\n'), /is `anything`'s ledger/);
+});
+
+test('the ownership rule is scoped to the two shelf directories, not to all of docs/', () => {
+  assert.equal(shelfOwnershipViolation({ routineName: 'resolve', file: 'docs/adr.md' }), null);
+  assert.equal(
+    shelfOwnershipViolation({ routineName: 'resolve', file: 'docs/routines/ledger/resolve.md' }),
+    null
+  );
+  assert.notEqual(
+    shelfOwnershipViolation({ routineName: 'resolve', file: 'docs/routines/ledger/deps.md' }),
+    null,
+    'another routine\'s ledger is not "docs/**"-reachable — it is owned'
+  );
+  assert.equal(
+    shelfOwnershipViolation({ routineName: 'improve', file: 'docs/automations/anything.md' }),
+    null,
+    'improve owns every playbook, including feature-automation budgets'
+  );
+});
+
+test('the ownership rule leaves the product tree alone', () => {
+  const { playbook } = loadPlaybook(ROOT, 'resolve');
+  const result = checkRoutineDiff({
+    playbook,
+    changes: [
+      { status: 'M', file: 'docs/canvas-graph-edit.md' },
+      { status: 'M', file: 'apps/server/src/routes/copilot.ts' },
+      { status: 'M', file: 'README.md' }
+    ]
+  });
+  assert.deepEqual(result.violations, []);
+});
+
+test('every script in scripts/ has an owner, or is deliberately frozen', () => {
+  // The class that stranded #461, #462 and #473: a scoped, `ready-for-agent` fix in a file no
+  // playbook's allowedPaths reached. This sweep is what stops that recurring in scripts/.
+  const scriptDir = path.join(ROOT, 'scripts');
+  const files = fs
+    .readdirSync(scriptDir)
+    .filter((entry) => entry.endsWith('.mjs') || entry.endsWith('.js'))
+    .map((entry) => `scripts/${entry}`);
+  assert.ok(files.length > 10, 'sweep must find the real scripts directory');
+  for (const file of files) {
+    const owners = ownersOfPath(file);
+    if (owners.length === 0) {
+      assert.ok(
+        matchesAny(file, ALWAYS_FORBIDDEN),
+        `${file} is reachable by no routine and is not on the always-forbidden list`
+      );
+    }
+  }
+});
+
+test('ownersOfPath answers the question a filer used to have to read four playbooks for', () => {
+  assert.ok(ownersOfPath('scripts/test-affected-lib.mjs').includes('improve'));
+  assert.ok(ownersOfPath('apps/web/src/utils/officeCadence.js').includes('review'));
+  assert.deepEqual(
+    ownersOfPath('package-lock.json'),
+    [],
+    'dependabot owns the lockfile, not a routine'
+  );
+  assert.ok(!ownersOfPath('apps/web/src/components/DiagramCanvas.jsx').includes('anything'));
+});
+
+test('a file named by an issue is reachable by the routine the label promises', () => {
+  // The invariant behind `--reachable`: `ready-for-agent` must mean "an agent can write this file".
+  const unowned = [
+    'scripts/verify-ratchet.mjs',
+    'docs/guide/agents.md',
+    'apps/web/src/App.jsx'
+  ].filter((file) => ownersOfPath(file).length === 0 && !matchesAny(file, ALWAYS_FORBIDDEN));
+  assert.deepEqual(unowned, []);
 });

@@ -7,6 +7,7 @@
  *
  *   node scripts/routine-guard.mjs --preflight <name>   (reads open PRs via `gh`)
  *   node scripts/routine-guard.mjs --postflight <name> [--base origin/main]
+ *   node scripts/routine-guard.mjs --reachable <path>   (which routine may write this file?)
  */
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
@@ -41,7 +42,11 @@ export const ALWAYS_FORBIDDEN = [
   'apps/web/src/assets/audio/**',
   'apps/server/src/mcp/apps/**',
   '**/dist/**',
-  '**/*.tsbuildinfo'
+  '**/*.tsbuildinfo',
+  // This file. The budget is the safety model, so the thing that reads the budget cannot be inside
+  // any routine's reach — `allowedPaths` is what a routine may widen, and a routine that can edit
+  // the enforcer can edit everything. Issue #461 named the gap; ADR-0017 closes it.
+  'scripts/routine-guard.mjs'
 ];
 
 const TEST_PATH_RE = /(^|\/)test\/|\.test\.[cm]?[jt]sx?$/;
@@ -144,6 +149,45 @@ export function isTestPath(filePath) {
   return TEST_PATH_RE.test(filePath);
 }
 
+const LEDGER_PATH_RE = /^docs\/(routines|automations)\/ledger\/([^/]+)\.md$/;
+const SHELF_DOC_RE = /^docs\/(routines|automations)\/[^/]+\.md$/;
+
+/**
+ * The one routine allowed to change a playbook's budget. ADR-0016 made it the quality owner;
+ * ADR-0017 made that mechanical, because until this rule a routine whose `allowedPaths` contained
+ * `docs/**` could raise its own `maxFiles` and pass its own postflight — the safety property
+ * `docs/routines/README.md` § 2 states as enforced ("it is not advisory and it does not read the
+ * prose") existed only in the prose of the file being edited (issue #461).
+ */
+export const BUDGET_OWNERS = ['improve'];
+
+/**
+ * Playbook and contract files are owned, not shared. A routine may always append to its **own**
+ * ledger (README rule 7), and may never touch another routine's ledger, any playbook's front-matter,
+ * or either shelf's README.
+ *
+ * @param {{ routineName: string, file: string }} input
+ * @returns {string | null} a violation message, or null when this routine owns the edit
+ */
+export function shelfOwnershipViolation({ routineName, file }) {
+  const ledger = LEDGER_PATH_RE.exec(file);
+  if (ledger) {
+    if (ledger[2] === routineName || BUDGET_OWNERS.includes(routineName)) return null;
+    return (
+      `shelf ownership: ${file} is \`${ledger[2]}\`'s ledger — append to your own and route ` +
+      'anything that belongs to another routine through `improve`.'
+    );
+  }
+  if (!SHELF_DOC_RE.test(file)) return null;
+  if (BUDGET_OWNERS.includes(routineName)) return null;
+  return (
+    `shelf ownership: ${file} is not "${routineName}"'s to edit. Playbooks, their budgets, ` +
+    'and the shelf READMEs belong to `improve` (ADR-0016, ADR-0017): a routine that widens its ' +
+    'own budget passes its own check, which is exactly the failure this rule prevents. ' +
+    'File an issue, or record it in your ledger for `improve` to pick up.'
+  );
+}
+
 /**
  * The whole postflight decision, kept pure so it can be tested without a git repository.
  * @param {object} input
@@ -153,6 +197,7 @@ export function isTestPath(filePath) {
  * @returns {{ ok: boolean, violations: string[] }}
  */
 export function checkRoutineDiff({ playbook, changes, testCounts = [] }) {
+  const routineName = String(playbook.name ?? '');
   /** @type {string[]} */
   const violations = [];
   const allowed = toList(playbook.allowedPaths);
@@ -180,6 +225,11 @@ export function checkRoutineDiff({ playbook, changes, testCounts = [] }) {
   for (const file of files) {
     if (matchesAny(file, ALWAYS_FORBIDDEN)) {
       violations.push(`don't-touch: ${file} (AGENTS.md § Don't-touch list)`);
+      continue;
+    }
+    const ownership = shelfOwnershipViolation({ routineName, file });
+    if (ownership) {
+      violations.push(ownership);
       continue;
     }
     if (forbidden.length && matchesAny(file, forbidden)) {
@@ -285,6 +335,58 @@ export function loadPlaybook(root, name) {
     errors.push(`missing ledger ${ledger}`);
   }
   return { playbook, errors, rel, ledger };
+}
+
+/**
+ * Every playbook on both shelves, read from disk. `report`-tier playbooks come back too — they
+ * simply own no paths, so they never appear as an owner.
+ * @param {string} [root]
+ * @returns {{ name: string, playbook: Record<string, string | string[]> }[]}
+ */
+export function collectPlaybooks(root = ROOT) {
+  /** @type {{ name: string, playbook: Record<string, string | string[]> }[]} */
+  const found = [];
+  for (const shelf of PLAYBOOK_SHELVES) {
+    const dir = path.join(root, shelf.dir);
+    if (!fs.existsSync(dir)) continue;
+    for (const entry of fs.readdirSync(dir).sort()) {
+      if (!entry.endsWith('.md') || entry === 'README.md') continue;
+      const name = entry.replace(/\.md$/, '');
+      const { playbook, errors } = loadPlaybook(root, name);
+      if (errors.length) continue;
+      found.push({ name, playbook });
+    }
+  }
+  return found;
+}
+
+/**
+ * Which routines are allowed to write a given path.
+ *
+ * This is the question a filer must answer before it labels an issue `ready-for-agent`, and the
+ * answer used to be unknowable without reading four playbooks by hand — so issues got labelled for
+ * an agent that mechanically could not reach them. #461 (`scripts/routine-guard.mjs`), #462 and
+ * #473 (`scripts/test-affected-lib.mjs`) sat in exactly that state: correctly scoped, correctly
+ * labelled, permanently stuck, and invisible to a gather step that trusted its own label.
+ *
+ * `ALWAYS_FORBIDDEN` paths return no owner by design. Those are not gaps to widen around; they are
+ * surfaces deliberately outside every budget, and `--reachable` prints them as `frozen` so the
+ * watchdog does not propose "fix" them.
+ * @param {string} filePath
+ * @param {{ name: string, playbook: Record<string, string | string[]> }[]} [playbooks]
+ * @returns {string[]}
+ */
+export function ownersOfPath(filePath, playbooks = collectPlaybooks()) {
+  if (matchesAny(filePath, ALWAYS_FORBIDDEN)) return [];
+  return playbooks
+    .filter(({ playbook }) => {
+      const allowed = toList(playbook.allowedPaths);
+      const forbidden = toList(playbook.forbiddenPaths);
+      if (!allowed.length) return false;
+      if (matchesAny(filePath, forbidden)) return false;
+      return matchesAny(filePath, allowed);
+    })
+    .map(({ name }) => name);
 }
 
 /**
@@ -518,10 +620,48 @@ export function preflightProblems(name, deps = {}) {
 
 function main() {
   const args = process.argv.slice(2);
+
+  // `--reachable` is a query, not a flight check: "which routine may write this file?" It exists so
+  // a filer can answer that without reading four playbooks, and so the digest can ask it of every
+  // open issue. Exits 1 when a path has no owner — that is a stuck issue, not a style note.
+  if (args.includes('--reachable')) {
+    const targets = args
+      .slice(args.indexOf('--reachable') + 1)
+      .filter((arg) => !arg.startsWith('-'));
+    if (targets.length === 0) {
+      console.error('usage: routine-guard.mjs --reachable <path> [<path>…]');
+      process.exit(2);
+    }
+    const playbooks = collectPlaybooks();
+    let unowned = 0;
+    for (const target of targets) {
+      const owners = ownersOfPath(target, playbooks);
+      if (owners.length) {
+        console.log(`${target} -> ${owners.join(', ')}`);
+      } else if (matchesAny(target, ALWAYS_FORBIDDEN)) {
+        console.log(`${target} -> frozen (always-forbidden; outside every routine by design)`);
+      } else {
+        unowned += 1;
+        console.log(`${target} -> NONE (no routine's allowedPaths reaches it)`);
+      }
+    }
+    if (unowned) {
+      console.error(
+        `routine-guard: ${unowned} path(s) unowned. File it against \`improve\` (it owns every ` +
+          'playbook budget) — do not label the issue `ready-for-agent`.'
+      );
+      process.exit(1);
+    }
+    return;
+  }
+
   const mode = args.find((arg) => arg === '--preflight' || arg === '--postflight');
   const name = readFlag(args, mode ?? '');
   if (!mode || !name) {
-    console.error('usage: routine-guard.mjs --preflight|--postflight <name> [--base <ref>]');
+    console.error(
+      'usage: routine-guard.mjs --preflight|--postflight <name> [--base <ref>]\n' +
+        '       routine-guard.mjs --reachable <path> [<path>…]'
+    );
     process.exit(2);
   }
 
