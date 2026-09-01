@@ -394,6 +394,34 @@ export const ANYTHING_BENCH_CORPUS = [
     )
   },
   {
+    // lib-matter-stack first-pass "Cannot read properties of undefined (reading
+    // 'position')": a resize/init handler calls Matter.Body.setPosition on a body
+    // variable before the function that creates it has run. Guarding on the Engine
+    // existing doesn't catch this — the body itself is still undefined. Regression =
+    // both engines drift.
+    id: 'runtime-matter-body-before-create',
+    kind: 'runtime',
+    expectedAccept: false,
+    expectedCode: 'runtime_error',
+    html: page(
+      `<h1>Stack</h1><canvas id="stage" width="320" height="240"></canvas>
+<script>
+  const { Engine, Bodies, Composite, Body } = Matter;
+  const engine = Engine.create();
+  let ground;
+  function reposition() {
+    if (engine) {
+      Body.setPosition(ground, { x: 160, y: 220 });
+    }
+  }
+  reposition();
+  ground = Bodies.rectangle(160, 220, 320, 20, { isStatic: true });
+  Composite.add(engine.world, ground);
+</script>`,
+      { head: '<!-- @lib:matter -->' }
+    )
+  },
+  {
     // layout-dashboard first-pass "k.fmt is not a function": the model treats a KPI
     // data row as if it carried its own formatter. Regression = both engines drift.
     id: 'runtime-fmt-on-data-row',
