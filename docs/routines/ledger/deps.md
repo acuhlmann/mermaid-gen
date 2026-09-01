@@ -1,14 +1,17 @@
 ---
 name: deps
 todos:
-  - id: open-queue
-    content: 'Dependabot PR #455 (npm_and_yarn group: brace-expansion, fast-uri, ip-address) — green and mergeable since 2026-08-30, first thing the first firing merges'
+  - id: actionable-alerts
+    content: 'OPEN 2026-09-01 — 7 alerts have a patched version and no PR (playbook § 3b): nanoid → 3.3.18 (high), @hono/node-server → 1.19.15 (med), dompurify → 3.4.9 / 3.4.11 / 3.4.12 / 3.4.13 (2 med, 2 low), uuid → 11.1.1 (med). "Open the update" in the Security tab is page bar #2; § 2 merges whatever arrives'
     status: pending
-  - id: alerts-without-pr
-    content: '19 open alerts (2026-09-01), all in root package-lock.json: nanoid, @hono/node-server, dompurify, ip-address, fast-uri, brace-expansion, @ai-sdk/provider-utils, uuid. Several have no patched version yet — separate waiting-upstream from actionable each run'
+  - id: waiting-upstream
+    content: 'OPEN 2026-09-01 — @ai-sdk/provider-utils (low) has no patched version yet. Not a queue that can move: count it, do not chase it'
     status: pending
   - id: no-dependabot-yml
-    content: 'There is no .github/dependabot.yml in this repo: the config is account/org-level and invisible to review. Decide whether to commit one so the schedule and grouping are versioned (a config file is not a new dependency)'
+    content: 'There is no .github/dependabot.yml in this repo: the schedule and the npm_and_yarn grouping live in account settings, which no agent can read and no PR can review. That is why 19 alerts opened 2026-08-22 produced one PR on 2026-08-30. Decide whether to commit one so the cadence is versioned (a config file is not a new dependency)'
+    status: pending
+  - id: verify-trigger
+    content: 'First firing: confirm the live cron is 30 4,16 * * * UTC against this schedule key (digest watchdog 4), and pin the observed branch slug into branchPrefix — it is inert until then, and the title prefix is what identifies this routine’s PRs'
     status: pending
 ---
 
@@ -16,6 +19,10 @@ todos:
 
 Durable memory for the [`deps`](../deps.md) routine. Read the run log before acting: a PR already
 rebased twice, or an advisory already analysed and parked, is not fresh work.
+
+**State at creation, 2026-09-01** (measured, not assumed): open Dependabot PRs — none; #378, #379 and
+#455 are merged, so the queue starts empty. Open alerts — 8 (1 high, 4 medium, 3 low), 7 of them
+actionable. `main` is green.
 
 ## Locked
 

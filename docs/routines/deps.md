@@ -98,6 +98,38 @@ resolve a conflict by hand-editing one.
 about somebody else's vulnerability, and it is on the page bar (README § 10) — the one thing in this
 playbook that waits for the owner.
 
+## 3b. An actionable alert with no PR yet
+
+The common state, not the edge case: the 19 alerts created 2026-08-22 produced exactly one PR, eight
+days later. So § 2 and § 3 can both be "nothing to do" while seven patched versions sit unapplied.
+
+Read the alerts, not just the PRs:
+
+```bash
+gh api '/repos/acuhlmann/mermaid-gen/dependabot/alerts?state=open&per_page=50' \
+  --jq '.[] | "\(.security_advisory.severity)|\(.security_vulnerability.package.name)|patched:\(.security_vulnerability.first_patched_version.identifier // "none yet")"'
+```
+
+Then split them, because the two halves need different things:
+
+- **`patched: none yet`** — waiting upstream. Nothing to open, nothing to merge. Count them in the
+  ledger row and stop; they are not a queue that can move.
+- **A patched version, no PR** — actionable, and this routine still cannot make the PR itself: the fix
+  is a `package.json` constraint _plus_ the resolved tree, and the tree is exactly what § "Why a
+  routine" keeps out of an agent's hands. So:
+  1. Check whether a PR exists under a different author (a version bump Dependabot opened as a
+     _version_ update rather than a security one). If so, it is § 2's to merge.
+  2. If there is none, leave a comment on the alert naming the patched version, and record it as a
+     ledger `todo` — one line per package, severity first.
+  3. Say the count in the digest's dependency-queue line (`digest` watchdog 5 reads exactly this).
+     **"Open the update" is a button in the Security tab, and clicking it is page bar #2** — a
+     permissioned UI action, not something a routine can do. The owner presses it once; § 2 merges
+     what arrives. A routine that could not do the whole thing alone still made the remaining step a
+     single click with a name on it, which is the point of the ledger.
+
+Do not raise an alert to an issue labelled `ready-for-agent` for a package bump: `deps` re-reads the
+alert list every firing, and an issue is a second, slower, staler copy of state the API already has.
+
 ## 4. Majors
 
 A major is not automatically a human decision, and `ready-for-human` is not available to this routine:
