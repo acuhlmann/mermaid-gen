@@ -123,4 +123,21 @@ jobs:
           if [[ -n "${LLM_PROVIDER:-}" ]]; then VEV="${VEV},LLM_PROVIDER=${LLM_PROVIDER}"; fi
           if [[ -n "${OPENROUTER_PREFERRED:-}" ]]; then VEV="${VEV},OPENROUTER_PREFERRED=${OPENROUTER_PREFERRED}"; fi
           ARGS+=(--set-env-vars="${VEV}")
-          gcloud "${ARGS[@]}"
+          # Cold starts routinely take ~50s; HTTP probe confirms /api/health, not just an open TCP
+          # socket. failureThreshold*periodSeconds must stay <= 240 (Cloud Run startup cap).
+          ARGS+=(
+            --cpu-boost
+            --startup-probe=httpGet.path=/api/health,httpGet.port=8080,initialDelaySeconds=0,timeoutSeconds=10,periodSeconds=10,failureThreshold=24
+          )
+          for attempt in 1 2 3; do
+            echo "Cloud Run deploy attempt ${attempt}/3…"
+            if gcloud "${ARGS[@]}"; then
+              exit 0
+            fi
+            if (( attempt < 3 )); then
+              echo "Deploy attempt ${attempt} failed (often a transient startup timeout); retrying in 45s…"
+              sleep 45
+            fi
+          done
+          echo "Cloud Run deploy failed after 3 attempts." >&2
+          exit 1
