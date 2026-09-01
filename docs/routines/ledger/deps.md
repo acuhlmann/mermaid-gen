@@ -56,6 +56,27 @@ schedule and the `npm_and_yarn` grouping live in account settings, which no agen
 can review. That is the shape ADR-0014 was written against — instructions living where the repo cannot
 see them — and it is why the first `todo` above asks to commit one rather than why the queue is slow.
 
+**2026-09-01 — `#498`'s three "guard-breaching" PRs were owner bootstrap work, not unattended `deps`
+firings; `§ 3b`'s hard "never" on `package-lock.json` stays as written.** Filed by `review` after
+`0c08b90` (18 lines of `package-lock.json`) and shelf-doc edits in the same PR window matched the
+`deps:` title prefix and would fail `routine-guard --postflight` today. `git log` shows all four
+commits in that window — `573af32`, `0c08b90`, `4c96e67`, `9858652` — are authored directly by
+`acuhlmann <acuhlmann@gmail.com>` with no `Claude-Session:` trailer, the marker every actual
+scheduled-routine commit carries (compare `8d2088c`, a genuine `review` firing). `129a997`, landed
+the same day, records the `deps` cron trigger (`trig_01Dk8ZwZCpXfXGREJyHnh9Up`) being created — so
+this window is the owner writing `deps.md` itself and doing the first manual alert cleanup (closing
+the `nanoid`/`dompurify`/`@hono/node-server` alerts, see `closed-2026-09-01` above) _before_ any
+unattended firing existed to be bound by the guard at all. The routine's own first live run (the
+16:30Z row below) already shows the correct behaviour under the rule as written: it hit the exact
+same shape (a patched `uuid` needing `@copilotkit/runtime` bumped, which means a resolved-tree
+write) and correctly declined it as `ALWAYS_FORBIDDEN`, filing `uuid-copilotkit-pin` instead of
+touching the lockfile. **Decision: no carve-out.** `deps.md` § 3b's text is unchanged — the
+"never" was never actually broken by an unattended run, so loosening it now would be fixing a
+misattribution by weakening a real safety property. The two shelf-doc edits in the same window
+(`docs/routines/deps.md`, `docs/routines/README.md`/`digest.md` per #498's table) are the same
+story: an owner writing their own playbook before its trigger existed is not a routine editing its
+own budget, so `BUDGET_OWNERS` was never actually in play either. Closes #498.
+
 ## Run log
 
 Append one row per firing, including runs where the queue was empty.

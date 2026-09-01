@@ -221,87 +221,43 @@ goes in the root files, and still in both.
 Non-functional work — post-merge review, doc drift, test hardening, dependency upkeep — runs on a
 schedule as **NFR routines** ([ADR-0014](docs/decisions/0014-autonomous-nfr-routines.md),
 [ADR-0017](docs/decisions/0017-routine-ownership-dependabot-and-the-attention-bar.md)). Five ship
-today — `review`, `improve`, `resolve`, `deps`, `digest` — and each is a trap if you assume the
-obvious:
+today — `review`, `improve`, `resolve`, `deps`, `digest`. **Read
+[`docs/routines/README.md`](docs/routines/README.md) before touching one** — it is the full
+contract (budget enforcement, who may widen a budget, the `ready-for-human` / `ready-for-agent`
+rules, the one-branch-at-a-time preflight check, tiers). This section carries only what that
+contract doesn't say.
 
-- **The playbook is the repo file, not the cron prompt.** `docs/routines/<name>.md` holds what the
-  routine does and its budget; the trigger prompt is three lines pointing at it. Pasting
-  instructions into a trigger recreates the unversioned, unreviewable blob this shelf replaced.
-- **The budget is enforced, not described.** `npm run routine:guard -- --postflight <name>` re-reads
-  the playbook's `maxFiles` / `allowedPaths` / `forbiddenPaths` and checks the real diff, plus an
-  always-forbidden list mirroring the don't-touch list, deleted test files, and any test file whose
-  case count fell.
-- **Only `improve` may change a budget, and the guard is outside everyone's reach.** A routine that
-  needs a wider path list or more files writes `blocked-by-budget` / `blocked-by-paths` in its own
-  ledger; `improve` § 2b reads those rows and raises the number in its own PR. `routine-guard`
-  refuses any other routine's diff to a playbook, a shelf README, or another routine's ledger, and
-  `scripts/routine-guard.mjs` is always-forbidden — the referee cannot be edited by a player (#461).
-- **Nothing on either shelf may label an issue `ready-for-human`, and only four things reach the
-  owner.** Money, credentials or permissions, irreversible destruction, the product's direction —
-  `docs/routines/README.md` rule 10. Everything else is decided, done, and logged. `resolve`
-  re-gathers any `ready-for-human` older than three days on the assumption that a routine flinched,
-  because that label has no reader: #402 waited a week on `maxFiles: 6` needing nine files.
 - **`npm run verify:ratchet` gates nothing — it is the `improve` routine's work queue.** Monolith
-  LOC and lint warnings should only fall; strict-island and suite counts should only rise. Budgets
-  live in `docs/agents/ratchet.json`. It is deliberately **out** of `npm run check`: two unattended
-  feature automations run daily here, and a quality metric that reddens their build at an hour
-  nobody is watching teaches an agent to raise the budget instead of fixing the code. Run it
-  yourself when you want the numbers (`--json` for machine-readable, `--with-lint` for the ESLint
-  pass); when a budget genuinely has to rise, raise it with a written `reason`.
-- **As of ADR-0016, `improve` acts on coupling and lint findings instead of only reporting them.**
-  It may split a monolith itself when the fix matches an extraction pattern already used elsewhere
-  in the file (self-merged, one slice per run — see `docs/routines/improve.md` § 7), and may promote
-  a lint rule from `warn` to `error` itself once a mechanical grep shows ADR-0007's two-week quiet
-  period held (§ 8). Neither needs a human decision anymore; both still go through the same
-  budget/green-CI/escalation rules as every other routine change. ADR-0010 (no slot content) and "no
-  new dependencies" are unchanged.
+  LOC, lint warnings and root-doc byte counts should only fall; strict-island and suite counts
+  should only rise. Budgets live in `docs/agents/ratchet.json`. Deliberately **out** of `npm run
+check`: two unattended feature automations run daily here, and a quality metric that reddens
+  their build at an hour nobody is watching teaches an agent to raise the budget instead of fixing
+  the code. `--json` for machine-readable, `--with-lint` for the ESLint pass; raise a budget only
+  with a written `reason`.
+- **As of ADR-0016, `improve` acts on coupling and lint findings instead of only reporting them** —
+  a self-merged monolith split when the fix matches an extraction pattern already used elsewhere in
+  the file (`improve.md` § 7), or a lint `warn`→`error` promotion after a two-week quiet period
+  (§ 8). ADR-0010 (no slot content) and "no new dependencies" are unchanged.
+- **There is a night ladder, and it is a dependency order.** Seven jobs run between `0 15` and
+  `0 23` UTC (23:00–07:00 in the owner's GMT+8): feature automations produce code, `review` reads
+  what landed, `improve` works the quality queue, `resolve` works the backlog, `digest` reports.
+  Table (with which host runs which rung) in [`docs/routines/review.md`](docs/routines/review.md).
+  `deps` (`30 4,16 * * *`) is off the ladder on purpose — advisories arrive in bursts.
+- **The fleet is split across hosts by duty, since 2026-09-01.** `resolve` runs as a Cursor
+  automation; everything else on the ladder is a Claude Routine, so the routine that _finds_ work
+  and the one that _pays_ for it are not one account's two failures. **Claude routines are
+  scriptable; Cursor automations are not** — `claude -p '/schedule …'` creates, lists, updates and
+  fires a cron routine (it cannot delete one, cannot create or revoke API triggers/tokens, and needs
+  a claude.ai subscription login); Cursor's `agent` CLI has no `automations` command at all, so a
+  Cursor rung is a [cursor.com/automations](https://cursor.com/automations) action. Retiring
+  anything, and every Cursor-side change, stays the owner's (page bar #2).
+- **One fleet per 24-hour window.** Two unregistered automations can price the same bug the same
+  night (#442 vs #446). Any automation with write access to product code needs a row in
+  `docs/routines/README.md` or `docs/automations/README.md`, and `digest` watchdog 7 reports
+  branches that match no registered `prTitlePrefix`.
 
 Ledgers under `docs/routines/ledger/` are the durable memory across cold-start runs — read one
 before starting, append a row when finishing, including runs that changed nothing.
-
-More facts, added 2026-08-30 and 2026-09-01:
-
-- **There is a night ladder, and it is a dependency order.** Seven jobs run between `0 15` and
-  `0 23` UTC (23:00–07:00 in the owner's GMT+8), so the whole fleet finishes while nobody is
-  watching and a digest is waiting at 07:00. Feature automations produce code, `review` reads what
-  landed, `improve` works the quality queue, `resolve` works the backlog the first two just filed,
-  `digest` reports. The table — with which host runs which rung — is in
-  [`docs/routines/review.md`](docs/routines/review.md). Until 2026-08-30 the live crons ran
-  `improve` → `review` → `resolve` with `review` firing _during_ `improve`'s run, and every
-  playbook's declared `schedule` disagreed with its actual cron. `deps` (`30 4,16 * * *`) is
-  deliberately off the ladder: advisories arrive in bursts and a short twice-daily read should never
-  queue behind an hour-long review.
-- **The fleet is split across hosts by duty, since 2026-09-01.** `resolve` runs as a Cursor
-  automation; everything else on the ladder is a Claude Routine. The point is that the routines which
-  _find_ work and the one which _pays_ for it are not one account's two failures — when `anything`
-  went dark for four nights in late August, every job that could have noticed ran on the same host as
-  the one that went quiet. **Claude routines are scriptable; Cursor automations are not.**
-  `claude -p '/schedule …'` creates, lists, updates (any cron expression) and manually fires a cron
-  routine — measured 2026-09-01, when `deps` was stood up from the CLI. It cannot delete a routine,
-  cannot create or revoke API triggers/tokens, and needs a claude.ai subscription login (not a Console
-  API key, Bedrock or Vertex). Cursor's `agent` CLI has no `automations` command at all, so a Cursor
-  rung is still a [cursor.com/automations](https://cursor.com/automations) action. Retiring anything,
-  and every Cursor-side change, stays the owner's (page bar #2).
-- **One fleet per 24-hour window.** Cursor's unregistered `critical-bug-memory` automation and
-  `review` both found the same `renameErNode` bug on 2026-08-29 and each shipped a PR; #442 closed
-  unmerged, redundant with #446. Any automation with write access to product code needs a row in
-  `docs/routines/README.md` or `docs/automations/README.md`, and `digest` watchdog 7 reports branches
-  that match no registered `prTitlePrefix`.
-- **`--preflight` now really does refuse to start behind an open PR.** README rule 5,
-  `docs/automations/README.md` § 4 and ADR-0014 clause 3 promised that from day one and nothing
-  implemented it. In the gap, PR #442 sat open for two days holding a `review` ledger row hostage,
-  the next firing started a second branch behind it, and that run then reasoned _from preflight's
-  silence_ that the previous night had never fired. It matches on the PR **title** prefix, because
-  branch names (`claude/eager-hopper-74jcfu`) are generated by the cloud runner and say nothing
-  about who opened a PR. When `gh` is unreachable it **warns and continues** rather than reporting
-  "no open PR" — an absent answer and an empty answer mean opposite things.
-- **`tier: report` is enforced.** Such a playbook declares no `maxFiles` and no `allowedPaths`, and
-  postflight fails on a non-empty diff. [`digest`](docs/routines/digest.md) is the first one: its
-  entire output is one comment on the standing issue #452, and it is also the **watchdog** — a job
-  that did not run, a PR left open overnight, a red `main`, a live cron that has drifted from its
-  playbook. ADR-0014 named "a run log that stops" as the tell for the whole shelf failing quietly,
-  and until this date nothing looked: the `anything` automation went dark on 2026-08-28 and it took
-  a human reading a ledger four days later to notice.
 
 ## Scheduled feature automations
 

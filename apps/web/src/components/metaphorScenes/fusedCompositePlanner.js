@@ -540,7 +540,7 @@ export function fusedSurfaceHeightAt(x, z, sites) {
  * stand on — most visibly on the outer stations, whose markers floated a full
  * channel-width over the beach.
  */
-function routePoint(site, sites, worldKey, id, index, isCrossing) {
+function routePoint(site, sites, { worldKey, id, index, isCrossing }) {
   const angle = seeded(worldKey, id, 'path-offset-angle') * TAU;
   const distance = Math.min(site.radius * 0.52, 0.75 + index * 0.06);
   const x = site.position[0] + Math.cos(angle) * distance;
@@ -660,7 +660,7 @@ function makePaths({ layers, sites, novelty, worldKey, anchors, linkNeighbors, m
         linkNeighbors
       });
       const site = sites[siteIndex];
-      const point = routePoint(site, sites, worldKey, item.id, index, isCrossing);
+      const point = routePoint(site, sites, { worldKey, id: item.id, index, isCrossing });
       const anchor = [point[0], point[1] + 0.9, point[2]];
       const labelDx = point[0] - site.position[0];
       const labelDz = point[2] - site.position[2];
