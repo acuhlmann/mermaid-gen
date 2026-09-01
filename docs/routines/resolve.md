@@ -2,12 +2,13 @@
 name: resolve
 tier: code-writing
 schedule: '15 22 * * *'
-maxFiles: 6
+host: Cursor
+maxFiles: 9
 prTitlePrefix:
   - 'resolve:'
   - 'resolve ledger:'
 branchPrefix:
-  - claude/awesome-hawking
+  - resolve/
 allowedPaths:
   - docs/routines/ledger/resolve.md
   - docs/**
@@ -37,6 +38,31 @@ Until 2026-08-30 this playbook claimed it sat "two hours after `review` (`0 1 * 
 number was the live cron, and the real firing order was the exact inverse of the one this
 rationale depends on.
 
+## Two things that changed on 2026-09-01, and the arithmetic behind each
+
+**The host moved to Cursor.** The rest of the ladder stays on Claude Routines. That split is about
+ownership rather than credits: `review` and `improve` _find_ the work and `resolve` _pays_ for it, so
+with all three on one host a single degraded account darkens the whole pipeline and nothing notices —
+which is precisely how `anything` went silent for four days in late August. `branchPrefix` is now
+inert on purpose: cloud runners generate branch names (`claude/awesome-hawking-…`,
+`cursor/critical-bug-memory-…`), and a fleet-wide prefix like `cursor/` would make preflight refuse to
+start behind **another** fleet's PR. This routine is identified by its `resolve:` / `resolve ledger:`
+title prefixes, which the run log already enforces. Pin the observed Cursor slug here after the trigger
+has fired twice — do not invent one.
+
+**`maxFiles` went 6 → 9.** The number, not the judgement, is what stranded #402 for a week. Two runs
+recorded the arithmetic in the ledger: three source files, three updated test files, one new test for
+the only uncovered call path, the shared hook, and this routine's own run row. Nine. The seventh file
+being a test is the whole point — a budget that forces a routine to drop the test in order to fit is a
+budget that pays for "confident enough to merge unattended" with the thing that proves it. If a pick
+now needs more than nine, the honest record is `blocked-by-budget` in the ledger (see § 5), which
+`improve` § 2b reads and prices; it is never a reason to label the issue for a human.
+
+Raising this playbook's own number is legal for exactly one reason: the edit came from outside, in a
+PR a human authored. A `resolve` run that edited this file now fails its postflight —
+`routine-guard`'s `BUDGET_OWNERS` allows only `improve` to touch a playbook or a shelf README
+(ADR-0017, closing #461).
+
 ## Why `docs/**` is in this routine's budget
 
 `review` and `resolve` shipped with **byte-identical** `allowedPaths`, and this routine's own
@@ -52,9 +78,9 @@ ledger diagnosed what that costs on 2026-08-23, -26, -28 and -29 before anyone a
 so the 2026-08-29 run logged "quiet" with an actionable issue sitting in front of it.
 
 `docs/**` here is for **fixing what the backlog asks for**, not for rewriting playbooks. Editing
-this file, another routine's playbook, an ADR or a ledger that is not this routine's own is
-`improve`'s queue item, and doing it from here would mean a routine quietly widening its own
-budget — which is the one edit that must always be visible in a PR a human reads.
+this file, another routine's playbook, a shelf README, an ADR or a ledger that is not this routine's
+own is `improve`'s to edit — and as of ADR-0017 it is refused mechanically, by
+`routine-guard`'s shelf-ownership rule, not merely advised against here.
 
 ## 1. Gather
 
@@ -81,6 +107,29 @@ up. If it genuinely does not — no repro, no file, no clear "correct" — this 
 act on it: leave a comment asking for the missing piece, apply `needs-info`, and move on. Guessing
 at an underspecified report is exactly the shape of mistake this routine exists to avoid.
 
+**`ready-for-human` enters this set after three days.** The label's whole meaning was "a maintainer
+will decide", and the maintainer is not reading the tracker — #431 and #402 sat there five and eight
+days while each was a number in a playbook and a lint warning respectively. As of ADR-0017 the label
+is reserved for the four page-bar conditions in [`README.md`](README.md) § 10, nothing on this shelf
+may _file_ one, and an aged one is therefore evidence that a routine was over-cautious, not that a
+human is busy. Re-triage it: fix it if it is fixable, strip the label and apply the one that matches
+what you found if it is not. Leave a `ready-for-human` in place only if the page bar genuinely holds
+and say so in the issue in one line.
+
+**Check reachability before assuming a `ready-for-agent` label means an agent can do it.** Three
+issues were in the backlog on 2026-08-31 labelled ready-for-agent with fixes in
+`scripts/test-affected-lib.mjs` and `scripts/routine-guard.mjs` — files no playbook's `allowedPaths`
+reached, so the label was a promise no one had checked could be kept:
+
+```bash
+node scripts/routine-guard.mjs --reachable <file-the-issue-names>
+```
+
+`-> improve` means hand it to `improve`'s queue rather than skipping it in silence; `-> NONE` means the
+backlog has an ownership gap, which is itself a finding worth a ledger row (`improve` § 2b reads them).
+Skipping a reachable-looking issue because a label pointed at a routine that cannot serve it is exactly
+the "quiet run in front of actionable work" failure this routine was created to end.
+
 Read the ledger's run log and `Locked`/`Open observations` sections first — an issue already
 attempted twice with no human action is not a fresh pick (see Escalation below), and an issue
 already escalated is not re-escalated on the same finding.
@@ -95,35 +144,28 @@ the ledger's `todos` untouched.
 Skip on sight, leave filed, do nothing further this run:
 
 - Anything asking for a hub split or refactor (`docs/agents/balanced-coupling-priorities.md`: split
-  on contact, and a schedule has no feature to be on contact with).
+  on contact, and a schedule has no feature to be on contact with). Hand it to `improve` § 7 in the
+  ledger — it is the only routine with ADR-0016 authority to split one unattended.
 - Anything asking for a new dependency, a lint-severity promotion, or slot content (ADR-0014's three
   carve-outs — see `README.md` § What routines may not do).
-- Anything whose fix cannot be expressed as a change inside this routine's `allowedPaths`, within
-  `maxFiles`.
+- Anything whose fix cannot be expressed inside this routine's `allowedPaths`, within `maxFiles`.
+  Skipping is right; **skipping quietly is not.** Write the row as `blocked-by-budget` with the file
+  count you needed, or `blocked-by-paths` with the path. Those two strings are what `improve` § 2b
+  greps for, and a skip without one is indistinguishable from a lazy run — which is how #402 managed
+  to be correctly diagnosed twice and correctly unblocked zero times.
 
-## 2b. Stale dependency PRs — one per run, merge only
+## 2b. Dependency PRs are not this routine's job (`deps` owns them)
 
-Dependabot opens PRs that nothing in this repo ever reads. #378 (mermaid 11.16→11.17) and #379
-(hono) sat open and green for eight days before a human noticed.
+Until 2026-09-01 this section told a backlog routine to also read the Dependabot queue — "after the
+issue pick and only if the pick left budget". Budget is never left, so on the nights this routine did
+real work the queue went unread, and on the nights it had nothing to do it merged one PR out of a
+group of three. #378, #379 and #455 each sat green for a week or more while a human eventually
+noticed them. A duty attached to a routine whose job is something else is not a duty.
 
-Once per run, after the issue pick and only if the pick left budget:
-
-```bash
-gh pr list --state open --author app/dependabot --json number,title,createdAt,statusCheckRollup
-```
-
-Merge **at most one** that satisfies all four: open more than 7 days, every check green, a
-**patch or minor** bump of a dependency the repo already has, and no conflict with `main`. That is
-merging someone else's PR, not writing one — this routine's own branch diff is unchanged, and
-`package-lock.json` stays on the always-forbidden list for anything it authors itself.
-
-A **major** bump is escalated, never merged: label it `ready-for-human` and say why in one line. A
-red or conflicted one is left alone and named in the ledger row.
-
-This does not contradict "no new dependencies" (README § What routines may not do). That rule is
-about **adding** a package — a licence, a supply chain and a bundle cost, each a decision. Moving
-an existing one forward a patch release with green CI is the boring maintenance this shelf exists
-to absorb, and leaving it undone is how a security bump waits a week.
+[`deps`](deps.md) owns dependencies now: every open Dependabot PR, the advisories behind them, the
+merge decision, and the source-side fix when a bump breaks code. If this routine happens to find a
+dependency PR while gathering, it links it in a comment and moves on. It does not merge it, does not
+close it, and does not label it.
 
 ## 3. Fix — same bar as `review`, one issue per run
 
@@ -134,15 +176,15 @@ resolve unattended — comment why on the issue (what's missing to make it testa
 
 Never widen the fix beyond the issue. Never touch a don't-touch path.
 
-## 4. Escalate instead of merging — when uncertainty or risk is real
+## 4. Hold the PR instead of merging — when the risk is real and it is not the owner's decision to make
 
 Default path: push the branch, open the PR, wait for `npm run check` + CI green, **merge it
 yourself**, close the issue with a link to the merged PR. That is the common case and needs no
 extra ceremony.
 
-Take the escalation path instead — push the fix and open the PR, but **do not merge it**, comment on
-the PR explaining exactly what you're unsure about or what's at risk, and switch the issue's label
-to `ready-for-human` (leave a comment on the issue pointing at the PR) — when **any** of these hold:
+Take the hold path instead — push the fix, open the PR, comment on it explaining exactly what is
+unclear or what is at risk, **do not merge it**, and **leave the issue labelled as it is** — when
+**any** of these hold:
 
 - The fix touches a trust boundary: a sanitizer or allowlist that is the whole safety model for a
   slot (`mermaidSanitizer.ts`, `infographicSanitizer.js`, `chartSchema.ts`/`vega-lite` compile gate,
@@ -165,19 +207,43 @@ bar for _correctness_ (you can prove it with a test) but not for _unattended-mer
 be true at once, and conflating them is how a routine ends up merging something it was privately
 unsure of.
 
+**Holding a PR is not the same as messaging the owner, and only the second one costs them time.**
+Before ADR-0017 the hold path also flipped the issue to `ready-for-human`, which quietly converted "I
+am unsure about this diff" into "a person must now act" — and since the person does not read the
+tracker, the effect was to delete the work rather than queue it. Two of the three issues that reached
+`ready-for-human` were blocked by a _number_ (`resolve`'s `maxFiles`) and one by a lint warning, none
+of which ever needed a human. The hold now leaves the label alone, so the next firing re-reads it.
+
+`ready-for-human` remains available **only** for the four page-bar conditions in
+[`README.md`](README.md) § 10 — money, credentials/permissions, irreversible destruction, or the
+product's direction. Not for a large diff. Not for an ambiguous one. Not for "out of my budget". If
+you are holding a PR because you are unsure, the label that fits is the one it already has.
+
 ## 5. Close
 
-Append a ledger row: date, issue picked (number + title), outcome (merged PR number, or escalated
-PR number + why), and anything skipped with a one-line reason. Move the issue's tracking entry in
-the ledger `todos` to `completed` (merged) or leave it `pending` with the escalation noted (still
-open, now on a human).
+Append a ledger row: date, issue picked (number + title), outcome (merged PR number, held PR number +
+what is unsure, or `blocked-by-budget` / `blocked-by-paths` + the arithmetic), and anything skipped
+with a one-line reason. Move the issue's tracking entry in the ledger `todos` to `completed` (merged)
+or leave it `pending` with the hold noted.
 
-## Escalation nagging
+The three outcome strings are how the next run and `improve` § 2b read this backlog without re-deriving
+it. A row that says "quiet" while an issue sat reachable-but-too-big is the row that made #402 last a
+week.
 
-If the same issue gets escalated three runs running with no human action on the PR, say so once in
-the ledger and stop re-touching it that run — pick the next candidate instead. Re-escalating the same
-finding every night is the routine version of the review nag rule, and it burns budget that could
-fix something else.
+## When a hold repeats
+
+A held PR that no one acts on is not a request to a human — it is a decision the shelf has not made
+yet. Second firing to find the same issue held:
+
+- If the blocker is a **number** (budget, a path, a rule) → record `blocked-by-budget` /
+  `blocked-by-paths` and stop touching it; `improve` owns the number and § 2b greps for the row.
+- If the blocker is **genuine uncertainty about the code** → re-read it with the PR's own comments in
+  hand. A second pass over a diff you already wrote is cheaper than a third hold, and if it now looks
+  safe, merge your own PR and say what changed your mind in the merge comment.
+- If the blocker looks like **the product's direction** → that is page bar #4. Say so once, in the
+  issue, in one line, and let `digest` carry it. Do not repeat it nightly: `digest` surfaces anything
+  still open, and a routine that re-raises the same question every night is the reason digests get
+  muted.
 
 ## Verification
 

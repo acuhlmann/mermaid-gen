@@ -47,6 +47,10 @@ gh pr list --state open --limit 40 --json number,title,headRefName,createdAt,isD
 # is main actually green
 gh run list --branch main --limit 6 --json name,conclusion,createdAt,event
 
+# the dependency queue (watchdog 5): PRs and the advisories behind them
+gh api '/repos/acuhlmann/mermaid-gen/dependabot/alerts?state=open' \
+  --jq '.[] | "\(.number)|\(.security_advisory.severity)|\(.dependency.package.name)|\(.security_vulnerability.first_patched_version.identifier)"'
+
 # quality trend (gates nothing — read the deltas)
 node scripts/verify-ratchet.mjs --json
 ```
@@ -101,11 +105,25 @@ duplicating it is how this routine turns into a second reviewer that costs an ho
 - Issues opened in the window, with labels. **Skip anything labelled `log`** — that is this
   routine's own standing thread (#452) and reporting it as backlog every morning is the shape of
   noise that gets a digest muted.
-- **Unreachable `ready-for-agent` issues.** For each one, check whether the file it names is inside
-  the `allowedPaths` of a routine that reads the backlog. An issue no routine can reach is not
-  waiting — it is stuck, and it will stay stuck silently. (#441 sat like this from 2026-08-29:
-  a `docs/**` fix filed by `review`, labelled for an agent, and `resolve` had identical paths.)
-- `ready-for-human` issues older than three days, with their age.
+- **Unowned `ready-for-agent` issues** — the fix lives in a file no playbook's `allowedPaths`
+  reaches. `resolve` gathers by label and skips on the path check, so one of these is invisible
+  work: it looks triaged and will never be done. Check the paths each issue names:
+
+  ```bash
+  npm run routine:guard -- --reachable <path> ...   # exits 1 when any path prints NONE
+  ```
+
+  Name each `NONE` line. Before 2026-09-01 three issues (#461, #462, #473) sat in that state for a
+  week while every routine correctly declined to touch them.
+
+- **`blocked-by-` rows** in any ledger (`grep -rn 'blocked-by-' docs/routines/ledger
+docs/automations/ledger`). These are routines recording that the only thing between them and a fix
+  was a number. `improve` § 2b owns those numbers; report the count and the age, not each row.
+- **`ready-for-human` at all.** Report each one with its age and say in one clause whether it meets
+  the page bar (`README.md` rule 10). Nothing on either shelf may apply that label any more, so after
+  this change any instance of it is either the owner's own filing or a stale one that `resolve` will
+  re-triage on its next firing. It is never a request for you to act unless it names money,
+  credentials, destruction or product direction.
 
 ### Watchdog
 
@@ -115,7 +133,10 @@ This is the section the routine exists for. Report each of these or say explicit
    night, or which produced no `main` commit and no PR. Name it and say how many nights it has
    been quiet. A job going dark is silent by construction — nothing else in the system notices.
 2. **A PR left open overnight.** Any open PR older than 24 h, with its CI state. Say whether
-   `routine-guard --preflight` will now refuse that routine's next firing, because it will.
+   `routine-guard --preflight` will now refuse that routine's next firing, because it will. A held PR
+   (a routine that finished a fix and declined to merge it — `resolve.md` § 4) belongs in this line
+   with what it is unsure of, in the same sentence: holding is a state in the repo, not a request to
+   the owner, and it should read that way.
 3. **Red `main`.** Any failed CI run on `main` in the window, with the job name. Rule out the
    documented `anythingRuntimeCheck.test.js` load-contention flake before calling it a regression
    (`docs/agents/sensors.md` § Known flakes) — the tell is a uniform timing shift across every
@@ -125,9 +146,28 @@ This is the section the routine exists for. Report each of these or say explicit
    playbook's front-matter. Report any pair that disagrees, with both values. `routine-guard` does
    not read that key, so it drifts in silence — on 2026-08-30 **all four** live crons disagreed
    with their playbooks, and two playbooks stated an ordering rationale that the real firing order
-   inverted. For the Cursor-hosted automations, which this connector cannot see, fall back to
-   comparing the declared schedule against when their PRs actually landed.
-5. **Stale dependency PRs.** Dependabot PRs open more than seven days, by age.
+   inverted. **The connector sees Claude Routines only.** For Cursor-hosted rungs — `resolve` since
+   2026-09-01, and anything on [`docs/automations/`](../automations/) still wired through
+   [cursor.com/automations](https://cursor.com/automations) — compare the declared `schedule:`
+   against when that routine's PRs actually landed, and say which method you used. A rung whose host
+   you cannot query is not evidence that it is fine: `deps` declares two crons in one
+   (`30 4,16 * * *`), so a half-day of silence from it is invisible to a PR-time heuristic alone.
+5. **The dependency queue.** `deps` owns it now (`docs/routines/deps.md`), and this is the check that
+   `deps` is working it: open Dependabot PRs with age and CI state, and the count of open Dependabot
+   _alerts_ from `GET /repos/:owner/:repo/dependabot/alerts?state=open` — separate what has a patched
+   version from what is waiting upstream, because only the first is a queue that could move. Report
+   the worst age, and name any PR that has been green for more than a day: #378 and #379 waited eight
+   days each for a human to notice, which is the exact gap that routine exists to close.
+6. **A budget that moved.** Any `improve:` PR whose body carries a `budget-change:` line, plus any
+   diff touching a playbook or a shelf README (there should be no other kind — `routine-guard`'s
+   `BUDGET_OWNERS` refuses it). One line each: which routine, which key, before → after. This is the
+   only place the shelf's own growth is visible, because the routine that spends a budget is not the
+   one that changed it and nobody approved either.
+7. **A fleet doing work the repo does not know about.** Any `claude/*`, `cursor/*` or `agents/*` branch
+   or merged PR whose author matches no playbook's `prTitlePrefix` on either shelf. Cursor's
+   unregistered `critical-bug-memory` automation duplicated a `review` finding on 2026-08-29 and both
+   paid for the same PR; an automation that isn't in the registry can't be in the ledger, the budget,
+   or the watchdog, so it is invisible by construction.
 
 ### Ratchet
 
@@ -154,6 +194,17 @@ The digest is a comment on #452 or it is nothing.
 Title the comment with the date. Keep the whole thing under ~60 lines: it is read on a phone,
 before coffee, by someone deciding whether anything needs them today. **If the answer is "no", say
 so in the first line and let the sections below carry the detail.**
+
+**The first line is the only thing guaranteed to be read, so it is the only place this routine may
+raise its voice.** Start it `Needs you: <one clause>` **only** when something in the night meets the
+page bar in [`README.md`](README.md) rule 10 — money, credentials or permissions, irreversible
+destruction, or the product's direction. At most three such lines exist in a digest, and each names
+what to do about it. Everything else — an unowned issue, a held PR, a budget that moved, a red bench,
+a job that skipped — belongs in a _section_ below. Reporting routine-manageable work as an alert is
+how a real one gets missed: before ADR-0017 the shelf flagged a stalled issue every time one aged
+three days, and every instance was a number in a playbook or a lint warning that an agent could have
+handled and chose not to. The reader cannot tell an over-cautious agent from an emergency, so the
+agent has to make that distinction instead.
 
 Never open an issue, never label one, never close one. If the digest finds something that needs
 work, it names it and the next night's `resolve` picks it up from the backlog `review` and

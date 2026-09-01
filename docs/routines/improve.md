@@ -2,7 +2,7 @@
 name: improve
 tier: code-writing
 schedule: '0 21 * * *'
-maxFiles: 10
+maxFiles: 12
 prTitlePrefix:
   - 'improve:'
 branchPrefix:
@@ -10,8 +10,7 @@ branchPrefix:
 allowedPaths:
   - docs/**
   - '*.md'
-  - scripts/verify-*.mjs
-  - scripts/verify-*.test.mjs
+  - scripts/**
   - packages/eslint-config/**
   - apps/*/test/**
   - packages/shared/test/**
@@ -31,6 +30,17 @@ allowedPaths:
 Makes the project a little better every day. One slice per run, then stop. Opens a PR, merges it
 when CI is green.
 
+This routine is also the **owner of every routine's budget**. ADR-0016 made it the quality owner;
+ADR-0017 made that mechanical: `routine-guard`'s `BUDGET_OWNERS` means only an `improve` diff may
+touch a playbook or a shelf README, and every other routine's postflight rejects it. That is the
+asymmetry the whole shelf needs to stay autonomous without self-approving — the routine that widens
+a budget is never the routine that spends the widening. `scripts/**` is in this routine's allowlist
+for the same reason: the sensors, `test-affected-lib.mjs` and the guard's own tests are quality
+infrastructure, and until 2026-09-01 no playbook could reach most of `scripts/`, which stranded
+#461, #462 and #473 as "ready for an agent" that no agent could serve. `ALWAYS_FORBIDDEN` still
+applies inside that directory — `scripts/routine-guard.mjs` (the referee), the deploy scripts and
+`bench-results/` are outside every routine including this one.
+
 ## Picking tonight's slice
 
 **Rotate by weekday. Do not walk the queue top-down.**
@@ -45,10 +55,10 @@ when CI is green.
 | Saturday  | 6. Doc drift                                               |
 | Sunday    | 3–8, whichever the ledger shows has gone longest untouched |
 
-Items **1 (register accuracy)** and **2 (ratchet drift)** are a **preamble, not a slice**: run them
-every night, take the numbers, and record them in the ledger row. They only _become_ the slice when
-they turn up something that actually moved the wrong way. Otherwise the run continues to the
-weekday's item.
+Items **1 (register accuracy)**, **2 (ratchet drift)** and **2b (ownership gaps)** are a **preamble,
+not a slice**: run them every night, take the numbers, and record them in the ledger row. They only
+_become_ the slice when they turn up something that actually moved the wrong way. Otherwise the run
+continues to the weekday's item.
 
 If the rotated item has nothing to do tonight, say so in the ledger row and take the next weekday's
 item — not item 1. A run that does one thing properly beats a run that half-does four.
@@ -87,6 +97,8 @@ The ratchet gates no build. Nothing is blocked by a regression here — it is si
 work.
 
 **When you file rather than fix, label it `needs-triage` — never `ready-for-human`.**
+`ready-for-human` is reserved for the page bar in [`README.md`](README.md) § 10, which no filing ever
+meets on its own.
 
 ```bash
 gh issue create --title '…' --body '…' --label needs-triage
@@ -107,6 +119,45 @@ the routine whose job it is decide.
 Also: `gh issue create` with no `--label` argument leaves an issue unlabelled forever, because
 nothing in this repo ever labels one after the fact. `resolve` compensates by gathering unlabelled
 issues too, but that is a workaround for this routine's omission — pass the flag.
+
+### 2b. Ownership gaps and budget shortfalls
+
+Two failure shapes strand an issue permanently, and both are a number in a playbook rather than a
+judgement. This routine is the only one that can see them from outside, and the only one allowed to
+fix them.
+
+```bash
+# 1. Is every file named by an open issue reachable by the routine its label promises?
+gh issue list --state open --limit 60 --json number,title,labels,body > /tmp/backlog.json
+node scripts/routine-guard.mjs --reachable $(grep -ohE '`(apps|packages|scripts|docs)/[^`]+`' /tmp/backlog.json | tr -d '`' | sort -u)
+```
+
+Exit 1 with a `NONE` line is a stuck issue: correctly scoped, correctly labelled `ready-for-agent`,
+and no budget on either shelf can reach the file. Three were in that state on 2026-08-31 (#461, #462,
+#473) and `resolve` logged a skip against each of them every night it ran. Widen the owning playbook
+here — this is exactly the case ADR-0016's authority was granted for. Name the change in the PR body
+with a line starting `budget-change:` so the `digest` watchdog can list it.
+
+```bash
+# 2. Whose ledger says it was one file short, or one path short?
+grep -rn 'blocked-by-' docs/routines/ledger docs/automations/ledger
+```
+
+A `blocked-by-budget` row is a routine recording that the only thing between it and a fix is
+`maxFiles`. #402 carried two such rows across two runs — nine files needed, six allowed, the seventh
+being the regression test the fix cannot ship without — and stayed `ready-for-human` for a week while
+a human it never needed went unread. Raise the number, cite the ledger row as the reason, and relabel
+the issue `ready-for-agent`. Do not lower the bar instead: the missing file is never the test.
+
+Playbook prose that a routine could not reach because of a rule, rather than a path, stays this
+routine's queue item too — but the front-matter rule is the guard's, not this paragraph's: `review`,
+`resolve` and `deps` are mechanically refused when they touch a playbook or a shelf README.
+
+**Third: the backlog that points at you.** Any open issue whose named files `--reachable` attributes
+to `improve` and to no one else is yours **tonight, ahead of the weekday rotation**. You are the only
+routine that can serve it, and `resolve` will log a skip against it every night it exists — which is
+what #461, #462, #473 and #476's remaining item each did for a week. Same bar as `resolve` § 3 (a
+regression test that fails without the fix), same budget, and the issue gets closed with the PR link.
 
 ### 3. Test hardening
 

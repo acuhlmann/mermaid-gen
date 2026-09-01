@@ -83,6 +83,7 @@ Every session carries **six independent diagram slots** — `mermaid` (Mermaid t
 | Check the committed audio bank         | `./scripts/generate-office-audio.sh --verify` (free, no key, no network)                                                                                                   |
 | Quality trend (gates nothing)          | `npm run verify:ratchet`; add `-- --json` or `-- --with-lint`                                                                                                              |
 | Routine budget check                   | `npm run routine:guard -- --postflight <name>`                                                                                                                             |
+| Which routine may write a path         | `npm run routine:guard -- --reachable <path>` (prints owner / `frozen` / `NONE` + exit 1)                                                                                  |
 
 `npm run check` includes `verify:deps` (override/singleton npm pins), `format:check`, `lint` for all three workspaces, and the rest of the sensor stack, plus `typecheck:strict` — full-strict typechecking of the files listed in each app's `tsconfig.strict.json` (the ADR-0006 "strict islands"; add a `.ts`/`.tsx` path there to opt it into strict, and a regression fails CI). Lint messages go through a custom formatter (`packages/eslint-config/formatter.cjs`) that appends a per-rule "Agent guidance" footer with the canonical fix and suppression syntax — read it before suppressing. `@typescript-eslint`'s `recommended` rules now fire as warnings on every `.ts`/`.tsx` file, so converting `.js`→`.ts` ([recipe](docs/recipes/convert-js-leaf-to-ts.md)) gains both Factory and ts-eslint guidance. Thresholds (`max-lines`, `complexity`, …) ship as warnings; ADR-0005 monoliths are pre-suppressed in `packages/eslint-config/legacy-monoliths.js`. A `.husky/pre-commit` hook runs `lint-staged` (Prettier on staged files). `.husky/pre-push` runs `npm run check:affected`. Architecture rules now live in `.dependency-cruiser.cjs` (replaces the older regex-based boundary script); each rule's `comment` field is the agent-readable fix. See [`docs/agents/sensors.md`](docs/agents/sensors.md) for the full sensor map.
 
@@ -176,9 +177,10 @@ Three backends: **DeepSeek**, **OpenRouter**, **Vertex** (Gemini). Selection is 
 
 ## Scheduled NFR routines
 
-Non-functional work — post-merge review, doc drift, test hardening — runs on a schedule as
-**NFR routines** ([ADR-0014](docs/decisions/0014-autonomous-nfr-routines.md)). Four facts matter
-when you touch one, and each is a trap if you assume the obvious:
+Non-functional work — post-merge review, doc drift, test hardening, dependency upkeep — runs on a
+schedule as **NFR routines** ([ADR-0014](docs/decisions/0014-autonomous-nfr-routines.md),
+[ADR-0017](docs/decisions/0017-routine-ownership-dependabot-and-the-attention-bar.md)). Five ship
+today — `review`, `improve`, `resolve`, `deps`, `digest`:
 
 - **The playbook is the repo file, not the cron prompt.** `docs/routines/<name>.md` holds what the
   routine does and its budget; the trigger prompt is three lines pointing at it. Pasting
@@ -186,7 +188,21 @@ when you touch one, and each is a trap if you assume the obvious:
 - **The budget is enforced, not described.** `npm run routine:guard -- --postflight <name>` re-reads
   the playbook's `maxFiles` / `allowedPaths` / `forbiddenPaths` and checks the real diff, plus an
   always-forbidden list mirroring the don't-touch list, deleted test files, and any test file whose
-  case count fell. Widening a routine means editing its frontmatter, in a PR.
+  case count fell.
+- **Only `improve` may change a budget, and the guard is outside everyone's reach** (ADR-0017). A
+  routine that needs a wider path list or more files writes `blocked-by-budget` / `blocked-by-paths`
+  in its own ledger; `improve` § 2b reads those rows and raises the number in its own PR.
+  `routine-guard` refuses any other routine's diff to a playbook, a shelf README, or another
+  routine's ledger, and `scripts/routine-guard.mjs` is always-forbidden — the referee cannot be
+  edited by a player (#461).
+- **Nothing on either shelf may label an issue `ready-for-human`; only four things reach the owner.**
+  Money, credentials or permissions, irreversible destruction, the product's direction
+  (`docs/routines/README.md` rule 10). Everything else is decided, done, and logged. `resolve`
+  re-gathers any `ready-for-human` older than three days, because that label has no reader: #402
+  waited a week on `maxFiles: 6` needing nine files.
+- **`ready-for-agent` promises a file is reachable.** `npm run routine:guard -- --reachable <path>`
+  prints the owning routine, `frozen`, or `NONE` + exit 1. Run it before you label: #461, #462 and
+  #473 were scoped, labelled, and stuck behind a `scripts/` path no budget could reach.
 - **`npm run verify:ratchet` gates nothing — it is the `improve` routine's work queue.** Monolith
   LOC and lint warnings should only fall; strict-island and suite counts should only rise. Budgets
   live in `docs/agents/ratchet.json`. It is deliberately **out** of `npm run check`: two unattended
@@ -205,15 +221,30 @@ when you touch one, and each is a trap if you assume the obvious:
 Ledgers under `docs/routines/ledger/` are the durable memory across cold-start runs — read one
 before starting, append a row when finishing, including runs that changed nothing.
 
-Three more facts, all added on 2026-08-30:
+More facts, added 2026-08-30 and 2026-09-01:
 
 - **There is a night ladder, and it is a dependency order.** Seven jobs run between `0 15` and
   `0 23` UTC (23:00–07:00 in the owner's GMT+8), so the whole fleet finishes while nobody is
   watching and a digest is waiting at 07:00. Feature automations produce code, `review` reads what
   landed, `improve` works the quality queue, `resolve` works the backlog the first two just filed,
-  `digest` reports. The table is in [`docs/routines/review.md`](docs/routines/review.md). Until this
-  date the live crons ran `improve` → `review` → `resolve` with `review` firing _during_ `improve`'s
-  run, and every playbook's declared `schedule` disagreed with its actual cron.
+  `digest` reports. The table — with the host running each rung — is in
+  [`docs/routines/review.md`](docs/routines/review.md). Until 2026-08-30 the live crons ran
+  `improve` → `review` → `resolve` with `review` firing _during_ `improve`'s run, and every
+  playbook's declared `schedule` disagreed with its actual cron. `deps` (`30 4,16 * * *`) is off the
+  ladder on purpose — advisories arrive in bursts and a short queue read should not queue behind an
+  hour-long review.
+- **The fleet is split across hosts by duty, since 2026-09-01.** `resolve` runs as a Cursor
+  automation; everything else on the ladder is a Claude Routine. The routines that _find_ work and
+  the one that _pays_ for it are no longer one account's two failures — when `anything` went dark for
+  four nights in late August, every job that could have noticed was on the same host. Neither CLI can
+  list or create triggers (`claude` has no `routines`, `agent` has no `automations`), so creating or
+  retiring one is a web-UI action owned by the human (page bar #2), and `digest` watchdog 4 falls
+  back to comparing declared schedules against when PRs actually landed.
+- **One fleet per 24-hour window.** Cursor's unregistered `critical-bug-memory` automation and
+  `review` found the same `renameErNode` bug on 2026-08-29 and each shipped a PR (#442 closed
+  unmerged, redundant with #446). Any automation that can write product code needs a row in
+  `docs/routines/README.md` or `docs/automations/README.md`; `digest` watchdog 7 reports branches
+  matching no registered `prTitlePrefix`.
 - **`--preflight` now really does refuse to start behind an open PR.** README rule 5,
   `docs/automations/README.md` § 4 and ADR-0014 clause 3 promised that from day one and nothing
   implemented it. In the gap, PR #442 sat open for two days holding a `review` ledger row hostage,
@@ -268,7 +299,12 @@ Issues live on GitHub (**acuhlmann/mermaid-gen**); use `gh` for create/list/comm
 
 ### Triage labels
 
-Five canonical triage roles map 1:1 to GitHub label names (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`). See [`docs/agents/triage-labels.md`](docs/agents/triage-labels.md).
+Five canonical triage roles map 1:1 to GitHub label names (`needs-triage`, `needs-info`,
+`ready-for-agent`, `ready-for-human`, `wontfix`). See
+[`docs/agents/triage-labels.md`](docs/agents/triage-labels.md) — since ADR-0017 `ready-for-agent`
+carries a reachability promise the guard can check (`--reachable`), and `ready-for-human` is reserved
+for the four page-bar conditions in `docs/routines/README.md` rule 10. No routine may apply it, and an
+issue parked there for three days is re-triaged by `resolve` on the assumption that an agent flinched.
 
 ### Domain docs
 

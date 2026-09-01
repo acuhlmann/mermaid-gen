@@ -5,15 +5,24 @@ repairing doc drift, hardening tests, keeping quality metrics from sliding backw
 
 Every routine is three things:
 
-| Piece        | Where                            | What it is                                            |
-| ------------ | -------------------------------- | ----------------------------------------------------- |
-| **Playbook** | `docs/routines/<name>.md`        | What this routine does, and the budget it may spend   |
-| **Ledger**   | `docs/routines/ledger/<name>.md` | What it has already done — durable memory across runs |
-| **Trigger**  | a Claude Routine (cron)          | Three lines that point at the two files above         |
+| Piece        | Where                                          | What it is                                            |
+| ------------ | ---------------------------------------------- | ----------------------------------------------------- |
+| **Playbook** | `docs/routines/<name>.md`                      | What this routine does, and the budget it may spend   |
+| **Ledger**   | `docs/routines/ledger/<name>.md`               | What it has already done — durable memory across runs |
+| **Trigger**  | a Claude Routine or a Cursor automation (cron) | Three lines that point at the two files above         |
 
-Four routines ship today: `review`, `improve` and `resolve` (code-writing) and
+Five routines ship today: `review`, `improve`, `resolve` and `deps` (code-writing) and
 [`digest`](digest.md) (report). Their crons and the feature automations' form one **night ladder**
-— see [`review.md`](review.md) for the table. `digest` is last and reports on everything before it.
+— see [`review.md`](review.md) for the table, which also names which host runs which rung. `digest`
+is last and reports on everything before it.
+
+| Routine                 | Host   | Shelf | What it owns                                                     |
+| ----------------------- | ------ | ----- | ---------------------------------------------------------------- |
+| [`review`](review.md)   | Claude | NFR   | last 24 h on `main`, one proven bug, the trap checklist          |
+| [`improve`](improve.md) | Claude | NFR   | the ratchet, the sensors, **every routine's budget** (ADR-0017)  |
+| [`resolve`](resolve.md) | Cursor | NFR   | the open-issue backlog                                           |
+| [`deps`](deps.md)       | Claude | NFR   | Dependabot PRs, advisories, and code that breaks when they move  |
+| [`digest`](digest.md)   | Claude | NFR   | one comment a day on #452, and the watchdog that notices silence |
 
 The trigger prompt is deliberately almost empty:
 
@@ -28,9 +37,12 @@ reviewed, and cannot improve. A playbook in `docs/` is diffable, reviewable in a
 sharpened by the routine that runs it. If you find yourself pasting instructions into a trigger,
 you are building the thing this shelf exists to replace.
 
-See [ADR-0014](../decisions/0014-autonomous-nfr-routines.md) for why these exist, and
+See [ADR-0014](../decisions/0014-autonomous-nfr-routines.md) for why these exist,
 [ADR-0016](../decisions/0016-routine-autonomy-for-splits-and-lint-promotion.md) for what they are
-allowed to do that ADR-0014 originally reserved for a human.
+allowed to do that ADR-0014 originally reserved for a human, and
+[ADR-0017](../decisions/0017-routine-ownership-dependabot-and-the-attention-bar.md) for the three
+things that were still reaching the owner on 2026-09-01: a backlog that no routine could reach, a
+dependency queue nobody read, and an escalation label that meant "nobody will look at this".
 
 ## Tiers, and what actually keeps this safe
 
@@ -56,22 +68,38 @@ without it. If a routine's output is ever wrong, the correction is one line in i
 (`maxFiles` down, or a path into `forbiddenPaths`); the guard enforces it mechanically from the next
 run.
 
-### The one exception: escalation
+**And one routine does not decide how much of itself to spend.** Since 2026-09-01 the guard refuses a
+diff from any routine but `improve` that touches a playbook, either shelf's README, or another
+routine's ledger (`BUDGET_OWNERS` / `shelfOwnershipViolation` in
+[`scripts/routine-guard.mjs`](../../scripts/routine-guard.mjs)), and `scripts/routine-guard.mjs`
+itself is on the always-forbidden list for everyone. Both halves close the same gap (#461): a
+routine whose `allowedPaths` contained `docs/**` could edit the numbers that bounded it and pass its
+own postflight, while the prose said the budget "is not advisory and it does not read the prose". A
+safety property that lives only in the file it protects is not one.
+
+### The one exception: holding a PR
 
 A routine may push a fix, open the PR, and **not** merge it — when the fix is correct (test-proven)
 but the routine itself judges the unattended-merge risk high: a trust-boundary sanitizer/allowlist,
 an ambiguous "correct" approach, a regression test that needed real product judgement rather than a
 direct transcription of the bug, or a diff adjacent to the don't-touch list. It says what it's unsure
-of in the PR, and — for a routine working off the issue tracker — relabels the issue `ready-for-human`
-instead of closing it. See [`docs/routines/resolve.md`](resolve.md) § 4 for the concrete bar and
+of in the PR and **leaves the issue's label alone**, so the next firing re-reads it. See
+[`docs/routines/resolve.md`](resolve.md) § 4 for the concrete bar and
 [ADR-0015](../decisions/0015-resolve-routine-and-escalation.md) for why this is a per-run judgement
 call rather than a new tier.
 
-Escalation is narrow by design: a routine that escalates by default has just reinvented "always ask a
-human" (the overhead this whole shelf exists to remove), and a routine that never escalates has no
-honest way to represent "I'm not sure." Escalating on the same finding three runs running with no
-human action is a nag, not a service — stop repeating it and say so once instead (see `resolve.md`'s
-Escalation section for the concrete rule).
+Holding is narrow by design: a routine that holds by default has just reinvented "always ask a human"
+(the overhead this whole shelf exists to remove), and a routine that never holds has no honest way to
+represent "I'm not sure." Holding on the same finding three runs running is a nag, not a service —
+stop repeating it and say so once instead (see `resolve.md`'s "When a hold repeats" for the concrete
+rule).
+
+**What changed on 2026-09-01: a held PR no longer relabels its issue `ready-for-human`.** That was
+ADR-0015's mechanism, and it was the shelf's quietest failure — `ready-for-human` reads as "the owner
+will handle it", but the owner does not read the tracker, so in practice the label _deleted_ the work.
+Every issue that ever carried it was waiting on a number in a playbook (#402, twice diagnosed, never
+unblocked) or a lint warning nobody had claimed (#431). `ready-for-human` is now reserved for the four
+conditions in rule 10, and a routine may not put an issue there by itself.
 
 ## The rules every routine inherits
 
@@ -95,6 +123,9 @@ gets filed, not fixed.
 
 The playbook's frontmatter declares `maxFiles`, `allowedPaths`, and `forbiddenPaths`.
 `npm run routine:guard` enforces all three; it is not advisory and it does not read the prose.
+**It also enforces who may change them:** only `improve` may edit a playbook, a shelf README, or
+another routine's ledger. A routine that finds itself blocked by its own number records
+`blocked-by-budget` in its ledger and moves on; `improve` § 2b reads those rows and prices them.
 
 Small diffs are the whole safety model. A run that wants to touch thirty files has misunderstood
 its playbook — do the smallest useful slice, write the rest to the ledger, and stop.
@@ -220,6 +251,61 @@ Two consequences worth knowing before you rely on either:
   confirm the write landed** by reading it back. A run that composes the text and returns it as
   its final message reports `success` and has done nothing; that is exactly what the `digest`
   routine's first firing did.
+- **A body write is destructive, in both directions.** `gh issue edit --body-file` (and its MCP
+  equivalent) _replaces_ a description — it does not append, and an empty stdin is a valid empty body,
+  which GitHub keeps no recoverable revision of. Read the current body before writing one, and use a
+  **comment** when a note is what you meant (#402's original body was lost this way on 2026-09-01).
+  The mirror hazard is on the same field: body text that merely _quotes_ a `Closes #402`-style
+  reference makes GitHub act on it, which is how #476 was auto-closed twice by PRs that were only
+  describing the earlier auto-close.
+
+### 10. The owner is not a gate — and there is a bar for reaching them
+
+Every routine on both shelves decides, acts, and self-merges. The owner reads one digest a day and
+is paged by four things, and only four:
+
+1. **Money.** Anything that spends beyond a stated budget: a paid service, a quota about to trip, a
+   regenerable asset bank (`generate-office-audio.sh` bare costs 900 ElevenLabs credits and
+   overwrites every committed `.mp3`), a token spend the playbook does not already authorise.
+2. **Credentials and permissions.** Secrets, IAM, billing, a service-account key, or an action that
+   needs a login no routine holds — including creating or deleting a scheduled trigger, which lives
+   in a web UI neither CLI can reach.
+3. **Irreversible destruction.** Deleting a branch with unmerged work, dropping data, dismissing a
+   security advisory, force-pushing, closing somebody else's PR.
+4. **The product's direction.** What ArchiSlop should be, not how a file should be written. ADR-level
+   questions, a slot's behaviour changing shape, a rename of a top-level concept.
+
+Everything else is a routine's call, and "I'd rather a human looked at this" is not on the list. If a
+run cannot act, the correct output is a **ledger row that names the blocker in the machine-readable
+form** (`blocked-by-budget`, `blocked-by-paths`, `held PR #nnn`) — not a label, not a comment
+addressed to the owner, not a question.
+
+Two corollaries, both learned the expensive way:
+
+- **`ready-for-human` is page-bar-only, and no routine may apply it to its own finding.** A label
+  that means "a person will handle this" is a lie when nobody reads the tracker; what it actually
+  did was delete work. `resolve` § 4 holds a PR and leaves the label alone; `improve` § 2 files
+  `needs-triage` and says in the body what it thinks.
+- **A routine that escalates by default has rebuilt the thing this shelf removed.** Before ADR-0017
+  the escalation path was the default escape from "too big", "unclear", and "out of my budget" —
+  three states that are all, on inspection, a number in a playbook. Numbers are `improve`'s queue,
+  not the owner's inbox.
+
+### 11. A label is a promise about a budget
+
+`ready-for-agent` claims _an agent can write the file this issue names_. Until 2026-09-01 nothing
+checked that claim, so the backlog filled with issues that were correctly scoped, correctly labelled,
+and permanently stuck: #461 needed `scripts/routine-guard.mjs`, #462 and #473 needed
+`scripts/test-affected-lib.mjs`, and no `allowedPaths` on either shelf reached either.
+
+```bash
+npm run routine:guard -- --reachable apps/web/src/utils/foo.js scripts/test-affected-lib.mjs
+```
+
+The guard prints the owning routine(s), `frozen` for an always-forbidden path, or `NONE` and exits 1.
+**Run it before applying `ready-for-agent`.** `NONE` means the finding is real and the shelf has an
+ownership gap: label it `needs-triage`, name the file, and `improve` § 2b widens someone's budget —
+which is a one-line PR that unblocks a class, versus an issue that gets skipped every night forever.
 
 ## What routines may not do
 
@@ -230,28 +316,47 @@ rule the repo already wrote down:
 - **No slot content, ever.** ADR-0010 reserves diagram generation for the human's own pipeline.
   Routines operate on the repository, not on the product's six slots.
 - **No new dependencies.** Adding a package is a decision with a licence, a supply chain and a
-  bundle cost. File an issue.
+  bundle cost. File an issue. This binds `deps` as hard as anyone: it may advance a version the repo
+  already resolves, and it must not merge a Dependabot group PR whose diff pulls in a package that has
+  never appeared in the lockfile before.
+- **No agent-authored resolved trees.** `package-lock.json` is always-forbidden, so no routine can
+  write one. Dependency changes reach `main` through Dependabot's own commits, which is the boundary
+  that lets a routine merge them at all. See [`deps.md`](deps.md).
 - **No silent ratchet loosening.** `docs/agents/ratchet.json` gates no build, so relaxing an entry
   never unblocks anything — it only erases the record that something got worse. Raise a budget with
   a written `reason` or not at all.
+- **No budget edit by the routine that spends it.** Only `improve` may change a playbook's
+  `maxFiles`/`allowedPaths`/`forbiddenPaths`, and `scripts/routine-guard.mjs` — the thing that checks
+  — is outside every routine's reach. See `docs/routines/improve.md` § 2b for what that looks like in
+  practice, and ADR-0017 for why the exception is a routine rather than a review step.
 
 Two boundaries that used to be here are gone as of ADR-0016: `improve` may now perform coupling
 splits and refactors itself (not just report them), and may promote a lint rule from `warn` to
 `error` itself once it can show ADR-0007's two-week quiet period held. Neither is a new safety
 mechanism — both still go through the same rules above (behaviour-preserving, budgeted, green CI,
-escalate when unsure) that already decide whether any routine change is safe to self-merge. See
-`docs/routines/improve.md` for exactly what that looks like in practice.
+hold when unsure) that already decide whether any routine change is safe to self-merge.
 
 ## Adding a routine
 
 1. Write `docs/routines/<name>.md` with the frontmatter block (`name`, `tier`, `schedule`,
-   `maxFiles`, `allowedPaths`, `forbiddenPaths`, and optionally `prTitlePrefix` /
+   `host`, `maxFiles`, `allowedPaths`, `forbiddenPaths`, and optionally `prTitlePrefix` /
    `branchPrefix` when the PR titles this routine writes do not start with `<name>:`)
    and a numbered work queue.
 2. Create `docs/routines/ledger/<name>.md` from an existing ledger.
-3. Create the Claude Routine with the three-line loader prompt above, on a cron that does not
-   collide with an existing routine. Stagger by at least an hour.
-4. Fire it once by hand and watch the whole run before leaving it on a schedule.
+3. Choose the host — a Claude Routine at [claude.ai/code/routines](https://claude.ai/code/routines)
+   or a Cursor automation at [cursor.com/automations](https://cursor.com/automations) — and put it in
+   the `host:` key and the table above. Neither CLI can list or create these, so this step is the
+   owner's (page bar #2), and the shelf's schedule-drift watchdog compares the live cron against
+   `schedule:` because nothing else can see it. Split on duty, not on load: an automation that files
+   issues and the one that fixes them gain something from living on different hosts.
+4. Create the trigger with the three-line loader prompt above, on a cron that does not collide with an
+   existing routine. Stagger by at least an hour.
+5. Fire it once by hand and watch the whole run before leaving it on a schedule. Then pin its observed
+   branch slug in `branchPrefix` — cloud runners generate names, and a fleet-wide prefix like
+   `cursor/` would make preflight refuse to start behind a _different_ fleet's PR.
 
 `npm run verify:agent-infra` checks that every `npm run <script>` a playbook names actually exists,
 and `npm run verify:doc-paths` checks its file references resolve. Both run in CI.
+`npm run routine:guard -- --reachable <path>` answers the one question a new routine's budget has to
+get right before it can promise anything to the backlog (rule 11), and its sweep in
+`scripts/routine-guard.test.mjs` fails if a file in `scripts/` ends up owned by nobody.

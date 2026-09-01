@@ -33,21 +33,35 @@ in the backlog when `resolve` reads it three hours later.
 > they're asleep and the digest is waiting when they wake). Gaps are sized from _measured_ run
 > durations, not a flat stagger — an earlier flat 1 h stagger overlapped twice.
 >
-> | HKT   | UTC           | Job                 | shelf       |
-> | ----- | ------------- | ------------------- | ----------- |
-> | 23:00 | `0 15 * * *`  | `metaphor3d`        | automations |
-> | 01:15 | `15 17 * * *` | `anything`          | automations |
-> | 02:30 | `30 18 * * *` | `canvas-graph-edit` | automations |
-> | 04:00 | `0 20 * * *`  | `review`            | routines    |
-> | 05:00 | `0 21 * * *`  | `improve`           | routines    |
-> | 06:15 | `15 22 * * *` | `resolve`           | routines    |
-> | 07:00 | `0 23 * * *`  | `digest`            | routines    |
+> | HKT   | UTC           | Job                 | shelf       | host   |
+> | ----- | ------------- | ------------------- | ----------- | ------ |
+> | 23:00 | `0 15 * * *`  | `metaphor3d`        | automations | Claude |
+> | 01:15 | `15 17 * * *` | `anything`          | automations | Claude |
+> | 02:30 | `30 18 * * *` | `canvas-graph-edit` | automations | Claude |
+> | 04:00 | `0 20 * * *`  | `review`            | routines    | Claude |
+> | 05:00 | `0 21 * * *`  | `improve`           | routines    | Claude |
+> | 06:15 | `15 22 * * *` | `resolve`           | routines    | Cursor |
+> | 07:00 | `0 23 * * *`  | `digest`            | routines    | Claude |
 >
 > The order is a dependency order, not a convenience: the feature automations produce the code,
 > `review` reads what landed, `improve` works the quality queue, `resolve` works the backlog the
 > first two just filed, and `digest` reports on all of it. Until 2026-08-30 the live crons ran
 > `improve` → `review` → `resolve` with `review` firing _during_ `improve`'s run, which inverted
-> the two rationales the playbooks state below.
+> the two rationales the playbooks state below. `resolve` moved to Cursor on 2026-09-01 (ADR-0017) so
+> that the routine which _finds_ work and the one which _pays_ for it are not one account's two
+> failures: when `anything` went dark for four nights in late August, every job that should have
+> noticed was on the same host.
+>
+> [`deps`](deps.md) (`30 4,16 * * *`, Claude) sits **off** the ladder on purpose. Dependency queues
+> move in bursts when an advisory lands, a twice-daily read of a short list costs minutes, and it
+> should never share a four-hour window with a review that costs an hour.
+>
+> **One fleet per 24-hour window.** Two hosts scanning the same commits is not redundancy — on
+> 2026-08-29 `review` and Cursor's unregistered `critical-bug-memory` automation both found the same
+> `renameErNode` label-guard bug and each paid for a PR (#442 closed unmerged, redundant with #446).
+> Any automation with write access to product code must appear in the table above or in
+> [`docs/automations/README.md`](../automations/README.md); one that appears in neither is
+> unregistered, and its next finding is somebody else's duplicate work.
 
 ## 1. Window
 
@@ -102,8 +116,19 @@ bug; never touch a don't-touch path.
 
 Everything else found becomes an issue, labelled per
 [`docs/agents/triage-labels.md`](../agents/triage-labels.md) — `ready-for-agent` when it names the
-file, the symptom and what correct looks like, `needs-triage` otherwise. Only `wontfix` exists on
-the repo today; the rest may need creating on first use.
+file, the symptom and what correct looks like, `needs-triage` otherwise.
+
+**Before applying `ready-for-agent`, ask the guard whether any agent can actually reach the file**
+(`README.md` rule 11):
+
+```bash
+npm run routine:guard -- --reachable apps/web/src/utils/theFileTheFindingNames.js
+```
+
+`-> NONE` means the label would be a promise this routine cannot keep — #462 and #473 were exactly
+that for a week. Label it `needs-triage`, name the file in the body, and `improve` § 2b widens the
+budget. Never `ready-for-human`: it is page-bar-only (README rule 10) and a finding that "looks like a
+human decision" is nearly always, on inspection, a number in a playbook that `improve` owns.
 
 **Confidence bar for filing:** if you would not bet on it being real, do not file it. A tracker
 that fills with speculation gets ignored, which costs more than the findings were worth.
@@ -135,10 +160,16 @@ snapshot would bury the meaningful baselines.
 Append a ledger row: date, commits reviewed, bug fixed (or none), issues filed with numbers, bench
 verdict. Open the PR, wait for CI, merge it when green.
 
-## Escalation
+## Holding a PR, and not nagging
 
-If the same finding recurs three runs running with no issue actioned, say so once in the digest and
-then stop repeating it. Nagging is how a routine gets muted.
+A fix that is correct but risky to merge unattended uses the same hold as
+[`resolve.md`](resolve.md) § 4: push it, open the PR, say plainly in it what is unsure, do not merge —
+and **leave every label alone**. The hold is a state in the repo, not a message to the owner; the only
+things that reach them are the four conditions in `README.md` rule 10.
+
+If the same finding recurs three runs running with nothing actioned, say so once in the ledger and
+then stop repeating it. Nagging is how a routine gets muted — and a muted routine is how `anything`
+went four nights unnoticed.
 
 ## Verification
 

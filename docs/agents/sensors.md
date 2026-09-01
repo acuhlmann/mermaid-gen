@@ -14,7 +14,7 @@ archislop follows Martin Fowler's ["Sensors for Coding Agents"](https://martinfo
 | dependency-cruiser             | `npm run verify:boundaries`                                                                                                                                          | Workspace + layer boundary violations, cycles, orphans                                                                                                                                                                                                                                                                                                               | `comment` field of each rule in `.dependency-cruiser.cjs`                                                                 |
 | Doc-path check                 | `npm run verify:doc-paths`                                                                                                                                           | Broken `apps/` / `packages/` / `scripts/` references in `STRUCTURE.md`, `AGENTS.md`, `CLAUDE.md`, `docs/recipes/`, `docs/guide/`, `docs/agents/`, and `docs/routines/`                                                                                                                                                                                               | Error message names the missing path                                                                                      |
 | Quality trend (gates nothing)  | `npm run verify:ratchet` (**not** in `check`; `-- --json`, `-- --with-lint`)                                                                                         | A quality metric moving the wrong way: monolith LOC or lint warnings growing, strict-island or suite counts shrinking                                                                                                                                                                                                                                                | Failure names the metric, the measured value, and the budget; budgets live in `ratchet.json`                              |
-| Routine budget                 | `npm run routine:guard -- --postflight <name>`                                                                                                                       | A scheduled NFR routine exceeding its declared `maxFiles`, writing outside `allowedPaths`, touching a don't-touch path, deleting a test file, or shrinking one                                                                                                                                                                                                       | Failure names the file and which budget rule it broke; budgets live in the playbook front-matter                          |
+| Routine budget                 | `npm run routine:guard -- --postflight <name>`                                                                                                                       | A scheduled NFR routine exceeding its declared `maxFiles`, writing outside `allowedPaths`, touching a don't-touch path, editing a playbook it does not own, deleting a test file, or shrinking one                                                                                                                                                                   | Failure names the file and which budget rule it broke; budgets live in the playbook front-matter                          |
 | Wire round-trip tests          | `npm run check:wire`                                                                                                                                                 | Contract drift between producer + consumer for AG-UI / MCP / Zod schemas                                                                                                                                                                                                                                                                                             | Failing test + the recipe under [`docs/recipes/`](../recipes/)                                                            |
 | Wire co-change (producer-only) | Soft warn inside `npm run check:affected` (`scripts/wire-cochange.mjs`)                                                                                              | Diff touches a wire producer (`diagramSchema`, AG-UI emitter, MCP tools, `sessionEventBus`) without the expected consumer/test files                                                                                                                                                                                                                                 | Warning text is the fix; see [`docs/agent-blast-radius.md`](../agent-blast-radius.md)                                     |
 | Live `vi.mock` paths           | `vitest run test/viMockPathsResolve.test.js -w apps/web` (part of `npm test`)                                                                                        | A relative `vi.mock` specifier that resolves nowhere — vitest no-ops it silently, the real module runs, and the suite passes for the wrong reason                                                                                                                                                                                                                    | Failure names the `file:line -> specifier`; see below                                                                     |
@@ -308,3 +308,36 @@ direction. Those are free wins: tighten the budget to lock them in.
 
 **Lint is opt-in.** The default run does the cheap metrics only (well under a second). Counting
 lint warnings needs a second full ESLint pass; the `improve` routine runs `--with-lint`.
+
+## How to read routine-guard output
+
+[`scripts/routine-guard.mjs`](../../scripts/routine-guard.mjs) is the budget gate for the scheduled
+routines ([`docs/routines/README.md`](../routines/README.md)), and it answers three different
+questions. Each failure message carries its own fix, because an unattended run cannot look one up.
+
+**`--preflight <name>`** — may this routine start? Refuses on a malformed playbook, on the default
+branch, or when the routine already has an open PR (matched on the PR **title** prefix, since cloud
+runners generate branch names). When `gh` is unreachable it **warns and continues** — an absent answer
+and an empty answer mean opposite things, and conflating them is what this check exists to prevent.
+
+**`--postflight <name>`** — did the run stay inside its budget? Six rules: `maxFiles`, `allowedPaths`,
+`forbiddenPaths`, `ALWAYS_FORBIDDEN` (the don't-touch list, which outranks every playbook), deleted or
+shrinking test files, and **shelf ownership**. The last is the one that surprises people:
+
+- `shelf ownership: docs/routines/resolve.md is not "resolve"'s to edit` — only `improve` may touch a
+  playbook, a shelf README, or another routine's ledger (ADR-0017). The fix is never to try a different
+  path: record `blocked-by-budget` / `blocked-by-paths` in your own ledger and let `improve` § 2b price
+  it. A routine that could edit its own `maxFiles` passed its own check, which is what this rule kills;
+  `scripts/routine-guard.mjs` itself is on `ALWAYS_FORBIDDEN` for the same reason.
+- `report tier: N file(s) changed` — a `tier: report` routine writes nothing; its output is the report.
+
+**`--reachable <path>…`** — which routine may write this file? Prints `path -> improve`, or
+`path -> frozen (always-forbidden; outside every routine by design)`, or `path -> NONE` and **exits 1**.
+Run it before labelling an issue `ready-for-agent`: that label promises an agent can reach the file,
+and three issues (#461, #462, #473) sat labelled for a week behind `scripts/` paths that no
+`allowedPaths` contained. `NONE` is not a reason to skip the finding — it is a reason to label it
+`needs-triage` and name the file, so the gap gets widened once instead of worked around every night.
+
+Both `report`-tier validation and the ownership rule are covered in
+[`scripts/routine-guard.test.mjs`](../../scripts/routine-guard.test.mjs), including a sweep asserting
+that no file in `scripts/` is left without an owner.
