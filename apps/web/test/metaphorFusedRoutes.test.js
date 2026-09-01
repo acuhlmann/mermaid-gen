@@ -149,6 +149,9 @@ describe('fused route elevation', () => {
   it('stands a station on the ground rather than on its site crest', () => {
     const plan = compositeWith('river');
     const [path] = plan.paths;
+    // Coverage claim: a planner that dropped its stations would sweep nothing
+    // and pass. Same gap `improve` closed across five files the night before.
+    expect(path.stations.length).toBeGreaterThan(0);
     for (const station of path.stations) {
       const site = plan.sites.find((candidate) => candidate.id === station.attachedTo);
       const surface = fusedSurfaceHeightAt(station.point[0], station.point[2], plan.sites);
@@ -161,7 +164,9 @@ describe('fused route elevation', () => {
 
   it('does not grow the world to hold the extra control points', () => {
     const plan = compositeWith('river');
+    expect(plan.paths.length).toBeGreaterThan(0);
     for (const path of plan.paths) {
+      expect(path.points.length).toBeGreaterThan(0);
       for (const point of path.points) {
         expect(Math.hypot(point[0], point[2])).toBeLessThanOrEqual(plan.groundRadius);
       }
