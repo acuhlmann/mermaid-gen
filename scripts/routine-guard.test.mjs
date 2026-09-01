@@ -751,6 +751,17 @@ test('ownersOfPath answers the question a filer used to have to read four playbo
   assert.ok(!ownersOfPath('apps/web/src/components/DiagramCanvas.jsx').includes('anything'));
 });
 
+test('ownersOfPath answers who may write it, not merely whose allowlist covers it', () => {
+  // resolve declares docs/**, so a pure-allowedPaths answer would tell a resolve run that #476's
+  // remaining item (a canvas-graph-edit playbook edit) is reachable from here. Postflight refuses
+  // that; the sensor has to say the same thing before the branch is cut, not after.
+  assert.deepEqual(ownersOfPath('docs/routines/resolve.md'), ['improve']);
+  assert.deepEqual(ownersOfPath('docs/routines/README.md'), ['improve']);
+  assert.ok(ownersOfPath('docs/routines/ledger/resolve.md').includes('resolve'));
+  assert.ok(ownersOfPath('docs/routines/ledger/resolve.md').includes('improve'));
+  assert.ok(!ownersOfPath('docs/routines/ledger/resolve.md').includes('deps'));
+});
+
 test('a file named by an issue is reachable by the routine the label promises', () => {
   // The invariant behind `--reachable`: `ready-for-agent` must mean "an agent can write this file".
   const unowned = [
