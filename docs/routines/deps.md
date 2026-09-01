@@ -114,18 +114,26 @@ Then split them, because the two halves need different things:
 
 - **`patched: none yet`** — waiting upstream. Nothing to open, nothing to merge. Count them in the
   ledger row and stop; they are not a queue that can move.
-- **A patched version, no PR** — actionable, and this routine still cannot make the PR itself: the fix
-  is a `package.json` constraint _plus_ the resolved tree, and the tree is exactly what § "Why a
-  routine" keeps out of an agent's hands. So:
-  1. Check whether a PR exists under a different author (a version bump Dependabot opened as a
-     _version_ update rather than a security one). If so, it is § 2's to merge.
-  2. If there is none, leave a comment on the alert naming the patched version, and record it as a
-     ledger `todo` — one line per package, severity first.
-  3. Say the count in the digest's dependency-queue line (`digest` watchdog 5 reads exactly this).
-     **"Open the update" is a button in the Security tab, and clicking it is page bar #2** — a
-     permissioned UI action, not something a routine can do. The owner presses it once; § 2 merges
-     what arrives. A routine that could not do the whole thing alone still made the remaining step a
-     single click with a name on it, which is the point of the ledger.
+- **A patched version, no PR** — three different situations, and only the first two are work. The
+  test is cheap and it is the one that stops this routine asking for a click that does nothing:
+  1. **A PR exists under another author** (Dependabot opened it as a _version_ update, not a security
+     one) → it is § 2's to merge.
+  2. **No PR, and nothing has run since the alert appeared** → the fix is a `package.json` constraint
+     _plus_ a resolved tree, and the tree is exactly what § "Why a routine" keeps out of an agent's
+     hands. Leave a comment naming the patched version, ledger it, and put the count in the digest's
+     dependency-queue line. **"Open the update" is a Security-tab button and pressing it is page bar
+     #2** — the owner clicks once, § 2 merges what arrives. Unfinished work, but the remaining step is
+     one named click, which is the point of the ledger.
+  3. **Dependabot has already run for it and opened nothing** → the vulnerable copy sits behind a
+     dependent's **exact** pin, and neither a bot, nor a human button, nor this routine can move it.
+     Record `blocked-by-upstream-pin` with the chain (`@a2ui/markdown-it → dompurify 3.4.11`,
+     `monaco-editor → 3.4.8`, `@copilotkit/runtime → uuid ^10.0.0`) and **do not surface it as a
+     page-bar item** — asking the owner to click a button that produces nothing is noise with a
+     security label on it. The fix is the dependent widening its own pin, so the actionable version of
+     this line is "is there a newer `@a2ui/markdown-it` / `monaco-editor` / `@copilotkit/runtime`?",
+     which § 4 can answer and act on. Measured 2026-09-01: update #1549666558 ran over four
+     dompurify alerts and `uuid` and opened no PR; a root `overrides` entry did not move the pinned
+     nodes and the nested form left them `invalid` in `npm ls`, so neither is a workaround.
 
 Do not raise an alert to an issue labelled `ready-for-agent` for a package bump: `deps` re-reads the
 alert list every firing, and an issue is a second, slower, staler copy of state the API already has.
