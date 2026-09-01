@@ -64,7 +64,8 @@ DEPLOY_ARGS=(
   --port=8080
   --min-instances="${MIN_INSTANCES}"
   --max-instances="${MAX_INSTANCES}"
-  --memory="${MEMORY:-1Gi}"
+  --memory="${MEMORY:-2Gi}"
+  --cpu="${CPU:-2}"
 )
 
 CLOUD_RUN_SECRETS=()
