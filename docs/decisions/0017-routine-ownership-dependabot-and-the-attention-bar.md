@@ -74,7 +74,8 @@ duty, not by load: `review`/`improve` find the work and `resolve` pays for it, s
 can no longer both generate the backlog and stall it. `deps` and the rest stay on Claude for now, and
 `Adding a routine` step 3 makes host choice a documented part of standing anything up. Neither CLI can
 list or create these triggers, so that remains the owner's action — page bar #2, and the reason this
-ADR ships with a handoff list rather than a finished fleet.
+ADR ships with a handoff list rather than a finished fleet. _(Wrong as written — see **Correction**
+below. The `deps` trigger was created from the CLI the same day.)_
 
 **7. Every fleet must be in the registry.** Cursor's unregistered `critical-bug-memory` automation
 found the same bug `review` had already filed on 2026-08-29 and both paid for a PR. `digest`
@@ -118,3 +119,27 @@ expensive direction.
   1, 2, 2b, 4, 5; [`improve.md`](../routines/improve.md) § 2b; [`digest.md`](../routines/digest.md)
   watchdogs 5–7; [`review.md`](../routines/review.md) ladder + filing rule.
 - [`docs/agents/triage-labels.md`](../agents/triage-labels.md) — what each label commits the repo to.
+
+## Correction — 2026-09-01, the same day, found by trying the thing
+
+Decision § 6 said **neither CLI can list or create triggers**, and page bar #2 named trigger creation
+as the owner's. Both were wrong, and the claim came from `claude --help`'s command list (which has no
+`routines` verb) rather than from the docs or from trying it. `claude` carries a **`/schedule`**
+slash command — alias `/routines` — that creates, lists (`/schedule list`), updates (`/schedule
+update`, including an arbitrary cron expression) and manually fires (`/schedule run`) cron routines;
+`claude -p '/schedule …'` drives it headlessly. What it genuinely cannot do: delete a routine, create
+or revoke **API** triggers/tokens, and anything on the Cursor side (`agent` has no `automations`
+command). It also needs a claude.ai subscription login, not a Console/Bedrock/Vertex credential.
+
+So `deps` was stood up from the CLI the same day — `trig_01Dk8ZwZCpXfXGREJyHnh9Up`, cron
+`30 4,16 * * *`, Sonnet 5 — which means the owner's remaining handoff is two items (delete the old
+Claude `resolve`, and everything Cursor-side), not four.
+
+The durable part is not the CLI's capability, it is **where I got it from**: "the tool's `--help` does
+not list the verb" is evidence about `--help`, not about the tool. The correction is in
+`docs/routines/README.md` rule 10 (page bar #2 narrowed) and § Adding a routine step 4 (the CLI route,
+plus the read-back), `docs/routines/digest.md` watchdog 4 (`/schedule list` is now the direct source
+for drift, and it reports a deleted or **disabled** rung, which a connector-and-PR-time heuristic
+does not), and the same two lines in `AGENTS.md` / `CLAUDE.md`. A watchdog that can enumerate live
+state directly is worth more than one that infers it from side effects — `resolve` sitting
+`disabled` was visible only because the list is explicit.

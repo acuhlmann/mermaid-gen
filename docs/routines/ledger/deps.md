@@ -1,17 +1,20 @@
 ---
 name: deps
 todos:
-  - id: actionable-alerts
-    content: 'OPEN 2026-09-01 — 7 alerts have a patched version and no PR (playbook § 3b): nanoid → 3.3.18 (high), @hono/node-server → 1.19.15 (med), dompurify → 3.4.9 / 3.4.11 / 3.4.12 / 3.4.13 (2 med, 2 low), uuid → 11.1.1 (med). "Open the update" in the Security tab is page bar #2; § 2 merges whatever arrives'
+  - id: dompurify-nested-pins
+    content: 'OPEN — two dompurify copies are pinned exactly by their dependents and a root override does not move them (measured 2026-09-01: `overrides.dompurify = "3.4.14"` left `apps/web/node_modules/dompurify@3.4.11` from @a2ui/markdown-it and `monaco-editor/node_modules/dompurify@3.4.8` unchanged). Route is an @a2ui/markdown-it / monaco-editor bump — not an override, not a hand-edit. Keeps alerts 3, 4, 5 and 23 open'
+    status: pending
+  - id: uuid-copilotkit-pin
+    content: "OPEN — `apps/server/node_modules/uuid@10.0.0` is vulnerable (<11.1.1) while `@copilotkit/runtime@1.64.2` declares `uuid: ^10.0.0`, so nothing short of a major inside somebody else's package reaches 11.x. Check whether a newer @copilotkit/runtime widens it (§ 4 route); do not override across a major unattended"
     status: pending
   - id: waiting-upstream
-    content: 'OPEN 2026-09-01 — @ai-sdk/provider-utils (low) has no patched version yet. Not a queue that can move: count it, do not chase it'
+    content: 'OPEN — @ai-sdk/provider-utils (low) has no patched version yet (vulnerable `<= 3.0.97`). Not a queue that can move: count it, do not chase it'
     status: pending
   - id: no-dependabot-yml
     content: 'There is no .github/dependabot.yml in this repo: the schedule and the npm_and_yarn grouping live in account settings, which no agent can read and no PR can review. That is why 19 alerts opened 2026-08-22 produced one PR on 2026-08-30. Decide whether to commit one so the cadence is versioned (a config file is not a new dependency)'
     status: pending
-  - id: verify-trigger
-    content: 'First firing: confirm the live cron is 30 4,16 * * * UTC against this schedule key (digest watchdog 4), and pin the observed branch slug into branchPrefix — it is inert until then, and the title prefix is what identifies this routine’s PRs'
+  - id: first-run-pin-branch
+    content: 'Live trigger is `trig_01Dk8ZwZCpXfXGREJyHnh9Up` — cron `30 4,16 * * *` UTC, claude-sonnet-5, env GCP Deployment, prompt stored verbatim. Created from the CLI: `/schedule` CAN create and update cron routines (it cannot create API triggers/tokens, and `claude` has no `routines` verb). First run lands 2026-09-01 16:30Z — read its branch slug, pin it into `branchPrefix` (inert until then), and check it did not inherit MCP connections it does not need (Drive + Claude Code Remote came by default)'
     status: pending
 ---
 

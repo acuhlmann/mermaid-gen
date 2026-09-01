@@ -236,10 +236,11 @@ More facts, added 2026-08-30 and 2026-09-01:
 - **The fleet is split across hosts by duty, since 2026-09-01.** `resolve` runs as a Cursor
   automation; everything else on the ladder is a Claude Routine. The routines that _find_ work and
   the one that _pays_ for it are no longer one account's two failures — when `anything` went dark for
-  four nights in late August, every job that could have noticed was on the same host. Neither CLI can
-  list or create triggers (`claude` has no `routines`, `agent` has no `automations`), so creating or
-  retiring one is a web-UI action owned by the human (page bar #2), and `digest` watchdog 4 falls
-  back to comparing declared schedules against when PRs actually landed.
+  four nights in late August, every job that could have noticed was on the same host. **Claude
+  routines are scriptable, Cursor automations are not**: `claude -p '/schedule …'` creates, lists,
+  updates and fires a cron routine (it cannot delete one, cannot make API triggers/tokens, and needs a
+  claude.ai subscription login); Cursor's `agent` CLI has no `automations` verb, so a Cursor rung and
+  any retirement are the owner's web-UI actions (page bar #2).
 - **One fleet per 24-hour window.** Cursor's unregistered `critical-bug-memory` automation and
   `review` found the same `renameErNode` bug on 2026-08-29 and each shipped a PR (#442 closed
   unmerged, redundant with #446). Any automation that can write product code needs a row in

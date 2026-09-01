@@ -146,12 +146,18 @@ This is the section the routine exists for. Report each of these or say explicit
    playbook's front-matter. Report any pair that disagrees, with both values. `routine-guard` does
    not read that key, so it drifts in silence — on 2026-08-30 **all four** live crons disagreed
    with their playbooks, and two playbooks stated an ordering rationale that the real firing order
-   inverted. **The connector sees Claude Routines only.** For Cursor-hosted rungs — `resolve` since
-   2026-09-01, and anything on [`docs/automations/`](../automations/) still wired through
-   [cursor.com/automations](https://cursor.com/automations) — compare the declared `schedule:`
+   inverted. **Direct source for the Claude rungs: `claude -p '/schedule list'`**, which returns every
+   routine's id, live cron in UTC, model and enabled state — cheaper and more literal than the
+   `Claude_Code_Remote` connector, and it also reports a rung that was **deleted** rather than one
+   that quietly stopped. Compare each against the playbook's `schedule:` and name both values.
+   **Cursor-hosted rungs are not visible to either**: for `resolve` (since 2026-09-01) and anything on
+   [`docs/automations/`](../automations/) still wired through
+   [cursor.com/automations](https://cursor.com/automations), compare the declared `schedule:`
    against when that routine's PRs actually landed, and say which method you used. A rung whose host
    you cannot query is not evidence that it is fine: `deps` declares two crons in one
    (`30 4,16 * * *`), so a half-day of silence from it is invisible to a PR-time heuristic alone.
+   Report a **disabled** Claude routine as a finding — a paused rung and a missing one look the same
+   from the outside and both mean the ladder is not running.
 5. **The dependency queue.** `deps` owns it now (`docs/routines/deps.md`), and this is the check that
    `deps` is working it: open Dependabot PRs with age and CI state, and the count of open Dependabot
    _alerts_ from `GET /repos/:owner/:repo/dependabot/alerts?state=open` — separate what has a patched
