@@ -4,6 +4,7 @@ import express from 'express';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { assertProductionInviteSecret } from './utils/inviteToken.js';
+import { createStartupHealthRoute } from './startupHealth.js';
 
 const envPath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../.env');
 dotenv.config({ path: envPath });
@@ -15,8 +16,12 @@ if (vertexProjectId && !process.env.GOOGLE_CLOUD_PROJECT?.trim()) {
 
 /**
  * Cloud Run allows 240s for the container to accept traffic on PORT. Heavy
- * route/MCP imports can exceed that on cold start; bind a stub health route
- * first so startup probes succeed while the rest of the app loads.
+ * route/MCP imports can exceed that on cold start; bind the socket and a stub
+ * health route first so the startup probe gets an answer rather than a refused
+ * connection while the rest of the app loads.
+ *
+ * The stub answers 503 until `attachRoutes` has finished — see
+ * `startupHealth.js` for why the status code is the whole point of the split.
  */
 export async function bootstrapServer() {
   assertProductionInviteSecret();
@@ -27,13 +32,10 @@ export async function bootstrapServer() {
   }
 
   let runtimeReady = false;
-  app.get('/api/health', (_req, res, next) => {
-    if (!runtimeReady) {
-      res.json({ status: 'starting', runtimeReady: false });
-      return;
-    }
-    next();
-  });
+  app.get(
+    '/api/health',
+    createStartupHealthRoute(() => runtimeReady)
+  );
 
   const port = Number(process.env.PORT ?? 4000);
   const server = await new Promise((resolve, reject) => {
