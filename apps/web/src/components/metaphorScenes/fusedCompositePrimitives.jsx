@@ -14,6 +14,7 @@ import { Glyph } from '../metaphorGlyphs/index.jsx';
 import { GlowSprite, ItemLabel } from './MetaphorSceneChrome.jsx';
 import { useMetaphorClock } from './metaphorClock.js';
 import {
+  FUSED_SEA_LEVEL_Y,
   fusedSiteLabelImportance,
   resolveCompositeMotionTransform
 } from './fusedCompositePlanner.js';
@@ -731,11 +732,13 @@ export function WorldGround({ plan, theme, hasIslands }) {
           camera fit lets phantom diagonal corners push the subject to ~40% of
           the frame — the same trap the city footing and ground-shadow catcher
           hit. Size from the planner radius; flag the disc, not the nodes. */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.28, 0]}>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, FUSED_SEA_LEVEL_Y - 0.06, 0]}>
         <circleGeometry args={[radius * 1.05, 72]} />
         <meshStandardMaterial color={rim} roughness={0.68} />
       </mesh>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.22, 0]}>
+      {/* The surface every route is now solved against — see
+          `fusedSurfaceHeightAt`, which owns this height. */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, FUSED_SEA_LEVEL_Y, 0]}>
         <circleGeometry args={[radius, 72]} />
         <meshStandardMaterial
           ref={matRef}
@@ -748,13 +751,21 @@ export function WorldGround({ plan, theme, hasIslands }) {
       </mesh>
       {hasIslands
         ? [0.55, 0.78, 0.96].map((scale) => (
-            <mesh key={scale} rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.2, 0]}>
+            <mesh
+              key={scale}
+              rotation={[-Math.PI / 2, 0, 0]}
+              position={[0, FUSED_SEA_LEVEL_Y + 0.02, 0]}
+            >
               <ringGeometry args={[radius * scale, radius * scale + 0.05, 64]} />
               <meshBasicMaterial color="#e0f2fe" transparent opacity={0.08} />
             </mesh>
           ))
         : [0.42, 0.72, 0.96].map((scale) => (
-            <mesh key={scale} rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.2, 0]}>
+            <mesh
+              key={scale}
+              rotation={[-Math.PI / 2, 0, 0]}
+              position={[0, FUSED_SEA_LEVEL_Y + 0.02, 0]}
+            >
               <ringGeometry args={[radius * scale, radius * scale + 0.055, 64]} />
               <meshBasicMaterial color={theme.labelColor} transparent opacity={0.11} />
             </mesh>
