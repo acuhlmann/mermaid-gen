@@ -13,6 +13,14 @@
  * and the machine 1 of 5 gear names. These are the geometric invariants that
  * keep them apart, checked where the geometry is decided rather than where it
  * is drawn.
+ *
+ * The subway's first answer — stand the sign PAST the terminus, along the
+ * direction of travel — cleared the rim in plan view and did not survive the
+ * declutter pass: across three fixtures x three viewports, 7 of 24 terminus
+ * names were still not drawn, and hiding the signs brought back exactly those
+ * 7. Clearing a platform is necessary and not sufficient; the sign has to be
+ * somewhere no station name is, which on a lane diagram is the track between
+ * two stops.
  */
 import { describe, expect, it } from 'vitest';
 import {
@@ -60,19 +68,53 @@ describe('subway route signs stand off their own platforms', () => {
     }
   });
 
+  it('writes each route name beside its own track, not past its terminus', () => {
+    const layout = subwayNetworkLayout(items);
+    for (const line of layout.lines) {
+      const stops = line.stops;
+      const terminus = stops[stops.length - 1].position;
+      const previous = stops[stops.length - 2].position;
+      const travel = [terminus[0] - previous[0], terminus[2] - previous[2]];
+      const beyond =
+        (line.sign[0] - terminus[0]) * travel[0] + (line.sign[2] - terminus[2]) * travel[1];
+      // Standing past the terminus is what put a pinned placard next to an
+      // unpinned station name; the placard won the declutter pass every time
+      // and the terminus name was simply not drawn (7 of 24 measured captures).
+      // A route name now sits on a station-free stretch of its own track, which
+      // means it is never further along the direction of travel than the last
+      // platform is.
+      expect(beyond).toBeLessThanOrEqual(0);
+    }
+  });
+
+  it('keeps two route names apart from each other', () => {
+    const layout = subwayNetworkLayout(items);
+    // Both are `pinned`, so where they overlap neither yields and one line's
+    // name is printed through another's. Solving each route on its own put
+    // ASSISTED and ENGINEER in the same square metre of an 11-stop network.
+    for (const a of layout.lines) {
+      for (const b of layout.lines) {
+        if (a === b) continue;
+        expect(distanceXZ(a.sign, b.sign)).toBeGreaterThan(2);
+      }
+    }
+  });
+
   it('points a one-stop route outward from the middle of the map', () => {
     const stops = [{ id: 'only', position: [3, 0, 4] }];
     const sign = subwayRouteSign(stops, () => 0.8);
-    // No direction of travel to follow, so it heads away from the centre.
+    // No stretch of track to be named on, so it falls back to standing past the
+    // terminus — and with no direction of travel, away from the centre.
     expect(Math.hypot(sign[0], sign[2])).toBeGreaterThan(Math.hypot(3, 4));
     expect(distanceXZ(sign, [3, 0, 4])).toBeCloseTo(1.7, 5);
   });
 
-  it('survives a route whose last two stops share one platform', () => {
+  it('survives a route whose stops all share one platform', () => {
     // An interchange puts consecutive stops at the same point; their difference
-    // is zero, and normalising it would produce NaN for the whole sign.
+    // is zero, and normalising it would produce NaN for the whole sign. With no
+    // gap anywhere on the route there is no stretch to name it on either.
     const stops = [
-      { id: 'a', position: [0, 0, 0] },
+      { id: 'a', position: [4, 0, 0] },
       { id: 'b', position: [4, 0, 0] },
       { id: 'c', position: [4, 0, 0] }
     ];
@@ -80,6 +122,24 @@ describe('subway route signs stand off their own platforms', () => {
     expect(Number.isFinite(sign[0])).toBe(true);
     expect(Number.isFinite(sign[2])).toBe(true);
     expect(distanceXZ(sign, [4, 0, 0])).toBeCloseTo(1.7, 5);
+  });
+
+  it('still names a route whose only gap is crowded on both sides', () => {
+    // Every candidate can fail the clearance test — a two-stop route boxed in
+    // by other lines. The name is still drawn: falling back to the terminus is
+    // worse than a gap, and both are better than a route the legend claims and
+    // the map never names.
+    const stops = [
+      { id: 'a', position: [0, 0, 0] },
+      { id: 'b', position: [3, 0, 0] }
+    ];
+    const crowd = Array.from({ length: 12 }, (_, i) => ({
+      position: [i * 0.5 - 1, 0, 0],
+      platformRadius: 3
+    }));
+    const sign = subwayRouteSign(stops, () => 0.8, { stations: crowd });
+    expect(Number.isFinite(sign[0])).toBe(true);
+    expect(Number.isFinite(sign[2])).toBe(true);
   });
 });
 

@@ -29,11 +29,33 @@ const STOP_SPACING = 4.2;
 const LANE_GAP = 3.6;
 
 /**
- * Clearance between a terminus platform's rim and its route's name sign. The
- * bounds below already reserve `platformRadius + 0.9` of plate past the
- * furthest station, so a sign inside that margin never leaves the paper.
+ * Clearance between a terminus platform's rim and its route's name sign, used
+ * only by the one-stop fallback below. The bounds already reserve
+ * `platformRadius + 0.9` of plate past the furthest station, so a sign inside
+ * that margin never leaves the paper.
  */
 const ROUTE_SIGN_STANDOFF = 0.9;
+
+/**
+ * How far a route name stands off its own centreline, across the direction of
+ * travel. Comfortably under `LANE_GAP / 2` so a name is never closer to the
+ * neighbouring route's track than to its own.
+ */
+const ROUTE_SIGN_LATERAL = 1.5;
+
+/**
+ * Clearance a candidate sign position must keep from every platform rim in the
+ * network — its own route's and everybody else's.
+ */
+const ROUTE_SIGN_CLEARANCE = 0.9;
+
+/**
+ * How far apart two route names want to be. Larger than the platform clearance
+ * because a route name is uppercase and letter-spaced, so it is the widest
+ * label on the map, and because both are pinned: where they meet, neither
+ * yields and one line's name is printed through another's.
+ */
+const ROUTE_SIGN_PAIR_GAP = 3.4;
 
 /** Platform radius from the traffic passing through a station. */
 export function subwayPlatformRadius(traffic) {
@@ -51,21 +73,11 @@ export function subwayStationRadius(traffic, isInterchange) {
 }
 
 /**
- * Where a route's name is written: PAST its last platform, along the direction
- * the route was travelling when it got there — the way a terminus is signed on
- * a real platform, and the way `getPoint(1)` was never going to be.
- *
- * The sign used to sit exactly on the terminus, so every route name was drawn
- * into its own last station's name. A group's name never goes where its own
- * members stand; see `docs/agents/domains/metaphor3d.md`.
- *
- * @param {Array<{ id: string, position: [number, number, number] }>} stops
- * @param {(itemId: string) => number} radiusOf drawn platform radius by item id
- * @param {number} reachX how far the network's own platforms reach along x
- * @param {number} reachZ how far the network's own platforms reach along z
- * @returns {[number, number, number] | null}
+ * A route name written past its terminus, along the direction of travel. Only
+ * the fallback now — a route with one stop, or with every stop on one platform,
+ * has no station-free stretch to be named on.
  */
-export function subwayRouteSign(stops, radiusOf, reachX = Infinity, reachZ = Infinity) {
+function terminusSign(stops, radiusOf, reachX, reachZ) {
   const terminus = stops[stops.length - 1];
   if (!terminus) return null;
   const [tx, , tz] = terminus.position;
@@ -113,6 +125,132 @@ export function subwayRouteSign(stops, radiusOf, reachX = Infinity, reachZ = Inf
     sz = Math.min(reachZ, Math.max(sz, tz + owed));
   }
   return [sx, 0, sz];
+}
+
+/**
+ * Where a route's name is written: **alongside its own track, on the longest
+ * station-free stretch of it** — which is where a printed transit map writes a
+ * line's name, and the only place on a lane diagram that is empty by
+ * construction.
+ *
+ * It used to stand past the terminus platform, along the direction of travel.
+ * That reads right and does not survive contact with the declutter pass: a
+ * route sign is `pinned` and a station name is not, so on every capture the
+ * sign silently deleted the name of the station it stood next to — measured
+ * across three fixtures x three viewports, 7 of 24 terminus names were gone,
+ * and hiding the signs brought back exactly those 7 and no others. Standing off
+ * the rim in PLAN view is not enough: the sign sits a metre above the plate, so
+ * a tilted camera projects it straight back down onto the platform, and the
+ * `reachX` clamp below had already eaten most of the along-track standoff
+ * anyway (the terminus is the network's furthest station, so the clamp always
+ * fires there).
+ *
+ * A gap midpoint has no such fight. It is at least half a stop-spacing from
+ * either neighbour along the track and a lateral offset clear of the
+ * centreline, and every candidate is scored against each platform in the
+ * network AND against the route names already placed.
+ *
+ * @param {Array<{ id: string, position: [number, number, number] }>} stops
+ * @param {(itemId: string) => number} radiusOf drawn platform radius by item id
+ * @param {object} [options]
+ * @param {number} [options.reachX] how far the network's own platforms reach along x
+ * @param {number} [options.reachZ] how far the network's own platforms reach along z
+ * @param {Array<{ position: [number, number, number], platformRadius: number }>} [options.stations]
+ *   every platform in the network, so a sign in one lane's gap cannot land on
+ *   an interchange that sits between the lanes
+ * @param {Array<[number, number, number]>} [options.placed] route names already sited
+ * @returns {[number, number, number] | null}
+ */
+export function subwayRouteSign(stops, radiusOf, options = {}) {
+  const { reachX = Infinity, reachZ = Infinity, stations = [], placed = [] } = options;
+  if (!stops.length) return null;
+
+  // A name is not placed by the first candidate that clears a threshold but by
+  // the one that clears BY THE MOST. Thresholding traded victims when it was
+  // tried: every terminus name came back and three mid-route names went
+  // instead, because a candidate that scrapes past the test is still drawn into
+  // the neighbour it scraped past. What matters is the smallest clearance a
+  // placement leaves anywhere, so that is what is maximised.
+  //
+  // Distance here is ROUND, and that is a measured choice rather than an
+  // oversight. Scoring x separation as worth less than z — on the reasoning
+  // that a billboarded word is several times wider than it is tall, so two
+  // names side by side overlap where two across the lanes do not — is a better
+  // model of the geometry and a worse placement: it cost three station names
+  // (65 of 69 legible down to 62) because it pushes signs off the lane axis and
+  // into the neighbouring route's stations, which are what actually get hidden.
+  const nearest = (sx, sz, px, pz) => Math.hypot(sx - px, sz - pz);
+
+  /** Room to the nearest platform rim. A name inside this is not acceptable. */
+  const platformClearance = ([sx, , sz]) => {
+    let worst = Infinity;
+    for (const station of stations) {
+      const gap =
+        nearest(sx, sz, station.position[0], station.position[2]) - station.platformRadius;
+      if (gap < worst) worst = gap;
+    }
+    return worst;
+  };
+
+  // Another route's name matters too — two route signs are both `pinned`, so
+  // where they overlap neither yields and the map prints one line name through
+  // another. Solving each route on its own put ASSISTED and ENGINEER in the
+  // same square metre of an 11-stop network.
+  //
+  // It is a PENALTY and not a second gate, which is the whole difference
+  // between a preference and a starved route. Gating on it dropped a two-stop
+  // line back to the terminus fallback in a seven-stop network — every one of
+  // its six candidates was rejected for crowding a sign already placed, and the
+  // position it fell back to was the one this function exists to stop using.
+  const crowding = ([sx, , sz]) => {
+    let penalty = 0;
+    for (const other of placed) {
+      penalty += Math.min(0, nearest(sx, sz, other[0], other[2]) - ROUTE_SIGN_PAIR_GAP) * 0.5;
+    }
+    return penalty;
+  };
+
+  const gaps = [];
+  for (let i = 0; i < stops.length - 1; i += 1) {
+    const [ax, , az] = stops[i].position;
+    const [bx, , bz] = stops[i + 1].position;
+    const span = Math.hypot(bx - ax, bz - az);
+    if (span > 1e-3) gaps.push({ ax, az, bx, bz, span });
+  }
+
+  let best = null;
+  for (const gap of gaps) {
+    // Across the direction of travel, so a slanted segment is named beside its
+    // own stroke rather than through it.
+    const nx = -(gap.bz - gap.az) / gap.span;
+    const nz = (gap.bx - gap.ax) / gap.span;
+    // Three stations along the gap, not just its midpoint: a four-stop route
+    // offers six placements otherwise, which is not enough choice for the score
+    // above to find a corner nothing else wants.
+    for (const t of [0.5, 0.36, 0.64]) {
+      const mx = gap.ax + (gap.bx - gap.ax) * t;
+      const mz = gap.az + (gap.bz - gap.az) * t;
+      for (const side of [1, -1]) {
+        const candidate = [
+          mx + nx * ROUTE_SIGN_LATERAL * side,
+          0,
+          mz + nz * ROUTE_SIGN_LATERAL * side
+        ];
+        if (Math.abs(candidate[0]) > reachX || Math.abs(candidate[2]) > reachZ) continue;
+        const room = platformClearance(candidate);
+        if (room <= ROUTE_SIGN_CLEARANCE) continue;
+        let score = room + crowding(candidate);
+        // The near edge (+z, toward the default camera) breaks a tie — the same
+        // edge the city districts and the garden beds are named on, and the
+        // short axis of a lane diagram, which is the free one.
+        score += candidate[2] * 1e-3;
+        if (!best || score > best.score) best = { candidate, score };
+      }
+    }
+  }
+  if (best) return best.candidate;
+
+  return terminusSign(stops, radiusOf, reachX, reachZ);
 }
 
 function lineKey(item) {
@@ -296,7 +434,18 @@ export function subwayNetworkLayout(items) {
     );
   const reachX = reachOn(0);
   const reachZ = reachOn(2);
-  for (const line of lines) line.sign = subwayRouteSign(line.stops, radiusOf, reachX, reachZ);
+  // Longest route first: it has the most gaps to choose from, so letting it go
+  // last would hand the crowded network's only quiet corner to a two-stop line.
+  const placedSigns = [];
+  for (const line of [...lines].sort((a, b) => b.stops.length - a.stops.length)) {
+    line.sign = subwayRouteSign(line.stops, radiusOf, {
+      reachX,
+      reachZ,
+      stations,
+      placed: placedSigns
+    });
+    if (line.sign) placedSigns.push(line.sign);
+  }
 
   let radius = 4;
   for (const station of stations) {
