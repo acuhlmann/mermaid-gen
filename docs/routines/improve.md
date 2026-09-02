@@ -175,11 +175,15 @@ Turn a class of drift into a check that catches it for free. One per run, with t
 deliberate negative case** — break the thing on purpose, watch the sensor fail, put it back. A
 sensor never observed failing has not been tested.
 
-Known gaps: `ISOMETRIC_FLOOR_BLAST_TESTS` in `scripts/test-affected-lib.mjs` runs behind
-`apps/web/test/officeFloor*` (the existing sensor catches dangling refs, not missing ones);
-`SERVER_STRICT_ISLAND_FILES` in `packages/eslint-config/typeCheckedIsland.js` duplicates
-`apps/server/tsconfig.strict.json` with nothing asserting they agree; `formatter.cjs`'s `GUIDANCE`
-map duplicates `guidance.js` the same way.
+Known gaps: `formatter.cjs`'s `GUIDANCE` map duplicates `guidance.js` with nothing asserting they
+agree.
+
+Closed, and left here as worked examples of the shape: `SERVER_STRICT_ISLAND_FILES` vs
+`apps/server/tsconfig.strict.json` (sensor added by #466 — but neither file _selected_ it until
+#462/#473's fix, so the sensor existed and was unreachable, which is the second half of this item);
+and the one-directional bundle guards in `scripts/test-affected-lib.mjs`, where "every listed path
+exists" was checked and "every suite on disk is listed" was not — four metaphor and ten
+`officeFloor*` suites had drifted out of reach of `test:affected` before the reverse guard landed.
 
 ### 5. TypeScript leaves
 

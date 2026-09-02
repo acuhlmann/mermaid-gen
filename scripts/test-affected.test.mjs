@@ -5,6 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   GRAPH_EDIT_BLAST_TESTS,
+  ISOMETRIC_FLOOR_BLAST_TESTS,
   METAPHOR_BLAST_TESTS,
   SERVER_SLOW_TEST_FILES,
   basenameTestCandidates,
@@ -196,6 +197,43 @@ test('the negative case: an unrelated file pulls neither new set', () => {
     !plan.tests.includes('apps/web/test/canvasGraphEdit.test.js'),
     'a rule that fires on everything is the same as no rule'
   );
+});
+
+// The guard below checks that every listed path exists. This checks the other direction:
+// every suite ON DISK is listed. Only the first direction was guarded until 2026-09-02, and
+// four metaphor suites plus ten officeFloor ones had accumulated unlisted — invisible to
+// `test:affected` and to the pre-push hook, red only in full CI.
+for (const [label, bundle, pattern] of [
+  ['METAPHOR_BLAST_TESTS', METAPHOR_BLAST_TESTS, /^(metaphor|composite|fused).*\.test\.(js|jsx)$/],
+  ['ISOMETRIC_FLOOR_BLAST_TESTS', ISOMETRIC_FLOOR_BLAST_TESTS, /^officeFloor.*\.test\.(js|jsx)$/]
+]) {
+  test(`every suite on disk matching ${label}'s family is listed in it`, () => {
+    const onDisk = fs
+      .readdirSync(path.join(ROOT, 'apps/web/test'))
+      .filter((name) => pattern.test(name))
+      .map((name) => `apps/web/test/${name}`);
+    assert.ok(onDisk.length > 0, `${label}: the sweep found nothing — it would pass vacuously`);
+    const missing = onDisk.filter((file) => !bundle.includes(file));
+    assert.deepEqual(missing, [], `on disk but not in ${label}: ${missing.join(', ')}`);
+  });
+}
+
+test('the strict-island sensor is selected by both files that can drift it', () => {
+  for (const file of [
+    'packages/eslint-config/typeCheckedIsland.js',
+    'apps/server/tsconfig.strict.json'
+  ]) {
+    const plan = resolveAffectedTests([file], { root: ROOT });
+    assert.ok(
+      plan.tests.includes('scripts/verify-strict-islands.test.mjs'),
+      `${file} must select the sensor that watches it — the server fallback never runs scripts/*.test.mjs`
+    );
+  }
+});
+
+test('the negative case: an unrelated file does not pull the strict-island sensor', () => {
+  const plan = resolveAffectedTests(['apps/web/src/utils/officeCast.js'], { root: ROOT });
+  assert.ok(!plan.tests.includes('scripts/verify-strict-islands.test.mjs'));
 });
 
 test('both new bundles are non-empty and every path in them exists', () => {

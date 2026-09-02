@@ -155,7 +155,7 @@ Run: `npm run check:fast` when only shared changed; `npm run check` otherwise.
 | Agent test map     | [`docs/agents/isometric-floor-tests.md`](agents/isometric-floor-tests.md)                                                                                                                                                                                                                                           |
 | Full floor suite   | `npm run test:floor`                                                                                                                                                                                                                                                                                                |
 
-`test:affected` pulls `ISOMETRIC_FLOOR_BLAST_TESTS` when the diff touches the paths above (see `scripts/test-affected-lib.mjs`). Add new floor tests to that list and the agent doc.
+`test:affected` pulls `ISOMETRIC_FLOOR_BLAST_TESTS` when the diff touches the paths above (see `scripts/test-affected-lib.mjs`). Add new floor tests to that list and the agent doc — `scripts/test-affected.test.mjs` now enforces the list half of that (every `apps/web/test/officeFloor*` suite on disk must be listed), because the instruction alone had silently missed ten of them.
 
 ## Office audio (baked assets + playback)
 
@@ -179,16 +179,16 @@ Four coupling traps worth knowing before you touch this:
 
 ## Metaphor3D (schema → ladder → scenes)
 
-| Layer           | Location                                                                                                                                                                                            |
-| --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Shared schema   | [`packages/shared/src/metaphorSchema.ts`](../packages/shared/src/metaphorSchema.ts), [`metaphorSanitizer.ts`](../packages/shared/src/metaphorSanitizer.ts)                                          |
-| USDA mapping    | [`packages/shared/src/metaphorUsda.ts`](../packages/shared/src/metaphorUsda.ts), [`metaphorUsdaFields.ts`](../packages/shared/src/metaphorUsdaFields.ts)                                            |
-| Server ladder   | [`apps/server/src/tools/metaphorDslTool.js`](../apps/server/src/tools/metaphorDslTool.js), [`agents/metaphorSyntaxFixer.js`](../apps/server/src/agents/metaphorSyntaxFixer.js), `prompts/metaphor*` |
-| Layouts         | [`apps/web/src/utils/metaphorLayouts/`](../apps/web/src/utils/metaphorLayouts/)                                                                                                                     |
-| Scenes + chrome | [`apps/web/src/components/metaphorScenes/`](../apps/web/src/components/metaphorScenes/), [`MetaphorRenderer.jsx`](../apps/web/src/components/MetaphorRenderer.jsx)                                  |
-| Bench           | [`apps/server/scripts/benchMetaphor.js`](../apps/server/scripts/benchMetaphor.js) — read `expectationMatch`, not `acceptRate`                                                                       |
-| Tests           | `METAPHOR_BLAST_TESTS` in [`scripts/test-affected-lib.mjs`](../scripts/test-affected-lib.mjs) (40 files across all three workspaces)                                                                |
-| Docs            | [`docs/guide/validation.md`](guide/validation.md) § Metaphor3D, [`docs/automations/metaphor3d.md`](automations/metaphor3d.md), [`docs/agents/domains/metaphor3d.md`](agents/domains/metaphor3d.md)  |
+| Layer           | Location                                                                                                                                                                                                                                           |
+| --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Shared schema   | [`packages/shared/src/metaphorSchema.ts`](../packages/shared/src/metaphorSchema.ts), [`metaphorSanitizer.ts`](../packages/shared/src/metaphorSanitizer.ts)                                                                                         |
+| USDA mapping    | [`packages/shared/src/metaphorUsda.ts`](../packages/shared/src/metaphorUsda.ts), [`metaphorUsdaFields.ts`](../packages/shared/src/metaphorUsdaFields.ts)                                                                                           |
+| Server ladder   | [`apps/server/src/tools/metaphorDslTool.js`](../apps/server/src/tools/metaphorDslTool.js), [`agents/metaphorSyntaxFixer.js`](../apps/server/src/agents/metaphorSyntaxFixer.js), `prompts/metaphor*`                                                |
+| Layouts         | [`apps/web/src/utils/metaphorLayouts/`](../apps/web/src/utils/metaphorLayouts/)                                                                                                                                                                    |
+| Scenes + chrome | [`apps/web/src/components/metaphorScenes/`](../apps/web/src/components/metaphorScenes/), [`MetaphorRenderer.jsx`](../apps/web/src/components/MetaphorRenderer.jsx)                                                                                 |
+| Bench           | [`apps/server/scripts/benchMetaphor.js`](../apps/server/scripts/benchMetaphor.js) — read `expectationMatch`, not `acceptRate`                                                                                                                      |
+| Tests           | `METAPHOR_BLAST_TESTS` in [`scripts/test-affected-lib.mjs`](../scripts/test-affected-lib.mjs) — every metaphor suite across all three workspaces, kept complete for `apps/web/test/` by a reverse-direction test rather than a hand-counted number |
+| Docs            | [`docs/guide/validation.md`](guide/validation.md) § Metaphor3D, [`docs/automations/metaphor3d.md`](automations/metaphor3d.md), [`docs/agents/domains/metaphor3d.md`](agents/domains/metaphor3d.md)                                                 |
 
 Adding a **kind** is a ten-place change — the list is in
 [`docs/agents/domains/metaphor3d.md`](agents/domains/metaphor3d.md).
@@ -226,6 +226,8 @@ see.
 | Tests      | [`scripts/test-affected.test.mjs`](../scripts/test-affected.test.mjs), [`scripts/check-affected.test.mjs`](../scripts/check-affected.test.mjs), [`scripts/verify-agent-infra.test.mjs`](../scripts/verify-agent-infra.test.mjs) |
 
 `npm run test:affected` pulls `AGENT_TOOLING_BLAST_TESTS` when the diff touches the scripts above (see `scripts/test-affected-lib.mjs`). `*-lib.mjs` edits also basename-match the runner `*.test.mjs` (e.g. `test-affected-lib.mjs` → `test-affected.test.mjs`). `check:affected` still runs the full gate for any `scripts/` change — intentional; see [`docs/agents/sensors.md`](agents/sensors.md) § Known flake.
+
+**Strict islands (ADR-0006).** `packages/eslint-config/typeCheckedIsland.js` and `apps/server/tsconfig.strict.json` are the two hand-maintained halves of the same server island, and both select [`scripts/verify-strict-islands.test.mjs`](../scripts/verify-strict-islands.test.mjs). Neither did until 2026-09-02: `packages/eslint-config/` matches no rule, no basename mirror and none of the four fallback prefixes, so it selected **nothing at all**, and the tsconfig fell back to the server workspace, which never runs `scripts/*.test.mjs`. The sensor that watches for drift between them was unreachable from the only two files that can cause it. Note the rule is server-only: the sensor reads `apps/server/tsconfig.strict.json` alone.
 
 ## Verification commands (quick reference)
 
