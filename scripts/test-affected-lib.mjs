@@ -41,20 +41,30 @@ export const ISOMETRIC_FLOOR_BLAST_TESTS = [
   'apps/web/test/officeFloorAccess.test.jsx',
   'apps/web/test/officeFloorActivity.test.jsx',
   'apps/web/test/officeFloorArrival.test.jsx',
+  'apps/web/test/officeFloorBoard.test.js',
+  'apps/web/test/officeFloorCamera.test.jsx',
+  'apps/web/test/officeFloorCoffeeWalk.test.js',
   'apps/web/test/officeFloorCommute.test.js',
   'apps/web/test/officeFloorCommuters.test.jsx',
   'apps/web/test/officeFloorContracts.test.js',
+  'apps/web/test/officeFloorDwell.test.jsx',
   'apps/web/test/officeFloorHuddle.test.jsx',
+  'apps/web/test/officeFloorInterrupt.test.js',
+  'apps/web/test/officeFloorIntro.test.js',
   'apps/web/test/officeFloorMeeting.test.jsx',
   'apps/web/test/officeFloorMovement.test.js',
   'apps/web/test/officeFloorModuleInventory.test.js',
+  'apps/web/test/officeFloorNextStore.test.js',
   'apps/web/test/officeFloorPeek.test.jsx',
   'apps/web/test/officeFloorPlan.test.js',
   'apps/web/test/officeFloorProps.test.jsx',
   'apps/web/test/officeFloorPropsTable.test.js',
   'apps/web/test/officeFloorReach.test.js',
   'apps/web/test/officeFloorRoam.test.jsx',
+  'apps/web/test/officeFloorRunIdle.test.js',
   'apps/web/test/officeFloorScene.test.jsx',
+  'apps/web/test/officeFloorSceneJoin.test.jsx',
+  'apps/web/test/officeFloorShopTalk.test.jsx',
   'apps/web/test/officeFloorStyles.test.js',
   'apps/web/test/officeFloorTalk.test.jsx',
   'apps/web/test/officeFloorViewTransition.test.js',
@@ -106,13 +116,17 @@ export const METAPHOR_BLAST_TESTS = [
   'apps/web/test/metaphorAccentCaption.test.js',
   'apps/web/test/metaphorCityEdit.test.js',
   'apps/web/test/metaphorCompositeEdit.test.js',
+  'apps/web/test/metaphorDrawOrder.test.js',
   'apps/web/test/metaphorFlatItemsCore.test.js',
   'apps/web/test/metaphorFlatKindEdit.test.js',
+  'apps/web/test/metaphorFusedRoutes.test.js',
   'apps/web/test/metaphorGardenEdit.test.js',
   'apps/web/test/metaphorGlyphRegistry.test.js',
   'apps/web/test/metaphorGraphEdit.test.js',
   'apps/web/test/metaphorGroupIdentity.test.js',
+  'apps/web/test/metaphorGroupPlacards.test.js',
   'apps/web/test/metaphorLabelDeclutter.test.js',
+  'apps/web/test/metaphorLabelDepth.test.js',
   'apps/web/test/metaphorLabelRoles.test.js',
   'apps/web/test/metaphorLayerFocus.test.js',
   'apps/web/test/metaphorLayouts.test.js',
@@ -304,6 +318,17 @@ export const BLAST_RADIUS_RULES = [
     match:
       /scripts\/(test-affected-lib|test-affected|check-affected-lib|check-affected|prettier-files|format-affected|wire-cochange|verify-agent-infra|verify-doc-paths)\.mjs/,
     tests: AGENT_TOOLING_BLAST_TESTS
+  },
+  {
+    // The two hand-maintained halves of ADR-0006's server strict island. Neither selected the
+    // sensor that watches them: `packages/eslint-config/` matches no rule, no basename mirror and
+    // none of the four fallback prefixes (zero tests, zero fallbacks), and the tsconfig falls back
+    // to the server workspace, which never runs `scripts/*.test.mjs`. So the drift #466's sensor
+    // exists to catch was green under `check:affected` and `pre-push`, and only reddened in CI.
+    // Server-only on purpose: the sensor reads `apps/server/tsconfig.strict.json` alone, so
+    // matching the web strict island would select a test that asserts nothing about it.
+    match: /packages\/eslint-config\/typeCheckedIsland\.js|apps\/server\/tsconfig\.strict\.json/,
+    tests: ['scripts/verify-strict-islands.test.mjs']
   }
 ];
 

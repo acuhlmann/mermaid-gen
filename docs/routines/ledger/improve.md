@@ -12,12 +12,18 @@ todos:
     status: pending
   - id: sensor-floor-inverse
     content: 'Inverse check: every apps/web/test/officeFloor* file must appear in ISOMETRIC_FLOOR_BLAST_TESTS'
+    status: completed
+  - id: floor-tests-doc-rows
+    content: "docs/agents/isometric-floor-tests.md's suite table is missing 6 of the officeFloor* suites the 2026-09-02 run added to ISOMETRIC_FLOOR_BLAST_TESTS (officeFloorBoard, officeFloorCamera, officeFloorCoffeeWalk, officeFloorIntro, officeFloorNextStore, officeFloorSceneJoin). The lib's own docstring says keep the two in sync. Not done that night because an accurate one-line description of each needs reading the six suites, and a wrong row is worse than a missing one — a clean item-6 (doc drift) slice."
     status: pending
   - id: sensor-strict-island-sync
     content: 'Assert SERVER_STRICT_ISLAND_FILES matches apps/server/tsconfig.strict.json'
     status: completed
   - id: sensor-guidance-sync
     content: 'Assert formatter.cjs GUIDANCE agrees with guidance.js'
+    status: pending
+  - id: routine-guard-postflight-message-test
+    content: "#475 finding 1: scripts/routine-guard.test.mjs's postflight-message test never captures stdout, so reverting #456's ternary leaves it green. Its preferred fix (extract an exported postflightOkMessage) needs scripts/routine-guard.mjs, which is ALWAYS_FORBIDDEN for every routine including this one — but its second option does not: spawn the CLI and assert stdout, which touches only the test file (improve-reachable). Also worth generalising off the hard-coded `digest` playbook so a second report-tier routine is not invisible to it. The 2026-09-02 run closed #475's finding 2 (the stale § 4 known-gap line) but left this half."
     status: pending
   - id: glossary-unchecked
     content: 'GLOSSARY.md is in no verify:doc-paths scan list; decide whether to add it or explain why not'
