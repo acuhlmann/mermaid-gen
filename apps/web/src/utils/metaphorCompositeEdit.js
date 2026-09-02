@@ -10,7 +10,8 @@ import {
   fail,
   hasDirectedLink,
   ok,
-  purgeLinksForNode
+  purgeLinksForNode,
+  renameLinkedEdge
 } from './metaphorFlatItemsCore.js';
 import {
   addLinkedTreeNode,
@@ -321,6 +322,14 @@ export function deleteCompositeEdge(source, fromId, toId) {
   return ok(serializeCompositeDoc(doc, source));
 }
 
-export function renameCompositeEdge() {
-  return fail('not-graph');
+/**
+ * @param {string} source
+ * @param {string} fromId
+ * @param {string} toId
+ * @param {string} label new link label; empty clears it
+ */
+export function renameCompositeEdge(source, fromId, toId, label) {
+  const doc = parseCompositeDoc(source);
+  if (!doc) return fail('not-graph');
+  return renameLinkedEdge(doc, source, fromId, toId, label);
 }

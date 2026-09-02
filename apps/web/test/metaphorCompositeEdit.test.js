@@ -294,10 +294,44 @@ describe('metaphor composite graph edit guards', () => {
     });
   });
 
-  it('refuses renameCompositeEdge because links carry no labels', () => {
-    expect(renameCompositeEdge(COMPOSITE, 'auth', 'api')).toEqual({
+  it('refuses to rename a composite link that does not exist', () => {
+    expect(renameCompositeEdge(COMPOSITE, 'auth', 'checkout', 'calls')).toEqual({
+      ok: false,
+      reason: 'missing'
+    });
+  });
+
+  it('refuses renameCompositeEdge on invalid documents', () => {
+    expect(renameCompositeEdge('not json', 'auth', 'api', 'calls')).toEqual({
       ok: false,
       reason: 'not-graph'
     });
+  });
+});
+
+describe('renameCompositeEdge', () => {
+  it('sets a composite-level link label', () => {
+    const result = renameCompositeEdge(COMPOSITE, 'auth', 'api', 'calls');
+    expect(result.ok).toBe(true);
+    const links = JSON.parse(result.source).links;
+    expect(links).toContainEqual({ from: 'auth', to: 'api', label: 'calls' });
+  });
+
+  it('clears a composite-level link label when renamed to empty', () => {
+    const labeled = JSON.stringify({
+      metaphor: 'composite',
+      scene: {},
+      layout: 'fused',
+      layers: [
+        { id: 'a', as: 'city', items: [{ id: 'auth', label: 'Auth', height: 10, footprint: 2 }] },
+        { id: 'b', as: 'city', items: [{ id: 'api', label: 'API', height: 10, footprint: 2 }] }
+      ],
+      items: [],
+      links: [{ from: 'auth', to: 'api', label: 'calls' }]
+    });
+    const result = renameCompositeEdge(labeled, 'auth', 'api', '   ');
+    expect(result.ok).toBe(true);
+    const links = JSON.parse(result.source).links;
+    expect(links).toEqual([{ from: 'auth', to: 'api' }]);
   });
 });
