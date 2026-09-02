@@ -358,6 +358,33 @@ ones that will bite an edit.
     recorded, so a placard sized off the bed alone ends up under a gear that has since slid out.
   - Counted across 390x844 / 717x512 / 1440x900: subway 22 → 24 readable of 27, machine 9 → 18 of
     24, and zero group placards left drawn on their own members in any of the six captures.
+- **Clearing a group's own members is necessary and not sufficient, and the subway proved it.**
+  The route sign above cleared every platform rim in plan view and still deleted the terminus
+  station's name: measured on three fixtures x three viewports, only **17 of 24** terminus names
+  were drawn, and hiding the signs brought back **exactly those 7 and no others**. Two reasons the
+  plan-view test cannot see. A placard sits about a metre above the plate, so a tilted camera
+  projects it straight back down onto whatever is under it — which is why the height ladder in the
+  entry above only ever traded victims. And the `reachX` clamp had already eaten the along-track
+  standoff it was clamping: the terminus IS the network's furthest station, so the clamp fires
+  there every time and hands the sign back to the rim it just left. A route name now goes
+  **alongside its own track, on a station-free stretch of it** — where a printed transit map names
+  a line, and the one part of a lane diagram that is empty by construction. 65 of 66 station names
+  legible, all 24 terminus names, all 24 route names kept (`subwayRouteSign`). Three things that
+  cost a round each:
+  - **Score the candidates, do not threshold them.** Taking the first placement that cleared a
+    margin brought every terminus name back and lost three mid-route names instead — a candidate
+    that scrapes past a test is still drawn into the neighbour it scraped past. Maximising the
+    smallest clearance a placement leaves anywhere is what reached the ceiling.
+  - **Two pinned placards need solving as a set.** Route names are pinned, so where two meet
+    neither yields and one line's name prints through another's; per-route solving put ASSISTED and
+    ENGINEER in the same square metre. Longest route first (it has the most gaps to give up), each
+    scored against the ones already placed — but as a **penalty, never a second gate**: gating on it
+    starved a two-stop line in a seven-stop network into the terminus fallback this whole change
+    exists to stop using.
+  - **A better model of the geometry measured worse.** Scoring x separation as worth less than z —
+    correct, since a billboarded word is several times wider than it is tall — pushed signs off the
+    lane axis into the neighbouring route's stations and cost three names (65 of 69 down to 62).
+    The round metric ships. A model is a hypothesis; the probe is the referee.
 - **Open water past the subject is scaffolding** — the iceberg's sea plane carries
   `FRAME_IGNORE_DATA`, like the shadow catcher and the fused ocean disc.
 - **So is the ground itself, and that is the bigger win.** Every grounded kind stands on a disc

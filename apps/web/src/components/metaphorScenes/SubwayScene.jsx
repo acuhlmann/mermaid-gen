@@ -79,26 +79,25 @@ function SubwayLine({ line, theme }) {
           metalness={0.12}
         />
       </mesh>
-      {/* Signed PAST the terminus, along the direction the route was travelling
-          when it got there — where a real platform sign stands. A label at the
-          midpoint lands on top of whatever crosses there, and one AT the
-          terminus (`getPoint(1)`, which this was) lands on that station's own
-          name: a pinned route placard drawn into a pinned interchange name,
-          with neither able to yield. `subwayRouteSign` owns the geometry so
-          the sign and the platform disc cannot disagree about where the
-          platform ends. */}
+      {/* Written ALONGSIDE the track, on its longest station-free stretch —
+          where a printed transit map names a line, and the only part of a lane
+          diagram that is empty by construction. Standing past the terminus
+          (which this did) put a pinned placard beside an unpinned station name
+          and the placard won every time: the terminus name simply stopped being
+          drawn in 7 of 24 captures. `subwayRouteSign` owns the geometry and
+          checks its candidates against every platform in the network, so the
+          sign and the discs cannot disagree about where a platform ends.
+
+          Height is not the lever here and never was — a sign a metre up
+          projects straight back down onto whatever is under it on a tilted
+          camera, which is why the old 1.15 cleared the platform's face in plan
+          and still deleted its name. It sits just clear of the tube it names
+          now; the along-track placement is what keeps it off the stations. */}
       {sign ? (
         <ItemLabel
           text={line.name}
           role="group"
-          // Lower than the 1.7 this label used to sit at, and deliberately so.
-          // Raising it clears the terminus platform's FACE on a flat foldable
-          // cover — but the sign is pinned and a station name is not, so the
-          // higher sign wins the declutter pass against the very names it just
-          // stopped colliding with: measured on 717x512, 1.7 cleared the discs
-          // and cost Deliver and Resolve, 5/6 station names down to 3/6. The
-          // lateral standoff is what fixes the collision; height only trades.
-          position={[sign[0], TRACK_Y + 1.15, sign[2]]}
+          position={[sign[0], TRACK_Y + 0.45, sign[2]]}
           fontSize={0.46}
           color={color}
           outlineColor={theme.labelOutline}
