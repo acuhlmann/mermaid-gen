@@ -422,6 +422,26 @@ export const ANYTHING_BENCH_CORPUS = [
     )
   },
   {
+    // lib-matter-stack first-pass "Matter.Body.setDimensions is not a function": the
+    // model treats a body's shape as resizable in place instead of scaling or
+    // recreating it. Regression = both engines drift.
+    id: 'runtime-matter-body-setdimensions',
+    kind: 'runtime',
+    expectedAccept: false,
+    expectedCode: 'runtime_error',
+    html: page(
+      `<h1>Stack</h1><canvas id="stage" width="320" height="240"></canvas>
+<script>
+  const { Engine, Bodies, Composite, Body } = Matter;
+  const engine = Engine.create();
+  const ground = Bodies.rectangle(160, 220, 1, 1, { isStatic: true });
+  Composite.add(engine.world, ground);
+  Body.setDimensions(ground, { width: 320, height: 20 });
+</script>`,
+      { head: '<!-- @lib:matter -->' }
+    )
+  },
+  {
     // layout-dashboard first-pass "k.fmt is not a function": the model treats a KPI
     // data row as if it carried its own formatter. Regression = both engines drift.
     id: 'runtime-fmt-on-data-row',
