@@ -57,6 +57,15 @@ const ROUTE_SIGN_CLEARANCE = 0.9;
  */
 const ROUTE_SIGN_PAIR_GAP = 3.4;
 
+/**
+ * The room a candidate is credited with when there are no platforms to measure
+ * against. Any finite value above `ROUTE_SIGN_CLEARANCE` does the job — every
+ * candidate gets the same one, so the crowding penalty and the near-edge
+ * tie-break are what separate them. It exists only so the score stays a
+ * comparable number; see `platformClearance`.
+ */
+const ROUTE_SIGN_OPEN_FIELD = ROUTE_SIGN_CLEARANCE + 1;
+
 /** Platform radius from the traffic passing through a station. */
 export function subwayPlatformRadius(traffic) {
   return 0.46 + Math.sqrt(Math.max(0.1, traffic ?? 5)) * 0.15;
@@ -181,7 +190,26 @@ export function subwayRouteSign(stops, radiusOf, options = {}) {
   // into the neighbouring route's stations, which are what actually get hidden.
   const nearest = (sx, sz, px, pz) => Math.hypot(sx - px, sz - pz);
 
-  /** Room to the nearest platform rim. A name inside this is not acceptable. */
+  /**
+   * Room to the nearest platform rim. A name inside this is not acceptable.
+   *
+   * With no platforms to measure against it returns a finite stand-in rather
+   * than `Infinity`, and that is the difference between scoring and only
+   * appearing to. `score > best.score` is false between two `Infinity`s, so an
+   * unbounded `room` silently handed the placement to whichever candidate came
+   * first and left the two terms layered on top of it — the crowding penalty
+   * and the near-edge tie-break — deciding nothing at all. Measured: a route
+   * running along -x was named on the FAR edge, the exact defect the tie-break
+   * exists to prevent, and a candidate was chosen directly on top of a name
+   * already placed there.
+   *
+   * `subwayNetworkLayout` always passes the network's own platforms, so this
+   * only bites a direct caller of the exported function — which is a test, and
+   * a test that reports a green pass on an arbitrary placement is the failure
+   * mode this repo's trap checklist is written around. Every candidate scores
+   * the same room, so the penalty and the tie-break decide, which is what they
+   * are for.
+   */
   const platformClearance = ([sx, , sz]) => {
     let worst = Infinity;
     for (const station of stations) {
@@ -189,7 +217,7 @@ export function subwayRouteSign(stops, radiusOf, options = {}) {
         nearest(sx, sz, station.position[0], station.position[2]) - station.platformRadius;
       if (gap < worst) worst = gap;
     }
-    return worst;
+    return Number.isFinite(worst) ? worst : ROUTE_SIGN_OPEN_FIELD;
   };
 
   // Another route's name matters too — two route signs are both `pinned`, so

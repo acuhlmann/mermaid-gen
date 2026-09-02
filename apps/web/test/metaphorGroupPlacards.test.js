@@ -70,6 +70,7 @@ describe('subway route signs stand off their own platforms', () => {
 
   it('writes each route name beside its own track, not past its terminus', () => {
     const layout = subwayNetworkLayout(items);
+    expect(layout.lines.length).toBeGreaterThan(0);
     for (const line of layout.lines) {
       const stops = line.stops;
       const terminus = stops[stops.length - 1].position;
@@ -89,6 +90,10 @@ describe('subway route signs stand off their own platforms', () => {
 
   it('keeps two route names apart from each other', () => {
     const layout = subwayNetworkLayout(items);
+    // A single-line network makes the nested sweep below empty — it skips every
+    // `a === b` pair and asserts nothing. Same companion-assertion gap the
+    // sibling commit closed in metaphorFusedRoutes.test.js the same night.
+    expect(layout.lines.length).toBeGreaterThan(1);
     // Both are `pinned`, so where they overlap neither yields and one line's
     // name is printed through another's. Solving each route on its own put
     // ASSISTED and ENGINEER in the same square metre of an 11-stop network.
@@ -122,6 +127,39 @@ describe('subway route signs stand off their own platforms', () => {
     expect(Number.isFinite(sign[0])).toBe(true);
     expect(Number.isFinite(sign[2])).toBe(true);
     expect(distanceXZ(sign, [4, 0, 0])).toBeCloseTo(1.7, 5);
+  });
+
+  it('scores its candidates even when no platforms are supplied', () => {
+    // `stations` defaults to [], and an empty scan for the nearest rim used to
+    // leave `room` at Infinity. Every candidate then scored Infinity, and
+    // `score > best.score` is false between two of those, so the FIRST
+    // candidate won and the two mechanisms layered on top of `room` — the
+    // crowding penalty against already-placed names, and the near-edge
+    // tie-break — decided nothing while appearing to. A caller who omits the
+    // platforms gets an arbitrary placement reported as a scored one.
+    const stops = [
+      { id: 'a', position: [0, 0, 0] },
+      { id: 'b', position: [4.2, 0, 0] },
+      { id: 'c', position: [8.4, 0, 0] }
+    ];
+    // The first candidate is the midpoint of the first gap on the +1 side —
+    // exactly where this already-placed route name sits.
+    const sign = subwayRouteSign(stops, () => 0.636, { placed: [[2.1, 0, 1.5]] });
+    expect(distanceXZ(sign, [2.1, 0, 1.5])).toBeGreaterThan(1);
+  });
+
+  it('keeps the near-edge tie-break alive when no platforms are supplied', () => {
+    // Travel along -x, so the first candidate side lands on the FAR edge. With
+    // `room` pinned at Infinity the tie-break could never move it back, and a
+    // route name was written behind the network it names — the defect the
+    // `candidate[2] * 1e-3` term exists to prevent.
+    const stops = [
+      { id: 'a', position: [8.4, 0, 0] },
+      { id: 'b', position: [4.2, 0, 0] },
+      { id: 'c', position: [0, 0, 0] }
+    ];
+    const sign = subwayRouteSign(stops, () => 0.636);
+    expect(sign[2]).toBeGreaterThan(0);
   });
 
   it('still names a route whose only gap is crowded on both sides', () => {
