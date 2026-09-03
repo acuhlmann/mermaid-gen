@@ -454,7 +454,33 @@ function makeNodes({ layers, sites, novelty, worldKey, anchors, linkNeighbors })
     ];
     const labelDx = position[0] - site.position[0];
     const labelDz = position[2] - site.position[2];
-    const labelDistance = Math.hypot(labelDx, labelDz) || 1;
+    const rawDistance = Math.hypot(labelDx, labelDz);
+    // On a fused world, a landmark sits close to its site's centre and its own
+    // name used to be nudged 0.58 world units outward from there. On phone that
+    // put every same-island name in one 60px cluster (measured on the toaster:
+    // "Chrome Throne", "Forgiveness Lever" and "Was It My Fault?" all landed
+    // inside a 45-pixel square, and the declutter dropped two of them). Pushing
+    // the label past the site's own SHOULDER instead — a fraction of the site
+    // radius — gives each name its own arc around the island; a scene with one
+    // landmark ends up with the label roughly at the shoreline, and two
+    // landmarks 90° apart land ~2r apart, so the pair no longer contests one
+    // screen slot. A landmark whose position sits AT the site centre (nodes at
+    // (0,0) relative — the 0.12 lower bound in `nodePosition`) is walked around
+    // the perimeter by node index instead of collapsing to the origin. Both
+    // constants are floored at 0.85 so a tiny site still moves its label a
+    // useful distance rather than parking it on the node.
+    const outwardReach = Math.max(0.85, (site.radius ?? 1) * 0.6);
+    let bearingX;
+    let bearingZ;
+    if (rawDistance > 0.05) {
+      bearingX = labelDx / rawDistance;
+      bearingZ = labelDz / rawDistance;
+    } else {
+      // Same GOLDEN_ANGLE the planner uses elsewhere to spread same-site items.
+      const bearing = nodeIndex * GOLDEN_ANGLE + layerIndex * (TAU / 5);
+      bearingX = Math.cos(bearing);
+      bearingZ = Math.sin(bearing);
+    }
     const motionStyle = resolveNodeMotionStyle(capability, novelty, worldKey, item.id);
     anchors.set(item.id, anchor);
     return {
@@ -468,7 +494,7 @@ function makeNodes({ layers, sites, novelty, worldKey, anchors, linkNeighbors })
       anchor,
       attachedTo: site.id,
       affinityBound: affinityOverlap(affinityTokens(item), affinityTokens(site.item)) > 0,
-      labelOffset: [(labelDx / labelDistance) * 0.58, 0, (labelDz / labelDistance) * 0.58],
+      labelOffset: [bearingX * outwardReach, 0, bearingZ * outwardReach],
       radius,
       height,
       tilt: dimensions.tilt ?? 0,
