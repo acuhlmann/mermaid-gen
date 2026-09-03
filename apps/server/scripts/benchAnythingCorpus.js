@@ -442,6 +442,27 @@ export const ANYTHING_BENCH_CORPUS = [
     )
   },
   {
+    // lib-matter-stack first-pass "Cannot access 'body' before initialization": the
+    // model reads the const it is still assigning (id: body && body.id) inside the
+    // object literal that initializes it — a TDZ self-reference, not the "line above
+    // its declaration" case the existing rule already covered. Regression = both
+    // engines drift.
+    id: 'runtime-const-self-reference-init',
+    kind: 'runtime',
+    expectedAccept: false,
+    expectedCode: 'runtime_error',
+    html: page(
+      `<h1>Cards</h1><div id="out"></div>
+<script>
+  function makeCard(label) {
+    const card = { label: label, prevId: card && card.id };
+    return card;
+  }
+  document.getElementById('out').textContent = JSON.stringify(makeCard('A'));
+</script>`
+    )
+  },
+  {
     // layout-dashboard first-pass "k.fmt is not a function": the model treats a KPI
     // data row as if it carried its own formatter. Regression = both engines drift.
     id: 'runtime-fmt-on-data-row',
