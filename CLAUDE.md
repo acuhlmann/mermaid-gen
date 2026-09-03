@@ -204,10 +204,12 @@ check`: two unattended feature automations run daily here, and a quality metric 
   `deps` (`30 4,16 * * *`) is off the ladder on purpose — advisories arrive in bursts.
 - **The fleet is split across hosts by duty, since 2026-09-01.** `resolve` runs as a Cursor
   automation; everything else on the ladder is a Claude Routine, so the routine that _finds_ work
-  and the one that _pays_ for it are not one account's two failures. `claude -p '/schedule …'`
-  creates, lists, updates and fires a cron routine (it cannot delete one or make API
-  triggers/tokens); Cursor's `agent` CLI has no `automations` verb, so a Cursor rung and any
-  retirement are the owner's web-UI actions (page bar #2).
+  and the one that _pays_ for it are not one account's two failures. **Claude routines are
+  scriptable; Cursor automations are not** — `claude -p '/schedule …'` creates, lists, updates and
+  fires a cron routine (it cannot delete one, cannot create or revoke API triggers/tokens, and needs
+  a claude.ai subscription login); Cursor's `agent` CLI has no `automations` command at all, so a
+  Cursor rung is a [cursor.com/automations](https://cursor.com/automations) action. Retiring
+  anything, and every Cursor-side change, stays the owner's (page bar #2).
 - **One fleet per 24-hour window.** Two unregistered automations can price the same bug the same
   night (#442 vs #446). Any automation with write access to product code needs a row in
   `docs/routines/README.md` or `docs/automations/README.md`; `digest` watchdog 7 reports branches
