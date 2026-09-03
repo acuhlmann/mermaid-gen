@@ -22,8 +22,9 @@ allowedPaths:
   - apps/web/src/utils/metaphor*Edit.js
   - apps/web/src/components/metaphorScenes/MetaphorGraphEditBridge.jsx
   - apps/web/src/components/buildRadialActions.js
-  - apps/web/src/hooks/useFlowchartGraphEdit.js
-  - apps/web/src/hooks/useCanvasGraphEdit.js
+  - apps/web/src/utils/metaphorFlatItemsCore.js
+  - apps/web/src/features/canvas/useFlowchartGraphEdit.js
+  - apps/web/src/features/canvas/useCanvasGraphEdit.js
   - apps/web/test/*Edit.test.js
   - apps/web/test/*GraphEdit.test.js
   - apps/web/test/*GraphEdit.test.jsx
