@@ -1,5 +1,6 @@
 import { hash01, hash01Salted } from '../../utils/seededHash.js';
 import { getCompositeCapability, getCompositePrimitive } from './compositePrimitiveRegistry.js';
+import { clampNodeLabelReach } from './fusedLabelReach.js';
 
 const TAU = Math.PI * 2;
 const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));
@@ -1197,6 +1198,7 @@ export function planFusedCompositeWorld(dsl) {
     linkNeighbors,
     motionIntensity
   });
+  clampNodeLabelReach(nodes);
   assignSiteLabelPlacement(sites, nodes);
   assignLabelRanks(layers, sites, nodes, paths);
   const links = makeLinks(dsl, layers, anchors);

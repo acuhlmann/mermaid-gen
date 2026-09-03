@@ -1,3 +1,6 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import {
   fusedLabelImportance,
@@ -49,6 +52,21 @@ function dslFor(kinds, seed = 'matrix') {
 function expectFiniteVector(vector) {
   expect(vector).toHaveLength(3);
   for (const value of vector) expect(Number.isFinite(value)).toBe(true);
+}
+
+// The composites the product actually ships, read from disk rather than
+// transcribed: the placement below depends on the fixture's own seed, novelty
+// and item metrics, so a hand-copied approximation would not reproduce it.
+const FIXTURE_DIR = path.join(
+  path.dirname(fileURLToPath(import.meta.url)),
+  '../../../docs/fixtures/metaphor3d'
+);
+const COMPOSITE_FIXTURES = fs
+  .readdirSync(FIXTURE_DIR)
+  .filter((name) => name.startsWith('composite-') && name.endsWith('.json'));
+
+function readCompositeFixture(name) {
+  return JSON.parse(fs.readFileSync(path.join(FIXTURE_DIR, name), 'utf8'));
 }
 
 // The whole visual contract of a site's own name is two fields: labelOffset's
@@ -679,6 +697,42 @@ describe('planFusedCompositeWorld', () => {
     );
     expect(flow).not.toEqual(pulse);
     expect(Math.hypot(flow.offset[0], flow.offset[2])).toBeGreaterThan(0);
+  });
+
+  // A landmark's name has to read as ITS name. #519 pushed each name out to
+  // `site.radius * 0.6` from its landmark so two landmarks on one island stop
+  // contesting a single screen slot — but the push is sized from the SITE and
+  // knows nothing about the next island, so two landmarks on adjacent sites are
+  // both walked into the water between them. Measured on the shipped festival
+  // composite before this guard: `artist-check-in`'s name sat 2.10 units from
+  // artist-check-in and 0.68 from shuttle-control, and shuttle-control's own
+  // name 1.90 from itself and 1.57 from artist-check-in. Both names read as the
+  // wrong landmark's — the failure #519 exists to prevent, moved one island
+  // over. `node.anchor` shares its x/z with `node.position`, so the distance
+  // from a name to its own landmark IS the reach of its `labelOffset`.
+  it('keeps every landmark name nearer the landmark it names than any other', () => {
+    expect(COMPOSITE_FIXTURES.length).toBeGreaterThan(0);
+    let compared = 0;
+    for (const name of COMPOSITE_FIXTURES) {
+      const plan = planFusedCompositeWorld(readCompositeFixture(name));
+      expect(plan.nodes.length, `${name} planned no landmarks`).toBeGreaterThan(1);
+      for (const node of plan.nodes) {
+        const labelX = node.anchor[0] + node.labelOffset[0];
+        const labelZ = node.anchor[2] + node.labelOffset[2];
+        const own = Math.hypot(labelX - node.position[0], labelZ - node.position[2]);
+        for (const other of plan.nodes) {
+          if (other === node) continue;
+          const away = Math.hypot(labelX - other.position[0], labelZ - other.position[2]);
+          compared += 1;
+          expect(
+            away,
+            `${name}: ${node.id}'s name is ${away.toFixed(2)} from ${other.id} ` +
+              `and ${own.toFixed(2)} from itself`
+          ).toBeGreaterThan(own);
+        }
+      }
+    }
+    expect(compared).toBeGreaterThan(0);
   });
 });
 
