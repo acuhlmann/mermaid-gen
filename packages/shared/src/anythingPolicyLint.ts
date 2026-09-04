@@ -103,14 +103,29 @@ const XML_NAMESPACE_PATTERN = new RegExp(
   'gi'
 );
 
-/** Strip comments and XML namespace URIs (identifiers, not network loads). */
+/**
+ * Strip comments and XML namespace URIs (identifiers, not network loads).
+ *
+ * The script/style body patterns require a literal closing tag, so a
+ * document whose `<script>` never closes — a generation cut short mid-page,
+ * measured in the generation baseline as two `static-explainer` samples
+ * that stopped mid-function with no `</script>`/`</html>` at all — left the
+ * *entire* unclosed body unstripped, comments included. The first `//` in
+ * any surviving line comment (e.g. `let angleMoon = 0.9;    // radians`)
+ * then read as an external URL, so the model was told to remove a URL that
+ * never existed instead of being told its document was truncated. `$` as a
+ * fallback closer only matches when no real `</script>`/`</style>` exists
+ * (the lazy `[\s\S]*?` still prefers the real tag first), so a well-formed
+ * document strips exactly as before; an unclosed one now falls through to
+ * `lintAnythingQuality`'s `unclosed_tag` check, which names the real defect.
+ */
 function stripNonLoadContexts(html: string): string {
   return html
     .replace(/<!--[\s\S]*?-->/g, '')
-    .replace(/(<script\b[^>]*>)([\s\S]*?)(<\/script>)/gi, (_m, open, body, close) => {
+    .replace(/(<script\b[^>]*>)([\s\S]*?)(<\/script>|$)/gi, (_m, open, body, close) => {
       return `${open}${stripJsComments(String(body))}${close}`;
     })
-    .replace(/(<style\b[^>]*>)([\s\S]*?)(<\/style>)/gi, (_m, open, body, close) => {
+    .replace(/(<style\b[^>]*>)([\s\S]*?)(<\/style>|$)/gi, (_m, open, body, close) => {
       return `${open}${String(body).replace(/\/\*[\s\S]*?\*\//g, ' ')}${close}`;
     })
     .replace(/\sxmlns(?::\w+)?\s*=\s*["']https?:\/\/[^"']*["']/gi, '')
