@@ -11,7 +11,7 @@
 const NEIGHBOUR_SHARE = 0.45;
 
 /**
- * Keep every landmark's name nearer the landmark it names than any other.
+ * Keep every name nearer the body it names than any other.
  *
  * `makeNodes` pushes a name out past its site's shoulder — `site.radius * 0.6`
  * — so two landmarks on one island stop contesting a single screen slot
@@ -35,27 +35,39 @@ const NEIGHBOUR_SHARE = 0.45;
  * name to its own landmark is exactly the length of `labelOffset` — which is
  * why the cap can be applied to the offset without re-deriving anything.
  *
- * Mutates and returns `nodes`, matching `assignSiteLabelPlacement`'s shape.
+ * The same shape holds one grammar over, which is why the body's own point is a
+ * parameter rather than a field read. A path station pushes its name a flat
+ * 0.72 along the bearing from its SITE's centre out to the station, so two
+ * stations at nearly the same angle from that centre are pushed along nearly
+ * the same line and the near one collects the far one's name. Measured on the
+ * shipped `composite-sentient-toaster-memory-palace.json` fixture:
+ * `bread-enters` and `coil-hesitates` sit 0.18 apart on `recollection-loop`,
+ * and `bread-enters`'s name landed 0.720 from its own station and 0.701 from
+ * `coil-hesitates`. Stations carry `point`, not `position`, and are compared
+ * only against the other stations of their own path — that is the confusion the
+ * bearing actually produces, and the one this run could measure.
  *
- * @param {Array<{position: number[], labelOffset: number[]}>} nodes
+ * Mutates and returns `bodies`.
+ *
+ * @param {Array<{labelOffset: number[]}>} bodies
+ * @param {(body: object) => number[]} [positionOf] — the body's own world point
  */
-export function clampNodeLabelReach(nodes) {
-  for (const node of nodes) {
+export function clampLabelReach(bodies, positionOf = (body) => body.position) {
+  for (const node of bodies) {
     const offset = node?.labelOffset;
     if (!Array.isArray(offset)) continue;
     const reach = Math.hypot(offset[0], offset[2]);
     if (!(reach > 0)) continue;
 
+    const here = positionOf(node);
     let nearest = Infinity;
-    for (const other of nodes) {
+    for (const other of bodies) {
       if (other === node) continue;
-      const gap = Math.hypot(
-        other.position[0] - node.position[0],
-        other.position[2] - node.position[2]
-      );
+      const there = positionOf(other);
+      const gap = Math.hypot(there[0] - here[0], there[2] - here[2]);
       if (gap < nearest) nearest = gap;
     }
-    // The only landmark in the world: nothing to be mistaken for.
+    // The only body in the world: nothing to be mistaken for.
     if (!Number.isFinite(nearest)) continue;
 
     const limit = nearest * NEIGHBOUR_SHARE;
@@ -63,5 +75,5 @@ export function clampNodeLabelReach(nodes) {
     const scale = limit / reach;
     node.labelOffset = [offset[0] * scale, 0, offset[2] * scale];
   }
-  return nodes;
+  return bodies;
 }

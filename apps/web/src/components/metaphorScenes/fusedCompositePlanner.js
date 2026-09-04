@@ -1,6 +1,6 @@
 import { hash01, hash01Salted } from '../../utils/seededHash.js';
 import { getCompositeCapability, getCompositePrimitive } from './compositePrimitiveRegistry.js';
-import { clampNodeLabelReach } from './fusedLabelReach.js';
+import { clampLabelReach } from './fusedLabelReach.js';
 
 const TAU = Math.PI * 2;
 const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));
@@ -706,6 +706,12 @@ function makePaths({ layers, sites, novelty, worldKey, anchors, linkNeighbors, m
         motion: makeMotion(worldKey, item.id, 'flow', novelty)
       };
     });
+    // A station's push is a flat 0.72 along the bearing from its site's centre,
+    // so two stations at a similar angle from that centre are walked along the
+    // same line and the near one collects the far one's name — the landmark
+    // failure `clampLabelReach` was written for, one grammar over. Same cap,
+    // against the nearest other station of this path. See `fusedLabelReach.js`.
+    clampLabelReach(stations, (station) => station.point);
     let controls = stations.map((station) => station.point);
     if (controls.length === 1) {
       const [point] = controls;
@@ -1198,7 +1204,7 @@ export function planFusedCompositeWorld(dsl) {
     linkNeighbors,
     motionIntensity
   });
-  clampNodeLabelReach(nodes);
+  clampLabelReach(nodes);
   assignSiteLabelPlacement(sites, nodes);
   assignLabelRanks(layers, sites, nodes, paths);
   const links = makeLinks(dsl, layers, anchors);

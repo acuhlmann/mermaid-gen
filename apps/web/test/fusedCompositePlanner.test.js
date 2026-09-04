@@ -734,6 +734,45 @@ describe('planFusedCompositeWorld', () => {
     }
     expect(compared).toBeGreaterThan(0);
   });
+
+  // A path station's name has to read as ITS name too, and the guard above
+  // reaches only `plan.nodes`. A station's push is a flat 0.72 along the bearing
+  // from its SITE's centre out to the station, so two stations that sit at
+  // nearly the same angle from that centre are pushed along nearly the same
+  // line — the landmark failure, one grammar over, and equally silent because
+  // both names are still drawn. Measured on the shipped toaster composite before
+  // this guard: `bread-enters` and `coil-hesitates` sit 0.18 units apart on
+  // `recollection-loop`, and `bread-enters`'s name landed 0.720 from its own
+  // station and 0.701 from `coil-hesitates`. `station.anchor` shares its x/z with
+  // `station.point`, so the distance from a name to its own station IS the reach
+  // of its `labelOffset`.
+  it('keeps every station name nearer the station it names than any other on its path', () => {
+    expect(COMPOSITE_FIXTURES.length).toBeGreaterThan(0);
+    let compared = 0;
+    for (const name of COMPOSITE_FIXTURES) {
+      const plan = planFusedCompositeWorld(readCompositeFixture(name));
+      for (const path of plan.paths) {
+        for (const station of path.stations) {
+          const labelX = station.anchor[0] + station.labelOffset[0];
+          const labelZ = station.anchor[2] + station.labelOffset[2];
+          const own = Math.hypot(labelX - station.point[0], labelZ - station.point[2]);
+          for (const other of path.stations) {
+            if (other === station) continue;
+            const away = Math.hypot(labelX - other.point[0], labelZ - other.point[2]);
+            compared += 1;
+            expect(
+              away,
+              `${name}/${path.id}: ${station.id}'s name is ${away.toFixed(3)} from ` +
+                `${other.id} and ${own.toFixed(3)} from itself`
+            ).toBeGreaterThan(own);
+          }
+        }
+      }
+    }
+    // Every shipped composite carries at least one multi-station path; a sweep
+    // that compared nothing would pass while examining nothing.
+    expect(compared).toBeGreaterThan(0);
+  });
 });
 
 describe('resolveCompositeAtmosphere', () => {
