@@ -33,16 +33,23 @@ Do not copy `standUp(); render(<OfficeFloor />)` into new suites — extend the 
 | ------------------------------------ | ---------------------------------------------------------------------------------------- |
 | `officeFloorPlan.test.js`            | Pure geometry: projection, marks, glass, peek roster                                     |
 | `officeFloorMovement.test.js`        | Where you may walk, approach/peek/prop marks                                             |
+| `officeFloorNextStore.test.js`       | Shop/scene join offers published to the floor strip; action-store wiring                 |
 | `officeFloorReach.test.js`           | Where somebody is when away, and whether it is a mark                                    |
 | `officeFloorInterrupt.test.js`       | What somebody says when you take the square they wanted (slice 18)                       |
 | `officeFloorRunIdle.test.js`         | When a completed run may walk someone over (continuity v1 idle snapshot)                 |
 | `officeRunReactionPicker.test.js`    | Who walks over after a run (memory-bias ∩ intern/scrum/greybeard, never senior/away)     |
 | `officeFloorContracts.test.js`       | **ADR-0011 executable rules** (narration, props, POV)                                    |
+| `officeFloorDwell.test.jsx`          | Standing beside somebody too long triggers a dwell remark (slice 19); PRNG-pinned        |
+| `officeFloorHuddle.test.jsx`         | Huddle ring tiles, away desks, hard-stop card, and floor huddle UI                       |
+| `officeFloorIntro.test.js`           | Day-one intro beats, walk roster, reception paths that avoid the glass room              |
 | `officeFloorModuleInventory.test.js` | Bench components + test files still exist                                                |
 | `officeFloorPropsTable.test.js`      | `officeFloorProps.js` ↔ `propTileFor` alignment                                          |
 | `officeLayerFloorRenderer.test.jsx`  | Desk overlay **or** floor scene — never both                                             |
 | `officeFloor.test.jsx`               | Substrate, person cards, walk-bys, mode toggle                                           |
 | `officeFloorArrival.test.jsx`        | First-run ceremony on the floor                                                          |
+| `officeFloorBoard.test.js`           | `boardFrom` diagram sampling for monitor, whiteboard, and meeting-table surfaces         |
+| `officeFloorCamera.test.jsx`         | Follow-cam scroll: rAF-driven centre-on, reduced-motion snap, meeting/scene framing      |
+| `officeFloorCoffeeWalk.test.js`      | Coffee-break accept walks you to the machine; blocked during a physical meeting          |
 | `officeFloorAccess.test.jsx`         | Live region, `floorAnnouncement`, reduced motion                                         |
 | `officeFloorRoam.test.jsx`           | Free roam click + keyboard                                                               |
 | `officeFloorShopTalk.test.jsx`       | The proximity ladder, the overheard pair, and the offer to join (22, 23)                 |
@@ -54,6 +61,7 @@ Do not copy `standUp(); render(<OfficeFloor />)` into new suites — extend the 
 | `officeFloorPeek.test.jsx`           | Desk peeking marks and fiction                                                           |
 | `officeFloorProps.test.jsx`          | Usable props + `getCoffee` verb                                                          |
 | `officeFloorScene.test.jsx`          | Coffee + battle set pieces                                                               |
+| `officeFloorSceneJoin.test.jsx`      | Coffee/battle join offers, earshot range, scene pacing hooks                             |
 | `officeFloorMeeting.test.jsx`        | Glass room meeting renderer; nobody lost walking in (27); what the table holds (29)      |
 | `officeFloorWander.test.jsx`         | Ambient wander roster, yields, and the interrupted-errand line                           |
 | `officeFloorStyles.test.js`          | CSS facts (hit box, focus, reduced motion)                                               |
