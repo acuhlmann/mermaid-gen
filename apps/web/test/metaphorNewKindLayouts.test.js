@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   resolveInterchangeGroups,
-  subwayNetworkLayout
+  subwayNetworkLayout,
+  subwayStationTitle
 } from '../src/utils/metaphorLayouts/subwayNetworkLayout.js';
 import { icebergLayout } from '../src/utils/metaphorLayouts/icebergLayout.js';
 import {
@@ -67,6 +68,46 @@ describe('subwayNetworkLayout', () => {
     for (const station of stations) {
       expect(station.members).toContain(station.primary);
     }
+  });
+
+  it('writes a compound name so no member of an interchange goes unnamed', () => {
+    // The one label an interchange draws used to be `members[0]`'s own, which
+    // deleted every other member's concept from the picture: measured over
+    // three fixtures x three viewports, 6 of 29 authored names had no text
+    // object anywhere in the scene at any viewport. A real interchange has a
+    // compound name (King's Cross St. Pancras); here it is a stacked sign.
+    const shared = [
+      { id: 'order-checkout', label: 'Checkout', line: 'Order', stop: 0, interchange: ['pack'] },
+      { id: 'pack', label: 'Pack', line: 'Fulfilment', stop: 0 }
+    ];
+    const { stations } = subwayNetworkLayout(shared);
+    expect(stations).toHaveLength(1);
+    expect(stations[0].title).toBe('Checkout\nPack');
+  });
+
+  it('collapses repeats, because the canonical example names both members "Auth"', () => {
+    // `metaphorSystemPrompt.js` gives both members of its interchange the label
+    // "Auth", and a sign reading "Auth / Auth" is worse than the suppression
+    // this replaced.
+    const { stations } = subwayNetworkLayout(items);
+    const auth = stations.find((station) => station.members.includes('a2'));
+    expect(auth.title).toBe('Auth');
+  });
+
+  it('leaves an ordinary station its own name', () => {
+    const { stations } = subwayNetworkLayout(items);
+    const start = stations.find((station) => station.members.includes('a1'));
+    expect(start.title).toBe('Start A');
+  });
+
+  it('keeps authored order, and survives a member with no usable label', () => {
+    const itemById = new Map([
+      ['a', { label: 'Warehouse' }],
+      ['b', { label: '   ' }],
+      ['c', { label: 'Feature store' }]
+    ]);
+    expect(subwayStationTitle(['a', 'b', 'c'], itemById)).toBe('Warehouse\nFeature store');
+    expect(subwayStationTitle(['missing'], itemById)).toBe('');
   });
 });
 

@@ -176,6 +176,16 @@ ones that will bite an edit.
   With `reducedMotion: 'reduce'`, three consecutive runs match to the label. This applies to
   every camera-independent live-scene probe in this domain — the technique is legitimate (it
   needs no projection), and the reduced-motion flag is the missing preamble.
+  **It is necessary and not sufficient: the verify skill's ~5 s settle is too short, and 9 s is
+  where these scenes stop moving.** Measured on the subway slice with the flag already set, two
+  identical 5 s runs of three fixtures × three viewports scored 68 and 70 legible names and
+  disagreed on five names on the phone viewports alone; the same two runs at 9 s returned 78 and
+  78, cell for cell identical, and the 9 s number is HIGHER — 5 s was sampling a scene still
+  settling, so the shortfall reads as labels the change failed to rescue. Add a metric the
+  declutter and the camera cannot touch as the control: **whether a name has any troika `Text` in
+  the scene at all**, which is a fact about the render tree rather than about a frame. That one
+  was stable to the name across all four runs (69 before, 87 after), and it is the metric that
+  states the actual defect when the bug is a name the scene never builds.
 - **A fused route is solved against the world's surface, and the moment it stopped flying it
   needed its own ink.** A path layer's stations sit on the sites they bind to and the spline used to
   run straight from one island's crest to the next, so the channel held island-top height over open
@@ -204,6 +214,29 @@ ones that will bite an edit.
   no elliptical cross-section, so it would take post-processing the vertices against the curve. The
   crossing's 0.45 is left alone deliberately: no composite fixture carries a `bridge` layer, and
   changing it blind is exactly the move this domain's screenshot rule exists to stop.
+- **A shared station writes a compound name, and a stacked label needs the box AND the anchor to
+  know it.** `subwayNetworkLayout.js`'s `subwayStationTitle` joins an interchange's members with
+  `\n`, deduped, in authored order — because drawing only `members[0]`'s label deleted every other
+  member's concept from the picture, not merely from that frame: measured over three subway
+  fixtures × phone/cover/desktop, **6 of 29 authored names had no troika `Text` in the scene at any
+  viewport** ("Pack", "Preferences", "Semantic layer", "Feature store", "Serve", "Where is it?"),
+  so hover was the only way to learn they existed. The suppression's stated reason — an interchange
+  is ONE place and three stops there stamp one name three times over itself — is true and is not an
+  argument for one name: the members are different user concepts the author declared co-located,
+  and a real network answers that with King's Cross St. Pancras. Repeats still collapse, because
+  the canonical example in `metaphorSystemPrompt.js` labels both members of its interchange "Auth".
+  Two things a multi-line label costs, both in `labelRoles.js` and both invisible to a test that
+  only checks the text: `labelPlateEm` must measure **the longest line for width and the line count
+  for height** (measuring the joined string has the sign claim a box three names wide and drop
+  everything beside it; reporting one line's height under-claims exactly the half the pass then
+  lets a neighbour into — the same trap tracking and capitals already document, on the other axis);
+  and troika anchors at the block's **middle**, so extra lines grow DOWN, which is where the thing
+  being named stands. `labelStackLiftEm` lifts the drawn block by half a line per extra line, from
+  **inside the screen-constant group** — a world-unit lift is undone by the camera like every other
+  viewer-relative size here — and the declutter pass registers that lifted group rather than the
+  Billboard, or the box it reserves sits a lift below the box it draws. Measured: 60/87 →
+  78/87 names legible, every one of the nine fixture×viewport cells improved or tied, and the one
+  buried name in the baseline ("Ship", under its own platform) went to zero.
 - **The fused composite does not inherit shared chrome.** It shipped without `MetaphorAccents` and
   with unlabelled affinity rings; when a base kind grows a scene-wide affordance, check
   `FusedCompositeScene.jsx` for it. Group placards must show `group.display` (the user's raw noun),

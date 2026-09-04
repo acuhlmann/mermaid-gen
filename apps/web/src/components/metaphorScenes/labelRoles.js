@@ -71,6 +71,35 @@ export function labelRoleText(text, style) {
   return style.upper ? raw.toUpperCase() : raw;
 }
 
+/** Baseline line height of the drawn text, in ems — troika's default leading. */
+export const LINE_EM = 1.35;
+
+/**
+ * How far a multi-line label must rise so its FIRST line sits where a one-line
+ * label's did, in ems of the drawn font size.
+ *
+ * troika anchors at the block's middle, so a two-line sign grows half a line
+ * down as well as half a line up — and down is where the thing it names is. The
+ * subway interchange is the case that forced this: "Ship / Where is it?" hangs
+ * over a station with no glyph, at 0.95 world units, and the second line landed
+ * on the white platform disc, where the probe scored it buried and the
+ * screenshot showed it smeared across the rim. A station sign hangs ABOVE its
+ * platform; extra names lengthen it upward.
+ *
+ * It is an em rather than a world offset because it is applied inside the
+ * screen-constant group — a world lift would be undone by the camera the way
+ * every other viewer-relative size in this directory already documents.
+ *
+ * @param {number} lineCount
+ */
+export function labelStackLiftEm(lineCount) {
+  return (Math.max(1, lineCount) - 1) * (LINE_EM / 2);
+}
+
+/** Chip padding around the drawn text, in ems: lateral and vertical. */
+const PLATE_PAD_X = 0.9;
+const PLATE_PAD_Y = 0.22;
+
 /**
  * The label's chip footprint in ems, which the declutter pass turns into a
  * screen box. Estimated from the glyph count because troika only publishes real
@@ -81,12 +110,33 @@ export function labelRoleText(text, style) {
  * them: without that a group placard claims a box a third narrower than it
  * draws, and then overlaps whatever it was supposed to stand clear of.
  *
+ * **A newline is the same trap on the other axis.** A subway interchange writes
+ * its members' names as a stacked sign (`subwayNetworkLayout.js` `title`), and
+ * troika draws every `\n` as a real line — so a two-line name that reports one
+ * line's height claims half the box it draws, and the pass lets a neighbour
+ * through into the half it never measured. Width is the LONGEST line, not the
+ * whole string: joining the lines end-to-end would have the sign claim a box
+ * three names wide and drop everything beside it.
+ *
  * @param {string} drawnText — already transformed by `labelRoleText`
  * @param {{ tracking: number, upper: boolean }} style
  * @returns {{ width: number, height: number }} in ems of the drawn font size
  */
 export function labelPlateEm(drawnText, style) {
   const advance = GLYPH_ADVANCE * (style.upper ? UPPERCASE_WIDENING : 1) + style.tracking;
-  const width = Math.min(MAX_LABEL_EM, (drawnText?.length ?? 0) * advance);
-  return { width: width + 0.9, height: 1.35 + 0.22 };
+  const lines = labelLines(drawnText);
+  const longest = lines.reduce((most, line) => Math.max(most, line.length), 0);
+  const width = Math.min(MAX_LABEL_EM, longest * advance);
+  return { width: width + PLATE_PAD_X, height: LINE_EM * lines.length + PLATE_PAD_Y };
+}
+
+/**
+ * The drawn lines of a label. One entry for a plain name; one per member for a
+ * stacked interchange sign.
+ *
+ * @param {string} drawnText
+ * @returns {string[]}
+ */
+export function labelLines(drawnText) {
+  return typeof drawnText === 'string' && drawnText ? drawnText.split('\n') : [''];
 }

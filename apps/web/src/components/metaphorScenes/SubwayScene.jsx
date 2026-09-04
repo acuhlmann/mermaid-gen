@@ -226,9 +226,13 @@ export function SubwayScene({ dsl, theme }) {
         const station = stationById.get(layout.stationOf.get(item.id));
         const isInterchange = (station?.lines.length ?? 1) > 1;
         // At an interchange every member sits on the same platform, so only the
-        // primary carries the name — otherwise the station prints its own label
-        // two or three times into exactly the same pixels.
+        // primary draws a label — otherwise three stops stamp three names into
+        // exactly the same pixels. What that one label carries is the platform's
+        // compound name (`subwayStationTitle`), one member per line, so a stop
+        // that yields the draw still gets read: suppressing the others outright
+        // deleted 5 of 26 authored items from three fixtures at every viewport.
         const showsLabel = !station || station.primary === item.id;
+        const labelText = station ? station.title || item.label : item.label;
         const traffic = typeof item.traffic === 'number' ? item.traffic : 5;
         return (
           <HoverableItem key={item.id} item={item} metaphor="subway">
@@ -246,7 +250,7 @@ export function SubwayScene({ dsl, theme }) {
               ) : null}
               {showsLabel ? (
                 <ItemLabel
-                  text={item.label}
+                  text={labelText}
                   position={[0, TRACK_Y + (item.glyph ? 1.95 : 0.95), 0]}
                   fontSize={0.42}
                   color={theme.labelColor}
