@@ -18,7 +18,13 @@ import { useLabelDeclutter } from './labelDeclutterContext.js';
 import { ItemAccentContext, useItemAccent } from './itemAccentContext.js';
 import { useLabelDepthTest } from './metaphorLabelDepth.js';
 import { FRAME_IGNORE_DATA } from './sceneFraming.js';
-import { labelPlateEm, labelRoleStyle, labelRoleText } from './labelRoles.js';
+import {
+  labelLines,
+  labelPlateEm,
+  labelRoleStyle,
+  labelRoleText,
+  labelStackLiftEm
+} from './labelRoles.js';
 import {
   ACCENT_ITEM_LABEL_ORDER,
   ACCENT_ITEM_LABEL_PLATE_OPACITY,
@@ -105,7 +111,11 @@ export function ItemLabel({
   layerKey = null,
   targetPx = LABEL_TARGET_PX
 }) {
-  const billboardRef = useRef(null);
+  // The declutter pass measures THIS group, not the Billboard: a stacked sign
+  // is lifted inside the screen-constant group (see `lift` below), so the
+  // Billboard's own origin is no longer the centre of the drawn box, and a box
+  // registered there would under-claim the top line by exactly the lift.
+  const boxRef = useRef(null);
   const scaleRef = useRef(null);
   const textRef = useRef(null);
   const plateRef = useRef(null);
@@ -126,6 +136,9 @@ export function ItemLabel({
 
   // The chip footprint, estimated from the glyph count — see labelPlateEm.
   const plateEm = labelPlateEm(drawn, style);
+  // A stacked sign lengthens upward: troika anchors at the block's middle, and
+  // down is where the thing being named stands. See labelStackLiftEm.
+  const lift = labelStackLiftEm(labelLines(drawn).length);
   const plateWidth = plateEm.width * size;
   const plateHeight = plateEm.height * size;
   // An accented item's chip carries a saturated amber rod behind it now that the
@@ -156,7 +169,7 @@ export function ItemLabel({
   useEffect(() => {
     if (!declutter || !text) return undefined;
     return declutter.register({
-      object: billboardRef.current,
+      object: boxRef.current,
       importance,
       pinned: isPinned,
       layerKey,
@@ -180,34 +193,35 @@ export function ItemLabel({
 
   if (!text) return null;
   return (
-    <Billboard position={position} ref={billboardRef}>
+    <Billboard position={position}>
       <group ref={scaleRef}>
-        {/* Chip behind every label so one-word names stay readable against a
+        <group ref={boxRef} position={[0, lift * size, 0]}>
+          {/* Chip behind every label so one-word names stay readable against a
             lit facade, a bright sky, or a busy fused landscape. The plate is
             scaffolding, not subject — keep it out of the camera fit. A group
             placard has none: it is written across its ground, and its heavier
             outline is what carries it. Not rendered at all rather than drawn at
             zero alpha — an invisible transparent quad still costs a sorted draw
             call, and a fused world can hold a dozen placards. */}
-        {plateOpacity > 0 ? (
-          <mesh
-            ref={plateRef}
-            position={[0, 0, -size * 0.05]}
-            userData={FRAME_IGNORE_DATA}
-            renderOrder={accented ? ACCENT_ITEM_LABEL_PLATE_ORDER : LABEL_PLATE_ORDER}
-          >
-            <planeGeometry args={[plateWidth, plateHeight]} />
-            <meshBasicMaterial
-              color={outlineColor}
-              transparent
-              opacity={plateOpacity}
-              depthWrite={false}
-              depthTest={!accented}
-              toneMapped={false}
-            />
-          </mesh>
-        ) : null}
-        {/* The accented item's name is drawn LAST and without depth, above its
+          {plateOpacity > 0 ? (
+            <mesh
+              ref={plateRef}
+              position={[0, 0, -size * 0.05]}
+              userData={FRAME_IGNORE_DATA}
+              renderOrder={accented ? ACCENT_ITEM_LABEL_PLATE_ORDER : LABEL_PLATE_ORDER}
+            >
+              <planeGeometry args={[plateWidth, plateHeight]} />
+              <meshBasicMaterial
+                color={outlineColor}
+                transparent
+                opacity={plateOpacity}
+                depthWrite={false}
+                depthTest={!accented}
+                toneMapped={false}
+              />
+            </mesh>
+          ) : null}
+          {/* The accented item's name is drawn LAST and without depth, above its
             own callout. The stem, pin and caption are all depth-test-free, so
             once the marker exists `renderOrder` is the only thing deciding
             which of the two a viewer can read — and the marker was winning
@@ -222,22 +236,23 @@ export function ItemLabel({
             it is the one to read, and the kinds where the claim is worth making
             — a submerged iceberg block, a gear behind a plate rim, a terminus
             under its own track — are exactly the ones that bury it. */}
-        <Text
-          ref={textRef}
-          fontSize={size}
-          color={ink}
-          anchorX="center"
-          anchorY="middle"
-          letterSpacing={style.tracking}
-          maxWidth={size * 16}
-          outlineWidth={size * style.outline}
-          outlineColor={outlineColor}
-          outlineOpacity={1}
-          renderOrder={accented ? ACCENT_ITEM_LABEL_ORDER : 0}
-          onSync={applyLabelDepth}
-        >
-          {drawn}
-        </Text>
+          <Text
+            ref={textRef}
+            fontSize={size}
+            color={ink}
+            anchorX="center"
+            anchorY="middle"
+            letterSpacing={style.tracking}
+            maxWidth={size * 16}
+            outlineWidth={size * style.outline}
+            outlineColor={outlineColor}
+            outlineOpacity={1}
+            renderOrder={accented ? ACCENT_ITEM_LABEL_ORDER : 0}
+            onSync={applyLabelDepth}
+          >
+            {drawn}
+          </Text>
+        </group>
       </group>
     </Billboard>
   );

@@ -281,6 +281,44 @@ export function subwayRouteSign(stops, radiusOf, options = {}) {
   return terminusSign(stops, radiusOf, reachX, reachZ);
 }
 
+/**
+ * The name a shared platform writes above itself.
+ *
+ * An interchange used to print the name of `members[0]` and nothing else, on the
+ * true argument that three stops standing at the same `(x, z)` would otherwise
+ * stamp three names into the same pixels. What that argument misses is that the
+ * members are not three spellings of one thing: in this grammar each is a
+ * different stop on a different route, which the author has *declared* to be the
+ * same place — "Checkout" on the order line and "Pack" on the fulfilment line.
+ * Suppressing all but one deleted those concepts from the picture entirely.
+ * Measured across three fixtures, 5 of 26 authored items had no name anywhere on
+ * screen, at any viewport, and hover was the only way to learn they existed.
+ *
+ * The real network's answer is a compound name — King's Cross St. Pancras — and
+ * here it is one stacked sign: the members' names on their own lines, in authored
+ * order, drawn as ONE label so the station stays one place to the declutter pass.
+ * Repeats collapse, because the canonical example in
+ * `apps/server/src/prompts/metaphorSystemPrompt.js` gives both members of its
+ * interchange the label "Auth", and a sign reading "Auth / Auth" is worse than
+ * the suppression it replaced.
+ *
+ * @param {string[]} ids — member item ids, in authored order
+ * @param {Map<string, Record<string, unknown>>} itemById
+ * @returns {string} newline-joined; a single-member station returns its own label
+ */
+export function subwayStationTitle(ids, itemById) {
+  const seen = new Set();
+  const names = [];
+  for (const id of ids) {
+    const raw = itemById.get(id)?.label;
+    const label = typeof raw === 'string' ? raw.trim() : '';
+    if (!label || seen.has(label)) continue;
+    seen.add(label);
+    names.push(label);
+  }
+  return names.join('\n');
+}
+
 function lineKey(item) {
   const raw = item.line;
   return typeof raw === 'string' && raw.trim() ? raw.trim() : DEFAULT_LINE;
@@ -331,7 +369,7 @@ export function resolveInterchangeGroups(items) {
  * @returns {{
  *   positions: Map<string, [number, number, number]>,
  *   lines: Array<{ name: string, index: number, stops: Array<{ id: string, position: [number, number, number], traffic: number }>, sign: [number, number, number] | null }>,
- *   stations: Array<{ id: string, position: [number, number, number], members: string[], primary: string, lines: string[], lineIndices: number[], traffic: number, platformRadius: number }>,
+ *   stations: Array<{ id: string, position: [number, number, number], members: string[], primary: string, title: string, lines: string[], lineIndices: number[], traffic: number, platformRadius: number }>,
  *   stationOf: Map<string, string>,
  *   bounds: { radius: number }
  * }}
@@ -443,7 +481,10 @@ export function subwayNetworkLayout(items) {
       members: ids,
       // Only one member draws the station's name: an interchange is ONE place,
       // and three stops stacked at it printed its name three times over itself.
+      // What it draws is the whole platform's compound name, not just its own —
+      // see `subwayStationTitle` for why suppressing the rest lost them.
       primary: ids[0],
+      title: subwayStationTitle(ids, itemById),
       lines: stationLines,
       lineIndices: stationLines.map((name) => lineIndexByName.get(name) ?? 0),
       traffic,

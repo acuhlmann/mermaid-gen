@@ -3,10 +3,13 @@ import { describe, expect, it } from 'vitest';
 import {
   GLYPH_ADVANCE,
   LABEL_ROLES,
+  LINE_EM,
   UPPERCASE_WIDENING,
+  labelLines,
   labelPlateEm,
   labelRoleStyle,
-  labelRoleText
+  labelRoleText,
+  labelStackLiftEm
 } from '../src/components/metaphorScenes/labelRoles.js';
 
 describe('label roles', () => {
@@ -74,6 +77,49 @@ describe('label roles', () => {
     const short = labelPlateEm('X'.repeat(60), LABEL_ROLES.group);
     expect(long.width).toBe(short.width);
     expect(long.width).toBeLessThan(18);
+  });
+
+  it('measures a stacked sign by its tallest stack and its longest line', () => {
+    // troika draws every `\n` as a real line, so a subway interchange's compound
+    // name is two or three lines tall. A box that reports one line's height
+    // claims half what it draws and lets a neighbour through into the half it
+    // never measured — the same under-claim the tracking/capitals case above
+    // exists for, on the other axis. Width must NOT grow with the extra lines:
+    // measuring the joined string would have the sign claim a box three names
+    // wide and drop everything beside it.
+    const one = labelPlateEm('Checkout', LABEL_ROLES.item);
+    const two = labelPlateEm('Checkout\nPack', LABEL_ROLES.item);
+    const three = labelPlateEm('Checkout\nPack\nShip', LABEL_ROLES.item);
+    expect(two.width).toBe(one.width);
+    expect(three.width).toBe(one.width);
+    expect(two.height - one.height).toBeCloseTo(LINE_EM, 9);
+    expect(three.height - two.height).toBeCloseTo(LINE_EM, 9);
+  });
+
+  it('widens to the longest line when a later member has the longer name', () => {
+    const stacked = labelPlateEm('Ship\nWhere is it?', LABEL_ROLES.item);
+    const longest = labelPlateEm('Where is it?', LABEL_ROLES.item);
+    expect(stacked.width).toBe(longest.width);
+  });
+
+  it('lifts a stacked sign so its first line sits where one line did', () => {
+    // Anchored at the block's middle, extra lines grow DOWN as well as up — and
+    // down is where the station stands. Measured on the subway: "Ship / Where is
+    // it?" hangs over a platform with no glyph and the second line landed on the
+    // white disc, which the probe scored buried and the screenshot showed
+    // smeared across the rim.
+    expect(labelStackLiftEm(1)).toBe(0);
+    expect(labelStackLiftEm(2)).toBeCloseTo(LINE_EM / 2, 9);
+    expect(labelStackLiftEm(3)).toBeCloseTo(LINE_EM, 9);
+    // A degenerate count must not push an ordinary label off its own item.
+    expect(labelStackLiftEm(0)).toBe(0);
+  });
+
+  it('reads a plain name as exactly one line', () => {
+    expect(labelLines('Checkout')).toEqual(['Checkout']);
+    expect(labelLines('Checkout\nPack')).toEqual(['Checkout', 'Pack']);
+    expect(labelLines('')).toEqual(['']);
+    expect(labelLines(undefined)).toEqual(['']);
   });
 });
 
