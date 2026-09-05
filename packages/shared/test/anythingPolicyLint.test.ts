@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { lintAnythingPolicy } from '../src/anythingPolicyLint.js';
+import { lintAnythingQuality } from '../src/anythingQualityLint.js';
 
 const VALID_DOC = `<!DOCTYPE html>
 <html><head><style>body{margin:0}</style></head>
@@ -75,6 +76,73 @@ test('lintAnythingPolicy still rejects external URLs inside script strings', () 
   assert.equal(result.ok, false);
   if (result.ok) return;
   assert.equal(result.code, 'external_url');
+});
+
+// #538 fixed these three cases and pinned them ONLY in the bench corpus
+// (`quality-unclosed-script-with-comment` in apps/server/scripts/benchAnythingCorpus.js), which
+// `npm test` never executes: the sole in-suite reader of that corpus filters it to
+// `kind === 'runtime' && expectedCode === 'runtime_error'`, and the fixture is
+// `quality`/`unclosed_tag`. Reverting the `|$` fallback closer left the whole suite green — a pin that
+// exists and never runs (#541). The corpus fixture is still worth keeping; these are the gate CI runs.
+//
+// The failure mode #538 removed: with no closer matched, the ENTIRE unclosed body stayed unstripped, so
+// the first `//` of any surviving line comment (`… 0.9;    // radians`) read as an external URL and the
+// model was told to delete a URL that was never in the document, instead of being told it was truncated.
+
+test('an unclosed <script> whose line comment holds URL-shaped text is not rejected external_url (#538 via #541)', () => {
+  const truncated = `${VALID_DOC.replace(
+    "<script>document.title='x';</script>",
+    '<script>const angleMoon = 0.9;\n// see https://example.com/docs'
+  )}`;
+  assert.equal(
+    lintAnythingPolicy(truncated).ok,
+    true,
+    'the comment must not be read as a network load'
+  );
+  // and the real defect is still named, by the check that owns it
+  const quality = lintAnythingQuality(truncated);
+  assert.equal(quality.ok, false);
+  if (!quality.ok) assert.equal(quality.code, 'unclosed_tag');
+});
+
+test('the same holds for an unclosed <style> with a URL inside a CSS comment (#538 via #541)', () => {
+  const truncated =
+    '<!DOCTYPE html><html><head><style>body{color:red}\n/* https://example.com/notes */\n';
+  assert.equal(
+    lintAnythingPolicy(truncated).ok,
+    true,
+    'a CSS comment must not be read as a network load'
+  );
+  // Asserted as "still rejected", not as a specific code: with the style never closed, the whole tail of
+  // the document sits inside it, so the quality linter legitimately reports `missing_body` here while the
+  // script-side case above reaches `unclosed_tag`. What must not happen is a false `external_url`, which
+  // is the bug #538 removed and what the line above pins.
+  assert.equal(lintAnythingQuality(truncated).ok, false);
+});
+
+test('widening the strip to end-of-input does not hide a real external URL (#538 hole check)', () => {
+  // The `$` closer only matches where no real `</script>`/`</style>` exists, so a quoted URL — which is
+  // a load, not a comment — must still be rejected even in a truncated document. Without this pair the
+  // fix could be "fixed" into a bypass.
+  const unclosedScript =
+    '<!DOCTYPE html><html><head><style>body{margin:0}</style></head><body><h1>Hi</h1>' +
+    '<script>const img = \'<img src="https://cdn.evil.com/x.png">\';\n';
+  const scriptResult = lintAnythingPolicy(unclosedScript);
+  assert.equal(
+    scriptResult.ok,
+    false,
+    'a quoted URL inside an unclosed script is still a network load'
+  );
+  if (scriptResult.ok) return;
+  assert.equal(scriptResult.code, 'external_url');
+
+  const unclosedStyle =
+    '<!DOCTYPE html><html><head><style>body{color:red}\n</style><script>const img = ' +
+    '\'<img src="https://cdn.evil.com/x.png">\';</script></body></html>';
+  const styleResult = lintAnythingPolicy(unclosedStyle);
+  assert.equal(styleResult.ok, false);
+  if (styleResult.ok) return;
+  assert.equal(styleResult.code, 'external_url');
 });
 
 test('lintAnythingPolicy rejects external image URLs', () => {
