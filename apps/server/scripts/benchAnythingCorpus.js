@@ -228,6 +228,20 @@ export const ANYTHING_BENCH_CORPUS = [
     expectedCode: 'css_unbalanced',
     html: page('<h1>Styles</h1>', { head: '<style>h1 { color: red;</style>' })
   },
+  {
+    // A <script> cut short before its closing tag (generation truncated
+    // mid-page) used to defeat the comment stripper: with no literal
+    // `</script>` to match, the whole unclosed body stayed unstripped, so a
+    // plain `//` line comment inside it read as an external URL —
+    // `external_url` was the largest bucket in the 2026-09-04 generation
+    // baseline, and both repro docs were truncated mid-script, not a real
+    // URL. Pins that this now falls through to the real defect.
+    id: 'quality-unclosed-script-with-comment',
+    kind: 'quality',
+    expectedAccept: false,
+    expectedCode: 'unclosed_tag',
+    html: page('<h1>Cut short</h1><script>\nconst angle = 0.9; // radians\nconst x = 1;')
+  },
 
   // ── runtime: only fail when executed, must stay rejected ────────────────
   {
