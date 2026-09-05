@@ -65,14 +65,61 @@ test/officeComponents test/castTiers test/officeErrand --root apps/web` — **19
 Append one row per firing, including quiet runs. The first row is expected to be queue item 0 —
 the harness and its baseline trace, with no product file in the diff.
 
-| Date | Slice | Visit trace (mode · what changed) | Tests before → after | PR  | Notes |
-| ---- | ----- | --------------------------------- | -------------------- | --- | ----- |
+| Date       | Slice                                   | Visit trace (mode · what changed)                                                                                                                                                                                                                          | Tests before → after                                                                                                                               | PR  | Notes                                                                                                                                                                                                                                                                                                                                                                                                    |
+| ---------- | --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- | --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-09-05 | Queue 0 — `visit-harness`, and baseline | **5 traces, 2 modes.** `generated` (`POST /api/office/moment` 200, `deepseek-v4-flash`, 1360 in / 44–58 out) and `no-llm-calls` (zero LLM-bearing office calls). All 7 steps `ok` in every run. JSON below the table — **re-measure it, do not quote it**. | `test:floor` 37 files / 572 cases, blast bundle 44 / 609, shared `office` 376, server `office` 57 — green before and after. `npm run check` green. | —   | Branch `office-life/visit-harness`. **No product file in the diff**, as queue item 0 requires: the deliverable is the instrument. Harness at `apps/web/test/officeVisitTrace.mjs`, **not** `scripts/` — see `visit-harness-home` below. Two findings out of the first baseline, both recorded, neither fixed tonight: `floor-talk-channel-tag` (filed as #552) and `dwell-then-nothing` (needs samples). |
+
+### 2026-09-05 baseline trace
+
+Five runs of the fixed visit, one machine, one hour, with `DEEPSEEK_API_KEY` set and `apps/server`
+built and running on `:4199`. **`mode` decides whether any other field may be compared with another
+night's** — a canned-fallback trace and a generated one are not comparable, and the same visit
+landed on both.
+
+```json
+{
+  "runs": 5,
+  "durationMs": "35.6k (--no-llm) · 41.3k–45.1k (server up)",
+  "mode": {
+    "--no-llm": "canned-fallback — /api/office/{speak,moment} both 502 through the vite proxy",
+    "server up, runs 1-3": "generated — POST /api/office/moment 200 in 1458-1845 ms",
+    "server up, runs 4-5": "no-llm-calls — zero LLM-bearing office calls made at all"
+  },
+  "visit": "7/7 steps ok in every run",
+  "speech": {
+    "count": "8-11 lines",
+    "byChannel": { "narration": "7-9", "dwell": "0 or 2", "other": "0 or 1" },
+    "bySource": { "model": 0, "bank": "8-11" },
+    "modelTurns": "runs 1-3: one turn, 1360 in / 44-58 out, deepseek-v4-flash. runs 4-5: none."
+  },
+  "movement": {
+    "firstMover": "office-floor-player (3.4-4.2 s)",
+    "wanderer": "first step at 10.6-11.3 s",
+    "Chad": "77-81 position changes — the walker",
+    "everyone else": "6-7 changes, longest still 13.5 s"
+  },
+  "roomDelta": {
+    "surfaces": "+office-floor-player, +office-floor-talk-card",
+    "seatsVacated": ["you"],
+    "viewPhase/dayPhase": "unchanged"
+  },
+  "pageErrors": []
+}
+```
+
+**Read `bySource.model: 0` beside `modelTurns`, never alone.** They disagree on purpose: on runs 1–3
+the model produced a real, in-character, provoked answer and **no surface in the room drew it**, so
+the DOM-side counter is right about what a visitor saw and wrong about what the office did. An
+instrument keeping only one of them would have made the opposite claim depending on which.
 
 ## Todos
 
 | Id                             | State                | Item                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | ------------------------------ | -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `visit-harness`                | pending              | Queue item 0: the scripted visit under `scripts/`, `playwright-core` against preinstalled Chromium, importing `components/OfficeFloor.css` and freezing animations at their **end**. Delivers the baseline trace this ledger's Run log needs to be comparable. Until it exists, § Acceptance in the playbook is unmeetable and every other slice is unverifiable in the way this one is.                                                                                                                                                                                |
+| `visit-harness`                | **done** 2026-09-05  | Queue item 0. Landed as `apps/web/test/officeVisitTrace.mjs` — one file, one JSON object, seven fixed steps, scratch harness page written under `apps/web/` and deleted on the way out. Needs `playwright-core` installed **outside** the repo (`OFFICE_VISIT_PLAYWRIGHT=…`), because a new dependency is an issue first per the shelf contract, and an explicit `executablePath` for Chromium.                                                                                                                                                                         |
+| `visit-harness-home`           | **blocked-by-paths** | § 2 says the harness is "one file under `scripts/`"; the playbook's **front-matter** does not reach `scripts/` — `routine:guard --reachable scripts/officeVisitTrace.mjs` answers `improve`. Front-matter is what postflight enforces and prose is not, so the file sits at the nearest in-budget home beside the office suites. Reconcile: either add `scripts/office*` to `allowedPaths`, or point § 2's prose at `apps/web/test/`. Budgets and playbooks are `improve`'s.                                                                                            |
+| `dwell-then-nothing`           | pending              | From the first baseline: on the two runs where the dwell remark fired, the visit made **zero** LLM-bearing office calls and the sentence typed into the floor composer sat in `imHistory` with no reply; on the three where the dwell did not fire, the same sentence got a model answer in ~1.5 s. Two samples either side of a harness change that also grew the visit ~8 s, so it is an observation, not a cause. ≥3 samples per arm **and a control** before touching `officeCadence.js`.                                                                           |
+| `floor-talk-channel-tag`       | **filed** #552       | `OfficeLayer.handleTalkReply` calls `pushOfficeImReply({ colleagueId, body })` with no `channel`; the default `'im'` is then omitted from the stored message, `isSpokenLine` is exactly `msg.channel === 'talk'`, so `latestTalkLine` is null and `FloorTalk` draws nothing. Measured: Gilfoyle's generated 58-token reply reached `imHistory` and no surface in the room showed it, while the dwell remark — which does tag `'talk'` — lifted a bubble in the same visit. Product change; not queue item 0's to make.                                                  |
 | `ratchet-office-monoliths`     | **blocked-by-paths** | `officeCast.js` (2790), `OfficeFloor.css` (1971), `OfficeLayer.jsx` (1791) and `officeFloorPlan.js` (1065) are absent from `ratchet.json`'s `monolithLoc`, so `improve`'s register-accuracy item never measures them and the four largest office files in the repo are unbounded. `ratchet.json` and every budget are `improve`'s. This row is the ask; do not widen it from a run.                                                                                                                                                                                     |
 | `officefloor-suite-blast-wall` | **blocked-by-paths** | `scripts/test-affected.test.mjs` reverse-sweeps `apps/web/test/` for `/^officeFloor.*\.test\.(js                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | jsx)$/`and **fails`npm test`** on any match absent from `ISOMETRIC_FLOOR_BLAST_TESTS`, so a new `officeFloor*`suite cannot be landed by this rung at all — the script is`improve`'s. Two separate asks: (1) `useOfficeDayPhase`is in`test:floor`but not the bundle, and`officeErrand`/`personaFaces`/`useFloorArrivalFocus`/`useFloorAway`are in the bundle but not`test:floor`— the two sets should agree on what "the floor is green" means; (2)`docs/agents/isometric-floor-tests.md` (33/33 since #529) stays in sync whichever way it settles. |
 | `interruption-leaves-a-mark`   | pending              | Queue 2. `officeFloorInterrupt.js` turns a colleague for home with `goHome({ byYou })`, an apology and a 1800 ms linger, and records nothing — so `useFloorDwell.js`'s "ask the model only if they remember you" almost never has a memory to ask on. Cheapest answer to the afterwards question in the file. Stays on the record side of ADR-0010.                                                                                                                                                                                                                     |
@@ -103,6 +150,24 @@ the harness and its baseline trace, with no product file in the diff.
   slices are all consumers of facts that are already being written, not new producers of facts. Check
   which side of the store a signal starts on before recording another limitation — that is how
   slice 19's dwell got mis-filed as a constraint for a while.
+- **One visit is a smoke test, not a measurement.** Five runs of the identical fixed visit, on one
+  machine within one hour, split 3/2 between `generated` and `no-llm-calls`. That is the
+  `benchAnythingGeneration` lesson (`--samples 3` or more; two single-sample runs of the same 12
+  cases measured 66.7% and 91.7%) arriving in this domain on night one. A future row that reports a
+  single trace and calls a number moved has not measured anything — run the visit at least three
+  times per arm, and say how many.
+- **Two steps of the fixed visit are load-bearing in a way § 2's prose does not say, and both were
+  silent no-ops until this run fixed them.** "Stand beside them for six seconds" cannot produce a
+  dwell line while the talk card is open, because `useFloorDwell` is gated on `active` and a card
+  open is a _reason_ to be stood there — the step has to leave the conversation first or it measures
+  nothing while reporting `ok`. And "step into their path" clicked at ~5 s found no walker at all:
+  ambient traffic starts when the room decides to, measured at 10.6–11.3 s, so the step waits for
+  one. Neither is the visit being edited to move a number; both are the difference between a step
+  that performs and a step that reports `ok` for doing nothing. **This is the failure mode to look
+  for in every later step added here**: a green step is not evidence until you have seen it go red.
+- The 2026-09-05 15:52Z manual first fire (PR #549) left **no run-log row** — this row is the first.
+  Contract rule 6 asks for one every firing, including runs that change nothing, and a rung whose
+  memory has a hole in it is exactly what a cold-start run cannot detect.
 - The floor's known ESLint complexity offenders are recorded in `docs/office-isometric-mode.md` § 8,
   which also warns the figures had themselves drifted and one was backwards. Re-measure before
   quoting them, and remember most floor complexity points are **default parameters** (`= null`
