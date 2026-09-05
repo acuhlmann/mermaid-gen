@@ -323,6 +323,10 @@ and one (`resolve`) is capped at one pick a night, so the tracker was the only u
 the shelf. Measured across 2026-08-25 → 09-05: **36 issues opened, 13 closed**, the backlog climbing
 14 → 24 while every item-level watchdog correctly reported nothing to act on.
 
+That was the fleet when it was measured. `office-life` joined on 2026-09-05 as an eighth rung and a
+seventh filer, so the ceiling side of this rule now has to hold at seven: the per-rung `maxIssues` is
+what bounds total inflow, and a new filing rung is exactly the pressure this rule was written for.
+
 Three things are now mechanical, all of them enforced by the guard rather than by this prose:
 
 ```bash

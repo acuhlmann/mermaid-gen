@@ -25,10 +25,10 @@ forbiddenPaths:
 Reviews everything that landed on `main` in the last 24 hours, fixes at most one bug it can prove,
 and files the rest as issues. Opens a PR, merges it when CI is green.
 
-`0 20 * * *` (04:00 HKT) sits after all three feature automations have landed their PRs —
-`metaphor3d` (`0 15`, 50–120 min), `anything` (`15 17`), `canvas-graph-edit` (`30 18`). Their work
-gets reviewed by nobody else. It runs _before_ `improve` and `resolve` so the issues it files are
-in the backlog when `resolve` reads it three hours later.
+`0 20 * * *` (04:00 HKT) sits after all four feature automations have landed their PRs —
+`office-life` (`0 13`), `metaphor3d` (`0 15`, 50–120 min), `anything` (`15 17`),
+`canvas-graph-edit` (`30 18`). Their work gets reviewed by nobody else. It runs _before_ `improve`
+and `resolve` so the issues it files are in the backlog when `resolve` reads it three hours later.
 
 > **The night ladder** (all crons UTC; the owner is GMT+8, so the whole pipeline runs while
 > they're asleep and the digest is waiting when they wake). Gaps are sized from _measured_ run
@@ -36,6 +36,7 @@ in the backlog when `resolve` reads it three hours later.
 >
 > | HKT   | UTC           | Job                 | shelf       | host   |
 > | ----- | ------------- | ------------------- | ----------- | ------ |
+> | 21:00 | `0 13 * * *`  | `office-life`       | automations | Claude |
 > | 23:00 | `0 15 * * *`  | `metaphor3d`        | automations | Claude |
 > | 01:15 | `15 17 * * *` | `anything`          | automations | Claude |
 > | 02:30 | `30 18 * * *` | `canvas-graph-edit` | automations | Claude |

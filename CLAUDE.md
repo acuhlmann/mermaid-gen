@@ -197,8 +197,8 @@ check`: two unattended feature automations run daily here, and a quality metric 
   a self-merged monolith split when the fix matches an extraction pattern already used elsewhere in
   the file (`improve.md` § 7), or a lint `warn`→`error` promotion after a two-week quiet period
   (§ 8). ADR-0010 (no slot content) and "no new dependencies" are unchanged.
-- **There is a night ladder, and it is a dependency order.** Seven jobs run between `0 15` and
-  `0 23` UTC (23:00–07:00 in the owner's GMT+8): feature automations produce code, `review` reads
+- **There is a night ladder, and it is a dependency order.** Eight jobs run between `0 13` and
+  `0 23` UTC (21:00–07:00 in the owner's GMT+8): feature automations produce code, `review` reads
   what landed, `improve` works the quality queue, `resolve` works the backlog, `digest` reports.
   Table (with the host running each rung) in [`docs/routines/review.md`](docs/routines/review.md).
   `deps` (`30 4,16 * * *`) is off the ladder on purpose — advisories arrive in bursts.
@@ -220,13 +220,14 @@ before starting, append a row when finishing, including runs that changed nothin
 
 ## Scheduled feature automations
 
-Slot-quality work — validation gates, prompts, benches, renderer fixes for one diagram mode — runs
-on a separate shelf: [`docs/automations/`](docs/automations/README.md). Same three-piece contract
+Slot-quality work — validation gates, prompts, benches, renderer fixes for one mode, or the office —
+runs on a separate shelf: [`docs/automations/`](docs/automations/README.md). Same three-piece contract
 (playbook + ledger + cron trigger), same `npm run routine:guard` budget enforcement, but these
 **do** touch product code (and never write slot content — ADR-0010 still applies).
 
 | Playbook                                                     | UTC           | What it improves                                      |
 | ------------------------------------------------------------ | ------------- | ----------------------------------------------------- |
+| [`office-life`](docs/automations/office-life.md)             | `0 13 * * *`  | The isometric office: cast, memory, the visit trace   |
 | [`metaphor3d`](docs/automations/metaphor3d.md)               | `0 15 * * *`  | The 3D slot: ladder, layouts, scenes, composite, USDA |
 | [`anything`](docs/automations/anything.md)                   | `15 17 * * *` | The Anything slot: policy lint, runtime rung, prompts |
 | [`canvas-graph-edit`](docs/automations/canvas-graph-edit.md) | `30 18 * * *` | Direct manipulation on the canvas, all 28 families    |

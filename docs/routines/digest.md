@@ -199,7 +199,7 @@ This is the section the routine exists for. Report each of these or say explicit
    paid for the same PR; an automation that isn't in the registry can't be in the ledger, the budget,
    or the watchdog, so it is invisible by construction.
 
-8. **The queue is not draining.** Six rungs file; one consumes, and `resolve.md` § 3 caps it at one
+8. **The queue is not draining.** Seven rungs file; one consumes, and `resolve.md` § 3 caps it at one
    product bug a night. Report the arithmetic when it is lopsided: issues filed in the window vs
    closed, and — from the last seven days of your own thread — how many nights the difference has run
    positive. Then name the two failure shapes this shelf keeps producing, because they are invisible to
