@@ -54,6 +54,19 @@
  * probe that measures only one of them will report a fix that is not there.
  */
 
+/**
+ * The tap-picked link, drawn depth-free so the answer to "which relation did I
+ * tap" is not hidden inside whatever the route passes through — on a city that
+ * is most of it, because an elbow route crosses the skyline it spans.
+ *
+ * Deliberately BELOW the label chip rather than above it. The picked line is a
+ * fat depth-free stroke and a link's own caption sits at the route's midpoint,
+ * i.e. exactly on the line: ranked above the plate it would paint over the very
+ * label whose relation it is confirming, which is the same mistake as the
+ * accent stem's, one rung down the ladder.
+ */
+export const PICKED_LINK_ORDER = 6;
+
 /** Label chip for an ordinary item, group placard or link caption. */
 export const LABEL_PLATE_ORDER = 8;
 

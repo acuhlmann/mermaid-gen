@@ -39,6 +39,11 @@ import {
 import { MetaphorEffects } from './MetaphorEffects.jsx';
 import { MetaphorHoverContext, createMetaphorHoverStore } from './metaphorHover.js';
 import { MetaphorSelectionContext, createMetaphorSelectionStore } from './metaphorSelection.js';
+import {
+  MetaphorLinkSelectionContext,
+  createMetaphorLinkSelectionStore,
+  metaphorKindHasEditableLinks
+} from './metaphorScenes/metaphorLinkPick.js';
 import { MetaphorLayerFocusContext, createMetaphorLayerFocusStore } from './metaphorLayerFocus.js';
 import { MetaphorPngExportBridge } from '../utils/viewportPngExport.js';
 
@@ -1305,6 +1310,7 @@ function MetaphorRendererImpl(
   // to the pile multiplied the warning.
   const [hoverStore] = useState(createMetaphorHoverStore);
   const [selectionStore] = useState(createMetaphorSelectionStore);
+  const [linkSelectionStore] = useState(createMetaphorLinkSelectionStore);
   const [tourStore] = useState(createMetaphorTourStore);
   const [layerFocusStore] = useState(createMetaphorLayerFocusStore);
   const reducedMotion = usePrefersReducedMotion();
@@ -1322,6 +1328,15 @@ function MetaphorRendererImpl(
     if (streamingPreview) return { dsl: null, renderError: '' };
     return resolveDslFromSource(diagramSource, false);
   }, [diagramSource, streamingPreview]);
+  // Whether this kind's adapter implements renameEdge/deleteEdge against a free
+  // links[]. Two things it deliberately does not read. Not `primaryLayerKind`,
+  // which resolves a composite to its dominant LAYER — a fused world whose
+  // loudest grammar is city would otherwise offer a rename that its own adapter
+  // routes per layer. And not `dsl`, which during a streaming preview is the
+  // last-good document held in a ref: nothing is editable mid-stream anyway, so
+  // the settled document is both the correct source and the one that keeps this
+  // out of the render-time ref read above.
+  const linksAreEditable = metaphorKindHasEditableLinks(finalResolved.dsl?.metaphor);
 
   useEffect(() => {
     if (!streamingPreview) {
@@ -1467,6 +1482,9 @@ function MetaphorRendererImpl(
   // has been replaced. Streaming drops it for the same reason.
   useEffect(() => {
     selectionStore.clear();
+    // A picked link holds a reference to the live group that drew it, so a
+    // rebuild strands it on an object detached from the scene.
+    linkSelectionStore.clear();
     // A read describes items that a re-run has just replaced — beat 3 of 5
     // would go on naming a tower that no longer exists.
     tourStore.stop();
@@ -1474,7 +1492,14 @@ function MetaphorRendererImpl(
     // re-run can leave the world receded around a layer that is gone, with no
     // pressed row left to press again.
     layerFocusStore.clear();
-  }, [selectionStore, tourStore, layerFocusStore, contentKey, streamingPreview]);
+  }, [
+    selectionStore,
+    linkSelectionStore,
+    tourStore,
+    layerFocusStore,
+    contentKey,
+    streamingPreview
+  ]);
 
   // Escape is the keyboard's dismiss; the panel's close button and a second tap
   // on the same item are the pointer's.
@@ -1483,12 +1508,13 @@ function MetaphorRendererImpl(
     const onKeyDown = (event) => {
       if (event.key !== 'Escape') return;
       selectionStore.clear();
+      linkSelectionStore.clear();
       tourStore.stop();
       layerFocusStore.clear();
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [selectionStore, tourStore, layerFocusStore]);
+  }, [selectionStore, linkSelectionStore, tourStore, layerFocusStore]);
 
   // Same lazy-once shape as the stores above, and for the same reason.
   const [sceneFit] = useState(createSceneFit);
@@ -1542,7 +1568,21 @@ function MetaphorRendererImpl(
           // Tapping the scene's empty space dismisses the pick. R3F only raises
           // this when the release landed within 2px of the press, so ending an
           // orbit over open sky never clears what you were reading.
-          onPointerMissed={() => selectionStore.clear()}
+          //
+          // It is also where a LINK is picked, and that placement is the whole
+          // of #495's "a link wins only when no item was hit": items handle and
+          // stop their own pointer events, so a tap that reaches here is by
+          // definition one no item claimed. A link never changes the meaning of
+          // an existing item tap, and there is no z-order race to arbitrate.
+          //
+          // The tap is only the REQUEST — resolving it needs the live camera,
+          // which is readable only from inside R3F's context, so
+          // MetaphorGraphEditBridge answers it. On a kind whose links are not
+          // editable nothing is subscribed and the request is simply dropped.
+          onPointerMissed={(event) => {
+            selectionStore.clear();
+            linkSelectionStore.requestPick({ clientX: event.clientX, clientY: event.clientY });
+          }}
         >
           <color attach="background" args={[theme.background]} />
           {/* Haze is expressed as a fraction of the content radius and re-solved
@@ -1592,56 +1632,78 @@ function MetaphorRendererImpl(
             {/* Mood ambience renders outside <Bounds> at a fixed spread, so the
                 particle layer never reframes the subject. */}
             {moodParticles ? <MoodAmbience fx={moodParticles} /> : null}
-            <MetaphorHoverContext.Provider value={streamingPreview ? null : hoverStore}>
-              <MetaphorLayerFocusContext.Provider value={streamingPreview ? null : layerFocusStore}>
-                <MetaphorSelectionContext.Provider value={streamingPreview ? null : selectionStore}>
-                  <LabelDeclutterContext.Provider value={declutter}>
-                    <MetaphorChangeHighlightProvider highlight={changeHighlight}>
-                      <SceneFrame
-                        margin={boundsMargin}
-                        contentKey={contentKey}
-                        safeArea={safeArea}
-                        fitRef={sceneFit}
-                      >
-                        <Center disableY>
-                          <group
-                            ref={contentRootRef}
-                            name={METAPHOR_CONTENT_ROOT_NAME}
-                            userData={{
-                              archislop: {
-                                contentType: 'metaphor3d',
-                                metaphor: dsl.metaphor
-                              }
-                            }}
-                          >
-                            <MetaphorScene dsl={dsl} theme={theme} />
-                          </group>
-                        </Center>
-                      </SceneFrame>
-                      <LabelDeclutterRunner store={declutter} chromeRects={chromeRects} />
-                      <SceneShadowFlags contentKey={contentKey} targetRef={contentRootRef} />
-                    </MetaphorChangeHighlightProvider>
-                  </LabelDeclutterContext.Provider>
-                </MetaphorSelectionContext.Provider>
-              </MetaphorLayerFocusContext.Provider>
-            </MetaphorHoverContext.Provider>
-            {/* Outside every content transform on purpose: the marker follows
+            {/* The link store is in context only for the kinds whose adapters
+                actually implement renameEdge/deleteEdge against a free links[] —
+                tree's and garden's relations are implied by structure, and
+                offering a rename there is a menu entry whose only outcome is an
+                error toast. An absent store means unpickable links, decided in
+                one place rather than in fourteen scene modules.
+
+                It wraps the graph-edit bridge as well as the scene, so the
+                bridge reads the same store the links layer does instead of
+                being handed a second copy of this condition. */}
+            <MetaphorLinkSelectionContext.Provider
+              value={
+                streamingPreview || !onSelectedNodeChange || !linksAreEditable
+                  ? null
+                  : linkSelectionStore
+              }
+            >
+              <MetaphorHoverContext.Provider value={streamingPreview ? null : hoverStore}>
+                <MetaphorLayerFocusContext.Provider
+                  value={streamingPreview ? null : layerFocusStore}
+                >
+                  <MetaphorSelectionContext.Provider
+                    value={streamingPreview ? null : selectionStore}
+                  >
+                    <LabelDeclutterContext.Provider value={declutter}>
+                      <MetaphorChangeHighlightProvider highlight={changeHighlight}>
+                        <SceneFrame
+                          margin={boundsMargin}
+                          contentKey={contentKey}
+                          safeArea={safeArea}
+                          fitRef={sceneFit}
+                        >
+                          <Center disableY>
+                            <group
+                              ref={contentRootRef}
+                              name={METAPHOR_CONTENT_ROOT_NAME}
+                              userData={{
+                                archislop: {
+                                  contentType: 'metaphor3d',
+                                  metaphor: dsl.metaphor
+                                }
+                              }}
+                            >
+                              <MetaphorScene dsl={dsl} theme={theme} />
+                            </group>
+                          </Center>
+                        </SceneFrame>
+                        <LabelDeclutterRunner store={declutter} chromeRects={chromeRects} />
+                        <SceneShadowFlags contentKey={contentKey} targetRef={contentRootRef} />
+                      </MetaphorChangeHighlightProvider>
+                    </LabelDeclutterContext.Provider>
+                  </MetaphorSelectionContext.Provider>
+                </MetaphorLayerFocusContext.Provider>
+              </MetaphorHoverContext.Provider>
+              {/* Outside every content transform on purpose: the marker follows
                 the picked object's WORLD position, so re-applying the frame's
                 fit and centering would double them. */}
-            {!streamingPreview ? (
-              <MetaphorSelectionMarker store={selectionStore} contentKey={contentKey} />
-            ) : null}
-            {!streamingPreview && onSelectedNodeChange ? (
-              <MetaphorGraphEditBridge
-                selectionStore={selectionStore}
-                selectedNode={selectedNode}
-                onSelectedNodeChange={onSelectedNodeChange}
-                onNodeToolbarAnchor={onNodeToolbarAnchor}
-                containerRef={containerRef}
-                contentKey={contentKey}
-                defaultMetaphor={dsl?.metaphor ?? null}
-              />
-            ) : null}
+              {!streamingPreview ? (
+                <MetaphorSelectionMarker store={selectionStore} contentKey={contentKey} />
+              ) : null}
+              {!streamingPreview && onSelectedNodeChange ? (
+                <MetaphorGraphEditBridge
+                  selectionStore={selectionStore}
+                  selectedNode={selectedNode}
+                  onSelectedNodeChange={onSelectedNodeChange}
+                  onNodeToolbarAnchor={onNodeToolbarAnchor}
+                  containerRef={containerRef}
+                  contentKey={contentKey}
+                  defaultMetaphor={dsl?.metaphor ?? null}
+                />
+              ) : null}
+            </MetaphorLinkSelectionContext.Provider>
           </MetaphorClockProvider>
           {/* Outside the clock provider and every content transform, like the
               marker: it drives the shared camera, which knows nothing about
