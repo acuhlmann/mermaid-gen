@@ -189,9 +189,17 @@ function maskRawTextElementBodies(html: string): string {
 function checkCssBalance(css: string, blockIndex: number): string | null {
   let depth = 0;
   let inString: '"' | "'" | null = null;
+  let inComment = false;
   let escaped = false;
   for (let i = 0; i < css.length; i += 1) {
     const ch = css[i];
+    if (inComment) {
+      if (ch === '*' && css[i + 1] === '/') {
+        inComment = false;
+        i += 1;
+      }
+      continue;
+    }
     if (inString) {
       if (escaped) {
         escaped = false;
@@ -202,6 +210,11 @@ function checkCssBalance(css: string, blockIndex: number): string | null {
         continue;
       }
       if (ch === inString) inString = null;
+      continue;
+    }
+    if (ch === '/' && css[i + 1] === '*') {
+      inComment = true;
+      i += 1;
       continue;
     }
     if (ch === '"' || ch === "'") {
@@ -215,6 +228,9 @@ function checkCssBalance(css: string, blockIndex: number): string | null {
         return `Style block ${blockIndex}: unexpected "}" (unbalanced braces).`;
       }
     }
+  }
+  if (inComment) {
+    return `Style block ${blockIndex}: unclosed comment.`;
   }
   if (depth !== 0) {
     return `Style block ${blockIndex}: unclosed "{" (unbalanced braces).`;

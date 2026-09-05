@@ -93,6 +93,19 @@ export const ANYTHING_BENCH_CORPUS = [
     )
   },
   {
+    // Regression case for the CSS-comment false positive: a `/* ... { ... } ... */`
+    // comment explaining brace-using syntax used to defeat checkCssBalance, which
+    // counted braces inside comments same as live rules — `css_unbalanced` was an
+    // unexamined top code in the 2026-09-04 generation baseline. Pins that a
+    // brace mentioned only in a comment no longer trips the counter.
+    id: 'valid-css-comment-with-brace',
+    kind: 'valid',
+    expectedAccept: true,
+    html: page('<h1>Styled</h1>', {
+      head: '<style>/* grid-template-areas uses a { region } string, not real braces */ h1 { color: teal; }</style>'
+    })
+  },
+  {
     // Allowlisted lib marker: the runtime check must execute the page WITH the
     // vendored d3 injected (regression = expansion dropped from the ladder).
     id: 'valid-lib-d3',
