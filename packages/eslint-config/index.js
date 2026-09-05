@@ -124,7 +124,7 @@ export function baseConfig({ env = 'node', tighten = false, workspaceDir = '.' }
       }
     },
     {
-      files: ['test/**/*.{js,jsx,ts,tsx}', '**/*.test.{js,jsx,ts,tsx}'],
+      files: ['test/**/*.{js,jsx,ts,tsx,mjs,cjs}', '**/*.test.{js,jsx,ts,tsx,mjs,cjs}'],
       languageOptions: { globals: { ...globals.node, ...envGlobals } },
       rules: {
         'max-lines': 'off',

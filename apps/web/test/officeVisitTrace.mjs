@@ -138,7 +138,7 @@ async function resolveChromium() {
   const hinted = process.env.OFFICE_VISIT_CHROMIUM?.trim();
   if (hinted) return hinted;
   const browsersPath = process.env.PLAYWRIGHT_BROWSERS_PATH?.trim() || '/opt/pw-browsers';
-  let entries = [];
+  let entries;
   try {
     entries = await readdir(browsersPath);
   } catch {

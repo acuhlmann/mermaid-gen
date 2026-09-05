@@ -158,8 +158,10 @@ This shelf's productive rungs all have a number they re-measure nightly (`benchM
 `benchAnything.js`). The office's number is a **scripted visit**, and it is item 0 because until it
 exists the acceptance rule above is unmeetable.
 
-One file under `scripts/`, driven by `playwright-core` against the preinstalled Chromium — the
-idiom already recorded in `apps/web/.claude/skills/verify/SKILL.md`. That skill's floor section is
+One file under `apps/web/test/office*` (this playbook's `allowedPaths` does not reach `scripts/`,
+and budgets/playbooks are `improve`'s to widen — see the ledger's `visit-harness-home` row), driven
+by `playwright-core` against the preinstalled Chromium — the idiom already recorded in
+`apps/web/.claude/skills/verify/SKILL.md`. That skill's floor section is
 not optional reading; five of its traps make a working feature look broken or a broken one look
 fine, and the harness will meet all five:
 
