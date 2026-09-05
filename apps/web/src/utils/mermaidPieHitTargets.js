@@ -57,21 +57,55 @@ function escapeXmlText(text) {
 }
 
 /**
- * @param {string | undefined} source the diagram DSL, used only to name the wedges
- * @returns {string[]} section labels in render order, empty when the source will not parse
+ * @typedef {{ index: number, label: string, value: number }} PieSliceIdentity
  */
-function pieSliceLabels(source) {
+
+/**
+ * The source's slices, and the subset of them mermaid actually draws.
+ *
+ * **DOM position is not source position.** Two rules in the pinned mermaid drop a section before
+ * it becomes a `path.pieCircle`, both in `pieDiagram-*.mjs`:
+ *
+ * - `addSection`: `if (!sections.has(label))` — a repeated label is merged into its first line.
+ * - `createPieArcs`: `.filter((d) => (d.value / sum) * 100 >= 1)` — a section under 1% of the
+ *   total is not drawn at all. (The legend still lists it, so it is invisible only as a wedge.)
+ *
+ * `parsePieDoc` keeps every source line, so `"Mice" : 1` ahead of two big sections leaves two
+ * wedges whose DOM positions are 0 and 1 and whose *source* indices are 1 and 2 — and the index
+ * is the whole identity the pie mutator addresses by. Stamping the DOM position renames or
+ * deletes the slice behind the one the user clicked.
+ *
+ * @param {string | undefined} source the diagram DSL
+ * @returns {{ ordered: PieSliceIdentity[], drawn: PieSliceIdentity[] }} source order, and the
+ *   wedges mermaid draws in DOM order; both empty when the source will not parse
+ */
+function pieSliceIdentities(source) {
   try {
     const doc = source ? parsePieDoc(source) : null;
-    if (!doc?.slices?.length) return [];
-    return [...doc.slices]
-      .slice()
+    if (!doc?.slices?.length) return { ordered: [], drawn: [] };
+    const ordered = [...doc.slices]
       .sort((a, b) => Number(a.index) - Number(b.index))
-      .map((slice) => String(slice.label ?? ''));
+      .map((slice) => ({
+        index: Number(slice.index),
+        label: String(slice.label ?? ''),
+        value: Number(slice.value) || 0
+      }));
+
+    /** @type {Map<string, PieSliceIdentity>} */
+    const sections = new Map();
+    for (const slice of ordered) {
+      if (!sections.has(slice.label)) sections.set(slice.label, slice);
+    }
+    const kept = [...sections.values()];
+    const sum = kept.reduce((acc, slice) => acc + slice.value, 0);
+    // `0 / 0` is NaN and `NaN >= 1` is false, so mermaid draws nothing for an all-zero pie. Say
+    // so explicitly rather than leaning on that.
+    const drawn = sum > 0 ? kept.filter((slice) => (slice.value / sum) * 100 >= 1) : [];
+    return { ordered, drawn };
   } catch {
     // A pie the parser rejects is still wedges on screen. Index identity is the fix; naming is a
     // nicety, and losing it must not cost the user a clickable chart.
-    return [];
+    return { ordered: [], drawn: [] };
   }
 }
 
@@ -91,11 +125,20 @@ export function stampPieSliceHitTargets(svgMarkup, source) {
   if (!svgMarkup.includes('pieCircle')) return svgMarkup;
   if (ALREADY_WRAPPED_RE.test(svgMarkup)) return svgMarkup;
 
-  const labels = pieSliceLabels(source);
+  const { ordered, drawn } = pieSliceIdentities(source);
+  const wedgeCount = (svgMarkup.match(PIE_WEDGE_RE) ?? []).length;
+  // Trust the drop model only when it predicts exactly what mermaid drew. A mismatch means this
+  // file's copy of those two rules has drifted from the pinned renderer (or the source does not
+  // parse), and a *guessed* index is worse than an unnamed wedge: it edits a slice the user did
+  // not click. So fall back to DOM position, which is what shipped and what keeps the chart
+  // selectable at all (#523).
+  const drawnByPosition = wedgeCount > 0 && drawn.length === wedgeCount ? drawn : null;
+
   let slice = 0;
   const stamped = svgMarkup.replace(PIE_WEDGE_RE, (wedge) => {
-    const id = `${PIE_HIT_ID_TAG}${slice}`;
-    const label = labels[slice];
+    const hit = drawnByPosition ? drawnByPosition[slice] : ordered[slice];
+    const id = `${PIE_HIT_ID_TAG}${drawnByPosition ? hit.index : slice}`;
+    const label = hit?.label;
     const title =
       typeof label === 'string' && label ? `<title>${escapeXmlText(label)}</title>` : '';
     slice += 1;

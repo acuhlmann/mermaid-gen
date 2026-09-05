@@ -151,3 +151,75 @@ describe('the stamped id reaches the pie mutator through the existing plumbing',
     expect(path.closest('g.node')?.id).toBe('diagram-0-node-0');
   });
 });
+
+/**
+ * Captured the same way as `REAL_PIE_MARKUP`, from `mermaid.render` against the pinned
+ * `mermaid ^11.17.2` — because the point of these two fixtures is a disagreement between the
+ * source and the DOM that only the real renderer produces.
+ *
+ * `TINY_SLICE_SOURCE` names three sections and mermaid draws **two**: `createPieArcs` filters
+ * `d.value / sum * 100 >= 1`, and Mice is 1/472 = 0.21%. `DUP_LABEL_SOURCE` also names three and
+ * also draws two: `addSection` is `if (!sections.has(label))`, so the second `"Dogs"` line is
+ * merged into the first. In both, DOM position 1 is source slice **2** — which is the whole
+ * finding: a wedge's index is where mermaid drew it, never where the user wrote it.
+ */
+const TINY_SLICE_SOURCE = 'pie title Pets\n  "Mice" : 1\n  "Dogs" : 386\n  "Cats" : 85';
+const TINY_SLICE_MARKUP =
+  `<svg id="probepie" viewBox="0 0 450 450"><g></g><g transform="translate(225,225)"><g>` +
+  `<circle cx="0" cy="0" r="186" class="pieOuterCircle"></circle>` +
+  `<path d="M0,-185A185,185,0,1,1,-167.623,-78.278L0,0Z" fill="#ffffde" class="pieCircle"></path>` +
+  `<path d="M-167.623,-78.278A185,185,0,0,1,0,-185L0,0Z" fill="hsl(80, 100%, 56.2745098039%)" class="pieCircle"></path>` +
+  '<text class="slice">82%</text><text class="slice">18%</text>' +
+  '</g></g></svg>';
+
+const DUP_LABEL_SOURCE = 'pie title Pets\n  "Dogs" : 386\n  "Dogs" : 40\n  "Cats" : 85';
+const DUP_LABEL_MARKUP =
+  `<svg id="probedup" viewBox="0 0 450 450"><g></g><g transform="translate(225,225)"><g>` +
+  `<circle cx="0" cy="0" r="186" class="pieOuterCircle"></circle>` +
+  `<path d="M0,-185A185,185,0,1,1,-167.623,-78.278L0,0Z" fill="#ECECFF" class="pieCircle"></path>` +
+  `<path d="M-167.623,-78.278A185,185,0,0,1,0,-185L0,0Z" fill="#ffffde" class="pieCircle"></path>` +
+  '<text class="slice">82%</text><text class="slice">18%</text>' +
+  '</g></g></svg>';
+
+describe('a wedge is stamped with its source index, not its DOM position', () => {
+  it('a section under 1% of the total is never drawn, so every later wedge shifts', () => {
+    const root = parseInto(stampPieSliceHitTargets(TINY_SLICE_MARKUP, TINY_SLICE_SOURCE));
+    const wraps = [...root.querySelectorAll('g.node')];
+
+    expect(wraps).toHaveLength(2);
+    // Not node-0/node-1: slice 0 is Mice, which mermaid dropped.
+    expect(wraps.map((g) => g.id)).toEqual(['diagram-0-node-1', 'diagram-0-node-2']);
+    expect(wraps.map((g) => g.querySelector('title')?.textContent)).toEqual(['Dogs', 'Cats']);
+  });
+
+  it('a repeated label is merged into its first line, so every later wedge shifts', () => {
+    const root = parseInto(stampPieSliceHitTargets(DUP_LABEL_MARKUP, DUP_LABEL_SOURCE));
+    const wraps = [...root.querySelectorAll('g.node')];
+
+    expect(wraps).toHaveLength(2);
+    expect(wraps.map((g) => g.id)).toEqual(['diagram-0-node-0', 'diagram-0-node-2']);
+    expect(wraps.map((g) => g.querySelector('title')?.textContent)).toEqual(['Dogs', 'Cats']);
+  });
+
+  it('the mutator edits the slice the user clicked, not the one behind it', () => {
+    const root = parseInto(stampPieSliceHitTargets(TINY_SLICE_MARKUP, TINY_SLICE_SOURCE));
+    // The big lilac wedge on screen is Dogs. Tap it.
+    const wrap = root.querySelectorAll('path.pieCircle')[0].closest('g.node');
+    const id = graphEditIdFromDescriptor({
+      id: wrap.id,
+      label: 'Dogs',
+      partKind: 'node',
+      partName: 'Dogs'
+    });
+
+    const renamed = renamePieNode(TINY_SLICE_SOURCE, id, 'Hounds');
+    expect(renamed.ok).toBe(true);
+    expect(renamed.source).toContain('"Hounds" : 386');
+    expect(renamed.source).toContain('"Mice" : 1');
+
+    const deleted = deletePieNode(TINY_SLICE_SOURCE, id);
+    expect(deleted.ok).toBe(true);
+    expect(deleted.source).not.toContain('Dogs');
+    expect(deleted.source).toContain('"Mice" : 1');
+  });
+});
