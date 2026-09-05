@@ -495,6 +495,20 @@ ones that will bite an edit.
   its own `(max-height: 620px) and (orientation: landscape)` rule plus a sticky nav row. Full
   reasoning in `CLAUDE.md`.
 
+- **A relation is hit-tested in SCREEN SPACE, not with a raycast**
+  (`metaphorScenes/metaphorLinkPick.js`). The obvious pick target for a link is an invisible fat
+  tube along its route; it cannot be made to work, for the reason every other size in this renderer
+  is in CSS pixels — a tube's radius is a WORLD size, these scenes run from a 14-unit layercake to
+  a 60-unit bridge, and a tap target has to be ~24 px on a phone at either. `MetaphorLinks`
+  publishes each route's LOCAL points in `userData.archislopLink`; the picker multiplies by the
+  group's world matrix, projects, and measures point-to-segment distance in pixels. Two rules that
+  fall out. **A point behind the camera must be rejected, not projected** — `Vector3.project`
+  divides by a negative `w` and returns a plausible MIRRORED position, which reads as a segment
+  crossing the whole canvas and makes every tap near that diagonal pick it. And **the pick runs
+  from the canvas's `onPointerMissed`**, which is what makes "a link wins only when no item was
+  hit" structural rather than arbitrated: `HoverableItem` handles and stops its own pointer events,
+  so a tap that reaches the picker is one no item claimed.
+
 ---
 
 ## Full findings
@@ -1093,6 +1107,37 @@ sticky` nav row, because the height cap makes every small screen a scrolling
   three wins, three losses, noise. The general lesson is the one the label-placement work already
   paid for — a framing change only becomes decidable once every label is scored, and a picture that
   is bigger but reads worse is not an improvement.
+- **Six adapters' worth of link mutators were live, tested and unreachable, and what was missing
+  was a hit-test, not a mutator.** `renameCityEdge`/`deleteCityEdge` and the four `canLink`
+  flat-kind equivalents were registered and green for weeks; nothing in the UI could call them,
+  because the only producer of a `kind: 'edge'` descriptor was the SVG resolver in
+  `DiagramCanvas.jsx` and a Three.js scene never goes near it (#495). Three decisions worth
+  keeping. **The `{from, to}` pair IS the edge's identity** — `findLinkedEdge`/`renameLinkedEdge`
+  resolve on it and `connectCityNodes` refuses a duplicate pair, so a synthetic edge id would be a
+  second name for one thing with nothing keeping them in step; `metaphorLinkDescriptor` carries no
+  such id. **`useFlowchartGraphEdit.js` needed no change at all** — its edge path keys on
+  `descriptor.kind` and never branches by diagram family, which is why this looked like a
+  cross-rung handoff and was not. And **link picking is offered only where the adapter can honour
+  it** (`LINK_EDITABLE_METAPHORS`: city, layercake, galaxy, machine, terrain): tree's and garden's
+  relations are implied by structure, their `renameEdge` returns `not-graph` on purpose, and a menu
+  entry whose only outcome is an error toast is worse than no entry. The gate is one context value
+  in `MetaphorRenderer`, not a branch in fourteen scene modules — an absent store makes the links
+  layer skip publishing altogether.
+- **A picked link is ranked BELOW the caption it confirms** (`metaphorDrawOrder.js`
+  `PICKED_LINK_ORDER = 6`). The highlight is a fat depth-free stroke and a link's own label sits at
+  the route's midpoint, i.e. exactly on the line, so ranking it above the label plate paints over
+  the very caption the pick is confirming — the accent stem's mistake, one rung down the ladder. It
+  still has to be depth-free: on a city an elbow route crosses the skyline it spans, so a
+  depth-tested highlight answers "which wire did I tap" from behind a tower.
+- **The pick colour is sky-400 for a link exactly as it is for an item**, held out of every theme
+  palette (`LINK_PICK_COLOR`, matching `MetaphorSelectionMarker`'s `MARKER_COLOR`). That shared
+  constant is also what makes the hit-test verifiable without a camera: tap a pixel, screenshot,
+  and measure the distance from the tap to the nearest sky-blue pixel. A wrong projection cannot
+  fake that — it aims off the wire and no highlight appears near the tap. It caught the probe's own
+  first version, where the camera had not finished its `SceneFrame` fit at a fixed 9 s settle and
+  every desktop aim was ~190 px above the wire; **wait for the projected routes to stop moving
+  rather than for a timeout**. Measured after: 20 of 21 link/viewport cells pick as an edge, always
+  the aimed one, highlight a mean 0.59 px from the tap.
 - **Verify metaphor changes by rendering them.** The scoped skill under
   `apps/web/.claude/skills/verify/` has the headless-capture recipe; every finding above came from
   a screenshot, not from reading the code.

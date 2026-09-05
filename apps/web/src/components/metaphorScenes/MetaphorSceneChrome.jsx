@@ -11,6 +11,15 @@ import { useFrame, useThree } from '@react-three/fiber';
 import { Billboard, ContactShadows, Line, Text } from '@react-three/drei';
 import { useMetaphorHover } from '../metaphorHover.js';
 import { createTapGesture, useMetaphorSelection } from '../metaphorSelection.js';
+import {
+  LINK_PICK_CASING_OPACITY,
+  LINK_PICK_COLOR,
+  LINK_PICK_USER_DATA,
+  LINK_PICK_WIDTH_SCALE,
+  linkPickKey,
+  useMetaphorLinkSelection,
+  usePickedLink
+} from './metaphorLinkPick.js';
 import { useMetaphorChangeHighlight } from '../metaphorChangeHighlightContext.js';
 import { MetaphorChangeHighlightRing } from '../MetaphorChangeHighlightRing.jsx';
 import { useMetaphorClock } from './metaphorClock.js';
@@ -29,7 +38,8 @@ import {
   ACCENT_ITEM_LABEL_ORDER,
   ACCENT_ITEM_LABEL_PLATE_OPACITY,
   ACCENT_ITEM_LABEL_PLATE_ORDER,
-  LABEL_PLATE_ORDER
+  LABEL_PLATE_ORDER,
+  PICKED_LINK_ORDER
 } from './metaphorDrawOrder.js';
 import {
   LABEL_TARGET_PX,
@@ -317,6 +327,7 @@ export function MetaphorGroundShadow({ theme, y = 0.01, scale }) {
 export function HoverableItem({ item, metaphor, layerLabel, children, onActiveIdChange }) {
   const store = useMetaphorHover();
   const selection = useMetaphorSelection();
+  const linkSelection = useMetaphorLinkSelection();
   const tapRef = useRef(null);
   const highlightCategory = useMetaphorChangeHighlight(item?.id);
   const resolvedLayerLabel =
@@ -354,6 +365,10 @@ export function HoverableItem({ item, metaphor, layerLabel, children, onActiveId
     if (!selection || !tapRef.current) return;
     if (!tapRef.current.end(event)) return;
     event.stopPropagation();
+    // An item and a link are one pick between them: the inspector, the marker
+    // and the radial menu each answer "what did I tap", and two live answers
+    // would have the ring on a tower while the menu renamed a wire.
+    linkSelection?.clear();
     selection.toggle({ item, metaphor, layerLabel: resolvedLayerLabel });
   };
   const itemId = typeof item?.id === 'string' ? item.id : undefined;
@@ -530,6 +545,12 @@ export function LinkArrowhead({ position, direction, color, casingColor, opacity
  *   traversal.
  */
 export function MetaphorLinks({ links, anchors, theme, variant = 'elbow' }) {
+  const pickable = Boolean(useMetaphorLinkSelection());
+  // Subscribing here rather than in each `<Line>` keeps a link pick off React
+  // state in the scene modules: only this component re-renders, and the
+  // layouts, anchor maps and per-item memos above it never re-run.
+  const pickedLink = usePickedLink();
+  const pickedKey = pickedLink?.link ? linkPickKey(pickedLink.link.from, pickedLink.link.to) : null;
   const metrics = linkMetricsFor(links?.length ?? 0);
   if (!links?.length) return null;
 
@@ -542,60 +563,113 @@ export function MetaphorLinks({ links, anchors, theme, variant = 'elbow' }) {
         const from = anchors.get(link.from);
         const to = anchors.get(link.to);
         if (!from || !to) return null;
-
-        const route = variant === 'arc' ? arcRoute(from, to) : elbowRoute(from, to);
-        const appearance = resolveLinkAppearance(link.kind, theme);
-        const ink = linkInk(appearance.lineColor, casingColor);
-        const arrow = arrowFromRoute(route.points);
         return (
-          <group key={`${link.from}-${link.to}-${idx}`}>
-            <Line
-              points={route.points}
-              color={casingColor}
-              lineWidth={metrics.casingPx}
-              transparent
-              opacity={LINK_CASING_OPACITY}
-              depthWrite={false}
-              renderOrder={-1}
-            />
-            <Line
-              points={route.points}
-              color={ink}
-              lineWidth={metrics.corePx}
-              transparent
-              opacity={coreOpacity}
-            />
-            {arrow ? (
-              <LinkArrowhead
-                position={arrow.position}
-                direction={arrow.direction}
-                color={ink}
-                casingColor={casingColor}
-                opacity={coreOpacity}
-                targetPx={metrics.arrowPx}
-              />
-            ) : null}
-            {appearance.showPulse ? (
-              <LinkFlowPulse
-                points={route.points}
-                color={appearance.pulseColor}
-                seed={idHash2(`${link.from}-${link.to}`, 'flow')}
-              />
-            ) : null}
-            {link.label ? (
-              <ItemLabel
-                text={link.label}
-                position={route.midpoint}
-                fontSize={0.35}
-                role="link"
-                targetPx={LINK_LABEL_TARGET_PX}
-                color={theme.labelColor}
-                outlineColor={theme.labelOutline}
-              />
-            ) : null}
-          </group>
+          <MetaphorLinkRoute
+            key={`${link.from}-${link.to}-${idx}`}
+            link={link}
+            route={variant === 'arc' ? arcRoute(from, to) : elbowRoute(from, to)}
+            theme={theme}
+            metrics={metrics}
+            casingColor={casingColor}
+            coreOpacity={coreOpacity}
+            pickable={pickable}
+            picked={pickedKey !== null && pickedKey === linkPickKey(link.from, link.to)}
+          />
         );
       })}
+    </group>
+  );
+}
+
+/** One relation: cased line, arrowhead, optional pulse, optional caption. */
+function MetaphorLinkRoute({
+  link,
+  route,
+  theme,
+  metrics,
+  casingColor,
+  coreOpacity,
+  pickable,
+  picked
+}) {
+  const appearance = resolveLinkAppearance(link.kind, theme);
+  const ink = picked ? LINK_PICK_COLOR : linkInk(appearance.lineColor, casingColor);
+  const arrow = arrowFromRoute(route.points);
+  return (
+    <group
+      // The route is published in LOCAL coordinates beside the group that draws
+      // it; `metaphorLinkPick.js` multiplies by this group's world matrix at
+      // pick time, so an animated kind that moves the group (galaxy's drift,
+      // machine's rotation) keeps a true hit target without this layer knowing
+      // anything about the camera.
+      userData={
+        pickable
+          ? {
+              ...FRAME_IGNORE_DATA,
+              [LINK_PICK_USER_DATA]: {
+                link: {
+                  from: link.from,
+                  to: link.to,
+                  label: typeof link.label === 'string' ? link.label : ''
+                },
+                points: route.points
+              }
+            }
+          : FRAME_IGNORE_DATA
+      }
+    >
+      <Line
+        points={route.points}
+        color={picked ? LINK_PICK_COLOR : casingColor}
+        lineWidth={picked ? metrics.casingPx * LINK_PICK_WIDTH_SCALE : metrics.casingPx}
+        transparent
+        opacity={picked ? LINK_PICK_CASING_OPACITY : LINK_CASING_OPACITY}
+        depthWrite={false}
+        renderOrder={-1}
+      />
+      <Line
+        points={route.points}
+        color={ink}
+        lineWidth={picked ? metrics.corePx * LINK_PICK_WIDTH_SCALE : metrics.corePx}
+        transparent
+        opacity={coreOpacity}
+        // A picked link is an annotation about the scene for as long as it is
+        // picked — the same call the accent callout and the selection ring
+        // already make. Without it the answer to "which wire did I tap" is
+        // hidden behind whatever the route passes through, which on a city is
+        // most of it.
+        depthTest={!picked}
+        depthWrite={!picked}
+        renderOrder={picked ? PICKED_LINK_ORDER : 0}
+      />
+      {arrow ? (
+        <LinkArrowhead
+          position={arrow.position}
+          direction={arrow.direction}
+          color={ink}
+          casingColor={casingColor}
+          opacity={coreOpacity}
+          targetPx={metrics.arrowPx}
+        />
+      ) : null}
+      {appearance.showPulse ? (
+        <LinkFlowPulse
+          points={route.points}
+          color={appearance.pulseColor}
+          seed={idHash2(`${link.from}-${link.to}`, 'flow')}
+        />
+      ) : null}
+      {link.label ? (
+        <ItemLabel
+          text={link.label}
+          position={route.midpoint}
+          fontSize={0.35}
+          role="link"
+          targetPx={LINK_LABEL_TARGET_PX}
+          color={theme.labelColor}
+          outlineColor={theme.labelOutline}
+        />
+      ) : null}
     </group>
   );
 }
