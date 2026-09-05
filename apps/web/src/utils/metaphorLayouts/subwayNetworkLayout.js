@@ -290,9 +290,11 @@ export function subwayRouteSign(stops, radiusOf, options = {}) {
  * members are not three spellings of one thing: in this grammar each is a
  * different stop on a different route, which the author has *declared* to be the
  * same place — "Checkout" on the order line and "Pack" on the fulfilment line.
- * Suppressing all but one deleted those concepts from the picture entirely.
- * Measured across three fixtures, 5 of 26 authored items had no name anywhere on
- * screen, at any viewport, and hover was the only way to learn they existed.
+ * Suppressing all but one deleted those concepts from the picture entirely: measured
+ * across three fixtures at three viewports, 6 of 29 authored names had no `Text` in
+ * the scene at all, and hover was the only way to learn they existed. (#534's pre-run
+ * diagnosis counted 5 of 26 items; the run's own evidence table is denominated in
+ * names, and this comment carries the run's number.)
  *
  * The real network's answer is a compound name — King's Cross St. Pancras — and
  * here it is one stacked sign: the members' names on their own lines, in authored

@@ -161,7 +161,11 @@ export function coveredFraction(box, rects) {
 
 /**
  * @typedef {object} LabelEntry
- * @property {import('three').Object3D | null} object — billboard, for its world position
+ * @property {import('three').Object3D | null} object — the drawn box's own group, read for its
+ *   world position. Deliberately NOT the `Billboard`: `labelStackLiftEm` lifts a multi-line block
+ *   from inside that group, so at any non-zero lift the Billboard's origin is no longer the centre
+ *   of what is drawn (`MetaphorSceneChrome.jsx` registers `boxRef`, and troika anchors a stacked
+ *   label at the middle of its block).
  * @property {number} importance — higher wins contested space
  * @property {boolean} pinned — never loses a contest for space
  * @property {string | null} [layerKey] — which composite layer this name belongs

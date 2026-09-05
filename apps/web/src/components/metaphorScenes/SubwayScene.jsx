@@ -230,7 +230,7 @@ export function SubwayScene({ dsl, theme }) {
         // exactly the same pixels. What that one label carries is the platform's
         // compound name (`subwayStationTitle`), one member per line, so a stop
         // that yields the draw still gets read: suppressing the others outright
-        // deleted 5 of 26 authored items from three fixtures at every viewport.
+        // left 6 of 29 authored names with no `Text` in the scene at any viewport.
         const showsLabel = !station || station.primary === item.id;
         const labelText = station ? station.title || item.label : item.label;
         const traffic = typeof item.traffic === 'number' ? item.traffic : 5;
