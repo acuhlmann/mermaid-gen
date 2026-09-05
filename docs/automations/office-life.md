@@ -97,7 +97,7 @@ by reading the word "canned" as a defect**:
   (28 lines) are not debt.
 - **A wanderer stays silent.** Slice 11's rule — _"a wanderer with something to say is a walk-by,
   and that lives in the moment store"_ — and one walker at a time, because a second needs collision
-  rules that do not exist (queue 8 is where that changes, and it changes by an issue first).
+  rules that do not exist (queue 10 is where that changes, and it changes by an issue first).
 
 What is fair game is exactly what the repo's own rule already names
 ([`docs/office-parody.md`](../office-parody.md) § 11): **a timer interrupted you → canned is
@@ -120,6 +120,24 @@ the same set** — the bundle adds `officeErrand`, `personaFaces`, `useFloorArri
 `useFloorAway`; `test:floor` adds `useOfficeDayPhase`. Run both. A green `test:floor` does not mean
 the errand still settles.
 
+**Neither of them runs the office's copy, cadence or voice rules**, which is most of what this brief
+is about. `test:floor` is a geometry-and-behaviour set: it does not contain `officeLocale`,
+`officeVoiceMedium`, `officeCadence`, `officeMomentStore`, `officeLogStore`, `officeImThreads`,
+`officeWorkingMemoryStore`, `officeWireContract`, `deskOs*` or `uiLocale`. Run that ladder too:
+
+```bash
+npx vitest run test/officeLocale test/officeVoiceMedium test/officeCadence test/officeMoment \
+  test/officeLog test/officeImThreads test/officeWorkingMemory test/officeWireContract \
+  test/uiLocale test/deskOs test/officeComponents test/castTiers test/officeErrand \
+  --root apps/web
+```
+
+Measured 2026-09-05: **19 files / 348 cases / 10.3 s** (`test:floor` is 37 files / 572 cases /
+23.0 s). Three of those nineteen are the ones this playbook's rules actually depend on:
+`officeLocale` catches a key added to English and missing from zh-CN — a feature that silently does
+not exist in that language; `officeVoiceMedium` catches the floor reading a typed IM aloud;
+`officeCadence` catches a cap declared at the use site instead of in the appetite table.
+
 Then the two seams the trap checklist exists for:
 
 ```bash
@@ -141,10 +159,27 @@ This shelf's productive rungs all have a number they re-measure nightly (`benchM
 exists the acceptance rule above is unmeetable.
 
 One file under `scripts/`, driven by `playwright-core` against the preinstalled Chromium — the
-idiom already recorded in `apps/web/.claude/skills/verify/SKILL.md`, including its two floor-specific
-import traps (import `components/OfficeFloor.css` yourself; freeze animations at their **end**, since
-`office-floor-cover` is `both`-filled from `opacity: 0` and seeking to 0 renders the whole floor
-invisible). It performs a fixed visit — enter the floor, walk to a named colleague, step into their
+idiom already recorded in `apps/web/.claude/skills/verify/SKILL.md`. That skill's floor section is
+not optional reading; five of its traps make a working feature look broken or a broken one look
+fine, and the harness will meet all five:
+
+- import `components/OfficeFloor.css` yourself — `ArchiSlop.jsx` is its only importer, and the tell
+  is **geometry, not blankness** (props measure at `y ≈ 2000` in an 844 px viewport);
+- seek animations to their **end**, not 0 — `office-floor-cover` is `both`-filled from `opacity: 0`,
+  so seeking to 0 renders the whole room invisible while every DOM measurement stays healthy;
+- **never diff two frames across a remount** — `OfficeFloor` re-randomises walkers and idle phases
+  each mount; a sit→stand A/B once reported 235/255 for a band worth 18/255;
+- one store call per `page.evaluate` — `standUp()` then `sitDown()` in a single block never enters
+  `sit-down` at all, because both land in one React tick;
+- **always assert you actually moved**, reading the player's transform before and after — a walker is
+  a zero-size anchor (so wait with `state: 'attached'`), a tile clicked by scaling a `transform`
+  against the roam element's rect lands ~430 px away, and the room's response to an illegal tile is
+  _silence_, which reads exactly like the feature failing to clear.
+
+Pin `Math.random` to `0.75` in an init script so a capture and a test are talking about the same
+trip, and shoot small art at `deviceScaleFactor: 4`.
+
+It performs a fixed visit — enter the floor, walk to a named colleague, step into their
 path, stand beside them for six seconds, use the printer, open the whiteboard, say one sentence in
 the composer — and prints one JSON object:
 
@@ -185,6 +220,13 @@ Anything naming the floor, the desk, the cast, an office route, or a `floor.*` l
 automation's work tonight, ahead of everything below. In the cloud sandbox `gh` has no token — use
 the GitHub MCP tool for listing issues (shelf rule 8).
 
+**As stood up, that queue was empty**: no open issue named an office file (the last one, #529 on the
+floor test map, merged 2026-09-04), and `docs/office-isometric-mode.md` § 8 carries a _debt list_ the
+repo has already written down and priced. So read those two things in order — open office issues,
+then the § 8 debts — and **file rarely**: this shelf is capped at one filing a run and the backlog is
+what `resolve` sweeps at one a night. A gap that is already documented in § 8 does not need an issue
+number to be worked; it needs a PR.
+
 ### 2. An interruption leaves a mark
 
 `apps/web/src/utils/officeFloorInterrupt.js` lets you stand in somebody's way: they turn for home
@@ -197,7 +239,43 @@ life; they have a script with a pause in it. This is the cheapest answer to ques
 and it stays on the record side of _record, never trigger_ (ADR-0010): the mark changes how the next
 exchange goes, it does not schedule one.
 
-### 3. A habit per colleague
+### 3. The whiteboard joke is told by whoever wins a tie-break
+
+`officeFloorShopTalk.js` nominates an overheard partner by nearest eligible seat — and at the
+whiteboard, `dinesh (7,4)` and `jared (8,5)` are **both exactly one tile from the mark**, so
+`FLOOR_SEATS` order is the only reason Dinesh ever answers. The pair's reply is written in an
+engineer's voice, and it becomes **Jared's** line whenever Dinesh is the one who walked over. Jared
+is on the wander roster, so that is a reachable state, not a theoretical one: the room puts words in
+a mouth that the words don't fit, and it does so on the channel where nobody is watching closely
+enough to ask. This is a canned line mismatched to a person, which makes it question 3's cheapest
+instance, and § 8 already names both honest fixes — key the bank on the **replier**, or exclude the
+second-nearest seat. Do the one that keeps the pair's voice coherent; do not widen the radius.
+
+The same file records two neighbours of this defect, so you can decide whether you are fixing one
+thing or three: a **third participant is unreachable by construction** (only the nearest seat is
+nominated, and slice 23 sharpened it — _you_ can now join and Jared still can't), and a bystander's
+dwell remark **withdraws the join offer**, because every listening tile on this floor is within one
+tile of somebody. The second one is explicitly parked until someone measures how often it happens;
+the visit harness (§ 2) is what would measure it.
+
+### 4. Colleagues have work, and never mention it
+
+`apps/web/src/utils/officeDeskWork.js` is a row per cast member — a `look` and one of five `doing`
+values (`typing`, `phone`, `headset`, `papers`, `mug`) — and it is shown when you peek at somebody's
+screen. **It is fed to no prompt.** `docs/office-parody.md` § 11 states its own remaining hole in
+plain words: _"Still open: deliverable context (last-run summary), and 'their own work'."_ That is
+the biggest unfilled "life of their own" gap the doctrine already names, and it is the one that costs
+nothing in new call sites: a colleague who is on the phone asks you something different than one
+with a stack of papers, and a remark that carries their own fiction is the difference between an NPC
+and a person with a job. Wire `doing` into the context the dwell and talk paths already send —
+`/moment` already takes `officeWorkingMemory` and `officeRelationship` — and watch the field caps on
+both sides (§ 4) while you do it.
+
+**Not** by giving the cast a run to initiate. One producer, many commentators: the cast pitches, it
+never proposes or runs (ADR-0010, `office-parody.md` § 11), and a validated _proposal_ stays
+contractor-only.
+
+### 5. A habit per colleague
 
 `apps/web/src/utils/officeFloorWander.js` is 83 lines and reads one global
 `WANDER_BIAS_WINDOWS` row — 14:00–16:30, coffeeMachine ×3, every persona alike. Give each colleague
@@ -210,7 +288,7 @@ a night when Chromium is unavailable.
 one instant (day phase, wander bias, wall clock) must not become four to express an hour-shaped fact
 about movement.
 
-### 4. The two props that do nothing when you use them
+### 6. The two props that do nothing when you use them
 
 `apps/web/src/utils/officeFloorProps.js` gives all three props a `name`, `note`, `useLabel`, `line`,
 `blocked` and four `details` — and `useFloorPropUse.js` grants a verb to exactly one of them, the
@@ -222,7 +300,7 @@ something you actually made — is the one slice here that answers "interactive 
 rather than only "interactive". It must compose through `floorActivityFor` (ADR-0011) and it must
 not add a floor subscription to the diagram store (§ 4).
 
-### 5. A provoked line that arrived prewritten
+### 7. A provoked line that arrived prewritten
 
 Question 3, on the provoked channels only: the dwell fallback deck, `pickTalkAnswer`'s
 `ignored: 'Nobody looks up.'`, `OFFICE_WALKBY_FALLBACKS` (11), `OFFICE_IM_REPLY_TEMPLATES` (13),
@@ -231,15 +309,15 @@ Question 3, on the provoked channels only: the dwell fallback deck, `pickTalkAns
 provoked channel is already LLM-first (`walkby` is always the model; desk talk carries
 `OFFICE_TALK_LLM_CAP = 12`, the largest number in `officeCadence.js`), the fix is usually not
 another call — it is noticing that the call was skipped because it had no fact to speak from, which
-is queue 2 again.
+is queue 2 or queue 4 again.
 
-### 6. Room tone that listens to the room
+### 8. Room tone that listens to the room
 
 `officeRoomTone.js` and `officeSoundscape.js` tick every 5 s against gap tables and never ask who is
 standing in the room. Six people at 10:30 and two at 19:00 sound the same. Occupancy is already
 derived and already cheap to read; what is missing is a consumer.
 
-### 7. Ambient that is generated, within a budget the owner signed
+### 9. Ambient that is generated, within a budget the owner signed
 
 The office's appetite table (`apps/web/src/utils/officeCadence.js`) is deliberately canned-heavy for
 ambient moments — `coffee` and `battle` are baked theatre, 19 and 11 scenes, zero model calls. The
@@ -261,7 +339,7 @@ The hard edges of that permission, all of them mechanical, none of them taste:
   `scripts/generate-office-audio.sh` with no asset name costs 900 credits and rewrites every
   committed `.mp3`, which is on the don't-touch list twice over.
 
-### 8. Two walkers at once
+### 10. Two walkers at once
 
 The floor is sparse and slice 11 already answered this: one walker, because a second needs collision
 rules that do not exist. Do not "start with two and see" — file the issue with the collision model
@@ -326,10 +404,31 @@ is the subset that has burned runs before, including the ones that stayed green 
   which owns every budget on both shelves. New copy goes in a new module beside the bank, not into
   the bank; a slice that cannot avoid `OfficeLayer.jsx` takes the extraction instead, and if the
   extraction is bigger than `maxFiles`, the ledger gets the row.
-- **A new test file must be added to the blast bundle** — `scripts/test-affected-lib.mjs` and
-  `docs/agents/isometric-floor-tests.md`. Neither is in this playbook's paths; `improve` owns the
-  script, so record `blocked-by-paths` naming the file, and say so in the PR body. An office suite
-  nothing selects is a suite that stops being run.
+- **A new `officeFloor*`-named suite is a wall, not a budget.** `scripts/test-affected.test.mjs`
+  reverse-sweeps `apps/web/test/` against `/^officeFloor.*\.test\.(js|jsx)$/` and fails **`npm test`**
+  on any match missing from `ISOMETRIC_FLOOR_BLAST_TESTS` — that guard exists because ten floor suites
+  sat unselected until #473 found them. The script is `improve`'s and outside this playbook's paths,
+  so: **extend an existing office suite**, which is nearly always the right shape here anyway. A
+  genuinely new file is fine when it is not a floor-geometry suite — `test:affected`'s basename
+  mirror selects a new content suite on its own once a module of the same basename exists — but a new
+  `officeFloor*` file cannot go green without
+  `improve`, and rule 3 deletes a red branch rather than landing it. Record the ask as
+  `blocked-by-paths` naming the file, and keep
+  [`docs/agents/isometric-floor-tests.md`](../agents/isometric-floor-tests.md) (33/33 since #529) in
+  sync with whichever way it settles.
+
+- **Answered already — do not re-derive these.** `docs/office-isometric-mode.md` § 8 keeps a list of
+  questions the floor has settled with reasoning, and each one looks like an obvious improvement from
+  a cold start: **one walker at a time** (a second needs collision rules that do not exist);
+  **ambient movement is never narrated** (slice 11); **only a settled figure is clickable**, so
+  "reachable" and "clickable" are one question, not two; **the camera is directed, not controlled**
+  (slice 14); **no sixth command surface** (verb placement is frequency, not category); **a fifth
+  usable prop needs a reason beyond "it is there"** — the water cooler, fridge and server rack are
+  unreachable on purpose, and moving one is a furniture change wearing a copy change's clothes, which
+  must be re-validated against § 6 rule 11. And one that will specifically tempt this rung:
+  **topic hotspots read off the diagram were built and removed on trial** — they ate the talk card.
+  If you are about to re-add something in that list, the finding you owe the ledger is what changed
+  since it was taken out, not a better implementation of it.
 
 ## 5. What this automation owns, and what it borrows
 
