@@ -158,7 +158,7 @@ describe('renameFlowchartEdge', () => {
   A[Start] -->|first| B[End]
   A -->|second| B
 `;
-    expect(renameFlowchartEdge(duplicate, 'A', 'B', 'changed', 'missing')).toEqual({
+    expect(renameFlowchartEdge(duplicate, 'A', 'B', 'changed', { edgeLabel: 'missing' })).toEqual({
       ok: false,
       reason: 'missing'
     });
@@ -169,7 +169,7 @@ describe('renameFlowchartEdge', () => {
   A[Start] -->|first| B[End]
   A -->|second| B
 `;
-    const result = renameFlowchartEdge(duplicate, 'A', 'B', 'changed', 'second');
+    const result = renameFlowchartEdge(duplicate, 'A', 'B', 'changed', { edgeLabel: 'second' });
     expect(result.ok).toBe(true);
     expect(result.source).toMatch(/A\[Start\] -->|first| B\[End\]/);
     expect(result.source).toMatch(/A -->|changed| B/);

@@ -326,10 +326,9 @@ export function renameStateNode(source, stateId, label) {
  * @param {string} fromId
  * @param {string} toId
  * @param {string} label new transition label
- * @param {string} [matchLabel] existing label identifying which parallel transition to rename
- * @param {number} [matchIndex] Mermaid `L_<from>_<to>_<n>` index when known
+ * @param {{ edgeLabel?: string, edgeIndex?: number }} [match] existing edge identifying which parallel transition to rename
  */
-export function renameStateEdge(source, fromId, toId, label, matchLabel, matchIndex) {
+export function renameStateEdge(source, fromId, toId, label, match = {}) {
   const blocked =
     requireState(source) ||
     requireStateId(fromId) ||
@@ -338,6 +337,7 @@ export function renameStateEdge(source, fromId, toId, label, matchLabel, matchIn
     requireExistingState(source, toId);
   if (blocked) return blocked;
   const text = String(label ?? '').trim();
+  const { edgeLabel: matchLabel, edgeIndex: matchIndex } = match;
 
   const { lines, refs } = collectStateEdgeRefs(source, fromId, toId);
   const picked = pickParallelEdgeRef(refs, { edgeLabel: matchLabel, edgeIndex: matchIndex });
