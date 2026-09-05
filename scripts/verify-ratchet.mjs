@@ -105,32 +105,83 @@ export function measureStrictIslands(root, configs) {
 }
 
 /**
+ * The repo's test files, exactly as `find apps packages scripts -name '*.test.*' -not -path
+ * (any path through a node_modules directory) -type f` listed them.
+ *
+ * That shell-out is why the ratchet could not run on Windows at all (`find` resolves to `FIND.EXE`,
+ * a different program that errors on these arguments), and the ratchet is `improve`'s work queue —
+ * a sensor that only works on one operator's OS is a queue that silently stops being read. So the
+ * traversal is in-process, reproducing `find`'s semantics rather than approximating them:
+ *
+ * - paths are forward-slash relative to `root`, exactly as `find` printed them;
+ * - `-name '*.test.*'`: fnmatch with `*` matching the empty string, which reduces to "the basename
+ *   contains `.test.`" — so `a.test.js` and `a.test.mjs` match and a bare `a.test` does not;
+ * - the node_modules exclusion prunes that directory at any depth, as `-not -path` did;
+ * - `-type f` under `find`'s default `-P`: a symlink to a file is type `l` and is **excluded**, so
+ *   this skips symlinks rather than following them;
+ * - a missing root is an error, because `find` exited non-zero on one and a silently-shorter list
+ *   would lower `suite.files` into looking like an improvement.
+ *
+ * @param {string} root
+ * @param {string[]} [roots]
+ * @returns {string[]}
+ */
+export function listTestFiles(root, roots = ['apps', 'packages', 'scripts']) {
+  /** @type {string[]} */
+  const found = [];
+  const walk = (absDir, relDir) => {
+    for (const entry of fs.readdirSync(absDir, { withFileTypes: true })) {
+      if (entry.name === 'node_modules') continue;
+      const rel = relDir ? `${relDir}/${entry.name}` : entry.name;
+      if (entry.isDirectory()) {
+        walk(path.join(absDir, entry.name), rel);
+        continue;
+      }
+      // `isFile()` is false for symlinks, which is `-type f` under find's default no-follow.
+      if (entry.isFile() && entry.name.includes('.test.')) found.push(rel);
+    }
+  };
+  for (const start of roots) {
+    const absStart = path.join(root, start);
+    if (!fs.existsSync(absStart)) {
+      throw new Error(`verify-ratchet: test-file root '${start}' is missing from ${root}`);
+    }
+    walk(absStart, start);
+  }
+  return found;
+}
+
+/**
  * @param {string} root
  * @returns {{ files: number, cases: number }}
  */
 export function measureTests(root) {
-  const listed = execFileSync(
-    'find',
-    [
-      'apps',
-      'packages',
-      'scripts',
-      '-name',
-      '*.test.*',
-      '-not',
-      '-path',
-      '*/node_modules/*',
-      '-type',
-      'f'
-    ],
-    { cwd: root, encoding: 'utf8' }
-  )
-    .split('\n')
-    .filter(Boolean);
+  const listed = listTestFiles(root);
   let cases = 0;
   for (const file of listed)
     cases += countTestCases(fs.readFileSync(path.join(root, file), 'utf8'));
   return { files: listed.length, cases };
+}
+
+/**
+ * Resolve the workspace's ESLint CLI.
+ *
+ * `npx eslint` was the original call and it cannot work here twice over: `npx` is a `.cmd` shim on
+ * Windows, so `execFileSync` (no shell) fails with ENOENT, and npm would in any case try to *install*
+ * a package to satisfy a missing binary. Resolving the hoisted bin and spawning it through
+ * `process.execPath` is both portable and unambiguous.
+ *
+ * @param {string} root
+ * @param {string} workspace
+ * @returns {string | null}
+ */
+function resolveEslintBin(root, workspace) {
+  // npm workspaces hoist to the root `node_modules`; a workspace-local install wins if present.
+  for (const dir of [path.join(root, workspace), root]) {
+    const candidate = path.join(dir, 'node_modules', 'eslint', 'bin', 'eslint.js');
+    if (fs.existsSync(candidate)) return candidate;
+  }
+  return null;
 }
 
 /**
@@ -142,7 +193,17 @@ export function measureLintWarnings(root, workspaces) {
   /** @type {Record<string, number>} */
   const out = {};
   for (const workspace of workspaces) {
-    const json = execFileSync('npx', ['eslint', '--format', 'json', '.'], {
+    const bin = resolveEslintBin(root, workspace);
+    if (!bin) {
+      // An absent answer is not a zero. `lintWarnings` is a descending budget: reporting 0 when the
+      // linter could not be found would read as a huge improvement and let `improve` tighten a
+      // budget against a measurement that never happened.
+      throw new Error(
+        `verify-ratchet: cannot resolve the ESLint CLI for '${workspace}' — run \`npm install\` ` +
+          'before measuring a lint budget'
+      );
+    }
+    const json = execFileSync(process.execPath, [bin, '--format', 'json', '.'], {
       cwd: path.join(root, workspace),
       encoding: 'utf8',
       maxBuffer: 64 * 1024 * 1024,

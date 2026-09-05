@@ -9,9 +9,11 @@ import {
   RATCHET_PATH,
   compareRatchet,
   countTestCases,
+  listTestFiles,
   measureAll,
   measureContextBytes,
   measureFileLoc,
+  measureLintWarnings,
   measureStrictIslands,
   measureTests,
   validateBaselineShape
@@ -43,6 +45,65 @@ test('measureTests finds the repo suite', () => {
   const tests = measureTests(ROOT);
   assert.ok(tests.files > 300, `expected >300 test files, got ${tests.files}`);
   assert.ok(tests.cases > tests.files);
+});
+
+// listTestFiles replaces `find apps packages scripts -name '*.test.*' -not -path … -type f`, which
+// could not run on Windows (`find` is FIND.EXE there) — and the ratchet is improve's work queue, so
+// a sensor that only answers on one OS is a queue that stops being read. These pin the semantics
+// that made it equivalent rather than merely similar.
+
+test('listTestFiles prunes node_modules at any depth and lists forward-slash relative paths', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'ratchet-walk-'));
+  try {
+    const write = (rel) => {
+      const abs = path.join(root, ...rel.split('/'));
+      fs.mkdirSync(path.dirname(abs), { recursive: true });
+      fs.writeFileSync(abs, "test('x', () => {});\n");
+    };
+    write('apps/web/test/a.test.js');
+    write('apps/web/src/deep/nested/b.test.jsx');
+    write('packages/shared/test/c.test.mjs');
+    write('scripts/sibling.test.mjs');
+    write('apps/web/node_modules/dep/evil.test.js');
+    write('node_modules/top/evil.test.js');
+    // Not a test file: `.test` with nothing after the final dot does not match `*.test.*`, and a
+    // fixture that merely has "test" in its name must not inflate suite.files either.
+    write('apps/web/test/notatest.test');
+    write('apps/web/test/helpers.js');
+
+    assert.deepEqual(listTestFiles(root).sort(), [
+      'apps/web/src/deep/nested/b.test.jsx',
+      'apps/web/test/a.test.js',
+      'packages/shared/test/c.test.mjs',
+      'scripts/sibling.test.mjs'
+    ]);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('listTestFiles errors on a missing root rather than reporting a shorter suite', () => {
+  // A silent short list would lower suite.files, which is a *descending* metric — the sensor would
+  // read a lost directory as an improvement and improve would tighten a budget against it.
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'ratchet-missing-'));
+  try {
+    fs.mkdirSync(path.join(root, 'apps'), { recursive: true });
+    assert.throws(() => listTestFiles(root), /root 'packages' is missing/);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('measureLintWarnings refuses to guess rather than reporting zero findings', () => {
+  // `npx eslint` is unspawnable through execFileSync on Windows (a .cmd shim), so the CLI is now
+  // resolved from node_modules. An unresolvable bin must not read as "all budgets fell".
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'ratchet-nolint-'));
+  try {
+    fs.mkdirSync(path.join(root, 'apps', 'web'), { recursive: true });
+    assert.throws(() => measureLintWarnings(root, ['apps/web']), /cannot resolve the ESLint CLI/);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
 });
 
 test('countTestCases ignores describe blocks', () => {

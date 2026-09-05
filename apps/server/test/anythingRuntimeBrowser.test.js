@@ -257,10 +257,32 @@ test('a browser budget too tight to spawn jsdom still does not reject a valid pa
   assert.equal(result.ok, true, JSON.stringify(result));
   // The browser's fail-open warning survives into the fallback's result — that
   // warning is the evidence that the rung skipped rather than passed.
+  //
+  // What must survive is the *category*, not the path. `anythingRuntimeBrowser.js`
+  // declines to judge for six distinct infrastructure reasons (`no browser binary
+  // found`, `could not stage page`, `browser spawn failed`, `browser timed out`,
+  // `browser exited without a verdict`, `page never reported a verdict`) and all
+  // six route through the same `failOpen()`; which one fires here is a property of
+  // the OS, not of the rule under test. #356's reasoning applies verbatim: the
+  // subject is the fail-open rule, and anything else the assertion happens to
+  // depend on is an incident that will decide the verdict on its own.
   assert.ok(
-    result.warnings.some((w) => w.includes('browser timed out')),
+    result.warnings.some((w) => w.startsWith('Runtime check skipped (')),
     JSON.stringify(result)
   );
+  if (process.platform !== 'win32') {
+    // The timeout path specifically stays pinned where it can be produced, because
+    // it is the half #347 was about: the budget given here (200ms) cannot cover a
+    // child-process spawn plus a jsdom import graph, so a browser that *starts and
+    // starves* is what this fixture exists to create. Windows cannot spawn this
+    // test's extensionless `#!/bin/sh` fixture at all — it reaches the same rule
+    // through `browser spawn failed` — so requiring the timeout wording there
+    // would assert an OS fact rather than a product one.
+    assert.ok(
+      result.warnings.some((w) => w.includes('browser timed out')),
+      `POSIX runs the starved-spawn path, which is what the 200ms budget is for: ${JSON.stringify(result)}`
+    );
+  }
 });
 
 test('a genuinely hanging page is still rejected when the browser times out', async () => {
