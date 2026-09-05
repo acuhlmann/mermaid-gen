@@ -1,5 +1,4 @@
 import './config/patchGaxiosNativeFetch.js';
-import dotenv from 'dotenv';
 import express from 'express';
 import { buildProductionContentSecurityPolicy } from './security/productionCsp.js';
 import cors from 'cors';
@@ -28,7 +27,6 @@ import { createOfficeRouter } from './routes/office.js';
 import { createDiagramRepairRouter } from './routes/diagramRepair.js';
 import {
   createSessionServicesRegistry,
-  resolveSessionIdFromRequest,
   resolveSessionIdFromCopilotInput
 } from './state/sessionServices.js';
 import { createMcpHandler } from './mcp/mcpServer.js';
@@ -146,8 +144,6 @@ export async function attachRoutes(app) {
           : undefined
     });
   });
-
-  const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 
   const mainDist = resolveDist(process.env.WEB_DIST_MAIN, 'apps/web/dist-main', 'apps/web/dist');
   const hackathonDist = resolveDist(process.env.WEB_DIST_HACKATHON, 'apps/web/dist-hackathon');
