@@ -30,6 +30,7 @@ import { applyInfographicHighlight } from '@archislop/shared';
 import { graphEditIdFromDescriptor } from '../utils/canvasGraphEdit.js';
 import {
   flowchartEdgeLabelText,
+  nodeTitleFromElement,
   parseFlowchartEdgeDataId,
   resolveFlowchartEdgeInteractionRoot,
   resolveSequenceActorInteractionRoot,
@@ -125,29 +126,6 @@ function StreamingWaveIcon() {
       />
     </svg>
   );
-}
-
-function nodeTitleFromElement(nodeEl) {
-  const parts = [];
-  const seen = new Set();
-  function pushText(t) {
-    if (!t) return;
-    const trimmed = t.replace(/\s+/g, ' ').trim();
-    if (!trimmed || seen.has(trimmed)) return;
-    seen.add(trimmed);
-    parts.push(trimmed);
-  }
-  nodeEl.querySelectorAll('text').forEach((textEl) => pushText(textEl.textContent));
-  // Mermaid 11 renders flowchart node labels as HTML inside <foreignObject>; <text> is empty there.
-  if (parts.length === 0) {
-    nodeEl.querySelectorAll('foreignObject .nodeLabel, foreignObject .label').forEach((el) => {
-      pushText(el.textContent);
-    });
-  }
-  if (parts.length === 0) {
-    nodeEl.querySelectorAll('foreignObject').forEach((fo) => pushText(fo.textContent));
-  }
-  return parts.join(' · ').slice(0, 240);
 }
 
 function hashStringStable(input) {

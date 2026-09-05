@@ -305,6 +305,65 @@ describe('DiagramCanvas', () => {
     );
   });
 
+  it('selects a mermaid pie wedge on tap (#523)', async () => {
+    // The markup below is the real thing mermaid 11.17.2 emits for a pie, with the `g.node`
+    // wrappers `stampPieSliceHitTargets` adds — i.e. exactly what renderMermaidSvg now returns.
+    // Before that pass a pie had no `g.node` and no `[id]` on a wedge, so this tap resolved to
+    // nothing and the radial menu never opened; the family was marked shipped in
+    // docs/canvas-graph-edit.md while the mutator tests passed, because no test here had ever put a
+    // real mermaid pie under the pointer.
+    const pieSvg = `
+<svg viewBox="0 0 450 450">
+  <g transform="translate(225,225)"><g>
+    <circle cx="0" cy="0" r="186" class="pieOuterCircle"></circle>
+    <g class="node" id="diagram-0-node-0"><title>Dogs</title><path d="M0,-185L0,0Z" fill="#ECECFF" class="pieCircle"></path></g>
+    <g class="node" id="diagram-0-node-1"><title>Cats</title><path d="M-177,-50L0,0Z" fill="#ffffde" class="pieCircle"></path></g>
+    <g class="node" id="diagram-0-node-2"><title>Rats</title><path d="M-35,-181L0,0Z" fill="hsl(80,100%,56%)" class="pieCircle"></path></g>
+    <text class="slice">79%</text><text class="slice">17%</text><text class="slice">4%</text>
+  </g></g>
+</svg>`;
+    renderMermaidSvgMock.mockResolvedValueOnce({ svg: pieSvg, sanitizerApplied: [] });
+
+    const onSelectedNodeChange = vi.fn();
+    render(
+      <DiagramCanvas
+        diagramSource={'pie title Pets\n  "Dogs" : 386\n  "Cats" : 85\n  "Rats" : 15'}
+        revisionId={1}
+        onSelectedNodeChange={onSelectedNodeChange}
+      />
+    );
+
+    await act(async () => {
+      vi.advanceTimersByTime(250);
+    });
+    await act(async () => {});
+
+    const renderer = screen.getByLabelText(/Mermaid renderer/i);
+    const wedges = [...renderer.querySelectorAll('path.pieCircle')];
+    expect(wedges).toHaveLength(3);
+    const pointerInit = {
+      pointerId: 1,
+      pointerType: 'mouse',
+      button: 0,
+      buttons: 1,
+      clientX: 40,
+      clientY: 20,
+      bubbles: true
+    };
+    wedges[1].dispatchEvent(new PointerEvent('pointerdown', pointerInit));
+    wedges[1].dispatchEvent(new PointerEvent('pointerup', pointerInit));
+
+    expect(onSelectedNodeChange).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'diagram-0-node-1',
+        partKind: 'node',
+        // Named from the stamped <title>, not from the drawn "17%": the percentage is mermaid's
+        // slice label, and prefilling a rename with it would rewrite the section name to a number.
+        partName: 'Cats'
+      })
+    );
+  });
+
   it('selects sequence diagram participants on tap', async () => {
     const sequenceSvg = `
 <svg viewBox="0 0 200 100">

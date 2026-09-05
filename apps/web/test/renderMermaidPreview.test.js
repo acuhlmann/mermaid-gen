@@ -62,4 +62,49 @@ describe('renderMermaidPreviewSvg', () => {
     expect(sanitizeMermaid).toHaveBeenCalledTimes(1);
     expect(result.sanitizerApplied).toEqual(['mockFix']);
   });
+
+  it('stamps pie wedges with selectable identity on the success path (#523)', async () => {
+    // What mermaid actually emits for a pie: bare `path.pieCircle`, no id, no `g.node` ancestor.
+    // Stamping here rather than in DiagramCanvas means the canvas, the embedded previews and all
+    // six selection/highlight call sites get it from one place.
+    const pie = 'pie title Pets\n  "Dogs" : 386\n  "Cats" : 85';
+    renderMock.mockResolvedValueOnce({
+      svg:
+        '<svg><g transform="translate(225,225)"><g>' +
+        '<circle class="pieOuterCircle"></circle>' +
+        '<path d="M0,-185L0,0Z" class="pieCircle"></path>' +
+        '<path d="M-177,-50L0,0Z" class="pieCircle"></path>' +
+        '<text class="slice">79%</text><text class="slice">17%</text>' +
+        '</g></g></svg>'
+    });
+
+    const { svg } = await renderMermaidPreviewSvg('preview-pie', pie);
+
+    expect(svg).toContain('<g class="node" id="diagram-0-node-0"><title>Dogs</title>');
+    expect(svg).toContain('<g class="node" id="diagram-0-node-1"><title>Cats</title>');
+    expect(svg.match(/class="node"/g)).toHaveLength(2);
+  });
+
+  it('stamps on the sanitizer-retry path too, where the DSL handed to mermaid is not the DSL given', async () => {
+    // The retry renders `sanitized`, so the labels must be read from the same string mermaid saw.
+    // Reading them from the original would index into a source that no longer matches the wedges.
+    renderMock.mockRejectedValueOnce(new Error('parse error')).mockResolvedValueOnce({
+      svg: '<svg><path d="M0,0Z" class="pieCircle"></path></svg>'
+    });
+
+    const { svg, sanitizerApplied } = await renderMermaidPreviewSvg(
+      'preview-pie-retry',
+      'pie title Pets\n  "Dogs" : 386'
+    );
+
+    expect(sanitizerApplied).toEqual(['mockFix']);
+    expect(svg).toContain('<g class="node" id="diagram-0-node-0">');
+    expect(svg).toContain('</g>');
+  });
+
+  it('leaves a non-pie render byte-identical', async () => {
+    renderMock.mockResolvedValueOnce({ svg: '<svg><g class="node" id="flowA"><rect/></g></svg>' });
+    const { svg } = await renderMermaidPreviewSvg('preview-flow', 'flowchart TD\n  A --> B');
+    expect(svg).toBe('<svg><g class="node" id="flowA"><rect/></g></svg>');
+  });
 });

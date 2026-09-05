@@ -5,6 +5,7 @@ import {
   reloadOnceForStaleViteMermaidDeps
 } from './mermaidRenderErrors.js';
 import { ARCHISLOP_MERMAID_PREVIEW_INIT } from './mermaidRenderInit.js';
+import { stampPieSliceHitTargets } from './mermaidPieHitTargets.js';
 
 /** @deprecated Use ARCHISLOP_MERMAID_PREVIEW_INIT */
 export const MERMAID_PREVIEW_INIT = ARCHISLOP_MERMAID_PREVIEW_INIT;
@@ -28,7 +29,10 @@ export async function renderMermaidSvg(diagramId, source, mermaidInit) {
 
   try {
     const { svg } = await mermaid.render(diagramId, dsl);
-    return { svg: sanitizeSvgMarkup(svg), sanitizerApplied: [] };
+    return {
+      svg: stampPieSliceHitTargets(sanitizeSvgMarkup(svg), dsl),
+      sanitizerApplied: []
+    };
   } catch (firstError) {
     if (isMermaidInfrastructureError(firstError) && reloadOnceForStaleViteMermaidDeps()) {
       return new Promise(() => {});
@@ -45,7 +49,10 @@ export async function renderMermaidSvg(diagramId, source, mermaidInit) {
     }
     mermaid.initialize({ ...mermaidInit });
     const { svg } = await mermaid.render(diagramId, sanitized);
-    return { svg: sanitizeSvgMarkup(svg), sanitizerApplied: applied };
+    return {
+      svg: stampPieSliceHitTargets(sanitizeSvgMarkup(svg), sanitized),
+      sanitizerApplied: applied
+    };
   }
 }
 

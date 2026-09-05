@@ -231,3 +231,45 @@ export function flowchartEdgeLabelText(pathEl, edgeDataId) {
     return '';
   }
 }
+
+/**
+ * The display name of a selected node group — moved here from DiagramCanvas.jsx (ADR-0005), where
+ * it was a module-local helper of a file the ratchet holds at 1889 lines.
+ *
+ * `<title>` is the **last** fallback, not the first. Mermaid stamps `<title>` on flowchart nodes too
+ * (it is the browser tooltip, and often differs from the drawn label), so promoting it would change
+ * what every existing family reports for `label`/`partName` and what the rename prompt prefills.
+ * Only families with no `text` and no `foreignObject` inside the group reach it — which, before #523,
+ * described nothing, because every selectable group mermaid emits carries drawn text. It exists for
+ * the pie wedge: `mermaidPieHitTargets.js` wraps the path and names it with a `<title>`, and a
+ * `<title>` was chosen precisely because it cannot be mistaken for a label drawn on the canvas.
+ *
+ * @param {Element | null | undefined} nodeEl
+ * @returns {string}
+ */
+export function nodeTitleFromElement(nodeEl) {
+  if (!nodeEl) return '';
+  const parts = [];
+  const seen = new Set();
+  function pushText(t) {
+    if (!t) return;
+    const trimmed = t.replace(/\s+/g, ' ').trim();
+    if (!trimmed || seen.has(trimmed)) return;
+    seen.add(trimmed);
+    parts.push(trimmed);
+  }
+  nodeEl.querySelectorAll('text').forEach((textEl) => pushText(textEl.textContent));
+  // Mermaid 11 renders flowchart node labels as HTML inside <foreignObject>; <text> is empty there.
+  if (parts.length === 0) {
+    nodeEl.querySelectorAll('foreignObject .nodeLabel, foreignObject .label').forEach((el) => {
+      pushText(el.textContent);
+    });
+  }
+  if (parts.length === 0) {
+    nodeEl.querySelectorAll('foreignObject').forEach((fo) => pushText(fo.textContent));
+  }
+  if (parts.length === 0) {
+    pushText(nodeEl.querySelector(':scope > title')?.textContent);
+  }
+  return parts.join(' · ').slice(0, 240);
+}
