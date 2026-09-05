@@ -364,13 +364,13 @@ export function renameSequenceNode(source, participantId, label) {
  * @param {string} fromId
  * @param {string} toId
  * @param {string} label
- * @param {string} [matchLabel] existing label identifying which duplicate message to rename
- * @param {number} [matchIndex] zero-based position among parsed message lines
+ * @param {{ edgeLabel?: string, edgeIndex?: number }} [match] existing message identifying which duplicate to rename (`edgeLabel` = message text, `edgeIndex` = Mermaid message id)
  */
-export function renameSequenceEdge(source, fromId, toId, label, matchLabel, matchIndex) {
+export function renameSequenceEdge(source, fromId, toId, label, match = {}) {
   const blocked = requireEdgeParticipants(source, fromId, toId);
   if (blocked) return blocked;
   const text = String(label ?? '').trim();
+  const { edgeLabel: matchLabel, edgeIndex: matchIndex } = match;
   const range = findSequenceMessageRange(source, {
     from: fromId,
     to: toId,

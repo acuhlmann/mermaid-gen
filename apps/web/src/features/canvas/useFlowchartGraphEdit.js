@@ -376,14 +376,10 @@ export function useFlowchartGraphEdit({
       if (session.created && !label) return;
       const result =
         session.kind === 'edge'
-          ? adapter.renameEdge(
-              current,
-              session.fromId,
-              session.toId,
-              label,
-              session.matchLabel,
-              session.matchIndex
-            )
+          ? adapter.renameEdge(current, session.fromId, session.toId, label, {
+              edgeLabel: session.matchLabel,
+              edgeIndex: session.matchIndex
+            })
           : adapter.renameNode(current, session.logicalId, label);
       if (!result.ok) {
         pushError(copy.failed);

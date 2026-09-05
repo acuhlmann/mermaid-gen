@@ -428,13 +428,13 @@ export function renameFlowchartNode(source, nodeId, label) {
  * @param {string} fromId
  * @param {string} toId
  * @param {string} label new edge label
- * @param {string} [matchLabel] existing label identifying which parallel link to rename
- * @param {number} [matchIndex] Mermaid `L_<from>_<to>_<n>` index when known
+ * @param {{ edgeLabel?: string, edgeIndex?: number }} [match] existing edge identifying which parallel link to rename
  */
-export function renameFlowchartEdge(source, fromId, toId, label, matchLabel, matchIndex) {
+export function renameFlowchartEdge(source, fromId, toId, label, match = {}) {
   const blocked = requireFlowchart(source) || requireNodeId(fromId) || requireNodeId(toId);
   if (blocked) return blocked;
   const text = String(label ?? '').trim();
+  const { edgeLabel: matchLabel, edgeIndex: matchIndex } = match;
 
   const { lines, refs } = collectFlowchartEdgeRefs(source, fromId, toId);
   const picked = pickParallelEdgeRef(refs, { edgeLabel: matchLabel, edgeIndex: matchIndex });
