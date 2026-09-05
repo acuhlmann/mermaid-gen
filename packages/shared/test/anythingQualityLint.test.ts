@@ -51,6 +51,38 @@ test('lintAnythingQuality rejects unbalanced CSS braces', () => {
   assert.equal(result.code, 'css_unbalanced');
 });
 
+test('lintAnythingQuality ignores braces inside a CSS comment', () => {
+  const doc = VALID_DOC.replace(
+    'body { margin: 0; color: red; }',
+    '/* uses a { region } string, not real braces */ body { margin: 0; color: red; }'
+  );
+  const result = lintAnythingQuality(doc);
+  assert.equal(result.ok, true, result.ok ? '' : result.error);
+});
+
+test('lintAnythingQuality still rejects unbalanced braces after a comment', () => {
+  const doc = VALID_DOC.replace(
+    'body { margin: 0; color: red; }',
+    '/* note: uses { and } */ body { margin: 0; color: red;'
+  );
+  const result = lintAnythingQuality(doc);
+  assert.equal(result.ok, false);
+  if (result.ok) return;
+  assert.equal(result.code, 'css_unbalanced');
+});
+
+test('lintAnythingQuality rejects an unclosed CSS comment', () => {
+  const doc = VALID_DOC.replace(
+    'body { margin: 0; color: red; }',
+    '/* never closed body { margin: 0; color: red; }'
+  );
+  const result = lintAnythingQuality(doc);
+  assert.equal(result.ok, false);
+  if (result.ok) return;
+  assert.equal(result.code, 'css_unbalanced');
+  assert.match(result.error, /unclosed comment/);
+});
+
 test('lintAnythingQuality rejects unclosed tags', () => {
   const bad = VALID_DOC.replace('</h1>', '');
   const result = lintAnythingQuality(bad);
