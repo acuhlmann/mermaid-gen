@@ -141,6 +141,29 @@ slice; do not start one without filing an issue first.
 `metaphorUsda.test.ts` extended. Nothing here is verifiable by eye — it is all round-trip tests,
 which makes it the right slice for a night when the browser is unavailable.
 
+### 6. Link hit-testing, so the dead `renameEdge` adapters go live (#495)
+
+City, layercake, galaxy, machine and terrain each implement `renameEdge`/`deleteEdge` against their
+top-level `links[]`, are registered on the adapter, and are covered by tests — and nothing in the UI can
+invoke them, because `MetaphorGraphEditBridge.jsx` only ever emits `kind: 'metaphor-item'` descriptors.
+The shape is already decided, in #495's 2026-09-05 comment: `{ kind: 'edge', edgeFrom, edgeTo }`
+carrying the two item ids in the `{from,to}` order `renameLinkedEdge`/`findLinkedEdge` already resolve
+against, yielded by a raycast against the connector geometry a link wins **only when no item was hit**,
+so an existing item tap never changes meaning. Do not invent an edge id; the pair is the identity,
+because `connectCityNodes` already refuses a duplicate pair.
+
+`apps/web/src/features/canvas/useFlowchartGraphEdit.js` needs **no change** — its edge path keys on
+`descriptor.kind === 'edge'` and does not branch by family (`selectionKind` `:20`, `edgeFields` `:30`,
+`deleteEdge` `:282`, `renameEdge` `:387`). That file is not in this automation's `allowedPaths`, which
+is why #495 read like a cross-rung handoff when it is not: the whole change is scene work plus the
+bridge, and both are here.
+
+This is § 3 visual work. The evidence is a screenshot showing that the link highlighted is the link
+under the cursor, at the three standing viewports, on a kind that actually has links — and § 3's "prove
+the captured camera before trusting a number from it" applies with full force to a picking change,
+where a wrong projection looks exactly like a working hit-test. That proof, not the size of the diff,
+is what has kept this open since 2026-09-01.
+
 ## 3. Verifying visual work — the rule that makes this automation safe
 
 **A change to anything under `metaphorScenes/`, `MetaphorRenderer.jsx` or a layout is not done
