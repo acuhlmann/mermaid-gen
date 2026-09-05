@@ -21,6 +21,7 @@ import {
   loadPlaybook,
   matchOpenRoutinePrs,
   matchesAny,
+  missingPathNote,
   ownOpenDebt,
   ownersOfPath,
   parseFiledBy,
@@ -1116,4 +1117,27 @@ test('every shipped playbook declares a filing budget it can be held to', () => 
     capped.every((entry) => entry.budget <= 2),
     'a ceiling above 2 filings a night per rung does not bind on a shelf measured at 3.3 a night'
   );
+});
+
+test('missingPathNote flags a path with no file, without changing who owns it', () => {
+  assert.equal(missingPathNote(ROOT, 'scripts/routine-guard.mjs'), '', 'a real file');
+  assert.equal(missingPathNote(ROOT, 'apps/web/src'), '', 'a real directory answers as present');
+  assert.equal(missingPathNote(ROOT, 'docs/automations'), '');
+
+  // The #531 shape: a glob pointing into a directory that never existed still answers with owners.
+  // That is the trap — the answer is right about the budget and silent about the file.
+  const phantomOwned = 'apps/web/src/utils/mermaidGanttEdit.js';
+  assert.ok(
+    ownersOfPath(phantomOwned).length > 0,
+    'the phantom path must still report owners, or this assertion checks nothing'
+  );
+  assert.match(missingPathNote(ROOT, phantomOwned), /no such path on disk/);
+
+  // The #545 shape: `deps` asked about a config file absent from every branch of this repo's git
+  // history and filed an issue asserting it exists, is 464 bytes, and is guarded by three CI jobs.
+  // `NONE` was a true answer to the question it asked; the question it skipped was whether the path
+  // was there at all. The note adds that fact without deciding ownership — "may I create this file?"
+  // has to stay a question the tool can answer.
+  assert.match(missingPathNote(ROOT, '.github/dependabot.yml'), /no such path on disk/);
+  assert.deepEqual(ownersOfPath('.github/dependabot.yml'), []);
 });

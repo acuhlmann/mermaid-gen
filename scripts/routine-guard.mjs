@@ -862,6 +862,33 @@ export function summarizeBacklog({
 }
 
 /**
+ * Whether a queried path actually exists, as an annotation on the `--reachable` answer.
+ *
+ * Ownership and existence are different questions and this script answered only the first, which is
+ * how two incidents happened in one week. #531: `canvas-graph-edit`'s `allowedPaths` globbed
+ * `apps/web/src/hooks/useFlowchartGraphEdit.js` — a directory that has never existed — and
+ * `--reachable` reported it owned by that automation, confidently, while the real file at
+ * `apps/web/src/features/canvas/` was reported as *not* owned by it. #545: the `deps` routine ran
+ * `--reachable .github/dependabot.yml`, got `NONE`, and filed an ownership-gap issue asserting the
+ * file exists, is 464 bytes, and is guarded by three CI jobs — it has never existed on any branch,
+ * `ci.yml` contains no `dependabot` reference at all, and the very ledger that routine had just read
+ * says so in its own words (its todo is even named `no-dependabot-yml`).
+ *
+ * The answer is not to fail on a missing path: "may I create this file?" is a legitimate question, and
+ * a routine deciding whether to author something must be able to ask it. So the owner list is
+ * unchanged and this rides alongside it. The trap being closed is an agent reading an ownership answer
+ * as a file listing.
+ *
+ * @param {string} root
+ * @param {string} file
+ * @returns {string} `''` when the path is on disk, otherwise a trailing note
+ */
+export function missingPathNote(root, file) {
+  if (fs.existsSync(path.join(root, file))) return '';
+  return ' [no such path on disk — an owner here is a budget match, not a file]';
+}
+
+/**
  * @param {string[]} args
  * @param {string} flag
  * @returns {string | undefined}
@@ -1022,13 +1049,16 @@ function main() {
     let unowned = 0;
     for (const target of targets) {
       const owners = ownersOfPath(target, playbooks);
+      const note = missingPathNote(ROOT, target);
       if (owners.length) {
-        console.log(`${target} -> ${owners.join(', ')}`);
+        console.log(`${target} -> ${owners.join(', ')}${note}`);
       } else if (matchesAny(target, ALWAYS_FORBIDDEN)) {
-        console.log(`${target} -> frozen (always-forbidden; outside every routine by design)`);
+        console.log(
+          `${target} -> frozen (always-forbidden; outside every routine by design)${note}`
+        );
       } else {
         unowned += 1;
-        console.log(`${target} -> NONE (no routine's allowedPaths reaches it)`);
+        console.log(`${target} -> NONE (no routine's allowedPaths reaches it)${note}`);
       }
     }
     if (unowned) {
