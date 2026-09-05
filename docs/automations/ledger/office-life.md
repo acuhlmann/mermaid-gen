@@ -21,10 +21,13 @@ root `CLAUDE.md` / `AGENTS.md`.
 | 2026-09-05 | **Never grow the office monoliths; register them instead.** `officeCast.js` 2790, `OfficeFloor.css` 1971, `OfficeLayer.jsx` 1791, `officeFloorPlan.js` 1065 — none of them appears in `ratchet.json`'s `monolithLoc` (nine tracked files, zero office), so nothing watches them and `improve`'s register-accuracy item never sees them. New copy goes in a module beside the bank. The register fix is `blocked-by-paths` below: budgets and `ratchet.json` are `improve`'s.                                                                               |
 | 2026-09-05 | Experiment, not standing duty: nightly until **2026-09-26** (~21 firings), then this ledger answers whether it improved the app and the owner decides whether the rung continues. Stop rule: by the 14th firing, no merged product PR or no movement in the visit trace → write `experiment-inconclusive`, stop taking slices, and let `digest` watchdog 1 report it. Deleting or disabling the routine is the owner's (page bar #2; `claude -p '/schedule'` cannot delete).                                                                               |
 
-**Trigger**: `claude -p '/schedule …'` — routine id and observed branch slug are pinned here by the
-first firing, per `docs/routines/README.md` § Adding a routine step 5. Until then `branchPrefix`
-carries only the predicted forms (`office-life/`, `claude/office-life`), and `--preflight` matching
-on the title prefix (`office life:`) is what actually enforces rule 4.
+**Trigger**: created with `claude -p '/schedule …'`. Its id, model, environment and the branch slug
+the first firing actually used are recorded in a `Locked` row once it has run — `docs/routines/README.md`
+§ Adding a routine step 5. **The `branchPrefix` pin is not a run's to make**: playbook front-matter
+belongs to `improve` (`BUDGET_OWNERS`, ADR-0017), so a firing writes the branch it saw into its own
+run row and the front-matter moves in an owner's or `improve`'s commit. Until then `--preflight`
+enforcement rides on the title prefix (`office life:`), which is why `prTitlePrefix` is declared and
+why this rung's PRs must open with it.
 
 ## Baselines
 
