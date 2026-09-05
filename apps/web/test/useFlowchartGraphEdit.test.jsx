@@ -442,8 +442,8 @@ describe('useFlowchartGraphEdit', () => {
       kind: 'edge',
       fromId: 'Draft',
       toId: 'PendingReview',
-      edgeLabel: 'cancel',
-      edgeIndex: 1
+      matchLabel: 'cancel',
+      matchIndex: 1
     });
     await act(async () => {
       result.current.handleLabelCommit('withdraw');
@@ -487,8 +487,8 @@ describe('useFlowchartGraphEdit', () => {
       kind: 'edge',
       fromId: 'Alice',
       toId: 'Bob',
-      edgeLabel: 'second',
-      messageId: 1
+      matchLabel: 'second',
+      matchIndex: 1
     });
     await act(async () => {
       result.current.handleLabelCommit('changed');

@@ -257,10 +257,10 @@ function collectStateEdgeRefs(source, fromId, toId) {
  * @param {string} source
  * @param {string} fromId
  * @param {string} toId
- * @param {string} [edgeLabel]
- * @param {number} [edgeIndex] Mermaid `L_<from>_<to>_<n>` index when known
+ * @param {string} [matchLabel]
+ * @param {number} [matchIndex] Mermaid `L_<from>_<to>_<n>` index when known
  */
-export function deleteStateEdge(source, fromId, toId, edgeLabel, edgeIndex) {
+export function deleteStateEdge(source, fromId, toId, matchLabel, matchIndex) {
   const blocked =
     requireState(source) ||
     requireStateId(fromId) ||
@@ -270,7 +270,7 @@ export function deleteStateEdge(source, fromId, toId, edgeLabel, edgeIndex) {
   if (blocked) return blocked;
 
   const { lines, refs } = collectStateEdgeRefs(source, fromId, toId);
-  const picked = pickParallelEdgeRef(refs, { edgeLabel, edgeIndex });
+  const picked = pickParallelEdgeRef(refs, { edgeLabel: matchLabel, edgeIndex: matchIndex });
   if (!picked) return fail('missing');
 
   const next = [...lines];
@@ -326,9 +326,10 @@ export function renameStateNode(source, stateId, label) {
  * @param {string} fromId
  * @param {string} toId
  * @param {string} label new transition label
- * @param {{ edgeLabel?: string, edgeIndex?: number }} [disambiguation] parallel-transition pick context
+ * @param {string} [matchLabel] existing label identifying which parallel transition to rename
+ * @param {number} [matchIndex] Mermaid `L_<from>_<to>_<n>` index when known
  */
-export function renameStateEdge(source, fromId, toId, label, disambiguation = {}) {
+export function renameStateEdge(source, fromId, toId, label, matchLabel, matchIndex) {
   const blocked =
     requireState(source) ||
     requireStateId(fromId) ||
@@ -339,7 +340,7 @@ export function renameStateEdge(source, fromId, toId, label, disambiguation = {}
   const text = String(label ?? '').trim();
 
   const { lines, refs } = collectStateEdgeRefs(source, fromId, toId);
-  const picked = pickParallelEdgeRef(refs, disambiguation);
+  const picked = pickParallelEdgeRef(refs, { edgeLabel: matchLabel, edgeIndex: matchIndex });
   if (!picked) return fail('missing');
 
   const next = [...lines];

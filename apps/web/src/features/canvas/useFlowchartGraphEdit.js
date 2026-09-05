@@ -31,9 +31,8 @@ function flowchartEdgeDisambiguation(descriptor) {
   const flowParsed = descriptor.id ? parseFlowchartEdgeDataId(descriptor.id) : null;
   const sequenceParsed = descriptor.id ? parseSequenceMessageDataId(descriptor.id) : null;
   return {
-    edgeLabel: descriptor.label,
-    edgeIndex: flowParsed?.index,
-    messageId: sequenceParsed?.messageId
+    matchLabel: descriptor.label,
+    matchIndex: flowParsed?.index ?? sequenceParsed?.messageId
   };
 }
 
@@ -201,16 +200,15 @@ export function useFlowchartGraphEdit({
     (descriptor, extra = {}) => {
       const kindNow = selectionKind(descriptor);
       if (kindNow === 'edge') {
-        const { edgeIndex, messageId } = flowchartEdgeDisambiguation(descriptor);
+        const { matchIndex } = flowchartEdgeDisambiguation(descriptor);
         setLabelSession({
           kind: 'edge',
           fromId: descriptor.edgeFrom,
           toId: descriptor.edgeTo,
           draft: descriptor.label || '',
-          edgeLabel: descriptor.label || '',
+          matchLabel: descriptor.label || '',
           ...(descriptor.id ? { id: descriptor.id } : {}),
-          ...(edgeIndex != null ? { edgeIndex } : {}),
-          ...(messageId != null ? { messageId } : {}),
+          ...(matchIndex != null ? { matchIndex } : {}),
           x: extra.x ?? toolbarAnchor?.left ?? 0,
           y: extra.y ?? toolbarAnchor?.nodeTop ?? 0
         });
@@ -276,16 +274,10 @@ export function useFlowchartGraphEdit({
       if (action.id === 'delete') {
         closeRadialMenu?.();
         const current = stateRef.current.diagramSource;
-        const { edgeLabel, edgeIndex, messageId } = flowchartEdgeDisambiguation(target);
+        const { matchLabel, matchIndex } = flowchartEdgeDisambiguation(target);
         const result =
           selectionKind(target) === 'edge'
-            ? adapter.deleteEdge(
-                current,
-                target.edgeFrom,
-                target.edgeTo,
-                edgeLabel,
-                edgeIndex ?? messageId
-              )
+            ? adapter.deleteEdge(current, target.edgeFrom, target.edgeTo, matchLabel, matchIndex)
             : adapter.deleteNode(current, nodeLogicalId(target));
         if (!result.ok) {
           if (result.reason !== 'duplicate' && result.reason !== 'self') {
@@ -384,12 +376,14 @@ export function useFlowchartGraphEdit({
       if (session.created && !label) return;
       const result =
         session.kind === 'edge'
-          ? adapter.renameEdge(current, session.fromId, session.toId, label, {
-              edgeLabel: session.edgeLabel,
-              edgeIndex: session.edgeIndex,
-              messageLabel: session.edgeLabel,
-              messageId: session.messageId ?? session.edgeIndex
-            })
+          ? adapter.renameEdge(
+              current,
+              session.fromId,
+              session.toId,
+              label,
+              session.matchLabel,
+              session.matchIndex
+            )
           : adapter.renameNode(current, session.logicalId, label);
       if (!result.ok) {
         pushError(copy.failed);

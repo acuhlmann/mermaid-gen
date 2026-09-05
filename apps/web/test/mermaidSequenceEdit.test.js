@@ -151,9 +151,7 @@ describe('renameSequenceEdge', () => {
   Alice->>Bob: first
   Alice->>Bob: second
 `;
-    expect(
-      renameSequenceEdge(duplicate, 'Alice', 'Bob', 'changed', { messageLabel: 'missing' })
-    ).toEqual({
+    expect(renameSequenceEdge(duplicate, 'Alice', 'Bob', 'changed', 'missing')).toEqual({
       ok: false,
       reason: 'missing'
     });
@@ -166,9 +164,7 @@ describe('renameSequenceEdge', () => {
   Alice->>Bob: first
   Alice->>Bob: second
 `;
-    const result = renameSequenceEdge(duplicate, 'Alice', 'Bob', 'changed', {
-      messageLabel: 'second'
-    });
+    const result = renameSequenceEdge(duplicate, 'Alice', 'Bob', 'changed', 'second');
     expect(result.ok).toBe(true);
     expect(result.source).toMatch(/Alice->>Bob: first/);
     expect(result.source).toMatch(/Alice->>Bob: changed/);
@@ -183,10 +179,7 @@ describe('renameSequenceEdge', () => {
   Bob-->>Alice: ack
   Alice->>Bob: ping
 `;
-    const result = renameSequenceEdge(duplicate, 'Alice', 'Bob', 'changed', {
-      messageLabel: 'gone',
-      messageId: 2
-    });
+    const result = renameSequenceEdge(duplicate, 'Alice', 'Bob', 'changed', 'gone', 2);
     expect(result.ok).toBe(true);
     expect(result.source).toMatch(/Alice->>Bob: changed/);
     expect(result.source.match(/Alice->>Bob: ping/g)?.length).toBe(1);
@@ -220,7 +213,7 @@ describe('renameSequenceEdge', () => {
       /^[^\n]*Alice->>Bob\s*$/m
     );
 
-    const renamed = renameSequenceEdge(mixed, 'Alice', 'Bob', 'CHANGED', { messageId: 0 });
+    const renamed = renameSequenceEdge(mixed, 'Alice', 'Bob', 'CHANGED', undefined, 0);
     expect(renamed.ok).toBe(true);
     expect(renamed.source).toMatch(/Alice->>Bob: CHANGED/);
     expect(renamed.source).toMatch(/Alice->>Bob: hi/);

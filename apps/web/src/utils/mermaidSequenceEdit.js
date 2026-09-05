@@ -306,17 +306,17 @@ export function deleteSequenceNode(source, participantId) {
  * @param {string} source
  * @param {string} fromId
  * @param {string} toId
- * @param {string} [messageLabel]
- * @param {number} [messageId]
+ * @param {string} [matchLabel]
+ * @param {number} [matchIndex]
  */
-export function deleteSequenceEdge(source, fromId, toId, messageLabel, messageId) {
+export function deleteSequenceEdge(source, fromId, toId, matchLabel, matchIndex) {
   const blocked = requireEdgeParticipants(source, fromId, toId);
   if (blocked) return blocked;
   const range = findSequenceMessageRange(source, {
     from: fromId,
     to: toId,
-    label: messageLabel,
-    messageId
+    label: matchLabel,
+    messageId: matchIndex
   });
   if (!range) return fail('missing');
   const lines = String(source).split(/\r?\n/);
@@ -364,18 +364,18 @@ export function renameSequenceNode(source, participantId, label) {
  * @param {string} fromId
  * @param {string} toId
  * @param {string} label
- * @param {{ messageLabel?: string, messageId?: number }} [disambiguation] duplicate-message pick context
+ * @param {string} [matchLabel] existing label identifying which duplicate message to rename
+ * @param {number} [matchIndex] zero-based position among parsed message lines
  */
-export function renameSequenceEdge(source, fromId, toId, label, disambiguation = {}) {
+export function renameSequenceEdge(source, fromId, toId, label, matchLabel, matchIndex) {
   const blocked = requireEdgeParticipants(source, fromId, toId);
   if (blocked) return blocked;
   const text = String(label ?? '').trim();
-  const { messageLabel, messageId } = disambiguation;
   const range = findSequenceMessageRange(source, {
     from: fromId,
     to: toId,
-    label: messageLabel,
-    messageId
+    label: matchLabel,
+    messageId: matchIndex
   });
   if (!range) return fail('missing');
   const lines = String(source).split(/\r?\n/);
