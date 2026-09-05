@@ -370,15 +370,15 @@ function replaceFlowchartStatementLine(lines, lineIndex, originalLine, stmt) {
  * @param {string} source
  * @param {string} fromId
  * @param {string} toId
- * @param {string} [edgeLabel]
- * @param {number} [edgeIndex] Mermaid `L_<from>_<to>_<n>` index when known
+ * @param {string} [matchLabel]
+ * @param {number} [matchIndex] Mermaid `L_<from>_<to>_<n>` index when known
  */
-export function deleteFlowchartEdge(source, fromId, toId, edgeLabel, edgeIndex) {
+export function deleteFlowchartEdge(source, fromId, toId, matchLabel, matchIndex) {
   const blocked = requireFlowchart(source) || requireNodeId(fromId) || requireNodeId(toId);
   if (blocked) return blocked;
 
   const { lines, refs } = collectFlowchartEdgeRefs(source, fromId, toId);
-  const picked = pickParallelEdgeRef(refs, { edgeLabel, edgeIndex });
+  const picked = pickParallelEdgeRef(refs, { edgeLabel: matchLabel, edgeIndex: matchIndex });
   if (!picked) return fail('missing');
 
   const originalLine = lines[picked.lineIndex];
@@ -428,15 +428,16 @@ export function renameFlowchartNode(source, nodeId, label) {
  * @param {string} fromId
  * @param {string} toId
  * @param {string} label new edge label
- * @param {{ edgeLabel?: string, edgeIndex?: number }} [disambiguation] parallel-link pick context
+ * @param {string} [matchLabel] existing label identifying which parallel link to rename
+ * @param {number} [matchIndex] Mermaid `L_<from>_<to>_<n>` index when known
  */
-export function renameFlowchartEdge(source, fromId, toId, label, disambiguation = {}) {
+export function renameFlowchartEdge(source, fromId, toId, label, matchLabel, matchIndex) {
   const blocked = requireFlowchart(source) || requireNodeId(fromId) || requireNodeId(toId);
   if (blocked) return blocked;
   const text = String(label ?? '').trim();
 
   const { lines, refs } = collectFlowchartEdgeRefs(source, fromId, toId);
-  const picked = pickParallelEdgeRef(refs, disambiguation);
+  const picked = pickParallelEdgeRef(refs, { edgeLabel: matchLabel, edgeIndex: matchIndex });
   if (!picked) return fail('missing');
 
   const originalLine = lines[picked.lineIndex];

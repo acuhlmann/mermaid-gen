@@ -165,9 +165,7 @@ describe('renameStateEdge', () => {
   Draft --> PendingReview : submit
   Draft --> PendingReview : cancel
 `;
-    expect(
-      renameStateEdge(duplicate, 'Draft', 'PendingReview', 'changed', { edgeLabel: 'missing' })
-    ).toEqual({
+    expect(renameStateEdge(duplicate, 'Draft', 'PendingReview', 'changed', 'missing')).toEqual({
       ok: false,
       reason: 'missing'
     });
@@ -178,9 +176,7 @@ describe('renameStateEdge', () => {
   Draft --> PendingReview : submit
   Draft --> PendingReview : cancel
 `;
-    const result = renameStateEdge(duplicate, 'Draft', 'PendingReview', 'withdraw', {
-      edgeLabel: 'cancel'
-    });
+    const result = renameStateEdge(duplicate, 'Draft', 'PendingReview', 'withdraw', 'cancel');
     expect(result.ok).toBe(true);
     expect(result.source).toMatch(/Draft --> PendingReview : submit/);
     expect(result.source).toMatch(/Draft --> PendingReview : withdraw/);
