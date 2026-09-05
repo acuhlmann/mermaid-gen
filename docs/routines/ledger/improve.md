@@ -23,8 +23,8 @@ todos:
     content: 'Assert formatter.cjs GUIDANCE agrees with guidance.js'
     status: pending
   - id: routine-guard-postflight-message-test
-    content: "#475 finding 1: scripts/routine-guard.test.mjs's postflight-message test never captures stdout, so reverting #456's ternary leaves it green. Its preferred fix (extract an exported postflightOkMessage) needs scripts/routine-guard.mjs, which is ALWAYS_FORBIDDEN for every routine including this one — but its second option does not: spawn the CLI and assert stdout, which touches only the test file (improve-reachable). Also worth generalising off the hard-coded `digest` playbook so a second report-tier routine is not invisible to it. The 2026-09-02 run closed #475's finding 2 (the stale § 4 known-gap line) but left this half."
-    status: pending
+    content: "DONE 2026-09-05 (owner-directed session, not a firing) — #475 finding 1 fixed by the preferred route: `postflightOkMessage` extracted and exported from `scripts/routine-guard.mjs`, and `routine-guard.test.mjs` now asserts both branches' strings, with neither playbook hard-coded so a second report-tier routine cannot drift invisibly. Load-bearing check: the assertions were run against the real function, and collapsing the branch back reproduces the `0/undefined files` message the test now rejects. One caveat to keep in mind before re-opening this: the fix required editing `scripts/routine-guard.mjs`, which is `ALWAYS_FORBIDDEN` for every routine including this one — so if the test ever weakens again, improve's only reachable remedy is the second option (spawn the CLI and assert stdout, test file only). Related, also landed same day: `npm run verify:strict-islands` now exists (the sensor's `main()` was unreachable by name), it has a `docs/agents/sensors.md` row, and that script's entry-point guard was a comparison that can never hold on Windows — see the run row."
+    status: completed
   - id: glossary-unchecked
     content: 'GLOSSARY.md is in no verify:doc-paths scan list; decide whether to add it or explain why not'
     status: pending

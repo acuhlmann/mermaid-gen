@@ -1119,18 +1119,31 @@ function main() {
     result.violations.push(...filing.violations);
   }
   if (result.ok) {
-    // A `report` routine has no maxFiles to spend, so "0/undefined files" is the wrong shape of
-    // proof — and this line IS the proof an unattended run prints that it stayed in budget.
-    console.log(
-      String(playbook.tier) === 'report'
-        ? `routine-guard: postflight OK for "${name}" (report tier, ${changes.length} files changed)`
-        : `routine-guard: postflight OK for "${name}" (${changes.length}/${String(playbook.maxFiles)} files${filingNote})`
-    );
+    console.log(postflightOkMessage({ name, playbook, fileCount: changes.length, filingNote }));
     return;
   }
   console.error(`routine-guard: postflight FAILED for "${name}"`);
   for (const violation of result.violations) console.error(`  ${violation}`);
   process.exit(1);
+}
+
+/**
+ * The line an unattended run prints as proof it stayed inside its budget.
+ *
+ * Extracted from `main()` because #475 found the test named for it could not fail on it: when a
+ * change's entire deliverable *is* a printed string, asserting through `checkRoutineDiff()` never
+ * reaches the thing that shipped. Both branches are now asserted directly. The `report` branch is the
+ * one that matters — a report routine declares no `maxFiles`, so collapsing the ternary renders the
+ * proof as `0/undefined files`, which is a message that reads like a pass while proving nothing.
+ *
+ * @param {{ name: string, playbook: Record<string, string | string[]>, fileCount: number, filingNote?: string }} input
+ * @returns {string}
+ */
+export function postflightOkMessage({ name, playbook, fileCount, filingNote = '' }) {
+  if (String(playbook.tier) === 'report') {
+    return `routine-guard: postflight OK for "${name}" (report tier, ${fileCount} files changed)`;
+  }
+  return `routine-guard: postflight OK for "${name}" (${fileCount}/${String(playbook.maxFiles)} files${filingNote})`;
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

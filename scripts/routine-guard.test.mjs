@@ -27,6 +27,7 @@ import {
   parseFiledBy,
   parseFrontmatter,
   parseRepoSlug,
+  postflightOkMessage,
   routinePrMatchers,
   shelfOwnershipViolation,
   summarizeBacklog
@@ -613,10 +614,17 @@ test('fetchOpenPrs returns null rather than guessing when the remote is not GitH
   assert.equal(prs, null);
 });
 
-test('the report tier passes with no diff and says so without printing "undefined"', () => {
-  // This line is the proof an unattended run prints that it stayed in budget. A report routine has
-  // no maxFiles, so the code-writing message rendered "0/undefined files" — the wrong shape of
-  // proof, observed on the digest routine's first successful firing.
+test('the report tier has no budget to spend and checkRoutineDiff reports no violations for it', () => {
+  // Retitled by #475. This case was named "…says so without printing \"undefined\"", which it never
+  // checked: it asserts the playbook's tier and that checkRoutineDiff() is quiet, and no path here
+  // reaches a printed string. Proven rather than argued — collapsing the message branch back to the
+  // pre-#456 single template leaves this test green while the guard renders
+  // `postflight OK for "digest" (0/undefined files)`. The string itself is now asserted by
+  // `postflightOkMessage prints a real budget…`, which does fail on that revert.
+  //
+  // The tier/maxFiles assertions below still earn their place: they are what tells a future run that
+  // the report branch of the message is no longer needed, which is the "flag it, do not let it rot"
+  // half of the pairing.
   const { playbook } = loadPlaybook(ROOT, 'digest');
   assert.equal(playbook.tier, 'report');
   assert.equal(
@@ -1140,4 +1148,53 @@ test('missingPathNote flags a path with no file, without changing who owns it', 
   // has to stay a question the tool can answer.
   assert.match(missingPathNote(ROOT, '.github/dependabot.yml'), /no such path on disk/);
   assert.deepEqual(ownersOfPath('.github/dependabot.yml'), []);
+});
+
+test('postflightOkMessage prints a real budget for code-writing and no "undefined" for report', () => {
+  // #475: the test named for #456's fix asserted through `checkRoutineDiff()`, which never reaches a
+  // printed string, so reverting the ternary this line replaced left the suite green. A change whose
+  // entire deliverable is a message has to be tested as a message.
+  //
+  // Neither playbook below is `digest`. The old test hard-coded that one routine, so a second
+  // report-tier rung could drift silently; these pass any `{ tier: 'report' }` shape, which is the
+  // property that actually matters.
+  const reporter = postflightOkMessage({
+    name: 'digest',
+    playbook: { tier: 'report' },
+    fileCount: 0
+  });
+  assert.equal(
+    reporter,
+    'routine-guard: postflight OK for "digest" (report tier, 0 files changed)'
+  );
+  assert.ok(
+    !reporter.includes('undefined'),
+    `report branch printed a budget it has none of: ${reporter}`
+  );
+
+  const secondReporter = postflightOkMessage({
+    name: 'some-future-reporter',
+    playbook: { tier: 'report' },
+    fileCount: 3
+  });
+  assert.match(secondReporter, /\(report tier, 3 files changed\)$/);
+  assert.ok(!secondReporter.includes('undefined'), secondReporter);
+
+  const coding = postflightOkMessage({
+    name: 'review',
+    playbook: { tier: 'code-writing', maxFiles: '6' },
+    fileCount: 4
+  });
+  assert.equal(coding, 'routine-guard: postflight OK for "review" (4/6 files)');
+
+  const withFilings = postflightOkMessage({
+    name: 'review',
+    playbook: { tier: 'code-writing', maxFiles: '6' },
+    fileCount: 4,
+    filingNote: ', 2/2 issues filed in 24h'
+  });
+  assert.ok(
+    withFilings.endsWith('(4/6 files, 2/2 issues filed in 24h)'),
+    `the filing half of the proof must ride on the same line: ${withFilings}`
+  );
 });

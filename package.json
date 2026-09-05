@@ -46,6 +46,7 @@
     "verify:agent-infra": "node scripts/verify-agent-infra.mjs",
     "verify:ratchet": "node scripts/verify-ratchet.mjs",
     "verify:doc-paths": "node scripts/verify-doc-paths.mjs",
+    "verify:strict-islands": "node scripts/verify-strict-islands.mjs",
     "verify:boundaries": "depcruise --config .dependency-cruiser.cjs --no-progress --output-type err-long apps packages",
     "verify:boundaries:graph": "depcruise --config .dependency-cruiser.cjs --no-progress --output-type dot apps packages | dot -Tsvg -o docs/architecture/dep-graph.svg",
     "verify:modularity": "node -e \"console.log('Run /modularity:review in a Claude Code session, or read .cursor/skills/modularity/review/SKILL.md in Cursor. See docs/agents/modularity.md.')\"",

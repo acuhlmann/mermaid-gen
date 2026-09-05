@@ -59,6 +59,6 @@ function main() {
   console.log(`verify-strict-islands: OK (${tsconfigInclude.length} files in sync)`);
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   main();
 }
