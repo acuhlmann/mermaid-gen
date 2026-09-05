@@ -286,7 +286,7 @@ files instead. Two rules those playbooks carry that generalise:
   than a path ban, because banning the `.jsx` scene files would be mechanically enforceable and
   would also delete the capability.
 - **`DiagramCanvas.jsx` is out of `canvas-graph-edit`'s `allowedPaths` on purpose.** It sits on the
-  ratchet at 1889 lines; a new family extends `diagramGraphEditNodeResolve.js`, it does not grow
+  ratchet at 1867 lines; a new family extends `diagramGraphEditNodeResolve.js`, it does not grow
   the canvas component.
 
 When you learn something durable from a feature-automation run, put it in the domain file for that
