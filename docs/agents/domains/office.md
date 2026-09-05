@@ -347,6 +347,31 @@ https://api.deepseek.com/` — 401 is reachable, 000 is blocked); never route ar
   drawing it on somebody sitting in the room paints the **remote** modality on top of the
   **physical** one, the single distinction `FloorMeeting` exists to make. The rule is: whoever
   called it holds the agenda, everybody else holds the hour, the rest are listening.
+- **The office has a scripted visit now, and it reads the store as well as the room.**
+  `apps/web/test/officeVisitTrace.mjs` (not a `*.test.js` — it needs a browser, a server and
+  ~45 s) drives one fixed visit and prints one JSON object. Four things it had to learn, and
+  each of them is a way an office measurement lies. **`/api/office/speak` answers `200` with
+  `audio: null` when TTS is off**, by design, so counting office calls generically reports
+  `llmConfigured` on a room that asked no model anything — the LLM tell is `/moment` and its
+  siblings, never `/speak`. **Figure positions must be stage-relative** (`rect` minus the
+  `.office-floor-stage` rect, over its width): the stage is CSS-scaled to fit, so the fit-scale
+  settling once after mount moves every viewport rect in one tick and "who moved first" reports
+  a reflow instead of a person. **A drawn bubble is not the record** — voice leads and text is
+  the fallback, so `onUsage` (tokens actually spent) and the store's own `imHistory` are what
+  distinguish "nobody spoke" from "somebody spoke and the room never showed it". And
+  **`chromium.launch()` with no `executablePath` fails here**: the preinstalled browsers are
+  revision 1194, a fresh `playwright-core` looks for its own, and the error names a
+  `chromium_headless_shell-<n>` path nobody chose. Resolve the binary off `PLAYWRIGHT_BROWSERS_PATH`.
+- **`channel: 'talk'` is what makes speech physical, and the floor composer does not set it.**
+  `isSpokenLine` is exactly `msg.channel === 'talk'`, `latestTalkLine` returns nothing else, and
+  `pushOfficeImReply` drops the field entirely when the channel is `'im'` (its default). The dwell
+  remark goes in as `'talk'` and lifts a bubble; `OfficeLayer`'s `handleTalkReply` — the floor's
+  own composer — calls `pushOfficeImReply({ colleagueId, body })` with no channel, so both halves
+  of a conversation you had **standing in front of somebody** are filed as ordinary Slop Chat IMs.
+  Measured on the visit trace: DeepSeek returned a 58-token in-character answer from Gilfoyle and
+  no surface in the room drew a thing. Two rules this reopens rather than settles — `FloorTalk`'s
+  header says physical speech stays out of Slop Chat, and § 11 says a line you provoked must be
+  responsive — so treat the missing channel tag as the suspect and check both before changing it.
 - **After presence / TTS / desk-frame edits**, prefer `apps/web/test/officePresence.test.js`,
   `deskOsPresenceStrip.test.jsx`, `deskOsFrameStyles.test.js`, `apps/server/test/officeTts.test.js`,
   `officeRoute.test.js` (or `npm run test:affected`). **After isometric-floor edits**, `npm run
