@@ -1,8 +1,9 @@
 # Feature automations — the contract
 
-Scheduled, unattended **feature** work on a diagram slot. Unlike [NFR routines](../routines/README.md)
-(`review`, `improve`, `resolve`), these automations ship product improvements — validation gates,
-prompts, benches, and renderer fixes for one slot at a time.
+Scheduled, unattended **feature** work on a diagram slot or the office. Unlike
+[NFR routines](../routines/README.md) (`review`, `improve`, `resolve`), these automations ship
+product improvements — validation gates, prompts, benches, renderer fixes, and the lived-in feel of
+the floor — for one area at a time.
 
 Every feature automation is three things:
 
@@ -147,6 +148,7 @@ works another's queue, so `ready-for-agent` there is a label no scheduler will e
 
 | Playbook                                    | Schedule (UTC) | Trigger                                                |
 | ------------------------------------------- | -------------- | ------------------------------------------------------ |
+| [`office-life`](office-life.md)             | `0 13 * * *`   | Claude Routine "Feature automation: office-life"       |
 | [`metaphor3d`](metaphor3d.md)               | `0 15 * * *`   | Claude Routine "Feature automation: metaphor3d"        |
 | [`anything`](anything.md)                   | `15 17 * * *`  | Claude Routine "Feature automation: anything"          |
 | [`canvas-graph-edit`](canvas-graph-edit.md) | `30 18 * * *`  | Claude Routine "Feature automation: canvas-graph-edit" |
@@ -156,7 +158,7 @@ second timezone convention is invisible to every mechanical check — which is h
 drifted out of sync with their playbooks by 2026-08-30. The `digest` routine now diffs the two
 nightly (`docs/routines/digest.md` § Watchdog 4).
 
-All three sit at the head of the night ladder in [`docs/routines/review.md`](../routines/review.md),
+All four sit at the head of the night ladder in [`docs/routines/review.md`](../routines/review.md),
 so the three NFR routines review what they land a few hours later.
 
 `anything` and `canvas-graph-edit` moved off Cursor on 2026-08-30. `anything` had been dark since

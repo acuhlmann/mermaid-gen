@@ -435,6 +435,7 @@ test('every shipped playbook declares prefixes that match the PR titles it actua
     ['improve', 'improve: dead-code cleanup drops apps/web lintWarnings to 836'],
     ['metaphor3d', 'Metaphor3D: draw the grouping axis on the bodies that carry it'],
     ['canvas-graph-edit', 'canvas graph edit: mermaid gantt family'],
+    ['office-life', 'office life: an interruption leaves a mark in working memory'],
     ['deps', 'deps: merge npm_and_yarn group #455']
   ];
   const shipped = collectPlaybooks(ROOT)
@@ -1120,7 +1121,7 @@ test('every shipped playbook declares a filing budget it can be held to', () => 
     assert.match(String(playbook.maxIssues), /^\d+$/, `${name} must declare maxIssues`);
     capped.push({ name, budget: Number(playbook.maxIssues) });
   }
-  assert.equal(capped.length, 7, 'every code-writing rung on both shelves is bounded');
+  assert.equal(capped.length, 8, 'every code-writing rung on both shelves is bounded');
   assert.ok(
     capped.every((entry) => entry.budget <= 2),
     'a ceiling above 2 filings a night per rung does not bind on a shelf measured at 3.3 a night'
