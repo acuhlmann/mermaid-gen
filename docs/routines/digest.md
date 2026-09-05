@@ -24,7 +24,12 @@ than in `docs/routines/ledger/digest.md`; the ledger file holds only Locked deci
 or for `improve` to edit in a normal PR.
 
 If you find yourself wanting to commit something, you have found work for a different routine.
-File an issue and name it in the digest.
+Name it in the digest and the backlog already carries it: `review` and `improve` file from their own
+findings and `resolve` gathers what is filed. **This routine files nothing** — § 3's "never open an
+issue, never label one, never close one" is the rule, and it is why a `report` playbook may not declare
+a `maxIssues` budget either (`README.md` rule 12, refused by `loadPlaybook`). A reporter that also files
+is a third filer competing with the two whose job it is, on a shelf whose measured failure was three
+filers against one consumer.
 
 ## 1. Gather
 
@@ -53,6 +58,9 @@ gh api '/repos/acuhlmann/mermaid-gen/dependabot/alerts?state=open' \
 
 # quality trend (gates nothing — read the deltas)
 node scripts/verify-ratchet.mjs --json
+
+# the queue itself: size, oldest, net inflow, and who filed what (README rule 12)
+node scripts/routine-guard.mjs --filings --json
 ```
 
 Then the ledgers — **the tails only, never the whole file**:
@@ -102,6 +110,16 @@ duplicating it is how this routine turns into a second reviewer that costs an ho
 
 ### Filed / blocked
 
+- **The queue, as one number.** Open issues (excluding `log`), the oldest and its age, and the net
+  inflow from `routine-guard --filings --json` — `created` minus `closed` over 24 h. Say how it moved
+  since your previous comment on #452, which is the only place the trend is stored: the thread is read
+  back, not reconstructed. One line, e.g. `backlog 23 open (was 21), oldest #431 at 8d, net +2`. This
+  is the shelf's own output and nothing else in the system counts it — every other watchdog asks about
+  one issue, one PR, one job. **It is a section line, not a `Needs you:` line** (rule 10): a growing
+  backlog is a budget problem that `resolve` and `improve` own, not an emergency.
+- **Filings by routine, against each `maxIssues`.** Same JSON, `perRoutine[]`: name any rung over its
+  ceiling or `owes` (it filed while carrying more than three of its own findings past five days —
+  `README.md` rule 12), and report `unattributed` when a filing arrived without its `filed-by:` line.
 - Issues opened in the window, with labels. **Skip anything labelled `log`** — that is this
   routine's own standing thread (#452) and reporting it as backlog every morning is the shape of
   noise that gets a digest muted.
@@ -137,6 +155,12 @@ This is the section the routine exists for. Report each of these or say explicit
    (a routine that finished a fix and declined to merge it — `resolve.md` § 4) belongs in this line
    with what it is unsure of, in the same sentence: holding is a state in the repo, not a request to
    the owner, and it should read that way.
+   **Say what the hold disables.** A held PR is not a paused question, it is a stopped routine —
+   rule 5 refuses that routine's own next firing. Measured 2026-09-04: `improve` held PR #531 and its
+   two following runnings were ~3-minute no-ops, and `improve` § 2b is the only place a
+   `blocked-by-` row, a stale `allowedPaths` glob, or any playbook budget on either shelf ever gets
+   priced. When the held PR belongs to `improve`, name what froze with it — the shelf has no budget
+   owner while it sits, which is worth more in one sentence than three nights of "sitting untouched".
 3. **Red `main`.** Any failed CI run on `main` in the window, with the job name. Rule out the
    documented `anythingRuntimeCheck.test.js` load-contention flake before calling it a regression
    (`docs/agents/sensors.md` § Known flakes) — the tell is a uniform timing shift across every
@@ -174,6 +198,22 @@ This is the section the routine exists for. Report each of these or say explicit
    unregistered `critical-bug-memory` automation duplicated a `review` finding on 2026-08-29 and both
    paid for the same PR; an automation that isn't in the registry can't be in the ledger, the budget,
    or the watchdog, so it is invisible by construction.
+
+8. **The queue is not draining.** Six rungs file; one consumes, and `resolve.md` § 3 caps it at one
+   product bug a night. Report the arithmetic when it is lopsided: issues filed in the window vs
+   closed, and — from the last seven days of your own thread — how many nights the difference has run
+   positive. Then name the two failure shapes this shelf keeps producing, because they are invisible to
+   every other watchdog here:
+   - **A class with zero closures.** Recurring findings mint a number each time instead of appending:
+     the five `lintWarnings` regressions and the five self-contradicting records sitting open since late
+     August are ten issues describing two facts. `README.md` rule 12 is the rule; `improve` § 2b owns
+     the number.
+   - **A `ready-for-agent` promise no scheduler can keep.** An `enhancement`-shaped finding (a mutator,
+     a hit-test, an affordance) carrying `ready-for-agent` is gathered, examined and refused every
+     night, forever — `resolve` § 2 refuses design questions on sight and no automation reads another's
+     queue. Name it and say the label is wrong, not the issue.
+     A queue that grows for a week is a budget finding, not a page-bar one: it belongs here, never in the
+     `Needs you:` line.
 
 ### Ratchet
 

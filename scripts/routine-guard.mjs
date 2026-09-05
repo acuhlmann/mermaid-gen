@@ -8,6 +8,8 @@
  *   node scripts/routine-guard.mjs --preflight <name>   (reads open PRs via `gh`)
  *   node scripts/routine-guard.mjs --postflight <name> [--base origin/main]
  *   node scripts/routine-guard.mjs --reachable <path>   (which routine may write this file?)
+ *   node scripts/routine-guard.mjs --filings [--window <h>] [--json]
+ *       (who filed what into the backlog, against each playbook's maxIssues?)
  */
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
@@ -322,12 +324,28 @@ export function loadPlaybook(root, name) {
     if (toList(playbook.allowedPaths).length) {
       errors.push(`${rel} is tier "report" and must not declare allowedPaths — it writes nothing`);
     }
+    if (String(playbook.maxIssues ?? '') !== '') {
+      errors.push(
+        `${rel} is tier "report" and must not declare maxIssues — a reporter that files becomes a ` +
+          'second backlog owner (digest.md § 3: never open an issue, never label one, never close one)'
+      );
+    }
   } else {
     if (!Number(playbook.maxFiles)) {
       errors.push(`${rel} must declare a positive maxFiles budget`);
     }
     if (!toList(playbook.allowedPaths).length) {
       errors.push(`${rel} must declare at least one allowedPaths entry`);
+    }
+    // `0` is a real budget here (resolve files nothing and closes instead), so the truthiness test
+    // that suits maxFiles would reject it. `maxFiles` must be positive because a code-writing
+    // routine that may change no files is not code-writing; `maxIssues` may legitimately be zero.
+    if (!/^\d+$/.test(String(playbook.maxIssues ?? ''))) {
+      errors.push(
+        `${rel} must declare maxIssues as a whole number (issues it may open per rolling ` +
+          `${FILING_WINDOW_HOURS}h; 0 to forbid filing). maxFiles bounds a diff; nothing else on ` +
+          'either shelf bounds a ticket, and filing is the half that grew the backlog.'
+      );
     }
   }
   const ledger = path.join(shelf.ledgerDir, `${name}.md`);
@@ -531,6 +549,319 @@ export function fetchOpenPrs(deps = {}) {
 }
 
 /**
+ * The machine-readable filer line every routine must put in the body of an issue it opens.
+ *
+ * Without it, a filing has no author. Every issue in this tracker — human-filed and routine-filed —
+ * is authored by the same account, because the routines reach GitHub through the owner's own
+ * credentials (README rule 9). So "who filed this?" could only be answered by reading each body as
+ * prose, which is why nothing in the fleet could see its own inflow: nine open issues in one week
+ * carried no number that connected them to the run that created them.
+ *
+ * `maxIssues` is unenforceable until this line exists, and the digest cannot report filings by
+ * routine until it does.
+ */
+export const FILED_BY_RE = /^filed-by:[ \t]*([A-Za-z0-9_-]+)[ \t]*$/im;
+
+/** The rolling window a filing budget is counted over: one day covers a nightly rung's one run. */
+export const FILING_WINDOW_HOURS = 24;
+
+/**
+ * Pay-before-file, and deliberately NOT a playbook key.
+ *
+ * `maxIssues` alone only slows the inflow — a ceiling of eight filings a night across seven rungs
+ * does not bind on a shelf measured at 3.3 a night. What actually stops growth is making a filing
+ * cost the filer: a rung already carrying this many of its own issues, each older than the age
+ * below, must close one before it opens another. Six rungs are contractually required to file and
+ * one consumer is capped at one pick a night, so the asymmetry has to be closed on the filing side.
+ *
+ * It lives here rather than in front-matter for the reason ADR-0017 gave for everything else on this
+ * shelf: the routine that spends a budget is not the one that should set it. A `maxOwnOpenIssues` in
+ * a playbook would be a number every overworked rung has an incentive to widen, and widening it
+ * unblocks nothing except the tracker.
+ */
+export const OWN_OPEN_ISSUE_LIMIT = 3;
+
+/** How many days a rung's own filing gets before it counts against that limit. */
+export const OWN_OPEN_ISSUE_AGE_DAYS = 5;
+
+/**
+ * @param {string | undefined | null} body
+ * @returns {string | null} the routine named by the body, lowercased, or null when it names none
+ */
+export function parseFiledBy(body) {
+  const match = FILED_BY_RE.exec(String(body ?? ''));
+  return match ? match[1].toLowerCase() : null;
+}
+
+/**
+ * @param {unknown} parsed
+ * @returns {{ number: number, title: string, createdAt: string, closedAt: string, state: string, labels: string[], filedBy: string | null }[] | null}
+ */
+function normalizeIssueList(parsed) {
+  if (!Array.isArray(parsed)) return null;
+  return parsed
+    .filter((issue) => issue && !('pull_request' in issue))
+    .map((issue) => ({
+      number: Number(issue?.number),
+      title: String(issue?.title ?? ''),
+      createdAt: String(issue?.createdAt ?? issue?.created_at ?? ''),
+      closedAt: String(issue?.closedAt ?? issue?.closed_at ?? ''),
+      // `gh --json state` answers `OPEN`; the REST API answers `open`. Measured on both routes, and
+      // read here rather than by each caller — a case-sensitive `=== 'open'` silently reports a
+      // backlog of zero through the `gh` route while the REST route reports the true number, which
+      // is the "present in the tests, absent in production" shape README rule 5 names.
+      state: String(issue?.state ?? '').toLowerCase(),
+      // `gh --json labels` gives `[{id,name,description}]`, REST gives the same but a caller that
+      // forgets to map it gets objects where a `includes('log')` expects strings.
+      labels: (Array.isArray(issue?.labels) ? issue.labels : [])
+        .map((label) => (typeof label === 'string' ? label : String(label?.name ?? '')))
+        .filter(Boolean),
+      filedBy: parseFiledBy(issue?.body)
+    }));
+}
+
+/**
+ * `log` marks an append-only thread, never work — today #452, the digest's own standing comment
+ * stream. Every routine that reads the backlog excludes it (`docs/agents/triage-labels.md`), and this
+ * sensor counts the same queue, so it must count the same way: a backlog figure that includes the
+ * thread reporting on the backlog is one that can never reach zero.
+ *
+ * @param {{ labels?: string[] }} issue
+ * @returns {boolean}
+ */
+export function isLogIssue(issue) {
+  return (issue?.labels ?? []).includes('log');
+}
+
+/**
+ * Recently created issues, newest first. Same two routes and the same `null`-on-failure contract as
+ * {@link fetchOpenPrs}: an absent answer and an empty answer mean opposite things, and a filing cap
+ * that read "could not reach GitHub" as "filed nothing" is a cap that disappears whenever the
+ * network does.
+ *
+ * `state=all` because the budget is about inflow, not backlog: a rung that files an issue and closes
+ * it an hour later has still spent a filing.
+ *
+ * @param {{ runGh?: (args: string[]) => string, runCurl?: (args: string[]) => string, remoteUrl?: string }} [deps]
+ * @returns {{ number: number, title: string, createdAt: string, closedAt: string, state: string, filedBy: string | null }[] | null}
+ */
+export function fetchRecentIssues(deps = {}) {
+  const runGh =
+    deps.runGh ??
+    ((args) =>
+      execFileSync('gh', args, { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }));
+  try {
+    const viaGh = normalizeIssueList(
+      JSON.parse(
+        runGh([
+          'issue',
+          'list',
+          '--state',
+          'all',
+          '--limit',
+          '200',
+          '--json',
+          'number,title,createdAt,closedAt,state,labels,body'
+        ])
+      )
+    );
+    if (viaGh) return viaGh;
+  } catch {
+    // fall through to REST
+  }
+
+  const runCurl =
+    deps.runCurl ??
+    ((args) =>
+      execFileSync('curl', args, {
+        cwd: ROOT,
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'pipe']
+      }));
+  try {
+    const remoteUrl = deps.remoteUrl ?? git(['remote', 'get-url', 'origin']);
+    const slug = parseRepoSlug(remoteUrl);
+    if (!slug) return null;
+    const token = process.env.GH_TOKEN || process.env.GITHUB_TOKEN;
+    const args = [
+      '-sS',
+      '--max-time',
+      '20',
+      '-H',
+      'Accept: application/vnd.github+json',
+      ...(token ? ['-H', `Authorization: Bearer ${token}`] : []),
+      `https://api.github.com/repos/${slug}/issues?state=all&sort=created&direction=desc&per_page=200`
+    ];
+    return normalizeIssueList(JSON.parse(runCurl(args)));
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * The filing half of postflight, kept pure so it can be tested without a network or a `gh` login.
+ *
+ * `maxIssues` exists because `maxFiles` does not bound this. A routine may change nine files and is
+ * refused at its tenth; it may open nine issues and costs itself nothing, because filing needs no
+ * diff at all. With six rungs contractually required to file and one consumer capped at one pick per
+ * night, the tracker was the only unbounded budget on the shelf (measured: 36 issues opened and 13
+ * closed across 11 days). Same safety model as every other budget here: a small declared number,
+ * checked against the real world by the guard rather than by the prose.
+ *
+ * @param {object} input
+ * @param {string} input.name
+ * @param {Record<string, string | string[]>} input.playbook
+ * @param {{ number: number, title: string, createdAt: string, state: string, labels: string[], filedBy: string | null }[] | null} input.issues
+ * @param {number} [input.now]
+ * @param {number} [input.windowHours]
+ * @returns {{ readable: boolean, filings: number, budget: number | null, unattributed?: number, ownOpen?: number, violations: string[], warning?: string }}
+ */
+export function checkFilings({
+  name,
+  playbook,
+  issues,
+  now = Date.now(),
+  windowHours = FILING_WINDOW_HOURS
+}) {
+  if (String(playbook.tier) === 'report') {
+    return { readable: issues !== null, filings: 0, budget: null, unattributed: 0, violations: [] };
+  }
+  if (issues === null) {
+    return {
+      readable: false,
+      filings: 0,
+      budget: null,
+      unattributed: 0,
+      violations: [],
+      warning:
+        'could not read recent issues (gh missing, unauthenticated or offline) — the filing budget ' +
+        'did not run. A routine whose only output is a GitHub write must confirm it landed (README rule 9).'
+    };
+  }
+  const budget = Number(playbook.maxIssues);
+  const cutoff = now - windowHours * 3600e3;
+  const recent = issues.filter(
+    (issue) => !isLogIssue(issue) && Date.parse(issue.createdAt) >= cutoff
+  );
+  const lower = String(name).toLowerCase();
+  const mine = recent.filter((issue) => issue.filedBy === lower);
+  const unattributed = recent.filter((issue) => !issue.filedBy).length;
+  const debt = ownOpenDebt({ name, issues, now });
+  /** @type {string[]} */
+  const violations = [];
+  if (Number.isFinite(budget) && mine.length > budget) {
+    violations.push(
+      `filing budget: ${mine.length} issues opened by \`${lower}\` in the last ${windowHours}h, ` +
+        `playbook allows ${budget} (${mine.map((i) => `#${i.number}`).join(', ')}). ` +
+        'Append to a standing issue instead of minting a number, or fix one you filed earlier — ' +
+        'see docs/routines/README.md rule 12.'
+    );
+  }
+  if (mine.length && debt.count > OWN_OPEN_ISSUE_LIMIT) {
+    violations.push(
+      `pay-before-file: \`${lower}\` filed ${mine.length} while ${debt.count} of its own findings ` +
+        `are still open past ${OWN_OPEN_ISSUE_AGE_DAYS} days (${debt.numbers.join(', ')}). ` +
+        `Resolve one of those instead — a filer that also clears its own backlog is the only thing ` +
+        'that bounds it, because the one routine scheduled to clear backlogs takes one issue a night.'
+    );
+  }
+  return {
+    readable: true,
+    filings: mine.length,
+    budget: Number.isFinite(budget) ? budget : null,
+    unattributed,
+    ownOpen: debt.count,
+    violations
+  };
+}
+
+/**
+ * The filings a rung still owes: open, attributed to it, and older than the grace period.
+ *
+ * Only bodies carrying the `filed-by:` trailer can answer this. Issues filed before the trailer
+ * existed are nobody's debt rather than everyone's — attribution is not recoverable from prose at
+ * this scale, and guessing it would let the guard blame a rung for a filing it never made.
+ *
+ * @param {{ name: string, issues: { number: number, createdAt: string, state: string, filedBy: string | null }[], now?: number }} input
+ * @returns {{ count: number, numbers: number[] }}
+ */
+export function ownOpenDebt({ name, issues, now = Date.now() }) {
+  const lower = String(name).toLowerCase();
+  const graceMs = OWN_OPEN_ISSUE_AGE_DAYS * 86400e3;
+  const owed = issues.filter(
+    (issue) =>
+      !isLogIssue(issue) &&
+      issue.filedBy === lower &&
+      issue.state === 'open' &&
+      now - Date.parse(issue.createdAt) >= graceMs
+  );
+  return { count: owed.length, numbers: owed.map((issue) => `#${issue.number}`) };
+}
+
+/**
+ * The aggregate the shelf was built without.
+ *
+ * Every existing watchdog asks about one thing: this job did not run, this PR is old, this issue is
+ * unowned. None asks how big the queue is, so a backlog can double while every item-level check
+ * correctly reports nothing to act on — which is how the tracker reached 24 open with a digest whose
+ * first line read "nothing needs you tonight". This is the counterpart to `--reachable`: that answers
+ * "can any agent take this?", this answers "is anything taking them".
+ *
+ * Kept pure so the arithmetic is testable without GitHub.
+ *
+ * @param {object} input
+ * @param {{ number: number, title: string, createdAt: string, closedAt: string, state: string, labels: string[], filedBy: string | null }[]} input.issues
+ * @param {{ name: string, playbook: Record<string, string | string[]> }[]} input.playbooks
+ * @param {number} [input.now]
+ * @param {number} [input.windowHours]
+ */
+export function summarizeBacklog({
+  issues,
+  playbooks,
+  now = Date.now(),
+  windowHours = FILING_WINDOW_HOURS
+}) {
+  issues = issues.filter((issue) => !isLogIssue(issue));
+  const cutoff = now - windowHours * 3600e3;
+  const days = (iso) => Math.floor((now - Date.parse(iso)) / 86400e3);
+  const open = issues.filter((issue) => issue.state === 'open');
+  const created = issues.filter((issue) => Date.parse(issue.createdAt) >= cutoff);
+  const closed = issues.filter((issue) => issue.closedAt && Date.parse(issue.closedAt) >= cutoff);
+  const aged = open
+    .filter((issue) => Number.isFinite(Date.parse(issue.createdAt)))
+    .sort((a, b) => Date.parse(a.createdAt) - Date.parse(b.createdAt));
+  const oldest = aged.length ? { ...aged[0], ageDays: days(aged[0].createdAt) } : null;
+  const perRoutine = [];
+  for (const entry of playbooks) {
+    if (String(entry.playbook.tier) === 'report') continue;
+    const lower = String(entry.name).toLowerCase();
+    const filings = created.filter((issue) => issue.filedBy === lower);
+    const budget = Number(entry.playbook.maxIssues);
+    const debt = ownOpenDebt({ name: entry.name, issues, now });
+    perRoutine.push({
+      name: entry.name,
+      filings: filings.length,
+      numbers: filings.map((issue) => issue.number),
+      budget: Number.isFinite(budget) ? budget : null,
+      ownOpen: debt.count,
+      over: Number.isFinite(budget) && filings.length > budget,
+      owes: filings.length > 0 && debt.count > OWN_OPEN_ISSUE_LIMIT
+    });
+  }
+  return {
+    windowHours,
+    open: open.length,
+    oldest,
+    created: created.length,
+    closed: closed.length,
+    net: created.length - closed.length,
+    unattributed: created.filter((issue) => !issue.filedBy).length,
+    perRoutine,
+    anyOver: perRoutine.some((entry) => entry.over || entry.owes)
+  };
+}
+
+/**
  * @param {string[]} args
  * @param {string} flag
  * @returns {string | undefined}
@@ -625,6 +956,57 @@ export function preflightProblems(name, deps = {}) {
 function main() {
   const args = process.argv.slice(2);
 
+  // `--filings` is the inflow half of the same question, for the digest and for `improve`: how many
+  // issues did each rung open in the window, against the budget it declared, and how big is the
+  // queue that results? Exits 1 when any rung is over its `maxIssues`, the way `--reachable` exits 1
+  // when a path has no owner — both are "the shelf is stuck in a way nobody is scheduled to notice".
+  if (args.includes('--filings')) {
+    const issues = fetchRecentIssues();
+    if (issues === null) {
+      console.error(
+        'routine-guard: --filings needs GitHub (a logged-in `gh`, or the REST API with GH_TOKEN). ' +
+          'Unlike postflight this does not warn and pass: an absent answer is not "filed nothing".'
+      );
+      process.exit(1);
+    }
+    const windowHours = Number(readFlag(args, '--window')) || FILING_WINDOW_HOURS;
+    const summary = summarizeBacklog({ issues, playbooks: collectPlaybooks(), windowHours });
+    if (args.includes('--json')) {
+      console.log(JSON.stringify(summary, null, 2));
+      process.exit(summary.anyOver ? 1 : 0);
+    }
+    console.log(
+      `backlog: ${summary.open} open` +
+        (summary.oldest
+          ? `, oldest #${summary.oldest.number} (${summary.oldest.ageDays}d) — ${summary.oldest.title.slice(0, 58)}`
+          : '')
+    );
+    console.log(
+      `window: ${summary.created} filed / ${summary.closed} closed in ${windowHours}h ` +
+        `(net ${summary.net >= 0 ? '+' : ''}${summary.net})` +
+        (summary.unattributed
+          ? `, ${summary.unattributed} unattributed (no \`filed-by:\` line)`
+          : '')
+    );
+    for (const entry of summary.perRoutine) {
+      const flag = entry.over ? 'OVER-BUDGET' : entry.owes ? 'OWES' : 'ok';
+      console.log(
+        `  ${entry.name.padEnd(18)} filed ${entry.filings}/${entry.budget ?? '?'}  ` +
+          `own-open ${entry.ownOpen}  ${flag}` +
+          (entry.numbers.length ? `  ${entry.numbers.map((n) => `#${n}`).join(' ')}` : '')
+      );
+    }
+    if (summary.anyOver) {
+      console.error(
+        'routine-guard: a rung is over its filing budget or owes backlog of its own. It must append ' +
+          'to a standing issue or work one it already filed (docs/routines/README.md rule 12); ' +
+          '`improve` owns the number.'
+      );
+      process.exit(1);
+    }
+    return;
+  }
+
   // `--reachable` is a query, not a flight check: "which routine may write this file?" It exists so
   // a filer can answer that without reading four playbooks, and so the digest can ask it of every
   // open issue. Exits 1 when a path has no owner — that is a stuck issue, not a style note.
@@ -693,13 +1075,26 @@ function main() {
     changes,
     testCounts: collectTestCounts(base, changes)
   });
+  let filingNote = '';
+  if (String(playbook.tier) !== 'report') {
+    const filing = checkFilings({ name, playbook, issues: fetchRecentIssues() });
+    if (!filing.readable) {
+      console.warn(`  warning: ${filing.warning}`);
+    } else {
+      filingNote = `, ${filing.filings}/${filing.budget} issues filed in ${FILING_WINDOW_HOURS}h`;
+      if (filing.unattributed) {
+        filingNote += ` (${filing.unattributed} unattributed — no \`filed-by:\` line)`;
+      }
+    }
+    result.violations.push(...filing.violations);
+  }
   if (result.ok) {
     // A `report` routine has no maxFiles to spend, so "0/undefined files" is the wrong shape of
     // proof — and this line IS the proof an unattended run prints that it stayed in budget.
     console.log(
       String(playbook.tier) === 'report'
         ? `routine-guard: postflight OK for "${name}" (report tier, ${changes.length} files changed)`
-        : `routine-guard: postflight OK for "${name}" (${changes.length}/${String(playbook.maxFiles)} files)`
+        : `routine-guard: postflight OK for "${name}" (${changes.length}/${String(playbook.maxFiles)} files${filingNote})`
     );
     return;
   }

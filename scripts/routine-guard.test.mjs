@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
@@ -8,20 +9,26 @@ import {
   BUDGET_OWNERS,
   PLAYBOOK_SHELVES,
   ROUTINE_TIERS,
+  checkFilings,
   checkRoutineDiff,
   collectPlaybooks,
   countTestCases,
   fetchOpenPrs,
+  fetchRecentIssues,
   globToRegExp,
+  isLogIssue,
   isTestPath,
   loadPlaybook,
   matchOpenRoutinePrs,
   matchesAny,
+  ownOpenDebt,
   ownersOfPath,
+  parseFiledBy,
   parseFrontmatter,
   parseRepoSlug,
   routinePrMatchers,
-  shelfOwnershipViolation
+  shelfOwnershipViolation,
+  summarizeBacklog
 } from './routine-guard.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -770,4 +777,343 @@ test('a file named by an issue is reachable by the routine the label promises', 
     'apps/web/src/App.jsx'
   ].filter((file) => ownersOfPath(file).length === 0 && !matchesAny(file, ALWAYS_FORBIDDEN));
   assert.deepEqual(unowned, []);
+});
+
+// --- filing budget (docs/routines/README.md rule 12) ------------------------------------------
+// `maxFiles` bounds a diff, and a routine that wants a tenth file is refused. Filing was never
+// refused at anything, because an issue needs no diff at all: measured across Aug 25 – Sep 5 2026,
+// 36 issues were opened and 13 closed while the one rung scheduled to clear the backlog takes one
+// pick a night. These tests are the cap's proof that it exists.
+
+const DAY = 86400e3;
+const NOW = Date.parse('2026-09-05T12:00:00Z');
+
+/** @param {number} ageDays @param {{number?: number, state?: string, labels?: string[], filedBy?: string|null, title?: string}} [over] */
+const issue = (ageDays, over = {}) => ({
+  number: over.number ?? 500 + ageDays,
+  title: over.title ?? 'a finding',
+  createdAt: new Date(NOW - ageDays * DAY).toISOString(),
+  closedAt: over.state === 'closed' ? new Date(NOW - (ageDays - 0.5) * DAY).toISOString() : '',
+  state: over.state ?? 'open',
+  labels: over.labels ?? [],
+  filedBy: over.filedBy ?? null
+});
+
+const CODE_PLAYBOOK = { name: 'review', tier: 'code-writing', maxFiles: '6', maxIssues: '2' };
+
+test('parseFiledBy reads the trailer wherever it sits, and null when a body names no filer', () => {
+  assert.equal(parseFiledBy('filed-by: canvas-graph-edit\n\n## The file'), 'canvas-graph-edit');
+  assert.equal(parseFiledBy('Prose first.\n\nFiled-by: Metaphor3D \n'), 'metaphor3d');
+  assert.equal(parseFiledBy('confirmed 2026-09-05 by the `deps` NFR routine'), null);
+  assert.equal(parseFiledBy(undefined), null);
+  // The one way the anchor is loose: a trailer inside a fenced example block still counts, because
+  // `^` in multiline mode cannot see the fence. Naming it rather than pretending otherwise — an
+  // issue body that quotes the convention inline (`` `filed-by:` ``) does NOT match, which is the
+  // realistic mistake; a body pasting a whole yaml example is the residual case.
+  assert.equal(parseFiledBy('```yaml\nfiled-by: review\n```'), 'review');
+});
+
+test('fetchRecentIssues normalises gh’s OPEN/label-objects into what REST already answers', () => {
+  // Measured on this repo: `gh --json state` says OPEN and REST says open. A caller comparing
+  // `=== 'open'` therefore sees a zero backlog through one route and the true queue through the
+  // other, and only the route the cloud sandbox happens to use gets checked.
+  const viaGh = fetchRecentIssues({
+    runGh: () =>
+      JSON.stringify([
+        {
+          number: 452,
+          title: 'Nightly digest',
+          createdAt: '2026-08-27T00:00:00Z',
+          closedAt: null,
+          state: 'OPEN',
+          labels: [{ id: 1, name: 'log', description: 'record' }],
+          body: 'filed-by: digest'
+        }
+      ]),
+    runCurl: () => {
+      throw new Error('must not be reached');
+    }
+  });
+  assert.equal(viaGh.length, 1, 'gh route must answer');
+  assert.equal(viaGh[0].state, 'open');
+  assert.deepEqual(viaGh[0].labels, ['log']);
+  assert.ok(isLogIssue(viaGh[0]));
+  assert.equal(viaGh[0].closedAt, '', 'a null closedAt must not stringify to "null"');
+
+  const viaRest = fetchRecentIssues({
+    runGh: () => {
+      throw new Error('gh is unauthenticated in the cloud sandbox');
+    },
+    runCurl: () =>
+      JSON.stringify([
+        {
+          number: 545,
+          title: 'Ownership gap',
+          created_at: '2026-09-05T00:00:00Z',
+          closed_at: null,
+          state: 'closed',
+          labels: [{ name: 'needs-triage' }],
+          pull_request: { url: 'x' }
+        },
+        {
+          number: 544,
+          title: 'Ledger row',
+          created_at: '2026-09-05T00:00:00Z',
+          closed_at: '2026-09-05T05:00:00Z',
+          state: 'open',
+          labels: ['ready-for-agent'],
+          body: 'filed-by: deps'
+        }
+      ]),
+    remoteUrl: 'git@github.com:acuhlmann/mermaid-gen.git'
+  });
+  assert.equal(
+    viaRest.length,
+    1,
+    'the REST /issues list carries PRs; they must not count as issues'
+  );
+  assert.equal(viaRest[0].number, 544);
+  assert.deepEqual(viaRest[0].labels, ['ready-for-agent'], 'a bare string label must survive');
+  assert.equal(viaRest[0].filedBy, 'deps');
+});
+
+test('fetchRecentIssues returns null when neither route answers — an absent backlog is not none', () => {
+  assert.equal(
+    fetchRecentIssues({
+      runGh: () => '{"message":"Bad credentials"}',
+      runCurl: () => '{"message":"Bad credentials"}',
+      remoteUrl: 'git@github.com:o/r.git'
+    }),
+    null
+  );
+});
+
+test('checkFilings rejects a rung over its maxIssues for the window', () => {
+  const issues = [
+    issue(0, { number: 1, filedBy: 'review' }),
+    issue(0.1, { number: 2, filedBy: 'review' }),
+    issue(0.2, { number: 3, filedBy: 'review' }),
+    issue(0.3, { number: 4, filedBy: 'improve' })
+  ];
+  const result = checkFilings({ name: 'review', playbook: CODE_PLAYBOOK, issues, now: NOW });
+  assert.equal(result.filings, 3);
+  assert.equal(result.budget, 2);
+  assert.ok(result.violations.length, 'three filings against a ceiling of two must be refused');
+  assert.match(result.violations[0], /filing budget: 3 issues opened by `review`/);
+  assert.match(result.violations[0], /#1, #2, #3/);
+  assert.equal(
+    checkFilings({
+      name: 'improve',
+      playbook: { ...CODE_PLAYBOOK, name: 'improve' },
+      issues,
+      now: NOW
+    }).violations.length,
+    0,
+    "another rung's filings are not this one's budget"
+  );
+});
+
+test('checkFilings warns rather than passes when the backlog cannot be read', () => {
+  // README rule 5's precedent, applied to the new budget: a routine that cannot reach GitHub has
+  // useful work to do, so this must not hard-fail — but it must never report "filed nothing" either.
+  const result = checkFilings({ name: 'review', playbook: CODE_PLAYBOOK, issues: null, now: NOW });
+  assert.equal(result.readable, false);
+  assert.deepEqual(result.violations, []);
+  assert.match(result.warning, /did not run/);
+});
+
+test('checkFilings skips a report routine, which has no filing budget to spend', () => {
+  const result = checkFilings({
+    name: 'digest',
+    playbook: { name: 'digest', tier: 'report' },
+    issues: [issue(0, { filedBy: 'digest' })],
+    now: NOW
+  });
+  assert.deepEqual(result.violations, []);
+  assert.equal(result.filings, 0);
+});
+
+test('pay-before-file: a rung carrying its own aged backlog may not open another', () => {
+  const aged = [1, 2, 3, 4].map((n) => issue(6, { number: n, filedBy: 'review' }));
+  const issues = [...aged, issue(0, { number: 50, filedBy: 'review' })];
+  const result = checkFilings({ name: 'review', playbook: CODE_PLAYBOOK, issues, now: NOW });
+  assert.equal(result.ownOpen, 4);
+  assert.equal(result.violations.length, 1, 'the ceiling did not bind (1 filing, 2 allowed)…');
+  assert.match(result.violations[0], /pay-before-file/);
+  assert.match(result.violations[0], /#1, #2, #3, #4/);
+});
+
+test('a filing predating the trailer is nobody’s debt, not everyone’s', () => {
+  // Without this, the shelf's first run under the new rule is blocked by 23 issues it never opened
+  // under a rule that did not exist, and the honest response to a check that always fails is to
+  // suppress it.
+  const aged = [6, 7, 8].map((d) => issue(d, { number: 400 + d }));
+  const result = checkFilings({
+    name: 'review',
+    playbook: CODE_PLAYBOOK,
+    issues: [...aged, issue(0, { number: 900 })],
+    now: NOW
+  });
+  // `unattributed` is a window count, so only today's filing is in it — but the aged three are the
+  // point: they charge nobody.
+  assert.equal(result.unattributed, 1);
+  assert.equal(result.ownOpen, 0);
+  assert.deepEqual(result.violations, []);
+  assert.equal(
+    ownOpenDebt({
+      name: 'review',
+      issues: aged.map((i) => ({ ...i, filedBy: 'review' })),
+      now: NOW
+    }).count,
+    3,
+    'the same three issues WOULD be debt once they carry a filer — the rule is inert, not absent'
+  );
+});
+
+test('ownOpenDebt ignores closed findings and the log thread', () => {
+  const issues = [
+    issue(30, { number: 1, filedBy: 'review', state: 'closed' }),
+    issue(30, { number: 452, filedBy: 'review', labels: ['log'] }),
+    issue(30, { number: 3, filedBy: 'review' }),
+    issue(30, { number: 4, filedBy: 'improve' }),
+    issue(2, { number: 5, filedBy: 'review' })
+  ];
+  assert.deepEqual(ownOpenDebt({ name: 'review', issues, now: NOW }).numbers, ['#3']);
+});
+
+test('summarizeBacklog reports net inflow and keeps the log thread out of the queue it counts', () => {
+  const issues = [
+    issue(0.1, { number: 1, filedBy: 'review' }),
+    issue(0.2, { number: 2, filedBy: 'review' }),
+    issue(0.3, { number: 3, filedBy: null }),
+    issue(0.4, { number: 4, filedBy: 'deps', state: 'closed' }),
+    issue(20, { number: 452, filedBy: 'digest', labels: ['log'] }),
+    issue(12, { number: 431, filedBy: 'improve', title: 'lintWarnings regression' })
+  ];
+  const summary = summarizeBacklog({
+    issues,
+    playbooks: [
+      { name: 'review', playbook: CODE_PLAYBOOK },
+      { name: 'improve', playbook: { ...CODE_PLAYBOOK, name: 'improve', maxIssues: '1' } },
+      { name: 'deps', playbook: { ...CODE_PLAYBOOK, name: 'deps', maxIssues: '1' } },
+      { name: 'digest', playbook: { name: 'digest', tier: 'report' } }
+    ],
+    now: NOW,
+    windowHours: 24
+  });
+  assert.equal(summary.open, 4, 'the standing log thread is a record, not backlog');
+  assert.equal(summary.created, 4);
+  assert.equal(summary.closed, 1);
+  assert.equal(summary.net, 3, 'net inflow is the number no item-level watchdog could produce');
+  assert.equal(summary.unattributed, 1);
+  assert.equal(summary.oldest.number, 431, 'the oldest open finding is the one to name');
+  assert.equal(summary.oldest.ageDays, 12);
+  assert.deepEqual(
+    summary.perRoutine.map((entry) => entry.name),
+    ['review', 'improve', 'deps'],
+    'a report routine owns no filings and must not appear in the table'
+  );
+  assert.equal(summary.perRoutine[0].filings, 2);
+  assert.equal(summary.perRoutine[1].filings, 0, '#431 is 12 days old — outside the 24h window');
+  assert.equal(summary.perRoutine[1].ownOpen, 1, '…but it is still improve’s debt, windowless');
+  assert.equal(
+    summary.perRoutine[2].filings,
+    1,
+    'a filed-then-closed finding still spent a filing'
+  );
+  assert.equal(summary.anyOver, false);
+});
+
+test('summarizeBacklog flags a rung over its ceiling and one that owes backlog', () => {
+  const issues = [
+    ...[1, 2, 3].map((n) => issue(n * 0.1, { number: 10 + n, filedBy: 'review' })),
+    ...[6, 7, 8, 9].map((d) => issue(d, { number: 100 + d, filedBy: 'canvas-graph-edit' })),
+    issue(0, { number: 200, filedBy: 'canvas-graph-edit' })
+  ];
+  const summary = summarizeBacklog({
+    issues,
+    playbooks: [
+      { name: 'review', playbook: CODE_PLAYBOOK },
+      { name: 'canvas-graph-edit', playbook: { ...CODE_PLAYBOOK, name: 'canvas-graph-edit' } }
+    ],
+    now: NOW,
+    windowHours: 24
+  });
+  assert.ok(summary.perRoutine[0].over, '3 filings against maxIssues 2');
+  assert.ok(summary.perRoutine[1].owes, 'filed while carrying 4 of its own past the grace period');
+  assert.ok(
+    !summary.perRoutine[1].over,
+    'its ceiling (2) was not breached — the debt is the finding'
+  );
+  assert.equal(summary.anyOver, true);
+});
+
+test('loadPlaybook refuses a code-writing playbook with no filing budget, and a report one with it', () => {
+  // The one test here that scaffolds a playbook on disk: the shipped seven all declare the key, so
+  // nothing else proves the validation fires. Perturb a shipped playbook's front-matter and this
+  // assertion is what catches it.
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'routine-guard-'));
+  try {
+    const shelf = path.join(root, 'docs', 'routines');
+    fs.mkdirSync(path.join(shelf, 'ledger'), { recursive: true });
+    const write = (name, frontmatter) => {
+      fs.writeFileSync(
+        path.join(shelf, `${name}.md`),
+        `---\n${frontmatter}\n---\n\n# Routine: \`${name}\`\n`
+      );
+      fs.writeFileSync(path.join(shelf, 'ledger', `${name}.md`), `# Ledger: ${name}\n`);
+    };
+    write('nocap', 'name: nocap\ntier: code-writing\nmaxFiles: 4\nallowedPaths:\n  - apps/**');
+    assert.match(
+      loadPlaybook(root, 'nocap').errors.join('\n'),
+      /must declare maxIssues as a whole number/
+    );
+
+    write(
+      'zerocap',
+      'name: zerocap\ntier: code-writing\nmaxFiles: 4\nmaxIssues: 0\nallowedPaths:\n  - apps/**'
+    );
+    assert.deepEqual(
+      loadPlaybook(root, 'zerocap').errors,
+      [],
+      '0 is a real budget — a rung that only ever closes must be able to say so'
+    );
+
+    write('reporter', 'name: reporter\ntier: report\nschedule: 0 23 * * *\nmaxIssues: 1');
+    assert.match(loadPlaybook(root, 'reporter').errors.join('\n'), /must not declare maxIssues/);
+
+    write(
+      'negative',
+      'name: negative\ntier: code-writing\nmaxFiles: 4\nmaxIssues: -1\nallowedPaths:\n  - apps/**'
+    );
+    assert.match(loadPlaybook(root, 'negative').errors.join('\n'), /must declare maxIssues/);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('every shipped playbook declares a filing budget it can be held to', () => {
+  const names = PLAYBOOK_SHELVES.flatMap((shelf) =>
+    fs
+      .readdirSync(path.join(ROOT, shelf.dir))
+      .filter((file) => file.endsWith('.md') && file !== 'README.md')
+      .map((file) => file.replace(/\.md$/, ''))
+  );
+  assert.ok(names.length >= 8, `expected both shelves' playbooks, found ${names.length}`);
+  const capped = [];
+  for (const name of names) {
+    const { playbook, errors } = loadPlaybook(ROOT, name);
+    assert.deepEqual(errors, [], `${name} must load clean now that maxIssues is validated`);
+    if (String(playbook.tier) === 'report') {
+      assert.equal(playbook.maxIssues, undefined, `${name} files nothing`);
+      continue;
+    }
+    assert.match(String(playbook.maxIssues), /^\d+$/, `${name} must declare maxIssues`);
+    capped.push({ name, budget: Number(playbook.maxIssues) });
+  }
+  assert.equal(capped.length, 7, 'every code-writing rung on both shelves is bounded');
+  assert.ok(
+    capped.every((entry) => entry.budget <= 2),
+    'a ceiling above 2 filings a night per rung does not bind on a shelf measured at 3.3 a night'
+  );
 });

@@ -23,6 +23,18 @@ were rewritten on 2026-09-01 (ADR-0017) because their promises were not being ke
   #473, three correctly scoped issues stuck behind a `scripts/` path no routine could reach. Check
   with `npm run routine:guard -- --reachable <path>` before applying it; on `NONE`, file
   `needs-triage` and let `improve` § 2b widen the budget.
+- **`ready-for-agent` also promises an agent is _scheduled_ to take it.** Reachability is only half of
+  rule 11's promise: a product slice whose fix is a new mutator, a hit-test, or an affordance is
+  writable by an agent and will still never be picked, because `resolve` § 2 refuses design questions
+  on sight and no feature automation works another automation's queue. That shape is `enhancement`
+  (see below), not `ready-for-agent`. #495, #523 and #536 were gathered, examined and refused every
+  night they were open.
+- **A routine's filing carries its name.** Every issue body opened by a routine or automation starts
+  with the line `filed-by: <name>` — `ready-for-agent` and friends say who may act, this says who
+  acted. Routines post on the owner's credentials (`docs/routines/README.md` rule 9), so without the
+  line a filing has no author and `npm run routine:guard -- --filings` cannot price a rung's own
+  inflow, which is what `README.md` rule 12 holds it to. Issues filed before 2026-09-05 carry no
+  trailer and are counted `unattributed`: they charge nobody and age nobody's debt.
 - **`ready-for-human` is the page bar, not the "hard" bin.** [`docs/routines/README.md`](../routines/README.md)
   rule 10 lists the four conditions that qualify (money, credentials or permissions, irreversible
   destruction, product direction). No routine on either shelf may apply the label: an issue parked
@@ -31,11 +43,25 @@ were rewritten on 2026-09-01 (ADR-0017) because their promises were not being ke
   `ready-for-human` older than three days and re-triages it, on the assumption that a routine was
   over-cautious rather than that a person is busy.
 
-Four of the five exist on the repo (`needs-triage`, `ready-for-agent`, `ready-for-human`, `wontfix`).
-**`needs-info` does not** — create it before a routine applies it
-(`gh label create needs-info --description 'Waiting on reporter for more information'`), because
-`resolve` § 1 reaches for it on underspecified issues. These exact strings are what the routines'
+All five exist on the tracker now, `needs-info` included (it was missing when this file was written,
+and `resolve` § 1 reaches for it on underspecified issues). These exact strings are what the routines'
 gather steps and `routine-guard`'s ownership rules match on, so rename none of them.
+
+## `enhancement` — product work, not agent backlog
+
+GitHub's default label, pressed into a second job this repo needs: **the finding is real and nobody on
+either shelf is scheduled to do it.** A new mutator, a hit-test, an affordance, a slice whose shape is
+still a design question. It is the counterpart to `ready-for-human` — where that label means the owner
+must act (rule 10's four conditions and nothing else), this one means the owner's _roadmap_ must act,
+which no scheduled routine may claim on its own issue.
+
+Why a label rather than a queue: `resolve` gathers `ready-for-agent`, `needs-triage` and unlabelled
+issues and is told to skip a design question on sight (`resolve.md` § 2), so an `enhancement` wearing
+`ready-for-agent` is re-examined and re-refused every night it is open — cost to the routine, benefit to
+nobody, and a backlog count that cannot fall. `enhancement` takes it out of the gather set the same way
+`log` does, without implying the finding is wrong.
+
+Nothing here reduces the work. It says which queue the work is in.
 
 ## `log` — not a triage role
 

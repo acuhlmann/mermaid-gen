@@ -45,8 +45,9 @@ Domain depth (slots, validation ladders, wire-contract habits, where-to-put tabl
   - `npm run verify:boundaries` — dependency-cruiser graph rules (cycles + workspace + intra-server layers); each rule's `comment` is the agent-readable fix
   - `npm run lint` — all three workspaces, formatter appends per-rule "Agent guidance" footer with the canonical fix and suppression syntax (`packages/eslint-config/formatter.cjs`)
   - `npm run verify:ratchet` — quality trend: monolith LOC and lint warnings should only fall, strict-island and suite counts should only rise (`docs/agents/ratchet.json`). **Not part of `check`** — it gates no build; `--json` for machine-readable, `--with-lint` to include the ESLint pass
-  - `npm run routine:guard -- --preflight|--postflight <name>` — budget enforcement for a scheduled NFR routine (`docs/routines/`)
-  - `npm run routine:guard -- --reachable <path>` — which routine may write this file? Prints the owner, `frozen` (always-forbidden), or `NONE` + exit 1. Run it before labelling anything `ready-for-agent`: a label that points at a path no budget reaches is a stuck issue, not work (ADR-0017)
+  - `npm run routine:guard -- --preflight|--postflight <name>` — routine budget: files, tests, filings (rule 12)
+  - `npm run routine:guard -- --reachable <path>` — which routine may write this file? owner / `frozen` / `NONE` + exit 1; run before labelling `ready-for-agent` (ADR-0017)
+  - `npm run routine:guard -- --filings [--json]` — backlog, oldest open, net inflow, filings vs `maxIssues` per rung (rule 12)
   - `npm run verify:modularity` — reminder of how to run a semantic modularity review (Claude `/modularity:review` or Cursor `.cursor/skills/modularity/review/SKILL.md`); see [`docs/agents/modularity.md`](docs/agents/modularity.md)
 - **Workspace-scoped** (faster when you know the blast radius):
   - `npm run typecheck -w apps/server && npm run test -w apps/server`

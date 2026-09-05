@@ -3,6 +3,7 @@ name: deps
 tier: code-writing
 schedule: '30 4,16 * * *'
 maxFiles: 6
+maxIssues: 1
 prTitlePrefix:
   - 'deps:'
 branchPrefix:
@@ -184,6 +185,25 @@ Never `benchAnythingGeneration.js` — it drives a real model and spends tokens.
 Append a ledger row: date, PRs merged (numbers), PRs left open **with their cause and their age**,
 alerts newly fixed (CVE → version), alerts still open, and the bench verdict when § 5 ran. Record the
 queue's worst item in the ledger's `todos` so the next firing starts where this one stopped.
+
+**Carry forward; do not re-derive.** The blocked todos already say so — `dompurify-nested-pins` has
+carried "report the count, do not re-derive it" since 2026-09-01, and the five rows from 09-02 through
+09-05 each restate its full derivation anyway, at 2–4 KB a row, for a queue that did not move. When
+nothing changed, the row is one line: `unchanged since <date>`, plus a clause per thing that did. Two
+reasons, one of them about money and one about correctness:
+
+- This routine fires **twice a day**, so an unchanged week is fourteen restatements of the same
+  paragraph in the file every later routine pays to read — and `digest` § 1 exists in the form it does
+  precisely because these ledgers outgrew a whole-file read.
+- A restatement is a fresh opportunity to be wrong about a fact measured last week. #513 is exactly
+  that finding: one row of this ledger recorded `monaco-editor → dompurify 3.4.11`, the row beneath it
+  recorded `3.4.8`, and the difference came from being typed twice rather than carried once.
+
+**Filing.** `maxIssues: 1` per rolling 24 h, shared by both firings, and it exists for a genuinely new
+blocker only (`README.md` rule 12). An alert-read gap, a pin you cannot move, or an ownership gap you
+have already filed is not a new blocker — append to the standing issue or leave the row in `todos`. Nine
+firings of this routine opened or referenced eight issues; the blocker was one. Every body you open
+starts with the line `filed-by: deps`.
 
 ```bash
 npm run routine:guard -- --preflight deps    # BEFORE starting

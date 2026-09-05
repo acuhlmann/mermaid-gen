@@ -3,6 +3,7 @@ name: improve
 tier: code-writing
 schedule: '0 21 * * *'
 maxFiles: 12
+maxIssues: 1
 prTitlePrefix:
   - 'improve:'
 branchPrefix:
@@ -101,8 +102,25 @@ work.
 meets on its own.
 
 ```bash
-gh issue create --title '…' --body '…' --label needs-triage
+gh issue create --title '…' --body 'filed-by: improve
+
+…' --label needs-triage
 ```
+
+The `filed-by:` line is the first line of the body, not decoration (`README.md` rule 12): this
+routine posts on the owner's credentials, so without it your filing is indistinguishable from theirs
+and the shelf cannot see its own inflow. `maxIssues: 1` is your ceiling for a rolling 24 h, and
+pay-before-file refuses a new filing while more than three of your own findings sit open past five
+days — which, given that this routine is the ratchet's owner, is the point.
+
+**A ratchet regression is a class, not an event, and classes get one issue.** `verify:ratchet` reports
+the current set; the set changes nightly and the finding does not. Five open issues (#431, #447, #465,
+#478, #499) are all `lintWarnings` past a budget, filed separately between 2026-08-27 and 09-01, and
+**none of the five has been closed** — each one costs a gather, a pick, a ledger row and a `review`
+pass, and the metric they describe is a single number in `docs/agents/ratchet.json`. Append to the
+standing issue for the metric, or fix the number here — you are the only rung with both
+`docs/agents/ratchet.json` and the split authority in your budget, and the warning that regressed is
+usually the one this routine's own § 7/§ 8 exist to work down.
 
 Escalation is a judgement a routine earns by _inspecting_ the work and refusing it; `resolve` has a
 whole section (`resolve.md` § 4) defining that bar. A filer that pre-stamps its own finding

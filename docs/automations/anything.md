@@ -3,6 +3,7 @@ name: anything
 tier: code-writing
 schedule: '15 17 * * *'
 maxFiles: 12
+maxIssues: 1
 prTitlePrefix:
   - 'anything automation:'
   - 'anything:'

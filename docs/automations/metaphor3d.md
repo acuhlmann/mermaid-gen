@@ -3,6 +3,7 @@ name: metaphor3d
 tier: code-writing
 schedule: '0 15 * * *'
 maxFiles: 10
+maxIssues: 1
 prTitlePrefix:
   - 'Metaphor3D:'
 branchPrefix:

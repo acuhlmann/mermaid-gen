@@ -48,10 +48,10 @@ dependency queue nobody read, and an escalation label that meant "nobody will lo
 
 A routine declares a `tier` in its playbook front-matter:
 
-| Tier           | Writes code                    | Declares a budget           | Examples                       |
-| -------------- | ------------------------------ | --------------------------- | ------------------------------ |
-| `report`       | no — **enforced**              | no `maxFiles`, no paths     | `digest`                       |
-| `code-writing` | yes, within its declared paths | `maxFiles` + `allowedPaths` | `review`, `improve`, `resolve` |
+| Tier           | Writes code                    | Declares a budget                         | Examples                       |
+| -------------- | ------------------------------ | ----------------------------------------- | ------------------------------ |
+| `report`       | no — **enforced**              | no `maxFiles`, no `maxIssues`, no paths   | `digest`                       |
+| `code-writing` | yes, within its declared paths | `maxFiles` + `maxIssues` + `allowedPaths` | `review`, `improve`, `resolve` |
 
 `report` is mechanical as of 2026-08-30: such a playbook declares neither `maxFiles` nor
 `allowedPaths`, and `routine:guard --postflight` **fails on a non-empty diff**. Before that the
@@ -121,8 +121,8 @@ gets filed, not fixed.
 
 ### 2. Spend only your budget
 
-The playbook's frontmatter declares `maxFiles`, `allowedPaths`, and `forbiddenPaths`.
-`npm run routine:guard` enforces all three; it is not advisory and it does not read the prose.
+The playbook's frontmatter declares `maxFiles`, `maxIssues`, `allowedPaths`, and `forbiddenPaths`.
+`npm run routine:guard` enforces all four; it is not advisory and it does not read the prose.
 **It also enforces who may change them:** only `improve` may edit a playbook, a shelf README, or
 another routine's ledger. A routine that finds itself blocked by its own number records
 `blocked-by-budget` in its ledger and moves on; `improve` § 2b reads those rows and prices them.
@@ -315,6 +315,61 @@ and exits 1.
 ownership gap: label it `needs-triage`, name the file, and `improve` § 2b widens someone's budget —
 which is a one-line PR that unblocks a class, versus an issue that gets skipped every night forever.
 
+### 12. Filing costs the filer
+
+`maxFiles` bounds a diff, and a run that wants a tenth file is refused. Nothing bounded a ticket —
+because filing needs **no diff at all**. Six of the seven rungs are contractually required to file
+and one (`resolve`) is capped at one pick a night, so the tracker was the only unbounded budget on
+the shelf. Measured across 2026-08-25 → 09-05: **36 issues opened, 13 closed**, the backlog climbing
+14 → 24 while every item-level watchdog correctly reported nothing to act on.
+
+Three things are now mechanical, all of them enforced by the guard rather than by this prose:
+
+```bash
+npm run routine:guard -- --filings [--window <h>] [--json]
+```
+
+Backlog size, oldest open finding, **net inflow over the window**, filings per rung against its
+ceiling, and which rungs owe. Exits 1 when a rung is over budget or in debt — the same convention as
+`--reachable` exiting 1 on an unowned path, because both are "the shelf is stuck in a way nothing is
+scheduled to notice". Rule 11 asks _can any agent take this?_; this asks _is anything taking them_.
+
+- **`maxIssues`** in every code-writing playbook's front-matter: the most issues that rung may open in
+  a rolling 24 h. `loadPlaybook` refuses a code-writing playbook without it and refuses a `report`
+  one that declares it, and `--postflight` checks the real count. `0` is a valid budget.
+- **`filed-by: <name>`** as the first line of every issue body a routine opens. Without it a filing
+  has no author: every issue in this tracker — human-filed and routine-filed alike — is authored by
+  the same account, because the routines reach GitHub on the owner's credentials (rule 9). The cap is
+  unenforceable until this line exists, and so is any inflow report at all.
+- **Pay-before-file**: a rung carrying more than `OWN_OPEN_ISSUE_LIMIT` of its _own_ findings, each
+  older than `OWN_OPEN_ISSUE_AGE_DAYS`, may not open another — it has to close one instead. Those two
+  constants live in `scripts/routine-guard.mjs`, **not** in front-matter, for the same reason rule 2
+  puts budgets beyond their spender: a ceiling every overworked rung has an incentive to widen is not
+  a ceiling. This is the half that actually binds; `maxIssues` alone only slows the inflow down.
+
+**Do not mint a number per occurrence of a recurring class.** The standing example is five open issues
+(#431, #447, #465, #478, #499) that are one thing — `lintWarnings` drifting past a ratchet budget —
+filed separately, and **zero closed in eleven days**. Append to a standing issue, or hand the class to
+`improve` § 2b, which already owns ratchet drift. A filer that batches costs itself one filing; one
+that mints costs the backlog five.
+
+**A product-shaped finding is not agent backlog.** A feature slice, a hit-test, a new mutator gets
+`enhancement`, not `ready-for-agent`: `resolve` § 2 must skip "anything that reads like a design
+question" on sight, and no feature automation reads another's queue, so `ready-for-agent` on those is
+rule 11's false promise wearing a different hat — technically writable, scheduled never to be taken.
+#495, #523 and #536 are that shape; three permanent residents inflating a queue nobody may serve.
+
+**Nobody owes the past.** Issues opened before this rule carry no `filed-by:` line, so the guard
+counts them `unattributed` and charges them to no one — the rule becomes live on the next filing, not
+retroactively. A check that always fails is a check that gets suppressed, which is a worse outcome than
+a rule that takes effect tomorrow.
+
+**The debt blocks filing, never fixing.** No rung is ever prevented from _resolving_ something by this
+rule, and the cap is not a gag: when a run genuinely cannot act and needs to say so, rule 10's answer
+already exists — a ledger row naming the blocker (`blocked-by-budget`, `blocked-by-paths`, `held PR
+#nnn`), which is what `improve` § 2b greps for. Pay-before-file removes the option of dumping a new
+ticket on the queue; it never removes the option of recording why this run stopped.
+
 ## What routines may not do
 
 These are the boundaries [ADR-0014](../decisions/0014-autonomous-nfr-routines.md) sets, as amended by
@@ -347,9 +402,9 @@ hold when unsure) that already decide whether any routine change is safe to self
 ## Adding a routine
 
 1. Write `docs/routines/<name>.md` with the frontmatter block (`name`, `tier`, `schedule`,
-   `host`, `maxFiles`, `allowedPaths`, `forbiddenPaths`, and optionally `prTitlePrefix` /
-   `branchPrefix` when the PR titles this routine writes do not start with `<name>:`)
-   and a numbered work queue.
+   `host`, `maxFiles`, `maxIssues`, `allowedPaths`, `forbiddenPaths`, and optionally
+   `prTitlePrefix` / `branchPrefix` when the PR titles this routine writes do not start with
+   `<name>:`) and a numbered work queue.
 2. Create `docs/routines/ledger/<name>.md` from an existing ledger.
 3. Choose the host — a Claude Routine or a Cursor automation — and put it in the `host:` key and the
    table above. Split on duty, not on load: an automation that files issues and the one that fixes

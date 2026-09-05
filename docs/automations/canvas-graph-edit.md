@@ -3,6 +3,7 @@ name: canvas-graph-edit
 tier: code-writing
 schedule: '30 18 * * *'
 maxFiles: 10
+maxIssues: 1
 prTitlePrefix:
   - 'canvas graph edit:'
   - 'graph edit:'

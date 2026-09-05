@@ -115,6 +115,23 @@ the owner (money, credentials or permissions, irreversible destruction, product 
 rule that `ready-for-human` is reserved for them. It binds this shelf too: an automation that cannot
 act writes a ledger row, not a label.
 
+### 11. Filing costs the filer
+
+[`docs/routines/README.md`](../routines/README.md) rule 12 binds this shelf exactly as it binds the
+NFR one, and for the same measured reason: an automation's `allowedPaths` never reached a ticket, so
+`canvas-graph-edit` filed #495/#523/#536 and `metaphor3d` filed its own follow-ups into a backlog whose
+only sweeper takes one issue a night. Three things this shelf now owes the guard:
+
+- `maxIssues` in the front-matter block below (this shelf's rungs: **1**).
+- **`filed-by: <automation-name>` as the first line of every issue body** opened here.
+- Pay-before-file: an automation carrying more than three of its own findings older than five days may
+  not open a fourth until it closes one — the constants live in the guard, not in this playbook.
+
+Read the queue before filing into it: `npm run routine:guard -- --filings`. And when the finding is a
+**feature slice** rather than a defect — a hit-test, a new mutator, a whole affordance — label it
+`enhancement`, not `ready-for-agent`. `resolve` § 2 refuses design questions on sight and no automation
+works another's queue, so `ready-for-agent` there is a label no scheduler will ever honour.
+
 ## What feature automations may not do
 
 - **No slot content.** ADR-0010 reserves diagram generation for the human's own pipeline. These
@@ -167,7 +184,7 @@ across duties, not across runs of the same duty — see
 ## Adding a feature automation
 
 1. Write `docs/automations/<name>.md` with frontmatter (`name`, `tier`, `schedule`, `maxFiles`,
-   `allowedPaths`, `forbiddenPaths`) and a numbered work queue.
+   `maxIssues`, `allowedPaths`, `forbiddenPaths`) and a numbered work queue.
 2. Create `docs/automations/ledger/<name>.md` from an existing ledger.
 3. Create the trigger — a Cursor automation at [cursor.com/automations](https://cursor.com/automations)
    or a Claude Routine at [claude.ai/code/routines](https://claude.ai/code/routines); this shelf is

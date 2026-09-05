@@ -3,6 +3,7 @@ name: review
 tier: code-writing
 schedule: '0 20 * * *'
 maxFiles: 6
+maxIssues: 2
 prTitlePrefix:
   - 'review:'
 branchPrefix:
@@ -117,6 +118,20 @@ bug; never touch a don't-touch path.
 Everything else found becomes an issue, labelled per
 [`docs/agents/triage-labels.md`](../agents/triage-labels.md) — `ready-for-agent` when it names the
 file, the symptom and what correct looks like, `needs-triage` otherwise.
+
+**Filing is a budget, not a release valve** (`README.md` rule 12). `maxIssues: 2` is this routine's
+ceiling for a rolling 24 h and `routine:guard --postflight` counts the real number; `review` filed
+three findings in one night on 2026-09-04 while the only rung that clears them takes one a night, so
+the third now goes into a standing issue instead of a new number. Every body you open starts with the
+line `filed-by: review` — without it your filing has no author, since you post on the owner's
+credentials like everything else here (rule 9). And a `review` run already carrying more than three of
+its own findings older than five days files nothing until it resolves one: check with
+`npm run routine:guard -- --filings` before you open anything.
+
+One exception is deliberate: a **product-shaped** finding (a hit-test, a new mutator, an affordance)
+is not `ready-for-agent` — label it `enhancement`. `resolve` § 2 refuses design questions on sight, so
+the other label would only add a permanent resident to a queue nobody is scheduled to serve. #495,
+#523 and #536 are that mistake, made three times.
 
 **Before applying `ready-for-agent`, ask the guard whether any agent can actually reach the file**
 (`README.md` rule 11):

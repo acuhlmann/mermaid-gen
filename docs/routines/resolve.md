@@ -4,6 +4,7 @@ tier: code-writing
 schedule: '15 22 * * *'
 host: Cursor
 maxFiles: 9
+maxIssues: 1
 prTitlePrefix:
   - 'resolve:'
   - 'resolve ledger:'
@@ -101,6 +102,14 @@ that is #452, the nightly digest. It carries no other label precisely so a human
 `gh issue list` sees it, which means the unlabelled-issues rule above would otherwise hand this
 routine a log to "fix" every night.
 
+**Exclude `enhancement` too, and say why it is there.** A product slice — a new mutator, a hit-test,
+an affordance — is not this routine's queue: § 2 tells it to refuse a design question on sight, and no
+feature automation works another's backlog. When #495, #523 and #536 carry `ready-for-agent` they are
+gathered, examined, refused and re-refused nightly, which is rule 11's false promise (README) in its
+least useful form: the issue is writable by an agent and scheduled never to be taken. `enhancement` is
+the honest label, it costs no filer anything, and it takes the count out of the queue that is meant to
+be able to reach zero.
+
 For a `needs-triage` issue, or an unlabelled one: read it in full. If it already names the file,
 the symptom, and what correct looks like, treat it as scoped even though the label hasn't caught
 up. If it genuinely does not — no repro, no file, no clear "correct" — this routine cannot safely
@@ -137,9 +146,11 @@ already escalated is not re-escalated on the same finding.
 ## 2. Pick one
 
 Take the **highest-confidence issue that fits the budget** — same bar as `review` § 3: if you would
-not bet on it being real and locally fixable, do not attempt it. Prefer small, mechanical,
-single-file fixes over anything that reads like a design question. Push everything else back into
-the ledger's `todos` untouched.
+not bet on it being real and locally fixable, do not attempt it. Confidence decides _whether_ a pick is
+allowed; it must not decide _which_ one, or the queue's hard tail is passed over every single night
+forever (§ 3, oldest first). Small and mechanical stays the tiebreak among equals, not the reason to
+reach past an eight-day-old finding to a two-day-old one. Push everything else back into the ledger's
+`todos` untouched.
 
 Skip on sight, leave filed, do nothing further this run:
 
@@ -167,7 +178,7 @@ merge decision, and the source-side fix when a bump breaks code. If this routine
 dependency PR while gathering, it links it in a comment and moves on. It does not merge it, does not
 close it, and does not label it.
 
-## 3. Fix — same bar as `review`, one issue per run
+## 3. Fix — same bar as `review`, same budget, more than one pick where the risk is low
 
 Write the regression test first, run it against the unfixed code, **observe it red**, then fix and
 watch it go green. An issue you cannot make a test fail for is not one you understand well enough to
@@ -175,6 +186,35 @@ resolve unattended — comment why on the issue (what's missing to make it testa
 `ready-for-agent` for a future run or a human, whichever adds the missing piece.
 
 Never widen the fix beyond the issue. Never touch a don't-touch path.
+
+**"One issue per run" was written when `maxFiles` was 6, and it stopped being the binding constraint
+on 2026-09-01 when the budget went to 9.** The rule is now the thing stranding the tail: with six
+rungs filing at a measured 3.3 issues a night and one consumer taking exactly one pick, the queue
+cannot drain at any confidence level, and a greedy easy-first pick (§ 2) means the residue is
+permanently the hard half. Two classes show it exactly: the five `lintWarnings` regressions (#431,
+#447, #465, #478, #499) and the five self-contradicting records (#475, #513, #527, #528, #542) — **ten
+issues, none of them closed**, sitting in a backlog whose mean age is passing a week. So the rule is
+per-class now, and the file budget is still the safety property:
+
+- **One product-code bug** per run, at `review`'s bar — red first, then green. Unchanged.
+- **Plus the record-and-reference class, batched to the budget**: doc corrections, ledger/claim
+  contradictions, a stale measurement baked into a comment, a test-file map missing rows, a label or
+  link that points at a closed tracker. These change no behaviour and cannot go red first, so their
+  oracle is `npm run check` staying green — which is why they may share one run: the risk in a
+  behaviour-preserving doc diff is _size_, and `maxFiles: 9` already bounds size. Take as many of
+  those as fit, oldest first. Eight missing rows in one table (#529) is one issue and half a budget;
+  pricing it as a run's whole allowance is what makes a ten-deep queue move one row a night.
+
+**Oldest first, and never silently.** Among the candidates that clear § 2's confidence bar, take the
+oldest, not the easiest. Any reachable issue older than seven days that you pass over gets a row in
+this ledger naming it and the reason — `blocked-by-budget` with the file count you needed, or
+`blocked-by-paths`, or one line of why § 2 says it is not pickable. A pass without a reason is
+indistinguishable from a run that did not look, which is the failure this routine's own ledger has
+been diagnosing since 2026-08-23 in writing.
+
+**Filing.** This routine's `maxIssues` is 1 (rule 12) and it exists for exactly one case — README rule
+3's blocker issue when a run cannot get to green. `resolve` is the shelf's consumer, not a producer; if
+you find yourself wanting a second issue, you have found a `blocked-by-` row instead.
 
 ## 4. Hold the PR instead of merging — when the risk is real and it is not the owner's decision to make
 
