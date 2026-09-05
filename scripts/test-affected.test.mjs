@@ -4,10 +4,12 @@ import test from 'node:test';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
+  AGENT_TOOLING_BLAST_TESTS,
   GRAPH_EDIT_BLAST_TESTS,
   ISOMETRIC_FLOOR_BLAST_TESTS,
   METAPHOR_BLAST_TESTS,
   SERVER_SLOW_TEST_FILES,
+  WIRE_TEST_FILES,
   basenameTestCandidates,
   isWireSourcePath,
   resolveAffectedTests,
@@ -199,19 +201,64 @@ test('the negative case: an unrelated file pulls neither new set', () => {
   );
 });
 
-// The guard below checks that every listed path exists. This checks the other direction:
-// every suite ON DISK is listed. Only the first direction was guarded until 2026-09-02, and
-// four metaphor suites plus ten officeFloor ones had accumulated unlisted — invisible to
-// `test:affected` and to the pre-push hook, red only in full CI.
-for (const [label, bundle, pattern] of [
-  ['METAPHOR_BLAST_TESTS', METAPHOR_BLAST_TESTS, /^(metaphor|composite|fused).*\.test\.(js|jsx)$/],
-  ['ISOMETRIC_FLOOR_BLAST_TESTS', ISOMETRIC_FLOOR_BLAST_TESTS, /^officeFloor.*\.test\.(js|jsx)$/]
-]) {
+// The guard below checks that every listed path exists. This checks the other direction: every suite
+// ON DISK in the family is listed. Only the first direction was guarded until 2026-09-02, and four
+// metaphor suites plus ten officeFloor ones had accumulated unlisted — invisible to `test:affected`
+// and to the pre-push hook, red only in full CI.
+//
+// Two things #528 corrected here, both of which are the same bug the sweep exists to catch:
+//
+// - **The universe was one directory.** `METAPHOR_BLAST_TESTS` lists files under `packages/shared/test`
+//   and `apps/server/test` as well as `apps/web/test`, so a new metaphor suite landing in either of
+//   those was exactly as invisible as the ones this sweep was written for. The directories are now
+//   *derived from the bundle* rather than named, so the sweep cannot silently shrink when a bundle
+//   grows; `minDirs` is the companion assertion that fails if the claimed span is pruned away.
+// - **`GRAPH_EDIT_BLAST_TESTS` had no reverse sweep at all**, and it is the bundle the
+//   `canvas-graph-edit` automation feeds every night, whose playbook routes each new family past
+//   `diagramGraphEditNodeResolve.js` — the file whose blast rule pulls this list. Its predicate is
+//   `…Edit.test.…` / `…graphEdit…`, which describes the shape a new family suite takes
+//   (`mermaidGanttEdit.test.js`) and matches 18 of the 20 entries listed today. Two listed entries
+//   deliberately fall outside it; a reverse sweep only needs the on-disk candidate set, so that
+//   imprecision costs nothing here and the forward sweep below covers every listed path instead.
+//
+// `AGENT_TOOLING_BLAST_TESTS` gets no reverse sweep on purpose: measured, no name convention unifies
+// its six `scripts/*.test.mjs` entries, so any pattern wide enough to describe them would flag
+// unrelated scripts suites. It is covered in the forward direction, which is the one it can support.
+const REVERSE_SWEEPS = [
+  [
+    'METAPHOR_BLAST_TESTS',
+    METAPHOR_BLAST_TESTS,
+    /^(metaphor|composite|fused|switchMetaphor).*\.test\.(js|jsx|ts|tsx)$/,
+    3
+  ],
+  [
+    'ISOMETRIC_FLOOR_BLAST_TESTS',
+    ISOMETRIC_FLOOR_BLAST_TESTS,
+    /^officeFloor.*\.test\.(js|jsx)$/,
+    1
+  ],
+  [
+    'GRAPH_EDIT_BLAST_TESTS',
+    GRAPH_EDIT_BLAST_TESTS,
+    /([Gg]raphEdit|[A-Za-z]Edit)\.test\.(js|jsx|ts|tsx)$/,
+    1
+  ]
+];
+
+for (const [label, bundle, pattern, minDirs] of REVERSE_SWEEPS) {
   test(`every suite on disk matching ${label}'s family is listed in it`, () => {
-    const onDisk = fs
-      .readdirSync(path.join(ROOT, 'apps/web/test'))
-      .filter((name) => pattern.test(name))
-      .map((name) => `apps/web/test/${name}`);
+    const dirs = [...new Set(bundle.map((entry) => path.posix.dirname(entry)))];
+    assert.ok(
+      dirs.length >= minDirs,
+      `${label}: sweep universe is ${dirs.length} dir(s) (${dirs.join(', ')}), expected >= ${minDirs} — ` +
+        'deriving the universe from the bundle means pruning its entries shrinks what this checks'
+    );
+    const onDisk = dirs.flatMap((dir) =>
+      fs
+        .readdirSync(path.join(ROOT, dir))
+        .filter((name) => pattern.test(name))
+        .map((name) => `${dir}/${name}`)
+    );
     assert.ok(onDisk.length > 0, `${label}: the sweep found nothing — it would pass vacuously`);
     const missing = onDisk.filter((file) => !bundle.includes(file));
     assert.deepEqual(missing, [], `on disk but not in ${label}: ${missing.join(', ')}`);
@@ -236,10 +283,19 @@ test('the negative case: an unrelated file does not pull the strict-island senso
   assert.ok(!plan.tests.includes('scripts/verify-strict-islands.test.mjs'));
 });
 
-test('both new bundles are non-empty and every path in them exists', () => {
+// Every bundle, not the two that happened to be new when this was written (#528 part 2).
+// `resolveAffectedTests` drops a listed path that does not exist with no noise at all, so a renamed
+// suite turns a blast rule into a silent no-op — the same failure the reverse sweep above exists for,
+// in the other direction. This PR grew ISOMETRIC_FLOOR_BLAST_TESTS by ten entries while its own
+// existence guard skipped that very bundle.
+test('every suite listed in any blast bundle exists on disk', () => {
   for (const [label, bundle] of [
+    ['AGENT_TOOLING_BLAST_TESTS', AGENT_TOOLING_BLAST_TESTS],
+    ['GRAPH_EDIT_BLAST_TESTS', GRAPH_EDIT_BLAST_TESTS],
+    ['ISOMETRIC_FLOOR_BLAST_TESTS', ISOMETRIC_FLOOR_BLAST_TESTS],
     ['METAPHOR_BLAST_TESTS', METAPHOR_BLAST_TESTS],
-    ['GRAPH_EDIT_BLAST_TESTS', GRAPH_EDIT_BLAST_TESTS]
+    ['SERVER_SLOW_TEST_FILES', SERVER_SLOW_TEST_FILES],
+    ['WIRE_TEST_FILES', WIRE_TEST_FILES]
   ]) {
     assert.ok(bundle.length > 0, `${label} is empty — a sweep over nothing passes vacuously`);
     for (const file of bundle) {
