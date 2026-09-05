@@ -80,6 +80,20 @@ misattribution by weakening a real safety property. The two shelf-doc edits in t
 story: an owner writing their own playbook before its trigger existed is not a routine editing its
 own budget, so `BUDGET_OWNERS` was never actually in play either. Closes #498.
 
+**2026-09-05 — `git log -1 origin/main || git fetch origin main` does not do what it looks like it
+does, and it branched this firing off a stale base.** The idiom was meant as "fetch only if we don't
+already know main" but `git log` against a _stale_ local `origin/main` ref still **succeeds** — it
+prints old data instead of failing — so the `||` never fires and the fetch never runs. This firing's
+branch was cut from that stale ref (6 commits behind, including #535's own ledger row), which is
+indistinguishable from a clean branch until GitHub computes `mergeable_state` and reports `dirty` —
+by which point a PR already exists with a diff that silently reintroduces or duplicates content
+another PR already landed (here: a second copy of the 2026-09-04 16:30Z row, with an incorrect
+"recovered a lost row" story built on top of the stale read). Fixed the PR by merging current `main`
+in and keeping `main`'s real row. **The fix for next time**: always `git fetch origin main` (bare,
+no `||` conditioning on a read command) before branching, and treat a post-push `mergeable_state:
+dirty` as a real conflict to investigate immediately, not a "GitHub hasn't computed it yet" transient
+— it only reads that way if you already have a story ready to explain it away.
+
 ## Run log
 
 Append one row per firing, including runs where the queue was empty.
