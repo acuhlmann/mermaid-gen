@@ -374,6 +374,23 @@ https://api.deepseek.com/` — 401 is reachable, 000 is blocked); never route ar
   pins the pair. Two invariants to keep when adding any new talk path — `FloorTalk`'s header says
   physical speech stays out of Slop Chat, and § 11 says a line you provoked must be responsive —
   so an untagged spoken line is the suspect when a bubble never lifts.
+- **A working-memory beat is validated twice, and a field taught to only one side is a fact that
+  dies at the next reload.** `rememberWorkingMemoryBeat`
+  (`apps/web/src/state/officeWorkingMemoryStore.js`) and `sanitizeWorkingMemoryBeat`
+  (`apps/web/src/utils/officeAmbienceStorage.js`) each build a fresh object field by field and each
+  drop a beat that ends up with nothing they recognise — so a new field added to the writer alone
+  works perfectly until F5. Both now call one exported `normalizeWorkingMemoryBeat`, which makes
+  agreeing structural rather than a promise; beat values that reach a prompt are **enums, never
+  free text** (`OFFICE_WORKING_MEMORY_INTERRUPTIONS`), for the reason `officeScript.ts`'s
+  situations are.
+- **`hasWorkingMemoryFact` is the dwell gate, so who writes a beat decides who the office can be
+  bothered to think about.** `useDeskActions.remarkTo` passes `cap: 0` when a colleague has no fact
+  about you, which deals from the canned deck; the writers are `officeMomentDelivery.js` (a
+  delivered moment) and, since the interrupt slice, `useFloorInterruptMemory.js`. Measured on the
+  scripted visit, three runs: the colleague you loiter beside answers from the bank with **zero**
+  `/api/office/moment` calls, because nobody in the room had a fact about you yet. Before adding a
+  "the office feels canned here" finding, check which side of the gate it is on — a missing call is
+  usually a missing **fact**, not a missing cap.
 - **After presence / TTS / desk-frame edits**, prefer `apps/web/test/officePresence.test.js`,
   `deskOsPresenceStrip.test.jsx`, `deskOsFrameStyles.test.js`, `apps/server/test/officeTts.test.js`,
   `officeRoute.test.js` (or `npm run test:affected`). **After isometric-floor edits**, `npm run
@@ -911,6 +928,33 @@ y)`, so the obvious sweep silently iterates an empty list; and pacing the exchan
   in it. `LOCALE_ENDONYMS` lives in the component, never in a copy bundle, for the same reason.
   Reception must wait for **Check in** (no auto-advance): that is the name-badge edit window
   and the TTS cost guardrail. The desk **Language pack** menu keeps the `inline` variant.
+- **A working-memory beat passes two validators, and the second one is the reason a memory bug can
+  look like a caching bug.** `rememberWorkingMemoryBeat` normalises on the way in and
+  `sanitizeWorkingMemoryBeat` in `officeAmbienceStorage.js` does it again on the way back off disk,
+  and both end with "if nothing recognised survived, drop the beat". They used to build the object
+  field by field, separately: teach one of them a field and the fact is real, queryable and
+  prompt-visible until the user refreshes, at which point it silently is not — the worst shape a
+  memory bug can have, because the reproduction step is "wait". Both now call one exported
+  `normalizeWorkingMemoryBeat`, which is also what took each of them back under the complexity
+  threshold the extra branch pushed them over. The vocabulary of any enum-shaped beat field lives
+  beside it in the **storage** module (`OFFICE_WORKING_MEMORY_INTERRUPTIONS`); the sentence that
+  vocabulary renders as lives beside `you said:` / `they said:` in `workingMemoryPromptLines`,
+  because the beat carries the fact and that function owns every sentence in the prompt.
+  `officeWorkingMemoryStore.test.js` asserts the reload, not just the write — a write-side-only
+  test passes on a half-taught field.
+- **The consequence of an interruption is a _fact_, not a trigger — and `hasWorkingMemoryFact` is
+  where facts turn into behaviour.** Slice 18 could already ruin somebody's errand
+  (`goHome({ byYou: true })`, a line, a 1800 ms linger) and nothing remembered it, so
+  `useDeskActions.remarkTo`'s `cap: hasWorkingMemoryFact(id) ? OFFICE_DWELL_LLM_CAP : 0` stayed at
+  zero for the one colleague with most reason to mention you. `useFloorInterruptMemory` writes the
+  beat from `interruptSpeech`'s answer — the same value the balloon draws and the narrator speaks,
+  so working memory can never quote a line nobody heard. Two things about that writer generalise.
+  It is keyed on `seatId:leg` and **clears the latch when no interruption is in flight**, because a
+  later trip by the same person restarts `leg` at 1 and a latch that never cleared swallows the
+  second collision entirely; and `interrupted` survives into the `lingering` update that follows the
+  turn for home, so a writer keyed on the trip _object_ files the same collision twice. Spend is
+  unchanged in the worst case (`OFFICE_DWELL_LLM_CAP` is 3 per visit and no new counter was added);
+  what changed is that the cap is now reachable at all.
 - **After presence / TTS / desk-frame edits**, prefer `apps/web/test/officePresence.test.js`,
   `deskOsPresenceStrip.test.jsx`, `deskOsFrameStyles.test.js`, `apps/server/test/officeTts.test.js`,
   `officeRoute.test.js` (or `npm run test:affected`). **After isometric-floor edits**, `npm run

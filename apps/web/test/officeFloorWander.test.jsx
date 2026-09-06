@@ -20,6 +20,12 @@ import {
   seatFor
 } from '../src/utils/officeFloorPlan.js';
 import { _resetOfficeViewModeForTests, standUp } from '../src/state/officeViewModeStore.js';
+import {
+  _resetOfficeWorkingMemoryForTests,
+  getWorkingMemoryWith,
+  hasWorkingMemoryFact,
+  workingMemoryPromptLines
+} from '../src/state/officeWorkingMemoryStore.js';
 
 /**
  * Ambient floor life (slice 11).
@@ -44,6 +50,14 @@ afterEach(() => {
   vi.restoreAllMocks();
   vi.useRealTimers();
   _resetOfficeViewModeForTests();
+  /*
+   * Slice 18's memory outlives the trip on purpose, so it also outlives the
+   * test — and every case in this file that mounts the floor can now write to
+   * it. Clearing both halves: the module rows, and the day-stamped copy on disk
+   * that a fresh read would hydrate from.
+   */
+  _resetOfficeWorkingMemoryForTests();
+  window.localStorage.clear();
 });
 
 describe('who wanders is an answer the room gives', () => {
@@ -961,5 +975,72 @@ describe('walking into somebody else s errand, on a real floor', () => {
     expect(said.length).toBeGreaterThan(4);
     expect(region).not.toContain(said);
     expect(region.toLowerCase()).not.toContain('chad');
+  });
+
+  /**
+   * …and afterwards (`docs/automations/office-life.md` queue 2).
+   *
+   * Everything above asserts the beat you can see. These assert the one you
+   * cannot: whether the colleague still knows about it once the balloon is
+   * gone. Before this slice the answer was no, so `useFloorDwell`'s "ask the
+   * model only when they have a fact about you" gate stayed shut for the one
+   * person in the room with the most reason to mention you.
+   */
+  const interruptChad = () => {
+    renderFloor();
+    act(() => vi.advanceTimersByTime(9_000));
+    const mark = propTileFor('whiteboard');
+    const { left, top } = projectIso(mark.x, mark.y);
+    fireEvent.click(screen.getByTestId('office-floor-roam'), { clientX: left, clientY: top });
+  };
+
+  it('leaves a mark the colleague still has when the trip is over', () => {
+    expect(hasWorkingMemoryFact(CHAD)).toBe(false);
+    interruptChad();
+    // Read after the linger has expired and the figure has gone: a fact that
+    // dies with the trip is the `carrying` field, not a memory.
+    act(() => vi.advanceTimersByTime(1_800));
+    expect(screen.queryByTestId('office-floor-wanderer')).toBeNull();
+
+    expect(hasWorkingMemoryFact(CHAD)).toBe(true);
+    const lines = workingMemoryPromptLines(CHAD);
+    // The circumstance, and then the line the room actually drew — asserted
+    // against `interruptSpeech` rather than against the bank, so this follows
+    // the copy instead of pinning it.
+    const drawn = interruptSpeech(
+      { seatId: CHAD, kind: 'whiteboard', interrupted: { reaction: 'gotIt', roll: 0.75 } },
+      FLOOR_COPY()
+    );
+    expect(lines[0]).toMatch(/^you took the spot/);
+    expect(lines).toContain(`they said: ${drawn.text}`);
+  });
+
+  it('records it once, not once per render of the same interruption', () => {
+    /*
+     * `interrupted` is set on the tick the trip turns round and survives into
+     * the `lingering` update that follows, so a writer keyed on the trip object
+     * would file the same collision twice — and a beat cap of four would then
+     * hold two facts instead of four.
+     */
+    interruptChad();
+    act(() => vi.advanceTimersByTime(1_800));
+    expect(getWorkingMemoryWith(CHAD).beats).toHaveLength(1);
+  });
+
+  it('writes nothing when the errand simply ended', () => {
+    /*
+     * The `byYou` gate, seen from the memory side. An errand that ran its course
+     * is a clock finishing, and `office-parody.md` § 11 puts that on the ambient
+     * side of the line — nobody is owed a memory of it, and giving them one
+     * would open the dwell gate for every colleague who ever fetched a coffee.
+     */
+    renderFloor();
+    act(() => vi.advanceTimersByTime(9_000));
+    const wanderer = screen.getByTestId('office-floor-wanderer').dataset.wanderer;
+    act(() => vi.advanceTimersByTime(9_000));
+    act(() => vi.advanceTimersByTime(9_000));
+
+    expect(wanderer).toBeTruthy();
+    expect(hasWorkingMemoryFact(wanderer)).toBe(false);
   });
 });
