@@ -38,6 +38,7 @@ import {
   renameGardenNode
 } from './metaphorGardenEdit.js';
 import { METAPHOR_FLAT_GRAPH_EDIT_KINDS } from './metaphorFlatKindEdit.js';
+import { COMPOSITE_MAX_LAYERS } from '@archislop/shared';
 
 /**
  * @param {string} source
@@ -332,4 +333,156 @@ export function renameCompositeEdge(source, fromId, toId, label) {
   const doc = parseCompositeDoc(source);
   if (!doc) return fail('not-graph');
   return renameLinkedEdge(doc, source, fromId, toId, label);
+}
+
+/**
+ * Allocate a fresh item id against a running set of taken ids.
+ *
+ * `n<k>` is the same scheme the per-item path uses, but taken GLOBALLY rather
+ * than per-layer: a copy that reused an existing id would not render as a second
+ * object, it would be an ambiguous one, and `findLayerForItem` resolves an item
+ * to the FIRST layer holding its id — so every edit aimed at the copy would land
+ * on the original instead.
+ */
+function allocateFreshItemId(taken) {
+  let n = 1;
+  while (taken.has(`n${n}`)) n += 1;
+  const id = `n${n}`;
+  taken.add(id);
+  return id;
+}
+
+/**
+ * Deep-copy a layer's items with brand-new ids, keeping the copies internally
+ * connected.
+ *
+ * The remap visits every value except an item's own `id` and `label`: a tree
+ * node's `parent`, a city item's `links[]` and any other reference field are
+ * per-kind, and this module must not learn their names — so anything that
+ * pointed at a copied item is re-pointed at that item's copy. `label` is
+ * excluded because prose is allowed to spell an id and is not a reference.
+ */
+function cloneItemsWithFreshIds(items, doc) {
+  const taken = globalItemIds(doc);
+  const remap = new Map();
+  const clones = items.map((item) => {
+    if (!item || typeof item !== 'object') return item;
+    const copy = { ...item };
+    if (typeof copy.id === 'string') {
+      const previous = copy.id;
+      copy.id = allocateFreshItemId(taken);
+      remap.set(previous, copy.id);
+    }
+    return copy;
+  });
+  for (const copy of clones) {
+    if (!copy || typeof copy !== 'object') continue;
+    for (const key of Object.keys(copy)) {
+      if (key === 'id' || key === 'label') continue;
+      const value = copy[key];
+      if (typeof value === 'string' && remap.has(value)) {
+        copy[key] = remap.get(value);
+      } else if (Array.isArray(value)) {
+        copy[key] = value.map((entry) =>
+          typeof entry === 'string' && remap.has(entry) ? remap.get(entry) : entry
+        );
+      }
+    }
+  }
+  return clones;
+}
+
+/** A layer id not already used by another layer of this document. */
+function allocateLayerId(doc) {
+  const used = new Set(doc.layers.map((layer) => (typeof layer.id === 'string' ? layer.id : '')));
+  let n = doc.layers.length + 1;
+  while (used.has(`layer-${n}`)) n += 1;
+  return `layer-${n}`;
+}
+
+/**
+ * Duplicate one of the scene's layers — a whole grammar, not just an item.
+ *
+ * Composite's Add has always resolved its target through `findLayerForItem`, so
+ * the anchor had to be an existing item and every Add therefore grew a layer that
+ * already had one. A scene authored with three layers could never gain a fourth,
+ * and a kind missing from `layers[]` could never appear at all (#536).
+ *
+ * Seeding is by DUPLICATION, on the owner's decision, because a layer with
+ * `items: []` is worse than no layer: it is unselectable (the bridge emits one
+ * descriptor per item, and there are none) and un-growable (`addLinked` needs an
+ * `afterId` inside the layer, so there is nothing to anchor a first item to).
+ * Cloning also makes the copy valid for its kind by construction — this repo has
+ * no per-kind item template table, and inventing one would duplicate
+ * required-field knowledge that already lives in `metaphorSchema.ts`.
+ *
+ * The limitation is real and deliberate: you can only add MORE of a kind the
+ * scene already has.
+ *
+ * @param {string} source
+ * @param {number} layerIndex the layer to duplicate; the copy is inserted after it
+ */
+export function addCompositeLayer(source, layerIndex) {
+  const doc = parseCompositeDoc(source);
+  if (!doc) return fail('not-graph');
+  const index = Number(layerIndex);
+  if (!Number.isInteger(index) || index < 0 || index >= doc.layers.length) {
+    return fail('missing');
+  }
+  if (doc.layers.length >= COMPOSITE_MAX_LAYERS) return fail('capacity');
+
+  const origin = doc.layers[index];
+  const copy = {
+    id: allocateLayerId(doc),
+    as: origin.as,
+    items: cloneItemsWithFreshIds(Array.isArray(origin.items) ? origin.items : [], doc)
+  };
+  if (typeof origin.label === 'string') copy.label = origin.label;
+
+  doc.layers.splice(index + 1, 0, copy);
+  return ok(serializeCompositeDoc(doc, source), {
+    newLayerId: copy.id,
+    metaphorKind: copy.as,
+    copiedItemCount: copy.items.length
+  });
+}
+
+/**
+ * Remove a whole layer and every top-level relation that touched it.
+ *
+ * There was no verb for this at all (#536). Per-item Delete can SHRINK a layer
+ * but never retire it: each kind's delegate refuses its last item, so a layer
+ * bottoms out at one item and stays — still holding its share of the fused
+ * plan's layout area, still drawing a placard, with no way to get rid of it.
+ * (The `{ as, items: [] }` husk this issue described as the symptom is not
+ * reachable for city/tree/garden for exactly that reason; verified rather than
+ * assumed.) Its links go the way `deleteCompositeNode` already handles them per
+ * item, applied to each former member.
+ *
+ * Refusing the last layer is not a preference: `CompositeMetaphorSchema`
+ * declares `layers.min(1)`, so removing it yields a document the validator
+ * rejects — and an agent cannot write its way out of that.
+ *
+ * @param {string} source
+ * @param {number} layerIndex
+ */
+export function removeCompositeLayer(source, layerIndex) {
+  const doc = parseCompositeDoc(source);
+  if (!doc) return fail('not-graph');
+  const index = Number(layerIndex);
+  if (!Number.isInteger(index) || index < 0 || index >= doc.layers.length) {
+    return fail('missing');
+  }
+  if (doc.layers.length <= 1) return fail('last');
+
+  const [removed] = doc.layers.splice(index, 1);
+  const removedIds = (Array.isArray(removed.items) ? removed.items : [])
+    .filter((item) => item && typeof item === 'object' && typeof item.id === 'string')
+    .map((item) => item.id);
+  for (const id of removedIds) purgeLinksForNode(doc, id);
+
+  return ok(serializeCompositeDoc(doc, source), {
+    removedLayerId: typeof removed.id === 'string' ? removed.id : null,
+    removedItemCount: removedIds.length
+  });
 }

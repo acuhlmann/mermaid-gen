@@ -1,12 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { sanitizeMetaphorDsl } from '@archislop/shared';
 import {
+  addCompositeLayer,
   addLinkedCompositeNode,
   compositeGraphAllowsLink,
   connectCompositeNodes,
   deleteCompositeEdge,
   deleteCompositeNode,
   isCompositeFamilySource,
+  removeCompositeLayer,
   renameCompositeEdge,
   renameCompositeNode
 } from '../src/utils/metaphorCompositeEdit.js';
@@ -333,5 +335,175 @@ describe('renameCompositeEdge', () => {
     expect(result.ok).toBe(true);
     const links = JSON.parse(result.source).links;
     expect(links).toEqual([{ from: 'auth', to: 'api' }]);
+  });
+});
+
+/** Every item id across every layer of a composite document. */
+function allItemIds(doc) {
+  return doc.layers.flatMap((layer) => (layer.items ?? []).map((item) => item.id));
+}
+
+function twoCityLayers(links = []) {
+  return JSON.stringify(
+    {
+      metaphor: 'composite',
+      scene: {},
+      layout: 'fused',
+      layers: [
+        {
+          id: 'core',
+          as: 'city',
+          label: 'Core',
+          items: [
+            { id: 'auth', label: 'Auth', height: 10, footprint: 2, links: ['api'] },
+            { id: 'api', label: 'API', height: 8, footprint: 2 }
+          ]
+        },
+        { id: 'edge', as: 'city', items: [{ id: 'cdn', label: 'CDN', height: 6, footprint: 2 }] }
+      ],
+      items: [],
+      links
+    },
+    null,
+    2
+  );
+}
+
+describe('layer-level Add (#536)', () => {
+  it('duplicates a layer in place, after its origin', () => {
+    const result = addCompositeLayer(twoCityLayers(), 0);
+    expect(result.ok).toBe(true);
+    const doc = JSON.parse(result.source);
+    expect(doc.layers.map((layer) => layer.as)).toEqual(['city', 'city', 'city']);
+    expect(doc.layers[1].label).toBe('Core');
+    expect(doc.layers[1].items).toHaveLength(2);
+    expect(result.newLayerId).toBe(doc.layers[1].id);
+    expect(result.newLayerId).not.toBe('core');
+  });
+
+  it('gives the copy ids that collide with nothing, and rewires its own references', () => {
+    const doc = JSON.parse(addCompositeLayer(twoCityLayers(), 0).source);
+    const ids = allItemIds(doc);
+    // Duplicate ids would not render a second tower, they would make one id
+    // ambiguous — and findLayerForItem resolves to the FIRST layer holding an id,
+    // so an edit aimed at the copy would silently hit the original.
+    expect(new Set(ids).size).toBe(ids.length);
+    const [origin, copy] = [doc.layers[0], doc.layers[1]];
+    expect(copy.items.map((item) => item.id)).not.toEqual(origin.items.map((item) => item.id));
+    // The clone's internal `links` must point at its OWN copies, not the
+    // originals it was duplicated from.
+    const copyAuth = copy.items[0];
+    const copiedIds = copy.items.map((item) => item.id);
+    expect(copyAuth.links).toHaveLength(1);
+    expect(copiedIds).toContain(copyAuth.links[0]);
+    expect(origin.items.map((item) => item.id)).not.toContain(copyAuth.links[0]);
+  });
+
+  it('refuses a fifth layer, which the schema would reject anyway', () => {
+    let source = twoCityLayers();
+    for (let i = 0; i < 2; i += 1) {
+      source = addCompositeLayer(source, 0).source;
+    }
+    expect(JSON.parse(source).layers).toHaveLength(4);
+    expect(addCompositeLayer(source, 0)).toMatchObject({ ok: false, reason: 'capacity' });
+  });
+
+  it('refuses an out-of-range layer, a non-composite source, and stays valid when it succeeds', () => {
+    expect(addCompositeLayer(twoCityLayers(), 9)).toMatchObject({ ok: false, reason: 'missing' });
+    expect(addCompositeLayer(twoCityLayers(), -1)).toMatchObject({ ok: false, reason: 'missing' });
+    expect(addCompositeLayer('{"metaphor":"city","items":[]}', 0)).toMatchObject({
+      ok: false,
+      reason: 'not-graph'
+    });
+    const validated = sanitizeMetaphorDsl(
+      addCompositeLayer(twoCityLayers(), 0).source,
+      'composite'
+    );
+    // `sanitizeMetaphorDsl` returns { text, applied, dsl }, not an { ok } verdict,
+    // so validity is asserted structurally: the duplicated layer survives a
+    // validation round-trip with its fresh ids and per-kind fields intact.
+    expect(validated.dsl.layers).toHaveLength(3);
+    expect(validated.applied).toEqual([]);
+    expect(validated.dsl.layers[1].items.every((item) => typeof item.height === 'number')).toBe(
+      true
+    );
+  });
+});
+
+describe('layer-level Remove (#536)', () => {
+  it('drops the layer and every link that touched its items', () => {
+    const withLink = twoCityLayers([
+      { from: 'auth', to: 'cdn', label: 'warms' },
+      { from: 'auth', to: 'api', label: 'calls' }
+    ]);
+    const result = removeCompositeLayer(withLink, 1);
+    expect(result.ok).toBe(true);
+    expect(result.removedLayerId).toBe('edge');
+    expect(result.removedItemCount).toBe(1);
+    const doc = JSON.parse(result.source);
+    expect(doc.layers.map((layer) => layer.id)).toEqual(['core']);
+    // The relation to the deleted node is gone; the unrelated one is not.
+    expect(doc.links).toEqual([{ from: 'auth', to: 'api', label: 'calls' }]);
+  });
+
+  it('refuses to remove the only layer, and reports a non-layer as missing', () => {
+    const single = JSON.stringify({
+      metaphor: 'composite',
+      scene: {},
+      layout: 'fused',
+      layers: [
+        { id: 'only', as: 'city', items: [{ id: 'a', label: 'A', height: 5, footprint: 2 }] }
+      ],
+      items: [],
+      links: []
+    });
+    expect(removeCompositeLayer(single, 0)).toMatchObject({ ok: false, reason: 'last' });
+    expect(removeCompositeLayer(twoCityLayers(), 7)).toMatchObject({
+      ok: false,
+      reason: 'missing'
+    });
+    const validated = sanitizeMetaphorDsl(
+      removeCompositeLayer(twoCityLayers(), 1).source,
+      'composite'
+    );
+    expect(validated.dsl.layers).toHaveLength(1);
+    expect(validated.applied).toEqual([]);
+  });
+
+  it('removes a layer that per-item Delete can only shrink, never retire', () => {
+    // What #536 described as a `{ as, items: [] }` husk does not actually occur
+    // for these kinds: each delegate refuses its last item, so a layer can be
+    // reduced to ONE item and then no further — but it still cannot be removed,
+    // which is the real gap. Verified here rather than assumed, because the
+    // issue's framing would have led a reader to hunt for a code path that
+    // empties a layer, and there isn't one.
+    let source = JSON.stringify({
+      metaphor: 'composite',
+      scene: {},
+      layout: 'fused',
+      layers: [
+        {
+          id: 'core',
+          as: 'city',
+          items: [
+            { id: 'a', label: 'A', height: 5, footprint: 2 },
+            { id: 'b', label: 'B', height: 5, footprint: 2 }
+          ]
+        },
+        { id: 'spare', as: 'city', items: [{ id: 'c', label: 'C', height: 5, footprint: 2 }] }
+      ],
+      items: [],
+      links: []
+    });
+
+    // The spare layer is down to one item, and deleting that item is refused by
+    // the city delegate.
+    expect(deleteCompositeNode(source, 'c')).toMatchObject({ ok: false });
+    source = deleteCompositeNode(source, 'b').source;
+    expect(JSON.parse(source).layers.map((l) => l.id)).toEqual(['core', 'spare']);
+
+    // Remove-layer is the only verb that can get rid of it.
+    source = removeCompositeLayer(source, 1).source;
+    expect(JSON.parse(source).layers.map((l) => l.id)).toEqual(['core']);
   });
 });
