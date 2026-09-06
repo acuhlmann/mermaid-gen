@@ -169,6 +169,43 @@ function terminusSign(stops, radiusOf, reachX, reachZ) {
 }
 
 /**
+ * Every position a route's name could stand at, in order.
+ *
+ * One stroke per gap of the route, offset to either side of it, at three points
+ * along the stroke rather than only its midpoint. Split out of
+ * `subwayRouteSign` so that enumerating the options and judging them are
+ * different jobs: this answers "where could it go", the caller answers "where
+ * should it go", and the reach rejection stays with the caller because it is the
+ * only one that knows the network's extent.
+ *
+ * The offset is perpendicular to the direction of travel, so a slanted segment
+ * is named beside its own stroke rather than through it.
+ *
+ * @param {Array<{ position: [number, number, number] }>} stops
+ * @returns {Generator<[number, number, number]>}
+ */
+function* routeSignCandidates(stops) {
+  for (let i = 0; i < stops.length - 1; i += 1) {
+    const [ax, , az] = stops[i].position;
+    const [bx, , bz] = stops[i + 1].position;
+    const span = Math.hypot(bx - ax, bz - az);
+    if (span <= 1e-3) continue;
+    const nx = -(bz - az) / span;
+    const nz = (bx - ax) / span;
+    // Three stations along the gap, not just its midpoint: a four-stop route
+    // offers six placements otherwise, which is not enough choice for the score
+    // in `subwayRouteSign` to find a corner nothing else wants.
+    for (const t of [0.5, 0.36, 0.64]) {
+      const mx = ax + (bx - ax) * t;
+      const mz = az + (bz - az) * t;
+      for (const side of [1, -1]) {
+        yield [mx + nx * ROUTE_SIGN_LATERAL * side, 0, mz + nz * ROUTE_SIGN_LATERAL * side];
+      }
+    }
+  }
+}
+
+/**
  * Where a route's name is written: **alongside its own track, on the longest
  * station-free stretch of it** — which is where a printed transit map writes a
  * line's name, and the only place on a lane diagram that is empty by
@@ -270,43 +307,27 @@ export function subwayRouteSign(stops, radiusOf, options = {}) {
     return penalty;
   };
 
-  const gaps = [];
-  for (let i = 0; i < stops.length - 1; i += 1) {
-    const [ax, , az] = stops[i].position;
-    const [bx, , bz] = stops[i + 1].position;
-    const span = Math.hypot(bx - ax, bz - az);
-    if (span > 1e-3) gaps.push({ ax, az, bx, bz, span });
-  }
+  /**
+   * The two reasons a candidate is unusable: outside the network's own reach
+   * box (which is the framing guard `terminusSign` explains at length), or too
+   * close to a platform rim. Named so the loop below reads as "pick the best of
+   * what is allowed" rather than as three unrelated tests.
+   */
+  const admissible = (candidate, room) =>
+    Math.abs(candidate[0]) <= reachX &&
+    Math.abs(candidate[2]) <= reachZ &&
+    room > ROUTE_SIGN_CLEARANCE;
 
   let best = null;
-  for (const gap of gaps) {
-    // Across the direction of travel, so a slanted segment is named beside its
-    // own stroke rather than through it.
-    const nx = -(gap.bz - gap.az) / gap.span;
-    const nz = (gap.bx - gap.ax) / gap.span;
-    // Three stations along the gap, not just its midpoint: a four-stop route
-    // offers six placements otherwise, which is not enough choice for the score
-    // above to find a corner nothing else wants.
-    for (const t of [0.5, 0.36, 0.64]) {
-      const mx = gap.ax + (gap.bx - gap.ax) * t;
-      const mz = gap.az + (gap.bz - gap.az) * t;
-      for (const side of [1, -1]) {
-        const candidate = [
-          mx + nx * ROUTE_SIGN_LATERAL * side,
-          0,
-          mz + nz * ROUTE_SIGN_LATERAL * side
-        ];
-        if (Math.abs(candidate[0]) > reachX || Math.abs(candidate[2]) > reachZ) continue;
-        const room = platformClearance(candidate);
-        if (room <= ROUTE_SIGN_CLEARANCE) continue;
-        let score = room + crowding(candidate);
-        // The near edge (+z, toward the default camera) breaks a tie — the same
-        // edge the city districts and the garden beds are named on, and the
-        // short axis of a lane diagram, which is the free one.
-        score += candidate[2] * 1e-3;
-        if (!best || score > best.score) best = { candidate, score };
-      }
-    }
+  for (const candidate of routeSignCandidates(stops)) {
+    const room = platformClearance(candidate);
+    if (!admissible(candidate, room)) continue;
+    let score = room + crowding(candidate);
+    // The near edge (+z, toward the default camera) breaks a tie — the same
+    // edge the city districts and the garden beds are named on, and the short
+    // axis of a lane diagram, which is the free one.
+    score += candidate[2] * 1e-3;
+    if (!best || score > best.score) best = { candidate, score };
   }
   if (best) return best.candidate;
 
