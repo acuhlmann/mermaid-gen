@@ -60,7 +60,7 @@
         "initial": 229
       },
       "apps/web": {
-        "budget": 833,
+        "budget": 829,
         "initial": 851
       }
     },
@@ -76,11 +76,11 @@
     },
     "suite": {
       "files": {
-        "budget": 399,
+        "budget": 401,
         "initial": 366
       },
       "cases": {
-        "budget": 4317,
+        "budget": 4351,
         "initial": 3675
       }
     }
