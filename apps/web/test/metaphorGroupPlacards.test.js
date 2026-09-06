@@ -33,6 +33,10 @@ import {
   solveFrameFit
 } from '../src/components/metaphorScenes/sceneFraming.js';
 import { machineGearLayout } from '../src/utils/metaphorLayouts/machineGearLayout.js';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+
+const read = (relative) => readFileSync(fileURLToPath(new URL(relative, import.meta.url)), 'utf8');
 
 const distanceXZ = (a, b) => Math.hypot(a[0] - b[0], a[2] - b[2]);
 
@@ -299,6 +303,35 @@ describe('subway route signs stand off their own platforms', () => {
       ...layout.stations.map((s) => distanceXZ(line.sign, s.position) - s.platformRadius)
     );
     expect(nearestRim).toBeGreaterThan(0.9);
+  });
+
+  it('keeps the interchange name clear of its own lantern (#578)', () => {
+    // The lantern is an opaque mesh and an interchange's name plate is `pinned`,
+    // so the declutter pass will not fade the plate to escape — whatever stands
+    // in front of it simply wins, and "Auth" was drawn as "A◆h". The guard is
+    // the arithmetic, not a screenshot: the plate must clear the gem's top.
+    //
+    // Read from source rather than imported because `SubwayScene.jsx` pulls in
+    // @react-three/fiber hooks that need a renderer; the constants are exported
+    // so this stays a parse of named values, not a regex over magic numbers.
+    const source = read('../src/components/metaphorScenes/SubwayScene.jsx');
+    const num = (name) => {
+      const found = new RegExp(`export const ${name} = ([\\d.]+);`).exec(source);
+      expect(found, `SubwayScene.jsx no longer declares ${name}`).toBeTruthy();
+      return Number(found[1]);
+    };
+    const lanternTop = num('LANTERN_LIFT') + num('LANTERN_RADIUS');
+    expect(num('LABEL_LIFT_INTERCHANGE')).toBeGreaterThan(lanternTop);
+    // The glyph case already sat above the gem; it is listed so a future edit to
+    // the ordering cannot quietly make a glyph plate the one that collides.
+    expect(num('LABEL_LIFT_GLYPH')).toBeGreaterThan(lanternTop);
+    // And the plain station height is deliberately BELOW the gem top, because an
+    // ordinary platform has no lantern — if that ever stops being true, the
+    // assertion above is the one that has to change, not this one.
+    expect(num('LABEL_LIFT_STATION')).toBeLessThan(lanternTop);
+    // The marker itself must survive: fixing this by deleting the lantern would
+    // pass every number above and still lose the scene's whole point.
+    expect(source).toMatch(/<octahedronGeometry/);
   });
 
   it('stays inside the frame the stations themselves define (#460)', () => {

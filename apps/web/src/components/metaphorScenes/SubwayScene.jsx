@@ -37,6 +37,26 @@ const TRACK_Y = 0.42;
 /** Track thickness. Chunky on purpose — a transit line is a stroke, not a wire. */
 const TRACK_RADIUS = 0.26;
 
+/**
+ * The interchange lantern: an octahedron floating above the shared platform.
+ *
+ * `LANTERN_TOP` is the number that matters to placement, because an ordinary
+ * station's name plate is pinned at an interchange and so is never faded by the
+ * declutter pass — anything standing in front of it simply wins. The lantern used
+ * to be centred at 0.85 with radius 0.26 (top 1.11) while the plate sat at 0.95,
+ * i.e. inside the gem, and "Auth" rendered as "A◆h" (#578). `LABEL_LIFT_*` are
+ * expressed against that top, and `metaphorGroupPlacards.test.js` pins the
+ * relation so neither number can drift back through the other.
+ */
+export const LANTERN_RADIUS = 0.26;
+export const LANTERN_LIFT = 0.85;
+export const LANTERN_TOP = LANTERN_LIFT + LANTERN_RADIUS;
+
+/** Name-plate heights above the platform. */
+export const LABEL_LIFT_STATION = 0.95;
+export const LABEL_LIFT_GLYPH = 1.95;
+export const LABEL_LIFT_INTERCHANGE = 1.55;
+
 function lineColor(theme, index) {
   return resolveClusterColor(theme, index);
 }
@@ -157,8 +177,8 @@ function SubwayStation({ station, theme, isInterchange }) {
         <meshBasicMaterial color={rim} transparent opacity={isInterchange ? 0.9 : 0.45} />
       </mesh>
       {isInterchange ? (
-        <mesh position={[0, TRACK_Y + 0.85, 0]}>
-          <octahedronGeometry args={[0.26, 0]} />
+        <mesh position={[0, TRACK_Y + LANTERN_LIFT, 0]}>
+          <octahedronGeometry args={[LANTERN_RADIUS, 0]} />
           <meshStandardMaterial
             color={lantern}
             emissive={lantern}
@@ -234,6 +254,14 @@ export function SubwayScene({ dsl, theme }) {
         const showsLabel = !station || station.primary === item.id;
         const labelText = station ? station.title || item.label : item.label;
         const traffic = typeof item.traffic === 'number' ? item.traffic : 5;
+        // A glyph already sits above the lantern, so only a plain interchange
+        // plate needs lifting clear of it — see LANTERN_TOP for why the gem and
+        // the name cannot share a height.
+        const labelLift = item.glyph
+          ? LABEL_LIFT_GLYPH
+          : isInterchange
+            ? LABEL_LIFT_INTERCHANGE
+            : LABEL_LIFT_STATION;
         return (
           <HoverableItem key={item.id} item={item} metaphor="subway">
             <group position={[position[0], 0, position[2]]}>
@@ -251,7 +279,7 @@ export function SubwayScene({ dsl, theme }) {
               {showsLabel ? (
                 <ItemLabel
                   text={labelText}
-                  position={[0, TRACK_Y + (item.glyph ? 1.95 : 0.95), 0]}
+                  position={[0, TRACK_Y + labelLift, 0]}
                   fontSize={0.42}
                   color={theme.labelColor}
                   outlineColor={theme.labelOutline}
