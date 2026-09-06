@@ -222,4 +222,67 @@ describe('class ids as the canvas really receives them', () => {
       expect(deleted.ok, `delete from rendered id ${node.id} (${id})`).toBe(true);
     }
   });
+
+  it('edits a body-less declaration, which mermaid renders as a real node', async () => {
+    // The case #575 was filed for: `class Duck` with no braces and no relation
+    // is valid Mermaid and renders a clickable box, but `collectClassIds` only
+    // learned names from braced opens, relation ends, members and `<<stereo>>`
+    // lines — so Rename/Delete answered `missing` on a node the user could see.
+    const nodes = await renderedNodes('classDiagram\n  class Duck\n', '14');
+    expect(nodes.length).toBe(1);
+    const id = graphEditIdFromDescriptor({
+      kind: 'node',
+      id: nodes[0].id,
+      dataId: nodes[0].dataId,
+      partName: 'Duck'
+    });
+    expect(id).toBe('Duck');
+    const renamed = renameClassNode('classDiagram\n  class Duck\n', id, 'Mallard');
+    expect(renamed.ok, `rename from rendered id ${nodes[0].id} (${id})`).toBe(true);
+    expect(renamed.source).toContain('class Mallard');
+    expect(renamed.source).not.toMatch(/\bDuck\b/);
+  });
+});
+
+describe('body-less class declarations (#575)', () => {
+  const BARE = 'classDiagram\n  class Duck\n';
+
+  it('renames one and keeps the line indented', () => {
+    expect(renameClassNode(BARE, 'Duck', 'Mallard')).toMatchObject({
+      ok: true,
+      source: 'classDiagram\n  class Mallard\n'
+    });
+  });
+
+  it('deletes one', () => {
+    const result = deleteClassNode(BARE, 'Duck');
+    expect(result.ok).toBe(true);
+    expect(result.source).not.toMatch(/Duck/);
+  });
+
+  it('accepts one as an anchor for Connect and Add', () => {
+    const connected = connectClassNodes(`${BARE}  class Goose\n`, 'Duck', 'Goose');
+    expect(connected.ok).toBe(true);
+    expect(connected.source).toMatch(/Duck --> Goose/);
+    const added = addLinkedClassNode(BARE, 'Duck', 'Eggs');
+    expect(added.ok).toBe(true);
+    expect(typeof added.newId).toBe('string');
+    expect(added.newId).not.toBe('Duck');
+    expect(added.source).toMatch(new RegExp(`Duck --> ${added.newId}`));
+  });
+
+  it('does NOT mistake the styling form or the header for a declaration', () => {
+    // `class A hot` assigns a class to existing nodes rather than declaring one,
+    // and `classDiagram` is the directive. Accepting either would invent class
+    // names — `hot`, `Diagram` — that no rendered box represents, and `hot` in
+    // particular is a user-chosen classDef name.
+    const styled = 'classDiagram\n  class Animal\n  class Animal hot\n  classDef hot fill:red';
+    expect(renameClassNode(styled, 'hot', 'Warm').ok).toBe(false);
+    expect(deleteClassNode(styled, 'hot').ok).toBe(false);
+    // The real declaration in the same document stays editable, and the styling
+    // line that refers to it is rewritten with it rather than orphaned.
+    const renamed = renameClassNode(styled, 'Animal', 'Pet');
+    expect(renamed.ok).toBe(true);
+    expect(renamed.source).toMatch(/class Pet/);
+  });
 });

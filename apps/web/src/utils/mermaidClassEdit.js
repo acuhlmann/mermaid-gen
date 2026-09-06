@@ -4,6 +4,17 @@ import { peekDiagramDirective, stripLineComment } from './mermaidSourceLocate.js
 const CLASS_ID_RE = /^[A-Za-z][A-Za-z0-9_~]*$/;
 const CLASS_MEMBER_RE = /^\s*(\S+)\s*:\s+(.+)$/;
 const CLASS_BLOCK_OPEN_RE = /^\s*class\s+(\S+)\s*\{\s*$/i;
+/**
+ * A declaration with no body: `class Duck` on its own line.
+ *
+ * The two look-alikes this must NOT match are why the trailing `\s*$` and the
+ * whitespace after `class` are both load-bearing. `classDiagram` has no space
+ * after `class`, so it cannot match; `class A hot` (the styling form, which
+ * assigns a class to nodes rather than declaring one) has a second token and so
+ * fails the end anchor. Matching either would invent a class that does not
+ * exist, or silently accept `hot` as a class name.
+ */
+const CLASS_BARE_DECL_RE = /^\s*class\s+(\S+)\s*$/i;
 const CLASS_ANNOTATION_RE = /^\s*<<\S+>>\s+(\S+)\s*$/;
 const META_LINE_RE =
   /^(?:classDiagram|classDef|class|direction|note|namespace|hide\s+empty|style|linkStyle)\b/i;
@@ -88,6 +99,12 @@ function collectClassIds(source) {
     if (member) ids.add(member[1]);
     const annotation = stripped.match(CLASS_ANNOTATION_RE);
     if (annotation) ids.add(annotation[1]);
+    // A body-less declaration declares a class just as much as `class X {` does,
+    // and mermaid renders it as a real selectable box — so leaving it out made
+    // the name unknown to every mutator while the canvas happily offered
+    // Rename and Delete for it (#575).
+    const bareDecl = stripped.match(CLASS_BARE_DECL_RE);
+    if (bareDecl) ids.add(bareDecl[1]);
   }
   return ids;
 }
@@ -231,7 +248,9 @@ function classEditLineMatchesId(line, stripped, classId) {
   const member = stripped.match(CLASS_MEMBER_RE);
   if (member && member[1] === classId) return true;
   const annotation = stripped.match(CLASS_ANNOTATION_RE);
-  return Boolean(annotation && annotation[1] === classId);
+  if (annotation && annotation[1] === classId) return true;
+  const bareDecl = stripped.match(CLASS_BARE_DECL_RE);
+  return Boolean(bareDecl && bareDecl[1] === classId);
 }
 
 /**
@@ -338,6 +357,13 @@ export function renameClassNode(source, classId, label) {
       found = true;
       inTargetBlock = true;
       return line.replace(CLASS_BLOCK_OPEN_RE, `class ${nextLabel} {`);
+    }
+    const bareDecl = stripped.match(CLASS_BARE_DECL_RE);
+    if (bareDecl && bareDecl[1] === classId) {
+      found = true;
+      // Re-swapping the name rather than replacing the whole match keeps the
+      // line's own indentation, which the anchored regex would otherwise eat.
+      return `${indentOf(line)}class ${nextLabel}`;
     }
     if (inTargetBlock) {
       if (stripped === '}') inTargetBlock = false;
