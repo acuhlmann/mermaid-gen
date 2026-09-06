@@ -132,6 +132,7 @@ export const METAPHOR_BLAST_TESTS = [
   'apps/web/test/metaphorLayerFocus.test.js',
   'apps/web/test/metaphorLayouts.test.js',
   'apps/web/test/metaphorLegendAxes.test.js',
+  'apps/web/test/metaphorLinkPick.test.js',
   'apps/web/test/metaphorLinkRoutes.test.js',
   'apps/web/test/metaphorMoods.test.js',
   'apps/web/test/metaphorMotionPolicy.test.js',
