@@ -113,6 +113,7 @@ export const METAPHOR_BLAST_TESTS = [
   'apps/server/test/metaphorSyntaxFixer.test.js',
   'apps/web/test/compositeScene.test.js',
   'apps/web/test/fusedCompositePlanner.test.js',
+  'apps/web/test/fusedLabelReach.test.js',
   'apps/web/test/metaphorAccentCaption.test.js',
   'apps/web/test/metaphorCityEdit.test.js',
   'apps/web/test/metaphorCompositeEdit.test.js',
