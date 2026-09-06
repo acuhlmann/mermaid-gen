@@ -76,9 +76,21 @@ jobs:
         run: |
           set -euo pipefail
           IMAGE="${{ env.REGION }}-docker.pkg.dev/${PROJECT_ID}/${{ env.AR_REPO }}/${{ env.IMAGE_NAME }}"
-          docker build --build-arg UI_VARIANT=main-only -t "${IMAGE}:${DEPLOY_SHA}" -t "${IMAGE}:latest" .
-          docker push "${IMAGE}:${DEPLOY_SHA}"
-          docker push "${IMAGE}:latest"
+          # Docker Hub occasionally returns 502 while resolving base-image manifests
+          # (see deploy run 34022734712); retry before failing a green main push.
+          for attempt in 1 2 3; do
+            if docker build --build-arg UI_VARIANT=main-only -t "${IMAGE}:${DEPLOY_SHA}" -t "${IMAGE}:latest" . \
+              && docker push "${IMAGE}:${DEPLOY_SHA}" \
+              && docker push "${IMAGE}:latest"; then
+              exit 0
+            fi
+            if (( attempt < 3 )); then
+              echo "Docker build/push attempt ${attempt} failed; retrying in 45s…"
+              sleep 45
+            fi
+          done
+          echo "Docker build/push failed after 3 attempts." >&2
+          exit 1
 
       - name: Deploy Cloud Run
         env:
