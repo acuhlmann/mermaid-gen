@@ -8,7 +8,8 @@ import {
   infographicGraphFamily,
   infographicLabelRef,
   isInfographicGraphSource,
-  renameInfographicNode
+  renameInfographicNode,
+  __internal
 } from '../src/utils/infographicGraphEdit.js';
 
 const TREE = `infographic hierarchy-tree-curved-line-rounded-rect-node
@@ -364,5 +365,45 @@ data
     expect(result.ok).toBe(true);
     expect(result.source).toMatch(/- label Iconic brand/);
     expect(result.source).not.toMatch(/Strong brand/);
+  });
+});
+
+describe('the `text:` alias is an item key, not a root key (#547)', () => {
+  // `absorbAttr` now serves both shapes from one function, and the one thing it
+  // must not do is unify them. An ITEM accepts `text:` as a label alias because
+  // AntV's dash items are authored that way; the hierarchy `root:` block accepts
+  // only `label:`. Collapsing the two sets into one is the obvious tidy-up and
+  // it changes which labels the renderer is given — so the difference is pinned
+  // rather than left to a comment. Found by the equivalence probe that
+  // accompanied #547: the mutators alone did not notice the unification, only
+  // the parsed tree did.
+  const doc = `infographic hierarchy-tree
+data
+  root
+    text Rootish
+    id r
+    children
+      - text Aliased
+        id a
+`;
+
+  it('names items by `text:` but not the root', () => {
+    const parsed = __internal.parseHierarchyTree(doc);
+    expect(parsed.root.label).toBe(null);
+    expect(parsed.root.id).toBe('r');
+    expect(parsed.root.children.map((child) => child.label)).toEqual(['Aliased']);
+  });
+
+  it('still renames the root by its id, which is how the difference stays harmless', () => {
+    const result = renameInfographicNode(doc, '0', 'Company');
+    expect(result.ok).toBe(true);
+    // A root named only by `text:` gains a `label:` line rather than having its
+    // `text:` rewritten — so the stale alias survives the rename. That is
+    // pre-existing behaviour, byte-identical before and after #547 (the
+    // equivalence probe checked exactly this call); it is recorded here because
+    // it is the reason the asymmetry above is survivable: the rename path always
+    // writes the key both shapes read first.
+    expect(result.source).toMatch(/^ {4}label Company$/m);
+    expect(result.source).toMatch(/^ {4}text Rootish$/m);
   });
 });

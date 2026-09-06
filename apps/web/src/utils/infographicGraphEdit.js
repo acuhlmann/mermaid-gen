@@ -160,6 +160,93 @@ function blockEnd(lines, start, indent) {
   return i;
 }
 
+/**
+ * Indent of the first `- ` item after `from`, deeper than `parentIndent`,
+ * searching up to `limit`. Returns -1 when the block holds no item list — either
+ * a sibling field ends it first, or `limit` is reached.
+ *
+ * This scan existed three times, once per shape that carries a dash list: an
+ * item's `children:`, the hierarchy `root:`'s `children:`, and a compare
+ * block's `compares:`. Each copy had to agree on where the list starts or the
+ * same document parsed into two different trees depending on which function
+ * happened to read it, and `parseDashItem`/`parseHierarchyTree` were standing at
+ * complexity 29 and 25 largely because of it (#547).
+ */
+function firstItemIndent(lines, from, limit, parentIndent) {
+  for (let i = from; i < limit; i += 1) {
+    const line = lines[i];
+    if (!line.trim()) continue;
+    const ind = indentOf(line);
+    if (ind <= parentIndent) return -1;
+    if (line.slice(ind).startsWith('- ')) return ind;
+  }
+  return -1;
+}
+
+/**
+ * Every `- ` item from `from` up to `limit`, each parsed at `itemIndent`.
+ *
+ * Paths are `childPath(parentPath, index)`, which is bare `String(index)` when
+ * `parentPath` is `''` — that is how compare roots keep their top-level paths
+ * while an item's children keep `parent,child`. Stops at the first line that is
+ * not an item at `itemIndent`, or at the first item starting at/after `limit`,
+ * so a caller whose `limit` is `lines.length` sees exactly the old open-ended
+ * loop.
+ */
+function parseDashRun(lines, from, limit, itemIndent, parentPath) {
+  const items = [];
+  let i = from;
+  while (i < limit) {
+    const item = parseDashItem(
+      lines,
+      skipBlanks(lines, i),
+      itemIndent,
+      childPath(parentPath, items.length)
+    );
+    if (!item || item.start >= limit) break;
+    items.push(item);
+    i = item.end;
+  }
+  return items;
+}
+
+/** Which inline keys name an item, per shape. See `absorbAttr`. */
+const ITEM_LABEL_KEYS = new Set(['label', 'text']);
+const ROOT_LABEL_KEYS = new Set(['label']);
+
+/**
+ * Fold one `key: value` line into a node, first writer wins.
+ *
+ * `labelKeys` is a parameter rather than a constant because the two shapes
+ * genuinely differ: a compare/hierarchy **item** accepts `text:` as a label
+ * alias, while the hierarchy `root:` block accepts only `label:`. Unifying them
+ * would be a semantic edit wearing a refactor's coat, so the sets are named and
+ * the difference stays visible at both call sites.
+ */
+function absorbAttr(node, kv, labelKeys) {
+  if (!kv) return;
+  if (labelKeys.has(kv.key) && node.label == null) node.label = kv.value;
+  if (kv.key === 'id' && node.id == null) node.id = kv.value;
+}
+
+/**
+ * Consume a `children:` block into `node`, returning the line to continue from.
+ *
+ * The item form and the hierarchy `root:` form both carry one and both read it
+ * the same way; they differed only in how far the scan may run (`lines.length`
+ * versus the root's own `end`). The children inherit `node.path`, which is what
+ * both callers were already passing explicitly.
+ */
+function readChildrenBlock(lines, keyLine, limit, parentIndent, node) {
+  node.childrenKeyLine = keyLine;
+  const from = keyLine + 1;
+  const childIndent = firstItemIndent(lines, from, limit, parentIndent);
+  if (childIndent <= 0) return from;
+  const children = parseDashRun(lines, from, limit, childIndent, node.path);
+  node.children = children;
+  return children.length > 0 ? children[children.length - 1].end : from;
+}
+
 function parseDashItem(lines, start, itemIndent, path) {
   const raw = lines[start];
   if (!raw || indentOf(raw) !== itemIndent) return null;
@@ -175,9 +262,7 @@ function parseDashItem(lines, start, itemIndent, path) {
     childrenKeyLine: -1,
     children: []
   };
-  const first = parseInlineKv(stripped.slice(2));
-  if (first?.key === 'label' || first?.key === 'text') node.label = first.value;
-  if (first?.key === 'id') node.id = first.value;
+  absorbAttr(node, parseInlineKv(stripped.slice(2)), ITEM_LABEL_KEYS);
 
   let i = start + 1;
   const attrIndent = itemIndent + 2;
@@ -191,41 +276,11 @@ function parseDashItem(lines, start, itemIndent, path) {
     if (ind <= itemIndent) break;
     const inner = line.slice(ind);
     if (/^children\s*$/i.test(inner)) {
-      node.childrenKeyLine = i;
-      i += 1;
-      let childIndent = -1;
-      for (let j = i; j < lines.length; j += 1) {
-        const childLine = lines[j];
-        if (!childLine.trim()) continue;
-        const childInd = indentOf(childLine);
-        if (childInd <= ind) break;
-        if (childLine.slice(childInd).startsWith('- ')) {
-          childIndent = childInd;
-          break;
-        }
-      }
-      if (childIndent > 0) {
-        let childIdx = 0;
-        while (i < lines.length) {
-          const child = parseDashItem(
-            lines,
-            skipBlanks(lines, i),
-            childIndent,
-            childPath(path, childIdx)
-          );
-          if (!child) break;
-          node.children.push(child);
-          childIdx += 1;
-          i = child.end;
-        }
-      }
+      i = readChildrenBlock(lines, i, lines.length, ind, node);
       continue;
     }
     const kv = parseInlineKv(inner);
-    if (kv) {
-      if ((kv.key === 'label' || kv.key === 'text') && node.label == null) node.label = kv.value;
-      if (kv.key === 'id' && node.id == null) node.id = kv.value;
-    }
+    absorbAttr(node, kv, ITEM_LABEL_KEYS);
     if (ind < attrIndent && !kv) break;
     i += 1;
   }
@@ -269,41 +324,11 @@ function parseHierarchyTree(source) {
     if (ind <= rootIndent) break;
     const inner = line.slice(ind);
     if (/^children\s*$/i.test(inner)) {
-      root.childrenKeyLine = i;
-      i += 1;
-      let childIndent = -1;
-      for (let j = i; j < root.end; j += 1) {
-        const childLine = lines[j];
-        if (!childLine.trim()) continue;
-        const childInd = indentOf(childLine);
-        if (childInd <= ind) break;
-        if (childLine.slice(childInd).startsWith('- ')) {
-          childIndent = childInd;
-          break;
-        }
-      }
-      if (childIndent > 0) {
-        let childIdx = 0;
-        while (i < root.end) {
-          const child = parseDashItem(
-            lines,
-            skipBlanks(lines, i),
-            childIndent,
-            childPath(root.path, childIdx)
-          );
-          if (!child || child.start >= root.end) break;
-          root.children.push(child);
-          childIdx += 1;
-          i = child.end;
-        }
-      }
+      i = readChildrenBlock(lines, i, root.end, ind, root);
       continue;
     }
     const kv = parseInlineKv(inner);
-    if (kv) {
-      if (kv.key === 'label' && root.label == null) root.label = kv.value;
-      if (kv.key === 'id' && root.id == null) root.id = kv.value;
-    }
+    absorbAttr(root, kv, ROOT_LABEL_KEYS);
     if (ind < attrIndent && !kv) break;
     i += 1;
   }
@@ -323,29 +348,14 @@ function parseCompareForest(source) {
   }
   if (fieldLine < 0) return null;
   const end = blockEnd(lines, fieldLine, fieldIndent);
-  let itemIndent = -1;
-  for (let i = fieldLine + 1; i < end; i += 1) {
-    const raw = lines[i];
-    if (!raw.trim()) continue;
-    const ind = indentOf(raw);
-    if (ind <= fieldIndent) break;
-    if (raw.slice(ind).startsWith('- ')) {
-      itemIndent = ind;
-      break;
-    }
-  }
+  const itemIndent = firstItemIndent(lines, fieldLine + 1, end, fieldIndent);
   if (itemIndent < 0) return null;
-  /** @type {Array<ReturnType<typeof parseDashItem> & { isRoot?: boolean }>} */
-  const roots = [];
-  let i = fieldLine + 1;
-  let idx = 0;
-  while (i < end) {
-    const item = parseDashItem(lines, skipBlanks(lines, i), itemIndent, String(idx));
-    if (!item || item.start >= end) break;
-    roots.push({ ...item, isRoot: true });
-    idx += 1;
-    i = item.end;
-  }
+  // `''` as the parent path is what keeps a compare root's path bare ("0", "1")
+  // while the children under it are "0,1" — see `childPath`.
+  const roots = parseDashRun(lines, fieldLine + 1, end, itemIndent, '').map((item) => ({
+    ...item,
+    isRoot: true
+  }));
   if (roots.length === 0) return null;
   return { lines, roots, end, itemIndent };
 }
@@ -616,29 +626,11 @@ function parseArrayItems(lines, fieldName) {
   }
   if (fieldLine < 0) return null;
   const end = blockEnd(lines, fieldLine, fieldIndent);
-  let itemIndent = -1;
-  for (let i = fieldLine + 1; i < end; i += 1) {
-    const raw = lines[i];
-    if (!raw.trim()) continue;
-    const ind = indentOf(raw);
-    if (ind <= fieldIndent) break;
-    if (raw.slice(ind).startsWith('- ')) {
-      itemIndent = ind;
-      break;
-    }
-  }
-  const items = [];
-  if (itemIndent > 0) {
-    let i = fieldLine + 1;
-    let idx = 0;
-    while (i < end) {
-      const item = parseDashItem(lines, skipBlanks(lines, i), itemIndent, String(idx));
-      if (!item || item.start >= end) break;
-      items.push(item);
-      idx += 1;
-      i = item.end;
-    }
-  }
+  const itemIndent = firstItemIndent(lines, fieldLine + 1, end, fieldIndent);
+  // `''` keeps the bare `String(index)` paths this block's items have always
+  // had, and a missing item list still returns the block with `itemIndent: -1`
+  // and no items rather than failing — the caller distinguishes the two.
+  const items = itemIndent > 0 ? parseDashRun(lines, fieldLine + 1, end, itemIndent, '') : [];
   return { fieldLine, fieldIndent, end, itemIndent, items };
 }
 
