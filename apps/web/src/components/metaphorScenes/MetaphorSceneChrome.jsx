@@ -199,7 +199,21 @@ export function ItemLabel({
         }
       }
     });
-  }, [declutter, text, importance, isPinned, layerKey, screenWidthPx, screenHeightPx]);
+    // `plateOpacity` is in the deps on purpose even though accent changes usually
+    // flip `isPinned` too: a label whose `pinned` prop is already true (a subway
+    // interchange, a tree trunk item) keeps `isPinned === true` when the accent
+    // lands, so without this the closure keeps writing the unaccented plate
+    // opacity over the JSX-rendered accent lift.
+  }, [
+    declutter,
+    text,
+    importance,
+    isPinned,
+    plateOpacity,
+    layerKey,
+    screenWidthPx,
+    screenHeightPx
+  ]);
 
   if (!text) return null;
   return (

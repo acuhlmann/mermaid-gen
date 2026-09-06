@@ -12,6 +12,7 @@ import {
   _resetOfficeWorkingMemoryForTests,
   stampWorkingMemoryBoard
 } from '../src/state/officeWorkingMemoryStore.js';
+import { isSpokenLine } from '../src/utils/officeImThreads.js';
 
 const BASE_PARAMS = {
   pause: false,
@@ -104,6 +105,42 @@ describe('useDeskActions', () => {
     expect(arrival.kind).toBe('im');
     const message = getOfficeSnapshot().imHistory.find((m) => !m.outbound);
     expect(message.body.toLowerCase()).toContain('spicy');
+  });
+
+  it('tags a spoken floor answer as a talk line so a balloon can draw it (#552)', async () => {
+    const fetchMock = vi.fn(() =>
+      Promise.resolve({
+        ok: true,
+        json: async () => ({
+          moment: { body: 'it reads fine to me', colleagueId: 'intern', kind: 'im' }
+        })
+      })
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    const { result } = renderHook(() => useDeskActions(BASE_PARAMS));
+
+    // The Slop Chat path stays untagged: a typed IM must never be voiced or
+    // balloon — the mirror image of this bug, pinned by officeVoiceMedium.
+    await act(async () => {
+      await result.current.imSomeone('intern', { userMessage: 'does this make sense?' });
+    });
+    const typed = getOfficeSnapshot().imHistory.find((m) => !m.outbound);
+    expect(isSpokenLine(typed)).toBe(false);
+
+    // The untagged ping raised a desk arrival, which blocks the next verb —
+    // clear the surface before driving the spoken half.
+    _resetForTests();
+
+    // The floor's talk composer passes the medium explicitly, and the answer
+    // must be a line `latestTalkLine`/`FloorTalk` will actually read.
+    await act(async () => {
+      await result.current.imSomeone('intern', { userMessage: 'does this make sense?' }, 'talk');
+    });
+    const spoken = getOfficeSnapshot()
+      .imHistory.filter((m) => !m.outbound)
+      .at(-1);
+    expect(spoken?.body).toBe('it reads fine to me');
+    expect(isSpokenLine(spoken)).toBe(true);
   });
 
   it('delivers a contextual canned email reply when the user composes mail', async () => {

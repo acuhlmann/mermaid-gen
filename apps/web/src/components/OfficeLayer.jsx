@@ -1477,7 +1477,11 @@ export default function OfficeLayer({
 
   const handleTalkReply = useCallback(
     async (colleagueId, body) => {
-      pushOfficeImReply({ colleagueId, body });
+      // Both halves carry `channel: 'talk'`, and the medium rule is symmetric:
+      // `isSpokenLine` also keeps speech out of Slop Chat™, and an untagged
+      // reply to a spoken sentence is drawn by nothing — the model answers and
+      // every surface stays silent (#552).
+      pushOfficeImReply({ colleagueId, body, channel: 'talk' });
       onOfficeEvent?.('imReply', { colleagueId });
       // Slice 26's other half. Walking over and speaking is the route the
       // errand was written for; the messenger settles it identically, because
@@ -1486,7 +1490,7 @@ export default function OfficeLayer({
       settleErrandWith(colleagueId);
       const history = getOfficeSnapshot().imHistory;
       const threadTranscript = threadTranscriptFor(history, colleagueId);
-      await desk.imSomeone(colleagueId, { userMessage: body, threadTranscript });
+      await desk.imSomeone(colleagueId, { userMessage: body, threadTranscript }, 'talk');
     },
     [desk, onOfficeEvent, settleErrandWith]
   );
