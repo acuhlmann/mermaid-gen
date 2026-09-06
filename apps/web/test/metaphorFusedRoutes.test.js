@@ -16,11 +16,11 @@
  */
 import { describe, expect, it } from 'vitest';
 import { CatmullRomCurve3, Vector3 } from 'three';
+import { planFusedCompositeWorld } from '../src/components/metaphorScenes/fusedCompositePlanner.js';
 import {
   FUSED_SEA_LEVEL_Y,
-  fusedSurfaceHeightAt,
-  planFusedCompositeWorld
-} from '../src/components/metaphorScenes/fusedCompositePlanner.js';
+  fusedSurfaceHeightAt
+} from '../src/components/metaphorScenes/fusedWorldSurface.js';
 
 /** The tension `FusedPath` builds its curve with; the samples must match it. */
 const CURVE_TENSION = 0.45;

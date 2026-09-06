@@ -150,18 +150,32 @@ ones that will bite an edit.
 - **In a fused world a landmark's own name stands past the site's shoulder, on its own bearing,
   because a fixed nudge stacks siblings.** `fusedCompositePlanner.js` `makeNodes` used to shift a
   landmark's `labelOffset` by 0.58 world units along the vector from the site's centre to the
-  node — a small constant, so two landmarks on the same island landed inside the same screen slot
-  and the declutter dropped one. On the toaster's Breakfast-That-Burned island, Chrome Throne,
-  Forgiveness Lever and Was It My Fault? all projected inside a 45-pixel square on desktop
-  1440x900, and Forgiveness Lever was invisible on every phone and desktop shot in the run log.
-  The reach is now `max(0.85, site.radius * 0.6)` — for a radius-3.8 island that is ~2.3 units,
-  which lands a lone landmark's name at the shoreline and puts two landmarks 90° apart on the
-  same island roughly `2r` apart on screen. A landmark whose position sits exactly at the site
-  centre (the 0.12 lower bound in `nodePosition`) used to collapse the bearing to `(0,0)`; it
-  now walks the perimeter by `nodeIndex * GOLDEN_ANGLE + layerIndex * (TAU/5)`, so a stack of
-  same-site landmarks spreads instead of collecting at one edge. Measured on the three composite
+  node — a small constant, so landmarks that happened to stand near one another landed inside
+  the same screen slot and the declutter dropped one. The reach is now
+  `max(0.85, site.radius * 0.6)` — for a radius-3.8 island that is ~2.3 units, which lands a lone
+  landmark's name at the shoreline and puts two landmarks 90° apart on the same island roughly
+  `2r` apart on screen. (The 0.85 is belt-and-braces, not a live floor for today's documents:
+  `siteRadiusFor` clamps every radius to [1.8, 4.6], so the product is always ≥ 1.08. It exists
+  so lowering that clamp cannot silently park labels back on their nodes.) A landmark whose
+  position sits exactly at the site centre used to collapse the bearing to `(0,0)` — and the
+  only way to reach that case is an **authored `item.position` that lands on the site**, not
+  `nodePosition`'s own spread: its radial minimum is 0.12 of a radius that never drops below 1.8,
+  i.e. 0.216, comfortably clear of the 0.05 threshold (#527 corrected the earlier text, which
+  named the 0.12 bound as the cause and blamed it for a branch none of the three shipped
+  composites ever enters — the walk is now unit-tested in
+  `apps/web/test/fusedCompositePlanner.test.js`). Such a node walks the perimeter by
+  `nodeIndex * GOLDEN_ANGLE + layerIndex * (TAU/5)` instead. Measured on the three composite
   fixtures × phone/cover/desktop with `browser.newContext({ reducedMotion: 'reduce' })` (see
-  below): 88→100 of 148 legible, zero regressions, festival desktop 15→16 (full sweep).
+  below): 88→100 of 148 legible, zero regressions, festival desktop 15→16 (full sweep). That
+  measurement stands, but #527 established its recorded cause does not: the "Chrome Throne /
+  Forgiveness Lever / Was It My Fault? all inside a 45-pixel square on the toaster's
+  Breakfast-That-Burned island" anecdote is false — planning the fixture puts those three on
+  three different sites >15 world units apart, with `was-it-my-fault` a galaxy accent, and **no
+  two non-accent landmarks share a site in any shipped composite**, so the sibling-stacking
+  mechanism is exercised by none of the measured documents and the gain is not attributable to
+  it. Do not replace the anecdote with another guess at the cause — read this entry as
+  "the shoulder reach is the placement rule; why the sweep gained twelve names is an open
+  question", and re-derive before citing a mechanism.
   This is the same trap `assignSiteLabelPlacement` documents for the site's own name at a
   different scale — the answer is the same shape (outward past the shoulder), applied to a
   landmark's own scale.

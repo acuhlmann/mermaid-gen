@@ -33,6 +33,19 @@ _Runs from 2026-08-18 to 2026-08-30 predate this playbook; their record is the `
 series on `main`, and their findings are the Full-findings section of
 `docs/agents/domains/metaphor3d.md` (moved out of the root context files on 2026-08-30)._
 
+_Correction (2026-09-06, `resolve`, #527) — on the 2026-09-03 row (#519). Two of its claims are
+wrong, verified against `planFusedCompositeWorld` on the fixtures themselves. The degenerate
+bearing is NOT produced by "the 0.12 lower bound in `nodePosition`" — that term is what prevents
+collapse (radius never below 1.8, so the radial minimum is 0.216, past the 0.05 threshold); the
+only reachable entry is an authored `item.position` landing on the site centre, and no shipped
+composite contains one — the golden-angle walk was exercised by no test until
+`fusedCompositePlanner.test.js` drove it directly. And no two non-accent landmarks share a site
+in commerce, festival or toaster, so the "siblings stacked in one slot" mechanism — including the
+toaster's Chrome Throne / Forgiveness Lever / Was It My Fault? anecdote (they plan onto three
+different sites, and `was-it-my-fault` is a galaxy accent) — is exercised by none of the three
+measured fixtures. The 88→100 legible-name lift stands as a measurement; its recorded cause does
+not._
+
 ## Todos
 
 | Id                          | State                | Item                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
