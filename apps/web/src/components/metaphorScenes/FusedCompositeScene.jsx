@@ -10,6 +10,7 @@ import {
 } from './MetaphorSceneChrome.jsx';
 import { LINK_LABEL_TARGET_PX } from './metaphorScreenScale.js';
 import { FRAME_IGNORE_DATA } from './sceneFraming.js';
+import { LINK_CASING_ORDER } from './metaphorDrawOrder.js';
 import {
   LINK_CASING_OPACITY,
   arrowFromRoute,
@@ -556,7 +557,7 @@ function FusedLinks({ links, theme, mutedTheme, activeId, lod, isLinkMuted }) {
             transparent
             opacity={LINK_CASING_OPACITY}
             depthWrite={false}
-            renderOrder={-1}
+            renderOrder={LINK_CASING_ORDER}
           />
         ) : null}
         <Line

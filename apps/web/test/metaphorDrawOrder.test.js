@@ -17,7 +17,10 @@
  * accent anchor, and a vertical stem at that `(x, z)` projects to a screen line
  * through the projection of every point on it — the name's centre included —
  * under any camera. No framing change and no anchor tweak can separate them.
- * Draw order is the only thing that decides it, so the ladder is the contract.
+ * Which of the two beats the other is decided by the draw — but for the rod,
+ * not the caption, what decides it is that an opaque mesh and a transparent one
+ * are in different render lists, which `metaphorDrawOrder.js` spells out; the
+ * numbers here are the contract for the transparent ones among themselves.
  *
  * Two of the cases below pin things that are NOT draw order, because the same
  * name was being destroyed two other ways at once and each is invisible to the
@@ -35,7 +38,14 @@ import {
   ACCENT_ITEM_LABEL_PLATE_ORDER,
   ACCENT_MARKER_ORDER,
   ACCENT_PIN_ORDER,
-  LABEL_PLATE_ORDER
+  LABEL_PLATE_ORDER,
+  LINK_ARROW_CASING_ORDER,
+  LINK_ARROW_ORDER,
+  LINK_CASING_ORDER,
+  PICKED_LINK_ORDER,
+  SELECTION_HALO_ORDER,
+  SELECTION_RING_ORDER,
+  SKY_DOME_ORDER
 } from '../src/components/metaphorScenes/metaphorDrawOrder.js';
 
 const read = (relative) => readFileSync(fileURLToPath(new URL(relative, import.meta.url)), 'utf8');
@@ -55,9 +65,12 @@ describe('the accent draw-order ladder', () => {
   });
 
   it('keeps the callout above an ordinary label chip', () => {
-    // Unchanged behaviour, and the reason the ladder is not simply "labels
-    // last": an UNaccented name must still be able to lose to the callout, or
-    // a crowded scene draws its thesis behind six chips that outrank nothing.
+    // The reason the ladder is not simply "labels last": an UNaccented name must
+    // still be able to lose to the callout, or a crowded scene draws its thesis
+    // behind six chips that outrank nothing. That is a claim about the two
+    // TRANSPARENT rungs — the ordinary chip and the caption's copy — and it
+    // would be false against the stem and the pin, which are opaque and so are
+    // drawn before every label regardless of what they carry.
     expect(ACCENT_MARKER_ORDER).toBeGreaterThan(LABEL_PLATE_ORDER);
   });
 
@@ -144,15 +157,80 @@ describe('ItemLabel lifts the accented name over the callout', () => {
     expect(source).toMatch(/accented && style\.plate > 0/);
   });
 
-  it('leaves every other label exactly as it was', () => {
+  it('scopes the lift to the accented item, and to nothing else', () => {
     // The lift is scoped to `accented`, which is one item per scene. Dropping
     // depth for all names would put a back-row label in front of the tower
     // standing between it and the camera, which is the trap the declutter pass
     // and `assignSiteLabelPlacement` both exist to avoid. Every branch above is
-    // a ternary on that flag, so the unaccented arm is the pre-existing value:
-    // this pins that nobody made the lift unconditional.
+    // a ternary on that flag, so the unaccented arm keeps its pre-existing
+    // value: this pins that nobody made the lift unconditional.
+    //
+    // It does NOT pin that an unaccented label renders as it used to, because it
+    // does not (#474). The stem stopped writing depth, so a chip standing behind
+    // the rod now passes the depth test and, being transparent, paints across an
+    // opaque rod it used to be clipped by. That is the trade the fix made on
+    // purpose — a name on its own card instead of a deleted glyph — and a
+    // constants-only test cannot see either side of it. What it would take to
+    // re-quantify: an unaccented name behind the accent stem, rendered, before
+    // and after (`apps/web/.claude/skills/verify/`).
     expect(source).toMatch(/const accented = useItemAccent\(\);/);
     expect(source).not.toMatch(/renderOrder=\{ACCENT_ITEM_LABEL/);
     expect(depthSource).not.toMatch(/material\.depthTest = false/);
+  });
+});
+
+describe('the ladder owns every rung it claims to', () => {
+  // #474: this module called itself "the one draw-order ladder" while the
+  // arrowhead ranked itself from a local constant in `MetaphorSceneChrome.jsx`,
+  // the selection ring from two bare literals in `MetaphorSelectionMarker.jsx`,
+  // and three more `-1`s sat at their own use sites. A number that lives beside
+  // its mesh is invisible to anyone working out what a label has to clear —
+  // which is the only thing this file is for. Either fold them in or stop
+  // claiming the ladder; they are folded in.
+  const CHROME_FILES = [
+    '../src/components/metaphorScenes/MetaphorSceneChrome.jsx',
+    '../src/components/metaphorScenes/MetaphorAccents.jsx',
+    '../src/components/metaphorScenes/MetaphorSelectionMarker.jsx',
+    '../src/components/metaphorScenes/FusedCompositeScene.jsx'
+  ];
+
+  it('names every chrome render order instead of spelling out a number', () => {
+    for (const file of CHROME_FILES) {
+      const source = read(file);
+      // `-?` on purpose: `renderOrder={-1}` is as much a bare rung as `={31}`,
+      // and it was the more common one here.
+      expect(source, `${file} still spells out a render order`).not.toMatch(
+        /renderOrder=\{\s*-?\d/
+      );
+      expect(source, `${file} does not read the ladder at all`).toMatch(
+        /from '\.\/metaphorDrawOrder\.js'/
+      );
+    }
+  });
+
+  it('moved the rungs without retuning them', () => {
+    // Naming a constant is a code move; changing its value is a visual one, and
+    // every pair below is inside the same transparent list. These are the
+    // pre-move values, pinned so a future tidy-up cannot quietly re-rank what
+    // sits over what.
+    expect(LINK_ARROW_ORDER).toBe(20);
+    expect(LINK_ARROW_CASING_ORDER).toBe(19);
+    expect(SELECTION_RING_ORDER).toBe(31);
+    expect(SELECTION_HALO_ORDER).toBe(30);
+    expect(LINK_CASING_ORDER).toBe(-1);
+    expect(SKY_DOME_ORDER).toBe(-1);
+  });
+
+  it('ranks the arrowhead between an ordinary chip and the caption', () => {
+    expect(LINK_ARROW_ORDER).toBeGreaterThan(LABEL_PLATE_ORDER);
+    expect(LINK_ARROW_CASING_ORDER).toBeLessThan(LINK_ARROW_ORDER);
+    expect(LINK_ARROW_ORDER).toBeLessThan(ACCENT_CAPTION_TEXT_ORDER);
+  });
+
+  it('puts both casings below the highlight they carry contrast for', () => {
+    // The casing is the pair's backdrop, never its subject, and the picked link
+    // is the thing the viewer just asked about.
+    expect(LINK_CASING_ORDER).toBeLessThan(PICKED_LINK_ORDER);
+    expect(SKY_DOME_ORDER).toBeLessThan(LABEL_PLATE_ORDER);
   });
 });

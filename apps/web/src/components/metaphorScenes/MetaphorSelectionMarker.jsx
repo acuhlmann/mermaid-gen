@@ -31,6 +31,7 @@ import { useFrame, useThree } from '@react-three/fiber';
 import { FRAME_IGNORE_DATA } from './sceneFraming.js';
 import { measureItemPlacement } from './itemBounds.js';
 import { useMetaphorClock } from './metaphorClock.js';
+import { SELECTION_HALO_ORDER, SELECTION_RING_ORDER } from './metaphorDrawOrder.js';
 
 /** Sky-400 — matches the inspector panel's left edge, which is the only thing
  *  tying the card to the shape. Held constant across every theme, like the
@@ -89,7 +90,11 @@ export function MetaphorSelectionMarker({ store, contentKey }) {
     <group ref={groupRef} userData={FRAME_IGNORE_DATA}>
       {/* Flat on the ground plane — `ringGeometry`, like `circleGeometry`, is
           authored in the XY plane and needs the -π/2 tip to lie down. */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.04, 0]} renderOrder={31}>
+      <mesh
+        rotation={[-Math.PI / 2, 0, 0]}
+        position={[0, 0.04, 0]}
+        renderOrder={SELECTION_RING_ORDER}
+      >
         <ringGeometry args={[radius, radius * 1.16, 56]} />
         <meshBasicMaterial
           color={MARKER_COLOR}
@@ -103,7 +108,11 @@ export function MetaphorSelectionMarker({ store, contentKey }) {
       </mesh>
       {/* Faint outer halo so the pick still reads where the ring's own hue is
           close to the ground it lies on. */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.03, 0]} renderOrder={30}>
+      <mesh
+        rotation={[-Math.PI / 2, 0, 0]}
+        position={[0, 0.03, 0]}
+        renderOrder={SELECTION_HALO_ORDER}
+      >
         <ringGeometry args={[radius * 1.16, radius * 1.5, 56]} />
         <meshBasicMaterial
           color={MARKER_COLOR}
