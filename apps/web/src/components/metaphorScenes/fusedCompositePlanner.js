@@ -1,6 +1,7 @@
 import { hash01, hash01Salted } from '../../utils/seededHash.js';
 import { getCompositeCapability, getCompositePrimitive } from './compositePrimitiveRegistry.js';
 import { clampLabelReach } from './fusedLabelReach.js';
+import { CHANNEL_RIDE, fusedSurfaceHeightAt, routeAlongSurface } from './fusedWorldSurface.js';
 
 const TAU = Math.PI * 2;
 const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));
@@ -31,32 +32,6 @@ const METRIC_RANGE_BY_KIND = Object.freeze({
 });
 
 const AFFINITY_FIELDS = Object.freeze(['district', 'chain', 'bed', 'axle', 'label', 'id']);
-
-/**
- * The height of the fused world's own surface between the islands — the water
- * (or plaza) disc `WorldGround` draws in `fusedCompositePrimitives.jsx`, which
- * imports this constant so the two cannot drift apart. Sites stand at `y = 0`
- * and rise by their own `height`, so this is the floor everything else is
- * measured from.
- */
-export const FUSED_SEA_LEVEL_Y = -0.22;
-
-/**
- * How far a channel's centre-line rides above whatever is underneath it. Shared
- * by the stations (`routePoint`) and by the surface samples between them, so a
- * route keeps one constant clearance for its whole length.
- */
-const CHANNEL_RIDE = 0.16;
-
-/**
- * Spacing of the surface samples inserted along a leg, in world units, and the
- * cap on how many one leg may add. Sites are 1.8–4.6 units across, so ~1.15
- * puts three or four samples inside a strait — enough for the dip to read —
- * while the cap keeps a long leg across an empty ocean from turning into a
- * hundred collinear control points the tube then has to tessellate through.
- */
-const CHANNEL_SAMPLE_SPACING = 1.15;
-const CHANNEL_MAX_SAMPLES = 10;
 
 function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
@@ -412,6 +387,38 @@ function resolveNodeMotionStyle(capability, novelty, worldKey, itemId) {
   return remix[Math.floor(seeded(worldKey, itemId, 'motion-remix') * remix.length)];
 }
 
+/**
+ * The unit bearing a landmark's own name walks outward from its site's centre.
+ *
+ * Normally that is simply the direction from the centre to the node. The
+ * degenerate case is a node standing AT the centre, and the only way to reach
+ * it is an **authored `item.position` that lands on the site** — the schema
+ * makes `position` optional on items, so it is live in real model output. The
+ * planner's own placement cannot produce it: `nodePosition`'s radial distance
+ * is `site.radius * (0.12 + rand * 0.42)` and every site radius comes from
+ * `siteRadiusFor`, clamped to [1.8, 4.6], so the smallest authored-free
+ * distance is 0.216 — comfortably past the 0.05 threshold below. (#527 named
+ * that 0.12 lower bound as the producer for a while; it is the thing that
+ * prevents the collapse, not the thing that causes it.)
+ *
+ * Exported so the golden-angle walk can be driven without a whole plan —
+ * `resolveSiteLabelOffset` above is the precedent.
+ *
+ * @param {number} labelDx
+ * @param {number} labelDz
+ * @param {{ nodeIndex: number, layerIndex: number }} spread
+ * @returns {readonly [number, number]}
+ */
+export function resolveNodeLabelBearing(labelDx, labelDz, { nodeIndex, layerIndex }) {
+  const rawDistance = Math.hypot(labelDx, labelDz);
+  if (rawDistance > 0.05) {
+    return [labelDx / rawDistance, labelDz / rawDistance];
+  }
+  // Same GOLDEN_ANGLE the planner uses elsewhere to spread same-site items.
+  const bearing = nodeIndex * GOLDEN_ANGLE + layerIndex * (TAU / 5);
+  return [Math.cos(bearing), Math.sin(bearing)];
+}
+
 function makeNodes({ layers, sites, novelty, worldKey, anchors, linkNeighbors }) {
   const entries = layers.flatMap((layer, layerIndex) => {
     const capability = getCompositeCapability(layer.as);
@@ -455,33 +462,27 @@ function makeNodes({ layers, sites, novelty, worldKey, anchors, linkNeighbors })
     ];
     const labelDx = position[0] - site.position[0];
     const labelDz = position[2] - site.position[2];
-    const rawDistance = Math.hypot(labelDx, labelDz);
     // On a fused world, a landmark sits close to its site's centre and its own
-    // name used to be nudged 0.58 world units outward from there. On phone that
-    // put every same-island name in one 60px cluster (measured on the toaster:
-    // "Chrome Throne", "Forgiveness Lever" and "Was It My Fault?" all landed
-    // inside a 45-pixel square, and the declutter dropped two of them). Pushing
-    // the label past the site's own SHOULDER instead — a fraction of the site
-    // radius — gives each name its own arc around the island; a scene with one
-    // landmark ends up with the label roughly at the shoreline, and two
-    // landmarks 90° apart land ~2r apart, so the pair no longer contests one
-    // screen slot. A landmark whose position sits AT the site centre (nodes at
-    // (0,0) relative — the 0.12 lower bound in `nodePosition`) is walked around
-    // the perimeter by node index instead of collapsing to the origin. Both
-    // constants are floored at 0.85 so a tiny site still moves its label a
-    // useful distance rather than parking it on the node.
-    const outwardReach = Math.max(0.85, (site.radius ?? 1) * 0.6);
-    let bearingX;
-    let bearingZ;
-    if (rawDistance > 0.05) {
-      bearingX = labelDx / rawDistance;
-      bearingZ = labelDz / rawDistance;
-    } else {
-      // Same GOLDEN_ANGLE the planner uses elsewhere to spread same-site items.
-      const bearing = nodeIndex * GOLDEN_ANGLE + layerIndex * (TAU / 5);
-      bearingX = Math.cos(bearing);
-      bearingZ = Math.sin(bearing);
-    }
+    // name used to be nudged 0.58 world units outward from there — a fixed
+    // nudge, so several names near one another contested one screen slot and
+    // the declutter dropped one. Pushing the label past the site's own
+    // SHOULDER instead — a fraction of the site radius — gives each name its
+    // own arc around the island: a lone landmark ends up with its name roughly
+    // at the shoreline, and two landmarks 90° apart land ~2r apart. #519
+    // measured 88→100 legible names across the three shipped composites; it
+    // attributed that lift to same-island siblings stacking, which none of
+    // those fixtures actually contain — no two non-accent landmarks share a
+    // site — so the gain is real and the stated cause is not (#527).
+    // The 0.85 floor is belt-and-braces, not a live constant: `makeSites` routes
+    // every site through `siteRadiusFor`, clamped to [1.8, 4.6], so the product
+    // is always >= 1.08 today. It exists so lowering that clamp someday cannot
+    // silently park labels back on their nodes. (`clampLabelReach` can still
+    // trim a landmark below this value — the open question is #540.)
+    const outwardReach = Math.max(0.85, site.radius * 0.6);
+    const [bearingX, bearingZ] = resolveNodeLabelBearing(labelDx, labelDz, {
+      nodeIndex,
+      layerIndex
+    });
     const motionStyle = resolveNodeMotionStyle(capability, novelty, worldKey, item.id);
     anchors.set(item.id, anchor);
     return {
@@ -527,38 +528,6 @@ function orderedPathItems(layer) {
 }
 
 /**
- * The height of the world's own surface under `(x, z)`: the tallest site whose
- * disc covers the point, and sea level where no site does.
- *
- * A site is modelled as a dome — smoothstep from its rim to its crest, rather
- * than a cylinder or a cone. Both alternatives were tried. A cylinder puts a
- * vertical wall at the shoreline, which a route crossing it turns into a step;
- * a cone (or the `sqrt` hemispheroid) has its steepest slope exactly AT the
- * rim, which is where a channel spends most of its samples, so the same kink
- * arrives one sample later. Smoothstep is flat at both ends, so a route walks
- * up the beach and over the crest without a corner anywhere.
- *
- * @param {number} x
- * @param {number} z
- * @param {Array<{position: number[], radius: number, height: number}>} sites
- * @returns {number}
- */
-export function fusedSurfaceHeightAt(x, z, sites) {
-  let height = FUSED_SEA_LEVEL_Y;
-  for (const site of sites ?? []) {
-    const reach = finite(site?.radius, 0);
-    if (!(reach > 0)) continue;
-    const distance = Math.hypot(x - site.position[0], z - site.position[2]);
-    if (distance >= reach) continue;
-    const t = 1 - distance / reach;
-    const dome = t * t * (3 - 2 * t);
-    const top = finite(site.position?.[1], 0) + finite(site.height, 0);
-    height = Math.max(height, FUSED_SEA_LEVEL_Y + (top - FUSED_SEA_LEVEL_Y) * dome);
-  }
-  return height;
-}
-
-/**
  * Where a station stands on its site.
  *
  * Its height comes from `fusedSurfaceHeightAt` rather than from the site's
@@ -578,55 +547,8 @@ function routePoint(site, sites, { worldKey, id, index, isCrossing }) {
   return [x, y + CHANNEL_RIDE, z];
 }
 
-/**
- * Re-solve a route's control points against the world it crosses.
- *
- * A path's stations sit on top of the sites they bind to, and the spline used
- * to interpolate straight from one island's crest to the next — so between two
- * islands the channel held island-top height over open water, and over any
- * third island in the way it held a height that had nothing to do with that
- * island. Rendered, that is a pipe laid across the map rather than a route
- * through the world: measured on the festival composite, the crowd journey ran
- * 1.1–1.4 units clear of the sea for two thirds of its length.
- *
- * The stations themselves do not move — they are what the labels, glyphs,
- * markers and hover anchors are placed from — so this only inserts samples
- * BETWEEN them, plus re-solves the two tangent tails (which are spline
- * scaffolding and not anybody's anchor).
- *
- * A bridge is deliberately exempt: a crossing's whole thesis is the gap it
- * spans, and a bridge that follows the seabed is not a bridge.
- *
- * @param {number[][]} controls — `[tail, ...stations, tail]`
- * @param {Array<{position: number[], radius: number, height: number}>} sites
- * @returns {number[][]}
- */
-function routeAlongSurface(controls, sites) {
-  if (controls.length < 2 || !sites?.length) return controls;
-  const onSurface = (point) => [
-    point[0],
-    fusedSurfaceHeightAt(point[0], point[2], sites) + CHANNEL_RIDE,
-    point[2]
-  ];
-  // First and last are the tangent tails; every station keeps its own height.
-  const anchored = controls.map((point, index) =>
-    index === 0 || index === controls.length - 1 ? onSurface(point) : point
-  );
-  const routed = [];
-  for (let index = 0; index < anchored.length - 1; index += 1) {
-    const from = anchored[index];
-    const to = anchored[index + 1];
-    routed.push(from);
-    const span = Math.hypot(to[0] - from[0], to[2] - from[2]);
-    const steps = clamp(Math.round(span / CHANNEL_SAMPLE_SPACING), 0, CHANNEL_MAX_SAMPLES);
-    for (let step = 1; step < steps; step += 1) {
-      const t = step / steps;
-      routed.push(onSurface([from[0] + (to[0] - from[0]) * t, 0, from[2] + (to[2] - from[2]) * t]));
-    }
-  }
-  routed.push(anchored.at(-1));
-  return routed;
-}
+// The surface itself — sea level, the dome per site, and the channel that
+// rides along them — lives in `fusedWorldSurface.js` (#500).
 
 function pathEnd(point, neighbor, distance) {
   const dx = point[0] - neighbor[0];

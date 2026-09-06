@@ -7,6 +7,7 @@ import {
   fusedSiteLabelImportance,
   planFusedCompositeWorld,
   resolveCompositeAtmosphere,
+  resolveNodeLabelBearing,
   resolveCompositeMotionTransform,
   resolveSiteLabelOffset
 } from '../src/components/metaphorScenes/fusedCompositePlanner.js';
@@ -733,6 +734,44 @@ describe('planFusedCompositeWorld', () => {
       }
     }
     expect(compared).toBeGreaterThan(0);
+  });
+
+  // The degenerate bearing — a landmark standing exactly ON its site's centre —
+  // is reachable only through an authored `item.position` that lands there:
+  // `nodePosition`'s own spread starts at 0.12 of a radius that never drops
+  // below 1.8, so nothing the planner places can collapse it (#527). That also
+  // means the golden-angle walk below is entered by NO shipped fixture, so
+  // until this test it had never been driven — the sweep above asserts only
+  // that its output is finite. Exported for exactly this, on the precedent of
+  // `resolveSiteLabelOffset`.
+  it('walks the name of a centre-parked landmark around the perimeter by node index', () => {
+    const bearings = [0, 1, 2, 3, 4].map((nodeIndex) =>
+      resolveNodeLabelBearing(0, 0, { nodeIndex, layerIndex: 1 })
+    );
+    for (const bearing of bearings) {
+      expect(Math.hypot(bearing[0], bearing[1])).toBeCloseTo(1, 9);
+    }
+    // Every pair separates, so a stack of centre-parked landmarks spreads
+    // around the island instead of collecting at one edge.
+    for (let a = 0; a < bearings.length; a += 1) {
+      for (let b = a + 1; b < bearings.length; b += 1) {
+        const separation = Math.hypot(
+          bearings[a][0] - bearings[b][0],
+          bearings[a][1] - bearings[b][1]
+        );
+        expect(separation, `node ${a} and ${b} share a bearing`).toBeGreaterThan(0.1);
+      }
+    }
+    // A different layer starts on a different arc, so two consecutive layers
+    // both parking at index 0 do not aim their names the same way either.
+    const nextLayer = resolveNodeLabelBearing(0, 0, { nodeIndex: 0, layerIndex: 2 });
+    expect(
+      Math.hypot(nextLayer[0] - bearings[0][0], nextLayer[1] - bearings[0][1])
+    ).toBeGreaterThan(0.1);
+    // Off-centre nodes still take their own bearing, unrotated and unit-length.
+    const own = resolveNodeLabelBearing(3, -4, { nodeIndex: 2, layerIndex: 0 });
+    expect(own[0]).toBeCloseTo(0.6, 9);
+    expect(own[1]).toBeCloseTo(-0.8, 9);
   });
 
   // A path station's name has to read as ITS name too, and the guard above

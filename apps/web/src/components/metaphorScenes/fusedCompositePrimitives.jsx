@@ -14,10 +14,10 @@ import { Glyph } from '../metaphorGlyphs/index.jsx';
 import { GlowSprite, ItemLabel } from './MetaphorSceneChrome.jsx';
 import { useMetaphorClock } from './metaphorClock.js';
 import {
-  FUSED_SEA_LEVEL_Y,
   fusedSiteLabelImportance,
   resolveCompositeMotionTransform
 } from './fusedCompositePlanner.js';
+import { FUSED_SEA_LEVEL_Y } from './fusedWorldSurface.js';
 import { FRAME_IGNORE_DATA } from './sceneFraming.js';
 import { idHash2, shiftColor } from './sceneUtils.js';
 import { GROUP_TINT_EARTH, tintByGroup } from './groupIdentity.js';
