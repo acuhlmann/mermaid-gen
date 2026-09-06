@@ -31,6 +31,17 @@ const NEIGHBOUR_SHARE = 0.45;
  * wrong landmark now read as their own. A lone landmark has no neighbour to be
  * confused with and keeps its shoreline placement.
  *
+ * The cap has no floor, and that is a decision, not an oversight (#540). It
+ * can therefore trim a name below the 0.85 floor `makeNodes` documents, and
+ * on the shipped toaster path it does — to 0.080 for the 0.18-apart
+ * `bread-enters`/`coil-hesitates` pair. The alternative was weighed and
+ * rejected: holding the floor on a pair that close puts both names back into
+ * one screen slot, which is the failure this cap exists to prevent, and the
+ * declutter then drops one of the names entirely. A name parked near its own
+ * body of an ambiguous pair is the lesser evil — it still floats above the
+ * marker in Y. `test/fusedLabelReach.test.js` pins the collapse, so any future
+ * floor must be added on purpose and reconciled with that invariant.
+ *
  * A node's `anchor` shares its x/z with its `position`, so the distance from a
  * name to its own landmark is exactly the length of `labelOffset` — which is
  * why the cap can be applied to the offset without re-deriving anything.

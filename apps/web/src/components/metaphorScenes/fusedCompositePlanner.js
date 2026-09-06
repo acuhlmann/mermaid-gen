@@ -476,8 +476,11 @@ function makeNodes({ layers, sites, novelty, worldKey, anchors, linkNeighbors })
     // The 0.85 floor is belt-and-braces, not a live constant: `makeSites` routes
     // every site through `siteRadiusFor`, clamped to [1.8, 4.6], so the product
     // is always >= 1.08 today. It exists so lowering that clamp someday cannot
-    // silently park labels back on their nodes. (`clampLabelReach` can still
-    // trim a landmark below this value — the open question is #540.)
+    // silently park labels back on their nodes. When `clampLabelReach` does
+    // park one, it wins: the cap is deliberately floor-less, because the only
+    // alternative on a genuinely ambiguous pair (two bodies 0.18 apart) is to
+    // keep both names in one screen slot and let the declutter drop one —
+    // #519's measured failure. `fusedLabelReach.test.js` pins the collapse.
     const outwardReach = Math.max(0.85, site.radius * 0.6);
     const [bearingX, bearingZ] = resolveNodeLabelBearing(labelDx, labelDz, {
       nodeIndex,
