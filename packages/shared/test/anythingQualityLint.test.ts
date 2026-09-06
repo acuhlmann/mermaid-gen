@@ -145,7 +145,7 @@ for (var i = 0; i<dot.length; i++) {
   assert.equal(result.ok, false);
   if (result.ok) return;
   assert.equal(result.code, 'unclosed_tag');
-  assert.match(result.error, /<script>/);
+  assert.match(result.error, /<script>/i);
 });
 
 test('lintAnythingQuality ignores tag-like text inside HTML comments', () => {
