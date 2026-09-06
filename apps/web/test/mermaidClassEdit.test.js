@@ -223,6 +223,32 @@ describe('class ids as the canvas really receives them', () => {
     }
   });
 
+  it('edits a declaration carrying a `:::` style suffix, which renders as one node', async () => {
+    // `class Duck:::fancy` is the documented classDiagram styling form: mermaid
+    // parses the `:::` as a STYLE_SEPARATOR, renders ONE box named `Duck` and
+    // hangs `fancy` off its CSS class list. The id the click produces is
+    // therefore `Duck` — but `CLASS_BARE_DECL_RE`'s `(\S+)` swallowed the
+    // separator too, so `collectClassIds` learned the phantom `Duck:::fancy`
+    // and every mutator answered `missing` on a node the user could see. Same
+    // failure as #575, one syntax over.
+    const source = 'classDiagram\n  class Duck:::fancy\n';
+    const nodes = await renderedNodes(source, '15');
+    expect(nodes.length).toBe(1);
+    expect(nodes[0].id).toMatch(/classId-Duck-\d+$/);
+    const id = graphEditIdFromDescriptor({
+      kind: 'node',
+      id: nodes[0].id,
+      dataId: nodes[0].dataId,
+      partName: 'Duck'
+    });
+    expect(id).toBe('Duck');
+    const renamed = renameClassNode(source, id, 'Mallard');
+    expect(renamed.ok, `rename from rendered id ${nodes[0].id} (${id})`).toBe(true);
+    // The style the author attached must survive the rename, or the box loses
+    // its appearance as a side effect of being renamed.
+    expect(renamed.source).toContain('class Mallard:::fancy');
+  });
+
   it('edits a body-less declaration, which mermaid renders as a real node', async () => {
     // The case #575 was filed for: `class Duck` with no braces and no relation
     // is valid Mermaid and renders a clickable box, but `collectClassIds` only
@@ -284,5 +310,47 @@ describe('body-less class declarations (#575)', () => {
     const renamed = renameClassNode(styled, 'Animal', 'Pet');
     expect(renamed.ok).toBe(true);
     expect(renamed.source).toMatch(/class Pet/);
+  });
+});
+
+describe('the `:::` style separator on a class declaration', () => {
+  const BARE = 'classDiagram\n  class Duck:::fancy\n';
+  const BRACED = 'classDiagram\n  class Duck:::fancy {\n    +swim()\n  }\n';
+
+  it('renames a bare declaration and keeps the style attached', () => {
+    expect(renameClassNode(BARE, 'Duck', 'Mallard')).toMatchObject({
+      ok: true,
+      source: 'classDiagram\n  class Mallard:::fancy\n'
+    });
+  });
+
+  it('renames a braced declaration and keeps the style attached', () => {
+    const renamed = renameClassNode(BRACED, 'Duck', 'Mallard');
+    expect(renamed.ok).toBe(true);
+    expect(renamed.source).toContain('class Mallard:::fancy {');
+    expect(renamed.source).toContain('+swim()');
+  });
+
+  it('deletes a styled declaration', () => {
+    const result = deleteClassNode(BARE, 'Duck');
+    expect(result.ok).toBe(true);
+    expect(result.source).not.toMatch(/Duck/);
+    expect(result.source).not.toMatch(/fancy/);
+  });
+
+  it('accepts a styled declaration as an anchor for Connect and Add', () => {
+    const connected = connectClassNodes(`${BARE}  class Goose\n`, 'Duck', 'Goose');
+    expect(connected.ok).toBe(true);
+    expect(connected.source).toMatch(/Duck --> Goose/);
+    const added = addLinkedClassNode(BARE, 'Duck', 'Eggs');
+    expect(added.ok).toBe(true);
+    expect(added.source).toMatch(new RegExp(`Duck --> ${added.newId}`));
+  });
+
+  it('does not learn the style name as a class of its own', () => {
+    // `fancy` is a classDef name, not a box. Accepting it would offer Rename
+    // and Delete on something no rendered node represents.
+    expect(renameClassNode(BARE, 'fancy', 'Plain').ok).toBe(false);
+    expect(deleteClassNode(BARE, 'fancy').ok).toBe(false);
   });
 });
