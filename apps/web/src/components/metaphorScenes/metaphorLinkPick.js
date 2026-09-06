@@ -35,6 +35,7 @@
  */
 import { createContext, useContext, useSyncExternalStore } from 'react';
 import * as THREE from 'three';
+import { compositeGraphAllowsLink } from '../../utils/metaphorCompositeEdit.js';
 
 /**
  * Tap tolerance in CSS pixels. A link core is 2.2px wide (`LINK_CORE_PX`) and
@@ -48,25 +49,38 @@ export const LINK_PICK_TOLERANCE_PX = 20;
 
 /**
  * The kinds whose adapters actually implement `renameEdge`/`deleteEdge` against
- * a free `links[]` — city plus the four `canLink` flat kinds. Tree, garden, and
- * the flat kinds registered with `canLink: false` return `not-graph` from those
- * mutators on purpose, because their relations are implied by structure rather
- * than authored: `docs/canvas-graph-edit.md` is explicit that those stubs must
- * not be "fixed". Offering a rename on one would be a menu entry whose only
- * outcome is an error toast.
+ * a free `links[]` — city plus the four `canLink` flat kinds. The flat kinds
+ * registered with `canLink: false`, along with tree and garden, return
+ * `not-graph` from those mutators on purpose, because their relations are
+ * implied by structure rather than authored: `docs/canvas-graph-edit.md` is
+ * explicit that those stubs must not be "fixed". Offering a rename on one would
+ * be a menu entry whose only outcome is an error toast.
  *
- * Composite is the awkward one and is deliberately excluded: its adapter ships
- * LIVE mutators (`renameCompositeEdge` performs a real `renameLinkedEdge` on a
- * layer's items) and `CompositeScene` renders pickable `MetaphorLinks`, but the
- * renderer's store-gate closes on `metaphor: 'composite'`, so the mutators stay
- * unreachable (#495's shape, one kind over). Whether that is exclusion-by-
- * design or an unfinished enable — and what a composite link rename even means
- * across a layer delegate — is #557's open judgement, not this list's; the
- * pending ledger in `metaphorLinkPick.test.js` carries it until then.
+ * Composite is absent from this list rather than in it, and not because its
+ * mutators are stubs — `renameCompositeEdge` performs a real rename on the
+ * composite's top-level `links[]`, and `CompositeScene`'s Link verb already
+ * writes there. It is absent because permission is a property of the
+ * _document_, not of the kind: `compositeGraphAllowsLink` needs two items
+ * across the layers before a wire can exist at all. No static list can state
+ * that, which is why `graphEditAdapterFor` already recomputes the composite
+ * adapter's `canLink` per source and why `metaphorKindHasEditableLinks` takes
+ * the source for that one branch.
+ *
+ * Composite is also the one kind with two route renderers, and only one of them
+ * publishes a hit target. `LegacyCompositeScene` draws `MetaphorLinks`, so an
+ * `adjacent`/`overlay` document picks its wires like any other kind. The default
+ * `fused` plan draws `FusedLinks` instead, which publishes nothing — and it must
+ * not simply start to, because `makeLinks` seeds that renderer with
+ * `inferredRelationships()` as well as the authored `links[]`, and an inferred
+ * route has no source counterpart for `renameCompositeEdge` to rename. Anything
+ * published there has to be filtered to `!link.inferred` first, or the gate
+ * would offer exactly the error toast this list exists to prevent. That half is
+ * `link-pick-fused` in `docs/automations/ledger/metaphor3d.md`.
  *
  * `metaphorLinkPick.test.js` holds this list against the live adapters, so a
  * kind that gains link editing fails the test until it is added here (or
- * explicitly pended with a reason).
+ * explicitly pended with a written reason, which is how composite was carried
+ * before the source-aware branch above).
  */
 export const LINK_EDITABLE_METAPHORS = Object.freeze([
   'city',
@@ -76,9 +90,20 @@ export const LINK_EDITABLE_METAPHORS = Object.freeze([
   'terrain'
 ]);
 
-/** @param {string | null | undefined} metaphor */
-export function metaphorKindHasEditableLinks(metaphor) {
-  return typeof metaphor === 'string' && LINK_EDITABLE_METAPHORS.includes(metaphor);
+/**
+ * Whether a tapped link in this kind's scene can actually be edited, which is
+ * the only thing that makes the link store worth mounting.
+ *
+ * @param {string | null | undefined} metaphor the scene's own kind, not a
+ *   composite's dominant layer — `primaryLayerKind` would route a fused world's
+ *   wires through the layer's grammar rather than the composite's
+ * @param {string | null | undefined} [source] the document's current text,
+ *   consulted by the composite branch alone
+ */
+export function metaphorKindHasEditableLinks(metaphor, source) {
+  if (typeof metaphor !== 'string') return false;
+  if (metaphor === 'composite') return compositeGraphAllowsLink(source ?? '');
+  return LINK_EDITABLE_METAPHORS.includes(metaphor);
 }
 
 /**

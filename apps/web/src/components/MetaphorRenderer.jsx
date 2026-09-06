@@ -1336,7 +1336,13 @@ function MetaphorRendererImpl(
   // last-good document held in a ref: nothing is editable mid-stream anyway, so
   // the settled document is both the correct source and the one that keeps this
   // out of the render-time ref read above.
-  const linksAreEditable = metaphorKindHasEditableLinks(finalResolved.dsl?.metaphor);
+  //
+  // It does read `diagramSource`, and only the composite branch uses it: there,
+  // whether a wire can exist at all is a property of the document (two items
+  // across the layers), not of the kind, so no static list can answer it. That
+  // is the same computation `graphEditAdapterFor` applies to the adapter's own
+  // `canLink`, so the gate and the mutator cannot disagree.
+  const linksAreEditable = metaphorKindHasEditableLinks(finalResolved.dsl?.metaphor, diagramSource);
 
   useEffect(() => {
     if (!streamingPreview) {

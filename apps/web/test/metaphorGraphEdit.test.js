@@ -67,6 +67,38 @@ function docWithLink(metaphor) {
   });
 }
 
+/**
+ * A fused world with `count` items in one layer and, when it has two, one
+ * labelled link between them.
+ *
+ * Composite is the only kind this file needs a separate shape for, and the
+ * one-item form is the point: its link permission is a property of the document
+ * rather than the kind, so `compositeGraphAllowsLink` refuses a wire until two
+ * items exist across the layers.
+ */
+function compositeWithItems(count) {
+  const items = [
+    { id: 'a', label: 'A' },
+    { id: 'b', label: 'B' }
+  ].slice(0, count);
+  return JSON.stringify(
+    {
+      metaphor: 'composite',
+      layout: 'fused',
+      layers: [{ id: 'l1', as: 'city', items }],
+      items: [],
+      links: count >= 2 ? [{ from: 'a', to: 'b', label: 'sends' }] : []
+    },
+    null,
+    2
+  );
+}
+
+/** A document of `metaphor` carrying one link whose ends are `a` and `b`. */
+function linkFixtureFor(metaphor) {
+  return metaphor === 'composite' ? compositeWithItems(2) : docWithLink(metaphor);
+}
+
 describe('distanceToSegmentPx', () => {
   it('measures perpendicular distance inside the segment', () => {
     expect(distanceToSegmentPx(50, 10, [0, 0], [100, 0])).toBeCloseTo(10);
@@ -335,25 +367,35 @@ describe('metaphorLinkDescriptor', () => {
 });
 
 describe('the descriptor reaches the mutators it was dead code for (#495)', () => {
-  it.each(LINK_EDITABLE_METAPHORS)('renames and deletes a %s link', (metaphor) => {
-    const source = docWithLink(metaphor);
-    const adapter = graphEditAdapterFor('metaphor3d', source);
-    expect(adapter).toBeTruthy();
-    const descriptor = metaphorLinkDescriptor({ from: 'a', to: 'b', label: 'sends' }, metaphor);
+  // Composite joins the list because #495's whole complaint was a mutator that
+  // was registered, tested and unreachable, and `renameCompositeEdge`/
+  // `deleteCompositeEdge` were exactly that until the gate learned to read the
+  // document (#557). `metaphorLinkPick.test.js` owns the gate sweep; what
+  // belongs here is that the descriptor actually reaches each one.
+  it.each([...LINK_EDITABLE_METAPHORS, 'composite'])(
+    'renames and deletes a %s link',
+    (metaphor) => {
+      const source = linkFixtureFor(metaphor);
+      const adapter = graphEditAdapterFor('metaphor3d', source);
+      expect(adapter).toBeTruthy();
+      const descriptor = metaphorLinkDescriptor({ from: 'a', to: 'b', label: 'sends' }, metaphor);
 
-    const renamed = adapter.renameEdge(source, descriptor.edgeFrom, descriptor.edgeTo, 'carries');
-    expect(renamed.ok).toBe(true);
-    expect(JSON.parse(renamed.source).links[0].label).toBe('carries');
+      const renamed = adapter.renameEdge(source, descriptor.edgeFrom, descriptor.edgeTo, 'carries');
+      expect(renamed.ok).toBe(true);
+      expect(JSON.parse(renamed.source).links[0].label).toBe('carries');
 
-    const deleted = adapter.deleteEdge(source, descriptor.edgeFrom, descriptor.edgeTo);
-    expect(deleted.ok).toBe(true);
-    expect(JSON.parse(deleted.source).links ?? []).toHaveLength(0);
-  });
+      const deleted = adapter.deleteEdge(source, descriptor.edgeFrom, descriptor.edgeTo);
+      expect(deleted.ok).toBe(true);
+      expect(JSON.parse(deleted.source).links ?? []).toHaveLength(0);
+    }
+  );
 
   it('offers link editing exactly where the adapter can honour it', () => {
     // The list is a claim about the adapters, so hold it against them: a kind
     // that gains link editing has to be added here, and one that never had it
     // must not be offered a rename whose only outcome is an error toast.
+    // Composite is absent from this sweep only because its fixture lives in
+    // layers; `metaphorLinkPick.test.js` covers it both ways.
     for (const metaphor of [
       ...Object.keys(METAPHOR_FLAT_GRAPH_EDIT_KINDS),
       'city',
@@ -363,7 +405,7 @@ describe('the descriptor reaches the mutators it was dead code for (#495)', () =
       const source = docWithLink(metaphor);
       const adapter = graphEditAdapterFor('metaphor3d', source);
       const canRename = adapter?.renameEdge(source, 'a', 'b', 'carries').ok === true;
-      expect(canRename).toBe(metaphorKindHasEditableLinks(metaphor));
+      expect(canRename).toBe(metaphorKindHasEditableLinks(metaphor, source));
     }
   });
 
