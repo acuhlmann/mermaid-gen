@@ -156,7 +156,11 @@ ones that will bite an edit.
   landmark's name at the shoreline and puts two landmarks 90° apart on the same island roughly
   `2r` apart on screen. (The 0.85 is belt-and-braces, not a live floor for today's documents:
   `siteRadiusFor` clamps every radius to [1.8, 4.6], so the product is always ≥ 1.08. It exists
-  so lowering that clamp cannot silently park labels back on their nodes.) A landmark whose
+  so lowering that clamp cannot silently park labels back on their nodes. Nor does it bind
+  `clampLabelReach`: on a pair too close to own two names, the neighbour-share cap trims the
+  reach below the floor — #540 held that collapse deliberate, because preserving the floor at
+  `gap < 0.85/0.45` would put both names back in one screen slot for the declutter to drop.
+  Pinned in `apps/web/test/fusedLabelReach.test.js`.) A landmark whose
   position sits exactly at the site centre used to collapse the bearing to `(0,0)` — and the
   only way to reach that case is an **authored `item.position` that lands on the site**, not
   `nodePosition`'s own spread: its radial minimum is 0.12 of a radius that never drops below 1.8,
