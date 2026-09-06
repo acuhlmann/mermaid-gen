@@ -76,9 +76,20 @@ jobs:
         run: |
           set -euo pipefail
           IMAGE="${{ env.REGION }}-docker.pkg.dev/${PROJECT_ID}/${{ env.AR_REPO }}/${{ env.IMAGE_NAME }}"
-          docker build --build-arg UI_VARIANT=main-only -t "${IMAGE}:${DEPLOY_SHA}" -t "${IMAGE}:latest" .
-          docker push "${IMAGE}:${DEPLOY_SHA}"
-          docker push "${IMAGE}:latest"
+          for attempt in 1 2 3; do
+            echo "Docker build attempt ${attempt}/3…"
+            if docker build --build-arg UI_VARIANT=main-only -t "${IMAGE}:${DEPLOY_SHA}" -t "${IMAGE}:latest" . \
+              && docker push "${IMAGE}:${DEPLOY_SHA}" \
+              && docker push "${IMAGE}:latest"; then
+              exit 0
+            fi
+            if (( attempt < 3 )); then
+              echo "Docker build/push attempt ${attempt} failed (often Docker Hub 502); retrying in 30s…"
+              sleep 30
+            fi
+          done
+          echo "Docker build/push failed after 3 attempts." >&2
+          exit 1
 
       - name: Deploy Cloud Run
         env:
