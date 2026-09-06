@@ -362,16 +362,18 @@ https://api.deepseek.com/` — 401 is reachable, 000 is blocked); never route ar
   **`chromium.launch()` with no `executablePath` fails here**: the preinstalled browsers are
   revision 1194, a fresh `playwright-core` looks for its own, and the error names a
   `chromium_headless_shell-<n>` path nobody chose. Resolve the binary off `PLAYWRIGHT_BROWSERS_PATH`.
-- **`channel: 'talk'` is what makes speech physical, and the floor composer does not set it.**
+- **`channel: 'talk'` is what makes speech physical — every spoken path must set it.**
   `isSpokenLine` is exactly `msg.channel === 'talk'`, `latestTalkLine` returns nothing else, and
-  `pushOfficeImReply` drops the field entirely when the channel is `'im'` (its default). The dwell
-  remark goes in as `'talk'` and lifts a bubble; `OfficeLayer`'s `handleTalkReply` — the floor's
-  own composer — calls `pushOfficeImReply({ colleagueId, body })` with no channel, so both halves
-  of a conversation you had **standing in front of somebody** are filed as ordinary Slop Chat IMs.
-  Measured on the visit trace: DeepSeek returned a 58-token in-character answer from Gilfoyle and
-  no surface in the room drew a thing. Two rules this reopens rather than settles — `FloorTalk`'s
-  header says physical speech stays out of Slop Chat, and § 11 says a line you provoked must be
-  responsive — so treat the missing channel tag as the suspect and check both before changing it.
+  both pushers (`pushOfficeImPing`, `pushOfficeImReply`) drop the field entirely when the channel
+  is `'im'` (their default). #552: `handleTalkReply` — the floor's own composer — filed both
+  halves of a conversation you had standing in front of somebody as ordinary Slop Chat IMs, so
+  the model answered and no surface drew a thing. Now fixed on both sides:
+  `pushOfficeImReply({ colleagueId, body, channel: 'talk' })` for the user's spoken line, and
+  `desk.imSomeone(colleagueId, ctx, 'talk')` — a medium passthrough onto the same
+  `deliverImReply` ladder Slop Chat uses — for the colleague's answer. `useDeskActions.test.jsx`
+  pins the pair. Two invariants to keep when adding any new talk path — `FloorTalk`'s header says
+  physical speech stays out of Slop Chat, and § 11 says a line you provoked must be responsive —
+  so an untagged spoken line is the suspect when a bubble never lifts.
 - **After presence / TTS / desk-frame edits**, prefer `apps/web/test/officePresence.test.js`,
   `deskOsPresenceStrip.test.jsx`, `deskOsFrameStyles.test.js`, `apps/server/test/officeTts.test.js`,
   `officeRoute.test.js` (or `npm run test:affected`). **After isometric-floor edits**, `npm run

@@ -370,15 +370,22 @@ export function useDeskActions(params) {
    * budget allows, otherwise from the canned IM bank. Pass `userMessage` (and
    * optional `threadTranscript`) when replying in Slop Chat™ so the colleague
    * responds to what the user actually said.
+   *
+   * Pass `channel: 'talk'` when the exchange is *spoken* — walking up to
+   * somebody on the floor, not typing in the messenger. The answer is their
+   * reply-ladder's own medium tag: `isSpokenLine` only voices (and `FloorTalk`
+   * only draws) lines it sees, so an untagged floor answer lands in `imHistory`
+   * where no talk surface will ever read it. (#552)
    */
   const imSomeone = useCallback(
-    (colleagueId, replyContext) =>
+    (colleagueId, replyContext, channel) =>
       runVerb(() =>
         deliverImReply({
           target: colleagueId ?? pickRandomFrom(DESK_IM_CAST, random),
           replyContext,
           counterRef: deskLlmCountRef,
-          cap: DESK_LLM_CAP
+          cap: DESK_LLM_CAP,
+          ...(channel ? { channel } : {})
         })
       ),
     [deliverImReply, random, runVerb]
