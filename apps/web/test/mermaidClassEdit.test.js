@@ -1,4 +1,10 @@
+// @vitest-environment jsdom
+// The last describe block renders a real classDiagram with the repo's own
+// mermaid, which needs a DOM. Everything above this file's own pure-function
+// tests is unaffected by the environment.
 import { describe, expect, it } from 'vitest';
+import mermaid from 'mermaid';
+import { graphEditIdFromDescriptor } from '../src/utils/canvasGraphEdit.js';
 import {
   addLinkedClassNode,
   connectClassNodes,
@@ -118,5 +124,102 @@ describe('class diagram graph edit', () => {
     expect(renamed.source).toMatch(/Service --> Repo : uses/);
     expect(renamed.source).toMatch(/class Repo \{/);
     expect(renamed.source).not.toMatch(/\bRepository\b/);
+  });
+});
+
+/**
+ * The ids the canvas actually hands the mutators, taken from a rendered
+ * classDiagram rather than written by hand.
+ *
+ * Every test above calls the mutators with a clean id (`'Duck'`), which is what
+ * made the real defect invisible: mermaid's class renderer stamps each box
+ * `classId-<name>-<index>` and emits **no `data-id`**, so the selection path
+ * produced `classId-Duck`, `CLASS_ID_RE` rejected the hyphen, and every class
+ * Add / Rename / Delete / Connect answered `bad-id` — an error toast on any
+ * click, on any class diagram. The whole family has been broken since 11.16
+ * moved classDiagram to the v3 unified renderer, and no test in the repo had
+ * ever looked at a rendered class id (`grep classId- apps/` returned nothing).
+ *
+ * So this asserts the pipeline, not the helper: render, read the DOM id off the
+ * live SVG, feed it through `graphEditIdFromDescriptor` exactly as a tap does,
+ * and require the mutator to succeed. A future mermaid version that changes the
+ * stamping fails here instead of failing in front of a user.
+ */
+describe('class ids as the canvas really receives them', () => {
+  mermaid.initialize({ startOnLoad: false, securityLevel: 'loose', htmlLabels: false });
+
+  // jsdom ships no SVG layout engine and mermaid's class renderer measures
+  // text; a text-length stand-in is enough to reach render() intact, and ids
+  // are the only thing read back.
+  const elProto = window.SVGElement ? window.SVGElement.prototype : window.Element.prototype;
+  if (!elProto.getBBox) {
+    elProto.getBBox = function getBBox() {
+      const text = this.textContent ?? '';
+      return { x: 0, y: 0, width: Math.max(8, text.length * 8), height: 14 };
+    };
+  }
+  if (!elProto.getComputedTextLength) {
+    elProto.getComputedTextLength = function () {
+      return (this.textContent ?? '').length * 8;
+    };
+  }
+
+  /** Every rendered class node, as `{ id, dataId }`, the way the click sees it. */
+  async function renderedNodes(source, tag) {
+    const { svg } = await mermaid.render(`diagram-${tag}`, source);
+    const host = document.createElement('div');
+    host.innerHTML = svg;
+    return [...host.querySelectorAll('g.node')].map((node) => ({
+      id: node.id,
+      dataId: node.getAttribute('data-id')
+    }));
+  }
+
+  it('renders a node per class, and stamps it with no data-id', async () => {
+    const nodes = await renderedNodes('classDiagram\n  Animal <|-- Duck\n', '11');
+    expect(nodes.length).toBe(2);
+    for (const node of nodes) {
+      expect(node.id).toMatch(/^diagram-11-classId-(Animal|Duck)-\d+$/);
+      // The absence is the point: the cluster/namespace path does emit one, and
+      // a future mermaid that starts stamping `data-id` here changes which
+      // branch resolves the id.
+      expect(node.dataId).toBe(null);
+    }
+  });
+
+  it('resolves a clicked class node to the clean id the mutators want', async () => {
+    const nodes = await renderedNodes('classDiagram\n  Animal <|-- Duck\n', '12');
+    const duck = nodes.find((node) => /Duck/.test(node.id));
+    expect(duck).toBeTruthy();
+    const resolved = graphEditIdFromDescriptor({
+      kind: 'node',
+      id: duck.id,
+      dataId: duck.dataId,
+      partName: 'Duck'
+    });
+    expect(resolved).toBe('Duck');
+  });
+
+  it('renames and deletes through the id a real tap produces', async () => {
+    const source = `classDiagram
+  Animal <|-- Duck
+  Animal : +int age
+  Duck : +swim()
+`;
+    const nodes = await renderedNodes(source, '13');
+    for (const node of nodes) {
+      const id = graphEditIdFromDescriptor({
+        kind: 'node',
+        id: node.id,
+        dataId: node.dataId,
+        partName: null
+      });
+      expect(['Animal', 'Duck']).toContain(id);
+      const renamed = renameClassNode(source, id, 'Renamed');
+      expect(renamed.ok, `rename from rendered id ${node.id} (${id})`).toBe(true);
+      expect(renamed.source).toMatch(/Renamed/);
+      const deleted = deleteClassNode(source, id);
+      expect(deleted.ok, `delete from rendered id ${node.id} (${id})`).toBe(true);
+    }
   });
 });
