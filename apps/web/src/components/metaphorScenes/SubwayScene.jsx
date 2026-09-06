@@ -57,6 +57,21 @@ export const LABEL_LIFT_STATION = 0.95;
 export const LABEL_LIFT_GLYPH = 1.95;
 export const LABEL_LIFT_INTERCHANGE = 1.55;
 
+/**
+ * Height a station's name plate is written at, above the platform.
+ *
+ * Pulled out of the item map because the interchange case is a placement
+ * constraint, not a rendering choice — see `LANTERN_TOP`. Keeping it here also
+ * keeps the map callback a renderer rather than a three-way branch.
+ */
+function labelLiftFor({ hasGlyph, isInterchange }) {
+  if (hasGlyph) return LABEL_LIFT_GLYPH;
+  // A glyph already sits above the lantern, so only a plain interchange plate
+  // has to clear it.
+  if (isInterchange) return LABEL_LIFT_INTERCHANGE;
+  return LABEL_LIFT_STATION;
+}
+
 function lineColor(theme, index) {
   return resolveClusterColor(theme, index);
 }
@@ -257,11 +272,7 @@ export function SubwayScene({ dsl, theme }) {
         // A glyph already sits above the lantern, so only a plain interchange
         // plate needs lifting clear of it — see LANTERN_TOP for why the gem and
         // the name cannot share a height.
-        const labelLift = item.glyph
-          ? LABEL_LIFT_GLYPH
-          : isInterchange
-            ? LABEL_LIFT_INTERCHANGE
-            : LABEL_LIFT_STATION;
+        const labelLift = labelLiftFor({ hasGlyph: !!item.glyph, isInterchange });
         return (
           <HoverableItem key={item.id} item={item} metaphor="subway">
             <group position={[position[0], 0, position[2]]}>
