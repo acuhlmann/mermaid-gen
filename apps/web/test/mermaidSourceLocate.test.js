@@ -151,6 +151,27 @@ describe('peekDiagramDirective', () => {
     expect(peekDiagramDirective('pie showData\n  "A" : 1')).toBe('pie');
     expect(peekDiagramDirective('timeline\n  title T\n  2024 : Launch')).toBe('timeline');
   });
+
+  it('detects every kind the table names, including the two added last', () => {
+    // class and er had no case here until #547 moved the chain into a table —
+    // which is the risk of a table over an if-chain: a row can be dropped in
+    // transcription and nothing notices. These three lines are the row-set's
+    // floor, so the next diagram kind that ships graph-edit support adds one
+    // case here and one row there, and a lost row fails.
+    expect(peekDiagramDirective('classDiagram\n  A <|-- B')).toBe('class');
+    expect(peekDiagramDirective('erDiagram\n  A ||--o{ B : has')).toBe('er');
+    expect(peekDiagramDirective('stateDiagram-v2\n  [*] --> X')).toBe('state');
+  });
+
+  it('reads case-insensitively and takes the first content line, not the last', () => {
+    expect(peekDiagramDirective('SEQUENCEDIAGRAM\n  A->>B')).toBe('sequence');
+    expect(peekDiagramDirective('%% a comment\nflowchart LR\n  A --> B')).toBe('flowchart');
+    // The first non-comment line decides even when a later line would match a
+    // different row, so re-ordering `DIAGRAM_DIRECTIVES` cannot quietly change
+    // which kind a real document reports.
+    expect(peekDiagramDirective('graph TD\nsequenceDiagram\n  A->>B')).toBe('flowchart');
+    expect(peekDiagramDirective('gantt\ntitle T')).toBe('unknown');
+  });
 });
 
 describe('findMermaidSourceRange', () => {

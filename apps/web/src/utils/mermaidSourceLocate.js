@@ -5,6 +5,34 @@
  * @typedef {{ startLineNumber: number, startColumn: number, endLineNumber: number, endColumn: number }} SourceRange
  */
 
+/**
+ * Which diagram type a source declares, as a table row.
+ *
+ * `peekDiagramDirective` used to carry one `if` per type and stood at complexity
+ * 17 — which is not a one-time cost but a standing tax: it gained a branch on
+ * each of `0a1180d`, `c24a269` and `a7be8f6` as timeline, pie and erDiagram
+ * shipped graph-edit support, so every new diagram kind paid another rung. A row
+ * here is the whole of that change now.
+ *
+ * **Order is load-bearing.** Several of these prefixes are prefixes of each
+ * other's spellings to a regex that isn't anchored with `\b`, so the sweep is
+ * first-match-wins and the sequence below is the sequence the if-chain had.
+ * Reordering it is a behaviour change, not a tidy-up.
+ *
+ * @type {ReadonlyArray<{ readonly re: RegExp, readonly kind: string }>}
+ */
+const DIAGRAM_DIRECTIVES = Object.freeze([
+  // No `\b` on sequence: the original tested `startsWith('sequencediagram')`.
+  { re: /^sequencediagram/i, kind: 'sequence' },
+  { re: /^statediagram(?:-v2)?\b/i, kind: 'state' },
+  { re: /^(flowchart|graph)\b/i, kind: 'flowchart' },
+  { re: /^mindmap\b/i, kind: 'mindmap' },
+  { re: /^classdiagram\b/i, kind: 'class' },
+  { re: /^erdiagram\b/i, kind: 'er' },
+  { re: /^pie(?:\s+showData)?\b/i, kind: 'pie' },
+  { re: /^timeline\b/i, kind: 'timeline' }
+]);
+
 /** First non-comment diagram directive (after optional YAML frontmatter fences). */
 export function peekDiagramDirective(source) {
   if (!source || typeof source !== 'string') return 'unknown';
@@ -18,16 +46,8 @@ export function peekDiagramDirective(source) {
       continue;
     }
     if (inYamlFence) continue;
-    const low = t.toLowerCase();
-    if (low.startsWith('sequencediagram')) return 'sequence';
-    if (/^statediagram(?:-v2)?\b/i.test(t)) return 'state';
-    if (/^(flowchart|graph)\b/i.test(low)) return 'flowchart';
-    if (/^mindmap\b/i.test(t)) return 'mindmap';
-    if (/^classdiagram\b/i.test(t)) return 'class';
-    if (/^erdiagram\b/i.test(t)) return 'er';
-    if (/^pie(?:\s+showData)?\b/i.test(t)) return 'pie';
-    if (/^timeline\b/i.test(t)) return 'timeline';
-    return 'unknown';
+    const match = DIAGRAM_DIRECTIVES.find((directive) => directive.re.test(t));
+    return match ? match.kind : 'unknown';
   }
   return 'unknown';
 }
