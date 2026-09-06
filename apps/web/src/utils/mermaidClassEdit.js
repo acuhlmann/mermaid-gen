@@ -3,18 +3,27 @@ import { peekDiagramDirective, stripLineComment } from './mermaidSourceLocate.js
 
 const CLASS_ID_RE = /^[A-Za-z][A-Za-z0-9_~]*$/;
 const CLASS_MEMBER_RE = /^\s*(\S+)\s*:\s+(.+)$/;
-const CLASS_BLOCK_OPEN_RE = /^\s*class\s+(\S+)\s*\{\s*$/i;
+/**
+ * Both declaration forms may carry a `:::style` suffix — mermaid's
+ * STYLE_SEPARATOR, which attaches a `classDef` to the box without changing its
+ * name. `class Duck:::fancy` renders exactly one node called `Duck`, so group 1
+ * must stop at the separator and group 2 must carry the suffix through a
+ * rewrite; capturing the whole token invented the phantom id `Duck:::fancy` and
+ * left the visible box unaddressable by every mutator. The separator is legal
+ * only here, not on a relation end (`Animal <|-- Duck:::fancy` is a parse
+ * error), so no other shape in this file needs to know about it.
+ */
+const CLASS_BLOCK_OPEN_RE = /^\s*class\s+(\S+?)(:::\S+?)?\s*\{\s*$/i;
 /**
  * A declaration with no body: `class Duck` on its own line.
  *
  * The two look-alikes this must NOT match are why the trailing `\s*$` and the
  * whitespace after `class` are both load-bearing. `classDiagram` has no space
- * after `class`, so it cannot match; `class A hot` (the styling form, which
- * assigns a class to nodes rather than declaring one) has a second token and so
- * fails the end anchor. Matching either would invent a class that does not
- * exist, or silently accept `hot` as a class name.
+ * after `class`, so it cannot match; `class A hot` has a second token separated
+ * by whitespace and so fails the end anchor. Matching either would invent a
+ * class that does not exist, or silently accept `hot` as a class name.
  */
-const CLASS_BARE_DECL_RE = /^\s*class\s+(\S+)\s*$/i;
+const CLASS_BARE_DECL_RE = /^\s*class\s+(\S+?)(:::\S+?)?\s*$/i;
 const CLASS_ANNOTATION_RE = /^\s*<<\S+>>\s+(\S+)\s*$/;
 const META_LINE_RE =
   /^(?:classDiagram|classDef|class|direction|note|namespace|hide\s+empty|style|linkStyle)\b/i;
@@ -344,11 +353,14 @@ function renameClassRelationLine(line, classId, nextLabel) {
 function renameClassDeclarationLine(stripped, line, classId, nextLabel) {
   const open = stripped.match(CLASS_BLOCK_OPEN_RE);
   if (open && open[1] === classId) {
-    return { line: line.replace(CLASS_BLOCK_OPEN_RE, `class ${nextLabel} {`), enteredBlock: true };
+    return {
+      line: line.replace(CLASS_BLOCK_OPEN_RE, `class ${nextLabel}${open[2] ?? ''} {`),
+      enteredBlock: true
+    };
   }
   const bareDecl = stripped.match(CLASS_BARE_DECL_RE);
   if (bareDecl && bareDecl[1] === classId) {
-    return { line: `${indentOf(line)}class ${nextLabel}`, enteredBlock: false };
+    return { line: `${indentOf(line)}class ${nextLabel}${bareDecl[2] ?? ''}`, enteredBlock: false };
   }
   return null;
 }
