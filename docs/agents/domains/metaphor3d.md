@@ -1129,18 +1129,37 @@ sticky` nav row, because the height cap makes every small screen a scrolling
   was a hit-test, not a mutator.** `renameCityEdge`/`deleteCityEdge` and the four `canLink`
   flat-kind equivalents were registered and green for weeks; nothing in the UI could call them,
   because the only producer of a `kind: 'edge'` descriptor was the SVG resolver in
-  `DiagramCanvas.jsx` and a Three.js scene never goes near it (#495). Three decisions worth
+  `DiagramCanvas.jsx` and a Three.js scene never goes near it (#495). Four decisions worth
   keeping. **The `{from, to}` pair IS the edge's identity** — `findLinkedEdge`/`renameLinkedEdge`
   resolve on it and `connectCityNodes` refuses a duplicate pair, so a synthetic edge id would be a
   second name for one thing with nothing keeping them in step; `metaphorLinkDescriptor` carries no
   such id. **`useFlowchartGraphEdit.js` needed no change at all** — its edge path keys on
   `descriptor.kind` and never branches by diagram family, which is why this looked like a
-  cross-rung handoff and was not. And **link picking is offered only where the adapter can honour
+  cross-rung handoff and was not. **Link picking is offered only where the adapter can honour
   it** (`LINK_EDITABLE_METAPHORS`: city, layercake, galaxy, machine, terrain): tree's and garden's
   relations are implied by structure, their `renameEdge` returns `not-graph` on purpose, and a menu
   entry whose only outcome is an error toast is worse than no entry. The gate is one context value
   in `MetaphorRenderer`, not a branch in fourteen scene modules — an absent store makes the links
-  layer skip publishing altogether.
+  layer skip publishing altogether. And **composite is gated by its document, not by its kind**:
+  its mutators are real, but `compositeGraphAllowsLink` requires two items across the layers before
+  a wire can exist at all, so it stays out of the static list and
+  `metaphorKindHasEditableLinks(metaphor, source)` consults the source for that branch — the same
+  call `graphEditAdapterFor` makes when it resolves the adapter's own `canLink`, so the gate and
+  the mutator cannot disagree. `metaphorLinkPick.test.js` holds the gate against every
+  `METAPHOR_FLAT_GRAPH_EDIT_KINDS` entry plus the four kinds with a dedicated module, **document by
+  document** rather than kind by kind (#557: the previous sweep named seven kinds in a literal, read
+  no registry, and so checked none of the six flat kinds that were free to drift).
+- **Composite has two route renderers and only one of them publishes a hit target.**
+  `LegacyCompositeScene` (`layout: adjacent`/`overlay`) draws `MetaphorLinks`, which is the
+  publishing one; the default `fused` plan draws `FusedLinks` from `fusedCompositePlanner.js`,
+  which publishes nothing — so "composite renders `MetaphorLinks`, therefore its wires are
+  pickable" (#557's premise) is true of exactly one of the two branches, and reading the dispatcher
+  rather than the issue is what caught it. `FusedLinks` cannot just start publishing what it draws
+  either: `makeLinks` seeds it with `inferredRelationships()` — routes derived from an item's
+  `parent`/`moon`/`binary` — beside the authored `links[]`, and an inferred route has no source
+  counterpart, so a rename of it returns `reason: 'missing'`. **The pickable set has to equal the
+  editable set**, which here means filtering to `!link.inferred`. Tracked as `link-pick-fused` in
+  `docs/automations/ledger/metaphor3d.md`.
 - **A picked link is ranked BELOW the caption it confirms** (`metaphorDrawOrder.js`
   `PICKED_LINK_ORDER = 6`). The highlight is a fat depth-free stroke and a link's own label sits at
   the route's midpoint, i.e. exactly on the line, so ranking it above the label plate paints over

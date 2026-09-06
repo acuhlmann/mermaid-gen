@@ -8,6 +8,11 @@ pnpm-debug.log*
 !.claude/skills/mattpocock/
 .claude/settings.local.json
 .claude/worktrees/
+# Qwen Code: session settings and scratch stay local. `format:affected` scans
+# untracked files too, so an unignored .qwen/tmp/ fails format:check and the
+# pre-push hook for whoever runs it next.
+.qwen/settings.json
+.qwen/tmp/
 
 .env
 .env.local
