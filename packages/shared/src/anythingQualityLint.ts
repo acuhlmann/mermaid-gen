@@ -180,7 +180,14 @@ function extractInlineStyles(html: string): string[] {
 function maskRawTextElementBodies(html: string): string {
   return html
     .replace(
-      /(<(?:script|style)\b[^>]*>)([\s\S]*?)(<\/(?:script|style)>)/gi,
+      // Falls back to end-of-string when no closing tag exists, mirroring a
+      // real browser's raw-text parsing (an unclosed <script>/<style> swallows
+      // the rest of the document) and #538's fix to stripNonLoadContexts: a
+      // regex that requires a literal closer leaves a truncated script body
+      // unmasked, so `<` comparisons inside it (e.g. `i<dot.length`) read as
+      // spurious tag openers and the real "unclosed <script>" defect gets
+      // reported as an unrelated "unclosed <dot>" tag instead.
+      /(<(?:script|style)\b[^>]*>)([\s\S]*?)(<\/(?:script|style)>|$)/gi,
       (_m, open, _body, close) => `${open}${close}`
     )
     .replace(/<!--[\s\S]*?-->/g, '');
