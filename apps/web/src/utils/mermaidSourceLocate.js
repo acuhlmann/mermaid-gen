@@ -91,6 +91,17 @@ export function normalizeDiagramElementId(raw, kind) {
     s = s.replace(/^cluster[-_]?/i, '');
   }
   s = s.replace(/^flowchart-(?:v2-)?/i, '');
+  // Mermaid's class renderer stamps every class box `classId-<name>-<index>`
+  // (MERMAID_DOM_ID_PREFIX in the classDiagram chunk) and, unlike the
+  // namespace/cluster path, does NOT emit a `data-id` — so this is the only
+  // thing standing between a click and the id the class mutators receive.
+  // Without the strip the id arrives as `classId-Duck`, which fails
+  // `CLASS_ID_RE` (no hyphen allowed) and every class Add/Rename/Delete/Connect
+  // answered `bad-id` — an error toast on any click, for every class node, since
+  // 11.16 moved classDiagram to the v3 unified renderer. The regression test
+  // renders a real diagram rather than hand-writing an id, because the id shape
+  // is exactly the thing that silently changed.
+  s = s.replace(/^classId-/i, '');
   s = s.replace(/(?:-\d+)+$/g, '');
   return s || raw.trim();
 }
