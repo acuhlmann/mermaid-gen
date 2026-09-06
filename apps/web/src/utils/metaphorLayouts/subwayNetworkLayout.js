@@ -566,11 +566,14 @@ export function subwayNetworkLayout(items) {
   // omits `line` on one route, so a subway the model wrote without line names
   // cannot use the placement `subwayRouteSign` exists to make. (#460.)
   //
-  // The floor is a lateral sign plus the clearance it asks for, and a two-lane
-  // network is already wider than it — interchanges sit at `LANE_GAP / 2`
-  // (1.8) off the centreline, so `reachZ` there is 2.436 and `Math.max` changes
-  // nothing. Every multi-line placement is therefore byte-identical, which is
-  // what keeps #505's rendered measurement valid; only the shape that was
+  // The floor is a lateral sign plus the clearance it asks for, and only
+  // single-lane networks need it — with two or more lanes, interchanges sit
+  // at `LANE_GAP / 2` (1.8) off the centreline, so `reachOn(2)` is already
+  // wide enough at default traffic (2.436 > 2.4) and `Math.max` changes
+  // nothing. At low traffic reachOn(2) can fall under the floor, and applying
+  // it there pushes a sign past the network's own reach box (#587). High-
+  // traffic multi-line placements stay byte-identical, which is what keeps
+  // #505's rendered measurement valid; only the single-lane shape that was
   // demonstrably broken moves, and `metaphorGroupPlacards.test.js` pins both
   // halves of that claim.
   //
@@ -582,7 +585,8 @@ export function subwayNetworkLayout(items) {
   // and world `z` falls mostly INTO depth under the orbit camera, so a sign at
   // z = 1.5 measures |ndc| 0.738 / -0.138 at phone, 0.631 at cover and 0.615 at
   // desktop — comfortably inside the frame the stations themselves define.
-  const reachZ = Math.max(reachOn(2), ROUTE_SIGN_LATERAL + ROUTE_SIGN_CLEARANCE);
+  const reachZFloor = ROUTE_SIGN_LATERAL + ROUTE_SIGN_CLEARANCE;
+  const reachZ = lines.length <= 1 ? Math.max(reachOn(2), reachZFloor) : reachOn(2);
   // Longest route first: it has the most gaps to choose from, so letting it go
   // last would hand the crowded network's only quiet corner to a two-stop line.
   const placedSigns = [];
