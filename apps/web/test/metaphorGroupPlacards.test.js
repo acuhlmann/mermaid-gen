@@ -23,13 +23,134 @@
  * two stops.
  */
 import { describe, expect, it } from 'vitest';
+import * as THREE from 'three';
 import {
   subwayNetworkLayout,
   subwayRouteSign
 } from '../src/utils/metaphorLayouts/subwayNetworkLayout.js';
+import {
+  frameDirectionForAspect,
+  solveFrameFit
+} from '../src/components/metaphorScenes/sceneFraming.js';
 import { machineGearLayout } from '../src/utils/metaphorLayouts/machineGearLayout.js';
 
 const distanceXZ = (a, b) => Math.hypot(a[0] - b[0], a[2] - b[2]);
+
+/** The three viewports `apps/web/.claude/skills/verify/` captures at. */
+const PHONE_COVER_DESKTOP = [
+  ['phone 390x844', 390 / 844],
+  ['cover 717x512', 717 / 512],
+  ['desktop 1440x900', 1440 / 900]
+];
+
+/**
+ * Platform rims in the subway's own drawing space: `TRACK_Y` 0.34, and the
+ * scene scales a platform circle by [radius, 1, radius * 0.62].
+ */
+function stationRimPoints(layout) {
+  const points = [];
+  for (const station of layout.stations) {
+    for (let i = 0; i < 12; i += 1) {
+      const angle = (i / 12) * Math.PI * 2;
+      points.push(
+        new THREE.Vector3(
+          station.position[0] + Math.cos(angle) * station.platformRadius,
+          0.34,
+          station.position[2] + Math.sin(angle) * station.platformRadius * 0.62
+        )
+      );
+    }
+  }
+  return points;
+}
+
+/**
+ * Where a world point lands in NDC under the fit `solveFrameFit` just chose,
+ * reproducing the projection the framing code itself uses (`ndcExtent`).
+ */
+function ndcOfPoint(point, fit, aspect) {
+  const dir = frameDirectionForAspect(aspect);
+  const right = new THREE.Vector3().crossVectors(new THREE.Vector3(0, 1, 0), dir);
+  if (right.lengthSq() < 1e-6) right.set(1, 0, 0);
+  right.normalize();
+  const up = new THREE.Vector3().crossVectors(dir, right).normalize();
+  const tanV = Math.tan(THREE.MathUtils.degToRad(45) / 2);
+  const tanH = tanV * Math.max(0.2, aspect);
+  const local = point.clone().sub(fit.center);
+  const depth = Math.max(0.01, fit.distance - local.dot(dir));
+  return {
+    x: local.dot(right) / (depth * tanH),
+    y: local.dot(up) / (depth * tanV)
+  };
+}
+
+/**
+ * Distance from a point to the nearest segment of a route, in plan.
+ *
+ * This is how a test tells the two route-sign placements apart: the gap path
+ * sits a fixed lateral offset off its own stroke, the terminus fallback sits on
+ * it.
+ */
+function distToOwnTrack(point, stops) {
+  let best = Infinity;
+  for (let i = 0; i < stops.length - 1; i += 1) {
+    const [ax, , az] = stops[i].position;
+    const [bx, , bz] = stops[i + 1].position;
+    const dx = bx - ax;
+    const dz = bz - az;
+    const len2 = dx * dx + dz * dz;
+    if (len2 < 1e-9) continue;
+    const t = Math.max(0, Math.min(1, ((point[0] - ax) * dx + (point[2] - az) * dz) / len2));
+    best = Math.min(best, Math.hypot(point[0] - (ax + t * dx), point[2] - (az + t * dz)));
+  }
+  return best;
+}
+
+/**
+ * Two routes sharing two interchanges — the shape that broke the earlier
+ * straight-chord model, and the densest ordinary network this suite can name.
+ */
+const crossingLines = [
+  { id: 'a1', label: 'A1', line: 'Alpha', stop: 0, traffic: 10 },
+  { id: 'a2', label: 'A2', line: 'Alpha', stop: 1, traffic: 10, interchange: ['b2'] },
+  { id: 'a3', label: 'A3', line: 'Alpha', stop: 2, traffic: 10 },
+  { id: 'a4', label: 'A4', line: 'Alpha', stop: 3, traffic: 10, interchange: ['b4'] },
+  { id: 'b1', label: 'B1', line: 'Beta', stop: 0, traffic: 8 },
+  { id: 'b2', label: 'B2', line: 'Beta', stop: 1, traffic: 8 },
+  { id: 'b3', label: 'B3', line: 'Beta', stop: 2, traffic: 8 },
+  { id: 'b4', label: 'B4', line: 'Beta', stop: 3, traffic: 8 }
+];
+
+/**
+ * One route, no `line` field on any item — what `DEFAULT_LINE` assembles, and
+ * therefore the shape a model emits when it writes a subway without naming its
+ * routes. Every stop shares a `z`, which is what made the old reach box
+ * degenerate (#460).
+ */
+const singleLine = [
+  { id: 'a', label: 'A', stop: 0, traffic: 10 },
+  { id: 'b', label: 'B', stop: 1, traffic: 9 },
+  { id: 'c', label: 'C', stop: 2, traffic: 8 },
+  { id: 'd', label: 'D', stop: 3, traffic: 7 },
+  { id: 'e', label: 'E', stop: 4, traffic: 6 }
+];
+
+/** The worked subway in `apps/server/src/prompts/metaphorSystemPrompt.js`. */
+const canonical = [
+  { id: 'land', label: 'Landing', line: 'New signup', stop: 0, traffic: 18 },
+  {
+    id: 'auth-new',
+    label: 'Auth',
+    line: 'New signup',
+    stop: 1,
+    traffic: 14,
+    interchange: ['auth-ret']
+  },
+  { id: 'pay-new', label: 'Checkout', line: 'New signup', stop: 2, traffic: 6 },
+  { id: 'open', label: 'Open app', line: 'Returning user', stop: 0, traffic: 40 },
+  { id: 'auth-ret', label: 'Auth', line: 'Returning user', stop: 1, traffic: 38 },
+  { id: 'browse', label: 'Browse', line: 'Returning user', stop: 2, traffic: 31 }
+];
 
 describe('subway route signs stand off their own platforms', () => {
   const items = [
@@ -62,10 +183,188 @@ describe('subway route signs stand off their own platforms', () => {
     // The camera frames the stations — the plate is out of the fit — so a sign
     // past them is drawn off the canvas edge. This is the clamp that stopped
     // FULFIL running off a 390px phone.
+    //
+    // #460 called this the bug: measured on two fixtures it collapsed the
+    // terminus standoff to 0.000, putting a route's name on the very rim it
+    // stands off. Both of those numbers predate 7acde774 moving ordinary routes
+    // onto their own track, so they described what is now the rarest placement
+    // in the file. The sweep below pins what the clamp cannot do; the two cases
+    // after it pin that ordinary routes never reach it.
     for (const line of layout.lines) {
       expect(Math.abs(line.sign[0])).toBeLessThanOrEqual(reach(0) + 1e-9);
       expect(Math.abs(line.sign[2])).toBeLessThanOrEqual(reach(2) + 1e-9);
     }
+  });
+
+  it('names every multi-stop route on its own track, not on the clamped fallback (#460)', () => {
+    const layout = subwayNetworkLayout(items);
+    let checked = 0;
+    for (const line of layout.lines) {
+      if (line.stops.length < 2) continue;
+      checked += 1;
+      // The gap path places a sign exactly `ROUTE_SIGN_LATERAL` (1.5) off the
+      // segment it names. A fallback is generally nearer its own stroke — the
+      // single-line case below measures 1.06, and one with no clamp pressure
+      // measures ~0 — so this threshold says "not on the track beside a gap",
+      // which is the claim that matters here, not an exact identity of the two
+      // placements. The exact one is `toBeCloseTo(1.5)`, and only a lateral
+      // placement can satisfy it.
+      expect(distToOwnTrack(line.sign, line.stops)).toBeGreaterThan(1);
+      // Calibration, so the claim above cannot pass by measuring nothing: a
+      // point ON the track must score ~0 under the same helper, which is what
+      // the fallback placement looks like. Without this, a broken helper would
+      // report every sign as clear of its stroke and the sweep would be empty
+      // evidence in a new hat.
+      expect(distToOwnTrack(line.stops[line.stops.length - 1].position, line.stops)).toBeLessThan(
+        1e-6
+      );
+    }
+    expect(checked).toBeGreaterThan(1);
+  });
+
+  it('keeps a fallback sign clear of its own rim however the clamp bites (#460)', () => {
+    const terminus = { id: 'only', position: [3, 0, 4] };
+    const radiusOf = () => 0.8;
+    const standoff = 0.9;
+    const delivered = (reachX, reachZ) =>
+      distanceXZ(subwayRouteSign([terminus], radiusOf, { reachX, reachZ }), terminus.position) -
+      radiusOf('only');
+
+    const unclamped = subwayRouteSign([terminus], radiusOf);
+    expect(distanceXZ(unclamped, terminus.position)).toBeCloseTo(0.8 + standoff, 5);
+
+    // Only boxes the layout can actually produce. `reachOn` is a max over every
+    // station of `|position| + platformRadius`, and the terminus IS one of those
+    // stations, so any admissible box already contains the terminus platform's
+    // rim plus its radius — reachX >= 3.8 and reachZ >= 4.8 here. Testing an
+    // arbitrary 3.1 would be measuring a geometry this file cannot emit, which is
+    // how #460's 0.000 came to be read as a collapse onto the rim.
+    let worst = Infinity;
+    let boxes = 0;
+    for (const reachX of [3.8, 3.9, 4.02]) {
+      for (const reachZ of [4.8, 5.1, 5.7, 9]) {
+        boxes += 1;
+        worst = Math.min(worst, delivered(reachX, reachZ));
+      }
+    }
+    expect(boxes).toBe(12);
+    // Never onto the rim: the clamp costs clearance and does not erase it.
+    expect(worst).toBeGreaterThan(0);
+    // And the sweep really did bite — boxes that never clamped would make the
+    // line above a tautology about the unclamped 0.9.
+    expect(worst).toBeLessThan(standoff);
+
+    // WHERE the recovery earns its keep, which the sweep alone cannot see. When
+    // z is clamped too, `min(reachZ, max(reachZ, ...))` is `reachZ` and the
+    // along-track spend cannot be repaid: the two-axis corner really does lose
+    // clearance (measured 0.33 of 0.9). The recovery only preserves the standoff
+    // when x bites and z still has room — so this is the assertion a change to
+    // that line has to survive, and it is the one that fails without it.
+    const xOnlyClamped = delivered(3.8, 9);
+    expect(xOnlyClamped).toBeGreaterThan(0.85);
+    expect(xOnlyClamped).toBeCloseTo(standoff, 2);
+    expect(delivered(3.8, 4.8)).toBeLessThan(xOnlyClamped);
+  });
+
+  it('leaves every route name inside the plate the bounds reserve', () => {
+    // The other half of #460's question: the clamp protects the CAMERA framing,
+    // while `ROUTE_SIGN_STANDOFF`'s comment promises the plate. Both can hold,
+    // and this is the plate half — `bounds.radius` reserves
+    // `platformRadius + 0.9` past the furthest station, so a sign the solver
+    // places is on the paper even when it is outside what a viewer is shown.
+    for (const fixture of [items, crossingLines]) {
+      const layout = subwayNetworkLayout(fixture);
+      for (const line of layout.lines) {
+        expect(Math.hypot(line.sign[0], line.sign[2])).toBeLessThanOrEqual(layout.bounds.radius);
+      }
+    }
+  });
+
+  it('names a single-line network on its own track, not on the clamped fallback (#460)', () => {
+    // The shape the clamp used to break completely. `DEFAULT_LINE` puts every
+    // item that omits `line` on ONE route, so this is what a model emits when it
+    // writes a subway without route names — and every stop of one route shares a
+    // `z`, which made the old `reachZ` one platform radius tall (0.747) against
+    // a lateral offset of 1.5. Every gap candidate was rejected before it was
+    // scored, so the file's whole placement strategy was unreachable and the
+    // sign landed on the rim-side of its own terminus instead.
+    const layout = subwayNetworkLayout(singleLine);
+    expect(layout.lines).toHaveLength(1);
+    const [line] = layout.lines;
+    expect(line.sign.map((v) => Number(v.toFixed(3)))).toEqual([6.3, 0, 1.5]);
+    // Beside its own stroke by the offset the solver asks for, and clear of
+    // every platform by more than the clearance it wants.
+    expect(distToOwnTrack(line.sign, line.stops)).toBeCloseTo(1.5, 5);
+    const nearestRim = Math.min(
+      ...layout.stations.map((s) => distanceXZ(line.sign, s.position) - s.platformRadius)
+    );
+    expect(nearestRim).toBeGreaterThan(0.9);
+  });
+
+  it('stays inside the frame the stations themselves define (#460)', () => {
+    // #460 asked whether the collapsed sign was merely ugly or actually left the
+    // picture, and the honest answer needs the framing math rather than an
+    // opinion about it. `SubwayScene` puts the plate in `FRAME_IGNORE_DATA`, so
+    // the fit is solved from the station geometry alone — which is exactly what
+    // this reproduces, with the renderer's own `solveFrameFit`, and then projects
+    // the placed sign the same way `ndcExtent` does. |ndc| <= 1 is on screen.
+    //
+    // It also settles which axis the clamp is really for: world `z` falls mostly
+    // INTO depth under the orbit camera, so a lateral sign is nowhere near the
+    // edge, while the terminus escape it guards against is along `x`.
+    for (const [label, aspect] of PHONE_COVER_DESKTOP) {
+      for (const fixture of [singleLine, items]) {
+        const layout = subwayNetworkLayout(fixture);
+        const fit = solveFrameFit(
+          stationRimPoints(layout),
+          frameDirectionForAspect(aspect),
+          45,
+          aspect,
+          {
+            margin: 1.1
+          }
+        );
+        expect(fit, `no frame for ${label}`).not.toBeNull();
+        for (const line of layout.lines) {
+          const ndc = ndcOfPoint(new THREE.Vector3(line.sign[0], 0.9, line.sign[2]), fit, aspect);
+          expect(Math.abs(ndc.x), `${label} x overflow`).toBeLessThanOrEqual(1);
+          expect(Math.abs(ndc.y), `${label} y overflow`).toBeLessThanOrEqual(1);
+        }
+      }
+    }
+  });
+
+  it('leaves every multi-line placement exactly where #505 rendered it (#460)', () => {
+    // The floor on `reachZ` must be inert for any network with two lanes, or
+    // this PR silently invalidates the rendered measurement that put signs on
+    // their tracks in the first place. Interchanges sit `LANE_GAP / 2` (1.8) off
+    // the centreline, so a two-line `reachZ` is already 2.436 — above the 2.4
+    // floor — and `Math.max` cannot reach it. These coordinates are the
+    // pre-change output, captured by reverting the floor and re-running; if one
+    // of them moves, the change is no longer the narrow one this file claims.
+    const snapshots = {
+      suite7: [
+        [-2.1, 0, -2.1],
+        [-1.176, 0, 1.5],
+        [2.106, 0, 3.114]
+      ],
+      canonical: [
+        [2.097, 0, -2.531],
+        [2.097, 0, 2.531]
+      ],
+      crossing: [
+        [-4.197, 0, -2.531],
+        [-4.197, 0, 2.531]
+      ]
+    };
+    const round3 = (sign) => sign.map((v) => Number(v.toFixed(3)));
+    expect(subwayNetworkLayout(items).lines.map((l) => round3(l.sign))).toEqual(snapshots.suite7);
+    expect(subwayNetworkLayout(canonical).lines.map((l) => round3(l.sign))).toEqual(
+      snapshots.canonical
+    );
+    expect(subwayNetworkLayout(crossingLines).lines.map((l) => round3(l.sign))).toEqual(
+      snapshots.crossing
+    );
   });
 
   it('writes each route name beside its own track, not past its terminus', () => {

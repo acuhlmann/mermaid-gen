@@ -465,6 +465,28 @@ ones that will bite an edit.
     correct, since a billboarded word is several times wider than it is tall — pushed signs off the
     lane axis into the neighbouring route's stations and cost three names (65 of 69 down to 62).
     The round metric ships. A model is a hypothesis; the probe is the referee.
+- **A clamp that protects one axis can silently own the other — and the default shape is the one
+  that finds out.** The subway's reach box keeps a route name inside what the camera frames
+  (`SubwayScene` puts the plate in `FRAME_IGNORE_DATA`, so the fit is the stations). Along `x` that
+  is exactly right: a route's terminus IS its furthest stop in the direction of travel, so an
+  unbounded `x` draws the name off the edge, which is how FULFIL clipped on a phone (#432). Along
+  `z` the same bound is **degenerate**, because a single-lane network has no sideways extent at
+  all — every stop of one route shares a `z`, so `reachZ` is one platform radius (0.747 measured)
+  against a lateral offset of 1.5, and the candidate filter rejected **every** gap placement before
+  scoring any of them. The default shape is the victim: `DEFAULT_LINE` puts every item that omits
+  `line` on one route, so #505's placement was unreachable on precisely the networks a model emits
+  when it does not name its routes, and each sign landed rim-side of its own terminus at 0.395 of
+  the 0.9 standoff (#460). Fixed by flooring `reachZ` at `LATERAL + CLEARANCE` where it is
+  computed, not by loosening the clamp: two lanes already reach 2.436, so every multi-line
+  placement is byte-identical and #505's rendered measurement still stands — pinned as a
+  coordinate snapshot, with the single-line case pinned too so the control fails only there.
+  **Two transferable lessons.** `z` is _depth_ under the orbit camera, not screen height, so a
+  world-space extent is the wrong proxy for "off-frame" on that axis — the framer's own
+  `solveFrameFit` + NDC projection answered it in milliseconds, no browser needed, and the moved
+  sign measures |ndc| 0.738/-0.138 at phone. And a `max`-style extent is only meaningful when the
+  thing it measures has extent on that axis: any rule of the form "stay inside the subject's own
+  reach" needs a floor where the subject is 1-D, which is also true for a one-layer composite and a
+  two-stop river.
 - **Open water past the subject is scaffolding** — the iceberg's sea plane carries
   `FRAME_IGNORE_DATA`, like the shadow catcher and the fused ocean disc.
 - **So is the ground itself, and that is the bigger win.** Every grounded kind stands on a disc
