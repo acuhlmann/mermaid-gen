@@ -287,6 +287,33 @@ function replaceClassIdToken(token, oldId, newId) {
 }
 
 /**
+ * Rewrite a relation line so either end reads `nextLabel` where it read
+ * `classId`, or report that this line is not a relation at all.
+ *
+ * Split out of `renameClassNode`'s per-line callback, which had accumulated one
+ * branch per line shape and stood at complexity 13 — the relation case was both
+ * the largest and the only one with a "matched but nothing changed" outcome, so
+ * it is the one that reports `changed` rather than relying on a `null` to mean
+ * two different things.
+ *
+ * @returns {{ line: string, changed: boolean } | null} null when the line is not
+ *   a relation, which is what lets the caller fall through to the member and
+ *   annotation shapes below.
+ */
+function renameClassRelationLine(line, classId, nextLabel) {
+  const relation = parseClassRelation(line);
+  if (!relation) return null;
+  const from = replaceClassIdToken(relation.from, classId, nextLabel);
+  const to = replaceClassIdToken(relation.to, classId, nextLabel);
+  if (from === relation.from && to === relation.to) return { line, changed: false };
+  const suffix = relation.label ? ` : ${relation.label}` : '';
+  return {
+    line: `${indentOf(line)}${from} ${relation.arrow} ${to}${suffix}`,
+    changed: true
+  };
+}
+
+/**
  * @param {string} source
  * @param {string} classId
  * @param {string} label
@@ -316,16 +343,10 @@ export function renameClassNode(source, classId, label) {
       if (stripped === '}') inTargetBlock = false;
       return line;
     }
-    const relation = parseClassRelation(line);
+    const relation = renameClassRelationLine(line, classId, nextLabel);
     if (relation) {
-      const from = replaceClassIdToken(relation.from, classId, nextLabel);
-      const to = replaceClassIdToken(relation.to, classId, nextLabel);
-      if (from !== relation.from || to !== relation.to) {
-        found = true;
-        const suffix = relation.label ? ` : ${relation.label}` : '';
-        return `${indentOf(line)}${from} ${relation.arrow} ${to}${suffix}`;
-      }
-      return line;
+      if (relation.changed) found = true;
+      return relation.line;
     }
     const member = stripped.match(CLASS_MEMBER_RE);
     if (member && member[1] === classId) {
