@@ -333,6 +333,44 @@ function renameClassRelationLine(line, classId, nextLabel) {
 }
 
 /**
+ * Rewrite a line that DECLARES `classId`, or null when it declares something
+ * else. Two forms exist: `class Duck {` opens a member block, `class Duck` does
+ * not. Both re-swap the name rather than replacing the whole anchored match, so
+ * the line keeps its own indentation — which the `^\s*` in both regexes would
+ * otherwise eat.
+ *
+ * @returns {{ line: string, enteredBlock: boolean } | null}
+ */
+function renameClassDeclarationLine(stripped, line, classId, nextLabel) {
+  const open = stripped.match(CLASS_BLOCK_OPEN_RE);
+  if (open && open[1] === classId) {
+    return { line: line.replace(CLASS_BLOCK_OPEN_RE, `class ${nextLabel} {`), enteredBlock: true };
+  }
+  const bareDecl = stripped.match(CLASS_BARE_DECL_RE);
+  if (bareDecl && bareDecl[1] === classId) {
+    return { line: `${indentOf(line)}class ${nextLabel}`, enteredBlock: false };
+  }
+  return null;
+}
+
+/**
+ * Rewrite a line that REFERENCES `classId` as a member or a `<<stereo>>`
+ * annotation, or null when it is neither. Relations have their own helper
+ * because they are the only shape that can match without changing.
+ */
+function renameClassReferenceLine(stripped, line, classId, nextLabel) {
+  const member = stripped.match(CLASS_MEMBER_RE);
+  if (member && member[1] === classId) {
+    return `${indentOf(line)}${nextLabel} : ${member[2]}`;
+  }
+  const annotation = stripped.match(CLASS_ANNOTATION_RE);
+  if (annotation && annotation[1] === classId) {
+    return line.replace(classId, nextLabel);
+  }
+  return null;
+}
+
+/**
  * @param {string} source
  * @param {string} classId
  * @param {string} label
@@ -352,18 +390,11 @@ export function renameClassNode(source, classId, label) {
   let inTargetBlock = false;
   const next = lines.map((line) => {
     const stripped = stripLineComment(line).trim();
-    const open = stripped.match(CLASS_BLOCK_OPEN_RE);
-    if (open && open[1] === classId) {
+    const declaration = renameClassDeclarationLine(stripped, line, classId, nextLabel);
+    if (declaration) {
       found = true;
-      inTargetBlock = true;
-      return line.replace(CLASS_BLOCK_OPEN_RE, `class ${nextLabel} {`);
-    }
-    const bareDecl = stripped.match(CLASS_BARE_DECL_RE);
-    if (bareDecl && bareDecl[1] === classId) {
-      found = true;
-      // Re-swapping the name rather than replacing the whole match keeps the
-      // line's own indentation, which the anchored regex would otherwise eat.
-      return `${indentOf(line)}class ${nextLabel}`;
+      inTargetBlock = declaration.enteredBlock;
+      return declaration.line;
     }
     if (inTargetBlock) {
       if (stripped === '}') inTargetBlock = false;
@@ -374,15 +405,10 @@ export function renameClassNode(source, classId, label) {
       if (relation.changed) found = true;
       return relation.line;
     }
-    const member = stripped.match(CLASS_MEMBER_RE);
-    if (member && member[1] === classId) {
+    const reference = renameClassReferenceLine(stripped, line, classId, nextLabel);
+    if (reference !== null) {
       found = true;
-      return `${indentOf(line)}${nextLabel} : ${member[2]}`;
-    }
-    const annotation = stripped.match(CLASS_ANNOTATION_RE);
-    if (annotation && annotation[1] === classId) {
-      found = true;
-      return line.replace(classId, nextLabel);
+      return reference;
     }
     return line;
   });
