@@ -484,13 +484,38 @@ export function writeOfficeLog(entries, now = Date.now()) {
 }
 
 /**
- * @param {unknown} beat
- * @returns {{ at: number, theirs?: string, yours?: string, pitchTaken?: boolean } | null}
+ * The reactions a beat may remember an interruption by — the same two
+ * `officeFloorInterrupt.js` derives from a cut-short errand's phase.
+ *
+ * An **enum, not free text**, for the reason `officeScript.ts`'s situations are:
+ * these end up in a prompt, and a floor writing sentences into one is an
+ * injection surface. It lives here rather than beside the floor so that the two
+ * validators a beat passes through — `rememberWorkingMemoryBeat` on the way in
+ * and this one on the way back off disk — cannot disagree about what is a legal
+ * value.
  */
-function sanitizeWorkingMemoryBeat(beat) {
-  if (!beat || typeof beat !== 'object') return null;
-  if (!Number.isFinite(beat.at)) return null;
-  const next = { at: beat.at };
+export const OFFICE_WORKING_MEMORY_INTERRUPTIONS = Object.freeze(['gotIt', 'gaveUp']);
+
+/**
+ * The one place a working-memory beat's fields are decided.
+ *
+ * A beat passes two validators — `rememberWorkingMemoryBeat` on the way in and
+ * `sanitizeWorkingMemoryBeat` on the way back off disk — and both used to build
+ * the object field by field, separately. That duplication has exactly one
+ * failure mode and it is silent: a field taught to the writer alone is a fact
+ * that is real, queryable and prompt-visible right up until the user refreshes.
+ * Sharing the body makes the two agreeing a property rather than a promise.
+ *
+ * Returns `null` for a beat carrying nothing worth keeping, which both callers
+ * treat as "do not store this".
+ *
+ * @param {Record<string, unknown>} beat
+ * @param {number} at
+ * @returns {{ at: number, theirs?: string, yours?: string, pitchTaken?: boolean,
+ *   interrupted?: string } | null}
+ */
+export function normalizeWorkingMemoryBeat(beat, at) {
+  const next = { at };
   if (typeof beat.theirs === 'string' && beat.theirs.trim()) {
     next.theirs = beat.theirs.trim().slice(0, 200);
   }
@@ -498,8 +523,22 @@ function sanitizeWorkingMemoryBeat(beat) {
     next.yours = beat.yours.trim().slice(0, 200);
   }
   if (beat.pitchTaken === true) next.pitchTaken = true;
-  if (!next.theirs && !next.yours && !next.pitchTaken) return null;
+  if (OFFICE_WORKING_MEMORY_INTERRUPTIONS.includes(beat.interrupted)) {
+    next.interrupted = beat.interrupted;
+  }
+  if (!next.theirs && !next.yours && !next.pitchTaken && !next.interrupted) return null;
   return next;
+}
+
+/**
+ * @param {unknown} beat
+ * @returns {{ at: number, theirs?: string, yours?: string, pitchTaken?: boolean,
+ *   interrupted?: string } | null}
+ */
+function sanitizeWorkingMemoryBeat(beat) {
+  if (!beat || typeof beat !== 'object') return null;
+  if (!Number.isFinite(beat.at)) return null;
+  return normalizeWorkingMemoryBeat(beat, beat.at);
 }
 
 /**

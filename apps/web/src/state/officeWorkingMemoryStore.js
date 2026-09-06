@@ -22,12 +22,28 @@
 
 import {
   OFFICE_WORKING_MEMORY_BEAT_CAP,
+  normalizeWorkingMemoryBeat,
   officeDayStamp,
   readOfficeWorkingMemory,
   writeOfficeWorkingMemory
 } from '../utils/officeAmbienceStorage.js';
 
-/** @typedef {{ at: number, theirs?: string, yours?: string, pitchTaken?: boolean }} WorkingMemoryBeat */
+/**
+ * What each interruption reads like to the model.
+ *
+ * The phrasing lives here beside `you said:` / `they said:` rather than in the
+ * floor, because the beat carries the *fact* and this function owns every
+ * sentence in the prompt — the same split `pitchTaken` already uses. Both
+ * entries state the circumstance and stop: naming a consequence the prompt does
+ * not otherwise carry is how a moment ends up fabricating one (the situation
+ * rule in `docs/agents/domains/office.md`).
+ */
+const INTERRUPTION_PROMPT_LINES = Object.freeze({
+  gotIt: 'you took the spot they were using; they had finished and stepped aside',
+  gaveUp: 'you got in the way of their errand; they went back to their desk empty-handed'
+});
+
+/** @typedef {{ at: number, theirs?: string, yours?: string, pitchTaken?: boolean, interrupted?: 'gotIt' | 'gaveUp' }} WorkingMemoryBeat */
 /** @typedef {{ beats: WorkingMemoryBeat[], boardFingerprint?: string }} WorkingMemoryRow */
 
 /** @type {{ [colleagueId: string]: WorkingMemoryRow }} */
@@ -138,20 +154,22 @@ export function listWorkingMemoryColleagueIds() {
 
 /**
  * @param {string} colleagueId
- * @param {{ theirs?: string, yours?: string, pitchTaken?: boolean, now?: number }} beat
+ * @param {{ theirs?: string, yours?: string, pitchTaken?: boolean,
+ *   interrupted?: 'gotIt' | 'gaveUp', now?: number }} beat
+ *   `interrupted` is the one beat field that is not something either of you
+ *   said: you walked into their errand and it ended because of you. It is still
+ *   only a record — writing it schedules nothing (ADR-0010) — but it is what
+ *   makes `hasWorkingMemoryFact` true for somebody you have never spoken to,
+ *   which is the whole point: the next time you stand next to them, the office
+ *   has something to say instead of a deck to deal from.
  */
 export function rememberWorkingMemoryBeat(colleagueId, beat = {}) {
   if (typeof colleagueId !== 'string' || !colleagueId) return;
   const at = Number.isFinite(beat.now) ? beat.now : Date.now();
-  const next = { at };
-  if (typeof beat.theirs === 'string' && beat.theirs.trim()) {
-    next.theirs = beat.theirs.trim().slice(0, 200);
-  }
-  if (typeof beat.yours === 'string' && beat.yours.trim()) {
-    next.yours = beat.yours.trim().slice(0, 200);
-  }
-  if (beat.pitchTaken === true) next.pitchTaken = true;
-  if (!next.theirs && !next.yours && !next.pitchTaken) return;
+  // Shared with the read-back sanitizer on purpose: a field one of them knows
+  // and the other does not is a memory that survives until the next reload.
+  const next = normalizeWorkingMemoryBeat(beat, at);
+  if (!next) return;
 
   const current = rowFor(colleagueId);
   const row = {
@@ -203,6 +221,12 @@ export function workingMemoryPromptLines(colleagueId) {
     lines.push(`last board they noticed: ${row.boardFingerprint}`);
   }
   for (const beat of row.beats) {
+    /*
+     * Before the quote, not after it: the interruption is what *you* did, and a
+     * line they said about it reads as a non-sequitur ahead of the thing it is
+     * about. Same reason `yours` precedes `theirs`.
+     */
+    if (beat.interrupted) lines.push(INTERRUPTION_PROMPT_LINES[beat.interrupted]);
     if (beat.yours) lines.push(`you said: ${beat.yours}`);
     if (beat.theirs) lines.push(`they said: ${beat.theirs}`);
     if (beat.pitchTaken) lines.push('you took their suggestion earlier');

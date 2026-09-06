@@ -39,6 +39,7 @@ import { useStageScale } from '../hooks/useStageScale.js';
 import { reachTileFor, whereaboutsOf } from '../utils/officeFloorReach.js';
 import { interruptSpeech } from '../utils/officeFloorInterrupt.js';
 import { useFloorDwell } from './officeFloor/useFloorDwell.js';
+import { useFloorInterruptMemory } from './officeFloor/useFloorInterruptMemory.js';
 import { useFloorShopTalk } from './officeFloor/useFloorShopTalk.js';
 import { useOfficeDayPhase } from './officeFloor/useOfficeDayPhase.js';
 import {
@@ -388,6 +389,14 @@ function OfficeFloorView({ bridge, viewPhase }) {
    * same bank.
    */
   const wandererSaid = useMemo(() => interruptSpeech(wanderer, copy), [wanderer, copy]);
+
+  /*
+   * …and the third consumer of that one derivation: the colleague remembers it.
+   * A trip nobody interrupted writes nothing, which is nearly all of them. See
+   * `useFloorInterruptMemory` for why the beat is keyed on the trip's leg and
+   * why recording it is not triggering anything (ADR-0010).
+   */
+  useFloorInterruptMemory({ said: wandererSaid, leg: wanderer?.leg });
 
   /*
    * Slice 19: who you are stood next to, and the line they eventually break the
