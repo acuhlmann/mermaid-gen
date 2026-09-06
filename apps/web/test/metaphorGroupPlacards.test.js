@@ -367,12 +367,34 @@ describe('subway route signs stand off their own platforms', () => {
     }
   });
 
+  it('does not apply the reachZ floor on multi-line networks with low traffic (#587)', () => {
+    // The floor exists for single-lane networks (#460): with no sideways extent,
+    // reachOn(2) is one platform radius tall and every gap candidate is rejected.
+    // On two or more lanes it must stay inert — traffic below ~3.74 makes
+    // reachOn(2) fall under 2.4, and applying the floor then pushes a sign past
+    // the network's own reach box.
+    const lowTrafficCrossing = [
+      { id: 'a1', label: 'A1', line: 'Alpha', stop: 0, traffic: 0.2 },
+      { id: 'a2', label: 'A2', line: 'Alpha', stop: 1, traffic: 0.2, interchange: ['b2'] },
+      { id: 'a3', label: 'A3', line: 'Alpha', stop: 2, traffic: 0.2 },
+      { id: 'b1', label: 'B1', line: 'Beta', stop: 0, traffic: 0.2 },
+      { id: 'b2', label: 'B2', line: 'Beta', stop: 1, traffic: 0.2 },
+      { id: 'b3', label: 'B3', line: 'Beta', stop: 2, traffic: 0.2 }
+    ];
+    const layout = subwayNetworkLayout(lowTrafficCrossing);
+    expect(layout.lines.length).toBeGreaterThan(1);
+    const reach = (axis) =>
+      Math.max(...layout.stations.map((s) => Math.abs(s.position[axis]) + s.platformRadius));
+    expect(reach(2)).toBeLessThan(2.4);
+    for (const line of layout.lines) {
+      expect(Math.abs(line.sign[2])).toBeLessThanOrEqual(reach(2) + 1e-9);
+    }
+  });
+
   it('leaves every multi-line placement exactly where #505 rendered it (#460)', () => {
-    // The floor on `reachZ` must be inert for any network with two lanes, or
-    // this PR silently invalidates the rendered measurement that put signs on
-    // their tracks in the first place. Interchanges sit `LANE_GAP / 2` (1.8) off
-    // the centreline, so a two-line `reachZ` is already 2.436 — above the 2.4
-    // floor — and `Math.max` cannot reach it. These coordinates are the
+    // High-traffic multi-line fixtures: interchanges sit `LANE_GAP / 2` (1.8) off
+    // the centreline, so reachOn(2) is already 2.436 — above the 2.4 floor — and
+    // a single-lane-only floor cannot change them. These coordinates are the
     // pre-change output, captured by reverting the floor and re-running; if one
     // of them moves, the change is no longer the narrow one this file claims.
     const snapshots = {
