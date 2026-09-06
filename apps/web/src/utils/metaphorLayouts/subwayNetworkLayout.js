@@ -30,9 +30,21 @@ const LANE_GAP = 3.6;
 
 /**
  * Clearance between a terminus platform's rim and its route's name sign, used
- * only by the one-stop fallback below. The bounds already reserve
- * `platformRadius + 0.9` of plate past the furthest station, so a sign inside
- * that margin never leaves the paper.
+ * **only by the fallback** in `terminusSign` below — a route with one stop, or
+ * with every stop on one platform, has no station-free stretch to be named on.
+ * Ordinary routes are named by `subwayRouteSign` on a gap of their own track and
+ * never read this number: measured over four multi-line fixtures, 8 of 9 line
+ * names came from the gap path, at 1.19–9.43 from their own terminus and no
+ * closer than 1.19 to any platform rim.
+ *
+ * "Never leaves the paper" is a claim about the **plate**, and it holds:
+ * `bounds.radius` reserves `platformRadius + 0.9` past the furthest station, so
+ * every sign the gap path places is inside the reserve. #460 read this sentence
+ * as contradicting the reach clamp below, which was fair — the two are about
+ * different containers. The plate is bigger than the fit, because `SubwayScene`
+ * puts the plate in `FRAME_IGNORE_DATA` and the camera frames the stations: a
+ * sign can be comfortably on the paper and still off the edge of what a viewer
+ * sees. Both statements are true; only one of them has a clamp behind it.
  */
 const ROUTE_SIGN_STANDOFF = 0.9;
 
@@ -124,6 +136,26 @@ function terminusSign(stops, radiusOf, reachX, reachZ) {
   // version of this clipped FULFIL off a 390px phone. Clamp both axes, then
   // spend whatever the clamp took back on the NEAR edge (+z), the same edge the
   // city districts and the garden beds are named on, and for the same reason.
+  //
+  // #460 measured this collapsing the standoff to 0.000 and asked whether the
+  // clamp is a bug or correct-by-design. **The `x` half is correct-by-design and
+  // the `z` half was the bug** — and the reason the two look alike is that a
+  // clamp is usually one decision. `x` is the axis a route actually escapes
+  // along: its terminus IS its furthest stop in the direction of travel, so an
+  // unbounded `x` puts the name past the frame, and the clamped fallback already
+  // sits at |ndcX| 0.845 on a 390x844 phone. `z` is depth under the orbit camera
+  // rather than screen height, so a lateral sign is nowhere near the edge; the
+  // real damage was the box being **degenerate** there. A single-lane network
+  // has no sideways extent at all, which is why the bound is floored where it is
+  // computed rather than loosened here.
+  //
+  // Two things this clamp still cannot do, and both are pinned: it cannot put a
+  // fallback sign inside its own rim (any admissible box contains the terminus
+  // platform's rim plus its radius, so #460's 0.000 was measured against a box
+  // this layout cannot emit), and the `owed` repayment below only earns its keep
+  // when `x` bites while `z` has room — with both clamped, `min(reachZ, max(
+  // reachZ, …))` is `reachZ` and the two-axis corner genuinely costs clearance
+  // (0.33 of the 0.9). See `metaphorGroupPlacards.test.js`.
   const clampedX = Math.min(reachX, Math.max(-reachX, sx));
   const clampedZ = Math.min(reachZ, Math.max(-reachZ, sz));
   if (clampedX !== sx || clampedZ !== sz) {
@@ -504,7 +536,32 @@ export function subwayNetworkLayout(items) {
       0
     );
   const reachX = reachOn(0);
-  const reachZ = reachOn(2);
+  // Floored, and only on this axis. `reachOn(2)` is the network's own extent
+  // sideways, and a single-lane network has none: every stop of the only route
+  // shares a `z`, so the box is one platform radius tall (0.747 measured) while
+  // `ROUTE_SIGN_LATERAL` is 1.5 — which rejects EVERY gap candidate before the
+  // score is read and forces the whole file back onto the clamped terminus
+  // fallback. That is the default shape: `DEFAULT_LINE` puts every item that
+  // omits `line` on one route, so a subway the model wrote without line names
+  // cannot use the placement `subwayRouteSign` exists to make. (#460.)
+  //
+  // The floor is a lateral sign plus the clearance it asks for, and a two-lane
+  // network is already wider than it — interchanges sit at `LANE_GAP / 2`
+  // (1.8) off the centreline, so `reachZ` there is 2.436 and `Math.max` changes
+  // nothing. Every multi-line placement is therefore byte-identical, which is
+  // what keeps #505's rendered measurement valid; only the shape that was
+  // demonstrably broken moves, and `metaphorGroupPlacards.test.js` pins both
+  // halves of that claim.
+  //
+  // `reachX` keeps the raw extent on purpose: escaping along it is the framing
+  // failure this clamp was written for. A route's terminus IS its furthest stop
+  // along the direction of travel, so an unbounded x puts the name past the
+  // frame — measured, the clamped fallback already sits at |ndcX| 0.845 on a
+  // 390x844 phone. Depth is the other story: the fit is driven by the wide axis
+  // and world `z` falls mostly INTO depth under the orbit camera, so a sign at
+  // z = 1.5 measures |ndc| 0.738 / -0.138 at phone, 0.631 at cover and 0.615 at
+  // desktop — comfortably inside the frame the stations themselves define.
+  const reachZ = Math.max(reachOn(2), ROUTE_SIGN_LATERAL + ROUTE_SIGN_CLEARANCE);
   // Longest route first: it has the most gaps to choose from, so letting it go
   // last would hand the crowded network's only quiet corner to a two-stop line.
   const placedSigns = [];
