@@ -48,15 +48,25 @@ export const LINK_PICK_TOLERANCE_PX = 20;
 
 /**
  * The kinds whose adapters actually implement `renameEdge`/`deleteEdge` against
- * a free `links[]` — city plus the four `canLink` flat kinds. Everything else
- * (tree, garden, and the flat kinds registered with `canLink: false`) returns
- * `not-graph` from those mutators on purpose, because their relations are
- * implied by structure rather than authored: `docs/canvas-graph-edit.md` is
- * explicit that those stubs must not be "fixed". Offering a rename on one would
- * be a menu entry whose only outcome is an error toast.
+ * a free `links[]` — city plus the four `canLink` flat kinds. Tree, garden, and
+ * the flat kinds registered with `canLink: false` return `not-graph` from those
+ * mutators on purpose, because their relations are implied by structure rather
+ * than authored: `docs/canvas-graph-edit.md` is explicit that those stubs must
+ * not be "fixed". Offering a rename on one would be a menu entry whose only
+ * outcome is an error toast.
+ *
+ * Composite is the awkward one and is deliberately excluded: its adapter ships
+ * LIVE mutators (`renameCompositeEdge` performs a real `renameLinkedEdge` on a
+ * layer's items) and `CompositeScene` renders pickable `MetaphorLinks`, but the
+ * renderer's store-gate closes on `metaphor: 'composite'`, so the mutators stay
+ * unreachable (#495's shape, one kind over). Whether that is exclusion-by-
+ * design or an unfinished enable — and what a composite link rename even means
+ * across a layer delegate — is #557's open judgement, not this list's; the
+ * pending ledger in `metaphorLinkPick.test.js` carries it until then.
  *
  * `metaphorLinkPick.test.js` holds this list against the live adapters, so a
- * kind that gains link editing fails the test until it is added here.
+ * kind that gains link editing fails the test until it is added here (or
+ * explicitly pended with a reason).
  */
 export const LINK_EDITABLE_METAPHORS = Object.freeze([
   'city',

@@ -15,6 +15,7 @@ import {
   projectLinkPoint
 } from '../src/components/metaphorScenes/metaphorLinkPick.js';
 import { graphEditAdapterFor } from '../src/utils/canvasGraphEdit.js';
+import { METAPHOR_FLAT_GRAPH_EDIT_KINDS } from '../src/utils/metaphorFlatKindEdit.js';
 import {
   LABEL_PLATE_ORDER,
   PICKED_LINK_ORDER
@@ -354,13 +355,10 @@ describe('the descriptor reaches the mutators it was dead code for (#495)', () =
     // that gains link editing has to be added here, and one that never had it
     // must not be offered a rename whose only outcome is an error toast.
     for (const metaphor of [
+      ...Object.keys(METAPHOR_FLAT_GRAPH_EDIT_KINDS),
       'city',
-      'layercake',
-      'galaxy',
-      'machine',
-      'terrain',
       'tree',
-      'subway'
+      'garden'
     ]) {
       const source = docWithLink(metaphor);
       const adapter = graphEditAdapterFor('metaphor3d', source);
