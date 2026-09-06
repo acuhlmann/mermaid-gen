@@ -113,8 +113,19 @@ ones that will bite an edit.
   (`metaphorScenes/metaphorDrawOrder.js`). Every scene writes an item's name directly above that
   item, at the same `(x, z)` as its accent anchor, and a vertical stem at that `(x, z)` projects to
   a screen line through the projection of every point on it — so no camera, framing or anchor
-  change can separate them, and draw order is the only thing that decides it. The accented item's
-  chip and glyphs are the last things drawn and the only labels exempt from depth. Two traps sit
+  change can separate them, and the draw of the two decides it. The accented item's
+  chip and glyphs are the last things drawn and the only labels exempt from depth.
+  **Say which part of "the draw" decides which collision, because `renderOrder` is not all of it**
+  (#474 — the module and this entry both claimed `renderOrder` was "the only thing" ranking three
+  depth-free layers, and that is wrong for two of the three): `WebGLRenderer.renderScene` draws the
+  whole **opaque** list, then the transmissive, then the whole **transparent** one, and
+  `renderOrder` is a tiebreak _inside_ each, never a bridge across them (`WebGLRenderLists.js`'s
+  two sort functions). The stem and pin are `meshStandardMaterial` without `transparent`, so they
+  are opaque; troika sets `textMaterial.transparent = true` unconditionally, so every label is in
+  the other list. The accented name therefore beat the rod regardless of its number — what the
+  ladder actually decides is the name against the **caption** (32 vs 34/35, both transparent), and
+  what fixed the rod was `depthWrite`. Reasoning from the wrong half sends the next
+  accent-adjacent bug to a `renderOrder` that was never in play. Two traps sit
   underneath and each is invisible to the check that catches the others: **a mesh with
   `depthTest: false` must also set `depthWrite: false`** (it otherwise stamps its distance into the
   buffer and DELETES later depth-tested glyphs, leaving no coloured pixel where the letter was, so
@@ -123,6 +134,12 @@ ones that will bite an edit.
   pierce assigns onto the array. Use drei's `onSync` and set every entry. Measured over six kinds ×
   phone/cover/desktop: 8.2% of the accented name's own area was being altered by its own callout,
   13 of 18 cases over 1%, worst 30%; after, 18 of 18 render every glyph on a clean card.
+  **And "this changes nothing for every other label" is false, in the good direction**: the rod
+  stopped writing depth, so an _unaccented_ chip standing behind it now passes the depth test and,
+  being transparent, paints across an opaque rod it used to be clipped by. A name on its own card
+  instead of a deleted glyph — but it is a different picture, so do not describe the fix as
+  behaviour-preserving for the rest of the cast, and do not let a constants-only test imply
+  otherwise.
 - **A link carries its own halo, and it states a direction** (`linkRoutes.js`). Relations were the
   least legible thing in every scene: a `dependency` line measured 1.70:1 as rendered against the
   bar its own caption clears (3.4:1), and a whiteboard `flow` line measured **lum 219 against a sky

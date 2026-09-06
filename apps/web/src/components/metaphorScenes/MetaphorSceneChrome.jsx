@@ -39,7 +39,11 @@ import {
   ACCENT_ITEM_LABEL_PLATE_OPACITY,
   ACCENT_ITEM_LABEL_PLATE_ORDER,
   LABEL_PLATE_ORDER,
-  PICKED_LINK_ORDER
+  LINK_ARROW_CASING_ORDER,
+  LINK_ARROW_ORDER,
+  LINK_CASING_ORDER,
+  PICKED_LINK_ORDER,
+  SKY_DOME_ORDER
 } from './metaphorDrawOrder.js';
 import {
   LABEL_TARGET_PX,
@@ -463,18 +467,6 @@ function arcRoute(from, to) {
  */
 const ARROW_STANDOFF = 0.4;
 
-/**
- * Draw order for the arrowhead — an annotation about the scene rather than an
- * object in it, so it ignores depth, the same call `MetaphorAccents` documents
- * at length for the accent pin. It is the same trap by the same door: a city
- * building stacks a roof, a spire and a rooftop glyph over its anchor, and the
- * first depth-tested version of this arrow was invisible on EVERY city link —
- * buried inside the spire of the tower it was pointing at. Chasing that with a
- * taller standoff only moves the problem to the next kind. Ranked below the
- * accent caption, which outranks everything.
- */
-const ARROW_RENDER_ORDER = 20;
-
 /** How much bigger the arrow's casing cone is than its core — the halo width. */
 const ARROW_CASING_SCALE = 1.34;
 
@@ -511,7 +503,7 @@ export function LinkArrowhead({ position, direction, color, casingColor, opacity
         <mesh
           position={[0, -(0.5 + ARROW_STANDOFF), 0]}
           scale={ARROW_CASING_SCALE}
-          renderOrder={ARROW_RENDER_ORDER - 1}
+          renderOrder={LINK_ARROW_CASING_ORDER}
         >
           <coneGeometry args={[0.32, 1, 14]} />
           <meshBasicMaterial
@@ -524,7 +516,7 @@ export function LinkArrowhead({ position, direction, color, casingColor, opacity
           />
         </mesh>
       ) : null}
-      <mesh position={[0, -(0.5 + ARROW_STANDOFF), 0]} renderOrder={ARROW_RENDER_ORDER}>
+      <mesh position={[0, -(0.5 + ARROW_STANDOFF), 0]} renderOrder={LINK_ARROW_ORDER}>
         <coneGeometry args={[0.32, 1, 14]} />
         <meshBasicMaterial
           color={color}
@@ -639,7 +631,7 @@ function MetaphorLinkRoute({
         transparent
         opacity={picked ? LINK_PICK_CASING_OPACITY : LINK_CASING_OPACITY}
         depthWrite={false}
-        renderOrder={-1}
+        renderOrder={LINK_CASING_ORDER}
       />
       <Line
         points={route.points}
@@ -732,7 +724,7 @@ export function GradientSkySphere({ topColor, horizonColor, scale = 220 }) {
   useEffect(() => () => material.dispose(), [material]);
 
   return (
-    <mesh material={material} scale={scale} renderOrder={-1} frustumCulled={false}>
+    <mesh material={material} scale={scale} renderOrder={SKY_DOME_ORDER} frustumCulled={false}>
       <sphereGeometry args={[1, 32, 16]} />
     </mesh>
   );
