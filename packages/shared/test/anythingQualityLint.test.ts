@@ -130,6 +130,24 @@ test('lintAnythingQuality still rejects real mis-nesting', () => {
   assert.equal(result.code, 'unclosed_tag');
 });
 
+test('a truncated <script> containing a `<` comparison names the real unclosed tag, not a bogus one', () => {
+  // maskRawTextElementBodies used to require a literal </script> to mask a
+  // script body at all, so a generation cut short mid-script left the raw JS
+  // scanned as HTML: `i<dot.length` (an ordinary loop condition) read as an
+  // opening <dot> tag, and the reported defect was "Unclosed <dot> tag."
+  // instead of the real "Unclosed <script> tag." (same class of bug #538
+  // fixed in stripNonLoadContexts, reproduced live 2026-09-06).
+  const doc = `<!DOCTYPE html>
+<html><head></head><body><h1>Cut short</h1><script>
+for (var i = 0; i<dot.length; i++) {
+  console.log(i);`;
+  const result = lintAnythingQuality(doc);
+  assert.equal(result.ok, false);
+  if (result.ok) return;
+  assert.equal(result.code, 'unclosed_tag');
+  assert.match(result.error, /<script>/i);
+});
+
 test('lintAnythingQuality ignores tag-like text inside HTML comments', () => {
   const doc = VALID_DOC.replace('<h1>Hi</h1>', '<!-- <div> layout stub --><h1>Hi</h1>');
   assert.equal(lintAnythingQuality(doc).ok, true);
