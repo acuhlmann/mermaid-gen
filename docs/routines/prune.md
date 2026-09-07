@@ -165,6 +165,10 @@ owner a review of a deletion that would have broken the app.
    `added`). Under **14 days** is not debris, it is in-flight work: three feature automations ship
    product code nightly, and a same-week deletion is the fleet eating its own commits — the
    `renameErNode` duplicate-PR failure (#442/#446) in a new hat. Park it in the ledger instead.
+   When the scanner reports `addedAt: null` because git history is truncated (a shallow clone — the
+   normal cloud-agent checkout), that is **unknown age, not young age**: the graft boundary would
+   stamp every file at ~0–2 days forever, so gate 4 does not apply here. Fall through to gates 1–3
+   and 5; do not park a candidate solely because `added` is missing.
 5. **It is not merely a file with a test.** `routine-guard` refuses any test-file deletion, and it is
    right: a file whose own suite still passes is _covered_, which is a different claim from _wanted_.
    So a candidate that has a test file, or is named by exactly one, is **an issue, not a PR** — say

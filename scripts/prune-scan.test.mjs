@@ -10,7 +10,9 @@ import {
   expandGlob,
   extractLoaders,
   extractMentions,
+  firstCommitDate,
   isDocCandidate,
+  isShallowRepository,
   isSourceCandidate,
   NON_REFERENCING_FILES,
   proofCommand,
@@ -292,5 +294,31 @@ test('the scan reports nothing it cannot prove, and exits clean on an empty resu
       candidate.lines > 0,
       `${candidate.path} has no size, so the budget claim is unverifiable`
     );
+  }
+});
+
+test('firstCommitDate returns null in a shallow clone rather than a graft-boundary date', () => {
+  const parent = fs.mkdtempSync(path.join(os.tmpdir(), 'prune-scan-parent-'));
+  execFileSync('git', ['init'], { cwd: parent });
+  execFileSync('git', ['config', 'user.email', 'prune-scan@test'], { cwd: parent });
+  execFileSync('git', ['config', 'user.name', 'prune-scan'], { cwd: parent });
+  fs.writeFileSync(path.join(parent, 'README.md'), '# parent\n');
+  execFileSync('git', ['add', 'README.md'], { cwd: parent });
+  execFileSync('git', ['commit', '-m', 'parent init'], { cwd: parent });
+  fs.writeFileSync(path.join(parent, 'old.js'), 'export const old = 1;\n');
+  execFileSync('git', ['add', 'old.js'], { cwd: parent });
+  execFileSync('git', ['commit', '-m', 'add old.js'], { cwd: parent });
+
+  const shallow = fs.mkdtempSync(path.join(os.tmpdir(), 'prune-scan-shallow-'));
+  execFileSync('git', ['clone', '--depth', '1', `file://${parent}`, shallow]);
+  assert.equal(isShallowRepository(shallow), true, 'fixture must be a shallow clone');
+
+  const date = firstCommitDate(shallow, 'README.md');
+  assert.equal(date, null, 'shallow history must not produce a graft date as addedAt');
+
+  const scan = runScan(shallow);
+  assert.equal(scan.notes.historyTruncated, true);
+  for (const candidate of scan.candidates) {
+    assert.equal(candidate.addedAt, null, `${candidate.path} must not carry a graft date`);
   }
 });
