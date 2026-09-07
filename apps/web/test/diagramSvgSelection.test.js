@@ -29,6 +29,74 @@ describe('parseFlowchartEdgeDataId', () => {
     expect(parseFlowchartEdgeDataId('')).toBeNull();
     expect(parseFlowchartEdgeDataId(null)).toBeNull();
   });
+
+  it('parses classDiagram v3 unified edge ids (#600)', () => {
+    expect(parseFlowchartEdgeDataId('id_Animal_Duck_1')).toEqual({
+      from: 'Animal',
+      to: 'Duck',
+      index: 1,
+      raw: 'id_Animal_Duck_1'
+    });
+  });
+
+  it('parses erDiagram v3 unified edge ids (#600)', () => {
+    expect(parseFlowchartEdgeDataId('id_entity-CUSTOMER-0_entity-ORDER-1_0')).toEqual({
+      from: 'CUSTOMER',
+      to: 'ORDER',
+      index: 0,
+      raw: 'id_entity-CUSTOMER-0_entity-ORDER-1_0'
+    });
+  });
+
+  it('parses requirementDiagram hyphenated edge ids (#600)', () => {
+    expect(parseFlowchartEdgeDataId('test_entity-test_req-0')).toEqual({
+      from: 'test_entity',
+      to: 'test_req',
+      index: 0,
+      raw: 'test_entity-test_req-0'
+    });
+  });
+});
+
+describe('parseFlowchartEdgeDataId — stateDiagram-v2 rendered edges (#600)', () => {
+  const STATE_EDGE_SVG = `
+<svg>
+  <g class="node default" id="diagram-1-state-root_start-0">
+    <circle cx="32" cy="19" r="4" class="start-state" />
+  </g>
+  <g class="node statediagram-state" id="diagram-1-state-Still-1">
+    <rect x="12" y="54" width="40" height="20" />
+    <text>Still</text>
+  </g>
+  <path
+    data-et="edge"
+    data-id="edge0"
+    class="transition"
+    data-points="${btoa(
+      JSON.stringify([
+        { x: 32, y: 19 },
+        { x: 32, y: 54 },
+        { x: 32, y: 86 }
+      ])
+    )}"
+  />
+</svg>`;
+
+  it('resolves edge0 endpoints from layout geometry', () => {
+    document.body.innerHTML = STATE_EDGE_SVG;
+    const edge0 = document.querySelector('path[data-id="edge0"]');
+    expect(edge0).toBeTruthy();
+    expect(parseFlowchartEdgeDataId('edge0', edge0)).toEqual({
+      from: '[*]',
+      to: 'Still',
+      index: 0,
+      raw: 'edge0'
+    });
+  });
+
+  it('returns null for edgeN without the path element', () => {
+    expect(parseFlowchartEdgeDataId('edge0')).toBeNull();
+  });
 });
 
 describe('parseSequenceMessageDataId', () => {
