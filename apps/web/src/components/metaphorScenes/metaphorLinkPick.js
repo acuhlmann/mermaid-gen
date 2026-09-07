@@ -66,16 +66,17 @@ export const LINK_PICK_TOLERANCE_PX = 20;
  * adapter's `canLink` per source and why `metaphorKindHasEditableLinks` takes
  * the source for that one branch.
  *
- * Composite is also the one kind with two route renderers, and only one of them
- * publishes a hit target. `LegacyCompositeScene` draws `MetaphorLinks`, so an
+ * Composite is also the one kind with two route renderers, and both publish a
+ * hit target — but not on the same terms. `LegacyCompositeScene` draws
+ * `MetaphorLinks`, whose every route came from the document's `links[]`, so an
  * `adjacent`/`overlay` document picks its wires like any other kind. The default
- * `fused` plan draws `FusedLinks` instead, which publishes nothing — and it must
- * not simply start to, because `makeLinks` seeds that renderer with
- * `inferredRelationships()` as well as the authored `links[]`, and an inferred
- * route has no source counterpart for `renameCompositeEdge` to rename. Anything
- * published there has to be filtered to `!link.inferred` first, or the gate
- * would offer exactly the error toast this list exists to prevent. That half is
- * `link-pick-fused` in `docs/automations/ledger/metaphor3d.md`.
+ * `fused` plan draws `FusedLinks`, and `makeLinks` seeds that renderer with
+ * `inferredRelationships()` as well as the authored `links[]` — a route derived
+ * from an item's `parent`/`moon`/`binary` has no entry in `doc.links` for
+ * `renameCompositeEdge`/`deleteCompositeEdge` to find, so offering one would
+ * hand back `reason: 'missing'`, which is exactly the error toast this list
+ * exists to prevent. `isPickableFusedLink` is that filter, and it is the reason
+ * the fused renderer cannot simply publish everything it draws.
  *
  * `metaphorLinkPick.test.js` holds this list against the live adapters, so a
  * kind that gains link editing fails the test until it is added here (or
@@ -225,8 +226,53 @@ export function createMetaphorLinkSelectionStore() {
   };
 }
 
-/** Key under which `MetaphorLinks` publishes a route for this module to find. */
+/** Key under which a links layer publishes a route for this module to find. */
 export const LINK_PICK_USER_DATA = 'archislopLink';
+
+/**
+ * The payload a links layer hangs on the group that draws one route.
+ *
+ * `points` are LOCAL to that group — `projectRoutes` multiplies by its world
+ * matrix at pick time — so an animated kind that moves the group (galaxy's
+ * drift, machine's rotation, the fused world's own transforms) keeps a true hit
+ * target without the links layer knowing anything about the camera. Shared by
+ * `MetaphorLinks` and `FusedLinks` so the two renderers cannot drift on the
+ * shape `collectPickableLinks` reads back.
+ *
+ * @param {{ from: string, to: string, label?: unknown }} link
+ * @param {number[][]} points the drawn polyline, in the group's own space
+ */
+export function linkPickUserData(link, points) {
+  return {
+    [LINK_PICK_USER_DATA]: {
+      link: {
+        from: link.from,
+        to: link.to,
+        label: typeof link.label === 'string' ? link.label : ''
+      },
+      points
+    }
+  };
+}
+
+/**
+ * Whether one of the fused world's routes may be offered as a hit target.
+ *
+ * `planFusedCompositeWorld`'s `makeLinks` concatenates the document's authored
+ * `links[]` with `inferredRelationships()`, which synthesises a route for every
+ * item carrying a `parent`, `moon` or `binary`. Those two are drawn identically
+ * and are NOT interchangeable to an editor: `renameCompositeEdge` and
+ * `deleteCompositeEdge` both resolve against `doc.links`, so an inferred route
+ * returns `reason: 'missing'` for every mutation. Publishing one would put a
+ * tappable wire on screen whose only outcome is an error toast — the failure
+ * `LINK_EDITABLE_METAPHORS` above exists to keep off the other kinds.
+ *
+ * @param {{ from?: unknown, to?: unknown, inferred?: unknown } | null | undefined} link
+ */
+export function isPickableFusedLink(link) {
+  if (!link || link.inferred) return false;
+  return typeof link.from === 'string' && typeof link.to === 'string';
+}
 
 /**
  * Sky-400, the same constant `MetaphorSelectionMarker.jsx` holds across every

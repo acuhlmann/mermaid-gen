@@ -10,7 +10,16 @@ import {
 } from './MetaphorSceneChrome.jsx';
 import { LINK_LABEL_TARGET_PX } from './metaphorScreenScale.js';
 import { FRAME_IGNORE_DATA } from './sceneFraming.js';
-import { LINK_CASING_ORDER } from './metaphorDrawOrder.js';
+import { LINK_CASING_ORDER, PICKED_LINK_ORDER } from './metaphorDrawOrder.js';
+import {
+  LINK_PICK_CASING_OPACITY,
+  LINK_PICK_COLOR,
+  isPickableFusedLink,
+  linkPickKey,
+  linkPickUserData,
+  useMetaphorLinkSelection,
+  usePickedLink
+} from './metaphorLinkPick.js';
 import {
   LINK_CASING_OPACITY,
   arrowFromRoute,
@@ -520,84 +529,173 @@ function FusedLinkPulse({ points, seed, color }) {
  *
  * The muted/dimmed states the base version has no equivalent of are decided in
  * `fusedLinkPresentation`; the reasoning lives with the rule.
+ *
+ * This is also the fused world's half of link hit-testing (#495). Only the
+ * AUTHORED routes are published as targets — `isPickableFusedLink` drops the
+ * ones `inferredRelationships()` synthesised from an item's `parent`/`moon`/
+ * `binary`, because those have no entry in `doc.links` and every mutation aimed
+ * at one comes back `missing`.
  */
 function FusedLinks({ links, theme, mutedTheme, activeId, lod, isLinkMuted }) {
   const metrics = linkMetricsFor(links.length);
   const casingColor = theme.labelOutline ?? '#ffffff';
-  return links.map((link, index) => {
-    const related = activeId === link.from || activeId === link.to;
-    const muted = isLinkMuted(link);
-    const { cased, emphasis, opacity } = fusedLinkPresentation({ related, muted, activeId });
-    const linkTheme = muted ? mutedTheme : theme;
-    const from = link.fromAnchor;
-    const to = link.toAnchor;
-    const distance = Math.hypot(to[0] - from[0], to[2] - from[2]);
-    const mid = [
-      (from[0] + to[0]) / 2,
-      Math.max(from[1], to[1]) + 0.8 + distance * 0.13,
-      (from[2] + to[2]) / 2
-    ];
-    const points = [from, mid, to];
-    const rawColor =
-      link.kind === 'ownership'
-        ? (linkTheme.treeAccentColor ?? '#f59e0b')
-        : (linkTheme.binaryGlowColor ?? linkTheme.linkColor ?? '#60a5fa');
-    const color = muted ? rawColor : linkInk(rawColor, casingColor);
-    const arrow = cased ? arrowFromRoute(points) : null;
-    // The pulse is additive and animated, like the river's motes — a muted link
-    // keeps its line and loses its traffic.
-    const showPulse = lod !== 'low' && !muted && (link.kind === 'flow' || !link.kind);
-    return (
-      <group key={`${link.from}-${link.to}-${index}`} userData={FRAME_IGNORE_DATA}>
-        {cased ? (
-          <Line
-            points={points}
-            color={casingColor}
-            lineWidth={metrics.casingPx * emphasis}
-            transparent
-            opacity={LINK_CASING_OPACITY}
-            depthWrite={false}
-            renderOrder={LINK_CASING_ORDER}
-          />
-        ) : null}
+  const pickable = Boolean(useMetaphorLinkSelection());
+  const pickedLink = usePickedLink();
+  const pickedKey = pickedLink?.link ? linkPickKey(pickedLink.link.from, pickedLink.link.to) : null;
+  return links.map((link, index) => (
+    <FusedLinkRoute
+      key={`${link.from}-${link.to}-${index}`}
+      link={link}
+      theme={theme}
+      mutedTheme={mutedTheme}
+      activeId={activeId}
+      lod={lod}
+      metrics={metrics}
+      casingColor={casingColor}
+      muted={isLinkMuted(link)}
+      pickable={pickable && isPickableFusedLink(link)}
+      picked={pickedKey !== null && pickedKey === linkPickKey(link.from, link.to)}
+    />
+  ));
+}
+
+/** The arc `FusedLinks` draws between two anchors, plus its own midpoint. */
+function fusedLinkPoints(from, to) {
+  const distance = Math.hypot(to[0] - from[0], to[2] - from[2]);
+  const mid = [
+    (from[0] + to[0]) / 2,
+    Math.max(from[1], to[1]) + 0.8 + distance * 0.13,
+    (from[2] + to[2]) / 2
+  ];
+  return { mid, points: [from, mid, to] };
+}
+
+/**
+ * The three colours one fused link is drawn in.
+ *
+ * `rawColor` stays the relation's own kind colour even when the link is picked,
+ * because the pulse is additive traffic rather than the line: sky-blue reads as
+ * "this is the one you tapped", and a sky-blue pulse would read as a kind.
+ */
+function fusedLinkColors({ link, linkTheme, casingColor, muted, picked }) {
+  const rawColor =
+    link.kind === 'ownership'
+      ? (linkTheme.treeAccentColor ?? '#f59e0b')
+      : (linkTheme.binaryGlowColor ?? linkTheme.linkColor ?? '#60a5fa');
+  const resting = muted ? rawColor : linkInk(rawColor, casingColor);
+  return {
+    rawColor,
+    core: picked ? LINK_PICK_COLOR : resting,
+    casing: picked ? LINK_PICK_COLOR : casingColor
+  };
+}
+
+/**
+ * Widths, opacities and depth for the two strokes.
+ *
+ * The picked core goes depth-free — the same call `MetaphorLinkRoute` makes: for
+ * as long as it is picked, the answer to "which wire did I tap" is an annotation
+ * about the scene rather than something in it, and a fused world buries a route
+ * under an island far more often than a flat kind does.
+ */
+function fusedLinkStroke({ picked, metrics, emphasis }) {
+  return {
+    casingWidth: metrics.casingPx * emphasis,
+    casingOpacity: picked ? LINK_PICK_CASING_OPACITY : LINK_CASING_OPACITY,
+    coreWidth: metrics.corePx * emphasis,
+    arrowPx: metrics.arrowPx * emphasis,
+    depth: !picked,
+    coreOrder: picked ? PICKED_LINK_ORDER : 0
+  };
+}
+
+/**
+ * Whether this link carries travelling traffic. The pulse is additive and
+ * animated, like the river's motes — a muted link keeps its line and loses its
+ * traffic, and `low` LOD drops it everywhere.
+ */
+function fusedLinkShowsPulse({ lod, muted, kind }) {
+  return lod !== 'low' && !muted && (kind === 'flow' || !kind);
+}
+
+/** One fused-world relation: cased arc, arrowhead, optional pulse and caption. */
+function FusedLinkRoute({
+  link,
+  theme,
+  mutedTheme,
+  activeId,
+  lod,
+  metrics,
+  casingColor,
+  muted,
+  pickable,
+  picked
+}) {
+  const related = activeId === link.from || activeId === link.to;
+  const { cased, emphasis, opacity } = fusedLinkPresentation({ related, muted, activeId, picked });
+  const linkTheme = muted ? mutedTheme : theme;
+  const { mid, points } = fusedLinkPoints(link.fromAnchor, link.toAnchor);
+  const ink = fusedLinkColors({ link, linkTheme, casingColor, muted, picked });
+  const stroke = fusedLinkStroke({ picked, metrics, emphasis });
+  const arrow = cased ? arrowFromRoute(points) : null;
+  const showPulse = fusedLinkShowsPulse({ lod, muted, kind: link.kind });
+  return (
+    <group
+      userData={
+        pickable ? { ...FRAME_IGNORE_DATA, ...linkPickUserData(link, points) } : FRAME_IGNORE_DATA
+      }
+    >
+      {cased ? (
         <Line
           points={points}
-          color={color}
-          lineWidth={metrics.corePx * emphasis}
+          color={ink.casing}
+          lineWidth={stroke.casingWidth}
           transparent
-          opacity={opacity}
+          opacity={stroke.casingOpacity}
+          depthWrite={false}
+          renderOrder={LINK_CASING_ORDER}
         />
-        {arrow ? (
-          <LinkArrowhead
-            position={arrow.position}
-            direction={arrow.direction}
-            color={color}
-            casingColor={casingColor}
-            opacity={opacity}
-            targetPx={metrics.arrowPx * emphasis}
-          />
-        ) : null}
-        {showPulse ? (
-          <FusedLinkPulse
-            points={points}
-            seed={idHash2(`${link.from}-${link.to}`, 'fused-link')}
-            color={rawColor}
-          />
-        ) : null}
-        {link.label && !muted ? (
-          <ItemLabel
-            text={link.label}
-            position={[mid[0], mid[1] + 0.35, mid[2]]}
-            fontSize={0.34}
-            role="link"
-            targetPx={LINK_LABEL_TARGET_PX}
-            color={theme.labelColor}
-            outlineColor={theme.labelOutline}
-          />
-        ) : null}
-      </group>
-    );
-  });
+      ) : null}
+      <Line
+        points={points}
+        color={ink.core}
+        lineWidth={stroke.coreWidth}
+        transparent
+        opacity={opacity}
+        depthTest={stroke.depth}
+        depthWrite={stroke.depth}
+        renderOrder={stroke.coreOrder}
+      />
+      {arrow ? (
+        <LinkArrowhead
+          position={arrow.position}
+          direction={arrow.direction}
+          color={ink.core}
+          casingColor={casingColor}
+          opacity={opacity}
+          targetPx={stroke.arrowPx}
+        />
+      ) : null}
+      {showPulse ? (
+        <FusedLinkPulse
+          points={points}
+          seed={idHash2(`${link.from}-${link.to}`, 'fused-link')}
+          color={ink.rawColor}
+        />
+      ) : null}
+      {link.label && !muted ? (
+        <ItemLabel
+          text={link.label}
+          position={[mid[0], mid[1] + 0.35, mid[2]]}
+          fontSize={0.34}
+          role="link"
+          targetPx={LINK_LABEL_TARGET_PX}
+          color={theme.labelColor}
+          outlineColor={theme.labelOutline}
+        />
+      ) : null}
+    </group>
+  );
 }
 
 function FusedSite({ site, layerLabels, relatedIds, onActiveIdChange, lod, isMuted, themeFor }) {

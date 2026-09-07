@@ -14,9 +14,9 @@ import { createTapGesture, useMetaphorSelection } from '../metaphorSelection.js'
 import {
   LINK_PICK_CASING_OPACITY,
   LINK_PICK_COLOR,
-  LINK_PICK_USER_DATA,
   LINK_PICK_WIDTH_SCALE,
   linkPickKey,
+  linkPickUserData,
   useMetaphorLinkSelection,
   usePickedLink
 } from './metaphorLinkPick.js';
@@ -610,17 +610,7 @@ function MetaphorLinkRoute({
       // anything about the camera.
       userData={
         pickable
-          ? {
-              ...FRAME_IGNORE_DATA,
-              [LINK_PICK_USER_DATA]: {
-                link: {
-                  from: link.from,
-                  to: link.to,
-                  label: typeof link.label === 'string' ? link.label : ''
-                },
-                points: route.points
-              }
-            }
+          ? { ...FRAME_IGNORE_DATA, ...linkPickUserData(link, route.points) }
           : FRAME_IGNORE_DATA
       }
     >
