@@ -255,6 +255,24 @@ export const ANYTHING_BENCH_CORPUS = [
     expectedCode: 'unclosed_tag',
     html: page('<h1>Cut short</h1><script>\nconst angle = 0.9; // radians\nconst x = 1;')
   },
+  {
+    // maskRawTextElementBodies had the same "no literal closer, so the raw
+    // body stays unmasked" gap #538 fixed in stripNonLoadContexts, but for
+    // the tag-balance checker instead of the URL scanner: a truncated
+    // <script> whose body contains a `<` comparison (e.g. `i<dot.length`,
+    // a normal loop condition) let checkUnclosedTags scan real JS as HTML
+    // and report a bogus "Unclosed <dot> tag." instead of the real
+    // "Unclosed <script> tag." — reproduced from a live generation-bench
+    // run (2026-09-06) whose model output was cut off mid-script. Pins
+    // that the real defect is named, not a tag that was never there.
+    id: 'quality-unclosed-script-with-comparison',
+    kind: 'quality',
+    expectedAccept: false,
+    expectedCode: 'unclosed_tag',
+    html: page(
+      '<h1>Cut short</h1><script>\nfor (var i = 0; i<dot.length; i++) {\n  console.log(i);'
+    )
+  },
 
   // ── runtime: only fail when executed, must stay rejected ────────────────
   {
