@@ -77,6 +77,31 @@ export function screenConstantScale({
 }
 
 /**
+ * A **floor** on how small something may look, never a cap on how big.
+ *
+ * The full screen-constant treatment above is right for type: a caption is a
+ * sentence and one size reads. It is the wrong shape for a marker whose size is
+ * also emphasis — shrinking one that is already legible spends the marker's
+ * loudness to buy consistency nobody asked for, and this domain has already
+ * recorded that a change which makes a picture more uniform but reads no better
+ * is not an improvement.
+ *
+ * Returning `max(1, …)` also makes the change **monotone**: every object it
+ * touches is either untouched or larger, so no cell that reads today can be
+ * made worse by tuning `minPx`. That property is what let one number be chosen
+ * from nine measured cells instead of nine numbers.
+ *
+ * @param {object} args — as `screenConstantScale`, with `minPx` for `targetPx`
+ * @returns {number} ≥ 1
+ */
+export function screenMinimumScale({ distance, fovDegrees, viewportHeightPx, worldSize, minPx }) {
+  return Math.max(
+    1,
+    screenConstantScale({ distance, fovDegrees, viewportHeightPx, worldSize, targetPx: minPx })
+  );
+}
+
+/**
  * Holds `ref`'s group at a constant on-screen size. Written straight onto the
  * object every frame rather than through React state: a hundred labels
  * re-rendering whenever the camera moves would cost more than the labels do.

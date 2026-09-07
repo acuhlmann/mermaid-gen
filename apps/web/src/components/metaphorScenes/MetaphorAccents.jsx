@@ -38,6 +38,8 @@ import { useScreenConstantScale } from './metaphorScreenScale.js';
 import { useMetaphorClock } from './metaphorClock.js';
 import { isDarkBackdrop } from './sceneUtils.js';
 import { captionFitsCanvas } from './accentCaptionFit.js';
+import { accentRodScale } from './accentRodScale.js';
+import { FRAME_IGNORE_DATA } from './sceneFraming.js';
 import {
   ACCENT_CAPTION_TEXT_ORDER,
   ACCENT_MARKER_ORDER,
@@ -53,6 +55,24 @@ const ACCENT_MARKER_COLOR = '#fbbf24';
 /** Caption type size and its wrap width, in world units. */
 const CAPTION_SIZE = 0.38;
 const CAPTION_MAX_WIDTH = 7;
+
+/** Authored across-the-flats width of the pin head, in world units. */
+const PIN_WIDTH = 0.84;
+
+/** Half the pin head's own height — what its tip stands above its centre. */
+const PIN_HALF_HEIGHT = 0.475;
+
+/**
+ * Clear air between the pin's TIP and the caption plate, in world units.
+ *
+ * Measured from the tip rather than from the pin's centre, which is what the
+ * single `pinHeight + 1.05` constant used to mean and is only the same thing
+ * while the pin is its authored size. Once the pin can grow (see
+ * `PIN_MIN_WIDTH_PX`) a centre-relative gap is eaten by the growth: at the 2.6x
+ * a foldable cover asks for, the cone's half-height passes 1.05 world units and
+ * the caption plate lands *inside* the pin it is captioning.
+ */
+const CAPTION_CLEARANCE = 0.575;
 
 /**
  * Draw order for the caption. It is an annotation about the scene, not a thing
@@ -180,7 +200,13 @@ function AccentCaption({ text, y, color }) {
   if (!fits) return null;
 
   return (
-    <Billboard position={[0, y, 0]} ref={billboardRef}>
+    // Out of the camera fit for the same reason as the rod, and this half
+    // predates the rod's: the plate has been screen-constant since it shipped
+    // (`useScreenConstantScale` on `scaleRef`) while its `planeGeometry` stayed
+    // in `collectFramePoints` — text is pruned there by material, a plate is
+    // not. So the one thing in the callout that grows when the camera retreats
+    // was also helping decide how far the camera retreats.
+    <Billboard position={[0, y, 0]} ref={billboardRef} userData={FRAME_IGNORE_DATA}>
       <group ref={scaleRef}>
         <mesh ref={plateRef} position={[0, 0, -0.02]} renderOrder={CAPTION_RENDER_ORDER}>
           <planeGeometry args={[plateWidth, plateHeight]} />
@@ -231,12 +257,16 @@ function AccentBeam({ position, color, additive, note }) {
   const haloRef = useRef(null);
   const ringRef = useRef(null);
   const pinRef = useRef(null);
+  const rodRef = useRef(null);
+  const stemRef = useRef(null);
+  const captionRef = useRef(null);
+  const probe = useRef(new THREE.Vector3());
   const { getTime, animated } = useMetaphorClock();
 
   // Without a shaft to cap, the pin sits closer to the item it marks.
   const pinHeight = additive ? SHAFT_HEIGHT + 1.35 : 2.6;
 
-  useFrame(() => {
+  useFrame((state) => {
     const t = animated ? getTime() : 0;
     // Slow breathing rather than a blink: this marks the topic's thesis, and a
     // flashing thesis reads as an error state.
@@ -246,9 +276,37 @@ function AccentBeam({ position, color, additive, note }) {
       ringRef.current.rotation.z = t * 0.35;
       ringRef.current.scale.setScalar(0.94 + 0.06 * Math.sin(t * 1.15 + 1));
     }
+    // Size the callout for the reader. Only the stem and pin: those are the two
+    // solid shapes that carry the marker on any background, and the shaft and
+    // halo beside them are additive LIGHT sized to the scene — growing a glow
+    // on a dark theme blooms the very item it points at, which is the failure
+    // the shaft's own comment records for a different reason.
+    const rod = rodRef.current;
+    if (!rod) return;
+    rod.getWorldPosition(probe.current);
+    const scale = accentRodScale({
+      distance: state.camera.position.distanceTo(probe.current),
+      fovDegrees: state.camera.fov ?? 45,
+      viewportHeightPx: state.size.height,
+      pinWidth: PIN_WIDTH,
+      stemHeight: pinHeight
+    });
+    // The stem stretches along its own axis only: it is a leader line, and a
+    // uniformly scaled one gets thicker as it gets longer, which is how a
+    // hairline pointer becomes a girder on a desktop.
+    if (stemRef.current) stemRef.current.scale.set(scale.pin, scale.stem, scale.pin);
+    const tip = pinHeight * scale.stem;
     if (pinRef.current) {
-      pinRef.current.position.y = pinHeight + Math.sin(t * 1.15) * 0.22;
+      pinRef.current.position.y = tip + Math.sin(t * 1.15) * 0.22 * scale.pin;
       pinRef.current.rotation.y = t * 0.6;
+      pinRef.current.scale.setScalar(scale.pin);
+    }
+    // The caption rides the pin's TIP, not its centre, or the pin's own growth
+    // closes the gap. It stays OUTSIDE both scaled groups: its type is already
+    // screen-constant, so scaling a parent would apply the correction twice and
+    // hand a small canvas a banner.
+    if (captionRef.current) {
+      captionRef.current.position.y = tip + PIN_HALF_HEIGHT * scale.pin + CAPTION_CLEARANCE;
     }
   });
 
@@ -312,45 +370,72 @@ function AccentBeam({ position, color, additive, note }) {
           diff of the marker's colour — the standing theory in the ledger had
           it as the stem drawn ON the name, and the stem is `meshStandardMaterial`,
           whose `depthWrite` defaults to true. An annotation writes no depth. */}
-      <mesh position={[0, pinHeight / 2, 0]} renderOrder={CAPTION_RENDER_ORDER}>
-        <cylinderGeometry args={[0.055, 0.055, pinHeight, 8]} />
-        <meshStandardMaterial
-          color={color}
-          emissive={color}
-          emissiveIntensity={0.4}
-          roughness={0.4}
-          metalness={0.2}
-          depthTest={false}
-          depthWrite={false}
-        />
-      </mesh>
+      {/* Stem and pin share one group so one `FRAME_IGNORE_DATA` covers both,
+          and are scaled by two different numbers inside it — see
+          `accentRodScale`. The ring below deliberately stays at world scale.
+
+          `FRAME_IGNORE_DATA` is not optional once the rod can grow, and the
+          reason is the one `sceneFraming.js` records for item labels: anything
+          sized for the READER grows as the camera pulls back, which makes it a
+          fixed point of the fit rather than a constraint on it. Measured with
+          the rod left in: the bare scene — marker hidden, labels hidden — moved
+          101k pixels on a 717x512 galaxy and 23k on a city cover, against 0 for
+          two runs of the same code, because a marker grown for the canvas
+          enlarged the subject, which pushed the camera back, which grew the
+          marker again. A marker is not the thing it marks. What the fit still
+          owes it is the annotation headroom it already reserves above the
+          subject. */}
+      <group ref={rodRef} userData={FRAME_IGNORE_DATA}>
+        <group ref={stemRef}>
+          <mesh position={[0, pinHeight / 2, 0]} renderOrder={CAPTION_RENDER_ORDER}>
+            <cylinderGeometry args={[0.055, 0.055, pinHeight, 8]} />
+            <meshStandardMaterial
+              color={color}
+              emissive={color}
+              emissiveIntensity={0.4}
+              roughness={0.4}
+              metalness={0.2}
+              depthTest={false}
+              depthWrite={false}
+            />
+          </mesh>
+        </group>
+        {/* An OPAQUE, lit pin at the top of the stem. The shaft and halo are
+            translucent, which makes them a matter of contrast — and against the
+            whiteboard theme's near-white sky there is barely any contrast to
+            spend. A solid shape carries the marker on any background, and a slow
+            bob keeps it reading as a pointer rather than as scene furniture. */}
+        <mesh
+          ref={pinRef}
+          position={[0, pinHeight, 0]}
+          rotation={[Math.PI, 0, 0]}
+          renderOrder={ACCENT_PIN_ORDER}
+        >
+          <coneGeometry args={[0.42, 0.95, 5]} />
+          <meshStandardMaterial
+            color={color}
+            emissive={color}
+            emissiveIntensity={0.55}
+            roughness={0.35}
+            metalness={0.15}
+            depthTest={false}
+            depthWrite={false}
+          />
+        </mesh>
+      </group>
+      {/* The ring is a DECAL on the item, not part of the rod: it is sized
+          against the thing it encircles and it is the one piece of the callout
+          that stays depth-tested, so it hides when the item does. Growing it
+          for a small canvas would ring the item's neighbours instead. */}
       <mesh ref={ringRef} position={[0, 0.12, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <ringGeometry args={[1.15, 1.4, 44]} />
         <meshBasicMaterial color={color} transparent opacity={0.92} depthWrite={false} />
       </mesh>
-      {/* An OPAQUE, lit pin at the top of the stem. The shaft and halo are
-          translucent, which makes them a matter of contrast — and against the
-          whiteboard theme's near-white sky there is barely any contrast to
-          spend. A solid shape carries the marker on any background, and a slow
-          bob keeps it reading as a pointer rather than as scene furniture. */}
-      <mesh
-        ref={pinRef}
-        position={[0, pinHeight, 0]}
-        rotation={[Math.PI, 0, 0]}
-        renderOrder={ACCENT_PIN_ORDER}
-      >
-        <coneGeometry args={[0.42, 0.95, 5]} />
-        <meshStandardMaterial
-          color={color}
-          emissive={color}
-          emissiveIntensity={0.55}
-          roughness={0.35}
-          metalness={0.15}
-          depthTest={false}
-          depthWrite={false}
-        />
-      </mesh>
-      {note ? <AccentCaption text={note} y={pinHeight + 1.05} color={color} /> : null}
+      {note ? (
+        <group ref={captionRef} position={[0, pinHeight + PIN_HALF_HEIGHT + CAPTION_CLEARANCE, 0]}>
+          <AccentCaption text={note} y={0} color={color} />
+        </group>
+      ) : null}
     </group>
   );
 }

@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { captionFitsCanvas } from '../src/components/metaphorScenes/accentCaptionFit.js';
+import { accentRodScale } from '../src/components/metaphorScenes/accentRodScale.js';
 
 /** The plate a note of `chars` is drawn at, in CSS pixels. */
 function plate(chars, lines = 1) {
@@ -67,5 +68,67 @@ describe('the caption yields to the panels rather than fighting them', () => {
     expect(source).not.toMatch(/apply:\s*\(\)\s*=>\s*\{\}/);
     expect(source).toMatch(/plateRef/);
     expect(source).toMatch(/ruleRef/);
+  });
+});
+
+/**
+ * The rod's two screen-space bounds.
+ *
+ * The pin head is floored and the stem is held constant, and the reason they
+ * are two numbers rather than one is in `accentRodScale.js`: driven from a
+ * single uniform scale they fight, and the galaxy fixture came back with a
+ * SHORTER stem and a head shrunk from 7 px to 3 px — worse on both counts than
+ * the defect being fixed.
+ *
+ * The distances below are the ones measured on the three standing viewports:
+ * a nine-service city sits ~62 world units from the camera, a layer cake ~20,
+ * a subway network ~15.
+ */
+describe('accentRodScale', () => {
+  const view = (distance, viewportHeightPx) => ({
+    distance,
+    fovDegrees: 45,
+    viewportHeightPx,
+    pinWidth: 0.84,
+    stemHeight: 2.6
+  });
+
+  it('grows the pin head on the canvases where it rendered as a speck', () => {
+    // Measured before the change: 9 px on a phone, 8 px on a foldable cover.
+    expect(accentRodScale(view(62, 844)).pin).toBeGreaterThan(1.5);
+    expect(accentRodScale(view(62, 512)).pin).toBeGreaterThan(2.5);
+  });
+
+  it('never shrinks a pin head that already reads', () => {
+    // The floor is monotone by construction, which is what let one number be
+    // chosen from twelve measured cells: no cell that reads today can regress.
+    for (const distance of [4, 12, 20, 40, 62, 120]) {
+      for (const height of [380, 512, 844, 900, 1600]) {
+        expect(accentRodScale(view(distance, height)).pin).toBeGreaterThanOrEqual(1);
+      }
+    }
+  });
+
+  it('holds the stem at one on-screen length, shrinking as well as growing', () => {
+    // The subway's rod stood 168 px on a desktop and ran off the top of the
+    // canvas once the callout left the camera fit; the city's stood 28 px on a
+    // phone, too short to stand the pin off the roof it marks.
+    const tall = accentRodScale(view(15, 900));
+    const short = accentRodScale(view(62, 844));
+    expect(tall.stem).toBeLessThan(1);
+    expect(short.stem).toBeGreaterThan(1);
+  });
+
+  it('keeps the stem inside its pathological-case clamps', () => {
+    expect(accentRodScale(view(0.2, 900)).stem).toBeGreaterThanOrEqual(0.5);
+    expect(accentRodScale(view(5000, 380)).stem).toBeLessThanOrEqual(4);
+  });
+
+  it('lets the two bounds disagree, which is the whole point of the split', () => {
+    // A small world on a short canvas: the head wants to grow and the stem
+    // wants to shrink. One scalar cannot do both.
+    const galaxy = accentRodScale(view(11, 512));
+    expect(galaxy.pin).toBeGreaterThanOrEqual(1);
+    expect(galaxy.stem).toBeLessThan(galaxy.pin + 1);
   });
 });
