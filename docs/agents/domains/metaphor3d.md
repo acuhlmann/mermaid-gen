@@ -67,6 +67,28 @@ ones that will bite an edit.
   points nearest the camera — used to dominate the fit and push the subject to ~40% of the frame.
   New ambience components must set `userData[FRAME_IGNORE]`, and new substrate discs must be sized
   from their content rather than padded by a constant.
+- **Anything sized for the READER must also leave the camera fit, and the accent callout was the
+  last thing doing one without the other** (`accentRodScale.js`, `MetaphorAccents.jsx`). The rule
+  `sceneFraming.js` states for item labels — a screen-constant object grows as the camera pulls
+  back, so it is a fixed point of the fit rather than a constraint on it — applies to every
+  annotation, and the caption plate had been screen-constant _and_ in `collectFramePoints` since it
+  shipped (text is pruned there by material; a `planeGeometry` is not). Measured when the rod was
+  given a screen floor with both still in the fit: the bare frame moved **101k pixels on a 717x512
+  galaxy and 23k on a city cover, against 0 for two runs of the same code**. Both now carry
+  `FRAME_IGNORE_DATA`. Two consequences worth keeping: taking them out makes scenes BIGGER (the
+  subway desktop went from half the canvas to filling it), and it also lets a rod run off the top,
+  which is why the stem is capped as well as floored.
+- **A pin head's width and its stem's length are two screen-space questions, not one scale.**
+  Driving both from a single uniform number makes them fight: the galaxy fixture wants a wider head
+  and a shorter stem, and `min(grow, cap)` gave it the short stem AND a head shrunk from 7 px to
+  3 px — worse on both counts than the defect being fixed. The head is floored (never capped: a
+  head already big enough to read is emphasis) and the stem is held constant both ways (a stem that
+  is too long is what puts the pin off-canvas).
+- **A screenshot diff of a scene with emissive geometry measures the BLOOM, not the object.**
+  Growing the accent pin ~2.5x turned its diff-mask bounding box from 10x30 to 200x178 px on a
+  390x844 phone, which reads exactly like a runaway scale; the picture showed a 21 px pin. The
+  post-processing bloom spreads ~100 px at a very low amplitude that still clears an 8/255 diff
+  threshold. Classify the object's own colour inside the mask (here: amber) before measuring size.
 - **Fog is a fraction of the content radius, re-solved against the live camera distance**
   (`metaphorAtmosphere.js`). Never reintroduce absolute `near`/`far`: a fixed band sits behind a
   small scene and in front of a large one, which is what made big tree groves wash out.
@@ -569,6 +591,54 @@ ones that will bite an edit.
 ---
 
 ## Full findings
+
+- **The accent callout — the one thing in the renderer that says "this item is the thesis" — was
+  the last piece still sized purely in world units, and it collapsed on exactly the canvases that
+  needed it most.** Measured across four fixtures (subway, city, layercake, a noir galaxy) at the
+  three standing viewports, the pin head came out **8 px wide on a 717x512 foldable cover and 9 px
+  on a 390x844 phone** for a nine-service city, against **43 px** for a subway network on a
+  1440x900 desktop — a 5x spread for one fixed piece of geometry, driven not by the canvas but by
+  the WORLD: these scenes run from a 14-unit cake to a 60-unit bridge, so a fixed 0.84-unit cone is
+  a different fraction of every one of them. At the small end it is not a marker at all; the phone
+  city's callout reads as an amber speck on a roof, indistinguishable from a rooftop light. The
+  file's own `CAPTION_TARGET_PX` had stated the principle for the caption above it since the day it
+  shipped. Four things this cost, each a separate round:
+
+  - **A screen-sized object must leave the camera fit in the same change that makes it
+    screen-sized.** `sceneFraming.js` already records this for item labels — anything sized for the
+    reader grows as the camera pulls back, which makes it a fixed point of the fit rather than a
+    constraint on it — and the first version left both rod and caption in `collectFramePoints`.
+    Measured: the bare frame (marker hidden, labels hidden) moved **101k px on a 717x512 galaxy and
+    23k on a city cover, against 0 px for two runs of the same code**, because a marker grown for
+    the canvas enlarged the subject, which pushed the camera back, which grew the marker again. The
+    caption's plate had been in this state since it shipped and nobody had noticed, because text is
+    pruned from the fit by material and a `planeGeometry` is not.
+  - **Taking the callout out of the fit makes the scenes bigger, which is the larger win.** The
+    subway on a 1440x900 desktop went from occupying the left half of the canvas to filling it.
+  - **…and it also lets the rod run off the top of the frame.** With the scene closer, the subway's
+    already-168 px rod grew past the canvas and took its pin with it — a leader line whose head is
+    off-screen is worse than no marker, because the amber stripe still crosses the picture and now
+    points at nothing. So the stem is held constant BOTH ways, not merely floored.
+  - **The pin's width and the stem's length are two questions and need two scales.** Driven from
+    one uniform number they fight: the galaxy wants a wider head and a shorter stem, and a single
+    scalar taking `min(grow, cap)` gave it the short stem AND a head shrunk from 7 px to 3 px,
+    worse on both counts than the defect being fixed. The head is floored at 22 px and never
+    capped (a head already big enough to read is emphasis, and a floor is monotone — no cell that
+    reads today can regress). The stem is held at 80 px, shrinking as well as growing, inside
+    pathological-case clamps of 0.5x/4x — the lower one because the stem exists to clear whatever a
+    scene stacks above its own anchor, which is the defect the header of `MetaphorAccents.jsx`
+    records.
+
+  Result over the twelve cells: pin head **5-43 px -> 21-30 px**, and the four cells that already
+  read well were left within a pixel or two of where they were. Two method notes. **A diff mask
+  over a scene with emissive geometry measures the BLOOM, not the object** — growing the pin turned
+  its mask's bounding box from 10x30 to 200x178 px on a phone, which reads exactly like a runaway
+  scale, while the picture showed a 21 px pin; the post-processing bloom spreads ~100 px at an
+  amplitude that still clears an 8/255 threshold, so classify the object's own colour inside the
+  mask before measuring size. And **run the same code twice before believing any frame-to-frame
+  number**: `CakeSprinkles` and the city's traffic re-randomise per mount, so the layercake's bare
+  frame differs from itself by 15.7k px on a phone and 56k on a desktop — the identical figure the
+  before/after diff reported, and the reason a same-code control column is in the probe.
 
 - **A scene's categorical grouping axis was drawn as a placard and nothing else, and a placard is
   the first thing a small screen throws away.** `district`, `bed`, `chain`, a fused world's
