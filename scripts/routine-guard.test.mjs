@@ -21,6 +21,7 @@ import {
   loadPlaybook,
   matchOpenRoutinePrs,
   matchesAny,
+  mergePolicyOf,
   missingPathNote,
   ownOpenDebt,
   ownersOfPath,
@@ -423,6 +424,53 @@ test('code-writing routines still have to declare a budget', () => {
   }
 });
 
+// --- mergePolicy: the one promise that is not about the diff -----------------------------------
+// Every other budget in this file bounds what a routine may write. This one bounds whether it may
+// land what it wrote, and `prune` is the only routine whose whole output is a deletion the owner has
+// to judge (README rule 10, page bar #3).
+
+test('prune is the hold-policy routine, and that is not editable by a routine run', () => {
+  const { playbook, errors } = loadPlaybook(ROOT, 'prune');
+  assert.deepEqual(errors, [], 'the prune playbook must load clean');
+  assert.equal(
+    mergePolicyOf(playbook),
+    'hold',
+    'the user asked for a PR they review before anything is deleted; if this flips, the shelf has ' +
+      'auto-merged a deletion'
+  );
+});
+
+test('a routine with no mergePolicy self-merges, because that is every other rung', () => {
+  assert.equal(mergePolicyOf({ name: 'review' }), 'self-merge');
+  assert.equal(mergePolicyOf({ name: 'deps', mergePolicy: 'self-merge' }), 'self-merge');
+});
+
+test('a misspelt mergePolicy fails the playbook instead of quietly self-merging', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'routine-guard-'));
+  fs.mkdirSync(path.join(dir, 'docs/routines'), { recursive: true });
+  fs.mkdirSync(path.join(dir, 'docs/routines/ledger'), { recursive: true });
+  fs.writeFileSync(
+    path.join(dir, 'docs/routines/hold-x.md'),
+    "---\nname: hold-x\ntier: code-writing\nmergePolicy: hode\nmaxFiles: 3\nallowedPaths:\n  - 'docs/**'\n---\n"
+  );
+  fs.writeFileSync(path.join(dir, 'docs/routines/ledger/hold-x.md'), '# ledger\n');
+  const { errors } = loadPlaybook(dir, 'hold-x');
+  assert.ok(
+    errors.some((error) => /mergePolicy/.test(error)),
+    `"${errors.join(' | ')}" — a typo must not fall back to the permissive default`
+  );
+});
+
+test('a hold routine is not an answer to "which routine may write this file?"', () => {
+  // `ready-for-agent` promises an agent will finish the work. A held deletion is unfinished until a
+  // person merges it, so prune must not make a stuck issue look owned (#461's class).
+  const playbooks = [
+    { name: 'prune', playbook: { allowedPaths: ['**'], mergePolicy: 'hold' } },
+    { name: 'improve', playbook: { allowedPaths: ['scripts/**'] } }
+  ];
+  assert.deepEqual(ownersOfPath('scripts/anything.mjs', playbooks), ['improve']);
+});
+
 test('every shipped playbook declares prefixes that match the PR titles it actually writes', () => {
   // Regression: the `<name>:` default silently misses `resolve ledger:` and `anything automation:`,
   // both of which are real PR titles in this repo's history. A preflight that cannot see a
@@ -436,7 +484,8 @@ test('every shipped playbook declares prefixes that match the PR titles it actua
     ['metaphor3d', 'Metaphor3D: draw the grouping axis on the bodies that carry it'],
     ['canvas-graph-edit', 'canvas graph edit: mermaid gantt family'],
     ['office-life', 'office life: an interruption leaves a mark in working memory'],
-    ['deps', 'deps: merge npm_and_yarn group #455']
+    ['deps', 'deps: merge npm_and_yarn group #455'],
+    ['prune', 'prune: dead-file — 4 file(s)']
   ];
   const shipped = collectPlaybooks(ROOT)
     .filter(({ playbook }) => String(playbook.tier) !== 'report')
@@ -1121,7 +1170,13 @@ test('every shipped playbook declares a filing budget it can be held to', () => 
     assert.match(String(playbook.maxIssues), /^\d+$/, `${name} must declare maxIssues`);
     capped.push({ name, budget: Number(playbook.maxIssues) });
   }
-  assert.equal(capped.length, 8, 'every code-writing rung on both shelves is bounded');
+  assert.equal(
+    capped.length,
+    9,
+    'every code-writing rung on both shelves is bounded — 8 as measured by rule 12, plus `prune`, ' +
+      'added 2026-09-07 as a ninth deliberately: this number is the ceiling on total inflow, so it ' +
+      'moves only when a rung is actually stood up'
+  );
   assert.ok(
     capped.every((entry) => entry.budget <= 2),
     'a ceiling above 2 filings a night per rung does not bind on a shelf measured at 3.3 a night'

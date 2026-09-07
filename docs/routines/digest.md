@@ -150,6 +150,12 @@ This is the section the routine exists for. Report each of these or say explicit
 1. **A job that did not run.** Any playbook on either shelf whose ledger has no row for last
    night, or which produced no `main` commit and no PR. Name it and say how many nights it has
    been quiet. A job going dark is silent by construction — nothing else in the system notices.
+   **Except a playbook whose `schedule:` is `none`.** `prune` is manual-only until the owner
+   decides otherwise (README § Adding a routine, step 4), so an empty ledger is its correct state
+   and reporting it nightly is exactly the noise that gets a digest muted. Read `schedule:` from
+   the `head -12` pass in § 1; if it is `none`, skip the rung and do not mention it as a gap. The
+   inverted finding _is_ reportable: a `schedule: none` playbook with a live cron behind it means
+   somebody scheduled it without editing the playbook.
 2. **A PR left open overnight.** Any open PR older than 24 h, with its CI state. Say whether
    `routine-guard --preflight` will now refuse that routine's next firing, because it will. A held PR
    (a routine that finished a fix and declined to merge it — `resolve.md` § 4) belongs in this line
@@ -161,6 +167,13 @@ This is the section the routine exists for. Report each of these or say explicit
    `blocked-by-` row, a stale `allowedPaths` glob, or any playbook budget on either shelf ever gets
    priced. When the held PR belongs to `improve`, name what froze with it — the shelf has no budget
    owner while it sits, which is worth more in one sentence than three nights of "sitting untouched".
+   **Say which kind of hold it is** (README § "Two kinds of hold"), because the two need opposite
+   things from the reader. A `resolve:` hold means _an agent is unsure_ and nobody has to do anything
+   tonight. A `prune:` hold means _a deletion is waiting on your decision_ — `mergePolicy: hold` is
+   that routine's design, not its doubt — and it blocks that routine's next run by construction, since
+   preflight refuses to start behind it. Report a `prune:` hold with its age and the number of files,
+   and carry it on the `Needs you:` line the morning after it opens; from then on it stays in this
+   section with its age until it is merged or closed, so the reminder does not escalate into a nag.
 3. **Red `main`.** Any failed CI run on `main` in the window, with the job name. Rule out the
    documented `anythingRuntimeCheck.test.js` load-contention flake before calling it a regression
    (`docs/agents/sensors.md` § Known flakes) — the tell is a uniform timing shift across every
@@ -182,6 +195,10 @@ This is the section the routine exists for. Report each of these or say explicit
    (`30 4,16 * * *`), so a half-day of silence from it is invisible to a PR-time heuristic alone.
    Report a **disabled** Claude routine as a finding — a paused rung and a missing one look the same
    from the outside and both mean the ladder is not running.
+   `schedule: none` is not drift and is not a missing cron — it is a declaration that no trigger
+   should exist (`prune`, manual-only). Compare `claude -p '/schedule list'` against it the other
+   way: a live routine whose name matches a `schedule: none` playbook is somebody scheduling a rung
+   that the playbook says has none, and that is a finding about the playbook, not about the cron.
 5. **The dependency queue.** `deps` owns it now (`docs/routines/deps.md`), and this is the check that
    `deps` is working it: open Dependabot PRs with age and CI state, and the count of open Dependabot
    _alerts_ from `GET /repos/:owner/:repo/dependabot/alerts?state=open` — separate what has a patched
@@ -250,7 +267,10 @@ a job that skipped — belongs in a _section_ below. Reporting routine-manageabl
 how a real one gets missed: before ADR-0017 the shelf flagged a stalled issue every time one aged
 three days, and every instance was a number in a playbook or a lint warning that an agent could have
 handled and chose not to. The reader cannot tell an over-cautious agent from an emergency, so the
-agent has to make that distinction instead.
+agent has to make that distinction instead. One held PR is the exception, and it is not
+routine-manageable: a `prune:` batch is a deletion waiting on the owner's decision, which is page bar
+#3 with a number on it (watchdog 2 says when to raise it and when to let it age quietly in its
+section). A `resolve:` hold — an agent saying _I am unsure_ — never earns the line.
 
 Never open an issue, never label one, never close one. If the digest finds something that needs
 work, it names it and the next night's `resolve` picks it up from the backlog `review` and

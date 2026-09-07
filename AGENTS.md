@@ -46,8 +46,9 @@ Domain depth (slots, validation ladders, wire-contract habits, where-to-put tabl
   - `npm run lint` — all three workspaces, formatter appends per-rule "Agent guidance" footer with the canonical fix and suppression syntax (`packages/eslint-config/formatter.cjs`)
   - `npm run verify:ratchet` — quality trend: monolith LOC and lint warnings should only fall, strict-island and suite counts should only rise (`docs/agents/ratchet.json`). **Not part of `check`** — it gates no build; `--json` for machine-readable, `--with-lint` to include the ESLint pass
   - `npm run routine:guard -- --preflight|--postflight <name>` — routine budget: files, tests, filings (rule 12)
-  - `npm run routine:guard -- --reachable <path>` — which routine may write this file? owner / `frozen` / `NONE` + exit 1; run before labelling `ready-for-agent` (ADR-0017)
+  - `npm run routine:guard -- --reachable <path>` — which routine may write this file? owner / `frozen` / `NONE` + exit 1; run before labelling `ready-for-agent` (ADR-0017). A `mergePolicy: hold` rung only proposes — it can't finish the work the label promises.
   - `npm run routine:guard -- --filings [--json]` — backlog, oldest open, net inflow, filings vs `maxIssues` per rung (rule 12)
+  - `npm run prune:scan` — tracked files nothing refers to; `prune`'s queue. A report, not in `check` (`docs/routines/prune.md`)
   - `npm run verify:modularity` — reminder of how to run a semantic modularity review (Claude `/modularity:review` or Cursor `.cursor/skills/modularity/review/SKILL.md`); see [`docs/agents/modularity.md`](docs/agents/modularity.md)
 - **Workspace-scoped** (faster when you know the blast radius):
   - `npm run typecheck -w apps/server && npm run test -w apps/server`
@@ -221,12 +222,11 @@ goes in the root files, and still in both.
 
 Non-functional work — post-merge review, doc drift, test hardening, dependency upkeep — runs on a
 schedule as **NFR routines** ([ADR-0014](docs/decisions/0014-autonomous-nfr-routines.md),
-[ADR-0017](docs/decisions/0017-routine-ownership-dependabot-and-the-attention-bar.md)). Five ship
-today — `review`, `improve`, `resolve`, `deps`, `digest`. **Read
-[`docs/routines/README.md`](docs/routines/README.md) before touching one** — it is the full
-contract (budget enforcement, who may widen a budget, the `ready-for-human` / `ready-for-agent`
-rules, the one-branch-at-a-time preflight check, tiers). This section carries only what that
-contract doesn't say.
+[ADR-0017](docs/decisions/0017-routine-ownership-dependabot-and-the-attention-bar.md)). Six ship
+today. **Read [`docs/routines/README.md`](docs/routines/README.md) before touching one** — it is the
+full contract (the routine table, budget enforcement, who may widen a budget, the
+`ready-for-human` / `ready-for-agent` rules, the one-branch-at-a-time preflight check, tiers). This
+section carries only what that contract doesn't say.
 
 - **`npm run verify:ratchet` gates nothing — it is the `improve` routine's work queue.** Monolith
   LOC, lint warnings and root-doc byte counts should only fall; strict-island and suite counts

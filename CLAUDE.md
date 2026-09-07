@@ -179,12 +179,11 @@ Three backends: **DeepSeek**, **OpenRouter**, **Vertex** (Gemini). Selection is 
 
 Non-functional work — post-merge review, doc drift, test hardening, dependency upkeep — runs on a
 schedule as **NFR routines** ([ADR-0014](docs/decisions/0014-autonomous-nfr-routines.md),
-[ADR-0017](docs/decisions/0017-routine-ownership-dependabot-and-the-attention-bar.md)). Five ship
-today — `review`, `improve`, `resolve`, `deps`, `digest`. **Read
-[`docs/routines/README.md`](docs/routines/README.md) before touching one** — it is the full
-contract (budget enforcement, who may widen a budget, the `ready-for-human` / `ready-for-agent`
-rules, the one-branch-at-a-time preflight check, tiers). This section carries only what that
-contract doesn't say.
+[ADR-0017](docs/decisions/0017-routine-ownership-dependabot-and-the-attention-bar.md)). Six ship
+today. **Read [`docs/routines/README.md`](docs/routines/README.md) before touching one** — it is the
+full contract (the routine table, budget enforcement, who may widen a budget, the
+`ready-for-human` / `ready-for-agent` rules, the one-branch-at-a-time preflight check, tiers). This
+section carries only what that contract doesn't say.
 
 - **`npm run verify:ratchet` gates nothing — it is the `improve` routine's work queue.** Monolith
   LOC, lint warnings and root-doc byte counts should only fall; strict-island and suite counts

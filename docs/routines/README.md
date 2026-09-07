@@ -11,10 +11,11 @@ Every routine is three things:
 | **Ledger**   | `docs/routines/ledger/<name>.md`               | What it has already done — durable memory across runs |
 | **Trigger**  | a Claude Routine or a Cursor automation (cron) | Three lines that point at the two files above         |
 
-Five routines ship today: `review`, `improve`, `resolve` and `deps` (code-writing) and
-[`digest`](digest.md) (report). Their crons and the feature automations' form one **night ladder**
-— see [`review.md`](review.md) for the table, which also names which host runs which rung. `digest`
-is last and reports on everything before it.
+Six routines ship today: `review`, `improve`, `resolve`, `deps` and [`prune`](prune.md)
+(code-writing) and [`digest`](digest.md) (report). Their crons and the feature automations' form one
+**night ladder** — see [`review.md`](review.md) for the table, which also names which host runs which
+rung. `digest` is last and reports on everything before it. `prune` is on no ladder at all: it has
+no cron and the owner starts it by hand.
 
 | Routine                 | Host   | Shelf | What it owns                                                     |
 | ----------------------- | ------ | ----- | ---------------------------------------------------------------- |
@@ -22,6 +23,7 @@ is last and reports on everything before it.
 | [`improve`](improve.md) | Claude | NFR   | the ratchet, the sensors, **every routine's budget** (ADR-0017)  |
 | [`resolve`](resolve.md) | Cursor | NFR   | the open-issue backlog                                           |
 | [`deps`](deps.md)       | Claude | NFR   | Dependabot PRs, advisories, and code that breaks when they move  |
+| [`prune`](prune.md)     | none   | NFR   | whole files nobody needs — **manual, and never self-merged**     |
 | [`digest`](digest.md)   | Claude | NFR   | one comment a day on #452, and the watchdog that notices silence |
 
 The trigger prompt is deliberately almost empty:
@@ -60,7 +62,12 @@ the one property distinguishing the two tiers was the one nothing checked.
 
 **Every `code-writing` routine opens a PR and merges it itself once CI is green, by default.** The PR
 exists so the owner has something to skim, not as a gate — a routine that waits for review on every
-change is a routine that saves nobody any time.
+change is a routine that saves nobody any time. **`mergePolicy` is the front-matter key that turns
+the default off**, and exactly one routine uses it: `prune` declares `hold`, because its whole output
+is a deletion (see "Two kinds of hold" below). It is a policy and not a tier — a held routine still
+declares `maxFiles` and still passes postflight — so "it is only a proposal" can never stand in for a
+budget. `routine-guard` validates the key (a typo must not silently fall back to the permissive
+default) and prints the policy back on the postflight line, at the moment the run is about to push.
 
 What keeps that safe is **the budget, not the tier and not a human in the loop**: a small `maxFiles`,
 an explicit path allowlist, `npm run check` green, and — for any fix to a bug — a test that fails
@@ -77,22 +84,31 @@ routine whose `allowedPaths` contained `docs/**` could edit the numbers that bou
 own postflight, while the prose said the budget "is not advisory and it does not read the prose". A
 safety property that lives only in the file it protects is not one.
 
-### The one exception: holding a PR
+### Two kinds of hold: one judged, one structural
 
-A routine may push a fix, open the PR, and **not** merge it — when the fix is correct (test-proven)
-but the routine itself judges the unattended-merge risk high: a trust-boundary sanitizer/allowlist,
-an ambiguous "correct" approach, a regression test that needed real product judgement rather than a
-direct transcription of the bug, or a diff adjacent to the don't-touch list. It says what it's unsure
-of in the PR and **leaves the issue's label alone**, so the next firing re-reads it. See
-[`docs/routines/resolve.md`](resolve.md) § 4 for the concrete bar and
-[ADR-0015](../decisions/0015-resolve-routine-and-escalation.md) for why this is a per-run judgement
-call rather than a new tier.
+**A judgement hold** — any routine, any run. A routine may push a fix, open the PR, and **not** merge
+it — when the fix is correct (test-proven) but the routine itself judges the unattended-merge risk
+high: a trust-boundary sanitizer/allowlist, an ambiguous "correct" approach, a regression test that
+needed real product judgement rather than a direct transcription of the bug, or a diff adjacent to
+the don't-touch list. It says what it's unsure of in the PR and **leaves the issue's label alone**, so
+the next firing re-reads it. See [`docs/routines/resolve.md`](resolve.md) § 4 for the concrete bar
+and [ADR-0015](../decisions/0015-resolve-routine-and-escalation.md) for why this is a per-run
+judgement call rather than a new tier.
 
-Holding is narrow by design: a routine that holds by default has just reinvented "always ask a human"
-(the overhead this whole shelf exists to remove), and a routine that never holds has no honest way to
-represent "I'm not sure." Holding on the same finding three runs running is a nag, not a service —
-stop repeating it and say so once instead (see `resolve.md`'s "When a hold repeats" for the concrete
-rule).
+**A policy hold** — `prune`, every run, declared as `mergePolicy: hold`. This one is **not** an
+admission of uncertainty and must not be read as one: the routine is confident, the evidence is in
+the PR body, and the reason it waits is that deleting a file is rule 10's page bar #3
+(_irreversible destruction_), which is the owner's decision to make and nobody else's. The two kinds
+look identical from GitHub and mean opposite things, so a held `prune:` PR is never "blocked pending
+the routine's judgement" — `digest` says which kind it is, and `prune`'s ledger records the close (not
+just the merge) as the answer, because a declined deletion must never be re-proposed.
+
+Holding by _judgement_ stays narrow by design: a routine that holds by default has just reinvented
+"always ask a human" (the overhead this whole shelf exists to remove), and a routine that never holds
+has no honest way to represent "I'm not sure." Holding on the same finding three runs running is a
+nag, not a service — stop repeating it and say so once instead (see `resolve.md`'s "When a hold
+repeats" for the concrete rule). A policy hold is exempt from that rule for the same reason a
+stop sign is exempt from "don't brake twice": it is not hesitation, it is the design.
 
 **What changed on 2026-09-01: a held PR no longer relabels its issue `ready-for-human`.** That was
 ADR-0015's mechanism, and it was the shelf's quietest failure — `ready-for-human` reads as "the owner
@@ -276,7 +292,10 @@ is paged by four things, and only four:
    rule 1 while doing it — a new rung spends the owner's subscription, so stand up exactly what the
    playbook declares, at the cadence it declares, and nothing more.
 3. **Irreversible destruction.** Deleting a branch with unmerged work, dropping data, dismissing a
-   security advisory, force-pushing, closing somebody else's PR.
+   security advisory, force-pushing, closing somebody else's PR. This is also the one bar a routine is
+   allowed to _stand in front of_ rather than clear: [`prune`](prune.md) deletes whole files and never
+   merges, so a `prune:` PR waiting on you is this category working as designed — not an agent that
+   failed to decide (§ "Two kinds of hold").
 4. **The product's direction.** What ArchiSlop should be, not how a file should be written. ADR-level
    questions, a slot's behaviour changing shape, a rename of a top-level concept.
 
@@ -314,6 +333,11 @@ and exits 1.
 **Run it before applying `ready-for-agent`.** `NONE` means the finding is real and the shelf has an
 ownership gap: label it `needs-triage`, name the file, and `improve` § 2b widens someone's budget —
 which is a one-line PR that unblocks a class, versus an issue that gets skipped every night forever.
+
+A `mergePolicy: hold` routine is never the answer it prints. `ready-for-agent` promises an agent will
+_finish_ the work, and a held deletion is unfinished until a person merges it — so `prune` is
+excluded from `ownersOfPath` even though its `allowedPaths` covers most of the tree. Listing it would
+make a stuck issue look owned by a bot that is designed to wait forever.
 
 ### 12. Filing costs the filer
 
@@ -408,7 +432,7 @@ hold when unsure) that already decide whether any routine change is safe to self
 1. Write `docs/routines/<name>.md` with the frontmatter block (`name`, `tier`, `schedule`,
    `host`, `maxFiles`, `maxIssues`, `allowedPaths`, `forbiddenPaths`, and optionally
    `prTitlePrefix` / `branchPrefix` when the PR titles this routine writes do not start with
-   `<name>:`) and a numbered work queue.
+   `<name>:`, or `mergePolicy: hold` when it may never merge its own PR) and a numbered work queue.
 2. Create `docs/routines/ledger/<name>.md` from an existing ledger.
 3. Choose the host — a Claude Routine or a Cursor automation — and put it in the `host:` key and the
    table above. Split on duty, not on load: an automation that files issues and the one that fixes
@@ -421,6 +445,11 @@ hold when unsure) that already decide whether any routine change is safe to self
    environment arrive by default, and a default-granted Google Drive in an unattended job is not
    something anyone chose). Deleting a routine, API triggers, and all Cursor-side setup stay the
    owner's (page bar #2).
+   **`schedule: none` is the manual-only exception**, and `prune` is the only routine that uses it. It
+   is a different failure mode from the one this step guards rather than an instance of it: the
+   shelf's oldest is "a playbook nobody ever runs", the manual-only risk is "a playbook somebody
+   forgets exists". It buys an exemption from `digest` watchdogs 1 and 4 and nothing else, and the
+   playbook has to say out loud that it has no cron (§ 0 of [`prune.md`](prune.md)).
 5. Fire it once (`/schedule run`) and read the whole run before leaving it on a schedule. Then pin its
    observed branch slug in `branchPrefix` — cloud runners generate names, and a fleet-wide prefix like
    `cursor/` would make preflight refuse to start behind a _different_ fleet's PR.

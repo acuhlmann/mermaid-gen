@@ -58,6 +58,14 @@ and `resolve` so the issues it files are in the backlog when `resolve` reads it 
 > move in bursts when an advisory lands, a twice-daily read of a short list costs minutes, and it
 > should never share a four-hour window with a review that costs an hour.
 >
+> [`prune`](prune.md) is **not a rung at all** — `schedule: none`, started by the owner by hand, and
+> it never merges what it proposes. Keep it out of the table above: a row with no cron reads to
+> `digest` as a rung that has gone dark, which is the one failure watchdog 1 exists to catch (its
+> candidates come from `npm run prune:scan`, a report that is deliberately not in `check`). It does
+> have write access to product code, so it is registered in
+> [`README.md`](README.md) § the routine table instead — the "one fleet" rule below is satisfied
+> there, and a `prune:` PR title prefix is what identifies its branches.
+>
 > **One fleet per 24-hour window.** Two hosts scanning the same commits is not redundancy — on
 > 2026-08-29 `review` and Cursor's unregistered `critical-bug-memory` automation both found the same
 > `renameErNode` label-guard bug and each paid for a PR (#442 closed unmerged, redundant with #446).

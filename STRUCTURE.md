@@ -208,10 +208,12 @@ Look up a concept here before grepping. Paths are repo-relative.
 | Daily NFR improvement playbook        | `docs/routines/improve.md`   |
 | Backlog-drain playbook                | `docs/routines/resolve.md`   |
 | Dependency/Dependabot playbook        | `docs/routines/deps.md`      |
+| Deletion-proposal playbook (manual)   | `docs/routines/prune.md`     |
 | Nightly digest + watchdog             | `docs/routines/digest.md`    |
 | Durable memory per routine            | `docs/routines/ledger/`      |
 | Budget enforcement                    | `scripts/routine-guard.mjs`  |
 | Path → owning routine (`--reachable`) | `scripts/routine-guard.mjs`  |
+| Unreferenced-file candidate scan      | `scripts/prune-scan.mjs`     |
 | Quality ratchet                       | `scripts/verify-ratchet.mjs` |
 
 ## Scheduled feature automations (`docs/automations/`)
