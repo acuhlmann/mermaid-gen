@@ -517,6 +517,16 @@ describe('the fused world publishes only the routes an editor can honour', () =>
     // The filter is a subtraction, so the risk it carries is over-subtracting.
     // None of the three shipped composites authors a `parent`/`moon`/`binary`,
     // so every one of their plan links must survive it.
+    //
+    // The derivation is a `readdirSync` over a directory two packages away, so
+    // it is a set this file does not control: rename the fixtures, move them, or
+    // change the `composite-` prefix and the loop below sweeps nothing while
+    // reporting green. That matters here more than the count suggests — this is
+    // the ONLY case that runs `isPickableFusedLink` against the documents the
+    // product actually ships; every other case in this block is built from one
+    // hand-written composite. `fusedCompositePlanner.test.js`, which the
+    // derivation above was copied from, guards both of its sweeps the same way.
+    expect(COMPOSITE_FIXTURE_NAMES.length).toBeGreaterThan(0);
     for (const name of COMPOSITE_FIXTURE_NAMES) {
       const fixture = readCompositeFixture(name);
       const plan = planFusedCompositeWorld(fixture);
@@ -577,15 +587,49 @@ describe('a picked fused link outranks every state that would hide it', () => {
   });
 
   it('leaves the resting scene exactly as it was', () => {
-    for (const state of [
-      { related: false, muted: false, activeId: null },
-      { related: true, muted: false, activeId: 'a' },
-      { related: false, muted: true, activeId: null },
-      { related: false, muted: false, activeId: 'b' }
-    ]) {
-      expect(fusedLinkPresentation(state)).toEqual(
-        fusedLinkPresentation({ ...state, picked: false })
-      );
-    }
+    // Pinned as literal tuples, not as `f(state)` against `f({...state, picked:
+    // false})`: `picked` defaults to false, so the two calls were the same call
+    // and the case passed by construction. Measured — changing the dimmed
+    // branch from 0.18 to 0.42 left it green, which is the whole property the
+    // name claims. The four resting states are every branch of
+    // `fusedLinkOpacity` a viewer who has tapped nothing can reach.
+    expect(fusedLinkPresentation({ related: false, muted: false, activeId: null })).toEqual({
+      dimmed: false,
+      cased: true,
+      emphasis: 1,
+      opacity: 0.9
+    });
+    expect(fusedLinkPresentation({ related: true, muted: false, activeId: 'a' })).toEqual({
+      dimmed: false,
+      cased: true,
+      emphasis: 1.5,
+      opacity: 0.96
+    });
+    expect(fusedLinkPresentation({ related: false, muted: true, activeId: null })).toEqual({
+      dimmed: false,
+      cased: false,
+      emphasis: 1,
+      opacity: 0.22
+    });
+    expect(fusedLinkPresentation({ related: false, muted: false, activeId: 'b' })).toEqual({
+      dimmed: true,
+      cased: false,
+      emphasis: 1,
+      opacity: 0.18
+    });
+  });
+
+  it('defaults `picked` to false, which is what makes the resting tuples above the default', () => {
+    // The half the self-comparison was reaching for, kept as its own case so it
+    // cannot silently absorb the one above: omitting `picked` must be the same
+    // as passing it false, or every resting number pinned there is pinning a
+    // state the renderer never asks for.
+    const state = { related: false, muted: false, activeId: null };
+    expect(fusedLinkPresentation(state)).toEqual(
+      fusedLinkPresentation({ ...state, picked: false })
+    );
+    expect(fusedLinkPresentation(state)).not.toEqual(
+      fusedLinkPresentation({ ...state, picked: true })
+    );
   });
 });
