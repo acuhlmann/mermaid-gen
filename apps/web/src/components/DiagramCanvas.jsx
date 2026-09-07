@@ -1155,7 +1155,7 @@ export default function DiagramCanvas({
       const pathEl = edgeHit.pathEl;
       if (!pathEl || pathEl.tagName !== 'path') return null;
       const dataId = pathEl.getAttribute('data-id');
-      const parsed = parseFlowchartEdgeDataId(dataId);
+      const parsed = parseFlowchartEdgeDataId(dataId, pathEl);
       if (!parsed) return null;
       const labelText = flowchartEdgeLabelText(pathEl, dataId);
       return {

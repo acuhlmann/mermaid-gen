@@ -17,14 +17,123 @@ function isSvgPath(el) {
 
 /**
  * @param {string | null | undefined} dataId
+ * @param {SVGPathElement | null | undefined} [pathEl] required for stateDiagram-v2 edges (`edgeN` ids carry no endpoints)
  * @returns {ParsedFlowchartEdgeId | null}
  */
-export function parseFlowchartEdgeDataId(dataId) {
+export function parseFlowchartEdgeDataId(dataId, pathEl = null) {
   if (!dataId || typeof dataId !== 'string') return null;
   const trimmed = dataId.trim();
-  const m = trimmed.match(/^L_([^_]+)_([^_]+)_(\d+)$/);
-  if (!m) return null;
-  return { from: m[1], to: m[2], index: Number(m[3]), raw: trimmed };
+
+  let m = trimmed.match(/^L_([^_]+)_([^_]+)_(\d+)$/);
+  if (m) return { from: m[1], to: m[2], index: Number(m[3]), raw: trimmed };
+
+  // erDiagram v3 unified renderer — before the class `id_` pattern, which also matches hyphens
+  m = trimmed.match(/^id_entity-([^-]+)-\d+_entity-([^-]+)-\d+_(\d+)$/);
+  if (m) return { from: m[1], to: m[2], index: Number(m[3]), raw: trimmed };
+
+  // classDiagram v3 unified renderer (prefix `id_`, not flowchart `L_`)
+  m = trimmed.match(/^id_([^_]+)_([^_]+)_(\d+)$/);
+  if (m) return { from: m[1], to: m[2], index: Number(m[3]), raw: trimmed };
+
+  // requirementDiagram and other hyphenated dagre edges (not flowchart/class/er shapes)
+  if (!trimmed.startsWith('flowchart-') && !trimmed.startsWith('id_')) {
+    m = trimmed.match(/^([^-]+)-([^-]+)-(\d+)$/);
+    if (m) return { from: m[1], to: m[2], index: Number(m[3]), raw: trimmed };
+  }
+
+  // stateDiagram-v2 — `edgeN` carries index only; endpoints come from layout
+  m = trimmed.match(/^edge(\d+)$/);
+  if (m) {
+    const index = Number(m[1]);
+    if (!pathEl) return null;
+    const endpoints = stateEdgeEndpointsFromPath(pathEl);
+    if (!endpoints) return null;
+    return { from: endpoints.from, to: endpoints.to, index, raw: trimmed };
+  }
+
+  return null;
+}
+
+/** @param {SVGPathElement} pathEl */
+function decodeEdgeDataPoints(pathEl) {
+  const raw = pathEl.getAttribute('data-points');
+  if (!raw) return null;
+  try {
+    return JSON.parse(atob(raw));
+  } catch {
+    return null;
+  }
+}
+
+/** @param {Element} node */
+function nodeCenter(node) {
+  const circle = node.querySelector('circle');
+  if (circle) {
+    return {
+      x: Number(circle.getAttribute('cx') || 0),
+      y: Number(circle.getAttribute('cy') || 0)
+    };
+  }
+  const rect = node.querySelector('rect') ?? (node.tagName === 'rect' ? node : null);
+  if (rect) {
+    const x = Number(rect.getAttribute('x') || 0);
+    const y = Number(rect.getAttribute('y') || 0);
+    const w = Number(rect.getAttribute('width') || 0);
+    const h = Number(rect.getAttribute('height') || 0);
+    return { x: x + w / 2, y: y + h / 2 };
+  }
+  const box = node.getBBox();
+  return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+}
+
+/** @param {{ x: number, y: number }} a @param {{ x: number, y: number }} b */
+function pointDistSq(a, b) {
+  const dx = a.x - b.x;
+  const dy = a.y - b.y;
+  return dx * dx + dy * dy;
+}
+
+/** @param {Element} group */
+function stateNodeIdFromGroup(group) {
+  const id = group.getAttribute('id') ?? '';
+  const stripped = id.replace(/^diagram-\d+-/i, '');
+  if (/^state-root_start-\d+$/.test(stripped)) return '[*]';
+  const m = stripped.match(/^state-(.+?)-\d+$/);
+  return m ? m[1] : null;
+}
+
+/** @param {SVGPathElement} pathEl */
+function stateEdgeEndpointsFromPath(pathEl) {
+  const points = decodeEdgeDataPoints(pathEl);
+  if (!points?.length) return null;
+  const svgRoot = pathEl.closest('svg');
+  if (!svgRoot) return null;
+  const nodes = [...svgRoot.querySelectorAll('g.node')].filter((g) => stateNodeIdFromGroup(g));
+  if (nodes.length < 2) return null;
+  const first = points[0];
+  const last = points[points.length - 1];
+
+  /** @param {{ x: number, y: number }} pt */
+  function nearestNode(pt) {
+    let best = null;
+    let bestD = Infinity;
+    for (const node of nodes) {
+      const d = pointDistSq(pt, nodeCenter(node));
+      if (d < bestD) {
+        bestD = d;
+        best = node;
+      }
+    }
+    return best;
+  }
+
+  const fromNode = nearestNode(first);
+  const toNode = nearestNode(last);
+  if (!fromNode || !toNode) return null;
+  const from = stateNodeIdFromGroup(fromNode);
+  const to = stateNodeIdFromGroup(toNode);
+  if (!from || !to) return null;
+  return { from, to };
 }
 
 /**
