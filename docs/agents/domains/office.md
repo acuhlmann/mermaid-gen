@@ -391,6 +391,15 @@ https://api.deepseek.com/` — 401 is reachable, 000 is blocked); never route ar
   `/api/office/moment` calls, because nobody in the room had a fact about you yet. Before adding a
   "the office feels canned here" finding, check which side of the gate it is on — a missing call is
   usually a missing **fact**, not a missing cap.
+- **Office speech nests, so any DOM scrape of it must keep the innermost match.** A spoken surface
+  (`office-floor-dwell-line` and its siblings) wraps a `.office-floor-bubble-name` and a
+  `.office-floor-bubble-body`, so its own `textContent` welds the two into a sentence nobody said
+  ("Gary · Facilities & Fridge Czar**M**otion lights on 3 are haunted…"). A selector matching both
+  the surface and the body therefore reports every line twice, and a text-keyed dedupe cannot see
+  it because the two strings differ. Drop any node that contains another match — channel and
+  speaker resolve identically from either, so nothing else about the row changes. Measured in
+  `apps/web/test/officeVisitTrace.mjs`: `speech.count` was inflated by exactly the number of dwell
+  lines for two nights, and the inflated figure reached a ledger baseline.
 - **After presence / TTS / desk-frame edits**, prefer `apps/web/test/officePresence.test.js`,
   `deskOsPresenceStrip.test.jsx`, `deskOsFrameStyles.test.js`, `apps/server/test/officeTts.test.js`,
   `officeRoute.test.js` (or `npm run test:affected`). **After isometric-floor edits**, `npm run
@@ -955,6 +964,19 @@ y)`, so the obvious sweep silently iterates an empty list; and pacing the exchan
   turn for home, so a writer keyed on the trip _object_ files the same collision twice. Spend is
   unchanged in the worst case (`OFFICE_DWELL_LLM_CAP` is 3 per visit and no new counter was added);
   what changed is that the cap is now reachable at all.
+- **The office's memory is invisible from the outside, and an instrument that only reads the DOM
+  will report that a memory slice changed nothing.** Working memory, the log digest and the
+  relationship projection are the whole point of the _afterwards_ axis — they decide what the
+  **next** exchange speaks from — and none of them draws anything, so a browser check that diffs
+  surfaces, seats and phases comes back identical whether the beat was written or not. That is a
+  false negative dressed as a measurement, and it cost a night: the scripted visit reported "the
+  trace did not move" for a slice that had moved something the trace had nowhere to record.
+  Read the stores through the dev server's module graph instead (`import('/src/state/…')` from
+  inside the page, the way the trace already read `imHistory`), and report
+  `workingMemoryPromptLines(id)` beside the raw beats — the beats say what happened, that function
+  says what the office could now say about it, and a beat nothing can say is a beat that changed
+  nothing. Reading is all an instrument may do here: a probe that asked a store to change would be
+  ADR-0010's trigger in a lab coat.
 - **After presence / TTS / desk-frame edits**, prefer `apps/web/test/officePresence.test.js`,
   `deskOsPresenceStrip.test.jsx`, `deskOsFrameStyles.test.js`, `apps/server/test/officeTts.test.js`,
   `officeRoute.test.js` (or `npm run test:affected`). **After isometric-floor edits**, `npm run
