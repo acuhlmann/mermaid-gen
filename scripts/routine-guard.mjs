@@ -21,8 +21,10 @@ export const ROOT = path.resolve(__dirname, '..');
 
 /**
  * `report` writes no code at all; `code-writing` may edit within its declared paths. There is no
- * third "opens a PR and waits" tier — both shipped routines merge their own green PR, and what
- * keeps that safe is the budget below, not a human in the loop.
+ * third tier for "opens a PR and waits" — that is `mergePolicy` below, which is orthogonal: a held
+ * routine still declares a budget and still passes postflight, it just cannot land the change.
+ * Keeping it a policy rather than a tier means the hold cannot be used as an excuse for a wide
+ * diff ("it is only a proposal" is not a safety property; `maxFiles` is).
  *
  * `report` is enforced, not described: such a routine declares no `allowedPaths` and no
  * `maxFiles`, and postflight fails on a non-empty diff. Until 2026-08-30 the tier was validated as
@@ -30,6 +32,34 @@ export const ROOT = path.resolve(__dirname, '..');
  * actually stopped a `report` routine from committing.
  */
 export const ROUTINE_TIERS = ['report', 'code-writing'];
+
+/**
+ * Whether a routine may land its own green PR. `self-merge` is every shipped routine and the
+ * default: the PR exists so the owner has something to skim, not as a gate.
+ *
+ * `hold` is for the one job whose whole output is something only a person may decide — deleting a
+ * file. `prune` is the only such routine: its diff removes content the owner has to judge as
+ * genuinely unwanted, which is page-bar #3 ("irreversible destruction") in
+ * `docs/routines/README.md` rule 10. A `hold` routine pushes and opens the PR and **stops**; the
+ * next firing does not start until the owner merges or closes it, because preflight refuses to run
+ * behind an open PR and that refusal is the intended brake, not an obstacle.
+ *
+ * The key is validated here so it cannot silently misspell itself into non-existence, and the
+ * postflight line prints it so the promise is in front of the run at the moment it is about to
+ * push. What actually merges stays outside this script: a routine's `git push` cannot be stopped by
+ * a file it runs before pushing, which is why the promise is also pinned by a test and reported by
+ * `digest` watchdog 2.
+ */
+export const MERGE_POLICIES = ['self-merge', 'hold'];
+
+/**
+ * @param {Record<string, string | string[]>} playbook
+ * @returns {string} 'self-merge' or 'hold'
+ */
+export function mergePolicyOf(playbook) {
+  const policy = String(playbook.mergePolicy ?? 'self-merge').trim();
+  return MERGE_POLICIES.includes(policy) ? policy : 'self-merge';
+}
 
 /** Paths no routine may touch, whatever its playbook says. Mirrors AGENTS.md § Don't-touch list. */
 export const ALWAYS_FORBIDDEN = [
@@ -317,6 +347,14 @@ export function loadPlaybook(root, name) {
   if (!ROUTINE_TIERS.includes(String(playbook.tier))) {
     errors.push(`${rel} tier must be one of ${ROUTINE_TIERS.join(', ')}`);
   }
+  const mergePolicy = String(playbook.mergePolicy ?? 'self-merge').trim();
+  if (!MERGE_POLICIES.includes(mergePolicy)) {
+    errors.push(
+      `${rel} mergePolicy "${mergePolicy}" must be one of ${MERGE_POLICIES.join(', ')} — ` +
+        'an unrecognised value would silently fall back to self-merge, which for a routine meant to ' +
+        'wait for a human is the exact failure this key exists to prevent'
+    );
+  }
   if (String(playbook.tier) === 'report') {
     if (Number(playbook.maxFiles)) {
       errors.push(`${rel} is tier "report" and must not declare a maxFiles budget it cannot spend`);
@@ -390,6 +428,12 @@ export function collectPlaybooks(root = ROOT) {
  * `ALWAYS_FORBIDDEN` paths return no owner by design. Those are not gaps to widen around; they are
  * surfaces deliberately outside every budget, and `--reachable` prints them as `frozen` so the
  * watchdog does not propose "fix" them.
+ *
+ * A `hold` routine is excluded too, and for a different reason: it is not a routine that *can*
+ * write the file. `prune` may delete anything in the tree, but it cannot land the change — the
+ * promise `ready-for-agent` makes is that an agent will finish the work, and a held deletion is
+ * unfinished until a person merges it. Listing it here would let a label quietly mean "a bot will
+ * open a PR that waits for you forever".
  * @param {string} filePath
  * @param {{ name: string, playbook: Record<string, string | string[]> }[]} [playbooks]
  * @returns {string[]}
@@ -397,6 +441,7 @@ export function collectPlaybooks(root = ROOT) {
 export function ownersOfPath(filePath, playbooks = collectPlaybooks()) {
   if (matchesAny(filePath, ALWAYS_FORBIDDEN)) return [];
   return playbooks
+    .filter(({ playbook }) => mergePolicyOf(playbook) !== 'hold')
     .filter(({ name, playbook }) => {
       const allowed = toList(playbook.allowedPaths);
       const forbidden = toList(playbook.forbiddenPaths);
@@ -1119,7 +1164,15 @@ function main() {
     result.violations.push(...filing.violations);
   }
   if (result.ok) {
-    console.log(postflightOkMessage({ name, playbook, fileCount: changes.length, filingNote }));
+    console.log(
+      postflightOkMessage({
+        name,
+        playbook,
+        fileCount: changes.length,
+        filingNote,
+        deletedCount: changes.filter((change) => change.status === 'D').length
+      })
+    );
     return;
   }
   console.error(`routine-guard: postflight FAILED for "${name}"`);
@@ -1136,14 +1189,35 @@ function main() {
  * one that matters — a report routine declares no `maxFiles`, so collapsing the ternary renders the
  * proof as `0/undefined files`, which is a message that reads like a pass while proving nothing.
  *
- * @param {{ name: string, playbook: Record<string, string | string[]>, fileCount: number, filingNote?: string }} input
+ * @param {{ name: string, playbook: Record<string, string | string[]>, fileCount: number,
+ *   filingNote?: string, deletedCount?: number }} input
  * @returns {string}
+ *
+ * The reminders appended for a `hold` policy are the reason this stays one function: the line is the
+ * last thing an unattended run reads before it pushes, so the promise and the proof have to arrive in
+ * the same sentence rather than in a prose rule it stopped scrolling for three commits ago.
  */
-export function postflightOkMessage({ name, playbook, fileCount, filingNote = '' }) {
-  if (String(playbook.tier) === 'report') {
-    return `routine-guard: postflight OK for "${name}" (report tier, ${fileCount} files changed)`;
+export function postflightOkMessage({
+  name,
+  playbook,
+  fileCount,
+  filingNote = '',
+  deletedCount = 0
+}) {
+  const headline =
+    String(playbook.tier) === 'report'
+      ? `routine-guard: postflight OK for "${name}" (report tier, ${fileCount} files changed)`
+      : `routine-guard: postflight OK for "${name}" (${fileCount}/${String(playbook.maxFiles)} files${filingNote})`;
+  const reminders = [];
+  if (mergePolicyOf(playbook) === 'hold') {
+    reminders.push('merge policy is `hold`: open the PR and stop — a human merges a deletion');
   }
-  return `routine-guard: postflight OK for "${name}" (${fileCount}/${String(playbook.maxFiles)} files${filingNote})`;
+  if (deletedCount) {
+    reminders.push(
+      `${deletedCount} file(s) deleted, every one reversible only until the branch is gone`
+    );
+  }
+  return [headline, ...reminders].join(' — ');
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

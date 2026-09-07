@@ -46,8 +46,9 @@
         "initial": 136170
       },
       "AGENTS.md": {
-        "budget": 42284,
-        "initial": 88461
+        "budget": 42471,
+        "initial": 88461,
+        "reason": "2026-09-07: +187 bytes registering the `prune` routine in the operator command list (`npm run prune:scan`) and one clause on `--reachable` explaining that a `mergePolicy: hold` rung can only propose. Same shape as the 2026-09-05 office-life raise — a new rung recording its own command belongs in the file an agent reads to find commands. Nothing else was added: the routine's design lives in docs/routines/prune.md and its README entry, and the two root-file bullets an earlier draft carried were deleted rather than paid for (CLAUDE.md landed 36 bytes UNDER its budget from the same trim, so only this file moves)."
       }
     },
     "lintWarnings": {
