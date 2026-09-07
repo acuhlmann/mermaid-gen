@@ -59,6 +59,16 @@
  * worse office, so a canned-fallback trace and a generated one are never
  * compared.
  *
+ * **The seven steps are fixed; the report is not.** Those are two different
+ * rules wearing one sentence, and collapsing them once cost a night: an
+ * instrument that cannot observe the axis a slice is on reports "nothing
+ * moved" for a slice that moved something, which is a false negative dressed
+ * as a measurement. So a later run may add an *observation* — `afterwards`
+ * below is the first, and it exists because queue 2 changed what the office
+ * knows rather than what it draws — and may never add, reorder or retime a
+ * step. Add the observation in **its own run**, never in the run that needs
+ * the number it produces.
+ *
  * The harness page it writes into `apps/web/.office-visit/` is scratch and is
  * deleted on the way out. It never reaches a commit.
  */
@@ -379,8 +389,31 @@ function installInstrument(config) {
   const seen = new Set();
 
   function harvest() {
-    const nodes = document.querySelectorAll(
-      '.office-floor-bubble-body, [data-testid$="-line"], [data-testid="office-floor-narration"]'
+    const matched = [
+      ...document.querySelectorAll(
+        '.office-floor-bubble-body, [data-testid$="-line"], [data-testid="office-floor-narration"]'
+      )
+    ];
+    /*
+     * **Innermost match only, and this is a correction rather than a tidy-up.**
+     * A dwell surface satisfies this selector twice — the
+     * `office-floor-dwell-line` container and the `.office-floor-bubble-body`
+     * inside it — and the container's `textContent` is the speaker's name
+     * welded onto the sentence ("Gary · Facilities & Fridge CzarMotion lights
+     * on 3 are haunted…"). The `surface::text` dedupe below could not catch it,
+     * because the two texts genuinely differ. So **every dwell line was
+     * counted twice**: the 2026-09-05 baseline's "dwell: 0 or 2" is one line
+     * either way, and `speech.count` was inflated by exactly the number of
+     * dwells in the visit.
+     *
+     * Dropping any node that contains another match keeps the row whose text
+     * *is* the line. Nothing else about the row changes — `channelOf` walks up
+     * to the same `data-testid` from either node, and the speaker is read off
+     * the same `.closest(…)` bubble — which is why the duplicate pair agreed
+     * on channel, surface and speaker and disagreed only on `text`.
+     */
+    const nodes = matched.filter(
+      (node) => !matched.some((other) => other !== node && node.contains(other))
     );
     for (const node of nodes) {
       const text = (node.textContent ?? '').trim();
@@ -787,6 +820,50 @@ async function main() {
       )
       .catch((err) => ({ error: String(err?.message ?? err).split('\n')[0] }));
 
+    /*
+     * **The afterwards axis, which this trace could not see at all.** Queue
+     * items 2, 4 and 7 change what the office *knows* about you rather than
+     * what it draws, and every field above is a DOM reading — so the beat
+     * `useFloorInterruptMemory` writes when you step into somebody's errand was
+     * invisible at the next step and absent from `roomDelta`, and the
+     * 2026-09-06 row could only report that the trace had not moved. It had
+     * nowhere to move.
+     *
+     * Read at the end through the dev server's module graph, exactly as
+     * `imHistoryAtEnd` is. This is an **observation added to the report**, not
+     * an eighth step: the seven steps are fixed (§ 2), and a run that grew them
+     * to make a number move would have measured nothing. It is also still only
+     * a read — ADR-0010's line is about what the office *does*, and an
+     * instrument that asked the store to change would be the auto-fix-on-idle
+     * failure wearing a lab coat.
+     */
+    const afterwards = await page
+      .evaluate(() =>
+        Promise.all([
+          import('/src/state/officeWorkingMemoryStore.js'),
+          import('/src/state/officeLogStore.js')
+        ]).then(([memory, log]) => ({
+          workingMemory: memory.listWorkingMemoryColleagueIds().map((id) => {
+            const row = memory.getWorkingMemoryWith(id);
+            return {
+              colleagueId: id,
+              beats: (row?.beats ?? []).map((beat) => ({
+                interrupted: beat.interrupted ?? null,
+                theirs: beat.theirs ? String(beat.theirs).slice(0, 160) : null,
+                yours: beat.yours ? String(beat.yours).slice(0, 160) : null
+              })),
+              sawTheBoard: Boolean(row?.boardFingerprint),
+              /* The one field here that is about the *next* exchange rather
+                 than the last one: what the dwell and talk paths would speak
+                 from. A beat nothing can say is a beat that changed nothing. */
+              promptLines: memory.workingMemoryPromptLines(id)
+            };
+          }),
+          logDigest: log.getOfficeLogDigest()
+        }))
+      )
+      .catch((err) => ({ error: String(err?.message ?? err).split('\n')[0] }));
+
     const collected = await page.evaluate(() => ({
       speech: window.__visit.state.speech,
       fetches: window.__visit.state.fetches,
@@ -803,7 +880,7 @@ async function main() {
       steps,
       before,
       after,
-      collected: { ...collected, imHistoryAtEnd }
+      collected: { ...collected, imHistoryAtEnd, afterwards }
     });
     const json = JSON.stringify(trace, null, 2);
     console.log(json);
@@ -885,6 +962,20 @@ function buildTrace({ args, startedAt, t0, steps, before, after, collected }) {
     durationMs: Date.now() - t0,
     mode: {
       llmConfigured,
+      /*
+       * The two fields that stop `llmConfigured: false` being read as a fact
+       * about the server, which is how the 2026-09-06 row read it and how the
+       * `visit-llm-not-configured` todo was written. `false` has two causes and
+       * they mean opposite things: **nothing asked** (`askedTheModel: 0` — the
+       * office never reached for a model, so the backend was never consulted
+       * and the run says nothing about whether one is configured) versus
+       * **something asked and was refused** (`askedTheModel` > 0 with
+       * `answeredByModel: 0` — a 503, which is the canned-fallback trap § 2 is
+       * about). `verdict` already spelled the difference out in prose; nobody
+       * reads a sentence when there is a boolean beside it.
+       */
+      askedTheModel: llmCalls.length,
+      answeredByModel: succeeded.length,
       verdict,
       officeCalls: officeCalls.map(({ url, method, status, ms, atMs }) => ({
         atMs,
@@ -913,6 +1004,7 @@ function buildTrace({ args, startedAt, t0, steps, before, after, collected }) {
       figures
     },
     roomDelta: diffRoom(before, after),
+    afterwards: collected.afterwards,
     pageErrors: collected.errors,
     notes: collected.notes
   };
