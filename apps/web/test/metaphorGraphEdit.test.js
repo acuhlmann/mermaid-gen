@@ -1,3 +1,6 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
 import { metaphorItemDescriptor, metaphorLinkDescriptor } from '../src/utils/metaphorGraphEdit.js';
@@ -5,21 +8,42 @@ import {
   LINK_EDITABLE_METAPHORS,
   LINK_PICK_TOLERANCE_PX,
   LINK_PICK_USER_DATA,
+  LINK_PICK_WIDTH_SCALE,
   collectPickableLinks,
   createMetaphorLinkSelectionStore,
   distanceToRoutePx,
   distanceToSegmentPx,
+  isPickableFusedLink,
   linkPickKey,
+  linkPickUserData,
   metaphorKindHasEditableLinks,
   pickLinkAtPoint,
   projectLinkPoint
 } from '../src/components/metaphorScenes/metaphorLinkPick.js';
+import { fusedLinkPresentation } from '../src/components/metaphorScenes/linkRoutes.js';
+import { planFusedCompositeWorld } from '../src/components/metaphorScenes/fusedCompositePlanner.js';
+import { renameCompositeEdge } from '../src/utils/metaphorCompositeEdit.js';
 import { graphEditAdapterFor } from '../src/utils/canvasGraphEdit.js';
 import { METAPHOR_FLAT_GRAPH_EDIT_KINDS } from '../src/utils/metaphorFlatKindEdit.js';
 import {
   LABEL_PLATE_ORDER,
   PICKED_LINK_ORDER
 } from '../src/components/metaphorScenes/metaphorDrawOrder.js';
+
+// The composites the product actually ships, read from disk rather than
+// transcribed — the same source `fusedCompositePlanner.test.js` uses, because a
+// hand-copied approximation would not reproduce the fixture's own links.
+const FIXTURE_DIR = path.join(
+  path.dirname(fileURLToPath(import.meta.url)),
+  '../../../docs/fixtures/metaphor3d'
+);
+const COMPOSITE_FIXTURE_NAMES = fs
+  .readdirSync(FIXTURE_DIR)
+  .filter((name) => name.startsWith('composite-') && name.endsWith('.json'));
+
+function readCompositeFixture(name) {
+  return JSON.parse(fs.readFileSync(path.join(FIXTURE_DIR, name), 'utf8'));
+}
 
 describe('metaphorItemDescriptor', () => {
   it('returns null without an item id', () => {
@@ -423,5 +447,145 @@ describe('the descriptor reaches the mutators it was dead code for (#495)', () =
 describe('the picked link is ranked below the caption it confirms', () => {
   it('draws under the label plate', () => {
     expect(PICKED_LINK_ORDER).toBeLessThan(LABEL_PLATE_ORDER);
+  });
+});
+
+/**
+ * The fused world's half of #495 (`link-pick-fused`).
+ *
+ * `LegacyCompositeScene` and `FusedCompositeScene` draw a composite's relations
+ * from two different sources, and only one of them is editable.
+ * `planFusedCompositeWorld`'s `makeLinks` concatenates the document's authored
+ * `links[]` with `inferredRelationships()`, which synthesises a route for every
+ * item carrying `parent`, `moon` or `binary`. The two are drawn identically and
+ * behave differently under an edit: `renameCompositeEdge`/`deleteCompositeEdge`
+ * both resolve against `doc.links`, so an inferred route answers `missing`.
+ *
+ * These pin the filter to that fact rather than to its own wording — every
+ * published route must be one the mutators honour, and every route the mutators
+ * refuse must be unpublished.
+ */
+describe('the fused world publishes only the routes an editor can honour', () => {
+  const compositeWithBoth = {
+    metaphor: 'composite',
+    layout: 'fused',
+    seed: 'link-pick-fused',
+    novelty: 0.6,
+    motionIntensity: 0.6,
+    scene: {},
+    layers: [
+      {
+        id: 'ground',
+        as: 'archipelago',
+        items: [
+          { id: 'a', label: 'Ingest', mass: 8, relief: 0.7 },
+          { id: 'b', label: 'Store', mass: 9, relief: 0.6 }
+        ]
+      },
+      {
+        id: 'org',
+        as: 'tree',
+        items: [
+          { id: 'root', label: 'Platform', weight: 8 },
+          { id: 'leaf', label: 'Search', weight: 5, parent: 'root' }
+        ]
+      }
+    ],
+    items: [],
+    links: [{ from: 'a', to: 'b', label: 'feeds' }]
+  };
+  const source = JSON.stringify(compositeWithBoth, null, 2);
+
+  it('plans an authored route and an inferred one side by side', () => {
+    // The premise of the filter. Without both kinds in one plan there is
+    // nothing to filter, and this test would pass while asserting nothing.
+    const plan = planFusedCompositeWorld(compositeWithBoth);
+    expect(plan.links.some((link) => !link.inferred)).toBe(true);
+    expect(plan.links.some((link) => link.inferred)).toBe(true);
+  });
+
+  it('publishes exactly the routes the composite mutators can resolve', () => {
+    const plan = planFusedCompositeWorld(compositeWithBoth);
+    for (const link of plan.links) {
+      const renamed = renameCompositeEdge(source, link.from, link.to, 'carries');
+      expect(isPickableFusedLink(link)).toBe(renamed.ok);
+      if (!renamed.ok) expect(renamed.reason).toBe('missing');
+    }
+  });
+
+  it('loses no authored route on a shipped composite fixture', () => {
+    // The filter is a subtraction, so the risk it carries is over-subtracting.
+    // None of the three shipped composites authors a `parent`/`moon`/`binary`,
+    // so every one of their plan links must survive it.
+    for (const name of COMPOSITE_FIXTURE_NAMES) {
+      const fixture = readCompositeFixture(name);
+      const plan = planFusedCompositeWorld(fixture);
+      const published = plan.links.filter(isPickableFusedLink);
+      expect(published.length).toBe(plan.links.length);
+      expect(published.length).toBeGreaterThan(0);
+      for (const link of published) {
+        const text = JSON.stringify(fixture, null, 2);
+        expect(renameCompositeEdge(text, link.from, link.to, 'carries').ok).toBe(true);
+      }
+    }
+  });
+
+  it('refuses a half link and an inferred one, whatever else they carry', () => {
+    expect(isPickableFusedLink({ from: 'a', to: 'b' })).toBe(true);
+    expect(isPickableFusedLink({ from: 'a', to: 'b', inferred: true })).toBe(false);
+    expect(isPickableFusedLink({ from: 'a' })).toBe(false);
+    expect(isPickableFusedLink(null)).toBe(false);
+  });
+
+  it('carries the label through to the pick payload, and nothing else', () => {
+    const payload = linkPickUserData(
+      { from: 'a', to: 'b', label: 'feeds', kind: 'flow', inferred: false },
+      [
+        [0, 0, 0],
+        [1, 2, 3]
+      ]
+    )[LINK_PICK_USER_DATA];
+    expect(payload.link).toEqual({ from: 'a', to: 'b', label: 'feeds' });
+    expect(payload.points).toHaveLength(2);
+    // A non-string label would reach `metaphorLinkDescriptor` and become the
+    // rename dialog's prefill.
+    expect(
+      linkPickUserData({ from: 'a', to: 'b', label: 7 }, [])[LINK_PICK_USER_DATA].link.label
+    ).toBe('');
+  });
+});
+
+describe('a picked fused link outranks every state that would hide it', () => {
+  it('is drawn at full strength through mute and dim alike', () => {
+    // A tap on a wire whose layer is pressed away used to answer at 0.22
+    // opacity, and a tap that moves the pointer off the hovered item answered
+    // at 0.18 — an answer the viewer cannot see is the same as no answer.
+    for (const state of [
+      { muted: true, activeId: null },
+      { muted: false, activeId: 'someone-else' },
+      { muted: true, activeId: 'someone-else' }
+    ]) {
+      const resting = fusedLinkPresentation({ related: false, ...state });
+      const picked = fusedLinkPresentation({ related: false, ...state, picked: true });
+      expect(resting.opacity).toBeLessThan(0.5);
+      expect(picked.opacity).toBe(1);
+      expect(picked.cased).toBe(true);
+      expect(picked.dimmed).toBe(false);
+      expect(picked.emphasis).toBe(LINK_PICK_WIDTH_SCALE);
+      expect(picked.emphasis).toBeGreaterThan(resting.emphasis);
+    }
+  });
+
+  it('leaves the resting scene exactly as it was', () => {
+    for (const state of [
+      { related: false, muted: false, activeId: null },
+      { related: true, muted: false, activeId: 'a' },
+      { related: false, muted: true, activeId: null },
+      { related: false, muted: false, activeId: 'b' }
+    ]) {
+      expect(fusedLinkPresentation(state)).toEqual(
+        fusedLinkPresentation({ ...state, picked: false })
+      );
+    }
   });
 });

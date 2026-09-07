@@ -35,6 +35,7 @@
  * size is a rope on the small scene and a thread on the large one.
  */
 import { ensureReadableInk } from './sceneUtils.js';
+import { LINK_PICK_WIDTH_SCALE } from './metaphorLinkPick.js';
 
 /**
  * The bar a link's core must clear against its own casing. Same number as
@@ -137,23 +138,38 @@ const RELATED_EMPHASIS = 1.5;
  * a haloed line is louder, not quieter. Only the resting scene and the links
  * touching the hovered item are drawn at full strength.
  *
+ * A third state outranks both: a **picked** link is the one the viewer just
+ * tapped and the one the inspector and the radial menu are about, so it is drawn
+ * at full strength whatever else the scene is doing. Without that, a tap on a
+ * wire whose layer happens to be pressed away in the layer key answers at 0.22
+ * opacity — an answer the viewer cannot see is the same as no answer, and the
+ * pointer is somewhere else by then, so `dimmed` would have caught it too.
+ *
  * Extracted rather than inlined because the alternative is four nested ternary
  * ladders in one JSX callback — which is exactly what the complexity warning on
  * this file was already about.
  */
-export function fusedLinkPresentation({ related, muted, activeId }) {
-  const dimmed = Boolean(activeId) && !related;
-  let opacity;
-  if (muted) opacity = 0.22;
-  else if (dimmed) opacity = 0.18;
-  else if (related) opacity = 0.96;
-  else opacity = linkCoreOpacity(0.9);
+export function fusedLinkPresentation({ related, muted, activeId, picked = false }) {
+  const dimmed = Boolean(activeId) && !related && !picked;
   return {
     dimmed,
-    cased: !muted && !dimmed,
-    emphasis: related ? RELATED_EMPHASIS : 1,
-    opacity
+    cased: picked || (!muted && !dimmed),
+    emphasis: fusedLinkEmphasis({ picked, related }),
+    opacity: fusedLinkOpacity({ picked, muted, dimmed, related })
   };
+}
+
+function fusedLinkEmphasis({ picked, related }) {
+  if (picked) return LINK_PICK_WIDTH_SCALE;
+  return related ? RELATED_EMPHASIS : 1;
+}
+
+function fusedLinkOpacity({ picked, muted, dimmed, related }) {
+  if (picked) return 1;
+  if (muted) return 0.22;
+  if (dimmed) return 0.18;
+  if (related) return 0.96;
+  return linkCoreOpacity(0.9);
 }
 
 /**

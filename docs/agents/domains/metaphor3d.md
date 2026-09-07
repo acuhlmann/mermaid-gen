@@ -588,6 +588,20 @@ ones that will bite an edit.
   hit" structural rather than arbitrated: `HoverableItem` handles and stops its own pointer events,
   so a tap that reaches the picker is one no item claimed.
 
+- **The pickable set must equal the EDITABLE set, and in the fused composite those differ**
+  (`FusedCompositeScene.jsx`, `isPickableFusedLink`). `makeLinks` draws the authored `links[]` and
+  `inferredRelationships()` (an item's `parent`/`moon`/`binary`) identically, but only the first
+  has an entry in `doc.links` for `renameCompositeEdge`/`deleteCompositeEdge` to resolve — publish
+  an inferred route and the tap's only outcome is the `missing` error toast the gate exists to
+  prevent. Hold the filter against the mutator in a test, not against its own wording. Corollary
+  for the picture: a **picked** link outranks `muted` and `dimmed` in `fusedLinkPresentation`,
+  because an answer drawn at 0.18 opacity is not an answer.
+
+- **On a fused world the item-wins rule costs most routes their tap, and that is correct.** 144
+  aims across 3 fixtures × 3 viewports: 0 wrong links, 0 false picks, and all 108 misses were an
+  island or tower under the aim point. Reachable link/viewport cells fall 10/16 desktop → 3/16 on a
+  phone. Fix the ROUTE (stand it off the rim), never the picker.
+
 ---
 
 ## Full findings
@@ -1258,17 +1272,37 @@ sticky` nav row, because the height cap makes every small screen a scrolling
   `METAPHOR_FLAT_GRAPH_EDIT_KINDS` entry plus the four kinds with a dedicated module, **document by
   document** rather than kind by kind (#557: the previous sweep named seven kinds in a literal, read
   no registry, and so checked none of the six flat kinds that were free to drift).
-- **Composite has two route renderers and only one of them publishes a hit target.**
-  `LegacyCompositeScene` (`layout: adjacent`/`overlay`) draws `MetaphorLinks`, which is the
-  publishing one; the default `fused` plan draws `FusedLinks` from `fusedCompositePlanner.js`,
-  which publishes nothing — so "composite renders `MetaphorLinks`, therefore its wires are
-  pickable" (#557's premise) is true of exactly one of the two branches, and reading the dispatcher
-  rather than the issue is what caught it. `FusedLinks` cannot just start publishing what it draws
-  either: `makeLinks` seeds it with `inferredRelationships()` — routes derived from an item's
-  `parent`/`moon`/`binary` — beside the authored `links[]`, and an inferred route has no source
-  counterpart, so a rename of it returns `reason: 'missing'`. **The pickable set has to equal the
-  editable set**, which here means filtering to `!link.inferred`. Tracked as `link-pick-fused` in
-  `docs/automations/ledger/metaphor3d.md`.
+- **Composite has two route renderers, and what one of them DRAWS is not what it may publish.**
+  `LegacyCompositeScene` (`layout: adjacent`/`overlay`) draws `MetaphorLinks`; the default `fused`
+  plan draws `FusedLinks` from `fusedCompositePlanner.js`, which published nothing until
+  2026-09-07 — so "composite renders `MetaphorLinks`, therefore its wires are pickable" (#557's
+  premise) was true of exactly one of the two branches, and reading the dispatcher rather than the
+  issue is what caught it. `FusedLinks` still cannot publish what it draws: `makeLinks`
+  concatenates the authored `links[]` with `inferredRelationships()` — routes derived from an
+  item's `parent`/`moon`/`binary` — and an inferred route has no entry in `doc.links`, so
+  `renameCompositeEdge`/`deleteCompositeEdge` answer `reason: 'missing'` for every one of them.
+  **The pickable set has to equal the editable set**; `isPickableFusedLink` is that filter and it
+  is the whole of the rule. The test that holds it is not "the filter drops `inferred`" but
+  `isPickableFusedLink(link) === renameCompositeEdge(source, link.from, link.to).ok` over a plan
+  containing both kinds — pin the filter to the mutator, not to its own wording, or the two drift
+  the first time the planner learns a new inference. Measured over the three shipped composites ×
+  the standing three viewports: **0 of 9 cells had any pickable route before, 9 of 9 after**, and
+  the filter subtracted nothing (no shipped composite authors a `parent`/`moon`/`binary`).
+- **A picked link outranks mute and dim, because an answer the viewer cannot see is not an
+  answer.** `fusedLinkPresentation` resolves `picked` above both: a tap on a wire whose layer is
+  pressed away in the layer key would otherwise be answered at 0.22 opacity, and `dimmed` (0.18)
+  catches the same tap as soon as the pointer moves off. This is the one place the fused scene's
+  recede rules are overridden, and it is deliberate — the picked link is what the inspector and the
+  radial menu are about.
+- **On a fused world most routes are drawn over its own islands, so the item-wins rule makes them
+  untappable — and that is the picker working, not failing.** Measured with three aim points per
+  route, 144 taps over 3 fixtures × 3 viewports: **0 picked the wrong link and 0 picked nothing**;
+  every one of the 108 misses was an item under the aim point consuming the pointer before
+  `onPointerMissed` fired. Link/viewport cells reachable by tap: **22 of 48**, and it falls with
+  the viewport — 10/16 desktop, 9/16 cover, down to **3 of 16 on a 390×844 phone** (toaster
+  phone: 0 of 5).
+  The fix, if one is wanted, is a route that stands off the island rim, not a change to the picker;
+  same shape as `link-pick-machine-phone`. Tracked as `link-pick-fused-phone` in the ledger.
 - **A picked link is ranked BELOW the caption it confirms** (`metaphorDrawOrder.js`
   `PICKED_LINK_ORDER = 6`). The highlight is a fat depth-free stroke and a link's own label sits at
   the route's midpoint, i.e. exactly on the line, so ranking it above the label plate paints over
@@ -1284,6 +1318,20 @@ sticky` nav row, because the height cap makes every small screen a scrolling
   every desktop aim was ~190 px above the wire; **wait for the projected routes to stop moving
   rather than for a timeout**. Measured after: 20 of 21 link/viewport cells pick as an edge, always
   the aimed one, highlight a mean 0.59 px from the tap.
+  **Cost a second time on 2026-09-07, so here is the actual window**: sampled every 3 s, the
+  camera sits at its authored `[18, 14, 18]` through 6 s and has reached `[13.383, 10.285, 10.513]`
+  by 9 s, stable to 3 decimal places from there. A 9 s settle is _on_ the boundary — aims came out
+  20–69 px off, which is small enough to look like a plausible measurement rather than a broken
+  one, and the tell was the pick returning a real link that the probe's own arithmetic put 51 px
+  from the tap. `reducedMotion: 'reduce'` does not help: it kills `MetaphorIntro`'s auto-rotate,
+  not the `<Bounds>` fit. Settle 13 s and then **re-project until two reads 1.2 s apart agree
+  within 0.5 px** — that gate is four lines, needs no knowledge of the camera, and converged on the
+  first retry in all 9 cells. Two further notes on capturing this scene at all: the skill's
+  `updateProjectionMatrix` capture elects the wrong camera here, and `scene.onBeforeRender`
+  (which `WebGLRenderer.render` calls with the camera it is about to draw) is the render camera by
+  construction; and the link store is gated on `!onSelectedNodeChange` in `MetaphorRenderer`, so a
+  harness that does not stand in for the app's selection wiring reads **every** route as
+  unpickable and looks exactly like the feature not shipping.
 - **Verify metaphor changes by rendering them.** The scoped skill under
   `apps/web/.claude/skills/verify/` has the headless-capture recipe; every finding above came from
   a screenshot, not from reading the code.
