@@ -579,6 +579,8 @@ export function runScan(root = ROOT) {
     }
   }
 
+  const historyTruncated = isShallowRepository(root);
+
   return {
     candidates: candidates.map((candidate) => ({
       ...candidate,
@@ -589,7 +591,8 @@ export function runScan(root = ROOT) {
     notes: {
       textFiles: texts.size,
       globCovered: globCovered.size,
-      neverCandidate: allFiles.filter((file) => isNeverCandidate(file)).length
+      neverCandidate: allFiles.filter((file) => isNeverCandidate(file)).length,
+      ...(historyTruncated ? { historyTruncated: true } : {})
     }
   };
 }
@@ -609,14 +612,35 @@ export function proofCommand(candidate) {
 }
 
 /**
+ * Whether `root` is a shallow clone. In that case `git log --follow` attributes every file to the
+ * graft boundary commit, so `addedAt` would read as ~0–2 days forever — gate 4 would park every
+ * candidate as in-flight work and the routine could never propose a deletion from a cloud session.
+ * @param {string} root
+ * @returns {boolean}
+ */
+export function isShallowRepository(root) {
+  try {
+    const out = execFileSync('git', ['rev-parse', '--is-shallow-repository'], {
+      cwd: root,
+      encoding: 'utf8'
+    }).trim();
+    return out === 'true';
+  } catch {
+    return false;
+  }
+}
+
+/**
  * The date the path first landed, for `prune`'s age gate (§ 2 gate 4): three feature automations
  * ship code nightly, so a file younger than a fortnight is somebody's in-flight work, not debris.
- * Returns null outside a git checkout rather than failing the scan.
+ * Returns null outside a git checkout, when history is truncated, or when the add date is unknowable
+ * — distinct from "answered no", which is what a shallow clone's graft date falsely looked like.
  * @param {string} root
  * @param {string} relPath
  * @returns {string|null}
  */
 export function firstCommitDate(root, relPath) {
+  if (isShallowRepository(root)) return null;
   try {
     const out = execFileSync(
       'git',
@@ -735,9 +759,17 @@ export function formatReport(result) {
   if (!result.candidates.length)
     lines.push('  none — nothing in the tree is unreferenced right now.');
   lines.push('');
-  lines.push(
-    `notes: ${result.notes.textFiles} text files read, ${result.notes.globCovered} kept alive by a glob, ${result.notes.neverCandidate} excluded as a loading surface or don't-touch path.`
-  );
+  const noteParts = [
+    `${result.notes.textFiles} text files read`,
+    `${result.notes.globCovered} kept alive by a glob`,
+    `${result.notes.neverCandidate} excluded as a loading surface or don't-touch path`
+  ];
+  if (result.notes.historyTruncated) {
+    noteParts.push(
+      'git history truncated (shallow clone) — addedAt is null for every candidate, so gate 4 cannot evaluate age here'
+    );
+  }
+  lines.push(`notes: ${noteParts.join(', ')}.`);
   lines.push(
     'See docs/routines/prune.md § 2 for what a candidate still has to survive before it ships.'
   );
