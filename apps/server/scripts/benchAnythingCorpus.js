@@ -467,6 +467,36 @@ export const ANYTHING_BENCH_CORPUS = [
     )
   },
   {
+    // lib-matter-stack first-pass "Cannot read properties of undefined (reading
+    // 'type')": a "rebuild by removing then re-adding" function calls
+    // Matter.Composite.remove on ground/wallL/wallR before the function that
+    // creates them has ever run — the same before-create ordering trap as
+    // runtime-matter-body-before-create, but on Composite.remove instead of
+    // Body.setPosition, and guarded only by a stale "if bounds exist already"
+    // comment rather than any real check. Regression = both engines drift.
+    id: 'runtime-matter-composite-remove-before-create',
+    kind: 'runtime',
+    expectedAccept: false,
+    expectedCode: 'runtime_error',
+    html: page(
+      `<h1>Stack</h1><canvas id="stage" width="320" height="240"></canvas>
+<script>
+  const { Engine, Bodies, Composite } = Matter;
+  const engine = Engine.create();
+  const world = engine.world;
+  let ground;
+  function buildBounds() {
+    // if bounds exist already, rebuild by removing then re-adding
+    Composite.remove(world, ground);
+    ground = Bodies.rectangle(160, 220, 320, 20, { isStatic: true });
+    Composite.add(world, ground);
+  }
+  buildBounds();
+</script>`,
+      { head: '<!-- @lib:matter -->' }
+    )
+  },
+  {
     // lib-matter-stack first-pass "Matter.Body.setDimensions is not a function": the
     // model treats a body's shape as resizable in place instead of scaling or
     // recreating it. Regression = both engines drift.
