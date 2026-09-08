@@ -5,6 +5,8 @@
 import { describe, expect, it } from 'vitest';
 import mermaid from 'mermaid';
 import { graphEditIdFromDescriptor } from '../src/utils/canvasGraphEdit.js';
+import { parseFlowchartEdgeDataId } from '../src/utils/diagramSvgSelection.js';
+import { pickParallelEdgeRef } from '../src/utils/mermaidEdgeDisambiguation.js';
 import {
   addLinkedClassNode,
   connectClassNodes,
@@ -352,5 +354,111 @@ describe('the `:::` style separator on a class declaration', () => {
     // and Delete on something no rendered node represents.
     expect(renameClassNode(BARE, 'fancy', 'Plain').ok).toBe(false);
     expect(deleteClassNode(BARE, 'fancy').ok).toBe(false);
+  });
+});
+
+/**
+ * Mermaid's v3 unified edge ids carry a global 1-based counter, but
+ * `pickParallelEdgeRef` indexes a per-pair list — #613.
+ */
+describe('class edge delete through rendered data-id (#613)', () => {
+  mermaid.initialize({ startOnLoad: false, securityLevel: 'loose', htmlLabels: false });
+
+  const elProto = window.SVGElement ? window.SVGElement.prototype : window.Element.prototype;
+  if (!elProto.getBBox) {
+    elProto.getBBox = function getBBox() {
+      const text = this.textContent ?? '';
+      return { x: 0, y: 0, width: Math.max(8, text.length * 8), height: 14 };
+    };
+  }
+  if (!elProto.getComputedTextLength) {
+    elProto.getComputedTextLength = function () {
+      return (this.textContent ?? '').length * 8;
+    };
+  }
+
+  const PARALLEL_SOURCE = `classDiagram
+  Animal <|-- Duck
+  Animal <|-- Fish
+  Animal <|-- Duck
+`;
+
+  /** @param {string} source @param {string} tag */
+  async function renderedEdgePaths(source, tag) {
+    const { svg } = await mermaid.render(`diagram-${tag}`, source);
+    const host = document.createElement('div');
+    host.innerHTML = svg;
+    return [...host.querySelectorAll('path[data-id]')].map((path) => ({
+      dataId: path.getAttribute('data-id'),
+      parsed: parseFlowchartEdgeDataId(path.getAttribute('data-id'))
+    }));
+  }
+
+  /** Mirrors `flowchartEdgeDisambiguation` in useFlowchartGraphEdit.js. */
+  function deleteThroughCanvasId(source, dataId, label = '') {
+    const parsed = parseFlowchartEdgeDataId(dataId);
+    if (!parsed) return { ok: false, reason: 'unparsed' };
+    const matchIndex = parsed.index;
+    return deleteClassEdge(source, parsed.from, parsed.to, label, matchIndex);
+  }
+
+  it('renders the global-counter ids the issue measured', async () => {
+    const edges = await renderedEdgePaths(PARALLEL_SOURCE, '613');
+    expect(edges.map((edge) => edge.dataId)).toEqual([
+      'id_Animal_Duck_1',
+      'id_Animal_Fish_2',
+      'id_Animal_Duck_3'
+    ]);
+    for (const edge of edges) {
+      expect(edge.parsed).toBeTruthy();
+      expect(edge.parsed).not.toHaveProperty('index');
+    }
+  });
+
+  it('deletes the sole Animal→Fish edge when its rendered id is clicked', async () => {
+    const edges = await renderedEdgePaths(PARALLEL_SOURCE, '613-fish');
+    const fish = edges.find((edge) => edge.dataId === 'id_Animal_Fish_2');
+    expect(fish).toBeTruthy();
+    const result = deleteThroughCanvasId(PARALLEL_SOURCE, fish.dataId);
+    expect(result.ok).toBe(true);
+    expect(result.source).not.toMatch(/Animal <\|-- Fish/);
+    expect(result.source.match(/Animal <\|-- Duck/g)?.length).toBe(2);
+  });
+
+  it('deletes the first Animal→Duck edge when its rendered id is clicked', async () => {
+    const edges = await renderedEdgePaths(PARALLEL_SOURCE, '613-duck1');
+    const duck = edges.find((edge) => edge.dataId === 'id_Animal_Duck_1');
+    expect(duck).toBeTruthy();
+    const result = deleteThroughCanvasId(PARALLEL_SOURCE, duck.dataId);
+    expect(result.ok).toBe(true);
+    expect(result.source.match(/Animal <\|-- Duck/g)?.length).toBe(1);
+    expect(result.source).toMatch(/Animal <\|-- Fish/);
+  });
+
+  it('would have deleted the wrong Duck edge before #613 (global index 1 is not per-pair)', () => {
+    // User clicked the first `Animal <|-- Duck` (global id suffix _1 → wrongly passed as
+    // refs[1]), so the *second* Duck inheritance line is removed and the first remains.
+    const buggy = deleteClassEdge(PARALLEL_SOURCE, 'Animal', 'Duck', '', 1);
+    expect(buggy.ok).toBe(true);
+    expect(buggy.source.match(/Animal <\|-- Duck/g)?.length).toBe(1);
+    expect(buggy.source).toMatch(/Animal <\|-- Fish/);
+    expect(buggy.source.trimEnd()).toMatch(/Animal <\|-- Duck\n  Animal <\|-- Fish$/);
+  });
+
+  it('would have reported missing for the only Fish edge before #613', () => {
+    expect(deleteClassEdge(PARALLEL_SOURCE, 'Animal', 'Fish', '', 2)).toEqual({
+      ok: false,
+      reason: 'missing'
+    });
+  });
+
+  it('pickParallelEdgeRef ignores a stale global index when the parser omits it', () => {
+    const refs = [
+      { lineIndex: 1, edgeIndex: 0, text: '' },
+      { lineIndex: 2, edgeIndex: 1, text: '' },
+      { lineIndex: 3, edgeIndex: 2, text: '' }
+    ];
+    expect(pickParallelEdgeRef(refs, { edgeIndex: 1 })).toEqual(refs[1]);
+    expect(pickParallelEdgeRef(refs, {})).toEqual(refs[0]);
   });
 });

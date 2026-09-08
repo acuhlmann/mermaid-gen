@@ -30,31 +30,33 @@ describe('parseFlowchartEdgeDataId', () => {
     expect(parseFlowchartEdgeDataId(null)).toBeNull();
   });
 
-  it('parses classDiagram v3 unified edge ids (#600)', () => {
+  it('parses classDiagram v3 unified edge ids without a per-pair index (#613)', () => {
     expect(parseFlowchartEdgeDataId('id_Animal_Duck_1')).toEqual({
       from: 'Animal',
       to: 'Duck',
-      index: 1,
       raw: 'id_Animal_Duck_1'
     });
+    expect(parseFlowchartEdgeDataId('id_Animal_Duck_1')).not.toHaveProperty('index');
   });
 
-  it('parses erDiagram v3 unified edge ids (#600)', () => {
+  it('parses erDiagram v3 unified edge ids without a per-pair index (#613)', () => {
     expect(parseFlowchartEdgeDataId('id_entity-CUSTOMER-0_entity-ORDER-1_0')).toEqual({
       from: 'CUSTOMER',
       to: 'ORDER',
-      index: 0,
       raw: 'id_entity-CUSTOMER-0_entity-ORDER-1_0'
     });
+    expect(parseFlowchartEdgeDataId('id_entity-CUSTOMER-0_entity-ORDER-1_0')).not.toHaveProperty(
+      'index'
+    );
   });
 
-  it('parses requirementDiagram hyphenated edge ids (#600)', () => {
+  it('parses requirementDiagram hyphenated edge ids without a per-pair index (#613)', () => {
     expect(parseFlowchartEdgeDataId('test_entity-test_req-0')).toEqual({
       from: 'test_entity',
       to: 'test_req',
-      index: 0,
       raw: 'test_entity-test_req-0'
     });
+    expect(parseFlowchartEdgeDataId('test_entity-test_req-0')).not.toHaveProperty('index');
   });
 });
 
