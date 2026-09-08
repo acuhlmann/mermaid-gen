@@ -364,6 +364,15 @@ function installInstrument(config) {
     ['office-floor-shop-talk-line', 'shopTalk'],
     ['office-floor-narration', 'narration'],
     ['office-floor-walker', 'walkby'],
+    /*
+     * The interrupted errand's one line, and it is new here only because the
+     * step above never provoked one before: an unmapped surface reports
+     * `other` with its own name so the next run can map it, and this is that
+     * next run. It is a *different actor* from `office-floor-walker` above
+     * despite the shared class — that is a walk-by coming to bother you, this
+     * is somebody whose coffee run you ended.
+     */
+    ['office-floor-wanderer', 'interrupt'],
     ['office-floor-prop-card', 'prop'],
     ['office-floor-peek-card', 'peek'],
     ['office-floor-talk-card', 'talkCard'],
@@ -623,28 +632,41 @@ async function walkTheVisit(page) {
 
   await step(steps, 'step-into-their-path', async () => {
     /*
-     * Wait for one. Ambient traffic starts when the room decides to, not when
-     * the visit reaches this line — measured, the first wanderer appears around
-     * 11 s in, and a visit that clicked at 5 s reported "no wanderer on the
-     * floor" every night. That is not the interrupt rung being broken, it is
-     * the instrument arriving early, and it would leave `goHome({ byYou })` —
-     * the whole subject of the next queue item — permanently unobserved.
+     * Wait for one, and wait for them to have **arrived**. Ambient traffic
+     * starts when the room decides to, not when the visit reaches this line —
+     * measured, the first wanderer appears around 11 s in, and a visit that
+     * clicked at 5 s reported "no wanderer on the floor" every night.
+     *
+     * `data-settled` is the second half of that wait and it is what this step
+     * was missing for three nights. `useFloorWander`'s gate is
+     * `sameTile(wanderer.to, yourOrigin)` — the tile they are **heading for**,
+     * which is the prop's mark — and for the whole walk out that is not the
+     * tile they are standing on. Clicking the figure the instant it attaches
+     * therefore claims the square they have just left (their own chair,
+     * measured at 15.8 s against a click at ~7.6 s), the errand runs to
+     * completion, and `goHome({ byYou })` never fires. Three nights of traces
+     * reported this step `ok` with "clicked the wanderer's own tile" and no
+     * interrupt beat anywhere in `afterwards` — a green step that performed
+     * nothing, which is the failure mode the ledger's Open observations name.
+     *
+     * `data-settled="true"` is the DOM's own word for `phase === 'dwell'`:
+     * standing at `to`, the one moment their live rect and their destination
+     * are the same point. Narrowed to the wanderer at the same time — the old
+     * selector also matched `office-floor-walker`, a *walk-by* coming to bother
+     * you, whose tile has nothing to do with anybody's errand.
      */
-    await page
-      .waitForSelector(
-        '[data-testid="office-floor-wanderer"], [data-testid="office-floor-walker"]',
-        {
-          state: 'attached',
-          timeout: STEP_TIMEOUT_MS
-        }
-      )
+    const settled = await page
+      .waitForSelector('[data-testid="office-floor-wanderer"][data-settled="true"]', {
+        state: 'attached',
+        timeout: STEP_TIMEOUT_MS
+      })
       .catch(() => null);
-    /* Trap 3: a walker is a 0×0 anchor, and its own rect already *is* the
-       tile's screen position. Stage maths lands ~430 px away on bare floor. */
-    const moved = await page.evaluate(() => {
-      const walker = document.querySelector(
-        '[data-testid="office-floor-wanderer"], [data-testid="office-floor-walker"]'
-      );
+    /* Trap 3: a walker is a 0×0 anchor (both its branches position their child
+       absolutely, so the box stays empty in either phase), and its own rect
+       already *is* the tile's screen position. Stage maths lands ~430 px away
+       on bare floor. */
+    const clicked = await page.evaluate(() => {
+      const walker = document.querySelector('[data-testid="office-floor-wanderer"]');
       const roam = document.querySelector('.office-floor-roam');
       if (!walker || !roam) return 'no wanderer on the floor';
       const rect = walker.getBoundingClientRect();
@@ -653,8 +675,31 @@ async function walkTheVisit(page) {
       );
       return 'clicked the wanderer’s own tile';
     });
-    await page.waitForTimeout(2_500);
-    return moved;
+    /*
+     * Always assert you actually did it. `data-said` is written from
+     * `interruptSpeech`'s answer, so it exists only when the room turned
+     * somebody round *because of you* — which is the difference between a step
+     * that performed and a step that reported `ok` for a click on bare floor.
+     *
+     * The wait is spent **inside** the step's existing 2 500 ms pause rather
+     * than added to it. The step still gets longer — measured 7.5–8.0 s before
+     * this change against 9.5 s after, all of it the `data-settled` wait above
+     * — and that is the cost of a step that performs rather than reports. Not
+     * a step was added, reordered or given a different pause; keep it that way,
+     * because the visit is the one thing here that may not drift.
+     */
+    const clickedAt = Date.now();
+    const spoke = await page
+      .waitForSelector('[data-testid="office-floor-wanderer"][data-said]', {
+        state: 'attached',
+        timeout: 2_500
+      })
+      .catch(() => null);
+    const reaction = spoke ? await spoke.getAttribute('data-said') : null;
+    const spent = Date.now() - clickedAt;
+    if (spent < 2_500) await page.waitForTimeout(2_500 - spent);
+    const where = settled ? 'at their mark' : 'never settled — clicked mid-stride';
+    return `${clicked} (${where}); interrupted: ${reaction ?? 'no'}`;
   });
 
   await step(steps, 'stand-beside-them-six-seconds', async () => {
