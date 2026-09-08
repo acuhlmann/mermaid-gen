@@ -28,7 +28,14 @@
  * 1. A meeting takes the room, or a real moment claims the wanderer (a scene, a
  *    walk-by) — they are cleared outright, because whatever claimed them is
  *    already rendering them somewhere else and § 6 rule 5 does not allow two.
- * 2. **You** head for the tile they are standing on. They walk home.
+ * 2. **You** head for the tile they are heading for. They walk home. It is
+ *    their *destination* and not the square under their feet — `inYourWay`
+ *    reads `wanderer.to` — which for the whole walk out are two different
+ *    tiles, and is why an interruption has two reactions at all (`gaveUp`
+ *    mid-stride, `gotIt` once they are stood at the machine). This line used
+ *    to say "the tile they are standing on", which is true only of the second
+ *    of those and sent the scripted visit's interrupt step at the walker's
+ *    live position for three nights, where it clicked an empty chair.
  * 3. Reduced motion: no trip ever starts. Without an animation engine a walk is
  *    a teleport, and a colleague blinking between their desk and the kitchen is
  *    not calmer than one walking there — it is unexplained. Slice 10 made

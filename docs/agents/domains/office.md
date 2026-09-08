@@ -400,6 +400,16 @@ https://api.deepseek.com/` — 401 is reachable, 000 is blocked); never route ar
   speaker resolve identically from either, so nothing else about the row changes. Measured in
   `apps/web/test/officeVisitTrace.mjs`: `speech.count` was inflated by exactly the number of dwell
   lines for two nights, and the inflated figure reached a ledger baseline.
+- **The wander-interrupt gate is the tile they are _walking to_, never the one under their feet.**
+  `useFloorWander`'s `inYourWay` is `sameTile(wanderer.to, yourOrigin)`, and `to` is the prop's
+  mark — so for the whole walk out the figure's live position is the wrong square, and claiming it
+  takes the chair they have just left. That is also why an interruption has two reactions at all
+  (`gaveUp` mid-stride, `gotIt` once they are stood at the machine): only in the second is their
+  rect their destination. `officeFloorWander.test.jsx` gets this right by clicking
+  `propTileFor('whiteboard')`; the scripted visit clicked the moving figure and reported its
+  interrupt step `ok` for three nights with no beat anywhere. In a browser the honest wait is
+  `[data-testid="office-floor-wanderer"][data-settled="true"]`, and the tell that it worked is
+  `data-said`, which exists only when `goHome({ byYou })` fired.
 - **After presence / TTS / desk-frame edits**, prefer `apps/web/test/officePresence.test.js`,
   `deskOsPresenceStrip.test.jsx`, `deskOsFrameStyles.test.js`, `apps/server/test/officeTts.test.js`,
   `officeRoute.test.js` (or `npm run test:affected`). **After isometric-floor edits**, `npm run
@@ -977,6 +987,28 @@ y)`, so the obvious sweep silently iterates an empty list; and pacing the exchan
   says what the office could now say about it, and a beat nothing can say is a beat that changed
   nothing. Reading is all an instrument may do here: a probe that asked a store to change would be
   ADR-0010's trigger in a lab coat.
+- **A step that clicks the figure has aimed at the wrong tile, and three nights of green steps hid
+  it.** `useFloorWander`'s `inYourWay` is `sameTile(wanderer.to, avoidTile)` — `to` is the errand's
+  **destination** (the prop's mark) and `avoidTile` is your `origin`, which is `presence.to`, so the
+  gate compares two _intentions_ and never two positions. The scripted visit waited for
+  `[data-testid="office-floor-wanderer"]` to attach and clicked its `getBoundingClientRect()`, which
+  is the figure's live position: measured, the element attaches the instant the trip departs, so the
+  click landed on the wanderer's **own chair** (the square they were leaving) at ~7.6 s against a
+  first movement at 15.8 s. The errand then ran to completion, `goHome({ byYou })` never fired, and
+  the step reported `ok` with the note "clicked the wanderer's own tile" — which was true, and
+  useless. Three consequences worth carrying:
+  - **Wait for `data-settled="true"`.** It is the DOM's word for `phase === 'dwell'`, the one moment
+    the figure's rect and its destination are the same point. Everything else needs the mark, and the
+    mark is not in the DOM — which is why `officeFloorWander.test.jsx` computes it (`propTileFor`)
+    and a browser harness cannot copy that without stage maths that lands ~430 px away.
+  - **Assert the consequence, not the click.** `data-said` on the wanderer is written from
+    `interruptSpeech`'s answer, so it exists only when the room turned somebody round because of
+    you. A step whose note says what it clicked can be green forever; a step whose note says what
+    happened cannot.
+  - **`office-floor-wanderer` and `office-floor-walker` are two actors sharing one CSS class.** The
+    old selector matched either, and the second is a walk-by coming to bother you, whose tile has
+    nothing to do with anybody's errand. The interrupt line was also unmapped in the trace's channel
+    table and landed in `other` — because until this was fixed, nothing had ever provoked one.
 - **After presence / TTS / desk-frame edits**, prefer `apps/web/test/officePresence.test.js`,
   `deskOsPresenceStrip.test.jsx`, `deskOsFrameStyles.test.js`, `apps/server/test/officeTts.test.js`,
   `officeRoute.test.js` (or `npm run test:affected`). **After isometric-floor edits**, `npm run
