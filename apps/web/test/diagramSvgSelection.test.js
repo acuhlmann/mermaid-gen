@@ -99,6 +99,95 @@ describe('parseFlowchartEdgeDataId — stateDiagram-v2 rendered edges (#600)', (
   });
 });
 
+/*
+ * The same four transitions, but as mermaid 11.17.2 actually renders them —
+ * captured from `mermaid.render('diagram-1', …)` in this workspace's own
+ * jsdom+vitest environment, not drawn by hand. The block above is drawn by
+ * hand, and the difference between them is the whole point: mermaid positions
+ * every state node with a `transform="translate(x, y)"` on the `g.node` and
+ * draws the shape inside it centred on the group's own origin
+ * (`rect x="-28" y="-15"`, and the start marker is a bare `<circle r="7">`
+ * carrying no `cx`/`cy` at all). Read the shape attributes alone, as the
+ * hand-written fixture invites you to, and every node in the diagram reports
+ * centre (0, 0), every candidate ties, and the strict `<` in `nearestNode`
+ * hands both endpoints to whichever node is first in document order.
+ *
+ * `data-points` is in dagre layout space — the same space as the translate —
+ * so the two only line up once the translate is read.
+ *
+ * The end marker is elided to `d="M7 0"`: it is four `<path>` bezier blobs of
+ * ~2 kB each, and this parser never looks at a `d`. Everything it does look at
+ * — ids, the transform, `data-points`, shape attributes — is verbatim.
+ */
+describe('parseFlowchartEdgeDataId — stateDiagram-v2 as mermaid really renders it (#600)', () => {
+  /**
+   * stateDiagram-v2
+   *   [*] --> Still
+   *   Still --> Moving
+   *   Moving --> Still
+   *   Moving --> [*]
+   */
+  const REAL_STATE_SVG = `<svg id="diagram-1" class="statediagram"><g><g class="root"><g class="edgePaths">
+<path d="M32,19L32,86" id="diagram-1-edge0" data-et="edge" data-id="edge0" data-points="W3sieCI6MzIsInkiOjE5fSx7IngiOjMyLCJ5Ijo1NH0seyJ4IjozMiwieSI6ODZ9XQ=="></path>
+<path d="M29.487,100L29.487,164" id="diagram-1-edge1" data-et="edge" data-id="edge1" data-points="W3sieCI6MjkuNDg3MTc5NDg3MTc5NDksInkiOjEwMH0seyJ4IjoxOCwieSI6MTMyfSx7IngiOjI5LjQ4NzE3OTQ4NzE3OTQ5LCJ5IjoxNjR9XQ=="></path>
+<path d="M34.513,164L34.513,100" id="diagram-1-edge2" data-et="edge" data-id="edge2" data-points="W3sieCI6MzQuNTEyODIwNTEyODIwNTEsInkiOjE2NH0seyJ4Ijo0NiwieSI6MTMyfSx7IngiOjM0LjUxMjgyMDUxMjgyMDUxLCJ5IjoxMDB9XQ=="></path>
+<path d="M32,178L32,245" id="diagram-1-edge3" data-et="edge" data-id="edge3" data-points="W3sieCI6MzIsInkiOjE3OH0seyJ4IjozMiwieSI6MjEwfSx7IngiOjMyLCJ5IjoyNDV9XQ=="></path>
+</g><g class="nodes">
+<g class="node default" id="diagram-1-state-root_start-0" transform="translate(32, 15)"><circle class="state-start" r="7" width="14" height="14"></circle></g>
+<g class="node  statediagram-state " id="diagram-1-state-Still-2" transform="translate(32, 93)"><rect class="basic label-container" rx="5" ry="5" x="-28" y="-15" width="56" height="30"></rect><g class="label" transform="translate(-20, -7)"><text>Still</text></g></g>
+<g class="node  statediagram-state " id="diagram-1-state-Moving-3" transform="translate(32, 171)"><rect class="basic label-container" rx="5" ry="5" x="-32" y="-15" width="64" height="30"></rect><g class="label" transform="translate(-24, -7)"><text>Moving</text></g></g>
+<g class="node default" id="diagram-1-state-root_end-3" transform="translate(32, 249)"><g class="outer-path"><path d="M7 0" stroke="none" fill="#ECECFF"></path><path d="M7 0" stroke="#333333" fill="none"></path><g><path d="M7 0" stroke="none" fill="#9370DB"></path><path d="M7 0" stroke="#9370DB" fill="none"></path></g></g></g>
+</g></g></g></svg>`;
+
+  /** @param {string} dataId */
+  function parseRendered(dataId) {
+    document.body.innerHTML = REAL_STATE_SVG;
+    const pathEl = document.querySelector(`path[data-id="${dataId}"]`);
+    expect(pathEl).toBeTruthy();
+    return parseFlowchartEdgeDataId(dataId, pathEl);
+  }
+
+  it('resolves every transition to the pair the source actually declares', () => {
+    // Four distinct edges, four distinct answers. Before the transform was
+    // read these all came back `[*] -> [*]` — `root_start` is first in
+    // document order and won every tie — so Delete and Rename on any state
+    // transition addressed the wrong one, or answered `missing`.
+    expect(parseRendered('edge0')).toEqual({ from: '[*]', to: 'Still', index: 0, raw: 'edge0' });
+    expect(parseRendered('edge1')).toEqual({
+      from: 'Still',
+      to: 'Moving',
+      index: 1,
+      raw: 'edge1'
+    });
+    expect(parseRendered('edge2')).toEqual({
+      from: 'Moving',
+      to: 'Still',
+      index: 2,
+      raw: 'edge2'
+    });
+    expect(parseRendered('edge3')).toEqual({
+      from: 'Moving',
+      to: '[*]',
+      index: 3,
+      raw: 'edge3'
+    });
+  });
+
+  it('reads the terminal marker as `[*]`, the token the source writes', () => {
+    // `state-root_end-N` is a different id from `state-root_start-N`, and only
+    // the start form was mapped — so a transition into the final state named a
+    // state called `root_end` that appears nowhere in the user's source.
+    expect(parseRendered('edge3')?.to).toBe('[*]');
+  });
+
+  it('gives the two `[*]` markers of one diagram the same name', () => {
+    // Both terminals collapse to the same source token on purpose: `[*]` is
+    // what `mermaidStateEdit.js` matches against, and its meaning is fixed by
+    // which side of the arrow it sits on.
+    expect(parseRendered('edge0')?.from).toBe(parseRendered('edge3')?.to);
+  });
+});
+
 describe('parseSequenceMessageDataId', () => {
   it('parses Mermaid iN message ids', () => {
     expect(parseSequenceMessageDataId('i0')).toEqual({

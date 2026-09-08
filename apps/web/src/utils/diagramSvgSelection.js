@@ -65,8 +65,32 @@ function decodeEdgeDataPoints(pathEl) {
   }
 }
 
-/** @param {Element} node */
-function nodeCenter(node) {
+/**
+ * The `translate(x, y)` a rendered node group carries, or the origin.
+ *
+ * This is where a state node actually *is*: mermaid's `positionNode` writes the
+ * dagre coordinate onto the `g.node` as a transform and every shape inside is
+ * then drawn around that group's own origin — `rect x="-28" y="-15"`, and the
+ * terminal markers as a bare `<circle r="7">` with no `cx`/`cy` at all. Read
+ * only the shape, and every node in the diagram reports centre (0, 0).
+ *
+ * @param {Element} node
+ */
+function groupTranslate(node) {
+  const transform = node.getAttribute('transform') ?? '';
+  const m = transform.match(/translate\(\s*(-?[\d.]+)\s*[ ,]\s*(-?[\d.]+)\s*\)/);
+  if (!m) return { x: 0, y: 0 };
+  return { x: Number(m[1]), y: Number(m[2]) };
+}
+
+/**
+ * The shape's centre *within* its group. Zero for everything mermaid draws
+ * centred on the origin, which is every state node — it is non-zero only for
+ * markup that positions the shape absolutely instead.
+ *
+ * @param {Element} node
+ */
+function localShapeOffset(node) {
   const circle = node.querySelector('circle');
   if (circle) {
     return {
@@ -82,8 +106,17 @@ function nodeCenter(node) {
     const h = Number(rect.getAttribute('height') || 0);
     return { x: x + w / 2, y: y + h / 2 };
   }
-  const box = node.getBBox();
-  return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+  // A terminal marker is four <path> blobs and nothing else, so there is no
+  // shape to measure — and `getBBox` is both unavailable outside a laid-out
+  // browser document and, in one, local to the group we have already read.
+  return { x: 0, y: 0 };
+}
+
+/** @param {Element} node */
+function nodeCenter(node) {
+  const base = groupTranslate(node);
+  const offset = localShapeOffset(node);
+  return { x: base.x + offset.x, y: base.y + offset.y };
 }
 
 /** @param {{ x: number, y: number }} a @param {{ x: number, y: number }} b */
@@ -93,11 +126,19 @@ function pointDistSq(a, b) {
   return dx * dx + dy * dy;
 }
 
-/** @param {Element} group */
+/**
+ * Both terminals are the same source token. Mermaid renders the entry and the
+ * exit of a diagram as two differently-named groups (`state-root_start-N` and
+ * `state-root_end-N`), but the user wrote `[*]` for both and that is what
+ * `mermaidStateEdit.js` matches against — which side of the arrow it sits on
+ * fixes its meaning.
+ *
+ * @param {Element} group
+ */
 function stateNodeIdFromGroup(group) {
   const id = group.getAttribute('id') ?? '';
   const stripped = id.replace(/^diagram-\d+-/i, '');
-  if (/^state-root_start-\d+$/.test(stripped)) return '[*]';
+  if (/^state-root_(start|end)-\d+$/.test(stripped)) return '[*]';
   const m = stripped.match(/^state-(.+?)-\d+$/);
   return m ? m[1] : null;
 }
