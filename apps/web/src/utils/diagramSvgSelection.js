@@ -2,7 +2,7 @@
  * Flowchart edge paths from Mermaid carry logical ids like `L_<from>_<to>_<index>` on `data-id`
  * (see mermaid insertEdge: path.attr("data-id", edge.id)).
  *
- * @typedef {{ from: string, to: string, index: number, raw: string }} ParsedFlowchartEdgeId
+ * @typedef {{ from: string, to: string, index?: number, raw: string }} ParsedFlowchartEdgeId
  */
 
 /** jsdom does not define `SVGPathElement` — use tag + namespace. */
@@ -27,18 +27,21 @@ export function parseFlowchartEdgeDataId(dataId, pathEl = null) {
   let m = trimmed.match(/^L_([^_]+)_([^_]+)_(\d+)$/);
   if (m) return { from: m[1], to: m[2], index: Number(m[3]), raw: trimmed };
 
-  // erDiagram v3 unified renderer — before the class `id_` pattern, which also matches hyphens
+  // erDiagram v3 unified renderer — before the class `id_` pattern, which also matches hyphens.
+  // The trailing number is mermaid's global 1-based edge counter, not a per-pair index like
+  // flowchart's `L_<from>_<to>_<n>` — omit it so delete/rename disambiguate by label or first
+  // match (#613).
   m = trimmed.match(/^id_entity-([^-]+)-\d+_entity-([^-]+)-\d+_(\d+)$/);
-  if (m) return { from: m[1], to: m[2], index: Number(m[3]), raw: trimmed };
+  if (m) return { from: m[1], to: m[2], raw: trimmed };
 
-  // classDiagram v3 unified renderer (prefix `id_`, not flowchart `L_`)
+  // classDiagram v3 unified renderer (prefix `id_`, not flowchart `L_`) — same global counter (#613).
   m = trimmed.match(/^id_([^_]+)_([^_]+)_(\d+)$/);
-  if (m) return { from: m[1], to: m[2], index: Number(m[3]), raw: trimmed };
+  if (m) return { from: m[1], to: m[2], raw: trimmed };
 
-  // requirementDiagram and other hyphenated dagre edges (not flowchart/class/er shapes)
+  // requirementDiagram and other hyphenated dagre edges (not flowchart/class/er shapes).
   if (!trimmed.startsWith('flowchart-') && !trimmed.startsWith('id_')) {
     m = trimmed.match(/^([^-]+)-([^-]+)-(\d+)$/);
-    if (m) return { from: m[1], to: m[2], index: Number(m[3]), raw: trimmed };
+    if (m) return { from: m[1], to: m[2], raw: trimmed };
   }
 
   // stateDiagram-v2 — `edgeN` carries index only; endpoints come from layout
