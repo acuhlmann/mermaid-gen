@@ -602,6 +602,16 @@ ones that will bite an edit.
   island or tower under the aim point. Reachable link/viewport cells fall 10/16 desktop → 3/16 on a
   phone. Fix the ROUTE (stand it off the rim), never the picker.
 
+- **A kind that paints its own sky must take the whole atmosphere with it — light, environment
+  map AND bloom threshold** (`utils/metaphorSceneTheme.js`, `DAYLIGHT_LOCKED_KINDS`). `TreeScene`
+  locked its palette privately while the renderer's theme ladder had no `tree` branch, so a
+  daylight sky (`#e8f4e8`, ~0.94 luminance) met a bloom threshold picked for a night one (noir
+  0.78, arcade 0.72, blueprint 0.86): the BACKDROP passed the bloom filter and its radius erased
+  the subject. Measured, the tree rendered as a milky rectangle with **0 amber pixels of its own
+  accent marker** on 9 of 12 theme×viewport cells, and on tree-dominant composites too. The ladder
+  is now a table, not a chain of `else if`, because the bug was an omission from a list nothing
+  could assert against.
+
 ---
 
 ## Full findings
@@ -1332,6 +1342,49 @@ sticky` nav row, because the height cap makes every small screen a scrolling
   construction; and the link store is gated on `!onSelectedNodeChange` in `MetaphorRenderer`, so a
   harness that does not stand in for the app's selection wiring reads **every** route as
   unpickable and looks exactly like the feature not shipping.
+- **A kind that forces its own sky has to force everything the sky implies, and the bloom
+  threshold is the one that erases the scene when it is left behind.** `resolveTreeNatureTheme`
+  had locked the tree's PALETTE since it shipped — brown trunks, green canopy, and a fixed daylight
+  sky (`treeSkyTopColor` / `treeSkyHorizonColor`, horizon `#e8f4e8` at ~0.94 sRGB relative
+  luminance) drawn by `TreeSky` on every theme. Nothing locked the atmosphere around it, and the
+  renderer's theme ladder — a chain of `else if` over `river` / `garden` / `archipelago` inside
+  `MetaphorRenderer.jsx` — had no `tree` branch, so `resolveMetaphorPostfx` was still reading the
+  dark theme's block. The three dark themes set a bloom cut-off **below** that sky (noir 0.78,
+  arcade 0.72, blueprint 0.86), so the backdrop itself passed the bloom filter and its radius
+  smeared across everything in front of it.
+
+  Measured, tree fixture at 390x844 / 717x512 / 1440x900, canvas excluding the chrome panels:
+
+  | theme      |        chroma (hued px) | nearWhite (lum>235) |      contrast (σ lum) |      accent amber px |
+  | ---------- | ----------------------: | ------------------: | --------------------: | -------------------: |
+  | whiteboard |      0.21–0.37 → (same) |          0 → (same) |       55.2 → 47.8 max | 542–1694 → 1359–6870 |
+  | noir       |     0–0.076 → 0.21–0.37 |       0.20–0.27 → 0 | 23.0–32.0 → 36.8–49.5 |        0 → 1365–6881 |
+  | arcade     |     0–0.054 → 0.21–0.37 |       0.24–0.32 → 0 | 20.0–27.3 → 36.6–49.3 |        0 → 1359–6875 |
+  | blueprint  | 0.0003–0.14 → 0.21–0.37 |       0.22–0.29 → 0 | 16.3–35.6 → 34.4–45.9 |        0 → 1360–6880 |
+
+  Four things worth keeping:
+
+  - **The tell is `nearWhite` and `chroma`, and neither needs a camera.** A scene erased by bloom
+    is not dark or blank, it is a milky rectangle — mean luminance 203–225 with a fifth to a third
+    of the canvas past 235 and essentially no hued pixels. Contrast alone is ambiguous (a legitimately
+    flat scene is also low-contrast); "bright AND colourless" is not. Both are read straight off the
+    screenshot, so the projection lie that this file already warns about cannot reach them.
+  - **Zero accent-amber pixels was the first symptom, and it was misleading.** It reads as "the
+    marker regressed", and the marker was fine — the whole scene was gone. Classify the picture
+    before you classify the object in it.
+  - **The one theme that worked, worked by coincidence.** whiteboard's 0.95 is the only preset
+    threshold that happens to clear the tree's sky. `TREE_DAYLIGHT_BLOOM_THRESHOLD` is 0.95 rather
+    than the river's 0.92 because the tree's horizon is brighter than the river's `#c9e8f0`
+    (~0.86); the rule is "above the sky this kind actually paints", not a shared constant.
+  - **The ladder is now a table (`DAYLIGHT_LOCKED_KINDS` in `utils/metaphorSceneTheme.js`), and
+    that is the real fix.** The bug was an omission from a list, and the list lived inline in a
+    1200-line component where its only reader was a `useMemo` — nothing could assert against it.
+    It also reached composites: a tree-dominant composite was erased the same way (amber 0 → 818 /
+    1167 / 1621, contrast 26.0 → 87.2 on a phone), because `primaryLayerKind` puts a composite on
+    the same ladder. `resolveTreeNatureTheme` is idempotent (`treeNatureLocked`) so `TreeScene` and
+    `TreeSky` can go on resolving it themselves; without that guard the second pass re-blends the
+    10% leaf tint against itself and walks the canopy back toward the untinted base.
+
 - **Verify metaphor changes by rendering them.** The scoped skill under
   `apps/web/.claude/skills/verify/` has the headless-capture recipe; every finding above came from
   a screenshot, not from reading the code.

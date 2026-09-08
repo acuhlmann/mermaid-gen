@@ -384,25 +384,103 @@ export function resolveNebulaColor(theme, index) {
 }
 
 /**
- * Nature-locked tree colours — trunks/branches/soil stay brown regardless of
- * scene.theme; leaf and meadow pick up a ~10% tint from the active theme so
- * arcade/noir still feel cohesive without purple trunks.
+ * Bloom cut-off for the tree's daylight sky, in the same units the theme
+ * presets use. It must stay **above** `TREE_NATURE_BASE.treeSkyHorizonColor`'s
+ * relative luminance (~0.94) — under it, the backdrop itself blooms and the
+ * subject disappears into the glow. Exported so a test can assert the ordering
+ * rather than the constant.
  */
-export function resolveTreeNatureTheme(theme) {
+export const TREE_DAYLIGHT_BLOOM_THRESHOLD = 0.95;
+
+/**
+ * The tree's post-processing, over whatever the theme already set. Split out of
+ * `resolveTreeNatureTheme` only to keep that function under the `complexity`
+ * budget — the two nullish chains it holds are what tipped it over.
+ */
+function treeDaylightPostfx(theme) {
+  return {
+    ...(theme?.postfx ?? {}),
+    bloomStrength: 0.12,
+    bloomRadius: 0.35,
+    bloomThreshold: TREE_DAYLIGHT_BLOOM_THRESHOLD,
+    vignette: 0.18,
+    shadowOpacity: 0.3,
+    shadowColor: '#31543f',
+    aoIntensity: 0.8
+  };
+}
+
+/** The ~10% theme tint the canopy and the meadow are allowed to take. */
+function treeTintedPalette(theme) {
   const leafTint = theme?.treeLeafColor ?? theme?.starColor ?? TREE_NATURE_BASE.treeLeafColor;
   const meadowTint =
     theme?.treeMeadowColor ?? theme?.groundColor ?? TREE_NATURE_BASE.treeMeadowColor;
   const blend = 0.1;
   return {
+    treeLeafColor: blendHexColors(TREE_NATURE_BASE.treeLeafColor, leafTint, blend),
+    treeMeadowColor: blendHexColors(TREE_NATURE_BASE.treeMeadowColor, meadowTint, blend)
+  };
+}
+
+/**
+ * Nature-locked tree colours — trunks/branches/soil stay brown regardless of
+ * scene.theme; leaf and meadow pick up a ~10% tint from the active theme so
+ * arcade/noir still feel cohesive without purple trunks.
+ *
+ * The palette was only ever half the lock, and the missing half erased the
+ * scene. `TreeSky` paints `treeSkyTopColor`/`treeSkyHorizonColor` — a daylight
+ * sky whose horizon (`#e8f4e8`) sits at ~0.94 relative luminance — on every
+ * theme, while the light, the environment map and the bloom threshold kept
+ * coming from a preset tuned for that theme's OWN sky. On the three dark themes
+ * the bloom threshold is below the daylight sky's luminance (noir 0.78, arcade
+ * 0.72, blueprint 0.86), so the whole backdrop passed the bloom filter and its
+ * radius smeared over the subject: measured at 1440x900, the tree rendered
+ * legibly on whiteboard (threshold 0.95, the one theme whose number happens to
+ * clear the tree's sky) and was erased to a milky white rectangle on the other
+ * three — identical pixels on noir, arcade and blueprint, subject unreadable at
+ * all three standing viewports.
+ *
+ * So the lock now covers everything that has to agree with the sky the scene
+ * actually paints, exactly as `resolveRiverDaylightTheme` does for the river:
+ *
+ * - **Bloom threshold above the tree's own sky.** 0.95, not the river's 0.92 —
+ *   the tree's horizon is brighter than the river's `#c9e8f0` (~0.86), and a
+ *   threshold under the backdrop is the defect itself, not a matter of taste.
+ * - **Light and environment from the daylight base.** `SceneEnvironment` builds
+ *   image-based lighting out of `skyTopColor`/`skyHorizonColor`, whose whole
+ *   point is that "the reflected world agrees with the visible one" — on a noir
+ *   tree it was reflecting a night sky at a meadow standing in daylight.
+ * - **Daylight label ink.** A dark theme's near-white label colour is a name
+ *   written in white on a white sky.
+ *
+ * Idempotent: `TreeScene` and `TreeSky` resolve again from the theme the
+ * renderer already resolved, and blending the leaf tint twice would walk the
+ * canopy back toward the untinted base.
+ */
+export function resolveTreeNatureTheme(theme) {
+  if (theme?.treeNatureLocked === true) return theme;
+  return {
     ...theme,
+    treeNatureLocked: true,
+    ambientIntensity: DAYLIGHT_OUTDOOR_BASE.ambientIntensity,
+    hemisphere: DAYLIGHT_OUTDOOR_BASE.hemisphere,
+    directional: DAYLIGHT_OUTDOOR_BASE.directional,
+    envIntensity: DAYLIGHT_OUTDOOR_BASE.envIntensity,
+    labelColor: DAYLIGHT_OUTDOOR_BASE.labelColor,
+    labelOutline: DAYLIGHT_OUTDOOR_BASE.labelOutline,
+    // The scene-wide sky keys, so the IBL gradient and the clear colour are the
+    // sky `TreeSky` draws rather than the theme's.
+    background: TREE_NATURE_BASE.treeSkyHorizonColor,
+    skyTopColor: TREE_NATURE_BASE.treeSkyTopColor,
+    skyHorizonColor: TREE_NATURE_BASE.treeSkyHorizonColor,
     treeTrunkColor: TREE_NATURE_BASE.treeTrunkColor,
     treeBranchColor: TREE_NATURE_BASE.treeBranchColor,
     treeSoilColor: TREE_NATURE_BASE.treeSoilColor,
-    treeLeafColor: blendHexColors(TREE_NATURE_BASE.treeLeafColor, leafTint, blend),
-    treeMeadowColor: blendHexColors(TREE_NATURE_BASE.treeMeadowColor, meadowTint, blend),
+    ...treeTintedPalette(theme),
     treeAccentColor: TREE_NATURE_BASE.treeAccentColor,
     treeSkyTopColor: TREE_NATURE_BASE.treeSkyTopColor,
-    treeSkyHorizonColor: TREE_NATURE_BASE.treeSkyHorizonColor
+    treeSkyHorizonColor: TREE_NATURE_BASE.treeSkyHorizonColor,
+    postfx: treeDaylightPostfx(theme)
   };
 }
 

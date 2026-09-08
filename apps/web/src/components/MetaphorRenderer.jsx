@@ -7,16 +7,8 @@ import {
   partialToRenderableMetaphorDsl,
   sanitizeMetaphorDsl
 } from '@archislop/shared';
-import {
-  resolveMetaphorThemePreset,
-  resolveMetaphorPostfx,
-  resolveDistrictColor,
-  resolveArchipelagoDaylightTheme,
-  resolveGardenDaylightTheme,
-  resolveRiverDaylightTheme,
-  resolveTreeNatureTheme
-} from '../utils/metaphorThemePresets.js';
-import { applyMoodToTheme } from '../utils/metaphorMoods.js';
+import { resolveMetaphorPostfx, resolveDistrictColor } from '../utils/metaphorThemePresets.js';
+import { resolveMetaphorSceneTheme } from '../utils/metaphorSceneTheme.js';
 import { cityDistrictLayout } from '../utils/metaphorLayouts/cityDistrictLayout.js';
 import {
   layercakeComponentPositions,
@@ -1391,24 +1383,16 @@ function MetaphorRendererImpl(
   const moodId = dsl?.scene?.mood ?? null;
   const primaryLayerKind =
     dsl?.metaphor === 'composite' ? resolveCompositeAtmosphere(dsl) : dsl?.metaphor;
-  const theme = useMemo(() => {
-    const base = resolveMetaphorThemePreset(themeId);
-    let resolved = base;
-    let daylight = false;
-    if (primaryLayerKind === 'river') {
-      resolved = resolveRiverDaylightTheme(base);
-      daylight = true;
-    } else if (primaryLayerKind === 'garden') {
-      resolved = resolveGardenDaylightTheme(base);
-      daylight = true;
-    } else if (primaryLayerKind === 'archipelago') {
-      resolved = resolveArchipelagoDaylightTheme(base);
-      daylight = true;
-    }
-    // scene.mood re-tints the atmosphere only — never the encodings. Daylight
-    // scenes take a softened blend so they stay readable.
-    return applyMoodToTheme(resolved, moodId, { soften: daylight });
-  }, [primaryLayerKind, themeId, moodId]);
+  // The preset → daylight lock → mood ladder now lives in
+  // `utils/metaphorSceneTheme.js`, where the list of daylight-locked kinds can
+  // be asserted. It had to: the tree was missing from the chain of `else if`
+  // that used to sit here, so the postfx handed to `MetaphorEffects` below
+  // stayed the dark theme's and a bloom threshold under the tree's own daylight
+  // sky erased the scene on noir, arcade and blueprint.
+  const theme = useMemo(
+    () => resolveMetaphorSceneTheme({ themeId, kind: primaryLayerKind, moodId }),
+    [primaryLayerKind, themeId, moodId]
+  );
   const postfx = resolveMetaphorPostfx(theme);
   const boundsMargin = BOUNDS_MARGIN_BY_KIND[dsl?.metaphor] ?? 1.06;
   const skyKind = primaryLayerKind;
@@ -1530,17 +1514,16 @@ function MetaphorRendererImpl(
   const [declutter] = useState(createLabelDeclutterStore);
 
   // Haze colour follows whichever sky this kind actually paints — the tree's is
-  // nature-locked to daylight blue regardless of `scene.theme`, so reading the
-  // base theme's horizon here used to hang a dark band over a bright sky.
+  // nature-locked to daylight regardless of `scene.theme`, and reading the base
+  // theme's horizon here used to hang a dark band over a bright sky. The tree
+  // now takes its daylight lock in the theme hook above, which rewrites
+  // `skyHorizonColor` to the sky `TreeSky` draws, so this reads the same value
+  // for every kind instead of re-resolving one of them.
   const haze = useMemo(() => {
     if (!skyKind || !sceneWantsHaze(skyKind)) return null;
     const moodFog = theme.moodFx?.fog;
-    const skyHorizon =
-      skyKind === 'tree'
-        ? (resolveTreeNatureTheme(theme).treeSkyHorizonColor ?? theme.skyHorizonColor)
-        : theme.skyHorizonColor;
     return {
-      color: moodFog?.color ?? skyHorizon ?? theme.background,
+      color: moodFog?.color ?? theme.skyHorizonColor ?? theme.background,
       amount: moodFog?.haze ?? DEFAULT_GROUND_HAZE
     };
   }, [skyKind, theme]);
