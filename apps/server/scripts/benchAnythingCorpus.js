@@ -497,6 +497,32 @@ export const ANYTHING_BENCH_CORPUS = [
     )
   },
   {
+    // Printed doc (2026-09-07 repro, lib-matter-stack run 7): a boundsToRect(b)
+    // helper returns {x, y, width, height} and gets passed straight to
+    // ctx.fillRect(boundsToRect(b)) instead of spread into four positional
+    // args — "Failed to execute 'fillRect' on 'CanvasRenderingContext2D': 4
+    // arguments required, but only 1 present." General canvas bug, not
+    // Matter-specific — no @lib marker needed. Regression = both engines drift.
+    id: 'runtime-canvas-fillrect-object-arg',
+    kind: 'runtime',
+    expectedAccept: false,
+    expectedCode: 'runtime_error',
+    html: page(
+      `<h1>Bounds</h1><canvas id="stage" width="320" height="240"></canvas>
+<script>
+  const ctx = document.getElementById('stage').getContext('2d');
+  function boundsToRect(b) {
+    return { x: b.min.x, y: b.min.y, width: b.max.x - b.min.x, height: b.max.y - b.min.y };
+  }
+  function draw(bounds) {
+    ctx.fillStyle = '#4a90d9';
+    ctx.fillRect(boundsToRect(bounds));
+  }
+  draw({ min: { x: 10, y: 10 }, max: { x: 100, y: 80 } });
+</script>`
+    )
+  },
+  {
     // lib-matter-stack first-pass "Matter.Body.setDimensions is not a function": the
     // model treats a body's shape as resizable in place instead of scaling or
     // recreating it. Regression = both engines drift.
