@@ -4,7 +4,7 @@
  * render — so streaming re-renders and revision diffs never reshuffle a scene.
  */
 
-export function hash01(input) {
+export function hash01(input: unknown): number {
   const str = String(input ?? '');
   let h = 2166136261;
   for (let i = 0; i < str.length; i += 1) {
@@ -14,6 +14,6 @@ export function hash01(input) {
   return ((h >>> 0) % 1_000_000) / 1_000_000;
 }
 
-export function hash01Salted(input, salt) {
+export function hash01Salted(input: unknown, salt: string | number): number {
   return hash01(`${salt}::${input}`);
 }
