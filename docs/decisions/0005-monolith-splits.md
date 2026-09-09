@@ -104,7 +104,9 @@ they need access to outer-closure state.
   Same pattern: extract helpers first, then per-feature modules.
 - ✅ **`diagramStore.js` (slice 1):** localStorage diagram cache + session wipe helpers
   → `apps/web/src/state/diagramCacheStorage.js`; `diagramStore.js` re-exports.
-  Remaining: mode-switch helpers, REST submitters, streaming (see
+- ✅ **`diagramStore.js` (slice 2):** six-slot mode-switch peer sync helpers
+  → `apps/web/src/state/diagramModeSwitch.js`; `diagramStore.js` re-exports.
+  Remaining: REST submitters, streaming (see
   [`docs/agents/balanced-coupling-priorities.md`](../agents/balanced-coupling-priorities.md)
   § Next steps for agents).
 
