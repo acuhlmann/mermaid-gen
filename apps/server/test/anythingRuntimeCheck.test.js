@@ -138,6 +138,25 @@ test('runtime sandbox integration', { concurrency: false }, async (t) => {
     assert.match(result.error, /fetch/i);
   });
 
+  await t.test(
+    'jsdom rejects fillRect called with a rect object instead of four positional args',
+    async () => {
+      const result = await runAnythingRuntimeCheck(
+        doc(
+          `<canvas id="c" width="100" height="80"></canvas>
+         <script>
+           const ctx = document.getElementById('c').getContext('2d');
+           ctx.fillRect({ x: 10, y: 10, width: 80, height: 60 });
+         </script>`
+        ),
+        { env: { ANYTHING_RUNTIME_ENGINE: 'jsdom' } }
+      );
+      assert.equal(result.ok, false);
+      assert.equal(result.code, 'runtime_error');
+      assert.match(result.error, /fillRect/i);
+    }
+  );
+
   await t.test('canvas, matchMedia, observers, and audio do not false-positive', async () => {
     const result = await runAnythingRuntimeCheck(
       doc(

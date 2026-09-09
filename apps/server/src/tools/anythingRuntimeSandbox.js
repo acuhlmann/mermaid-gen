@@ -87,6 +87,45 @@ function createInert() {
   return inert;
 }
 
+/**
+ * Canvas 2D stand-in that enforces positional arity on the methods real browsers
+ * reject when a model passes a rect-shaped object. The inert Proxy accepts any
+ * call, which is why `ctx.fillRect({x, y, width, height})` silently passed under
+ * jsdom while Chromium threw — the divergence the bench corpus pins.
+ */
+function createCanvas2dContextStub() {
+  const inert = createInert();
+  const ARITY = {
+    fillRect: 4,
+    strokeRect: 4,
+    clearRect: 4,
+    arc: 5
+  };
+
+  return new Proxy(
+    {},
+    {
+      get(_target, prop) {
+        if (prop === 'then') return undefined;
+        if (Object.prototype.hasOwnProperty.call(ARITY, prop)) {
+          const required = ARITY[prop];
+          return function arityChecked(...args) {
+            if (args.length !== required) {
+              throw new TypeError(
+                `Failed to execute '${String(prop)}' on 'CanvasRenderingContext2D': ${required} arguments required, but only ${args.length} present.`
+              );
+            }
+          };
+        }
+        return inert;
+      },
+      set() {
+        return true;
+      }
+    }
+  );
+}
+
 /** Stub APIs that exist in real browsers so their absence in jsdom does not fail good pages. */
 function installBrowserApiStubs(window) {
   const inert = createInert();
@@ -139,8 +178,13 @@ function installBrowserApiStubs(window) {
   ) {
     // jsdom returns null (and logs "not implemented") without the native
     // `canvas` package; code like getContext('2d').fillRect(...) would then
-    // throw a false TypeError. Real sandboxed iframes do have canvas.
-    window.HTMLCanvasElement.prototype.getContext = function getContextStub() {
+    // throw a false TypeError. Real sandboxed iframes do have canvas — return a
+    // 2d context stub that enforces positional arity so jsdom agrees with Chromium
+    // on the class of mistakes the bench corpus pins (fillRect object-arg, etc.).
+    window.HTMLCanvasElement.prototype.getContext = function getContextStub(type) {
+      if (type === '2d') {
+        return createCanvas2dContextStub();
+      }
       return inert;
     };
     window.HTMLCanvasElement.prototype.toDataURL = () => 'data:,';
