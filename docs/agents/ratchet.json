@@ -23,6 +23,10 @@
         "budget": 603,
         "initial": 955
       },
+      "apps/web/src/state/diagramModeSwitch.js": {
+        "budget": 362,
+        "initial": 362
+      },
       "apps/server/src/mcp/mcpServer.js": {
         "budget": 1406,
         "initial": 1406
