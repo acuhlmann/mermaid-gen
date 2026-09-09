@@ -5,6 +5,7 @@ import { useFloorShopTalk } from '../src/components/officeFloor/useFloorShopTalk
 import { officeChromeCopy } from '../src/utils/officeCast.js';
 import { OFFICE_SHOP_TALK_CAP, WANDER_BIAS_WINDOWS } from '../src/utils/officeCadence.js';
 import { propTileFor, usablePropKinds } from '../src/utils/officeFloorMovement.js';
+import { wanderingSeatIds } from '../src/utils/officeFloorWander.js';
 import { dwellTargetAt } from '../src/utils/officeFloorDwell.js';
 import { tierOf } from '../src/utils/castTiers.js';
 import {
@@ -85,11 +86,57 @@ describe('who answers is an answer the room gives', () => {
    * Reachable rather than theoretical: Dinesh sits a tile from the whiteboard
    * *and* is on the wander roster, so the person who walked over is regularly
    * the person the geometry would nominate to answer them.
+   *
+   * The answer is silence rather than the next seat along. `floor.shopTalk` is
+   * keyed on the prop precisely so the reply is written in the replier's voice
+   * for free, and that only holds while the prop has one replier — Jared is a
+   * tile from the board too, so drafting him in put an engineer's lines in his
+   * mouth on the one channel nobody is watching closely enough to ask.
    */
   it('never lets the wanderer answer their own opener', () => {
     const board = propTileFor('whiteboard');
     expect(shopTalkPartnerFor(board, 'gilfoyle')).toBe('dinesh');
-    expect(shopTalkPartnerFor(board, 'dinesh')).toBe('jared');
+    expect(shopTalkPartnerFor(board, 'dinesh')).toBeNull();
+  });
+
+  /*
+   * The printer has always behaved this way and nobody chose it: `helpdesk` is
+   * the only seat within a tile of that mark, so the roster walk ran out rather
+   * than reaching a second candidate. Pinned beside the whiteboard so the two
+   * props are asserted to give the *same* answer to the same question.
+   */
+  it('goes quiet at a prop whose own neighbour is the one who walked over', () => {
+    expect(shopTalkPartnerFor(propTileFor('printer'), 'helpdesk')).toBeNull();
+    expect(shopTalkPartnerFor(propTileFor('coffeeMachine'), 'facilities')).toBeNull();
+  });
+
+  /**
+   * The invariant the bank's voice rests on, and the one thing a per-prop bank
+   * cannot state about itself.
+   *
+   * `officeLocale.test.js` says it in as many words — "the key is what decides
+   * which voice the reply is written in" — and that is only true while a prop's
+   * key has **one** mouth behind it. Asserted over the whole wander roster
+   * rather than at a sample, because the failure is a layout change: seat two
+   * people the same distance from a mark and the bank silently starts being
+   * read in whichever voice the roster order happens to reach first.
+   */
+  it('answers a prop in the same voice, whoever walked over', () => {
+    const kinds = usablePropKinds();
+    const roster = wanderingSeatIds();
+    expect(kinds.length, 'no prop is reachable — this proves nothing').toBeGreaterThan(0);
+    expect(roster.length, 'nobody wanders — this proves nothing').toBeGreaterThan(0);
+
+    for (const kind of kinds) {
+      const mark = propTileFor(kind);
+      const repliers = new Set(
+        roster.map((seatId) => shopTalkPartnerFor(mark, seatId)).filter(Boolean)
+      );
+      expect(
+        [...repliers],
+        `${kind}'s bank is written for one voice and is answered by ${repliers.size}`
+      ).toHaveLength(1);
+    }
   });
 
   it('never nominates leadership, whatever the prop', () => {

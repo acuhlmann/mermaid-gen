@@ -410,6 +410,17 @@ https://api.deepseek.com/` — 401 is reachable, 000 is blocked); never route ar
   interrupt step `ok` for three nights with no beat anywhere. In a browser the honest wait is
   `[data-testid="office-floor-wanderer"][data-settled="true"]`, and the tell that it worked is
   `data-said`, which exists only when `goHome({ byYou })` fired.
+- **A prop has one resident, and shop talk prefers silence to the next seat along.**
+  `shopTalkPartnerFor` (`apps/web/src/utils/officeFloorShopTalk.js`) resolves the single nearest
+  seat to the mark — you and the glassed-in `senior` tier are skipped as structural
+  non-neighbours — and returns `null` when that person is the wanderer or is out of their chair,
+  instead of advancing to a second candidate. That is what makes `floor.shopTalk`'s per-prop key
+  a per-**replier** key: `dinesh` and `jared` are both one tile from the whiteboard, so before
+  this the engineer's bank was Jared's whenever Dinesh had walked over (1 of 33 wanderer×prop
+  combinations; the printer was already silent in the same situation, by accident of having one
+  seat in range). Pin any change over the whole wander roster — `officeFloorShopTalk.test.jsx`,
+  "answers a prop in the same voice, whoever walked over" — because what breaks it is a
+  **layout** change, not a logic one.
 - **After presence / TTS / desk-frame edits**, prefer `apps/web/test/officePresence.test.js`,
   `deskOsPresenceStrip.test.jsx`, `deskOsFrameStyles.test.js`, `apps/server/test/officeTts.test.js`,
   `officeRoute.test.js` (or `npm run test:affected`). **After isometric-floor edits**, `npm run
@@ -849,6 +860,24 @@ https://api.deepseek.com/` — 401 is reachable, 000 is blocked); never route ar
   the other two overheard performances (coffee, battles). Who replies is derived from the layout
   (`shopTalkPartnerFor` — nearest seat within `NAME_CHIP_RANGE_TILES` of the _mark_), which is
   why the copy bank is keyed by prop: the prop picks the voice.
+- **"The prop picks the voice" only holds while a prop has _one_ resident, and enforcing that
+  means preferring silence to the next seat along.** A per-place bank is a per-replier bank for
+  free — the whiteboard's replies are an engineer's, the printer's are Ticket Bot Dave's — and a
+  roster walk that advances to a **second** candidate when the nearest cannot answer spends that
+  for free-ness without saying so. Measured: `dinesh` (7,4) and `jared` (8,5) are both exactly one
+  tile from the whiteboard mark, so the engineer's bank came out of Jared's mouth on **1 of the
+  33** wanderer×prop combinations the floor can produce — the one where Dinesh, who is on the
+  wander roster, is the person who walked over. `shopTalkPartnerFor` now resolves the prop's
+  **resident** (single nearest seat, you and the glassed-in `senior` tier skipped as structural
+  non-neighbours) and returns `null` when that person is the wanderer or `whereaboutsOf` says
+  they are out of their chair — reachable exchanges 32 → 31 of 33, wrong-voice exchanges 1 → 0.
+  Two things generalise. **The printer had the right behaviour by accident** (one seat in range,
+  so the walk ran out) — when one place on a floor behaves differently from its siblings, check
+  whether the siblings are _correct_ or merely _lucky_ before copying either. And the invariant
+  has to be asserted over the **whole wander roster**, not at a sample, because what breaks it is
+  a layout change: seat a second person the same distance from a mark and the bank starts being
+  read in two voices with nothing rendered to notice
+  (`officeFloorShopTalk.test.jsx`, "answers a prop in the same voice, whoever walked over").
 - **Joining an overheard conversation is a walk, not a reply — and that is the only reason it is
   allowed to exist.** Slice 23's _Join in_ fires `startTalk` at a `talkTileFor` mark, which is
   what the person card's _Go and talk_ and a double-click already do; the offer carries two seat

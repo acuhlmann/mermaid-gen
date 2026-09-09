@@ -75,6 +75,76 @@ the harness and its baseline trace, with no product file in the diff.
 
 | 2026-09-08 | Queue 2 (verification) — `interrupt-step-writes-no-beat` | **3 runs before, 3 after, one arm (`no-llm-calls`, `llmConfigured: false`) — and the axis that had never moved, moved.** `afterwards.workingMemory` gains an `intern` row with `interrupted: "gotIt"` in **3 of 3** runs against **0 of 3** before; `speech.count` 10 / 9 / 10 → **11 / 11 / 11**, the new line on a channel the trace had no name for until tonight (`interrupt`). Step 3's note goes from "clicked the wanderer's own tile" to "clicked the wanderer's own tile (at their mark); interrupted: gotIt". JSON under the table. | No suite touched: the harness is a `.mjs`, not a vitest file, and the product change is a corrected comment. Proof is the six real-browser runs. Preamble green before and after — `test:floor` 37/575, blast bundle 44/612, content ladder 19/352, shared `office` 380, server `office` 57; `npm run check` exit 0. | #608 | Branch `office-life/interrupt-step-writes-no-beat`. Backlog checked first and empty of office work (#547 apps/web complexity, #536 metaphor3d, #452 digest log). **The verdict on the 2026-09-07 finding is: the instrument, not the product.** #582 works in a real browser and always did; the visit was clicking the wrong tile. Diff is the harness, one corrected comment in `useFloorWander.js`, this ledger and the domain file. |
 
+| 2026-09-09 | Queue 3 — `shop-talk-replier-not-prop` | **3 runs before, 3 after, one arm (`no-llm-calls`, `llmConfigured: false`) — six traces identical on every axis, and that is the expected reading.** 7/7 steps `ok`, `speech.count` 11 (`narration` 9 / `interrupt` 1 / `dwell` 1), `bySource.model` 0, `afterwards.workingMemory` `dinesh` + `intern:gotIt`, `pageErrors: []` in all six. **The instrument can label a `shopTalk` line** (`channelOf` maps `office-floor-shop-talk-line`) and never saw one, before or after: the fixed visit never stands in the overhearing ring while a wanderer dwells. The number that did move is a pure-module sweep — see the PR body. JSON under the table. | New: 2 (`officeFloorShopTalk.test.jsx`), both **red before the fix and green after** (stash-and-rerun, both directions recorded: `expected 'jared' to be null`, and `whiteboard's bank is written for one voice and is answered by 2`). `test:floor` 37/575, blast bundle 44/612, content ladder 19/352, shared `office` 380, server `office` 57. `npm run check` green. | #620 | Branch `office-life/shop-talk-replier-not-prop`. Backlog checked first and empty of office work (#614 anything, #547 apps/web complexity, #536 metaphor3d, #452 digest log). Of § 8's two named fixes the run took **exclude the second-nearest seat** over **key the bank on the replier**, because the second needs a new bank in four locales to buy what the first buys by construction — recorded as a decision, not a preference. No new copy, no locale key, no cap touched. |
+
+### 2026-09-09 trace
+
+Three runs before the change and three after, one machine, inside one hour, no `DEEPSEEK_API_KEY`
+in the shell. **All six are the `no-llm-calls` arm** (`askedTheModel: 0`; the two
+`/api/office/speak` calls are Cloud TTS, return 502 with no credentials, and are excluded by
+construction) and may only be read against each other and against 2026-09-06/07/08's runs. Note the
+wall clock: **82–87 s per run here against 43–45 s on 2026-09-08's machine**, so `durationMs` is a
+property of the host and not of the office.
+
+```json
+{
+  "runs": "3 before, 3 after",
+  "mode": {
+    "llmConfigured": false,
+    "verdict": "no-llm-calls",
+    "askedTheModel": 0,
+    "answeredByModel": 0
+  },
+  "visit": "7/7 steps ok in every run, before and after",
+  "speech": {
+    "count": { "before": [11, 11, 11], "after": [11, 11, 11] },
+    "byChannel": { "narration": 9, "interrupt": 1, "dwell": 1 },
+    "bySource": { "model": 0, "bank": 11 },
+    "shopTalk": "0 of 6 — the channel the slice is on never fired"
+  },
+  "afterwards": {
+    "workingMemory": {
+      "before": ["dinesh (dwell)", "intern (interrupted: gotIt)"],
+      "after": ["dinesh (dwell)", "intern (interrupted: gotIt)"]
+    }
+  },
+  "pageErrors": [],
+  "durationMs": { "before": [82526, 82496, 82231], "after": [86717, 82519, 82209] }
+}
+```
+
+**The trace could not see this slice, and unlike 2026-09-06 that is not a hole in the instrument.**
+That night the report was blind to an axis it should have carried (working memory), and the fix was
+to add an observation. This time `channelOf` already has a `shopTalk` row, so the instrument is
+_able_ to report the thing — the visit simply never enters the state, because overhearing needs a
+wanderer settled at a prop while you stand two to three tiles off it with nothing else speaking, and
+the seven fixed steps put you at a prop mark or in a conversation the whole time. **Adding an eighth
+step is not available** (§ 2: the visit is fixed), so the honest measurement for this slice is a
+different instrument, and the run used one: a sweep of all 33 wanderer×prop combinations the floor
+can produce.
+
+| Sweep (`wanderingSeatIds()` × `usablePropKinds()`, 11 × 3) | before    | after   |
+| ---------------------------------------------------------- | --------- | ------- |
+| combinations that produce an exchange                      | 32 / 33   | 31 / 33 |
+| exchanges whose reply is not the prop's resident           | 1         | 0       |
+| distinct repliers per prop (coffee / printer / whiteboard) | 1/1/**2** | 1/1/1   |
+
+**Three readings worth keeping.**
+
+- **The cost is one combination and it is the right one to lose.** The lost case is `dinesh`
+  wandering to the whiteboard he sits beside — the visitor and the resident are the same person, so
+  the conversation the bank describes has nobody in it. Silence there is the truthful answer rather
+  than a gap, and the room already gave it at the printer.
+- **The printer was correct by accident, and that is the transferable finding.** `helpdesk` is the
+  only seat within a tile of that mark, so the roster walk ran out instead of reaching a second
+  candidate — identical behaviour, arrived at by luck of the layout. When one place on a floor
+  behaves differently from its siblings, check whether the siblings are _correct_ or merely
+  _lucky_ before copying either.
+- **A sweep is not a licence to skip the trace.** The six runs bought a regression check the sweep
+  cannot give — `pageErrors: []`, 7/7 steps, the interrupt beat still written — on a change to a
+  module three floor components read. They are worth the twenty minutes even when the headline
+  number lives somewhere else.
+
 ### 2026-09-08 trace
 
 Three runs before the change and three after, one machine, inside one hour, `DEEPSEEK_API_KEY`
@@ -320,7 +390,7 @@ instrument keeping only one of them would have made the opposite claim depending
 | `visit-double-counts-dwell`     | **done** 2026-09-07      | Fixed in #595 by keeping only the innermost node that matches the speech selector. Confirmed on three runs either side: `speech.count` 11 / 9 / 11 → 10 / 10 / 10, `dwell` 2 → 1. Every `dwell: 2` recorded in this ledger before that date is **one line counted twice**; the finding is now in `docs/agents/domains/office.md` because the nesting is a fact about office markup, not about the harness.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | `visit-llm-not-configured`      | **withdrawn** 2026-09-07 | **Misdiagnosed, and the misdiagnosis is the finding.** The 2026-09-06 runs reported `verdict: "no-llm-calls"`, which the row read off the boolean beside it as "the backend is not configured". It means the opposite kind of thing: the office **never asked**, so the run says nothing about the server. Confirmed 2026-09-07 with a reachable `api.deepseek.com` (401) and a 35-char key — six runs, `askedTheModel: 0` in all six. `mode` now carries `askedTheModel` / `answeredByModel` so the boolean cannot be read alone. What remains real is the product question underneath: **the composer sentence provoked zero `/api/office/moment` calls in all six runs**, which is `dwell-then-nothing`'s territory and still needs a control arm.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 | `visit-cannot-see-afterwards`   | **done** 2026-09-07      | Closed in #595 by an `afterwards` block reporting working memory, `workingMemoryPromptLines` and the log digest, read through the dev server's module graph at the end of the visit — an addition to the **report**, not an eighth step. Its first reading opened `interrupt-step-writes-no-beat` above. Original entry: **The acceptance instrument cannot observe queue 2, 4 or 7's consequence, so "the trace moved" is unmeetable for the whole afterwards axis.** The visit steps into the _wanderer's_ path and loiters beside the _named colleague_ — never the same person — and the trace reports no store state at all, so a beat written at step 3 is invisible at step 4 and absent from `roomDelta`. Deliberately **not** fixed alongside the slice: editing the harness in the same PR as the feature it would measure is the shape § 2 warns about. A later run adds the observation to the report (not to the seven steps) and re-measures both arms.                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
-| `shop-talk-replier-not-prop`    | pending                  | Queue 3, from `docs/office-isometric-mode.md` § 8's open debts. At the whiteboard `dinesh (7,4)` and `jared (8,5)` are both one tile from the mark, so seat order — not character — decides who answers, and an engineer's-voice reply lands on Jared whenever Dinesh walked over. Named fixes: key the bank on the replier, or exclude the second-nearest seat. Its neighbour (a third participant unreachable by construction) is the same function; the bystander-withdraws-the-join-offer item is parked **until measured** — the visit harness is the measurement.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| `shop-talk-replier-not-prop`    | **done** 2026-09-09      | Queue 3, landed in #620 by **excluding the second-nearest seat** — the other named fix (key the bank on the replier) buys the same coherence but only after a new bank in four locales, so it was declined on cost, not on taste. `shopTalkPartnerFor` now resolves the prop's **resident** (single nearest seat; you and the glassed-in `senior` tier skipped as structural non-neighbours) and returns `null` when that person is the wanderer or is out of their chair, instead of walking on to a second candidate. Sweep over all 33 wanderer×prop combinations: exchanges 32 → 31, wrong-voice exchanges **1 → 0**. Original entry: at the whiteboard `dinesh (7,4)` and `jared (8,5)` are both one tile from the mark, so seat order — not character — decides who answers, and an engineer's-voice reply lands on Jared whenever Dinesh walked over. Its neighbour (a third participant unreachable by construction) is the same function and is **unchanged**; the bystander-withdraws-the-join-offer item is still parked **until measured**, and the visit harness still cannot measure it — see the 2026-09-09 trace note on why overhearing is out of the fixed visit's reach.                                                                                                                                                                                                                                                     |
 | `their-own-work-in-context`     | pending                  | Queue 4. `officeDeskWork.js` holds a `look` and a `doing` per cast member and is shown on peek but **fed to no prompt**; `docs/office-parody.md` § 11 names "their own work" as its own open context hole. Wire it into the dwell/talk paths' existing `/moment` context, respecting the field caps on both sides. Never by letting the cast initiate a run.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | `per-persona-wander-habit`      | pending                  | Queue 5. One global `WANDER_BIAS_WINDOWS` row today. Pure module, seeded PRNG, no browser needed. **Not** by adding a day phase.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 | `props-that-do-something`       | pending                  | Queue 6. Printer and whiteboard have copy but no verb (only coffee does, by ADR-0011 rule 3); the whiteboard reads the user's diagram and never writes back. Compose through `floorActivityFor`; no diagram-store subscription in the floor.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
@@ -402,6 +472,17 @@ instrument keeping only one of them would have made the opposite claim depending
   cannot see the slice, fix the instrument in its own run, and never in the run that needs the
   number.** The corollary this run adds is that the fix must be an addition to the **report** — the
   seven steps stay fixed, and `afterwards` is a read of stores the room already writes.
+- **The fixed visit cannot reach the overheard channel, and this is a boundary rather than a
+  defect.** `channelOf` in the harness already maps `office-floor-shop-talk-line` → `shopTalk`, so
+  the instrument is able to report one; across nine runs on three nights it never has, because
+  overhearing needs a wanderer settled at a prop while you stand two to three tiles off it with
+  nothing else speaking, and the seven fixed steps keep you at a prop mark or inside a conversation
+  throughout. § 2 forbids an eighth step, so **queue 3, the parked bystander-withdraws-the-offer
+  measurement, and anything else on `useFloorShopTalk` are measured by a sweep of the pure modules,
+  not by the visit.** 2026-09-09 is the first row to do that, and the general form is worth keeping
+  separate from 2026-09-06's: _the instrument cannot see the slice_ was a hole to fix in its own
+  run; _the instrument's subject does not contain the slice_ is a different instrument's job, and
+  conflating them would grow the visit until it is a test suite.
 - The floor's known ESLint complexity offenders are recorded in `docs/office-isometric-mode.md` § 8,
   which also warns the figures had themselves drifted and one was backwards. Re-measure before
   quoting them, and remember most floor complexity points are **default parameters** (`= null`

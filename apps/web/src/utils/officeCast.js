@@ -2484,11 +2484,14 @@ export const OFFICE_CHROME_COPY = {
      * Shop talk — a conversation you are near rather than in (slice 22). Keyed
      * by the prop somebody wandered to, because the prop decides *who answers*:
      * the room puts Gary a tile from the coffee machine, Ticket Bot Dave a tile
-     * from the printer and the pod engineers a tile from the whiteboard, so a
-     * bank written per place is a bank written in the replier's voice for free.
+     * from the printer and Dinesh a tile from the whiteboard, so a bank written
+     * per place is a bank written in the replier's voice for free.
      * `shopTalkPartnerFor` derives that pairing from the layout — these three
      * keys follow it rather than declaring it, and moving a desk moves the
-     * voice these lines land in.
+     * voice these lines land in. **One** replier per prop, which is the part
+     * that makes "for free" true: Jared is a tile from the board as well, and
+     * while the second-nearest seat could be drafted in these lines came out of
+     * his mouth whenever Dinesh was the one who had walked over.
      *
      * Each entry is an **[opener, reply] pair**, and the pairing is the whole
      * point: a two-line exchange only reads as a conversation if the second
