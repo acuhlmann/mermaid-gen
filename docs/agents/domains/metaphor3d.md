@@ -602,6 +602,41 @@ ones that will bite an edit.
   island or tower under the aim point. Reachable link/viewport cells fall 10/16 desktop → 3/16 on a
   phone. Fix the ROUTE (stand it off the rim), never the picker.
 
+- **Locking the atmosphere is half the job; the surfaces that atmosphere lights are the other
+  half, and only a FUSED COMPOSITE pays for the omission**
+  (`utils/metaphorDaylightSurfaces.js`). A base river or tree reads the colours the lock already
+  rewrites (`treeMeadowColor`, `waterColor`, `gardenSoilColor`), so nothing shows. A fused world
+  draws every grammar's primitives, so its ground disc comes from `groundColor` and its towers
+  from `buildingColor` — neither of which any lock touches, and on noir the first of those is
+  `#020617`. The result was a daylight sky over a hole. `raiseSurfacesForDaylight` is a **floor,
+  not a substitution**, and every safety property follows from that: a surface already clearing
+  the bar is returned byte-identical (so whiteboard and every unlocked kind are untouched — a noir
+  city measured **0 changed pixels** in all six control cells), it is idempotent without a
+  `treeNatureLocked`-style guard, and it can only ever move a surface that would have rendered as
+  a void. It walks toward the scene's **own sky horizon**, not a neutral grey — aerial
+  perspective, the rule `SoaringBirds` and `recedeTheme` already follow — which is what keeps the
+  three dark themes apart afterwards instead of converging on one grey. Three things worth
+  keeping, all measured over 4 composite fixtures × 4 themes × phone/cover/desktop:
+  - **Whole-canvas contrast σ FALLS on every fixed cell (0.33 → 0.26), and that is the fix
+    working.** A black void against a bright sky is maximally bimodal; σ is measuring the hole.
+    Score the region instead: over exactly the pixels that were dark _before_, σ doubles
+    (0.030 → 0.064) and occupied tone bands go 4.7 → 6.5, up in 26 of 34 cells and **down in
+    none**. When a change removes an extreme, a whole-frame spread statistic will report a loss —
+    restrict it to the pixels the change was aimed at.
+  - **The floor is scoped by luminance, so the cells it fixes are exactly the incongruent ones.**
+    `nearBlack` 0.039 → 0.0008 and `dark` 0.214 → 0.023 over 36 dark-theme composite cells, with
+    the median pixel of a noir river desktop going 0.146 → 0.287; the archipelago composite barely
+    moved, because its ocean is `waterColor` and that one **is** locked.
+  - **Per-cell pixel diffs have a noise floor here, and the whiteboard cells prove it.** The
+    change provably cannot reach them (identity return), yet 18 of 21 differ, one by 8% of pixels
+    at max delta 230 — a label the declutter landed elsewhere. The camera-free statistics were
+    stable to four decimals on those same cells. Trust the statistic, not the diff, and keep a
+    set of cells the change cannot touch as the noise gauge.
+  - **Grouping palettes stay out of it on purpose.** `districtPalette` / `clusterPalette` are
+    ordinal encodings, and flooring them collapses neighbouring entries — two territories
+    agreeing, the one thing a shared grouping noun exists to deny. The cost is visible and
+    recorded: the fused affinity plate is `tintByGroup(resolveDistrictColor(theme, 0), …)`, so it
+    is still a near-black slab under a daylight sky.
 - **A kind that paints its own sky must take the whole atmosphere with it — light, environment
   map AND bloom threshold** (`utils/metaphorSceneTheme.js`, `DAYLIGHT_LOCKED_KINDS`). `TreeScene`
   locked its palette privately while the renderer's theme ladder had no `tree` branch, so a
@@ -1384,6 +1419,74 @@ sticky` nav row, because the height cap makes every small screen a scrolling
     the same ladder. `resolveTreeNatureTheme` is idempotent (`treeNatureLocked`) so `TreeScene` and
     `TreeSky` can go on resolving it themselves; without that guard the second pass re-blends the
     10% leaf tint against itself and walks the canopy back toward the untinted base.
+
+- **The daylight lock rewrote the sky and left the ground behind it, and the fused composite is
+  the only place that shows.** `DAYLIGHT_LOCKED_KINDS` fixed the atmosphere — sky, light,
+  environment map, bloom threshold — for the four kinds that paint their own daylight. It never
+  touched the palette the world's bodies are drawn from, and for a **base** river / garden /
+  archipelago / tree that costs nothing: those scenes read `treeMeadowColor`, `waterColor` and
+  `gardenSoilColor`, all of which the locks already rewrite. A **fused composite** draws every
+  grammar's primitives at once, so `WorldGround` falls back to `theme.groundColor` whenever the
+  document has no substrate layer, and the towers come from `theme.buildingColor`. On noir those
+  are `#020617` and `#334155` — the first is the exact near-black albedo this file already records
+  as one PBR cannot rescue. The picture was a daylight sky over a hole, and it had been that way
+  since the lock shipped.
+
+  The fix is `raiseSurfacesForDaylight` (`utils/metaphorDaylightSurfaces.js`), called from
+  `resolveMetaphorSceneTheme` right after the lock fires and **before** the mood blend — the mood
+  re-tints the sky, and the floor walks toward the sky the scene actually paints. It lives in the
+  ladder rather than inside each resolver for the same reason the ladder became a table: the tree
+  bug was an omission from a list, and a kind added to `DAYLIGHT_LOCKED_KINDS` tomorrow now gets
+  this without anyone remembering to.
+
+  Measured over 4 composite fixtures (tree-, river-, archipelago- and a four-layer
+  river+machine+layercake+terrain world) × 4 themes × 390x844 / 717x512 / 1440x900, plus 18
+  base-kind control cells:
+
+  | cells                                | nearBlack (lum<0.06) |        dark (<0.18) |    median luminance |
+  | ------------------------------------ | -------------------: | ------------------: | ------------------: |
+  | 36 dark-theme composite cells (mean) |  0.0390 → **0.0008** | 0.2142 → **0.0225** |     0.5649 → 0.5720 |
+  | noir river, desktop                  |      0.1493 → 0.0000 |     0.5161 → 0.0608 | 0.1461 → **0.2867** |
+  | noir tree, desktop                   |      0.0618 → 0.0036 |     0.4198 → 0.0705 |     0.3435 → 0.3497 |
+  | 12 whiteboard composite cells        |    identical to 4 dp |   identical to 4 dp |   identical to 4 dp |
+  | 6 base-city control cells (unlocked) | **0 changed pixels** |    0 changed pixels |    0 changed pixels |
+
+  Five things worth keeping, three of them about how to measure this class at all:
+
+  - **A floor is not a substitution, and every safety property of this change is that
+    distinction.** A colour that already clears the bar is returned unchanged — so the operation
+    is idempotent with no `treeNatureLocked`-style guard, whiteboard is untouched on every lock,
+    an unlocked kind is untouched on every theme, and the only surface it can move is one that
+    would have rendered as a void. `raiseSurfacesForDaylight` returns the _same object_ when
+    nothing needed raising, which is what makes those control cells pixel-identical rather than
+    merely close.
+  - **Walk toward the sky the scene paints, not toward a neutral.** Blending a near-black ground
+    toward grey until it clears the bar was tried first and lands all three dark themes on
+    `#45484a`-ish — it fixes the incongruence by deleting the only theme signal a daylight world
+    has left. The sky reference is aerial perspective, the same rule `SoaringBirds` and
+    `recedeTheme` follow, and it keeps them apart: noir `#3e4a4f`, arcade `#454662`, blueprint
+    `#3a4a59` under the river lock. Pinned as a distinctness assertion, not as three hex values.
+  - **Whole-canvas contrast σ falls on every fixed cell, and reading that as a regression would be
+    exactly wrong.** It goes 0.33 → 0.26 because the thing it was measuring — a black hole against
+    a bright sky — is the defect. Restrict the statistic to the pixels the change was aimed at:
+    over exactly the region that was dark _before_, σ **doubles** (0.0300 → 0.0636) and occupied
+    tone bands go 4.71 → 6.53, up in 26 of 34 cells and down in **zero**. The general rule: when a
+    change removes an extreme, a whole-frame spread statistic reports a loss; segment it by the
+    region under test before believing it.
+  - **Keep a set of cells the change provably cannot reach, and use them as the noise gauge.** The
+    21 whiteboard cells cannot move (identity return), yet 18 of them differ pixel-wise and one —
+    `tree-composite whiteboard phone` — differs on **8% of pixels at max delta 230**, a label the
+    declutter pass landed somewhere else between runs. Their camera-free statistics were identical
+    to four decimals. So a per-cell pixel diff under ~8% is not evidence here, and the two cells
+    that scored 0.0001 _worse_ on `nearBlack` include one with zero changed pixels at all.
+  - **Grouping palettes are deliberately out of the key list, and the cost is a visible one.**
+    `districtPalette` and `clusterPalette` are ordinal encodings; a luminance floor over a palette
+    whose entries are four shades of one hue collapses neighbours, which does not read as a bug —
+    it reads as two territories agreeing. So the fused affinity plate
+    (`tintByGroup(resolveDistrictColor(theme, 0), …)` in `FusedCompositeScene.jsx`) is still a
+    near-black slab under a daylight sky, carrying the world's grouping nouns. That is
+    `daylight-group-plate` in the ledger, and the answer is likely to derive the plate from the
+    raised ground rather than to floor the palette.
 
 - **Verify metaphor changes by rendering them.** The scoped skill under
   `apps/web/.claude/skills/verify/` has the headless-capture recipe; every finding above came from

@@ -16,6 +16,7 @@
  * "every kind that paints its own daylight sky is on it" rather than a reader
  * having to notice an omission.
  */
+import { raiseSurfacesForDaylight } from './metaphorDaylightSurfaces.js';
 import { applyMoodToTheme } from './metaphorMoods.js';
 import {
   resolveArchipelagoDaylightTheme,
@@ -53,7 +54,13 @@ export const DAYLIGHT_LOCKED_KINDS = Object.freeze({
 export function resolveMetaphorSceneTheme({ themeId, kind, moodId }) {
   const base = resolveMetaphorThemePreset(themeId);
   const lock = kind ? DAYLIGHT_LOCKED_KINDS[kind] : undefined;
+  // The lock fixes the atmosphere; the floor fixes the surfaces that atmosphere
+  // lights. It runs here rather than inside each resolver for the reason the
+  // table itself exists — a kind added to `DAYLIGHT_LOCKED_KINDS` tomorrow gets
+  // it without anyone remembering to — and BEFORE the mood, because a mood
+  // re-tints the sky and the floor walks toward the sky the scene paints.
+  const daylit = lock ? raiseSurfacesForDaylight(lock(base)) : base;
   // scene.mood re-tints the atmosphere only — never the encodings. Daylight
   // scenes take a softened blend so they stay readable.
-  return applyMoodToTheme(lock ? lock(base) : base, moodId, { soften: Boolean(lock) });
+  return applyMoodToTheme(daylit, moodId, { soften: Boolean(lock) });
 }
