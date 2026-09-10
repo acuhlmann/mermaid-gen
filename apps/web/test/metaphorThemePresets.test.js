@@ -16,6 +16,12 @@ import {
   DAYLIGHT_LOCKED_KINDS,
   resolveMetaphorSceneTheme
 } from '../src/utils/metaphorSceneTheme.js';
+import {
+  DAYLIGHT_SURFACE_KEYS,
+  DAYLIGHT_SURFACE_MIN_LUMA,
+  raiseSurfacesForDaylight,
+  srgbLuma
+} from '../src/utils/metaphorDaylightSurfaces.js';
 
 /**
  * sRGB relative luminance, which is the quantity a bloom threshold is compared
@@ -228,6 +234,87 @@ describe('resolveMetaphorSceneTheme', () => {
     for (const kind of [null, undefined, '', 'composite', 'nope']) {
       const resolved = resolveMetaphorSceneTheme({ themeId: 'noir', kind, moodId: null });
       expect(resolved.skyHorizonColor).toBe(METAPHOR_THEME_PRESETS.noir.skyHorizonColor);
+    }
+  });
+});
+
+// The other half of the lock. A base river/garden/tree reads the colours the
+// lock already rewrites, so this is invisible there; a FUSED composite draws
+// every grammar's primitives, and its ground disc comes from `groundColor` —
+// `#020617` on noir, under a daylight sky.
+describe('daylight surface floor', () => {
+  const LOCKED_DARK_THEMES = ['noir', 'arcade', 'blueprint'];
+
+  it('raises every surface a daylight sky is meant to be lighting', () => {
+    for (const kind of Object.keys(DAYLIGHT_LOCKED_KINDS)) {
+      for (const themeId of LOCKED_DARK_THEMES) {
+        const resolved = resolveMetaphorSceneTheme({ themeId, kind, moodId: null });
+        for (const key of DAYLIGHT_SURFACE_KEYS) {
+          const value = resolved[key];
+          if (typeof value !== 'string') continue;
+          expect(srgbLuma(value), `${kind}/${themeId} ${key}`).toBeGreaterThanOrEqual(
+            DAYLIGHT_SURFACE_MIN_LUMA - 1e-6
+          );
+        }
+      }
+    }
+  });
+
+  it('leaves an unlocked kind on its theme, however dark the surface', () => {
+    // The floor is the daylight lock's business alone. A noir city is a night
+    // scene on purpose, and its near-black plaza is the picture the author
+    // asked for.
+    const noirCity = resolveMetaphorSceneTheme({ themeId: 'noir', kind: 'city', moodId: null });
+    expect(noirCity.groundColor).toBe(METAPHOR_THEME_PRESETS.noir.groundColor);
+  });
+
+  it('returns the same object when nothing needed raising', () => {
+    // Identity, not equality: this is what makes whiteboard's captures
+    // pixel-identical rather than merely close, on every lock.
+    const daylit = { skyHorizonColor: '#c9e8f0', groundColor: '#c2cad8', buildingColor: '#8fb6f0' };
+    expect(raiseSurfacesForDaylight(daylit)).toBe(daylit);
+  });
+
+  it('is idempotent, so a scene may go on resolving the theme it was handed', () => {
+    // `TreeScene` and `TreeSky` both re-resolve; the tree lock needs a
+    // `treeNatureLocked` guard for that, and a floor needs none — a colour that
+    // already clears the bar is returned unchanged.
+    const once = resolveMetaphorSceneTheme({ themeId: 'noir', kind: 'tree', moodId: null });
+    expect(raiseSurfacesForDaylight(once)).toBe(once);
+  });
+
+  it('walks toward the sky the scene paints, so the themes stay apart', () => {
+    // Aerial perspective, the rule `SoaringBirds` and `recedeTheme` follow —
+    // not a blend toward one neutral, which would land all three dark themes on
+    // the same grey and delete the only theme signal a daylight world has left.
+    const grounds = LOCKED_DARK_THEMES.map(
+      (themeId) => resolveMetaphorSceneTheme({ themeId, kind: 'river', moodId: null }).groundColor
+    );
+    expect(new Set(grounds).size).toBe(LOCKED_DARK_THEMES.length);
+  });
+
+  it('never brightens a surface past the bar it had to clear', () => {
+    // A floor, not a wash: the walk stops at the bar, so a raised ground stays
+    // the darkest thing in the picture rather than becoming a light plaza.
+    const noirRiver = resolveMetaphorSceneTheme({ themeId: 'noir', kind: 'river', moodId: null });
+    expect(srgbLuma(noirRiver.groundColor)).toBeLessThan(DAYLIGHT_SURFACE_MIN_LUMA + 0.02);
+  });
+
+  it('leaves ink, light sources and grouping palettes alone', () => {
+    // Three families the floor must not reach: a label is type (the lock sets
+    // it), an emissive key is a light rather than a surface, and a group's
+    // colour is an ordinal encoding — two territories agreeing is the one thing
+    // a shared grouping noun exists to deny.
+    const noir = METAPHOR_THEME_PRESETS.noir;
+    const locked = resolveMetaphorSceneTheme({ themeId: 'noir', kind: 'river', moodId: null });
+    expect(locked.districtPalette).toEqual(noir.districtPalette);
+    expect(locked.clusterPalette).toEqual(noir.clusterPalette);
+    expect(locked.windowEmissiveColor).toBe(noir.windowEmissiveColor);
+    expect(locked.starColor).toBe(noir.starColor);
+    for (const key of DAYLIGHT_SURFACE_KEYS) {
+      expect(key, `${key} is a surface, not ink or a palette`).not.toMatch(
+        /label|Palette|Emissive|Glow|star|Lamp/i
+      );
     }
   });
 });
