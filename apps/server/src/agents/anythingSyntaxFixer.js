@@ -7,6 +7,11 @@ import { extractTextContent } from '../utils/extractTextContent.js';
 import { withLlmUsage } from './_lib/attachLlmUsage.js';
 import { ANYTHING_RULE_PACK, ANYTHING_SELF_CHECK } from '../prompts/anythingSyntaxGuard.js';
 
+// Same headroom as ANYTHING_AGENT_MAX_OUTPUT_TOKENS in anythingLangChainAgent.js — a
+// backend's default max output truncates large Anything documents mid-<script>, and the
+// fixer ladder echoes back a whole document just like the main agent does.
+const ANYTHING_FIXER_MAX_OUTPUT_TOKENS = 16384;
+
 const SYSTEM_PROMPT = `You are an Anything-mode HTML syntax repair function. Given broken HTML/CSS/JS and a validation error, output the smallest fix that yields a valid, self-contained document for the same intent.
 
 CRITICAL output rules:
@@ -131,6 +136,7 @@ export async function repairAnythingWithFixer({
     modelOverride,
     brokenSource,
     onModelCall,
+    maxOutputTokens: ANYTHING_FIXER_MAX_OUTPUT_TOKENS,
     repairOnce: (model) =>
       repairAnythingOnce({
         brokenSource,

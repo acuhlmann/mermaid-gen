@@ -30,6 +30,14 @@ const ANYTHING_PATCH_REQUIRED_INSTRUCTION = `Your previous response did not appl
 - Do not return prose only, and do not paste the document into prose — it goes through the tool.
 - Do not mention tool names in your final user-facing summary.`;
 
+// A backend's default max output tokens (often ~8K) truncates mid-<script> on
+// ordinary Anything documents well before ANYTHING_HTML_MAX_LENGTH — a 12-run
+// repro of the "should never fail" static-explainer bench case hit
+// `unclosed_tag` truncation on 7/12 first-pass attempts, every doc cut off
+// around 25-26KB. Applies to both the initial generation and repair turns,
+// since `buildAgent` backs both (see `invokeWithRepair` below).
+const ANYTHING_AGENT_MAX_OUTPUT_TOKENS = 16384;
+
 function defaultChatModelFactory(env, options) {
   return createLlmChatModel(env, options);
 }
@@ -146,7 +154,12 @@ export function createAnythingLangChainAgent({
   function buildAgent(profile) {
     const backend = resolveLlmBackend(env, profile);
     const modelId = resolveModelId(env, profile, backend);
-    const llm = createChatModel(env, { model: modelId, backend, modelProfile: profile });
+    const llm = createChatModel(env, {
+      model: modelId,
+      backend,
+      modelProfile: profile,
+      maxOutputTokens: ANYTHING_AGENT_MAX_OUTPUT_TOKENS
+    });
     return createAgentImpl({ model: llm, tools, systemPrompt: ANYTHING_SYSTEM_PROMPT });
   }
 
