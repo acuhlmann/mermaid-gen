@@ -121,6 +121,36 @@ test('office moment accepts a capped relationship and refuses an oversized one',
   }
 });
 
+test('office moment accepts the speaker’s own desk work and caps it at two lines', async () => {
+  const { port, closeServer } = await bootServer();
+  try {
+    const withWork = await post(port, 'moment', {
+      kind: 'im',
+      colleagueId: 'intern',
+      diagramSource: 'flowchart TD\n A-->B',
+      officeDeskWork: [
+        'your own screen has had far too many tabs open on it all morning',
+        'you have been heads-down typing'
+      ]
+    });
+    assert.equal(withWork.status, 503, 'desk work reaches the model gate');
+
+    // The cap mirrors the client builder, which emits exactly one line per
+    // closed set. A third line means the client started inventing, and the
+    // both-sides-must-match rule turns drift into a 400 the user experiences
+    // as the office going quiet — so it must fail here, loudly, in a test.
+    const tooMany = await post(port, 'moment', {
+      kind: 'im',
+      colleagueId: 'intern',
+      diagramSource: 'flowchart TD\n A-->B',
+      officeDeskWork: ['a', 'b', 'c']
+    });
+    assert.equal(tooMany.status, 400);
+  } finally {
+    await closeServer();
+  }
+});
+
 test('office moment takes a bounded situation and refuses an invented one', async () => {
   const { port, closeServer } = await bootServer();
   try {

@@ -107,6 +107,18 @@ it names. Merging the two into a single pass is worth doing and is not urgent �
   worst offender is a blanket escape hatch ("say nothing if nothing here earns it") — the model
   takes that branch every time, and the block is only built when there _is_ something to use.
   Put the wanted behaviour first, in the imperative, and keep a single guard.
+  **It replicated, unprompted, on a second block.** The desk-work block (2026-09-10) was drafted
+  with two prohibitions against one hedge and auditioned inert the same way — 0 of 12 either
+  side; re-led with the register and cut to one guard it went 0 of 12 → 6 of 12, at shorter mean
+  length. Treat this as a property of these prompts, not a one-fixture artefact, and audition
+  every new block against a control before believing it does anything.
+- **A new `/moment` context field is a two-place contract, and the scripted visit cannot see it.**
+  `officeDeskWork` (`deskWorkPromptLines` → `officeMomentDelivery.js` → the route's zod restate →
+  `buildOfficeDeskWorkBlock`) — no shared enum, so unlike a `situation` it is not four places. But
+  it rides **only** on `/moment`, and the fixed visit has made **zero** `/moment` calls on every
+  run since 2026-09-06 (`askedTheModel: 0`, twelve runs), so the acceptance instrument is
+  structurally blind to any of them. Measure a context field with a two-arm audition and use the
+  visit as the regression check, not the evidence.
 - **A meeting's roster and its speakers are two different lists.** `POST /api/office/meeting` takes
   `attendees` (scripted, bounded by `MEETING_MAX_ATTENDEES`) and an optional `audience` (present,
   silent — the all-hands crowd). Do **not** raise `MEETING_MAX_ATTENDEES` to seat a crowd: it lets
@@ -608,6 +620,32 @@ test:floor`; the floor test map is [`docs/agents/isometric-floor-tests.md`](../.
   blanket escape hatch ("say nothing if nothing here earns it") — a model takes that branch
   every time, and the block is only built when there _is_ something, so the branch was never
   worth offering. Put the wanted behaviour first and in the imperative, keep one guard.
+
+  **The finding replicated on a second block, drafted by an agent that had read it.** The
+  desk-work block (`buildOfficeDeskWorkBlock`, 2026-09-10) closed with "never describe your own
+  work at them" beside "never claim it touched their diagram" — two prohibitions, one hedged
+  permission — and an audition at n=4 × 3 colleagues against a fixed diagram put **0 of 12 in
+  both arms**, with one line in twelve showing the block at all. Re-led with the register
+  ("answer them from inside that. Let it show — half a clause is plenty") and cut to the single
+  diagram guard, the same audition ran **0 of 12 control → 6 of 12** (≈10 by eye) at a _shorter_
+  mean length, 271 → 258 chars. Two lessons beyond the rule itself: reading this entry is not
+  enough to avoid the mistake, so **audition every new block against a control**; and the guard
+  worth keeping is the one a measurement justifies — here the fabricated-diagram-delta risk,
+  which came back 0 of 12 in both arms.
+
+- **A new `/moment` context field is a two-place contract, and the scripted visit is blind to it.**
+  The chain for `officeDeskWork` is `deskWorkPromptLines` (`officeDeskWork.js`, which owns every
+  sentence — the row carries the enum, the file carries the prose, the same split
+  `INTERRUPTION_PROMPT_LINES` uses) → the moment funnel in `officeMomentDelivery.js` → the zod
+  restate in `routes/office.js` (caps must match, or a drifting client is a 400 the user
+  experiences as the office going quiet) → `buildOfficeDeskWorkBlock`. **Four places, no shared
+  enum** — unlike a `situation`, nothing in `packages/shared` needs touching, and there is no
+  `isSpoken*` predicate to miss. What there _is_ to miss: the field rides **only** on `/moment`,
+  and the acceptance visit has made zero `/moment` calls on all twelve runs since 2026-09-06
+  (`mode.askedTheModel: 0`). So a two-arm audition is the measurement for a context field and the
+  visit trace is only the regression check — six identical traces are the correct, and useless,
+  reading of a change the instrument cannot reach. Never send `line` (their peek answer) to the
+  model: handing it the canned recital and asking it not to recite is not a rule, it is a dare.
 - **A meeting's roster and its speakers are two different lists.** `POST /api/office/meeting` takes
   `attendees` (scripted, bounded by `MEETING_MAX_ATTENDEES`) and an optional `audience` (present,
   silent — the all-hands crowd, §10.4). Do **not** raise `MEETING_MAX_ATTENDEES` to seat a crowd:

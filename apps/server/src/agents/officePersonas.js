@@ -25,6 +25,7 @@ import {
 } from '@archislop/shared';
 import { llmUsageFromReply } from './_lib/llmUsageFromReply.js';
 import {
+  buildOfficeDeskWorkBlock,
   buildOfficeLogBlock,
   buildOfficeRelationshipBlock,
   buildOfficeWorkingMemoryBlock
@@ -769,6 +770,7 @@ export function buildMomentUserPrompt({
   officeLog,
   officeRelationship,
   officeWorkingMemory,
+  officeDeskWork,
   uiLocale,
   userName,
   userMessage,
@@ -831,6 +833,12 @@ export function buildMomentUserPrompt({
        the same recency argument `buildMomentSituationReminder` is built on. */
     buildOfficeRelationshipBlock(officeRelationship),
     buildOfficeWorkingMemoryBlock(officeWorkingMemory),
+    /* …and then the one block that is not about the user at all. It sits last
+       of the four because the ordering argument above is about how *narrow* a
+       memory is, and this is the narrowest thing in the request: one person's
+       own afternoon. It is also the only block whose instruction is a register
+       rather than a fact, which wants the recency. */
+    buildOfficeDeskWorkBlock(officeDeskWork),
     transcript
       ? ['', transcriptHeading, transcript, '', `${saidHeading}: "${safeUserMessage}"`]
       : null,
