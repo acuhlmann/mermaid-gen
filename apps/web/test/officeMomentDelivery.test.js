@@ -188,6 +188,29 @@ describe('deliverLlmMoment carries a pitch to every surface', () => {
     _resetOfficeLogForTests();
   });
 
+  it('sends the speaker their own work, which is nobody else in the request', async () => {
+    // Every other context field on a moment request is about the user. This one
+    // is the speaker's own fiction, and until this slice it was written down in
+    // `officeDeskWork.js`, drawn on a monitor, and fed to no prompt at all.
+    const fetchMock = vi.fn(async () => ({
+      ok: true,
+      json: async () => ({ moment: { body: 'ping', colleagueId: 'russ', kind: 'im' } })
+    }));
+    globalThis.fetch = fetchMock;
+
+    await deliverLlmMoment('im', CTX, { memory: memory(), colleagueId: 'russ' });
+    const russ = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body ?? '{}'));
+    expect(russ.officeDeskWork).toHaveLength(2);
+    expect(String(russ.officeDeskWork)).toContain('phone');
+
+    // And it is keyed on the speaker, so two colleagues do not sound like one
+    // person — the whole point of the field.
+    await deliverLlmMoment('im', CTX, { memory: memory(), colleagueId: 'jared' });
+    const jared = JSON.parse(String(fetchMock.mock.calls[1]?.[1]?.body ?? '{}'));
+    expect(jared.officeDeskWork).not.toEqual(russ.officeDeskWork);
+    expect(String(jared.officeDeskWork)).toContain('printouts');
+  });
+
   it('sends working-memory beats and can strip a pitch on initiation', async () => {
     const {
       stampWorkingMemoryBoard,

@@ -34,6 +34,7 @@ import {
   isSpokenMomentSituation
 } from '../src/agents/officePersonas.js';
 import {
+  buildOfficeDeskWorkBlock,
   buildOfficeLogBlock,
   buildOfficeRelationshipBlock,
   buildOfficeWorkingMemoryBlock
@@ -1009,6 +1010,70 @@ test('buildMomentUserPrompt carries working memory beside the relationship', () 
   assert.match(prompt, /yours alone/);
   assert.match(prompt, /not a first meeting/);
   assert.ok(prompt.indexOf('yours alone') < prompt.indexOf('not a first meeting'));
+});
+
+test('buildMomentUserPrompt carries the speaker’s own work, last of the four blocks', () => {
+  const prompt = buildMomentUserPrompt({
+    contentType: 'mermaid',
+    diagramSource: 'graph TD; A-->B;',
+    visibleLabels: [],
+    recentMoments: [],
+    officeWorkingMemory: ['last board they noticed: mermaid:Auth:40'],
+    officeDeskWork: [
+      'your own screen has had a ticket queue open on it all morning',
+      'you keep getting pulled onto phone calls'
+    ],
+    uiLocale: 'en-US'
+  });
+  assert.match(prompt, /your own work, nobody asked/);
+  assert.match(prompt, /pulled onto phone calls/);
+  // Last of the memory blocks: the ordering argument is narrowness, and one
+  // person's own afternoon is narrower than anything they share with the user.
+  assert.ok(prompt.indexOf('not a first meeting') < prompt.indexOf('your own work, nobody asked'));
+});
+
+test('buildOfficeDeskWorkBlock asks them to answer from inside their own day', () => {
+  const block = buildOfficeDeskWorkBlock([
+    'your own screen has had a ticket queue open on it all morning',
+    'you have a stack of printouts you are working through'
+  ]).join('\n');
+  assert.match(block, /Let it show/);
+  // One guard, and it is the one the measurements justify: this block gives the
+  // model a circumstance, and a circumstance is what the 8-of-12 finding says it
+  // will invent a diagram consequence for.
+  assert.match(block, /never is: something that touched their diagram/);
+
+  /*
+   * The shape rule, asserted rather than trusted, because this block was
+   * MEASURED INERT in its first draft and this is exactly what was wrong with
+   * it: it closed with "never describe your own work at them" beside "never
+   * claim it touched their diagram", and two prohibitions against one hedged
+   * permission auditioned indistinguishable from the control arm (0 of 12
+   * either side). Re-led with the register and cut to one guard, the same
+   * audition went 0 of 12 control → 6 of 12. A second "never" here is not a
+   * style nit; it is the regression.
+   */
+  const prohibitions = block.match(/\b(never|do not|don't)\b/gi) ?? [];
+  assert.equal(
+    prohibitions.length,
+    1,
+    `desk-work block carries ${prohibitions.length} prohibitions`
+  );
+  // And no escape hatch — the model takes that branch every time.
+  assert.doesNotMatch(block, /if nothing earns it|say nothing/i);
+});
+
+test('buildMomentUserPrompt omits the desk-work block when the client sends none', () => {
+  const prompt = buildMomentUserPrompt({
+    contentType: 'mermaid',
+    diagramSource: 'graph TD; A-->B;',
+    visibleLabels: [],
+    recentMoments: [],
+    uiLocale: 'en-US'
+  });
+  // A heading over nothing tells the model this colleague has no inner life,
+  // which is worse than not raising the subject.
+  assert.doesNotMatch(prompt, /your own work, nobody asked/);
 });
 
 test('buildMomentUserPrompt threads the office log in beside recent moments', () => {
