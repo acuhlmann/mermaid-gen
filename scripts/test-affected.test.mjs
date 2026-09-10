@@ -283,6 +283,24 @@ test('the negative case: an unrelated file does not pull the strict-island senso
   assert.ok(!plan.tests.includes('scripts/verify-strict-islands.test.mjs'));
 });
 
+test('the eslint-guidance sensor is selected by both files that can drift it', () => {
+  for (const file of [
+    'packages/eslint-config/guidance.js',
+    'packages/eslint-config/formatter.cjs'
+  ]) {
+    const plan = resolveAffectedTests([file], { root: ROOT });
+    assert.ok(
+      plan.tests.includes('scripts/verify-eslint-guidance-sync.test.mjs'),
+      `${file} must select the sensor that watches it`
+    );
+  }
+});
+
+test('the negative case: an unrelated file does not pull the eslint-guidance sensor', () => {
+  const plan = resolveAffectedTests(['packages/eslint-config/index.js'], { root: ROOT });
+  assert.ok(!plan.tests.includes('scripts/verify-eslint-guidance-sync.test.mjs'));
+});
+
 // Every bundle, not the two that happened to be new when this was written (#528 part 2).
 // `resolveAffectedTests` drops a listed path that does not exist with no noise at all, so a renamed
 // suite turns a blast rule into a silent no-op — the same failure the reverse sweep above exists for,
