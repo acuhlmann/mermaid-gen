@@ -16,6 +16,7 @@ import { API_BASE_URL, SESSION_HEADER } from '../state/diagramSession.js';
 import { OFFICE_DIAGRAM_SOURCE_MAX_CHARS } from '@archislop/shared';
 import { getAdvisorVisibleLabels } from './advisorVisibleLabels.js';
 import { writeOfficeCadenceMemory } from './officeAmbienceStorage.js';
+import { deskWorkPromptLines } from './officeDeskWork.js';
 import { getOfficeLogDigest, getOfficeRelationshipWith } from '../state/officeLogStore.js';
 import {
   boardFingerprintOf,
@@ -445,6 +446,13 @@ export async function deliverLlmMoment(kind, ctx, options) {
         // dealt with today and the server drops the block entirely.
         officeRelationship: getOfficeRelationshipWith(colleagueId),
         officeWorkingMemory: workingMemoryPromptLines(colleagueId),
+        // Their own work, which the room has always known and never told
+        // anybody (`docs/office-parody.md` § 11). The two blocks above are
+        // about *you*: what the office remembers of your day, and what this
+        // speaker shares with you. This one is the only thing in the request
+        // that is theirs — the fiction that makes a colleague on the phone
+        // sound different from one with a stack of printouts.
+        officeDeskWork: deskWorkPromptLines(colleagueId),
         uiLocale: officeDialogueLocale(),
         userName: ctx.userName || undefined,
         userMessage: userMessage || undefined,

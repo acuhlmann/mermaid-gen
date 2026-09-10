@@ -90,6 +90,17 @@ const OfficeRelationshipField = z.array(z.string().max(200)).max(3).default([]);
  */
 const OfficeWorkingMemoryField = z.array(z.string().max(200)).max(6).default([]);
 
+/**
+ * The speaker's *own* work — a screen line and a hands line, built client-side
+ * by `officeDeskWork.js` from two closed sets. Same both-sides-must-match
+ * reasoning as the two fields above; the cap is 2 because the client's builder
+ * emits exactly one line per closed set, and a third would mean the client
+ * started inventing rather than looking up.
+ *
+ * The one field on this request that is about them rather than about the user.
+ */
+const OfficeDeskWorkField = z.array(z.string().max(200)).max(2).default([]);
+
 const ModelProfileField = ModelProfileSchema.optional();
 
 const OfficeMomentRequestSchema = z.object({
@@ -102,6 +113,7 @@ const OfficeMomentRequestSchema = z.object({
   officeLog: OfficeLogField,
   officeRelationship: OfficeRelationshipField,
   officeWorkingMemory: OfficeWorkingMemoryField,
+  officeDeskWork: OfficeDeskWorkField,
   uiLocale: UiLocaleField,
   userName: z.string().max(80).optional(),
   userMessage: z.string().max(400).optional(),

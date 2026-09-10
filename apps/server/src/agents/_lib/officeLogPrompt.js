@@ -27,6 +27,8 @@ const LOG_MAX_LINES = 12;
 const RELATIONSHIP_MAX_LINES = 3;
 /** Beats + fingerprint lines from the client working-memory store. */
 const WORKING_MEMORY_MAX_LINES = 6;
+/** One screen line + one hands line from the client's `officeDeskWork.js`. */
+const DESK_WORK_MAX_LINES = 2;
 
 /**
  * The closing instruction is the load-bearing half of this block. Handed a list
@@ -126,6 +128,44 @@ export function buildOfficeWorkingMemoryBlock(officeWorkingMemory) {
     'You have already spoken with this person today, or you already looked at their board.',
     'Pick up mid-thread — shorthand, an assumption, the tone of somebody continuing.',
     'Keep these beats UNDER the line: do not recite them and never count them.'
+  ];
+}
+
+/**
+ * The speaker's **own** work — the one block on a moment request that is not
+ * about the user. Every other block here answers "what do you know about
+ * them"; this one answers "what were you in the middle of", which is the
+ * difference between a colleague and a greeter
+ * (`docs/office-parody.md` § 11 named it as its own open context hole).
+ *
+ * Shaped by the two findings this domain has already paid for. **Lead with the
+ * register in the imperative** — a hedged permission loses to a list of
+ * prohibitions every time, so there is exactly one guard here and no "say
+ * nothing if nothing earns it" hatch. And the guard is the one that matters:
+ * this is *their* fiction, so the failure to head off is the model spending
+ * the line on it, or worse, deciding their own work is something they did to
+ * the user's diagram (the situation-fabricates-a-delta finding, measured 8 of
+ * 12, wearing a different hat).
+ *
+ * @param {string[] | undefined} officeDeskWork
+ * @returns {string[] | null} null when empty, so the caller drops the heading
+ *   rather than printing one over nothing.
+ */
+export function buildOfficeDeskWorkBlock(officeDeskWork) {
+  const lines = Array.isArray(officeDeskWork)
+    ? officeDeskWork
+        .filter((line) => typeof line === 'string' && line.trim())
+        .slice(0, DESK_WORK_MAX_LINES)
+    : [];
+  if (lines.length === 0) return null;
+  return [
+    '',
+    'What you were in the middle of yourself, before any of this (your own work, nobody asked):',
+    ...lines.map((line) => `- ${line.slice(0, LOG_LINE_MAX_CHARS)}`),
+    '',
+    'Answer them from inside that. Let it show — half a clause is plenty: what your hands are',
+    'busy with, what you are looking away from to say this, what you are about to get back to.',
+    'The one thing your own work never is: something that touched their diagram.'
   ];
 }
 

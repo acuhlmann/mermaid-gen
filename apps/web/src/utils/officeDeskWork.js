@@ -162,3 +162,68 @@ export const OFFICE_DESK_WORK = {
 export function deskWorkFor(id) {
   return OFFICE_DESK_WORK[id] ?? null;
 }
+
+/**
+ * What each `look` reads like to the model — their own workload, in their own
+ * words, for `/moment`'s `officeDeskWork` field.
+ *
+ * **Durative on purpose.** A moment is delivered from one funnel and the
+ * speaker is not always in their chair when it fires: they may be walking to
+ * the coffee machine, or standing beside you when a dwell remark lands. "Your
+ * screen has had a spreadsheet on it all morning" survives all of those;
+ * "you are sitting at a spreadsheet" is a claim about a chair the prompt
+ * cannot see.
+ *
+ * @type {Readonly<Record<string, string>>}
+ */
+const LOOK_PROMPT_LINES = Object.freeze({
+  terminal: 'your own screen has been a wall of terminal output all morning',
+  tabs: 'your own screen has had far too many tabs open on it all morning',
+  spreadsheet: 'your own screen has had a spreadsheet open on it all morning',
+  slides: 'your own screen has had a slide deck open on it all morning',
+  tickets: 'your own screen has had a ticket queue open on it all morning',
+  calendar: 'your own screen has had a calendar open on it all morning'
+});
+
+/**
+ * What each `doing` reads like. Same durative rule as `LOOK_PROMPT_LINES`, and
+ * the same reason: these are read as a state you have been in, not a pose you
+ * are struck in at the instant the moment fires.
+ *
+ * @type {Readonly<Record<string, string>>}
+ */
+const DOING_PROMPT_LINES = Object.freeze({
+  typing: 'you have been heads-down typing',
+  phone: 'you keep getting pulled onto phone calls',
+  headset: 'you have been in and out of calls with your headset on',
+  papers: 'you have a stack of printouts you are working through',
+  mug: 'you are mostly holding a mug'
+});
+
+/**
+ * Prompt lines for `/moment`'s `officeDeskWork` field — the speaker's own
+ * fiction, which until this slice was written down and fed to nothing
+ * (`docs/office-parody.md` § 11 named it as its own open context hole).
+ *
+ * This file owns every sentence, the same split
+ * `officeWorkingMemoryStore.js`'s `INTERRUPTION_PROMPT_LINES` uses: the row
+ * carries the *fact* (`look` / `doing`, both closed sets), and the sentence for
+ * it lives beside the row rather than in the floor or on the server. A value
+ * with no sentence contributes nothing instead of leaking an enum name into a
+ * system prompt.
+ *
+ * `line` is deliberately **not** here. It is what they say when you peek over
+ * their shoulder, and handing the model its own canned answer is an invitation
+ * to recite it back.
+ *
+ * Empty for the player and for anyone with no row, so the server drops the
+ * heading rather than announcing an absence.
+ *
+ * @param {string} colleagueId
+ * @returns {string[]}
+ */
+export function deskWorkPromptLines(colleagueId) {
+  const work = deskWorkFor(colleagueId);
+  if (!work) return [];
+  return [LOOK_PROMPT_LINES[work.look], DOING_PROMPT_LINES[work.doing]].filter(Boolean);
+}

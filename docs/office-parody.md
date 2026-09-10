@@ -1375,7 +1375,33 @@ floor run-walk, implementation pending) is [`office-continuity.md`](office-conti
   The failure the guard exists for — counting the history back at the user — ran **1 in 27**
   against 0 in 27 for the control.
 
-  Still open: deliverable context (last-run summary), and "their own work" below.
+  **"Their own work" is now the fourth block** (`officeDeskWork`, 2026-09-10). `officeDeskWork.js`
+  had carried a `look` and a `doing` per cast member since slice 13, shown when you peek over a
+  shoulder and fed to no prompt at all; `deskWorkPromptLines` turns the two closed sets into two
+  sentences and the moment funnel ships them on every `/moment`. It is the only block on that
+  request that is about the **speaker** rather than the user, which is why it sits last — the
+  ordering argument is narrowness, and one person's own afternoon is narrower than anything they
+  share with you.
+
+  **Its rule was measured inert too, in exactly the same way, and the fix was the same fix.** The
+  first draft closed with two prohibitions ("never describe your own work at them", "never claim
+  it touched their diagram") against one hedged permission ("let it colour how you sound"), and an
+  audition against a fixed diagram at n=4 × 3 colleagues could not separate it from the control:
+  **0 of 12 either side** carried a first-person present-activity clause, and only one line of
+  twelve showed the block at all. Re-led with the register in the imperative ("answer them from
+  inside that — let it show; half a clause is plenty") and cut to the **one** guard the
+  measurement justifies, the same audition ran **0 of 12 control → 6 of 12** (nearer 10 by eye:
+  "i'm on hour two of a call about a call", "sorry alex, mid-printout here", "my terminal and i
+  are still arguing"), at slightly _shorter_ mean length, 271 → 258 chars. That the drafting rule
+  reproduced itself on a second block, unprompted, is the strongest evidence this domain has that
+  it is a real property of these prompts and not a one-fixture artefact.
+
+  The guard that survived is the diagram one, and the audition says it was the right one to keep:
+  the risk this block carries is the situation-fabricates-a-delta failure (8 of 12) wearing a
+  different hat, since a circumstance is precisely what a model will invent a consequence for.
+  Measured **0 of 12 in both arms** — the block did not buy a fabrication.
+
+  Still open: deliverable context (last-run summary).
 
   **The context contract had a hole beside the log, and it was the harder one to see.** The log
   answers "what has happened today"; nothing answered **"why are you speaking right now"**.
