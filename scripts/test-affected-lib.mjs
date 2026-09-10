@@ -331,6 +331,12 @@ export const BLAST_RADIUS_RULES = [
     // matching the web strict island would select a test that asserts nothing about it.
     match: /packages\/eslint-config\/typeCheckedIsland\.js|apps\/server\/tsconfig\.strict\.json/,
     tests: ['scripts/verify-strict-islands.test.mjs']
+  },
+  {
+    // The canonical guidance map (guidance.js) and the formatter's inline duplicate (formatter.cjs).
+    // Neither selected the sensor that watches them: eslint-config/ matches no blast rule.
+    match: /packages\/eslint-config\/(?:guidance\.js|formatter\.cjs)/,
+    tests: ['scripts/verify-eslint-guidance-sync.test.mjs']
   }
 ];
 
