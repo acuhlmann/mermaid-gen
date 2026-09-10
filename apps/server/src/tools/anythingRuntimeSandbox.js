@@ -92,10 +92,20 @@ function createInert() {
  * reject when a model passes a rect-shaped object. The inert Proxy accepts any
  * call, which is why `ctx.fillRect({x, y, width, height})` silently passed under
  * jsdom while Chromium threw — the divergence the bench corpus pins.
+ *
+ * **The number here is a minimum, not an exact count**, because that is what
+ * WebIDL specifies and therefore what Chromium enforces: a call is rejected for
+ * having too *few* required arguments, and trailing extras are ignored. An
+ * exact count gets `arc` wrong in the direction that matters — its signature is
+ * `arc(x, y, radius, startAngle, endAngle, optional counterclockwise)`, so the
+ * commonest way there is to draw a circle passes six — and it would reject
+ * `fillRect(x, y, w, h, junk)`, which every browser draws. This rung exists to
+ * reproduce the client sandbox, so a rejection it invents costs a 12-60 s
+ * repair turn on a page that was never broken.
  */
 function createCanvas2dContextStub() {
   const inert = createInert();
-  const ARITY = {
+  const MIN_ARITY = {
     fillRect: 4,
     strokeRect: 4,
     clearRect: 4,
@@ -107,10 +117,10 @@ function createCanvas2dContextStub() {
     {
       get(_target, prop) {
         if (prop === 'then') return undefined;
-        if (Object.prototype.hasOwnProperty.call(ARITY, prop)) {
-          const required = ARITY[prop];
+        if (Object.prototype.hasOwnProperty.call(MIN_ARITY, prop)) {
+          const required = MIN_ARITY[prop];
           return function arityChecked(...args) {
-            if (args.length !== required) {
+            if (args.length < required) {
               throw new TypeError(
                 `Failed to execute '${String(prop)}' on 'CanvasRenderingContext2D': ${required} arguments required, but only ${args.length} present.`
               );

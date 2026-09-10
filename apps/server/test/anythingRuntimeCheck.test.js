@@ -157,6 +157,48 @@ test('runtime sandbox integration', { concurrency: false }, async (t) => {
     }
   );
 
+  await t.test("jsdom keeps arc's optional counterclockwise argument", async () => {
+    // The arity guard above reproduces Chromium's rejection of a rect-shaped
+    // object, and `arc` is the method where an exact count is the wrong shape
+    // of rule: the WebIDL signature is
+    // `arc(x, y, radius, startAngle, endAngle, optional counterclockwise)`, so
+    // five arguments and six are both valid and Chromium accepts either. A page
+    // that spells the optional argument out is the commonest way there is to
+    // draw a circle; rejecting it costs a 12-60 s repair turn against an error
+    // message that reads "5 arguments required, but only 6 present".
+    //
+    // Pinned to jsdom for the same reason the case above is: the arity table is
+    // jsdom-side code, and on a machine with Chromium the default engine would
+    // never reach it.
+    const page = doc(
+      `<canvas id="c" width="120" height="120"></canvas>
+         <script>
+           const ctx = document.getElementById('c').getContext('2d');
+           ctx.beginPath();
+           ctx.arc(60, 60, 40, 0, Math.PI * 2, false);
+           ctx.fill();
+         </script>`
+    );
+    const result = await runAnythingRuntimeCheck(page, {
+      env: { ANYTHING_RUNTIME_ENGINE: 'jsdom' }
+    });
+    assert.equal(result.ok, true, result.error);
+
+    // Still an arity guard: too few is a real page bug either engine rejects.
+    const short = await runAnythingRuntimeCheck(
+      doc(
+        `<canvas id="c" width="120" height="120"></canvas>
+         <script>
+           document.getElementById('c').getContext('2d').arc(60, 60, 40, 0);
+         </script>`
+      ),
+      { env: { ANYTHING_RUNTIME_ENGINE: 'jsdom' } }
+    );
+    assert.equal(short.ok, false);
+    assert.equal(short.code, 'runtime_error');
+    assert.match(short.error, /arc/i);
+  });
+
   await t.test('canvas, matchMedia, observers, and audio do not false-positive', async () => {
     const result = await runAnythingRuntimeCheck(
       doc(
