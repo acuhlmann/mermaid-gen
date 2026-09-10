@@ -2394,14 +2394,33 @@ Kept here so appetite can pick without re-deriving. Each should stay bound by AD
   bank size are still the two dials in two files (`officeCadence.js` for how often,
   `officeCast.js` for how much).
 
-- **The pairing is a tie-break away from being a different joke.** At the whiteboard both
-  `dinesh` (7, 4) and `jared` (8, 5) are exactly one tile from the mark, and `FLOOR_SEATS`
-  order is the only reason Dinesh answers rather than Jared. That is stable and deterministic —
-  and it means the whiteboard bank is written in an engineer's voice for a reply that becomes
-  Jared's the moment Dinesh is the one who walked over, which is a reachable state rather than a
-  theoretical one (Dinesh is on the wander roster). The lines were chosen to survive both
-  mouths; a future bank with sharper voice should either exclude the second-nearest seat or key
-  on the **replier** rather than on the prop.
+- ~~**The pairing is a tie-break away from being a different joke.**~~ — ✅ **cleared.** At the
+  whiteboard both `dinesh` (7, 4) and `jared` (8, 5) are exactly one tile from the mark, and
+  `FLOOR_SEATS` order was the only reason Dinesh answered rather than Jared — so the whiteboard
+  bank, written in an engineer's voice, became **Jared's** the moment Dinesh was the one who had
+  walked over. A reachable state rather than a theoretical one: Dinesh is on the wander roster,
+  and the sweep measures it at **1 of the 33** wanderer×prop combinations the floor can produce.
+  Of the two fixes named here, the automation took **exclude the second-nearest seat**, because
+  it is the one that needs no new copy in four locales to keep the pair's voice coherent.
+
+  `shopTalkPartnerFor` now asks the layout for the prop's **resident** — the single nearest
+  seat, you and the sealed-in `senior` tier skipped — and refuses rather than advancing to the
+  next candidate when that person cannot answer. Two states end the question: they are the
+  wanderer, or `whereaboutsOf` says they are not in their chair. **The printer already behaved
+  this way and nobody chose it**: `helpdesk` is the only seat within a tile of that mark, so the
+  roster walk ran out instead of reaching a second candidate, and Ticket Bot Dave walking to his
+  own printer has always produced silence. The whiteboard was the sole place on the floor where
+  a stranger could be drafted in, and this is the printer's answer arrived at on purpose.
+
+  Cost and gain, both measured: reachable exchanges fall **32 → 31 of 33**, and exchanges spoken
+  in a voice the bank was not written for fall **1 → 0**. What it buys is the licence § 8 asked
+  for — a bank keyed on the prop **is** a bank keyed on the replier now, so a future one may be
+  written with a sharper voice than lines chosen to survive two mouths. The invariant is pinned
+  over the whole wander roster in `officeFloorShopTalk.test.jsx` ("answers a prop in the same
+  voice, whoever walked over"), because the way it breaks is a **layout** change: seat a second
+  person the same distance from a mark and the bank quietly starts being read in two voices with
+  nothing rendered to notice.
+
 - **A third participant is unreachable by construction.** Only the nearest eligible seat is
   nominated, so a prop with two neighbours still produces a two-hander. That is right for the
   pacing (`useScenePacing` reveals one speaker at a time and a three-line exchange doubles the

@@ -68,58 +68,45 @@ import {
  */
 
 /**
- * Whoever is sitting close enough to the prop to be part of a conversation at
- * it, or `null` when nobody is.
+ * The colleague this prop belongs to — whoever the layout seated nearest its
+ * mark — or `null` where nobody lives close enough to be part of a conversation
+ * at it.
  *
  * **The room answers this, not a table.** A wander mark is a prop mark
  * (`officeFloorWander.js`), and every prop mark on this floor was placed so a
- * person could stand at it and be seen — so asking which seats are within
+ * person could stand at it and be seen — so asking which seat is within
  * `NAME_CHIP_RANGE_TILES` of one is asking a question the layout has already
  * answered. It comes back exactly right without anybody writing down who chats
  * to whom: the coffee machine has Gary next to it, the printer has Ticket Bot
- * Dave, and the whiteboard has the two pod engineers. Move a desk and the
- * pairings move with it.
+ * Dave, and the whiteboard has Dinesh. Move a desk and the pairings move with
+ * it.
  *
  * Note this is a *different question* from slice 19's, though it reuses the same
  * radius: that one measures from where **you** are stood, so at the whiteboard it
  * answers Gilfoyle. This one measures from the **mark**, which answers Dinesh.
  * Both are correct about their own subject and they are not expected to agree.
  *
- * Four exclusions, and only the last is new:
+ * Two seats are skipped here rather than refused by `shopTalkPartnerFor` below,
+ * because neither is ever anybody's neighbour and the answer must not vary with
+ * the hour:
  *
  * - **You**, who are the audience.
- * - **The wanderer themselves**, who cannot answer their own opener. This is
- *   reachable rather than theoretical — Dinesh sits a tile from the whiteboard
- *   and is on the wander roster — and it is why the second-nearest seat matters.
  * - **The `senior` tier**, for the glass rather than for manners, exactly as
  *   `dwellTargetAt` and `talkTileFor` do it: leadership are sealed in and a
  *   conversation through a fixed pane is not one.
- * - **Anybody not in their own chair**, which `whereaboutsOf` reports as
- *   anything non-null. Somebody a moment has claimed is already being drawn with
- *   chrome of its own (§ 6 rule 5), and a second wanderer cannot be the partner
- *   because there is only ever one.
  *
- * Ties break on `FLOOR_SEATS` order for `dwellTargetAt`'s reason: two people sit
- * a tile from the whiteboard, and a random pick would re-credit the same
- * exchange to a different person on an unrelated re-render.
+ * Ties break on `FLOOR_SEATS` order, for `dwellTargetAt`'s reason and now for a
+ * second one: at the whiteboard `dinesh (7,4)` and `jared (8,5)` are both
+ * exactly one tile from the mark, and residency has to come back the same on
+ * every call or the bank gets read in two voices.
  *
- * @param {{ x: number, y: number } | null} mark
- * @param {string} wandererId
- * @param {{ wanderer?: unknown, awayIds?: string[] }} [floorState]
+ * @param {{ x: number, y: number }} mark
  * @returns {string | null}
  */
-function canAnswerFrom(seat, wandererId, floorState) {
-  if (seat.id === YOU_SEAT_ID || seat.id === wandererId) return false;
-  if (tierOf(seat.id) === 'senior') return false;
-  return !whereaboutsOf(seat.id, floorState);
-}
-
-export function shopTalkPartnerFor(mark, wandererId, floorState = {}) {
-  if (!mark || !wandererId) return null;
-
+function residentSeatFor(mark) {
   let best = null;
   for (const seat of FLOOR_SEATS) {
-    if (!canAnswerFrom(seat, wandererId, floorState)) continue;
+    if (seat.id === YOU_SEAT_ID || tierOf(seat.id) === 'senior') continue;
     const distance = tileDistance(mark, { x: seat.x, y: seat.y });
     if (distance > NAME_CHIP_RANGE_TILES) continue;
     if (best && best.distance <= distance) continue;
@@ -127,6 +114,49 @@ export function shopTalkPartnerFor(mark, wandererId, floorState = {}) {
   }
 
   return best?.id ?? null;
+}
+
+/**
+ * Who answers a wanderer at this prop: its resident, when they are in their own
+ * chair and are not the one who walked over. `null` otherwise — and the silence
+ * is the point rather than a gap.
+ *
+ * **The reply belongs to the place, so it has to come out of the same mouth
+ * every time.** `floor.shopTalk` is keyed on the prop and every entry is an
+ * [opener, reply] pair written for whoever sits by it — the whiteboard's replies
+ * are an engineer's, the printer's are Ticket Bot Dave's. Walking down the seat
+ * roster for a *second* candidate when the nearest one cannot answer keeps the
+ * exchange playing and quietly puts those lines in a mouth they do not fit:
+ * Jared sits a tile from the board as well, so the whiteboard bank used to
+ * become his the moment Dinesh was the one who had walked over. That is a
+ * reachable state and not a theoretical one — Dinesh is on the wander roster —
+ * and it was the only place on the floor it could happen, because the printer
+ * and the coffee machine have exactly one seat in range each. The printer was
+ * therefore already silent when Ticket Bot Dave walked to his own printer; this
+ * is that same answer, arrived at on purpose.
+ *
+ * The two things that stop a resident answering are both about *this instant*
+ * rather than about the layout, which is why they end the question instead of
+ * advancing it to the next seat:
+ *
+ * - **They are the wanderer**, who cannot answer their own opener.
+ * - **They are not in their own chair**, which `whereaboutsOf` reports as
+ *   anything non-null. Somebody a moment has claimed is already being drawn with
+ *   chrome of its own (§ 6 rule 5), and a second wanderer cannot be the partner
+ *   because there is only ever one.
+ *
+ * @param {{ x: number, y: number } | null} mark
+ * @param {string} wandererId
+ * @param {{ wanderer?: unknown, awayIds?: string[] }} [floorState]
+ * @returns {string | null}
+ */
+export function shopTalkPartnerFor(mark, wandererId, floorState = {}) {
+  if (!mark || !wandererId) return null;
+
+  const residentId = residentSeatFor(mark);
+  if (!residentId || residentId === wandererId) return null;
+
+  return whereaboutsOf(residentId, floorState) ? null : residentId;
 }
 
 /**
