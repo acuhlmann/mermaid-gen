@@ -318,7 +318,7 @@ export function createOpenRouterModel(env, overrides = {}) {
     throw new LlmNotConfiguredError();
   }
 
-  const { temperature, model: explicitModel, ...rest } = overrides;
+  const { temperature, model: explicitModel, maxTokens, maxOutputTokens, ...rest } = overrides;
   const fields = {
     apiKey: env.OPENROUTER_API_KEY,
     siteName: env.OPENROUTER_SITE_NAME || 'ArchiSlop',
@@ -333,6 +333,10 @@ export function createOpenRouterModel(env, overrides = {}) {
   }
   if (temperature !== undefined) {
     fields.temperature = temperature;
+  }
+  const cap = maxOutputTokens ?? maxTokens;
+  if (cap !== undefined) {
+    fields.maxTokens = cap;
   }
 
   return new ChatOpenRouter(fields);
