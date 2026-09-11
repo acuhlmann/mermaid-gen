@@ -32,16 +32,37 @@ function fail(code: AnythingPolicyLintCode, error: string): AnythingPolicyLintFa
 }
 
 /**
+ * A reserved word immediately before a `/` means the `/` opens a regex, not a
+ * division — `return /"/.test(v)` is the common shape. The character test
+ * below cannot see this on its own: it reads the `n` of `return` as the end of
+ * an identifier and calls the slash division, which is how #639's quote
+ * corruption stayed reachable after #639 fixed it for `(`, `,` and `=`.
+ *
+ * The leading `[^\w$.]` carries both halves of the boundary. Without the
+ * word part, `margin / 2` would lex as a regex because `margin` ends in `in`;
+ * without the `.`, so would `map.delete / 2`. These are all reserved words, so
+ * no identifier can collide with one.
+ */
+const KEYWORD_BEFORE_REGEX =
+  /(?:^|[^\w$.])(?:return|typeof|instanceof|case|delete|throw|yield|await|void|else|new|in|of|do)\s*$/;
+
+/** How far back `KEYWORD_BEFORE_REGEX` may look. `instanceof` plus its boundary
+ * character is 11; the rest is slack for whitespace between the keyword and the
+ * slash. Bounded so the lookback stays O(1) per slash rather than O(document). */
+const KEYWORD_LOOKBACK = 64;
+
+/**
  * True when a `/` at this point in the source starts a regex literal rather
  * than a division operator, using the standard lexer heuristic: a value just
  * ended (identifier/number char, `)`, `]`, `}`, or a closed string/template)
- * means division; anything else (an operator, punctuation, or start of
- * input) means a regex can start here. `lastSig` is the last non-whitespace
- * character already emitted.
+ * means division; anything else (an operator, punctuation, a reserved word, or
+ * start of input) means a regex can start here. `lastSig` is the last
+ * non-whitespace character already emitted and `emitted` the output so far.
  */
-function isRegexLiteralContext(lastSig: string): boolean {
+function isRegexLiteralContext(lastSig: string, emitted: string): boolean {
   if (!lastSig) return true;
-  return !/[\w$)\]}"'`]/.test(lastSig);
+  if (!/[\w$)\]}"'`]/.test(lastSig)) return true;
+  return KEYWORD_BEFORE_REGEX.test(emitted.slice(-KEYWORD_LOOKBACK));
 }
 
 function stripJsComments(source: string): string {
@@ -87,7 +108,7 @@ function stripJsComments(source: string): string {
     // for the rest of the document and hiding every later `//` comment (and
     // the external-URL false positive that follows) behind it. Scan a regex
     // literal as one token instead of falling into that trap.
-    if (ch === '/' && isRegexLiteralContext(lastSig)) {
+    if (ch === '/' && isRegexLiteralContext(lastSig, out)) {
       let j = i + 1;
       let inClass = false;
       let esc = false;
