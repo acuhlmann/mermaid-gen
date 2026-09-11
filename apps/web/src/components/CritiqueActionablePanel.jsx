@@ -12,7 +12,7 @@ export default function CritiqueActionablePanel({
   headingText,
   items,
   critiqueText,
-  a2uiMessages,
+  a2uiMessages: _a2uiMessages,
   busy,
   onFixAll,
   onFixSelected

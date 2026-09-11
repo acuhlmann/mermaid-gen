@@ -143,7 +143,7 @@ function escapeReservedNodeIds(source: string) {
   const candidates = new Set<string>();
   // Node declarations like `end[label]`, `end(label)`, `end{label}`, or bare `end -->`.
   const declRe =
-    /(^|\n|[\s;])(end|class|style|default|interpolate|linkStyle|subgraph)\s*([\[\(\{<])/gi;
+    /(^|\n|[\s;])(end|class|style|default|interpolate|linkStyle|subgraph)\s*([[({<])/gi;
   let m;
   while ((m = declRe.exec(source)) != null) {
     const id = m[2].toLowerCase();

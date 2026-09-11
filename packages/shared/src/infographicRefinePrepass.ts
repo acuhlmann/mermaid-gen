@@ -14,7 +14,7 @@ function polishReaderText(raw: unknown) {
   let t = normalizeQuotes(String(raw ?? ''));
   t = t.replace(/\s+/g, ' ').trim();
   t = t.replace(/\s+([,.;:!?])/g, '$1');
-  t = t.replace(/([(\[])\s+/g, '$1');
+  t = t.replace(/([([])\s+/g, '$1');
   t = t.replace(/\s+([)\]])/g, '$1');
   if (t.length > 120) {
     const cut = t.slice(0, 117).replace(/\s+\S*$/, '');

@@ -12,8 +12,7 @@ import { useNarrowLayout } from '../hooks/useAppLayoutMedia.js';
 import { useDelayedUnmount } from '../utils/useDelayedUnmount.js';
 import {
   findMermaidSourceRangeForDiagramSelection,
-  findSequenceMessageRange,
-  logicalIdFromDiagramSelection
+  findSequenceMessageRange
 } from '../utils/mermaidSourceLocate.js';
 import { applyDiagramHighlightToSvg } from '../utils/applyDiagramHighlightToSvg.js';
 import {

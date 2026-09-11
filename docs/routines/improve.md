@@ -13,8 +13,10 @@ allowedPaths:
   - '*.md'
   - scripts/**
   - packages/eslint-config/**
+  - packages/shared/src/**
   - apps/*/test/**
   - packages/shared/test/**
+  - apps/server/src/utils/**
   - apps/*/tsconfig.strict.json
   - apps/web/src/utils/**
   - apps/web/src/components/**
