@@ -7,7 +7,6 @@
  * hand-offs stay attached to their pods.
  */
 import { useMemo, useRef } from 'react';
-import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
 import { Billboard } from '@react-three/drei';
 import { cycleWheelLayout } from '../../utils/metaphorLayouts/cycleWheelLayout.js';

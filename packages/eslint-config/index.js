@@ -133,7 +133,15 @@ export function baseConfig({ env = 'node', tighten = false, workspaceDir = '.' }
         'max-params': 'off'
       }
     },
-    ...legacyOverridesForWorkspace(workspaceDir)
+    ...legacyOverridesForWorkspace(workspaceDir),
+    // ADR-0007: promoted 2026-09-11 after a two-week quiet period with no
+    // eslint-disable additions touching this rule (see improve ledger).
+    {
+      files: ['**/*.{js,jsx,mjs,cjs,ts,tsx}'],
+      rules: {
+        'no-useless-escape': 'error'
+      }
+    }
   ];
 }
 
