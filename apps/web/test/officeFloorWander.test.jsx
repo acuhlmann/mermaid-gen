@@ -7,6 +7,7 @@ import { useFloorWander } from '../src/components/officeFloor/useFloorWander.js'
 import { officeChromeCopy } from '../src/utils/officeCast.js';
 import { renderFloor } from './helpers/officeFloorTestUtils.jsx';
 import {
+  _resetWanderHabitsForTests,
   wanderHabitFor,
   wanderTripsFor,
   wanderingSeatIds
@@ -62,6 +63,7 @@ afterEach(() => {
    * that a fresh read would hydrate from.
    */
   _resetOfficeWorkingMemoryForTests();
+  _resetWanderHabitsForTests();
   window.localStorage.clear();
 });
 
@@ -650,6 +652,7 @@ describe('a habit per colleague', () => {
        */
       const at = (hour) => {
         vi.setSystemTime(new Date(2026, 7, 10, hour, 15, 0, 0));
+        _resetWanderHabitsForTests();
         return wanderingSeatIds().map((id) => wanderHabitFor(id)?.kind ?? null);
       };
       vi.useFakeTimers({ shouldAdvanceTime: true });
