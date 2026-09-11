@@ -177,6 +177,37 @@ const endpoint = 'https://evil.com/api';`
   assert.equal(result.code, 'external_url');
 });
 
+test('a regex literal in keyword position is not mistaken for division (#639 residual)', () => {
+  // `isRegexLiteralContext` implements only the *character* half of the
+  // standard lexer heuristic, so it reads the `n` of `return` as the end of an
+  // identifier and calls the following `/` a division. The regex is then never
+  // scanned as one token, its `"` opens a phantom string exactly as before
+  // #639, and the next real `//` comment is swallowed — the same false
+  // `external_url` on a page with no network reference at all.
+  const doc = VALID_DOC.replace(
+    "document.title='x';",
+    `function hasQuote(v) { return /"/.test(v); }
+// ---- trailing section: must still be stripped as a comment ----
+document.title = String(hasQuote('a'));`
+  );
+  assert.equal(lintAnythingPolicy(doc).ok, true);
+});
+
+test('division after a keyword-suffixed identifier is still division', () => {
+  // The word-boundary half matters in both directions: `margin` ends in `in`
+  // and `align` ends in `n`, but neither is a keyword, so the `/` after them
+  // is division and must not swallow the rest of the line as a regex.
+  const doc = VALID_DOC.replace(
+    "document.title='x';",
+    `const margin = 40;
+const align = 10;
+const half = margin / 2 + align / 2;
+// a trailing comment with slashes // like this
+document.title = String(half);`
+  );
+  assert.equal(lintAnythingPolicy(doc).ok, true);
+});
+
 test('division after an identifier is not mistaken for a regex literal', () => {
   const doc = VALID_DOC.replace(
     "document.title='x';",
