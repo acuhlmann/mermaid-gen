@@ -558,3 +558,57 @@ export function resolveGalaxyVividTheme(theme) {
     spaceHorizonColor: theme?.spaceHorizonColor ?? '#2a1050'
   };
 }
+
+/**
+ * Bloom cut-off ceiling for a kind that paints deep space, applied as a **cap**
+ * rather than a value.
+ *
+ * The tree's constant is a floor and this one is a ceiling, because the two
+ * locks fail in opposite directions. A daylight backdrop can pass the theme's
+ * own bloom filter and erase the subject, so its threshold has to stay ABOVE
+ * the sky. A deep-space backdrop (~0.02–0.10 luminance) can never bloom, so the
+ * risk is the other way round: a threshold picked for a near-white sky —
+ * whiteboard's 0.95 — sits above the emissive star cores that are the entire
+ * subject, and the glow simply never fires.
+ *
+ * `0.86` is blueprint's own value, chosen so this cap is provably a no-op on
+ * three of the four presets (noir 0.78, arcade 0.72, blueprint 0.86) and moves
+ * only the one that was picked for daylight. Same safety property as
+ * `raiseSurfacesForDaylight`: a theme already clearing the bar is untouched.
+ */
+export const SPACE_BLOOM_THRESHOLD = 0.86;
+
+/**
+ * Lock a theme's scene-wide sky keys to the deep space `GalaxySky` actually
+ * paints.
+ *
+ * `spaceTopColor`/`spaceHorizonColor` are a **different theme channel** from
+ * `skyTopColor`/`skyHorizonColor`, and the galaxy and orrery are the only kinds
+ * that paint from the first pair — every other scene passes `theme.skyTopColor`
+ * straight into its own `GradientSkySphere`. So on whiteboard the backdrop was
+ * `#0b1026` while six separate readers of the sky keys were still answering
+ * `#b9cde4`/`#dde5ef`: the IBL (`SceneEnvironment`), the key light's fill and
+ * rim, the WebGL clear colour and the PNG export background, `recedeTheme`'s
+ * horizon, `isDarkBackdrop` — which gates the accent marker's ADDITIVE glow on
+ * precisely the question this lock answers — and the bloom threshold above.
+ *
+ * Idempotent by construction: the space channel is never rewritten, so a second
+ * pass reads the same two colours, and `Math.min` is idempotent.
+ */
+export function resolveSpaceSkyTheme(theme) {
+  const space = resolveGalaxyVividTheme(theme);
+  const postfx = space.postfx ?? {};
+  return {
+    ...space,
+    background: space.spaceHorizonColor,
+    skyTopColor: space.spaceTopColor,
+    skyHorizonColor: space.spaceHorizonColor,
+    postfx: {
+      ...postfx,
+      bloomThreshold: Math.min(
+        postfx.bloomThreshold ?? DEFAULT_POSTFX.bloomThreshold,
+        SPACE_BLOOM_THRESHOLD
+      )
+    }
+  };
+}
