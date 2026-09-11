@@ -145,6 +145,48 @@ test('widening the strip to end-of-input does not hide a real external URL (#538
   assert.equal(styleResult.code, 'external_url');
 });
 
+// A regex literal's pattern can contain an unescaped quote character — e.g.
+// `n.replace(/"/g, '&quot;')`, a chip-rendering idiom the generation baseline
+// produced repeatedly. stripJsComments's plain quote-tracker used to mistake
+// that `"` for the start of a string, corrupting its quote state for the rest
+// of the script — a later, real `//` comment then never got recognized as one
+// and its raw text tripped `external_url` on a page with no network reference
+// at all. These three pin the fix without reopening the real-URL cases above.
+
+test('lintAnythingPolicy accepts a regex literal whose pattern contains a quote character', () => {
+  const doc = VALID_DOC.replace(
+    "document.title='x';",
+    `function chip(n) {
+  return '<button data-goto="' + n.replace(/"/g, '&quot;') + '">' + n + '</button>';
+}
+// ---- trailing section: must still be stripped as a comment ----
+document.title = chip('a');`
+  );
+  assert.equal(lintAnythingPolicy(doc).ok, true);
+});
+
+test('a real external URL after a quote-containing regex literal is still rejected', () => {
+  const doc = VALID_DOC.replace(
+    "document.title='x';",
+    `const s = 'x'.replace(/"/g, '&quot;');
+const endpoint = 'https://evil.com/api';`
+  );
+  const result = lintAnythingPolicy(doc);
+  assert.equal(result.ok, false);
+  if (result.ok) return;
+  assert.equal(result.code, 'external_url');
+});
+
+test('division after an identifier is not mistaken for a regex literal', () => {
+  const doc = VALID_DOC.replace(
+    "document.title='x';",
+    `const half = 10 / 2;
+// a trailing comment with slashes // like this
+document.title = String(half);`
+  );
+  assert.equal(lintAnythingPolicy(doc).ok, true);
+});
+
 test('lintAnythingPolicy rejects external image URLs', () => {
   const bad = VALID_DOC.replace('<h1>', '<img src="https://evil.com/x.png"><h1>');
   const result = lintAnythingPolicy(bad);

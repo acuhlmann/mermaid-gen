@@ -106,6 +106,30 @@ export const ANYTHING_BENCH_CORPUS = [
     })
   },
   {
+    // Regression case for the regex-literal false positive: a regex pattern
+    // containing a quote character (`/"/g`) used to be mistaken by
+    // stripJsComments's naive quote-tracker for the start of a string, which
+    // left the tracker's quote state corrupted for the rest of the script —
+    // hiding a later, entirely legitimate `//` line comment behind it and
+    // tripping `external_url` on generated-model output that never referenced
+    // a network address. Pins that a quote character inside a regex literal
+    // does not derail comment stripping.
+    id: 'valid-regex-literal-with-quote-char',
+    kind: 'valid',
+    expectedAccept: true,
+    html: page(
+      `<h1>Chips</h1><div id="out"></div>
+<script>
+  function chip(n) {
+    return '<button data-goto="' + n.replace(/"/g, '&quot;') + '">' + n + '</button>';
+  }
+  document.getElementById('out').innerHTML = chip('a"b');
+  // ---- trailing section: must still be stripped as a comment ----
+  const half = 10 / 2;
+</script>`
+    )
+  },
+  {
     // Allowlisted lib marker: the runtime check must execute the page WITH the
     // vendored d3 injected (regression = expansion dropped from the ladder).
     id: 'valid-lib-d3',
