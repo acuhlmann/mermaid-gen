@@ -1,5 +1,12 @@
 /**
- * The other half of the daylight lock: the surfaces the daylight lights.
+ * The other half of an atmosphere lock: the surfaces that atmosphere lights.
+ *
+ * Two directions live here, because they are the same bisection with the
+ * comparison flipped — `raiseSurfacesForDaylight` (a FLOOR, for a kind on
+ * `DAYLIGHT_LOCKED_KINDS`) and `dimSurfacesForSpace` (a CEILING, for a kind on
+ * `SPACE_LOCKED_KINDS`). Both walk a surface toward the scene's own sky horizon
+ * and stop the moment it clears the bar, so both return a colour already on the
+ * right side of it byte-identical.
  *
  * `DAYLIGHT_LOCKED_KINDS` fixed the atmosphere — a kind that paints its own sky
  * now takes the light, the environment map and the bloom threshold with it. It
@@ -135,4 +142,75 @@ export function raiseSurfacesForDaylight(theme) {
     raised[key] = next;
   }
   return raised ?? theme;
+}
+
+/**
+ * Perceived lightness a surface may reach before a deep-space sky stops being a
+ * plausible explanation for it.
+ *
+ * The mirror of `DAYLIGHT_SURFACE_MIN_LUMA`, and it moves exactly one preset:
+ * `groundColor` is 0.79 on whiteboard against 0.03 noir / 0.05 arcade / 0.11
+ * blueprint, so every dark theme is provably byte-identical and the bar has a
+ * wide margin on both sides rather than sitting between two live values.
+ */
+export const SPACE_SURFACE_MAX_LUMA = 0.35;
+
+/**
+ * The keys a space ceiling may touch — and this list is **much shorter than the
+ * daylight floor's on purpose**, which is the finding worth keeping.
+ *
+ * The floor's argument generalises to every surface: a near-black albedo cannot
+ * be lit, whatever the sky. The ceiling's does not. A BODY that is bright in
+ * deep space is a perfectly good picture — it is lit from within, or it is a
+ * pale material catching a key light — and blueprint's towers (`buildingColor`
+ * 0.85, roof 0.91, slab 0.94) are the whole blueprint idea; dimming them would
+ * delete a theme to fix a frame. A **ground plane** is the case where no such
+ * reading exists: it is flat albedo whose only light in an outdoor scene is the
+ * sky above it, it fills most of the canvas on a fused world, and in space
+ * there is no sky lighting it. Measured on a galaxy-dominant composite at
+ * 1440x900, whiteboard's `#c2cad8` disc reads as a daylight plaza cut out and
+ * pasted onto a starfield — the exact inverse of the noir tree composite's
+ * "daylight sky over a hole" that the floor above exists to fix.
+ */
+export const SPACE_SURFACE_KEYS = Object.freeze(['groundColor']);
+
+/** The mirror of `raiseToDaylight`: walk `hex` toward `sky` until it is UNDER the bar. */
+function dimToSpace(hex, sky) {
+  if (srgbLuma(hex) <= SPACE_SURFACE_MAX_LUMA) return hex;
+  let low = 0;
+  let high = 1;
+  for (let step = 0; step < 14; step += 1) {
+    const mid = (low + high) / 2;
+    if (srgbLuma(blendHex(hex, sky, mid)) > SPACE_SURFACE_MAX_LUMA) low = mid;
+    else high = mid;
+  }
+  return blendHex(hex, sky, high);
+}
+
+/**
+ * Bring a space-locked theme's ground under a lightness deep space could
+ * account for. Returns the same object when nothing needed dimming, which is
+ * every dark theme.
+ *
+ * Only a **composite** whose dominant layer is `galaxy`/`orrery` can show this:
+ * a base galaxy or orrery draws no ground at all. That is the same shape as the
+ * floor, whose only visible case is a fused composite — for the same reason, and
+ * it is why both live here rather than inside a scene.
+ *
+ * @param {Record<string, unknown>} theme a theme the space lock has already resolved
+ * @returns {Record<string, unknown>}
+ */
+export function dimSurfacesForSpace(theme) {
+  const sky = theme?.skyHorizonColor ?? theme?.background;
+  if (!theme || typeof sky !== 'string') return theme;
+  let dimmed = null;
+  for (const key of SPACE_SURFACE_KEYS) {
+    const value = theme[key];
+    if (typeof value !== 'string' || !value.startsWith('#')) continue;
+    const next = dimToSpace(value, sky);
+    if (next === value) continue;
+    dimmed ??= { ...theme };
+    dimmed[key] = next;
+  }
+  return dimmed ?? theme;
 }

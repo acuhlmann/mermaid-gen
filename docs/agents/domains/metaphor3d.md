@@ -637,6 +637,59 @@ ones that will bite an edit.
     agreeing, the one thing a shared grouping noun exists to deny. The cost is visible and
     recorded: the fused affinity plate is `tintByGroup(resolveDistrictColor(theme, 0), …)`, so it
     is still a near-black slab under a daylight sky.
+- **That lock has a mirror, and the space kinds were on the wrong side of it**
+  (`utils/metaphorSceneTheme.js` `SPACE_LOCKED_KINDS`, `resolveSpaceSkyTheme`,
+  `metaphorDaylightSurfaces.js` `dimSurfacesForSpace`). `GalaxySky` — mounted for `galaxy` and,
+  through the same branch, `orrery` — paints from `spaceTopColor`/`spaceHorizonColor`, a
+  **different theme channel** from the `skyTopColor`/`skyHorizonColor` every other kind's sky
+  sphere reads straight through. So unlike the tree this was **not an omission from a list and no
+  authored value was wrong**: two channels of one theme simply disagreed, and on whiteboard they
+  disagree by everything — `#0b1026`/`#2a1050` painted against `#b9cde4`/`#dde5ef` answered. Six
+  consumers believed the wrong one: the IBL (`SceneEnvironment`), the key light's fill and rim, the
+  WebGL clear colour and with it the PNG export background, `recedeTheme`'s horizon, the bloom
+  threshold — and **`isDarkBackdrop`, which gates the accent marker's ADDITIVE glow** and was
+  answering "too bright for additive" about a sky at 0.09 luma. A sweep of all 14 base kinds × 4
+  themes at 1440x900 found these two and nothing else: every other kind passes `theme.skyTopColor`
+  into its own sphere, and `nearWhite` never exceeded 0.009 anywhere, so the tree's own class has
+  no second instance. Four things worth keeping:
+  - **The bloom constant is a CAP where the tree's is a FLOOR**, because the two locks fail in
+    opposite directions. A daylight backdrop can pass the theme's own bloom filter and erase the
+    subject, so its threshold must stay ABOVE the sky. A deep-space backdrop (0.02–0.10) can never
+    bloom, so the risk is the other way: whiteboard's 0.95, picked for a near-white sky, sits above
+    the emissive star cores that ARE the subject and the glow never fires. `SPACE_BLOOM_THRESHOLD`
+    is 0.86 — blueprint's own value — so the cap is provably a no-op on three of four presets.
+    Measured: whiteboard `glow` (pixels over 0.85 luminance) **+8–13% on all six base galaxy and
+    orrery cells**, and the three dark themes identical to four decimals.
+  - **The space lock runs AFTER the mood; the daylight lock runs before**, and the asymmetry is
+    load-bearing rather than an oversight. `applyMoodToTheme` REPLACES the sky keys outright for an
+    unsoftened kind, so a space lock applied first is undone by `dusk` on every theme. A daylight
+    scene's own sphere reads keys the lock rewrote, so there the mood moves backdrop and consumers
+    together; `GalaxySky` reads the space channel, which no mood touches. The mood still owns the
+    ambient, the key light and `moodFx`, which is the part of a mood a space scene can honestly
+    express.
+  - **The ceiling's key list is much shorter than the floor's, and that asymmetry is the finding.**
+    The floor's argument generalises — a near-black albedo cannot be lit, whatever the sky. The
+    ceiling's does not: a bright BODY in space is a fine picture (lit from within, or a pale
+    material catching a key light), and blueprint's towers are 0.85 / 0.91 / 0.94 by design, so
+    dimming bodies would delete a theme to fix a frame. A **ground plane** is the one case with no
+    such reading — flat albedo whose only outdoor light is the sky above it, filling most of the
+    canvas on a fused world. `SPACE_SURFACE_KEYS` is therefore `['groundColor']` alone, at a 0.35
+    bar that moves whiteboard (0.79) and clears blueprint (0.11) by a wide margin either side.
+    Only a galaxy-**dominant composite** can show it, exactly as the floor's only visible case is a
+    fused composite. Measured over that fixture at the three standing viewports: whole-canvas
+    median luminance **0.518 → 0.187** desktop, 0.411 → 0.192 cover; `satLit` (mean chroma over
+    pixels above 0.19 luminance) **+17–18% in all three**; the nine noir/arcade/blueprint cells and
+    all twelve city control cells identical to 3–4 dp, the latter at 0.00–0.02% changed pixels.
+  - **Whole-canvas σ falls again, for the mirror of the recorded reason** (0.319 → 0.214 desktop).
+    The daylight floor's entry says σ falls because it had been measuring a black hole against a
+    bright sky; here it had been measuring a blinding white plate against a black one. Same trap,
+    same answer: when a change removes an extreme, a whole-frame spread statistic reports a loss.
+  - **And the pastel whiteboard galaxy is NOT this bug** — measured, not assumed. The obvious
+    reading of that frame is "a daylight sky is washing the stars out", and locking the hemisphere
+    light's sky term to `spaceTopColor` as well moved `satLit` by **0.00** on the galaxy at every
+    viewport while costing the composite 0.08 of median luminance. It was tried and reverted. The
+    remaining desaturation is the white `ambientLight` at 0.6 and the star material, not the sky —
+    so start there, not at the sky keys.
 - **A kind that paints its own sky must take the whole atmosphere with it — light, environment
   map AND bloom threshold** (`utils/metaphorSceneTheme.js`, `DAYLIGHT_LOCKED_KINDS`). `TreeScene`
   locked its palette privately while the renderer's theme ladder had no `tree` branch, so a

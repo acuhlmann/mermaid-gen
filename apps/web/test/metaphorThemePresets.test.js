@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
-import { shiftColor } from '../src/components/metaphorScenes/sceneUtils.js';
+import { isDarkBackdrop, shiftColor } from '../src/components/metaphorScenes/sceneUtils.js';
 import {
   DEFAULT_POSTFX,
   METAPHOR_THEME_PRESETS,
@@ -9,16 +9,21 @@ import {
   resolveGardenDaylightTheme,
   resolveMetaphorPostfx,
   resolveRiverDaylightTheme,
+  resolveSpaceSkyTheme,
   resolveTreeNatureTheme,
+  SPACE_BLOOM_THRESHOLD,
   TREE_DAYLIGHT_BLOOM_THRESHOLD
 } from '../src/utils/metaphorThemePresets.js';
 import {
   DAYLIGHT_LOCKED_KINDS,
+  SPACE_LOCKED_KINDS,
   resolveMetaphorSceneTheme
 } from '../src/utils/metaphorSceneTheme.js';
 import {
   DAYLIGHT_SURFACE_KEYS,
   DAYLIGHT_SURFACE_MIN_LUMA,
+  SPACE_SURFACE_KEYS,
+  SPACE_SURFACE_MAX_LUMA,
   raiseSurfacesForDaylight,
   srgbLuma
 } from '../src/utils/metaphorDaylightSurfaces.js';
@@ -316,5 +321,172 @@ describe('daylight surface floor', () => {
         /label|Palette|Emissive|Glow|star|Lamp/i
       );
     }
+  });
+});
+
+// The daylight lock's mirror. `GalaxySky` paints from `spaceTopColor` /
+// `spaceHorizonColor` — a different theme channel from the one every other
+// kind's sky sphere reads — so on whiteboard the backdrop was `#0b1026` while
+// the IBL, the key light's fill and rim, the clear colour, `recedeTheme`'s
+// horizon, `isDarkBackdrop` and the bloom threshold all still answered
+// `#b9cde4`/`#dde5ef`.
+describe('space sky lock', () => {
+  const THEMES = ['whiteboard', 'noir', 'arcade', 'blueprint'];
+
+  it('covers exactly the kinds that mount GalaxySky', () => {
+    // Named rather than left implicit, for the reason `DAYLIGHT_LOCKED_KINDS`
+    // is: the tree bug was an omission from a list, and the orrery is the entry
+    // an eye skips because the renderer mounts it through the galaxy's branch.
+    expect(Object.keys(SPACE_LOCKED_KINDS).sort()).toEqual(['galaxy', 'orrery']);
+  });
+
+  it('never claims a kind both paints daylight and paints space', () => {
+    for (const kind of Object.keys(SPACE_LOCKED_KINDS)) {
+      expect(DAYLIGHT_LOCKED_KINDS, kind).not.toHaveProperty(kind);
+    }
+  });
+
+  it.each(THEMES)('puts %s sky keys on the space the scene actually paints', (themeId) => {
+    for (const kind of Object.keys(SPACE_LOCKED_KINDS)) {
+      const resolved = resolveMetaphorSceneTheme({ themeId, kind, moodId: null });
+      const space = resolveGalaxyVividTheme(METAPHOR_THEME_PRESETS[themeId]);
+      expect(resolved.skyTopColor, `${kind}/${themeId}`).toBe(space.spaceTopColor);
+      expect(resolved.skyHorizonColor, `${kind}/${themeId}`).toBe(space.spaceHorizonColor);
+      expect(resolved.background, `${kind}/${themeId}`).toBe(space.spaceHorizonColor);
+    }
+  });
+
+  it('lets the additive accent glow fire on every theme, whiteboard included', () => {
+    // The behavioural point of the lock. `isDarkBackdrop` reads the sky keys to
+    // decide whether an additive glow can register at all, and on a whiteboard
+    // galaxy it was answering "no" about a sky that is `#2a1050`.
+    expect(isDarkBackdrop(METAPHOR_THEME_PRESETS.whiteboard)).toBe(false);
+    for (const themeId of THEMES) {
+      for (const kind of Object.keys(SPACE_LOCKED_KINDS)) {
+        const resolved = resolveMetaphorSceneTheme({ themeId, kind, moodId: null });
+        expect(isDarkBackdrop(resolved), `${kind}/${themeId}`).toBe(true);
+      }
+    }
+  });
+
+  it('caps the bloom threshold and leaves the three dark themes untouched', () => {
+    for (const themeId of THEMES) {
+      const preset = METAPHOR_THEME_PRESETS[themeId];
+      const resolved = resolveMetaphorSceneTheme({ themeId, kind: 'galaxy', moodId: null });
+      expect(resolved.postfx.bloomThreshold).toBeLessThanOrEqual(SPACE_BLOOM_THRESHOLD);
+      if (preset.postfx.bloomThreshold <= SPACE_BLOOM_THRESHOLD) {
+        // A cap, not a value: a theme already under the bar keeps its own.
+        expect(resolved.postfx.bloomThreshold, themeId).toBe(preset.postfx.bloomThreshold);
+      }
+    }
+    // Only whiteboard's is picked for a daylight sky, so only whiteboard moves.
+    expect(METAPHOR_THEME_PRESETS.whiteboard.postfx.bloomThreshold).toBeGreaterThan(
+      SPACE_BLOOM_THRESHOLD
+    );
+    // And a theme that authors no postfx block at all still gets the cap rather
+    // than the daylight-ish default the merge would otherwise hand it.
+    expect(DEFAULT_POSTFX.bloomThreshold).toBeGreaterThan(SPACE_BLOOM_THRESHOLD);
+    expect(
+      resolveSpaceSkyTheme({ spaceTopColor: '#01030a', spaceHorizonColor: '#1e1b4b' }).postfx
+    ).toHaveProperty('bloomThreshold', SPACE_BLOOM_THRESHOLD);
+  });
+
+  it('holds the lock through a mood, which is why it runs after one', () => {
+    // A mood replaces the sky keys outright (mix 1 for an unsoftened kind), so
+    // a space lock applied before it would be undone by `dusk` on every theme —
+    // the IBL, rim and clear colour back on a sunset the galaxy never paints.
+    const dusk = resolveMetaphorSceneTheme({ themeId: 'noir', kind: 'galaxy', moodId: 'dusk' });
+    const plain = resolveMetaphorSceneTheme({ themeId: 'noir', kind: 'galaxy', moodId: null });
+    expect(dusk.skyTopColor).toBe(plain.skyTopColor);
+    expect(dusk.skyHorizonColor).toBe(plain.skyHorizonColor);
+    // …and the mood still owns the parts a space scene can honestly express.
+    expect(dusk.directional.intensity).toBeLessThan(plain.directional.intensity);
+    expect(dusk.moodFx).toBeTruthy();
+  });
+
+  it('is idempotent, because the scene resolves the theme again for itself', () => {
+    // `GalaxyScene` and `GalaxySky` both call `resolveGalaxyVividTheme` on the
+    // theme the renderer already resolved.
+    for (const themeId of THEMES) {
+      const once = resolveMetaphorSceneTheme({ themeId, kind: 'galaxy', moodId: null });
+      expect(resolveSpaceSkyTheme(once)).toEqual(once);
+      expect(resolveGalaxyVividTheme(once)).toEqual(once);
+    }
+  });
+
+  it('leaves every other kind on its theme sky', () => {
+    for (const themeId of THEMES) {
+      const preset = METAPHOR_THEME_PRESETS[themeId];
+      for (const kind of ['city', 'layercake', 'machine', 'subway', 'iceberg']) {
+        const resolved = resolveMetaphorSceneTheme({ themeId, kind, moodId: null });
+        expect(resolved.skyTopColor, `${kind}/${themeId}`).toBe(preset.skyTopColor);
+        expect(resolved.postfx.bloomThreshold, `${kind}/${themeId}`).toBe(
+          preset.postfx.bloomThreshold
+        );
+      }
+    }
+  });
+
+  it('brings the ground under a lightness deep space could account for', () => {
+    for (const themeId of THEMES) {
+      for (const kind of Object.keys(SPACE_LOCKED_KINDS)) {
+        const resolved = resolveMetaphorSceneTheme({ themeId, kind, moodId: null });
+        for (const key of SPACE_SURFACE_KEYS) {
+          expect(srgbLuma(resolved[key]), `${kind}/${themeId} ${key}`).toBeLessThanOrEqual(
+            SPACE_SURFACE_MAX_LUMA + 1e-6
+          );
+        }
+      }
+    }
+  });
+
+  it('moves only whiteboard, and leaves every dark theme byte-identical', () => {
+    // The ceiling's safety property, and the reason the bar is 0.35: whiteboard's
+    // ground is 0.79 and the next highest is blueprint's 0.11, so the bar has a
+    // wide margin either side rather than sitting between two live values.
+    for (const themeId of ['noir', 'arcade', 'blueprint']) {
+      const resolved = resolveMetaphorSceneTheme({ themeId, kind: 'galaxy', moodId: null });
+      expect(resolved.groundColor, themeId).toBe(METAPHOR_THEME_PRESETS[themeId].groundColor);
+    }
+    const white = resolveMetaphorSceneTheme({
+      themeId: 'whiteboard',
+      kind: 'galaxy',
+      moodId: null
+    });
+    expect(white.groundColor).not.toBe(METAPHOR_THEME_PRESETS.whiteboard.groundColor);
+  });
+
+  it('leaves the bodies alone, because a bright body in space can be right', () => {
+    // The asymmetry with the daylight floor, which reaches nine keys. A
+    // near-black albedo cannot be lit whatever the sky; a pale TOWER in space is
+    // a lit object, and blueprint's are 0.85/0.91/0.94 by design.
+    expect(SPACE_SURFACE_KEYS).toEqual(['groundColor']);
+    for (const themeId of THEMES) {
+      const preset = METAPHOR_THEME_PRESETS[themeId];
+      const resolved = resolveMetaphorSceneTheme({ themeId, kind: 'galaxy', moodId: null });
+      expect(resolved.buildingColor, themeId).toBe(preset.buildingColor);
+      expect(resolved.slabColor, themeId).toBe(preset.slabColor);
+      expect(resolved.districtPalette, themeId).toEqual(preset.districtPalette);
+    }
+  });
+
+  it('never dims the ground of a kind that is not in space', () => {
+    const whiteCity = resolveMetaphorSceneTheme({
+      themeId: 'whiteboard',
+      kind: 'city',
+      moodId: null
+    });
+    expect(whiteCity.groundColor).toBe(METAPHOR_THEME_PRESETS.whiteboard.groundColor);
+  });
+
+  it('keeps each theme a different deep space rather than one black', () => {
+    // The `tree-themes-read-alike` cost, avoided: the lock substitutes the
+    // theme's OWN space channel, which the presets already author apart, so
+    // picking noir over arcade still buys a different sky.
+    const skies = THEMES.map(
+      (themeId) =>
+        resolveMetaphorSceneTheme({ themeId, kind: 'galaxy', moodId: null }).skyHorizonColor
+    );
+    expect(new Set(skies).size).toBe(THEMES.length);
   });
 });
