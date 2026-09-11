@@ -6,7 +6,12 @@ import FloorWanderer from '../src/components/officeFloor/FloorWanderer.jsx';
 import { useFloorWander } from '../src/components/officeFloor/useFloorWander.js';
 import { officeChromeCopy } from '../src/utils/officeCast.js';
 import { renderFloor } from './helpers/officeFloorTestUtils.jsx';
-import { wanderTripsFor, wanderingSeatIds } from '../src/utils/officeFloorWander.js';
+import {
+  wanderHabitFor,
+  wanderTripsFor,
+  wanderingSeatIds
+} from '../src/utils/officeFloorWander.js';
+import { deskDoingFor } from '../src/utils/officeFloorActivity.js';
 import { approachTileFor, propTileFor } from '../src/utils/officeFloorMovement.js';
 import { propHandsFor } from '../src/utils/officeFloorProps.js';
 import { interruptSpeech } from '../src/utils/officeFloorInterrupt.js';
@@ -432,6 +437,63 @@ describe('the floor with somebody up and about', () => {
 });
 
 /**
+ * A uniform stream that does not inherit whatever the rest of the suite left
+ * on `Math.random`, but is still a distribution rather than one pinned roll.
+ * Slice 23's lesson stands: no arm here consumes a different *number* of
+ * randoms — only the list rolled against changes.
+ *
+ * Seeded from a caller-supplied number so two arms of the same experiment can
+ * be handed the *same* stream when the thing under test is the weighting, and
+ * different ones when it is the hour.
+ */
+function seededRandomFrom(seed) {
+  let state = seed * 2_654_435_761;
+  return () => {
+    state = (state + 0x6d2b79f5) | 0;
+    let t = Math.imul(state ^ (state >>> 15), 1 | state);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4_294_967_296;
+  };
+}
+
+/**
+ * Where one named colleague ends up over `runs` fresh mounts of the hook at a
+ * fixed hour, as a list of prop kinds.
+ *
+ * Everybody else is marked busy, so the roll that picks a *person* is settled
+ * and every arm is about the *destination*. Shared by the two distribution
+ * describes below — the hour's thumb on the scale and the colleague's own —
+ * because they are the same experiment with a different variable held still.
+ */
+function tripsFor({ seatId, hour, seed = hour, runs = 200 }) {
+  const busyIds = wanderingSeatIds().filter((id) => id !== seatId);
+  const randomSpy = vi.spyOn(Math, 'random').mockImplementation(seededRandomFrom(seed));
+  const kinds = [];
+  try {
+    for (let run = 0; run < runs; run += 1) {
+      vi.setSystemTime(new Date(2026, 7, 10, hour, 15, 0, 0));
+      const box = { wanderer: null };
+      function Probe() {
+        Object.assign(box, useFloorWander({ busyIds }));
+        return null;
+      }
+      const view = render(<Probe />);
+      act(() => vi.advanceTimersByTime(9_000));
+      view.unmount();
+      if (box.wanderer?.kind) kinds.push(box.wanderer.kind);
+    }
+  } finally {
+    randomSpy.mockRestore();
+  }
+  return kinds;
+}
+
+/** What share of a run of trips ended at one prop. */
+function shareOf(kinds, kind) {
+  return kinds.filter((k) => k === kind).length / kinds.length;
+}
+
+/**
  * The afternoon slump (slice 24) — the hour with its thumb on the scale.
  *
  * Driven through the hook with a *real* random rather than a pinned one,
@@ -440,52 +502,18 @@ describe('the floor with somebody up and about', () => {
  * on. The two arms are the same code at two different clock readings.
  */
 describe('where the room drifts at three in the afternoon', () => {
-  /** Somebody whose errands include the kitchen *and* somewhere else. */
+  /**
+   * Somebody whose errands include the kitchen *and* somewhere else — and who
+   * has no habit of their own, or this describe would be measuring two thumbs
+   * at once and calling the sum "the hour".
+   */
   const CHOOSY = wanderingSeatIds().find((id) => {
     const kinds = wanderTripsFor(id).map((t) => t.kind);
-    return kinds.includes('coffeeMachine') && kinds.length > 1;
+    return kinds.includes('coffeeMachine') && kinds.length > 1 && wanderHabitFor(id) === null;
   });
 
-  /**
-   * A uniform stream that does not inherit whatever the rest of the suite left
-   * on `Math.random`, but is still a distribution rather than one pinned roll.
-   * Slice 23's lesson stands: we do not consume a different *number* of randoms
-   * in the biased arm — only the list we roll against changes with the hour.
-   */
-  function seededRandomFor(hour) {
-    let state = hour * 2_654_435_761;
-    return () => {
-      state = (state + 0x6d2b79f5) | 0;
-      let t = Math.imul(state ^ (state >>> 15), 1 | state);
-      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-      return ((t ^ (t >>> 14)) >>> 0) / 4_294_967_296;
-    };
-  }
-
   function tripsAt(hour, runs = 200) {
-    const randomSpy = vi.spyOn(Math, 'random').mockImplementation(seededRandomFor(hour));
-    const kinds = [];
-    try {
-      for (let run = 0; run < runs; run += 1) {
-        vi.setSystemTime(new Date(2026, 7, 10, hour, 15, 0, 0));
-        const { seen } = (() => {
-          const box = { wanderer: null };
-          function Probe() {
-            Object.assign(box, useFloorWander({ busyIds: BUSY_EXCEPT_CHOOSY }));
-            return null;
-          }
-          const view = render(<Probe />);
-          act(() => vi.advanceTimersByTime(9_000));
-          const result = { seen: box };
-          view.unmount();
-          return result;
-        })();
-        if (seen.wanderer?.kind) kinds.push(seen.wanderer.kind);
-      }
-    } finally {
-      randomSpy.mockRestore();
-    }
-    return kinds;
+    return tripsFor({ seatId: CHOOSY, hour, runs });
   }
 
   /** Everybody except the one person we want picked, so the arm is about the destination. */
@@ -506,7 +534,7 @@ describe('where the room drifts at three in the afternoon', () => {
     expect(morning.length, 'no trips started at all').toBeGreaterThan(50);
     expect(slump.length).toBeGreaterThan(50);
 
-    const share = (kinds) => kinds.filter((k) => k === 'coffeeMachine').length / kinds.length;
+    const share = (kinds) => shareOf(kinds, 'coffeeMachine');
     // A bias, not a schedule: the morning still sends people for coffee and the
     // afternoon still sends them elsewhere. Only the proportion moves.
     expect(share(slump)).toBeGreaterThan(share(morning));
@@ -542,6 +570,179 @@ describe('where the room drifts at three in the afternoon', () => {
     const unbiased = rolls(11);
     expect(unbiased, 'no randoms consumed — the trip never started').toBeGreaterThan(0);
     expect(rolls(15)).toBe(unbiased);
+  });
+});
+
+/**
+ * A habit per colleague (queue 5) — the second thumb on the same pick, and the
+ * first one that is about a person rather than a clock.
+ *
+ * Two halves, deliberately: the derivation is a pure sweep of the whole roster
+ * (no browser, no clock), and the *effect* is a distribution through the hook,
+ * for the reason the slump describe above gives — one trip proves nothing.
+ */
+describe('a habit per colleague', () => {
+  /** Somebody the printer belongs to, and somebody it does not. */
+  const HABITUAL = wanderingSeatIds().find((id) => wanderHabitFor(id)?.kind === 'printer');
+  const CREATURE_OF_NO_HABIT = wanderingSeatIds().find(
+    (id) => wanderHabitFor(id) === null && wanderTripsFor(id).some((t) => t.kind === 'printer')
+  );
+
+  describe('is read off the room rather than written down', () => {
+    it('gives nobody an errand they cannot walk to', () => {
+      const withHabits = wanderingSeatIds().filter((id) => wanderHabitFor(id) !== null);
+      // The companion non-empty assertion: a sweep over a derived set that
+      // came back empty would pass every claim below while examining nothing.
+      expect(withHabits.length, 'nobody on the roster has a habit at all').toBeGreaterThan(0);
+      for (const id of withHabits) {
+        const { kind } = wanderHabitFor(id);
+        expect(
+          wanderTripsFor(id).map((t) => t.kind),
+          `${id} cannot reach ${kind}`
+        ).toContain(kind);
+      }
+    });
+
+    it('only ever favours a prop that hands something over', () => {
+      const kinds = wanderingSeatIds()
+        .map((id) => wanderHabitFor(id)?.kind)
+        .filter(Boolean);
+      expect(kinds.length).toBeGreaterThan(0);
+      for (const kind of kinds) expect(propHandsFor(kind)).not.toBeNull();
+      /*
+       * The whiteboard belongs to nobody, and that is the derivation being
+       * honest rather than a gap: you cannot carry a whiteboard away, so
+       * `FLOOR_PROP_USES` hands nothing over, so nothing refills from it.
+       */
+      expect(kinds).not.toContain('whiteboard');
+    });
+
+    it('matches the hand they are already holding', () => {
+      /*
+       * The whole rule in one assertion, over every seat rather than a sample:
+       * a habit is the prop that refills `deskDoingFor(id).hold` — `papers`
+       * from the printer, and a desk `mug` from the machine that hands out
+       * `coffee` (the props table documents those two as one object at two
+       * stages). Empty hands, or a `phone` no prop dispenses, means no habit.
+       */
+      const refill = { papers: 'papers', mug: 'coffee' };
+      let matched = 0;
+      for (const id of wanderingSeatIds()) {
+        const { hold } = deskDoingFor(id);
+        const habit = wanderHabitFor(id);
+        if (!refill[hold]) {
+          expect(habit, `${id} holds ${hold} and should have no habit`).toBeNull();
+          continue;
+        }
+        expect(propHandsFor(habit.kind)).toBe(refill[hold]);
+        matched += 1;
+      }
+      expect(matched, 'nobody on the roster holds anything a prop refills').toBeGreaterThan(0);
+    });
+
+    it('is a fact about the person, so the hour cannot hand it to everybody', () => {
+      /*
+       * `deskDoingFor`, never `baseDoingFor`: `PHASE_ART` puts a mug in every
+       * hand through `earlyMorning` and papers in every hand through
+       * `windDown`, so a habit read off the *phased* art would give the whole
+       * roster the same errand twice a day — the clock wearing a fourth face,
+       * which is exactly what the cadence's two-dials rule forbids.
+       */
+      const at = (hour) => {
+        vi.setSystemTime(new Date(2026, 7, 10, hour, 15, 0, 0));
+        return wanderingSeatIds().map((id) => wanderHabitFor(id)?.kind ?? null);
+      };
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      try {
+        const morning = at(8);
+        expect(morning.filter(Boolean).length).toBeGreaterThan(0);
+        expect(at(12)).toEqual(morning);
+        expect(at(18)).toEqual(morning);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+  });
+
+  describe('shows up in where they actually go', () => {
+    beforeEach(() => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+    });
+
+    it('has two colleagues who differ only in their habit, or the rest is vacuous', () => {
+      expect(HABITUAL, 'nobody has the printer as a habit').toBeTruthy();
+      expect(CREATURE_OF_NO_HABIT, 'everybody who can reach the printer has a habit').toBeTruthy();
+      expect(
+        wanderTripsFor(HABITUAL)
+          .map((t) => t.kind)
+          .sort()
+      ).toEqual(
+        wanderTripsFor(CREATURE_OF_NO_HABIT)
+          .map((t) => t.kind)
+          .sort()
+      );
+    });
+
+    it('sends the printer’s owner there more often than the colleague beside them', () => {
+      // One stream, one hour, one set of available errands — the only thing
+      // that differs between the arms is whose habit is being consulted.
+      const theirs = tripsFor({ seatId: HABITUAL, hour: 11, seed: 11 });
+      const anybody = tripsFor({ seatId: CREATURE_OF_NO_HABIT, hour: 11, seed: 11 });
+      expect(theirs.length, 'no trips started at all').toBeGreaterThan(50);
+      expect(anybody.length).toBeGreaterThan(50);
+
+      expect(shareOf(theirs, 'printer')).toBeGreaterThan(shareOf(anybody, 'printer'));
+      // A bias, not a rota: they still go elsewhere, and the colleague with no
+      // habit still uses the printer sometimes.
+      expect(shareOf(theirs, 'printer')).toBeLessThan(1);
+      expect(shareOf(anybody, 'printer')).toBeGreaterThan(0);
+    });
+
+    it('keeps the printer somebody’s through the afternoon slump', () => {
+      /*
+       * The playbook's own phrasing for this slice — "the printer belongs to
+       * somebody at 14:00". `wanderTripWeight` takes the larger of the two
+       * multipliers rather than their product, so the hour that drags the rest
+       * of the room to the kitchen cannot outrank a habit; the colleague with
+       * no habit is dragged, and the printer's owner is not.
+       */
+      const theirs = tripsFor({ seatId: HABITUAL, hour: 15, seed: 15 });
+      const anybody = tripsFor({ seatId: CREATURE_OF_NO_HABIT, hour: 15, seed: 15 });
+      expect(theirs.length).toBeGreaterThan(50);
+
+      expect(shareOf(theirs, 'printer')).toBeGreaterThan(shareOf(anybody, 'printer'));
+      expect(shareOf(theirs, 'printer')).toBeGreaterThan(shareOf(anybody, 'coffeeMachine') / 2);
+      // And the slump is still a slump for them: the kitchen outruns the one
+      // prop nobody's habit favours.
+      expect(shareOf(theirs, 'coffeeMachine')).toBeGreaterThan(shareOf(theirs, 'whiteboard'));
+    });
+
+    it('costs the same number of randoms with a habit or without', () => {
+      /*
+       * Slice 23's rule, re-pinned for the second dial: the weighted list is
+       * longer for somebody with a habit and the roll count is not, so a suite
+       * that mounts the floor without pinning the PRNG sees no difference.
+       */
+      const rolls = (seatId) => {
+        const busyIds = wanderingSeatIds().filter((id) => id !== seatId);
+        const spy = vi.spyOn(Math, 'random');
+        vi.setSystemTime(new Date(2026, 7, 10, 11, 15, 0, 0));
+        function Probe() {
+          useFloorWander({ busyIds });
+          return null;
+        }
+        const view = render(<Probe />);
+        act(() => vi.advanceTimersByTime(9_000));
+        const count = spy.mock.calls.length;
+        view.unmount();
+        spy.mockRestore();
+        return count;
+      };
+
+      const plain = rolls(CREATURE_OF_NO_HABIT);
+      expect(plain, 'no randoms consumed — the trip never started').toBeGreaterThan(0);
+      expect(rolls(HABITUAL)).toBe(plain);
+    });
   });
 });
 
