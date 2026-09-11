@@ -31,10 +31,24 @@ function fail(code: AnythingPolicyLintCode, error: string): AnythingPolicyLintFa
   return { ok: false, code, error };
 }
 
+/**
+ * True when a `/` at this point in the source starts a regex literal rather
+ * than a division operator, using the standard lexer heuristic: a value just
+ * ended (identifier/number char, `)`, `]`, `}`, or a closed string/template)
+ * means division; anything else (an operator, punctuation, or start of
+ * input) means a regex can start here. `lastSig` is the last non-whitespace
+ * character already emitted.
+ */
+function isRegexLiteralContext(lastSig: string): boolean {
+  if (!lastSig) return true;
+  return !/[\w$)\]}"'`]/.test(lastSig);
+}
+
 function stripJsComments(source: string): string {
   let out = '';
   let quote: '"' | "'" | '`' | null = null;
   let escaped = false;
+  let lastSig = '';
   for (let i = 0; i < source.length; i += 1) {
     const ch = source[i] ?? '';
     const next = source[i + 1] ?? '';
@@ -46,6 +60,7 @@ function stripJsComments(source: string): string {
         escaped = true;
       } else if (ch === quote) {
         quote = null;
+        lastSig = ch;
       }
       continue;
     }
@@ -66,7 +81,49 @@ function stripJsComments(source: string): string {
       out += ' ';
       continue;
     }
+    // A regex literal's pattern can contain an unescaped `"` or `'` (e.g.
+    // `str.replace(/"/g, '&quot;')`) that the plain quote-tracker above would
+    // otherwise mistake for the start of a string, corrupting the quote state
+    // for the rest of the document and hiding every later `//` comment (and
+    // the external-URL false positive that follows) behind it. Scan a regex
+    // literal as one token instead of falling into that trap.
+    if (ch === '/' && isRegexLiteralContext(lastSig)) {
+      let j = i + 1;
+      let inClass = false;
+      let esc = false;
+      let closed = false;
+      while (j < source.length) {
+        const c = source[j] ?? '';
+        if (esc) {
+          esc = false;
+        } else if (c === '\\') {
+          esc = true;
+        } else if (c === '\n') {
+          break;
+        } else if (c === '[') {
+          inClass = true;
+        } else if (c === ']') {
+          inClass = false;
+        } else if (c === '/' && !inClass) {
+          j += 1;
+          closed = true;
+          break;
+        }
+        j += 1;
+      }
+      if (closed) {
+        while (j < source.length && /[a-z]/i.test(source[j] ?? '')) j += 1;
+        const literal = source.slice(i, j);
+        out += literal;
+        lastSig = literal[literal.length - 1] ?? '/';
+        i = j - 1;
+        continue;
+      }
+      // No closing `/` before end of line: not a regex literal after all
+      // (most likely division or a stray slash) — fall through as a plain char.
+    }
     out += ch;
+    if (!/\s/.test(ch)) lastSig = ch;
   }
   return out;
 }
