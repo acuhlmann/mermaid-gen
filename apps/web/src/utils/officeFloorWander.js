@@ -122,6 +122,11 @@ function propThatRefills(hold) {
 /** @type {Map<string, { kind: string, weight: number } | null> | null} */
 let habits = null;
 
+/** @internal test hook — habits memoize across calls; reset between clock reads. */
+export function _resetWanderHabitsForTests() {
+  habits = null;
+}
+
 /**
  * The errand this colleague runs more than the others do, or `null` for the
  * majority of the roster.
