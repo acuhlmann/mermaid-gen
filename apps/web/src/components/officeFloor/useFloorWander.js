@@ -48,6 +48,13 @@
  * schedule, and somebody whose errands do not include the kitchen is picked
  * from exactly as before.
  *
+ * The destination now also knows *who is walking* (`wanderHabitFor`). That was
+ * the one thing the hour could not express: one global row moved every persona
+ * alike, so the room drifted as a crowd and no prop was anybody's. A habit is
+ * the same shape of thumb on the same pick — `wanderTripWeight` folds both into
+ * one weighted list and one roll — and it is derived rather than declared, so
+ * no table grew a column.
+ *
  * Slice 12 added a fourth, and it is the same rule wearing the opposite face:
  * `holdId` **stops the clock** while you have their card open or are stood in
  * front of them talking. Ambience still loses — it loses by waiting instead of
@@ -60,7 +67,11 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { liveTileOf, prefersReducedMotion } from './useWalkAnimation.js';
 import { seatFor } from '../../utils/officeFloorPlan.js';
 import { sameTile } from '../../utils/officeFloorMovement.js';
-import { wanderTripsFor, wanderingSeatIds } from '../../utils/officeFloorWander.js';
+import {
+  wanderTripWeight,
+  wanderTripsFor,
+  wanderingSeatIds
+} from '../../utils/officeFloorWander.js';
 import { wanderBiasAt } from '../../utils/officeCadence.js';
 import { propHandsFor } from '../../utils/officeFloorProps.js';
 import { interruptionFor } from '../../utils/officeFloorInterrupt.js';
@@ -96,26 +107,29 @@ function pick(list) {
 }
 
 /**
- * Where they are heading, with the hour's thumb on the scale (slice 24).
+ * Where they are heading, with two thumbs on the scale: the hour's (slice 24)
+ * and their own.
  *
- * **One `Math.random()` either way**, which is not an optimisation — it is the
- * property that keeps this change invisible to every suite that mounts the
- * floor without pinning the PRNG. Slice 23 learned that the hard way: an
+ * **One `Math.random()` whatever applies**, which is not an optimisation — it
+ * is the property that keeps this change invisible to every suite that mounts
+ * the floor without pinning the PRNG. Slice 23 learned that the hard way: an
  * unpinned suite shares one random stream across the file, so consuming a
  * different *number* of randoms re-seeds who is wandering everywhere else and
  * turns an unrelated assertion red. Weighting by repeating entries in a list
  * and then rolling once preserves the count; rolling a second time to decide
- * "biased or not" would not.
+ * "biased or not" would not. The uniform fast path is gone for the same reason
+ * it was safe to remove — with no bias and no habit every share is 1, so the
+ * list is `options` and the single roll lands where it always did.
  *
- * A multiplier rather than a schedule: somebody whose errands do not include
- * the favoured prop is picked from exactly as before, so the room drifts to the
- * kitchen without anybody being ordered there.
+ * A multiplier rather than a schedule, on both dials: somebody whose errands
+ * do not include the favoured prop is picked from exactly as before, and
+ * `wanderTripWeight` takes the larger of the two rather than their product so
+ * that an hour and a habit pulling the same way cannot compound into a rota.
  */
-function pickTrip(options, bias) {
-  if (!bias) return pick(options);
+function pickTrip(seatId, options, bias) {
   const weighted = [];
   for (const trip of options) {
-    const share = trip.kind === bias.kind ? bias.weight : 1;
+    const share = wanderTripWeight(seatId, trip.kind, bias);
     for (let copy = 0; copy < share; copy += 1) weighted.push(trip);
   }
   return pick(weighted);
@@ -169,9 +183,10 @@ function departure(busy, avoid) {
    * The hour, read at fire time rather than depended on (slice 24). A trip's
    * destination is decided when the errand starts, so this is a one-shot read
    * of the same pure function `useOfficeDayPhase` polls — not a second sampler,
-   * and nothing here re-renders when it changes.
+   * and nothing here re-renders when it changes. Who they are goes in beside
+   * it: the habit is a constant of the person, so it needs no sampling at all.
    */
-  const { kind, mark } = pickTrip(options, wanderBiasAt());
+  const { kind, mark } = pickTrip(seatId, options, wanderBiasAt());
   const seat = seatFor(seatId);
   return {
     seatId,

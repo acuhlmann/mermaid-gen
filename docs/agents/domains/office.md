@@ -206,6 +206,19 @@ it names. Merging the two into a single pass is worth doing and is not urgent �
   the floor still owns only the art. And a **weighted pick must consume the same number of
   `Math.random()` calls as the uniform one** — repeat list entries and roll once, never roll again
   to decide whether the bias applies, or you re-seed every unpinned floor suite (see below).
+- **A wander destination has two dials now, and they combine with `Math.max`, never a product.**
+  `wanderTripWeight` (`officeFloorWander.js`) folds the hour (`wanderBiasAt`, ×3 on the kitchen
+  from 14:00) and the colleague's own habit (`wanderHabitFor`, ×3 on their prop) into one weighted
+  list and **one** roll. Multiplying would put a mug-carrier 9× on the machine in the slump, which
+  is the rota `WANDER_BIAS_WINDOWS` says it is not; the larger of the two reads as the room does —
+  the slump pulls anybody with no habit, and cannot pull somebody harder than their own habit
+  already does. A habit is **derived, not declared**: `deskDoingFor(id).hold` × `propHandsFor(kind)`,
+  so the prop that refills what they are already holding (`papers` → printer; a desk `mug` → the
+  machine that hands out `coffee`, which `FLOOR_PROP_USES` documents as the same object at two
+  stages). No table gained a row, the whiteboard belongs to nobody because it hands nothing over,
+  and six of the eleven have no habit at all. **Read `deskDoingFor`, never `baseDoingFor`** — the
+  phased art puts a mug in every hand at nine and papers in every hand at five, so the phased read
+  would hand the whole roster one habit twice a day and make this a fourth face of the clock.
 - **The wall clock (slice 25) is a third _face_ of the same clock, not a third clock.**
   `FloorWallClock` reads `officeWallClockAt` (cadence), the same instant the phase dial reads, so
   the hands and the light can never disagree about the hour. A clock that read its own `Date`, or
@@ -767,7 +780,13 @@ test:floor`; the floor test map is [`docs/agents/isometric-floor-tests.md`](../.
   change anywhere that consumes a different number of randoms re-seeds who is wandering.
   `officeFloorDwell.test.jsx` went red on a test that **passed in isolation and failed in file
   order**, which is this class's signature; pin with `vi.spyOn(Math, 'random').mockReturnValue(0.75)`
-  (the floor suites' seed) unless the suite is about the roll. **Since slice 24 the seed alone
+  (the floor suites' seed) unless the suite is about the roll. **Know who 0.75 picks before
+  trusting a green run to prove a wander change is safe**: `floor(0.75 × 11)` is index 8 of
+  `wanderingSeatIds()`, which is `intern` — Chad, who holds nothing and therefore has no
+  `wanderHabitFor` row. Every seeded floor suite and the scripted visit stayed byte-identical
+  across the habit slice for that reason alone, so a green `test:floor` said nothing about the
+  change and the sweep had to. The general form: a pinned seed selects one actor, and a per-actor
+  feature the pinned actor does not have is **invisible to every suite that pins it**. **Since slice 24 the seed alone
   is not enough**: `wanderBiasAt` gave the clock a say in _where_ a seeded wanderer goes (3× the
   coffee machine from 14:00 to 16:30), so the two globals stopped being independent — and it
   shipped that way, leaving slice 23's join tests and two `officeFloorWander.test.jsx` describes
