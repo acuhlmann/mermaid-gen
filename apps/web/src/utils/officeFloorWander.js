@@ -86,8 +86,12 @@ export function wanderTripsFor(seatId) {
  * same *kind* of number — a multiplier against a uniform pick, so a colleague
  * whose habit is the printer still goes for coffee, just less often than the
  * colleague beside them who has no habit at all.
+ *
+ * Module-private: the number is an implementation detail of
+ * `wanderTripWeight`, and anybody who needs it can read it off
+ * `wanderHabitFor(id).weight` rather than import a constant.
  */
-export const WANDER_HABIT_WEIGHT = 3;
+const WANDER_HABIT_WEIGHT = 3;
 
 /**
  * The one place `FLOOR_HOLDS` names the same object twice.
@@ -166,7 +170,7 @@ export function wanderHabitFor(seatId) {
  * **The larger of the two multipliers, never their product.** The hour and the
  * habit make the same claim about the same pick ("this errand is likelier to
  * end here"), and compounding them would put a mug-carrier nine times over the
- * printer between two and half four — a rota, which is precisely what
+ * machine between two and half four — a rota, which is precisely what
  * `WANDER_BIAS_WINDOWS` says it is not. Taking the larger reads as the room
  * does: the slump pulls anybody who has no habit of their own, and it cannot
  * pull somebody harder than their own habit already does. So at three in the
