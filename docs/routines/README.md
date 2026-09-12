@@ -20,7 +20,7 @@ no cron and the owner starts it by hand.
 | Routine                 | Host   | Shelf | What it owns                                                     |
 | ----------------------- | ------ | ----- | ---------------------------------------------------------------- |
 | [`review`](review.md)   | Claude | NFR   | last 24 h on `main`, one proven bug, the trap checklist          |
-| [`improve`](improve.md) | Claude | NFR   | the ratchet, the sensors, **every routine's budget** (ADR-0017)  |
+| [`improve`](improve.md) | Cursor | NFR   | the ratchet, the sensors, **every routine's budget** (ADR-0017)  |
 | [`resolve`](resolve.md) | Cursor | NFR   | the open-issue backlog                                           |
 | [`deps`](deps.md)       | Claude | NFR   | Dependabot PRs, advisories, and code that breaks when they move  |
 | [`prune`](prune.md)     | none   | NFR   | whole files nobody needs — **manual, and never self-merged**     |

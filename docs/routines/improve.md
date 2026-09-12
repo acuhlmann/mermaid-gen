@@ -2,12 +2,15 @@
 name: improve
 tier: code-writing
 schedule: '0 21 * * *'
+host: Cursor
 maxFiles: 12
 maxIssues: 1
 prTitlePrefix:
   - 'improve:'
 branchPrefix:
   - claude/eager-hopper
+  - claude/vigilant-ramanujan
+  - improve/
 allowedPaths:
   - docs/**
   - '*.md'

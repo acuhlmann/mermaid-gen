@@ -41,7 +41,7 @@ and `resolve` so the issues it files are in the backlog when `resolve` reads it 
 > | 01:15 | `15 17 * * *` | `anything`          | automations | Claude |
 > | 02:30 | `30 18 * * *` | `canvas-graph-edit` | automations | Claude |
 > | 04:00 | `0 20 * * *`  | `review`            | routines    | Claude |
-> | 05:00 | `0 21 * * *`  | `improve`           | routines    | Claude |
+> | 05:00 | `0 21 * * *`  | `improve`           | routines    | Cursor |
 > | 06:15 | `15 22 * * *` | `resolve`           | routines    | Cursor |
 > | 07:00 | `0 23 * * *`  | `digest`            | routines    | Claude |
 >
@@ -52,7 +52,9 @@ and `resolve` so the issues it files are in the backlog when `resolve` reads it 
 > the two rationales the playbooks state below. `resolve` moved to Cursor on 2026-09-01 (ADR-0017) so
 > that the routine which _finds_ work and the one which _pays_ for it are not one account's two
 > failures: when `anything` went dark for four nights in late August, every job that should have
-> noticed was on the same host.
+> noticed was on the same host. `improve` moved to Cursor on 2026-09-11 when its cron slot began
+> firing from a Cursor automation (#644); retire any parallel Claude-side `improve` trigger so only
+> one worker runs per window (see #660).
 >
 > [`deps`](deps.md) (`30 4,16 * * *`, Claude) sits **off** the ladder on purpose. Dependency queues
 > move in bursts when an advisory lands, a twice-daily read of a short list costs minutes, and it
