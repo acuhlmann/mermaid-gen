@@ -233,10 +233,17 @@ export function MetaphorCompositeLayersOverlay({
   if (layers.length === 0) return null;
   const copy = controls.metaphor;
   const stopScene = (event) => event.stopPropagation();
+  // Count `dsl.layers`, not the rows: `compositeLayerSummaries` drops malformed
+  // entries, but the mutators splice that array directly and the schema's
+  // `layers.min(1).max(COMPOSITE_MAX_LAYERS)` counts every slot in it. Filtered
+  // rows get the gates wrong in both directions — Remove refusing a removal
+  // `removeCompositeLayer` allows, Add offering one it can only answer with
+  // `capacity`. Same reason `index` is taken before the filter, one file over.
+  const layerCount = dsl.layers.length;
   const actionsFor = (layer) => (
     <CompositeLayerActions
       layer={layer}
-      layerCount={layers.length}
+      layerCount={layerCount}
       copy={copy}
       stopScene={stopScene}
       onLayerAdd={onLayerAdd}
