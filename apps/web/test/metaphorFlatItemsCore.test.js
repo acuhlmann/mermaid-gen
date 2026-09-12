@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import { METAPHOR_KINDS, switchMetaphorKind } from '../src/utils/switchMetaphorKind.js';
+import { MAGNITUDE_DOMAIN, fitMagnitudes } from '../src/utils/metaphorMagnitudeFit.js';
 import {
   allocateFlatItemId,
   allocateFlatItemLabel,
@@ -200,5 +202,185 @@ describe('renameLinkedEdge', () => {
       ok: false,
       reason: 'missing'
     });
+  });
+});
+
+/**
+ * The magnitude fit, and the kind-pair sweep that is its real contract.
+ *
+ * These belong in a `metaphorMagnitudeFit.test.js` of their own and cannot have
+ * one: `scripts/test-affected.test.mjs`'s reverse sweep requires every
+ * `metaphor*` suite to appear in `METAPHOR_BLAST_TESTS`, that list lives in
+ * `scripts/test-affected-lib.mjs`, and `routine:guard --reachable` gives that
+ * file to the `improve` routine alone. `switchMetaphorKind.test.js` is listed
+ * there but is outside the `metaphor3d` automation's `allowedPaths`, so this
+ * suite — cross-kind item concerns, which is what a magnitude fit is — is the
+ * closest home both rules allow. Tracked as `metaphor-suite-blast-list` in
+ * `docs/automations/ledger/metaphor3d.md`.
+ */
+describe('fitMagnitudes', () => {
+  it('returns the input untouched when every value already fits the domain', () => {
+    const values = [12, 8, 3];
+    expect(fitMagnitudes(values, [0.5, 20])).toBe(values);
+  });
+
+  it('preserves ratios exactly when the target domain can hold the dynamic range', () => {
+    const fitted = fitMagnitudes([90, 45, 9], [0.2, 10]);
+    expect(fitted).toEqual([10, 5, 1]);
+  });
+
+  it('preserves order when the dynamic range is wider than the target can express', () => {
+    // 100:0.5 is 200:1; layercake's 10:0.2 domain is only 50:1, so ratios cannot
+    // survive and rank is what is left to keep.
+    const fitted = fitMagnitudes([100, 40, 0.5], [0.2, 10]);
+    expect(fitted[0]).toBeGreaterThan(fitted[1]);
+    expect(fitted[1]).toBeGreaterThan(fitted[2]);
+    expect(fitted[0]).toBeLessThanOrEqual(10);
+    expect(fitted[2]).toBeGreaterThanOrEqual(0.2);
+  });
+
+  it('maps a signed source range into a positive target domain without inverting it', () => {
+    // terrain elevation runs to -10; a city tower's height must be positive.
+    // 5 sits at the midpoint of [-10, 20], so it lands at the midpoint of [0.5, 100].
+    const fitted = fitMagnitudes([20, 5, -10], [0.5, 100]);
+    expect(fitted).toEqual([100, 50.25, 0.5]);
+  });
+
+  it('leaves a single out-of-range value on the domain ceiling', () => {
+    expect(fitMagnitudes([54], [0.2, 10])).toEqual([10]);
+  });
+
+  it('keeps equal magnitudes equal rather than inventing a hierarchy', () => {
+    // A document that says three things are the same size must still say so on
+    // the other side of a switch — the fit may only shrink or grow the set, and
+    // an affine map over a zero-width range would have spread them apart.
+    expect(fitMagnitudes([50, 50, 50], [0.2, 10])).toEqual([10, 10, 10]);
+  });
+
+  it('survives an empty set and an all-zero set', () => {
+    expect(fitMagnitudes([], [0.2, 10])).toEqual([]);
+    expect(fitMagnitudes([0, 0], [0.2, 10])).toEqual([0.2, 0.2]);
+  });
+});
+
+/**
+ * The kind-pair sweep. This is what pins `MAGNITUDE_DOMAIN` to the schema: an
+ * entry wider than `metaphorSchema.ts` allows makes the sanitizer reject that
+ * document and the switch refuses, which fails the first assertion below.
+ *
+ * Before the magnitude fit, 15 of these 196 pairs refused outright (every
+ * wide-range kind into `layercake`, plus city -> galaxy and five sources whose
+ * secondary encoding could reach zero or below going into `city`), and 51 more
+ * succeeded while flattening the item ordering onto the target's ceiling.
+ */
+describe('kind-pair sweep', () => {
+  const BASE_KINDS = METAPHOR_KINDS.filter((kind) => kind !== 'composite');
+
+  /** The field each kind states an item's main magnitude in. */
+  const PRIMARY_FIELD = {
+    city: 'height',
+    layercake: 'thickness',
+    galaxy: 'magnitude',
+    tree: 'weight',
+    terrain: 'elevation',
+    orrery: 'size',
+    river: 'flow',
+    garden: 'impact',
+    archipelago: 'mass',
+    machine: 'size',
+    bridge: 'load',
+    cycle: 'size',
+    subway: 'traffic',
+    iceberg: 'mass'
+  };
+  const SECONDARY_FIELD = {
+    city: 'footprint',
+    terrain: 'intensity',
+    orrery: 'orbit',
+    archipelago: 'relief',
+    machine: 'speed',
+    iceberg: 'depth'
+  };
+  /** What an author may legally put in a kind's secondary field. */
+  const SECONDARY_RANGE = {
+    city: [0.5, 20],
+    terrain: [0.1, 10],
+    orrery: [0, 12],
+    archipelago: [0, 1],
+    machine: [0, 10],
+    iceberg: [-1, 1]
+  };
+
+  /** Four items descending across the full range the source kind allows. */
+  function sourceDocument(kind) {
+    const across = ([lo, hi]) =>
+      [0, 1, 2, 3].map((i) => Number((hi - ((hi - lo) * i) / 3).toFixed(2)));
+    const primaries = across(MAGNITUDE_DOMAIN[kind].primary);
+    const secondaries = SECONDARY_FIELD[kind] ? across(SECONDARY_RANGE[kind]) : null;
+    const items = primaries.map((value, i) => {
+      const item = { id: `item-${i}`, label: `Item ${i}`, [PRIMARY_FIELD[kind]]: value };
+      if (secondaries) item[SECONDARY_FIELD[kind]] = secondaries[i];
+      if (kind === 'river') item.stage = i * 25;
+      if (kind === 'garden') item.maturity = 0.5;
+      if (kind === 'bridge') item.span = i * 30;
+      if (kind === 'cycle') item.phase = i * 25;
+      if (kind === 'subway') item.stop = i * 30;
+      if (kind === 'layercake') item.components = ['Component'];
+      return item;
+    });
+    return JSON.stringify({
+      metaphor: kind,
+      scene: { theme: 'whiteboard', title: `${kind} source` },
+      items,
+      links: [{ from: 'item-0', to: 'item-1', label: 'uses' }]
+    });
+  }
+
+  function primariesOf(text) {
+    const dsl = JSON.parse(text);
+    const kind = dsl.metaphor === 'composite' ? dsl.layers[0].as : dsl.metaphor;
+    const items = dsl.metaphor === 'composite' ? dsl.layers[0].items : dsl.items;
+    return items.map((item) => item[PRIMARY_FIELD[kind]]);
+  }
+
+  /**
+   * Every ordered pair, switched once. Deliberately two cases rather than 196:
+   * this is a pure-function sweep, and 196 separate `it()` blocks bought nothing
+   * over a loop while adding enough scheduler load to the web suite to tip a
+   * timing-sensitive test elsewhere in it. Both failures name the offending
+   * pairs, so a regression is still diagnosable from the message alone.
+   */
+  function sweep() {
+    const rows = [];
+    for (const from of BASE_KINDS) {
+      const source = sourceDocument(from);
+      for (const to of METAPHOR_KINDS) {
+        if (to === from) continue;
+        const result = switchMetaphorKind(source, to);
+        rows.push({ pair: `${from} -> ${to}`, result });
+      }
+    }
+    return rows;
+  }
+
+  it('switches every one of the 196 kind pairs', () => {
+    const refused = sweep()
+      .filter(({ result }) => !result.ok)
+      .map(({ pair, result }) => `${pair}: ${result.error}`);
+    expect(refused).toEqual([]);
+  });
+
+  it('keeps every item ranked as the source document ranked it', () => {
+    // Each source is strictly descending, so every target must be too — no two
+    // items may land on one value and none may overtake a larger sibling.
+    const broken = [];
+    for (const { pair, result } of sweep()) {
+      if (!result.ok) continue;
+      const magnitudes = primariesOf(result.text);
+      const ordered =
+        magnitudes.length === 4 && magnitudes.every((v, i) => i === 0 || v < magnitudes[i - 1]);
+      if (!ordered) broken.push(`${pair}: [${magnitudes.join(', ')}]`);
+    }
+    expect(broken).toEqual([]);
   });
 });

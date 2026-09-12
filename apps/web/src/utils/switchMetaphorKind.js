@@ -1,4 +1,5 @@
 import { METAPHOR_BASE_KINDS, METAPHOR_KINDS, sanitizeMetaphorDsl } from '@archislop/shared';
+import { MAGNITUDE_DOMAIN, fitMagnitudesForKind } from './metaphorMagnitudeFit.js';
 
 /** Human-readable labels for the fullscreen metaphor switcher. */
 export const METAPHOR_KIND_LABELS = {
@@ -105,9 +106,51 @@ function groupingLabel(item, kind) {
   return '';
 }
 
-function mapItemToKind(item, fromKind, toKind, index) {
-  const primary = primaryMagnitude(item, fromKind);
-  const secondary = secondaryMagnitude(item, fromKind);
+const ORRERY_INNERMOST_RING = 1;
+const ORRERY_OUTERMOST_RING = 12;
+
+/**
+ * Rings run inward as magnitude runs up, one ring per item.
+ *
+ * Spending the whole 1–12 range whatever the document holds makes the system as
+ * wide as the schema allows and shrinks every body to a speck on a phone; using
+ * exactly as many rings as there are things to separate keeps them all distinct
+ * and the world compact. The proportional fallback past 12 items has to share
+ * rings — there are only twelve — which is honest about a crowded orrery.
+ *
+ * `12 - Math.min(primary, 11)`, what this replaces, read the magnitude as a raw
+ * city height: anything at or above 11 pinned to ring 1, which is three quarters
+ * of a real document, and on a magnitude already fitted to orrery's own 0.5–10
+ * size domain it could never reach ring 1 at all.
+ */
+function orreryOrbitForRank(rank, count) {
+  if (count <= ORRERY_OUTERMOST_RING) return ORRERY_INNERMOST_RING + rank;
+  const share = rank / (count - 1);
+  const rings = ORRERY_OUTERMOST_RING - ORRERY_INNERMOST_RING;
+  return Math.min(ORRERY_OUTERMOST_RING, ORRERY_INNERMOST_RING + Math.round(share * rings));
+}
+
+/** Rank each magnitude among its siblings, largest first, ties sharing a rank. */
+function magnitudeRanks(magnitudes) {
+  const descending = [...magnitudes].sort((a, b) => b - a);
+  return magnitudes.map((value) => descending.indexOf(value));
+}
+
+/**
+ * Map one item into `toKind`.
+ *
+ * `primary` and `secondary` arrive already fitted to the target kind's domain by
+ * `fitMagnitudesForKind` — they are NOT this item's raw source numbers, because a
+ * magnitude can only be fitted against its siblings. That is why the per-case
+ * `Math.max(lo, Math.min(hi, …))` clamps this function used to carry are gone: a
+ * clamp is what flattened three different towers onto one ceiling in the first
+ * place, and the fit already guarantees the domain.
+ *
+ * An options object rather than seven positional arguments: the domain file's
+ * complexity queue records trading a `complexity` warning for a `max-params` one
+ * as a wash, and everything past `item` here is set-derived context.
+ */
+function mapItemToKind(item, { fromKind, toKind, index, primary, secondary, rank, count }) {
   const group = groupingLabel(item, fromKind);
 
   const next = {
@@ -155,54 +198,54 @@ function mapItemToKind(item, fromKind, toKind, index) {
       next.intensity = secondary ?? 3;
       break;
     case 'orrery':
-      next.size = Math.max(0.5, Math.min(10, primary));
-      // Bigger/more central things orbit closer to the core.
-      next.orbit = Math.max(1, Math.min(12, Math.round(12 - Math.min(primary, 11))));
+      next.size = primary;
+      // Bigger/more central things orbit closer to the core. Read off the fitted
+      // primary's position in orrery's OWN size domain, so the largest item lands
+      // on ring 1 whatever unit it arrived in — the old `12 - min(primary, 11)`
+      // assumed city-height units and, on a fitted primary, could never reach the
+      // innermost ring at all.
+      next.orbit = orreryOrbitForRank(rank, count);
       break;
     case 'river':
       next.stage = index;
-      next.flow = Math.max(0.1, Math.min(20, primary));
+      next.flow = primary;
       break;
     case 'garden':
       next.maturity = 0.35 + (index % 4) * 0.18;
-      next.impact = Math.max(0.1, Math.min(10, primary));
+      next.impact = primary;
       next.health = 'steady';
       if (group) next.bed = group;
       break;
     case 'archipelago':
-      next.mass = Math.max(0.5, Math.min(20, primary));
-      next.relief =
-        secondary != null
-          ? Math.max(0, Math.min(1, secondary > 1 ? secondary / 12 : secondary))
-          : 0.35 + (index % 5) * 0.12;
+      next.mass = primary;
+      // A fitted secondary is already inside relief's 0–1 domain, so the old
+      // "divide by 12 if it looks bigger than 1" unit guess is gone with it.
+      next.relief = secondary != null ? secondary : 0.35 + (index % 5) * 0.12;
       if (group) next.chain = group;
       break;
     case 'machine':
-      next.size = Math.max(0.1, Math.min(10, primary));
-      next.speed =
-        secondary != null
-          ? Math.max(0, Math.min(10, secondary > 1 ? secondary : secondary * 10))
-          : 2 + (index % 5);
+      next.size = primary;
+      next.speed = secondary != null ? secondary : 2 + (index % 5);
       if (group) next.axle = group;
       break;
     case 'bridge':
       // span/phase are normalized across the full item set after mapping.
       next.span = index;
-      next.load = Math.max(0.1, Math.min(10, primary));
+      next.load = primary;
       if (group) next.side = group;
       break;
     case 'cycle':
       next.phase = index;
-      next.size = Math.max(0.1, Math.min(10, primary));
+      next.size = primary;
       break;
     case 'subway':
       // stop is normalized across the item set after mapping, like span/phase.
       next.stop = index;
-      next.traffic = Math.max(0.1, Math.min(20, primary));
+      next.traffic = primary;
       if (group) next.line = group;
       break;
     case 'iceberg':
-      next.mass = Math.max(0.1, Math.min(20, primary));
+      next.mass = primary;
       // Without a source depth there is nothing honest to claim about what is
       // hidden, so a switched-in item starts just above the waterline and the
       // author decides what actually sinks.
@@ -214,6 +257,36 @@ function mapItemToKind(item, fromKind, toKind, index) {
   }
 
   return next;
+}
+
+/**
+ * Remap a whole item set from `fromKind` to `toKind`.
+ *
+ * The magnitudes are fitted across the set BEFORE any item is mapped, because
+ * each kind states its topic in its own unit over its own domain and a
+ * per-item copy has no way to know what the siblings claimed.
+ */
+function mapItemsToKind(items, fromKind, toKind) {
+  const { primary, secondary } = fitMagnitudesForKind(
+    items.map((item) => primaryMagnitude(item, fromKind)),
+    items.map((item) => secondaryMagnitude(item, fromKind)),
+    toKind
+  );
+  const ranks = magnitudeRanks(primary);
+  return normalizePositionalAxes(
+    toKind,
+    items.map((item, index) =>
+      mapItemToKind(item, {
+        fromKind,
+        toKind,
+        index,
+        primary: primary[index],
+        secondary: secondary[index],
+        rank: ranks[index],
+        count: items.length
+      })
+    )
+  );
 }
 
 /** Evenly spread positional encodings (bridge span, cycle phase) after a kind
@@ -347,20 +420,14 @@ export function switchMetaphorKind(source, nextKind) {
     working = {
       metaphor: kind,
       scene: flat.scene,
-      items: normalizePositionalAxes(
-        kind,
-        flat.items.map((item, index) => mapItemToKind(item, flat.metaphor, kind, index))
-      ),
+      items: mapItemsToKind(flat.items, flat.metaphor, kind),
       links: flat.links
     };
   } else {
     working = {
       metaphor: kind,
       scene: isObject(sanitized.dsl.scene) ? { ...sanitized.dsl.scene } : {},
-      items: normalizePositionalAxes(
-        kind,
-        sanitized.dsl.items.map((item, index) => mapItemToKind(item, currentKind, kind, index))
-      ),
+      items: mapItemsToKind(sanitized.dsl.items, currentKind, kind),
       links: Array.isArray(sanitized.dsl.links) ? [...sanitized.dsl.links] : []
     };
   }
