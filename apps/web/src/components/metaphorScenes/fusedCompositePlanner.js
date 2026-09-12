@@ -1,4 +1,15 @@
 import { hash01, hash01Salted } from '../../utils/seededHash.js';
+// Imported AND re-exported: `export … from` alone re-exports without binding
+// the name in this module's scope, and the plan builder calls
+// `resolveCompositeAtmosphere` itself. The re-export keeps the scene's existing
+// import sites working while the resolvers live outside this file, which is
+// over its max-lines budget.
+import {
+  resolveCompositeAtmosphere,
+  resolveCompositeMotionTransform
+} from './fusedCompositeSceneResolvers.js';
+
+export { resolveCompositeAtmosphere, resolveCompositeMotionTransform };
 import { getCompositeCapability, getCompositePrimitive } from './compositePrimitiveRegistry.js';
 import { clampLabelReach } from './fusedLabelReach.js';
 import { CHANNEL_RIDE, fusedSurfaceHeightAt, routeAlongSurface } from './fusedWorldSurface.js';
@@ -856,26 +867,6 @@ function resolveLod(estimatedCost, itemCount) {
 }
 
 /**
- * Pick sky/theme family from fused layer roles so mixed worlds do not inherit
- * only layers[0] (e.g. city sky over an ocean substrate).
- */
-export function resolveCompositeAtmosphere(dsl) {
-  const layers = Array.isArray(dsl?.layers) ? dsl.layers : [];
-  const kinds = layers.map((layer) => layer.as);
-  const roles = new Set(kinds.map((kind) => getCompositeCapability(kind).role));
-  if (roles.has('substrate') || kinds.includes('archipelago')) return 'archipelago';
-  if (roles.has('path') || kinds.includes('river')) return 'river';
-  if (kinds.includes('garden')) return 'garden';
-  if (kinds.includes('galaxy') || kinds.includes('orrery')) return 'galaxy';
-  if (kinds.includes('machine')) return 'machine';
-  if (kinds.includes('tree')) return 'tree';
-  if (kinds.includes('layercake')) return 'layercake';
-  if (kinds.includes('city')) return 'city';
-  if (kinds.includes('terrain')) return 'terrain';
-  return kinds[0] ?? 'city';
-}
-
-/**
  * Where a substrate's own name stands: OUT onto the shoulder facing away from
  * the middle of the world, and UP clear of whatever is planted on it.
  *
@@ -1165,56 +1156,5 @@ export function planFusedCompositeWorld(dsl) {
     estimatedCost,
     lod,
     atmosphere
-  };
-}
-
-/** Pure motion resolver used by the R3F scene and reduced-motion tests. */
-export function resolveCompositeMotionTransform(motion, time, intensity, animated = true) {
-  const safeIntensity = clamp(finite(intensity, 0), 0, 1);
-  const t = animated ? finite(time, 0) : 0;
-  const wave = Math.sin(t * finite(motion?.speed, 1) + finite(motion?.phase, 0));
-  const amplitude = finite(motion?.amplitude, 0) * safeIntensity;
-  if (motion?.style === 'orbit') {
-    const angle = t * finite(motion?.speed, 1) + finite(motion?.phase, 0);
-    return {
-      offset: [
-        Math.cos(angle) * amplitude * 2.6,
-        wave * amplitude * 0.4,
-        Math.sin(angle) * amplitude * 2.6
-      ],
-      rotation: [0, angle * 0.22, 0],
-      scale: 1
-    };
-  }
-  if (motion?.style === 'sway') {
-    return {
-      offset: [0, Math.abs(wave) * amplitude * 0.18, 0],
-      rotation: [wave * amplitude * 0.35, 0, wave * amplitude],
-      scale: 1
-    };
-  }
-  if (motion?.style === 'pulse') {
-    return {
-      offset: [0, wave * amplitude * 0.16, 0],
-      rotation: [0, 0, 0],
-      scale: 1 + wave * amplitude * 0.24
-    };
-  }
-  if (motion?.style === 'flow') {
-    const drift = t * finite(motion?.speed, 1) * 0.35 + finite(motion?.phase, 0);
-    return {
-      offset: [
-        Math.sin(drift) * amplitude * 1.4,
-        Math.abs(Math.sin(drift * 1.3)) * amplitude * 0.55,
-        Math.cos(drift * 0.85) * amplitude * 0.9
-      ],
-      rotation: [0, Math.sin(drift) * amplitude * 0.8, wave * amplitude * 0.25],
-      scale: 1 + Math.abs(wave) * amplitude * 0.08
-    };
-  }
-  return {
-    offset: [0, wave * amplitude * 0.12, 0],
-    rotation: [0, 0, 0],
-    scale: 1
   };
 }
