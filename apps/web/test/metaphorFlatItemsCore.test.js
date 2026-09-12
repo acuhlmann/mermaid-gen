@@ -364,7 +364,11 @@ describe('kind-pair sweep', () => {
   }
 
   it('switches every one of the 196 kind pairs', () => {
-    const refused = sweep()
+    const rows = sweep();
+    // The companion non-empty assertion: a sweep over a derived set that came
+    // back empty would pass while examining nothing.
+    expect(rows).toHaveLength(196);
+    const refused = rows
       .filter(({ result }) => !result.ok)
       .map(({ pair, result }) => `${pair}: ${result.error}`);
     expect(refused).toEqual([]);
@@ -373,8 +377,12 @@ describe('kind-pair sweep', () => {
   it('keeps every item ranked as the source document ranked it', () => {
     // Each source is strictly descending, so every target must be too — no two
     // items may land on one value and none may overtake a larger sibling.
+    const rows = sweep();
+    // The companion non-empty assertion: a sweep over a derived set that came
+    // back empty would pass while examining nothing.
+    expect(rows).toHaveLength(196);
     const broken = [];
-    for (const { pair, result } of sweep()) {
+    for (const { pair, result } of rows) {
       if (!result.ok) continue;
       const magnitudes = primariesOf(result.text);
       const ordered =

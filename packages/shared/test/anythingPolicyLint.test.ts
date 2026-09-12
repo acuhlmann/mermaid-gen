@@ -196,14 +196,17 @@ document.title = String(hasQuote('a'));`
 test('division after a keyword-suffixed identifier is still division', () => {
   // The word-boundary half matters in both directions: `margin` ends in `in`
   // and `align` ends in `n`, but neither is a keyword, so the `/` after them
-  // is division and must not swallow the rest of the line as a regex.
+  // is division and must not swallow the rest of the line as a regex. A real
+  // external URL in an inline comment on the same line as `align /` goes red
+  // when the slash is mis-lexed as a regex opener.
   const doc = VALID_DOC.replace(
     "document.title='x';",
     `const margin = 40;
 const align = 10;
 const half = margin / 2 + align / 2;
+const probe = align / 2; // https://evil.com/x
 // a trailing comment with slashes // like this
-document.title = String(half);`
+document.title = String(half + probe);`
   );
   assert.equal(lintAnythingPolicy(doc).ok, true);
 });
@@ -211,7 +214,7 @@ document.title = String(half);`
 test('division after an identifier is not mistaken for a regex literal', () => {
   const doc = VALID_DOC.replace(
     "document.title='x';",
-    `const half = 10 / 2;
+    `const half = 10 / 2; // https://evil.com/x
 // a trailing comment with slashes // like this
 document.title = String(half);`
   );
