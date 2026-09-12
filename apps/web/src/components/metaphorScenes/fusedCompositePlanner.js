@@ -163,21 +163,41 @@ function makeMotion(worldKey, id, style, novelty) {
   };
 }
 
+/** Free-text presentation fields: passed through when a string, else null. */
+const PRESENTATION_STRING_FIELDS = ['lighting', 'condition', 'health'];
+
+/**
+ * Numeric presentation fields as {fallback, max}, all floored at 0. A table
+ * rather than twelve near-identical `clamp(finite(...))` lines, because the
+ * only thing that varies between them is three numbers — and one of those, the
+ * `maturity` default, is kind-dependent, which is easy to lose in a wall of
+ * lookalike expressions.
+ */
+const PRESENTATION_NUMBER_FIELDS = {
+  hazard: { fallback: () => 0, max: 1 },
+  maturity: { fallback: (kind) => (kind === 'garden' ? 0.5 : 0.55), max: 1 },
+  cracks: { fallback: () => 0, max: 1 },
+  tilt: { fallback: () => 0, max: 15 },
+  relief: { fallback: () => 0.5, max: 1 },
+  torque: { fallback: () => 0, max: 1 },
+  friction: { fallback: () => 0, max: 1 },
+  peril: { fallback: () => 0, max: 1 }
+};
+
 function makePresentation(item, kind) {
-  return {
-    lighting: typeof item?.lighting === 'string' ? item.lighting : null,
-    condition: typeof item?.condition === 'string' ? item.condition : null,
-    health: typeof item?.health === 'string' ? item.health : null,
-    hazard: clamp(finite(item?.hazard, 0), 0, 1),
-    maturity: clamp(finite(item?.maturity, kind === 'garden' ? 0.5 : 0.55), 0, 1),
-    cracks: clamp(finite(item?.cracks, 0), 0, 1),
-    tilt: clamp(finite(item?.tilt, 0), 0, 15),
-    relief: clamp(finite(item?.relief, 0.5), 0, 1),
-    torque: clamp(finite(item?.torque, 0), 0, 1),
-    friction: clamp(finite(item?.friction, 0), 0, 1),
-    peril: clamp(finite(item?.peril, 0), 0, 1),
-    affinity: [...affinityTokens(item)]
-  };
+  // Key insertion order matches the object literal this replaced (strings,
+  // numbers, then affinity). Property order is invisible to every reader of
+  // this object, but it is visible to anything that serializes a plan, so the
+  // tables above are ordered to reproduce it exactly rather than by accident.
+  const out = {};
+  for (const field of PRESENTATION_STRING_FIELDS) {
+    out[field] = typeof item?.[field] === 'string' ? item[field] : null;
+  }
+  for (const [field, { fallback, max }] of Object.entries(PRESENTATION_NUMBER_FIELDS)) {
+    out[field] = clamp(finite(item?.[field], fallback(kind)), 0, max);
+  }
+  out.affinity = [...affinityTokens(item)];
+  return out;
 }
 
 /** Island/platform radius a substrate entry claims. Shared with the world sizing. */
@@ -237,6 +257,33 @@ function normalizeSiteSpread(positions, targetRadius) {
   return positions.map(([x, y, z]) => [x * scale, y, z * scale]);
 }
 
+/**
+ * Everything about a site that depends on whether it has a substrate item.
+ *
+ * A site with no entry is bare ground — a platform, drawn with no name — and
+ * every one of these fields forked on that same condition, so the loop asked it
+ * six times. Asking once also makes the two shapes readable side by side.
+ */
+function siteShapeFor(entry, index, worldKey) {
+  if (!entry) {
+    return {
+      radius: 2.5,
+      height: 0.38 + seeded(worldKey, index, 'auto-site-height') * 0.34,
+      id: `site:auto-${index}`,
+      primitive: 'platform',
+      motionStyle: 'pulse'
+    };
+  }
+  const item = entry.item;
+  return {
+    radius: siteRadiusFor(item),
+    height: 0.45 + clamp(finite(item.relief, 0.45), 0, 1) * 1.15,
+    id: `site:${item.id}`,
+    primitive: 'island',
+    motionStyle: 'sway'
+  };
+}
+
 function makeSites({ substrateEntries, itemCount, worldRadius, topology, novelty, worldKey }) {
   const siteCount =
     substrateEntries.length > 0
@@ -257,11 +304,7 @@ function makeSites({ substrateEntries, itemCount, worldRadius, topology, novelty
     const entry = substrateEntries[index];
     const item = entry?.item;
     const position = explicitPosition(item, basePositions[index]);
-    const radius = entry ? siteRadiusFor(item) : 2.5;
-    const height = entry
-      ? 0.45 + clamp(finite(item.relief, 0.45), 0, 1) * 1.15
-      : 0.38 + seeded(worldKey, index, 'auto-site-height') * 0.34;
-    const id = entry ? `site:${item.id}` : `site:auto-${index}`;
+    const { radius, height, id, primitive, motionStyle } = siteShapeFor(entry, index, worldKey);
     const anchor = [position[0], position[1] + height, position[2]];
     sites.push({
       id,
@@ -275,15 +318,15 @@ function makeSites({ substrateEntries, itemCount, worldRadius, topology, novelty
       groupIndex: index,
       layerId: entry?.layer.id ?? null,
       kind: entry?.layer.as ?? 'generated',
-      primitive: entry ? 'island' : 'platform',
+      primitive,
       position,
       radius,
       height,
       anchor,
       affinity: [...affinityTokens(item)],
       presentation: makePresentation(item, 'archipelago'),
-      motion: makeMotion(worldKey, id, entry ? 'sway' : 'pulse', novelty),
-      estimatedCost: getCompositePrimitive(entry ? 'island' : 'platform').estimatedCost
+      motion: makeMotion(worldKey, id, motionStyle, novelty),
+      estimatedCost: getCompositePrimitive(primitive).estimatedCost
     });
   }
   return sites;
