@@ -699,10 +699,69 @@ ones that will bite an edit.
   accent marker** on 9 of 12 theme×viewport cells, and on tree-dominant composites too. The ladder
   is now a table, not a chain of `else if`, because the bug was an omission from a list nothing
   could assert against.
+- **A magnitude carried between two kinds has to be refitted, never copied — every kind states the
+  same topic in a different unit over a different range** (`utils/metaphorMagnitudeFit.js`,
+  `MAGNITUDE_DOMAIN`). A city tower's `height` runs to 100, a layer cake's `thickness` stops at 10,
+  an iceberg's `depth` is signed. `switchMetaphorKind` copied the number straight across, so **15
+  of 196 kind pairs were refused outright** by the schema (the switcher said only "Could not switch
+  metaphor type.") and **51 more silently saturated at the target's ceiling**, which is the worse
+  half: three differently-sized services all render as one maximum-size body and the document's own
+  ranking is gone with no error anywhere. Fit the SET, not the item — a magnitude only means
+  anything against its siblings — and make the fit a **no-op when the values already fit**, so it
+  can only ever move a document that would otherwise have broken.
 
 ---
 
 ## Full findings
+
+- **The fullscreen kind switcher refused 15 of its 196 kind pairs and quietly flattened 51 more,
+  and both were one defect: a magnitude copied between two fields with different domains.**
+  `mapItemToKind` read the item's magnitude in the SOURCE kind's unit and wrote it into the target's
+  field, then clamped. Those units are not the same and never were — `height` runs to 100,
+  `thickness` to 10, `magnitude` to 20, `depth` to ±1 — so the copy landed one of two ways. Out of
+  range, and the whole document failed `sanitizeMetaphorDsl`: every wide-range kind into
+  `layercake`, `city → galaxy`, and five kinds whose secondary encoding can reach zero going into
+  `city`'s `positive()` footprint. Or inside range but above the target's ceiling, where the clamp
+  saturated it: the metaphor prompt's own worked example (`height: 12` and `14`) switched to a tree
+  as **two identical branches**, and a five-service platform switched to an orrery as **three
+  identical planets on one ring**. Five things worth keeping:
+
+  - **The refusal is the visible half and the flattening is the expensive half.** A refusal at
+    least says something; a saturated encoding renders a confident, beautiful, wrong picture, and
+    nothing anywhere reports it. The probe that found it was 60 lines over `switchMetaphorKind`
+    alone — no browser — asking of every pair "did the rank ordering survive?". Measured before:
+    **15/196 refused, 51 collapsed, 0 inverted**. After: **0, 0, 0**.
+  - **Fit the set, then map the items — a magnitude has no meaning on its own.** The prompt's own
+    legends say as much ("relative service importance from prompt"). `fitMagnitudes` takes the
+    whole item set and the target's `[lo, hi]`, which is why the pass had to move up out of
+    `mapItemToKind` into `mapItemsToKind`.
+  - **Make the fit a no-op when the values already fit, and the change cannot regress anything.**
+    That one guard is what let all 13 pre-existing switcher tests pass byte-for-byte unmodified: a
+    document the switcher already handled produces the identical numbers, so the fit is reachable
+    only from the documents that were broken. Same shape as `raiseSurfacesForDaylight`'s floor.
+  - **Prefer ratios, fall back to rank, and know which you got.** Scaling every value by one factor
+    (`hi / max`) keeps "twice as big" exactly true, and it fits whenever the source's dynamic range
+    is no wider than the target's (`min/max >= lo/hi`) — **121 of 182 pairs**. When it is wider, or
+    the source spans a sign boundary the target has not got (a signed `elevation` into a positive
+    `height`), ratios cannot survive at all and an order-preserving affine map is what is left. The
+    one thing the fit must never do is **invent** a hierarchy: equal magnitudes stay equal, which
+    rules out affine-always, since a zero-width source range would spread them apart.
+  - **Removing a clamp can break an unrelated formula that was reading the old unit.** The orrery's
+    ring assignment was `12 - Math.min(primary, 11)` — written when `primary` was a raw city height,
+    where "≥ 11" meant "big". Against a magnitude already fitted to orrery's own 0.5–10 size domain
+    it can never reach ring 1 at all. Replaced by rank: **one ring per item**, up to the schema's
+    twelve. Spending the full 1–12 range whatever the document holds was tried first and measured
+    worse — on a 717×512 foldable cover the world's ink fell **0.0958 → 0.0771 (−20%)** because the
+    system was as wide as the schema allows and every body a speck; one-ring-per-item returned
+    **0.0960**, level with the baseline, with all five magnitudes still distinct. Use as many rings
+    as there are things to separate, no more.
+
+  Verified by render at 390×844 / 717×512 / 1440×900, city → layercake / tree / orrery / galaxy /
+  garden: **6 of 15 cells were an error card before, 0 after**, and authored names present in the
+  scene went **45/75 → 75/75**. One method note: the troika-`fillOpacity` legibility probe
+  disagreed with its own screenshots here (1 of 5 on a layercake desktop where the picture plainly
+  draws all five names), so it was discarded rather than reported — the name-presence count is
+  camera- and declutter-independent and did agree with the frames.
 
 - **The accent callout — the one thing in the renderer that says "this item is the thesis" — was
   the last piece still sized purely in world units, and it collapsed on exactly the canvases that
