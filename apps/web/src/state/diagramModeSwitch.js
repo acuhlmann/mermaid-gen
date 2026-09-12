@@ -23,6 +23,62 @@ export function siblingContentModes(contentMode) {
   return CONTENT_MODES.filter((mode) => mode !== contentMode);
 }
 
+/** `slot.revisionId`, defaulted — the `?? 0` read this module makes a dozen times. */
+function revisionOf(slot) {
+  return slot?.revisionId ?? 0;
+}
+
+/** `slot.updatedAt`, defaulted to '' so a missing stamp sorts before every real one. */
+function updatedAtOf(slot) {
+  return slot?.updatedAt ?? '';
+}
+
+/** The carried topic as a comparable string; '' means "no topic carried". */
+function normalizeCandidate(candidate) {
+  return candidate != null ? String(candidate).trim() : '';
+}
+
+/**
+ * True unless the slot records a topic that contradicts the carried one. A slot that never
+ * recorded a topic never conflicts — only a different topic does. `cand` must already be
+ * normalized.
+ */
+function topicAgrees(slot, cand) {
+  const slotTopic = slotLastTopic(slot);
+  return !(cand && slotTopic && slotTopic !== cand);
+}
+
+/** Spread-safe view of a slot: `{}` for anything that is not an object. */
+function asPlainObject(value) {
+  return value && typeof value === 'object' ? value : {};
+}
+
+/**
+ * The (target, peer) pair a mode switch would translate between, or null when there is
+ * nothing to translate — unknown mode, no session, no peer carrying compatible content, or a
+ * peer still holding the default seed.
+ *
+ * Four exported predicates below opened with this exact preamble, which is why each of them
+ * carried five branches before reaching its own question.
+ */
+function resolvePeerPair({ contentMode, session, candidate, sourceMode }) {
+  if (!session || !CONTENT_MODES.includes(contentMode)) return null;
+  const peerMode = pickPrimaryPeerMode({ contentMode, session, candidate, sourceMode });
+  if (!peerMode) return null;
+  const peer = session[peerMode];
+  if (!isSlotCustomized(peer)) return null;
+  return { target: session[contentMode], peerMode, peer };
+}
+
+/** True when a sync marker records this exact peer/target revision pair in this direction. */
+function syncMarkerMatches(marker, peerMode, peerRevisionId, targetRevisionId) {
+  return (
+    marker?.peerMode === peerMode &&
+    marker.peerRevisionId === peerRevisionId &&
+    marker.targetRevisionId === targetRevisionId
+  );
+}
+
 /**
  * Overlay the slot snapshot captured when the user left `sourceMode` onto fetched session
  * state when the client is ahead of GET /session-state (debounced editor sync, hydrate
@@ -35,18 +91,14 @@ export function mergeLeavingSlotSnapshot(session, sourceMode, snapshot) {
   }
   if (!isSlotCustomized(snapshot)) return session;
   const serverSlot = session[sourceMode];
-  const serverRev = serverSlot?.revisionId ?? 0;
-  const localRev = snapshot.revisionId ?? 0;
-  if (!isSlotCustomized(serverSlot) || localRev > serverRev) {
-    return {
-      ...session,
-      [sourceMode]: {
-        ...(serverSlot && typeof serverSlot === 'object' ? serverSlot : {}),
-        ...snapshot
-      }
-    };
+  // The server copy wins only when it is real content and at least as new as ours.
+  if (isSlotCustomized(serverSlot) && revisionOf(snapshot) <= revisionOf(serverSlot)) {
+    return session;
   }
-  return session;
+  return {
+    ...session,
+    [sourceMode]: { ...asPlainObject(serverSlot), ...snapshot }
+  };
 }
 
 /**
@@ -59,9 +111,7 @@ export function isValidModeSwitchSource({ contentMode, session, candidate, sourc
   }
   const slot = session[sourceMode];
   if (!isSlotCustomized(slot)) return false;
-  const cand = candidate != null ? String(candidate).trim() : '';
-  const peerTopic = slotLastTopic(slot);
-  return !(cand && peerTopic && peerTopic !== cand);
+  return topicAgrees(slot, normalizeCandidate(candidate));
 }
 
 /**
@@ -74,15 +124,13 @@ export function pickPrimaryPeerMode({ contentMode, session, candidate, sourceMod
   if (isValidModeSwitchSource({ contentMode, session, candidate, sourceMode })) {
     return sourceMode;
   }
-  const cand = candidate != null ? String(candidate).trim() : '';
+  const cand = normalizeCandidate(candidate);
   let bestMode = null;
   let bestUpdatedAt = '';
   for (const mode of siblingContentModes(contentMode)) {
     const slot = session[mode];
-    if (!isSlotCustomized(slot)) continue;
-    const peerTopic = slotLastTopic(slot);
-    if (cand && peerTopic && peerTopic !== cand) continue;
-    const updatedAt = slot?.updatedAt ?? '';
+    if (!isSlotCustomized(slot) || !topicAgrees(slot, cand)) continue;
+    const updatedAt = updatedAtOf(slot);
     if (!bestMode || updatedAt > bestUpdatedAt) {
       bestMode = mode;
       bestUpdatedAt = updatedAt;
@@ -150,21 +198,14 @@ export function isSlotCustomized(slot) {
  * press Go to translate peer edits.
  */
 export function isPeerSlotAhead({ contentMode, session, candidate, sourceMode = null }) {
-  if (!session || !CONTENT_MODES.includes(contentMode)) return false;
-  const target = session[contentMode];
-  const peerMode = pickPrimaryPeerMode({ contentMode, session, candidate, sourceMode });
-  if (!peerMode) return false;
-  const peer = session[peerMode];
-  if (!isSlotCustomized(peer)) return false;
-  const cand = candidate != null ? String(candidate).trim() : '';
-  const peerTopic = slotLastTopic(peer);
-  if (peerTopic && cand && peerTopic !== cand) return false;
-  const targetUpdated = target?.updatedAt ?? '';
-  const peerUpdated = peer?.updatedAt ?? '';
-  if (!cand) {
-    return isSlotCustomized(target) ? peerUpdated > targetUpdated : true;
-  }
-  return peerUpdated > targetUpdated;
+  const pair = resolvePeerPair({ contentMode, session, candidate, sourceMode });
+  if (!pair) return false;
+  const { target, peer } = pair;
+  const cand = normalizeCandidate(candidate);
+  if (!topicAgrees(peer, cand)) return false;
+  // With no topic carried, any peer content is ahead of an untouched target slot.
+  if (!cand && !isSlotCustomized(target)) return true;
+  return updatedAtOf(peer) > updatedAtOf(target);
 }
 
 /** True when the slot already has customized content for the session topic. */
@@ -186,47 +227,36 @@ export function peerRequiresModeSwitchTranslation({
   sourceMode = null,
   sourceRevisionAtLastView = null
 }) {
-  if (!session || !CONTENT_MODES.includes(contentMode)) return false;
-
-  const target = session[contentMode];
-  const peerMode = pickPrimaryPeerMode({ contentMode, session, candidate, sourceMode });
-  if (!peerMode) return false;
-  const peer = session[peerMode];
-  if (!isSlotCustomized(peer)) return false;
+  const pair = resolvePeerPair({ contentMode, session, candidate, sourceMode });
+  if (!pair) return false;
+  const { target, peerMode, peer } = pair;
   if (!isSlotCustomized(target)) return true;
+
+  const peerRevision = revisionOf(peer);
+  const targetRevision = revisionOf(target);
 
   // Target already has content at least as new as the source and the mode we switched
   // from has not changed since we last viewed it — keep the cached slot.
   if (
     sourceMode &&
     sourceRevisionAtLastView != null &&
-    (peer.revisionId ?? 0) === sourceRevisionAtLastView &&
-    (target.revisionId ?? 0) >= (peer.revisionId ?? 0)
+    peerRevision === sourceRevisionAtLastView &&
+    targetRevision >= peerRevision
   ) {
     return false;
   }
 
-  const markerOnTarget = syncMarkers?.[contentMode];
-  if (
-    markerOnTarget?.peerMode === peerMode &&
-    markerOnTarget.peerRevisionId === (peer.revisionId ?? 0) &&
-    markerOnTarget.targetRevisionId === (target.revisionId ?? 0)
-  ) {
+  // A marker in either direction recording this exact revision pair means the translation
+  // already ran; running it again is the return-trip ping-pong.
+  const markers = syncMarkers ?? {};
+  if (syncMarkerMatches(markers[contentMode], peerMode, peerRevision, targetRevision)) {
+    return false;
+  }
+  if (syncMarkerMatches(markers[peerMode], contentMode, targetRevision, peerRevision)) {
     return false;
   }
 
-  const markerOnPeer = syncMarkers?.[peerMode];
-  if (
-    markerOnPeer?.peerMode === contentMode &&
-    markerOnPeer.peerRevisionId === (target.revisionId ?? 0) &&
-    markerOnPeer.targetRevisionId === (peer.revisionId ?? 0)
-  ) {
-    return false;
-  }
-
-  if (!isPeerSlotAhead({ contentMode, session, candidate, sourceMode })) return false;
-
-  return true;
+  return isPeerSlotAhead({ contentMode, session, candidate, sourceMode });
 }
 
 /**
@@ -239,27 +269,21 @@ export function peerRequiresModeSwitchTranslation({
  */
 export function buildIntentPeerContext(contentMode, session, candidate = null, sourceMode = null) {
   if (!session || !CONTENT_MODES.includes(contentMode)) return undefined;
-  const target = session[contentMode];
-  const peerMode = pickPrimaryPeerMode({
+  const targetCustomized = isSlotCustomized(session[contentMode]);
+  const pair = resolvePeerPair({
     contentMode,
     session,
-    candidate: isSlotCustomized(target) ? candidate : null,
+    candidate: targetCustomized ? candidate : null,
     sourceMode
   });
-  if (!peerMode) return undefined;
-  const peer = session[peerMode];
-  if (!peer || typeof peer.diagramSource !== 'string') return undefined;
-  const trimmed = peer.diagramSource.trim();
-  if (!trimmed) return undefined;
-  if (!isSlotCustomized(peer)) return undefined;
-  if (!isSlotCustomized(target)) {
-    return { contentType: peerMode, diagramSource: peer.diagramSource };
-  }
-  const cand = candidate != null ? String(candidate).trim() : '';
-  if (cand) {
-    const peerPrompt = typeof peer.lastUserPrompt === 'string' ? peer.lastUserPrompt.trim() : '';
-    if (peerPrompt && peerPrompt !== cand) return undefined;
-  }
+  if (!pair) return undefined;
+  const { peerMode, peer } = pair;
+  // `isSlotCustomized` accepts a revised slot whose source is empty; an empty source is
+  // nothing to translate from, so it is rejected separately rather than folded into that.
+  if (typeof peer.diagramSource !== 'string' || !peer.diagramSource.trim()) return undefined;
+  // A topic conflict only disqualifies the peer once the target has content of its own —
+  // an untouched target takes the peer whatever it was last prompted with.
+  if (targetCustomized && !topicAgrees(peer, normalizeCandidate(candidate))) return undefined;
   return { contentType: peerMode, diagramSource: peer.diagramSource };
 }
 
@@ -267,6 +291,38 @@ export function buildIntentPeerContext(contentMode, session, candidate = null, s
  * Topic string for mode-switch auto-intent: slot prompts, session carry-over, textarea, or
  * a conversion fallback when the peer slot has diagram work but no recorded topic.
  */
+/**
+ * The most recently updated topic recorded by the target slot or any sibling, or null.
+ *
+ * Ties go to the LAST slot in [target, ...siblings] order, matching the `(a, b) =>
+ * a.updatedAt > b.updatedAt ? a : b` reduce this replaced — the strict `>` there hands a tie
+ * to `b`. Ties are not exotic: two slots written in the same second, or two that carry no
+ * `updatedAt` at all, both compare equal.
+ */
+function latestRecordedTopic(contentMode, session) {
+  let best = null;
+  for (const mode of [contentMode, ...siblingContentModes(contentMode)]) {
+    const slot = session[mode];
+    const topic = slotLastTopic(slot);
+    if (!topic) continue;
+    const updatedAt = updatedAtOf(slot);
+    if (!best || updatedAt >= best.updatedAt) best = { topic, updatedAt };
+  }
+  return best ? best.topic : null;
+}
+
+/**
+ * Last resort when nothing recorded a topic: if the target slot is still the default seed and
+ * a peer carries real content, adopt the peer's topic — or a canned conversion prompt when
+ * the peer has content but never recorded one.
+ */
+function peerFallbackTopic({ contentMode, session, candidate, sourceMode }) {
+  if (isSlotCustomized(session[contentMode])) return null;
+  const pair = resolvePeerPair({ contentMode, session, candidate, sourceMode });
+  if (!pair) return null;
+  return slotLastTopic(pair.peer) ?? defaultModeSwitchPrompt(contentMode, pair.peerMode);
+}
+
 export function resolveModeSwitchCandidate({
   contentMode,
   session,
@@ -275,36 +331,13 @@ export function resolveModeSwitchCandidate({
   sourceMode = null
 }) {
   if (!session || !CONTENT_MODES.includes(contentMode)) return null;
-  const data = session[contentMode];
-  const slots = [
-    { mode: contentMode, slot: data },
-    ...siblingContentModes(contentMode).map((mode) => ({ mode, slot: session[mode] }))
-  ];
-  const withTopics = slots
-    .map(({ mode, slot }) => ({
-      mode,
-      topic: slotLastTopic(slot),
-      updatedAt: slot?.updatedAt ?? ''
-    }))
-    .filter((entry) => entry.topic);
-  let candidate;
-  if (withTopics.length >= 2) {
-    candidate = withTopics.reduce((a, b) => (a.updatedAt > b.updatedAt ? a : b)).topic;
-  } else if (withTopics.length === 1) {
-    candidate = withTopics[0].topic;
-  } else {
-    candidate = sessionTopic ?? null;
-  }
+  const candidate = latestRecordedTopic(contentMode, session) ?? sessionTopic ?? null;
+  if (candidate) return candidate;
   const trimmedAtSwitch = (promptAtSwitch ?? '').trim();
-  if (!candidate && trimmedAtSwitch) {
-    candidate = trimmedAtSwitch;
-  }
-  const peerMode = pickPrimaryPeerMode({ contentMode, session, candidate, sourceMode });
-  const peerSlot = peerMode ? session[peerMode] : null;
-  if (!candidate && peerSlot && isSlotCustomized(peerSlot) && !isSlotCustomized(data)) {
-    candidate = slotLastTopic(peerSlot) ?? defaultModeSwitchPrompt(contentMode, peerMode);
-  }
-  return candidate;
+  if (trimmedAtSwitch) return trimmedAtSwitch;
+  // `candidate` is falsy here but not always null (an empty `sessionTopic` reaches this
+  // point), and the original returned that value unchanged when no peer applied.
+  return peerFallbackTopic({ contentMode, session, candidate, sourceMode }) ?? candidate;
 }
 
 /** True when switching into this mode should translate content from the sibling slot. */
@@ -316,12 +349,9 @@ export function needsModeSwitchPeerSync({
   sourceMode = null,
   sourceRevisionAtLastView = null
 }) {
-  if (!session || !CONTENT_MODES.includes(contentMode)) return false;
-  const target = session[contentMode];
-  const peerMode = pickPrimaryPeerMode({ contentMode, session, candidate, sourceMode });
-  if (!peerMode) return false;
-  const peer = session[peerMode];
-  if (!isSlotCustomized(peer)) return false;
+  const pair = resolvePeerPair({ contentMode, session, candidate, sourceMode });
+  if (!pair) return false;
+  const { target } = pair;
   if (!isSlotCustomized(target)) return true;
   if (
     peerRequiresModeSwitchTranslation({

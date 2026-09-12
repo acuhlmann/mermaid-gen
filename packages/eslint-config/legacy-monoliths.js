@@ -12,9 +12,6 @@ export const LEGACY_MONOLITHS = [
   'apps/web/src/components/DiagramCanvas.jsx',
   'apps/web/src/components/RadialActionMenu.jsx',
   'apps/web/src/state/diagramStore.js',
-  // Slice 2 of the diagramStore hub — complexity carried over unchanged from the
-  // monolith; individual function extractions are queued in #547.
-  'apps/web/src/state/diagramModeSwitch.js',
   'apps/server/src/mcp/mcpServer.js',
   'apps/server/src/agents/mermaidLangChainAgent.js',
   'apps/server/src/agents/infographicLangChainAgent.js',
