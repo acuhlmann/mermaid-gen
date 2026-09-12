@@ -82,11 +82,11 @@
     },
     "suite": {
       "files": {
-        "budget": 403,
+        "budget": 404,
         "initial": 366
       },
       "cases": {
-        "budget": 4504,
+        "budget": 4524,
         "initial": 3675
       }
     }

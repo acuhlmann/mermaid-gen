@@ -57,6 +57,38 @@ export function useRunCeremony({
   const [celebratingEntryId, setCelebratingEntryId] = useState(null);
   const streakEmissionSeqRef = useRef(0);
 
+  /**
+   * `setTimeout` whose id is tracked so unmount can cancel it (#653).
+   *
+   * Every HUD dismissal here is a timer that outlives the thing it dismisses:
+   * a level-up banner clears itself 5.2s later, an achievement 3.2s, a toast
+   * 1.8s. Unmounting inside that window used to leave the callback scheduled,
+   * and it would then call a setter on a dead component — React asks
+   * `resolveUpdatePriority` for the update lane, that reads `window`, and in a
+   * torn-down jsdom environment `window` is gone, so the whole run fails with
+   * `ReferenceError: window is not defined` while every test still passes.
+   *
+   * The id is dropped from the list as the callback runs, so a long-lived
+   * session does not accumulate ids for timers that have already fired.
+   */
+  const hudTimersRef = useRef([]);
+  const scheduleHudTimer = useCallback((run, ms) => {
+    const id = setTimeout(() => {
+      hudTimersRef.current = hudTimersRef.current.filter((pending) => pending !== id);
+      run();
+    }, ms);
+    hudTimersRef.current.push(id);
+    return id;
+  }, []);
+
+  useEffect(
+    () => () => {
+      for (const id of hudTimersRef.current) clearTimeout(id);
+      hudTimersRef.current = [];
+    },
+    []
+  );
+
   const processSlopEmissions = useCallback(
     (emissions, now) => {
       if (!Array.isArray(emissions) || emissions.length === 0) return;
@@ -76,7 +108,7 @@ export function useRunCeremony({
       if (toasts.length > 0) {
         setStreakHudToasts((q) => [...q, ...toasts]);
         for (const t of toasts) {
-          setTimeout(() => {
+          scheduleHudTimer(() => {
             setStreakHudToasts((q) => q.filter((x) => x.id !== t.id));
           }, 1800);
         }
@@ -84,13 +116,13 @@ export function useRunCeremony({
       if (levelUpEmission) {
         setStreakHudLevelUp(levelUpEmission);
         setXpBarFlashKey((n) => n + 1);
-        setTimeout(() => {
+        scheduleHudTimer(() => {
           setStreakHudLevelUp((current) => (current?.id === levelUpEmission.id ? null : current));
         }, 5200);
       }
       if (banner) {
         setStreakHudAchievement(banner);
-        setTimeout(() => {
+        scheduleHudTimer(() => {
           setStreakHudAchievement((current) => (current?.id === banner.id ? null : current));
         }, 3200);
       }
@@ -144,7 +176,7 @@ export function useRunCeremony({
         }
       }
     },
-    [tryAgentSound]
+    [scheduleHudTimer, tryAgentSound]
   );
 
   const triggerCompletionDelight = useCallback(
@@ -314,12 +346,12 @@ export function useRunCeremony({
         promptEasterEggSeqRef.current = seq;
         const toast = { id: `easter-${Date.now()}-${seq}`, kind: 'text', label: egg.toast };
         setStreakHudToasts((q) => [...q, toast]);
-        setTimeout(() => {
+        scheduleHudTimer(() => {
           setStreakHudToasts((q) => q.filter((x) => x.id !== toast.id));
         }, 1800);
       }
     }
-  }, [prompt, promptEasterEggs]);
+  }, [prompt, promptEasterEggs, scheduleHudTimer]);
 
   const konamiBufferRef = useRef([]);
   const konamiFiredRef = useRef(false);
@@ -361,14 +393,14 @@ export function useRunCeremony({
         subtitle: konami?.subtitle ?? ''
       };
       setStreakHudAchievement(banner);
-      setTimeout(() => {
+      scheduleHudTimer(() => {
         setStreakHudAchievement((current) => (current?.id === banner.id ? null : current));
       }, 3200);
       tryAgentSound(playAchievementFanfare);
-      setTimeout(() => tryAgentSound(playKonamiRainbow), 120);
+      scheduleHudTimer(() => tryAgentSound(playKonamiRainbow), 120);
       if (typeof document !== 'undefined' && document.body) {
         document.body.classList.add('slopitect-rainbow-tint');
-        setTimeout(() => document.body.classList.remove('slopitect-rainbow-tint'), 5200);
+        scheduleHudTimer(() => document.body.classList.remove('slopitect-rainbow-tint'), 5200);
       }
     }
     window.addEventListener('keydown', handleKey);
