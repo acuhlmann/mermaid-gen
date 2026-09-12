@@ -137,6 +137,108 @@ export function safeAreaChanged(a, b, epsilon = 0.02) {
   return false;
 }
 
+/** Real area. A zero-size rect is an unrendered panel, not a claim on the frame. */
+function hasArea(rect) {
+  return rect.width > 0 && rect.height > 0;
+}
+
+/**
+ * The container's own box, or null when there is nothing measurable — SSR, an
+ * unmounted node, a zero-size canvas. All three exported entry points below
+ * opened with this identical three-line guard.
+ */
+function measurableBox(container) {
+  if (!container || typeof container.getBoundingClientRect !== 'function') return null;
+  const box = container.getBoundingClientRect();
+  return hasArea(box) ? box : null;
+}
+
+/** Where to look for external chrome: explicit override, the container's document, then global. */
+function resolveOwnerDocument(container, options) {
+  return (
+    options.document ??
+    container.ownerDocument ??
+    (typeof globalThis !== 'undefined' ? globalThis.document : null)
+  );
+}
+
+/**
+ * A rect projected into `box`'s coordinate space and clipped to it, or null
+ * when nothing of it lands inside — a top-shell spanning the whole viewport
+ * should only claim the strip that actually paints over the canvas.
+ */
+function clipToBox(rect, box) {
+  const top = Math.max(0, rect.top - box.top);
+  const left = Math.max(0, rect.left - box.left);
+  const bottom = Math.min(box.height, rect.bottom - box.top);
+  const right = Math.min(box.width, rect.right - box.left);
+  if (bottom <= 0 || right <= 0 || top >= box.height || left >= box.width) return null;
+  if (bottom - top <= 0 || right - left <= 0) return null;
+  return { top, left, bottom, right };
+}
+
+/**
+ * Whether a marked element actually paints. Native fullscreen is the one case
+ * where it keeps its layout rect and paints nothing: only the fullscreen
+ * element's own subtree renders, so app chrome outside it is invisible and must
+ * not be reserved for. Layout alone cannot tell you that —
+ * `getBoundingClientRect` reports the top-shell at its usual 16px whether the
+ * canvas is fullscreen or not — so this check is the only thing keeping a
+ * fullscreen scene from framing itself around chrome nobody can see.
+ */
+function paintsOverCanvas(node, fullscreenElement) {
+  if (!fullscreenElement || typeof fullscreenElement.contains !== 'function') return true;
+  return fullscreenElement.contains(node);
+}
+
+/** Panels tagged as the metaphor's own chrome, in `box`-relative pixels. */
+function collectContainerPanels(container, box) {
+  const panels = [];
+  for (const node of container.querySelectorAll?.(`[${CHROME_ATTR}]`) ?? []) {
+    const rect = node.getBoundingClientRect();
+    if (!hasArea(rect)) continue;
+    panels.push({
+      top: rect.top - box.top,
+      left: rect.left - box.left,
+      bottom: rect.bottom - box.top,
+      right: rect.right - box.left
+    });
+  }
+  return panels;
+}
+
+/**
+ * The metaphor's own chrome plus, unless opted out, external app chrome that
+ * paints over the same box. `measureChromeRects` and `measureOverlaySafeArea`
+ * gather exactly this and differ only in what they compute from it.
+ */
+function collectAllPanels(container, box, options) {
+  const panels = collectContainerPanels(container, box);
+  if (options.includeExternal !== false) {
+    panels.push(...readExternalChromePanels(box, resolveOwnerDocument(container, options)));
+  }
+  return panels;
+}
+
+/**
+ * The edge a panel is cheapest to reserve on, and that cost in pixels. This is
+ * rule 1 in the header, in raw pixels: the band a panel is part of is always
+ * the band it is cheapest to push a card clear of.
+ */
+function cheapestEdgeClaim(panel, box) {
+  const costs = {
+    top: panel.bottom,
+    bottom: box.height - panel.top,
+    left: panel.right,
+    right: box.width - panel.left
+  };
+  let bestEdge = 'top';
+  for (const edge of ['bottom', 'left', 'right']) {
+    if (costs[edge] < costs[bestEdge]) bestEdge = edge;
+  }
+  return { edge: bestEdge, cost: costs[bestEdge] };
+}
+
 /**
  * How far, in raw pixels within `container`'s box, external app chrome extends
  * from each edge. Used to write the `--metaphor-app-*-inset` CSS variables the
@@ -152,30 +254,12 @@ export function safeAreaChanged(a, b, epsilon = 0.02) {
  * @returns {{ top: number, right: number, bottom: number, left: number } | null}
  */
 export function measureExternalChromeInsets(container, options = {}) {
-  if (!container || typeof container.getBoundingClientRect !== 'function') return null;
-  const box = container.getBoundingClientRect();
-  if (!(box.width > 0) || !(box.height > 0)) return null;
-  const ownerDocument =
-    options.document ??
-    container.ownerDocument ??
-    (typeof globalThis !== 'undefined' ? globalThis.document : null);
-  const panels = readExternalChromePanels(box, ownerDocument);
+  const box = measurableBox(container);
+  if (!box) return null;
   const insets = { top: 0, right: 0, bottom: 0, left: 0 };
-  for (const panel of panels) {
-    // Same "one edge per panel, the cheapest one" rule as the fractional path,
-    // in raw pixels: the band a panel is part of is always the band it is
-    // cheapest to push a card clear of.
-    const costs = {
-      top: panel.bottom,
-      bottom: box.height - panel.top,
-      left: panel.right,
-      right: box.width - panel.left
-    };
-    let bestEdge = 'top';
-    for (const edge of ['bottom', 'left', 'right']) {
-      if (costs[edge] < costs[bestEdge]) bestEdge = edge;
-    }
-    if (costs[bestEdge] > insets[bestEdge]) insets[bestEdge] = costs[bestEdge];
+  for (const panel of readExternalChromePanels(box, resolveOwnerDocument(container, options))) {
+    const { edge, cost } = cheapestEdgeClaim(panel, box);
+    if (cost > insets[edge]) insets[edge] = cost;
   }
   return insets;
 }
@@ -193,13 +277,7 @@ export function measureExternalChromeInsets(container, options = {}) {
  * this adds the same treatment for panels that live outside the container but
  * still cover pixels inside the canvas rect.
  *
- * Native fullscreen is the one case where a marked element keeps its layout
- * rect and paints nothing: only the fullscreen element's own subtree renders,
- * so app chrome outside it is invisible and must not be reserved for. Layout
- * alone cannot tell you that — `getBoundingClientRect` reports the top-shell at
- * its usual 16px whether the canvas is fullscreen or not — so the containment
- * check is the only thing keeping a fullscreen scene from framing itself around
- * chrome nobody can see.
+ * The fullscreen caveat this has to honour is on `paintsOverCanvas`.
  */
 function readExternalChromePanels(box, root) {
   const document = root ?? (typeof globalThis !== 'undefined' ? globalThis.document : null);
@@ -209,23 +287,13 @@ function readExternalChromePanels(box, root) {
   // reports only the prefixed one, and reading only the standard property there
   // would leave a fullscreen scene framed around invisible chrome.
   const fullscreenElement = document.fullscreenElement ?? document.webkitFullscreenElement ?? null;
-  const nodes = document.querySelectorAll(`[${EXTERNAL_CHROME_ATTR}]`);
-  for (const node of nodes) {
+  for (const node of document.querySelectorAll(`[${EXTERNAL_CHROME_ATTR}]`)) {
     if (typeof node.getBoundingClientRect !== 'function') continue;
-    if (fullscreenElement && typeof fullscreenElement.contains === 'function') {
-      if (!fullscreenElement.contains(node)) continue;
-    }
+    if (!paintsOverCanvas(node, fullscreenElement)) continue;
     const rect = node.getBoundingClientRect();
-    if (!(rect.width > 0) || !(rect.height > 0)) continue;
-    // Clip to the canvas box — a top-shell that spans the whole viewport should
-    // only claim the strip that actually paints over the canvas.
-    const top = Math.max(0, rect.top - box.top);
-    const left = Math.max(0, rect.left - box.left);
-    const bottom = Math.min(box.height, rect.bottom - box.top);
-    const right = Math.min(box.width, rect.right - box.left);
-    if (bottom <= 0 || right <= 0 || top >= box.height || left >= box.width) continue;
-    if (bottom - top <= 0 || right - left <= 0) continue;
-    panels.push({ top, left, bottom, right });
+    if (!hasArea(rect)) continue;
+    const panel = clipToBox(rect, box);
+    if (panel) panels.push(panel);
   }
   return panels;
 }
@@ -250,30 +318,11 @@ function readExternalChromePanels(box, root) {
  * @returns {Array<{xMin: number, xMax: number, yMin: number, yMax: number}>}
  */
 export function measureChromeRects(container, options = {}) {
-  if (!container || typeof container.getBoundingClientRect !== 'function') return [];
-  const box = container.getBoundingClientRect();
-  if (!(box.width > 0) || !(box.height > 0)) return [];
-  const panels = [];
-  for (const node of container.querySelectorAll?.(`[${CHROME_ATTR}]`) ?? []) {
-    const rect = node.getBoundingClientRect();
-    if (!(rect.width > 0) || !(rect.height > 0)) continue;
-    panels.push({
-      top: rect.top - box.top,
-      left: rect.left - box.left,
-      bottom: rect.bottom - box.top,
-      right: rect.right - box.left
-    });
-  }
-  if (options.includeExternal !== false) {
-    const ownerDocument =
-      options.document ??
-      container.ownerDocument ??
-      (typeof globalThis !== 'undefined' ? globalThis.document : null);
-    for (const external of readExternalChromePanels(box, ownerDocument)) panels.push(external);
-  }
+  const box = measurableBox(container);
+  if (!box) return [];
   // NDC: x runs −1 (left) → +1 (right), y runs −1 (bottom) → +1 (top), so the
   // vertical axis flips against the DOM's.
-  return panels.map((panel) => ({
+  return collectAllPanels(container, box, options).map((panel) => ({
     xMin: (panel.left / box.width) * 2 - 1,
     xMax: (panel.right / box.width) * 2 - 1,
     yMin: 1 - (panel.bottom / box.height) * 2,
@@ -291,30 +340,8 @@ export function measureChromeRects(container, options = {}) {
  * @param {{ document?: Document, includeExternal?: boolean }} [options]
  */
 export function measureOverlaySafeArea(container, options = {}) {
-  if (!container || typeof container.getBoundingClientRect !== 'function') return null;
-  const box = container.getBoundingClientRect();
-  if (!(box.width > 0) || !(box.height > 0)) return null;
-  const panels = [];
-  const nodes = container.querySelectorAll?.(`[${CHROME_ATTR}]`) ?? [];
-  for (const node of nodes) {
-    const rect = node.getBoundingClientRect();
-    if (!(rect.width > 0) || !(rect.height > 0)) continue;
-    panels.push({
-      top: rect.top - box.top,
-      right: rect.right - box.left,
-      bottom: rect.bottom - box.top,
-      left: rect.left - box.left
-    });
-  }
-  const includeExternal = options.includeExternal !== false;
-  if (includeExternal) {
-    const ownerDocument =
-      options.document ??
-      container.ownerDocument ??
-      (typeof globalThis !== 'undefined' ? globalThis.document : null);
-    for (const external of readExternalChromePanels(box, ownerDocument)) {
-      panels.push(external);
-    }
-  }
+  const box = measurableBox(container);
+  if (!box) return null;
+  const panels = collectAllPanels(container, box, options);
   return overlaySafeArea({ width: box.width, height: box.height }, panels);
 }
