@@ -2421,6 +2421,33 @@ Kept here so appetite can pick without re-deriving. Each should stay bound by AD
   person the same distance from a mark and the bank quietly starts being read in two voices with
   nothing rendered to notice.
 
+- ~~**The printer and the whiteboard have copy and no consequence.**~~ — ✅ **cleared.** Using a
+  verb-less prop now leaves two marks, and the useful half of this entry is which rule was being
+  misread. `officeFloorProps.js` and ADR-0011's worked example both said these props "produce
+  nothing", citing the Sign-off rule — but ADR-0010 is about **deliverables**, and neither of these
+  is one. `useFloorPropUse` returns `carrying` from the `hands` column that has existed since the
+  held-item slice (so you walk away from the printer holding the printout, drawn by art that
+  already exists, and the whiteboard hands over nothing because you cannot carry a whiteboard); and
+  it records a `prop` entry in the office log, which is what makes a prop **helpful** rather than
+  only interactive — the digest rides every office LLM request, so "you printed something off at
+  the printer" is a fact a colleague's next line can be spoken from.
+
+  Three things it settled. **Only a verb-less prop records**: the coffee machine's break already
+  logs `coffee` through the event funnel, so logging here too would say one thing twice — the same
+  derive-once rule the glass room's activity ladder exists to enforce. **The hand outlives walking
+  away and the phase does not**, which is the one asymmetry in `useFloorPropUse`: standing
+  somewhere ends when you leave, and a page in your hand ends when you sit down. And **the log's
+  duplicate collapse keyed on kind-plus-colleague, so two props inside a minute read as one
+  repeat** — `prop` entries have no colleague at all, so the printer's line vanished behind the
+  whiteboard's. `detail` is part of that key now; the burst the collapse was written for (`chat`,
+  `walkby`) carries no detail and is untouched.
+
+  Still open, and deliberately not taken in the same run: the printer has no `lineYours` /
+  `detailsYours`, so its card still shows the 2023 queue gag when the page in your hand is your
+  own diagram. Slice 16 built that extension point for exactly this ("any prop that could honestly
+  reflect your work opts in with a copy row rather than a branch") — it is four locale bundles plus
+  a parity assertion, which is a copy slice of its own.
+
 - **A third participant is unreachable by construction.** Only the nearest eligible seat is
   nominated, so a prop with two neighbours still produces a two-hander. That is right for the
   pacing (`useScenePacing` reveals one speaker at a time and a three-line exchange doubles the

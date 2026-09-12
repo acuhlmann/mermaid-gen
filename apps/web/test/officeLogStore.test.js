@@ -60,6 +60,30 @@ describe('officeLogStore', () => {
     expect(getOfficeLogDigest()).toHaveLength(1);
   });
 
+  /**
+   * The collapse above keys on kind **and detail**, because some kinds carry
+   * their whole identity in `detail` and no colleague at all. Measured on the
+   * floor: the printer and then the whiteboard six seconds later are two `prop`
+   * entries with no `colleagueId`, and a kind-plus-colleague key reported only
+   * the second — two different facts read as a repeat of one.
+   */
+  it('keeps separate lines for two details of one kind inside a minute', async () => {
+    const { getOfficeLogDigest, recordOfficeLogEntry } = await freshStore();
+    recordOfficeLogEntry('prop', { now: at(11, 0), detail: 'printer' });
+    recordOfficeLogEntry('prop', { now: at(11, 0) + 6_000, detail: 'whiteboard' });
+    expect(getOfficeLogDigest()).toEqual([
+      '11:00 you printed something off at the printer',
+      '11:00 you stopped and read the whiteboard'
+    ]);
+  });
+
+  it('still collapses the same detail repeated, so a re-visit is not a second line', async () => {
+    const { getOfficeLogDigest, recordOfficeLogEntry } = await freshStore();
+    recordOfficeLogEntry('prop', { now: at(11, 0), detail: 'printer' });
+    recordOfficeLogEntry('prop', { now: at(11, 0) + 6_000, detail: 'printer' });
+    expect(getOfficeLogDigest()).toHaveLength(1);
+  });
+
   it('keeps separate lines for different people, and for a later return', async () => {
     const { getOfficeLogDigest, recordOfficeLogEntry } = await freshStore();
     recordOfficeLogEntry('chat', { now: at(10, 0), colleagueId: 'dinesh' });

@@ -74,9 +74,19 @@ export function getOfficeLogSnapshot() {
  * ceremony, the moment delivery pipeline. None of them gained an observer to
  * feed this; each one already had the fact in hand and now says it out loud.
  *
- * Consecutive duplicates collapse (same kind, same colleague, inside a minute)
- * so a burst of replies in one thread reads as one conversation rather than as
- * eight identical lines eating the digest budget.
+ * Consecutive duplicates collapse (same kind, same colleague, same detail,
+ * inside a minute) so a burst of replies in one thread reads as one
+ * conversation rather than as eight identical lines eating the digest budget.
+ *
+ * `detail` is part of that key because some kinds put their whole identity in
+ * it and have no colleague at all. Measured on the floor: using the printer and
+ * then the whiteboard six seconds later are two `prop` entries with no
+ * `colleagueId`, so a key of kind-plus-colleague collapsed them and the digest
+ * reported only the second — two different facts read as a repeat of one. The
+ * burst this collapse exists for is unaffected, because the kinds it was
+ * written for (`chat`, `walkby`) carry no detail: their own tests still pass
+ * unchanged. Two emails from the same person inside a minute now get a line
+ * each, which is the truthful reading of two different subjects.
  *
  * @param {string} kind see `OFFICE_LOG_KINDS` in officeLogDigest.js
  * @param {{colleagueId?: string, detail?: string, now?: number}} [meta]
@@ -91,7 +101,11 @@ export function recordOfficeLogEntry(kind, meta = {}) {
 
   const last = entries[entries.length - 1];
   const isRepeat =
-    last && last.kind === kind && last.colleagueId === entry.colleagueId && at - last.at < 60_000;
+    last &&
+    last.kind === kind &&
+    last.colleagueId === entry.colleagueId &&
+    last.detail === entry.detail &&
+    at - last.at < 60_000;
 
   entries = isRepeat
     ? [...entries.slice(0, -1), entry]

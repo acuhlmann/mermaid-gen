@@ -149,6 +149,83 @@ can produce.
 
 | 2026-09-11 | Queue 5 — `per-persona-wander-habit` | **3 runs before, 3 after, one arm (`no-llm-calls`, `askedTheModel: 0`) — six traces byte-identical on every axis, and the reason is new.** The harness pins `Math.random` to 0.75, `floor(0.75 × 11)` is index 8 of `wanderingSeatIds()`, and that is `intern` — Chad, who holds nothing and so is the one colleague on the roster this slice cannot touch. Trace as regression check: 7/7 steps `ok`, `speech.count` 11 (`narration` 9 / `interrupt` 1 / `dwell` 1), `bySource.model` 0, `afterwards.workingMemory` = `dinesh` + `intern:gotIt`, `pageErrors: []`, `durationMs` 83.2–91.6 s — all six. The measurement is the closed-form sweep below. | New: 8 (all in `officeFloorWander.test.jsx`), **red before the fix and green after** — proven by restoring the API and neutralising only the behaviour (`wanderHabitFor` → `null`, the pre-slice room), so each of the eight failed on its own claim and the 43 pre-existing cases stayed green. `test:floor` 37/580 → **37/588**, blast bundle 44/614 → **44/622**, content ladder 19/353, shared `office` 380, server `office` 678+60. `npm run check` **exit 0** (web 270 files / 3175 cases). Also re-ran `test:floor` under `TZ=Europe/Berlin` (local 15:29, inside the slump) — 37/588 green, because the afternoon-red class below is exactly what a second dial on the same pick could have revived. | #636 | Branch `office-life/a-habit-per-colleague`. Backlog checked first and empty of office work (#625 CI, #547 apps/web complexity, #536 metaphor3d, #452 digest log). Spend: **zero** — no call site, no cap, no counter, no new table row; the habit is derived from two tables the room already keeps. Two findings in the domain file, one below. |
 
+| 2026-09-12 | Queue 6 — `props-that-do-something` | **3 runs before, 3 after, one arm (`no-llm-calls`, `askedTheModel: 0`) — and for the first time in four nights the fixed visit could see the slice on an axis the report already carried.** `afterwards.logDigest` **3 lines → 5** in 3 of 3 runs each, the two new ones being `you printed something off at the printer` and `you stopped and read the whiteboard` — steps 5 and 6 of the seven, which had reported `ok` for producing nothing since 2026-09-05. Everything else byte-identical either side: 7/7 steps `ok`, `speech.count` 11 (`narration` 9 / `interrupt` 1 / `dwell` 1), `bySource.model` 0, `afterwards.workingMemory` = `dinesh` + `intern:gotIt`, `pageErrors: []`, `durationMs` 46.1–51.9 s. JSON under the table. | New: 7 (4 in `officeFloorProps.test.jsx`, 2 in `officeLogStore.test.js`, 1 in `officeFloorPropsTable.test.js`), **all seven red before the fix and green after** — stash-and-rerun in both directions, and in two passes so each half was proven separately (`git stash push -- apps/web/src` → the 4 floor cases red on `expected undefined to be 'papers'` with the 29 pre-existing green; `git stash push -- officeLogStore.js officeLogDigest.js` → the 3 store/table cases red). `test:floor` 37/588 → **37/593**, blast bundle 44/622 → **44/627**, content ladder 19/353 → **19/355**, shared `office` 385, server `office` 60. `npm run precommit` 270 files / 3202 cases; `npm run check` **exit 0**; `verify:ratchet` OK (suite 4504 → 4511, lint-warning count unchanged at 4 for the touched files). | #654 | Branch `office-life/props-that-do-something`. Backlog checked first and empty of office work (#547 apps/web complexity, #452 digest log — the only two open issues in the repo). Spend: **zero** — no call site, no cap, no counter; the log line rides a store the office already writes and the hand rides a column `officeFloorProps.js` has had since the held-item slice. Real-browser capture beside the six traces: `data-hold` on your own figure reads `null` seated → **`papers`** at the printer → **`papers`** still at the whiteboard (1280×844, `deviceScaleFactor` 6, `Math.random` 0.75, clock pinned to 2026-08-11 12:00). Two findings in the domain file, one below; § 8's debt entry updated and the printer's `lineYours` left as the named follow-up. |
+
+### 2026-09-12 trace
+
+Three runs before the change and three after, one machine, inside one hour,
+`DEEPSEEK_API_KEY` present in the shell and `apps/server` built and running on `:4199`. **All six
+are the `no-llm-calls` arm** (`askedTheModel: 0`; the two `/api/office/speak` calls are Cloud TTS
+and are excluded by construction) and may only be read against each other and against
+2026-09-08/09/10/11's runs.
+
+```json
+{
+  "runs": "3 before, 3 after",
+  "mode": {
+    "llmConfigured": false,
+    "verdict": "no-llm-calls",
+    "askedTheModel": 0,
+    "answeredByModel": 0
+  },
+  "visit": "7/7 steps ok in every run, before and after",
+  "afterwards": {
+    "logDigest": {
+      "before": [3, 3, 3],
+      "after": [5, 5, 5],
+      "new": [
+        "04:00 you printed something off at the printer",
+        "04:00 you stopped and read the whiteboard"
+      ]
+    },
+    "workingMemory": {
+      "before": ["dinesh", "intern:gotIt"],
+      "after": ["dinesh", "intern:gotIt"]
+    }
+  },
+  "speech": {
+    "count": { "before": [11, 11, 11], "after": [11, 11, 11] },
+    "byChannel": { "narration": 9, "interrupt": 1, "dwell": 1 },
+    "bySource": { "model": 0, "bank": 11 }
+  },
+  "yourHold": {
+    "note": "read in real Chromium beside the traces, not part of the fixed visit's report",
+    "seated": null,
+    "atThePrinter": "papers",
+    "atTheWhiteboardAfterwards": "papers"
+  },
+  "pageErrors": [],
+  "durationMs": { "before": [51940, 46527, 46507], "after": [46310, 46265, 46076] }
+}
+```
+
+**Three readings worth keeping.**
+
+- **The design was chosen for where its consequence lands, and that is a rule rather than a
+  coincidence.** Queue 6 names two honest shapes — a hand (`floorActivityFor`'s rung 4) and
+  something the room keeps. The hand alone would have been invisible to the trace: no field in the
+  report carries a figure's `hold`, so proving it would have needed a step note, and editing a step
+  in the run that needs its number is the one edit § 2 forbids. The log line lands on
+  `afterwards.logDigest`, which #595 added a year of runs ago. **Both shipped**, but the slice was
+  picked on the second one's visibility. Four of the previous five slices were measured by something
+  other than the trace; this is the first that did not have to be.
+- **"Produces nothing" was an argument about artifacts being read as an argument about
+  consequences.** `officeFloorProps.js`'s header and ADR-0011's worked example both say the printer
+  and whiteboard "produce nothing" and cite the Sign-off rule — and ADR-0010 is about
+  **deliverables**: the cast never authors slot content. A page in your hand and a line in the day's
+  record are neither. The ADR's own prose now lags the code by one paragraph and `docs/decisions/**`
+  is outside this playbook — see `adr-0011-props-paragraph` below. **The rule was right and its
+  scope had drifted**, which is the shape to look for before treating a documented decision as a
+  ban.
+- **A log kind whose identity lives in `detail` is invisible to a key that ignores it.** The store's
+  duplicate collapse was `kind + colleagueId + <60 s`, written for a burst of replies in one thread.
+  Two `prop` entries have no colleague at all, so the printer and the whiteboard six seconds apart
+  collapsed and the digest reported **only the second** — the exact half the slice was about, lost
+  to a dedupe rule that was correct for every kind that existed when it was written. Adding `detail`
+  to the key leaves `chat`/`walkby` untouched (they carry none) and gives two different email
+  subjects a line each, which is the truthful reading. **Before adding a log kind, ask what makes
+  two of its entries different.**
+
 ### 2026-09-11 sweep (the measurement for this slice)
 
 The trace is structurally blind (above), so the number is the same shape as 2026-09-09's: a sweep
@@ -489,7 +566,9 @@ instrument keeping only one of them would have made the opposite claim depending
 | `shop-talk-replier-not-prop`    | **done** 2026-09-09      | Queue 3, landed in #619 by **excluding the second-nearest seat** — the other named fix (key the bank on the replier) buys the same coherence but only after a new bank in four locales, so it was declined on cost, not on taste. `shopTalkPartnerFor` now resolves the prop's **resident** (single nearest seat; you and the glassed-in `senior` tier skipped as structural non-neighbours) and returns `null` when that person is the wanderer or is out of their chair, instead of walking on to a second candidate. Sweep over all 33 wanderer×prop combinations: exchanges 32 → 31, wrong-voice exchanges **1 → 0**. Original entry: at the whiteboard `dinesh (7,4)` and `jared (8,5)` are both one tile from the mark, so seat order — not character — decides who answers, and an engineer's-voice reply lands on Jared whenever Dinesh walked over. Its neighbour (a third participant unreachable by construction) is the same function and is **unchanged**; the bystander-withdraws-the-join-offer item is still parked **until measured**, and the visit harness still cannot measure it — see the 2026-09-09 trace note on why overhearing is out of the fixed visit's reach.                                                                                                                                                                                                                                                     |
 | `their-own-work-in-context`     | **done** 2026-09-10      | Queue 4, landed in #624. `deskWorkPromptLines` turns the two closed sets into two durative sentences (durative on purpose — the moment funnel fires when the speaker may be walking, so "your screen has had a spreadsheet on it all morning" survives what "you are sitting at a spreadsheet" does not), the funnel ships them on every `/moment`, and `buildOfficeDeskWorkBlock` is the fourth and last context block. `line` is deliberately never sent. Measured 0 of 12 → 6 of 12 against a control; fabricated-delta 0 in both arms. Original entry: Queue 4. `officeDeskWork.js` holds a `look` and a `doing` per cast member and is shown on peek but **fed to no prompt**; `docs/office-parody.md` § 11 names "their own work" as its own open context hole. Wire it into the dwell/talk paths' existing `/moment` context, respecting the field caps on both sides. Never by letting the cast initiate a run.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 | `per-persona-wander-habit`      | **done** 2026-09-11      | Queue 5, landed in #636. `wanderHabitFor` is **derived, not declared** — `deskDoingFor(id).hold` × `propHandsFor(kind)`, the prop that refills what they are already holding, so `papers` → printer and a desk `mug` → the machine that hands out `coffee` (`FLOOR_PROP_USES` documents those two as one object at two stages). No table gained a row, the whiteboard belongs to nobody because it hands nothing over, and six of eleven have no habit. `wanderTripWeight` folds the hour and the habit into one weighted list with `Math.max`, **never a product** — one roll, so slice 23's PRNG-count rule holds — and reads `deskDoingFor`, never `baseDoingFor`, or `PHASE_ART` hands the whole roster one habit twice a day. Exact sweep: distinct destination distributions 2 → 4 at 11:00, 2 → 3 in the slump; colleagues with a strictly likeliest errand 0 → 5. Original entry: Queue 5. One global `WANDER_BIAS_WINDOWS` row today. Pure module, seeded PRNG, no browser needed. **Not** by adding a day phase.                                                                                                                                                                                                                                                                                                                                                                                                                      |
-| `props-that-do-something`       | pending                  | Queue 6. Printer and whiteboard have copy but no verb (only coffee does, by ADR-0011 rule 3); the whiteboard reads the user's diagram and never writes back. Compose through `floorActivityFor`; no diagram-store subscription in the floor.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| `props-that-do-something`       | **done** 2026-09-12      | Queue 6, landed in #654. A verb-less prop now leaves two marks and neither is an artifact: `useFloorPropUse` returns `carrying` from the `hands` column (so you walk away from the printer holding the printout — the first non-wanderer user of `floorActivityFor`'s rung 4, which that rung's comment was written down for), and records a `prop` entry in the office log, which is what makes a prop **helpful** — the digest rides every office LLM request. Only verb-less props record, because the machine's break already logs `coffee` through the event funnel. The hand outlives walking away while `phase` does not. Measured on the trace: `logDigest` 3 → 5 lines, 3 of 3 runs either side. Original entry: Queue 6. Printer and whiteboard have copy but no verb (only coffee does, by ADR-0011 rule 3); the whiteboard reads the user's diagram and never writes back. Compose through `floorActivityFor`; no diagram-store subscription in the floor.                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| `printer-lineYours`             | pending                  | The half of queue 6 deliberately not taken on 2026-09-12. Slice 16 built the extension point — `FloorPropCard` picks `lineYours`/`detailsYours` over `line`/`details` on `lineYours` merely existing, "so any prop that could honestly reflect your work opts in with a copy row rather than a branch" — and only the whiteboard has opted in. The printer still shows the 2023-queue gag while the page in your hand is your own diagram. It is four locale bundles plus an `officeLocale.test.js` parity assertion (a key missing from one bundle is a silently dead feature), which is a copy slice of its own and would have put the run over `maxFiles`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| `adr-0011-props-paragraph`      | **blocked-by-paths**     | `docs/decisions/0011-two-office-renderers.md`'s worked-example bullet still reads "The printer and whiteboard duplicate nothing and produce nothing — under the Sign-off rule that is the ceiling for a floor affordance, not a gap." The first clause is still true (they duplicate no desk verb); the second lagged as of #654, which is a one-sentence edit. `docs/decisions/**` is outside this playbook's `allowedPaths` and every budget is `improve`'s, so the code-side argument went in `officeFloorProps.js`'s header and `useFloorPropUse.js`'s, and § 8's debt entry carries the reasoning. Do not widen this from a run.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 | `provoked-lines-not-recited`    | pending                  | Queue 7, one channel per slice: dwell deck → `pickTalkAnswer`'s `ignored` → walk-by fallbacks → IM replies. Where the channel is already LLM-first, the finding is usually a missing fact rather than a missing call — that is `interruption-leaves-a-mark` or `their-own-work-in-context`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 | `room-tone-from-occupancy`      | pending                  | Queue 8. `officeRoomTone.js` / `officeSoundscape.js` tick on 5 s clocks and never ask who is in the room.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | `batched-ambient-exchange`      | pending                  | Queue 9, the owner-approved spend exception. Needs the calls-per-session number and the caps in `officeCadence.js`, never a new counter.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
@@ -624,6 +703,38 @@ instrument keeping only one of them would have made the opposite claim depending
   once the step completed. The general form: **before calling an unbounded step hung, say what
   duration would change your mind, and wait for it.** A cancel is not free — it destroys the
   evidence that would have settled the question.
+- **A fourth kind of blindness would have existed, and the slice was chosen so that it did not.**
+  The three recorded above are the report's (fixable — #595), the visit's subject (a different
+  instrument's job), and the pinned seed's (unfixable by construction). 2026-09-12 is the first
+  night a queue item offered **two** honest designs whose consequences land in different places: a
+  held item, which no field of the report carries and which would therefore have needed a step note
+  — and § 2 forbids editing a step in the run that needs its number — and a line in the office log,
+  which `afterwards.logDigest` has reported since #595. Both shipped, because they are one slice;
+  the **reason** the slice was picked over queue 7 or 8 is that one of its halves was already
+  observable. The general form is a selection rule rather than another kind of blindness: **when two
+  honest designs answer the same queue item, prefer the one whose consequence lands on an axis the
+  instrument already reports.** It is cheaper than fixing the instrument and it is the only version
+  that keeps the acceptance rule meetable in the same run.
+- **`routine:guard --postflight` diffs against `origin/main`, and a cold-start checkout's ref can
+  lag its own HEAD.** 2026-09-12: the fresh clone had `origin/main` at `7a9b437` while the working
+  tree was on `76bcbdf`, so the postflight reported **56 files changed** against a budget of 12 and
+  named `ci.yml`, four `metaphorScenes/*` files and three other routines' ledgers as this run's
+  diff. Every line of it was true about the comparison and false about the run. `git fetch origin
+main` fixed it to 11/12 in one command. **A postflight failure naming paths you have never opened
+  is a stale base, not a budget breach** — check `git rev-parse HEAD origin/main` before believing
+  the number, and note that `--preflight` passes cheerfully in the same state because it asks GitHub
+  rather than the local ref.
+- **A dedupe rule that was correct for every kind that existed is not correct for the next one.**
+  `recordOfficeLogEntry` collapsed consecutive entries on `kind + colleagueId` inside a minute — a
+  rule written for a burst of replies in one thread, where the colleague _is_ the identity. A `prop`
+  entry has no colleague; its identity is the `detail`. So the printer and the whiteboard six
+  seconds apart collapsed into one line and the digest reported only the second, which is exactly
+  the half the slice was about. Two things worth carrying. The failure was **invisible to every
+  jsdom test written for the feature** until one asserted the digest's _length_, because a single
+  prop still produced a line. And the fix had to be checked against the rule's original purpose
+  rather than replacing it — `chat` and `walkby` carry no detail, so their collapse tests pass
+  unchanged, and the only behaviour change elsewhere is that two different email subjects inside a
+  minute now get a line each, which is the truthful reading rather than a regression.
 - The floor's known ESLint complexity offenders are recorded in `docs/office-isometric-mode.md` § 8,
   which also warns the figures had themselves drifted and one was backwards. Re-measure before
   quoting them, and remember most floor complexity points are **default parameters** (`= null`

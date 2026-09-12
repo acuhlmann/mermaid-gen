@@ -45,8 +45,28 @@ export const OFFICE_LOG_KINDS = /** @type {const} */ ([
   'errand',
   'training',
   'security',
-  'levelUp'
+  'levelUp',
+  'prop'
 ]);
+
+/**
+ * The floor props that leave a mark, keyed by prop kind.
+ *
+ * A lookup rather than a phrase built from the kind, because a kind is an
+ * identifier (`coffeeMachine`) and these are sentences — and because the set is
+ * closed by geometry: only a prop the room can give you a mark for
+ * (`usablePropKinds()`) is reachable, and only one with no `verb` records here
+ * at all, since a verb logs its own consequence. `officeFloorPropsTable.test.js`
+ * sweeps that set against this table, so a prop that becomes usable without a
+ * sentence fails rather than recording an entry the digest silently drops.
+ *
+ * Past tense and plain, like every other line in this module: the digest is the
+ * model's memory, not its material.
+ */
+const PROP_SENTENCES = {
+  printer: 'you printed something off at the printer',
+  whiteboard: 'you stopped and read the whiteboard'
+};
 
 /**
  * Caps, in the order they apply: each line is trimmed, then the newest
@@ -159,6 +179,14 @@ function sentenceOf(entry) {
         : 'you clicked a simulated phishing email';
     case 'levelUp':
       return detail ? `you were promoted to ${detail}` : 'you were promoted';
+    /*
+     * Slice 9's props, finally leaving something behind. Bodiless like `chat`
+     * in spirit — the line says you were at the thing, never what the page
+     * said, because what the printer produced is your own work and the office
+     * does not read it back to you (ADR-0010).
+     */
+    case 'prop':
+      return PROP_SENTENCES[detail] ?? '';
     default:
       return '';
   }

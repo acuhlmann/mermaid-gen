@@ -185,12 +185,22 @@ function usePersonDetails(selectedId, copy, away) {
  * The coffee is the set piece rather than the machine: `getCoffee` pours a
  * break and `useFloorCoffeeWalk` sends you to it, so `accepted` is the moment
  * you are holding a cup, whichever of the two paths poured it.
+ *
+ * `carrying` is the other hand-filler, and it is the first thing on this floor
+ * to use `floorActivityFor`'s rung 4 for somebody who is not a wanderer —
+ * which that rung's own comment says it was written down for ("the order is
+ * written down for the day somebody makes them overlap rather than to settle a
+ * fight happening today"). It is what a prop handed you (`useFloorPropUse`),
+ * so the ladder resolves the one case where the two agree anyway: a coffee
+ * break you are *in* outranks the cup you walked away with, and both draw a
+ * `coffee`.
  */
-function youActivityFor(remoteMeeting, headphones, coffee, presence, dayPhase) {
+function youActivityFor({ remoteMeeting, headphones, coffee, presence, dayPhase, carrying }) {
   return floorActivityFor(YOU_SEAT_ID, {
     onCall: remoteMeeting,
     headphones,
     coffee: Boolean(coffee?.accepted),
+    carrying,
     moving: Boolean(presence && presence.phase !== 'standing'),
     dayPhase
   });
@@ -371,8 +381,16 @@ function OfficeFloorView({ bridge, viewPhase }) {
   const stageSpeakingId = meetingSpeakingId ?? activity.speakingId;
 
   const youActivity = useMemo(
-    () => youActivityFor(remoteMeeting, officeSnap.headphones, coffee, presence, dayPhase),
-    [remoteMeeting, officeSnap.headphones, coffee, presence, dayPhase]
+    () =>
+      youActivityFor({
+        remoteMeeting,
+        headphones: officeSnap.headphones,
+        coffee,
+        presence,
+        dayPhase,
+        carrying: propUse.carrying
+      }),
+    [remoteMeeting, officeSnap.headphones, coffee, presence, dayPhase, propUse.carrying]
   );
 
   /*
