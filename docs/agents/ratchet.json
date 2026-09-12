@@ -47,13 +47,14 @@
     },
     "contextBytes": {
       "CLAUDE.md": {
-        "budget": 39122,
-        "initial": 136170
+        "budget": 39135,
+        "initial": 136170,
+        "reason": "2026-09-12: +13 bytes registering `improve` on Cursor alongside `resolve` in the fleet-split bullet (#660 doc drift \u2014 the cron slot had fired from a Cursor automation since 2026-09-11 while every registration still said Claude)."
       },
       "AGENTS.md": {
-        "budget": 42471,
+        "budget": 42484,
         "initial": 88461,
-        "reason": "2026-09-07: +187 bytes registering the `prune` routine in the operator command list (`npm run prune:scan`) and one clause on `--reachable` explaining that a `mergePolicy: hold` rung can only propose. Same shape as the 2026-09-05 office-life raise \u2014 a new rung recording its own command belongs in the file an agent reads to find commands. Nothing else was added: the routine's design lives in docs/routines/prune.md and its README entry, and the two root-file bullets an earlier draft carried were deleted rather than paid for (CLAUDE.md landed 36 bytes UNDER its budget from the same trim, so only this file moves)."
+        "reason": "2026-09-12: +13 bytes, same fleet-split registration as CLAUDE.md (#660). Prior raise (2026-09-07 prune command) unchanged in substance."
       }
     },
     "lintWarnings": {
@@ -66,7 +67,7 @@
         "initial": 229
       },
       "apps/web": {
-        "budget": 812,
+        "budget": 813,
         "initial": 851
       }
     },
@@ -86,7 +87,7 @@
         "initial": 366
       },
       "cases": {
-        "budget": 4504,
+        "budget": 4522,
         "initial": 3675
       }
     }

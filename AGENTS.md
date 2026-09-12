@@ -244,9 +244,9 @@ check`: two unattended feature automations run daily here, and a quality metric 
   what landed, `improve` works the quality queue, `resolve` works the backlog, `digest` reports.
   Table (with which host runs which rung) in [`docs/routines/review.md`](docs/routines/review.md).
   `deps` (`30 4,16 * * *`) is off the ladder on purpose — advisories arrive in bursts.
-- **The fleet is split across hosts by duty, since 2026-09-01.** `resolve` runs as a Cursor
-  automation; everything else on the ladder is a Claude Routine, so the routine that _finds_ work
-  and the one that _pays_ for it are not one account's two failures. **Claude routines are
+- **The fleet is split across hosts by duty, since 2026-09-01.** `resolve` and `improve` run as
+  Cursor automations; `review`, `deps`, and `digest` are Claude Routines, so the routine that
+  _finds_ work and the one that _pays_ for it are not one account's two failures. **Claude routines are
   scriptable; Cursor automations are not** — `claude -p '/schedule …'` creates, lists, updates and
   fires a cron routine (it cannot delete one, cannot create or revoke API triggers/tokens, and needs
   a claude.ai subscription login); Cursor's `agent` CLI has no `automations` command at all, so a
@@ -286,7 +286,7 @@ files instead. Two rules those playbooks carry that generalise:
   than a path ban, because banning the `.jsx` scene files would be mechanically enforceable and
   would also delete the capability.
 - **`DiagramCanvas.jsx` is out of `canvas-graph-edit`'s `allowedPaths` on purpose.** It sits on the
-  ratchet at 1867 lines; a new family extends `diagramGraphEditNodeResolve.js`, it does not grow
+  ratchet at 1864 lines; a new family extends `diagramGraphEditNodeResolve.js`, it does not grow
   the canvas component.
 
 When you learn something durable from a feature-automation run, put it in the domain file for that
