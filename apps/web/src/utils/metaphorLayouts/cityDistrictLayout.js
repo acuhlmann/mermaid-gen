@@ -29,7 +29,8 @@ function patchSpan(count, maxFootprint, gap = 1.2) {
  *
  * @returns {{ positions: Map<string, [number, number, number]>, districts: Array<{ name: string, center: [number, number, number], size: [number, number] }>, districtIndexOf: Map<string, number>, bounds: { width: number, depth: number, radius: number } }}
  */
-export function cityDistrictLayout(items) {
+/** Items bucketed by their district key, insertion-ordered. */
+function groupByDistrict(items) {
   /** @type {Map<string, typeof items>} */
   const groups = new Map();
   for (const item of items) {
@@ -37,6 +38,59 @@ export function cityDistrictLayout(items) {
     if (!groups.has(key)) groups.set(key, []);
     groups.get(key).push(item);
   }
+  return groups;
+}
+
+/**
+ * Slide the finished composition so its bounding box is centred on the world
+ * origin. Bounds come from the district patches (they bound their buildings)
+ * plus any explicitly positioned items, which opt out of the grid and could sit
+ * outside a patch. Mutates `positions` and `districts` in place.
+ *
+ * Note this centres the BOUNDING BOX, not the centroid — a lopsided city moves
+ * so its extremes straddle the origin. archipelagoLayout deliberately centres a
+ * centroid instead; the two are not interchangeable.
+ *
+ * Returns the composition's extent, which the caller needs for `bounds`. A
+ * translation does not change an extent, so measuring it here (before the
+ * offset) and after would give the same answer.
+ *
+ * @returns {{ width: number, depth: number }}
+ */
+function recentreOnBounds(positions, districts) {
+  let minX = Infinity;
+  let maxX = -Infinity;
+  let minZ = Infinity;
+  let maxZ = -Infinity;
+  for (const d of districts) {
+    minX = Math.min(minX, d.center[0] - d.size[0] / 2);
+    maxX = Math.max(maxX, d.center[0] + d.size[0] / 2);
+    minZ = Math.min(minZ, d.center[2] - d.size[1] / 2);
+    maxZ = Math.max(maxZ, d.center[2] + d.size[1] / 2);
+  }
+  for (const [x, , z] of positions.values()) {
+    minX = Math.min(minX, x);
+    maxX = Math.max(maxX, x);
+    minZ = Math.min(minZ, z);
+    maxZ = Math.max(maxZ, z);
+  }
+  if (!Number.isFinite(minX)) {
+    minX = maxX = minZ = maxZ = 0;
+  }
+
+  const offsetX = (minX + maxX) / 2;
+  const offsetZ = (minZ + maxZ) / 2;
+  for (const [id, pos] of positions) {
+    positions.set(id, [pos[0] - offsetX, pos[1], pos[2] - offsetZ]);
+  }
+  for (const d of districts) {
+    d.center = [d.center[0] - offsetX, d.center[1], d.center[2] - offsetZ];
+  }
+  return { width: Math.max(0, maxX - minX), depth: Math.max(0, maxZ - minZ) };
+}
+
+export function cityDistrictLayout(items) {
+  const groups = groupByDistrict(items);
 
   const districtNames = [...groups.keys()];
   const districtCount = districtNames.length;
@@ -87,40 +141,7 @@ export function cityDistrictLayout(items) {
     patchIndex += 1;
   }
 
-  // Recentre the whole composition on the world origin. Footprint bounds come
-  // from the district patches (they bound their buildings) plus any explicitly
-  // positioned items, which opt out of the grid and could sit outside a patch.
-  let minX = Infinity;
-  let maxX = -Infinity;
-  let minZ = Infinity;
-  let maxZ = -Infinity;
-  for (const d of districts) {
-    minX = Math.min(minX, d.center[0] - d.size[0] / 2);
-    maxX = Math.max(maxX, d.center[0] + d.size[0] / 2);
-    minZ = Math.min(minZ, d.center[2] - d.size[1] / 2);
-    maxZ = Math.max(maxZ, d.center[2] + d.size[1] / 2);
-  }
-  for (const [x, , z] of positions.values()) {
-    minX = Math.min(minX, x);
-    maxX = Math.max(maxX, x);
-    minZ = Math.min(minZ, z);
-    maxZ = Math.max(maxZ, z);
-  }
-  if (!Number.isFinite(minX)) {
-    minX = maxX = minZ = maxZ = 0;
-  }
-
-  const offsetX = (minX + maxX) / 2;
-  const offsetZ = (minZ + maxZ) / 2;
-  for (const [id, pos] of positions) {
-    positions.set(id, [pos[0] - offsetX, pos[1], pos[2] - offsetZ]);
-  }
-  for (const d of districts) {
-    d.center = [d.center[0] - offsetX, d.center[1], d.center[2] - offsetZ];
-  }
-
-  const width = Math.max(0, maxX - minX);
-  const depth = Math.max(0, maxZ - minZ);
+  const { width, depth } = recentreOnBounds(positions, districts);
   const radius = Math.hypot(width, depth) / 2;
 
   // Which district slot each building belongs to. The scene needs this to give

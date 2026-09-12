@@ -737,6 +737,10 @@ export const CONTROLS_EN_AU = {
     },
     layerFocus: 'Have a look at just this layer — the rest of the world steps back',
     layerFocusClear: 'Bring the whole world back',
+    layerAdd: 'Duplicate this layer',
+    layerAddFull: 'Four layers is the maximum',
+    layerRemove: 'Remove this layer',
+    layerRemoveLast: 'A composite needs at least one layer',
     compositeHintTitle: 'Composite mode',
     compositeHintBody:
       'The fused world is waiting for at least one semantic layer. Ask Go to complete the scene.',

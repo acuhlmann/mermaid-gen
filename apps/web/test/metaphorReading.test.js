@@ -81,12 +81,26 @@ describe('compositeLayerSummaries', () => {
     expect(compositeLayerSummaries(COMPOSITE)).toEqual([
       {
         id: 'domains',
+        index: 0,
         as: 'archipelago',
         label: 'Commerce domains as islands',
         itemCount: 1
       },
-      { id: 'services', as: 'city', label: 'city', itemCount: 1 }
+      { id: 'services', index: 1, as: 'city', label: 'city', itemCount: 1 }
     ]);
+  });
+
+  // `index` addresses `dsl.layers` itself, because the layer mutators splice
+  // that array directly. A malformed entry must therefore NOT renumber the
+  // layers after it — mapping before filtering is what keeps that true, and
+  // this pins it: filtering first would report the surviving layer as index 0
+  // and a Remove would delete the wrong one.
+  it('keeps index addressing dsl.layers when an entry is malformed', () => {
+    const summaries = compositeLayerSummaries({
+      metaphor: 'composite',
+      layers: [null, { id: 'real', as: 'city', items: [{ id: 'a' }] }]
+    });
+    expect(summaries).toEqual([{ id: 'real', index: 1, as: 'city', label: 'city', itemCount: 1 }]);
   });
 
   it('returns [] for non-composite documents', () => {

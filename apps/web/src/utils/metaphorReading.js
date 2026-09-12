@@ -50,16 +50,22 @@ export function accentThesisFromDsl(dsl) {
  */
 export function compositeLayerSummaries(dsl) {
   if (!dsl || dsl.metaphor !== 'composite' || !Array.isArray(dsl.layers)) return [];
+  // Map BEFORE filtering so `index` is the position in `dsl.layers` itself. The
+  // layer mutators (`addCompositeLayer`, `removeCompositeLayer`) index straight
+  // into that array, so a filtered index would silently address the wrong layer
+  // as soon as one entry is malformed — and the id fallback would drift too.
   return dsl.layers
-    .filter((layer) => layer && typeof layer === 'object')
     .map((layer, index) => {
+      if (!layer || typeof layer !== 'object') return null;
       const as = typeof layer.as === 'string' && layer.as.trim() ? layer.as.trim() : 'city';
       const rawLabel = typeof layer.label === 'string' ? layer.label.trim() : '';
       return {
         id: typeof layer.id === 'string' && layer.id.trim() ? layer.id.trim() : `layer-${index}`,
+        index,
         as,
         label: rawLabel || as,
         itemCount: Array.isArray(layer.items) ? layer.items.length : 0
       };
-    });
+    })
+    .filter(Boolean);
 }
