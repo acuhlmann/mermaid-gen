@@ -96,22 +96,41 @@ jobs:
       # Dockerfile: the visual probe's low_contrast and collapsed_element checks
       # both read text metrics, so a different font fallback lets CI and
       # production disagree about whether a page is broken.
+      # Bounded on purpose (#625). The step normally takes seconds, but on
+      # 2026-09-10 a slow Ubuntu archive stretched it to 15 min 14 s on three
+      # consecutive runs and three different runners. Because the job inherits
+      # the six-hour default timeout and `check` is an `if: always()`
+      # aggregator, nothing went red or green while it sat — from the outside a
+      # slow apt and a wedged runner are indistinguishable, which is what made
+      # a run that was about to succeed get cancelled and re-spent. 25 minutes
+      # is comfortably above the worst observed and far below six hours: it
+      # bounds the wedged case without cutting off a slow-but-healthy install.
+      # Do NOT tighten this to single digits — 5 would have failed every
+      # test-server run that day.
       - name: Install Chromium (Anything runtime check)
+        timeout-minutes: 25
         run: |
           set -euo pipefail
+          # Per-phase elapsed times, so the log says which phase was slow
+          # instead of leaving it to be reconstructed from run timestamps.
+          step_started=$SECONDS
           sudo apt-get update
+          echo "apt-get update took $((SECONDS - step_started))s"
           # Ubuntu's chromium-browser package pulls snap dependencies from
           # snapcraft.io; transient HTTP 408s there have red main without a
           # code change (see CI run 32601529740).
           for attempt in 1 2 3; do
+            attempt_started=$SECONDS
             if sudo apt-get install -y --no-install-recommends chromium fonts-liberation; then
+              echo "Chromium install succeeded on attempt ${attempt} in $((SECONDS - attempt_started))s (step total $((SECONDS - step_started))s)"
               exit 0
             fi
+            echo "Chromium install attempt ${attempt} failed after $((SECONDS - attempt_started))s"
             if [[ "${attempt}" -eq 3 ]]; then
-              echo "Chromium install failed after 3 attempts"
+              echo "Chromium install failed after 3 attempts ($((SECONDS - step_started))s total)"
               exit 1
             fi
-            echo "Chromium install attempt ${attempt} failed; retrying in 30s..."
+            echo "Retrying in 30s..."
             sleep 30
           done
       - name: Install dependencies
