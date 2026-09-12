@@ -1015,7 +1015,8 @@ export function fusedSiteLabelImportance(rank) {
  * The substrate keeps a ladder of its own, above this one — see
  * `FUSED_SITE_LABEL_BASE` for why, and for what folding it in here measured.
  */
-function assignLabelRanks(layers, sites, nodes, paths) {
+/** The substrate's own ladder, per layer: biggest ground gets the first name. */
+function assignSubstrateRanks(sites) {
   const substrate = new Map();
   for (const site of sites) {
     // A site with no item is bare ground — a platform, drawn with no name.
@@ -1030,9 +1031,18 @@ function assignLabelRanks(layers, sites, nodes, paths) {
         site.labelRank = rank;
       });
   }
+}
 
-  // Landmarks and journey stations share one ladder: they are the same rung of
-  // the scene — a thing standing in a territory — whatever grammar drew them.
+/**
+ * One queue per layer, each ordered by its own metric, highest first.
+ *
+ * Landmarks and journey stations share one ladder: they are the same rung of
+ * the scene — a thing standing in a territory — whatever grammar drew them.
+ * Every layer gets a queue even when empty, because the interleave below walks
+ * layers in this insertion order and a missing key would silently drop a layer
+ * out of the rotation rather than just skipping its turn.
+ */
+function buildLabelQueues(layers, nodes, paths) {
   const queues = new Map();
   const queueFor = (layerId) => {
     if (!queues.has(layerId)) queues.set(layerId, []);
@@ -1048,7 +1058,16 @@ function assignLabelRanks(layers, sites, nodes, paths) {
     }
   }
   for (const queue of queues.values()) queue.sort((a, b) => b.magnitude - a.magnitude);
+  return queues;
+}
 
+/**
+ * Deal ranks round-robin across the layers rather than draining one at a time.
+ * That is the whole point of the pass: a global sort by magnitude lets one
+ * dense layer take every surviving name, and the tie-break (nearness) knows
+ * nothing about layers.
+ */
+function interleaveLabelRanks(queues) {
   const order = [...queues.keys()];
   let rank = 0;
   for (let round = 0; ; round += 1) {
@@ -1062,6 +1081,11 @@ function assignLabelRanks(layers, sites, nodes, paths) {
     }
     if (!placed) break;
   }
+}
+
+function assignLabelRanks(layers, sites, nodes, paths) {
+  assignSubstrateRanks(sites);
+  interleaveLabelRanks(buildLabelQueues(layers, nodes, paths));
 }
 
 function resolveGroundRadius(sites, nodes, paths) {
