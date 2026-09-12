@@ -131,15 +131,81 @@ function chainLabelOffset(center, radius, awayFrom) {
  *   bounds: { radius: number }
  * }}
  */
-export function archipelagoLayout(items) {
-  const valid = items.filter((item) => item && typeof item.id === 'string');
+/** Valid items bucketed by chain name, insertion-ordered; unnamed go to "Open sea". */
+function groupByChain(items) {
   const groups = new Map();
-  for (const item of valid) {
+  for (const item of items) {
     const name =
       typeof item.chain === 'string' && item.chain.trim() ? item.chain.trim() : 'Open sea';
     if (!groups.has(name)) groups.set(name, []);
     groups.get(name).push(item);
   }
+  return groups;
+}
+
+/**
+ * Slide the finished composition so its CENTROID sits on the origin. Note this
+ * is the mean island position, not the bounding-box midpoint cityDistrictLayout
+ * uses — a lopsided archipelago keeps its weight over the origin rather than
+ * straddling it with its extremes. The two are not interchangeable.
+ * Mutates islands, chains and positions in place.
+ */
+function recentreOnCentroid(islands, chains, positions) {
+  let cx = 0;
+  let cz = 0;
+  for (const isle of islands) {
+    cx += isle.position[0];
+    cz += isle.position[2];
+  }
+  if (islands.length > 0) {
+    cx /= islands.length;
+    cz /= islands.length;
+  }
+  for (const isle of islands) {
+    isle.position[0] -= cx;
+    isle.position[2] -= cz;
+    positions.set(isle.id, [...isle.position]);
+  }
+  for (const chain of chains) {
+    chain.center[0] -= cx;
+    chain.center[2] -= cz;
+  }
+}
+
+/**
+ * The chain's own name stands above the highest name in its group, leaning off
+ * the island that name belongs to. Must run AFTER recentring, or the shoulder is
+ * measured from an origin the composition no longer sits on.
+ */
+function assignChainLabels(chains, islands) {
+  const tallestByChain = new Map();
+  for (const isle of islands) {
+    const seen = tallestByChain.get(isle.chain);
+    if (seen === undefined || islandCrestY(isle) > islandCrestY(seen)) {
+      tallestByChain.set(isle.chain, isle);
+    }
+  }
+  for (const chain of chains) {
+    const tallest = tallestByChain.get(chain.name);
+    chain.labelOffset = chainLabelOffset(chain.center, chain.radius, tallest?.position);
+    chain.labelLift = tallest
+      ? islandCrestY(tallest) + ISLAND_LABEL_CLEARANCE + CHAIN_LABEL_CREST_CLEARANCE
+      : CHAIN_LABEL_CREST_CLEARANCE;
+  }
+}
+
+/** Framing radius: far enough to contain every island's own disc, floored at 6. */
+function boundsRadius(islands) {
+  let radius = 6;
+  for (const isle of islands) {
+    radius = Math.max(radius, Math.hypot(isle.position[0], isle.position[2]) + isle.radius + 1.1);
+  }
+  return radius;
+}
+
+export function archipelagoLayout(items) {
+  const valid = items.filter((item) => item && typeof item.id === 'string');
+  const groups = groupByChain(valid);
 
   const entries = [...groups.entries()];
   const chainSpacing = 7.4;
@@ -195,54 +261,13 @@ export function archipelagoLayout(items) {
     });
   });
 
-  // Recentre the whole composition on the origin for framing.
-  let cx = 0;
-  let cz = 0;
-  for (const isle of islands) {
-    cx += isle.position[0];
-    cz += isle.position[2];
-  }
-  if (islands.length > 0) {
-    cx /= islands.length;
-    cz /= islands.length;
-  }
-  for (const isle of islands) {
-    isle.position[0] -= cx;
-    isle.position[2] -= cz;
-    positions.set(isle.id, [...isle.position]);
-  }
-  for (const chain of chains) {
-    chain.center[0] -= cx;
-    chain.center[2] -= cz;
-  }
-
-  // The chain's own name stands above the highest name in its group, leaning off
-  // the island that name belongs to. Solved after the recentring above, or the
-  // shoulder is measured from an origin the composition no longer sits on.
-  const tallestByChain = new Map();
-  for (const isle of islands) {
-    const seen = tallestByChain.get(isle.chain);
-    if (seen === undefined || islandCrestY(isle) > islandCrestY(seen)) {
-      tallestByChain.set(isle.chain, isle);
-    }
-  }
-  for (const chain of chains) {
-    const tallest = tallestByChain.get(chain.name);
-    chain.labelOffset = chainLabelOffset(chain.center, chain.radius, tallest?.position);
-    chain.labelLift = tallest
-      ? islandCrestY(tallest) + ISLAND_LABEL_CLEARANCE + CHAIN_LABEL_CREST_CLEARANCE
-      : CHAIN_LABEL_CREST_CLEARANCE;
-  }
-
-  let radius = 6;
-  for (const isle of islands) {
-    radius = Math.max(radius, Math.hypot(isle.position[0], isle.position[2]) + isle.radius + 1.1);
-  }
+  recentreOnCentroid(islands, chains, positions);
+  assignChainLabels(chains, islands);
 
   return {
     islands,
     chains,
     positions,
-    bounds: { radius }
+    bounds: { radius: boundsRadius(islands) }
   };
 }
