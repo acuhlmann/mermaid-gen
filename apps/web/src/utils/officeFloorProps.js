@@ -10,13 +10,20 @@
  * path to a function that keeps its conventional control; it is not a second
  * way of doing anything, and it is certainly not the only way.
  *
- * The other three produce nothing at all, which is the honest default rather
- * than an unfinished state. A printer that jams is a joke, not a feature: the
- * Sign-off rule (ADR-0010) says the office generates no artifacts, so a prop
- * whose whole contribution is a line about itself is the most this floor is
- * allowed to offer without the human asking for something. Peeking (slice 6)
- * set the same precedent — a look is a handful of rectangles and a line is a
- * line.
+ * The other three duplicate nothing, and that is the honest default rather than
+ * an unfinished state: the Sign-off rule (ADR-0010) says the office generates
+ * no **artifacts**, so no prop here may hand the human a deliverable. Peeking
+ * (slice 6) set the same precedent — a look is a handful of rectangles and a
+ * line is a line.
+ *
+ * What the rule does *not* forbid is a consequence, and the two it allows are
+ * both reads of tables this floor already keeps: the `hands` column below puts
+ * something in your hand (`floorActivityFor`'s rung 4), and a prop with no
+ * `verb` records a `prop` line in the office log, which is the office's record
+ * of the day rather than a thing it made. `useFloorPropUse` owns both, and its
+ * header carries the argument. A printer that jams is still a joke and not a
+ * feature; a printer you were at, which Gilfoyle can mention an hour later, is
+ * the difference between a prop and scenery.
  *
  * Copy is not here. It lives with the rest of the office's voice in
  * `officeCast.js` (`officeChromeCopy().floor.props.items`), keyed by `kind`,

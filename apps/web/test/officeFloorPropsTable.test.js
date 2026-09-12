@@ -7,6 +7,7 @@ import {
 } from '../src/utils/officeFloorProps.js';
 import { propTileFor, usablePropKinds } from '../src/utils/officeFloorMovement.js';
 import { FLOOR_HOLDS } from '../src/utils/officeFloorActivity.js';
+import { buildOfficeLogDigest } from '../src/utils/officeLogDigest.js';
 
 describe('officeFloorProps table', () => {
   it('lists walk-up props that the room can actually mark', () => {
@@ -58,6 +59,29 @@ describe('officeFloorProps table', () => {
     // must read back as null rather than undefined (FLOOR_HOLDS has neither,
     // but only one of them survives a strict comparison).
     expect(propHandsFor('teleporter')).toBeNull();
+  });
+
+  /**
+   * The sensor for the half of "a prop leaves a mark" that lives in another
+   * module. A verb-less prop records a `prop` entry in the office log
+   * (`useFloorPropUse`), and the digest renders `''` for a detail it has no
+   * sentence for — so a prop that becomes usable without copy would write
+   * entries that eat the digest budget and produce no line, silently. Swept
+   * over `usablePropKinds()` rather than over a hand-kept list, because the way
+   * this breaks is a **geometry** change: giving the water cooler a mark makes
+   * it reachable without anybody editing a prop table.
+   */
+  it('gives every usable prop that records a digest sentence', () => {
+    const recording = usablePropKinds().filter((kind) => !propUseFor(kind)?.verb);
+    // The companion non-empty assertion: a sweep over a derived set that came
+    // back empty would pass while examining nothing.
+    expect(recording).toEqual(['printer', 'whiteboard']);
+    for (const kind of recording) {
+      expect(
+        buildOfficeLogDigest([{ at: Date.UTC(2026, 0, 1, 9, 0), kind: 'prop', detail: kind }]),
+        `${kind} records a log entry the digest cannot speak`
+      ).toHaveLength(1);
+    }
   });
 
   it('derives usable props from the room — unreachable props are not listed', () => {

@@ -446,6 +446,22 @@ https://api.deepseek.com/` — 401 is reachable, 000 is blocked); never route ar
   seat in range). Pin any change over the whole wander roster — `officeFloorShopTalk.test.jsx`,
   "answers a prop in the same voice, whoever walked over" — because what breaks it is a
   **layout** change, not a logic one.
+- **Using a prop leaves two marks, and neither is an artifact.** `useFloorPropUse` returns
+  `carrying` (what `propHandsFor` says the prop handed over, set only on a delivered use and
+  deliberately **not** cleared by the walk-away reset that clears `phase`) and records a `prop`
+  entry in the office log for a prop with **no `verb`** — a verb logs its own consequence, so the
+  coffee machine stays silent here while the break logs `coffee` through the event funnel.
+  `carrying` is the first non-wanderer user of `floorActivityFor`'s rung 4, which is what that
+  rung's own comment was written down for. The digest's sentences live in `PROP_SENTENCES`
+  (`officeLogDigest.js`), swept against `usablePropKinds()` in `officeFloorPropsTable.test.js`
+  because the way this breaks is a **geometry** change: giving the water cooler a mark makes it
+  reachable with no prop table edited.
+- **The office log's duplicate collapse keys on `detail`, not just kind + colleague.** It has to:
+  two `prop` entries carry no `colleagueId` at all, so printer-then-whiteboard six seconds apart
+  read as a repeat and the digest reported only the second. The burst the collapse exists for
+  (`chat`, `walkby`) carries no detail and is untouched. **Before adding a log kind, ask what
+  makes two of its entries different** — a kind whose identity lives in `detail` is invisible to
+  any key that ignores it.
 - **After presence / TTS / desk-frame edits**, prefer `apps/web/test/officePresence.test.js`,
   `deskOsPresenceStrip.test.jsx`, `deskOsFrameStyles.test.js`, `apps/server/test/officeTts.test.js`,
   `officeRoute.test.js` (or `npm run test:affected`). **After isometric-floor edits**, `npm run
@@ -1095,6 +1111,34 @@ y)`, so the obvious sweep silently iterates an empty list; and pacing the exchan
     old selector matched either, and the second is a walk-by coming to bother you, whose tile has
     nothing to do with anybody's errand. The interrupt line was also unmapped in the trace's channel
     table and landed in `other` — because until this was fixed, nothing had ever provoked one.
+- **"This prop produces nothing" was an argument about artifacts, and it was being read as an
+  argument about consequences.** `officeFloorProps.js`'s header and ADR-0011's worked example both
+  say the printer and the whiteboard "produce nothing", citing the Sign-off rule (ADR-0010) — and
+  ADR-0010 is about **deliverables**: the cast never authors slot content. Two things a prop may
+  therefore leave behind, and `useFloorPropUse` now leaves both:
+  - **A hand.** `propHandsFor` has always said what a prop hands over (`papers` at the printer,
+    `coffee` at the machine, nothing at the whiteboard because you cannot carry one), and it was
+    read only by `useFloorWander` for a colleague's trip. `floorActivityFor`'s rung 4 says in as
+    many words that its ordering was "written down for the day somebody makes them overlap" — this
+    is that day. The one place the two rungs agree is the machine: a break you are _in_ (rung 3)
+    outranks the cup you walked away with (rung 4) and both draw a `coffee`.
+  - **A line in the office log.** `prop` entries, for verb-less props only. This is what makes a
+    prop **helpful** rather than only interactive: the digest already ships on every office LLM
+    surface, so "you printed something off at the printer" is a fact a colleague's next line can
+    be spoken from without the floor generating anything. Still record-only — nothing schedules.
+    Two boundaries that are the finding rather than the feature. The hand **outlives walking away**
+    while `phase` deliberately does not (standing somewhere ends; a page in your hand ends when you
+    sit down and the floor unmounts, ADR-0011 rule 1). And **only a verb-less prop records**, because
+    a verb already records its own consequence — logging at the machine as well would say one thing
+    twice, which is the same duplication rule the glass room's activity ladder exists to avoid.
+- **The scripted visit could see this slice, and that is rarer than it sounds.** Four of the last
+  five slices were measured by something other than the trace (a pure-module sweep, a prompt
+  audition) because the instrument was blind to their axis. This one landed on `afterwards.logDigest`
+  — an observation the report already carried — so the six runs _are_ the measurement: 3 lines
+  before, 5 after, in 3 of 3 runs each. The transferable half is the selection rule: **when two
+  honest designs answer the same queue item, prefer the one whose consequence lands on an axis the
+  instrument already reports.** A held item would have needed a step note to be visible, and
+  changing a step in the run that needs its number is the one edit § 2 forbids.
 - **After presence / TTS / desk-frame edits**, prefer `apps/web/test/officePresence.test.js`,
   `deskOsPresenceStrip.test.jsx`, `deskOsFrameStyles.test.js`, `apps/server/test/officeTts.test.js`,
   `officeRoute.test.js` (or `npm run test:affected`). **After isometric-floor edits**, `npm run

@@ -5,6 +5,7 @@ import OfficeFloor from '../src/components/OfficeFloor.jsx';
 import { FloorPropCard } from '../src/components/officeFloor/FloorProps.jsx';
 import { officeChromeCopy } from '../src/utils/officeCast.js';
 import { usablePropKinds } from '../src/utils/officeFloorMovement.js';
+import { _resetOfficeLogForTests, getOfficeLogDigest } from '../src/state/officeLogStore.js';
 import {
   _resetOfficeViewModeForTests,
   getOfficeViewMode,
@@ -30,7 +31,14 @@ const machine = () => screen.getByRole('button', { name: /Coffee machine/i });
 afterEach(() => {
   cleanup();
   _resetOfficeViewModeForTests();
+  _resetOfficeLogForTests();
+  window.localStorage.clear();
 });
+
+/** What your own figure has in its hand right now. */
+const yourHold = () =>
+  screen.getByTestId('office-floor-player').querySelector('.office-floor-person-figure').dataset
+    .hold;
 
 describe('usable props (slice 9)', () => {
   it('pours the same coffee break the desk verb pours', async () => {
@@ -98,9 +106,9 @@ describe('usable props (slice 9)', () => {
     expect(onGetCoffee).toHaveBeenCalledTimes(1);
   });
 
-  it('produces nothing at all at the props that produce nothing', async () => {
-    // ADR-0010: the office generates no artifacts. Three of the four props are
-    // a line and a walk, and that is the whole feature.
+  it('fires no desk verb at the props that duplicate none', async () => {
+    // ADR-0011 rule 2: only the machine duplicates a labelled control. The
+    // other two leave a mark of their own (below) and still call nothing.
     const onGetCoffee = vi.fn();
     renderFloor({ onGetCoffee });
 
@@ -177,6 +185,78 @@ describe('usable props (slice 9)', () => {
 
     expect(await screen.findByTestId('office-floor-prop-card')).toBeTruthy();
     expect(screen.queryByRole('button', { name: /Message/ })).toBeNull();
+  });
+});
+
+/**
+ * What using a prop leaves behind.
+ *
+ * Two things, and neither is an artifact — ADR-0010 reserves a *deliverable*
+ * for the human's own pipeline and neither a hand nor a memory is one. The hand
+ * is `floorActivityFor`'s rung 4, which until now only ever described a
+ * wanderer; the memory is the office log, whose writers are "the surfaces that
+ * already know".
+ *
+ * These assertions are deliberately clock-independent, which is not the usual
+ * state of a floor test that mounts (`docs/agents/domains/office.md`): rung 4
+ * outranks `PHASE_ART` at rung 5, so what a prop put in your hand is what you
+ * are holding in all five day phases. The hour can only change what the
+ * assertion would have been *without* the pickup, which is why the blocked case
+ * below asserts the absence of a `coffee` rather than an empty hand.
+ */
+describe('what a prop leaves behind', () => {
+  it('hands you the printout, and the whiteboard does not take it back', async () => {
+    renderFloor({ onGetCoffee: vi.fn() });
+
+    fireEvent.click(screen.getByRole('button', { name: /Printer/i }));
+    await waitFor(() => expect(yourHold()).toBe('papers'));
+
+    // `propHandsFor('whiteboard')` is null because you cannot carry a
+    // whiteboard — which must mean "hands over nothing", never "empties your
+    // hands".
+    fireEvent.click(screen.getByRole('button', { name: /Whiteboard/i }));
+    await waitFor(() => expect(screen.getByTestId('office-floor-prop-card')).toBeTruthy());
+    expect(yourHold()).toBe('papers');
+  });
+
+  it('hands you the coffee the machine poured, and nothing when it jams', async () => {
+    const view = renderFloor({ onGetCoffee: vi.fn().mockResolvedValue(true) });
+    fireEvent.click(machine());
+    await waitFor(() => expect(yourHold()).toBe('coffee'));
+
+    cleanup();
+    _resetOfficeViewModeForTests();
+    view.unmount();
+
+    renderFloor({ onGetCoffee: vi.fn().mockResolvedValue(false) });
+    fireEvent.click(machine());
+    await waitFor(() => expect(screen.getByTestId('office-floor-prop-card')).toBeTruthy());
+    expect(yourHold()).not.toBe('coffee');
+  });
+
+  it('tells the office you were at the printer, and at the board, as two things', async () => {
+    renderFloor({ onGetCoffee: vi.fn() });
+
+    fireEvent.click(screen.getByRole('button', { name: /Printer/i }));
+    await waitFor(() => expect(yourHold()).toBe('papers'));
+    fireEvent.click(screen.getByRole('button', { name: /Whiteboard/i }));
+
+    // Two props inside a minute with no colleague between them: the log's
+    // consecutive-duplicate collapse used to read them as one repeat, so this
+    // is the assertion that pins `detail` into that key.
+    await waitFor(() => expect(getOfficeLogDigest()).toHaveLength(2));
+    expect(getOfficeLogDigest().join('\n')).toMatch(/printed something off/);
+    expect(getOfficeLogDigest().join('\n')).toMatch(/read the whiteboard/);
+  });
+
+  it('says nothing to the office about the prop that pours a real verb', async () => {
+    // The break logs `coffee` through the office-event funnel already; a second
+    // line here would say one thing twice.
+    renderFloor({ onGetCoffee: vi.fn().mockResolvedValue(true) });
+
+    fireEvent.click(machine());
+    await waitFor(() => expect(yourHold()).toBe('coffee'));
+    expect(getOfficeLogDigest()).toEqual([]);
   });
 });
 
