@@ -20,6 +20,7 @@ import { createMetaphorHoverStore } from '../src/components/metaphorHover.js';
 import { createMetaphorSelectionStore } from '../src/components/metaphorSelection.js';
 import { createMetaphorTourStore } from '../src/components/metaphorTourStore.js';
 import { createMetaphorLayerFocusStore } from '../src/components/metaphorLayerFocus.js';
+import { COMPOSITE_MAX_LAYERS } from '@archislop/shared';
 import { MetaphorHoverTooltip } from '../src/components/MetaphorOverlays.jsx';
 
 const COMPOSITE = {
@@ -186,6 +187,45 @@ describe('MetaphorCompositeLayersOverlay', () => {
     const [addFull, removeFull] = c2.querySelectorAll('.metaphor-layers-action');
     expect(addFull.disabled).toBe(true);
     expect(removeFull.disabled).toBe(false);
+    unmount2();
+  });
+
+  // Both gates mirror mutators that splice `dsl.layers` directly, so they have
+  // to count THAT array — not the surviving summary rows, which drop malformed
+  // entries. The two counts are equal only while every entry parses, and the
+  // row count is wrong in both directions once one does not: Remove refuses a
+  // removal `removeCompositeLayer` would allow, and Add offers one
+  // `addCompositeLayer` can only answer with `capacity`. This is the same
+  // premise as the index case above — `compositeLayerSummaries` maps before it
+  // filters precisely because a malformed entry is reachable.
+  it('gates on dsl.layers, not the surviving rows, when an entry is malformed', () => {
+    const withHole = { metaphor: 'composite', layers: [null, COMPOSITE.layers[1]] };
+    const { container, unmount } = render(
+      <MetaphorCompositeLayersOverlay dsl={withHole} onLayerAdd={vi.fn()} onLayerRemove={vi.fn()} />
+    );
+    const [, remove] = container.querySelectorAll('.metaphor-layers-action');
+    // dsl.layers.length is 2, so removeCompositeLayer does not fail `last`.
+    expect(remove.disabled).toBe(false);
+    unmount();
+
+    const atCap = {
+      metaphor: 'composite',
+      layers: [
+        ...Array.from({ length: COMPOSITE_MAX_LAYERS - 1 }, (_, i) => ({
+          ...COMPOSITE.layers[0],
+          id: `l${i}`
+        })),
+        null
+      ]
+    };
+    const { container: c2, unmount: unmount2 } = render(
+      <MetaphorCompositeLayersOverlay dsl={atCap} onLayerAdd={vi.fn()} onLayerRemove={vi.fn()} />
+    );
+    const [addAtCap] = c2.querySelectorAll('.metaphor-layers-action');
+    // dsl.layers.length is already COMPOSITE_MAX_LAYERS, so addCompositeLayer
+    // can only answer `capacity` — and useMetaphorSourceEdit drops a refusal
+    // without a toast, so the offer would read as a dead button.
+    expect(addAtCap.disabled).toBe(true);
     unmount2();
   });
 
