@@ -12,7 +12,7 @@
         "initial": 1835
       },
       "apps/web/src/components/DiagramCanvas.jsx": {
-        "budget": 1866,
+        "budget": 1864,
         "initial": 1968
       },
       "apps/web/src/components/RadialActionMenu.jsx": {
@@ -86,7 +86,7 @@
         "initial": 366
       },
       "cases": {
-        "budget": 4500,
+        "budget": 4504,
         "initial": 3675
       }
     }

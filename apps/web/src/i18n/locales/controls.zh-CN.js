@@ -732,6 +732,10 @@ export const CONTROLS_ZH_CN = {
     },
     layerFocus: '单独查看这一层，世界的其余部分会后退',
     layerFocusClear: '恢复完整世界',
+    layerAdd: '复制此图层',
+    layerAddFull: '最多四个图层',
+    layerRemove: '移除此图层',
+    layerRemoveLast: '组合场景至少需要一个图层',
     compositeHintTitle: '组合模式',
     compositeHintBody: '融合世界正在等待至少一个语义层。请让 Go 完成场景。',
     tour: {

@@ -132,6 +132,63 @@ describe('MetaphorReadingOverlay', () => {
 });
 
 describe('MetaphorCompositeLayersOverlay', () => {
+  // #536: the layer add/remove affordance lives here rather than on a 3D
+  // placard, because `layout: 'fused'` dissolves the layers into one world and
+  // the placards that exist are affinity groups that deliberately span layers.
+  it('offers no layer actions when no handlers are supplied', () => {
+    const { container, unmount } = render(<MetaphorCompositeLayersOverlay dsl={COMPOSITE} />);
+    expect(container.querySelectorAll('.metaphor-layers-action')).toHaveLength(0);
+    unmount();
+  });
+
+  it('passes the dsl.layers index, not the row position, to the handlers', () => {
+    const onLayerAdd = vi.fn();
+    const onLayerRemove = vi.fn();
+    // A malformed first entry: the surviving layer is row 0 but index 1, and
+    // the mutators splice dsl.layers directly — so a row-position argument
+    // would address the wrong layer.
+    const dsl = { metaphor: 'composite', layers: [null, COMPOSITE.layers[1]] };
+    const { container, unmount } = render(
+      <MetaphorCompositeLayersOverlay
+        dsl={dsl}
+        onLayerAdd={onLayerAdd}
+        onLayerRemove={onLayerRemove}
+      />
+    );
+    const [add] = container.querySelectorAll('.metaphor-layers-action');
+    fireEvent.click(add);
+    expect(onLayerAdd).toHaveBeenCalledWith(1);
+    unmount();
+  });
+
+  it('disables Remove on the last layer and Add at the layer cap', () => {
+    const lone = { metaphor: 'composite', layers: [COMPOSITE.layers[0]] };
+    const { container, unmount } = render(
+      <MetaphorCompositeLayersOverlay dsl={lone} onLayerAdd={vi.fn()} onLayerRemove={vi.fn()} />
+    );
+    const [add, remove] = container.querySelectorAll('.metaphor-layers-action');
+    expect(add.disabled).toBe(false);
+    // CompositeMetaphorSchema declares layers.min(1), so removing the last one
+    // would produce a document the validator rejects.
+    expect(remove.disabled).toBe(true);
+
+    const full = {
+      metaphor: 'composite',
+      layers: [0, 1, 2, 3].map((i) => ({ ...COMPOSITE.layers[0], id: `l${i}` }))
+    };
+    // This file does not auto-cleanup between renders, and a stray mounted
+    // overlay makes the next test's screen.getByText ambiguous — so the extra
+    // mounts in this case unmount themselves.
+    unmount();
+    const { container: c2, unmount: unmount2 } = render(
+      <MetaphorCompositeLayersOverlay dsl={full} onLayerAdd={vi.fn()} onLayerRemove={vi.fn()} />
+    );
+    const [addFull, removeFull] = c2.querySelectorAll('.metaphor-layers-action');
+    expect(addFull.disabled).toBe(true);
+    expect(removeFull.disabled).toBe(false);
+    unmount2();
+  });
+
   it('lists each fused layer with its reading-key label and kind', () => {
     render(<MetaphorCompositeLayersOverlay dsl={COMPOSITE} />);
     expect(screen.getByText('Commerce domains as islands')).toBeTruthy();

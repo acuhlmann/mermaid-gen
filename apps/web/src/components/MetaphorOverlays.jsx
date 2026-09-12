@@ -20,6 +20,7 @@ import { METAPHOR_KINDS, METAPHOR_KIND_LABELS } from '../utils/switchMetaphorKin
 import { compositeLayerSummaries } from '../utils/metaphorReading.js';
 import { buildMetaphorTour } from '../utils/metaphorTour.js';
 import { currentBeat } from './metaphorTourStore.js';
+import { COMPOSITE_MAX_LAYERS } from '@archislop/shared';
 import { CHROME_ATTR } from './metaphorScenes/overlaySafeArea.js';
 import { formatLocale } from '../i18n/formatLocale.js';
 import { useUiCopy } from '../i18n/useUiLocale.js';
@@ -155,6 +156,57 @@ export function MetaphorReadingOverlay({ scene, metaphor, legend, thesis = '', a
 }
 
 /**
+ * Per-row Duplicate / Remove for a composite layer.
+ *
+ * Its own component rather than a closure in the overlay: the two gates plus
+ * two optional buttons are four branches, and inlining them pushed
+ * `MetaphorCompositeLayersOverlay` over the complexity max — a fresh row on
+ * the very queue #547 tracks.
+ *
+ * The gates mirror the mutators' own refusals rather than surfacing an action
+ * that could only produce an error toast: `addCompositeLayer` fails `capacity`
+ * at COMPOSITE_MAX_LAYERS, and `removeCompositeLayer` fails `last` on the final
+ * layer because `CompositeMetaphorSchema` declares `layers.min(1)`.
+ */
+function CompositeLayerActions({ layer, layerCount, copy, stopScene, onLayerAdd, onLayerRemove }) {
+  if (!onLayerAdd && !onLayerRemove) return null;
+  const press = (event, run) => {
+    stopScene(event);
+    run(layer.index);
+  };
+  return (
+    <span className="metaphor-layers-actions">
+      {onLayerAdd ? (
+        <button
+          type="button"
+          className="metaphor-layers-action"
+          disabled={layerCount >= COMPOSITE_MAX_LAYERS}
+          title={layerCount >= COMPOSITE_MAX_LAYERS ? copy.layerAddFull : copy.layerAdd}
+          aria-label={`${copy.layerAdd}: ${layer.label}`}
+          onPointerDown={stopScene}
+          onClick={(event) => press(event, onLayerAdd)}
+        >
+          +
+        </button>
+      ) : null}
+      {onLayerRemove ? (
+        <button
+          type="button"
+          className="metaphor-layers-action"
+          disabled={layerCount <= 1}
+          title={layerCount <= 1 ? copy.layerRemoveLast : copy.layerRemove}
+          aria-label={`${copy.layerRemove}: ${layer.label}`}
+          onPointerDown={stopScene}
+          onClick={(event) => press(event, onLayerRemove)}
+        >
+          −
+        </button>
+      ) : null}
+    </span>
+  );
+}
+
+/**
  * Fused-world reading key: each layer's label next to the spatial grammar it
  * is drawn in (islands, towers, river…). Without this a composite is a pretty
  * landscape whose layers the viewer has to reverse-engineer.
@@ -165,7 +217,12 @@ export function MetaphorReadingOverlay({ scene, metaphor, legend, thesis = '', a
  * See metaphorLayerFocus.js. Without a `store` — the fullscreen embed, a
  * standalone mount — the rows stay plain list items rather than dead buttons.
  */
-export function MetaphorCompositeLayersOverlay({ dsl, store = null }) {
+export function MetaphorCompositeLayersOverlay({
+  dsl,
+  store = null,
+  onLayerAdd = null,
+  onLayerRemove = null
+}) {
   const { controls } = useUiCopy();
   const layers = compositeLayerSummaries(dsl);
   const focused = useSyncExternalStore(
@@ -176,6 +233,16 @@ export function MetaphorCompositeLayersOverlay({ dsl, store = null }) {
   if (layers.length === 0) return null;
   const copy = controls.metaphor;
   const stopScene = (event) => event.stopPropagation();
+  const actionsFor = (layer) => (
+    <CompositeLayerActions
+      layer={layer}
+      layerCount={layers.length}
+      copy={copy}
+      stopScene={stopScene}
+      onLayerAdd={onLayerAdd}
+      onLayerRemove={onLayerRemove}
+    />
+  );
   return (
     <div
       className={`metaphor-overlay metaphor-layers-overlay${focused ? ' is-focusing' : ''}`}
@@ -205,6 +272,7 @@ export function MetaphorCompositeLayersOverlay({ dsl, store = null }) {
             return (
               <li key={layer.id} className="metaphor-layers-row">
                 {body}
+                {actionsFor(layer)}
               </li>
             );
           }
@@ -223,6 +291,7 @@ export function MetaphorCompositeLayersOverlay({ dsl, store = null }) {
               >
                 {body}
               </button>
+              {actionsFor(layer)}
             </li>
           );
         })}

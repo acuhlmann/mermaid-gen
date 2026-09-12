@@ -10342,7 +10342,52 @@ button {
 
 .metaphor-layers-item {
   min-width: 0;
-  display: block;
+  /* Flex, not block: the pressable row and the layer actions (#536) sit side by
+     side, and the row must be the part that absorbs the spare width so a long
+     label ellipsizes instead of squeezing the buttons. */
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.metaphor-layers-item > .metaphor-layers-row.is-pressable {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* Duplicate / remove a whole layer (#536). Lives in the HTML layer list rather
+   than on a 3D placard because `layout: 'fused'` dissolves the layers into one
+   world — there is no region of the canvas that IS a layer to hit-test.
+   `.metaphor-overlay` is `pointer-events: none` so the scene can be orbited
+   through every panel; like the pressable rows, these opt back in, and only
+   these, so the panel's padding stays a hole you can drag the world through. */
+.metaphor-layers-actions {
+  display: inline-flex;
+  flex: 0 0 auto;
+  gap: 4px;
+  pointer-events: auto;
+}
+
+.metaphor-layers-action {
+  min-width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid rgb(255 255 255 / 22%);
+  border-radius: 6px;
+  background: rgb(255 255 255 / 8%);
+  color: inherit;
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.metaphor-layers-action:hover:not(:disabled) {
+  background: rgb(255 255 255 / 16%);
+}
+
+.metaphor-layers-action:disabled {
+  opacity: 0.35;
+  cursor: default;
 }
 
 /* Each row is the control that reads its own layer — see metaphorLayerFocus.js.

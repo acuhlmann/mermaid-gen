@@ -54,7 +54,7 @@ import { computeViewportFocusForChangeHighlight } from '../utils/focusDiagramHig
 import { ARCHISLOP_MERMAID_CANVAS_INIT } from '../utils/mermaidRenderInit.js';
 import { isMermaidInfrastructureError } from '../utils/mermaidRenderErrors.js';
 import { renderMermaidSvg } from '../utils/renderMermaidPreview.js';
-import { switchMetaphorKind } from '../utils/switchMetaphorKind.js';
+import { useMetaphorSourceEdit } from '../features/canvas/useMetaphorSourceEdit.js';
 import { useUiCopy } from '../i18n/useUiLocale.js';
 
 const MonacoCodeEditor = lazy(() => import('./MonacoCodeEditor.jsx'));
@@ -972,18 +972,14 @@ export default function DiagramCanvas({
     }
   }
 
-  const handleMetaphorKindChange = useCallback(
-    (nextKind) => {
-      if (streamingPreview || contentType !== 'metaphor3d') return;
-      const result = switchMetaphorKind(editorSource, nextKind);
-      if (!result.ok) return;
-      const nextValue = result.text;
-      setEditorSource((prev) => (prev === nextValue ? prev : nextValue));
-      lastAppliedSourceRef.current = nextValue;
-      onManualEdit?.(nextValue);
-    },
-    [contentType, editorSource, onManualEdit, streamingPreview]
-  );
+  const { onMetaphorKindChange, onCompositeLayerAdd, onCompositeLayerRemove } =
+    useMetaphorSourceEdit({
+      editorSource,
+      enabled: !streamingPreview && contentType === 'metaphor3d',
+      setEditorSource,
+      lastAppliedSourceRef,
+      onManualEdit
+    });
 
   const displayedRenderError = streamingPreview ? '' : renderError;
 
@@ -1795,7 +1791,9 @@ export default function DiagramCanvas({
                   streamingPreview={streamingPreview}
                   changeHighlight={changeHighlight}
                   isFullscreen={isFullscreen}
-                  onMetaphorKindChange={handleMetaphorKindChange}
+                  onMetaphorKindChange={onMetaphorKindChange}
+                  onCompositeLayerAdd={onCompositeLayerAdd}
+                  onCompositeLayerRemove={onCompositeLayerRemove}
                   metaphorKindSwitchDisabled={streamingPreview}
                   selectedNode={selectedNode}
                   onSelectedNodeChange={onSelectedNodeChange}

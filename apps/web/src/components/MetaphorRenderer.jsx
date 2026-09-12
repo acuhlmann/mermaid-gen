@@ -1270,6 +1270,8 @@ function MetaphorRendererImpl(
     changeHighlight = null,
     isFullscreen = false,
     onMetaphorKindChange = null,
+    onCompositeLayerAdd = null,
+    onCompositeLayerRemove = null,
     metaphorKindSwitchDisabled = false,
     /** Register live-canvas GLB export (disable for insights embeds). */
     enableGltfExport = true,
@@ -1760,7 +1762,12 @@ function MetaphorRendererImpl(
                   needs the key earlier in the DOM. Measured in real fullscreen
                   on a 390x844 phone, the two overlapped by 87x84px — the key
                   drawn across the legend's own rows. */}
-              <MetaphorCompositeLayersOverlay dsl={dsl} store={layerFocusStore} />
+              <MetaphorCompositeLayersOverlay
+                dsl={dsl}
+                store={layerFocusStore}
+                onLayerAdd={onCompositeLayerAdd}
+                onLayerRemove={onCompositeLayerRemove}
+              />
               <MetaphorLegendOverlay metaphor={dsl.metaphor} legend={dsl.scene?.legend} />
             </>
           ) : (
@@ -1772,7 +1779,12 @@ function MetaphorRendererImpl(
                 thesis={thesis}
                 action={<MetaphorTourButton store={tourStore} dsl={dsl} />}
               />
-              <MetaphorCompositeLayersOverlay dsl={dsl} store={layerFocusStore} />
+              <MetaphorCompositeLayersOverlay
+                dsl={dsl}
+                store={layerFocusStore}
+                onLayerAdd={onCompositeLayerAdd}
+                onLayerRemove={onCompositeLayerRemove}
+              />
             </>
           )}
           <MetaphorHoverTooltip store={hoverStore} legend={dsl.scene?.legend} />
