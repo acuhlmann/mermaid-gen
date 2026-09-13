@@ -602,6 +602,33 @@ export const ANYTHING_BENCH_CORPUS = [
 </script>`
     )
   },
+  {
+    // lib-matter-stack "Cannot read properties of undefined (reading
+    // 'xOffset')": render: false in a body's option object is meant to hide
+    // it, but Common.extend overwrites the whole default render object
+    // (including render.sprite.xOffset/yOffset) with the boolean false
+    // instead of merging it, so Body._initProperties's
+    // body.render.sprite.xOffset += ... throws at creation time. Regression =
+    // both engines drift.
+    id: 'runtime-matter-render-false',
+    kind: 'runtime',
+    expectedAccept: false,
+    expectedCode: 'runtime_error',
+    html: page(
+      `<h1>Stack</h1><canvas id="stage" width="320" height="240"></canvas>
+<script>
+  const { Bodies } = Matter;
+  const ground = Bodies.rectangle(160, 230, 320, 20, {
+    isStatic: true,
+    friction: 0.9,
+    restitution: 0.02,
+    render: false,
+    label: 'frame'
+  });
+</script>`,
+      { head: '<!-- @lib:matter -->' }
+    )
+  },
 
   // ── shape: not a document, must stay rejected ────────────────────────────
   {
