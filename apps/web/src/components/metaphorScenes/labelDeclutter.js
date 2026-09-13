@@ -227,6 +227,149 @@ export function createLabelDeclutterStore() {
 const scratch = new THREE.Vector3();
 
 /**
+ * Half-extents of a label's screen box, in NDC.
+ *
+ * A screen-constant label reports the box it is actually drawn at, so it needs
+ * no projection: NDC spans 2 across the viewport, so `p` pixels is
+ * `p / viewportWidth` of half-width. A world-sized entry still converts — `fov`
+ * is vertical, so height converts directly and width divides out the viewport
+ * aspect.
+ */
+function labelHalfExtents(entry, depth, camera, viewport, aspect) {
+  if (entry.screenWidthPx > 0 && entry.screenHeightPx > 0) {
+    return {
+      halfW: entry.screenWidthPx / Math.max(1, viewport.width),
+      halfH: entry.screenHeightPx / Math.max(1, viewport.height)
+    };
+  }
+  const perUnit = 1 / Math.max(0.001, depth * Math.tan((camera.fov * Math.PI) / 360));
+  return { halfW: (entry.width * perUnit) / 2 / aspect, halfH: (entry.height * perUnit) / 2 };
+}
+
+/**
+ * Project one label into NDC and measure its screen box.
+ *
+ * @returns {object | null} null when the label is behind the camera or
+ *   off-frame — no space to contest, and nothing to show, so `target` is
+ *   written to 0 here and the label never enters the ranking.
+ */
+function projectEntry(entry, camera, viewport, aspect) {
+  entry.object.getWorldPosition(scratch);
+  const depth = scratch.distanceTo(camera.position);
+  scratch.project(camera);
+  if (scratch.z > 1 || Math.abs(scratch.x) > 1.5 || Math.abs(scratch.y) > 1.35) {
+    entry.target = 0;
+    return null;
+  }
+  const { halfW, halfH } = labelHalfExtents(entry, depth, camera, viewport, aspect);
+  return { entry, x: scratch.x, y: scratch.y, halfW, halfH, depth };
+}
+
+/** Rule 1: pinned first, then importance, then nearness to break ties. */
+function byImportanceThenNearness(a, b) {
+  if (a.entry.pinned !== b.entry.pinned) return a.entry.pinned ? -1 : 1;
+  if (b.entry.importance !== a.entry.importance) {
+    return b.entry.importance - a.entry.importance;
+  }
+  return a.depth - b.depth;
+}
+
+/**
+ * Rule 5. Unreadable is decided before contested, and it is the one test
+ * pinning does not simply win: pinning is a claim about which label deserves
+ * CONTESTED space, and a label nobody can see is not in the contest. What
+ * pinning buys here is a higher bar, not an exemption — plus
+ * `yieldWhenUnreadable` for annotations whose text is on screen somewhere else
+ * anyway (the accent caption, which the reading strip prints).
+ *
+ * Note the two spellings of pinned are NOT interchangeable: the laxer bar below
+ * excludes `yieldWhenUnreadable`, while the caller's early return keys off
+ * `entry.pinned` itself. Collapsing them hands a yielding annotation the
+ * pinned thresholds.
+ */
+function isUnreadable(candidate, chromeRects) {
+  const pinned = candidate.entry.pinned === true && !candidate.entry.yieldWhenUnreadable;
+  return (
+    insideFraction(candidate, FULL_WINDOW) < (pinned ? MIN_ON_CANVAS_PINNED : MIN_ON_CANVAS) ||
+    coveredFraction(candidate, chromeRects) > (pinned ? MAX_COVERED_PINNED : MAX_COVERED)
+  );
+}
+
+/** Rule 2: does this label's screen box collide with one already kept? */
+function overlapsAnyKept(candidate, kept) {
+  for (let k = 0; k < kept.length; k += 1) {
+    const other = kept[k];
+    if (
+      Math.abs(candidate.x - other.x) < candidate.halfW + other.halfW + GUTTER &&
+      Math.abs(candidate.y - other.y) < candidate.halfH + other.halfH + GUTTER
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Project every registered label, dropping the ones with no space to contest.
+ *
+ * An entry with no object was never drawn, so it is skipped without touching
+ * `target` — one mid-fade keeps fading rather than snapping.
+ */
+function projectAll(entries, camera, viewport, aspect) {
+  const projected = [];
+  for (const entry of entries) {
+    if (!entry.object) continue;
+    const candidate = projectEntry(entry, camera, viewport, aspect);
+    if (candidate) projected.push(candidate);
+  }
+  return projected;
+}
+
+/**
+ * Rule 3. Pinned first, in rank order. They cannot be blocked, so anything
+ * walked ahead of one would claim the placard's space and then be drawn over.
+ */
+function walkPinned(projected, settle) {
+  for (let i = 0; i < projected.length; i += 1) {
+    if (projected[i].entry.pinned) settle(projected[i], i);
+  }
+}
+
+/**
+ * Rule 4 — round one, each layer's FIRST surviving name, in rank order.
+ *
+ * A composite's claim is that several grammars describe one topic, and the
+ * layer key goes on listing a layer whether or not the scene still names
+ * anything in it. Ranking alone cannot keep that promise even when the planner
+ * interleaves the layers: a layer's top pick may be the one the canvas edge
+ * clips or a panel covers, and the walk then goes straight on to everyone
+ * else's second name. So a layer that has nothing yet keeps getting tried — its
+ * second and third names are still round one — until one lands.
+ *
+ * This is a reordering, not an exemption: a first name still yields when it is
+ * unreadable and still loses a contest to another layer's first name.
+ *
+ * @returns {Array<{candidate: object, rank: number}>} everything deferred to
+ *   round two — every label with no layer of its own (a base kind's items, a
+ *   composite's link captions) and every layer's second name onward.
+ */
+function walkFirstNamePerLayer(projected, settle) {
+  const later = [];
+  const named = new Set();
+  for (let i = 0; i < projected.length; i += 1) {
+    const candidate = projected[i];
+    if (candidate.entry.pinned) continue;
+    const layerKey = candidate.entry.layerKey;
+    if (!layerKey || named.has(layerKey)) {
+      later.push({ candidate, rank: i });
+      continue;
+    }
+    if (settle(candidate, i)) named.add(layerKey);
+  }
+  return later;
+}
+
+/**
  * Project each label, rank, and write `entry.target`. Exported for tests: the
  * invariants worth pinning are that a pinned label always targets 1, and that
  * two labels sharing a screen box never both do.
@@ -240,42 +383,8 @@ export function resolveLabels(entries, camera, viewport, chromeRects = NO_RECTS)
   if (!entries.length) return;
   const aspect = viewport.width / Math.max(1, viewport.height);
 
-  const projected = [];
-  for (const entry of entries) {
-    if (!entry.object) continue;
-    entry.object.getWorldPosition(scratch);
-    const depth = scratch.distanceTo(camera.position);
-    scratch.project(camera);
-    // Behind the camera or off-frame: no space to contest, and nothing to show.
-    if (scratch.z > 1 || Math.abs(scratch.x) > 1.5 || Math.abs(scratch.y) > 1.35) {
-      entry.target = 0;
-      continue;
-    }
-    // A screen-constant label reports the box it is actually drawn at, so it
-    // needs no projection: NDC spans 2 across the viewport, so `p` pixels is
-    // `p / viewportWidth` of half-width. A world-sized entry still converts —
-    // `fov` is vertical, so height converts directly and width divides out the
-    // viewport aspect.
-    let halfW;
-    let halfH;
-    if (entry.screenWidthPx > 0 && entry.screenHeightPx > 0) {
-      halfW = entry.screenWidthPx / Math.max(1, viewport.width);
-      halfH = entry.screenHeightPx / Math.max(1, viewport.height);
-    } else {
-      const perUnit = 1 / Math.max(0.001, depth * Math.tan((camera.fov * Math.PI) / 360));
-      halfW = (entry.width * perUnit) / 2 / aspect;
-      halfH = (entry.height * perUnit) / 2;
-    }
-    projected.push({ entry, x: scratch.x, y: scratch.y, halfW, halfH, depth });
-  }
-
-  projected.sort((a, b) => {
-    if (a.entry.pinned !== b.entry.pinned) return a.entry.pinned ? -1 : 1;
-    if (b.entry.importance !== a.entry.importance) {
-      return b.entry.importance - a.entry.importance;
-    }
-    return a.depth - b.depth;
-  });
+  const projected = projectAll(entries, camera, viewport, aspect);
+  projected.sort(byImportanceThenNearness);
 
   const kept = [];
 
@@ -284,69 +393,22 @@ export function resolveLabels(entries, camera, viewport, chromeRects = NO_RECTS)
    * @returns {boolean} true when the label is drawn
    */
   const settle = (candidate, rank) => {
-    // Unreadable is decided before contested, and it is the one test pinning
-    // does not simply win: pinning is a claim about which label deserves
-    // CONTESTED space, and a label nobody can see is not in the contest. What
-    // pinning buys here is a higher bar, not an exemption — plus
-    // `yieldWhenUnreadable` for annotations whose text is on screen somewhere
-    // else anyway (the accent caption, which the reading strip prints).
-    const pinned = candidate.entry.pinned === true && !candidate.entry.yieldWhenUnreadable;
-    const unreadable =
-      insideFraction(candidate, FULL_WINDOW) < (pinned ? MIN_ON_CANVAS_PINNED : MIN_ON_CANVAS) ||
-      coveredFraction(candidate, chromeRects) > (pinned ? MAX_COVERED_PINNED : MAX_COVERED);
+    const unreadable = isUnreadable(candidate, chromeRects);
     if (candidate.entry.pinned) {
       candidate.entry.target = unreadable ? 0 : 1;
       if (!unreadable) kept.push(candidate);
       return !unreadable;
     }
-    let blocked = rank >= MAX_PAIRWISE || unreadable;
-    for (let k = 0; !blocked && k < kept.length; k += 1) {
-      const other = kept[k];
-      if (
-        Math.abs(candidate.x - other.x) < candidate.halfW + other.halfW + GUTTER &&
-        Math.abs(candidate.y - other.y) < candidate.halfH + other.halfH + GUTTER
-      ) {
-        blocked = true;
-      }
-    }
+    // `||` short-circuits, so an already-blocked candidate never walks `kept` —
+    // the same work the original loop's `!blocked` guard skipped.
+    const blocked = rank >= MAX_PAIRWISE || unreadable || overlapsAnyKept(candidate, kept);
     candidate.entry.target = blocked ? 0 : 1;
     if (!blocked) kept.push(candidate);
     return !blocked;
   };
 
-  // Pinned first, in rank order. They cannot be blocked, so anything walked
-  // ahead of one would claim the placard's space and then be drawn over.
-  for (let i = 0; i < projected.length; i += 1) {
-    if (projected[i].entry.pinned) settle(projected[i], i);
-  }
-
-  // Round one — each layer's FIRST surviving name, in rank order.
-  //
-  // A composite's claim is that several grammars describe one topic, and the
-  // layer key goes on listing a layer whether or not the scene still names
-  // anything in it. Ranking alone cannot keep that promise even when the
-  // planner interleaves the layers: a layer's top pick may be the one the
-  // canvas edge clips or a panel covers, and the walk then goes straight on to
-  // everyone else's second name. So a layer that has nothing yet keeps getting
-  // tried — its second and third names are still round one — until one lands.
-  //
-  // This is a reordering, not an exemption: a first name still yields when it
-  // is unreadable and still loses a contest to another layer's first name.
-  // Every label with no layer of its own (a base kind's items, a composite's
-  // link captions) simply falls to round two, which is the unchanged walk.
-  const later = [];
-  const named = new Set();
-  for (let i = 0; i < projected.length; i += 1) {
-    const candidate = projected[i];
-    if (candidate.entry.pinned) continue;
-    const layerKey = candidate.entry.layerKey;
-    if (!layerKey || named.has(layerKey)) {
-      later.push({ candidate, rank: i });
-      continue;
-    }
-    if (settle(candidate, i)) named.add(layerKey);
-  }
-
+  walkPinned(projected, settle);
+  const later = walkFirstNamePerLayer(projected, settle);
   // Round two — the rest of the ranking, unchanged.
   for (const { candidate, rank } of later) settle(candidate, rank);
 }
