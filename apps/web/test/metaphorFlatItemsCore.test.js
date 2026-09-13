@@ -382,13 +382,22 @@ describe('kind-pair sweep', () => {
     // back empty would pass while examining nothing.
     expect(rows).toHaveLength(196);
     const broken = [];
+    let examined = 0;
     for (const { pair, result } of rows) {
       if (!result.ok) continue;
+      examined += 1;
       const magnitudes = primariesOf(result.text);
       const ordered =
         magnitudes.length === 4 && magnitudes.every((v, i) => i === 0 || v < magnitudes[i - 1]);
       if (!ordered) broken.push(`${pair}: [${magnitudes.join(', ')}]`);
     }
     expect(broken).toEqual([]);
+    // This case is vacuous twice over, and the row count above closes only the
+    // first half: `if (!result.ok) continue` means a wholesale refusal
+    // regression leaves `broken` empty with all 196 rows present, so the sweep
+    // still examines nothing while both assertions above hold. Measured:
+    // forcing every result to `{ok: false}` fails the case above and leaves
+    // this one green. Count what was actually looked at.
+    expect(examined).toBe(196);
   });
 });
