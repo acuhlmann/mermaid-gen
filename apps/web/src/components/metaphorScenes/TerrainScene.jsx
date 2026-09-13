@@ -17,9 +17,15 @@ import {
   terrainHeightmap
 } from '../../utils/metaphorLayouts/terrainHeightmap.js';
 import { Glyph } from '../metaphorGlyphs/index.jsx';
-import { GlowSprite, HoverableItem, ItemLabel, MetaphorLinks } from './MetaphorSceneChrome.jsx';
+import {
+  GlowSprite,
+  GradientSkySphere,
+  HoverableItem,
+  ItemLabel,
+  MetaphorLinks
+} from './MetaphorSceneChrome.jsx';
 import { MetaphorAccents } from './MetaphorAccents.jsx';
-import { SoaringBirds, TerrainClouds } from './MetaphorSceneDecorations.jsx';
+import { SkySunGlow, SoaringBirds, TerrainClouds } from './MetaphorSceneDecorations.jsx';
 import { useMetaphorClock } from './metaphorClock.js';
 import { idHash, idHash2, shiftColor } from './sceneUtils.js';
 
@@ -337,6 +343,35 @@ function TerrainPin({ position, label, elevation, idSeed, theme, glyph }) {
         color={theme.labelColor}
         outlineColor={theme.labelOutline}
       />
+    </group>
+  );
+}
+
+/**
+ * Alpine sky — the gradient this scene's own haze has always been fading into.
+ *
+ * Terrain was the one base kind the renderer mounted no sky sphere for, so the
+ * landscape was drawn against the flat clear colour while `AdaptiveFog` softened
+ * its distance toward `theme.skyHorizonColor` and `SoaringBirds` lerped its wings
+ * the same way. On whiteboard the two colours are near neighbours (`#e9eef5` vs
+ * `#dde5ef`) and it passed; on the three dark presets the horizon band faded into
+ * a void that was never a sky.
+ *
+ * It takes the theme's own sky keys rather than a locked daylight pair: terrain
+ * is a themed kind (its ramp is built from `terrainBaseColor`, which noir, arcade
+ * and blueprint each author), so it belongs with `city`/`subway`/`machine` and not
+ * with the nature-locked kinds. The sun glow is what `river`, `garden`,
+ * `archipelago`, `bridge` and `cycle` already draw — consistent with the clouds
+ * and birds this scene was drawing over no sky at all.
+ */
+export function TerrainSky({ theme }) {
+  return (
+    <group>
+      <GradientSkySphere
+        topColor={theme.skyTopColor ?? '#258fce'}
+        horizonColor={theme.skyHorizonColor ?? '#c9e8f0'}
+      />
+      <SkySunGlow />
     </group>
   );
 }

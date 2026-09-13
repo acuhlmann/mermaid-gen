@@ -9,6 +9,7 @@ import {
 } from '@archislop/shared';
 import { resolveMetaphorPostfx, resolveDistrictColor } from '../utils/metaphorThemePresets.js';
 import { resolveMetaphorSceneTheme } from '../utils/metaphorSceneTheme.js';
+import { resolveSkyBackdrop } from '../utils/metaphorSkyBackdrops.js';
 import { cityDistrictLayout } from '../utils/metaphorLayouts/cityDistrictLayout.js';
 import {
   layercakeComponentPositions,
@@ -69,7 +70,7 @@ import {
   RisingSparkles,
   SpireBeacon
 } from './metaphorScenes/MetaphorSceneDecorations.jsx';
-import { TerrainScene } from './metaphorScenes/TerrainScene.jsx';
+import { TerrainScene, TerrainSky } from './metaphorScenes/TerrainScene.jsx';
 import { TreeScene, TreeSky } from './metaphorScenes/TreeScene.jsx';
 import { GalaxyScene, GalaxySky } from './metaphorScenes/GalaxyScene.jsx';
 import { OrreryScene } from './metaphorScenes/OrreryScene.jsx';
@@ -1012,6 +1013,33 @@ function CitySky({ theme }) {
 }
 
 /**
+ * Backdrop id → the component that paints it. The ids, and which kind takes
+ * which, are `utils/metaphorSkyBackdrops.js` — a table there rather than the
+ * chain of ternaries that used to stand here, because the chain silently had no
+ * branch for `terrain` and nothing could say so. Every id in
+ * `SKY_BACKDROP_IDS` must appear as a key here; `metaphorThemePresets.test.js`
+ * asserts both halves.
+ *
+ * Each of these renders outside `<Bounds>` and writes no depth — see
+ * `GradientSkySphere`. `animated` is read only by `GalaxySky` (its star field);
+ * the rest ignore it.
+ */
+const SKY_BACKDROP_COMPONENTS = Object.freeze({
+  city: CitySky,
+  space: GalaxySky,
+  tree: TreeSky,
+  river: RiverSky,
+  garden: GardenSky,
+  archipelago: ArchipelagoSky,
+  machine: MachineSky,
+  bridge: BridgeSky,
+  cycle: CycleSky,
+  subway: SubwaySky,
+  iceberg: IcebergSky,
+  terrain: TerrainSky
+});
+
+/**
  * Circular foundation the city stands on, sized to the layout footprint and
  * centred at the origin (where the layout is recentred). A dark base disc, a
  * slightly lifted + lighter plinth, a bright accent rim at the plinth edge, and
@@ -1398,6 +1426,7 @@ function MetaphorRendererImpl(
   const postfx = resolveMetaphorPostfx(theme);
   const boundsMargin = BOUNDS_MARGIN_BY_KIND[dsl?.metaphor] ?? 1.06;
   const skyKind = primaryLayerKind;
+  const SkyBackdrop = SKY_BACKDROP_COMPONENTS[resolveSkyBackdrop(skyKind)] ?? null;
 
   // Refit the camera when the scene's structure changes (a new kind, items
   // added/removed while streaming) but not on every incidental re-render, which
@@ -1602,23 +1631,13 @@ function MetaphorRendererImpl(
           {/* IBL generated from this theme's own sky colours — see
               SceneEnvironment.jsx for why that beats a fetched HDR preset. */}
           <SceneEnvironment theme={theme} />
-          {/* Layercake shares the city's calm gradient backdrop so the cake
-              doesn't float against a flat void. */}
-          {skyKind === 'city' || skyKind === 'layercake' ? <CitySky theme={theme} /> : null}
-          {/* Orrery shares the galaxy's deep-space backdrop — same star-field
-              vocabulary, different spatial story. */}
-          {skyKind === 'galaxy' || skyKind === 'orrery' ? (
-            <GalaxySky theme={theme} animated={!streamingPreview} />
-          ) : null}
-          {skyKind === 'tree' ? <TreeSky theme={theme} /> : null}
-          {skyKind === 'river' ? <RiverSky theme={theme} /> : null}
-          {skyKind === 'garden' ? <GardenSky theme={theme} /> : null}
-          {skyKind === 'archipelago' ? <ArchipelagoSky theme={theme} /> : null}
-          {skyKind === 'machine' ? <MachineSky theme={theme} /> : null}
-          {skyKind === 'bridge' ? <BridgeSky theme={theme} /> : null}
-          {skyKind === 'cycle' ? <CycleSky theme={theme} /> : null}
-          {skyKind === 'subway' ? <SubwaySky theme={theme} /> : null}
-          {skyKind === 'iceberg' ? <IcebergSky theme={theme} /> : null}
+          {/* One lookup instead of eleven ternaries — see
+              SKY_BACKDROP_COMPONENTS above and utils/metaphorSkyBackdrops.js
+              for why a kind's sky is a table. Layercake shares the city's calm
+              gradient so the cake doesn't float against a flat void, and orrery
+              shares the galaxy's deep space: same star-field vocabulary,
+              different spatial story. */}
+          {SkyBackdrop ? <SkyBackdrop theme={theme} animated={!streamingPreview} /> : null}
           <MetaphorClockProvider enabled={motionPolicy.animated} intensity={motionPolicy.intensity}>
             {/* Mood ambience renders outside <Bounds> at a fixed spread, so the
                 particle layer never reframes the subject. */}
