@@ -206,3 +206,33 @@ export const ACCENT_ITEM_LABEL_ORDER = 35;
  * the one that can afford an opaque card.
  */
 export const ACCENT_ITEM_LABEL_PLATE_OPACITY = 0.94;
+
+/**
+ * What the accent changes about how a label is DRAWN, in one place.
+ *
+ * All three values move together and only with `accented`, so reading them as a
+ * unit is what keeps the draw-order argument in metaphorDrawOrder.js legible: an
+ * accented name is drawn last, over its own callout, on a chip opaque enough for
+ * the amber rod behind it to read as a strike-through rather than a smear.
+ *
+ * It lives here rather than beside `ItemLabel` for two reasons. The lint rule
+ * `react-refresh/only-export-components` is an ERROR on a component file that
+ * exports a plain function, and this is the module the three constants and the
+ * whole draw-order argument already live in.
+ *
+ * Being a pure function is what lets `metaphorDrawOrder.test.js` assert the
+ * contract BY VALUE. That suite otherwise has to read source as text, because
+ * draw order is a property of the renderer's transparent list and jsdom has no
+ * renderer; the source checks that remain there cover only the wiring a value
+ * check cannot see.
+ */
+export function accentDrawState(accented, style) {
+  return {
+    plateOpacity:
+      accented && style.plate > 0
+        ? Math.max(style.plate, ACCENT_ITEM_LABEL_PLATE_OPACITY)
+        : style.plate,
+    plateOrder: accented ? ACCENT_ITEM_LABEL_PLATE_ORDER : LABEL_PLATE_ORDER,
+    textOrder: accented ? ACCENT_ITEM_LABEL_ORDER : 0
+  };
+}
