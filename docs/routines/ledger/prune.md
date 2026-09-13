@@ -2,10 +2,10 @@
 name: prune
 todos:
   - id: batch-1-stale-doc
-    content: 'FIRST SLICE (cheapest to judge, class `stale-doc`) — `docs/recipes/add-legacy-stream-event.md`, 11 lines, added 2026-05-21, status `orphan`: no file in the repository names it and it is unreachable from README/AGENTS/CLAUDE/STRUCTURE and every loaded rule. Read it before proposing: a recipe whose steps reference deleted code is worse than no recipe, and "it is only 11 lines" is not a reason to bundle it with code'
-    status: pending
+    content: 'DONE 2026-09-13, see Run log and Completed. `docs/recipes/add-legacy-stream-event.md` deleted in `prune: stale-doc — 1 file(s)`, held for owner merge.'
+    status: completed
   - id: batch-2-dead-components
-    content: 'Class `dead-file`, docs-free: `SlopitectStatusBoard.jsx` (54 lines, added 2026-05-16, 0 referrers), `AgentReactionBubble.jsx` (16, 2026-05-16, 0), `useRotatingPlaceholder.js` (37, 2026-07-12, 0), `exampleDiagram.js` (22, 2026-07-12, 0), `GraphEditUndoToast.jsx` (23, 2026-08-17 — **inside the 14-day age gate on 2026-09-07**, re-check before taking it), `AdvisorThinkingIndicator.jsx` (68, 2026-05-17 — reads `test-only` now because a comment in `scripts/prune-scan.test.mjs` names it; playbook § 1 self-reference rule, and the reason a test must not pin a dead file). Each verified by hand on 2026-09-07 in all four specifier forms. maxFiles is 5, so this batch splits: take the oldest four, park the rest'
+    content: 'Class `dead-file`, docs-free: `SlopitectStatusBoard.jsx` (54 lines, added 2026-05-16, 0 referrers), `AgentReactionBubble.jsx` (16, 2026-05-16, 0), `useRotatingPlaceholder.js` (37, 2026-07-12, 0), `exampleDiagram.js` (22, 2026-07-12, 0), `GraphEditUndoToast.jsx` (23, 2026-08-17 — **inside the 14-day age gate on 2026-09-07**, re-check before taking it), `AdvisorThinkingIndicator.jsx` (68, 2026-05-17 — reads `test-only` now because a comment in `scripts/prune-scan.test.mjs` names it; playbook § 1 self-reference rule, and the reason a test must not pin a dead file). Each verified by hand on 2026-09-07 in all four specifier forms. maxFiles is 5, so this batch splits: take the oldest four, park the rest. **Update 2026-09-13**: re-ran `npm run verify:boundaries` per § 1b — it now also flags `AgentReactionBubble.jsx`, `GraphEditUndoToast.jsx` and `exampleDiagram.js` as `no-orphans` (it did not on 2026-09-07), so those three are now in the **intersection** with `prune:scan` and are the highest-confidence next batch; `SlopitectStatusBoard.jsx` and `useRotatingPlaceholder.js` remain `prune:scan`-only (dep-cruiser does not scan `scripts/`, and these two are `apps/web` files it still does not flag) — hand-check those two per § 1b before including them. The GraphEditUndoToast.jsx 14-day gate has since cleared (added 2026-08-17, now 27 days old) but note: this run also hit the shallow-clone graft-boundary artifact (see Open observations below) on an unrelated file, so re-verify age with the ledger-recorded dates, not a fresh `git log` in a shallow checkout'
     status: pending
   - id: batch-3-thinking-family
     content: 'POSSIBLY DEAD, NOT PROVEN — `thinkingMarkdownTable.tsx`, `thinkingSyntaxCode.tsx`, `thinkingFencedBlock.ts` (468 lines together). The first is **live**: `InsightsPane.jsx:15` imports it extensionlessly, which is the false positive that reshaped the scanner. The other two came up unreferenced on 2026-09-07 and were NOT individually re-checked afterwards, because the scanner changed under them. Re-run § 1 and apply gate 2 by hand before touching any of the three; they read like one family that lost two of its members'
@@ -69,6 +69,19 @@ rather than reporting it forever.
 by every session; a stale `docs/` page is read by whichever session greps its area, which is nobody's
 metric. If this routine earns a cron, the number worth reporting is bytes removed per run.
 
+**2026-09-13 — the shallow-clone graft boundary is not hypothetical, it hit the very candidate this
+run took.** `git log --follow -p -- docs/recipes/add-legacy-stream-event.md` in this run's checkout
+showed the file as `new file mode` at commit `84d825a` (2026-09-06), which is one of the seven commits
+listed in `.git/shallow` — i.e. a grafted root with no visible parent, not a real add date. Taken at
+face value that reads as 7 days old, inside the 14-day gate, which would have parked a candidate the
+previous run had already verified (by a fuller-history route) as added 2026-05-21. Playbook § 2 gate 4
+already calls this out in prose; this is the first run where it actually fired. The tell matched the
+playbook exactly: `addedAt: null` in the scanner's own notes for every candidate this run, plus a
+commit whose message (a mermaid class-declaration fix) had nothing to do with the file in its diff.
+Trusted the ledger's previously-recorded date instead of the local `git log` and proceeded. Anyone
+re-deriving age in a shallow checkout should check `.git/shallow` for the path's apparent add-commit
+before trusting `git log --follow`'s date on it.
+
 ## Rejected — never re-propose
 
 Append the path, the date, and the owner's reason if they gave one. A path in this table is filtered
@@ -81,5 +94,6 @@ out of § 1's candidate list before a batch is chosen.
 
 Append one row per firing, including a run that found candidates and deliberately took none.
 
-| Date | Triggered by | Class | Files (−lines) | PR  | Merged by | Notes |
-| ---- | ------------ | ----- | -------------- | --- | --------- | ----- |
+| Date       | Triggered by   | Class       | Files (−lines) | PR      | Merged by | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| ---------- | -------------- | ----------- | -------------- | ------- | --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-09-13 | owner (manual) | `stale-doc` | 1 (−10)        | pending | —         | First-ever firing. Took ledger's own recommended "first slice": `docs/recipes/add-legacy-stream-event.md`, superseded by `add-agent-stream-event.md` (added 2026-09-07, not in the recipes index). Age gate hit the shallow-clone graft-boundary artifact (see Open observations); trusted the ledger's 2026-05-21 date over local `git log`. `npm run check:full` and `apps/web` tests green. `held PR #pending awaiting-review` once opened — see PR number update below. |
