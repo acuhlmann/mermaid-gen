@@ -35,15 +35,12 @@ import {
   labelStackLiftEm
 } from './labelRoles.js';
 import {
-  ACCENT_ITEM_LABEL_ORDER,
-  ACCENT_ITEM_LABEL_PLATE_OPACITY,
-  ACCENT_ITEM_LABEL_PLATE_ORDER,
-  LABEL_PLATE_ORDER,
   LINK_ARROW_CASING_ORDER,
   LINK_ARROW_ORDER,
   LINK_CASING_ORDER,
   PICKED_LINK_ORDER,
-  SKY_DOME_ORDER
+  SKY_DOME_ORDER,
+  accentDrawState
 } from './metaphorDrawOrder.js';
 import {
   LABEL_TARGET_PX,
@@ -83,6 +80,38 @@ export function GlowSprite({ size, color, opacity }) {
         />
       </mesh>
     </Billboard>
+  );
+}
+
+/**
+ * The chip behind a label, so one-word names stay readable against a lit facade,
+ * a bright sky, or a busy fused landscape.
+ *
+ * The plate is scaffolding, not subject — hence `FRAME_IGNORE_DATA`, which keeps
+ * it out of the camera fit. A group placard has none: it is written across its
+ * ground and its heavier outline is what carries it. At zero opacity it is not
+ * rendered at all rather than drawn transparent — an invisible quad still costs
+ * a sorted draw call, and a fused world can hold a dozen placards.
+ */
+function LabelPlate({ plateRef, z, width, height, color, opacity, renderOrder, depthTest }) {
+  if (!(opacity > 0)) return null;
+  return (
+    <mesh
+      ref={plateRef}
+      position={[0, 0, z]}
+      userData={FRAME_IGNORE_DATA}
+      renderOrder={renderOrder}
+    >
+      <planeGeometry args={[width, height]} />
+      <meshBasicMaterial
+        color={color}
+        transparent
+        opacity={opacity}
+        depthWrite={false}
+        depthTest={depthTest}
+        toneMapped={false}
+      />
+    </mesh>
   );
 }
 
@@ -158,10 +187,7 @@ export function ItemLabel({
   // An accented item's chip carries a saturated amber rod behind it now that the
   // name is drawn over its own callout, and a 0.58 chip lets that rod read as a
   // line struck through the word. See metaphorDrawOrder.js.
-  const plateOpacity =
-    accented && style.plate > 0
-      ? Math.max(style.plate, ACCENT_ITEM_LABEL_PLATE_OPACITY)
-      : style.plate;
+  const { plateOpacity, plateOrder, textOrder } = accentDrawState(accented, style);
   // The declutter pass wants screen boxes, and a screen-constant label knows its
   // own directly: the world size never reaches the screen unscaled any more, so
   // projecting it would report the authored size instead of the drawn one.
@@ -224,31 +250,18 @@ export function ItemLabel({
     <Billboard position={position}>
       <group ref={scaleRef}>
         <group ref={boxRef} position={[0, lift * size, 0]}>
-          {/* Chip behind every label so one-word names stay readable against a
-            lit facade, a bright sky, or a busy fused landscape. The plate is
-            scaffolding, not subject — keep it out of the camera fit. A group
-            placard has none: it is written across its ground, and its heavier
-            outline is what carries it. Not rendered at all rather than drawn at
-            zero alpha — an invisible transparent quad still costs a sorted draw
-            call, and a fused world can hold a dozen placards. */}
-          {plateOpacity > 0 ? (
-            <mesh
-              ref={plateRef}
-              position={[0, 0, -size * 0.05]}
-              userData={FRAME_IGNORE_DATA}
-              renderOrder={accented ? ACCENT_ITEM_LABEL_PLATE_ORDER : LABEL_PLATE_ORDER}
-            >
-              <planeGeometry args={[plateWidth, plateHeight]} />
-              <meshBasicMaterial
-                color={outlineColor}
-                transparent
-                opacity={plateOpacity}
-                depthWrite={false}
-                depthTest={!accented}
-                toneMapped={false}
-              />
-            </mesh>
-          ) : null}
+          {/* See LabelPlate for why the chip exists and why zero opacity means
+            no mesh at all. */}
+          <LabelPlate
+            plateRef={plateRef}
+            z={-size * 0.05}
+            width={plateWidth}
+            height={plateHeight}
+            color={outlineColor}
+            opacity={plateOpacity}
+            renderOrder={plateOrder}
+            depthTest={!accented}
+          />
           {/* The accented item's name is drawn LAST and without depth, above its
             own callout. The stem, pin and caption are all depth-test-free, so
             once the marker exists `renderOrder` is the only thing deciding
@@ -275,7 +288,7 @@ export function ItemLabel({
             outlineWidth={size * style.outline}
             outlineColor={outlineColor}
             outlineOpacity={1}
-            renderOrder={accented ? ACCENT_ITEM_LABEL_ORDER : 0}
+            renderOrder={textOrder}
             onSync={applyLabelDepth}
           >
             {drawn}

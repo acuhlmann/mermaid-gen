@@ -45,8 +45,13 @@ import {
   PICKED_LINK_ORDER,
   SELECTION_HALO_ORDER,
   SELECTION_RING_ORDER,
-  SKY_DOME_ORDER
+  SKY_DOME_ORDER,
+  accentDrawState
 } from '../src/components/metaphorScenes/metaphorDrawOrder.js';
+import { labelRoleStyle } from '../src/components/metaphorScenes/labelRoles.js';
+
+/** The role an accented item's own name carries; `plate` is what the chip reads. */
+const ITEM_STYLE = labelRoleStyle('item');
 
 const read = (relative) => readFileSync(fileURLToPath(new URL(relative, import.meta.url)), 'utf8');
 
@@ -128,7 +133,16 @@ describe('ItemLabel lifts the accented name over the callout', () => {
   const depthSource = read('../src/components/metaphorScenes/metaphorLabelDepth.js');
 
   it('draws the accented name last', () => {
-    expect(source).toMatch(/renderOrder=\{accented \? ACCENT_ITEM_LABEL_ORDER : 0\}/);
+    // Asserted by VALUE now that the three accent draw numbers are a pure
+    // function, rather than by matching the ternary's spelling. The source regex
+    // that used to stand here failed on a behaviour-preserving extraction, and
+    // would equally have passed on a broken `accented` — the wrong way round.
+    expect(accentDrawState(true, ITEM_STYLE).textOrder).toBe(ACCENT_ITEM_LABEL_ORDER);
+    expect(accentDrawState(false, ITEM_STYLE).textOrder).toBe(0);
+    // The wiring is the half a value check cannot see: the number is useless
+    // unless it reaches the troika <Text>.
+    expect(source).toMatch(/renderOrder=\{textOrder\}/);
+    expect(source).toMatch(/accentDrawState\(accented, style\)/);
   });
 
   it('sets the name’s depth through troika, never through a material- prop', () => {
@@ -143,18 +157,21 @@ describe('ItemLabel lifts the accented name over the callout', () => {
   });
 
   it('lifts the accented chip with it', () => {
-    expect(source).toMatch(
-      /renderOrder=\{accented \? ACCENT_ITEM_LABEL_PLATE_ORDER : LABEL_PLATE_ORDER\}/
-    );
+    expect(accentDrawState(true, ITEM_STYLE).plateOrder).toBe(ACCENT_ITEM_LABEL_PLATE_ORDER);
+    expect(accentDrawState(false, ITEM_STYLE).plateOrder).toBe(LABEL_PLATE_ORDER);
+    expect(source).toMatch(/renderOrder=\{plateOrder\}/);
     expect(source).toMatch(/depthTest=\{!accented\}/);
   });
 
   it('thickens only the accented chip', () => {
-    expect(source).toMatch(/ACCENT_ITEM_LABEL_PLATE_OPACITY/);
-    // Guarded by `style.plate > 0`, so a group placard — which has no chip at
-    // all, and is written across its ground — does not grow one by being
-    // accented.
-    expect(source).toMatch(/accented && style\.plate > 0/);
+    expect(accentDrawState(true, ITEM_STYLE).plateOpacity).toBe(ACCENT_ITEM_LABEL_PLATE_OPACITY);
+    expect(accentDrawState(false, ITEM_STYLE).plateOpacity).toBe(ITEM_STYLE.plate);
+    // A group placard has no chip at all — it is written across its ground — so
+    // being accented must not grow it one. This is the `style.plate > 0` guard,
+    // and it is the case a source regex could only assert the spelling of.
+    const placard = labelRoleStyle('group');
+    expect(placard.plate).toBe(0);
+    expect(accentDrawState(true, placard).plateOpacity).toBe(0);
   });
 
   it('scopes the lift to the accented item, and to nothing else', () => {
