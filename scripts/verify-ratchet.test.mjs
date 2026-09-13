@@ -16,7 +16,8 @@ import {
   measureLintWarnings,
   measureStrictIslands,
   measureTests,
-  validateBaselineShape
+  validateBaselineShape,
+  validateBudgetDelta
 } from './verify-ratchet.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -177,6 +178,31 @@ test('validateBaselineShape accepts a tightened budget with no reason', () => {
 test('validateBaselineShape rejects a malformed entry', () => {
   const errors = validateBaselineShape({ metrics: { monolithLoc: { 'a.js': { budget: 80 } } } });
   assert.match(errors.join('\n'), /needs numeric "budget" and "initial"/);
+});
+
+test('validateBudgetDelta demands a reason when a descending budget rises from HEAD', () => {
+  const previous = { metrics: { lintWarnings: { 'apps/web': { budget: 812, initial: 851 } } } };
+  const current = { metrics: { lintWarnings: { 'apps/web': { budget: 813, initial: 851 } } } };
+  const errors = validateBudgetDelta(previous, current);
+  assert.match(errors.join('\n'), /loosened from HEAD \(812 → 813\) with no "reason"/);
+});
+
+test('validateBudgetDelta accepts a descending budget rise from HEAD when reason is present', () => {
+  const previous = { metrics: { lintWarnings: { 'apps/web': { budget: 812, initial: 851 } } } };
+  const current = {
+    metrics: {
+      lintWarnings: {
+        'apps/web': { budget: 813, initial: 851, reason: 'warranted temporary ceiling' }
+      }
+    }
+  };
+  assert.deepEqual(validateBudgetDelta(previous, current), []);
+});
+
+test('validateBudgetDelta accepts a tightening from HEAD with no reason', () => {
+  const previous = { metrics: { lintWarnings: { 'apps/web': { budget: 813, initial: 851 } } } };
+  const current = { metrics: { lintWarnings: { 'apps/web': { budget: 809, initial: 851 } } } };
+  assert.deepEqual(validateBudgetDelta(previous, current), []);
 });
 
 test('the committed baseline is self-consistent', () => {

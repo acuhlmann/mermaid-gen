@@ -244,6 +244,53 @@ export function validateBaselineShape(baseline) {
 }
 
 /**
+ * A budget that moves in the loosening direction from a previous committed snapshot must
+ * carry a reason — not merely stay below `initial`. Without this, a routine can raise a
+ * descending ceiling one notch at a time and still pass `validateBaselineShape`.
+ *
+ * @param {Record<string, any>} previous
+ * @param {Record<string, any>} current
+ * @returns {string[]}
+ */
+export function validateBudgetDelta(previous, current) {
+  /** @type {string[]} */
+  const errors = [];
+  for (const [metric, entries] of Object.entries(current.metrics ?? {})) {
+    const prevEntries = previous.metrics?.[metric] ?? {};
+    const descending = DESCENDING_METRICS.has(metric);
+    for (const [key, entry] of Object.entries(/** @type {Record<string, any>} */ (entries))) {
+      const prev = prevEntries[key];
+      if (!prev || typeof prev.budget !== 'number' || typeof entry?.budget !== 'number') continue;
+      const loosened = descending ? entry.budget > prev.budget : entry.budget < prev.budget;
+      if (loosened && !String(entry.reason ?? '').trim()) {
+        errors.push(
+          `${metric}.${key} loosened from HEAD (${prev.budget} → ${entry.budget}) with no "reason"`
+        );
+      }
+    }
+  }
+  return errors;
+}
+
+/**
+ * @param {Record<string, any>} baseline
+ * @param {string} root
+ * @returns {string[]}
+ */
+export function validateBudgetDeltaFromHead(baseline, root) {
+  try {
+    const raw = execFileSync('git', ['show', `HEAD:${RATCHET_PATH}`], {
+      cwd: root,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore']
+    });
+    return validateBudgetDelta(JSON.parse(raw), baseline);
+  } catch {
+    return [];
+  }
+}
+
+/**
  * @param {Record<string, any>} baseline
  * @param {Record<string, Record<string, number>>} measured
  * @returns {{ ok: boolean, violations: string[], improvements: string[] }}
@@ -307,9 +354,11 @@ function main() {
   const baseline = JSON.parse(fs.readFileSync(abs, 'utf8'));
 
   const shapeErrors = validateBaselineShape(baseline);
-  if (shapeErrors.length) {
+  const deltaErrors = validateBudgetDeltaFromHead(baseline, ROOT);
+  const consistencyErrors = [...shapeErrors, ...deltaErrors];
+  if (consistencyErrors.length) {
     console.error('verify:ratchet: budget file is not self-consistent');
-    for (const error of shapeErrors) console.error(`  ${error}`);
+    for (const error of consistencyErrors) console.error(`  ${error}`);
     process.exit(1);
   }
 
