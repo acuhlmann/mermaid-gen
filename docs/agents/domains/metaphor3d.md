@@ -709,10 +709,77 @@ ones that will bite an edit.
   ranking is gone with no error anywhere. Fit the SET, not the item — a magnitude only means
   anything against its siblings — and make the fit a **no-op when the values already fit**, so it
   can only ever move a document that would otherwise have broken.
+- **A kind's sky is a table too, and `terrain` was the row that was never written**
+  (`utils/metaphorSkyBackdrops.js`). Eleven ternaries in `MetaphorRenderer`'s JSX chose which sky
+  sphere to mount, and the one kind whose entire subject is a landscape had no branch — so terrain
+  rendered against the flat `<color attach="background">` clear colour while its own `AdaptiveFog`
+  faded the distance toward `theme.skyHorizonColor` and `SoaringBirds` lerped its wings the same
+  way. Measured at three viewports: **`nearBlack` 0.69–0.79 before, 0.0001–0.45 after**, and it
+  reached the fused composite as well. Third instance of the same class (`DAYLIGHT_LOCKED_KINDS`,
+  the postfx ladder, this): **a per-kind decision written as control flow inside a 1800-line
+  component cannot be asserted against `METAPHOR_BASE_KINDS`, so the kind that is missing stays
+  missing.** Write the table, export it, sweep the kind list in a test.
+- **For a refactor whose claim is "nothing else moved", the noise gauge is the SAME build shot
+  twice — not the unchanged kinds' diff against the baseline.** The 14-kind sweep here reported
+  archipelago 1.41%, garden 0.48%, river 0.39% and galaxy at maxDelta **226** changed between
+  before and after, which reads as a refactor that leaked. Re-shooting the after build against
+  itself reproduced every one of those to the third decimal (1.410 / 0.483 / 0.395, maxDelta 225) —
+  it is the scenes' own animation, and the only honest per-kind figure is `change` minus `noise`,
+  which is terrain **84.343% against a 0.001% floor** and zero everywhere else.
 
 ---
 
 ## Full findings
+
+- **`terrain` had no sky, and the reason it had none for months is that "which sky does this kind
+  get" was written as control flow** (`utils/metaphorSkyBackdrops.js`, `TerrainSky` in
+  `TerrainScene.jsx`). Thirteen of the fourteen base kinds reached a `GradientSkySphere` through a
+  chain of eleven ternaries inside `MetaphorRenderer`'s JSX. Terrain was on none of them, so the
+  landscape was drawn against the raw `<color attach="background">` clear colour — while
+  `AdaptiveFog` softened its distance toward `theme.skyHorizonColor` and `SoaringBirds` lerped its
+  wings toward the same value. On whiteboard those two colours are neighbours (`#e9eef5` vs
+  `#dde5ef`) and it passed; on the three dark presets the horizon band was visibly fading into
+  something that was never a sky. Five things worth keeping:
+
+  - **Measured, base terrain × 4 themes × 3 viewports.** Whole-canvas `nearBlack` on the dark
+    presets: noir **0.7925 → 0.1365** (phone), 0.7270 → 0.1409 (cover), 0.7704 → 0.1710 (desktop);
+    arcade 0.7727 → 0.4169 / 0.6845 → 0.3007 / 0.7365 → 0.4470; blueprint 0.7725 → **0.0001** /
+    0.6929 → 0.0001 / 0.7363 → 0.0002. Whiteboard was already 0.0000 and stays there; its sky mean
+    falls 0.6686 → 0.6587 because a flat fill became a gradient, and its distinct sky shades rise
+    (263 → 272 desktop, 245 → 251 cover) — the tonal information a backdrop is for.
+  - **It reaches the fused composite, but only two pairings can prove it.** `skyKind` for a
+    composite is `resolveCompositeAtmosphere`, and that table's `terrain` row is **last**, below
+    `city`, `layercake`, `machine`, `tree`, `garden`, the `galaxy` pair, the `path` ROLE (river,
+    bridge, **subway**) and the `substrate` role. Of the 13 possible second layers only `cycle` and
+    `iceberg` leave a terrain-dominant world with a terrain sky. A first probe paired terrain with
+    subway, got the river atmosphere by role, and reported a pixel-identical before/after that
+    looked exactly like the fix not reaching composites. With `terrain + cycle`: `nearBlack`
+    **0.43–0.58 → 0.04–0.36** across the nine dark cells, whiteboard unchanged.
+  - **Terrain takes the theme's own sky keys, not a daylight lock.** Its ramp is built from
+    `terrainBaseColor`, which noir, arcade and blueprint each author differently, so it belongs with
+    `city`/`subway`/`machine`. Locking it to daylight would have bought the same `nearBlack` win and
+    paid for it with the `tree-themes-read-alike` cost — four themes that render alike.
+  - **The table is the deliverable, not the terrain row.** `SKY_BACKDROP_BY_KIND` is keyed by kind
+    and `SKY_BACKDROP_COMPONENTS` binds each id to a component; the test sweeps
+    `METAPHOR_BASE_KINDS` and, by reading `MetaphorRenderer.jsx` as text (importing it drags in R3F,
+    drei and troika), asserts every id is bound. Deleting the terrain row fails three cases.
+  - **Where the test had to live, and why it is not a new file.** `apps/web/test/metaphor*.test.js`
+    must appear in `METAPHOR_BLAST_TESTS` in `scripts/test-affected-lib.mjs`, which no automation
+    on this shelf may edit, so the cases went into `metaphorThemePresets.test.js` — the same
+    constraint the ledger records as `metaphor-suite-blast-list`.
+
+- **Two traps in a "nothing else moved" sweep, both paid for on the terrain sky run.** The claim a
+  table refactor has to support is that thirteen kinds render identically, and the obvious evidence
+  — diff each kind before vs after — is not evidence: archipelago came back 1.379% of pixels
+  changed, garden 0.487%, river 0.389%, galaxy at **maxDelta 226**, none of which the change can
+  reach. **Shoot the after build a second time and diff it against itself**: 1.410 / 0.483 / 0.395 /
+  225, i.e. the whole of it is the scenes' own animation (`reducedMotion: 'reduce'` kills the intro
+  auto-rotate, not the metaphor clock). Read `change − noise`, which was terrain 84.343% against a
+  0.001% floor and nothing anywhere else. The second trap is cheaper and nastier: the first sweep
+  printed `done` and wrote **zero screenshots**, because `switchMetaphorKind` returns `{ ok, text }`
+  and the generator read `r.source`, so `JSON.stringify` dropped every undefined value and the loop
+  had nothing to iterate. A harness that produces no cells must throw, not finish — assert the cell
+  count in the generator AND in the differ.
 
 - **The fullscreen kind switcher refused 15 of its 196 kind pairs and quietly flattened 51 more,
   and both were one defect: a magnitude copied between two fields with different domains.**

@@ -1,5 +1,8 @@
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
+import { METAPHOR_BASE_KINDS } from '@archislop/shared';
 import { isDarkBackdrop, shiftColor } from '../src/components/metaphorScenes/sceneUtils.js';
 import {
   DEFAULT_POSTFX,
@@ -27,6 +30,7 @@ import {
   raiseSurfacesForDaylight,
   srgbLuma
 } from '../src/utils/metaphorDaylightSurfaces.js';
+import { SKY_BACKDROP_IDS, resolveSkyBackdrop } from '../src/utils/metaphorSkyBackdrops.js';
 
 /**
  * sRGB relative luminance, which is the quantity a bloom threshold is compared
@@ -488,5 +492,55 @@ describe('space sky lock', () => {
         resolveMetaphorSceneTheme({ themeId, kind: 'galaxy', moodId: null }).skyHorizonColor
     );
     expect(new Set(skies).size).toBe(THEMES.length);
+  });
+});
+
+// The sensor for the defect this table was extracted to fix: `terrain` was on
+// none of the eleven ternaries that used to choose a sky inside
+// `MetaphorRenderer`'s JSX, so the one kind whose subject IS a landscape was
+// drawn against the flat clear colour while its own haze faded toward
+// `skyHorizonColor`. Control flow cannot be asserted; a table can.
+//
+// Here rather than in a `metaphorSkyBackdrops.test.js` of its own for the reason
+// given above `describe('resolveMetaphorSceneTheme')` — the blast list.
+describe('sky backdrop table', () => {
+  it.each([...METAPHOR_BASE_KINDS])('gives %s a backdrop', (kind) => {
+    expect(resolveSkyBackdrop(kind)).toEqual(expect.any(String));
+  });
+
+  it('keeps terrain on the table', () => {
+    // Named rather than left to the sweep above, like the tree's daylight entry:
+    // this is the row whose absence was the bug, and a table that silently loses
+    // a row still passes a test that only iterates the table.
+    expect(resolveSkyBackdrop('terrain')).toBe('terrain');
+  });
+
+  it('shares one backdrop where two kinds deliberately share a sky', () => {
+    expect(resolveSkyBackdrop('layercake')).toBe(resolveSkyBackdrop('city'));
+    expect(resolveSkyBackdrop('orrery')).toBe(resolveSkyBackdrop('galaxy'));
+    // …and the space lock is keyed by KIND, so both still take it.
+    expect(Object.keys(SPACE_LOCKED_KINDS).sort()).toEqual(['galaxy', 'orrery']);
+  });
+
+  it('answers null for a composite or an unknown kind rather than throwing', () => {
+    // The renderer passes the DOMINANT layer's kind, never `'composite'` — the
+    // fused scene paints its own atmosphere. An absent entry must mount nothing.
+    for (const kind of [null, undefined, '', 'composite', 'nope']) {
+      expect(resolveSkyBackdrop(kind)).toBeNull();
+    }
+  });
+
+  // Source-text rather than an import: pulling `MetaphorRenderer.jsx` into a
+  // node test drags in R3F, drei and troika. Same technique, and the same
+  // reason, as `metaphorDrawOrder.test.js`'s draw-order sweep.
+  it('binds every backdrop id to a component in MetaphorRenderer', () => {
+    const source = readFileSync(
+      fileURLToPath(new URL('../src/components/MetaphorRenderer.jsx', import.meta.url)),
+      'utf8'
+    );
+    const table = source.match(/const SKY_BACKDROP_COMPONENTS = Object\.freeze\(\{([^}]*)\}\)/);
+    expect(table).not.toBeNull();
+    const bound = [...table[1].matchAll(/^\s*(\w+):/gm)].map((m) => m[1]);
+    expect(bound.sort()).toEqual([...SKY_BACKDROP_IDS].sort());
   });
 });
