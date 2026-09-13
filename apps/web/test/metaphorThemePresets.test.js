@@ -542,5 +542,9 @@ describe('sky backdrop table', () => {
     expect(table).not.toBeNull();
     const bound = [...table[1].matchAll(/^\s*(\w+):/gm)].map((m) => m[1]);
     expect(bound.sort()).toEqual([...SKY_BACKDROP_IDS].sort());
+    // The wiring is the half a value check cannot see: the table is useless
+    // unless the resolved component is mounted.
+    expect(source).toMatch(/SKY_BACKDROP_COMPONENTS\[resolveSkyBackdrop\(/);
+    expect(source).toMatch(/\{SkyBackdrop \? <SkyBackdrop/);
   });
 });
