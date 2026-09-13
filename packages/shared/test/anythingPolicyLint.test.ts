@@ -194,19 +194,37 @@ document.title = String(hasQuote('a'));`
 });
 
 test('division after a keyword-suffixed identifier is still division', () => {
-  // The word-boundary half matters in both directions: `margin` ends in `in`
-  // and `align` ends in `n`, but neither is a keyword, so the `/` after them
-  // is division and must not swallow the rest of the line as a regex. A real
-  // external URL in an inline comment on the same line as `align /` goes red
-  // when the slash is mis-lexed as a regex opener.
+  // The probe rides on `margin`, and that is the whole point of the case:
+  // `margin` ends in `in`, which IS a keyword, so the leading `[^\w$.]` of
+  // `KEYWORD_BEFORE_REGEX` is the only thing stopping the lookback matching it.
+  // Probing `align` instead cannot see that regression — `align` ends in `gn`,
+  // so no keyword alternative matches it with or without the boundary, and
+  // dropping the boundary leaves a case probed that way green. It stays in the
+  // fixture as a second divisor, but it is not what this case is pinning.
   const doc = VALID_DOC.replace(
     "document.title='x';",
     `const margin = 40;
 const align = 10;
 const half = margin / 2 + align / 2;
-const probe = align / 2; // https://evil.com/x
+const probe = margin / 2; // https://evil.com/x
+const gap = align / 2; // https://evil.com/y
 // a trailing comment with slashes // like this
-document.title = String(half + probe);`
+document.title = String(half + probe + gap);`
+  );
+  assert.equal(lintAnythingPolicy(doc).ok, true);
+});
+
+test('division after a keyword-named property is still division', () => {
+  // The `.` in `[^\w$.]` is the other half of that boundary and nothing
+  // asserted it: `delete` is a keyword, but `map.delete` is a property access,
+  // so the `/` after it is division. Without the `.` the lookback matches the
+  // `delete` and this document is rejected.
+  const doc = VALID_DOC.replace(
+    "document.title='x';",
+    `const map = new Map();
+const rate = map.delete / 2; // https://evil.com/x
+// a trailing comment with slashes // like this
+document.title = String(rate);`
   );
   assert.equal(lintAnythingPolicy(doc).ok, true);
 });
