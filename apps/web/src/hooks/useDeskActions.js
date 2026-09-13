@@ -108,8 +108,10 @@ function sleep(ms) {
  * Time** (it mutes interruptions, not your own initiative) and skip the random
  * scheduler entirely. Coffee bypasses a streaming agent run — you can step
  * away from deliverables (colleagues may still lean over your shoulder on
- * their own schedule). Other verbs still respect one-surface-at-a-time, an
- * open meeting, and a streaming agent run.
+ * their own schedule). Answering something you typed bypasses
+ * one-surface-at-a-time as well, because a reply held by a toast is not a late
+ * reply, it is no reply. Everything else still respects all three — see
+ * `blockedReasonFor`'s table for which rung belongs to whom.
  * director backs off afterwards, but never spend its session caps.
  *
  * @param {{
@@ -185,27 +187,48 @@ export function useDeskActions(params) {
   }, []);
 
   /**
-   * Why a verb is unavailable right now, or null when it can run. Focus Time
-   * is deliberately absent — muting the office does not ground you.
+   * Why a verb is unavailable right now, or null when it can run — in three
+   * rungs, of which `gate` decides how many apply. Focus Time is deliberately
+   * absent from all of them: muting the office does not ground you.
+   *
+   * | Gate            | pause | meeting | open surface | Who                          |
+   * | --------------- | ----- | ------- | ------------ | ---------------------------- |
+   * | `'deliverable'` | ✓     | ✓       | ✓            | verbs coupled to the canvas  |
+   * | `'ambient'`     |       | ✓       | ✓            | coffee, a walk               |
+   * | `'answering'`   |       | ✓       |              | a reply to a sentence you typed |
+   *
+   * The third rung is `docs/office-parody.md` § 11's ambient/reactive axis
+   * arriving in the **gate**, where until now it lived only in the appetite
+   * table. `talkOutLoud` and `remarkTo` each already say this in their own
+   * words — _"being unable to speak because an IM toast is up would be absurd"_
+   * — and each buys it by sidestepping `runVerb` altogether. `imSomeone` could
+   * not: it still wants the mutex and the cadence-memory write, so it inherited
+   * the ambient gate instead, and a sentence you typed at somebody standing in
+   * front of you went **unanswered** — no model call, not even a bank line —
+   * for the nine seconds any IM toast happened to be on screen.
+   *
+   * Order is load-bearing: `blockedReason()` is what the dock shows as a
+   * tooltip, and `'busy'` outranks `'meeting'` there.
+   *
+   * @param {'deliverable' | 'ambient' | 'answering'} gate
+   * @returns {string | null}
    */
-  const blockedReason = useCallback(() => {
+  const blockedReasonFor = useCallback((gate) => {
     const p = paramsRef.current;
-    if (p.pause) return 'busy';
+    if (gate === 'deliverable' && p.pause) return 'busy';
     if (p.meetingActive) return 'meeting';
-    if (hasActiveOfficeSurface()) return 'surface';
+    if (gate !== 'answering' && hasActiveOfficeSurface()) return 'surface';
     return null;
   }, []);
+
+  /** The dock's tooltip and the default gate: a verb coupled to the canvas. */
+  const blockedReason = useCallback(() => blockedReasonFor('deliverable'), [blockedReasonFor]);
 
   /**
    * Gating for ambient desk verbs (coffee, walk) that are independent of canvas
    * deliverables — you can step away while a run streams; colleagues may comment.
    */
-  const ambientBlockedReason = useCallback(() => {
-    const p = paramsRef.current;
-    if (p.meetingActive) return 'meeting';
-    if (hasActiveOfficeSurface()) return 'surface';
-    return null;
-  }, []);
+  const ambientBlockedReason = useCallback(() => blockedReasonFor('ambient'), [blockedReasonFor]);
 
   const deliveryOptions = useCallback(
     (extra = {}) => ({
@@ -217,11 +240,14 @@ export function useDeskActions(params) {
     [memory, random]
   );
 
+  /**
+   * @param {() => unknown} fn
+   * @param {{ gate?: 'deliverable' | 'ambient' | 'answering' }} [options]
+   */
   const runVerb = useCallback(
-    async (fn, { bypassPause = false } = {}) => {
+    async (fn, { gate = 'deliverable' } = {}) => {
       if (busyRef.current) return false;
-      const reason = bypassPause ? ambientBlockedReason() : blockedReason();
-      if (reason) return false;
+      if (blockedReasonFor(gate)) return false;
       busyRef.current = true;
       try {
         return await fn();
@@ -230,7 +256,7 @@ export function useDeskActions(params) {
         if (memoryRef.current) writeOfficeCadenceMemory(memoryRef.current);
       }
     },
-    [ambientBlockedReason, blockedReason]
+    [blockedReasonFor]
   );
 
   /** Walk to the machine yourself — no invite pill, you're already standing there. */
@@ -243,7 +269,7 @@ export function useDeskActions(params) {
           if (delivered) acceptOfficeCoffee();
           return delivered;
         },
-        { bypassPause: true }
+        { gate: 'ambient' }
       ),
     [deliveryOptions, random, runVerb]
   );
@@ -284,7 +310,7 @@ export function useDeskActions(params) {
           if (delivered) paramsRef.current.onOfficeEvent?.('walkedFloor');
           return delivered;
         },
-        { bypassPause: true }
+        { gate: 'ambient' }
       ),
     [deliveryOptions, random, runVerb]
   );
@@ -379,14 +405,24 @@ export function useDeskActions(params) {
    */
   const imSomeone = useCallback(
     (colleagueId, replyContext, channel) =>
-      runVerb(() =>
-        deliverImReply({
-          target: colleagueId ?? pickRandomFrom(DESK_IM_CAST, random),
-          replyContext,
-          counterRef: deskLlmCountRef,
-          cap: DESK_LLM_CAP,
-          ...(channel ? { channel } : {})
-        })
+      runVerb(
+        () =>
+          deliverImReply({
+            target: colleagueId ?? pickRandomFrom(DESK_IM_CAST, random),
+            replyContext,
+            counterRef: deskLlmCountRef,
+            cap: DESK_LLM_CAP,
+            ...(channel ? { channel } : {})
+          }),
+        /* `'answering'`, not the default, and the two callers are why: Slop
+           Chat™'s composer and the floor's talk card both hand this verb a
+           sentence the user has just typed at a named colleague. Under the
+           ambient gate an `im` desk-arrival toast — including **the toast this
+           verb's own previous reply raised**, which lives 9 s — made the answer
+           not late but absent: `runVerb` returned before the ladder ran, so
+           there was no model call and no bank line either, and a two-turn
+           conversation in the messenger was unreachable by construction. */
+        { gate: 'answering' }
       ),
     [deliverImReply, random, runVerb]
   );
