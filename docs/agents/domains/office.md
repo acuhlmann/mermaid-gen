@@ -462,6 +462,17 @@ https://api.deepseek.com/` — 401 is reachable, 000 is blocked); never route ar
   (`chat`, `walkby`) carries no detail and is untouched. **Before adding a log kind, ask what
   makes two of its entries different** — a kind whose identity lives in `detail` is invisible to
   any key that ignores it.
+- **A reply to something you typed sits on its own rung of the block ladder.** `blockedReasonFor`
+  (`apps/web/src/hooks/useDeskActions.js`) takes a `gate`: `'deliverable'` (pause + meeting +
+  surface), `'ambient'` (meeting + surface), `'answering'` (**meeting only**). `imSomeone` is
+  `'answering'`, because both its callers — Slop Chat™'s composer and the floor's talk card
+  (`OfficeLayer.handleMessengerSend` / `handleTalkReply`) — hand it a sentence the user has just
+  typed at a named colleague. On the ambient rung an `im` desk-arrival toast, 9 s of it
+  (`DESK_ARRIVAL_TTL_MS`), made `runVerb` return **before the delivery ladder ran**: no model call
+  and no bank line either. `talkOutLoud` and `remarkTo` already carried this rule in their own
+  comments and bought it by sidestepping `runVerb` entirely; `imSomeone` could not, because it
+  still wants the mutex and the cadence-memory write in `runVerb`'s `finally`.
+
 - **After presence / TTS / desk-frame edits**, prefer `apps/web/test/officePresence.test.js`,
   `deskOsPresenceStrip.test.jsx`, `deskOsFrameStyles.test.js`, `apps/server/test/officeTts.test.js`,
   `officeRoute.test.js` (or `npm run test:affected`). **After isometric-floor edits**, `npm run
@@ -1139,6 +1150,36 @@ y)`, so the obvious sweep silently iterates an empty list; and pacing the exchan
   honest designs answer the same queue item, prefer the one whose consequence lands on an axis the
   instrument already reports.** A held item would have needed a step note to be visible, and
   changing a step in the run that needs its number is the one edit § 2 forbids.
+- **"Canned" was the wrong suspect: the most provoked line in the office was not canned, it was
+  absent.** The scripted visit's composer sentence — the single most reactive thing this office can
+  be handed — provoked **zero** `/api/office/moment` calls on twelve runs across four nights, and
+  the ledger read that as a cadence question. It was a gate: `imSomeone` ran on the ambient rung of
+  `blockedReason`, so any `im` desk-arrival toast on screen made `runVerb` return `false` before
+  `deliverImReply` was ever called. Not a canned answer — **no answer**, on the one channel where
+  § 11 says silence is indistinguishable from nobody being home. Two consequences worth keeping
+  separately from the fix.
+  - **A Slop Chat™ reply raises its own toast** (`pushOfficeImPing` calls `pushDeskArrival` for
+    every channel but `talk`), so the verb armed the gate that then refused its own next turn: a
+    **two-turn conversation in the messenger was unreachable by construction**, and nothing in the
+    UI said so — `runVerb` returning `false` looks exactly like a colleague with nothing to say.
+  - **The bug was already written down, in two tests, as a workaround.** `useDeskActions.test.jsx`
+    carried `_resetForTests()` between the two halves of one user journey, commented _"the untagged
+    ping raised a desk arrival, which blocks the next verb"_ and _"each ping is its own surface;
+    clear so the next verb isn't blocked"_. Deleting those two resets is what turned the existing
+    #552 test red before the fix. **A store reset in the middle of a single user journey is a bug
+    report nobody filed** — when a test has to clear state the user cannot clear, ask what the user
+    would have experienced instead.
+
+  Measured on the fixed visit, 3 runs each arm, one machine, `DEEPSEEK_API_KEY` present:
+  `mode.verdict` `no-llm-calls` → **`generated`**, `askedTheModel` 0 → 1, `answeredByModel` 0 → 1,
+  `speech.count` 11 → 12 with a `talk` channel that had never appeared, `bySource.model` 0 → **1**
+  (the first non-zero this instrument has ever recorded), `afterwards.workingMemory` gains a
+  `gilfoyle` row and `logDigest` 5 → 6 — all 3 of 3, both arms. The three answers were three
+  different sentences about the fixture diagram, which is the evidence the arm is generated and not
+  a wider bank. **No cap was raised and no call site added**: `DESK_LLM_CAP` still bounds it at 4,
+  so the ceiling is unchanged and what moved is that the calls the appetite table already budgeted
+  for now happen. Calls per visit: `/api/office/moment` 0 → 1, `/api/office/speak` 2 → 3.
+
 - **After presence / TTS / desk-frame edits**, prefer `apps/web/test/officePresence.test.js`,
   `deskOsPresenceStrip.test.jsx`, `deskOsFrameStyles.test.js`, `apps/server/test/officeTts.test.js`,
   `officeRoute.test.js` (or `npm run test:affected`). **After isometric-floor edits**, `npm run

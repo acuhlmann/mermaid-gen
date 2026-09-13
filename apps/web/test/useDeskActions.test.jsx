@@ -5,6 +5,8 @@ import { DESK_LLM_CAP, useDeskActions } from '../src/hooks/useDeskActions.js';
 import {
   _resetForTests,
   getOfficeSnapshot,
+  hasActiveOfficeSurface,
+  pushOfficeImPing,
   pushOfficeWalkBy,
   setOfficeFocusTime
 } from '../src/state/officeMomentStore.js';
@@ -127,9 +129,10 @@ describe('useDeskActions', () => {
     const typed = getOfficeSnapshot().imHistory.find((m) => !m.outbound);
     expect(isSpokenLine(typed)).toBe(false);
 
-    // The untagged ping raised a desk arrival, which blocks the next verb —
-    // clear the surface before driving the spoken half.
-    _resetForTests();
+    // The untagged ping raised a desk arrival. That used to block the next
+    // verb, and this test cleared the surface to get past it; the workaround
+    // was the bug wearing a test's clothes — see the `'answering'` gate.
+    expect(getOfficeSnapshot().deskArrivals.some((a) => a.kind === 'im')).toBe(true);
 
     // The floor's talk composer passes the medium explicitly, and the answer
     // must be a line `latestTalkLine`/`FloorTalk` will actually read.
@@ -141,6 +144,108 @@ describe('useDeskActions', () => {
       .at(-1);
     expect(spoken?.body).toBe('it reads fine to me');
     expect(isSpokenLine(spoken)).toBe(true);
+  });
+
+  /*
+   * The `'answering'` gate (`blockedReasonFor`). Measured in the scripted visit
+   * before these existed: the composer sentence — the single most reactive thing
+   * the office can be handed — provoked **zero** `/api/office/moment` calls on
+   * twelve runs across four nights, and no bank line either, because a colleague
+   * in an unrelated chat had left a nine-second toast on screen.
+   */
+  it('answers a sentence you typed while an unrelated IM toast is on screen', async () => {
+    const fetchMock = vi.fn(() =>
+      Promise.resolve({
+        ok: true,
+        json: async () => ({
+          moment: { body: 'it reads fine to me', colleagueId: 'gilfoyle', kind: 'im' }
+        })
+      })
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    // Chad's welcome IM, which nobody asked for and which owns the corner of the
+    // screen for nine seconds.
+    pushOfficeImPing({ colleagueId: 'intern', body: 'welcome to the sloppiest team in tech!!' });
+    expect(hasActiveOfficeSurface()).toBe(true);
+
+    const { result } = renderHook(() => useDeskActions(BASE_PARAMS));
+    await act(async () => {
+      await result.current.imSomeone(
+        'gilfoyle',
+        { userMessage: 'Does this diagram make sense to you?' },
+        'talk'
+      );
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const spoken = getOfficeSnapshot()
+      .imHistory.filter((m) => !m.outbound && m.colleagueId === 'gilfoyle')
+      .at(-1);
+    expect(spoken?.body).toBe('it reads fine to me');
+  });
+
+  it('answers the second turn of a chat — the old block was the first reply’s own toast', async () => {
+    const fetchMock = vi.fn(() =>
+      Promise.resolve({
+        ok: true,
+        json: async () => ({ moment: { body: 'sure', colleagueId: 'intern', kind: 'im' } })
+      })
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    const { result } = renderHook(() => useDeskActions(BASE_PARAMS));
+
+    await act(async () => {
+      await result.current.imSomeone('intern', { userMessage: 'morning' });
+    });
+    // Slop Chat™ replies raise a toast (`pushOfficeImPing`; `talk` skips it), so
+    // the verb was arming the gate that then refused its own next turn.
+    expect(getOfficeSnapshot().deskArrivals.some((a) => a.kind === 'im')).toBe(true);
+
+    await act(async () => {
+      await result.current.imSomeone('intern', { userMessage: 'and the auth box?' });
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(getOfficeSnapshot().imHistory.filter((m) => !m.outbound)).toHaveLength(2);
+  });
+
+  it('answers something you typed while a deliverable streams, but not mid-meeting', async () => {
+    const fetchMock = vi.fn(() =>
+      Promise.resolve({
+        ok: true,
+        json: async () => ({ moment: { body: 'looks ok', colleagueId: 'intern', kind: 'im' } })
+      })
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    // Typing at somebody while a run streams is exactly when you would.
+    const streaming = renderHook(() => useDeskActions({ ...BASE_PARAMS, pause: true }));
+    await act(async () => {
+      await streaming.result.current.imSomeone('intern', { userMessage: 'still going?' });
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    // The one rung `'answering'` keeps: you are in a meeting, in front of people.
+    _resetForTests();
+    fetchMock.mockClear();
+    const meeting = renderHook(() => useDeskActions({ ...BASE_PARAMS, meetingActive: true }));
+    await act(async () => {
+      await meeting.result.current.imSomeone('intern', { userMessage: 'anyone?' });
+    });
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(getOfficeSnapshot().imHistory.filter((m) => !m.outbound)).toHaveLength(0);
+  });
+
+  it('leaves the ambient verbs behind the surface gate', async () => {
+    // The guard against reading the fix as "the gate was wrong", rather than
+    // "one verb was on the wrong rung of it": an ambient verb is still refused
+    // by exactly the toast a typed answer now walks past.
+    pushOfficeImPing({ colleagueId: 'intern', body: 'standup in 5' });
+    const { result } = renderHook(() => useDeskActions(BASE_PARAMS));
+    expect(result.current.ambientBlockedReason).toBe('surface');
+    await act(async () => {
+      await result.current.getCoffee();
+    });
+    expect(getOfficeSnapshot().coffee).toBeNull();
   });
 
   it('delivers a contextual canned email reply when the user composes mail', async () => {
