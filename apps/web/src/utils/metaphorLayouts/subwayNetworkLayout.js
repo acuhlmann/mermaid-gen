@@ -419,21 +419,8 @@ export function resolveInterchangeGroups(items) {
   return groups;
 }
 
-/**
- * @param {Array<Record<string, unknown>>} items
- * @returns {{
- *   positions: Map<string, [number, number, number]>,
- *   lines: Array<{ name: string, index: number, stops: Array<{ id: string, position: [number, number, number], traffic: number }>, sign: [number, number, number] | null }>,
- *   stations: Array<{ id: string, position: [number, number, number], members: string[], primary: string, title: string, lines: string[], lineIndices: number[], traffic: number, platformRadius: number }>,
- *   stationOf: Map<string, string>,
- *   bounds: { radius: number }
- * }}
- */
-export function subwayNetworkLayout(items) {
-  const valid = items.filter((item) => item && typeof item.id === 'string');
-  const groups = resolveInterchangeGroups(valid);
-  const itemById = new Map(valid.map((item) => [item.id, item]));
-
+/** Bucket stops by route name, each route ordered by its own `stop` value. */
+function groupStopsByLine(valid) {
   /** @type {Map<string, Array<Record<string, unknown>>>} */
   const byLine = new Map();
   for (const item of valid) {
@@ -442,35 +429,42 @@ export function subwayNetworkLayout(items) {
     byLine.get(key).push(item);
   }
   for (const stops of byLine.values()) stops.sort((a, b) => stopValue(a) - stopValue(b));
+  return byLine;
+}
 
-  const lineNames = [...byLine.keys()];
-  const lineCount = lineNames.length;
-  const lineIndexByName = new Map(lineNames.map((name, index) => [name, index]));
-  const longestLine = Math.max(1, ...lineNames.map((name) => byLine.get(name).length));
-
-  /** @type {Map<string, string[]>} station id → member item ids */
+/** Station id → the item ids sharing that platform (one each, unless interchanged). */
+function groupItemsByStation(valid, groups) {
+  /** @type {Map<string, string[]>} */
   const members = new Map();
   for (const item of valid) {
     const station = groups.get(item.id);
     if (!members.has(station)) members.set(station, []);
     members.get(station).push(item.id);
   }
+  return members;
+}
 
-  // Progress along the route, normalised so a 3-stop line and an 8-stop line
-  // both run the full width and a shared station lands at a comparable place
-  // on each.
-  /** @type {Map<string, number>} item id → 0…1 progress */
+/**
+ * Progress along the route, normalised so a 3-stop line and an 8-stop line both
+ * run the full width and a shared station lands at a comparable place on each.
+ *
+ * @returns {Map<string, number>} item id → 0…1
+ */
+function routeProgress(byLine) {
   const progress = new Map();
-  for (const [name, stops] of byLine) {
+  for (const stops of byLine.values()) {
     const last = Math.max(1, stops.length - 1);
     stops.forEach((item, index) => progress.set(item.id, index / last));
-    void name;
   }
+  return progress;
+}
 
-  const laneZ = (lineIndex) => (lineIndex - (lineCount - 1) / 2) * LANE_GAP;
-  const spanX = (longestLine - 1) * STOP_SPACING;
-
-  /** @type {Map<string, [number, number, number]>} station id → position */
+/**
+ * Place each station at the mean of its members' progress and lane.
+ *
+ * @returns {Map<string, [number, number, number]>} station id → position
+ */
+function stationCentres(members, { progress, laneZ, lineIndexByName, itemById, spanX }) {
   const stationPositions = new Map();
   for (const [station, ids] of members) {
     let sumProgress = 0;
@@ -487,22 +481,31 @@ export function subwayNetworkLayout(items) {
       sumLane / ids.length
     ]);
   }
+  return stationPositions;
+}
 
-  // Keep each route monotonic: two stations whose averaged progress ties would
-  // otherwise overlap, and a route that steps backwards reads as a mistake.
+/**
+ * Keep each route monotonic: two stations whose averaged progress ties would
+ * otherwise overlap, and a route that steps backwards reads as a mistake.
+ *
+ * Mutates the positions in place — an interchange is shared, so nudging it for
+ * one route has to move it for every route through it.
+ */
+function enforceMonotonicRoutes(byLine, groups, stationPositions) {
   const MIN_STEP = STOP_SPACING * 0.45;
-  for (const [name, stops] of byLine) {
+  for (const stops of byLine.values()) {
     let previousX = -Infinity;
     for (const item of stops) {
-      const station = groups.get(item.id);
-      const point = stationPositions.get(station);
+      const point = stationPositions.get(groups.get(item.id));
       if (!point) continue;
       if (point[0] < previousX + MIN_STEP) point[0] = previousX + MIN_STEP;
       previousX = point[0];
     }
-    void name;
   }
+}
 
+/** An authored `position` wins outright; everything else sits at its station. */
+function resolveItemPositions(valid, groups, stationPositions) {
   /** @type {Map<string, [number, number, number]>} */
   const positions = new Map();
   for (const item of valid) {
@@ -513,23 +516,21 @@ export function subwayNetworkLayout(items) {
     const point = stationPositions.get(groups.get(item.id)) ?? [0, 0, 0];
     positions.set(item.id, [...point]);
   }
+  return positions;
+}
 
-  const lines = lineNames.map((name, index) => ({
-    name,
-    index,
-    stops: byLine.get(name).map((item) => ({
-      id: item.id,
-      position: positions.get(item.id) ?? [0, 0, 0],
-      traffic: typeof item.traffic === 'number' && Number.isFinite(item.traffic) ? item.traffic : 5
-    }))
-  }));
+/** Sum of a station's members' traffic, defaulting each missing one to 5. */
+function stationTraffic(ids, itemById) {
+  return ids.reduce((sum, id) => {
+    const raw = itemById.get(id)?.traffic;
+    return sum + (typeof raw === 'number' && Number.isFinite(raw) ? raw : 5);
+  }, 0);
+}
 
-  const stations = [...members.entries()].map(([station, ids]) => {
+function buildStations(members, { itemById, positions, lineIndexByName }) {
+  return [...members.entries()].map(([station, ids]) => {
     const stationLines = [...new Set(ids.map((id) => lineKey(itemById.get(id) ?? {})))];
-    const traffic = ids.reduce((sum, id) => {
-      const raw = itemById.get(id)?.traffic;
-      return sum + (typeof raw === 'number' && Number.isFinite(raw) ? raw : 5);
-    }, 0);
+    const traffic = stationTraffic(ids, itemById);
     return {
       id: station,
       position: positions.get(ids[0]) ?? [0, 0, 0],
@@ -546,6 +547,90 @@ export function subwayNetworkLayout(items) {
       platformRadius: subwayStationRadius(traffic, stationLines.length > 1)
     };
   });
+}
+
+/**
+ * Longest route first: it has the most gaps to choose from, so letting it go
+ * last would hand the crowded network's only quiet corner to a two-stop line.
+ *
+ * Each placed sign joins `placed`, so later routes route around it. Writes
+ * `line.sign` in place.
+ */
+function placeRouteSigns(lines, radiusOf, { reachX, reachZ, stations }) {
+  const placedSigns = [];
+  for (const line of [...lines].sort((a, b) => b.stops.length - a.stops.length)) {
+    line.sign = subwayRouteSign(line.stops, radiusOf, {
+      reachX,
+      reachZ,
+      stations,
+      placed: placedSigns
+    });
+    if (line.sign) placedSigns.push(line.sign);
+  }
+}
+
+/** The disc the whole network sits inside, never smaller than 4. */
+function networkRadius(stations) {
+  let radius = 4;
+  for (const station of stations) {
+    radius = Math.max(
+      radius,
+      Math.hypot(station.position[0], station.position[2]) +
+        subwayPlatformRadius(station.traffic) +
+        0.9
+    );
+  }
+  return radius;
+}
+
+/**
+ * @param {Array<Record<string, unknown>>} items
+ * @returns {{
+ *   positions: Map<string, [number, number, number]>,
+ *   lines: Array<{ name: string, index: number, stops: Array<{ id: string, position: [number, number, number], traffic: number }>, sign: [number, number, number] | null }>,
+ *   stations: Array<{ id: string, position: [number, number, number], members: string[], primary: string, title: string, lines: string[], lineIndices: number[], traffic: number, platformRadius: number }>,
+ *   stationOf: Map<string, string>,
+ *   bounds: { radius: number }
+ * }}
+ */
+export function subwayNetworkLayout(items) {
+  const valid = items.filter((item) => item && typeof item.id === 'string');
+  const groups = resolveInterchangeGroups(valid);
+  const itemById = new Map(valid.map((item) => [item.id, item]));
+
+  const byLine = groupStopsByLine(valid);
+  const lineNames = [...byLine.keys()];
+  const lineCount = lineNames.length;
+  const lineIndexByName = new Map(lineNames.map((name, index) => [name, index]));
+  const longestLine = Math.max(1, ...lineNames.map((name) => byLine.get(name).length));
+
+  const members = groupItemsByStation(valid, groups);
+  const progress = routeProgress(byLine);
+
+  const laneZ = (lineIndex) => (lineIndex - (lineCount - 1) / 2) * LANE_GAP;
+  const spanX = (longestLine - 1) * STOP_SPACING;
+
+  const stationPositions = stationCentres(members, {
+    progress,
+    laneZ,
+    lineIndexByName,
+    itemById,
+    spanX
+  });
+  enforceMonotonicRoutes(byLine, groups, stationPositions);
+  const positions = resolveItemPositions(valid, groups, stationPositions);
+
+  const lines = lineNames.map((name, index) => ({
+    name,
+    index,
+    stops: byLine.get(name).map((item) => ({
+      id: item.id,
+      position: positions.get(item.id) ?? [0, 0, 0],
+      traffic: typeof item.traffic === 'number' && Number.isFinite(item.traffic) ? item.traffic : 5
+    }))
+  }));
+
+  const stations = buildStations(members, { itemById, positions, lineIndexByName });
 
   const stationOf = new Map(groups);
 
@@ -587,28 +672,13 @@ export function subwayNetworkLayout(items) {
   // desktop — comfortably inside the frame the stations themselves define.
   const reachZFloor = ROUTE_SIGN_LATERAL + ROUTE_SIGN_CLEARANCE;
   const reachZ = lines.length <= 1 ? Math.max(reachOn(2), reachZFloor) : reachOn(2);
-  // Longest route first: it has the most gaps to choose from, so letting it go
-  // last would hand the crowded network's only quiet corner to a two-stop line.
-  const placedSigns = [];
-  for (const line of [...lines].sort((a, b) => b.stops.length - a.stops.length)) {
-    line.sign = subwayRouteSign(line.stops, radiusOf, {
-      reachX,
-      reachZ,
-      stations,
-      placed: placedSigns
-    });
-    if (line.sign) placedSigns.push(line.sign);
-  }
+  placeRouteSigns(lines, radiusOf, { reachX, reachZ, stations });
 
-  let radius = 4;
-  for (const station of stations) {
-    radius = Math.max(
-      radius,
-      Math.hypot(station.position[0], station.position[2]) +
-        subwayPlatformRadius(station.traffic) +
-        0.9
-    );
-  }
-
-  return { positions, lines, stations, stationOf, bounds: { radius } };
+  return {
+    positions,
+    lines,
+    stations,
+    stationOf,
+    bounds: { radius: networkRadius(stations) }
+  };
 }
