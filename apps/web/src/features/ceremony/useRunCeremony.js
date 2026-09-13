@@ -25,6 +25,13 @@ import {
 import { recordOfficeLogEntry } from '../../state/officeLogStore.js';
 
 /**
+ * The Konami rainbow wash, applied to `document.body` rather than rendered, so
+ * its removal is a timer's job rather than React's. Named once because the add,
+ * the scheduled undo and the unmount undo all have to agree.
+ */
+const KONAMI_TINT_CLASS = 'slopitect-rainbow-tint';
+
+/**
  * Run ceremony state: boot overlays, streak HUD emissions, completion delight,
  * konami / prompt easter eggs.
  *
@@ -85,6 +92,15 @@ export function useRunCeremony({
     () => () => {
       for (const id of hudTimersRef.current) clearTimeout(id);
       hudTimersRef.current = [];
+      // One of those timers does not drive a setter: it owns the undo for a
+      // body class applied outside React (the Konami tint), and its callback is
+      // the only code that removes it. Cancelling that one strands the DOM
+      // mutation forever — invisible while the animation runs to `opacity: 0`,
+      // but a permanent full-viewport wash under `prefers-reduced-motion`,
+      // where App.css swaps the animation for a flat `opacity: 0.4`. A timer
+      // that undoes a side effect has to be run-or-undone on unmount, not just
+      // dropped.
+      document.body?.classList.remove(KONAMI_TINT_CLASS);
     },
     []
   );
@@ -399,8 +415,8 @@ export function useRunCeremony({
       tryAgentSound(playAchievementFanfare);
       scheduleHudTimer(() => tryAgentSound(playKonamiRainbow), 120);
       if (typeof document !== 'undefined' && document.body) {
-        document.body.classList.add('slopitect-rainbow-tint');
-        scheduleHudTimer(() => document.body.classList.remove('slopitect-rainbow-tint'), 5200);
+        document.body.classList.add(KONAMI_TINT_CLASS);
+        scheduleHudTimer(() => document.body.classList.remove(KONAMI_TINT_CLASS), 5200);
       }
     }
     window.addEventListener('keydown', handleKey);

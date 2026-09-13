@@ -47,9 +47,26 @@ function setup(props = {}) {
 // exercises the cancellation this fix is about.
 const EGG = [{ match: /rosebud/i, toast: 'Rosebud' }];
 
+const KONAMI_SEQUENCE = [
+  'ArrowUp',
+  'ArrowUp',
+  'ArrowDown',
+  'ArrowDown',
+  'ArrowLeft',
+  'ArrowRight',
+  'ArrowLeft',
+  'ArrowRight',
+  'b',
+  'a'
+];
+const TINT_CLASS = 'slopitect-rainbow-tint';
+
 describe('useRunCeremony HUD timers (#653)', () => {
   beforeEach(() => vi.useFakeTimers());
-  afterEach(() => vi.useRealTimers());
+  afterEach(() => {
+    vi.useRealTimers();
+    document.body.classList.remove(TINT_CLASS);
+  });
 
   it('cancels a pending toast dismissal when the hook unmounts', () => {
     const { result, unmount } = setup({ prompt: 'rosebud', promptEasterEggs: EGG });
@@ -74,5 +91,59 @@ describe('useRunCeremony HUD timers (#653)', () => {
       vi.advanceTimersByTime(1801);
     });
     expect(result.current.streakHudToasts).toHaveLength(0);
+  });
+});
+
+/*
+ * The same fix, one timer further: the Konami handler adds a body class
+ * *outside* React and schedules its removal 5200ms later. Cancelling a timer
+ * whose callback is a setter is the whole point of #653 — cancelling this one
+ * strands a DOM mutation with no owner, because that callback is the only code
+ * in the repo that removes the class. It is invisible for most users (the
+ * animation ends at `opacity: 0`), but `App.css`'s
+ * `@media (prefers-reduced-motion: reduce)` block replaces the animation with a
+ * flat `opacity: 0.4`, so a reduced-motion user keeps a full-viewport
+ * `z-index: 9999` rainbow wash for the rest of the session.
+ */
+describe('useRunCeremony Konami body tint (#653 follow-on)', () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => {
+    vi.useRealTimers();
+    document.body.classList.remove(TINT_CLASS);
+  });
+
+  it('removes the body tint when the hook unmounts inside the 5.2s window', () => {
+    const { unmount } = setup();
+
+    act(() => {
+      for (const key of KONAMI_SEQUENCE) {
+        window.dispatchEvent(new KeyboardEvent('keydown', { key }));
+      }
+    });
+
+    // Both halves of the premise, so the assertion after unmount cannot pass
+    // vacuously: the class is on, and its removal is still only pending.
+    expect(document.body.classList.contains(TINT_CLASS)).toBe(true);
+    expect(vi.getTimerCount()).toBeGreaterThan(0);
+
+    unmount();
+
+    expect(document.body.classList.contains(TINT_CLASS)).toBe(false);
+  });
+
+  it('still removes the body tint on time while mounted', () => {
+    setup();
+
+    act(() => {
+      for (const key of KONAMI_SEQUENCE) {
+        window.dispatchEvent(new KeyboardEvent('keydown', { key }));
+      }
+    });
+    expect(document.body.classList.contains(TINT_CLASS)).toBe(true);
+
+    act(() => {
+      vi.advanceTimersByTime(5201);
+    });
+    expect(document.body.classList.contains(TINT_CLASS)).toBe(false);
   });
 });
