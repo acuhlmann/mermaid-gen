@@ -72,8 +72,15 @@ Then the ledgers — **the tails only, never the whole file**:
 for f in docs/routines/ledger/*.md docs/automations/ledger/*.md; do
   echo "### $f"; grep -c '^| 20' "$f"; grep '^| 20' "$f" | tail -2 | cut -c1-400
 done
-head -12 docs/routines/*.md docs/automations/*.md | grep -E '^(==>|schedule:|name:)'
+head -12 docs/routines/*.md docs/automations/*.md | grep -E '^(==>|name:|tier:|host:|schedule:|paused:|mergePolicy:)'
 ```
+
+That one line answers three of the five watchdogs, and it is the only cheap place where a parked rung
+and a deleted one can be told apart. **Read the four keys, not just `schedule:`:** `paused:` means
+`enabled: false` is a decision rather than an outage (watchdogs 1 and 4), and `mergePolicy:` means a
+held PR is not a stalled diff. Both are in the front-matter and nowhere else a watchdog can see — a
+prose note forty lines into a playbook is not reachable on a 3-minute no-op firing, and it is why these
+two fields exist as keys at all.
 
 **Do not `Read` a ledger file whole.** `improve.md` is 74 KB, `resolve.md` 67 KB and `review.md`
 61 KB — over 200 KB together, and a single run-log row can be 4 KB of prose on its own. The first
@@ -153,20 +160,26 @@ This is the section the routine exists for. Report each of these or say explicit
 1. **A job that did not run.** Any playbook on either shelf whose ledger has no row for last
    night, or which produced no `main` commit and no PR. Name it and say how many nights it has
    been quiet. A job going dark is silent by construction — nothing else in the system notices.
-   **Except a playbook whose `schedule:` is `none`.** Such a rung is manual-only, so an empty ledger
-   is its correct state and reporting it nightly is exactly the noise that gets a digest muted. Read
-   `schedule:` from the `head -12` pass in § 1; if it is `none`, skip the rung and do not mention it
-   as a gap. The inverted finding _is_ reportable: a `schedule: none` playbook with a live cron behind
-   it means somebody scheduled it without editing the playbook. **That finding was not hypothetical** —
+   **Except a playbook whose `schedule:` is `none`, or which declares `paused:`.** Such a rung is
+   manual-only or parked, so an empty ledger is its correct state and reporting it nightly is exactly
+   the noise that gets a digest muted. Read `schedule:` and `paused:` from the `head -12` pass in § 1;
+   either one means skip the rung and do not mention it as a gap. **`paused:` exists because a
+   playbook's prose does not reach this check** — the exception note for `canvas-graph-edit` is 60 lines
+   below the front-matter, and § 1 reads twelve. A park that is not in the front-matter is a park
+   `digest` will report as a failure every morning until someone mutes the report rather than the
+   report being wrong. The inverted finding _is_ reportable: a `schedule: none` playbook with a live
+   cron behind it means somebody scheduled it without editing the playbook. **That finding was not
+   hypothetical** —
    `prune` shipped manual-only on 2026-09-07, acquired a live `0 0 * * *` cron that no document knew
    about, and watchdog 4 caught the disagreement on 2026-09-13. It was resolved the next day by
    declaring the rung at `30 15 * * *` and giving it a ladder row
    ([`review.md`](review.md) § the night ladder), which is the correct direction to fix it in: the
    shelf's oldest failure mode is a playbook nobody runs, and a live cron that the playbook denies is
-   the same failure wearing the opposite hat. **There is no `schedule: none` routine today.** The
-   exemption stays because "Adding a routine" step 4 still offers it, and a future rung may take it —
-   but do not assume a rung is unscheduled because its name is missing from
-   `claude -p '/schedule list'`. See watchdog 4's page cap.
+   the same failure wearing the opposite hat. **There is no `schedule: none` routine today, and one
+   `paused:` routine** (`canvas-graph-edit`, owner's decision 2026-09-14 — see watchdog 4 for what to
+   check about it). The exemption stays because "Adding a routine" step 4 still offers `none`, and a
+   future rung may take either — but do not assume a rung is unscheduled because its name is missing
+   from `claude -p '/schedule list'`. See watchdog 4's page cap.
 2. **A PR left open overnight.** Any open PR older than 24 h, with its CI state. Say whether
    `routine-guard --preflight` will now refuse that routine's next firing, because it will. A held PR
    (a routine that finished a fix and declined to merge it — `resolve.md` § 4) belongs in this line
@@ -178,13 +191,16 @@ This is the section the routine exists for. Report each of these or say explicit
    `blocked-by-` row, a stale `allowedPaths` glob, or any playbook budget on either shelf ever gets
    priced. When the held PR belongs to `improve`, name what froze with it — the shelf has no budget
    owner while it sits, which is worth more in one sentence than three nights of "sitting untouched".
-   **Say which kind of hold it is** (README § "Two kinds of hold"), because the two need opposite
-   things from the reader. A `resolve:` hold means _an agent is unsure_ and nobody has to do anything
-   tonight. A `prune:` hold means _a deletion is waiting on your decision_ — `mergePolicy: hold` is
-   that routine's design, not its doubt — and it blocks that routine's next run by construction, since
-   preflight refuses to start behind it. Report a `prune:` hold with its age and the number of files,
-   and carry it on the `Needs you:` line the morning after it opens; from then on it stays in this
-   section with its age until it is merged or closed, so the reminder does not escalate into a nag.
+   **Say which kind of hold it is** (README § "Two kinds of hold"), because they need opposite things
+   from the reader. A `resolve:` hold means _an agent is unsure_ and nobody has to do anything tonight.
+   **No routine files a policy hold any more.** `prune` — the shelf's only one, on the reasoning that a
+   deletion is page-bar #3 — began self-merging on 2026-09-14 under five mechanical controls
+   ([`prune.md`](prune.md) § 5), so a `prune:` PR that is still open in the morning is **news and not
+   the design**: either CI is red on it, which after a deletion means a sensor was wrong and the
+   candidate was live, or the run took a judgement hold, which § 5 allows and wants named in the body.
+   Report an open `prune:` PR with its CI state and its age, and say which of those it is — do not
+   repeat the old "this is the gate working as designed" line, because that sentence is now false and
+   would talk the owner out of looking at a red build.
 3. **Red `main`.** Any failed CI run on `main` in the window, with the job name. Rule out the
    documented `anythingRuntimeCheck.test.js` load-contention flake before calling it a regression
    (`docs/agents/sensors.md` § Known flakes) — the tell is a uniform timing shift across every
@@ -227,6 +243,17 @@ This is the section the routine exists for. Report each of these or say explicit
    > gap is `metaphor3d`, whose id nobody on this machine can reach. Clearing the fired one-shots at
    > claude.ai/code/routines would fix the underlying cap, but deleting a routine is page bar #2 — name
    > the count in one line and leave it there.
+   > **A parked rung is not a dark rung, and `paused:` is the field that tells them apart.** A playbook
+   > whose front-matter declares `paused:` has an owner's decision behind its `enabled: false` — today
+   > that is `canvas-graph-edit`, parked 2026-09-14 with its cron kept so a resume is one toggle and not
+   > a re-derivation. Do not report it as a finding; do not ask for it to be re-enabled; a line in §
+   > the quiet lines saying which rung is parked and since when is the whole of it. **Check the
+   > inversion, which is the one that actually matters:** a trigger reading `enabled: true` on a
+   > playbook that declares `paused:` means somebody un-parked a rung without editing the shelf —
+   > spending on a decision the owner already made, in the one direction this shelf has no other
+   > sensor for. Both fields are on the `head -12` pass in § 1 precisely so this is answerable without
+   > reading a playbook end to end; a prose note deep in a file is not, which is why the field exists
+   > at all and not just a paragraph.
    > **Cursor-hosted rungs are not visible to either source** — `improve` and `resolve` today; the
    > `agent` CLI has no `automations` command at all, so there is nothing to call. For those, compare the
    > declared `schedule:` against when that routine's PRs actually landed, and say which method you used.

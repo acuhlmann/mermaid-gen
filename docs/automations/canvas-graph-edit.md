@@ -2,6 +2,8 @@
 name: canvas-graph-edit
 tier: code-writing
 schedule: '30 20 * * *'
+host: Claude
+paused: '2026-09-14 by the owner (trigger disabled, cron kept) — see § the pause note'
 maxFiles: 10
 maxIssues: 1
 prTitlePrefix:
@@ -57,14 +59,40 @@ another's — `metaphorScenes/MetaphorGraphEditBridge.jsx`, `utils/metaphor*Edit
 `packages/shared/src/diagramSchema.ts`. Placing it last means it branches after `metaphor3d` has
 merged, so those overlaps are read-only in practice rather than a two-hour race.
 
-> **Re-enabled 2026-09-14, reason for its pause still unknown.** The routine was `enabled: false`
-> between 2026-09-14T01:25Z and the retiming that evening — two minutes after the owner merged a
-> `prune` PR, which reads like a deliberate browser action rather than an accident. Nobody asked, and
-> this playbook declares a `schedule:`, so `digest` watchdog 4's rule ("report a **disabled** Claude
-> routine as a finding — a paused rung and a missing one look the same from the outside and both mean
-> the ladder is not running") said restore it. If the pause was on purpose, the fix is the one this
-> shelf already has for a playbook and a trigger disagreeing: flip it back **and** set `schedule: none`
-> here with a § 0 saying so, so the next reader is not told to restore it again.
+> **Paused on purpose — leave it off.** The owner parked this trigger on 2026-09-14T01:25Z, two minutes
+> after merging a `prune` PR, and confirmed the pause when the retiming pass re-enabled it that
+> afternoon: _"leave the canvas-graph-edit for now disabled."_ The `schedule:` key above stays as
+> declared, because the cron is what this rung will run on if it ever comes back — a paused rung is a
+> decision about _now_, not a correction of the playbook. `digest` must **not** report it under
+> watchdog 1 ("a job that did not run") or watchdog 4 ("report a **disabled** Claude routine as a
+> finding"): both rules exist for a rung that went dark by accident, and this block is the exception
+> record. To resume, the owner enables `trig_018pjzUAiH5yQsuiMWfUk8Kc` **and** deletes this block, in
+> one change — a run that cannot see both halves should not resume it.
+>
+> What a resume would be resuming: six consecutive quiet firings since 2026-09-07, ~5 min each, because
+> all three remaining `todos` are `blocked-by-paths`. Two of them want `DiagramCanvas.jsx`, which is
+> still 1864 lines on the ratchet today and still excluded from `allowedPaths` on purpose — this
+> playbook's own budget note says the fix is `improve` splitting it on its own clock, not widening the
+> budget at the hour the split is needed.
+>
+> **One budget typo to clear on the way back, and it is not this rung's to clear** — front-matter belongs
+> to `improve` (ADR-0017), so this is a report. Measured 2026-09-14, `allowedPaths` names three concrete
+> files that are not on disk. **Two of the three are correct and must not be "fixed":** the
+> `useCanvasGraphEdit.js` source entry and its `useCanvasGraphEdit.test.jsx` counterpart in
+> `apps/web/test/` are the files the `hook-rename` slice _creates_ (`useFlowchartGraphEdit` →
+> `useCanvasGraphEdit`), so the budget pre-authorises the rename's own output — the `Locked` row for
+> 2026-08-30 is why they have been listed since day one. **The third is a real bug:** the
+> `buildRadialActions.js` entry, under `apps/web/src/components/`, has always been `.jsx`, so the rung
+> that owns the radial menu has been barred from its own builder since 2026-08-30 and would have read
+> every attempt as `blocked-by-paths`. Worth checking against the six quiet firings before assuming it
+> caused them. (Named here without their directories because `verify:doc-paths` extracts repo paths from
+> inline code, and two of these three are supposed to be missing.)
+>
+> `npm run verify:agent-infra` now fails CI on a **`forbiddenPaths`** entry that names no file, and
+> deliberately says nothing about `allowedPaths`. The asymmetry is the point: a stale forbid-rule is a
+> gate that silently stopped gating, while a stale allow-rule grants nothing and is sometimes — as twice
+> here — a forward declaration this shelf uses on purpose. A check that reported both identically would
+> be widened by the next run that only wanted green.
 
 The contract, the family table and the trap list are [`docs/canvas-graph-edit.md`](../canvas-graph-edit.md);
 the step-by-step is [`docs/recipes/add-graph-edit-family.md`](../recipes/add-graph-edit-family.md).

@@ -7,6 +7,8 @@ import { fileURLToPath } from 'node:url';
 import {
   ALWAYS_FORBIDDEN,
   BUDGET_OWNERS,
+  DELETE_ONLY_ROUTINES,
+  MERGE_POLICIES,
   PLAYBOOK_SHELVES,
   ROUTINE_TIERS,
   checkFilings,
@@ -426,18 +428,54 @@ test('code-writing routines still have to declare a budget', () => {
 
 // --- mergePolicy: the one promise that is not about the diff -----------------------------------
 // Every other budget in this file bounds what a routine may write. This one bounds whether it may
-// land what it wrote, and `prune` is the only routine whose whole output is a deletion the owner has
-// to judge (README rule 10, page bar #3).
+// land what it wrote. `prune` was the only routine that could not — a deletion being README rule 10
+// page bar #3 — until the owner lifted it on 2026-09-14 and § 5 of its playbook replaced the human
+// gate with five mechanical controls. The key stays valid because the next rung may need it, the same
+// way `schedule: none` stays valid with no routine using it.
 
-test('prune is the hold-policy routine, and that is not editable by a routine run', () => {
+test('no shipped routine holds any more, and `hold` is still a legal value', () => {
+  for (const { name, playbook } of collectPlaybooks(ROOT)) {
+    assert.equal(
+      mergePolicyOf(playbook),
+      'self-merge',
+      `${name} declares a merge policy that stops it landing its own work`
+    );
+  }
+  assert.deepEqual(MERGE_POLICIES, ['self-merge', 'hold']);
+});
+
+test('prune self-merges now, by owner decision rather than by drift', () => {
   const { playbook, errors } = loadPlaybook(ROOT, 'prune');
   assert.deepEqual(errors, [], 'the prune playbook must load clean');
+  assert.equal(mergePolicyOf(playbook), 'self-merge');
   assert.equal(
-    mergePolicyOf(playbook),
-    'hold',
-    'the user asked for a PR they review before anything is deleted; if this flips, the shelf has ' +
-      'auto-merged a deletion'
+    playbook.mergePolicy,
+    undefined,
+    'the key is absent rather than set to self-merge: the default IS the policy, and a stale ' +
+      '`hold` left in front-matter would silently re-gate every deletion'
   );
+});
+
+test('prune still cannot answer --reachable, because it only ever deletes a file', () => {
+  // The exclusion moved off mergePolicy and onto DELETE_ONLY_ROUTINES on 2026-09-14. If it had been
+  // left keyed to `hold`, self-merging would have quietly made prune the owner of every path in
+  // apps/**, packages/**, docs/** and scripts/** — so `ready-for-agent` would read as satisfied for
+  // any issue at all, which is #461's failure re-imported from the other side.
+  const real = collectPlaybooks(ROOT);
+  const against = (p) => ownersOfPath(p, real);
+  assert.ok(
+    against('apps/web/src/utils/officeCast.js').includes('office-life'),
+    'the real owner must still be reported'
+  );
+  for (const p of [
+    'apps/web/src/utils/officeCast.js',
+    'packages/shared/src/diagramSchema.ts',
+    'docs/routines/review.md',
+    'scripts/test-affected-lib.mjs'
+  ]) {
+    assert.ok(!against(p).includes('prune'), `prune must not be offered as the owner of ${p}`);
+  }
+  assert.deepEqual(DELETE_ONLY_ROUTINES, ['prune']);
 });
 
 test('a routine with no mergePolicy self-merges, because that is every other rung', () => {
