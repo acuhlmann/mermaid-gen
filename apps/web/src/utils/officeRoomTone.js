@@ -24,7 +24,13 @@ export const ROOM_TONE_GAIN_DESK = 0.055;
 export const ROOM_TONE_GAIN_FLOOR = 0.115;
 /** @deprecated alias — desk level; tests and duck restore use the active view gain. */
 export const ROOM_TONE_GAIN = ROOM_TONE_GAIN_DESK;
-/** Level while a colleague is speaking, so narration stays intelligible. */
+/**
+ * Level while a colleague is speaking, so narration stays intelligible.
+ *
+ * Read as a *cut*, not a level: 0.03 under a 0.055 desk bed is the ~45% dip
+ * this was mixed against. Anything that thins the bed has to thin the duck by
+ * the same factor or the gap closes — see `targetGain`.
+ */
 export const ROOM_TONE_DUCK_GAIN = 0.03;
 
 /**
@@ -147,8 +153,21 @@ function baseGainForView() {
   return base * (viewMode === 'floor' ? zoneProfile().gainMul : 1) * occupancyGainMul();
 }
 
+/**
+ * The duck rides the occupancy dial, because it was mixed for the same full
+ * room the bed was.
+ *
+ * `ROOM_TONE_DUCK_GAIN` is absolute, so on its own it stops being a cut as the
+ * bed thins: at `afterHours` occupancy (0.15) the desk bed is 0.034 and a flat
+ * 0.03 duck is an 11.7% dip rather than 45.5% — a colleague speaking at 20:00
+ * over a room at effectively full level, which is the one thing the duck
+ * exists to prevent. Below a 0.5454 occupancy floor it would invert outright
+ * and duck *up*. Multiplying by the same `occupancyGainMul()` the bed uses
+ * keeps the ratio exact in every cell, and its full-room early return keeps a
+ * full room byte-identical to the pre-occupancy level.
+ */
 function targetGain() {
-  return ducked ? ROOM_TONE_DUCK_GAIN : baseGainForView();
+  return ducked ? ROOM_TONE_DUCK_GAIN * occupancyGainMul() : baseGainForView();
 }
 
 function applyZoneFilter(rampSec = ZONE_RAMP_SEC) {
