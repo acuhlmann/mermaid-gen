@@ -10,6 +10,8 @@
  * and a small LLM budget — canned templates carry the rest.
  */
 
+import { sceneParticipants } from './officeSceneCast.js';
+
 export const OFFICE_FIRST_MOMENT_MIN_MS = 20_000;
 /** The first few moments arrive on a shorter leash so the office feels alive
  * from the start; after that the cadence relaxes to the cruise gap. */
@@ -381,6 +383,79 @@ export function wanderBiasAt(now = Date.now()) {
     }
   }
   return null;
+}
+
+/**
+ * How full the room is, 0 (a dark building) to 1 (the office at full tilt) —
+ * the third thing on this floor that the clock decides, and the first one the
+ * soundscape asks about.
+ *
+ * **Why it is here and not a sixth day phase.** Same argument
+ * `WANDER_BIAS_WINDOWS` makes two entries up: a phase is what the room *looks*
+ * like, and the light at seven in the evening is `windDown`'s whether two
+ * people are left or twenty. This is a second reading of the *same* five
+ * phases, not a fourth face of the instant — it imports `officeDayPhaseAt`
+ * rather than re-deriving the hour, so an office day that moves moves once.
+ *
+ * **Why the scale tops out at midday with nobody up.** The cue tables in
+ * `officeSoundscape.js` and the bed level in `officeRoomTone.js` were both
+ * tuned against a busy open-plan floor, so 1 has to mean "the room those
+ * numbers describe" or every consumer would have to re-tune. Everything else
+ * is a thinning-out of that, which is the only direction a room with a fixed
+ * cast can move.
+ */
+export const PHASE_OCCUPANCY = Object.freeze({
+  earlyMorning: 0.45,
+  standUp: 0.95,
+  midday: 1,
+  windDown: 0.6,
+  afterHours: 0.15
+});
+
+/**
+ * What one colleague out of their chair adds. People on their feet are the
+ * audible part of a room — a chair goes back, somebody laughs at the machine —
+ * so a set piece running in a thin room wakes it up. It cannot lift a full one:
+ * midday is already the busiest the office gets, and `roomOccupancyAt` clamps.
+ */
+export const OCCUPANCY_PER_PERSON_UP = 0.06;
+/** Past three, more people up is more of the same noise, not a fuller room. */
+export const OCCUPANCY_PEOPLE_UP_CAP = 3;
+
+/**
+ * How many colleagues are out of their chairs right now, from the moment store's
+ * own set pieces. Pure over plain values for `officeDayPhaseAt`'s reason.
+ *
+ * Deliberately **a count and not a roster**: the floor needs to know *who* is up
+ * so it can empty their desk (`awayFromDeskIds`), and the soundscape only needs
+ * to know *how many*, which is the one question it can answer from the desk as
+ * well as from the floor. You are not counted — whether the room sounds busy is
+ * a fact about everybody else.
+ *
+ * @param {{
+ *   coffee?: { lines?: Array<{speakerId?: string}> } | null,
+ *   battle?: { lines?: Array<{speakerId?: string}> } | null,
+ *   huddle?: { attendees?: string[] } | null
+ * }} [moments]
+ * @returns {number}
+ */
+export function peopleOutOfChairs({ coffee, battle, huddle } = {}) {
+  const up = new Set([
+    ...sceneParticipants(coffee?.lines),
+    ...sceneParticipants(battle?.lines),
+    ...(huddle?.attendees ?? [])
+  ]);
+  return up.size;
+}
+
+/**
+ * @param {{ now?: Date | number, peopleUp?: number }} [args]
+ * @returns {number} in [0, 1]
+ */
+export function roomOccupancyAt({ now = Date.now(), peopleUp = 0 } = {}) {
+  const base = PHASE_OCCUPANCY[officeDayPhaseAt(now)] ?? 1;
+  const up = Math.min(Math.max(peopleUp, 0), OCCUPANCY_PEOPLE_UP_CAP);
+  return Math.min(1, Math.max(0, base + up * OCCUPANCY_PER_PERSON_UP));
 }
 
 /** Relative frequency of each moment kind (before availability filters). */

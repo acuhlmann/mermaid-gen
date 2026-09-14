@@ -27,6 +27,18 @@ export const ROOM_TONE_GAIN = ROOM_TONE_GAIN_DESK;
 /** Level while a colleague is speaking, so narration stays intelligible. */
 export const ROOM_TONE_DUCK_GAIN = 0.03;
 
+/**
+ * What is left of the bed in a room with nobody in it.
+ *
+ * The loop is one texture carrying two things — the building (air handling, the
+ * hum of a floor's worth of hardware) and the people in it (distant
+ * conversation, movement). Only the second thins out after hours, and the bed
+ * cannot be un-mixed, so the honest approximation is a floor: an empty office
+ * still has a little over half the level, and never silence. Silence would be
+ * a different bug — the room disappearing rather than emptying.
+ */
+export const ROOM_TONE_OCCUPANCY_FLOOR = 0.55;
+
 const VIEW_GAIN_RAMP_SEC = 0.8;
 const ZONE_RAMP_SEC = 0.55;
 
@@ -49,6 +61,8 @@ const ZONE_SHAPING = {
 let viewMode = 'desk';
 /** @type {RoomToneZone} */
 let zone = 'neutral';
+/** How full the room is, 0–1. 1 is the level the bed was mixed at. */
+let occupancy = 1;
 
 const FADE_IN_SEC = 3;
 const FADE_OUT_SEC = 1.2;
@@ -115,9 +129,22 @@ function zoneProfile() {
   return ZONE_SHAPING[zone] ?? ZONE_SHAPING.neutral;
 }
 
+/**
+ * Never anything but exactly 1 for a full room — the early return is load-bearing
+ * rather than an optimisation. `0.55 + 0.45 * 1` is `0.9999999999999999` in
+ * binary floating point, which would put the bed a hair off `ROOM_TONE_GAIN_DESK`
+ * for every session of the working day and make the level an approximation
+ * nobody asked for.
+ */
+function occupancyGainMul() {
+  if (occupancy >= 1) return 1;
+  const level = Math.max(0, occupancy);
+  return ROOM_TONE_OCCUPANCY_FLOOR + (1 - ROOM_TONE_OCCUPANCY_FLOOR) * level;
+}
+
 function baseGainForView() {
   const base = viewMode === 'floor' ? ROOM_TONE_GAIN_FLOOR : ROOM_TONE_GAIN_DESK;
-  return base * (viewMode === 'floor' ? zoneProfile().gainMul : 1);
+  return base * (viewMode === 'floor' ? zoneProfile().gainMul : 1) * occupancyGainMul();
 }
 
 function targetGain() {
@@ -166,6 +193,33 @@ export function setRoomToneZone(next) {
   zone = allowed;
   applyZoneFilter();
   applyDuck();
+}
+
+/**
+ * Thin the bed for a room with fewer people in it.
+ *
+ * Pushed by `useOfficeRoomTone` on every sync rather than polled here, for the
+ * reason the whole module is passive: this file owns a `GainNode` and nothing
+ * else — no clock, no store. Its sibling `useOfficeSoundscape` computes the
+ * same number from `roomOccupancyAt` instead of reading it back from here,
+ * which is the opposite of what the zone does two functions down. The zone has
+ * exactly one knower (the floor, where you are standing) so it has to be
+ * pushed once and read back; occupancy is a pure function of the clock and the
+ * store, so two callers of that function cannot disagree, and a read-back
+ * would only add an ordering dependency between the two directors.
+ *
+ * @param {number} next 0–1; out-of-range and non-finite values clamp.
+ */
+export function setRoomToneOccupancy(next) {
+  const level = Number.isFinite(next) ? Math.min(1, Math.max(0, next)) : 1;
+  if (level === occupancy) return;
+  occupancy = level;
+  applyDuck();
+}
+
+/** How full the bed currently thinks the room is. */
+export function getRoomToneOccupancy() {
+  return occupancy;
 }
 
 /**
@@ -299,4 +353,5 @@ export function _resetRoomToneForTests() {
   ducked = false;
   viewMode = 'desk';
   zone = 'neutral';
+  occupancy = 1;
 }

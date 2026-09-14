@@ -182,6 +182,116 @@ describe('zone-biased cues (the cheap half of per-room beds)', () => {
   });
 });
 
+describe('an office with fewer people in it (queue 8)', () => {
+  /** Same whole-roll-space sweep the zone block uses, so the claim is about the
+   *  weight table rather than about one lucky `random()`. */
+  function distribution(args) {
+    const counts = new Map();
+    for (let i = 0; i < 400; i += 1) {
+      const roll = i / 400;
+      const cue = pickNextSoundscapeCue({ ...BASE, ...args, random: () => roll });
+      if (cue) counts.set(cue, (counts.get(cue) ?? 0) + 1);
+    }
+    return counts;
+  }
+
+  const shareOf = (counts, cues) => {
+    const total = [...counts.values()].reduce((sum, n) => sum + n, 0);
+    const named = cues.reduce((sum, cue) => sum + (counts.get(cue) ?? 0), 0);
+    return named / total;
+  };
+
+  /*
+   * A full room has to be byte-for-byte what the office played before this dial
+   * existed: the tables are the busy floor's, and `occupancy` only ever thins
+   * them. Without this, adding the dial is a global retune nobody asked for.
+   */
+  it('changes nothing at all in a full room', () => {
+    const tuned = distribution({ atDesk: false });
+    const full = distribution({ atDesk: false, occupancy: 1 });
+    expect([...full.entries()].sort()).toEqual([...tuned.entries()].sort());
+    const deskTuned = distribution({ atDesk: true });
+    const deskFull = distribution({ atDesk: true, occupancy: 1 });
+    expect([...deskFull.entries()].sort()).toEqual([...deskTuned.entries()].sort());
+  });
+
+  it('waits longer between cues when the building is empty', () => {
+    // A gap that is enough for a busy office is not enough for an empty one.
+    const lastPlayedAt = BASE.now - SOUNDSCAPE_MIN_GAP_MS - 1;
+    expect(
+      pickNextSoundscapeCue({ ...BASE, lastPlayedAt, occupancy: 1, random: () => 0 })
+    ).not.toBeNull();
+    expect(
+      pickNextSoundscapeCue({ ...BASE, lastPlayedAt, occupancy: 0.15, random: () => 0 })
+    ).toBeNull();
+    // ...and it is a stretch rather than a mute: wait long enough and it fires.
+    const muchEarlier = BASE.now - SOUNDSCAPE_MIN_GAP_MS * 4;
+    expect(
+      pickNextSoundscapeCue({
+        ...BASE,
+        lastPlayedAt: muchEarlier,
+        occupancy: 0.15,
+        random: () => 0
+      })
+    ).not.toBeNull();
+  });
+
+  /*
+   * The whole point of the slice, stated as the thing a listener would notice:
+   * the machines keep running after everybody goes home, so they stop being a
+   * rounding error in the mix and become most of what the room is.
+   */
+  it('leaves the building running when the people go home', () => {
+    const busy = distribution({ atDesk: false, occupancy: 1 });
+    const empty = distribution({ atDesk: false, occupancy: 0.15 });
+    const machines = ['fridge', 'serverRack'];
+    expect(shareOf(empty, machines)).toBeGreaterThan(shareOf(busy, machines) * 3);
+    // Absolute counts, not only share — a share can rise because everything
+    // fell, and these two must not have fallen at all.
+    for (const cue of machines) {
+      expect(empty.get(cue) ?? 0, `${cue} should not thin out`).toBeGreaterThanOrEqual(
+        busy.get(cue) ?? 0
+      );
+    }
+  });
+
+  it('thins out the cues that need a person to make them', () => {
+    const busy = distribution({ atDesk: false, occupancy: 1 });
+    const empty = distribution({ atDesk: false, occupancy: 0.15 });
+    for (const cue of ['keyboard', 'laugh', 'cough', 'printer', 'door']) {
+      expect(empty.get(cue) ?? 0, `${cue} should thin out`).toBeLessThan(busy.get(cue) ?? 0);
+    }
+  });
+
+  /*
+   * Occupancy is about how many other people are in the building, which is just
+   * as true with your back to the room — unlike the zone, which is about where
+   * you are standing and is deliberately ignored at the desk.
+   */
+  it('applies at the desk too, where the zone does not', () => {
+    const busy = distribution({ atDesk: true, occupancy: 1 });
+    const empty = distribution({ atDesk: true, occupancy: 0.15 });
+    expect(empty.get('keyboard') ?? 0).toBeLessThan(busy.get('keyboard') ?? 0);
+  });
+
+  it('still plays something in an empty room, and only known cues', () => {
+    const empty = distribution({ atDesk: false, occupancy: 0 });
+    expect([...empty.values()].reduce((sum, n) => sum + n, 0)).toBeGreaterThan(0);
+    for (const cue of empty.keys()) expect(SOUNDSCAPE_CUES).toContain(cue);
+  });
+
+  it('treats a nonsense occupancy as a full room rather than a silent one', () => {
+    const full = distribution({ atDesk: false, occupancy: 1 });
+    for (const bogus of [Number.NaN, undefined]) {
+      expect([...distribution({ atDesk: false, occupancy: bogus }).entries()].sort()).toEqual(
+        [...full.entries()].sort()
+      );
+    }
+    expect(() => pickNextSoundscapeCue({ ...BASE, occupancy: -3 })).not.toThrow();
+    expect(() => pickNextSoundscapeCue({ ...BASE, occupancy: 9 })).not.toThrow();
+  });
+});
+
 describe('office soundscape storage', () => {
   it('defaults ON and only persists the opt-out', () => {
     expect(readOfficeSoundscapeEnabled()).toBe(true);
