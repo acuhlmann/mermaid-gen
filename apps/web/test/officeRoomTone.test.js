@@ -4,10 +4,13 @@ import {
   ROOM_TONE_DUCK_GAIN,
   ROOM_TONE_GAIN_DESK,
   ROOM_TONE_GAIN_FLOOR,
+  ROOM_TONE_OCCUPANCY_FLOOR,
   warmRoomTone,
   _resetRoomToneForTests,
   duckRoomTone,
+  getRoomToneOccupancy,
   isRoomTonePlaying,
+  setRoomToneOccupancy,
   setRoomToneViewMode,
   startRoomTone,
   stopRoomTone,
@@ -195,5 +198,101 @@ describe('officeRoomTone', () => {
 
     expect(isRoomTonePlaying()).toBe(false);
     expect(stubs.sources).toHaveLength(0);
+  });
+});
+
+describe('the bed thins out in an emptier room (queue 8)', () => {
+  it('starts at the level it was mixed at and calls that a full room', () => {
+    expect(getRoomToneOccupancy()).toBe(1);
+  });
+
+  /*
+   * Exactly, not approximately. `0.55 + 0.45 * 1` is 0.9999999999999999 in
+   * binary floating point, so a formula without the early return would put the
+   * bed a hair off its own published constant for the whole working day.
+   */
+  it('is byte-identical to the pre-occupancy level in a full room', async () => {
+    startRoomTone(audioContextRef);
+    await settle();
+    stubs.gainParam.linearRampToValueAtTime.mockClear();
+
+    setRoomToneOccupancy(1);
+    expect(stubs.gainParam.linearRampToValueAtTime).not.toHaveBeenCalled();
+
+    setRoomToneOccupancy(0.5);
+    setRoomToneOccupancy(1);
+    expect(stubs.gainParam.linearRampToValueAtTime).toHaveBeenLastCalledWith(
+      ROOM_TONE_GAIN_DESK,
+      expect.any(Number)
+    );
+  });
+
+  it('pulls the bed down for an office nobody is in', async () => {
+    startRoomTone(audioContextRef);
+    await settle();
+    stubs.gainParam.linearRampToValueAtTime.mockClear();
+
+    setRoomToneOccupancy(0.15);
+
+    const [level] = stubs.gainParam.linearRampToValueAtTime.mock.lastCall;
+    expect(level).toBeLessThan(ROOM_TONE_GAIN_DESK);
+    expect(level).toBeGreaterThan(ROOM_TONE_GAIN_DESK * ROOM_TONE_OCCUPANCY_FLOOR * 0.99);
+  });
+
+  /*
+   * A room that empties is not a room that disappears — there is still a
+   * building around you. Silence here would be a different bug.
+   */
+  it('never fades the room to nothing, even at zero', async () => {
+    startRoomTone(audioContextRef);
+    await settle();
+    stubs.gainParam.linearRampToValueAtTime.mockClear();
+
+    setRoomToneOccupancy(0);
+
+    const [level] = stubs.gainParam.linearRampToValueAtTime.mock.lastCall;
+    expect(level).toBeCloseTo(ROOM_TONE_GAIN_DESK * ROOM_TONE_OCCUPANCY_FLOOR, 10);
+    expect(level).toBeGreaterThan(0);
+  });
+
+  it('composes with the view gain rather than replacing it', async () => {
+    startRoomTone(audioContextRef);
+    await settle();
+    setRoomToneOccupancy(0);
+    stubs.gainParam.linearRampToValueAtTime.mockClear();
+
+    setRoomToneViewMode('floor');
+
+    const [level] = stubs.gainParam.linearRampToValueAtTime.mock.lastCall;
+    expect(level).toBeCloseTo(ROOM_TONE_GAIN_FLOOR * ROOM_TONE_OCCUPANCY_FLOOR, 10);
+    expect(level).toBeLessThan(ROOM_TONE_GAIN_FLOOR);
+    // Still louder on the floor than at the desk — the two dials are independent.
+    expect(level).toBeGreaterThan(ROOM_TONE_GAIN_DESK * ROOM_TONE_OCCUPANCY_FLOOR);
+  });
+
+  it('comes back up to the thinned level after narration, not to the full one', async () => {
+    startRoomTone(audioContextRef);
+    await settle();
+    setRoomToneOccupancy(0);
+
+    duckRoomTone();
+    expect(stubs.gainParam.linearRampToValueAtTime).toHaveBeenLastCalledWith(
+      ROOM_TONE_DUCK_GAIN,
+      expect.any(Number)
+    );
+
+    unduckRoomTone();
+    const [level] = stubs.gainParam.linearRampToValueAtTime.mock.lastCall;
+    expect(level).toBeCloseTo(ROOM_TONE_GAIN_DESK * ROOM_TONE_OCCUPANCY_FLOOR, 10);
+  });
+
+  it('clamps nonsense to a full room and never throws without a bed', () => {
+    setRoomToneOccupancy(9);
+    expect(getRoomToneOccupancy()).toBe(1);
+    setRoomToneOccupancy(-4);
+    expect(getRoomToneOccupancy()).toBe(0);
+    setRoomToneOccupancy(Number.NaN);
+    expect(getRoomToneOccupancy()).toBe(1);
+    expect(() => setRoomToneOccupancy(0.3)).not.toThrow();
   });
 });

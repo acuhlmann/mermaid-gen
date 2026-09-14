@@ -155,6 +155,102 @@ can produce.
 
 | 2026-09-13 | Queue 7 — `provoked-answer-held-by-a-toast` | **3 runs before, 3 after, one arm each, and the arms differ in `verdict` because that is what the slice changed.** `mode.verdict` `no-llm-calls` → **`generated`**, `askedTheModel` **0 → 1**, `answeredByModel` **0 → 1**, in 3 of 3 runs each — the first non-zero either field has recorded in this ledger, and the close of its oldest open observation ("the most reactive step in the visit asked the model nothing, nine times out of nine"). `speech.count` 11 → **12** on a channel the trace had never drawn (`talk: 1`), `bySource.model` **0 → 1**, `afterwards.workingMemory` gains a `gilfoyle` row, `logDigest` 5 → **6**. Unchanged either side: 7/7 steps `ok`, `pageErrors: []`, `durationMs` 42.8–43.6 s. The three answers were three **different** sentences about the fixture diagram. JSON under the table. | New: 4 (all in `useDeskActions.test.jsx`), plus the pre-existing #552 case whose `_resetForTests()` workaround was deleted — **all 5 red before the fix and green after** (`git stash push -- apps/web/src/hooks/useDeskActions.js`, both directions recorded: 4 failed / 15 passed → 19 passed). `test:floor` 37/593, blast bundle 44/627, content ladder 19/355 (+`deskActionsDock` = 20/364), shared `office` 386, server `office` 60. `npm run check` **exit 0**. | #671 | Branch `office-life/provoked-answer-held-by-a-toast`. Backlog checked first and empty of office work (#452 digest log was the only open issue in the repo). Spend: **no cap raised and no call site added** — `DESK_LLM_CAP` still bounds the verb at 4. Calls per visit `/api/office/moment` **0 → 1**, `/api/office/speak` 2 → 3 (the extra one voices the new line). Two findings in the domain file, three below. |
 
+| 2026-09-14 | Queue 8 — `room-tone-from-occupancy` | **Twelve runs — two matched 3-before/3-after pairs in two different arms — and all twelve are byte-identical on every axis the report carries, which is the correct reading.** The trace has **no audio field at all**, so it is structurally blind to this slice in the second of the three recorded senses (the visit's _subject_ does not contain it). As a regression check on a module both audio directors and the store read: 7/7 steps `ok`, `speech.count` 12 (`narration` 9 / `interrupt` 1 / `dwell` 1 / `talk` 1), `bySource.model` 0, `afterwards.workingMemory` = `gilfoyle` + `dinesh` + `intern:gotIt`, `logDigest` 6, `roomDelta` identical, `pageErrors: []` in all twelve. The measurement is the exact sweep below. JSON under the table. | New: 28 (12 in `officeCadence.test.js`, 8 in `officeSoundscape.test.js`, 7 in `officeRoomTone.test.js`, 3 in `useOfficeRoomTone.test.jsx`), of which **25 were red before the fix and green after** — stash-and-rerun in both directions (`git stash push -- apps/web/src` → 25 failed / 70 passed, restored → 95 passed). The 3 that were green either side are the **invariance guards** and are meant to be: they assert a full room is byte-identical to the pre-occupancy office. `test:floor` 37/593, blast bundle 44/627, content ladder 19/355, shared `office` 386, server `office` 60. `npm run precommit` OK; `npm run check` **exit 0** (web 271 files / 3273 cases). | #— | Branch `office-life/room-tone-listens-to-the-room`. Backlog checked first and empty of office work (#686 `prune` dead-code pairs, #452 digest log — the only two open issues in the repo). Spend: **zero** — no LLM call site, no cap, no counter, no new asset; the dial is derived from the day phase the floor already reads and the set pieces the store already holds. Baselines re-measured, not quoted: `officeCast.js` 2792, `OfficeFloor.css` 1970, `OfficeLayer.jsx` 1794, `officeFloorPlan.js` 1064, blast suites 40. Two findings in the domain file, two below — one of them about the instrument, and it is the reason the arm is not `generated`. |
+
+### 2026-09-14 trace
+
+Two matched pairs, twelve runs, one machine. `DEEPSEEK_API_KEY` present and `api.deepseek.com`
+reachable (401), and **neither pair is the `generated` arm** — see the instrument finding below,
+which is the more useful half of tonight's trace work. Pair A ran before `npm run build`
+(`apps/server/dist` absent → the API never started → `canned-fallback (502)`); pair B ran after
+(server up, `/api/office/speak` 200, `/api/office/moment` **status 0**). Within each pair the two
+arms are the same arm, which is what the comparison needs; the two pairs are not compared to each
+other, and neither is compared to 2026-09-13's generated runs.
+
+```json
+{
+  "runs": "3 before + 3 after, twice (pair A: server unbuilt, pair B: server built)",
+  "mode": {
+    "pairA": { "verdict": "canned-fallback (502)", "askedTheModel": 1, "answeredByModel": 0 },
+    "pairB": { "verdict": "canned-fallback (0)", "askedTheModel": 1, "answeredByModel": 0 },
+    "llmConfigured": false
+  },
+  "visit": "7/7 steps ok in all twelve runs",
+  "speech": {
+    "count": [12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12],
+    "byChannel": { "narration": 9, "interrupt": 1, "dwell": 1, "talk": 1 },
+    "bySource": { "model": 0, "bank": 12 }
+  },
+  "afterwards": {
+    "workingMemory": ["gilfoyle", "dinesh", "intern:gotIt"],
+    "logDigest": 6
+  },
+  "roomDelta": {
+    "surfaces": "+office-floor-player, +office-floor-talk-card, +office-floor-talk-line, +office-floor-wanderer",
+    "seatsVacated": ["intern", "you"]
+  },
+  "audio": "not a field — the instrument has never carried one",
+  "pageErrors": [],
+  "durationMs": {
+    "pairA": [81250, 81399, 81496, 81498, 81567, 85092],
+    "pairB": [43861, 43947, 44260, 44311, 44381, 44434]
+  }
+}
+```
+
+### 2026-09-14 sweep (the measurement for this slice)
+
+The picker is a weighted choice on **one** uniform roll, so 20 000 evenly spaced rolls is the
+closed-form distribution rather than a sample — the same shape as 2026-09-11's, for the same reason
+(the trace cannot see the axis). Throwaway script, deleted before commit.
+
+| Floor, nobody up                      | 08:00 | 10:00 | 12:00 | 18:00 | 22:00 |
+| ------------------------------------- | ----- | ----- | ----- | ----- | ----- |
+| occupancy                             | 0.45  | 0.95  | 1.00  | 0.60  | 0.15  |
+| machine share (`fridge`+`serverRack`) | 14.8% | 7.6%  | 7.2%  | 11.5% | 34.2% |
+| cues per hour                         | 77    | 121   | 129   | 87    | 64    |
+
+```json
+{
+  "beforeThisSlice": "one profile, all day, every hour, whoever was up",
+  "distinctOccupancyLevelsAcrossADay": { "before": 1, "after": 14 },
+  "machineShareOnTheFloor": { "midday": "7.2%", "afterHours": "34.2%" },
+  "cuesPerHour": { "midday": 129, "afterHours": 64 },
+  "twoPeopleUpAt22:00": { "occupancy": 0.27, "machineShare": "22.4%", "cuesPerHour": 69 },
+  "bedGain": { "full": "ROOM_TONE_GAIN_DESK exactly", "empty": "×0.55, never silence" }
+}
+```
+
+**Three readings worth keeping.**
+
+- **The dial had to reach exactly 1, and that is a design constraint rather than a rounding
+  detail.** Every consumer multiplies by this number, so the value the cue tables and the bed level
+  were tuned against has to be a reachable point on the scale — otherwise adding the feature is a
+  global volume cut nobody asked for, and every future tuning argument starts from a room that no
+  longer matches its own constants. It is why `midday` is `1` and not `0.9`, why people-up clamps
+  instead of overshooting, and why the bed's multiplier **early-returns** rather than computing
+  `0.55 + 0.45 * 1` — which is `0.9999999999999999` in floating point and would have quietly
+  detuned three existing green tests into approximations. Three of the 28 new cases exist only to
+  pin that invariance, and they are the three that were green before the fix: **an invariance guard
+  that goes red on a stash has not been written as an invariance guard.**
+- **The honest split in the cue table was there all along and is two rows wide.** The queue item
+  reads like it wants a new table ("six people at 10:30 and two at 19:00"), and the room has a
+  fixed cast so there is no headcount to model. What there is: every row in `CUE_WEIGHTS` needs a
+  person to make it — a keyboard has hands on it, a door was opened by somebody — **except** the
+  fridge and the server rack. Scaling everything but those two is the whole feature, and "an empty
+  office is the fridge and the fans" falls out of it rather than being written into a table. The
+  transferable form: before adding a dimension to a weight table, check whether the existing rows
+  already partition along it.
+- **Two dials that look alike can belong on opposite sides of the same question.** The zone and the
+  occupancy are both "what does this room sound like", both multiply the cue weights, and both feed
+  the bed — and the zone is deliberately ignored at the desk while occupancy deliberately is not,
+  because the zone is about where _you_ are standing (stale the moment you sit down) and occupancy
+  is about how many other people are in the building (just as true with your back to the room).
+  The same asymmetry decided the plumbing: the zone is pushed once and read back from the tone
+  player because the floor is its only knower; occupancy is a pure function of the clock and the
+  store, so both directors call `roomOccupancyAt` and cannot drift. **Copying the neighbouring
+  seam would have been the wrong answer twice.**
+
 ### 2026-09-13 trace
 
 Three runs before the change and three after, one machine, inside one hour, `DEEPSEEK_API_KEY`
@@ -655,7 +751,8 @@ instrument keeping only one of them would have made the opposite claim depending
 | `adr-0011-props-paragraph`        | **blocked-by-paths**     | `docs/decisions/0011-two-office-renderers.md`'s worked-example bullet still reads "The printer and whiteboard duplicate nothing and produce nothing — under the Sign-off rule that is the ceiling for a floor affordance, not a gap." The first clause is still true (they duplicate no desk verb); the second lagged as of #654, which is a one-sentence edit. `docs/decisions/**` is outside this playbook's `allowedPaths` and every budget is `improve`'s, so the code-side argument went in `officeFloorProps.js`'s header and `useFloorPropUse.js`'s, and § 8's debt entry carries the reasoning. Do not widen this from a run.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 | `provoked-answer-held-by-a-toast` | **done** 2026-09-13      | Queue 7, first channel. `blockedReasonFor` in `useDeskActions.js` replaces the `bypassPause` boolean with a three-value `gate`, and `imSomeone` moves to `'answering'` — meeting only, no pause rung and no surface rung. Both its callers (Slop Chat™'s composer, the floor's talk card) hand it a sentence the user has just typed, and `talkOutLoud`/`remarkTo` already stated the rule in their own comments while buying it by sidestepping `runVerb`; `imSomeone` could not, because it still wants the mutex and the cadence-memory write. Measured `askedTheModel` 0 → 1 and `bySource.model` 0 → 1 on the fixed visit, 3 runs each arm. No cap raised, no call site added.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 | `provoked-lines-not-recited`      | pending                  | Queue 7, remaining channels: dwell deck → `pickTalkAnswer`'s `ignored` → walk-by fallbacks → IM reply bank. **The 2026-09-13 finding narrows what to check first**: where the channel is already LLM-first, ask whether the call is being _refused by a gate_ before assuming it was skipped for want of a fact. After that it is usually the missing fact — `interruption-leaves-a-mark` or `their-own-work-in-context`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
-| `room-tone-from-occupancy`        | pending                  | Queue 8. `officeRoomTone.js` / `officeSoundscape.js` tick on 5 s clocks and never ask who is in the room.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| `room-tone-from-occupancy`        | **done** 2026-09-14      | Queue 8, landed in the PR below. `roomOccupancyAt` (`officeCadence.js`) folds `officeDayPhaseAt` through `PHASE_OCCUPANCY` and adds `OCCUPANCY_PER_PERSON_UP` per colleague out of their chair (`peopleOutOfChairs`, capped at 3), clamped to 0–1 — a second **reading** of the five day phases, never a sixth phase. Both directors call the pure function, unlike the zone, which has one knower and is read back off the bed. `officeSoundscape.js` stretches the gap and scales every cue but `AMBIENT_MACHINE_CUES` (`fridge`, `serverRack`); `officeRoomTone.js` multiplies the view gain down to `ROOM_TONE_OCCUPANCY_FLOOR` (0.55), never to silence. Exact sweep: machine share on the floor 7.2% at midday → **34.2%** after hours, cadence 129 → **64** cues/hour, distinct occupancy levels across a day **1 → 14**. Original entry: Queue 8. `officeRoomTone.js` / `officeSoundscape.js` tick on 5 s clocks and never ask who is in the room.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| `visit-arm-is-decided-by-a-build` | pending                  | 2026-09-14, and an **instrument** finding rather than a slice. The harness spawns `apps/server/dist/index.js` and **discards** `waitForHttp`'s boolean for that process, where vite's is thrown on — so a checkout with no `apps/server/dist` silently produces `canned-fallback (502)` on every run while `DEEPSEEK_API_KEY` sits in the shell looking like the generated arm. Building the server changes the failure and not the arm: `/api/office/moment` then returns **status 0**, a hang rather than a refusal, because this sandbox's outbound HTTPS goes through an agent proxy that node's `fetch` does not use and `curl` does (`api.deepseek.com` → 401 from the shell, 90 s timeout from the server). **The generated arm is not reachable from a cloud firing at all**, and the tell is a `verdict` of `canned-fallback (0)`. Two asks, neither taken tonight (one slice per run): make the API-server wait fatal the way vite's is, and name the unbuilt-`dist` case in the harness's own Run it block. Never route around the proxy.                                                                                                                                                                                                                                                                                                                                                                                            |
 | `batched-ambient-exchange`        | pending                  | Queue 9, the owner-approved spend exception. Needs the calls-per-session number and the caps in `officeCadence.js`, never a new counter.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | `two-walkers-collision`           | pending                  | Queue 10. Slice 11 answered this as needing collision rules that do not exist. Issue with the model in it first; never an impulse slice.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | `alive-while-seated`              | pending                  | `docs/office-isometric-mode.md` § 8: `OfficeFloor` renders nothing in desk mode — "almost certainly correct, but a choice nobody made explicitly". Do not pick this up without reading ADR-0011 rule 1 first (one state, two renderers); the desk already has the moment surfaces, and a second way to see the room is how they diverge.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
@@ -826,6 +923,29 @@ main` fixed it to 11/12 in one command. **A postflight failure naming paths you 
   rather than replacing it — `chat` and `walkby` carry no detail, so their collapse tests pass
   unchanged, and the only behaviour change elsewhere is that two different email subjects inside a
   minute now get a line each, which is the truthful reading rather than a regression.
+- **The instrument has an axis it has never carried, and adding one would be a different
+  instrument.** 2026-09-14's slice is the office's **sound**, and the trace reports speech,
+  movement, surfaces, stores and calls — no audio field has ever existed. That is 2026-09-09's
+  shape (the visit's _subject_ does not contain the slice) rather than 2026-09-06's (a report hole
+  worth fixing in its own run), and the reason is worth stating so a later run does not "fix" it:
+  the harness renders in a real browser with the sound gate shut, so what it could observe is the
+  **director's decisions**, not the room's noise — and a report that carries which cue the picker
+  would have chosen is a unit test with a browser strapped to it. The pure modules are the right
+  instrument for this axis, and the twelve runs are the regression check that the change did not
+  disturb anything the visit _can_ see. Same rule as 2026-09-09 and 2026-09-10: **say which
+  measurement replaced the trace, and keep the runs.**
+- **The arm a trace reports is decided by something outside the trace, and nothing says so.** Twelve
+  runs tonight, six of them with a green `/api/health` and `DEEPSEEK_API_KEY` in the shell, and not
+  one of them is the `generated` arm — `apps/server/dist` did not exist for the first six (the
+  harness starts `dist/index.js` and throws away the health-wait result for that process, so the
+  API simply is not there and vite proxies 502), and after a build the `/moment` call hangs to
+  `status 0` because this sandbox's outbound HTTPS goes through a proxy node's `fetch` does not
+  use. Both failures are honest and both look the same from the outside: an office reading from its
+  banks. This is the ledger's own "a 503 and a regression are identical from the outside" warning
+  arriving a third time — `askedTheModel` already separates _did not ask_ from _asked and got
+  nothing_, and what is still missing is _asked, and the backend was never reachable from here_.
+  Practical consequence for every future cloud firing: **run `npm run build` before the traces, read
+  `mode.verdict` rather than assuming the key implies the arm, and expect `canned-fallback (0)`.**
 - The floor's known ESLint complexity offenders are recorded in `docs/office-isometric-mode.md` § 8,
   which also warns the figures had themselves drifted and one was backwards. Re-measure before
   quoting them, and remember most floor complexity points are **default parameters** (`= null`

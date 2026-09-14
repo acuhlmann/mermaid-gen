@@ -1,6 +1,12 @@
 import { useEffect, useRef } from 'react';
 import { onOfficeAudioGateOpen } from '../utils/officeAudioPrime.js';
-import { setRoomToneViewMode, startRoomTone, stopRoomTone } from '../utils/officeRoomTone.js';
+import {
+  setRoomToneOccupancy,
+  setRoomToneViewMode,
+  startRoomTone,
+  stopRoomTone
+} from '../utils/officeRoomTone.js';
+import { peopleOutOfChairs, roomOccupancyAt } from '../utils/officeCadence.js';
 import { getOfficeSnapshot, subscribe } from '../state/officeMomentStore.js';
 import { getOfficeViewMode, subscribe as subscribeViewMode } from '../state/officeViewModeStore.js';
 
@@ -26,6 +32,11 @@ function isHidden() {
  * that self-heals the one transition nothing notifies us about — the sound
  * gate opening when the user first interacts with the page.
  *
+ * It also carries the room's **occupancy** into the bed — how full the office
+ * is, from the hour and from who is out of their chair (`roomOccupancyAt`), so
+ * the loop thins out after everyone has gone home instead of murmuring a full
+ * open-plan floor at eight in the evening.
+ *
  * @param {{ playChime?: (playFn: (ref: object) => void) => boolean | void, roomToneViewMode?: 'desk' | 'floor' }} params
  */
 export function useOfficeRoomTone(params) {
@@ -48,7 +59,24 @@ export function useOfficeRoomTone(params) {
       return Boolean(snapshot.soundscape) && !snapshot.focusTime;
     };
 
+    /*
+     * How full the room is, re-read on every sync. Cheap for the same reason
+     * `useOfficeDayPhase`'s poll is: the hour half of the answer changes four
+     * times a day, and `setRoomToneOccupancy` bails on an unchanged level, so
+     * the steady-state cost is one `Date` read per tick and zero ramps. The
+     * half that *does* move within a visit — who is out of their chair — rides
+     * the store subscription, so a coffee break wakes the bed on the same beat
+     * the scene appears rather than up to five seconds later.
+     */
+    const syncOccupancy = () => {
+      const snapshot = getOfficeSnapshot();
+      setRoomToneOccupancy(
+        roomOccupancyAt({ now: Date.now(), peopleUp: peopleOutOfChairs(snapshot) })
+      );
+    };
+
     const sync = () => {
+      syncOccupancy();
       if (!roomShouldBeAudible()) {
         stopRoomTone();
         return;

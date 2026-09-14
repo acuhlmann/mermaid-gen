@@ -14,6 +14,11 @@
  * Cadence is deliberately denser than a "background music" bed: a corporate-IT
  * office is keyboards all day. At the desk, typing/mouse/paper are heavily
  * preferred; on the floor, kitchen/printer set pieces get a fairer share.
+ *
+ * **And it now asks how many people are in the room.** Every table below is
+ * the busy floor's — `occupancy` (from `roomOccupancyAt`) is the one dial that
+ * thins them, stretching the gap and scaling every cue that needs a person to
+ * make it. See `AMBIENT_MACHINE_CUES`.
  */
 
 export const SOUNDSCAPE_FIRST_CUE_MIN_MS = 4_000;
@@ -74,6 +79,31 @@ const CUE_WEIGHTS = [
   ['serverRack', 0.6]
 ];
 
+/**
+ * The two cues that are a machine running whether or not anybody is there.
+ *
+ * Every other row in the table above is a person doing something — a keyboard
+ * has hands on it, a printer was sent a job, a door was opened by somebody. So
+ * "how full is the room" has exactly one honest consequence for this table:
+ * the people thin out and the building does not. An empty office at eight in
+ * the evening is the fridge and the fans, and that is what falls out of
+ * scaling everything but these two by `occupancy`.
+ */
+const AMBIENT_MACHINE_CUES = new Set(['fridge', 'serverRack']);
+
+/**
+ * How much longer the wait gets in an empty room, at occupancy 0. A sparse
+ * room is not only different in *what* it plays but in how often anything
+ * happens at all — that is most of what makes a building feel empty.
+ *
+ * 1.2 doubles the cruise gap after hours (occupancy 0.15 → ~2×, so ~36–77 s
+ * against the busy room's 18–38 s) and leaves midday exactly where it was,
+ * because `roomOccupancyAt` puts midday at 1 and this is a multiplier of
+ * `1 + (1 - occupancy) * …`. The tuned cadence in the constants above is the
+ * busy room's; nothing here retunes it.
+ */
+const OCCUPANCY_GAP_STRETCH = 1.2;
+
 /** Desk textures get this multiplier while you are sitting at your screen. */
 const AT_DESK_TEXTURE_BOOST = 2.4;
 /** Set pieces thin out a bit at the desk — they happen down the hall. */
@@ -114,16 +144,21 @@ const REPEATABLE_CUES = new Set(['keyboard', 'mouse', 'paper']);
  * @param {number} base
  * @param {boolean} atDesk
  * @param {string} zone
+ * @param {number} occupancy
  * @returns {number}
  */
-function weightFor(cue, base, atDesk, zone) {
+function weightFor(cue, base, atDesk, zone, occupancy) {
   const deskTexture = REPEATABLE_CUES.has(cue);
+  // Occupancy applies at the desk too. The zone does not, because it is about
+  // where *you* are standing; this is about how many other people are in the
+  // building, which is just as true with your back to the room.
+  const peopled = AMBIENT_MACHINE_CUES.has(cue) ? base : base * occupancy;
   if (atDesk) {
     // Zone never applies at the desk: you are looking at a screen, and the
     // floor's idea of where you are standing is stale the moment you sit down.
-    return deskTexture ? base * AT_DESK_TEXTURE_BOOST : base * AT_DESK_SET_PIECE_SCALE;
+    return deskTexture ? peopled * AT_DESK_TEXTURE_BOOST : peopled * AT_DESK_SET_PIECE_SCALE;
   }
-  const zoned = base * (ZONE_CUES[zone]?.[cue] ?? 1);
+  const zoned = peopled * (ZONE_CUES[zone]?.[cue] ?? 1);
   return deskTexture ? zoned : zoned * ON_FLOOR_SET_PIECE_BOOST;
 }
 
@@ -135,9 +170,12 @@ function weightFor(cue, base, atDesk, zone) {
  *   lastCue?: string | null,
  *   atDesk?: boolean,
  *   zone?: 'neutral' | 'glass' | 'kitchen' | 'pod',
+ *   occupancy?: number,
  *   random?: () => number
  * }} args `zone` is where you are standing on the floor (`floorZoneToneAt`);
- *   ignored at the desk.
+ *   ignored at the desk. `occupancy` is how full the room is
+ *   (`roomOccupancyAt`), 0 to 1; **1 is the default and is a no-op**, because
+ *   the tables above are the busy room's and every other value thins them.
  * @returns {'keyboard'|'mouse'|'paper'|'printer'|'chair'|'phone'|'watercooler'|'espresso'|'vending'|'elevator'|'fridge'|'whiteboard'|'door'|'laugh'|'cough'|'phoneBuzz'|'serverRack'|null}
  */
 export function pickNextSoundscapeCue({
@@ -147,17 +185,21 @@ export function pickNextSoundscapeCue({
   lastCue = null,
   atDesk = true,
   zone = 'neutral',
+  occupancy = 1,
   random = Math.random
 }) {
   if (now - sessionStartedAt < SOUNDSCAPE_FIRST_CUE_MIN_MS) return null;
+  const level = Math.min(1, Math.max(0, Number.isFinite(occupancy) ? occupancy : 1));
   const warmingUp = now - sessionStartedAt < SOUNDSCAPE_WARMUP_WINDOW_MS;
-  const requiredGap = warmingUp
+  const baseGap = warmingUp
     ? SOUNDSCAPE_WARMUP_MIN_GAP_MS + random() * SOUNDSCAPE_WARMUP_GAP_JITTER_MS
     : SOUNDSCAPE_MIN_GAP_MS + random() * SOUNDSCAPE_GAP_JITTER_MS;
+  const requiredGap = baseGap * (1 + (1 - level) * OCCUPANCY_GAP_STRETCH);
   if (lastPlayedAt > 0 && now - lastPlayedAt < requiredGap) return null;
 
   const eligible = CUE_WEIGHTS.filter(([cue]) => REPEATABLE_CUES.has(cue) || cue !== lastCue).map(
-    ([cue, base]) => /** @type {[string, number]} */ ([cue, weightFor(cue, base, atDesk, zone)])
+    ([cue, base]) =>
+      /** @type {[string, number]} */ ([cue, weightFor(cue, base, atDesk, zone, level)])
   );
   const total = eligible.reduce((sum, [, weight]) => sum + weight, 0);
   let roll = random() * total;

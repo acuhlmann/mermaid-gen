@@ -472,6 +472,18 @@ https://api.deepseek.com/` — 401 is reachable, 000 is blocked); never route ar
   and no bank line either. `talkOutLoud` and `remarkTo` already carried this rule in their own
   comments and bought it by sidestepping `runVerb` entirely; `imSomeone` could not, because it
   still wants the mutex and the cadence-memory write in `runVerb`'s `finally`.
+- **How full the room is, is a reading of the five day phases — never a sixth one.**
+  `roomOccupancyAt` (`apps/web/src/utils/officeCadence.js`) folds `officeDayPhaseAt` through
+  `PHASE_OCCUPANCY` and adds `OCCUPANCY_PER_PERSON_UP` per colleague out of their chair
+  (`peopleOutOfChairs`, capped at 3), clamped to 0–1. **1 means "the room the tables were tuned
+  against", not "at capacity"** — every consumer multiplies by it, so midday with nobody up has to
+  reach exactly 1 or the dial becomes a global volume cut. Both audio directors call the pure
+  function rather than reading the value back off the bed the way they do the **zone**: a zone has
+  one knower (the floor), occupancy is a pure function of the clock and the store, and two callers
+  of one function cannot drift. In `officeSoundscape.js` everything but `AMBIENT_MACHINE_CUES`
+  (`fridge`, `serverRack` — the two that run whether or not anybody is there) scales by it, and
+  the gap stretches; in `officeRoomTone.js` it multiplies the view gain down to
+  `ROOM_TONE_OCCUPANCY_FLOOR`, never to silence.
 
 - **After presence / TTS / desk-frame edits**, prefer `apps/web/test/officePresence.test.js`,
   `deskOsPresenceStrip.test.jsx`, `deskOsFrameStyles.test.js`, `apps/server/test/officeTts.test.js`,
@@ -1179,6 +1191,42 @@ y)`, so the obvious sweep silently iterates an empty list; and pacing the exchan
   a wider bank. **No cap was raised and no call site added**: `DESK_LLM_CAP` still bounds it at 4,
   so the ceiling is unchanged and what moved is that the calls the appetite table already budgeted
   for now happen. Calls per visit: `/api/office/moment` 0 → 1, `/api/office/speak` 2 → 3.
+
+- **The room now knows how many people are in it, and that is one number rather than a new clock.**
+  `officeRoomTone.js` and `officeSoundscape.js` both ticked every 5 s against tables that never
+  asked who was there, so an office at ten at night played the same cue mix at the same rate as one
+  at eleven in the morning. The consumer that was missing is `roomOccupancyAt` in
+  `officeCadence.js`, and four things about its shape are the finding:
+
+  - **It reads the day phase, it does not become one.** The tempting shape is a sixth entry in
+    `OFFICE_DAY_PHASES`, and it is wrong for `WANDER_BIAS_WINDOWS`' reason two functions up: a phase
+    is what the room **looks** like, and the light at seven in the evening is `windDown`'s whether
+    two people are left or twenty. A phase would also owe `officeFloorStyles.test.js` a sixth light
+    rule to buy a fact about sound. So it is a second _reading_ of the same five, importing
+    `officeDayPhaseAt` rather than re-deriving the hour — the domain's "three faces of one instant
+    must not become four" rule, honoured by not adding a face.
+  - **1 is the tuned room, not a full one.** Every consumer multiplies by this number, so the value
+    the existing tables were written against has to be reachable and has to be exact. `midday` with
+    nobody up is `1`; the bed's multiplier early-returns `1` rather than computing
+    `0.55 + 0.45 * 1`, which is `0.9999999999999999` in binary floating point and would have put the
+    bed a hair off its own published constant for the entire working day.
+  - **The only honest split in the cue table is people versus machines.** Every row in
+    `CUE_WEIGHTS` needs a person to make it — a keyboard has hands on it, a door was opened by
+    somebody — except `fridge` and `serverRack`, which hum regardless. Scaling everything else by
+    occupancy is therefore the whole feature: the people thin out, the building does not, and an
+    empty office becomes the fridge and the fans without anybody writing that sentence into a table.
+  - **Occupancy applies at the desk; the zone deliberately does not.** They look like the same kind
+    of dial and are not. The zone is about where **you** are standing, which is stale the moment you
+    sit down. Occupancy is about how many other people are in the building, which is just as true
+    with your back to the room.
+
+  Measured by an exact sweep of the pure picker (20 000 evenly-spaced rolls per cell — the pick is a
+  weighted choice on one uniform roll, so that is closed-form rather than sampled), over five hours ×
+  {0, 2} people up × desk/floor. On the floor: the two machine cues take **7.2 % of the mix at midday
+  and 34.2 % after hours**, and the cruise cadence goes from **129 cues/hour to 64**. Distinct
+  occupancy levels the room can be in across a day: **1 → 14**. The fixed visit is **structurally
+  blind** to all of it — the trace has no audio axis at all — so the six runs are the regression
+  check, not the measurement (see the ledger for which of the three kinds of blindness this is).
 
 - **After presence / TTS / desk-frame edits**, prefer `apps/web/test/officePresence.test.js`,
   `deskOsPresenceStrip.test.jsx`, `deskOsFrameStyles.test.js`, `apps/server/test/officeTts.test.js`,

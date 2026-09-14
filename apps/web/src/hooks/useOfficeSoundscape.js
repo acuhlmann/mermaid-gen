@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { officeCueChime } from '../utils/officeCuePlayers.js';
 import { pickNextSoundscapeCue } from '../utils/officeSoundscape.js';
+import { peopleOutOfChairs, roomOccupancyAt } from '../utils/officeCadence.js';
 import { getOfficeSnapshot } from '../state/officeMomentStore.js';
 import { getOfficeViewMode } from '../state/officeViewModeStore.js';
 import { isOfficeNarrationBusy } from '../utils/officeNarration.js';
@@ -22,6 +23,10 @@ export const SOUNDSCAPE_TICK_MS = 5_000;
  * keyboard/mouse/paper; on the floor, kitchen and printer set pieces step up,
  * and standing *in* a room weights that room's own cues (the fridge in the
  * kitchen) — the cheap half of per-room beds, see `ZONE_CUES`.
+ *
+ * And it tells the brain **how full the room is** (`roomOccupancyAt`), so an
+ * office at eight in the evening waits longer between cues and what it plays
+ * is the machines that run whether or not anybody is there.
  *
  * @param {{ playChime?: (playFn: (ref: object) => void) => void, random?: () => number }} params
  */
@@ -55,8 +60,9 @@ export function useOfficeSoundscape(params) {
       if (isOfficeNarrationBusy()) return;
       const random = paramsRef.current.random ?? Math.random;
       const atDesk = getOfficeViewMode() === 'desk';
+      const now = Date.now();
       const cue = pickNextSoundscapeCue({
-        now: Date.now(),
+        now,
         sessionStartedAt,
         lastPlayedAt,
         lastCue,
@@ -64,6 +70,13 @@ export function useOfficeSoundscape(params) {
         // Same zone the bed is already filtered for, read back from the tone
         // player so there is one answer to "which room are you in".
         zone: getRoomToneZone(),
+        /*
+         * Computed here rather than read back off the bed the way the zone is,
+         * because it is a pure function of the clock and the store that both
+         * directors can call — see `setRoomToneOccupancy`'s comment for why
+         * the two cases differ. The snapshot is the one this tick already read.
+         */
+        occupancy: roomOccupancyAt({ now, peopleUp: peopleOutOfChairs(snapshot) }),
         random
       });
       if (!cue) return;

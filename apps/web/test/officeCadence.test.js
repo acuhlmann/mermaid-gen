@@ -25,7 +25,12 @@ import {
   OFFICE_WARMUP_MOMENT_COUNT,
   pickNextMoment,
   pickTalkAnswer,
-  TALK_ANSWER_WEIGHTS
+  TALK_ANSWER_WEIGHTS,
+  OCCUPANCY_PEOPLE_UP_CAP,
+  OCCUPANCY_PER_PERSON_UP,
+  PHASE_OCCUPANCY,
+  peopleOutOfChairs,
+  roomOccupancyAt
 } from '../src/utils/officeCadence.js';
 
 const BASE = {
@@ -381,5 +386,108 @@ describe('what the room does when you say something out loud', () => {
     // …and the roll still spans the shapes that remain, rather than collapsing
     // to one — a gate that quietly silenced the room would pass a `not.toContain`.
     expect(new Set(shapesOf(rolls, { hasDiagram: false }))).toEqual(new Set(['shout', 'ignored']));
+  });
+});
+
+describe('how full the room is (queue 8 — the soundscape asks who is here)', () => {
+  const at = (h, m = 0) => new Date(2026, 7, 10, h, m, 0, 0);
+
+  it('empties overnight and fills up by mid-morning', () => {
+    const byHour = [6, 10, 12, 18, 22].map((h) => roomOccupancyAt({ now: at(h) }));
+    const [early, standUp, midday, windDown, afterHours] = byHour;
+    expect(afterHours).toBeLessThan(early);
+    expect(early).toBeLessThan(windDown);
+    expect(windDown).toBeLessThan(standUp);
+    expect(standUp).toBeLessThanOrEqual(midday);
+    expect(midday).toBe(1);
+  });
+
+  /*
+   * 1 is not "the room is at capacity", it is "the room the cue tables and the
+   * bed level were tuned against". Every consumer multiplies by it, so if this
+   * ever stops being reachable the whole feature becomes a global volume cut
+   * that nobody asked for.
+   */
+  it('reaches exactly 1 in the ordinary working day, with nobody up', () => {
+    expect(roomOccupancyAt({ now: at(12), peopleUp: 0 })).toBe(1);
+    expect(PHASE_OCCUPANCY.midday).toBe(1);
+  });
+
+  it('wakes a thin room up when somebody is out of their chair', () => {
+    const quiet = roomOccupancyAt({ now: at(18) });
+    const oneUp = roomOccupancyAt({ now: at(18), peopleUp: 1 });
+    const threeUp = roomOccupancyAt({ now: at(18), peopleUp: 3 });
+    expect(oneUp).toBeCloseTo(quiet + OCCUPANCY_PER_PERSON_UP, 10);
+    expect(threeUp).toBeGreaterThan(oneUp);
+  });
+
+  it('stops counting past the cap, and never leaves 0–1', () => {
+    const capped = roomOccupancyAt({ now: at(18), peopleUp: OCCUPANCY_PEOPLE_UP_CAP });
+    expect(roomOccupancyAt({ now: at(18), peopleUp: 40 })).toBe(capped);
+    for (const peopleUp of [-5, 0, 2, 40]) {
+      for (const h of [3, 8, 12, 17, 21]) {
+        const level = roomOccupancyAt({ now: at(h), peopleUp });
+        expect(level).toBeGreaterThanOrEqual(0);
+        expect(level).toBeLessThanOrEqual(1);
+      }
+    }
+    // A full room cannot be made fuller — midday plus a scene is still midday.
+    expect(roomOccupancyAt({ now: at(12), peopleUp: 3 })).toBe(1);
+  });
+
+  it('takes a Date or an epoch, like the two dials above it', () => {
+    const seven = at(19);
+    expect(roomOccupancyAt({ now: seven })).toBe(roomOccupancyAt({ now: seven.getTime() }));
+  });
+
+  /*
+   * It is a second reading of the same five phases rather than a sixth phase or
+   * a fourth face of the instant — the thing `docs/agents/domains/office.md` is
+   * emphatic about. Asserted so promoting it means deleting this first.
+   */
+  it('is a reading of the day phases, not another one of them', () => {
+    expect(Object.keys(PHASE_OCCUPANCY).sort()).toEqual([...OFFICE_DAY_PHASES].sort());
+    for (const h of [0, 7, 10, 12, 17, 21]) {
+      expect(PHASE_OCCUPANCY[officeDayPhaseAt(at(h))]).toBeDefined();
+    }
+  });
+});
+
+describe('peopleOutOfChairs', () => {
+  const lines = (...ids) => ids.map((speakerId) => ({ speakerId, text: 'x' }));
+
+  it('is zero for a room with nothing going on', () => {
+    expect(peopleOutOfChairs()).toBe(0);
+    expect(peopleOutOfChairs({ coffee: null, battle: null, huddle: null })).toBe(0);
+  });
+
+  it('counts the cast of a set piece from who speaks in it', () => {
+    expect(peopleOutOfChairs({ coffee: { lines: lines('dinesh', 'gilfoyle') } })).toBe(2);
+    expect(peopleOutOfChairs({ huddle: { attendees: ['jared', 'richard', 'erlich'] } })).toBe(3);
+  });
+
+  it('counts a person once however many times they open their mouth', () => {
+    expect(
+      peopleOutOfChairs({ coffee: { lines: lines('dinesh', 'gilfoyle', 'dinesh', 'dinesh') } })
+    ).toBe(2);
+  });
+
+  /*
+   * Somebody in two places at once is the § 6 rule 5 failure wearing an
+   * arithmetic hat: the room would sound busier than the number of people the
+   * floor is actually drawing.
+   */
+  it('merges the set pieces rather than summing them', () => {
+    expect(
+      peopleOutOfChairs({
+        coffee: { lines: lines('dinesh', 'gilfoyle') },
+        huddle: { attendees: ['gilfoyle', 'jared'] }
+      })
+    ).toBe(3);
+  });
+
+  it('shrugs off a malformed moment instead of taking the office down', () => {
+    expect(peopleOutOfChairs({ coffee: { lines: [{}, { speakerId: '' }] } })).toBe(0);
+    expect(peopleOutOfChairs({ battle: {} })).toBe(0);
   });
 });
