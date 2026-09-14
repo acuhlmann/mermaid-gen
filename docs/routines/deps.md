@@ -1,7 +1,7 @@
 ---
 name: deps
 tier: code-writing
-schedule: '30 4,16 * * *'
+schedule: '30 4,14 * * *'
 maxFiles: 6
 maxIssues: 1
 prTitlePrefix:
@@ -42,10 +42,18 @@ author a resolved tree. Dependabot writes lockfiles; this routine writes code an
 Dependabot. Every fix here is either a merge, a Dependabot instruction, or a source change that lets
 Dependabot's own PR go green. An upgrade that cannot be expressed that way is not this routine's work.
 
-`'30 4,16 * * *'` (12:30 and 00:30 HKT) sits off the night ladder on purpose: dependency queues move
-in bursts when an advisory lands, and twice-daily bounds how long a `high`-severity fix waits. It is
-also the only job on either shelf not competing for the same 4-hour window, so a burst of Dependabot
-PRs never delays a review or a resolve.
+`'30 4,14 * * *'` (12:30 and **22:30** HKT) sits off the night ladder on purpose: dependency queues
+move in bursts when an advisory lands, and twice-daily bounds how long a `high`-severity fix waits. It
+is also the only job on either shelf not competing for the same window, so a burst of Dependabot PRs
+never delays a review or a resolve.
+
+**The night firing is deliberately thirty minutes _before_ the ladder opens, not inside it.** Until
+2026-09-14 this read `30 4,16`, which put a Dependabot merge into `main` in the middle of
+`metaphor3d`'s run — a rung that moves the base commit while another is branched off it manufactures
+exactly the conflict it cannot see coming. Nothing here needs the ladder to be quiet, but the base
+commit is cheaper to move when nobody is standing on it. If this slot is ever retimed back into
+15:00–01:00 UTC, `office-life`'s slot becomes contested again — see
+[`docs/automations/office-life.md`](../automations/office-life.md) § the note on why it moved.
 
 ## 1. Gather
 

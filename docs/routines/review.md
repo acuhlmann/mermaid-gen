@@ -1,7 +1,7 @@
 ---
 name: review
 tier: code-writing
-schedule: '0 20 * * *'
+schedule: '30 21 * * *'
 maxFiles: 6
 maxIssues: 2
 prTitlePrefix:
@@ -25,48 +25,96 @@ forbiddenPaths:
 Reviews everything that landed on `main` in the last 24 hours, fixes at most one bug it can prove,
 and files the rest as issues. Opens a PR, merges it when CI is green.
 
-`0 20 * * *` (04:00 HKT) sits after all four feature automations have landed their PRs —
-`office-life` (`0 13`), `metaphor3d` (`0 15`, 50–120 min), `anything` (`15 17`),
-`canvas-graph-edit` (`30 18`). Their work gets reviewed by nobody else. It runs _before_ `improve`
-and `resolve` so the issues it files are in the backlog when `resolve` reads it three hours later.
+`30 21 * * *` (05:30 HKT) sits after all four feature automations have landed their PRs —
+`metaphor3d` (`0 15`, 50–120 min), `office-life` (`0 18`), `anything` (`30 19`),
+`canvas-graph-edit` (`30 20`). Their work gets reviewed by nobody else. It runs _before_ `improve`
+and `resolve` so the issues it files are in the backlog when `resolve` reads it just over two hours
+later.
 
 > **The night ladder** (all crons UTC; the owner is GMT+8, so the whole pipeline runs while
-> they're asleep and the digest is waiting when they wake). Gaps are sized from _measured_ run
-> durations, not a flat stagger — an earlier flat 1 h stagger overlapped twice.
+> they're asleep and the digest is waiting when they wake). The window is **23:00 → 08:45 HKT**:
+> it opens when the owner is off the machine and closes just before they sit down to read the digest
+> and merge what is held. Gaps are sized from _measured_ run durations, not a flat stagger — an
+> earlier flat 1 h stagger overlapped twice.
 >
-> | HKT   | UTC           | Job                 | shelf       | host   |
-> | ----- | ------------- | ------------------- | ----------- | ------ |
-> | 21:00 | `0 13 * * *`  | `office-life`       | automations | Claude |
-> | 23:00 | `0 15 * * *`  | `metaphor3d`        | automations | Claude |
-> | 01:15 | `15 17 * * *` | `anything`          | automations | Claude |
-> | 02:30 | `30 18 * * *` | `canvas-graph-edit` | automations | Claude |
-> | 04:00 | `0 20 * * *`  | `review`            | routines    | Claude |
-> | 05:00 | `0 21 * * *`  | `improve`           | routines    | Cursor |
-> | 06:15 | `15 22 * * *` | `resolve`           | routines    | Cursor |
-> | 07:00 | `0 23 * * *`  | `digest`            | routines    | Claude |
+> | HKT   | UTC           | Job                 | shelf       | host   | worst end (UTC) |
+> | ----- | ------------- | ------------------- | ----------- | ------ | --------------- |
+> | 23:00 | `0 15 * * *`  | `metaphor3d`        | automations | Claude | 17:00           |
+> | 23:30 | `30 15 * * *` | `prune`             | routines    | Claude | 15:50           |
+> | 02:00 | `0 18 * * *`  | `office-life`       | automations | Claude | 19:10           |
+> | 03:30 | `30 19 * * *` | `anything`          | automations | Claude | 20:00           |
+> | 04:30 | `30 20 * * *` | `canvas-graph-edit` | automations | Claude | 20:35           |
+> | 05:30 | `30 21 * * *` | `review`            | routines    | Claude | 22:20           |
+> | 06:30 | `30 22 * * *` | `improve`           | routines    | Cursor | ~00:00          |
+> | 07:45 | `45 23 * * *` | `resolve`           | routines    | Cursor | ~00:30          |
+> | 08:45 | `45 0 * * *`  | `digest`            | routines    | Claude | ~01:00          |
 >
-> The order is a dependency order, not a convenience: the feature automations produce the code,
-> `review` reads what landed, `improve` works the quality queue, `resolve` works the backlog the
-> first two just filed, and `digest` reports on all of it. Until 2026-08-30 the live crons ran
-> `improve` → `review` → `resolve` with `review` firing _during_ `improve`'s run, which inverted
-> the two rationales the playbooks state below. `resolve` moved to Cursor on 2026-09-01 (ADR-0017) so
-> that the routine which _finds_ work and the one which _pays_ for it are not one account's two
-> failures: when `anything` went dark for four nights in late August, every job that should have
-> noticed was on the same host. `improve` moved to Cursor on 2026-09-11 when its cron slot began
-> firing from a Cursor automation (#644); retire any parallel Claude-side `improve` trigger so only
-> one worker runs per window (see #660).
+> **Trigger ids** (read back from the API on 2026-09-14). `digest` watchdog 4 should `get` a rung by
+> these instead of scanning `claude -p '/schedule list'`, which returns only the newest 20 routines and
+> ignores its own cursor — see [`digest.md`](digest.md) § Watchdog 4.
 >
-> [`deps`](deps.md) (`30 4,16 * * *`, Claude) sits **off** the ladder on purpose. Dependency queues
-> move in bursts when an advisory lands, a twice-daily read of a short list costs minutes, and it
-> should never share a four-hour window with a review that costs an hour.
+> | Rung                 | Trigger id                          | Host   |
+> | -------------------- | ----------------------------------- | ------ |
+> | `metaphor3d`         | **unknown** — off page 1, see below | Claude |
+> | `prune`              | `trig_016hHBBM3gvFUABH8TovEnus`     | Claude |
+> | `office-life`        | `trig_01XBthD1GSYCJJdwQLV2WVt9`     | Claude |
+> | `anything`           | `trig_015dexe7woDn9aGf3qN5cW9B`     | Claude |
+> | `canvas-graph-edit`  | `trig_018pjzUAiH5yQsuiMWfUk8Kc`     | Claude |
+> | `review`             | `trig_01HDohnas6PHZR8YvuUBownG`     | Claude |
+> | `deps`               | `trig_01Dk8ZwZCpXfXGREJyHnh9Up`     | Claude |
+> | `digest`             | `trig_018WLnVs2MAVHAHzGG6YMUYr`     | Claude |
+> | `improve`, `resolve` | n/a — Cursor automation             | Cursor |
 >
-> [`prune`](prune.md) is **not a rung at all** — `schedule: none`, started by the owner by hand, and
-> it never merges what it proposes. Keep it out of the table above: a row with no cron reads to
-> `digest` as a rung that has gone dark, which is the one failure watchdog 1 exists to catch (its
-> candidates come from `npm run prune:scan`, a report that is deliberately not in `check`). It does
-> have write access to product code, so it is registered in
-> [`README.md`](README.md) § the routine table instead — the "one fleet" rule below is satisfied
-> there, and a `prune:` PR title prefix is what identifies its branches.
+> `metaphor3d` is the one rung nobody on this machine can address: it is the oldest routine, so the
+> 20-row page cap has already swallowed it, and `get_run_log` on one of its sessions carries no trigger
+> id either. Retreiving it is a claude.ai/code/routines lookup (the owner's), and once it is written
+> here it stops being a problem — **the 2026-09-14 retiming is the reason to do it**, because that rung
+> is the only one this document commands that no cron change was applied to.
+>
+> The order is a dependency order, not a convenience. The four **producers** come first
+> (`metaphor3d` → `office-life` → `anything` → `canvas-graph-edit`), longest first: a long job at the
+> head of the chain absorbs its own overrun, whereas a long job in the middle delays everything behind
+> it by whatever it overran — which is what `metaphor3d` at `0 15` against `anything` at `15 17` did
+> until 2026-09-14 (a 15-minute buffer on a 2-hour job). `review` reads what they landed, `improve`
+> works the quality queue that `review` just priced, `resolve` works the backlog the first two just
+> filed, and `digest` reports on all of it as the last line before the owner wakes.
+> `prune` is in the table now, and it sits at the **head** of the ladder rather than its tail — see the
+> paragraph below. Its own slot is the one thing `metaphor3d`'s presence at the top forced: 30 minutes
+> apart is under this shelf's "stagger by at least an hour" convention, and it is deliberate. That rule
+> exists so two rungs do not fight over `main`, and a rung that can only ever propose a PR cannot fight
+> with anything. The hour it buys in exchange (pruning a tree that `metaphor3d` is concurrently
+> changing) is worth less than the day it used to cost the owner's attention.
+>
+> Until 2026-08-30 the live crons ran `improve` → `review` → `resolve` with `review` firing _during_
+> `improve`'s run, which inverted the two rationales the playbooks state below. `resolve` moved to
+> Cursor on 2026-09-01 (ADR-0017) so that the routine which _finds_ work and the one which _pays_ for
+> it are not one account's two failures: when `anything` went dark for four nights in late August,
+> every job that should have noticed was on the same host. `improve` moved to Cursor on 2026-09-11
+> when its cron slot began firing from a Cursor automation (#644); retire any parallel Claude-side
+> `improve` trigger so only one worker runs per window (see #660).
+>
+> [`deps`](deps.md) (`30 4,14 * * *`, Claude) sits **off** the ladder on purpose, and its night firing
+> now lands **thirty minutes before the window opens** rather than inside it. Dependency queues move in
+> bursts when an advisory lands, a twice-daily read of a short list costs minutes, and it should never
+> share a four-hour window with a review that costs an hour. The old `30 16` UTC slot put a Dependabot
+> merge into `main` in the middle of `metaphor3d`'s run; a rung that moves the base commit should do it
+> while nothing is branched, because every producer that started afterwards inherits the change and
+> every one already running gets a surprise conflict.
+>
+> [`prune`](prune.md) joined the ladder on 2026-09-14, at its head. Its two prior firings were
+> 2026-09-13 (owner-triggered by hand, `stale-doc`, #670, merged by the owner in 31 min) and 2026-09-14
+> (first on-cron firing, `dead-file`, #681, merged by the owner in 51 min) — `mergePolicy: hold` honored
+> both times, which is the read-the-room evidence that a scheduled `prune` is safe to stand up.
+> It is the only rung that cannot merge, which is exactly why it is safe to put anywhere — but it is
+> still at the top on purpose, for two reasons that both broke when it sat at `0 0 * * *` behind the
+> digest.
+> **(1)** `digest` watchdog 2 carries a fresh `prune:` hold on the `Needs you:` line the morning it
+> opens; a prune that fires an hour _after_ the digest structurally cannot be reported until the next
+> morning, so the one thing the owner must decide arrived a full day late. **(2)** It branches off the
+> quietest `main` of the day — the owner's daytime merges have all landed and no nightly rung has
+> started — so the deletion PR the owner reviews on a phone is not also carrying a rebase. Its
+> candidates come from `npm run prune:scan`, a report that is deliberately absent from `check`, so a
+> row in this table is also the only thing that makes the rung visible to a reader at all.
 >
 > **One fleet per 24-hour window.** Two hosts scanning the same commits is not redundancy — on
 > 2026-08-29 `review` and Cursor's unregistered `critical-bug-memory` automation both found the same
@@ -74,6 +122,12 @@ and `resolve` so the issues it files are in the backlog when `resolve` reads it 
 > Any automation with write access to product code must appear in the table above or in
 > [`docs/automations/README.md`](../automations/README.md); one that appears in neither is
 > unregistered, and its next finding is somebody else's duplicate work.
+>
+> **Nothing here is enforced by the crons — it is enforced by the mirrors.** Nine files state these
+> nine crons, and `npm run verify:agent-infra` fails if any of them disagree, if a ladder rung moves
+> outside the 15:00–01:00 UTC window, or if a rung's UTC hour and the HKT column stop matching. That
+> sensor landed the same day as this retiming, because a ladder restated in nine places is nine places
+> to get wrong.
 
 ## 1. Window
 

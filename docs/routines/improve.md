@@ -1,7 +1,7 @@
 ---
 name: improve
 tier: code-writing
-schedule: '0 21 * * *'
+schedule: '30 22 * * *'
 host: Cursor
 maxFiles: 12
 maxIssues: 1

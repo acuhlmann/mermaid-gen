@@ -1,7 +1,7 @@
 ---
 name: resolve
 tier: code-writing
-schedule: '15 22 * * *'
+schedule: '45 23 * * *'
 host: Cursor
 maxFiles: 9
 maxIssues: 1
@@ -30,10 +30,11 @@ findings and fix at most one bug each per run — nothing previously came back f
 sat waiting for a human to hand them back to an agent. `resolve` is that hand-back, done on a
 schedule.
 
-`15 22 * * *` (06:15 HKT) is the last code-writing rung of the night: `review` (`0 20`) and
-`improve` (`0 21`) have both merged by then, so tonight's freshly filed issues are visible in the
-backlog before this routine reads it, and the `digest` at `0 23` reports on everything including
-this run.
+`45 23 * * *` (07:45 HKT) is the last code-writing rung of the night: `review` (`30 21`) and
+`improve` (`30 22`) have both merged by then, so tonight's freshly filed issues are visible in the
+backlog before this routine reads it, and the `digest` at `45 0` reports on everything including
+this run — with an hour of margin, because this rung's duration is the one number the Claude-side
+trigger API cannot see (it is Cursor-hosted, so `digest` infers it from when PRs landed).
 
 Until 2026-08-30 this playbook claimed it sat "two hours after `review` (`0 1 * * *`)". Neither
 number was the live cron, and the real firing order was the exact inverse of the one this

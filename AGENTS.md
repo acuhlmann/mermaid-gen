@@ -239,13 +239,22 @@ check`: two unattended feature automations run daily here, and a quality metric 
   a self-merged monolith split when the fix matches an extraction pattern already used elsewhere in
   the file (`improve.md` § 7), or a lint `warn`→`error` promotion after a two-week quiet period
   (§ 8). ADR-0010 (no slot content) and "no new dependencies" are unchanged.
-- **There is a night ladder, and it is a dependency order.** Eight jobs run between `0 13` and
-  `0 23` UTC (21:00–07:00 in the owner's GMT+8): feature automations produce code, `review` reads
-  what landed, `improve` works the quality queue, `resolve` works the backlog, `digest` reports.
-  Table (with which host runs which rung) in [`docs/routines/review.md`](docs/routines/review.md).
-  `deps` (`30 4,16 * * *`) is off the ladder on purpose — advisories arrive in bursts.
+- **There is a night ladder, and it is a dependency order.** Nine jobs run between `0 15` and
+  `45 0` UTC — **23:00 → 08:45 in the owner's GMT+8** — so the whole fleet works while the owner is
+  away and the digest lands while they are at the keyboard. `metaphor3d` opens it as the longest
+  producer; `prune` is second (the only rung that cannot merge, so it is the one that can safely share
+  the head start, and it must precede `digest` or its held deletion PR is reported a day late); the
+  other three feature automations then produce code **longest first**, because a long job at the head
+  absorbs its own overrun while one in the middle delays everything behind it; `review`
+  reads what landed, `improve` works the quality queue, `resolve` works the backlog, `digest` reports.
+  Table (with which host runs which rung, and the measured worst-case end of each) in
+  [`docs/routines/review.md`](docs/routines/review.md). `deps` (`30 4,14 * * *`) is off the ladder on
+  purpose — advisories arrive in bursts, and its night firing lands thirty minutes _before_ the window
+  opens so a Dependabot merge never moves the base commit out from under a job already running.
+  `npm run verify:agent-infra` fails if a ladder rung leaves the 15:00–01:00 UTC window, is missing from
+  the table, or if any mirror table disagrees with a playbook's `schedule:`.
 - **The fleet is split across hosts by duty, since 2026-09-01.** `resolve` and `improve` run as
-  Cursor automations; `review`, `deps`, and `digest` are Claude Routines, so the routine that
+  Cursor automations; `prune`, `review`, `deps`, and `digest` are Claude Routines, so the routine that
   _finds_ work and the one that _pays_ for it are not one account's two failures. **Claude routines are
   scriptable; Cursor automations are not** — `claude -p '/schedule …'` creates, lists, updates and
   fires a cron routine (it cannot delete one, cannot create or revoke API triggers/tokens, and needs
@@ -268,12 +277,12 @@ lived-in feel of the office — runs on a separate shelf:
 (playbook + ledger + cron trigger), same `npm run routine:guard` budget enforcement, but these
 **do** touch product code (and never write slot content — ADR-0010 still applies).
 
-| Playbook                                                     | UTC           | What it improves                                      |
-| ------------------------------------------------------------ | ------------- | ----------------------------------------------------- |
-| [`office-life`](docs/automations/office-life.md)             | `0 13 * * *`  | The isometric office: cast, memory, the visit trace   |
-| [`metaphor3d`](docs/automations/metaphor3d.md)               | `0 15 * * *`  | The 3D slot: ladder, layouts, scenes, composite, USDA |
-| [`anything`](docs/automations/anything.md)                   | `15 17 * * *` | The Anything slot: policy lint, runtime rung, prompts |
-| [`canvas-graph-edit`](docs/automations/canvas-graph-edit.md) | `30 18 * * *` | Direct manipulation on the canvas, all 28 families    |
+| Playbook                                                     | UTC           | HKT   | What it improves                                      |
+| ------------------------------------------------------------ | ------------- | ----- | ----------------------------------------------------- |
+| [`metaphor3d`](docs/automations/metaphor3d.md)               | `0 15 * * *`  | 23:00 | The 3D slot: ladder, layouts, scenes, composite, USDA |
+| [`office-life`](docs/automations/office-life.md)             | `0 18 * * *`  | 02:00 | The isometric office: cast, memory, the visit trace   |
+| [`anything`](docs/automations/anything.md)                   | `30 19 * * *` | 03:30 | The Anything slot: policy lint, runtime rung, prompts |
+| [`canvas-graph-edit`](docs/automations/canvas-graph-edit.md) | `30 20 * * *` | 04:30 | Direct manipulation on the canvas, all 28 families    |
 
 `metaphor3d` and `canvas-graph-edit` got playbooks on 2026-08-30; before that they were exactly the
 prompt-in-a-cron-blob shape ADR-0014 exists to replace, and `metaphor3d` — the most productive job

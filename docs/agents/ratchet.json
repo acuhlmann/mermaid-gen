@@ -47,14 +47,14 @@
     },
     "contextBytes": {
       "CLAUDE.md": {
-        "budget": 39135,
+        "budget": 40049,
         "initial": 136170,
-        "reason": "2026-09-12: +13 bytes registering `improve` on Cursor alongside `resolve` in the fleet-split bullet (#660 doc drift \u2014 the cron slot had fired from a Cursor automation since 2026-09-11 while every registration still said Claude)."
+        "reason": "2026-09-14: 39135 -> 40049 (+914) for the night-ladder retiming. Both root files now carry the 23:00-08:45 HKT window, why prune sits at the head of the ladder despite never merging anything itself, why deps fires before the window opens, and that prune is a declared rung rather than manual-only. All four are repo-wide fleet facts, which README rule 8 still mirrors into both files, and all four are things an agent gets wrong by reading only one playbook. One tenth of a percent of the file. Prior raise:  2026-09-12: +13 bytes registering `improve` on Cursor alongside `resolve` in the fleet-split bullet (#660 doc drift \u2014 the cron slot had fired from a Cursor automation since 2026-09-11 while every registration still said Claude)."
       },
       "AGENTS.md": {
-        "budget": 42484,
+        "budget": 43427,
         "initial": 88461,
-        "reason": "2026-09-12: +13 bytes, same fleet-split registration as CLAUDE.md (#660). Prior raise (2026-09-07 prune command) unchanged in substance."
+        "reason": "2026-09-14: 42484 -> 43427 (+943), the same retiming as CLAUDE.md and the same facts, mirrored per README rule 8. AGENTS.md is the file a non-Claude, non-Cursor agent reads first, so it carries the per-rung worst-case-end note and the fact that `verify:agent-infra` now fails when a mirror copy of a cron drifts — the sensor is the reason the ninth copy of a schedule can stop lying. Prior raise:  2026-09-12: +13 bytes, same fleet-split registration as CLAUDE.md (#660). Prior raise (2026-09-07 prune command) unchanged in substance."
       }
     },
     "lintWarnings": {
@@ -87,7 +87,7 @@
         "initial": 366
       },
       "cases": {
-        "budget": 4537,
+        "budget": 4550,
         "initial": 3675
       }
     }

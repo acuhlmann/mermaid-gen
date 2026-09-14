@@ -14,8 +14,10 @@ Every routine is three things:
 Six routines ship today: `review`, `improve`, `resolve`, `deps` and [`prune`](prune.md)
 (code-writing) and [`digest`](digest.md) (report). Their crons and the feature automations' form one
 **night ladder** — see [`review.md`](review.md) for the table, which also names which host runs which
-rung. `digest` is last and reports on everything before it. `prune` is on no ladder at all: it has
-no cron and the owner starts it by hand.
+rung. The ladder runs **23:00 → 08:45 HKT** so the whole pipeline happens while the owner is away and
+the digest lands while they are at the keyboard. `metaphor3d` opens it as the longest producer,
+`prune` is second — the only rung that cannot finish itself, so it is the one that can safely share a
+head start — and `digest` closes it and reports on everything before it.
 
 | Routine                 | Host   | Shelf | What it owns                                                     |
 | ----------------------- | ------ | ----- | ---------------------------------------------------------------- |
@@ -23,7 +25,7 @@ no cron and the owner starts it by hand.
 | [`improve`](improve.md) | Cursor | NFR   | the ratchet, the sensors, **every routine's budget** (ADR-0017)  |
 | [`resolve`](resolve.md) | Cursor | NFR   | the open-issue backlog                                           |
 | [`deps`](deps.md)       | Claude | NFR   | Dependabot PRs, advisories, and code that breaks when they move  |
-| [`prune`](prune.md)     | none   | NFR   | whole files nobody needs — **manual, and never self-merged**     |
+| [`prune`](prune.md)     | Claude | NFR   | whole files nobody needs — **scheduled, and never self-merged**  |
 | [`digest`](digest.md)   | Claude | NFR   | one comment a day on #452, and the watchdog that notices silence |
 
 The trigger prompt is deliberately almost empty:
@@ -445,17 +447,25 @@ hold when unsure) that already decide whether any routine change is safe to self
    environment arrive by default, and a default-granted Google Drive in an unattended job is not
    something anyone chose). Deleting a routine, API triggers, and all Cursor-side setup stay the
    owner's (page bar #2).
-   **`schedule: none` is the manual-only exception**, and `prune` is the only routine that uses it. It
-   is a different failure mode from the one this step guards rather than an instance of it: the
-   shelf's oldest is "a playbook nobody ever runs", the manual-only risk is "a playbook somebody
-   forgets exists". It buys an exemption from `digest` watchdogs 1 and 4 and nothing else, and the
-   playbook has to say out loud that it has no cron (§ 0 of [`prune.md`](prune.md)).
+   **`schedule: none` is the manual-only exception**, and no routine uses it today. `prune` shipped on
+   it for five days, grew a live cron behind the playbook's back, and was given a declared slot on
+   2026-09-14 — so if you take this option, take it knowing the failure mode it carries. It is a
+   different failure from the one this step guards rather than an instance of it: the shelf's oldest is
+   "a playbook nobody ever runs", the manual-only risk is "a playbook somebody forgets exists". It buys
+   an exemption from `digest` watchdogs 1 and 4 and nothing else, and the playbook has to say out loud
+   that it has no cron, in its own § 0, the way
+   [`prune.md`](prune.md) had to until it didn't.
+   Give the new rung a slot **inside the night ladder's window** (15:00–01:00 UTC) and a row in
+   [`review.md`](review.md)'s table. `npm run verify:agent-infra` fails on a ladder rung scheduled
+   outside that window, on a rung missing from the table, and on any of the mirror tables disagreeing
+   with a playbook's `schedule:`.
 5. Fire it once (`/schedule run`) and read the whole run before leaving it on a schedule. Then pin its
    observed branch slug in `branchPrefix` — cloud runners generate names, and a fleet-wide prefix like
    `cursor/` would make preflight refuse to start behind a _different_ fleet's PR.
 
-`npm run verify:agent-infra` checks that every `npm run <script>` a playbook names actually exists,
-and `npm run verify:doc-paths` checks its file references resolve. Both run in CI.
+`npm run verify:agent-infra` checks that every `npm run <script>` a playbook names actually exists, and
+that the night ladder is stated identically in every file that restates it (see § Adding a routine,
+step 4). `npm run verify:doc-paths` checks its file references resolve. Both run in CI.
 `npm run routine:guard -- --reachable <path>` answers the one question a new routine's budget has to
 get right before it can promise anything to the backlog (rule 11), and its sweep in
 `scripts/routine-guard.test.mjs` fails if a file in `scripts/` ends up owned by nobody.

@@ -8,8 +8,11 @@ import {
   collectRootPackageScripts,
   collectRoutineDocs,
   extractBlastRadiusTestPaths,
+  extractLadderTableRows,
   extractNpmScriptNames,
-  verifyAgentInfra
+  parsePlaybookSchedule,
+  verifyAgentInfra,
+  verifyNightLadder
 } from './verify-agent-infra.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -109,4 +112,159 @@ test('routine playbooks are covered by the default scan', () => {
     ),
     `expected the playbook's bad script to be reported, got ${JSON.stringify(result.missingScripts)}`
   );
+});
+
+// --- the night ladder: one declaration, several copies, nothing that used to compare them ---------
+//
+// The ladder is stated in a playbook's `schedule:` and then restated in tables in review.md,
+// docs/automations/README.md, AGENTS.md and CLAUDE.md. On 2026-09-13 `prune` grew a live daily cron
+// while its playbook still read `schedule: none`, and every one of those copies agreed with the stale
+// declaration — so CI was green on a fleet whose own documentation was wrong.
+
+/**
+ * @param {{name: string, schedule: string, dir?: string}[]} playbooks
+ * @param {string[]} ladderRows rendered rows of the authority table, without the header
+ * @returns {string} a repo root
+ */
+function ladderFixture(playbooks, ladderRows) {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'ladder-'));
+  for (const pb of playbooks) {
+    const dir = path.join(root, 'docs', pb.dir ?? 'routines');
+    fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(
+      path.join(dir, `${pb.name}.md`),
+      `---\nname: ${pb.name}\ntier: code-writing\nschedule: ${pb.schedule}\n---\n\n# ${pb.name}\n`
+    );
+  }
+  fs.writeFileSync(
+    path.join(root, 'docs', 'routines', 'review.md'),
+    [
+      '> **The night ladder**',
+      '> | HKT | UTC | Job | shelf | host |',
+      '> | --- | --- | --- | --- | --- |',
+      ...ladderRows.map((row) => `> ${row}`)
+    ].join('\n') + '\n'
+  );
+  return root;
+}
+
+const LADDER_OK = [
+  '| 23:30 | `30 15 * * *` | `prune` | routines | Claude |',
+  '| 08:45 | `45 0 * * *` | `digest` | routines | Claude |'
+];
+
+test('parsePlaybookSchedule reads a quoted and a bare schedule value', () => {
+  assert.deepEqual(parsePlaybookSchedule("---\nname: x\nschedule: '0 15 * * *'\n---\n"), {
+    name: 'x',
+    schedule: '0 15 * * *'
+  });
+  assert.deepEqual(parsePlaybookSchedule('---\nname: x\nschedule: none\n---\n'), {
+    name: 'x',
+    schedule: 'none'
+  });
+});
+
+test('extractLadderTableRows reads a table inside a blockquote', () => {
+  const rows = extractLadderTableRows(LADDER_OK.map((r) => `> ${r}`).join('\n'), 'x.md');
+  assert.deepEqual(
+    rows.map((r) => [r.name, r.cron, r.hkt]),
+    [
+      ['prune', '30 15 * * *', '23:30'],
+      ['digest', '45 0 * * *', '08:45']
+    ]
+  );
+});
+
+test('a ladder whose copies agree passes', () => {
+  const root = ladderFixture(
+    [
+      { name: 'prune', schedule: "'30 15 * * *'" },
+      { name: 'digest', schedule: "'45 0 * * *'" }
+    ],
+    LADDER_OK
+  );
+  const result = verifyNightLadder(root);
+  assert.deepEqual(result.errors, []);
+  assert.equal(result.rungCount, 2);
+});
+
+test('a table copy that disagrees with its playbook is reported with both values', () => {
+  const root = ladderFixture(
+    [{ name: 'prune', schedule: "'0 15 * * *'" }],
+    ['| 00:00 | `0 16 * * *` | `prune` | routines | Claude |']
+  );
+  const result = verifyNightLadder(root);
+  assert.equal(result.ok, false);
+  assert.equal(result.errors.length, 1, result.errors.join('\n'));
+  assert.match(result.errors[0], /scheduled `0 16 \* \* \*` in this table but '0 15 \* \* \*'/);
+});
+
+test('an HKT column that no longer matches its UTC hour is reported', () => {
+  const root = ladderFixture(
+    [{ name: 'prune', schedule: "'0 15 * * *'" }],
+    ['| 21:00 | `0 15 * * *` | `prune` | routines | Claude |']
+  );
+  const result = verifyNightLadder(root);
+  assert.equal(result.errors.length, 1, result.errors.join('\n'));
+  assert.match(
+    result.errors[0],
+    /shows HKT 21:00 for cron `0 15 \* \* \*` \(UTC\), which is 23:00/
+  );
+});
+
+test('a ladder row for a manual-only playbook is the prune failure, and it is reported', () => {
+  const root = ladderFixture([{ name: 'prune', schedule: 'none' }], [LADDER_OK[0]]);
+  const result = verifyNightLadder(root);
+  assert.equal(result.ok, false);
+  assert.match(result.errors.join('\n'), /schedule: none/);
+});
+
+test('a scheduled rung with no ladder row is a rung nobody can find', () => {
+  const root = ladderFixture(
+    [
+      { name: 'prune', schedule: "'0 15 * * *'" },
+      { name: 'digest', schedule: "'45 0 * * *'" }
+    ],
+    [LADDER_OK[0]]
+  );
+  const result = verifyNightLadder(root);
+  assert.equal(result.ok, false);
+  assert.ok(
+    result.errors.some((e) => /`digest`.*no ladder row/.test(e)),
+    result.errors.join('\n')
+  );
+});
+
+test('a rung outside the night window is refused, and one past midnight is not', () => {
+  const late = ladderFixture(
+    [{ name: 'prune', schedule: "'0 13 * * *'" }],
+    ['| 21:00 | `0 13 * * *` | `prune` | routines | Claude |']
+  );
+  assert.match(verifyNightLadder(late).errors.join('\n'), /outside the night ladder window/);
+
+  // `45 0 * * *` is 08:45 HKT — inside a window that opens at 15:00 and wraps midnight.
+  const wrapping = ladderFixture([{ name: 'digest', schedule: "'45 0 * * *'" }], [LADDER_OK[1]]);
+  assert.deepEqual(verifyNightLadder(wrapping).errors, []);
+});
+
+test('a rung declared off the ladder needs no row and no window', () => {
+  const root = ladderFixture(
+    [
+      { name: 'deps', schedule: "'30 4,14 * * *'" },
+      { name: 'prune', schedule: "'30 15 * * *'" }
+    ],
+    [LADDER_OK[0]]
+  );
+  assert.deepEqual(verifyNightLadder(root).errors, []);
+});
+
+test('this repository is the regression: prune is scheduled, on the ladder, and still held', () => {
+  const ladder = verifyNightLadder(ROOT);
+  assert.deepEqual(ladder.errors, [], ladder.errors.join('\n'));
+  assert.ok(ladder.rungCount >= 10, `expected every rung, got ${ladder.rungCount}`);
+  assert.ok(ladder.rowCheckCount >= 20, 'the mirrors are the point of this check');
+
+  const prune = fs.readFileSync(path.join(ROOT, 'docs/routines/prune.md'), 'utf8');
+  assert.equal(parsePlaybookSchedule(prune).schedule, '30 15 * * *', 'prune has a declared slot');
+  assert.match(prune, /^mergePolicy: hold$/m, 'and it still may not merge its own deletion');
 });

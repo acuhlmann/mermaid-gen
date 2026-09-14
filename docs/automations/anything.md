@@ -1,7 +1,7 @@
 ---
 name: anything
 tier: code-writing
-schedule: '15 17 * * *'
+schedule: '30 19 * * *'
 maxFiles: 12
 maxIssues: 1
 prTitlePrefix:
@@ -36,12 +36,18 @@ forbiddenPaths:
 Incrementally improves the **Anything** slot: validation ladder, prompts, benches, and renderer.
 One slice per run, then stop. Opens a PR and merges it when CI is green.
 
-`15 17 * * *` **UTC** (01:15 HKT). Sits between the `metaphor3d` automation (`0 15`) and
-`canvas-graph-edit` (`30 18`), with the three NFR routines reviewing the night's work afterwards.
+`30 19 * * *` **UTC** (03:30 HKT). Sits between the `office-life` automation (`0 18`) and
+`canvas-graph-edit` (`30 20`), with the NFR routines reviewing the night's work afterwards. Its paths
+are disjoint from `metaphor3d`'s and `office-life`'s, so the hour either side of it is slack rather
+than a shield — but `canvas-graph-edit` reaches into `metaphorScenes/` and `diagramSchema.ts`, so the
+producers stay one-per-slot regardless.
 
-Every playbook on both shelves declares its schedule in **UTC**. `routine-guard` does not read the
-`schedule` key at all, so a second timezone convention is invisible to every mechanical check and
-is precisely how four of these drifted out of sync with their live crons.
+Every playbook on both shelves declares its schedule in **UTC**. `npm run verify:agent-infra` now
+parses the `schedule` key and compares it against every ladder table that mirrors it
+(`docs/routines/review.md`, this shelf's README, `AGENTS.md`, `CLAUDE.md`), and fails if a ladder rung
+is scheduled outside the night window — until 2026-09-14 nothing read the key at all, so a second
+timezone convention was invisible to every mechanical check, which is how four of these drifted out of
+sync with their live crons.
 
 Take the **highest unfinished queue item that fits the budget**. Push the rest back into the
 ledger's `todos`.
