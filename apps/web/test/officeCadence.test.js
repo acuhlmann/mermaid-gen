@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { awayFromDeskIds } from '../src/utils/officeSceneCast.js';
 import { DESK_LLM_CAP, DWELL_LLM_CAP, TALK_LLM_CAP } from '../src/hooks/useDeskActions.js';
 import { RUN_REACTION_LLM_CAP } from '../src/hooks/useOfficeRunReactions.js';
 import { wanderTripsFor, wanderingSeatIds } from '../src/utils/officeFloorWander.js';
@@ -489,5 +490,26 @@ describe('peopleOutOfChairs', () => {
   it('shrugs off a malformed moment instead of taking the office down', () => {
     expect(peopleOutOfChairs({ coffee: { lines: [{}, { speakerId: '' }] } })).toBe(0);
     expect(peopleOutOfChairs({ battle: {} })).toBe(0);
+  });
+
+  it('counts colleagues in a physical glass-room meeting', () => {
+    expect(
+      peopleOutOfChairs({ meeting: { attendees: ['dinesh', 'gilfoyle'], modality: 'inPerson' } })
+    ).toBe(2);
+  });
+
+  it('leaves remote meetings at zero occupancy uplift', () => {
+    expect(
+      peopleOutOfChairs({ meeting: { attendees: ['dinesh', 'gilfoyle'], modality: 'remote' } })
+    ).toBe(0);
+  });
+
+  it('agrees with awayFromDeskIds on who a physical meeting takes out of chairs', () => {
+    const meeting = { attendees: ['dinesh', 'gilfoyle'], modality: 'physical' };
+    const playerId = 'you';
+    const up = peopleOutOfChairs({ meeting });
+    const away = awayFromDeskIds({ meeting, playerId });
+    const colleaguesAway = away.filter((id) => id !== playerId);
+    expect(up).toBe(new Set(colleaguesAway).size);
   });
 });
