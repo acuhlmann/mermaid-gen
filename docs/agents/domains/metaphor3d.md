@@ -62,6 +62,30 @@ ones that will bite an edit.
   about a third of the time and a five-group world more than half — and a collision does not read
   as a bug, it reads as two territories agreeing, which is the one thing a shared grouping noun
   exists to deny. Assign after the `memberIds.size >= 2` filter, by array index.
+- **A colour ladder has to be told where to STAND, not only how far apart its rungs are**
+  (`metaphorScenes/groupIdentity.js` → `resolveGroupPlateBase`). `tintByGroup` separates groups from
+  each other; nothing separated the ladder as a whole from the surface under it, or checked it had
+  anywhere left to travel. Both failed. `LIGHT_LADDER` only ever lifts and whiteboard's
+  `districtPalette[0]` is luma 0.91, so groups 2, 4 and 6 all clamped to `#ffffff` — **pixel-identical
+  territories on the default theme**, in the fused world and the city alike. And the daylight floor
+  and space ceiling walk `groundColor` while leaving `districtPalette` alone, so a noir daylight
+  composite drew its plates 0.012 of luma from the ground they sit on. The base is now **placed**:
+  the whole band stands one side of the ground, clear by `PLATE_GROUND_SEPARATION`, above by
+  preference and below when the lift will not fit under `PLATE_LADDER_CEILING`. Only lightness
+  moves — the theme's hue and the ladder are both kept, and a theme already standing right comes
+  back byte-identical (noir unlocked).
+- **A palette authored near white carries a saturation nobody has ever seen.** HSL lightness is not
+  a perceptual axis at the extremes: whiteboard's pale `#dbeafe` is `s` 0.945, and darkening it into
+  the ladder's working range arrives as an azure the theme never showed. `PLATE_BASE_MAX_SAT` caps
+  it (0.70) rather than scaling it, so the two presets that need it move and the two that do not are
+  returned untouched. This applies to any future relighting of an authored colour, not just plates.
+- **The daylight floor and the space ceiling may take a grouping palette's entry 0 — and only
+  entry 0.** The standing rule is that an ordinal palette is never walked by a lock, because
+  squeezing four shades of one hue collapses neighbours. The fused plate and the city patch read
+  **entry 0 alone** and get their ordinal from `tintByGroup`'s hue ladder, so there is no neighbour
+  to collapse and the rule does not bind. That distinction is why `daylight-group-plate` and
+  `space-group-plate` sat open for a fortnight as "same likely answer as its twin": both were one
+  placement, not a palette walk.
 - **Camera framing samples real vertices, not bounding boxes** (`sceneFraming.js`). A
   `circleGeometry`'s bounding box is a SQUARE, so a ground disc's phantom diagonal corners — the
   points nearest the camera — used to dominate the fit and push the subject to ~40% of the frame.
@@ -1664,8 +1688,53 @@ sticky` nav row, because the height cap makes every small screen a scrolling
     it reads as two territories agreeing. So the fused affinity plate
     (`tintByGroup(resolveDistrictColor(theme, 0), …)` in `FusedCompositeScene.jsx`) is still a
     near-black slab under a daylight sky, carrying the world's grouping nouns. That is
-    `daylight-group-plate` in the ledger, and the answer is likely to derive the plate from the
-    raised ground rather than to floor the palette.
+    `daylight-group-plate` in the ledger. **Answered 2026-09-14, and the premise above is the half
+    that was wrong** — see the next entry: entry 0 alone has no neighbour to collapse, so nothing
+    about the ordinal argument was ever binding on the plate.
+
+- **A colour ladder needs a PLACEMENT, and `tintByGroup` only ever had a spacing.**
+  `resolveGroupPlateBase` (`metaphorScenes/groupIdentity.js`) is that placement. Two failures, one
+  cause, and the second is why the first went unnoticed for weeks.
+  - **The ladder collapsed on the default theme, completely.** `LIGHT_LADDER` only ever lifts and
+    whiteboard's `districtPalette[0]` is `#dbeafe`, sRGB luma **0.91**, so groups 2, 4 and 6 all
+    clamp to `#ffffff`. Nearest-pair distance across the eight-group plate ladder: **0.000**. A
+    four-district city and a four-group fused world both drew territories in one colour, which is
+    the exact failure `groupIdentity.js`'s own header says the tint exists to prevent.
+  - **The sweep that should have caught it was pointed at the wrong base.**
+    `metaphorGroupIdentity.test.js`'s "separates every pair of groups the ladder can hold" pins the
+    ladder against `buildingColor` — a mid-tone on all four presets — and stayed green throughout.
+    The plate's base is `districtPalette[0]`, and nothing swept that. When a ladder has two bases,
+    sweep **both**.
+  - **A lock moves the ground; the plate did not follow.** `raiseSurfacesForDaylight` /
+    `dimSurfacesForSpace` walk `groundColor` and leave `districtPalette` alone. Measured: a noir
+    daylight composite's plate sat **0.012** of luma from the ground it is drawn on, and a
+    whiteboard space composite's sat **0.562** above it — invisible, then a lit slab pasted onto a
+    starfield.
+  - **The fix is a band placed on one side of the ground, not a colour.** Above by preference (a
+    territory is a patch catching whatever light there is), below when the ladder's own lift will
+    not fit under `PLATE_LADDER_CEILING` — whiteboard unlocked, and only whiteboard. Both ends of
+    the band are measured, and the low end is the trap: the lift is in **HSL lightness** while the
+    bar is perceived luma, so a rung that also turns hue and gives up saturation can land _below_
+    its base (whiteboard's group 3, by 0.045). Placing from the base alone left that one rung 0.101
+    from a ground it was meant to clear by 0.13, and the suite caught it.
+  - **Cap a revealed saturation; do not scale it.** `#dbeafe` is `s` 0.945 and only looks pale
+    because `l` is 0.93. `PLATE_BASE_MAX_SAT` (0.70) trims whiteboard and arcade and returns noir
+    and blueprint untouched — which is why **unlocked noir comes back byte-identical**, base and
+    frame alike.
+  - **Measured, pure** (nearest-pair / min plate-to-ground luma, over 4 themes × 8 kinds):
+    whiteboard **0.000 → 0.145** pair on every unlocked kind and 0.000 → 0.116 under the space
+    lock; noir daylight **0.012 → 0.131** ground; blueprint daylight 0.013 → 0.132; arcade daylight
+    0.030 → 0.131. **No cell regresses by more than 0.001**, and unlocked noir is unchanged.
+  - **Measured, rendered** (plate composited over the ground at its own alpha, camera-free):
+    whiteboard city pair **0.020 → 0.091**; whiteboard galaxy composite **0.0055 → 0.0242**;
+    whiteboard tree composite 0.0055 → 0.0254; noir tree composite 0.0055 → 0.0130 with
+    plate-to-ground **0.0055 → 0.0353**. The noir city control: identical to four decimals, and
+    **0.001–0.015% of pixels changed against a 0–0.026% re-shoot floor**.
+  - **A 12-item fused world silently loses its affinity groups.** `resolveLod` returns `low` on
+    `estimatedCost > 95`, and `low` skips `<AffinityGroups>` entirely — a 6-tree + 6-city composite
+    hit it, so the world drew no territory rings, no placards and no flow pulses. Found only
+    because the plate probe reported zero plates on a fixture whose plan carried three groups. Not
+    a framing or colour problem, and not fixed here; recorded as `fused-lod-drops-groups`.
 
 - **Verify metaphor changes by rendering them.** The scoped skill under
   `apps/web/.claude/skills/verify/` has the headless-capture recipe; every finding above came from
