@@ -629,6 +629,30 @@ export const ANYTHING_BENCH_CORPUS = [
       { head: '<!-- @lib:matter -->' }
     )
   },
+  {
+    // lib-matter-stack first-pass "Mouse.on is not a function": the model treats
+    // Mouse the way it would a DOM EventTarget, but Matter's Mouse namespace has
+    // no .on() — press/drag events fire on the MouseConstraint via Events.on,
+    // never on the mouse object itself. Regression = both engines drift.
+    id: 'runtime-matter-mouse-on',
+    kind: 'runtime',
+    expectedAccept: false,
+    expectedCode: 'runtime_error',
+    html: page(
+      `<h1>Stack</h1><canvas id="stage" width="320" height="240"></canvas>
+<script>
+  const { Engine, Render, Bodies, Composite, Mouse, MouseConstraint } = Matter;
+  const engine = Engine.create();
+  const canvas = document.getElementById('stage');
+  Composite.add(engine.world, Bodies.rectangle(160, 230, 320, 20, { isStatic: true }));
+  const mouse = Mouse.create(canvas);
+  const mouseConstraint = MouseConstraint.create(engine, { mouse: mouse });
+  Composite.add(engine.world, mouseConstraint);
+  Mouse.on(mouse, 'mousedown', function () {});
+</script>`,
+      { head: '<!-- @lib:matter -->' }
+    )
+  },
 
   // ── shape: not a document, must stay rejected ────────────────────────────
   {
