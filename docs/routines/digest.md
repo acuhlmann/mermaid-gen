@@ -1,7 +1,7 @@
 ---
 name: digest
 tier: report
-schedule: '0 23 * * *'
+schedule: '45 0 * * *'
 prTitlePrefix:
   - 'digest:'
 ---
@@ -13,8 +13,11 @@ prTitlePrefix:
 Reports on the night that just ended, as one comment on the standing issue
 [**#452 — 📋 Nightly agent digest**](https://github.com/acuhlmann/mermaid-gen/issues/452).
 
-`0 23 * * *` (07:00 HKT) is the last rung of the night ladder and fires ~45 min after `resolve`,
-the last code-writing job. Everything it reports on has already merged.
+`45 0 * * *` (**08:45 HKT**) is the last rung of the night ladder and fires ~1 h after `resolve`, the
+last code-writing job. Everything it reports on has already merged, and the digest lands while the
+owner is at the keyboard rather than two hours before they wake — which is the whole point of the
+window: `prune` opened it at 23:00 HKT by filing a deletion PR nobody can merge for them, and this rung
+closes it by saying so.
 
 ## Tier `report` means this routine writes nothing
 
@@ -150,12 +153,20 @@ This is the section the routine exists for. Report each of these or say explicit
 1. **A job that did not run.** Any playbook on either shelf whose ledger has no row for last
    night, or which produced no `main` commit and no PR. Name it and say how many nights it has
    been quiet. A job going dark is silent by construction — nothing else in the system notices.
-   **Except a playbook whose `schedule:` is `none`.** `prune` is manual-only until the owner
-   decides otherwise (README § Adding a routine, step 4), so an empty ledger is its correct state
-   and reporting it nightly is exactly the noise that gets a digest muted. Read `schedule:` from
-   the `head -12` pass in § 1; if it is `none`, skip the rung and do not mention it as a gap. The
-   inverted finding _is_ reportable: a `schedule: none` playbook with a live cron behind it means
-   somebody scheduled it without editing the playbook.
+   **Except a playbook whose `schedule:` is `none`.** Such a rung is manual-only, so an empty ledger
+   is its correct state and reporting it nightly is exactly the noise that gets a digest muted. Read
+   `schedule:` from the `head -12` pass in § 1; if it is `none`, skip the rung and do not mention it
+   as a gap. The inverted finding _is_ reportable: a `schedule: none` playbook with a live cron behind
+   it means somebody scheduled it without editing the playbook. **That finding was not hypothetical** —
+   `prune` shipped manual-only on 2026-09-07, acquired a live `0 0 * * *` cron that no document knew
+   about, and watchdog 4 caught the disagreement on 2026-09-13. It was resolved the next day by
+   declaring the rung at `30 15 * * *` and giving it a ladder row
+   ([`review.md`](review.md) § the night ladder), which is the correct direction to fix it in: the
+   shelf's oldest failure mode is a playbook nobody runs, and a live cron that the playbook denies is
+   the same failure wearing the opposite hat. **There is no `schedule: none` routine today.** The
+   exemption stays because "Adding a routine" step 4 still offers it, and a future rung may take it —
+   but do not assume a rung is unscheduled because its name is missing from
+   `claude -p '/schedule list'`. See watchdog 4's page cap.
 2. **A PR left open overnight.** Any open PR older than 24 h, with its CI state. Say whether
    `routine-guard --preflight` will now refuse that routine's next firing, because it will. A held PR
    (a routine that finished a fix and declined to merge it — `resolve.md` § 4) belongs in this line
@@ -178,27 +189,53 @@ This is the section the routine exists for. Report each of these or say explicit
    documented `anythingRuntimeCheck.test.js` load-contention flake before calling it a regression
    (`docs/agents/sensors.md` § Known flakes) — the tell is a uniform timing shift across every
    case in that one file.
-4. **Schedule drift.** The `Claude_Code_Remote` connector is attached for exactly this: list the
-   routines and compare each live `cron_expression` against the `schedule:` in the matching
-   playbook's front-matter. Report any pair that disagrees, with both values. `routine-guard` does
-   not read that key, so it drifts in silence — on 2026-08-30 **all four** live crons disagreed
-   with their playbooks, and two playbooks stated an ordering rationale that the real firing order
-   inverted. **Direct source for the Claude rungs: `claude -p '/schedule list'`**, which returns every
-   routine's id, live cron in UTC, model and enabled state — cheaper and more literal than the
-   `Claude_Code_Remote` connector, and it also reports a rung that was **deleted** rather than one
-   that quietly stopped. Compare each against the playbook's `schedule:` and name both values.
-   **Cursor-hosted rungs are not visible to either**: for `resolve` (since 2026-09-01) and anything on
-   [`docs/automations/`](../automations/) still wired through
-   [cursor.com/automations](https://cursor.com/automations), compare the declared `schedule:`
-   against when that routine's PRs actually landed, and say which method you used. A rung whose host
-   you cannot query is not evidence that it is fine: `deps` declares two crons in one
-   (`30 4,16 * * *`), so a half-day of silence from it is invisible to a PR-time heuristic alone.
-   Report a **disabled** Claude routine as a finding — a paused rung and a missing one look the same
-   from the outside and both mean the ladder is not running.
-   `schedule: none` is not drift and is not a missing cron — it is a declaration that no trigger
-   should exist (`prune`, manual-only). Compare `claude -p '/schedule list'` against it the other
-   way: a live routine whose name matches a `schedule: none` playbook is somebody scheduling a rung
-   that the playbook says has none, and that is a finding about the playbook, not about the cron.
+4. **Schedule drift.** Compare each live routine's cron against the `schedule:` in the matching
+   playbook's front-matter and report any pair that disagrees, with both values. The **repo-side** half
+   of this is no longer yours: since 2026-09-14 `npm run verify:agent-infra` parses every playbook's
+   `schedule:` and fails CI if the nine mirror tables disagree with it, if a ladder rung moves outside
+   the 15:00–01:00 UTC window, or if a rung's HKT column stops matching its UTC hour. On 2026-08-30
+   **all four** live crons disagreed with their playbooks and two playbooks stated an ordering
+   rationale the real firing order inverted; what nothing could catch then was live-versus-declared,
+   and that is the half left here.
+   **Direct source for the Claude rungs: `claude -p '/schedule list'`** — cheaper and more literal than
+   the `Claude_Code_Remote` connector, and it carries each routine's id, live cron in UTC, model and
+   enabled state.
+   > **The list is capped at 20 and the cursor does not work.** Measured 2026-09-14: the `list` action
+   > returns the newest 20 routines sorted by `created_at` descending, reports `has_more: true`, and
+   > **ignores** both `cursor` and `limit` — retried with each and got a byte-identical page. So this
+   > source can silently omit a live rung, and absence from it is **not** evidence a routine was deleted.
+   > The failure is self-worsening: eleven inert fired one-shots (mostly `deps` CI re-checks) were
+   > already occupying page-1 slots, which is exactly why `metaphor3d` — the oldest rung, firing nightly,
+   > merged #672 the same afternoon — disappeared from this list on 2026-09-12 and a later digest
+   > described the fleet as six crons. Ask for one rung by name and it will still be missing; the answer
+   > is not "deleted", it is page 2. **And the id cannot be recovered from the other direction either**:
+   > on 2026-09-14 `get_run_log` was run against a `metaphor3d` session taken from that commit's
+   > `Claude-Session:` trailer, paged back to the provisioning events at the start of the run, and no
+   > trigger id appears anywhere in it — so a rung that has aged off page 1 cannot be `get`ted, `update`d
+   > or `run` at all from this machine. That is why the 2026-09-14 retiming deliberately chose slot
+   > changes that left the unreachable rung where it already belonged instead of asking for it.
+   > **So: never report a missing Claude rung from the list alone.** Confirm it the way you confirm a
+   > Cursor rung — did that playbook's PR or `main` commit actually land in the window? Say which of the
+   > two methods you used. If a rung is absent from the list _and_ produced nothing, that is a dark job
+   > (watchdog 1) and you should say so; absent from the list alone is a listing artifact. Report a
+   > **disabled** routine you can actually see as a finding, but a rung that has aged off page 1 cannot
+   > be told from a deleted one here, and saying "deleted" about one is a false alarm the owner cannot
+   > act on. The durable fix exists as of 2026-09-14 and it is yours to use: seven of the nine rungs
+   > have their **trigger id recorded in [`review.md`](review.md) § the night ladder**, so `get` those by
+   > id and treat `list` as a way to spot routines that are _not_ in the playbooks (an unregistered
+   > fleet, watchdog 7's business) rather than a way to prove a registered one is gone. The remaining
+   > gap is `metaphor3d`, whose id nobody on this machine can reach. Clearing the fired one-shots at
+   > claude.ai/code/routines would fix the underlying cap, but deleting a routine is page bar #2 — name
+   > the count in one line and leave it there.
+   > **Cursor-hosted rungs are not visible to either source** — `improve` and `resolve` today; the
+   > `agent` CLI has no `automations` command at all, so there is nothing to call. For those, compare the
+   > declared `schedule:` against when that routine's PRs actually landed, and say which method you used.
+   > A rung whose host you cannot query is not evidence that it is fine: `deps` declares two crons in one
+   > (`30 4,14 * * *`), so a half-day of silence from it is invisible to a PR-time heuristic alone.
+   > `schedule: none` is not drift and is not a missing cron — it is a declaration that no trigger should
+   > exist. No playbook uses it today; if one appears, compare the list against it the other way and treat
+   > a live routine matching a `schedule: none` playbook as a finding **about the playbook**, not about
+   > the cron.
 5. **The dependency queue.** `deps` owns it now (`docs/routines/deps.md`), and this is the check that
    `deps` is working it: open Dependabot PRs with age and CI state, and the count of open Dependabot
    _alerts_ from `GET /repos/:owner/:repo/dependabot/alerts?state=open` — separate what has a patched

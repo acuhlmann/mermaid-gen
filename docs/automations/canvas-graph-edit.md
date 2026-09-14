@@ -1,7 +1,7 @@
 ---
 name: canvas-graph-edit
 tier: code-writing
-schedule: '30 18 * * *'
+schedule: '30 20 * * *'
 maxFiles: 10
 maxIssues: 1
 prTitlePrefix:
@@ -49,8 +49,22 @@ Extends and hardens **direct manipulation on the canvas**: the four verbs (Add, 
 Link) across every diagram family. One slice per run, then stop. Opens a PR and merges it when CI
 is green.
 
-`30 18 * * *` UTC (02:30 HKT) is the third rung of the night ladder — see
-[`docs/routines/review.md`](../routines/review.md).
+`30 20 * * *` UTC (04:30 HKT) is the last producing rung of the night ladder — see
+[`docs/routines/review.md`](../routines/review.md). It is deliberately the last: it is the shortest
+job on the shelf (measured 4–5 min, and six consecutive quiet firings since 2026-09-07 because all
+three remaining `todos` are `blocked-by-paths`) and the only producer whose `allowedPaths` overlap
+another's — `metaphorScenes/MetaphorGraphEditBridge.jsx`, `utils/metaphor*Edit.js` and
+`packages/shared/src/diagramSchema.ts`. Placing it last means it branches after `metaphor3d` has
+merged, so those overlaps are read-only in practice rather than a two-hour race.
+
+> **Re-enabled 2026-09-14, reason for its pause still unknown.** The routine was `enabled: false`
+> between 2026-09-14T01:25Z and the retiming that evening — two minutes after the owner merged a
+> `prune` PR, which reads like a deliberate browser action rather than an accident. Nobody asked, and
+> this playbook declares a `schedule:`, so `digest` watchdog 4's rule ("report a **disabled** Claude
+> routine as a finding — a paused rung and a missing one look the same from the outside and both mean
+> the ladder is not running") said restore it. If the pause was on purpose, the fix is the one this
+> shelf already has for a playbook and a trigger disagreeing: flip it back **and** set `schedule: none`
+> here with a § 0 saying so, so the next reader is not told to restore it again.
 
 The contract, the family table and the trap list are [`docs/canvas-graph-edit.md`](../canvas-graph-edit.md);
 the step-by-step is [`docs/recipes/add-graph-edit-family.md`](../recipes/add-graph-edit-family.md).

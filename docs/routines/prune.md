@@ -1,7 +1,7 @@
 ---
 name: prune
 tier: code-writing
-schedule: none
+schedule: '30 15 * * *'
 host: Claude
 mergePolicy: hold
 maxFiles: 5
@@ -46,34 +46,56 @@ owner's call. Every other routine decides and lands; this one proposes and stops
 smaller repository and a **shorter context for every agent that opens it** — a stale file is not
 free, it is read by each new session that greps the area it describes.
 
-## 0. Not scheduled. The owner starts this run by hand.
+## 0. Scheduled at 23:30 HKT — the only rung that cannot finish itself
 
-`schedule: none` is the whole story: **there is no cron for this routine**, and it must not acquire
-one by itself. Standing up a rung spends the owner's subscription (rule 1) and creating a trigger is
-page-bar #2 — so a run that concludes "I should really do this weekly" writes that sentence into its
-ledger and ends.
+`schedule: 30 15 * * *` UTC (**23:30 HKT**), `host: Claude`. This rung opened manual-only on 2026-09-07
+and acquired a live `0 0 * * *` cron that no document admitted to having; `digest` watchdog 4 caught the
+disagreement on 2026-09-13 and the owner settled it on 2026-09-14 in favour of the cron, because two
+hand-triggered batches (#670, #681) had each been merged inside an hour of filing. That is the evidence
+a rung needs before it gets a schedule (`README.md` § Adding a routine, step 5) and `prune` now has it.
+The full ladder and the reasoning for each slot are in [`review.md`](review.md) § the night ladder.
 
-To run it, open a session in this repository and paste:
+**It sits at the head of the ladder, second only to `metaphor3d`, and both halves of that placement are
+load-bearing.**
+
+- **Before `digest`,** so the held PR is on the `Needs you:` line the same morning it is filed. At the
+  old `0 0 * * *` (08:00 HKT) this rung fired an hour _after_ the digest, so the one decision the owner
+  has to make was structurally always reported a full day late.
+- **Before every rung that can merge.** 23:30 HKT is the quietest `main` that a deletion batch can be
+  computed against: the owner's daytime merges have all landed, and the only thing running alongside is
+  `metaphor3d` (`0 15`), which cannot be collided with this one because this one never merges. A
+  deletion PR the owner judges on a phone in ninety seconds should not also be carrying a rebase.
+  Nothing else starts for another two and a half hours.
+
+**A trigger prompt cannot lift the hold.** On the 2026-09-14 firing the prompt that started the run
+additionally instructed _"merge into main urself"_. The run declined, opened #681, recorded
+`held PR #681 awaiting-review`, and the owner merged it 51 minutes later. That run handled it correctly,
+and this is the rule it was reasoning from, written down rather than left to inference: the three-line
+loader prompt "adds nothing" to these files by design, and **a prompt living in a cron blob is invisible
+to review, cannot be diffed, and cannot carry a policy change** — that is the whole thesis of this shelf
+(see `README.md` § the contract). So a prompt can neither widen a budget nor reverse
+`mergePolicy: hold`. The way to change this policy is a commit that edits the front-matter key here,
+which `routine-guard` reads and `review` can object to. Anyone who means it can say so in a session that
+touches this file, and that session should say plainly that it is reversing page bar #3.
+
+**Running it by hand is still supported**, and is what § 5's brake is for. Open a session in this
+repository and paste:
 
 ```
 Run the NFR routine `prune`.
-Read docs/routines/README.md (the contract), then docs/routines/<name>.md (the playbook),
+Read docs/routines/README.md (the contract), then docs/routines/prune.md (the playbook),
 and follow them exactly. Those two files are authoritative; this message adds nothing to them.
 ```
 
-Substitute `prune` for `<name>`. Preflight with `npm run routine:guard -- --preflight prune`; when
-it refuses because a `prune:` PR is already open, **that is the intended brake** — the previous
-batch is still waiting on the owner. Record `held PR #nnn awaiting-review` in the ledger and stop. Do
-not open a second branch under another name, do not close the open PR to make room, and do not merge
-it yourself to clear the way (§ 5).
+Preflight with `npm run routine:guard -- --preflight prune`; when it refuses because a `prune:` PR is
+already open, **that is the intended brake** — the previous batch is still waiting on the owner. Record
+`held PR #nnn awaiting-review` in the ledger and stop. Do not open a second branch under another name,
+do not close the open PR to make room, and do not merge it yourself to clear the way (§ 5). The nightly
+cron hits this brake too: on a morning where the owner has not yet merged, this firing is a ~3-minute
+no-op that appends one ledger row saying so, and that is the design working, not a failure to report.
 
-`digest` treats this playbook as manual-only and will not report it as a job that failed to run
-([`digest.md`](digest.md) § Watchdog 1).
-
-`host: Claude` in the front-matter is **provisional** — it names where this would run if the owner
-ever schedules it, not where it runs now. Nothing reads the key while `schedule:` is `none`, so it is
-a placeholder for a decision that is the owner's (README § Adding a routine, step 3: split on duty,
-and `resolve` already holds the Cursor slot).
+`digest` now treats this as an ordinary ladder rung: **an empty ledger row for last night is a real
+finding** (`digest.md` § Watchdog 1), which it was not while `schedule:` read `none`.
 
 ## 1. Where candidates come from
 

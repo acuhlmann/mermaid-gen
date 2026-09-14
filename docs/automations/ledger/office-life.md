@@ -22,7 +22,9 @@ root `CLAUDE.md` / `AGENTS.md`.
 | 2026-09-05 | Experiment, not standing duty: nightly until **2026-09-26** (~21 firings), then this ledger answers whether it improved the app and the owner decides whether the rung continues. Stop rule: by the 14th firing, no merged product PR or no movement in the visit trace → write `experiment-inconclusive`, stop taking slices, and let `digest` watchdog 1 report it. Deleting or disabling the routine is the owner's (page bar #2; `claude -p '/schedule'` cannot delete).                                                                               |
 
 **Trigger**: `trig_01XBthD1GSYCJJdwQLV2WVt9` — "Feature automation: office-life",
-`claude-opus-5`, cron `0 13 * * *` UTC, environment `env_015KGMf1S9omDAMDfwGgMqUt` (GCP Deployment),
+`claude-opus-5`, cron `0 18 * * *` UTC (retimed from `0 13` on 2026-09-14 when the whole ladder moved
+two hours later to fit the owner's review habits; the reason this slot is second and not first is in
+the playbook), environment `env_015KGMf1S9omDAMDfwGgMqUt` (GCP Deployment),
 `mcp_connections: []`, `persist_session: false` (every firing is a cold start with a fresh checkout,
 which is why this ledger is the only memory it has). Created 2026-09-05 15:47Z; first fire was the
 manual one at 15:52Z (`cse_01UUUWxEbVkZyEUgAXzE88rw`), per the contract's "fire it once by hand and

@@ -41,9 +41,17 @@ Incrementally improves the **Metaphor3D** slot: DSL ladder, layouts, scene compo
 framing, label legibility, the fused composite, and the USDA mapping. One slice per run, then stop.
 Opens a PR and merges it when CI is green.
 
-`0 15 * * *` UTC (23:00 HKT) opens the night ladder — see [`docs/routines/review.md`](../routines/review.md)
-for the full table. It runs first because it is the longest job (measured 48–118 min over ten runs)
-and because `review` at `0 20` reads what it landed.
+`0 15 * * *` UTC (**23:00 HKT**) **opens the night ladder** — see
+[`docs/routines/review.md`](../routines/review.md) for the full table. It is the longest job on either
+shelf (measured 48–118 min over ten runs) and a long job at the head of the chain absorbs its own
+overrun, while a long job in the middle delays everything behind it by however much it overran — which
+is what it did to `anything` at `15 17` until 2026-09-14, a 15-minute buffer on a 2-hour job. The
+retiming that moved every other rung two hours later left **this cron untouched**, and not by accident:
+`metaphor3d` is the one rung whose trigger id cannot be recovered from this machine (`claude -p
+'/schedule list'` returns only the newest 20 routines and silently ignores its own cursor, and the run
+log carries no trigger id — see [`digest.md`](../routines/digest.md) § Watchdog 4), and it already sat
+exactly where the new ladder wanted its longest producer. Do not "fix" that by scheduling it into a
+collision; getting its id is a claude.ai/code/routines lookup, which is the owner's.
 
 ## Why this file exists
 

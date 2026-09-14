@@ -1,7 +1,7 @@
 ---
 name: office-life
 tier: code-writing
-schedule: '0 13 * * *'
+schedule: '0 18 * * *'
 maxFiles: 12
 maxIssues: 1
 prTitlePrefix:
@@ -59,12 +59,19 @@ that remember what you did to them, behave differently from each other, start th
 they can show, and answer you in a line that was not written in advance. One slice per run, then
 stop. Opens a PR and merges it when CI is green.
 
-`0 13 * * *` UTC (**21:00 HKT**) opens the night ladder, one rung ahead of `metaphor3d` (`0 15`) —
-see [`docs/routines/review.md`](../routines/review.md) for the table. It sits there rather than at
-midnight because the ladder's gaps are sized from measured durations, not a flat stagger:
-`metaphor3d` measures 48–118 min, so a 16:00 UTC start would land inside its run and 30 min ahead
-of `deps` (`30 4,16`). Two hours of clear deck, and the PR still lands seven hours before `review`
-reads the night's work at `0 20`.
+`0 18 * * *` UTC (**02:00 HKT**) is the second producing rung — see
+[`docs/routines/review.md`](../routines/review.md) for the table. It follows `metaphor3d` (`0 15`) by
+an hour past that job's 118-minute worst case: the ladder's gaps are sized from measured durations, not
+a flat stagger. The PR still lands three and a half hours before `review` reads the night's work at
+`30 21`.
+
+> **Why this rung no longer opens the ladder.** It sat at `0 13` (21:00 HKT) from 2026-09-05 for one
+> mechanical reason, stated in this file until 2026-09-14: a 16:00 UTC start landed inside
+> `metaphor3d`'s run _and_ 30 minutes ahead of `deps`, which fired at `30 16`. Moving `deps` to
+> `30 4,14` — it now fires _before_ the window opens rather than inside it — removed the second half of
+> that constraint, and the whole ladder shifted two hours later to fit the owner's review habits. The
+> reason is retired, not forgotten: if `deps` ever moves back into the night, this slot is contested
+> again.
 
 ## The brief, as three questions
 

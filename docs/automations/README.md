@@ -146,20 +146,25 @@ works another's queue, so `ready-for-agent` there is a label no scheduler will e
 
 ## Registered automations
 
-| Playbook                                    | Schedule (UTC) | Trigger                                                |
-| ------------------------------------------- | -------------- | ------------------------------------------------------ |
-| [`office-life`](office-life.md)             | `0 13 * * *`   | Claude Routine "Feature automation: office-life"       |
-| [`metaphor3d`](metaphor3d.md)               | `0 15 * * *`   | Claude Routine "Feature automation: metaphor3d"        |
-| [`anything`](anything.md)                   | `15 17 * * *`  | Claude Routine "Feature automation: anything"          |
-| [`canvas-graph-edit`](canvas-graph-edit.md) | `30 18 * * *`  | Claude Routine "Feature automation: canvas-graph-edit" |
+| Playbook                                    | Schedule (UTC) | HKT   | Trigger                                                |
+| ------------------------------------------- | -------------- | ----- | ------------------------------------------------------ |
+| [`metaphor3d`](metaphor3d.md)               | `0 15 * * *`   | 23:00 | Claude Routine "Feature automation: metaphor3d"        |
+| [`office-life`](office-life.md)             | `0 18 * * *`   | 02:00 | Claude Routine "Feature automation: office-life"       |
+| [`anything`](anything.md)                   | `30 19 * * *`  | 03:30 | Claude Routine "Feature automation: anything"          |
+| [`canvas-graph-edit`](canvas-graph-edit.md) | `30 20 * * *`  | 04:30 | Claude Routine "Feature automation: canvas-graph-edit" |
 
-Every schedule on both shelves is **UTC**. `routine-guard` does not read the `schedule` key, so a
-second timezone convention is invisible to every mechanical check — which is how four live crons
-drifted out of sync with their playbooks by 2026-08-30. The `digest` routine now diffs the two
-nightly (`docs/routines/digest.md` § Watchdog 4).
+Every schedule on both shelves is **UTC**. Since 2026-09-14 `npm run verify:agent-infra` reads the
+`schedule` key and fails if this table, the night ladder in
+[`docs/routines/review.md`](../routines/review.md), and the copies in `AGENTS.md` and `CLAUDE.md`
+disagree with a playbook, or if the stated HKT column stops matching the UTC hour. Before that nothing
+read the key at all, so a second timezone convention was invisible to every mechanical check — which is
+how four live crons drifted out of sync with their playbooks by 2026-08-30. The `digest` routine diffs
+the declared value against the **live** cron nightly (`docs/routines/digest.md` § Watchdog 4); the repo
+can only ever check itself against itself, and both halves are needed.
 
 All four sit at the head of the night ladder in [`docs/routines/review.md`](../routines/review.md),
-so the three NFR routines review what they land a few hours later.
+longest producer first, so `review` can read everything they land two and a half hours after the last
+one starts.
 
 `anything` and `canvas-graph-edit` moved off Cursor on 2026-08-30. `anything` had been dark since
 2026-08-28 with nothing anywhere to notice; `canvas-graph-edit` had no playbook at all and its
