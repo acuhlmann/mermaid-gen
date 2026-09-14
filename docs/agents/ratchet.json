@@ -47,14 +47,14 @@
     },
     "contextBytes": {
       "CLAUDE.md": {
-        "budget": 40143,
+        "budget": 40141,
         "initial": 136170,
-        "reason": "2026-09-14, two raises the same day. 39135 -> 40049 (+914) for the night-ladder retiming: both root files carry the 23:00-08:45 HKT window, prune's new declared slot, deps firing before the window opens, and the verify:agent-infra ladder check. 40049 -> 40143 (+94) hours later when the owner lifted prune's mergePolicy: the night-ladder bullet re-justifies that slot now that the rung self-merges (landing ahead of the three producers is what makes their nightly npm run check the tripwire for a deletion nobody read), and the --reachable line changed its stated reason from merge-policy to delete-only. Both repo-wide fleet facts under README rule 8. Prior raise: 2026-09-12, +13 bytes registering improve on Cursor alongside resolve in the fleet-split bullet (#660 doc drift)."
+        "reason": "2026-09-14, two raises the same day. 39135 -> 40049 (+914) for the night-ladder retiming: both root files carry the 23:00-08:45 HKT window, prune's new declared slot, deps firing before the window opens, and the verify:agent-infra ladder check. 40049 -> 40141 (+92) hours later when the owner lifted prune's mergePolicy: the night-ladder bullet re-justifies that slot now that the rung self-merges (landing ahead of the producers behind it is what makes their nightly npm run check the tripwire for a deletion nobody read), and the --reachable line changed its stated reason from merge-policy to delete-only. Both repo-wide fleet facts under README rule 8. Prior raise: 2026-09-12, +13 bytes registering improve on Cursor alongside resolve in the fleet-split bullet (#660 doc drift)."
       },
       "AGENTS.md": {
-        "budget": 43630,
+        "budget": 43628,
         "initial": 88461,
-        "reason": "2026-09-14, two raises the same day. 42484 -> 43427 (+943) for the retiming, same facts as CLAUDE.md per rule 8. 43427 -> 43630 (+203) for the merge-policy lift; larger than CLAUDE.md's +94 because AGENTS.md spells out the five-control substitution rather than pointing at it, which is right for the file a non-Claude, non-Cursor agent reads first. It also carries the per-rung worst-case-end note and the fact that verify:agent-infra fails when a mirror copy of a cron drifts. Prior raise: 2026-09-12, +13 bytes, same fleet-split registration as CLAUDE.md (#660)."
+        "reason": "2026-09-14, two raises the same day. 42484 -> 43427 (+943) for the retiming, same facts as CLAUDE.md per rule 8. 43427 -> 43628 (+201) for the merge-policy lift; larger than CLAUDE.md's +94 because AGENTS.md spells out the five-control substitution rather than pointing at it, which is right for the file a non-Claude, non-Cursor agent reads first. It also carries the per-rung worst-case-end note and the fact that verify:agent-infra fails when a mirror copy of a cron drifts. Prior raise: 2026-09-12, +13 bytes, same fleet-split registration as CLAUDE.md (#660)."
       }
     },
     "lintWarnings": {

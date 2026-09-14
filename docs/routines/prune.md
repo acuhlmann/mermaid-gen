@@ -65,15 +65,22 @@ The full ladder and the reasoning for each slot are in [`review.md`](review.md) 
 its keep harder than it did when this rung could only propose:
 
 - **23:30 HKT is the quietest `main` a deletion can be computed against** — the owner's daytime merges
-  have all landed, and the only thing running alongside is `metaphor3d`, whose paths this routine's
-  `forbiddenPaths` and § 4 mostly steer clear of. Nothing merge-capable starts for another two and a
-  half hours.
-- **A wrong deletion now meets three nightly builds before it meets the owner.** `office-life`,
-  `anything` and `canvas-graph-edit` all branch after this run merges, and each one runs
-  `npm run check` against the tree it inherited. Landing at 23:30 rather than at the tail of the
-  ladder turns those three into a free tripwire: if a deletion breaks something only a bundle or a
-  web suite can see, the failure surfaces as somebody else's red preflight — which is a much better
-  outcome than the owner discovering it alone at 09:00 against a `main` nothing else has tested.
+  have all landed, and `metaphor3d` (`0 15`), the only thing running alongside, has not merged yet, so
+  the scan and the branch both sit on a tree no live producer has touched. Note what that does _not_
+  buy: `metaphor3d`'s scene and layout paths are **not** in this routine's `forbiddenPaths`, so overlap
+  is possible in principle. What actually separates them is § 2 — a file `metaphor3d` is working on is
+  either referenced (so never a candidate) or under the 14-day age gate, and § 5.1 requires both sensors
+  to agree before anything is deleted. A residual collision surfaces as a merge conflict on the
+  producer's PR, which is loud, not as a silent removal. Nothing else merge-capable starts for another
+  two and a half hours.
+- **A wrong deletion meets the other producers' builds before it meets the owner.** `office-life`
+  (`0 18`) and `anything` (`30 19`) both branch after this run merges and each runs `npm run check`
+  against the tree it inherited, so a deletion that breaks something only a bundle or a web suite can
+  see fails as somebody else's red preflight rather than as the owner finding a hole in `main` at
+  09:00. (`canvas-graph-edit` would be a third tripwire; it is parked — see
+  [`canvas-graph-edit.md`](../automations/canvas-graph-edit.md) § the pause note.) This is the reason
+  the slot moved from the tail of the ladder to the head when the hold came off: at `0 0 * * *` this
+  rung merged into a `main` that nothing else would test until the next afternoon.
 - **Before `digest`,** so the morning report names what went and what it freed, instead of the owner
   finding an unannounced deletion in `git log`.
 

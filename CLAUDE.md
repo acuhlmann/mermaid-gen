@@ -200,7 +200,7 @@ check`: two unattended feature automations run daily here, and a quality metric 
   UTC — **23:00 → 08:45 in the owner's GMT+8** — so the fleet works while the owner is away and the
   digest lands while they are at the keyboard. `metaphor3d` opens it as the longest producer; `prune`
   is second (it self-merges whole-file deletions as of 2026-09-14, under five mechanical controls in
-  `prune.md` § 5 rather than a human gate, and landing ahead of the other three producers means their
+  `prune.md` § 5 rather than a human gate, and landing ahead of the producers behind it means their
   nightly `npm run check` is the tripwire for a deletion nobody read); the other three feature
   automations then produce code **longest first**, because a long job at the head absorbs its own
   overrun while one in the middle delays everything behind it; `review` reads what landed, `improve`
