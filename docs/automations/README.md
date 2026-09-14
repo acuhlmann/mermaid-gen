@@ -146,12 +146,12 @@ works another's queue, so `ready-for-agent` there is a label no scheduler will e
 
 ## Registered automations
 
-| Playbook                                    | Schedule (UTC) | HKT   | Trigger                                                |
-| ------------------------------------------- | -------------- | ----- | ------------------------------------------------------ |
-| [`metaphor3d`](metaphor3d.md)               | `0 15 * * *`   | 23:00 | Claude Routine "Feature automation: metaphor3d"        |
-| [`office-life`](office-life.md)             | `0 18 * * *`   | 02:00 | Claude Routine "Feature automation: office-life"       |
-| [`anything`](anything.md)                   | `30 19 * * *`  | 03:30 | Claude Routine "Feature automation: anything"          |
-| [`canvas-graph-edit`](canvas-graph-edit.md) | `30 20 * * *`  | 04:30 | Claude Routine "Feature automation: canvas-graph-edit" |
+| Playbook                                    | Schedule (UTC) | HKT   | Trigger                                                                                           |
+| ------------------------------------------- | -------------- | ----- | ------------------------------------------------------------------------------------------------- |
+| [`metaphor3d`](metaphor3d.md)               | `0 15 * * *`   | 23:00 | Claude Routine "Feature automation: metaphor3d"                                                   |
+| [`office-life`](office-life.md)             | `0 18 * * *`   | 02:00 | Claude Routine "Feature automation: office-life"                                                  |
+| [`anything`](anything.md)                   | `30 19 * * *`  | 03:30 | Claude Routine "Feature automation: anything"                                                     |
+| [`canvas-graph-edit`](canvas-graph-edit.md) | `30 20 * * *`  | 04:30 | Claude Routine "Feature automation: canvas-graph-edit" — **parked** (trigger disabled, cron kept) |
 
 Every schedule on both shelves is **UTC**. Since 2026-09-14 `npm run verify:agent-infra` reads the
 `schedule` key and fails if this table, the night ladder in
