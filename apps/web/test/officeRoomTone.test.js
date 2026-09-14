@@ -276,14 +276,62 @@ describe('the bed thins out in an emptier room (queue 8)', () => {
     setRoomToneOccupancy(0);
 
     duckRoomTone();
+    // The duck thins with the room it ducks — the case above pins the ratio.
     expect(stubs.gainParam.linearRampToValueAtTime).toHaveBeenLastCalledWith(
-      ROOM_TONE_DUCK_GAIN,
+      ROOM_TONE_DUCK_GAIN * ROOM_TONE_OCCUPANCY_FLOOR,
       expect.any(Number)
     );
 
     unduckRoomTone();
     const [level] = stubs.gainParam.linearRampToValueAtTime.mock.lastCall;
     expect(level).toBeCloseTo(ROOM_TONE_GAIN_DESK * ROOM_TONE_OCCUPANCY_FLOOR, 10);
+  });
+
+  /*
+   * The duck is a *cut*, not a level.
+   *
+   * 0.03 under a 0.055 desk bed is the ~45% dip narration was mixed against;
+   * `ROOM_TONE_DUCK_GAIN`'s own comment is "so narration stays intelligible".
+   * The occupancy dial thins the un-ducked bed and, before this was pinned,
+   * left the duck at its absolute value — so the two levels converged as the
+   * room emptied. At `afterHours` occupancy (0.15, reachable every evening)
+   * the desk bed is 0.034 and an absolute 0.03 duck is an 11.7% dip instead
+   * of 45.5%: a colleague speaks at 20:00 and the room does not get out of
+   * the way. Below a 0.5454 floor the duck would have gone *louder* than the
+   * bed it ducks.
+   *
+   * Asserting the ratio rather than the level is the point — the cut is the
+   * thing that was tuned, and it has to survive every cell of the dial.
+   */
+  it('ducks by the same proportion in a thin room as in a full one', async () => {
+    startRoomTone(audioContextRef);
+    await settle();
+
+    const cells = [];
+    for (const [view, viewBase] of [
+      ['desk', ROOM_TONE_GAIN_DESK],
+      ['floor', ROOM_TONE_GAIN_FLOOR]
+    ]) {
+      for (const occupancy of [1, 0.15, 0]) {
+        setRoomToneViewMode(view);
+        setRoomToneOccupancy(occupancy);
+        unduckRoomTone();
+        const [base] = stubs.gainParam.linearRampToValueAtTime.mock.lastCall;
+
+        duckRoomTone();
+        const [ducked] = stubs.gainParam.linearRampToValueAtTime.mock.lastCall;
+        unduckRoomTone();
+
+        cells.push({ view, occupancy, base, ducked, cut: ducked / base });
+        // The dip narration was tuned against, unchanged by how full the room is.
+        expect(cells.at(-1).cut).toBeCloseTo(ROOM_TONE_DUCK_GAIN / viewBase, 10);
+        // And never the inversion: ducking can only ever go down.
+        expect(ducked).toBeLessThan(base);
+      }
+    }
+
+    // A sweep over an empty set would pass while examining nothing.
+    expect(cells).toHaveLength(6);
   });
 
   it('clamps nonsense to a full room and never throws without a bed', () => {
