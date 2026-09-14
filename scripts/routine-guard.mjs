@@ -37,12 +37,15 @@ export const ROUTINE_TIERS = ['report', 'code-writing'];
  * Whether a routine may land its own green PR. `self-merge` is every shipped routine and the
  * default: the PR exists so the owner has something to skim, not as a gate.
  *
- * `hold` is for the one job whose whole output is something only a person may decide — deleting a
- * file. `prune` is the only such routine: its diff removes content the owner has to judge as
- * genuinely unwanted, which is page-bar #3 ("irreversible destruction") in
- * `docs/routines/README.md` rule 10. A `hold` routine pushes and opens the PR and **stops**; the
- * next firing does not start until the owner merges or closes it, because preflight refuses to run
- * behind an open PR and that refusal is the intended brake, not an obstacle.
+ * `hold` is the one exception the shelf has ever needed: a job whose whole output is something only
+ * a person may decide. `prune` declared it from 2026-09-07 to 2026-09-14, when the owner lifted it
+ * ("remove the prune mergePolicy and merge urself") and `docs/routines/prune.md` § 5 replaced the
+ * human checkpoint with five mechanical controls. **No shipped routine declares it today**, and the
+ * value stays valid because it is a policy the next rung may need, exactly like `schedule: none` —
+ * removing the option is not the same as nobody using it. A `hold` routine pushes and opens the PR
+ * and **stops**; the next firing does not start until the owner merges or closes it, because
+ * preflight refuses to run behind an open PR and that refusal is the intended brake, not an
+ * obstacle.
  *
  * The key is validated here so it cannot silently misspell itself into non-existence, and the
  * postflight line prints it so the promise is in front of the run at the moment it is about to
@@ -51,6 +54,20 @@ export const ROUTINE_TIERS = ['report', 'code-writing'];
  * `digest` watchdog 2.
  */
 export const MERGE_POLICIES = ['self-merge', 'hold'];
+
+/**
+ * Routines whose only write is removing a whole file.
+ *
+ * They are excluded from `ownersOfPath` for the same reason `hold` routines were, and the reason is
+ * no longer the merge policy. `ready-for-agent` promises an agent can _finish_ the work this issue
+ * names, and `prune` can finish exactly one kind of work — "this file should not exist" — while its
+ * `allowedPaths` (`apps/**`, `packages/**`, `docs/**`, `scripts/**`) reach nearly every path in the
+ * repository. Listing it would make `--reachable` answer "owned" for any file at all, which is the
+ * #461/#462/#473 failure re-imported from the opposite direction: a label that looks satisfiable
+ * while nothing scheduled can actually serve it. This is a constant rather than a playbook key on
+ * purpose: a key a routine writes about itself is one it can widen, and this widens the promise.
+ */
+export const DELETE_ONLY_ROUTINES = ['prune'];
 
 /**
  * @param {Record<string, string | string[]>} playbook
@@ -429,11 +446,12 @@ export function collectPlaybooks(root = ROOT) {
  * surfaces deliberately outside every budget, and `--reachable` prints them as `frozen` so the
  * watchdog does not propose "fix" them.
  *
- * A `hold` routine is excluded too, and for a different reason: it is not a routine that *can*
- * write the file. `prune` may delete anything in the tree, but it cannot land the change — the
- * promise `ready-for-agent` makes is that an agent will finish the work, and a held deletion is
- * unfinished until a person merges it. Listing it here would let a label quietly mean "a bot will
- * open a PR that waits for you forever".
+ * Two classes are excluded beyond that, both because listing them would make the label lie. A `hold`
+ * routine cannot land anything, so it cannot finish the work the promise describes. And a
+ * `DELETE_ONLY_ROUTINES` routine can land things fine — it just only ever removes a whole file, while
+ * its allowlist reaches most of the tree, so answering "owned" for every path would strand the issues
+ * this check exists to unstrand. Until 2026-09-14 `prune` fell in the first class; it now falls in the
+ * second, and the exclusion is the same because the promise is the same.
  * @param {string} filePath
  * @param {{ name: string, playbook: Record<string, string | string[]> }[]} [playbooks]
  * @returns {string[]}
@@ -442,6 +460,7 @@ export function ownersOfPath(filePath, playbooks = collectPlaybooks()) {
   if (matchesAny(filePath, ALWAYS_FORBIDDEN)) return [];
   return playbooks
     .filter(({ playbook }) => mergePolicyOf(playbook) !== 'hold')
+    .filter(({ name }) => !DELETE_ONLY_ROUTINES.includes(name))
     .filter(({ name, playbook }) => {
       const allowed = toList(playbook.allowedPaths);
       const forbidden = toList(playbook.forbiddenPaths);

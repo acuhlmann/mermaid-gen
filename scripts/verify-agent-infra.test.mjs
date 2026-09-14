@@ -12,7 +12,8 @@ import {
   extractNpmScriptNames,
   parsePlaybookSchedule,
   verifyAgentInfra,
-  verifyNightLadder
+  verifyNightLadder,
+  verifyPlaybookPaths
 } from './verify-agent-infra.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -258,7 +259,7 @@ test('a rung declared off the ladder needs no row and no window', () => {
   assert.deepEqual(verifyNightLadder(root).errors, []);
 });
 
-test('this repository is the regression: prune is scheduled, on the ladder, and still held', () => {
+test('the night ladder is stated consistently in every file that restates it', () => {
   const ladder = verifyNightLadder(ROOT);
   assert.deepEqual(ladder.errors, [], ladder.errors.join('\n'));
   assert.ok(ladder.rungCount >= 10, `expected every rung, got ${ladder.rungCount}`);
@@ -266,5 +267,70 @@ test('this repository is the regression: prune is scheduled, on the ladder, and 
 
   const prune = fs.readFileSync(path.join(ROOT, 'docs/routines/prune.md'), 'utf8');
   assert.equal(parsePlaybookSchedule(prune).schedule, '30 15 * * *', 'prune has a declared slot');
-  assert.match(prune, /^mergePolicy: hold$/m, 'and it still may not merge its own deletion');
+  assert.match(prune, /^maxFiles: 5$/m, 'and it still batches one class of five at a time');
+});
+
+// --- budget gates: only the direction that is unsafe when it goes stale ---------------------------
+
+/**
+ * @param {{name: string, front: string}[]} playbooks
+ * @returns {string} a repo root whose docs/routines contains them, plus a real file to point at
+ */
+function budgetFixture(playbooks) {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'budget-'));
+  fs.mkdirSync(path.join(root, 'docs/routines/ledger'), { recursive: true });
+  fs.mkdirSync(path.join(root, 'apps'), { recursive: true });
+  fs.writeFileSync(path.join(root, 'apps/real.js'), 'export const real = 1;\n');
+  for (const pb of playbooks) {
+    fs.writeFileSync(path.join(root, `docs/routines/${pb.name}.md`), `---\n${pb.front}\n---\n`);
+    fs.writeFileSync(path.join(root, `docs/routines/ledger/${pb.name}.md`), '# ledger\n');
+  }
+  return root;
+}
+
+const budgetPlaybook = (name, allowed, forbidden) => ({
+  name,
+  front: `name: ${name}\ntier: code-writing\nschedule: '0 15 * * *'\nmaxFiles: 3\nmaxIssues: 0\nallowedPaths:\n${allowed
+    .map((p) => `  - ${p}`)
+    .join('\n')}\nforbiddenPaths:\n${forbidden.map((p) => `  - ${p}`).join('\n')}`
+});
+
+test('a forbidden path that names no file fails — that gate blocks nothing', () => {
+  const root = budgetFixture([budgetPlaybook('gatekeeper', ['apps/**'], ['apps/moved-away.js'])]);
+  const result = verifyPlaybookPaths(root);
+  assert.equal(result.ok, false);
+  assert.equal(result.errors.length, 1, result.errors.join('\n'));
+  assert.match(result.errors[0], /`apps\/moved-away\.js`/);
+  assert.match(result.errors[0], /blocks nothing/);
+});
+
+test('a stale ALLOWED path is not reported, because it grants nothing and may be a forward declaration', () => {
+  // `canvas-graph-edit` has named the file its own `hook-rename` slice will create since 2026-08-30.
+  // Reporting that as drift would get this whole check widened by the next run that wants green.
+  const root = budgetFixture([
+    budgetPlaybook('planner', ['apps/future-file.js', 'apps/real.js'], ['apps/**/*.secret'])
+  ]);
+  assert.deepEqual(verifyPlaybookPaths(root).errors, []);
+});
+
+test('globs are left to the guard that enforces them', () => {
+  const root = budgetFixture([budgetPlaybook('glover', ['apps/**'], ['apps/**/gone/**'])]);
+  const result = verifyPlaybookPaths(root);
+  assert.equal(result.ok, true);
+  assert.equal(result.checkedCount, 0, 'a wildcard is not a concrete path and must not be counted');
+});
+
+test('this repository has no stale forbid-gate, and the check is looking at real budgets', () => {
+  const result = verifyPlaybookPaths(ROOT);
+  assert.deepEqual(result.errors, [], result.errors.join('\n'));
+  // Nine rungs declare forbiddenPaths and only `prune` names concrete files — the rest are globs,
+  // which this check deliberately leaves to the guard. So the honest claim is "it inspected the two
+  // that a rename could silently disarm", not "it inspected the shelf". `prune`'s two are the
+  // scanner that decides what is deletable: if it is renamed, the one gate keeping the deletion
+  // routine from editing its own referee disappears without a word.
+  assert.ok(result.checkedCount >= 2, `inspected only ${result.checkedCount} gate(s)`);
+  assert.ok(
+    result.checkedCount < 10,
+    'a jump here means a rung started naming concrete forbidden files — worth reading, not widening'
+  );
 });

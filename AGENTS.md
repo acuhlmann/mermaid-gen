@@ -46,7 +46,7 @@ Domain depth (slots, validation ladders, wire-contract habits, where-to-put tabl
   - `npm run lint` — all three workspaces, formatter appends per-rule "Agent guidance" footer with the canonical fix and suppression syntax (`packages/eslint-config/formatter.cjs`)
   - `npm run verify:ratchet` — quality trend: monolith LOC and lint warnings should only fall, strict-island and suite counts should only rise (`docs/agents/ratchet.json`). **Not part of `check`** — it gates no build; `--json` for machine-readable, `--with-lint` to include the ESLint pass
   - `npm run routine:guard -- --preflight|--postflight <name>` — routine budget: files, tests, filings (rule 12)
-  - `npm run routine:guard -- --reachable <path>` — which routine may write this file? owner / `frozen` / `NONE` + exit 1; run before labelling `ready-for-agent` (ADR-0017). A `mergePolicy: hold` rung only proposes — it can't finish the work the label promises.
+  - `npm run routine:guard -- --reachable <path>` — which routine may write this file? owner / `frozen` / `NONE` + exit 1; run before labelling `ready-for-agent` (ADR-0017). A delete-only rung (`prune`) is never the answer: it can only remove a whole file, while its allowlist reaches most of the tree.
   - `npm run routine:guard -- --filings [--json]` — backlog, oldest open, net inflow, filings vs `maxIssues` per rung (rule 12)
   - `npm run prune:scan` — tracked files nothing refers to; `prune`'s queue. A report, not in `check` (`docs/routines/prune.md`)
   - `npm run verify:modularity` — reminder of how to run a semantic modularity review (Claude `/modularity:review` or Cursor `.cursor/skills/modularity/review/SKILL.md`); see [`docs/agents/modularity.md`](docs/agents/modularity.md)
@@ -242,8 +242,10 @@ check`: two unattended feature automations run daily here, and a quality metric 
 - **There is a night ladder, and it is a dependency order.** Nine jobs run between `0 15` and
   `45 0` UTC — **23:00 → 08:45 in the owner's GMT+8** — so the whole fleet works while the owner is
   away and the digest lands while they are at the keyboard. `metaphor3d` opens it as the longest
-  producer; `prune` is second (the only rung that cannot merge, so it is the one that can safely share
-  the head start, and it must precede `digest` or its held deletion PR is reported a day late); the
+  producer; `prune` is second (it self-merges whole-file deletions as of 2026-09-14, under five
+  mechanical controls in `prune.md` § 5 rather than a human gate, and landing ahead of the producers
+  behind it means their nightly `npm run check` is the tripwire for a deletion nobody read), and it
+  must precede `digest` so the morning report names what went; the
   other three feature automations then produce code **longest first**, because a long job at the head
   absorbs its own overrun while one in the middle delays everything behind it; `review`
   reads what landed, `improve` works the quality queue, `resolve` works the backlog, `digest` reports.

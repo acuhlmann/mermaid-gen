@@ -16,17 +16,18 @@ Six routines ship today: `review`, `improve`, `resolve`, `deps` and [`prune`](pr
 **night ladder** — see [`review.md`](review.md) for the table, which also names which host runs which
 rung. The ladder runs **23:00 → 08:45 HKT** so the whole pipeline happens while the owner is away and
 the digest lands while they are at the keyboard. `metaphor3d` opens it as the longest producer,
-`prune` is second — the only rung that cannot finish itself, so it is the one that can safely share a
-head start — and `digest` closes it and reports on everything before it.
+`prune` is second — it self-merges now like every other rung, so putting it ahead of the producers is
+what gives those three a chance to catch a bad deletion before the owner does —
+and `digest` closes it and reports on everything before it.
 
-| Routine                 | Host   | Shelf | What it owns                                                     |
-| ----------------------- | ------ | ----- | ---------------------------------------------------------------- |
-| [`review`](review.md)   | Claude | NFR   | last 24 h on `main`, one proven bug, the trap checklist          |
-| [`improve`](improve.md) | Cursor | NFR   | the ratchet, the sensors, **every routine's budget** (ADR-0017)  |
-| [`resolve`](resolve.md) | Cursor | NFR   | the open-issue backlog                                           |
-| [`deps`](deps.md)       | Claude | NFR   | Dependabot PRs, advisories, and code that breaks when they move  |
-| [`prune`](prune.md)     | Claude | NFR   | whole files nobody needs — **scheduled, and never self-merged**  |
-| [`digest`](digest.md)   | Claude | NFR   | one comment a day on #452, and the watchdog that notices silence |
+| Routine                 | Host   | Shelf | What it owns                                                           |
+| ----------------------- | ------ | ----- | ---------------------------------------------------------------------- |
+| [`review`](review.md)   | Claude | NFR   | last 24 h on `main`, one proven bug, the trap checklist                |
+| [`improve`](improve.md) | Cursor | NFR   | the ratchet, the sensors, **every routine's budget** (ADR-0017)        |
+| [`resolve`](resolve.md) | Cursor | NFR   | the open-issue backlog                                                 |
+| [`deps`](deps.md)       | Claude | NFR   | Dependabot PRs, advisories, and code that breaks when they move        |
+| [`prune`](prune.md)     | Claude | NFR   | whole files nobody needs — **self-merging, under § 5's five controls** |
+| [`digest`](digest.md)   | Claude | NFR   | one comment a day on #452, and the watchdog that notices silence       |
 
 The trigger prompt is deliberately almost empty:
 
@@ -65,11 +66,12 @@ the one property distinguishing the two tiers was the one nothing checked.
 **Every `code-writing` routine opens a PR and merges it itself once CI is green, by default.** The PR
 exists so the owner has something to skim, not as a gate — a routine that waits for review on every
 change is a routine that saves nobody any time. **`mergePolicy` is the front-matter key that turns
-the default off**, and exactly one routine uses it: `prune` declares `hold`, because its whole output
-is a deletion (see "Two kinds of hold" below). It is a policy and not a tier — a held routine still
-declares `maxFiles` and still passes postflight — so "it is only a proposal" can never stand in for a
-budget. `routine-guard` validates the key (a typo must not silently fall back to the permissive
-default) and prints the policy back on the postflight line, at the moment the run is about to push.
+the default off.** It exists, it is validated, and **no routine declares it today**: `prune` was the
+one routine that did, and the owner lifted it on 2026-09-14 (see "Two kinds of hold" below). It is a
+policy and not a tier — a held routine still declares `maxFiles` and still passes postflight — so "it
+is only a proposal" can never stand in for a budget. `routine-guard` validates the key (a typo must not
+silently fall back to the permissive default) and prints the policy back on the postflight line, at the
+moment the run is about to push.
 
 What keeps that safe is **the budget, not the tier and not a human in the loop**: a small `maxFiles`,
 an explicit path allowlist, `npm run check` green, and — for any fix to a bug — a test that fails
@@ -97,13 +99,19 @@ the next firing re-reads it. See [`docs/routines/resolve.md`](resolve.md) § 4 f
 and [ADR-0015](../decisions/0015-resolve-routine-and-escalation.md) for why this is a per-run
 judgement call rather than a new tier.
 
-**A policy hold** — `prune`, every run, declared as `mergePolicy: hold`. This one is **not** an
-admission of uncertainty and must not be read as one: the routine is confident, the evidence is in
-the PR body, and the reason it waits is that deleting a file is rule 10's page bar #3
-(_irreversible destruction_), which is the owner's decision to make and nobody else's. The two kinds
-look identical from GitHub and mean opposite things, so a held `prune:` PR is never "blocked pending
-the routine's judgement" — `digest` says which kind it is, and `prune`'s ledger records the close (not
-just the merge) as the answer, because a declined deletion must never be re-proposed.
+**A policy hold** — declared as `mergePolicy: hold`, every run, and **no routine uses it today.**
+This was `prune`'s shape from 2026-09-07: not an admission of uncertainty but a structural gate,
+because deleting a file looked like rule 10's page bar #3 (_irreversible destruction_) and therefore
+the owner's decision. The owner lifted it on 2026-09-14 — "remove the prune mergePolicy and merge
+urself, u can do it, just be careful" — and the reasoning that changed is worth keeping, because it is
+the reason the key still exists: **a `git rm` of a tracked file is not irreversible.** What is
+irreversible is losing the ability to undo it cheaply, and that is a property of the diff's shape, not
+of the merge button. So [`prune.md`](prune.md) § 5 replaces the person with five mechanical controls,
+of which two are load-bearing in a way a review never was: the deletion must be named by **both**
+independent sensors (§ 1b's intersection, now a merge bar rather than a proposal bar), and it must be
+one file per commit so a single wrong deletion is one `git revert` rather than surgery on `main`. The
+key stays valid — a policy the next rung may need, exactly like `schedule: none`, which is also
+declared by nobody and offered to everybody.
 
 Holding by _judgement_ stays narrow by design: a routine that holds by default has just reinvented
 "always ask a human" (the overhead this whole shelf exists to remove), and a routine that never holds
@@ -294,10 +302,12 @@ is paged by four things, and only four:
    rule 1 while doing it — a new rung spends the owner's subscription, so stand up exactly what the
    playbook declares, at the cadence it declares, and nothing more.
 3. **Irreversible destruction.** Deleting a branch with unmerged work, dropping data, dismissing a
-   security advisory, force-pushing, closing somebody else's PR. This is also the one bar a routine is
-   allowed to _stand in front of_ rather than clear: [`prune`](prune.md) deletes whole files and never
-   merges, so a `prune:` PR waiting on you is this category working as designed — not an agent that
-   failed to decide (§ "Two kinds of hold").
+   security advisory, force-pushing, closing somebody else's PR. **Whole-file deletion is no longer in
+   this category**: `prune` used to be the one bar a routine was allowed to _stand in front of_ rather
+   than clear — it filed a `prune:` PR and stopped — and the owner retired that in favour of five
+   mechanical controls, on the argument that deleting a tracked file is only irreversible if you cannot
+   cheaply put it back. See § "Two kinds of hold" and [`prune.md`](prune.md) § 5. What _is_ still on
+   this bar: deleting a routine, which is why the trigger half of the shelf stays a page-bar item.
 4. **The product's direction.** What ArchiSlop should be, not how a file should be written. ADR-level
    questions, a slot's behaviour changing shape, a rename of a top-level concept.
 
@@ -336,10 +346,19 @@ and exits 1.
 ownership gap: label it `needs-triage`, name the file, and `improve` § 2b widens someone's budget —
 which is a one-line PR that unblocks a class, versus an issue that gets skipped every night forever.
 
-A `mergePolicy: hold` routine is never the answer it prints. `ready-for-agent` promises an agent will
-_finish_ the work, and a held deletion is unfinished until a person merges it — so `prune` is
-excluded from `ownersOfPath` even though its `allowedPaths` covers most of the tree. Listing it would
-make a stuck issue look owned by a bot that is designed to wait forever.
+A **delete-only** routine is never the answer it prints. `ready-for-agent` promises an agent will
+_finish_ the work, and `prune` finishes exactly one kind of work — "this file should not exist" — while
+its `allowedPaths` (`apps/**`, `packages/**`, `docs/**`, `scripts/**`) reach most of the tree. Listing
+it would make `--reachable` answer "owned" for any path whatsoever, which is #461's failure arriving
+from the opposite direction: a label that reads as satisfiable while nothing scheduled can serve what
+the issue actually asks. So `prune` is excluded from `ownersOfPath` through `DELETE_ONLY_ROUTINES` in
+[`scripts/routine-guard.mjs`](../../scripts/routine-guard.mjs). **That exclusion used to ride on
+`mergePolicy: hold`, and it survives the hold's removal** — when `prune` began self-merging on
+2026-09-14 it became a routine that _can_ finish and land, and the label would still have been a lie,
+because finishing "delete this file" is a different promise from finishing "fix this". The reason moved
+from "it cannot merge" to "it can only delete", which is why it is a named constant and not a re-read
+of the policy key. `routine-guard.test.mjs` pins both halves: no shipped playbook holds, and `prune` is
+still absent from `--reachable` on four real paths.
 
 ### 12. Filing costs the filer
 

@@ -5,6 +5,10 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+// Parsed with the guard's own reader, not a second one. `prune.md` § 1b records what two independent
+// implementations of the same idea do to a sensor: `prune:scan`'s lenient reference match and
+// `verify:boundaries`' strict graph drifted apart invisibly until someone wrote down both lists.
+import { collectPlaybooks } from './routine-guard.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -214,6 +218,56 @@ export function extractLadderTableRows(markdown, source) {
 }
 
 /**
+ * Rungs whose **forbidden** paths name a concrete file that is not on disk.
+ *
+ * `allowedPaths` and `forbiddenPaths` are both read as globs, so a path whose file has been renamed or
+ * deleted stays perfectly valid, matches nothing, and stops meaning anything — but the two lists fail in
+ * opposite directions, and only one of those directions is unsafe.
+ *
+ * **A stale `allowedPaths` entry grants nothing, which is the benign way to be wrong** — and it is a
+ * legitimate pattern here, not always a bug: `canvas-graph-edit` has named
+ * `apps/web/src/features/canvas/useCanvasGraphEdit.js` and its test since 2026-08-30 because that is the
+ * file the `hook-rename` slice will *create* (`useFlowchartGraphEdit` → `useCanvasGraphEdit`), so the
+ * budget pre-authorises the rename's own output. Measured on 2026-09-14: three of its 26 concrete
+ * allowed paths were absent, two of them forward declarations and one a genuine extension typo. A
+ * check that reports all three identically gets its matcher widened by the next agent who only wants CI
+ * green — the failure `verify:doc-paths` documents as "a check that starts passing because it parses
+ * nothing stops telling anybody anything".
+ *
+ * **A stale `forbiddenPaths` entry cannot be that.** There is no future file a don't-touch rule is
+ * waiting for, so a missing path there means one of two things, both bad: the file it protected was
+ * moved and the gate moved on without it, or the rule was written against a name that never existed.
+ * Either way the rung is now free to touch something every other rung is told not to, and nothing
+ * downstream notices — `prune` self-merging deletions from 2026-09-14 makes the first branch live
+ * business, since a nightly run that removes a file can now retire another rung's safety rule by
+ * accident. That asymmetry is the whole scope of this check: it validates one list and stays quiet
+ * about the other.
+ * @param {string} root
+ * @returns {{ok: boolean, errors: string[], checkedCount: number}}
+ */
+export function verifyPlaybookPaths(root) {
+  const errors = [];
+  let checked = 0;
+  for (const { name, playbook } of collectPlaybooks(root)) {
+    const declared = playbook.forbiddenPaths;
+    const list = Array.isArray(declared) ? declared : declared ? [declared] : [];
+    for (const entry of list) {
+      const pattern = String(entry).trim();
+      // Globs and bare filenames are not what this looks for — only a repo-relative concrete path.
+      if (!pattern.includes('/') || pattern.includes('*')) continue;
+      checked++;
+      if (fs.existsSync(path.join(root, pattern))) continue;
+      errors.push(
+        `${name}: forbiddenPaths names \`${pattern}\`, which is not on disk — that gate now ` +
+          'blocks nothing. Either the file moved (point the rule at where it went) or it never existed ' +
+          '(say so and delete the entry); an answer of "it will exist later" does not apply here'
+      );
+    }
+  }
+  return { ok: errors.length === 0, errors, checkedCount: checked };
+}
+
+/**
  * The ladder is declared in a playbook and copied into several tables. Nothing checked either copy
  * against the declaration until 2026-09-14, so the drift `digest` spends a nightly watchdog on was
  * invisible to CI — and `digest`'s own source (`claude -p '/schedule list'`) is capped at the newest
@@ -381,14 +435,16 @@ export function verifyAgentInfra(root, docFiles = null) {
   }
 
   const ladder = verifyNightLadder(root);
+  const budgets = verifyPlaybookPaths(root);
 
   return {
-    ok: missingScripts.length === 0 && missingTests.length === 0 && ladder.ok,
+    ok: missingScripts.length === 0 && missingTests.length === 0 && ladder.ok && budgets.ok,
     missingScripts,
     missingTests,
     scriptCount: checkedScripts.size,
     testPathCount: checkedTests.size,
-    ladder
+    ladder,
+    budgets
   };
 }
 
@@ -397,7 +453,8 @@ function main() {
   if (result.ok) {
     console.log(
       `verify:agent-infra: OK (${result.scriptCount} npm script(s), ${result.testPathCount} blast-radius test path(s), ` +
-        `night ladder: ${result.ladder.rungCount} scheduled rung(s) agreed across ${result.ladder.rowCheckCount} table row(s))`
+        `night ladder: ${result.ladder.rungCount} scheduled rung(s) agreed across ${result.ladder.rowCheckCount} table row(s), ` +
+        `${result.budgets.checkedCount} forbidden-path gate(s) still pointing at a real file)`
     );
     return;
   }
@@ -409,6 +466,9 @@ function main() {
   }
   for (const problem of result.ladder.errors) {
     console.error(`  night ladder: ${problem}`);
+  }
+  for (const problem of result.budgets.errors) {
+    console.error(`  budget gate: ${problem}`);
   }
   process.exit(1);
 }

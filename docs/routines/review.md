@@ -37,17 +37,17 @@ later.
 > and merge what is held. Gaps are sized from _measured_ run durations, not a flat stagger — an
 > earlier flat 1 h stagger overlapped twice.
 >
-> | HKT   | UTC           | Job                 | shelf       | host   | worst end (UTC) |
-> | ----- | ------------- | ------------------- | ----------- | ------ | --------------- |
-> | 23:00 | `0 15 * * *`  | `metaphor3d`        | automations | Claude | 17:00           |
-> | 23:30 | `30 15 * * *` | `prune`             | routines    | Claude | 15:50           |
-> | 02:00 | `0 18 * * *`  | `office-life`       | automations | Claude | 19:10           |
-> | 03:30 | `30 19 * * *` | `anything`          | automations | Claude | 20:00           |
-> | 04:30 | `30 20 * * *` | `canvas-graph-edit` | automations | Claude | 20:35           |
-> | 05:30 | `30 21 * * *` | `review`            | routines    | Claude | 22:20           |
-> | 06:30 | `30 22 * * *` | `improve`           | routines    | Cursor | ~00:00          |
-> | 07:45 | `45 23 * * *` | `resolve`           | routines    | Cursor | ~00:30          |
-> | 08:45 | `45 0 * * *`  | `digest`            | routines    | Claude | ~01:00          |
+> | HKT   | UTC           | Job                 | shelf       | host   | worst end (UTC)    |
+> | ----- | ------------- | ------------------- | ----------- | ------ | ------------------ |
+> | 23:00 | `0 15 * * *`  | `metaphor3d`        | automations | Claude | 17:00              |
+> | 23:30 | `30 15 * * *` | `prune`             | routines    | Claude | 15:50              |
+> | 02:00 | `0 18 * * *`  | `office-life`       | automations | Claude | 19:10              |
+> | 03:30 | `30 19 * * *` | `anything`          | automations | Claude | 20:00              |
+> | 04:30 | `30 20 * * *` | `canvas-graph-edit` | automations | Claude | 20:35 — **parked** |
+> | 05:30 | `30 21 * * *` | `review`            | routines    | Claude | 22:20              |
+> | 06:30 | `30 22 * * *` | `improve`           | routines    | Cursor | ~00:00             |
+> | 07:45 | `45 23 * * *` | `resolve`           | routines    | Cursor | ~00:30             |
+> | 08:45 | `45 0 * * *`  | `digest`            | routines    | Claude | ~01:00             |
 >
 > **Trigger ids** (read back from the API on 2026-09-14). `digest` watchdog 4 should `get` a rung by
 > these instead of scanning `claude -p '/schedule list'`, which returns only the newest 20 routines and
@@ -101,20 +101,19 @@ later.
 > while nothing is branched, because every producer that started afterwards inherits the change and
 > every one already running gets a surprise conflict.
 >
-> [`prune`](prune.md) joined the ladder on 2026-09-14, at its head. Its two prior firings were
-> 2026-09-13 (owner-triggered by hand, `stale-doc`, #670, merged by the owner in 31 min) and 2026-09-14
-> (first on-cron firing, `dead-file`, #681, merged by the owner in 51 min) — `mergePolicy: hold` honored
-> both times, which is the read-the-room evidence that a scheduled `prune` is safe to stand up.
-> It is the only rung that cannot merge, which is exactly why it is safe to put anywhere — but it is
-> still at the top on purpose, for two reasons that both broke when it sat at `0 0 * * *` behind the
-> digest.
-> **(1)** `digest` watchdog 2 carries a fresh `prune:` hold on the `Needs you:` line the morning it
-> opens; a prune that fires an hour _after_ the digest structurally cannot be reported until the next
-> morning, so the one thing the owner must decide arrived a full day late. **(2)** It branches off the
-> quietest `main` of the day — the owner's daytime merges have all landed and no nightly rung has
-> started — so the deletion PR the owner reviews on a phone is not also carrying a rebase. Its
-> candidates come from `npm run prune:scan`, a report that is deliberately absent from `check`, so a
-> row in this table is also the only thing that makes the rung visible to a reader at all.
+> [`prune`](prune.md) joined the ladder on 2026-09-14, second behind `metaphor3d`. Its two prior
+> firings were 2026-09-13 (owner-triggered by hand, `stale-doc`, #670, merged by the owner in 31 min)
+> and 2026-09-14 (first on-cron firing, `dead-file`, #681, merged by the owner in 51 min) — evidence a
+> scheduled `prune` is safe to stand up, and the same evidence the owner read the next morning when they
+> lifted its `mergePolicy: hold` and made it self-merging too (`prune.md` § 5).
+> **(1)** It must precede `digest`, which reports on whatever merged inside its window; a prune firing
+> an hour _after_ the digest left the owner finding an unannounced deletion in `git log`. **(2)** It
+> branches off the quietest `main` of the day — the owner's daytime merges have all landed and nothing
+> else merge-capable has started — and landing at 23:30 means `office-life`, `anything` and
+> `canvas-graph-edit` each run `npm run check` against the tree it deleted from, before anyone is awake
+> to be surprised. Its candidates come from `npm run prune:scan`, a report that is deliberately absent
+> from `check`, so a row in this table is also the only thing that makes the rung visible to a reader at
+> all.
 >
 > **One fleet per 24-hour window.** Two hosts scanning the same commits is not redundancy — on
 > 2026-08-29 `review` and Cursor's unregistered `critical-bug-memory` automation both found the same

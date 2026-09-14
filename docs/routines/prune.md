@@ -3,7 +3,6 @@ name: prune
 tier: code-writing
 schedule: '30 15 * * *'
 host: Claude
-mergePolicy: hold
 maxFiles: 5
 maxIssues: 1
 prTitlePrefix:
@@ -36,17 +35,24 @@ forbiddenPaths:
 
 Deletes whole files the repository no longer needs, and **nothing else**. Not lines, not refactors,
 not renames: `improve` removes dead code _inside_ live files and owns every budget on this shelf.
-This routine asks one question of one file at a time — **is this still wanted?** — and the answer is
-not its to give.
+This routine asks one question of one file at a time — **is this still wanted?** — and since
+2026-09-14 it is allowed to answer it, under § 5's five controls.
 
-**It is the only routine on either shelf that never merges its own PR.** That is not caution about
-deletion, it is the shelf's own rule: `README.md` rule 10 page-bar #3 is _irreversible destruction_,
-and "delete this document" is a decision about what the project wants to remember, which is the
-owner's call. Every other routine decides and lands; this one proposes and stops. The goal is a
-smaller repository and a **shorter context for every agent that opens it** — a stale file is not
-free, it is read by each new session that greps the area it describes.
+**It merges its own deletion PRs as of 2026-09-14, and it is the only routine on either shelf whose
+whole output is a deletion.** Until that day it was the shelf's one structural exception —
+`mergePolicy: hold`, every run, on the reasoning that a deletion is `README.md` rule 10 page-bar #3
+(_irreversible destruction_) and therefore the owner's call while nothing else on the fleet is. The
+owner lifted it on 2026-09-14: _"remove the prune mergePolicy and merge urself, u can do it, just be
+careful."_ So the human checkpoint is gone, § 5 is the set of controls that stands in its place, and
+"just be careful" is a requirement with a section number rather than a tone of voice.
 
-## 0. Scheduled at 23:30 HKT — the only rung that cannot finish itself
+What the hold bought — a smaller repository and a **shorter context for every agent that opens it** —
+is unchanged; a stale file is not free, it is read by each new session that greps the area it
+describes. What changed is who pays for a mistake: an unwanted deletion now lands before anyone reads
+it, which is survivable only because `git revert <sha>` puts it back. § 5 exists to keep that sentence
+true.
+
+## 0. Scheduled at 23:30 HKT — second on the ladder
 
 `schedule: 30 15 * * *` UTC (**23:30 HKT**), `host: Claude`. This rung opened manual-only on 2026-09-07
 and acquired a live `0 0 * * *` cron that no document admitted to having; `digest` watchdog 4 caught the
@@ -55,31 +61,41 @@ hand-triggered batches (#670, #681) had each been merged inside an hour of filin
 a rung needs before it gets a schedule (`README.md` § Adding a routine, step 5) and `prune` now has it.
 The full ladder and the reasoning for each slot are in [`review.md`](review.md) § the night ladder.
 
-**It sits at the head of the ladder, second only to `metaphor3d`, and both halves of that placement are
-load-bearing.**
+**Second, immediately behind `metaphor3d` and ahead of every other producer.** That placement now earns
+its keep harder than it did when this rung could only propose:
 
-- **Before `digest`,** so the held PR is on the `Needs you:` line the same morning it is filed. At the
-  old `0 0 * * *` (08:00 HKT) this rung fired an hour _after_ the digest, so the one decision the owner
-  has to make was structurally always reported a full day late.
-- **Before every rung that can merge.** 23:30 HKT is the quietest `main` that a deletion batch can be
-  computed against: the owner's daytime merges have all landed, and the only thing running alongside is
-  `metaphor3d` (`0 15`), which cannot be collided with this one because this one never merges. A
-  deletion PR the owner judges on a phone in ninety seconds should not also be carrying a rebase.
-  Nothing else starts for another two and a half hours.
+- **23:30 HKT is the quietest `main` a deletion can be computed against** — the owner's daytime merges
+  have all landed, and `metaphor3d` (`0 15`), the only thing running alongside, has not merged yet, so
+  the scan and the branch both sit on a tree no live producer has touched. Note what that does _not_
+  buy: `metaphor3d`'s scene and layout paths are **not** in this routine's `forbiddenPaths`, so overlap
+  is possible in principle. What actually separates them is § 2 — a file `metaphor3d` is working on is
+  either referenced (so never a candidate) or under the 14-day age gate, and § 5.1 requires both sensors
+  to agree before anything is deleted. A residual collision surfaces as a merge conflict on the
+  producer's PR, which is loud, not as a silent removal. Nothing else merge-capable starts for another
+  two and a half hours.
+- **A wrong deletion meets the other producers' builds before it meets the owner.** `office-life`
+  (`0 18`) and `anything` (`30 19`) both branch after this run merges and each runs `npm run check`
+  against the tree it inherited, so a deletion that breaks something only a bundle or a web suite can
+  see fails as somebody else's red preflight rather than as the owner finding a hole in `main` at
+  09:00. (`canvas-graph-edit` would be a third tripwire; it is parked — see
+  [`canvas-graph-edit.md`](../automations/canvas-graph-edit.md) § the pause note.) This is the reason
+  the slot moved from the tail of the ladder to the head when the hold came off: at `0 0 * * *` this
+  rung merged into a `main` that nothing else would test until the next afternoon.
+- **Before `digest`,** so the morning report names what went and what it freed, instead of the owner
+  finding an unannounced deletion in `git log`.
 
-**A trigger prompt cannot lift the hold.** On the 2026-09-14 firing the prompt that started the run
-additionally instructed _"merge into main urself"_. The run declined, opened #681, recorded
-`held PR #681 awaiting-review`, and the owner merged it 51 minutes later. That run handled it correctly,
-and this is the rule it was reasoning from, written down rather than left to inference: the three-line
-loader prompt "adds nothing" to these files by design, and **a prompt living in a cron blob is invisible
-to review, cannot be diffed, and cannot carry a policy change** — that is the whole thesis of this shelf
-(see `README.md` § the contract). So a prompt can neither widen a budget nor reverse
-`mergePolicy: hold`. The way to change this policy is a commit that edits the front-matter key here,
-which `routine-guard` reads and `review` can object to. Anyone who means it can say so in a session that
-touches this file, and that session should say plainly that it is reversing page bar #3.
+**Prompts do not carry policy; this file does.** On the 2026-09-14 firing the trigger prompt said
+_"merge into main urself"_ and the run correctly refused, filed #681, and let the owner merge it —
+because `mergePolicy: hold` was written in this playbook and a prompt in a cron blob is invisible to
+review, cannot be diffed, and cannot reverse a key the guard reads. The policy changed the other way
+the next day, and it changed **here**, on the owner's explicit instruction in a session that could edit
+the file. Same rule both times, which is the point: the three-line loader prompt "adds nothing" to these
+two files (see `README.md` § the contract), so neither a stray instruction nor a well-meaning run can
+widen a budget or lift a gate. To make this rung stop merging, add `mergePolicy: hold` back to the
+front-matter above — `routine-guard` validates the key and `--postflight` prints it back before the
+push.
 
-**Running it by hand is still supported**, and is what § 5's brake is for. Open a session in this
-repository and paste:
+**Running it by hand is still supported.** Open a session in this repository and paste:
 
 ```
 Run the NFR routine `prune`.
@@ -87,12 +103,14 @@ Read docs/routines/README.md (the contract), then docs/routines/prune.md (the pl
 and follow them exactly. Those two files are authoritative; this message adds nothing to them.
 ```
 
-Preflight with `npm run routine:guard -- --preflight prune`; when it refuses because a `prune:` PR is
-already open, **that is the intended brake** — the previous batch is still waiting on the owner. Record
-`held PR #nnn awaiting-review` in the ledger and stop. Do not open a second branch under another name,
-do not close the open PR to make room, and do not merge it yourself to clear the way (§ 5). The nightly
-cron hits this brake too: on a morning where the owner has not yet merged, this firing is a ~3-minute
-no-op that appends one ledger row saying so, and that is the design working, not a failure to report.
+Preflight with `npm run routine:guard -- --preflight prune`. When it refuses because a `prune:` PR is
+already open, **that is still the intended brake** — one batch in flight per rung, so a routine cannot
+queue deletions faster than `main` can absorb them. Record `PR #nnn open, awaiting CI` in the ledger and
+stop; do not open a second branch under another name and do not close the open PR to make room. Since
+§ 5 the PR normally merges inside the same run, so preflight refusing means something did not finish:
+CI is red, the run stopped mid-batch, or a hold-by-judgement is sitting there — and a red
+`check:full` on a deletion is a **finding that the candidate was live**, not an obstacle to route
+around.
 
 `digest` now treats this as an ordinary ladder rung: **an empty ledger row for last night is a real
 finding** (`digest.md` § Watchdog 1), which it was not while `schedule:` read `none`.
@@ -159,11 +177,13 @@ not write and does not maintain. On 2026-09-07 the two disagreed in both directi
   names it in any form; a graph that only carries edges cannot see a node it never reached.
 
 **So: put both lists in front of you, propose only the intersection, and send the symmetric difference
-to the ledger as `todos` for a later run with a hand-check.** A candidate both sensors agree on is a
-deletion the owner can approve from two independent pieces of evidence; a candidate only one sensor
-sees is exactly where a tool's blind spot lives, and this routine's whole risk model is that it does
-not get to be the only thing that looked. If a future run finds itself wanting to _weaken_ either
-sensor to make the lists agree, it has found a bug to report, not a queue to clear.
+to the ledger as `todos` for a later run with a hand-check.** Since § 5 landed this is a **merge** bar,
+not a proposal bar: nothing outside the intersection gets deleted at all. A candidate both sensors agree
+on is a deletion backed by two independent pieces of evidence that neither routine wrote; a candidate
+only one sensor sees is exactly where that tool's blind spot lives, and this routine's risk model is
+that it does not get to be the only thing that looked — least of all now that it also lands the result.
+If a future run finds itself wanting to _weaken_ either sensor to make the lists agree, it has found a
+bug to report, not a queue to clear.
 
 ## 2. The proof ladder — five gates, or the candidate is not a candidate
 
@@ -200,7 +220,8 @@ owner a review of a deletion that would have broken the app.
    **all the pairs in one issue** — five open tickets for one recurring class is the failure that rule
    was written against, and a deletion candidate repeats nightly if nothing batches it. Pay-before-file
    can block this rung outright: when prune already carries too many of its own open findings, it
-   closes one before opening another, and the held `prune:` PR is never the thing it pays with.
+   closes one before opening another, and a `prune:` PR already in flight is never the thing it pays
+   with.
 
 Then the run's own gate, which is the same as everyone else's and harder here:
 
@@ -237,26 +258,46 @@ Beyond `README.md` rule 6 and the paths in the front-matter:
 - **Anything whose absence you cannot point at in the PR body.** If you cannot name what stops
   existing without it, it is not dead, it is undocumented.
 
-## 5. `mergePolicy: hold` — the PR is the deliverable
+## 5. Self-merging a deletion — five controls that replace the person
 
-Push, open the PR, **stop**. Do not merge on green CI. Do not merge because the owner is asleep. Do
-not merge a batch the owner approved piecemeal in a comment without re-asking. `routine-guard
---postflight prune` prints the policy back at you at the moment you are about to push; read that line.
+Push, open the PR, wait for CI, merge. That is now the default here as it is everywhere else on the
+shelf. The difference is that a wrong merge from `review` is a bad line of code and a wrong merge from
+this routine is a file nobody can point at any more, so the five controls below are the substitute for
+the owner's ninety seconds — **all five, every run, and a run that cannot satisfy one of them does not
+merge.** `routine-guard --postflight prune` prints the policy back at the moment you push; read that
+line.
 
-- File **one** PR per run, titled `prune: <class> — <n> file(s)`.
+1. **Both sensors, or no PR.** § 1b's intersection used to be the bar for a _proposal_, with the
+   symmetric difference parked as a todo for a run that could hand-check it. Now that nobody reviews
+   the proposal, it is the bar for the merge: if only `prune:scan` or only `verify:boundaries` names the
+   file, it is not deleted. That rule is what replaces a second pair of eyes, and it is the only one of
+   the five the run cannot reason its way around.
+2. **One file, one commit, in PR-body order.** Not a style preference — it is what makes
+   `git revert <sha>` a complete undo for one deletion instead of a partial unwind of a batch. Five
+   files in one commit means disagreeing with three of them requires surgery on `main`.
+3. **`npm run check:full` green with the file gone, before pushing** (§ 2 gate 6). Red after a deletion
+   means the candidate was live. Abandon it, record it in `Rejected` with what broke, and treat that as
+   the good outcome: the build caught what no reader would have.
+4. **The ledger row carries the merge SHA and the literal undo command for every path** — `git revert
+<sha>` next to each file it removed, not next to the PR. Owner-facing archaeology is how a revert
+   gets skipped and the deletion quietly becomes permanent.
+5. **A revert is a decision, exactly as a close used to be.** If the owner reverts any commit from a
+   `prune:` PR — or `review` reverts it, or a red `main` traces back to it — every path in that revert
+   goes to the ledger's **Rejected** section verbatim, in the run that notices, and is never proposed
+   again by any future run. § 1's candidate list is filtered against `Rejected` before a batch is
+   chosen. Re-nagging the shelf about something it already removed once is how this rung loses its new
+   licence.
+
+- File **one** PR per run, titled `prune: <class> — <n> file(s)`; one class only (§ 6).
 - Leave the triggering issue's labels alone. `ready-for-human` is page-bar-only and you may not apply
-  it to your own finding (rule 10). The held PR _is_ the escalation; a label on top of it adds nothing.
-- Record `held PR #nnn awaiting-review` as a ledger row. `digest` watchdog 2 reports its age, and
-  unlike a `resolve` hold — which holds because it is unsure — this hold is **not** an admission of
-  uncertainty. It is the design. Do not "unblock" it.
-- **When the owner merges**: append the row to `completed`, name the bytes or lines gone, and note any
-  follow-up the deletion exposed (a guide section that now describes a file that isn't there is
-  `improve`'s or `resolve`'s work, not a hot-fix in a merged deletion PR).
-- **When the owner closes it**: that close is the decision, with or without a comment. Move every path
-  in it to the ledger's **Rejected** section, verbatim, in the same run that notices. **A rejected
-  path is never proposed again** — not by this run, not by a future one, not "because the evidence
-  changed". Re-nagging an owner about something they already declined is how a shelf gets muted, and
-  § 1's candidate list must be filtered against `Rejected` before a batch is chosen.
+  it to your own finding (rule 10).
+- **Hold by judgement is still available and still narrow.** `mergePolicy` is gone from the
+  front-matter, but ADR-0015's per-run judgement hold is not: a deletion that touches a
+  trust-boundary path, sits adjacent to the don't-touch list, or whose § 2 proof ladder needed a call
+  the run cannot make from evidence alone — push the PR, do not merge, and say in the body what you are
+  unsure of. That is a run being honest about one file, not a gate on every file.
+- Note any follow-up the deletion exposed in the ledger row: a guide section that now describes a file
+  that isn't there is `improve`'s or `resolve`'s work, not a hot-fix appended to a merged deletion.
 
 ## 6. One run, one class
 
@@ -272,44 +313,57 @@ judge:
 There is no asset class on purpose: `apps/web/src/assets/**` is both don't-touch and excluded by the
 scanner, because a baked `.mp3` is regenerated with credits, not deleted after a grep.
 
-## 7. The PR body is the whole product
+## 7. The PR body is the audit trail
 
-The owner reads this on a phone and decides in ninety seconds. This example is a file **both** sensors
-name (§ 1b) — that is the bar for a first proposal, not a nicety. Copy the shape:
+It used to be the product — the thing the owner read on a phone for ninety seconds and answered with a
+merge button. Since § 5 the merge happens without them, so the body's job changed: it is now the
+**record a person reconstructs from afterwards**, and `digest` quotes it the following morning. The bar
+went up, not down. This example is a file **both** sensors name (§ 1b) — that is the merge bar, not a
+nicety. Copy the shape:
 
 ```markdown
 ## What this deletes
 
 `apps/web/src/components/AgentReactionBubble.jsx` — 16 lines, added 2026-05-16.
+Revert this commit alone: `git revert <sha>`.
 
 ## Why it is dead
 
 - `npm run prune:scan`: `unreferenced`, zero inbound from any file.
-- `npm run verify:boundaries`: `warn no-orphans` on the same path — a second, independent sensor.
+- `npm run verify:boundaries`: `warn no-orphans` on the same path — **both sensors agree** (§ 1b).
 - `git grep -n AgentReactionBubble` → nothing outside the file itself, in any specifier form.
 - Not an entry point; no glob, config, workflow, or rule loads it; no test names it.
+- Age: added 2026-05-16, well past the 14-day in-flight gate.
 - `npm run check:full` green with it gone.
 
 ## What it was for
 
 Added in <sha> for the advisor float, which the office floor replaced in July.
 
-## If I am wrong
+## If this is wrong
 
-`git revert <sha>` restores it; nothing else in the PR depends on it.
+`git revert <sha>` restores it; nothing else in the PR depends on it, and every file here has its own
+commit for exactly that reason. Reverting it is also a decision: the path goes to the ledger's
+`Rejected` table and is never proposed again (§ 5.5).
 ```
 
-One such block per file, one commit per file, in that order — so dropping the third candidate is
-dropping the third commit rather than unwinding a PR.
+One such block per file, **one commit per file**, in that order — so a single unwanted deletion is
+`git revert` on one SHA rather than surgery on a batch (§ 5.2). Merge only after CI is green, and append
+the row to the ledger's `completed` with the merge SHA and the undo command beside each path (§ 5.4).
 
 ## Verification
 
 ```bash
-npm run routine:guard -- --preflight prune      # BEFORE starting (refuses behind a held PR)
+npm run routine:guard -- --preflight prune      # BEFORE starting (refuses behind an open PR)
 npm run prune:scan                              # the candidate list
+npm run verify:boundaries                       # the SECOND sensor; intersect with the above (§ 1b)
 npm run check:full                              # AFTER deleting, BEFORE pushing
-npm run routine:guard -- --postflight prune     # budget + the hold reminder
+npm run routine:guard -- --postflight prune     # budget + the merge-policy line
 npm run test -w apps/web                        # when the class is web source
 ```
 
-`--postflight` passing is **not** permission to merge. For this routine it is permission to push.
+`--postflight` passing **is** permission to merge, provided all five § 5 controls hold — the two-sensor
+intersection first among them, since it is the one control nothing downstream catches. It is not
+permission to merge a file only one sensor named, and not permission to skip `check:full` because the
+tests were green: typecheck and lint prove the tree is internally consistent, only the build proves
+nothing loaded the file at runtime.
