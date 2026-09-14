@@ -41,6 +41,10 @@ const LADDER_TABLE_FILES = [
   'CLAUDE.md'
 ];
 
+/** Root docs that state how many jobs fire on the night ladder — must match unpaused rung count. */
+const LADDER_JOB_COUNT_FILES = ['AGENTS.md', 'CLAUDE.md'];
+const LADDER_JOB_COUNT_RE = /(\d+) jobs run between/gi;
+
 /** Rungs that are scheduled but documented as sitting off the ladder, so they get no row by design. */
 const OFF_LADDER_ROUTINES = new Set(['deps']);
 
@@ -148,7 +152,7 @@ export function collectRootPackageScripts(root) {
  * real front-matter reader and this file must not drift from it, but importing across scripts for two
  * scalar keys would couple two independent sensors.
  * @param {string} markdown
- * @returns {{name: string|null, schedule: string|null}}
+ * @returns {{name: string|null, schedule: string|null, paused: boolean}}
  */
 export function parsePlaybookSchedule(markdown) {
   const fence = /^---\r?\n([\s\S]*?)\r?\n---/;
@@ -159,14 +163,16 @@ export function parsePlaybookSchedule(markdown) {
     if (!line) return null;
     return line[1].trim().replace(/^['"]|['"]$/g, '') || null;
   };
-  return { name: scalar('name'), schedule: scalar('schedule') };
+  const pausedRaw = scalar('paused');
+  const paused = pausedRaw !== null && pausedRaw !== '' && pausedRaw !== 'false';
+  return { name: scalar('name'), schedule: scalar('schedule'), paused };
 }
 
 /**
  * Every Markdown table row in `markdown` that names a cron in a cell.
  * @param {string} markdown
  * @param {string} source
- * @returns {{name: string|null, cron: string, hour: number, minute: number, hkt: string|null, source: string, line: number}[]}
+ * @returns {{name: string|null, cron: string, hour: number, minute: number, hkt: string|null, parked: boolean, source: string, line: number}[]}
  */
 export function extractLadderTableRows(markdown, source) {
   const rows = [];
@@ -204,12 +210,14 @@ export function extractLadderTableRows(markdown, source) {
       const label = cells[c].match(/^\[`?([\w-]+)`?\]\([^)]+\)$/) || cells[c].match(/^`([\w-]+)`$/);
       if (label) name = label[1];
     }
+    const parked = cells.some((cell) => /\bparked\b/i.test(cell));
     rows.push({
       name,
       cron: cells[cronIndex].replace(/^`|`$/g, ''),
       hour: Number(cronCell[2].split(',')[0]),
       minute: Number(cronCell[1]),
       hkt,
+      parked,
       source,
       line: i + 1
     });
@@ -277,14 +285,20 @@ export function verifyPlaybookPaths(root) {
  * @returns {{ok: boolean, errors: string[], rungCount: number, rowCheckCount: number}}
  */
 export function verifyNightLadder(root) {
-  /** @type {Map<string, string>} playbook name -> declared schedule */
+  /** @type {Map<string, {schedule: string, paused: boolean}>} playbook name -> ladder meta */
   const declared = new Map();
   for (const rel of collectRoutineDocs(root)) {
     const abs = path.join(root, rel);
     if (!fs.existsSync(abs)) continue;
-    const { name, schedule } = parsePlaybookSchedule(fs.readFileSync(abs, 'utf8'));
+    const { name, schedule, paused } = parsePlaybookSchedule(fs.readFileSync(abs, 'utf8'));
     if (!name || !schedule) continue;
-    declared.set(name, schedule);
+    declared.set(name, { schedule, paused });
+  }
+
+  let activeRungCount = 0;
+  for (const [name, meta] of declared) {
+    if (meta.schedule === 'none' || OFF_LADDER_ROUTINES.has(name) || meta.paused) continue;
+    activeRungCount++;
   }
 
   /** @type {string[]} */
@@ -322,8 +336,8 @@ export function verifyNightLadder(root) {
         errors.push(`${rel}:${row.line} — a table row names cron \`${row.cron}\` but no routine`);
         continue;
       }
-      const schedule = declared.get(row.name);
-      if (schedule === undefined) {
+      const meta = declared.get(row.name);
+      if (meta === undefined) {
         errors.push(
           `${rel}:${row.line} — table row for \`${row.name}\` matches no playbook ` +
             `(playbooks declare: ${[...declared.keys()].sort().join(', ')})`
@@ -331,6 +345,19 @@ export function verifyNightLadder(root) {
         continue;
       }
       rowChecks++;
+      if (meta.paused && !row.parked) {
+        errors.push(
+          `${rel}:${row.line} — \`${row.name}\` declares \`paused:\` in its playbook but this table ` +
+            'row is not marked parked (see `docs/routines/review.md` for the shipped marker form)'
+        );
+      }
+      if (!meta.paused && row.parked) {
+        errors.push(
+          `${rel}:${row.line} — this table row marks \`${row.name}\` parked but its playbook has no ` +
+            '`paused:` key — unpause in the playbook or drop the marker here'
+        );
+      }
+      const schedule = meta.schedule;
       if (schedule === 'none') {
         errors.push(
           `${rel}:${row.line} — \`${row.name}\` is a ladder row with cron \`${row.cron}\`, but ` +
@@ -370,14 +397,29 @@ export function verifyNightLadder(root) {
         );
       }
     }
-    for (const [name, schedule] of declared) {
-      if (schedule === 'none' || OFF_LADDER_ROUTINES.has(name)) continue;
+    for (const [name, meta] of declared) {
+      if (meta.schedule === 'none' || OFF_LADDER_ROUTINES.has(name)) continue;
       const listed = authorityRows.some((row) => row.name === name);
       if (!listed) {
         errors.push(
-          `${LADDER_AUTHORITY} — \`${name}\` declares schedule '${schedule}' but has no ladder row. ` +
+          `${LADDER_AUTHORITY} — \`${name}\` declares schedule '${meta.schedule}' but has no ladder row. ` +
             'A scheduled rung that appears in no table is invisible to every reader who does not grep ' +
             'front-matter, and to `digest` watchdog 1.'
+        );
+      }
+    }
+  }
+
+  for (const rel of LADDER_JOB_COUNT_FILES) {
+    const abs = path.join(root, rel);
+    if (!fs.existsSync(abs)) continue;
+    const markdown = fs.readFileSync(abs, 'utf8');
+    for (const match of markdown.matchAll(LADDER_JOB_COUNT_RE)) {
+      const stated = Number(match[1]);
+      if (stated !== activeRungCount) {
+        errors.push(
+          `${rel} — says ${stated} jobs run on the night ladder but ${activeRungCount} rungs are ` +
+            'unpaused (count playbooks with a `schedule:` minus `paused:` and off-ladder rungs like `deps`)'
         );
       }
     }
@@ -387,6 +429,7 @@ export function verifyNightLadder(root) {
     ok: errors.length === 0,
     errors,
     rungCount: declared.size,
+    activeRungCount,
     rowCheckCount: rowChecks
   };
 }

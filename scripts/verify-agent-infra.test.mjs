@@ -132,9 +132,10 @@ function ladderFixture(playbooks, ladderRows) {
   for (const pb of playbooks) {
     const dir = path.join(root, 'docs', pb.dir ?? 'routines');
     fs.mkdirSync(dir, { recursive: true });
+    const pausedLine = pb.paused ? `paused: '${pb.paused}'\n` : '';
     fs.writeFileSync(
       path.join(dir, `${pb.name}.md`),
-      `---\nname: ${pb.name}\ntier: code-writing\nschedule: ${pb.schedule}\n---\n\n# ${pb.name}\n`
+      `---\nname: ${pb.name}\ntier: code-writing\nschedule: ${pb.schedule}\n${pausedLine}---\n\n# ${pb.name}\n`
     );
   }
   fs.writeFileSync(
@@ -157,12 +158,18 @@ const LADDER_OK = [
 test('parsePlaybookSchedule reads a quoted and a bare schedule value', () => {
   assert.deepEqual(parsePlaybookSchedule("---\nname: x\nschedule: '0 15 * * *'\n---\n"), {
     name: 'x',
-    schedule: '0 15 * * *'
+    schedule: '0 15 * * *',
+    paused: false
   });
   assert.deepEqual(parsePlaybookSchedule('---\nname: x\nschedule: none\n---\n'), {
     name: 'x',
-    schedule: 'none'
+    schedule: 'none',
+    paused: false
   });
+  assert.deepEqual(
+    parsePlaybookSchedule("---\nname: x\nschedule: '0 15 * * *'\npaused: 'owner pause'\n---\n"),
+    { name: 'x', schedule: '0 15 * * *', paused: true }
+  );
 });
 
 test('extractLadderTableRows reads a table inside a blockquote', () => {
@@ -246,6 +253,36 @@ test('a rung outside the night window is refused, and one past midnight is not',
   // `45 0 * * *` is 08:45 HKT — inside a window that opens at 15:00 and wraps midnight.
   const wrapping = ladderFixture([{ name: 'digest', schedule: "'45 0 * * *'" }], [LADDER_OK[1]]);
   assert.deepEqual(verifyNightLadder(wrapping).errors, []);
+});
+
+test('a paused rung must be marked parked in every mirror row', () => {
+  const root = ladderFixture(
+    [{ name: 'paused-job', schedule: "'30 20 * * *'", paused: 'owner disabled trigger' }],
+    ['| 04:30 | `30 20 * * *` | `paused-job` | automations | Claude |']
+  );
+  const bad = verifyNightLadder(root);
+  assert.equal(bad.ok, false);
+  assert.match(bad.errors.join('\n'), /not marked parked/);
+
+  const rootOk = ladderFixture(
+    [{ name: 'paused-job', schedule: "'30 20 * * *'", paused: 'owner disabled trigger' }],
+    ['| 04:30 | `30 20 * * *` | `paused-job` | automations | Claude | — **parked** |']
+  );
+  assert.deepEqual(verifyNightLadder(rootOk).errors, []);
+});
+
+test('root prose job count must match unpaused rungs', () => {
+  const root = ladderFixture(
+    [
+      { name: 'prune', schedule: "'30 15 * * *'" },
+      { name: 'digest', schedule: "'45 0 * * *'" }
+    ],
+    LADDER_OK
+  );
+  fs.writeFileSync(path.join(root, 'AGENTS.md'), '9 jobs run between `0 15` and `45 0` UTC.\n');
+  const result = verifyNightLadder(root);
+  assert.equal(result.ok, false, result.errors.join('\n'));
+  assert.match(result.errors.join('\n'), /AGENTS\.md.*says 9 jobs.*2 rungs/);
 });
 
 test('a rung declared off the ladder needs no row and no window', () => {

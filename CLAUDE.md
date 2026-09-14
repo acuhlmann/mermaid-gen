@@ -196,7 +196,7 @@ check`: two unattended feature automations run daily here, and a quality metric 
   a self-merged monolith split when the fix matches an extraction pattern already used elsewhere in
   the file (`improve.md` § 7), or a lint `warn`→`error` promotion after a two-week quiet period
   (§ 8). ADR-0010 (no slot content) and "no new dependencies" are unchanged.
-- **There is a night ladder, and it is a dependency order.** Nine jobs run between `0 15` and `45 0`
+- **There is a night ladder, and it is a dependency order.** Eight jobs run between `0 15` and `45 0`
   UTC — **23:00 → 08:45 in the owner's GMT+8** — so the fleet works while the owner is away and the
   digest lands while they are at the keyboard. `metaphor3d` opens it as the longest producer; `prune`
   is second (it self-merges whole-file deletions as of 2026-09-14, under five mechanical controls in
@@ -233,12 +233,12 @@ runs on a separate shelf: [`docs/automations/`](docs/automations/README.md). Sam
 (playbook + ledger + cron trigger), same `npm run routine:guard` budget enforcement, but these
 **do** touch product code (and never write slot content — ADR-0010 still applies).
 
-| Playbook                                                     | UTC           | HKT   | What it improves                                      |
-| ------------------------------------------------------------ | ------------- | ----- | ----------------------------------------------------- |
-| [`metaphor3d`](docs/automations/metaphor3d.md)               | `0 15 * * *`  | 23:00 | The 3D slot: ladder, layouts, scenes, composite, USDA |
-| [`office-life`](docs/automations/office-life.md)             | `0 18 * * *`  | 02:00 | The isometric office: cast, memory, the visit trace   |
-| [`anything`](docs/automations/anything.md)                   | `30 19 * * *` | 03:30 | The Anything slot: policy lint, runtime rung, prompts |
-| [`canvas-graph-edit`](docs/automations/canvas-graph-edit.md) | `30 20 * * *` | 04:30 | Direct manipulation on the canvas, all 28 families    |
+| Playbook                                                     | UTC           | HKT   | What it improves                                                |
+| ------------------------------------------------------------ | ------------- | ----- | --------------------------------------------------------------- |
+| [`metaphor3d`](docs/automations/metaphor3d.md)               | `0 15 * * *`  | 23:00 | The 3D slot: ladder, layouts, scenes, composite, USDA           |
+| [`office-life`](docs/automations/office-life.md)             | `0 18 * * *`  | 02:00 | The isometric office: cast, memory, the visit trace             |
+| [`anything`](docs/automations/anything.md)                   | `30 19 * * *` | 03:30 | The Anything slot: policy lint, runtime rung, prompts           |
+| [`canvas-graph-edit`](docs/automations/canvas-graph-edit.md) | `30 20 * * *` | 04:30 | Direct manipulation on the canvas, all 28 families — **parked** |
 
 `metaphor3d` and `canvas-graph-edit` got playbooks on 2026-08-30; before that they were exactly the
 prompt-in-a-cron-blob shape ADR-0014 exists to replace, and `metaphor3d` — the most productive job
