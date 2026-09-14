@@ -7,7 +7,7 @@ import {
   partialToRenderableMetaphorDsl,
   sanitizeMetaphorDsl
 } from '@archislop/shared';
-import { resolveMetaphorPostfx, resolveDistrictColor } from '../utils/metaphorThemePresets.js';
+import { resolveMetaphorPostfx } from '../utils/metaphorThemePresets.js';
 import { resolveMetaphorSceneTheme } from '../utils/metaphorSceneTheme.js';
 import { resolveSkyBackdrop } from '../utils/metaphorSkyBackdrops.js';
 import { cityDistrictLayout } from '../utils/metaphorLayouts/cityDistrictLayout.js';
@@ -43,7 +43,11 @@ import { MetaphorPngExportBridge } from '../utils/viewportPngExport.js';
 const METAPHOR_CONTENT_ROOT_NAME = 'archislop-metaphor-root';
 import { MetaphorClockProvider } from './metaphorScenes/MetaphorClockProvider.jsx';
 import { idHash, idHash2, shiftColor, truncateLabel } from './metaphorScenes/sceneUtils.js';
-import { GROUP_TINT_PLATE, tintByGroup } from './metaphorScenes/groupIdentity.js';
+import {
+  GROUP_TINT_PLATE,
+  resolveGroupPlateBase,
+  tintByGroup
+} from './metaphorScenes/groupIdentity.js';
 import {
   GradientSkySphere,
   HoverableItem,
@@ -460,14 +464,16 @@ function DistrictGrid({ size, color }) {
   );
 }
 
-function DistrictPatch({ district, theme, index }) {
+function DistrictPatch({ district, theme, index, plateBase }) {
   // The patch and the towers standing on it move along the SAME ladder, so a
   // neighbourhood reads as one thing rather than as a plate that happens to sit
-  // under some buildings. `resolveDistrictColor` supplies the base — index 0,
-  // not `index`, because the ladder does the separating now and the palette's
-  // own four entries are four shades of one blue, which is what made three
-  // districts render as one colour in the first place.
-  const color = tintByGroup(resolveDistrictColor(theme, 0), index, GROUP_TINT_PLATE);
+  // under some buildings. `resolveGroupPlateBase` supplies the base — entry 0
+  // of the palette, placed against this theme's ground, because the ladder does
+  // the separating now and the palette's own four entries are four shades of
+  // one blue, which is what made three districts render as one colour in the
+  // first place. Entry 0 raw made them one colour again on `whiteboard`, at the
+  // other end of the range: see `resolveGroupPlateBase`.
+  const color = tintByGroup(plateBase, index, GROUP_TINT_PLATE);
   const gridColor = theme.districtGridColor ?? theme.labelColor ?? '#cbd5e1';
   const bannerColor = shiftColor(color, { lightness: -0.08, satScale: 0.85 });
   return (
@@ -1100,10 +1106,19 @@ function CityScene({ dsl, theme }) {
     return map;
   }, [dsl.items, layout.positions]);
 
+  // One placement per theme, not one per district — the base bisects.
+  const plateBase = useMemo(() => resolveGroupPlateBase(theme), [theme]);
+
   return (
     <group>
       {layout.districts.map((district, idx) => (
-        <DistrictPatch key={district.name} district={district} theme={theme} index={idx} />
+        <DistrictPatch
+          key={district.name}
+          district={district}
+          theme={theme}
+          index={idx}
+          plateBase={plateBase}
+        />
       ))}
       {dsl.items.map((item) => {
         const position = layout.positions.get(item.id);

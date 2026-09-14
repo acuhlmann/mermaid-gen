@@ -4,11 +4,16 @@ import {
   GROUP_TINT_BODY,
   GROUP_TINT_EARTH,
   GROUP_TINT_PLATE,
+  PLATE_GROUND_SEPARATION,
+  PLATE_LADDER_CEILING,
   groupLadderLength,
+  resolveGroupPlateBase,
   tintByGroup
 } from '../src/components/metaphorScenes/groupIdentity.js';
 import { cityDistrictLayout } from '../src/utils/metaphorLayouts/cityDistrictLayout.js';
 import { planFusedCompositeWorld } from '../src/components/metaphorScenes/fusedCompositePlanner.js';
+import { srgbLuma } from '../src/utils/metaphorDaylightSurfaces.js';
+import { resolveMetaphorSceneTheme } from '../src/utils/metaphorSceneTheme.js';
 import { METAPHOR_THEME_PRESETS } from '../src/utils/metaphorThemePresets.js';
 
 function hsl(hex) {
@@ -85,6 +90,120 @@ describe('tintByGroup', () => {
     expect(tintByGroup('#8fb6f0', 3, 0)).toBe('#8fb6f0');
     expect(tintByGroup('#8fb6f0', Number.NaN)).toBe('#8fb6f0');
     expect(tintByGroup(undefined, 2)).toMatch(/^#[0-9a-f]{6}$/);
+  });
+});
+
+/**
+ * Where the ladder is STOOD, as opposed to how far apart its rungs are.
+ *
+ * The sweep above pins the ladder against `buildingColor` — a mid-tone on every
+ * preset — which is why it stayed green through the whole of the defect below:
+ * the plate's base is `districtPalette[0]`, and nothing swept that.
+ */
+describe('resolveGroupPlateBase', () => {
+  /** Every kind whose theme a lock rewrites, plus the unlocked control. */
+  const KINDS = ['city', 'tree', 'river', 'garden', 'archipelago', 'galaxy', 'orrery', 'subway'];
+
+  function plateLadder(base) {
+    return Array.from({ length: groupLadderLength() }, (_, i) =>
+      tintByGroup(base, i, GROUP_TINT_PLATE)
+    );
+  }
+
+  function rgbDistance(a, b) {
+    const one = { r: 0, g: 0, b: 0 };
+    const two = { r: 0, g: 0, b: 0 };
+    new THREE.Color(a).getRGB(one, THREE.SRGBColorSpace);
+    new THREE.Color(b).getRGB(two, THREE.SRGBColorSpace);
+    return Math.hypot(one.r - two.r, one.g - two.g, one.b - two.b);
+  }
+
+  function everyCell() {
+    const cells = [];
+    for (const themeId of Object.keys(METAPHOR_THEME_PRESETS)) {
+      for (const kind of KINDS) {
+        cells.push({
+          name: `${themeId} · ${kind}`,
+          theme: resolveMetaphorSceneTheme({ themeId, kind, moodId: null })
+        });
+      }
+    }
+    return cells;
+  }
+
+  it('is the defect it was written for: the raw palette entry collapses on whiteboard', () => {
+    // Kept as a test rather than as a comment because it is the only thing that
+    // says WHY the plate may not read `districtPalette[0]` directly.
+    // `LIGHT_LADDER` only ever lifts and whiteboard's entry 0 is luma 0.91, so
+    // groups 2, 4 and 6 all clamp to pure white — pixel-identical territories.
+    const raw = plateLadder(METAPHOR_THEME_PRESETS.whiteboard.districtPalette[0]);
+    expect(raw[2]).toBe('#ffffff');
+    expect(raw[4]).toBe('#ffffff');
+    expect(raw[6]).toBe('#ffffff');
+  });
+
+  it('separates every pair of plate groups on every theme and every lock', () => {
+    for (const cell of everyCell()) {
+      const tints = plateLadder(resolveGroupPlateBase(cell.theme));
+      for (let a = 0; a < tints.length; a += 1) {
+        for (let b = a + 1; b < tints.length; b += 1) {
+          expect(rgbDistance(tints[a], tints[b]), `${cell.name} groups ${a}/${b}`).toBeGreaterThan(
+            0.04
+          );
+        }
+      }
+    }
+  });
+
+  it('stands the whole ladder clear of the ground it is drawn on', () => {
+    // The half a lock used to break: `groundColor` is walked by the daylight
+    // floor and the space ceiling, `districtPalette` is not, so a noir tree
+    // composite drew its territories 0.012 of luma from the ground under them.
+    for (const cell of everyCell()) {
+      const ground = srgbLuma(cell.theme.groundColor);
+      for (const [index, tint] of plateLadder(resolveGroupPlateBase(cell.theme)).entries()) {
+        expect(
+          Math.abs(srgbLuma(tint) - ground),
+          `${cell.name} group ${index}`
+          // The bar is `PLATE_GROUND_SEPARATION`; the slack is one hex step of
+          // quantisation on the way out of the bisection.
+        ).toBeGreaterThan(PLATE_GROUND_SEPARATION - 0.01);
+      }
+    }
+  });
+
+  it('never lets the ladder run out of headroom at the top', () => {
+    for (const cell of everyCell()) {
+      for (const tint of plateLadder(resolveGroupPlateBase(cell.theme))) {
+        expect(srgbLuma(tint), cell.name).toBeLessThanOrEqual(PLATE_LADDER_CEILING);
+      }
+    }
+  });
+
+  it('keeps the theme hue — it places the palette entry, it does not replace it', () => {
+    for (const cell of everyCell()) {
+      const authored = cell.theme.districtPalette[0];
+      expect(hueGap(resolveGroupPlateBase(cell.theme), authored), cell.name).toBeLessThan(0.02);
+    }
+  });
+
+  it('leaves a theme whose plate already sits right within a hex step of itself', () => {
+    // noir unlocked is the case that proves this is a placement and not a
+    // repaint: its authored plate is already clear of its own near-black
+    // ground, so the whole mechanism has to come back with what it was handed.
+    const theme = resolveMetaphorSceneTheme({ themeId: 'noir', kind: 'city', moodId: null });
+    expect(rgbDistance(resolveGroupPlateBase(theme), theme.districtPalette[0])).toBeLessThan(0.01);
+  });
+
+  it('survives a theme with no district palette at all', () => {
+    const base = resolveGroupPlateBase({ groundColor: '#334155' });
+    expect(base).toMatch(/^#[0-9a-f]{6}$/);
+    // `resolveDistrictColor` falls back to the ground itself, which would draw
+    // an invisible plate; the placement is what rescues it.
+    expect(Math.abs(srgbLuma(base) - srgbLuma('#334155'))).toBeGreaterThan(
+      PLATE_GROUND_SEPARATION - 0.01
+    );
+    expect(resolveGroupPlateBase({})).toBeUndefined();
   });
 });
 
