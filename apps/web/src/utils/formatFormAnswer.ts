@@ -1,5 +1,5 @@
 /** Render a forms-mode field value for the next-form prompt (booleans, arrays, blanks). */
-export function formatFormAnswer(value) {
+export function formatFormAnswer(value: unknown): string {
   if (value == null || value === '') return '(left blank)';
   if (typeof value === 'boolean') return value ? 'checked' : 'unchecked';
   if (Array.isArray(value)) return value.length ? value.join(', ') : '(none selected)';

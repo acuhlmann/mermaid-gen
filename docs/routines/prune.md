@@ -324,14 +324,14 @@ nicety. Copy the shape:
 ```markdown
 ## What this deletes
 
-`apps/web/src/components/AgentReactionBubble.jsx` — 16 lines, added 2026-05-16.
+`apps/web/src/hooks/useRotatingPlaceholder.js` — 37 lines, added 2026-07-12.
 Revert this commit alone: `git revert <sha>`.
 
 ## Why it is dead
 
 - `npm run prune:scan`: `unreferenced`, zero inbound from any file.
 - `npm run verify:boundaries`: `warn no-orphans` on the same path — **both sensors agree** (§ 1b).
-- `git grep -n AgentReactionBubble` → nothing outside the file itself, in any specifier form.
+- `git grep -n useRotatingPlaceholder` → nothing outside the file itself, in any specifier form.
 - Not an entry point; no glob, config, workflow, or rule loads it; no test names it.
 - Age: added 2026-05-16, well past the 14-day in-flight gate.
 - `npm run check:full` green with it gone.
