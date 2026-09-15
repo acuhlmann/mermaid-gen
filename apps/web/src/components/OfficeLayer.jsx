@@ -58,6 +58,7 @@ import {
   subscribe,
   voteOfficeBattle
 } from '../state/officeMomentStore.js';
+import { setOfficeLiveMeeting } from '../state/officeLiveMeetingStore.js';
 import { markWorkingMemoryPitchTaken } from '../state/officeWorkingMemoryStore.js';
 import { subscribeFloatingWindowReset } from '../state/floatingWindowControl.js';
 import {
@@ -285,6 +286,11 @@ export default function OfficeLayer({
     narrationGapMs: OFFICE_NARRATION_GAP_MS,
     onCancelNarration: cancelOfficeNarration
   });
+
+  useEffect(() => {
+    setOfficeLiveMeeting(meeting);
+    return () => setOfficeLiveMeeting(null);
+  }, [meeting]);
 
   const {
     huddle,

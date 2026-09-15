@@ -22,6 +22,17 @@ export function sceneParticipants(lines) {
 }
 
 /**
+ * Headset syncs stay seated; glass-room meetings (and legacy meetings with no
+ * modality) empty chairs. Shared by `awayFromDeskIds` and `peopleOutOfChairs`.
+ *
+ * @param {{ modality?: string } | null | undefined} meeting
+ * @returns {boolean}
+ */
+export function isNonRemoteMeeting(meeting) {
+  return Boolean(meeting && meeting.modality !== 'remote');
+}
+
+/**
  * Everybody who is up and about, and whose desk should therefore stand empty
  * (§ 6 rule 5 — the furniture stays, the person doesn't). Two things take *you*
  * out of your chair: a **physical** glass-room meeting, where you are visibly in
@@ -45,8 +56,7 @@ export function awayFromDeskIds({ coffee, battle, meeting, huddle, standing, pla
   const away = [...sceneParticipants(coffee?.lines), ...sceneParticipants(battle?.lines)];
   // A coffee break is at the machine — you leave your chair to join it.
   if (coffee?.lines?.length) away.push(playerId);
-  const physicalMeeting = meeting && meeting.modality !== 'remote';
-  if (physicalMeeting) away.push(playerId, ...(meeting.attendees ?? []));
+  if (isNonRemoteMeeting(meeting)) away.push(playerId, ...(meeting.attendees ?? []));
   // Huddle: they ring your desk — you stay seated; their chairs empty.
   if (huddle?.attendees?.length) away.push(...huddle.attendees);
   if (standing) away.push(playerId);

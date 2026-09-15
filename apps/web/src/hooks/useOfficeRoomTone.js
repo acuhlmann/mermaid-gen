@@ -8,6 +8,10 @@ import {
 } from '../utils/officeRoomTone.js';
 import { peopleOutOfChairs, roomOccupancyAt } from '../utils/officeCadence.js';
 import { getOfficeSnapshot, subscribe } from '../state/officeMomentStore.js';
+import {
+  getOfficeLiveMeeting,
+  subscribe as subscribeLiveMeeting
+} from '../state/officeLiveMeetingStore.js';
 import { getOfficeViewMode, subscribe as subscribeViewMode } from '../state/officeViewModeStore.js';
 
 export const ROOM_TONE_TICK_MS = 5_000;
@@ -71,7 +75,15 @@ export function useOfficeRoomTone(params) {
     const syncOccupancy = () => {
       const snapshot = getOfficeSnapshot();
       setRoomToneOccupancy(
-        roomOccupancyAt({ now: Date.now(), peopleUp: peopleOutOfChairs(snapshot) })
+        roomOccupancyAt({
+          now: Date.now(),
+          peopleUp: peopleOutOfChairs({
+            coffee: snapshot.coffee,
+            battle: snapshot.battle,
+            huddle: snapshot.huddle,
+            meeting: getOfficeLiveMeeting()
+          })
+        })
       );
     };
 
@@ -89,6 +101,7 @@ export function useOfficeRoomTone(params) {
     };
 
     const unsubscribe = subscribe(sync);
+    const unsubscribeMeeting = subscribeLiveMeeting(sync);
     const unsubscribeView = subscribeViewMode(syncViewGain);
     const unsubscribeGate = onOfficeAudioGateOpen(sync);
     const interval = setInterval(sync, ROOM_TONE_TICK_MS);
@@ -101,6 +114,7 @@ export function useOfficeRoomTone(params) {
     return () => {
       directorCount -= 1;
       unsubscribe();
+      unsubscribeMeeting();
       unsubscribeView();
       unsubscribeGate();
       clearInterval(interval);

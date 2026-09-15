@@ -10,7 +10,7 @@
  * and a small LLM budget — canned templates carry the rest.
  */
 
-import { sceneParticipants } from './officeSceneCast.js';
+import { isNonRemoteMeeting, sceneParticipants } from './officeSceneCast.js';
 
 export const OFFICE_FIRST_MOMENT_MIN_MS = 20_000;
 /** The first few moments arrive on a shorter leash so the office feels alive
@@ -430,19 +430,23 @@ export const OCCUPANCY_PEOPLE_UP_CAP = 3;
  * so it can empty their desk (`awayFromDeskIds`), and the soundscape only needs
  * to know *how many*, which is the one question it can answer from the desk as
  * well as from the floor. You are not counted — whether the room sounds busy is
- * a fact about everybody else.
+ * a fact about everybody else. A **physical** glass-room meeting counts its
+ * attendees; a **remote** headset sync counts zero here (everyone stays seated).
+ * The live meeting is not in the moment store — see `officeLiveMeetingStore`.
  *
  * @param {{
  *   coffee?: { lines?: Array<{speakerId?: string}> } | null,
  *   battle?: { lines?: Array<{speakerId?: string}> } | null,
+ *   meeting?: { attendees?: string[], modality?: string } | null,
  *   huddle?: { attendees?: string[] } | null
  * }} [moments]
  * @returns {number}
  */
-export function peopleOutOfChairs({ coffee, battle, huddle } = {}) {
+export function peopleOutOfChairs({ coffee, battle, meeting, huddle } = {}) {
   const up = new Set([
     ...sceneParticipants(coffee?.lines),
     ...sceneParticipants(battle?.lines),
+    ...(isNonRemoteMeeting(meeting) ? (meeting.attendees ?? []) : []),
     ...(huddle?.attendees ?? [])
   ]);
   return up.size;

@@ -3,6 +3,7 @@ import { officeCueChime } from '../utils/officeCuePlayers.js';
 import { pickNextSoundscapeCue } from '../utils/officeSoundscape.js';
 import { peopleOutOfChairs, roomOccupancyAt } from '../utils/officeCadence.js';
 import { getOfficeSnapshot } from '../state/officeMomentStore.js';
+import { getOfficeLiveMeeting } from '../state/officeLiveMeetingStore.js';
 import { getOfficeViewMode } from '../state/officeViewModeStore.js';
 import { isOfficeNarrationBusy } from '../utils/officeNarration.js';
 import { getRoomToneZone } from '../utils/officeRoomTone.js';
@@ -76,7 +77,15 @@ export function useOfficeSoundscape(params) {
          * directors can call — see `setRoomToneOccupancy`'s comment for why
          * the two cases differ. The snapshot is the one this tick already read.
          */
-        occupancy: roomOccupancyAt({ now, peopleUp: peopleOutOfChairs(snapshot) }),
+        occupancy: roomOccupancyAt({
+          now,
+          peopleUp: peopleOutOfChairs({
+            coffee: snapshot.coffee,
+            battle: snapshot.battle,
+            huddle: snapshot.huddle,
+            meeting: getOfficeLiveMeeting()
+          })
+        }),
         random
       });
       if (!cue) return;
