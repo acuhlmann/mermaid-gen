@@ -1,7 +1,12 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, renderHook } from '@testing-library/react';
-import { DESK_LLM_CAP, useDeskActions } from '../src/hooks/useDeskActions.js';
+import {
+  DESK_LLM_CAP,
+  DWELL_LLM_CAP,
+  DWELL_STRANGER_LLM_CAP,
+  useDeskActions
+} from '../src/hooks/useDeskActions.js';
 import {
   _resetForTests,
   getOfficeSnapshot,
@@ -266,7 +271,10 @@ describe('useDeskActions', () => {
     // colleague noticing you loitering was prompted exactly like a colleague
     // pinging you out of nowhere — right voice, right diagram, no idea anybody
     // was stood there. The wire field is the whole fix, so it is what is pinned.
-    // Continuity v1 spends the dwell LLM only when working memory has a fact.
+    // An invariance guard since the dwell reserve landed, and meant to be: a
+    // colleague with a board of yours in their head asked the model before and
+    // asks it now. Kept stamped so this case pins the *wire field* and never
+    // doubles as evidence about who is allowed to spend.
     stampWorkingMemoryBoard('intern', 'mermaid:Bake:20');
     const fetchMock = vi.fn(() =>
       Promise.resolve({
@@ -298,7 +306,16 @@ describe('useDeskActions', () => {
     expect('situation' in ping).toBe(false);
   });
 
-  it('keeps an empty-memory dwell on the canned deck', async () => {
+  it('asks the model when you loiter next to somebody who has never met you', async () => {
+    /*
+     * The inversion. Until the reserve, `remarkTo` was handed a cap of `0` for
+     * anybody with no beat and no board, so the most provoked line in the room
+     * — you crossed the floor and stood there for five seconds — was dealt off
+     * the deck every single time, which is the one thing
+     * `officeFloorDwell.js`'s own header says this line must never be. The
+     * gate's premise died in #624 and #654: `officeDeskWork` and `officeLog`
+     * ride every request, so a stranger has something to speak from.
+     */
     const fetchMock = vi.fn(() =>
       Promise.resolve({
         ok: true,
@@ -313,9 +330,64 @@ describe('useDeskActions', () => {
     await act(async () => {
       await result.current.remarkTo('intern');
     });
-    expect(fetchMock).not.toHaveBeenCalled();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const asked = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body ?? '{}'));
+    expect(asked.situation).toBe('dwell');
+    /* The blocks that made the old gate obsolete. Asserted here rather than
+       taken on trust: if either stops riding the request, this slice is back
+       to asking the model to improvise with nothing. */
+    expect(Array.isArray(asked.officeDeskWork) && asked.officeDeskWork.length > 0).toBe(true);
+    expect('officeLog' in asked).toBe(true);
     const line = getOfficeSnapshot().imHistory.find((m) => !m.outbound);
-    expect(line).toBeTruthy();
+    expect(line?.body).toBe('can I help you');
+  });
+
+  it('keeps the last dwell call for somebody who remembers you', async () => {
+    /*
+     * The reserve, which is the whole reason this is not simply the gate
+     * deleted. One counter, two ceilings: three strangers in a row must not be
+     * able to leave the colleague who has a fact about you dealing from the
+     * deck. `DWELL_STRANGER_LLM_CAP` (2) of `DWELL_LLM_CAP` (3) — total spend
+     * on loitering is unchanged, only the order it goes out in.
+     */
+    const fetchMock = vi.fn(() =>
+      Promise.resolve({
+        ok: true,
+        json: async () => ({ moment: { body: 'mm', colleagueId: 'intern', kind: 'im' } })
+      })
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    const { result } = renderHook(() => useDeskActions(BASE_PARAMS));
+
+    /* Three strangers. The first two spend; the third is over the stranger
+       share and falls back in character. */
+    for (const id of ['intern', 'jared', 'helpdesk']) {
+      await act(async () => {
+        await result.current.remarkTo(id);
+      });
+    }
+    expect(fetchMock).toHaveBeenCalledTimes(DWELL_STRANGER_LLM_CAP);
+
+    /* The reserved one. Same counter, higher ceiling, because they have a
+       board of yours in their head. */
+    stampWorkingMemoryBoard('greybeard', 'mermaid:Bake:20');
+    await act(async () => {
+      await result.current.remarkTo('greybeard');
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(DWELL_LLM_CAP);
+
+    /* And the total is still the total — a fifth loiter is canned whoever it
+       is aimed at, which is the cap doing the job the gate was standing in
+       for. */
+    stampWorkingMemoryBoard('russ', 'mermaid:Bake:20');
+    await act(async () => {
+      await result.current.remarkTo('russ');
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(DWELL_LLM_CAP);
+    const russ = getOfficeSnapshot().imHistory.filter(
+      (m) => !m.outbound && m.colleagueId === 'russ'
+    );
+    expect(russ.length).toBe(1);
   });
 
   it('stops spending LLM calls once the desk budget is gone', async () => {

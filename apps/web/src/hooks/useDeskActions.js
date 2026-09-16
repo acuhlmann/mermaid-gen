@@ -25,6 +25,7 @@ import { hasWorkingMemoryFact } from '../state/officeWorkingMemoryStore.js';
 import {
   OFFICE_DESK_LLM_CAP,
   OFFICE_DWELL_LLM_CAP,
+  OFFICE_DWELL_STRANGER_LLM_CAP,
   OFFICE_TALK_LLM_CAP,
   pickTalkAnswer
 } from '../utils/officeCadence.js';
@@ -58,6 +59,13 @@ export const TALK_LLM_CAP = OFFICE_TALK_LLM_CAP;
  * in one table.
  */
 export const DWELL_LLM_CAP = OFFICE_DWELL_LLM_CAP;
+
+/**
+ * The share of `DWELL_LLM_CAP` a colleague with no memory of you may spend.
+ * Re-exported from the appetite table for the same reason as its siblings — a
+ * cap declared at the use site is a cap nobody can find.
+ */
+export const DWELL_STRANGER_LLM_CAP = OFFICE_DWELL_STRANGER_LLM_CAP;
 
 /** Cast you can DM or email — anyone in the meeting directory. */
 export const DESK_IM_CAST = listMeetingDirectory().map((row) => row.id);
@@ -564,7 +572,15 @@ export function useDeskActions(params) {
       return deliverImReply({
         target: colleagueId,
         counterRef: dwellLlmCountRef,
-        cap: hasWorkingMemoryFact(colleagueId) ? DWELL_LLM_CAP : 0,
+        /* One counter, two ceilings against it — a reserve, not a permission.
+           Until this, a colleague with nothing on you was handed `0` and
+           recited from the deck every time, which is the failure this layer
+           exists to avoid on the one channel that is entirely your doing. The
+           facts that gate was protecting against arrived in #624 and #654 and
+           ride every request now; what is still worth protecting is the
+           *order* the three get spent in, so somebody who remembers you is
+           never crowded out by three strangers you walked past. */
+        cap: hasWorkingMemoryFact(colleagueId) ? DWELL_LLM_CAP : DWELL_STRANGER_LLM_CAP,
         channel: 'talk',
         situation: 'dwell'
       });

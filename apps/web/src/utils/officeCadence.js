@@ -96,6 +96,30 @@ export const OFFICE_TALK_LLM_CAP = 12;
 export const OFFICE_DWELL_LLM_CAP = 3;
 
 /**
+ * Reactive: how many of those three may go to somebody the office has nothing
+ * on yet — no beat with you today, no board they have seen.
+ *
+ * **A share of the cap above, never a second budget.** One counter still runs,
+ * so the total spend on loitering is unchanged at three; this only decides who
+ * gets them. The reserve is the whole point: the three are a ration and being
+ * remembered is what a ration should be spent on, so wandering the pod past
+ * three strangers must not be able to leave the one colleague who has a fact
+ * about you dealing from the deck.
+ *
+ * It replaces a gate that read `hasWorkingMemoryFact(id) ? cap : 0` — no
+ * memory, no call, ever. That was right when it was written and stopped being
+ * right two slices later: every `/api/office/moment` request now carries
+ * `officeDeskWork` (their own work) and `officeLog` (what you have been doing
+ * today), so a colleague you have never spoken to has three blocks to speak
+ * from and the premise "nothing worth noticing" no longer holds. Meanwhile
+ * `officeFloorDwell.js`'s own header has always said the opposite in as many
+ * words — _"that is why the line is allowed to be an LLM call in persona
+ * rather than a bank entry"_ — because loitering is the most provoked thing in
+ * the room, and § 11's rule is that a line you provoked must not be recited.
+ */
+export const OFFICE_DWELL_STRANGER_LLM_CAP = 2;
+
+/**
  * Reactive: Linda's compliance training (docs/office-parody.md §10.1). One call
  * authors one form, and the gauntlet is `TRAINING_STEPS` long — so this cap is
  * "the whole module, once, personalized", and a second sitting draws the canned
