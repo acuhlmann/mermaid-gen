@@ -1,12 +1,18 @@
 import { describe, expect, it } from 'vitest';
 import { awayFromDeskIds } from '../src/utils/officeSceneCast.js';
-import { DESK_LLM_CAP, DWELL_LLM_CAP, TALK_LLM_CAP } from '../src/hooks/useDeskActions.js';
+import {
+  DESK_LLM_CAP,
+  DWELL_LLM_CAP,
+  DWELL_STRANGER_LLM_CAP,
+  TALK_LLM_CAP
+} from '../src/hooks/useDeskActions.js';
 import { RUN_REACTION_LLM_CAP } from '../src/hooks/useOfficeRunReactions.js';
 import { wanderTripsFor, wanderingSeatIds } from '../src/utils/officeFloorWander.js';
 import {
   OFFICE_BATTLES_PER_SESSION,
   OFFICE_DESK_LLM_CAP,
   OFFICE_DWELL_LLM_CAP,
+  OFFICE_DWELL_STRANGER_LLM_CAP,
   OFFICE_FIRST_MOMENT_MIN_MS,
   OFFICE_LLM_MOMENT_CAP,
   OFFICE_RUN_REACTION_LLM_CAP,
@@ -203,6 +209,25 @@ describe('the office LLM budget table', () => {
   it('gives reactive talk more room than ambient interruption', () => {
     expect(OFFICE_TALK_LLM_CAP).toBeGreaterThan(OFFICE_LLM_MOMENT_CAP);
     expect(OFFICE_DESK_LLM_CAP).toBeGreaterThanOrEqual(OFFICE_RUN_REACTION_LLM_CAP);
+  });
+
+  /**
+   * The dwell reserve, pinned as the two inequalities that make it a reserve
+   * rather than a second budget or a gate in new clothes.
+   *
+   * **Strictly above zero** is the slice: zero is the old gate, and it put the
+   * most provoked line in the room on the canned deck for everybody the office
+   * had not met. **Strictly below the cap** is what keeps it a reserve: at
+   * equality the two ceilings collapse into one and three strangers you walked
+   * past can spend the whole ration, which is the thing being reserved
+   * against. Inequalities rather than literals, so a tuning pass can move the
+   * numbers without moving the meaning — the same convention as the tier
+   * assertion above.
+   */
+  it('reserves part of the dwell ration for somebody who remembers you', () => {
+    expect(OFFICE_DWELL_STRANGER_LLM_CAP).toBeGreaterThan(0);
+    expect(OFFICE_DWELL_STRANGER_LLM_CAP).toBeLessThan(OFFICE_DWELL_LLM_CAP);
+    expect(DWELL_STRANGER_LLM_CAP).toBe(OFFICE_DWELL_STRANGER_LLM_CAP);
   });
 });
 

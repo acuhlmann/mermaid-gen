@@ -484,6 +484,16 @@ https://api.deepseek.com/` — 401 is reachable, 000 is blocked); never route ar
   (`fridge`, `serverRack` — the two that run whether or not anybody is there) scales by it, and
   the gap stretches; in `officeRoomTone.js` it multiplies the view gain down to
   `ROOM_TONE_OCCUPANCY_FLOOR`, never to silence.
+- **The dwell LLM budget is a reserve, not a gate — and the gate it replaced is the shape to look
+  for after any slice that adds context to a prompt.** `remarkTo` (`useDeskActions.js`) passes one
+  counter against two ceilings: `OFFICE_DWELL_LLM_CAP` (3) for somebody `hasWorkingMemoryFact` is
+  true of, `OFFICE_DWELL_STRANGER_LLM_CAP` (2) for everybody else, so three strangers you walked
+  past cannot leave the one colleague who remembers you dealing from the deck. It used to be
+  `? cap : 0` — no memory, no call, ever — which was right when working memory was the only thing
+  in the request and wrong the moment `officeDeskWork` and `officeLog` started riding every
+  `/moment` (#624, #654). **`hasWorkingMemoryFact` returning false no longer means silence from the
+  model**; it means standing further back in the same queue. Both numbers live in
+  `officeCadence.js`, never at the use site.
 
 - **After presence / TTS / desk-frame edits**, prefer `apps/web/test/officePresence.test.js`,
   `deskOsPresenceStrip.test.jsx`, `deskOsFrameStyles.test.js`, `apps/server/test/officeTts.test.js`,
@@ -1227,6 +1237,46 @@ y)`, so the obvious sweep silently iterates an empty list; and pacing the exchan
   occupancy levels the room can be in across a day: **1 → 14**. The fixed visit is **structurally
   blind** to all of it — the trace has no audio axis at all — so the six runs are the regression
   check, not the measurement (see the ledger for which of the three kinds of blindness this is).
+
+- **A gate written because a fact was missing outlives the fact arriving, and nothing goes red when
+  it does.** `remarkTo` handed the dwell delivery ladder a cap of `0` for any colleague
+  `hasWorkingMemoryFact` was false of, so the most provoked line in the office — you crossed the
+  floor and stood next to somebody for five seconds — came off the canned deck every time for
+  everybody you had not already dealt with. The gate was correct when it was written: working
+  memory was the only thing in the request that was **about this exchange**, so with none of it the
+  model had nothing to improvise from and the deck was the honest answer. Then `officeDeskWork`
+  (#624) and `officeLog` (#654) started riding every `/api/office/moment` request, and the premise
+  quietly stopped being true — while the gate kept enforcing it, and every suite stayed green,
+  because a gate enforcing a stale premise is still enforcing something.
+
+  Three things worth carrying:
+
+  - **The tell was in the module's own header, not in a test.** `officeFloorDwell.js` has said from
+    the day it shipped that this line _"is allowed to be an LLM call in persona rather than a bank
+    entry"_ because _"the thing the whole office layer exists to avoid is a canned answer to
+    something the user did on purpose"_. The code four files away did the opposite. **When a module
+    states a rule in prose, grep its consumers for the code that contradicts it** — that pairing is
+    cheaper to search for than either half is to notice alone.
+  - **The general form is a follow-up move for every context slice.** After a change that adds a
+    block to a prompt, the work is not finished at the wire: go and find the gates that exist
+    _because_ that block was missing. Queue 4 shipped `officeDeskWork` and left this one standing
+    for six nights.
+  - **Deleting a gate and replacing it with a reserve are different changes, and the second is the
+    right one here.** A cap is a ration; a gate decides who gets it. Removing the gate outright
+    would have let three strangers you walked past spend the whole dwell budget and left the one
+    colleague who remembers you on the deck — the regression hiding inside the fix. One counter,
+    two ceilings (`OFFICE_DWELL_STRANGER_LLM_CAP` < `OFFICE_DWELL_LLM_CAP`) keeps total spend
+    identical and only changes the order it goes out in. It also keeps `hasWorkingMemoryFact` a
+    live production consumer rather than a test-only export.
+
+  Measured on the fixed visit, 3 runs before and 3 after, `generated` arm both sides: `modelTurns`
+  **1 → 2**, `askedTheModel` **1 → 2**, the dwell line's source **bank → model**, everything else
+  byte-identical (7/7 steps, `speech.count` 12, `logDigest` 6, working memory `gilfoyle` + `dinesh` +
+  `intern`, `pageErrors: []`). The canned line was the identical sentence about haunted motion
+  lights in all three before-runs; the three after-runs are three different sentences, each of which
+  notices that somebody is standing there **and** carries Dinesh's own `look: 'tabs'` /
+  `doing: 'typing'` row — which is `officeDeskWork` arriving at a prompt the gate had been keeping
+  it out of.
 
 - **After presence / TTS / desk-frame edits**, prefer `apps/web/test/officePresence.test.js`,
   `deskOsPresenceStrip.test.jsx`, `deskOsFrameStyles.test.js`, `apps/server/test/officeTts.test.js`,

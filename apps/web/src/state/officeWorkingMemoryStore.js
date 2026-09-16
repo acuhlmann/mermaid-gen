@@ -123,7 +123,14 @@ export function getWorkingMemoryWith(colleagueId) {
 
 /**
  * True when this colleague has anything from today worth noticing — a beat or
- * a board they already saw. The dwell LLM gate spends its cap only then.
+ * a board they already saw.
+ *
+ * It used to be the dwell LLM **gate**: false meant the remark came from the
+ * canned deck, always. It is now the dwell LLM **reserve** — everybody may
+ * spend, and this decides who may spend the last of the three
+ * (`OFFICE_DWELL_STRANGER_LLM_CAP`). The difference matters to anyone reading
+ * the caller: a `false` here no longer means silence from the model, it means
+ * standing further back in the same queue.
  *
  * @param {string} colleagueId
  * @returns {boolean}
@@ -161,7 +168,10 @@ export function listWorkingMemoryColleagueIds() {
  *   only a record — writing it schedules nothing (ADR-0010) — but it is what
  *   makes `hasWorkingMemoryFact` true for somebody you have never spoken to,
  *   which is the whole point: the next time you stand next to them, the office
- *   has something to say instead of a deck to deal from.
+ *   has something *about you* to say. Since the dwell gate became a reserve it
+ *   is no longer the difference between a written line and a dealt one — it is
+ *   the difference between a line that knows what you did to them and one that
+ *   only knows what they were doing.
  */
 export function rememberWorkingMemoryBeat(colleagueId, beat = {}) {
   if (typeof colleagueId !== 'string' || !colleagueId) return;
