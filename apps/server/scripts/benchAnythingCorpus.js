@@ -653,6 +653,37 @@ export const ANYTHING_BENCH_CORPUS = [
       { head: '<!-- @lib:matter -->' }
     )
   },
+  {
+    // lib-matter-stack first-pass "Cannot read properties of undefined
+    // (reading 'type')" on the very first Composite.add call: buildFrame()
+    // builds three static bodies via Bodies.rectangle but never collects or
+    // returns them, so const walls = buildFrame(); Composite.add(world,
+    // walls) adds undefined — Composite.add's switch (obj.type) throws
+    // reading .type off the missing object. Distinct from
+    // runtime-matter-body-before-create/runtime-matter-composite-remove-before-create
+    // (those are call-order bugs); this factory runs fine, it just forgets
+    // to return what it built. Regression = both engines drift.
+    id: 'runtime-matter-buildframe-missing-return',
+    kind: 'runtime',
+    expectedAccept: false,
+    expectedCode: 'runtime_error',
+    html: page(
+      `<h1>Stack</h1><canvas id="stage" width="320" height="240"></canvas>
+<script>
+  const { Engine, Bodies, Composite } = Matter;
+  const engine = Engine.create();
+  const world = engine.world;
+  function buildFrame() {
+    Bodies.rectangle(160, 240, 320, 20, { isStatic: true });
+    Bodies.rectangle(0, 120, 20, 240, { isStatic: true });
+    Bodies.rectangle(320, 120, 20, 240, { isStatic: true });
+  }
+  const walls = buildFrame();
+  Composite.add(world, walls);
+</script>`,
+      { head: '<!-- @lib:matter -->' }
+    )
+  },
 
   // ── shape: not a document, must stay rejected ────────────────────────────
   {
