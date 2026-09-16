@@ -246,7 +246,7 @@ check`: two unattended feature automations run daily here, and a quality metric 
   mechanical controls in `prune.md` § 5 rather than a human gate, and landing ahead of the producers
   behind it means their nightly `npm run check` is the tripwire for a deletion nobody read), and it
   must precede `digest` so the morning report names what went; the
-  other three feature automations then produce code **longest first**, because a long job at the head
+  other two feature automations then produce code **longest first**, because a long job at the head
   absorbs its own overrun while one in the middle delays everything behind it; `review`
   reads what landed, `improve` works the quality queue, `resolve` works the backlog, `digest` reports.
   Table (with which host runs which rung, and the measured worst-case end of each) in

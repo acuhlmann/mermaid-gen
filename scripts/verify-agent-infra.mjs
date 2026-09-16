@@ -43,7 +43,35 @@ const LADDER_TABLE_FILES = [
 
 /** Root docs that state how many jobs fire on the night ladder — must match unpaused rung count. */
 const LADDER_JOB_COUNT_FILES = ['AGENTS.md', 'CLAUDE.md'];
-const LADDER_JOB_COUNT_RE = /(\d+) jobs run between/gi;
+/** Real root docs spell the count as an English word (`Eight jobs run between`), not a digit. */
+const LADDER_JOB_COUNT_RE = /(\d+|[A-Za-z]+) jobs run between/gi;
+
+/** @type {Record<string, number>} */
+const JOB_COUNT_WORDS = {
+  zero: 0,
+  one: 1,
+  two: 2,
+  three: 3,
+  four: 4,
+  five: 5,
+  six: 6,
+  seven: 7,
+  eight: 8,
+  nine: 9,
+  ten: 10,
+  eleven: 11,
+  twelve: 12
+};
+
+/**
+ * @param {string} token digit or English word from ladder prose
+ * @returns {number | null}
+ */
+export function parseLadderJobCountToken(token) {
+  if (/^\d+$/.test(token)) return Number(token);
+  const n = JOB_COUNT_WORDS[token.toLowerCase()];
+  return n === undefined ? null : n;
+}
 
 /** Rungs that are scheduled but documented as sitting off the ladder, so they get no row by design. */
 const OFF_LADDER_ROUTINES = new Set(['deps']);
@@ -410,12 +438,20 @@ export function verifyNightLadder(root) {
     }
   }
 
+  let jobCountMatches = 0;
   for (const rel of LADDER_JOB_COUNT_FILES) {
     const abs = path.join(root, rel);
     if (!fs.existsSync(abs)) continue;
     const markdown = fs.readFileSync(abs, 'utf8');
     for (const match of markdown.matchAll(LADDER_JOB_COUNT_RE)) {
-      const stated = Number(match[1]);
+      jobCountMatches++;
+      const stated = parseLadderJobCountToken(match[1]);
+      if (stated === null) {
+        errors.push(
+          `${rel} — ladder job count \`${match[1]}\` is not a digit or a known English number word`
+        );
+        continue;
+      }
       if (stated !== activeRungCount) {
         errors.push(
           `${rel} — says ${stated} jobs run on the night ladder but ${activeRungCount} rungs are ` +
@@ -423,6 +459,12 @@ export function verifyNightLadder(root) {
         );
       }
     }
+  }
+  if (jobCountMatches === 0) {
+    errors.push(
+      `${LADDER_JOB_COUNT_FILES.join(', ')} — no "… jobs run between" ladder count found; ` +
+        'the job-count sensor had nothing to check'
+    );
   }
 
   return {

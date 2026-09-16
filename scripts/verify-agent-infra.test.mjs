@@ -13,7 +13,8 @@ import {
   parsePlaybookSchedule,
   verifyAgentInfra,
   verifyNightLadder,
-  verifyPlaybookPaths
+  verifyPlaybookPaths,
+  parseLadderJobCountToken
 } from './verify-agent-infra.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -129,6 +130,7 @@ test('routine playbooks are covered by the default scan', () => {
  */
 function ladderFixture(playbooks, ladderRows) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'ladder-'));
+  let activeRungCount = 0;
   for (const pb of playbooks) {
     const dir = path.join(root, 'docs', pb.dir ?? 'routines');
     fs.mkdirSync(dir, { recursive: true });
@@ -137,6 +139,7 @@ function ladderFixture(playbooks, ladderRows) {
       path.join(dir, `${pb.name}.md`),
       `---\nname: ${pb.name}\ntier: code-writing\nschedule: ${pb.schedule}\n${pausedLine}---\n\n# ${pb.name}\n`
     );
+    if (pb.schedule !== 'none' && pb.name !== 'deps' && !pb.paused) activeRungCount++;
   }
   fs.writeFileSync(
     path.join(root, 'docs', 'routines', 'review.md'),
@@ -147,6 +150,9 @@ function ladderFixture(playbooks, ladderRows) {
       ...ladderRows.map((row) => `> ${row}`)
     ].join('\n') + '\n'
   );
+  const jobLine = `${activeRungCount} jobs run between \`0 15\` and \`45 0\` UTC.\n`;
+  fs.writeFileSync(path.join(root, 'AGENTS.md'), jobLine);
+  fs.writeFileSync(path.join(root, 'CLAUDE.md'), jobLine);
   return root;
 }
 
@@ -271,7 +277,14 @@ test('a paused rung must be marked parked in every mirror row', () => {
   assert.deepEqual(verifyNightLadder(rootOk).errors, []);
 });
 
-test('root prose job count must match unpaused rungs', () => {
+test('parseLadderJobCountToken accepts digits and the word forms root docs use', () => {
+  assert.equal(parseLadderJobCountToken('8'), 8);
+  assert.equal(parseLadderJobCountToken('Eight'), 8);
+  assert.equal(parseLadderJobCountToken('three'), 3);
+  assert.equal(parseLadderJobCountToken('nope'), null);
+});
+
+test('root prose job count must match unpaused rungs (word form, like AGENTS.md/CLAUDE.md)', () => {
   const root = ladderFixture(
     [
       { name: 'prune', schedule: "'30 15 * * *'" },
@@ -279,10 +292,27 @@ test('root prose job count must match unpaused rungs', () => {
     ],
     LADDER_OK
   );
-  fs.writeFileSync(path.join(root, 'AGENTS.md'), '9 jobs run between `0 15` and `45 0` UTC.\n');
+  fs.writeFileSync(path.join(root, 'AGENTS.md'), 'Nine jobs run between `0 15` and `45 0` UTC.\n');
   const result = verifyNightLadder(root);
   assert.equal(result.ok, false, result.errors.join('\n'));
   assert.match(result.errors.join('\n'), /AGENTS\.md.*says 9 jobs.*2 rungs/);
+});
+
+test('a wrong word-form job count is refused', () => {
+  const root = ladderFixture([{ name: 'prune', schedule: "'30 15 * * *'" }], [LADDER_OK[0]]);
+  fs.writeFileSync(path.join(root, 'AGENTS.md'), 'Three jobs run between `0 15` and `45 0` UTC.\n');
+  const result = verifyNightLadder(root);
+  assert.equal(result.ok, false, result.errors.join('\n'));
+  assert.match(result.errors.join('\n'), /AGENTS\.md.*says 3 jobs.*1 rungs/);
+});
+
+test('missing ladder job-count prose fails instead of passing silently', () => {
+  const root = ladderFixture([{ name: 'prune', schedule: "'30 15 * * *'" }], [LADDER_OK[0]]);
+  fs.writeFileSync(path.join(root, 'AGENTS.md'), 'No ladder count sentence here.\n');
+  fs.writeFileSync(path.join(root, 'CLAUDE.md'), 'Also nothing to match.\n');
+  const result = verifyNightLadder(root);
+  assert.equal(result.ok, false, result.errors.join('\n'));
+  assert.match(result.errors.join('\n'), /no "… jobs run between" ladder count found/);
 });
 
 test('a rung declared off the ladder needs no row and no window', () => {
