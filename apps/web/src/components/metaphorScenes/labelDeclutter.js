@@ -186,8 +186,25 @@ export function createLabelDeclutterStore() {
   /** @type {Set<LabelEntry>} */
   const entries = new Set();
   let lastPass = -Infinity;
+  /**
+   * The panels, as last handed to `update`.
+   *
+   * Held here so a scene object that is not a label can ask the same question —
+   * the accent callout's geometry has to dodge the panels it used to be painted
+   * under (`accentRodLean.js`), and it is the only consumer so far. The store is
+   * the carrier rather than a second context because the rects already arrive
+   * here every frame, one measurement feeding one place: a parallel provider
+   * would let the marker and the names disagree about where a panel is, which is
+   * precisely the bug class this whole module exists to close.
+   */
+  let chrome = NO_RECTS;
 
   return {
+    /** Where the persistent panels are, in NDC. `[]` until the first pass. */
+    get chromeRects() {
+      return chrome;
+    },
+
     /** @param {LabelEntry} entry @returns {() => void} unregister */
     register(entry) {
       entry.target = 1;
@@ -204,6 +221,7 @@ export function createLabelDeclutterStore() {
      * respected.
      */
     update(camera, viewport, now, delta, chromeRects = NO_RECTS) {
+      chrome = chromeRects ?? NO_RECTS;
       if (now - lastPass >= PASS_INTERVAL_MS) {
         lastPass = now;
         resolveLabels([...entries], camera, viewport, chromeRects);

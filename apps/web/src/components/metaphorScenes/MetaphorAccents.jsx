@@ -39,6 +39,8 @@ import { useMetaphorClock } from './metaphorClock.js';
 import { isDarkBackdrop } from './sceneUtils.js';
 import { captionFitsCanvas } from './accentCaptionFit.js';
 import { accentRodScale } from './accentRodScale.js';
+import { accentRodLean } from './accentRodLean.js';
+import { worldUnitsPerPixel } from './metaphorScreenScale.js';
 import { FRAME_IGNORE_DATA } from './sceneFraming.js';
 import {
   ACCENT_CAPTION_TEXT_ORDER,
@@ -88,6 +90,27 @@ const CAPTION_CLEARANCE = 0.575;
  * it — see that file for why no camera or anchor change can substitute.
  */
 const CAPTION_RENDER_ORDER = ACCENT_MARKER_ORDER;
+
+/**
+ * How far off vertical the rod may lean to get its head out from behind a
+ * panel, in degrees.
+ *
+ * The cap is what keeps the marker honest: the rod's whole claim is "this
+ * item", and past roughly 40° a leader line stops reading as standing out of
+ * the thing under it and starts reading as pointing between two of them. 38°
+ * also bounds what the lean costs the stem — the tip keeps its screen offset
+ * exactly only if the rod lengthens by `1 / cos(tilt)`, which at 38° takes the
+ * 80 px `STEM_TARGET_HEIGHT_PX` asks for to at most 101 px, inside the 65–116
+ * px band `accentRodScale.js` measured as reading well and far short of the
+ * 168 px that ran off the top of the canvas.
+ */
+const MAX_LEAN_DEGREES = 38;
+
+/** Seconds for the lean to ease in or out, matching the declutter's own fade. */
+const LEAN_EASE_SECONDS = 0.22;
+
+/** The rod's own axis before it leans. */
+const ROD_UP = new THREE.Vector3(0, 1, 0);
 
 /**
  * On-screen type size of the caption, in CSS pixels.
@@ -253,6 +276,75 @@ function AccentCaption({ text, y, color }) {
   );
 }
 
+/** Scratch vectors, in the style of `labelDeclutter.js` — one frame, one caller. */
+const rodTip = new THREE.Vector3();
+const rodNdc = new THREE.Vector3();
+const rodAim = new THREE.Vector3();
+const camRight = new THREE.Vector3();
+const camUp = new THREE.Vector3();
+const camForward = new THREE.Vector3();
+
+/**
+ * Where the rod should point so its head is not behind a panel, as a direction
+ * in the rod's own parent space and the length along it.
+ *
+ * The screen offset the lean asks for is honoured EXACTLY, because the offset
+ * is added in the camera's screen plane: that plane is perpendicular to the
+ * view axis, so the tip's depth does not change and its projection moves by
+ * precisely the NDC asked for. The price is that the rod gets longer —
+ * `sqrt(len² + offset²)` — which is why `MAX_LEAN_DEGREES` is chosen against the
+ * band `accentRodScale.js` measured rather than picked for looks.
+ *
+ * Two things this must not do, both learned by this directory the hard way. It
+ * solves from the UNLEANED tip (`parent`-local `(0, len, 0)`), never from the
+ * rod's current world matrix, or the dodge feeds on its own output and
+ * oscillates. And it reads the rod's PARENT, so a composite layer's own
+ * transform is respected — the marker rides each scene's `anchors` map and a
+ * fused world rotates and scales the grammar it belongs to.
+ *
+ * @returns {{ direction: THREE.Vector3, length: number } | null} null when
+ *   there is nothing to dodge, which is the common case and leaves the rod
+ *   exactly where it was.
+ */
+function solveRodAim({ rod, camera, size, rects, length, pinWidthWorld }) {
+  const parent = rod.parent;
+  if (!parent || !rects?.length || !(length > 0)) return null;
+
+  rodTip.set(0, length, 0);
+  parent.localToWorld(rodTip);
+  const depth = camera.position.distanceTo(rodTip);
+  const unitsPerPixel = worldUnitsPerPixel(depth, camera.fov ?? 45, size.height);
+  if (!(unitsPerPixel > 0)) return null;
+
+  // NDC spans 2 across the canvas, so one CSS pixel is `2 / size` of it.
+  const ndcPerPxX = 2 / Math.max(1, size.width);
+  const ndcPerPxY = 2 / Math.max(1, size.height);
+  const pinPx = pinWidthWorld / unitsPerPixel;
+  const travelPx = (length / unitsPerPixel) * Math.tan((MAX_LEAN_DEGREES * Math.PI) / 180);
+
+  rodNdc.copy(rodTip).project(camera);
+  const lean = accentRodLean({
+    tip: { x: rodNdc.x, y: rodNdc.y },
+    half: { w: (pinPx / 2) * ndcPerPxX, h: (pinPx / 2) * ndcPerPxY },
+    rects,
+    maxLean: { x: travelPx * ndcPerPxX, y: travelPx * ndcPerPxY }
+  });
+  if (lean.x === 0 && lean.y === 0) return null;
+
+  // One NDC unit of y is a half-frame, which at this depth is
+  // `depth · tan(fov/2)` world units; x is the same times the aspect.
+  const halfFrameWorld = (unitsPerPixel * size.height) / 2;
+  camera.matrixWorld.extractBasis(camRight, camUp, camForward);
+  rodAim
+    .copy(rodTip)
+    .addScaledVector(camRight, lean.x * halfFrameWorld * (size.width / Math.max(1, size.height)))
+    .addScaledVector(camUp, lean.y * halfFrameWorld);
+  parent.worldToLocal(rodAim);
+  const reach = rodAim.length();
+  if (!(reach > 0)) return null;
+  return { direction: rodAim.normalize(), length: reach };
+}
+
 function AccentBeam({ position, color, additive, note }) {
   const haloRef = useRef(null);
   const ringRef = useRef(null);
@@ -261,12 +353,18 @@ function AccentBeam({ position, color, additive, note }) {
   const stemRef = useRef(null);
   const captionRef = useRef(null);
   const probe = useRef(new THREE.Vector3());
+  // The eased lean, held as the direction the rod is currently aimed along and
+  // the length along it. Eased rather than switched for the reason the
+  // declutter pass eases opacity: a panel appearing (or the canvas resizing)
+  // would otherwise snap the marker sideways in one frame.
+  const aim = useRef({ direction: new THREE.Vector3(0, 1, 0), stretch: 1 });
+  const declutter = useLabelDeclutter();
   const { getTime, animated } = useMetaphorClock();
 
   // Without a shaft to cap, the pin sits closer to the item it marks.
   const pinHeight = additive ? SHAFT_HEIGHT + 1.35 : 2.6;
 
-  useFrame((state) => {
+  useFrame((state, delta) => {
     const t = animated ? getTime() : 0;
     // Slow breathing rather than a blink: this marks the topic's thesis, and a
     // flashing thesis reads as an error state.
@@ -291,11 +389,28 @@ function AccentBeam({ position, color, additive, note }) {
       pinWidth: PIN_WIDTH,
       stemHeight: pinHeight
     });
+    const straight = pinHeight * scale.stem;
+    // Lean out from behind the app's own panels. `solveRodAim` returns null
+    // whenever the head is already readable, so an unobstructed marker keeps
+    // the vertical rod and the exact stem length it has always had.
+    const solved = solveRodAim({
+      rod,
+      camera: state.camera,
+      size: state.size,
+      rects: declutter?.chromeRects,
+      length: straight,
+      pinWidthWorld: PIN_WIDTH * scale.pin
+    });
+    const step = Math.min(1, delta / LEAN_EASE_SECONDS);
+    aim.current.direction.lerp(solved?.direction ?? ROD_UP, step).normalize();
+    aim.current.stretch += ((solved ? solved.length / straight : 1) - aim.current.stretch) * step;
+    rod.quaternion.setFromUnitVectors(ROD_UP, aim.current.direction);
     // The stem stretches along its own axis only: it is a leader line, and a
     // uniformly scaled one gets thicker as it gets longer, which is how a
     // hairline pointer becomes a girder on a desktop.
-    if (stemRef.current) stemRef.current.scale.set(scale.pin, scale.stem, scale.pin);
-    const tip = pinHeight * scale.stem;
+    const stretch = aim.current.stretch;
+    if (stemRef.current) stemRef.current.scale.set(scale.pin, scale.stem * stretch, scale.pin);
+    const tip = straight * stretch;
     if (pinRef.current) {
       pinRef.current.position.y = tip + Math.sin(t * 1.15) * 0.22 * scale.pin;
       pinRef.current.rotation.y = t * 0.6;
@@ -305,8 +420,18 @@ function AccentBeam({ position, color, additive, note }) {
     // closes the gap. It stays OUTSIDE both scaled groups: its type is already
     // screen-constant, so scaling a parent would apply the correction twice and
     // hand a small canvas a banner.
+    //
+    // It is also outside the rod's rotation, so with a lean it has to be walked
+    // to the leaned tip by hand — and its clearance is added along world UP
+    // rather than along the rod, because a caption plate is a billboard and
+    // hanging it off the rod's axis tips a sentence off a level baseline.
     if (captionRef.current) {
-      captionRef.current.position.y = tip + PIN_HALF_HEIGHT * scale.pin + CAPTION_CLEARANCE;
+      const lift = PIN_HALF_HEIGHT * scale.pin + CAPTION_CLEARANCE;
+      captionRef.current.position.set(
+        aim.current.direction.x * tip,
+        aim.current.direction.y * tip + lift,
+        aim.current.direction.z * tip
+      );
     }
   });
 

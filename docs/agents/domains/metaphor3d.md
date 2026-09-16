@@ -108,6 +108,31 @@ ones that will bite an edit.
   3 px — worse on both counts than the defect being fixed. The head is floored (never capped: a
   head already big enough to read is emphasis) and the stem is held constant both ways (a stem that
   is too long is what puts the pin off-canvas).
+- **The callout stands 102 px above its item and the fit reserves 26 px, so it is drawn into
+  whatever is above the subject — and a leader line's answer to that is to LEAN**
+  (`metaphorScenes/accentRodLean.js`). `SceneFrame` gives a scene `ANNOTATION_HEADROOM_PX` of air
+  above its top vertex, sized for one item label; the rod carries `FRAME_IGNORE_DATA` and stands
+  `STEM_TARGET_HEIGHT_PX` (80 px) plus a 22 px head off the accented item's anchor. The two numbers
+  live in different files and never met, so on a small canvas the marker is simply painted under the
+  app's own panels — measured, a `river` on a 717x512 cover left **4 px of amber**, pin head and stem
+  both behind the reading rail, with the item's own name yielded as well, so the scene's thesis was
+  neither marked nor named. The head now dodges: the lean is solved in NDC against
+  `measureChromeRects`' own rects, reusing the declutter pass's `coveredFraction` so the marker and
+  the names answer one question. Three things about it are the point rather than the detail. **Solve
+  from the UNLEANED tip every frame** — a dodge computed from its own output oscillates, because
+  clear of the panel means no lean means back under the panel. **Return zero when the head is
+  clear**, so every cell that reads today renders byte-identically and the change is measurable at
+  all. And the cap is an honest bound rather than a tuning knob: 38° off an 80 px stem is 63 px of
+  travel, every unrescued head position in a 225k-position sweep needs **66–69 px**, and a head
+  buried deeper than that keeps its vertical rod instead of tilting for a picture that is no better.
+- **A bigger headroom reservation was the other candidate, and the sweep is what rejected it.**
+  Since the rod became screen-constant its height is a pixel CONSTANT, so it could honestly be
+  reserved without the feedback loop that took it out of the fit in the first place (a world-sized
+  marker grows as the camera retreats, which pushes the camera back, which grows it again; a pixel
+  constant does not). The bill is what kills it: 102 px of a 512 px cover is 20% of the height,
+  clamped by `MAX_HEADROOM` to 10%, and it is paid by every accented scene — against a collision the
+  same sweep puts at **4.6%** of head positions on a 1440x900 desktop and **18.7%** on a two-panel
+  390x844 phone. A global tax for a local collision; the lean costs nothing where nothing is wrong.
 - **A screenshot diff of a scene with emissive geometry measures the BLOOM, not the object.**
   Growing the accent pin ~2.5x turned its diff-mask bounding box from 10x30 to 200x178 px on a
   390x844 phone, which reads exactly like a runaway scale; the picture showed a 21 px pin. The
@@ -750,6 +775,19 @@ ones that will bite an edit.
   itself reproduced every one of those to the third decimal (1.410 / 0.483 / 0.395, maxDelta 225) —
   it is the scenes' own animation, and the only honest per-kind figure is `change` minus `noise`,
   which is terrain **84.343% against a 0.001% floor** and zero everywhere else.
+- **Never edit a source file while a render sweep is running against the live vite dev server.**
+  HMR full-reloads the page mid-probe and playwright reports `page.evaluate: Execution context was
+destroyed, most likely because of a navigation` — which reads like a browser or SwiftShader fault
+  and is entirely self-inflicted. It cost a 32-cell baseline run on the accent-lean slice. Either
+  hold still while a sweep runs, or shoot against `vite build` + `vite preview`, which has no HMR
+  at all; never mix a dev-server baseline with a preview after-shot, because the two do not produce
+  pixel-comparable frames.
+- **A probe that finds scene objects by their GEOMETRY over-matches, and the log should say so.**
+  The accent-lean probe located the callout by its 5-sided pin cone (`coneGeometry args={[0.42,
+0.95, 5]}`), the only production hook-free handle on it — and garden flowers and a composite's
+  canopies are 5-sided cones too, so it reported two and four "accent groups" on kinds that have
+  one. Print the match count in every row: the number is the caveat, and without it the inflated
+  ink reads as a measurement rather than as a mask.
 
 ---
 
@@ -901,6 +939,46 @@ ones that will bite an edit.
   number**: `CakeSprinkles` and the city's traffic re-randomise per mount, so the layercake's bare
   frame differs from itself by 15.7k px on a phone and 56k on a desktop — the identical figure the
   before/after diff reported, and the reason a same-code control column is in the probe.
+
+- **Making the rod screen-constant finished one defect and created the conditions for another: the
+  marker that says "this is the thesis" was being painted under the app's own panels, and the two
+  numbers that allow it live in different files.** `sceneFraming.js` reserves
+  `ANNOTATION_HEADROOM_PX` — 26 px, sized for one item label — above the subject's top vertex.
+  `accentRodScale.js` holds the rod at `STEM_TARGET_HEIGHT_PX` 80 px with a 22 px head, and
+  `MetaphorAccents.jsx` keeps the whole rod out of the fit on purpose. So the callout stands ~102 px
+  into air the fit never reserved, and on a phone or a foldable cover that air is a panel. Nothing in
+  the renderer noticed, and each of the three neighbours that could have is doing its own job
+  correctly: the caption yields (`yieldWhenUnreadable`), the accented item's own name yields at
+  `MAX_COVERED_PINNED` — so the two things that WOULD have complained remove themselves — and the
+  stem and pin are geometry, which is simply drawn under the HTML. Measured on a noir `river` at
+  717x512: **4 px of amber on screen**, pin and stem behind the reading rail, the item's name gone
+  with them. Four things this cost:
+
+  - **The fix is a lean, and the alternative was measured rather than argued.** Reserving the rod's
+    height in the fit is now honest — a pixel constant cannot feed the loop a world size can — and it
+    is far too expensive: 102 px of a 512 px cover is 20% of the height, clamped by `MAX_HEADROOM`
+    to 10%, charged to every accented scene. Against that, a 225k-position pure sweep over the three
+    standing viewports and their measured panel rects puts a covered head at **4.6%** of positions
+    on a desktop, **12.1–13.9%** on a cover and a phone, and **18.7%** on a phone carrying a
+    composite's second panel. `accentRodLean` rescues **74.4%** of them and costs exactly nothing
+    anywhere else.
+  - **A dodge must be solved from the un-dodged position, every frame.** The first shape of this
+    read the rod's own current world matrix, which oscillates by construction: leaning clears the
+    panel, clear means no lean, no lean is back under the panel. `solveRodAim` takes the rod's
+    PARENT and the unleaned local `(0, len, 0)`, so the answer is a pure function of the base
+    geometry and the panel rects — and using the parent rather than world up is also what makes it
+    correct inside a composite layer's own transform.
+  - **The screen offset is honoured exactly, and the stem pays for it.** Adding the offset in the
+    camera's screen plane leaves the tip's depth alone, so its projection moves by precisely the NDC
+    asked for; the rod then has to reach `sqrt(len² + offset²)`. That is why `MAX_LEAN_DEGREES` is
+    chosen against `accentRodScale.js`'s own measured band rather than for looks: 38° takes the stem
+    to at most 101 px, inside the 65–116 px that read well and far short of the 168 px that ran off
+    the canvas.
+  - **The bound is real and should be stated, not hidden.** A leader line can lean 38°; it cannot
+    walk the width of a panel. Every position the sweep leaves covered needs **66–69 px** of travel
+    against the 63 px cap, and for those the rod stays vertical — a tilted marker that is still
+    behind the card has spent the one unambiguous thing about it for nothing. Those cells are a
+    camera question (see the headroom trade above), not a geometry one.
 
 - **A scene's categorical grouping axis was drawn as a placard and nothing else, and a placard is
   the first thing a small screen throws away.** `district`, `bed`, `chain`, a fused world's
