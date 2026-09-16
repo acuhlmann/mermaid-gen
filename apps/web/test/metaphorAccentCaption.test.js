@@ -203,13 +203,21 @@ describe('accentRodLean', () => {
   });
 
   it('never walks the head off the canvas to escape a panel', () => {
-    // A rail hugging the right edge: the rightward exit would put the head past
-    // x = 1, where it is clipped rather than readable — which is the same
-    // failure as being behind the card, with an extra lean paid for it.
+    // A rail hugging the right edge, at a tip where the lean cap does NOT save
+    // us: the head sits 0.85 out, so the rightward exit that clears the rail is
+    // still inside `maxLean` and lands at x = 1.02 — clipped rather than
+    // readable, which is the same failure as being behind the card with an
+    // extra lean paid for it. Only `onCanvas` rejects that exit, which is why
+    // this tip and not a more central one: at x = 0.78 the rightward move is
+    // turned away by PARTIAL_GAIN before the canvas bound is ever consulted, so
+    // the assertion below holds whether the guard exists or not.
     const rightRail = { xMin: 0.6, xMax: 1, yMin: 0.3, yMax: 0.97 };
-    const tip = { x: 0.78, y: 0.6 };
+    const tip = { x: 0.85, y: 0.4 };
+    expect(coveredFraction(box(tip), [rightRail])).toBeGreaterThan(0.99);
     const offset = lean(tip, [rightRail]);
-    expect(offset.x).toBeLessThan(0);
+    // It still escapes — the point is that it escapes DOWNWARD rather than off
+    // the right edge, so a guard that simply refused to move cannot pass this.
+    expect(coveredFraction(box(tip, offset), [rightRail])).toBeLessThan(0.13);
     expect(Math.abs(tip.x + offset.x) + head.w).toBeLessThanOrEqual(1);
   });
 
