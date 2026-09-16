@@ -201,7 +201,7 @@ check`: two unattended feature automations run daily here, and a quality metric 
   digest lands while they are at the keyboard. `metaphor3d` opens it as the longest producer; `prune`
   is second (it self-merges whole-file deletions as of 2026-09-14, under five mechanical controls in
   `prune.md` § 5 rather than a human gate, and landing ahead of the producers behind it means their
-  nightly `npm run check` is the tripwire for a deletion nobody read); the other three feature
+  nightly `npm run check` is the tripwire for a deletion nobody read); the other two feature
   automations then produce code **longest first**, because a long job at the head absorbs its own
   overrun while one in the middle delays everything behind it; `review` reads what landed, `improve`
   works the quality queue, `resolve` works the backlog, `digest` reports. Table (with the host running

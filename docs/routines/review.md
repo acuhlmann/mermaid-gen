@@ -25,9 +25,10 @@ forbiddenPaths:
 Reviews everything that landed on `main` in the last 24 hours, fixes at most one bug it can prove,
 and files the rest as issues. Opens a PR, merges it when CI is green.
 
-`30 21 * * *` (05:30 HKT) sits after all four feature automations have landed their PRs —
-`metaphor3d` (`0 15`, 50–120 min), `office-life` (`0 18`), `anything` (`30 19`),
-`canvas-graph-edit` (`30 20`). Their work gets reviewed by nobody else. It runs _before_ `improve`
+`30 21 * * *` (05:30 HKT) sits after the three active feature automations have landed their PRs —
+`metaphor3d` (`0 15`, 50–120 min), `office-life` (`0 18`), and `anything` (`30 19`). (`canvas-graph-edit`
+still occupies its ladder row but is **parked**, so it does not produce.) Their work gets reviewed by
+nobody else. It runs _before_ `improve`
 and `resolve` so the issues it files are in the backlog when `resolve` reads it just over two hours
 later.
 
