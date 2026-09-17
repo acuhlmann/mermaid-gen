@@ -312,7 +312,34 @@ test('missing ladder job-count prose fails instead of passing silently', () => {
   fs.writeFileSync(path.join(root, 'CLAUDE.md'), 'Also nothing to match.\n');
   const result = verifyNightLadder(root);
   assert.equal(result.ok, false, result.errors.join('\n'));
-  assert.match(result.errors.join('\n'), /no "… jobs run between" ladder count found/);
+  assert.match(result.errors.join('\n'), /AGENTS\.md — no "… jobs run between" ladder count found/);
+  assert.match(result.errors.join('\n'), /CLAUDE\.md — no "… jobs run between" ladder count found/);
+});
+
+test('missing job-count in one root doc fails even when the other still has a sentence', () => {
+  const root = ladderFixture([{ name: 'prune', schedule: "'30 15 * * *'" }], [LADDER_OK[0]]);
+  fs.writeFileSync(path.join(root, 'AGENTS.md'), 'nothing here at all.\n');
+  fs.writeFileSync(path.join(root, 'CLAUDE.md'), 'One jobs run between `0 15` and `45 0` UTC.\n');
+  const result = verifyNightLadder(root);
+  assert.equal(result.ok, false, result.errors.join('\n'));
+  assert.match(result.errors.join('\n'), /AGENTS\.md — no "… jobs run between" ladder count found/);
+  assert.doesNotMatch(result.errors.join('\n'), /CLAUDE\.md — no "… jobs run between"/);
+});
+
+test('ordinary prose before "jobs run between" does not match the job-count sensor', () => {
+  const root = ladderFixture([{ name: 'prune', schedule: "'30 15 * * *'" }], [LADDER_OK[0]]);
+  fs.writeFileSync(
+    path.join(root, 'AGENTS.md'),
+    'All jobs run between `0 15` and `45 0` UTC.\nEight jobs run between `0 15` and `45 0` UTC.\n'
+  );
+  fs.writeFileSync(path.join(root, 'CLAUDE.md'), 'Eight jobs run between `0 15` and `45 0` UTC.\n');
+  const result = verifyNightLadder(root);
+  assert.equal(result.ok, false, result.errors.join('\n'));
+  assert.doesNotMatch(
+    result.errors.join('\n'),
+    /ladder job count `All` is not a digit or a known English number word/
+  );
+  assert.match(result.errors.join('\n'), /AGENTS\.md.*says 8 jobs.*1 rungs/);
 });
 
 test('a rung declared off the ladder needs no row and no window', () => {
