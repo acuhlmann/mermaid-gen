@@ -684,6 +684,43 @@ export const ANYTHING_BENCH_CORPUS = [
       { head: '<!-- @lib:matter -->' }
     )
   },
+  {
+    // lib-matter-stack first-pass "The provided double value is non-finite"
+    // (2026-09-17 repro): a render loop tags app-created bodies with
+    // `body.plugin = { size, ... }` and writes `if (!b.plugin) continue;`
+    // meaning to skip untagged bodies (the static frame). But
+    // `Matter.Body.create` (and therefore `Bodies.rectangle`) always sets
+    // `plugin: {}` by default — a truthy empty object — so the guard never
+    // filters anything out; drawing code then reads `undefined` off the
+    // frame body's empty plugin object, and a canvas call built from it
+    // (createLinearGradient here) throws on the non-finite coordinate.
+    // Regression = both engines drift (jsdom's canvas stub silently accepted
+    // this before the finite-value check was added alongside this fixture).
+    id: 'runtime-matter-plugin-default-truthy',
+    kind: 'runtime',
+    expectedAccept: false,
+    expectedCode: 'runtime_error',
+    html: page(
+      `<h1>Stack</h1><canvas id="stage" width="320" height="240"></canvas>
+<script>
+  const { Engine, Bodies, Composite } = Matter;
+  const engine = Engine.create();
+  const world = engine.world;
+  const ground = Bodies.rectangle(160, 230, 320, 20, { isStatic: true });
+  Composite.add(world, ground);
+
+  const ctx = document.getElementById('stage').getContext('2d');
+  const bodies = Composite.allBodies(world);
+  for (let i = 0; i < bodies.length; i++) {
+    const b = bodies[i];
+    if (!b.plugin) continue; // meant to skip the untagged static frame body
+    const grad = ctx.createLinearGradient(0, 0, 0, b.plugin.size);
+    grad.addColorStop(0, '#000');
+  }
+</script>`,
+      { head: '<!-- @lib:matter -->' }
+    )
+  },
 
   // ── shape: not a document, must stay rejected ────────────────────────────
   {

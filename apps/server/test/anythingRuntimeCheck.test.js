@@ -157,6 +157,45 @@ test('runtime sandbox integration', { concurrency: false }, async (t) => {
     }
   );
 
+  await t.test(
+    'jsdom rejects createLinearGradient called with a non-finite coordinate',
+    async () => {
+      // Matter.Body.create always sets body.plugin = {} (truthy), so a page
+      // whose render loop reads an undefined field off an untagged body's
+      // empty plugin and feeds it straight into a gradient call must reject
+      // here the same way Chromium does — pinned to jsdom because the stub
+      // this exercises is jsdom-side code (see anythingRuntimeSandbox.js).
+      const result = await runAnythingRuntimeCheck(
+        doc(
+          `<canvas id="c" width="100" height="80"></canvas>
+         <script>
+           const ctx = document.getElementById('c').getContext('2d');
+           ctx.createLinearGradient(0, 0, 0, undefined);
+         </script>`
+        ),
+        { env: { ANYTHING_RUNTIME_ENGINE: 'jsdom' } }
+      );
+      assert.equal(result.ok, false);
+      assert.equal(result.code, 'runtime_error');
+      assert.match(result.error, /non-finite/i);
+    }
+  );
+
+  await t.test('jsdom keeps createLinearGradient with all-finite coordinates', async () => {
+    const result = await runAnythingRuntimeCheck(
+      doc(
+        `<canvas id="c" width="100" height="80"></canvas>
+         <script>
+           const ctx = document.getElementById('c').getContext('2d');
+           const grad = ctx.createLinearGradient(0, 0, 200, 0);
+           grad.addColorStop(0, '#000');
+         </script>`
+      ),
+      { env: { ANYTHING_RUNTIME_ENGINE: 'jsdom' } }
+    );
+    assert.equal(result.ok, true, JSON.stringify(result));
+  });
+
   await t.test("jsdom keeps arc's optional counterclockwise argument", async () => {
     // The arity guard above reproduces Chromium's rejection of a rect-shaped
     // object, and `arc` is the method where an exact count is the wrong shape
