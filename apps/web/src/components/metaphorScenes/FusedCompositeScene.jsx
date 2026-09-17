@@ -39,7 +39,7 @@ import {
   shiftColor
 } from './sceneUtils.js';
 import { GROUP_TINT_PLATE, resolveGroupPlateBase, tintByGroup } from './groupIdentity.js';
-import { affinityGroupDetail } from './compositeLodDetail.js';
+import { affinityGroupDetail, affinityGroupLayers } from './compositeLodDetail.js';
 import { DaylightPollen, SoaringBirds } from './MetaphorSceneDecorations.jsx';
 import {
   IslandPrimitive,
@@ -116,6 +116,7 @@ function AffinityGroups({ groups, theme, lod }) {
   // for the measurement that picked the interior wash as the layer to lose.
   const detail = affinityGroupDetail(lod);
   return groups.map((group) => {
+    const layers = affinityGroupLayers(group, detail);
     // Same grouping ladder as the city's districts and the garden's beds. A
     // fused world is where it matters most and where it was worst: these rings
     // paint at 0.1/0.2 opacity onto an ocean, so four shades of one pale blue
@@ -125,27 +126,31 @@ function AffinityGroups({ groups, theme, lod }) {
     const plaqueColor = shiftColor(color, { lightness: -0.06, satScale: 0.85 });
     return (
       <group key={group.id} position={group.center}>
-        {detail.wash ? (
+        {layers.wash ? (
           <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.008, 0]}>
-            <circleGeometry args={[group.radius * 0.72, detail.segments]} />
+            <circleGeometry args={[group.radius * 0.72, layers.segments]} />
             <meshBasicMaterial color={color} transparent opacity={0.1} />
           </mesh>
         ) : null}
-        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.012, 0]}>
-          <ringGeometry args={[group.radius * 0.72, group.radius, detail.segments]} />
-          <meshBasicMaterial color={color} transparent opacity={0.2} />
-        </mesh>
-        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.018, 0]}>
-          <ringGeometry args={[group.radius, group.radius + 0.07, detail.segments]} />
-          <meshBasicMaterial color={theme.labelColor} transparent opacity={0.22} />
-        </mesh>
-        {group.display && !group.namedByMember ? (
+        {layers.band ? (
+          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.012, 0]}>
+            <ringGeometry args={[group.radius * 0.72, group.radius, layers.segments]} />
+            <meshBasicMaterial color={color} transparent opacity={0.2} />
+          </mesh>
+        ) : null}
+        {layers.rim ? (
+          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.018, 0]}>
+            <ringGeometry args={[group.radius, group.radius + 0.07, layers.segments]} />
+            <meshBasicMaterial color={theme.labelColor} transparent opacity={0.22} />
+          </mesh>
+        ) : null}
+        {layers.placard && group.display && !group.namedByMember ? (
           <group position={[0, group.surfaceY ?? 0, group.radius * 0.86]}>
             <mesh position={[0, 0.16, 0]}>
               <boxGeometry args={[Math.min(group.radius * 1.25, 4.4), 0.12, 0.46]} />
               <meshStandardMaterial color={plaqueColor} roughness={0.62} metalness={0.18} />
             </mesh>
-            {detail.bulb ? (
+            {layers.bulb ? (
               <mesh position={[0, 0.23, 0.2]}>
                 <boxGeometry args={[0.34, 0.08, 0.08]} />
                 <meshStandardMaterial
