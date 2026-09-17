@@ -102,6 +102,17 @@ function createInert() {
  * `fillRect(x, y, w, h, junk)`, which every browser draws. This rung exists to
  * reproduce the client sandbox, so a rejection it invents costs a 12-60 s
  * repair turn on a page that was never broken.
+ *
+ * `createLinearGradient`/`createRadialGradient` get the same treatment for a
+ * different failure mode: Chromium rejects a NaN/Infinity coordinate with
+ * "The provided double value is non-finite," which is exactly what a body
+ * reading an `undefined` field (e.g. a Matter body whose `.plugin` lacks the
+ * app's own data) produces once it reaches arithmetic. The inert Proxy
+ * accepted any argument here too, silently masking that class under jsdom
+ * while the browser engine correctly rejected it (measured on a bench doc
+ * where the render loop's `if (!body.plugin) continue` never filtered
+ * anything, because Matter always sets `plugin: {}` — see the design-guide
+ * rule this stub pairs with).
  */
 function createCanvas2dContextStub() {
   const inert = createInert();
@@ -110,6 +121,10 @@ function createCanvas2dContextStub() {
     strokeRect: 4,
     clearRect: 4,
     arc: 5
+  };
+  const FINITE_NUMERIC_ARGS = {
+    createLinearGradient: 4,
+    createRadialGradient: 6
   };
 
   return new Proxy(
@@ -125,6 +140,24 @@ function createCanvas2dContextStub() {
                 `Failed to execute '${String(prop)}' on 'CanvasRenderingContext2D': ${required} arguments required, but only ${args.length} present.`
               );
             }
+          };
+        }
+        if (Object.prototype.hasOwnProperty.call(FINITE_NUMERIC_ARGS, prop)) {
+          const required = FINITE_NUMERIC_ARGS[prop];
+          return function finiteArgsChecked(...args) {
+            if (args.length < required) {
+              throw new TypeError(
+                `Failed to execute '${String(prop)}' on 'CanvasRenderingContext2D': ${required} arguments required, but only ${args.length} present.`
+              );
+            }
+            for (let i = 0; i < required; i += 1) {
+              if (!Number.isFinite(args[i])) {
+                throw new TypeError(
+                  `Failed to execute '${String(prop)}' on 'CanvasRenderingContext2D': The provided double value is non-finite.`
+                );
+              }
+            }
+            return inert;
           };
         }
         return inert;
