@@ -494,6 +494,17 @@ https://api.deepseek.com/` — 401 is reachable, 000 is blocked); never route ar
   `/moment` (#624, #654). **`hasWorkingMemoryFact` returning false no longer means silence from the
   model**; it means standing further back in the same queue. Both numbers live in
   `officeCadence.js`, never at the use site.
+- **"Did a colleague speak from a bank or from a model" is answered by the response body, not by a
+  clock and not by the DOM.** `/api/office/moment` returns `{ moment: { body, subject?,
+actionPrompt? }, usage?, model? }` and `body` is the model's words verbatim
+  (`parseMomentReply`, `apps/server/src/agents/officePersonas.js`), so anything asking that question
+  — a harness, a probe, a bug report — compares rendered text against the delivered body. The two
+  neighbouring signals each answer a different question and neither answers this one: `usage`
+  says a turn produced tokens but not what it said, and a bubble says something was drawn but not
+  by whom — `shouldShowSpokenText` hides it while TTS speaks, so a generated line can leave no
+  mark on the page at all. **Proximity in time is not evidence**: the office makes bank lines
+  constantly (narration ticks on its own clock), so anything nearby will eventually sit next to a
+  call.
 
 - **After presence / TTS / desk-frame edits**, prefer `apps/web/test/officePresence.test.js`,
   `deskOsPresenceStrip.test.jsx`, `deskOsFrameStyles.test.js`, `apps/server/test/officeTts.test.js`,
@@ -1277,6 +1288,29 @@ y)`, so the obvious sweep silently iterates an empty list; and pacing the exchan
   notices that somebody is standing there **and** carries Dinesh's own `look: 'tabs'` /
   `doing: 'typing'` row — which is `officeDeskWork` arriving at a prompt the gate had been keeping
   it out of.
+
+- **The office's bank-versus-model question has exactly one ground truth on the client, and it is
+  the response body.** `/api/office/moment` answers `{ moment: { colleagueId, kind, body,
+subject?, actionPrompt? }, usage?, model? }`, and `body` is what the model wrote, trimmed and
+  capped by `parseMomentReply` (`apps/server/src/agents/officePersonas.js`) and nothing else. Any
+  tool that wants to say "this line was improvised" — the visit harness, a probe, a bug report —
+  matches rendered text against that body. The three tempting substitutes each answer a
+  neighbouring question:
+
+  - **`usage` / `onUsage`** proves a turn produced tokens. It does not say what was said, or
+    whether the room used it, which is why it is the right _count_ and the wrong _attribution_.
+  - **A bubble on screen** proves something was drawn. Voice leads and text is the fallback, so
+    `shouldShowSpokenText` hides the balloon while TTS speaks and a generated line can leave no
+    mark on the page — a DOM-only reading under-counts by design.
+  - **Nearness in time to a successful call** proves nothing at all, and this is the one that
+    looks like it works. The office emits bank lines on their own clocks (narration especially),
+    so give any window long enough and a canned line will sit inside it. The visit harness
+    credited lines by an 8 s window for eleven nights and was correct only because every
+    generated visit until #704 made its single call at the **last** step, with no room left for
+    anything to follow it. The first mid-visit call reported five model lines for two model
+    turns. The general form is worth more than the fix: **a derived field is only as tested as
+    the shapes of event it has already seen**, so when a slice makes the office do something in a
+    new _order_, re-derive every field that is computed rather than observed.
 
 - **After presence / TTS / desk-frame edits**, prefer `apps/web/test/officePresence.test.js`,
   `deskOsPresenceStrip.test.jsx`, `deskOsFrameStyles.test.js`, `apps/server/test/officeTts.test.js`,

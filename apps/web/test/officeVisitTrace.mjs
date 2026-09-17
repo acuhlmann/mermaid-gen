@@ -13,11 +13,20 @@
  *
  * ```bash
  * npm ci                                   # playwright-core is NOT a repo dependency
+ * npm run build                            # the API server is started from dist/ — see below
  * mkdir -p /tmp/pw && (cd /tmp/pw && npm i playwright-core)
  * OFFICE_VISIT_PLAYWRIGHT=/tmp/pw/node_modules/playwright-core \
  *   node apps/web/test/officeVisitTrace.mjs --out trace.json
  * node apps/web/test/officeVisitTrace.mjs --no-llm      # deliberate canned-fallback trace
  * ```
+ *
+ * **`npm run build` is not optional, and a missed one used to be silent.** This
+ * harness spawns the server's *build output*, not its sources, so on a fresh
+ * checkout there is no API at all: vite answers every office call with a 502
+ * and the visit prints a perfectly well-formed `canned-fallback` trace while
+ * `DEEPSEEK_API_KEY` sits in the shell looking like the generated arm. The
+ * health wait is now fatal and says so; a run that reports an arm it did not
+ * reach is worse than a run that stops.
  *
  * ## Why it lives in `apps/web/test/` and not `scripts/`
  *
@@ -289,7 +298,10 @@ function installInstrument(config) {
     speech: [],
     notes: [],
     samples: [],
-    errors: []
+    errors: [],
+    /* The model's own words, read off the responses the room is about to
+       render. See `recordDelivered` below for why this exists. */
+    delivered: []
   };
 
   /*
@@ -326,6 +338,74 @@ function installInstrument(config) {
    * configured on this server") and a regression are identical from the
    * outside — which is why the status of every office call is reported raw.
    */
+  /*
+   * Keys whose values are identifiers rather than anything a colleague said.
+   * `model` is the slug, `kind`/`colleagueId`/`speakerId` are enums and ids —
+   * crediting a rendered line to the model because it happens to contain the
+   * word "dwell" is the same class of error as the clock window this replaces.
+   */
+  const DELIVERED_ID_KEYS = new Set([
+    'colleagueId',
+    'kind',
+    'model',
+    'speakerId',
+    'scriptVersion',
+    'reason',
+    'error'
+  ]);
+
+  /** Every string in a response that could be shown as speech. */
+  function collectDelivered(value, out) {
+    if (typeof value === 'string') {
+      const text = value.replace(/\s+/g, ' ').trim();
+      if (text.length >= 4) out.push(text);
+      return;
+    }
+    if (Array.isArray(value)) {
+      for (const item of value) collectDelivered(item, out);
+      return;
+    }
+    if (value && typeof value === 'object') {
+      for (const [key, item] of Object.entries(value)) {
+        if (!DELIVERED_ID_KEYS.has(key)) collectDelivered(item, out);
+      }
+    }
+  }
+
+  /**
+   * **What makes `source` an observation instead of a guess.** The field used
+   * to be a clock window — a line within 8 s of a successful office call was
+   * the model's — and that held only while every generated visit made its one
+   * call at the *last* step, with nothing behind it. A mid-visit call (the
+   * dwell, ~18 s) sweeps up whatever narration the room happened to draw next,
+   * and the trace then reports five model lines for two model turns.
+   *
+   * A response body is the only thing on this page that is the model's words
+   * verbatim, so the clone is read here and the match is made on text. The
+   * clone is deliberate: reading the real response would consume the body the
+   * app is about to parse. Failures are swallowed — a body that is not JSON is
+   * a call this attribution has nothing to say about, not a broken visit.
+   */
+  function recordDelivered(url, response) {
+    response
+      .clone()
+      .json()
+      .then((body) => {
+        const texts = [];
+        collectDelivered(body, texts);
+        if (texts.length) {
+          state.delivered.push({
+            atMs: elapsed(),
+            path: url.replace(/^https?:\/\/[^/]+/, ''),
+            texts
+          });
+        }
+      })
+      .catch(() => {
+        /* not JSON, or already gone: nothing to attribute */
+      });
+  }
+
   const realFetch = globalThis.fetch.bind(globalThis);
   globalThis.fetch = async (input, init) => {
     const url = typeof input === 'string' ? input : (input?.url ?? String(input));
@@ -342,6 +422,11 @@ function installInstrument(config) {
         ok: response.ok,
         ms: Math.round(performance.now() - t0)
       });
+      /* `/speak` is Cloud TTS: it carries audio, never words. Everything else
+         under `/api/office/` can carry a line the room is about to say. */
+      if (response.ok && /\/api\/office\//.test(url) && !/\/api\/office\/speak\b/.test(url)) {
+        recordDelivered(url, response);
+      }
       return response;
     } catch (err) {
       state.fetches.push({
@@ -805,13 +890,33 @@ async function main() {
     const { chromium } = await loadPlaywright();
 
     if (!args.noLlm) {
-      running.push(
-        launch(process.execPath, ['dist/index.js'], {
-          cwd: path.join(REPO_ROOT, 'apps/server'),
-          env: { PORT: String(args.apiPort), NODE_ENV: 'development' }
-        })
-      );
-      await waitForHttp(`http://127.0.0.1:${args.apiPort}/api/health`, 40_000);
+      const api = launch(process.execPath, ['dist/index.js'], {
+        cwd: path.join(REPO_ROOT, 'apps/server'),
+        env: { PORT: String(args.apiPort), NODE_ENV: 'development' }
+      });
+      running.push(api);
+      const apiUp = await waitForHttp(`http://127.0.0.1:${args.apiPort}/api/health`, 40_000);
+      /*
+       * **Fatal, the way vite's is, and it was not for ten nights.** The
+       * boolean used to be discarded here, so a checkout that had not been
+       * built produced a server that exited on `Cannot find module dist/index.js`,
+       * vite proxied every office call to a 502, and the visit finished and
+       * printed a trace reading `canned-fallback (502)` — with the key sitting
+       * in the shell looking like the generated arm. A run that cannot reach
+       * the office's own API has not produced a worse trace, it has produced no
+       * trace: this is the ledger's own "a 503 and a regression are identical
+       * from the outside" with the server on the wrong side of it.
+       */
+      if (!apiUp) {
+        throw new Error(
+          `the API server never answered /api/health on :${args.apiPort}. It is started from ` +
+            'its build output, so an unbuilt checkout fails exactly here — run `npm run build` ' +
+            '(or `npm run build -w apps/server`) and try again. Where its output starts:\n' +
+            /* The *start*, not the tail: a process that dies on startup puts the
+               reason on its first line and a node stack frame on its last. */
+            api.log.join('').trim().split('\n').slice(0, 8).join('\n')
+        );
+      }
     }
 
     await writeScratchHarness();
@@ -913,6 +1018,7 @@ async function main() {
       speech: window.__visit.state.speech,
       fetches: window.__visit.state.fetches,
       notes: window.__visit.state.notes,
+      delivered: window.__visit.state.delivered,
       errors: window.__visit.state.errors,
       figures: window.__visit.figures(),
       endSurfaces: window.__visit.speechSurfacesNow()
@@ -962,15 +1068,51 @@ function buildTrace({ args, startedAt, t0, steps, before, after, collected }) {
         : `canned-fallback (${[...new Set(llmCalls.map((c) => c.status))].join(', ')})`;
 
   /*
-   * Derived, and deliberately crude: a line is credited to the model when a
-   * successful office call resolved in the eight seconds before it appeared.
-   * The raw call log sits beside it because that heuristic is the first thing
-   * a later run should want to check.
+   * Derived, and no longer from a clock. **The rule this replaces credited a
+   * line to the model when a successful office call resolved in the 8 s before
+   * it appeared**, and its own comment asked a later run to check it. On
+   * 2026-09-16 that came due: the dwell became a model call (#704), so for the
+   * first time a generated visit made a call that was *not* the last thing to
+   * happen, the window swept up the three narration lines behind it, and the
+   * trace reported five model lines for two model turns. Every earlier
+   * generated run had made its single call at the final step, where there was
+   * nothing behind it to over-credit — the rule was never right, it was
+   * untested.
+   *
+   * So a line is the model's when its text **is** text the model delivered.
+   * Comparison is on a loose form (whitespace collapsed, lower-cased, a
+   * trailing ellipsis dropped) because a surface may truncate; containment
+   * either way is allowed once both sides are long enough that a coincidence
+   * is not plausible, which is what `MIN_LOOSE_MATCH` is for.
+   *
+   * `delivered` ships raw beside this, the same way the call log shipped beside
+   * the window, so a later run can disagree without re-running the visit — and
+   * `modelTurns` remains the count to trust, because a line the room drew and
+   * undrew (voice leads, text is the fallback) never reaches `speech` at all.
    */
-  const attribute = (line) =>
-    succeeded.some((call) => line.atMs - call.atMs >= 0 && line.atMs - call.atMs < 8_000)
+  const MIN_LOOSE_MATCH = 12;
+  const loose = (value) =>
+    String(value ?? '')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .replace(/[…]+$|\.{3,}$/u, '')
+      .trim()
+      .toLowerCase();
+  const deliveredTexts = (collected.delivered ?? [])
+    .flatMap((entry) => entry.texts.map(loose))
+    .filter(Boolean);
+  const attribute = (line) => {
+    const text = loose(line.text);
+    if (!text) return 'bank';
+    return deliveredTexts.some(
+      (delivered) =>
+        delivered === text ||
+        (Math.min(delivered.length, text.length) >= MIN_LOOSE_MATCH &&
+          (delivered.includes(text) || text.includes(delivered)))
+    )
       ? 'model'
       : 'bank';
+  };
 
   /*
    * Ground truth for "did a model speak", independent of rendering: `onUsage`
@@ -1002,7 +1144,14 @@ function buildTrace({ args, startedAt, t0, steps, before, after, collected }) {
 
   return {
     harness: 'officeVisitTrace',
-    version: 1,
+    /*
+     * 2: `speech.bySource` is attributed by text against `speech.delivered`.
+     * Version 1 attributed it by an 8 s clock window, which over-credits any
+     * bank line drawn behind a mid-visit model call — so a v1 `bySource.model`
+     * from a run whose call was not the last thing to happen has to be re-read
+     * against `modelTurns`, and this field is how a reader can tell which.
+     */
+    version: 2,
     startedAt,
     durationMs: Date.now() - t0,
     mode: {
@@ -1039,10 +1188,12 @@ function buildTrace({ args, startedAt, t0, steps, before, after, collected }) {
       byChannel,
       bySource,
       modelTurns,
+      delivered: collected.delivered ?? [],
       endSurfaces: collected.endSurfaces,
       imHistoryAtEnd: collected.imHistoryAtEnd,
       sourceRule:
-        'derived: a line within 8000ms after a 2xx /api/office call is credited to the model'
+        'derived: a line whose text matches text a 2xx /api/office response delivered is the ' +
+        "model's; `delivered` is the raw evidence and `modelTurns` is the count to trust"
     },
     movement: {
       firstMover: figures.find((figure) => figure.firstMoveAtMs !== null)?.id ?? null,
