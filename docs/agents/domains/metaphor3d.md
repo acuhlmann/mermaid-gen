@@ -86,6 +86,30 @@ ones that will bite an edit.
   to collapse and the rule does not bind. That distinction is why `daylight-group-plate` and
   `space-group-plate` sat open for a fortnight as "same likely answer as its twin": both were one
   placement, not a palette walk.
+- **`low` LOD is a detail budget, not a content budget — and the fused composite's territories were
+  on the wrong list** (`metaphorScenes/compositeLodDetail.js`, `FusedCompositeScene.jsx`). Every
+  other thing the tier turns off is finish (shore foam, pollen, birds, flow motes, tower windows, a
+  terrace tier, an orb's glow); `<AffinityGroups>` sat among them behind one `lod !== 'low'`, so a
+  world that crossed the cost bar drew **no territory ring, no placard and no flow pulse** and
+  nothing said so. Measured over 1,460 planned worlds: 1,279 carry a group and **465 (36.4%) drew
+  none of it**, 113 of them at or under the `itemCount > 18` bar. The loop is tighter than the rate:
+  `estimatedCost` counts `groups.length`, so on a 6-tree + 6-city world the **third** shared noun
+  takes the cost 93 → 96, crosses the 95 bar and deletes all three — the grouping paying for its own
+  deletion. The cost term is not wrong, so the fix is at the gate: `low` now thins a territory and
+  never removes it. **What it drops was chosen by compositing, not by counting fragments** — the
+  interior wash is 0.0044–0.0628 of Δluma over ~52% of the territory, the identity band
+  0.0085–0.1003 over ~42%, the hairline rim **0.0763–0.4607** over ~6%, and on noir over water the
+  rim is 35× the band. The cheap instinct (drop the thin hairline) would leave every dark theme's
+  ocean with no visible boundary; the wash is the layer whose removal is near-free. Band, rim and
+  placard are content at every tier, and the case that guards it reads `FusedCompositeScene.jsx` as
+  text — a future `lod !== 'low'` around `<AffinityGroups>` passes every other assertion in
+  `metaphorGroupIdentity.test.js`.
+- **On a phone a 12-item composite keeps its territories only as rings — every group placard is
+  decluttered to `fillOpacity` 0.** Measured at 390×844: 0–1 of 3 nouns survive at 12 items against
+  2 of 2 at 4 items, on all four themes and at either LOD. That is `groupIdentity.js`'s own argument
+  for the tint ("a tint is not a label: it cannot be decluttered") turned into a number, and it is
+  what makes dropping the rings at `low` a total loss on the viewport this domain is written for
+  rather than a partial one.
 - **Camera framing samples real vertices, not bounding boxes** (`sceneFraming.js`). A
   `circleGeometry`'s bounding box is a SQUARE, so a ground disc's phantom diagonal corners — the
   points nearest the camera — used to dominate the fit and push the subject to ~40% of the frame.
@@ -1817,7 +1841,56 @@ sticky` nav row, because the height cap makes every small screen a scrolling
     `estimatedCost > 95`, and `low` skips `<AffinityGroups>` entirely — a 6-tree + 6-city composite
     hit it, so the world drew no territory rings, no placards and no flow pulses. Found only
     because the plate probe reported zero plates on a fixture whose plan carried three groups. Not
-    a framing or colour problem, and not fixed here; recorded as `fused-lod-drops-groups`.
+    a framing or colour problem, and fixed the following week — see the LOD entry below.
+
+- **The fused composite's affinity territories were budgeted as decoration, so a world that got big
+  enough stopped stating the one thing it exists to state** (`metaphorScenes/compositeLodDetail.js`,
+  `AffinityGroups` in `FusedCompositeScene.jsx`). `resolveLod` returns `low` above
+  `estimatedCost > 95` or `itemCount > 18`, and `low` skipped `<AffinityGroups>` outright — no
+  territory ring, no placard, no flow pulse. Everything else on that list is finish: shore foam,
+  island shrubs, daylight pollen, soaring birds, a river's motes 8 → 4, tower windows, a terrace's
+  third tier, an orb's glow. The grouping nouns are not; they are the only claim in a fused world
+  that spans its layers, and the legend promises the viewer they are drawn. Six things worth
+  keeping:
+
+  - **Measured pure, over 1,460 planned worlds** — the three shipped composite fixtures plus every
+    ordered pair of the 14 base kinds at 2, 3, 4, 5, 6, 8, 10 and 12 items a layer, each carrying
+    three shared nouns. 1,279 plan at least one affinity group and **465 — 36.4% — drew none of
+    it**. 113 of those are at or under the `itemCount > 18` bar, so they reached `low` on cost
+    alone; the low-LOD grouped worlds run 12 to 24 items (median 20) at `estimatedCost` 83–189.
+  - **The grouping paid for its own deletion, and the arithmetic is exact.** `estimatedCost` sums
+    the primitive costs, then `links.length * 2 + connectors.length + groups.length`. On a 6-tree +
+    6-city world the ungrouped plan is **93** and `medium`; adding three shared nouns makes it
+    **96**, one over the bar, and the gate then removed all three. A second noun was free and the
+    third was fatal. The cost term is not wrong — three discs do cost three discs — which is why the
+    fix is at the gate and not in the sum: there is no longer a tier that deletes meaning, so the
+    loop has nothing to close on.
+  - **What `low` drops instead was decided by compositing each layer over the surface it is drawn
+    on, not by counting fragments.** Across four themes × both surfaces (`waterColor` for an island
+    world, `groundColor` for a plaza), read as perceived luma against that surface: interior wash
+    **0.0044–0.0628**, identity band 0.0085–0.1003, boundary rim **0.0763–0.4607**. On noir over
+    water the rim is 0.2989 against the band's 0.0085 — a factor of 35. The wash is ~52% of the
+    territory's fragments (a disc of 0.72r against two thin annuli) for the weakest signal in the
+    set, so it is the one layer whose removal is close to free. The instinct the numbers refute is
+    "drop the thin hairline": it is the only visible boundary on every dark theme.
+  - **On a phone the ring is the whole signal, so dropping it was a total loss rather than a partial
+    one.** At 390×844 the 12-item world draws 0–1 of 3 group placards on all four themes at either
+    LOD — the declutter pass fades them to `fillOpacity` 0 — against 2 of 2 on the 4-item control.
+  - **A module can state the contract and cannot enforce it, because the defect was one conditional
+    in JSX.** `affinityGroupDetail(lod)` returns `band`/`rim`/`placard` true at every tier by
+    contract and the suite sweeps `COMPOSITE_LOD_TIERS` for it — and a future `lod !== 'low'` around
+    `<AffinityGroups>` would pass every one of those assertions. The case that actually guards the
+    fix reads `FusedCompositeScene.jsx` as text, the same idiom `metaphorSkyBackdrops`' sweep uses
+    for the same reason (importing the scene drags in R3F).
+  - **The rendered statistic here is the scene graph, not the pixels.** Two shots of the identical
+    build differ by 0.03–1.4% at maxΔ ≤ 39 on nineteen of 24 cells and by **6.7–14.6% at maxΔ ~224**
+    on the other five — bimodal, because the declutter pass settles on a different stable label set,
+    not because anything moved. The territory mesh count was **identical in all 24 cells across two
+    runs**; only phone placard survival drifted, by ±1. And `reducedMotion: 'reduce'` is not
+    optional for a composite sweep: without it the floor is 0.578–15.4% on every cell and the probe
+    reports every group placard at `fillOpacity` 0 on every viewport, which reads exactly like the
+    placards never being drawn. The ledger has carried that finding since the subway slice; it cost
+    two 24-cell sweeps to rediscover.
 
 - **Verify metaphor changes by rendering them.** The scoped skill under
   `apps/web/.claude/skills/verify/` has the headless-capture recipe; every finding above came from

@@ -39,6 +39,7 @@ import {
   shiftColor
 } from './sceneUtils.js';
 import { GROUP_TINT_PLATE, resolveGroupPlateBase, tintByGroup } from './groupIdentity.js';
+import { affinityGroupDetail } from './compositeLodDetail.js';
 import { DaylightPollen, SoaringBirds } from './MetaphorSceneDecorations.jsx';
 import {
   IslandPrimitive,
@@ -106,11 +107,14 @@ function PlannedNode({ entity, theme, emphasized, onActiveIdChange, lod, layerLa
   );
 }
 
-function AffinityGroups({ groups, theme }) {
+function AffinityGroups({ groups, theme, lod }) {
   // Placed against the ground these rings are drawn on, not taken raw from the
   // palette — see `resolveGroupPlateBase`. Hoisted out of the map because the
   // placement bisects and the answer is one per theme, not one per group.
   const plateBase = resolveGroupPlateBase(theme);
+  // `low` thins the territory; it never removes it. See `compositeLodDetail.js`
+  // for the measurement that picked the interior wash as the layer to lose.
+  const detail = affinityGroupDetail(lod);
   return groups.map((group) => {
     // Same grouping ladder as the city's districts and the garden's beds. A
     // fused world is where it matters most and where it was worst: these rings
@@ -121,16 +125,18 @@ function AffinityGroups({ groups, theme }) {
     const plaqueColor = shiftColor(color, { lightness: -0.06, satScale: 0.85 });
     return (
       <group key={group.id} position={group.center}>
-        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.008, 0]}>
-          <circleGeometry args={[group.radius * 0.72, 48]} />
-          <meshBasicMaterial color={color} transparent opacity={0.1} />
-        </mesh>
+        {detail.wash ? (
+          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.008, 0]}>
+            <circleGeometry args={[group.radius * 0.72, detail.segments]} />
+            <meshBasicMaterial color={color} transparent opacity={0.1} />
+          </mesh>
+        ) : null}
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.012, 0]}>
-          <ringGeometry args={[group.radius * 0.72, group.radius, 48]} />
+          <ringGeometry args={[group.radius * 0.72, group.radius, detail.segments]} />
           <meshBasicMaterial color={color} transparent opacity={0.2} />
         </mesh>
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.018, 0]}>
-          <ringGeometry args={[group.radius, group.radius + 0.07, 48]} />
+          <ringGeometry args={[group.radius, group.radius + 0.07, detail.segments]} />
           <meshBasicMaterial color={theme.labelColor} transparent opacity={0.22} />
         </mesh>
         {group.display && !group.namedByMember ? (
@@ -139,15 +145,17 @@ function AffinityGroups({ groups, theme }) {
               <boxGeometry args={[Math.min(group.radius * 1.25, 4.4), 0.12, 0.46]} />
               <meshStandardMaterial color={plaqueColor} roughness={0.62} metalness={0.18} />
             </mesh>
-            <mesh position={[0, 0.23, 0.2]}>
-              <boxGeometry args={[0.34, 0.08, 0.08]} />
-              <meshStandardMaterial
-                color={color}
-                emissive={color}
-                emissiveIntensity={0.35}
-                toneMapped={false}
-              />
-            </mesh>
+            {detail.bulb ? (
+              <mesh position={[0, 0.23, 0.2]}>
+                <boxGeometry args={[0.34, 0.08, 0.08]} />
+                <meshStandardMaterial
+                  color={color}
+                  emissive={color}
+                  emissiveIntensity={0.35}
+                  toneMapped={false}
+                />
+              </mesh>
+            ) : null}
             <ItemLabel
               text={group.display}
               role="group"
@@ -784,7 +792,7 @@ export function FusedCompositeScene({ dsl, theme }) {
   return (
     <group>
       <WorldGround plan={plan} theme={theme} hasIslands={hasIslands} />
-      {lod !== 'low' ? <AffinityGroups groups={plan.groups ?? []} theme={theme} /> : null}
+      <AffinityGroups groups={plan.groups ?? []} theme={theme} lod={lod} />
       {plan.sites.map((site) => (
         <group key={site.id} position={site.position}>
           <FusedSite

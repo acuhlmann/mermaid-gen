@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
 import {
@@ -12,6 +14,10 @@ import {
 } from '../src/components/metaphorScenes/groupIdentity.js';
 import { cityDistrictLayout } from '../src/utils/metaphorLayouts/cityDistrictLayout.js';
 import { planFusedCompositeWorld } from '../src/components/metaphorScenes/fusedCompositePlanner.js';
+import {
+  COMPOSITE_LOD_TIERS,
+  affinityGroupDetail
+} from '../src/components/metaphorScenes/compositeLodDetail.js';
 import { srgbLuma } from '../src/utils/metaphorDaylightSurfaces.js';
 import { resolveMetaphorSceneTheme } from '../src/utils/metaphorSceneTheme.js';
 import { METAPHOR_THEME_PRESETS } from '../src/utils/metaphorThemePresets.js';
@@ -320,5 +326,129 @@ describe('cityDistrictLayout districtIndexOf', () => {
   it('covers every item', () => {
     const layout = cityDistrictLayout(items);
     expect([...layout.districtIndexOf.keys()].sort()).toEqual(items.map((i) => i.id).sort());
+  });
+});
+
+// The third place the same axis is decided, and the one that could delete it
+// outright. `tintByGroup` gives a territory its colour and `makeGroups` gives it
+// its ordinal; `affinityGroupDetail` decides whether it is drawn at all.
+//
+// It used to be decided in `FusedCompositeScene.jsx` as `lod !== 'low'`, next to
+// the shore foam and the pollen — so a 12-item world that crossed the cost bar
+// drew no territory ring, no placard and no flow pulse, and nothing anywhere
+// said so. Measured over 1,460 planned worlds: 1,279 carry a group and 465 of
+// them (36.4%) drew none of it.
+describe('affinity territories under LOD', () => {
+  /**
+   * The ledger's own case: 6 tree + 6 city, three shared nouns, 12 items —
+   * comfortably under `resolveLod`'s `itemCount > 18` bar and over its cost one.
+   */
+  const NOUNS = ['Memory', 'Appliance', 'Thought'];
+  const lodCaseDsl = (withGroups) => ({
+    metaphor: 'composite',
+    layout: 'fused',
+    seed: 'lod-territory-case',
+    novelty: 0.65,
+    motionIntensity: 0.7,
+    scene: {},
+    layers: ['tree', 'city'].map((as) => ({
+      id: `layer-${as}`,
+      as,
+      items: Array.from({ length: 6 }, (_, index) => ({
+        id: `${as}-${index}`,
+        label: `${as} ${index}`,
+        ...(as === 'tree' ? { weight: 7 } : { height: 12, footprint: 2.5 }),
+        ...(withGroups ? { district: NOUNS[index % NOUNS.length] } : {})
+      }))
+    })),
+    items: [],
+    links: []
+  });
+
+  it('reaches `low` on a 12-item world, so the tier is not hypothetical', () => {
+    const plan = planFusedCompositeWorld(lodCaseDsl(true));
+    expect(plan.lod).toBe('low');
+    expect(plan.groups.length).toBe(3);
+    // The loop this test exists because of: `estimatedCost` counts
+    // `groups.length`, so the third shared noun takes the world from 93 to 96,
+    // crosses the 95 bar, and the gate used to remove all three territories —
+    // the grouping paying for its own deletion. The cost term is not wrong;
+    // what was wrong is that a tier could delete meaning.
+    const ungrouped = planFusedCompositeWorld(lodCaseDsl(false));
+    expect(ungrouped.groups.length).toBe(0);
+    expect(plan.estimatedCost - ungrouped.estimatedCost).toBe(3);
+    expect(ungrouped.lod).toBe('medium');
+  });
+
+  it('states the group at every tier', () => {
+    // The contract. `low` may thin a territory and may never remove its
+    // identity band, its boundary or its name — those are the one claim a fused
+    // world makes across its layers.
+    expect(COMPOSITE_LOD_TIERS).toContain('low');
+    for (const lod of COMPOSITE_LOD_TIERS) {
+      const detail = affinityGroupDetail(lod);
+      expect(detail.band).toBe(true);
+      expect(detail.rim).toBe(true);
+      expect(detail.placard).toBe(true);
+      expect(detail.segments).toBeGreaterThanOrEqual(24);
+    }
+    // …and it has to actually be cheaper, or the tier is a lie.
+    const lean = affinityGroupDetail('low');
+    expect(lean.wash).toBe(false);
+    expect(lean.bulb).toBe(false);
+    expect(lean.segments).toBeLessThan(affinityGroupDetail('high').segments);
+  });
+
+  it('drops the weakest layer of the territory, not the thinnest one', () => {
+    // Why the interior wash is what `low` loses. Each layer composited over the
+    // surface it is drawn on at its own alpha — camera-free, so not exposed to
+    // the projection trap — and read as perceived luma against that surface.
+    // The rim is a hairline and the wash is ~52% of the territory's fragments,
+    // so the cheap instinct is to drop the rim; on noir over water that would
+    // leave 0.0085 of separation where the rim carries 0.2989.
+    for (const [name, theme] of Object.entries(METAPHOR_THEME_PRESETS)) {
+      const plateBase = resolveGroupPlateBase(theme);
+      for (const surfaceKey of ['waterColor', 'groundColor']) {
+        const surface = theme[surfaceKey];
+        if (!surface) continue;
+        const surfaceLuma = srgbLuma(surface);
+        const over = (hex, alpha) => {
+          const fg = new THREE.Color(hex);
+          const bg = new THREE.Color(surface);
+          return srgbLuma(
+            `#${new THREE.Color(
+              fg.r * alpha + bg.r * (1 - alpha),
+              fg.g * alpha + bg.g * (1 - alpha),
+              fg.b * alpha + bg.b * (1 - alpha)
+            ).getHexString()}`
+          );
+        };
+        const rim = Math.abs(over(theme.labelColor, 0.22) - surfaceLuma);
+        for (let index = 0; index < 4; index += 1) {
+          const color = tintByGroup(plateBase, index, GROUP_TINT_PLATE);
+          const wash = Math.abs(over(color, 0.1) - surfaceLuma);
+          const band = Math.abs(over(color, 0.2) - surfaceLuma);
+          // The dropped layer is the weakest one, everywhere.
+          const where = `${name}/${surfaceKey}/group ${index}`;
+          expect({ where, weakest: wash < band && wash < rim }).toEqual({ where, weakest: true });
+        }
+      }
+    }
+  });
+
+  it('never gates the territory on LOD at the render site', () => {
+    // The defect was one conditional in the scene, and the module above cannot
+    // stop it coming back — a future `lod !== 'low'` around `<AffinityGroups>`
+    // would pass every assertion in this file. Read where it is drawn.
+    const source = readFileSync(
+      fileURLToPath(
+        new URL('../src/components/metaphorScenes/FusedCompositeScene.jsx', import.meta.url)
+      ),
+      'utf8'
+    );
+    const mount = source.match(/^.*<AffinityGroups[^]*?\/>.*$/m)?.[0] ?? '';
+    expect(mount).toContain('lod={lod}');
+    expect(mount).not.toMatch(/lod\s*!==\s*'low'/);
+    expect(mount).not.toMatch(/lod\s*===\s*'low'/);
   });
 });
