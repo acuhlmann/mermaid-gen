@@ -151,7 +151,13 @@ function createCanvas2dContextStub() {
               );
             }
             for (let i = 0; i < required; i += 1) {
-              if (!Number.isFinite(args[i])) {
+              // WebIDL converts a `double` parameter with ToNumber *before*
+              // testing finiteness, so Chromium accepts `'100'` — which is what
+              // a DOM read such as `canvas.getAttribute('width')` hands back —
+              // and rejects only `undefined`, `NaN`, `Infinity` and the like.
+              // Testing `Number.isFinite` on the raw argument rejected every
+              // numeric string, inventing the one thing this stub must not.
+              if (!Number.isFinite(Number(args[i]))) {
                 throw new TypeError(
                   `Failed to execute '${String(prop)}' on 'CanvasRenderingContext2D': The provided double value is non-finite.`
                 );
