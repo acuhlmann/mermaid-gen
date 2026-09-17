@@ -196,6 +196,32 @@ test('runtime sandbox integration', { concurrency: false }, async (t) => {
     assert.equal(result.ok, true, JSON.stringify(result));
   });
 
+  await t.test(
+    'jsdom keeps createLinearGradient coordinates a browser coerces to a number',
+    async () => {
+      // WebIDL converts a `double` parameter with ToNumber before deciding
+      // whether it is finite, so Chromium accepts the string a DOM read hands
+      // back: `canvas.getAttribute('width')` is `"100"`, not `100`. Measured on
+      // this exact page — browser `ok: true`, jsdom `runtime_error: "The
+      // provided double value is non-finite."` — which is the invented rejection
+      // the stub's own contract in `anythingRuntimeSandbox.js` forbids, and it
+      // costs a 12-60 s repair turn on a page that was never broken.
+      const result = await runAnythingRuntimeCheck(
+        doc(
+          `<canvas id="c" width="100" height="80"></canvas>
+         <script>
+           const canvas = document.getElementById('c');
+           const ctx = canvas.getContext('2d');
+           const grad = ctx.createLinearGradient(0, 0, canvas.getAttribute('width'), 0);
+           grad.addColorStop(0, '#000');
+         </script>`
+        ),
+        { env: { ANYTHING_RUNTIME_ENGINE: 'jsdom' } }
+      );
+      assert.equal(result.ok, true, JSON.stringify(result));
+    }
+  );
+
   await t.test("jsdom keeps arc's optional counterclockwise argument", async () => {
     // The arity guard above reproduces Chromium's rejection of a rect-shaped
     // object, and `arc` is the method where an exact count is the wrong shape
