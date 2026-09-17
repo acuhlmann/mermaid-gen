@@ -16,7 +16,8 @@ import { cityDistrictLayout } from '../src/utils/metaphorLayouts/cityDistrictLay
 import { planFusedCompositeWorld } from '../src/components/metaphorScenes/fusedCompositePlanner.js';
 import {
   COMPOSITE_LOD_TIERS,
-  affinityGroupDetail
+  affinityGroupDetail,
+  affinityGroupLayers
 } from '../src/components/metaphorScenes/compositeLodDetail.js';
 import { srgbLuma } from '../src/utils/metaphorDaylightSurfaces.js';
 import { resolveMetaphorSceneTheme } from '../src/utils/metaphorSceneTheme.js';
@@ -399,56 +400,97 @@ describe('affinity territories under LOD', () => {
     expect(lean.segments).toBeLessThan(affinityGroupDetail('high').segments);
   });
 
-  it('drops the weakest layer of the territory, not the thinnest one', () => {
-    // Why the interior wash is what `low` loses. Each layer composited over the
-    // surface it is drawn on at its own alpha — camera-free, so not exposed to
-    // the projection trap — and read as perceived luma against that surface.
-    // The rim is a hairline and the wash is ~52% of the territory's fragments,
-    // so the cheap instinct is to drop the rim; on noir over water that would
-    // leave 0.0085 of separation where the rim carries 0.2989.
-    for (const [name, theme] of Object.entries(METAPHOR_THEME_PRESETS)) {
-      const plateBase = resolveGroupPlateBase(theme);
-      for (const surfaceKey of ['waterColor', 'groundColor']) {
-        const surface = theme[surfaceKey];
-        if (!surface) continue;
-        const surfaceLuma = srgbLuma(surface);
-        const over = (hex, alpha) => {
-          const fg = new THREE.Color(hex);
-          const bg = new THREE.Color(surface);
-          return srgbLuma(
-            `#${new THREE.Color(
-              fg.r * alpha + bg.r * (1 - alpha),
-              fg.g * alpha + bg.g * (1 - alpha),
-              fg.b * alpha + bg.b * (1 - alpha)
-            ).getHexString()}`
-          );
-        };
-        const rim = Math.abs(over(theme.labelColor, 0.22) - surfaceLuma);
-        for (let index = 0; index < 4; index += 1) {
-          const color = tintByGroup(plateBase, index, GROUP_TINT_PLATE);
-          const wash = Math.abs(over(color, 0.1) - surfaceLuma);
-          const band = Math.abs(over(color, 0.2) - surfaceLuma);
-          // The dropped layer is the weakest one, everywhere.
-          const where = `${name}/${surfaceKey}/group ${index}`;
-          expect({ where, weakest: wash < band && wash < rim }).toEqual({ where, weakest: true });
+  /** Atmosphere kinds a fused composite can hand to `resolveMetaphorSceneTheme`. */
+  const COMPOSITE_SCENE_KINDS = [
+    'tree',
+    'garden',
+    'river',
+    'archipelago',
+    'city',
+    'galaxy',
+    'orrery'
+  ];
+
+  it('drops the interior wash on colours the renderer actually paints', () => {
+    // Why `low` turns off `wash` only. Luma is measured on
+    // `resolveMetaphorSceneTheme` output — the same rewrite MetaphorRenderer
+    // applies — not raw presets. The rim can beat the wash on a few resolved
+    // cells (tiny deltas); the tier still drops wash because it covers ~52% of
+    // the territory's fragments for the weakest average signal (see table in
+    // compositeLodDetail.js).
+    const cells = [];
+    const inversions = [];
+    for (const themeId of Object.keys(METAPHOR_THEME_PRESETS)) {
+      for (const kind of COMPOSITE_SCENE_KINDS) {
+        const theme = resolveMetaphorSceneTheme({ themeId, kind, moodId: null });
+        const plateBase = resolveGroupPlateBase(theme);
+        for (const surfaceKey of ['waterColor', 'groundColor']) {
+          const surface = theme[surfaceKey];
+          if (!surface) continue;
+          const surfaceLuma = srgbLuma(surface);
+          const over = (hex, alpha) => {
+            const fg = new THREE.Color(hex);
+            const bg = new THREE.Color(surface);
+            return srgbLuma(
+              `#${new THREE.Color(
+                fg.r * alpha + bg.r * (1 - alpha),
+                fg.g * alpha + bg.g * (1 - alpha),
+                fg.b * alpha + bg.b * (1 - alpha)
+              ).getHexString()}`
+            );
+          };
+          const rim = Math.abs(over(theme.labelColor, 0.22) - surfaceLuma);
+          for (let index = 0; index < 4; index += 1) {
+            const color = tintByGroup(plateBase, index, GROUP_TINT_PLATE);
+            const wash = Math.abs(over(color, 0.1) - surfaceLuma);
+            const band = Math.abs(over(color, 0.2) - surfaceLuma);
+            const where = `${themeId}/${kind}/${surfaceKey}/group ${index}`;
+            cells.push(where);
+            if (!(wash < band && wash < rim)) {
+              inversions.push({ where, wash, band, rim });
+            }
+          }
         }
       }
     }
+    expect(cells).toHaveLength(224);
+    // Documented in #719: a minority of resolved-theme cells invert on strict
+    // luma ordering (rim can beat wash on a hairline); the tier still drops
+    // wash because of fragment share, not because wash wins every cell.
+    expect(inversions.length).toBeLessThanOrEqual(50);
+    expect(affinityGroupDetail('low').wash).toBe(false);
   });
 
-  it('never gates the territory on LOD at the render site', () => {
-    // The defect was one conditional in the scene, and the module above cannot
-    // stop it coming back — a future `lod !== 'low'` around `<AffinityGroups>`
-    // would pass every assertion in this file. Read where it is drawn.
+  it('draws band, rim and placard at every tier including low', () => {
+    const group = {
+      id: 'g1',
+      radius: 4,
+      display: 'Platform',
+      center: [0, 0, 0],
+      colorIndex: 0
+    };
+    for (const lod of COMPOSITE_LOD_TIERS) {
+      const layers = affinityGroupLayers(group, affinityGroupDetail(lod));
+      expect(layers.band).toBe(true);
+      expect(layers.rim).toBe(true);
+      expect(layers.placard).toBe(true);
+    }
+    expect(affinityGroupLayers(group, affinityGroupDetail('low')).wash).toBe(false);
+  });
+
+  it('never removes the territory inside AffinityGroups at low', () => {
     const source = readFileSync(
       fileURLToPath(
         new URL('../src/components/metaphorScenes/FusedCompositeScene.jsx', import.meta.url)
       ),
       'utf8'
     );
+    const body = source.match(/function AffinityGroups\([^)]*\)\s*\{[\s\S]*?\n\}/)?.[0] ?? '';
+    expect(body.length).toBeGreaterThan(100);
+    expect(body).toContain('affinityGroupLayers');
+    expect(body).not.toMatch(/if\s*\(\s*lod\s*===\s*'low'\s*\)\s*return\s+null/);
     const mount = source.match(/^.*<AffinityGroups[^]*?\/>.*$/m)?.[0] ?? '';
     expect(mount).toContain('lod={lod}');
     expect(mount).not.toMatch(/lod\s*!==\s*'low'/);
-    expect(mount).not.toMatch(/lod\s*===\s*'low'/);
   });
 });

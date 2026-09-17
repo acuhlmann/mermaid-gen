@@ -42,7 +42,7 @@
  * ocean cases with no visible territory at all, which is where they started.
  *
  * The band, the rim and the placard are content. Nothing in this table may turn
- * them off — `metaphorGroupPlacards.test.js` sweeps every tier for exactly that.
+ * them off — `metaphorGroupIdentity.test.js` sweeps every tier for exactly that.
  */
 
 /** Every tier `resolveLod` can return, in cost order. */
@@ -75,4 +75,19 @@ const LEAN = Object.freeze({
  */
 export function affinityGroupDetail(lod) {
   return lod === 'low' ? LEAN : FULL;
+}
+
+/**
+ * Which affinity-territory layers the renderer may draw for one group at this
+ * tier. Pure so tests can enforce the #715 contract without grepping JSX.
+ */
+export function affinityGroupLayers(_group, detail) {
+  return {
+    wash: Boolean(detail?.wash),
+    band: Boolean(detail?.band),
+    rim: Boolean(detail?.rim),
+    placard: Boolean(detail?.placard),
+    bulb: Boolean(detail?.bulb),
+    segments: detail?.segments ?? 24
+  };
 }
