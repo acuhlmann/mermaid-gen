@@ -123,8 +123,12 @@ ones that will bite an edit.
   clear of the panel means no lean means back under the panel. **Return zero when the head is
   clear**, so every cell that reads today renders byte-identically and the change is measurable at
   all. And the cap is an honest bound rather than a tuning knob: 38° off an 80 px stem is 63 px of
-  travel, every unrescued head position in a 225k-position sweep needs **66–69 px**, and a head
-  buried deeper than that keeps its vertical rod instead of tilting for a picture that is no better.
+  travel, and every position the sweep still leaves covered needs **66–69 px** — more than the cap
+  can spend on a move that clears. Those cells do not all stay vertical: `PARTIAL_GAIN` in
+  `accentRodLean.js` accepts a **capped** lean that still leaves cover when it buys at least 15% of
+  the overlap back (measured: 30 of 392 covered head positions on a full-width top band). When even
+  that partial relief fails the bar, the rod stays vertical — a tilt that is still behind the card
+  has spent the marker's one unambiguous property for nothing.
 - **A bigger headroom reservation was the other candidate, and the sweep is what rejected it.**
   Since the rod became screen-constant its height is a pixel CONSTANT, so it could honestly be
   reserved without the feedback loop that took it out of the fit in the first place (a world-sized
@@ -975,10 +979,11 @@ destroyed, most likely because of a navigation` — which reads like a browser o
     to at most 101 px, inside the 65–116 px that read well and far short of the 168 px that ran off
     the canvas.
   - **The bound is real and should be stated, not hidden.** A leader line can lean 38°; it cannot
-    walk the width of a panel. Every position the sweep leaves covered needs **66–69 px** of travel
-    against the 63 px cap, and for those the rod stays vertical — a tilted marker that is still
-    behind the card has spent the one unambiguous thing about it for nothing. Those cells are a
-    camera question (see the headroom trade above), not a geometry one.
+    walk the width of a panel. Positions the sweep still leaves covered need **66–69 px** of travel
+    against the 63 px cap — more than a clearing move can afford — so the residual is either a
+    capped partial lean (`PARTIAL_GAIN`) that still leaves some cover, or no lean at all when even
+    partial relief fails the bar. Those cells are a camera question (see the headroom trade above),
+    not a geometry one.
 
 - **A scene's categorical grouping axis was drawn as a placard and nothing else, and a placard is
   the first thing a small screen throws away.** `district`, `bed`, `chain`, a fused world's

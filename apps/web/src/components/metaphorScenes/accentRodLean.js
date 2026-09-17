@@ -25,7 +25,7 @@
  *   height could honestly be reserved without the feedback loop that made
  *   #593 take the rod out of the fit (a WORLD-sized marker grows when the camera
  *   retreats, which pushes the camera further; a pixel constant does not). But
- *   the bill lands on every accented scene: 110 px of a 512 px cover is 21% of
+ *   the bill lands on every accented scene: 102 px of a 512 px cover is 20% of
  *   the height, clamped by `MAX_HEADROOM` to 10%, against a collision that a
  *   16-kind sweep at three viewports finds in a minority of cells. A global tax
  *   to fix a local collision is the wrong trade, and the sweep is what says so.
