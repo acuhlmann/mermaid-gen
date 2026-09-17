@@ -43,8 +43,6 @@ const LADDER_TABLE_FILES = [
 
 /** Root docs that state how many jobs fire on the night ladder — must match unpaused rung count. */
 const LADDER_JOB_COUNT_FILES = ['AGENTS.md', 'CLAUDE.md'];
-/** Real root docs spell the count as an English word (`Eight jobs run between`), not a digit. */
-const LADDER_JOB_COUNT_RE = /(\d+|[A-Za-z]+) jobs run between/gi;
 
 /** @type {Record<string, number>} */
 const JOB_COUNT_WORDS = {
@@ -62,6 +60,12 @@ const JOB_COUNT_WORDS = {
   eleven: 11,
   twelve: 12
 };
+
+/** Real root docs spell the count as an English word (`Eight jobs run between`), not a digit. */
+const LADDER_JOB_COUNT_RE = new RegExp(
+  `(\\d+|${Object.keys(JOB_COUNT_WORDS).join('|')}) jobs run between`,
+  'gi'
+);
 
 /**
  * @param {string} token digit or English word from ladder prose
@@ -438,13 +442,16 @@ export function verifyNightLadder(root) {
     }
   }
 
-  let jobCountMatches = 0;
   for (const rel of LADDER_JOB_COUNT_FILES) {
     const abs = path.join(root, rel);
-    if (!fs.existsSync(abs)) continue;
+    if (!fs.existsSync(abs)) {
+      errors.push(`${rel} — no "… jobs run between" ladder count found`);
+      continue;
+    }
     const markdown = fs.readFileSync(abs, 'utf8');
+    let fileMatches = 0;
     for (const match of markdown.matchAll(LADDER_JOB_COUNT_RE)) {
-      jobCountMatches++;
+      fileMatches++;
       const stated = parseLadderJobCountToken(match[1]);
       if (stated === null) {
         errors.push(
@@ -459,12 +466,9 @@ export function verifyNightLadder(root) {
         );
       }
     }
-  }
-  if (jobCountMatches === 0) {
-    errors.push(
-      `${LADDER_JOB_COUNT_FILES.join(', ')} — no "… jobs run between" ladder count found; ` +
-        'the job-count sensor had nothing to check'
-    );
+    if (fileMatches === 0) {
+      errors.push(`${rel} — no "… jobs run between" ladder count found`);
+    }
   }
 
   return {
