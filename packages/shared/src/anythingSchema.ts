@@ -36,6 +36,24 @@ export const ANYTHING_IFRAME_CSP =
 export const ANYTHING_RUNTIME_ERROR_MESSAGE_TYPE = 'archislop:anything-runtime-error';
 
 /**
+ * Messages Chromium (and other browsers) dispatch on `window` as a genuine
+ * `error` event that are not page defects — they describe a browser-internal
+ * accounting quirk, not a thrown exception (no stack, often no line/col). A
+ * page observing its own container with `ResizeObserver` and resizing
+ * something in response — an entirely correct, common pattern for a canvas or
+ * responsive layout — can trip this even when the callback is idempotent,
+ * because the spec's loop-limit guard fires on frame timing, not on whether
+ * the page did anything wrong. Widely treated as ignorable elsewhere (Cypress'
+ * `uncaught:exception` docs list it as the standard recipe); reporting it here
+ * would show a live page a spurious error banner and burn a repair turn on
+ * nothing.
+ */
+const BENIGN_ANYTHING_RUNTIME_ERROR_MESSAGES = [
+  'ResizeObserver loop limit exceeded',
+  'ResizeObserver loop completed with undelivered notifications.'
+];
+
+/**
  * Error-capture harness injected into the document at wrap time — AFTER
  * validation, so the policy lint's ban on `window.parent` in agent-authored
  * code never sees it. Runs before any page script (it is inserted at the top
@@ -50,6 +68,7 @@ const ANYTHING_RUNTIME_ERROR_BRIDGE = `<script>(function () {
   var MAX_REPORTS = 12;
   var sent = 0;
   var seen = {};
+  var BENIGN = ${JSON.stringify(BENIGN_ANYTHING_RUNTIME_ERROR_MESSAGES)};
   function report(kind, message, detail) {
     message = String(message || 'Unknown error').slice(0, 500);
     if (sent >= MAX_REPORTS || seen[message]) return;
@@ -67,6 +86,7 @@ const ANYTHING_RUNTIME_ERROR_BRIDGE = `<script>(function () {
   }
   window.addEventListener('error', function (ev) {
     if (!ev || !ev.message) return;
+    if (BENIGN.indexOf(ev.message) !== -1) return;
     report('error', ev.message, ev.lineno ? 'line ' + ev.lineno + ':' + (ev.colno || 0) : null);
   });
   window.addEventListener('unhandledrejection', function (ev) {

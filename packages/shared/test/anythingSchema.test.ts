@@ -99,3 +99,14 @@ test('runtime-error bridge is injected into bare fragments too', () => {
   const wrapped = wrapAnythingSrcDoc('<p>fragment</p>');
   assert.ok(wrapped.includes(ANYTHING_RUNTIME_ERROR_MESSAGE_TYPE));
 });
+
+test('runtime-error bridge filters the benign ResizeObserver loop messages', () => {
+  const wrapped = wrapAnythingSrcDoc(HELLO_DOC);
+  // The browser dispatches these as a genuine `error` event with no stack —
+  // a frame-timing accounting quirk, not a page defect — so the bridge must
+  // recognize and skip them before ever calling report(), or a page using
+  // ResizeObserver correctly shows a spurious error banner in production.
+  assert.match(wrapped, /ResizeObserver loop limit exceeded/);
+  assert.match(wrapped, /ResizeObserver loop completed with undelivered notifications\./);
+  assert.match(wrapped, /BENIGN\.indexOf\(ev\.message\) !== -1/);
+});
