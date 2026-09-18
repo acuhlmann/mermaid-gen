@@ -416,6 +416,19 @@ https://api.deepseek.com/` — 401 is reachable, 000 is blocked); never route ar
   `/api/office/moment` calls, because nobody in the room had a fact about you yet. Before adding a
   "the office feels canned here" finding, check which side of the gate it is on — a missing call is
   usually a missing **fact**, not a missing cap.
+- **The option that asks for a beat is passed per verb, so a verb that forgets it is silent and
+  green.** `recordWorkingMemoryIfAsked` in `apps/web/src/utils/officeMomentDelivery.js` writes
+  nothing unless its caller set `recordWorkingMemory: true` — correct, because the ambient director
+  must never write there (ADR-0010) — but the flag then lives at each call site, and
+  `useDeskActions.emailSomeone` was missing it on **both** rungs of its ladder for the whole life
+  of the feature. The email arrived, the office log carried the subject, every suite stayed green,
+  and the only symptom was that composing three paragraphs to a named colleague left them a
+  stranger to `hasWorkingMemoryFact`. **Enumerate the verbs, not the writers**: the rule is that
+  every verb handing one named colleague a sentence the user typed records, and the way to check it
+  is to grep the call sites for the flag rather than to read the delivery module, which looks
+  complete from the inside. A beat's quoting also depends on the channel — `medium: 'email'`
+  (`OFFICE_WORKING_MEMORY_MEDIUMS`) swaps `you said:` for `you emailed them:`, because the office
+  voices no email anywhere else and a memory that says otherwise invents a conversation.
 - **Office speech nests, so any DOM scrape of it must keep the innermost match.** A spoken surface
   (`office-floor-dwell-line` and its siblings) wraps a `.office-floor-bubble-name` and a
   `.office-floor-bubble-body`, so its own `textContent` welds the two into a sentence nobody said
@@ -1120,6 +1133,27 @@ y)`, so the obvious sweep silently iterates an empty list; and pacing the exchan
   turn for home, so a writer keyed on the trip _object_ files the same collision twice. Spend is
   unchanged in the worst case (`OFFICE_DWELL_LLM_CAP` is 3 per visit and no new counter was added);
   what changed is that the cap is now reachable at all.
+- **A shared writer with a per-caller opt-in has a failure mode no test of the writer can find.**
+  `recordWorkingMemoryIfAsked` is one function that four delivery branches call and every caller
+  opts into, which is right: the ambient director must never write a beat, and a flag is how that
+  stays true without the delivery module knowing who is calling. The cost is that the invariant
+  ("a verb that hands one named colleague a sentence the user typed leaves a mark") is no longer
+  stated anywhere a checker can see — it is distributed across call sites, and
+  `useDeskActions.emailSomeone` simply never had it. Both of its rungs were affected, so no
+  backend state revealed it: offline and online alike, you could write somebody a subject line and
+  three paragraphs, read their reply, walk to their desk and have `hasWorkingMemoryFact` answer
+  false. The generalisable search is the one the dwell-gate finding already named in a different
+  hat — **when a rule lives in prose, grep the call sites rather than reading the implementation**;
+  here the implementation is complete and correct, and what is missing is four characters at a use
+  site. Two details worth keeping. The beat records the **filled** reply, not the template, because
+  a memory quoting `{userName}` is a memory of a sentence nobody read. And the beat carries
+  `medium: 'email'` — an enum in the storage module beside `OFFICE_WORKING_MEMORY_INTERRUPTIONS`,
+  rendered to a sentence in `workingMemoryPromptLines` beside `you said:` — because email is the one
+  channel the office refuses to voice (`isSpokenLine`, no talk surface), and a later prompt told
+  `you said: <a subject line>` is being handed a conversation that did not happen, which is the
+  fabrication the situation rule was measured on arriving through memory instead. The absent medium
+  is the spoken default rather than a second enum member, so every beat written before this one
+  reads exactly as it did.
 - **The office's memory is invisible from the outside, and an instrument that only reads the DOM
   will report that a memory slice changed nothing.** Working memory, the log digest and the
   relationship projection are the whole point of the _afterwards_ axis — they decide what the

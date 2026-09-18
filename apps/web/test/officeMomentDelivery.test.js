@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { deliverLlmMoment } from '../src/utils/officeMomentDelivery.js';
+import { deliverCannedMoment, deliverLlmMoment } from '../src/utils/officeMomentDelivery.js';
 import { _resetForTests, getOfficeSnapshot } from '../src/state/officeMomentStore.js';
 import { _resetOfficeLogForTests, recordOfficeLogEntry } from '../src/state/officeLogStore.js';
 
@@ -245,6 +245,104 @@ describe('deliverLlmMoment carries a pitch to every surface', () => {
       true
     );
     expect(getOfficeSnapshot().walkBy.actionPrompt).toBeUndefined();
+    _resetOfficeWorkingMemoryForTests();
+  });
+});
+
+/**
+ * The reply branches are three copies of one shape, and the email one was a
+ * copy with a line missing. Nothing could see it: the email still arrived, the
+ * office log still carried the subject, and the only symptom was a colleague
+ * who had no memory of the longest sentence the user had typed at anybody all
+ * day — which reads as the office being canned rather than as a beat not
+ * written.
+ */
+describe('an emailed exchange is a fact about the two of you', () => {
+  it('writes the beat from the canned bank, tagged as writing', async () => {
+    const { _resetOfficeWorkingMemoryForTests, hasWorkingMemoryFact, workingMemoryPromptLines } =
+      await import('../src/state/officeWorkingMemoryStore.js');
+    _resetOfficeWorkingMemoryForTests();
+
+    const delivered = deliverCannedMoment('email', CTX, {
+      memory: memory(),
+      colleagueId: 'jared',
+      recordWorkingMemory: true,
+      replyContext: { colleagueId: 'jared', userMessage: 'does billing read the ledger?' }
+    });
+
+    expect(delivered).toBe(true);
+    // The gate `remarkTo` deals a dwell line from: false here is the whole
+    // difference between walking over to somebody who knows you and walking
+    // over to a stranger.
+    expect(hasWorkingMemoryFact('jared')).toBe(true);
+    const lines = workingMemoryPromptLines('jared');
+    expect(lines).toContain('you emailed them: does billing read the ledger?');
+    // The *filled* reply, not the template: a beat quoting `{userName}` back at
+    // the model is a memory of a sentence nobody read.
+    expect(lines.some((line) => line.startsWith('they wrote back:'))).toBe(true);
+    expect(String(lines)).not.toContain('{');
+    _resetOfficeWorkingMemoryForTests();
+  });
+
+  it('writes nothing at all when the caller did not ask', async () => {
+    // The ambient director never passes the flag, and an inbox filling itself
+    // on a timer is not something anybody did to anybody (ADR-0010).
+    const { _resetOfficeWorkingMemoryForTests, hasWorkingMemoryFact } =
+      await import('../src/state/officeWorkingMemoryStore.js');
+    _resetOfficeWorkingMemoryForTests();
+
+    deliverCannedMoment('email', CTX, {
+      memory: memory(),
+      colleagueId: 'jared',
+      replyContext: { colleagueId: 'jared', userMessage: 'does billing read the ledger?' }
+    });
+
+    expect(hasWorkingMemoryFact('jared')).toBe(false);
+    _resetOfficeWorkingMemoryForTests();
+  });
+
+  it('tags the LLM rung the same way, so which one answered cannot change the memory', async () => {
+    const { _resetOfficeWorkingMemoryForTests, workingMemoryPromptLines } =
+      await import('../src/state/officeWorkingMemoryStore.js');
+    _resetOfficeWorkingMemoryForTests();
+    stubMoment({ subject: 'Re: Auth', body: 'Filed as a finding.' });
+
+    await deliverLlmMoment('email', CTX, {
+      memory: memory(),
+      colleagueId: 'jared',
+      recordWorkingMemory: true,
+      replyContext: { colleagueId: 'jared', userMessage: 'does billing read the ledger?' }
+    });
+
+    // The board fingerprint this rung also stamps leads the list; the quotes
+    // are the two lines after it.
+    expect(workingMemoryPromptLines('jared').slice(-2)).toEqual([
+      'you emailed them: does billing read the ledger?',
+      'they wrote back: Filed as a finding.'
+    ]);
+    _resetOfficeWorkingMemoryForTests();
+  });
+
+  it('leaves an IM beat spoken, which is what the medium is for', async () => {
+    // The invariance guard: every beat the office wrote before this slice is
+    // phrased exactly as it was, and only the channel the office itself
+    // refuses to voice reads differently.
+    const { _resetOfficeWorkingMemoryForTests, workingMemoryPromptLines } =
+      await import('../src/state/officeWorkingMemoryStore.js');
+    _resetOfficeWorkingMemoryForTests();
+    stubMoment({ body: 'no.' });
+
+    await deliverLlmMoment('im', CTX, {
+      memory: memory(),
+      colleagueId: 'jared',
+      recordWorkingMemory: true,
+      replyContext: { colleagueId: 'jared', userMessage: 'does billing read the ledger?' }
+    });
+
+    expect(workingMemoryPromptLines('jared').slice(-2)).toEqual([
+      'you said: does billing read the ledger?',
+      'they said: no.'
+    ]);
     _resetOfficeWorkingMemoryForTests();
   });
 });

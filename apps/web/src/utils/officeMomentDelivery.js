@@ -112,7 +112,7 @@ function markFired(memory, templateId, onFired) {
  * @param {{ recordWorkingMemory?: boolean }} options
  * @param {string} colleagueId
  * @param {ReturnType<typeof readSlotContext>} ctx
- * @param {{ theirs?: string, yours?: string, pitchTaken?: boolean }} beat
+ * @param {{ theirs?: string, yours?: string, pitchTaken?: boolean, medium?: 'email' }} beat
  */
 function recordWorkingMemoryIfAsked(options, colleagueId, ctx, beat) {
   if (!options?.recordWorkingMemory || !colleagueId) return;
@@ -156,16 +156,33 @@ export function deliverCannedMoment(kind, ctx, options) {
         random
       );
       if (!template) return false;
+      const body = fillOfficeSlots(template.body, {
+        ...slots,
+        snippet: userMessage.slice(0, 80)
+      });
       pushOfficeEmail({
         colleagueId: targetId,
         subject: fillOfficeSlots(template.subject, slots),
-        body: fillOfficeSlots(template.body, {
-          ...slots,
-          snippet: userMessage.slice(0, 80)
-        }),
+        body,
         ...(template.actionPrompt ? { actionPrompt: template.actionPrompt } : {})
       });
       remember(userMessage);
+      /*
+       * The same beat the `im` and `walkby` reply branches below have always
+       * written, and the only one of the three that was missing. An email is
+       * the longest, most deliberate sentence the user ever hands one named
+       * colleague, and until this it left that colleague with no memory of it
+       * at all — the ambient branch under this `if` correctly writes nothing,
+       * and the reply branch had quietly inherited its silence.
+       *
+       * The *filled* body, like every other branch here: a beat quoting
+       * `{userName}` back at the model is a memory of a sentence nobody read.
+       */
+      recordWorkingMemoryIfAsked(options, targetId, ctx, {
+        theirs: body,
+        yours: userMessage,
+        medium: 'email'
+      });
       markFired(memory, template.id, onFired);
       return true;
     }
@@ -173,10 +190,11 @@ export function deliverCannedMoment(kind, ctx, options) {
     const bank = senior ? seniorEmailTemplates() : officeEmailTemplates();
     const template = pickUnseenTemplate(bank, memory.seenTemplateIds, random);
     if (!template) return false;
+    const cold = fillOfficeSlots(template.body, slots);
     pushOfficeEmail({
       colleagueId: template.colleagueId,
       subject: fillOfficeSlots(template.subject, slots),
-      body: fillOfficeSlots(template.body, slots),
+      body: cold,
       ...(template.actionPrompt ? { actionPrompt: template.actionPrompt } : {}),
       // Set-piece markers (§10.1 training, §10.2 phishing, slice 26 errand)
       // ride along with the template so the bank stays the single place a set
@@ -186,6 +204,18 @@ export function deliverCannedMoment(kind, ctx, options) {
       ...(template.errand ? { errand: template.errand } : {})
     });
     remember(template.subject);
+    /*
+     * Reached only when a caller asked, which the ambient director never does
+     * — it is here so the two rungs of one verb's ladder cannot disagree about
+     * whether an exchange happened. The LLM rung above records `theirs` for a
+     * mail you sent with nothing in it; without this line the canned rung
+     * silently would not, and which of the two you got would depend on whether
+     * a backend was reachable.
+     */
+    recordWorkingMemoryIfAsked(options, template.colleagueId, ctx, {
+      theirs: cold,
+      medium: 'email'
+    });
     markFired(memory, template.id, onFired);
     return true;
   }
@@ -515,7 +545,11 @@ export async function deliverLlmMoment(kind, ctx, options) {
     }
     recordWorkingMemoryIfAsked(options, colleagueId, ctx, {
       theirs: moment.body,
-      yours: userMessage || undefined
+      yours: userMessage || undefined,
+      // Set from `kind` rather than from the caller: the two email call sites
+      // (this one and the canned branch) must not be able to disagree about
+      // whether the exchange was speech.
+      ...(kind === 'email' ? { medium: 'email' } : {})
     });
     onRemember?.(moment.body);
     markFired(memory, null, onFired);

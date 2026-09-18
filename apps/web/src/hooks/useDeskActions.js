@@ -591,6 +591,17 @@ export function useDeskActions(params) {
   /**
    * Email someone directly — their reply lands in your inbox. Pass subject/body
    * so the LLM (or canned bank) can respond in character.
+   *
+   * **`recordWorkingMemory` is not decoration here, and its absence was the
+   * bug.** Every other verb that hands a named colleague a sentence the user
+   * typed — `imSomeone`, `talkOutLoud`, `remarkTo`, all of them through
+   * `deliverImReply` — passes it, and this one never did. So you could write
+   * somebody a subject line and three paragraphs, read their reply, walk over
+   * to their desk, and be a stranger: `hasWorkingMemoryFact` was false, which
+   * is the ceiling `remarkTo` deals a dwell line from, and
+   * `workingMemoryPromptLines` had nothing to tell the next prompt about an
+   * exchange you had both just had. It records only — nothing here schedules a
+   * moment (ADR-0010), exactly as the interruption beat does not.
    */
   const emailSomeone = useCallback(
     (colleagueId, { subject = '', body = '' } = {}) =>
@@ -618,6 +629,7 @@ export function useDeskActions(params) {
               onLlmSpent: () => {
                 deskLlmCountRef.current += 1;
               },
+              recordWorkingMemory: true,
               ...replyOpts
             })
           );
@@ -626,7 +638,7 @@ export function useDeskActions(params) {
           delivered = deliverCannedMoment(
             'email',
             ctx,
-            deliveryOptions({ colleagueId: target, ...replyOpts })
+            deliveryOptions({ colleagueId: target, recordWorkingMemory: true, ...replyOpts })
           );
         }
         return delivered;

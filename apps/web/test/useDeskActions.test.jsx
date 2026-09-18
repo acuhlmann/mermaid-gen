@@ -17,7 +17,9 @@ import {
 } from '../src/state/officeMomentStore.js';
 import {
   _resetOfficeWorkingMemoryForTests,
-  stampWorkingMemoryBoard
+  hasWorkingMemoryFact,
+  stampWorkingMemoryBoard,
+  workingMemoryPromptLines
 } from '../src/state/officeWorkingMemoryStore.js';
 import { isSpokenLine } from '../src/utils/officeImThreads.js';
 
@@ -264,6 +266,36 @@ describe('useDeskActions', () => {
     const email = getOfficeSnapshot().emails[0];
     expect(email).toBeTruthy();
     expect(email.body.toLowerCase()).toContain('spicy');
+  });
+
+  it('remembers the exchange, so emailing somebody is not being a stranger to them', async () => {
+    /*
+     * The end of the chain, and the reason it is asserted at the hook and not
+     * only at the delivery seam: `emailSomeone` was the one verb that hands a
+     * named colleague a sentence the user typed and did not pass
+     * `recordWorkingMemory`, so both rungs of its ladder wrote the beat and
+     * neither was ever asked to. You could write somebody three paragraphs,
+     * read their reply, walk to their desk and be nobody.
+     */
+    const { result } = renderHook(() => useDeskActions(BASE_PARAMS));
+    expect(hasWorkingMemoryFact('intern')).toBe(false);
+
+    await act(async () => {
+      await result.current.emailSomeone('intern', {
+        subject: 'quick question',
+        body: 'is this diagram too spicy?'
+      });
+    });
+
+    // The gate `remarkTo` picks a dwell ceiling with — false here is what put
+    // the deck in front of somebody you had just been corresponding with.
+    expect(hasWorkingMemoryFact('intern')).toBe(true);
+    const lines = workingMemoryPromptLines('intern');
+    expect(lines.some((line) => line.includes('is this diagram too spicy?'))).toBe(true);
+    // Written, not said: the office voices no email, so memory must not put one
+    // in anybody's mouth.
+    expect(lines.some((line) => line.startsWith('you emailed them:'))).toBe(true);
+    expect(String(lines)).not.toContain('you said:');
   });
 
   it('tells the model why a dwell remark is happening, and only that verb', async () => {

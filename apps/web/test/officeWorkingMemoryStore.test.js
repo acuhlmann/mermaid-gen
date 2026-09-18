@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import {
   OFFICE_WORKING_MEMORY_BEAT_CAP,
   OFFICE_WORKING_MEMORY_INTERRUPTIONS,
+  OFFICE_WORKING_MEMORY_MEDIUMS,
   OFFICE_WORKING_MEMORY_STORAGE_KEY,
   readOfficeWorkingMemory,
   writeOfficeWorkingMemory
@@ -188,6 +189,98 @@ describe('an errand you walked into is a fact about you', () => {
     expect(second.hasWorkingMemoryFact('intern')).toBe(true);
     expect(second.workingMemoryPromptLines('intern')).toEqual([
       'you got in the way of their errand; they went back to their desk empty-handed'
+    ]);
+  });
+});
+
+describe('a beat you typed at an inbox is not a beat you said', () => {
+  /**
+   * The office already refuses to treat email as speech everywhere a human can
+   * see it — `isSpokenLine` never voices one, and a mail never reaches a talk
+   * surface. Working memory is the one place it could leak back in as speech,
+   * because the prompt line is written here and nowhere else: a colleague told
+   * `you said: <a subject line>` is being handed a conversation that did not
+   * happen, on the same failure the situation rule was measured on.
+   */
+  it('quotes an emailed exchange as writing', async () => {
+    const { workingMemoryPromptLines, rememberWorkingMemoryBeat } = await freshStore();
+    rememberWorkingMemoryBeat('jared', {
+      yours: 'Re: auth — can billing read the ledger directly?',
+      theirs: 'Short answer no. Long answer also no, with a diagram.',
+      medium: 'email',
+      now: at(9, 0)
+    });
+
+    expect(workingMemoryPromptLines('jared')).toEqual([
+      'you emailed them: Re: auth — can billing read the ledger directly?',
+      'they wrote back: Short answer no. Long answer also no, with a diagram.'
+    ]);
+  });
+
+  /*
+   * The invariance guard, and it is meant to be green either side: every beat
+   * written before this slice existed carries no medium, and the room those
+   * prompts describe has not changed.
+   */
+  it('leaves a spoken beat phrased exactly as it always was', async () => {
+    const { workingMemoryPromptLines, rememberWorkingMemoryBeat } = await freshStore();
+    rememberWorkingMemoryBeat('dinesh', { yours: 'morning', theirs: 'is it', now: at(9, 0) });
+    expect(workingMemoryPromptLines('dinesh')).toEqual(['you said: morning', 'they said: is it']);
+  });
+
+  it('is an enum, and a medium alone is still nothing worth remembering', async () => {
+    const { rememberWorkingMemoryBeat, getWorkingMemoryWith, workingMemoryPromptLines } =
+      await freshStore();
+    // The companion non-empty assertion: an emptied vocabulary would make the
+    // loop below pass while checking nothing.
+    expect(OFFICE_WORKING_MEMORY_MEDIUMS.length).toBeGreaterThan(0);
+    for (const medium of OFFICE_WORKING_MEMORY_MEDIUMS) {
+      rememberWorkingMemoryBeat(`who-${medium}`, { yours: 'hello', medium, now: at(9, 0) });
+      const [line] = workingMemoryPromptLines(`who-${medium}`);
+      expect(line, medium).toBeTruthy();
+      expect(line, medium).not.toContain('undefined');
+      expect(line, medium).not.toContain('you said');
+    }
+
+    // Free text selects no sentence, so it is dropped and the beat falls back
+    // to the spoken pair rather than interpolating a floor's string.
+    rememberWorkingMemoryBeat('hr', { yours: 'hi', medium: 'carrier pigeon', now: at(9, 1) });
+    expect(workingMemoryPromptLines('hr')).toEqual(['you said: hi']);
+
+    // And a medium is never itself the fact: how an exchange happened is not a
+    // memory of one happening.
+    rememberWorkingMemoryBeat('erlich', { medium: 'email', now: at(9, 2) });
+    expect(getWorkingMemoryWith('erlich')).toBeNull();
+  });
+
+  it('collapses a quote to one line, because a beat is one bullet in a prompt', async () => {
+    /*
+     * `buildOfficeWorkingMemoryBlock` renders each line as `- <line>`. A
+     * newline inside one breaks the list open and hands the model the rest of
+     * the quote as prose — which reads as instruction rather than as something
+     * a person said. An email arrives with one by construction (subject and
+     * body are joined), and a model's own reply can carry them too.
+     */
+    const { workingMemoryPromptLines, rememberWorkingMemoryBeat } = await freshStore();
+    rememberWorkingMemoryBeat('russ', {
+      yours: 'quick question\n\ndoes Triage have a reject branch?',
+      theirs: 'no.\nand\nstop\nemailing me',
+      medium: 'email',
+      now: at(9, 0)
+    });
+
+    expect(workingMemoryPromptLines('russ')).toEqual([
+      'you emailed them: quick question does Triage have a reject branch?',
+      'they wrote back: no. and stop emailing me'
+    ]);
+  });
+
+  it('survives the reload, which the write side alone cannot promise', async () => {
+    const first = await freshStore();
+    first.rememberWorkingMemoryBeat('jared', { theirs: 'filed as a finding', medium: 'email' });
+    const second = await freshStore();
+    expect(second.workingMemoryPromptLines('jared')).toEqual([
+      'they wrote back: filed as a finding'
     ]);
   });
 });

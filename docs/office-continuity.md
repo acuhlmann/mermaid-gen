@@ -38,6 +38,7 @@ Each step’s completion criterion is what “done” means before starting the 
    Done when tests pin write / read / same-day reload / new-calendar-day clear, and no cadence or ambience hook reads it as a trigger.
 2. **Writers.** Stamp a board fingerprint on the colleague who fires the run reaction. Append beats when the user dwells or talks with someone (their line, the user’s line, whether a pitch was taken).
    Done when those are the only fingerprint/beat writers.
+   **Shipped as written, and the set has grown twice since — read this as v1's scope, not as a ban.** An interruption writes a beat (`useFloorInterruptMemory`, #582) and so does an emailed exchange (`emailSomeone`, `medium: 'email'`). The rule the three additions share is the one this line was standing in for: a writer is a moment the user aimed at **one named person**, never an ambient one. Adding a fourth means showing it is that kind of edge, not counting writers.
 3. **Dwell LLM gate.** Empty memory → canned social deck, depleted per person. Memory has a fact → LLM under `OFFICE_DWELL_LLM_CAP`. Still one line per approach; leaving re-arms.
    Done when an empty-memory dwell is canned and a memory-hit dwell is LLM.
 4. **`runWalk` wire.** Add the value to `OFFICE_MOMENT_SITUATIONS`. Mark it spoken in `isSpokenMomentSituation`. Add one rule block + one reminder. Circumstance only: they walked over because work just landed; comment on how the diagram **stands now**; they did not see a delta; no `userMessage`; no `actionPrompt`.
