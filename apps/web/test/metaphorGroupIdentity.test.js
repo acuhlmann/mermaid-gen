@@ -488,9 +488,21 @@ describe('affinity territories under LOD', () => {
     const body = source.match(/function AffinityGroups\([^)]*\)\s*\{[\s\S]*?\n\}/)?.[0] ?? '';
     expect(body.length).toBeGreaterThan(100);
     expect(body).toContain('affinityGroupLayers');
-    expect(body).not.toMatch(/if\s*\(\s*lod\s*===\s*'low'\s*\)\s*return\s+null/);
+    // Spelling-independent, because the previous form pinned exactly one:
+    // `if (lod === 'low') return [];`, the braced variant, and
+    // `const drawn = lod === 'low' ? [] : groups` all walked past it. The body
+    // delegates the tier to `affinityGroupDetail(lod)` and holds no literal
+    // `'low'` at all, so any reappearance is the gate coming back.
+    expect(body).not.toMatch(/'low'/);
     const mount = source.match(/^.*<AffinityGroups[^]*?\/>.*$/m)?.[0] ?? '';
     expect(mount).toContain('lod={lod}');
     expect(mount).not.toMatch(/lod\s*!==\s*'low'/);
+    // Both polarities, and the `===` half is the one that matters: #715's
+    // actual defect was `{lod === 'low' ? null : <AffinityGroups … />}` at the
+    // mount, not an early return inside the component. #722 added the body
+    // guard above and dropped this line, so that exact shape passed the whole
+    // file again — measured: 616/616 green with the defect reinstated. The
+    // body guard cannot see it, because the gate is not in the body.
+    expect(mount).not.toMatch(/lod\s*===\s*'low'/);
   });
 });
