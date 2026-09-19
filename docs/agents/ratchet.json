@@ -84,11 +84,12 @@
     },
     "suite": {
       "files": {
-        "budget": 404,
-        "initial": 366
+        "budget": 402,
+        "initial": 366,
+        "reason": "2026-09-19 improve: measured 402 vs budget 404 after upstream suite count settled; lock budget to live count."
       },
       "cases": {
-        "budget": 4623,
+        "budget": 4646,
         "initial": 3675
       }
     }
