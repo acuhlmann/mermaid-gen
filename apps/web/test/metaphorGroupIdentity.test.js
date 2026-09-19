@@ -19,6 +19,7 @@ import {
   affinityGroupDetail,
   affinityGroupLayers
 } from '../src/components/metaphorScenes/compositeLodDetail.js';
+import { ATMOSPHERE_KINDS } from '../src/components/metaphorScenes/fusedCompositeSceneResolvers.js';
 import { srgbLuma } from '../src/utils/metaphorDaylightSurfaces.js';
 import { resolveMetaphorSceneTheme } from '../src/utils/metaphorSceneTheme.js';
 import { METAPHOR_THEME_PRESETS } from '../src/utils/metaphorThemePresets.js';
@@ -400,15 +401,66 @@ describe('affinity territories under LOD', () => {
     expect(lean.segments).toBeLessThan(affinityGroupDetail('high').segments);
   });
 
-  /** Atmosphere kinds a fused composite can hand to `resolveMetaphorSceneTheme`. */
-  const COMPOSITE_SCENE_KINDS = [
-    'tree',
-    'garden',
-    'river',
-    'archipelago',
-    'city',
-    'galaxy',
-    'orrery'
+  // The kinds come from the resolver's own table (#729): adding an atmosphere
+  // above must widen this sweep, not silently stay outside it — the hand-copy
+  // this replaces held seven of ten kinds while `toHaveLength(224)` pinned
+  // the copy rather than the product.
+  const COMPOSITE_SCENE_KINDS = ATMOSPHERE_KINDS;
+
+  // Every resolved cell that inverts the strict "wash is the weakest layer"
+  // ordering, named (#729). The `<= 50` tolerance this replaces sat three
+  // cells above the measurement and pooled two different failure shapes; a
+  // NEW inversion now fails, and a fixed one must be deleted from here.
+  const KNOWN_BAND_INVERSIONS = [
+    'arcade/archipelago/waterColor/group 0',
+    'arcade/tree/waterColor/group 1',
+    'arcade/tree/waterColor/group 2',
+    'blueprint/archipelago/waterColor/group 3',
+    'blueprint/garden/waterColor/group 3',
+    'blueprint/river/waterColor/group 3',
+    'blueprint/tree/waterColor/group 1',
+    'noir/archipelago/waterColor/group 3',
+    'noir/garden/waterColor/group 1',
+    'noir/river/waterColor/group 1',
+    'whiteboard/archipelago/waterColor/group 2'
+  ];
+  const KNOWN_RIM_INVERSIONS = [
+    'arcade/archipelago/groundColor/group 1',
+    'arcade/archipelago/groundColor/group 2',
+    'arcade/archipelago/groundColor/group 3',
+    'arcade/garden/groundColor/group 1',
+    'arcade/garden/groundColor/group 2',
+    'arcade/garden/groundColor/group 3',
+    'arcade/river/groundColor/group 1',
+    'arcade/river/groundColor/group 2',
+    'arcade/river/groundColor/group 3',
+    'arcade/tree/groundColor/group 1',
+    'arcade/tree/groundColor/group 2',
+    'arcade/tree/groundColor/group 3',
+    'blueprint/archipelago/groundColor/group 1',
+    'blueprint/archipelago/groundColor/group 2',
+    'blueprint/archipelago/groundColor/group 3',
+    'blueprint/garden/groundColor/group 1',
+    'blueprint/garden/groundColor/group 2',
+    'blueprint/garden/groundColor/group 3',
+    'blueprint/river/groundColor/group 1',
+    'blueprint/river/groundColor/group 2',
+    'blueprint/river/groundColor/group 3',
+    'blueprint/tree/groundColor/group 1',
+    'blueprint/tree/groundColor/group 2',
+    'blueprint/tree/groundColor/group 3',
+    'noir/archipelago/groundColor/group 1',
+    'noir/archipelago/groundColor/group 2',
+    'noir/garden/groundColor/group 1',
+    'noir/garden/groundColor/group 2',
+    'noir/river/groundColor/group 1',
+    'noir/river/groundColor/group 2',
+    'noir/tree/groundColor/group 1',
+    'noir/tree/groundColor/group 2',
+    'noir/tree/waterColor/group 1',
+    'noir/tree/waterColor/group 2',
+    'whiteboard/galaxy/groundColor/group 2',
+    'whiteboard/orrery/groundColor/group 2'
   ];
 
   it('drops the interior wash on colours the renderer actually paints', () => {
@@ -453,29 +505,47 @@ describe('affinity territories under LOD', () => {
         }
       }
     }
-    expect(cells).toHaveLength(224);
-    // Documented in #719: a minority of resolved-theme cells invert on strict
-    // luma ordering (rim can beat wash on a hairline); the tier still drops
-    // wash because of fragment share, not because wash wins every cell.
-    expect(inversions.length).toBeLessThanOrEqual(50);
+    const expectedCells =
+      Object.keys(METAPHOR_THEME_PRESETS).length * COMPOSITE_SCENE_KINDS.length * 2 * 4;
+    expect(cells).toHaveLength(expectedCells);
+    const bandInverted = inversions
+      .filter((c) => !(c.wash < c.band))
+      .map((c) => c.where)
+      .sort();
+    const rimInverted = inversions
+      .filter((c) => !(c.wash < c.rim))
+      .map((c) => c.where)
+      .sort();
+    expect(bandInverted).toEqual([...KNOWN_BAND_INVERSIONS].sort());
+    expect(rimInverted).toEqual([...KNOWN_RIM_INVERSIONS].sort());
+    // The two shapes stay disjoint: one cell losing BOTH content layers'
+    // signal would be a different tier argument, not a bigger version of
+    // this one.
+    expect(bandInverted.filter((w) => rimInverted.includes(w))).toEqual([]);
     expect(affinityGroupDetail('low').wash).toBe(false);
   });
 
-  it('draws band, rim and placard at every tier including low', () => {
-    const group = {
-      id: 'g1',
-      radius: 4,
-      display: 'Platform',
-      center: [0, 0, 0],
-      colorIndex: 0
-    };
+  it('layers carries finish only — and refuses a detail that lost content', () => {
+    // #728. The pass-through form answered `band: false` for any malformed
+    // detail, which reproduced #715's silent blank one level down: the
+    // defaulting happened at the helper every render calls. Content is now
+    // absent from the result and invalid input is loud — a red test run for
+    // the table that broke, never a world that draws nothing. The tier truth
+    // itself is swept in `states the group at every tier`, not re-run here.
     for (const lod of COMPOSITE_LOD_TIERS) {
-      const layers = affinityGroupLayers(group, affinityGroupDetail(lod));
-      expect(layers.band).toBe(true);
-      expect(layers.rim).toBe(true);
-      expect(layers.placard).toBe(true);
+      const layers = affinityGroupLayers(affinityGroupDetail(lod));
+      expect(Object.keys(layers).sort()).toEqual(['bulb', 'segments', 'wash']);
     }
-    expect(affinityGroupLayers(group, affinityGroupDetail('low')).wash).toBe(false);
+    expect(affinityGroupLayers(affinityGroupDetail('low')).wash).toBe(false);
+    for (const key of ['band', 'rim', 'placard']) {
+      expect(() => affinityGroupLayers({ ...affinityGroupDetail('low'), [key]: false })).toThrow(
+        /budget item/
+      );
+      const dropped = { ...affinityGroupDetail('low') };
+      delete dropped[key];
+      expect(() => affinityGroupLayers(dropped)).toThrow(/budget item/);
+    }
+    expect(() => affinityGroupLayers(undefined)).toThrow(/budget item/);
   });
 
   it('never removes the territory inside AffinityGroups at low', () => {
@@ -488,6 +558,12 @@ describe('affinity territories under LOD', () => {
     const body = source.match(/function AffinityGroups\([^)]*\)\s*\{[\s\S]*?\n\}/)?.[0] ?? '';
     expect(body.length).toBeGreaterThan(100);
     expect(body).toContain('affinityGroupLayers');
+    // #728, and proven by mutation: reintroducing `{layers.band ? …}` around
+    // the content mesh passed every other assertion in this file — the branch
+    // only needs to exist once for a future defaulting to blank the territory.
+    // `layers` does not even carry these keys any more; any JSX reaching for
+    // one is the door being rebuilt.
+    expect(body).not.toMatch(/layers\.(band|rim|placard)/);
     // Spelling-independent, because the previous form pinned exactly one:
     // `if (lod === 'low') return [];`, the braced variant, and
     // `const drawn = lod === 'low' ? [] : groups` all walked past it. The body

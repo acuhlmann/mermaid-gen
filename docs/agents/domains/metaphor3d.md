@@ -62,6 +62,17 @@ ones that will bite an edit.
   about a third of the time and a five-group world more than half — and a collision does not read
   as a bug, it reads as two territories agreeing, which is the one thing a shared grouping noun
   exists to deny. Assign after the `memberIds.size >= 2` filter, by array index.
+- **Content and finish are different kinds of flag, and losing content must be loud, not blank**
+  (`metaphorScenes/compositeLodDetail.js` → `affinityGroupLayers`). Since #728 the helper
+  returns only `{wash, bulb, segments}` and **throws** on a tier detail that lost
+  `band/rim/placard: true`; `FusedCompositeScene.jsx` draws the content unconditionally, and the
+  JSX-gate test in `metaphorGroupIdentity.test.js` forbids `layers.band|rim|placard` from
+  reappearing (pinned by mutation, not by reading). Do not "simplify" the throw into
+  `Boolean(detail?.x)` defaults — that defaulting is how #722 re-opened #715's silent blank one
+  level down: a missing content key rendered an invisible territory instead of a red test run.
+  The luma table justifying the wash as the drop is measured through `resolveMetaphorSceneTheme`
+  output (#729) — raw-preset numbers described colours nobody paints — and the sweep's inversion
+  cells are enumerated by name, never by a tolerance.
 - **A colour ladder has to be told where to STAND, not only how far apart its rungs are**
   (`metaphorScenes/groupIdentity.js` → `resolveGroupPlateBase`). `tintByGroup` separates groups from
   each other; nothing separated the ladder as a whole from the surface under it, or checked it had

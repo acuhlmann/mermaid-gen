@@ -42,6 +42,14 @@ const ATMOSPHERE_RULES = [
 ];
 
 /**
+ * Every base kind that resolves to a composite atmosphere, as one flat list. Exported for the
+ * luma sweep in `metaphorGroupIdentity.test.js`: a kind added to the table above widens the
+ * sweep automatically, where the hand-copied list this replaces silently swept seven of ten
+ * while a frozen cell count pinned the copy (#729).
+ */
+export const ATMOSPHERE_KINDS = Object.freeze(ATMOSPHERE_RULES.flatMap((rule) => rule.kinds));
+
+/**
  * Pick sky/theme family from fused layer roles so mixed worlds do not inherit
  * only layers[0] (e.g. city sky over an ocean substrate).
  */
