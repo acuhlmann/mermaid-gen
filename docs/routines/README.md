@@ -63,9 +63,23 @@ A routine declares a `tier` in its playbook front-matter:
 tier was validated as if it wrote code — it had to name a budget it was forbidden to spend — so
 the one property distinguishing the two tiers was the one nothing checked.
 
+**What the tier forbids is the diff, not the GitHub API.** Since
+[ADR-0018](../decisions/0018-green-builds-self-healing-and-the-two-minute-ask.md) `digest` also
+carries a closed watchdog-action list (`digest.md` § 2c): re-fire a dark Claude-hosted rung whose
+trigger id is recorded, and un-stick a routine's stranded green draft by marking it ready and
+enabling auto-merge. Neither lands a merge itself, neither files, labels or closes an issue, and
+the empty-diff postflight still fails a commit as before — the list is narrow because every entry
+is an action the owner already scheduled and paid for once (the rung's nightly firing, the PR's
+CI-green merge), and a report rung that could author work would be a second `improve` without a
+budget. **A `report` tier that acts is not a `report` tier that writes code, and the guard knows
+the difference because it only ever measures the second one.**
+
 **Every `code-writing` routine opens a PR and merges it itself once CI is green, by default.** The PR
 exists so the owner has something to skim, not as a gate — a routine that waits for review on every
-change is a routine that saves nobody any time. **`mergePolicy` is the front-matter key that turns
+change is a routine that saves nobody any time. **Since 2026-09-19 that default has a shape: open the
+PR ready-for-review (never draft) and enable auto-merge on it** (rule 3), so the merge is GitHub's
+job on green CI and does not depend on the run staying alive to poll for it. **`mergePolicy` is the
+front-matter key that turns
 the default off.** It exists, it is validated, and **no routine declares it today**: `prune` was the
 one routine that did, and the owner lifted it on 2026-09-14 (see "Two kinds of hold" below). It is a
 policy and not a tier — a held routine still declares `maxFiles` and still passes postflight — so "it
@@ -163,6 +177,17 @@ If the run cannot get to green, it pushes **nothing**: delete the branch and fil
 describing the blocker. A half-fixed branch left open is worse than no run at all, because the next
 firing's preflight will refuse to start behind it — which is the intended stop, not a bug.
 
+**The merge is GitHub's job, not the run's.** Open the PR ready (never draft), enable auto-merge
+on it, and the run's obligation is discharged — CI green lands the merge whether or not the run is
+still alive to poll for it. This is not a loosening of "green before merge"; it is the same gate,
+enforced by the side that cannot crash. Cloud runners do crash at exactly this moment: the
+2026-09-17 `office-life` firing died leaving an all-green draft, the 09-18 firing crashed opening
+its second one, and the same shape cost a third run (#619, 2026-09-09) — each one then stopped the
+next firing at preflight, which had to spend its opening minutes finishing its predecessor instead
+of doing tonight's work. A routine that sees red gets **one** repair attempt; still red, it closes
+**its own** PR, deletes the branch, and records the ledger row — closing your own abandoned PR is
+never the page bar, which names closing _someone else's_.
+
 **Before you conclude the tree is red, rule out your own checkout.** `npm ci` and
 `npm run build -w packages/shared`, then re-run. A stale `node_modules` or a stale
 `packages/shared/dist` produces reproducible, non-flaky failures whose error messages point
@@ -197,6 +222,14 @@ open PR. Two overlapping branches from one routine is how a scheduled job starts
 
 If preflight refuses, the correct action is to **finish or close the open PR**, not to start a
 second branch under a different name.
+
+**That is a checklist, not a puzzle** (ADR-0018). Green and mergeable means the predecessor _is_
+tonight's opening move: let auto-merge land it (rule 3), append its ledger row, then do tonight's
+pick. Red means close your own PR — closing the one you abandoned is never page bar #3, which names
+closing _someone else's_ — delete the branch, record the row, re-derive if it is still worth doing.
+`digest` may un-stick a stranded green draft from the morning side as well (`digest.md` § 2c), so
+the only overnight state that should survive a second morning is one an agent declined to merge on
+purpose.
 
 **How it identifies "this routine's PR", and why that matters.** Branch names come from the cloud
 runner (`claude/eager-hopper-74jcfu`), so a branch cannot say which routine opened a PR. The
@@ -287,8 +320,14 @@ Two consequences worth knowing before you rely on either:
 
 ### 10. The owner is not a gate — and there is a bar for reaching them
 
-Every routine on both shelves decides, acts, and self-merges. The owner reads one digest a day and
-is paged by four things, and only four:
+Every routine on both shelves decides, acts, and self-merges — the merge itself rides auto-merge,
+so a run crashing between "green" and "merged" no longer stops its own next firing (rule 3;
+[ADR-0018](../decisions/0018-green-builds-self-healing-and-the-two-minute-ask.md)). The owner reads
+one digest a day and is paged by four things, and only four. Reaching a page-bar item down is not a
+fifth: `digest`'s closed self-repair list (`digest.md` § 2c — re-fire a dark Claude-hosted rung whose
+trigger id is recorded, mark a routine's green stranded draft ready so its own auto-merge lands it)
+executes schedules the owner already set and green gates the owner already defined; it authors no
+work and keeps the report tier's zero-commit enforcement.
 
 1. **Money.** Anything that spends beyond a stated budget: a paid service, a quota about to trip, a
    regenerable asset bank (`generate-office-audio.sh` bare costs 900 ElevenLabs credits and
@@ -316,7 +355,7 @@ run cannot act, the correct output is a **ledger row that names the blocker in t
 form** (`blocked-by-budget`, `blocked-by-paths`, `held PR #nnn`) — not a label, not a comment
 addressed to the owner, not a question.
 
-Two corollaries, both learned the expensive way:
+Three corollaries, all learned the expensive way:
 
 - **`ready-for-human` is page-bar-only, and no routine may apply it to its own finding.** A label
   that means "a person will handle this" is a lie when nobody reads the tracker; what it actually
@@ -326,6 +365,13 @@ Two corollaries, both learned the expensive way:
   the escalation path was the default escape from "too big", "unclear", and "out of my budget" —
   three states that are all, on inspection, a number in a playbook. Numbers are `improve`'s queue,
   not the owner's inbox.
+- **When the bar is legitimately met, the artifact is the ask, and the ask is a decision.** A
+  page-bar line that reaches the owner must be readable in two minutes from a phone: the binary
+  question, the routine's recommendation and its one-clause reason, and what silence does — silence
+  is _status quo, revisit only on change_, never spend and never grant. "Worth confirming whether
+  this was intentional" paged the owner with an investigation instead of a decision (the 2026-09-17
+  stray-connector line was right to raise and wrong in shape; see `digest.md` § 3 and ADR-0018).
+  The bar protects what the owner decides; this corollary protects _whether they can_.
 
 ### 11. A label is a promise about a budget
 

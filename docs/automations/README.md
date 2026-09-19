@@ -56,6 +56,15 @@ The playbook's frontmatter declares `maxFiles`, `allowedPaths`, and `forbiddenPa
 If the run cannot get to green, push **nothing**: delete the branch and file an issue describing
 the blocker.
 
+**Open the PR ready — never draft — and enable auto-merge** (routines README rule 3, ADR-0018): the
+merge is GitHub's job on green CI, not the run's job to poll for. This shelf has the shelf's worst
+record of the crash-at-merge moment — `office-life` fired FAILED at 18:43 on 2026-09-17 with all
+eleven checks green on its PR (#716), crashed again opening #726 the same way on 09-18, and cost a
+third run on 09-09 (#619); every one of them then stopped its own successor at preflight. A run that
+sees red gets one repair attempt; still red, close **your own** PR, delete the branch, record the
+ledger row. Auto-merge unavailable in your environment (no write path to it via the MCP tools):
+fall back to polling-then-merging, the old form, and say so in the ledger.
+
 **Known flake.** `apps/server/test/anythingRuntimeCheck.test.js` can fail up to six tests at once
 under full-suite load contention while passing in isolation. Re-run that file alone before concluding
 anything; see [`docs/agents/sensors.md`](../agents/sensors.md) § Known flakes.
@@ -64,6 +73,16 @@ anything; see [`docs/agents/sensors.md`](../agents/sensors.md) § Known flakes.
 
 `npm run routine:guard -- --preflight <name>` refuses to start when this automation already has an
 open PR. Finish or close the open PR before the next firing.
+
+**The refusal is a checklist, not a stop sign** (routines README rule 5 as amended by
+[ADR-0018](../decisions/0018-green-builds-self-healing-and-the-two-minute-ask.md)): your own open PR
+that is green and mergeable is tonight's opening move — let auto-merge land it, append the ledger
+row, then do the new slice. One that is red you close yourself (closing _your_ abandoned PR is not
+page bar #3, which names someone else's), record the row, and re-derive if it is still worth doing.
+The 2026-09-18 and 09-19 `office-life` firings each spent their first minutes finishing their
+predecessor's stranded draft under exactly this rule; rule 3's ready+auto-merge opening exists so
+that recovery shrinks to a two-minute un-stick, and `digest` § 2c can now perform that un-stick from
+the morning side before a firing is lost at all.
 
 It matches on the PR **title** prefix (`prTitlePrefix`, defaulting to `<name>:`) or the branch
 prefix (`branchPrefix`, defaulting to `<name>/`) — the cloud runner generates branch names, so a
