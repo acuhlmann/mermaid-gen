@@ -166,16 +166,16 @@ const PRUNE_PLAYBOOK = {
 
 test('a dead pair may be deleted by prune — test plus its unreferenced subject, same diff', () => {
   const changes = [
-    { status: 'D', file: 'apps/web/test/useAdvisorFloatPortal.test.jsx' },
-    { status: 'D', file: 'apps/web/src/components/AdvisorFloatPortal.jsx' }
+    { status: 'D', file: 'apps/web/test/useGizmoFloatPortal.test.jsx' },
+    { status: 'D', file: 'apps/web/src/components/GizmoFloatPortal.jsx' }
   ];
   const result = checkRoutineDiff({
     playbook: PRUNE_PLAYBOOK,
     changes,
     deadPairings: [
       {
-        testFile: 'apps/web/test/useAdvisorFloatPortal.test.jsx',
-        subjects: ['apps/web/src/components/AdvisorFloatPortal.jsx']
+        testFile: 'apps/web/test/useGizmoFloatPortal.test.jsx',
+        subjects: ['apps/web/src/components/GizmoFloatPortal.jsx']
       }
     ]
   });
@@ -255,15 +255,15 @@ function fakeGit({ base = 'origin/main', blobs = {}, hits = {}, fails = [] } = {
   };
 }
 
-const DEAD_TEST = 'apps/web/test/useAdvisorFloatPortal.test.jsx';
-const DEAD_MODULE = 'apps/web/src/components/AdvisorFloatPortal.jsx';
+const DEAD_TEST = 'apps/web/test/useGizmoFloatPortal.test.jsx';
+const DEAD_MODULE = 'apps/web/src/components/GizmoFloatPortal.jsx';
 const DEAD_PAIR_DIFF = [
   { status: 'D', file: DEAD_TEST },
   { status: 'D', file: DEAD_MODULE }
 ];
 const DEAD_TEST_SOURCE = [
   "import { render } from '@testing-library/react';",
-  "import AdvisorFloatPortal from '../src/components/AdvisorFloatPortal.jsx';",
+  "import GizmoFloatPortal from '../src/components/GizmoFloatPortal.jsx';",
   "import { floorFixture } from './helpers/floor.js';"
 ].join('\n');
 
@@ -287,7 +287,7 @@ test('a mention in any surviving file — shipped code, docs, or another suite �
       DEAD_PAIR_DIFF,
       fakeGit({
         blobs: { [DEAD_TEST]: DEAD_TEST_SOURCE },
-        hits: { AdvisorFloatPortal: [DEAD_MODULE, DEAD_TEST, survivor] }
+        hits: { GizmoFloatPortal: [DEAD_MODULE, DEAD_TEST, survivor] }
       })
     );
     assert.deepEqual(pairings[0].subjects, [], `${survivor} must block the proof`);
@@ -306,17 +306,35 @@ test('a subject referenced only from files this same diff deletes is provable', 
     DEAD_PAIR_DIFF,
     fakeGit({
       blobs: { [DEAD_TEST]: DEAD_TEST_SOURCE },
-      hits: { AdvisorFloatPortal: [DEAD_MODULE, DEAD_TEST] }
+      hits: { GizmoFloatPortal: [DEAD_MODULE, DEAD_TEST] }
     })
   );
   assert.deepEqual(pairings[0].subjects, [DEAD_MODULE]);
+});
+
+test('prune’s own memory files are not surviving references (prune § 1, both directions)', () => {
+  for (const memory of ['docs/routines/prune.md', 'docs/routines/ledger/prune.md']) {
+    const pairings = collectDeadPairings(
+      'origin/main',
+      DEAD_PAIR_DIFF,
+      fakeGit({
+        blobs: { [DEAD_TEST]: DEAD_TEST_SOURCE },
+        hits: { GizmoFloatPortal: [DEAD_MODULE, DEAD_TEST, memory] }
+      })
+    );
+    assert.deepEqual(
+      pairings[0].subjects,
+      [DEAD_MODULE],
+      `${memory} is where prune records targets`
+    );
+  }
 });
 
 test('a grep that fails for any reason other than "no matches" counts as referenced', () => {
   const pairings = collectDeadPairings(
     'origin/main',
     DEAD_PAIR_DIFF,
-    fakeGit({ blobs: { [DEAD_TEST]: DEAD_TEST_SOURCE }, fails: ['AdvisorFloatPortal'] })
+    fakeGit({ blobs: { [DEAD_TEST]: DEAD_TEST_SOURCE }, fails: ['GizmoFloatPortal'] })
   );
   assert.deepEqual(pairings[0].subjects, []);
 });
