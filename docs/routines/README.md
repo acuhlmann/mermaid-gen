@@ -177,16 +177,21 @@ If the run cannot get to green, it pushes **nothing**: delete the branch and fil
 describing the blocker. A half-fixed branch left open is worse than no run at all, because the next
 firing's preflight will refuse to start behind it — which is the intended stop, not a bug.
 
-**The merge is GitHub's job, not the run's.** Open the PR ready (never draft), enable auto-merge
-on it, and the run's obligation is discharged — CI green lands the merge whether or not the run is
-still alive to poll for it. This is not a loosening of "green before merge"; it is the same gate,
-enforced by the side that cannot crash. Cloud runners do crash at exactly this moment: the
-2026-09-17 `office-life` firing died leaving an all-green draft, the 09-18 firing crashed opening
-its second one, and the same shape cost a third run (#619, 2026-09-09) — each one then stopped the
-next firing at preflight, which had to spend its opening minutes finishing its predecessor instead
-of doing tonight's work. A routine that sees red gets **one** repair attempt; still red, it closes
-**its own** PR, deletes the branch, and records the ledger row — closing your own abandoned PR is
-never the page bar, which names closing _someone else's_.
+**The merge is GitHub's job, not the run's — enabled at green, never at opening.** Open the PR ready
+(never draft), watch the check set report, and once **every job** is green enable auto-merge; it
+lands immediately, and the run may then finish its ledger row and stop without polling anything
+further. Do **not** enable at creation: `main` has no required status checks today, so GitHub's
+auto-merge treats a not-yet-reported job as no objection — measured 2026-09-19, when this session's
+own #734 auto-landed with three workspace jobs still queued (they went green, but the gate was the
+queue, not the platform). Cloud runners crash at the worst moment: the 2026-09-17 `office-life`
+firing died leaving an all-green draft, the 09-18 firing crashed opening its second one, and the
+same shape cost a third run (#619, 2026-09-09) — each then stopped the next firing at preflight,
+which had to spend its opening minutes finishing its predecessor instead of doing tonight's work.
+Under this protocol a crash after the enable merges anyway (that is the point), and a crash before
+it leaves a **ready** PR that the next firing finishes or `digest` § 2c un-sticks — never a stranded
+draft. A routine that sees red gets **one** repair attempt; still red, it closes **its own** PR,
+deletes the branch, and records the ledger row — closing your own abandoned PR is never the page
+bar, which names closing _someone else's_.
 
 **Before you conclude the tree is red, rule out your own checkout.** `npm ci` and
 `npm run build -w packages/shared`, then re-run. A stale `node_modules` or a stale

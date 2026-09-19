@@ -50,11 +50,16 @@ revision no file outside the diff's deleted set names their stems. The playbook 
 blind (the test edge is what makes dep-cruiser see the module), the independent checker is the
 guard itself. Revert is whole: one commit per pair.
 
-**2. The merge is GitHub's job, not the run's.** Every code-writing rung opens its PR ready (never
-draft) and enables auto-merge; CI green lands it whether or not the run is alive to poll. This is
-not a looser gate — it is the same gate moved to the side that cannot crash. A run that sees red
-gets one repair attempt; still red, it closes **its own** PR, deletes the branch, and records the
-ledger row. Preflight refusals now have a checklist instead of a puzzle: green means finish the
+**2. The merge is GitHub's job, not the run's — enabled at green, never at opening.** Every
+code-writing rung opens its PR ready (never draft), watches the check set report, and enables
+auto-merge once **every** job is green; the enable lands the merge immediately, and a crash after it
+is a merge that happened anyway. Not at opening: `main` has no required status checks, and measured
+the same afternoon this ADR was written, an auto-merge enabled with workspace jobs still queued
+merged against the queue rather than the gate (#734 — green eventually, but the platform had not
+voted yet). If the owner makes those checks required in branch protection, the enable may move back
+to opening time and the platform becomes the gate the prose was pretending it was. A run that sees
+red gets one repair attempt; still red, it closes **its own** PR, deletes the branch, and records
+the ledger row. Preflight refusals now have a checklist instead of a puzzle: green means finish the
 predecessor first (that is tonight's opening move, not a reason to stop), red means close and
 re-derive. Codified in both shelf READMEs (rules 3 and 4/5), which every runner already reads.
 
