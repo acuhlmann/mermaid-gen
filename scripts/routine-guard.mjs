@@ -70,6 +70,23 @@ export const MERGE_POLICIES = ['self-merge', 'hold'];
 export const DELETE_ONLY_ROUTINES = ['prune'];
 
 /**
+ * Routines allowed to delete a test file, and only as half of a mechanically proved dead pair —
+ * a test whose only non-test relative import is itself deleted in the same diff and is referenced
+ * by nothing that survives (see `collectDeadPairings`). Since 2026-09-19 the `test-only` class —
+ * a module no shipped code imports but whose own suite still renders it — is a deletion the fleet
+ * is allowed to make itself; until then it was a question the whole shelf could ask and no
+ * scheduler could answer, because this loop refused test deletions for everyone while prune was
+ * the only routine the proof ladder was shaped for. #686 is the standing example: filed
+ * `needs-triage` on 2026-09-14 asking the owner for a wire-or-delete decision over four pairs,
+ * which rule 10 says is not the owner's job, and which was blocked not by judgement but by this
+ * line of code. Every other routine keeps the blanket refusal: for a fixer, a deleted test is
+ * almost always the suspect, not the debris. Gated on the diff's *shape*, never on the PR body's
+ * prose — the written-reason requirement stays in README rule 1, and prune § 5's five controls
+ * (both sensors, one file per commit, `check:full`) are what make the shape worth deleting.
+ */
+export const DEAD_PAIR_DELETE_ROUTINES = ['prune'];
+
+/**
  * @param {Record<string, string | string[]>} playbook
  * @returns {string} 'self-merge' or 'hold'
  */
@@ -243,9 +260,11 @@ export function shelfOwnershipViolation({ routineName, file }) {
  * @param {Record<string, string | string[]>} input.playbook
  * @param {{ status: string, file: string }[]} input.changes
  * @param {{ file: string, before: number, after: number }[]} [input.testCounts]
+ * @param {{ testFile: string, subjects: string[] }[]} [input.deadPairings] mechanically proved
+ *   dead pairs from `collectDeadPairings`; consulted only for `DEAD_PAIR_DELETE_ROUTINES`.
  * @returns {{ ok: boolean, violations: string[] }}
  */
-export function checkRoutineDiff({ playbook, changes, testCounts = [] }) {
+export function checkRoutineDiff({ playbook, changes, testCounts = [], deadPairings = [] }) {
   const routineName = String(playbook.name ?? '');
   /** @type {string[]} */
   const violations = [];
@@ -294,12 +313,26 @@ export function checkRoutineDiff({ playbook, changes, testCounts = [] }) {
   }
 
   for (const change of changes) {
-    if (change.status === 'D' && isTestPath(change.file)) {
-      violations.push(
-        `deleted test: ${change.file}. Removing a test needs a written reason in the PR body, ` +
-          'and at most one per run — see docs/routines/README.md rule 1.'
-      );
+    if (change.status !== 'D' || !isTestPath(change.file)) continue;
+    const pairing = deadPairings.find((p) => p.testFile === change.file);
+    const subjects = pairing ? pairing.subjects : [];
+    if (
+      DEAD_PAIR_DELETE_ROUTINES.includes(routineName) &&
+      subjects.length > 0 &&
+      subjects.every((subject) => !isTestPath(subject)) &&
+      subjects.every((subject) => changes.some((c) => c.status === 'D' && c.file === subject))
+    ) {
+      continue;
     }
+    violations.push(
+      `deleted test: ${change.file}. A test file may only be deleted as half of a mechanically ` +
+        `proved dead pair (its deleted subject module, unreferenced by anything that survives), ` +
+        `and only by ${DEAD_PAIR_DELETE_ROUTINES.join('/')}. Here: ` +
+        (subjects.length === 0
+          ? 'no deleted subject was proved for it.'
+          : `its subject(s) ${subjects.join(', ')} are not all deleted non-test files in this diff.`) +
+        ' See docs/routines/prune.md § 2 gate 5 and README rule 1.'
+    );
   }
 
   for (const entry of testCounts) {
@@ -1013,6 +1046,80 @@ function collectTestCounts(base, changes) {
   return counts;
 }
 
+const RELATIVE_IMPORT_RE = /(?:from|require\()\s*['"](\.\.?\/[^'"]+)['"]/g;
+const RESOLVE_EXTENSIONS = ['', '.js', '.jsx', '.ts', '.tsx', '.mjs', '.cjs'];
+
+/**
+ * Mechanically prove dead pairs in a diff: each deleted test file, and the deleted non-test
+ * modules it relatively imports, whose stems nothing outside the diff's deleted set mentions at
+ * the base revision. Kept as git plumbing around a pure decision — `checkRoutineDiff` re-checks
+ * the shape (subjects exist, are non-test, are themselves deleted) so the proof cannot be fed by
+ * a hand-built argument. The stem search is a conservative superset, matching prune § 2 gate 2's
+ * direction of failure: a false "referenced" costs one more issue in the `test-only` class, a
+ * false "dead" deletes live code from `main`. Any git error other than grep's no-match (exit 1)
+ * counts as referenced.
+ * @param {string} base
+ * @param {{ status: string, file: string }[]} changes
+ * @param {(args: string[]) => string} [runGit] injection point for tests, same convention as
+ *   `preflightProblems`' `deps` — the proof reads the *base* tree, so a real run needs git.
+ * @returns {{ testFile: string, subjects: string[] }[]}
+ */
+export function collectDeadPairings(base, changes, runGit = git) {
+  const deletedFiles = new Set(changes.filter((c) => c.status === 'D').map((c) => c.file));
+  /** @type {{ testFile: string, subjects: string[] }[]} */
+  const pairings = [];
+  for (const change of changes) {
+    if (change.status !== 'D' || !isTestPath(change.file)) continue;
+    let source;
+    try {
+      source = runGit(['show', `${base}:${change.file}`]);
+    } catch {
+      continue;
+    }
+    const subjects = new Set();
+    for (const match of source.matchAll(RELATIVE_IMPORT_RE)) {
+      const resolved = path.posix
+        .normalize(path.posix.join(path.posix.dirname(change.file), match[1]))
+        .replace(/^\.\//, '');
+      for (const ext of RESOLVE_EXTENSIONS) {
+        const candidate = resolved + ext;
+        if (deletedFiles.has(candidate) && !isTestPath(candidate)) {
+          subjects.add(candidate);
+          break;
+        }
+      }
+    }
+    const provable = [...subjects].filter(
+      (subject) => !referencedOutsideDiffAtBase(base, subject, deletedFiles, runGit)
+    );
+    pairings.push({ testFile: change.file, subjects: provable });
+  }
+  return pairings;
+}
+
+/**
+ * @param {string} base
+ * @param {string} subject
+ * @param {Set<string>} deletedFiles
+ * @param {(args: string[]) => string} runGit
+ * @returns {boolean} whether any file surviving the diff mentions the subject's stem at base
+ */
+function referencedOutsideDiffAtBase(base, subject, deletedFiles, runGit) {
+  const stem = path.posix.basename(subject).replace(/\.[cm]?[jt]sx?$/, '');
+  if (!stem) return true;
+  let out;
+  try {
+    out = runGit(['grep', '-l', '-F', '-e', stem, base]);
+  } catch (err) {
+    return err?.status !== 1;
+  }
+  const prefix = `${base}:`;
+  return out
+    .split('\n')
+    .map((line) => (line.startsWith(prefix) ? line.slice(prefix.length) : line))
+    .some((file) => file !== '' && !deletedFiles.has(file));
+}
+
 /**
  * @param {string} name
  * @param {{ openPrs?: { number: number, title: string, headRefName: string }[] | null }} [deps]
@@ -1167,7 +1274,8 @@ function main() {
   const result = checkRoutineDiff({
     playbook,
     changes,
-    testCounts: collectTestCounts(base, changes)
+    testCounts: collectTestCounts(base, changes),
+    deadPairings: collectDeadPairings(base, changes)
   });
   let filingNote = '';
   if (String(playbook.tier) !== 'report') {
