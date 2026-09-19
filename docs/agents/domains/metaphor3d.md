@@ -690,6 +690,23 @@ ones that will bite an edit.
   island or tower under the aim point. Reachable link/viewport cells fall 10/16 desktop → 3/16 on a
   phone. Fix the ROUTE (stand it off the rim), never the picker.
 
+- **On the machine a relation is a drive BELT, and standing it off the rim is what makes it
+  tappable** (`metaphorScenes/machineBeltRoute.js`). `arcRoute` hops from the top of one item to
+  the top of the next, so between two gears the route has no length that is not over a gear body
+  and the item consumes every tap. Measured through the app's own picker, 2 fixtures × 3 viewports
+  × 10 aim points per route: **9 of 80 aim points free at 390×844, and 4 of 8 routes with none at
+  all**. The belt runs tangent to both wheels — offset by each one's TOOTH radius, ~1.11·r,
+  because `GearBody`'s teeth overhang the pitch circle — so it is outside both discs for its whole
+  length, and it ends by wrapping the driven rim, which is what keeps the arrowhead on the gear it
+  points at. After: **33/80 phone, 65/80 cover, 77/80 desktop, 8/8 routes reachable at every
+  viewport**, and nothing worse in any cell. Two corollaries, one render each. **Height is not the
+  lever** — an item's name plate is a screen-constant mesh inside the same `HoverableItem`, so
+  raising a route walks it out of the gear and into the label, which claims the pointer for the
+  same item. And **the belt lies in the WHEELS' plane, not at the anchors' `radius + 1.2`**: stood
+  off the rim up there it joined the gears to nothing the eye could follow and ran off the
+  bedplate at 1440×900. The caption is the one piece that keeps the anchor height, because the
+  declutter pass ranks a link caption last and drops it among the gears.
+
 - **Locking the atmosphere is half the job; the surfaces that atmosphere lights are the other
   half, and only a FUSED COMPOSITE pays for the omission**
   (`utils/metaphorDaylightSurfaces.js`). A base river or tree reads the colours the lock already
@@ -1669,6 +1686,52 @@ sticky` nav row, because the height cap makes every small screen a scrolling
   phone: 0 of 5).
   The fix, if one is wanted, is a route that stands off the island rim, not a change to the picker;
   same shape as `link-pick-machine-phone`. Tracked as `link-pick-fused-phone` in the ledger.
+- **Standing the route off the rim works, and on the machine the route it turns into is a drive
+  BELT** (`metaphorScenes/machineBeltRoute.js`, 2026-09-19). The machine was the base kind the
+  previous entry's advice had never been tried on. Baseline, measured through the app's own picker
+  on two fixtures (a 5-gear drive train, a 4-gear replication loop) × 390×844 / 717×512 /
+  1440×900, ten aim points spread along each drawn route by arc length: **9 of 80 aim points free
+  at phone width, and only 4 of 8 routes reachable at all — the whole replication fixture was
+  untappable**; 58/80 at cover, 75/80 at desktop. After the belt: **33/80, 65/80, 77/80, and 8/8 routes reachable at
+  every viewport** — no cell worse.
+  The geometry is the ordinary one: a belt's span is tangent to both pulleys, so offsetting it
+  from the line of centres by each wheel's own radius puts the whole span outside both discs.
+  Three things that are not obvious and each cost a render:
+  - **The offset is the TOOTH radius, not the pitch radius.** `GearBody` places each tooth at
+    `radius − 0.15·toothDepth` with a `0.26·radius` box depth, so the tips reach about `1.11·r`.
+    An offset of `r + clearance` puts the belt through the teeth.
+  - **Height is not the lever.** The instinct is to raise the route until it clears the gear. It
+    cannot: an item's name plate is a SCREEN-CONSTANT mesh standing directly above it inside the
+    same `HoverableItem`, so height walks the route out of the gear body and into the label, and
+    the label claims the pointer for the same item.
+  - **The belt lies in the wheels' plane.** The first version reused the `MetaphorLinks` anchors,
+    which sit at `radius + 1.2` because an arc has to leap the scene. Stood off the rim at that
+    height the belts floated over the bedplate, ran off its edge at 1440×900, and were joined to
+    the gears by nothing the eye could follow — a clear picking win and an obvious visual loss.
+    Mid-tooth fixes both. The link CAPTION is the exception and keeps the anchor height: down
+    among the gears the declutter pass, which ranks a link caption last, dropped both of the
+    replication fixture's captions at 717×512.
+    `MetaphorLinks` grew a `route` prop for this rather than a third `variant`, because the belt
+    needs the gear RADII and an anchor map does not carry them.
+- **Two synthetic `pointermove`s dispatched in one tick collapse into one, and the probe that
+  measures picking reads as "nothing is here"** (harness note, 2026-09-19). Verifying the rule
+  above means asking the app itself what is under a pixel, and the honest way to ask is a real
+  move event plus `document.body.style.cursor`, which `HoverableItem.handleOver` sets
+  synchronously — a tap that reaches `onPointerMissed` is by definition one no item claimed, so
+  the cursor IS the verdict. But the probe has to park the pointer off-scene first to release the
+  previous hover, and park-then-aim in the same tick yields one move: the 717×512 sweep scored
+  **0 of 5** on item probes whose markers were dead on the gear hubs. 30 ms between the park and
+  the aim is enough.
+  Two more, in the same probe: **elect the camera by PROOF, not by capture.** Neither
+  `PerspectiveCamera.prototype.updateProjectionMatrix` nor `Mesh.prototype.onBeforeRender` elects
+  it reliably — the shadow and environment passes overwrite the latter — and a wrong camera
+  projects a whole route into empty sky where every aim point reads free, which is a clean sweep
+  of wins that never happened. Project each item's own solid bounding box, tap it, and keep the
+  camera the app answers "item" for, with the four canvas corners as the control. And **the fit is
+  viewport-dependent and much further out in portrait than the recorded `[13.383, 10.285, 10.513]`
+  suggests**: settled, the same scene sits at `[18, 14, 18]` on 1440×900, `[18.2, 13.2, 18.3]` on
+  a 717×512 cover and `[38.9, 65.7, 39.2]` on a 390×844 phone. Wait for the position to stop
+  changing; do not calibrate a settle against one viewport's numbers.
 - **A picked link is ranked BELOW the caption it confirms** (`metaphorDrawOrder.js`
   `PICKED_LINK_ORDER = 6`). The highlight is a fat depth-free stroke and a link's own label sits at
   the route's midpoint, i.e. exactly on the line, so ranking it above the label plate paints over

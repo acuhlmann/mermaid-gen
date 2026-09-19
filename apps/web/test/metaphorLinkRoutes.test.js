@@ -12,6 +12,11 @@ import {
   linkMetricsFor
 } from '../src/components/metaphorScenes/linkRoutes.js';
 import {
+  BELT_RIM_CLEARANCE,
+  BELT_TOOTH_REACH,
+  machineBeltRoute
+} from '../src/components/metaphorScenes/machineBeltRoute.js';
+import {
   contrastRatio,
   resolveLinkAppearance
 } from '../src/components/metaphorScenes/sceneUtils.js';
@@ -173,5 +178,90 @@ describe('arrow placement', () => {
       [3, 4, 0]
     ]);
     expect(Math.hypot(...direction)).toBeCloseTo(1, 10);
+  });
+});
+
+describe('machine belt routing', () => {
+  // Two gears a little over a diameter apart, as `machineGearLayout` places a
+  // pair on one axle bed. Anchor y is `radius + 1.2` in the scene; `plane` is
+  // what the belt actually uses.
+  const FROM = [-3, 3.3, -2];
+  const TO = [2, 3.1, -2];
+  const GEARING = { fromRadius: 2.1, toRadius: 1.8, plateRadius: 12, plane: 0.43 };
+  const rimOf = (r) => r * BELT_TOOTH_REACH;
+  const xz = (p, c) => Math.hypot(p[0] - c[0], p[2] - c[2]);
+
+  it('keeps the whole belt clear of both wheels', () => {
+    // The defect this replaced: `arcRoute` ran from the top of one gear to the
+    // top of the next, so an adjacent pair's route had no length that was not
+    // over a gear body — and an item consumes the pointer before a link is
+    // ever considered (`metaphorLinkPick.js`).
+    const { points } = machineBeltRoute(FROM, TO, GEARING);
+    expect(points.length).toBeGreaterThan(20);
+    for (const p of points) {
+      expect(xz(p, FROM)).toBeGreaterThanOrEqual(rimOf(GEARING.fromRadius));
+      expect(xz(p, TO)).toBeGreaterThanOrEqual(rimOf(GEARING.toRadius));
+    }
+  });
+
+  it('lies in the plane of the wheels, not at the anchor height', () => {
+    // Stood off the rim at `radius + 1.2` the belt joined the gears to nothing
+    // the eye could follow — see the module header.
+    const { points, midpoint } = machineBeltRoute(FROM, TO, GEARING);
+    for (const p of points) {
+      expect(p[1]).toBeGreaterThanOrEqual(GEARING.plane);
+      expect(p[1]).toBeLessThan(GEARING.plane + 0.5);
+    }
+    // The caption is the exception, and deliberately: down among the gears the
+    // declutter pass drops it. It keeps the height the anchors define.
+    expect(midpoint[1]).toBeGreaterThan(Math.max(FROM[1], TO[1]));
+  });
+
+  it('hangs on the side away from the bedplate centre', () => {
+    const { points } = machineBeltRoute(FROM, TO, GEARING);
+    const third = points[Math.floor(points.length / 3)];
+    const straightMid = [(FROM[0] + TO[0]) / 2, (FROM[2] + TO[2]) / 2];
+    expect(Math.hypot(third[0], third[2])).toBeGreaterThan(
+      Math.hypot(straightMid[0], straightMid[1])
+    );
+  });
+
+  it('wraps the wheel it drives, so the arrow points around the rim', () => {
+    const { points } = machineBeltRoute(FROM, TO, GEARING);
+    const last = points[points.length - 1];
+    expect(xz(last, TO)).toBeCloseTo(rimOf(GEARING.toRadius) + BELT_RIM_CLEARANCE, 5);
+    const { direction } = arrowFromRoute(points);
+    // Tangential, not radial: a radial heading is the old "lands on the hub"
+    // arrow, which is the thing standing the belt off the rim gave up.
+    const radial = [last[0] - TO[0], last[2] - TO[2]];
+    const len = Math.hypot(radial[0], radial[1]);
+    expect(Math.abs((direction[0] * radial[0] + direction[2] * radial[1]) / len)).toBeLessThan(
+      0.35
+    );
+  });
+
+  it('is a world size taken from the wheels, not a constant', () => {
+    // Every size in this renderer is either CSS pixels or derived from the
+    // scene's own scale — see metaphorScreenScale.js.
+    const small = machineBeltRoute(FROM, TO, { ...GEARING, fromRadius: 0.6, toRadius: 0.6 });
+    const large = machineBeltRoute(FROM, TO, { ...GEARING, fromRadius: 3.2, toRadius: 3.2 });
+    expect(xz(small.points[0], FROM)).toBeLessThan(xz(large.points[0], FROM));
+  });
+
+  it('never routes the belt through a wheel to stay on the plate', () => {
+    // The clamp spends the CLEARANCE, never the radius: a belt pulled inside
+    // the gear it wraps hands the pointer straight back to that gear, which is
+    // the whole defect.
+    const tight = machineBeltRoute(FROM, TO, { ...GEARING, plateRadius: 3 });
+    for (const p of tight.points) {
+      expect(xz(p, FROM)).toBeGreaterThanOrEqual(rimOf(GEARING.fromRadius) - 1e-9);
+      expect(xz(p, TO)).toBeGreaterThanOrEqual(rimOf(GEARING.toRadius) - 1e-9);
+    }
+  });
+
+  it('draws nothing to wrap when the two parts share an anchor', () => {
+    const { points } = machineBeltRoute([1, 2, 3], [1, 2, 3], GEARING);
+    expect(points).toHaveLength(2);
+    expect(arrowFromRoute(points)).toBeNull();
   });
 });
