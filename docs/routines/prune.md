@@ -125,11 +125,11 @@ npm run prune:scan -- --json
 [`scripts/prune-scan.mjs`](../../scripts/prune-scan.mjs) answers "which tracked file does nothing
 else in this repository refer to?" across three classes:
 
-| Class    | It reports                                                                                                                            | Whether `prune` may open a PR for it                                                  |
-| -------- | ------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| `doc`    | a document unreachable from `README.md`/`AGENTS.md`/`CLAUDE.md`/`STRUCTURE.md`, a nested `CLAUDE.md`, or a loaded `.cursor` rule      | yes                                                                                   |
-| `source` | a module no import, config entry, glob, or directory scan reaches (`unreferenced`), or one that only its own test names (`test-only`) | `unreferenced` yes, `test-only` **no** — file an issue                                |
-| `script` | a root `npm run` target no doc, playbook, workflow, or other script invokes                                                           | **never** — `package.json` is `deps`' file; report it in the PR body, do not write it |
+| Class    | It reports                                                                                                                            | Whether `prune` may open a PR for it                                                           |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `doc`    | a document unreachable from `README.md`/`AGENTS.md`/`CLAUDE.md`/`STRUCTURE.md`, a nested `CLAUDE.md`, or a loaded `.cursor` rule      | yes                                                                                            |
+| `source` | a module no import, config entry, glob, or directory scan reaches (`unreferenced`), or one that only its own test names (`test-only`) | `unreferenced` yes; `test-only` **only as a dead pair** — § 2 gate 5 — otherwise file an issue |
+| `script` | a root `npm run` target no doc, playbook, workflow, or other script invokes                                                           | **never** — `package.json` is `deps`' file; report it in the PR body, do not write it          |
 
 **It is a report, not a gate.** It is absent from `npm run check` on purpose and exits 0 whatever it
 finds. A reachability number that reddens a build teaches whoever is red to silence the sensor rather
@@ -182,6 +182,13 @@ not a proposal bar: nothing outside the intersection gets deleted at all. A cand
 on is a deletion backed by two independent pieces of evidence that neither routine wrote; a candidate
 only one sensor sees is exactly where that tool's blind spot lives, and this routine's risk model is
 that it does not get to be the only thing that looked — least of all now that it also lands the result.
+**The dead-pair class (§ 2 gate 5) is deliberately absent from the intersection, and cannot be in it:**
+the test's import edge is exactly the edge that makes dependency-cruiser count the module reachable, so
+demanding the orphan list's agreement would demand that a sensor be blind to the class. For pairs the
+second sensor is instead the guard's own `collectDeadPairings` proof — import closure and stem-references
+computed at the base revision by a script this rung cannot edit (`scripts/routine-guard.mjs` is in
+`forbiddenPaths` and always-forbidden). Independence is the property § 5.1 actually buys, and it is
+preserved because the second checker is not the thing that wants the file gone.
 If a future run finds itself wanting to _weaken_ either sensor to make the lists agree, it has found a
 bug to report, not a queue to clear.
 
@@ -211,10 +218,21 @@ owner a review of a deletion that would have broken the app.
    normal cloud-agent checkout), that is **unknown age, not young age**: the graft boundary would
    stamp every file at ~0–2 days forever, so gate 4 does not apply here. Fall through to gates 1–3
    and 5; do not park a candidate solely because `added` is missing.
-5. **It is not merely a file with a test.** `routine-guard` refuses any test-file deletion, and it is
-   right: a file whose own suite still passes is _covered_, which is a different claim from _wanted_.
-   So a candidate that has a test file, or is named by exactly one, is **an issue, not a PR** — say
-   in the body that its tests need a decision too, and let `resolve` or a human carry the pair.
+5. **A module whose only consumer is its own suite is a dead pair, and the pair is deletable.**
+   A file whose own suite still passes is _covered_, which is a different claim from _wanted_ — but
+   when the shipped tree reaches neither the module nor anything but its test, "is this component
+   still wanted?" already has its empirical answer: nothing wants it, and a wire-up nobody has
+   done in fourteen-plus days is a feature proposal, not this gate's debris. Since 2026-09-19
+   `routine-guard` admits a test-file deletion **only** as the second half of exactly this shape,
+   mechanically and only for this rung: the test's relative imports resolve to non-test files
+   deleted **in the same diff**, and at the base revision no file outside the diff's deleted set
+   so much as names those files' stems. Postflight refuses every other test deletion, so no run
+   reasons from "my tests are green" to "these tests were debris". If a future surface turns out
+   to want the component, it is one `git revert` away and § 5.4's ledger row carries the command —
+   which is the whole answer to why this class moved off the owner's desk into this section.
+   **A proof that fails just routes:** if the test also imports a live module, or the stem appears
+   in a document or another suite, the candidate is **an issue, not a PR** — say in the body that
+   its tests need a decision too, and let `resolve` or `improve` carry the pair.
    Filing obeys rule 12 like anything else: `maxIssues: 1` per rolling 24 h, **`filed-by: prune` as the
    first line of the body** (without it the filing has no author and the cap is unenforceable), and
    **all the pairs in one issue** — five open tickets for one recurring class is the failure that rule
@@ -271,10 +289,14 @@ line.
    symmetric difference parked as a todo for a run that could hand-check it. Now that nobody reviews
    the proposal, it is the bar for the merge: if only `prune:scan` or only `verify:boundaries` names the
    file, it is not deleted. That rule is what replaces a second pair of eyes, and it is the only one of
-   the five the run cannot reason its way around.
+   the five the run cannot reason its way around. **For a dead pair the second sensor is the guard's
+   `collectDeadPairings` proof instead of the orphan-list intersection — and for the same reason,** an
+   independent checker this rung cannot edit (§ 1b).
 2. **One file, one commit, in PR-body order.** Not a style preference — it is what makes
    `git revert <sha>` a complete undo for one deletion instead of a partial unwind of a batch. Five
-   files in one commit means disagreeing with three of them requires surgery on `main`.
+   files in one commit means disagreeing with three of them requires surgery on `main`. A dead pair
+   is **one** commit: a module deleted without its test leaves a suite importing a dead path, and a
+   test deleted without its module leaves the very debris this rung exists to remove.
 3. **`npm run check:full` green with the file gone, before pushing** (§ 2 gate 6). Red after a deletion
    means the candidate was live. Abandon it, record it in `Rejected` with what broke, and treat that as
    the good outcome: the build caught what no reader would have.
@@ -308,7 +330,9 @@ judge:
 
 1. `stale-doc` — prose describing a design the code no longer has.
 2. `dead-file` — a module nothing imports and nothing loads.
-3. `unrouted-script` — report only (§ 1), never a diff.
+3. `dead-pair` — a module nothing but its own suite imports, deleted with that suite as one unit
+   (§ 2 gate 5). Both files count against `maxFiles`, so two pairs plus the ledger row fill a run.
+4. `unrouted-script` — report only (§ 1), never a diff.
 
 There is no asset class on purpose: `apps/web/src/assets/**` is both don't-touch and excluded by the
 scanner, because a baked `.mp3` is regenerated with credits, not deleted after a grep.
@@ -347,8 +371,9 @@ commit for exactly that reason. Reverting it is also a decision: the path goes t
 `Rejected` table and is never proposed again (§ 5.5).
 ```
 
-One such block per file, **one commit per file**, in that order — so a single unwanted deletion is
-`git revert` on one SHA rather than surgery on a batch (§ 5.2). Merge only after CI is green, and append
+One such block per file, **one commit per file** — for a dead pair, one block and one commit
+spanning both files (§ 5.2) — in that order, so a single unwanted deletion is `git revert` on one
+SHA rather than surgery on a batch. Merge only after CI is green, and append
 the row to the ledger's `completed` with the merge SHA and the undo command beside each path (§ 5.4).
 
 ## Verification

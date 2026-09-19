@@ -7,12 +7,14 @@ import { fileURLToPath } from 'node:url';
 import {
   ALWAYS_FORBIDDEN,
   BUDGET_OWNERS,
+  DEAD_PAIR_DELETE_ROUTINES,
   DELETE_ONLY_ROUTINES,
   MERGE_POLICIES,
   PLAYBOOK_SHELVES,
   ROUTINE_TIERS,
   checkFilings,
   checkRoutineDiff,
+  collectDeadPairings,
   collectPlaybooks,
   countTestCases,
   fetchOpenPrs,
@@ -152,6 +154,171 @@ test('checkRoutineDiff rejects a deleted test file', () => {
   });
   assert.equal(result.ok, false);
   assert.match(result.violations.join('\n'), /deleted test/);
+});
+
+const PRUNE_PLAYBOOK = {
+  name: 'prune',
+  tier: 'code-writing',
+  maxFiles: '5',
+  allowedPaths: ['**'],
+  forbiddenPaths: []
+};
+
+test('a dead pair may be deleted by prune — test plus its unreferenced subject, same diff', () => {
+  const changes = [
+    { status: 'D', file: 'apps/web/test/useAdvisorFloatPortal.test.jsx' },
+    { status: 'D', file: 'apps/web/src/components/AdvisorFloatPortal.jsx' }
+  ];
+  const result = checkRoutineDiff({
+    playbook: PRUNE_PLAYBOOK,
+    changes,
+    deadPairings: [
+      {
+        testFile: 'apps/web/test/useAdvisorFloatPortal.test.jsx',
+        subjects: ['apps/web/src/components/AdvisorFloatPortal.jsx']
+      }
+    ]
+  });
+  assert.deepEqual(result.violations, []);
+  assert.equal(result.ok, true);
+});
+
+test('a claimed pair is not enough — the subject must be a deleted non-test file in this diff', () => {
+  const base = {
+    playbook: PRUNE_PLAYBOOK,
+    deadPairings: [
+      { testFile: 'apps/web/test/x.test.jsx', subjects: ['apps/web/src/components/Live.jsx'] }
+    ]
+  };
+  for (const changes of [
+    // subject not deleted at all
+    [{ status: 'D', file: 'apps/web/test/x.test.jsx' }],
+    // "subject" is itself a test file
+    [
+      { status: 'D', file: 'apps/web/test/x.test.jsx' },
+      { status: 'D', file: 'apps/web/test/Live.test.jsx' }
+    ],
+    // subject deleted but marked M
+    [
+      { status: 'D', file: 'apps/web/test/x.test.jsx' },
+      { status: 'M', file: 'apps/web/src/components/Live.jsx' }
+    ]
+  ]) {
+    const result = checkRoutineDiff({ ...base, changes });
+    assert.equal(result.ok, false, JSON.stringify(changes));
+    assert.match(result.violations.join('\n'), /deleted test/);
+  }
+});
+
+test('the pair exemption is prune-only — a fixer deleting a test with a plausible pairing is refused', () => {
+  const changes = [
+    { status: 'D', file: 'apps/web/test/x.test.jsx' },
+    { status: 'D', file: 'apps/web/src/components/Dead.jsx' }
+  ];
+  const result = checkRoutineDiff({
+    playbook: { ...PLAYBOOK, allowedPaths: ['**'], forbiddenPaths: [] },
+    changes,
+    deadPairings: [
+      { testFile: 'apps/web/test/x.test.jsx', subjects: ['apps/web/src/components/Dead.jsx'] }
+    ]
+  });
+  assert.equal(result.ok, false);
+  assert.match(result.violations.join('\n'), /deleted test/);
+});
+
+test('pair deletion stays gated to the delete-only rungs', () => {
+  assert.deepEqual(DEAD_PAIR_DELETE_ROUTINES, DELETE_ONLY_ROUTINES);
+});
+
+/**
+ * A fake `git` for the collector, mirroring the real one's shapes: `show` reads the base tree,
+ * `grep -l -F -e <stem> <base>` prints `${base}:<file>` lines and exits 1 (throws with
+ * status 1) when nothing matched.
+ */
+function fakeGit({ base = 'origin/main', blobs = {}, hits = {}, fails = [] } = {}) {
+  return (args) => {
+    if (args[0] === 'show') {
+      const key = args[1];
+      if (!key.startsWith(`${base}:`)) throw Object.assign(new Error('bad rev'), { status: 128 });
+      const file = key.slice(base.length + 1);
+      if (!(file in blobs)) throw Object.assign(new Error('no such path'), { status: 128 });
+      return blobs[file];
+    }
+    if (args[0] === 'grep') {
+      const stem = args[4];
+      if (fails.includes(stem)) throw Object.assign(new Error('not a repo'), { status: 128 });
+      const list = hits[stem] ?? [];
+      if (list.length === 0) throw Object.assign(new Error('no matches'), { status: 1 });
+      return list.map((f) => `${base}:${f}`).join('\n');
+    }
+    throw Object.assign(new Error(`unexpected git args: ${args.join(' ')}`), { status: 128 });
+  };
+}
+
+const DEAD_TEST = 'apps/web/test/useAdvisorFloatPortal.test.jsx';
+const DEAD_MODULE = 'apps/web/src/components/AdvisorFloatPortal.jsx';
+const DEAD_PAIR_DIFF = [
+  { status: 'D', file: DEAD_TEST },
+  { status: 'D', file: DEAD_MODULE }
+];
+const DEAD_TEST_SOURCE = [
+  "import { render } from '@testing-library/react';",
+  "import AdvisorFloatPortal from '../src/components/AdvisorFloatPortal.jsx';",
+  "import { floorFixture } from './helpers/floor.js';"
+].join('\n');
+
+test('the collector resolves an extensionless relative import to its deleted subject', () => {
+  const pairings = collectDeadPairings(
+    'origin/main',
+    DEAD_PAIR_DIFF,
+    fakeGit({ blobs: { [DEAD_TEST]: DEAD_TEST_SOURCE } })
+  );
+  assert.deepEqual(pairings, [{ testFile: DEAD_TEST, subjects: [DEAD_MODULE] }]);
+});
+
+test('a mention in any surviving file — shipped code, docs, or another suite — is not a dead pair', () => {
+  for (const survivor of [
+    'apps/web/src/components/DiagramCanvas.jsx',
+    'docs/canvas-graph-edit.md',
+    'apps/web/test/someOtherSuite.test.js'
+  ]) {
+    const pairings = collectDeadPairings(
+      'origin/main',
+      DEAD_PAIR_DIFF,
+      fakeGit({
+        blobs: { [DEAD_TEST]: DEAD_TEST_SOURCE },
+        hits: { AdvisorFloatPortal: [DEAD_MODULE, DEAD_TEST, survivor] }
+      })
+    );
+    assert.deepEqual(pairings[0].subjects, [], `${survivor} must block the proof`);
+    const result = checkRoutineDiff({
+      playbook: PRUNE_PLAYBOOK,
+      changes: DEAD_PAIR_DIFF,
+      deadPairings: pairings
+    });
+    assert.equal(result.ok, false);
+  }
+});
+
+test('a subject referenced only from files this same diff deletes is provable', () => {
+  const pairings = collectDeadPairings(
+    'origin/main',
+    DEAD_PAIR_DIFF,
+    fakeGit({
+      blobs: { [DEAD_TEST]: DEAD_TEST_SOURCE },
+      hits: { AdvisorFloatPortal: [DEAD_MODULE, DEAD_TEST] }
+    })
+  );
+  assert.deepEqual(pairings[0].subjects, [DEAD_MODULE]);
+});
+
+test('a grep that fails for any reason other than "no matches" counts as referenced', () => {
+  const pairings = collectDeadPairings(
+    'origin/main',
+    DEAD_PAIR_DIFF,
+    fakeGit({ blobs: { [DEAD_TEST]: DEAD_TEST_SOURCE }, fails: ['AdvisorFloatPortal'] })
+  );
+  assert.deepEqual(pairings[0].subjects, []);
 });
 
 test('checkRoutineDiff rejects a shrinking test file', () => {
