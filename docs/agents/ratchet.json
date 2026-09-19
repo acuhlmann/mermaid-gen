@@ -47,14 +47,14 @@
     },
     "contextBytes": {
       "CLAUDE.md": {
-        "budget": 41728,
+        "budget": 41890,
         "initial": 136170,
-        "reason": "2026-09-19: 40202 -> 41728 for the ADR-0018 mirror (self-healing fleet contract: ready+auto-merge opens, digest § 2c closed action list, two-minute page-bar asks, prune dead-pair authority) plus the same-day eager-auto-merge correction (enable at green, never at opening — no required checks on main) — repo-wide operational facts under README rule 8, mirrored in both root files. Prior raise: 2026-09-15 for #692's paused-rung mirror (+63)."
+        "reason": "2026-09-19: 40202 -> 41890 for the ADR-0018 mirror across three same-day passes (self-healing contract; enable-at-green correction; required-checks restoration — the six workspace checks are now required on main and the prose returns to enable-at-opening with the platform gate). Prior raise: 2026-09-15 for #692's paused-rung mirror (+63)."
       },
       "AGENTS.md": {
-        "budget": 45215,
+        "budget": 45377,
         "initial": 88461,
-        "reason": "2026-09-19: 43689 -> 45215, same ADR-0018 mirror and eager-auto-merge correction as CLAUDE.md per rule 8. Prior raise: 2026-09-15 #692 paused-ladder mirror (+63)."
+        "reason": "2026-09-19: 43689 -> 45377, same three-pass ADR-0018 mirror as CLAUDE.md per rule 8. Prior raise: 2026-09-15 #692 paused-ladder mirror (+63)."
       }
     },
     "lintWarnings": {

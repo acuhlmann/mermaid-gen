@@ -50,14 +50,21 @@ revision no file outside the diff's deleted set names their stems. The playbook 
 blind (the test edge is what makes dep-cruiser see the module), the independent checker is the
 guard itself. Revert is whole: one commit per pair.
 
-**2. The merge is GitHub's job, not the run's — enabled at green, never at opening.** Every
-code-writing rung opens its PR ready (never draft), watches the check set report, and enables
-auto-merge once **every** job is green; the enable lands the merge immediately, and a crash after it
-is a merge that happened anyway. Not at opening: `main` has no required status checks, and measured
-the same afternoon this ADR was written, an auto-merge enabled with workspace jobs still queued
-merged against the queue rather than the gate (#734 — green eventually, but the platform had not
-voted yet). If the owner makes those checks required in branch protection, the enable may move back
-to opening time and the platform becomes the gate the prose was pretending it was. A run that sees
+**2. The merge is GitHub's job, not the run's — and the platform is the gate.** Every code-writing
+rung opens its PR ready (never draft) and enables auto-merge at opening; GitHub queues it and lands
+it only when the six required `main` checks are green, so a crash after the enable is a merge that
+happened anyway and no run polls. The full history is the cautionary one, same day: this ADR first
+shipped "enable at opening" against a `main` with no required checks; that's unsafe — an auto-merge
+enabled with jobs not yet reported merges against the queue, not the gate (#734 did exactly this).
+The interim fix (#735) was "enable at whole-set green, never at opening" — safe but it left the
+human-authored dogfood doing the polling. The owner then made `build`, `sensors`, `test-scripts`,
+`test-server`, `test-shared`, `test-web` required on `main`, and the gate was verified end-to-end
+(#736: auto-merge enabled at opening held `OPEN` through every pending check and merged the instant
+they went green), so the protocol returned to its original shape — now with the platform, not the
+prose, enforcing it. **The one hole the gate leaves:** `enforce_admins` is off (so the owner's own
+pushes and the routines' owner-credentialed tooling still work), which means a **direct**
+`gh pr merge` without `--auto` bypasses all six — the flag is mandatory, its absence is the hazard.
+If the required set is ever loosened, the enable must move back to whole-set green. A run that sees
 red gets one repair attempt; still red, it closes **its own** PR, deletes the branch, and records
 the ledger row. Preflight refusals now have a checklist instead of a puzzle: green means finish the
 predecessor first (that is tonight's opening move, not a reason to stop), red means close and

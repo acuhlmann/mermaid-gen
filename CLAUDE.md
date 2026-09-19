@@ -219,10 +219,12 @@ check`: two unattended feature automations run daily here, and a quality metric 
   Cursor rung is a [cursor.com/automations](https://cursor.com/automations) action. Retiring
   anything, and every Cursor-side change, stays the owner's (page bar #2).
 - **ADR-0018 (2026-09-19): the shelf self-heals what it can reach.** Every rung opens its PR ready
-  (never draft) and enables auto-merge **once the whole CI set is green — never at opening**, since
-  `main` has no required checks and an early enable merges against the queue, not the gate (measured
-  the day this rule shipped). A run that crashes at the merge moment no longer leaves a green draft
-  to stop its successor at preflight. `digest` carries a closed two-action list
+  (never draft) and enables auto-merge at opening; `main` now has six **required** status checks, so
+  the auto-merge queue holds until all six are green (verified same-day, #736) and a crash at the
+  merge moment lands the merge anyway instead of stranding a draft that stops its successor at
+  preflight. The gate is on `--auto` only: `enforce_admins` is off and routines run on the owner's
+  credentials, so a _direct_ `gh pr merge` without `--auto` still bypasses all six — always use the
+  flag. `digest` carries a closed two-action list
   (`docs/routines/digest.md` § 2c): re-fire a dark Claude-hosted rung whose trigger id is in the
   ladder table (≤1 per rung, ≤3 per morning — every entry a firing already budgeted), and un-stick
   a green routine-owned stranded draft so its own auto-merge lands it. Zero commits — the report
