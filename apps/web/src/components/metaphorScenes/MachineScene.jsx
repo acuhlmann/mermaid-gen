@@ -13,6 +13,7 @@ import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
 import { Billboard } from '@react-three/drei';
 import { machineGearLayout } from '../../utils/metaphorLayouts/machineGearLayout.js';
+import { machineBeltRoute } from './machineBeltRoute.js';
 import { Glyph } from '../metaphorGlyphs/index.jsx';
 import {
   GradientSkySphere,
@@ -487,6 +488,25 @@ export function MachineScene({ dsl, theme }) {
 
   const plateR = Math.max(5.5, layout.bounds.radius * 0.95);
 
+  // A relation between two parts of one mechanism is a drive belt, so it runs
+  // tangent to both wheels and wraps the one it drives — see
+  // `machineBeltRoute.js` for the measurement that put it there.
+  const beltRoute = useMemo(
+    () => (from, to, link) => {
+      const a = gearById.get(link.from);
+      const b = gearById.get(link.to);
+      return machineBeltRoute(from, to, {
+        fromRadius: a?.radius ?? 0,
+        toRadius: b?.radius ?? 0,
+        plateRadius: plateR * 0.97,
+        // Mid-tooth: `GearBody` draws its rim 0.22 deep centred 0.08 above the
+        // gear's own origin, so this is the plane the teeth actually occupy.
+        plane: Math.max(a?.position?.[1] ?? 0.35, b?.position?.[1] ?? 0.35) + 0.08
+      });
+    },
+    [gearById, plateR]
+  );
+
   return (
     <group>
       <FactoryFloor radius={plateR} theme={theme} />
@@ -522,7 +542,7 @@ export function MachineScene({ dsl, theme }) {
       <FloatingSparks radius={plateR * 0.7} theme={theme} />
       <MetaphorGroundShadow theme={theme} y={-0.14} scale={plateR * 2.1} />
       <MetaphorAccents items={dsl.items} anchors={anchors} theme={theme} />
-      <MetaphorLinks links={dsl.links} anchors={anchors} theme={theme} variant="arc" />
+      <MetaphorLinks links={dsl.links} anchors={anchors} theme={theme} route={beltRoute} />
     </group>
   );
 }

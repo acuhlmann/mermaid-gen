@@ -562,8 +562,13 @@ export function LinkArrowhead({ position, direction, color, casingColor, opacity
  *   construction; equal depth plus the default `LessEqualDepth` means whichever
  *   draws second wins, so the order is set explicitly rather than left to the
  *   traversal.
+ *
+ * `route` lets a kind supply its own geometry when the two stock shapes cannot
+ * say what its relation means — `machineBeltRoute` needs the gear RADII, which
+ * an anchor map does not carry. It takes `(from, to, link)` and returns the
+ * same `{points, midpoint}`, so nothing below this line branches on the kind.
  */
-export function MetaphorLinks({ links, anchors, theme, variant = 'elbow' }) {
+export function MetaphorLinks({ links, anchors, theme, variant = 'elbow', route = null }) {
   const pickable = Boolean(useMetaphorLinkSelection());
   // Subscribing here rather than in each `<Line>` keeps a link pick off React
   // state in the scene modules: only this component re-renders, and the
@@ -586,7 +591,10 @@ export function MetaphorLinks({ links, anchors, theme, variant = 'elbow' }) {
           <MetaphorLinkRoute
             key={`${link.from}-${link.to}-${idx}`}
             link={link}
-            route={variant === 'arc' ? arcRoute(from, to) : elbowRoute(from, to)}
+            route={
+              route?.(from, to, link) ??
+              (variant === 'arc' ? arcRoute(from, to) : elbowRoute(from, to))
+            }
             theme={theme}
             metrics={metrics}
             casingColor={casingColor}
