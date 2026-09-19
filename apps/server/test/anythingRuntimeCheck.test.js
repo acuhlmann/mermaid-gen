@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { getAnythingLibInfo } from '@archislop/shared';
 import { expandAnythingLibs } from '@archislop/shared/anythingLibVendor.js';
 import {
   isAnythingRuntimeCheckEnabled,
@@ -353,16 +354,37 @@ test('runtime sandbox integration', { concurrency: false }, async (t) => {
   // is what makes the "both engines are held to the same suite" identity actually hold for
   // them. The runtime_error subset only: blank_render is cheap but unrelated, and the
   // runtime_timeout fixture deliberately spins for the whole budget.
+  //
+  // It has to expand the `@lib:` markers first, and assert that no fixture was
+  // rejected for a missing library global. Run raw, 13 of the 20 fixtures here
+  // reject on `ReferenceError: Matter is not defined` (or `d3`) instead of the
+  // defect each was written to pin — a code match that stays green whatever the
+  // page does, which is this sweep's own stated failure mode arriving from the
+  // inside. `runtime-lib-without-marker` carries no marker, so nothing is
+  // injected for it and a missing `d3` stays exactly what that fixture asserts.
   await t.test('bench corpus runtime_error fixtures still throw under this engine', async () => {
     const fixtures = ANYTHING_BENCH_CORPUS.filter(
       (c) => c.kind === 'runtime' && c.expectedCode === 'runtime_error'
     );
     assert.ok(fixtures.length >= 2, `expected runtime_error fixtures, got ${fixtures.length}`);
+    let marked = 0;
     for (const fixture of fixtures) {
-      const result = await runAnythingRuntimeCheck(fixture.html, { env: {} });
+      // Production expands the markers before the rung runs (`anythingHtmlTool.js`),
+      // so a sweep over the raw fixture measures a document the validator never sees.
+      const { html, injected } = expandAnythingLibs(fixture.html);
+      const result = await runAnythingRuntimeCheck(html, { env: {} });
       assert.equal(result.ok, false, `${fixture.id}: ${JSON.stringify(result)}`);
       assert.equal(result.code, 'runtime_error', `${fixture.id}: ${JSON.stringify(result)}`);
+      for (const id of injected) {
+        marked += 1;
+        assert.doesNotMatch(
+          String(result.error ?? ''),
+          new RegExp(`${getAnythingLibInfo(id).global} is not defined`),
+          `${fixture.id}: rejected for a missing @lib:${id} global, not for its own defect`
+        );
+      }
     }
+    assert.ok(marked >= 2, `expected @lib fixtures in the sweep, got ${marked}`);
   });
 
   await t.test('fails open when the sandbox cannot produce a verdict', async () => {
