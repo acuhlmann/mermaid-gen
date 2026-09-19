@@ -16,8 +16,13 @@
  * so the desk and the isometric floor can both read it.
  *
  * Fingerprint writers are deliberately few: the run-reaction speaker, plus
- * anyone the user later dwells or talks with. Stamping everyone on a
- * board-sample edge would be omniscience.
+ * anyone the user later dwells with, talks to, walks into, or emails. Stamping
+ * everyone on a board-sample edge would be omniscience.
+ *
+ * "Few" is a rule about the *edge*, not a count — each writer is a moment the
+ * user aimed at one named person, which is why the set has grown twice since
+ * v1's dwell-and-talk pair (an interruption, then an email) without the rule
+ * moving. An ambient moment must still never write here.
  */
 
 import {
@@ -43,7 +48,27 @@ const INTERRUPTION_PROMPT_LINES = Object.freeze({
   gaveUp: 'you got in the way of their errand; they went back to their desk empty-handed'
 });
 
-/** @typedef {{ at: number, theirs?: string, yours?: string, pitchTaken?: boolean, interrupted?: 'gotIt' | 'gaveUp' }} WorkingMemoryBeat */
+/**
+ * The same two quotes, for a beat that was not spoken.
+ *
+ * `you said:` is the default because until the email channel started writing
+ * beats every one of them was a dwell, a talk or an interruption — somebody in
+ * the room, in earshot. An email is the one exchange the office deliberately
+ * keeps off every talk surface, so quoting it as speech hands the next prompt a
+ * conversation that never happened, and a colleague who "remembers" talking to
+ * you when you typed at their inbox is the fabrication the situation rule
+ * warns about, arriving through memory instead of through a situation.
+ *
+ * Keyed by `medium`, with the absent case falling through to the default pair,
+ * so adding a member here is a copy row rather than a branch.
+ */
+const MEDIUM_PROMPT_LINES = Object.freeze({
+  email: { yours: 'you emailed them:', theirs: 'they wrote back:' }
+});
+
+const SPOKEN_PROMPT_LINES = Object.freeze({ yours: 'you said:', theirs: 'they said:' });
+
+/** @typedef {{ at: number, theirs?: string, yours?: string, pitchTaken?: boolean, interrupted?: 'gotIt' | 'gaveUp', medium?: 'email' }} WorkingMemoryBeat */
 /** @typedef {{ beats: WorkingMemoryBeat[], boardFingerprint?: string }} WorkingMemoryRow */
 
 /** @type {{ [colleagueId: string]: WorkingMemoryRow }} */
@@ -162,7 +187,7 @@ export function listWorkingMemoryColleagueIds() {
 /**
  * @param {string} colleagueId
  * @param {{ theirs?: string, yours?: string, pitchTaken?: boolean,
- *   interrupted?: 'gotIt' | 'gaveUp', now?: number }} beat
+ *   interrupted?: 'gotIt' | 'gaveUp', medium?: 'email', now?: number }} beat
  *   `interrupted` is the one beat field that is not something either of you
  *   said: you walked into their errand and it ended because of you. It is still
  *   only a record — writing it schedules nothing (ADR-0010) — but it is what
@@ -237,8 +262,9 @@ export function workingMemoryPromptLines(colleagueId) {
      * about. Same reason `yours` precedes `theirs`.
      */
     if (beat.interrupted) lines.push(INTERRUPTION_PROMPT_LINES[beat.interrupted]);
-    if (beat.yours) lines.push(`you said: ${beat.yours}`);
-    if (beat.theirs) lines.push(`they said: ${beat.theirs}`);
+    const quote = MEDIUM_PROMPT_LINES[beat.medium] ?? SPOKEN_PROMPT_LINES;
+    if (beat.yours) lines.push(`${quote.yours} ${beat.yours}`);
+    if (beat.theirs) lines.push(`${quote.theirs} ${beat.theirs}`);
     if (beat.pitchTaken) lines.push('you took their suggestion earlier');
   }
   return lines.slice(-6);

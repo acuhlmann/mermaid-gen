@@ -497,6 +497,25 @@ export function writeOfficeLog(entries, now = Date.now()) {
 export const OFFICE_WORKING_MEMORY_INTERRUPTIONS = Object.freeze(['gotIt', 'gaveUp']);
 
 /**
+ * How a beat was exchanged, when it was not by speaking.
+ *
+ * An enum for the same reason as the interruptions above — it selects a
+ * sentence in `workingMemoryPromptLines`, so free text here is a floor writing
+ * into a prompt. There is exactly **one** member, and the absent case is the
+ * default rather than a third value: every beat the office wrote before this
+ * one was a dwell, a talk or an interruption, and phrasing them `you said:`
+ * stays byte-identical.
+ *
+ * `email` is the member because email is the one channel the office already
+ * refuses to treat as speech — `isSpokenLine` never voices one and
+ * `pushOfficeEmail` keeps it out of the talk surfaces entirely. A beat that
+ * told a later prompt `you said: <a subject line>` would be handing the model a
+ * conversation that did not happen, which is the fabrication failure the
+ * situation rule in `docs/agents/domains/office.md` was measured on.
+ */
+export const OFFICE_WORKING_MEMORY_MEDIUMS = Object.freeze(['email']);
+
+/**
  * The one place a working-memory beat's fields are decided.
  *
  * A beat passes two validators — `rememberWorkingMemoryBeat` on the way in and
@@ -509,24 +528,40 @@ export const OFFICE_WORKING_MEMORY_INTERRUPTIONS = Object.freeze(['gotIt', 'gave
  * Returns `null` for a beat carrying nothing worth keeping, which both callers
  * treat as "do not store this".
  *
+ * **A quote is collapsed to one line before it is capped**, because a beat is
+ * rendered as a single `- ` bullet in the system prompt
+ * (`buildOfficeWorkingMemoryBlock`): an embedded newline breaks the list open
+ * and turns the rest of the quote into prose the model reads as instruction
+ * rather than as something somebody said. An email carries one by
+ * construction — subject and body arrive joined — and a model's own reply can
+ * too, so this belongs to every beat rather than to the email path. Collapsing
+ * first also means the 200 characters are 200 readable ones.
+ *
  * @param {Record<string, unknown>} beat
  * @param {number} at
  * @returns {{ at: number, theirs?: string, yours?: string, pitchTaken?: boolean,
- *   interrupted?: string } | null}
+ *   interrupted?: string, medium?: string } | null}
  */
 export function normalizeWorkingMemoryBeat(beat, at) {
   const next = { at };
+  const quote = (text) => text.trim().replace(/\s+/g, ' ').slice(0, 200);
   if (typeof beat.theirs === 'string' && beat.theirs.trim()) {
-    next.theirs = beat.theirs.trim().slice(0, 200);
+    next.theirs = quote(beat.theirs);
   }
   if (typeof beat.yours === 'string' && beat.yours.trim()) {
-    next.yours = beat.yours.trim().slice(0, 200);
+    next.yours = quote(beat.yours);
   }
   if (beat.pitchTaken === true) next.pitchTaken = true;
   if (OFFICE_WORKING_MEMORY_INTERRUPTIONS.includes(beat.interrupted)) {
     next.interrupted = beat.interrupted;
   }
   if (!next.theirs && !next.yours && !next.pitchTaken && !next.interrupted) return null;
+  /*
+   * After the emptiness check, not before it: the medium says how a beat
+   * happened and is never itself the thing worth remembering, so a beat
+   * carrying nothing but `medium: 'email'` is still nothing.
+   */
+  if (OFFICE_WORKING_MEMORY_MEDIUMS.includes(beat.medium)) next.medium = beat.medium;
   return next;
 }
 
