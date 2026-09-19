@@ -177,21 +177,22 @@ If the run cannot get to green, it pushes **nothing**: delete the branch and fil
 describing the blocker. A half-fixed branch left open is worse than no run at all, because the next
 firing's preflight will refuse to start behind it — which is the intended stop, not a bug.
 
-**The merge is GitHub's job, not the run's — enabled at green, never at opening.** Open the PR ready
-(never draft), watch the check set report, and once **every job** is green enable auto-merge; it
-lands immediately, and the run may then finish its ledger row and stop without polling anything
-further. Do **not** enable at creation: `main` has no required status checks today, so GitHub's
-auto-merge treats a not-yet-reported job as no objection — measured 2026-09-19, when this session's
-own #734 auto-landed with three workspace jobs still queued (they went green, but the gate was the
-queue, not the platform). Cloud runners crash at the worst moment: the 2026-09-17 `office-life`
-firing died leaving an all-green draft, the 09-18 firing crashed opening its second one, and the
-same shape cost a third run (#619, 2026-09-09) — each then stopped the next firing at preflight,
-which had to spend its opening minutes finishing its predecessor instead of doing tonight's work.
-Under this protocol a crash after the enable merges anyway (that is the point), and a crash before
-it leaves a **ready** PR that the next firing finishes or `digest` § 2c un-sticks — never a stranded
-draft. A routine that sees red gets **one** repair attempt; still red, it closes **its own** PR,
-deletes the branch, and records the ledger row — closing your own abandoned PR is never the page
-bar, which names closing _someone else's_.
+**The merge is GitHub's job, not the run's — enabled at opening, gated by the platform.** Open the
+PR ready (never draft) and enable auto-merge immediately; GitHub queues it and **lands it only when
+every required check is green**, then the run finishes its ledger row and stops without polling.
+`main` now has six required status checks (`build`, `sensors`, `test-scripts`, `test-server`,
+`test-shared`, `test-web`), set 2026-09-19 and verified that same afternoon: a throwaway PR with
+auto-merge enabled at opening sat `OPEN` through 4→1 pending checks and merged the instant they all
+went green (#736, `07:17Z`). This replaces the interim "enable at whole-set green, never at opening"
+rule that shipped hours earlier — that rule existed because a real queue-race had been measured when
+`main` had _no_ required checks (#734 auto-landed against a partial reported set); the platform gate
+closes the race for the merge path every routine is told to use, so the polling is gone. **The gate
+protects `--auto`, not a direct merge:** `enforce_admins` is off, so a routine authenticated as the
+owner that runs `gh pr merge` _without_ `--auto` bypasses all six and merges unverified — the flag is
+the safe mode, its absence is the hazard. If the required-check set is ever loosened, the enable at
+opening becomes unsafe again and this rule must revert to enable-at-green. A red build gets **one**
+repair attempt; still red, close **your own** PR, delete the branch, and record the ledger row —
+closing your own abandoned PR is never the page bar, which names closing _someone else's_.
 
 **Before you conclude the tree is red, rule out your own checkout.** `npm ci` and
 `npm run build -w packages/shared`, then re-run. A stale `node_modules` or a stale
@@ -539,4 +540,3 @@ step 4). `npm run verify:doc-paths` checks its file references resolve. Both run
 `npm run routine:guard -- --reachable <path>` answers the one question a new routine's budget has to
 get right before it can promise anything to the backlog (rule 11), and its sweep in
 `scripts/routine-guard.test.mjs` fails if a file in `scripts/` ends up owned by nobody.
-// gate probe 1789801921

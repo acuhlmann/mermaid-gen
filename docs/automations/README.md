@@ -56,17 +56,19 @@ The playbook's frontmatter declares `maxFiles`, `allowedPaths`, and `forbiddenPa
 If the run cannot get to green, push **nothing**: delete the branch and file an issue describing
 the blocker.
 
-**Open the PR ready — never draft — and enable auto-merge once the _whole_ check set is green**
-(routines README rule 3, ADR-0018 — including why not at opening: `main` has no required checks, so
-GitHub auto-merges against whatever has reported, and this session's own #734 landed with three
-workspace jobs still queued). The merge is GitHub's job from that moment, not the run's job to
-poll for after it. This shelf has the shelf's worst record of the crash-at-merge moment —
-`office-life` fired FAILED at 18:43 on 2026-09-17 with all eleven checks green on its PR (#716),
-crashed again opening #726 the same way on 09-18, and cost a third run on 09-09 (#619); every one of
-them then stopped its own successor at preflight. A run that sees red gets one repair attempt;
-still red, close **your own** PR, delete the branch, record the ledger row. Auto-merge unavailable
-in your environment (no write path to it via the MCP tools): fall back to polling-then-merging, the
-old form, and say so in the ledger.
+**Open the PR ready — never draft — and enable auto-merge** (routines README rule 3, ADR-0018):
+the merge is GitHub's job from that point, gated by the platform, not the run's to poll for. As of
+2026-09-19 `main` has six **required** status checks, so an auto-merge enabled at opening waits for
+all six and lands only on their green — verified same-day (#736: enabled at opening, it held `OPEN`
+through pending checks and merged the moment they went green). One caveat that the gate does not
+cover: `enforce_admins` is off and routines act on the owner's credentials, so a **direct**
+`gh pr merge` without `--auto` bypasses all six and merges unverified — always use `--auto`. This
+shelf has the shelf's worst record of the crash-at-merge moment — `office-life`'s 2026-09-17 firing
+was cut off mid-run (org monthly **spend limit**) leaving an all-green draft (#716) that stopped its
+successor at preflight, and the same shape cost two more runs (#726 on 09-18, #619 on 09-09). A run
+that sees red gets one repair attempt; still red, close **your own** PR, delete the branch, record
+the ledger row. Auto-merge unavailable in your environment (no write path to it via the MCP tools):
+fall back to polling the full check set to green then merging, and say so in the ledger.
 
 **Known flake.** `apps/server/test/anythingRuntimeCheck.test.js` can fail up to six tests at once
 under full-suite load contention while passing in isolation. Re-run that file alone before concluding
