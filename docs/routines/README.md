@@ -539,3 +539,4 @@ step 4). `npm run verify:doc-paths` checks its file references resolve. Both run
 `npm run routine:guard -- --reachable <path>` answers the one question a new routine's budget has to
 get right before it can promise anything to the backlog (rule 11), and its sweep in
 `scripts/routine-guard.test.mjs` fails if a file in `scripts/` ends up owned by nobody.
+// gate probe 1789801921
