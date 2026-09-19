@@ -263,6 +263,20 @@ check`: two unattended feature automations run daily here, and a quality metric 
   a claude.ai subscription login); Cursor's `agent` CLI has no `automations` command at all, so a
   Cursor rung is a [cursor.com/automations](https://cursor.com/automations) action. Retiring
   anything, and every Cursor-side change, stays the owner's (page bar #2).
+- **ADR-0018 (2026-09-19): the shelf self-heals what it can reach.** Every rung opens its PR ready
+  (never draft) with auto-merge on, so a run that crashes at the merge moment no longer leaves a
+  green draft to stop its successor at preflight. `digest` carries a closed two-action list
+  (`docs/routines/digest.md` § 2c): re-fire a dark Claude-hosted rung whose trigger id is in the
+  ladder table (≤1 per rung, ≤3 per morning — every entry a firing already budgeted), and un-stick
+  a green routine-owned stranded draft so its own auto-merge lands it. Zero commits — the report
+  tier's empty-diff postflight still fails any. Cursor rungs stay the owner's page by explicit
+  choice (the finder/payer host-split beats full recoverability), so a dark Cursor rung must read
+  in the digest as a 30-second cursor.com/automations visit, never an investigation. A page-bar
+  ask arrives binary — question, recommendation, explicit silence-default (never spend, never
+  grant); an open-ended "worth confirming" is a format failure (rule 10's third corollary). And
+  prune's `test-only` class became a deletion, not an escalation: the guard mechanically admits a
+  dead module+test pair, in one commit, for `prune` alone (`prune.md` § 2 gate 5) — #686's
+  wire-or-delete ask was a line of code posing as an owner decision.
 - **One fleet per 24-hour window.** Two unregistered automations can price the same bug the same
   night (#442 vs #446). Any automation with write access to product code needs a row in
   `docs/routines/README.md` or `docs/automations/README.md`, and `digest` watchdog 7 reports

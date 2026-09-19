@@ -34,6 +34,12 @@ a `maxIssues` budget either (`README.md` rule 12, refused by `loadPlaybook`). A 
 is a third filer competing with the two whose job it is, on a shelf whose measured failure was three
 filers against one consumer.
 
+**Acting is not filing and not committing.** Since [ADR-0018](../decisions/0018-green-builds-self-healing-and-the-two-minute-ask.md)
+this rung carries the closed watchdog-action list of § 2c — re-fire a dark Claude-hosted rung whose
+trigger id is recorded, and un-stick a crashed routine's stranded green draft. Neither authors work;
+each executes something the owner already scheduled and already paid for once. The tier's
+mechanical invariant is about the diff and stays exactly as `--postflight` enforces it.
+
 ## 1. Gather
 
 Everything below is read-only and key-free. **Do not run `npm ci`** — nothing here needs
@@ -160,6 +166,8 @@ This is the section the routine exists for. Report each of these or say explicit
 1. **A job that did not run.** Any playbook on either shelf whose ledger has no row for last
    night, or which produced no `main` commit and no PR. Name it and say how many nights it has
    been quiet. A job going dark is silent by construction — nothing else in the system notices.
+   **A dark Claude-hosted rung whose trigger id is recorded in `review.md` § the night ladder is
+   also § 2c's to re-fire — write the line about the action taken, not just the gap.**
    **Except a playbook whose `schedule:` is `none`, or which declares `paused:`.** Such a rung is
    manual-only or parked, so an empty ledger is its correct state and reporting it nightly is exactly
    the noise that gets a digest muted. Read `schedule:` and `paused:` from the `head -12` pass in § 1;
@@ -181,7 +189,10 @@ This is the section the routine exists for. Report each of these or say explicit
    future rung may take either — but do not assume a rung is unscheduled because its name is missing
    from `claude -p '/schedule list'`. See watchdog 4's page cap.
 2. **A PR left open overnight.** Any open PR older than 24 h, with its CI state. Say whether
-   `routine-guard --preflight` will now refuse that routine's next firing, because it will. A held PR
+   `routine-guard --preflight` will now refuse that routine's next firing, because it will.
+   **A green, mergeable, routine-owned draft in that set is § 2c's to un-stick** — the stranded
+   leftovers of crashed runs (#619, #716, #726) each cost their successor the start of a firing,
+   and an un-stick is the one recovery that should happen before morning, not at the next preflight. A held PR
    (a routine that finished a fix and declined to merge it — `resolve.md` § 4) belongs in this line
    with what it is unsure of, in the same sentence: holding is a state in the repo, not a request to
    the owner, and it should read that way.
@@ -306,6 +317,44 @@ regression is visible here or nowhere.
 
 Which jobs ran, and roughly how long each took (PR open→merge is a good enough proxy). One line.
 
+## 2c. Watchdog actions — the closed list
+
+A report that can only describe the stuck fleet makes the owner the fix for everything it notices;
+[ADR-0018](../decisions/0018-green-builds-self-healing-and-the-two-minute-ask.md) moved exactly two
+recoveries here, bounded, because both are actions the owner **already scheduled and already paid
+for once** — the rung's nightly firing, the PR's green CI gate. Nothing outside this list is
+permitted, and every use is self-reported in the same comment, in the section whose finding caused
+it. This list does not change the tier's mechanical invariant: `--postflight digest` still fails on
+a non-empty diff, because both actions are trigger-API and PR-state calls, not commits, not issues,
+not labels, not closes, and never a merge button this rung presses.
+
+**1. Re-fire a dark Claude-hosted rung, once.** Conditions, all of them, checked against § 1's
+evidence: the rung's `host:` is Claude; its playbook declares neither `paused:` nor
+`schedule: none`; it produced no `main` commit, no PR, and no ledger row in the window; **and** its
+trigger id is recorded in [`review.md`](review.md) § the night ladder. Method:
+`claude -p '/schedule run <id>'` — read the id from the table, never from `/schedule list`
+(watchdog 4's page cap can hide the very rung you are healing). Bound: at most one re-fire per
+rung per digest run and at most three re-fires per run — that is the whole pre-authorized spend,
+one extra firing each of rungs whose nightly firing was already budgeted. A rung dark **two
+nights running** is not re-fired a second time by this rule's second night: that is an outage
+(revoked login, quota, deleted trigger), and re-firing an outage is spend without information —
+report it as such instead, and say the page where it is diagnosable.
+
+**2. Un-stick a routine's stranded green draft.** Conditions, all of them: the PR is open **and
+draft**, older than 24 h, its title matches a routine's `prTitlePrefix` on either shelf, every
+reported check is green, and it is mergeable-clean. That is a run that crashed holding the door —
+it cannot be a judgement hold, because a hold says what it is unsure of in the body and the owner's
+question here is why a green diff is standing at preflight blocking its own routine. Method: mark
+ready and enable auto-merge (`gh pr ready <n>` then `gh pr merge <n> --auto --merge`; in the cloud,
+their MCP/REST equivalents — see § 3's rule 9 note). **If the checks were already all green, the
+PR may merge the instant you enable auto-merge: that is the green gate landing, not a gate skipped
+— this action can enable a merge, never perform one.** Bounds: never a red or pending-checks PR
+(that is the owning routine's finish-or-close decision at its next preflight, with tonight's full
+context), never a non-routine PR, never a human's PR, never a PR under 24 h old — the run that
+opened it may still be alive and polling. A routine-owned draft counts **whatever host ran the
+routine**: ADR-0018's Cursor carve-out (Decision 5) is about trigger reach, and a green PR is
+GitHub state — if `improve` crashes holding one, un-sticking it is squarely in this list.
+
 ## 3. Post — and this is the step the routine exists for
 
 **`gh` is not authenticated in the cloud sandbox.** Measured on the first live firing: the guard's
@@ -325,18 +374,26 @@ so in the first line and let the sections below carry the detail.**
 **The first line is the only thing guaranteed to be read, so it is the only place this routine may
 raise its voice.** Start it `Needs you: <one clause>` **only** when something in the night meets the
 page bar in [`README.md`](README.md) rule 10 — money, credentials or permissions, irreversible
-destruction, or the product's direction. At most three such lines exist in a digest, and each names
-what to do about it. Everything else — an unowned issue, a held PR, a budget that moved, a red bench,
-a job that skipped — belongs in a _section_ below. Reporting routine-manageable work as an alert is
-how a real one gets missed: before ADR-0017 the shelf flagged a stalled issue every time one aged
-three days, and every instance was a number in a playbook or a lint warning that an agent could have
-handled and chose not to. The reader cannot tell an over-cautious agent from an emergency, so the
-agent has to make that distinction instead. One held PR is the exception, and it is not
-routine-manageable: a `prune:` batch is a deletion waiting on the owner's decision, which is page bar
-#3 with a number on it (watchdog 2 says when to raise it and when to let it age quietly in its
-section). A `resolve:` hold — an agent saying _I am unsure_ — never earns the line.
+destruction, or the product's direction. At most three such lines exist in a digest — and at most
+one in practice, because three legitimate page-bar items in one night is itself a fact the sections
+should be doubting. **Each one is a decision, not a topic** (rule 10's corollary, ADR-0018): the
+binary question, this routine's recommendation with its one-clause reason, and what silence does —
+which is always _nothing_: the status quo holds, the line ages into the sections, and it re-raises
+only if the facts change. A page-bar item phrased as an open-ended "worth confirming" is not an ask,
+it is an investigation you are assigning to a phone at 07:00; the 2026-09-17 stray-connector line
+was right to page and wrong to be unanswerable. Everything else — an unowned issue, a held PR, a
+budget that moved, a red bench, a job that skipped — belongs in a _section_ below. Reporting
+routine-manageable work as an alert is how a real one gets missed: before ADR-0017 the shelf flagged
+a stalled issue every time one aged three days, and every instance was a number in a playbook or a
+lint warning that an agent could have handled and chose not to. The reader cannot tell an
+over-cautious agent from an emergency, so the agent has to make that distinction instead. **No held
+PR earns the line any more, `prune:` included** — the deletion hold came off on 2026-09-14 and an
+open `prune:` PR in the morning is a watchdog-2 fact, not a page-bar question (watchdog 2 says how
+to read it). A `resolve:` hold — an agent saying _I am unsure_ — never did.
 
-Never open an issue, never label one, never close one. If the digest finds something that needs
+**Never open an issue, never label one, never close one** — the § 2c list is the only other GitHub
+state this routine may touch, and only the ready-flag and the auto-merge enable on it. If the digest
+finds something that needs
 work, it names it and the next night's `resolve` picks it up from the backlog `review` and
 `improve` maintain — a reporter that also files becomes a third filer competing with them.
 

@@ -15,6 +15,7 @@ import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { NON_REFERENCING_FILES } from './prune-scan.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 export const ROOT = path.resolve(__dirname, '..');
@@ -1117,7 +1118,16 @@ function referencedOutsideDiffAtBase(base, subject, deletedFiles, runGit) {
   return out
     .split('\n')
     .map((line) => (line.startsWith(prefix) ? line.slice(prefix.length) : line))
-    .some((file) => file !== '' && !deletedFiles.has(file));
+    .some(
+      (file) =>
+        file !== '' &&
+        !deletedFiles.has(file) &&
+        // prune's own memory is not a consumer — the constant whose whole purpose is "a tool
+        // whose memory names its targets would otherwise sterilise its own queue" (prune § 1).
+        // Verified the hard way: all four #686 pairs initially "failed" this proof solely
+        // because prune's ledger records them, which is what § 1 requires the ledger to do.
+        !NON_REFERENCING_FILES.includes(file)
+    );
 }
 
 /**

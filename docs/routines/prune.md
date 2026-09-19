@@ -226,7 +226,10 @@ owner a review of a deletion that would have broken the app.
    `routine-guard` admits a test-file deletion **only** as the second half of exactly this shape,
    mechanically and only for this rung: the test's relative imports resolve to non-test files
    deleted **in the same diff**, and at the base revision no file outside the diff's deleted set
-   so much as names those files' stems. Postflight refuses every other test deletion, so no run
+   so much as names those files' stems — save § 1's two non-referencing files, this playbook and
+   your ledger, where a name is the record of a candidate and never a consumer of one (without
+   that carve-out the live proof failed on all four #686 pairs for nothing but the ledger doing
+   what § 1 makes it do). Postflight refuses every other test deletion, so no run
    reasons from "my tests are green" to "these tests were debris". If a future surface turns out
    to want the component, it is one `git revert` away and § 5.4's ledger row carries the command —
    which is the whole answer to why this class moved off the owner's desk into this section.
