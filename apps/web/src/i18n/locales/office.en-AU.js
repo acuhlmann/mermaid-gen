@@ -1345,6 +1345,16 @@ export const OFFICE_EN_AU = {
               'Top sheet in the output tray is a 60-page deck. Page one says DRAFT — DO NOT CIRCULATE.',
               'Someone has written the wifi password on the paper drawer. It is wrong, and it has been corrected twice.',
               'A sticky note: "if it beeps twice, walk away". It is beeping once.'
+            ],
+            // Slice 16's extension point, taken up by the printer — see the
+            // note on the default bundle. `line` above stays the empty state.
+            lineYours:
+              'It has, against every precedent on this floor, printed something. Your diagram, {count} boxes of it, warm, face down in the output tray. The 41 jobs from 2023 are still queued behind it.',
+            detailsYours: [
+              'The boxes have come out as a list down the left margin: {labels}. The printer has decided that is a table of contents.',
+              'Page two is the same diagram again, four percent bigger. The driver offers no account of itself.',
+              'Somebody has already picked it up, read ya first box, and put it back upside down.',
+              'A banner page has printed behind it with ya username on it in 48pt. Nobody has ever asked for a banner page.'
             ]
           },
           whiteboard: {

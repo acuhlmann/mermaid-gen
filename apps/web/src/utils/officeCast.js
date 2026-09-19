@@ -2417,6 +2417,29 @@ export const OFFICE_CHROME_COPY = {
             'The top sheet in the output tray is a 60-page deck. Page one says DRAFT — DO NOT CIRCULATE.',
             'Someone has written the wifi password on the paper drawer. It is wrong, and it has been corrected twice.',
             'A sticky note: "if it beeps twice, walk away". It is beeping once.'
+          ],
+          /*
+           * The second prop to take up slice 16's extension point, and the one
+           * that had the strongest claim on it: the printer is the only thing
+           * in the room that puts a page in your hand (`propHandsFor` →
+           * `papers`), and until now the card read you the 2023 queue while you
+           * walked away holding your own diagram.
+           *
+           * Same split as the whiteboard. `line` and `details` above stay the
+           * **empty state** — an eternal queue of other people's jobs is what a
+           * printer has in it when you have drawn nothing — and these take over
+           * once there is a board to have printed. Which props may opt in is
+           * derived rather than listed: a usable prop with no `verb` is one
+           * whose whole use is looking at it, which is the same set that
+           * records a line in the office log.
+           */
+          lineYours:
+            'It has, against every precedent on this floor, printed something. Your diagram, {count} boxes of it, warm, face down in the output tray. The 41 jobs from 2023 are still queued behind it.',
+          detailsYours: [
+            'The boxes have come out as a list down the left margin: {labels}. The printer has decided that is a table of contents.',
+            'Page two is the same diagram again, four percent larger. The driver offers no account of itself.',
+            'Somebody has already picked it up, read the first box, and put it back upside down.',
+            'A banner page has printed behind it with your username on it in 48pt. Nobody has ever asked for a banner page.'
           ]
         },
         whiteboard: {
