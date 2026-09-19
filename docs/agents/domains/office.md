@@ -469,6 +469,16 @@ https://api.deepseek.com/` — 401 is reachable, 000 is blocked); never route ar
   (`officeLogDigest.js`), swept against `usablePropKinds()` in `officeFloorPropsTable.test.js`
   because the way this breaks is a **geometry** change: giving the water cooler a mark makes it
   reachable with no prop table edited.
+- **Which props can show you your own work is derived, never listed.** A usable prop with no
+  `verb` is one whose whole use is _looking at it_, and that is the set that may carry slice 16's
+  `lineYours` / `detailsYours` (`FloorPropCard` branches on `lineYours` merely existing) — the
+  same derivation `PROP_SENTENCES` is swept against, because it is the same class for the same
+  reason. The coffee machine is the negative case by construction: its use is a verb, so what it
+  has to say is about the coffee. Both sensors used to name the **whiteboard** instead, and the
+  card case went further and asserted the printer keeps its empty state with a board up — a
+  missing opt-in pinned as a feature, green for five slices. Add a prop's copy in **all four**
+  bundles or it is a dead feature in that language; the sweeps are in `officeLocale.test.js` and
+  `officeFloorProps.test.jsx`.
 - **The office log's duplicate collapse keys on `detail`, not just kind + colleague.** It has to:
   two `prop` entries carry no `colleagueId` at all, so printer-then-whiteboard six seconds apart
   read as a repeat and the digest reported only the second. The burst the collapse exists for
@@ -1079,6 +1089,24 @@ y)`, so the obvious sweep silently iterates an empty list; and pacing the exchan
   viewport intersection (meaningless once the floor covers the canvas), and
   `collectFlowchartParticipantInfo` anchors its definition regex to line start, so it counts
   nodes but cannot name the ones defined mid-line.
+- **Slice 16's opt-in is a class, and naming one member of it in the test is how the second one
+  stayed unbuilt.** `FloorPropCard` picks `lineYours` / `detailsYours` over `line` / `details` on
+  `lineYours` merely existing, "so any prop that could honestly reflect your work opts in with a
+  copy row rather than a branch" — and for five slices only the whiteboard had. The class is
+  derivable: `usablePropKinds()` minus the props with a `verb` is `['printer', 'whiteboard']`,
+  exactly the set `officeFloorPropsTable.test.js` sweeps for `PROP_SENTENCES`, because "its whole
+  use is looking at it" is the same property in both places. Three things worth carrying. The
+  **sensors named the member, not the class** — `officeLocale.test.js` asserted
+  `items.whiteboard.lineYours` and `officeFloorProps.test.jsx` asserted the printer keeps its own
+  line with a board up, which is the filtered-sweep failure the shop-talk bank check already
+  paid for, wearing a stronger disguise: the second case did not merely fail to cover the gap, it
+  **pinned the gap as intended behaviour**, so closing it turns a green case red. The **negative
+  case has to stay explicit** — the coffee machine pours a verb, and a machine that handed you
+  your own diagram is the "different and much stupider game" `FloorPropCard`'s header names; drop
+  that assertion and the derivation is indistinguishable from "every usable prop". And the copy
+  goes in **all four** bundles with a parity assertion, since `officeChromeCopy()` swaps bundles
+  rather than merging: measured 4 of 12 prop cards across the four bundles changing when a board
+  is up, 8 of 12 after.
 - **`officeChromeCopy()` swaps whole bundles, it does not merge** (`office()?.OFFICE_CHROME_COPY
 ?? OFFICE_CHROME_COPY`), so a key missing from a locale is a **silently dead feature**, not an
   English fallback. en-AU had shipped with no `floor.props.*.details` at all, which hid the

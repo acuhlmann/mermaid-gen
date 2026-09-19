@@ -5,6 +5,7 @@ import OfficeFloor from '../src/components/OfficeFloor.jsx';
 import { FloorPropCard } from '../src/components/officeFloor/FloorProps.jsx';
 import { officeChromeCopy } from '../src/utils/officeCast.js';
 import { usablePropKinds } from '../src/utils/officeFloorMovement.js';
+import { propUseFor } from '../src/utils/officeFloorProps.js';
 import { _resetOfficeLogForTests, getOfficeLogDigest } from '../src/state/officeLogStore.js';
 import {
   _resetOfficeViewModeForTests,
@@ -326,8 +327,19 @@ describe('looking closer at a prop', () => {
  * can carry the shape of your diagram and not its labels — so these pin the
  * pair of copy states rather than the drawing.
  */
-describe('the whiteboard carries your diagram', () => {
+describe('the props carry your diagram', () => {
   const propCopy = () => officeChromeCopy().floor.props;
+
+  const renderCardFor = (propKind, board) =>
+    render(
+      <FloorPropCard
+        prop={{ propKind, phase: 'using' }}
+        phase="idle"
+        copy={officeChromeCopy().floor}
+        board={board}
+        onBack={vi.fn()}
+      />
+    );
 
   const renderCard = (board) =>
     render(
@@ -369,17 +381,52 @@ describe('the whiteboard carries your diagram', () => {
     expect(screen.getByText(/Client, API Gateway, Auth Service/)).toBeTruthy();
   });
 
-  it('leaves a prop with no board variant on its own copy', () => {
-    render(
-      <FloorPropCard
-        prop={{ propKind: 'printer', phase: 'using' }}
-        phase="idle"
-        copy={officeChromeCopy().floor}
-        board={board}
-        onBack={vi.fn()}
-      />
-    );
-    expect(screen.getByText(propCopy().items.printer.line)).toBeTruthy();
+  /*
+   * The printer joining the whiteboard (§ 8's remaining slice-16 debt), and
+   * the reason this is a sweep rather than a second copy of the case above:
+   * the rule is about a **class** of prop, and the class is derived. A usable
+   * prop with no `verb` is one whose entire use is looking at it — the same
+   * set that records a line in the office log — so a third one cannot ship
+   * showing you somebody else's 2023 print queue while handing you your own
+   * diagram.
+   *
+   * This case previously asserted the opposite about the printer ("leaves a
+   * prop with no board variant on its own copy"), which was a true statement
+   * about the room of the day and a `lineYours`-shaped hole pinned as a
+   * feature.
+   */
+  it('shows your work at every prop whose whole use is looking at it', () => {
+    const reflective = usablePropKinds().filter((kind) => !propUseFor(kind)?.verb);
+    // Companion non-empty assertion — see the locale sweep.
+    expect(reflective).toEqual(['printer', 'whiteboard']);
+    for (const kind of reflective) {
+      cleanup();
+      renderCardFor(kind, board);
+      expect(
+        screen.queryByText(propCopy().items[kind].line),
+        `${kind} still shows its empty state with a board up`
+      ).toBeNull();
+      // The node count is interpolated, so an empty-state line cannot pass by
+      // accident — this asserts the *filled* line specifically.
+      expect(screen.getByText(/4 boxes/), `${kind} never names your diagram`).toBeTruthy();
+
+      fireEvent.click(screen.getByTestId('office-floor-prop-look'));
+      expect(
+        screen.getByText(/Client, API Gateway, Auth Service/),
+        `${kind} never reads your labels out`
+      ).toBeTruthy();
+    }
+  });
+
+  /*
+   * The negative case, and it is a boundary rather than an omission: the
+   * coffee machine's use is a verb (ADR-0011 rule 2), so what it has to say
+   * is about the coffee. A machine that poured you your own diagram would be
+   * the "different and much stupider game" `FloorPropCard`'s header names.
+   */
+  it('leaves the prop that pours a real verb on its own copy', () => {
+    renderCardFor('coffeeMachine', board);
+    expect(screen.getByText(propCopy().items.coffeeMachine.line)).toBeTruthy();
   });
 });
 

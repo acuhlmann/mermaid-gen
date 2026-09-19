@@ -2442,11 +2442,22 @@ Kept here so appetite can pick without re-deriving. Each should stay bound by AD
   whiteboard's. `detail` is part of that key now; the burst the collapse was written for (`chat`,
   `walkby`) carries no detail and is untouched.
 
-  Still open, and deliberately not taken in the same run: the printer has no `lineYours` /
-  `detailsYours`, so its card still shows the 2023 queue gag when the page in your hand is your
-  own diagram. Slice 16 built that extension point for exactly this ("any prop that could honestly
-  reflect your work opts in with a copy row rather than a branch") — it is four locale bundles plus
-  a parity assertion, which is a copy slice of its own.
+  ~~Still open: the printer has no `lineYours` / `detailsYours`.~~ ✅ **cleared** — it has them in
+  all four bundles, so the card names your diagram (`{count}` boxes, `{labels}` on **Look
+  closer**) instead of reading you the 2023 queue while you walk away holding a printout of it.
+  Slice 16's extension point cost exactly what it promised: a copy row and no branch.
+
+  The useful half is what it did to the **sensors**, and it is the same finding as the shop-talk
+  bank's. Both the locale parity case (`officeLocale.test.js`) and the card case
+  (`officeFloorProps.test.jsx`) named the **whiteboard**, and the second one asserted the
+  printer keeps its own copy with a board up — a `lineYours`-shaped hole pinned as a feature.
+  The rule was never about one prop: a prop you can walk to whose whole use is _looking at it_
+  should show you your own work, and that set is derivable — `usablePropKinds()` minus the ones
+  with a `verb`, which is the same derivation `officeFloorPropsTable.test.js` already sweeps for
+  the log sentences. Both cases now sweep it, with the coffee machine as the explicit negative
+  (its use is a verb, so what it has to say is about the coffee). Measured across the four
+  bundles: prop cards that change when you have a board up, **4 of 12 → 8 of 12**; props that
+  can honestly reflect your work and do, **1 of 2 → 2 of 2**, in every language.
 
 - **A third participant is unreachable by construction.** Only the nearest eligible seat is
   nominated, so a prop with two neighbours still produces a two-hander. That is right for the
