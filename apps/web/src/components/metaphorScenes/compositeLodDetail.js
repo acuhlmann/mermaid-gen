@@ -23,26 +23,37 @@
  * discs do cost three discs — so the fix is here rather than there: the gate no
  * longer has a tier that deletes meaning, and the loop has nothing to close on.
  *
- * What `low` drops instead is chosen by measurement, not by area. Compositing
- * each ring over the surface it is drawn on, across all four themes and both
- * surfaces (`waterColor` for an island world, `groundColor` for a plaza), and
- * reading perceived luma against that surface:
+ * What `low` drops instead is chosen by measurement, not by area — and re-
+ * measured 2026-09-19 (#729) through `resolveMetaphorSceneTheme`, the same
+ * rewrite the renderer applies, over all four themes, the ten atmosphere kinds
+ * and both surfaces (`waterColor` for an island world, `groundColor` for a
+ * plaza), 320 cells, perceived luma against the surface each ring is
+ * composited onto:
  *
- * | layer            | Δluma avg       | share of the territory's fragments |
- * | ---------------- | --------------- | ---------------------------------- |
- * | interior wash    | 0.0044 – 0.0628 | ~52%                               |
- * | identity band    | 0.0085 – 0.1003 | ~42%                               |
- * | boundary rim     | 0.0763 – 0.4607 | ~6%                                |
+ * | layer            | Δluma range       | mean   | share of the territory's fragments |
+ * | ---------------- | ----------------- | ------ | ---------------------------------- |
+ * | interior wash    | 0.00102 – 0.11275 | 0.0270 | ~52%                               |
+ * | identity band    | 0.00027 – 0.16603 | 0.0492 | ~42%                               |
+ * | boundary rim     | 0.02014 – 0.46074 | 0.1619 | ~6%                                |
  *
- * So the wash covers half the territory for the weakest signal in the set —
- * 0.0044 on noir over water, where the band is 0.0085 and the rim is **0.2989**,
- * a factor of 35. It is the one layer whose removal is close to free, and the
- * one that would have been kept by the obvious "drop the thin hairline" instinct.
- * The rim is the boundary on every dark theme; dropping it would have left the
- * ocean cases with no visible territory at all, which is where they started.
+ * Weakest per-fragment signal for the largest share of the plate: wash, on
+ * average half the band's delta and a sixth of the rim's. Its weakest painted
+ * cell — `arcade` over an ocean, group 3 — carries Δluma 0.00102 where the
+ * band is 0.00818 and the rim 0.06928, a factor of 68. The ordering is not
+ * uniform: 47 of the 320 cells invert it (11 where the band is not strictly
+ * above the wash — all on water, all near-zero deltas; 36 where the rim sits
+ * below a strong wash — the lighter themes over ground). Every one is
+ * enumerated by name in `metaphorGroupIdentity.test.js`, so a new inversion
+ * fails rather than eats a tolerance. None of them changes the choice: the
+ * rim is the only layer that marks WHERE a group ends, the band is half of
+ * what the eye reads as the group's colour, and 28 of the 320 cells already
+ * carry a band under 0.01 of visible difference — on those surfaces the
+ * territory stands on the rim and the placard, which is the other half of why
+ * neither may ever be a budget item.
  *
- * The band, the rim and the placard are content. Nothing in this table may turn
- * them off — `metaphorGroupIdentity.test.js` sweeps every tier for exactly that.
+ * The band, the rim and the placard are content. Nothing in this table may
+ * turn them off: `affinityGroupLayers` refuses a tier detail that lost one
+ * (#728), and `metaphorGroupIdentity.test.js` sweeps every tier.
  */
 
 /** Every tier `resolveLod` can return, in cost order. */
@@ -78,16 +89,33 @@ export function affinityGroupDetail(lod) {
 }
 
 /**
- * Which affinity-territory layers the renderer may draw for one group at this
- * tier. Pure so tests can enforce the #715 contract without grepping JSX.
+ * Which FINISH layers a tier may toggle for one territory: `wash`, `bulb`,
+ * `segments` — nothing else. `band`, `rim` and the placard are content (see the
+ * docblock), the render site draws them unconditionally, and they are absent
+ * from this result so no JSX can branch on them again (#728).
+ *
+ * The validation is the point. `Boolean(detail?.band)` defaulted a lost content
+ * key to `false` — which turned #715's silent blank from a possible tier
+ * mistake into a possible typo anywhere upstream. A `detail` that lost a
+ * content key is not a world with a thin band; it is a broken table, and it
+ * throws in the test run that broke it.
+ *
+ * @param {{ band: true, rim: true, placard: true, wash: boolean, bulb: boolean, segments: number }} detail
  */
-export function affinityGroupLayers(_group, detail) {
-  return {
-    wash: Boolean(detail?.wash),
-    band: Boolean(detail?.band),
-    rim: Boolean(detail?.rim),
-    placard: Boolean(detail?.placard),
-    bulb: Boolean(detail?.bulb),
-    segments: detail?.segments ?? 24
-  };
+export function affinityGroupLayers(detail) {
+  const broken =
+    !detail ||
+    detail.band !== true ||
+    detail.rim !== true ||
+    detail.placard !== true ||
+    typeof detail.wash !== 'boolean' ||
+    typeof detail.bulb !== 'boolean' ||
+    typeof detail.segments !== 'number';
+  if (broken) {
+    throw new Error(
+      'affinityGroupLayers: a tier detail must carry band/rim/placard as `true` and wash/bulb as ' +
+        'booleans — content layers are not a budget item (#715/#728; see compositeLodDetail.js)'
+    );
+  }
+  return { wash: detail.wash, bulb: detail.bulb, segments: detail.segments };
 }

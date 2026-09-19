@@ -116,7 +116,7 @@ function AffinityGroups({ groups, theme, lod }) {
   // for the measurement that picked the interior wash as the layer to lose.
   const detail = affinityGroupDetail(lod);
   return groups.map((group) => {
-    const layers = affinityGroupLayers(group, detail);
+    const layers = affinityGroupLayers(detail);
     // Same grouping ladder as the city's districts and the garden's beds. A
     // fused world is where it matters most and where it was worst: these rings
     // paint at 0.1/0.2 opacity onto an ocean, so four shades of one pale blue
@@ -132,19 +132,21 @@ function AffinityGroups({ groups, theme, lod }) {
             <meshBasicMaterial color={color} transparent opacity={0.1} />
           </mesh>
         ) : null}
-        {layers.band ? (
-          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.012, 0]}>
-            <ringGeometry args={[group.radius * 0.72, group.radius, layers.segments]} />
-            <meshBasicMaterial color={color} transparent opacity={0.2} />
-          </mesh>
-        ) : null}
-        {layers.rim ? (
-          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.018, 0]}>
-            <ringGeometry args={[group.radius, group.radius + 0.07, layers.segments]} />
-            <meshBasicMaterial color={theme.labelColor} transparent opacity={0.22} />
-          </mesh>
-        ) : null}
-        {layers.placard && group.display && !group.namedByMember ? (
+        {/* band, rim and the placard are content (#728): drawn at every tier,
+            never behind a `layers.*` branch. The `detail` reaching `layers` is
+            contract-checked to carry them true, so this goes back to the
+            pre-#722 shape — unconditional, tessellating at the tier's
+            `segments`, which is where that thinning was always allowed to
+            reach: geometry, not existence. */}
+        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.012, 0]}>
+          <ringGeometry args={[group.radius * 0.72, group.radius, layers.segments]} />
+          <meshBasicMaterial color={color} transparent opacity={0.2} />
+        </mesh>
+        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.018, 0]}>
+          <ringGeometry args={[group.radius, group.radius + 0.07, layers.segments]} />
+          <meshBasicMaterial color={theme.labelColor} transparent opacity={0.22} />
+        </mesh>
+        {group.display && !group.namedByMember ? (
           <group position={[0, group.surfaceY ?? 0, group.radius * 0.86]}>
             <mesh position={[0, 0.16, 0]}>
               <boxGeometry args={[Math.min(group.radius * 1.25, 4.4), 0.12, 0.46]} />
