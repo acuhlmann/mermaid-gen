@@ -722,6 +722,35 @@ export const ANYTHING_BENCH_CORPUS = [
     )
   },
 
+  {
+    // lib-matter-stack first-pass "Cannot set properties of undefined
+    // (setting 'group')" (2026-09-18 repro): the script correctly sets
+    // mouseConstraint.collisionFilter.group (MouseConstraint.create defaults
+    // one), then does the same on the plain mouse object returned by
+    // Mouse.create, which never has a collisionFilter — confirmed against
+    // the real vendored matter-js@0.20.0 source (Mouse.js sets no such
+    // property; only Body.js and MouseConstraint.js do). Regression = both
+    // engines drift.
+    id: 'runtime-matter-mouse-collisionfilter',
+    kind: 'runtime',
+    expectedAccept: false,
+    expectedCode: 'runtime_error',
+    html: page(
+      `<h1>Stack</h1><canvas id="stage" width="320" height="240"></canvas>
+<script>
+  const { Engine, Bodies, Composite, Mouse, MouseConstraint } = Matter;
+  const engine = Engine.create();
+  const canvas = document.getElementById('stage');
+  Composite.add(engine.world, Bodies.rectangle(160, 230, 320, 20, { isStatic: true }));
+  const mouse = Mouse.create(canvas);
+  const mouseConstraint = MouseConstraint.create(engine, { mouse: mouse });
+  mouseConstraint.collisionFilter.group = -1;
+  mouse.collisionFilter.group = -1;
+</script>`,
+      { head: '<!-- @lib:matter -->' }
+    )
+  },
+
   // ── shape: not a document, must stay rejected ────────────────────────────
   {
     id: 'shape-not-markup',
