@@ -3,7 +3,8 @@
  *
  * `docs/canvas-graph-edit.md` lists Mermaid pie as a shipped graph-edit family, and the mutator
  * side is genuinely complete (`mermaidPieEdit.js`: add / delete / rename, all index-addressed).
- * What was never true is the *hit* side: rendered pie markup in the pinned mermaid (`^11.17.2`) is
+ * What was never true is the *hit* side: rendered pie markup in the pinned mermaid (unchanged
+ * from `^11.17.2` through 12.0.0, which `mermaidPieHitTargets.test.js` relies on) is
  *
  *     <g transform="translate(225,225)"><g>
  *       <circle class="pieOuterCircle"></circle>

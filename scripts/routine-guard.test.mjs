@@ -417,9 +417,23 @@ test('improve still cannot touch the always-forbidden don’t-touch list even in
   const { playbook } = loadPlaybook(ROOT, 'improve');
   const result = checkRoutineDiff({
     playbook,
-    changes: [{ status: 'M', file: 'apps/server/src/mcp/apps/someApp.js' }]
+    // `apps/server/src/mcp/**` is in improve's allowedPaths, so this is a real precedence test:
+    // the bridge carries the postMessage/SSE protocol and stays frozen whatever the allowlist says.
+    changes: [{ status: 'M', file: 'apps/server/src/mcp/apps/mcpAppSessionBridge.js' }]
   });
   assert.equal(result.ok, false, 'ALWAYS_FORBIDDEN overrides a playbook allowedPaths entry');
+});
+
+test('the MCP App HTML is reachable — only the session bridge is frozen', () => {
+  const { playbook } = loadPlaybook(ROOT, 'improve');
+  // The old blanket `apps/server/src/mcp/apps/**` banned these with the bridge. The preview partial
+  // holds the Mermaid CDN major, which has to move with the workspace dependency — freezing it made
+  // an unavoidable version coupling unreachable by every routine.
+  const result = checkRoutineDiff({
+    playbook,
+    changes: [{ status: 'M', file: 'apps/server/src/mcp/apps/mcpAppDiagramPreview.js' }]
+  });
+  assert.deepEqual(result.violations, []);
 });
 
 test('the anything feature automation may touch its blast-radius paths', () => {

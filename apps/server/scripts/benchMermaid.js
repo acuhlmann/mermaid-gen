@@ -117,6 +117,25 @@ const CORPUS = [
     expectedAccept: true,
     rescueable: true
   },
+  // Mermaid 12 beta types — the header carries `-beta`, so the bare name is a rescue case.
+  {
+    id: 'mermaid12-agentflow',
+    source:
+      'agentflow-beta TB\n  brief["Brief"]@{ shape: input }\n  flow writer["Writer"]\n    draft["Draft"]@{ shape: task }\n    lookup["search"]@{ shape: tool }\n    draft --> lookup\n  end\n  brief --> writer',
+    expectedAccept: true
+  },
+  {
+    id: 'mermaid12-usecase',
+    source:
+      'usecase-beta\n  direction LR\n  actor Customer\n  systemBoundary Storefront\n    Browse("Browse catalogue")\n    Checkout("Checkout")\n  end\n  Customer --> Browse\n  Checkout ..> : include Browse',
+    expectedAccept: true
+  },
+  {
+    id: 'mermaid12-agentflow-bare-header',
+    source: 'agentflow TB\n  a["Start"] --> b["Finish"]',
+    expectedAccept: true,
+    rescueable: true
+  },
   // Truly broken — must stay rejected (sanity that we're not over-correcting).
   { id: 'not-a-diagram', source: 'this is not a diagram', expectedAccept: false },
   { id: 'empty', source: '', expectedAccept: false }

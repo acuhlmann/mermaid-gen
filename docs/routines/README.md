@@ -258,9 +258,16 @@ not in code — to prevent.
 ### 6. Never touch the don't-touch list
 
 Inherited verbatim from [`AGENTS.md`](../../AGENTS.md) § Don't-touch list: `.agents/`, `.env*`,
-`scripts/deploy-*.sh`, `scripts/push-*-secret-cloud-run.sh`, `apps/server/src/mcp/apps/*.js` HTML
-strings, `apps/server/bench-results/`, `apps/web/src/assets/audio/*.mp3`, `package-lock.json`,
-`skills-lock.json`, and any `dist/` or `.tsbuildinfo` build output.
+`scripts/deploy-*.sh`, `scripts/push-*-secret-cloud-run.sh`,
+`apps/server/src/mcp/apps/mcpAppSessionBridge.js`, `apps/server/bench-results/`,
+`apps/web/src/assets/audio/*.mp3`, `package-lock.json`, `skills-lock.json`, and any `dist/` or
+`.tsbuildinfo` build output.
+
+The MCP Apps entry used to read `apps/server/src/mcp/apps/*.js` and froze all 18 files in the
+directory on the strength of a hazard only one of them has. The narrow rule is now
+`ALWAYS_FORBIDDEN`'s single path; the per-playbook `forbiddenPaths` entries that still name the whole
+directory are **scope discipline, not a don't-touch** — they keep unattended routines out of App HTML
+they have no reason to rewrite, and they are the right place to widen if a rung ever does.
 
 One cost trap deserves naming twice: `./scripts/generate-office-audio.sh` **with no asset name**
 regenerates the entire manifest — 900 ElevenLabs credits and every committed `.mp3` overwritten. No

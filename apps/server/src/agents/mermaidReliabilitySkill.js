@@ -2,7 +2,7 @@ import { JSDOM } from 'jsdom';
 import { patchGaxiosNativeFetch } from '../config/patchGaxiosNativeFetch.js';
 
 const DIAGRAM_PREFIX_PATTERN =
-  /^(flowchart|graph|sequenceDiagram|classDiagram|stateDiagram-v2|stateDiagram|erDiagram|gantt|journey|mindmap|timeline|gitGraph|pie|quadrantChart|requirementDiagram|block-beta|C4Context|C4Container|C4Component|C4Dynamic|C4Deployment|kanban|zenuml|sankey-beta|xychart-beta)\b/m;
+  /^(flowchart|graph|sequenceDiagram|classDiagram|stateDiagram-v2|stateDiagram|erDiagram|gantt|journey|mindmap|timeline|gitGraph|pie|quadrantChart|requirementDiagram|block-beta|C4Context|C4Container|C4Component|C4Dynamic|C4Deployment|kanban|zenuml|sankey-beta|xychart-beta|agentflow-beta|usecase-beta)\b/m;
 
 const DEFAULT_REPAIR_MAX_ATTEMPTS = Number.parseInt(
   process.env.MERMAID_REPAIR_MAX_ATTEMPTS ?? '1',

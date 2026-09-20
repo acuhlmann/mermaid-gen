@@ -17,6 +17,15 @@ export const MermaidThemeSchema = z.enum([
 
 export const MermaidLookSchema = z.enum(['classic', 'handDrawn', 'neo']);
 
+/**
+ * Mermaid 12 replaced Dagre with ELK as the default layout for the flowchart family, and
+ * `layout` is the documented lever over that. Mermaid types it as a free string because
+ * layout loaders are pluggable, so only the shape is checked here: a membership list would
+ * go stale on a minor bump and reject a valid engine, and an unknown value degrades inside
+ * Mermaid (it warns and falls back) instead of failing the render.
+ */
+export const MermaidLayoutSchema = z.string().trim().min(1).max(32);
+
 export const MermaidCurveSchema = z.enum([
   'basis',
   'bumpX',
@@ -68,6 +77,9 @@ export const DiagramStyleSchema = z.object({
   look: MermaidLookSchema.default(DEFAULT_DIAGRAM_STYLE_VALUES.look),
   themeVariables: z.record(z.string(), z.unknown()).default(DEFAULT_THEME_VARIABLES),
   themeCSS: z.string().default(''),
+  // Deliberately undefaulted: absence means "let Mermaid decide", which in v12 is ELK.
+  // A default here would silently pin every diagram back to a layout engine.
+  layout: MermaidLayoutSchema.optional(),
   flowchart: z
     .object({
       curve: MermaidCurveSchema.default(DEFAULT_DIAGRAM_STYLE_VALUES.flowchart.curve)
@@ -166,6 +178,10 @@ export function styleConfigToMermaidConfig(styleConfig = DEFAULT_DIAGRAM_STYLE) 
 
   if (normalized.themeCSS.trim()) {
     mermaidConfig.themeCSS = normalized.themeCSS;
+  }
+
+  if (normalized.layout) {
+    mermaidConfig.layout = normalized.layout;
   }
 
   return mermaidConfig;

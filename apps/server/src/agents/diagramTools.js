@@ -43,7 +43,7 @@ export function createDiagramTools({ stateStore }) {
     {
       name: 'apply_mermaid_patch',
       description:
-        'Validate and apply a complete Mermaid source update. The server runs mermaid.parse() strictly before accepting; common rejections to avoid: missing diagram-type prefix on the first non-blank line; comma-separated style targets (style A,B,C fails — one node per line); unquoted labels containing (, ), :, /, #, %, or smart quotes; classDef applied to [*] in stateDiagram; "\\n" inside state transition labels; ";" inside sequenceDiagram Note text; ER attribute order must be `type name`, not `name type`. Returns {accepted, revisionId} or {accepted: false, error}.',
+        'Validate and apply a complete Mermaid source update. The server runs mermaid.parse() strictly before accepting; common rejections to avoid: missing diagram-type prefix on the first non-blank line; comma-separated style targets (style A,B,C fails — one node per line); unquoted labels containing (, ), :, /, #, %, or smart quotes; classDef applied to [*] in stateDiagram; "\\n" inside state transition labels; ";" inside sequenceDiagram Note text; ER attribute order must be `type name`, not `name type`; Mermaid 12 beta types need the keyword exactly as spelled, -beta suffix included (agentflow-beta, usecase-beta). Returns {accepted, revisionId} or {accepted: false, error}.',
       schema: z.object({
         diagramSource: z.string().min(1).describe('The full replacement Mermaid diagram source.'),
         reason: z.string().min(1).describe('Short reason for this diagram update.')

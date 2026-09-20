@@ -107,7 +107,13 @@ export const ALWAYS_FORBIDDEN = [
   'scripts/push-*-secret-cloud-run.sh',
   'apps/server/bench-results/**',
   'apps/web/src/assets/audio/**',
-  'apps/server/src/mcp/apps/**',
+  // The MCP Apps wire protocol, not the MCP Apps directory. The blanket `mcp/apps/**` this replaced
+  // froze 18 files on the strength of a hazard only this one has: it carries the postMessage/SSE
+  // bridge the `*AppHtml.js` strings talk to. The HTML itself is guarded by
+  // `apps/server/test/mcpAppHtml.test.js`, which pins the load/render timeouts and the CDN
+  // fallbacks — a sensor beats a prose warning, and freezing the directory made the Mermaid CDN
+  // major unreachable by any routine even though it must track the workspace dependency.
+  'apps/server/src/mcp/apps/mcpAppSessionBridge.js',
   '**/dist/**',
   '**/*.tsbuildinfo',
   // This file. The budget is the safety model, so the thing that reads the budget cannot be inside
