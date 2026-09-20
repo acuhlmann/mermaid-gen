@@ -326,7 +326,14 @@ function FloatingSparks({ radius, theme }) {
 }
 
 /** Factory floor the plate stands on — dark disc with etched seams, so the
- *  machine reads as installed in a plant rather than floating in a void. */
+ *  machine reads as installed in a plant rather than floating in a void.
+ *
+ *  Out of the camera fit, and a fortiori: `MachinePlate` above already opts out
+ *  because "the gears are the subject, the plate is the bench", and this is the
+ *  floor the bench stands on. It is also 1.18x the plate's own radius, so left
+ *  in it was the binding constraint on every machine — measured at 77.2 units
+ *  of camera distance against 65.8 for the gearing, a subject 15% smaller than
+ *  it could be at all three viewports. */
 function FactoryFloor({ radius, theme }) {
   const floor = shiftColor(theme.machinePlateColor ?? '#3d4454', {
     lightness: -0.12,
@@ -334,7 +341,7 @@ function FactoryFloor({ radius, theme }) {
   });
   const seam = shiftColor(theme.machinePlateColor ?? '#3d4454', { lightness: 0.1, satScale: 0.6 });
   return (
-    <group>
+    <group userData={FRAME_IGNORE_DATA}>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.2, 0]}>
         <circleGeometry args={[radius * 1.18, 72]} />
         <meshStandardMaterial color={floor} roughness={0.95} metalness={0.15} />

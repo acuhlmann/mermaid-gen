@@ -370,6 +370,78 @@ describe('collectFramePoints', () => {
     expect(reach).toBeLessThan(2);
   });
 
+  it('prunes additive light — a glow is an emission, not a body', () => {
+    // Every glow in these scenes is authored as a MULTIPLE of the thing it
+    // lights (the orrery's sun draws a sprite at `radius × 7.5`), so it reaches
+    // furthest exactly where the subject stops and it grows with the subject —
+    // the binding constraint, and one no retreat can satisfy.
+    const root = new THREE.Group();
+    root.add(new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1)));
+    const glow = new THREE.Mesh(
+      new THREE.PlaneGeometry(40, 40),
+      new THREE.MeshBasicMaterial({
+        transparent: true,
+        opacity: 0.3,
+        blending: THREE.AdditiveBlending
+      })
+    );
+    root.add(glow);
+
+    const reach = Math.max(...collectFramePoints(root).map((p) => p.length()));
+    expect(reach).toBeLessThan(2);
+  });
+
+  it('keeps a translucent BODY in the fit — the rule is blending, not opacity', () => {
+    // The control arm, and the reason the rule is written on `blending`. An
+    // opacity bar would take a fused composite's layers out of the fit the
+    // moment the pointer muted them to 0.2, so where the camera sits would
+    // depend on where the pointer was at the last refit.
+    const root = new THREE.Group();
+    root.add(new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1)));
+    const faint = new THREE.Mesh(
+      new THREE.PlaneGeometry(40, 40),
+      new THREE.MeshBasicMaterial({ transparent: true, opacity: 0.12 })
+    );
+    root.add(faint);
+
+    const reach = Math.max(...collectFramePoints(root).map((p) => p.length()));
+    expect(reach).toBeGreaterThan(19);
+  });
+
+  it('still measures a lit group’s other children', () => {
+    // The light check gates sampling, not the walk: a group carrying a glow
+    // must still have its bodies measured.
+    const root = new THREE.Group();
+    const lit = new THREE.Group();
+    lit.add(
+      new THREE.Mesh(
+        new THREE.PlaneGeometry(2, 2),
+        new THREE.MeshBasicMaterial({ blending: THREE.AdditiveBlending })
+      )
+    );
+    const body = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1));
+    body.position.set(0, 8, 0);
+    lit.add(body);
+    root.add(lit);
+
+    const reach = Math.max(...collectFramePoints(root).map((p) => p.length()));
+    expect(reach).toBeGreaterThan(7);
+  });
+
+  it('draws the shared glow sprite additively, which is what keeps it out', () => {
+    // `GlowSprite` is the one component 17 call sites across seven scene modules
+    // share, so the rule above reaches all of them through it. Pinned on the
+    // source because the flag is a material prop inside JSX and R3F cannot
+    // mount in jsdom.
+    const source = readFileSync(
+      new URL('../src/components/metaphorScenes/MetaphorSceneChrome.jsx', import.meta.url),
+      'utf8'
+    );
+    const at = source.indexOf('export function GlowSprite');
+    expect(at).toBeGreaterThan(-1);
+    expect(source.slice(at, at + 700)).toContain('AdditiveBlending');
+  });
+
   it('keeps the contact-shadow catcher out of the fit', () => {
     // The catcher is deliberately sized past the subject so the blur has
     // somewhere to fall, and it is invisible except where a shadow lands. Left
@@ -416,6 +488,10 @@ describe('collectFramePoints', () => {
     ['MetaphorRenderer.jsx', 'function CityFooting', 'circleGeometry'],
     ['metaphorScenes/CycleScene.jsx', 'function CyclePlaza', 'circleGeometry'],
     ['metaphorScenes/MachineScene.jsx', 'function MachinePlate', 'circleGeometry'],
+    // The floor the bench stands on, and 1.18x the bench's own radius — so with
+    // the plate already out of the fit this was the machine's binding geometry
+    // on its own (77.2 units of camera distance against 65.8 for the gearing).
+    ['metaphorScenes/MachineScene.jsx', 'function FactoryFloor', 'circleGeometry'],
     ['metaphorScenes/TreeScene.jsx', 'function TreeMeadow', 'circleGeometry'],
     ['metaphorScenes/RiverScene.jsx', 'function RiverMeadow', 'circleGeometry'],
     ['metaphorScenes/ArchipelagoScene.jsx', 'function OceanPlane', 'circleGeometry'],
@@ -426,7 +502,7 @@ describe('collectFramePoints', () => {
   it("keeps every grounded kind's substrate out of the fit", () => {
     // A sweep over a set nothing joins passes while examining nothing; assert
     // the set is what it claims to be before trusting any member of it.
-    expect(SUBSTRATES.length).toBe(8);
+    expect(SUBSTRATES.length).toBe(9);
     for (const [file, marker, geometry] of SUBSTRATES) {
       const source = readFileSync(new URL(`../src/components/${file}`, import.meta.url), 'utf8');
       const at = source.indexOf(marker);

@@ -126,6 +126,24 @@ ones that will bite an edit.
   points nearest the camera — used to dominate the fit and push the subject to ~40% of the frame.
   New ambience components must set `userData[FRAME_IGNORE]`, and new substrate discs must be sized
   from their content rather than padded by a constant.
+- **Light is not the subject, and additive blending is the marker that cannot lie**
+  (`sceneFraming.js` → `isAdditiveLight`). `collectFramePoints` pruned text, the shadow catcher,
+  ambience and every grounded kind's substrate — by a flag each scene had to remember. Glows were
+  never on that list, and they are the one class that scales WITH the subject: a `GlowSprite` is
+  authored as a multiple of the body it lights (`radius × 7.5` on the orrery's sun, `spread × 1.55`
+  on a galaxy cluster's halo), so it always reaches past the thing it is drawn for and no retreat
+  satisfies it. One predicate reaches `GlowSprite`'s seventeen call sites across seven scene
+  modules, `FloorGlowDisc`, the cluster halo ring, the stardust and the accent shaft at once.
+  Measured over 14 base kinds × 3 viewports: **14 of 42 cells bigger, 0 smaller, 28 identical** —
+  orrery phone **+173.8%**, galaxy desktop **+88.6%** / cover +73.3% / phone +31.5%, layercake
+  +24.4% / +18.6% / +18.6%, machine +17.3% / +18.3% / +18.3%. Keying on BLENDING rather than on
+  opacity is deliberate: a translucent body is still a body, and an opacity bar would take a fused
+  composite's layers out of the fit the moment the pointer muted them to 0.2, so where the camera
+  stands would depend on where the pointer was at the last refit.
+- **A fortiori is a real argument for a `FRAME_IGNORE_DATA`** (`MachineScene.jsx` →
+  `FactoryFloor`). `MachinePlate` opts out because "the gears are the subject, the plate is the
+  bench"; the floor the bench stands on was still in, at 1.18× the plate's own radius, and was the
+  machine's binding geometry on its own. When a substrate is flagged, check what it is standing on.
 - **Anything sized for the READER must also leave the camera fit, and the accent callout was the
   last thing doing one without the other** (`accentRodScale.js`, `MetaphorAccents.jsx`). The rule
   `sceneFraming.js` states for item labels — a screen-constant object grows as the camera pulls
@@ -848,6 +866,47 @@ destroyed, most likely because of a navigation` — which reads like a browser o
 ---
 
 ## Full findings
+
+- **The camera was framing the glow rather than the thing that glows**
+  (`metaphorScenes/sceneFraming.js` → `isAdditiveLight`, `FactoryFloor` in `MachineScene.jsx`).
+  `collectFramePoints` had a stated doctrine — text, the shadow catcher, ambience and every grounded
+  kind's substrate are scaffolding and must not decide how the subject is framed — and a
+  `SUBSTRATES` sweep in `metaphorSceneFraming.test.js` holding eight kinds to it. **Light was never
+  on that list**, and it is the one class a list could not have saved, because a glow is authored as
+  a multiple of the body it lights and therefore grows with whatever the fit decides. Six things
+  worth keeping:
+
+  - **Additive blending is a claim about physics, not about style.** A surface that can only ADD to
+    what is behind it is an emission, not a body — the same argument `MetaphorAccents` already makes
+    when it refuses to draw its light shaft on a pale sky, because additive over near-white is
+    mathematically incapable of showing up. Every glow in the renderer is already authored that way,
+    so the rule needed no new flag and no new list.
+  - **Measured over 14 base kinds × 3 viewports on whiteboard: 14 cells bigger, 0 smaller, 28
+    identical to 2 dp.** Camera distance (lower is a bigger subject): orrery phone **67.65 → 24.71**
+    (+173.8%), cover 25.64 → 19.87, desktop 25.44 → 19.67; galaxy desktop **52.83 → 28.01** (+88.6%),
+    cover 52.99 → 30.58 (+73.3%), phone 94.40 → 71.80 (+31.5%); layercake 65.97 → 53.04 (+24.4%) and
+    40.19 → 33.88 (+18.6%) at both landscape viewports; machine 77.15 → 65.77 / 29.90 → 25.27 /
+    29.65 → 25.06 (+17–18%). The 28 unchanged cells are the guard: tree, terrain, river, garden,
+    archipelago, bridge, cycle, subway and iceberg draw no glow that reaches past their own bodies.
+  - **An opacity bar was the obvious rule and would have been wrong.** A translucent body is still a
+    body (the iceberg's submerged blocks are opaque only because of transparent-sort order, and a
+    fused layer is muted to `0.2` while the pointer is on another one). Keying the fit on opacity
+    would make where the camera stands depend on where the pointer was at the last refit. The suite
+    carries that as a control arm — an ordinary translucent plane at a LOWER opacity stays in the
+    fit — without which the additive case passes just as well against an opacity rule.
+  - **A simulation of a renderer rule has to run on the same object set the rule runs on.** This was
+    priced before a line was written, by hiding the additive meshes in-page and re-solving, and it
+    predicted **+0.5% on a galaxy phone and −0.2% on an orrery** — near enough to nothing to have
+    talked the slice out of existence. The simulation filtered on `o.isMesh`; `collectFramePoints`
+    walks anything carrying a geometry, and a galaxy's stardust and an orrery's asteroid belt are
+    `Points`. The real numbers for those two cells are +31.5% and +173.8%.
+  - **A glow is invisible to a pixel diff and enormous to the solve.** The layercake's
+    `FloorGlowDisc` is one mesh at `opacity: 0.16` that nobody would name in a screenshot; it was
+    the single binding object on that kind at all three viewports.
+  - **When a substrate is flagged, look at what it is standing on.** `MachinePlate` opts out because
+    "the gears are the subject, the plate is the bench" — and `FactoryFloor`, the floor under the
+    bench at 1.18× the plate's radius, was still in. It is now the ninth row of the `SUBSTRATES`
+    sweep.
 
 - **`terrain` had no sky, and the reason it had none for months is that "which sky does this kind
   get" was written as control flow** (`utils/metaphorSkyBackdrops.js`, `TerrainSky` in
