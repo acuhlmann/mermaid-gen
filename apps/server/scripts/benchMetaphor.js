@@ -2,9 +2,10 @@
 // benchMetaphor.js
 //
 // Offline driver that replays a fixed corpus of Metaphor DSL sources through
-// `validateAndPrepareMetaphorPatch` (fence strip → JSON.parse → 17 deterministic rescue
-// functions emitting 80+ distinct labelled fixes → Zod discriminated union over all 15
-// metaphor kinds) and reports:
+// `validateAndPrepareMetaphorPatch` (fence strip → JSON.parse → 18 deterministic rescue
+// functions emitting 110+ distinct labelled fixes, 58 of them generated from the
+// `METAPHOR_NUMERIC_FIELDS` table → Zod discriminated union over all 15 metaphor kinds)
+// and reports:
 //   - sanitizer-rescue rate (how many otherwise-rejected sources now pass)
 //   - validator outcome counts
 //   - latency percentiles
@@ -101,6 +102,40 @@ const CORPUS = [
     expectedAccept: true,
     rescueable: true
   },
+  {
+    id: 'numeric-text',
+    // A number the model wrote as text. Every clamp pass used to be gated on
+    // `typeof === 'number'`, so the whole numeric rescue layer was unreachable
+    // from the single commonest JSON-from-LLM slip.
+    source: JSON.stringify({
+      metaphor: 'city',
+      items: [{ id: 'a', label: 'A', height: '8', footprint: '2.5m' }]
+    }),
+    expectedAccept: true,
+    rescueable: true
+  },
+  {
+    id: 'clamp-primary-encoding',
+    // city.height/footprint, galaxy.magnitude and layercake.thickness had no
+    // clamp row at all until 2026-09-20 — the primary size encoding of three
+    // kinds, one of them the kind an unrecognized document defaults to.
+    source: JSON.stringify({
+      metaphor: 'city',
+      items: [{ id: 'a', label: 'A', height: 500, footprint: 60 }]
+    }),
+    expectedAccept: true,
+    rescueable: true
+  },
+  {
+    id: 'composite-layer-numeric',
+    // Composite layers route through the same table via their `as` kind.
+    source: JSON.stringify({
+      metaphor: 'composite',
+      layers: [{ id: 'l1', as: 'galaxy', items: [{ id: 'a', label: 'A', magnitude: '200' }] }]
+    }),
+    expectedAccept: true,
+    rescueable: true
+  },
   // ── truly broken: must stay rejected ───────────────────────────────────────
   { id: 'empty', source: '', expectedAccept: false },
   { id: 'not-json', source: '{"metaphor":"city","items":[', expectedAccept: false },
@@ -110,6 +145,19 @@ const CORPUS = [
     id: 'bad-field-type',
     // height must be a number; no rescue pass touches it, so the Zod union fails.
     source: JSON.stringify({ metaphor: 'city', items: [{ id: 'a', label: 'A', height: {} }] }),
+    expectedAccept: false
+  },
+  {
+    id: 'numeric-text-is-a-range',
+    // "12-20" is a range, and picking one end of it is fabrication. The
+    // coercion pass takes ONE decorated number and nothing else, so this stays
+    // rejected and the Zod error names the field for the fixer ladder.
+    source: JSON.stringify({ metaphor: 'city', items: [{ id: 'a', label: 'A', height: '12-20' }] }),
+    expectedAccept: false
+  },
+  {
+    id: 'numeric-text-is-a-word',
+    source: JSON.stringify({ metaphor: 'city', items: [{ id: 'a', label: 'A', height: 'tall' }] }),
     expectedAccept: false
   }
 ];
