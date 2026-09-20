@@ -84,6 +84,35 @@ Run: `npm run check:fast` when only shared changed; `npm run check` otherwise.
 | Rule pack        | [`apps/server/src/prompts/mermaidSyntaxGuard.js`](../apps/server/src/prompts/mermaidSyntaxGuard.js)                     |
 | Tests            | [`packages/shared/test/mermaidSanitizer.test.ts`](../packages/shared/test/mermaidSanitizer.test.ts), server agent tests |
 
+## Mermaid version bump, or a new diagram type
+
+A Mermaid major release is not one dependency line, and a new diagram type is not one allowlist. Both
+have silent failure modes, so the sensor in
+[`scripts/verify-mermaid-pins.mjs`](../scripts/verify-mermaid-pins.mjs) checks the version coupling
+mechanically; it cannot catch the type registries, which are below.
+
+| Layer                 | Location                                                                                                                                                                                                                                                                                                      |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| npm range (×3)        | [`package.json`](../package.json), [`apps/web/package.json`](../apps/web/package.json), [`apps/server/package.json`](../apps/server/package.json) — enforced equal by the sensor                                                                                                                              |
+| MCP App CDN major     | [`apps/server/src/mcp/apps/mcpAppDiagramPreview.js`](../apps/server/src/mcp/apps/mcpAppDiagramPreview.js) `MERMAID_CDN` — a second copy of the library, fetched over the network by external agents. Lag it and the App renders the old grammar while the server gate accepts the new one                     |
+| Type: heuristic gate  | `DIAGRAM_PREFIX_PATTERN` in [`apps/server/src/agents/mermaidReliabilitySkill.js`](../apps/server/src/agents/mermaidReliabilitySkill.js)                                                                                                                                                                       |
+| Type: sanitizer       | `KNOWN_DIAGRAM_PREFIXES`, and `STYLE_DIRECTIVE_UNSUPPORTED_TYPES` only if the type genuinely rejects styling lines, in [`packages/shared/src/mermaidSanitizer.ts`](../packages/shared/src/mermaidSanitizer.ts)                                                                                                |
+| Type: canonical map   | `CANONICAL_TYPES` in [`apps/server/src/agents/inferDiagramType.ts`](../apps/server/src/agents/inferDiagramType.ts)                                                                                                                                                                                            |
+| Type: rule pack       | `RULE_PACKS` in [`apps/server/src/prompts/mermaidSyntaxGuard.js`](../apps/server/src/prompts/mermaidSyntaxGuard.js)                                                                                                                                                                                           |
+| Type: persona prompts | type enumerations in [`apps/server/src/agents/mermaidAnalysisPrompts.js`](../apps/server/src/agents/mermaidAnalysisPrompts.js) and `SYSTEM_PROMPT`'s mode boundary in [`apps/server/src/agents/mermaidLangChainAgent.js`](../apps/server/src/agents/mermaidLangChainAgent.js)                                 |
+| Type: canvas editing  | `DIAGRAM_DIRECTIVES` in [`apps/web/src/utils/mermaidSourceLocate.js`](../apps/web/src/utils/mermaidSourceLocate.js) + a `canvasGraphEdit.js` adapter + a `GRAPH_EDIT_BLAST_TESTS` entry. Unlisted types degrade to `unknown` — they do not break                                                              |
+| Style schema          | `MermaidThemeSchema` / `MermaidLookSchema` / `MermaidLayoutSchema` in [`packages/shared/src/mermaidStyle.ts`](../packages/shared/src/mermaidStyle.ts) — a major often adds theme/look values and changes which is the default                                                                                 |
+| Tests / bench         | [`packages/shared/test/mermaidSanitizer.test.ts`](../packages/shared/test/mermaidSanitizer.test.ts), [`apps/server/test/mermaidSyntaxGuard.test.js`](../apps/server/test/mermaidSyntaxGuard.test.js), and new corpus cases in [`apps/server/scripts/benchMermaid.js`](../apps/server/scripts/benchMermaid.js) |
+
+**Verify with the corpus bench, and measure geometry in a real browser.**
+`node apps/server/scripts/benchMermaid.js --tag <label>` replays the corpus through the real ladder and
+exits non-zero on `expectationMatch` drift — read that, never `acceptRate`, which is a property of the
+corpus. jsdom's stubbed `getBBox` inflates viewBoxes by roughly three orders of magnitude (measured on
+one flowchart: 204704 px for v12 and 43096 px for v11, against 360 and 239 in Chromium), so it can prove
+a diagram parses and renders but never that it is sized sanely.
+
+Run: `npm run verify:mermaid-pins`, then `npm run test -w packages/shared && npm run test -w apps/server`
+
 ## Deliverable format UI (mode picker)
 
 | Layer             | Location                                                                                                                                                                 |

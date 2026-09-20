@@ -47,14 +47,14 @@
     },
     "contextBytes": {
       "CLAUDE.md": {
-        "budget": 41890,
+        "budget": 43183,
         "initial": 136170,
-        "reason": "2026-09-19: 40202 -> 41890 for the ADR-0018 mirror across three same-day passes (self-healing contract; enable-at-green correction; required-checks restoration — the six workspace checks are now required on main and the prose returns to enable-at-opening with the platform gate). Prior raise: 2026-09-15 for #692's paused-rung mirror (+63)."
+        "reason": "2026-09-20: 41890 -> 43183 (+1293) for the Mermaid 12 upgrade notes. Grew +4411 first and was cut back 71% — the six-registry coupling table, the bench/verify commands and the removed-API list moved to docs/agent-blast-radius.md, where they belong and load on demand. What remains is the trap set that is not recoverable from the code (v12's -beta suffix is the keyword; only `layout` of the three default flips reaches us; the two new types' opposite styling gaps) plus the jsdom-geometry warning. The four-way version-pin prose that would otherwise have needed stating here is now enforced instead, by scripts/verify-mermaid-pins.mjs. Prior raise: 2026-09-19: 40202 -> 41890 for the ADR-0018 mirror across three same-day passes (self-healing contract; enable-at-green correction; required-checks restoration — the six workspace checks are now required on main and the prose returns to enable-at-opening with the platform gate). Prior: 2026-09-15 for #692's paused-rung mirror (+63)."
       },
       "AGENTS.md": {
-        "budget": 45377,
+        "budget": 46144,
         "initial": 88461,
-        "reason": "2026-09-19: 43689 -> 45377, same three-pass ADR-0018 mirror as CLAUDE.md per rule 8. Prior raise: 2026-09-15 #692 paused-ladder mirror (+63)."
+        "reason": "2026-09-20: 45377 -> 46144 (+767) for the § Mermaid is on 12.x pointer — two bullets (four declaration sites now proven equal by verify:mermaid-pins; a new type is a six-registry edit, verified by benchMermaid's expectationMatch). Kept here deliberately short: this file is the cross-agent entry point (Codex/qwen read only it), so it carries the pointer and CLAUDE.md carries the traps, with docs/agent-blast-radius.md holding the table. Prior raise: 2026-09-19: 43689 -> 45377, same three-pass ADR-0018 mirror as CLAUDE.md per rule 8. Prior: 2026-09-15 #692 paused-ladder mirror (+63)."
       }
     },
     "lintWarnings": {
@@ -84,13 +84,14 @@
     },
     "suite": {
       "files": {
-        "budget": 402,
+        "budget": 403,
         "initial": 366,
-        "reason": "2026-09-19 improve: measured 402 vs budget 404 after upstream suite count settled; lock budget to live count."
+        "reason": "2026-09-20: 402 -> 403, locking in the measured live count — one new suite, scripts/verify-mermaid-pins.test.mjs. Prior: 2026-09-19 improve, measured 402 vs budget 404 after upstream suite count settled."
       },
       "cases": {
-        "budget": 4646,
-        "initial": 3675
+        "budget": 4671,
+        "initial": 3675,
+        "reason": "2026-09-20: 4646 -> 4671, locking in the measured live count from the Mermaid 12 work (the verify-mermaid-pins sensor suite, the -beta header-repair cases, the two new rule-pack assertions and inferDiagramType's beta aliases)."
       }
     }
   }

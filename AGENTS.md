@@ -145,12 +145,11 @@ Production deploy notes (Cloud Run, billing credits, GitHub Actions CI, optional
 
 ## Mermaid is on 12.x
 
-Depth lives in `CLAUDE.md` (§ Validation ladder). The four things an agent misses without them:
+The traps are listed once in `CLAUDE.md` (§ Validation ladder) and the full "if you change X, also
+change Y" table is in [`docs/agent-blast-radius.md`](docs/agent-blast-radius.md). Two operational facts:
 
-- **The version is declared in three package.jsons** — root, `apps/web`, `apps/server` — **plus a CDN URL major** in `apps/server/src/mcp/apps/mcpAppDiagramPreview.js`. Move all four together, or external MCP Apps agents render v11 grammar that the server gate now rejects.
-- **A new diagram type is a six-registry edit**, not a one-line allowlist: `DIAGRAM_PREFIX_PATTERN`, `KNOWN_DIAGRAM_PREFIXES`, `CANONICAL_TYPES`, `RULE_PACKS`, the persona type lists, and the CDN. Unlisted types degrade to `unknown` in canvas editing — they do not crash.
-- **Do not try to dedupe CopilotKit's Mermaid.** `@copilotkit/react-core` → `streamdown` hard-depends on `mermaid@^11`, and an `overrides` entry (either form) rewrites the range but leaves the nested copy, so `npm ls` then reports `ELSPROBLEMS`. Two copies is the correct state here; the app's own surfaces all use hoisted 12.x.
-- **Verify a type with the corpus bench, and measure geometry in a real browser**: `node apps/server/scripts/benchMermaid.js --tag <label>` replays through the actual ladder and fails on `expectationMatch` drift. jsdom's stubbed `getBBox` inflates viewBoxes by ~three orders of magnitude, so it can prove a diagram parses and renders but never that it is sized sanely.
+- **Four places declare the version** — three `package.json`s plus a CDN URL in `mcpAppDiagramPreview.js` — and `npm run verify:mermaid-pins` proves they agree. Run it after any Mermaid bump.
+- **A new diagram type is a six-registry edit**, not a one-line allowlist. Verify with `node apps/server/scripts/benchMermaid.js --tag <label>` and read `expectationMatch`, never `acceptRate`.
 
 ## Metaphor3D scene gotchas
 
@@ -459,7 +458,7 @@ area — see `docs/routines/README.md` rule 8; it is no longer "both root files,
 - `.agents/` — generated CopilotKit skill files, git-ignored. Refresh with `npm run setup:skills`.
 - `.env`, `.env.*` — never commit; ask the user if they need a new variable.
 - `scripts/deploy-*.sh` and `scripts/push-*-secret-cloud-run.sh` — production deploy / Secret Manager scripts. Don't run unless asked.
-- `apps/server/src/mcp/apps/mcpAppSessionBridge.js` — the MCP Apps postMessage/SSE wire protocol that every `*AppHtml.js` string talks to; a change here can strand external agents silently with no failing test. The HTML itself is **not** off-limits: `apps/server/test/mcpAppHtml.test.js` pins the preview script's load/render timeouts and CDN fallbacks, so drift is caught by a sensor rather than by a warning. Note `apps/server/src/mcp/apps/mcpAppDiagramPreview.js` holds the Mermaid **CDN major**, which must move with the workspace `mermaid` dependency.
+- `apps/server/src/mcp/apps/mcpAppSessionBridge.js` — the MCP Apps postMessage/SSE protocol every `*AppHtml.js` string talks to; a change here can strand external agents silently with no failing test. The App HTML is **not** off-limits — `mcpAppHtml.test.js` pins it and `npm run verify:mermaid-pins` guards its Mermaid CDN major.
 - `apps/server/bench-results/` — bench snapshots; don't hand-edit, regenerate via the bench script.
 - `apps/web/src/assets/audio/*.mp3` — baked ElevenLabs assets; don't hand-edit, regenerate via `./scripts/generate-office-audio.sh` (build-time only — never wire ElevenLabs into a route, CI, or a deploy script). See [`docs/audio-assets.md`](docs/audio-assets.md).
 - `package-lock.json`, `skills-lock.json` — never hand-edit.
