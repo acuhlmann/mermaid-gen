@@ -1361,12 +1361,28 @@ test('parseNumericText takes one decorated number and refuses a range or a word'
   assert.deepEqual(parseNumericText('8m'), { value: 8, percent: false });
   assert.deepEqual(parseNumericText('$1,200'), { value: 1200, percent: false });
   assert.deepEqual(parseNumericText('~3'), { value: 3, percent: false });
+  assert.deepEqual(parseNumericText('~ 3'), { value: 3, percent: false });
+  assert.deepEqual(parseNumericText('$ 1,200'), { value: 1200, percent: false });
   assert.deepEqual(parseNumericText('1.2e3'), { value: 1200, percent: false });
   assert.deepEqual(parseNumericText('80%'), { value: 80, percent: true });
 
   // A second number means a range or a ratio. Taking one end of it is
   // fabrication, so these stay strings and the Zod error names the field.
-  for (const notOneNumber of ['1-2', '3 of 5', '50/100', 'N/A', 'high', 'true', '', '1,2', 'ten']) {
+  for (const notOneNumber of [
+    '1-2',
+    '3 of 5',
+    '50/100',
+    'N/A',
+    'high',
+    'true',
+    '',
+    '1,2',
+    'ten',
+    // A long whitespace run behind a prefix character is the shape that made
+    // the first version of this regex backtrack quadratically.
+    `~${' '.repeat(4000)}!`,
+    `$${' '.repeat(4000)}`
+  ]) {
     assert.equal(
       parseNumericText(notOneNumber),
       null,
