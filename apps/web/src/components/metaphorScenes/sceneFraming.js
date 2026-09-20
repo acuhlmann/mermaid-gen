@@ -35,6 +35,24 @@
  * the subject, and letting one dictate the framing shrinks everything else to
  * make room for a 3-pixel silhouette.
  *
+ * **Light opts out without being asked, because additive blending says so.** A
+ * star's halo, a sun's corona, a planet's atmosphere, a spotlight pool under a
+ * cake stand: every one is a `GlowSprite` or a disc drawn with
+ * `THREE.AdditiveBlending`, which can only ADD light and therefore cannot be a
+ * body — the same argument `MetaphorAccents` already makes when it refuses to
+ * draw its light shaft on a pale sky. Those glows are authored as a MULTIPLE of
+ * the thing they light (`radius × 7.5` on the orrery's sun, `spread × 1.55` on a
+ * galaxy cluster's halo), so they reach furthest exactly where the subject ends
+ * and they scale with it — which makes them the binding constraint and keeps
+ * them there however far the camera retreats. Measured over the 14 base kinds at
+ * three viewports: the layercake's spotlight pool alone cost **24.4%** of the
+ * subject's size on a 390x844 phone and 18.6% elsewhere, a galaxy's cluster
+ * haloes **50.4%** on a desktop and 37.2% on a foldable cover, and 34 of the 42
+ * cells do not move at all because they draw no glow that reaches past their
+ * own bodies. This is deliberately a rule about BLENDING and not about opacity:
+ * a translucent body is still a body, and a composite layer that is muted to
+ * 0.2 while the pointer is elsewhere must not change what the next refit frames.
+ *
  * The **substrate** opts out for the same reason, and it is the larger win.
  * Every grounded kind stands on a disc sized `max(floor, contentRadius × pad)`,
  * so the ground is 1.3–1.5× the widest item on an ordinary 6–10 item scene —
@@ -309,9 +327,33 @@ function isSceneText(object) {
 }
 
 /**
+ * True for a mesh drawn as LIGHT rather than as matter — a glow sprite, a
+ * corona, an atmosphere shell, a light shaft, a spotlight pool.
+ *
+ * Additive blending is the marker because it is the one that cannot lie: a
+ * surface that only ever adds to what is behind it is an emission, not a body,
+ * whatever its geometry claims. See the note at the top of this file for why
+ * that class had to be excluded and what it was costing.
+ *
+ * @param {THREE.Object3D} object
+ */
+function isAdditiveLight(object) {
+  const material = object.material;
+  if (!material) return false;
+  if (Array.isArray(material)) {
+    return (
+      material.length > 0 && material.every((entry) => entry?.blending === THREE.AdditiveBlending)
+    );
+  }
+  return material.blending === THREE.AdditiveBlending;
+}
+
+/**
  * World-space sample points describing what the camera must contain: every
  * visible mesh's vertices when it is small enough to walk, its bounding-box
- * corners otherwise. Subtrees flagged `userData[FRAME_IGNORE]` are pruned.
+ * corners otherwise. Subtrees flagged `userData[FRAME_IGNORE]` are pruned, and
+ * so is anything drawn as additive light — see `isAdditiveLight` and the note
+ * at the top of this file.
  *
  * Scene text is pruned too, and it is the same rule the ground-shadow catcher
  * and the ambience layers are pruned by: **a name is not the thing it names.**
@@ -352,25 +394,31 @@ export function collectFramePoints(root) {
     }
   };
 
+  // The light check gates the SAMPLING, not the walk: a glow is a leaf in every
+  // scene here, but a group that happens to carry one must still have its other
+  // children measured.
+  const sample = (object) => {
+    const geometry = object.geometry;
+    if (!geometry || isAdditiveLight(object) || points.length >= MAX_SAMPLE_POINTS) return;
+    const position = geometry.attributes?.position;
+    if (!position || position.count === 0 || position.count > MAX_MESH_VERTICES) {
+      pushBoxCorners(geometry, object.matrixWorld);
+      return;
+    }
+    for (let i = 0; i < position.count; i += 1) {
+      points.push(
+        new THREE.Vector3(position.getX(i), position.getY(i), position.getZ(i)).applyMatrix4(
+          object.matrixWorld
+        )
+      );
+    }
+  };
+
   // Manual walk (not traverseVisible) so a flagged subtree can be skipped whole.
   const visit = (object) => {
     if (!object.visible || object.userData?.[FRAME_IGNORE]) return;
     if (isSceneText(object)) return;
-    const geometry = object.geometry;
-    if (geometry && points.length < MAX_SAMPLE_POINTS) {
-      const position = geometry.attributes?.position;
-      if (position && position.count > 0 && position.count <= MAX_MESH_VERTICES) {
-        for (let i = 0; i < position.count; i += 1) {
-          points.push(
-            new THREE.Vector3(position.getX(i), position.getY(i), position.getZ(i)).applyMatrix4(
-              object.matrixWorld
-            )
-          );
-        }
-      } else {
-        pushBoxCorners(geometry, object.matrixWorld);
-      }
-    }
+    sample(object);
     for (const child of object.children) visit(child);
   };
   visit(root);
