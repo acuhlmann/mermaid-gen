@@ -23,7 +23,11 @@ const CANONICAL_TYPES: Record<string, string> = {
   kanban: 'kanban',
   zenuml: 'zenuml',
   'sankey-beta': 'sankey-beta',
-  'xychart-beta': 'xychart-beta'
+  'xychart-beta': 'xychart-beta',
+  'agentflow-beta': 'agentflow-beta',
+  agentflow: 'agentflow-beta',
+  'usecase-beta': 'usecase-beta',
+  usecase: 'usecase-beta'
 };
 
 /**

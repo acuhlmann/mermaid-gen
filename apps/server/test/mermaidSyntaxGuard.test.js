@@ -80,3 +80,33 @@ test('pie pack notes silent failure on non-positive values', () => {
   const pack = getRulePack('pie');
   assert.match(pack, /silently/);
 });
+
+// The `-beta` suffix is part of Mermaid 12's keyword, so it is the single most likely thing a
+// model gets wrong on these two types; and each type rejects a *different* styling directive
+// (verified against mermaid.parse), which the packs must state separately.
+test('agentflow-beta pack pins the keyword, shapes, connector binding and styling gap', () => {
+  const pack = getRulePack('agentflow-beta');
+  assert.match(pack, /agentflow-beta/);
+  assert.match(pack, /shape: task/);
+  assert.match(pack, /connectorRef/);
+  assert.match(pack, /flow id\["Label"\]/);
+  // ::: is a parse error here even though linkStyle is fine.
+  assert.match(pack, /::: shortcut is NOT/);
+  assert.match(pack, /class b loud/);
+});
+
+test('usecase-beta pack pins the keyword, boundary, include form and linkStyle gap', () => {
+  const pack = getRulePack('usecase-beta');
+  assert.match(pack, /usecase-beta/);
+  assert.match(pack, /systemBoundary/);
+  assert.match(pack, /\.\.> : include/);
+  assert.match(pack, /linkStyle is NOT supported/);
+});
+
+test('the two Mermaid 12 packs are distinct, not a shared fallback', () => {
+  const af = getRulePack('agentflow-beta');
+  const uc = getRulePack('usecase-beta');
+  assert.notEqual(af, uc);
+  assert.notEqual(af, getRulePack(null));
+  assert.notEqual(uc, getRulePack(null));
+});

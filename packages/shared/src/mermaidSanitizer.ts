@@ -33,8 +33,21 @@ const KNOWN_DIAGRAM_PREFIXES = [
   'kanban',
   'zenuml',
   'sankey-beta',
-  'xychart-beta'
+  'xychart-beta',
+  'agentflow-beta',
+  'usecase-beta'
 ];
+
+/**
+ * Mermaid 12 ships `agentflow-beta` and `usecase-beta`; the `-beta` suffix is part of the
+ * diagram keyword, so a model that writes the natural `agentflow` / `usecase` header produces
+ * a source that no longer parses once the type is known to us. Repaired deterministically
+ * instead of spending a repair turn.
+ */
+const BETA_HEADER_REPAIRS: Record<string, string> = {
+  agentflow: 'agentflow-beta',
+  usecase: 'usecase-beta'
+};
 
 const RESERVED_NODE_IDS = ['end', 'class', 'style', 'default', 'interpolate', 'linkStyle'];
 
@@ -125,6 +138,17 @@ function normalizeDiagramHeader(source: string) {
       /\bstate\s+"[^"]+"\s+as\b/i.test(rest)
     ) {
       updated = updated.replace(/^(\s*)stateDiagram\b/, '$1stateDiagram-v2');
+    }
+  }
+
+  // Mermaid 12 keywords carry a `-beta` suffix; a model writing the natural name
+  // (`agentflow`, `usecase`) is correct-looking but unparseable. Case-insensitive so
+  // `Agentflow` repairs too.
+  for (const [bare, canonical] of Object.entries(BETA_HEADER_REPAIRS)) {
+    const bareRe = new RegExp(`^(\\s*)${bare}\\b(?!-beta)`, 'i');
+    if (bareRe.test(updated)) {
+      updated = updated.replace(bareRe, `$1${canonical}`);
+      break;
     }
   }
 

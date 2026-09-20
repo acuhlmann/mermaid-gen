@@ -80,3 +80,58 @@ test('detectDiagramType skips comments and frontmatter', () => {
   assert.equal(__internal.detectDiagramType('---\ntitle: T\n---\npie\n  "A" : 1'), 'pie');
   assert.equal(__internal.detectDiagramType('flowchart TD\n  A --> B'), 'flowchart');
 });
+
+// Mermaid 12 ships agentflow-beta and usecase-beta, where `-beta` is part of the keyword:
+// a model writing the natural `agentflow` produces something that parses under nothing.
+test('normalizeDiagramHeader promotes Mermaid 12 beta headers', () => {
+  assert.equal(
+    __internal.normalizeDiagramHeader('agentflow TD\n  A --> B'),
+    'agentflow-beta TD\n  A --> B'
+  );
+  assert.equal(
+    __internal.normalizeDiagramHeader('usecase\n  actor User'),
+    'usecase-beta\n  actor User'
+  );
+  assert.equal(
+    __internal.normalizeDiagramHeader('Agentflow TB\n  A --> B'),
+    'agentflow-beta TB\n  A --> B'
+  );
+});
+
+test('normalizeDiagramHeader leaves an already-correct beta header alone', () => {
+  for (const src of ['agentflow-beta TB\n  A --> B', 'usecase-beta\n  actor User']) {
+    assert.equal(__internal.normalizeDiagramHeader(src), null);
+  }
+});
+
+test('normalizeDiagramHeader does not promote a keyword that only starts with the beta name', () => {
+  assert.equal(__internal.normalizeDiagramHeader('agentflow-betaish TD\n  A --> B'), null);
+});
+
+test('detectDiagramType recognises the Mermaid 12 beta headers', () => {
+  assert.equal(
+    __internal.detectDiagramType('agentflow-beta TB\n  a["A"]@{ shape: task }'),
+    'agentflow-beta'
+  );
+  assert.equal(__internal.detectDiagramType('usecase-beta\n  actor User'), 'usecase-beta');
+});
+
+// Both new types accept classDef/class/style, so the blunt strip-all fixer must not fire on
+// them — that would delete legitimate styling and mask the real (per-directive) gaps.
+test('stripUnsupportedStyleDirectives leaves the Mermaid 12 beta types untouched', () => {
+  for (const src of [
+    'agentflow-beta TB\n  a["A"] --> b["B"]\n  classDef hot fill:#f00\n  class b hot',
+    'usecase-beta\n  actor User\n  User --> Login\n  classDef hot fill:#f00'
+  ]) {
+    assert.equal(__internal.stripUnsupportedStyleDirectives(src), null);
+  }
+});
+
+test('sanitizeMermaid rescues a bare agentflow header', () => {
+  const src = 'agentflow TD\n  a["Start"] --> b["Finish"]';
+  const { sanitized, applied } = sanitizeMermaid(src, {
+    parseError: 'No diagram type detected matching given configuration for text: agentflow TD'
+  });
+  assert.ok(applied.includes('normalizeDiagramHeader'));
+  assert.match(sanitized, /^agentflow-beta TD/);
+});

@@ -202,6 +202,7 @@ When the user asks for a diagram change:
 
 Mode boundary (Mermaid is for relationships and flow):
 - Mermaid is the right fit for flowcharts, sequence diagrams, class/state diagrams, ER diagrams, journeys, timelines, gantt — anything where nodes-and-edges or ordered steps carry the meaning.
+- For an agentic/multi-agent pipeline (tools, prompts, decisions, failure paths, hand-offs between agents) prefer agentflow-beta; for who-does-what against a system boundary prefer usecase-beta. Both are Mermaid 12 types and their keyword carries the -beta suffix.
 - If the user is asking for a *data visualization* (bar chart, line chart, scatter, heatmap, etc.), the chart mode (Vega-Lite) is the better fit; you may briefly say so in prose, but still answer in Mermaid if the user explicitly stayed in this mode.
 - If the user is asking for a *narrative infographic* (hero numbers, KPI tiles, summary panels), the infographic mode is the better fit; same guidance.
 

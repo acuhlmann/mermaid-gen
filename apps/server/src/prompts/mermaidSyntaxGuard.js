@@ -154,6 +154,39 @@ XY chart (beta) rules:
 - All arrays use square brackets; numeric values not quoted; categorical labels quoted.
 `;
 
+const AGENTFLOW_RULES = `${COMMON_FIXES}
+Agentflow (Mermaid 12, beta) rules:
+- Header must be exactly \`agentflow-beta\` — the -beta suffix is part of the keyword — then an optional direction: agentflow-beta TB / LR / BT / RL.
+- Node: id["Label"]@{ shape: task } — metadata attaches with no space before @{.
+- Shape kinds: task, tool, input, decision, refdoc, action. A tool label is the call name: lookup["changelog_search"]@{ shape: tool }.
+- Edges: --> sequence (control or data flows), -.- reference (consults, nothing passes), --x failure path. Chaining is fine: a --> b --> c.
+- An edge label goes between the dashes: check -- yes --> ship. Do NOT use the flowchart check -->|yes| ship form.
+- Container: flow id["Label"], then nested nodes, then end. Containers nest; every flow needs its own end.
+- Shared top-level nodes go in a bare \`global\` ... \`end\` block — no id, label, or metadata on the global line.
+- External system: connector github["GitHub API"], then a separate line github@{ protocol: "http", endpoint: "https://api.github.com" }.
+- Bind a tool to it with a quoted dotted string: create["create_issue"]@{ shape: tool, connectorRef: "github.create_issue" }.
+- Set or change metadata later by id on its own line: researcher@{ instruction: "Research and cite sources." }, tools@{ algorithm: "elk.rectpacking" }, intake@{ view: "collapsed" }.
+- Tool signature keys: params: "city :: String", returns: "Report", value: "Stockholm".
+- classDef, class, style and linkStyle are all valid. The flowchart ::: shortcut is NOT — b["Finish"]::: loud is a parse error; write \`class b loud\` on its own line instead.
+`;
+
+const USECASE_RULES = `${COMMON_FIXES}
+Use case (Mermaid 12, beta) rules:
+- Header must be exactly \`usecase-beta\` — the -beta suffix is part of the keyword. Then optionally \`direction LR\` / TB / TD / BT / RL on its own line.
+- One statement per physical line; never join statements with semicolons.
+- Actor: actor Customer, or actor Admin("Main administrator") with a label. Use case ellipse: Login("Sign in"). Use case rectangle: Report[Generate report]. A bare id used on an edge becomes an ellipse use case.
+- Do NOT write \`usecase Login("Sign in")\` — the \`actor\` keyword is for actors only; a use case is just its shaped label.
+- System boundary: systemBoundary Storefront, then members, then end. Or titled with metadata: systemBoundary sb1["Payment service"]@{ type: package }. Boundaries must not nest.
+- Inside a boundary only actors, use cases, blank lines and %% comments are allowed.
+- Associations: --> , <-- , -- (plain), --o , --x , and --|> for generalization pointing from specialized to general. Labelled: User -- "include account details" --> Login.
+- Include/extend put the keyword before the target: Checkout ..> : include Browse, ApplyCoupon ..> : extend Checkout.
+- Actor variants live in metadata: actor Hollow("Hollow")@{ type: hollow }, actor Icon("Icon")@{ icon: "fa:user" }, actor Broker@{ business: true }. Never combine icon with a non-normal type.
+- A stereotype \`<<Core>>\` comes after metadata and before a \`:::class\` suffix: Quote("Prepare quote")@{ business: true } <<Core>>.
+- A note attaches to one element on its own line: note for User "This user has admin rights".
+- Special characters in an unquoted label need entity codes (#quot;, #40;, #41;); use a backtick markdown string for real formatting.
+- classDef, class, the ::: suffix and style are valid. linkStyle is NOT supported here — a \`linkStyle 0 stroke:#f00\` line fails the whole diagram; colour edges via the %%init%% theme instead.
+`;
+
 const RULE_PACKS = {
   flowchart: FLOWCHART_RULES,
   sequenceDiagram: SEQUENCE_RULES,
@@ -174,7 +207,9 @@ const RULE_PACKS = {
   C4Dynamic: C4_RULES,
   C4Deployment: C4_RULES,
   'sankey-beta': SANKEY_RULES,
-  'xychart-beta': XY_RULES
+  'xychart-beta': XY_RULES,
+  'agentflow-beta': AGENTFLOW_RULES,
+  'usecase-beta': USECASE_RULES
 };
 
 /**

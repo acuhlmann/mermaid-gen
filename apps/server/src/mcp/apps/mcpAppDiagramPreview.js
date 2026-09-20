@@ -18,7 +18,9 @@ export const MCP_APP_PREVIEW_BOX_CSS = `
 `;
 
 export const MCP_APP_DIAGRAM_PREVIEW_SCRIPT = `
-const MERMAID_CDN = "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+// Major must track the workspace mermaid dep: the server gate accepts Mermaid 12 grammar
+// (agentflow-beta, usecase-beta) that a Mermaid 11 bundle cannot parse.
+const MERMAID_CDN = "https://cdn.jsdelivr.net/npm/mermaid@12/dist/mermaid.esm.min.mjs";
 const MERMAID_LOAD_MS = 12000;
 const MERMAID_RENDER_MS = 15000;
 const INFOGRAPHIC_CDN = "https://esm.sh/@antv/infographic@0.2.19";

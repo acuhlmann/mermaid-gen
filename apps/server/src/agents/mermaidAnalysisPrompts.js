@@ -300,7 +300,7 @@ function buildRussEscalationInstructions(depth, diagramSource) {
   return `
 RUSS escalation (tier ${depth}):
 ${tierHint}- Primary declaration MUST NOT stay "${currentKeyword}" — different diagram species (not rename-only).
-- Prefer uncommon families when they parse (gitGraph, journey, timeline, quadrantChart, pie, mindmap, block-beta, sankey-beta, requirement, C4*, sequence/state/er/zenUML).
+- Prefer uncommon families when they parse (agentflow-beta, usecase-beta, gitGraph, journey, timeline, quadrantChart, pie, mindmap, block-beta, sankey-beta, requirement, C4*, sequence/state/er/zenUML).
 ${ultraTypes}${deepVisual}- Geek nonsense (RFC vibes, fake folklore) — short labels, still readable contrast.
 `;
 }
@@ -346,7 +346,7 @@ export function buildTransformUserContent({
 - Stay ON THE SUBJECT of the visible labels. Do NOT default to enterprise/SaaS/cloud vocabulary unless the diagram is enterprise/SaaS/cloud — read the labels first and speak in their world.
 - Add a fresh structural angle the user likely hasn't considered yet: split a node into two with different temperaments, fold two layers into a stronger one, introduce a feedback loop, add a parallel track, reframe a step as a phase.
 - It is OK to lean a bit too far on purpose — a courageous extension that surprises is better than a safe one that doesn't. Sometimes the diagram benefits from being bolder than the user asked.
-- Consider whether a different Mermaid diagram type (flowchart, sequenceDiagram, stateDiagram-v2, mindmap, classDiagram, etc.) would communicate the new angle better; change type only when that shift clearly serves the subject. Otherwise elevate within the current type.
+- Consider whether a different Mermaid diagram type (flowchart, sequenceDiagram, stateDiagram-v2, mindmap, classDiagram, agentflow-beta, usecase-beta, etc.) would communicate the new angle better; change type only when that shift clearly serves the subject. Otherwise elevate within the current type.
 - Budget: roughly up to 10 nodes and 14 edges unless the diagram stays clearer with fewer.
 - Voice for any prose you emit after the patch: grandiose founder swagger — take warm credit in advance, frame the pivot as the bolder shape only you could see ("You're welcome — I elevated it."). Never humble, never technically specific, at most ONE signature prop (Aviato, the incubator, the ten percent) and usually none. Short.`
           : mode === 'barker'
@@ -361,7 +361,7 @@ export function buildTransformUserContent({
             : `Transform mode: RUSS — Russ Hanneman (HBO's Silicon Valley) escalates ON THE DIAGRAM'S ACTUAL SUBJECT.
 - Speed first: your FIRST assistant turn must call apply_mermaid_patch — no preamble, no reasoning essays. Skip get_diagram_state unless you truly suspect stale context.
 - SUBJECT-ROOTED CHAOS: your escalation must be rooted in the diagram's actual subject. If the labels are recipes, escalate recipes; if they're org charts, escalate the org; if they're biology, escalate in biology terms. Defaulting to "blockchain / Kubernetes / lambdas / Web3 / microservices / DAOs" when the subject is NOT cloud infrastructure is a failure mode — earn the swing from the actual visible labels.
-- Diagram-type roulette: prefer exotic renderable types — gitGraph, journey, timeline, quadrantChart, pie, mindmap, sankey-beta, block-beta, requirement, C4*, sequence/state/er. Plain flowchart/source → pivot hard unless one killer gag keeps it.
+- Diagram-type roulette: prefer exotic renderable types — agentflow-beta, usecase-beta, gitGraph, journey, timeline, quadrantChart, pie, mindmap, sankey-beta, block-beta, requirement, C4*, sequence/state/er. Plain flowchart/source → pivot hard unless one killer gag keeps it.
 - Compact spectacle: trim %%init%% JSON to loud-but-minimal vars; short absurd labels beat paragraphs; aim ~≤14 nodes/edges combined unless the diagram type needs fewer.
 - Visual punch (valid Mermaid): %%init%% theme swing always works and is the safe default. classDef/class/style/linkStyle are ONLY valid on flowchart/graph/stateDiagram/classDiagram/erDiagram — if you pivot to mindmap/pie/journey/timeline/gitGraph/quadrantChart/sankey-beta/block-beta/C4* (or any other type), theme it with %%init%% ONLY; a classDef/style/linkStyle line there is a parse error that fails the whole run. Contrast must stay readable.
 - The swing lives in your CHOICES — diagram-type roulette, absurd-but-coherent labels, loud theming — not in randomness. Commit hard to ONE weird coherent take; hedged mildness is a failure mode, and so is word salad.

@@ -32,3 +32,15 @@ test('inferDiagramType returns null for unknown or empty source', () => {
   assert.equal(inferDiagramType('something\nflowchart TD'), null);
   assert.equal(inferDiagramType('not-a-diagram'), null);
 });
+
+test('inferDiagramType resolves Mermaid 12 beta types, including the bare name', () => {
+  assert.equal(
+    inferDiagramType('agentflow-beta TB\n  a["A"]@{ shape: task } --> b["B"]'),
+    'agentflow-beta'
+  );
+  assert.equal(inferDiagramType('usecase-beta\n  actor User\n  User --> Login'), 'usecase-beta');
+  // The sanitizer promotes these, but the type must resolve before it runs so the right
+  // rule pack gets injected into the repair prompt.
+  assert.equal(inferDiagramType('agentflow TB\n  A --> B'), 'agentflow-beta');
+  assert.equal(inferDiagramType('usecase\n  actor User'), 'usecase-beta');
+});
