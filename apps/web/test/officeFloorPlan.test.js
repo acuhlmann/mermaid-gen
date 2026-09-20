@@ -436,6 +436,7 @@ describe('peek marks (slice 6)', () => {
 
   it('keeps one mark per person and off everybody else’s staging', () => {
     const tiles = marks().map(({ tile }) => `${tile.x},${tile.y}`);
+    expect(tiles.length).toBeGreaterThan(0);
     expect(new Set(tiles).size, 'two people share a peek mark').toBe(tiles.length);
 
     const reserved = [VISITOR_TILE, ...COFFEE_TILES, ...BATTLE_TILES, MEETING_PLAYER_TILE];

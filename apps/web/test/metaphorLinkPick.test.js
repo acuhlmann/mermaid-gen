@@ -130,6 +130,8 @@ describe('LINK_EDITABLE_METAPHORS against the live adapters', () => {
   });
 
   it('never lists a kind twice', () => {
+    // Coverage claim: an emptied list would pass the uniqueness check below.
+    expect(LINK_EDITABLE_METAPHORS.length).toBeGreaterThan(0);
     expect(new Set(LINK_EDITABLE_METAPHORS).size).toBe(LINK_EDITABLE_METAPHORS.length);
   });
 

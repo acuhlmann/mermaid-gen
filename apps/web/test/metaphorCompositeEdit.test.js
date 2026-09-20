@@ -387,6 +387,7 @@ describe('layer-level Add (#536)', () => {
     // Duplicate ids would not render a second tower, they would make one id
     // ambiguous — and findLayerForItem resolves to the FIRST layer holding an id,
     // so an edit aimed at the copy would silently hit the original.
+    expect(ids.length).toBeGreaterThan(0);
     expect(new Set(ids).size).toBe(ids.length);
     const [origin, copy] = [doc.layers[0], doc.layers[1]];
     expect(copy.items.map((item) => item.id)).not.toEqual(origin.items.map((item) => item.id));
