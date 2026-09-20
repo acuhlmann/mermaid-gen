@@ -29,6 +29,11 @@ import {
   type MetaphorDsl,
   type MetaphorKind
 } from './metaphorSchema.js';
+import {
+  METAPHOR_NUMERIC_FIELDS,
+  parseNumericText,
+  rescueNumericValue
+} from './metaphorNumericFields.js';
 
 export interface SanitizeMetaphorResult {
   text: string;
@@ -139,9 +144,17 @@ function rescueItemsField(
 
 const POSITION_CLAMP = 30;
 
+/**
+ * An axis the model wrote as text (`["1","0","2"]`) used to drop the whole
+ * position — the one rescue outcome that silently DELETES authored intent
+ * rather than correcting it, since a dropped position sends the item to the
+ * layout's default slot with nothing in `applied` to say the author had asked
+ * for somewhere else.
+ */
 function clampPositionAxis(value: unknown): number | null {
-  if (typeof value !== 'number' || !Number.isFinite(value)) return null;
-  return Math.max(-POSITION_CLAMP, Math.min(POSITION_CLAMP, value));
+  const numeric = typeof value === 'number' ? value : parseNumericText(value)?.value;
+  if (typeof numeric !== 'number' || Number.isNaN(numeric)) return null;
+  return Math.max(-POSITION_CLAMP, Math.min(POSITION_CLAMP, numeric));
 }
 
 function rescueItemPositions(working: Record<string, unknown>, applied: string[]): void {
@@ -154,16 +167,19 @@ function rescueItemPositions(working: Record<string, unknown>, applied: string[]
       applied.push('drop-invalid-position');
       continue;
     }
-    const x = clampPositionAxis(coords[0]);
-    const y = clampPositionAxis(coords[1]);
-    const z = clampPositionAxis(coords[2]);
-    if (x == null || y == null || z == null) {
+    const axes = coords.map(clampPositionAxis);
+    if (axes.some((axis) => axis == null)) {
       delete item.position;
       applied.push('drop-invalid-position');
       continue;
     }
-    if (x !== coords[0] || y !== coords[1] || z !== coords[2]) {
-      item.position = [x, y, z];
+    if (coords.some((coord) => typeof coord !== 'number')) {
+      item.position = axes;
+      applied.push('coerce-position');
+      continue;
+    }
+    if (axes.some((axis, index) => axis !== coords[index])) {
+      item.position = axes;
       applied.push('clamp-position');
     }
   }
@@ -173,240 +189,33 @@ function clampNumber(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
 }
 
+/**
+ * Clamp every numeric item field into the range its own schema declares, and
+ * accept a number the model wrote as text on the way.
+ *
+ * The table is in `metaphorNumericFields.ts` and is swept against the schema
+ * by its own suite. This used to be 238 lines of inline `if (kind === …)`
+ * blocks with the bounds hand-copied, and four fields had fallen out of it —
+ * `city.height`, `city.footprint`, `galaxy.magnitude`, `layercake.thickness`,
+ * i.e. the primary size encoding of three kinds, one of which is the kind an
+ * unrecognized document defaults to.
+ */
 function rescueNumericRanges(working: Record<string, unknown>, applied: string[]): void {
   if (!Array.isArray(working.items)) return;
-  const kind = working.metaphor as MetaphorKind | undefined;
+  const bounds = METAPHOR_NUMERIC_FIELDS[working.metaphor as MetaphorBaseKind];
+  if (!bounds) return;
 
   for (const item of working.items as unknown[]) {
     if (!isObject(item)) continue;
-
-    if (kind === 'terrain') {
-      if (typeof item.elevation === 'number' && Number.isFinite(item.elevation)) {
-        const clamped = clampNumber(item.elevation, -10, 20);
-        if (clamped !== item.elevation) {
-          item.elevation = clamped;
-          applied.push('clamp-elevation');
-        }
-      }
-      if (typeof item.intensity === 'number' && Number.isFinite(item.intensity)) {
-        const clamped = clampNumber(item.intensity, 0.1, 10);
-        if (clamped !== item.intensity) {
-          item.intensity = clamped;
-          applied.push('clamp-intensity');
-        }
-      }
-    }
-
-    if (kind === 'tree' && typeof item.weight === 'number' && Number.isFinite(item.weight)) {
-      const clamped = clampNumber(item.weight, 0.1, 20);
-      if (clamped !== item.weight) {
-        item.weight = clamped;
-        applied.push('clamp-weight');
-      }
-    }
-
-    if (kind === 'layercake') {
-      if (typeof item.cracks === 'number' && Number.isFinite(item.cracks)) {
-        const clamped = clampNumber(item.cracks, 0, 1);
-        if (clamped !== item.cracks) {
-          item.cracks = clamped;
-          applied.push('clamp-cracks');
-        }
-      }
-      if (typeof item.tilt === 'number' && Number.isFinite(item.tilt)) {
-        const clamped = clampNumber(item.tilt, 0, 15);
-        if (clamped !== item.tilt) {
-          item.tilt = clamped;
-          applied.push('clamp-tilt');
-        }
-      }
-    }
-
-    if (kind === 'orrery') {
-      if (typeof item.orbit === 'number' && Number.isFinite(item.orbit)) {
-        const clamped = clampNumber(item.orbit, 0, 12);
-        if (clamped !== item.orbit) {
-          item.orbit = clamped;
-          applied.push('clamp-orbit');
-        }
-      }
-      if (typeof item.size === 'number' && Number.isFinite(item.size)) {
-        const clamped = clampNumber(item.size, 0.1, 10);
-        if (clamped !== item.size) {
-          item.size = clamped;
-          applied.push('clamp-size');
-        }
-      }
-    }
-
-    if (kind === 'river') {
-      if (typeof item.stage === 'number' && Number.isFinite(item.stage)) {
-        const clamped = clampNumber(item.stage, 0, 100);
-        if (clamped !== item.stage) {
-          item.stage = clamped;
-          applied.push('clamp-stage');
-        }
-      }
-      if (typeof item.flow === 'number' && Number.isFinite(item.flow)) {
-        const clamped = clampNumber(item.flow, 0.1, 20);
-        if (clamped !== item.flow) {
-          item.flow = clamped;
-          applied.push('clamp-flow');
-        }
-      }
-      if (typeof item.hazard === 'number' && Number.isFinite(item.hazard)) {
-        const clamped = clampNumber(item.hazard, 0, 1);
-        if (clamped !== item.hazard) {
-          item.hazard = clamped;
-          applied.push('clamp-hazard');
-        }
-      }
-    }
-
-    if (kind === 'garden') {
-      if (typeof item.maturity === 'number' && Number.isFinite(item.maturity)) {
-        const clamped = clampNumber(item.maturity, 0, 1);
-        if (clamped !== item.maturity) {
-          item.maturity = clamped;
-          applied.push('clamp-maturity');
-        }
-      }
-      if (typeof item.impact === 'number' && Number.isFinite(item.impact)) {
-        const clamped = clampNumber(item.impact, 0.1, 10);
-        if (clamped !== item.impact) {
-          item.impact = clamped;
-          applied.push('clamp-impact');
-        }
-      }
-    }
-
-    if (kind === 'archipelago') {
-      if (typeof item.mass === 'number' && Number.isFinite(item.mass)) {
-        const clamped = clampNumber(item.mass, 0.5, 20);
-        if (clamped !== item.mass) {
-          item.mass = clamped;
-          applied.push('clamp-mass');
-        }
-      }
-      if (typeof item.relief === 'number' && Number.isFinite(item.relief)) {
-        const clamped = clampNumber(item.relief, 0, 1);
-        if (clamped !== item.relief) {
-          item.relief = clamped;
-          applied.push('clamp-relief');
-        }
-      }
-    }
-
-    if (kind === 'machine') {
-      if (typeof item.size === 'number' && Number.isFinite(item.size)) {
-        const clamped = clampNumber(item.size, 0.1, 10);
-        if (clamped !== item.size) {
-          item.size = clamped;
-          applied.push('clamp-size');
-        }
-      }
-      if (typeof item.speed === 'number' && Number.isFinite(item.speed)) {
-        const clamped = clampNumber(item.speed, 0, 10);
-        if (clamped !== item.speed) {
-          item.speed = clamped;
-          applied.push('clamp-speed');
-        }
-      }
-      if (typeof item.torque === 'number' && Number.isFinite(item.torque)) {
-        const clamped = clampNumber(item.torque, 0, 1);
-        if (clamped !== item.torque) {
-          item.torque = clamped;
-          applied.push('clamp-torque');
-        }
-      }
-    }
-
-    if (kind === 'bridge') {
-      if (typeof item.span === 'number' && Number.isFinite(item.span)) {
-        const clamped = clampNumber(item.span, 0, 100);
-        if (clamped !== item.span) {
-          item.span = clamped;
-          applied.push('clamp-span');
-        }
-      }
-      if (typeof item.load === 'number' && Number.isFinite(item.load)) {
-        const clamped = clampNumber(item.load, 0.1, 10);
-        if (clamped !== item.load) {
-          item.load = clamped;
-          applied.push('clamp-load');
-        }
-      }
-      if (typeof item.strain === 'number' && Number.isFinite(item.strain)) {
-        const clamped = clampNumber(item.strain, 0, 1);
-        if (clamped !== item.strain) {
-          item.strain = clamped;
-          applied.push('clamp-strain');
-        }
-      }
-    }
-
-    if (kind === 'subway') {
-      if (typeof item.stop === 'number' && Number.isFinite(item.stop)) {
-        const clamped = clampNumber(item.stop, 0, 100);
-        if (clamped !== item.stop) {
-          item.stop = clamped;
-          applied.push('clamp-stop');
-        }
-      }
-      if (typeof item.traffic === 'number' && Number.isFinite(item.traffic)) {
-        const clamped = clampNumber(item.traffic, 0.1, 20);
-        if (clamped !== item.traffic) {
-          item.traffic = clamped;
-          applied.push('clamp-traffic');
-        }
-      }
-    }
-
-    if (kind === 'iceberg') {
-      if (typeof item.depth === 'number' && Number.isFinite(item.depth)) {
-        const clamped = clampNumber(item.depth, -1, 1);
-        if (clamped !== item.depth) {
-          item.depth = clamped;
-          applied.push('clamp-depth');
-        }
-      }
-      if (typeof item.mass === 'number' && Number.isFinite(item.mass)) {
-        const clamped = clampNumber(item.mass, 0.1, 20);
-        if (clamped !== item.mass) {
-          item.mass = clamped;
-          applied.push('clamp-mass');
-        }
-      }
-      if (typeof item.peril === 'number' && Number.isFinite(item.peril)) {
-        const clamped = clampNumber(item.peril, 0, 1);
-        if (clamped !== item.peril) {
-          item.peril = clamped;
-          applied.push('clamp-peril');
-        }
-      }
-    }
-
-    if (kind === 'cycle') {
-      if (typeof item.phase === 'number' && Number.isFinite(item.phase)) {
-        const clamped = clampNumber(item.phase, 0, 100);
-        if (clamped !== item.phase) {
-          item.phase = clamped;
-          applied.push('clamp-phase');
-        }
-      }
-      if (typeof item.size === 'number' && Number.isFinite(item.size)) {
-        const clamped = clampNumber(item.size, 0.1, 10);
-        if (clamped !== item.size) {
-          item.size = clamped;
-          applied.push('clamp-size');
-        }
-      }
-      if (typeof item.friction === 'number' && Number.isFinite(item.friction)) {
-        const clamped = clampNumber(item.friction, 0, 1);
-        if (clamped !== item.friction) {
-          item.friction = clamped;
-          applied.push('clamp-friction');
-        }
+    for (const bound of bounds) {
+      const raw = item[bound.field];
+      if (raw === undefined) continue;
+      const rescued = rescueNumericValue(raw, bound);
+      if (!rescued) continue;
+      if (rescued.coerced) applied.push(`coerce-${bound.field}`);
+      if (rescued.value !== raw) {
+        item[bound.field] = rescued.value;
+        if (!rescued.coerced) applied.push(`clamp-${bound.field}`);
       }
     }
   }

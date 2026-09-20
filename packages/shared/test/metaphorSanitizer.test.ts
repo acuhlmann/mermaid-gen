@@ -1,13 +1,29 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import type { z } from 'zod';
 import {
+  ArchipelagoMetaphorSchema,
+  BridgeMetaphorSchema,
   CITY_MAX_ITEMS,
+  CityMetaphorSchema,
+  CycleMetaphorSchema,
   GalaxyMetaphorSchema,
+  GardenMetaphorSchema,
+  IcebergMetaphorSchema,
+  LayercakeMetaphorSchema,
+  MachineMetaphorSchema,
+  METAPHOR_BASE_KINDS,
   METAPHOR_GLYPH_KINDS,
   MetaphorDslSchema,
   MetaphorLegendSchema,
+  OrreryMetaphorSchema,
+  RiverMetaphorSchema,
+  SubwayMetaphorSchema,
+  TerrainMetaphorSchema,
+  TreeMetaphorSchema,
   sanitizeMetaphorDsl
 } from '../src/index.js';
+import { METAPHOR_NUMERIC_FIELDS, parseNumericText } from '../src/metaphorNumericFields.js';
 
 test('sanitizeMetaphorDsl parses a well-formed city DSL and fills scene defaults', () => {
   const input = JSON.stringify({
@@ -1199,4 +1215,259 @@ test('sanitizeMetaphorDsl clamps iceberg depth across the waterline', () => {
     assert.equal(result.dsl.items[1].mass, 20);
     assert.equal(result.dsl.items[1].peril, 1);
   }
+});
+
+// ── the numeric-rescue table, swept against the schema ───────────────────────
+//
+// The ladder this replaced was 238 lines of inline `if (kind === 'terrain')`
+// blocks with every bound hand-copied from `metaphorSchema.ts`, and four
+// fields had fallen out of it: `city.height`, `city.footprint`,
+// `galaxy.magnitude`, `layercake.thickness` — the primary size encoding of
+// three kinds, one of which is the kind an unrecognized document defaults to.
+// Nothing could see the omission, because the list was a statement inside a
+// function body rather than a value any test could read. The sweeps below are
+// the part that stops it happening again; the table itself is the smaller half.
+
+const BASE_SCHEMA_BY_KIND: Record<string, z.ZodTypeAny> = {
+  city: CityMetaphorSchema,
+  layercake: LayercakeMetaphorSchema,
+  galaxy: GalaxyMetaphorSchema,
+  tree: TreeMetaphorSchema,
+  terrain: TerrainMetaphorSchema,
+  orrery: OrreryMetaphorSchema,
+  river: RiverMetaphorSchema,
+  garden: GardenMetaphorSchema,
+  archipelago: ArchipelagoMetaphorSchema,
+  machine: MachineMetaphorSchema,
+  bridge: BridgeMetaphorSchema,
+  cycle: CycleMetaphorSchema,
+  subway: SubwayMetaphorSchema,
+  iceberg: IcebergMetaphorSchema
+};
+
+/** The item shape a kind's document schema accepts, via public Zod surface only. */
+function itemShapeOf(kind: string): Record<string, z.ZodTypeAny> {
+  const schema = BASE_SCHEMA_BY_KIND[kind] as unknown as {
+    shape: { items: { unwrap(): { element: { shape: Record<string, z.ZodTypeAny> } } } };
+  };
+  return schema.shape.items.unwrap().element.shape;
+}
+
+/** A field is numeric when it takes a number and refuses a string. */
+function numericFieldsOf(kind: string): string[] {
+  return Object.entries(itemShapeOf(kind))
+    .filter(([, field]) => field.safeParse(1).success && !field.safeParse('x').success)
+    .map(([name]) => name)
+    .sort();
+}
+
+function parsesWith(kind: string, field: string, value: unknown): boolean {
+  return BASE_SCHEMA_BY_KIND[kind].safeParse({
+    metaphor: kind,
+    scene: {},
+    items: [{ id: 'a', label: 'A', [field]: value }],
+    links: []
+  }).success;
+}
+
+test('METAPHOR_NUMERIC_FIELDS carries exactly the numeric fields the schema has', () => {
+  for (const kind of METAPHOR_BASE_KINDS) {
+    const fromSchema = numericFieldsOf(kind);
+    const fromTable = METAPHOR_NUMERIC_FIELDS[kind].map((entry) => entry.field).sort();
+    assert.deepEqual(
+      fromTable,
+      fromSchema,
+      `${kind}: the rescue table and metaphorSchema.ts disagree about which item fields are numeric. ` +
+        'A field the table misses is never clamped and never coerced, so a document that overshoots ' +
+        'it is rejected outright instead of rescued.'
+    );
+  }
+});
+
+test('every METAPHOR_NUMERIC_FIELDS bound is the schema bound, not a hand-copy of it', () => {
+  const epsilon = 1e-6;
+  for (const kind of METAPHOR_BASE_KINDS) {
+    for (const bound of METAPHOR_NUMERIC_FIELDS[kind]) {
+      const where = `${kind}.${bound.field}`;
+      assert.ok(parsesWith(kind, bound.field, bound.max), `${where}: max ${bound.max} must parse`);
+      assert.ok(
+        !parsesWith(kind, bound.field, bound.max + epsilon),
+        `${where}: the schema accepts more than max ${bound.max} — clamping there throws range away`
+      );
+      assert.ok(parsesWith(kind, bound.field, bound.min), `${where}: min ${bound.min} must parse`);
+      if (bound.positive) {
+        assert.ok(bound.min > 0, `${where}: a positive field's rescue floor must be above 0`);
+        assert.ok(!parsesWith(kind, bound.field, 0), `${where}: marked positive but 0 parses`);
+      } else {
+        assert.ok(
+          !parsesWith(kind, bound.field, bound.min - epsilon),
+          `${where}: the schema accepts less than min ${bound.min}`
+        );
+      }
+    }
+  }
+});
+
+test('every numeric field rescues an overshoot and an undershoot, on every kind', () => {
+  for (const kind of METAPHOR_BASE_KINDS) {
+    for (const bound of METAPHOR_NUMERIC_FIELDS[kind]) {
+      for (const overshoot of [bound.max * 10 + 100, bound.min - 1000]) {
+        const result = sanitizeMetaphorDsl(
+          JSON.stringify({
+            metaphor: kind,
+            items: [{ id: 'a', label: 'A', [bound.field]: overshoot }]
+          }),
+          { allowStructureRewrite: true }
+        );
+        assert.ok(
+          result.dsl,
+          `${kind}.${bound.field} = ${overshoot} was rejected rather than clamped: ${result.error}`
+        );
+        assert.ok(result.applied.includes(`clamp-${bound.field}`));
+      }
+    }
+  }
+});
+
+test('every numeric field accepts the number written as text, on every kind', () => {
+  for (const kind of METAPHOR_BASE_KINDS) {
+    for (const bound of METAPHOR_NUMERIC_FIELDS[kind]) {
+      const inRange = (bound.min + bound.max) / 2;
+      const result = sanitizeMetaphorDsl(
+        JSON.stringify({
+          metaphor: kind,
+          items: [{ id: 'a', label: 'A', [bound.field]: String(inRange) }]
+        }),
+        { allowStructureRewrite: true }
+      );
+      assert.ok(
+        result.dsl,
+        `${kind}.${bound.field} = "${inRange}" was rejected rather than coerced: ${result.error}`
+      );
+      assert.ok(result.applied.includes(`coerce-${bound.field}`));
+      const item = (result.dsl as unknown as { items: Record<string, unknown>[] }).items[0];
+      assert.equal(item[bound.field], inRange);
+    }
+  }
+});
+
+test('parseNumericText takes one decorated number and refuses a range or a word', () => {
+  assert.deepEqual(parseNumericText('8'), { value: 8, percent: false });
+  assert.deepEqual(parseNumericText('  8.5 '), { value: 8.5, percent: false });
+  assert.deepEqual(parseNumericText('-0.6'), { value: -0.6, percent: false });
+  assert.deepEqual(parseNumericText('+3'), { value: 3, percent: false });
+  assert.deepEqual(parseNumericText('.5'), { value: 0.5, percent: false });
+  assert.deepEqual(parseNumericText('12 kg'), { value: 12, percent: false });
+  assert.deepEqual(parseNumericText('8m'), { value: 8, percent: false });
+  assert.deepEqual(parseNumericText('$1,200'), { value: 1200, percent: false });
+  assert.deepEqual(parseNumericText('~3'), { value: 3, percent: false });
+  assert.deepEqual(parseNumericText('1.2e3'), { value: 1200, percent: false });
+  assert.deepEqual(parseNumericText('80%'), { value: 80, percent: true });
+
+  // A second number means a range or a ratio. Taking one end of it is
+  // fabrication, so these stay strings and the Zod error names the field.
+  for (const notOneNumber of ['1-2', '3 of 5', '50/100', 'N/A', 'high', 'true', '', '1,2', 'ten']) {
+    assert.equal(
+      parseNumericText(notOneNumber),
+      null,
+      `should refuse ${JSON.stringify(notOneNumber)}`
+    );
+  }
+  assert.equal(parseNumericText(8), null, 'only strings are parsed here');
+});
+
+test('a percent scales only where the ceiling says the field is normalized', () => {
+  const garden = sanitizeMetaphorDsl(
+    JSON.stringify({
+      metaphor: 'garden',
+      items: [{ id: 'a', label: 'A', maturity: '80%', impact: '80%' }]
+    }),
+    { allowStructureRewrite: true }
+  );
+  assert.ok(garden.dsl);
+  if (garden.dsl?.metaphor === 'garden') {
+    // maturity is 0–1, so "80%" means 0.8.
+    assert.equal(garden.dsl.items[0].maturity, 0.8);
+    // impact tops out at 10, so the percent sign is noise: take 80 and clamp.
+    assert.equal(garden.dsl.items[0].impact, 10);
+  }
+});
+
+test('a numeric field written as text is clamped in the same pass', () => {
+  const result = sanitizeMetaphorDsl(
+    JSON.stringify({ metaphor: 'city', items: [{ id: 'a', label: 'A', height: '500m' }] }),
+    { allowStructureRewrite: true }
+  );
+  assert.ok(result.dsl);
+  if (result.dsl?.metaphor === 'city') assert.equal(result.dsl.items[0].height, 100);
+  assert.ok(result.applied.includes('coerce-height'));
+});
+
+test('a non-numeric string is left for the schema to report, not guessed at', () => {
+  const result = sanitizeMetaphorDsl(
+    JSON.stringify({ metaphor: 'city', items: [{ id: 'a', label: 'A', height: 'very tall' }] }),
+    { allowStructureRewrite: true }
+  );
+  assert.equal(result.dsl, null);
+  assert.match(String(result.error), /items\.0\.height/);
+});
+
+test('an out-of-range number in a composite layer is rescued through its own kind', () => {
+  const result = sanitizeMetaphorDsl(
+    JSON.stringify({
+      metaphor: 'composite',
+      layers: [
+        { id: 'l1', as: 'city', items: [{ id: 'a', label: 'A', height: 500, footprint: '3' }] },
+        { id: 'l2', as: 'galaxy', items: [{ id: 'b', label: 'B', magnitude: 200 }] }
+      ]
+    }),
+    { allowStructureRewrite: true }
+  );
+  assert.ok(result.dsl, String(result.error));
+  if (result.dsl?.metaphor === 'composite') {
+    assert.equal(result.dsl.layers[0].items[0].height, 100);
+    assert.equal(result.dsl.layers[0].items[0].footprint, 3);
+    assert.equal(result.dsl.layers[1].items[0].magnitude, 20);
+  }
+  assert.ok(result.applied.includes('clamp-height'));
+  assert.ok(result.applied.includes('coerce-footprint'));
+  assert.ok(result.applied.includes('clamp-magnitude'));
+});
+
+test('an overflowing JSON number lands on the bound instead of failing the document', () => {
+  const result = sanitizeMetaphorDsl(
+    '{"metaphor":"city","items":[{"id":"a","label":"A","height":1e999}]}',
+    { allowStructureRewrite: true }
+  );
+  assert.ok(result.dsl, String(result.error));
+  if (result.dsl?.metaphor === 'city') assert.equal(result.dsl.items[0].height, 100);
+});
+
+test('a position written as text keeps the placement the author asked for', () => {
+  const result = sanitizeMetaphorDsl(
+    JSON.stringify({
+      metaphor: 'city',
+      items: [{ id: 'a', label: 'A', position: ['1', '0', '2'] }]
+    }),
+    { allowStructureRewrite: true }
+  );
+  assert.ok(result.dsl);
+  if (result.dsl?.metaphor === 'city') {
+    assert.deepEqual(result.dsl.items[0].position, [1, 0, 2]);
+  }
+  assert.ok(result.applied.includes('coerce-position'));
+  assert.ok(!result.applied.includes('drop-invalid-position'));
+});
+
+test('a position axis that is not a number at all is still dropped', () => {
+  const result = sanitizeMetaphorDsl(
+    JSON.stringify({
+      metaphor: 'city',
+      items: [{ id: 'a', label: 'A', position: ['left', 0, 2] }]
+    }),
+    { allowStructureRewrite: true }
+  );
+  assert.ok(result.dsl);
+  if (result.dsl?.metaphor === 'city') assert.equal(result.dsl.items[0].position, undefined);
+  assert.ok(result.applied.includes('drop-invalid-position'));
 });

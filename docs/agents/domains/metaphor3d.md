@@ -862,6 +862,36 @@ destroyed, most likely because of a navigation` — which reads like a browser o
   canopies are 5-sided cones too, so it reported two and four "accent groups" on kinds that have
   one. Print the match count in every row: the number is the caveat, and without it the inflated
   ink reads as a measurement rather than as a mask.
+- **A rescue table that lives inside a function body is a list no test can read, and four fields
+  had fallen out of this one** (`metaphorNumericFields.ts` → `METAPHOR_NUMERIC_FIELDS`, consumed by
+  `rescueNumericRanges` in `metaphorSanitizer.ts`). The numeric clamp ladder was 238 lines of
+  inline `if (kind === 'terrain')` blocks with every bound hand-copied from `metaphorSchema.ts`,
+  and it covered **28 of the schema's 32 numeric (kind, field) pairs**. The four missing were
+  `city.height`, `city.footprint`, `galaxy.magnitude` and `layercake.thickness` — the PRIMARY size
+  encoding of three kinds, one of which is the kind `default-metaphor-city` sends every
+  unrecognized document to. Every optional decoration (`cracks`, `tilt`, `torque`, `peril`) had a
+  row; three kinds' main magnitude did not. It is now a table swept against the schema, derived
+  through public Zod surface only (`shape.items.unwrap().element.shape`, and "numeric" is
+  `safeParse(1).success && !safeParse('x').success`). Fourth instance of this class after
+  `DAYLIGHT_LOCKED_KINDS`, the postfx ladder and `metaphorSkyBackdrops`.
+- **Every numeric rescue in the sanitizer was gated on `typeof === 'number'`, so the whole layer
+  was unreachable from the commonest JSON-from-LLM slip** (`parseNumericText` /
+  `rescueNumericValue`, same file). `{"height": "8"}` skipped all 80+ labelled fixes and went
+  straight to a Zod rejection and a repair turn. Coercion now runs inside the same pass, before the
+  clamp. Three rules it carries: the parser takes ONE decorated number (`"8"`, `"2.5m"`, `"$1,200"`,
+  `"~3"`, `"80%"`) and **refuses a string with a second number in it** — `"12-20"` is a range and
+  `"3 of 5"` is a ratio, and picking an end of either is fabrication, so those stay strings and the
+  Zod error names the field for the fixer ladder; a trailing `%` divides by 100 **only where the
+  field's ceiling is ≤ 1**, which is exactly the set of normalized fields, so the ceiling is the
+  test rather than a per-field list; and `rescueItemPositions` takes the same coercion, because a
+  text axis used to drop the whole `position` — the one rescue outcome that silently DELETES
+  authored intent instead of correcting it.
+- **`npm run routine:guard --postflight` will not save you from a `rm` in `bench-results/`.** The
+  playbook says to read the preamble snapshot and delete it; `rm apps/server/bench-results/after-*.json`
+  after a `--tag after` run also deletes three snapshots committed in 2026-05 whose tags begin
+  `after-` (`after-cleanup`, `after-impl`, `after-init-fix`). That directory is on the repo
+  don't-touch list and a deletion there is a diff, not a no-op. Delete the file the bench script
+  printed, by its exact name.
 
 ---
 
@@ -2025,6 +2055,65 @@ sticky` nav row, because the height cap makes every small screen a scrolling
     placards never being drawn. The ledger has carried that finding since the subway slice; it cost
     two 24-cell sweeps to rediscover.
 
+- **The numeric rescue ladder was a list inside a function body, and three kinds' primary size
+  encoding had fallen out of it** (`metaphorNumericFields.ts`, `metaphorSanitizer.ts`). Measured
+  against the schema: **28 of 32** numeric (kind, field) pairs had a clamp row. The four without
+  one were `city.height`, `city.footprint`, `galaxy.magnitude` and `layercake.thickness`, so
+  `{"metaphor":"city","items":[{"height":500}]}` — a city, the kind an unrecognized document
+  defaults to — was rejected outright while `{"metaphor":"cycle","items":[{"phase":360}]}` was
+  clamped and accepted. Four things worth keeping:
+
+  - **The shape of the omission is diagnostic.** Every optional decoration had a row — `cracks`,
+    `tilt`, `hazard`, `torque`, `strain`, `peril`, `friction`. What was missing was each kind's
+    MAIN magnitude, on the three kinds whose main magnitude is also the field a prompt is most
+    likely to overshoot. A ladder written kind-by-kind is written in the order the kinds were
+    added, and the field you add first is the one you stop thinking of as a field.
+  - **The sweep is the deliverable, not the table.** `metaphorSanitizer.test.ts` derives each
+    kind's numeric fields from the schema itself — `shape.items.unwrap().element.shape`, then
+    `safeParse(1).success && !safeParse('x').success` — and asserts the table's field set is
+    EQUAL to it, plus that each row's `max` parses and `max + 1e-6` does not. Verified by
+    reverting: dropping `city.height` from the table and narrowing `layercake.thickness` to 8
+    fails 5 cases, two of them the sweeps by name. Without the equality assertion a table can only
+    be too narrow silently; with it, a schema field added tomorrow fails the suite tonight.
+  - **A `positive()` field's floor is ours and its ceiling is the schema's**, so the row carries a
+    `positive` flag and the sweep asserts the two halves differently: `0` must be refused by the
+    schema and `min` accepted (the floor is a rendering judgement — 0.1, or 0.5 for an island's
+    mass), while `max` is pinned exactly. Asserting `min - ε` fails on a positive field would be
+    asserting our own taste against the schema.
+  - **The suite would rather be its own file and cannot be.** A new
+    `packages/shared/test/metaphor*.test.ts` matches `METAPHOR_BLAST_TESTS`' reverse sweep in
+    `scripts/test-affected.test.mjs`, whose bundle lives in `scripts/test-affected-lib.mjs` —
+    outside this automation's `allowedPaths`. Fifth run to land cases in a listed suite for this
+    reason; see the ledger's `metaphor-suite-blast-list`.
+
+- **A number the model wrote as text skipped every clamp in the sanitizer** (`parseNumericText`,
+  `rescueNumericValue`). Each of the 80+ labelled fixes opened with `typeof item.x === 'number'`,
+  so `"height": "8"` — the single commonest way a model breaks JSON it otherwise got right — was
+  invisible to all of them and cost a repair turn. Measured on a 66-case battery of realistic model
+  slips replayed through the real ladder: **31 of 66 accepted before, 42 after**, the 11 all
+  numeric (6 text-valued fields across 4 kinds, the composite-layer case, the 3 missing clamp rows,
+  and a JSON `1e999` that overflows to `Infinity` and now lands on the bound). Three design points:
+
+  - **It takes one decorated number and refuses two.** `"8"`, `" 8.5 "`, `"-0.6"`, `".5"`, `"8m"`,
+    `"12 kg"`, `"$1,200"`, `"~3"`, `"1.2e3"`, `"80%"` all parse. `"12-20"`, `"3 of 5"`, `"50/100"`,
+    `"1,2"`, `"N/A"`, `"tall"` deliberately do not — a string with a second number in it is a range
+    or a ratio, and silently taking one end is fabrication dressed as a rescue. Those stay strings,
+    the Zod error names the field, and the fixer ladder sees what the model actually wrote. Two
+    corpus cases in `benchMetaphor.js` (`numeric-text-is-a-range`, `numeric-text-is-a-word`) exist
+    to keep them rejected.
+  - **The percent rule is read off the ceiling, not off a list.** `"80%"` means 0.8 on `maturity`
+    and 80-then-clamped on `impact`, and the discriminator is `bound.max <= 1`: the 0–1 fields
+    (`maturity`, `cracks`, `hazard`, `relief`, `torque`, `strain`, `peril`, `friction`, `depth`)
+    are exactly the normalized ones, so the schema already carries the answer. A hand-kept list of
+    "percent fields" would be the same defect as the clamp ladder, one level down.
+  - **The position pass had the worse failure and it looked like a success.** `["1","0","2"]` hit
+    `clampPositionAxis`'s `typeof !== 'number'` and dropped the whole `position` — the document was
+    ACCEPTED, with `drop-invalid-position` in `applied` and the item silently relocated to the
+    layout's default slot. A rejection costs a repair turn; this cost the author's placement with
+    nothing in the picture to say so. It now coerces, and an axis that is genuinely not a number
+    (`"left"`) is still dropped.
+
 - **Verify metaphor changes by rendering them.** The scoped skill under
   `apps/web/.claude/skills/verify/` has the headless-capture recipe; every finding above came from
-  a screenshot, not from reading the code.
+  a screenshot, not from reading the code — except the sanitizer ladder, which is a pure function
+  and is measured by replaying documents through it.
