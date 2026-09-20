@@ -102,9 +102,21 @@ export const METAPHOR_NUMERIC_FIELDS: Record<MetaphorBaseKind, readonly Metaphor
  * silently taking one end of it is fabrication; those stay strings so the Zod
  * error names the field and the fixer ladder sees what the model actually
  * wrote.
+ *
+ * **Every `\s*` here is anchored by a character that must follow it**, which is
+ * not a style choice. Written the obvious way — `[~≈]?\s*[$€£¥]?\s*` — the two
+ * runs are separated by an OPTIONAL character, so a string of spaces can be
+ * split between them in as many ways as it is long and the engine tries all of
+ * them before failing: measured on `"~" + " ".repeat(n) + "!"`, 8.7 ms at
+ * n=2,000 rising cleanly with the square to 553 ms at n=16,000 (CodeQL
+ * flagged it as polynomial ReDoS on this file's first push, and the input is
+ * model-authored JSON). Putting each `\s*` inside a group whose other member
+ * is mandatory removes the ambiguity: the same inputs run in 0.1 ms flat.
+ * CodeQL is the sensor for this — a timing assertion in the suite would be a
+ * flake under load.
  */
 const NUMERIC_TEXT =
-  /^[~≈]?\s*[$€£¥]?\s*([+-]?(?:\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?|\.\d+)(?:[eE][+-]?\d+)?)\s*(%|[a-zA-Z]{1,4})?$/;
+  /^(?:[~≈]\s*)?(?:[$€£¥]\s*)?([+-]?(?:\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?|\.\d+)(?:[eE][+-]?\d+)?)(?:\s*(%|[a-zA-Z]{1,4}))?$/;
 
 export interface ParsedNumericText {
   readonly value: number;
