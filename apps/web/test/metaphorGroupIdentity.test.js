@@ -36,6 +36,49 @@ function hueGap(a, b) {
   return Math.min(raw, 1 - raw);
 }
 
+/** JSX mount site for `<AffinityGroups … />` in FusedCompositeScene — see #746. */
+function extractAffinityGroupsMountContext(source) {
+  const tag = '<AffinityGroups';
+  const elStart = source.indexOf(tag);
+  if (elStart === -1) return '';
+
+  const elMatch = source.slice(elStart).match(/^<AffinityGroups[\s\S]*?\/>/);
+  const element = elMatch?.[0] ?? '';
+
+  // Prefer the shortest `{…}` that wraps the element (the #715 gate lives here).
+  // Ignore huge containers such as the whole component body.
+  const MAX_WRAPPER_CHARS = 280;
+  let best = null;
+  for (let start = elStart - 1; start >= 0; start -= 1) {
+    if (source[start] !== '{') continue;
+    let depth = 0;
+    let end = -1;
+    for (let i = start; i < source.length; i += 1) {
+      const ch = source[i];
+      if (ch === '{') depth += 1;
+      else if (ch === '}') {
+        depth -= 1;
+        if (depth === 0) {
+          end = i;
+          break;
+        }
+      }
+    }
+    if (end === -1 || start >= elStart || elStart >= end) continue;
+    const len = end - start + 1;
+    if (len > MAX_WRAPPER_CHARS) continue;
+    if (!best || len < best.len) best = { len, slice: source.slice(start, end + 1) };
+  }
+
+  return best?.slice ?? element;
+}
+
+function expectAffinityGroupsMountPassesLowLodGate(mountContext) {
+  expect(mountContext).toContain('lod={lod}');
+  expect(mountContext).not.toMatch(/lod\s*!==\s*'low'/);
+  expect(mountContext).not.toMatch(/lod\s*===\s*'low'/);
+}
+
 describe('tintByGroup', () => {
   it('leaves the first group exactly on the theme colour', () => {
     // The contract an ungrouped scene depends on: one district, or none, and
@@ -570,15 +613,39 @@ describe('affinity territories under LOD', () => {
     // delegates the tier to `affinityGroupDetail(lod)` and holds no literal
     // `'low'` at all, so any reappearance is the gate coming back.
     expect(body).not.toMatch(/'low'/);
-    const mount = source.match(/^.*<AffinityGroups[^]*?\/>.*$/m)?.[0] ?? '';
-    expect(mount).toContain('lod={lod}');
-    expect(mount).not.toMatch(/lod\s*!==\s*'low'/);
-    // Both polarities, and the `===` half is the one that matters: #715's
-    // actual defect was `{lod === 'low' ? null : <AffinityGroups … />}` at the
-    // mount, not an early return inside the component. #722 added the body
-    // guard above and dropped this line, so that exact shape passed the whole
-    // file again — measured: 616/616 green with the defect reinstated. The
-    // body guard cannot see it, because the gate is not in the body.
-    expect(mount).not.toMatch(/lod\s*===\s*'low'/);
+    // #746: a line-anchored mount capture misses a gate on the line above once
+    // Prettier wraps the element — capture the enclosing `{…}` when present.
+    const mount = extractAffinityGroupsMountContext(source);
+    expectAffinityGroupsMountPassesLowLodGate(mount);
+  });
+
+  it('extractAffinityGroupsMountContext rejects #715 gates in single-line and wrapped mounts', () => {
+    const singleLineGate =
+      "{lod === 'low' ? null : <AffinityGroups groups={plan.groups ?? []} theme={theme} lod={lod} />}";
+    const wrappedGate = `{lod === 'low' ? null : (
+  <AffinityGroups
+    groups={plan.groups ?? []}
+    theme={theme}
+    lod={lod}
+    isMuted={false}
+  />
+)}`;
+
+    const legacyMount = (snippet) => snippet.match(/^.*<AffinityGroups[^]*?\/>.*$/m)?.[0] ?? '';
+
+    // Line-anchored capture is blind once Prettier wraps the element (#746).
+    expect(() => expectAffinityGroupsMountPassesLowLodGate(legacyMount(wrappedGate))).not.toThrow();
+    expect(() =>
+      expectAffinityGroupsMountPassesLowLodGate(extractAffinityGroupsMountContext(wrappedGate))
+    ).toThrow();
+    expect(() =>
+      expectAffinityGroupsMountPassesLowLodGate(extractAffinityGroupsMountContext(singleLineGate))
+    ).toThrow();
+    expect(() => expectAffinityGroupsMountPassesLowLodGate(legacyMount(singleLineGate))).toThrow();
+
+    const cleanMount = extractAffinityGroupsMountContext(
+      '<AffinityGroups groups={plan.groups ?? []} theme={theme} lod={lod} />'
+    );
+    expectAffinityGroupsMountPassesLowLodGate(cleanMount);
   });
 });
