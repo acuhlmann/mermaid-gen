@@ -162,6 +162,7 @@ describe('LINK_EDITABLE_METAPHORS against the live adapters', () => {
       if (metaphorKindHasEditableLinks(kind, variantsFor(kind)[0])) return false;
       return pairsFor(kind).every((pair) => !pair.canLink);
     });
+    expect(structural.length).toBeGreaterThan(0);
     // city's siblings in docs/canvas-graph-edit.md: every non-editable swept
     // kind must keep its false, not merely be absent from the list.
     expect(structural).toEqual(
