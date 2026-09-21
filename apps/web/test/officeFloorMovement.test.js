@@ -47,6 +47,9 @@ function everyTile() {
   return tiles;
 }
 
+/** Pins the sweep grid — an emptied loop would pass while examining nothing. */
+const PLATE_TILE_COUNT = 12 * 9;
+
 describe('standableTileAt', () => {
   it('leaves a clear tile exactly where you clicked', () => {
     // The aisle between the pod and the kitchen: nothing on it, nothing near it.
@@ -63,6 +66,7 @@ describe('standableTileAt', () => {
   });
 
   it('never lands you on a seat, in the furniture, or off the plate', () => {
+    expect(everyTile()).toHaveLength(PLATE_TILE_COUNT);
     for (const tile of everyTile()) {
       const mark = standableTileAt(tile, { from: HOME });
       if (!mark) continue;
@@ -81,6 +85,7 @@ describe('standableTileAt', () => {
   });
 
   it('never returns a tile you would have to walk through glass to reach', () => {
+    expect(everyTile()).toHaveLength(PLATE_TILE_COUNT);
     for (const tile of everyTile()) {
       const mark = standableTileAt(tile, { from: HOME });
       if (!mark) continue;
@@ -103,6 +108,7 @@ describe('standableTileAt', () => {
     const [x0, y0, x1, y1] = FLOOR_ZONES.find((zone) => zone.id === 'leadership').rect;
     const inside = (t) => t.x >= x0 && t.x <= x1 && t.y >= y0 && t.y <= y1;
 
+    expect(everyTile()).toHaveLength(PLATE_TILE_COUNT);
     for (const tile of everyTile()) {
       const mark = standableTileAt(tile, { from: HOME });
       if (!mark) continue;
@@ -114,7 +120,9 @@ describe('standableTileAt', () => {
   });
 
   it('will not stand you on a director', () => {
-    for (const seat of FLOOR_SEATS.filter((s) => s.zone === 'leadership')) {
+    const leadership = FLOOR_SEATS.filter((s) => s.zone === 'leadership');
+    expect(leadership.length).toBeGreaterThan(0);
+    for (const seat of leadership) {
       expect(isStandableTile({ x: seat.x, y: seat.y }), seat.id).toBe(false);
     }
   });
@@ -179,7 +187,9 @@ describe('approachTileFor', () => {
   });
 
   it('refuses the leadership row — you cannot talk through glass', () => {
-    for (const seat of FLOOR_SEATS.filter((s) => s.zone === 'leadership')) {
+    const leadership = FLOOR_SEATS.filter((s) => s.zone === 'leadership');
+    expect(leadership.length).toBeGreaterThan(0);
+    for (const seat of leadership) {
       expect(approachTileFor(seat.id), seat.id).toBeNull();
     }
   });

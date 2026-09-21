@@ -194,7 +194,9 @@ describe('resolveGroupPlateBase', () => {
   });
 
   it('separates every pair of plate groups on every theme and every lock', () => {
-    for (const cell of everyCell()) {
+    const cells = everyCell();
+    expect(cells.length).toBe(Object.keys(METAPHOR_THEME_PRESETS).length * KINDS.length);
+    for (const cell of cells) {
       const tints = plateLadder(resolveGroupPlateBase(cell.theme));
       for (let a = 0; a < tints.length; a += 1) {
         for (let b = a + 1; b < tints.length; b += 1) {
@@ -210,7 +212,9 @@ describe('resolveGroupPlateBase', () => {
     // The half a lock used to break: `groundColor` is walked by the daylight
     // floor and the space ceiling, `districtPalette` is not, so a noir tree
     // composite drew its territories 0.012 of luma from the ground under them.
-    for (const cell of everyCell()) {
+    const cells = everyCell();
+    expect(cells.length).toBe(Object.keys(METAPHOR_THEME_PRESETS).length * KINDS.length);
+    for (const cell of cells) {
       const ground = srgbLuma(cell.theme.groundColor);
       for (const [index, tint] of plateLadder(resolveGroupPlateBase(cell.theme)).entries()) {
         expect(
@@ -224,7 +228,9 @@ describe('resolveGroupPlateBase', () => {
   });
 
   it('never lets the ladder run out of headroom at the top', () => {
-    for (const cell of everyCell()) {
+    const cells = everyCell();
+    expect(cells.length).toBe(Object.keys(METAPHOR_THEME_PRESETS).length * KINDS.length);
+    for (const cell of cells) {
       for (const tint of plateLadder(resolveGroupPlateBase(cell.theme))) {
         expect(srgbLuma(tint), cell.name).toBeLessThanOrEqual(PLATE_LADDER_CEILING);
       }
@@ -232,7 +238,9 @@ describe('resolveGroupPlateBase', () => {
   });
 
   it('keeps the theme hue — it places the palette entry, it does not replace it', () => {
-    for (const cell of everyCell()) {
+    const cells = everyCell();
+    expect(cells.length).toBe(Object.keys(METAPHOR_THEME_PRESETS).length * KINDS.length);
+    for (const cell of cells) {
       const authored = cell.theme.districtPalette[0];
       expect(hueGap(resolveGroupPlateBase(cell.theme), authored), cell.name).toBeLessThan(0.02);
     }

@@ -195,6 +195,7 @@ describe('the proximity ladder', () => {
    * anything a unit test of either slice alone would notice.
    */
   it('never lets slice 19 and slice 22 fire at the same person on the same tile', () => {
+    expect(standableTiles().length).toBeGreaterThan(0);
     for (const kind of usablePropKinds()) {
       const trip = tripTo('gilfoyle', kind);
       const floorState = { wanderer: trip };
