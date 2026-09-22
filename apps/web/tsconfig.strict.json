@@ -24,6 +24,8 @@
     "src/utils/agentStreamFailureStatus.ts",
     "src/utils/appConstants.ts",
     "src/utils/appReadySignal.ts",
+    "src/utils/coldStartCopy.ts",
+    "src/utils/layoutBreakpoints.ts",
     "src/utils/formatFormAnswer.ts",
     "src/utils/seededHash.ts",
     "src/utils/thinkingProseEnrich.tsx",

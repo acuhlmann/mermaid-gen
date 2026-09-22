@@ -3,7 +3,20 @@
  * Branded `title` (Slopitect / corporate IT voice) + plain `hint` so new users know what is happening.
  */
 
-export const COLD_START_COPY = {
+type ColdStartPhaseCopy = {
+  title: string;
+  hint: string;
+};
+
+export const COLD_START_COPY: {
+  eyebrow: string;
+  checking: ColdStartPhaseCopy;
+  waking: ColdStartPhaseCopy;
+  loadingApp: ColdStartPhaseCopy;
+  timeout: ColdStartPhaseCopy;
+  retryLabel: string;
+  retryAria: string;
+} = {
   eyebrow: 'ArchiSlop · Corporate IT',
   checking: {
     title: 'Checking if Corporate IT left a server in the Co-Design room…',
