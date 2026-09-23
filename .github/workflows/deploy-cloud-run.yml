@@ -77,7 +77,21 @@ jobs:
           set -euo pipefail
           IMAGE="${{ env.REGION }}-docker.pkg.dev/${PROJECT_ID}/${{ env.AR_REPO }}/${{ env.IMAGE_NAME }}"
           # Docker Hub occasionally returns 502 while resolving base-image manifests
-          # (see deploy run 34022734712); retry before failing a green main push.
+          # (see deploy runs 34022734712, 35493633869); pull bases explicitly so a
+          # flaky manifest fetch does not fail the whole build/push loop.
+          for base in node:26-bookworm node:26-bookworm-slim; do
+            for attempt in 1 2 3; do
+              if docker pull "${base}"; then
+                break
+              fi
+              if (( attempt == 3 )); then
+                echo "Failed to pull ${base} after 3 attempts." >&2
+                exit 1
+              fi
+              echo "docker pull ${base} attempt ${attempt} failed; retrying in 30s…"
+              sleep 30
+            done
+          done
           for attempt in 1 2 3; do
             if docker build --build-arg UI_VARIANT=main-only -t "${IMAGE}:${DEPLOY_SHA}" -t "${IMAGE}:latest" . \
               && docker push "${IMAGE}:${DEPLOY_SHA}" \
