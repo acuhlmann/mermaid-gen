@@ -67,7 +67,7 @@
         "initial": 229
       },
       "apps/web": {
-        "budget": 799,
+        "budget": 798,
         "initial": 851,
         "reason": "2026-09-16: 797→799 upstream merges on main since 2026-09-15 improve run; not introduced by #706 sensor fix"
       }
