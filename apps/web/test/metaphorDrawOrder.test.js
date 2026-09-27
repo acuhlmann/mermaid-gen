@@ -212,6 +212,7 @@ describe('the ladder owns every rung it claims to', () => {
   ];
 
   it('names every chrome render order instead of spelling out a number', () => {
+    expect(CHROME_FILES.length).toBeGreaterThan(0);
     for (const file of CHROME_FILES) {
       const source = read(file);
       // `-?` on purpose: `renderOrder={-1}` is as much a bare rung as `={31}`,

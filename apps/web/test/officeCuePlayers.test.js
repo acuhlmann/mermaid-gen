@@ -69,12 +69,14 @@ describe('every cue can actually make a sound', () => {
     // can schedule but the table has no row for is silent on every play until
     // its buffer decodes — and for a one-shot like the door, that is the only
     // play there is.
+    expect(SOUNDSCAPE_CUES.length).toBeGreaterThan(0);
     for (const cue of SOUNDSCAPE_CUES) {
       expect(isCovered(cue), `${cue} has no synth fallback and is not declared silent`).toBe(true);
     }
   });
 
   it('gives each sampled cue a synth player, or declares it silent', () => {
+    expect(SAMPLED_CUES.length).toBeGreaterThan(0);
     for (const cue of SAMPLED_CUES) {
       expect(isCovered(cue), `${cue} has no synth fallback and is not declared silent`).toBe(true);
     }
@@ -83,6 +85,7 @@ describe('every cue can actually make a sound', () => {
   it('keeps the silent list to cues that are actually sampled', () => {
     // A name here that no longer has an asset is a cue that can never make a
     // sound at all, and nothing else in the suite would notice.
+    expect(SILENT_UNTIL_SAMPLED.length).toBeGreaterThan(0);
     for (const cue of SILENT_UNTIL_SAMPLED) {
       expect(SAMPLED_CUES, `${cue} is declared silent but has no sample`).toContain(cue);
     }

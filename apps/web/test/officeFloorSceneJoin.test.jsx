@@ -309,6 +309,8 @@ describe('the offer', () => {
    * a scene's cast are `awayIds`, so `dwellTargetAt` never picks them.
    */
   it('still offers when you are stood right at the machine', () => {
+    // Companion non-empty: an emptied COFFEE_TILES would pass while examining nothing.
+    expect(COFFEE_TILES.length).toBeGreaterThan(0);
     for (const tile of COFFEE_TILES) {
       expect(sceneJoinOfferFor({ declined: true, lines: LINES }, tile)).not.toBeNull();
     }
@@ -570,6 +572,8 @@ describe('the battle offer', () => {
    * surface is up — so this pins the tie-break rather than a live behaviour.
    */
   it('offers the battle at the cubicles, and lets coffee win an overlap', () => {
+    expect(BATTLE_TILES.length).toBeGreaterThan(0);
+    expect(COFFEE_TILES.length).toBeGreaterThan(0);
     for (const tile of BATTLE_TILES) {
       expect(sceneJoinOfferFor(null, tile, unattended), `${tile.x},${tile.y}`).not.toBeNull();
     }
