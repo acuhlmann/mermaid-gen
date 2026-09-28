@@ -9,9 +9,9 @@ import { propUseFor } from '../src/utils/officeFloorProps.js';
 import { _resetOfficeLogForTests, getOfficeLogDigest } from '../src/state/officeLogStore.js';
 import {
   _resetOfficeViewModeForTests,
-  getOfficeViewMode,
-  standUp
+  getOfficeViewMode
 } from '../src/state/officeViewModeStore.js';
+import { renderFloor, unpinOfficeFloorDeterminism } from './helpers/officeFloorTestUtils.jsx';
 
 /**
  * Props you can use (slice 9) — ADR-0011 rule 2's first worked example on the
@@ -22,15 +22,12 @@ import {
  * settles immediately — clicking the machine lands you at it in one tick, which
  * is also exactly the reduced-motion behaviour.
  */
-function renderFloor(props = {}) {
-  standUp();
-  return render(<OfficeFloor {...props} />);
-}
 
 const machine = () => screen.getByRole('button', { name: /Coffee machine/i });
 
 afterEach(() => {
   cleanup();
+  unpinOfficeFloorDeterminism();
   _resetOfficeViewModeForTests();
   _resetOfficeLogForTests();
   window.localStorage.clear();

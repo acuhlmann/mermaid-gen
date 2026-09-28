@@ -8,10 +8,10 @@ import { approachTileFor } from '../src/utils/officeFloorMovement.js';
 import { isStandableTile, projectIso } from '../src/utils/officeFloorPlan.js';
 import {
   _resetOfficeViewModeForTests,
-  getOfficeViewMode,
-  standUp
+  getOfficeViewMode
 } from '../src/state/officeViewModeStore.js';
 import { setOfficeCaptions, setOfficeNarration } from '../src/state/officeMomentStore.js';
+import { renderFloor, unpinOfficeFloorDeterminism } from './helpers/officeFloorTestUtils.jsx';
 
 /**
  * Talking on the floor (slice 8). The conversation *is* the Slop Chat™ thread —
@@ -20,11 +20,6 @@ import { setOfficeCaptions, setOfficeNarration } from '../src/state/officeMoment
  * any. Walks settle in one tick without a WAAPI engine, so arriving is synchronous.
  */
 const CHAD = 'intern';
-
-function renderFloor(props = {}) {
-  standUp();
-  return render(<OfficeFloor {...props} />);
-}
 
 function walkOverToTalk(name = /Chad/) {
   fireEvent.click(screen.getByRole('button', { name }));
@@ -51,6 +46,7 @@ function imFrom(colleagueId, body, outbound = false) {
 
 afterEach(() => {
   cleanup();
+  unpinOfficeFloorDeterminism();
   _resetOfficeViewModeForTests();
   setOfficeCaptions(false);
   setOfficeNarration(true);
@@ -446,28 +442,14 @@ describe('joining shop talk (slice 23)', () => {
   beforeEach(() => {
     vi.useFakeTimers();
     /*
-     * Pinned to midday, and this suite is the case CLAUDE.md's warning was
-     * written for: a floor test that *mounts* inherits the wall clock along with
-     * `Math.random`, and slice 24 gave the clock a say in where a wanderer goes
-     * (`WANDER_BIAS_WINDOWS` — from two until half four an errand is 3× likelier
-     * to be a coffee run). With the hour unpinned this whole describe went red
-     * every afternoon between 14:00 and 16:30 and passed the rest of the day:
-     * the seed still picks Chad and he still settles, so the coverage assertions
-     * in `floorWithinEarshot` stay green while he is stood at the coffee machine
-     * instead of the whiteboard, three tiles from where the test is listening.
-     * Nothing in the failure mentions the time.
-     *
-     * Midday is chosen for `officeFloorActivity.test.jsx`'s reason as well — one
-     * of the two day phases with no `PHASE_ART`, so nobody is handed a mug that
-     * the geometry assertions would then have to know about.
+     * Full timer fake (not Date-only) — wander dwell needs `advanceTimersByTime`.
+     * Midday + PRNG come from `renderFloor` → `pinOfficeFloorDeterminism`; this
+     * block only ensures the timer mode is not downgraded when the helper runs.
      */
-    vi.setSystemTime(new Date(2026, 7, 11, 12, 0, 0));
-    vi.spyOn(Math, 'random').mockReturnValue(0.75);
   });
 
   afterEach(() => {
-    vi.useRealTimers();
-    vi.restoreAllMocks();
+    unpinOfficeFloorDeterminism();
   });
 
   function clickTile(tile) {
