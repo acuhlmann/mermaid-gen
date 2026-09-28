@@ -35,6 +35,11 @@ describe('OfficeFloor', () => {
     expect(screen.queryByTestId('office-floor')).toBeNull();
   });
 
+  it('mounts at a pinned midday wall clock so held-item art does not follow CI hour', () => {
+    renderFloor();
+    expect(screen.getByTestId('office-floor').dataset.dayPhase).toBe('midday');
+  });
+
   it('renders the room and the whole cast once you stand up', () => {
     renderFloor();
 

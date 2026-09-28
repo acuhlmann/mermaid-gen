@@ -5,20 +5,16 @@ import OfficeFloor from '../src/components/OfficeFloor.jsx';
 import { deskWorkFor } from '../src/utils/officeDeskWork.js';
 import {
   _resetOfficeViewModeForTests,
-  getOfficeViewMode,
-  standUp
+  getOfficeViewMode
 } from '../src/state/officeViewModeStore.js';
 import { setOfficeCaptions, setOfficeNarration } from '../src/state/officeMomentStore.js';
+import { renderFloor, unpinOfficeFloorDeterminism } from './helpers/officeFloorTestUtils.jsx';
 
 /**
  * Without a WAAPI engine (jsdom) `useWalkAnimation` settles immediately, which
  * is also the reduced-motion behaviour: the walk happens, it just doesn't
  * travel. So clicking "their screen" lands you at their desk in one tick.
  */
-function renderFloor(props = {}) {
-  standUp();
-  return render(<OfficeFloor {...props} />);
-}
 
 function walkOverTo(name) {
   fireEvent.click(screen.getByRole('button', { name }));
@@ -27,6 +23,7 @@ function walkOverTo(name) {
 
 afterEach(() => {
   cleanup();
+  unpinOfficeFloorDeterminism();
   _resetOfficeViewModeForTests();
   setOfficeCaptions(false);
   setOfficeNarration(true);

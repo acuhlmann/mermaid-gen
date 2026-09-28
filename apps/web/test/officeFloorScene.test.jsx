@@ -3,9 +3,10 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-libra
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import OfficeFloor from '../src/components/OfficeFloor.jsx';
 import { awayFromDeskIds, sceneParticipants } from '../src/utils/officeSceneCast.js';
-import { _resetOfficeViewModeForTests, standUp } from '../src/state/officeViewModeStore.js';
+import { _resetOfficeViewModeForTests } from '../src/state/officeViewModeStore.js';
 import { setOfficeCaptions, setOfficeNarration } from '../src/state/officeMomentStore.js';
 import * as officeNarration from '../src/utils/officeNarration.js';
+import { renderFloor, unpinOfficeFloorDeterminism } from './helpers/officeFloorTestUtils.jsx';
 
 const COFFEE = {
   id: 'coffee-1',
@@ -28,11 +29,6 @@ const BATTLE = {
   verdicts: { scrumMaster: 'Noted in the retro.', greybeard: 'As I said. In 1998.' }
 };
 
-function renderFloor(props = {}) {
-  standUp();
-  return render(<OfficeFloor {...props} />);
-}
-
 beforeEach(() => {
   // Scene suites assert dialogue text; captions on keeps balloons visible
   // under the shared voice-first narration default.
@@ -42,6 +38,7 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup();
+  unpinOfficeFloorDeterminism();
   _resetOfficeViewModeForTests();
   setOfficeCaptions(false);
 });

@@ -5,9 +5,9 @@ import OfficeFloor from '../src/components/OfficeFloor.jsx';
 import { projectIso, seatFor } from '../src/utils/officeFloorPlan.js';
 import {
   _resetOfficeViewModeForTests,
-  getOfficeViewMode,
-  standUp
+  getOfficeViewMode
 } from '../src/state/officeViewModeStore.js';
+import { renderFloor, unpinOfficeFloorDeterminism } from './helpers/officeFloorTestUtils.jsx';
 
 /**
  * Free roam (slice 7). Without a WAAPI engine, `useWalkAnimation` places the
@@ -19,10 +19,6 @@ import {
  * reports a zero-sized viewport) and `getBoundingClientRect` is all zeros, so
  * client coordinates *are* stage coordinates.
  */
-function renderFloor(props = {}) {
-  standUp();
-  return render(<OfficeFloor {...props} />);
-}
 
 function clickTile(x, y) {
   const { left, top } = projectIso(x, y);
@@ -41,6 +37,7 @@ function transformOf(x, y) {
 
 afterEach(() => {
   cleanup();
+  unpinOfficeFloorDeterminism();
   _resetOfficeViewModeForTests();
 });
 

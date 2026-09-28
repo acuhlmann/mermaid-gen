@@ -4,7 +4,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import OfficeFloor from '../src/components/OfficeFloor.jsx';
 import { dwellLineFrom, dwellTargetAt } from '../src/utils/officeFloorDwell.js';
 import { DWELL_MS } from '../src/components/officeFloor/useFloorDwell.js';
-import { renderFloor, resetOfficeFloorTestState } from './helpers/officeFloorTestUtils.jsx';
+import {
+  OFFICE_FLOOR_TEST_MIDDAY,
+  renderFloor,
+  resetOfficeFloorTestState
+} from './helpers/officeFloorTestUtils.jsx';
 import { propTileFor } from '../src/utils/officeFloorMovement.js';
 import { isStandableTile, projectIso, seatFor } from '../src/utils/officeFloorPlan.js';
 
@@ -294,10 +298,16 @@ describe('loitering, on a real floor', () => {
      * mark on slower CI runners, so derive the inbound line's `createdAt` from the
      * same frozen timeline instead.
      */
-    vi.setSystemTime(1_000);
     const onDwellRemark = vi.fn();
+    const epoch = OFFICE_FLOOR_TEST_MIDDAY.getTime();
     const stale = [
-      { id: 'old', colleagueId: 'jared', body: 'Said an hour ago.', createdAt: 0, channel: 'talk' }
+      {
+        id: 'old',
+        colleagueId: 'jared',
+        body: 'Said an hour ago.',
+        createdAt: epoch - 3_600_000,
+        channel: 'talk'
+      }
     ];
     const view = renderFloor({ onDwellRemark, imHistory: stale });
 
@@ -309,7 +319,7 @@ describe('loitering, on a real floor', () => {
     expect(onDwellRemark).toHaveBeenCalledWith('jared');
     expect(screen.queryByTestId('office-floor-dwell-line')).toBeNull();
 
-    const remarkAt = 1_000 + DWELL_MS;
+    const remarkAt = epoch + DWELL_MS;
     const arrived = [
       ...stale,
       {

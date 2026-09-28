@@ -6,9 +6,43 @@
  */
 
 import { cleanup, render } from '@testing-library/react';
+import { vi } from 'vitest';
 import OfficeFloor from '../../src/components/OfficeFloor.jsx';
 import { setOfficeCaptions, setOfficeNarration } from '../../src/state/officeMomentStore.js';
 import { _resetOfficeViewModeForTests, standUp } from '../../src/state/officeViewModeStore.js';
+
+/** Midday on a fixed calendar day — one of the two phases with no `PHASE_ART` hold. */
+export const OFFICE_FLOOR_TEST_MIDDAY = new Date(2026, 7, 11, 12, 0, 0);
+
+/** Floor suites' shared PRNG seed (Chad at the whiteboard under midday wander rules). */
+export const OFFICE_FLOOR_TEST_PRNG_SEED = 0.75;
+
+let floorDeterminismPinned = false;
+
+/**
+ * Pin wall clock and `Math.random` before mounting `OfficeFloor`.
+ * Without this, mounts read the real hour and PRNG — red ~7.5 h/day in CI.
+ */
+export function pinOfficeFloorDeterminism() {
+  if (!vi.isFakeTimers()) {
+    vi.useFakeTimers({ shouldAdvanceTime: true, toFake: ['Date'] });
+  }
+  vi.setSystemTime(OFFICE_FLOOR_TEST_MIDDAY);
+  if (!vi.isMockFunction(Math.random)) {
+    vi.spyOn(Math, 'random').mockReturnValue(OFFICE_FLOOR_TEST_PRNG_SEED);
+  }
+  floorDeterminismPinned = true;
+}
+
+/** Tear down fake `Date` / PRNG after a mount suite finishes. */
+export function unpinOfficeFloorDeterminism() {
+  if (!floorDeterminismPinned) {
+    return;
+  }
+  vi.useRealTimers();
+  vi.restoreAllMocks();
+  floorDeterminismPinned = false;
+}
 
 /** Walk-by fixture used across desk and floor renderer tests. */
 export const WALK_BY_FIXTURE = {
@@ -46,6 +80,7 @@ export const BATTLE_SCENE_FIXTURE = {
  */
 export function resetOfficeFloorTestState() {
   cleanup();
+  unpinOfficeFloorDeterminism();
   _resetOfficeViewModeForTests();
   setOfficeCaptions(false);
   setOfficeNarration(false);
@@ -64,6 +99,7 @@ export function enableFloorDialogueCaptions() {
  * @param {Record<string, unknown>} [props]
  */
 export function renderFloor(props = {}) {
+  pinOfficeFloorDeterminism();
   standUp();
   return render(<OfficeFloor {...props} />);
 }
