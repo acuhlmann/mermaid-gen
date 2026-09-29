@@ -5,10 +5,8 @@ export const MODE_REVEAL_SEEN_KEY = 'archislop:mode-reveal-seen';
  * stakeholder intro, promoting the render modes out of Settings is a once-ever
  * onboarding beat, so this persists across sessions and never fires again after
  * it is set.
- *
- * @returns {boolean}
  */
-export function readModeRevealSeen() {
+export function readModeRevealSeen(): boolean {
   if (typeof window === 'undefined') return true;
   try {
     return window.localStorage.getItem(MODE_REVEAL_SEEN_KEY) === '1';
@@ -19,7 +17,7 @@ export function readModeRevealSeen() {
 }
 
 /** Mark the first-run mode-reveal spotlight as shown. */
-export function writeModeRevealSeen() {
+export function writeModeRevealSeen(): void {
   if (typeof window === 'undefined') return;
   try {
     window.localStorage.setItem(MODE_REVEAL_SEEN_KEY, '1');
