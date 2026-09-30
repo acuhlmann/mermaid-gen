@@ -20,7 +20,7 @@
         "initial": 1164
       },
       "apps/web/src/state/diagramStore.js": {
-        "budget": 603,
+        "budget": 425,
         "initial": 955
       },
       "apps/web/src/state/diagramModeSwitch.js": {
@@ -67,9 +67,9 @@
         "initial": 229
       },
       "apps/web": {
-        "budget": 798,
+        "budget": 803,
         "initial": 851,
-        "reason": "2026-09-16: 797→799 upstream merges on main since 2026-09-15 improve run; not introduced by #706 sensor fix"
+        "reason": "2026-09-30: 798→803 upstream merges on main since 2026-09-25 improve run (#768 floor test utils, etc.); not introduced by diagramStore slice 3"
       }
     },
     "strictIslandFiles": {
@@ -89,7 +89,7 @@
         "reason": "2026-09-19 improve: measured 402 vs budget 404 after upstream suite count settled; lock budget to live count."
       },
       "cases": {
-        "budget": 4684,
+        "budget": 4685,
         "initial": 3675
       }
     }

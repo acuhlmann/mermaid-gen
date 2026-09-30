@@ -2,7 +2,7 @@
 
 Where **archislop** should invest modularity work, ranked with Vlad Khononov's [Balanced Coupling Model](https://coupling.dev). This is the repo-specific companion to [`modularity.md`](modularity.md) (how to run a review) and the static sensors in [`sensors.md`](sensors.md).
 
-**Last reviewed:** 2026-09-26
+**Last reviewed:** 2026-09-30
 
 ## How to use this doc
 
@@ -213,6 +213,7 @@ Tracked against the priority list above. Update this section when you land coupl
 | **P1.1** Office wire contract sensor             | Done           | `apps/web/test/officeWireContract.test.js`, `apps/server/test/officePersonas.test.js` (venues), `packages/shared/test/officeScript.test.ts`       |
 | **P1.3** `diagramStore` cache extraction         | Done (slice 1) | `apps/web/src/state/diagramCacheStorage.js`; `diagramStore.js` re-exports for compat                                                              |
 | **P1.3** `diagramStore` mode-switch extraction   | Done (slice 2) | `apps/web/src/state/diagramModeSwitch.js`; peer sync + slot customization helpers; `diagramStore.js` re-exports                                   |
+| **P1.3** `diagramStore` streaming extraction     | Done (slice 3) | `diagramStoreHttp.js` (shared fetch/timeouts) + `diagramStoreStreaming.js` (`streamDiagramAgent`); `diagramStore.js` re-exports                   |
 | **P1.2** Office dual-renderer discipline         | Ongoing        | ADR-0011 + gotchas in `AGENTS.md` / `CLAUDE.md` — no new parallel stores                                                                          |
 | **P2.4** Agent ladder convergence                | Partial        | `invokePatchAgentWithRepair` for 4/6 slots; Mermaid/Infographic bespoke                                                                           |
 | **P2.5** Monolith splits                         | Partial        | See [ADR-0005](../decisions/0005-monolith-splits.md)                                                                                              |
@@ -242,8 +243,9 @@ Extract **on contact** into siblings under `apps/web/src/state/`:
 | Seam                    | Suggested module           | What moves                                                                                                                 |
 | ----------------------- | -------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
 | Mode switch / peer sync | `diagramModeSwitch.js`     | ✅ shipped — see slice 2 in [ADR-0005](../decisions/0005-monolith-splits.md)                                               |
+| HTTP helpers / timeouts | `diagramStoreHttp.js`      | ✅ shipped (slice 3) — session headers, `fetchWithTimeout`, mutation/stream grace constants                                |
+| Streaming               | `diagramStoreStreaming.js` | ✅ shipped (slice 3) — `streamDiagramAgent`                                                                                |
 | REST mutations          | `diagramStoreMutations.js` | `submitDiagramIntent`, `submitDiagramTransform`, `submitDiagramAnalyze`, `submitDiagramStyle`, `submitDiagramRenderRepair` |
-| Streaming               | `diagramStoreStreaming.js` | `streamDiagramAgent` + timeout constants                                                                                   |
 
 Keep `diagramStore.js` as a thin re-export barrel until call sites are updated. Session hydrate already lives in `features/session/useSessionHydrate.js`.
 
