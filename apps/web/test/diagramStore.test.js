@@ -203,7 +203,7 @@ describe('submitDiagramTransform', () => {
       );
 
       // Timeout mirrors the server run budget for the mode/profile (Russ fast) plus the
-      // client grace window — keep in sync with agentMutationTimeoutMs in diagramStore.js.
+      // client grace window — keep in sync with agentMutationTimeoutMs in diagramStoreHttp.js.
       const clientGraceMs = 15_000;
       const timeoutMs = resolveAgentRunBudgetMs('fast', {}, 'russ') + clientGraceMs;
       await vi.advanceTimersByTimeAsync(timeoutMs + 1_000);

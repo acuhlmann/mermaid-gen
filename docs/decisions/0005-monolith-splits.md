@@ -106,7 +106,10 @@ they need access to outer-closure state.
   → `apps/web/src/state/diagramCacheStorage.js`; `diagramStore.js` re-exports.
 - ✅ **`diagramStore.js` (slice 2):** six-slot mode-switch peer sync helpers
   → `apps/web/src/state/diagramModeSwitch.js`; `diagramStore.js` re-exports.
-  Remaining: REST submitters, streaming (see
+- ✅ **`diagramStore.js` (slice 3):** shared HTTP timeouts/helpers →
+  `apps/web/src/state/diagramStoreHttp.js`; AG-UI SSE streaming →
+  `apps/web/src/state/diagramStoreStreaming.js`; `diagramStore.js` re-exports.
+  Remaining: REST submitters bundle (see
   [`docs/agents/balanced-coupling-priorities.md`](../agents/balanced-coupling-priorities.md)
   § Next steps for agents).
 
