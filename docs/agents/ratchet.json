@@ -52,9 +52,9 @@
         "reason": "2026-10-01: 46301→46428 after a2069c1c (#771) lengthened the diagramStore.js monolith register line (603→425 + slice names); legitimate register-accuracy prose, not bloat."
       },
       "AGENTS.md": {
-        "budget": 47123,
+        "budget": 47138,
         "initial": 88461,
-        "reason": "2026-09-20: 45377 -> 47123, same a9845de3 Mermaid-12 mirror as CLAUDE.md per rule 8. Prior raise: 2026-09-19 ADR-0018 mirror."
+        "reason": "2026-10-01: 47123→47138 — verify:doc-paths command line in AGENTS.md gained GLOSSARY.md (#772 sensor slice)."
       }
     },
     "lintWarnings": {
@@ -89,7 +89,7 @@
         "reason": "2026-09-19 improve: measured 402 vs budget 404 after upstream suite count settled; lock budget to live count."
       },
       "cases": {
-        "budget": 4685,
+        "budget": 4686,
         "initial": 3675
       }
     }
