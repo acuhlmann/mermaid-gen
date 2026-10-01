@@ -236,7 +236,7 @@ whole doc surface and `resolve`'s budget is better spent on `apps/**`.
 
 Then, if the backlog is clear:
 
-`GLOSSARY.md` is scanned by no check at all, while [`docs/agents/domain.md`](../agents/domain.md)
+`GLOSSARY.md` is scanned by `verify:doc-paths` (since 2026-10-01); term-definition drift vs product code is still manual, while [`docs/agents/domain.md`](../agents/domain.md)
 tells every agent to prefer its terms — so glossary drift silently degrades every downstream issue
 title and test name. `README.md` and [`docs/guide/README.md`](../guide/README.md) carry
 near-identical operator tables that will diverge.

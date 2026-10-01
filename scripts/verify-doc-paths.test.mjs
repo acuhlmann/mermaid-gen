@@ -17,6 +17,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 test('collectDocMarkdownFiles includes docs/guide and docs/agents', () => {
   const files = collectDocMarkdownFiles(ROOT).map((f) => toPosixPath(path.relative(ROOT, f)));
+  assert.ok(files.some((f) => f === 'GLOSSARY.md'));
   assert.ok(files.some((f) => f === 'docs/guide/coding-agents.md'));
   assert.ok(files.some((f) => f === 'docs/agents/sensors.md'));
   assert.ok(files.some((f) => f === 'docs/recipes/README.md'));
@@ -36,6 +37,20 @@ test('verifyDocPaths passes on the current repository', () => {
   const result = verifyDocPaths(ROOT);
   assert.equal(result.ok, true, result.missing.map((m) => `${m.cited} in ${m.source}`).join('\n'));
   assert.ok(result.checked > 0);
+});
+
+test('verifyDocPaths reports a missing apps path cited in GLOSSARY.md', () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'verify-doc-paths-glossary-'));
+  fs.writeFileSync(
+    path.join(tmp, 'GLOSSARY.md'),
+    'Broken ref: `apps/server/src/__missing_glossary_module__.js`.\n'
+  );
+
+  const result = verifyDocPaths(tmp);
+  assert.equal(result.ok, false);
+  assert.equal(result.missing.length, 1);
+  assert.equal(result.missing[0].cited, 'apps/server/src/__missing_glossary_module__.js');
+  assert.equal(result.missing[0].source, 'GLOSSARY.md');
 });
 
 test('verifyDocPaths reports a missing apps path cited in a guide', () => {
