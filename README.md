@@ -33,26 +33,9 @@ Human guides (split for faster GitHub preview — diagrams live on focused pages
 | [Metaphor USDA mapping](docs/guide/metaphor-usda-mapping.md) | Metaphor3D DSL → `.usda` interchange stub (ADR-0009 steps 1–2)      |
 | [OpenUSD approach](docs/guide/openusd-approach.md)           | Remaining OpenUSD path: stub round-trip now; Stage not canonical    |
 
-Integrator & operator references:
-
-| Doc                                                                                                                      | Audience                                                                                                  |
-| ------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------- |
-| [architecture-generative-ui-visual.html](https://acuhlmann.github.io/mermaid-gen/architecture-generative-ui-visual.html) | **Visual tour** — the Gen UI stack in diagrams ([GitHub Pages](https://acuhlmann.github.io/mermaid-gen/)) |
-| [`docs/architecture-generative-ui.md`](docs/architecture-generative-ui.md)                                               | AG-UI, A2UI, MCP Apps map                                                                                 |
-| [`docs/architecture-external-agents.md`](docs/architecture-external-agents.md)                                           | Guest agents, session-events                                                                              |
-| [`docs/architecture-ag-ui.md`](docs/architecture-ag-ui.md)                                                               | AG-UI SSE contract                                                                                        |
-| [`docs/architecture-a2ui.md`](docs/architecture-a2ui.md)                                                                 | A2UI — server-built (critique) vs model-authored (Forms)                                                  |
-| [`docs/office-parody.md`](docs/office-parody.md)                                                                         | The Office Update™ — ambience layer, colleagues, WG meetings                                              |
-| [`docs/office-isometric-mode.md`](docs/office-isometric-mode.md)                                                         | Isometric floor (renderer #2) — parody-OS frame, slices, geometry                                         |
-| [`docs/office-continuity.md`](docs/office-continuity.md)                                                                 | Office continuity — working memory + runWalk (v1 shipped)                                                 |
-| [`docs/canvas-graph-edit.md`](docs/canvas-graph-edit.md)                                                                 | Canvas Add / Delete / Rename / Link — shipped families + incremental plan                                 |
-| [`docs/office-narration-roadmap.md`](docs/office-narration-roadmap.md)                                                   | Office TTS — Chirp3-HD ladder (shipped) + polish roadmap                                                  |
-| [`docs/office-window-manager.md`](docs/office-window-manager.md)                                                         | Office windows on a phone — sheets, minimize-to-taskbar (designed, not shipped)                           |
-| [`docs/llm-config.md`](docs/llm-config.md)                                                                               | Model tiers and providers                                                                                 |
-| [`docs/deploy/gcp.md`](docs/deploy/gcp.md)                                                                               | Cloud Run deploy                                                                                          |
-| [`AGENTS.md`](AGENTS.md)                                                                                                 | Coding-agent operator manual                                                                              |
-| [`STRUCTURE.md`](STRUCTURE.md)                                                                                           | Concept → file index                                                                                      |
-| [`GLOSSARY.md`](GLOSSARY.md)                                                                                             | Terminology                                                                                               |
+Integrator and operator references (architecture docs, routines, deploy, agent manuals) live in one
+place — **[`docs/guide/README.md` § Integrator & operator docs](docs/guide/README.md#integrator--operator-docs-elsewhere)**.
+Edit that table there; do not duplicate rows in this hub file.
 
 ## Stack
 
