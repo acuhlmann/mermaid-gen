@@ -74,7 +74,7 @@
     },
     "strictIslandFiles": {
       "apps/web/tsconfig.strict.json": {
-        "budget": 23,
+        "budget": 25,
         "initial": 15
       },
       "apps/server/tsconfig.strict.json": {
