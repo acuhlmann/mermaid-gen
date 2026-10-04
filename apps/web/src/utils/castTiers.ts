@@ -22,11 +22,12 @@ export const CAST_TIERS = {
   team: ['gilfoyle', 'dinesh', 'erlich', 'russ', 'jared', 'richard'],
   senior: ['ciso', 'belson', 'cfo', 'barker'],
   office: ['intern', 'scrumMaster', 'helpdesk', 'facilities', 'hr', 'greybeard']
-};
+} as const;
 
-/** @returns {'team' | 'senior' | 'office' | null} */
-export function tierOf(id) {
-  for (const [tier, members] of Object.entries(CAST_TIERS)) {
+export type CastTier = keyof typeof CAST_TIERS;
+
+export function tierOf(id: string): CastTier | null {
+  for (const [tier, members] of Object.entries(CAST_TIERS) as [CastTier, readonly string[]][]) {
     if (members.includes(id)) return tier;
   }
   return null;

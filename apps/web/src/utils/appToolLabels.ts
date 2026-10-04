@@ -1,4 +1,4 @@
-const TOOL_LABELS = {
+const TOOL_LABELS: Record<string, string> = {
   get_diagram_state: 'Read diagram snapshot',
   apply_mermaid_patch: 'Apply diagram update',
   apply_chart_patch: 'Apply chart update',
@@ -10,7 +10,7 @@ const TOOL_LABELS = {
 };
 
 /** Human label for an LLM-tool call name shown in the insights pane. */
-export function formatToolLabel(name, repeatCount = 1) {
+export function formatToolLabel(name: string | null | undefined, repeatCount = 1): string {
   if (!name) return 'Tool action';
   const base = TOOL_LABELS[name] ?? name.replaceAll('_', ' ');
   if (name === 'apply_mermaid_patch' && repeatCount > 1) {
