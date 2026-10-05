@@ -87,14 +87,19 @@ describe('geometry POV — isStandableTile excludeSeatId (§6 rule 27)', () => {
   });
 
   it('can validate a wanderer mark against every seat including yours', () => {
-    for (const id of wanderingSeatIds()) {
+    const roster = wanderingSeatIds();
+    expect(roster.length).toBeGreaterThan(0);
+    let tripCount = 0;
+    for (const id of roster) {
       for (const trip of wanderTripsFor(id)) {
+        tripCount += 1;
         expect(isStandableTile(trip.mark, { excludeSeatId: id })).toBe(true);
         expect(isStandableTile(trip.mark, { excludeSeatId: YOU_SEAT_ID })).toBe(
           isStandableTile(trip.mark)
         );
       }
     }
+    expect(tripCount).toBeGreaterThan(0);
   });
 });
 

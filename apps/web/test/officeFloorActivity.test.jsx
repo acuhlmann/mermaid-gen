@@ -1,7 +1,6 @@
 // @vitest-environment jsdom
 import { cleanup, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import OfficeFloor from '../src/components/OfficeFloor.jsx';
 import { PersonaFace } from '../src/components/personaFaces/index.jsx';
 import { PERSONA_FACE_TRAITS, personaFaceTraits } from '../src/components/personaFaces/registry.js';
 import {
@@ -14,13 +13,13 @@ import {
   meetingActivityFor
 } from '../src/utils/officeFloorActivity.js';
 import { DESK_WORK_DOING, OFFICE_DESK_WORK } from '../src/utils/officeDeskWork.js';
-import {
-  setOfficeCaptions,
-  setOfficeHeadphones,
-  setOfficeNarration
-} from '../src/state/officeMomentStore.js';
-import { _resetOfficeViewModeForTests, standUp } from '../src/state/officeViewModeStore.js';
+import { setOfficeHeadphones } from '../src/state/officeMomentStore.js';
 import { OFFICE_DAY_PHASES } from '../src/utils/officeCadence.js';
+import {
+  enableFloorDialogueCaptions,
+  renderFloor,
+  resetOfficeFloorTestState
+} from './helpers/officeFloorTestUtils.jsx';
 
 /**
  * Slice 13 — what everybody is visibly doing.
@@ -31,26 +30,18 @@ import { OFFICE_DAY_PHASES } from '../src/utils/officeCadence.js';
  * test that only asserts a figure rendered.
  */
 
-function renderFloor(props = {}) {
-  standUp();
-  return render(<OfficeFloor {...props} />);
-}
-
 /** The figure inside a seat, which is where the accessory and hold live. */
 function seatFigure(view, id) {
   return view.container.querySelector(`[data-seat="${id}"] .office-floor-person-figure`);
 }
 
 beforeEach(() => {
-  setOfficeCaptions(true);
-  setOfficeNarration(false);
+  enableFloorDialogueCaptions();
 });
 
 afterEach(() => {
-  cleanup();
-  _resetOfficeViewModeForTests();
+  resetOfficeFloorTestState();
   setOfficeHeadphones(false);
-  setOfficeCaptions(false);
 });
 
 describe('the baked half — one row per character', () => {

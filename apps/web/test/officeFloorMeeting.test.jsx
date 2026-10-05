@@ -1,13 +1,13 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import OfficeFloor from '../src/components/OfficeFloor.jsx';
 import {
-  _resetOfficeViewModeForTests,
-  getOfficeViewMode,
-  standUp
-} from '../src/state/officeViewModeStore.js';
-import { setOfficeCaptions, setOfficeNarration } from '../src/state/officeMomentStore.js';
+  enableFloorDialogueCaptions,
+  renderFloor,
+  resetOfficeFloorTestState
+} from './helpers/officeFloorTestUtils.jsx';
+import { getOfficeViewMode } from '../src/state/officeViewModeStore.js';
+import { setOfficeNarration } from '../src/state/officeMomentStore.js';
 import { deskDoingFor } from '../src/utils/officeFloorActivity.js';
 
 /** The shape useMeetingPlayback exposes — the floor only ever reads it. */
@@ -24,22 +24,15 @@ const PLAYING = {
   interjectionsLeft: 2
 };
 
-function renderFloor(props = {}) {
-  standUp();
-  return render(<OfficeFloor {...props} />);
-}
-
 beforeEach(() => {
   // These suites assert on-screen dialogue. Captions on keeps balloons visible
   // even when the shared narration preference defaults to voice-first.
-  setOfficeCaptions(true);
+  enableFloorDialogueCaptions();
   setOfficeNarration(true);
 });
 
 afterEach(() => {
-  cleanup();
-  _resetOfficeViewModeForTests();
-  setOfficeCaptions(false);
+  resetOfficeFloorTestState();
 });
 
 describe('meetings in the glass room (slice 5)', () => {
@@ -270,7 +263,7 @@ describe('the table has something on it (slice 29)', () => {
   });
 
   it('hands the agenda to whoever called it', () => {
-    renderFloor({ meeting: PLAYING });
+    renderFloor({ meeting: PLAYING }, { pinDeterminism: false });
     expect(actor(PLAYING.facilitatorId).dataset.hold).toBe('papers');
     expect(actor(PLAYING.facilitatorId).className).toMatch(/is-pose-reading/);
     // Everybody else is listening at this hour, so the agenda is the one thing
@@ -282,7 +275,7 @@ describe('the table has something on it (slice 29)', () => {
   it('actually draws the agenda, not just the marker attribute', () => {
     // Same guard the desk drawings carry: `data-hold` would keep passing with
     // `HeldItem` rendering nothing, which is what a broken import looks like.
-    renderFloor({ meeting: PLAYING });
+    renderFloor({ meeting: PLAYING }, { pinDeterminism: false });
     const layer = actor(PLAYING.facilitatorId).querySelector('.office-floor-person-hold');
     expect(layer).toBeTruthy();
     expect(layer.innerHTML.length).toBeGreaterThan(0);
@@ -290,7 +283,7 @@ describe('the table has something on it (slice 29)', () => {
 
   it('gives the rest of the table the hour', () => {
     atHour(8); // earlyMorning — everybody has a mug
-    renderFloor({ meeting: PLAYING });
+    renderFloor({ meeting: PLAYING }, { pinDeterminism: false });
     for (const id of ['gilfoyle', 'cfo', 'you']) {
       expect(actor(id).dataset.hold, `${id} came to an 8am meeting empty-handed`).toBe('mug');
     }
@@ -304,7 +297,7 @@ describe('the table has something on it (slice 29)', () => {
     // call from your desk", and these people walked here.
     atHour(9);
     vi.setSystemTime(new Date(2026, 7, 11, 9, 45, 0));
-    const view = renderFloor({ meeting: PLAYING });
+    const view = renderFloor({ meeting: PLAYING }, { pinDeterminism: false });
 
     for (const id of ['gilfoyle', 'cfo', 'you']) {
       expect(actor(id).querySelector('[data-accessory="headset"]'), id).toBeNull();
@@ -326,7 +319,10 @@ describe('the table has something on it (slice 29)', () => {
   });
 
   it('leaves the desk trait row behind — nobody types through a meeting', () => {
-    renderFloor({ meeting: { ...PLAYING, attendees: ['scrumMaster', 'gilfoyle', 'russ'] } });
+    renderFloor(
+      { meeting: { ...PLAYING, attendees: ['scrumMaster', 'gilfoyle', 'russ'] } },
+      { pinDeterminism: false }
+    );
     // Gilfoyle types and Russ takes calls, at their desks — assert that first,
     // so the two negatives below are overrides rather than rows that were
     // already blank.

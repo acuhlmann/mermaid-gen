@@ -1,13 +1,12 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import OfficeFloor from '../src/components/OfficeFloor.jsx';
 import FloorLiveRegion from '../src/components/officeFloor/FloorLiveRegion.jsx';
 import { floorAnnouncement } from '../src/components/officeFloor/floorAnnouncement.js';
 import { useWalkAnimation } from '../src/components/officeFloor/useWalkAnimation.js';
 import { officeChromeCopy, officeSenderInfo } from '../src/utils/officeCast.js';
 import { projectIso } from '../src/utils/officeFloorPlan.js';
-import { _resetOfficeViewModeForTests, standUp } from '../src/state/officeViewModeStore.js';
+import { renderFloor, resetOfficeFloorTestState } from './helpers/officeFloorTestUtils.jsx';
 
 /**
  * The floor, for somebody who is not looking at it (slice 10).
@@ -22,8 +21,7 @@ const lines = copy.narration;
 const CHAD = officeSenderInfo('intern').name;
 
 afterEach(() => {
-  cleanup();
-  _resetOfficeViewModeForTests();
+  resetOfficeFloorTestState();
 });
 
 describe('floorAnnouncement', () => {
@@ -138,8 +136,7 @@ describe('FloorLiveRegion', () => {
 
 describe('the floor narrates itself', () => {
   it('tells you where you are on arrival and after a walk', () => {
-    standUp();
-    render(<OfficeFloor />);
+    renderFloor();
     const region = screen.getByTestId('office-floor-narration');
     expect(region.textContent).toBe(lines.atDesk);
 
@@ -152,8 +149,7 @@ describe('the floor narrates itself', () => {
   });
 
   it('leaves the announcing to one region, not to each card', () => {
-    standUp();
-    const view = render(<OfficeFloor />);
+    const view = renderFloor();
 
     // Every other live region on the floor is a speech bubble, which stays
     // mounted while its text changes underneath — the shape that works. A card

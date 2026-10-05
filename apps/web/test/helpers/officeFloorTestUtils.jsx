@@ -97,9 +97,12 @@ export function enableFloorDialogueCaptions() {
  * Stand up and render `OfficeFloor`. Pass flat props (walkBy, coffee, handlers, …).
  *
  * @param {Record<string, unknown>} [props]
+ * @param {{ pinDeterminism?: boolean }} [opts] Set `pinDeterminism: false` when the suite pins its own hour (slice 29 meeting holds).
  */
-export function renderFloor(props = {}) {
-  pinOfficeFloorDeterminism();
+export function renderFloor(props = {}, { pinDeterminism = true } = {}) {
+  if (pinDeterminism) {
+    pinOfficeFloorDeterminism();
+  }
   standUp();
   return render(<OfficeFloor {...props} />);
 }

@@ -18,13 +18,13 @@ From the repo root. Faster than `npm test` when you are only touching floor code
 
 Import from [`apps/web/test/helpers/officeFloorTestUtils.jsx`](../../apps/web/test/helpers/officeFloorTestUtils.jsx):
 
-| Helper                                                            | Use                                                                       |
-| ----------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| `renderFloor(props)`                                              | Pin midday + PRNG seed, `standUp()`, render `OfficeFloor` with flat props |
-| `pinOfficeFloorDeterminism()` / `unpinOfficeFloorDeterminism()`   | Manual pin/unpin when a suite mounts `OfficeFloor` without `renderFloor`  |
-| `resetOfficeFloorTestState()`                                     | Reset view mode + captions + unpin between tests                          |
-| `enableFloorDialogueCaptions()`                                   | Turn captions on for bubble assertions                                    |
-| `WALK_BY_FIXTURE`, `COFFEE_SCENE_FIXTURE`, `BATTLE_SCENE_FIXTURE` | Shared scene data                                                         |
+| Helper                                                            | Use                                                                                                                                |
+| ----------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `renderFloor(props, { pinDeterminism })`                          | Pin midday + PRNG seed (default), `standUp()`, render `OfficeFloor`; pass `pinDeterminism: false` when the suite sets its own hour |
+| `pinOfficeFloorDeterminism()` / `unpinOfficeFloorDeterminism()`   | Manual pin/unpin when a suite mounts `OfficeFloor` without `renderFloor`                                                           |
+| `resetOfficeFloorTestState()`                                     | Reset view mode + captions + unpin between tests                                                                                   |
+| `enableFloorDialogueCaptions()`                                   | Turn captions on for bubble assertions                                                                                             |
+| `WALK_BY_FIXTURE`, `COFFEE_SCENE_FIXTURE`, `BATTLE_SCENE_FIXTURE` | Shared scene data                                                                                                                  |
 
 Do not copy `standUp(); render(<OfficeFloor />)` into new suites — extend the helper. Any mount inherits the real wall clock and `Math.random` unless pinned; see `docs/agents/domains/office.md` (Short form, wall-clock row).
 
