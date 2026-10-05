@@ -105,14 +105,19 @@ describe('who wanders is an answer the room gives', () => {
   });
 
   it('sends people to prop marks rather than to new geometry', () => {
-    for (const id of wanderingSeatIds()) {
+    const roster = wanderingSeatIds();
+    expect(roster.length).toBeGreaterThan(0);
+    let tripCount = 0;
+    for (const id of roster) {
       for (const trip of wanderTripsFor(id)) {
+        tripCount += 1;
         // The same tile you stand on to use the thing — one definition of
         // "somebody could stand here and be seen", not a second one.
         expect(trip.mark).toEqual(propTileFor(trip.kind));
         expect(isStandableTile(trip.mark, { excludeSeatId: id })).toBe(true);
       }
     }
+    expect(tripCount).toBeGreaterThan(0);
   });
 
   it('clears your head too, which standability does not check', () => {
