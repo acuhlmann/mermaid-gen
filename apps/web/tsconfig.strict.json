@@ -31,6 +31,8 @@
     "src/utils/modeRevealStorage.ts",
     "src/utils/stakeholderIntroStorage.ts",
     "src/utils/formatFormAnswer.ts",
+    "src/utils/phaseLabelResolution.ts",
+    "src/utils/partKindLabel.ts",
     "src/utils/seededHash.ts",
     "src/utils/thinkingProseEnrich.tsx",
     "src/state/diagramWireTypes.ts",
