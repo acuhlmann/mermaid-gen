@@ -43,13 +43,13 @@ describe('addLinkedMindmapNode', () => {
   it('inserts an indented child under the selected node', () => {
     const result = addLinkedMindmapNode(MINDMAP, '0,0', 'Review');
     expect(result).toMatchObject({ ok: true, newId: '0,0,0', newLabel: 'Review' });
-    expect(result.source).toMatch(/Child1\n      Review/);
+    expect(result.source).toMatch(/Child1\n {6}Review/);
   });
 
   it('allocates a default label when none is provided', () => {
     const result = addLinkedMindmapNode(MINDMAP, '0');
     expect(result.ok).toBe(true);
-    expect(result.source).toMatch(/Grandchild\n\n    Item 1/);
+    expect(result.source).toMatch(/Grandchild\n\n {4}Item 1/);
   });
 });
 

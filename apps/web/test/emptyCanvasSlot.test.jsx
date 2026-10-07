@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { cleanup, render, screen } from '@testing-library/react';
+import { afterEach, describe, expect, it } from 'vitest';
 import { EmptyCanvasSlot } from '../src/features/desk/EmptyCanvasSlot.jsx';
 import { CONTROLS_EN } from '../src/i18n/locales/controls.en.js';
 

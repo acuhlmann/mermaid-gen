@@ -442,7 +442,7 @@ describe('class edge delete through rendered data-id (#613)', () => {
     expect(buggy.ok).toBe(true);
     expect(buggy.source.match(/Animal <\|-- Duck/g)?.length).toBe(1);
     expect(buggy.source).toMatch(/Animal <\|-- Fish/);
-    expect(buggy.source.trimEnd()).toMatch(/Animal <\|-- Duck\n  Animal <\|-- Fish$/);
+    expect(buggy.source.trimEnd()).toMatch(/Animal <\|-- Duck\n {2}Animal <\|-- Fish$/);
   });
 
   it('would have reported missing for the only Fish edge before #613', () => {
