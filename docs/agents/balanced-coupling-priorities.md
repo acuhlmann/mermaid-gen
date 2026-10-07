@@ -2,7 +2,7 @@
 
 Where **archislop** should invest modularity work, ranked with Vlad Khononov's [Balanced Coupling Model](https://coupling.dev). This is the repo-specific companion to [`modularity.md`](modularity.md) (how to run a review) and the static sensors in [`sensors.md`](sensors.md).
 
-**Last reviewed:** 2026-10-03
+**Last reviewed:** 2026-10-07
 
 ## How to use this doc
 
@@ -95,9 +95,9 @@ Related ADRs and docs: [0011](../decisions/0011-two-office-renderers.md), [`docs
 
 ### 3. `diagramStore.js` — web-side hub
 
-~930 LOC central state for intent/transform/analyze, streaming, and collaboration (cache/storage moved to `diagramCacheStorage.js`). Theoretically cohesive; in practice **accidental volatility** — unrelated features still serialize through one file.
+~177 LOC barrel + session fetch/normalize (mutations in `diagramStoreMutations.js`, cache in `diagramCacheStorage.js`, mode-switch in `diagramModeSwitch.js`, HTTP helpers in `diagramStoreHttp.js`, streaming in `diagramStoreStreaming.js`). Theoretically cohesive; ADR-0005 slices 1–4 have pulled most verbs out.
 
-ADR-0005 already split `App.jsx` into `features/*` hooks and extracted **`diagramCacheStorage.js`** (localStorage cache + session wipe). **`diagramStore` remains the next bottleneck** for diagram HTTP/streaming work.
+ADR-0005 already split `App.jsx` into `features/*` hooks and extracted four **`diagramStore`** slices. Further extractions follow the same seam pattern when you touch that area.
 
 **Focus:** extract along existing seams (mode-switch helpers, per-verb submitters, streaming) **when you touch that area** — not a standalone "split diagramStore" project unless blocked.
 

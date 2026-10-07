@@ -6,9 +6,9 @@ describe('formatChartDslForEditor', () => {
     const raw =
       '{"archislopVersion":1,"theme":"whiteboard","spec":{"mark":"bar","data":{"values":[{"a":"A","b":1}]}}}';
     const formatted = formatChartDslForEditor(raw);
-    expect(formatted).toMatch(/^\{\n  "archislopVersion": 1,/);
-    expect(formatted).toMatch(/\n  "theme": "whiteboard",/);
-    expect(formatted).toMatch(/\n  "spec": \{/);
+    expect(formatted).toMatch(/^\{\n {2}"archislopVersion": 1,/);
+    expect(formatted).toMatch(/\n {2}"theme": "whiteboard",/);
+    expect(formatted).toMatch(/\n {2}"spec": \{/);
   });
 
   it('returns invalid source unchanged', () => {

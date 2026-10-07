@@ -109,6 +109,8 @@ they need access to outer-closure state.
 - ✅ **`diagramStore.js` (slice 3):** shared HTTP timeouts/helpers →
   `apps/web/src/state/diagramStoreHttp.js`; AG-UI SSE streaming →
   `apps/web/src/state/diagramStoreStreaming.js`; `diagramStore.js` re-exports.
+- ✅ **`diagramStore.js` (slice 4):** copilot REST mutations (sync, user-edit, intent/transform/analyze/style, render-error repair) →
+  `apps/web/src/state/diagramStoreMutations.js`; `diagramStore.js` re-exports.
   Remaining: REST submitters bundle (see
   [`docs/agents/balanced-coupling-priorities.md`](../agents/balanced-coupling-priorities.md)
   § Next steps for agents).
