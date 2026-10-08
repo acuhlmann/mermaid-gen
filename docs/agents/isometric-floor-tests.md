@@ -14,6 +14,8 @@ From the repo root. Faster than `npm test` when you are only touching floor code
 
 `npm run test:affected` pulls this suite automatically when the diff touches `OfficeFloor`, `officeFloor/*`, `officeFloorPlan.js`, `OfficeLayer` floor wiring, `officeViewModeStore`, etc. (see `ISOMETRIC_FLOOR_BLAST_TESTS` in `scripts/test-affected-lib.mjs`).
 
+**The two lists are not identical on purpose.** `test:floor` is the hand-run geometry/behaviour loop; the blast bundle also pulls hook and persona suites that `test:affected` needs when floor source changes but that are not part of the default `test:floor` script. As of 2026-10-08 the intentional delta is five files: `useOfficeDayPhase.test.jsx` is test:floor-only; `officeErrand`, `personaFaces`, `useFloorArrivalFocus`, and `useFloorAway` are blast-only. `scripts/verify-isometric-floor-suites.mjs` (via `test:scripts`) fails if either side grows or shrinks without updating that documented delta.
+
 ## Shared helpers
 
 Import from [`apps/web/test/helpers/officeFloorTestUtils.jsx`](../../apps/web/test/helpers/officeFloorTestUtils.jsx):

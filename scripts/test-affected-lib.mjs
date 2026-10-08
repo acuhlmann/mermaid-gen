@@ -89,6 +89,7 @@ export const AGENT_TOOLING_BLAST_TESTS = [
   'scripts/prettier-files.test.mjs',
   'scripts/verify-agent-infra.test.mjs',
   'scripts/verify-doc-paths.test.mjs',
+  'scripts/verify-isometric-floor-suites.test.mjs',
   'scripts/wire-cochange.test.mjs'
 ];
 
@@ -318,7 +319,7 @@ export const BLAST_RADIUS_RULES = [
   },
   {
     match:
-      /scripts\/(test-affected-lib|test-affected|check-affected-lib|check-affected|prettier-files|format-affected|wire-cochange|verify-agent-infra|verify-doc-paths)\.mjs/,
+      /scripts\/(test-affected-lib|test-affected|check-affected-lib|check-affected|prettier-files|format-affected|wire-cochange|verify-agent-infra|verify-doc-paths|verify-isometric-floor-suites)\.mjs/,
     tests: AGENT_TOOLING_BLAST_TESTS
   },
   {
@@ -337,6 +338,11 @@ export const BLAST_RADIUS_RULES = [
     // Neither selected the sensor that watches them: eslint-config/ matches no blast rule.
     match: /packages\/eslint-config\/(?:guidance\.js|formatter\.cjs)/,
     tests: ['scripts/verify-eslint-guidance-sync.test.mjs']
+  },
+  {
+    // test:floor (apps/web/package.json) vs ISOMETRIC_FLOOR_BLAST_TESTS — intentionally different sets.
+    match: /apps\/web\/package\.json|scripts\/test-affected-lib\.mjs/,
+    tests: ['scripts/verify-isometric-floor-suites.test.mjs']
   }
 ];
 

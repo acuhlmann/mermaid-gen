@@ -301,6 +301,21 @@ test('the negative case: an unrelated file does not pull the eslint-guidance sen
   assert.ok(!plan.tests.includes('scripts/verify-eslint-guidance-sync.test.mjs'));
 });
 
+test('the isometric-floor-suite sensor is selected by files that can drift it', () => {
+  for (const file of ['apps/web/package.json', 'scripts/test-affected-lib.mjs']) {
+    const plan = resolveAffectedTests([file], { root: ROOT });
+    assert.ok(
+      plan.tests.includes('scripts/verify-isometric-floor-suites.test.mjs'),
+      `${file} must select the sensor that watches test:floor vs ISOMETRIC_FLOOR_BLAST_TESTS`
+    );
+  }
+});
+
+test('the negative case: an unrelated file does not pull the isometric-floor-suite sensor', () => {
+  const plan = resolveAffectedTests(['apps/web/src/utils/officeCast.js'], { root: ROOT });
+  assert.ok(!plan.tests.includes('scripts/verify-isometric-floor-suites.test.mjs'));
+});
+
 // Every bundle, not the two that happened to be new when this was written (#528 part 2).
 // `resolveAffectedTests` drops a listed path that does not exist with no noise at all, so a renamed
 // suite turns a blast rule into a silent no-op — the same failure the reverse sweep above exists for,
