@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
+import path from 'node:path';
 import test from 'node:test';
+import { fileURLToPath } from 'node:url';
 import {
   compareFloorSuiteSets,
   INTENTIONAL_BLAST_ONLY,
@@ -10,6 +12,9 @@ import {
 } from './verify-isometric-floor-suites.mjs';
 import { ISOMETRIC_FLOOR_BLAST_TESTS } from './test-affected-lib.mjs';
 
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const WEB_TEST_DIR = path.join(ROOT, 'apps/web/test');
+
 test('parseTestFloorVitestArgs extracts vitest positional suite args', () => {
   const args = parseTestFloorVitestArgs(
     'vitest run test/officeFloor test/useOfficeDayPhase test/useWalkAnimation'
@@ -18,7 +23,7 @@ test('parseTestFloorVitestArgs extracts vitest positional suite args', () => {
 });
 
 test('resolveTestFloorFiles maps officeFloor prefix to every matching suite', () => {
-  const files = resolveTestFloorFiles(['test/officeFloor'], '/workspace/apps/web/test');
+  const files = resolveTestFloorFiles(['test/officeFloor'], WEB_TEST_DIR);
   assert.ok(files.length >= 5, 'expected multiple officeFloor* files');
   assert.ok(files.every((f) => f.includes('officeFloor')));
 });
