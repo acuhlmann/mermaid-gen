@@ -168,6 +168,15 @@ export function baseConfig({ env = 'node', tighten = false, workspaceDir = '.' }
       rules: {
         'no-constant-condition': 'error'
       }
+    },
+    // ADR-0007: promoted 2026-10-09 (improve, lint severity promotion). Quiet-period
+    // evidence: `git log --since="2 weeks ago" -S'valid-typeof' -- '**/*.{js,jsx,ts,tsx}'`
+    // returned empty; eslint JSON across web/shared/server reported zero valid-typeof warnings.
+    {
+      files: ['**/*.{js,jsx,mjs,cjs,ts,tsx}'],
+      rules: {
+        'valid-typeof': 'error'
+      }
     }
   ];
 }
