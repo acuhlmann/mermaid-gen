@@ -2,13 +2,11 @@
 import { cleanup, render, screen } from '@testing-library/react';
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import OfficeFloor from '../src/components/OfficeFloor.jsx';
 import FloorStage from '../src/components/officeFloor/FloorStage.jsx';
 import FloorWallClock from '../src/components/officeFloor/FloorWallClock.jsx';
 import { useOfficeWallClock } from '../src/components/officeFloor/useOfficeWallClock.js';
-import { resetOfficeFloorTestState } from './helpers/officeFloorTestUtils.jsx';
+import { renderFloor, resetOfficeFloorTestState } from './helpers/officeFloorTestUtils.jsx';
 import { officeChromeCopy } from '../src/utils/officeCast.js';
-import { standUp } from '../src/state/officeViewModeStore.js';
 import { OFFICE_WALL_CLOCK_POLL_MS } from '../src/utils/officeCadence.js';
 import {
   FLOOR_BOUNDS,
@@ -154,8 +152,7 @@ describe('the poll is a heartbeat, not a metronome', () => {
 
 describe('the floor mounts it', () => {
   it('hangs the clock on the standing floor', () => {
-    standUp();
-    render(<OfficeFloor />);
+    renderFloor();
     expect(screen.getAllByTestId('office-floor-wall-clock').length).toBe(1);
     expect(document.querySelector('.office-floor-wall-clock-hand--hour')).toBeTruthy();
     expect(document.querySelector('.office-floor-wall-clock-hand--minute')).toBeTruthy();
