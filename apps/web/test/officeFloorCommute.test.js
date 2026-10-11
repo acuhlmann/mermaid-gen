@@ -133,6 +133,7 @@ describe('nextCommutes', () => {
 
   it('seeds straight to `there`, so standing up mid-scene shows the scene', () => {
     const list = nextCommutes([], momentMarksFor({ coffee }), { seed: true });
+    expect(list.length, 'coffee commute produced nobody — this proves nothing').toBeGreaterThan(0);
     expect(list.every((c) => c.phase === 'there')).toBe(true);
   });
 
@@ -160,8 +161,10 @@ describe('nextCommutes', () => {
 
   it('sends somebody home even if the moment ended before they arrived', () => {
     const out = nextCommutes([], momentMarksFor({ coffee }));
+    expect(out.length, 'coffee commute produced nobody — this proves nothing').toBeGreaterThan(0);
     expect(out.every((c) => c.phase === 'out')).toBe(true);
     const home = nextCommutes(out, []);
+    expect(home.length, 'home leg produced nobody — this proves nothing').toBeGreaterThan(0);
     expect(home.every((c) => c.phase === 'home')).toBe(true);
   });
 

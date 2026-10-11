@@ -357,6 +357,10 @@ describe('the afternoon slump (slice 24)', () => {
   it('lives inside a phase rather than being one', () => {
     expect(officeDayPhaseAt(at(15))).toBe('midday');
     expect(OFFICE_DAY_PHASES).not.toContain('slump');
+    expect(
+      WANDER_BIAS_WINDOWS.length,
+      'no wander bias windows — this proves nothing'
+    ).toBeGreaterThan(0);
     expect(WANDER_BIAS_WINDOWS.every((w) => w.from < w.until)).toBe(true);
   });
 
