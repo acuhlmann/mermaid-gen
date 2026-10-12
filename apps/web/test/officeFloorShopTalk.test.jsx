@@ -73,7 +73,9 @@ describe('who answers is an answer the room gives', () => {
    * feature is silently dead at that place.
    */
   it('gives every wanderable prop somebody to talk to', () => {
-    for (const kind of usablePropKinds()) {
+    const kinds = usablePropKinds();
+    expect(kinds.length, 'no prop is reachable — this proves nothing').toBeGreaterThan(0);
+    for (const kind of kinds) {
       const partner = shopTalkPartnerFor(propTileFor(kind), 'gilfoyle');
       expect(partner, `nobody sits near ${kind}`).toBeTruthy();
       expect(tileDistance(propTileFor(kind), seatFor(partner))).toBeLessThanOrEqual(
@@ -140,7 +142,10 @@ describe('who answers is an answer the room gives', () => {
   });
 
   it('never nominates leadership, whatever the prop', () => {
-    for (const kind of usablePropKinds()) {
+    const kinds = usablePropKinds();
+    expect(kinds.length, 'no prop is reachable — this proves nothing').toBeGreaterThan(0);
+    expect(FLOOR_SEATS.length, 'no seats to sweep — this proves nothing').toBeGreaterThan(0);
+    for (const kind of kinds) {
       for (const seat of FLOOR_SEATS) {
         const partner = shopTalkPartnerFor(propTileFor(kind), seat.id);
         if (partner)

@@ -309,6 +309,7 @@ describe('speakOfficeLine', () => {
     });
     expect(result).toEqual({ spoken: true, source: 'webspeech' });
     expect(synth.speak.mock.calls.length).toBeGreaterThan(1);
+    expect(spoken.length, 'no utterances recorded — this proves nothing').toBeGreaterThan(1);
     expect(spoken.every((u) => u.text.length <= OFFICE_WEB_SPEECH_CHUNK_MAX_CHARS)).toBe(true);
   });
 

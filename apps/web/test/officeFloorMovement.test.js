@@ -195,7 +195,9 @@ describe('approachTileFor', () => {
   });
 
   it('puts you somewhere standable with a clear line to them', () => {
-    for (const id of approachableSeatIds()) {
+    const roster = approachableSeatIds();
+    expect(roster.length, 'nobody is approachable — this proves nothing').toBeGreaterThan(0);
+    for (const id of roster) {
       const mark = approachTileFor(id);
       const seat = seatFor(id);
       expect(isStandableTile(mark), id).toBe(true);
@@ -205,7 +207,9 @@ describe('approachTileFor', () => {
   });
 
   it('stands you next to them, not across the room', () => {
-    for (const id of approachableSeatIds()) {
+    const roster = approachableSeatIds();
+    expect(roster.length, 'nobody is approachable — this proves nothing').toBeGreaterThan(0);
+    for (const id of roster) {
       const mark = approachTileFor(id);
       const seat = seatFor(id);
       expect(Math.hypot(mark.x - seat.x, mark.y - seat.y), id).toBeLessThanOrEqual(2.25);
