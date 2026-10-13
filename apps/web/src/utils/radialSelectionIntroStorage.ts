@@ -4,10 +4,8 @@ export const RADIAL_SELECTION_INTRO_SEEN_KEY = 'archislop:radial-selection-intro
  * True once the first-run radial selection spotlight has been shown (written
  * on first display, not only on "Got it"). Persists across sessions so we
  * only explain precision editing once.
- *
- * @returns {boolean}
  */
-export function readRadialSelectionIntroSeen() {
+export function readRadialSelectionIntroSeen(): boolean {
   if (typeof window === 'undefined') return true;
   try {
     return window.localStorage.getItem(RADIAL_SELECTION_INTRO_SEEN_KEY) === '1';
@@ -17,7 +15,7 @@ export function readRadialSelectionIntroSeen() {
 }
 
 /** Mark the first-run radial selection spotlight as shown. */
-export function writeRadialSelectionIntroSeen() {
+export function writeRadialSelectionIntroSeen(): void {
   if (typeof window === 'undefined') return;
   try {
     window.localStorage.setItem(RADIAL_SELECTION_INTRO_SEEN_KEY, '1');
