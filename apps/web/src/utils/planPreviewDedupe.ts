@@ -6,11 +6,7 @@
 
 import { tryExtractDiagramPreviewFromText } from './insightsEmbeddedDiagramSplit.js';
 
-/**
- * @param {string} source
- * @returns {string}
- */
-export function normalizePlanPreviewSource(source) {
+export function normalizePlanPreviewSource(source: string | null | undefined): string {
   const text = String(source ?? '')
     .replace(/\r\n?/g, '\n')
     .trim();
@@ -31,31 +27,31 @@ export function normalizePlanPreviewSource(source) {
     .replace(/\n{3,}/g, '\n\n');
 }
 
-/**
- * @param {{ kind?: string | null, source?: string | null } | null | undefined} preview
- * @returns {string | null}
- */
-export function planPreviewIdentityKey(preview) {
+type PlanPreviewLike = {
+  kind?: string | null;
+  source?: string | null;
+};
+
+export function planPreviewIdentityKey(preview: PlanPreviewLike | null | undefined): string | null {
   if (!preview?.kind || typeof preview.source !== 'string') return null;
   const normalized = normalizePlanPreviewSource(preview.source);
   if (!normalized) return null;
   return `${preview.kind}\0${normalized}`;
 }
 
+type PlanBeatLike = { text?: string } | null | undefined;
+
 /**
  * Walk plan beats in order and map each duplicate preview back to the first
  * beat index that already rendered that same diagram.
- *
- * @param {Array<{ text?: string } | null | undefined> | null | undefined} beats
- * @returns {Map<number, number>} duplicate beatIndex → first beatIndex
  */
-export function buildPlanPreviewReuseByBeatIndex(beats) {
-  /** @type {Map<number, number>} */
-  const reuseByBeatIndex = new Map();
+export function buildPlanPreviewReuseByBeatIndex(
+  beats: PlanBeatLike[] | null | undefined
+): Map<number, number> {
+  const reuseByBeatIndex = new Map<number, number>();
   if (!Array.isArray(beats) || beats.length === 0) return reuseByBeatIndex;
 
-  /** @type {Map<string, number>} */
-  const firstByKey = new Map();
+  const firstByKey = new Map<string, number>();
 
   beats.forEach((beat, beatIndex) => {
     const text = String(beat?.text ?? '').trim();
