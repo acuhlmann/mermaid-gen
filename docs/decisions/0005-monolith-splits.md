@@ -100,8 +100,12 @@ they need access to outer-closure state.
 ### Other targets
 
 - ⏳ `InsightsPane.jsx`, `DiagramCanvas.jsx`, `mermaidLangChainAgent.js`,
-  `infographicLangChainAgent.js`, `copilot.ts`, `RadialActionMenu.jsx`.
+  `infographicLangChainAgent.js`, `RadialActionMenu.jsx`.
   Same pattern: extract helpers first, then per-feature modules.
+- ✅ **`copilot.ts` (diagram REST slice):** blocking intent/transform/analyze/style
+  and client state sync → `apps/server/src/routes/copilotDiagramHandlers.ts`;
+  `copilotUserEdit.ts` already held user-edit. Router ~1 194 → ~723 LOC; continue
+  route-module splits for invite/collaboration/SSE when touched.
 - ✅ **`diagramStore.js` (slice 1):** localStorage diagram cache + session wipe helpers
   → `apps/web/src/state/diagramCacheStorage.js`; `diagramStore.js` re-exports.
 - ✅ **`diagramStore.js` (slice 2):** six-slot mode-switch peer sync helpers

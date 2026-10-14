@@ -3,7 +3,18 @@
  * Import types here when adding handlers; keep validation in route modules via shared schemas.
  */
 import type { z } from 'zod';
-import type { DiagramState } from '@archislop/shared';
+import type {
+  AgentResult,
+  AgentStreamEmit,
+  AgentStreamOperation,
+  ApplyAnalyzeIntentInput,
+  ApplyIntentInput,
+  ApplyStyleIntentInput,
+  ApplyTransformIntentInput,
+  ContentType,
+  DiagramAgentStreamPayload,
+  DiagramState
+} from '@archislop/shared';
 import {
   AgentStreamPayloadSchema,
   DiagramAnalyzeSchema,
@@ -39,4 +50,21 @@ export type ApplyStoreResult =
 export type JsonRouteResult = {
   status: number;
   body: Record<string, unknown>;
+};
+
+/** Dispatcher routes by contentType before delegating to per-slot agent services. */
+export type CopilotAgentService = {
+  applyIntent(input: ApplyIntentInput & { contentType: ContentType }): Promise<AgentResult>;
+  applyTransformIntent(
+    input: ApplyTransformIntentInput & { contentType: ContentType }
+  ): Promise<AgentResult>;
+  applyAnalyzeIntent(
+    input: ApplyAnalyzeIntentInput & { contentType: ContentType }
+  ): Promise<AgentResult>;
+  applyStyleIntent(input: ApplyStyleIntentInput): Promise<AgentResult>;
+  runAgentStream(
+    operation: AgentStreamOperation,
+    payload: DiagramAgentStreamPayload,
+    emit: AgentStreamEmit
+  ): Promise<AgentResult>;
 };
