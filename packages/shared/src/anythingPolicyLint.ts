@@ -215,7 +215,8 @@ const EXTERNAL_URL_PATTERN = /(?:https?:\/\/|\/\/|wss?:\/\/)/i;
 const PARENT_ESCAPE_PATTERN =
   /\b(?:window\.(?:parent|top)|parent\.(?:postMessage|location)|top\.(?:location|postMessage))\b/i;
 
-const EXTERNAL_SCRIPT_PATTERN = /<script\b[^>]*\bsrc\s*=\s*["'][^"']+["']/i;
+/** Network or file-like script loads — `data:` URIs are inline and sandbox-safe. */
+const EXTERNAL_SCRIPT_PATTERN = /<script\b[^>]*\bsrc\s*=\s*["'](?!data:)[^"']+["']/i;
 
 const EXTERNAL_STYLESHEET_PATTERN =
   /<link\b[^>]*\brel\s*=\s*["']stylesheet["'][^>]*\bhref\s*=\s*["'][^"']+["']/i;
@@ -246,7 +247,7 @@ export function lintAnythingPolicy(html: string): AnythingPolicyLintResult {
   if (EXTERNAL_SCRIPT_PATTERN.test(text)) {
     return fail(
       'external_script',
-      'Anything HTML must not load external scripts (<script src="…">). Put all JS inline in <script> tags.'
+      'Anything HTML must not load scripts from URLs (<script src="https://…"> or relative paths). Put all JS inline in <script> tags (data: URIs are allowed but prefer inline).'
     );
   }
 
