@@ -1,0 +1,118 @@
+name: ArchiSlop God
+
+# ADR-0019. Frozen for every routine (routine-guard ALWAYS_FORBIDDEN): this file decides which
+# credentials God's jobs hold and how long they may run.
+#
+# For now it carries only the harness spike — a manually dispatched self-test of DeepSeek Harness
+# on a GitHub runner, billed to God's own DeepSeek account (secret GOD_DEEPSEEK_API_KEY in the
+# `god` environment). The go/no-go checks live in scripts/god/spike.mjs; the report is uploaded
+# whatever the outcome. The scheduled gate → brief → act → verify → publish pipeline lands later.
+#
+# Dispatch-only on purpose: no pull_request trigger, so an untrusted PR can never reach the key.
+
+on:
+  workflow_dispatch:
+    inputs:
+      spike:
+        description: 'Run the harness self-test (the only mode until the act pipeline lands)'
+        type: boolean
+        default: true
+
+permissions: {}
+
+concurrency:
+  group: god
+  cancel-in-progress: false
+
+jobs:
+  spike:
+    if: ${{ inputs.spike }}
+    runs-on: ubuntu-24.04
+    environment: god
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+
+      - name: Install workspace dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Install the pinned DeepSeek Harness outside the repo
+        run: |
+          set -euo pipefail
+          version="$(node -p "require('./scripts/god/dsh/versions.json').packages['@deepseek-ai/dsh']")"
+          mkdir -p "$RUNNER_TEMP/dsh"
+          npm install --prefix "$RUNNER_TEMP/dsh" --no-audit --no-fund --ignore-scripts \
+            "@deepseek-ai/dsh@${version}"
+
+      - name: Enable the bubblewrap sandbox
+        run: |
+          set -euo pipefail
+          if ! command -v bwrap >/dev/null; then
+            sudo apt-get update -qq
+            sudo apt-get install -y --no-install-recommends bubblewrap
+          fi
+          # Ubuntu 24.04 blocks unprivileged user namespaces through AppArmor; bwrap needs them.
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+          bwrap --ro-bind / / --dev /dev --proc /proc true
+          echo "bwrap $(bwrap --version) is usable"
+
+      - name: Stage the key as a file, then revoke sudo
+        env:
+          GOD_DEEPSEEK_API_KEY: ${{ secrets.GOD_DEEPSEEK_API_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "$GOD_DEEPSEEK_API_KEY" ]; then
+            echo "::error::Set GOD_DEEPSEEK_API_KEY in the 'god' environment (God's own DeepSeek account)."
+            exit 1
+          fi
+          umask 077
+          printf '%s' "$GOD_DEEPSEEK_API_KEY" > "$RUNNER_TEMP/god-key"
+          # dsh confines writes, not reads, and runs as this user: take root away before it starts.
+          sudo rm -f /etc/sudoers.d/runner
+          if sudo -n true 2>/dev/null; then
+            echo "::error::sudo is still available after revocation"
+            exit 1
+          fi
+
+      - name: Run the spike
+        # The key is a file the meter proxy reads and deletes; it is never in this step's env.
+        run: |
+          node scripts/god/run.mjs --spike --harness dsh --tier propose \
+            --run-id "${{ github.run_id }}" \
+            --key-file "$RUNNER_TEMP/god-key" \
+            --out-dir "$RUNNER_TEMP/god-spike" \
+            --install-dir "$RUNNER_TEMP/dsh" \
+            --max-usd 0.25 --max-minutes 15
+
+      - name: Prove the key reached no file
+        if: always()
+        env:
+          GOD_DEEPSEEK_API_KEY: ${{ secrets.GOD_DEEPSEEK_API_KEY }}
+        run: |
+          set -uo pipefail
+          test ! -e "$RUNNER_TEMP/god-key" || { echo "::error::key file survived the run"; exit 1; }
+          if grep -rqsF -- "$GOD_DEEPSEEK_API_KEY" "$RUNNER_TEMP/god-spike" "$GITHUB_WORKSPACE" /tmp; then
+            echo "::error::the key appears in a file the harness could reach"
+            exit 1
+          fi
+          echo "key found in no report, workspace or temp file"
+
+      - name: Upload the spike report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: god-spike-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/god-spike/report.json
+            ${{ runner.temp }}/god-spike/meter.json
+            ${{ runner.temp }}/god-spike/events.ndjson
+          if-no-files-found: warn
+          retention-days: 30

@@ -47,14 +47,14 @@
     },
     "contextBytes": {
       "CLAUDE.md": {
-        "budget": 46456,
+        "budget": 46719,
         "initial": 136170,
-        "reason": "2026-10-07: 46428→46456 — register-accuracy update for diagramStore.js slice 4 (425→177 LOC + diagramStoreMutations.js in the monolith table)."
+        "reason": "2026-10-14: 46456→46719 — ArchiSlop God's frozen rails (ADR-0019) are a don't-touch entry, which the agent-tip sync rule requires in both root files; one line, the detail lives in the ADR."
       },
       "AGENTS.md": {
-        "budget": 47138,
+        "budget": 47401,
         "initial": 88461,
-        "reason": "2026-10-01: 47123→47138 — verify:doc-paths command line in AGENTS.md gained GLOSSARY.md (#772 sensor slice)."
+        "reason": "2026-10-14: 47138→47401 — ArchiSlop God's frozen rails (ADR-0019) are a don't-touch entry, which the agent-tip sync rule requires in both root files; one line, the detail lives in the ADR."
       }
     },
     "lintWarnings": {

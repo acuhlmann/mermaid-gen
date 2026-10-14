@@ -5,7 +5,7 @@
  * "copilot.ts → route modules by concern") as the smallest slice that clears the file's ratchet
  * violation (#381) without reorganising the rest of the router.
  */
-import type { ContentType } from '@archislop/shared';
+import type { ContentType, UxServerSignal } from '@archislop/shared';
 import { ContentTypeSchema } from '@archislop/shared';
 import type { Request } from 'express';
 import {
@@ -14,15 +14,28 @@ import {
   type JsonRouteResult
 } from './copilotRouteTypes.js';
 import type { DiagramStateStore } from '../state/diagramStateStore.js';
+import { recordUxSignal } from '../metrics/uxSignalMetrics.js';
 
 type UserEditHandlerDeps = {
   body: unknown;
   stateStore: DiagramStateStore;
+  /** Test seam: where the content-free `graph_edit` signal goes (ADR-0019). */
+  recordSignal?: (signal: UxServerSignal) => unknown;
 };
+
+/**
+ * Client syncs never append history, so the slot's latest patch is an agent's unless it was the
+ * user's own canvas edit — i.e. "the user is reworking what an agent just produced".
+ */
+function latestPatchCameFromAgent(history: ReadonlyArray<{ origin?: { kind?: string } }>): boolean {
+  const latest = history.at(-1);
+  return latest !== undefined && latest.origin?.kind !== 'user';
+}
 
 export async function handleUserDiagramEdit({
   body,
-  stateStore
+  stateStore,
+  recordSignal = recordUxSignal
 }: UserEditHandlerDeps): Promise<JsonRouteResult> {
   const parsed = UserDiagramEditSchema.safeParse(body);
   if (!parsed.success) {
@@ -62,6 +75,8 @@ export async function handleUserDiagramEdit({
     };
   }
 
+  const afterAgent = latestPatchCameFromAgent(slot.history);
+
   const applied = await stateStore.applyDiagramSource({
     contentType,
     diagramSource: parsed.data.diagramSource,
@@ -80,6 +95,7 @@ export async function handleUserDiagramEdit({
   }
 
   const accepted = applied as Extract<ApplyStoreResult, { accepted: true }>;
+  recordSignal({ kind: 'graph_edit', contentType, afterAgent });
   return {
     status: 200,
     body: {

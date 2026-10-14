@@ -132,6 +132,10 @@ jobs:
           VQ="${VERTEX_MODEL_QUALITY:-gemini-2.5-pro}"
           VP="${VERTEX_PROJECT_ID:-${PROJECT_ID}}"
           VEV="VERTEX_LOCATION=${VL},VERTEX_MODEL_FAST=${VF},VERTEX_MODEL_QUALITY=${VQ},VERTEX_PROJECT_ID=${VP},PUBLIC_BASE_URL=${{ env.PUBLIC_BASE_URL }}"
+          # Content-free agent_turn + ux_signal lines to Cloud Logging, stamped with the deployed sha
+          # so ArchiSlop God can attribute a metric move to a deploy (ADR-0019). UX_SIGNALS=0 is the
+          # usage-signal kill switch; it leaves agent_turn lines on.
+          VEV="${VEV},MERMAID_METRICS=1,UX_SIGNALS=1,APP_BUILD_SHA=${DEPLOY_SHA}"
           if [[ -n "${LLM_PROVIDER:-}" ]]; then VEV="${VEV},LLM_PROVIDER=${LLM_PROVIDER}"; fi
           if [[ -n "${OPENROUTER_PREFERRED:-}" ]]; then VEV="${VEV},OPENROUTER_PREFERRED=${OPENROUTER_PREFERRED}"; fi
           ARGS+=(--set-env-vars="${VEV}")

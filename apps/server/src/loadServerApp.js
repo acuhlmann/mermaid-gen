@@ -25,6 +25,7 @@ import { createCopilotRouter } from './routes/copilot.js';
 import { createAdvisorRouter } from './routes/advisor.js';
 import { createOfficeRouter } from './routes/office.js';
 import { createDiagramRepairRouter } from './routes/diagramRepair.js';
+import { createSignalsRouter } from './routes/signals.js';
 import {
   createSessionServicesRegistry,
   resolveSessionIdFromCopilotInput
@@ -87,6 +88,7 @@ export async function attachRoutes(app) {
   );
   app.use('/api/advisor', createAdvisorRouter());
   app.use('/api/office', createOfficeRouter());
+  app.use('/api/signals', createSignalsRouter());
   app.use(
     '/api/diagram',
     createDiagramRepairRouter({

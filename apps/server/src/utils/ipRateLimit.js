@@ -3,17 +3,37 @@
  */
 
 /**
- * @param {{ windowMs?: number, maxHits?: number }} [options]
+ * The first `X-Forwarded-For` entry. Note the client controls that header, so on Cloud Run this key
+ * is spoofable; new limiters pass `keyFn: keyByRequestIp` instead.
  */
-export function createIpRateLimiter({ windowMs = 60_000, maxHits = 30 } = {}) {
+function firstForwardedFor(req) {
+  const forwarded = req?.headers?.['x-forwarded-for'];
+  const raw = Array.isArray(forwarded) ? forwarded[0] : forwarded;
+  if (typeof raw === 'string' && raw.trim()) return raw.split(',')[0].trim();
+  return req?.socket?.remoteAddress ?? 'unknown';
+}
+
+/**
+ * Express's `req.ip`, which honours `trust proxy` (set to 1 in `bootstrapServer.js`): the address
+ * the trusted front proxy saw, not a header the client wrote.
+ */
+export function keyByRequestIp(req) {
+  return req?.ip || req?.socket?.remoteAddress || 'unknown';
+}
+
+/**
+ * @param {{ windowMs?: number, maxHits?: number, keyFn?: (req: any) => string }} [options]
+ */
+export function createIpRateLimiter({
+  windowMs = 60_000,
+  maxHits = 30,
+  keyFn = firstForwardedFor
+} = {}) {
   /** @type {Map<string, number[]>} */
   const byKey = new Map();
 
   function clientKey(req) {
-    const forwarded = req?.headers?.['x-forwarded-for'];
-    const raw = Array.isArray(forwarded) ? forwarded[0] : forwarded;
-    if (typeof raw === 'string' && raw.trim()) return raw.split(',')[0].trim();
-    return req?.socket?.remoteAddress ?? 'unknown';
+    return keyFn(req);
   }
 
   function pruneHits(hits, now) {

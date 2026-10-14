@@ -9,7 +9,7 @@ This page complements [`docs/agent-blast-radius.md`](../agent-blast-radius.md) (
 | `packages/shared` | Node `node:test` + tsx | `packages/shared/test/*.test.ts` |
 | `apps/server`     | Node `node:test` + tsx | `apps/server/test/*.test.js`     |
 | `apps/web`        | Vitest + jsdom         | `apps/web/test/*`                |
-| Root scripts      | Node `node:test`       | `scripts/*.test.mjs`             |
+| Root scripts      | Node `node:test`       | `scripts/**/*.test.mjs`          |
 
 All tests run without API keys. LLM calls are mocked in agent and route tests.
 

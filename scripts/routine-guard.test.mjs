@@ -358,6 +358,23 @@ test('checkRoutineDiff allows a growing test file', () => {
   assert.equal(result.ok, true);
 });
 
+test("ALWAYS_FORBIDDEN freezes ArchiSlop God's money and privacy rails (ADR-0019)", () => {
+  for (const file of [
+    'scripts/god/meterProxy.mjs',
+    'scripts/god/harness/dsh.mjs',
+    'scripts/god/dsh/god.patch.yml',
+    'scripts/god/dsh/versions.json',
+    '.github/workflows/god.yml',
+    'packages/shared/src/godBudget.ts',
+    'packages/shared/src/godSchemas.ts',
+    'packages/shared/src/uxSignals.ts'
+  ]) {
+    assert.ok(matchesAny(file, ALWAYS_FORBIDDEN), file);
+  }
+  assert.ok(!matchesAny('scripts/godless.mjs', ALWAYS_FORBIDDEN));
+  assert.ok(!matchesAny('.github/workflows/ci.yml', ALWAYS_FORBIDDEN));
+});
+
 test('ALWAYS_FORBIDDEN covers the AGENTS.md cost and lockfile traps', () => {
   assert.ok(matchesAny('apps/web/src/assets/audio/cue-laugh.mp3', ALWAYS_FORBIDDEN));
   assert.ok(matchesAny('skills-lock.json', ALWAYS_FORBIDDEN));

@@ -1,0 +1,77 @@
+# ArchiSlop God overlay for DeepSeek Harness 0.2.0-rc.2 (ADR-0019), applied with `--patch` on the
+# `headless` profile. Entry ids come from `dsh --profile headless --dump-default-config`; re-check
+# them on every version bump. Never commit a cordis.patch.yml at the repo root instead: it would
+# reconfigure every developer's local dsh, and the agent could rewrite it mid-run.
+#
+# Endpoint and key are not set here: the runner exports DEEPSEEK_BASE_URL (the local meter proxy)
+# and DEEPSEEK_API_KEY (a per-run proxy token, never the real key), DSH_PERMISSION_MODE (read-only
+# for observe, workspace-write otherwise) and DSH_TELEMETRY_MODE=DISABLED.
+
+# Phone-home: the session-log contributor attaches the whole session to every DeepSeek request as
+# a `dsh_session_log` field; telemetry exports to an OTLP collector; the inventory plugin reports
+# installed plugins. All off. (The meter proxy also strips unknown request fields.)
+- id: session-log-deepseek
+  disabled: true
+- id: session-telemetry-otel
+  disabled: true
+- id: otel
+  disabled: true
+- id: plugin-package-inventory-deepseek
+  disabled: true
+
+# Account sign-in flows: God authenticates with an API key only.
+- id: deepseek-account
+  disabled: true
+- id: llm-deepseek-account
+  disabled: true
+
+# An extra LLM call per session just to title it.
+- id: session-title-llm
+  disabled: true
+
+# No web access: fetched pages are free text from strangers, and the repo is public.
+- id: web
+  disabled: true
+- id: web-search-deepseek
+  disabled: true
+- id: web-fetch-http
+  disabled: true
+- id: tool-web
+  disabled: true
+- id: mcp-resources
+  disabled: true
+
+# One agent, one budget: parallel subagents and workflows multiply in-flight spend past the cap.
+- id: tool-subagent
+  disabled: true
+- id: tool-subagent-fork
+  disabled: true
+- id: tool-subagent-control
+  disabled: true
+- id: tool-subagent-list-agents
+  disabled: true
+- id: tool-workflow
+  disabled: true
+- id: workflow-ptc
+  disabled: true
+
+# One task, one turn: persisted goals keep a session working across automatic continuation rounds,
+# which is exactly what a bounded run must not do on its own.
+- id: goal
+  disabled: true
+- id: goal-round-driver
+  disabled: true
+- id: command-goal
+  disabled: true
+- id: tool-goal
+  disabled: true
+
+# The default 60 s shell timeout cannot fit a targeted test run.
+- id: bash-sandbox
+  config:
+    timeoutMs: 300000
+
+- id: agent-default-model
+  config:
+    provider: deepseek-official
+    model: !!js process.env.GOD_DSH_MODEL || 'deepseek-v4-pro'

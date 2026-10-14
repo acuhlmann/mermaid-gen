@@ -1,0 +1,9 @@
+{
+  "note": "Exact pins for the ArchiSlop God runner (ADR-0019). DeepSeek Harness is a developer preview with breaking changes promised: bump only by PR, and re-run the spike (god.yml, spike=true) on every bump.",
+  "packages": {
+    "@deepseek-ai/dsh": "0.2.0-rc.2"
+  },
+  "entry": "node_modules/@deepseek-ai/dsh/lib/bin.js",
+  "profile": "headless",
+  "model": "deepseek-v4-pro"
+}

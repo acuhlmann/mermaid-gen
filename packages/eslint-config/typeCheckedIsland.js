@@ -58,5 +58,6 @@ export const SERVER_STRICT_ISLAND_FILES = [
   'src/mcp/mcpCollaborationActions.ts',
   'src/mcp/mcpSlotRevisions.ts',
   'src/state/sessionServices.ts',
-  'src/state/pairingCodeStore.ts'
+  'src/state/pairingCodeStore.ts',
+  'src/routes/signals.ts'
 ];

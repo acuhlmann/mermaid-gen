@@ -461,6 +461,7 @@ area — see `docs/routines/README.md` rule 8; it is no longer "both root files,
 - `scripts/deploy-*.sh` and `scripts/push-*-secret-cloud-run.sh` — production deploy / Secret Manager scripts. Don't run unless asked.
 - `apps/server/src/mcp/apps/mcpAppSessionBridge.js` — the MCP Apps postMessage/SSE wire protocol that every `*AppHtml.js` string talks to; a change here can strand external agents silently with no failing test. The HTML itself is **not** off-limits: `apps/server/test/mcpAppHtml.test.js` pins the preview script's load/render timeouts and CDN fallbacks, so drift is caught by a sensor rather than by a warning. Note `apps/server/src/mcp/apps/mcpAppDiagramPreview.js` holds the Mermaid **CDN major**, which must move with the workspace `mermaid` dependency.
 - `apps/server/bench-results/` — bench snapshots; don't hand-edit, regenerate via the bench script.
+- `scripts/god/**`, `.github/workflows/god.yml`, `packages/shared/src/{godBudget,godSchemas,uxSignals}.ts` — ArchiSlop God's rails ([ADR-0019](docs/decisions/0019-archislop-god.md)): human PRs only; re-run the `god.yml` spike after touching `scripts/god/dsh/`.
 - `apps/web/src/assets/audio/*.mp3` — baked ElevenLabs assets; don't hand-edit, regenerate via `./scripts/generate-office-audio.sh` (build-time only — never wire ElevenLabs into a route, CI, or a deploy script). See [`docs/audio-assets.md`](docs/audio-assets.md).
 - `package-lock.json`, `skills-lock.json` — never hand-edit.
 

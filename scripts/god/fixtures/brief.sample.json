@@ -1,0 +1,46 @@
+{
+  "v": 1,
+  "generatedAt": "2026-10-14T07:17:00.000Z",
+  "window": { "from": "2026-10-13T07:17:00.000Z", "to": "2026-10-14T07:17:00.000Z" },
+  "baseline": { "from": "2026-10-06T07:17:00.000Z", "to": "2026-10-13T07:17:00.000Z" },
+  "build": {
+    "current": "409d700abc12",
+    "deploys": [{ "sha": "409d700abc12", "firstSeen": "2026-10-13T23:22:00.000Z" }]
+  },
+  "volume": { "agentTurns": 120, "uxSignals": 340, "sessions": 41 },
+  "slots": [
+    {
+      "contentType": "mermaid",
+      "turns": 90,
+      "accepted": 72,
+      "acceptRate": 0.8,
+      "acceptRateBaseline": 0.86,
+      "avgRepairAttempts": 0.6,
+      "p50DurationMs": 14000,
+      "p90DurationMs": 52000,
+      "errorClasses": { "parser-rejected": 11, "no-patch": 3 },
+      "runFailures": 9,
+      "retries": 6,
+      "restores": 2,
+      "runStops": 1,
+      "manualEditsAfterAgent": 14,
+      "autofixFired": 5,
+      "renderRepairs": 7,
+      "renderRepairFailures": 2
+    }
+  ],
+  "clientErrors": [{ "source": "window", "errorName": "TypeError", "count": 3 }],
+  "findings": [
+    {
+      "id": "mermaid.accept_rate",
+      "metric": "accept_rate",
+      "contentType": "mermaid",
+      "value": 0.8,
+      "baseline": 0.86,
+      "sample": 90,
+      "severity": 0.42
+    }
+  ],
+  "regressionSuspect": null,
+  "sufficient": true
+}

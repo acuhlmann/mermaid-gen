@@ -8,6 +8,12 @@ import bundledRatesDocument from './data/llm-token-rates.json' with { type: 'jso
 export type LlmTokenRates = {
   inputPerM: number;
   outputPerM: number;
+  /**
+   * Price for input tokens served from the provider's prompt cache (DeepSeek reports
+   * `prompt_cache_hit_tokens`). Optional: when absent, cache hits are priced as misses, so an
+   * estimate stays an upper bound — the safe direction for a spend cap.
+   */
+  cacheHitInputPerM?: number;
 };
 
 export type AgentCostEstimatesPayload = {
@@ -31,9 +37,17 @@ function parseBundledRatesDocument(doc: unknown): Record<string, LlmTokenRates> 
     const inputPerM = Number((value as LlmTokenRates).inputPerM);
     const outputPerM = Number((value as LlmTokenRates).outputPerM);
     if (!Number.isFinite(inputPerM) || !Number.isFinite(outputPerM)) continue;
-    out[normalizeLlmModelSlug(model)] = { inputPerM, outputPerM };
+    out[normalizeLlmModelSlug(model)] = withCacheHitRate({ inputPerM, outputPerM }, value);
   }
   return out;
+}
+
+/** Copy an optional, well-formed `cacheHitInputPerM` from a raw rate-table entry. */
+function withCacheHitRate(entry: LlmTokenRates, raw: object): LlmTokenRates {
+  const declared = (raw as LlmTokenRates).cacheHitInputPerM;
+  const cacheHit = Number(declared);
+  if (declared == null || !Number.isFinite(cacheHit) || cacheHit < 0) return entry;
+  return { ...entry, cacheHitInputPerM: cacheHit };
 }
 
 /** Bundled Vertex/OpenRouter list prices (USD per 1M tokens). Update `src/data/llm-token-rates.json`. */
@@ -159,11 +173,15 @@ export function resolveLlmTokenRates(
 export function estimateLlmCostUsd({
   inputTokens,
   outputTokens,
+  cacheHitInputTokens,
   model,
   rates
 }: {
+  /** All prompt tokens, cache hits included (DeepSeek's `prompt_tokens`). */
   inputTokens?: number;
   outputTokens?: number;
+  /** The part of `inputTokens` served from the prompt cache. */
+  cacheHitInputTokens?: number;
   model?: string | null;
   rates: Record<string, LlmTokenRates>;
 }): number | null {
@@ -172,7 +190,12 @@ export function estimateLlmCostUsd({
   const input = Number.isFinite(inputTokens) ? (inputTokens as number) : 0;
   const output = Number.isFinite(outputTokens) ? (outputTokens as number) : 0;
   if (input <= 0 && output <= 0) return null;
-  const usd = (input * table.inputPerM + output * table.outputPerM) / 1_000_000;
+  const hits = Number.isFinite(cacheHitInputTokens)
+    ? Math.min(Math.max(cacheHitInputTokens as number, 0), Math.max(input, 0))
+    : 0;
+  const hitRate = table.cacheHitInputPerM ?? table.inputPerM;
+  const usd =
+    ((input - hits) * table.inputPerM + hits * hitRate + output * table.outputPerM) / 1_000_000;
   if (!Number.isFinite(usd) || usd <= 0) return null;
   return usd;
 }
