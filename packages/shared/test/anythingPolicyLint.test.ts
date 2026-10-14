@@ -255,6 +255,11 @@ test('lintAnythingPolicy rejects external scripts', () => {
   assert.equal(result.code, 'external_script');
 });
 
+test('lintAnythingPolicy allows inline data: URI script src (no network load)', () => {
+  const withDataUri = `${VALID_DOC}<script src="data:text/javascript,"></script>`;
+  assert.equal(lintAnythingPolicy(withDataUri).ok, true);
+});
+
 test('lintAnythingPolicy rejects parent escape attempts', () => {
   const bad = VALID_DOC.replace('document.title', 'window.parent.document.title');
   const result = lintAnythingPolicy(bad);

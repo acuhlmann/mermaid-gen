@@ -130,6 +130,19 @@ export const ANYTHING_BENCH_CORPUS = [
     )
   },
   {
+    // Regression: empty `data:` script src is inline (no network) and must not
+    // trip external_script — models sometimes emit this placeholder before real
+    // inline <script> blocks (2026-09-17 lib-matter-stack repro).
+    id: 'valid-script-data-uri-empty',
+    kind: 'valid',
+    expectedAccept: true,
+    html: page(
+      `<h1>Ok</h1>
+<script src="data:text/javascript,"></script>
+<script>document.title = 'ok';</script>`
+    )
+  },
+  {
     // Allowlisted lib marker: the runtime check must execute the page WITH the
     // vendored d3 injected (regression = expansion dropped from the ladder).
     id: 'valid-lib-d3',
