@@ -30,6 +30,8 @@
     "src/mcp/mcpCollaborationActions.ts",
     "src/mcp/mcpSlotRevisions.ts",
     "src/state/sessionServices.ts",
-    "src/state/pairingCodeStore.ts"
+    "src/state/pairingCodeStore.ts",
+    // ArchiSlop God signal intake (ADR-0019).
+    "src/routes/signals.ts"
   ]
 }

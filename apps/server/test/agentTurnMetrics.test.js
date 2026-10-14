@@ -83,3 +83,32 @@ test('recordAgentTurn never throws even if sink fails', () => {
     );
   });
 });
+
+test('recordAgentTurn stamps the deployed sha and Cloud Run revision', () => {
+  const lines = [];
+  recordAgentTurn(
+    { mode: 'go', accepted: true, durationMs: 5 },
+    {
+      env: {
+        MERMAID_METRICS: '1',
+        APP_BUILD_SHA: '409D700ABCDEF0123456789',
+        K_REVISION: 'mermaid-gen-main-00835-xyz'
+      },
+      sink: (line) => lines.push(line)
+    }
+  );
+  const parsed = JSON.parse(lines[0]);
+  assert.equal(parsed.sha, '409d700abcde');
+  assert.equal(parsed.rev, 'mermaid-gen-main-00835-xyz');
+});
+
+test('recordAgentTurn leaves sha null when APP_BUILD_SHA is missing or not hex', () => {
+  for (const APP_BUILD_SHA of [undefined, '', 'main', 'HEAD; rm -rf /']) {
+    const lines = [];
+    recordAgentTurn(
+      { mode: 'go', accepted: true, durationMs: 5 },
+      { env: { MERMAID_METRICS: '1', APP_BUILD_SHA }, sink: (line) => lines.push(line) }
+    );
+    assert.equal(JSON.parse(lines[0]).sha, null, String(APP_BUILD_SHA));
+  }
+});

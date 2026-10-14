@@ -24,6 +24,26 @@
       "types": "./dist/anythingLibVendor.d.ts",
       "import": "./dist/anythingLibVendor.js",
       "default": "./dist/anythingLibVendor.js"
+    },
+    "./llmCostEstimate.js": {
+      "types": "./dist/llmCostEstimate.d.ts",
+      "import": "./dist/llmCostEstimate.js",
+      "default": "./dist/llmCostEstimate.js"
+    },
+    "./uxSignals.js": {
+      "types": "./dist/uxSignals.d.ts",
+      "import": "./dist/uxSignals.js",
+      "default": "./dist/uxSignals.js"
+    },
+    "./godSchemas.js": {
+      "types": "./dist/godSchemas.d.ts",
+      "import": "./dist/godSchemas.js",
+      "default": "./dist/godSchemas.js"
+    },
+    "./godBudget.js": {
+      "types": "./dist/godBudget.d.ts",
+      "import": "./dist/godBudget.js",
+      "default": "./dist/godBudget.js"
     }
   },
   "scripts": {

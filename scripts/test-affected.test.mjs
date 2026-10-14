@@ -146,6 +146,16 @@ test('resolveAffectedTests pulls agent tooling blast tests for test-affected-lib
   assert.equal(plan.fallbacks.includes('scripts'), false);
 });
 
+test('nested script modules map to the test beside them (scripts/god/…)', () => {
+  assert.deepEqual(basenameTestCandidates('scripts/god/harness/dsh.mjs'), [
+    'scripts/dsh.test.mjs',
+    'scripts/god/harness/dsh.test.mjs'
+  ]);
+  const plan = resolveAffectedTests(['scripts/god/meterProxy.mjs'], { root: ROOT });
+  assert.ok(plan.tests.includes('scripts/god/meterProxy.test.mjs'));
+  assert.equal(plan.fallbacks.includes('scripts'), false);
+});
+
 test('resolveAffectedTests marks unknown scripts paths for fallback', () => {
   const plan = resolveAffectedTests(['scripts/noMatchingAgentScript.mjs'], { root: ROOT });
   assert.ok(plan.fallbacks.includes('scripts'));

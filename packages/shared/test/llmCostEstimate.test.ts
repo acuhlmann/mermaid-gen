@@ -107,3 +107,40 @@ test('buildAgentCostEstimatesPayload disables locally by default', () => {
   assert.equal(payload.enabled, false);
   assert.ok(payload.rates['gemini-2.5-flash']);
 });
+
+test('estimateLlmCostUsd prices cache hits as misses when no cache rate is known', () => {
+  const rates = mergeLlmTokenRates({});
+  const withHits = estimateLlmCostUsd({
+    inputTokens: 1_000_000,
+    cacheHitInputTokens: 800_000,
+    outputTokens: 0,
+    model: 'deepseek-v4-pro',
+    rates
+  });
+  assert.equal(withHits, 0.435);
+});
+
+test('estimateLlmCostUsd discounts cache hits when a cache rate is configured', () => {
+  const rates = { 'deepseek-v4-pro': { inputPerM: 0.4, outputPerM: 0.8, cacheHitInputPerM: 0.04 } };
+  const usd = estimateLlmCostUsd({
+    inputTokens: 1_000_000,
+    cacheHitInputTokens: 750_000,
+    outputTokens: 100_000,
+    model: 'deepseek-v4-pro',
+    rates
+  });
+  assert.ok(usd != null);
+  assert.ok(Math.abs(usd - (0.25 * 0.4 + 0.75 * 0.04 + 0.1 * 0.8)) < 1e-12);
+});
+
+test('estimateLlmCostUsd clamps cache hits to the input total', () => {
+  const rates = { 'deepseek-v4-pro': { inputPerM: 1, outputPerM: 1, cacheHitInputPerM: 0 } };
+  const usd = estimateLlmCostUsd({
+    inputTokens: 1_000_000,
+    cacheHitInputTokens: 5_000_000,
+    outputTokens: 1_000_000,
+    model: 'deepseek-v4-pro',
+    rates
+  });
+  assert.equal(usd, 1);
+});

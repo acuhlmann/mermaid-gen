@@ -9,7 +9,8 @@ function bootServer({
   repairImpl,
   isFixerAvailable,
   repairAnythingImpl,
-  isAnythingFixerAvailable
+  isAnythingFixerAvailable,
+  recordSignal = () => {}
 }) {
   const app = express();
   app.use(express.json());
@@ -22,7 +23,8 @@ function bootServer({
       repairImpl,
       isFixerAvailable: isFixerAvailable ?? (() => true),
       repairAnythingImpl,
-      isAnythingFixerAvailable: isAnythingFixerAvailable ?? (() => true)
+      isAnythingFixerAvailable: isAnythingFixerAvailable ?? (() => true),
+      recordSignal
     })
   );
   return new Promise((resolve) => {
@@ -259,6 +261,67 @@ test('render-error repair: anything returns 503 when the anything fixer is uncon
     const body = await res.json();
     assert.equal(body.repaired, false);
     assert.match(body.error, /not configured/);
+  } finally {
+    await closeServer();
+  }
+});
+
+test('render-error repair: each outcome records one content-free render_repair signal', async () => {
+  const stateStore = createDiagramStateStore();
+  await stateStore.applyDiagramSource({
+    contentType: 'mermaid',
+    diagramSource: 'flowchart TD\n  A --> B',
+    reason: 'seed'
+  });
+  const seeded = stateStore.getSlot('mermaid');
+  const signals = [];
+  const { port, closeServer } = await bootServer({
+    stateStore,
+    repairImpl: async () => ({ accepted: true, diagramSource: 'flowchart TD\n  A[Start] --> B' }),
+    recordSignal: (signal) => signals.push(signal)
+  });
+  try {
+    const repaired = await postRenderError(port, {
+      revisionId: seeded.revisionId,
+      source: seeded.diagramSource,
+      renderError: 'the user prompt and render error must never reach a signal'
+    });
+    assert.equal(repaired.status, 200);
+    const stale = await postRenderError(port, {
+      revisionId: seeded.revisionId,
+      source: seeded.diagramSource,
+      renderError: 'boom'
+    });
+    assert.equal((await stale.json()).reason, 'stale');
+    assert.deepEqual(signals, [
+      { kind: 'render_repair', contentType: 'mermaid', outcome: 'repaired' },
+      { kind: 'render_repair', contentType: 'mermaid', outcome: 'stale' }
+    ]);
+  } finally {
+    await closeServer();
+  }
+});
+
+test('render-error repair: an unconfigured fixer records unavailable; bad payloads record nothing', async () => {
+  const stateStore = createDiagramStateStore();
+  const signals = [];
+  const { port, closeServer } = await bootServer({
+    stateStore,
+    isFixerAvailable: () => false,
+    recordSignal: (signal) => signals.push(signal)
+  });
+  try {
+    const invalid = await postRenderError(port, { revisionId: -1 });
+    assert.equal(invalid.status, 400);
+    const unavailable = await postRenderError(port, {
+      revisionId: 0,
+      source: 'flowchart TD\n  A --> B',
+      renderError: 'boom'
+    });
+    assert.equal(unavailable.status, 503);
+    assert.deepEqual(signals, [
+      { kind: 'render_repair', contentType: 'mermaid', outcome: 'unavailable' }
+    ]);
   } finally {
     await closeServer();
   }

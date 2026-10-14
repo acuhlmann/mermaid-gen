@@ -246,6 +246,20 @@ export const BLAST_RADIUS_RULES = [
     ]
   },
   {
+    // ADR-0019: the signal schema is the privacy boundary the server re-validates against, and the
+    // God schemas/budget are read by the runner — a shared edit must reach both consumers.
+    match: /packages\/shared\/src\/(uxSignals|godSchemas|godBudget)/,
+    tests: [
+      'packages/shared/test/uxSignals.test.ts',
+      'packages/shared/test/godSchemas.test.ts',
+      'packages/shared/test/godBudget.test.ts',
+      'apps/server/test/signalsRoute.test.js',
+      'apps/server/test/uxSignalMetrics.test.js',
+      'scripts/god/run.test.mjs',
+      'scripts/god/liveEvents.test.mjs'
+    ]
+  },
+  {
     match: /packages\/shared\/src\/chartSchema/,
     tests: [
       'packages/shared/test/chartSchema.test.ts',
@@ -383,6 +397,9 @@ export function basenameTestCandidates(srcPath) {
     if (scriptBase.endsWith('-lib')) {
       candidates.push(`scripts/${scriptBase.replace(/-lib$/, '')}.test.mjs`);
     }
+    // Nested tool directories (scripts/god/…) keep their tests beside the module.
+    const dir = path.posix.dirname(srcPath);
+    if (dir !== 'scripts') candidates.push(`${dir}/${scriptBase}.test.mjs`);
     return candidates;
   }
   return [];

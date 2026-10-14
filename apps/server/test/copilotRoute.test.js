@@ -642,6 +642,61 @@ test('user-edit route refuses a stale revision', async () => {
   assert.match(stateStore.getSlot('mermaid').diagramSource, /A --> B/);
 });
 
+test('user-edit route records a content-free graph_edit signal, afterAgent by patch origin', async () => {
+  const stateStore = createDiagramStateStore();
+  const signals = [];
+  const recordSignal = (signal) => signals.push(signal);
+  await stateStore.applyDiagramSource({
+    contentType: 'mermaid',
+    diagramSource: 'flowchart TD\n  A --> B',
+    reason: 'agent draft'
+  });
+  const first = await handleUserDiagramEdit({
+    body: {
+      contentType: 'mermaid',
+      diagramSource: 'flowchart TD\n  A --> B\n  B --> C',
+      previousRevisionId: 1,
+      reason: 'Connect node'
+    },
+    stateStore,
+    recordSignal
+  });
+  const second = await handleUserDiagramEdit({
+    body: {
+      contentType: 'mermaid',
+      diagramSource: 'flowchart TD\n  A --> B\n  B --> D',
+      previousRevisionId: 2,
+      reason: 'Relink node'
+    },
+    stateStore,
+    recordSignal
+  });
+
+  assert.equal(first.status, 200);
+  assert.equal(second.status, 200);
+  assert.deepEqual(signals, [
+    { kind: 'graph_edit', contentType: 'mermaid', afterAgent: true },
+    { kind: 'graph_edit', contentType: 'mermaid', afterAgent: false }
+  ]);
+});
+
+test('user-edit route records no signal for a rejected or stale edit', async () => {
+  const stateStore = createDiagramStateStore();
+  const signals = [];
+  const stale = await handleUserDiagramEdit({
+    body: {
+      contentType: 'mermaid',
+      diagramSource: 'flowchart TD\n  A --> B',
+      previousRevisionId: 5,
+      reason: 'Connect node'
+    },
+    stateStore,
+    recordSignal: (signal) => signals.push(signal)
+  });
+  assert.equal(stale.status, 409);
+  assert.deepEqual(signals, []);
+});
+
 test('user-edit route rejects invalid mermaid without mutating', async () => {
   const stateStore = createDiagramStateStore();
   const before = stateStore.getSlot('mermaid');

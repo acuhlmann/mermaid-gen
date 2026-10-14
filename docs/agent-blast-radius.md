@@ -45,6 +45,19 @@ Run: `npm run check:wire`
 | Server tool       | [`apps/server/src/tools/formsA2uiTool.js`](../apps/server/src/tools/formsA2uiTool.js)                                                                                                                                                                                           |
 | Tests             | [`packages/shared/test/formsA2ui.test.ts`](../packages/shared/test/formsA2ui.test.ts), [`apps/server/test/formsA2uiTool.test.js`](../apps/server/test/formsA2uiTool.test.js), [`apps/server/test/formsLangChainAgent.test.js`](../apps/server/test/formsLangChainAgent.test.js) |
 
+## Usage signals and ArchiSlop God (ADR-0019)
+
+The signal schema is a privacy boundary and a prompt-injection boundary at once: every field must stay an enum, a bounded integer or a boolean. Widening it is a product decision, not a refactor.
+
+| Layer          | Location                                                                                                                                                                                                                                                              |
+| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Shared schemas | [`packages/shared/src/uxSignals.ts`](../packages/shared/src/uxSignals.ts), [`godSchemas.ts`](../packages/shared/src/godSchemas.ts), [`godBudget.ts`](../packages/shared/src/godBudget.ts)                                                                             |
+| Server intake  | [`apps/server/src/routes/signals.ts`](../apps/server/src/routes/signals.ts), [`apps/server/src/metrics/uxSignalMetrics.js`](../apps/server/src/metrics/uxSignalMetrics.js)                                                                                            |
+| Server funnels | [`apps/server/src/routes/diagramRepair.js`](../apps/server/src/routes/diagramRepair.js) (`render_repair`), [`apps/server/src/routes/copilotUserEdit.ts`](../apps/server/src/routes/copilotUserEdit.ts) (`graph_edit`)                                                 |
+| Runner         | [`scripts/god/run.mjs`](../scripts/god/run.mjs), [`scripts/god/meterProxy.mjs`](../scripts/god/meterProxy.mjs), [`.github/workflows/god.yml`](../.github/workflows/god.yml)                                                                                           |
+| Tests          | [`packages/shared/test/uxSignals.test.ts`](../packages/shared/test/uxSignals.test.ts), [`apps/server/test/signalsRoute.test.js`](../apps/server/test/signalsRoute.test.js), [`apps/server/test/uxSignalMetrics.test.js`](../apps/server/test/uxSignalMetrics.test.js) |
+| Docs           | [`docs/guide/api-endpoints.md`](guide/api-endpoints.md), [`docs/guide/configuration.md`](guide/configuration.md), [`docs/decisions/0019-archislop-god.md`](decisions/0019-archislop-god.md)                                                                           |
+
 ## HTTP / Zod body (intent, transform, analyze, style, user-edit)
 
 | Layer          | Location                                                                                                                                                                                                                                                                                    |

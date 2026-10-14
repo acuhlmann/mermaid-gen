@@ -19,13 +19,33 @@ function sanitizeShortString(value, max = 120) {
   return s.length > max ? `${s.slice(0, max)}…` : s;
 }
 
+/** Whether structured metric lines are on (`MERMAID_METRICS=1`; production sets it since ADR-0019). */
+export function isMetricsEnabled(env = process.env) {
+  return readBoolean(env, 'MERMAID_METRICS');
+}
+
+/**
+ * Which build wrote a line: the deployed commit (`APP_BUILD_SHA`, set by the deploy workflow) and
+ * the Cloud Run revision (`K_REVISION`). ArchiSlop God compares windows by these to attribute a
+ * metric change to a deploy.
+ */
+export function resolveBuildStamp(env = process.env) {
+  const raw = String(env?.APP_BUILD_SHA ?? '')
+    .trim()
+    .toLowerCase();
+  return {
+    sha: /^[0-9a-f]{7,40}$/.test(raw) ? raw.slice(0, 12) : null,
+    rev: sanitizeShortString(env?.K_REVISION, 64)
+  };
+}
+
 /**
  * Emits a single structured JSON line per completed agent turn so before/after benchmarks
  * are comparable across phases. Disabled by default; opt in by setting MERMAID_METRICS=1.
  *
- * Shape stays stable so log shippers can index on it (contentType was added
+ * Shape stays stable so log shippers can index on it (contentType, then sha/rev, were added
  * additively — every slot's agent emits records now, not just mermaid):
- *   { tag, ts, contentType, mode, model, profile, durationMs, accepted, validator,
+ *   { tag, ts, sha, rev, contentType, mode, model, profile, durationMs, accepted, validator,
  *     repairAttempts, sanitizerHits, errorClass }
  *
  * @param {{
@@ -44,11 +64,12 @@ function sanitizeShortString(value, max = 120) {
  */
 export function recordAgentTurn(sample, opts = {}) {
   const env = opts.env ?? process.env;
-  if (!readBoolean(env, 'MERMAID_METRICS')) return null;
+  if (!isMetricsEnabled(env)) return null;
 
   const record = {
     tag: METRIC_TAG,
     ts: new Date().toISOString(),
+    ...resolveBuildStamp(env),
     contentType: sanitizeShortString(sample.contentType) ?? 'mermaid',
     mode: sanitizeShortString(sample.mode) ?? 'unknown',
     model: sanitizeShortString(sample.model) ?? null,

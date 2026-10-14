@@ -116,6 +116,15 @@ export const ALWAYS_FORBIDDEN = [
   'apps/server/src/mcp/apps/mcpAppSessionBridge.js',
   '**/dist/**',
   '**/*.tsbuildinfo',
+  // ArchiSlop God's money, credential and privacy rails (ADR-0019): the runner (meter proxy, harness
+  // adapters, dsh overlay and pins), its workflow, the hard limits it runs under, and the schemas
+  // that keep free text out of what it reads. Page bars #1 and #2 made mechanical: no routine — God
+  // included — may widen the ceiling it is paid under or the boundary it is fed through.
+  'scripts/god/**',
+  '.github/workflows/god.yml',
+  'packages/shared/src/godBudget.ts',
+  'packages/shared/src/godSchemas.ts',
+  'packages/shared/src/uxSignals.ts',
   // This file. The budget is the safety model, so the thing that reads the budget cannot be inside
   // any routine's reach — `allowedPaths` is what a routine may widen, and a routine that can edit
   // the enforcer can edit everything. Issue #461 named the gap; ADR-0017 closes it.

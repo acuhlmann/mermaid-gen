@@ -9,6 +9,7 @@ import {
 import { SESSION_HEADER } from '../state/sessionServices.js';
 import { redactSecrets } from '../utils/redactSecrets.js';
 import { createApiRateLimitMiddleware } from '../middleware/apiRateLimit.js';
+import { recordUxSignal } from '../metrics/uxSignalMetrics.js';
 
 const MERMAID_SOURCE_MAX = 20_000;
 
@@ -64,7 +65,9 @@ export function createDiagramRepairRouter({
   /** Test seam: replace the anything syntax-fixer call. */
   repairAnythingImpl = repairAnythingWithFixer,
   /** Test seam: replace the anything availability check. */
-  isAnythingFixerAvailable = isAnythingSyntaxFixerAvailable
+  isAnythingFixerAvailable = isAnythingSyntaxFixerAvailable,
+  /** Test seam: where each outcome's content-free `render_repair` signal goes (ADR-0019). */
+  recordSignal = recordUxSignal
 } = {}) {
   if (typeof resolveServices !== 'function') {
     throw new Error('createDiagramRepairRouter requires resolveServices');
@@ -87,11 +90,16 @@ export function createDiagramRepairRouter({
     }
 
     const { revisionId, source, renderError, contentType } = parsed.data;
+    /** Every outcome past validation records one `render_repair` signal as it responds. */
+    const reply = (outcome, status, body) => {
+      recordSignal({ kind: 'render_repair', contentType, outcome });
+      return res.status(status).json(body);
+    };
     const fixer = contentType === 'anything' ? repairAnythingImpl : repairImpl;
     const fixerAvailable = contentType === 'anything' ? isAnythingFixerAvailable : isFixerAvailable;
 
     if (!fixerAvailable(env)) {
-      return res.status(503).json({
+      return reply('unavailable', 503, {
         repaired: false,
         error: 'Syntax fixer model is not configured on this server.'
       });
@@ -101,7 +109,7 @@ export function createDiagramRepairRouter({
     if (slot.revisionId !== revisionId || slot.diagramSource.trim() !== source.trim()) {
       // Slot already moved on (user typed, or another agent run committed).
       // Don't touch state — just tell the client to drop its repair intent.
-      return res.status(200).json({ repaired: false, reason: 'stale', state: slot });
+      return reply('stale', 200, { repaired: false, reason: 'stale', state: slot });
     }
 
     let fixerOutcome;
@@ -112,11 +120,11 @@ export function createDiagramRepairRouter({
         env
       });
     } catch (error) {
-      return res.status(502).json({ repaired: false, error: safeErrorMessage(error) });
+      return reply('error', 502, { repaired: false, error: safeErrorMessage(error) });
     }
 
     if (!fixerOutcome?.accepted || !fixerOutcome.diagramSource) {
-      return res.status(200).json({
+      return reply('failed', 200, {
         repaired: false,
         error: fixerOutcome?.error || 'Fixer could not repair the document.'
       });
@@ -125,7 +133,7 @@ export function createDiagramRepairRouter({
     // Re-check the slot right before applying, in case state moved during the LLM call.
     const slotAfter = stateStore.getSlot(contentType);
     if (slotAfter.revisionId !== revisionId) {
-      return res.status(200).json({ repaired: false, reason: 'stale', state: slotAfter });
+      return reply('stale', 200, { repaired: false, reason: 'stale', state: slotAfter });
     }
 
     let applied;
@@ -136,19 +144,20 @@ export function createDiagramRepairRouter({
         reason: 'render-error repair'
       });
     } catch (error) {
-      return res.status(500).json({ repaired: false, error: safeErrorMessage(error) });
+      return reply('error', 500, { repaired: false, error: safeErrorMessage(error) });
     }
 
     if (!applied?.accepted) {
-      return res.status(200).json({
+      return reply('rejected', 200, {
         repaired: false,
         error: applied?.error || 'State store rejected the repair candidate.'
       });
     }
 
-    return res
-      .status(200)
-      .json({ repaired: true, state: applied.state ?? stateStore.getSlot(contentType) });
+    return reply('repaired', 200, {
+      repaired: true,
+      state: applied.state ?? stateStore.getSlot(contentType)
+    });
   });
 
   return router;

@@ -140,8 +140,10 @@ export function scanTestFileForRatchetHardGate(source, relativePath) {
  * @returns {{ ok: boolean, hits: { file: string, startLine: number, patterns: string[] }[] }}
  */
 export function scanAllScriptTests(scriptsDir) {
+  // Recursive, like `test:scripts` itself: a nested suite (scripts/god/…) runs in CI too.
   const names = fs
-    .readdirSync(scriptsDir)
+    .readdirSync(scriptsDir, { recursive: true })
+    .map((name) => String(name).split(path.sep).join('/'))
     .filter((name) => name.endsWith('.test.mjs'))
     .sort();
   /** @type {{ file: string, startLine: number, patterns: string[] }[]} */

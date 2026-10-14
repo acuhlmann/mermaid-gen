@@ -21,6 +21,8 @@ Short prose records of non-obvious past decisions. Read these before re-litigati
 | [0015](0015-resolve-routine-and-escalation.md)                     | `resolve` routine works the issue backlog; escalation exception to self-merge            |
 | [0016](0016-routine-autonomy-for-splits-and-lint-promotion.md)     | Routine autonomy: `improve` may split monoliths and promote lint severity itself         |
 | [0017](0017-routine-ownership-dependabot-and-the-attention-bar.md) | Owned budgets, a `deps` routine for Dependabot, and the four things that reach the owner |
+| [0018](0018-green-builds-self-healing-and-the-two-minute-ask.md)   | Green builds, a self-healing Claude side, and the two-minute ask                         |
+| [0019](0019-archislop-god.md)                                      | ArchiSlop God: production signals drive an off-box self-improvement rung                 |
 
 ## Format
 
