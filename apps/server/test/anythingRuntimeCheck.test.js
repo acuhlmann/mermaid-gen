@@ -4,6 +4,8 @@ import { getAnythingLibInfo } from '@archislop/shared';
 import { expandAnythingLibs } from '@archislop/shared/anythingLibVendor.js';
 import {
   isAnythingRuntimeCheckEnabled,
+  nodeVersionMeetsJsdomMinimum,
+  resolveAnythingJsdomExecPath,
   runAnythingRuntimeCheck
 } from '../src/tools/anythingRuntimeCheck.js';
 import { ANYTHING_BENCH_CORPUS } from '../scripts/benchAnythingCorpus.js';
@@ -18,6 +20,21 @@ test('isAnythingRuntimeCheckEnabled defaults on and honors kill switches', () =>
   assert.equal(isAnythingRuntimeCheckEnabled({ ANYTHING_RUNTIME_CHECK: '0' }), false);
   assert.equal(isAnythingRuntimeCheckEnabled({ ANYTHING_RUNTIME_CHECK: 'false' }), false);
   assert.equal(isAnythingRuntimeCheckEnabled({ ANYTHING_RUNTIME_CHECK: 'off' }), false);
+});
+
+test('nodeVersionMeetsJsdomMinimum tracks jsdom 30 engine bounds', () => {
+  assert.equal(nodeVersionMeetsJsdomMinimum('v22.14.0'), false);
+  assert.equal(nodeVersionMeetsJsdomMinimum('v22.22.2'), true);
+  assert.equal(nodeVersionMeetsJsdomMinimum('v24.14.0'), false);
+  assert.equal(nodeVersionMeetsJsdomMinimum('v24.15.0'), true);
+  assert.equal(nodeVersionMeetsJsdomMinimum('v26.0.0'), true);
+});
+
+test('resolveAnythingJsdomExecPath honours ANYTHING_RUNTIME_NODE', () => {
+  assert.equal(
+    resolveAnythingJsdomExecPath({ ANYTHING_RUNTIME_NODE: process.execPath }),
+    process.execPath
+  );
 });
 
 // Each case spawns a jsdom child with a hard deadline. Run serially so parallel
