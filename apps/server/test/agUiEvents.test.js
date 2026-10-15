@@ -2,7 +2,6 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   EventSchemas,
-  EventType,
   RunStartedEventSchema,
   RunFinishedEventSchema,
   RunErrorEventSchema,
@@ -17,7 +16,8 @@ import {
   StateSnapshotEventSchema,
   StateDeltaEventSchema,
   CustomEventSchema
-} from '@ag-ui/core';
+} from '@ag-ui/core/schemas';
+import { EventType } from '@ag-ui/core';
 import {
   createAgentStreamEmitter,
   customEvent,

@@ -44,7 +44,7 @@ test('collectPackageInstances finds nested instances and invalid markers', () =>
 
 test('resolveWorkspacePackage prefers workspace node_modules', () => {
   const webCore = resolveWorkspacePackage(ROOT, 'apps/web', '@a2ui/web_core');
-  assert.equal(webCore, '0.10.5');
+  assert.equal(webCore, '0.12.0');
 });
 
 test('resolveReactWebCore matches workspace web_core when nested copy aligns', () => {

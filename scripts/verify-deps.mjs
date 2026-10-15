@@ -128,7 +128,7 @@ export function collectPackageInstances(node, pkgName) {
  *
  * Overrides make both the pinned version and older transitive copies look invalid
  * to npm ls (e.g. @copilotkit/a2ui-renderer still declares 0.9.0 while the
- * override hoists 0.10.5). Only report when app import paths are not aligned.
+ * override hoists 0.12.0). Only report when app import paths are not aligned.
  *
  * @param {{ version: string, invalid?: string }} hit
  * @param {{ expectedCore?: string, webCore: string | null, reactCore: string | null }} ctx
