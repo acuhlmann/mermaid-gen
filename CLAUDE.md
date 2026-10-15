@@ -260,12 +260,13 @@ runs on a separate shelf: [`docs/automations/`](docs/automations/README.md). Sam
 (playbook + ledger + cron trigger), same `npm run routine:guard` budget enforcement, but these
 **do** touch product code (and never write slot content — ADR-0010 still applies).
 
-| Playbook                                                     | UTC           | HKT   | What it improves                                                |
-| ------------------------------------------------------------ | ------------- | ----- | --------------------------------------------------------------- |
-| [`metaphor3d`](docs/automations/metaphor3d.md)               | `0 15 * * *`  | 23:00 | The 3D slot: ladder, layouts, scenes, composite, USDA           |
-| [`office-life`](docs/automations/office-life.md)             | `0 18 * * *`  | 02:00 | The isometric office: cast, memory, the visit trace             |
-| [`anything`](docs/automations/anything.md)                   | `30 19 * * *` | 03:30 | The Anything slot: policy lint, runtime rung, prompts           |
-| [`canvas-graph-edit`](docs/automations/canvas-graph-edit.md) | `30 20 * * *` | 04:30 | Direct manipulation on the canvas, all 28 families — **parked** |
+| Playbook                                                     | UTC           | HKT        | What it improves                                                           |
+| ------------------------------------------------------------ | ------------- | ---------- | -------------------------------------------------------------------------- |
+| [`metaphor3d`](docs/automations/metaphor3d.md)               | `0 15 * * *`  | 23:00      | The 3D slot: ladder, layouts, scenes, composite, USDA                      |
+| [`office-life`](docs/automations/office-life.md)             | `0 18 * * *`  | 02:00      | The isometric office: cast, memory, the visit trace                        |
+| [`anything`](docs/automations/anything.md)                   | `30 19 * * *` | 03:30      | The Anything slot: policy lint, runtime rung, prompts                      |
+| [`canvas-graph-edit`](docs/automations/canvas-graph-edit.md) | `30 20 * * *` | 04:30      | Direct manipulation on the canvas, all 28 families — **parked**            |
+| [`god`](docs/automations/god.md)                             | `17 * * * *`  | hourly :17 | Production signals → brief (GHA; off-ladder; window `06–12` UTC; ADR-0019) |
 
 `metaphor3d` and `canvas-graph-edit` got playbooks on 2026-08-30; before that they were exactly the
 prompt-in-a-cron-blob shape ADR-0014 exists to replace, and `metaphor3d` — the most productive job

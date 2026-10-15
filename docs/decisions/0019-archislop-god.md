@@ -110,8 +110,9 @@ the product).
   `apps/server/src/metrics/agentTurnMetrics.js`, `apps/server/src/routes/signals.ts`.
 - Budget and wire shapes: `packages/shared/src/godBudget.ts`, `packages/shared/src/godSchemas.ts`.
 - Runner: `scripts/god/` (meter proxy, harness adapters, run wrapper) and `.github/workflows/god.yml`.
-- Playbook + ledger: `docs/automations/god.md`, `docs/automations/ledger/god.md`; visual guide
-  `docs/guide/archislop-god.md`.
-- Client signal emitter: `apps/web/src/state/uxSignalsClient.js` (shipped).
-- Still to land: brief and gate scripts in CI, scheduled `gate → brief → act → verify → publish`,
-  owner-gated `/api/god` routes, and the God window (Now, History, Signals, Settings).
+- Playbook + hourly gate/brief: `docs/automations/god.md`, `scripts/god/{brief,gate}.mjs`,
+  `.github/workflows/god.yml` (cron `17 * * * *`; act still later).
+- Visual guide: `docs/guide/archislop-god.md`; client signal emitter
+  `apps/web/src/state/uxSignalsClient.js` (shipped).
+- Later PRs: the owner-gated `/api/god` routes, the God window, and the act → verify → publish
+  pipeline.

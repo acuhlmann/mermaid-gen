@@ -71,6 +71,12 @@ export const MERGE_POLICIES = ['self-merge', 'hold'];
 export const DELETE_ONLY_ROUTINES = ['prune'];
 
 /**
+ * Routines that never take `ready-for-agent` backlog work. Excluded from `ownersOfPath` even after
+ * a hold is lifted — God only acts from production signals (ADR-0019), never from issues.
+ */
+export const UNQUEUED_ROUTINES = ['god'];
+
+/**
  * Routines allowed to delete a test file, and only as half of a mechanically proved dead pair —
  * a test whose only non-test relative import is itself deleted in the same diff and is referenced
  * by nothing that survives (see `collectDeadPairings`). Since 2026-09-19 the `test-only` class —
@@ -509,6 +515,7 @@ export function ownersOfPath(filePath, playbooks = collectPlaybooks()) {
   if (matchesAny(filePath, ALWAYS_FORBIDDEN)) return [];
   return playbooks
     .filter(({ playbook }) => mergePolicyOf(playbook) !== 'hold')
+    .filter(({ name }) => !UNQUEUED_ROUTINES.includes(name))
     .filter(({ name }) => !DELETE_ONLY_ROUTINES.includes(name))
     .filter(({ name, playbook }) => {
       const allowed = toList(playbook.allowedPaths);
@@ -1362,7 +1369,7 @@ export function postflightOkMessage({
       : `routine-guard: postflight OK for "${name}" (${fileCount}/${String(playbook.maxFiles)} files${filingNote})`;
   const reminders = [];
   if (mergePolicyOf(playbook) === 'hold') {
-    reminders.push('merge policy is `hold`: open the PR and stop — a human merges a deletion');
+    reminders.push('merge policy is `hold`: open the PR and stop — a human merges it');
   }
   if (deletedCount) {
     reminders.push(

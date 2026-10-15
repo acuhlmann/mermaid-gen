@@ -139,7 +139,9 @@ function ladderFixture(playbooks, ladderRows) {
       path.join(dir, `${pb.name}.md`),
       `---\nname: ${pb.name}\ntier: code-writing\nschedule: ${pb.schedule}\n${pausedLine}---\n\n# ${pb.name}\n`
     );
-    if (pb.schedule !== 'none' && pb.name !== 'deps' && !pb.paused) activeRungCount++;
+    if (pb.schedule !== 'none' && pb.name !== 'deps' && pb.name !== 'god' && !pb.paused) {
+      activeRungCount++;
+    }
   }
   fs.writeFileSync(
     path.join(root, 'docs', 'routines', 'review.md'),
@@ -346,6 +348,7 @@ test('a rung declared off the ladder needs no row and no window', () => {
   const root = ladderFixture(
     [
       { name: 'deps', schedule: "'30 4,14 * * *'" },
+      { name: 'god', schedule: "'17 * * * *'" },
       { name: 'prune', schedule: "'30 15 * * *'" }
     ],
     [LADDER_OK[0]]
