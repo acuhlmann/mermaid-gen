@@ -157,7 +157,10 @@ export const CONTROLS_ZH_CN = {
     admin: '行政',
     adminTitle: '行政 · 外包、人事、耳机、语言、快捷键',
     adminAria: '行政 — 外包、人事、耳机、语言、快捷键',
-    hotkeys: '键盘快捷键'
+    hotkeys: '键盘快捷键',
+    usageSignalsLabel: '共享匿名使用数据',
+    usageSignalsTitle:
+      '只发送计数（例如“一次运行失败”“你撤销了一次 AI 修改”），帮助 ArchiSlop 自我改进——绝不发送你的提示、图表或任何可识别你的信息。'
   },
   languagePack: {
     label: '语言包',

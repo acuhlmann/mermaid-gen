@@ -157,7 +157,10 @@ export const CONTROLS_ZH_TW = {
     admin: '行政',
     adminTitle: '行政 · 外包、人事、耳機、語言、快速鍵',
     adminAria: '行政 — 外包、人事、耳機、語言、快速鍵',
-    hotkeys: '鍵盤快速鍵'
+    hotkeys: '鍵盤快速鍵',
+    usageSignalsLabel: '分享匿名使用資料',
+    usageSignalsTitle:
+      '只傳送計數（例如「一次執行失敗」「你復原了一次 AI 修改」），協助 ArchiSlop 自我改進——絕不傳送你的提示、圖表或任何可識別你的資訊。'
   },
   languagePack: {
     label: '語言包',

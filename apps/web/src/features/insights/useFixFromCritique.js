@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { splitCritiqueActionableSections } from '@archislop/shared';
 import { selectionActionTitle, topicFromDescriptor } from '../../utils/appInsightHelpers.js';
+import { recordUxSignal } from '../../state/uxSignalsClient.js';
 
 /**
  * Build and run a fix-from-critique intent via the streaming agent.
@@ -116,6 +117,12 @@ ${critiqueBlock}
 Requirements:
 ${requirementsBlock}`;
 
+      recordUxSignal({
+        kind: 'critique_fix',
+        contentType: contentMode,
+        scope: scope === 'selected' ? 'selected' : 'all',
+        itemCount: Math.min(itemsToApply.length, 50)
+      });
       setLoading(true);
       setActiveRequest('fix');
       setError('');

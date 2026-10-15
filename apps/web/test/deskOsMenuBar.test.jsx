@@ -233,6 +233,23 @@ describe('DeskOsMenuBar', () => {
     );
   });
 
+  it('offers the anonymous-usage opt-out in Settings and flips it', () => {
+    const handlers = setup({ usageSignals: true, onToggleUsageSignals: vi.fn() });
+    openMenu('admin');
+    const toggle = screen.getByTestId('desk-usage-signals');
+    expect(toggle.textContent).toContain(MENU.usageSignalsLabel);
+    const box = toggle.querySelector('input');
+    expect(box.checked).toBe(true);
+    fireEvent.click(box);
+    expect(handlers.onToggleUsageSignals).toHaveBeenCalledWith(false);
+  });
+
+  it('hides the usage opt-out when no handler is wired', () => {
+    setup();
+    openMenu('admin');
+    expect(screen.queryByTestId('desk-usage-signals')).toBeNull();
+  });
+
   it('opens one menu at a time', () => {
     setup();
     openMenu('deliverable');

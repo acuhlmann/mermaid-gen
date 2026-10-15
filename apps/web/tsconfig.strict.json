@@ -35,6 +35,7 @@
     "src/utils/partKindLabel.ts",
     "src/utils/planPreviewDedupe.ts",
     "src/utils/radialSelectionIntroStorage.ts",
+    "src/utils/usageSignalsStorage.ts",
     "src/utils/seededHash.ts",
     "src/utils/thinkingProseEnrich.tsx",
     "src/state/diagramWireTypes.ts",

@@ -16,6 +16,23 @@ vi.mock('../src/state/diagramStore.js', () => ({
 }));
 
 import { useRunStreamingAgent } from '../src/features/streaming/useRunStreamingAgent.js';
+import {
+  _resetUxSignalsForTests,
+  flushUxSignals,
+  installUxSignals
+} from '../src/state/uxSignalsClient.js';
+
+/** Install the real signal client against a fake fetch; returns a reader for what was sent. */
+function captureSignals() {
+  window.localStorage.clear();
+  _resetUxSignalsForTests();
+  const fetchImpl = vi.fn(() => Promise.resolve({ ok: true }));
+  installUxSignals({ fetchImpl, sendBeacon: null, intervalMs: 60_000 });
+  return () => {
+    flushUxSignals();
+    return fetchImpl.mock.calls.flatMap(([, init]) => JSON.parse(init.body).signals);
+  };
+}
 
 function createDeps(overrides = {}) {
   return {
@@ -74,6 +91,7 @@ describe('useRunStreamingAgent', () => {
 
   afterEach(() => {
     cleanup();
+    _resetUxSignalsForTests();
   });
 
   it('opens insights, creates an entry, and streams with session id', async () => {
@@ -208,5 +226,76 @@ describe('useRunStreamingAgent', () => {
     expect(patched.statusText).toMatch(/timed out/i);
     expect(deps.tryAgentSound).toHaveBeenCalled();
     expect(deps.streamAgentAbortRef.current).toBeNull();
+  });
+
+  it('reports a stopped run to the usage signals as cancelled', async () => {
+    const sent = captureSignals();
+    const deps = createDeps();
+    streamDiagramAgentMock.mockRejectedValue(
+      Object.assign(new Error('Aborted'), { name: 'AbortError' })
+    );
+    const { result } = renderHook(() => useRunStreamingAgent(deps));
+    await act(async () => {
+      await result.current.runStreamingAgent({
+        operation: 'intent',
+        payload: { prompt: 'stop me' },
+        title: 'Go'
+      });
+    });
+    expect(sent()).toEqual([{ kind: 'run_cancelled', contentType: 'mermaid', after: 'lt_10s' }]);
+  });
+
+  it('reports a thrown failure with its class, never its message', async () => {
+    const sent = captureSignals();
+    const deps = createDeps({ modelProfile: 'quality' });
+    streamDiagramAgentMock.mockRejectedValue(
+      new Error('Agent run exceeded the Fast time limit (75s). Secret prompt text.')
+    );
+    const { result } = renderHook(() => useRunStreamingAgent(deps));
+    await act(async () => {
+      await result.current.runStreamingAgent({
+        operation: 'intent',
+        payload: { prompt: 'big' },
+        title: 'Go'
+      });
+    });
+    const signals = sent();
+    expect(signals).toEqual([
+      { kind: 'run_failed', contentType: 'mermaid', failureClass: 'timeout', profile: 'quality' }
+    ]);
+    expect(JSON.stringify(signals)).not.toContain('Secret prompt');
+  });
+
+  it('reports a failure that arrives as a stream event through onRunOutcome', async () => {
+    const sent = captureSignals();
+    const deps = createDeps();
+    streamDiagramAgentMock.mockImplementation(async (_payload, onEvent) => {
+      onEvent({ type: 'error', message: 'Agent run exceeded the Fast time limit (75s).' });
+    });
+    const { result } = renderHook(() => useRunStreamingAgent(deps));
+    await act(async () => {
+      await result.current.runStreamingAgent({
+        operation: 'intent',
+        payload: { prompt: 'x', contentType: 'chart' },
+        title: 'Go'
+      });
+    });
+    expect(sent()).toEqual([
+      { kind: 'run_failed', contentType: 'chart', failureClass: 'timeout', profile: 'fast' }
+    ]);
+  });
+
+  it('reports nothing for a stream that ends without an outcome', async () => {
+    const sent = captureSignals();
+    const deps = createDeps();
+    const { result } = renderHook(() => useRunStreamingAgent(deps));
+    await act(async () => {
+      await result.current.runStreamingAgent({
+        operation: 'intent',
+        payload: { prompt: 'x' },
+        title: 'Go'
+      });
+    });
+    expect(sent()).toEqual([]);
   });
 });

@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { syncClientDiagramState } from '../../state/diagramStore.js';
 import { createInitialDiagramState } from '@archislop/shared';
+import { noteManualEdit } from '../../state/uxSignalsClient.js';
 
 /**
  * Debounced manual editor sync and eager sync-before-agent helper.
@@ -45,6 +46,7 @@ export function useDiagramManualSync({
       if (!scheduledSource) {
         return;
       }
+      noteManualEdit(contentMode);
 
       if (syncTimerRef.current) {
         clearTimeout(syncTimerRef.current);
