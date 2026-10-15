@@ -13,6 +13,7 @@ Human-readable documentation split into focused pages so GitHub preview stays fa
 | [External agents (MCP)](external-agents.md)       | Pairing, join flow, MCP Apps table, hybrid web workflow              |
 | [Configuration](configuration.md)                 | Environment variables, LLM backends, reliability tuning              |
 | [API endpoints](api-endpoints.md)                 | REST and SSE route reference                                         |
+| [Anonymous usage signals](privacy.md)             | What the app records for ArchiSlop God, and how to turn it off       |
 | [Development](development.md)                     | Stack layout, tests, VS Code launch configs                          |
 | [Coding agents](coding-agents.md)                 | Agent read order, verification table, PR checklist                   |
 | [Metaphor USDA mapping](metaphor-usda-mapping.md) | Versioned Metaphor3D DSL → `.usda` mapping (ADR-0009 steps 1–2)      |

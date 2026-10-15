@@ -1,4 +1,5 @@
 import { useCallback } from 'react';
+import { trackRunOutcome } from '../../state/uxSignalsClient.js';
 import { streamDiagramAgent } from '../../state/diagramStore.js';
 import {
   applyAgentStreamInsightEvent,
@@ -34,6 +35,21 @@ import {
   playToolEndChime,
   playToolStartChime
 } from '../../utils/agentChimes.js';
+
+/** The opening chime for each cast variant; anything else gets the generic one. */
+const STREAM_START_CHIMES = new Map([
+  ['russ', playRussStreamStart],
+  ['erlich', playErlichStreamStart],
+  ['gilfoyle', playGilfoyleStreamStart],
+  ['dinesh', playDineshStreamStart]
+]);
+
+function isAbortError(err) {
+  if (err?.name === 'AbortError') return true;
+  return (
+    typeof DOMException !== 'undefined' && err instanceof DOMException && err.name === 'AbortError'
+  );
+}
 
 /**
  * Run a streaming agent request into the Thinking pane (intent/transform/analyze).
@@ -121,12 +137,14 @@ export function useRunStreamingAgent({
       modeSwitchPeerMode = null
     }) => {
       setInsightsOpen(true);
+      const runContentType = payload.contentType ?? contentMode;
+      const runProfile = payload.modelProfile ?? modelProfile;
       const retryDescriptor = buildInsightRetryDescriptor({
         operation,
         payload,
         variant,
         topic,
-        modelProfile: payload.modelProfile ?? modelProfile,
+        modelProfile: runProfile,
         modeSwitchSync,
         modeSwitchPeerRevisionId,
         modeSwitchPeerMode,
@@ -136,20 +154,17 @@ export function useRunStreamingAgent({
         diagramUndoBaseline,
         topic,
         retryDescriptor,
-        contentType: payload.contentType ?? contentMode,
-        modelProfile: payload.modelProfile ?? modelProfile
+        contentType: runContentType,
+        modelProfile: runProfile
       });
       if (diagramUndoBaseline) {
         autoCloseActiveEntryIdRef.current = sectionId;
       }
-      if (variant === 'russ') tryAgentSound(playRussStreamStart);
-      else if (variant === 'erlich') tryAgentSound(playErlichStreamStart);
-      else if (variant === 'gilfoyle') tryAgentSound(playGilfoyleStreamStart);
-      else if (variant === 'dinesh') tryAgentSound(playDineshStreamStart);
-      else tryAgentSound(playStreamStartChime);
+      tryAgentSound(STREAM_START_CHIMES.get(variant) ?? playStreamStartChime);
       lastTokenSoundAtRef.current = 0;
       russTokenTickIndexRef.current = 0;
       const streamAcc = { text: '', estimatedCostUsd: 0 };
+      const runOutcome = trackRunOutcome({ contentType: runContentType, profile: runProfile });
       const abortCtrl = new AbortController();
       streamAgentAbortRef.current = abortCtrl;
       const streamCtx = buildAgentStreamInsightContext(
@@ -205,6 +220,7 @@ export function useRunStreamingAgent({
           onContentTypeResolved: ({ contentType }) => {
             applyResolvedContentMode(contentType);
           },
+          onRunOutcome: runOutcome.note,
           agentCostEstimates: agentCostEstimatesRef.current
         }
       );
@@ -218,12 +234,8 @@ export function useRunStreamingAgent({
           { signal: abortCtrl.signal, sessionId: activeSessionId }
         );
       } catch (err) {
-        const aborted =
-          err?.name === 'AbortError' ||
-          (typeof DOMException !== 'undefined' &&
-            err instanceof DOMException &&
-            err.name === 'AbortError');
-        if (aborted) {
+        if (isAbortError(err)) {
+          runOutcome.note('cancelled');
           patchInsightEntry(sectionId, (entry) => ({
             ...entry,
             status: 'cancelled',
@@ -242,6 +254,7 @@ export function useRunStreamingAgent({
             message: err.message,
             copy: controls.insights?.streamFailures
           });
+          runOutcome.note('failed', failure.failureClass);
           patchInsightEntry(sectionId, (entry) => ({
             ...entry,
             status: 'failed',
@@ -256,6 +269,7 @@ export function useRunStreamingAgent({
         if (streamAgentAbortRef.current === abortCtrl) {
           streamAgentAbortRef.current = null;
         }
+        runOutcome.finish();
       }
     },
     [

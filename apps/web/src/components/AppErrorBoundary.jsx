@@ -2,6 +2,7 @@ import { Component } from 'react';
 import { DEFAULT_UI_LOCALE } from '@archislop/shared';
 import { getUiLocaleBundle } from '../i18n/getUiLocaleBundle.js';
 import { readStoredUiLocale } from '../i18n/uiLocaleStorage.js';
+import { recordClientError } from '../state/uxSignalsClient.js';
 
 export default class AppErrorBoundary extends Component {
   constructor(props) {
@@ -15,6 +16,7 @@ export default class AppErrorBoundary extends Component {
 
   componentDidCatch(error, info) {
     console.error('AppErrorBoundary caught error:', error, info);
+    recordClientError('boundary', error);
     this.setState({ info });
   }
 

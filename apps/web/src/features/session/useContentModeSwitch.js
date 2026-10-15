@@ -7,6 +7,7 @@ import {
   isContentMode
 } from '../../utils/renderModeAction.js';
 import { playModeSwoosh } from '../../utils/agentChimes.js';
+import { recordUxSignal } from '../../state/uxSignalsClient.js';
 
 /**
  * Refs shared with session hydrate for cross-slot mode-switch coordination.
@@ -143,6 +144,8 @@ export function useContentModeSwitch({
       setToolbarAnchor(null);
       setLatestCritique(null);
       tryAgentSoundRef.current?.(playModeSwoosh);
+      // 'auto' is not a concrete slot, so the shared schema drops those switches.
+      recordUxSignal({ kind: 'mode_switch', from: contentMode, to: nextMode });
       setContentMode(nextMode);
       bumpRendererRefreshKey();
     },

@@ -4,6 +4,7 @@ import '@copilotkit/react-core/v2/styles.css';
 import './index.css';
 import App from './App.jsx';
 import AppErrorBoundary from './components/AppErrorBoundary.jsx';
+import { installUxSignals } from './state/uxSignalsClient.js';
 
 let mounted = false;
 
@@ -19,6 +20,8 @@ export async function mountArchislopApp() {
   if (!rootEl) {
     throw new Error('Missing #root mount point');
   }
+  // Content-free usage signals for ArchiSlop God (ADR-0019); respects the Settings opt-out.
+  installUxSignals();
 
   createRoot(rootEl).render(
     <StrictMode>

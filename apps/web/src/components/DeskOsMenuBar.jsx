@@ -177,6 +177,24 @@ function SpaghettiToggle({ desk, editorOpen, canToggleEditor, onToggleEditor }) 
  * (Headphones / Focus), and the Approved vendors attribution strip. "Onboard a
  * contractor" is the single doorway to external agents (docs/multi-human-office.md).
  */
+/** "Share anonymous usage" (ADR-0019; docs/guide/privacy.md). Hidden when nothing handles it. */
+function UsageSignalsToggle({ copy, checked, onToggle }) {
+  if (typeof onToggle !== 'function') return null;
+  return (
+    <label
+      className="office-focus-toggle desk-ambience-toggle desk-usage-signals-toggle"
+      title={copy.usageSignalsTitle}
+      data-testid="desk-usage-signals"
+    >
+      <input type="checkbox" checked={Boolean(checked)} onChange={() => onToggle(!checked)} />
+      <span className="desk-ambience-toggle-emoji" aria-hidden="true">
+        📊
+      </span>
+      <span>{copy.usageSignalsLabel ?? 'Share anonymous usage'}</span>
+    </label>
+  );
+}
+
 function AdminMenu({
   menu,
   copy,
@@ -315,6 +333,11 @@ function AdminMenu({
                 ))}
               </div>
             ) : null}
+            <UsageSignalsToggle
+              copy={copy}
+              checked={options.usageSignals}
+              onToggle={options.onToggleUsageSignals}
+            />
             <DeskAttributionStrip copy={desk.attribution} />
           </div>
         </>
@@ -359,6 +382,8 @@ export default function DeskOsMenuBar({
   focusTime = false,
   onToggleHeadphones = null,
   onToggleFocusTime = null,
+  usageSignals = false,
+  onToggleUsageSignals = null,
   modelProfile = 'fast',
   onSelectModelProfile = null,
   /** First-run tour: which menu the coach tip is pointing at. */
@@ -442,7 +467,9 @@ export default function DeskOsMenuBar({
           headphones,
           focusTime,
           onToggleHeadphones,
-          onToggleFocusTime
+          onToggleFocusTime,
+          usageSignals,
+          onToggleUsageSignals
         }}
         modelProfile={modelProfile}
         onSelectModelProfile={onSelectModelProfile}

@@ -1,4 +1,5 @@
 import { useCallback } from 'react';
+import { recordUxSignal } from '../../state/uxSignalsClient.js';
 
 /**
  * Retry a failed insight entry from its stored retry descriptor.
@@ -35,6 +36,11 @@ export function useRetryFailedInsight({
       const entry = insightsEntriesRef.current.find((e) => e.id === entryId);
       const desc = entry?.retryDescriptor;
       if (!desc || loadingRef.current || streamingPreviewRef.current) return;
+      recordUxSignal({
+        kind: 'retry',
+        contentType: entry.contentType ?? contentMode,
+        failureClass: entry.failureClass ?? 'generic'
+      });
 
       const useQuality = Boolean(options.useQuality);
       const profile = useQuality ? 'quality' : (desc.modelProfile ?? modelProfile);

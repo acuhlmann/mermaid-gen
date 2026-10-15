@@ -6,6 +6,7 @@ import {
 } from '../../state/diagramStore.js';
 import { isMermaidInfrastructureError } from '../../utils/mermaidRenderErrors.js';
 import { buildAutoFixPrompt } from '../../utils/autoFixPrompt.js';
+import { recordUxSignal } from '../../state/uxSignalsClient.js';
 
 /**
  * Client-side validation debounce and automatic diagram repair ladder.
@@ -55,6 +56,7 @@ export function useDiagramAutoFix({
       setLoading(true);
       setActiveRequest('autofix');
       setError('');
+      let autofixPath = 'intent';
       try {
         const syncedState = await syncClientDiagramState({
           contentType: contentMode,
@@ -63,6 +65,13 @@ export function useDiagramAutoFix({
         });
 
         if (contentMode === 'mermaid' || contentMode === 'anything') {
+          autofixPath = 'render_repair';
+          recordUxSignal({
+            kind: 'autofix',
+            contentType: contentMode,
+            path: autofixPath,
+            outcome: 'fired'
+          });
           const fast = await submitDiagramRenderRepair({
             revisionId: syncedState.revisionId,
             source: syncedState.diagramSource,
@@ -76,6 +85,13 @@ export function useDiagramAutoFix({
           }
         }
 
+        autofixPath = 'intent';
+        recordUxSignal({
+          kind: 'autofix',
+          contentType: contentMode,
+          path: autofixPath,
+          outcome: 'fired'
+        });
         const result = await submitDiagramIntent({
           contentType: contentMode,
           prompt: buildAutoFixPrompt({ contentType: contentMode, errorMessage, brokenSource }),
@@ -89,6 +105,12 @@ export function useDiagramAutoFix({
 
         animateAcceptedSource(result.state);
       } catch (err) {
+        recordUxSignal({
+          kind: 'autofix',
+          contentType: contentMode,
+          path: autofixPath,
+          outcome: 'failed'
+        });
         setError(err.message);
         setLoading(false);
         setActiveRequest(null);

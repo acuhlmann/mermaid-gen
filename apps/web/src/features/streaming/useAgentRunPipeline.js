@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import { useRunStreamingAgent } from './useRunStreamingAgent.js';
+import { recordUxSignal } from '../../state/uxSignalsClient.js';
 import { useRetryFailedInsight } from '../insights/useRetryFailedInsight.js';
 import { useExplainDumbDown } from '../insights/useExplainDumbDown.js';
 import { useSubmitIntent } from '../../hooks/useSubmitIntent.js';
@@ -71,8 +72,10 @@ export function useAgentRunPipeline({
   enrichTechnicalActionDetail
 }) {
   const stopStreamingAgentRequest = useCallback(() => {
-    streamAgentAbortRef.current?.abort();
-  }, [streamAgentAbortRef]);
+    if (!streamAgentAbortRef.current) return;
+    recordUxSignal({ kind: 'run_stop', contentType: contentMode });
+    streamAgentAbortRef.current.abort();
+  }, [contentMode, streamAgentAbortRef]);
 
   const { runStreamingAgent } = useRunStreamingAgent({
     activeSessionId,

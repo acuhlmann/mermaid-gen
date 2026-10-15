@@ -163,6 +163,8 @@ export type InsightEventContext = {
     extras?: { runCostUsd?: number; contentType?: string }
   ) => void;
   onFinal?: (args: { evt: LegacyStreamEvent; finalText: string; sectionId: string }) => void;
+  /** How the run ended, for the content-free usage signals (ADR-0019). */
+  onRunOutcome?: (status: 'done' | 'failed', failureClass: string | null) => void;
   onA2uiMessages?: (messages: A2uiV09Message[], sectionId: string) => void;
   /** Auto mode: server resolved a concrete slot — switch the UI mode picker. */
   onContentTypeResolved?: (args: {
@@ -231,7 +233,8 @@ export function applyAgentStreamInsightEvent(
     pendingAutoDiagramHighlightTimeoutRef,
     triggerCompletionDelight,
     onFinal,
-    onContentTypeResolved
+    onContentTypeResolved,
+    onRunOutcome
   } = ctx;
 
   if (evt.type === LEGACY_STREAM_TYPE_CONTENT_TYPE) {
@@ -645,6 +648,7 @@ export function applyAgentStreamInsightEvent(
         typeof evt.timestamp === 'number' ? evt.timestamp : undefined
       )
     }));
+    onRunOutcome?.('failed', failure.failureClass);
   } else if (evt.type === 'final') {
     const finalEvt = evt as LegacyFinalEvent;
     const finalState = finalEvt.state as DiagramState | undefined;
@@ -755,6 +759,7 @@ export function applyAgentStreamInsightEvent(
           }
         : {})
     }));
+    onRunOutcome?.(mutationBlocked ? 'failed' : 'done', failureStatus?.failureClass ?? null);
     if (!mutationBlocked) {
       triggerCompletionDelight(sectionId, variant, {
         runCostUsd,

@@ -2,6 +2,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import AppErrorBoundary from '../src/components/AppErrorBoundary.jsx';
+import {
+  _resetUxSignalsForTests,
+  flushUxSignals,
+  installUxSignals
+} from '../src/state/uxSignalsClient.js';
 
 function Boom({ message = 'kaboom' }) {
   throw new Error(message);
@@ -59,6 +64,30 @@ describe('AppErrorBoundary', () => {
         configurable: true,
         value: originalLocation
       });
+    }
+  });
+
+  it('records the crash as a content-free client_error signal', () => {
+    _resetUxSignalsForTests();
+    window.localStorage.clear();
+    const fetchImpl = vi.fn(() => Promise.resolve({ ok: true }));
+    installUxSignals({ fetchImpl, sendBeacon: null, intervalMs: 60_000 });
+    try {
+      render(
+        <AppErrorBoundary>
+          <Boom message="the user's private diagram text" />
+        </AppErrorBoundary>
+      );
+      flushUxSignals();
+      const body = JSON.parse(fetchImpl.mock.calls[0][1].body);
+      expect(body.signals).toContainEqual({
+        kind: 'client_error',
+        source: 'boundary',
+        errorName: 'Error'
+      });
+      expect(JSON.stringify(body)).not.toContain('private diagram');
+    } finally {
+      _resetUxSignalsForTests();
     }
   });
 });

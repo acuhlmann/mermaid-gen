@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { recordUxSignal } from '../../state/uxSignalsClient.js';
 import { isConcreteContentType } from '@archislop/shared';
 import { syncClientDiagramState } from '../../state/diagramStore.js';
 import { computeDiagramStructuralDiff } from '../../utils/diagramChangeDiff.js';
@@ -134,6 +135,12 @@ export function useDiagramChangeHighlight({
         diagramSource: targetSource,
         contentType: targetContentType,
         styleConfig: baseline?.styleConfig
+      });
+      const entriesBack = insightsEntries.length - 1 - insightsEntries.indexOf(entry);
+      recordUxSignal({
+        kind: 'restore',
+        contentType: targetContentType,
+        entriesBack: Math.min(50, Math.max(1, entriesBack))
       });
 
       if (narrowLayout && insightsOpen) {

@@ -11,6 +11,11 @@ import {
   setOfficeHeadphones,
   subscribe as subscribeOffice
 } from '../../state/officeMomentStore.js';
+import {
+  isUsageSignalsEnabled,
+  setUsageSignalsEnabled,
+  subscribeUsageSignals
+} from '../../state/uxSignalsClient.js';
 import { DiagramCanvasSlot } from '../canvas/DiagramCanvasSlot.jsx';
 import { EmptyCanvasSlot } from '../desk/EmptyCanvasSlot.jsx';
 import { ModeRevealSlot } from '../desk/ModeRevealSlot.jsx';
@@ -193,6 +198,11 @@ export function AppWorkspaceSlot({
     () => getOfficeSnapshot().focusTime,
     () => getOfficeSnapshot().focusTime
   );
+  const usageSignals = useSyncExternalStore(
+    subscribeUsageSignals,
+    isUsageSignalsEnabled,
+    isUsageSignalsEnabled
+  );
 
   /**
    * The menu bar's whole prop surface, bundled once. Deliverable is the
@@ -218,6 +228,8 @@ export function AppWorkspaceSlot({
     focusTime: officeFocusTime,
     onToggleHeadphones: setOfficeHeadphones,
     onToggleFocusTime: setOfficeFocusTime,
+    usageSignals,
+    onToggleUsageSignals: setUsageSignalsEnabled,
     modelProfile,
     onSelectModelProfile: setModelProfile,
     tourHighlight: entryTourActive && entryTourStep === 'format' ? 'deliverable' : null

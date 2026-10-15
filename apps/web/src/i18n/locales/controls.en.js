@@ -195,7 +195,10 @@ export const CONTROLS_EN = {
     settings: 'Settings',
     settingsTitle: 'Settings · rush job, deep work, contractors, HR, headphones',
     settingsAria: 'Settings — workstation preferences',
-    hotkeys: 'Keyboard shortcuts'
+    hotkeys: 'Keyboard shortcuts',
+    usageSignalsLabel: 'Share anonymous usage',
+    usageSignalsTitle:
+      'Sends counts such as "a run failed" or "you undid an AI edit" so ArchiSlop can improve itself — never your prompts, diagrams or anything that identifies you.'
   },
   languagePack: {
     label: 'Language pack',
