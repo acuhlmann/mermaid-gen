@@ -1,0 +1,14 @@
+{
+  "v": 1,
+  "month": "2026-10",
+  "runs": [
+    {
+      "runId": "38681970781",
+      "endedAt": "2026-10-15T04:35:12.756Z",
+      "verdict": "noop",
+      "tier": "propose",
+      "usd": 0,
+      "gateReason": "disabled"
+    }
+  ]
+}
