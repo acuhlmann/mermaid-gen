@@ -78,7 +78,7 @@ export function parseLadderJobCountToken(token) {
 }
 
 /** Rungs that are scheduled but documented as sitting off the ladder, so they get no row by design. */
-const OFF_LADDER_ROUTINES = new Set(['deps']);
+const OFF_LADDER_ROUTINES = new Set(['deps', 'god']);
 
 /**
  * The ladder window: 15:00 UTC through 01:00 the next day, expressed as an offset from its own start

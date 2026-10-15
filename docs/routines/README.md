@@ -113,19 +113,21 @@ the next firing re-reads it. See [`docs/routines/resolve.md`](resolve.md) § 4 f
 and [ADR-0015](../decisions/0015-resolve-routine-and-escalation.md) for why this is a per-run
 judgement call rather than a new tier.
 
-**A policy hold** — declared as `mergePolicy: hold`, every run, and **no routine uses it today.**
-This was `prune`'s shape from 2026-09-07: not an admission of uncertainty but a structural gate,
-because deleting a file looked like rule 10's page bar #3 (_irreversible destruction_) and therefore
-the owner's decision. The owner lifted it on 2026-09-14 — "remove the prune mergePolicy and merge
-urself, u can do it, just be careful" — and the reasoning that changed is worth keeping, because it is
-the reason the key still exists: **a `git rm` of a tracked file is not irreversible.** What is
+**A policy hold** — declared as `mergePolicy: hold`, every run. **`god` uses it today**
+([ADR-0019](../decisions/0019-archislop-god.md)): Propose is the default autonomy, so God opens PRs
+ready and a human merges; Ship is a later Settings toggle plus a one-line playbook change. This was
+also `prune`'s shape from 2026-09-07: not an admission of uncertainty but a structural gate, because
+deleting a file looked like rule 10's page bar #3 (_irreversible destruction_) and therefore the
+owner's decision. The owner lifted prune's hold on 2026-09-14 — "remove the prune mergePolicy and
+merge urself, u can do it, just be careful" — and the reasoning that changed is worth keeping, because
+it is the reason the key still exists: **a `git rm` of a tracked file is not irreversible.** What is
 irreversible is losing the ability to undo it cheaply, and that is a property of the diff's shape, not
 of the merge button. So [`prune.md`](prune.md) § 5 replaces the person with five mechanical controls,
 of which two are load-bearing in a way a review never was: the deletion must be named by **both**
 independent sensors (§ 1b's intersection, now a merge bar rather than a proposal bar), and it must be
-one file per commit so a single wrong deletion is one `git revert` rather than surgery on `main`. The
-key stays valid — a policy the next rung may need, exactly like `schedule: none`, which is also
-declared by nobody and offered to everybody.
+one file per commit so a single wrong deletion is one `git revert` rather than surgery on `main`. God
+keeps the hold for a different reason: production merges on every PR to `main`, and the owner chooses
+when God's proposals deploy.
 
 Holding by _judgement_ stays narrow by design: a routine that holds by default has just reinvented
 "always ask a human" (the overhead this whole shelf exists to remove), and a routine that never holds
@@ -416,7 +418,7 @@ the issue actually asks. So `prune` is excluded from `ownersOfPath` through `DEL
 2026-09-14 it became a routine that _can_ finish and land, and the label would still have been a lie,
 because finishing "delete this file" is a different promise from finishing "fix this". The reason moved
 from "it cannot merge" to "it can only delete", which is why it is a named constant and not a re-read
-of the policy key. `routine-guard.test.mjs` pins both halves: no shipped playbook holds, and `prune` is
+of the policy key. `routine-guard.test.mjs` pins both halves: only `god` holds by policy, and `prune` is
 still absent from `--reachable` on four real paths.
 
 ### 12. Filing costs the filer

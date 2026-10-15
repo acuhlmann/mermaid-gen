@@ -107,5 +107,7 @@ the product).
   `apps/server/src/metrics/agentTurnMetrics.js`, `apps/server/src/routes/signals.ts`.
 - Budget and wire shapes: `packages/shared/src/godBudget.ts`, `packages/shared/src/godSchemas.ts`.
 - Runner: `scripts/god/` (meter proxy, harness adapters, run wrapper) and `.github/workflows/god.yml`.
-- Later PRs: the playbook `docs/automations/god.md`, the brief and gate scripts, the owner-gated
-  `/api/god` routes, the God window, and the client signal emitter.
+- Playbook + hourly gate/brief: `docs/automations/god.md`, `scripts/god/{brief,gate}.mjs`,
+  `.github/workflows/god.yml` (cron `17 * * * *`; act still later).
+- Later PRs: the owner-gated `/api/god` routes, the God window, and the act → verify → publish
+  pipeline.

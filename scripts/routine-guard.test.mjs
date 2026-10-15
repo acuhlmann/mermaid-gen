@@ -649,15 +649,19 @@ test('code-writing routines still have to declare a budget', () => {
 // gate with five mechanical controls. The key stays valid because the next rung may need it, the same
 // way `schedule: none` stays valid with no routine using it.
 
-test('no shipped routine holds any more, and `hold` is still a legal value', () => {
+test('only god holds by policy, and `hold` is still a legal value', () => {
   for (const { name, playbook } of collectPlaybooks(ROOT)) {
+    const expected = name === 'god' ? 'hold' : 'self-merge';
     assert.equal(
       mergePolicyOf(playbook),
-      'self-merge',
-      `${name} declares a merge policy that stops it landing its own work`
+      expected,
+      `${name} declares mergePolicy=${mergePolicyOf(playbook)}, expected ${expected}`
     );
   }
   assert.deepEqual(MERGE_POLICIES, ['self-merge', 'hold']);
+  const god = loadPlaybook(ROOT, 'god');
+  assert.deepEqual(god.errors, [], 'god playbook must load clean');
+  assert.equal(mergePolicyOf(god.playbook), 'hold');
 });
 
 test('prune self-merges now, by owner decision rather than by drift', () => {
@@ -739,7 +743,8 @@ test('every shipped playbook declares prefixes that match the PR titles it actua
     ['canvas-graph-edit', 'canvas graph edit: mermaid gantt family'],
     ['office-life', 'office life: an interruption leaves a mark in working memory'],
     ['deps', 'deps: merge npm_and_yarn group #455'],
-    ['prune', 'prune: dead-file — 4 file(s)']
+    ['prune', 'prune: dead-file — 4 file(s)'],
+    ['god', 'god: tighten mermaid quote sanitizer after accept-rate drop']
   ];
   const shipped = collectPlaybooks(ROOT)
     .filter(({ playbook }) => String(playbook.tier) !== 'report')
@@ -1426,9 +1431,9 @@ test('every shipped playbook declares a filing budget it can be held to', () => 
   }
   assert.equal(
     capped.length,
-    9,
-    'every code-writing rung on both shelves is bounded — 8 as measured by rule 12, plus `prune`, ' +
-      'added 2026-09-07 as a ninth deliberately: this number is the ceiling on total inflow, so it ' +
+    10,
+    'every code-writing rung on both shelves is bounded — 8 as measured by rule 12, plus `prune` ' +
+      '(2026-09-07) and `god` (2026-10-15, ADR-0019): this number is the ceiling on total inflow, so it ' +
       'moves only when a rung is actually stood up'
   );
   assert.ok(
