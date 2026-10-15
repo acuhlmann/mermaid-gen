@@ -56,14 +56,15 @@ flowchart LR
     Publish -->|"PR to main"| Repo[("GitHub repo")]
   end
 
-  Logs -.->|"aggregate ingest (planned)"| Brief
+  Logs -.->|"aggregate ingest"| Brief
   Repo --> Brief
   Act -->|"meter proxy + cap"| DS[("God DeepSeek account")]
 ```
 
 Solid arrows are **shipped or in repo** today; the dashed ingest line is the **brief** job reading
-aggregates from Cloud Logging (hourly when enabled). The **act** job is still later (see
-[Current state](#current-state-shipped-vs-planned)).
+aggregates from Cloud Logging (hourly when enabled). The **act** job runs **observe** only when
+that brief is live and sufficient. Propose then opens a ready pull request. Ship does not merge
+(see [Current state](#current-state-shipped-vs-planned)).
 
 ## End-to-end architecture (trust boundaries)
 
@@ -87,8 +88,8 @@ flowchart TB
   end
 
   subgraph gha ["GitHub Actions — god workflow"]
-    Spike["spike job (today)"]
-    Pipeline["gate → brief → act → verify → publish (planned)"]
+    Spike["spike job (dispatch)"]
+    Pipeline["gate → brief → observe act"]
     RunWrap["scripts/god/run.mjs"]
     Meter["meterProxy.mjs"]
     DSH["DeepSeek Harness (dsh)"]
@@ -144,8 +145,10 @@ Field-level detail and opt-out: [privacy.md](privacy.md). Schema source:
 ## One God run (pipeline)
 
 Each run follows the same phases as other shelf automations — but the **brief** step is
-deterministic from logs, not from issues or PR comments (public-repo injection boundary). Today
-**gate → brief** runs on the hourly cron; **act → verify → publish** is still to land.
+deterministic from logs, not from issues or PR comments (public-repo injection boundary). The
+hourly cron runs **gate → brief**, then act when the live brief clears the evidence bar.
+**Observe** records a finding. **Propose** opens a ready pull request after verify. **Ship** does
+not merge.
 
 ```mermaid
 stateDiagram-v2
@@ -190,22 +193,26 @@ best-effort — the durable artifact is the run report, not the websocket-like v
 
 ## Current state: shipped vs planned
 
-| Piece                                        | Status                                              | Location                                                  |
-| -------------------------------------------- | --------------------------------------------------- | --------------------------------------------------------- |
-| Client usage signals + opt-out               | **Shipped**                                         | `apps/web/src/state/uxSignalsClient.js`, Settings storage |
-| `POST /api/signals`                          | **Shipped**                                         | `apps/server/src/routes/signals.ts`                       |
-| `agent_turn` metrics                         | **Shipped**                                         | `apps/server/src/metrics/agentTurnMetrics.js`             |
-| Shared signal + God wire schemas             | **Shipped**                                         | `uxSignals.ts`, `godSchemas.ts`, `godBudget.ts`           |
-| Run wrapper, meter proxy, dsh adapter, spike | **Shipped**                                         | `scripts/god/`                                            |
-| `gate` + `brief` scripts                     | **Shipped**                                         | `scripts/god/gate.mjs`, `brief.mjs`                       |
-| CI workflow (hourly `gate → brief`)          | **Shipped** — cron `17 * * * *`, window `06–12` UTC | `.github/workflows/god.yml`                               |
-| Harness spike (`workflow_dispatch`)          | **Shipped**                                         | same workflow / `scripts/god/spike.mjs`                   |
-| `act → verify → publish` (code PRs)          | **Planned**                                         | ADR-0019; ledger § Open observations                      |
-| `/api/god` routes + owner God window         | **Planned**                                         | ADR-0019                                                  |
+| Piece                                        | Status                                              | Location                                                                       |
+| -------------------------------------------- | --------------------------------------------------- | ------------------------------------------------------------------------------ |
+| Client usage signals + opt-out               | **Shipped**                                         | `apps/web/src/state/uxSignalsClient.js`, Settings storage                      |
+| `POST /api/signals`                          | **Shipped**                                         | `apps/server/src/routes/signals.ts`                                            |
+| `agent_turn` metrics                         | **Shipped**                                         | `apps/server/src/metrics/agentTurnMetrics.js`                                  |
+| Shared signal + God wire schemas             | **Shipped**                                         | `uxSignals.ts`, `godSchemas.ts`, `godBudget.ts`                                |
+| Run wrapper, meter proxy, dsh adapter, spike | **Shipped**                                         | `scripts/god/`                                                                 |
+| `gate` + `brief` + observe decision          | **Shipped**                                         | `scripts/god/gate.mjs`, `scripts/god/brief.mjs`, `scripts/god/actDecision.mjs` |
+| CI workflow (hourly `gate → brief → act`)    | **Shipped** — cron `17 * * * *`, window `06–12` UTC | `.github/workflows/god.yml`                                                    |
+| Harness spike (`workflow_dispatch`)          | **Shipped**                                         | same workflow / `scripts/god/spike.mjs`                                        |
+| Observe act (read-only, god-log finding)     | **Shipped**                                         | `scripts/god/run.mjs`, `scripts/god/godLog.mjs`, `scripts/god/recordTick.mjs`  |
+| Propose verify → ready PR                    | **Shipped**                                         | `scripts/god/proposePatch.mjs`, `.github/workflows/god.yml`                    |
+| Ship (`gh pr merge --auto`)                  | **Planned**                                         | ADR-0019; ledger § Open observations                                           |
+| `/api/god` routes + owner God window         | **Planned**                                         | ADR-0019                                                                       |
 
 **Practical today:** production emits signals; GitHub Actions runs an hourly **gate → brief** tick
-(when `GOD_ENABLED` and budget allow) and writes run records to **`god-log`**. The **act** harness
-and PR-opening path are not on the schedule yet; the spike remains available for harness validation.
+(when `GOD_ENABLED` and budget allow) and writes run records to **`god-log`**. When the brief is
+from live logs and sufficient, act runs. **Observe** records one finding. **Propose** opens a ready
+pull request after the path budget and `check:affected`; it does not merge. `GOD_ENABLED` stays off
+until the owner turns it on. The spike remains available for harness validation.
 
 ## Related decisions
 

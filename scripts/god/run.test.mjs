@@ -6,6 +6,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildTaskText, permissionModeForTier, runGod } from './run.mjs';
+import { buildTickRecord } from './recordTick.mjs';
 import { startFakeDeepSeek } from './fixtures/fakeDeepSeek.mjs';
 import { signGodIngestBody } from './ingestClient.mjs';
 
@@ -204,6 +205,43 @@ test('live events reach the ingest endpoint signed; the ingest secret file is co
   } finally {
     sink.closeAllConnections?.();
     await new Promise((resolve) => sink.close(resolve));
+    await upstream.close();
+    fs.rmSync(box.root, { recursive: true, force: true });
+  }
+});
+
+test('history is rewritten to an array with hypothesis cleared before the harness starts', async () => {
+  const upstream = await startFakeDeepSeek();
+  const box = sandbox();
+  const prior = buildTickRecord({
+    'run-id': 'prior',
+    tier: 'observe',
+    focus: 'any',
+    trigger: 'schedule',
+    now: '2026-10-14T07:00:00.000Z'
+  });
+  prior.hypothesis = 'Prior sentence the model must not read.';
+  const historyPath = path.join(box.root, 'history.json');
+  fs.writeFileSync(historyPath, JSON.stringify({ records: [prior] }));
+  try {
+    await runGod({
+      runId: 'run-6',
+      tier: 'observe',
+      harness: 'mock',
+      cwd: box.cwd,
+      outDir: box.outDir,
+      keyFile: box.keyFile,
+      upstream: upstream.url,
+      maxUsd: 1,
+      maxMinutes: 30,
+      historyPath,
+      mockScript: [{ text: 'finding:mermaid.accept_rate Noted.' }, { final: 'Done.' }]
+    });
+    const rewritten = JSON.parse(fs.readFileSync(historyPath, 'utf8'));
+    assert.ok(Array.isArray(rewritten));
+    assert.equal(rewritten[0].hypothesis, null);
+    assert.equal(rewritten[0].runId, 'prior');
+  } finally {
     await upstream.close();
     fs.rmSync(box.root, { recursive: true, force: true });
   }

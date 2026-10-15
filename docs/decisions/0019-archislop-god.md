@@ -110,9 +110,10 @@ the product).
   `apps/server/src/metrics/agentTurnMetrics.js`, `apps/server/src/routes/signals.ts`.
 - Budget and wire shapes: `packages/shared/src/godBudget.ts`, `packages/shared/src/godSchemas.ts`.
 - Runner: `scripts/god/` (meter proxy, harness adapters, run wrapper) and `.github/workflows/god.yml`.
-- Playbook + hourly gate/brief: `docs/automations/god.md`, `scripts/god/{brief,gate}.mjs`,
-  `.github/workflows/god.yml` (cron `17 * * * *`; act still later).
+- Playbook + hourly gate/brief/observe: `docs/automations/god.md`, `scripts/god/actDecision.mjs`,
+  `scripts/god/godLog.mjs`, `.github/workflows/god.yml` (cron `17 * * * *`; observe act when the
+  live brief is sufficient).
 - Visual guide: `docs/guide/archislop-god.md`; client signal emitter
   `apps/web/src/state/uxSignalsClient.js` (shipped).
-- Later PRs: the owner-gated `/api/god` routes, the God window, and the act → verify → publish
-  pipeline.
+- Later PRs: the owner-gated `/api/god` routes, the God window, and the ship tier
+  (`gh pr merge --auto`). Observe records a finding; propose opens a ready PR after verify.

@@ -19,13 +19,9 @@ import path from 'node:path';
 import { parseArgs } from 'node:util';
 import { fileURLToPath } from 'node:url';
 import { GOD_HARD_LIMITS } from '@archislop/shared/godBudget.js';
-import {
-  GodBriefSchema,
-  GodFocusSchema,
-  GodRunRecordSchema,
-  GodTierSchema
-} from '@archislop/shared/godSchemas.js';
+import { GodBriefSchema, GodFocusSchema, GodTierSchema } from '@archislop/shared/godSchemas.js';
 import { startMeterProxy, DEFAULT_UPSTREAM } from './meterProxy.mjs';
+import { promptSafeHistory } from './godLog.mjs';
 import { createLiveEventStream } from './liveEvents.mjs';
 import { createIngestClient } from './ingestClient.mjs';
 import { startDsh, dshVersion, isProcessGroupAlive, readDshVersions } from './harness/dsh.mjs';
@@ -66,9 +62,9 @@ function readSecretFile(file) {
 function validateInputs({ briefPath, historyPath }) {
   if (briefPath) GodBriefSchema.parse(JSON.parse(fs.readFileSync(briefPath, 'utf8')));
   if (historyPath) {
-    const history = JSON.parse(fs.readFileSync(historyPath, 'utf8'));
-    if (!Array.isArray(history) || history.length > 50) throw new Error('history must be ≤50 runs');
-    for (const record of history) GodRunRecordSchema.parse(record);
+    // Rewrite in place so the file the harness reads cannot carry a prior hypothesis.
+    const safe = promptSafeHistory(JSON.parse(fs.readFileSync(historyPath, 'utf8')));
+    fs.writeFileSync(historyPath, `${JSON.stringify(safe, null, 2)}\n`);
   }
 }
 

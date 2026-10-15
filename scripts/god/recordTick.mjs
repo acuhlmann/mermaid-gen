@@ -1,14 +1,25 @@
 #!/usr/bin/env node
 /**
- * Write one no-LLM god-log tick record (ADR-0019 stage 2b).
+ * Write one god-log run record (ADR-0019).
  *
  *   node scripts/god/recordTick.mjs --out-dir . --run-id 123 --reason disabled --tier observe
+ *   node scripts/god/recordTick.mjs --out-dir . --from-report report.json --events events.ndjson
+ *
+ * Without a harness report the verdict is a skip (`noop`, `blocked`, `skipped`). A report is the
+ * only way to record `observed` — gate `go` alone never did that work.
  */
 import fs from 'node:fs';
 import path from 'node:path';
 import { parseArgs } from 'node:util';
 import { fileURLToPath } from 'node:url';
 import { GodRunRecordSchema } from '@archislop/shared/godSchemas.js';
+import { lastNarrationText, parseObserveNarration } from './actDecision.mjs';
+import { branchForRun, filterPatchFiles } from './proposePatch.mjs';
+
+const SKIP_VERDICTS = new Set(['noop', 'blocked', 'skipped']);
+
+/** Stop reasons that mean the harness started and then halted, rather than erroring. */
+const STOPPED = new Set(['budget', 'balance', 'timeout', 'cancelled']);
 
 function parseCli(argv) {
   const { values } = parseArgs({
@@ -20,11 +31,18 @@ function parseCli(argv) {
       tier: { type: 'string', default: 'observe' },
       focus: { type: 'string', default: 'any' },
       go: { type: 'string', default: 'false' },
+      verdict: { type: 'string' },
       trigger: { type: 'string', default: 'schedule' },
-      now: { type: 'string' }
+      now: { type: 'string' },
+      'from-report': { type: 'string' },
+      events: { type: 'string' },
+      pr: { type: 'string' },
+      branch: { type: 'string' },
+      'files-from': { type: 'string' },
+      verify: { type: 'string' }
     }
   });
-  if (!values['run-id']) throw new Error('--run-id is required');
+  if (!values['from-report'] && !values['run-id']) throw new Error('--run-id is required');
   return values;
 }
 
@@ -35,8 +53,8 @@ export function buildTickRecord(values) {
   const now = values.now ? new Date(values.now) : new Date();
   if (Number.isNaN(now.getTime())) throw new Error(`invalid --now ${values.now}`);
   const iso = now.toISOString();
-  const go = values.go === 'true' || values.go === '1';
-  const verdict = go ? 'observed' : 'noop';
+  const requested = values.verdict ? String(values.verdict).trim() : '';
+  const verdict = SKIP_VERDICTS.has(requested) ? requested : 'noop';
   return GodRunRecordSchema.parse({
     v: 1,
     runId: String(values['run-id']),
@@ -59,9 +77,104 @@ export function buildTickRecord(values) {
   });
 }
 
+/**
+ * @param {string} stopReason
+ * @returns {'observed' | 'failed' | 'stopped'}
+ */
+export function verdictForStop(stopReason) {
+  if (stopReason === 'completed') return 'observed';
+  if (STOPPED.has(stopReason)) return 'stopped';
+  return 'failed';
+}
+
+/**
+ * @param {{ report: Record<string, any>, narration?: string | null, trigger?: string }} input
+ */
+export function buildActRecord(input) {
+  const report = input.report ?? {};
+  const narration = parseObserveNarration(input.narration);
+  const usage = report.usage ?? {};
+  const harness = report.harness ?? {};
+  return GodRunRecordSchema.parse({
+    v: 1,
+    runId: String(report.runId),
+    startedAt: report.startedAt,
+    endedAt: report.endedAt,
+    trigger: input.trigger === 'manual' ? 'manual' : 'schedule',
+    tier: report.tier,
+    focus: report.focus,
+    verdict: verdictForStop(report.stopReason),
+    stopReason: report.stopReason,
+    findingId: narration.findingId,
+    hypothesis: narration.hypothesis,
+    pr: null,
+    branch: null,
+    filesChanged: [],
+    usage: {
+      calls: Number(usage.calls) || 0,
+      inputTokens: Number(usage.inputTokens) || 0,
+      outputTokens: Number(usage.outputTokens) || 0,
+      cacheHitTokens: Number(usage.cacheHitTokens) || 0,
+      usd: Number(usage.usd) || 0
+    },
+    minutes: Number(report.minutes) || 0,
+    balanceAfter: null,
+    harness: {
+      name: harness.name,
+      version: String(harness.version ?? '')
+    }
+  });
+}
+
+/**
+ * Fold verify and publish results onto a harness record. A refused diff is `red` (the harness did
+ * run). An opened PR replaces that with `pr_opened`.
+ *
+ * @param {import('@archislop/shared/godSchemas.js').GodRunRecord} record
+ * @param {{ pr?: string | number | null, branch?: string | null, files?: string[], verify?: string | null }} outcome
+ */
+export function finalizeActRecord(record, outcome = {}) {
+  let verdict = record.verdict;
+  let pr = record.pr;
+  let branch = record.branch;
+  if (outcome.verify === 'postflight' || outcome.verify === 'checks') verdict = 'red';
+  if (outcome.pr) {
+    verdict = 'pr_opened';
+    pr = Number(outcome.pr);
+    branch = outcome.branch || branchForRun(record.runId);
+  }
+  const filesChanged = filterPatchFiles(outcome.files ?? record.filesChanged ?? []);
+  return GodRunRecordSchema.parse({ ...record, verdict, pr, branch, filesChanged });
+}
+
 export function main(argv = process.argv.slice(2)) {
   const values = parseCli(argv);
-  const record = buildTickRecord(values);
+  const trigger = values.trigger === 'manual' ? 'manual' : 'schedule';
+  let record;
+  if (values['from-report']) {
+    const report = JSON.parse(fs.readFileSync(values['from-report'], 'utf8'));
+    const events =
+      values.events && fs.existsSync(values.events) ? fs.readFileSync(values.events, 'utf8') : '';
+    const files =
+      values['files-from'] && fs.existsSync(values['files-from'])
+        ? fs.readFileSync(values['files-from'], 'utf8').split('\n')
+        : [];
+    record = finalizeActRecord(
+      buildActRecord({
+        report,
+        narration: lastNarrationText(events),
+        trigger
+      }),
+      {
+        pr: values.pr || null,
+        branch: values.branch || null,
+        files,
+        verify: values.verify || null
+      }
+    );
+  } else {
+    record = buildTickRecord(values);
+  }
   const outDir = path.resolve(values['out-dir']);
   const runsDir = path.join(outDir, 'runs');
   const indexDir = path.join(outDir, 'index');
@@ -84,10 +197,11 @@ export function main(argv = process.argv.slice(2)) {
   if (!Array.isArray(idx.runs)) idx.runs = [];
   idx.runs.push({
     runId: record.runId,
+    startedAt: record.startedAt,
     endedAt: record.endedAt,
     verdict: record.verdict,
     tier: record.tier,
-    usd: 0,
+    usd: record.usage.usd,
     gateReason: values.reason
   });
   fs.writeFileSync(idxPath, `${JSON.stringify(idx, null, 2)}\n`);

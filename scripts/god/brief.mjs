@@ -461,14 +461,9 @@ export function main(argv = process.argv.slice(2)) {
   fs.writeFileSync(values.out, `${JSON.stringify(brief, null, 2)}\n`);
 
   if (values['history-out']) {
-    const history = {
-      v: 1,
-      generatedAt: brief.generatedAt,
-      lastActAt: null,
-      monthSpendUsd: 0,
-      openGodPrs: 0,
-      records: []
-    };
+    // Prompt-safe array. Real prior runs come from god-log (`godLog.mjs`), not from this stub —
+    // the object this used to write failed the harness, which requires an array of run records.
+    const history = [];
     fs.mkdirSync(path.dirname(path.resolve(values['history-out'])), { recursive: true });
     fs.writeFileSync(values['history-out'], `${JSON.stringify(history, null, 2)}\n`);
   }

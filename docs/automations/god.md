@@ -61,8 +61,9 @@ forbiddenPaths:
 
 ArchiSlop God ([ADR-0019](../decisions/0019-archislop-god.md)) improves the product from
 **content-free production signals**. It runs off-box in GitHub Actions, not as a Claude Routine or
-Cursor automation. The hourly tick is free; LLM spend only starts when the `act` job lands (a later
-PR). Until then the workflow runs **gate → brief** only and records a noop on `god-log`.
+Cursor automation. The hourly tick is free. LLM spend starts only when `decideAct` allows an
+**observe** run: gate said go, the brief came from live logs, and it is sufficient (or the owner
+forced the tick). Propose may then open a ready pull request. Ship still records `blocked`.
 
 `17 * * * *` **UTC** (every hour, 17 minutes past — off the top-of-hour rush). The gate still
 enforces `GOD_WINDOW_UTC` (default `06-12`) so God stays off the night ladder and clear of `deps`.
@@ -81,18 +82,42 @@ dsh does not auto-load agent docs. Before editing, read:
 - [`docs/agent-blast-radius.md`](../agent-blast-radius.md)
 - [`docs/guide/validation.md`](../guide/validation.md)
 - [`GLOSSARY.md`](../../GLOSSARY.md)
-- This run's `brief.json` and `history.json` (paths in the task text; outside the checkout)
+- This run's `brief.json` and `history.json` (paths in the task text; inside the checkout)
 
 ## 1. Tiers and sandbox
 
 | Tier                | Sandbox         | What happens                                                                            |
 | ------------------- | --------------- | --------------------------------------------------------------------------------------- |
-| `observe`           | read-only       | Findings go to `god-log` only; no PR                                                    |
+| `observe`           | read-only       | Last message is recorded on `god-log`; no PR. See the output contract below.            |
 | `propose` (default) | workspace-write | PR opened ready; owner merges                                                           |
 | `ship`              | workspace-write | `gh pr merge --auto` only when this playbook's hold is lifted **and** Settings say ship |
 | `revert`            | workspace-write | Forced by the brief; the only allowed action is reverting God's last merge              |
 
 A dispatch may **lower** the configured tier, never raise it.
+
+### Observe output
+
+Observe does not edit files and does not commit. The record job keeps the last assistant `text`
+line (or the closing `final` when there was no text line). A later `final` such as "Done." does
+not replace that line. The whole line is clipped at 280 characters. It must be exactly one of:
+
+- `finding:<slug> <one sentence>` — `<slug>` is the `id` of the highest-severity finding in the
+  brief. The sentence is the hypothesis.
+- `waiting` — the brief is too thin to name a finding.
+
+Anything else is dropped (`findingId` and `hypothesis` stay null). The run is still `observed`
+when the harness completes. Prior runs' sentences are stripped from `history.json` before the
+harness starts; do not expect them.
+
+### Propose output
+
+Propose uses that same last line. It may edit files inside the playbook's `allowedPaths`. It does
+not commit, push, or merge. After the run, a separate job with no API key applies the diff, runs
+`routine-guard --postflight god` and `npm run check:affected`, then opens a **ready** PR on
+`god/<run id>`. A failed budget or a failed check records `red` and opens nothing. Ship still does
+not merge. Set repository or `god` environment secret `GOD_PR_TOKEN` to a fine-grained token with
+contents and pull requests (not admin) so the six required checks actually start — the default
+`GITHUB_TOKEN` opens the PR and does not start them.
 
 ## 2. One hypothesis per run
 

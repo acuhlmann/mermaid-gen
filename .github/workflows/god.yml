@@ -3,8 +3,9 @@ name: ArchiSlop God
 # ADR-0019. Frozen for every routine (routine-guard ALWAYS_FORBIDDEN): this file decides which
 # credentials God's jobs hold and how long they may run.
 #
-# Stage 2b: hourly gate → brief (no LLM). The harness spike stays dispatch-only. Act → verify →
-# publish lands in a later PR; until then a tick records a noop on god-log when enabled.
+# Hourly gate → brief → act. Observe is read-only. Propose may edit the workspace; verify and
+# publish (separate jobs, no API key) open a ready PR. Ship does not merge. Act holds no GitHub
+# write token.
 
 on:
   schedule:
@@ -156,6 +157,21 @@ jobs:
       - name: Install workspace dependencies
         run: npm ci --no-audit --no-fund
 
+      - name: Checkout god-log
+        id: godlog
+        continue-on-error: true
+        uses: actions/checkout@v5
+        with:
+          ref: god-log
+          path: god-log
+          persist-credentials: false
+          fetch-depth: 1
+
+      - name: Read cadence from god-log
+        id: cadence
+        if: steps.godlog.outcome == 'success'
+        run: node scripts/god/godLog.mjs --root god-log --github-output
+
       - name: Decide
         id: decide
         env:
@@ -176,10 +192,16 @@ jobs:
           TIER="${{ github.event_name == 'workflow_dispatch' && inputs.tier || 'propose' }}"
           FOCUS="${{ github.event_name == 'workflow_dispatch' && inputs.focus || 'any' }}"
           # newSignals left null here — brief job revises go/sufficient; gate still enforces money/window.
+          CADENCE=()
+          LAST_ACT="${{ steps.cadence.outputs.last_act_at }}"
+          MONTH_SPEND="${{ steps.cadence.outputs.month_spend }}"
+          if [ -n "$LAST_ACT" ]; then CADENCE+=(--last-act-at "$LAST_ACT"); fi
+          if [ -n "$MONTH_SPEND" ]; then CADENCE+=(--month-spend "$MONTH_SPEND"); fi
           node scripts/god/gate.mjs \
             --tier "$TIER" \
             --focus "$FOCUS" \
-            $FORCE_FLAG
+            $FORCE_FLAG \
+            "${CADENCE[@]}"
 
   brief:
     needs: gate
@@ -189,6 +211,10 @@ jobs:
     permissions:
       contents: read
       id-token: write
+    outputs:
+      act: ${{ steps.act.outputs.act }}
+      skip_verdict: ${{ steps.act.outputs.skip_verdict }}
+      skip_reason: ${{ steps.act.outputs.skip_reason }}
     steps:
       - uses: actions/checkout@v5
         with:
@@ -220,11 +246,14 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p "$RUNNER_TEMP/god"
-          # Prefer live god-signals; fall back to the fixture when the bucket is still empty.
+          # Prefer live god-signals. The fixture fallback is for the artifact only — brief-source
+          # is what decideAct trusts, and a fixture must not be able to spend money.
+          SOURCE=live
           if ! node scripts/god/brief.mjs \
             --out "$RUNNER_TEMP/god/brief.json" \
             --history-out "$RUNNER_TEMP/god/history.json" \
             --current-sha "${{ github.sha }}"; then
+            SOURCE=fixture
             echo "::warning::live brief failed; writing fixture-backed brief for the artifact"
             node scripts/god/brief.mjs \
               --from-file scripts/god/fixtures/log-lines.ndjson \
@@ -233,6 +262,7 @@ jobs:
               --now "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
               --current-sha "${{ github.sha }}"
           fi
+          printf '%s\n' "$SOURCE" > "$RUNNER_TEMP/god/brief-source"
           node -e "
             const b = require('fs').readFileSync(process.env.RUNNER_TEMP + '/god/brief.json', 'utf8');
             const j = JSON.parse(b);
@@ -251,18 +281,296 @@ jobs:
             ].join('\\n'));
           "
 
+      - name: Decide whether to act
+        id: act
+        run: |
+          set -euo pipefail
+          FORCE_FLAG=""
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.force }}" = "true" ]; then
+            FORCE_FLAG="--force"
+          fi
+          node scripts/god/actDecision.mjs \
+            --gate-go "${{ needs.gate.outputs.go }}" \
+            --tier "${{ needs.gate.outputs.tier }}" \
+            --source-file "$RUNNER_TEMP/god/brief-source" \
+            --brief "$RUNNER_TEMP/god/brief.json" \
+            $FORCE_FLAG
+
       - name: Upload brief artifact
         uses: actions/upload-artifact@v4
         with:
           name: god-brief-${{ github.run_id }}
           path: |
             ${{ runner.temp }}/god/brief.json
+            ${{ runner.temp }}/god/brief-source
             ${{ runner.temp }}/god/history.json
           if-no-files-found: error
           retention-days: 30
 
-  record:
+  act:
     needs: [gate, brief]
+    if: needs.brief.outputs.act == 'true'
+    runs-on: ubuntu-24.04
+    environment: god
+    timeout-minutes: 100
+    permissions:
+      contents: read
+    outputs:
+      has_diff: ${{ steps.pack.outputs.has_diff }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+
+      - name: Install workspace dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Download the brief
+        uses: actions/download-artifact@v4
+        with:
+          name: god-brief-${{ github.run_id }}
+          path: ${{ runner.temp }}/god
+
+      - name: Checkout god-log
+        id: godlog
+        continue-on-error: true
+        uses: actions/checkout@v5
+        with:
+          ref: god-log
+          path: god-log
+          persist-credentials: false
+          fetch-depth: 1
+
+      - name: Stage the brief inside the workspace
+        run: |
+          set -euo pipefail
+          mkdir -p god-run
+          cp "$RUNNER_TEMP/god/brief.json" god-run/brief.json
+          if [ "${{ steps.godlog.outcome }}" = "success" ]; then
+            node scripts/god/godLog.mjs --root god-log --history-out god-run/history.json
+          else
+            printf '[]\n' > god-run/history.json
+          fi
+
+      - name: Install the pinned DeepSeek Harness outside the repo
+        run: |
+          set -euo pipefail
+          version="$(node -p "require('./scripts/god/dsh/versions.json').packages['@deepseek-ai/dsh']")"
+          mkdir -p "$RUNNER_TEMP/dsh"
+          npm install --prefix "$RUNNER_TEMP/dsh" --no-audit --no-fund --ignore-scripts \
+            "@deepseek-ai/dsh@${version}"
+
+      - name: Enable the bubblewrap sandbox
+        run: |
+          set -euo pipefail
+          if ! command -v bwrap >/dev/null; then
+            sudo apt-get update -qq
+            sudo apt-get install -y --no-install-recommends bubblewrap
+          fi
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+          bwrap --ro-bind / / --dev /dev --proc /proc true
+          echo "bwrap $(bwrap --version) is usable"
+
+      - name: Stage the key as a file, then revoke sudo
+        env:
+          GOD_DEEPSEEK_API_KEY: ${{ secrets.GOD_DEEPSEEK_API_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "$GOD_DEEPSEEK_API_KEY" ]; then
+            echo "::error::Set GOD_DEEPSEEK_API_KEY in the 'god' environment (God's own DeepSeek account)."
+            exit 1
+          fi
+          umask 077
+          printf '%s' "$GOD_DEEPSEEK_API_KEY" > "$RUNNER_TEMP/god-key"
+          sudo rm -f /etc/sudoers.d/runner
+          if sudo -n true 2>/dev/null; then
+            echo "::error::sudo is still available after revocation"
+            exit 1
+          fi
+
+      - name: Run the harness
+        run: |
+          set -euo pipefail
+          status=0
+          node scripts/god/run.mjs --harness dsh --tier "${{ needs.gate.outputs.tier }}" \
+            --focus "${{ needs.gate.outputs.focus }}" \
+            --run-id "${{ github.run_id }}" \
+            --key-file "$RUNNER_TEMP/god-key" \
+            --out-dir "$RUNNER_TEMP/god-act" \
+            --install-dir "$RUNNER_TEMP/dsh" \
+            --brief god-run/brief.json \
+            --history god-run/history.json \
+            --max-usd "${{ needs.gate.outputs.max_usd }}" \
+            --max-minutes "${{ needs.gate.outputs.max_minutes }}" || status=$?
+          rm -f "$RUNNER_TEMP/god-key"
+          exit "$status"
+
+      - name: Prove the key reached no file
+        if: always()
+        env:
+          GOD_DEEPSEEK_API_KEY: ${{ secrets.GOD_DEEPSEEK_API_KEY }}
+        run: |
+          set -uo pipefail
+          test ! -e "$RUNNER_TEMP/god-key" || { echo "::error::key file survived the run"; exit 1; }
+          if grep -rqsF -- "$GOD_DEEPSEEK_API_KEY" "$RUNNER_TEMP/god-act" "$GITHUB_WORKSPACE" /tmp; then
+            echo "::error::the key appears in a file the harness could reach"
+            exit 1
+          fi
+          echo "key found in no report, workspace or temp file"
+
+      - name: Pack a propose diff
+        id: pack
+        if: always() && needs.gate.outputs.tier == 'propose'
+        run: |
+          set -euo pipefail
+          echo "has_diff=false" >> "$GITHUB_OUTPUT"
+          if [ ! -f "$RUNNER_TEMP/god-act/report.json" ]; then
+            exit 0
+          fi
+          pack="$(node scripts/god/proposePatch.mjs --report "$RUNNER_TEMP/god-act/report.json" --tier propose)"
+          if [ "$pack" != "pack=true" ]; then
+            exit 0
+          fi
+          # The brief, the data branch, and dependencies are not the product diff.
+          git add -A -- . ':!god-run' ':!god-log' ':!node_modules'
+          if git diff --cached --quiet; then
+            git reset -q
+            exit 0
+          fi
+          git diff --cached --binary > "$RUNNER_TEMP/god-act/changes.patch"
+          git diff --cached --name-only > "$RUNNER_TEMP/god-act/files.txt"
+          git reset -q
+          echo "has_diff=true" >> "$GITHUB_OUTPUT"
+
+      - name: Upload the act report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: god-act-${{ github.run_id }}
+          path: ${{ runner.temp }}/god-act
+          if-no-files-found: warn
+          retention-days: 30
+
+  verify:
+    needs: [gate, act]
+    if: needs.act.result == 'success' && needs.act.outputs.has_diff == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      issues: read
+    outputs:
+      reason: ${{ steps.checks.outputs.reason || steps.postflight.outputs.reason }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+
+      - name: Install workspace dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Download the propose diff
+        uses: actions/download-artifact@v4
+        with:
+          name: god-act-${{ github.run_id }}
+          path: ${{ runner.temp }}/god-act
+
+      - name: Apply the diff
+        run: git apply --index --whitespace=nowarn "$RUNNER_TEMP/god-act/changes.patch"
+
+      - name: Path budget
+        id: postflight
+        run: |
+          set -euo pipefail
+          if node scripts/routine-guard.mjs --postflight god; then
+            echo "reason=ok" >> "$GITHUB_OUTPUT"
+          else
+            echo "reason=postflight" >> "$GITHUB_OUTPUT"
+            exit 1
+          fi
+
+      - name: Affected checks
+        id: checks
+        run: |
+          set -euo pipefail
+          if npm run check:affected; then
+            echo "reason=ok" >> "$GITHUB_OUTPUT"
+          else
+            echo "reason=checks" >> "$GITHUB_OUTPUT"
+            exit 1
+          fi
+
+  publish:
+    needs: [act, verify]
+    if: needs.verify.result == 'success' && needs.act.outputs.has_diff == 'true'
+    runs-on: ubuntu-24.04
+    # Environment so an optional GOD_PR_TOKEN can live with the other God secrets. This job must
+    # not reference GOD_DEEPSEEK_API_KEY — the harness job is the only one that bills DeepSeek.
+    environment: god
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      pull-requests: write
+    outputs:
+      pr: ${{ steps.open.outputs.pr }}
+      branch: ${{ steps.open.outputs.branch }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 1
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+
+      - name: Install workspace dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Download the propose diff
+        uses: actions/download-artifact@v4
+        with:
+          name: god-act-${{ github.run_id }}
+          path: ${{ runner.temp }}/god-act
+
+      - name: Open a ready pull request
+        id: open
+        env:
+          # A PAT or GitHub App token (contents + pull requests, not admin) so the PR starts the
+          # required checks. The default token opens the PR and does not start those workflows.
+          GH_TOKEN: ${{ secrets.GOD_PR_TOKEN || github.token }}
+        run: |
+          set -euo pipefail
+          branch="god/${{ github.run_id }}"
+          git apply --index --whitespace=nowarn "$RUNNER_TEMP/god-act/changes.patch"
+          node scripts/god/proposePatch.mjs \
+            --run-id "${{ github.run_id }}" \
+            --events "$RUNNER_TEMP/god-act/events.ndjson" \
+            --title-out "$RUNNER_TEMP/god-act/pr-title" \
+            --body-out "$RUNNER_TEMP/god-act/pr-body"
+          git config user.name "archislop-god"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$branch"
+          git commit -m "$(cat "$RUNNER_TEMP/god-act/pr-title")"
+          git push origin "HEAD:${branch}"
+          url="$(gh pr create --repo "${{ github.repository }}" --base main --head "$branch" \
+            --title "$(cat "$RUNNER_TEMP/god-act/pr-title")" \
+            --body-file "$RUNNER_TEMP/god-act/pr-body")"
+          number="$(gh pr view "$url" --json number --jq .number)"
+          echo "pr=${number}" >> "$GITHUB_OUTPUT"
+          echo "branch=${branch}" >> "$GITHUB_OUTPUT"
+          echo "opened ${url}"
+
+  record:
+    needs: [gate, brief, act, verify, publish]
     if: always() && needs.gate.result == 'success'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
@@ -281,20 +589,54 @@ jobs:
       - name: Install workspace dependencies
         run: npm ci --no-audit --no-fund
 
+      - name: Download the act report
+        id: actout
+        if: needs.act.result == 'success' || needs.act.result == 'failure'
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: god-act-${{ github.run_id }}
+          path: ${{ runner.temp }}/god-act
+
       - name: Build tick record
         run: |
           set -euo pipefail
           TRIGGER=schedule
           if [ "${{ github.event_name }}" != "schedule" ]; then TRIGGER=manual; fi
           mkdir -p "$RUNNER_TEMP/god-tick"
-          node scripts/god/recordTick.mjs \
-            --out-dir "$RUNNER_TEMP/god-tick" \
-            --run-id "${{ github.run_id }}" \
-            --go "${{ needs.gate.outputs.go }}" \
-            --reason "${{ needs.gate.outputs.reason }}" \
-            --tier "${{ needs.gate.outputs.tier }}" \
-            --focus "${{ needs.gate.outputs.focus }}" \
-            --trigger "$TRIGGER"
+          if [ -f "$RUNNER_TEMP/god-act/report.json" ]; then
+            EXTRA=()
+            PR="${{ needs.publish.outputs.pr }}"
+            BRANCH="${{ needs.publish.outputs.branch }}"
+            VERIFY="${{ needs.verify.outputs.reason }}"
+            if [ -n "$PR" ]; then EXTRA+=(--pr "$PR" --branch "$BRANCH"); fi
+            if [ "$VERIFY" = "postflight" ] || [ "$VERIFY" = "checks" ]; then
+              EXTRA+=(--verify "$VERIFY")
+            fi
+            if [ -f "$RUNNER_TEMP/god-act/files.txt" ]; then
+              EXTRA+=(--files-from "$RUNNER_TEMP/god-act/files.txt")
+            fi
+            node scripts/god/recordTick.mjs \
+              --out-dir "$RUNNER_TEMP/god-tick" \
+              --from-report "$RUNNER_TEMP/god-act/report.json" \
+              --events "$RUNNER_TEMP/god-act/events.ndjson" \
+              --reason "${{ needs.gate.outputs.reason }}" \
+              --trigger "$TRIGGER" \
+              "${EXTRA[@]}"
+          else
+            VERDICT="${{ needs.brief.outputs.skip_verdict }}"
+            if [ "${{ needs.act.result }}" = "failure" ] && [ -z "$VERDICT" ]; then
+              VERDICT=skipped
+            fi
+            node scripts/god/recordTick.mjs \
+              --out-dir "$RUNNER_TEMP/god-tick" \
+              --run-id "${{ github.run_id }}" \
+              --verdict "$VERDICT" \
+              --reason "${{ needs.brief.outputs.skip_reason || needs.gate.outputs.reason }}" \
+              --tier "${{ needs.gate.outputs.tier }}" \
+              --focus "${{ needs.gate.outputs.focus }}" \
+              --trigger "$TRIGGER"
+          fi
 
       - name: Checkout god-log data branch
         uses: actions/checkout@v5
@@ -336,5 +678,11 @@ jobs:
             echo "nothing to record"
             exit 0
           fi
-          git commit -m "god-log: tick ${{ github.run_id }} (${{ needs.gate.outputs.reason }})"
+          LABEL="${{ needs.brief.outputs.skip_reason || needs.gate.outputs.reason }}"
+          if [ -n "${{ needs.publish.outputs.pr }}" ]; then
+            LABEL="pr ${{ needs.publish.outputs.pr }}"
+          elif [ -f "$RUNNER_TEMP/god-act/report.json" ]; then
+            LABEL="act"
+          fi
+          git commit -m "god-log: tick ${{ github.run_id }} (${LABEL})"
           git push origin HEAD:god-log

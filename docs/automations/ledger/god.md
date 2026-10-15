@@ -25,12 +25,14 @@ Filled from the first sufficient brief after signals accumulate in `god-signals`
 
 ## Run log
 
-| Date (UTC) | Trigger | Verdict | Notes                                                          | PR  |
-| ---------- | ------- | ------- | -------------------------------------------------------------- | --- |
-| 2026-10-15 | setup   | —       | Stage 2b lands: gate + brief hourly; act pipeline still later. |     |
+| Date (UTC) | Trigger | Verdict | Notes                                                                              | PR  |
+| ---------- | ------- | ------- | ---------------------------------------------------------------------------------- | --- |
+| 2026-10-15 | setup   | —       | Stage 2b lands: gate + brief hourly; act pipeline still later.                     |     |
+| 2026-10-15 | code    | —       | Observe act wired. Propose still does not open a PR.                               |     |
+| 2026-10-15 | code    | —       | Propose opens a ready PR after postflight and check:affected. Ship does not merge. |     |
 
 ## Open observations
 
-- Act → verify → publish (observe, then propose) is PR 3.
+- Ship (`gh pr merge --auto`) is still later. Propose stops at an open PR.
 - Owner window + `/api/god` is stage 2c.
 - Live-ingest HMAC and GitHub App for settings/PR open are not created yet.

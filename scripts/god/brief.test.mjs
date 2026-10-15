@@ -69,12 +69,23 @@ test('buildBrief from the fixture validates and stays below the signal floor', (
   assert.equal(brief.clientErrors[0]?.errorName, 'TypeError');
 });
 
-test('buildBrief --from-file CLI writes a schema-valid file', () => {
+test('buildBrief --from-file CLI writes a schema-valid file and an array history', () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'god-brief-'));
   const out = path.join(dir, 'brief.json');
-  const brief = main(['--from-file', FIXTURE, '--out', out, '--now', '2026-10-15T07:00:00.000Z']);
+  const history = path.join(dir, 'history.json');
+  const brief = main([
+    '--from-file',
+    FIXTURE,
+    '--out',
+    out,
+    '--history-out',
+    history,
+    '--now',
+    '2026-10-15T07:00:00.000Z'
+  ]);
   assert.equal(brief.v, 1);
   assert.deepEqual(JSON.parse(fs.readFileSync(out, 'utf8')), brief);
+  assert.deepEqual(JSON.parse(fs.readFileSync(history, 'utf8')), []);
 });
 
 test('a clear accept-rate drop surfaces as a finding', () => {
