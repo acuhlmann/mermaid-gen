@@ -204,7 +204,8 @@ This is the section the routine exists for. Report each of these or say explicit
    owner while it sits, which is worth more in one sentence than three nights of "sitting untouched".
    **Say which kind of hold it is** (README § "Two kinds of hold"), because they need opposite things
    from the reader. A `resolve:` hold means _an agent is unsure_ and nobody has to do anything tonight.
-   **No routine files a policy hold any more.** `prune` — the shelf's only one, on the reasoning that a
+   **`god` is the only policy hold today** (`mergePolicy: hold`, ADR-0019 — Propose means a human
+   merges; a waiting `god:` PR is expected). `prune` — the previous one, on the reasoning that a
    deletion is page-bar #3 — began self-merging on 2026-09-14 under five mechanical controls
    ([`prune.md`](prune.md) § 5), so a `prune:` PR that is still open in the morning is **news and not
    the design**: either CI is red on it, which after a deletion means a sensor was wrong and the

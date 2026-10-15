@@ -3,20 +3,33 @@ name: ArchiSlop God
 # ADR-0019. Frozen for every routine (routine-guard ALWAYS_FORBIDDEN): this file decides which
 # credentials God's jobs hold and how long they may run.
 #
-# For now it carries only the harness spike — a manually dispatched self-test of DeepSeek Harness
-# on a GitHub runner, billed to God's own DeepSeek account (secret GOD_DEEPSEEK_API_KEY in the
-# `god` environment). The go/no-go checks live in scripts/god/spike.mjs; the report is uploaded
-# whatever the outcome. The scheduled gate → brief → act → verify → publish pipeline lands later.
-#
-# Dispatch-only on purpose: no pull_request trigger, so an untrusted PR can never reach the key.
+# Stage 2b: hourly gate → brief (no LLM). The harness spike stays dispatch-only. Act → verify →
+# publish lands in a later PR; until then a tick records a noop on god-log when enabled.
 
 on:
+  schedule:
+    # Off the top-of-hour rush; must match docs/automations/god.md `schedule:`.
+    - cron: '17 * * * *'
   workflow_dispatch:
     inputs:
       spike:
-        description: 'Run the harness self-test (the only mode until the act pipeline lands)'
+        description: 'Run the harness self-test (bills GOD_DEEPSEEK_API_KEY)'
         type: boolean
-        default: true
+        default: false
+      force:
+        description: 'Skip window / cadence / signal floor (never money caps)'
+        type: boolean
+        default: false
+      tier:
+        description: 'May only lower GOD_AUTONOMY'
+        type: choice
+        options: [observe, propose]
+        default: observe
+      focus:
+        description: 'Enum focus for a future act job'
+        type: choice
+        options: [any, ux, mermaid, infographic, metaphor3d, chart, forms, anything]
+        default: any
 
 permissions: {}
 
@@ -26,7 +39,7 @@ concurrency:
 
 jobs:
   spike:
-    if: ${{ inputs.spike }}
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.spike }}
     runs-on: ubuntu-24.04
     environment: god
     timeout-minutes: 30
@@ -116,3 +129,212 @@ jobs:
             ${{ runner.temp }}/god-spike/events.ndjson
           if-no-files-found: warn
           retention-days: 30
+
+  gate:
+    if: ${{ github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && !inputs.spike) }}
+    runs-on: ubuntu-24.04
+    environment: god
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    outputs:
+      go: ${{ steps.decide.outputs.go }}
+      reason: ${{ steps.decide.outputs.reason }}
+      tier: ${{ steps.decide.outputs.tier }}
+      focus: ${{ steps.decide.outputs.focus }}
+      max_minutes: ${{ steps.decide.outputs.max_minutes }}
+      max_usd: ${{ steps.decide.outputs.max_usd }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+
+      - name: Install workspace dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Decide
+        id: decide
+        env:
+          GOD_DEEPSEEK_API_KEY: ${{ secrets.GOD_DEEPSEEK_API_KEY }}
+          GOD_ENABLED: ${{ vars.GOD_ENABLED }}
+          GOD_AUTONOMY: ${{ vars.GOD_AUTONOMY }}
+          GOD_EVERY_HOURS: ${{ vars.GOD_EVERY_HOURS }}
+          GOD_WINDOW_UTC: ${{ vars.GOD_WINDOW_UTC }}
+          GOD_MAX_MINUTES: ${{ vars.GOD_MAX_MINUTES }}
+          GOD_MAX_USD_PER_RUN: ${{ vars.GOD_MAX_USD_PER_RUN }}
+          GOD_MAX_USD_PER_MONTH: ${{ vars.GOD_MAX_USD_PER_MONTH }}
+        run: |
+          set -euo pipefail
+          FORCE_FLAG=""
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.force }}" = "true" ]; then
+            FORCE_FLAG="--force"
+          fi
+          TIER="${{ github.event_name == 'workflow_dispatch' && inputs.tier || 'propose' }}"
+          FOCUS="${{ github.event_name == 'workflow_dispatch' && inputs.focus || 'any' }}"
+          # newSignals left null here — brief job revises go/sufficient; gate still enforces money/window.
+          node scripts/god/gate.mjs \
+            --tier "$TIER" \
+            --focus "$FOCUS" \
+            $FORCE_FLAG
+
+  brief:
+    needs: gate
+    runs-on: ubuntu-24.04
+    environment: god
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+
+      - name: Install workspace dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Authenticate to Google Cloud (god-observer)
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GOD_GCP_SERVICE_ACCOUNT }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Build the brief
+        env:
+          GOD_GCP_PROJECT_ID: ${{ vars.GOD_GCP_PROJECT_ID }}
+          GOD_LOG_BUCKET: ${{ vars.GOD_LOG_BUCKET }}
+          GOD_LOG_LOCATION: ${{ vars.GOD_LOG_LOCATION }}
+          GOD_LOG_VIEW: ${{ vars.GOD_LOG_VIEW }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/god"
+          # Prefer live god-signals; fall back to the fixture when the bucket is still empty.
+          if ! node scripts/god/brief.mjs \
+            --out "$RUNNER_TEMP/god/brief.json" \
+            --history-out "$RUNNER_TEMP/god/history.json" \
+            --current-sha "${{ github.sha }}"; then
+            echo "::warning::live brief failed; writing fixture-backed brief for the artifact"
+            node scripts/god/brief.mjs \
+              --from-file scripts/god/fixtures/log-lines.ndjson \
+              --out "$RUNNER_TEMP/god/brief.json" \
+              --history-out "$RUNNER_TEMP/god/history.json" \
+              --now "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+              --current-sha "${{ github.sha }}"
+          fi
+          node -e "
+            const b = require('fs').readFileSync(process.env.RUNNER_TEMP + '/god/brief.json', 'utf8');
+            const j = JSON.parse(b);
+            const fs = require('fs');
+            fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, [
+              '## ArchiSlop God — brief',
+              '',
+              '| | |',
+              '| --- | --- |',
+              '| sufficient | \\\`' + j.sufficient + '\\\` |',
+              '| agent_turn | ' + j.volume.agentTurns + ' |',
+              '| ux_signal | ' + j.volume.uxSignals + ' |',
+              '| findings | ' + j.findings.length + ' |',
+              '| regressionSuspect | ' + (j.regressionSuspect ? '#' + j.regressionSuspect.pr : '—') + ' |',
+              ''
+            ].join('\\n'));
+          "
+
+      - name: Upload brief artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: god-brief-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/god/brief.json
+            ${{ runner.temp }}/god/history.json
+          if-no-files-found: error
+          retention-days: 30
+
+  record:
+    needs: [gate, brief]
+    if: always() && needs.gate.result == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      # Scripts live on main; the data branch is an orphan and has no package tree.
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+
+      - name: Install workspace dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Build tick record
+        run: |
+          set -euo pipefail
+          TRIGGER=schedule
+          if [ "${{ github.event_name }}" != "schedule" ]; then TRIGGER=manual; fi
+          mkdir -p "$RUNNER_TEMP/god-tick"
+          node scripts/god/recordTick.mjs \
+            --out-dir "$RUNNER_TEMP/god-tick" \
+            --run-id "${{ github.run_id }}" \
+            --go "${{ needs.gate.outputs.go }}" \
+            --reason "${{ needs.gate.outputs.reason }}" \
+            --tier "${{ needs.gate.outputs.tier }}" \
+            --focus "${{ needs.gate.outputs.focus }}" \
+            --trigger "$TRIGGER"
+
+      - name: Checkout god-log data branch
+        uses: actions/checkout@v5
+        with:
+          ref: god-log
+          path: god-log
+          fetch-depth: 1
+
+      - name: Commit and push god-log
+        working-directory: god-log
+        run: |
+          set -euo pipefail
+          mkdir -p runs index
+          cp -R "$RUNNER_TEMP/god-tick/runs/." runs/
+          cp -R "$RUNNER_TEMP/god-tick/index/." index/
+          # Merge monthly index if both sides exist (cp overwrites; re-merge via node).
+          node <<'NODE'
+          const fs = require('fs');
+          const path = require('path');
+          const tickIdxDir = process.env.RUNNER_TEMP + '/god-tick/index';
+          for (const name of fs.readdirSync(tickIdxDir)) {
+            const incoming = JSON.parse(fs.readFileSync(path.join(tickIdxDir, name), 'utf8'));
+            const dest = path.join('index', name);
+            let base = { v: 1, month: incoming.month, runs: [] };
+            if (fs.existsSync(dest)) {
+              try { base = JSON.parse(fs.readFileSync(dest, 'utf8')); } catch {}
+            }
+            const seen = new Set((base.runs || []).map((r) => r.runId));
+            for (const row of incoming.runs || []) {
+              if (!seen.has(row.runId)) base.runs.push(row);
+            }
+            fs.writeFileSync(dest, JSON.stringify(base, null, 2) + '\n');
+          }
+          NODE
+          git config user.name "archislop-god"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add runs index
+          if git diff --cached --quiet; then
+            echo "nothing to record"
+            exit 0
+          fi
+          git commit -m "god-log: tick ${{ github.run_id }} (${{ needs.gate.outputs.reason }})"
+          git push origin HEAD:god-log

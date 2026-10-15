@@ -104,6 +104,11 @@ Inherited verbatim from [`AGENTS.md`](../../AGENTS.md) § Don't-touch list.
 Append a run-log row every time, including runs that changed nothing. Move finished `todos` to
 `completed` rather than deleting them.
 
+**Exception — `god`:** per-run memory lives on the `god-log` data branch (ADR-0019). A ledger PR
+per hourly tick would redeploy production. The repo ledger
+[`ledger/god.md`](ledger/god.md) only gets rows inside God's own code PRs; `digest` reads `god-log`
+for the tick history.
+
 ### 7. Write durable learnings once, where the code is
 
 Domain findings go in `docs/agents/domains/<domain>.md` — one file per domain, auto-loaded by every
@@ -170,12 +175,13 @@ works another's queue, so `ready-for-agent` there is a label no scheduler will e
 
 ## Registered automations
 
-| Playbook                                    | Schedule (UTC) | HKT   | Trigger                                                                                           |
-| ------------------------------------------- | -------------- | ----- | ------------------------------------------------------------------------------------------------- |
-| [`metaphor3d`](metaphor3d.md)               | `0 15 * * *`   | 23:00 | Claude Routine "Feature automation: metaphor3d"                                                   |
-| [`office-life`](office-life.md)             | `0 18 * * *`   | 02:00 | Claude Routine "Feature automation: office-life"                                                  |
-| [`anything`](anything.md)                   | `30 19 * * *`  | 03:30 | Claude Routine "Feature automation: anything"                                                     |
-| [`canvas-graph-edit`](canvas-graph-edit.md) | `30 20 * * *`  | 04:30 | Claude Routine "Feature automation: canvas-graph-edit" — **parked** (trigger disabled, cron kept) |
+| Playbook                                    | Schedule (UTC) | HKT        | Trigger                                                                                                                           |
+| ------------------------------------------- | -------------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| [`metaphor3d`](metaphor3d.md)               | `0 15 * * *`   | 23:00      | Claude Routine "Feature automation: metaphor3d"                                                                                   |
+| [`office-life`](office-life.md)             | `0 18 * * *`   | 02:00      | Claude Routine "Feature automation: office-life"                                                                                  |
+| [`anything`](anything.md)                   | `30 19 * * *`  | 03:30      | Claude Routine "Feature automation: anything"                                                                                     |
+| [`canvas-graph-edit`](canvas-graph-edit.md) | `30 20 * * *`  | 04:30      | Claude Routine "Feature automation: canvas-graph-edit" — **parked** (trigger disabled, cron kept)                                 |
+| [`god`](god.md)                             | `17 * * * *`   | hourly :17 | GitHub Actions [`.github/workflows/god.yml`](../../.github/workflows/god.yml) — **off the night ladder**; gate window `06–12` UTC |
 
 Every schedule on both shelves is **UTC**. Since 2026-09-14 `npm run verify:agent-infra` reads the
 `schedule` key and fails if this table, the night ladder in
