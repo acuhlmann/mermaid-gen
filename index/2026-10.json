@@ -3,13 +3,13 @@
   "month": "2026-10",
   "runs": [
     {
-      "runId": "38759172829",
-      "startedAt": "2026-10-15T15:22:19.545Z",
-      "endedAt": "2026-10-15T15:22:35.967Z",
-      "verdict": "observed",
-      "tier": "observe",
-      "usd": 0.018813,
-      "gateReason": "go"
+      "runId": "38761067108",
+      "startedAt": "2026-10-15T15:34:42.551Z",
+      "endedAt": "2026-10-15T15:34:42.551Z",
+      "verdict": "noop",
+      "tier": "propose",
+      "usd": 0,
+      "gateReason": "gate"
     }
   ]
 }
