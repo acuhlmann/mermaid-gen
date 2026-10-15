@@ -74,7 +74,7 @@ export function useSubmitIntent({
         return;
       }
 
-      setInsightsOpen(true);
+      if (!options.keepInsightsClosed) setInsightsOpen(true);
       tryAgentSound(playSubmitThunk);
       setRussStreak(0);
       const focusNode = resolveAdvisorFocusNode({
@@ -128,7 +128,8 @@ export function useSubmitIntent({
           modeSwitchSync: Boolean(options.modeSwitchSync),
           modeSwitchPeerRevisionId:
             options.modeSwitchPeerRevisionId != null ? options.modeSwitchPeerRevisionId : null,
-          modeSwitchPeerMode: options.modeSwitchPeerMode ?? null
+          modeSwitchPeerMode: options.modeSwitchPeerMode ?? null,
+          keepInsightsClosed: Boolean(options.keepInsightsClosed)
         });
         // Retain the prompt so the user can see and refine the current topic. Mode-switch
         // carry-over relies on this too — the textarea is the visible source of truth for

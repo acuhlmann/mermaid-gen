@@ -134,9 +134,10 @@ export function useRunStreamingAgent({
       topic,
       modeSwitchSync = false,
       modeSwitchPeerRevisionId = null,
-      modeSwitchPeerMode = null
+      modeSwitchPeerMode = null,
+      keepInsightsClosed = false
     }) => {
-      setInsightsOpen(true);
+      if (!keepInsightsClosed) setInsightsOpen(true);
       const runContentType = payload.contentType ?? contentMode;
       const runProfile = payload.modelProfile ?? modelProfile;
       const retryDescriptor = buildInsightRetryDescriptor({

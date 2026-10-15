@@ -381,10 +381,10 @@ area — see `docs/routines/README.md` rule 8; it is no longer "both root files,
   silent too**, because `formatLocale` just has nothing to substitute. `uiLocale.test.js` now
   pins placeholder parity and `entryPointers` id parity across all locales — extend it rather
   than trusting a key-shape check.
-- **First-run reception is `FloorArrival`, not `OfficeDirectory`.** Put `IntroLocaleToggle`
-  (`variant="intro"`, endonyms) and the name badge on the reception card, and leave **Check in**
-  as a real gesture — an auto-advance skips both and burns TTS on cold mount.
-  `officeFloorArrival.test.jsx` pins it; see [`docs/agents/domains/office.md`](docs/agents/domains/office.md).
+- **First paint is the prompt studio. The floor is opt-in.** Unset
+  `archislop:office-directory-seen` mounts `SimpleStudioSlot`. **Unleash the coworkers** opens
+  `FloorArrival` (endonyms, name badge, real **Check in**). Detail is in
+  [`docs/agents/domains/office.md`](docs/agents/domains/office.md).
 - **Speech is spoken, writing is read.** Room lines (walk-by, meeting, battle, coffee, huddle,
   desk/floor talk, dwell, shop talk) get TTS; **emails and Slop Chat™ messages never do.** Both
   media share `imHistory` and are told apart by `channel` — and `pushOfficeImPing` omits the

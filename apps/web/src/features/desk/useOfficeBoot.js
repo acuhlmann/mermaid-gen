@@ -7,16 +7,27 @@ import {
 import { OFFICE_CANVAS_GRACE_MS } from '../../utils/officeCanvasGrace.js';
 
 /**
- * Meet-the-Office boot gate and post-orientation canvas grace period.
+ * Prompt-studio gate, then the optional Meet-the-Office ceremony.
+ *
+ * A visit with no `archislop:office-directory-seen` stays on the simple prompt
+ * (`studioActive`). The floor ceremony starts only from `enterOfficeLife`.
+ * People who already finished orientation land on the desk, as before.
  *
  * @param {{ hasCanvasContent: boolean }} deps
  */
 export function useOfficeBoot({ hasCanvasContent }) {
-  const [officeBootPending, setOfficeBootPending] = useState(() => !readOfficeDirectorySeen());
+  const [studioActive, setStudioActive] = useState(() => !readOfficeDirectorySeen());
+  const [officeBootPending, setOfficeBootPending] = useState(false);
   const [officeCanvasGrace, setOfficeCanvasGrace] = useState(false);
   const [deskTourPending, setDeskTourPending] = useState(false);
 
+  const enterOfficeLife = useCallback(() => {
+    setStudioActive(false);
+    if (!readOfficeDirectorySeen()) setOfficeBootPending(true);
+  }, []);
+
   const handleOfficeBootComplete = useCallback((options = {}) => {
+    setStudioActive(false);
     setOfficeBootPending(false);
     writeDayOneBadgeSeen();
     if (options.skipDeskTour) {
@@ -47,6 +58,8 @@ export function useOfficeBoot({ hasCanvasContent }) {
   }, [officeCanvasGrace, hasCanvasContent]);
 
   return {
+    studioActive,
+    enterOfficeLife,
     officeBootPending,
     officeCanvasGrace,
     deskTourPending,

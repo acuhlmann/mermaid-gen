@@ -49,6 +49,13 @@ Read the short form to find the entry you need, then its long-form counterpart b
 it names. Merging the two into a single pass is worth doing and is not urgent — it is a good
 `improve` slice, not something to attempt while fixing a bug.
 
+- **First paint is the prompt studio, not the floor.** `useOfficeBoot`
+  (`apps/web/src/features/desk/useOfficeBoot.js`) starts `studioActive` when
+  `archislop:office-directory-seen` is unset and leaves `officeBootPending` false.
+  `SimpleStudioSlot` (`apps/web/src/features/shell/SimpleStudioSlot.jsx`) is that intro.
+  **Unleash the coworkers** calls `enterOfficeLife`, which is what mounts `FloorArrival`. The
+  reception card (locale endonyms, name badge, Check in) is unchanged once they opt in.
+  Directory-seen visitors still open the desk.
 - **A soft errand is defined by the timer it does not have.** `errand` in
   `apps/web/src/state/officeMomentStore.js` (slice 26): Linda's email grows a **Go and find
   Chad** CTA, pressing it stands you up carrying one, and speaking to Chad on _either_ renderer
@@ -1128,12 +1135,14 @@ y)`, so the obvious sweep silently iterates an empty list; and pacing the exchan
   bundles are the **only** ones that had mixed half-width ASCII `,?!:;` with full-width CJK
   punctuation — keep new Chinese copy full-width after a CJK character.
 - **The reception language picker is `IntroLocaleToggle` in its `intro` variant, and its labels
-  are endonyms on purpose.** First run mounts `FloorArrival`, not `OfficeDirectory` — put the
-  strip at the top of the **reception card** (above the name badge), not only on the card-tour
-  welcome body. Somebody who cannot read the current UI cannot be asked to open a menu labelled
-  in it. `LOCALE_ENDONYMS` lives in the component, never in a copy bundle, for the same reason.
-  Reception must wait for **Check in** (no auto-advance): that is the name-badge edit window
-  and the TTS cost guardrail. The desk **Language pack** menu keeps the `inline` variant.
+  are endonyms on purpose.** First paint is the prompt studio, which uses the same toggle. The
+  floor ceremony mounts `FloorArrival`, not `OfficeDirectory`, and only after **Unleash the
+  coworkers** — put the strip at the top of the **reception card** (above the name badge), not
+  only on the card-tour welcome body. Somebody who cannot read the current UI cannot be asked to
+  open a menu labelled in it. `LOCALE_ENDONYMS` lives in the component, never in a copy bundle,
+  for the same reason. Reception must wait for **Check in** (no auto-advance): that is the
+  name-badge edit window and the TTS cost guardrail. The desk **Language pack** menu keeps the
+  `inline` variant.
 - **A working-memory beat passes two validators, and the second one is the reason a memory bug can
   look like a caching bug.** `rememberWorkingMemoryBeat` normalises on the way in and
   `sanitizeWorkingMemoryBeat` in `officeAmbienceStorage.js` does it again on the way back off disk,

@@ -63,6 +63,16 @@ export const CONTROLS_EN = {
     // The persistent Work Order at the centre of the desk (content mode).
     deskLabel: 'Work order — what should we change?',
     deskPlaceholder: 'Prompt anything into reality…',
+    studio: {
+      wordmark: 'archislop',
+      headline: 'Prompt anything into reality.',
+      placeholder: "Describe it. We'll pick the shape.",
+      go: 'Go',
+      officeCta: 'Unleash the coworkers',
+      officeHint: 'A whole fake office. They have opinions and a bad floor plan.',
+      startOver: 'Start over',
+      formatLabel: 'Format'
+    },
     topicPlaceholder: 'Prompt anything into reality…',
     starterHint: 'Or pick up an assignment from the floor:',
     starterAria: 'Assignment requests from the floor',
