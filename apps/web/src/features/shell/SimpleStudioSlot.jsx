@@ -114,6 +114,74 @@ function StudioPromptActions({
   );
 }
 
+function StudioFormatSelect({ copy, modes = [], contentMode = 'auto', onSelectContentMode, busy }) {
+  if (modes.length === 0) return null;
+  const formatValue = modes.some((mode) => mode.id === contentMode) ? contentMode : 'auto';
+  return (
+    <label className="simple-studio-format">
+      <span>{copy.formatLabel ?? 'Format'}</span>
+      <select
+        data-testid="simple-studio-format"
+        value={formatValue}
+        disabled={busy}
+        onChange={(event) => onSelectContentMode?.(event.target.value)}
+      >
+        {modes.map((mode) => (
+          <option key={mode.id} value={mode.id}>
+            {mode.label}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
+function StudioBrainToggle({
+  modelProfile = 'fast',
+  onSelectModelProfile,
+  brainCopy = {},
+  busy = false
+}) {
+  const fastSelected = modelProfile !== 'quality';
+  return (
+    <div
+      className="simple-studio-brain"
+      role="group"
+      aria-label={brainCopy.label ?? 'Concentration'}
+    >
+      <button
+        type="button"
+        data-testid="simple-studio-brain-fast"
+        aria-pressed={fastSelected}
+        className={fastSelected ? 'is-selected' : ''}
+        disabled={busy}
+        onClick={() => onSelectModelProfile?.('fast')}
+      >
+        {brainCopy.fast ?? 'Rush'}
+      </button>
+      <button
+        type="button"
+        data-testid="simple-studio-brain-quality"
+        aria-pressed={!fastSelected}
+        className={fastSelected ? '' : 'is-selected'}
+        disabled={busy}
+        onClick={() => onSelectModelProfile?.('quality')}
+      >
+        {brainCopy.quality ?? 'Deep'}
+      </button>
+    </div>
+  );
+}
+
+function StudioTunes(props) {
+  return (
+    <div className="simple-studio-tunes">
+      <StudioFormatSelect {...props} />
+      <StudioBrainToggle {...props} />
+    </div>
+  );
+}
+
 function StudioPromptForm({
   copy,
   headline,
@@ -126,7 +194,13 @@ function StudioPromptForm({
   showStartOver,
   onStartOver,
   onEnterOffice,
-  onSubmit
+  onSubmit,
+  modes,
+  contentMode,
+  onSelectContentMode,
+  modelProfile,
+  onSelectModelProfile,
+  brainCopy
 }) {
   const inputRef = useRef(null);
   const compositionEndAt = useRef(null);
@@ -211,6 +285,16 @@ function StudioPromptForm({
       <p id="simple-studio-office-hint" className="simple-studio-office-hint">
         {copy.officeHint ?? 'A whole fake office. They have opinions and a bad floor plan.'}
       </p>
+      <StudioTunes
+        copy={copy}
+        modes={modes}
+        contentMode={contentMode}
+        onSelectContentMode={onSelectContentMode}
+        modelProfile={modelProfile}
+        onSelectModelProfile={onSelectModelProfile}
+        brainCopy={brainCopy}
+        busy={busy}
+      />
     </form>
   );
 }

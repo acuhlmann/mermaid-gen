@@ -1,5 +1,6 @@
 import FloorArrival from '../../components/officeFloor/FloorArrival.jsx';
 import OfficeDirectory from '../../components/OfficeDirectory.jsx';
+import { buildContentModeOptions } from '../../utils/renderModeAction.js';
 import { SimpleStudioSlot } from './SimpleStudioSlot.jsx';
 
 /**
@@ -45,6 +46,8 @@ function StudioBoot({
   onManualEdit,
   onValidationChange,
   onFormSubmit,
+  modelProfile,
+  setModelProfile,
   ...viewInput
 }) {
   const view = resolveStudioView({
@@ -90,6 +93,19 @@ function StudioBoot({
       onValidationChange={onValidationChange}
       onFormSubmit={onFormSubmit}
       diagramSurfaceRef={shell.diagramSurfaceRef}
+      modes={buildContentModeOptions(controls).map((mode) => ({
+        id: mode.id,
+        label: mode.shortLabel || mode.label
+      }))}
+      contentMode={runtime.contentMode}
+      onSelectContentMode={runtime.handleSelectContentMode}
+      modelProfile={modelProfile}
+      onSelectModelProfile={setModelProfile}
+      brainCopy={{
+        label: controls.settings?.brain,
+        fast: controls.settings?.fastShort || controls.settings?.fast,
+        quality: controls.settings?.qualityShort || controls.settings?.quality
+      }}
     />
   );
 }

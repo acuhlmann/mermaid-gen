@@ -66,7 +66,8 @@ export const CONTROLS_ZH_TW = {
       go: '開始',
       officeCta: '放出同事們',
       officeHint: '一整間假辦公室。他們有意見，平面圖也很差。',
-      startOver: '重新開始'
+      startOver: '重新開始',
+      formatLabel: '格式'
     },
     topicPlaceholder: '輸入任何主題 — 圖表、資料圖、表單…',
     starterHint: '或從同事那裡接個任務：',

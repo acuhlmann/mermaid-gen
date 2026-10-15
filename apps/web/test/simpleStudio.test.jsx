@@ -16,8 +16,17 @@ const copy = {
   go: 'Go',
   officeCta: 'Unleash the coworkers',
   officeHint: 'A whole fake office. They have opinions and a bad floor plan.',
-  startOver: 'Start over'
+  startOver: 'Start over',
+  formatLabel: 'Format'
 };
+
+const modes = [
+  { id: 'auto', label: 'Auto' },
+  { id: 'mermaid', label: 'Diagram' },
+  { id: 'chart', label: 'Chart' }
+];
+
+const brainCopy = { label: 'Concentration', fast: 'Rush', quality: 'Deep' };
 
 const localeCopy = {
   aria: 'Interface language',
@@ -31,6 +40,8 @@ function renderStudio(overrides = {}) {
   const onSubmit = vi.fn();
   const onEnterOffice = vi.fn();
   const onStartOver = vi.fn();
+  const onSelectContentMode = vi.fn();
+  const onSelectModelProfile = vi.fn();
   render(
     <SimpleStudioSlot
       copy={copy}
@@ -56,10 +67,16 @@ function renderStudio(overrides = {}) {
       onValidationChange={vi.fn()}
       onFormSubmit={vi.fn()}
       diagramSurfaceRef={{ current: null }}
+      modes={modes}
+      contentMode="auto"
+      onSelectContentMode={onSelectContentMode}
+      modelProfile="fast"
+      onSelectModelProfile={onSelectModelProfile}
+      brainCopy={brainCopy}
       {...overrides}
     />
   );
-  return { onSubmit, onEnterOffice, onStartOver };
+  return { onSubmit, onEnterOffice, onStartOver, onSelectContentMode, onSelectModelProfile };
 }
 
 describe('SimpleStudioSlot', () => {
@@ -67,12 +84,21 @@ describe('SimpleStudioSlot', () => {
     cleanup();
   });
 
-  it('is a prompt and an office opt-in, with no format picker', () => {
-    const { onSubmit, onEnterOffice } = renderStudio();
+  it('is a prompt and an office opt-in, with format defaulting to Auto', () => {
+    const { onSubmit, onEnterOffice, onSelectContentMode, onSelectModelProfile } = renderStudio();
 
     expect(screen.getByText('Prompt anything into reality.')).toBeTruthy();
     expect(screen.getByText(/bad floor plan/)).toBeTruthy();
     expect(screen.queryByRole('menuitem')).toBeNull();
+    expect(screen.getByTestId('simple-studio-format').value).toBe('auto');
+    expect(screen.getByTestId('simple-studio-brain-fast').getAttribute('aria-pressed')).toBe(
+      'true'
+    );
+
+    fireEvent.change(screen.getByTestId('simple-studio-format'), { target: { value: 'chart' } });
+    expect(onSelectContentMode).toHaveBeenCalledWith('chart');
+    fireEvent.click(screen.getByTestId('simple-studio-brain-quality'));
+    expect(onSelectModelProfile).toHaveBeenCalledWith('quality');
     expect(screen.queryByTestId('studio-canvas')).toBeNull();
     expect(screen.queryByTestId('simple-studio-start-over')).toBeNull();
 

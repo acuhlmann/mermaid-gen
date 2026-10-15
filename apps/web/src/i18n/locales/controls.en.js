@@ -70,7 +70,8 @@ export const CONTROLS_EN = {
       go: 'Go',
       officeCta: 'Unleash the coworkers',
       officeHint: 'A whole fake office. They have opinions and a bad floor plan.',
-      startOver: 'Start over'
+      startOver: 'Start over',
+      formatLabel: 'Format'
     },
     topicPlaceholder: 'Prompt anything into reality…',
     starterHint: 'Or pick up an assignment from the floor:',

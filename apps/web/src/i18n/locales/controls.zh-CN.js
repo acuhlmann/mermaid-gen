@@ -66,7 +66,8 @@ export const CONTROLS_ZH_CN = {
       go: '开始',
       officeCta: '放出同事们',
       officeHint: '一整间假办公室。他们有意见，平面图也很差。',
-      startOver: '重新开始'
+      startOver: '重新开始',
+      formatLabel: '格式'
     },
     topicPlaceholder: '输入任何主题 — 图表、数据图、表单…',
     starterHint: '或从同事那里接个任务：',

@@ -1190,6 +1190,7 @@ describe('App simplified controls', { timeout: 20_000 }, () => {
     render(<App />);
 
     expect(await screen.findByTestId('simple-studio')).toBeTruthy();
+    expect(screen.getByTestId('simple-studio-format').value).toBe('auto');
     expect(screen.queryByTestId('office-floor-arrival')).toBeNull();
     expect(screen.queryByTestId('desk-os-menubar')).toBeNull();
     expect(screen.queryByRole('menuitem', { name: /Diagram/i })).toBeNull();

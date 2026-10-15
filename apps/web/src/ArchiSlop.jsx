@@ -1023,6 +1023,8 @@ export function ArchiSlop() {
         hasInteractedRef={hasInteractedRef}
         soundEnabled={soundEnabled}
         sessionId={activeSessionId}
+        modelProfile={modelProfile}
+        setModelProfile={setModelProfile}
       />
     </main>
   );
