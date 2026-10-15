@@ -12,7 +12,10 @@
  * valid pages; script failures and timeouts fail CLOSED.
  */
 
-import { spawn } from 'node:child_process';
+import { execFileSync, spawn } from 'node:child_process';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { resolveAnythingBrowserBinary, runAnythingBrowserCheck } from './anythingRuntimeBrowser.js';
@@ -22,7 +25,91 @@ export const DEFAULT_ANYTHING_RUNTIME_SETTLE_MS = 250;
 
 // fileURLToPath (not URL.pathname) so Windows gets `D:\...` instead of `/D:/...`.
 const SANDBOX_PATH = fileURLToPath(new URL('./anythingRuntimeSandbox.js', import.meta.url));
+const REPO_ROOT = fileURLToPath(new URL('../../../../', import.meta.url));
 const SANDBOX_MAX_OLD_SPACE_MB = 256;
+
+/** Minimum Node for jsdom 30 (matches its `engines.node` lower bounds). */
+const JSDOM_MIN_NODE = Object.freeze({ major: 22, minor: 22, patch: 2 });
+
+function parseNodeVersion(version) {
+  const match = /^v(\d+)\.(\d+)\.(\d+)/.exec(String(version ?? '').trim());
+  if (!match) return null;
+  return { major: Number(match[1]), minor: Number(match[2]), patch: Number(match[3]) };
+}
+
+function compareNodeVersion(a, b) {
+  if (a.major !== b.major) return a.major - b.major;
+  if (a.minor !== b.minor) return a.minor - b.minor;
+  return a.patch - b.patch;
+}
+
+/** True when `version` can import and run jsdom 30 (undici zstd needs a recent patch). */
+export function nodeVersionMeetsJsdomMinimum(version) {
+  const parsed = parseNodeVersion(version);
+  if (!parsed) return false;
+  if (parsed.major >= 26) return true;
+  if (parsed.major === 24 && parsed.minor >= 15) return true;
+  if (parsed.major === 22 && compareNodeVersion(parsed, JSDOM_MIN_NODE) >= 0) return true;
+  return false;
+}
+
+function readRepoNvmrcLabel() {
+  try {
+    return fs.readFileSync(path.join(REPO_ROOT, '.nvmrc'), 'utf8').trim();
+  } catch {
+    return null;
+  }
+}
+
+/** First installed nvm Node whose folder name starts with `v${label}`. */
+function resolveNvmNodeBinary(label, home = os.homedir()) {
+  if (!label) return null;
+  const versionsDir = path.join(home, '.nvm', 'versions', 'node');
+  let entries;
+  try {
+    entries = fs.readdirSync(versionsDir);
+  } catch {
+    return null;
+  }
+  const prefix = label.startsWith('v') ? label : `v${label}`;
+  for (const entry of entries.sort()) {
+    if (!entry.startsWith(prefix)) continue;
+    const candidate = path.join(versionsDir, entry, 'bin', 'node');
+    if (fs.existsSync(candidate)) return candidate;
+  }
+  return null;
+}
+
+/**
+ * Node binary used to spawn the jsdom sandbox child.
+ *
+ * The parent process may be an older platform Node (Cloud Agent VMs have shipped
+ * behind `.nvmrc` before). jsdom then crashes on import and the rung fail-opens,
+ * which silently disables blank_render and runtime_timeout. Prefer an explicit
+ * override, then the repo's `.nvmrc` install under nvm, then the current binary.
+ */
+function nodeVersionFromBinary(nodeBin) {
+  try {
+    return execFileSync(nodeBin, ['-p', 'process.version'], { encoding: 'utf8' }).trim();
+  } catch {
+    return null;
+  }
+}
+
+export function resolveAnythingJsdomExecPath(env = process.env) {
+  const explicit = String(env?.ANYTHING_RUNTIME_NODE ?? '').trim();
+  if (explicit && fs.existsSync(explicit)) return explicit;
+
+  if (nodeVersionMeetsJsdomMinimum(process.version)) return process.execPath;
+
+  const fromNvm = resolveNvmNodeBinary(readRepoNvmrcLabel(), env?.HOME || os.homedir());
+  if (fromNvm) {
+    const nvmVersion = nodeVersionFromBinary(fromNvm);
+    if (nvmVersion && nodeVersionMeetsJsdomMinimum(nvmVersion)) return fromNvm;
+  }
+
+  return process.execPath;
+}
 
 /**
  * Enabled unless ANYTHING_RUNTIME_CHECK is explicitly turned off
@@ -143,7 +230,8 @@ export async function runAnythingRuntimeCheck(
       // Its own clock, not the browser's — see resolveAnythingRuntimeFallbackTimeoutMs.
       const jsdomResult = await runAnythingJsdomCheck(html, {
         budgetMs: resolveAnythingRuntimeFallbackTimeoutMs(env, budgetMs),
-        settle
+        settle,
+        env
       });
       return {
         ...jsdomResult,
@@ -153,7 +241,7 @@ export async function runAnythingRuntimeCheck(
     return result;
   }
 
-  return runAnythingJsdomCheck(html, { budgetMs, settle });
+  return runAnythingJsdomCheck(html, { budgetMs, settle, env });
 }
 
 /**
@@ -162,12 +250,13 @@ export async function runAnythingRuntimeCheck(
  * exercised by the same contract suite (anythingRuntimeCheck.test.js) rather
  * than by two suites that could drift apart.
  */
-function runAnythingJsdomCheck(html, { budgetMs, settle }) {
+function runAnythingJsdomCheck(html, { budgetMs, settle, env = process.env }) {
+  const nodeBin = resolveAnythingJsdomExecPath(env);
   return new Promise((resolve) => {
     let child;
     try {
       child = spawn(
-        process.execPath,
+        nodeBin,
         [`--max-old-space-size=${SANDBOX_MAX_OLD_SPACE_MB}`, SANDBOX_PATH, `--settle-ms=${settle}`],
         {
           // Clean environment on purpose: the child executes untrusted page
