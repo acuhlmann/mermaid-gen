@@ -11,12 +11,15 @@ function readCheckboxMask(root) {
   return [...root.querySelectorAll('input[type="checkbox"]')].map((el) => el.checked);
 }
 
+function buttonLabel(btn) {
+  return (btn.textContent ?? '').replace(/\s+/g, ' ').trim();
+}
+
 function findFixSelectedButton(root, label) {
   if (!root) return null;
-  const matchLabel = label?.trim();
+  const matchLabel = (label ?? '').replace(/\s+/g, ' ').trim();
   return (
-    [...root.querySelectorAll('button')].find((btn) => btn.textContent?.trim() === matchLabel) ??
-    null
+    [...root.querySelectorAll('button')].find((btn) => buttonLabel(btn) === matchLabel) ?? null
   );
 }
 
@@ -115,17 +118,22 @@ export default function CritiqueA2uiSurface({
   }, [messages]);
 
   useEffect(() => {
-    syncFixSelectedDisabled();
-  }, [surfaces, busy, syncFixSelectedDisabled]);
-
-  useEffect(() => {
     const root = rootRef.current;
     if (!root) return undefined;
 
+    // A2UI 0.12 paints catalog controls on a follow-up commit (loading frame,
+    // then content). The first sync often runs before the buttons exist.
+    // Watch childList only — toggling `disabled` must not re-enter the observer.
+    syncFixSelectedDisabled();
+    const observer = new MutationObserver(() => syncFixSelectedDisabled());
+    observer.observe(root, { childList: true, subtree: true });
     const onCheckboxChange = () => syncFixSelectedDisabled();
     root.addEventListener('change', onCheckboxChange);
-    return () => root.removeEventListener('change', onCheckboxChange);
-  }, [surfaces, syncFixSelectedDisabled]);
+    return () => {
+      observer.disconnect();
+      root.removeEventListener('change', onCheckboxChange);
+    };
+  }, [surfaces, busy, syncFixSelectedDisabled]);
 
   if (!Array.isArray(messages) || messages.length === 0 || !surfaces.length) {
     return null;

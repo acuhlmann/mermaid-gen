@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import InsightsPane from '../src/components/InsightsPane.jsx';
 import { splitCritiqueActionableSections } from '@archislop/shared';
@@ -1379,7 +1379,7 @@ flowchart TB
     expect(container.querySelector('.insights-tone-russ-c')).toBeTruthy();
   });
 
-  it('renders actionable checkboxes and fix controls when critiqueActionableUi matches entry content', () => {
+  it('renders actionable checkboxes and fix controls when critiqueActionableUi matches entry content', async () => {
     const critiqueText = `## Summary\n\n- Note.\n\n## Actionable improvements\n\n- First improvement\n- Second improvement\n`;
     const split = splitCritiqueActionableSections(critiqueText);
     const onFixSelected = vi.fn();
@@ -1415,7 +1415,11 @@ flowchart TB
     const actionableRegion = screen.getByRole('region', { name: /Actionable/i });
     const scope = within(actionableRegion);
     expect(scope.getAllByRole('checkbox')).toHaveLength(2);
-    expect(scope.getByRole('button', { name: 'Fix selected' }).disabled).toBe(true);
+    // A2UI paints the catalog buttons on a follow-up commit; the disable sync
+    // runs once those nodes exist.
+    await waitFor(() => {
+      expect(scope.getByRole('button', { name: 'Fix selected' }).disabled).toBe(true);
+    });
     fireEvent.click(scope.getAllByRole('checkbox')[1]);
     fireEvent.click(scope.getByRole('button', { name: 'Fix selected' }));
     fireEvent.click(scope.getByRole('button', { name: 'Fix all' }));

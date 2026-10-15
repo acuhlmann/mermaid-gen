@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { EventSchemas } from '@ag-ui/core';
+import { EventSchemas } from '@ag-ui/core/schemas';
 import { AGUI_CUSTOM_NAME_CONTENT_TYPE, AGUI_CUSTOM_NAME_MODEL_CALL } from '@archislop/shared';
 import { resolveAutoIntentContentType } from '../src/routes/resolveAutoContentType.js';
 import { createDiagramStateStore } from '../src/state/diagramStateStore.js';
