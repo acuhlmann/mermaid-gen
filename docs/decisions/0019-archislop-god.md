@@ -1,5 +1,8 @@
 # ADR-0019: ArchiSlop God — production signals drive an off-box self-improvement rung
 
+**Human map (diagrams + delivery checklist):** [`docs/guide/archislop-god.md`](../guide/archislop-god.md).
+**Operator playbook:** [`docs/automations/god.md`](../automations/god.md).
+
 ## Status
 
 Accepted — 2026-10-14 (owner decisions in the design session that produced it). Scopes
@@ -107,5 +110,8 @@ the product).
   `apps/server/src/metrics/agentTurnMetrics.js`, `apps/server/src/routes/signals.ts`.
 - Budget and wire shapes: `packages/shared/src/godBudget.ts`, `packages/shared/src/godSchemas.ts`.
 - Runner: `scripts/god/` (meter proxy, harness adapters, run wrapper) and `.github/workflows/god.yml`.
-- Later PRs: the playbook `docs/automations/god.md`, the brief and gate scripts, the owner-gated
-  `/api/god` routes, the God window, and the client signal emitter.
+- Playbook + ledger: `docs/automations/god.md`, `docs/automations/ledger/god.md`; visual guide
+  `docs/guide/archislop-god.md`.
+- Client signal emitter: `apps/web/src/state/uxSignalsClient.js` (shipped).
+- Still to land: brief and gate scripts in CI, scheduled `gate → brief → act → verify → publish`,
+  owner-gated `/api/god` routes, and the God window (Now, History, Signals, Settings).

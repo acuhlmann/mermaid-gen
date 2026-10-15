@@ -13,6 +13,7 @@ Human-readable documentation split into focused pages so GitHub preview stays fa
 | [External agents (MCP)](external-agents.md)       | Pairing, join flow, MCP Apps table, hybrid web workflow              |
 | [Configuration](configuration.md)                 | Environment variables, LLM backends, reliability tuning              |
 | [API endpoints](api-endpoints.md)                 | REST and SSE route reference                                         |
+| [ArchiSlop God](archislop-god.md)                 | Self-improvement from production signals — idea, diagrams, status    |
 | [Anonymous usage signals](privacy.md)             | What the app records for ArchiSlop God, and how to turn it off       |
 | [Development](development.md)                     | Stack layout, tests, VS Code launch configs                          |
 | [Coding agents](coding-agents.md)                 | Agent read order, verification table, PR checklist                   |
@@ -33,6 +34,7 @@ Human-readable documentation split into focused pages so GitHub preview stays fa
 | [`docs/office-continuity.md`](../office-continuity.md)                                                                   | Office continuity — working memory + runWalk (v1 shipped)                                                 |
 | [`docs/canvas-graph-edit.md`](../canvas-graph-edit.md)                                                                   | Canvas Add / Delete / Rename / Link — shipped families + next slices                                      |
 | [`docs/automations/README.md`](../automations/README.md)                                                                 | Scheduled **feature** automations (slot quality; playbook + ledger + budget guard)                        |
+| [ArchiSlop God](archislop-god.md)                                                                                        | Production signals → off-box self-improvement ([ADR-0019](../decisions/0019-archislop-god.md))            |
 | [`docs/office-narration-roadmap.md`](../office-narration-roadmap.md)                                                     | Office TTS — Chirp3-HD ladder (shipped) + polish roadmap                                                  |
 | [`docs/llm-config.md`](../llm-config.md)                                                                                 | Model tiers and provider details                                                                          |
 | [`docs/deploy/gcp.md`](../deploy/gcp.md)                                                                                 | Cloud Run deploy and investigation                                                                        |

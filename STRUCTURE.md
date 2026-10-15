@@ -57,6 +57,7 @@ Look up a concept here before grepping. Paths are repo-relative.
 | Browser usage signals + opt-out                            | `apps/web/src/state/uxSignalsClient.js`, `apps/web/src/utils/usageSignalsStorage.ts` |
 | Usage-signal + ArchiSlop God wire shapes and budget        | `packages/shared/src/uxSignals.ts`, `godSchemas.ts`, `godBudget.ts`                  |
 | ArchiSlop God runner (meter proxy, dsh adapter, spike)     | `scripts/god/run.mjs`, `scripts/god/meterProxy.mjs`, `.github/workflows/god.yml`     |
+| ArchiSlop God — human architecture + status                | `docs/guide/archislop-god.md`, `docs/automations/god.md`                             |
 
 ## Web
 

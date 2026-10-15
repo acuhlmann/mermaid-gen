@@ -177,6 +177,13 @@ works another's queue, so `ready-for-agent` there is a label no scheduler will e
 | [`anything`](anything.md)                   | `30 19 * * *`  | 03:30 | Claude Routine "Feature automation: anything"                                                     |
 | [`canvas-graph-edit`](canvas-graph-edit.md) | `30 20 * * *`  | 04:30 | Claude Routine "Feature automation: canvas-graph-edit" — **parked** (trigger disabled, cron kept) |
 
+### ArchiSlop God (separate host)
+
+[`god`](god.md) uses the same playbook + ledger shape but runs on **GitHub Actions**, not a Claude
+Routine. Its playbook declares `schedule: none` until the production-ingest pipeline ships; the visual
+architecture and delivery checklist live in [`docs/guide/archislop-god.md`](../guide/archislop-god.md)
+([ADR-0019](../decisions/0019-archislop-god.md)).
+
 Every schedule on both shelves is **UTC**. Since 2026-09-14 `npm run verify:agent-infra` reads the
 `schedule` key and fails if this table, the night ladder in
 [`docs/routines/review.md`](../routines/review.md), and the copies in `AGENTS.md` and `CLAUDE.md`
