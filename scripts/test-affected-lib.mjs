@@ -354,6 +354,12 @@ export const BLAST_RADIUS_RULES = [
     tests: ['scripts/verify-eslint-guidance-sync.test.mjs']
   },
   {
+    // Strict-island tsconfig `include` paths must exist — stale entries break typecheck:strict
+    // with a path error that does not point at the tsconfig line.
+    match: /apps\/(?:web|server)\/tsconfig\.strict\.json/,
+    tests: ['scripts/verify-strict-tsconfig-paths.test.mjs']
+  },
+  {
     // test:floor (apps/web/package.json) vs ISOMETRIC_FLOOR_BLAST_TESTS — intentionally different sets.
     match: /apps\/web\/package\.json|scripts\/test-affected-lib\.mjs/,
     tests: ['scripts/verify-isometric-floor-suites.test.mjs']

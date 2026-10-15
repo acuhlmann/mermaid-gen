@@ -50,15 +50,6 @@ import {
 } from './copilotDiagramHandlers.js';
 import { handleUserDiagramEdit, resolveStateContentType } from './copilotUserEdit.js';
 
-export type { CopilotAgentService };
-export {
-  handleClientStateSync,
-  handleDiagramAnalyze,
-  handleDiagramIntent,
-  handleDiagramTransformIntent,
-  handleStyleIntent
-};
-
 type CopilotSessionServices = Pick<
   SessionServices,
   'sessionId' | 'stateStore' | 'proposalStore' | 'handshakeStore' | 'presenceStore' | 'eventBus'

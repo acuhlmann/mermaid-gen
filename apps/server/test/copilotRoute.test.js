@@ -2,14 +2,14 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import express from 'express';
 import { LlmNotConfiguredError } from '../src/agents/mermaidLangChainAgent.js';
+import { createCopilotRouter } from '../src/routes/copilot.js';
 import {
-  createCopilotRouter,
   handleClientStateSync,
   handleDiagramAnalyze,
   handleDiagramIntent,
   handleDiagramTransformIntent,
   handleStyleIntent
-} from '../src/routes/copilot.js';
+} from '../src/routes/copilotDiagramHandlers.js';
 import { handleUserDiagramEdit, resolveStateContentType } from '../src/routes/copilotUserEdit.js';
 import { createDiagramStateStore } from '../src/state/diagramStateStore.js';
 
