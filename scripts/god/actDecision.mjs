@@ -197,8 +197,10 @@ export function main(argv = process.argv.slice(2)) {
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  main().catch((error) => {
+  try {
+    main();
+  } catch (error) {
     process.stderr.write(`god act: ${error?.message ?? error}\n`);
     process.exitCode = 1;
-  });
+  }
 }

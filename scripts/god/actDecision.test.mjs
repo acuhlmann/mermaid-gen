@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -124,6 +125,27 @@ test('lastNarrationText prefers the last text line over a later final trailer', 
     ),
     'finding:forms.retry_rate Buttons failed.'
   );
+});
+
+test('the CLI exits 0 after printing the decision', () => {
+  const result = spawnSync(
+    process.execPath,
+    [
+      path.join(HERE, 'actDecision.mjs'),
+      '--gate-go',
+      'true',
+      '--tier',
+      'observe',
+      '--source',
+      'live',
+      '--brief',
+      BRIEF,
+      '--force'
+    ],
+    { encoding: 'utf8' }
+  );
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(JSON.parse(result.stdout).act, true);
 });
 
 test('readBriefFlags trusts the schema and writeActDecisionOutputs is a flat env file', () => {
