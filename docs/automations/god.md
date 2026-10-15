@@ -57,6 +57,8 @@ forbiddenPaths:
 
 **Read [`docs/automations/README.md`](README.md) first — it carries the rules this playbook assumes.**
 
+**Visual architecture and delivery checklist:** [`docs/guide/archislop-god.md`](../guide/archislop-god.md).
+
 ArchiSlop God ([ADR-0019](../decisions/0019-archislop-god.md)) improves the product from
 **content-free production signals**. It runs off-box in GitHub Actions, not as a Claude Routine or
 Cursor automation. The hourly tick is free; LLM spend only starts when the `act` job lands (a later

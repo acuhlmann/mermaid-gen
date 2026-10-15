@@ -183,6 +183,12 @@ works another's queue, so `ready-for-agent` there is a label no scheduler will e
 | [`canvas-graph-edit`](canvas-graph-edit.md) | `30 20 * * *`  | 04:30      | Claude Routine "Feature automation: canvas-graph-edit" — **parked** (trigger disabled, cron kept)                                 |
 | [`god`](god.md)                             | `17 * * * *`   | hourly :17 | GitHub Actions [`.github/workflows/god.yml`](../../.github/workflows/god.yml) — **off the night ladder**; gate window `06–12` UTC |
 
+### ArchiSlop God (separate host)
+
+[`god`](god.md) runs on **GitHub Actions** (row above), not a Claude Routine. Diagrams and a
+shipped-vs-planned checklist: [`docs/guide/archislop-god.md`](../guide/archislop-god.md)
+([ADR-0019](../decisions/0019-archislop-god.md)).
+
 Every schedule on both shelves is **UTC**. Since 2026-09-14 `npm run verify:agent-infra` reads the
 `schedule` key and fails if this table, the night ladder in
 [`docs/routines/review.md`](../routines/review.md), and the copies in `AGENTS.md` and `CLAUDE.md`

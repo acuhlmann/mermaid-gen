@@ -12,7 +12,7 @@ todos: []
 - **Harness:** DeepSeek Harness (`dsh`), pins in `scripts/god/dsh/versions.json`. Spike GO on
   2026-10-14 (~$0.02, all 14 checks).
 - **Signals:** `agent_turn` + `ux_signal` → Cloud Logging bucket `god-signals` (30 days). Reader SA
-  `god-observer@mermaidgen.iam.gserviceaccount.com` (viewAccessor on that bucket only; WIF scoped to
+  `god-observer@[REDACTED].iam.gserviceaccount.com` (viewAccessor on that bucket only; WIF scoped to
   `acuhlmann/mermaid-gen`).
 - **Config:** repo variables `GOD_*` (defaults from `godBudget.ts`). `GOD_ENABLED=false` until the
   owner flips it from the God window (2c) or by hand.

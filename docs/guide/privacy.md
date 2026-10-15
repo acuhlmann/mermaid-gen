@@ -2,7 +2,8 @@
 
 ArchiSlop records a small set of anonymous usage signals so it can improve itself: a scheduled
 agent, ArchiSlop God ([ADR-0019](../decisions/0019-archislop-god.md)), reads them in aggregate and
-proposes fixes as pull requests. This page lists **everything** a signal can contain.
+proposes fixes as pull requests. For how that loop fits together (diagrams and what is shipped
+today), see **[ArchiSlop God](archislop-god.md)**. This page lists **everything** a signal can contain.
 
 ## What is never collected
 
