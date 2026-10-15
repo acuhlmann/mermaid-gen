@@ -17,7 +17,8 @@ export function buildAppShellClassName({
   // again (desk slot is mail / chat / meeting icons, not the stamp).
   showDeskChrome: _showDeskChrome,
   officeBootPending,
+  studioActive,
   officeViewMode
 }) {
-  return `app-shell${editorOpen ? ' is-editor-open' : ''}${insightsOpen ? ' is-insights-open' : ''}${narrowLayout ? ' is-narrow-layout' : ''}${phoneLayout ? ' is-phone-layout' : ''}${wideMobileLayout ? ' is-wide-mobile' : ''}${foldableDualScreen ? ' is-foldable-dual' : ''}${hasCanvasContent || editorOpen ? ' has-edit-control' : ''}${officeBootPending ? ' is-office-boot' : ''}${officeViewMode === 'floor' ? ' is-floor-view' : ''}`;
+  return `app-shell${editorOpen ? ' is-editor-open' : ''}${insightsOpen ? ' is-insights-open' : ''}${narrowLayout ? ' is-narrow-layout' : ''}${phoneLayout ? ' is-phone-layout' : ''}${wideMobileLayout ? ' is-wide-mobile' : ''}${foldableDualScreen ? ' is-foldable-dual' : ''}${hasCanvasContent || editorOpen ? ' has-edit-control' : ''}${officeBootPending ? ' is-office-boot' : ''}${studioActive ? ' is-studio' : ''}${officeViewMode === 'floor' ? ' is-floor-view' : ''}`;
 }

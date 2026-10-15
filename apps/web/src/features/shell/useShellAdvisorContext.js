@@ -53,15 +53,7 @@ export function useShellAdvisorContext({
   const hasDiagramText = Boolean(state.diagramSource?.trim());
   const hasCanvasContent = hasDiagramText || sessionHasPeerContent;
 
-  const {
-    officeBootPending,
-    officeCanvasGrace,
-    deskTourPending,
-    handleOfficeBootComplete,
-    completeDeskTour
-  } = useOfficeBoot({
-    hasCanvasContent
-  });
+  const officeBoot = useOfficeBoot({ hasCanvasContent });
 
   const userName = useSyncExternalStore(subscribeUserName, resolveUserName, resolveUserName);
 
@@ -86,7 +78,7 @@ export function useShellAdvisorContext({
     liveDraftSource,
     loading,
     narrowLayout,
-    officeCanvasGrace,
+    officeCanvasGrace: officeBoot.officeCanvasGrace,
     officeDirectoryOpen: officeDirectoryUi.open,
     slopPromptExpanded,
     streamingPreview,
@@ -127,8 +119,8 @@ export function useShellAdvisorContext({
     stakeholderIntroProps,
     editorOpen,
     handleSelectContentMode,
-    deskTourPending,
-    onDeskTourComplete: completeDeskTour,
+    deskTourPending: officeBoot.deskTourPending,
+    onDeskTourComplete: officeBoot.completeDeskTour,
     entryPointers: controls.prompt.entryPointers ?? []
   });
 
@@ -136,7 +128,7 @@ export function useShellAdvisorContext({
     !hasCanvasContent &&
     !insightsOpen &&
     !editorOpen &&
-    !officeBootPending &&
+    !officeBoot.officeBootPending &&
     !modeRevealActive &&
     !isFullscreen &&
     !loading;
@@ -153,9 +145,7 @@ export function useShellAdvisorContext({
     toggleFullscreen,
     hasDiagramText,
     hasCanvasContent,
-    officeBootPending,
-    officeCanvasGrace,
-    handleOfficeBootComplete,
+    ...officeBoot,
     userName,
     advisorPause,
     officeDistractionsPaused,

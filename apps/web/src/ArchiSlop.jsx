@@ -17,6 +17,7 @@ import { useClearDiagram } from './features/session/useClearDiagram.js';
 import { useInsightsAutoClose } from './features/insights/useInsightsAutoClose.js';
 import { useAppStatus } from './features/shell/useAppStatus.js';
 import { AppWorkspaceSlot } from './features/shell/AppWorkspaceSlot.jsx';
+import { BootSurfaces } from './features/shell/BootSurfaces.jsx';
 import { buildAppShellClassName } from './features/shell/buildAppShellClassName.js';
 import { useShellAdvisorContext } from './features/shell/useShellAdvisorContext.js';
 import { useShellRefSync } from './features/shell/useShellRefSync.js';
@@ -24,8 +25,6 @@ import { useArchiSlopSessionState } from './features/session/useArchiSlopSession
 import { useDiagramSessionRuntime } from './features/session/useDiagramSessionRuntime.js';
 import { useCanvasInteractionRuntime } from './features/session/useCanvasInteractionRuntime.js';
 import { usePromptBufferSync } from './features/session/usePromptBufferSync.js';
-import OfficeDirectory from './components/OfficeDirectory.jsx';
-import FloorArrival from './components/officeFloor/FloorArrival.jsx';
 import { useUiCopy } from './i18n/useUiLocale.js';
 import { readStreamDebugEnabled } from './utils/appStreamDebug.js';
 import {
@@ -48,7 +47,7 @@ import {
 } from './state/officeViewModeStore.js';
 
 export function ArchiSlop() {
-  const { controls, slopitect, applyLocaleFromText, locale: uiLocale } = useUiCopy();
+  const { controls, slopitect, applyLocaleFromText, locale: uiLocale, setLocale } = useUiCopy();
   const contentModeOptions = useMemo(() => buildContentModeOptions(controls), [controls]);
   const { slopitectTip, slopitectTipRef, handleBrandClick, dismissSlopitectTip, focusTopicInput } =
     useSlopitectTips({ idleTips: slopitect.IDLE_TIPS });
@@ -615,7 +614,6 @@ export function ArchiSlop() {
     hasCanvasContent,
     officeBootPending,
     officeCanvasGrace,
-    handleOfficeBootComplete,
     userName,
     officeDistractionsPaused,
     advisor,
@@ -645,11 +643,11 @@ export function ArchiSlop() {
     playChime: tryAgentSound,
     audioContextRef,
     hasInteractedRef,
-    soundEnabled,
+    soundEnabled: soundEnabled && !shell.studioActive,
     roomToneViewMode: officeBootPending || officeViewMode === 'floor' ? 'floor' : 'desk'
   });
 
-  useOfficeViewHotkey({ enabled: !officeBootPending });
+  useOfficeViewHotkey({ enabled: !officeBootPending && !shell.studioActive });
 
   useInsightsAutoClose({
     autoCloseActiveEntryIdRef,
@@ -815,6 +813,7 @@ export function ArchiSlop() {
         hasCanvasContent,
         showDeskChrome,
         officeBootPending,
+        studioActive: shell.studioActive,
         officeViewMode
       })}
       aria-label="ArchiSlop"
@@ -824,7 +823,7 @@ export function ArchiSlop() {
         advisor.thinkingPersona || advisor.suggestion || advisor.activePersona ? 'true' : undefined
       }
     >
-      {!officeBootPending ? (
+      {!shell.studioActive && !officeBootPending ? (
         <AppWorkspaceSlot
           state={state}
           contentMode={contentMode}
@@ -998,37 +997,33 @@ export function ArchiSlop() {
           liveStreamingEntry={liveStreamingEntry}
         />
       ) : null}
-      {/* The desk side of the stand-up transition (§ 1a): hazes the
-          workstation while the floor covers it, then lifts as you sit back
-          down — the monitor refocusing instead of snapping back on. Paints
-          one layer under the floor (`--z-office-desk-veil`). */}
-      <div className="office-view-desk-veil" aria-hidden="true" />
-      {/* First run arrives through the floor (ADR-0011 slice 3); the card tour
-          stays mounted afterwards for replays from the level panel. */}
-      {officeBootPending ? (
-        <FloorArrival
-          onComplete={handleOfficeBootComplete}
-          onSkipToBuild={focusTopicInput}
-          getSessionId={() => activeSessionId}
-          playChime={tryAgentSound}
-          audioContextRef={audioContextRef}
-          hasInteractedRef={hasInteractedRef}
-          soundEnabled={soundEnabled}
-        />
-      ) : (
-        <div className="office-directory-root-mount">
-          <OfficeDirectory
-            placement={hasCanvasContent ? 'overlay' : 'entry'}
-            showChip={false}
-            onSkipToBuild={focusTopicInput}
-            onBootComplete={handleOfficeBootComplete}
-            getSessionId={() => activeSessionId}
-            userRole={
-              controls.prompt.entryIntro?.role ?? controls.prompt.exampleRole ?? 'Architect'
-            }
-          />
-        </div>
-      )}
+      <BootSurfaces
+        shell={shell}
+        runtime={runtime}
+        state={state}
+        liveDraftSource={liveDraftSource}
+        liveDraftContentType={liveDraftContentType}
+        streamingPreview={streamingPreview}
+        controls={controls}
+        locale={uiLocale}
+        setLocale={setLocale}
+        busy={busy}
+        status={status}
+        activeRequest={activeRequest}
+        stoppable={streamingAgentStoppable}
+        onStop={stopStreamingAgentRequest}
+        submitIntentWithPrompt={submitIntentWithPrompt}
+        performClearDiagram={performClearDiagram}
+        onManualEdit={handleManualEdit}
+        onValidationChange={handleValidationChange}
+        onFormSubmit={handleFormSubmit}
+        onSkipToBuild={focusTopicInput}
+        playChime={tryAgentSound}
+        audioContextRef={audioContextRef}
+        hasInteractedRef={hasInteractedRef}
+        soundEnabled={soundEnabled}
+        sessionId={activeSessionId}
+      />
     </main>
   );
 }

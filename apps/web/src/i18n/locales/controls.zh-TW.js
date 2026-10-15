@@ -59,6 +59,15 @@ export const CONTROLS_ZH_TW = {
     closePrompt: '關閉提示',
     deskLabel: '工單 — 這次要改什麼？',
     deskPlaceholder: '寫下你的下一條工單…',
+    studio: {
+      wordmark: 'archislop',
+      headline: '把任何想法提示成現實。',
+      placeholder: '描述一下。形態由我們來定。',
+      go: '開始',
+      officeCta: '放出同事們',
+      officeHint: '一整間假辦公室。他們有意見，平面圖也很差。',
+      startOver: '重新開始'
+    },
     topicPlaceholder: '輸入任何主題 — 圖表、資料圖、表單…',
     starterHint: '或從同事那裡接個任務：',
     starterAria: '用於快速開始的範例主題',

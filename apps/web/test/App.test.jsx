@@ -1178,26 +1178,50 @@ describe('App simplified controls', { timeout: 20_000 }, () => {
     );
   });
 
-  // First run arrives through the isometric floor (ADR-0011 slice 3); the card
-  // tour stays mounted afterwards for replays.
-  it('shows the floor arrival alone on first visit, then reveals the entry screen', async () => {
+  // A fresh visit is the prompt studio. The floor ceremony is the opt-in.
+  it('opens the prompt studio on first visit, then the floor only if asked', async () => {
     window.localStorage.removeItem('archislop:office-directory-seen');
+    window.localStorage.removeItem('archislop:content-mode');
     fetchSessionDiagramStateMock.mockResolvedValue({
       activeContentType: 'mermaid',
       mermaid: { ...initialState, diagramSource: '', revisionId: 0 },
       infographic: createInitialDiagramState('infographic')
     });
     render(<App />);
+
+    expect(await screen.findByTestId('simple-studio')).toBeTruthy();
+    expect(screen.queryByTestId('office-floor-arrival')).toBeNull();
+    expect(screen.queryByTestId('desk-os-menubar')).toBeNull();
+    expect(screen.queryByRole('menuitem', { name: /Diagram/i })).toBeNull();
+
+    fireEvent.change(screen.getByTestId('simple-studio-prompt'), {
+      target: { value: 'Map a coffee supply chain' }
+    });
+    fireEvent.click(screen.getByTestId('simple-studio-go'));
+
+    await waitFor(() => {
+      const intentCalls = streamDiagramAgentMock.mock.calls.filter(
+        (call) => call[0]?.operation === 'intent'
+      );
+      expect(intentCalls).toHaveLength(1);
+      expect(intentCalls[0][0].contentType).toBe('auto');
+      expect(intentCalls[0][0].prompt).toBe('Map a coffee supply chain');
+    });
+    expect(screen.queryByTestId('desk-os-menubar')).toBeNull();
+    expect(screen.queryByTestId('insights-pane-header-tools')).toBeNull();
+
+    fireEvent.click(screen.getByTestId('simple-studio-office'));
+
     expect(screen.getByTestId('office-floor-arrival')).toBeTruthy();
+    expect(screen.queryByTestId('simple-studio')).toBeNull();
     expect(screen.queryByTestId('office-directory-modal')).toBeNull();
-    expect(screen.queryByTestId('day-one-badge')).toBeNull();
-    expect(screen.queryByRole('button', { name: /Do it/i })).toBeNull();
 
     fireEvent.click(screen.getByTestId('office-floor-arrival-skip'));
 
     expect(await screen.findByPlaceholderText(/Prompt anything into reality/i)).toBeTruthy();
-    expect(screen.queryByRole('button', { name: /Do it/i })).toBeNull();
     expect(screen.queryByTestId('office-floor-arrival')).toBeNull();
-    expect(screen.queryByTestId('day-one-badge')).toBeNull();
+    expect(screen.queryByTestId('simple-studio')).toBeNull();
+    expect(screen.getByTestId('desk-os-menubar')).toBeTruthy();
+    expect(screen.queryByTestId('insights-pane-header-tools')).toBeNull();
   });
 });

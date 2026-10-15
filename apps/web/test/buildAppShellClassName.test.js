@@ -9,5 +9,10 @@ describe('buildAppShellClassName', () => {
   it('stays unflagged at the desk — including when the mode is not passed', () => {
     expect(buildAppShellClassName({ officeViewMode: 'desk' })).not.toContain('is-floor-view');
     expect(buildAppShellClassName({})).not.toContain('is-floor-view');
+    expect(buildAppShellClassName({})).not.toContain('is-studio');
+  });
+
+  it('flags the prompt studio so the desk frame stays off', () => {
+    expect(buildAppShellClassName({ studioActive: true })).toContain('is-studio');
   });
 });

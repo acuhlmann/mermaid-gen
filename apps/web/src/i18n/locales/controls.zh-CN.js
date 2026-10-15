@@ -59,6 +59,15 @@ export const CONTROLS_ZH_CN = {
     closePrompt: '关闭提示',
     deskLabel: '工单 — 这次要改什么？',
     deskPlaceholder: '写下你的下一条工单…',
+    studio: {
+      wordmark: 'archislop',
+      headline: '把任何想法提示成现实。',
+      placeholder: '描述一下。形态由我们来定。',
+      go: '开始',
+      officeCta: '放出同事们',
+      officeHint: '一整间假办公室。他们有意见，平面图也很差。',
+      startOver: '重新开始'
+    },
     topicPlaceholder: '输入任何主题 — 图表、数据图、表单…',
     starterHint: '或从同事那里接个任务：',
     starterAria: '用于快速开始的示例主题',
