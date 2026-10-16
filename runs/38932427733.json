@@ -1,0 +1,29 @@
+{
+  "v": 1,
+  "runId": "38932427733",
+  "startedAt": "2026-10-16T16:33:16.807Z",
+  "endedAt": "2026-10-16T16:33:16.807Z",
+  "trigger": "schedule",
+  "tier": "propose",
+  "focus": "any",
+  "verdict": "noop",
+  "stopReason": "completed",
+  "findingId": null,
+  "hypothesis": null,
+  "pr": null,
+  "branch": null,
+  "filesChanged": [],
+  "usage": {
+    "calls": 0,
+    "inputTokens": 0,
+    "outputTokens": 0,
+    "cacheHitTokens": 0,
+    "usd": 0
+  },
+  "minutes": 0,
+  "balanceAfter": null,
+  "harness": {
+    "name": "mock",
+    "version": "0.0.0"
+  }
+}
