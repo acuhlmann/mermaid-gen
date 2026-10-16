@@ -154,6 +154,12 @@ describe('SimpleStudioSlot', () => {
     expect(onEnterOffice).toHaveBeenCalledTimes(1);
   });
 
+  it('only promises "Auto picks for you" while Auto is actually selected', () => {
+    renderStudio({ contentMode: 'chart' });
+    expect(screen.getByTestId('simple-studio-format').value).toBe('chart');
+    expect(screen.queryByText('Auto picks for you')).toBeNull();
+  });
+
   it('keeps the interface language to one quiet pill, not four rows', () => {
     renderStudio();
 

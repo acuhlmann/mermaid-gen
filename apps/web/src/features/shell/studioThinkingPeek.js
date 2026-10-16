@@ -1,9 +1,25 @@
 const MAX_LINES = 3;
 const MAX_LINE_LENGTH = 140;
 
+/**
+ * Plan beats quote the request back — and the wire request carries prompt
+ * boilerplate (the LANGUAGE LOCK suffix) that is an instruction to the
+ * model, not something a person waiting on their first result should read.
+ * Cut the line there; the human part is always in front of it.
+ */
+const BOILERPLATE_MARKERS = ['LANGUAGE LOCK', '```'];
+
 function cleanLine(value) {
   if (typeof value !== 'string') return '';
-  const text = value.replace(/\s+/g, ' ').trim();
+  let text = value;
+  for (const marker of BOILERPLATE_MARKERS) {
+    const at = text.indexOf(marker);
+    if (at >= 0) text = text.slice(0, at);
+  }
+  text = text
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/[::—–-]\s*$/, '');
   if (!text) return '';
   return text.length > MAX_LINE_LENGTH ? `${text.slice(0, MAX_LINE_LENGTH - 1)}…` : text;
 }

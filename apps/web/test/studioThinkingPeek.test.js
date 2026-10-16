@@ -27,6 +27,19 @@ describe('studioThinkingPeekLines', () => {
     expect(studioThinkingPeekLines({ phases: [{ label: 'Plan' }] })).toEqual(['Plan']);
   });
 
+  it('never shows prompt boilerplate the model was instructed with', () => {
+    expect(
+      studioThinkingPeekLines({
+        planBeats: [
+          {
+            text: 'Extending the diagram: Map a coffee supply chain LANGUAGE LOCK: Output ALL reader-facing text in English.'
+          },
+          { text: '```mermaid\nflowchart TD\n  A --> B' }
+        ]
+      })
+    ).toEqual(['Extending the diagram: Map a coffee supply chain']);
+  });
+
   it('dedupes, trims, and tolerates a missing entry', () => {
     expect(studioThinkingPeekLines(null)).toEqual([]);
     expect(

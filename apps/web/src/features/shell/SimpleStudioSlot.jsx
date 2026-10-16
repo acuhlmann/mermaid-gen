@@ -201,7 +201,7 @@ function StudioFormatSelect({ copy, modes = [], contentMode = 'auto', onSelectCo
         data-testid="simple-studio-format"
         value={formatValue}
         disabled={busy}
-        aria-describedby="simple-studio-format-hint"
+        aria-describedby={formatValue === 'auto' ? 'simple-studio-format-hint' : undefined}
         onChange={(event) => onSelectContentMode?.(event.target.value)}
       >
         {modes.map((mode) => (
@@ -210,9 +210,11 @@ function StudioFormatSelect({ copy, modes = [], contentMode = 'auto', onSelectCo
           </option>
         ))}
       </select>
-      <span id="simple-studio-format-hint" className="simple-studio-format-hint">
-        {copy.formatHint ?? 'Auto picks for you'}
-      </span>
+      {formatValue === 'auto' ? (
+        <span id="simple-studio-format-hint" className="simple-studio-format-hint">
+          {copy.formatHint ?? 'Auto picks for you'}
+        </span>
+      ) : null}
     </label>
   );
 }
