@@ -102,6 +102,10 @@ function StudioBoot({
         id: mode.id,
         label: mode.shortLabel || mode.label
       }))}
+      starters={(controls.prompt.starters ?? []).map((starter) => ({
+        label: starter.label,
+        prompt: starter.prompt
+      }))}
       contentMode={runtime.contentMode}
       onSelectContentMode={runtime.handleSelectContentMode}
       modelProfile={modelProfile}

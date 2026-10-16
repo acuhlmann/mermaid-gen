@@ -79,6 +79,8 @@ export const CONTROLS_ZH_TW = {
       qualityHint: '品質最好，稍慢一點',
       creating: '正在為你生成…',
       exitFullscreen: '退出全螢幕',
+      examplesLabel: '還沒想好？試試這些：',
+      examplesAria: '示例提示',
       elapsed: '{seconds}秒'
     },
     topicPlaceholder: '輸入任何主題 — 圖表、資料圖、表單…',

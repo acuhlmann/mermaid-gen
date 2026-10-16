@@ -79,6 +79,8 @@ export const CONTROLS_ZH_CN = {
       qualityHint: '质量最好，稍慢一点',
       creating: '正在为你生成…',
       exitFullscreen: '退出全屏',
+      examplesLabel: '还没想好？试试这些：',
+      examplesAria: '示例提示',
       elapsed: '{seconds}秒'
     },
     topicPlaceholder: '输入任何主题 — 图表、数据图、表单…',

@@ -28,8 +28,15 @@ const copy = {
   qualityLabel: 'Thorough',
   qualityHint: 'Best quality, a bit slower',
   creating: 'Creating yours…',
-  exitFullscreen: 'Exit fullscreen'
+  exitFullscreen: 'Exit fullscreen',
+  examplesLabel: 'No topic yet? Try one:',
+  examplesAria: 'Example prompts'
 };
+
+const starters = [
+  { label: 'Coffee supply chain', prompt: 'Break down the global coffee supply chain' },
+  { label: 'OAuth 2.0 flow', prompt: 'Explain how the OAuth 2.0 authorization code flow works' }
+];
 
 const modes = [
   { id: 'auto', label: 'Auto' },
@@ -91,6 +98,7 @@ function renderStudio(overrides = {}) {
       modelProfile="fast"
       onSelectModelProfile={onSelectModelProfile}
       brainCopy={brainCopy}
+      starters={starters}
       fullscreenSupported={false}
       isFullscreen={false}
       onToggleFullscreen={onToggleFullscreen}
@@ -158,6 +166,26 @@ describe('SimpleStudioSlot', () => {
     renderStudio({ contentMode: 'chart' });
     expect(screen.getByTestId('simple-studio-format').value).toBe('chart');
     expect(screen.queryByText('Auto picks for you')).toBeNull();
+  });
+
+  it('offers one-tap examples on the intro, and nowhere else', () => {
+    const { onSubmit } = renderStudio();
+
+    expect(screen.getByText('No topic yet? Try one:')).toBeTruthy();
+    const chips = screen.getAllByTestId('simple-studio-starter');
+    expect(chips.map((chip) => chip.textContent)).toEqual([
+      'Coffee supply chain',
+      'OAuth 2.0 flow'
+    ]);
+
+    fireEvent.click(chips[1]);
+    expect(onSubmit).toHaveBeenCalledWith(
+      'Explain how the OAuth 2.0 authorization code flow works'
+    );
+
+    cleanup();
+    renderStudio({ showCanvas: true, diagramSource: 'flowchart TD\n  A --> B' });
+    expect(screen.queryByTestId('simple-studio-starters')).toBeNull();
   });
 
   it('keeps the interface language to one quiet pill, not four rows', () => {

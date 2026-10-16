@@ -283,6 +283,45 @@ function StudioTunes(props) {
   );
 }
 
+/**
+ * One-tap examples for the blank-box moment. A newcomer who cannot invent
+ * a prompt cold can still see the app work: tapping a chip submits it, the
+ * same immediate-run contract as the desk's TopicStarters — but plain here,
+ * with none of the office fiction (faces, asks) the desk version carries.
+ * Intro only: once a result exists the chips would just be clutter beside
+ * the refine box.
+ */
+function StudioStarters({ copy, starters = [], busy, onSubmit }) {
+  const items = starters.filter((item) => item && item.label && item.prompt);
+  if (items.length === 0) return null;
+  return (
+    <div className="simple-studio-starters" data-testid="simple-studio-starters">
+      <p className="simple-studio-starters-label">
+        {copy.examplesLabel ?? 'No topic yet? Try one:'}
+      </p>
+      <div
+        className="simple-studio-starters-chips"
+        role="group"
+        aria-label={copy.examplesAria ?? 'Example prompts'}
+      >
+        {items.map((item) => (
+          <button
+            key={item.label}
+            type="button"
+            className="simple-studio-starter-chip"
+            data-testid="simple-studio-starter"
+            title={item.prompt}
+            disabled={busy}
+            onClick={() => onSubmit(item.prompt)}
+          >
+            {item.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function StudioPromptForm(props) {
   const {
     copy,
@@ -369,6 +408,9 @@ function StudioPromptForm(props) {
         onStartOver={onStartOver}
       />
       <StudioTunes {...props} />
+      {showCanvas ? null : (
+        <StudioStarters copy={copy} starters={props.starters} busy={busy} onSubmit={onSubmit} />
+      )}
     </form>
   );
 }

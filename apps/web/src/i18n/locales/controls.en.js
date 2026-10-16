@@ -83,6 +83,8 @@ export const CONTROLS_EN = {
       qualityHint: 'Best quality, a bit slower',
       creating: 'Creating yours…',
       exitFullscreen: 'Exit fullscreen',
+      examplesLabel: 'No topic yet? Try one:',
+      examplesAria: 'Example prompts',
       elapsed: '{seconds}s'
     },
     topicPlaceholder: 'Prompt anything into reality…',
