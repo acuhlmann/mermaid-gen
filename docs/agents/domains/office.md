@@ -53,9 +53,13 @@ it names. Merging the two into a single pass is worth doing and is not urgent â€
   (`apps/web/src/features/desk/useOfficeBoot.js`) starts `studioActive` when
   `archislop:office-directory-seen` is unset and leaves `officeBootPending` false.
   `SimpleStudioSlot` (`apps/web/src/features/shell/SimpleStudioSlot.jsx`) is that intro.
-  **Unleash the coworkers** calls `enterOfficeLife`, which is what mounts `FloorArrival`. The
-  reception card (locale endonyms, name badge, Check in) is unchanged once they opt in.
-  Directory-seen visitors still open the desk.
+  The shared `ViewModeSwitch` (`Simple | Office`, same top-bar spot on both screens) calls
+  `enterOfficeLife`, which is what mounts `FloorArrival`; the desk's half calls
+  `enterSimpleStudio` in the same hook, so the switch is two-way and state survives it.
+  The reception card (locale endonyms, name badge, Check in) is unchanged once they opt in.
+  Directory-seen visitors still open the desk. While a studio run is in flight,
+  `StudioThinkingPeek` shows the last plan beats (`studioThinkingPeekLines`) over the empty
+  canvas â€” a peek, never the pane, and it takes no clicks.
 - **A soft errand is defined by the timer it does not have.** `errand` in
   `apps/web/src/state/officeMomentStore.js` (slice 26): Linda's email grows a **Go and find
   Chad** CTA, pressing it stands you up carrying one, and speaking to Chad on _either_ renderer

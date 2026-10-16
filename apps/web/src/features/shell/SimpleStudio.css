@@ -15,10 +15,51 @@
   padding: 1.5rem;
 }
 
-.simple-studio-intro,
 .simple-studio-form,
 .simple-studio-dock {
   width: min(36rem, 100%);
+}
+
+/* Quiet top bar — same spot on the intro, the result, and (via
+   BrandChromeSlot) the desk, so the way between screens never moves. */
+.simple-studio-topbar {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  justify-content: space-between;
+  width: min(36rem, 100%);
+}
+
+.simple-studio.is-result .simple-studio-topbar {
+  position: absolute;
+  z-index: 3;
+  top: 0.6rem;
+  right: 0;
+  left: 0;
+  width: auto;
+  box-sizing: border-box;
+  padding: 0 1rem;
+}
+
+.simple-studio-topbar-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+/* The language pill is a corner setting now, not a headline act: one small
+   trigger, muted until touched. */
+.simple-studio-topbar .intro-locale-toggle {
+  opacity: 0.75;
+}
+
+.simple-studio-topbar .intro-locale-toggle:hover,
+.simple-studio-topbar .intro-locale-toggle.is-open {
+  opacity: 1;
+}
+
+.simple-studio-topbar .diagram-fullscreen-btn {
+  flex: none;
 }
 
 .simple-studio-wordmark {
@@ -27,7 +68,6 @@
   font-size: 0.82rem;
   font-weight: 750;
   letter-spacing: 0.14em;
-  text-align: center;
   text-transform: lowercase;
 }
 
@@ -74,8 +114,7 @@
 
 .simple-studio-go,
 .simple-studio-stop,
-.simple-studio-start,
-.simple-studio-office {
+.simple-studio-start {
   box-sizing: border-box;
   min-height: 3rem;
   margin: 0;
@@ -113,8 +152,7 @@
   border: 1px solid var(--control-border);
 }
 
-.simple-studio-start,
-.simple-studio-office {
+.simple-studio-start {
   border: 0;
   background: transparent;
   color: var(--muted);
@@ -123,30 +161,19 @@
   text-underline-offset: 0.18em;
 }
 
-.simple-studio-office {
-  align-self: center;
-  padding: 0.35rem 0.5rem;
-}
-
-.simple-studio-office-hint {
-  margin: -0.35rem 0 0;
-  color: var(--muted);
-  font-size: 0.92rem;
-  line-height: 1.4;
-  text-align: center;
-}
-
 .simple-studio-status {
   margin: 0;
   color: var(--text);
   font-size: 0.95rem;
 }
 
+/* Format + speed: the two choices a newcomer might actually want, each
+   carrying its own one-line explanation instead of a codename. */
 .simple-studio-tunes {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.35rem 1rem;
-  align-items: center;
+  gap: 0.6rem 1.25rem;
+  align-items: flex-start;
   justify-content: center;
   color: var(--muted);
   font-size: 0.82rem;
@@ -154,7 +181,8 @@
 
 .simple-studio-format {
   display: inline-flex;
-  gap: 0.4rem;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.4rem;
   align-items: center;
 }
 
@@ -171,27 +199,63 @@
   min-height: 2rem;
 }
 
+.simple-studio-format-hint {
+  flex-basis: 100%;
+  font-size: 0.75rem;
+}
+
+.simple-studio-brain-wrap {
+  display: inline-flex;
+  gap: 0.45rem;
+  align-items: flex-start;
+}
+
+.simple-studio-brain-label {
+  padding-top: 0.35rem;
+  white-space: nowrap;
+}
+
 .simple-studio-brain {
   display: inline-flex;
-  gap: 0.1rem;
+  gap: 0.25rem;
+  padding: 0.2rem;
+  border: 1px solid var(--control-border);
+  border-radius: 0.8rem;
+  background: rgba(255, 255, 255, 0.7);
 }
 
 .simple-studio-brain button {
+  display: flex;
+  flex-direction: column;
+  gap: 0.05rem;
+  align-items: flex-start;
   margin: 0;
-  padding: 0.15rem 0.4rem;
+  padding: 0.35rem 0.6rem;
   border: 0;
+  border-radius: 0.6rem;
   background: transparent;
   color: var(--muted);
   font: inherit;
-  font-size: 0.82rem;
-  min-height: 2rem;
   cursor: pointer;
+  text-align: left;
 }
 
 .simple-studio-brain button.is-selected {
-  color: var(--text);
-  text-decoration: underline;
-  text-underline-offset: 0.18em;
+  background: var(--text);
+  color: #ffffff;
+}
+
+.simple-studio-brain-option-label {
+  font-size: 0.85rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.simple-studio-brain-option-hint {
+  font-size: 0.72rem;
+  font-weight: 400;
+  line-height: 1.25;
+  opacity: 0.85;
 }
 
 .simple-studio-format select:disabled,
@@ -204,7 +268,6 @@
 .simple-studio-go:focus-visible,
 .simple-studio-stop:focus-visible,
 .simple-studio-start:focus-visible,
-.simple-studio-office:focus-visible,
 .simple-studio-format select:focus-visible,
 .simple-studio-brain button:focus-visible {
   outline: 3px solid #0b57d0;
@@ -214,15 +277,6 @@
 .simple-studio.is-result .diagram-canvas {
   top: 4.75rem;
   bottom: 13.25rem;
-}
-
-.simple-studio-locale.is-overlay {
-  position: absolute;
-  z-index: 3;
-  top: 0.75rem;
-  left: 50%;
-  width: min(36rem, calc(100% - 2rem));
-  transform: translateX(-50%);
 }
 
 .simple-studio-dock {
@@ -242,6 +296,210 @@
   min-height: 3.25rem;
 }
 
-.simple-studio.is-result .simple-studio-office-hint {
-  margin-top: 0;
+/* The wait, made watchable: one small card over the (still empty) canvas.
+   It never takes clicks — the Stop button in the dock stays the control. */
+.simple-studio-peek {
+  width: min(30rem, calc(100% - 2rem));
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--control-border);
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 8px 30px rgba(15, 23, 42, 0.08);
+  color: var(--text);
+  pointer-events: none;
+}
+
+.simple-studio.is-result .simple-studio-peek {
+  position: absolute;
+  z-index: 3;
+  top: 40%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.simple-studio-peek-heading {
+  display: flex;
+  gap: 0.55rem;
+  align-items: center;
+  margin: 0;
+  font-weight: 700;
+}
+
+.simple-studio-peek-elapsed {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.simple-studio-peek-dots {
+  display: inline-flex;
+  gap: 0.25rem;
+}
+
+.simple-studio-peek-dots span {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 999px;
+  background: var(--accent);
+  animation: simple-studio-peek-pulse 1.2s ease-in-out infinite;
+}
+
+.simple-studio-peek-dots span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.simple-studio-peek-dots span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes simple-studio-peek-pulse {
+  0%,
+  60%,
+  100% {
+    opacity: 0.25;
+    transform: translateY(0);
+  }
+  30% {
+    opacity: 1;
+    transform: translateY(-0.15rem);
+  }
+}
+
+.simple-studio-peek-status {
+  margin: 0.45rem 0 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.simple-studio-peek-lines {
+  margin: 0.55rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.simple-studio-peek-lines li {
+  padding: 0.3rem 0 0.3rem 0.85rem;
+  border-left: 2px solid var(--control-border);
+  color: var(--muted);
+  font-size: 0.88rem;
+  line-height: 1.4;
+}
+
+.simple-studio-peek-lines li.is-latest {
+  border-left-color: var(--accent);
+  color: var(--text);
+}
+
+.simple-studio-peek-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  margin-top: 0.65rem;
+}
+
+.simple-studio-peek-skeleton span {
+  height: 0.65rem;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #e2e8f0, #f1f5f9, #e2e8f0);
+  background-size: 200% 100%;
+  animation: simple-studio-peek-shimmer 1.6s linear infinite;
+}
+
+.simple-studio-peek-skeleton span:nth-child(2) {
+  width: 78%;
+}
+
+.simple-studio-peek-skeleton span:nth-child(3) {
+  width: 55%;
+}
+
+@keyframes simple-studio-peek-shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+/* One-tap examples under the intro form. Plain pills on purpose — the desk
+   versions wear cast faces and asks; the simple screen carries no fiction. */
+.simple-studio-starters {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  align-items: center;
+  margin-top: 0.35rem;
+}
+
+.simple-studio-starters-label {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.simple-studio-starters-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  justify-content: center;
+}
+
+.simple-studio-starter-chip {
+  box-sizing: border-box;
+  min-height: 2.25rem;
+  margin: 0;
+  padding: 0.45rem 0.85rem;
+  border: 1px solid var(--control-border);
+  border-radius: 999px;
+  background: #ffffff;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.simple-studio-starter-chip:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent-dark);
+}
+
+.simple-studio-starter-chip:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.simple-studio-starter-chip:focus-visible {
+  outline: 3px solid #0b57d0;
+  outline-offset: 2px;
+}
+
+/* Phones: the wordmark yields before the switch does — Simple|Office and
+   the language pill are controls, the brand is decoration. */
+@media (max-width: 30rem) {
+  .simple-studio-wordmark {
+    display: none;
+  }
+
+  .simple-studio-topbar {
+    justify-content: flex-end;
+  }
+
+  .simple-studio-brain-wrap {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .simple-studio-brain-label {
+    padding-top: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .simple-studio-peek-dots span,
+  .simple-studio-peek-skeleton span {
+    animation: none;
+  }
 }

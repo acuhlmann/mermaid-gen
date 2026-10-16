@@ -17,8 +17,26 @@ const copy = {
   officeCta: 'Unleash the coworkers',
   officeHint: 'A whole fake office. They have opinions and a bad floor plan.',
   startOver: 'Start over',
-  formatLabel: 'Format'
+  formatLabel: 'Format',
+  formatHint: 'Auto picks for you',
+  modeLabel: 'Screen',
+  simpleLabel: 'Simple',
+  officeLabel: 'Office',
+  speedLabel: 'Speed or quality?',
+  fastLabel: 'Fast',
+  fastHint: 'Quick first version',
+  qualityLabel: 'Thorough',
+  qualityHint: 'Best quality, a bit slower',
+  creating: 'Creating yours…',
+  exitFullscreen: 'Exit fullscreen',
+  examplesLabel: 'No topic yet? Try one:',
+  examplesAria: 'Example prompts'
 };
+
+const starters = [
+  { label: 'Coffee supply chain', prompt: 'Break down the global coffee supply chain' },
+  { label: 'OAuth 2.0 flow', prompt: 'Explain how the OAuth 2.0 authorization code flow works' }
+];
 
 const modes = [
   { id: 'auto', label: 'Auto' },
@@ -26,7 +44,13 @@ const modes = [
   { id: 'chart', label: 'Chart' }
 ];
 
-const brainCopy = { label: 'Concentration', fast: 'Rush', quality: 'Deep' };
+const brainCopy = {
+  label: 'Speed or quality?',
+  fast: 'Fast',
+  fastHint: 'Quick first version',
+  quality: 'Thorough',
+  qualityHint: 'Best quality, a bit slower'
+};
 
 const localeCopy = {
   aria: 'Interface language',
@@ -42,6 +66,7 @@ function renderStudio(overrides = {}) {
   const onStartOver = vi.fn();
   const onSelectContentMode = vi.fn();
   const onSelectModelProfile = vi.fn();
+  const onToggleFullscreen = vi.fn();
   render(
     <SimpleStudioSlot
       copy={copy}
@@ -73,10 +98,22 @@ function renderStudio(overrides = {}) {
       modelProfile="fast"
       onSelectModelProfile={onSelectModelProfile}
       brainCopy={brainCopy}
+      starters={starters}
+      fullscreenSupported={false}
+      isFullscreen={false}
+      onToggleFullscreen={onToggleFullscreen}
+      thinkingLines={[]}
       {...overrides}
     />
   );
-  return { onSubmit, onEnterOffice, onStartOver, onSelectContentMode, onSelectModelProfile };
+  return {
+    onSubmit,
+    onEnterOffice,
+    onStartOver,
+    onSelectContentMode,
+    onSelectModelProfile,
+    onToggleFullscreen
+  };
 }
 
 describe('SimpleStudioSlot', () => {
@@ -88,12 +125,16 @@ describe('SimpleStudioSlot', () => {
     const { onSubmit, onEnterOffice, onSelectContentMode, onSelectModelProfile } = renderStudio();
 
     expect(screen.getByText('Prompt anything into reality.')).toBeTruthy();
-    expect(screen.getByText(/bad floor plan/)).toBeTruthy();
     expect(screen.queryByRole('menuitem')).toBeNull();
     expect(screen.getByTestId('simple-studio-format').value).toBe('auto');
+    expect(screen.getByText('Auto picks for you')).toBeTruthy();
     expect(screen.getByTestId('simple-studio-brain-fast').getAttribute('aria-pressed')).toBe(
       'true'
     );
+    // Speed reads as speed, not as a mood: labels plus one-line consequences.
+    expect(screen.getByText('Speed or quality?')).toBeTruthy();
+    expect(screen.getByText('Quick first version')).toBeTruthy();
+    expect(screen.getByText('Best quality, a bit slower')).toBeTruthy();
 
     fireEvent.change(screen.getByTestId('simple-studio-format'), { target: { value: 'chart' } });
     expect(onSelectContentMode).toHaveBeenCalledWith('chart');
@@ -111,19 +152,64 @@ describe('SimpleStudioSlot', () => {
     fireEvent.click(screen.getByTestId('simple-studio-go'));
     expect(onSubmit).toHaveBeenCalledWith('a signup form');
 
-    fireEvent.click(screen.getByTestId('simple-studio-office'));
+    // The office is one half of a labelled screen switch, not a text link
+    // buried under the form — and Simple shows itself as the current half.
+    const officeSwitch = screen.getByTestId('view-mode-office');
+    expect(officeSwitch.getAttribute('aria-pressed')).toBe('false');
+    expect(officeSwitch.title).toMatch(/bad floor plan/);
+    expect(screen.getByTestId('view-mode-simple').getAttribute('aria-pressed')).toBe('true');
+    fireEvent.click(officeSwitch);
     expect(onEnterOffice).toHaveBeenCalledTimes(1);
   });
 
-  it('docks the prompt beside the result and can start over', () => {
-    const { onStartOver, onSubmit } = renderStudio({
+  it('only promises "Auto picks for you" while Auto is actually selected', () => {
+    renderStudio({ contentMode: 'chart' });
+    expect(screen.getByTestId('simple-studio-format').value).toBe('chart');
+    expect(screen.queryByText('Auto picks for you')).toBeNull();
+  });
+
+  it('offers one-tap examples on the intro, and nowhere else', () => {
+    const { onSubmit } = renderStudio();
+
+    expect(screen.getByText('No topic yet? Try one:')).toBeTruthy();
+    const chips = screen.getAllByTestId('simple-studio-starter');
+    expect(chips.map((chip) => chip.textContent)).toEqual([
+      'Coffee supply chain',
+      'OAuth 2.0 flow'
+    ]);
+
+    fireEvent.click(chips[1]);
+    expect(onSubmit).toHaveBeenCalledWith(
+      'Explain how the OAuth 2.0 authorization code flow works'
+    );
+
+    cleanup();
+    renderStudio({ showCanvas: true, diagramSource: 'flowchart TD\n  A --> B' });
+    expect(screen.queryByTestId('simple-studio-starters')).toBeNull();
+  });
+
+  it('keeps the interface language to one quiet pill, not four rows', () => {
+    renderStudio();
+
+    expect(screen.getByTestId('intro-locale-toggle')).toBeTruthy();
+    expect(screen.queryByRole('radio')).toBeNull();
+    expect(screen.queryByText('Interface language')).toBeNull();
+  });
+
+  it('docks the prompt beside the result, offers fullscreen, and can start over', () => {
+    const { onStartOver, onSubmit, onToggleFullscreen } = renderStudio({
       showCanvas: true,
       showStartOver: true,
       diagramSource: 'flowchart TD\n  A --> B',
-      contentType: 'mermaid'
+      contentType: 'mermaid',
+      fullscreenSupported: true
     });
 
     expect(screen.getByTestId('studio-canvas').textContent).toContain('A --> B');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Enter fullscreen' }));
+    expect(onToggleFullscreen).toHaveBeenCalledTimes(1);
+
     fireEvent.click(screen.getByTestId('simple-studio-start-over'));
     expect(onStartOver).toHaveBeenCalledTimes(1);
 
@@ -135,5 +221,29 @@ describe('SimpleStudioSlot', () => {
       shiftKey: false
     });
     expect(onSubmit).toHaveBeenCalledWith('make the arrows clearer');
+  });
+
+  it('shows a living peek of the thinking while a run is in flight', () => {
+    renderStudio({
+      busy: true,
+      showCanvas: true,
+      status: 'Working on your request...',
+      thinkingLines: ['Sketching the main flow', 'Placing the decision points']
+    });
+
+    const peek = screen.getByTestId('simple-studio-peek');
+    expect(peek.textContent).toContain('Creating yours…');
+    expect(peek.textContent).toContain('Working on your request...');
+    expect(peek.textContent).toContain('Sketching the main flow');
+    expect(peek.textContent).toContain('Placing the decision points');
+    expect(screen.getByTestId('simple-studio-go').disabled).toBe(true);
+  });
+
+  it('shows the peek skeleton before the first thinking line lands', () => {
+    renderStudio({ busy: true, status: 'Thinking…', thinkingLines: [] });
+
+    const peek = screen.getByTestId('simple-studio-peek');
+    expect(peek.textContent).toContain('Thinking…');
+    expect(peek.querySelector('.simple-studio-peek-skeleton')).toBeTruthy();
   });
 });

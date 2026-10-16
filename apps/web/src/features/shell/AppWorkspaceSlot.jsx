@@ -144,6 +144,7 @@ export function AppWorkspaceSlot({
   liveVariant,
   shellControls,
   onBrandClick,
+  onEnterSimpleStudio = null,
   costTrackingEnabled,
   fullscreenSupported,
   onToggleFullscreen,
@@ -394,6 +395,7 @@ export function AppWorkspaceSlot({
         onDismissSlopitectTip={onDismissSlopitectTip}
         controls={shellControls}
         onBrandClick={onBrandClick}
+        onEnterSimpleStudio={onEnterSimpleStudio}
         menuBar={menuBar}
         fullscreenSupported={fullscreenSupported}
         hasCanvasContent={hasCanvasContent}

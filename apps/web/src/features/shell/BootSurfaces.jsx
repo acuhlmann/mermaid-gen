@@ -2,6 +2,7 @@ import FloorArrival from '../../components/officeFloor/FloorArrival.jsx';
 import OfficeDirectory from '../../components/OfficeDirectory.jsx';
 import { buildContentModeOptions } from '../../utils/renderModeAction.js';
 import { SimpleStudioSlot } from './SimpleStudioSlot.jsx';
+import { studioThinkingPeekLines } from './studioThinkingPeek.js';
 
 /**
  * What the studio canvas should show for this render. Auto stays a request
@@ -48,6 +49,10 @@ function StudioBoot({
   onFormSubmit,
   modelProfile,
   setModelProfile,
+  isFullscreen,
+  fullscreenSupported,
+  onToggleFullscreen,
+  liveStreamingEntry,
   ...viewInput
 }) {
   const view = resolveStudioView({
@@ -97,14 +102,25 @@ function StudioBoot({
         id: mode.id,
         label: mode.shortLabel || mode.label
       }))}
+      starters={(controls.prompt.starters ?? []).map((starter) => ({
+        label: starter.label,
+        prompt: starter.prompt
+      }))}
       contentMode={runtime.contentMode}
       onSelectContentMode={runtime.handleSelectContentMode}
       modelProfile={modelProfile}
       onSelectModelProfile={setModelProfile}
+      isFullscreen={isFullscreen}
+      fullscreenSupported={fullscreenSupported}
+      onToggleFullscreen={onToggleFullscreen}
+      thinkingLines={studioThinkingPeekLines(liveStreamingEntry)}
       brainCopy={{
-        label: controls.settings?.brain,
-        fast: controls.settings?.fastShort || controls.settings?.fast,
-        quality: controls.settings?.qualityShort || controls.settings?.quality
+        label:
+          controls.prompt.studio?.speedLabel ?? controls.settings?.brain ?? 'Speed or quality?',
+        fast: controls.prompt.studio?.fastLabel ?? controls.settings?.fast ?? 'Fast',
+        fastHint: controls.prompt.studio?.fastHint,
+        quality: controls.prompt.studio?.qualityLabel ?? controls.settings?.quality ?? 'Thorough',
+        qualityHint: controls.prompt.studio?.qualityHint
       }}
     />
   );

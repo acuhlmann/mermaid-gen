@@ -939,6 +939,7 @@ export function ArchiSlop() {
           liveVariant={liveVariant}
           shellControls={controls}
           onBrandClick={handleBrandClick}
+          onEnterSimpleStudio={shell.enterSimpleStudio}
           costTrackingEnabled={costTrackingEnabled}
           fullscreenSupported={fullscreenSupported}
           onToggleFullscreen={toggleFullscreen}
@@ -1025,6 +1026,10 @@ export function ArchiSlop() {
         sessionId={activeSessionId}
         modelProfile={modelProfile}
         setModelProfile={setModelProfile}
+        isFullscreen={isFullscreen}
+        fullscreenSupported={fullscreenSupported}
+        onToggleFullscreen={toggleFullscreen}
+        liveStreamingEntry={liveStreamingEntry}
       />
     </main>
   );
