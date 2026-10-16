@@ -15,6 +15,7 @@ import { fileURLToPath } from 'node:url';
 import { GOD_HARD_LIMITS } from '@archislop/shared/godBudget.js';
 import { GodBriefSchema } from '@archislop/shared/godSchemas.js';
 import { ContentTypeSchema } from '@archislop/shared';
+import { promptSafeHistory } from './godLog.mjs';
 
 const CONTENT_TYPES = ContentTypeSchema.options;
 const WINDOW_MS_DEFAULT = 24 * 3_600_000;
@@ -115,11 +116,24 @@ function inWindow(lines, fromMs, toMs) {
   return lines.filter((l) => l && l.ts >= fromMs && l.ts < toMs);
 }
 
+const KNOWN_ERRORS = new Set([
+  'missing-diagram-type',
+  'parser-rejected',
+  'validation-failed',
+  'no-patch',
+  'budget-exceeded',
+  'other'
+]);
+
 /**
+ * Every aggregate for one slot in one period. The brief emits only the window shape
+ * (`GodSlotStatsSchema` is frozen); baseline periods reuse this internally so a finding can
+ * name a value *and* what it moved from, for every metric God may target — not just accept rate.
+ *
  * @param {ReturnType<typeof normalizeLogEntry>[]} lines
  * @param {string} contentType
  */
-function slotStats(lines, contentType, baselineLines) {
+function periodSlot(lines, contentType) {
   const turns = lines.filter(
     (l) => l.tag === 'agent_turn' && String(l.payload.contentType ?? 'mermaid') === contentType
   );
@@ -128,14 +142,6 @@ function slotStats(lines, contentType, baselineLines) {
     .map((l) => Number(l.payload.durationMs))
     .filter((n) => Number.isFinite(n) && n >= 0);
   const repairs = turns.map((l) => Number(l.payload.repairAttempts) || 0);
-  const KNOWN_ERRORS = new Set([
-    'missing-diagram-type',
-    'parser-rejected',
-    'validation-failed',
-    'no-patch',
-    'budget-exceeded',
-    'other'
-  ]);
   /** @type {Record<string, number>} */
   const errorClasses = {};
   for (const t of turns) {
@@ -148,12 +154,6 @@ function slotStats(lines, contentType, baselineLines) {
     (l) => l.tag === 'ux_signal' && String(l.payload.contentType ?? '') === contentType
   );
   const countKind = (kind) => ux.filter((l) => l.payload.kind === kind).length;
-  const baseTurns = baselineLines.filter(
-    (l) => l.tag === 'agent_turn' && String(l.payload.contentType ?? 'mermaid') === contentType
-  );
-  const baseAccepted = baseTurns.filter((l) => l.payload.accepted === true).length;
-  const acceptRate = turns.length ? accepted / turns.length : null;
-  const acceptRateBaseline = baseTurns.length ? baseAccepted / baseTurns.length : null;
   const renderRepairs = ux.filter((l) => l.payload.kind === 'render_repair').length;
   const renderRepairFailures = ux.filter(
     (l) => l.payload.kind === 'render_repair' && l.payload.outcome !== 'repaired'
@@ -163,8 +163,7 @@ function slotStats(lines, contentType, baselineLines) {
     contentType,
     turns: turns.length,
     accepted,
-    acceptRate,
-    acceptRateBaseline,
+    acceptRate: turns.length ? accepted / turns.length : null,
     avgRepairAttempts: repairs.length
       ? Math.round((repairs.reduce((a, b) => a + b, 0) / repairs.length) * 1000) / 1000
       : null,
@@ -184,41 +183,275 @@ function slotStats(lines, contentType, baselineLines) {
 }
 
 /**
- * @param {ReturnType<slotStats>[]} slots
+ * @param {ReturnType<typeof normalizeLogEntry>[]} lines
+ * @param {string} contentType
+ * @param {ReturnType<typeof normalizeLogEntry>[]} baselineLines
  */
-function buildFindings(slots) {
-  /** @type {Array<{
-   *   id: string,
-   *   metric: 'accept_rate',
-   *   contentType: string,
-   *   value: number,
-   *   baseline: number,
-   *   sample: number,
-   *   severity: number
-   * }>} */
-  const findings = [];
-  for (const slot of slots) {
-    if (
-      slot.turns < MIN_SAMPLE_FOR_FINDING ||
-      slot.acceptRate == null ||
-      slot.acceptRateBaseline == null
-    ) {
-      continue;
-    }
-    const drop = slot.acceptRateBaseline - slot.acceptRate;
-    if (drop < ACCEPT_RATE_DROP) continue;
-    const severity = Math.min(1, Math.round(drop * Math.min(1, slot.turns / 100) * 1000) / 1000);
-    findings.push({
-      id: `${slot.contentType}.accept_rate`,
-      metric: 'accept_rate',
-      contentType: slot.contentType,
-      value: slot.acceptRate,
-      baseline: slot.acceptRateBaseline,
-      sample: slot.turns,
-      severity
-    });
+function slotStats(lines, contentType, baselineLines) {
+  const win = periodSlot(lines, contentType);
+  const base = periodSlot(baselineLines, contentType);
+  return { ...win, acceptRateBaseline: base.acceptRate };
+}
+
+/**
+ * Product-wide aggregates for one period: sessions that never ran anything (`session_bounce`)
+ * and how often the client itself errored. Both are rates per session so the 24 h window and
+ * the 7 d baseline stay comparable despite their different lengths.
+ *
+ * @param {ReturnType<typeof normalizeLogEntry>[]} lines
+ */
+function periodGlobal(lines) {
+  const summaries = lines.filter(
+    (l) => l.tag === 'ux_signal' && l.payload.kind === 'session_summary'
+  );
+  const sessions = summaries.length;
+  const bounces = summaries.filter((l) => (Number(l.payload.runs) || 0) === 0).length;
+  const clientErrors = lines.filter(
+    (l) => l.tag === 'ux_signal' && l.payload.kind === 'client_error'
+  ).length;
+  return {
+    sessions,
+    bounceRate: sessions ? bounces / sessions : null,
+    clientErrors,
+    clientErrorsPerSession: sessions ? clientErrors / sessions : null
+  };
+}
+
+const round3 = (n) => Math.round(n * 1000) / 1000;
+/** Severity weight: full weight at 100 samples, linear below — small samples stay quiet. */
+const sampleWeight = (sample) => Math.min(1, sample / 100);
+const rateOf = (num, den) => (den > 0 ? num / den : null);
+
+/**
+ * Rate findings God may act on, as worsening vs baseline. Thresholds are deliberately larger
+ * than the accept-rate bar for the softer signals (a manual edit can be taste; a retry is not).
+ */
+const RATE_FINDINGS = [
+  { metric: 'failure_rate', num: 'runFailures', den: 'turns', minSample: 20, minRise: 0.05 },
+  { metric: 'retry_rate', num: 'retries', den: 'turns', minSample: 20, minRise: 0.05 },
+  { metric: 'restore_rate', num: 'restores', den: 'turns', minSample: 20, minRise: 0.05 },
+  {
+    metric: 'manual_edit_rate',
+    num: 'manualEditsAfterAgent',
+    den: 'accepted',
+    minSample: 20,
+    minRise: 0.1
+  },
+  {
+    metric: 'render_repair_failure_rate',
+    num: 'renderRepairFailures',
+    den: 'renderRepairs',
+    minSample: 10,
+    minRise: 0.1
   }
-  findings.sort((a, b) => b.severity - a.severity);
+];
+
+/** Verdicts that mean God already spent a run on a finding. */
+const ACTED_VERDICTS = new Set(['observed', 'pr_opened', 'revert_opened']);
+/** A finding God acted on this recently is deprioritised, not dropped: it may still be worst. */
+export const RECENT_ACT_DAYS = 7;
+
+/**
+ * Finding ids God acted on within `RECENT_ACT_DAYS` of the brief. History is the god-log run
+ * records (hypothesis already stripped); only the id, verdict and end time are read here.
+ *
+ * @param {unknown} history
+ * @param {number} nowMs
+ * @returns {Set<string>}
+ */
+export function recentActedFindingIds(history, nowMs) {
+  const ids = new Set();
+  if (!Array.isArray(history)) return ids;
+  const cutoff = nowMs - RECENT_ACT_DAYS * 24 * 3_600_000;
+  for (const record of history) {
+    if (!record || typeof record !== 'object') continue;
+    const { findingId, verdict, endedAt } = /** @type {Record<string, unknown>} */ (record);
+    if (typeof findingId !== 'string' || !ACTED_VERDICTS.has(String(verdict))) continue;
+    const ended = Date.parse(String(endedAt ?? ''));
+    if (Number.isFinite(ended) && ended >= cutoff) ids.add(findingId);
+  }
+  return ids;
+}
+
+/**
+ * The last God PR a deploy can be blamed on, derived from history + the window's deploys: the
+ * most recent `pr_opened` run, paired with the first build first seen after it opened. Without
+ * this the brief's revert-first path needs a caller who already knows the merge sha — and the
+ * workflow never had one, so regressionSuspect could never fire in production.
+ *
+ * @param {unknown} history
+ * @param {{ sha: string, firstSeen: string }[]} deployList window deploys, oldest first
+ * @returns {{ pr: number, mergeSha: string, firstSeen: string, confounders: number } | null}
+ */
+export function deriveLastGodMerge(history, deployList) {
+  if (!Array.isArray(history) || !deployList.length) return null;
+  const opened = history
+    .filter(
+      (r) =>
+        r &&
+        typeof r === 'object' &&
+        /** @type {Record<string, unknown>} */ (r).verdict === 'pr_opened' &&
+        Number.isInteger(/** @type {Record<string, unknown>} */ (r).pr) &&
+        Number(/** @type {Record<string, unknown>} */ (r).pr) > 0
+    )
+    .sort((a, b) => String(b.endedAt).localeCompare(String(a.endedAt)));
+  for (const record of opened) {
+    const endedAt = String(/** @type {Record<string, unknown>} */ (record).endedAt ?? '');
+    const idx = deployList.findIndex((d) => d.firstSeen >= endedAt);
+    if (idx === -1) continue;
+    return {
+      pr: Number(/** @type {Record<string, unknown>} */ (record).pr),
+      mergeSha: deployList[idx].sha,
+      firstSeen: deployList[idx].firstSeen,
+      confounders: deployList.length - idx - 1
+    };
+  }
+  return null;
+}
+
+/**
+ * Every worsening that clears its evidence bar, highest severity first. One hypothesis per run
+ * means this ordering *is* God's priority queue — so it covers every metric in
+ * `GodMetricSchema`, not only accept rate, and a finding God already acted on recently is
+ * halved rather than re-picked at full weight (see `recentActedFindingIds`).
+ *
+ * @param {ReturnType<periodSlot>[]} windowSlots
+ * @param {ReturnType<periodSlot>[]} baselineSlots
+ * @param {ReturnType<periodGlobal>} windowGlobal
+ * @param {ReturnType<periodGlobal>} baselineGlobal
+ * @param {Set<string>} recentActed
+ */
+export function buildFindings(
+  windowSlots,
+  baselineSlots,
+  windowGlobal,
+  baselineGlobal,
+  recentActed = new Set()
+) {
+  /** @type {Array<{ id: string, metric: string, contentType: string | null, value: number, baseline: number | null, sample: number, severity: number }>} */
+  const findings = [];
+  const push = (finding) => {
+    const severity = recentActed.has(finding.id) ? finding.severity * 0.5 : finding.severity;
+    findings.push({ ...finding, severity: round3(Math.min(1, severity)) });
+  };
+
+  for (const slot of windowSlots) {
+    const base = baselineSlots.find((s) => s.contentType === slot.contentType);
+    if (!base) continue;
+
+    if (
+      slot.turns >= MIN_SAMPLE_FOR_FINDING &&
+      slot.acceptRate != null &&
+      base.acceptRate != null
+    ) {
+      const drop = base.acceptRate - slot.acceptRate;
+      if (drop >= ACCEPT_RATE_DROP) {
+        push({
+          id: `${slot.contentType}.accept_rate`,
+          metric: 'accept_rate',
+          contentType: slot.contentType,
+          value: slot.acceptRate,
+          baseline: base.acceptRate,
+          sample: slot.turns,
+          severity: drop * sampleWeight(slot.turns)
+        });
+      }
+    }
+
+    for (const rule of RATE_FINDINGS) {
+      const sample = slot[rule.den];
+      const value = rateOf(slot[rule.num], sample);
+      const baseline = rateOf(base[rule.num], base[rule.den]);
+      if (sample < rule.minSample || value == null || baseline == null) continue;
+      const rise = value - baseline;
+      if (rise < rule.minRise) continue;
+      push({
+        id: `${slot.contentType}.${rule.metric}`,
+        metric: rule.metric,
+        contentType: slot.contentType,
+        value: round3(value),
+        baseline: round3(baseline),
+        sample,
+        severity: rise * sampleWeight(sample)
+      });
+    }
+
+    if (
+      slot.turns >= MIN_SAMPLE_FOR_FINDING &&
+      slot.avgRepairAttempts != null &&
+      base.avgRepairAttempts != null
+    ) {
+      const rise = slot.avgRepairAttempts - base.avgRepairAttempts;
+      const relative = base.avgRepairAttempts > 0 ? rise / base.avgRepairAttempts : rise;
+      if (rise >= 0.5 && relative >= 0.25) {
+        push({
+          id: `${slot.contentType}.repair_attempts_avg`,
+          metric: 'repair_attempts_avg',
+          contentType: slot.contentType,
+          value: slot.avgRepairAttempts,
+          baseline: base.avgRepairAttempts,
+          sample: slot.turns,
+          severity: Math.min(1, rise * 0.5) * sampleWeight(slot.turns)
+        });
+      }
+    }
+
+    if (slot.turns >= MIN_SAMPLE_FOR_FINDING && slot.p90DurationMs != null && base.p90DurationMs) {
+      const rise = slot.p90DurationMs - base.p90DurationMs;
+      if (rise >= 5000 && rise / base.p90DurationMs >= 0.3) {
+        push({
+          id: `${slot.contentType}.turn_duration_p90_ms`,
+          metric: 'turn_duration_p90_ms',
+          contentType: slot.contentType,
+          value: slot.p90DurationMs,
+          baseline: base.p90DurationMs,
+          sample: slot.turns,
+          severity: Math.min(1, rise / base.p90DurationMs) * 0.5 * sampleWeight(slot.turns)
+        });
+      }
+    }
+  }
+
+  if (
+    windowGlobal.sessions >= MIN_SAMPLE_FOR_FINDING &&
+    windowGlobal.clientErrors >= 10 &&
+    windowGlobal.clientErrorsPerSession != null &&
+    baselineGlobal.clientErrorsPerSession != null
+  ) {
+    const rise = windowGlobal.clientErrorsPerSession - baselineGlobal.clientErrorsPerSession;
+    if (rise >= 0.2) {
+      push({
+        id: 'global.client_error_count',
+        metric: 'client_error_count',
+        contentType: null,
+        value: round3(windowGlobal.clientErrorsPerSession),
+        baseline: round3(baselineGlobal.clientErrorsPerSession),
+        sample: windowGlobal.sessions,
+        severity: rise * sampleWeight(windowGlobal.sessions)
+      });
+    }
+  }
+
+  if (
+    windowGlobal.sessions >= MIN_SAMPLE_FOR_FINDING &&
+    windowGlobal.bounceRate != null &&
+    baselineGlobal.bounceRate != null
+  ) {
+    const rise = windowGlobal.bounceRate - baselineGlobal.bounceRate;
+    if (rise >= 0.1) {
+      push({
+        id: 'global.session_bounce_rate',
+        metric: 'session_bounce_rate',
+        contentType: null,
+        value: round3(windowGlobal.bounceRate),
+        baseline: round3(baselineGlobal.bounceRate),
+        sample: windowGlobal.sessions,
+        severity: rise * sampleWeight(windowGlobal.sessions)
+      });
+    }
+  }
+
+  findings.sort((a, b) => b.severity - a.severity || a.id.localeCompare(b.id));
   return findings.slice(0, 20);
 }
 
@@ -230,7 +463,8 @@ function buildFindings(slots) {
  *   baselineMs?: number,
  *   currentSha?: string | null,
  *   lastGodMerge?: { pr: number, mergeSha: string, firstSeen: string } | null,
- *   confounders?: number
+ *   confounders?: number,
+ *   history?: unknown
  * }} opts
  */
 export function buildBrief(opts) {
@@ -296,7 +530,15 @@ export function buildBrief(opts) {
       count: e.count
     }));
 
-  const findings = buildFindings(slots);
+  const windowSlots = CONTENT_TYPES.map((ct) => periodSlot(windowLines, ct));
+  const baselineSlots = CONTENT_TYPES.map((ct) => periodSlot(baselineLines, ct));
+  const findings = buildFindings(
+    windowSlots,
+    baselineSlots,
+    periodGlobal(windowLines),
+    periodGlobal(baselineLines),
+    recentActedFindingIds(opts.history, nowMs)
+  );
   const agentTurns = windowLines.filter((l) => l.tag === 'agent_turn').length;
   const uxSignals = windowLines.filter((l) => l.tag === 'ux_signal').length;
   const sessions = windowLines.filter(
@@ -304,7 +546,8 @@ export function buildBrief(opts) {
   ).length;
 
   let regressionSuspect = null;
-  const last = opts.lastGodMerge;
+  const derived = opts.lastGodMerge ? null : deriveLastGodMerge(opts.history, deployList);
+  const last = opts.lastGodMerge ?? derived;
   if (last?.mergeSha && findings[0]?.metric === 'accept_rate' && findings[0].contentType) {
     const metric = findings[0];
     const slot = slots.find((s) => s.contentType === metric.contentType);
@@ -314,7 +557,8 @@ export function buildBrief(opts) {
       const baseN = Math.max(slot.turns, MIN_SAMPLE_FOR_FINDING);
       const baseSuccesses = Math.round((slot.acceptRateBaseline ?? slot.acceptRate) * baseN);
       const before = wilsonInterval(baseSuccesses, baseN);
-      const confounders = opts.confounders ?? Math.max(0, deployList.length - 1);
+      const confounders =
+        opts.confounders ?? derived?.confounders ?? Math.max(0, deployList.length - 1);
       const mergeSha = String(last.mergeSha).toLowerCase().slice(0, 12);
       if (after.upper < before.lower && confounders === 0 && /^[0-9a-f]{7,40}$/.test(mergeSha)) {
         regressionSuspect = {
@@ -423,6 +667,7 @@ function parseCli(argv) {
       'current-sha': { type: 'string' },
       'last-god-pr': { type: 'string' },
       'last-god-sha': { type: 'string' },
+      history: { type: 'string' },
       confounders: { type: 'string' }
     }
   });
@@ -447,6 +692,12 @@ export function main(argv = process.argv.slice(2)) {
         }
       : null;
 
+  // History is validated and stripped of hypotheses before anything reads it: a prior run's
+  // sentence is owner-facing and must never reach a prompt, including via this file.
+  const history = values.history
+    ? promptSafeHistory(JSON.parse(fs.readFileSync(values.history, 'utf8')))
+    : [];
+
   const brief = buildBrief({
     lines: /** @type {NonNullable<ReturnType<typeof normalizeLogEntry>>[]} */ (lines),
     now,
@@ -454,16 +705,14 @@ export function main(argv = process.argv.slice(2)) {
     baselineMs: Number(values['baseline-days']) * 24 * 3_600_000,
     currentSha: values['current-sha'] ?? null,
     lastGodMerge,
-    confounders: values.confounders != null ? Number(values.confounders) : undefined
+    confounders: values.confounders != null ? Number(values.confounders) : undefined,
+    history
   });
 
   fs.mkdirSync(path.dirname(path.resolve(values.out)), { recursive: true });
   fs.writeFileSync(values.out, `${JSON.stringify(brief, null, 2)}\n`);
 
   if (values['history-out']) {
-    // Prompt-safe array. Real prior runs come from god-log (`godLog.mjs`), not from this stub —
-    // the object this used to write failed the harness, which requires an array of run records.
-    const history = [];
     fs.mkdirSync(path.dirname(path.resolve(values['history-out'])), { recursive: true });
     fs.writeFileSync(values['history-out'], `${JSON.stringify(history, null, 2)}\n`);
   }

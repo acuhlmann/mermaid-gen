@@ -124,6 +124,16 @@ contents and pull requests (not admin) so the six required checks actually start
 Pick the highest-severity finding in the brief that clears the evidence bar. Name the metric
 (`accept_rate`, `repair_attempts_avg`, …). One hypothesis, one PR.
 
+The brief ranks every worsening it can measure, not only accept rate: per slot `accept_rate`,
+`failure_rate`, `retry_rate`, `restore_rate`, `manual_edit_rate`, `render_repair_failure_rate`,
+`repair_attempts_avg` and `turn_duration_p90_ms`, plus product-wide `client_error_count` (per
+session) and `session_bounce_rate`. Each finding carries its window value, its baseline value and
+its sample; a metric with too small a sample produces no finding at all. The brief also reads
+god-log history: a finding God acted on in the last seven days arrives at half severity (still
+pickable when it is genuinely worst), and the most recent `pr_opened` run paired with the next
+deploy is what lets `regressionSuspect` — and therefore revert-first — fire without a human
+naming the merge sha.
+
 ## 3. Evidence
 
 - Every fix needs a red→green test in the same PR.
