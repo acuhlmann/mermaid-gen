@@ -177,6 +177,15 @@ export function baseConfig({ env = 'node', tighten = false, workspaceDir = '.' }
       rules: {
         'valid-typeof': 'error'
       }
+    },
+    // ADR-0007: promoted 2026-10-16 (improve, lint severity promotion). Quiet-period
+    // evidence: `git log --since="2 weeks ago" -S'no-unreachable' -- '**/*.{js,jsx,ts,tsx}'`
+    // returned empty; eslint JSON across web/shared/server reported zero no-unreachable warnings.
+    {
+      files: ['**/*.{js,jsx,mjs,cjs,ts,tsx}'],
+      rules: {
+        'no-unreachable': 'error'
+      }
     }
   ];
 }
