@@ -228,6 +228,28 @@ jobs:
       - name: Install workspace dependencies
         run: npm ci --no-audit --no-fund
 
+      - name: Checkout god-log
+        id: godlog
+        continue-on-error: true
+        uses: actions/checkout@v5
+        with:
+          ref: god-log
+          path: god-log
+          persist-credentials: false
+          fetch-depth: 1
+
+      # History lets the brief deprioritise findings God already acted on and derive the last
+      # God merge for revert-first; without it both paths silently never fire.
+      - name: Stage god-log history for the brief
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/god"
+          if [ "${{ steps.godlog.outcome }}" = "success" ]; then
+            node scripts/god/godLog.mjs --root god-log --history-out "$RUNNER_TEMP/god/history-in.json"
+          else
+            printf '[]\n' > "$RUNNER_TEMP/god/history-in.json"
+          fi
+
       - name: Authenticate to Google Cloud (god-observer)
         uses: google-github-actions/auth@v2
         with:
@@ -251,6 +273,7 @@ jobs:
           SOURCE=live
           if ! node scripts/god/brief.mjs \
             --out "$RUNNER_TEMP/god/brief.json" \
+            --history "$RUNNER_TEMP/god/history-in.json" \
             --history-out "$RUNNER_TEMP/god/history.json" \
             --current-sha "${{ github.sha }}"; then
             SOURCE=fixture
@@ -258,6 +281,7 @@ jobs:
             node scripts/god/brief.mjs \
               --from-file scripts/god/fixtures/log-lines.ndjson \
               --out "$RUNNER_TEMP/god/brief.json" \
+              --history "$RUNNER_TEMP/god/history-in.json" \
               --history-out "$RUNNER_TEMP/god/history.json" \
               --now "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
               --current-sha "${{ github.sha }}"

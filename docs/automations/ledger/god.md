@@ -25,11 +25,12 @@ Filled from the first sufficient brief after signals accumulate in `god-signals`
 
 ## Run log
 
-| Date (UTC) | Trigger | Verdict | Notes                                                                              | PR  |
-| ---------- | ------- | ------- | ---------------------------------------------------------------------------------- | --- |
-| 2026-10-15 | setup   | —       | Stage 2b lands: gate + brief hourly; act pipeline still later.                     |     |
-| 2026-10-15 | code    | —       | Observe act wired. Propose still does not open a PR.                               |     |
-| 2026-10-15 | code    | —       | Propose opens a ready PR after postflight and check:affected. Ship does not merge. |     |
+| Date (UTC) | Trigger | Verdict | Notes                                                                                                                                                                | PR  |
+| ---------- | ------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --- |
+| 2026-10-15 | setup   | —       | Stage 2b lands: gate + brief hourly; act pipeline still later.                                                                                                       |     |
+| 2026-10-15 | code    | —       | Observe act wired. Propose still does not open a PR.                                                                                                                 |     |
+| 2026-10-15 | code    | —       | Propose opens a ready PR after postflight and check:affected. Ship does not merge.                                                                                   |     |
+| 2026-10-16 | code    | —       | Brief learns: findings for all ten God metrics, recent-action deprioritisation, and `regressionSuspect` derived from god-log history (brief job now stages history). |     |
 
 ## Open observations
 
