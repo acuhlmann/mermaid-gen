@@ -1,0 +1,38 @@
+.view-mode-switch {
+  display: inline-flex;
+  gap: 0.15rem;
+  padding: 0.2rem;
+  border: 1px solid var(--control-border, #cbd5e1);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.85);
+}
+
+.view-mode-switch-option {
+  box-sizing: border-box;
+  min-height: 2rem;
+  margin: 0;
+  padding: 0.3rem 0.8rem;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted, #64748b);
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 680;
+  cursor: pointer;
+}
+
+.view-mode-switch-option.is-current {
+  background: var(--text, #0f172a);
+  color: #ffffff;
+  cursor: default;
+}
+
+.view-mode-switch-option:not(.is-current):hover {
+  color: var(--text, #0f172a);
+}
+
+.view-mode-switch-option:focus-visible {
+  outline: 3px solid #0b57d0;
+  outline-offset: 2px;
+}

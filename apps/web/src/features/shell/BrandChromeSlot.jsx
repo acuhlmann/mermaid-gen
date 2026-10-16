@@ -1,5 +1,6 @@
 import DeskOsMenuBar from '../../components/DeskOsMenuBar.jsx';
 import DiagramFullscreenButton from '../../components/DiagramFullscreenButton.jsx';
+import ViewModeSwitch from '../../components/ViewModeSwitch.jsx';
 import { ArchiSlopMarkIcon } from '../../components/AppIcons.jsx';
 import { TopShell } from '../../components/TopShell.jsx';
 import { SlopitectTipSlot } from '../prompt/SlopitectTipSlot.jsx';
@@ -33,6 +34,7 @@ export function BrandChromeSlot({
   onDismissSlopitectTip,
   controls,
   onBrandClick,
+  onEnterSimpleStudio = null,
   menuBar = null,
   fullscreenSupported,
   hasCanvasContent,
@@ -65,6 +67,18 @@ export function BrandChromeSlot({
       </div>
 
       {menuBar ? <DeskOsMenuBar {...menuBar} /> : null}
+
+      {/* The way back to the one-prompt screen — the mirror of the switch
+          the simple studio carries in the same top-bar spot. */}
+      {typeof onEnterSimpleStudio === 'function' ? (
+        <ViewModeSwitch
+          current="office"
+          label={controls.prompt?.studio?.modeLabel}
+          simpleLabel={controls.prompt?.studio?.simpleLabel}
+          officeLabel={controls.prompt?.studio?.officeLabel}
+          onSelectSimple={onEnterSimpleStudio}
+        />
+      ) : null}
 
       {/* Fullscreen stays a corner button: it acts on the canvas itself, and
           burying a one-click canvas verb inside a menu would be a downgrade. */}

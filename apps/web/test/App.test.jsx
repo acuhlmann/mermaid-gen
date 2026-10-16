@@ -1211,7 +1211,7 @@ describe('App simplified controls', { timeout: 20_000 }, () => {
     expect(screen.queryByTestId('desk-os-menubar')).toBeNull();
     expect(screen.queryByTestId('insights-pane-header-tools')).toBeNull();
 
-    fireEvent.click(screen.getByTestId('simple-studio-office'));
+    fireEvent.click(screen.getByTestId('view-mode-office'));
 
     expect(screen.getByTestId('office-floor-arrival')).toBeTruthy();
     expect(screen.queryByTestId('simple-studio')).toBeNull();
@@ -1224,5 +1224,19 @@ describe('App simplified controls', { timeout: 20_000 }, () => {
     expect(screen.queryByTestId('simple-studio')).toBeNull();
     expect(screen.getByTestId('desk-os-menubar')).toBeTruthy();
     expect(screen.queryByTestId('insights-pane-header-tools')).toBeNull();
+
+    // The switch is two-way: the desk carries the same control, Office
+    // pressed, and Simple brings the one-prompt screen back with the
+    // session (and its result) intact.
+    expect(screen.getByTestId('view-mode-office').getAttribute('aria-pressed')).toBe('true');
+    fireEvent.click(screen.getByTestId('view-mode-simple'));
+
+    expect(await screen.findByTestId('simple-studio')).toBeTruthy();
+    expect(screen.queryByTestId('desk-os-menubar')).toBeNull();
+    expect(screen.getByTestId('view-mode-simple').getAttribute('aria-pressed')).toBe('true');
+
+    fireEvent.click(screen.getByTestId('view-mode-office'));
+    expect(await screen.findByTestId('desk-os-menubar')).toBeTruthy();
+    expect(screen.queryByTestId('simple-studio')).toBeNull();
   });
 });

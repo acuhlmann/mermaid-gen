@@ -26,6 +26,14 @@ export function useOfficeBoot({ hasCanvasContent }) {
     if (!readOfficeDirectorySeen()) setOfficeBootPending(true);
   }, []);
 
+  /** The way back: desk/floor chrome returns to the one-prompt screen. State
+   * (diagram, session) lives above this hook, so nothing is lost in either
+   * direction. */
+  const enterSimpleStudio = useCallback(() => {
+    setOfficeBootPending(false);
+    setStudioActive(true);
+  }, []);
+
   const handleOfficeBootComplete = useCallback((options = {}) => {
     setStudioActive(false);
     setOfficeBootPending(false);
@@ -60,6 +68,7 @@ export function useOfficeBoot({ hasCanvasContent }) {
   return {
     studioActive,
     enterOfficeLife,
+    enterSimpleStudio,
     officeBootPending,
     officeCanvasGrace,
     deskTourPending,
