@@ -30,6 +30,7 @@ import {
   normalizeWorkingMemoryBeat,
   officeDayStamp,
   readOfficeWorkingMemory,
+  reconcileOfficeCalendarDay,
   writeOfficeWorkingMemory
 } from '../utils/officeAmbienceStorage.js';
 
@@ -78,10 +79,9 @@ let loadedDay = officeDayStamp();
 const listeners = new Set();
 
 function reconcileOfficeDay() {
-  const today = officeDayStamp();
-  if (today === loadedDay) return;
-  byColleague = {};
-  loadedDay = today;
+  loadedDay = reconcileOfficeCalendarDay(loadedDay, () => {
+    byColleague = {};
+  });
 }
 
 function emit() {

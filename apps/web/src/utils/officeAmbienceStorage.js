@@ -437,8 +437,22 @@ export function officeDayStamp(at = Date.now()) {
   return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`;
 }
 
-function dayStampOf(at) {
-  return officeDayStamp(at);
+/**
+ * Clear in-memory office-day state when the calendar day rolls over without a
+ * reload. Both `officeLogStore` and `officeWorkingMemoryStore` keep a
+ * `loadedDay` beside their payload for the same reason `readOfficeLog` stamps
+ * storage: Tuesday's facts must not ride into Thursday just because the tab
+ * stayed open.
+ *
+ * @param {string} loadedDay day the in-memory payload currently belongs to
+ * @param {() => void} onRollover mutate payload (clear entries / rows)
+ * @returns {string} the day the payload now belongs to
+ */
+export function reconcileOfficeCalendarDay(loadedDay, onRollover) {
+  const today = officeDayStamp();
+  if (today === loadedDay) return loadedDay;
+  onRollover();
+  return today;
 }
 
 /**
@@ -454,7 +468,7 @@ export function readOfficeLog(now = Date.now()) {
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     if (!parsed || typeof parsed !== 'object') return [];
-    if (parsed.day !== dayStampOf(now)) return [];
+    if (parsed.day !== officeDayStamp(now)) return [];
     if (!Array.isArray(parsed.entries)) return [];
     return parsed.entries
       .filter((entry) => entry && typeof entry.kind === 'string' && Number.isFinite(entry.at))
@@ -474,7 +488,7 @@ export function writeOfficeLog(entries, now = Date.now()) {
     window.localStorage.setItem(
       OFFICE_LOG_STORAGE_KEY,
       JSON.stringify({
-        day: dayStampOf(now),
+        day: officeDayStamp(now),
         entries: Array.isArray(entries) ? entries.slice(-OFFICE_LOG_ENTRY_CAP) : []
       })
     );
@@ -587,7 +601,7 @@ export function readOfficeWorkingMemory(now = Date.now()) {
     if (!raw) return {};
     const parsed = JSON.parse(raw);
     if (!parsed || typeof parsed !== 'object') return {};
-    if (parsed.day !== dayStampOf(now)) return {};
+    if (parsed.day !== officeDayStamp(now)) return {};
     if (!parsed.byColleague || typeof parsed.byColleague !== 'object') return {};
     const byColleague = {};
     for (const [id, row] of Object.entries(parsed.byColleague)) {
@@ -621,7 +635,7 @@ export function writeOfficeWorkingMemory(byColleague, now = Date.now()) {
     window.localStorage.setItem(
       OFFICE_WORKING_MEMORY_STORAGE_KEY,
       JSON.stringify({
-        day: dayStampOf(now),
+        day: officeDayStamp(now),
         byColleague: byColleague && typeof byColleague === 'object' ? byColleague : {}
       })
     );
