@@ -2,7 +2,7 @@
 
 This file is a quick operator manual for coding agents working in this repository (Cursor, Claude Code, Copilot, cloud agents).
 
-Domain depth (slots, validation ladders, wire-contract habits, where-to-put table) lives in [`CLAUDE.md`](CLAUDE.md). **Keep operational tips in both files** — don't-touch paths, regenerate commands, verify loops, safety rules. When you learn something durable while coding, update this file _and_ `CLAUDE.md` if another agent would miss it by reading only one.
+**This file is a pointer, not a store.** Every session in this repo loads it before it does any work, so a paragraph duplicated here is paid by every session whether or not the work goes near its subject — which is how `CLAUDE.md` once reached 136 KB. Depth lives where rule 8 of [`docs/routines/README.md`](docs/routines/README.md) puts it: domain findings in [`docs/agents/domains/`](docs/agents/domains/), the routine/automation contract in [`docs/routines/README.md`](docs/routines/README.md) and [`docs/automations/README.md`](docs/automations/README.md), sensor semantics in [`docs/agents/sensors.md`](docs/agents/sensors.md), test traps in [`docs/agents/testing.md`](docs/agents/testing.md). A finding about the **whole repo** still goes in both root files (see [Documentation upkeep](#documentation-upkeep)).
 
 ## Project at a glance
 
@@ -22,116 +22,37 @@ Domain depth (slots, validation ladders, wire-contract habits, where-to-put tabl
 
 ## Useful commands
 
-- Install deps + skills + Cloud SDK (when missing): `npm run setup`
-- Google Cloud CLI only: `npm run setup:gcloud` (see `scripts/setup-gcloud.sh`; uses `GOOGLE_APPLICATION_CREDENTIALS` or `GCP_MERMAID_GEN` key path for service-account auth when set)
-- Refresh skills only: `npm run setup:skills`
-- Run web + server together: `npm run dev`
-- Run all tests: `npm test`
-- Build all packages: `npm run build`
-- Regenerate baked office audio: **always name the asset** — `./scripts/generate-office-audio.sh cue-laugh`. Bare (no name) regenerates the entire manifest: 900 credits and every committed `.mp3` overwritten. `--dry-run` prices it first; `--verify` re-checks the installed bank for free (no API key, no network) and is what runs automatically after each generate. See [`docs/audio-assets.md`](docs/audio-assets.md)
-- **Verify after edits** (pick the smallest loop that fits):
-  - `npm run check:affected` — diff-scoped sensors (includes Prettier on changed files; **verify:boundaries** when `apps/web` changes; **test:affected** when `apps/server` or `apps/web` changes; matches what agents should run before push)
-  - `npm run test:affected` — diff-scoped tests only (basename mirror + blast-radius rules; skips slow Anything child-process suite unless the diff touches `anything*`)
-  - `npm run precommit` — **run before every cloud-agent commit** (`format:affected` + `check:affected`; Husky does not run in cloud VMs); then `git add -A` to re-stage Prettier fixes on new files
-  - `npm run format:affected` — write Prettier fixes on changed + untracked files (included in `precommit`)
-  - `npm run format` / `npm run format:check` — Prettier write / verify whole repo (CI runs `format:check`; pre-commit auto-formats staged files). Text is LF via `.gitattributes`; Windows CRLF working trees — see [`docs/agents/sensors.md`](docs/agents/sensors.md) § Line endings
-  - `npm run check:fast` — shared package only (schemas, sanitizers, wire constants)
-  - `npm run check` — typecheck + lint + test all workspaces (wire files via `npm test`) + doc-paths
-  - `npm run check:full` — local full gate (`check` + build); GitHub CI runs the same coverage as parallel jobs
-  - `npm run check:wire` — doc path verify + wire round-trip tests only (shared, server, web)
-  - `npm run typecheck:strict` — strict TS on server wire-route modules (`copilotRouteTypes`, stream helpers)
-  - `npm run verify:doc-paths` — operator-doc links to `apps/`, `packages/`, and `scripts/` paths (`STRUCTURE.md`, `AGENTS.md`, `CLAUDE.md`, `GLOSSARY.md`, `docs/recipes/`, `docs/guide/`, `docs/agents/`)
-  - `npm run verify:deps` — override pins and singleton npm installs (e.g. `@a2ui/web_core` hoisted vs nested); error output includes the `npm install` fix
-  - `npm run verify:boundaries` — dependency-cruiser graph rules (cycles + workspace + intra-server layers); each rule's `comment` is the agent-readable fix
-  - `npm run lint` — all three workspaces, formatter appends per-rule "Agent guidance" footer with the canonical fix and suppression syntax (`packages/eslint-config/formatter.cjs`)
-  - `npm run verify:ratchet` — quality trend: monolith LOC and lint warnings should only fall, strict-island and suite counts should only rise (`docs/agents/ratchet.json`). **Not part of `check`** — it gates no build; `--json` for machine-readable, `--with-lint` to include the ESLint pass
-  - `npm run routine:guard -- --preflight|--postflight <name>` — routine budget: files, tests, filings (rule 12)
-  - `npm run routine:guard -- --reachable <path>` — which routine may write this file? owner / `frozen` / `NONE` + exit 1; run before labelling `ready-for-agent` (ADR-0017). A delete-only rung (`prune`) is never the answer: it can only remove a whole file, while its allowlist reaches most of the tree.
-  - `npm run routine:guard -- --filings [--json]` — backlog, oldest open, net inflow, filings vs `maxIssues` per rung (rule 12)
-  - `npm run prune:scan` — tracked files nothing refers to; `prune`'s queue. A report, not in `check` (`docs/routines/prune.md`)
-  - `npm run verify:modularity` — reminder of how to run a semantic modularity review (Claude `/modularity:review` or Cursor `.cursor/skills/modularity/review/SKILL.md`); see [`docs/agents/modularity.md`](docs/agents/modularity.md)
-- **Workspace-scoped** (faster when you know the blast radius):
-  - `npm run typecheck -w apps/server && npm run test -w apps/server`
-  - `npm run typecheck -w apps/web && npm run test -w apps/web`
-  - `npm run typecheck -w packages/shared && npm run test -w packages/shared`
+**Setup and run**
 
-Package-specific commands:
+- `npm run setup` — deps + CopilotKit skills + Cloud SDK when missing (`scripts/setup-gcloud.sh`; uses `GOOGLE_APPLICATION_CREDENTIALS` or `GCP_MERMAID_GEN` key path for service-account auth)
+- `npm run setup:gcloud` — Google Cloud CLI only; `npm run setup:skills` — skills refresh only
+- `npm run dev` — web + server together (see [Cursor Cloud](#cursor-cloud-setup-and-ai-backends)); `npm run test`; `npm run build` (shared → server → web; the web chunk-size warning is expected)
+- Artifact Registry retention: `npm run ar:cleanup:verify` (policy in `scripts/artifact-registry-cleanup-policy.json`), apply with `npm run ar:cleanup:apply`
+- Regenerate baked office audio: **always name the asset** — `./scripts/generate-office-audio.sh cue-laugh`. Bare regenerates the whole manifest (900 credits, every committed `.mp3` overwritten); `--dry-run` prices first, `--verify` re-checks the bank for free. Flags and cost: [`docs/audio-assets.md`](docs/audio-assets.md)
 
-- Server dev: `npm run dev -w apps/server`
-- Web dev: `npm run dev -w apps/web`
+**Verify after edits** — the full table lives in [`docs/guide/coding-agents.md`](docs/guide/coding-agents.md) and the semantics of each sensor in [`docs/agents/sensors.md`](docs/agents/sensors.md). Pick the smallest loop that fits:
 
-### Anything runtime rung — two engines
+- `npm run check:affected` — diff-scoped sensors; what agents should run before push
+- `npm run test:affected` — diff-scoped tests only
+- `npm run precommit` — **before every cloud-agent commit** (Husky does not run in cloud VMs); then `git add -A` to re-stage Prettier fixes on new files
+- `npm run format:affected` / `format` / `format:check` — CI runs `format:check`; pre-commit auto-formats staged files
+- `npm run check:fast` — `packages/shared` only · `npm run check` — typecheck + lint + test + doc-paths · `npm run check:full` — `check` + build (the local full gate)
+- `npm run check:wire` — doc-path verify + wire round-trip tests · `npm run typecheck:strict` — strict TS on server wire-route modules
+- `npm run verify:doc-paths` · `verify:deps` · `verify:boundaries` · `lint` · `verify:modularity` — how to read any of these: [`docs/agents/sensors.md`](docs/agents/sensors.md)
+- `npm run verify:ratchet` — quality trend (**not part of `check`**, so it gates no build); `--json`, `--with-lint`; budgets in `docs/agents/ratchet.json`, raise one only with a written `reason`
+- `npm run routine:guard -- --preflight|--postflight <name>` · `--reachable <path>` · `--filings` — routine budget and ownership (rule 12); a delete-only rung is never the answer
+- `npm run prune:scan` — tracked files nothing refers to; `prune`'s queue (a report, not in `check`)
 
-- The rung executes agent pages in a **real browser** by default (`anythingRuntimeBrowser.js`), inside the actual
-  client sandbox rather than an emulation of it: it builds the same
-  `<iframe sandbox="allow-scripts" srcdoc={wrapAnythingSrcDoc(html)}>` the renderer does. Measured p50 through the
-  full 28-fixture corpus: **139 ms vs jsdom's 1,009 ms, identical verdicts**.
-- `ANYTHING_RUNTIME_ENGINE=browser|jsdom|auto` (default `auto` = browser when a binary resolves). **`jsdom` is the
-  rollback.** Both engines are held to the same suite — `apps/server/test/anythingRuntimeCheck.test.js` runs
-  unchanged against either, and that identity is what stops them drifting.
-- The probe goes in **`<head>`, never the end of `<body>`** — console capture must install before page scripts, and
-  a body element would defeat the `blank_render` check.
-- **Each engine gets its own clock.** When the browser rung fails open, the jsdom fallback runs on
-  `ANYTHING_RUNTIME_FALLBACK_TIMEOUT_MS` (default `max(browser budget, 6000 ms)`), never on the browser's budget —
-  the engines are a pair _because_ their startup costs differ, and resharing one clock made a tightened browser
-  budget starve the fallback, which then reported `runtime_timeout` (a page rejection) for its own spawn cost
-  (#347). Raising the budget still lifts both; only tightening was ever browser-specific.
-- **Visual findings warn, they do not reject** unless `ANYTHING_RUNTIME_VISUAL_REJECT=1`, and then only on hard
-  ones. `low_contrast` stays a warning permanently: 32 of 35 accepted pages carry one, and each extra rejection
-  costs a 12–60 s repair turn.
+**Workspace-scoped** (when you know the blast radius): `npm run typecheck -w <ws> && npm run test -w <ws>` for `apps/server`, `apps/web`, `packages/shared`; dev with `npm run dev -w apps/server`.
 
-### Benches — two kinds, easy to confuse
-
-- **Corpus benches** (`benchMermaid.js`, `benchAnything.js`) replay fixed documents through the
-  validators. No LLM, safe to run anytime. They measure the **gate**, not the model — and
-  `benchAnything.js`'s `acceptRate` is a property of the corpus (how many fixtures are _supposed_
-  to pass), **not** a quality signal. Read `expectationMatch`.
-- **Generation bench** (`benchAnythingGeneration.js`) sends real prompts through the real agent
-  and **spends tokens**. It is not part of `npm test`. Reports first-pass accept rate, the
-  rejection-code histogram, and repair convergence.
-  **Always `--samples 3` or more for a baseline you will compare against** — two consecutive
-  single-sample runs of the same 12 cases measured 66.7% and 91.7% first-pass, a 25-point swing
-  from nondeterminism alone. Read the accept rate next to `failureKinds`: a `transport` entry is
-  a model call cut off mid-stream, which depresses the rate exactly like a page the model could
-  not fix.
-  It needs **both** `--import` flags —
-  `node --import ./scripts/register-antv-layout-esm.mjs --import tsx …` — because the agent's
-  import graph reaches TypeScript leaves behind `.js` specifiers _and_ transitively reaches
-  `@antv/infographic`. Neither flag alone works; the failures are two different, unhelpful
-  module errors.
-- `--browser` on the generation bench renders accepted pages in real Chromium and reports what
-  jsdom structurally cannot see (blank canvases, collapsed layout, contrast). It is an
-  **observer, not a rung** — it changes no verdict. It exists to measure how much _more_ a
-  browser would reject, since each extra rejection costs a 12–60 s repair turn.
+Anything-runtime engines, the two kinds of bench, and the slow-suite map are **not** in this file: [`docs/agents/testing.md`](docs/agents/testing.md), [`docs/automations/anything.md`](docs/automations/anything.md).
 
 ## Operator CLIs
 
-Agents often have **`gcloud`** and **`gh`** available in the terminal. Use them to inspect real account state instead of guessing projects, billing, or Git refs.
+Agents often have **`gcloud`** and **`gh`** available. Use them to inspect real account state instead of guessing projects, billing, or Git refs.
 
-### `gcloud` (Google Cloud)
-
-Use for **estate discovery** and deploy operations: projects, billing attachment, enabled APIs, Artifact Registry, Cloud Run services/revisions, IAM, and logs.
-
-Examples:
-
-- `gcloud projects list`
-- `gcloud billing projects describe PROJECT_ID`
-- `gcloud run services list --region=REGION`
-- `gcloud logging read 'resource.type="cloud_run_revision"' --limit=20 --freshness=1h`
-- Artifact Registry retention: `npm run ar:cleanup:verify` (policy in `scripts/artifact-registry-cleanup-policy.json`; apply with `npm run ar:cleanup:apply`)
-
-### `gh` (GitHub CLI)
-
-Use for **repo and release inspection**: tags, releases, Actions, PRs.
-
-Examples for this repository:
-
-- `gh release list -R acuhlmann/mermaid-gen --limit 5`
-- `gh api repos/acuhlmann/mermaid-gen/actions/runs --jq '.workflow_runs[:5] | .[] | {name,conclusion,head_branch}'`
-
-### Public deployment (GCP)
-
-Production deploy notes (Cloud Run, billing credits, GitHub Actions CI, optional load balancer) live in [`docs/deploy/gcp.md`](docs/deploy/gcp.md).
+- `gcloud` — estate discovery and deploy operations: `gcloud projects list`, `gcloud billing projects describe PROJECT_ID`, `gcloud run services list --region=REGION`, `gcloud logging read 'resource.type="cloud_run_revision"' --limit=20 --freshness=1h`. Full reference: [`docs/deploy/gcp.md`](docs/deploy/gcp.md)
+- `gh` — repo and release inspection: `gh release list -R acuhlmann/mermaid-gen --limit 5`, `gh api repos/acuhlmann/mermaid-gen/actions/runs --jq '.workflow_runs[:5] | .[] | {name,conclusion,head_branch}'`
 
 ## Key code locations
 
@@ -152,159 +73,32 @@ Depth lives in `CLAUDE.md` (§ Validation ladder). The four things an agent miss
 - **Do not try to dedupe CopilotKit's Mermaid.** `@copilotkit/react-core` → `streamdown` hard-depends on `mermaid@^11`, and an `overrides` entry (either form) rewrites the range but leaves the nested copy, so `npm ls` then reports `ELSPROBLEMS`. Two copies is the correct state here; the app's own surfaces all use hoisted 12.x.
 - **Verify a type with the corpus bench, and measure geometry in a real browser**: `node apps/server/scripts/benchMermaid.js --tag <label>` replays through the actual ladder and fails on `expectationMatch` drift. jsdom's stubbed `getBBox` inflates viewBoxes by ~three orders of magnitude, so it can prove a diagram parses and renders but never that it is sized sanely.
 
-## Metaphor3D scene gotchas
-
-**Moved.** The ~50 findings for this domain now live in one file, read by every agent:
-
-**[`docs/agents/domains/metaphor3d.md`](docs/agents/domains/metaphor3d.md)**
-
-Claude Code auto-loads it through nested `CLAUDE.md` files in
-`apps/web/src/components/metaphorScenes/` and `apps/web/src/utils/metaphorLayouts/`; Cursor gets it
-through the glob-scoped `.cursor/rules/metaphor3d.mdc`; anything else reads it from the index in
-the table below. Read its **Short form** before touching a scene, layout, or the metaphor
-ladder.
-
-It was 27 KB here and another 54 KB in `CLAUDE.md`, both loaded in full by every session in this
-repo — about 20 k tokens before any work started, whether or not the work went near a 3D scene, and
-growing every night. Scoping it costs a session that _does_ touch metaphor code nothing and saves
-every session that does not.
-
-**Add findings there, once.** Do not mirror them back here.
-
-## Architecture docs (read before changing wire contracts)
-
-| Doc                                                                            | Topic                                                            |
-| ------------------------------------------------------------------------------ | ---------------------------------------------------------------- |
-| [`docs/architecture-generative-ui.md`](docs/architecture-generative-ui.md)     | **AG-UI + A2UI + MCP Apps map**, MCP connectivity, host matrix   |
-| [`docs/architecture-external-agents.md`](docs/architecture-external-agents.md) | MCP join, handshakes, proposals, MCP Apps, session-events        |
-| [`docs/architecture-ag-ui.md`](docs/architecture-ag-ui.md)                     | AG-UI SSE for built-in `agent-stream`                            |
-| [`docs/architecture-a2ui.md`](docs/architecture-a2ui.md)                       | A2UI critique `CUSTOM` on AG-UI streams                          |
-| [`docs/agent-blast-radius.md`](docs/agent-blast-radius.md)                     | **Impact map** — if you change X, also change Y (wire contracts) |
-| [`docs/office-continuity.md`](docs/office-continuity.md)                       | **Office continuity** — working memory + `runWalk` (v1 shipped)  |
-| [`docs/canvas-graph-edit.md`](docs/canvas-graph-edit.md)                       | Canvas Add / Delete / Rename / Link — families + next slices     |
-| [`README.md`](README.md)                                                       | Human-facing hub (links to guides below)                         |
-| [`docs/guide/README.md`](docs/guide/README.md)                                 | Split human guides: setup, agents, MCP, API, config              |
-| [`docs/guide/coding-agents.md`](docs/guide/coding-agents.md)                   | Agent onboarding: read order, verification table, PR checklist   |
-| [`docs/agents/sensors.md`](docs/agents/sensors.md)                             | Lint, dep-cruiser, verify:deps — how to read sensor output       |
-
-## Documentation map
-
-| Audience                                  | Start here                                                                                                                                                      |
-| ----------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Humans** (setup, product, API)          | [`README.md`](README.md) → [`docs/guide/README.md`](docs/guide/README.md)                                                                                       |
-| **Coding agents** (edits, wire contracts) | [`docs/guide/coding-agents.md`](docs/guide/coding-agents.md) → [`GLOSSARY.md`](GLOSSARY.md) → [`STRUCTURE.md`](STRUCTURE.md) → [`docs/recipes/`](docs/recipes/) |
-| **Sensors** (lint / boundaries / deps)    | [`docs/agents/sensors.md`](docs/agents/sensors.md) — canonical fix lives in the tool output                                                                     |
-
 ## Domain gotchas — scoped, not deleted
 
-Two domains carry far more hard-won detail than anything else in this repo, and both used to sit in
-the root `CLAUDE.md` **and** here at the same time. Every session in this repo read all of it —
-about 152 KB, ~38 k tokens — before doing anything, whether or not the work went near either area.
-
-They are now one file each, loaded by the agents that need them:
+Two domains carry far more hard-won detail than anything else in this repo. Each is now one file, read by the agents that touch it (the 152 KB / ~38 k-token history is in rule 8's § Why the split):
 
 | Domain         | The file                                                                 | Read it when you touch                                                                                                                             |
 | -------------- | ------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Metaphor3D** | [`docs/agents/domains/metaphor3d.md`](docs/agents/domains/metaphor3d.md) | `metaphorScenes/`, `MetaphorRenderer.jsx`, `metaphorLayouts/`, `utils/metaphor*`, `shared/src/metaphor*`, the metaphor ladder                      |
 | **Office**     | [`docs/agents/domains/office.md`](docs/agents/domains/office.md)         | `OfficeFloor*`, `officeFloor/`, `OfficeLayer*`, `DeskOs*`, `personaFaces/`, `state/office*`, `utils/office*`, `locales/office.*`, server `office*` |
 
-Each opens with a **Short form** — one line per finding, naming the file it lives in. Read that
-first and the matching **Full findings** entry before changing the thing it names.
+Each opens with a **Short form** — one line per finding, naming the file it lives in. Read that first, and the matching **Full findings** entry, before changing the thing it names. Floor test traps: [`docs/agents/isometric-floor-tests.md`](docs/agents/isometric-floor-tests.md); geometry spec and its § 6 trap list: [`docs/office-isometric-mode.md`](docs/office-isometric-mode.md).
 
-**How each agent gets there.** Same content, one copy:
-
-- **Cursor** — `.cursor/rules/metaphor3d.mdc` and `.cursor/rules/office.mdc`, glob-scoped with
-  `alwaysApply: false`, so they load only for sessions touching those paths.
-- **Claude Code** — nested `CLAUDE.md` files in `apps/web/src/components/metaphorScenes/`,
-  `apps/web/src/utils/metaphorLayouts/`, `apps/web/src/components/officeFloor/` and
-  `apps/web/src/state/`, auto-loaded when a file in that directory is read.
-- **qwen, Codex, and anything else** — this table. `AGENTS.md` is the cross-agent entry point and
-  is deliberately the file that stays small enough to be worth reading in full.
-
-**Adding a finding.** Put it in the domain file, **once**. The old rule requiring every durable
-learning in both `AGENTS.md` and `CLAUDE.md` is retired for domain content
-(`docs/routines/README.md` rule 8) — it is what made each finding cost twice and drove both root
-files past 130 KB and 88 KB. A finding about the **whole repo** rather than about one domain still
-goes in the root files, and still in both.
+**Adding a finding — one copy, per rule 8** ([`docs/routines/README.md`](docs/routines/README.md)): put it in the domain file, never mirrored back here. Cursor reaches the domain files through glob-scoped `.cursor/rules/<domain>.mdc`, Claude Code through nested `CLAUDE.md` files in `metaphorScenes/`, `metaphorLayouts/`, `officeFloor/`, `state/`, and every other agent through the table above.
 
 ## Scheduled NFR routines
 
-Non-functional work — post-merge review, doc drift, test hardening, dependency upkeep — runs on a
-schedule as **NFR routines** ([ADR-0014](docs/decisions/0014-autonomous-nfr-routines.md),
-[ADR-0017](docs/decisions/0017-routine-ownership-dependabot-and-the-attention-bar.md)). Six ship
-today. **Read [`docs/routines/README.md`](docs/routines/README.md) before touching one** — it is the
-full contract (the routine table, budget enforcement, who may widen a budget, the
-`ready-for-human` / `ready-for-agent` rules, the one-branch-at-a-time preflight check, tiers). This
-section carries only what that contract doesn't say.
+Non-functional work — post-merge review, doc drift, test hardening, dependency upkeep — runs on a schedule as **NFR routines** ([ADR-0014](docs/decisions/0014-autonomous-nfr-routines.md), [ADR-0017](docs/decisions/0017-routine-ownership-dependabot-and-the-attention-bar.md)). Six ship today. **[`docs/routines/README.md`](docs/routines/README.md) is the full contract** — routine table, budget enforcement, who may widen a budget, `ready-for-human` / `ready-for-agent`, the one-branch-at-a-time preflight, tiers. Only these three rules are not stated in that contract:
 
-- **`npm run verify:ratchet` gates nothing — it is the `improve` routine's work queue.** Monolith
-  LOC, lint warnings and root-doc byte counts should only fall; strict-island and suite counts
-  should only rise. Budgets live in `docs/agents/ratchet.json`. Deliberately **out** of `npm run
-check`: two unattended feature automations run daily here, and a quality metric that reddens
-  their build at an hour nobody is watching teaches an agent to raise the budget instead of fixing
-  the code. `--json` for machine-readable, `--with-lint` for the ESLint pass; raise a budget only
-  with a written `reason`.
-- **As of ADR-0016, `improve` acts on coupling and lint findings instead of only reporting them** —
-  a self-merged monolith split when the fix matches an extraction pattern already used elsewhere in
-  the file (`improve.md` § 7), or a lint `warn`→`error` promotion after a two-week quiet period
-  (§ 8). ADR-0010 (no slot content) and "no new dependencies" are unchanged.
-- **There is a night ladder, and it is a dependency order.** Eight jobs run between `0 15` and
-  `45 0` UTC — **23:00 → 08:45 in the owner's GMT+8** — so the whole fleet works while the owner is
-  away and the digest lands while they are at the keyboard. `metaphor3d` opens it as the longest
-  producer; `prune` is second (it self-merges whole-file deletions as of 2026-09-14, under five
-  mechanical controls in `prune.md` § 5 rather than a human gate, and landing ahead of the producers
-  behind it means their nightly `npm run check` is the tripwire for a deletion nobody read), and it
-  must precede `digest` so the morning report names what went; the
-  other two feature automations then produce code **longest first**, because a long job at the head
-  absorbs its own overrun while one in the middle delays everything behind it; `review`
-  reads what landed, `improve` works the quality queue, `resolve` works the backlog, `digest` reports.
-  Table (with which host runs which rung, and the measured worst-case end of each) in
-  [`docs/routines/review.md`](docs/routines/review.md). `deps` (`30 4,14 * * *`) is off the ladder on
-  purpose — advisories arrive in bursts, and its night firing lands thirty minutes _before_ the window
-  opens so a Dependabot merge never moves the base commit out from under a job already running.
-  `npm run verify:agent-infra` fails if a ladder rung leaves the 15:00–01:00 UTC window, is missing from
-  the table, or if any mirror table disagrees with a playbook's `schedule:`.
-- **The fleet is split across hosts by duty, since 2026-09-01.** `resolve` and `improve` run as
-  Cursor automations; `prune`, `review`, `deps`, and `digest` are Claude Routines, so the routine that
-  _finds_ work and the one that _pays_ for it are not one account's two failures. **Claude routines are
-  scriptable; Cursor automations are not** — `claude -p '/schedule …'` creates, lists, updates and
-  fires a cron routine (it cannot delete one, cannot create or revoke API triggers/tokens, and needs
-  a claude.ai subscription login); Cursor's `agent` CLI has no `automations` command at all, so a
-  Cursor rung is a [cursor.com/automations](https://cursor.com/automations) action. Retiring
-  anything, and every Cursor-side change, stays the owner's (page bar #2).
-- **ADR-0018 (2026-09-19): the shelf self-heals what it can reach.** Every rung opens its PR ready
-  (never draft) and enables auto-merge at opening; `main` now has six **required** status checks, so
-  the auto-merge queue holds until all six are green (verified same-day, #736) and a crash at the
-  merge moment lands the merge anyway instead of stranding a draft that stops its successor at
-  preflight. The gate is on `--auto` only: `enforce_admins` is off and routines run on the owner's
-  credentials, so a _direct_ `gh pr merge` without `--auto` still bypasses all six — always use the
-  flag. `digest` carries a closed two-action list
-  (`docs/routines/digest.md` § 2c): re-fire a dark Claude-hosted rung whose trigger id is in the
-  ladder table (≤1 per rung, ≤3 per morning — every entry a firing already budgeted), and un-stick
-  a green routine-owned stranded draft so its own auto-merge lands it. Zero commits — the report
-  tier's empty-diff postflight still fails any. Cursor rungs stay the owner's page by explicit
-  choice (the finder/payer host-split beats full recoverability), so a dark Cursor rung must read
-  in the digest as a 30-second cursor.com/automations visit, never an investigation. A page-bar
-  ask arrives binary — question, recommendation, explicit silence-default (never spend, never
-  grant); an open-ended "worth confirming" is a format failure (rule 10's third corollary). And
-  prune's `test-only` class became a deletion, not an escalation: the guard mechanically admits a
-  dead module+test pair, in one commit, for `prune` alone (`prune.md` § 2 gate 5) — #686's
-  wire-or-delete ask was a line of code posing as an owner decision.
-- **One fleet per 24-hour window.** Two unregistered automations can price the same bug the same
-  night (#442 vs #446). Any automation with write access to product code needs a row in
-  `docs/routines/README.md` or `docs/automations/README.md`, and `digest` watchdog 7 reports
-  branches that match no registered `prTitlePrefix`.
+- **Eight jobs run between `0 15` and `45 0` UTC** (23:00 → 08:45 in the owner's GMT+8), in a dependency order: producers longest first so a long job at the head absorbs its own overrun, `prune` ahead of `digest` so the morning report names what went, and `review` → `improve` → `resolve` → `digest` behind them. `deps` (`30 4,14 * * *`) is off-ladder on purpose. Table + measured worst-case end of each rung: [`docs/routines/review.md`](docs/routines/review.md). `npm run verify:agent-infra` fails if a rung leaves the 15:00–01:00 UTC window, is missing from the table, or if a mirror table disagrees with a playbook's `schedule:`.
+- **`verify:ratchet` is the `improve` routine's work queue, not a gate** — root-doc byte counts, monolith LOC and lint warnings may only fall, strict-island and suite counts only rise; budgets in `docs/agents/ratchet.json`, widened only with a written `reason` (contract § no silent loosening).
+- **One fleet per 24-hour window** — any automation with write access to product code needs a row in `docs/routines/README.md` or `docs/automations/README.md`, and `digest` watchdog 7 reports branches matching no registered `prTitlePrefix`. Two unregistered automations can price the same bug the same night (#442 vs #446).
 
-Ledgers under `docs/routines/ledger/` are the durable memory across cold-start runs — read one
-before starting, append a row when finishing, including runs that changed nothing.
+Ledgers under `docs/routines/ledger/` are the durable memory across cold-start runs — read one before starting, append a row when finishing, including runs that changed nothing.
 
 ## Scheduled feature automations
 
-Slot-quality work — validation gates, prompts, benches, renderer fixes for one diagram mode, and the
-lived-in feel of the office — runs on a separate shelf:
-[`docs/automations/`](docs/automations/README.md). Same three-piece contract
-(playbook + ledger + cron trigger), same `npm run routine:guard` budget enforcement, but these
-**do** touch product code (and never write slot content — ADR-0010 still applies).
+Slot-quality work — validation gates, prompts, benches, renderer fixes for one diagram mode, the lived-in feel of the office — runs on a separate shelf: [`docs/automations/`](docs/automations/README.md). Same three-piece contract (playbook + ledger + cron trigger) and the same `npm run routine:guard` budget enforcement, but these **do** touch product code (and never write slot content — ADR-0010 still applies).
 
 | Playbook                                                     | UTC           | HKT        | What it improves                                                           |
 | ------------------------------------------------------------ | ------------- | ---------- | -------------------------------------------------------------------------- |
@@ -314,127 +108,19 @@ lived-in feel of the office — runs on a separate shelf:
 | [`canvas-graph-edit`](docs/automations/canvas-graph-edit.md) | `30 20 * * *` | 04:30      | Direct manipulation on the canvas, all 28 families — **parked**            |
 | [`god`](docs/automations/god.md)                             | `17 * * * *`  | hourly :17 | Production signals → brief (GHA; off-ladder; window `06–12` UTC; ADR-0019) |
 
-`metaphor3d` and `canvas-graph-edit` got playbooks on 2026-08-30; before that they were exactly the
-prompt-in-a-cron-blob shape ADR-0014 exists to replace, and `metaphor3d` — the most productive job
-on either shelf — had no ledger, so twelve nights of findings went straight into the root context
-files instead. Two rules those playbooks carry that generalise:
-
-- **A visual change is verified by rendering it, and the PR carries the evidence.** For
-  `metaphor3d` that is `apps/web/.claude/skills/verify/SKILL.md`, the viewports captured, and the
-  before/after numbers. It is a prose rule checked by `review`'s Spec axis the next night rather
-  than a path ban, because banning the `.jsx` scene files would be mechanically enforceable and
-  would also delete the capability.
-- **`DiagramCanvas.jsx` is out of `canvas-graph-edit`'s `allowedPaths` on purpose.** It sits on the
-  ratchet at 1864 lines; a new family extends `diagramGraphEditNodeResolve.js`, it does not grow
-  the canvas component.
-
-When you learn something durable from a feature-automation run, put it in the domain file for that
-area — see `docs/routines/README.md` rule 8; it is no longer "both root files, always".
+Two standing rules those playbooks carry: **a visual change is verified by rendering it and the PR carries the evidence**, and **`DiagramCanvas.jsx` stays out of `canvas-graph-edit`'s `allowedPaths`** (a new family extends `diagramGraphEditNodeResolve.js` instead of growing the canvas component). Both are stated in full in their playbooks.
 
 ## CopilotKit skill note
 
-- You have access to the CopilotKit skill set in the local `.agents/` folder.
-- `.agents/` is intentionally git-ignored; do not commit it.
-- If skill files appear stale or missing, run `npm run setup:skills`.
+The CopilotKit skill set lives in the git-ignored local `.agents/` folder (don't commit it); refresh with `npm run setup:skills` if it looks stale or missing.
 
 ## Environment and integration notes
 
-- Health endpoint: `GET /api/health`
+- Health endpoint: `GET /api/health` (reports `llmConfigured` and `runtimeReady`)
 - Built-in agents + collaboration: `/api/copilotkit/*` (including `session-events` SSE)
 - External agents: `POST/GET /mcp` (Streamable HTTP); set `PUBLIC_BASE_URL` and production `INVITE_TOKEN_SECRET` for invite URLs; optional `ARCHISLOP_WEB_URL` when UI and API origins differ
 - Never commit `.env` or secrets.
-- **Set-piece cast members walk to their marks and walk home.** The state machine is pure in
-  `apps/web/src/utils/officeFloorCommute.js`; `useFloorAway` merges anybody mid-trip into
-  `awayIds` so their desk stays empty until they are genuinely back, and `settledIds` decides
-  which of two surfaces draws them. Under `prefers-reduced-motion` (and in jsdom) the walk
-  settles instantly, which is the old teleport — so a green test suite proves nothing here.
-- **The glass room is entered through a threshold, and its cast is bigger than its commuters.**
-  Slice 27 walks meeting attendees to `MEETING_THRESHOLD_TILES` (a fan of eight tiles _outside_
-  the sealed room) and cuts them into their chairs on arrival — **no geometry changed**, and
-  `pathCrossesGlass` still refuses every route through the glass. The leadership tier sits in
-  its own fishbowl and can never walk, so `FloorMeeting` gates on **`walkingIds`**, not the
-  `settledIds` its siblings take: absent-from-settled means "still walking" only when the whole
-  cast commutes, and here it would delete every executive from the meeting. A mark may also
-  carry **`arriving`** to opt out of `useFloorCommute`'s first-pass seed — calling a physical
-  meeting from your desk stands you up, so the floor mounts on a room that has not started, and
-  seeding it teleports everybody into the chairs the slice exists to walk them into.
-- **The office layer never re-renders while you type.** `OfficeLayerSlot.jsx` passes the diagram
-  to `OfficeLayer` as **getters** (`getDiagramSource` / `getContentType`), deliberately. Anything
-  on the isometric floor that reflects your work — your monitor, the whiteboard, the glass-room
-  table (`utils/officeFloorBoard.js`, `hooks/useOfficeBoard.js`) — is **sampled** on an edge (a
-  completed run, standing up, a meeting opening) and must not be converted into a `diagramStore`
-  subscription: that repaints sixteen animated figures and a directed camera per keystroke. See
-  [`docs/agents/domains/office.md`](docs/agents/domains/office.md).
-- **Locale copy does not fall back.** `officeChromeCopy()` swaps whole bundles rather than
-  merging, so a key missing from `i18n/locales/office.*.js` is a feature that silently does not
-  exist in that locale. Add a parity assertion in `apps/web/test/officeLocale.test.js` for any
-  chrome-copy branch a feature depends on. `UiLocaleProvider` must sync
-  `setActiveOfficeBundle` **during render** (not only in an effect) — otherwise a language
-  switch re-renders with fresh `controls` while `officeChromeCopy()` still returns the previous
-  language until some unrelated update.
-- **The `getUiLocaleBundle` side has the opposite failure mode: it merges too well.** Overrides
-  deep-merge onto English, so a key a translator never wrote renders in English forever with no
-  error — "untranslated" is invisible to every check unless you compare _values_. Two corollaries
-  bit us: **arrays replace wholesale**, so a tour step or idle tip added to English is silently
-  absent from every locale that predates it (`entryPointers` drives the real desk tour via
-  `useEntryDeskFlow`, so en-AU shipped a five-step tour); and **a dropped `{placeholder}` is
-  silent too**, because `formatLocale` just has nothing to substitute. `uiLocale.test.js` now
-  pins placeholder parity and `entryPointers` id parity across all locales — extend it rather
-  than trusting a key-shape check.
-- **First paint is the prompt studio. The floor is opt-in.** Unset
-  `archislop:office-directory-seen` mounts `SimpleStudioSlot`. **Unleash the coworkers** opens
-  `FloorArrival` (endonyms, name badge, real **Check in**). Detail is in
-  [`docs/agents/domains/office.md`](docs/agents/domains/office.md).
-- **Speech is spoken, writing is read.** Room lines (walk-by, meeting, battle, coffee, huddle,
-  desk/floor talk, dwell, shop talk) get TTS; **emails and Slop Chat™ messages never do.** Both
-  media share `imHistory` and are told apart by `channel` — and `pushOfficeImPing` omits the
-  field for `'im'`, so **written is the unmarked default** and a reader that forgets the question
-  voices it. Ask `isSpokenLine` (`officeImThreads.js`), never an inline check: the floor and desk
-  each had their own and disagreed, so a typed IM got read aloud in somebody's voice. A fixture
-  without `channel: 'talk'` is a _written_ message — several floor suites had to gain it.
-  `officeVoiceMedium.test.jsx` pins the rule. See [`docs/agents/domains/office.md`](docs/agents/domains/office.md).
-- **Text is the fallback channel. Do not optimize bubbles; do not delete captions.** Voice leads
-  (`shouldShowSpokenText` hides the balloon whenever TTS actually speaks), so isometric § 6 rules
-  29/32 are closed — no more overlap captures. Captions stay: they are the accessibility path and
-  the TTS-failure path.
-- **The floor's proximity rules are one ladder, not two radii.** `NAME_CHIP_RANGE_TILES` (1) is
-  "they talk to you" (slice 19) and `EARSHOT_RANGE_TILES` (3) is "you overhear two other people"
-  (slice 22) — and an overheard exchange refuses to exist while you are within a tile of either
-  speaker, which is the only thing stopping one approach producing a remark **and** a two-hander
-  inside five seconds. Define any new rung as what the one inside it is not, and assert it over
-  **every standable tile** (`officeFloorShopTalk.test.jsx`), because what breaks it is a layout
-  change rather than a logic change. The cast talking to each other is licensed by the user's
-  _position_, never by a timer — see [`docs/agents/domains/office.md`](docs/agents/domains/office.md).
-- **Joining an overheard conversation is a walk, not a reply.** Slice 23's _Join in_ card fires
-  `startTalk` at a `talkTileFor` mark — the verb the person card and a double-click already use —
-  and the offer carries two seat ids and a prop kind with **none of the exchange's text**. A line,
-  a quote or an `actionPrompt` on it would make the exchange something addressed to the user,
-  which is a walk-by and belongs in the moment store (`officeFloorContracts.test.js` pins the
-  payload). The composer opens **empty**: `handleTalkGreet` is still slice 8's deliberate silence
-  and joining is not the exception that seeds an opener. The offer must **outlive** its exchange
-  (mark the roll `done`, do not clear it) and must be read off the exchange, so an untranslated
-  locale offers nothing instead of inviting you to join two people standing in silence.
-- **A verb you pressed can hold somebody in place; a place you are standing cannot.** Joining
-  gets `useFloorAway`'s hold free — `startTalk` sets `activity.talk`, which is `holdId`, so a
-  wanderer's dwell clock stops while you walk over. Slice 19's dwell wanted the same hold and
-  could not have it: its target comes from `floorState`, which is that hook's _output_, and
-  `holdId` is its _input_. Check which side of `useFloorAway` a signal starts on before recording
-  another cycle as a limitation.
-- **A test that loops over a derived set needs a companion assertion that the set is non-empty.**
-  Two probes in slice 22 came back green while examining nothing: `isStandableTile(x, y)` takes a
-  _tile_, not two numbers, so an every-tile invariant iterated an empty list; and a DOM overlap
-  scan used a class that does not exist, so "covers no heads" was vacuous. Both are the silent
-  `vi.mock` failure in a new hat — pair every sweep with a coverage claim, and get one hit out of
-  a DOM probe before believing its misses.
-- **Verifying floor art needs a browser and two specific tricks**: freeze animations at their
-  **end** (`office-floor-cover` is `both`-filled from `opacity: 0`, so seeking to 0 renders the
-  whole floor invisible), and import `components/OfficeFloor.css` in the harness (`ArchiSlop.jsx`
-  is its only importer, so `index.css` + `App.css` alone gives you an unstyled floor). **Driving
-  a floor interaction adds two more**: a walker is a zero-size positioned anchor, so Playwright
-  calls it hidden — wait with `state: 'attached'`; and click a tile through the figure's own
-  `getBoundingClientRect()`, never by scaling its `transform` against the roam element's rect,
-  which does not share its origin and lands ~430 px away. Recipe:
-  `apps/web/.claude/skills/verify/`, traps recorded in `docs/office-isometric-mode.md` § 6.
+- **The office floor's rules are not in this file.** The commute state machine, the glass-room threshold, the getters-not-subscription render contract, locale bundle merging, spoken-vs-written TTS, the proximity ladder, and the browser-verification tricks are all findings about `officeFloor/` and its scenes — one copy each in [`docs/agents/domains/office.md`](docs/agents/domains/office.md), with the floor test traps in [`docs/agents/isometric-floor-tests.md`](docs/agents/isometric-floor-tests.md).
 
 ## Agent workflow guidance
 
@@ -449,7 +135,7 @@ area — see `docs/routines/README.md` rule 8; it is no longer "both root files,
 ## Documentation upkeep
 
 - **Keep human docs current** when you ship architectural changes, new agents/skills, new modes, new routes, or renamed top-level concepts. Smaller bug fixes and internal refactors usually don't need doc touches.
-- **Agent tip sync:** if you add a durable don't-touch, command, or safety tip while coding, mirror it in [`CLAUDE.md`](CLAUDE.md) (and vice versa). Domain paragraphs (validation ladders, slot model) stay in `CLAUDE.md` only — link from here if needed.
+- **Where a new durable tip goes** (rule 8 of [`docs/routines/README.md`](docs/routines/README.md), restated here — that file is the contract). A finding about **one domain** goes in that domain's file under `docs/agents/domains/`, **once**, as a Short-form line naming the file it lives in — never mirrored back into the root files, which every session loads. A finding about the **whole repo** (a don't-touch path, a verify loop, a safety rule) goes in **both** [`AGENTS.md`](AGENTS.md) and [`CLAUDE.md`](CLAUDE.md): Cursor starts from the first, Claude Code from the second, and a tip in only one leaves the other blind. Do not re-import domain depth that was deliberately scoped out, and do not mirror a repo-wide tip into a domain file.
 - **Hub:** [`README.md`](README.md) — short intro, quick start bullets, doc index (no heavy Mermaid blocks; GitHub preview hangs on large diagrams).
 - **Guides:** [`docs/guide/`](docs/guide/) — detailed prose and diagrams on focused pages (agents, validation, MCP Apps table, endpoints, config). Update the relevant guide file; add a README index row if you add a new guide.
 - Write for readers, not parsers. Prefer prose and focused Mermaid diagrams over walls of config.
@@ -474,40 +160,20 @@ area — see `docs/routines/README.md` rule 8; it is no longer "both root files,
 - Keep docs and commands aligned with actual `package.json` scripts.
 - New baked audio assets go under `apps/web/src/assets/audio/` via `scripts/generate-office-audio.sh`, not by hand-editing `.mp3` files.
 
-## Office layer gotchas
+## Cursor Cloud: setup and AI backends
 
-**Moved.** The ~55 findings for this domain now live in one file, read by every agent:
+- **Environment file**: `.env` must exist (copy from `.env.example` if missing). Run `npm run setup` for `npm install`, skills refresh, and `gcloud` when missing; ensure `.env` is present before starting services.
+- **Starting dev servers**: `npm run dev` launches the Express server (port from `PORT` in `.env`, default 4000) and Vite (5173) via `concurrently`. Verify with `curl http://localhost:$PORT/api/health`. No database or Docker required — diagram and collaboration state are in-memory per server process; optional `REDIS_URL` shares pairing codes across Cloud Run instances (slots are not Redis-backed).
+- **AI features require a configured LLM backend** (typically `OPENROUTER_API_KEY` locally, Vertex on GCP). If none resolves, `llmConfigured` is false and intent/transform/analyze/stream routes return 503; the app still renders diagrams but generation will not work. `llmConfigured` is true when any backend resolves — DeepSeek, OpenRouter, and/or Vertex per `LLM_PROVIDER` (`resolveLlmBackend` in `apps/server/src/agents/llmProvider.js`); `auto` prefers **DeepSeek** for Brain when `DEEPSEEK_API_KEY` is set, with Vertex as the Cloud Run fallback. Full precedence table: [`docs/llm-config.md`](docs/llm-config.md).
+- **Tests**: `npm test` runs all workspaces sequentially (shared → server → web); server uses Node's test runner, web uses Vitest. All tests pass without any API key. The authoring traps (a sweep with no companion non-empty assertion; `rerender(...)` and `advanceTimersByTimeAsync(...)` sharing one `act` block) are pinned in [`docs/routines/review.md`](docs/routines/review.md) § trap checklist; a `vi.mock` specifier that resolves nowhere fails silently — [`docs/agents/sensors.md`](docs/agents/sensors.md) § the `vi.mock` path check.
+- **Lint / boundaries / `vi.mock` path resolution**: [`docs/agents/sensors.md`](docs/agents/sensors.md) — the canonical fix for each rule is in the tool output itself.
+- **GCP access (`gcloud`)**: `npm run setup:gcloud` installs the SDK to `~/google-cloud-sdk` when absent, and runs `gcloud auth activate-service-account` if `GOOGLE_APPLICATION_CREDENTIALS` or `GCP_MERMAID_GEN` points at a service-account JSON file; it then sets project `mermaidgen` and region `us-central1` when that project is readable. Deployment and investigation reference: [`docs/deploy/gcp.md`](docs/deploy/gcp.md).
+- **Cursor parity**: `.cursor/rules/sensors.mdc` is loaded in every Cursor session and points at the same sensor stack. The vladikk/modularity skill is mirrored at `.cursor/skills/modularity/` so Cursor agents can apply the Balanced Coupling Model without the Claude Code plugin; refresh with `npm run sync:modularity`. Semantic review: [`docs/agents/modularity.md`](docs/agents/modularity.md).
 
-**[`docs/agents/domains/office.md`](docs/agents/domains/office.md)**
+## Architecture docs (read before changing wire contracts)
 
-Cursor auto-loads it through the glob-scoped `.cursor/rules/office.mdc`; Claude Code through nested
-`CLAUDE.md` files in `apps/web/src/components/officeFloor/` and `apps/web/src/state/`; anything
-else reads it from the domain index below.
+The full index is [`docs/guide/README.md`](docs/guide/README.md); the four architecture pages (generative-ui, external-agents, AG-UI, A2UI), [`docs/office-continuity.md`](docs/office-continuity.md) and [`docs/canvas-graph-edit.md`](docs/canvas-graph-edit.md) are listed there. The one an agent must not skip: [`docs/agent-blast-radius.md`](docs/agent-blast-radius.md) — the impact map for if you change X, also change Y.
 
-The two rules everything else follows from:
+## Documentation map
 
-- **Ambient vs reactive** (`docs/office-parody.md` § 11). A timer interrupted you → canned-heavy.
-  You started it or answered it → lean LLM, because a canned reply to a sentence you typed is the
-  clearest possible tell that nobody is home. The appetite table is `officeCadence.js`.
-- **Record, never trigger** (ADR-0010 consequence #4). The office log, working memory and the
-  errand all _record_. The moment one of them schedules or fires something, it is
-  auto-fix-on-idle in a new hat.
-
-## Cursor Cloud specific instructions
-
-- **Environment file**: `.env` must exist (copy from `.env.example` if missing). Run `npm run setup` for `npm install`, CopilotKit skills refresh, and `gcloud` install when missing (`scripts/setup-gcloud.sh`); ensure `.env` is present before starting services.
-- **Starting dev servers**: `npm run dev` launches both the Express server (on the port defined by `PORT` in `.env`, default 4000) and Vite dev server (port 5173) via `concurrently`. Use `curl http://localhost:$PORT/api/health` to verify the server is up. The health response includes `llmConfigured` (true when any LLM backend resolves: DeepSeek key, OpenRouter key, and/or Vertex project + region per `LLM_PROVIDER`; see `resolveLlmBackend` in `apps/server/src/agents/llmProvider.js`) and `runtimeReady`. Local/Cloud Run `auto` prefers **DeepSeek** for Brain (Flash/Pro) when `DEEPSEEK_API_KEY` is set; Vertex (when configured) serves office/advisor as flash-lite. Without DeepSeek, Cloud Run falls back to **Vertex**.
-- **No database or Docker required** for local dev: diagram and collaboration state are in-memory per server process. Optional **`REDIS_URL`** shares pairing codes across Cloud Run instances (see `.env.example`); diagram slots are not Redis-backed yet.
-- **Tests**: `npm test` runs all workspaces sequentially (shared → server → web). Server tests use Node's built-in test runner; web tests use Vitest. All tests should pass without any API key (300+ cases across workspaces).
-- **A `vi.mock` path that resolves nowhere fails silently**: vitest does not raise, the real module runs, and the suite passes for the wrong reason. `apps/web/test/viMockPathsResolve.test.js` is the sensor and prints the offending `file:line -> specifier`. **Check what the mock was doing before repairing the path** — one that has never executed is not load-bearing, so deleting it is a zero-behaviour-change edit while making it live is a real change (in `useOfficeRunReactions.test.js` the tests had come to depend on the unmocked modules). A `.js` specifier pointing at a `.ts` file is **not** an instance of this; that is the ordinary TypeScript convention Vite resolves, so a checker must map `.js` → `.ts`/`.tsx`. See [`docs/agents/sensors.md`](docs/agents/sensors.md) § How to read the `vi.mock` path check.
-- **In a hook test, `rerender(...)` and `advanceTimersByTimeAsync(...)` belong in two separate `act` blocks.** The effect that schedules a timer flushes when the act scope closes, so advancing the clock in the same block advances it _before_ the timer exists and the callback never fires (measured: one block → `fetch` on zero calls, two blocks → exactly one). A test written the one-block way passes while exercising nothing, which is why "does not throw" is a dangerous shape for an async assertion.
-- **Lint**: All three workspaces lint via the shared config in `packages/eslint-config/` (`npm run lint` from root, or `npm run lint -w <workspace>`). The custom formatter appends per-rule "Agent guidance" with the canonical fix and suppression syntax — read it before suppressing or raising a threshold. ADR-0005 monolith files are pre-suppressed via `packages/eslint-config/legacy-monoliths.js`. See [`docs/agents/sensors.md`](docs/agents/sensors.md) and ADR-0007.
-- **Cursor parity**: `.cursor/rules/sensors.mdc` is loaded in every Cursor session and points at the same sensor stack as CLAUDE.md. The vladikk/modularity skill is mirrored at `.cursor/skills/modularity/` so Cursor agents can apply the Balanced Coupling Model without the Claude Code plugin. Refresh with `npm run sync:modularity`.
-- **Build**: `npm run build` builds shared → server → web. The web build produces a Vite bundle with a chunk-size warning that can be ignored.
-- **AI features require a configured LLM backend** (typically `OPENROUTER_API_KEY` for local dev, or Vertex on GCP). If none resolves, `llmConfigured` is false and intent/transform/analyze/stream routes return 503. The app still loads and renders diagrams, but AI generation will not work.
-- **GCP access (`gcloud`)**: `npm run setup` / `npm run setup:gcloud` installs the SDK to `~/google-cloud-sdk` when absent. If `GOOGLE_APPLICATION_CREDENTIALS` or `GCP_MERMAID_GEN` points at a service-account JSON file, the script runs `gcloud auth activate-service-account`; it then sets project `mermaidgen` and region `us-central1` when that project is readable. Once authenticated, useful inspection commands include:
-  - `gcloud run services list` — list Cloud Run services (`mermaid-gen-main`)
-  - `gcloud run services describe mermaid-gen-main` — inspect the main service
-  - `gcloud logging read 'resource.type="cloud_run_revision"' --limit=20 --freshness=1h` — recent logs
-  - `curl -sS "https://mermaid-gen-main-464241135431.us-central1.run.app/api/health"` — production health check
-  - See [`docs/deploy/gcp.md`](docs/deploy/gcp.md) for full deployment and investigation reference.
+Humans: [`README.md`](README.md) → [`docs/guide/README.md`](docs/guide/README.md). Coding agents: [`docs/guide/coding-agents.md`](docs/guide/coding-agents.md) → [`GLOSSARY.md`](GLOSSARY.md) → [`STRUCTURE.md`](STRUCTURE.md) → [`docs/recipes/`](docs/recipes/). Sensors: [`docs/agents/sensors.md`](docs/agents/sensors.md) — the canonical fix for each rule lives in the tool output.
