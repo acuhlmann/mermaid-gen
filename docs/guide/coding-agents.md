@@ -65,7 +65,7 @@ Edit [`.cursor/skills/`](../../.cursor/skills/) only. [`.claude/skills/mermaid`]
 
 - [`AGENTS.md`](../../AGENTS.md) — operator manual (commands, CLIs, don't-touch, Cursor Cloud)
 - [`CLAUDE.md`](../../CLAUDE.md) — domain quick-reference (slots, validation ladders, wire habits)
-- Keep operational tips mirrored in both files; domain depth stays in `CLAUDE.md` with a pointer from `AGENTS.md`
+- Where a durable finding goes: **one domain** → its file under [`docs/agents/domains/`](../agents/domains/), once; **whole repo** → both [`AGENTS.md`](../../AGENTS.md) and [`CLAUDE.md`](../../CLAUDE.md). Rule 8 of [`docs/routines/README.md`](../routines/README.md) is the contract. Both root files load into every session, so domain depth mirrored there is paid for by sessions that never touch it
 - [`docs/agents/testing.md`](../agents/testing.md) — diff-scoped tests, helpers, slow suites
 - [`docs/agents/sensors.md`](../agents/sensors.md) — lint, dep-cruiser, and formatter guidance
 - [`docs/agents/balanced-coupling-priorities.md`](../agents/balanced-coupling-priorities.md) — ranked modularity focus areas (Balanced Coupling model)
