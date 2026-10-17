@@ -4,7 +4,7 @@
   "metrics": {
     "monolithLoc": {
       "apps/web/src/ArchiSlop.jsx": {
-        "budget": 1036,
+        "budget": 1031,
         "initial": 1036
       },
       "apps/web/src/components/InsightsPane.jsx": {
