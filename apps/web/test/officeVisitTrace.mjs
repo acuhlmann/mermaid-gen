@@ -299,6 +299,10 @@ function installInstrument(config) {
     notes: [],
     samples: [],
     errors: [],
+    /* Prop (and other) cards the visit opened — blurbs live on `.office-floor-card-blurb`,
+       which `harvest()` deliberately does not select, so they belong here rather than in
+       `speech`. */
+    read: [],
     /* The model's own words, read off the responses the room is about to
        render. See `recordDelivered` below for why this exists. */
     delivered: []
@@ -458,7 +462,7 @@ function installInstrument(config) {
      * is somebody whose coffee run you ended.
      */
     ['office-floor-wanderer', 'interrupt'],
-    ['office-floor-prop-card', 'prop'],
+    /* Prop cards are read surfaces, not speech — see `readPropCardNow` / `state.read`. */
     ['office-floor-peek-card', 'peek'],
     ['office-floor-talk-card', 'talkCard'],
     ['office-floor-errand-card', 'errand'],
@@ -623,9 +627,23 @@ function installInstrument(config) {
     return out;
   }
 
+  /** What the visible prop card is showing — not speech, and not in `harvest()`. */
+  function readPropCardNow() {
+    const card = document.querySelector('[data-testid="office-floor-prop-card"]');
+    if (!card) return null;
+    const blurb = (card.querySelector('.office-floor-card-blurb')?.textContent ?? '').trim();
+    if (!blurb) return null;
+    const title = (card.querySelector('.office-floor-card-title')?.textContent ?? '').trim();
+    return { surface: 'office-floor-prop-card', title: title || null, blurb: blurb.slice(0, 400) };
+  }
+
   window.__visit = {
     state,
     speechSurfacesNow,
+    readPropCardNow,
+    recordRead(entry) {
+      state.read.push({ atMs: elapsed(), ...entry });
+    },
     note: (kind, payload) => {
       state.notes.push({ atMs: elapsed(), kind, payload: payload ?? null });
     },
@@ -851,7 +869,16 @@ async function clickProp(page, label) {
   }, label.source);
   await page.waitForTimeout(3_000);
   if (!found) throw new Error(`no prop matching ${label}`);
-  return found;
+  const read = await page.evaluate(() => window.__visit.readPropCardNow());
+  if (read) {
+    await page.evaluate(
+      ({ propLabel, read: snapshot }) =>
+        window.__visit.recordRead({ kind: 'prop', propLabel, ...snapshot }),
+      { propLabel: found, read }
+    );
+  }
+  const preview = read?.blurb ? read.blurb.replace(/\s+/g, ' ').slice(0, 96) : 'no card text';
+  return `${found}; card: ${preview}`;
 }
 
 /** @param {import('playwright-core').Page} page */
@@ -925,6 +952,8 @@ async function main() {
         process.execPath,
         [
           path.join(REPO_ROOT, 'node_modules/vite/bin/vite.js'),
+          '--host',
+          '127.0.0.1',
           '--port',
           String(args.webPort),
           '--strictPort'
@@ -1016,6 +1045,7 @@ async function main() {
 
     const collected = await page.evaluate(() => ({
       speech: window.__visit.state.speech,
+      read: window.__visit.state.read,
       fetches: window.__visit.state.fetches,
       notes: window.__visit.state.notes,
       delivered: window.__visit.state.delivered,
@@ -1146,12 +1176,13 @@ function buildTrace({ args, startedAt, t0, steps, before, after, collected }) {
     harness: 'officeVisitTrace',
     /*
      * 2: `speech.bySource` is attributed by text against `speech.delivered`.
-     * Version 1 attributed it by an 8 s clock window, which over-credits any
+     * 3: `read.cards` records prop-card blurbs the visit opened (not speech).
+     * Version 1 attributed `bySource` by an 8 s clock window, which over-credits any
      * bank line drawn behind a mid-visit model call — so a v1 `bySource.model`
      * from a run whose call was not the last thing to happen has to be re-read
      * against `modelTurns`, and this field is how a reader can tell which.
      */
-    version: 2,
+    version: 3,
     startedAt,
     durationMs: Date.now() - t0,
     mode: {
@@ -1194,6 +1225,12 @@ function buildTrace({ args, startedAt, t0, steps, before, after, collected }) {
       sourceRule:
         'derived: a line whose text matches text a 2xx /api/office response delivered is the ' +
         "model's; `delivered` is the raw evidence and `modelTurns` is the count to trust"
+    },
+    read: {
+      cards: collected.read ?? [],
+      rule:
+        'prop cards are read surfaces: blurbs live on `.office-floor-card-blurb` and are ' +
+        'never harvested into `speech`'
     },
     movement: {
       firstMover: figures.find((figure) => figure.firstMoveAtMs !== null)?.id ?? null,

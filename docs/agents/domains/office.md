@@ -398,6 +398,10 @@ https://api.deepseek.com/` — 401 is reachable, 000 is blocked); never route ar
   **`chromium.launch()` with no `executablePath` fails here**: the preinstalled browsers are
   revision 1194, a fresh `playwright-core` looks for its own, and the error names a
   `chromium_headless_shell-<n>` path nobody chose. Resolve the binary off `PLAYWRIGHT_BROWSERS_PATH`.
+  **Prop cards are read surfaces, not speech.** `FloorProps` puts copy on
+  `.office-floor-card-blurb` inside `[data-testid="office-floor-prop-card"]`, and the visit
+  harvester's selector deliberately excludes that class — so printer/whiteboard copy belongs in
+  `read.cards` on the trace (version 3), never in `speech.byChannel`.
 - **`channel: 'talk'` is what makes speech physical — every spoken path must set it.**
   `isSpokenLine` is exactly `msg.channel === 'talk'`, `latestTalkLine` returns nothing else, and
   both pushers (`pushOfficeImPing`, `pushOfficeImReply`) drop the field entirely when the channel
