@@ -22,6 +22,8 @@ allowedPaths:
   - apps/server/src/utils/**
   - apps/*/tsconfig.strict.json
   - apps/web/src/utils/**
+  - apps/web/src/ArchiSlop.jsx
+  - apps/web/src/features/session/**
   - apps/web/src/components/**
   - apps/web/src/state/**
   - apps/server/src/agents/**

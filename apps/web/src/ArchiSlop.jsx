@@ -14,6 +14,7 @@ import { useCritiqueActionableUi } from './features/insights/useCritiqueActionab
 import { useDiagramManualSync } from './features/canvas/useDiagramManualSync.js';
 import { useRadialActionHandler } from './features/prompt/useRadialActionHandler.js';
 import { useClearDiagram } from './features/session/useClearDiagram.js';
+import { useOfficeCollaborationHandlers } from './features/session/useOfficeCollaborationHandlers.js';
 import { useInsightsAutoClose } from './features/insights/useInsightsAutoClose.js';
 import { useAppStatus } from './features/shell/useAppStatus.js';
 import { AppWorkspaceSlot } from './features/shell/AppWorkspaceSlot.jsx';
@@ -762,6 +763,12 @@ export function ArchiSlop() {
     gamification
   });
 
+  const { onHuddle, onPair, onCallMeeting, onTalk } = useOfficeCollaborationHandlers({
+    setHuddleSignal,
+    setCallMeetingSignal,
+    setTalkSignal
+  });
+
   const insightsSlot = useThinkingPaneSlot({
     insightsMounted,
     insightsClosing,
@@ -967,24 +974,10 @@ export function ArchiSlop() {
           handleDeskPromptSubmit={handleDeskPromptSubmit}
           runTransform={runTransform}
           russStreak={russStreak}
-          onHuddle={() =>
-            setHuddleSignal((prev) => ({
-              seq: (prev?.seq ?? 0) + 1,
-              mode: 'mob',
-              colleagueId: null
-            }))
-          }
-          onPair={(colleagueId) =>
-            setHuddleSignal((prev) => ({
-              seq: (prev?.seq ?? 0) + 1,
-              mode: 'pair',
-              colleagueId
-            }))
-          }
-          onCallMeeting={() => setCallMeetingSignal((n) => n + 1)}
-          onTalk={(colleagueId, text) =>
-            setTalkSignal((prev) => ({ seq: (prev?.seq ?? 0) + 1, colleagueId, text }))
-          }
+          onHuddle={onHuddle}
+          onPair={onPair}
+          onCallMeeting={onCallMeeting}
+          onTalk={onTalk}
           latestCritique={latestCritique}
           canFixFromCritique={canFixFromCritique}
           handleFixFromCritique={handleFixFromCritique}

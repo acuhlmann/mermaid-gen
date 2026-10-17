@@ -51,7 +51,7 @@ they need access to outer-closure state.
   Mermaid and Infographic keep bespoke loops (stable-agent fallback) until they
   converge on the same helper.
 
-### `App.jsx` / `ArchiSlop.jsx` (4 292 → 12 LOC entry + ~1 036 LOC shell, -~3 250 LOC total)
+### `App.jsx` / `ArchiSlop.jsx` (4 292 → 12 LOC entry + ~1 031 LOC shell, -~3 250 LOC total)
 
 - ✅ Module-scope helpers extracted to `apps/web/src/utils/app*.js`
   (`appConfetti`, `appToolLabels`, `appStreamDebug`, `appInsightHelpers`,
