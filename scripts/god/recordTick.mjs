@@ -12,7 +12,13 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { parseArgs } from 'node:util';
 import { fileURLToPath } from 'node:url';
-import { GodRunRecordSchema } from '@archislop/shared/godSchemas.js';
+import {
+  GodBriefSchema,
+  GodMonthRollupSchema,
+  GodRollupRowSchema,
+  GodRunRecordSchema,
+  GodTickReasonSchema
+} from '@archislop/shared/godSchemas.js';
 import { lastNarrationText, parseObserveNarration } from './actDecision.mjs';
 import { branchForRun, filterPatchFiles } from './proposePatch.mjs';
 
@@ -21,6 +27,76 @@ const SKIP_VERDICTS = new Set(['noop', 'blocked', 'skipped']);
 /** Stop reasons that mean the harness started and then halted, rather than erroring. */
 const STOPPED = new Set(['budget', 'balance', 'timeout', 'cancelled']);
 
+/**
+ * The run record is fed back to the harness as history (`promptSafeHistory`), so the reason it
+ * carries must be one of the two vocabularies the gate and `decideAct` can actually emit — never the
+ * loose string a step happened to print. An unknown reason is dropped rather than thrown: a new
+ * reason in the workflow must cost a tick its reason label, not cost the tick its whole record.
+ *
+ * @param {string | undefined | null} reason
+ * @returns {import('@archislop/shared/godSchemas.js').GodTickReason | undefined}
+ */
+export function tickReason(reason) {
+  const parsed = GodTickReasonSchema.safeParse(reason);
+  return parsed.success ? parsed.data : undefined;
+}
+
+/**
+ * Counts and one boolean, lifted out of the brief — never the brief itself. This is what lets a
+ * later reader ask "how close was that tick to acting?" after the 30-day artifact is gone; the
+ * answer today lives only in a step summary that expires.
+ *
+ * @param {string | undefined} file
+ * @returns {import('@archislop/shared/godSchemas.js').GodBriefDigest | undefined}
+ */
+export function digestFromBriefFile(file) {
+  if (!file || !fs.existsSync(file)) return undefined;
+  try {
+    const brief = GodBriefSchema.parse(JSON.parse(fs.readFileSync(file, 'utf8')));
+    return {
+      agentTurns: brief.volume.agentTurns,
+      uxSignals: brief.volume.uxSignals,
+      sessions: brief.volume.sessions,
+      findings: brief.findings.length,
+      sufficient: brief.sufficient === true
+    };
+  } catch {
+    // A brief that will not parse is the brief job's problem, already recorded by its own step.
+    return undefined;
+  }
+}
+
+/**
+ * The rollup row for one tick. Validated, because this file is the owner's status view of the rung
+ * and nothing else reads it — an unvalidated hand-assembled object is how the month rollup could be
+ * rewritten to a single row for 52 ticks with no sensor noticing.
+ *
+ * A row that will not validate degrades to the essentials instead of throwing: losing the tick from
+ * the index is worse than losing its label, and the run record under `runs/` is the durable copy.
+ *
+ * @param {import('@archislop/shared/godSchemas.js').GodRunRecord} record
+ * @param {string | undefined} gateReason
+ */
+export function rollupRow(record, gateReason) {
+  const base = {
+    runId: record.runId,
+    startedAt: record.startedAt,
+    endedAt: record.endedAt,
+    verdict: record.verdict,
+    tier: record.tier,
+    usd: record.usage.usd
+  };
+  /** @type {Record<string, unknown>} */
+  const row = { ...base };
+  const reason = typeof gateReason === 'string' ? gateReason.replace(/\s+/g, ' ').trim() : '';
+  if (reason) row.gateReason = reason.slice(0, 64);
+  if (record.digest) row.digest = record.digest;
+  if (record.narration) row.narration = record.narration;
+  const parsed = GodRollupRowSchema.safeParse(row);
+  // Only the essentials are safe to re-emit blind; they come from an already-validated record.
+  return parsed.success ? parsed.data : base;
+}
+
 function parseCli(argv) {
   const { values } = parseArgs({
     args: argv,
@@ -28,6 +104,7 @@ function parseCli(argv) {
       'out-dir': { type: 'string', default: '.' },
       'run-id': { type: 'string' },
       reason: { type: 'string', default: 'disabled' },
+      brief: { type: 'string' },
       tier: { type: 'string', default: 'observe' },
       focus: { type: 'string', default: 'any' },
       go: { type: 'string', default: 'false' },
@@ -55,6 +132,8 @@ export function buildTickRecord(values) {
   const iso = now.toISOString();
   const requested = values.verdict ? String(values.verdict).trim() : '';
   const verdict = SKIP_VERDICTS.has(requested) ? requested : 'noop';
+  const reason = tickReason(values.reason);
+  const digest = values.digest ?? digestFromBriefFile(values.brief);
   return GodRunRecordSchema.parse({
     v: 1,
     runId: String(values['run-id']),
@@ -73,8 +152,29 @@ export function buildTickRecord(values) {
     usage: { calls: 0, inputTokens: 0, outputTokens: 0, cacheHitTokens: 0, usd: 0 },
     minutes: 0,
     balanceAfter: null,
+    ...(reason ? { reason } : {}),
+    ...(digest ? { digest } : {}),
     harness: { name: 'mock', version: '0.0.0' }
   });
+}
+
+/**
+ * The one thing the run record could not say until now: an act that billed, completed and named
+ * nothing looked exactly like an act that correctly said `waiting`.
+ *
+ * Only a run that reached a final text owes the observe contract an answer, so a failed or stopped
+ * harness records nothing here rather than `dropped` — counting a crash as silence would put money
+ * in the wrong column.
+ *
+ * @param {{ findingId?: string | null, hypothesis?: string | null, waiting?: boolean } | null} narration
+ * @param {unknown} stopReason
+ * @returns {'finding' | 'waiting' | 'dropped' | undefined}
+ */
+export function narrationOutcome(narration, stopReason) {
+  if (stopReason !== 'completed') return undefined;
+  if (narration?.findingId) return 'finding';
+  if (narration?.waiting) return 'waiting';
+  return 'dropped';
 }
 
 /**
@@ -88,13 +188,16 @@ export function verdictForStop(stopReason) {
 }
 
 /**
- * @param {{ report: Record<string, any>, narration?: string | null, trigger?: string }} input
+ * @param {{ report: Record<string, any>, narration?: string | null, trigger?: string, reason?: string | null, digest?: import('@archislop/shared/godSchemas.js').GodBriefDigest }} input
  */
 export function buildActRecord(input) {
   const report = input.report ?? {};
   const narration = parseObserveNarration(input.narration);
   const usage = report.usage ?? {};
   const harness = report.harness ?? {};
+  const reason = tickReason(input.reason);
+  const digest = input.digest ?? digestFromBriefFile(input.brief);
+  const narrated = narrationOutcome(narration, report.stopReason);
   return GodRunRecordSchema.parse({
     v: 1,
     runId: String(report.runId),
@@ -119,6 +222,9 @@ export function buildActRecord(input) {
     },
     minutes: Number(report.minutes) || 0,
     balanceAfter: null,
+    ...(reason ? { reason } : {}),
+    ...(digest ? { digest } : {}),
+    ...(narrated ? { narration: narrated } : {}),
     harness: {
       name: harness.name,
       version: String(harness.version ?? '')
@@ -163,7 +269,9 @@ export function main(argv = process.argv.slice(2)) {
       buildActRecord({
         report,
         narration: lastNarrationText(events),
-        trigger
+        trigger,
+        reason: values.reason,
+        digest: digestFromBriefFile(values.brief)
       }),
       {
         pr: values.pr || null,
@@ -195,16 +303,9 @@ export function main(argv = process.argv.slice(2)) {
     }
   }
   if (!Array.isArray(idx.runs)) idx.runs = [];
-  idx.runs.push({
-    runId: record.runId,
-    startedAt: record.startedAt,
-    endedAt: record.endedAt,
-    verdict: record.verdict,
-    tier: record.tier,
-    usd: record.usage.usd,
-    gateReason: values.reason
-  });
-  fs.writeFileSync(idxPath, `${JSON.stringify(idx, null, 2)}\n`);
+  idx.runs.push(rollupRow(record, values.reason));
+  const rolled = GodMonthRollupSchema.safeParse(idx);
+  fs.writeFileSync(idxPath, `${JSON.stringify(rolled.success ? rolled.data : idx, null, 2)}\n`);
   return { record, runPath, idxPath };
 }
 

@@ -622,12 +622,26 @@ jobs:
           name: god-act-${{ github.run_id }}
           path: ${{ runner.temp }}/god-act
 
+      # The brief job's RUNNER_TEMP is its own; only artifacts cross jobs. A tick that never reached
+      # the brief job has no digest to record, so this must not be able to fail the record.
+      - name: Download the brief for the digest
+        if: needs.brief.result == 'success'
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: god-brief-${{ github.run_id }}
+          path: ${{ runner.temp }}/god-brief
+
       - name: Build tick record
         run: |
           set -euo pipefail
           TRIGGER=schedule
           if [ "${{ github.event_name }}" != "schedule" ]; then TRIGGER=manual; fi
           mkdir -p "$RUNNER_TEMP/god-tick"
+          DIGEST=()
+          if [ -f "$RUNNER_TEMP/god-brief/brief.json" ]; then
+            DIGEST+=(--brief "$RUNNER_TEMP/god-brief/brief.json")
+          fi
           if [ -f "$RUNNER_TEMP/god-act/report.json" ]; then
             EXTRA=()
             PR="${{ needs.publish.outputs.pr }}"
@@ -646,6 +660,7 @@ jobs:
               --events "$RUNNER_TEMP/god-act/events.ndjson" \
               --reason "${{ needs.gate.outputs.reason }}" \
               --trigger "$TRIGGER" \
+              "${DIGEST[@]}" \
               "${EXTRA[@]}"
           else
             VERDICT="${{ needs.brief.outputs.skip_verdict }}"
@@ -659,7 +674,8 @@ jobs:
               --reason "${{ needs.brief.outputs.skip_reason || needs.gate.outputs.reason }}" \
               --tier "${{ needs.gate.outputs.tier }}" \
               --focus "${{ needs.gate.outputs.focus }}" \
-              --trigger "$TRIGGER"
+              --trigger "$TRIGGER" \
+              "${DIGEST[@]}"
           fi
 
       - name: Checkout god-log data branch
@@ -673,28 +689,12 @@ jobs:
         working-directory: god-log
         run: |
           set -euo pipefail
-          mkdir -p runs index
-          cp -R "$RUNNER_TEMP/god-tick/runs/." runs/
-          cp -R "$RUNNER_TEMP/god-tick/index/." index/
-          # Merge monthly index if both sides exist (cp overwrites; re-merge via node).
-          node <<'NODE'
-          const fs = require('fs');
-          const path = require('path');
-          const tickIdxDir = process.env.RUNNER_TEMP + '/god-tick/index';
-          for (const name of fs.readdirSync(tickIdxDir)) {
-            const incoming = JSON.parse(fs.readFileSync(path.join(tickIdxDir, name), 'utf8'));
-            const dest = path.join('index', name);
-            let base = { v: 1, month: incoming.month, runs: [] };
-            if (fs.existsSync(dest)) {
-              try { base = JSON.parse(fs.readFileSync(dest, 'utf8')); } catch {}
-            }
-            const seen = new Set((base.runs || []).map((r) => r.runId));
-            for (const row of incoming.runs || []) {
-              if (!seen.has(row.runId)) base.runs.push(row);
-            }
-            fs.writeFileSync(dest, JSON.stringify(base, null, 2) + '\n');
-          }
-          NODE
+          # Folding the tick in is a tested script, not a heredoc: runs/ is copied per runId and the
+          # month rollup is unioned. `cp`-ing the index before merging it overwrote the branch file
+          # with this tick's single row, so cadence and the monthly cap read a history of one run.
+          node "$GITHUB_WORKSPACE/scripts/god/godLog.mjs" \
+            --root . \
+            --merge-tick-dir "$RUNNER_TEMP/god-tick"
           git config user.name "archislop-god"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add runs index

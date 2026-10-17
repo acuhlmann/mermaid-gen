@@ -84,7 +84,7 @@ flowchart TB
     Metrics["agent_turn + ux_signal → stdout"]
     SigClient -->|"content-free batch"| SigRoute
     SigRoute --> Metrics
-    GodApi["/api/god/* — planned"]
+    GodApi["GET /api/god/status — read-only"]
   end
 
   subgraph gha ["GitHub Actions — god workflow"]
@@ -180,16 +180,37 @@ and money: [`godBudget.ts`](../../packages/shared/src/godBudget.ts).
 
 ## Memory and visibility
 
-| Store                            | What it holds                               | Who writes                       |
-| -------------------------------- | ------------------------------------------- | -------------------------------- |
-| Cloud Logging                    | Raw `ux_signal` / `agent_turn` lines        | Production server                |
-| `god-log` git branch             | One JSON run record per God execution       | Gate/brief jobs (hourly noop)    |
-| `docs/automations/ledger/god.md` | Human/agent-readable run log rows           | God PRs                          |
-| GitHub repo variables            | `GOD_ENABLED`, `GOD_AUTONOMY`, window, caps | Owner via Settings API (planned) |
+| Store                            | What it holds                                                         | Who writes                       |
+| -------------------------------- | --------------------------------------------------------------------- | -------------------------------- |
+| Cloud Logging                    | Raw `ux_signal` / `agent_turn` lines                                  | Production server                |
+| `god-log` git branch             | One run record per execution (`runs/`), each with `reason` + `digest` | Gate/brief jobs (hourly noop)    |
+| `god-log` `index/<month>.json`   | Gate reason per tick — an audit rollup, not a ledger                  | The record job                   |
+| `docs/automations/ledger/god.md` | Human/agent-readable run log rows                                     | God PRs                          |
+| GitHub repo variables            | `GOD_ENABLED`, `GOD_AUTONOMY`, window, caps                           | Owner via Settings API (planned) |
 
-Live run streaming (`events.ndjson` → owner **Now** tab) uses HMAC-signed POSTs to
-`POST /api/god/live` ([`ingestClient.mjs`](../../scripts/god/ingestClient.mjs)); delivery is
-best-effort — the durable artifact is the run report, not the websocket-like view.
+Cadence (`GOD_EVERY_HOURS`) and the monthly cap (`GOD_MAX_USD_PER_MONTH`) are summed from
+`runs/*.json`, the durable store — never from the month rollup. The rollup is still what the owner view
+reads, though, because `runs/` cannot be listed over raw HTTPS: so the fold **stamps the true month
+totals** (`ticks`, `acts`, `monthSpendUsd`, `lastActAt`) onto the rollup from the records, and
+`GET /api/god/status` reports `numbersFrom` to say which it used. Without that stamp a rollup whose
+rows were truncated would report a month 54x too small — October 2026, where one surviving row sat
+beside 54 records and $0.018813 of real spend. Each record carries `reason` (an enum:
+the gate's vocabulary plus `decideAct`'s), `digest` (the brief's five counts and `sufficient`) and
+`narration` (what the final text did with the observe contract: `finding`, `waiting` or `dropped`), so
+the branch alone answers "why did that tick do nothing, and how close was it to doing something?" —
+the question an idle God otherwise cannot answer once the CI log expires. The stamp adds
+`unproductiveActs` / `unproductiveUsd`: acts that billed, completed, named nothing and left no
+artifact. Those two are **absent rather than zero** when the month's acts predate `narration` —
+"not measured" and "measured clean" are different answers about money, and October is the former.
+See [the playbook § 6 Memory](../automations/god.md#6-memory).
+
+Live run streaming is **designed but not built**. `scripts/god/ingestClient.mjs` batches a run's
+`events.ndjson` and POSTs signed batches, and the runner accepts `--ingest-url` /
+`--ingest-secret-file`, but there is no `POST /api/god/live` route on the server and the workflow sets
+neither flag — so the client always takes its unconfigured no-op path. The client's header comment is
+the intended receiver contract, not current behaviour. Building it needs the route plus an HMAC secret
+that does not exist yet; until then the durable artifact is the run report on `god-log`, and
+`GET /api/god/status` is the only live-ish view an owner has.
 
 ## Current state: shipped vs planned
 
@@ -207,7 +228,9 @@ best-effort — the durable artifact is the run report, not the websocket-like v
 | Observe act (read-only, god-log finding)     | **Shipped**                                         | `scripts/god/run.mjs`, `scripts/god/godLog.mjs`, `scripts/god/recordTick.mjs`  |
 | Propose verify → ready PR                    | **Shipped**                                         | `scripts/god/proposePatch.mjs`, `.github/workflows/god.yml`                    |
 | Ship (`gh pr merge --auto`)                  | **Planned**                                         | ADR-0019; ledger § Open observations                                           |
-| `/api/god` routes + owner God window         | **Planned**                                         | ADR-0019                                                                       |
+| `GET /api/god/status` — owner run view       | **Shipped** (read-only)                             | `apps/server/src/god/godLogView.ts`, `apps/server/src/routes/godStatus.ts`     |
+| Live ingest (`POST /api/god/live`)           | **Not built** — no route, no HMAC secret            | client `scripts/god/ingestClient.mjs`, currently always a no-op                |
+| Window UI + `/api/god` settings writes       | **Planned** — needs the narrow Actions token        | ADR-0019 §10                                                                   |
 
 **Practical today:** production emits signals; GitHub Actions runs an hourly **gate → brief** tick
 (when `GOD_ENABLED` and budget allow) and writes run records to **`god-log`**. The brief ranks

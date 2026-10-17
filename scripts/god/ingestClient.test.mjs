@@ -46,7 +46,9 @@ test('without a URL or secret the client is a silent no-op', async () => {
     assert.equal(client.enabled, false);
     client.push(event(0));
     await client.close();
-    assert.deepEqual(client.stats(), { sent: 0, failed: 0, dropped: 0 });
+    // The full shape on purpose: this object is what `run.mjs` writes into the run report as
+    // `ingest`, so a new counter has to be asserted here rather than appear silently.
+    assert.deepEqual(client.stats(), { sent: 0, failed: 0, dropped: 0, misconfigured: 0 });
   }
 });
 
@@ -89,5 +91,34 @@ test('a rejected or unreachable endpoint is counted, never retried, never thrown
     assert.equal(dead.stats().failed, 1);
   } finally {
     await sink.close();
+  }
+});
+
+test('nothing listening at the URL is told apart from a network hiccup', async () => {
+  // POST /api/god/live does not exist on the server, so 404 is what a configured client gets today.
+  // Best-effort delivery never throws, so without its own counter a run that reached no receiver at
+  // all is indistinguishable from one that hit a blip — and the live view would stay empty silently.
+  const missing = await startSink(404);
+  try {
+    const client = createIngestClient({ url: missing.url, secret: 's', runId: '1' });
+    client.push(event(0));
+    await client.close();
+    assert.equal(client.stats().failed, 1, 'still counted as a failure overall');
+    assert.equal(client.stats().misconfigured, 1);
+  } finally {
+    await missing.close();
+  }
+
+  // A receiver that exists and rejects the signature is a configuration to fix, not an absent
+  // endpoint: 401 must not land in misconfigured.
+  const rejecting = await startSink(401);
+  try {
+    const client = createIngestClient({ url: rejecting.url, secret: 's', runId: '1' });
+    client.push(event(0));
+    await client.close();
+    assert.equal(client.stats().failed, 1);
+    assert.equal(client.stats().misconfigured, 0);
+  } finally {
+    await rejecting.close();
   }
 });

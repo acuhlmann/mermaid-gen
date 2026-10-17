@@ -56,6 +56,16 @@ export const GodStopReasonSchema = z.enum([
   'sandbox_unavailable'
 ]);
 
+/** Verdicts that mean the harness actually started. Noop, blocked and skipped ticks did not. */
+export const GOD_ACT_VERDICTS = [
+  'observed',
+  'pr_opened',
+  'revert_opened',
+  'red',
+  'failed',
+  'stopped'
+] as const;
+
 /** What a run produced. PR states (merged, deployed, reverted) are read from GitHub, not stored. */
 export const GodVerdictSchema = z.enum([
   'noop',
@@ -70,6 +80,38 @@ export const GodVerdictSchema = z.enum([
 ]);
 
 export const GodTriggerSchema = z.enum(['schedule', 'manual']);
+
+/**
+ * Why the gate stopped — or let through — a tick. An enum rather than the string the workflow
+ * printed, so a stray value can never be written into the durable store and read back into a future
+ * prompt. `godBudget.ts` derives `GodDecisionReason` from this list: the producer cannot add a
+ * reason the recorder would silently drop.
+ */
+export const GOD_GATE_REASONS = [
+  'go',
+  'disabled',
+  'open_pr',
+  'month_cap',
+  'balance_low',
+  'outside_window',
+  'not_due',
+  'insufficient_signals'
+] as const;
+export const GodGateReasonSchema = z.enum(GOD_GATE_REASONS);
+
+/** Why `decideAct` stopped a tick once the brief existed. Same enum discipline. */
+export const GOD_ACT_REASONS = [
+  'go',
+  'gate',
+  'tier_not_wired',
+  'brief_not_live',
+  'brief_invalid',
+  'insufficient'
+] as const;
+export const GodActReasonSchema = z.enum(GOD_ACT_REASONS);
+
+/** The reason a tick ended where it did, from whichever stage spoke last. */
+export const GodTickReasonSchema = z.union([GodGateReasonSchema, GodActReasonSchema]);
 
 /** Mirrors `classifyAgentTurnError` in `apps/server/src/metrics/agentTurnMetrics.js`. */
 export const AgentTurnErrorClassSchema = z.enum([
@@ -208,6 +250,32 @@ export const GodUsageSchema = z.strictObject({
   usd
 });
 
+/**
+ * What the harness's final text did with the observe contract (playbook §5): name a finding, say
+ * `waiting`, or satisfy neither. An enum, because the run record is fed back to the harness as
+ * history — and a useful one: a tick can see that its predecessor was dropped for not labelling.
+ *
+ * Absence means "this field did not exist yet" or "the run never reached a final text" (a failed or
+ * stopped harness). It must never be read as `dropped`: a crashed run is not a run that said nothing
+ * on purpose, and only a completed run can owe the contract an answer.
+ */
+export const GOD_NARRATION_OUTCOMES = ['finding', 'waiting', 'dropped'] as const;
+export const GodNarrationSchema = z.enum(GOD_NARRATION_OUTCOMES);
+
+/**
+ * The brief's shape for one tick, kept on the record. Numbers and one boolean — the same fields the
+ * brief already carries — so nothing new reaches a prompt, while the durable store can answer the
+ * question a CI log answers today and a 30-day artifact forgets: *how close was this tick to
+ * acting?* (`sufficient` needs `agentTurns + uxSignals >= GOD_HARD_LIMITS.minNewSignals`.)
+ */
+export const GodBriefDigestSchema = z.strictObject({
+  agentTurns: count,
+  uxSignals: count,
+  sessions: count,
+  findings: count,
+  sufficient: z.boolean()
+});
+
 export const GodRunRecordSchema = z.strictObject({
   v: z.literal(GOD_SCHEMA_VERSION),
   runId: GodRunIdSchema,
@@ -232,10 +300,83 @@ export const GodRunRecordSchema = z.strictObject({
   balanceAfter: z
     .strictObject({ currency: z.enum(['USD', 'CNY']), total: z.number().finite() })
     .nullable(),
+  /**
+   * All three are `.optional()`, never `.default()`: the records already on `god-log` predate
+   * them, and `loadRunRecords` drops any file that fails to parse — a required field here would
+   * silently erase God's whole memory of its first ticks.
+   */
+  reason: GodTickReasonSchema.optional(),
+  digest: GodBriefDigestSchema.optional(),
+  narration: GodNarrationSchema.optional(),
   harness: z.strictObject({
     name: z.enum(['dsh', 'mock']),
     version: z.string().regex(/^[A-Za-z0-9.+_-]{1,40}$/)
   })
+});
+
+// --- god-log month rollup (`index/<month>.json`) -------------------------------------------------
+
+/**
+ * One row of `index/<month>.json`. This file is the only durable artifact of the rung that had no
+ * schema: the run record is validated on write and read, the rollup was hand-assembled in
+ * `recordTick.mjs` and read by nothing — which is how a merge that rewrote it to one row went
+ * unnoticed for 52 ticks.
+ *
+ * `gateReason` is deliberately the *raw* string the workflow passed, bounded and printable, not the
+ * `GodTickReasonSchema` enum. The rollup is read only by a human and by the owner's status view; the
+ * enum-clamped copy is the one on the run record, because that file is fed back into a prompt. A
+ * reason the enum has never heard of costs a row its label there, not its whole tick.
+ */
+export const GodRollupRowSchema = z.strictObject({
+  runId: GodRunIdSchema,
+  startedAt: isoTime,
+  endedAt: isoTime,
+  verdict: GodVerdictSchema,
+  tier: GodRunTierSchema,
+  usd,
+  gateReason: shortText(64).optional(),
+  digest: GodBriefDigestSchema.optional(),
+  narration: GodNarrationSchema.optional()
+});
+
+/** `YYYY-MM` of UTC. */
+const rollupMonth = z.string().regex(/^\d{4}-\d{2}$/);
+
+/**
+ * Month totals computed at fold time from `runs/*.json`, never from the rows in this file.
+ *
+ * The rows are a list a bad merge can truncate — which is exactly what happened to all of October —
+ * while the per-run records are append-only and unenumerable over the raw HTTPS endpoint the owner's
+ * status view reads. So the fold step, which *does* have the whole branch checked out, stamps the
+ * true month numbers onto the rollup for that reader. Without this the view reports whatever rows
+ * survived and quietly understates the month's spend — the failure ADR-0019 §5 exists to prevent.
+ */
+export const GodMonthTotalsSchema = z.strictObject({
+  ticks: count,
+  acts: count,
+  monthSpendUsd: usd,
+  /**
+   * Acts that completed, named nothing, and changed nothing: money spent on silence. Optional
+   * because records that predate `narration` cannot be judged — absence means *unknown*, never
+   * *zero*, and a reader must not conclude the month was productive from a number that was never
+   * measured.
+   */
+  unproductiveActs: count.optional(),
+  unproductiveUsd: usd.optional(),
+  lastActAt: isoTime.nullable()
+});
+
+/**
+ * A month of rollup rows. `max` is a month of hourly ticks plus room for dispatches: a file that
+ * outgrows it means the rollup stopped being folded idempotently, and the consumer should say so
+ * rather than render a truncated month as if it were whole.
+ */
+export const GodMonthRollupSchema = z.strictObject({
+  v: z.literal(GOD_SCHEMA_VERSION),
+  month: rollupMonth,
+  /** Optional, like every field added since: the branch's existing month files predate it. */
+  totals: GodMonthTotalsSchema.optional(),
+  runs: z.array(GodRollupRowSchema).max(1_000)
 });
 
 // --- configuration (repo variables) -------------------------------------------------------------
@@ -262,6 +403,9 @@ export type GodFocus = z.infer<typeof GodFocusSchema>;
 export type GodPhase = z.infer<typeof GodPhaseSchema>;
 export type GodStopReason = z.infer<typeof GodStopReasonSchema>;
 export type GodVerdict = z.infer<typeof GodVerdictSchema>;
+export type GodGateReason = z.infer<typeof GodGateReasonSchema>;
+export type GodActReason = z.infer<typeof GodActReasonSchema>;
+export type GodTickReason = z.infer<typeof GodTickReasonSchema>;
 export type GodMetric = z.infer<typeof GodMetricSchema>;
 export type GodSlotStats = z.infer<typeof GodSlotStatsSchema>;
 export type GodFinding = z.infer<typeof GodFindingSchema>;
@@ -269,6 +413,11 @@ export type GodBrief = z.infer<typeof GodBriefSchema>;
 export type GodLiveEvent = z.infer<typeof GodLiveEventSchema>;
 export type GodLiveBatch = z.infer<typeof GodLiveBatchSchema>;
 export type GodUsage = z.infer<typeof GodUsageSchema>;
+export type GodBriefDigest = z.infer<typeof GodBriefDigestSchema>;
+export type GodNarration = z.infer<typeof GodNarrationSchema>;
+export type GodRollupRow = z.infer<typeof GodRollupRowSchema>;
+export type GodMonthTotals = z.infer<typeof GodMonthTotalsSchema>;
+export type GodMonthRollup = z.infer<typeof GodMonthRollupSchema>;
 export type GodRunRecord = z.infer<typeof GodRunRecordSchema>;
 export type GodConfig = z.infer<typeof GodConfigSchema>;
 export type GodConfigPatch = z.infer<typeof GodConfigPatchSchema>;

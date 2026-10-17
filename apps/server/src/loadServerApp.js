@@ -26,6 +26,7 @@ import { createAdvisorRouter } from './routes/advisor.js';
 import { createOfficeRouter } from './routes/office.js';
 import { createDiagramRepairRouter } from './routes/diagramRepair.js';
 import { createSignalsRouter } from './routes/signals.js';
+import { createGodStatusRouter } from './routes/godStatus.js';
 import {
   createSessionServicesRegistry,
   resolveSessionIdFromCopilotInput
@@ -89,6 +90,8 @@ export async function attachRoutes(app) {
   app.use('/api/advisor', createAdvisorRouter());
   app.use('/api/office', createOfficeRouter());
   app.use('/api/signals', createSignalsRouter());
+  // Owner-only by the door-code gate above; read-only until the settings token exists (ADR-0019 2c).
+  app.use('/api/god', createGodStatusRouter());
   app.use(
     '/api/diagram',
     createDiagramRepairRouter({

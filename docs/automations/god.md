@@ -48,6 +48,10 @@ forbiddenPaths:
   - apps/server/src/routes/signals*
   - apps/server/src/metrics/uxSignal*
   - apps/server/src/metrics/agentTurnMetrics*
+  # The owner's status view of this rung (ADR-0019 §10). God must not edit the panel that reports
+  # its own spend, skips and caps — the same argument that freezes the meter proxy.
+  - apps/server/src/god/**
+  - apps/server/src/routes/god*
   - apps/server/src/mcp/apps/**
   - apps/web/src/assets/**
   - apps/server/bench-results/**
@@ -106,7 +110,18 @@ not replace that line. The whole line is clipped at 280 characters. It must be e
 - `waiting` — the brief is too thin to name a finding.
 
 Anything else is dropped (`findingId` and `hypothesis` stay null). The run is still `observed`
-when the harness completes. Prior runs' sentences are stripped from `history.json` before the
+when the harness completes.
+
+Which of the three happened is now recorded, because it used to be unrecoverable: an act that billed,
+completed and named nothing looked exactly like one that correctly said `waiting`. The run record's
+`narration` is `GodNarrationSchema` — `finding` | `waiting` | `dropped` — and only a run that reached
+a `completed` stop reason owes the contract an answer, so a failed or stopped harness leaves the field
+absent rather than recording `dropped` and booking its cost against silence. Absent also means
+"recorded before this field existed", which is every act on `god-log` today: it must never be read as
+`dropped`. The value is an enum because the record is fed back to the harness as history — and it is
+useful feedback, since a tick can see its predecessor was dropped for not labelling.
+
+Prior runs' sentences are stripped from `history.json` before the
 harness starts; do not expect them.
 
 ### Propose output
@@ -168,6 +183,56 @@ Per-run records live on the **`god-log`** data branch (pushes there trigger neit
 This ledger (`docs/automations/ledger/god.md`) only gets rows inside God's own code PRs — an
 exception to automations README rule 6, because a ledger PR per hourly tick would redeploy
 production every hour.
+
+`runs/<runId>.json` is the durable store and the source of truth for the two rails that cost money:
+`GOD_EVERY_HOURS` cadence and `GOD_MAX_USD_PER_MONTH` spend are derived from it (`deriveCadence` in
+`scripts/god/godLog.mjs`), never from `index/<month>.json`. The index is a rollup that exists to carry
+the gate reason for a human audit trail, and a rollup a bad merge can rewrite must not be what the cap
+reads. Folding a tick into the branch is
+`node scripts/god/godLog.mjs --root . --merge-tick-dir <dir>` — union by `runId`, idempotent, tested in
+`scripts/god/godLog.test.mjs`. Do not move that merge back into a workflow heredoc: the `cp`-then-merge
+order it replaced silently reduced the month's history to one row for 52 ticks (found 2026-10-17).
+
+The rollup also carries `totals`, **stamped at fold time from `runs/*.json`** by `monthTotals` in
+`scripts/god/godLog.mjs`: `ticks`, `acts`, `monthSpendUsd` and `lastActAt` for the whole month, with
+previous months re-stamped so a month truncated before this landed reports its real size again. The
+status view reads exactly one file per month and cannot list `runs/` over raw HTTPS, so without the
+stamp a rollup whose rows were truncated reports a smaller month — money included. October 2026 is
+that case: 54 records, one surviving row, and the view answered `ticks: 1, monthSpendUsd: 0`. It now
+reports `numbersFrom` (`records` when the stamp is there, `rollupRows` when it is not) and raises
+`rollup_totals_missing` rather than passing a row count off as a month.
+
+The two scopes differ on purpose, and conflating them breaks a rail: spend is per-month (that is what
+`GOD_MAX_USD_PER_MONTH` measures), while the last act is **all-time** — scoping the act to the month
+would reset `GOD_EVERY_HOURS` to "never acted" at every month boundary and let God spend again
+immediately after midnight on the 1st. `deriveCadence` and `monthTotals` are separate functions for
+exactly that reason.
+
+Each run record also carries `reason` and `digest`, so `god-log` alone answers "why did that tick do
+nothing, and how close was it?" — a question that otherwise lived only in a step summary and a 30-day
+artifact, and which is the only thing an idle God has to show for itself.
+
+- `reason` is `GodTickReasonSchema`: the gate's enum plus `decideAct`'s. Enum-only, because the record
+  is fed back to the harness as history, and a loose string here is a string in a prompt.
+  `recordTick.mjs` **drops** an unlisted reason rather than failing — a new reason must cost a tick its
+  label, not cost the tick its record. `recordTick.test.mjs` scans both producers and fails if either
+  emits a literal the enum does not list (the `funnels.test.mjs` idiom).
+- `digest` is five numbers and one boolean lifted out of the brief (`agentTurns`, `uxSignals`,
+  `sessions`, `findings`, `sufficient`) — never the brief itself.
+- `narration` (§ Observe output) is `finding` | `waiting` | `dropped`, and the month stamp carries
+  `unproductiveActs` / `unproductiveUsd` alongside it: acts that billed, completed, named nothing and
+  left no artifact. **The two counters are omitted, not zeroed, when any act in the month predates
+  `narration`** — which is every month on `god-log` today. A zero would read as "we checked and
+  nothing was wasted"; the honest answer for October is that the one act was never judged.
+- Both are `.optional()`, never `.default()`. `loadRunRecords` drops any file that fails to parse, so a
+  required field here would silently delete God's memory of every tick before this landed; pinned by a
+  named test in `packages/shared/test/godSchemas.test.ts`.
+
+The rollup row is validated by `GodRollupRowSchema` on write (`rollupRow` in `recordTick.mjs`), and
+`GET /api/god/status` is its reader. That endpoint is frozen rails too (`apps/server/src/god/**`,
+`apps/server/src/routes/god*`): a rung that can edit the panel showing its own spend, caps and skips
+can make that panel say anything. The view reads only what a tick recorded and never recomputes the
+gate decision — the gate's config lives in Actions variables the server cannot read.
 
 ## 7. Verify deviation
 
