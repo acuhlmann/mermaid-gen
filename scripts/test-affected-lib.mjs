@@ -363,6 +363,15 @@ export const BLAST_RADIUS_RULES = [
     // test:floor (apps/web/package.json) vs ISOMETRIC_FLOOR_BLAST_TESTS — intentionally different sets.
     match: /apps\/web\/package\.json|scripts\/test-affected-lib\.mjs/,
     tests: ['scripts/verify-isometric-floor-suites.test.mjs']
+  },
+  {
+    // Mermaid's version is declared in three package.jsons and once more as a CDN major inside an
+    // MCP App HTML string. Nothing compared the four, so a major bump that missed the URL — the
+    // exact edit the 11 -> 12 upgrade required — stayed green everywhere: the CDN copy is invisible
+    // to npm, so no lockfile, no typecheck and no dependency sensor ever sees it drift.
+    match:
+      /(^|\/)package\.json$|apps\/server\/src\/mcp\/apps\/mcpAppDiagramPreview\.js|scripts\/verify-mermaid-pins\.mjs/,
+    tests: ['scripts/verify-mermaid-pins.test.mjs']
   }
 ];
 
