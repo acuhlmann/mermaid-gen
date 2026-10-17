@@ -204,9 +204,13 @@ artifact. Those two are **absent rather than zero** when the month's acts predat
 "not measured" and "measured clean" are different answers about money, and October is the former.
 See [the playbook § 6 Memory](../automations/god.md#6-memory).
 
-Live run streaming (`events.ndjson` → owner **Now** tab) uses HMAC-signed POSTs to
-`POST /api/god/live` ([`ingestClient.mjs`](../../scripts/god/ingestClient.mjs)); delivery is
-best-effort — the durable artifact is the run report, not the websocket-like view.
+Live run streaming is **designed but not built**. `scripts/god/ingestClient.mjs` batches a run's
+`events.ndjson` and POSTs signed batches, and the runner accepts `--ingest-url` /
+`--ingest-secret-file`, but there is no `POST /api/god/live` route on the server and the workflow sets
+neither flag — so the client always takes its unconfigured no-op path. The client's header comment is
+the intended receiver contract, not current behaviour. Building it needs the route plus an HMAC secret
+that does not exist yet; until then the durable artifact is the run report on `god-log`, and
+`GET /api/god/status` is the only live-ish view an owner has.
 
 ## Current state: shipped vs planned
 
@@ -225,6 +229,7 @@ best-effort — the durable artifact is the run report, not the websocket-like v
 | Propose verify → ready PR                    | **Shipped**                                         | `scripts/god/proposePatch.mjs`, `.github/workflows/god.yml`                    |
 | Ship (`gh pr merge --auto`)                  | **Planned**                                         | ADR-0019; ledger § Open observations                                           |
 | `GET /api/god/status` — owner run view       | **Shipped** (read-only)                             | `apps/server/src/god/godLogView.ts`, `apps/server/src/routes/godStatus.ts`     |
+| Live ingest (`POST /api/god/live`)           | **Not built** — no route, no HMAC secret            | client `scripts/god/ingestClient.mjs`, currently always a no-op                |
 | Window UI + `/api/god` settings writes       | **Planned** — needs the narrow Actions token        | ADR-0019 §10                                                                   |
 
 **Practical today:** production emits signals; GitHub Actions runs an hourly **gate → brief** tick
