@@ -122,10 +122,26 @@
         "findings": 0,
         "sufficient": false
       }
+    },
+    {
+      "runId": "39053596020",
+      "startedAt": "2026-10-17T17:27:29.944Z",
+      "endedAt": "2026-10-17T17:27:29.944Z",
+      "verdict": "noop",
+      "tier": "propose",
+      "usd": 0,
+      "gateReason": "gate",
+      "digest": {
+        "agentTurns": 0,
+        "uxSignals": 1,
+        "sessions": 1,
+        "findings": 0,
+        "sufficient": false
+      }
     }
   ],
   "totals": {
-    "ticks": 63,
+    "ticks": 64,
     "acts": 1,
     "monthSpendUsd": 0.018813,
     "lastActAt": "2026-10-15T15:22:19.545Z"
