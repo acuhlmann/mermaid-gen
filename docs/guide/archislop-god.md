@@ -180,12 +180,17 @@ and money: [`godBudget.ts`](../../packages/shared/src/godBudget.ts).
 
 ## Memory and visibility
 
-| Store                            | What it holds                               | Who writes                       |
-| -------------------------------- | ------------------------------------------- | -------------------------------- |
-| Cloud Logging                    | Raw `ux_signal` / `agent_turn` lines        | Production server                |
-| `god-log` git branch             | One JSON run record per God execution       | Gate/brief jobs (hourly noop)    |
-| `docs/automations/ledger/god.md` | Human/agent-readable run log rows           | God PRs                          |
-| GitHub repo variables            | `GOD_ENABLED`, `GOD_AUTONOMY`, window, caps | Owner via Settings API (planned) |
+| Store                            | What it holds                                        | Who writes                       |
+| -------------------------------- | ---------------------------------------------------- | -------------------------------- |
+| Cloud Logging                    | Raw `ux_signal` / `agent_turn` lines                 | Production server                |
+| `god-log` git branch             | One JSON run record per God execution (`runs/`)      | Gate/brief jobs (hourly noop)    |
+| `god-log` `index/<month>.json`   | Gate reason per tick — an audit rollup, not a ledger | The record job                   |
+| `docs/automations/ledger/god.md` | Human/agent-readable run log rows                    | God PRs                          |
+| GitHub repo variables            | `GOD_ENABLED`, `GOD_AUTONOMY`, window, caps          | Owner via Settings API (planned) |
+
+Cadence (`GOD_EVERY_HOURS`) and the monthly cap (`GOD_MAX_USD_PER_MONTH`) are summed from
+`runs/*.json`, the durable store — never from the month rollup, which exists only to record _why_ a
+tick did nothing. See [the playbook § 6 Memory](../automations/god.md#6-memory).
 
 Live run streaming (`events.ndjson` → owner **Now** tab) uses HMAC-signed POSTs to
 `POST /api/god/live` ([`ingestClient.mjs`](../../scripts/god/ingestClient.mjs)); delivery is

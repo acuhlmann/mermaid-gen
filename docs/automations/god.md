@@ -169,6 +169,15 @@ This ledger (`docs/automations/ledger/god.md`) only gets rows inside God's own c
 exception to automations README rule 6, because a ledger PR per hourly tick would redeploy
 production every hour.
 
+`runs/<runId>.json` is the durable store and the source of truth for the two rails that cost money:
+`GOD_EVERY_HOURS` cadence and `GOD_MAX_USD_PER_MONTH` spend are derived from it (`deriveCadence` in
+`scripts/god/godLog.mjs`), never from `index/<month>.json`. The index is a rollup that exists to carry
+the gate reason for a human audit trail, and a rollup a bad merge can rewrite must not be what the cap
+reads. Folding a tick into the branch is
+`node scripts/god/godLog.mjs --root . --merge-tick-dir <dir>` — union by `runId`, idempotent, tested in
+`scripts/god/godLog.test.mjs`. Do not move that merge back into a workflow heredoc: the `cp`-then-merge
+order it replaced silently reduced the month's history to one row for 52 ticks (found 2026-10-17).
+
 ## 7. Verify deviation
 
 God's verify job runs `check:affected` locally and relies on the six required status checks for the
