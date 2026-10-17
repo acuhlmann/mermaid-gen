@@ -84,7 +84,7 @@ flowchart TB
     Metrics["agent_turn + ux_signal → stdout"]
     SigClient -->|"content-free batch"| SigRoute
     SigRoute --> Metrics
-    GodApi["/api/god/* — planned"]
+    GodApi["GET /api/god/status — read-only"]
   end
 
   subgraph gha ["GitHub Actions — god workflow"]
@@ -215,7 +215,8 @@ best-effort — the durable artifact is the run report, not the websocket-like v
 | Observe act (read-only, god-log finding)     | **Shipped**                                         | `scripts/god/run.mjs`, `scripts/god/godLog.mjs`, `scripts/god/recordTick.mjs`  |
 | Propose verify → ready PR                    | **Shipped**                                         | `scripts/god/proposePatch.mjs`, `.github/workflows/god.yml`                    |
 | Ship (`gh pr merge --auto`)                  | **Planned**                                         | ADR-0019; ledger § Open observations                                           |
-| `/api/god` routes + owner God window         | **Planned**                                         | ADR-0019                                                                       |
+| `GET /api/god/status` — owner run view       | **Shipped** (read-only)                             | `apps/server/src/god/godLogView.ts`, `apps/server/src/routes/godStatus.ts`     |
+| Window UI + `/api/god` settings writes       | **Planned** — needs the narrow Actions token        | ADR-0019 §10                                                                   |
 
 **Practical today:** production emits signals; GitHub Actions runs an hourly **gate → brief** tick
 (when `GOD_ENABLED` and budget allow) and writes run records to **`god-log`**. The brief ranks

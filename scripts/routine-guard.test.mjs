@@ -367,12 +367,17 @@ test("ALWAYS_FORBIDDEN freezes ArchiSlop God's money and privacy rails (ADR-0019
     '.github/workflows/god.yml',
     'packages/shared/src/godBudget.ts',
     'packages/shared/src/godSchemas.ts',
-    'packages/shared/src/uxSignals.ts'
+    'packages/shared/src/uxSignals.ts',
+    // The owner's read of the rung: spend, caps and skips. An improver that can edit the panel that
+    // shows its own numbers can make that panel say anything.
+    'apps/server/src/god/godLogView.ts',
+    'apps/server/src/routes/godStatus.ts'
   ]) {
     assert.ok(matchesAny(file, ALWAYS_FORBIDDEN), file);
   }
   assert.ok(!matchesAny('scripts/godless.mjs', ALWAYS_FORBIDDEN));
   assert.ok(!matchesAny('.github/workflows/ci.yml', ALWAYS_FORBIDDEN));
+  assert.ok(!matchesAny('apps/server/src/routes/signals.ts', ALWAYS_FORBIDDEN));
 });
 
 test('ALWAYS_FORBIDDEN covers the AGENTS.md cost and lockfile traps', () => {

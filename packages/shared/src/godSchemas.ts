@@ -56,6 +56,16 @@ export const GodStopReasonSchema = z.enum([
   'sandbox_unavailable'
 ]);
 
+/** Verdicts that mean the harness actually started. Noop, blocked and skipped ticks did not. */
+export const GOD_ACT_VERDICTS = [
+  'observed',
+  'pr_opened',
+  'revert_opened',
+  'red',
+  'failed',
+  'stopped'
+] as const;
+
 /** What a run produced. PR states (merged, deployed, reverted) are read from GitHub, not stored. */
 export const GodVerdictSchema = z.enum([
   'noop',
@@ -291,6 +301,44 @@ export const GodRunRecordSchema = z.strictObject({
   })
 });
 
+// --- god-log month rollup (`index/<month>.json`) -------------------------------------------------
+
+/**
+ * One row of `index/<month>.json`. This file is the only durable artifact of the rung that had no
+ * schema: the run record is validated on write and read, the rollup was hand-assembled in
+ * `recordTick.mjs` and read by nothing — which is how a merge that rewrote it to one row went
+ * unnoticed for 52 ticks.
+ *
+ * `gateReason` is deliberately the *raw* string the workflow passed, bounded and printable, not the
+ * `GodTickReasonSchema` enum. The rollup is read only by a human and by the owner's status view; the
+ * enum-clamped copy is the one on the run record, because that file is fed back into a prompt. A
+ * reason the enum has never heard of costs a row its label there, not its whole tick.
+ */
+export const GodRollupRowSchema = z.strictObject({
+  runId: GodRunIdSchema,
+  startedAt: isoTime,
+  endedAt: isoTime,
+  verdict: GodVerdictSchema,
+  tier: GodRunTierSchema,
+  usd,
+  gateReason: shortText(64).optional(),
+  digest: GodBriefDigestSchema.optional()
+});
+
+/** `YYYY-MM` of UTC. */
+const rollupMonth = z.string().regex(/^\d{4}-\d{2}$/);
+
+/**
+ * A month of rollup rows. `max` is a month of hourly ticks plus room for dispatches: a file that
+ * outgrows it means the rollup stopped being folded idempotently, and the consumer should say so
+ * rather than render a truncated month as if it were whole.
+ */
+export const GodMonthRollupSchema = z.strictObject({
+  v: z.literal(GOD_SCHEMA_VERSION),
+  month: rollupMonth,
+  runs: z.array(GodRollupRowSchema).max(1_000)
+});
+
 // --- configuration (repo variables) -------------------------------------------------------------
 
 /** `HH-HH` in UTC, start inclusive, end exclusive; `22-04` wraps midnight. */
@@ -326,6 +374,8 @@ export type GodLiveEvent = z.infer<typeof GodLiveEventSchema>;
 export type GodLiveBatch = z.infer<typeof GodLiveBatchSchema>;
 export type GodUsage = z.infer<typeof GodUsageSchema>;
 export type GodBriefDigest = z.infer<typeof GodBriefDigestSchema>;
+export type GodRollupRow = z.infer<typeof GodRollupRowSchema>;
+export type GodMonthRollup = z.infer<typeof GodMonthRollupSchema>;
 export type GodRunRecord = z.infer<typeof GodRunRecordSchema>;
 export type GodConfig = z.infer<typeof GodConfigSchema>;
 export type GodConfigPatch = z.infer<typeof GodConfigPatchSchema>;

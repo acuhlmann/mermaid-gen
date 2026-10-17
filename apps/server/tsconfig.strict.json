@@ -33,6 +33,9 @@
     "src/state/sessionServices.ts",
     "src/state/pairingCodeStore.ts",
     // ArchiSlop God signal intake (ADR-0019).
-    "src/routes/signals.ts"
+    "src/routes/signals.ts",
+    // ArchiSlop God owner status view (ADR-0019 §10, stage 2c) — reads the rung's own spend and skips.
+    "src/god/godLogView.ts",
+    "src/routes/godStatus.ts"
   ]
 }

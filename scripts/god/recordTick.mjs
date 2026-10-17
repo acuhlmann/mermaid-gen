@@ -14,6 +14,8 @@ import { parseArgs } from 'node:util';
 import { fileURLToPath } from 'node:url';
 import {
   GodBriefSchema,
+  GodMonthRollupSchema,
+  GodRollupRowSchema,
   GodRunRecordSchema,
   GodTickReasonSchema
 } from '@archislop/shared/godSchemas.js';
@@ -62,6 +64,36 @@ export function digestFromBriefFile(file) {
     // A brief that will not parse is the brief job's problem, already recorded by its own step.
     return undefined;
   }
+}
+
+/**
+ * The rollup row for one tick. Validated, because this file is the owner's status view of the rung
+ * and nothing else reads it — an unvalidated hand-assembled object is how the month rollup could be
+ * rewritten to a single row for 52 ticks with no sensor noticing.
+ *
+ * A row that will not validate degrades to the essentials instead of throwing: losing the tick from
+ * the index is worse than losing its label, and the run record under `runs/` is the durable copy.
+ *
+ * @param {import('@archislop/shared/godSchemas.js').GodRunRecord} record
+ * @param {string | undefined} gateReason
+ */
+export function rollupRow(record, gateReason) {
+  const base = {
+    runId: record.runId,
+    startedAt: record.startedAt,
+    endedAt: record.endedAt,
+    verdict: record.verdict,
+    tier: record.tier,
+    usd: record.usage.usd
+  };
+  /** @type {Record<string, unknown>} */
+  const row = { ...base };
+  const reason = typeof gateReason === 'string' ? gateReason.replace(/\s+/g, ' ').trim() : '';
+  if (reason) row.gateReason = reason.slice(0, 64);
+  if (record.digest) row.digest = record.digest;
+  const parsed = GodRollupRowSchema.safeParse(row);
+  // Only the essentials are safe to re-emit blind; they come from an already-validated record.
+  return parsed.success ? parsed.data : base;
 }
 
 function parseCli(argv) {
@@ -249,22 +281,9 @@ export function main(argv = process.argv.slice(2)) {
     }
   }
   if (!Array.isArray(idx.runs)) idx.runs = [];
-  /**
-   * `gateReason` stays the raw string the workflow passed: the rollup is read only by a human, and a
-   * dropped value there is a worse audit trail than an unlisted one. The enum-clamped copy lives on
-   * the run record, which is the file that gets fed back into a prompt.
-   */
-  idx.runs.push({
-    runId: record.runId,
-    startedAt: record.startedAt,
-    endedAt: record.endedAt,
-    verdict: record.verdict,
-    tier: record.tier,
-    usd: record.usage.usd,
-    gateReason: values.reason,
-    ...(record.digest ? { findings: record.digest.findings } : {})
-  });
-  fs.writeFileSync(idxPath, `${JSON.stringify(idx, null, 2)}\n`);
+  idx.runs.push(rollupRow(record, values.reason));
+  const rolled = GodMonthRollupSchema.safeParse(idx);
+  fs.writeFileSync(idxPath, `${JSON.stringify(rolled.success ? rolled.data : idx, null, 2)}\n`);
   return { record, runPath, idxPath };
 }
 

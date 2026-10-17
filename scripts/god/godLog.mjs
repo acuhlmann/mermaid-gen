@@ -13,17 +13,13 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { parseArgs } from 'node:util';
 import { fileURLToPath } from 'node:url';
-import { GodRunRecordSchema } from '@archislop/shared/godSchemas.js';
+import { GOD_ACT_VERDICTS, GodRunRecordSchema } from '@archislop/shared/godSchemas.js';
 
-/** Verdicts that mean the harness actually started. Noop and blocked ticks did not. */
-export const ACT_VERDICTS = new Set([
-  'observed',
-  'pr_opened',
-  'revert_opened',
-  'red',
-  'failed',
-  'stopped'
-]);
+/**
+ * Verdicts that mean the harness actually started. Single source with the owner's status view, so the
+ * two cannot disagree about which tick counts as an act.
+ */
+export const ACT_VERDICTS = new Set(GOD_ACT_VERDICTS);
 
 const HISTORY_MAX = 50;
 

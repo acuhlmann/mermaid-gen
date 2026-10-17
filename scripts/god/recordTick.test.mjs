@@ -258,7 +258,13 @@ test('a tick records why it stopped and how close the brief was', () => {
   assert.equal(result.record.digest.findings, 1);
   const rollup = JSON.parse(fs.readFileSync(path.join(dir, 'index', '2026-10.json'), 'utf8'));
   assert.equal(rollup.runs[0].gateReason, 'tier_not_observe');
-  assert.equal(rollup.runs[0].findings, 1);
+  assert.deepEqual(rollup.runs[0].digest, {
+    agentTurns: 120,
+    uxSignals: 340,
+    sessions: 41,
+    findings: 1,
+    sufficient: true
+  });
 });
 
 test('every reason the gate and act decision can emit is listable by the recorder', () => {

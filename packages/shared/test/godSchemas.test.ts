@@ -8,6 +8,8 @@ import {
   GodFocusSchema,
   GodLiveBatchSchema,
   GodLiveEventSchema,
+  GodMonthRollupSchema,
+  GodRollupRowSchema,
   GodRunRecordSchema,
   GodRunTierSchema,
   GodTickReasonSchema,
@@ -161,6 +163,57 @@ test('the recorded reason is an enum, and the digest is numbers only', () => {
   assert.equal(GodBriefDigestSchema.safeParse({ ...digest, note: 'context' }).success, false);
   assert.equal(GodBriefDigestSchema.safeParse({ ...digest, sessions: -1 }).success, false);
   assert.equal(GodBriefDigestSchema.safeParse({ ...digest, sufficient: 'true' }).success, false);
+});
+
+test('the month rollup is pinned, bounded and month-shaped', () => {
+  const tick = {
+    runId: '39006330770',
+    startedAt: '2026-10-17T05:30:26.607Z',
+    endedAt: '2026-10-17T05:30:26.607Z',
+    verdict: 'noop' as const,
+    tier: 'propose' as const,
+    usd: 0
+  };
+  // The 52 rows already on god-log look exactly like this: no reason label, no digest.
+  assert.deepEqual(GodRollupRowSchema.parse(tick), tick);
+
+  const month = {
+    v: 1,
+    month: '2026-10',
+    runs: [
+      {
+        ...tick,
+        gateReason: 'insufficient',
+        digest: { agentTurns: 2, uxSignals: 3, sessions: 2, findings: 0, sufficient: false }
+      }
+    ]
+  };
+  assert.deepEqual(GodMonthRollupSchema.parse(month), month);
+
+  // gateReason is the raw workflow string on purpose — the enum copy is the one on the run record,
+  // which is the file a prompt reads. Bounded and printable is still not unbounded.
+  assert.equal(
+    GodRollupRowSchema.safeParse({ ...tick, gateReason: 'x'.repeat(65) }).success,
+    false
+  );
+  assert.equal(GodRollupRowSchema.safeParse({ ...tick, gateReason: 'two\nlines' }).success, false);
+  assert.equal(
+    GodRollupRowSchema.safeParse({ ...tick, digest: { ...month.runs[0].digest, extra: 1 } })
+      .success,
+    false
+  );
+
+  assert.equal(GodMonthRollupSchema.safeParse({ ...month, month: '2026-10-17' }).success, false);
+  const overflow = {
+    v: 1,
+    month: '2026-10',
+    runs: Array.from({ length: 1001 }, (_, i) => ({ ...tick, runId: `r${i}` }))
+  };
+  assert.equal(
+    GodMonthRollupSchema.safeParse(overflow).success,
+    false,
+    'a month cannot silently outgrow the rollup'
+  );
 });
 
 test('live events carry tool names, paths and short text — never tool output', () => {

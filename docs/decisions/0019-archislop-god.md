@@ -115,5 +115,12 @@ the product).
   live brief is sufficient).
 - Visual guide: `docs/guide/archislop-god.md`; client signal emitter
   `apps/web/src/state/uxSignalsClient.js` (shipped).
-- Later PRs: the owner-gated `/api/god` routes, the God window, and the ship tier
-  (`gh pr merge --auto`). Observe records a finding; propose opens a ready PR after verify.
+- Owner run view, stage 2c read half (shipped): `apps/server/src/god/godLogView.ts` and
+  `apps/server/src/routes/godStatus.ts` serve `GET /api/god/status` from the `god-log` month rollup —
+  credential-free, because the repo is public and every field on that branch is content-free. It is
+  read-only and reports only what a tick recorded: it deliberately does not call `decideGodRun`, since
+  the gate's config lives in Actions variables this process cannot read, and recomputing from its own
+  environment would print a confident answer about a configuration it cannot see.
+- Later PRs: the God window UI, `/api/god` settings writes (needs the narrow Actions token) and live
+  ingest (needs its HMAC secret), and the ship tier (`gh pr merge --auto`). Observe records a finding;
+  propose opens a ready PR after verify.

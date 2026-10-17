@@ -48,6 +48,10 @@ forbiddenPaths:
   - apps/server/src/routes/signals*
   - apps/server/src/metrics/uxSignal*
   - apps/server/src/metrics/agentTurnMetrics*
+  # The owner's status view of this rung (ADR-0019 §10). God must not edit the panel that reports
+  # its own spend, skips and caps — the same argument that freezes the meter proxy.
+  - apps/server/src/god/**
+  - apps/server/src/routes/god*
   - apps/server/src/mcp/apps/**
   - apps/web/src/assets/**
   - apps/server/bench-results/**
@@ -178,6 +182,12 @@ reads. Folding a tick into the branch is
 `scripts/god/godLog.test.mjs`. Do not move that merge back into a workflow heredoc: the `cp`-then-merge
 order it replaced silently reduced the month's history to one row for 52 ticks (found 2026-10-17).
 
+The rollup is validated by `GodRollupRowSchema` (`recordTick.mjs`'s `rollupRow`) — it was the one
+durable artifact of the rung with no schema, which is exactly why that merge bug had no sensor. Its
+reader is `GET /api/god/status` (`apps/server/src/god/godLogView.ts`), the owner's run view: it reports
+what a tick recorded and never recomputes the gate decision, because the gate's config lives in Actions
+variables the server cannot read.
+
 Each run record also carries `reason` and `digest`, so `god-log` alone answers "why did that tick do
 nothing, and how close was it?" — a question that otherwise lived only in a step summary and a 30-day
 artifact, and which is the only thing an idle God has to show for itself.
@@ -192,6 +202,12 @@ artifact, and which is the only thing an idle God has to show for itself.
 - Both are `.optional()`, never `.default()`. `loadRunRecords` drops any file that fails to parse, so a
   required field here would silently delete God's memory of every tick before this landed; pinned by a
   named test in `packages/shared/test/godSchemas.test.ts`.
+
+The rollup row is validated by `GodRollupRowSchema` on write (`rollupRow` in `recordTick.mjs`), and
+`GET /api/god/status` is its reader. That endpoint is frozen rails too (`apps/server/src/god/**`,
+`apps/server/src/routes/god*`): a rung that can edit the panel showing its own spend, caps and skips
+can make that panel say anything. The view reads only what a tick recorded and never recomputes the
+gate decision — the gate's config lives in Actions variables the server cannot read.
 
 ## 7. Verify deviation
 
