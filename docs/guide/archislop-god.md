@@ -189,7 +189,12 @@ and money: [`godBudget.ts`](../../packages/shared/src/godBudget.ts).
 | GitHub repo variables            | `GOD_ENABLED`, `GOD_AUTONOMY`, window, caps                           | Owner via Settings API (planned) |
 
 Cadence (`GOD_EVERY_HOURS`) and the monthly cap (`GOD_MAX_USD_PER_MONTH`) are summed from
-`runs/*.json`, the durable store — never from the month rollup. Each record carries `reason` (an enum:
+`runs/*.json`, the durable store — never from the month rollup. The rollup is still what the owner view
+reads, though, because `runs/` cannot be listed over raw HTTPS: so the fold **stamps the true month
+totals** (`ticks`, `acts`, `monthSpendUsd`, `lastActAt`) onto the rollup from the records, and
+`GET /api/god/status` reports `numbersFrom` to say which it used. Without that stamp a rollup whose
+rows were truncated would report a month 54x too small — October 2026, where one surviving row sat
+beside 54 records and $0.018813 of real spend. Each record carries `reason` (an enum:
 the gate's vocabulary plus `decideAct`'s) and `digest` (the brief's five counts and `sufficient`), so
 the branch alone answers "why did that tick do nothing, and how close was it to doing something?" —
 the question an idle God otherwise cannot answer once the CI log expires. See

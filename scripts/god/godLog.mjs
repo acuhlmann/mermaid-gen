@@ -82,29 +82,69 @@ function loadHistory(records) {
 }
 
 /**
- * Cadence and spend, derived from run records.
+ * The authoritative numbers for one month, from the run records.
  *
- * Deliberately **not** read from `index/*.json`: the index is a derived rollup whose rows carry the
- * gate reason for a human audit trail, and a rollup that a bad merge can rewrite is not something to
- * hang the monthly money cap (`GOD_MAX_USD_PER_MONTH`) or the `GOD_EVERY_HOURS` cadence on. A 2026-10
- * tick clobbered the month file with its own single row — 52 run records, one index row — which left
- * both rails reading a history of one run.
+ * Both the gate (via `deriveCadence`) and the owner's status view read these. The view can only list
+ * what the rollup file carries, and the rollup's rows proved truncatable — so the fold step computes
+ * the truth from `runs/*.json` while it has the whole branch checked out and stamps it on the file.
+ *
+ * @param {import('@archislop/shared/godSchemas.js').GodRunRecord[]} records
+ * @param {string} month `YYYY-MM`
+ */
+export function monthTotals(records, month) {
+  let ticks = 0;
+  let acts = 0;
+  let spend = 0;
+  let lastMs = null;
+  /** @type {string | null} */
+  let lastActAt = null;
+
+  for (const record of records) {
+    if (record.endedAt.slice(0, 7) !== month) continue;
+    ticks += 1;
+    const usd = Number(record.usage?.usd);
+    if (Number.isFinite(usd) && usd > 0) spend += usd;
+    if (!ACT_VERDICTS.has(record.verdict)) continue;
+    acts += 1;
+    const ms = Date.parse(record.startedAt);
+    if (!Number.isFinite(ms)) continue;
+    if (lastMs == null || ms > lastMs) {
+      lastMs = ms;
+      lastActAt = new Date(ms).toISOString();
+    }
+  }
+
+  return { ticks, acts, monthSpendUsd: round6(spend), lastActAt };
+}
+
+function round6(value) {
+  return Math.round(value * 1e6) / 1e6;
+}
+
+/**
+ * Cadence and spend for the gate, derived from run records.
+ *
+ * Deliberately **not** read from `index/*.json` rows: the index is a rollup a bad merge can rewrite,
+ * and a rollup is not something to hang the monthly money cap (`GOD_MAX_USD_PER_MONTH`) or the
+ * `GOD_EVERY_HOURS` cadence on. A 2026-10 tick clobbered the month file with its own single row — 54
+ * run records, one index row.
+ *
+ * The two numbers have different scopes, and mixing them up breaks a rail: spend is per-month (it is
+ * what the monthly cap measures), but the last act is **all-time**. Scoping the act to the month would
+ * reset `GOD_EVERY_HOURS` to "God has never acted" at every month boundary and let it spend again
+ * immediately after midnight on the 1st.
  *
  * @param {import('@archislop/shared/godSchemas.js').GodRunRecord[]} records
  * @param {string} month `YYYY-MM`
  * @returns {{ lastActAt: string | null, monthSpendUsd: number }}
  */
 export function deriveCadence(records, month) {
+  const { monthSpendUsd } = monthTotals(records, month);
+
   let lastMs = null;
   /** @type {string | null} */
   let lastActAt = null;
-  let monthSpendUsd = 0;
-
   for (const record of records) {
-    if (record.endedAt.slice(0, 7) === month) {
-      const usd = Number(record.usage?.usd);
-      if (Number.isFinite(usd) && usd > 0) monthSpendUsd += usd;
-    }
     if (!ACT_VERDICTS.has(record.verdict)) continue;
     const ms = Date.parse(record.startedAt);
     if (!Number.isFinite(ms)) continue;
@@ -114,7 +154,7 @@ export function deriveCadence(records, month) {
     }
   }
 
-  return { lastActAt, monthSpendUsd: Math.round(monthSpendUsd * 1e6) / 1e6 };
+  return { lastActAt, monthSpendUsd };
 }
 
 /**
@@ -204,7 +244,41 @@ export function mergeGodLogTick(input) {
     }
   }
 
-  return { runsCopied, index };
+  /**
+   * Stamp the authoritative month numbers from `runs/*.json` onto every rollup on the branch.
+   *
+   * This is the only moment the true totals can be computed: the fold has the whole branch checked
+   * out, while the owner's status view can read exactly one file per month and cannot list `runs/`
+   * over raw HTTPS. Without the stamp, a rollup whose rows were truncated reports a smaller month —
+   * including its spend — and nothing notices.
+   *
+   * Previous months are re-stamped too, so a month whose files were truncated before this landed
+   * reports its real totals again. Writing only on change keeps an hourly tick from churning files
+   * whose numbers have not moved.
+   */
+  const records = loadRunRecords(destRuns);
+  /** @type {Record<string, object>} */
+  const stamped = {};
+  for (const name of fs.readdirSync(destIndex)) {
+    if (!name.endsWith('.json')) continue;
+    const file = path.join(destIndex, name);
+    /** @type {{ month?: string, totals?: object } | null} */
+    let doc = null;
+    try {
+      doc = JSON.parse(fs.readFileSync(file, 'utf8'));
+    } catch {
+      continue;
+    }
+    if (!doc) continue;
+    const month = typeof doc.month === 'string' ? doc.month : name.replace('.json', '');
+    const totals = monthTotals(records, month);
+    if (JSON.stringify(doc.totals ?? null) === JSON.stringify(totals)) continue;
+    doc.totals = totals;
+    fs.writeFileSync(file, `${JSON.stringify(doc, null, 2)}\n`);
+    stamped[month] = totals;
+  }
+
+  return { runsCopied, index, stamped };
 }
 
 /**

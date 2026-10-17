@@ -60,5 +60,9 @@ export const SERVER_STRICT_ISLAND_FILES = [
   'src/mcp/mcpSlotRevisions.ts',
   'src/state/sessionServices.ts',
   'src/state/pairingCodeStore.ts',
-  'src/routes/signals.ts'
+  'src/routes/signals.ts',
+  // ArchiSlop God owner status view (ADR-0019 §10, stage 2c) — added to apps/server/tsconfig.strict.json
+  // with the same commit; verify-strict-islands.mjs fails if the two lists drift.
+  'src/god/godLogView.ts',
+  'src/routes/godStatus.ts'
 ];

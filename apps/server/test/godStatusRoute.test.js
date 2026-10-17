@@ -30,8 +30,8 @@ function row(runId, startedAt, extra = {}) {
   };
 }
 
-function rollup(month, rows) {
-  return { v: 1, month, runs: rows };
+function rollup(month, rows, totals) {
+  return totals ? { v: 1, month, totals, runs: rows } : { v: 1, month, runs: rows };
 }
 
 /** Stub of the raw branch: exact URL → body; a missing key answers 404 like a month with no file. */
@@ -111,22 +111,30 @@ test('the months read are the current and previous UTC month, across the year bo
 test('a live month answers what happened, why it stopped, and how close it was', async () => {
   const digest = { agentTurns: 2, uxSignals: 3, sessions: 2, findings: 0, sufficient: false };
   const probe = stubFetch({
-    [urlFor(MONTH)]: rollup(MONTH, [
-      row('t1', '2026-10-16T06:17:00.000Z', { gateReason: 'insufficient', digest }),
-      row('t2', '2026-10-17T06:17:00.000Z', { gateReason: 'insufficient', digest }),
-      row('t3', '2026-10-17T07:17:00.000Z', { gateReason: 'outside_window' })
-    ]),
-    [urlFor(PREV)]: rollup(PREV, [
-      row('s1', '2026-09-30T06:17:00.000Z', { verdict: 'pr_opened', usd: 0.42 })
-    ])
+    [urlFor(MONTH)]: rollup(
+      MONTH,
+      [
+        row('t1', '2026-10-16T06:17:00.000Z', { gateReason: 'insufficient', digest }),
+        row('t2', '2026-10-17T06:17:00.000Z', { gateReason: 'insufficient', digest }),
+        row('t3', '2026-10-17T07:17:00.000Z', { gateReason: 'outside_window' })
+      ],
+      { ticks: 3, acts: 0, monthSpendUsd: 0, lastActAt: null }
+    ),
+    [urlFor(PREV)]: rollup(
+      PREV,
+      [row('s1', '2026-09-30T06:17:00.000Z', { verdict: 'pr_opened', usd: 0.42 })],
+      { ticks: 1, acts: 1, monthSpendUsd: 0.42, lastActAt: '2026-09-30T06:17:00.000Z' }
+    )
   });
 
   const view = await getGodStatusView({ env: ENV, fetchImpl: probe.impl, nowMs: () => NOW });
 
   assert.equal(view.source, 'live');
   assert.deepEqual(view.issues, []);
+  assert.equal(view.numbersFrom, 'records');
   // Only the newest month counts toward the monthly cap.
   assert.equal(view.ticks, 3);
+  assert.equal(view.acts, 0);
   assert.equal(view.monthSpendUsd, 0);
   assert.equal(view.lastTick.runId, 't3');
   assert.equal(view.lastTick.gateReason, 'outside_window');
@@ -141,6 +149,47 @@ test('a live month answers what happened, why it stopped, and how close it was',
   assert.equal(probe.calls.length, 2, 'one fetch per month');
 });
 
+test('the stamped totals beat the rows that survived a truncated rollup', async () => {
+  // The October 2026 case, and the reason the stamp exists: the rollup rows were rewritten down to
+  // one row, while 54 records say the month really ran 54 ticks and billed $0.018813. A view that
+  // counts rows would report a month 54x too small, money included, and look perfectly healthy.
+  const truncated = rollup(
+    MONTH,
+    [row('t54', '2026-10-17T07:31:08.037Z', { gateReason: 'insufficient' })],
+    {
+      ticks: 54,
+      acts: 1,
+      monthSpendUsd: 0.018813,
+      lastActAt: '2026-10-15T15:22:19.545Z'
+    }
+  );
+  const view = await getGodStatusView({
+    env: ENV,
+    fetchImpl: stubFetch({ [urlFor(MONTH)]: truncated }).impl,
+    nowMs: () => NOW
+  });
+  assert.equal(view.numbersFrom, 'records');
+  assert.equal(view.ticks, 54);
+  assert.equal(view.acts, 1);
+  assert.equal(view.monthSpendUsd, 0.018813);
+  assert.equal(view.lastActAt, '2026-10-15T15:22:19.545Z');
+  assert.deepEqual(view.issues, []);
+});
+
+test('an unstamped rollup reports what it can and says the numbers are only rows', async () => {
+  // A month file written before the fold stamped totals: fall back to counting rows, but never
+  // present that count as the month. This is the state a live pre-fix branch is in today.
+  const unstamped = rollup(MONTH, [row('t1', '2026-10-16T06:17:00.000Z')]);
+  const view = await getGodStatusView({
+    env: ENV,
+    fetchImpl: stubFetch({ [urlFor(MONTH)]: unstamped }).impl,
+    nowMs: () => NOW
+  });
+  assert.equal(view.numbersFrom, 'rollupRows');
+  assert.equal(view.ticks, 1);
+  assert.deepEqual(view.issues, ['rollup_totals_missing']);
+});
+
 test('a month with no file is an empty month, not a failure', async () => {
   const probe = stubFetch({});
   const view = await getGodStatusView({ env: ENV, fetchImpl: probe.impl, nowMs: () => NOW });
@@ -153,14 +202,24 @@ test('a month with no file is an empty month, not a failure', async () => {
 
 test('the spend column is the number GOD_MAX_USD_PER_MONTH is measured against', async () => {
   const probe = stubFetch({
-    [urlFor(MONTH)]: rollup(MONTH, [
-      row('a', '2026-10-01T06:17:00.000Z', { verdict: 'observed', usd: 0.35 }),
-      row('b', '2026-10-02T06:17:00.000Z', { verdict: 'red', usd: 0.65 }),
-      row('c', '2026-10-03T06:17:00.000Z', { usd: 9 })
-    ])
+    [urlFor(MONTH)]: rollup(
+      MONTH,
+      [
+        row('a', '2026-10-01T06:17:00.000Z', { verdict: 'observed', usd: 0.35 }),
+        row('b', '2026-10-02T06:17:00.000Z', { verdict: 'red', usd: 0.65 }),
+        row('c', '2026-10-03T06:17:00.000Z', { usd: 9 })
+      ],
+      {
+        ticks: 3,
+        acts: 2,
+        monthSpendUsd: 10,
+        lastActAt: '2026-10-02T06:17:00.000Z'
+      }
+    )
   });
   const view = await getGodStatusView({ env: ENV, fetchImpl: probe.impl, nowMs: () => NOW });
   assert.equal(view.monthSpendUsd, 10);
+  assert.equal(view.acts, 2);
   assert.equal(view.lastActAt, '2026-10-02T06:17:00.000Z', 'a noop tick is not an act');
 });
 
@@ -180,14 +239,19 @@ test('one bad row costs that row, not the month', async () => {
     }
   });
   const view = await getGodStatusView({ env: ENV, fetchImpl: probe.impl, nowMs: () => NOW });
-  assert.deepEqual(view.issues, ['rollup_rows_dropped']);
+  assert.deepEqual(view.issues, ['rollup_rows_dropped', 'rollup_totals_missing']);
   assert.equal(view.ticks, 1);
   assert.equal(view.lastTick.runId, 'ok');
 });
 
 test('GitHub being down keeps the last good answer and says it is old', async () => {
   const good = stubFetch({
-    [urlFor(MONTH)]: rollup(MONTH, [row('g', '2026-10-16T06:17:00.000Z')])
+    [urlFor(MONTH)]: rollup(MONTH, [row('g', '2026-10-16T06:17:00.000Z')], {
+      ticks: 1,
+      acts: 0,
+      monthSpendUsd: 0,
+      lastActAt: null
+    })
   });
   const first = await getGodStatusView({ env: ENV, fetchImpl: good.impl, nowMs: () => NOW });
   assert.equal(first.source, 'live');

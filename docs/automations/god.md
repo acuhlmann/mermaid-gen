@@ -182,11 +182,20 @@ reads. Folding a tick into the branch is
 `scripts/god/godLog.test.mjs`. Do not move that merge back into a workflow heredoc: the `cp`-then-merge
 order it replaced silently reduced the month's history to one row for 52 ticks (found 2026-10-17).
 
-The rollup is validated by `GodRollupRowSchema` (`recordTick.mjs`'s `rollupRow`) — it was the one
-durable artifact of the rung with no schema, which is exactly why that merge bug had no sensor. Its
-reader is `GET /api/god/status` (`apps/server/src/god/godLogView.ts`), the owner's run view: it reports
-what a tick recorded and never recomputes the gate decision, because the gate's config lives in Actions
-variables the server cannot read.
+The rollup also carries `totals`, **stamped at fold time from `runs/*.json`** by `monthTotals` in
+`scripts/god/godLog.mjs`: `ticks`, `acts`, `monthSpendUsd` and `lastActAt` for the whole month, with
+previous months re-stamped so a month truncated before this landed reports its real size again. The
+status view reads exactly one file per month and cannot list `runs/` over raw HTTPS, so without the
+stamp a rollup whose rows were truncated reports a smaller month — money included. October 2026 is
+that case: 54 records, one surviving row, and the view answered `ticks: 1, monthSpendUsd: 0`. It now
+reports `numbersFrom` (`records` when the stamp is there, `rollupRows` when it is not) and raises
+`rollup_totals_missing` rather than passing a row count off as a month.
+
+The two scopes differ on purpose, and conflating them breaks a rail: spend is per-month (that is what
+`GOD_MAX_USD_PER_MONTH` measures), while the last act is **all-time** — scoping the act to the month
+would reset `GOD_EVERY_HOURS` to "never acted" at every month boundary and let God spend again
+immediately after midnight on the 1st. `deriveCadence` and `monthTotals` are separate functions for
+exactly that reason.
 
 Each run record also carries `reason` and `digest`, so `god-log` alone answers "why did that tick do
 nothing, and how close was it?" — a question that otherwise lived only in a step summary and a 30-day

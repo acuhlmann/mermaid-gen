@@ -38,15 +38,25 @@ Filled from the first sufficient brief after signals accumulate in `god-signals`
 
 ## Open observations
 
-- **God has never acted, and the reason is measured, not suspected.** 52 hourly ticks, every one
-  `noop`. Inside the 06–12 UTC window the gate goes `go=true reason=go`; the live brief builds (no
+- **No scheduled tick has ever acted, and the reason is measured, not suspected.** Every hourly tick
+  is `noop`. Inside the 06–12 UTC window the gate goes `go=true reason=go`; the live brief builds (no
   fixture fallback) on `agentTurns: 2` / `uxSignals: 3` against `sufficient = agentTurns + uxSignals
-  > = 30` (`GOD_HARD_LIMITS.minNewSignals`), so `decideAct`returns`insufficient`. A per-slot finding
+  > = GOD_HARD_LIMITS.minNewSignals`(30), so`decideAct`returns`insufficient`. A per-slot finding
 needs `MIN_SAMPLE_FOR_FINDING = 20` turns on top of that. Nothing is broken — the rails work and
   > the tank is empty. Traffic is the only thing that unblocks this; do not "fix" it by lowering a bar.
-- **The month rollup lost its rows and is now harmless.** `index/2026-10.json` only ever carried the
-  last tick before this fix. Nothing reads it for money or cadence anymore, so don't spend a run
-  rebuilding it — the per-tick gate reason still lives in each workflow's step summary.
+- **Correction, same day: no _scheduled_ tick has ever acted, but one tick did act.** Re-reading the
+  whole branch (not the last 25 records) found `38759172829`: `trigger: manual`, `tier: observe`,
+  harness `dsh 0.2.0-rc.2`, 16 s, **$0.018813**, `verdict: observed`, and `findingId` and `hypothesis`
+  both null. So October is 54 records — 53 `noop` plus that one act. Two things follow: the rung can
+  reach the harness when the owner dispatches it, and the one time it did, it billed and completed
+  without naming a finding. The observe narration contract accepted nothing, and nothing downstream
+  noticed. That gap is the next candidate, not the signal floor.
+- **The month rollup's lost rows are no longer harmless, and are now repaired at read time.**
+  `index/2026-10.json` still carries one row while `runs/` holds 54 records, and the owner status view
+  reads that file. The fold therefore stamps the true month totals (`ticks`, `acts`, `monthSpendUsd`,
+  `lastActAt`) onto it from the records, and the view reports `numbersFrom: records` — so a truncated
+  month can no longer be presented as a small one, including its spend.
 - Ship (`gh pr merge --auto`) is still later. Propose stops at an open PR.
-- Owner window + `/api/god` is stage 2c.
+- Stage 2c is half shipped: `GET /api/god/status` is read-only. The window UI, settings writes (needs
+  the narrow Actions token) and live ingest (needs its HMAC secret) are still open.
 - Live-ingest HMAC and GitHub App for settings/PR open are not created yet.

@@ -7,6 +7,7 @@ import { buildTickRecord } from './recordTick.mjs';
 import {
   deriveCadence,
   mergeGodLogTick,
+  monthTotals,
   promptSafeHistory,
   readGodLogState,
   writeGodLogOutputs
@@ -186,4 +187,136 @@ test('mergeGodLogTick unions the month rollup instead of replacing it', () => {
   mergeGodLogTick({ destRoot: dest, tickDir: tick('m2', '2026-10-16T07:17:00.000Z') });
   const again = JSON.parse(fs.readFileSync(path.join(dest, 'index', '2026-10.json'), 'utf8'));
   assert.equal(again.runs.length, 2);
+});
+
+test('the fold stamps the true month totals, not the surviving rows', () => {
+  const dest = fs.mkdtempSync(path.join(os.tmpdir(), 'god-log-stamp-'));
+  const tick = (id, at, verdict, usd) => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), `god-log-stamp-${id}-`));
+    const record = buildTickRecord({
+      'run-id': id,
+      tier: 'propose',
+      focus: 'any',
+      now: at
+    });
+    record.verdict = verdict;
+    record.usage = { ...record.usage, usd };
+    writeRun(dir, record);
+    return dir;
+  };
+
+  mergeGodLogTick({ destRoot: dest, tickDir: tick('x1', '2026-09-30T06:17:00.000Z', 'noop', 0) });
+  mergeGodLogTick({
+    destRoot: dest,
+    tickDir: tick('x2', '2026-10-15T15:22:19.545Z', 'observed', 0.018813)
+  });
+  const third = mergeGodLogTick({
+    destRoot: dest,
+    tickDir: tick('x3', '2026-10-16T06:17:00.000Z', 'noop', 0)
+  });
+
+  assert.deepEqual(third.stamped['2026-10'], {
+    ticks: 2,
+    acts: 1,
+    monthSpendUsd: 0.018813,
+    lastActAt: '2026-10-15T15:22:19.545Z'
+  });
+  const oct = JSON.parse(fs.readFileSync(path.join(dest, 'index', '2026-10.json'), 'utf8'));
+  assert.deepEqual(oct.totals, third.stamped['2026-10']);
+  // Previous months are stamped too, so a month truncated before this landed reports its real size.
+  const sep = JSON.parse(fs.readFileSync(path.join(dest, 'index', '2026-09.json'), 'utf8'));
+  assert.deepEqual(sep.totals, { ticks: 1, acts: 0, monthSpendUsd: 0, lastActAt: null });
+
+  // Re-folding the same tick must not rewrite the stamp: an hourly tick should not churn the branch.
+  const rerun = mergeGodLogTick({
+    destRoot: dest,
+    tickDir: tick('x3', '2026-10-16T06:17:00.000Z', 'noop', 0)
+  });
+  assert.deepEqual(rerun.stamped, {});
+});
+
+test('the stamp survives a rollup truncated to one row', () => {
+  // October 2026 exactly: 54 records, 1 index row. Counting rows reports a month 54x too small,
+  // spend included, and the status view cannot list runs/ over raw HTTPS to correct it itself.
+  const dest = fs.mkdtempSync(path.join(os.tmpdir(), 'god-log-trunc-'));
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'god-log-trunc-tick-'));
+  writeRun(
+    dir,
+    buildTickRecord({
+      'run-id': 'new',
+      tier: 'propose',
+      focus: 'any',
+      now: '2026-10-17T07:17:00.000Z'
+    })
+  );
+  fs.mkdirSync(path.join(dest, 'runs'), { recursive: true });
+  fs.mkdirSync(path.join(dest, 'index'), { recursive: true });
+  for (let i = 0; i < 53; i += 1) {
+    const record = buildTickRecord({
+      'run-id': `t${i}`,
+      tier: 'propose',
+      focus: 'any',
+      now: `2026-10-${String(1 + (i % 15)).padStart(2, '0')}T06:17:00.000Z`
+    });
+    if (i === 0) {
+      record.verdict = 'observed';
+      record.usage = { ...record.usage, usd: 0.018813 };
+    }
+    fs.writeFileSync(
+      path.join(dest, 'runs', `${record.runId}.json`),
+      `${JSON.stringify(record)}\n`
+    );
+  }
+  fs.writeFileSync(
+    path.join(dest, 'index', '2026-10.json'),
+    `${JSON.stringify({
+      v: 1,
+      month: '2026-10',
+      runs: [
+        { runId: 't0', startedAt: 't', endedAt: 't', verdict: 'noop', tier: 'propose', usd: 0 }
+      ]
+    })}\n`
+  );
+
+  mergeGodLogTick({ destRoot: dest, tickDir: dir });
+  const oct = JSON.parse(fs.readFileSync(path.join(dest, 'index', '2026-10.json'), 'utf8'));
+  assert.equal(oct.runs.length, 2, 'the rows are still truncated — only the stamp can be trusted');
+  assert.equal(oct.totals.ticks, 54);
+  assert.equal(oct.totals.acts, 1);
+  assert.equal(oct.totals.monthSpendUsd, 0.018813);
+
+  // And the gate reads the same truth from the records.
+  const state = readGodLogState(dest, { now: new Date('2026-10-17T12:00:00.000Z') });
+  assert.equal(state.monthSpendUsd, 0.018813);
+});
+
+test('cadence spans months but spend does not', () => {
+  // A month boundary must not reset GOD_EVERY_HOURS to "never acted" and let God spend again.
+  const acted = buildTickRecord({
+    'run-id': 'sep-act',
+    tier: 'observe',
+    focus: 'any',
+    now: '2026-09-30T23:00:00.000Z'
+  });
+  acted.verdict = 'pr_opened';
+  acted.usage = { ...acted.usage, usd: 0.5 };
+  const noop = buildTickRecord({
+    'run-id': 'oct-noop',
+    tier: 'observe',
+    focus: 'any',
+    now: '2026-10-01T00:17:00.000Z'
+  });
+  noop.usage = { ...noop.usage, usd: 0.25 };
+
+  const october = deriveCadence([acted, noop], '2026-10');
+  assert.equal(october.lastActAt, '2026-09-30T23:00:00.000Z', 'all-time act, not this month only');
+  assert.equal(october.monthSpendUsd, 0.25, 'spend stays scoped to the month the cap measures');
+
+  // monthTotals is per-month by contract, which is why deriveCadence cannot simply delegate.
+  assert.deepEqual(monthTotals([acted, noop], '2026-10'), {
+    ticks: 1,
+    acts: 0,
+    monthSpendUsd: 0.25,
+    lastActAt: null
+  });
 });

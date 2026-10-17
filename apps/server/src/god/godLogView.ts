@@ -18,7 +18,9 @@
 import {
   GOD_ACT_VERDICTS,
   GodMonthRollupSchema,
+  GodMonthTotalsSchema,
   GodRollupRowSchema,
+  type GodMonthTotals,
   type GodRollupRow
 } from '@archislop/shared';
 
@@ -39,7 +41,11 @@ const BRANCH_RE = /^[\w./-]{1,120}$/;
 const ACT_VERDICTS = new Set<string>(GOD_ACT_VERDICTS);
 
 export type GodStatusIssue =
-  'source_invalid' | 'fetch_failed' | 'rollup_unreadable' | 'rollup_rows_dropped';
+  | 'source_invalid'
+  | 'fetch_failed'
+  | 'rollup_unreadable'
+  | 'rollup_rows_dropped'
+  | 'rollup_totals_missing';
 
 export type GodStatusView = {
   v: 1;
@@ -50,8 +56,16 @@ export type GodStatusView = {
   branch: string | null;
   months: string[];
   ticks: number;
+  /** Ticks that reached the harness. Same source as `ticks`, so the two are comparable. */
+  acts: number;
   /** Sum of `usd` over the newest month only — the number `GOD_MAX_USD_PER_MONTH` is measured against. */
   monthSpendUsd: number;
+  /**
+   * Where the three numbers above came from. `records` is the truth, stamped at fold time from
+   * `runs/*.json`; `rollupRows` counts only the rows that survived in this file, which a truncated
+   * rollup understates — so the view must never pass those off as the month.
+   */
+  numbersFrom: 'records' | 'rollupRows';
   lastTick: GodRollupRow | null;
   /** Newest tick that reached the harness, or null if God has never acted. */
   lastActAt: string | null;
@@ -96,9 +110,16 @@ export function godRollupUrl(source: GodLogSource, month: string): string {
 type MonthRead = {
   month: string;
   rows: GodRollupRow[];
+  /** True month numbers stamped by the fold, or null on a month file written before it landed. */
+  totals: GodMonthTotals | null;
   missing: boolean;
   issues: GodStatusIssue[];
 };
+
+function readTotals(body: unknown): GodMonthTotals | null {
+  const parsed = GodMonthTotalsSchema.safeParse((body as { totals?: unknown })?.totals);
+  return parsed.success ? parsed.data : null;
+}
 
 /**
  * A missing month file is a fact, not a failure: the branch has no ticks for that month yet.
@@ -106,11 +127,19 @@ type MonthRead = {
  */
 function parseMonth(month: string, body: unknown): MonthRead {
   const strict = GodMonthRollupSchema.safeParse(body);
-  if (strict.success) return { month, rows: strict.data.runs, missing: false, issues: [] };
+  if (strict.success)
+    return {
+      month,
+      rows: strict.data.runs,
+      totals: strict.data.totals ?? null,
+      missing: false,
+      issues: []
+    };
 
   const rawRuns = (body as { runs?: unknown })?.runs;
+  const totals = readTotals(body);
   if (!Array.isArray(rawRuns))
-    return { month, rows: [], missing: false, issues: ['rollup_unreadable'] };
+    return { month, rows: [], totals, missing: false, issues: ['rollup_unreadable'] };
   const rows: GodRollupRow[] = [];
   for (const candidate of rawRuns) {
     const parsed = GodRollupRowSchema.safeParse(candidate);
@@ -119,6 +148,7 @@ function parseMonth(month: string, body: unknown): MonthRead {
   return {
     month,
     rows,
+    totals,
     missing: false,
     issues: rows.length === rawRuns.length ? ['rollup_unreadable'] : ['rollup_rows_dropped']
   };
@@ -133,7 +163,7 @@ async function readMonth(
     headers: { Accept: 'application/json' },
     signal: AbortSignal.timeout(FETCH_TIMEOUT_MS)
   });
-  if (response.status === 404) return { month, rows: [], missing: true, issues: [] };
+  if (response.status === 404) return { month, rows: [], totals: null, missing: true, issues: [] };
   if (!response.ok) throw new Error(`god-log rollup ${response.status}`);
   return parseMonth(month, await response.json());
 }
@@ -159,6 +189,16 @@ export function summarizeGodLog(input: {
   const monthRows = rows.filter((row) => row.endedAt.slice(0, 7) === newestMonth);
   const lastAct = rows.find((row) => ACT_VERDICTS.has(row.verdict)) ?? null;
 
+  // The fold's stamp beats counting rows whenever it is there. October 2026 is the proof: one
+  // surviving row made this view report `ticks: 1, monthSpendUsd: 0` over a month of 54 ticks that
+  // really billed $0.018813. A rollup is a list; the records are the ledger.
+  const totals = input.reads.find((read) => read.month === newestMonth)?.totals ?? null;
+  if (!totals && monthRows.length > 0) issues.add('rollup_totals_missing');
+  const stampedActs = input.reads
+    .map((read) => read.totals?.lastActAt ?? null)
+    .filter((value): value is string => value !== null)
+    .sort((a, b) => b.localeCompare(a));
+
   const tally = new Map<string, number>();
   for (const row of monthRows) {
     const reason = row.gateReason ?? 'unlabelled';
@@ -172,10 +212,13 @@ export function summarizeGodLog(input: {
     repo: input.repo,
     branch: input.branch,
     months: input.months,
-    ticks: monthRows.length,
-    monthSpendUsd: round6(monthRows.reduce((sum, row) => sum + row.usd, 0)),
+    ticks: totals?.ticks ?? monthRows.length,
+    acts: totals?.acts ?? rows.filter((row) => ACT_VERDICTS.has(row.verdict)).length,
+    monthSpendUsd:
+      totals?.monthSpendUsd ?? round6(monthRows.reduce((sum, row) => sum + row.usd, 0)),
+    numbersFrom: totals ? 'records' : 'rollupRows',
     lastTick: rows[0] ?? null,
-    lastActAt: lastAct ? lastAct.startedAt : null,
+    lastActAt: stampedActs[0] ?? (lastAct ? lastAct.startedAt : null),
     reasonTally: [...tally.entries()]
       .map(([reason, count]) => ({ reason, count }))
       .sort((a, b) => b.count - a.count || a.reason.localeCompare(b.reason)),
@@ -283,7 +326,9 @@ function emptyView(
     ...base,
     months: [],
     ticks: 0,
+    acts: 0,
     monthSpendUsd: 0,
+    numbersFrom: 'rollupRows',
     lastTick: null,
     lastActAt: null,
     reasonTally: [],

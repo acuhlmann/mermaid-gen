@@ -329,6 +329,22 @@ export const GodRollupRowSchema = z.strictObject({
 const rollupMonth = z.string().regex(/^\d{4}-\d{2}$/);
 
 /**
+ * Month totals computed at fold time from `runs/*.json`, never from the rows in this file.
+ *
+ * The rows are a list a bad merge can truncate — which is exactly what happened to all of October —
+ * while the per-run records are append-only and unenumerable over the raw HTTPS endpoint the owner's
+ * status view reads. So the fold step, which *does* have the whole branch checked out, stamps the
+ * true month numbers onto the rollup for that reader. Without this the view reports whatever rows
+ * survived and quietly understates the month's spend — the failure ADR-0019 §5 exists to prevent.
+ */
+export const GodMonthTotalsSchema = z.strictObject({
+  ticks: count,
+  acts: count,
+  monthSpendUsd: usd,
+  lastActAt: isoTime.nullable()
+});
+
+/**
  * A month of rollup rows. `max` is a month of hourly ticks plus room for dispatches: a file that
  * outgrows it means the rollup stopped being folded idempotently, and the consumer should say so
  * rather than render a truncated month as if it were whole.
@@ -336,6 +352,8 @@ const rollupMonth = z.string().regex(/^\d{4}-\d{2}$/);
 export const GodMonthRollupSchema = z.strictObject({
   v: z.literal(GOD_SCHEMA_VERSION),
   month: rollupMonth,
+  /** Optional, like every field added since: the branch's existing month files predate it. */
+  totals: GodMonthTotalsSchema.optional(),
   runs: z.array(GodRollupRowSchema).max(1_000)
 });
 
@@ -375,6 +393,7 @@ export type GodLiveBatch = z.infer<typeof GodLiveBatchSchema>;
 export type GodUsage = z.infer<typeof GodUsageSchema>;
 export type GodBriefDigest = z.infer<typeof GodBriefDigestSchema>;
 export type GodRollupRow = z.infer<typeof GodRollupRowSchema>;
+export type GodMonthTotals = z.infer<typeof GodMonthTotalsSchema>;
 export type GodMonthRollup = z.infer<typeof GodMonthRollupSchema>;
 export type GodRunRecord = z.infer<typeof GodRunRecordSchema>;
 export type GodConfig = z.infer<typeof GodConfigSchema>;
