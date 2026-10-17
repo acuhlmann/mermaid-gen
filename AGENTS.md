@@ -28,7 +28,7 @@ This file is a quick operator manual for coding agents working in this repositor
 - `npm run setup:gcloud` — Google Cloud CLI only; `npm run setup:skills` — skills refresh only
 - `npm run dev` — web + server together (see [Cursor Cloud](#cursor-cloud-setup-and-ai-backends)); `npm run test`; `npm run build` (shared → server → web; the web chunk-size warning is expected)
 - Artifact Registry retention: `npm run ar:cleanup:verify` (policy in `scripts/artifact-registry-cleanup-policy.json`), apply with `npm run ar:cleanup:apply`
-- Regenerate baked office audio: **always name the asset** — `./scripts/generate-office-audio.sh cue-laugh`. Bare regenerates the whole manifest: 900 credits and every committed `.mp3` overwritten. `--dry-run` prices first; `--verify` re-checks the installed bank for free and runs automatically after each generate. See [`docs/audio-assets.md`](docs/audio-assets.md)
+- Regenerate baked office audio: **always name the asset** — `./scripts/generate-office-audio.sh cue-laugh`. Bare regenerates the whole manifest (900 credits, every committed `.mp3` overwritten); `--dry-run` prices first, `--verify` re-checks the bank for free. Flags and cost: [`docs/audio-assets.md`](docs/audio-assets.md)
 
 **Verify after edits** — the full table lives in [`docs/guide/coding-agents.md`](docs/guide/coding-agents.md) and the semantics of each sensor in [`docs/agents/sensors.md`](docs/agents/sensors.md). Pick the smallest loop that fits:
 
@@ -75,26 +75,24 @@ Depth lives in `CLAUDE.md` (§ Validation ladder). The four things an agent miss
 
 ## Domain gotchas — scoped, not deleted
 
-Two domains carry far more hard-won detail than anything else in this repo. Both used to sit in the root `CLAUDE.md` **and** here at the same time — about 152 KB, ~38 k tokens, loaded by every session before any work started. Each is now one file, read by the agents that touch it:
+Two domains carry far more hard-won detail than anything else in this repo. Each is now one file, read by the agents that touch it (the 152 KB / ~38 k-token history is in rule 8's § Why the split):
 
 | Domain         | The file                                                                 | Read it when you touch                                                                                                                             |
 | -------------- | ------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Metaphor3D** | [`docs/agents/domains/metaphor3d.md`](docs/agents/domains/metaphor3d.md) | `metaphorScenes/`, `MetaphorRenderer.jsx`, `metaphorLayouts/`, `utils/metaphor*`, `shared/src/metaphor*`, the metaphor ladder                      |
 | **Office**     | [`docs/agents/domains/office.md`](docs/agents/domains/office.md)         | `OfficeFloor*`, `officeFloor/`, `OfficeLayer*`, `DeskOs*`, `personaFaces/`, `state/office*`, `utils/office*`, `locales/office.*`, server `office*` |
 
-Each opens with a **Short form** — one line per finding, naming the file it lives in. Read that first, and the matching **Full findings** entry, before changing the thing it names. Floor-specific test traps: [`docs/agents/isometric-floor-tests.md`](docs/agents/isometric-floor-tests.md); the geometry spec and its § 6 trap list: [`docs/office-isometric-mode.md`](docs/office-isometric-mode.md).
+Each opens with a **Short form** — one line per finding, naming the file it lives in. Read that first, and the matching **Full findings** entry, before changing the thing it names. Floor test traps: [`docs/agents/isometric-floor-tests.md`](docs/agents/isometric-floor-tests.md); geometry spec and its § 6 trap list: [`docs/office-isometric-mode.md`](docs/office-isometric-mode.md).
 
-**How each agent gets there.** Cursor: glob-scoped `.cursor/rules/metaphor3d.mdc` and `.cursor/rules/office.mdc` (`alwaysApply: false`). Claude Code: nested `CLAUDE.md` files in `metaphorScenes/`, `metaphorLayouts/`, `officeFloor/`, `state/`. qwen, Codex, anything else: the table above.
-
-**Adding a finding — one copy.** Put it in the domain file, never mirrored back here. The old rule requiring every durable learning in both `AGENTS.md` and `CLAUDE.md` is retired for domain content ([`docs/routines/README.md`](docs/routines/README.md) rule 8); it is what made each finding cost twice.
+**Adding a finding — one copy, per rule 8** ([`docs/routines/README.md`](docs/routines/README.md)): put it in the domain file, never mirrored back here. Cursor reaches the domain files through glob-scoped `.cursor/rules/<domain>.mdc`, Claude Code through nested `CLAUDE.md` files in `metaphorScenes/`, `metaphorLayouts/`, `officeFloor/`, `state/`, and every other agent through the table above.
 
 ## Scheduled NFR routines
 
 Non-functional work — post-merge review, doc drift, test hardening, dependency upkeep — runs on a schedule as **NFR routines** ([ADR-0014](docs/decisions/0014-autonomous-nfr-routines.md), [ADR-0017](docs/decisions/0017-routine-ownership-dependabot-and-the-attention-bar.md)). Six ship today. **[`docs/routines/README.md`](docs/routines/README.md) is the full contract** — routine table, budget enforcement, who may widen a budget, `ready-for-human` / `ready-for-agent`, the one-branch-at-a-time preflight, tiers. Only these three rules are not stated in that contract:
 
 - **Eight jobs run between `0 15` and `45 0` UTC** (23:00 → 08:45 in the owner's GMT+8), in a dependency order: producers longest first so a long job at the head absorbs its own overrun, `prune` ahead of `digest` so the morning report names what went, and `review` → `improve` → `resolve` → `digest` behind them. `deps` (`30 4,14 * * *`) is off-ladder on purpose. Table + measured worst-case end of each rung: [`docs/routines/review.md`](docs/routines/review.md). `npm run verify:agent-infra` fails if a rung leaves the 15:00–01:00 UTC window, is missing from the table, or if a mirror table disagrees with a playbook's `schedule:`.
-- **`verify:ratchet` is the `improve` routine's work queue, not a gate.** Root-doc byte counts, monolith LOC and lint warnings should only fall; strict-island and suite counts should only rise. Deliberately out of `npm run check`: a quality metric that reddens an unattended build at an hour nobody is watching teaches an agent to raise the budget instead of fixing the code.
-- **One fleet per 24-hour window.** Any automation with write access to product code needs a row in `docs/routines/README.md` or `docs/automations/README.md`; `digest` watchdog 7 reports branches matching no registered `prTitlePrefix`. Two unregistered automations can price the same bug the same night (#442 vs #446).
+- **`verify:ratchet` is the `improve` routine's work queue, not a gate** — root-doc byte counts, monolith LOC and lint warnings may only fall, strict-island and suite counts only rise; budgets in `docs/agents/ratchet.json`, widened only with a written `reason` (contract § no silent loosening).
+- **One fleet per 24-hour window** — any automation with write access to product code needs a row in `docs/routines/README.md` or `docs/automations/README.md`, and `digest` watchdog 7 reports branches matching no registered `prTitlePrefix`. Two unregistered automations can price the same bug the same night (#442 vs #446).
 
 Ledgers under `docs/routines/ledger/` are the durable memory across cold-start runs — read one before starting, append a row when finishing, including runs that changed nothing.
 
@@ -110,13 +108,11 @@ Slot-quality work — validation gates, prompts, benches, renderer fixes for one
 | [`canvas-graph-edit`](docs/automations/canvas-graph-edit.md) | `30 20 * * *` | 04:30      | Direct manipulation on the canvas, all 28 families — **parked**            |
 | [`god`](docs/automations/god.md)                             | `17 * * * *`  | hourly :17 | Production signals → brief (GHA; off-ladder; window `06–12` UTC; ADR-0019) |
 
-Two standing rules those playbooks carry: **a visual change is verified by rendering it and the PR carries the evidence** (`apps/web/.claude/skills/verify/SKILL.md`, captured viewports, before/after numbers — a prose rule checked by `review`, not a path ban), and **`DiagramCanvas.jsx` stays out of `canvas-graph-edit`'s `allowedPaths`** (it sits on the ratchet; a new family extends `diagramGraphEditNodeResolve.js` instead of growing the canvas component).
+Two standing rules those playbooks carry: **a visual change is verified by rendering it and the PR carries the evidence**, and **`DiagramCanvas.jsx` stays out of `canvas-graph-edit`'s `allowedPaths`** (a new family extends `diagramGraphEditNodeResolve.js` instead of growing the canvas component). Both are stated in full in their playbooks.
 
 ## CopilotKit skill note
 
-- You have access to the CopilotKit skill set in the local `.agents/` folder.
-- `.agents/` is intentionally git-ignored; do not commit it.
-- If skill files appear stale or missing, run `npm run setup:skills`.
+The CopilotKit skill set lives in the git-ignored local `.agents/` folder (don't commit it); refresh with `npm run setup:skills` if it looks stale or missing.
 
 ## Environment and integration notes
 
@@ -168,7 +164,7 @@ Two standing rules those playbooks carry: **a visual change is verified by rende
 
 - **Environment file**: `.env` must exist (copy from `.env.example` if missing). Run `npm run setup` for `npm install`, skills refresh, and `gcloud` when missing; ensure `.env` is present before starting services.
 - **Starting dev servers**: `npm run dev` launches the Express server (port from `PORT` in `.env`, default 4000) and Vite (5173) via `concurrently`. Verify with `curl http://localhost:$PORT/api/health`. No database or Docker required — diagram and collaboration state are in-memory per server process; optional `REDIS_URL` shares pairing codes across Cloud Run instances (slots are not Redis-backed).
-- **AI features require a configured LLM backend** (typically `OPENROUTER_API_KEY` locally, or Vertex on GCP). If none resolves, `llmConfigured` is false and intent/transform/analyze/stream routes return 503; the app still renders diagrams but AI generation will not work. `llmConfigured` is true when any backend resolves — DeepSeek key, OpenRouter key, and/or Vertex project + region per `LLM_PROVIDER` (see `resolveLlmBackend` in `apps/server/src/agents/llmProvider.js`). Local/Cloud Run `auto` prefers **DeepSeek** for Brain when `DEEPSEEK_API_KEY` is set; Vertex serves office/advisor as flash-lite, and is the Cloud Run fallback without DeepSeek.
+- **AI features require a configured LLM backend** (typically `OPENROUTER_API_KEY` locally, Vertex on GCP). If none resolves, `llmConfigured` is false and intent/transform/analyze/stream routes return 503; the app still renders diagrams but generation will not work. `llmConfigured` is true when any backend resolves — DeepSeek, OpenRouter, and/or Vertex per `LLM_PROVIDER` (`resolveLlmBackend` in `apps/server/src/agents/llmProvider.js`); `auto` prefers **DeepSeek** for Brain when `DEEPSEEK_API_KEY` is set, with Vertex as the Cloud Run fallback. Full precedence table: [`docs/llm-config.md`](docs/llm-config.md).
 - **Tests**: `npm test` runs all workspaces sequentially (shared → server → web); server uses Node's test runner, web uses Vitest. All tests pass without any API key. The authoring traps (a sweep with no companion non-empty assertion; `rerender(...)` and `advanceTimersByTimeAsync(...)` sharing one `act` block) are pinned in [`docs/routines/review.md`](docs/routines/review.md) § trap checklist; a `vi.mock` specifier that resolves nowhere fails silently — [`docs/agents/sensors.md`](docs/agents/sensors.md) § the `vi.mock` path check.
 - **Lint / boundaries / `vi.mock` path resolution**: [`docs/agents/sensors.md`](docs/agents/sensors.md) — the canonical fix for each rule is in the tool output itself.
 - **GCP access (`gcloud`)**: `npm run setup:gcloud` installs the SDK to `~/google-cloud-sdk` when absent, and runs `gcloud auth activate-service-account` if `GOOGLE_APPLICATION_CREDENTIALS` or `GCP_MERMAID_GEN` points at a service-account JSON file; it then sets project `mermaidgen` and region `us-central1` when that project is readable. Deployment and investigation reference: [`docs/deploy/gcp.md`](docs/deploy/gcp.md).
@@ -176,24 +172,8 @@ Two standing rules those playbooks carry: **a visual change is verified by rende
 
 ## Architecture docs (read before changing wire contracts)
 
-| Doc                                                                            | Topic                                                            |
-| ------------------------------------------------------------------------------ | ---------------------------------------------------------------- |
-| [`docs/architecture-generative-ui.md`](docs/architecture-generative-ui.md)     | **AG-UI + A2UI + MCP Apps map**, MCP connectivity, host matrix   |
-| [`docs/architecture-external-agents.md`](docs/architecture-external-agents.md) | MCP join, handshakes, proposals, MCP Apps, session-events        |
-| [`docs/architecture-ag-ui.md`](docs/architecture-ag-ui.md)                     | AG-UI SSE for built-in `agent-stream`                            |
-| [`docs/architecture-a2ui.md`](docs/architecture-a2ui.md)                       | A2UI critique `CUSTOM` on AG-UI streams                          |
-| [`docs/agent-blast-radius.md`](docs/agent-blast-radius.md)                     | **Impact map** — if you change X, also change Y (wire contracts) |
-| [`docs/office-continuity.md`](docs/office-continuity.md)                       | **Office continuity** — working memory + `runWalk` (v1 shipped)  |
-| [`docs/canvas-graph-edit.md`](docs/canvas-graph-edit.md)                       | Canvas Add / Delete / Rename / Link — families + next slices     |
-| [`README.md`](README.md)                                                       | Human-facing hub (links to guides below)                         |
-| [`docs/guide/README.md`](docs/guide/README.md)                                 | Split human guides: setup, agents, MCP, API, config              |
-| [`docs/guide/coding-agents.md`](docs/guide/coding-agents.md)                   | Agent onboarding: read order, verification table, PR checklist   |
-| [`docs/agents/sensors.md`](docs/agents/sensors.md)                             | Lint, dep-cruiser, verify:deps — how to read sensor output       |
+The full index is [`docs/guide/README.md`](docs/guide/README.md); the four architecture pages (generative-ui, external-agents, AG-UI, A2UI), [`docs/office-continuity.md`](docs/office-continuity.md) and [`docs/canvas-graph-edit.md`](docs/canvas-graph-edit.md) are listed there. The one an agent must not skip: [`docs/agent-blast-radius.md`](docs/agent-blast-radius.md) — the impact map for if you change X, also change Y.
 
 ## Documentation map
 
-| Audience                                  | Start here                                                                                                                                                      |
-| ----------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Humans** (setup, product, API)          | [`README.md`](README.md) → [`docs/guide/README.md`](docs/guide/README.md)                                                                                       |
-| **Coding agents** (edits, wire contracts) | [`docs/guide/coding-agents.md`](docs/guide/coding-agents.md) → [`GLOSSARY.md`](GLOSSARY.md) → [`STRUCTURE.md`](STRUCTURE.md) → [`docs/recipes/`](docs/recipes/) |
-| **Sensors** (lint / boundaries / deps)    | [`docs/agents/sensors.md`](docs/agents/sensors.md) — canonical fix lives in the tool output                                                                     |
+Humans: [`README.md`](README.md) → [`docs/guide/README.md`](docs/guide/README.md). Coding agents: [`docs/guide/coding-agents.md`](docs/guide/coding-agents.md) → [`GLOSSARY.md`](GLOSSARY.md) → [`STRUCTURE.md`](STRUCTURE.md) → [`docs/recipes/`](docs/recipes/). Sensors: [`docs/agents/sensors.md`](docs/agents/sensors.md) — the canonical fix for each rule lives in the tool output.
