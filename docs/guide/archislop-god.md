@@ -230,7 +230,8 @@ that does not exist yet; until then the durable artifact is the run report on `g
 | Ship (`gh pr merge --auto`)                  | **Planned**                                         | ADR-0019; ledger § Open observations                                           |
 | `GET /api/god/status` — owner run view       | **Shipped** (read-only)                             | `apps/server/src/god/godLogView.ts`, `apps/server/src/routes/godStatus.ts`     |
 | Live ingest (`POST /api/god/live`)           | **Not built** — no route, no HMAC secret            | client `scripts/god/ingestClient.mjs`, currently always a no-op                |
-| Window UI + `/api/god` settings writes       | **Planned** — needs the narrow Actions token        | ADR-0019 §10                                                                   |
+| Window — Now / History / Signals at `/god`   | **Shipped** (read-only, owner token)                | `apps/web/src/features/god/`, `apps/server/src/middleware/godWindowGate.js`    |
+| Window — Settings writes (`/api/god` config) | **Planned** — needs the narrow Actions token        | ADR-0019 §10                                                                   |
 
 **Practical today:** production emits signals; GitHub Actions runs an hourly **gate → brief** tick
 (when `GOD_ENABLED` and budget allow) and writes run records to **`god-log`**. The brief ranks

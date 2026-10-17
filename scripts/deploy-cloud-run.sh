@@ -88,6 +88,14 @@ if gcloud secrets describe visitor-badge-secrets --project="${PROJECT_ID}" &>/de
 else
   echo "Note: Secret visitor-badge-secrets not found; Visitor Badge gate stays off until you run npm run secret:visitor-badge:cloud-run." >&2
 fi
+# The owner's God window fails closed without this: /api/god/* answers 503 rather than showing spend and
+# cadence to whoever holds the door code. Listed here so a deploy cannot silently drop the mount —
+# --set-secrets replaces the whole list, so a secret absent from this script is a secret removed.
+if gcloud secrets describe god-window-token --project="${PROJECT_ID}" &>/dev/null; then
+  CLOUD_RUN_SECRETS+=("GOD_WINDOW_TOKEN=god-window-token:latest")
+else
+  echo "Note: Secret god-window-token not found; the God window stays closed until you run npm run secret:god-window:cloud-run." >&2
+fi
 if ((${#CLOUD_RUN_SECRETS[@]} > 0)); then
   DEPLOY_ARGS+=(--set-secrets="$(IFS=,; echo "${CLOUD_RUN_SECRETS[*]}")")
 fi

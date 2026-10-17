@@ -39,6 +39,7 @@ import {
   createVisitorBadgeGate,
   createVisitorBadgeUnlockHandler
 } from './middleware/visitorBadge.js';
+import { createGodWindowGate, createGodWindowUnlockHandler } from './middleware/godWindowGate.js';
 
 scheduleLlmCostRatesRefresh(process.env);
 
@@ -90,8 +91,11 @@ export async function attachRoutes(app) {
   app.use('/api/advisor', createAdvisorRouter());
   app.use('/api/office', createOfficeRouter());
   app.use('/api/signals', createSignalsRouter());
-  // Owner-only by the door-code gate above; read-only until the settings token exists (ADR-0019 2c).
-  app.use('/api/god', createGodStatusRouter());
+  // Owner-only behind its own token, not the shared door code (ADR-0019 §10). `unlock` is attached ahead
+  // of the gate so one request can earn the credential the next one asks for; the door-code gate still
+  // runs in front of both, so a deployment with a door code requires check-in *and* the owner token.
+  app.post('/api/god/unlock', createGodWindowUnlockHandler());
+  app.use('/api/god', createGodWindowGate(), createGodStatusRouter());
   app.use(
     '/api/diagram',
     createDiagramRepairRouter({
