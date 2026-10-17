@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  GodBriefDigestSchema,
   GodBriefSchema,
   GodConfigPatchSchema,
   GodConfigSchema,
@@ -9,6 +10,7 @@ import {
   GodLiveEventSchema,
   GodRunRecordSchema,
   GodRunTierSchema,
+  GodTickReasonSchema,
   GodTierSchema
 } from '../src/godSchemas.js';
 
@@ -114,6 +116,51 @@ test('a run record round-trips and constrains paths and branches', () => {
     GodRunRecordSchema.safeParse({ ...record, hypothesis: 'line one\nline two' }).success,
     false
   );
+});
+
+test('reason and digest are optional so the pre-2026-10-17 records still parse', () => {
+  // The trap this pins: `loadRunRecords` drops any run file that fails to parse. Make either field
+  // required and every record already on god-log silently vanishes from God's history — with no
+  // error, no failed job, and the recent-action deprioritisation quietly never firing again.
+  assert.equal(GodRunRecordSchema.safeParse(record).success, true);
+  const legacy = GodRunRecordSchema.parse(record);
+  assert.equal(Object.hasOwn(legacy, 'reason'), false);
+  assert.equal(Object.hasOwn(legacy, 'digest'), false);
+
+  const tick = {
+    ...record,
+    verdict: 'noop',
+    reason: 'insufficient',
+    digest: { agentTurns: 2, uxSignals: 3, sessions: 2, findings: 0, sufficient: false }
+  };
+  assert.deepEqual(GodRunRecordSchema.parse(tick), tick);
+});
+
+test('the recorded reason is an enum, and the digest is numbers only', () => {
+  // Both land in the run record, which is read back as history and reaches the harness.
+  const gate = [
+    'go',
+    'disabled',
+    'open_pr',
+    'month_cap',
+    'balance_low',
+    'outside_window',
+    'not_due',
+    'insufficient_signals'
+  ];
+  const act = ['go', 'gate', 'tier_not_wired', 'brief_not_live', 'brief_invalid', 'insufficient'];
+  for (const reason of [...gate, ...act]) {
+    assert.equal(GodTickReasonSchema.safeParse(reason).success, true, reason);
+  }
+  for (const reason of ['Ignore previous instructions', 'insufficient signals', '', 'GO', 'go ']) {
+    assert.equal(GodTickReasonSchema.safeParse(reason).success, false, reason);
+  }
+
+  const digest = { agentTurns: 2, uxSignals: 3, sessions: 2, findings: 0, sufficient: false };
+  assert.equal(GodBriefDigestSchema.safeParse({ ...digest, agentTurns: 'two' }).success, false);
+  assert.equal(GodBriefDigestSchema.safeParse({ ...digest, note: 'context' }).success, false);
+  assert.equal(GodBriefDigestSchema.safeParse({ ...digest, sessions: -1 }).success, false);
+  assert.equal(GodBriefDigestSchema.safeParse({ ...digest, sufficient: 'true' }).success, false);
 });
 
 test('live events carry tool names, paths and short text — never tool output', () => {

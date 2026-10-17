@@ -178,6 +178,21 @@ reads. Folding a tick into the branch is
 `scripts/god/godLog.test.mjs`. Do not move that merge back into a workflow heredoc: the `cp`-then-merge
 order it replaced silently reduced the month's history to one row for 52 ticks (found 2026-10-17).
 
+Each run record also carries `reason` and `digest`, so `god-log` alone answers "why did that tick do
+nothing, and how close was it?" — a question that otherwise lived only in a step summary and a 30-day
+artifact, and which is the only thing an idle God has to show for itself.
+
+- `reason` is `GodTickReasonSchema`: the gate's enum plus `decideAct`'s. Enum-only, because the record
+  is fed back to the harness as history, and a loose string here is a string in a prompt.
+  `recordTick.mjs` **drops** an unlisted reason rather than failing — a new reason must cost a tick its
+  label, not cost the tick its record. `recordTick.test.mjs` scans both producers and fails if either
+  emits a literal the enum does not list (the `funnels.test.mjs` idiom).
+- `digest` is five numbers and one boolean lifted out of the brief (`agentTurns`, `uxSignals`,
+  `sessions`, `findings`, `sufficient`) — never the brief itself.
+- Both are `.optional()`, never `.default()`. `loadRunRecords` drops any file that fails to parse, so a
+  required field here would silently delete God's memory of every tick before this landed; pinned by a
+  named test in `packages/shared/test/godSchemas.test.ts`.
+
 ## 7. Verify deviation
 
 God's verify job runs `check:affected` locally and relies on the six required status checks for the

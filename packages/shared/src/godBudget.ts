@@ -12,6 +12,7 @@ import {
   GodTierSchema,
   GodWindowUtcSchema,
   type GodConfig,
+  type GodGateReason,
   type GodTier
 } from './godSchemas.js';
 
@@ -161,15 +162,12 @@ export function lowerGodTier(configured: GodTier, requested: GodTier | null | un
   return GOD_TIERS.indexOf(requested) < GOD_TIERS.indexOf(configured) ? requested : configured;
 }
 
-export type GodDecisionReason =
-  | 'go'
-  | 'disabled'
-  | 'open_pr'
-  | 'month_cap'
-  | 'balance_low'
-  | 'outside_window'
-  | 'not_due'
-  | 'insufficient_signals';
+/**
+ * Derived, not hand-listed: `GodGateReasonSchema` is what `recordTick.mjs` will accept into the
+ * durable store, so a reason this file invented but the schema did not list would be dropped at
+ * record time — invisible except as a tick that recorded no reason.
+ */
+export type GodDecisionReason = GodGateReason;
 
 export type GodRunDecisionInput = {
   config: GodConfig;

@@ -71,6 +71,38 @@ export const GodVerdictSchema = z.enum([
 
 export const GodTriggerSchema = z.enum(['schedule', 'manual']);
 
+/**
+ * Why the gate stopped — or let through — a tick. An enum rather than the string the workflow
+ * printed, so a stray value can never be written into the durable store and read back into a future
+ * prompt. `godBudget.ts` derives `GodDecisionReason` from this list: the producer cannot add a
+ * reason the recorder would silently drop.
+ */
+export const GOD_GATE_REASONS = [
+  'go',
+  'disabled',
+  'open_pr',
+  'month_cap',
+  'balance_low',
+  'outside_window',
+  'not_due',
+  'insufficient_signals'
+] as const;
+export const GodGateReasonSchema = z.enum(GOD_GATE_REASONS);
+
+/** Why `decideAct` stopped a tick once the brief existed. Same enum discipline. */
+export const GOD_ACT_REASONS = [
+  'go',
+  'gate',
+  'tier_not_wired',
+  'brief_not_live',
+  'brief_invalid',
+  'insufficient'
+] as const;
+export const GodActReasonSchema = z.enum(GOD_ACT_REASONS);
+
+/** The reason a tick ended where it did, from whichever stage spoke last. */
+export const GodTickReasonSchema = z.union([GodGateReasonSchema, GodActReasonSchema]);
+
 /** Mirrors `classifyAgentTurnError` in `apps/server/src/metrics/agentTurnMetrics.js`. */
 export const AgentTurnErrorClassSchema = z.enum([
   'missing-diagram-type',
@@ -208,6 +240,20 @@ export const GodUsageSchema = z.strictObject({
   usd
 });
 
+/**
+ * The brief's shape for one tick, kept on the record. Numbers and one boolean — the same fields the
+ * brief already carries — so nothing new reaches a prompt, while the durable store can answer the
+ * question a CI log answers today and a 30-day artifact forgets: *how close was this tick to
+ * acting?* (`sufficient` needs `agentTurns + uxSignals >= GOD_HARD_LIMITS.minNewSignals`.)
+ */
+export const GodBriefDigestSchema = z.strictObject({
+  agentTurns: count,
+  uxSignals: count,
+  sessions: count,
+  findings: count,
+  sufficient: z.boolean()
+});
+
 export const GodRunRecordSchema = z.strictObject({
   v: z.literal(GOD_SCHEMA_VERSION),
   runId: GodRunIdSchema,
@@ -232,6 +278,13 @@ export const GodRunRecordSchema = z.strictObject({
   balanceAfter: z
     .strictObject({ currency: z.enum(['USD', 'CNY']), total: z.number().finite() })
     .nullable(),
+  /**
+   * Both fields are `.optional()`, never `.default()`: the records already on `god-log` predate
+   * them, and `loadRunRecords` drops any file that fails to parse — a required field here would
+   * silently erase God's whole memory of its first ticks.
+   */
+  reason: GodTickReasonSchema.optional(),
+  digest: GodBriefDigestSchema.optional(),
   harness: z.strictObject({
     name: z.enum(['dsh', 'mock']),
     version: z.string().regex(/^[A-Za-z0-9.+_-]{1,40}$/)
@@ -262,6 +315,9 @@ export type GodFocus = z.infer<typeof GodFocusSchema>;
 export type GodPhase = z.infer<typeof GodPhaseSchema>;
 export type GodStopReason = z.infer<typeof GodStopReasonSchema>;
 export type GodVerdict = z.infer<typeof GodVerdictSchema>;
+export type GodGateReason = z.infer<typeof GodGateReasonSchema>;
+export type GodActReason = z.infer<typeof GodActReasonSchema>;
+export type GodTickReason = z.infer<typeof GodTickReasonSchema>;
 export type GodMetric = z.infer<typeof GodMetricSchema>;
 export type GodSlotStats = z.infer<typeof GodSlotStatsSchema>;
 export type GodFinding = z.infer<typeof GodFindingSchema>;
@@ -269,6 +325,7 @@ export type GodBrief = z.infer<typeof GodBriefSchema>;
 export type GodLiveEvent = z.infer<typeof GodLiveEventSchema>;
 export type GodLiveBatch = z.infer<typeof GodLiveBatchSchema>;
 export type GodUsage = z.infer<typeof GodUsageSchema>;
+export type GodBriefDigest = z.infer<typeof GodBriefDigestSchema>;
 export type GodRunRecord = z.infer<typeof GodRunRecordSchema>;
 export type GodConfig = z.infer<typeof GodConfigSchema>;
 export type GodConfigPatch = z.infer<typeof GodConfigPatchSchema>;

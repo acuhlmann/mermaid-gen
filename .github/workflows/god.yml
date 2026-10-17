@@ -622,12 +622,26 @@ jobs:
           name: god-act-${{ github.run_id }}
           path: ${{ runner.temp }}/god-act
 
+      # The brief job's RUNNER_TEMP is its own; only artifacts cross jobs. A tick that never reached
+      # the brief job has no digest to record, so this must not be able to fail the record.
+      - name: Download the brief for the digest
+        if: needs.brief.result == 'success'
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: god-brief-${{ github.run_id }}
+          path: ${{ runner.temp }}/god-brief
+
       - name: Build tick record
         run: |
           set -euo pipefail
           TRIGGER=schedule
           if [ "${{ github.event_name }}" != "schedule" ]; then TRIGGER=manual; fi
           mkdir -p "$RUNNER_TEMP/god-tick"
+          DIGEST=()
+          if [ -f "$RUNNER_TEMP/god-brief/brief.json" ]; then
+            DIGEST+=(--brief "$RUNNER_TEMP/god-brief/brief.json")
+          fi
           if [ -f "$RUNNER_TEMP/god-act/report.json" ]; then
             EXTRA=()
             PR="${{ needs.publish.outputs.pr }}"
@@ -646,6 +660,7 @@ jobs:
               --events "$RUNNER_TEMP/god-act/events.ndjson" \
               --reason "${{ needs.gate.outputs.reason }}" \
               --trigger "$TRIGGER" \
+              "${DIGEST[@]}" \
               "${EXTRA[@]}"
           else
             VERDICT="${{ needs.brief.outputs.skip_verdict }}"
@@ -659,7 +674,8 @@ jobs:
               --reason "${{ needs.brief.outputs.skip_reason || needs.gate.outputs.reason }}" \
               --tier "${{ needs.gate.outputs.tier }}" \
               --focus "${{ needs.gate.outputs.focus }}" \
-              --trigger "$TRIGGER"
+              --trigger "$TRIGGER" \
+              "${DIGEST[@]}"
           fi
 
       - name: Checkout god-log data branch
