@@ -29,7 +29,7 @@
     "setup:skills": "npx skills add copilotkit/skills --full-depth -y",
     "dev": "concurrently -n server,web \"npm:dev -w apps/server\" \"npm:dev -w apps/web\"",
     "build": "npm run build -w packages/shared && npm run build -w apps/server && npm run build -w apps/web",
-    "test": "npm run test:scripts && concurrently -n shared,server,web -c blue,green,magenta \"npm run test -w packages/shared\" \"npm run test -w apps/server\" \"npm run test -w apps/web\"",
+    "test": "npm run test:scripts && npm run test -w packages/shared && npm run test -w apps/server && npm run test -w apps/web",
     "test:scripts": "node --test \"scripts/**/*.test.mjs\"",
     "test:affected": "node scripts/test-affected.mjs",
     "test:floor": "npm run test:floor -w apps/web",
