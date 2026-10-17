@@ -251,6 +251,18 @@ export const GodUsageSchema = z.strictObject({
 });
 
 /**
+ * What the harness's final text did with the observe contract (playbook §5): name a finding, say
+ * `waiting`, or satisfy neither. An enum, because the run record is fed back to the harness as
+ * history — and a useful one: a tick can see that its predecessor was dropped for not labelling.
+ *
+ * Absence means "this field did not exist yet" or "the run never reached a final text" (a failed or
+ * stopped harness). It must never be read as `dropped`: a crashed run is not a run that said nothing
+ * on purpose, and only a completed run can owe the contract an answer.
+ */
+export const GOD_NARRATION_OUTCOMES = ['finding', 'waiting', 'dropped'] as const;
+export const GodNarrationSchema = z.enum(GOD_NARRATION_OUTCOMES);
+
+/**
  * The brief's shape for one tick, kept on the record. Numbers and one boolean — the same fields the
  * brief already carries — so nothing new reaches a prompt, while the durable store can answer the
  * question a CI log answers today and a 30-day artifact forgets: *how close was this tick to
@@ -289,12 +301,13 @@ export const GodRunRecordSchema = z.strictObject({
     .strictObject({ currency: z.enum(['USD', 'CNY']), total: z.number().finite() })
     .nullable(),
   /**
-   * Both fields are `.optional()`, never `.default()`: the records already on `god-log` predate
+   * All three are `.optional()`, never `.default()`: the records already on `god-log` predate
    * them, and `loadRunRecords` drops any file that fails to parse — a required field here would
    * silently erase God's whole memory of its first ticks.
    */
   reason: GodTickReasonSchema.optional(),
   digest: GodBriefDigestSchema.optional(),
+  narration: GodNarrationSchema.optional(),
   harness: z.strictObject({
     name: z.enum(['dsh', 'mock']),
     version: z.string().regex(/^[A-Za-z0-9.+_-]{1,40}$/)
@@ -322,7 +335,8 @@ export const GodRollupRowSchema = z.strictObject({
   tier: GodRunTierSchema,
   usd,
   gateReason: shortText(64).optional(),
-  digest: GodBriefDigestSchema.optional()
+  digest: GodBriefDigestSchema.optional(),
+  narration: GodNarrationSchema.optional()
 });
 
 /** `YYYY-MM` of UTC. */
@@ -341,6 +355,14 @@ export const GodMonthTotalsSchema = z.strictObject({
   ticks: count,
   acts: count,
   monthSpendUsd: usd,
+  /**
+   * Acts that completed, named nothing, and changed nothing: money spent on silence. Optional
+   * because records that predate `narration` cannot be judged — absence means *unknown*, never
+   * *zero*, and a reader must not conclude the month was productive from a number that was never
+   * measured.
+   */
+  unproductiveActs: count.optional(),
+  unproductiveUsd: usd.optional(),
   lastActAt: isoTime.nullable()
 });
 
@@ -392,6 +414,7 @@ export type GodLiveEvent = z.infer<typeof GodLiveEventSchema>;
 export type GodLiveBatch = z.infer<typeof GodLiveBatchSchema>;
 export type GodUsage = z.infer<typeof GodUsageSchema>;
 export type GodBriefDigest = z.infer<typeof GodBriefDigestSchema>;
+export type GodNarration = z.infer<typeof GodNarrationSchema>;
 export type GodRollupRow = z.infer<typeof GodRollupRowSchema>;
 export type GodMonthTotals = z.infer<typeof GodMonthTotalsSchema>;
 export type GodMonthRollup = z.infer<typeof GodMonthRollupSchema>;

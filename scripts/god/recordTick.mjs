@@ -91,6 +91,7 @@ export function rollupRow(record, gateReason) {
   const reason = typeof gateReason === 'string' ? gateReason.replace(/\s+/g, ' ').trim() : '';
   if (reason) row.gateReason = reason.slice(0, 64);
   if (record.digest) row.digest = record.digest;
+  if (record.narration) row.narration = record.narration;
   const parsed = GodRollupRowSchema.safeParse(row);
   // Only the essentials are safe to re-emit blind; they come from an already-validated record.
   return parsed.success ? parsed.data : base;
@@ -158,6 +159,25 @@ export function buildTickRecord(values) {
 }
 
 /**
+ * The one thing the run record could not say until now: an act that billed, completed and named
+ * nothing looked exactly like an act that correctly said `waiting`.
+ *
+ * Only a run that reached a final text owes the observe contract an answer, so a failed or stopped
+ * harness records nothing here rather than `dropped` — counting a crash as silence would put money
+ * in the wrong column.
+ *
+ * @param {{ findingId?: string | null, hypothesis?: string | null, waiting?: boolean } | null} narration
+ * @param {unknown} stopReason
+ * @returns {'finding' | 'waiting' | 'dropped' | undefined}
+ */
+export function narrationOutcome(narration, stopReason) {
+  if (stopReason !== 'completed') return undefined;
+  if (narration?.findingId) return 'finding';
+  if (narration?.waiting) return 'waiting';
+  return 'dropped';
+}
+
+/**
  * @param {string} stopReason
  * @returns {'observed' | 'failed' | 'stopped'}
  */
@@ -177,6 +197,7 @@ export function buildActRecord(input) {
   const harness = report.harness ?? {};
   const reason = tickReason(input.reason);
   const digest = input.digest ?? digestFromBriefFile(input.brief);
+  const narrated = narrationOutcome(narration, report.stopReason);
   return GodRunRecordSchema.parse({
     v: 1,
     runId: String(report.runId),
@@ -203,6 +224,7 @@ export function buildActRecord(input) {
     balanceAfter: null,
     ...(reason ? { reason } : {}),
     ...(digest ? { digest } : {}),
+    ...(narrated ? { narration: narrated } : {}),
     harness: {
       name: harness.name,
       version: String(harness.version ?? '')

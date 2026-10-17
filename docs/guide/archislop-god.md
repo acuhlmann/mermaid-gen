@@ -195,10 +195,14 @@ totals** (`ticks`, `acts`, `monthSpendUsd`, `lastActAt`) onto the rollup from th
 `GET /api/god/status` reports `numbersFrom` to say which it used. Without that stamp a rollup whose
 rows were truncated would report a month 54x too small — October 2026, where one surviving row sat
 beside 54 records and $0.018813 of real spend. Each record carries `reason` (an enum:
-the gate's vocabulary plus `decideAct`'s) and `digest` (the brief's five counts and `sufficient`), so
+the gate's vocabulary plus `decideAct`'s), `digest` (the brief's five counts and `sufficient`) and
+`narration` (what the final text did with the observe contract: `finding`, `waiting` or `dropped`), so
 the branch alone answers "why did that tick do nothing, and how close was it to doing something?" —
-the question an idle God otherwise cannot answer once the CI log expires. See
-[the playbook § 6 Memory](../automations/god.md#6-memory).
+the question an idle God otherwise cannot answer once the CI log expires. The stamp adds
+`unproductiveActs` / `unproductiveUsd`: acts that billed, completed, named nothing and left no
+artifact. Those two are **absent rather than zero** when the month's acts predate `narration` —
+"not measured" and "measured clean" are different answers about money, and October is the former.
+See [the playbook § 6 Memory](../automations/god.md#6-memory).
 
 Live run streaming (`events.ndjson` → owner **Now** tab) uses HMAC-signed POSTs to
 `POST /api/god/live` ([`ingestClient.mjs`](../../scripts/god/ingestClient.mjs)); delivery is

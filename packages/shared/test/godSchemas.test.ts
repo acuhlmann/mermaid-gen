@@ -9,6 +9,7 @@ import {
   GodLiveBatchSchema,
   GodLiveEventSchema,
   GodMonthRollupSchema,
+  GodMonthTotalsSchema,
   GodRollupRowSchema,
   GodRunRecordSchema,
   GodRunTierSchema,
@@ -254,4 +255,58 @@ test('tiers, focus and config shapes', () => {
   assert.equal(GodConfigSchema.safeParse({ ...config, windowUtc: '24-02' }).success, false);
   assert.equal(GodConfigPatchSchema.safeParse({ everyHours: 6 }).success, true);
   assert.equal(GodConfigPatchSchema.safeParse({ token: 'x' }).success, false);
+});
+
+test('the narration outcome is an enum, optional, and never prose', () => {
+  // The run record is fed back to the harness as history, so only the three outcomes of the observe
+  // contract may be stored. Without them an act that billed, completed and named nothing looks
+  // identical to one that correctly said `waiting` — which is how a $0.0188 run produced nothing at
+  // all and nothing downstream noticed.
+  for (const narration of ['finding', 'waiting', 'dropped']) {
+    assert.equal(GodRunRecordSchema.safeParse({ ...record, narration }).success, true, narration);
+  }
+  assert.equal(
+    GodRunRecordSchema.safeParse({ ...record, narration: 'looks fine to me' }).success,
+    false
+  );
+  assert.equal(GodRunRecordSchema.safeParse({ ...record, narration: null }).success, false);
+  // Absent is not `dropped`: the 54 records already on god-log must keep parsing, and a missing
+  // outcome means "we did not record it" rather than "the run said nothing".
+  assert.equal(GodRunRecordSchema.safeParse(record).success, true);
+  assert.equal(Object.hasOwn(GodRunRecordSchema.parse(record), 'narration'), false);
+
+  const row = {
+    runId: '39006330770',
+    startedAt: '2026-10-17T05:30:26.607Z',
+    endedAt: '2026-10-17T05:30:26.607Z',
+    verdict: 'noop' as const,
+    tier: 'propose' as const,
+    usd: 0
+  };
+  assert.equal(GodRollupRowSchema.safeParse({ ...row, narration: 'waiting' }).success, true);
+  assert.equal(GodRollupRowSchema.safeParse({ ...row, narration: 'silence' }).success, false);
+
+  const totals = {
+    ticks: 54,
+    acts: 1,
+    monthSpendUsd: 0.018813,
+    unproductiveActs: 0,
+    unproductiveUsd: 0,
+    lastActAt: '2026-10-15T15:22:19.545Z'
+  };
+  assert.deepEqual(GodMonthTotalsSchema.parse(totals), totals);
+  // A month whose acts predate the outcome field carries no waste numbers at all: a zero here would
+  // read as "nothing was wasted" when the honest answer is that it was never measured.
+  const legacy = {
+    ticks: 54,
+    acts: 1,
+    monthSpendUsd: 0.018813,
+    lastActAt: '2026-10-15T15:22:19.545Z'
+  };
+  assert.equal(GodMonthTotalsSchema.safeParse(legacy).success, true);
+  assert.equal(GodMonthTotalsSchema.safeParse({ ...totals, unproductiveActs: -1 }).success, false);
+  assert.equal(
+    GodMonthRollupSchema.safeParse({ v: 1, month: '2026-10', totals, runs: [row] }).success,
+    true
+  );
 });

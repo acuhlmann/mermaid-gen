@@ -225,7 +225,14 @@ test('the fold stamps the true month totals, not the surviving rows', () => {
   assert.deepEqual(oct.totals, third.stamped['2026-10']);
   // Previous months are stamped too, so a month truncated before this landed reports its real size.
   const sep = JSON.parse(fs.readFileSync(path.join(dest, 'index', '2026-09.json'), 'utf8'));
-  assert.deepEqual(sep.totals, { ticks: 1, acts: 0, monthSpendUsd: 0, lastActAt: null });
+  assert.deepEqual(sep.totals, {
+    ticks: 1,
+    acts: 0,
+    monthSpendUsd: 0,
+    unproductiveActs: 0,
+    unproductiveUsd: 0,
+    lastActAt: null
+  });
 
   // Re-folding the same tick must not rewrite the stamp: an hourly tick should not churn the branch.
   const rerun = mergeGodLogTick({
@@ -317,6 +324,51 @@ test('cadence spans months but spend does not', () => {
     ticks: 1,
     acts: 0,
     monthSpendUsd: 0.25,
+    unproductiveActs: 0,
+    unproductiveUsd: 0,
     lastActAt: null
   });
+});
+
+test('money spent on silence is counted, and an artifact excuses it', () => {
+  const at = (id, day) => `2026-10-${String(day).padStart(2, '0')}T06:17:00.000Z`;
+  const act = (id, day, usd, extra = {}) => {
+    const record = buildTickRecord({
+      'run-id': id,
+      tier: 'propose',
+      focus: 'any',
+      now: at(id, day)
+    });
+    record.verdict = 'observed';
+    record.usage = { ...record.usage, usd };
+    return { ...record, ...extra };
+  };
+
+  const month = [
+    act('silent', 1, 0.02, { narration: 'dropped' }),
+    act('waiting', 2, 0.01, { narration: 'waiting' }),
+    act('finding', 3, 0.03, { narration: 'finding' }),
+    // A propose run whose text satisfied nothing still produced a patch: not silence, an artifact.
+    act('patched', 4, 0.05, {
+      verdict: 'pr_opened',
+      narration: 'dropped',
+      filesChanged: ['docs/x.md'],
+      branch: 'god/patched'
+    })
+  ];
+
+  const judged = monthTotals(month, '2026-10');
+  assert.equal(judged.ticks, 4);
+  assert.equal(judged.acts, 4);
+  assert.equal(judged.monthSpendUsd, 0.11);
+  assert.equal(judged.unproductiveActs, 1);
+  assert.equal(judged.unproductiveUsd, 0.02);
+
+  // One act recorded before `narration` existed makes the whole month unjudgeable. Reporting the
+  // partial count as the month's waste would read as reassurance we did not earn.
+  const partial = monthTotals([...month, act('old', 5, 0.018813)], '2026-10');
+  assert.equal(partial.ticks, 5);
+  assert.equal(partial.acts, 5);
+  assert.equal(Object.hasOwn(partial, 'unproductiveActs'), false);
+  assert.equal(Object.hasOwn(partial, 'unproductiveUsd'), false);
 });

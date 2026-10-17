@@ -21,6 +21,7 @@ import {
   GodMonthTotalsSchema,
   GodRollupRowSchema,
   type GodMonthTotals,
+  type GodNarration,
   type GodRollupRow
 } from '@archislop/shared';
 
@@ -66,6 +67,15 @@ export type GodStatusView = {
    * rollup understates — so the view must never pass those off as the month.
    */
   numbersFrom: 'records' | 'rollupRows';
+  /**
+   * Acts that billed, completed, named nothing and changed nothing. `null` when the month was never
+   * judged — a stamp written before this field, or no stamp at all. Never a silent `0`: "we did not
+   * measure" and "we measured nothing wasted" are different answers about money.
+   */
+  unproductiveActs: number | null;
+  unproductiveUsd: number | null;
+  /** What the newest act's final text did with the observe contract; `null` for a pre-`narration` record. */
+  lastActNarration: GodNarration | null;
   lastTick: GodRollupRow | null;
   /** Newest tick that reached the harness, or null if God has never acted. */
   lastActAt: string | null;
@@ -217,6 +227,11 @@ export function summarizeGodLog(input: {
     monthSpendUsd:
       totals?.monthSpendUsd ?? round6(monthRows.reduce((sum, row) => sum + row.usd, 0)),
     numbersFrom: totals ? 'records' : 'rollupRows',
+    // Rows carry no filesChanged or branch, so only the fold's stamp can tell a silent run from a
+    // propose run that patched. Absence stays null rather than becoming a reassuring zero.
+    unproductiveActs: totals?.unproductiveActs ?? null,
+    unproductiveUsd: totals?.unproductiveUsd ?? null,
+    lastActNarration: lastAct?.narration ?? null,
     lastTick: rows[0] ?? null,
     lastActAt: stampedActs[0] ?? (lastAct ? lastAct.startedAt : null),
     reasonTally: [...tally.entries()]
@@ -329,6 +344,9 @@ function emptyView(
     acts: 0,
     monthSpendUsd: 0,
     numbersFrom: 'rollupRows',
+    unproductiveActs: null,
+    unproductiveUsd: null,
+    lastActNarration: null,
     lastTick: null,
     lastActAt: null,
     reasonTally: [],

@@ -110,7 +110,18 @@ not replace that line. The whole line is clipped at 280 characters. It must be e
 - `waiting` — the brief is too thin to name a finding.
 
 Anything else is dropped (`findingId` and `hypothesis` stay null). The run is still `observed`
-when the harness completes. Prior runs' sentences are stripped from `history.json` before the
+when the harness completes.
+
+Which of the three happened is now recorded, because it used to be unrecoverable: an act that billed,
+completed and named nothing looked exactly like one that correctly said `waiting`. The run record's
+`narration` is `GodNarrationSchema` — `finding` | `waiting` | `dropped` — and only a run that reached
+a `completed` stop reason owes the contract an answer, so a failed or stopped harness leaves the field
+absent rather than recording `dropped` and booking its cost against silence. Absent also means
+"recorded before this field existed", which is every act on `god-log` today: it must never be read as
+`dropped`. The value is an enum because the record is fed back to the harness as history — and it is
+useful feedback, since a tick can see its predecessor was dropped for not labelling.
+
+Prior runs' sentences are stripped from `history.json` before the
 harness starts; do not expect them.
 
 ### Propose output
@@ -208,6 +219,11 @@ artifact, and which is the only thing an idle God has to show for itself.
   emits a literal the enum does not list (the `funnels.test.mjs` idiom).
 - `digest` is five numbers and one boolean lifted out of the brief (`agentTurns`, `uxSignals`,
   `sessions`, `findings`, `sufficient`) — never the brief itself.
+- `narration` (§ Observe output) is `finding` | `waiting` | `dropped`, and the month stamp carries
+  `unproductiveActs` / `unproductiveUsd` alongside it: acts that billed, completed, named nothing and
+  left no artifact. **The two counters are omitted, not zeroed, when any act in the month predates
+  `narration`** — which is every month on `god-log` today. A zero would read as "we checked and
+  nothing was wasted"; the honest answer for October is that the one act was never judged.
 - Both are `.optional()`, never `.default()`. `loadRunRecords` drops any file that fails to parse, so a
   required field here would silently delete God's memory of every tick before this landed; pinned by a
   named test in `packages/shared/test/godSchemas.test.ts`.

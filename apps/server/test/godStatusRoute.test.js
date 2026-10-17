@@ -352,3 +352,54 @@ test('a loader that throws answers 503 without leaking error text', async () => 
   assert.equal(Object.hasOwn(body, 'message'), false, 'no error text for a public repo to log');
   await booted.close();
 });
+
+test('the view names what the last act did with the contract', async () => {
+  const probe = stubFetch({
+    [urlFor(MONTH)]: rollup(
+      MONTH,
+      [
+        row('a1', '2026-10-15T15:22:19.545Z', {
+          verdict: 'observed',
+          usd: 0.018813,
+          narration: 'dropped'
+        })
+      ],
+      {
+        ticks: 54,
+        acts: 1,
+        monthSpendUsd: 0.018813,
+        unproductiveActs: 1,
+        unproductiveUsd: 0.018813,
+        lastActAt: '2026-10-15T15:22:19.545Z'
+      }
+    )
+  });
+  const view = await getGodStatusView({ env: ENV, fetchImpl: probe.impl, nowMs: () => NOW });
+  assert.equal(view.lastActNarration, 'dropped');
+  assert.equal(view.unproductiveActs, 1);
+  assert.equal(view.unproductiveUsd, 0.018813);
+  // The month's entire bill was one run that named nothing and changed nothing. Now visible as money.
+  assert.equal(view.monthSpendUsd, view.unproductiveUsd);
+});
+
+test('a month that predates the outcome field reports null, never a reassuring zero', async () => {
+  // A stamp written before `narration` existed: waste was never measured, so the view must not answer
+  // 0 — that would read as "nothing was wasted" precisely where nothing is known.
+  const probe = stubFetch({
+    [urlFor(MONTH)]: rollup(
+      MONTH,
+      [row('old', '2026-10-15T15:22:19.545Z', { verdict: 'observed', usd: 0.018813 })],
+      {
+        ticks: 54,
+        acts: 1,
+        monthSpendUsd: 0.018813,
+        lastActAt: '2026-10-15T15:22:19.545Z'
+      }
+    )
+  });
+  const view = await getGodStatusView({ env: ENV, fetchImpl: probe.impl, nowMs: () => NOW });
+  assert.equal(view.unproductiveActs, null);
+  assert.equal(view.unproductiveUsd, null);
+  assert.equal(view.lastActNarration, null);
+  assert.equal(view.monthSpendUsd, 0.018813, 'the spend is known; only the verdict on it is not');
+});

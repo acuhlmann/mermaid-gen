@@ -7,13 +7,17 @@ import { fileURLToPath } from 'node:url';
 import {
   GOD_ACT_REASONS,
   GOD_GATE_REASONS,
+  GOD_NARRATION_OUTCOMES,
   GodRunRecordSchema
 } from '@archislop/shared/godSchemas.js';
 import {
   buildActRecord,
   buildTickRecord,
   digestFromBriefFile,
+  finalizeActRecord,
   main,
+  narrationOutcome,
+  rollupRow,
   tickReason,
   verdictForStop
 } from './recordTick.mjs';
@@ -282,4 +286,99 @@ test('every reason the gate and act decision can emit is listable by the recorde
       assert.ok(listed.includes(reason), `${rel} emits "${reason}" which is not in ${rel}`);
     }
   }
+});
+
+test('narrationOutcome names what the final text did', () => {
+  const finding = { findingId: 'mermaid.accept_rate', hypothesis: 'x', waiting: false };
+  assert.equal(narrationOutcome(finding, 'completed'), 'finding');
+  assert.equal(
+    narrationOutcome({ findingId: null, hypothesis: null, waiting: true }, 'completed'),
+    'waiting'
+  );
+  // Completed, named nothing: the case that used to be indistinguishable from `waiting`.
+  assert.equal(
+    narrationOutcome({ findingId: null, hypothesis: null, waiting: false }, 'completed'),
+    'dropped'
+  );
+  // A run that never reached a final text owes the contract no answer. Counting a crash as silence
+  // would book its cost against the wrong column.
+  assert.equal(narrationOutcome(finding, 'error'), undefined);
+  assert.equal(narrationOutcome(finding, 'budget'), undefined);
+  assert.equal(narrationOutcome(null, 'completed'), 'dropped');
+
+  for (const value of ['finding', 'waiting', 'dropped']) {
+    assert.ok(GOD_NARRATION_OUTCOMES.includes(value), value);
+  }
+});
+
+test('an act records its outcome, and a patched run keeps it', () => {
+  const report = {
+    runId: '38759172829',
+    startedAt: '2026-10-15T15:22:19.545Z',
+    endedAt: '2026-10-15T15:22:35.967Z',
+    tier: 'observe',
+    focus: 'any',
+    stopReason: 'completed',
+    usage: {
+      calls: 2,
+      inputTokens: 40834,
+      outputTokens: 1207,
+      cacheHitTokens: 14848,
+      usd: 0.018813
+    },
+    minutes: 0.27,
+    harness: { name: 'dsh', version: '0.2.0-rc.2' }
+  };
+
+  // The shape of the only act on the branch: completed, null finding, null hypothesis. It is now
+  // recorded as a distinct outcome instead of an unlabelled 'observed'.
+  const silent = buildActRecord({ report, narration: 'I looked at the data and it seems fine.' });
+  assert.equal(silent.verdict, 'observed');
+  assert.equal(silent.findingId, null);
+  assert.equal(silent.narration, 'dropped');
+
+  const waited = buildActRecord({ report, narration: 'waiting' });
+  assert.equal(waited.narration, 'waiting');
+
+  const named = buildActRecord({
+    report,
+    narration: 'finding:mermaid.accept_rate edits outpace saves'
+  });
+  assert.equal(named.narration, 'finding');
+
+  const crashed = buildActRecord({ report: { ...report, stopReason: 'error' }, narration: null });
+  assert.equal(Object.hasOwn(crashed, 'narration'), false);
+
+  // What the text did and what the run produced are separate facts, and finalize rewrites only the
+  // second: verdict, branch and files. The narration outcome and the finding both survive, so a later
+  // reader can see that this run named a finding *and* shipped a patch — and monthTotals excuses it
+  // from waste by filesChanged, never by what its text said.
+  const patched = finalizeActRecord(
+    buildActRecord({ report, narration: 'finding:mermaid.accept_rate edits outpace saves' }),
+    { files: ['docs/x.md'], branch: 'god/patched-1', pr: 810 }
+  );
+  assert.equal(patched.narration, 'finding');
+  assert.equal(patched.findingId, 'mermaid.accept_rate');
+  assert.equal(patched.verdict, 'pr_opened');
+  assert.deepEqual(patched.filesChanged, ['docs/x.md']);
+});
+
+test('the rollup row carries the outcome the view reads', () => {
+  const record = buildTickRecord({
+    'run-id': 'row-1',
+    tier: 'propose',
+    focus: 'any',
+    now: '2026-10-17T07:17:00.000Z'
+  });
+  assert.equal(Object.hasOwn(rollupRow(record, 'insufficient'), 'narration'), false);
+
+  const acted = buildTickRecord({
+    'run-id': 'row-2',
+    tier: 'observe',
+    focus: 'any',
+    now: '2026-10-17T07:17:00.000Z'
+  });
+  acted.verdict = 'observed';
+  acted.narration = 'waiting';
+  assert.equal(rollupRow(acted, 'go').narration, 'waiting');
 });

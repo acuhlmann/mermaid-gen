@@ -95,6 +95,12 @@ export function monthTotals(records, month) {
   let ticks = 0;
   let acts = 0;
   let spend = 0;
+  let silent = 0;
+  let silentSpend = 0;
+  // A month counts as judged only when every act in it carries a narration. October 2026 holds one
+  // manual act recorded before the field existed, so its waste stays *unreported* rather than 0 —
+  // a zero here would tell the owner nothing was bought when the honest answer is that we cannot tell.
+  let actsAllJudged = true;
   let lastMs = null;
   /** @type {string | null} */
   let lastActAt = null;
@@ -106,6 +112,20 @@ export function monthTotals(records, month) {
     if (Number.isFinite(usd) && usd > 0) spend += usd;
     if (!ACT_VERDICTS.has(record.verdict)) continue;
     acts += 1;
+    // Money spent on silence: the harness completed, named nothing, and left no artifact. A record
+    // without `narration` predates the field and makes the whole month unjudgeable — never a count of
+    // zero — and a propose run that changed files or opened a branch produced something, however its
+    // text read, so it is excluded here rather than at the record.
+    if (!record.narration) {
+      actsAllJudged = false;
+    } else if (
+      record.narration === 'dropped' &&
+      (record.filesChanged?.length ?? 0) === 0 &&
+      record.branch == null
+    ) {
+      silent += 1;
+      if (Number.isFinite(usd) && usd > 0) silentSpend += usd;
+    }
     const ms = Date.parse(record.startedAt);
     if (!Number.isFinite(ms)) continue;
     if (lastMs == null || ms > lastMs) {
@@ -114,7 +134,14 @@ export function monthTotals(records, month) {
     }
   }
 
-  return { ticks, acts, monthSpendUsd: round6(spend), lastActAt };
+  /** @type {Record<string, unknown>} */
+  const totals = { ticks, acts, monthSpendUsd: round6(spend), lastActAt };
+  // No acts leaves actsAllJudged true: a month that never ran the harness really did waste nothing.
+  if (actsAllJudged) {
+    totals.unproductiveActs = silent;
+    totals.unproductiveUsd = round6(silentSpend);
+  }
+  return totals;
 }
 
 function round6(value) {
