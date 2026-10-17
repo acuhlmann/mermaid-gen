@@ -24,6 +24,9 @@ RUN npm run build -w packages/shared && npm run build -w apps/server
 
 ENV VITE_API_BASE_URL=
 ENV VITE_BASE_PATH=/
+# Mermaid 12 + Monaco push the Vite/Rolldown graph past the default ~2GiB heap on
+# GitHub-hosted docker builds; CI runners have headroom, the builder stage does not.
+ENV NODE_OPTIONS=--max-old-space-size=4096
 RUN npm run build -w apps/web && mv apps/web/dist apps/web/dist-main
 
 # ARG placed here so changing UI_VARIANT invalidates only this layer (not entire npm ci cache).
