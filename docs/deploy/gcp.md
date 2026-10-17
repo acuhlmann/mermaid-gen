@@ -223,6 +223,30 @@ SKIP_CLOUD_RUN_UPDATE=1 VISITOR_BADGE_SECRETS='your-friends-door-code' \
 
 The next `npm run deploy:cloud-run` picks up `visitor-badge-secrets:latest` automatically when the secret exists.
 
+### The God window owner token
+
+`/god` and `/api/god/*` are gated by their own token, **not** the door code: the badge gate is inert when
+`VISITOR_BADGE_SECRETS` is unset and its cookie secret has a fallback published in this repo, so it cannot
+carry a panel showing what God costs. Without `GOD_WINDOW_TOKEN` the whole surface answers `503` — fail-closed.
+
+```bash
+GOD_WINDOW_TOKEN="$(openssl rand -hex 32)" \
+  GCP_PROJECT_ID=mermaidgen REGION=us-central1 \
+  bash scripts/push-god-window-token-cloud-run.sh
+# or: npm run secret:god-window:cloud-run
+```
+
+That creates or rotates secret **`god-window-token`**, grants the runtime SA access, and mounts
+**`GOD_WINDOW_TOKEN`** on **`mermaid-gen-main`**. `scripts/deploy-cloud-run.sh` attaches it on every later
+deploy when it exists — `--set-secrets` replaces the whole list, so a secret missing from that script is a
+secret removed from production. Add `SKIP_CLOUD_RUN_UPDATE=1` to store it without rolling a revision.
+
+Pick a long random token. The unlock route is the one unauthenticated write on the owner surface and the
+token is a single shared secret with no second factor; it is rate-limited per client IP (10 attempts /
+15 min, `req.ip`, so a spoofed `X-Forwarded-For` does not reset it), but a short dictionary token is still
+what the limiter has to hold off. Rotate with the same command — a new version takes effect on the next
+revision, and the window keeps working for a cookie already issued until it expires (12 h).
+
 ### Manual steps
 
 ```bash
