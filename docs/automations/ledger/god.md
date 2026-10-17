@@ -60,6 +60,96 @@ Filled from the first sufficient brief after signals accumulate in `god-signals`
   `lastActAt`) onto it from the records, and the view reports `numbersFrom: records` — so a truncated
   month can no longer be presented as a small one, including its spend.
 - Ship (`gh pr merge --auto`) is still later. Propose stops at an open PR.
-- Stage 2c is half shipped: `GET /api/god/status` is read-only. The window UI, settings writes (needs
-  the narrow Actions token) and live ingest (needs its HMAC secret) are still open.
 - Live-ingest HMAC and GitHub App for settings/PR open are not created yet.
+
+## Remaining work
+
+Ordered by what is unblocked. Everything here was checked against the tree on 2026-10-17; the
+file-and-symbol names below are real, not assumed.
+
+### 1. The owner God window (unblocked, but needs one product decision first)
+
+The data half is done: `GET /api/god/status` returns everything a Now or History tab would show, and
+it is reachable without a new credential because the repo and the `god-log` branch are public. The
+pane itself is what is missing.
+
+**The open decision is where it mounts, and it is not a code question.** The obvious shell —
+`apps/web/src/components/FloatingWindow.jsx` — is the _office_ window chrome: it is wired to
+`state/overlayStack.js` (minimize and focus live there so the taskbar pill can restore a window), to
+`utils/officeCast.js` for chrome copy, and to taskbar groups and snap points. A God pane put there
+takes an office window slot and inherits the domain with the heaviest invariant docs in the repo
+(`docs/agents/domains/office.md`, `docs/office-window-manager.md`). The realistic options:
+
+- **A standalone owner route** (`/god`) outside the office floor: no overlay-stack entanglement, its
+  own door-code page, no office cast or i18n bundle obligations. Cheapest to reason about.
+- **The Desk OS tray or menu**: reuses the chrome the owner already reads, but it is office code and
+  inherits office rules and locale bundles.
+- **The existing settings surface**: a God group beside the usage-signals toggle in
+  `features/shell/AppWorkspaceSlot.jsx`, which already owns the owner-facing switches. Small diff,
+  but a run history in a settings panel is the wrong shape for a list that wants paging.
+
+Recommendation: the standalone route. It keeps God out of the office domain, and the office rules say
+do not add client observers — a separate route avoids touching the floor's getter contract entirely.
+
+Facts for whoever builds it, so they do not re-derive them:
+
+- The one exported thing a God client needs is `API_BASE_URL`, from `apps/web/src/state/diagramSession.ts`.
+  There is no shared fetch helper to reuse: `jsonFetch` and `sessionUrl` are module-private to
+  `apps/web/src/state/sessionEventsClient.js`, so the precedent to copy is that file (or
+  `llmModelsByProfile.js`, which does a cached `api/health` read), not an import of it.
+- `GET /api/god/status` fields: `source` (`live` / `stale` / `none`), `numbersFrom` (`records` or
+  `rollupRows`), `ticks`, `acts`, `monthSpendUsd`, `unproductiveActs`, `unproductiveUsd`,
+  `lastTick` (with `gateReason`, `digest`, `narration`), `lastActAt`, `lastActNarration`,
+  `reasonTally`, `recent`, `issues`.
+- **`null` is a value, not a gap.** `unproductiveActs` and `unproductiveUsd` are null when the month's
+  acts predate `narration`. Render "not measured", never a dash that reads as zero — the whole point of
+  those fields is that a zero would look like good news.
+- `source: stale` means the last good numbers survived a failed refresh; `none` is the 503 path. Both
+  need a visible stamp of `generatedAt` or the owner will read old numbers as current.
+- `issues` codes are `rollup_unreadable`, `rollup_rows_dropped`, `rollup_totals_missing`,
+  `fetch_failed`, `source_invalid`.
+- Tests are vitest, colocated under `apps/web/test/`. Visible strings need the i18n treatment in
+  `apps/web/src/i18n/` (see `deepMergeLocale.js` and `getUiLocaleBundle.js`).
+- No new secret is needed for the read view, and the door-code gate already covers `/api/god/*`
+  because `createVisitorBadgeGate` is mounted before every router in `loadServerApp.js`.
+
+### 2. Settings tab (blocked on a credential, not on code)
+
+Writing `GOD_*` repository variables needs the narrow Actions token with no contents permission, which
+does not exist yet — so the Settings tab cannot ship read-only either, since the config values live in
+Actions variables the server cannot read. Until the token exists, the honest Settings view is the
+`GOD_DEFAULTS` table in the guide plus the recorded `reason` per tick, which already shows which
+window and tier the gate actually used.
+
+### 3. Live ingest (blocked on a route plus a secret)
+
+`scripts/god/ingestClient.mjs` is finished and tested and has nothing to talk to: no
+`POST /api/god/live` exists in `apps/server/src`, `god.yml` passes neither `--ingest-url` nor
+`--ingest-secret-file`, and the HMAC secret was never created. `stats.misconfigured` now makes that
+visible in the run report rather than silent. Building it means the route (signature check, stale
+timestamp, replayed `seq`) and one `GOD_*` secret, and nothing in the runner changes.
+
+### 4. Ship tier (owner decision plus one credential)
+
+Propose stops at an open PR. `ship` is a playbook change plus the token that lets a God-opened PR
+actually run the six required checks — the default `GITHUB_TOKEN` opens a PR that starts none of them.
+The merge-policy toggle is designed; it is deliberately unreachable until the rung has opened a PR
+worth merging.
+
+### 5. Not blocked on any of the above
+
+- **Traffic.** The act rung stops at `insufficient`: about 5 events a day against a floor of 30, with
+  a per-slot finding needing 20 turns of one slot. No code here changes that, and lowering the floor is
+  a documented owner decision rather than a fix.
+- **`monthTotals` cannot judge history.** Acts recorded before `narration` make a month unjudgeable
+  rather than clean, so October 2026 stays unreported forever. Deliberate.
+- **`decideGodRun` still has no server consumer.** The status view deliberately does not call it; it
+  reports what a tick recorded. If a future owner view ever wants "what would happen right now?", that
+  needs the Actions token from item 2 first, because recomputing without it would print a confident
+  answer about a configuration the process cannot see.
+- **The reason drift sensor covers two producers** (`actDecision.mjs`, `godBudget.ts`). A third place
+  that emits a stop reason would not be scanned, and its reason would silently fail to record.
+- **Local tree, not God:** `verify:deps` and two server tests fail on this machine from installed
+  packages that disagree with the lockfile pins (`@a2ui/web_core`, `@ag-ui/core` missing its
+  `./schemas` export). Proven pre-existing by stashing. CI installs from the lockfile, so its six
+  checks are the authority.
