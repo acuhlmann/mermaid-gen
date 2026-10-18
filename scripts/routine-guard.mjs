@@ -133,9 +133,13 @@ export const ALWAYS_FORBIDDEN = [
   'packages/shared/src/uxSignals.ts',
   // The owner's read of the rung (ADR-0019 §10). An improver that can edit the panel showing its
   // own spend and skips can make that panel say anything, so the view is frozen with the rails it
-  // reads — the same argument that freezes the meter proxy.
+  // reads — the same argument that freezes the meter proxy. The web pane and its gate are the same
+  // panel's other half: a rung that can rewrite the token check, or the surface that prints
+  // "not measured" as a zero, has widened its own budget by other means.
   'apps/server/src/god/**',
   'apps/server/src/routes/god*',
+  'apps/server/src/middleware/godWindowGate.js',
+  'apps/web/src/features/god/**',
   // This file. The budget is the safety model, so the thing that reads the budget cannot be inside
   // any routine's reach — `allowedPaths` is what a routine may widen, and a routine that can edit
   // the enforcer can edit everything. Issue #461 named the gap; ADR-0017 closes it.

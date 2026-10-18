@@ -371,13 +371,23 @@ test("ALWAYS_FORBIDDEN freezes ArchiSlop God's money and privacy rails (ADR-0019
     // The owner's read of the rung: spend, caps and skips. An improver that can edit the panel that
     // shows its own numbers can make that panel say anything.
     'apps/server/src/god/godLogView.ts',
-    'apps/server/src/routes/godStatus.ts'
+    'apps/server/src/routes/godStatus.ts',
+    // The window's other half, frozen for the same reason: the gate that decides who sees the money,
+    // and the surface that renders it. A rung that can rewrite either has widened its own budget by
+    // other means than the ceiling it is paid under.
+    'apps/server/src/middleware/godWindowGate.js',
+    'apps/web/src/features/god/GodWindow.jsx',
+    'apps/web/src/features/god/godWindowClient.js'
   ]) {
     assert.ok(matchesAny(file, ALWAYS_FORBIDDEN), file);
   }
   assert.ok(!matchesAny('scripts/godless.mjs', ALWAYS_FORBIDDEN));
   assert.ok(!matchesAny('.github/workflows/ci.yml', ALWAYS_FORBIDDEN));
   assert.ok(!matchesAny('apps/server/src/routes/signals.ts', ALWAYS_FORBIDDEN));
+  // The gate protects the owner surface only; the rest of the API stays reachable, or the freeze has
+  // quietly become a way for one panel to lock the product.
+  assert.ok(!matchesAny('apps/server/src/index.js', ALWAYS_FORBIDDEN));
+  assert.ok(!matchesAny('apps/web/src/main.jsx', ALWAYS_FORBIDDEN));
 });
 
 test('ALWAYS_FORBIDDEN covers the AGENTS.md cost and lockfile traps', () => {

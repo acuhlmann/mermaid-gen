@@ -65,6 +65,7 @@
     "secret:deepseek:cloud-run": "bash scripts/push-deepseek-secret-cloud-run.sh",
     "secret:invite-token:cloud-run": "bash scripts/push-invite-token-secret-cloud-run.sh",
     "secret:visitor-badge:cloud-run": "bash scripts/push-visitor-badge-secrets-cloud-run.sh",
+    "secret:god-window:cloud-run": "bash scripts/push-god-window-token-cloud-run.sh",
     "prepare": "husky || true"
   },
   "lint-staged": {
