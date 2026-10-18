@@ -17,6 +17,9 @@ todos: []
 - **Config:** repo variables `GOD_*` (defaults from `godBudget.ts`). `GOD_ENABLED=true` since the
   owner flipped it by hand (the 2c God window is what makes it self-service); `GOD_AUTONOMY=propose`,
   `GOD_EVERY_HOURS=24`, `GOD_WINDOW_UTC=06-12`, `GOD_MAX_USD_PER_RUN=1`, `GOD_MAX_USD_PER_MONTH=20`.
+- **Wallet:** GitHub Actions environment `god` secret **`OPENROUTER_GOD_KEY`** (default upstream;
+  `--upstream deepseek` rollback in `scripts/god/upstream.mjs`). Not mounted on Cloud Run — Brain
+  keys stay separate.
 - **Data branch:** `god-log` (orphan). Per-run JSON records; this ledger is for code-PR rows only.
 - **Schedule:** `17 * * * *` UTC; gate window default `06-12` UTC. Off the night ladder on purpose.
 
@@ -38,6 +41,8 @@ Filled from the first sufficient brief after signals accumulate in `god-signals`
 | 2026-10-17 | code    | —       | The observe contract now records **which** of its three outcomes happened (`narration`: `finding` / `waiting` / `dropped`), so an act that billed, completed and named nothing is no longer indistinguishable from one that correctly waited. Only a `completed` run owes the contract an answer — a crashed harness leaves the field absent rather than booking its cost against silence. `monthTotals` adds `unproductiveActs`/`unproductiveUsd`, **omitted rather than zeroed** when the month's acts predate the field (every month on the branch today, October included). While writing the test I asserted that `finalizeActRecord` drops the finding when a patch lands; it does not, and no doc claims it does — the belief was mine, corrected against the code.                                                                                                                              |     |
 | 2026-10-17 | code    | —       | Live ingest was documented as shipped but there is no receiver: no route in `apps/server/src`, and the workflow passes neither `--ingest-url` nor `--ingest-secret-file`, so the client has always taken its unconfigured no-op branch. The client header claimed the server rejects stale timestamps and replayed sequence numbers — that contract exists nowhere, so it is now labelled the intended spec. Added `stats.misconfigured` (404, 405, 501) because best-effort delivery never throws: an owner who mints the secret and wires the flag would otherwise get green runs, zero events, and a counter that reads exactly like a network hiccup. The no-op test asserts the whole stats shape, so it caught the new field immediately.                                                                                                                                                         |     |
 | 2026-10-18 | code    | —       | Synthetic probes, owner-approved: production carries about ten signals a day against a floor of 30, and the repo-signal alternative measured empty too (1 real CI failure in 100 runs; bench snapshots last touched in August). A gate `go` now runs `probe.mjs` first — the real server behind the meter proxy, two fixed prompts per slot, ≤ $0.25 taken from the tick's cap with the act's minimum held back. The run record keeps counts and spend (`probe`); `monthTotals` and `deriveCadence` count both, because a probe that named nothing would otherwise leave God due again every hour of the window. The brief pools seven days into `probes` and names slots that miss an absolute target (`source: probe`, half severity, never `regressionSuspect`). Smoke-tested locally against a fake upstream: server boots on the proxy token, spend meters, `agent_turn` lines come back per slot. |     |
+| 2026-10-18 | code    | —       | Wallet moved to **`OPENROUTER_GOD_KEY`** (#819, ADR-0019 §5 amended): God's probe/act/spike bill a dedicated OpenRouter key so the owner caps the autonomous rung at the gateway and an empty God wallet cannot drain `DEEPSEEK_API_KEY` / `OPENROUTER_API_KEY`. `scripts/god/upstream.mjs` owns path, auth, model-id rewrite, and balance reads per wallet; `--upstream deepseek` is the rollback. Meter proxy answers OpenRouter's missing `count_tokens`, binds spend on what the wallet reports, and disables thinking on the chat wire so probes match production Brain.                                                                                                                                                                                                                                                                                                                           |     |
+| 2026-10-18 | code    | —       | Owner God window shipped (#811 + follow-ups): standalone `/god` (`apps/web/src/features/god/`), `GOD_WINDOW_TOKEN` gate, `GET /api/god/status` + `POST /api/god/unlock`. Pane mounts outside the ArchiSlop tree (`markAppReady`, no `installUxSignals`). Deploy trap documented: `god-window-token` must appear in both deploy secret lists.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |     |
 
 ## Open observations
 
@@ -66,83 +71,14 @@ Filled from the first sufficient brief after signals accumulate in `god-signals`
 
 ## Remaining work
 
-Ordered by what is unblocked. Everything here was checked against the tree on 2026-10-17; the
-file-and-symbol names below are real, not assumed.
+Ordered by what is unblocked. Checked against the tree on 2026-10-18.
 
-### 1. The owner God window — **built 2026-10-18** (#811, drift fix follow-up)
+### 1. Owner God window — **shipped** (#811, 2026-10-18)
 
-Built as the standalone `/god` route the recommendation below chose. **Do not rebuild it.** What shipped,
-in `apps/web/src/features/god/`: `GodWindow.jsx` (Now / History / Signals / Settings tabs), a
-`useSyncExternalStore` client, a `godWindowCopy.js` module (English-only, following `utils/coldStartCopy.ts`
-rather than the office locale bundle), `godRoute.js`, and `middleware/godWindowGate.js` server-side for
-`GOD_WINDOW_TOKEN`. Tests: `apps/web/test/godWindow.test.jsx`, `godRoute.test.js`,
-`apps/server/test/godWindowGate.test.js`.
-
-Four facts the build produced that are not visible in the diff:
-
-- The pane **must call `markAppReady()`** itself. It mounts outside the ArchiSlop tree, so
-  `useSessionHydrate` never fires it, and the cold-start cover would sit on the painted pane for 45 s.
-- The pane **must not install usage signals.** God's gate counts `uxSignals`; the owner reading their own
-  panel would inflate the floor that decides whether God acts. `main.jsx` branches before
-  `installUxSignals()`.
-- `markAppReady` aside, mounting above the tree is forced anyway: inside it,
-  `ensureUrlBackedSession()` rewrites the address bar to `/sessions/{id}` and would erase `/god`.
-- In a deployment where `VISITOR_BADGE_SECRETS` is set, the door-code gate answers **first** — it is
-  mounted before every router and bypasses only `/api/health`, `/mcp`, `/api/visitor-badge`. So `/god`
-  needs check-in _and_ the owner token, and external `curl` probes cannot reach token validation or its
-  rate limiter. Verify those locally; use the live revision's env for production evidence.
-
-**The deploy trap this section did not predict.** #811 shipped green with the code deployed and the token
-**unmounted**, so the window answered 503. The Cloud Run secret list exists twice — inline in
-`.github/workflows/deploy-cloud-run.yml` (the deployer that runs on every merge to `main`) and in
-`scripts/deploy-cloud-run.sh` (manual path) — and `--set-secrets` _replaces_ the whole list, so a pair
-present in only one is silently removed by the other. `scripts/deploy-secret-lists.test.mjs` now compares
-both. A green deploy is not evidence that a mount landed; read the revision's env.
-
-The remaining data half of the original note is reproduced below as build history.
-
-The data half was already done: `GET /api/god/status` returns everything a Now or History tab shows, and
-it is reachable without a new credential because the repo and the `god-log` branch are public.
-
-**The open decision is where it mounts, and it is not a code question.** The obvious shell —
-`apps/web/src/components/FloatingWindow.jsx` — is the _office_ window chrome: it is wired to
-`state/overlayStack.js` (minimize and focus live there so the taskbar pill can restore a window), to
-`utils/officeCast.js` for chrome copy, and to taskbar groups and snap points. A God pane put there
-takes an office window slot and inherits the domain with the heaviest invariant docs in the repo
-(`docs/agents/domains/office.md`, `docs/office-window-manager.md`). The realistic options:
-
-- **A standalone owner route** (`/god`) outside the office floor: no overlay-stack entanglement, its
-  own door-code page, no office cast or i18n bundle obligations. Cheapest to reason about.
-- **The Desk OS tray or menu**: reuses the chrome the owner already reads, but it is office code and
-  inherits office rules and locale bundles.
-- **The existing settings surface**: a God group beside the usage-signals toggle in
-  `features/shell/AppWorkspaceSlot.jsx`, which already owns the owner-facing switches. Small diff,
-  but a run history in a settings panel is the wrong shape for a list that wants paging.
-
-Recommendation: the standalone route. It keeps God out of the office domain, and the office rules say
-do not add client observers — a separate route avoids touching the floor's getter contract entirely.
-
-Facts for whoever builds it, so they do not re-derive them:
-
-- The one exported thing a God client needs is `API_BASE_URL`, from `apps/web/src/state/diagramSession.ts`.
-  There is no shared fetch helper to reuse: `jsonFetch` and `sessionUrl` are module-private to
-  `apps/web/src/state/sessionEventsClient.js`, so the precedent to copy is that file (or
-  `llmModelsByProfile.js`, which does a cached `api/health` read), not an import of it.
-- `GET /api/god/status` fields: `source` (`live` / `stale` / `none`), `numbersFrom` (`records` or
-  `rollupRows`), `ticks`, `acts`, `monthSpendUsd`, `unproductiveActs`, `unproductiveUsd`,
-  `lastTick` (with `gateReason`, `digest`, `narration`), `lastActAt`, `lastActNarration`,
-  `reasonTally`, `recent`, `issues`.
-- **`null` is a value, not a gap.** `unproductiveActs` and `unproductiveUsd` are null when the month's
-  acts predate `narration`. Render "not measured", never a dash that reads as zero — the whole point of
-  those fields is that a zero would look like good news.
-- `source: stale` means the last good numbers survived a failed refresh; `none` is the 503 path. Both
-  need a visible stamp of `generatedAt` or the owner will read old numbers as current.
-- `issues` codes are `rollup_unreadable`, `rollup_rows_dropped`, `rollup_totals_missing`,
-  `fetch_failed`, `source_invalid`.
-- Tests are vitest, colocated under `apps/web/test/`. Visible strings need the i18n treatment in
-  `apps/web/src/i18n/` (see `deepMergeLocale.js` and `getUiLocaleBundle.js`).
-- No new secret is needed for the read view, and the door-code gate already covers `/api/god/*`
-  because `createVisitorBadgeGate` is mounted before every router in `loadServerApp.js`.
+Standalone `/god` with Now / History / Signals tabs (Settings placeholders until item 2). Operator map:
+[`docs/guide/archislop-god.md`](../../guide/archislop-god.md), [`docs/deploy/gcp.md`](../../deploy/gcp.md)
+§ God window owner token, [`docs/guide/api-endpoints.md`](../../guide/api-endpoints.md). Mounting,
+signal, and deploy invariants are in the run-log rows above — not repeated here.
 
 ### 2. Settings tab (blocked on a credential, not on code)
 

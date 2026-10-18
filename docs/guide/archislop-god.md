@@ -98,8 +98,8 @@ flowchart TB
     RunWrap --> Meter --> DSH
   end
 
-  subgraph owner ["Owner-only (planned UI)"]
-    Window["God window: Now · History · Signals · Settings"]
+  subgraph owner ["Owner-only (/god)"]
+    Window["God window: Now · History · Signals · Settings (read-only)"]
     Window <--> GodApi
   end
 
