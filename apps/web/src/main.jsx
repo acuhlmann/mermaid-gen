@@ -6,8 +6,6 @@ import App from './App.jsx';
 import AppErrorBoundary from './components/AppErrorBoundary.jsx';
 import GodWindow from './features/god/GodWindow.jsx';
 import { isGodWindowPath } from './features/god/godRoute.js';
-import MediaViewer from './features/mediaViewer/MediaViewer.jsx';
-import { isMediaViewerPath } from './features/mediaViewer/mediaViewerRoute.js';
 import { installUxSignals } from './state/uxSignalsClient.js';
 
 let mounted = false;
@@ -34,15 +32,6 @@ export async function mountArchislopApp() {
     createRoot(rootEl).render(
       <StrictMode>
         <GodWindow />
-      </StrictMode>
-    );
-    return;
-  }
-
-  if (isMediaViewerPath()) {
-    createRoot(rootEl).render(
-      <StrictMode>
-        <MediaViewer />
       </StrictMode>
     );
     return;
