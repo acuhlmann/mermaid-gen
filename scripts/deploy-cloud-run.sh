@@ -96,6 +96,11 @@ if gcloud secrets describe god-window-token --project="${PROJECT_ID}" &>/dev/nul
 else
   echo "Note: Secret god-window-token not found; the God window stays closed until you run npm run secret:god-window:cloud-run." >&2
 fi
+if gcloud secrets describe god-ingest-token --project="${PROJECT_ID}" &>/dev/null; then
+  CLOUD_RUN_SECRETS+=("GOD_INGEST_SECRET=god-ingest-token:latest")
+else
+  echo "Note: Secret god-ingest-token not found; God's live ingest stays disabled until you create it (see docs/deploy/gcp.md)." >&2
+fi
 if ((${#CLOUD_RUN_SECRETS[@]} > 0)); then
   DEPLOY_ARGS+=(--set-secrets="$(IFS=,; echo "${CLOUD_RUN_SECRETS[*]}")")
 fi

@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useState, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { GOD_ACT_VERDICTS, GOD_HARD_LIMITS } from '@archislop/shared';
 import {
   GOD_ACCESS,
   getGodWindowSnapshot,
+  loadGodLive,
   loadGodStatus,
   subscribeGodWindow,
   unlockGodWindow
@@ -191,11 +192,73 @@ function TickLines({ view }) {
   );
 }
 
+function formatLiveLine(event) {
+  if (!event || typeof event !== 'object') return COPY.fields.unknown;
+  if (event.text) return String(event.text);
+  if (event.type === 'tool') {
+    const bits = [event.tool, event.path, event.command].filter(Boolean);
+    return bits.length ? bits.join(' · ') : 'tool';
+  }
+  if (event.type === 'model' && typeof event.usd === 'number') {
+    return `model · ~$${event.usd}`;
+  }
+  return label(event.type);
+}
+
+function LiveFeed({ runId }) {
+  const [events, setEvents] = useState([]);
+  const afterRef = useRef(-1);
+
+  useEffect(() => {
+    afterRef.current = -1;
+    setEvents([]);
+    if (!runId) return undefined;
+
+    let cancelled = false;
+    const poll = async () => {
+      const payload = await loadGodLive(runId, afterRef.current);
+      if (cancelled || !payload?.events?.length) return;
+      afterRef.current = payload.lastSeq ?? afterRef.current;
+      setEvents((prev) => [...prev, ...payload.events]);
+    };
+
+    poll();
+    const timer = setInterval(() => void poll(), 2500);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, [runId]);
+
+  return (
+    <>
+      <h3 className="god-subheading">{COPY.now.liveHeading}</h3>
+      <p className="god-note">
+        {COPY.now.liveRun}: {label(runId)}
+      </p>
+      {events.length === 0 ? (
+        <p className="god-note">{COPY.now.liveEmpty}</p>
+      ) : (
+        <ol className="god-live-feed">
+          {events.map((event) => (
+            <li key={`${event.seq}-${event.ts}`}>
+              <span className="god-live-type">{label(event.type)}</span>
+              {formatLiveLine(event)}
+            </li>
+          ))}
+        </ol>
+      )}
+    </>
+  );
+}
+
 function NowTab({ view }) {
+  const active = Array.isArray(view.activeIngests) ? view.activeIngests[0] : null;
   return (
     <section className="god-panel" role="tabpanel">
       <h2 className="god-heading">{COPY.now.heading}</h2>
       <MonthStats view={view} />
+      {active?.runId ? <LiveFeed runId={active.runId} /> : null}
       <h3 className="god-subheading">{COPY.now.tickHeading}</h3>
       <TickStats tick={view.lastTick} />
       <TickLines view={view} />

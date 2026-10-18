@@ -208,35 +208,33 @@ artifact. Those two are **absent rather than zero** when the month's acts predat
 "not measured" and "measured clean" are different answers about money, and October is the former.
 See [the playbook § 6 Memory](../automations/god.md#6-memory).
 
-Live run streaming is **designed but not built**. `scripts/god/ingestClient.mjs` batches a run's
-`events.ndjson` and POSTs signed batches, and the runner accepts `--ingest-url` /
-`--ingest-secret-file`, but there is no `POST /api/god/live` route on the server and the workflow sets
-neither flag — so the client always takes its unconfigured no-op path. The client's header comment is
-the intended receiver contract, not current behaviour. Building it needs the route plus an HMAC secret
-that does not exist yet; until then the durable artifact is the run report on `god-log`, and
-`GET /api/god/status` is the only live-ish view an owner has.
+Live run streaming is **shipped** when `GOD_INGEST_SECRET` is mounted on Cloud Run and the `god`
+Actions environment has the same secret plus `GOD_INGEST_URL` or `PUBLIC_BASE_URL`. The harness posts
+signed batches to `POST /api/god/live`; the owner window polls `GET /api/god/live/:runId` on the **Now**
+tab while `activeIngests` on `GET /api/god/status` reports a recent run. The buffer is ephemeral — the
+durable record remains the run report on `god-log`.
 
 ## Current state: shipped vs planned
 
-| Piece                                        | Status                                              | Location                                                                       |
-| -------------------------------------------- | --------------------------------------------------- | ------------------------------------------------------------------------------ |
-| Client usage signals + opt-out               | **Shipped**                                         | `apps/web/src/state/uxSignalsClient.js`, Settings storage                      |
-| `POST /api/signals`                          | **Shipped**                                         | `apps/server/src/routes/signals.ts`                                            |
-| `agent_turn` metrics                         | **Shipped**                                         | `apps/server/src/metrics/agentTurnMetrics.js`                                  |
-| Shared signal + God wire schemas             | **Shipped**                                         | `uxSignals.ts`, `godSchemas.ts`, `godBudget.ts`                                |
-| Run wrapper, meter proxy, dsh adapter, spike | **Shipped**                                         | `scripts/god/`                                                                 |
-| `gate` + `brief` + observe decision          | **Shipped**                                         | `scripts/god/gate.mjs`, `scripts/god/brief.mjs`, `scripts/god/actDecision.mjs` |
-| Multi-metric, history-aware brief            | **Shipped**                                         | `scripts/god/brief.mjs` (`buildFindings`, `deriveLastGodMerge`)                |
-| CI workflow (hourly `gate → brief → act`)    | **Shipped** — cron `17 * * * *`, window `06–12` UTC | `.github/workflows/god.yml`                                                    |
-| Harness spike (`workflow_dispatch`)          | **Shipped**                                         | same workflow / `scripts/god/spike.mjs`                                        |
-| Synthetic probes (God's own traffic)         | **Shipped** — on a gate `go`, ≤ $0.25 per tick      | `scripts/god/probe.mjs`, `scripts/god/probeCorpus.mjs`, brief `probes`         |
-| Observe act (read-only, god-log finding)     | **Shipped**                                         | `scripts/god/run.mjs`, `scripts/god/godLog.mjs`, `scripts/god/recordTick.mjs`  |
-| Propose verify → ready PR                    | **Shipped**                                         | `scripts/god/proposePatch.mjs`, `.github/workflows/god.yml`                    |
-| Ship (`gh pr merge --auto`)                  | **Planned**                                         | ADR-0019; ledger § Open observations                                           |
-| `GET /api/god/status` — owner run view       | **Shipped** (read-only)                             | `apps/server/src/god/godLogView.ts`, `apps/server/src/routes/godStatus.ts`     |
-| Live ingest (`POST /api/god/live`)           | **Not built** — no route, no HMAC secret            | client `scripts/god/ingestClient.mjs`, currently always a no-op                |
-| Window — Now / History / Signals at `/god`   | **Shipped** (read-only, owner token)                | `apps/web/src/features/god/`, `apps/server/src/middleware/godWindowGate.js`    |
-| Window — Settings writes (`/api/god` config) | **Planned** — needs the narrow Actions token        | ADR-0019 §10                                                                   |
+| Piece                                        | Status                                              | Location                                                                                                                                                       |
+| -------------------------------------------- | --------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Client usage signals + opt-out               | **Shipped**                                         | `apps/web/src/state/uxSignalsClient.js`, Settings storage                                                                                                      |
+| `POST /api/signals`                          | **Shipped**                                         | `apps/server/src/routes/signals.ts`                                                                                                                            |
+| `agent_turn` metrics                         | **Shipped**                                         | `apps/server/src/metrics/agentTurnMetrics.js`                                                                                                                  |
+| Shared signal + God wire schemas             | **Shipped**                                         | `uxSignals.ts`, `godSchemas.ts`, `godBudget.ts`                                                                                                                |
+| Run wrapper, meter proxy, dsh adapter, spike | **Shipped**                                         | `scripts/god/`                                                                                                                                                 |
+| `gate` + `brief` + observe decision          | **Shipped**                                         | `scripts/god/gate.mjs`, `scripts/god/brief.mjs`, `scripts/god/actDecision.mjs`                                                                                 |
+| Multi-metric, history-aware brief            | **Shipped**                                         | `scripts/god/brief.mjs` (`buildFindings`, `deriveLastGodMerge`)                                                                                                |
+| CI workflow (hourly `gate → brief → act`)    | **Shipped** — cron `17 * * * *`, window `06–12` UTC | `.github/workflows/god.yml`                                                                                                                                    |
+| Harness spike (`workflow_dispatch`)          | **Shipped**                                         | same workflow / `scripts/god/spike.mjs`                                                                                                                        |
+| Synthetic probes (God's own traffic)         | **Shipped** — on a gate `go`, ≤ $0.25 per tick      | `scripts/god/probe.mjs`, `scripts/god/probeCorpus.mjs`, brief `probes`                                                                                         |
+| Observe act (read-only, god-log finding)     | **Shipped**                                         | `scripts/god/run.mjs`, `scripts/god/godLog.mjs`, `scripts/god/recordTick.mjs`                                                                                  |
+| Propose verify → ready PR                    | **Shipped**                                         | `scripts/god/proposePatch.mjs`, `.github/workflows/god.yml`                                                                                                    |
+| Ship (`gh pr merge --auto`)                  | **Planned**                                         | ADR-0019; ledger § Open observations                                                                                                                           |
+| `GET /api/god/status` — owner run view       | **Shipped** (read-only)                             | `apps/server/src/god/godLogView.ts`, `apps/server/src/routes/godStatus.ts`                                                                                     |
+| Live ingest (`POST /api/god/live`)           | **Shipped** — HMAC + in-memory buffer               | `apps/server/src/routes/godLive.ts`, `godLiveStore.ts`, `packages/shared/src/godIngest.ts`; wired from `god.yml` when `GOD_INGEST_SECRET` + public URL are set |
+| Window — Now / History / Signals at `/god`   | **Shipped** (read-only, owner token)                | `apps/web/src/features/god/`, `apps/server/src/middleware/godWindowGate.js`                                                                                    |
+| Window — Settings writes (`/api/god` config) | **Planned** — needs the narrow Actions token        | ADR-0019 §10                                                                                                                                                   |
 
 **Practical today:** production emits signals; GitHub Actions runs an hourly **gate → brief** tick
 (when `GOD_ENABLED` and budget allow) and writes run records to **`god-log`**. The brief ranks

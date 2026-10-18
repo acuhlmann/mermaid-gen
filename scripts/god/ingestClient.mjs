@@ -1,24 +1,20 @@
 /**
  * Live-event delivery from the God runner to the owner's **Now** view (ADR-0019 §10).
  *
- * NOT WIRED TO ANYTHING YET. There is no `POST /api/god/live` route in `apps/server/src`, and
- * `.github/workflows/god.yml` passes neither `--ingest-url` nor `--ingest-secret-file`, so in CI this
- * client always takes the unconfigured no-op branch below. Read the rest as the *intended* receiver
- * contract — a spec for whoever builds the route — not as behaviour that exists. It used to be written
- * as fact ("the server rejects stale timestamps and replayed sequence numbers"), which is how a
- * phantom endpoint survives review.
+ * Delivers batches to `POST /api/god/live` on the production app when `--ingest-url` and
+ * `--ingest-secret-file` are set (see `.github/workflows/god.yml`). Without both, this client is a no-op.
  *
  * Signature: `x-god-signature: sha256=<hex HMAC-SHA256(secret, "<timestamp>.<raw body>")>` with
- * `x-god-timestamp: <unix seconds>`; the receiver is to reject stale timestamps and replayed sequence
- * numbers. Delivery is best-effort by design — the live view is a convenience, the durable record
+ * `x-god-timestamp: <unix seconds>`; the server rejects stale timestamps and replayed sequence numbers.
+ * Delivery is best-effort by design — the live view is a convenience, the durable record
  * is the run report on the `god-log` branch — so a failed POST is counted and dropped, never
  * retried, and an unconfigured client is a no-op. Because it never throws, `send` keeps "nothing is
  * listening at this URL" separate from "the network hiccuped": see `stats.misconfigured`.
  */
 import { createHmac } from 'node:crypto';
+import { GOD_INGEST_SIGNATURE_HEADER, GOD_INGEST_TIMESTAMP_HEADER } from '@archislop/shared';
 
-export const GOD_INGEST_SIGNATURE_HEADER = 'x-god-signature';
-export const GOD_INGEST_TIMESTAMP_HEADER = 'x-god-timestamp';
+export { GOD_INGEST_SIGNATURE_HEADER, GOD_INGEST_TIMESTAMP_HEADER };
 
 /** The canonical signature for one request body. */
 export function signGodIngestBody(secret, timestamp, body) {

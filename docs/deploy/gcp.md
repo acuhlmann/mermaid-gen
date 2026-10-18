@@ -254,6 +254,22 @@ token is a single shared secret with no second factor; it is rate-limited per cl
 what the limiter has to hold off. Rotate with the same command — a new version takes effect on the next
 revision, and the window keeps working for a cookie already issued until it expires (12 h).
 
+### God's live-ingest secret
+
+**`GOD_INGEST_SECRET`** lets the GitHub Actions **`act`** job POST harness events to **`/api/god/live`**
+while a run is in flight. Use the same value in Secret Manager (**`god-ingest-token`**) and in the
+**`god`** environment as **`GOD_INGEST_SECRET`**. Set **`GOD_INGEST_URL`** or **`PUBLIC_BASE_URL`** in that
+environment to your public app origin (the workflow appends `/api/god/live`).
+
+```bash
+GOD_INGEST_SECRET="$(openssl rand -hex 32)"
+echo -n "$GOD_INGEST_SECRET" | gcloud secrets create god-ingest-token --data-file=- --project=PROJECT_ID \
+  || echo -n "$GOD_INGEST_SECRET" | gcloud secrets versions add god-ingest-token --data-file=- --project=PROJECT_ID
+```
+
+The deploy scripts mount **`GOD_INGEST_SECRET=god-ingest-token:latest`** when the secret exists (keep
+**`.github/workflows/deploy-cloud-run.yml`** and **`scripts/deploy-cloud-run.sh`** in sync).
+
 ### Manual steps
 
 ```bash

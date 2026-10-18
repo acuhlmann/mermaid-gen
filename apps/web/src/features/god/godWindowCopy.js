@@ -46,7 +46,10 @@ export const GOD_WINDOW_COPY = {
     reason: 'Why it stopped',
     generated: 'Numbers as of',
     stale: 'Cached — the last read of the branch failed',
-    sourceNone: 'Nothing readable on the branch right now.'
+    sourceNone: 'Nothing readable on the branch right now.',
+    liveHeading: 'Live run',
+    liveEmpty: 'No harness events in the buffer yet.',
+    liveRun: 'Run id'
   },
   history: {
     heading: 'Recent ticks',
