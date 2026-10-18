@@ -108,7 +108,7 @@ export function describeRawEvent(raw, ctx) {
     case 'budget':
       return { type: 'status', text: 'per-run budget reached', reason: 'budget' };
     case 'balance':
-      return { type: 'status', text: 'DeepSeek balance exhausted', reason: 'balance' };
+      return { type: 'status', text: 'wallet balance exhausted', reason: 'balance' };
     case 'phase':
       return { type: 'phase', phase: raw.phase };
     default:

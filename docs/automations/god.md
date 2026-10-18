@@ -74,6 +74,16 @@ from live logs, and it is sufficient (or the owner forced the tick). Propose may
 enforces `GOD_WINDOW_UTC` (default `06-12`) so God stays off the night ladder and clear of `deps`.
 This playbook is registered as **off-ladder** in `verify:agent-infra` for that reason.
 
+**Wallet.** Every paid rung (probe, act, spike) bills `OPENROUTER_GOD_KEY` — God's own OpenRouter key,
+whose credit limit the owner sets in the gateway dashboard. That separation is the point: God is the
+one consumer allowed to run out of money on its own, and when it does, Brain and the office keep the
+app's `DEEPSEEK_API_KEY` / `OPENROUTER_API_KEY`. The gateway is also where the pre-run money check
+looks: the gate reads the key's own remaining headroom, then the account's prepaid credits, and refuses
+a tick under `minBalanceUsd` ($0.10). Both wallets are declared in
+[`scripts/god/upstream.mjs`](../../scripts/god/upstream.mjs), which maps each one's paths, auth header
+and model ids — the harness only ever sees the local proxy, so `--upstream deepseek` is the whole
+rollback and no rung switches wallets by itself.
+
 `mergePolicy: hold` — God opens PRs ready; a human merges. Ship is a later Settings toggle plus a
 one-line playbook change, never a silent bypass of the six required checks.
 

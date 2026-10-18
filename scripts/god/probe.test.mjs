@@ -98,7 +98,7 @@ test('the probe server inherits no secret from the runner and talks only to the 
     base: {
       PATH: '/usr/bin',
       HOME: '/home/runner',
-      GOD_DEEPSEEK_API_KEY: 'sk-real',
+      OPENROUTER_GOD_KEY: 'sk-or-real',
       GITHUB_TOKEN: 'ghs_x',
       GOOGLE_APPLICATION_CREDENTIALS: '/tmp/creds.json'
     }
@@ -108,7 +108,7 @@ test('the probe server inherits no secret from the runner and talks only to the 
   assert.equal(env.MERMAID_METRICS, '1');
   assert.equal(env.LLM_PROVIDER, 'deepseek');
   for (const value of Object.values(env)) {
-    assert.ok(!['sk-real', 'ghs_x', '/tmp/creds.json'].includes(value));
+    assert.ok(!['sk-or-real', 'ghs_x', '/tmp/creds.json'].includes(value));
   }
 });
 

@@ -18,9 +18,11 @@ import os from 'node:os';
 import path from 'node:path';
 import { parseArgs } from 'node:util';
 import { fileURLToPath } from 'node:url';
+import { config as loadEnv } from 'dotenv';
 import { GOD_HARD_LIMITS } from '@archislop/shared/godBudget.js';
 import { GodBriefSchema, GodFocusSchema, GodTierSchema } from '@archislop/shared/godSchemas.js';
-import { startMeterProxy, DEFAULT_UPSTREAM } from './meterProxy.mjs';
+import { startMeterProxy } from './meterProxy.mjs';
+import { resolveGodKey, resolveWallet } from './upstream.mjs';
 import { promptSafeHistory } from './godLog.mjs';
 import { createLiveEventStream } from './liveEvents.mjs';
 import { createIngestClient } from './ingestClient.mjs';
@@ -146,12 +148,24 @@ export async function runGod(options) {
       JSON.stringify({ maxUsd, ...usage }, null, 2)
     );
 
+  // Which wallet this run bills, and the key that pays it: `--key-file` is the CI path (a file the
+  // proxy reads and deletes); a local run may hold the same value in the wallet's own env var, which
+  // is where the `.env` loaded by `main()` puts it.
+  const env = options.env ?? process.env;
+  const wallet = resolveWallet(options.upstream, env);
+  const credentials = resolveGodKey({
+    wallet,
+    keyFile: options.keyFile,
+    apiKey: options.apiKey,
+    env
+  });
+
   emit({ type: 'phase', phase: 'act' });
   // `onEvent` only fires while a request is in flight, which is after this assignment completes.
   const proxy = await startMeterProxy({
-    keyFile: options.keyFile,
-    apiKey: options.apiKey,
-    upstream: options.upstream ?? DEFAULT_UPSTREAM,
+    ...credentials,
+    upstream: wallet,
+    env,
     maxUsd,
     fetchImpl: options.fetchImpl,
     onEvent: (event) => {
@@ -219,6 +233,8 @@ export async function runGod(options) {
     focus,
     harness: { name: harnessName, version: harnessName === 'mock' ? MOCK_VERSION : dshVersion() },
     model,
+    /** Which wallet paid for this run: name, label and gateway origin, never the key. */
+    wallet: proxy.wallet,
     startedAt: startedAt.toISOString(),
     endedAt: endedAt.toISOString(),
     minutes: Math.round(((endedAt.getTime() - startedAt.getTime()) / 60_000) * 100) / 100,
@@ -261,7 +277,6 @@ function parseCli(argv) {
     }
   });
   if (!values['out-dir']) throw new Error('--out-dir is required');
-  if (!values['key-file']) throw new Error('--key-file is required');
   return {
     harness: values.harness,
     tier: values.tier,
@@ -284,6 +299,9 @@ function parseCli(argv) {
 }
 
 async function main() {
+  // A local invocation reads God's key from `.env` the way every other script in this repo does; in
+  // CI there is no `.env` and the staged `--key-file` is the only source, which is how it must stay.
+  loadEnv({ quiet: true });
   const options = parseCli(process.argv.slice(2));
   const report = await runGod(options);
   const summary = {
