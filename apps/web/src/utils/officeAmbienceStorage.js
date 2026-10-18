@@ -277,10 +277,6 @@ export function writeOfficeWelcomeSeen() {
 }
 
 /**
- * True once the entry-screen office directory has been dismissed — it then
- * collapses to the "Meet the office" chip on later visits.
- */
-/**
  * Which screen a visit opens on. Simple is the default; Office only when the
  * person picked it last time with the Simple/Office switch. Returns Simple
  * outside the browser or when storage access fails.
@@ -311,6 +307,10 @@ export function writePreferredViewMode(mode) {
   }
 }
 
+/**
+ * True once the entry-screen office directory has been dismissed — it then
+ * collapses to the "Meet the office" chip on later visits.
+ */
 export function readOfficeDirectorySeen() {
   if (typeof window === 'undefined') return false;
   try {
