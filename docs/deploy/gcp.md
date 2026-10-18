@@ -254,6 +254,18 @@ token is a single shared secret with no second factor; it is rate-limited per cl
 what the limiter has to hold off. Rotate with the same command — a new version takes effect on the next
 revision, and the window keeps working for a cookie already issued until it expires (12 h).
 
+### God's OpenRouter wallet (GitHub Actions only)
+
+ArchiSlop God's probe, act, and spike jobs bill **`OPENROUTER_GOD_KEY`**, not Cloud Run Brain keys.
+Store it as a secret on the GitHub Actions environment **`god`** (see `.github/workflows/god.yml`).
+Set a **credit limit** on that key in the [OpenRouter dashboard](https://openrouter.ai/settings/keys) so
+an empty God wallet cannot drain `deepseek-api-key` or `openrouter-api-key` on the service.
+
+Local runs of `scripts/god/gate.mjs`, `run.mjs`, or `probe.mjs` read the same variable from `.env`.
+Rollback upstream is `GOD_UPSTREAM=deepseek` (God's first-party account) via
+[`scripts/god/upstream.mjs`](../../scripts/god/upstream.mjs) — documented in
+[`docs/guide/configuration.md`](../guide/configuration.md) and [ADR-0019](../decisions/0019-archislop-god.md).
+
 ### Manual steps
 
 ```bash
