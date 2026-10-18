@@ -53,6 +53,8 @@ function StudioBoot({
   fullscreenSupported,
   onToggleFullscreen,
   liveStreamingEntry,
+  canvasEditing,
+  sessionId,
   ...viewInput
 }) {
   const view = resolveStudioView({
@@ -98,6 +100,8 @@ function StudioBoot({
       onValidationChange={onValidationChange}
       onFormSubmit={onFormSubmit}
       diagramSurfaceRef={shell.diagramSurfaceRef}
+      canvasEditing={canvasEditing}
+      sessionId={sessionId}
       modes={buildContentModeOptions(controls).map((mode) => ({
         id: mode.id,
         label: mode.shortLabel || mode.label

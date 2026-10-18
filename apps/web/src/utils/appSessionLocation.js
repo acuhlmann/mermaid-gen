@@ -1,7 +1,14 @@
 import { createSessionId, normalizeSessionId } from '../state/diagramSession.js';
 
 export const MODEL_PROFILE_STORAGE_KEY = 'archislop:model-profile';
-export const CONTENT_MODE_STORAGE_KEY = 'archislop:content-mode';
+/**
+ * `-v2` because the v1 key stored whatever slot Auto last resolved to, so one
+ * Diagram run pinned every later visit to Diagram. Dropping it puts everyone
+ * back on Auto once.
+ */
+export const CONTENT_MODE_STORAGE_KEY = 'archislop:content-mode-v2';
+/** `'1'` while the stored mode is a slot Auto picked, not one the person chose. */
+export const CONTENT_MODE_AUTO_RESOLVED_STORAGE_KEY = 'archislop:content-mode-auto-resolved';
 export const SESSION_ROUTE_SEGMENT = 'sessions';
 
 function decodePathSegment(value) {
@@ -73,9 +80,28 @@ export function readStoredModelProfile() {
   return raw === 'quality' ? 'quality' : 'fast';
 }
 
-/** Default deliverable format is Auto — server classifies the best slot per prompt. */
-export function readStoredContentMode() {
+/** True when the stored content mode came from Auto resolving, not a pick. */
+export function readContentModeAutoResolved() {
+  if (typeof window === 'undefined') return false;
+  try {
+    return window.localStorage.getItem(CONTENT_MODE_AUTO_RESOLVED_STORAGE_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Default deliverable format is Auto — server classifies the best slot per prompt.
+ *
+ * A format the person picked sticks across visits. A slot Auto resolved to
+ * only means something when reopening that session from its URL, so a fresh
+ * visit (`freshSession`) goes back to Auto instead of inheriting it.
+ *
+ * @param {{ freshSession?: boolean }} [options]
+ */
+export function readStoredContentMode({ freshSession = false } = {}) {
   if (typeof window === 'undefined') return 'auto';
+  if (freshSession && readContentModeAutoResolved()) return 'auto';
   const raw = window.localStorage.getItem(CONTENT_MODE_STORAGE_KEY);
   if (
     raw === 'auto' ||

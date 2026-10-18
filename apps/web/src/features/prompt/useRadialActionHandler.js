@@ -36,6 +36,7 @@ import {
  *   tryAgentSound: (playFn: (ctx: unknown) => void) => void;
  *   graphEdit?: { enabled?: boolean, kind?: string | null, busy?: boolean } | null;
  *   onGraphEditAction?: (action: { id: string }, descriptor: object) => void;
+ *   hotkeysEnabled?: boolean;
  * }} deps
  */
 export function useRadialActionHandler({
@@ -59,7 +60,8 @@ export function useRadialActionHandler({
   slopitect,
   tryAgentSound,
   graphEdit = null,
-  onGraphEditAction = null
+  onGraphEditAction = null,
+  hotkeysEnabled = true
 }) {
   const touchGraphEdit = useCoarsePointer();
 
@@ -129,7 +131,7 @@ export function useRadialActionHandler({
   );
 
   useDiagramHotkeys({
-    enabled: Boolean(radialMenuVisible && selectedNode && !busy),
+    enabled: Boolean(hotkeysEnabled && radialMenuVisible && selectedNode && !busy),
     descriptor: selectedNode,
     onAction: handleRadialAction,
     onToggleHelp: () => setHotkeyOverlayOpen((v) => !v)

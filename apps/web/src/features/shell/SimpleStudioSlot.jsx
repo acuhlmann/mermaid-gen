@@ -5,6 +5,8 @@ import ErrorToast from '../../components/ErrorToast.jsx';
 import DiagramFullscreenButton from '../../components/DiagramFullscreenButton.jsx';
 import ViewModeSwitch from '../../components/ViewModeSwitch.jsx';
 import { DiagramCanvasSlot } from '../canvas/DiagramCanvasSlot.jsx';
+import { StudioCanvasEditing } from './StudioCanvasEditing.jsx';
+import { studioCanvasEditProps } from './studioCanvasEditProps.js';
 import './SimpleStudio.css';
 
 const FALLBACK_HEADLINE = 'Prompt anything into reality.';
@@ -75,12 +77,7 @@ function StudioResult(props) {
       editorOpen={false}
       insightsMounted={false}
       insightsSlot={null}
-      selectedNode={null}
-      hoverDescriptor={null}
-      onSelectedNodeChange={null}
-      onHoverTargetChange={null}
-      onPanGestureStart={null}
-      onNodeToolbarAnchor={null}
+      {...studioCanvasEditProps(props.canvasEditing)}
       onEditorClose={null}
       changeHighlight={null}
       changeHighlightContentType={null}
@@ -484,6 +481,15 @@ export function SimpleStudioSlot(props) {
       {props.showCanvas ? (
         <>
           <StudioResult {...props} />
+          <StudioCanvasEditing
+            canvasEditing={props.canvasEditing}
+            diagramSurfaceRef={props.diagramSurfaceRef}
+            isFullscreen={Boolean(props.isFullscreen)}
+            busy={Boolean(props.busy)}
+            diagramSource={props.diagramSource}
+            contentType={props.contentType}
+            sessionId={props.sessionId}
+          />
           <StudioFullscreenExit {...props} copy={props.copy} />
         </>
       ) : null}

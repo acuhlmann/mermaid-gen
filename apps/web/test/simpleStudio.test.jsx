@@ -2,10 +2,17 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { SimpleStudioSlot } from '../src/features/shell/SimpleStudioSlot.jsx';
+import {
+  STUDIO_RADIAL_ACTION_IDS,
+  studioRadialActions
+} from '../src/features/shell/studioCanvasEditProps.js';
+
+const canvasProps = vi.hoisted(() => ({ last: null }));
 
 vi.mock('../src/components/DiagramCanvas.jsx', () => ({
-  default: function DiagramCanvasMock({ diagramSource }) {
-    return <pre data-testid="studio-canvas">{diagramSource}</pre>;
+  default: function DiagramCanvasMock(props) {
+    canvasProps.last = props;
+    return <pre data-testid="studio-canvas">{props.diagramSource}</pre>;
   }
 }));
 
@@ -245,5 +252,104 @@ describe('SimpleStudioSlot', () => {
     const peek = screen.getByTestId('simple-studio-peek');
     expect(peek.textContent).toContain('Thinking…');
     expect(peek.querySelector('.simple-studio-peek-skeleton')).toBeTruthy();
+  });
+
+  it('keeps the canvas view-only when no editing wiring is passed', () => {
+    renderStudio({ showCanvas: true, diagramSource: 'flowchart TD\n  A --> B' });
+
+    expect(canvasProps.last.onSelectedNodeChange).toBeNull();
+    expect(canvasProps.last.onNodeToolbarAnchor).toBeNull();
+  });
+
+  // Node editing on the studio canvas: the same radial menu the desk uses,
+  // with the office cast filtered out.
+  it('lets a node be edited on the canvas, without the office personas', () => {
+    const descriptor = { id: 'flowchart-A-0', label: 'Alpha', partKind: 'node', partName: 'Alpha' };
+    const onSelectedNodeChange = vi.fn();
+    const onRadialActionPick = vi.fn();
+    const handleConnectTarget = vi.fn();
+    renderStudio({
+      showCanvas: true,
+      diagramSource: 'flowchart TD\n  A --> B',
+      canvasEditing: {
+        selectedNode: descriptor,
+        hoverDescriptor: null,
+        onSelectedNodeChange,
+        onHoverTargetChange: vi.fn(),
+        dismissRadialMenu: vi.fn(),
+        closeRadialMenu: vi.fn(),
+        cancelMenuClose: vi.fn(),
+        scheduleMenuClose: vi.fn(),
+        setToolbarAnchor: vi.fn(),
+        toolbarAnchor: null,
+        radialMenuSession: {
+          descriptor,
+          anchor: {
+            left: 200,
+            top: 220,
+            nodeTop: 160,
+            nodeBottom: 200,
+            nodeLeft: 160,
+            nodeRight: 240,
+            centerY: 180
+          }
+        },
+        radialActions: [
+          { id: 'rename', label: 'Rename', group: 'primary', persona: 'Rename' },
+          { id: 'delete', label: 'Delete', group: 'primary', persona: 'Delete' },
+          { id: 'gilfoyle', label: 'Refine', persona: 'THE Engineer' },
+          { id: 'russ', label: 'Make it pop', persona: 'Russ Hanneman' },
+          { id: 'stakeholders', label: 'Stakeholders', group: 'primary' }
+        ],
+        onRadialActionPick,
+        graphEdit: { connectSourceId: 'A', handleConnectTarget },
+        graphEditCopy: { undo: 'Undo' }
+      }
+    });
+
+    expect(canvasProps.last.onSelectedNodeChange).toBe(onSelectedNodeChange);
+    expect(canvasProps.last.selectedNode).toBe(descriptor);
+    expect(canvasProps.last.connectSourceId).toBe('A');
+    expect(canvasProps.last.onConnectTarget).toBe(handleConnectTarget);
+
+    // First selection shows the one-time precision-editing intro.
+    fireEvent.click(screen.getByRole('button', { name: 'Got it' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: /^Rename/ }));
+    expect(onRadialActionPick).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'rename' }),
+      descriptor
+    );
+    expect(screen.getByRole('menuitem', { name: /^Delete/ })).toBeTruthy();
+    expect(screen.queryByRole('menuitem', { name: /Refine/ })).toBeNull();
+    expect(screen.queryByRole('menuitem', { name: /Make it pop/ })).toBeNull();
+    expect(screen.queryByRole('menuitem', { name: /Stakeholders/ })).toBeNull();
+  });
+});
+
+describe('studioRadialActions', () => {
+  it('keeps direct edits and the explainer, drops the office cast', () => {
+    const ids = studioRadialActions([
+      { id: 'connect' },
+      { id: 'link' },
+      { id: 'delete' },
+      { id: 'rename' },
+      { id: 'definition' },
+      { id: 'stakeholders' },
+      { id: 'prompt' },
+      { id: 'renderMode' },
+      { id: 'gilfoyle' },
+      { id: 'dinesh' },
+      { id: 'erlich' },
+      { id: 'russ' },
+      { id: 'barker' },
+      { id: 'jared' },
+      { id: 'fix' },
+      { id: 'richard' },
+      null
+    ]).map((action) => action.id);
+
+    expect(ids).toEqual(['connect', 'link', 'delete', 'rename', 'definition']);
+    expect([...STUDIO_RADIAL_ACTION_IDS].sort()).toEqual([...ids].sort());
+    expect(studioRadialActions(null)).toEqual([]);
   });
 });

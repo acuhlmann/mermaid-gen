@@ -50,14 +50,18 @@ it names. Merging the two into a single pass is worth doing and is not urgent �
 `improve` slice, not something to attempt while fixing a bug.
 
 - **First paint is the prompt studio, not the floor.** `useOfficeBoot`
-  (`apps/web/src/features/desk/useOfficeBoot.js`) starts `studioActive` when
-  `archislop:office-directory-seen` is unset and leaves `officeBootPending` false.
+  (`apps/web/src/features/desk/useOfficeBoot.js`) starts `studioActive` unless the person
+  last picked Office (`archislop:view-mode` = `office`, written by the switch) **and** finished
+  orientation (`archislop:office-directory-seen`); `officeBootPending` starts false.
   `SimpleStudioSlot` (`apps/web/src/features/shell/SimpleStudioSlot.jsx`) is that intro.
   The shared `ViewModeSwitch` (`Simple | Office`, same top-bar spot on both screens) calls
   `enterOfficeLife`, which is what mounts `FloorArrival`; the desk's half calls
   `enterSimpleStudio` in the same hook, so the switch is two-way and state survives it.
   The reception card (locale endonyms, name badge, Check in) is unchanged once they opt in.
-  Directory-seen visitors still open the desk. While a studio run is in flight,
+  Simple is the default even after orientation (2026-10-18). The studio canvas is editable:
+  `StudioCanvasEditing` mounts the desk's radial menu and graph-edit chrome, filtered by
+  `studioRadialActions` to rename/connect/link/delete/explain — no personas, and the
+  persona hotkeys are off while `studioActive`. While a studio run is in flight,
   `StudioThinkingPeek` shows the last plan beats (`studioThinkingPeekLines`) over the empty
   canvas — a peek, never the pane, and it takes no clicks.
 - **A soft errand is defined by the timer it does not have.** `errand` in

@@ -732,7 +732,9 @@ export function ArchiSlop() {
     slopitect,
     tryAgentSound,
     graphEdit: flowchartGraphEdit.graphEdit,
-    onGraphEditAction: flowchartGraphEdit.handleGraphEditAction
+    onGraphEditAction: flowchartGraphEdit.handleGraphEditAction,
+    // The single-letter hotkeys all summon office personas.
+    hotkeysEnabled: !shell.studioActive
   });
 
   const { mounted: insightsMounted, closing: insightsClosing } = useDelayedUnmount(
@@ -1023,6 +1025,24 @@ export function ArchiSlop() {
         fullscreenSupported={fullscreenSupported}
         onToggleFullscreen={toggleFullscreen}
         liveStreamingEntry={liveStreamingEntry}
+        canvasEditing={{
+          selectedNode,
+          hoverDescriptor,
+          onSelectedNodeChange: handleSelectedNodeChange,
+          onHoverTargetChange: handleHoverTargetChange,
+          dismissRadialMenu,
+          closeRadialMenu,
+          cancelMenuClose,
+          scheduleMenuClose,
+          setToolbarAnchor,
+          toolbarAnchor,
+          radialMenuSession,
+          radialActions,
+          onRadialActionPick: handleRadialAction,
+          graphEdit: flowchartGraphEdit,
+          graphEditCopy: controls.graphEdit,
+          onAdvisorUsage: reportAdvisorUsage
+        }}
       />
     </main>
   );

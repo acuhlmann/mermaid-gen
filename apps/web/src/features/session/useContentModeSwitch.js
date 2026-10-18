@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createEmptyCrossModeSyncMarkers } from '../../state/diagramStore.js';
-import { CONTENT_MODE_STORAGE_KEY, readStoredContentMode } from '../../utils/appSessionLocation.js';
+import {
+  CONTENT_MODE_AUTO_RESOLVED_STORAGE_KEY,
+  CONTENT_MODE_STORAGE_KEY,
+  readContentModeAutoResolved,
+  readStoredContentMode
+} from '../../utils/appSessionLocation.js';
 import {
   buildRenderSelectionPrompt,
   isConcreteContentMode,
@@ -45,6 +50,7 @@ import { recordUxSignal } from '../../state/uxSignalsClient.js';
  *   setToolbarAnchor: (value: unknown) => void;
  *   setLatestCritique: (value: object | null) => void;
  *   setError: (value: string) => void;
+ *   freshSession?: boolean;
  * }} deps
  */
 export function useContentModeSwitch({
@@ -66,10 +72,13 @@ export function useContentModeSwitch({
   setHoverDescriptor,
   setToolbarAnchor,
   setLatestCritique,
-  setError
+  setError,
+  freshSession = false
 }) {
-  const [contentMode, setContentMode] = useState(() => readStoredContentMode());
+  const [contentMode, setContentMode] = useState(() => readStoredContentMode({ freshSession }));
   const previousContentModeRef = useRef(contentMode);
+  // Whether the current concrete mode is one Auto resolved to (vs. a pick).
+  const autoResolvedRef = useRef(readContentModeAutoResolved());
   const sourceRevisionAtViewRef = useRef({});
   const leavingSlotSnapshotRef = useRef({});
   const crossModeSyncRef = useRef(createEmptyCrossModeSyncMarkers());
@@ -82,6 +91,11 @@ export function useContentModeSwitch({
     if (typeof window === 'undefined') return;
     try {
       window.localStorage.setItem(CONTENT_MODE_STORAGE_KEY, contentMode);
+      if (contentMode !== 'auto' && autoResolvedRef.current) {
+        window.localStorage.setItem(CONTENT_MODE_AUTO_RESOLVED_STORAGE_KEY, '1');
+      } else {
+        window.localStorage.removeItem(CONTENT_MODE_AUTO_RESOLVED_STORAGE_KEY);
+      }
     } catch {
       // ignore quota / privacy mode
     }
@@ -146,6 +160,7 @@ export function useContentModeSwitch({
       tryAgentSoundRef.current?.(playModeSwoosh);
       // 'auto' is not a concrete slot, so the shared schema drops those switches.
       recordUxSignal({ kind: 'mode_switch', from: contentMode, to: nextMode });
+      autoResolvedRef.current = false;
       setContentMode(nextMode);
       bumpRendererRefreshKey();
     },
@@ -174,6 +189,7 @@ export function useContentModeSwitch({
       if (!isConcreteContentMode(nextMode) || nextMode === contentMode) return;
       skipHydrateOnceRef.current = true;
       suppressNextModeSwitchRerunRef.current = true;
+      autoResolvedRef.current = true;
       setLiveDraftContentType(nextMode);
       setContentMode(nextMode);
       bumpRendererRefreshKey();

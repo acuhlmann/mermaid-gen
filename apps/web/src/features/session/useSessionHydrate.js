@@ -349,11 +349,13 @@ export function useSessionHydrate({
           cacheRef.current = null;
           sessionIdFromUrlRef.current = false;
           setModelProfile('fast');
-          setContentMode('mermaid');
           // Two cases:
           //  (a) Stale URL/bookmark after a server restart — rotate to a new room id + wipe storage.
           //  (b) Client-minted id on first visit — 404 is expected; keep id and prime the server.
           const wasFreshlyMinted = freshlyMintedSessionIdsRef.current.has(activeSessionId);
+          // A dead room starts over on the default, Auto. A client-minted room only
+          // gets here with a concrete format already picked, and keeps the old reset.
+          setContentMode(wasFreshlyMinted ? 'mermaid' : 'auto');
           let targetId = activeSessionId;
           if (!wasFreshlyMinted) {
             const fresh = createInitialDiagramState('mermaid');

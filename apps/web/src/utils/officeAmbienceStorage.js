@@ -43,6 +43,8 @@ export const OFFICE_WORKING_MEMORY_BEAT_CAP = 4;
 export const OFFICE_IM_HISTORY_STORAGE_KEY = 'archislop:office-im-history';
 export const OFFICE_WELCOME_STORAGE_KEY = 'archislop:office-welcomed';
 export const OFFICE_DIRECTORY_STORAGE_KEY = 'archislop:office-directory-seen';
+/** `'office'` once the person chose the Office screen; anything else is Simple. */
+export const VIEW_MODE_STORAGE_KEY = 'archislop:view-mode';
 export const OFFICE_DAY_ONE_BADGE_STORAGE_KEY = 'archislop:day-one-badge-seen';
 export const OFFICE_ENTRY_DESK_INTRO_STORAGE_KEY = 'archislop:entry-desk-intro-seen';
 export const OFFICE_USER_NAME_STORAGE_KEY = 'archislop:user-name';
@@ -278,6 +280,31 @@ export function writeOfficeWelcomeSeen() {
  * True once the entry-screen office directory has been dismissed — it then
  * collapses to the "Meet the office" chip on later visits.
  */
+/**
+ * Which screen a visit opens on. Simple is the default; Office only when the
+ * person picked it last time with the Simple/Office switch.
+ *
+ * @returns {'simple' | 'office'}
+ */
+export function readPreferredViewMode() {
+  if (typeof window === 'undefined') return 'simple';
+  try {
+    return window.localStorage.getItem(VIEW_MODE_STORAGE_KEY) === 'office' ? 'office' : 'simple';
+  } catch {
+    return 'simple';
+  }
+}
+
+/** @param {'simple' | 'office'} mode */
+export function writePreferredViewMode(mode) {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(VIEW_MODE_STORAGE_KEY, mode === 'office' ? 'office' : 'simple');
+  } catch {
+    // ignore quota / privacy mode
+  }
+}
+
 export function readOfficeDirectorySeen() {
   if (typeof window === 'undefined') return false;
   try {

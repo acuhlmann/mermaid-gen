@@ -5,6 +5,7 @@ import {
   normalizeSessionId
 } from './diagramSession.js';
 import {
+  CONTENT_MODE_AUTO_RESOLVED_STORAGE_KEY,
   CONTENT_MODE_STORAGE_KEY,
   MODEL_PROFILE_STORAGE_KEY
 } from '../utils/appSessionLocation.js';
@@ -111,6 +112,7 @@ export function clearSessionScopedArchislopStorage() {
       BROWSER_SESSION_STORAGE_KEY,
       MODEL_PROFILE_STORAGE_KEY,
       CONTENT_MODE_STORAGE_KEY,
+      CONTENT_MODE_AUTO_RESOLVED_STORAGE_KEY,
       'archislop-stream-debug'
     ];
     for (const k of keys) {
