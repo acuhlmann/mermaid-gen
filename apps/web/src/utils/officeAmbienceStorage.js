@@ -43,6 +43,8 @@ export const OFFICE_WORKING_MEMORY_BEAT_CAP = 4;
 export const OFFICE_IM_HISTORY_STORAGE_KEY = 'archislop:office-im-history';
 export const OFFICE_WELCOME_STORAGE_KEY = 'archislop:office-welcomed';
 export const OFFICE_DIRECTORY_STORAGE_KEY = 'archislop:office-directory-seen';
+/** `'office'` once the person chose the Office screen; anything else is Simple. */
+export const VIEW_MODE_STORAGE_KEY = 'archislop:view-mode';
 export const OFFICE_DAY_ONE_BADGE_STORAGE_KEY = 'archislop:day-one-badge-seen';
 export const OFFICE_ENTRY_DESK_INTRO_STORAGE_KEY = 'archislop:entry-desk-intro-seen';
 export const OFFICE_USER_NAME_STORAGE_KEY = 'archislop:user-name';
@@ -271,6 +273,37 @@ export function writeOfficeWelcomeSeen() {
     window.localStorage.setItem(OFFICE_WELCOME_STORAGE_KEY, '1');
   } catch {
     // Ignore quota / privacy errors.
+  }
+}
+
+/**
+ * Which screen a visit opens on. Simple is the default; Office only when the
+ * person picked it last time with the Simple/Office switch. Returns Simple
+ * outside the browser or when storage access fails.
+ *
+ * @returns {'simple' | 'office'}
+ */
+export function readPreferredViewMode() {
+  if (typeof window === 'undefined') return 'simple';
+  try {
+    return window.localStorage.getItem(VIEW_MODE_STORAGE_KEY) === 'office' ? 'office' : 'simple';
+  } catch {
+    return 'simple';
+  }
+}
+
+/**
+ * Save the preferred screen for later visits; values other than Office save Simple.
+ * No-op outside the browser; storage write failures are ignored.
+ *
+ * @param {'simple' | 'office'} mode
+ */
+export function writePreferredViewMode(mode) {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(VIEW_MODE_STORAGE_KEY, mode === 'office' ? 'office' : 'simple');
+  } catch {
+    // ignore quota / privacy mode
   }
 }
 

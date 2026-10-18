@@ -31,6 +31,10 @@ function resolveStudioView({
   };
 }
 
+/**
+ * Render the studio with session submission, format selection, and optional
+ * canvas editing. Starting over selects Auto and clears the diagram.
+ */
 function StudioBoot({
   shell,
   runtime,
@@ -53,6 +57,8 @@ function StudioBoot({
   fullscreenSupported,
   onToggleFullscreen,
   liveStreamingEntry,
+  canvasEditing,
+  sessionId,
   ...viewInput
 }) {
   const view = resolveStudioView({
@@ -98,6 +104,8 @@ function StudioBoot({
       onValidationChange={onValidationChange}
       onFormSubmit={onFormSubmit}
       diagramSurfaceRef={shell.diagramSurfaceRef}
+      canvasEditing={canvasEditing}
+      sessionId={sessionId}
       modes={buildContentModeOptions(controls).map((mode) => ({
         id: mode.id,
         label: mode.shortLabel || mode.label

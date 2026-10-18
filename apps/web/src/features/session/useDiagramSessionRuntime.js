@@ -76,7 +76,8 @@ export function useDiagramSessionRuntime({
     setHoverDescriptor,
     setToolbarAnchor,
     setLatestCritique,
-    setError
+    setError,
+    freshSession: !sessionIdFromUrlRef.current
   });
 
   const { sessionHydrated } = useSessionHydrate({

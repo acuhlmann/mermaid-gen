@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createEmptyCrossModeSyncMarkers } from '../../state/diagramStore.js';
-import { CONTENT_MODE_STORAGE_KEY, readStoredContentMode } from '../../utils/appSessionLocation.js';
+import {
+  CONTENT_MODE_AUTO_RESOLVED_STORAGE_KEY,
+  CONTENT_MODE_STORAGE_KEY,
+  readContentModeAutoResolved,
+  readStoredContentMode
+} from '../../utils/appSessionLocation.js';
 import {
   buildRenderSelectionPrompt,
   isConcreteContentMode,
@@ -24,6 +29,9 @@ import { recordUxSignal } from '../../state/uxSignalsClient.js';
 
 /**
  * Content-mode picker state, cross-slot sync refs, and user-initiated mode switches.
+ * Persists mode changes and whether Auto resolved the current mode. At mount,
+ * `freshSession` discards a saved Auto resolution but keeps an explicit pick.
+ * Storage write failures are ignored; errors reading the saved mode propagate.
  *
  * @param {{
  *   stateRef: import('react').MutableRefObject<object>;
@@ -45,6 +53,7 @@ import { recordUxSignal } from '../../state/uxSignalsClient.js';
  *   setToolbarAnchor: (value: unknown) => void;
  *   setLatestCritique: (value: object | null) => void;
  *   setError: (value: string) => void;
+ *   freshSession?: boolean;
  * }} deps
  */
 export function useContentModeSwitch({
@@ -66,10 +75,13 @@ export function useContentModeSwitch({
   setHoverDescriptor,
   setToolbarAnchor,
   setLatestCritique,
-  setError
+  setError,
+  freshSession = false
 }) {
-  const [contentMode, setContentMode] = useState(() => readStoredContentMode());
+  const [contentMode, setContentMode] = useState(() => readStoredContentMode({ freshSession }));
   const previousContentModeRef = useRef(contentMode);
+  // Whether the current concrete mode is one Auto resolved to (vs. a pick).
+  const autoResolvedRef = useRef(readContentModeAutoResolved());
   const sourceRevisionAtViewRef = useRef({});
   const leavingSlotSnapshotRef = useRef({});
   const crossModeSyncRef = useRef(createEmptyCrossModeSyncMarkers());
@@ -82,6 +94,11 @@ export function useContentModeSwitch({
     if (typeof window === 'undefined') return;
     try {
       window.localStorage.setItem(CONTENT_MODE_STORAGE_KEY, contentMode);
+      if (contentMode !== 'auto' && autoResolvedRef.current) {
+        window.localStorage.setItem(CONTENT_MODE_AUTO_RESOLVED_STORAGE_KEY, '1');
+      } else {
+        window.localStorage.removeItem(CONTENT_MODE_AUTO_RESOLVED_STORAGE_KEY);
+      }
     } catch {
       // ignore quota / privacy mode
     }
@@ -115,6 +132,10 @@ export function useContentModeSwitch({
     [armSuppressHydrateRerun, bumpRendererRefreshKey]
   );
 
+  /**
+   * Select a different valid mode as an explicit preference, cancel the active
+   * stream, and clear draft and selection state. Ignore unchanged or invalid modes.
+   */
   const handleSelectContentMode = useCallback(
     (nextMode) => {
       if (nextMode === contentMode) return;
@@ -146,6 +167,7 @@ export function useContentModeSwitch({
       tryAgentSoundRef.current?.(playModeSwoosh);
       // 'auto' is not a concrete slot, so the shared schema drops those switches.
       recordUxSignal({ kind: 'mode_switch', from: contentMode, to: nextMode });
+      autoResolvedRef.current = false;
       setContentMode(nextMode);
       bumpRendererRefreshKey();
     },
@@ -168,12 +190,17 @@ export function useContentModeSwitch({
     ]
   );
 
-  /** Auto-mode mid-stream: switch the picker without aborting the agent run. */
+  /**
+   * Auto-mode mid-stream: switch the picker without aborting the agent run.
+   * Mark the mode as Auto-resolved so a fresh visit can return to Auto.
+   * Ignore unchanged or non-concrete modes.
+   */
   const applyResolvedContentMode = useCallback(
     (nextMode) => {
       if (!isConcreteContentMode(nextMode) || nextMode === contentMode) return;
       skipHydrateOnceRef.current = true;
       suppressNextModeSwitchRerunRef.current = true;
+      autoResolvedRef.current = true;
       setLiveDraftContentType(nextMode);
       setContentMode(nextMode);
       bumpRendererRefreshKey();

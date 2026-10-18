@@ -5,6 +5,7 @@ import {
   normalizeSessionId
 } from './diagramSession.js';
 import {
+  CONTENT_MODE_AUTO_RESOLVED_STORAGE_KEY,
   CONTENT_MODE_STORAGE_KEY,
   MODEL_PROFILE_STORAGE_KEY
 } from '../utils/appSessionLocation.js';
@@ -102,6 +103,8 @@ export function clearAllArchislopAppStorage() {
 /**
  * Drop session-scoped client payloads after the server reports a room is gone (404/410).
  * Preserves user-global progress (Slopitect level/XP, lifetime cost, achievements, etc.).
+ * No-op outside the browser; storage access errors are ignored and may leave
+ * cleanup incomplete.
  */
 export function clearSessionScopedArchislopStorage() {
   if (typeof window === 'undefined') return;
@@ -111,6 +114,7 @@ export function clearSessionScopedArchislopStorage() {
       BROWSER_SESSION_STORAGE_KEY,
       MODEL_PROFILE_STORAGE_KEY,
       CONTENT_MODE_STORAGE_KEY,
+      CONTENT_MODE_AUTO_RESOLVED_STORAGE_KEY,
       'archislop-stream-debug'
     ];
     for (const k of keys) {

@@ -160,9 +160,11 @@ describe('App simplified controls', { timeout: 20_000 }, () => {
     window.localStorage.clear();
     setDeskSlotElement(null);
     window.localStorage.setItem('archislop:office-directory-seen', '1');
+    // Simple is the default screen; the desk suite opts into Office.
+    window.localStorage.setItem('archislop:view-mode', 'office');
     window.localStorage.setItem('archislop:mode-reveal-seen', '1');
     // Most integration tests assume a concrete slot with server-backed diagram state.
-    window.localStorage.setItem('archislop:content-mode', 'mermaid');
+    window.localStorage.setItem('archislop:content-mode-v2', 'mermaid');
     window.history.replaceState({}, '', '/');
     const oscillator = {
       type: 'triangle',
@@ -1069,7 +1071,7 @@ describe('App simplified controls', { timeout: 20_000 }, () => {
   });
 
   it('auto-submits intent with peerContext when switching to diagram and infographic is ahead', async () => {
-    window.localStorage.setItem('archislop:content-mode', 'infographic');
+    window.localStorage.setItem('archislop:content-mode-v2', 'infographic');
 
     const staleMermaid = {
       ...initialState,
@@ -1162,7 +1164,7 @@ describe('App simplified controls', { timeout: 20_000 }, () => {
   });
 
   it('defaults deliverable format to Auto on a fresh visit', async () => {
-    window.localStorage.removeItem('archislop:content-mode');
+    window.localStorage.removeItem('archislop:content-mode-v2');
     fetchSessionDiagramStateMock.mockResolvedValue({
       activeContentType: 'mermaid',
       mermaid: { ...initialState, diagramSource: '', revisionId: 0 },
@@ -1178,10 +1180,41 @@ describe('App simplified controls', { timeout: 20_000 }, () => {
     );
   });
 
+  it('does not let a slot Auto resolved to pin the next fresh visit', async () => {
+    window.localStorage.setItem('archislop:content-mode-v2', 'mermaid');
+    window.localStorage.setItem('archislop:content-mode-auto-resolved', '1');
+    render(<App />);
+    await waitFor(() => {
+      expect(screen.getByTestId('desk-os-menubar')).toBeTruthy();
+    });
+    openDeliverableMenu();
+    expect(screen.getByRole('menuitem', { name: /^Auto/i }).getAttribute('aria-current')).toBe(
+      'true'
+    );
+  });
+
+  // Simple is the default screen even for people who finished orientation;
+  // only an explicit Office pick (remembered) opens the desk.
+  it('opens the simple studio by default after orientation', async () => {
+    window.localStorage.removeItem('archislop:view-mode');
+    render(<App />);
+
+    expect(await screen.findByTestId('simple-studio')).toBeTruthy();
+    expect(screen.queryByTestId('desk-os-menubar')).toBeNull();
+
+    fireEvent.click(screen.getByTestId('view-mode-office'));
+    expect(await screen.findByTestId('desk-os-menubar')).toBeTruthy();
+    expect(window.localStorage.getItem('archislop:view-mode')).toBe('office');
+
+    fireEvent.click(screen.getByTestId('view-mode-simple'));
+    expect(await screen.findByTestId('simple-studio')).toBeTruthy();
+    expect(window.localStorage.getItem('archislop:view-mode')).toBe('simple');
+  });
+
   // A fresh visit is the prompt studio. The floor ceremony is the opt-in.
   it('opens the prompt studio on first visit, then the floor only if asked', async () => {
     window.localStorage.removeItem('archislop:office-directory-seen');
-    window.localStorage.removeItem('archislop:content-mode');
+    window.localStorage.removeItem('archislop:content-mode-v2');
     fetchSessionDiagramStateMock.mockResolvedValue({
       activeContentType: 'mermaid',
       mermaid: { ...initialState, diagramSource: '', revisionId: 0 },

@@ -47,6 +47,10 @@ import {
   subscribe as subscribeOfficeViewMode
 } from './state/officeViewModeStore.js';
 
+/**
+ * Render the Simple studio and Office views with shared session, generation,
+ * and canvas-editing state.
+ */
 export function ArchiSlop() {
   const { controls, slopitect, applyLocaleFromText, locale: uiLocale, setLocale } = useUiCopy();
   const contentModeOptions = useMemo(() => buildContentModeOptions(controls), [controls]);
@@ -732,7 +736,9 @@ export function ArchiSlop() {
     slopitect,
     tryAgentSound,
     graphEdit: flowchartGraphEdit.graphEdit,
-    onGraphEditAction: flowchartGraphEdit.handleGraphEditAction
+    onGraphEditAction: flowchartGraphEdit.handleGraphEditAction,
+    // The single-letter hotkeys all summon office personas.
+    hotkeysEnabled: !shell.studioActive
   });
 
   const { mounted: insightsMounted, closing: insightsClosing } = useDelayedUnmount(
@@ -1023,6 +1029,24 @@ export function ArchiSlop() {
         fullscreenSupported={fullscreenSupported}
         onToggleFullscreen={toggleFullscreen}
         liveStreamingEntry={liveStreamingEntry}
+        canvasEditing={{
+          selectedNode,
+          hoverDescriptor,
+          onSelectedNodeChange: handleSelectedNodeChange,
+          onHoverTargetChange: handleHoverTargetChange,
+          dismissRadialMenu,
+          closeRadialMenu,
+          cancelMenuClose,
+          scheduleMenuClose,
+          setToolbarAnchor,
+          toolbarAnchor,
+          radialMenuSession,
+          radialActions,
+          onRadialActionPick: handleRadialAction,
+          graphEdit: flowchartGraphEdit,
+          graphEditCopy: controls.graphEdit,
+          onAdvisorUsage: reportAdvisorUsage
+        }}
       />
     </main>
   );
