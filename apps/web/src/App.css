@@ -11209,19 +11209,27 @@ button {
   }
 }
 
-/* --- Staggered Mermaid node entry: applied per node via inline delay --- */
+/* --- Staggered Mermaid node entry: applied per node via inline delay ---
+ * Never animate `transform` here: Mermaid places every node with an SVG
+ * `transform="translate(x,y)"` attribute, and any CSS `transform` (even `none`,
+ * held by `fill-mode: both`) replaces it, stacking every node at the origin.
+ * The individual `translate`/`scale` properties compose with the attribute. */
 .diagram-viewport [data-node-fade='1'] {
   animation: diagram-node-pop-in 360ms ease-out both;
+  transform-box: fill-box;
+  transform-origin: center;
 }
 
 @keyframes diagram-node-pop-in {
   from {
     opacity: 0;
-    transform: translateY(8px) scale(0.94);
+    translate: 0 8px;
+    scale: 0.94;
   }
   to {
     opacity: 1;
-    transform: none;
+    translate: none;
+    scale: none;
   }
 }
 
