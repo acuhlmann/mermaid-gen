@@ -147,10 +147,10 @@ Facts for whoever builds it, so they do not re-derive them:
 ### 2. Settings tab (blocked on a credential, not on code)
 
 Writing `GOD_*` repository variables needs the narrow Actions token with no contents permission, which
-does not exist yet — so the Settings tab cannot ship read-only either, since the config values live in
-Actions variables the server cannot read. Until the token exists, the honest Settings view is the
-`GOD_DEFAULTS` table in the guide plus the recorded `reason` per tick, which already shows which
-window and tier the gate actually used.
+does not exist yet. The Settings tab now shows the **code defaults** and **hard limits** from
+`godBudget.ts` (read-only, no inputs) plus the note that live values live in Actions variables the
+server cannot read. Until the token exists, the tier and gate reason on **Now** remain the honest
+record of what the last tick actually used.
 
 ### 3. Live ingest (blocked on a route plus a secret)
 
