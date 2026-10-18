@@ -89,13 +89,14 @@ they need access to outer-closure state.
   `features/insights/useThinkingPaneSlot.jsx`, `features/shell/AppWorkspaceSlot.jsx`,
   `features/session/useArchiSlopSessionState.js`, `features/session/useDiagramSessionRuntime.js`,
   `features/session/useCanvasInteractionRuntime.js`, `features/session/usePromptBufferSync.js`,
+  `features/session/useTryAgentSound.js`, `features/session/useOfficeCollaborationHandlers.js`,
   `features/ceremony/useCeremonyOverlays.jsx`,
   `components/buildRadialActions.jsx`, `utils/appConstants.js`,
   `utils/formatFormAnswer.js`.
   (JSX that imports `components/` must not live under `utils/` — see
   `web-non-component-no-components` in `.dependency-cruiser.cjs`.)
 - ⏳ Larger seam: lift remaining major JSX sections into wrapper components. Target: `ArchiSlop.jsx` < 1 000 LOC, mostly
-  layout + composition. **Currently ~1 036 LOC** (grew past the ~949 LOC batch-5 mark as new features landed; extraction is ongoing, not regressed).
+  layout + composition. **Currently ~1 028 LOC** (upstream feature landings between splits are absorbed by session-hook extractions; target &lt; 1 000 LOC unchanged).
 
 ### Other targets
 
