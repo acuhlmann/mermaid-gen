@@ -22,7 +22,8 @@ function parseTimestamp(header: unknown): number | null {
 function parseSignature(header: unknown): string | null {
   if (typeof header !== 'string') return null;
   const match = header.match(/^sha256=([0-9a-f]{64})$/i);
-  return match ? match[1].toLowerCase() : null;
+  const hex = match?.[1];
+  return hex ? hex.toLowerCase() : null;
 }
 
 export function signGodIngestBody(
