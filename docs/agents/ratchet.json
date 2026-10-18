@@ -4,7 +4,7 @@
   "metrics": {
     "monolithLoc": {
       "apps/web/src/ArchiSlop.jsx": {
-        "budget": 1031,
+        "budget": 1028,
         "initial": 1036
       },
       "apps/web/src/components/InsightsPane.jsx": {
@@ -84,14 +84,14 @@
     },
     "suite": {
       "files": {
-        "budget": 428,
+        "budget": 441,
         "initial": 366,
-        "reason": "2026-10-17: 426→428 — locking the floor to the live measured count. +1 is this branch's `scripts/verify-mermaid-pins.test.mjs`; +1 was already live on main (427 measured against a 426 floor set 2026-10-15 for strict-tsconfig-paths, which was never tightened after it). Prior: 2026-10-15 improve: strict-tsconfig-paths sensor tests (+2 files vs 415 budget)."
+        "reason": "2026-10-18: 428→441 — lock measured count after upstream suite growth plus this run's useTryAgentSound.test.js."
       },
       "cases": {
-        "budget": 4878,
+        "budget": 5019,
         "initial": 3675,
-        "reason": "2026-10-17: 4854→4878 — live measured count. +9 from the verify-mermaid-pins suite (bidirectional: agrees, and each drift shape fails through the real reader); +15 pre-existing on main against the 4854 floor. Prior: 2026-10-15 strict-tsconfig-paths sensor tests."
+        "reason": "2026-10-18: 4878→5019 — lock measured count (upstream growth + two cases in useTryAgentSound.test.js)."
       }
     }
   }

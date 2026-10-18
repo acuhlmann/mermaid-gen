@@ -15,6 +15,7 @@ import { useDiagramManualSync } from './features/canvas/useDiagramManualSync.js'
 import { useRadialActionHandler } from './features/prompt/useRadialActionHandler.js';
 import { useClearDiagram } from './features/session/useClearDiagram.js';
 import { useOfficeCollaborationHandlers } from './features/session/useOfficeCollaborationHandlers.js';
+import { useTryAgentSound } from './features/session/useTryAgentSound.js';
 import { useInsightsAutoClose } from './features/insights/useInsightsAutoClose.js';
 import { useAppStatus } from './features/shell/useAppStatus.js';
 import { AppWorkspaceSlot } from './features/shell/AppWorkspaceSlot.jsx';
@@ -41,7 +42,6 @@ import { useVoiceInput } from './hooks/useVoiceInput.js';
 import { buildContentModeOptions } from './utils/renderModeAction.js';
 import { useOfficeAmbientAudio } from './hooks/useOfficeAmbientAudio.js';
 import { useOfficeViewHotkey } from './hooks/useOfficeViewHotkey.js';
-import { primeOfficeAudio } from './utils/officeAudioPrime.js';
 import {
   getOfficeViewMode,
   subscribe as subscribeOfficeViewMode
@@ -406,39 +406,12 @@ export function ArchiSlop() {
     }
   }, [slopitect.CONSOLE_STAMP_LINES]);
 
-  // Returns whether the gate let the call through. One-shot chimes ignore this;
-  // the continuous room-tone bed needs it, since a gate that closes mid-session
-  // has to stop a loop that is already playing (useOfficeRoomTone).
-  const tryAgentSound = useCallback(
-    (playFn) => {
-      if (!soundEnabled) return false;
-      primeOfficeAudio(audioContextRef, hasInteractedRef);
-      if (!hasInteractedRef.current) return false;
-      try {
-        playFn(audioContextRef);
-      } catch {
-        // Ignore audio issues (autoplay restrictions, unsupported browser, etc).
-      }
-      return true;
-    },
-    [soundEnabled, audioContextRef, hasInteractedRef]
-  );
-  tryAgentSoundRef.current = tryAgentSound;
-
-  // Office soundscape waits on the same gesture gate as agent chimes. Prime on
-  // any deliberate UI interaction — stand up, check in, desk menu — not only on
-  // diagram generation.
-  useEffect(() => {
-    if (!soundEnabled) return undefined;
-    const prime = () => primeOfficeAudio(audioContextRef, hasInteractedRef);
-    const opts = { capture: true, once: true, passive: true };
-    document.addEventListener('pointerdown', prime, opts);
-    document.addEventListener('keydown', prime, opts);
-    return () => {
-      document.removeEventListener('pointerdown', prime, opts);
-      document.removeEventListener('keydown', prime, opts);
-    };
-  }, [soundEnabled, audioContextRef, hasInteractedRef]);
+  const tryAgentSound = useTryAgentSound({
+    soundEnabled,
+    audioContextRef,
+    hasInteractedRef,
+    tryAgentSoundRef
+  });
 
   const {
     bootSeq,
