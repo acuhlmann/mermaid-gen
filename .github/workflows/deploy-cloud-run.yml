@@ -138,6 +138,13 @@ jobs:
           if gcloud secrets describe visitor-badge-secrets --project="${PROJECT_ID}" &>/dev/null; then
             CLOUD_RUN_SECRETS+=("VISITOR_BADGE_SECRETS=visitor-badge-secrets:latest")
           fi
+          # The owner's God window fails closed without this (ADR-0019 §10): unset GOD_WINDOW_TOKEN means
+          # /api/god/* answers 503. --set-secrets replaces the whole list, so a secret missing here is a
+          # secret removed from production — keep this block in step with scripts/deploy-cloud-run.sh
+          # (asserted by scripts/deploy-secret-lists.test.mjs, not by prose).
+          if gcloud secrets describe god-window-token --project="${PROJECT_ID}" &>/dev/null; then
+            CLOUD_RUN_SECRETS+=("GOD_WINDOW_TOKEN=god-window-token:latest")
+          fi
           if ((${#CLOUD_RUN_SECRETS[@]} > 0)); then
             ARGS+=(--set-secrets="$(IFS=,; echo "${CLOUD_RUN_SECRETS[*]}")")
           fi
