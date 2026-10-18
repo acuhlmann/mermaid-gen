@@ -11,6 +11,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { parseArgs } from 'node:util';
 import { fileURLToPath } from 'node:url';
+import { config as loadEnv } from 'dotenv';
 import {
   decideGodRun,
   GOD_CONFIG_VARIABLES,
@@ -18,35 +19,10 @@ import {
   readGodConfigFromVars
 } from '@archislop/shared/godBudget.js';
 import { GodFocusSchema, GodTierSchema } from '@archislop/shared/godSchemas.js';
+import { fetchUpstreamBalanceUsd, resolveUpstreamProfile, resolveWallet } from './upstream.mjs';
 import { fetchOpenPrs, loadPlaybook, matchOpenRoutinePrs } from '../routine-guard.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
-
-/**
- * @param {string | undefined} secret
- * @param {{ fetchImpl?: typeof fetch }} [opts]
- * @returns {Promise<number | null>} USD balance, or null when unknown
- */
-export async function fetchDeepSeekBalanceUsd(secret, opts = {}) {
-  if (!secret) return null;
-  const fetchImpl = opts.fetchImpl ?? fetch;
-  try {
-    const res = await fetchImpl('https://api.deepseek.com/user/balance', {
-      headers: { Authorization: `Bearer ${secret}` },
-      signal: AbortSignal.timeout(10_000)
-    });
-    if (!res.ok) return null;
-    const body = await res.json();
-    const infos = Array.isArray(body?.balance_infos) ? body.balance_infos : [];
-    const usd = infos.find((i) => String(i?.currency ?? '').toUpperCase() === 'USD');
-    const total = Number(usd?.total_balance ?? usd?.balance);
-    if (Number.isFinite(total)) return total;
-    // CNY-only accounts: treat as unknown rather than inventing an FX rate.
-    return null;
-  } catch {
-    return null;
-  }
-}
 
 /**
  * @param {{
@@ -60,6 +36,7 @@ export async function fetchDeepSeekBalanceUsd(secret, opts = {}) {
  *   force?: boolean,
  *   requestedTier?: string | null,
  *   focus?: string | null,
+ *   wallet?: string | null,
  *   root?: string,
  *   fetchPrs?: typeof fetchOpenPrs
  * }} input
@@ -109,6 +86,10 @@ export function runGate(input = {}) {
     focus: focus?.success ? focus.data : 'any',
     config,
     openGodPrs,
+    // Which wallet a `go` here would bill: the number in `balanceUsd` only means something next to it.
+    // `{}` is deliberate, not the caller's env — a developer with `GOD_UPSTREAM` set in their shell
+    // must not get a different answer from the same input. `main()` resolves the env and passes it in.
+    wallet: resolveUpstreamProfile(resolveWallet(input.wallet, {})).name,
     minNewSignals: GOD_HARD_LIMITS.minNewSignals
   };
 }
@@ -128,7 +109,8 @@ export function writeGateOutputs(decision, paths = {}) {
     `max_minutes=${decision.maxMinutes}`,
     `max_usd=${decision.maxUsd}`,
     `next_due_at=${decision.nextDueAt ?? ''}`,
-    `open_god_prs=${decision.openGodPrs}`
+    `open_god_prs=${decision.openGodPrs}`,
+    `wallet=${decision.wallet}`
   ];
   if (outputPath) {
     fs.appendFileSync(outputPath, `${lines.join('\n')}\n`);
@@ -171,13 +153,15 @@ function parseCli(argv) {
       tier: { type: 'string' },
       focus: { type: 'string' },
       'dry-run': { type: 'boolean', default: false },
-      'skip-balance': { type: 'boolean', default: false }
+      'skip-balance': { type: 'boolean', default: false },
+      upstream: { type: 'string' }
     }
   });
   return values;
 }
 
 export async function main(argv = process.argv.slice(2)) {
+  loadEnv({ quiet: true });
   const values = parseCli(argv);
   /** @type {Record<string, string | undefined>} */
   let vars = Object.fromEntries(
@@ -193,15 +177,21 @@ export async function main(argv = process.argv.slice(2)) {
   const now = values.now ? Date.parse(values.now) : Date.now();
   if (!Number.isFinite(now)) throw new Error(`invalid --now ${values.now}`);
 
+  // The money check reads the wallet this run would bill, never a fixed account: a gate that read a
+  // DeepSeek balance while the proxy spent OpenRouter credits would be bounding spend with a number
+  // that has nothing to do with it. An unread wallet returns null, which lets the run proceed under
+  // the per-run and monthly caps — the caps are the limit, the balance is only the early warning.
+  const wallet = resolveWallet(values.upstream);
   let balanceUsd = values['balance-usd'] != null ? Number(values['balance-usd']) : undefined;
   if (balanceUsd === undefined && !values['skip-balance'] && !values['dry-run']) {
-    balanceUsd = await fetchDeepSeekBalanceUsd(process.env.GOD_DEEPSEEK_API_KEY);
+    balanceUsd = await fetchUpstreamBalanceUsd(wallet, null, { env: process.env });
   } else if (values['dry-run'] && balanceUsd === undefined) {
     balanceUsd = null;
   }
 
   const decision = runGate({
     vars,
+    wallet,
     now,
     lastActAt: values['last-act-at'] ? Date.parse(values['last-act-at']) : null,
     monthSpendUsd: values['month-spend'] != null ? Number(values['month-spend']) : 0,

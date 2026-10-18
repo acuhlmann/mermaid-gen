@@ -15,7 +15,7 @@ on:
   workflow_dispatch:
     inputs:
       spike:
-        description: 'Run the harness self-test (bills GOD_DEEPSEEK_API_KEY)'
+        description: 'Run the harness self-test (bills OPENROUTER_GOD_KEY)'
         type: boolean
         default: false
       force:
@@ -81,15 +81,15 @@ jobs:
 
       - name: Stage the key as a file, then revoke sudo
         env:
-          GOD_DEEPSEEK_API_KEY: ${{ secrets.GOD_DEEPSEEK_API_KEY }}
+          OPENROUTER_GOD_KEY: ${{ secrets.OPENROUTER_GOD_KEY }}
         run: |
           set -euo pipefail
-          if [ -z "$GOD_DEEPSEEK_API_KEY" ]; then
-            echo "::error::Set GOD_DEEPSEEK_API_KEY in the 'god' environment (God's own DeepSeek account)."
+          if [ -z "$OPENROUTER_GOD_KEY" ]; then
+            echo "::error::Set OPENROUTER_GOD_KEY in the 'god' environment (God's own OpenRouter key: a separate wallet with its own spend cap, so a drained God budget cannot reach the app's DeepSeek account)."
             exit 1
           fi
           umask 077
-          printf '%s' "$GOD_DEEPSEEK_API_KEY" > "$RUNNER_TEMP/god-key"
+          printf '%s' "$OPENROUTER_GOD_KEY" > "$RUNNER_TEMP/god-key"
           # dsh confines writes, not reads, and runs as this user: take root away before it starts.
           sudo rm -f /etc/sudoers.d/runner
           if sudo -n true 2>/dev/null; then
@@ -110,11 +110,11 @@ jobs:
       - name: Prove the key reached no file
         if: always()
         env:
-          GOD_DEEPSEEK_API_KEY: ${{ secrets.GOD_DEEPSEEK_API_KEY }}
+          OPENROUTER_GOD_KEY: ${{ secrets.OPENROUTER_GOD_KEY }}
         run: |
           set -uo pipefail
           test ! -e "$RUNNER_TEMP/god-key" || { echo "::error::key file survived the run"; exit 1; }
-          if grep -rqsF -- "$GOD_DEEPSEEK_API_KEY" "$RUNNER_TEMP/god-spike" "$GITHUB_WORKSPACE" /tmp; then
+          if grep -rqsF -- "$OPENROUTER_GOD_KEY" "$RUNNER_TEMP/god-spike" "$GITHUB_WORKSPACE" /tmp; then
             echo "::error::the key appears in a file the harness could reach"
             exit 1
           fi
@@ -176,7 +176,7 @@ jobs:
       - name: Decide
         id: decide
         env:
-          GOD_DEEPSEEK_API_KEY: ${{ secrets.GOD_DEEPSEEK_API_KEY }}
+          OPENROUTER_GOD_KEY: ${{ secrets.OPENROUTER_GOD_KEY }}
           GOD_ENABLED: ${{ vars.GOD_ENABLED }}
           GOD_AUTONOMY: ${{ vars.GOD_AUTONOMY }}
           GOD_EVERY_HOURS: ${{ vars.GOD_EVERY_HOURS }}
@@ -206,7 +206,7 @@ jobs:
 
   # Synthetic probes: God's own traffic when production is too thin (scripts/god/probe.mjs). Runs only
   # on a gate `go`, so cadence and the money caps bound it exactly like an act; it takes at most
-  # PROBE_MAX_USD out of the tick's cap and always leaves the act its minimum. Holds the DeepSeek key
+  # PROBE_MAX_USD out of the tick's cap and always leaves the act its minimum. Holds God's wallet key
   # behind the meter proxy; the server it boots sees only the proxy's per-run token.
   probe:
     needs: gate
@@ -232,15 +232,15 @@ jobs:
 
       - name: Stage the key as a file
         env:
-          GOD_DEEPSEEK_API_KEY: ${{ secrets.GOD_DEEPSEEK_API_KEY }}
+          OPENROUTER_GOD_KEY: ${{ secrets.OPENROUTER_GOD_KEY }}
         run: |
           set -euo pipefail
-          if [ -z "$GOD_DEEPSEEK_API_KEY" ]; then
-            echo "::error::Set GOD_DEEPSEEK_API_KEY in the 'god' environment (God's own DeepSeek account)."
+          if [ -z "$OPENROUTER_GOD_KEY" ]; then
+            echo "::error::Set OPENROUTER_GOD_KEY in the 'god' environment (God's own OpenRouter key: a separate wallet with its own spend cap, so a drained God budget cannot reach the app's DeepSeek account)."
             exit 1
           fi
           umask 077
-          printf '%s' "$GOD_DEEPSEEK_API_KEY" > "$RUNNER_TEMP/god-key"
+          printf '%s' "$OPENROUTER_GOD_KEY" > "$RUNNER_TEMP/god-key"
 
       - name: Run the probes
         id: probe
@@ -265,11 +265,11 @@ jobs:
       - name: Prove the key reached no file
         if: always()
         env:
-          GOD_DEEPSEEK_API_KEY: ${{ secrets.GOD_DEEPSEEK_API_KEY }}
+          OPENROUTER_GOD_KEY: ${{ secrets.OPENROUTER_GOD_KEY }}
         run: |
           set -uo pipefail
           test ! -e "$RUNNER_TEMP/god-key" || { echo "::error::key file survived the run"; exit 1; }
-          if grep -rqsF -- "$GOD_DEEPSEEK_API_KEY" "$RUNNER_TEMP/god-probe" "$GITHUB_WORKSPACE" /tmp; then
+          if grep -rqsF -- "$OPENROUTER_GOD_KEY" "$RUNNER_TEMP/god-probe" "$GITHUB_WORKSPACE" /tmp; then
             echo "::error::the key appears in a file the probe server could reach"
             exit 1
           fi
@@ -501,15 +501,15 @@ jobs:
 
       - name: Stage the key as a file, then revoke sudo
         env:
-          GOD_DEEPSEEK_API_KEY: ${{ secrets.GOD_DEEPSEEK_API_KEY }}
+          OPENROUTER_GOD_KEY: ${{ secrets.OPENROUTER_GOD_KEY }}
         run: |
           set -euo pipefail
-          if [ -z "$GOD_DEEPSEEK_API_KEY" ]; then
-            echo "::error::Set GOD_DEEPSEEK_API_KEY in the 'god' environment (God's own DeepSeek account)."
+          if [ -z "$OPENROUTER_GOD_KEY" ]; then
+            echo "::error::Set OPENROUTER_GOD_KEY in the 'god' environment (God's own OpenRouter key: a separate wallet with its own spend cap, so a drained God budget cannot reach the app's DeepSeek account)."
             exit 1
           fi
           umask 077
-          printf '%s' "$GOD_DEEPSEEK_API_KEY" > "$RUNNER_TEMP/god-key"
+          printf '%s' "$OPENROUTER_GOD_KEY" > "$RUNNER_TEMP/god-key"
           sudo rm -f /etc/sudoers.d/runner
           if sudo -n true 2>/dev/null; then
             echo "::error::sudo is still available after revocation"
@@ -540,11 +540,11 @@ jobs:
       - name: Prove the key reached no file
         if: always()
         env:
-          GOD_DEEPSEEK_API_KEY: ${{ secrets.GOD_DEEPSEEK_API_KEY }}
+          OPENROUTER_GOD_KEY: ${{ secrets.OPENROUTER_GOD_KEY }}
         run: |
           set -uo pipefail
           test ! -e "$RUNNER_TEMP/god-key" || { echo "::error::key file survived the run"; exit 1; }
-          if grep -rqsF -- "$GOD_DEEPSEEK_API_KEY" "$RUNNER_TEMP/god-act" "$GITHUB_WORKSPACE" /tmp; then
+          if grep -rqsF -- "$OPENROUTER_GOD_KEY" "$RUNNER_TEMP/god-act" "$GITHUB_WORKSPACE" /tmp; then
             echo "::error::the key appears in a file the harness could reach"
             exit 1
           fi
@@ -642,7 +642,7 @@ jobs:
     if: needs.verify.result == 'success' && needs.act.outputs.has_diff == 'true'
     runs-on: ubuntu-24.04
     # Environment so an optional GOD_PR_TOKEN can live with the other God secrets. This job must
-    # not reference GOD_DEEPSEEK_API_KEY — the harness job is the only one that bills DeepSeek.
+    # not reference OPENROUTER_GOD_KEY — the harness job is the only one that bills the wallet.
     environment: god
     timeout-minutes: 15
     permissions:

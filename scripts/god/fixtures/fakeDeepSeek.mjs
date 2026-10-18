@@ -3,6 +3,10 @@
  * shape (`/anthropic/v1/messages`) and the OpenAI chat shape (`/chat/completions`), streamed or
  * not, reports configurable usage, and records every request it receives.
  *
+ * It also answers the gateway wire — the same Anthropic shape at `/messages`, and `usage.cost` in
+ * USD when `cost` is set — because that is what a meter proxy has to survive: two wallets, one
+ * client, and a price the wallet states for itself.
+ *
  * With `script`, each Anthropic request is answered by the next step — `{ text }` or
  * `{ tool, input }` (a `tool_use` block) — so a real harness can be driven through tool calls
  * without a model. Past the end of the script it answers `done`.
@@ -10,6 +14,9 @@
 import http from 'node:http';
 
 export const FAKE_USAGE = Object.freeze({ input: 1000, cacheRead: 600, output: 200 });
+
+/** The Anthropic Messages endpoint on the first-party wallet, and on a gateway. */
+const ANTHROPIC_PATHS = new Set(['/anthropic/v1/messages', '/messages']);
 
 function sse(res, events) {
   res.writeHead(200, { 'content-type': 'text/event-stream' });
@@ -42,11 +49,12 @@ function contentBlockEvents(step, toolId) {
   ];
 }
 
-function anthropic(body, usage, step, toolId) {
+function anthropic(body, usage, step, toolId, cost) {
   const fullUsage = {
     input_tokens: usage.input,
     output_tokens: usage.output,
-    cache_read_input_tokens: usage.cacheRead
+    cache_read_input_tokens: usage.cacheRead,
+    ...(cost == null ? {} : { cost })
   };
   const stopReason = step.tool ? 'tool_use' : 'end_turn';
   if (!body.stream) {
@@ -86,12 +94,13 @@ function anthropic(body, usage, step, toolId) {
   };
 }
 
-function openai(body, usage) {
+function openai(body, usage, cost) {
   const fullUsage = {
     prompt_tokens: usage.input,
     completion_tokens: usage.output,
     prompt_cache_hit_tokens: usage.cacheRead,
-    prompt_cache_miss_tokens: usage.input - usage.cacheRead
+    prompt_cache_miss_tokens: usage.input - usage.cacheRead,
+    ...(cost == null ? {} : { cost })
   };
   if (!body.stream) {
     return {
@@ -112,12 +121,17 @@ function openai(body, usage) {
  * @param {{
  *   usage?: { input: number, cacheRead: number, output: number },
  *   status?: number,
+ *   cost?: number | null,
  *   script?: ReadonlyArray<{ text?: string, tool?: string, input?: Record<string, unknown> }>
  * }} [options]
  */
 export async function startFakeDeepSeek(options = {}) {
   const requests = [];
-  const settings = { usage: options.usage ?? FAKE_USAGE, status: options.status ?? 200 };
+  const settings = {
+    usage: options.usage ?? FAKE_USAGE,
+    status: options.status ?? 200,
+    cost: options.cost ?? null
+  };
   const script = [...(options.script ?? [])];
   let anthropicCalls = 0;
   const nextStep = () => {
@@ -135,12 +149,11 @@ export async function startFakeDeepSeek(options = {}) {
       res.end(JSON.stringify({ error: { message: 'Insufficient Balance' } }));
       return;
     }
-    const reply =
-      req.url === '/anthropic/v1/messages'
-        ? anthropic(body, settings.usage, nextStep(), `toolu_${anthropicCalls}`)
-        : req.url === '/chat/completions' || req.url === '/v1/chat/completions'
-          ? openai(body, settings.usage)
-          : { json: { object: 'list', data: [] } };
+    const reply = ANTHROPIC_PATHS.has(req.url)
+      ? anthropic(body, settings.usage, nextStep(), `toolu_${anthropicCalls}`, settings.cost)
+      : req.url === '/chat/completions' || req.url === '/v1/chat/completions'
+        ? openai(body, settings.usage, settings.cost)
+        : { json: { object: 'list', data: [] } };
     if (reply.events) {
       sse(res, reply.events);
       return;

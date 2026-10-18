@@ -176,7 +176,7 @@ export type GodRunDecisionInput = {
   lastActAt: number | null;
   /** Open PRs carrying God's title or branch prefix. */
   openGodPrs: number;
-  /** DeepSeek balance in USD; null when unknown (the gate proceeds — the balance is still the cap). */
+  /** The wallet's balance in USD (ADR-0019 §5); null when unknown (the gate proceeds — the balance is still the cap). */
   balanceUsd: number | null;
   /** Spend recorded this UTC month. */
   monthSpendUsd: number;

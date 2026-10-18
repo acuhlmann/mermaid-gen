@@ -5,6 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { estimateLlmCostUsd, mergeLlmTokenRates } from '@archislop/shared/llmCostEstimate.js';
 import { createUsageTracker, drainSseLines, startMeterProxy } from './meterProxy.mjs';
+import { UPSTREAM_PROFILES, adaptBodyForWallet } from './upstream.mjs';
 import { FAKE_USAGE, startFakeDeepSeek } from './fixtures/fakeDeepSeek.mjs';
 
 const REAL_KEY = 'sk-real-key-never-leaves-the-proxy';
@@ -156,6 +157,176 @@ test('routes outside the allowlist are refused and never reach upstream', async 
     assert.equal(upstream.requests.length, 0);
     assert.equal(proxy.usage().blocked.length, 3);
     assert.ok(events.some((e) => e.type === 'blocked' && e.path === '/user/balance'));
+  } finally {
+    await close();
+  }
+});
+
+async function gatewaySetup(overrides = {}) {
+  const upstream = await startFakeDeepSeek(overrides.upstream);
+  const events = [];
+  const proxy = await startMeterProxy({
+    apiKey: REAL_KEY,
+    upstream: upstream.url,
+    upstreamProfile: 'openrouter',
+    maxUsd: 1,
+    onEvent: (event) => events.push(event),
+    ...overrides.proxy
+  });
+  const close = async () => {
+    await proxy.close();
+    await upstream.close();
+  };
+  return { upstream, proxy, events, close };
+}
+
+test('the gateway profile dials the gateway path, with Bearer auth and the gateway model id', async () => {
+  const { upstream, proxy, close } = await gatewaySetup();
+  try {
+    assert.equal((await anthropicCall(proxy, {})).status, 200);
+    const sent = upstream.requests[0];
+    assert.equal(sent.path, '/messages');
+    assert.equal(sent.headers.authorization, `Bearer ${REAL_KEY}`);
+    assert.equal(sent.headers['x-api-key'], undefined);
+    // The harness asked for its own catalog id; only the wire carries the publisher prefix, so the
+    // spike's `model_honoured` check still reads the id the run was configured with.
+    assert.equal(sent.body.model, 'deepseek/deepseek-v4-pro');
+    assert.deepEqual(proxy.usage().models, ['deepseek-v4-pro']);
+    assert.equal(proxy.wallet.profile, 'openrouter');
+    assert.deepEqual(proxy.usage().blocked, []);
+  } finally {
+    await close();
+  }
+});
+
+test('the gateway chat wire lands on the gateway chat path with a prefixed slug', async () => {
+  const { upstream, proxy, close } = await gatewaySetup();
+  try {
+    const res = await fetch(`${proxy.baseUrl}/v1/chat/completions`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', authorization: `Bearer ${proxy.clientToken}` },
+      body: JSON.stringify({ model: 'deepseek-v4-flash', messages: [] })
+    });
+    assert.equal(res.status, 200);
+    assert.equal(upstream.requests[0].path, '/chat/completions');
+    assert.equal(upstream.requests[0].body.model, 'deepseek/deepseek-v4-flash');
+  } finally {
+    await close();
+  }
+});
+
+test('what the gateway says it cost is the spend, and the cap binds on it', async () => {
+  const { upstream, proxy, close } = await gatewaySetup({
+    upstream: { cost: 0.5 },
+    proxy: { maxUsd: 0.45 }
+  });
+  try {
+    assert.equal((await anthropicCall(proxy, {})).status, 200);
+    const usage = proxy.usage();
+    assert.equal(usage.usd, 0.5, 'the invoice, not the first-party table price');
+    assert.equal(usage.gatewayUsd, 0.5);
+    assert.equal(usage.gatewayCalls, 1);
+    assert.ok(Math.abs(usage.estimatedUsd - expectedProUsd()) < 1e-9);
+    assert.ok(usage.usd > usage.estimatedUsd);
+    // 0.5 of a 0.6 cap spent: the next call is refused without ever reaching the wallet.
+    assert.equal((await anthropicCall(proxy, {})).status, 402);
+    assert.equal(proxy.stopReason(), 'budget');
+    assert.equal(upstream.requests.length, 1);
+  } finally {
+    await close();
+  }
+});
+
+test('a wallet reporting zero cost is not believed to be free', async () => {
+  const { proxy, close } = await gatewaySetup({ upstream: { cost: 0 } });
+  try {
+    assert.equal((await anthropicCall(proxy, {})).status, 200);
+    assert.ok(Math.abs(proxy.usage().usd - expectedProUsd()) < 1e-9);
+    assert.equal(proxy.usage().gatewayUsd, 0);
+  } finally {
+    await close();
+  }
+});
+
+test('the gateway translation is scoped to what the gateway ignores', () => {
+  const openrouter = UPSTREAM_PROFILES.openrouter;
+  const deepseek = UPSTREAM_PROFILES.deepseek;
+  // Brain's lane asks for reasoning off in DeepSeek's own spelling; the gateway accepts that field
+  // and ignores it, so the intent has to arrive as `reasoning` or the probe pays for thinking.
+  const chat = { model: 'deepseek-v4-flash', messages: [], thinking: { type: 'disabled' } };
+  adaptBodyForWallet(openrouter, 'openai', chat);
+  assert.equal(chat.thinking, undefined);
+  assert.deepEqual(chat.reasoning, { enabled: false });
+
+  // A request that never asked to switch reasoning off keeps its default — the harness still thinks.
+  const plain = { model: 'deepseek-v4-pro', messages: [] };
+  adaptBodyForWallet(openrouter, 'openai', plain);
+  assert.equal(plain.reasoning, undefined);
+
+  // The rollback wallet and the Anthropic wire are untouched: only the gateway's chat shape needs it.
+  const firstParty = { model: 'deepseek-v4-flash', messages: [], thinking: { type: 'disabled' } };
+  adaptBodyForWallet(deepseek, 'openai', firstParty);
+  assert.deepEqual(firstParty.thinking, { type: 'disabled' });
+  const anthropic = { model: 'deepseek-v4-pro', messages: [], thinking: { type: 'disabled' } };
+  adaptBodyForWallet(openrouter, 'anthropic', anthropic);
+  assert.deepEqual(anthropic.thinking, { type: 'disabled' });
+});
+
+test('the proxy translates the chat wire before it leaves', async () => {
+  const { upstream, proxy, close } = await gatewaySetup();
+  try {
+    const res = await fetch(`${proxy.baseUrl}/v1/chat/completions`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', authorization: `Bearer ${proxy.clientToken}` },
+      body: JSON.stringify({
+        model: 'deepseek-v4-flash',
+        max_tokens: 8,
+        thinking: { type: 'disabled' },
+        messages: [{ role: 'user', content: 'hi' }]
+      })
+    });
+    assert.equal(res.status, 200);
+    const sent = upstream.requests[0].body;
+    assert.equal(sent.thinking, undefined);
+    assert.deepEqual(sent.reasoning, { enabled: false });
+  } finally {
+    await close();
+  }
+});
+
+test('count_tokens is answered locally when the gateway has no such route', async () => {
+  const { upstream, proxy, close } = await gatewaySetup();
+  try {
+    const res = await fetch(`${proxy.anthropicBaseUrl}/v1/messages/count_tokens`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-api-key': proxy.clientToken },
+      body: JSON.stringify({
+        model: 'deepseek-v4-pro',
+        messages: [{ role: 'user', content: 'hi' }]
+      })
+    });
+    assert.equal(res.status, 200);
+    assert.ok((await res.json()).input_tokens >= 1);
+    assert.equal(upstream.requests.length, 0, 'a token count must never reach the paid wallet');
+    assert.equal(proxy.usage().usd, 0);
+    assert.equal(proxy.usage().localCountTokens, 1);
+    // Not counted as a refused route: the spike's `no_unknown_routes` check must stay green.
+    assert.deepEqual(proxy.usage().blocked, []);
+  } finally {
+    await close();
+  }
+});
+
+test('the first-party wallet still gets the wire the proxy was built against', async () => {
+  const { upstream, proxy, close } = await setup();
+  try {
+    assert.equal((await anthropicCall(proxy, {})).status, 200);
+    assert.equal(upstream.requests[0].path, '/anthropic/v1/messages');
+    assert.equal(upstream.requests[0].headers['x-api-key'], REAL_KEY);
+    assert.equal(upstream.requests[0].body.model, 'deepseek-v4-pro');
+    assert.equal(proxy.wallet.profile, 'deepseek');
+    assert.equal(proxy.usage().gatewayCalls, 0);
+    assert.ok(Math.abs(proxy.usage().usd - expectedProUsd()) < 1e-9);
   } finally {
     await close();
   }

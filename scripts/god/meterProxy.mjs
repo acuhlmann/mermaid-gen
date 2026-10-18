@@ -1,5 +1,5 @@
 /**
- * Local metering proxy between a coding harness and the DeepSeek API (ADR-0019).
+ * Local metering proxy between a coding harness and God's paid wallet (ADR-0019).
  *
  * The harness gets a base URL on 127.0.0.1 and a per-run token instead of the real key; this proxy
  * holds the key (read from a file it deletes at start), forwards only an allowlist of model routes,
@@ -9,8 +9,14 @@
  * `dsh_session_log` field (the whole session, tool results included) to every request unless the
  * plugin is switched off — the field allowlist removes it even if that switch fails.
  *
- * Both wire formats are understood: the Anthropic Messages shape dsh uses
- * (`/anthropic/v1/messages`, `x-api-key`) and the OpenAI chat shape (`/chat/completions`, Bearer).
+ * Both wire formats are understood: the Anthropic Messages shape dsh uses (`/anthropic/v1/messages`,
+ * `x-api-key`) and the OpenAI chat shape (`/chat/completions`, Bearer). Which upstream path, auth
+ * header and model id belong to that wire is the profile's business (see `upstream.mjs`), so a run
+ * can be re-pointed from the gateway wallet to the first-party account with one flag. The cap itself
+ * is priced from the shared rate table — never from whatever the upstream says it cost, because a
+ * number the payer computes is not a limit on the payer. What the gateway reported is recorded
+ * beside it (`gatewayUsd`) so the owner can compare the estimate against the invoice.
+ *
  * Overshoot is bounded by the requests already in flight when the cap is crossed.
  */
 import http from 'node:http';
@@ -21,28 +27,33 @@ import {
   mergeLlmTokenRates,
   resolveLlmTokenRates
 } from '@archislop/shared/llmCostEstimate.js';
+import {
+  DEFAULT_UPSTREAM,
+  UPSTREAM_PROFILES,
+  adaptBodyForWallet,
+  canonicalModelId,
+  resolveUpstreamProfile,
+  upstreamBaseUrl,
+  upstreamModelId,
+  upstreamPathFor
+} from './upstream.mjs';
 
-export const DEFAULT_UPSTREAM = 'https://api.deepseek.com';
 export const DEFAULT_ALLOWED_MODELS = Object.freeze([
   'deepseek-v4-pro',
   'deepseek-v4-flash',
   'deepseek-flash'
 ]);
 
-/** Harness catalog ids → rate-table slugs. */
-const MODEL_ALIASES = Object.freeze({
-  'deepseek-flash': 'deepseek-v4-flash',
-  'deepseek-pro': 'deepseek-v4-pro'
-});
-
-/** Every route the proxy forwards. Anything else is a 404 and is reported. */
+/** Every route the proxy understands. Anything else is a 404 and is reported. */
 const ROUTES = Object.freeze([
   { method: 'POST', path: '/anthropic/v1/messages', family: 'anthropic', metered: true },
   {
     method: 'POST',
     path: '/anthropic/v1/messages/count_tokens',
     family: 'anthropic',
-    metered: false
+    metered: false,
+    /** The one route a wallet may not serve: the proxy answers it from the request size. */
+    localEstimate: true
   },
   { method: 'GET', path: '/anthropic/v1/models', family: 'anthropic', metered: false },
   { method: 'POST', path: '/chat/completions', family: 'openai', metered: true },
@@ -149,10 +160,13 @@ export function createUsageTracker() {
       'cache_creation_input_tokens',
       'prompt_tokens',
       'completion_tokens',
-      'prompt_cache_hit_tokens'
+      'prompt_cache_hit_tokens',
+      'cost'
     ]) {
       take(key, usage[key]);
     }
+    // A gateway reports cached input nested instead of as a sibling field.
+    take('cached_tokens', usage.prompt_tokens_details?.cached_tokens);
   };
   return {
     feed(event) {
@@ -165,7 +179,7 @@ export function createUsageTracker() {
       if (seen.prompt_tokens != null || seen.completion_tokens != null) {
         return {
           inputTokens: seen.prompt_tokens ?? 0,
-          cacheHitTokens: seen.prompt_cache_hit_tokens ?? 0,
+          cacheHitTokens: Math.max(seen.prompt_cache_hit_tokens ?? 0, seen.cached_tokens ?? 0),
           outputTokens: seen.completion_tokens ?? 0
         };
       }
@@ -181,6 +195,14 @@ export function createUsageTracker() {
         };
       }
       return null;
+    },
+    /**
+     * What the wallet itself says this response cost, in USD, or null when it did not say. Kept out
+     * of `result()` so the token shape stays the contract the run record is built from: this number
+     * is the invoice, and when it exists it is a better bound on spend than any rate table.
+     */
+    gatewayUsd() {
+      return seen.cost ?? null;
     }
   };
 }
@@ -204,7 +226,7 @@ export function drainSseLines(buffer, onData) {
 }
 
 function pricingModel(model, rates) {
-  const slug = MODEL_ALIASES[model] ?? model;
+  const slug = canonicalModelId(model);
   // An id the table does not know is priced as Pro: the most expensive model the proxy allows.
   return resolveLlmTokenRates(slug, rates) ? slug : 'deepseek-v4-pro';
 }
@@ -223,10 +245,12 @@ function readKey({ apiKey, keyFile }) {
  *   apiKey?: string,
  *   keyFile?: string,
  *   upstream?: string,
+ *   upstreamProfile?: 'openrouter' | 'deepseek',
  *   clientToken?: string,
  *   maxUsd: number,
  *   allowedModels?: readonly string[],
  *   rates?: Record<string, import('@archislop/shared/llmCostEstimate.js').LlmTokenRates>,
+ *   env?: NodeJS.ProcessEnv,
  *   onEvent?: (event: Record<string, unknown>) => void,
  *   fetchImpl?: typeof fetch,
  *   requestTimeoutMs?: number
@@ -234,12 +258,22 @@ function readKey({ apiKey, keyFile }) {
  */
 export async function startMeterProxy(options) {
   const key = readKey(options);
-  const upstream = String(options.upstream ?? DEFAULT_UPSTREAM).replace(/\/$/, '');
+  // An explicit profile wins over the host, because a test's `127.0.0.1` stand-in for a gateway has
+  // no way to announce itself by hostname — and the base URL still comes from `--upstream`.
+  const wallet = options.upstream ?? DEFAULT_UPSTREAM;
+  const profile = options.upstreamProfile
+    ? (UPSTREAM_PROFILES[options.upstreamProfile] ?? resolveUpstreamProfile(wallet))
+    : resolveUpstreamProfile(wallet);
+  const upstream = upstreamBaseUrl(profile, wallet);
   const clientToken = options.clientToken ?? `god-${randomBytes(24).toString('hex')}`;
   const maxUsd = Number(options.maxUsd);
   if (!(maxUsd > 0)) throw new Error('meterProxy: maxUsd must be positive');
-  const allowedModels = new Set(options.allowedModels ?? DEFAULT_ALLOWED_MODELS);
-  const rates = options.rates ?? mergeLlmTokenRates({});
+  const allowedModels = new Set(
+    (options.allowedModels ?? DEFAULT_ALLOWED_MODELS).map(canonicalModelId)
+  );
+  // A caller may pass its env to price from `LLM_COST_USD_PER_M_*` overrides for the wallet actually
+  // being billed; unset (tests, and anything wanting the shipped sheet) means the bundled table.
+  const rates = options.rates ?? mergeLlmTokenRates(options.env ?? {});
   const onEvent = options.onEvent ?? (() => {});
   const fetchImpl = options.fetchImpl ?? fetch;
   const requestTimeoutMs = options.requestTimeoutMs ?? 15 * 60_000;
@@ -251,20 +285,26 @@ export async function startMeterProxy(options) {
     outputTokens: 0,
     cacheHitTokens: 0,
     usd: 0,
+    /** What the wallet itself said each response cost, summed: the invoice beside the estimate. */
+    gatewayUsd: 0,
+    gatewayCalls: 0,
+    estimatedUsd: 0,
+    /** Times the proxy answered `count_tokens` itself because the wallet has no such route. */
+    localCountTokens: 0,
     stopReason: null,
     models: new Set(),
     blocked: [],
     strippedFields: new Set()
   };
 
-  const charge = (model, usage, requestBytes) => {
+  const charge = (model, usage, requestBytes, gatewayUsd) => {
     const metered = usage ?? {
       inputTokens: Math.ceil(requestBytes / 3),
       cacheHitTokens: 0,
       outputTokens: UNMETERED_OUTPUT_TOKENS
     };
     if (!usage) state.unmeteredCalls += 1;
-    const usd =
+    const estimate =
       estimateLlmCostUsd({
         inputTokens: metered.inputTokens,
         cacheHitInputTokens: metered.cacheHitTokens,
@@ -272,19 +312,36 @@ export async function startMeterProxy(options) {
         model: pricingModel(model, rates),
         rates
       }) ?? 0;
+    // The wallet's own number wins when it names a price. The rate table cannot stand in for a gateway
+    // price: model ids normalize to the publisher's tail (`deepseek/deepseek-v4-pro` and
+    // `deepseek-v4-pro` are the same key), so the only price the table knows is the first-party list —
+    // which for this model is roughly double what the gateway charges. Charging that would quietly
+    // halve the budget the owner set.
+    //
+    // A reported price of zero is not believed, though: `cost: 0` is what a wallet says when the money
+    // is going somewhere else (a bring-your-own-key link), and treating that as free would leave the
+    // cap open on exactly the spend it exists to bound. Such a call falls back to the estimate.
+    const usd = gatewayUsd != null && gatewayUsd > 0 ? gatewayUsd : estimate;
     state.calls += 1;
     state.inputTokens += metered.inputTokens;
     state.outputTokens += metered.outputTokens;
     state.cacheHitTokens += metered.cacheHitTokens;
     state.usd += usd;
+    state.estimatedUsd += estimate;
     state.models.add(model);
+    if (gatewayUsd != null) {
+      state.gatewayUsd += gatewayUsd;
+      state.gatewayCalls += 1;
+    }
     onEvent({
       type: 'model',
       model,
       ...metered,
       usd,
       totalUsd: state.usd,
-      metered: Boolean(usage)
+      metered: Boolean(usage),
+      gatewayUsd,
+      totalGatewayUsd: state.gatewayUsd
     });
   };
 
@@ -303,12 +360,13 @@ export async function startMeterProxy(options) {
     if (route.family === 'openai' && body.stream === true) {
       body.stream_options = { ...(body.stream_options ?? {}), include_usage: true };
     }
+    adaptBodyForWallet(profile, route.family, body);
     return body;
   };
 
   const upstreamHeaders = (route, req) => {
     const headers = { 'content-type': 'application/json', accept: req.headers.accept ?? '*/*' };
-    if (route.family === 'anthropic') {
+    if (route.family === 'anthropic' && profile.anthropicAuth === 'x-api-key') {
       headers['x-api-key'] = key;
       if (typeof req.headers['anthropic-version'] === 'string') {
         headers['anthropic-version'] = req.headers['anthropic-version'];
@@ -319,8 +377,8 @@ export async function startMeterProxy(options) {
     return headers;
   };
 
-  const relay = async (route, req, res, payload) => {
-    const response = await fetchImpl(`${upstream}${route.path}`, {
+  const relay = async (route, targetPath, req, res, payload) => {
+    const response = await fetchImpl(`${upstream}${targetPath}`, {
       method: route.method,
       headers: upstreamHeaders(route, req),
       body: payload,
@@ -353,7 +411,7 @@ export async function startMeterProxy(options) {
         // Not JSON: no usage to read.
       }
     }
-    return { ok: response.ok, usage: tracker.result() };
+    return { ok: response.ok, usage: tracker.result(), gatewayUsd: tracker.gatewayUsd() };
   };
 
   const handle = async (req, res) => {
@@ -377,6 +435,19 @@ export async function startMeterProxy(options) {
       sendJson(res, 402, errorBody('budget_exhausted', 'ArchiSlop God per-run budget exhausted'));
       return;
     }
+    // Where this route lives on the wallet now being billed: a path, or `null` when the wallet has no
+    // such route and the proxy answers it itself.
+    const targetPath = upstreamPathFor(profile, route.path);
+    if (targetPath === undefined) {
+      state.blocked.push(`${req.method} ${pathname}`.slice(0, 160));
+      onEvent({ type: 'blocked', method: req.method, path: pathname });
+      sendJson(
+        res,
+        404,
+        errorBody('not_found', `${profile.label} does not serve this route for God`)
+      );
+      return;
+    }
 
     let payload;
     let model = null;
@@ -396,15 +467,32 @@ export async function startMeterProxy(options) {
         return;
       }
       model = typeof body.model === 'string' ? body.model : null;
-      if (route.metered && (!model || !allowedModels.has(model))) {
+      if (route.metered && (!model || !allowedModels.has(canonicalModelId(model)))) {
         sendJson(res, 400, errorBody('invalid_request_error', 'model not allowed for this run'));
         return;
       }
+      // The id the run asked for is the id that is priced and reported; only the wire gets the
+      // gateway's prefixed slug. Reversing that would make the spike's `model_honoured` check read
+      // back an id nobody configured.
+      if (model) body.model = upstreamModelId(profile, model);
       payload = JSON.stringify(body);
     }
 
-    const { ok, usage } = await relay(route, req, res, payload);
-    if (route.metered && (ok || usage)) charge(model, usage, requestBytes);
+    if (targetPath === null) {
+      if (!route.localEstimate) {
+        sendJson(res, 404, errorBody('not_found', `${profile.label} does not serve this route`));
+        return;
+      }
+      // A token count is a context-budgeting hint, not money: answer it here rather than hand the
+      // harness a 404 it cannot plan around. ~4 bytes per token is the usual rough divisor.
+      state.localCountTokens += 1;
+      onEvent({ type: 'count_tokens', bytes: requestBytes });
+      sendJson(res, 200, { input_tokens: Math.max(1, Math.ceil(requestBytes / 4)) });
+      return;
+    }
+
+    const { ok, usage, gatewayUsd } = await relay(route, targetPath, req, res, payload);
+    if (route.metered && (ok || usage)) charge(model, usage, requestBytes, gatewayUsd);
   };
 
   const server = http.createServer((req, res) => {
@@ -422,6 +510,8 @@ export async function startMeterProxy(options) {
     baseUrl: `http://127.0.0.1:${port}`,
     /** Base URL for dsh's DeepSeek adapter (Anthropic format). */
     anthropicBaseUrl: `http://127.0.0.1:${port}/anthropic`,
+    /** Which wallet this run bills, and where the proxy dials it. Recorded, never secret. */
+    wallet: { profile: profile.name, label: profile.label, upstream },
     clientToken,
     usage() {
       return {
@@ -431,6 +521,11 @@ export async function startMeterProxy(options) {
         outputTokens: state.outputTokens,
         cacheHitTokens: state.cacheHitTokens,
         usd: Math.round(state.usd * 1e6) / 1e6,
+        /** The rate-table total, kept beside the charged one so the estimate stays auditable. */
+        estimatedUsd: Math.round(state.estimatedUsd * 1e6) / 1e6,
+        gatewayUsd: Math.round(state.gatewayUsd * 1e6) / 1e6,
+        gatewayCalls: state.gatewayCalls,
+        localCountTokens: state.localCountTokens,
         models: [...state.models],
         blocked: [...state.blocked],
         strippedFields: [...state.strippedFields]

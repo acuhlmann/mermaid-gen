@@ -12,6 +12,12 @@ and [ADR-0018](0018-green-builds-self-healing-and-the-two-minute-ask.md) to a th
 deviations recorded below. Delivered in three PRs; § "Where this lives in code" marks what is
 still to come.
 
+**Amended 2026-10-18 (§5 only).** God's wallet moved from a dedicated DeepSeek account to its own
+OpenRouter key (`OPENROUTER_GOD_KEY`), same model, so the owner caps the autonomous rung at the
+gateway instead of inside the product — the point of §5 was always that God must not be able to
+drain the account Brain runs on, and a gateway key makes that cap enforceable outside this repo.
+The first-party account stays wired as the `--upstream deepseek` rollback; nothing else changed.
+
 ## Context
 
 The owner asked for the app to improve itself from what users actually do — with visibility into
@@ -48,8 +54,12 @@ the product).
    deterministically from signals (strict schema), and its own run history. It never reads issues,
    PR comments or any other free text — on a public repo anyone can write those. "Run now" takes an
    enum focus, never prose.
-5. **Money is enforced outside the harness.** God bills a separate DeepSeek account whose prepaid
-   balance is the hard cap. A local metering proxy holds the key (read from a file that is then
+5. **Money is enforced outside the harness.** God bills a separate wallet whose balance is the hard
+   cap: today its own **OpenRouter key** (`OPENROUTER_GOD_KEY`), so the owner caps the autonomous rung
+   at the gateway and a drained God budget cannot reach the account Brain generates on. The wallet is
+   a profile in `scripts/god/upstream.mjs`; `--upstream deepseek` rolls back to God's own first-party
+   account, and no rung ever falls back between the two on its own. A local metering proxy holds the
+   key (read from a file that is then
    deleted; the harness gets a dummy) and answers HTTP 402 past the per-run cap. Wall clock and job
    timeout bound duration, a monthly soft cap comes from run records, and frozen hard limits in
    `godBudget.ts` clamp every setting.

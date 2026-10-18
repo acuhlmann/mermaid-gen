@@ -27,14 +27,14 @@ God — same “record, never trigger” line as the office layer ([ADR-0010](..
 
 ## How God differs from the night fleet
 
-|                                | NFR routines (`review`, `improve`, …) | Feature automations (`metaphor3d`, `anything`, …) | **ArchiSlop God**                             |
-| ------------------------------ | ------------------------------------- | ------------------------------------------------- | --------------------------------------------- |
-| **Input**                      | Repo, backlog, ratchet                | Repo + benches                                    | Repo + **production signal brief**            |
-| **Host**                       | Claude Routines / Cursor              | Claude Routines                                   | **GitHub Actions** (third host)               |
-| **Schedule**                   | Night ladder (23:00–08:45 HKT)        | Night ladder (slot producers)                     | **Day window** 06:00–12:00 UTC (when enabled) |
-| **Touches user session slots** | Never                                 | Never                                             | Never                                         |
-| **Default autonomy**           | Self-merge when green                 | Self-merge when green                             | **Propose** — owner merges PR                 |
-| **Money**                      | Host subscription / Cursor            | Host + optional LLM benches                       | **Separate DeepSeek prepaid** account         |
+|                                | NFR routines (`review`, `improve`, …) | Feature automations (`metaphor3d`, `anything`, …) | **ArchiSlop God**                                  |
+| ------------------------------ | ------------------------------------- | ------------------------------------------------- | -------------------------------------------------- |
+| **Input**                      | Repo, backlog, ratchet                | Repo + benches                                    | Repo + **production signal brief**                 |
+| **Host**                       | Claude Routines / Cursor              | Claude Routines                                   | **GitHub Actions** (third host)                    |
+| **Schedule**                   | Night ladder (23:00–08:45 HKT)        | Night ladder (slot producers)                     | **Day window** 06:00–12:00 UTC (when enabled)      |
+| **Touches user session slots** | Never                                 | Never                                             | Never                                              |
+| **Default autonomy**           | Self-merge when green                 | Self-merge when green                             | **Propose** — owner merges PR                      |
+| **Money**                      | Host subscription / Cursor            | Host + optional LLM benches                       | **Separate OpenRouter key**, capped at the gateway |
 
 ```mermaid
 flowchart LR
@@ -58,7 +58,7 @@ flowchart LR
 
   Logs -.->|"aggregate ingest"| Brief
   Repo --> Brief
-  Act -->|"meter proxy + cap"| DS[("God DeepSeek account")]
+  Act -->|"meter proxy + cap"| DS[("God OpenRouter key")]
 ```
 
 Solid arrows are **shipped or in repo** today; the dashed ingest line is the **brief** job reading
@@ -116,8 +116,12 @@ flowchart TB
 2. **No in-place production edits** — every change is a PR; merge deploys like any other contributor.
 3. **God’s rails are frozen** — `scripts/god/**`, `godBudget.ts`, `godSchemas.ts`, `uxSignals.ts`, and
    `.github/workflows/god.yml` are human-PR-only (`routine-guard` `ALWAYS_FORBIDDEN`).
-4. **Separate money** — God bills a dedicated DeepSeek balance; a metering proxy returns HTTP 402 past
-   the per-run cap so the harness never holds the real key after startup.
+4. **Separate money** — God bills its own OpenRouter key (`OPENROUTER_GOD_KEY`), capped at the gateway
+   and never the app's `DEEPSEEK_API_KEY`/`OPENROUTER_API_KEY`: an unattended rung has to be able to run
+   out of money without taking Brain down with it. A metering proxy returns HTTP 402 past the per-run cap,
+   so the harness never holds the real key after startup. Which wallet a run bills is one switch —
+   [`scripts/god/upstream.mjs`](../../scripts/god/upstream.mjs) names both, and `--upstream deepseek`
+   rolls back to God's own first-party account.
 
 ## What production records (signal path)
 

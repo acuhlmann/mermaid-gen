@@ -20,9 +20,11 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { parseArgs } from 'node:util';
 import { fileURLToPath } from 'node:url';
+import { config as loadEnv } from 'dotenv';
 import { GOD_HARD_LIMITS } from '@archislop/shared/godBudget.js';
 import { GodProbeSummarySchema } from '@archislop/shared/godSchemas.js';
-import { startMeterProxy, DEFAULT_UPSTREAM } from './meterProxy.mjs';
+import { startMeterProxy } from './meterProxy.mjs';
+import { resolveGodKey, resolveWallet } from './upstream.mjs';
 import { PROBE_CORPUS } from './probeCorpus.mjs';
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
@@ -235,10 +237,14 @@ export async function runProbe(options) {
   const log = options.log ?? ((line) => process.stderr.write(`${line}\n`));
   if (!(maxUsd > 0)) return summarizeProbe({ cases: [], turns: [], usd: 0 });
 
+  // The probe measures the app's real Brain lane (`LLM_PROVIDER=deepseek` in the server's env); the
+  // meter proxy is what turns that lane's traffic onto God's wallet, rewriting the path, the auth
+  // header and the model slug per the profile in `upstream.mjs`.
+  const wallet = resolveWallet(options.upstream);
   const proxy = await startMeterProxy({
-    keyFile: options.keyFile,
-    apiKey: options.apiKey,
-    upstream: options.upstream ?? DEFAULT_UPSTREAM,
+    ...resolveGodKey({ wallet, keyFile: options.keyFile, apiKey: options.apiKey }),
+    upstream: wallet,
+    env: options.env,
     maxUsd
   });
   const port = options.port ?? 4100 + Math.floor(Math.random() * 800);
@@ -310,6 +316,7 @@ function parseCli(argv) {
 }
 
 export async function main(argv = process.argv.slice(2)) {
+  loadEnv({ quiet: true });
   const values = parseCli(argv);
   const summary = await runProbe({
     runId: values['run-id'],
