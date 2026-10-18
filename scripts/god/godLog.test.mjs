@@ -6,6 +6,7 @@ import path from 'node:path';
 import { buildTickRecord } from './recordTick.mjs';
 import {
   deriveCadence,
+  probeHistory,
   mergeGodLogTick,
   monthTotals,
   promptSafeHistory,
@@ -371,4 +372,54 @@ test('money spent on silence is counted, and an artifact excuses it', () => {
   assert.equal(partial.acts, 5);
   assert.equal(Object.hasOwn(partial, 'unproductiveActs'), false);
   assert.equal(Object.hasOwn(partial, 'unproductiveUsd'), false);
+});
+
+test('a probe-only tick spends against the month and spaces the cadence like an act', () => {
+  const probed = buildTickRecord({
+    'run-id': 'probe-1',
+    tier: 'propose',
+    focus: 'any',
+    verdict: 'noop',
+    now: '2026-10-18T06:17:00.000Z'
+  });
+  probed.probe = {
+    turns: 12,
+    usd: 0.061,
+    slots: [{ contentType: 'chart', turns: 12, accepted: 11, repairAttempts: 3 }]
+  };
+  // Without this, a probe that names nothing leaves God "never acted" and due again next hour.
+  assert.deepEqual(deriveCadence([probed], '2026-10'), {
+    lastActAt: '2026-10-18T06:17:00.000Z',
+    monthSpendUsd: 0.061
+  });
+  const totals = monthTotals([probed], '2026-10');
+  assert.equal(totals.monthSpendUsd, 0.061);
+  assert.equal(totals.acts, 0, 'a probe is spend, not a harness act');
+});
+
+test('probeHistory reaches back two weeks, past the 50-record cap the harness history has', () => {
+  const nowMs = Date.parse('2026-10-18T12:00:00.000Z');
+  const probe = {
+    turns: 2,
+    usd: 0.01,
+    slots: [{ contentType: 'chart', turns: 2, accepted: 2, repairAttempts: 0 }]
+  };
+  const records = [];
+  // Ten days of hourly noop ticks with one probe a day: far more than 50 records.
+  for (let h = 240; h >= 1; h -= 1) {
+    const now = new Date(nowMs - h * 3_600_000).toISOString();
+    const r = buildTickRecord({ 'run-id': `t${h}`, tier: 'propose', focus: 'any', now });
+    if (h % 24 === 0) r.probe = probe;
+    records.push(r);
+  }
+  const old = buildTickRecord({
+    'run-id': 'old',
+    tier: 'propose',
+    focus: 'any',
+    now: '2026-09-01T06:00:00.000Z'
+  });
+  old.probe = probe;
+  const pooled = probeHistory([old, ...records], nowMs);
+  assert.equal(pooled.length, 10);
+  assert.deepEqual(Object.keys(pooled[0]).sort(), ['endedAt', 'probe', 'runId']);
 });

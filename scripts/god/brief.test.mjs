@@ -6,8 +6,12 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { GodBriefSchema } from '@archislop/shared/godSchemas.js';
 import {
+  PROBE_ACCEPT_TARGET,
+  PROBE_MIN_SAMPLE,
   buildBrief,
+  buildProbeFindings,
   deriveLastGodMerge,
+  poolProbes,
   main,
   normalizeLogEntry,
   parseLogText,
@@ -391,4 +395,111 @@ test('brief CLI --history validates, strips hypotheses, and feeds history-out', 
   assert.equal(written.length, 1);
   assert.equal(written[0].hypothesis, null);
   assert.equal(written[0].findingId, 'mermaid.accept_rate');
+});
+
+// --- synthetic probes -----------------------------------------------------------------------------
+
+const probeRun = (slots, usd = 0.05) => ({
+  turns: slots.reduce((sum, s) => sum + s.turns, 0),
+  usd,
+  slots
+});
+const probeRecord = (endedAt, probe) => ({ endedAt, verdict: 'noop', findingId: null, probe });
+
+test('poolProbes sums this tick with probe runs from the last week, and drops older ones', () => {
+  const pooled = poolProbes({
+    nowMs: NOW,
+    current: probeRun([{ contentType: 'chart', turns: 2, accepted: 1, repairAttempts: 2 }]),
+    history: [
+      probeRecord(
+        '2026-10-14T07:00:00.000Z',
+        probeRun([{ contentType: 'chart', turns: 2, accepted: 2, repairAttempts: 1 }])
+      ),
+      probeRecord(
+        '2026-09-01T07:00:00.000Z',
+        probeRun([{ contentType: 'chart', turns: 2, accepted: 0, repairAttempts: 6 }])
+      ),
+      { endedAt: '2026-10-14T08:00:00.000Z', verdict: 'noop', findingId: null }
+    ]
+  });
+  assert.deepEqual(pooled, {
+    windowDays: 7,
+    runs: 2,
+    turns: 4,
+    slots: [{ contentType: 'chart', turns: 4, accepted: 3, repairAttempts: 3 }]
+  });
+  assert.equal(poolProbes({ nowMs: NOW, current: undefined, history: [] }), undefined);
+});
+
+test('a probe accept-rate finding needs confidence, not one bad week of nondeterminism', () => {
+  const pooled = (accepted, turns) => ({
+    windowDays: 7,
+    runs: 7,
+    turns,
+    slots: [{ contentType: 'anything', turns, accepted, repairAttempts: 0 }]
+  });
+  // 12/14 is 86%: under the target, but its Wilson upper bound is not.
+  assert.deepEqual(buildProbeFindings(pooled(12, 14)), []);
+  const [finding] = buildProbeFindings(pooled(8, 14));
+  assert.equal(finding.id, 'probe.anything.accept_rate');
+  assert.equal(finding.source, 'probe');
+  assert.equal(finding.baseline, PROBE_ACCEPT_TARGET);
+  assert.equal(finding.sample, 14);
+  // Below the minimum sample nothing is named, however bad.
+  assert.deepEqual(buildProbeFindings(pooled(0, PROBE_MIN_SAMPLE - 1)), []);
+});
+
+test('probe repair burden surfaces when the first pass keeps failing', () => {
+  const [finding] = buildProbeFindings({
+    windowDays: 7,
+    runs: 5,
+    turns: 10,
+    slots: [{ contentType: 'forms', turns: 10, accepted: 10, repairAttempts: 12 }]
+  });
+  assert.equal(finding.id, 'probe.forms.repair_attempts_avg');
+  assert.equal(finding.value, 1.2);
+});
+
+test('probes make a thin tick sufficient only when they name something', () => {
+  const lines = parseLogText(fs.readFileSync(FIXTURE, 'utf8'));
+  const clean = buildBrief({
+    lines,
+    now: NOW,
+    probe: probeRun([{ contentType: 'chart', turns: 10, accepted: 10, repairAttempts: 0 }])
+  });
+  assert.equal(clean.sufficient, false);
+  assert.equal(clean.probes?.turns, 10);
+  assert.equal(clean.volume.agentTurns + clean.volume.uxSignals < 30, true);
+
+  const sick = buildBrief({
+    lines,
+    now: NOW,
+    probe: probeRun([{ contentType: 'chart', turns: 10, accepted: 4, repairAttempts: 9 }])
+  });
+  assert.equal(sick.sufficient, true);
+  assert.ok(sick.findings.some((f) => f.id === 'probe.chart.accept_rate'));
+  assert.ok(sick.findings.every((f) => f.source === 'probe' || f.source === 'production'));
+  assert.ok(GodBriefSchema.safeParse(sick).success);
+});
+
+test('probe findings rank beside production ones at half severity', () => {
+  const lines = sickProductLines();
+  const brief = buildBrief({
+    lines,
+    now: NOW,
+    probe: probeRun([{ contentType: 'mermaid', turns: 20, accepted: 0, repairAttempts: 0 }])
+  });
+  const probe = brief.findings.find((f) => f.id === 'probe.mermaid.accept_rate');
+  assert.ok(probe, 'a probe finding is present');
+  // A total probe failure (90 points under target, full weight) still lands at half severity.
+  assert.equal(probe.severity, Math.round(0.9 * 0.5 * 1000) / 1000);
+  assert.ok(brief.findings.filter((f) => f.source === 'production').length > 0);
+});
+
+test('probeHistory, when given, replaces history for pooling instead of adding to it', () => {
+  const lines = parseLogText(fs.readFileSync(FIXTURE, 'utf8'));
+  const run = probeRun([{ contentType: 'chart', turns: 2, accepted: 2, repairAttempts: 0 }]);
+  const rec = probeRecord('2026-10-14T07:00:00.000Z', run);
+  const brief = buildBrief({ lines, now: NOW, history: [rec], probeHistory: [rec] });
+  assert.equal(brief.probes?.runs, 1, 'the same run in both lists counts once');
 });

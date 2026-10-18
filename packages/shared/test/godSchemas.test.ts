@@ -310,3 +310,56 @@ test('the narration outcome is an enum, optional, and never prose', () => {
     true
   );
 });
+
+test('probe evidence is optional, counts-only, and labelled on every finding it produces', () => {
+  // Records and briefs from before probes still parse: the same trap as `reason`/`digest`.
+  assert.equal(Object.hasOwn(GodRunRecordSchema.parse(record), 'probe'), false);
+  assert.equal(Object.hasOwn(GodBriefSchema.parse(brief), 'probes'), false);
+
+  const probe = {
+    turns: 4,
+    usd: 0.03,
+    slots: [{ contentType: 'chart', turns: 4, accepted: 3, repairAttempts: 2 }]
+  };
+  assert.deepEqual(GodRunRecordSchema.parse({ ...record, probe }).probe, probe);
+  assert.equal(
+    GodRunRecordSchema.safeParse({ ...record, probe: { ...probe, prompt: 'A bar chart' } }).success,
+    false,
+    'a probe summary carries no prompt or model text'
+  );
+
+  const withProbes = {
+    ...brief,
+    probes: { windowDays: 7, runs: 2, turns: 4, slots: probe.slots },
+    findings: [
+      {
+        id: 'probe.chart.accept_rate',
+        metric: 'accept_rate',
+        source: 'probe',
+        contentType: 'chart',
+        value: 0.4,
+        baseline: 0.9,
+        sample: 10,
+        severity: 0.25
+      }
+    ]
+  };
+  assert.deepEqual(GodBriefSchema.parse(withProbes), withProbes);
+  const unknownSource = {
+    ...withProbes,
+    findings: [{ ...withProbes.findings[0], source: 'vibes' }]
+  };
+  assert.equal(GodBriefSchema.safeParse(unknownSource).success, false);
+
+  assert.equal(
+    GodBriefDigestSchema.safeParse({
+      agentTurns: 1,
+      uxSignals: 1,
+      sessions: 1,
+      findings: 1,
+      sufficient: true,
+      probeTurns: 4
+    }).success,
+    true
+  );
+});

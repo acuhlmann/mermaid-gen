@@ -5,6 +5,8 @@
  *   node scripts/god/brief.mjs --from-file scripts/god/fixtures/log-lines.ndjson --out /tmp/brief.json
  *   node scripts/god/brief.mjs --out /tmp/brief.json   # live: gcloud logging read on god-signals
  *
+ *   … --probe /tmp/probe.json   # this tick's synthetic probe run (probe.mjs), pooled with history
+ *
  * Pure aggregation + Wilson intervals. No LLM. Output is validated by GodBriefSchema before write.
  */
 import { spawnSync } from 'node:child_process';
@@ -13,7 +15,7 @@ import path from 'node:path';
 import { parseArgs } from 'node:util';
 import { fileURLToPath } from 'node:url';
 import { GOD_HARD_LIMITS } from '@archislop/shared/godBudget.js';
-import { GodBriefSchema } from '@archislop/shared/godSchemas.js';
+import { GodBriefSchema, GodProbeSummarySchema } from '@archislop/shared/godSchemas.js';
 import { ContentTypeSchema } from '@archislop/shared';
 import { promptSafeHistory } from './godLog.mjs';
 
@@ -455,9 +457,121 @@ export function buildFindings(
   return findings.slice(0, 20);
 }
 
+/** Probe samples older than this stop counting: a week of daily runs, two prompts per slot. */
+export const PROBE_WINDOW_DAYS = 7;
+/** A slot needs this many pooled probe turns before any probe finding may name it. */
+export const PROBE_MIN_SAMPLE = 8;
+/** Probe accept-rate target. A finding needs the Wilson *upper* bound under it, not the point rate. */
+export const PROBE_ACCEPT_TARGET = 0.9;
+/** Average repair turns per probe generation above which the slot's first pass is failing too often. */
+export const PROBE_REPAIR_AVG_MAX = 0.75;
+/** Real visitors outrank God's own traffic: probe severity is halved before ranking. */
+const PROBE_SEVERITY_WEIGHT = 0.5;
+
+/**
+ * Pool this tick's probe run with the probe runs already on god-log. Probes are a few turns a day,
+ * so a single run is a smoke test; a week of them is a sample. Summed per slot — every field is a
+ * count, which is why `repairAttempts` is stored as a total rather than an average.
+ *
+ * @param {{ current?: unknown, history?: unknown, nowMs: number, windowDays?: number }} opts
+ * @returns {import('@archislop/shared/godSchemas.js').GodBriefProbes | undefined}
+ */
+export function poolProbes({ current, history, nowMs, windowDays = PROBE_WINDOW_DAYS }) {
+  const cutoff = nowMs - windowDays * 24 * 3_600_000;
+  /** @type {import('@archislop/shared/godSchemas.js').GodProbeSummary[]} */
+  const runs = [];
+  const own = GodProbeSummarySchema.safeParse(current);
+  if (own.success && own.data.turns > 0) runs.push(own.data);
+  if (Array.isArray(history)) {
+    for (const record of history) {
+      if (!record || typeof record !== 'object') continue;
+      const { probe, endedAt } = /** @type {Record<string, unknown>} */ (record);
+      const ended = Date.parse(String(endedAt ?? ''));
+      if (!Number.isFinite(ended) || ended < cutoff || ended > nowMs) continue;
+      const parsed = GodProbeSummarySchema.safeParse(probe);
+      if (parsed.success && parsed.data.turns > 0) runs.push(parsed.data);
+    }
+  }
+  if (!runs.length) return undefined;
+
+  /** @type {Map<string, { contentType: string, turns: number, accepted: number, repairAttempts: number }>} */
+  const bySlot = new Map();
+  for (const run of runs) {
+    for (const slot of run.slots) {
+      const sum = bySlot.get(slot.contentType) ?? {
+        contentType: slot.contentType,
+        turns: 0,
+        accepted: 0,
+        repairAttempts: 0
+      };
+      sum.turns += slot.turns;
+      sum.accepted += slot.accepted;
+      sum.repairAttempts += slot.repairAttempts;
+      bySlot.set(slot.contentType, sum);
+    }
+  }
+  const slots = CONTENT_TYPES.map((ct) => bySlot.get(ct)).filter(Boolean);
+  return {
+    windowDays,
+    runs: runs.length,
+    turns: slots.reduce((sum, s) => sum + s.turns, 0),
+    slots
+  };
+}
+
+/**
+ * Findings from pooled probes. There is no baseline period for synthetic traffic, so each bar is an
+ * absolute target and the finding's `baseline` is that target. Accept rate must fail it with
+ * confidence (Wilson upper bound below the target) — two bad runs out of eight are nondeterminism,
+ * not a slot God should spend a PR on.
+ *
+ * @param {import('@archislop/shared/godSchemas.js').GodBriefProbes | undefined} probes
+ * @param {Set<string>} [recentActed]
+ */
+export function buildProbeFindings(probes, recentActed = new Set()) {
+  if (!probes) return [];
+  const findings = [];
+  const push = (finding) => {
+    let severity = finding.severity * PROBE_SEVERITY_WEIGHT;
+    if (recentActed.has(finding.id)) severity *= 0.5;
+    findings.push({ ...finding, source: 'probe', severity: round3(Math.min(1, severity)) });
+  };
+  for (const slot of probes.slots) {
+    if (slot.turns < PROBE_MIN_SAMPLE) continue;
+    const weight = Math.min(1, slot.turns / 20);
+    const rate = slot.accepted / slot.turns;
+    if (wilsonInterval(slot.accepted, slot.turns).upper < PROBE_ACCEPT_TARGET) {
+      push({
+        id: `probe.${slot.contentType}.accept_rate`,
+        metric: 'accept_rate',
+        contentType: slot.contentType,
+        value: round3(rate),
+        baseline: PROBE_ACCEPT_TARGET,
+        sample: slot.turns,
+        severity: (PROBE_ACCEPT_TARGET - rate) * weight
+      });
+    }
+    const avgRepairs = slot.repairAttempts / slot.turns;
+    if (avgRepairs >= PROBE_REPAIR_AVG_MAX) {
+      push({
+        id: `probe.${slot.contentType}.repair_attempts_avg`,
+        metric: 'repair_attempts_avg',
+        contentType: slot.contentType,
+        value: round3(avgRepairs),
+        baseline: PROBE_REPAIR_AVG_MAX,
+        sample: slot.turns,
+        severity: Math.min(1, avgRepairs * 0.25) * weight
+      });
+    }
+  }
+  return findings;
+}
+
 /**
  * @param {{
  *   lines: NonNullable<ReturnType<typeof normalizeLogEntry>>[],
+ *   probe?: unknown,
+ *   probeHistory?: unknown,
  *   now?: Date | number,
  *   windowMs?: number,
  *   baselineMs?: number,
@@ -532,13 +646,24 @@ export function buildBrief(opts) {
 
   const windowSlots = CONTENT_TYPES.map((ct) => periodSlot(windowLines, ct));
   const baselineSlots = CONTENT_TYPES.map((ct) => periodSlot(baselineLines, ct));
-  const findings = buildFindings(
+  const recentActed = recentActedFindingIds(opts.history, nowMs);
+  const productionFindings = buildFindings(
     windowSlots,
     baselineSlots,
     periodGlobal(windowLines),
     periodGlobal(baselineLines),
-    recentActedFindingIds(opts.history, nowMs)
-  );
+    recentActed
+  ).map((f) => ({ ...f, source: 'production' }));
+  // Never both: the two lists overlap on recent ticks, and summing them would double-count a run.
+  const probes = poolProbes({
+    current: opts.probe,
+    history: opts.probeHistory ?? opts.history,
+    nowMs
+  });
+  const probeFindings = buildProbeFindings(probes, recentActed);
+  const findings = [...productionFindings, ...probeFindings]
+    .sort((a, b) => b.severity - a.severity || a.id.localeCompare(b.id))
+    .slice(0, 20);
   const agentTurns = windowLines.filter((l) => l.tag === 'agent_turn').length;
   const uxSignals = windowLines.filter((l) => l.tag === 'ux_signal').length;
   const sessions = windowLines.filter(
@@ -548,8 +673,10 @@ export function buildBrief(opts) {
   let regressionSuspect = null;
   const derived = opts.lastGodMerge ? null : deriveLastGodMerge(opts.history, deployList);
   const last = opts.lastGodMerge ?? derived;
-  if (last?.mergeSha && findings[0]?.metric === 'accept_rate' && findings[0].contentType) {
-    const metric = findings[0];
+  // Revert-first blames a deploy for what real visitors saw; a probe finding can never name one.
+  const topProduction = productionFindings[0];
+  if (last?.mergeSha && topProduction?.metric === 'accept_rate' && topProduction.contentType) {
+    const metric = topProduction;
     const slot = slots.find((s) => s.contentType === metric.contentType);
     if (slot && slot.turns >= MIN_SAMPLE_FOR_FINDING && slot.acceptRate != null) {
       const after = wilsonInterval(slot.accepted, slot.turns);
@@ -586,7 +713,10 @@ export function buildBrief(opts) {
     clientErrors,
     findings,
     regressionSuspect,
-    sufficient: agentTurns + uxSignals >= GOD_HARD_LIMITS.minNewSignals
+    ...(probes ? { probes } : {}),
+    // Probes make a tick sufficient only by naming something: paying the harness to read a clean
+    // probe sample and answer `waiting` buys nothing.
+    sufficient: agentTurns + uxSignals >= GOD_HARD_LIMITS.minNewSignals || probeFindings.length > 0
   };
 
   return GodBriefSchema.parse(brief);
@@ -668,6 +798,8 @@ function parseCli(argv) {
       'last-god-pr': { type: 'string' },
       'last-god-sha': { type: 'string' },
       history: { type: 'string' },
+      probe: { type: 'string' },
+      'probe-history': { type: 'string' },
       confounders: { type: 'string' }
     }
   });
@@ -698,8 +830,22 @@ export function main(argv = process.argv.slice(2)) {
     ? promptSafeHistory(JSON.parse(fs.readFileSync(values.history, 'utf8')))
     : [];
 
+  // A missing probe file is a probe job that did not run or failed; the brief goes on without it.
+  const probe =
+    values.probe && fs.existsSync(values.probe)
+      ? JSON.parse(fs.readFileSync(values.probe, 'utf8'))
+      : undefined;
+
+  // `--history` is the last 50 records (about two days of hourly ticks); probe pooling needs a week.
+  const probeHistory =
+    values['probe-history'] && fs.existsSync(values['probe-history'])
+      ? JSON.parse(fs.readFileSync(values['probe-history'], 'utf8'))
+      : undefined;
+
   const brief = buildBrief({
     lines: /** @type {NonNullable<ReturnType<typeof normalizeLogEntry>>[]} */ (lines),
+    probe,
+    probeHistory,
     now,
     windowMs: Number(values['window-hours']) * 3_600_000,
     baselineMs: Number(values['baseline-days']) * 24 * 3_600_000,
@@ -730,6 +876,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
           agentTurns: brief.volume.agentTurns,
           uxSignals: brief.volume.uxSignals,
           findings: brief.findings.length,
+          probeTurns: brief.probes?.turns ?? 0,
           regressionSuspect: Boolean(brief.regressionSuspect)
         },
         null,

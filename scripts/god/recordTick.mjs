@@ -4,6 +4,7 @@
  *
  *   node scripts/god/recordTick.mjs --out-dir . --run-id 123 --reason disabled --tier observe
  *   node scripts/god/recordTick.mjs --out-dir . --from-report report.json --events events.ndjson
+ *   … --probe probe.json    # attach this tick's synthetic probe run (its spend counts)
  *
  * Without a harness report the verdict is a skip (`noop`, `blocked`, `skipped`). A report is the
  * only way to record `observed` — gate `go` alone never did that work.
@@ -15,6 +16,7 @@ import { fileURLToPath } from 'node:url';
 import {
   GodBriefSchema,
   GodMonthRollupSchema,
+  GodProbeSummarySchema,
   GodRollupRowSchema,
   GodRunRecordSchema,
   GodTickReasonSchema
@@ -58,12 +60,39 @@ export function digestFromBriefFile(file) {
       uxSignals: brief.volume.uxSignals,
       sessions: brief.volume.sessions,
       findings: brief.findings.length,
-      sufficient: brief.sufficient === true
+      sufficient: brief.sufficient === true,
+      ...(brief.probes ? { probeTurns: brief.probes.turns } : {})
     };
   } catch {
     // A brief that will not parse is the brief job's problem, already recorded by its own step.
     return undefined;
   }
+}
+
+/**
+ * This tick's probe summary, if the probe job wrote one. A file that will not parse is dropped: a
+ * broken probe must not cost the tick its record — but its spend is then unrecorded, which is why
+ * `probe.mjs` validates the summary before writing it.
+ *
+ * @param {string | undefined} file
+ * @returns {import('@archislop/shared/godSchemas.js').GodProbeSummary | undefined}
+ */
+export function probeFromFile(file) {
+  if (!file || !fs.existsSync(file)) return undefined;
+  try {
+    return GodProbeSummarySchema.parse(JSON.parse(fs.readFileSync(file, 'utf8')));
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * @param {import('@archislop/shared/godSchemas.js').GodRunRecord} record
+ * @param {import('@archislop/shared/godSchemas.js').GodProbeSummary | undefined} probe
+ */
+export function withProbe(record, probe) {
+  if (!probe) return record;
+  return GodRunRecordSchema.parse({ ...record, probe });
 }
 
 /**
@@ -84,7 +113,8 @@ export function rollupRow(record, gateReason) {
     endedAt: record.endedAt,
     verdict: record.verdict,
     tier: record.tier,
-    usd: record.usage.usd
+    // The row's money is the tick's money: the harness plus any probe run.
+    usd: Math.round((record.usage.usd + (record.probe?.usd ?? 0)) * 1e6) / 1e6
   };
   /** @type {Record<string, unknown>} */
   const row = { ...base };
@@ -105,6 +135,7 @@ function parseCli(argv) {
       'run-id': { type: 'string' },
       reason: { type: 'string', default: 'disabled' },
       brief: { type: 'string' },
+      probe: { type: 'string' },
       tier: { type: 'string', default: 'observe' },
       focus: { type: 'string', default: 'any' },
       go: { type: 'string', default: 'false' },
@@ -283,6 +314,7 @@ export function main(argv = process.argv.slice(2)) {
   } else {
     record = buildTickRecord(values);
   }
+  record = withProbe(record, probeFromFile(values.probe));
   const outDir = path.resolve(values['out-dir']);
   const runsDir = path.join(outDir, 'runs');
   const indexDir = path.join(outDir, 'index');

@@ -159,9 +159,18 @@ export const GodSlotStatsSchema = z.strictObject({
   renderRepairFailures: count
 });
 
+/**
+ * Where a finding's numbers came from. `production` is real visitors (Cloud Logging); `probe` is
+ * God's own synthetic traffic — a fixed prompt corpus sent through the real agents by
+ * `scripts/god/probe.mjs`. Absent means `production`: briefs written before probes existed.
+ */
+export const GOD_FINDING_SOURCES = ['production', 'probe'] as const;
+export const GodFindingSourceSchema = z.enum(GOD_FINDING_SOURCES);
+
 export const GodFindingSchema = z.strictObject({
   id: slug,
   metric: GodMetricSchema,
+  source: GodFindingSourceSchema.optional(),
   contentType: ContentTypeSchema.nullable(),
   value: z.number().finite(),
   baseline: z.number().finite().nullable(),
@@ -180,6 +189,32 @@ export const GodRegressionSuspectSchema = z.strictObject({
   sample: count,
   /** Other merges deployed inside the comparison window; revert-first needs this to be 0. */
   confounders: count
+});
+
+/**
+ * One slot's synthetic probe outcomes: counts only, the same facts an `agent_turn` line carries.
+ * `repairAttempts` is the sum over the slot's turns, so samples pool across runs by addition.
+ */
+export const GodProbeSlotSchema = z.strictObject({
+  contentType: ContentTypeSchema,
+  turns: count,
+  accepted: count,
+  repairAttempts: count
+});
+
+/** What one probe run measured and cost. Kept on the run record so later briefs can pool it. */
+export const GodProbeSummarySchema = z.strictObject({
+  turns: count,
+  usd,
+  slots: z.array(GodProbeSlotSchema).max(ContentTypeSchema.options.length)
+});
+
+/** Probe samples pooled over the last `windowDays` of run records, this tick's run included. */
+export const GodBriefProbesSchema = z.strictObject({
+  windowDays: z.number().int().min(1).max(30),
+  runs: count,
+  turns: count,
+  slots: z.array(GodProbeSlotSchema).max(ContentTypeSchema.options.length)
 });
 
 export const GodBriefSchema = z.strictObject({
@@ -204,7 +239,12 @@ export const GodBriefSchema = z.strictObject({
     .max(20),
   findings: z.array(GodFindingSchema).max(20),
   regressionSuspect: GodRegressionSuspectSchema.nullable(),
-  /** False when traffic is too thin to act on; God waits rather than guessing. */
+  /** Synthetic probe evidence; absent when no probe ran or was pooled. Never counted in `volume`. */
+  probes: GodBriefProbesSchema.optional(),
+  /**
+   * False when the evidence is too thin to act on; God waits rather than guessing. True when live
+   * traffic clears the signal floor, or when pooled probes produced at least one finding.
+   */
   sufficient: z.boolean()
 });
 
@@ -273,7 +313,9 @@ export const GodBriefDigestSchema = z.strictObject({
   uxSignals: count,
   sessions: count,
   findings: count,
-  sufficient: z.boolean()
+  sufficient: z.boolean(),
+  /** Pooled probe turns the brief saw. Optional: digests written before probes lack it. */
+  probeTurns: count.optional()
 });
 
 export const GodRunRecordSchema = z.strictObject({
@@ -301,13 +343,18 @@ export const GodRunRecordSchema = z.strictObject({
     .strictObject({ currency: z.enum(['USD', 'CNY']), total: z.number().finite() })
     .nullable(),
   /**
-   * All three are `.optional()`, never `.default()`: the records already on `god-log` predate
+   * All four are `.optional()`, never `.default()`: the records already on `god-log` predate
    * them, and `loadRunRecords` drops any file that fails to parse — a required field here would
    * silently erase God's whole memory of its first ticks.
    */
   reason: GodTickReasonSchema.optional(),
   digest: GodBriefDigestSchema.optional(),
   narration: GodNarrationSchema.optional(),
+  /**
+   * This tick's probe run, when one ran. Its `usd` is real spend on God's account: the monthly cap
+   * and the cadence both count it (`monthTotals` / `deriveCadence` in `scripts/god/godLog.mjs`).
+   */
+  probe: GodProbeSummarySchema.optional(),
   harness: z.strictObject({
     name: z.enum(['dsh', 'mock']),
     version: z.string().regex(/^[A-Za-z0-9.+_-]{1,40}$/)
@@ -409,6 +456,10 @@ export type GodTickReason = z.infer<typeof GodTickReasonSchema>;
 export type GodMetric = z.infer<typeof GodMetricSchema>;
 export type GodSlotStats = z.infer<typeof GodSlotStatsSchema>;
 export type GodFinding = z.infer<typeof GodFindingSchema>;
+export type GodFindingSource = z.infer<typeof GodFindingSourceSchema>;
+export type GodProbeSlot = z.infer<typeof GodProbeSlotSchema>;
+export type GodProbeSummary = z.infer<typeof GodProbeSummarySchema>;
+export type GodBriefProbes = z.infer<typeof GodBriefProbesSchema>;
 export type GodBrief = z.infer<typeof GodBriefSchema>;
 export type GodLiveEvent = z.infer<typeof GodLiveEventSchema>;
 export type GodLiveBatch = z.infer<typeof GodLiveBatchSchema>;
