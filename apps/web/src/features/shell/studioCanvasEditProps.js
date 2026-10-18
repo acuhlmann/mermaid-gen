@@ -13,6 +13,10 @@ export const STUDIO_RADIAL_ACTION_IDS = Object.freeze([
 ]);
 
 /**
+ * Return only rename, connect, link, delete, and definition actions, preserving
+ * their order and object references. Missing input returns an empty array;
+ * falsy entries are skipped.
+ *
  * @template {{ id: string }} T
  * @param {T[] | null | undefined} actions
  * @returns {T[]}

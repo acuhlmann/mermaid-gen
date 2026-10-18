@@ -13,6 +13,8 @@ import {
 
 /**
  * Radial menu action dispatch, hotkey wiring, and action list derivation.
+ * `hotkeysEnabled` defaults to true and gates persona shortcuts; the `?`
+ * help shortcut remains available regardless of this flag.
  *
  * @param {{
  *   busy: boolean;

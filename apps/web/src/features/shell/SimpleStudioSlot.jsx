@@ -63,6 +63,7 @@ function StudioTopBar(props) {
   );
 }
 
+/** Render the result canvas with optional node editing and the source editor closed. */
 function StudioResult(props) {
   return (
     <DiagramCanvasSlot

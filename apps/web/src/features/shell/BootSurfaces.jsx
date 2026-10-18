@@ -31,6 +31,10 @@ function resolveStudioView({
   };
 }
 
+/**
+ * Render the studio with session submission, format selection, and optional
+ * canvas editing. Starting over selects Auto and clears the diagram.
+ */
 function StudioBoot({
   shell,
   runtime,

@@ -47,6 +47,10 @@ import {
   subscribe as subscribeOfficeViewMode
 } from './state/officeViewModeStore.js';
 
+/**
+ * Render the Simple studio and Office views with shared session, generation,
+ * and canvas-editing state.
+ */
 export function ArchiSlop() {
   const { controls, slopitect, applyLocaleFromText, locale: uiLocale, setLocale } = useUiCopy();
   const contentModeOptions = useMemo(() => buildContentModeOptions(controls), [controls]);

@@ -282,7 +282,8 @@ export function writeOfficeWelcomeSeen() {
  */
 /**
  * Which screen a visit opens on. Simple is the default; Office only when the
- * person picked it last time with the Simple/Office switch.
+ * person picked it last time with the Simple/Office switch. Returns Simple
+ * outside the browser or when storage access fails.
  *
  * @returns {'simple' | 'office'}
  */
@@ -295,7 +296,12 @@ export function readPreferredViewMode() {
   }
 }
 
-/** @param {'simple' | 'office'} mode */
+/**
+ * Save the preferred screen for later visits; values other than Office save Simple.
+ * No-op outside the browser; storage write failures are ignored.
+ *
+ * @param {'simple' | 'office'} mode
+ */
 export function writePreferredViewMode(mode) {
   if (typeof window === 'undefined') return;
   try {

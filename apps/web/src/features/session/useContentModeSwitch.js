@@ -29,6 +29,9 @@ import { recordUxSignal } from '../../state/uxSignalsClient.js';
 
 /**
  * Content-mode picker state, cross-slot sync refs, and user-initiated mode switches.
+ * Persists mode changes and whether Auto resolved the current mode. At mount,
+ * `freshSession` discards a saved Auto resolution but keeps an explicit pick.
+ * Storage write failures are ignored; errors reading the saved mode propagate.
  *
  * @param {{
  *   stateRef: import('react').MutableRefObject<object>;
@@ -129,6 +132,10 @@ export function useContentModeSwitch({
     [armSuppressHydrateRerun, bumpRendererRefreshKey]
   );
 
+  /**
+   * Select a different valid mode as an explicit preference, cancel the active
+   * stream, and clear draft and selection state. Ignore unchanged or invalid modes.
+   */
   const handleSelectContentMode = useCallback(
     (nextMode) => {
       if (nextMode === contentMode) return;
@@ -183,7 +190,11 @@ export function useContentModeSwitch({
     ]
   );
 
-  /** Auto-mode mid-stream: switch the picker without aborting the agent run. */
+  /**
+   * Auto-mode mid-stream: switch the picker without aborting the agent run.
+   * Mark the mode as Auto-resolved so a fresh visit can return to Auto.
+   * Ignore unchanged or non-concrete modes.
+   */
   const applyResolvedContentMode = useCallback(
     (nextMode) => {
       if (!isConcreteContentMode(nextMode) || nextMode === contentMode) return;

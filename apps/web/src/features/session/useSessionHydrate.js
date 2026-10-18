@@ -29,6 +29,9 @@ import { isConcreteContentMode } from '../../utils/renderModeAction.js';
 /**
  * Session hydrate effect: fetch server state on session/mode change, handle 404 rotation,
  * and auto-submit mode-switch intents when peer slots need translation.
+ * A missing existing room resets to Auto and gets a new session id; a missing
+ * freshly minted room keeps its id and resets to Mermaid with best-effort priming.
+ * Other fetch failures are reported through `setError`.
  *
  * @param {{
  *   activeSessionId: string;

@@ -11,9 +11,9 @@ import { OFFICE_CANVAS_GRACE_MS } from '../../utils/officeCanvasGrace.js';
 /**
  * Prompt-studio gate, then the optional Meet-the-Office ceremony.
  *
- * Visits open on the simple prompt (`studioActive`) — the office is a place
- * you choose, not one you land in. Picking Office with the switch is
- * remembered, so the next visit opens there; picking Simple puts it back.
+ * Visits open on the simple prompt (`studioActive`) unless Office was the
+ * last saved choice and orientation is complete. Picking Office or Simple
+ * saves that preference for later visits.
  * The floor ceremony starts only from `enterOfficeLife`, and only for people
  * who have not finished orientation; everyone else goes straight to the desk.
  *
@@ -27,13 +27,14 @@ export function useOfficeBoot({ hasCanvasContent }) {
   const [officeCanvasGrace, setOfficeCanvasGrace] = useState(false);
   const [deskTourPending, setDeskTourPending] = useState(false);
 
+  /** Save the Office preference and open orientation if it is unfinished. */
   const enterOfficeLife = useCallback(() => {
     writePreferredViewMode('office');
     setStudioActive(false);
     if (!readOfficeDirectorySeen()) setOfficeBootPending(true);
   }, []);
 
-  /** The way back: desk/floor chrome returns to the one-prompt screen. State
+  /** Save the Simple preference and return to the one-prompt screen. State
    * (diagram, session) lives above this hook, so nothing is lost in either
    * direction. */
   const enterSimpleStudio = useCallback(() => {

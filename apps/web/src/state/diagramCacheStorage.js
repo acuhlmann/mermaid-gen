@@ -103,6 +103,8 @@ export function clearAllArchislopAppStorage() {
 /**
  * Drop session-scoped client payloads after the server reports a room is gone (404/410).
  * Preserves user-global progress (Slopitect level/XP, lifetime cost, achievements, etc.).
+ * No-op outside the browser; storage access errors are ignored and may leave
+ * cleanup incomplete.
  */
 export function clearSessionScopedArchislopStorage() {
   if (typeof window === 'undefined') return;

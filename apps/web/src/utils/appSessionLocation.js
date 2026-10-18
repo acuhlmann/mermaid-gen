@@ -80,7 +80,10 @@ export function readStoredModelProfile() {
   return raw === 'quality' ? 'quality' : 'fast';
 }
 
-/** True when the stored content mode came from Auto resolving, not a pick. */
+/**
+ * True when the stored content mode is marked as Auto-resolved.
+ * Returns false outside the browser or when storage access fails.
+ */
 export function readContentModeAutoResolved() {
   if (typeof window === 'undefined') return false;
   try {
@@ -97,7 +100,11 @@ export function readContentModeAutoResolved() {
  * only means something when reopening that session from its URL, so a fresh
  * visit (`freshSession`) goes back to Auto instead of inheriting it.
  *
- * @param {{ freshSession?: boolean }} [options]
+ * Missing or unrecognized saved modes, and calls outside the browser, return Auto.
+ * Errors reading the saved mode from localStorage propagate to the caller.
+ *
+ * @param {{ freshSession?: boolean }} [options] Set `freshSession` when no session
+ * id was supplied in the URL; defaults to false.
  */
 export function readStoredContentMode({ freshSession = false } = {}) {
   if (typeof window === 'undefined') return 'auto';
