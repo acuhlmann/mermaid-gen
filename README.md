@@ -29,6 +29,7 @@ Human guides (split for faster GitHub preview — diagrams live on focused pages
 | [External agents](docs/guide/external-agents.md)             | MCP join, Apps table                                                |
 | [Configuration](docs/guide/configuration.md)                 | `.env`, LLM, reliability                                            |
 | [ArchiSlop God](docs/guide/archislop-god.md)                 | Production signals → off-box self-improvement (diagrams + status)   |
+| [God window](docs/guide/god-window.md)                       | Owner panel at `/god` — spend, ticks, live harness feed             |
 | [API endpoints](docs/guide/api-endpoints.md)                 | REST + SSE routes                                                   |
 | [Development](docs/guide/development.md)                     | Stack, tests, VS Code                                               |
 | [Metaphor USDA mapping](docs/guide/metaphor-usda-mapping.md) | Metaphor3D DSL → `.usda` interchange stub (ADR-0009 steps 1–2)      |

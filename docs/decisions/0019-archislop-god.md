@@ -131,6 +131,11 @@ the product).
   read-only and reports only what a tick recorded: it deliberately does not call `decideGodRun`, since
   the gate's config lives in Actions variables this process cannot read, and recomputing from its own
   environment would print a confident answer about a configuration it cannot see.
-- Later PRs: the God window UI, `/api/god` settings writes (needs the narrow Actions token) and live
-  ingest (needs its HMAC secret), and the ship tier (`gh pr merge --auto`). Observe records a finding;
-  propose opens a ready PR after verify.
+- Owner God window UI (shipped): `apps/web/src/features/god/` at `/god` — Now / History / Signals /
+  Settings tabs; `GOD_WINDOW_TOKEN` gate (`apps/server/src/middleware/godWindowGate.js`). Guide:
+  `docs/guide/god-window.md`. Settings **writes** still need the narrow Actions token.
+- Live ingest (shipped when `GOD_INGEST_SECRET` is wired): `POST /api/god/live`, owner
+  `GET /api/god/live/:runId`, `activeIngests` on status — see `docs/guide/god-window.md` and
+  `docs/guide/archislop-god.md`.
+- Later: ship tier (`gh pr merge --auto`). Observe records a finding; propose opens a ready PR after
+  verify.

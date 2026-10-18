@@ -14,6 +14,7 @@ planned.
 | Env switches (`MERMAID_METRICS`, `UX_SIGNALS`) | [Configuration](configuration.md)                                                          |
 | `POST /api/signals`                            | [API endpoints](api-endpoints.md)                                                          |
 | Operator playbook (when God runs)              | [`docs/automations/god.md`](../automations/god.md)                                         |
+| **Owner God window** (`/god`, tabs, unlock)    | [God window](god-window.md)                                                                |
 | Code touch map                                 | [`docs/agent-blast-radius.md`](../agent-blast-radius.md) § Usage signals and ArchiSlop God |
 
 ## The idea in one paragraph
@@ -98,14 +99,16 @@ flowchart TB
     RunWrap --> Meter --> DSH
   end
 
-  subgraph owner ["Owner-only (planned UI)"]
+  subgraph owner ["Owner-only UI — /god"]
     Window["God window: Now · History · Signals · Settings"]
-    Window <--> GodApi
+    Window -->|"unlock cookie"| GodApi
+    Window -->|"poll live"| LiveApi["GET /api/god/live/:runId"]
   end
 
   Metrics --> CL[("Cloud Logging")]
   CL -.-> Pipeline
-  RunWrap -.->|"HMAC live events (optional)"| GodApi
+  RunWrap -.->|"HMAC live events (optional)"| LiveIngest["POST /api/god/live"]
+  LiveIngest --> LiveApi
   DSH -->|"workspace-write PR branch"| GH[("GitHub PR")]
 ```
 
@@ -207,6 +210,12 @@ the question an idle God otherwise cannot answer once the CI log expires. The st
 artifact. Those two are **absent rather than zero** when the month's acts predate `narration` —
 "not measured" and "measured clean" are different answers about money, and October is the former.
 See [the playbook § 6 Memory](../automations/god.md#6-memory).
+
+## Owner God window
+
+The standalone route **`/god`** is documented in **[God window](god-window.md)** (access model, four
+tabs, status fields, production setup). Summary: owner token → cookie → read-only month/tick view from
+`god-log`; optional live harness strip on **Now** when ingest is configured.
 
 Live run streaming is **shipped** when `GOD_INGEST_SECRET` is mounted on Cloud Run and the `god`
 Actions environment has the same secret plus `GOD_INGEST_URL` or `PUBLIC_BASE_URL`. The harness posts

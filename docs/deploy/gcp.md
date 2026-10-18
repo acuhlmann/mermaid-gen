@@ -225,6 +225,8 @@ The next `npm run deploy:cloud-run` picks up `visitor-badge-secrets:latest` auto
 
 ### The God window owner token
 
+Operator guide for tabs, unlock, and APIs: [`docs/guide/god-window.md`](../guide/god-window.md).
+
 `/god` and `/api/god/*` are gated by their own token, **not** the door code: the badge gate is inert when
 `VISITOR_BADGE_SECRETS` is unset and its cookie secret has a fallback published in this repo, so it cannot
 carry a panel showing what God costs. Without `GOD_WINDOW_TOKEN` the whole surface answers `503` — fail-closed.
