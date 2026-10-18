@@ -506,14 +506,15 @@ https://api.deepseek.com/` — 401 is reachable, 000 is blocked); never route ar
   any key that ignores it.
 - **A reply to something you typed sits on its own rung of the block ladder.** `blockedReasonFor`
   (`apps/web/src/hooks/useDeskActions.js`) takes a `gate`: `'deliverable'` (pause + meeting +
-  surface), `'ambient'` (meeting + surface), `'answering'` (**meeting only**). `imSomeone` is
-  `'answering'`, because both its callers — Slop Chat™'s composer and the floor's talk card
-  (`OfficeLayer.handleMessengerSend` / `handleTalkReply`) — hand it a sentence the user has just
-  typed at a named colleague. On the ambient rung an `im` desk-arrival toast, 9 s of it
-  (`DESK_ARRIVAL_TTL_MS`), made `runVerb` return **before the delivery ladder ran**: no model call
-  and no bank line either. `talkOutLoud` and `remarkTo` already carried this rule in their own
-  comments and bought it by sidestepping `runVerb` entirely; `imSomeone` could not, because it
-  still wants the mutex and the cadence-memory write in `runVerb`'s `finally`.
+  surface), `'ambient'` (meeting + surface), `'answering'` (**meeting only**). `imSomeone` and
+  `emailSomeone` (when subject/body are non-empty) use `'answering'`, because their callers hand
+  them a sentence the user has just typed at a named colleague — Slop Chat™ / the floor talk card
+  for `imSomeone`, the compose form for `emailSomeone`. On the ambient rung an `im` desk-arrival
+  toast, 9 s of it (`DESK_ARRIVAL_TTL_MS`), made `runVerb` return **before the delivery ladder
+  ran**: no model call and no bank line either. `talkOutLoud` and `remarkTo` already carried this
+  rule in their own comments and bought it by sidestepping `runVerb` entirely; `imSomeone` and
+  `emailSomeone` could not, because they still want the mutex and the cadence-memory write in
+  `runVerb`'s `finally`.
 - **How full the room is, is a reading of the five day phases — never a sixth one.**
   `roomOccupancyAt` (`apps/web/src/utils/officeCadence.js`) folds `officeDayPhaseAt` through
   `PHASE_OCCUPANCY` and adds `OCCUPANCY_PER_PERSON_UP` per colleague out of their chair
