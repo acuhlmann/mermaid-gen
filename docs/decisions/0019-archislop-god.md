@@ -9,8 +9,9 @@ Accepted — 2026-10-14 (owner decisions in the design session that produced it)
 [ADR-0010](0010-cast-agency-sign-off.md) exactly as [ADR-0014](0014-autonomous-nfr-routines.md)
 clause 5 does, and extends the shelf contract of ADR-0014, [ADR-0017](0017-routine-ownership-dependabot-and-the-attention-bar.md)
 and [ADR-0018](0018-green-builds-self-healing-and-the-two-minute-ask.md) to a third host with the
-deviations recorded below. Delivered in three PRs; § "Where this lives in code" marks what is
-still to come.
+deviations recorded below. Stage 1–2 shipped in three PRs (signals, gate/brief, observe/propose);
+the owner window and read-only status API shipped 2026-10-18. § "Where this lives in code" still
+lists the remaining Settings writes, live ingest, and ship tier.
 
 **Amended 2026-10-18 (§5 only).** God's wallet moved from a dedicated DeepSeek account to its own
 OpenRouter key (`OPENROUTER_GOD_KEY`), same model, so the owner caps the autonomous rung at the
@@ -131,9 +132,11 @@ the product).
   read-only and reports only what a tick recorded: it deliberately does not call `decideGodRun`, since
   the gate's config lives in Actions variables this process cannot read, and recomputing from its own
   environment would print a confident answer about a configuration it cannot see.
-- Owner God window UI (shipped): `apps/web/src/features/god/` at `/god` — Now / History / Signals /
-  Settings tabs; `GOD_WINDOW_TOKEN` gate (`apps/server/src/middleware/godWindowGate.js`). Guide:
-  `docs/guide/god-window.md`. Settings **writes** still need the narrow Actions token.
+- Owner God window UI (shipped): standalone `/god`
+  (`apps/web/src/features/god/`, `apps/web/src/main.jsx` branches before `installUxSignals()`),
+  `GOD_WINDOW_TOKEN` gate (`apps/server/src/middleware/godWindowGate.js`), `POST /api/god/unlock` +
+  scoped cookie. Guide: `docs/guide/god-window.md`. Settings **writes** still need the narrow Actions
+  token; the Settings tab shows code defaults only.
 - Live ingest (shipped when `GOD_INGEST_SECRET` is wired): `POST /api/god/live`, owner
   `GET /api/god/live/:runId`, `activeIngests` on status — see `docs/guide/god-window.md` and
   `docs/guide/archislop-god.md`.

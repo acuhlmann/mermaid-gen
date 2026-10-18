@@ -272,6 +272,18 @@ echo -n "$GOD_INGEST_SECRET" | gcloud secrets create god-ingest-token --data-fil
 The deploy scripts mount **`GOD_INGEST_SECRET=god-ingest-token:latest`** when the secret exists (keep
 **`.github/workflows/deploy-cloud-run.yml`** and **`scripts/deploy-cloud-run.sh`** in sync).
 
+### God's OpenRouter wallet (GitHub Actions only)
+
+ArchiSlop God's probe, act, and spike jobs bill **`OPENROUTER_GOD_KEY`**, not Cloud Run Brain keys.
+Store it as a secret on the GitHub Actions environment **`god`** (see `.github/workflows/god.yml`).
+Set a **credit limit** on that key in the [OpenRouter dashboard](https://openrouter.ai/settings/keys) so
+an empty God wallet cannot drain `deepseek-api-key` or `openrouter-api-key` on the service.
+
+Local runs of `scripts/god/gate.mjs`, `run.mjs`, or `probe.mjs` read the same variable from `.env`.
+Rollback upstream is `GOD_UPSTREAM=deepseek` (God's first-party account) via
+[`scripts/god/upstream.mjs`](../../scripts/god/upstream.mjs) — documented in
+[`docs/guide/configuration.md`](../guide/configuration.md) and [ADR-0019](../decisions/0019-archislop-god.md).
+
 ### Manual steps
 
 ```bash

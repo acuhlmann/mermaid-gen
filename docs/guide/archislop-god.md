@@ -99,10 +99,11 @@ flowchart TB
     RunWrap --> Meter --> DSH
   end
 
-  subgraph owner ["Owner-only UI — /god"]
+  subgraph owner ["Owner-only (/god)"]
     Window["God window: Now · History · Signals · Settings"]
+    LiveApi["GET /api/god/live/:runId"]
     Window -->|"unlock cookie"| GodApi
-    Window -->|"poll live"| LiveApi["GET /api/god/live/:runId"]
+    Window -->|"poll live"| LiveApi
   end
 
   Metrics --> CL[("Cloud Logging")]

@@ -10,6 +10,15 @@ Single source of truth for which LLM backend the server picks, which model id ea
 | **Vertex AI (Gemini)** | Office/advisor decorative Fast (lite); sole Brain when DeepSeek unset | `VERTEX_PROJECT_ID` (or `GOOGLE_CLOUD_PROJECT`) + `VERTEX_LOCATION` |
 | **OpenRouter**         | Local secondary; Cloud Run with `OPENROUTER_PREFERRED=1`              | `OPENROUTER_API_KEY`                                                |
 
+## ArchiSlop God (separate wallet)
+
+ArchiSlop God does **not** use `llmProvider.js` or any app Brain key. Probe, act, and spike bill
+**`OPENROUTER_GOD_KEY`** through `scripts/god/meterProxy.mjs` (default upstream `openrouter`; rollback
+`GOD_UPSTREAM=deepseek` / `--upstream deepseek` in [`scripts/god/upstream.mjs`](../scripts/god/upstream.mjs)).
+The coding model is DeepSeek V4 Pro (`deepseek/deepseek-v4-pro` on the gateway wire). Cap the key in the
+OpenRouter dashboard and in repo variables `GOD_MAX_USD_PER_RUN` / `GOD_MAX_USD_PER_MONTH` — see
+[`docs/guide/archislop-god.md`](guide/archislop-god.md) and [ADR-0019](decisions/0019-archislop-god.md).
+
 ## Brain profiles (Fast vs Quality)
 
 | UI Brain setting   | Typical setup (`auto` + DeepSeek key, optional Vertex) | Model id            |

@@ -60,10 +60,11 @@ All tabs read from **`GET /api/god/status`** except the live harness strip on **
 
 ### Settings
 
-- **Read-only placeholder** today. Runtime knobs (`GOD_ENABLED`, `GOD_AUTONOMY`, window, caps) live as
-  **GitHub Actions repository variables**; reading or writing them from the app needs a narrow Actions
-  token that is not created yet. Per-tick **tier** and **gate reason** on Now/History are the honest
-  “what ran” view until Settings writes ship.
+- **Code defaults table** — `GOD_CONFIG_DEFAULTS` / `GOD_CONFIG_VARIABLES` from shared (what Actions
+  variables mean when unset), plus hard limits from `GOD_HARD_LIMITS`. This is not a live read of
+  GitHub repository variables.
+- **Writes not wired** — changing tier, window, or caps still requires the narrow Actions token (not
+  created yet). Per-tick **tier** and **gate reason** on Now/History remain the honest “what ran” view.
 
 ## `GET /api/god/status` fields (owner view)
 

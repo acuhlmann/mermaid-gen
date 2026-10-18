@@ -165,15 +165,46 @@ describe('GodWindow', () => {
     expect(bar.style.width).toBe('0%');
   });
 
-  it('says the Settings half is not wired rather than showing dead inputs', async () => {
+  it('shows code defaults on Settings without editable inputs', async () => {
     stubFetch();
     render(<GodWindow />);
     await screen.findByText('$0.018813');
 
     const { fireEvent } = await import('@testing-library/react');
     fireEvent.click(screen.getByRole('tab', { name: 'Settings' }));
-    expect(await screen.findByText(/Not wired yet/i)).toBeTruthy();
+    expect(await screen.findByText(/Live values are not readable yet/i)).toBeTruthy();
+    expect(screen.getByText('GOD_MAX_USD_PER_MONTH')).toBeTruthy();
+    expect(screen.getByText('20')).toBeTruthy();
     expect(document.querySelector('input[type="password"]')).toBeNull();
+  });
+
+  it('warns when the last act narration was dropped', async () => {
+    stubFetch(() =>
+      jsonResponse({
+        ...VIEW,
+        lastActNarration: 'dropped',
+        lastTick: { ...VIEW.lastTick, narration: 'dropped', verdict: 'observed' }
+      })
+    );
+    render(<GodWindow />);
+    expect(await screen.findByText(/observe contract/i)).toBeTruthy();
+  });
+
+  it('shows pooled probe turns when the digest recorded them', async () => {
+    const withProbe = {
+      ...VIEW,
+      lastTick: {
+        ...VIEW.lastTick,
+        digest: { ...VIEW.lastTick.digest, probeTurns: 16 }
+      }
+    };
+    stubFetch(() => jsonResponse(withProbe));
+    render(<GodWindow />);
+    await screen.findByText('$0.018813');
+    const { fireEvent } = await import('@testing-library/react');
+    fireEvent.click(screen.getByRole('tab', { name: 'Signals' }));
+    expect(await screen.findByText('Probe turns (7d pool)')).toBeTruthy();
+    expect(screen.getByText('16')).toBeTruthy();
   });
 
   it('surfaces the read issues instead of silently showing a short month', async () => {
