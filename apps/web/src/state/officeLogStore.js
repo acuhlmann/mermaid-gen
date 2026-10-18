@@ -27,6 +27,7 @@ import {
   OFFICE_LOG_ENTRY_CAP,
   officeDayStamp,
   readOfficeLog,
+  reconcileOfficeCalendarDay,
   writeOfficeLog
 } from '../utils/officeAmbienceStorage.js';
 import { buildOfficeLogDigest, buildOfficeRelationship } from '../utils/officeLogDigest.js';
@@ -38,10 +39,9 @@ let loadedDay = officeDayStamp();
 const listeners = new Set();
 
 function reconcileOfficeDay() {
-  const today = officeDayStamp();
-  if (today === loadedDay) return;
-  entries = [];
-  loadedDay = today;
+  loadedDay = reconcileOfficeCalendarDay(loadedDay, () => {
+    entries = [];
+  });
 }
 
 function emit() {
