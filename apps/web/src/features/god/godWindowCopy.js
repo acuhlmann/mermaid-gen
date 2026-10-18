@@ -46,7 +46,9 @@ export const GOD_WINDOW_COPY = {
     reason: 'Why it stopped',
     generated: 'Numbers as of',
     stale: 'Cached — the last read of the branch failed',
-    sourceNone: 'Nothing readable on the branch right now.'
+    sourceNone: 'Nothing readable on the branch right now.',
+    droppedNarration:
+      'The last act billed but its final line did not match the observe contract (`finding:<id> …` or exactly `waiting`), so the run is recorded as dropped. See docs/automations/god.md § Observe output.'
   },
   history: {
     heading: 'Recent ticks',
@@ -61,10 +63,11 @@ export const GOD_WINDOW_COPY = {
   signals: {
     heading: 'What it is being fed',
     blurb:
-      'God only acts once new signals clear the floor. Below it, every tick is a no-op by design.',
+      'God only acts once new signals clear the floor. Below it, every tick is a no-op by design. Synthetic probe turns count toward a probe finding but not this production floor.',
     floor: 'Floor',
     agentTurns: 'Agent turns',
     uxSignals: 'Usage signals',
+    probeTurns: 'Probe turns (7d pool)',
     sessions: 'Sessions',
     findings: 'Findings',
     sufficient: 'Clears the floor',
@@ -73,11 +76,31 @@ export const GOD_WINDOW_COPY = {
   },
   settings: {
     heading: 'Settings',
-    blockedTitle: 'Not wired yet.',
+    blockedTitle: 'Live values are not readable yet.',
     blockedBody:
-      'The knobs (tier, window, budgets) are GitHub Actions variables. Reading them needs the narrow Actions token that does not exist yet, and writing them needs it too — so there is nothing honest to show here.',
+      'The knobs live as GitHub Actions repository variables. This deployment cannot read them without the narrow Actions token (not created yet), and cannot write them either.',
+    defaultsTitle: 'Code defaults (when a variable is unset)',
+    limitsTitle: 'Hard limits (cannot be exceeded even with variables)',
+    variableColumn: 'Repository variable',
+    valueColumn: 'Default',
     defaultsHint:
-      'What it runs under today is recorded per tick: the tier and the gate reason above.'
+      'What the gate actually used on the last tick is the tier and gate reason on Now — not necessarily these defaults.',
+    keys: {
+      enabled: 'Enabled',
+      autonomy: 'Autonomy tier',
+      everyHours: 'Cadence (hours)',
+      windowUtc: 'UTC window',
+      maxMinutes: 'Max minutes per run',
+      maxUsdPerRun: 'Max USD per run',
+      maxUsdPerMonth: 'Max USD per month'
+    },
+    limits: {
+      minNewSignals: 'Min new signals per tick',
+      minBalanceUsd: 'Min wallet balance to start',
+      minUsdPerRun: 'Min USD per run (floor)',
+      maxUsdPerRun: 'Max USD per run (ceiling)',
+      maxUsdPerMonth: 'Max USD per month (ceiling)'
+    }
   },
   fields: {
     verdict: 'Verdict',

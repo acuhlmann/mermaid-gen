@@ -1,5 +1,10 @@
 import { useCallback, useEffect, useState, useSyncExternalStore } from 'react';
-import { GOD_ACT_VERDICTS, GOD_HARD_LIMITS } from '@archislop/shared';
+import {
+  GOD_ACT_VERDICTS,
+  GOD_CONFIG_DEFAULTS,
+  GOD_CONFIG_VARIABLES,
+  GOD_HARD_LIMITS
+} from '@archislop/shared';
 import {
   GOD_ACCESS,
   getGodWindowSnapshot,
@@ -191,6 +196,12 @@ function TickLines({ view }) {
   );
 }
 
+function DroppedNarrationNote({ view }) {
+  const narration = view.lastActNarration ?? view.lastTick?.narration;
+  if (narration !== 'dropped') return null;
+  return <p className="god-note is-warn">{COPY.now.droppedNarration}</p>;
+}
+
 function NowTab({ view }) {
   return (
     <section className="god-panel" role="tabpanel">
@@ -199,6 +210,7 @@ function NowTab({ view }) {
       <h3 className="god-subheading">{COPY.now.tickHeading}</h3>
       <TickStats tick={view.lastTick} />
       <TickLines view={view} />
+      <DroppedNarrationNote view={view} />
     </section>
   );
 }
@@ -288,6 +300,7 @@ function SignalsTab({ view }) {
   const observed = (digest.agentTurns ?? 0) + (digest.uxSignals ?? 0);
   const floor = GOD_HARD_LIMITS.minNewSignals;
   const pct = floor > 0 ? Math.min(100, Math.round((observed / floor) * 100)) : 0;
+  const probeTurns = digest.probeTurns;
   return (
     <section className="god-panel" role="tabpanel">
       <h2 className="god-heading">{c.heading}</h2>
@@ -295,6 +308,7 @@ function SignalsTab({ view }) {
       <dl className="god-grid">
         <Stat term={c.agentTurns} value={digest.agentTurns} />
         <Stat term={c.uxSignals} value={digest.uxSignals} />
+        {typeof probeTurns === 'number' ? <Stat term={c.probeTurns} value={probeTurns} /> : null}
         <Stat term={c.sessions} value={digest.sessions} />
         <Stat term={c.findings} value={digest.findings} />
         <Stat
@@ -315,13 +329,71 @@ function SignalsTab({ view }) {
   );
 }
 
+function formatDefaultValue(key, value) {
+  if (key === 'enabled') return value ? 'true' : 'false';
+  if (typeof value === 'number') return String(value);
+  return label(value);
+}
+
 function SettingsTab() {
   const c = COPY.settings;
+  const defaultRows = Object.keys(GOD_CONFIG_DEFAULTS).map((key) => ({
+    key,
+    variable: GOD_CONFIG_VARIABLES[key],
+    label: c.keys[key] ?? key,
+    value: formatDefaultValue(key, GOD_CONFIG_DEFAULTS[key])
+  }));
+  const limitRows = [
+    'minNewSignals',
+    'minBalanceUsd',
+    'minUsdPerRun',
+    'maxUsdPerRun',
+    'maxUsdPerMonth'
+  ].map((key) => ({
+    key,
+    label: c.limits[key] ?? key,
+    value: GOD_HARD_LIMITS[key]
+  }));
   return (
     <section className="god-panel" role="tabpanel">
       <h2 className="god-heading">{c.heading}</h2>
       <h3 className="god-subheading">{c.blockedTitle}</h3>
       <p className="god-note">{c.blockedBody}</p>
+      <h3 className="god-subheading">{c.defaultsTitle}</h3>
+      <div className="god-table-wrap">
+        <table className="god-table">
+          <thead>
+            <tr>
+              <th>{c.variableColumn}</th>
+              <th>{c.valueColumn}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {defaultRows.map((row) => (
+              <tr key={row.key}>
+                <td>
+                  <span className="god-mono">{row.variable}</span>
+                  <span className="god-table-hint">{row.label}</span>
+                </td>
+                <td className="is-num">{row.value}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <h3 className="god-subheading">{c.limitsTitle}</h3>
+      <div className="god-table-wrap">
+        <table className="god-table">
+          <tbody>
+            {limitRows.map((row) => (
+              <tr key={row.key}>
+                <td>{row.label}</td>
+                <td className="is-num">{row.value}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
       <p className="god-note">{c.defaultsHint}</p>
     </section>
   );

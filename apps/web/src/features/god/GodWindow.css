@@ -267,6 +267,19 @@
   font-variant-numeric: tabular-nums;
 }
 
+.god-mono {
+  display: block;
+  font-family: ui-monospace, 'Cascadia Code', 'Segoe UI Mono', monospace;
+  font-size: 0.85em;
+}
+
+.god-table-hint {
+  display: block;
+  margin-top: 0.2rem;
+  font-size: 0.82rem;
+  color: var(--god-muted);
+}
+
 .god-verdict {
   font-weight: 600;
 }
