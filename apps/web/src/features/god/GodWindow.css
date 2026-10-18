@@ -267,6 +267,28 @@
   font-variant-numeric: tabular-nums;
 }
 
+.god-live-feed {
+  margin: 0.75rem 0 0;
+  padding-left: 1.25rem;
+  max-height: 14rem;
+  overflow: auto;
+  font-size: 0.9rem;
+}
+
+.god-live-feed li {
+  margin-bottom: 0.35rem;
+}
+
+.god-live-type {
+  display: inline-block;
+  min-width: 4.5rem;
+  margin-right: 0.5rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--god-muted);
+}
+
 .god-mono {
   display: block;
   font-family: ui-monospace, 'Cascadia Code', 'Segoe UI Mono', monospace;

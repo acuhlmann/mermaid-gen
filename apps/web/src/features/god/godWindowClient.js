@@ -14,6 +14,7 @@ import { API_BASE_URL } from '../../state/diagramSession.js';
 
 export const GOD_STATUS_PATH = '/api/god/status';
 export const GOD_UNLOCK_PATH = '/api/god/unlock';
+export const GOD_LIVE_PATH = '/api/god/live';
 
 export const GOD_ACCESS = {
   LOADING: 'loading',
@@ -140,6 +141,28 @@ export async function unlockGodWindow(token, { fetchImpl = fetch } = {}) {
   if (res.ok) return { ok: true, message: null };
   const body = await readJson(res);
   return { ok: false, message: body?.error ?? null };
+}
+
+/**
+ * @param {string} runId
+ * @param {number} afterSeq
+ * @param {{ fetchImpl?: typeof fetch }} [options]
+ */
+export async function loadGodLive(runId, afterSeq = -1, { fetchImpl = fetch } = {}) {
+  const id = String(runId ?? '').trim();
+  if (!id) return null;
+  const after = Number.isFinite(afterSeq) ? Math.max(-1, Math.floor(afterSeq)) : -1;
+  try {
+    const res = await fetchImpl(`${API_BASE_URL}${GOD_LIVE_PATH}/${id}?after=${after}`, {
+      method: 'GET',
+      credentials: 'same-origin',
+      cache: 'no-store'
+    });
+    if (!res.ok) return null;
+    return await readJson(res);
+  } catch {
+    return null;
+  }
 }
 
 /** Drop the last read and its subscribers' view of it — used by tests and by any future sign-out. */

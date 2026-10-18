@@ -47,6 +47,9 @@ export const GOD_WINDOW_COPY = {
     generated: 'Numbers as of',
     stale: 'Cached — the last read of the branch failed',
     sourceNone: 'Nothing readable on the branch right now.',
+    liveHeading: 'Live run',
+    liveEmpty: 'No harness events in the buffer yet.',
+    liveRun: 'Run id',
     droppedNarration:
       'The last act billed but its final line did not match the observe contract (`finding:<id> …` or exactly `waiting`), so the run is recorded as dropped. See docs/automations/god.md § Observe output.'
   },

@@ -516,6 +516,27 @@ jobs:
             exit 1
           fi
 
+      - name: Stage live-ingest credentials (optional)
+        env:
+          GOD_INGEST_SECRET: ${{ secrets.GOD_INGEST_SECRET }}
+          GOD_INGEST_URL: ${{ vars.GOD_INGEST_URL }}
+          PUBLIC_BASE_URL: ${{ vars.PUBLIC_BASE_URL }}
+        run: |
+          set -euo pipefail
+          if [ -z "$GOD_INGEST_SECRET" ]; then
+            echo "GOD_INGEST_SECRET unset — live ingest disabled for this run"
+            exit 0
+          fi
+          umask 077
+          printf '%s' "$GOD_INGEST_SECRET" > "$RUNNER_TEMP/god-ingest-secret"
+          base="${GOD_INGEST_URL:-$PUBLIC_BASE_URL}"
+          if [ -z "$base" ]; then
+            echo "::warning::GOD_INGEST_SECRET is set but neither GOD_INGEST_URL nor PUBLIC_BASE_URL is set — live ingest disabled"
+            rm -f "$RUNNER_TEMP/god-ingest-secret"
+            exit 0
+          fi
+          printf '%s/api/god/live' "${base%/}" > "$RUNNER_TEMP/god-ingest-url"
+
       - name: Run the harness
         run: |
           set -euo pipefail
@@ -523,6 +544,10 @@ jobs:
           # held back the act's minimum, so this never falls below minUsdPerRun.
           MAX_USD="$(node -p "Math.max(0, Math.round((Number(process.argv[1]) - (Number(process.argv[2]) || 0)) * 100) / 100)" \
             "${{ needs.gate.outputs.max_usd }}" "${{ needs.probe.outputs.usd }}")"
+          INGEST_ARGS=()
+          if [ -f "$RUNNER_TEMP/god-ingest-url" ] && [ -f "$RUNNER_TEMP/god-ingest-secret" ]; then
+            INGEST_ARGS=(--ingest-url "$(cat "$RUNNER_TEMP/god-ingest-url")" --ingest-secret-file "$RUNNER_TEMP/god-ingest-secret")
+          fi
           status=0
           node scripts/god/run.mjs --harness dsh --tier "${{ needs.gate.outputs.tier }}" \
             --focus "${{ needs.gate.outputs.focus }}" \
@@ -533,8 +558,9 @@ jobs:
             --brief god-run/brief.json \
             --history god-run/history.json \
             --max-usd "$MAX_USD" \
-            --max-minutes "${{ needs.gate.outputs.max_minutes }}" || status=$?
-          rm -f "$RUNNER_TEMP/god-key"
+            --max-minutes "${{ needs.gate.outputs.max_minutes }}" \
+            "${INGEST_ARGS[@]}" || status=$?
+          rm -f "$RUNNER_TEMP/god-key" "$RUNNER_TEMP/god-ingest-secret" "$RUNNER_TEMP/god-ingest-url"
           exit "$status"
 
       - name: Prove the key reached no file

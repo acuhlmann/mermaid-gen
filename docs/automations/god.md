@@ -268,7 +268,8 @@ artifact, and which is the only thing an idle God has to show for itself.
   named test in `packages/shared/test/godSchemas.test.ts`.
 
 The rollup row is validated by `GodRollupRowSchema` on write (`rollupRow` in `recordTick.mjs`), and
-`GET /api/god/status` is its reader. That endpoint is frozen rails too (`apps/server/src/god/**`,
+`GET /api/god/status` is its reader; the owner UI is **`/god`** ([`docs/guide/god-window.md`](../guide/god-window.md)).
+That endpoint is frozen rails too (`apps/server/src/god/**`,
 `apps/server/src/routes/god*`): a rung that can edit the panel showing its own spend, caps and skips
 can make that panel say anything. The view reads only what a tick recorded and never recomputes the
 gate decision — the gate's config lives in Actions variables the server cannot read.

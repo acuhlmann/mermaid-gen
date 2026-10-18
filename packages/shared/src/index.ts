@@ -43,6 +43,7 @@ export * from './llmCostEstimate.js';
 export * from './uxSignals.js';
 export * from './godSchemas.js';
 export * from './godBudget.js';
+export * from './godIngest.js';
 export * from './officeScript.js';
 export * from './officeTraining.js';
 export * from './officeVoice.js';

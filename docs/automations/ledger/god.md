@@ -43,6 +43,8 @@ Filled from the first sufficient brief after signals accumulate in `god-signals`
 | 2026-10-18 | code    | —       | Synthetic probes, owner-approved: production carries about ten signals a day against a floor of 30, and the repo-signal alternative measured empty too (1 real CI failure in 100 runs; bench snapshots last touched in August). A gate `go` now runs `probe.mjs` first — the real server behind the meter proxy, two fixed prompts per slot, ≤ $0.25 taken from the tick's cap with the act's minimum held back. The run record keeps counts and spend (`probe`); `monthTotals` and `deriveCadence` count both, because a probe that named nothing would otherwise leave God due again every hour of the window. The brief pools seven days into `probes` and names slots that miss an absolute target (`source: probe`, half severity, never `regressionSuspect`). Smoke-tested locally against a fake upstream: server boots on the proxy token, spend meters, `agent_turn` lines come back per slot. |     |
 | 2026-10-18 | code    | —       | Wallet moved to **`OPENROUTER_GOD_KEY`** (#819, ADR-0019 §5 amended): God's probe/act/spike bill a dedicated OpenRouter key so the owner caps the autonomous rung at the gateway and an empty God wallet cannot drain `DEEPSEEK_API_KEY` / `OPENROUTER_API_KEY`. `scripts/god/upstream.mjs` owns path, auth, model-id rewrite, and balance reads per wallet; `--upstream deepseek` is the rollback. Meter proxy answers OpenRouter's missing `count_tokens`, binds spend on what the wallet reports, and disables thinking on the chat wire so probes match production Brain.                                                                                                                                                                                                                                                                                                                           |     |
 | 2026-10-18 | code    | —       | Owner God window shipped (#811 + follow-ups): standalone `/god` (`apps/web/src/features/god/`), `GOD_WINDOW_TOKEN` gate, `GET /api/god/status` + `POST /api/god/unlock`. Pane mounts outside the ArchiSlop tree (`markAppReady`, no `installUxSignals`). Deploy trap documented: `god-window-token` must appear in both deploy secret lists.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |     |
+| 2026-10-18 | code    | —       | Live ingest shipped: `POST /api/god/live` (HMAC `GOD_INGEST_SECRET`), ephemeral in-memory buffer, `GET /api/god/live/:runId` for the owner, `activeIngests` on status, Now-tab polling, `god.yml` passes `--ingest-url` when the `god` environment has the secret plus `GOD_INGEST_URL` or `PUBLIC_BASE_URL`. Cloud Run mount: `god-ingest-token` (both deploy secret lists).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |     |
+| 2026-10-18 | docs    | —       | Owner God window guide: [`docs/guide/god-window.md`](../../guide/god-window.md) (`/god`, unlock, Now/History/Signals/Settings, status + live APIs, production setup). Linked from archislop-god, ADR-0019, api-endpoints, configuration, README, playbook, gcp.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |     |
 
 ## Open observations
 
@@ -67,7 +69,7 @@ Filled from the first sufficient brief after signals accumulate in `god-signals`
   `lastActAt`) onto it from the records, and the view reports `numbersFrom: records` — so a truncated
   month can no longer be presented as a small one, including its spend.
 - Ship (`gh pr merge --auto`) is still later. Propose stops at an open PR.
-- Live-ingest HMAC and GitHub App for settings/PR open are not created yet.
+- Live-ingest HMAC must be minted and mirrored (Cloud Run `god-ingest-token` + `god` Actions `GOD_INGEST_SECRET`); until then ingest stays disabled. Settings/PR GitHub App not created yet.
 
 ## Remaining work
 
@@ -88,13 +90,13 @@ does not exist yet. The Settings tab now shows the **code defaults** and **hard 
 server cannot read. Until the token exists, the tier and gate reason on **Now** remain the honest
 record of what the last tick actually used.
 
-### 3. Live ingest (blocked on a route plus a secret)
+### 3. Live ingest — **shipped** (needs operator wiring)
 
-`scripts/god/ingestClient.mjs` is finished and tested and has nothing to talk to: no
-`POST /api/god/live` exists in `apps/server/src`, `god.yml` passes neither `--ingest-url` nor
-`--ingest-secret-file`, and the HMAC secret was never created. `stats.misconfigured` now makes that
-visible in the run report rather than silent. Building it means the route (signature check, stale
-timestamp, replayed `seq`) and one `GOD_*` secret, and nothing in the runner changes.
+`POST /api/god/live` (HMAC) and `GET /api/god/live/:runId` (owner cookie) ship in
+`apps/server/src/routes/godLive.ts` with verification in `packages/shared/src/godIngest.ts`. `god.yml`
+passes `--ingest-url` / `--ingest-secret-file` when `GOD_INGEST_SECRET` and a public base URL are set.
+Until Cloud Run and the `god` environment share that secret, ingest stays a no-op and `stats.misconfigured`
+may still increment on misconfigured URLs.
 
 ### 4. Ship tier (owner decision plus one credential)
 

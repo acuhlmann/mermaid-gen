@@ -26,6 +26,7 @@ import { createAdvisorRouter } from './routes/advisor.js';
 import { createOfficeRouter } from './routes/office.js';
 import { createDiagramRepairRouter } from './routes/diagramRepair.js';
 import { createSignalsRouter } from './routes/signals.js';
+import { createGodLiveIngestHandler, createGodLiveReadRouter } from './routes/godLive.js';
 import { createGodStatusRouter } from './routes/godStatus.js';
 import {
   createSessionServicesRegistry,
@@ -95,7 +96,12 @@ export async function attachRoutes(app) {
   // of the gate so one request can earn the credential the next one asks for; the door-code gate still
   // runs in front of both, so a deployment with a door code requires check-in *and* the owner token.
   app.post('/api/god/unlock', createGodWindowUnlockHandler());
-  app.use('/api/god', createGodWindowGate(), createGodStatusRouter());
+  app.post(
+    '/api/god/live',
+    express.raw({ type: 'application/json', limit: '256kb' }),
+    createGodLiveIngestHandler()
+  );
+  app.use('/api/god', createGodWindowGate(), createGodStatusRouter(), createGodLiveReadRouter());
   app.use(
     '/api/diagram',
     createDiagramRepairRouter({

@@ -36,6 +36,9 @@
     "src/routes/signals.ts",
     // ArchiSlop God owner status view (ADR-0019 §10, stage 2c) — reads the rung's own spend and skips.
     "src/god/godLogView.ts",
-    "src/routes/godStatus.ts"
+    "src/routes/godStatus.ts",
+    "src/god/godLiveStore.ts",
+    "src/routes/godLive.ts",
+    "src/god/godIngestAuth.ts"
   ]
 }

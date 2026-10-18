@@ -11,6 +11,7 @@
  * stale answer about money and autonomy is worse than a slow one.
  */
 import express, { type Request, type Response } from 'express';
+import { listActiveGodLiveRuns } from '../god/godLiveStore.js';
 import { getGodStatusView, type GodStatusView } from '../god/godLogView.js';
 
 type Env = Record<string, string | undefined>;
@@ -33,8 +34,12 @@ export function createGodStatusRouter({
     res.set('Cache-Control', 'no-store');
     try {
       const view = await load({ env });
+      const payload = {
+        ...view,
+        activeIngests: listActiveGodLiveRuns(nowMs())
+      };
       // `none` means nothing could be read at all: an error the window can show, not an empty month.
-      res.status(view.source === 'none' ? 503 : 200).json(view);
+      res.status(view.source === 'none' ? 503 : 200).json(payload);
     } catch {
       // The view swallows its own failures, so reaching here is a bug, not a bad network. Say only
       // that: no stack, no message, nothing a public repo's log has to learn from.
