@@ -1,5 +1,7 @@
 import './coldStartGate.css';
 import { COLD_START_COPY, pollHealthUntilReady, waitForAppReady } from './utils/coldStartGate.js';
+import { isMediaViewerPath } from './features/mediaViewer/mediaViewerRoute.js';
+import { isGodWindowPath } from './features/god/godRoute.js';
 
 const GATE_ID = 'cold-start-gate';
 const TITLE_ID = 'cold-start-gate-title';
@@ -118,16 +120,21 @@ async function registerColdStartServiceWorker() {
 }
 
 async function bootstrap() {
+  // Skip server health check for standalone routes (media-viewer, god window)
+  const needsBackend = !isMediaViewerPath() && !isGodWindowPath();
+
   ensureGateElement();
-  setGatePhase('waking');
+  setGatePhase(needsBackend ? 'waking' : 'loadingApp');
 
   // Download the heavy app bundle in parallel while the server wakes from idle.
   const appBundlePromise = import('./main.jsx');
 
   await registerColdStartServiceWorker();
 
-  const serverReady = await waitForServerReady();
-  if (!serverReady) return;
+  if (needsBackend) {
+    const serverReady = await waitForServerReady();
+    if (!serverReady) return;
+  }
 
   setGatePhase('loadingApp');
 
