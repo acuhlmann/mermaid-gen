@@ -237,9 +237,16 @@ GOD_WINDOW_TOKEN="$(openssl rand -hex 32)" \
 ```
 
 That creates or rotates secret **`god-window-token`**, grants the runtime SA access, and mounts
-**`GOD_WINDOW_TOKEN`** on **`mermaid-gen-main`**. `scripts/deploy-cloud-run.sh` attaches it on every later
-deploy when it exists — `--set-secrets` replaces the whole list, so a secret missing from that script is a
-secret removed from production. Add `SKIP_CLOUD_RUN_UPDATE=1` to store it without rolling a revision.
+**`GOD_WINDOW_TOKEN`** on **`mermaid-gen-main`**. Add `SKIP_CLOUD_RUN_UPDATE=1` to store it without
+rolling a revision.
+
+**The secret list lives twice, and both copies need the pair.** `.github/workflows/deploy-cloud-run.yml`
+builds its own inline list and is the deployer that runs on every merge to `main`;
+`scripts/deploy-cloud-run.sh` is the separate manual `npm run deploy:cloud-run` path. `--set-secrets`
+_replaces_ the whole list rather than merging it, so a pair present in one copy and absent from the other
+is a secret that deploy silently removes from production. `scripts/deploy-secret-lists.test.mjs` compares
+the two so the drift fails `npm run test:scripts` instead of shipping — which is how it did ship once:
+the window's code deployed green with no token attached, and the pane answered 503.
 
 Pick a long random token. The unlock route is the one unauthenticated write on the owner surface and the
 token is a single shared secret with no second factor; it is rate-limited per client IP (10 attempts /

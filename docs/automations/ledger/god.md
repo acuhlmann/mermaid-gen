@@ -67,11 +67,40 @@ Filled from the first sufficient brief after signals accumulate in `god-signals`
 Ordered by what is unblocked. Everything here was checked against the tree on 2026-10-17; the
 file-and-symbol names below are real, not assumed.
 
-### 1. The owner God window (unblocked, but needs one product decision first)
+### 1. The owner God window — **built 2026-10-18** (#811, drift fix follow-up)
 
-The data half is done: `GET /api/god/status` returns everything a Now or History tab would show, and
-it is reachable without a new credential because the repo and the `god-log` branch are public. The
-pane itself is what is missing.
+Built as the standalone `/god` route the recommendation below chose. **Do not rebuild it.** What shipped,
+in `apps/web/src/features/god/`: `GodWindow.jsx` (Now / History / Signals / Settings tabs), a
+`useSyncExternalStore` client, a `godWindowCopy.js` module (English-only, following `utils/coldStartCopy.ts`
+rather than the office locale bundle), `godRoute.js`, and `middleware/godWindowGate.js` server-side for
+`GOD_WINDOW_TOKEN`. Tests: `apps/web/test/godWindow.test.jsx`, `godRoute.test.js`,
+`apps/server/test/godWindowGate.test.js`.
+
+Four facts the build produced that are not visible in the diff:
+
+- The pane **must call `markAppReady()`** itself. It mounts outside the ArchiSlop tree, so
+  `useSessionHydrate` never fires it, and the cold-start cover would sit on the painted pane for 45 s.
+- The pane **must not install usage signals.** God's gate counts `uxSignals`; the owner reading their own
+  panel would inflate the floor that decides whether God acts. `main.jsx` branches before
+  `installUxSignals()`.
+- `markAppReady` aside, mounting above the tree is forced anyway: inside it,
+  `ensureUrlBackedSession()` rewrites the address bar to `/sessions/{id}` and would erase `/god`.
+- In a deployment where `VISITOR_BADGE_SECRETS` is set, the door-code gate answers **first** — it is
+  mounted before every router and bypasses only `/api/health`, `/mcp`, `/api/visitor-badge`. So `/god`
+  needs check-in _and_ the owner token, and external `curl` probes cannot reach token validation or its
+  rate limiter. Verify those locally; use the live revision's env for production evidence.
+
+**The deploy trap this section did not predict.** #811 shipped green with the code deployed and the token
+**unmounted**, so the window answered 503. The Cloud Run secret list exists twice — inline in
+`.github/workflows/deploy-cloud-run.yml` (the deployer that runs on every merge to `main`) and in
+`scripts/deploy-cloud-run.sh` (manual path) — and `--set-secrets` _replaces_ the whole list, so a pair
+present in only one is silently removed by the other. `scripts/deploy-secret-lists.test.mjs` now compares
+both. A green deploy is not evidence that a mount landed; read the revision's env.
+
+The remaining data half of the original note is reproduced below as build history.
+
+The data half was already done: `GET /api/god/status` returns everything a Now or History tab shows, and
+it is reachable without a new credential because the repo and the `god-log` branch are public.
 
 **The open decision is where it mounts, and it is not a code question.** The obvious shell —
 `apps/web/src/components/FloatingWindow.jsx` — is the _office_ window chrome: it is wired to
