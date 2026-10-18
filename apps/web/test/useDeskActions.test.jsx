@@ -160,6 +160,34 @@ describe('useDeskActions', () => {
    * twelve runs across four nights, and no bank line either, because a colleague
    * in an unrelated chat had left a nine-second toast on screen.
    */
+  it('delivers an email you wrote while an unrelated IM toast is on screen', async () => {
+    const fetchMock = vi.fn(() =>
+      Promise.resolve({
+        ok: true,
+        json: async () => ({
+          moment: {
+            body: 're: your diagram — forwarding to the right alias.',
+            colleagueId: 'intern',
+            kind: 'email'
+          }
+        })
+      })
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    pushOfficeImPing({ colleagueId: 'intern', body: 'welcome to the sloppiest team in tech!!' });
+    expect(hasActiveOfficeSurface()).toBe(true);
+
+    const { result } = renderHook(() => useDeskActions(BASE_PARAMS));
+    await act(async () => {
+      await result.current.emailSomeone('intern', {
+        subject: 'quick question',
+        body: 'does this diagram make sense?'
+      });
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(hasWorkingMemoryFact('intern')).toBe(true);
+  });
+
   it('answers a sentence you typed while an unrelated IM toast is on screen', async () => {
     const fetchMock = vi.fn(() =>
       Promise.resolve({

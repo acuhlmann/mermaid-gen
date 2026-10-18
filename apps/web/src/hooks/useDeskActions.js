@@ -604,45 +604,53 @@ export function useDeskActions(params) {
    * moment (ADR-0010), exactly as the interruption beat does not.
    */
   const emailSomeone = useCallback(
-    (colleagueId, { subject = '', body = '' } = {}) =>
-      runVerb(async () => {
-        await sleep(replyDelayMs('email'));
-        const p = paramsRef.current;
-        const ctx = readSlotContext(p, random);
-        const target = colleagueId ?? pickRandomFrom(DESK_IM_CAST, random);
-        if (!target) return false;
-        const userMessage = [String(subject ?? '').trim(), String(body ?? '').trim()]
-          .filter(Boolean)
-          .join('\n\n');
-        const replyOpts = userMessage
-          ? { replyContext: { colleagueId: target, userMessage, threadTranscript: [] } }
-          : {};
-        let delivered = false;
-        if (deskLlmCountRef.current < DESK_LLM_CAP) {
-          delivered = await deliverLlmMoment(
-            'email',
-            ctx,
-            deliveryOptions({
-              colleagueId: target,
-              sessionId: p.getSessionId?.() ?? '',
-              onUsage: (usage) => paramsRef.current.onUsage?.(usage),
-              onLlmSpent: () => {
-                deskLlmCountRef.current += 1;
-              },
-              recordWorkingMemory: true,
-              ...replyOpts
-            })
-          );
-        }
-        if (!delivered) {
-          delivered = deliverCannedMoment(
-            'email',
-            ctx,
-            deliveryOptions({ colleagueId: target, recordWorkingMemory: true, ...replyOpts })
-          );
-        }
-        return delivered;
-      }),
+    (colleagueId, { subject = '', body = '' } = {}) => {
+      const userMessage = [String(subject ?? '').trim(), String(body ?? '').trim()]
+        .filter(Boolean)
+        .join('\n\n');
+      /* A sentence you typed at one named colleague is provoked, not ambient —
+         the same `'answering'` gate `imSomeone` uses, so an unrelated IM toast
+         cannot make the inbox pretend nobody is home. */
+      const gate = userMessage ? 'answering' : 'deliverable';
+      return runVerb(
+        async () => {
+          await sleep(replyDelayMs('email'));
+          const p = paramsRef.current;
+          const ctx = readSlotContext(p, random);
+          const target = colleagueId ?? pickRandomFrom(DESK_IM_CAST, random);
+          if (!target) return false;
+          const replyOpts = userMessage
+            ? { replyContext: { colleagueId: target, userMessage, threadTranscript: [] } }
+            : {};
+          let delivered = false;
+          if (deskLlmCountRef.current < DESK_LLM_CAP) {
+            delivered = await deliverLlmMoment(
+              'email',
+              ctx,
+              deliveryOptions({
+                colleagueId: target,
+                sessionId: p.getSessionId?.() ?? '',
+                onUsage: (usage) => paramsRef.current.onUsage?.(usage),
+                onLlmSpent: () => {
+                  deskLlmCountRef.current += 1;
+                },
+                recordWorkingMemory: true,
+                ...replyOpts
+              })
+            );
+          }
+          if (!delivered) {
+            delivered = deliverCannedMoment(
+              'email',
+              ctx,
+              deliveryOptions({ colleagueId: target, recordWorkingMemory: true, ...replyOpts })
+            );
+          }
+          return delivered;
+        },
+        { gate }
+      );
+    },
     [deliveryOptions, random, replyDelayMs, runVerb]
   );
 
