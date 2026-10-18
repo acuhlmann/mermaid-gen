@@ -17,6 +17,7 @@ import {
   finalizeActRecord,
   main,
   narrationOutcome,
+  probeFromFile,
   rollupRow,
   tickReason,
   verdictForStop
@@ -381,4 +382,41 @@ test('the rollup row carries the outcome the view reads', () => {
   acted.verdict = 'observed';
   acted.narration = 'waiting';
   assert.equal(rollupRow(acted, 'go').narration, 'waiting');
+});
+
+test('main attaches the probe summary, and the rollup row carries its spend', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'god-probe-tick-'));
+  const probeFile = path.join(dir, 'probe.json');
+  const probe = {
+    turns: 4,
+    usd: 0.04,
+    slots: [{ contentType: 'mermaid', turns: 4, accepted: 3, repairAttempts: 2 }]
+  };
+  fs.writeFileSync(probeFile, JSON.stringify(probe));
+  const { record, idxPath } = main([
+    '--out-dir',
+    dir,
+    '--run-id',
+    'p1',
+    '--verdict',
+    'noop',
+    '--reason',
+    'insufficient',
+    '--probe',
+    probeFile,
+    '--now',
+    '2026-10-18T06:17:00.000Z'
+  ]);
+  assert.deepEqual(record.probe, probe);
+  assert.ok(GodRunRecordSchema.safeParse(record).success);
+  const index = JSON.parse(fs.readFileSync(idxPath, 'utf8'));
+  assert.equal(index.runs.at(-1).usd, 0.04);
+});
+
+test('a probe file that will not parse costs the tick its probe, not its record', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'god-probe-bad-'));
+  const bad = path.join(dir, 'probe.json');
+  fs.writeFileSync(bad, JSON.stringify({ turns: -1, usd: 'lots', slots: [] }));
+  assert.equal(probeFromFile(bad), undefined);
+  assert.equal(probeFromFile(path.join(dir, 'missing.json')), undefined);
 });

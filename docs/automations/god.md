@@ -64,10 +64,11 @@ forbiddenPaths:
 **Visual architecture and delivery checklist:** [`docs/guide/archislop-god.md`](../guide/archislop-god.md).
 
 ArchiSlop God ([ADR-0019](../decisions/0019-archislop-god.md)) improves the product from
-**content-free production signals**. It runs off-box in GitHub Actions, not as a Claude Routine or
-Cursor automation. The hourly tick is free. LLM spend starts only when `decideAct` allows an
-**observe** run: gate said go, the brief came from live logs, and it is sufficient (or the owner
-forced the tick). Propose may then open a ready pull request. Ship still records `blocked`.
+**content-free production signals**, plus its own **synthetic probes** when production traffic is
+too thin to judge a slot. It runs off-box in GitHub Actions, not as a Claude Routine or Cursor
+automation. The hourly tick is free. LLM spend starts on a gate `go`: first the probe job (at most
+`PROBE_MAX_USD`, $0.25), then an **observe** run only if `decideAct` allows it — the brief came
+from live logs, and it is sufficient (or the owner forced the tick). Propose may then open a ready pull request. Ship still records `blocked`.
 
 `17 * * * *` **UTC** (every hour, 17 minutes past — off the top-of-hour rush). The gate still
 enforces `GOD_WINDOW_UTC` (default `06-12`) so God stays off the night ladder and clear of `deps`.
@@ -149,6 +150,28 @@ pickable when it is genuinely worst), and the most recent `pr_opened` run paired
 deploy is what lets `regressionSuspect` — and therefore revert-first — fire without a human
 naming the merge sha.
 
+### Probe findings (`source: probe`)
+
+Production rarely clears the evidence bar on its own (about ten signals a day against a floor of 30,
+measured 2026-10-18), so a gate `go` first runs **synthetic probes**: `scripts/god/probe.mjs` boots
+the real server behind the meter proxy and sends the fixed prompts in `scripts/god/probeCorpus.mjs`
+(two per slot) through `POST /api/copilotkit/intent` from an empty canvas. It records counts only
+(`GodProbeSummarySchema`: turns, accepted, total repair attempts per slot, and the spend) on the run
+record, and the brief pools the last seven days of them in `probes`.
+
+- Probe findings carry `source: probe` and an id prefixed `probe.` (`probe.chart.accept_rate`).
+  There is no baseline period for synthetic traffic, so `baseline` is the **target** the slot missed:
+  accept rate needs its Wilson upper bound under 0.9, repair burden needs at least 0.75 repair turns
+  per generation, and either needs eight pooled turns. Production findings carry `source: production`.
+- Probe severity is halved before ranking: real visitors outrank God's own traffic. A probe finding
+  can never set `regressionSuspect` — revert-first blames a deploy for what visitors saw.
+- Probes make a thin tick `sufficient` only by naming something. A clean probe sample buys no act.
+- To reproduce a probe finding, send that slot's two corpus prompts through the agent locally; the
+  corpus is the whole input. You may not edit the corpus or the probe (`scripts/god/**` is
+  forbidden): a rung that can change its own exam can pass it.
+- Transport failures (`errorClass: invoke-error`) and every turn of a run the money cap cut short are
+  excluded from the sample, so a probe finding is about the slot, never about God's budget.
+
 ## 3. Evidence
 
 - Every fix needs a red→green test in the same PR.
@@ -160,7 +183,9 @@ naming the merge sha.
     apps/server/scripts/benchMermaid.js --tag god-<run>
   ```
 
-- Never run generation benches on a schedule (they spend tokens).
+- Never run generation benches yourself (they spend tokens). The probe job is the one scheduled
+  generation run, approved by the owner on 2026-10-18, and it runs before the harness starts —
+  inside the same per-run and monthly caps, and counted by them.
 
 ## 4. Never
 
@@ -218,7 +243,11 @@ artifact, and which is the only thing an idle God has to show for itself.
   label, not cost the tick its record. `recordTick.test.mjs` scans both producers and fails if either
   emits a literal the enum does not list (the `funnels.test.mjs` idiom).
 - `digest` is five numbers and one boolean lifted out of the brief (`agentTurns`, `uxSignals`,
-  `sessions`, `findings`, `sufficient`) — never the brief itself.
+  `sessions`, `findings`, `sufficient`) — never the brief itself — plus `probeTurns` when the brief
+  pooled probes.
+- `probe` is this tick's probe run (§ Probe findings). Its `usd` counts toward `monthSpendUsd`, and a
+  tick that probed counts as an act for `GOD_EVERY_HOURS` — otherwise a probe that names nothing
+  leaves God "never acted" and due to probe again on every tick of the window.
 - `narration` (§ Observe output) is `finding` | `waiting` | `dropped`, and the month stamp carries
   `unproductiveActs` / `unproductiveUsd` alongside it: acts that billed, completed, named nothing and
   left no artifact. **The two counters are omitted, not zeroed, when any act in the month predates

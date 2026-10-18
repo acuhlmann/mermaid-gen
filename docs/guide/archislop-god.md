@@ -225,6 +225,7 @@ that does not exist yet; until then the durable artifact is the run report on `g
 | Multi-metric, history-aware brief            | **Shipped**                                         | `scripts/god/brief.mjs` (`buildFindings`, `deriveLastGodMerge`)                |
 | CI workflow (hourly `gate → brief → act`)    | **Shipped** — cron `17 * * * *`, window `06–12` UTC | `.github/workflows/god.yml`                                                    |
 | Harness spike (`workflow_dispatch`)          | **Shipped**                                         | same workflow / `scripts/god/spike.mjs`                                        |
+| Synthetic probes (God's own traffic)         | **Shipped** — on a gate `go`, ≤ $0.25 per tick      | `scripts/god/probe.mjs`, `scripts/god/probeCorpus.mjs`, brief `probes`         |
 | Observe act (read-only, god-log finding)     | **Shipped**                                         | `scripts/god/run.mjs`, `scripts/god/godLog.mjs`, `scripts/god/recordTick.mjs`  |
 | Propose verify → ready PR                    | **Shipped**                                         | `scripts/god/proposePatch.mjs`, `.github/workflows/god.yml`                    |
 | Ship (`gh pr merge --auto`)                  | **Planned**                                         | ADR-0019; ledger § Open observations                                           |
@@ -238,8 +239,11 @@ that does not exist yet; until then the durable artifact is the run report on `g
 worsening across all ten God metrics (per-slot accept, failure, retry, restore, manual-edit and
 render-repair rates, repair burden and p90 latency, plus product-wide client errors and session
 bounce), deprioritises findings God acted on in the last seven days, and derives the last God
-merge from god-log history so revert-first can blame God's own deploy. When the brief is from live
-logs and sufficient, act runs. **Observe** records one finding. **Propose** opens a ready pull
+merge from god-log history so revert-first can blame God's own deploy. Because production traffic
+rarely clears the 30-signal floor, every gate `go` first runs **synthetic probes**: two fixed prompts
+per slot through the real agents, behind the meter proxy, inside the same caps. The brief pools a
+week of probe runs into `probes` and names a slot that misses its target (`source: probe`); a probe
+finding makes a thin tick sufficient. When the brief is from live logs and sufficient, act runs. **Observe** records one finding. **Propose** opens a ready pull
 request after the path budget and `check:affected`; it does not merge. `GOD_ENABLED` stays off
 until the owner turns it on. The spike remains available for harness validation.
 

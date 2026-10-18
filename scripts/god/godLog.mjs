@@ -4,6 +4,7 @@
  * the harness may see.
  *
  *   node scripts/god/godLog.mjs --root god-log --github-output --history-out god-run/history.json
+ *   … --probe-history-out probes.json   # recent probe runs for the brief to pool
  *   node scripts/god/godLog.mjs --root god-log --merge-tick-dir "$RUNNER_TEMP/god-tick"
  *
  * History written for the harness has `hypothesis` cleared. That sentence is owner-facing only
@@ -81,6 +82,28 @@ function loadHistory(records) {
   return promptSafeHistory(records.slice(-HISTORY_MAX));
 }
 
+/** Probe runs reach back this far for the brief to pool; the brief applies its own, shorter window. */
+const PROBE_HISTORY_DAYS = 14;
+const PROBE_HISTORY_MAX = 100;
+
+/**
+ * Every recent tick that ran probes, as `{ runId, endedAt, probe }` — counts and spend only.
+ *
+ * Separate from `loadHistory` on purpose: that is capped at the last 50 records, which at one tick
+ * an hour is about two days, so a brief pooling a week of probes from it would silently see two.
+ * Nothing here is text, so it needs no prompt-safety pass beyond the schema the records already met.
+ *
+ * @param {import('@archislop/shared/godSchemas.js').GodRunRecord[]} records
+ * @param {number} nowMs
+ */
+export function probeHistory(records, nowMs) {
+  const cutoff = nowMs - PROBE_HISTORY_DAYS * 24 * 3_600_000;
+  return records
+    .filter((r) => r.probe && r.probe.turns > 0 && Date.parse(r.endedAt) >= cutoff)
+    .slice(-PROBE_HISTORY_MAX)
+    .map((r) => ({ runId: r.runId, endedAt: r.endedAt, probe: r.probe }));
+}
+
 /**
  * The authoritative numbers for one month, from the run records.
  *
@@ -110,6 +133,9 @@ export function monthTotals(records, month) {
     ticks += 1;
     const usd = Number(record.usage?.usd);
     if (Number.isFinite(usd) && usd > 0) spend += usd;
+    // Probe spend is real money on the same account, on ticks whose verdict may be a plain noop.
+    const probeUsd = Number(record.probe?.usd);
+    if (Number.isFinite(probeUsd) && probeUsd > 0) spend += probeUsd;
     if (!ACT_VERDICTS.has(record.verdict)) continue;
     acts += 1;
     // Money spent on silence: the harness completed, named nothing, and left no artifact. A record
@@ -156,6 +182,9 @@ function round6(value) {
  * `GOD_EVERY_HOURS` cadence on. A 2026-10 tick clobbered the month file with its own single row — 54
  * run records, one index row.
  *
+ * "Last act" includes ticks that only ran synthetic probes (`record.probe`): they spend on a gate
+ * `go` too, and cadence is what keeps that to once per `GOD_EVERY_HOURS`.
+ *
  * The two numbers have different scopes, and mixing them up breaks a rail: spend is per-month (it is
  * what the monthly cap measures), but the last act is **all-time**. Scoping the act to the month would
  * reset `GOD_EVERY_HOURS` to "God has never acted" at every month boundary and let it spend again
@@ -172,7 +201,10 @@ export function deriveCadence(records, month) {
   /** @type {string | null} */
   let lastActAt = null;
   for (const record of records) {
-    if (!ACT_VERDICTS.has(record.verdict)) continue;
+    // A probe run spends like an act and must space like one: probes run only on a gate `go`, and
+    // a gate that never saw them would be due — and probe — on every tick of the window.
+    const probed = (record.probe?.turns ?? 0) > 0 || (record.probe?.usd ?? 0) > 0;
+    if (!ACT_VERDICTS.has(record.verdict) && !probed) continue;
     const ms = Date.parse(record.startedAt);
     if (!Number.isFinite(ms)) continue;
     if (lastMs == null || ms > lastMs) {
@@ -198,7 +230,8 @@ export function readGodLogState(root, opts = {}) {
   return {
     lastActAt,
     monthSpendUsd,
-    history: loadHistory(records)
+    history: loadHistory(records),
+    probes: probeHistory(records, now.getTime())
   };
 }
 
@@ -325,6 +358,7 @@ function parseCli(argv) {
       root: { type: 'string', default: 'god-log' },
       now: { type: 'string' },
       'history-out': { type: 'string' },
+      'probe-history-out': { type: 'string' },
       'merge-tick-dir': { type: 'string' },
       'github-output': { type: 'boolean', default: false }
     }
@@ -347,6 +381,11 @@ export function main(argv = process.argv.slice(2)) {
     const out = path.resolve(values['history-out']);
     fs.mkdirSync(path.dirname(out), { recursive: true });
     fs.writeFileSync(out, `${JSON.stringify(state.history, null, 2)}\n`);
+  }
+  if (values['probe-history-out']) {
+    const out = path.resolve(values['probe-history-out']);
+    fs.mkdirSync(path.dirname(out), { recursive: true });
+    fs.writeFileSync(out, `${JSON.stringify(state.probes, null, 2)}\n`);
   }
   if (values['github-output']) writeGodLogOutputs(state);
   process.stdout.write(
