@@ -45,6 +45,7 @@ import {
   pickUnseenTemplate,
   seniorEmailTemplates
 } from './officeCast.js';
+import { officeDwellFallbacks } from './officeDwellFallbacks.js';
 import {
   pushOfficeBattleInvite,
   pushOfficeCoffeeInvite,
@@ -224,6 +225,30 @@ export function deliverCannedMoment(kind, ctx, options) {
     const replyContext = options.replyContext;
     const userMessage =
       typeof replyContext?.userMessage === 'string' ? replyContext.userMessage.trim() : '';
+    if (!userMessage && options.situation === 'dwell') {
+      const targetId = options.colleagueId;
+      if (!targetId) return false;
+      const bank = officeDwellFallbacks().filter(
+        (template) => !template.colleagueId || template.colleagueId === targetId
+      );
+      const template = pickUnseenTemplate(
+        bank.length > 0 ? bank : officeDwellFallbacks(),
+        memory.seenTemplateIds,
+        random
+      );
+      if (!template) return false;
+      const body = fillOfficeSlots(template.body, slots);
+      pushOfficeImPing({
+        colleagueId: targetId,
+        channel: options.channel,
+        voice: options.voice,
+        body
+      });
+      remember(body);
+      recordWorkingMemoryIfAsked(options, targetId, ctx, { theirs: body });
+      markFired(memory, template.id, onFired);
+      return true;
+    }
     if (userMessage) {
       const targetId = replyContext.colleagueId ?? options.colleagueId;
       if (!targetId) return false;

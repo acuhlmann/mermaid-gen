@@ -388,6 +388,7 @@ export function useDeskActions(params) {
           deliveryOptions({
             colleagueId: target,
             recordWorkingMemory: true,
+            ...(situation ? { situation } : {}),
             ...channelOpts,
             ...voiceOpts,
             ...replyOpts

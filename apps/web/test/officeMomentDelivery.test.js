@@ -346,3 +346,21 @@ describe('an emailed exchange is a fact about the two of you', () => {
     _resetOfficeWorkingMemoryForTests();
   });
 });
+
+describe('a dwell remark falls back in character, not as a cold-open ping', () => {
+  it('uses the dwell bank when the LLM is unavailable', () => {
+    const delivered = deliverCannedMoment('im', CTX, {
+      memory: memory(),
+      colleagueId: 'intern',
+      situation: 'dwell',
+      channel: 'talk',
+      recordWorkingMemory: true
+    });
+
+    expect(delivered).toBe(true);
+    const line = getOfficeSnapshot().imHistory.find((m) => !m.outbound);
+    expect(line?.channel).toBe('talk');
+    expect(line?.body.toLowerCase()).toContain('auth');
+    expect(line?.body).not.toMatch(/reply-all|ticket updated/i);
+  });
+});

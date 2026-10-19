@@ -537,6 +537,10 @@ https://api.deepseek.com/` — 401 is reachable, 000 is blocked); never route ar
   `/moment` (#624, #654). **`hasWorkingMemoryFact` returning false no longer means silence from the
   model**; it means standing further back in the same queue. Both numbers live in
   `officeCadence.js`, never at the use site.
+- **A dwell remark that falls back to canned must not use a cold-open IM ping.** `deliverCannedMoment`
+  (`officeMomentDelivery.js`) checks `situation === 'dwell'` before the `im` branch's ambient bank
+  and deals from `officeDwellFallbacks.js` instead; `deliverImReply` forwards `situation` on the
+  canned rung only (the LLM rung already had it).
 - **"Did a colleague speak from a bank or from a model" is answered by the response body, not by a
   clock and not by the DOM.** `/api/office/moment` returns `{ moment: { body, subject?,
 actionPrompt? }, usage?, model? }` and `body` is the model's words verbatim
