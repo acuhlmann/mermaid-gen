@@ -425,6 +425,10 @@ describe('layer-level Add (#536)', () => {
     // validation round-trip with its fresh ids and per-kind fields intact.
     expect(validated.dsl.layers).toHaveLength(3);
     expect(validated.applied).toEqual([]);
+    expect(
+      validated.dsl.layers[1].items.length,
+      'duplicated layer must carry items — an empty sweep proves nothing'
+    ).toBeGreaterThan(0);
     expect(validated.dsl.layers[1].items.every((item) => typeof item.height === 'number')).toBe(
       true
     );
