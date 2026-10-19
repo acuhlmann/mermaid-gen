@@ -1199,6 +1199,7 @@ test('transform-policy rejection skips the syntax fixer and goes to agent repair
     emit: (e) => events.push(e)
   });
 
+  assert.ok(events.length > 0, 'emit must have fired during the transform-policy rejection path');
   assert.ok(
     events.every((e) => e.type !== 'syntax_fixer_start'),
     'syntax fixer must not run on a transform-policy rejection'

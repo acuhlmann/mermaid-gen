@@ -118,6 +118,10 @@ test('normalizeMeetingScript strips actionPrompt from non-substantive beats', ()
   const normalized = normalizeMeetingScript(MeetingScriptSchema.parse(script(beats)), ATTENDEES);
   assert.ok(normalized);
   assert.equal(normalized.beats[0]?.actionPrompt, 'Rename everything');
+  assert.ok(
+    normalized.beats.slice(1).length > 0,
+    'need non-substantive beats to assert actionPrompt stripping'
+  );
   assert.equal(
     normalized.beats.slice(1).every((b) => b.actionPrompt === undefined),
     true
