@@ -36,7 +36,6 @@ import {
   officeDialogueLocale,
   officeEmailReplyTemplates,
   officeEmailTemplates,
-  officeImReplyTemplates,
   officeImTemplates,
   officeMeetingCopy,
   officeWalkbyFallbacks,
@@ -45,6 +44,7 @@ import {
   pickUnseenTemplate,
   seniorEmailTemplates
 } from './officeCast.js';
+import { officeImReplyFallbacks, officeTalkReplyFallbacks } from './officeImReplyFallbacks.js';
 import { officeDwellFallbacks } from './officeDwellFallbacks.js';
 import {
   pushOfficeBattleInvite,
@@ -58,6 +58,11 @@ import { CAST_TIERS } from './castTiers.js';
 
 export const MOMENT_TIMEOUT_MS = 12_000;
 export const RECENT_MOMENTS_CAP = 5;
+
+/** Provoked reply bank: spoken talk must not fall back to typed-IM "re:" lines. */
+function provokedReplyBank(options) {
+  return options.channel === 'talk' ? officeTalkReplyFallbacks() : officeImReplyFallbacks();
+}
 
 /** Map the desk Brain toggle to the office route's modelProfile field. */
 export function officeWireModelProfile(modelProfile) {
@@ -252,11 +257,12 @@ export function deliverCannedMoment(kind, ctx, options) {
     if (userMessage) {
       const targetId = replyContext.colleagueId ?? options.colleagueId;
       if (!targetId) return false;
-      const bank = officeImReplyTemplates().filter(
+      const replyBank = provokedReplyBank(options);
+      const bank = replyBank.filter(
         (template) => !template.colleagueId || template.colleagueId === targetId
       );
       const template = pickUnseenTemplate(
-        bank.length > 0 ? bank : officeImReplyTemplates(),
+        bank.length > 0 ? bank : replyBank,
         memory.seenTemplateIds,
         random
       );
@@ -321,11 +327,12 @@ export function deliverCannedMoment(kind, ctx, options) {
     if (userMessage) {
       const targetId = replyContext.colleagueId ?? options.colleagueId;
       if (!targetId) return false;
-      const bank = officeImReplyTemplates().filter(
+      const replyBank = provokedReplyBank(options);
+      const bank = replyBank.filter(
         (template) => !template.colleagueId || template.colleagueId === targetId
       );
       const template = pickUnseenTemplate(
-        bank.length > 0 ? bank : officeImReplyTemplates(),
+        bank.length > 0 ? bank : replyBank,
         memory.seenTemplateIds,
         random
       );

@@ -985,72 +985,7 @@ export const OFFICE_IM_TEMPLATES = [
   }
 ];
 
-/** Canned IM replies when the user messages a colleague and the LLM is unavailable. */
-export const OFFICE_IM_REPLY_TEMPLATES = [
-  {
-    id: 'im-reply-intern-ack',
-    colleagueId: 'intern',
-    body: 're: "{snippet}" — lol ok. anyway is {label} supposed to look that official??'
-  },
-  {
-    id: 'im-reply-intern-meeting',
-    colleagueId: 'intern',
-    body: 'got ur "{snippet}" — im in standup rn but saving this for my onboarding doc'
-  },
-  {
-    id: 'im-reply-scrum-ack',
-    colleagueId: 'scrumMaster',
-    body: 'Noted on "{snippet}" — love the energy! Let\'s time-box a follow-up after standup 🙂'
-  },
-  {
-    id: 'im-reply-greybeard-ack',
-    colleagueId: 'greybeard',
-    body: 'Re: "{snippet}" — we tried that in 1984. It\'s fine. Probably.'
-  },
-  {
-    id: 'im-reply-helpdesk-ack',
-    colleagueId: 'helpdesk',
-    body: 'Ticket updated: user said "{snippet}". Status: ACKNOWLEDGED. Have you tried turning it off and on?'
-  },
-  {
-    id: 'im-reply-facilities-ack',
-    colleagueId: 'facilities',
-    body: 'Re: "{snippet}" — copy. Also the third-floor printer is still haunted.'
-  },
-  {
-    id: 'im-reply-hr-ack',
-    colleagueId: 'hr',
-    body: 'Thanks for "{snippet}", {userName}! Logging this as a wellness win 😊'
-  },
-  {
-    id: 'im-reply-generic-ack',
-    body: 're: "{snippet}" — fair. circling back after I finish this diagram'
-  },
-  {
-    id: 'im-reply-generic-busy',
-    body: 'saw "{snippet}" — in the zone on {label} rn, ping u after'
-  },
-  {
-    id: 'im-reply-intern-panic',
-    colleagueId: 'intern',
-    body: 're: "{snippet}" — wait is this bad. it feels bad. also {label} is judging me from the canvas'
-  },
-  {
-    id: 'im-reply-scrum-parking',
-    colleagueId: 'scrumMaster',
-    body: 'Capturing "{snippet}" in the parking lot!! We\'ll circle back with so much care. Thank you!!'
-  },
-  {
-    id: 'im-reply-greybeard-sigh',
-    colleagueId: 'greybeard',
-    body: '"{snippet}" — noted. The mainframe also noted. It sighed louder than I did.'
-  },
-  {
-    id: 'im-reply-ciso-file',
-    colleagueId: 'ciso',
-    body: 'Re: "{snippet}". Noted in your file. Also noted that you said it in writing. Brave.'
-  }
-];
+export { OFFICE_IM_REPLY_TEMPLATES } from './officeImReplyFallbacks.js';
 
 /** Canned email replies when the user composes mail and the LLM is unavailable. */
 export const OFFICE_EMAIL_REPLY_TEMPLATES = [
@@ -2770,6 +2705,9 @@ export function officeImTemplates() {
 export function officeImReplyTemplates() {
   return office()?.OFFICE_IM_REPLY_TEMPLATES ?? OFFICE_IM_REPLY_TEMPLATES;
 }
+
+// Re-export for callers that imported from cast before the bank moved modules.
+export { officeImReplyFallbacks, officeTalkReplyFallbacks } from './officeImReplyFallbacks.js';
 
 export function officeEmailReplyTemplates() {
   return office()?.OFFICE_EMAIL_REPLY_TEMPLATES ?? OFFICE_EMAIL_REPLY_TEMPLATES;
