@@ -551,6 +551,10 @@ https://api.deepseek.com/` — 401 is reachable, 000 is blocked); never route ar
   (`officeMomentDelivery.js`) checks `situation === 'dwell'` before the `im` branch's ambient bank
   and deals from `officeDwellFallbacks.js` instead; `deliverImReply` forwards `situation` on the
   canned rung only (the LLM rung already had it).
+- **A provoked talk answer that falls back to canned must not use the typed-IM reply bank.** When
+  `channel === 'talk'`, `provokedReplyBank` in `officeMomentDelivery.js` reads
+  `officeTalkReplyFallbacks.js` instead of `officeImReplyFallbacks.js` — same `{snippet}` /
+  `{label}` slots, no `re:` / `got ur` cadence. Slop Chat™ keeps the IM bank.
 - **"Did a colleague speak from a bank or from a model" is answered by the response body, not by a
   clock and not by the DOM.** `/api/office/moment` returns `{ moment: { body, subject?,
 actionPrompt? }, usage?, model? }` and `body` is the model's words verbatim

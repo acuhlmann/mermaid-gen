@@ -364,3 +364,25 @@ describe('a dwell remark falls back in character, not as a cold-open ping', () =
     expect(line?.body).not.toMatch(/reply-all|ticket updated/i);
   });
 });
+
+describe('a provoked talk answer falls back spoken, not as a typed IM', () => {
+  it('uses the talk reply bank when the user spoke out loud', () => {
+    const delivered = deliverCannedMoment('im', CTX, {
+      memory: memory(),
+      colleagueId: 'intern',
+      channel: 'talk',
+      recordWorkingMemory: true,
+      replyContext: {
+        colleagueId: 'intern',
+        userMessage: 'Does Billing talk to Auth?'
+      }
+    });
+
+    expect(delivered).toBe(true);
+    const line = getOfficeSnapshot().imHistory.find((m) => !m.outbound);
+    expect(line?.channel).toBe('talk');
+    expect(line?.body.toLowerCase()).toContain('billing');
+    expect(line?.body).not.toMatch(/^re:\s/i);
+    expect(line?.body).not.toMatch(/got ur/i);
+  });
+});
