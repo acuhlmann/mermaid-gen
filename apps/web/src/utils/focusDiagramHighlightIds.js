@@ -65,19 +65,18 @@ function unionSvgBBox(groups) {
 }
 
 /**
- * Pan/zoom viewport so highlighted diagram nodes fill the visible canvas.
+ * The rendered groups a set of logical ids resolves to. Shared by both focus
+ * entry points so "can I see it" and "move it into view" agree about what "it"
+ * is — a disagreement there would be a camera that pans to nothing.
  *
  * @param {HTMLElement | null | undefined} viewportEl `.diagram-viewport` host
- * @param {string[]} highlightIds logical node ids from the advisor
- * @returns {{ x: number, y: number, scale: number } | null}
+ * @param {string[]} highlightIds
+ * @returns {Element[]}
  */
-export function computeViewportFocusForHighlightIds(viewportEl, highlightIds) {
-  if (!viewportEl?.querySelector || !Array.isArray(highlightIds) || highlightIds.length === 0) {
-    return null;
-  }
+function matchedGroupsForIds(viewportEl, highlightIds) {
+  if (!viewportEl?.querySelector || !Array.isArray(highlightIds)) return [];
   const idSet = new Set(highlightIds.filter(Boolean));
-  if (idSet.size === 0) return null;
-
+  if (idSet.size === 0) return [];
   const root = viewportEl.querySelector('.diagram-zoom-layer') ?? viewportEl;
   const matched = [];
   root
@@ -85,6 +84,18 @@ export function computeViewportFocusForHighlightIds(viewportEl, highlightIds) {
     .forEach((group) => {
       if (groupMatchesIds(group, idSet)) matched.push(group);
     });
+  return matched;
+}
+
+/**
+ * Pan/zoom viewport so highlighted diagram nodes fill the visible canvas.
+ *
+ * @param {HTMLElement | null | undefined} viewportEl `.diagram-viewport` host
+ * @param {string[]} highlightIds logical node ids from the advisor
+ * @returns {{ x: number, y: number, scale: number } | null}
+ */
+export function computeViewportFocusForHighlightIds(viewportEl, highlightIds) {
+  const matched = matchedGroupsForIds(viewportEl, highlightIds);
   if (matched.length === 0) return null;
 
   const bbox = unionSvgBBox(matched);
@@ -106,6 +117,55 @@ export function computeViewportFocusForHighlightIds(viewportEl, highlightIds) {
   const y = pad + Math.max(0, (availH - contentH) / 2) - bbox.y * scale;
 
   return { x, y, scale };
+}
+
+/**
+ * The same focus, but only when it is needed: returns null when every matched
+ * node is already inside the viewport.
+ *
+ * Written for somebody pointing at a node while they talk. Yanking the camera
+ * on every point would make pairing feel like being grabbed by the diagram, so
+ * the rule is the one a person at your shoulder actually follows — they point
+ * if you can both see it, and they scroll it into view if you cannot.
+ *
+ * A node with no readable rect counts as off-screen: an unmeasurable target
+ * cannot be shown to be on screen, and the fallback is the focus maths saying
+ * "nothing matched" rather than a hand floating over the wrong place.
+ *
+ * @param {HTMLElement | null | undefined} viewportEl
+ * @param {string[]} highlightIds
+ * @returns {{ x: number, y: number, scale: number } | null}
+ */
+export function computeViewportFocusIfOffscreen(viewportEl, highlightIds) {
+  const matched = matchedGroupsForIds(viewportEl, highlightIds);
+  if (matched.length === 0) return null;
+
+  let hostRect;
+  try {
+    hostRect = viewportEl.getBoundingClientRect();
+  } catch {
+    return null;
+  }
+  if (!hostRect || hostRect.width <= 0 || hostRect.height <= 0) return null;
+
+  const allVisible = matched.every((group) => {
+    let rect;
+    try {
+      rect = group.getBoundingClientRect();
+    } catch {
+      return false;
+    }
+    if (!rect || rect.width <= 0 || rect.height <= 0) return false;
+    return (
+      rect.left >= hostRect.left &&
+      rect.right <= hostRect.right &&
+      rect.top >= hostRect.top &&
+      rect.bottom <= hostRect.bottom
+    );
+  });
+  if (allVisible) return null;
+
+  return computeViewportFocusForHighlightIds(viewportEl, highlightIds);
 }
 
 /**

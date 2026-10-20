@@ -121,6 +121,7 @@ export function FloorCardSlot({
         copy={copy}
         onHardStop={huddleHandlers.onHardStop}
         ringControls={huddleRing}
+        onPairReply={huddleHandlers.onPairReply}
       />
     );
   }

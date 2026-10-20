@@ -341,4 +341,265 @@ describe('useHuddlePlayback', () => {
     expect(result.current.huddle.beats[0].text).toBe(SCRIPT.beats[0].text);
     expect(result.current.huddle.beats[1].text).toBe('Auth finally showed up.');
   });
+
+  describe('pairing as a conversation', () => {
+    /** The canvas the pair is looking at, with rects jsdom can actually measure. */
+    function renderCanvas() {
+      document.body.innerHTML = `
+        <div class="diagram-viewport">
+          <div class="diagram-zoom-layer">
+            <svg>
+              <g class="node" id="flowchart-Auth-0"><text>Auth</text></g>
+              <g class="node" id="flowchart-Billing-1"><text>Billing</text></g>
+            </svg>
+          </div>
+        </div>`;
+      // The label walk drops anything with a zero rect, and jsdom reports zero.
+      document.querySelectorAll('g.node').forEach((node, index) => {
+        node.getBoundingClientRect = () => ({
+          left: 10 + index * 100,
+          top: 10,
+          right: 90 + index * 100,
+          bottom: 50,
+          width: 80,
+          height: 40,
+          x: 10 + index * 100,
+          y: 10
+        });
+      });
+    }
+
+    /** A reply turn: one beat, whatever you said answered. */
+    const REPLY_SCRIPT = {
+      script: {
+        beats: [{ speakerId: 'gilfoyle', text: 'Because Billing already reads it.' }]
+      }
+    };
+
+    function stubPairFetch() {
+      const fetchMock = vi.fn(async (_url, init) => {
+        const body = JSON.parse(init.body);
+        return {
+          ok: true,
+          json: async () => (body.turns?.length ? REPLY_SCRIPT : { script: PAIR_SCRIPT })
+        };
+      });
+      vi.stubGlobal('fetch', fetchMock);
+      return fetchMock;
+    }
+
+    beforeEach(() => {
+      renderCanvas();
+    });
+
+    afterEach(() => {
+      document.body.innerHTML = '';
+    });
+
+    it('ships the pointable node ids on a mermaid canvas', async () => {
+      const fetchMock = stubPairFetch();
+      const { result } = renderHook(() => useHuddlePlayback(params()));
+      await act(async () => {
+        await result.current.startHuddle(['gilfoyle'], { mode: 'pair' });
+      });
+      const body = JSON.parse(fetchMock.mock.calls[0][1].body);
+      // The ids the model is allowed to point at are exactly the ones the walk
+      // resolved — a beat naming anything else is stripped server-side.
+      expect(body.visibleIds).toEqual(['flowchart-Auth-0', 'flowchart-Billing-1']);
+      expect(body.visibleLabels).toEqual(['Auth', 'Billing']);
+      expect(body.mode).toBe('pair');
+    });
+
+    it('ships no ids for a content type whose nodes cannot be resolved', async () => {
+      const fetchMock = stubPairFetch();
+      const { result } = renderHook(() =>
+        useHuddlePlayback(
+          params({
+            getContentType: () => 'chart',
+            getDiagramSource: () =>
+              JSON.stringify({ spec: { title: 'Revenue', data: { values: [] } } })
+          })
+        )
+      );
+      await act(async () => {
+        await result.current.startHuddle(['gilfoyle'], { mode: 'pair' });
+      });
+      const body = JSON.parse(fetchMock.mock.calls[0][1].body);
+      // A chart's "ids" are copies of its labels; pointing at one resolves to
+      // nothing, so asking for it would only invite a hand over empty canvas.
+      expect(body.visibleIds).toEqual([]);
+      expect(body.visibleLabels.length).toBeGreaterThan(0);
+    });
+
+    it('records the opening script as the partner side of the transcript', async () => {
+      stubPairFetch();
+      const { result } = renderHook(() => useHuddlePlayback(params()));
+      await act(async () => {
+        await result.current.startHuddle(['gilfoyle'], { mode: 'pair' });
+      });
+      expect(result.current.huddle.turns.map((t) => t.role)).toEqual([
+        'partner',
+        'partner',
+        'partner'
+      ]);
+      expect(result.current.huddle.turnIndex).toBe(0);
+    });
+
+    it('answers what you said: one beat replaces the turn, history stays out of it', async () => {
+      const fetchMock = stubPairFetch();
+      const { result } = renderHook(() => useHuddlePlayback(params()));
+      await act(async () => {
+        await result.current.startHuddle(['gilfoyle'], { mode: 'pair' });
+      });
+      expect(result.current.huddle.beats).toHaveLength(3);
+
+      let beat;
+      await act(async () => {
+        beat = await result.current.continuePairing('Why does Billing read it?');
+      });
+
+      expect(beat?.text).toBe('Because Billing already reads it.');
+      // REPLACES, not appends: a growing beats array changes the pacing loop's
+      // line count and re-speaks lines already heard.
+      expect(result.current.huddle.beats).toHaveLength(1);
+      expect(result.current.huddle.beats[0].text).toBe('Because Billing already reads it.');
+      expect(result.current.huddle.turnIndex).toBe(1);
+      expect(result.current.huddle.phase).toBe('speaking');
+      expect(result.current.huddle.awaitingReply).toBe(false);
+
+      const body = JSON.parse(fetchMock.mock.calls[1][1].body);
+      expect(body.mode).toBe('pair');
+      expect(body.turns.at(-1)).toEqual({ role: 'you', text: 'Why does Billing read it?' });
+      // The partner's own opening is in the transcript, so the reply can pick up
+      // the thread rather than restarting the tour.
+      expect(body.turns.filter((t) => t.role === 'partner')).toHaveLength(3);
+    });
+
+    it('ignores a blank reply and a second one while the first is in flight', async () => {
+      const fetchMock = stubPairFetch();
+      const { result } = renderHook(() => useHuddlePlayback(params()));
+      await act(async () => {
+        await result.current.startHuddle(['gilfoyle'], { mode: 'pair' });
+      });
+      const callsAfterOpen = fetchMock.mock.calls.length;
+
+      await act(async () => {
+        expect(await result.current.continuePairing('   ')).toBeNull();
+      });
+      expect(fetchMock.mock.calls).toHaveLength(callsAfterOpen);
+
+      let pending;
+      await act(async () => {
+        pending = result.current.continuePairing('Why?');
+        // awaitingReply is the gate that stops a second question queueing over
+        // the first — the strip is disabled on it, and so is the hook. Read from
+        // the store, not the hook: `result.current` is a render snapshot and
+        // React has not flushed one yet mid-act.
+        expect(getOfficeSnapshot().huddle.awaitingReply).toBe(true);
+        expect(await result.current.continuePairing('And also?')).toBeNull();
+      });
+      await act(async () => {
+        await pending;
+      });
+      expect(fetchMock.mock.calls).toHaveLength(callsAfterOpen + 1);
+    });
+
+    it('keeps them seated when the answer never lands', async () => {
+      let calls = 0;
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async (_url, init) => {
+          calls += 1;
+          const body = JSON.parse(init.body);
+          if (body.turns?.length) return { ok: false, json: async () => ({}) };
+          return { ok: true, json: async () => ({ script: PAIR_SCRIPT }) };
+        })
+      );
+      const { result } = renderHook(() => useHuddlePlayback(params()));
+      await act(async () => {
+        await result.current.startHuddle(['gilfoyle'], { mode: 'pair' });
+      });
+      const huddleId = result.current.huddle.id;
+
+      await act(async () => {
+        expect(await result.current.continuePairing('Why?')).toBeNull();
+      });
+
+      // A failed reply is not a dismissal: they are still next to you, they just
+      // did not answer, and the strip is still there to try again.
+      expect(calls).toBe(2);
+      expect(result.current.huddle).not.toBeNull();
+      expect(result.current.huddle.id).toBe(huddleId);
+      expect(result.current.huddle.awaitingReply).toBe(false);
+      expect(result.current.huddle.beats).toHaveLength(3);
+
+      // And the transcript holds no `you` line. Recording it before the request
+      // is what made a retry say the same question twice — two user lines with
+      // no partner line between them, and each failure pushing an older partner
+      // line out of the window the model actually sees.
+      expect(result.current.huddle.turns.map((t) => t.role)).toEqual([
+        'partner',
+        'partner',
+        'partner'
+      ]);
+    });
+
+    it('records your line exactly once, and only alongside the answer to it', async () => {
+      // The first reply attempt fails and the second lands. Note that both
+      // requests now carry `turns` — the pending line rides on the request
+      // precisely because it is not yet in the store.
+      let replyCalls = 0;
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async (_url, init) => {
+          const body = JSON.parse(init.body);
+          if (!body.turns?.length) return { ok: true, json: async () => ({ script: PAIR_SCRIPT }) };
+          replyCalls += 1;
+          if (replyCalls === 1) return { ok: false, json: async () => ({}) };
+          return { ok: true, json: async () => REPLY_SCRIPT };
+        })
+      );
+      const { result } = renderHook(() => useHuddlePlayback(params()));
+      await act(async () => {
+        await result.current.startHuddle(['gilfoyle'], { mode: 'pair' });
+      });
+
+      // A first attempt that never lands leaves nothing behind...
+      await act(async () => {
+        expect(await result.current.continuePairing('Why?')).toBeNull();
+      });
+      expect(result.current.huddle.turns.some((t) => t.role === 'you')).toBe(false);
+      expect(result.current.huddle.turnIndex).toBe(0);
+
+      // ...so the retry asks once, and only the successful exchange is remembered.
+      await act(async () => {
+        expect(await result.current.continuePairing('Why?')).not.toBeNull();
+      });
+      expect(result.current.huddle.turns.map((t) => t.role)).toEqual([
+        'partner',
+        'partner',
+        'partner',
+        'you',
+        'partner'
+      ]);
+      expect(result.current.huddle.turnIndex).toBe(1);
+    });
+
+    it('is not a conversation for a mob', async () => {
+      const fetchMock = stubFetch({ script: SCRIPT });
+      const { result } = renderHook(() => useHuddlePlayback(params()));
+      await act(async () => {
+        await result.current.startHuddle(TEAM);
+      });
+      const callsAfterOpen = fetchMock.mock.calls.length;
+
+      await act(async () => {
+        expect(await result.current.continuePairing('Why?')).toBeNull();
+      });
+      expect(fetchMock.mock.calls).toHaveLength(callsAfterOpen);
+      // A mob keeps no transcript — its refresh is driven by the canvas, not by
+      // anybody replying.
+      expect(result.current.huddle.turns).toEqual([]);
+    });
+  });
 });

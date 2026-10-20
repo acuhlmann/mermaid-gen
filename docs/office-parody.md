@@ -746,26 +746,85 @@ Do-it, going quiet for a delegated run — and `huddle.mode` names which one you
 
 What differs is the shape of the script and how it ends:
 
-|                       | Mob                                             | Pair                                        |
-| --------------------- | ----------------------------------------------- | ------------------------------------------- |
-| Roster                | `CAST_TIERS.team`, ≥ `HUDDLE_MIN_SEATS` (2)     | exactly one (`PAIR_SEATS`)                  |
-| Script                | one beat per person, attendee order             | four beats from one voice, model order      |
-| Server                | `buildHuddleSystemPrompt` / `parseHuddleScript` | `buildPairSystemPrompt` / `parsePairScript` |
-| Canvas edit mid-scene | re-scripts unspoken remarks                     | holds its script (see below)                |
-| Ends                  | last remark times out, Hard stop, or Escape     | **only** when you end it                    |
+|                       | Mob                                             | Pair                                                   |
+| --------------------- | ----------------------------------------------- | ------------------------------------------------------ |
+| Roster                | `CAST_TIERS.team`, ≥ `HUDDLE_MIN_SEATS` (2)     | exactly one (`PAIR_SEATS`)                             |
+| Script                | one beat per person, attendee order             | four beats from one voice, then **one beat per reply** |
+| Server                | `buildHuddleSystemPrompt` / `parseHuddleScript` | `buildPairSystemPrompt` / `parsePairScript`            |
+| Canvas edit mid-scene | re-scripts unspoken remarks                     | picked up on the next reply turn (see below)           |
+| Points at the diagram | no                                              | yes — `beat.focusId`, a hand on the node (see below)   |
+| Waits for you         | no                                              | yes — `phase: 'listening'` after every turn            |
+| Ends                  | last remark times out, Hard stop, or Escape     | **only** when you end it                               |
 
 A pair is deliberately _not_ "a mob with one seat": every huddle prompt rule breaks at one attendee
 (one beat each, react to the person before you by name, two action prompts across the ring), and
 `parseHuddleScript` keeps only the first line per speaker — which is exactly the wrong contract for
-one person with a train of thought. And the mid-scene refresh is mob-only for a mechanical reason:
-the mob's replacement is the same size as what it replaces (one beat per teammate who has not
-spoken), so `useScenePacing` keeps its place. A single voice's script has no such invariant, and a
-re-script that came back longer or shorter would restart the pacing loop and re-speak lines the user
-already heard. Clicking the seat is how you ask a pair for more.
+one person with a train of thought.
+
+**A pair is a conversation, and each turn is its own scene.** The opening call asks for four beats;
+every reply asks for exactly one. `huddle.turns` is the transcript that goes back up, `huddle.turnIndex`
+counts the turns, and `huddle.beats` always holds **only the current turn's** lines. That last part is
+load-bearing rather than tidy: `useScenePacing` keys its loop on the line count, so a script that grew
+underneath a running loop would restart it and re-speak lines the user had already heard — which is
+exactly why a pair used to be scripted once and could not be extended. Making the pacing scene id
+`${huddle.id}:${turnIndex}` turns that restart into the intent: one turn, its own lines, history never
+in it. `beginOfficeHuddleTurn` therefore **replaces** the queue; it never appends to a live one (and
+`upsertOfficeHuddleBeat` is the wrong tool here for a second reason — it replaces by `speakerId`, and
+in a pair every beat has the same speaker).
+
+This is also what replaces the mob's mid-scene re-script. A reply turn reads the canvas as it is at
+that moment, so a pair that has been sitting through your edits is not still talking about the diagram
+you both stopped looking at — and no already-spoken line is ever rewritten to get there.
 
 The rest of this section is the mob unless it says otherwise; everything in it applies to a pair too
 except the roster, the ending, and the copy (pairing has its own register throughout — you thank the
 person next to you, you do not hard-stop them).
+
+### 5b-i. Pointing, waiting, and handing over the keyboard
+
+Three things a pair does that a mob does not, because all three need somebody sitting next to you
+rather than six people facing your monitor.
+
+- **They point at what they mean.** A beat can carry `focusId`, and the client draws a 👉 on that node
+  (`OfficePairPointer`) plus a ring (`is-office-pointed`). The id is chosen from a closed list:
+  `huddleContext` ships `visibleIds` — the node ids the label walk already resolved — and
+  `normalizeHuddleBeat` strips any `focusId` that is not in it, so a hallucinated node can never
+  become a hand over empty canvas. Mermaid only: every other content type's extractor returns the
+  labels themselves as ids, and only a rendered `g.node` resolves.
+- **The camera moves only when it has to.** `computeViewportFocusIfOffscreen` is the rule a person at
+  your shoulder follows: point at what you can both see, scroll it into view when you cannot. Yanking
+  the canvas on every remark would make pairing feel like being grabbed by the diagram. The ring and
+  the camera live in `useDiagramPointFocus` — a hook `DiagramCanvas` calls, because that file sits at
+  its ratchet budget and may not grow.
+- **They wait for you.** A turn ends in `phase: 'listening'`, not in a dissolve: the last remark
+  landing is precisely the moment it is your turn. The reply strip (`OfficePairReply`, shared by both
+  renderers) offers free text plus three chips, and is disabled while `awaitingReply` so a second
+  question cannot queue on top of the first. Their line stays on screen while you answer.
+- **Do-it hands over the keyboard.** For a pair, Do-it does **not** run the agent: their ask is
+  prefilled into the desk Work Order, the caret follows it, a ⌨️ slides across, and they go back to
+  `listening` to watch you type. Pressing the button that also says "Do it" is yours. A mob still
+  delegates via `submitIntentWithPrompt` and still uses the `watching` phase — there is an agent run
+  to wait for, and turn-taking resumes when it finishes.
+
+**Auditioned, with a control arm** (throwaway script, one fixed five-node flowchart, 2 colleagues, 4
+samples per arm, latency lane; the script is deleted, this is the record). Three arms, 24 calls:
+
+| Arm                       | beats | `focusId` present | invented id | survived validation | beats per call |
+| ------------------------- | ----- | ----------------- | ----------- | ------------------- | -------------- |
+| control — no ids sent     | 32    | 12                | **12**      | 0                   | 4.0            |
+| point — `visibleIds` sent | 32    | 29                | **0**       | 29                  | 4.0            |
+| reply — continue turn     | 8     | 8                 | **0**       | 8                   | **1.0** (8/8)  |
+
+Two findings, and the control arm is what makes both of them mean something. **The point ask is
+live, not inert** — 0 of 32 beats point in the control against 29 of 32 pointing at a real id, with
+zero invented. This is the third prompt block added to this domain and the first that was not
+inert on the first draft, which is what the control arm is for. **Naming a field is an invitation
+to fill it**: the control arm was never asked to point, yet produced 12 `focusId`s anyway, all of
+them logical names like `"Auth"` that resolve to nothing. `normalizeHuddleBeat` stripped all 12, so
+the guard did its job — but the schema line now names `focusId` only when `visibleIds` is non-empty,
+because offering a field the canvas cannot use buys nothing and costs a hallucination. The reply arm
+also held "EXACTLY 1 beat" in 8 of 8 at a mean 90 chars, so a continue turn is one line and not a
+re-run of the opening tour.
 
 **Mob** → the six `CAST_TIERS.team` members snap in from all four
 edges of the canvas and each says one thing about the diagram, one at a time, then everyone goes
@@ -803,16 +862,21 @@ the team roster.
   at once, which is right for a card of overheard chat and wrong for a ring of faces.
 - **"Hard stop ✋"**, Escape, or the last remark timing out (`HUDDLE_TAIL_MS`) all end a mob. A
   huddle that got as far as speaking (or watched a Do-it) is worth `huddled` XP; one you cut short
-  before anyone spoke is not. **A pair has no tail**: `useHuddleRingControls` withholds
-  `useScenePacing`'s `onDone`, so the last remark holds and the chair stays until you press
-  "Thanks — I've got it" (or Escape). Somebody who pulled up a chair does not evaporate because
-  they finished a sentence.
+  before anyone spoke is not. **A pair's tail is a hand-back, not an ending**: `useHuddleRingControls`
+  swaps `useScenePacing`'s `onDone` for `handleTurnDone`, which sets `phase: 'listening'` — the last
+  remark holds on screen and the chair stays until you press "Thanks — I've got it" (or Escape).
+  Somebody who pulled up a chair does not evaporate because they finished a sentence; they wait to
+  hear what you make of it.
 - **Replaces the advisor bubble while it runs.** Ambient advising is retired entirely; `huddleActive`
   still feeds `useAdvisorPause` so nothing talks over the six you called. An active huddle also
   counts in `hasActiveOfficeSurface()`, so the ambience director and desk verbs back off.
-- **Cost:** one LLM call per huddle, `purpose: 'meeting'` (fast tier), exactly like `/meeting`, plus
-  optional `/api/advisor/suggest` calls when you click a silent head. An empty or failed script
-  dissolves the ring silently — no error toast.
+- **Cost:** one LLM call per huddle **turn**, `purpose: 'meeting'` with `live: true` — which resolves
+  to the latency lane (flash-lite), the same fast tier as `/meeting`. `modelProfile` cannot upgrade
+  it: `resolveOfficeModelId` ignores the profile on the latency lane, so the Brain toggle never makes
+  a reply turn slower. That is deliberate — a reply is the interaction the whole scene waits on, and
+  it is pinned by a test rather than left to chance. Plus optional `/api/advisor/suggest` calls when
+  you click a silent head. An empty or failed script dissolves a mob silently (no error toast) and
+  leaves a pair seated with the strip still available.
 - **ADR-0011 status: desk + floor.** Desk crowds the monitor edges (`HuddleOverlay`); floor rings
   your desk (`FloorHuddle` + `FloorHuddleCard`) via shared `useHuddleRingControls`. Starting a
   huddle while standing no longer forces sit-down.

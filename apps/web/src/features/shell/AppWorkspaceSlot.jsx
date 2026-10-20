@@ -1,4 +1,4 @@
-import { useSyncExternalStore } from 'react';
+import { useCallback, useState, useSyncExternalStore } from 'react';
 import ClearConfirmDialog from '../../components/ClearConfirmDialog.jsx';
 import DeskOsTaskbar from '../../components/DeskOsTaskbar.jsx';
 import ErrorToast from '../../components/ErrorToast.jsx';
@@ -206,6 +206,54 @@ export function AppWorkspaceSlot({
   );
 
   /**
+   * What the office pair is pointing at, held here because the canvas and the
+   * office layer are siblings in this slot and neither can see the other's
+   * refs. `seq` makes pointing at the same node twice a second event, so a
+   * re-point re-runs the canvas's focus check instead of being swallowed as an
+   * unchanged prop.
+   */
+  const [pairPoint, setPairPoint] = useState(null);
+  const handlePairPoint = useCallback((ids) => {
+    setPairPoint((prev) => {
+      const next = (Array.isArray(ids) ? ids : [ids]).filter(Boolean);
+      if (next.length === 0) return null;
+      return { ids: next, seq: (prev?.seq ?? 0) + 1 };
+    });
+  }, []);
+
+  /**
+   * "Over to you." The pair's Do-it stops being a delegation and becomes a
+   * handover: their ask lands in the Work Order and the caret follows it, so
+   * the person who was just talking is now the one watching you type. Nothing
+   * runs — pressing the button that also says "Do it" is yours.
+   *
+   * It writes `deskPrompt`, not `slopNextPrompt`. The two are different
+   * surfaces' state and only the desk one feeds the input being focused
+   * (`DeskBottomActionsSlot` passes `prompt={deskPrompt}` to the desk layout),
+   * so writing the radial prompt would focus a Work Order that stayed empty —
+   * the gesture with nothing in it.
+   *
+   * The desk Work Order is always mounted and deliberately never focuses
+   * itself (a mount-time focus would hijack the page), so this is the one
+   * moment where reaching for that input is the point.
+   */
+  const handlePairHandover = useCallback(
+    (prompt) => {
+      const text = typeof prompt === 'string' ? prompt.trim() : '';
+      if (!text) return;
+      setDeskPrompt?.(text);
+      const input =
+        typeof document !== 'undefined' ? document.getElementById('slop-prompt-desk-input') : null;
+      try {
+        input?.focus({ preventScroll: true });
+      } catch {
+        input?.focus();
+      }
+    },
+    [setDeskPrompt]
+  );
+
+  /**
    * The menu bar's whole prop surface, bundled once. Deliverable is the
    * dismantled `DeskDrawer`, Mailroom is the export panel, Admin holds
    * once-a-session verbs plus Headphones / Focus and Approved vendors.
@@ -265,6 +313,7 @@ export function AppWorkspaceSlot({
         onEditorClose={() => setEditorOpen(false)}
         changeHighlight={changeHighlightForCanvas}
         changeHighlightContentType={changeHighlightContentType}
+        pointFocus={pairPoint}
         onDiagramSvgRendered={onDiagramSvgRendered}
         runFx={runFx}
         diagramSurfaceRef={diagramSurfaceRef}
@@ -385,6 +434,8 @@ export function AppWorkspaceSlot({
         tryAgentSound={tryAgentSound}
         officeRunSignal={officeRunSignal}
         entryReveal={entryReveal}
+        onPairPoint={handlePairPoint}
+        onPairHandover={handlePairHandover}
       />
       <HotkeyOverlay open={hotkeyOverlayOpen} onClose={onCloseHotkeyOverlay} copy={hotkeyCopy} />
 

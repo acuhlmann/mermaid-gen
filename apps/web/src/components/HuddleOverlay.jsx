@@ -6,6 +6,7 @@ import {
   useHuddleRingControls
 } from '../hooks/useHuddleRingControls.js';
 import { formatLocale } from '../i18n/formatLocale.js';
+import OfficePairReply from './OfficePairReply.jsx';
 import { PersonaFace } from './personaFaces/index.jsx';
 
 export {
@@ -53,6 +54,8 @@ export default function HuddleOverlay({
   onHardStop,
   onAdoptPrompt,
   onRequestSuggestion,
+  /** Pairing only: what you said back to the person in the chair. */
+  onPairReply,
   narrateLine,
   prefetchLine,
   onCancelNarration
@@ -71,7 +74,9 @@ export default function HuddleOverlay({
   const {
     speaking,
     watching,
+    listening = false,
     pairing,
+    awaitingReply = false,
     pinnedSpeakerId,
     fetchingSpeakerId,
     repeatingSpeakerId,
@@ -230,7 +235,7 @@ export default function HuddleOverlay({
         );
       })}
       <div className="office-huddle-chrome">
-        {!speaking && !watching ? (
+        {!speaking && !watching && !listening ? (
           <p className="office-huddle-gathering" role="status" aria-live="polite">
             {pairing
               ? formatLocale(copy.pairGathering ?? copy.gathering, { name: partner?.name ?? '' })
@@ -243,6 +248,26 @@ export default function HuddleOverlay({
               ? formatLocale(copy.pairWatching ?? copy.watching, { name: partner?.name ?? '' })
               : (copy.watching ?? 'The team is watching the notebook…')}
           </p>
+        ) : null}
+        {pairing && listening ? (
+          <p className="office-huddle-listening" role="status" aria-live="polite">
+            {awaitingReply
+              ? formatLocale(copy.fetchingLabel ?? 'Thinking…', {})
+              : formatLocale(
+                  copy.pairListening ?? '{name} is waiting to hear what you make of it',
+                  {
+                    name: partner?.name ?? ''
+                  }
+                )}
+          </p>
+        ) : null}
+        {pairing && listening && typeof onPairReply === 'function' ? (
+          <OfficePairReply
+            partnerName={partner?.name ?? ''}
+            copy={copy}
+            busy={awaitingReply}
+            onReply={onPairReply}
+          />
         ) : null}
         <button
           type="button"

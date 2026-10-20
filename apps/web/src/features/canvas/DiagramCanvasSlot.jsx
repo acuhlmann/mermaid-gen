@@ -24,6 +24,7 @@ export function DiagramCanvasSlot({
   onEditorClose,
   changeHighlight,
   changeHighlightContentType,
+  pointFocus = null,
   onDiagramSvgRendered,
   runFx,
   diagramSurfaceRef,
@@ -55,6 +56,7 @@ export function DiagramCanvasSlot({
       onEditorClose={onEditorClose}
       changeHighlight={changeHighlight}
       changeHighlightContentType={changeHighlightContentType}
+      pointFocus={pointFocus}
       onDiagramSvgRendered={onDiagramSvgRendered}
       runFx={runFx}
       diagramSurfaceRef={diagramSurfaceRef}

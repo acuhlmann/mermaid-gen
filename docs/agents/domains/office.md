@@ -340,6 +340,16 @@ https://api.deepseek.com/` — 401 is reachable, 000 is blocked); never route ar
 - **A huddle is a moment, so it lives in the store.** `officeMomentStore.huddle` is
   presentation-agnostic on purpose (ADR-0011 rule 1) — the desk overlay is renderer #1 and the
   isometric floor version is a follow-up slice. Don't move huddle state into `HuddleOverlay`.
+- **A pair is a conversation, and appending to it re-speaks history.** `useScenePacing` keys its
+  loop on the line count, so `huddle.beats` holds only the current turn and the pacing scene id
+  carries `turnIndex` (`useHuddleRingControls`). `beginOfficeHuddleTurn` replaces the queue;
+  `upsertOfficeHuddleBeat` can never append a pair turn because it replaces by `speakerId`, and in
+  a pair every beat has the same speaker.
+- **A pointed-at node id is validated, never trusted.** `beat.focusId` survives only if the client
+  sent it in `visibleIds` (`normalizeHuddleBeat` in `officePersonas.js`); mermaid only, because
+  every other label extractor returns labels as ids. `DiagramCanvas.jsx` sits at its ratchet
+  budget, so the ring and the off-screen-only camera live in `useDiagramPointFocus`, a hook the
+  canvas calls — new canvas behaviour arrives that way, not by growing the file.
 - **Presence strip is not always Stand up.** `presenceFollowOf` routes by kind (`standUp` |
   `messenger` | `stay`). Opening Slop Chat from the strip goes through
   `officeMessengerUiStore` — do not prop-drill through the menu bar or fold that signal into

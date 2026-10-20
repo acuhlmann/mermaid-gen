@@ -839,6 +839,130 @@ test('parsePairScript keeps every beat from the one voice, in the order said', (
   assert.equal(parsePairScript(raw, { attendee: 'jared' }), null);
 });
 
+test('pair prompt offers pointing only when there is something to point at', () => {
+  const withIds = buildPairSystemPrompt({
+    attendee: 'gilfoyle',
+    visibleIds: ['flowchart-Auth-0', 'flowchart-Billing-1']
+  });
+  assert.match(withIds, /"focusId": string \(optional\)/);
+  assert.match(withIds, /POINT AT WHAT YOU MEAN/);
+  assert.match(withIds, /VISIBLE NODE IDS/);
+
+  // Without ids the ask must disappear entirely: a rule to point at nothing is
+  // how a model starts inventing node ids, and an invented id is a hand over
+  // empty canvas. Measured — with the field named but no list supplied, 12 of 32
+  // beats came back with a made-up id ("Auth", "Billing"); validation stripped
+  // all 12, but the prompt should not have offered the field at all.
+  const noIds = buildPairSystemPrompt({ attendee: 'gilfoyle', visibleIds: [] });
+  assert.doesNotMatch(noIds, /POINT AT WHAT YOU MEAN/);
+  assert.doesNotMatch(noIds, /VISIBLE NODE IDS/);
+  assert.doesNotMatch(noIds, /focusId/);
+  // The rest of the beat shape is unaffected — only the unpointable field goes.
+  assert.match(noIds, /"actionPrompt": string \(optional\)/);
+});
+
+test('pair prompt switches to a single answering beat once you have spoken', () => {
+  const opening = buildPairSystemPrompt({ attendee: 'gilfoyle' });
+  assert.match(opening, /EXACTLY 4 beats/);
+  assert.doesNotMatch(opening, /EXACTLY 1 beat/);
+
+  const continuing = buildPairSystemPrompt({
+    attendee: 'gilfoyle',
+    turns: [
+      { role: 'partner', text: 'Auth is doing two jobs.' },
+      { role: 'you', text: 'Why does Billing read it?' }
+    ]
+  });
+  assert.match(continuing, /EXACTLY 1 beat from "gilfoyle"/);
+  assert.doesNotMatch(continuing, /EXACTLY 4 beats/);
+  // It has to answer the thing said, not tour the diagram again.
+  assert.match(continuing, /Answer what they actually said/);
+  assert.match(continuing, /do not restart the tour/);
+  // Still the same scene, so the register rules must survive the switch.
+  assert.match(continuing, /No wrapping up/i);
+  assert.match(continuing, /Bertram Gilfoyle/);
+});
+
+test('parsePairScript keeps a focusId the client can resolve and drops one it cannot', () => {
+  const raw = JSON.stringify({
+    beats: [
+      { speakerId: 'gilfoyle', text: 'This one here.', focusId: 'flowchart-Auth-0' },
+      { speakerId: 'gilfoyle', text: 'And the ghost box.', focusId: 'flowchart-Ghost-9' },
+      { speakerId: 'gilfoyle', text: 'Nothing to point at.' }
+    ]
+  });
+  const allowed = new Set(['flowchart-Auth-0', 'flowchart-Billing-1']);
+  const script = parsePairScript(raw, { attendee: 'gilfoyle', allowedFocusIds: allowed });
+  assert.equal(script.beats[0].focusId, 'flowchart-Auth-0');
+  // The hallucinated id is stripped rather than shipped: the client has no way
+  // to tell a stale id from a made-up one.
+  assert.equal(script.beats[1].focusId, undefined);
+  assert.equal(script.beats[2].focusId, undefined);
+
+  // No allow-list at all (a canvas with no resolvable nodes) points at nothing.
+  const unguarded = parsePairScript(raw, { attendee: 'gilfoyle' });
+  assert.equal(unguarded.beats[0].focusId, undefined);
+});
+
+test('parsePairScript clamps a continue turn to the one beat it asked for', () => {
+  const raw = JSON.stringify({
+    beats: [
+      { speakerId: 'gilfoyle', text: 'Because Billing reads it.' },
+      { speakerId: 'gilfoyle', text: 'And that is the whole tour again.' },
+      { speakerId: 'gilfoyle', text: 'Third line nobody asked for.' }
+    ]
+  });
+  assert.deepEqual(
+    parsePairScript(raw, { attendee: 'gilfoyle', maxBeats: 1 }).beats.map((b) => b.text),
+    ['Because Billing reads it.']
+  );
+  // The default stays the opening-script clamp, so an opening is never truncated.
+  assert.equal(parsePairScript(raw, { attendee: 'gilfoyle' }).beats.length, 3);
+});
+
+test('huddle user prompt carries the pointable ids and the pairing transcript', () => {
+  const withIds = buildHuddleUserPrompt({
+    contentType: 'mermaid',
+    diagramSource: 'flowchart TD\n  Auth[Auth]',
+    visibleLabels: ['Auth', 'Billing'],
+    visibleIds: ['flowchart-Auth-0', 'flowchart-Billing-1'],
+    turns: [
+      { role: 'partner', text: 'Auth is doing two jobs.' },
+      { role: 'you', text: 'Why does Billing read it?' }
+    ]
+  });
+  assert.match(withIds, /VISIBLE NODE IDS/);
+  assert.match(withIds, /- flowchart-Auth-0/);
+  assert.match(withIds, /THE USER: Why does Billing read it\?/);
+  assert.match(withIds, /YOU: Auth is doing two jobs\./);
+  // Your own line is the freshest thing in the prompt, so it comes last.
+  assert.ok(withIds.indexOf('THE USER:') > withIds.indexOf('Current diagram source:'));
+
+  const without = buildHuddleUserPrompt({
+    contentType: 'chart',
+    diagramSource: '{}',
+    visibleLabels: ['Revenue']
+  });
+  assert.doesNotMatch(without, /VISIBLE NODE IDS/);
+  assert.doesNotMatch(without, /THE USER:/);
+  assert.match(without, /- Revenue/);
+});
+
+test('pairing stays on the latency lane whatever the Brain toggle says', () => {
+  // A reply turn is the interaction the whole scene waits on, so it is priced
+  // for latency and the quality profile must not quietly upgrade it.
+  assert.equal(resolveOfficeLane({ purpose: 'meeting', live: true }), 'latency');
+  assert.equal(
+    resolveOfficeLane({ purpose: 'meeting', live: true, modelProfile: 'quality' }),
+    'latency'
+  );
+  const env = { GEMINI_API_KEY: 'k' };
+  assert.equal(
+    resolveOfficeModelId(env, { purpose: 'meeting', live: true, modelProfile: 'quality' }),
+    resolveOfficeModelId(env, { purpose: 'meeting', live: true })
+  );
+});
+
 test('parseHuddleScript returns one remark per attendee, in attendee order', () => {
   // The overlay seats the ring before the LLM answers, so the parser must hand
   // back seats in the order they were drawn — not the order the model replied in.
