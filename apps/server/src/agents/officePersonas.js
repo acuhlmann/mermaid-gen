@@ -1174,14 +1174,91 @@ ${headcountRule}
  * so. So this asks for several beats from the same voice that MOVE, and the
  * caller never auto-dismisses the ring.
  *
- * There is deliberately no refresh mode here, unlike the huddle. A mob can be
- * re-scripted mid-scene because the replacement is the same size as what it
- * replaces (one beat per teammate who has not spoken), so `useScenePacing`
- * never sees its line count change. A pair has no such invariant — appending or
- * shortening a single voice's script restarts the pacing loop and re-speaks
- * lines the user already heard. The seat is clickable if they want to ask again.
+ * Two turns of the same scene, and the difference is `turns`:
+ *
+ * - **Opening** (`turns` empty) — 4 beats: they sat down and started thinking
+ *   out loud. Paced as one scene.
+ * - **Continue** (`turns` non-empty) — EXACTLY 1 beat answering what the user
+ *   just said. The client paces each turn as its own scene, which is the whole
+ *   reason a pair can be a conversation now and could not be one before:
+ *   appending to a live script changes its line count, and `useScenePacing`
+ *   keys on that count, so an appended beat used to restart the loop and
+ *   re-speak lines the user had already heard. One beat per turn, one scene per
+ *   turn, nothing to restart.
+ *
+ * There is deliberately no *diagram-refresh* mode here, unlike the mob huddle.
+ * A mob is re-scripted mid-scene because the replacement is the same size as
+ * what it replaces (one beat per teammate who has not spoken); a pair's turn is
+ * generated from the canvas as it is at that moment instead, so it is always
+ * current without ever rewriting a spoken line.
  */
-export function buildPairSystemPrompt({ attendee, uiLocale }) {
+export function buildPairSystemPrompt({ attendee, uiLocale, visibleIds = [], turns = [] }) {
+  const continuing = Array.isArray(turns) && turns.length > 0;
+  const ids = Array.isArray(visibleIds) ? visibleIds.filter(Boolean) : [];
+  /*
+   * Pointing is led with the wanted behaviour and carries exactly one guard, on
+   * the measured rule that prohibitions crowd out a hedged permission in these
+   * prompts (docs/agents/domains/office.md). The guard is the useful half: ids
+   * are validated against this list server-side, so the model is told the list
+   * is closed rather than asked to be careful.
+   */
+  const pointRule =
+    ids.length > 0
+      ? `- POINT AT WHAT YOU MEAN: set "focusId" to the exact id from VISIBLE NODE IDS for the node
+  the line is about, and the user sees a hand point at it on the canvas as you say it. Ids outside
+  that list do not exist on screen, so a line about something else simply leaves "focusId" out.`
+      : '';
+  const shapeRule = continuing
+    ? `- EXACTLY 1 beat from "${attendee}": the next thing they say. This is a reply to the user's
+  last line, not a fresh opening — pick up the thread they left you, do not restart the tour.`
+    : `- EXACTLY 4 beats, all from "${attendee}", in the order they are said. This is one person thinking
+  out loud over a few minutes — not four separate opinions.`;
+  const moveRule = continuing
+    ? `- Answer what they actually said. If they asked a question, the beat is the answer; if they
+  pushed back, the beat is your position — held, softened, or conceded, in character.`
+    : `- The beats must MOVE: notice something, follow the thread, arrive somewhere. Restating one
+  observation four ways is the failure mode — each beat has to earn its turn.`;
+  const actionRule = continuing
+    ? `- Carry an "actionPrompt" only when this beat is the one that proposes a change: a
+  self-contained imperative diagram edit, max 200 chars, actionable without any other context.`
+    : `- 1–2 beats carry an "actionPrompt": a self-contained imperative diagram edit, max 200 chars,
+  actionable without any other context. Not every thought is a proposal — see the beats that are.`;
+  /*
+   * `focusId` is named in the schema only when there is something to point at.
+   * Measured rather than assumed: with the field present and no ids supplied,
+   * the model invented one on 12 of 32 beats anyway (logical names like "Auth"),
+   * every one stripped by validation. Harmless, but offering a field the canvas
+   * cannot use is an invitation to fill it — so the schema names only what exists.
+   */
+  const schemaLine =
+    ids.length > 0
+      ? '- Schema: {"beats": [{"speakerId": string, "text": string, "actionPrompt": string (optional), "focusId": string (optional)}]}.'
+      : '- Schema: {"beats": [{"speakerId": string, "text": string, "actionPrompt": string (optional)}]}.';
+  /*
+   * Assembled as a list because two rules are conditional and an empty string in
+   * the template would leave a blank line inside RULES, which reads as a missing
+   * instruction rather than an absent one.
+   */
+  const rules = [
+    '- Output STRICT JSON only — no prose, no backticks, no preamble.',
+    schemaLine,
+    shapeRule,
+    '- Each "text" is max 30 words. Pairing is muttering to the person next to you, not a presentation.',
+    moveRule,
+    `- Talk TO the user as "you". Nobody else is in the chair: never "team", "folks", "everyone", or
+  "the room", and there is nobody to react to by name.`,
+    `- Every beat must engage the ACTUAL diagram and reference at least one visible label by name when
+  labels exist.`,
+    pointRule,
+    `- EMPTY CANVAS: when the diagram source is "(empty)" or there are no visible labels, do NOT invent
+  diagram content. Work with the user on getting the first thing down, in your own voice.`,
+    actionRule,
+    `- No wrapping up, no "let me know how it goes", no scheduling. They leave when the user ends it,
+  and a goodbye written into the script would end the scene early.`,
+    `- ${SUBJECT_RULE}${buildOfficeLanguageRule(uiLocale)}`
+  ]
+    .filter(Boolean)
+    .join('\n');
   return `You are writing one side of a PAIRING SESSION in a parody corporate-IT workplace. One
 teammate has pulled up a chair next to the user and is working through the diagram WITH them. They
 are not presenting, not reviewing, and not going anywhere.
@@ -1192,63 +1269,79 @@ THE PERSON IN THE CHAIR (use this speakerId and NO other):
 ${speakerVoice(attendee)}
 
 RULES:
-- Output STRICT JSON only — no prose, no backticks, no preamble.
-- Schema: {"beats": [{"speakerId": string, "text": string, "actionPrompt": string (optional)}]}.
-- EXACTLY 4 beats, all from "${attendee}", in the order they are said. This is one person thinking
-  out loud over a few minutes — not four separate opinions.
-- Each "text" is max 30 words. Pairing is muttering to the person next to you, not a presentation.
-- The beats must MOVE: notice something, follow the thread, arrive somewhere. Restating one
-  observation four ways is the failure mode — each beat has to earn its turn.
-- Talk TO the user as "you". Nobody else is in the chair: never "team", "folks", "everyone", or
-  "the room", and there is nobody to react to by name.
-- Every beat must engage the ACTUAL diagram and reference at least one visible label by name when
-  labels exist.
-- EMPTY CANVAS: when the diagram source is "(empty)" or there are no visible labels, do NOT invent
-  diagram content. Work with the user on getting the first thing down, in your own voice.
-- 1–2 beats carry an "actionPrompt": a self-contained imperative diagram edit, max 200 chars,
-  actionable without any other context. Not every thought is a proposal — see the beats that are.
-- No wrapping up, no "let me know how it goes", no scheduling. They leave when the user ends it,
-  and a goodbye written into the script would end the scene early.
-- ${SUBJECT_RULE}${buildOfficeLanguageRule(uiLocale)}`;
+${rules}`;
+}
+
+/** A bulleted, clamped list; '' when there is nothing worth listing. */
+function promptBulletList(values, { limit = 30, maxChars = 120 } = {}) {
+  if (!Array.isArray(values) || values.length === 0) return '';
+  return values
+    .slice(0, limit)
+    .map((value) => `- ${String(value).slice(0, maxChars)}`)
+    .join('\n');
+}
+
+/**
+ * The pairing transcript, with your own line last.
+ *
+ * Last on purpose: it is the thing being answered, and a model reads the end of
+ * a prompt hardest. Same posture as the meeting interjection, which puts the
+ * user's line after `transcriptSoFar` for the same reason.
+ */
+function buildPairTranscriptBlock(turns) {
+  const lines = (Array.isArray(turns) ? turns : [])
+    .filter((turn) => turn && typeof turn.text === 'string' && turn.text.trim())
+    .slice(-8)
+    .map(
+      (turn) => `- ${turn.role === 'you' ? 'THE USER' : 'YOU'}: ${turn.text.trim().slice(0, 300)}`
+    );
+  if (lines.length === 0) return '';
+  return `${lines.join('\n')}\n\nThe user has just spoken. Answer them.\n`;
 }
 
 /**
  * Shared context block for both scene modes — the canvas is the canvas either
  * way. The refresh note below is mob-only language because only a mob is
  * re-scripted mid-scene; see `buildPairSystemPrompt` for why a pair is not.
+ *
+ * `visibleIds` is the pointable half of the same walk that produces
+ * `visibleLabels`: index-aligned node ids from the rendered SVG, printed so a
+ * beat can name what it is pointing at. Empty for every non-mermaid content
+ * type, where the client cannot resolve an id to a node.
+ *
+ * `turns` is the pairing transcript; a non-empty one makes this a continue turn.
  */
 export function buildHuddleUserPrompt({
   contentType,
   diagramSource,
   visibleLabels,
+  visibleIds = [],
+  turns = [],
   officeLog,
   uiLocale,
   priorBeats
 }) {
-  const labels =
-    Array.isArray(visibleLabels) && visibleLabels.length > 0
-      ? visibleLabels
-          .slice(0, 30)
-          .map((label) => `- ${String(label).slice(0, 120)}`)
-          .join('\n')
-      : '(no labels detected)';
+  const labels = promptBulletList(visibleLabels) || '(no labels detected)';
+  const ids = promptBulletList(visibleIds);
   const source =
     typeof diagramSource === 'string' && diagramSource.trim()
       ? diagramSource.slice(0, 6000)
       : '(empty)';
-  const prior = Array.isArray(priorBeats)
-    ? priorBeats.filter((b) => b?.speakerId && typeof b.text === 'string' && b.text.trim())
-    : [];
+  const spokenBefore = (Array.isArray(priorBeats) ? priorBeats : []).filter(
+    (beat) => beat?.speakerId && typeof beat.text === 'string' && beat.text.trim()
+  );
   const refreshNote =
-    prior.length > 0
+    spokenBefore.length > 0
       ? 'The diagram was updated since the huddle started — write only the remaining remarks for the teammates who have not spoken yet, about what is on screen NOW.\n'
       : '';
+  const transcript = buildPairTranscriptBlock(turns);
   return [
     `Diagram type: ${contentType || 'mermaid'}`,
     buildOfficeLogBlock(officeLog),
     '',
     'Visible labels:',
     labels,
+    ids ? ['', 'VISIBLE NODE IDS (the only ids that resolve to something on screen):', ids] : [],
     '',
     'Current diagram source:',
     '```',
@@ -1256,11 +1349,13 @@ export function buildHuddleUserPrompt({
     '```',
     '',
     refreshNote,
+    transcript,
     `Write the huddle remarks as strict JSON now.${buildOfficeLanguageReminder(uiLocale)}`
   ]
-    .flat()
-    .filter((line) => line !== null)
-    .join('\n');
+    .flat(2)
+    .filter((line) => line !== null && line !== undefined)
+    .join('\n')
+    .replace(/\n{3,}/g, '\n\n');
 }
 
 const STRICT_JSON_RE = /\{[\s\S]*\}/;
@@ -1370,17 +1465,53 @@ export function parseInterjectReply(raw, { attendees }) {
 /** Upper bound on a huddle remark — 30 words of prompt, clamped generously here. */
 const HUDDLE_TEXT_MAX = 220;
 
-/** @returns {{speakerId: string, text: string, actionPrompt?: string} | null} */
-function normalizeHuddleBeat(beat) {
+/** A pointed-at node id: short enough to be a Mermaid id, long enough for a slug. */
+const HUDDLE_FOCUS_ID_MAX = 120;
+
+/** Trimmed string field, clamped to `max`; '' when absent or not a string. */
+function beatStringField(value, max = Number.POSITIVE_INFINITY) {
+  return typeof value === 'string' ? value.trim().slice(0, max) : '';
+}
+
+/**
+ * The id a beat is allowed to point at.
+ *
+ * Only an id the client actually sent survives. A hallucinated one is not a
+ * cosmetic miss — it is a hand pointing at a box that does not exist, and once
+ * it is on the wire the client has no way to tell it from a node that was real
+ * a moment ago and has since been redrawn.
+ *
+ * @param {string} rawFocusId
+ * @param {Set<string> | null} [allowedFocusIds]
+ * @returns {string | undefined}
+ */
+function allowedBeatFocusId(rawFocusId, allowedFocusIds = null) {
+  if (!rawFocusId || !allowedFocusIds?.has(rawFocusId)) return undefined;
+  return rawFocusId;
+}
+
+/**
+ * @param {unknown} beat
+ * @param {Set<string> | null} [allowedFocusIds] Ids the client can actually
+ *   resolve to a rendered node; see `allowedBeatFocusId`.
+ * @returns {{speakerId: string, text: string, actionPrompt?: string, focusId?: string} | null}
+ */
+function normalizeHuddleBeat(beat, allowedFocusIds = null) {
   if (!beat || typeof beat !== 'object') return null;
-  const speakerId = typeof beat.speakerId === 'string' ? beat.speakerId.trim() : '';
-  const text = typeof beat.text === 'string' ? beat.text.trim().slice(0, HUDDLE_TEXT_MAX) : '';
+  const speakerId = beatStringField(beat.speakerId);
+  const text = beatStringField(beat.text, HUDDLE_TEXT_MAX);
   if (!speakerId || !text) return null;
-  const actionPrompt =
-    typeof beat.actionPrompt === 'string' && beat.actionPrompt.trim()
-      ? beat.actionPrompt.trim().slice(0, 300)
-      : undefined;
-  return { speakerId, text, ...(actionPrompt ? { actionPrompt } : {}) };
+  const actionPrompt = beatStringField(beat.actionPrompt, 300);
+  const focusId = allowedBeatFocusId(
+    beatStringField(beat.focusId, HUDDLE_FOCUS_ID_MAX),
+    allowedFocusIds
+  );
+  return {
+    speakerId,
+    text,
+    ...(actionPrompt ? { actionPrompt } : {}),
+    ...(focusId ? { focusId } : {})
+  };
 }
 
 /**
@@ -1392,13 +1523,13 @@ function normalizeHuddleBeat(beat) {
  * one at a time, so a duplicate or unknown speaker would light the wrong face.
  * Returns null when nobody usable spoke; the caller falls back in-fiction.
  */
-export function parseHuddleScript(raw, { attendees }) {
+export function parseHuddleScript(raw, { attendees, allowedFocusIds = null }) {
   const parsed = extractJsonObject(raw);
   if (!parsed || typeof parsed !== 'object' || !Array.isArray(parsed.beats)) return null;
-  /** @type {Map<string, {speakerId: string, text: string, actionPrompt?: string}>} */
+  /** @type {Map<string, {speakerId: string, text: string, actionPrompt?: string, focusId?: string}>} */
   const bySpeaker = new Map();
   for (const candidate of parsed.beats) {
-    const beat = normalizeHuddleBeat(candidate);
+    const beat = normalizeHuddleBeat(candidate, allowedFocusIds);
     // First line wins: a model that repeats somebody must not overwrite the
     // remark that already landed, and unknown speakers never get a seat.
     if (!beat || !attendees.includes(beat.speakerId) || bySpeaker.has(beat.speakerId)) continue;
@@ -1422,14 +1553,21 @@ const PAIR_MAX_BEATS = 6;
  * speakerId is the entire point and there are no seats to reconcile against —
  * model order IS the order they say things in. Both parsers drop anyone who was
  * not in the room.
+ *
+ * A continue turn asks for one beat; the clamp is the same either way, so a
+ * model that ignores "exactly one" still lands as a short turn rather than a
+ * re-run of the opening script.
  */
-export function parsePairScript(raw, { attendee }) {
+export function parsePairScript(
+  raw,
+  { attendee, allowedFocusIds = null, maxBeats = PAIR_MAX_BEATS }
+) {
   const parsed = extractJsonObject(raw);
   if (!parsed || typeof parsed !== 'object' || !Array.isArray(parsed.beats)) return null;
   const beats = parsed.beats
-    .map((candidate) => normalizeHuddleBeat(candidate))
+    .map((candidate) => normalizeHuddleBeat(candidate, allowedFocusIds))
     .filter((beat) => beat && beat.speakerId === attendee)
-    .slice(0, PAIR_MAX_BEATS);
+    .slice(0, Math.max(1, maxBeats));
   return beats.length > 0 ? { beats } : null;
 }
 

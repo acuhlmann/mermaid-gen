@@ -367,6 +367,68 @@ describe('HuddleOverlay in pair mode', () => {
     expect(screen.queryByText('Everyone is wandering over…')).toBeNull();
   });
 
+  // The other half of pairing: they said something, and now it is your turn.
+  it('holds the last remark and offers a way back while listening', () => {
+    const onPairReply = vi.fn();
+    const { container } = render(
+      <HuddleOverlay huddle={pair({ phase: 'listening' })} onPairReply={onPairReply} />
+    );
+
+    // The line that was just said stays up — blanking it at the moment they are
+    // waiting for your answer would be the worst possible time to lose it.
+    expect(screen.getByText(PAIR_BEATS[PAIR_BEATS.length - 1].text)).toBeTruthy();
+    // And it is not still claiming to be mid-sentence.
+    expect(screen.queryByText('Everyone is wandering over…')).toBeNull();
+    expect(screen.getByTestId('office-pair-reply')).toBeTruthy();
+    expect(container.querySelector('.office-huddle-listening').textContent).toMatch(
+      /Bertram Gilfoyle/
+    );
+
+    fireEvent.change(screen.getByLabelText(/Answer Bertram Gilfoyle/), {
+      target: { value: 'Why does Billing read it?' }
+    });
+    fireEvent.click(screen.getByTestId('office-pair-reply-send'));
+    expect(onPairReply).toHaveBeenCalledWith('Why does Billing read it?');
+  });
+
+  it('lets a chip answer without typing, and clears the box after sending', () => {
+    const onPairReply = vi.fn();
+    render(<HuddleOverlay huddle={pair({ phase: 'listening' })} onPairReply={onPairReply} />);
+    const input = screen.getByLabelText(/Answer Bertram Gilfoyle/);
+
+    fireEvent.change(input, { target: { value: 'half a thought' } });
+    fireEvent.click(screen.getByTestId('office-pair-reply-chip-show'));
+    // A chip is the faster route, so it sends its own words rather than
+    // appending to whatever was already in the box.
+    expect(onPairReply).toHaveBeenCalledWith('Show me');
+    expect(input.value).toBe('');
+  });
+
+  it('stops accepting answers while their reply is in flight', () => {
+    const onPairReply = vi.fn();
+    const { container } = render(
+      <HuddleOverlay
+        huddle={pair({ phase: 'listening', awaitingReply: true })}
+        onPairReply={onPairReply}
+      />
+    );
+    expect(screen.getByTestId('office-pair-reply').dataset.busy).toBe('true');
+    expect(screen.getByTestId('office-pair-reply-send').disabled).toBe(true);
+    expect(screen.getByTestId('office-pair-reply-chip-why').disabled).toBe(true);
+    // The wait reads as a person thinking, not as a hung UI.
+    expect(container.querySelector('.office-huddle-listening').textContent).toMatch(/Thinking/);
+  });
+
+  it('never offers the strip to a mob, which has nobody to answer', () => {
+    render(<HuddleOverlay huddle={huddle({ phase: 'listening' })} onPairReply={vi.fn()} />);
+    expect(screen.queryByTestId('office-pair-reply')).toBeNull();
+  });
+
+  it('offers no strip while they are still talking', () => {
+    render(<HuddleOverlay huddle={pair()} onPairReply={vi.fn()} />);
+    expect(screen.queryByTestId('office-pair-reply')).toBeNull();
+  });
+
   it('renders nothing when there is no huddle', () => {
     const { container } = render(<HuddleOverlay huddle={null} />);
     expect(container.querySelector('.office-huddle-layer')).toBeNull();

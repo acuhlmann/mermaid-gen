@@ -1086,6 +1086,47 @@
   animation: diagram-change-stroke-modified 1.75s ease-in-out infinite;
 }
 
+/* Somebody in the office is pointing at this node (see useDiagramPointFocus).
+ * A sibling of the change highlight, not a variant of it: a diff says "this
+ * moved", a point says "look here". So it wears a warmer stroke and a slower,
+ * single-node pulse, and it never removes the change classes — the two can be
+ * on the same node at once without either hiding the other. */
+.diagram-viewport svg g.node.is-office-pointed,
+.diagram-viewport svg g.cluster.is-office-pointed {
+  filter: drop-shadow(0 0 10px color-mix(in srgb, #f59e0b 55%, transparent));
+}
+
+.diagram-viewport svg g.node.is-office-pointed path,
+.diagram-viewport svg g.node.is-office-pointed rect,
+.diagram-viewport svg g.node.is-office-pointed polygon,
+.diagram-viewport svg g.node.is-office-pointed circle,
+.diagram-viewport svg g.node.is-office-pointed ellipse,
+.diagram-viewport svg g.node.is-office-pointed polyline,
+.diagram-viewport svg g.node.is-office-pointed line,
+.diagram-viewport svg g.cluster.is-office-pointed rect {
+  stroke: color-mix(in srgb, #f59e0b 82%, var(--accent)) !important;
+  stroke-width: 3.5px !important;
+  stroke-dasharray: 7 4 !important;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .diagram-viewport svg g.node.is-office-pointed,
+  .diagram-viewport svg g.cluster.is-office-pointed {
+    animation: office-point-pulse 2.4s ease-in-out infinite;
+  }
+}
+
+@keyframes office-point-pulse {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 6px color-mix(in srgb, #f59e0b 42%, transparent));
+  }
+
+  50% {
+    filter: drop-shadow(0 0 14px color-mix(in srgb, #f59e0b 68%, transparent));
+  }
+}
+
 .diagram-viewport svg g.node.is-diagram-selected.is-diagram-change-added,
 .diagram-viewport svg g.node.is-diagram-selected.is-diagram-change-modified {
   animation: none;
@@ -21229,6 +21270,145 @@ body.slopitect-rainbow-tint::before {
 }
 .office-huddle-hard-stop:hover {
   background: color-mix(in srgb, #b91c1c 12%, var(--office-surface-bg));
+}
+/* ── Pairing gestures ────────────────────────────────────────────────────
+ * The two things the person in the chair does to *your* screen: point at a
+ * node, and slide the keyboard over when it is your turn to type. Both portal
+ * to <body> and are positioned in viewport coordinates, so neither is clipped
+ * by the huddle layer and neither inherits its transforms.
+ * Above the canvas and the huddle ring, below the dialogs that own the screen. */
+.office-pair-pointer {
+  position: fixed;
+  z-index: 9200;
+  pointer-events: none;
+  /* Anchor is the node's top-right; the hand reaches in from there. */
+  transform: translate(-30%, -55%);
+}
+.office-pair-pointer-hand {
+  display: block;
+  font-size: 30px;
+  line-height: 1;
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.45));
+}
+.office-pair-handover {
+  position: fixed;
+  right: 8%;
+  bottom: 22%;
+  z-index: 9200;
+  pointer-events: none;
+}
+.office-pair-handover-prop {
+  display: block;
+  font-size: 40px;
+  line-height: 1;
+  filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.5));
+}
+.office-pair-handover-caption {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-align: center;
+  color: var(--text);
+}
+/* Your side of the conversation. Sits in the huddle chrome column, so it
+ * inherits the centring; it only has to be wide enough to type in. */
+.office-pair-reply {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  width: min(420px, 84vw);
+}
+.office-pair-reply-input {
+  flex: 1 1 160px;
+  min-width: 0;
+  font-size: 13px;
+  padding: 0.36rem 0.6rem;
+  border-radius: 999px;
+  color: var(--text);
+  background: color-mix(in srgb, var(--office-surface-bg) 94%, transparent);
+  border: 1px solid var(--control-border);
+  box-shadow: var(--control-shadow);
+}
+.office-pair-reply-input:disabled {
+  opacity: 0.6;
+}
+.office-pair-reply-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+.office-pair-reply-chip,
+.office-pair-reply-send {
+  appearance: none;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 0.3rem 0.62rem;
+  border-radius: 999px;
+  color: var(--text);
+  background: color-mix(in srgb, var(--office-surface-bg) 94%, transparent);
+  border: 1px solid var(--control-border);
+  box-shadow: var(--control-shadow);
+}
+.office-pair-reply-chip:hover:not(:disabled),
+.office-pair-reply-send:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent) 14%, var(--office-surface-bg));
+}
+.office-pair-reply-chip:disabled,
+.office-pair-reply-send:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+.office-pair-reply-send {
+  border-color: color-mix(in srgb, var(--accent) 42%, var(--control-border));
+}
+.office-huddle-listening {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .office-pair-pointer-hand {
+    animation: office-pair-point-in 320ms cubic-bezier(0.2, 0.85, 0.25, 1) both;
+  }
+  .office-pair-handover {
+    /* Seat is on the right edge; the Work Order is bottom-centre. The slide is
+     * the whole joke, so it is the one animation that has to actually move. */
+    animation: office-pair-handover-slide 1.4s cubic-bezier(0.3, 0.7, 0.3, 1) both;
+  }
+}
+@keyframes office-pair-point-in {
+  from {
+    transform: translate(14px, -14px) scale(0.7);
+    opacity: 0;
+  }
+
+  to {
+    transform: translate(0, 0) scale(1);
+    opacity: 1;
+  }
+}
+@keyframes office-pair-handover-slide {
+  0% {
+    transform: translate(0, 0) rotate(0deg);
+    opacity: 0;
+  }
+
+  18% {
+    opacity: 1;
+  }
+
+  100% {
+    transform: translate(-34vw, 46vh) rotate(-14deg);
+    opacity: 0;
+  }
 }
 @media (max-width: 1024px) {
   .office-huddle-layer {

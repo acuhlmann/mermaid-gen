@@ -2212,7 +2212,21 @@ export const OFFICE_CHROME_COPY = {
     pairGathering: '{name} is pulling up a chair…',
     pairWatching: '{name} is watching the notebook…',
     pairEnd: "Thanks — I've got it",
-    pairEndTitle: '{name} goes back to their desk'
+    pairEndTitle: '{name} goes back to their desk',
+    /**
+     * The other half of pairing: they said something and now it is your turn.
+     * A pair waits for you rather than talking over you, so the strip says who
+     * is being answered and the chips are the three things you actually say to
+     * somebody at your shoulder — show me, why, agreed.
+     */
+    pairListening: '{name} is waiting to hear what you make of it',
+    pairReplyLabel: 'Answer {name}',
+    pairReplyPlaceholder: 'Say something back…',
+    pairReplySend: 'Say it',
+    pairReplyChipShow: 'Show me',
+    pairReplyChipWhy: 'Why that?',
+    pairReplyChipAgree: 'Yeah, agreed',
+    pairHandover: 'Over to you'
   },
   coffee: {
     kindLabel: 'Coffee run',

@@ -8,6 +8,7 @@ import { shouldShowSpokenText } from '../utils/officeCaptions.js';
 import {
   getOfficeSnapshot,
   setOfficeHuddleActiveLineIndex,
+  setOfficeHuddleListening,
   subscribe
 } from '../state/officeMomentStore.js';
 import { useScenePacing } from './useScenePacing.js';
@@ -74,6 +75,12 @@ export function useHuddleRingControls({
   const beats = huddle?.beats ?? [];
   const speaking = huddle?.phase === 'speaking';
   const watching = huddle?.phase === 'watching';
+  /**
+   * Their line has landed and the pair is waiting on you. Nothing paces from
+   * here — this is the phase that turns a script into a conversation, and the
+   * reason the last beat stays on screen instead of clearing with the loop.
+   */
+  const listening = huddle?.phase === 'listening';
   const pacingActive = (speaking || watching) && beats.length > 0;
   /**
    * The one behavioural difference between the two modes, and the whole reason
@@ -82,6 +89,15 @@ export function useHuddleRingControls({
    * evaporate because they finished a sentence — you end it, or nobody does.
    */
   const pairing = huddle?.mode === 'pair';
+  const turnIndex = huddle?.turnIndex ?? 0;
+  /**
+   * Per-turn scene id, and the load-bearing half of the conversation loop.
+   * `useScenePacing` restarts whenever its `sceneId` or line count changes; a
+   * pair whose beats array grew underneath a running loop would therefore
+   * re-speak lines already heard. Making each turn its own scene means the
+   * restart is the intent — one turn, its own lines, history never in it.
+   */
+  const sceneId = huddle?.id ? `${huddle.id}:${turnIndex}` : null;
 
   const [pinnedSpeakerId, setPinnedSpeakerId] = useState(/** @type {string | null} */ (null));
   const [fetchingSpeakerId, setFetchingSpeakerId] = useState(/** @type {string | null} */ (null));
@@ -117,6 +133,22 @@ export function useHuddleRingControls({
     [narrateLine]
   );
 
+  /*
+   * A pair's turn ends in `listening`, never in a dissolve: the last remark
+   * landing is exactly the moment it is your turn, so the scene hands back
+   * instead of ending. `onDone` fires once per turn because each turn is its
+   * own scene id.
+   *
+   * The id is pulled out first so the dependency is the exact value read: the
+   * React Compiler refuses to preserve a memo whose declared deps are less
+   * specific than what it infers, and `huddle` is not what this closes over.
+   */
+  const huddleId = huddle?.id ?? null;
+  const handleTurnDone = useCallback(() => {
+    if (!pairing || !huddleId) return;
+    setOfficeHuddleListening(huddleId);
+  }, [pairing, huddleId]);
+
   const { visibleLines, lineSpoken } = useScenePacing({
     lines: beats,
     active: !disabled && pacingActive,
@@ -126,8 +158,8 @@ export function useHuddleRingControls({
     paceMs: HUDDLE_LINE_PACE_MS,
     silentDurationMs: HUDDLE_LINE_PACE_MS * Math.max(beats.length, 1),
     tailMs: HUDDLE_TAIL_MS,
-    sceneId: huddle?.id ?? null,
-    onDone: pairing ? undefined : onHardStop
+    sceneId,
+    onDone: pairing ? handleTurnDone : onHardStop
   });
 
   useEffect(() => {
@@ -226,7 +258,15 @@ export function useHuddleRingControls({
     ]
   );
 
-  const activeBeat = speaking || watching ? beats[visibleLines - 1] : null;
+  /*
+   * The live line, and it outlives the pacing loop on purpose. `listening` has
+   * no running scene, so reading only `speaking || watching` would blank the
+   * bubble at exactly the moment they have said something and are waiting to
+   * hear what you make of it — the beat clamps because a fresh turn can hold a
+   * shorter script than the index the last one left behind.
+   */
+  const heldIndex = Math.max(0, Math.min(visibleLines || beats.length, beats.length) - 1);
+  const activeBeat = speaking || watching || listening ? (beats[heldIndex] ?? null) : null;
   const activeSpeakerId = watching || pinnedSpeakerId ? null : (activeBeat?.speakerId ?? null);
   const pinnedBeat = pinnedSpeakerId ? beatForSpeaker(huddle, pinnedSpeakerId) : null;
   const pinnedPrompt = pinnedSpeakerId
@@ -236,11 +276,26 @@ export function useHuddleRingControls({
     captions: snapshot.captions,
     voiceActive: typeof narrateLine === 'function' && speaking
   });
+  /**
+   * What the person in the chair is pointing at right now. Only ever set for a
+   * pair on a mermaid canvas — every other case has no resolvable node id, and
+   * a pointer aimed at nothing is worse than no pointer.
+   */
+  const activeFocusId =
+    pairing && (speaking || listening) && !watching
+      ? typeof activeBeat?.focusId === 'string'
+        ? activeBeat.focusId
+        : null
+      : null;
 
   return {
     speaking,
     watching,
+    listening,
     pairing,
+    awaitingReply: Boolean(huddle?.awaitingReply),
+    turns: huddle?.turns ?? [],
+    activeFocusId,
     pinnedSpeakerId,
     fetchingSpeakerId,
     repeatingSpeakerId,

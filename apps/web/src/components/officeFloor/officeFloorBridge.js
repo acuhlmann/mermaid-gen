@@ -73,6 +73,7 @@
  *   onHardStop?: () => void,
  *   onAdoptPrompt?: (prompt: string, colleagueId: string) => void,
  *   onRequestSuggestion?: (speakerId: string) => Promise<any>,
+ *   onPairReply?: (text: string) => void,
  *   narrateLine?: (line: any) => Promise<{ spoken?: boolean }>,
  *   prefetchLine?: (line: any) => void,
  *   onCancelNarration?: () => void

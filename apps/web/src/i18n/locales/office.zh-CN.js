@@ -1369,7 +1369,15 @@ export const OFFICE_ZH_CN = {
       pairGathering: '{name} 正拉椅子过来…',
       pairWatching: '{name} 正在看笔记本…',
       pairEnd: '谢了 — 我明白了',
-      pairEndTitle: '{name} 回自己工位'
+      pairEndTitle: '{name} 回自己工位',
+      pairListening: '{name} 在等你怎么看',
+      pairReplyLabel: '回应 {name}',
+      pairReplyPlaceholder: '说点什么回应一下…',
+      pairReplySend: '说',
+      pairReplyChipShow: '给我看看',
+      pairReplyChipWhy: '为什么是这个？',
+      pairReplyChipAgree: '嗯，同意',
+      pairHandover: '轮到你了'
     },
     coffee: {
       kindLabel: '咖啡歇脚',

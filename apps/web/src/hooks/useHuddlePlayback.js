@@ -6,11 +6,14 @@ import { officeDialogueLocale } from '../utils/officeCast.js';
 import { officeWireModelProfile } from '../utils/officeMomentDelivery.js';
 import { getOfficeLogDigest } from '../state/officeLogStore.js';
 import {
+  beginOfficeHuddleTurn,
   endOfficeHuddle,
   getOfficeSnapshot,
   pauseOfficeHuddleForWatching,
+  recordOfficePairTurn,
   refreshOfficeHuddleBeats,
   resumeOfficeHuddleSpeaking,
+  setOfficeHuddleAwaitingReply,
   setOfficeHuddleBeats,
   startOfficeHuddle,
   subscribe,
@@ -19,8 +22,13 @@ import {
 
 export const HUDDLE_FETCH_TIMEOUT_MS = 20_000;
 export const HUDDLE_SUGGEST_TIMEOUT_MS = 18_000;
+/** A reply turn asks for one short line, so it gets a tighter budget than an opening script. */
+export const HUDDLE_REPLY_TIMEOUT_MS = 14_000;
 /** Debounce canvas edits before re-scripting unspoken huddle remarks. */
 export const HUDDLE_DIAGRAM_REFRESH_DEBOUNCE_MS = 700;
+
+/** Cap on what your own line contributes to the next prompt. */
+const PAIR_REPLY_MAX_CHARS = 400;
 
 /** Stable fingerprint for diagram refresh — content type + trimmed source. */
 export function huddleDiagramFingerprint(contentType, diagramSource) {
@@ -28,19 +36,113 @@ export function huddleDiagramFingerprint(contentType, diagramSource) {
   return `${contentType || 'mermaid'}::${source}`;
 }
 
-/** Everything the server needs to know about what the scene is looking at. */
-function huddleContext(params, attendees, mode = 'mob') {
+/**
+ * Fold a landed script into the pairing transcript.
+ *
+ * Only the pair keeps one: the model has to see what it said before it can
+ * answer what you said next. A mob's beats are one remark per person with no
+ * follow-up to write, so its transcript would only ever grow.
+ */
+function recordPartnerTurns(mode, beats) {
+  if (mode !== 'pair' || !Array.isArray(beats)) return;
+  for (const beat of beats) {
+    if (typeof beat?.text === 'string' && beat.text.trim()) {
+      recordOfficePairTurn(null, 'partner', beat.text);
+    }
+  }
+}
+
+/** What you said, trimmed and clamped; '' when there is nothing to send. */
+function trimmedPairReply(text) {
+  return typeof text === 'string' ? text.trim().slice(0, PAIR_REPLY_MAX_CHARS) : '';
+}
+
+/**
+ * The pair that can be answered right now, or null.
+ *
+ * `awaitingReply` is the gate that keeps a second question from queueing on top
+ * of the first: one turn at a time, because the answer to the first has not
+ * arrived yet and two in flight would race for the same transcript.
+ */
+function answerablePair() {
+  const huddle = getOfficeSnapshot().huddle;
+  if (!huddle || huddle.mode !== 'pair' || huddle.awaitingReply) return null;
+  return huddle;
+}
+
+/**
+ * Ask for the next line, carrying the transcript and the canvas as it is NOW.
+ *
+ * Reading the canvas at reply time is what replaces the mob's mid-scene
+ * re-script: a pair that has been sitting through your edits is not still
+ * talking about the diagram you both stopped looking at, and no already-spoken
+ * line is ever rewritten to get there.
+ */
+async function fetchPairReplyTurn({ params, controller }) {
+  const live = getOfficeSnapshot().huddle;
+  const ctx = huddleContext(params, live?.attendees ?? [], 'pair');
+  const payload = await fetchHuddleScript(
+    { ...ctx, turns: live?.turns ?? [] },
+    params.getSessionId?.() ?? '',
+    controller,
+    HUDDLE_REPLY_TIMEOUT_MS
+  );
+  return { ctx, payload };
+}
+
+/**
+ * Land one answered turn.
+ *
+ * The new beat REPLACES the queue rather than joining it — see
+ * `beginOfficeHuddleTurn` for why that is the whole trick. An empty answer is
+ * not a dismissal: the flag comes back off so the strip accepts another try,
+ * and the pair stays seated.
+ *
+ * @returns {object | null} the beat that landed
+ */
+function applyPairReplyTurn(huddleId, beats, fingerprint) {
+  if (!Array.isArray(beats) || beats.length === 0) {
+    setOfficeHuddleAwaitingReply(huddleId, false);
+    return null;
+  }
+  beginOfficeHuddleTurn(huddleId, beats, { diagramFingerprint: fingerprint });
+  recordPartnerTurns('pair', beats);
+  return beats[0];
+}
+
+/** What the scene is looking at, read once so every caller agrees on it. */
+function readSceneCanvas(params) {
   const contentType = params.getContentType?.() ?? 'mermaid';
   const rawSource = params.getDiagramSource?.() ?? '';
   const diagramSource =
     typeof rawSource === 'string' ? rawSource.slice(0, OFFICE_DIAGRAM_SOURCE_MAX_CHARS) : '';
   const svgRoot = params.getSvgRoot?.() ?? null;
   const host = svgRoot ?? (typeof document !== 'undefined' ? document : null);
-  const { labels } = getAdvisorVisibleLabels({ contentType, host, diagramSource });
+  const { labels, ids } = getAdvisorVisibleLabels({ contentType, host, diagramSource });
+  return { contentType, diagramSource, labels, ids };
+}
+
+/**
+ * The ids a beat is allowed to point at.
+ *
+ * Mermaid only: every other extractor returns the labels themselves as `ids`,
+ * and only a rendered `g.node` has an id the canvas can resolve and put a hand
+ * on. Sending label-copies as ids would ask the model to point at things it
+ * cannot point at.
+ */
+function pointableIdsFor(contentType, ids) {
+  if (contentType !== 'mermaid' || !Array.isArray(ids)) return [];
+  return ids;
+}
+
+/** Everything the server needs to know about what the scene is looking at. */
+function huddleContext(params, attendees, mode = 'mob') {
+  const canvas = readSceneCanvas(params);
   return {
-    contentType,
-    diagramSource,
-    visibleLabels: labels,
+    contentType: canvas.contentType,
+    diagramSource: canvas.diagramSource,
+    visibleLabels: canvas.labels,
+    visibleIds: pointableIdsFor(canvas.contentType, canvas.ids),
     attendees,
     mode,
     // Your own team, crowded around your screen — the surface with the most
@@ -56,8 +158,8 @@ function huddleContext(params, attendees, mode = 'mob') {
  * feature (everyone wanders off), never an error toast. Same doctrine as
  * /api/office/meeting.
  */
-async function fetchHuddleScript(body, sessionId, controller) {
-  const timeoutId = setTimeout(() => controller.abort(), HUDDLE_FETCH_TIMEOUT_MS);
+async function fetchHuddleScript(body, sessionId, controller, timeoutMs = HUDDLE_FETCH_TIMEOUT_MS) {
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const headers = { 'content-type': 'application/json' };
     if (sessionId) headers[SESSION_HEADER] = sessionId;
@@ -167,9 +269,11 @@ export function useHuddlePlayback(params) {
   const abortRef = useRef(/** @type {AbortController | null} */ (null));
   const refreshAbortRef = useRef(/** @type {AbortController | null} */ (null));
   const suggestAbortRef = useRef(/** @type {AbortController | null} */ (null));
+  const replyAbortRef = useRef(/** @type {AbortController | null} */ (null));
   const generationRef = useRef(0);
   const refreshGenerationRef = useRef(0);
   const suggestGenerationRef = useRef(0);
+  const replyGenerationRef = useRef(0);
   const diagramFingerprintRef = useRef('');
   const [diagramWatchKey, setDiagramWatchKey] = useState('');
 
@@ -200,12 +304,15 @@ export function useHuddlePlayback(params) {
     generationRef.current += 1;
     refreshGenerationRef.current += 1;
     suggestGenerationRef.current += 1;
+    replyGenerationRef.current += 1;
     abortRef.current?.abort();
     abortRef.current = null;
     refreshAbortRef.current?.abort();
     refreshAbortRef.current = null;
     suggestAbortRef.current?.abort();
     suggestAbortRef.current = null;
+    replyAbortRef.current?.abort();
+    replyAbortRef.current = null;
     paramsRef.current.onCancelNarration?.();
     endOfficeHuddle();
   }, []);
@@ -215,9 +322,11 @@ export function useHuddlePlayback(params) {
       generationRef.current += 1;
       refreshGenerationRef.current += 1;
       suggestGenerationRef.current += 1;
+      replyGenerationRef.current += 1;
       abortRef.current?.abort();
       refreshAbortRef.current?.abort();
       suggestAbortRef.current?.abort();
+      replyAbortRef.current?.abort();
       paramsRef.current.onCancelNarration?.();
     },
     []
@@ -272,6 +381,54 @@ export function useHuddlePlayback(params) {
 
     applyHuddleResponse(huddleId, payload, paramsRef.current.onUsage, { fingerprint });
     diagramFingerprintRef.current = fingerprint;
+    recordPartnerTurns(mode, getOfficeSnapshot().huddle?.beats);
+  }, []);
+
+  /**
+   * You answered the person in the chair — get their next line.
+   *
+   * One call, one beat, its own turn. The transcript goes up with the canvas as
+   * it is *now*, so a pair that has been sitting through your edits is not
+   * still talking about the diagram you both stopped looking at; that is what
+   * replaces the mob's mid-scene re-script, without ever rewriting a line the
+   * user already heard.
+   *
+   * A failure leaves the pair seated and in `listening` rather than ending the
+   * scene: they are still next to you, they just did not answer, and the reply
+   * strip is still there to try again.
+   *
+   * @param {string} text what you said
+   * @returns {Promise<object | null>} the beat, or null when nothing came back
+   */
+  const continuePairing = useCallback(async (text) => {
+    const reply = trimmedPairReply(text);
+    const current = answerablePair();
+    if (!reply || !current) return null;
+
+    recordOfficePairTurn(current.id, 'you', reply);
+    setOfficeHuddleAwaitingReply(current.id, true);
+
+    const generation = ++replyGenerationRef.current;
+    replyAbortRef.current?.abort();
+    const controller = new AbortController();
+    replyAbortRef.current = controller;
+
+    const params = paramsRef.current;
+    try {
+      const { ctx, payload } = await fetchPairReplyTurn({ params, controller });
+      // Both guards run before anything is written: a late answer must not land
+      // on a scene that was ended or replaced while it was in flight.
+      if (generation !== replyGenerationRef.current) return null;
+      if (getOfficeSnapshot().huddle?.id !== current.id) return null;
+
+      reportUsage(params.onUsage, payload);
+      const fingerprint = huddleDiagramFingerprint(ctx.contentType, ctx.diagramSource);
+      const beat = applyPairReplyTurn(current.id, payload?.script?.beats, fingerprint);
+      if (beat) diagramFingerprintRef.current = fingerprint;
+      return beat;
+    } finally {
+      if (replyAbortRef.current === controller) replyAbortRef.current = null;
+    }
   }, []);
 
   /**
@@ -403,6 +560,7 @@ export function useHuddlePlayback(params) {
     startHuddle,
     endHuddle,
     requestSpeakerSuggestion,
+    continuePairing,
     pauseForWatching,
     resumeSpeaking
   };

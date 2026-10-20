@@ -133,10 +133,19 @@ function initialState(imHistory = restoredImHistory) {
      * (seated faces, paced remarks, a Do-it, pausing for a delegated run) is
      * everything except how many people and how it ends.
      *
+     * A pair is also a *conversation*: `turns` is the transcript, `turnIndex`
+     * counts the turns, and `beats` always holds the CURRENT turn's script only.
+     * Phase `listening` is the pair waiting for you to react — the beat that
+     * pointed at a node has landed and nothing advances until you answer.
+     * Per-turn `beats` is load-bearing, not tidiness: `useScenePacing` keys on
+     * the line count, so a script that grew under a running loop would restart
+     * it and re-speak lines the user already heard. See
+     * `beginOfficeHuddleTurn`.
+     *
      * `watching` freezes turn-taking while a teammate runs a delegated "Do it"
      * (notebook open, faces stay seated) and flips back to `speaking` when done.
      * `suggestions` holds on-spot pin-able remarks that are not in the spoken queue.
-     * @type {{id: string, mode: 'mob' | 'pair', attendees: string[], beats: Array<{speakerId: string, text: string, actionPrompt?: string}>, suggestions?: Record<string, {speakerId: string, text: string, actionPrompt?: string}>, phase: 'gathering' | 'speaking' | 'watching', createdAt: number} | null}
+     * @type {{id: string, mode: 'mob' | 'pair', attendees: string[], beats: Array<{speakerId: string, text: string, actionPrompt?: string, focusId?: string}>, suggestions?: Record<string, {speakerId: string, text: string, actionPrompt?: string}>, phase: 'gathering' | 'speaking' | 'watching' | 'listening', turns: Array<{role: 'partner' | 'you', text: string}>, turnIndex: number, awaitingReply: boolean, activeLineIndex: number, diagramFingerprint: string, createdAt: number} | null}
      */
     huddle: null,
     /**
@@ -308,6 +317,17 @@ export function startOfficeHuddle(attendees, { mode = 'mob' } = {}) {
     /** @type {Record<string, {speakerId: string, text: string, actionPrompt?: string}>} */
     suggestions: {},
     phase: /** @type {'gathering'} */ ('gathering'),
+    /**
+     * The pairing transcript, oldest first. Empty for a mob, which has no
+     * conversation to continue — its mid-scene refresh is driven by the canvas
+     * changing, not by anybody replying.
+     * @type {Array<{role: 'partner' | 'you', text: string}>}
+     */
+    turns: [],
+    /** Which turn `beats` belongs to. Part of the pacing scene id. */
+    turnIndex: 0,
+    /** True between "you said something" and their answer landing. */
+    awaitingReply: false,
     /** 0-based index of the line currently being spoken (drives diagram refresh). */
     activeLineIndex: 0,
     /** Snapshot of diagram source when beats last matched the canvas. */
@@ -413,6 +433,85 @@ export function resumeOfficeHuddleSpeaking(id = null) {
   if (id && state.huddle.id !== id) return;
   if (state.huddle.phase !== 'watching') return;
   update({ huddle: { ...state.huddle, phase: 'speaking' } });
+}
+
+/**
+ * Append one line to the pairing transcript.
+ *
+ * Kept separate from `beats` on purpose: `beats` is what the pacing loop is
+ * performing right now, `turns` is what gets sent back to the model so the next
+ * line answers the one before it. A mob has no transcript and this is a no-op
+ * for one.
+ *
+ * @param {string | null} id
+ * @param {'partner' | 'you'} role
+ * @param {string} text
+ */
+export function recordOfficePairTurn(id, role, text) {
+  if (!state.huddle) return;
+  if (id && state.huddle.id !== id) return;
+  const line = typeof text === 'string' ? text.trim() : '';
+  if (!line || (role !== 'partner' && role !== 'you')) return;
+  const turns = [...(state.huddle.turns ?? []), { role, text: line }].slice(-12);
+  update({ huddle: { ...state.huddle, turns } });
+}
+
+/**
+ * Start the next turn of a conversation: `beats` becomes the new turn's script
+ * and `turnIndex` bumps.
+ *
+ * This REPLACES the queue rather than appending to it, and that is the whole
+ * point. `useScenePacing` keys its loop on the line count, so a script that
+ * grew underneath a running loop would restart it and re-speak lines the user
+ * had already heard — the failure `buildPairSystemPrompt` documents as the
+ * reason a pair used to be scripted exactly once. Bumping `turnIndex` makes the
+ * restart deliberate: the pacing scene id is `${huddle.id}:${turnIndex}`, so a
+ * new turn is a new scene with its own single line, and history is never in it.
+ *
+ * @param {string | null} id
+ * @param {Array<{speakerId: string, text: string, actionPrompt?: string, focusId?: string}>} beats
+ * @param {{ diagramFingerprint?: string }} [opts]
+ */
+export function beginOfficeHuddleTurn(id, beats, { diagramFingerprint = '' } = {}) {
+  if (!state.huddle) return;
+  if (id && state.huddle.id !== id) return;
+  const next = Array.isArray(beats) ? beats : [];
+  if (next.length === 0) return;
+  update({
+    huddle: {
+      ...state.huddle,
+      beats: next,
+      // A late answer must not yank a Do-it handover out of `watching`.
+      phase: state.huddle.phase === 'watching' ? 'watching' : 'speaking',
+      turnIndex: (state.huddle.turnIndex ?? 0) + 1,
+      awaitingReply: false,
+      activeLineIndex: 0,
+      diagramFingerprint:
+        typeof diagramFingerprint === 'string' && diagramFingerprint
+          ? diagramFingerprint
+          : state.huddle.diagramFingerprint
+    }
+  });
+}
+
+/**
+ * Their line has landed and the pair is now waiting on you. Nothing advances on
+ * a timer from here — this is the phase that makes pairing a conversation
+ * rather than a monologue with a pause in it.
+ */
+export function setOfficeHuddleListening(id = null) {
+  if (!state.huddle) return;
+  if (id && state.huddle.id !== id) return;
+  if (state.huddle.phase !== 'speaking') return;
+  update({ huddle: { ...state.huddle, phase: 'listening' } });
+}
+
+/** The "they are thinking about what you just said" flag. */
+export function setOfficeHuddleAwaitingReply(id = null, awaitingReply = false) {
+  if (!state.huddle) return;
+  if (id && state.huddle.id !== id) return;
+  if (state.huddle.awaitingReply === Boolean(awaitingReply)) return;
+  update({ huddle: { ...state.huddle, awaitingReply: Boolean(awaitingReply) } });
 }
 
 /** Hard stop, last line spoken, or a failed fetch — all end the same way. */

@@ -8,6 +8,7 @@
 
 import FloorBubble from './FloorBubble.jsx';
 import FloorFigure from './FloorFigure.jsx';
+import OfficePairReply from '../OfficePairReply.jsx';
 import {
   HUDDLE_SEAT_STAGGER_MS,
   adoptPromptFor,
@@ -188,12 +189,25 @@ export function FloorHuddle({
  * hard stop — that would be exactly the state fork ADR-0011 rule 1 exists to
  * prevent, just spelled in copy instead of in a store.
  */
-export function FloorHuddleCard({ huddle, copy, onHardStop, ringControls = null }) {
+export function FloorHuddleCard({
+  huddle,
+  copy,
+  onHardStop,
+  ringControls = null,
+  onPairReply = null
+}) {
   const huddleCopy = officeChromeCopy().huddle;
   const floorHuddle = copy.huddle ?? {};
   if (!huddle) return null;
   const speaking = huddle.phase === 'speaking';
   const watching = huddle.phase === 'watching';
+  /*
+   * Read from the slice, not from `ringControls`: the card already reads phase
+   * directly for `speaking` / `watching`, and the floor renderer must not be
+   * the one that behaves differently when the desk is driving the ring.
+   */
+  const listening = huddle.phase === 'listening';
+  const awaitingReply = Boolean(huddle.awaitingReply);
   const pairing = huddle.mode === 'pair';
   const partnerName = pairing ? officeSenderInfo(huddle.attendees[0])?.name : '';
   const withName = (template) => formatLocale(template, { name: partnerName ?? '' });
@@ -224,7 +238,7 @@ export function FloorHuddleCard({ huddle, copy, onHardStop, ringControls = null 
           ? withName(floorHuddle.pairHeading ?? '{name}, in the chair next to you')
           : (floorHuddle.heading ?? huddleCopy.sceneAria)}
       </strong>
-      {!speaking && !watching ? (
+      {!speaking && !watching && !listening ? (
         <p className="office-floor-card-blurb">
           {pairing
             ? withName(huddleCopy.pairGathering ?? huddleCopy.gathering)
@@ -237,6 +251,22 @@ export function FloorHuddleCard({ huddle, copy, onHardStop, ringControls = null 
             ? withName(huddleCopy.pairWatching ?? huddleCopy.watching)
             : (huddleCopy.watching ?? 'The team is watching the notebook…')}
         </p>
+      ) : null}
+      {pairing && listening ? (
+        <p className="office-floor-card-blurb" data-testid="office-floor-huddle-listening">
+          {awaitingReply
+            ? (huddleCopy.fetchingLabel ?? 'Thinking…')
+            : withName(huddleCopy.pairListening ?? '{name} is waiting to hear what you make of it')}
+        </p>
+      ) : null}
+      {pairing && listening && typeof onPairReply === 'function' ? (
+        <OfficePairReply
+          partnerName={partnerName ?? ''}
+          copy={huddleCopy}
+          busy={awaitingReply}
+          onReply={onPairReply}
+          testIdPrefix="office-floor-pair-reply"
+        />
       ) : null}
       <div className="office-floor-card-actions">
         {delegatePrompt && delegateSpeakerId ? (

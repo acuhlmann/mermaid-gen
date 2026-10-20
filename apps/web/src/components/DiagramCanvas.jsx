@@ -51,6 +51,7 @@ import FormsRenderer from './FormsRenderer.jsx';
 import DiagramRunFx from './DiagramRunFx.jsx';
 import { measureViewportForDiagram } from '../utils/diagramViewportFit.js';
 import { computeViewportFocusForChangeHighlight } from '../utils/focusDiagramHighlightIds.js';
+import { useDiagramPointFocus } from '../features/canvas/useDiagramPointFocus.js';
 import { ARCHISLOP_MERMAID_CANVAS_INIT } from '../utils/mermaidRenderInit.js';
 import { isMermaidInfrastructureError } from '../utils/mermaidRenderErrors.js';
 import { renderMermaidSvg } from '../utils/renderMermaidPreview.js';
@@ -193,6 +194,7 @@ export default function DiagramCanvas({
   onEditorClose = null,
   changeHighlight = null,
   changeHighlightContentType = null,
+  pointFocus = null, // node ids somebody is pointing at — see useDiagramPointFocus
   onDiagramSvgRendered = null,
   runFx = null,
   /** Incremented by App on each mode switch so the infographic renderer fully remounts. */
@@ -425,11 +427,7 @@ export default function DiagramCanvas({
     const tryApply = () => {
       if (applied) return;
       if (!viewportEl.querySelector('svg')) return;
-      const next = computeViewportFocusForChangeHighlight(
-        viewportEl,
-        changeHighlight,
-        changeHighlightContentType
-      );
+      const next = computeViewportFocusForChangeHighlight(viewportEl, changeHighlight);
       if (!next) return;
       applied = true;
       setViewport(next);
@@ -714,6 +712,8 @@ export default function DiagramCanvas({
       applyDiagramHighlightToSvg(viewportRef.current, changeHighlight);
     }
   }, [contentType, svgMarkup, changeHighlight]);
+
+  useDiagramPointFocus({ viewportRef, setViewport, contentType, svgMarkup, pointFocus });
 
   // Infographic canvas is rendered async by AntV; observe DOM mutations and re-apply.
   useEffect(() => {

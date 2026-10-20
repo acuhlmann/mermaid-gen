@@ -21,6 +21,7 @@ import OfficeDeskArrival from './OfficeDeskArrival.jsx';
 import OfficeDeskSpeech from './OfficeDeskSpeech.jsx';
 import OfficeInboxDock from './OfficeInboxDock.jsx';
 import OfficeMessenger from './OfficeMessenger.jsx';
+import { OfficePairHandover, OfficePairPointer } from './OfficePairPointer.jsx';
 import OfficeTrainingWindow from './OfficeTrainingWindow.jsx';
 import OfficeWalkBy from './OfficeWalkBy.jsx';
 import { TRAINING_MODULE_TOTAL } from '@archislop/shared';
@@ -54,6 +55,7 @@ import {
   pushOfficeErrand,
   pushOfficeImPing,
   pushOfficeImReply,
+  setOfficeHuddleListening,
   settleOfficeErrand,
   subscribe,
   voteOfficeBattle
@@ -184,7 +186,18 @@ export default function OfficeLayer({
    */
   agentBusy = false,
   /** When false, #office-desk-bottom-slot is not in the bottom row (empty intro). */
-  deskActionsAnchorReady = false
+  deskActionsAnchorReady = false,
+  /**
+   * Publish what the person in the chair is pointing at — node ids, or null to
+   * clear. The canvas lives in a sibling slot, so this is the only way the
+   * point reaches it.
+   */
+  onPairPoint = null,
+  /**
+   * The pair's Do-it: hand the keyboard over instead of delegating the run.
+   * Absent means fall back to `onAdoptPrompt`, which is what a mob does.
+   */
+  onPairHandover = null
 }) {
   const snapshot = useSyncExternalStore(subscribe, getOfficeSnapshot, getOfficeSnapshot);
   // Which renderer is on screen (ADR-0011). Surfaces that exist in both worlds
@@ -297,6 +310,7 @@ export default function OfficeLayer({
     startHuddle,
     endHuddle,
     requestSpeakerSuggestion,
+    continuePairing,
     pauseForWatching,
     resumeSpeaking
   } = useHuddlePlayback({
@@ -1155,15 +1169,45 @@ export default function OfficeLayer({
   /**
    * Delegate a pinned / spoken suggestion: keep the ring seated, open the
    * notebook via onAdoptPrompt, and resume turn-taking when agentBusy clears.
+   *
+   * A pair takes the other branch. The person in the chair is beside you and
+   * cannot drive your notebook, so their "Do it" is them sliding the keyboard
+   * your way — the ask lands in the Work Order prefilled and focused, and
+   * *you* press the button that also says Do it. Nothing runs, which is why
+   * there is no `watching` phase here: there is no agent to wait for and no
+   * turn-taking to resume, only a colleague now watching you type.
    */
   const huddleWatchRef = useRef(/** @type {null | 'awaiting-busy' | 'busy'} */ (null));
+  const [handoverSeq, setHandoverSeq] = useState(0);
   const handleHuddleAdopt = useCallback(
     (prompt, colleagueId) => {
+      const live = getOfficeSnapshot().huddle;
+      if (live?.mode === 'pair' && typeof onPairHandover === 'function') {
+        setHandoverSeq((n) => n + 1);
+        onPairHandover(prompt, colleagueId);
+        setOfficeHuddleListening(live.id);
+        return;
+      }
       pauseForWatching();
       huddleWatchRef.current = 'awaiting-busy';
       onAdoptPrompt?.(prompt, colleagueId);
     },
-    [pauseForWatching, onAdoptPrompt]
+    [pauseForWatching, onAdoptPrompt, onPairHandover]
+  );
+
+  /**
+   * You answered the person in the chair. Their reply is one beat on the
+   * latency lane, so this is the interaction the whole scene waits on — the
+   * strip is disabled until it lands rather than queueing a second question
+   * over the top of the first.
+   */
+  const handlePairReply = useCallback(
+    (text) => {
+      const line = typeof text === 'string' ? text.trim() : '';
+      if (!line) return;
+      void continuePairing(line);
+    },
+    [continuePairing]
   );
 
   useEffect(() => {
@@ -1201,6 +1245,7 @@ export default function OfficeLayer({
       onHardStop: handleHardStop,
       onAdoptPrompt: handleHuddleAdopt,
       onRequestSuggestion: requestSpeakerSuggestion,
+      onPairReply: handlePairReply,
       narrateLine: snapshot.narration ? narrateLine : undefined,
       prefetchLine: snapshot.narration ? prefetchLine : undefined,
       onCancelNarration: cancelOfficeNarration
@@ -1209,6 +1254,7 @@ export default function OfficeLayer({
       handleHardStop,
       handleHuddleAdopt,
       requestSpeakerSuggestion,
+      handlePairReply,
       snapshot.narration,
       narrateLine,
       prefetchLine
@@ -1242,6 +1288,26 @@ export default function OfficeLayer({
       battleLinesDone
     }),
     [coffeeVisibleLines, coffeeLineSpoken, battleVisibleLines, battleLineSpoken, battleLinesDone]
+  );
+
+  /**
+   * Publish the point. The id arrives with the beat and leaves when the beat
+   * does, so the ring and the hand live exactly as long as the line that named
+   * them — a pointer that outstayed its remark would be pointing at a box
+   * nobody is talking about any more.
+   *
+   * Cleared on unmount as well, because the canvas is a sibling that outlives
+   * this layer: ending a pair must not leave a ring on the diagram.
+   */
+  const pairFocusId = huddleRing?.activeFocusId ?? null;
+  useEffect(() => {
+    onPairPoint?.(pairFocusId ? [pairFocusId] : null);
+  }, [onPairPoint, pairFocusId]);
+  useEffect(
+    () => () => {
+      onPairPoint?.(null);
+    },
+    [onPairPoint]
   );
 
   const handleMeetingDismiss = useCallback(() => {
@@ -1772,10 +1838,23 @@ export default function OfficeLayer({
           onHardStop={handleHardStop}
           onAdoptPrompt={handleHuddleAdopt}
           onRequestSuggestion={requestSpeakerSuggestion}
+          onPairReply={handlePairReply}
           narrateLine={snapshot.narration ? narrateLine : undefined}
           prefetchLine={snapshot.narration ? prefetchLine : undefined}
           onCancelNarration={cancelOfficeNarration}
         />
+      )}
+      {/* The pair's hands over the canvas. Desk only: standing up onto the
+          floor puts the diagram off screen, and a hand pointing at a canvas
+          nobody can see is worse than no hand. */}
+      {onFloor ? null : (
+        <>
+          <OfficePairPointer focusId={pairFocusId} />
+          <OfficePairHandover
+            seq={handoverSeq}
+            caption={officeChromeCopy().huddle?.pairHandover ?? 'Over to you'}
+          />
+        </>
       )}
       {/* The call window is renderer #1 of a meeting; the glass room is
           renderer #2. Physical syncs stand you into the room and hand chrome to

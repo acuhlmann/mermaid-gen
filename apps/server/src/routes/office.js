@@ -181,6 +181,17 @@ const OfficeHuddlePriorBeatSchema = z.object({
 });
 
 /**
+ * One exchange of a pairing conversation. `partner` is the person in the chair,
+ * `you` is the user typing back at them — the same two-sided transcript the
+ * meeting interjection carries as `transcriptSoFar` + `interjection`, kept as
+ * one list here because a pair has no facilitator to attribute turns to.
+ */
+const OfficePairTurnSchema = z.object({
+  role: z.enum(['partner', 'you']),
+  text: z.string().max(400)
+});
+
+/**
  * `mob` is the whole team crowding your screen; `pair` is one teammate in the
  * chair next to you. They share this endpoint because they share the client's
  * huddle slice (ADR-0011 rule 1) — but almost nothing downstream of the mode
@@ -192,11 +203,26 @@ const OfficeHuddleRequestSchema = z.object({
   contentType: ContentTypeSchema.default('mermaid'),
   diagramSource: DiagramSourceField,
   visibleLabels: z.array(z.string().max(200)).max(60).default([]),
+  /**
+   * Node ids the client can resolve to something rendered, index-aligned with
+   * `visibleLabels`. Mermaid only: every other content type's label extractor
+   * returns the labels themselves as ids, and pointing at one resolves to
+   * nothing. An id absent from this list is stripped from the beat, so the
+   * model cannot point at a box that does not exist.
+   */
+  visibleIds: z.array(z.string().max(120)).max(60).default([]),
   mode: HuddleModeSchema,
   // Floor of 1 here; the per-mode seat count is enforced below where the mode
   // is known, so a one-seat "mob" fails as a mode error, not a schema error.
   attendees: z.array(z.string().max(40)).min(1).max(HUDDLE_MAX_ATTENDEES),
   priorBeats: z.array(OfficeHuddlePriorBeatSchema).max(HUDDLE_MAX_ATTENDEES).optional(),
+  /**
+   * Pairing only: the conversation so far. Empty (or absent) asks for the
+   * opening script; non-empty asks for the next single line. A mob ignores it —
+   * its mid-scene refresh is `priorBeats`, which is about the canvas changing,
+   * not about the user replying.
+   */
+  turns: z.array(OfficePairTurnSchema).max(12).optional(),
   officeLog: OfficeLogField,
   uiLocale: UiLocaleField,
   modelProfile: ModelProfileField
@@ -276,20 +302,38 @@ function huddleAttendeesForMode(payload) {
  * What to ask for this turn and how to read it back. The two modes diverge
  * completely here — different prompt, different parser. `priorBeats` is a mob
  * concern only: it names who has already spoken so a mid-scene re-script does
- * not rewrite remarks the user already heard. A pair is scripted once (see
- * `buildPairSystemPrompt`), so it ignores the field rather than pretending to
- * support a refresh the client never asks for.
+ * not rewrite remarks the user already heard. `turns` is the pair's mirror
+ * image — a conversation rather than a canvas refresh — and the mob ignores it.
+ *
+ * `allowedFocusIds` is where a pointing beat is held honest: only ids the
+ * client actually sent survive into a beat, so a hallucinated node cannot
+ * become a hand pointing at empty canvas.
  *
  * @returns {{system: string, parse: (raw: string) => object | null} | null}
  *   null when the ring has nothing left to say, so the caller can answer with
  *   an empty script instead of spending a call.
  */
 function planHuddleTurn(payload, attendees, priorBeats) {
+  const allowedFocusIds = new Set(payload.visibleIds.filter(Boolean));
   if (payload.mode === 'pair') {
     const attendee = attendees[0];
+    const turns = Array.isArray(payload.turns) ? payload.turns : [];
     return {
-      system: buildPairSystemPrompt({ attendee, uiLocale: payload.uiLocale }),
-      parse: (raw) => parsePairScript(raw, { attendee })
+      system: buildPairSystemPrompt({
+        attendee,
+        uiLocale: payload.uiLocale,
+        visibleIds: payload.visibleIds,
+        turns
+      }),
+      // A continue turn asks for one line and is clamped to one, so a model
+      // that ignores the instruction lands as a short turn instead of a
+      // re-run of the opening script.
+      parse: (raw) =>
+        parsePairScript(raw, {
+          attendee,
+          allowedFocusIds,
+          maxBeats: turns.length > 0 ? 1 : undefined
+        })
     };
   }
   const spokenIds = new Set(priorBeats.map((b) => b.speakerId));
@@ -298,7 +342,7 @@ function planHuddleTurn(payload, attendees, priorBeats) {
   if (priorBeats.length > 0 && remaining.length === 0) return null;
   return {
     system: buildHuddleSystemPrompt({ attendees, uiLocale: payload.uiLocale, priorBeats }),
-    parse: (raw) => parseHuddleScript(raw, { attendees: remaining })
+    parse: (raw) => parseHuddleScript(raw, { attendees: remaining, allowedFocusIds })
   };
 }
 
