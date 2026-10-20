@@ -77,12 +77,15 @@ function answerablePair() {
  * re-script: a pair that has been sitting through your edits is not still
  * talking about the diagram you both stopped looking at, and no already-spoken
  * line is ever rewritten to get there.
+ *
+ * `reply` rides on the request but is NOT yet in the store's transcript — see
+ * `applyPairReplyTurn`, which commits it only once an answer lands.
  */
-async function fetchPairReplyTurn({ params, controller }) {
+async function fetchPairReplyTurn({ params, controller, reply }) {
   const live = getOfficeSnapshot().huddle;
   const ctx = huddleContext(params, live?.attendees ?? [], 'pair');
   const payload = await fetchHuddleScript(
-    { ...ctx, turns: live?.turns ?? [] },
+    { ...ctx, turns: [...(live?.turns ?? []), { role: 'you', text: reply }] },
     params.getSessionId?.() ?? '',
     controller,
     HUDDLE_REPLY_TIMEOUT_MS
@@ -98,13 +101,20 @@ async function fetchPairReplyTurn({ params, controller }) {
  * not a dismissal: the flag comes back off so the strip accepts another try,
  * and the pair stays seated.
  *
+ * Both halves of the exchange are written here and nowhere earlier. Recording
+ * your line before the request is what makes a retry say it twice: the failure
+ * path leaves it in `turns`, the strip invites another go, and the model gets
+ * two user lines with no partner line between them — and keeps getting them,
+ * because each failure pushes an older partner line out of the 12-turn window.
+ *
  * @returns {object | null} the beat that landed
  */
-function applyPairReplyTurn(huddleId, beats, fingerprint) {
+function applyPairReplyTurn(huddleId, beats, { fingerprint, reply }) {
   if (!Array.isArray(beats) || beats.length === 0) {
     setOfficeHuddleAwaitingReply(huddleId, false);
     return null;
   }
+  recordOfficePairTurn(huddleId, 'you', reply);
   beginOfficeHuddleTurn(huddleId, beats, { diagramFingerprint: fingerprint });
   recordPartnerTurns('pair', beats);
   return beats[0];
@@ -405,7 +415,9 @@ export function useHuddlePlayback(params) {
     const current = answerablePair();
     if (!reply || !current) return null;
 
-    recordOfficePairTurn(current.id, 'you', reply);
+    // Your line goes up with the request but is not written to the transcript
+    // yet — see `applyPairReplyTurn`. A failure that recorded it first would
+    // leave the pair remembering a question you are about to ask again.
     setOfficeHuddleAwaitingReply(current.id, true);
 
     const generation = ++replyGenerationRef.current;
@@ -415,7 +427,7 @@ export function useHuddlePlayback(params) {
 
     const params = paramsRef.current;
     try {
-      const { ctx, payload } = await fetchPairReplyTurn({ params, controller });
+      const { ctx, payload } = await fetchPairReplyTurn({ params, controller, reply });
       // Both guards run before anything is written: a late answer must not land
       // on a scene that was ended or replaced while it was in flight.
       if (generation !== replyGenerationRef.current) return null;
@@ -423,7 +435,7 @@ export function useHuddlePlayback(params) {
 
       reportUsage(params.onUsage, payload);
       const fingerprint = huddleDiagramFingerprint(ctx.contentType, ctx.diagramSource);
-      const beat = applyPairReplyTurn(current.id, payload?.script?.beats, fingerprint);
+      const beat = applyPairReplyTurn(current.id, payload?.script?.beats, { fingerprint, reply });
       if (beat) diagramFingerprintRef.current = fingerprint;
       return beat;
     } finally {

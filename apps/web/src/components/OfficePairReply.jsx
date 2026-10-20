@@ -109,6 +109,17 @@ export default function OfficePairReply({
         // would have nowhere useful to go.
         onKeyDown={(event) => {
           if (event.key !== 'Enter') return;
+          /*
+           * Enter commits an IME candidate before it means "send". This strip
+           * ships zh-CN and zh-TW copy, so a Chinese user pressing Enter to
+           * choose a candidate would otherwise fire a half-composed pinyin
+           * reply — and `busy` then locks the box until the partner answers,
+           * so they cannot even take it back. Same guard the studio composer
+           * uses (`SimpleStudioSlot`), which is why it is checked twice: the
+           * flag lives on the native event, and React has surfaced it on the
+           * synthetic one too depending on version.
+           */
+          if (event.nativeEvent?.isComposing || event.isComposing) return;
           event.preventDefault();
           send(text);
         }}

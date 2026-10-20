@@ -209,8 +209,24 @@ const OfficeHuddleRequestSchema = z.object({
    * returns the labels themselves as ids, and pointing at one resolves to
    * nothing. An id absent from this list is stripped from the beat, so the
    * model cannot point at a box that does not exist.
+   *
+   * Preprocessed rather than plain-validated, because a Mermaid node id embeds
+   * the author's own identifier (`flowchart-<id>-<n>`) and so can outgrow any
+   * cap we pick. A strict `.max(120)` would answer 400 to the whole request and
+   * dissolve a huddle over a long node name nobody did anything wrong with —
+   * and it would do that to a mob too, which cannot even point. Unusable ids
+   * are dropped here instead: pointing is a garnish, never load-bearing for
+   * whether the scene exists.
    */
-  visibleIds: z.array(z.string().max(120)).max(60).default([]),
+  visibleIds: z.preprocess(
+    (value) =>
+      Array.isArray(value)
+        ? value
+            .filter((id) => typeof id === 'string' && id.trim() !== '' && id.length <= 120)
+            .slice(0, 60)
+        : [],
+    z.array(z.string().max(120)).max(60).default([])
+  ),
   mode: HuddleModeSchema,
   // Floor of 1 here; the per-mode seat count is enforced below where the mode
   // is known, so a one-seat "mob" fails as a mode error, not a schema error.

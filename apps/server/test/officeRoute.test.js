@@ -491,6 +491,47 @@ test('office huddle reports an unconfigured LLM rather than inventing a script',
   }
 });
 
+test('office huddle drops unusable visibleIds instead of rejecting the scene', async () => {
+  const { port, closeServer } = await bootServer();
+  try {
+    // A Mermaid node id embeds the author's own identifier, so it can outgrow
+    // any cap we pick. Rejecting the request over it would dissolve a huddle
+    // nobody did anything wrong in — pointing is a garnish, not a precondition.
+    const oversized = await post(port, 'huddle', {
+      mode: 'pair',
+      attendees: ['gilfoyle'],
+      visibleIds: ['x'.repeat(400), 'flowchart-Auth-1']
+    });
+    assert.equal(oversized.status, 503, 'reaches the model gate, not a 400');
+
+    const tooMany = await post(port, 'huddle', {
+      mode: 'pair',
+      attendees: ['gilfoyle'],
+      visibleIds: Array.from({ length: 200 }, (_, i) => `flowchart-N-${i}`)
+    });
+    assert.equal(tooMany.status, 503);
+
+    // Junk that is not a usable id at all is filtered rather than fatal.
+    const junk = await post(port, 'huddle', {
+      mode: 'pair',
+      attendees: ['gilfoyle'],
+      visibleIds: ['', '   ', null, 42, 'flowchart-Auth-1']
+    });
+    assert.equal(junk.status, 503);
+
+    // A wholly unusable list is still not an error — it means "nothing to point
+    // at", which is every non-mermaid canvas and every blank diagram.
+    const allJunk = await post(port, 'huddle', {
+      mode: 'pair',
+      attendees: ['gilfoyle'],
+      visibleIds: ['x'.repeat(400)]
+    });
+    assert.equal(allJunk.status, 503);
+  } finally {
+    await closeServer();
+  }
+});
+
 test('office meeting accepts the escalation venues and rejects unknown ones', async () => {
   const { port, closeServer } = await bootServer();
   try {

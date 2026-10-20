@@ -419,6 +419,24 @@ describe('HuddleOverlay in pair mode', () => {
     expect(container.querySelector('.office-huddle-listening').textContent).toMatch(/Thinking/);
   });
 
+  // This strip ships zh-CN and zh-TW copy, so the composition key is not
+  // hypothetical: Enter chooses a candidate, and sending it would post half a
+  // word — which `busy` then locks away until the partner answers.
+  it('treats Enter as an IME commit, not a send, while composing', () => {
+    const onPairReply = vi.fn();
+    render(<HuddleOverlay huddle={pair({ phase: 'listening' })} onPairReply={onPairReply} />);
+    const input = screen.getByLabelText(/Answer Bertram Gilfoyle/);
+
+    fireEvent.change(input, { target: { value: 'nizhe' } });
+    fireEvent.keyDown(input, { key: 'Enter', isComposing: true });
+    expect(onPairReply).not.toHaveBeenCalled();
+    expect(input.value).toBe('nizhe');
+
+    // The same key once the candidate is committed does send.
+    fireEvent.keyDown(input, { key: 'Enter' });
+    expect(onPairReply).toHaveBeenCalledWith('nizhe');
+  });
+
   it('never offers the strip to a mob, which has nobody to answer', () => {
     render(<HuddleOverlay huddle={huddle({ phase: 'listening' })} onPairReply={vi.fn()} />);
     expect(screen.queryByTestId('office-pair-reply')).toBeNull();

@@ -532,6 +532,57 @@ describe('useHuddlePlayback', () => {
       expect(result.current.huddle.id).toBe(huddleId);
       expect(result.current.huddle.awaitingReply).toBe(false);
       expect(result.current.huddle.beats).toHaveLength(3);
+
+      // And the transcript holds no `you` line. Recording it before the request
+      // is what made a retry say the same question twice — two user lines with
+      // no partner line between them, and each failure pushing an older partner
+      // line out of the window the model actually sees.
+      expect(result.current.huddle.turns.map((t) => t.role)).toEqual([
+        'partner',
+        'partner',
+        'partner'
+      ]);
+    });
+
+    it('records your line exactly once, and only alongside the answer to it', async () => {
+      // The first reply attempt fails and the second lands. Note that both
+      // requests now carry `turns` — the pending line rides on the request
+      // precisely because it is not yet in the store.
+      let replyCalls = 0;
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async (_url, init) => {
+          const body = JSON.parse(init.body);
+          if (!body.turns?.length) return { ok: true, json: async () => ({ script: PAIR_SCRIPT }) };
+          replyCalls += 1;
+          if (replyCalls === 1) return { ok: false, json: async () => ({}) };
+          return { ok: true, json: async () => REPLY_SCRIPT };
+        })
+      );
+      const { result } = renderHook(() => useHuddlePlayback(params()));
+      await act(async () => {
+        await result.current.startHuddle(['gilfoyle'], { mode: 'pair' });
+      });
+
+      // A first attempt that never lands leaves nothing behind...
+      await act(async () => {
+        expect(await result.current.continuePairing('Why?')).toBeNull();
+      });
+      expect(result.current.huddle.turns.some((t) => t.role === 'you')).toBe(false);
+      expect(result.current.huddle.turnIndex).toBe(0);
+
+      // ...so the retry asks once, and only the successful exchange is remembered.
+      await act(async () => {
+        expect(await result.current.continuePairing('Why?')).not.toBeNull();
+      });
+      expect(result.current.huddle.turns.map((t) => t.role)).toEqual([
+        'partner',
+        'partner',
+        'partner',
+        'you',
+        'partner'
+      ]);
+      expect(result.current.huddle.turnIndex).toBe(1);
     });
 
     it('is not a conversation for a mob', async () => {
