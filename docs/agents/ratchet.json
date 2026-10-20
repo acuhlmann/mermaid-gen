@@ -74,7 +74,7 @@
     },
     "strictIslandFiles": {
       "apps/web/tsconfig.strict.json": {
-        "budget": 30,
+        "budget": 32,
         "initial": 15
       },
       "apps/server/tsconfig.strict.json": {
@@ -84,14 +84,14 @@
     },
     "suite": {
       "files": {
-        "budget": 441,
+        "budget": 443,
         "initial": 366,
-        "reason": "2026-10-18: 428→441 — lock measured count after upstream suite growth plus this run's useTryAgentSound.test.js."
+        "reason": "2026-10-20: 441→443 — lock measured count after upstream suite growth on main."
       },
       "cases": {
-        "budget": 5020,
+        "budget": 5063,
         "initial": 3675,
-        "reason": "2026-10-19: 5019→5020 — lock measured count after upstream suite growth on main."
+        "reason": "2026-10-20: 5020→5063 — lock measured count after upstream suite growth on main."
       }
     }
   }
