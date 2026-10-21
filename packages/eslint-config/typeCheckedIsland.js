@@ -39,6 +39,7 @@ export function strictIslandTypeCheckedConfig({ files, tsconfigRootDir }) {
 export const SERVER_STRICT_ISLAND_FILES = [
   'src/routes/copilotRouteTypes.ts',
   'src/routes/copilotDiagramHandlers.ts',
+  'src/routes/copilotCollaborationRoutes.ts',
   'src/routes/copilot.ts',
   'src/state/diagramStateStore.ts',
   'src/state/sessionEventBus.ts',
