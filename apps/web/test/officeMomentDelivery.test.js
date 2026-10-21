@@ -365,6 +365,22 @@ describe('a dwell remark falls back in character, not as a cold-open ping', () =
   });
 });
 
+describe('an ambient walk-by falls back as a cold open, not a provoked reply', () => {
+  it('uses the walk-by bank when the LLM is unavailable', () => {
+    const delivered = deliverCannedMoment('walkby', CTX, {
+      memory: memory(),
+      random: () => 0
+    });
+
+    expect(delivered).toBe(true);
+    const line = getOfficeSnapshot().walkBy?.body ?? '';
+    expect(line.toLowerCase()).toContain('auth');
+    expect(line).not.toMatch(/^re:\s/i);
+    expect(line).not.toMatch(/got ur/i);
+    expect(line).not.toMatch(/you asked/i);
+  });
+});
+
 describe('a provoked talk answer falls back spoken, not as a typed IM', () => {
   it('uses the talk reply bank when the user spoke out loud', () => {
     const delivered = deliverCannedMoment('im', CTX, {
