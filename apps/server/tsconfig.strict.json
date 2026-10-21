@@ -9,6 +9,7 @@
   "include": [
     "src/routes/copilotRouteTypes.ts",
     "src/routes/copilotDiagramHandlers.ts",
+    "src/routes/copilotCollaborationRoutes.ts",
     "src/routes/copilot.ts",
     "src/state/diagramStateStore.ts",
     "src/state/sessionEventBus.ts",

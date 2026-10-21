@@ -105,8 +105,11 @@ they need access to outer-closure state.
   Same pattern: extract helpers first, then per-feature modules.
 - ✅ **`copilot.ts` (diagram REST slice):** blocking intent/transform/analyze/style
   and client state sync → `apps/server/src/routes/copilotDiagramHandlers.ts`;
-  `copilotUserEdit.ts` already held user-edit. Router ~1 194 → ~723 LOC; continue
-  route-module splits for invite/collaboration/SSE when touched.
+  `copilotUserEdit.ts` already held user-edit. Router ~1 194 → ~723 LOC.
+- ✅ **`copilot.ts` (collaboration slice):** proposals, handshakes, presence, invite,
+  join-room, and session-events SSE →
+  `apps/server/src/routes/copilotCollaborationRoutes.ts` via
+  `registerCopilotCollaborationRoutes`. Router ~717 → ~404 LOC.
 - ✅ **`diagramStore.js` (slice 1):** localStorage diagram cache + session wipe helpers
   → `apps/web/src/state/diagramCacheStorage.js`; `diagramStore.js` re-exports.
 - ✅ **`diagramStore.js` (slice 2):** six-slot mode-switch peer sync helpers
