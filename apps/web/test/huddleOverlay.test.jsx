@@ -132,13 +132,21 @@ describe('HuddleOverlay', () => {
     expect(screen.getByText(BEATS[0].text)).toBeTruthy();
   });
 
-  it('names the speaker when voice is on and CC is off — Do it stays by their face', () => {
+  // Do it used to ride the bubble, where it overlapped the canvas and repeated
+  // the remark just said aloud. It lives in the bottom chrome now, so a voiced
+  // line leaves no bubble at all — just the name label by their face.
+  it('names the speaker when voice is on and CC is off — Do it sits in the chrome', () => {
     const { container } = render(
       <HuddleOverlay huddle={huddle()} narrateLine={vi.fn(async () => ({ spoken: true }))} />
     );
     expect(screen.queryByText(BEATS[0].text)).toBeNull();
-    expect(screen.getByTestId('office-huddle-do-it-gilfoyle')).toBeTruthy();
-    expect(container.querySelector('.office-huddle-bubble.is-do-it-only')).toBeTruthy();
+    expect(container.querySelector('.office-huddle-bubble')).toBeNull();
+    expect(container.querySelector('.office-huddle-speaking-label').textContent).toMatch(
+      /Gilfoyle/
+    );
+    expect(
+      container.querySelector('.office-huddle-chrome [data-testid="office-huddle-do-it-gilfoyle"]')
+    ).toBeTruthy();
     expect(container.querySelector('[data-speaking="true"]')).toBeTruthy();
   });
 
@@ -159,12 +167,12 @@ describe('HuddleOverlay', () => {
     expect(onAdoptPrompt).toHaveBeenCalledWith('Split the Auth node in two', 'dinesh');
   });
 
-  it('shows Do it beside the speaker when voice is on and the beat has an action prompt', async () => {
+  it('offers one Do it, outside any bubble, when voice is on and the beat has an action prompt', async () => {
     render(<HuddleOverlay huddle={huddle()} narrateLine={vi.fn(async () => ({ spoken: true }))} />);
     await advanceSpokenLine();
     expect(screen.queryByText(BEATS[1].text)).toBeNull();
-    expect(screen.getAllByRole('button', { name: /Do it/i }).length).toBeGreaterThanOrEqual(1);
-    expect(document.querySelector('.office-huddle-bubble.is-do-it-only')).toBeTruthy();
+    expect(screen.getAllByRole('button', { name: /Do it/i })).toHaveLength(1);
+    expect(document.querySelector('.office-huddle-bubble')).toBeNull();
   });
 
   it('shows the remark text again once CC is on, even with voice speaking', () => {
@@ -435,6 +443,65 @@ describe('HuddleOverlay in pair mode', () => {
     // The same key once the candidate is committed does send.
     fireEvent.keyDown(input, { key: 'Enter' });
     expect(onPairReply).toHaveBeenCalledWith('nizhe');
+  });
+
+  // Do it used to ride the speech bubble, where it overlapped the canvas and
+  // repeated the line they had just said. In a pair it is one of your answers.
+  it('keeps Do it out of the bubble and offers it as a reply chip', async () => {
+    const onAdoptPrompt = vi.fn();
+    const { rerender } = render(<HuddleOverlay huddle={pair()} onAdoptPrompt={onAdoptPrompt} />);
+    await advanceOneLine();
+    await advanceOneLine();
+    expect(screen.queryByTestId('office-huddle-do-it-gilfoyle')).toBeNull();
+
+    rerender(
+      <HuddleOverlay
+        huddle={pair({ phase: 'listening' })}
+        onAdoptPrompt={onAdoptPrompt}
+        onPairReply={vi.fn()}
+      />
+    );
+    expect(screen.queryByTestId('office-huddle-do-it-gilfoyle')).toBeNull();
+    fireEvent.click(screen.getByTestId('office-pair-reply-do-it'));
+    expect(onAdoptPrompt).toHaveBeenCalledWith('Split Auth', 'gilfoyle');
+  });
+
+  // Voice-first holds through your turn: the line you just heard aloud does not
+  // come back as a bubble the moment they stop talking.
+  it('does not re-show a voiced line as a bubble while listening', async () => {
+    const narrateLine = vi.fn(async () => ({ spoken: true }));
+    const last = PAIR_BEATS[PAIR_BEATS.length - 1].text;
+    const { rerender } = render(<HuddleOverlay huddle={pair()} narrateLine={narrateLine} />);
+    await advanceSpokenLine();
+    await advanceSpokenLine();
+    await advanceSpokenLine();
+    rerender(
+      <HuddleOverlay
+        huddle={pair({ phase: 'listening' })}
+        narrateLine={narrateLine}
+        onPairReply={vi.fn()}
+      />
+    );
+    expect(screen.queryByText(last)).toBeNull();
+    // Nor does the seat claim they are still talking.
+    expect(document.querySelector('.office-huddle-speaking-label')).toBeNull();
+  });
+
+  it('still shows the line when voice was unavailable', async () => {
+    const narrateLine = vi.fn(async () => ({ spoken: false }));
+    const last = PAIR_BEATS[PAIR_BEATS.length - 1].text;
+    const { rerender } = render(<HuddleOverlay huddle={pair()} narrateLine={narrateLine} />);
+    await advanceOneLine();
+    await advanceOneLine();
+    await advanceOneLine();
+    rerender(
+      <HuddleOverlay
+        huddle={pair({ phase: 'listening' })}
+        narrateLine={narrateLine}
+        onPairReply={vi.fn()}
+      />
+    );
+    expect(screen.getByText(last)).toBeTruthy();
   });
 
   it('never offers the strip to a mob, which has nobody to answer', () => {

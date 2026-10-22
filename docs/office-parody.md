@@ -799,8 +799,12 @@ rather than six people facing your monitor.
 - **They wait for you.** A turn ends in `phase: 'listening'`, not in a dissolve: the last remark
   landing is precisely the moment it is your turn. The reply strip (`OfficePairReply`, shared by both
   renderers) offers free text plus three chips, and is disabled while `awaitingReply` so a second
-  question cannot queue on top of the first. Their line stays on screen while you answer.
-- **Do-it hands over the keyboard.** For a pair, Do-it does **not** run the agent: their ask is
+  question cannot queue on top of the first. Their line stays on screen while you answer — as a
+  bubble only when it was not voiced; a line you heard aloud is not repeated as text (captions on
+  still show it).
+- **Do-it hands over the keyboard.** For a pair, Do-it is the first chip in the reply strip, never a
+  button in their bubble (it overlapped the canvas and repeated what they had just said), and it
+  only exists while it is your turn. It does **not** run the agent: their ask is
   prefilled into the desk Work Order, the caret follows it, a ⌨️ slides across, and they go back to
   `listening` to watch you type. Pressing the button that also says "Do it" is yours. A mob still
   delegates via `submitIntentWithPrompt` and still uses the `watching` phase — there is an agent run
@@ -839,8 +843,10 @@ the team roster.
   crowd arriving _is_ the feedback that the click landed, so nothing waits on the LLM.
 - **Click a head to pin their Do-it.** Any teammate's face is a hit target. Pinning
   freezes turn-taking and they **repeat** their remark aloud (never flash stale text
-  from earlier in the queue). A Do-it button delegates the ask; clicking anywhere
-  else unpins. If they have not said anything yet, the click fetches an on-spot
+  from earlier in the queue). The Do-it button in the bottom chrome (desk) or on the
+  floor card delegates the ask; clicking anywhere else unpins. Do-it is never drawn in
+  a speech bubble: there it overlapped the canvas and repeated the remark that had
+  just been said aloud, so a bubble only ever carries their words. If they have not said anything yet, the click fetches an on-spot
   suggestion via `/api/advisor/suggest` into `huddle.suggestions` (beside the spoken
   queue, so pacing does not restart). Without Do-it, the repeat ends and the huddle
   resumes where it paused.

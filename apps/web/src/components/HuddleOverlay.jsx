@@ -97,6 +97,21 @@ export default function HuddleOverlay({
   if (!huddle) return null;
 
   const partner = pairing ? officeSenderInfo(huddle.attendees[0]) : null;
+  const pairDoItPrompt =
+    pairing && listening ? adoptPromptFor(activeBeat, { fallbackToText: true }) : null;
+  const pairDoItSpeakerId = activeBeat?.speakerId ?? huddle.attendees[0];
+  /*
+   * A mob's Do it lives in the bottom chrome, never in a speech bubble: in the
+   * bubble it overlapped the canvas and repeated the remark that was just said
+   * aloud. It follows the live speaker, or the face you pinned, and clears when
+   * their turn ends — the same rule the floor card uses.
+   */
+  const delegateSpeakerId = watching || pairing ? null : (pinnedSpeakerId ?? activeSpeakerId);
+  const delegatePrompt = !delegateSpeakerId
+    ? null
+    : pinnedSpeakerId
+      ? pinnedPrompt
+      : adoptPromptFor(activeBeat, { fallbackToText: true });
   const endLabel = pairing ? (copy.pairEnd ?? copy.hardStop) : copy.hardStop;
   const endTitle = pairing
     ? formatLocale(copy.pairEndTitle ?? copy.hardStopTitle, { name: partner?.name ?? '' })
@@ -132,22 +147,12 @@ export default function HuddleOverlay({
         const isPinned = pinnedSpeakerId === id;
         const isFetching = fetchingSpeakerId === id;
         const isRepeating = repeatingSpeakerId === id;
-        /** Do it lives on the live speaker, then clears when the turn ends.
-         * Clicking a face pins them and brings Do it back (FloorHuddle matches). */
         const beat = isPinned ? pinnedBeat : isSpeaking ? activeBeat : null;
-        const actionPrompt = watching
-          ? null
-          : isPinned
-            ? pinnedPrompt
-            : isSpeaking
-              ? adoptPromptFor(activeBeat, { fallbackToText: true })
-              : null;
         const hideRemarkText =
           (isPinned && (isRepeating || isFetching)) || ((isSpeaking || isPinned) && !showText);
         const showRemarkText = Boolean(beat?.text) && !hideRemarkText;
         const showFetching = isFetching && !beat?.text;
-        const showBubble = showRemarkText || Boolean(actionPrompt) || showFetching;
-        const doItOnly = Boolean(actionPrompt) && !showRemarkText && !showFetching;
+        const showBubble = showRemarkText || showFetching;
         return (
           <div
             key={id}
@@ -159,8 +164,7 @@ export default function HuddleOverlay({
               isPinned ? 'is-pinned' : '',
               isFetching ? 'is-fetching' : '',
               isRepeating ? 'is-repeating' : '',
-              watching ? 'is-watching' : '',
-              actionPrompt ? 'has-do-it' : ''
+              watching ? 'is-watching' : ''
             ]
               .filter(Boolean)
               .join(' ')}
@@ -196,8 +200,7 @@ export default function HuddleOverlay({
                   'office-huddle-bubble',
                   isPinned ? 'is-pinned' : '',
                   isFetching ? 'is-fetching' : '',
-                  isRepeating ? 'is-repeating' : '',
-                  doItOnly ? 'is-do-it-only' : ''
+                  isRepeating ? 'is-repeating' : ''
                 ]
                   .filter(Boolean)
                   .join(' ')}
@@ -211,22 +214,8 @@ export default function HuddleOverlay({
                 ) : showRemarkText ? (
                   <p className="office-huddle-line">{beat.text}</p>
                 ) : null}
-                {actionPrompt ? (
-                  <button
-                    type="button"
-                    className="office-do-it office-huddle-do-it"
-                    data-testid={`office-huddle-do-it-${id}`}
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      handleDoIt(id, actionPrompt);
-                    }}
-                    title={copy.delegateTitle ?? 'Open the notebook with this ask'}
-                  >
-                    {copy.delegate ?? officeChromeCopy().doIt}
-                  </button>
-                ) : null}
               </div>
-            ) : isSpeaking ? (
+            ) : isSpeaking && speaking ? (
               <p className="office-huddle-speaking-label">
                 {formatLocale(copy.speakingLabel ?? '{name} is talking', { name: person.name })}
               </p>
@@ -267,17 +256,33 @@ export default function HuddleOverlay({
             copy={copy}
             busy={awaitingReply}
             onReply={onPairReply}
+            onDoIt={pairDoItPrompt ? () => handleDoIt(pairDoItSpeakerId, pairDoItPrompt) : null}
+            doItLabel={copy.delegate ?? officeChromeCopy().doIt}
+            doItTitle={copy.delegateTitle}
           />
         ) : null}
-        <button
-          type="button"
-          className="office-huddle-hard-stop"
-          data-testid="office-huddle-end"
-          onClick={() => onHardStop?.()}
-          title={endTitle}
-        >
-          <span aria-hidden="true">{pairing ? '🪑' : '✋'}</span> {endLabel}
-        </button>
+        <div className="office-huddle-chrome-actions">
+          {delegatePrompt ? (
+            <button
+              type="button"
+              className="office-do-it office-huddle-do-it"
+              data-testid={`office-huddle-do-it-${delegateSpeakerId}`}
+              onClick={() => handleDoIt(delegateSpeakerId, delegatePrompt)}
+              title={copy.delegateTitle ?? 'Open the notebook with this ask'}
+            >
+              {copy.delegate ?? officeChromeCopy().doIt}
+            </button>
+          ) : null}
+          <button
+            type="button"
+            className="office-huddle-hard-stop"
+            data-testid="office-huddle-end"
+            onClick={() => onHardStop?.()}
+            title={endTitle}
+          >
+            <span aria-hidden="true">{pairing ? '🪑' : '✋'}</span> {endLabel}
+          </button>
+        </div>
       </div>
     </div>
   );

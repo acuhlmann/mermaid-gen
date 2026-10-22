@@ -1542,6 +1542,13 @@
   line-height: 1.25;
 }
 
+/* The huddle card has no `.office-floor-card-head` row to break the line, so an
+ * inline heading ran straight into the eyebrow ("PAIRINGBertram…"). */
+.office-floor-card--huddle .office-floor-card-heading {
+  display: block;
+  margin-top: 0.15rem;
+}
+
 /* Raise a hand: the same one-line interjection the call window offers. */
 .office-floor-card-hand {
   display: flex;
