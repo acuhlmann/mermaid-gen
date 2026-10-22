@@ -341,6 +341,18 @@ test('the negative case: an unrelated file does not pull the isometric-floor-sui
   assert.ok(!plan.tests.includes('scripts/verify-isometric-floor-suites.test.mjs'));
 });
 
+test('editing test-affected-lib re-runs every verify sensor suite wired in it', () => {
+  const plan = resolveAffectedTests(['scripts/test-affected-lib.mjs'], { root: ROOT });
+  assert.ok(
+    plan.tests.includes('scripts/verify-agent-tooling-blast.test.mjs'),
+    'test-affected-lib must select the bundle-coverage sensor'
+  );
+  assert.ok(
+    plan.tests.includes('scripts/verify-strict-islands.test.mjs'),
+    'test-affected-lib must select strict-island sensor tests via AGENT_TOOLING_BLAST_TESTS'
+  );
+});
+
 // Every bundle, not the two that happened to be new when this was written (#528 part 2).
 // `resolveAffectedTests` drops a listed path that does not exist with no noise at all, so a renamed
 // suite turns a blast rule into a silent no-op — the same failure the reverse sweep above exists for,
