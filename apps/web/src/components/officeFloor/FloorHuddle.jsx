@@ -3,7 +3,8 @@
  *
  * Desk mode crowds the edges of your monitor (`HuddleOverlay`); here the same
  * six teammates ring your desk on the stage. Shared interaction lives in
- * `useHuddleRingControls` so pin / Do-it / hard-stop stay mode-agnostic.
+ * `useHuddleRingControls` so pin / Do-it / hard-stop stay mode-agnostic. Do it
+ * itself is drawn on `FloorHuddleCard`, never on a teammate's bubble.
  */
 
 import FloorBubble from './FloorBubble.jsx';
@@ -68,16 +69,13 @@ export function FloorHuddle({
   });
   const {
     watching,
-    pairing = false,
     pinnedSpeakerId,
     fetchingSpeakerId,
     repeatingSpeakerId,
     activeBeat,
     activeSpeakerId,
     pinnedBeat,
-    pinnedPrompt,
     showText,
-    handleDoIt,
     handleSeatClick
   } = ringControlsProp ?? internalRing;
 
@@ -97,19 +95,14 @@ export function FloorHuddle({
         const isFetching = fetchingSpeakerId === id;
         const isRepeating = repeatingSpeakerId === id;
         const beat = isPinned ? pinnedBeat : isSpeaking ? activeBeat : null;
-        // A pair's Do it is a chip in the card's reply strip, never the bubble.
-        const actionPrompt = pairing
-          ? null
-          : isPinned
-            ? pinnedPrompt
-            : adoptPromptFor(beat, { fallbackToText: isSpeaking || isPinned });
+        // Do it never rides the bubble: a mob's lives on the floor card, a
+        // pair's in the reply strip. The bubble is only ever their words.
         const hideRemarkText =
           (isPinned && (isRepeating || isFetching)) ||
           ((isSpeaking || isPinned) && !voiceShowsText);
         const showRemarkText = Boolean(beat?.text) && !hideRemarkText;
         const showFetching = isFetching && !beat?.text;
-        const showBubble = showRemarkText || Boolean(actionPrompt) || showFetching;
-        const doItOnly = Boolean(actionPrompt) && !showRemarkText && !showFetching;
+        const showBubble = showRemarkText || showFetching;
         const align = bubbleAlignForSpeaker(tile, id, { standing: true });
 
         return (
@@ -151,25 +144,7 @@ export function FloorHuddle({
                 <FloorFigure id={id} accent={person.accentColor} idleIndex={index} />
               </button>
               {showBubble ? (
-                <FloorBubble
-                  name={person.name}
-                  title={person.title}
-                  scale={scale}
-                  align={align}
-                  hideBody={doItOnly}
-                  footer={
-                    actionPrompt ? (
-                      <button
-                        type="button"
-                        className="office-floor-bubble-action"
-                        onClick={() => handleDoIt(id, actionPrompt)}
-                        title={officeChromeCopy().huddle.delegateTitle}
-                      >
-                        {officeChromeCopy().huddle.delegate ?? officeChromeCopy().doIt}
-                      </button>
-                    ) : null
-                  }
-                >
+                <FloorBubble name={person.name} title={person.title} scale={scale} align={align}>
                   {showFetching
                     ? (officeChromeCopy().huddle.fetchingLabel ?? 'Thinking…')
                     : showRemarkText

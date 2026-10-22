@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { FloorHuddleCard } from '../src/components/officeFloor/FloorHuddle.jsx';
+import { FloorHuddle, FloorHuddleCard } from '../src/components/officeFloor/FloorHuddle.jsx';
 import { officeChromeCopy } from '../src/utils/officeCast.js';
 import { awayFromDeskIds } from '../src/utils/officeSceneCast.js';
 import { HUDDLE_TILES, floorZoneToneAt } from '../src/utils/officeFloorPlan.js';
@@ -21,6 +21,23 @@ describe('floor huddle', () => {
     expect(away).toContain('gilfoyle');
     expect(away).toContain('dinesh');
     expect(away).not.toContain('you');
+  });
+
+  // The card owns Do it; a teammate's bubble is only ever their words.
+  it('keeps Do it off the ring bubbles even when the beat carries an action prompt', () => {
+    const { container } = render(
+      <FloorHuddle
+        huddle={{
+          id: 'h1',
+          phase: 'speaking',
+          attendees: ['dinesh'],
+          beats: [{ speakerId: 'dinesh', text: 'Split Auth.', actionPrompt: 'Split Auth node' }]
+        }}
+      />
+    );
+    expect(screen.getByText('Split Auth.')).toBeTruthy();
+    expect(container.querySelector('.office-floor-bubble-action')).toBeNull();
+    expect(screen.queryByRole('button', { name: /Do it/i })).toBeNull();
   });
 
   it('renders a hard-stop card for the floor huddle', () => {

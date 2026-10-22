@@ -843,8 +843,10 @@ the team roster.
   crowd arriving _is_ the feedback that the click landed, so nothing waits on the LLM.
 - **Click a head to pin their Do-it.** Any teammate's face is a hit target. Pinning
   freezes turn-taking and they **repeat** their remark aloud (never flash stale text
-  from earlier in the queue). A Do-it button delegates the ask; clicking anywhere
-  else unpins. If they have not said anything yet, the click fetches an on-spot
+  from earlier in the queue). The Do-it button in the bottom chrome (desk) or on the
+  floor card delegates the ask; clicking anywhere else unpins. Do-it is never drawn in
+  a speech bubble: there it overlapped the canvas and repeated the remark that had
+  just been said aloud, so a bubble only ever carries their words. If they have not said anything yet, the click fetches an on-spot
   suggestion via `/api/advisor/suggest` into `huddle.suggestions` (beside the spoken
   queue, so pacing does not restart). Without Do-it, the repeat ends and the huddle
   resumes where it paused.

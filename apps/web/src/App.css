@@ -21019,9 +21019,6 @@ body.slopitect-rainbow-tint::before {
 .office-huddle-seat.is-listening {
   opacity: 0.5;
 }
-.office-huddle-seat.is-listening.has-do-it {
-  opacity: 0.92;
-}
 .office-huddle-seat.is-pinned {
   opacity: 1;
   z-index: 2;
@@ -21137,9 +21134,6 @@ body.slopitect-rainbow-tint::before {
     0 0 0 2px color-mix(in srgb, var(--huddle-accent, var(--accent)) 28%, transparent),
     var(--control-shadow);
 }
-.office-huddle-bubble.is-do-it-only {
-  padding-block: 0.35rem;
-}
 .office-huddle-unpin {
   position: absolute;
   top: 0.2rem;
@@ -21230,6 +21224,12 @@ body.slopitect-rainbow-tint::before {
   right: calc(100% + 0.25rem);
   top: 50%;
   transform: translateY(-50%);
+}
+/* Do it and the way out share one row, so the chrome reads as one control bar. */
+.office-huddle-chrome-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
 }
 .office-huddle-do-it {
   align-self: center;

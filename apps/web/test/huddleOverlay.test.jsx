@@ -132,13 +132,21 @@ describe('HuddleOverlay', () => {
     expect(screen.getByText(BEATS[0].text)).toBeTruthy();
   });
 
-  it('names the speaker when voice is on and CC is off — Do it stays by their face', () => {
+  // Do it used to ride the bubble, where it overlapped the canvas and repeated
+  // the remark just said aloud. It lives in the bottom chrome now, so a voiced
+  // line leaves no bubble at all — just the name label by their face.
+  it('names the speaker when voice is on and CC is off — Do it sits in the chrome', () => {
     const { container } = render(
       <HuddleOverlay huddle={huddle()} narrateLine={vi.fn(async () => ({ spoken: true }))} />
     );
     expect(screen.queryByText(BEATS[0].text)).toBeNull();
-    expect(screen.getByTestId('office-huddle-do-it-gilfoyle')).toBeTruthy();
-    expect(container.querySelector('.office-huddle-bubble.is-do-it-only')).toBeTruthy();
+    expect(container.querySelector('.office-huddle-bubble')).toBeNull();
+    expect(container.querySelector('.office-huddle-speaking-label').textContent).toMatch(
+      /Gilfoyle/
+    );
+    expect(
+      container.querySelector('.office-huddle-chrome [data-testid="office-huddle-do-it-gilfoyle"]')
+    ).toBeTruthy();
     expect(container.querySelector('[data-speaking="true"]')).toBeTruthy();
   });
 
@@ -159,12 +167,12 @@ describe('HuddleOverlay', () => {
     expect(onAdoptPrompt).toHaveBeenCalledWith('Split the Auth node in two', 'dinesh');
   });
 
-  it('shows Do it beside the speaker when voice is on and the beat has an action prompt', async () => {
+  it('offers one Do it, outside any bubble, when voice is on and the beat has an action prompt', async () => {
     render(<HuddleOverlay huddle={huddle()} narrateLine={vi.fn(async () => ({ spoken: true }))} />);
     await advanceSpokenLine();
     expect(screen.queryByText(BEATS[1].text)).toBeNull();
-    expect(screen.getAllByRole('button', { name: /Do it/i }).length).toBeGreaterThanOrEqual(1);
-    expect(document.querySelector('.office-huddle-bubble.is-do-it-only')).toBeTruthy();
+    expect(screen.getAllByRole('button', { name: /Do it/i })).toHaveLength(1);
+    expect(document.querySelector('.office-huddle-bubble')).toBeNull();
   });
 
   it('shows the remark text again once CC is on, even with voice speaking', () => {
