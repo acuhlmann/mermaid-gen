@@ -381,6 +381,29 @@ describe('an ambient walk-by falls back as a cold open, not a provoked reply', (
   });
 });
 
+describe('a provoked email answer falls back as a reply, not a cold-open pitch', () => {
+  it('uses the email reply bank when the user composed mail', () => {
+    const delivered = deliverCannedMoment('email', CTX, {
+      memory: memory(),
+      colleagueId: 'intern',
+      recordWorkingMemory: true,
+      replyContext: {
+        colleagueId: 'intern',
+        userMessage: 'Does Billing talk to Auth?'
+      },
+      random: () => 0
+    });
+
+    expect(delivered).toBe(true);
+    const mail = getOfficeSnapshot().emails[0];
+    expect(mail?.subject.toLowerCase()).toMatch(/^re:/);
+    expect(mail?.body.toLowerCase()).toContain('billing');
+    expect(mail?.body.toLowerCase()).toContain('auth');
+    expect(mail?.body).not.toMatch(/mandatory fun hour/i);
+    expect(mail?.body).not.toMatch(/welcome aboard/i);
+  });
+});
+
 describe('a provoked talk answer falls back spoken, not as a typed IM', () => {
   it('uses the talk reply bank when the user spoke out loud', () => {
     const delivered = deliverCannedMoment('im', CTX, {
