@@ -799,8 +799,12 @@ rather than six people facing your monitor.
 - **They wait for you.** A turn ends in `phase: 'listening'`, not in a dissolve: the last remark
   landing is precisely the moment it is your turn. The reply strip (`OfficePairReply`, shared by both
   renderers) offers free text plus three chips, and is disabled while `awaitingReply` so a second
-  question cannot queue on top of the first. Their line stays on screen while you answer.
-- **Do-it hands over the keyboard.** For a pair, Do-it does **not** run the agent: their ask is
+  question cannot queue on top of the first. Their line stays on screen while you answer — as a
+  bubble only when it was not voiced; a line you heard aloud is not repeated as text (captions on
+  still show it).
+- **Do-it hands over the keyboard.** For a pair, Do-it is the first chip in the reply strip, never a
+  button in their bubble (it overlapped the canvas and repeated what they had just said), and it
+  only exists while it is your turn. It does **not** run the agent: their ask is
   prefilled into the desk Work Order, the caret follows it, a ⌨️ slides across, and they go back to
   `listening` to watch you type. Pressing the button that also says "Do it" is yours. A mob still
   delegates via `submitIntentWithPrompt` and still uses the `watching` phase — there is an agent run

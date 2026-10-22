@@ -21322,6 +21322,11 @@ body.slopitect-rainbow-tint::before {
   gap: 0.35rem;
   width: min(420px, 84vw);
 }
+/* The floor card is narrower than the strip's own width; fill it instead of
+ * spilling past its edge. */
+.office-floor-card .office-pair-reply {
+  width: 100%;
+}
 .office-pair-reply-input {
   flex: 1 1 160px;
   min-width: 0;
@@ -21363,7 +21368,8 @@ body.slopitect-rainbow-tint::before {
   opacity: 0.55;
   cursor: default;
 }
-.office-pair-reply-send {
+.office-pair-reply-send,
+.office-pair-reply-chip.is-do-it {
   border-color: color-mix(in srgb, var(--accent) 42%, var(--control-border));
 }
 .office-huddle-listening {

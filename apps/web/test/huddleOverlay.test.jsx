@@ -437,6 +437,65 @@ describe('HuddleOverlay in pair mode', () => {
     expect(onPairReply).toHaveBeenCalledWith('nizhe');
   });
 
+  // Do it used to ride the speech bubble, where it overlapped the canvas and
+  // repeated the line they had just said. In a pair it is one of your answers.
+  it('keeps Do it out of the bubble and offers it as a reply chip', async () => {
+    const onAdoptPrompt = vi.fn();
+    const { rerender } = render(<HuddleOverlay huddle={pair()} onAdoptPrompt={onAdoptPrompt} />);
+    await advanceOneLine();
+    await advanceOneLine();
+    expect(screen.queryByTestId('office-huddle-do-it-gilfoyle')).toBeNull();
+
+    rerender(
+      <HuddleOverlay
+        huddle={pair({ phase: 'listening' })}
+        onAdoptPrompt={onAdoptPrompt}
+        onPairReply={vi.fn()}
+      />
+    );
+    expect(screen.queryByTestId('office-huddle-do-it-gilfoyle')).toBeNull();
+    fireEvent.click(screen.getByTestId('office-pair-reply-do-it'));
+    expect(onAdoptPrompt).toHaveBeenCalledWith('Split Auth', 'gilfoyle');
+  });
+
+  // Voice-first holds through your turn: the line you just heard aloud does not
+  // come back as a bubble the moment they stop talking.
+  it('does not re-show a voiced line as a bubble while listening', async () => {
+    const narrateLine = vi.fn(async () => ({ spoken: true }));
+    const last = PAIR_BEATS[PAIR_BEATS.length - 1].text;
+    const { rerender } = render(<HuddleOverlay huddle={pair()} narrateLine={narrateLine} />);
+    await advanceSpokenLine();
+    await advanceSpokenLine();
+    await advanceSpokenLine();
+    rerender(
+      <HuddleOverlay
+        huddle={pair({ phase: 'listening' })}
+        narrateLine={narrateLine}
+        onPairReply={vi.fn()}
+      />
+    );
+    expect(screen.queryByText(last)).toBeNull();
+    // Nor does the seat claim they are still talking.
+    expect(document.querySelector('.office-huddle-speaking-label')).toBeNull();
+  });
+
+  it('still shows the line when voice was unavailable', async () => {
+    const narrateLine = vi.fn(async () => ({ spoken: false }));
+    const last = PAIR_BEATS[PAIR_BEATS.length - 1].text;
+    const { rerender } = render(<HuddleOverlay huddle={pair()} narrateLine={narrateLine} />);
+    await advanceOneLine();
+    await advanceOneLine();
+    await advanceOneLine();
+    rerender(
+      <HuddleOverlay
+        huddle={pair({ phase: 'listening' })}
+        narrateLine={narrateLine}
+        onPairReply={vi.fn()}
+      />
+    );
+    expect(screen.getByText(last)).toBeTruthy();
+  });
+
   it('never offers the strip to a mob, which has nobody to answer', () => {
     render(<HuddleOverlay huddle={huddle({ phase: 'listening' })} onPairReply={vi.fn()} />);
     expect(screen.queryByTestId('office-pair-reply')).toBeNull();

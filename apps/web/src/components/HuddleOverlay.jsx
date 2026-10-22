@@ -97,6 +97,9 @@ export default function HuddleOverlay({
   if (!huddle) return null;
 
   const partner = pairing ? officeSenderInfo(huddle.attendees[0]) : null;
+  const pairDoItPrompt =
+    pairing && listening ? adoptPromptFor(activeBeat, { fallbackToText: true }) : null;
+  const pairDoItSpeakerId = activeBeat?.speakerId ?? huddle.attendees[0];
   const endLabel = pairing ? (copy.pairEnd ?? copy.hardStop) : copy.hardStop;
   const endTitle = pairing
     ? formatLocale(copy.pairEndTitle ?? copy.hardStopTitle, { name: partner?.name ?? '' })
@@ -133,15 +136,18 @@ export default function HuddleOverlay({
         const isFetching = fetchingSpeakerId === id;
         const isRepeating = repeatingSpeakerId === id;
         /** Do it lives on the live speaker, then clears when the turn ends.
-         * Clicking a face pins them and brings Do it back (FloorHuddle matches). */
+         * Clicking a face pins them and brings Do it back (FloorHuddle matches).
+         * A pair never puts it in the bubble: it is a chip in your reply strip,
+         * so the bubble is only ever their words (and only when unvoiced). */
         const beat = isPinned ? pinnedBeat : isSpeaking ? activeBeat : null;
-        const actionPrompt = watching
-          ? null
-          : isPinned
-            ? pinnedPrompt
-            : isSpeaking
-              ? adoptPromptFor(activeBeat, { fallbackToText: true })
-              : null;
+        const actionPrompt =
+          watching || pairing
+            ? null
+            : isPinned
+              ? pinnedPrompt
+              : isSpeaking
+                ? adoptPromptFor(activeBeat, { fallbackToText: true })
+                : null;
         const hideRemarkText =
           (isPinned && (isRepeating || isFetching)) || ((isSpeaking || isPinned) && !showText);
         const showRemarkText = Boolean(beat?.text) && !hideRemarkText;
@@ -226,7 +232,7 @@ export default function HuddleOverlay({
                   </button>
                 ) : null}
               </div>
-            ) : isSpeaking ? (
+            ) : isSpeaking && speaking ? (
               <p className="office-huddle-speaking-label">
                 {formatLocale(copy.speakingLabel ?? '{name} is talking', { name: person.name })}
               </p>
@@ -267,6 +273,9 @@ export default function HuddleOverlay({
             copy={copy}
             busy={awaitingReply}
             onReply={onPairReply}
+            onDoIt={pairDoItPrompt ? () => handleDoIt(pairDoItSpeakerId, pairDoItPrompt) : null}
+            doItLabel={copy.delegate ?? officeChromeCopy().doIt}
+            doItTitle={copy.delegateTitle}
           />
         ) : null}
         <button

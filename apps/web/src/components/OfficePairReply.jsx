@@ -11,6 +11,11 @@
  * shoulder is usually two words. They send immediately: the point of a chip is
  * that it is faster than typing, so making one focus the box first would defeat
  * it.
+ *
+ * "Do it" is the fourth chip rather than a button in their speech bubble. It
+ * used to ride the bubble, where it repeated the line they had just said aloud
+ * and sat over the canvas; here it is one more thing you can say back — "fine,
+ * hand me the keyboard" — and it only exists while it is your turn.
  */
 
 import { useCallback, useState } from 'react';
@@ -58,15 +63,22 @@ function resolveReplyCopy(copy) {
  *   copy?: Record<string, any> | null,
  *   busy?: boolean,
  *   onReply?: (text: string) => void,
+ *   onDoIt?: (() => void) | null,
+ *   doItLabel?: string,
+ *   doItTitle?: string,
  *   testIdPrefix?: string
  * }} props `busy` is true between sending and their answer landing, which is
- *   also when the strip must not accept a second question.
+ *   also when the strip must not accept a second question. `onDoIt` is null
+ *   when their last line carries nothing to hand over.
  */
 export default function OfficePairReply({
   partnerName = '',
   copy = null,
   busy = false,
   onReply = null,
+  onDoIt = null,
+  doItLabel = 'Do it',
+  doItTitle = '',
   testIdPrefix = 'office-pair-reply'
 }) {
   const [text, setText] = useState('');
@@ -125,6 +137,18 @@ export default function OfficePairReply({
         }}
       />
       <div className="office-pair-reply-chips" role="group">
+        {typeof onDoIt === 'function' ? (
+          <button
+            type="button"
+            className="office-pair-reply-chip is-do-it"
+            disabled={busy}
+            data-testid={`${testIdPrefix}-do-it`}
+            title={doItTitle || undefined}
+            onClick={() => onDoIt()}
+          >
+            {doItLabel}
+          </button>
+        ) : null}
         {resolved.chips.map((chip) => (
           <button
             key={chip.id}

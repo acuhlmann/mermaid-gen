@@ -95,6 +95,30 @@ describe('floor huddle', () => {
     expect(onPairReply).toHaveBeenCalledWith('Show me the second job');
   });
 
+  // Same chip as the desk: a pair's Do it is one of your answers, not a second
+  // primary button beside the way out.
+  it('folds the pair Do it into the reply strip on the floor card', () => {
+    const handleDoIt = vi.fn();
+    render(
+      <FloorHuddleCard
+        huddle={{ id: 'h1', mode: 'pair', phase: 'listening', attendees: ['gilfoyle'] }}
+        copy={officeChromeCopy().floor}
+        onHardStop={vi.fn()}
+        onPairReply={vi.fn()}
+        ringControls={{
+          activeBeat: { speakerId: 'gilfoyle', text: 'Split it.', actionPrompt: 'Split Auth' },
+          activeSpeakerId: 'gilfoyle',
+          pinnedSpeakerId: null,
+          pinnedPrompt: null,
+          handleDoIt
+        }}
+      />
+    );
+    expect(document.querySelectorAll('.office-floor-card-action')).toHaveLength(1);
+    fireEvent.click(screen.getByTestId('office-floor-pair-reply-do-it'));
+    expect(handleDoIt).toHaveBeenCalledWith('gilfoyle', 'Split Auth');
+  });
+
   it('keeps the floor card quiet for a mob, which has nobody to answer', () => {
     render(
       <FloorHuddleCard

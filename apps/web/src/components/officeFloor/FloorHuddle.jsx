@@ -68,6 +68,7 @@ export function FloorHuddle({
   });
   const {
     watching,
+    pairing = false,
     pinnedSpeakerId,
     fetchingSpeakerId,
     repeatingSpeakerId,
@@ -96,9 +97,12 @@ export function FloorHuddle({
         const isFetching = fetchingSpeakerId === id;
         const isRepeating = repeatingSpeakerId === id;
         const beat = isPinned ? pinnedBeat : isSpeaking ? activeBeat : null;
-        const actionPrompt = isPinned
-          ? pinnedPrompt
-          : adoptPromptFor(beat, { fallbackToText: isSpeaking || isPinned });
+        // A pair's Do it is a chip in the card's reply strip, never the bubble.
+        const actionPrompt = pairing
+          ? null
+          : isPinned
+            ? pinnedPrompt
+            : adoptPromptFor(beat, { fallbackToText: isSpeaking || isPinned });
         const hideRemarkText =
           (isPinned && (isRepeating || isFetching)) ||
           ((isSpeaking || isPinned) && !voiceShowsText);
@@ -222,6 +226,14 @@ export function FloorHuddleCard({
   const delegatePrompt = watching
     ? null
     : (pinnedPrompt ?? adoptPromptFor(activeBeat, { fallbackToText: true }));
+  /*
+   * A pair hands over from the reply strip, the same chip the desk draws, so the
+   * card does not grow a second primary button beside "Back to it".
+   */
+  const pairDoIt =
+    pairing && listening && delegatePrompt && delegateSpeakerId && handleDoIt
+      ? () => handleDoIt(delegateSpeakerId, delegatePrompt)
+      : null;
 
   return (
     <aside
@@ -265,11 +277,14 @@ export function FloorHuddleCard({
           copy={huddleCopy}
           busy={awaitingReply}
           onReply={onPairReply}
+          onDoIt={pairDoIt}
+          doItLabel={huddleCopy.delegate ?? officeChromeCopy().doIt}
+          doItTitle={huddleCopy.delegateTitle}
           testIdPrefix="office-floor-pair-reply"
         />
       ) : null}
       <div className="office-floor-card-actions">
-        {delegatePrompt && delegateSpeakerId ? (
+        {!pairing && delegatePrompt && delegateSpeakerId ? (
           <button
             type="button"
             className="office-floor-card-action office-floor-card-action--primary"

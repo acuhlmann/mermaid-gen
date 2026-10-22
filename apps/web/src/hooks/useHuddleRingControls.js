@@ -272,9 +272,16 @@ export function useHuddleRingControls({
   const pinnedPrompt = pinnedSpeakerId
     ? adoptPromptFor(pinnedBeat, { fallbackToText: true })
     : null;
+  /*
+   * Voice-first through `listening` too. A pair's last line is held on screen
+   * while they wait for you, and keying this on `speaking` alone flipped the
+   * bubble back on at exactly that moment — so a line you had just heard aloud
+   * reappeared as text. `lineSpoken` is the pacing loop's own record of whether
+   * the line was actually voiced, so a silent or failed TTS still shows it.
+   */
   const showText = shouldShowSpokenText({
     captions: snapshot.captions,
-    voiceActive: typeof narrateLine === 'function' && speaking
+    voiceActive: typeof narrateLine === 'function' && (speaking || listening) && lineSpoken
   });
   /**
    * What the person in the chair is pointing at right now. Only ever set for a
