@@ -88,8 +88,16 @@ export const AGENT_TOOLING_BLAST_TESTS = [
   'scripts/check-affected.test.mjs',
   'scripts/prettier-files.test.mjs',
   'scripts/verify-agent-infra.test.mjs',
+  'scripts/verify-agent-tooling-blast.test.mjs',
+  'scripts/verify-deps.test.mjs',
   'scripts/verify-doc-paths.test.mjs',
+  'scripts/verify-eslint-guidance-sync.test.mjs',
   'scripts/verify-isometric-floor-suites.test.mjs',
+  'scripts/verify-mermaid-pins.test.mjs',
+  'scripts/verify-ratchet-no-gate.test.mjs',
+  'scripts/verify-ratchet.test.mjs',
+  'scripts/verify-strict-islands.test.mjs',
+  'scripts/verify-strict-tsconfig-paths.test.mjs',
   'scripts/wire-cochange.test.mjs'
 ];
 

@@ -89,7 +89,7 @@
         "reason": "2026-10-20: 441→443 — lock measured count after upstream suite growth on main."
       },
       "cases": {
-        "budget": 5064,
+        "budget": 5070,
         "initial": 3675,
         "reason": "2026-10-21: 5063→5064 — lock measured count after upstream suite growth on main."
       }
