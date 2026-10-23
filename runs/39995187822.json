@@ -1,0 +1,38 @@
+{
+  "v": 1,
+  "runId": "39995187822",
+  "startedAt": "2026-10-23T17:30:32.302Z",
+  "endedAt": "2026-10-23T17:30:32.302Z",
+  "trigger": "schedule",
+  "tier": "propose",
+  "focus": "any",
+  "verdict": "noop",
+  "stopReason": "completed",
+  "findingId": null,
+  "hypothesis": null,
+  "pr": null,
+  "branch": null,
+  "filesChanged": [],
+  "usage": {
+    "calls": 0,
+    "inputTokens": 0,
+    "outputTokens": 0,
+    "cacheHitTokens": 0,
+    "usd": 0
+  },
+  "minutes": 0,
+  "balanceAfter": null,
+  "reason": "gate",
+  "digest": {
+    "agentTurns": 16,
+    "uxSignals": 15,
+    "sessions": 3,
+    "findings": 0,
+    "sufficient": true,
+    "probeTurns": 12
+  },
+  "harness": {
+    "name": "mock",
+    "version": "0.0.0"
+  }
+}
