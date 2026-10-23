@@ -345,11 +345,17 @@ https://api.deepseek.com/` — 401 is reachable, 000 is blocked); never route ar
   carries `turnIndex` (`useHuddleRingControls`). `beginOfficeHuddleTurn` replaces the queue;
   `upsertOfficeHuddleBeat` can never append a pair turn because it replaces by `speakerId`, and in
   a pair every beat has the same speaker.
-- **A pointed-at node id is validated, never trusted.** `beat.focusId` survives only if the client
+- **A pointed-at node id is validated, never trusted.** `beat.focusId` (and the optional second
+  point, `beat.alsoFocusId`) survives only if the client
   sent it in `visibleIds` (`normalizeHuddleBeat` in `officePersonas.js`); mermaid only, because
   every other label extractor returns labels as ids. `DiagramCanvas.jsx` sits at its ratchet
   budget, so the ring and the off-screen-only camera live in `useDiagramPointFocus`, a hook the
   canvas calls — new canvas behaviour arrives that way, not by growing the file.
+- **Anything portaled to `<body>` disappears in fullscreen.** Native fullscreen paints only the
+  fullscreen element's subtree. Desk office overlays that must survive it (the huddle ring, the
+  pair's hands) portal into `useFullscreenElement()` instead; the radial menu does the same through
+  `DiagramFullscreenOverlay`. A new canvas-adjacent overlay needs one of the two, or it is invisible
+  exactly when someone is working full-screen.
 - **Presence strip is not always Stand up.** `presenceFollowOf` routes by kind (`standUp` |
   `messenger` | `stay`). Opening Slop Chat from the strip goes through
   `officeMessengerUiStore` — do not prop-drill through the menu bar or fold that signal into

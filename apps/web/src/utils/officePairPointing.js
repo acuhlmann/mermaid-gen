@@ -80,18 +80,202 @@ export function pointTargetRect(root, focusId) {
   return { left: rect.left, top: rect.top, width: rect.width, height: rect.height };
 }
 
+/** Rendered width of the hand glyph, used to decide whether a side has room. */
+export const POINT_HAND_SIZE_PX = 34;
+
+/** Air between the hand's fingertip and the node's edge. */
+const POINT_HAND_GAP_PX = 6;
+
 /**
- * The anchor for the hand itself: just off the target's top-right corner, which
- * is where a finger arrives when somebody leans in beside you and indicates a
- * box. Kept separate from the rect so the gesture can be repositioned without
- * re-measuring.
+ * Every rendered node on the canvas, as on-screen rects: the boxes a hand must
+ * not land on. Zero-size entries (unrendered, or jsdom) are skipped.
+ *
+ * @param {ParentNode | null | undefined} [root]
+ * @returns {Array<{ left: number, top: number, width: number, height: number }>}
+ */
+export function pointObstacleRects(root) {
+  const host = pointSearchRoot(root);
+  if (!host?.querySelectorAll) return [];
+  const rects = [];
+  for (const el of host.querySelectorAll('g.node, g.edgeLabel')) {
+    let r;
+    try {
+      r = el.getBoundingClientRect();
+    } catch {
+      continue;
+    }
+    if (r && r.width > 0 && r.height > 0) {
+      rects.push({ left: r.left, top: r.top, width: r.width, height: r.height });
+    }
+  }
+  return rects;
+}
+
+/**
+ * The arrows between nodes, as thin on-screen rects: places a hand should avoid
+ * when it can, but not at the cost of landing on a box. A straight edge has a
+ * zero-height bounding box, so each one is padded by a few pixels to stay
+ * hittable. Curved edges come back as their whole bounding box, which is why
+ * these are a preference (`softObstacles`) rather than a hard rule.
+ *
+ * @param {ParentNode | null | undefined} [root]
+ * @returns {Array<{ left: number, top: number, width: number, height: number }>}
+ */
+export function pointEdgeRects(root) {
+  const host = pointSearchRoot(root);
+  if (!host?.querySelectorAll) return [];
+  const pad = 3;
+  const rects = [];
+  for (const el of host.querySelectorAll('g.edgePaths path, path.flowchart-link')) {
+    let r;
+    try {
+      r = el.getBoundingClientRect();
+    } catch {
+      continue;
+    }
+    if (!r || (r.width <= 0 && r.height <= 0)) continue;
+    rects.push({
+      left: r.left - pad,
+      top: r.top - pad,
+      width: r.width + pad * 2,
+      height: r.height + pad * 2
+    });
+  }
+  return rects;
+}
+
+function overlaps(a, b) {
+  return (
+    a.left < b.left + b.width &&
+    b.left < a.left + a.width &&
+    a.top < b.top + b.height &&
+    b.top < a.top + a.height
+  );
+}
+
+/**
+ * The hand's box and fingertip for one side of `rect`. The fingertip sits
+ * `POINT_HAND_GAP_PX` off the node's edge, centred on that edge.
+ */
+function handCandidate(rect, side) {
+  const size = POINT_HAND_SIZE_PX;
+  const gap = POINT_HAND_GAP_PX;
+  const midX = rect.left + rect.width / 2;
+  const midY = rect.top + rect.height / 2;
+  switch (side) {
+    case 'right': {
+      const x = rect.left + rect.width + gap;
+      return {
+        side,
+        x,
+        y: midY,
+        box: { left: x, top: midY - size / 2, width: size, height: size }
+      };
+    }
+    case 'top': {
+      const y = rect.top - gap;
+      return {
+        side,
+        x: midX,
+        y,
+        box: { left: midX - size / 2, top: y - size, width: size, height: size }
+      };
+    }
+    case 'bottom': {
+      const y = rect.top + rect.height + gap;
+      return {
+        side,
+        x: midX,
+        y,
+        box: { left: midX - size / 2, top: y, width: size, height: size }
+      };
+    }
+    default: {
+      const x = rect.left - gap;
+      return {
+        side: 'left',
+        x,
+        y: midY,
+        box: { left: x - size, top: midY - size / 2, width: size, height: size }
+      };
+    }
+  }
+}
+
+/**
+ * Where to draw the hand: beside the node, never on it — and never on a
+ * neighbouring box either.
+ *
+ * The hand used to sit inside the node's top-right corner, where it covered the
+ * label the line was talking about. It now sits just outside one edge, fingertip
+ * a few pixels off the ring. Sides are tried in order and the first one whose
+ * hand lands on no other node (and stays on screen) wins:
+ *
+ * 1. With a second point on screen, the far side from the other box, so the two
+ *    hands bracket the pair instead of crossing the arrow between them.
+ *    Otherwise the left — a 👉 reads left-to-right.
+ * 2. The opposite horizontal side, then above, then below.
+ *
+ * A side that also misses every arrow (`softObstacles`) is preferred over one
+ * that only misses the boxes. Dense diagrams can leave no clear side at all;
+ * then the first side that is on screen is used, since a hand slightly over a
+ * neighbour still beats no hand.
  *
  * @param {{ left: number, top: number, width: number, height: number }} rect
- * @returns {{ x: number, y: number }}
+ * @param {{
+ *   otherRect?: { left: number, top: number, width: number, height: number } | null,
+ *   obstacles?: Array<{ left: number, top: number, width: number, height: number }>,
+ *   softObstacles?: Array<{ left: number, top: number, width: number, height: number }>,
+ *   viewportWidth?: number,
+ *   viewportHeight?: number
+ * }} [options]
+ * @returns {{ x: number, y: number, side: 'left' | 'right' | 'top' | 'bottom' }}
+ *   `x`/`y` is the fingertip; the hand extends away from the node from there.
  */
-export function pointHandAnchor(rect) {
-  return {
-    x: rect.left + rect.width * 0.78,
-    y: rect.top + rect.height * 0.22
-  };
+export function pointHandPlacement(
+  rect,
+  { otherRect = null, obstacles = [], softObstacles = [], viewportWidth, viewportHeight } = {}
+) {
+  const width = viewportSize(viewportWidth, 'innerWidth');
+  const height = viewportSize(viewportHeight, 'innerHeight');
+  let first = 'left';
+  if (otherRect) {
+    const center = rect.left + rect.width / 2;
+    const otherCenter = otherRect.left + otherRect.width / 2;
+    first = otherCenter < center ? 'right' : 'left';
+  }
+  const order = [first, first === 'left' ? 'right' : 'left', 'top', 'bottom'];
+  const candidates = order.map((side) => handCandidate(rect, side));
+  const onScreen = candidates.filter(
+    ({ box }) =>
+      box.left >= 0 &&
+      box.top >= 0 &&
+      box.left + box.width <= width &&
+      box.top + box.height <= height
+  );
+  const misses = (list) => (candidate) => !list.some((o) => overlaps(candidate.box, o));
+  const clearOfBoxes = onScreen.filter(misses(obstacles));
+  const pick =
+    clearOfBoxes.find(misses(softObstacles)) ?? clearOfBoxes[0] ?? onScreen[0] ?? candidates[0];
+  return { side: pick.side, x: pick.x, y: pick.y };
+}
+
+function viewportSize(given, key) {
+  if (Number.isFinite(given) && given > 0) return given;
+  if (typeof window !== 'undefined' && window[key] > 0) return window[key];
+  return Number.POSITIVE_INFINITY;
+}
+
+/**
+ * A beat's points, in order, as the canvas and the hands consume them: the
+ * first id, then the second when the line is about two boxes.
+ *
+ * @param {{ focusId?: unknown, alsoFocusId?: unknown } | null | undefined} beat
+ * @returns {string[]}
+ */
+export function beatFocusIds(beat) {
+  const ids = [beat?.focusId, beat?.alsoFocusId].filter(
+    (id) => typeof id === 'string' && id.trim() !== ''
+  );
+  return ids.filter((id, index) => ids.indexOf(id) === index);
 }

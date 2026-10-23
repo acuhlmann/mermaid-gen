@@ -845,6 +845,7 @@ test('pair prompt offers pointing only when there is something to point at', () 
     visibleIds: ['flowchart-Auth-0', 'flowchart-Billing-1']
   });
   assert.match(withIds, /"focusId": string \(optional\)/);
+  assert.match(withIds, /"alsoFocusId": string \(optional\)/);
   assert.match(withIds, /POINT AT WHAT YOU MEAN/);
   assert.match(withIds, /VISIBLE NODE IDS/);
 
@@ -856,7 +857,7 @@ test('pair prompt offers pointing only when there is something to point at', () 
   const noIds = buildPairSystemPrompt({ attendee: 'gilfoyle', visibleIds: [] });
   assert.doesNotMatch(noIds, /POINT AT WHAT YOU MEAN/);
   assert.doesNotMatch(noIds, /VISIBLE NODE IDS/);
-  assert.doesNotMatch(noIds, /focusId/);
+  assert.doesNotMatch(noIds, /focusId/i);
   // The rest of the beat shape is unaffected — only the unpointable field goes.
   assert.match(noIds, /"actionPrompt": string \(optional\)/);
 });
@@ -902,6 +903,44 @@ test('parsePairScript keeps a focusId the client can resolve and drops one it ca
   // No allow-list at all (a canvas with no resolvable nodes) points at nothing.
   const unguarded = parsePairScript(raw, { attendee: 'gilfoyle' });
   assert.equal(unguarded.beats[0].focusId, undefined);
+});
+
+test('parsePairScript keeps a second point only when it is real and different', () => {
+  const raw = JSON.stringify({
+    beats: [
+      {
+        speakerId: 'gilfoyle',
+        text: 'These two should not talk directly.',
+        focusId: 'flowchart-Auth-0',
+        alsoFocusId: 'flowchart-Billing-1'
+      },
+      {
+        speakerId: 'gilfoyle',
+        text: 'The ghost and Billing.',
+        focusId: 'flowchart-Ghost-9',
+        alsoFocusId: 'flowchart-Billing-1'
+      },
+      {
+        speakerId: 'gilfoyle',
+        text: 'Auth, and Auth again.',
+        focusId: 'flowchart-Auth-0',
+        alsoFocusId: 'flowchart-Auth-0'
+      }
+    ]
+  });
+  const allowed = new Set(['flowchart-Auth-0', 'flowchart-Billing-1']);
+  const [both, promoted, repeated] = parsePairScript(raw, {
+    attendee: 'gilfoyle',
+    allowedFocusIds: allowed
+  }).beats;
+  assert.equal(both.focusId, 'flowchart-Auth-0');
+  assert.equal(both.alsoFocusId, 'flowchart-Billing-1');
+  // A surviving second id is promoted, so the line still points at the real box.
+  assert.equal(promoted.focusId, 'flowchart-Billing-1');
+  assert.equal(promoted.alsoFocusId, undefined);
+  // The same box twice is one point.
+  assert.equal(repeated.focusId, 'flowchart-Auth-0');
+  assert.equal(repeated.alsoFocusId, undefined);
 });
 
 test('parsePairScript clamps a continue turn to the one beat it asked for', () => {

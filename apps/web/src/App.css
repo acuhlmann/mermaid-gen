@@ -20950,6 +20950,15 @@ body.slopitect-rainbow-tint::before {
     var(--desk-taskbar-h) + env(safe-area-inset-bottom, 0px) + 0.35rem
   );
 }
+/* Fullscreen: the layer is portaled into the canvas (see OfficeLayer), which
+ * fills the screen with no taskbar and no side panes, so drop both insets. The
+ * `.app-shell` prefix outranks the side-pane rules below, which still match
+ * because the fullscreen canvas lives inside the shell. */
+.app-shell .diagram-output:fullscreen .office-huddle-layer.is-anchor-canvas,
+.app-shell .diagram-output:-webkit-full-screen .office-huddle-layer.is-anchor-canvas {
+  right: 0;
+  --huddle-bottom-clearance: calc(env(safe-area-inset-bottom, 0px) + 0.85rem);
+}
 /* Keep the ring on the diagram column when the side panes are open — the same
  * insets .run-ceremony-layer[data-ceremony-anchor='canvas'] uses. */
 @media (min-width: 1025px) {
@@ -21281,8 +21290,22 @@ body.slopitect-rainbow-tint::before {
   position: fixed;
   z-index: 9200;
   pointer-events: none;
-  /* Anchor is the node's top-right; the hand reaches in from there. */
-  transform: translate(-30%, -55%);
+}
+/* Anchor is the fingertip, just off the node's edge at mid-height: the hand
+ * sits beside the box, never on the label it is pointing at. */
+.office-pair-pointer.is-side-left {
+  transform: translate(-100%, -50%);
+}
+.office-pair-pointer.is-side-right {
+  transform: translate(0, -50%) scaleX(-1);
+}
+/* No room left or right without landing on a neighbour: point down from above
+ * or up from below. */
+.office-pair-pointer.is-side-top {
+  transform: translate(-50%, -100%) rotate(90deg);
+}
+.office-pair-pointer.is-side-bottom {
+  transform: translate(-50%, 0) rotate(-90deg);
 }
 .office-pair-pointer-hand {
   display: block;

@@ -26,6 +26,7 @@ import OfficeTrainingWindow from './OfficeTrainingWindow.jsx';
 import OfficeWalkBy from './OfficeWalkBy.jsx';
 import { TRAINING_MODULE_TOTAL } from '@archislop/shared';
 import { useDeskActions } from '../hooks/useDeskActions.js';
+import { useFullscreenElement } from '../hooks/useFullscreenElement.js';
 import { useOfficeTraining } from '../hooks/useOfficeTraining.js';
 import { useHuddlePlayback } from '../hooks/useHuddlePlayback.js';
 import { useOfficeLayerPerformances } from '../hooks/useOfficeLayerPerformances.js';
@@ -148,6 +149,9 @@ import {
  * in parallel.
  */
 const PHISHING_ASSIGNED_MODULE = 3;
+
+/** Stable "nothing pointed at", so the point effect does not re-fire per render. */
+const EMPTY_FOCUS_IDS = [];
 
 export default function OfficeLayer({
   pause,
@@ -1299,10 +1303,17 @@ export default function OfficeLayer({
    * Cleared on unmount as well, because the canvas is a sibling that outlives
    * this layer: ending a pair must not leave a ring on the diagram.
    */
-  const pairFocusId = huddleRing?.activeFocusId ?? null;
+  const pairFocusIds = huddleRing?.activeFocusIds ?? EMPTY_FOCUS_IDS;
+  /*
+   * Native fullscreen paints only the fullscreen element's subtree, so the pair
+   * in the chair and their hands would vanish the moment you went fullscreen to
+   * work. While something is fullscreen they portal into it instead.
+   */
+  const fullscreenHost = useFullscreenElement();
+  const inFullscreen = (node) => (fullscreenHost ? createPortal(node, fullscreenHost) : node);
   useEffect(() => {
-    onPairPoint?.(pairFocusId ? [pairFocusId] : null);
-  }, [onPairPoint, pairFocusId]);
+    onPairPoint?.(pairFocusIds.length > 0 ? pairFocusIds : null);
+  }, [onPairPoint, pairFocusIds]);
   useEffect(
     () => () => {
       onPairPoint?.(null);
@@ -1831,28 +1842,31 @@ export default function OfficeLayer({
       />
       {/* Huddles: desk crowds the monitor edges; floor rings your desk
           (ADR-0011 — mount one renderer at a time). */}
-      {onFloor ? null : (
-        <HuddleOverlay
-          huddle={huddle}
-          ringControls={huddleRing}
-          onHardStop={handleHardStop}
-          onAdoptPrompt={handleHuddleAdopt}
-          onRequestSuggestion={requestSpeakerSuggestion}
-          onPairReply={handlePairReply}
-          narrateLine={snapshot.narration ? narrateLine : undefined}
-          prefetchLine={snapshot.narration ? prefetchLine : undefined}
-          onCancelNarration={cancelOfficeNarration}
-        />
-      )}
+      {onFloor
+        ? null
+        : inFullscreen(
+            <HuddleOverlay
+              huddle={huddle}
+              ringControls={huddleRing}
+              onHardStop={handleHardStop}
+              onAdoptPrompt={handleHuddleAdopt}
+              onRequestSuggestion={requestSpeakerSuggestion}
+              onPairReply={handlePairReply}
+              narrateLine={snapshot.narration ? narrateLine : undefined}
+              prefetchLine={snapshot.narration ? prefetchLine : undefined}
+              onCancelNarration={cancelOfficeNarration}
+            />
+          )}
       {/* The pair's hands over the canvas. Desk only: standing up onto the
           floor puts the diagram off screen, and a hand pointing at a canvas
           nobody can see is worse than no hand. */}
       {onFloor ? null : (
         <>
-          <OfficePairPointer focusId={pairFocusId} />
+          <OfficePairPointer focusIds={pairFocusIds} host={fullscreenHost} />
           <OfficePairHandover
             seq={handoverSeq}
             caption={officeChromeCopy().huddle?.pairHandover ?? 'Over to you'}
+            host={fullscreenHost}
           />
         </>
       )}

@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, renderHook, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import HuddleOverlay, {
   HUDDLE_LINE_PACE_MS,
@@ -502,6 +502,21 @@ describe('HuddleOverlay in pair mode', () => {
       />
     );
     expect(screen.getByText(last)).toBeTruthy();
+  });
+
+  it('publishes both boxes when a line points at two', () => {
+    const beats = [
+      {
+        speakerId: 'gilfoyle',
+        text: 'These two should not talk directly.',
+        focusId: 'flowchart-Auth-0',
+        alsoFocusId: 'flowchart-Billing-1'
+      }
+    ];
+    const { result } = renderHook(() =>
+      useHuddleRingControls({ huddle: pair({ beats, phase: 'listening' }), disabled: true })
+    );
+    expect(result.current.activeFocusIds).toEqual(['flowchart-Auth-0', 'flowchart-Billing-1']);
   });
 
   it('never offers the strip to a mob, which has nobody to answer', () => {

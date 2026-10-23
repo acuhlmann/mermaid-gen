@@ -791,6 +791,16 @@ rather than six people facing your monitor.
   `normalizeHuddleBeat` strips any `focusId` that is not in it, so a hallucinated node can never
   become a hand over empty canvas. Mermaid only: every other content type's extractor returns the
   labels themselves as ids, and only a rendered `g.node` resolves.
+- **Two boxes at once.** A line about a pair of boxes ("these two should not talk directly") also
+  carries `alsoFocusId`, validated the same way; a surviving second id is promoted when the first
+  was a ghost, and a repeat collapses to one point. Both get the ring, and each gets its own hand.
+- **The hand sits beside the box, never on it.** `pointHandPlacement` puts the fingertip just off
+  the node's left or right edge at mid-height, so the label stays readable. With two points each
+  hand takes the far side from the other box, bracketing the pair rather than crossing the arrow
+  between them; a side with no room flips.
+- **Fullscreen keeps the pair.** Native fullscreen paints only the fullscreen element, so the desk
+  ring, the reply strip and the hands portal into it (`useFullscreenElement`) while the canvas is
+  fullscreen, with the taskbar and side-pane insets dropped.
 - **The camera moves only when it has to.** `computeViewportFocusIfOffscreen` is the rule a person at
   your shoulder follows: point at what you can both see, scroll it into view when you cannot. Yanking
   the canvas on every remark would make pairing feel like being grabbed by the diagram. The ring and
