@@ -413,14 +413,20 @@ export function useDeskActions(params) {
    * where no talk surface will ever read it. (#552)
    */
   const imSomeone = useCallback(
-    (colleagueId, replyContext, channel) =>
-      runVerb(
+    (colleagueId, replyContext, channel) => {
+      const userMessage =
+        typeof replyContext?.userMessage === 'string' ? replyContext.userMessage.trim() : '';
+      /* The floor talk card and `talkOutLoud` are the same reactive tier: you
+         typed at somebody out loud. Slop Chat™ stays on the desk allowance. */
+      const provokedTalk = channel === 'talk' && Boolean(userMessage);
+      return runVerb(
         () =>
           deliverImReply({
             target: colleagueId ?? pickRandomFrom(DESK_IM_CAST, random),
             replyContext,
-            counterRef: deskLlmCountRef,
-            cap: DESK_LLM_CAP,
+            counterRef: provokedTalk ? talkLlmCountRef : deskLlmCountRef,
+            cap: provokedTalk ? TALK_LLM_CAP : DESK_LLM_CAP,
+            ...(provokedTalk && colleagueId ? { situation: 'turnedTo' } : {}),
             ...(channel ? { channel } : {})
           }),
         /* `'answering'`, not the default, and the two callers are why: Slop
@@ -432,7 +438,8 @@ export function useDeskActions(params) {
            there was no model call and no bank line either, and a two-turn
            conversation in the messenger was unreachable by construction. */
         { gate: 'answering' }
-      ),
+      );
+    },
     [deliverImReply, random, runVerb]
   );
 
