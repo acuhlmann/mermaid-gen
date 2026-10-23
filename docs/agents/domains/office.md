@@ -444,6 +444,12 @@ https://api.deepseek.com/` — 401 is reachable, 000 is blocked); never route ar
   pins the pair. Two invariants to keep when adding any new talk path — `FloorTalk`'s header says
   physical speech stays out of Slop Chat, and § 11 says a line you provoked must be responsive —
   so an untagged spoken line is the suspect when a bubble never lifts.
+- **Provoked floor speech spends the talk budget, not the desk one.** Until 2026-10-23,
+  `imSomeone(..., 'talk')` debited `deskLlmCountRef` (`OFFICE_DESK_LLM_CAP` = 4) even though
+  `talkOutLoud` debits `talkLlmCountRef` (`OFFICE_TALK_LLM_CAP` = 12) for the same reactive tier;
+  a visit that had already burned four ambient desk pings made the composer step canned-only.
+  Provoked `channel: 'talk'` + `userMessage` now shares the talk counter and passes
+  `situation: 'turnedTo'` — pinned in `useDeskActions.test.jsx`.
 - **A working-memory beat is validated twice, and a field taught to only one side is a fact that
   dies at the next reload.** `rememberWorkingMemoryBeat`
   (`apps/web/src/state/officeWorkingMemoryStore.js`) and `sanitizeWorkingMemoryBeat`

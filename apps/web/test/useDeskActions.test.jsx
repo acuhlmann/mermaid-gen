@@ -5,6 +5,7 @@ import {
   DESK_LLM_CAP,
   DWELL_LLM_CAP,
   DWELL_STRANGER_LLM_CAP,
+  TALK_LLM_CAP,
   useDeskActions
 } from '../src/hooks/useDeskActions.js';
 import {
@@ -469,6 +470,36 @@ describe('useDeskActions', () => {
       });
     }
     expect(fetchMock).toHaveBeenCalledTimes(DESK_LLM_CAP);
+  });
+
+  it('spends the talk budget for the floor talk card, not the desk allowance', async () => {
+    expect(TALK_LLM_CAP).toBeGreaterThan(DESK_LLM_CAP);
+    const fetchMock = vi.fn(() =>
+      Promise.resolve({
+        ok: true,
+        json: async () => ({ moment: { body: 'sure', colleagueId: 'gilfoyle', kind: 'im' } })
+      })
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    const { result } = renderHook(() => useDeskActions(BASE_PARAMS));
+
+    for (let i = 0; i < DESK_LLM_CAP; i += 1) {
+      // eslint-disable-next-line no-await-in-loop -- desk pings are sequential
+      await act(async () => {
+        await result.current.imSomeone('intern');
+        _resetForTests();
+      });
+    }
+    expect(fetchMock).toHaveBeenCalledTimes(DESK_LLM_CAP);
+
+    await act(async () => {
+      await result.current.imSomeone(
+        'gilfoyle',
+        { userMessage: 'Does this diagram make sense to you?' },
+        'talk'
+      );
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(DESK_LLM_CAP + 1);
   });
 
   it('runs during Focus Time — muting the office does not ground you', async () => {
