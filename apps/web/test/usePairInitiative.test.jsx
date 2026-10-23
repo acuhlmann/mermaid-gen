@@ -5,6 +5,8 @@ import { useHuddlePlayback } from '../src/hooks/useHuddlePlayback.js';
 import {
   endOfficeHuddle,
   getOfficeSnapshot,
+  pauseOfficeHuddleForWatching,
+  resumeOfficeHuddleSpeaking,
   setOfficeHuddleListening
 } from '../src/state/officeMomentStore.js';
 import {
@@ -108,6 +110,43 @@ describe('usePairInitiative (through useHuddlePlayback)', () => {
         .huddle.turns.slice(-2)
         .map((t) => t.role)
     ).toEqual(['edit', 'partner']);
+  });
+
+  it('waits until you have named a new box before reacting to it', async () => {
+    const { fetchMock } = await seatPair();
+    await listen();
+    // A new box lands under its placeholder id with its name field open.
+    source = 'flowchart TD\n  Auth --> Billing\n  Billing --> n1[n1]';
+    const form = document.createElement('form');
+    form.className = 'graph-edit-label-inline';
+    document.body.append(form);
+    await wait(PAIR_EDIT_SETTLE_MS * 3);
+    expect(laterBodies(fetchMock)).toHaveLength(0);
+
+    source = 'flowchart TD\n  Auth --> Billing\n  Billing --> n1[Cache]';
+    form.remove();
+    await wait(PAIR_EDIT_SETTLE_MS + 400);
+    const [body] = laterBodies(fetchMock);
+    expect(body.turns.at(-1).text).toBe('edited the diagram: `Billing --> n1[Cache]`');
+  });
+
+  it('reads the change a Do-it run made as their suggestion landing', async () => {
+    const { fetchMock } = await seatPair();
+    await listen();
+    await act(async () => {
+      pauseOfficeHuddleForWatching(getOfficeSnapshot().huddle.id);
+    });
+    source = 'flowchart TD\n  Auth --> Billing\n  Auth --> Tokens';
+    await wait(400);
+    await act(async () => {
+      resumeOfficeHuddleSpeaking(getOfficeSnapshot().huddle.id);
+    });
+    await wait(PAIR_EDIT_SETTLE_MS + 400);
+    const [body] = laterBodies(fetchMock);
+    expect(body.cue).toBe('edit');
+    expect(body.turns.at(-1).text).toBe(
+      'ran your suggestion, which edited the diagram: `Auth --> Tokens`'
+    );
   });
 
   it('waits for them to finish talking before reacting to an edit', async () => {

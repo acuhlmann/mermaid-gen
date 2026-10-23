@@ -47,8 +47,7 @@ export function OfficeLayerSlot({
   tryAgentSound,
   officeRunSignal,
   entryReveal,
-  onPairPoint = null,
-  onPairHandover = null
+  onPairPoint = null
 }) {
   return (
     <OfficeLayer
@@ -93,7 +92,6 @@ export function OfficeLayerSlot({
       runSignal={officeRunSignal}
       deskActionsAnchorReady={entryReveal.desk}
       onPairPoint={onPairPoint}
-      onPairHandover={onPairHandover}
     />
   );
 }

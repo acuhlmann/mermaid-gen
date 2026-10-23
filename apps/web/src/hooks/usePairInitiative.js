@@ -7,6 +7,7 @@ import {
   PAIR_LULLS_MAX,
   describePairEdit,
   isComposingText,
+  isEditingCanvas,
   pairLullDelayMs
 } from '../utils/officePairEdits.js';
 
@@ -29,9 +30,10 @@ function isPageHidden() {
  * rendered id so the reaction can point at it; the server still validates the
  * id against `visibleIds`, so this is a hint and never a way to invent one.
  */
-function editTurnText(edit, contentType) {
-  if (!edit.focusId || contentType !== 'mermaid') return edit.text;
-  return `${edit.text} (id ${edit.focusId})`;
+function editTurnText(edit, contentType, { ran = false } = {}) {
+  const text = ran ? `ran your suggestion, which ${edit.text}` : edit.text;
+  if (!edit.focusId || contentType !== 'mermaid') return text;
+  return `${text} (id ${edit.focusId})`;
 }
 
 /**
@@ -82,6 +84,8 @@ export function usePairInitiative({ huddle, diagramWatchKey, readCanvas, askPart
     /** @type {{ huddleId: string, key: string, canvas: object } | null} */ (null)
   );
   const countsRef = useRef({ huddleId: '', edits: 0, lulls: 0, lastAt: 0 });
+  /** True once a Do-it ran since their last line, so the next edit is its result. */
+  const ranSuggestionRef = useRef(false);
 
   const isPair = huddle?.mode === 'pair';
   const huddleId = huddle?.id ?? '';
@@ -98,11 +102,21 @@ export function usePairInitiative({ huddle, diagramWatchKey, readCanvas, askPart
     }
     if (countsRef.current.huddleId !== huddleId) {
       countsRef.current = { huddleId, edits: 0, lulls: 0, lastAt: 0 };
+      ranSuggestionRef.current = false;
     }
     baselineRef.current = { huddleId, key: watchKeyRef.current, canvas: readCanvasRef.current() };
   }, [isPair, huddleId, turnIndex]);
 
-  // Your edit → their reaction, once the canvas sits still.
+  // A Do-it run is the pair watching their own suggestion land; remember it so
+  // the change it makes reads as "it ran", not as something you did by hand.
+  const watching = isPair && huddle?.phase === 'watching';
+  useEffect(() => {
+    if (watching) ranSuggestionRef.current = true;
+  }, [watching]);
+
+  // Your edit → their reaction, once the canvas sits still and you have
+  // finished the action: a new box whose name you are still typing is not done
+  // yet, and reacting then would be reacting to its placeholder id.
   useEffect(() => {
     if (!listening) return undefined;
     const base = baselineRef.current;
@@ -113,8 +127,13 @@ export function usePairInitiative({ huddle, diagramWatchKey, readCanvas, askPart
 
     const sinceLast = Date.now() - counts.lastAt;
     const wait = Math.max(PAIR_EDIT_SETTLE_MS, PAIR_INITIATIVE_GAP_MS - sinceLast);
-    const timer = setTimeout(() => {
+    let timer = null;
+    const attempt = () => {
       if (!isPairListening(getOfficeSnapshot().huddle)) return;
+      if (isEditingCanvas()) {
+        timer = setTimeout(attempt, PAIR_EDIT_SETTLE_MS);
+        return;
+      }
       const canvas = readCanvasRef.current();
       const edit = describePairEdit(base.canvas, canvas);
       // Measured against, whether or not it was worth a remark: a failed or
@@ -123,11 +142,14 @@ export function usePairInitiative({ huddle, diagramWatchKey, readCanvas, askPart
       if (!edit) return;
       counts.edits += 1;
       counts.lastAt = Date.now();
+      const ran = ranSuggestionRef.current;
+      ranSuggestionRef.current = false;
       void askPartnerRef.current({
         cue: 'edit',
-        userTurn: { role: 'edit', text: editTurnText(edit, canvas.contentType) }
+        userTurn: { role: 'edit', text: editTurnText(edit, canvas.contentType, { ran }) }
       });
-    }, wait);
+    };
+    timer = setTimeout(attempt, wait);
     return () => clearTimeout(timer);
   }, [listening, huddleId, diagramWatchKey]);
 

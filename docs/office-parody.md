@@ -752,7 +752,7 @@ What differs is the shape of the script and how it ends:
 | Script                | one beat per person, attendee order             | four beats from one voice, then **one beat per reply** |
 | Server                | `buildHuddleSystemPrompt` / `parseHuddleScript` | `buildPairSystemPrompt` / `parsePairScript`            |
 | Canvas edit mid-scene | re-scripts unspoken remarks                     | picked up on the next reply turn (see below)           |
-| Points at the diagram | no                                              | yes — `beat.focusId`, a hand on the node (see below)   |
+| Points at the diagram | yes — each speaker, while they speak            | yes — `beat.focusId`, a hand on the node (see below)   |
 | Waits for you         | no                                              | yes — `phase: 'listening'` after every turn            |
 | Speaks unprompted     | no                                              | yes — reacts to your edits, and the odd lull remark    |
 | Ends                  | last remark times out, Hard stop, or Escape     | **only** when you end it                               |
@@ -819,7 +819,11 @@ rather than six people facing your monitor.
   rendered id, because Mermaid numbers node ids by position and one new box renumbers the rest; the
   new source lines when no box changed) and asks for one beat with `cue: 'edit'`. The edit enters the
   transcript as an `edit` turn, so the next reply knows what you did as well as what you said. An
-  edit made while they are still talking waits for them to finish.
+  edit made while they are still talking waits for them to finish, and so does one you have not
+  finished making: while the inline name field is open (`.graph-edit-label-inline`) or you are typing
+  in a text field, `isEditingCanvas` holds the reaction, because a box added from the radial menu
+  lands under its placeholder id (`n1`) and reacting then meant commenting on `n1`. That name field
+  now also opens empty, with "Name this node" as its placeholder, instead of holding `n1` selected.
 - **And sometimes they just speak up.** A quiet stretch (45 s, doubling each time, ±20%) gets one
   unprompted beat, `cue: 'lull'`, with nothing of yours in the transcript. Any edit, reply or line of
   theirs restarts the clock; there are at most 3 per pairing; and never while you are typing (a text
@@ -829,13 +833,15 @@ rather than six people facing your monitor.
   person and it is the same conversation, and a canned line from them would be the loudest "nobody
   is home" in the office — so it is held to the hard cap instead. Both only ever **speak**: nothing
   here runs the agent or touches the diagram (ADR-0010).
-- **Do-it hands over the keyboard.** For a pair, Do-it is the first chip in the reply strip, never a
-  button in their bubble (it overlapped the canvas and repeated what they had just said), and it
-  only exists while it is your turn. It does **not** run the agent: their ask is
-  prefilled into the desk Work Order, the caret follows it, a ⌨️ slides across, and they go back to
-  `listening` to watch you type. Pressing the button that also says "Do it" is yours. A mob still
-  delegates via `submitIntentWithPrompt` and still uses the `watching` phase — there is an agent run
-  to wait for, and turn-taking resumes when it finishes.
+- **Do-it runs it.** For a pair, Do-it is the first chip in the reply strip, never a button in their
+  bubble (it overlapped the canvas and repeated what they had just said), and it only exists while
+  it is your turn. It runs the ask through `submitIntentWithPrompt`, exactly as a mob's does, and
+  the pair sits in `watching` while it runs. It used to only prefill the Work Order and slide a ⌨️
+  across, which read as a button that did nothing — and in fullscreen the Work Order is not on
+  screen at all. When the run lands a pair returns to `listening`, not `speaking`
+  (`resumeOfficeHuddleSpeaking`; their line was already said), and the changed canvas becomes their
+  next edit reaction, phrased as "ran your suggestion, which …" so they react to their own idea
+  landing rather than to something you did by hand.
 
 **Auditioned, with a control arm** (throwaway script, one fixed five-node flowchart, 2 colleagues, 4
 samples per arm, latency lane; the script is deleted, this is the record). Three arms, 24 calls:

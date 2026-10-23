@@ -427,12 +427,17 @@ export function pauseOfficeHuddleForWatching(id = null) {
   update({ huddle: { ...state.huddle, phase: 'watching' } });
 }
 
-/** Resume turn-taking after the notebook run finishes. */
+/**
+ * Resume after the notebook run finishes. A mob picks up turn-taking where it
+ * paused; a pair goes back to `listening`, because their line was already said
+ * before you pressed Do it and resuming `speaking` would only replay it.
+ */
 export function resumeOfficeHuddleSpeaking(id = null) {
   if (!state.huddle) return;
   if (id && state.huddle.id !== id) return;
   if (state.huddle.phase !== 'watching') return;
-  update({ huddle: { ...state.huddle, phase: 'speaking' } });
+  const phase = state.huddle.mode === 'pair' ? 'listening' : 'speaking';
+  update({ huddle: { ...state.huddle, phase } });
 }
 
 /**

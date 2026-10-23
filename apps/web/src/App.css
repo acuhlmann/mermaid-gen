@@ -21313,28 +21313,6 @@ body.slopitect-rainbow-tint::before {
   line-height: 1;
   filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.45));
 }
-.office-pair-handover {
-  position: fixed;
-  right: 8%;
-  bottom: 22%;
-  z-index: 9200;
-  pointer-events: none;
-}
-.office-pair-handover-prop {
-  display: block;
-  font-size: 40px;
-  line-height: 1;
-  filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.5));
-}
-.office-pair-handover-caption {
-  display: block;
-  margin-top: 0.25rem;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-align: center;
-  color: var(--text);
-}
 /* Your side of the conversation. Sits in the huddle chrome column, so it
  * inherits the centring; it only has to be wide enough to type in. */
 .office-pair-reply {
@@ -21407,11 +21385,6 @@ body.slopitect-rainbow-tint::before {
   .office-pair-pointer-hand {
     animation: office-pair-point-in 320ms cubic-bezier(0.2, 0.85, 0.25, 1) both;
   }
-  .office-pair-handover {
-    /* Seat is on the right edge; the Work Order is bottom-centre. The slide is
-     * the whole joke, so it is the one animation that has to actually move. */
-    animation: office-pair-handover-slide 1.4s cubic-bezier(0.3, 0.7, 0.3, 1) both;
-  }
 }
 @keyframes office-pair-point-in {
   from {
@@ -21422,21 +21395,6 @@ body.slopitect-rainbow-tint::before {
   to {
     transform: translate(0, 0) scale(1);
     opacity: 1;
-  }
-}
-@keyframes office-pair-handover-slide {
-  0% {
-    transform: translate(0, 0) rotate(0deg);
-    opacity: 0;
-  }
-
-  18% {
-    opacity: 1;
-  }
-
-  100% {
-    transform: translate(-34vw, 46vh) rotate(-14deg);
-    opacity: 0;
   }
 }
 @media (max-width: 1024px) {

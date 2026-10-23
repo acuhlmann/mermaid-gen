@@ -1376,8 +1376,7 @@ export const OFFICE_ZH_TW = {
       pairReplySend: '說',
       pairReplyChipShow: '給我看',
       pairReplyChipWhy: '為什麼是這個？',
-      pairReplyChipAgree: '嗯，同意',
-      pairHandover: '換你了'
+      pairReplyChipAgree: '嗯，同意'
     },
     coffee: {
       kindLabel: '咖啡歇腳',

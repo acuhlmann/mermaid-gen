@@ -21,7 +21,7 @@ import OfficeDeskArrival from './OfficeDeskArrival.jsx';
 import OfficeDeskSpeech from './OfficeDeskSpeech.jsx';
 import OfficeInboxDock from './OfficeInboxDock.jsx';
 import OfficeMessenger from './OfficeMessenger.jsx';
-import { OfficePairHandover, OfficePairPointer } from './OfficePairPointer.jsx';
+import { OfficePairPointer } from './OfficePairPointer.jsx';
 import OfficeTrainingWindow from './OfficeTrainingWindow.jsx';
 import OfficeWalkBy from './OfficeWalkBy.jsx';
 import { TRAINING_MODULE_TOTAL } from '@archislop/shared';
@@ -56,7 +56,6 @@ import {
   pushOfficeErrand,
   pushOfficeImPing,
   pushOfficeImReply,
-  setOfficeHuddleListening,
   settleOfficeErrand,
   subscribe,
   voteOfficeBattle
@@ -196,12 +195,7 @@ export default function OfficeLayer({
    * clear. The canvas lives in a sibling slot, so this is the only way the
    * point reaches it.
    */
-  onPairPoint = null,
-  /**
-   * The pair's Do-it: hand the keyboard over instead of delegating the run.
-   * Absent means fall back to `onAdoptPrompt`, which is what a mob does.
-   */
-  onPairHandover = null
+  onPairPoint = null
 }) {
   const snapshot = useSyncExternalStore(subscribe, getOfficeSnapshot, getOfficeSnapshot);
   // Which renderer is on screen (ADR-0011). Surfaces that exist in both worlds
@@ -1171,32 +1165,24 @@ export default function OfficeLayer({
   }, [endHuddle, onOfficeEvent]);
 
   /**
-   * Delegate a pinned / spoken suggestion: keep the ring seated, open the
-   * notebook via onAdoptPrompt, and resume turn-taking when agentBusy clears.
+   * Delegate a pinned / spoken suggestion: keep the ring seated, run it via
+   * onAdoptPrompt, and resume when agentBusy clears.
    *
-   * A pair takes the other branch. The person in the chair is beside you and
-   * cannot drive your notebook, so their "Do it" is them sliding the keyboard
-   * your way — the ask lands in the Work Order prefilled and focused, and
-   * *you* press the button that also says Do it. Nothing runs, which is why
-   * there is no `watching` phase here: there is no agent to wait for and no
-   * turn-taking to resume, only a colleague now watching you type.
+   * A pair does the same. Its Do-it used to only prefill the Work Order and
+   * leave you to press the other Do it, which read as a button that did
+   * nothing — and in fullscreen the Work Order is not even on screen. So it
+   * runs, the partner watches it run, and when it lands they are back to
+   * `listening` (not `speaking`: their line was already said), where the
+   * changed canvas is what they react to next (`usePairInitiative`).
    */
   const huddleWatchRef = useRef(/** @type {null | 'awaiting-busy' | 'busy'} */ (null));
-  const [handoverSeq, setHandoverSeq] = useState(0);
   const handleHuddleAdopt = useCallback(
     (prompt, colleagueId) => {
-      const live = getOfficeSnapshot().huddle;
-      if (live?.mode === 'pair' && typeof onPairHandover === 'function') {
-        setHandoverSeq((n) => n + 1);
-        onPairHandover(prompt, colleagueId);
-        setOfficeHuddleListening(live.id);
-        return;
-      }
       pauseForWatching();
       huddleWatchRef.current = 'awaiting-busy';
       onAdoptPrompt?.(prompt, colleagueId);
     },
-    [pauseForWatching, onAdoptPrompt, onPairHandover]
+    [pauseForWatching, onAdoptPrompt]
   );
 
   /**
@@ -1303,7 +1289,7 @@ export default function OfficeLayer({
    * Cleared on unmount as well, because the canvas is a sibling that outlives
    * this layer: ending a pair must not leave a ring on the diagram.
    */
-  const pairFocusIds = huddleRing?.activeFocusIds ?? EMPTY_FOCUS_IDS;
+  const huddleFocusIds = huddleRing?.activeFocusIds ?? EMPTY_FOCUS_IDS;
   /*
    * Native fullscreen paints only the fullscreen element's subtree, so the pair
    * in the chair and their hands would vanish the moment you went fullscreen to
@@ -1312,8 +1298,8 @@ export default function OfficeLayer({
   const fullscreenHost = useFullscreenElement();
   const inFullscreen = (node) => (fullscreenHost ? createPortal(node, fullscreenHost) : node);
   useEffect(() => {
-    onPairPoint?.(pairFocusIds.length > 0 ? pairFocusIds : null);
-  }, [onPairPoint, pairFocusIds]);
+    onPairPoint?.(huddleFocusIds.length > 0 ? huddleFocusIds : null);
+  }, [onPairPoint, huddleFocusIds]);
   useEffect(
     () => () => {
       onPairPoint?.(null);
@@ -1860,16 +1846,7 @@ export default function OfficeLayer({
       {/* The pair's hands over the canvas. Desk only: standing up onto the
           floor puts the diagram off screen, and a hand pointing at a canvas
           nobody can see is worse than no hand. */}
-      {onFloor ? null : (
-        <>
-          <OfficePairPointer focusIds={pairFocusIds} host={fullscreenHost} />
-          <OfficePairHandover
-            seq={handoverSeq}
-            caption={officeChromeCopy().huddle?.pairHandover ?? 'Over to you'}
-            host={fullscreenHost}
-          />
-        </>
-      )}
+      {onFloor ? null : <OfficePairPointer focusIds={huddleFocusIds} host={fullscreenHost} />}
       {/* The call window is renderer #1 of a meeting; the glass room is
           renderer #2. Physical syncs stand you into the room and hand chrome to
           the floor. Remote headset calls keep this window at the desk — standing

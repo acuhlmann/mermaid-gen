@@ -519,6 +519,17 @@ describe('HuddleOverlay in pair mode', () => {
     expect(result.current.activeFocusIds).toEqual(['flowchart-Auth-0', 'flowchart-Billing-1']);
   });
 
+  it('lets a mob speaker point at what they mean, and stops while the notebook runs', () => {
+    const beats = [{ speakerId: ATTENDEES[0], text: 'Auth again.', focusId: 'flowchart-Auth-0' }];
+    const { result, rerender } = renderHook(
+      ({ phase }) => useHuddleRingControls({ huddle: huddle({ beats, phase }), disabled: true }),
+      { initialProps: { phase: 'speaking' } }
+    );
+    expect(result.current.activeFocusIds).toEqual(['flowchart-Auth-0']);
+    rerender({ phase: 'watching' });
+    expect(result.current.activeFocusIds).toEqual([]);
+  });
+
   it('never offers the strip to a mob, which has nobody to answer', () => {
     render(<HuddleOverlay huddle={huddle({ phase: 'listening' })} onPairReply={vi.fn()} />);
     expect(screen.queryByTestId('office-pair-reply')).toBeNull();

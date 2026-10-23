@@ -1097,6 +1097,19 @@ test('buildHuddleSystemPrompt names every attendee and forbids a facilitator', (
   assert.match(prompt, /No facilitation/);
 });
 
+test('buildHuddleSystemPrompt lets each teammate point only when there are ids', () => {
+  const withIds = buildHuddleSystemPrompt({
+    attendees: ['gilfoyle', 'dinesh'],
+    visibleIds: ['flowchart-Auth-0']
+  });
+  assert.match(withIds, /POINT AT WHAT YOU MEAN/);
+  assert.match(withIds, /"focusId": string \(optional\), "alsoFocusId": string \(optional\)/);
+
+  // Offering a field the canvas cannot use only invites a made-up id.
+  const without = buildHuddleSystemPrompt({ attendees: ['gilfoyle', 'dinesh'] });
+  assert.doesNotMatch(without, /focusId/i);
+});
+
 test('buildHuddleSystemPrompt refresh mode only scripts remaining teammates', () => {
   const prompt = buildHuddleSystemPrompt({
     attendees: ['gilfoyle', 'dinesh', 'erlich'],

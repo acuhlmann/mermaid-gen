@@ -41,9 +41,6 @@ import {
  */
 const POINT_MEASURE_MS = 90;
 
-/** How long the keyboard slide plays before it removes itself. */
-export const PAIR_HANDOVER_MS = 1400;
-
 function portal(node, host = null) {
   if (typeof document === 'undefined') return null;
   return createPortal(node, host ?? document.body);
@@ -124,42 +121,6 @@ export function OfficePairPointer({ focusIds = null, host = null }) {
       host={host}
     />
   ));
-}
-
-/**
- * The keyboard slide.
- *
- * Visibility is derived from props rather than mirrored into state: `seq` is
- * the handover that was asked for, `finishedSeq` the one that has played out,
- * and the gesture is live whenever they differ. A second handover in the same
- * session therefore replays with nothing to reset, and the `key` restarts the
- * animation because it is genuinely a new element.
- *
- * @param {{ seq: number, caption?: string, host?: Element | null }} props
- */
-export function OfficePairHandover({ seq, caption = '', host = null }) {
-  const [finishedSeq, setFinishedSeq] = useState(0);
-
-  useEffect(() => {
-    if (!seq) return undefined;
-    const timer = setTimeout(() => setFinishedSeq(seq), PAIR_HANDOVER_MS);
-    return () => clearTimeout(timer);
-  }, [seq]);
-
-  if (!seq || seq === finishedSeq) return null;
-
-  return portal(
-    <div
-      className="office-pair-handover"
-      key={seq}
-      aria-hidden="true"
-      data-testid="office-pair-handover"
-    >
-      <span className="office-pair-handover-prop">⌨️</span>
-      {caption ? <span className="office-pair-handover-caption">{caption}</span> : null}
-    </div>,
-    host
-  );
 }
 
 export default OfficePairPointer;

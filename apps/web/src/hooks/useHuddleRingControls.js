@@ -285,15 +285,18 @@ export function useHuddleRingControls({
     voiceActive: typeof narrateLine === 'function' && (speaking || listening) && lineSpoken
   });
   /**
-   * What the person in the chair is pointing at right now — one box, or two
-   * when the line is about a pair of them. Only ever set for a pair on a
-   * mermaid canvas — every other case has no resolvable node id, and a pointer
-   * aimed at nothing is worse than no pointer. Memoised on the ids themselves
-   * so a re-render does not hand the canvas a "new" point to re-ring.
+   * What the speaker is pointing at right now — one box, or two when the line
+   * is about a pair of them. A pair keeps pointing while it waits on you; a
+   * mob points while each teammate speaks, and again while a pinned head
+   * repeats its remark. Only ever set on a mermaid canvas — every other case
+   * has no resolvable node id, and a pointer aimed at nothing is worse than no
+   * pointer. Memoised on the ids themselves so a re-render does not hand the
+   * canvas a "new" point to re-ring.
    */
-  const pointing = pairing && (speaking || listening) && !watching;
-  const focusA = pointing ? activeBeat?.focusId : undefined;
-  const focusB = pointing ? activeBeat?.alsoFocusId : undefined;
+  const pointBeat = pinnedBeat ?? activeBeat;
+  const pointing = !watching && (pairing ? speaking || listening : speaking || Boolean(pinnedBeat));
+  const focusA = pointing ? pointBeat?.focusId : undefined;
+  const focusB = pointing ? pointBeat?.alsoFocusId : undefined;
   const activeFocusIds = useMemo(
     () => beatFocusIds({ focusId: focusA, alsoFocusId: focusB }),
     [focusA, focusB]

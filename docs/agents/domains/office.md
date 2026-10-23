@@ -345,6 +345,12 @@ https://api.deepseek.com/` — 401 is reachable, 000 is blocked); never route ar
   carries `turnIndex` (`useHuddleRingControls`). `beginOfficeHuddleTurn` replaces the queue;
   `upsertOfficeHuddleBeat` can never append a pair turn because it replaces by `speakerId`, and in
   a pair every beat has the same speaker.
+- **Both huddle modes point, through one gate.** A mob's beats carry `focusId`/`alsoFocusId` too
+  (`HUDDLE_POINT_RULE` in `officePersonas.js`, named only when `visibleIds` is non-empty), and
+  `useHuddleRingControls` points while each teammate speaks or a pinned head repeats, never while
+  `watching`. A pair's Do-it runs the agent like a mob's (the Work Order handover is gone), and
+  `resumeOfficeHuddleSpeaking` sends a pair back to `listening`, never `speaking`, which would replay
+  a line already said.
 - **A pointed-at node id is validated, never trusted.** `beat.focusId` (and the optional second
   point, `beat.alsoFocusId`) survives only if the client
   sent it in `visibleIds` (`normalizeHuddleBeat` in `officePersonas.js`); mermaid only, because

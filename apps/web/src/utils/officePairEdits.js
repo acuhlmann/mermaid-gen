@@ -139,3 +139,13 @@ export function isComposingText(doc = typeof document !== 'undefined' ? document
   if (el.closest?.('.monaco-editor')) return false;
   return typeof el.value === 'string' && el.value.trim() !== '';
 }
+
+/**
+ * True while you are still in the middle of a canvas edit: the inline label
+ * box is open (a new box starts there under its placeholder id), or you are
+ * typing in any other text field. An edit reaction waits for this to clear.
+ */
+export function isEditingCanvas(doc = typeof document !== 'undefined' ? document : null) {
+  if (doc?.querySelector?.('.graph-edit-label-inline')) return true;
+  return isComposingText(doc);
+}

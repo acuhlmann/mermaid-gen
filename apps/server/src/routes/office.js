@@ -383,7 +383,12 @@ function planHuddleTurn(payload, attendees, priorBeats) {
     priorBeats.length > 0 ? attendees.filter((id) => !spokenIds.has(id)) : attendees;
   if (priorBeats.length > 0 && remaining.length === 0) return null;
   return {
-    system: buildHuddleSystemPrompt({ attendees, uiLocale: payload.uiLocale, priorBeats }),
+    system: buildHuddleSystemPrompt({
+      attendees,
+      uiLocale: payload.uiLocale,
+      priorBeats,
+      visibleIds: payload.visibleIds
+    }),
     parse: (raw) => parseHuddleScript(raw, { attendees: remaining, allowedFocusIds })
   };
 }

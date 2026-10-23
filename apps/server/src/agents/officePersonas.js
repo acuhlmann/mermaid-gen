@@ -1113,7 +1113,8 @@ export function buildInterjectUserPrompt({
  * procedural padding, so there are no beat kinds. Every line is signal, which is
  * what makes it the face-to-face counterpart to the remote WG meeting.
  */
-export function buildHuddleSystemPrompt({ attendees, uiLocale, priorBeats }) {
+export function buildHuddleSystemPrompt({ attendees, uiLocale, priorBeats, visibleIds = [] }) {
+  const pointing = Array.isArray(visibleIds) && visibleIds.some(Boolean);
   const prior = Array.isArray(priorBeats)
     ? priorBeats.filter((b) => b?.speakerId && typeof b.text === 'string' && b.text.trim())
     : [];
@@ -1145,8 +1146,8 @@ ${cards}
 
 RULES:
 - Output STRICT JSON only — no prose, no backticks, no preamble.
-- Schema: {"beats": [{"speakerId": string, "text": string, "actionPrompt": string (optional)}]}.
-${headcountRule}
+${pointing ? HUDDLE_POINT_SCHEMA : HUDDLE_PLAIN_SCHEMA}
+${headcountRule}${pointing ? `\n${HUDDLE_POINT_RULE}` : ''}
 - Each "text" is max 30 words. This is a hallway remark over somebody's shoulder, not a presentation.
 - Every beat must engage the ACTUAL diagram and reference at least one visible label by name when
   labels exist.
@@ -1209,6 +1210,21 @@ function pairTurnRules(attendee, cue) {
   observation four ways is the failure mode — each beat has to earn its turn.`
   };
 }
+
+/**
+ * Mob pointing: each teammate can put a finger on the box their remark is
+ * about, the same closed-list contract as a pair (`normalizeHuddleBeat` strips
+ * any id the client did not send). Named only when there are ids, for the
+ * reason measured on the pair prompt: a schema field with nothing to fill it
+ * invites a hallucinated one.
+ */
+const HUDDLE_PLAIN_SCHEMA =
+  '- Schema: {"beats": [{"speakerId": string, "text": string, "actionPrompt": string (optional)}]}.';
+const HUDDLE_POINT_SCHEMA =
+  '- Schema: {"beats": [{"speakerId": string, "text": string, "actionPrompt": string (optional), "focusId": string (optional), "alsoFocusId": string (optional)}]}.';
+const HUDDLE_POINT_RULE = `- POINT AT WHAT YOU MEAN: when a remark is about a box, set "focusId" to its exact id from
+  VISIBLE NODE IDS, and the user sees that teammate's finger on it as they speak. A remark about
+  two boxes together also sets "alsoFocusId". Ids outside that list do not exist on screen.`;
 
 /**
  * Pairing: one teammate pulls up a chair and works the diagram *with* you.

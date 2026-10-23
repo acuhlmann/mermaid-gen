@@ -222,38 +222,6 @@ export function AppWorkspaceSlot({
   }, []);
 
   /**
-   * "Over to you." The pair's Do-it stops being a delegation and becomes a
-   * handover: their ask lands in the Work Order and the caret follows it, so
-   * the person who was just talking is now the one watching you type. Nothing
-   * runs — pressing the button that also says "Do it" is yours.
-   *
-   * It writes `deskPrompt`, not `slopNextPrompt`. The two are different
-   * surfaces' state and only the desk one feeds the input being focused
-   * (`DeskBottomActionsSlot` passes `prompt={deskPrompt}` to the desk layout),
-   * so writing the radial prompt would focus a Work Order that stayed empty —
-   * the gesture with nothing in it.
-   *
-   * The desk Work Order is always mounted and deliberately never focuses
-   * itself (a mount-time focus would hijack the page), so this is the one
-   * moment where reaching for that input is the point.
-   */
-  const handlePairHandover = useCallback(
-    (prompt) => {
-      const text = typeof prompt === 'string' ? prompt.trim() : '';
-      if (!text) return;
-      setDeskPrompt?.(text);
-      const input =
-        typeof document !== 'undefined' ? document.getElementById('slop-prompt-desk-input') : null;
-      try {
-        input?.focus({ preventScroll: true });
-      } catch {
-        input?.focus();
-      }
-    },
-    [setDeskPrompt]
-  );
-
-  /**
    * The menu bar's whole prop surface, bundled once. Deliverable is the
    * dismantled `DeskDrawer`, Mailroom is the export panel, Admin holds
    * once-a-session verbs plus Headphones / Focus and Approved vendors.
@@ -435,7 +403,6 @@ export function AppWorkspaceSlot({
         officeRunSignal={officeRunSignal}
         entryReveal={entryReveal}
         onPairPoint={handlePairPoint}
-        onPairHandover={handlePairHandover}
       />
       <HotkeyOverlay open={hotkeyOverlayOpen} onClose={onCloseHotkeyOverlay} copy={hotkeyCopy} />
 

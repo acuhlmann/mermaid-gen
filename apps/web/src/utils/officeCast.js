@@ -2057,8 +2057,7 @@ export const OFFICE_CHROME_COPY = {
     pairReplySend: 'Say it',
     pairReplyChipShow: 'Show me',
     pairReplyChipWhy: 'Why that?',
-    pairReplyChipAgree: 'Yeah, agreed',
-    pairHandover: 'Over to you'
+    pairReplyChipAgree: 'Yeah, agreed'
   },
   coffee: {
     kindLabel: 'Coffee run',
