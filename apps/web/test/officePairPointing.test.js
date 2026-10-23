@@ -11,7 +11,9 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   OFFICE_POINTED_CLASS,
-  pointHandAnchor,
+  beatFocusIds,
+  pointHandPlacement,
+  POINT_HAND_SIZE_PX,
   pointSearchRoot,
   pointTargetRect,
   resolvePointTarget
@@ -96,13 +98,82 @@ describe('officePairPointing', () => {
     expect(pointTargetRect(null, 'flowchart-Ghost-9')).toBeNull();
   });
 
-  it('anchors the hand at the corner a finger arrives from', () => {
-    const anchor = pointHandAnchor({ left: 120, top: 80, width: 96, height: 40 });
-    // Inside the node, towards its top-right — not centred on it, which would
-    // cover the label the line is talking about.
-    expect(anchor.x).toBeGreaterThan(120 + 48);
-    expect(anchor.x).toBeLessThan(120 + 96);
-    expect(anchor.y).toBeGreaterThan(80);
-    expect(anchor.y).toBeLessThan(80 + 20);
+  // The hand used to sit inside the node's corner, over the label it was
+  // pointing at. It now sits beside the box, fingertip just off the edge.
+  it('places the hand beside the node, never over it', () => {
+    const rect = { left: 300, top: 80, width: 96, height: 40 };
+    const hand = pointHandPlacement(rect, { viewportWidth: 1280 });
+    expect(hand.side).toBe('left');
+    expect(hand.x).toBeLessThan(rect.left);
+    expect(hand.x - POINT_HAND_SIZE_PX).toBeGreaterThanOrEqual(0);
+    expect(hand.y).toBe(rect.top + rect.height / 2);
+  });
+
+  it('flips to the right when the left edge has no room', () => {
+    const hand = pointHandPlacement(
+      { left: 10, top: 80, width: 96, height: 40 },
+      { viewportWidth: 1280 }
+    );
+    expect(hand.side).toBe('right');
+    expect(hand.x).toBeGreaterThan(10 + 96);
+  });
+
+  // Two hands bracket the pair from outside instead of crossing the arrow
+  // that runs between the boxes.
+  it('puts each of two hands on the far side from the other box', () => {
+    const auth = { left: 200, top: 80, width: 96, height: 40 };
+    const billing = { left: 600, top: 80, width: 96, height: 40 };
+    expect(pointHandPlacement(auth, { otherRect: billing, viewportWidth: 1280 }).side).toBe('left');
+    expect(pointHandPlacement(billing, { otherRect: auth, viewportWidth: 1280 }).side).toBe(
+      'right'
+    );
+  });
+
+  // The hand must not land on a neighbouring box either: a tight left gap
+  // sends it to the right, and a box hemmed in on both sides is pointed at
+  // from above.
+  it('avoids landing on a neighbouring node', () => {
+    const auth = { left: 300, top: 200, width: 96, height: 40 };
+    const leftNeighbour = { left: 240, top: 200, width: 50, height: 40 };
+    const rightNeighbour = { left: 404, top: 200, width: 50, height: 40 };
+    expect(pointHandPlacement(auth, { obstacles: [leftNeighbour], viewportWidth: 1280 }).side).toBe(
+      'right'
+    );
+    const hemmed = pointHandPlacement(auth, {
+      obstacles: [leftNeighbour, rightNeighbour],
+      viewportWidth: 1280,
+      viewportHeight: 800
+    });
+    expect(hemmed.side).toBe('top');
+    expect(hemmed.y).toBeLessThan(auth.top);
+  });
+
+  it('prefers a side that also misses the arrows, but never trades a box for one', () => {
+    const auth = { left: 300, top: 200, width: 96, height: 40 };
+    // An arrow leaves Auth's left edge at mid-height: go right instead.
+    const arrowIn = { left: 250, top: 217, width: 50, height: 6 };
+    expect(pointHandPlacement(auth, { softObstacles: [arrowIn], viewportWidth: 1280 }).side).toBe(
+      'right'
+    );
+    // With a box on the right, the arrow side still beats landing on the box.
+    const rightNeighbour = { left: 404, top: 200, width: 50, height: 40 };
+    const aboveNeighbour = { left: 300, top: 150, width: 96, height: 40 };
+    const belowNeighbour = { left: 300, top: 250, width: 96, height: 40 };
+    expect(
+      pointHandPlacement(auth, {
+        obstacles: [rightNeighbour, aboveNeighbour, belowNeighbour],
+        softObstacles: [arrowIn],
+        viewportWidth: 1280,
+        viewportHeight: 800
+      }).side
+    ).toBe('left');
+  });
+
+  it('reads both points off a beat, once each', () => {
+    expect(beatFocusIds({ focusId: 'a', alsoFocusId: 'b' })).toEqual(['a', 'b']);
+    expect(beatFocusIds({ focusId: 'a', alsoFocusId: 'a' })).toEqual(['a']);
+    expect(beatFocusIds({ alsoFocusId: 'b' })).toEqual(['b']);
+    expect(beatFocusIds({ text: 'nothing' })).toEqual([]);
+    expect(beatFocusIds(null)).toEqual([]);
   });
 });

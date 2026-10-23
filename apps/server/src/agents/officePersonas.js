@@ -1205,8 +1205,10 @@ export function buildPairSystemPrompt({ attendee, uiLocale, visibleIds = [], tur
   const pointRule =
     ids.length > 0
       ? `- POINT AT WHAT YOU MEAN: set "focusId" to the exact id from VISIBLE NODE IDS for the node
-  the line is about, and the user sees a hand point at it on the canvas as you say it. Ids outside
-  that list do not exist on screen, so a line about something else simply leaves "focusId" out.`
+  the line is about, and the user sees a hand point at it on the canvas as you say it. When the
+  line is about two boxes together — comparing them, or what passes between them — also set
+  "alsoFocusId" to the second one, and a second hand points at it. Ids outside that list do not
+  exist on screen, so a line about something else simply leaves both out.`
       : '';
   const shapeRule = continuing
     ? `- EXACTLY 1 beat from "${attendee}": the next thing they say. This is a reply to the user's
@@ -1232,7 +1234,7 @@ export function buildPairSystemPrompt({ attendee, uiLocale, visibleIds = [], tur
    */
   const schemaLine =
     ids.length > 0
-      ? '- Schema: {"beats": [{"speakerId": string, "text": string, "actionPrompt": string (optional), "focusId": string (optional)}]}.'
+      ? '- Schema: {"beats": [{"speakerId": string, "text": string, "actionPrompt": string (optional), "focusId": string (optional), "alsoFocusId": string (optional)}]}.'
       : '- Schema: {"beats": [{"speakerId": string, "text": string, "actionPrompt": string (optional)}]}.';
   /*
    * Assembled as a list because two rules are conditional and an empty string in
@@ -1494,7 +1496,7 @@ function allowedBeatFocusId(rawFocusId, allowedFocusIds = null) {
  * @param {unknown} beat
  * @param {Set<string> | null} [allowedFocusIds] Ids the client can actually
  *   resolve to a rendered node; see `allowedBeatFocusId`.
- * @returns {{speakerId: string, text: string, actionPrompt?: string, focusId?: string} | null}
+ * @returns {{speakerId: string, text: string, actionPrompt?: string, focusId?: string, alsoFocusId?: string} | null}
  */
 function normalizeHuddleBeat(beat, allowedFocusIds = null) {
   if (!beat || typeof beat !== 'object') return null;
@@ -1502,15 +1504,24 @@ function normalizeHuddleBeat(beat, allowedFocusIds = null) {
   const text = beatStringField(beat.text, HUDDLE_TEXT_MAX);
   if (!speakerId || !text) return null;
   const actionPrompt = beatStringField(beat.actionPrompt, 300);
-  const focusId = allowedBeatFocusId(
-    beatStringField(beat.focusId, HUDDLE_FOCUS_ID_MAX),
-    allowedFocusIds
-  );
+  /*
+   * Up to two points per line. Each id is validated on its own, and a second
+   * id that survives while the first did not is promoted rather than dropped:
+   * "these two" with one ghost is still a line about the real one. A repeat of
+   * the same id is one point, not two hands on one box.
+   */
+  const [focusId, alsoFocusId] = [
+    allowedBeatFocusId(beatStringField(beat.focusId, HUDDLE_FOCUS_ID_MAX), allowedFocusIds),
+    allowedBeatFocusId(beatStringField(beat.alsoFocusId, HUDDLE_FOCUS_ID_MAX), allowedFocusIds)
+  ]
+    .filter(Boolean)
+    .filter((id, index, ids) => ids.indexOf(id) === index);
   return {
     speakerId,
     text,
     ...(actionPrompt ? { actionPrompt } : {}),
-    ...(focusId ? { focusId } : {})
+    ...(focusId ? { focusId } : {}),
+    ...(alsoFocusId ? { alsoFocusId } : {})
   };
 }
 

@@ -13,15 +13,26 @@
  * already names the node out loud and in captions, so the hand adds the
  * indication, never the information.
  *
- * Both portal to <body>. They are positioned in viewport coordinates measured
- * off the canvas, and `position: fixed` stops being viewport-relative inside a
- * transformed ancestor — the office layer has animated, transformed children,
- * so a hand rendered in place could land a pane away from the node it names.
+ * Both portal to <body> — or into the fullscreen element while the canvas is
+ * fullscreen, since native fullscreen paints nothing outside it. They are
+ * positioned in viewport coordinates measured off the canvas, and `position:
+ * fixed` stops being viewport-relative inside a transformed ancestor — the
+ * office layer has animated, transformed children, so a hand rendered in place
+ * could land a pane away from the node it names.
+ *
+ * A line can point at two boxes ("these two should not talk directly"), so the
+ * pointer draws one hand per id, each beside its own box, on the far side from
+ * the other one, and clear of every other node (`pointHandPlacement`).
  */
 
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { pointHandAnchor, pointTargetRect } from '../utils/officePairPointing.js';
+import {
+  pointEdgeRects,
+  pointHandPlacement,
+  pointObstacleRects,
+  pointTargetRect
+} from '../utils/officePairPointing.js';
 
 /**
  * Re-measure cadence while a point is live. A pan or a zoom moves the node
@@ -33,22 +44,22 @@ const POINT_MEASURE_MS = 90;
 /** How long the keyboard slide plays before it removes itself. */
 export const PAIR_HANDOVER_MS = 1400;
 
-function portal(node) {
+function portal(node, host = null) {
   if (typeof document === 'undefined') return null;
-  return createPortal(node, document.body);
+  return createPortal(node, host ?? document.body);
 }
 
 /**
- * The hand itself, mounted per focus id.
+ * One hand, mounted per focus id.
  *
  * Keyed by the id it points at (see `OfficePairPointer`) so a new point
  * remounts and replays the reach-in instead of teleporting a hand that is
  * already on screen — and so there is no stale anchor to clear in an effect.
  *
- * @param {{ focusId: string }} props
+ * @param {{ focusId: string, otherId?: string | null, host?: Element | null }} props
  */
-function PointingHand({ focusId }) {
-  const [anchor, setAnchor] = useState(null);
+function PointingHand({ focusId, otherId = null, host = null }) {
+  const [placement, setPlacement] = useState(null);
 
   useEffect(() => {
     /*
@@ -61,7 +72,18 @@ function PointingHand({ focusId }) {
       const rect = pointTargetRect(null, focusId);
       // The node can vanish mid-remark (the diagram changed under it). Dropping
       // the hand beats leaving it over whatever now sits at that coordinate.
-      setAnchor(rect ? pointHandAnchor(rect) : null);
+      if (!rect) {
+        setPlacement(null);
+        return;
+      }
+      const otherRect = otherId ? pointTargetRect(null, otherId) : null;
+      setPlacement(
+        pointHandPlacement(rect, {
+          otherRect,
+          obstacles: pointObstacleRects(),
+          softObstacles: pointEdgeRects()
+        })
+      );
     };
     const first = setTimeout(measure, 0);
     const interval = setInterval(measure, POINT_MEASURE_MS);
@@ -69,29 +91,39 @@ function PointingHand({ focusId }) {
       clearTimeout(first);
       clearInterval(interval);
     };
-  }, [focusId]);
+  }, [focusId, otherId]);
 
-  if (!anchor) return null;
+  if (!placement) return null;
 
   return portal(
     <div
-      className="office-pair-pointer"
-      style={{ left: `${anchor.x}px`, top: `${anchor.y}px` }}
+      className={`office-pair-pointer is-side-${placement.side}`}
+      style={{ left: `${placement.x}px`, top: `${placement.y}px` }}
       aria-hidden="true"
       data-testid="office-pair-pointer"
       data-focus-id={focusId}
+      data-side={placement.side}
     >
       <span className="office-pair-pointer-hand">👉</span>
-    </div>
+    </div>,
+    host
   );
 }
 
 /**
- * @param {{ focusId?: string | null }} props
+ * @param {{ focusIds?: string[] | null, host?: Element | null }} props
  */
-export function OfficePairPointer({ focusId = null }) {
-  if (!focusId) return null;
-  return <PointingHand key={focusId} focusId={focusId} />;
+export function OfficePairPointer({ focusIds = null, host = null }) {
+  const ids = Array.isArray(focusIds) ? focusIds.filter(Boolean).slice(0, 2) : [];
+  if (ids.length === 0) return null;
+  return ids.map((id) => (
+    <PointingHand
+      key={id}
+      focusId={id}
+      otherId={ids.find((other) => other !== id) ?? null}
+      host={host}
+    />
+  ));
 }
 
 /**
@@ -103,9 +135,9 @@ export function OfficePairPointer({ focusId = null }) {
  * session therefore replays with nothing to reset, and the `key` restarts the
  * animation because it is genuinely a new element.
  *
- * @param {{ seq: number, caption?: string }} props
+ * @param {{ seq: number, caption?: string, host?: Element | null }} props
  */
-export function OfficePairHandover({ seq, caption = '' }) {
+export function OfficePairHandover({ seq, caption = '', host = null }) {
   const [finishedSeq, setFinishedSeq] = useState(0);
 
   useEffect(() => {
@@ -125,7 +157,8 @@ export function OfficePairHandover({ seq, caption = '' }) {
     >
       <span className="office-pair-handover-prop">⌨️</span>
       {caption ? <span className="office-pair-handover-caption">{caption}</span> : null}
-    </div>
+    </div>,
+    host
   );
 }
 

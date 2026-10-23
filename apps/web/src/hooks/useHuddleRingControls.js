@@ -3,8 +3,9 @@
  * (`FloorHuddle`) — ADR-0011 one state, two renderers.
  */
 
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { shouldShowSpokenText } from '../utils/officeCaptions.js';
+import { beatFocusIds } from '../utils/officePairPointing.js';
 import {
   getOfficeSnapshot,
   setOfficeHuddleActiveLineIndex,
@@ -284,16 +285,19 @@ export function useHuddleRingControls({
     voiceActive: typeof narrateLine === 'function' && (speaking || listening) && lineSpoken
   });
   /**
-   * What the person in the chair is pointing at right now. Only ever set for a
-   * pair on a mermaid canvas — every other case has no resolvable node id, and
-   * a pointer aimed at nothing is worse than no pointer.
+   * What the person in the chair is pointing at right now — one box, or two
+   * when the line is about a pair of them. Only ever set for a pair on a
+   * mermaid canvas — every other case has no resolvable node id, and a pointer
+   * aimed at nothing is worse than no pointer. Memoised on the ids themselves
+   * so a re-render does not hand the canvas a "new" point to re-ring.
    */
-  const activeFocusId =
-    pairing && (speaking || listening) && !watching
-      ? typeof activeBeat?.focusId === 'string'
-        ? activeBeat.focusId
-        : null
-      : null;
+  const pointing = pairing && (speaking || listening) && !watching;
+  const focusA = pointing ? activeBeat?.focusId : undefined;
+  const focusB = pointing ? activeBeat?.alsoFocusId : undefined;
+  const activeFocusIds = useMemo(
+    () => beatFocusIds({ focusId: focusA, alsoFocusId: focusB }),
+    [focusA, focusB]
+  );
 
   return {
     speaking,
@@ -302,7 +306,7 @@ export function useHuddleRingControls({
     pairing,
     awaitingReply: Boolean(huddle?.awaitingReply),
     turns: huddle?.turns ?? [],
-    activeFocusId,
+    activeFocusIds,
     pinnedSpeakerId,
     fetchingSpeakerId,
     repeatingSpeakerId,
