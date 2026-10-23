@@ -884,6 +884,47 @@ test('pair prompt switches to a single answering beat once you have spoken', () 
   assert.match(continuing, /Bertram Gilfoyle/);
 });
 
+test('pair prompt reacts to your edit or speaks up unprompted when cued', () => {
+  const turns = [
+    { role: 'partner', text: 'Auth is doing two jobs.' },
+    { role: 'edit', text: 'added a box "Cache"' }
+  ];
+  const edit = buildPairSystemPrompt({ attendee: 'gilfoyle', turns, cue: 'edit' });
+  assert.match(edit, /EXACTLY 1 beat from "gilfoyle": their reaction to the change/);
+  assert.match(edit, /name the box they touched/);
+  assert.doesNotMatch(edit, /Answer what they actually said/);
+
+  const lull = buildPairSystemPrompt({
+    attendee: 'gilfoyle',
+    turns: turns.slice(0, 1),
+    cue: 'lull'
+  });
+  assert.match(lull, /EXACTLY 1 beat from "gilfoyle": something they say unprompted/);
+  // Its one guard: an unprompted line that re-says an old point is a nag.
+  assert.match(lull, /Never repeat a\s+point that is already in the transcript/);
+  assert.doesNotMatch(lull, /EXACTLY 4 beats/);
+
+  // The transcript names the edit as yours and closes on what the turn answers.
+  const user = buildHuddleUserPrompt({
+    contentType: 'mermaid',
+    diagramSource: 'flowchart TD\n  Auth --> Cache',
+    visibleLabels: ['Auth', 'Cache'],
+    turns,
+    cue: 'edit'
+  });
+  assert.match(user, /THE USER \(changed the diagram\): added a box "Cache"/);
+  assert.match(user, /made that change while you watched/);
+  assert.doesNotMatch(user, /The user has just spoken/);
+  const quiet = buildHuddleUserPrompt({
+    contentType: 'mermaid',
+    diagramSource: 'flowchart TD\n  Auth',
+    visibleLabels: ['Auth'],
+    turns: turns.slice(0, 1),
+    cue: 'lull'
+  });
+  assert.match(quiet, /working quietly for a while/);
+});
+
 test('parsePairScript keeps a focusId the client can resolve and drops one it cannot', () => {
   const raw = JSON.stringify({
     beats: [

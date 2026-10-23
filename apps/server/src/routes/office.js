@@ -187,9 +187,18 @@ const OfficeHuddlePriorBeatSchema = z.object({
  * one list here because a pair has no facilitator to attribute turns to.
  */
 const OfficePairTurnSchema = z.object({
-  role: z.enum(['partner', 'you']),
+  role: z.enum(['partner', 'you', 'edit']),
   text: z.string().max(400)
 });
+
+/**
+ * Why the partner is speaking this turn. `reply` answers a line you typed;
+ * `edit` reacts to a change you just made to the canvas (the transcript ends
+ * with an `edit` turn describing it); `lull` is them speaking up unprompted
+ * after you have been quietly working. Absent means "infer it from the last
+ * turn", so a client that predates the field keeps getting `reply`.
+ */
+const PairCueSchema = z.enum(['reply', 'edit', 'lull']);
 
 /**
  * `mob` is the whole team crowding your screen; `pair` is one teammate in the
@@ -239,6 +248,7 @@ const OfficeHuddleRequestSchema = z.object({
    * not about the user replying.
    */
   turns: z.array(OfficePairTurnSchema).max(12).optional(),
+  cue: PairCueSchema.optional(),
   officeLog: OfficeLogField,
   uiLocale: UiLocaleField,
   modelProfile: ModelProfileField
@@ -315,6 +325,19 @@ function huddleAttendeesForMode(payload) {
 }
 
 /**
+ * The pair's reason to speak, or null for the opening script. An explicit cue
+ * wins; otherwise a transcript that ends on your edit is an edit reaction and
+ * any other non-empty transcript is a reply.
+ *
+ * @returns {'reply' | 'edit' | 'lull' | null}
+ */
+function pairCueFor(cue, turns) {
+  if (cue) return cue;
+  if (turns.length === 0) return null;
+  return turns[turns.length - 1]?.role === 'edit' ? 'edit' : 'reply';
+}
+
+/**
  * What to ask for this turn and how to read it back. The two modes diverge
  * completely here — different prompt, different parser. `priorBeats` is a mob
  * concern only: it names who has already spoken so a mid-scene re-script does
@@ -334,12 +357,15 @@ function planHuddleTurn(payload, attendees, priorBeats) {
   if (payload.mode === 'pair') {
     const attendee = attendees[0];
     const turns = Array.isArray(payload.turns) ? payload.turns : [];
+    const cue = pairCueFor(payload.cue, turns);
     return {
+      cue,
       system: buildPairSystemPrompt({
         attendee,
         uiLocale: payload.uiLocale,
         visibleIds: payload.visibleIds,
-        turns
+        turns,
+        cue
       }),
       // A continue turn asks for one line and is clamped to one, so a model
       // that ignores the instruction lands as a short turn instead of a
@@ -348,7 +374,7 @@ function planHuddleTurn(payload, attendees, priorBeats) {
         parsePairScript(raw, {
           attendee,
           allowedFocusIds,
-          maxBeats: turns.length > 0 ? 1 : undefined
+          maxBeats: cue ? 1 : undefined
         })
     };
   }
@@ -409,7 +435,7 @@ export function createHuddleHandler(env) {
       res.status(200).json({ script: { beats: [] } });
       return;
     }
-    const user = buildHuddleUserPrompt({ ...payload, priorBeats });
+    const user = buildHuddleUserPrompt({ ...payload, priorBeats, cue: turn.cue });
     const officeModel = resolveOfficeModelId(env, {
       purpose: 'meeting',
       live: true,
