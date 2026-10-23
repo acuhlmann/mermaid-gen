@@ -304,6 +304,83 @@ describe('HuddleOverlay', () => {
     expect(onHardStop).toHaveBeenCalledTimes(1);
   });
 
+  it('raises a hand: the speaker holds, you ask them, and their answer plays as their line', async () => {
+    setOfficeCaptions(true);
+    const narrateLine = vi.fn(async () => ({ spoken: false }));
+    const onAskSpeaker = vi.fn(async () => ({
+      speakerId: 'gilfoyle',
+      text: 'Because it also signs the tokens.'
+    }));
+    render(
+      <HuddleOverlay huddle={huddle()} narrateLine={narrateLine} onAskSpeaker={onAskSpeaker} />
+    );
+    fireEvent.click(screen.getByTestId('office-huddle-raise-hand'));
+    expect(screen.getByTestId('office-huddle-pinned-gilfoyle')).toBeTruthy();
+    // The hand is up: no second one to raise, and the stand-up does not move on.
+    expect(screen.queryByTestId('office-huddle-raise-hand')).toBeNull();
+    await advanceOneLine();
+    expect(screen.queryByTestId('office-huddle-seat-dinesh')?.dataset.speaking).toBeUndefined();
+
+    fireEvent.change(screen.getByTestId('office-huddle-ask').querySelector('input'), {
+      target: { value: 'Why two jobs?' }
+    });
+    fireEvent.click(screen.getByTestId('office-huddle-ask-send'));
+    expect(onAskSpeaker).toHaveBeenCalledWith('gilfoyle', 'Why two jobs?');
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(screen.getByText('Because it also signs the tokens.')).toBeTruthy();
+    expect(screen.queryByTestId('office-huddle-ask')).toBeNull();
+
+    // Once the answer has been said, the stand-up carries on.
+    await advanceOneLine();
+    expect(screen.queryByTestId('office-huddle-pinned-gilfoyle')).toBeNull();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(HUDDLE_LINE_PACE_MS + 500);
+    });
+    expect(screen.getByTestId('office-huddle-seat-dinesh').dataset.speaking).toBe('true');
+  });
+
+  it('carries on after you pin a face mid-line, instead of freezing on that line', async () => {
+    let cancel = null;
+    const narrateLine = vi.fn(
+      () =>
+        new Promise((resolve) => {
+          cancel = () => resolve({ spoken: false, cancelled: true });
+          setTimeout(() => resolve({ spoken: false }), 1000);
+        })
+    );
+    render(
+      <HuddleOverlay
+        huddle={huddle()}
+        narrateLine={narrateLine}
+        onCancelNarration={() => cancel?.()}
+      />
+    );
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(300);
+    });
+    fireEvent.click(screen.getByRole('button', { name: /Pin .*Erlich/i }));
+    // One act per step: effects (and so the pause flag) flush when each closes.
+    for (let step = 0; step < 4; step += 1) await advanceOneLine();
+    expect(narrateLine.mock.calls.map(([line]) => line.text)).toContain(BEATS[1].text);
+  });
+
+  it('takes a raised hand down on Escape instead of ending the stand-up', () => {
+    const onHardStop = vi.fn();
+    render(<HuddleOverlay huddle={huddle()} onHardStop={onHardStop} onAskSpeaker={vi.fn()} />);
+    fireEvent.click(screen.getByTestId('office-huddle-raise-hand'));
+    expect(screen.getByTestId('office-huddle-ask')).toBeTruthy();
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(screen.queryByTestId('office-huddle-ask')).toBeNull();
+    expect(onHardStop).not.toHaveBeenCalled();
+  });
+
+  it('offers no raised hand when there is nobody to put the question to', () => {
+    render(<HuddleOverlay huddle={huddle()} />);
+    expect(screen.queryByTestId('office-huddle-raise-hand')).toBeNull();
+  });
+
   it('wraps itself up after the last remark holds', async () => {
     const onHardStop = vi.fn();
     render(<HuddleOverlay huddle={huddle()} onHardStop={onHardStop} />);

@@ -13,6 +13,12 @@ export const PAIR_EDIT_SETTLE_MS = 2_500;
 export const PAIR_INITIATIVE_GAP_MS = 15_000;
 /** Edit reactions per pairing. You are working, they are commenting — bounded. */
 export const PAIR_EDIT_REACTIONS_MAX = 10;
+/**
+ * Small edits (a rename, an arrow, a label on one) get a nod, not a line — but
+ * after this many nods in a row the next small one is worth a word again, so a
+ * long run of tweaks is not met with silence.
+ */
+export const PAIR_NODS_BEFORE_WORDS = 3;
 /** First quiet stretch before they speak up, doubling after each one. */
 export const PAIR_LULL_BASE_MS = 45_000;
 /** Unprompted remarks per pairing; "sometimes", never a metronome. */
@@ -68,8 +74,13 @@ function idForLabel(canvas, label) {
  *
  * @param {{ labels?: string[], ids?: string[], diagramSource?: string }} before
  * @param {{ labels?: string[], ids?: string[], diagramSource?: string }} after
- * @returns {{ text: string, focusId: string | null } | null} null when nothing
- *   worth a remark changed (whitespace, a reflow, an identical source)
+ * `kind` says how big the change was: `boxes` (a box came or went) is worth a
+ * remark; `rename` and `source` (an arrow, a label on one) are the tweaks a
+ * person at your shoulder nods at.
+ *
+ * @returns {{ text: string, focusId: string | null, kind: 'boxes' | 'rename' | 'source' } | null}
+ *   null when nothing worth a remark changed (whitespace, a reflow, an
+ *   identical source)
  */
 export function describePairEdit(before, after) {
   if (String(before?.diagramSource ?? '').trim() === String(after?.diagramSource ?? '').trim()) {
@@ -83,12 +94,19 @@ export function describePairEdit(before, after) {
   if (added.length === 1 && removed.length === 1) {
     return {
       text: `renamed ${quoted(removed[0])} to ${quoted(added[0])}`,
-      focusId: idForLabel(after, added[0])
+      focusId: idForLabel(after, added[0]),
+      kind: 'rename'
     };
   }
   const parts = boxChanges(added, removed);
-  if (parts.length === 0) parts.push(sourceChange(before, after));
-  return { text: parts.join('; '), focusId: added.length > 0 ? idForLabel(after, added[0]) : null };
+  if (parts.length === 0) {
+    return { text: sourceChange(before, after), focusId: null, kind: 'source' };
+  }
+  return {
+    text: parts.join('; '),
+    focusId: added.length > 0 ? idForLabel(after, added[0]) : null,
+    kind: 'boxes'
+  };
 }
 
 /** "added a box …" / "removed the boxes …", either or both. */

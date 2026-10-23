@@ -1,10 +1,11 @@
 import { useEffect, useRef } from 'react';
-import { getOfficeSnapshot } from '../state/officeMomentStore.js';
+import { getOfficeSnapshot, setOfficeHuddleGesture } from '../state/officeMomentStore.js';
 import {
   PAIR_EDIT_REACTIONS_MAX,
   PAIR_EDIT_SETTLE_MS,
   PAIR_INITIATIVE_GAP_MS,
   PAIR_LULLS_MAX,
+  PAIR_NODS_BEFORE_WORDS,
   describePairEdit,
   isComposingText,
   isEditingCanvas,
@@ -13,6 +14,10 @@ import {
 
 /** A blocked lull (you are typing, the tab is hidden) looks again this much later. */
 const PAIR_LULL_RETRY_MS = 15_000;
+/** The server's cap on one transcript line (`OfficePairTurnSchema.text`). */
+const PAIR_TURN_TEXT_MAX = 400;
+/** What of their last proposal rides along with an edit, so they can tell if you took it. */
+const PAIR_SUGGESTION_MAX = 160;
 
 /** The pair is waiting on you, with nothing of theirs in flight. */
 function isPairListening(huddle) {
@@ -29,11 +34,30 @@ function isPageHidden() {
  * The edit, as a transcript line. A box that was added or renamed carries its
  * rendered id so the reaction can point at it; the server still validates the
  * id against `visibleIds`, so this is a hint and never a way to invent one.
+ *
+ * `suggestion` is what they last proposed and you did not hand over with Do
+ * it. Carrying it is what lets them notice whether this edit is you taking
+ * their advice or going your own way, which is most of what makes a remark
+ * about your change sound like it came from the person who suggested one.
+ * Clamped as a whole, because the server answers 400 to an over-long line.
  */
-function editTurnText(edit, contentType, { ran = false } = {}) {
-  const text = ran ? `ran your suggestion, which ${edit.text}` : edit.text;
-  if (!edit.focusId || contentType !== 'mermaid') return text;
-  return `${text} (id ${edit.focusId})`;
+function editTurnText(edit, contentType, { ran = false, suggestion = null } = {}) {
+  let text = ran ? `ran your suggestion, which ${edit.text}` : edit.text;
+  if (edit.focusId && contentType === 'mermaid') text = `${text} (id ${edit.focusId})`;
+  if (!ran && suggestion) {
+    text = `${text}. You had suggested: "${suggestion.slice(0, PAIR_SUGGESTION_MAX)}"`;
+  }
+  return text.slice(0, PAIR_TURN_TEXT_MAX);
+}
+
+/** Their most recent proposal in the turn that just landed, or null. */
+function latestSuggestion(huddle) {
+  const beats = Array.isArray(huddle?.beats) ? huddle.beats : [];
+  for (let index = beats.length - 1; index >= 0; index -= 1) {
+    const prompt = beats[index]?.actionPrompt;
+    if (typeof prompt === 'string' && prompt.trim()) return prompt.trim();
+  }
+  return null;
 }
 
 /**
@@ -44,8 +68,11 @@ function editTurnText(edit, contentType, { ran = false } = {}) {
  *
  * - **Your edit.** The canvas changed since their last line. Once it has sat
  *   still for `PAIR_EDIT_SETTLE_MS` they react to what changed (an `edit` turn
- *   naming the boxes added, removed or renamed). Edits made while they were
- *   still talking wait for them to finish rather than interrupting.
+ *   naming the boxes added, removed or renamed). A small edit — a rename, an
+ *   arrow, a label — gets a nod (`setOfficeHuddleGesture`) rather than a
+ *   line, until `PAIR_NODS_BEFORE_WORDS` nods in a row make the next one
+ *   worth a word; nobody at your shoulder comments on every keystroke. Edits
+ *   made while they were still talking wait for them to finish.
  * - **A lull.** You have been quietly working, so now and then they pipe up
  *   with something new. Any edit, reply or line of theirs restarts the quiet
  *   clock, each lull doubles the next one, and there are at most
@@ -83,9 +110,15 @@ export function usePairInitiative({ huddle, diagramWatchKey, readCanvas, askPart
   const baselineRef = useRef(
     /** @type {{ huddleId: string, key: string, canvas: object } | null} */ (null)
   );
-  const countsRef = useRef({ huddleId: '', edits: 0, lulls: 0, lastAt: 0 });
+  const countsRef = useRef({ huddleId: '', edits: 0, nods: 0, lulls: 0, lastAt: 0 });
   /** True once a Do-it ran since their last line, so the next edit is its result. */
   const ranSuggestionRef = useRef(false);
+  /**
+   * The turn whose proposal an edit was last measured against. Their proposal
+   * rides along with the first spoken edit after it lands and not again, or
+   * every later change would read as "still not what I suggested".
+   */
+  const suggestionTurnRef = useRef(/** @type {string | null} */ (null));
 
   const isPair = huddle?.mode === 'pair';
   const huddleId = huddle?.id ?? '';
@@ -101,7 +134,7 @@ export function usePairInitiative({ huddle, diagramWatchKey, readCanvas, askPart
       return;
     }
     if (countsRef.current.huddleId !== huddleId) {
-      countsRef.current = { huddleId, edits: 0, lulls: 0, lastAt: 0 };
+      countsRef.current = { huddleId, edits: 0, nods: 0, lulls: 0, lastAt: 0 };
       ranSuggestionRef.current = false;
     }
     baselineRef.current = { huddleId, key: watchKeyRef.current, canvas: readCanvasRef.current() };
@@ -123,10 +156,7 @@ export function usePairInitiative({ huddle, diagramWatchKey, readCanvas, askPart
     if (!base || base.huddleId !== huddleId) return undefined;
     if (!diagramWatchKey || diagramWatchKey === base.key) return undefined;
     const counts = countsRef.current;
-    if (counts.edits >= PAIR_EDIT_REACTIONS_MAX) return undefined;
 
-    const sinceLast = Date.now() - counts.lastAt;
-    const wait = Math.max(PAIR_EDIT_SETTLE_MS, PAIR_INITIATIVE_GAP_MS - sinceLast);
     let timer = null;
     const attempt = () => {
       if (!isPairListening(getOfficeSnapshot().huddle)) return;
@@ -136,20 +166,46 @@ export function usePairInitiative({ huddle, diagramWatchKey, readCanvas, askPart
       }
       const canvas = readCanvasRef.current();
       const edit = describePairEdit(base.canvas, canvas);
-      // Measured against, whether or not it was worth a remark: a failed or
-      // skipped reaction must not re-fire on the same change forever.
-      baselineRef.current = { huddleId, key: diagramWatchKey, canvas };
-      if (!edit) return;
-      counts.edits += 1;
-      counts.lastAt = Date.now();
+      if (!edit) {
+        baselineRef.current = { huddleId, key: diagramWatchKey, canvas };
+        return;
+      }
       const ran = ranSuggestionRef.current;
+      const outOfWords = counts.edits >= PAIR_EDIT_REACTIONS_MAX;
+      const small = edit.kind !== 'boxes' && !ran;
+      if (outOfWords || (small && counts.nods < PAIR_NODS_BEFORE_WORDS)) {
+        // Measured against, whether or not it was worth a remark: a skipped
+        // reaction must not re-fire on the same change forever.
+        baselineRef.current = { huddleId, key: diagramWatchKey, canvas };
+        counts.nods += 1;
+        setOfficeHuddleGesture(huddleId, { kind: 'nod', focusId: edit.focusId });
+        return;
+      }
+      // Words, but not straight after their last unprompted ones: the gap is
+      // what keeps an edit streak from becoming a running commentary.
+      const gapLeft = PAIR_INITIATIVE_GAP_MS - (Date.now() - counts.lastAt);
+      if (gapLeft > 0) {
+        timer = setTimeout(attempt, gapLeft);
+        return;
+      }
+      baselineRef.current = { huddleId, key: diagramWatchKey, canvas };
+      counts.edits += 1;
+      counts.nods = 0;
+      counts.lastAt = Date.now();
       ranSuggestionRef.current = false;
+      const live = getOfficeSnapshot().huddle;
+      const turnKey = `${huddleId}:${live?.turnIndex ?? 0}`;
+      const suggestion = suggestionTurnRef.current === turnKey ? null : latestSuggestion(live);
+      suggestionTurnRef.current = turnKey;
       void askPartnerRef.current({
         cue: 'edit',
-        userTurn: { role: 'edit', text: editTurnText(edit, canvas.contentType, { ran }) }
+        userTurn: {
+          role: 'edit',
+          text: editTurnText(edit, canvas.contentType, { ran, suggestion })
+        }
       });
     };
-    timer = setTimeout(attempt, wait);
+    timer = setTimeout(attempt, PAIR_EDIT_SETTLE_MS);
     return () => clearTimeout(timer);
   }, [listening, huddleId, diagramWatchKey]);
 

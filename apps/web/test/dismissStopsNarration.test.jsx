@@ -89,8 +89,39 @@ describe('dismiss stops narration', () => {
     expect(narrateLine).toHaveBeenCalledTimes(1);
   });
 
-  it('scene pacing does not start the next line after narration was cancelled', async () => {
+  it('scene pacing does not start the next line when the cancel was the scene stopping', async () => {
     const narrateLine = vi.fn(async () => ({ spoken: false, cancelled: true }));
+    const { rerender } = renderHook(
+      ({ active }) =>
+        useScenePacing({
+          lines: LINES,
+          active,
+          narrateLine,
+          paceMs: 3000,
+          silentDurationMs: 9000,
+          sceneId: 'huddle-1'
+        }),
+      { initialProps: { active: true } }
+    );
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+    // The Hard stop lands after the voice was cut, as it does in the app.
+    rerender({ active: false });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(3000 + 100);
+    });
+    expect(narrateLine).toHaveBeenCalledTimes(1);
+  });
+
+  it('scene pacing carries on when a cancel leaves the scene running (a pinned face)', async () => {
+    // Pinning a face mid-stand-up cuts the voice without ending the scene;
+    // bailing there used to strand the ring on that line for good.
+    const narrateLine = vi
+      .fn()
+      .mockResolvedValueOnce({ spoken: false, cancelled: true })
+      .mockResolvedValue({ spoken: false });
     renderHook(() =>
       useScenePacing({
         lines: LINES,
@@ -103,10 +134,8 @@ describe('dismiss stops narration', () => {
     );
 
     await act(async () => {
-      await Promise.resolve();
-      // Without a cancelled bail-out, silent pacing waits paceMs then speaks again.
-      await vi.advanceTimersByTimeAsync(3000 + 100);
+      await vi.advanceTimersByTimeAsync(3000 + 200);
     });
-    expect(narrateLine).toHaveBeenCalledTimes(1);
+    expect(narrateLine).toHaveBeenCalledTimes(2);
   });
 });

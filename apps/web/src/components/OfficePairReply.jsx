@@ -66,10 +66,13 @@ function resolveReplyCopy(copy) {
  *   onDoIt?: (() => void) | null,
  *   doItLabel?: string,
  *   doItTitle?: string,
- *   testIdPrefix?: string
+ *   testIdPrefix?: string,
+ *   chipIds?: string[] | null
  * }} props `busy` is true between sending and their answer landing, which is
  *   also when the strip must not accept a second question. `onDoIt` is null
- *   when their last line carries nothing to hand over.
+ *   when their last line carries nothing to hand over. `chipIds` keeps only
+ *   the named chips, for a strip where some of them would not make sense (a
+ *   question to a teammate is never "Yeah, agreed").
  */
 export default function OfficePairReply({
   partnerName = '',
@@ -79,10 +82,14 @@ export default function OfficePairReply({
   onDoIt = null,
   doItLabel = 'Do it',
   doItTitle = '',
-  testIdPrefix = 'office-pair-reply'
+  testIdPrefix = 'office-pair-reply',
+  chipIds = null
 }) {
   const [text, setText] = useState('');
   const resolved = resolveReplyCopy(copy);
+  const chips = Array.isArray(chipIds)
+    ? resolved.chips.filter((chip) => chipIds.includes(chip.id))
+    : resolved.chips;
   const inputId = `${testIdPrefix}-input`;
 
   const send = useCallback(
@@ -149,7 +156,7 @@ export default function OfficePairReply({
             {doItLabel}
           </button>
         ) : null}
-        {resolved.chips.map((chip) => (
+        {chips.map((chip) => (
           <button
             key={chip.id}
             type="button"

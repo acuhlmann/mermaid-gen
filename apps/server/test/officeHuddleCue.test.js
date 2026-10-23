@@ -54,6 +54,16 @@ test('office huddle accepts the unprompted pair cues and rejects unknown ones', 
     });
     assert.equal(lull.status, 503);
 
+    // A hand raised mid-stand-up: one teammate answers your question.
+    const ask = await postHuddle(port, {
+      cue: 'ask',
+      turns: [
+        { role: 'partner', text: 'Billing should own its tokens.' },
+        { role: 'you', text: 'Why not Auth?' }
+      ]
+    });
+    assert.equal(ask.status, 503);
+
     const unknown = await postHuddle(port, { cue: 'nag' });
     assert.equal(unknown.status, 400);
   } finally {

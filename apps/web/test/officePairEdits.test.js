@@ -21,7 +21,8 @@ describe('describePairEdit', () => {
     };
     expect(describePairEdit(before, after)).toEqual({
       text: 'added a box "Cache"',
-      focusId: 'flowchart-Cache-2'
+      focusId: 'flowchart-Cache-2',
+      kind: 'boxes'
     });
   });
 
@@ -33,7 +34,8 @@ describe('describePairEdit', () => {
     };
     expect(describePairEdit(before, after)).toEqual({
       text: 'renamed "Billing" to "Payments"',
-      focusId: 'flowchart-Payments-1'
+      focusId: 'flowchart-Payments-1',
+      kind: 'rename'
     });
   });
 
@@ -46,7 +48,8 @@ describe('describePairEdit', () => {
     const empty = { diagramSource: 'flowchart TD', labels: [], ids: [] };
     expect(describePairEdit(many, empty)).toEqual({
       text: 'removed the boxes "A", "B", "C" and 2 more',
-      focusId: null
+      focusId: null,
+      kind: 'boxes'
     });
   });
 
@@ -57,7 +60,8 @@ describe('describePairEdit', () => {
     };
     expect(describePairEdit(before, after)).toEqual({
       text: 'edited the diagram: `Billing -.-> Auth`',
-      focusId: null
+      focusId: null,
+      kind: 'source'
     });
   });
 

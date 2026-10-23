@@ -755,6 +755,8 @@ What differs is the shape of the script and how it ends:
 | Points at the diagram | yes — each speaker, while they speak            | yes — `beat.focusId`, a hand on the node (see below)   |
 | Waits for you         | no                                              | yes — `phase: 'listening'` after every turn            |
 | Speaks unprompted     | no                                              | yes — reacts to your edits, and the odd lull remark    |
+| Can be interrupted    | raise a hand (🙋 Hold on) and ask the speaker   | start typing or editing and they stop mid-sentence     |
+| Faces look at         | whoever has the floor; the speaker at their box | the box the moment is about                            |
 | Ends                  | last remark times out, Hard stop, or Escape     | **only** when you end it                               |
 
 A pair is deliberately _not_ "a mob with one seat": every huddle prompt rule breaks at one attendee
@@ -776,6 +778,16 @@ in a pair every beat has the same speaker).
 This is also what replaces the mob's mid-scene re-script. A reply turn reads the canvas as it is at
 that moment, so a pair that has been sitting through your edits is not still talking about the diagram
 you both stopped looking at — and no already-spoken line is ever rewritten to get there.
+
+**A mob reads as a room, not a row of portraits.** Listeners lean toward whoever has the floor and
+the speaker toward the box they mean (`huddleLookTargets` → `--gaze-x/y` on each face, via the
+`translate` property so it composes with the seat's own transforms). The prompt has them pass the
+word ("…right, Dinesh?", 1–2 beats, `PASS THE WORD`) and, when one disagrees with the last, point at
+both boxes. And you can stop it: **🙋 Hold on** lets the speaker finish their sentence (narration is
+deliberately not cancelled), holds the stand-up on their pinned seat, and opens an ask strip. The
+question goes up as a one-seat `pair` turn with `cue: 'ask'` (their remark, then your question), and
+the answer plays as their pinned line; when it ends the stand-up carries on. Escape with a hand up
+takes the hand down rather than ending the huddle.
 
 The rest of this section is the mob unless it says otherwise; everything in it applies to a pair too
 except the roster, the ending, and the copy (pairing has its own register throughout — you thank the
@@ -833,6 +845,32 @@ rather than six people facing your monitor.
   person and it is the same conversation, and a canned line from them would be the loudest "nobody
   is home" in the office — so it is held to the hard cap instead. Both only ever **speak**: nothing
   here runs the agent or touches the diagram (ADR-0010).
+- **Small edits get a nod, not a line.** `describePairEdit` reports a `kind`: `boxes` (one came or
+  went) is worth words; `rename` and `source` (an arrow, a label on one) are the tweaks a person at
+  your shoulder nods at. A nod is `setOfficeHuddleGesture({ kind: 'nod' })` — the face bobs and a 👍
+  appears beside the box for 1.8 s — and costs no request. After `PAIR_NODS_BEFORE_WORDS` (3) nods
+  in a row the next small edit gets words again, so a long run of tweaks is not met with silence;
+  once the 10 spoken reactions are spent, everything is a nod.
+- **They notice whether you took their advice.** The first spoken edit after a turn that proposed
+  something carries it: `…. You had suggested: "…"`, and the edit rule asks for "pleased if they
+  took it, a raised eyebrow if they went another way, and let it go". Clamped to the server's
+  400-character line, which the edit text alone could already exceed with long labels.
+- **You can cut them off.** While they are talking, a key typed into any field, the inline label
+  box opening, or the diagram changing under them stops them mid-sentence (`usePairPresence` →
+  `interruptOfficeHuddle`): narration is cancelled and the turn goes to `listening`. The lines they
+  never got to leave the transcript too, so the model does not later answer as if you heard them.
+- **They look where you look.** While it is your turn, picking up a node (`.is-diagram-selected`,
+  or `.is-connect-source` while you drag a connection) gets a glance: a 👀 beside it and the face
+  leaning toward it, at most one per 1.2 s and never at a box they are already pointing to. No
+  request — a glance that cost a round trip would arrive after you had moved on.
+- **They sit beside the box, and out of your way.** The pair's chair is not fixed at the right edge
+  any more: `useHuddleStaging` docks it (`pairDockPlacement`) on the side nearest the box the moment
+  is about, level with it, at the first spot where face _and bubble_ cover no box, no selection and
+  no open label. It is sticky — it moves when it is in your way or the talk goes clear across the
+  screen, not every sentence — and the move replays the lean-in from the new edge. In a mob, a face
+  over your selection or label box steps back instead (`is-yielding`: faded, clicks pass through),
+  since six people have nowhere free to shuffle to. Same in fullscreen, where the layer is the
+  fullscreen element.
 - **Do-it runs it.** For a pair, Do-it is the first chip in the reply strip, never a button in their
   bubble (it overlapped the canvas and repeated what they had just said), and it only exists while
   it is your turn. It runs the ask through `submitIntentWithPrompt`, exactly as a mob's does, and

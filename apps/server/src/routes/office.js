@@ -195,10 +195,12 @@ const OfficePairTurnSchema = z.object({
  * Why the partner is speaking this turn. `reply` answers a line you typed;
  * `edit` reacts to a change you just made to the canvas (the transcript ends
  * with an `edit` turn describing it); `lull` is them speaking up unprompted
- * after you have been quietly working. Absent means "infer it from the last
- * turn", so a client that predates the field keeps getting `reply`.
+ * after you have been quietly working; `ask` is a question you put to one
+ * teammate after raising a hand mid-stand-up, sent as a one-seat `pair` turn
+ * because the answer is one person talking to you. Absent means "infer it
+ * from the last turn", so a client that predates the field keeps getting `reply`.
  */
-const PairCueSchema = z.enum(['reply', 'edit', 'lull']);
+const PairCueSchema = z.enum(['reply', 'edit', 'lull', 'ask']);
 
 /**
  * `mob` is the whole team crowding your screen; `pair` is one teammate in the
@@ -329,7 +331,7 @@ function huddleAttendeesForMode(payload) {
  * wins; otherwise a transcript that ends on your edit is an edit reaction and
  * any other non-empty transcript is a reply.
  *
- * @returns {'reply' | 'edit' | 'lull' | null}
+ * @returns {'reply' | 'edit' | 'lull' | 'ask' | null}
  */
 function pairCueFor(cue, turns) {
   if (cue) return cue;

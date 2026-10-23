@@ -29,6 +29,7 @@ import { useDeskActions } from '../hooks/useDeskActions.js';
 import { useFullscreenElement } from '../hooks/useFullscreenElement.js';
 import { useOfficeTraining } from '../hooks/useOfficeTraining.js';
 import { useHuddlePlayback } from '../hooks/useHuddlePlayback.js';
+import { usePairGesture } from '../hooks/usePairGesture.js';
 import { useOfficeLayerPerformances } from '../hooks/useOfficeLayerPerformances.js';
 import { meetingMinutes, useMeetingPlayback } from '../hooks/useMeetingPlayback.js';
 import { useOfficeAmbience } from '../hooks/useOfficeAmbience.js';
@@ -308,6 +309,7 @@ export default function OfficeLayer({
     startHuddle,
     endHuddle,
     requestSpeakerSuggestion,
+    askHuddleSpeaker,
     continuePairing,
     pauseForWatching,
     resumeSpeaking
@@ -1235,6 +1237,7 @@ export default function OfficeLayer({
       onHardStop: handleHardStop,
       onAdoptPrompt: handleHuddleAdopt,
       onRequestSuggestion: requestSpeakerSuggestion,
+      onAskSpeaker: askHuddleSpeaker,
       onPairReply: handlePairReply,
       narrateLine: snapshot.narration ? narrateLine : undefined,
       prefetchLine: snapshot.narration ? prefetchLine : undefined,
@@ -1244,6 +1247,7 @@ export default function OfficeLayer({
       handleHardStop,
       handleHuddleAdopt,
       requestSpeakerSuggestion,
+      askHuddleSpeaker,
       handlePairReply,
       snapshot.narration,
       narrateLine,
@@ -1296,6 +1300,8 @@ export default function OfficeLayer({
    * work. While something is fullscreen they portal into it instead.
    */
   const fullscreenHost = useFullscreenElement();
+  /** A passing nod or glance from the pair, drawn beside the box it was about. */
+  const pairGesture = usePairGesture(huddle);
   const inFullscreen = (node) => (fullscreenHost ? createPortal(node, fullscreenHost) : node);
   useEffect(() => {
     onPairPoint?.(huddleFocusIds.length > 0 ? huddleFocusIds : null);
@@ -1846,7 +1852,9 @@ export default function OfficeLayer({
       {/* The pair's hands over the canvas. Desk only: standing up onto the
           floor puts the diagram off screen, and a hand pointing at a canvas
           nobody can see is worse than no hand. */}
-      {onFloor ? null : <OfficePairPointer focusIds={huddleFocusIds} host={fullscreenHost} />}
+      {onFloor ? null : (
+        <OfficePairPointer focusIds={huddleFocusIds} host={fullscreenHost} gesture={pairGesture} />
+      )}
       {/* The call window is renderer #1 of a meeting; the glass room is
           renderer #2. Physical syncs stand you into the room and hand chrome to
           the floor. Remote headset calls keep this window at the desk — standing

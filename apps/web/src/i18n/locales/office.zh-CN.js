@@ -1376,7 +1376,11 @@ export const OFFICE_ZH_CN = {
       pairReplySend: '说',
       pairReplyChipShow: '给我看看',
       pairReplyChipWhy: '为什么是这个？',
-      pairReplyChipAgree: '嗯，同意'
+      pairReplyChipAgree: '嗯，同意',
+      raiseHand: '等一下',
+      raiseHandTitle: '打断{name}，问个问题',
+      askLabel: '问{name}',
+      askPlaceholder: '问{name}点什么…'
     },
     coffee: {
       kindLabel: '咖啡歇脚',
