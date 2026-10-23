@@ -1164,6 +1164,53 @@ ${headcountRule}
 }
 
 /**
+ * What this pairing turn is for, as its two leading rules.
+ *
+ * The opening and the reply are the original two; `edit` and `lull` are the
+ * partner speaking without being spoken to — reacting to a change you just made
+ * on the canvas, or piping up after you have been quietly working. Both lead
+ * with the register and carry one guard each, on the measured rule that
+ * prohibitions crowd out a hedged permission in these prompts.
+ *
+ * @param {string} attendee
+ * @param {'reply' | 'edit' | 'lull' | null} cue null for the opening script
+ */
+function pairTurnRules(attendee, cue) {
+  if (cue === 'edit') {
+    return {
+      shapeRule: `- EXACTLY 1 beat from "${attendee}": their reaction to the change the user just made to
+  the diagram (the last line of the transcript). They watched it happen over the user's shoulder.`,
+      moveRule: `- React to what they just did, the way someone sitting next to them does: notice it,
+  back it, question it, or build on it, in character, and name the box they touched. Keep it about
+  this change — do not restart the tour.`
+    };
+  }
+  if (cue === 'lull') {
+    return {
+      shapeRule: `- EXACTLY 1 beat from "${attendee}": something they say unprompted. The user has gone
+  quiet working, and they speak up the way a colleague in the next chair does.`,
+      moveRule: `- Bring something new: a box you have not talked about yet, a question you have been
+  sitting on, or a small aside in your own voice that still lands on the diagram. Never repeat a
+  point that is already in the transcript.`
+    };
+  }
+  if (cue === 'reply') {
+    return {
+      shapeRule: `- EXACTLY 1 beat from "${attendee}": the next thing they say. This is a reply to the user's
+  last line, not a fresh opening — pick up the thread they left you, do not restart the tour.`,
+      moveRule: `- Answer what they actually said. If they asked a question, the beat is the answer; if they
+  pushed back, the beat is your position — held, softened, or conceded, in character.`
+    };
+  }
+  return {
+    shapeRule: `- EXACTLY 4 beats, all from "${attendee}", in the order they are said. This is one person thinking
+  out loud over a few minutes — not four separate opinions.`,
+    moveRule: `- The beats must MOVE: notice something, follow the thread, arrive somewhere. Restating one
+  observation four ways is the failure mode — each beat has to earn its turn.`
+  };
+}
+
+/**
  * Pairing: one teammate pulls up a chair and works the diagram *with* you.
  *
  * Deliberately not "a huddle with one seat" — the huddle grammar above is
@@ -1186,14 +1233,25 @@ ${headcountRule}
  *   re-speak lines the user had already heard. One beat per turn, one scene per
  *   turn, nothing to restart.
  *
+ * - **Unprompted** (`cue` `edit` or `lull`) — EXACTLY 1 beat the user did not
+ *   type for: a reaction to the canvas change they just made, or a remark after
+ *   they have been quietly working. See `pairTurnRules`.
+ *
  * There is deliberately no *diagram-refresh* mode here, unlike the mob huddle.
  * A mob is re-scripted mid-scene because the replacement is the same size as
  * what it replaces (one beat per teammate who has not spoken); a pair's turn is
  * generated from the canvas as it is at that moment instead, so it is always
  * current without ever rewriting a spoken line.
  */
-export function buildPairSystemPrompt({ attendee, uiLocale, visibleIds = [], turns = [] }) {
-  const continuing = Array.isArray(turns) && turns.length > 0;
+export function buildPairSystemPrompt({
+  attendee,
+  uiLocale,
+  visibleIds = [],
+  turns = [],
+  cue = null
+}) {
+  const turnCue = cue ?? (Array.isArray(turns) && turns.length > 0 ? 'reply' : null);
+  const continuing = turnCue !== null;
   const ids = Array.isArray(visibleIds) ? visibleIds.filter(Boolean) : [];
   /*
    * Pointing is led with the wanted behaviour and carries exactly one guard, on
@@ -1210,16 +1268,7 @@ export function buildPairSystemPrompt({ attendee, uiLocale, visibleIds = [], tur
   "alsoFocusId" to the second one, and a second hand points at it. Ids outside that list do not
   exist on screen, so a line about something else simply leaves both out.`
       : '';
-  const shapeRule = continuing
-    ? `- EXACTLY 1 beat from "${attendee}": the next thing they say. This is a reply to the user's
-  last line, not a fresh opening — pick up the thread they left you, do not restart the tour.`
-    : `- EXACTLY 4 beats, all from "${attendee}", in the order they are said. This is one person thinking
-  out loud over a few minutes — not four separate opinions.`;
-  const moveRule = continuing
-    ? `- Answer what they actually said. If they asked a question, the beat is the answer; if they
-  pushed back, the beat is your position — held, softened, or conceded, in character.`
-    : `- The beats must MOVE: notice something, follow the thread, arrive somewhere. Restating one
-  observation four ways is the failure mode — each beat has to earn its turn.`;
+  const { shapeRule, moveRule } = pairTurnRules(attendee, turnCue);
   const actionRule = continuing
     ? `- Carry an "actionPrompt" only when this beat is the one that proposes a change: a
   self-contained imperative diagram edit, max 200 chars, actionable without any other context.`
@@ -1290,16 +1339,30 @@ function promptBulletList(values, { limit = 30, maxChars = 120 } = {}) {
  * a prompt hardest. Same posture as the meeting interjection, which puts the
  * user's line after `transcriptSoFar` for the same reason.
  */
-function buildPairTranscriptBlock(turns) {
+function buildPairTranscriptBlock(turns, cue = 'reply') {
   const lines = (Array.isArray(turns) ? turns : [])
     .filter((turn) => turn && typeof turn.text === 'string' && turn.text.trim())
     .slice(-8)
     .map(
-      (turn) => `- ${turn.role === 'you' ? 'THE USER' : 'YOU'}: ${turn.text.trim().slice(0, 300)}`
+      (turn) => `- ${PAIR_TURN_SPEAKERS[turn.role] ?? 'YOU'}: ${turn.text.trim().slice(0, 300)}`
     );
   if (lines.length === 0) return '';
-  return `${lines.join('\n')}\n\nThe user has just spoken. Answer them.\n`;
+  return `${lines.join('\n')}\n\n${PAIR_CUE_CLOSERS[cue] ?? PAIR_CUE_CLOSERS.reply}\n`;
 }
+
+/** How each transcript role reads to the model; the partner is "YOU". */
+const PAIR_TURN_SPEAKERS = {
+  you: 'THE USER',
+  edit: 'THE USER (changed the diagram)',
+  partner: 'YOU'
+};
+
+/** The last line of a pairing prompt, which names what the turn is answering. */
+const PAIR_CUE_CLOSERS = {
+  reply: 'The user has just spoken. Answer them.',
+  edit: 'The user just made that change while you watched. React to it.',
+  lull: 'The user has been working quietly for a while. Say something unprompted.'
+};
 
 /**
  * Shared context block for both scene modes — the canvas is the canvas either
@@ -1311,7 +1374,8 @@ function buildPairTranscriptBlock(turns) {
  * beat can name what it is pointing at. Empty for every non-mermaid content
  * type, where the client cannot resolve an id to a node.
  *
- * `turns` is the pairing transcript; a non-empty one makes this a continue turn.
+ * `turns` is the pairing transcript; a non-empty one makes this a continue turn,
+ * and `cue` names what that turn answers (`reply`, `edit` or `lull`).
  */
 export function buildHuddleUserPrompt({
   contentType,
@@ -1319,6 +1383,7 @@ export function buildHuddleUserPrompt({
   visibleLabels,
   visibleIds = [],
   turns = [],
+  cue = 'reply',
   officeLog,
   uiLocale,
   priorBeats
@@ -1336,7 +1401,7 @@ export function buildHuddleUserPrompt({
     spokenBefore.length > 0
       ? 'The diagram was updated since the huddle started — write only the remaining remarks for the teammates who have not spoken yet, about what is on screen NOW.\n'
       : '';
-  const transcript = buildPairTranscriptBlock(turns);
+  const transcript = buildPairTranscriptBlock(turns, cue ?? 'reply');
   return [
     `Diagram type: ${contentType || 'mermaid'}`,
     buildOfficeLogBlock(officeLog),

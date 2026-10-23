@@ -9,6 +9,7 @@ import {
   beginOfficeHuddleTurn,
   endOfficeHuddle,
   getOfficeSnapshot,
+  PAIR_TURNS_MAX,
   pauseOfficeHuddleForWatching,
   recordOfficePairTurn,
   refreshOfficeHuddleBeats,
@@ -19,6 +20,7 @@ import {
   subscribe,
   upsertOfficeHuddleBeat
 } from '../state/officeMomentStore.js';
+import { usePairInitiative } from './usePairInitiative.js';
 
 export const HUDDLE_FETCH_TIMEOUT_MS = 20_000;
 export const HUDDLE_SUGGEST_TIMEOUT_MS = 18_000;
@@ -78,14 +80,17 @@ function answerablePair() {
  * talking about the diagram you both stopped looking at, and no already-spoken
  * line is ever rewritten to get there.
  *
- * `reply` rides on the request but is NOT yet in the store's transcript — see
- * `applyPairReplyTurn`, which commits it only once an answer lands.
+ * `userTurn` (what you said, or the edit you made) rides on the request but is
+ * NOT yet in the store's transcript — see `applyPairReplyTurn`, which commits
+ * it only once an answer lands. A lull has no user turn at all: nobody said
+ * anything, which is the point of it.
  */
-async function fetchPairReplyTurn({ params, controller, reply }) {
+async function fetchPairReplyTurn({ params, controller, cue, userTurn }) {
   const live = getOfficeSnapshot().huddle;
   const ctx = huddleContext(params, live?.attendees ?? [], 'pair');
+  const turns = [...(live?.turns ?? []), ...(userTurn ? [userTurn] : [])].slice(-PAIR_TURNS_MAX);
   const payload = await fetchHuddleScript(
-    { ...ctx, turns: [...(live?.turns ?? []), { role: 'you', text: reply }] },
+    { ...ctx, turns, cue },
     params.getSessionId?.() ?? '',
     controller,
     HUDDLE_REPLY_TIMEOUT_MS
@@ -109,12 +114,12 @@ async function fetchPairReplyTurn({ params, controller, reply }) {
  *
  * @returns {object | null} the beat that landed
  */
-function applyPairReplyTurn(huddleId, beats, { fingerprint, reply }) {
+function applyPairReplyTurn(huddleId, beats, { fingerprint, userTurn }) {
   if (!Array.isArray(beats) || beats.length === 0) {
     setOfficeHuddleAwaitingReply(huddleId, false);
     return null;
   }
-  recordOfficePairTurn(huddleId, 'you', reply);
+  if (userTurn) recordOfficePairTurn(huddleId, userTurn.role, userTurn.text);
   beginOfficeHuddleTurn(huddleId, beats, { diagramFingerprint: fingerprint });
   recordPartnerTurns('pair', beats);
   return beats[0];
@@ -395,25 +400,26 @@ export function useHuddlePlayback(params) {
   }, []);
 
   /**
-   * You answered the person in the chair — get their next line.
+   * The person in the chair says their next line — one call, one beat, its
+   * own turn — for one of three reasons (`cue`): you answered them (`reply`),
+   * you just changed the canvas while they watched (`edit`), or you have been
+   * quietly working for a while (`lull`).
    *
-   * One call, one beat, its own turn. The transcript goes up with the canvas as
-   * it is *now*, so a pair that has been sitting through your edits is not
-   * still talking about the diagram you both stopped looking at; that is what
-   * replaces the mob's mid-scene re-script, without ever rewriting a line the
-   * user already heard.
+   * The transcript goes up with the canvas as it is *now*, so a pair that has
+   * been sitting through your edits is not still talking about the diagram you
+   * both stopped looking at; that is what replaces the mob's mid-scene
+   * re-script, without ever rewriting a line the user already heard.
    *
    * A failure leaves the pair seated and in `listening` rather than ending the
    * scene: they are still next to you, they just did not answer, and the reply
    * strip is still there to try again.
    *
-   * @param {string} text what you said
+   * @param {{ cue: 'reply' | 'edit' | 'lull', userTurn?: { role: 'you' | 'edit', text: string } | null }} ask
    * @returns {Promise<object | null>} the beat, or null when nothing came back
    */
-  const continuePairing = useCallback(async (text) => {
-    const reply = trimmedPairReply(text);
+  const askPartner = useCallback(async ({ cue, userTurn = null }) => {
     const current = answerablePair();
-    if (!reply || !current) return null;
+    if (!current) return null;
 
     // Your line goes up with the request but is not written to the transcript
     // yet — see `applyPairReplyTurn`. A failure that recorded it first would
@@ -427,7 +433,7 @@ export function useHuddlePlayback(params) {
 
     const params = paramsRef.current;
     try {
-      const { ctx, payload } = await fetchPairReplyTurn({ params, controller, reply });
+      const { ctx, payload } = await fetchPairReplyTurn({ params, controller, cue, userTurn });
       // Both guards run before anything is written: a late answer must not land
       // on a scene that was ended or replaced while it was in flight.
       if (generation !== replyGenerationRef.current) return null;
@@ -435,13 +441,40 @@ export function useHuddlePlayback(params) {
 
       reportUsage(params.onUsage, payload);
       const fingerprint = huddleDiagramFingerprint(ctx.contentType, ctx.diagramSource);
-      const beat = applyPairReplyTurn(current.id, payload?.script?.beats, { fingerprint, reply });
+      const beat = applyPairReplyTurn(current.id, payload?.script?.beats, {
+        fingerprint,
+        userTurn
+      });
       if (beat) diagramFingerprintRef.current = fingerprint;
       return beat;
     } finally {
       if (replyAbortRef.current === controller) replyAbortRef.current = null;
     }
   }, []);
+
+  /**
+   * You answered the person in the chair — get their next line.
+   *
+   * @param {string} text what you said
+   * @returns {Promise<object | null>} the beat, or null when nothing came back
+   */
+  const continuePairing = useCallback(
+    async (text) => {
+      const reply = trimmedPairReply(text);
+      if (!reply) return null;
+      return askPartner({ cue: 'reply', userTurn: { role: 'you', text: reply } });
+    },
+    [askPartner]
+  );
+
+  // They also speak without being spoken to: a reaction to an edit you just
+  // made, and now and then a remark after you have gone quiet.
+  usePairInitiative({
+    huddle: snapshot.huddle,
+    diagramWatchKey,
+    readCanvas: () => readSceneCanvas(paramsRef.current),
+    askPartner
+  });
 
   /**
    * Click a head that has not spoken yet → pull one on-spot suggestion and pin

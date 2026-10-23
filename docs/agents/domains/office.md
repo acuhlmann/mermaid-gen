@@ -351,6 +351,16 @@ https://api.deepseek.com/` — 401 is reachable, 000 is blocked); never route ar
   every other label extractor returns labels as ids. `DiagramCanvas.jsx` sits at its ratchet
   budget, so the ring and the off-screen-only camera live in `useDiagramPointFocus`, a hook the
   canvas calls — new canvas behaviour arrives that way, not by growing the file.
+- **A pair speaks unprompted through the same one-beat turn, never a second channel.**
+  `usePairInitiative` (called inside `useHuddlePlayback`) asks `askPartner` for `cue: 'edit'` after
+  you change the canvas and `cue: 'lull'` after a quiet stretch; both reuse the reply turn's
+  `awaitingReply` gate and generation guard, so an unprompted line and your typed one can never race.
+  Diff boxes by **label** (`describePairEdit`), never by rendered id — Mermaid numbers ids by
+  position. The schema role `edit` and the `cue` field are on the wire (`OfficePairTurnSchema`,
+  `PairCueSchema` in `routes/office.js`); a missing `cue` is inferred from the last turn, so older
+  clients still get `reply`. Route tests for new huddle cases go in `officeHuddleCue.test.js`:
+  `officeRoute.test.js` already spends 57 of the router's 60-a-minute per-IP LLM budget, and one
+  more request there turns an unrelated later test into a 429.
 - **Anything portaled to `<body>` disappears in fullscreen.** Native fullscreen paints only the
   fullscreen element's subtree. Desk office overlays that must survive it (the huddle ring, the
   pair's hands) portal into `useFullscreenElement()` instead; the radial menu does the same through

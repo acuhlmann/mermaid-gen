@@ -754,6 +754,7 @@ What differs is the shape of the script and how it ends:
 | Canvas edit mid-scene | re-scripts unspoken remarks                     | picked up on the next reply turn (see below)           |
 | Points at the diagram | no                                              | yes — `beat.focusId`, a hand on the node (see below)   |
 | Waits for you         | no                                              | yes — `phase: 'listening'` after every turn            |
+| Speaks unprompted     | no                                              | yes — reacts to your edits, and the odd lull remark    |
 | Ends                  | last remark times out, Hard stop, or Escape     | **only** when you end it                               |
 
 A pair is deliberately _not_ "a mob with one seat": every huddle prompt rule breaks at one attendee
@@ -812,6 +813,22 @@ rather than six people facing your monitor.
   question cannot queue on top of the first. Their line stays on screen while you answer — as a
   bubble only when it was not voiced; a line you heard aloud is not repeated as text (captions on
   still show it).
+- **They react to what you do.** While a pair is `listening`, an edit to the canvas is a turn of its
+  own: once the canvas has sat still for 2.5 s, `usePairInitiative` diffs it against the canvas their
+  last line was about (`describePairEdit`: boxes added, removed or renamed by **label**, never by
+  rendered id, because Mermaid numbers node ids by position and one new box renumbers the rest; the
+  new source lines when no box changed) and asks for one beat with `cue: 'edit'`. The edit enters the
+  transcript as an `edit` turn, so the next reply knows what you did as well as what you said. An
+  edit made while they are still talking waits for them to finish.
+- **And sometimes they just speak up.** A quiet stretch (45 s, doubling each time, ±20%) gets one
+  unprompted beat, `cue: 'lull'`, with nothing of yours in the transcript. Any edit, reply or line of
+  theirs restarts the clock; there are at most 3 per pairing; and never while you are typing (a text
+  field with something in it, Monaco excepted) or into a hidden tab. Edit reactions and lulls share a
+  15 s gap so an edit streak is not narrated, and edit reactions are capped at 10 per pairing. A
+  lull is timer-driven, which § 11 would normally make canned; it is LLM because you seated this
+  person and it is the same conversation, and a canned line from them would be the loudest "nobody
+  is home" in the office — so it is held to the hard cap instead. Both only ever **speak**: nothing
+  here runs the agent or touches the diagram (ADR-0010).
 - **Do-it hands over the keyboard.** For a pair, Do-it is the first chip in the reply strip, never a
   button in their bubble (it overlapped the canvas and repeated what they had just said), and it
   only exists while it is your turn. It does **not** run the agent: their ask is

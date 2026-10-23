@@ -145,7 +145,7 @@ function initialState(imHistory = restoredImHistory) {
      * `watching` freezes turn-taking while a teammate runs a delegated "Do it"
      * (notebook open, faces stay seated) and flips back to `speaking` when done.
      * `suggestions` holds on-spot pin-able remarks that are not in the spoken queue.
-     * @type {{id: string, mode: 'mob' | 'pair', attendees: string[], beats: Array<{speakerId: string, text: string, actionPrompt?: string, focusId?: string}>, suggestions?: Record<string, {speakerId: string, text: string, actionPrompt?: string}>, phase: 'gathering' | 'speaking' | 'watching' | 'listening', turns: Array<{role: 'partner' | 'you', text: string}>, turnIndex: number, awaitingReply: boolean, activeLineIndex: number, diagramFingerprint: string, createdAt: number} | null}
+     * @type {{id: string, mode: 'mob' | 'pair', attendees: string[], beats: Array<{speakerId: string, text: string, actionPrompt?: string, focusId?: string}>, suggestions?: Record<string, {speakerId: string, text: string, actionPrompt?: string}>, phase: 'gathering' | 'speaking' | 'watching' | 'listening', turns: Array<{role: 'partner' | 'you' | 'edit', text: string}>, turnIndex: number, awaitingReply: boolean, activeLineIndex: number, diagramFingerprint: string, createdAt: number} | null}
      */
     huddle: null,
     /**
@@ -436,6 +436,16 @@ export function resumeOfficeHuddleSpeaking(id = null) {
 }
 
 /**
+ * The pairing transcript keeps this many turns, and the server accepts no more
+ * (`OfficeHuddleRequestSchema.turns`). A request that adds your new line must
+ * trim to it too, or a full transcript turns every reply into a 400.
+ */
+export const PAIR_TURNS_MAX = 12;
+
+/** `edit` is a change you made on the canvas that the partner reacted to. */
+const PAIR_TURN_ROLES = new Set(['partner', 'you', 'edit']);
+
+/**
  * Append one line to the pairing transcript.
  *
  * Kept separate from `beats` on purpose: `beats` is what the pacing loop is
@@ -444,15 +454,15 @@ export function resumeOfficeHuddleSpeaking(id = null) {
  * for one.
  *
  * @param {string | null} id
- * @param {'partner' | 'you'} role
+ * @param {'partner' | 'you' | 'edit'} role
  * @param {string} text
  */
 export function recordOfficePairTurn(id, role, text) {
   if (!state.huddle) return;
   if (id && state.huddle.id !== id) return;
   const line = typeof text === 'string' ? text.trim() : '';
-  if (!line || (role !== 'partner' && role !== 'you')) return;
-  const turns = [...(state.huddle.turns ?? []), { role, text: line }].slice(-12);
+  if (!line || !PAIR_TURN_ROLES.has(role)) return;
+  const turns = [...(state.huddle.turns ?? []), { role, text: line }].slice(-PAIR_TURNS_MAX);
   update({ huddle: { ...state.huddle, turns } });
 }
 
