@@ -435,6 +435,13 @@ export function resumeOfficeHuddleSpeaking(id = null) {
   update({ huddle: { ...state.huddle, phase: 'speaking' } });
 }
 
+/**
+ * The pairing transcript keeps this many turns, and the server accepts no more
+ * (`OfficeHuddleRequestSchema.turns`). A request that adds your new line must
+ * trim to it too, or a full transcript turns every reply into a 400.
+ */
+export const PAIR_TURNS_MAX = 12;
+
 /** `edit` is a change you made on the canvas that the partner reacted to. */
 const PAIR_TURN_ROLES = new Set(['partner', 'you', 'edit']);
 
@@ -455,7 +462,7 @@ export function recordOfficePairTurn(id, role, text) {
   if (id && state.huddle.id !== id) return;
   const line = typeof text === 'string' ? text.trim() : '';
   if (!line || !PAIR_TURN_ROLES.has(role)) return;
-  const turns = [...(state.huddle.turns ?? []), { role, text: line }].slice(-12);
+  const turns = [...(state.huddle.turns ?? []), { role, text: line }].slice(-PAIR_TURNS_MAX);
   update({ huddle: { ...state.huddle, turns } });
 }
 

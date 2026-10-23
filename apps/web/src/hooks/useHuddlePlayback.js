@@ -9,6 +9,7 @@ import {
   beginOfficeHuddleTurn,
   endOfficeHuddle,
   getOfficeSnapshot,
+  PAIR_TURNS_MAX,
   pauseOfficeHuddleForWatching,
   recordOfficePairTurn,
   refreshOfficeHuddleBeats,
@@ -87,7 +88,7 @@ function answerablePair() {
 async function fetchPairReplyTurn({ params, controller, cue, userTurn }) {
   const live = getOfficeSnapshot().huddle;
   const ctx = huddleContext(params, live?.attendees ?? [], 'pair');
-  const turns = [...(live?.turns ?? []), ...(userTurn ? [userTurn] : [])];
+  const turns = [...(live?.turns ?? []), ...(userTurn ? [userTurn] : [])].slice(-PAIR_TURNS_MAX);
   const payload = await fetchHuddleScript(
     { ...ctx, turns, cue },
     params.getSessionId?.() ?? '',

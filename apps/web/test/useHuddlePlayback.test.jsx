@@ -5,6 +5,8 @@ import { useHuddlePlayback, huddleDiagramFingerprint } from '../src/hooks/useHud
 import {
   endOfficeHuddle,
   getOfficeSnapshot,
+  PAIR_TURNS_MAX,
+  recordOfficePairTurn,
   setOfficeHuddleActiveLineIndex
 } from '../src/state/officeMomentStore.js';
 
@@ -583,6 +585,27 @@ describe('useHuddlePlayback', () => {
         'partner'
       ]);
       expect(result.current.huddle.turnIndex).toBe(1);
+    });
+
+    it('keeps a full transcript inside the server cap when you add your line', async () => {
+      const fetchMock = stubPairFetch();
+      const { result } = renderHook(() => useHuddlePlayback(params()));
+      await act(async () => {
+        await result.current.startHuddle(['gilfoyle'], { mode: 'pair' });
+      });
+      await act(async () => {
+        while (getOfficeSnapshot().huddle.turns.length < PAIR_TURNS_MAX) {
+          recordOfficePairTurn(null, 'partner', 'Still thinking about Auth.');
+        }
+      });
+
+      await act(async () => {
+        expect(await result.current.continuePairing('And Billing?')).not.toBeNull();
+      });
+      // The server rejects more than PAIR_TURNS_MAX, so the oldest line goes.
+      const body = JSON.parse(fetchMock.mock.calls.at(-1)[1].body);
+      expect(body.turns).toHaveLength(PAIR_TURNS_MAX);
+      expect(body.turns.at(-1)).toEqual({ role: 'you', text: 'And Billing?' });
     });
 
     it('is not a conversation for a mob', async () => {
