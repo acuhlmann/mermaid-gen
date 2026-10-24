@@ -214,6 +214,31 @@ Take **one** slice. Read the last three ledger rows first and do not take the sa
 running — this automation's failure mode will not be idleness, it will be polishing the desk you
 already like.
 
+**Queue status, audited against the code on 2026-10-24 — read this before picking, because most of
+the items below describe work that has since landed.** Each was checked by finding the consumer in
+the source, not by trusting this file's prose. Four items are shipped and one is resolved by an
+explicit design decision, so taking them tonight produces a duplicate, not a slice.
+
+| item                                      | status                 | the thing that settles it                                                                                                                                                               |
+| ----------------------------------------- | ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2 interruption leaves a mark              | **SHIPPED**            | `officeFloor/useFloorInterruptMemory.js` writes `rememberWorkingMemoryBeat` on the beat the balloon already spoke, keyed `seatId:leg`                                                   |
+| 3 whiteboard tie-break                    | **RESOLVED BY DESIGN** | `officeFloorShopTalk.js` header: residency is measured from the _mark_, ties break on `FLOOR_SEATS` order, and silence when the resident cannot answer is "the point rather than a gap" |
+| 4 colleagues never mention their own work | **SHIPPED**            | `officeMomentDelivery.js` sends `officeDeskWork: deskWorkPromptLines(colleagueId)`; `buildOfficeDeskWorkBlock` is in the prompt chain                                                   |
+| 5 a habit per colleague                   | **SHIPPED**            | `wanderHabitFor(seatId)` in `officeFloorWander.js`, derived from `deskDoingFor().hold` × `propHandsFor(kind)`, combined with the hour by `Math.max`                                     |
+| 6 the two props that do nothing           | **still open**         | `officeFloorProps.js` typedef is still `verb: 'coffee' \| null` — only the coffee machine acts                                                                                          |
+| 8 room tone that listens to the room      | **SHIPPED**            | `useOfficeRoomTone.js` calls `setRoomToneOccupancy()` off `getOfficeSnapshot()`; `occupancyGainMul()` is in the gain chain                                                              |
+| 12 a title the office invented            | **FALSE PREMISE**      | see its own heading — the office already wears the level title                                                                                                                          |
+
+**The only verified-open mechanical gap on this list is 6** (`officeFloorProps.js` still types
+`verb: 'coffee' | null` — the printer and the whiteboard are still read-and-go). Item 11 is open but
+is a wire change, not the cheap filter its first paragraph claimed. Item 13's premise is **half
+wrong**: a decline persists as `declined` in `officeMomentStore.js`, and `isUnattendedScene()` reads
+that flag to keep offering you a way back into the scene — so the room does remember a refusal, and
+what it lacks is only a spoken reaction, which is copy at four places rather than a missing memory.
+Items 0, 1, 7, 9 and 10 were not re-audited in that pass, so treat their prose as _unverified_ rather
+than open: 7 in particular says its own fix is usually "queue 2 or queue 4 again", and both of those
+have now landed, which probably retires 7 too. Confirm before taking it.
+
 ### 0. Build the visit harness, and record its baseline trace
 
 Nothing else in this file is verifiable until this exists. Budget the whole run; the deliverable is
@@ -393,16 +418,23 @@ Two honest shapes; the cheap-looking third is forbidden:
   keyword test standing in for a semantic property. If a scope has to read meaning, the data has to
   carry the field.
 
-### 12. A title the office invented to keep you
+### 12. A title the office invented to keep you — **FALSE PREMISE, do not build as written**
 
-The room should be aware of your history without being told. `runGamificationStore.js` already
-computes a level and a `levelTitle` and `slopitectCopy.js` already ships the ladder ("Intern
-Architect" → "Chief Slopitect Officer"), so the _number_ exists and nothing in the office wears it.
-One derived table — level → the honorary title People Ops handed out unprompted — keyed on a value
-already computed, costs no new state and no new call. It answers "real" through status, which is
-what the show's comedy is made of, not through more interruptions. It is copy, so it costs four
-places: the inline English default and all three `office.*` bundles, plus `officeLocale.test.js`.
-**Do not** render it anywhere new before the derivation has a consumer that already exists.
+**Retracted 2026-10-24 before anyone spends a run on it.** This item claimed the level number exists
+and "nothing in the office wears it". It is already worn: `OfficeLayerSlot.jsx` passes
+`getUserTitle={() => gamification.levelTitle}` into the moment delivery funnel, which threads it as
+the `{userTitle}` slot, and that slot is carried by **three pieces of canned copy** — Linda's welcome
+subject ("Welcome aboard, {userTitle}! 🎉"), Chad's welcome body, and Linda's wellness-survey nag
+("(We can see you haven't started, {userTitle}. Anonymously.)"), the last two of which also reach the
+LLM path, since `fillOfficeSlots` is the same function the generated lines run through. So the office
+already promotes you out loud, today. (Three, not seven: the raw `grep -c` counts the slot-fill
+implementation and its comments as well, and those are not copy.)
+
+What is actually un-built is narrower and much less valuable: a _second_, office-only honorary title
+distinct from the ladder. That is a new gag, not a missing memory, and at four places per line it is
+the most expensive way to buy the least change on this list. **Skip it unless the owner asks for the
+joke specifically.** The queue's real gaps are 6 (props that do nothing), 11 (who is entitled to know
+what — a wire change, see its own note) and 13 (declines are silent).
 
 ### 13. Declines should have content
 
