@@ -219,25 +219,41 @@ the items below describe work that has since landed.** Each was checked by findi
 the source, not by trusting this file's prose. Four items are shipped and one is resolved by an
 explicit design decision, so taking them tonight produces a duplicate, not a slice.
 
-| item                                      | status                 | the thing that settles it                                                                                                                                                               |
-| ----------------------------------------- | ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 2 interruption leaves a mark              | **SHIPPED**            | `officeFloor/useFloorInterruptMemory.js` writes `rememberWorkingMemoryBeat` on the beat the balloon already spoke, keyed `seatId:leg`                                                   |
-| 3 whiteboard tie-break                    | **RESOLVED BY DESIGN** | `officeFloorShopTalk.js` header: residency is measured from the _mark_, ties break on `FLOOR_SEATS` order, and silence when the resident cannot answer is "the point rather than a gap" |
-| 4 colleagues never mention their own work | **SHIPPED**            | `officeMomentDelivery.js` sends `officeDeskWork: deskWorkPromptLines(colleagueId)`; `buildOfficeDeskWorkBlock` is in the prompt chain                                                   |
-| 5 a habit per colleague                   | **SHIPPED**            | `wanderHabitFor(seatId)` in `officeFloorWander.js`, derived from `deskDoingFor().hold` × `propHandsFor(kind)`, combined with the hour by `Math.max`                                     |
-| 6 the two props that do nothing           | **still open**         | `officeFloorProps.js` typedef is still `verb: 'coffee' \| null` — only the coffee machine acts                                                                                          |
-| 8 room tone that listens to the room      | **SHIPPED**            | `useOfficeRoomTone.js` calls `setRoomToneOccupancy()` off `getOfficeSnapshot()`; `occupancyGainMul()` is in the gain chain                                                              |
-| 12 a title the office invented            | **FALSE PREMISE**      | see its own heading — the office already wears the level title                                                                                                                          |
+| item                                      | status                 | the thing that settles it                                                                                                                                                                                                                                                                                                      |
+| ----------------------------------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 2 interruption leaves a mark              | **SHIPPED**            | `officeFloor/useFloorInterruptMemory.js` writes `rememberWorkingMemoryBeat` on the beat the balloon already spoke, keyed `seatId:leg`                                                                                                                                                                                          |
+| 3 whiteboard tie-break                    | **RESOLVED BY DESIGN** | `officeFloorShopTalk.js` header: residency is measured from the _mark_, ties break on `FLOOR_SEATS` order, and silence when the resident cannot answer is "the point rather than a gap"                                                                                                                                        |
+| 4 colleagues never mention their own work | **SHIPPED**            | `officeMomentDelivery.js` sends `officeDeskWork: deskWorkPromptLines(colleagueId)`; `buildOfficeDeskWorkBlock` is in the prompt chain                                                                                                                                                                                          |
+| 5 a habit per colleague                   | **MECHANISM SHIPPED**  | `wanderHabitFor(seatId)` exists in `officeFloorWander.js` and is consumed ×3 on their prop — but the _derivation may be inert_: `deskDoing.dinesh` has `look`/`doing`/`line` and **no `hold`**, so `hold × propHandsFor(kind)` cannot pair for him. Nobody has named a colleague where it does. Confirm before calling 5 done. |
+| 6 the two props that do nothing           | **still open**         | `officeFloorProps.js` typedef is still `verb: 'coffee' \| null` — only the coffee machine acts                                                                                                                                                                                                                                 |
+| 8 room tone that listens to the room      | **SHIPPED**            | `useOfficeRoomTone.js` calls `setRoomToneOccupancy()` off `getOfficeSnapshot()`; `occupancyGainMul()` is in the gain chain                                                                                                                                                                                                     |
+| 12 a title the office invented            | **FALSE PREMISE**      | see its own heading — the office already wears the level title                                                                                                                                                                                                                                                                 |
 
-**The only verified-open mechanical gap on this list is 6** (`officeFloorProps.js` still types
-`verb: 'coffee' | null` — the printer and the whiteboard are still read-and-go). Item 11 is open but
-is a wire change, not the cheap filter its first paragraph claimed. Item 13's premise is **half
-wrong**: a decline persists as `declined` in `officeMomentStore.js`, and `isUnattendedScene()` reads
-that flag to keep offering you a way back into the scene — so the room does remember a refusal, and
-what it lacks is only a spoken reaction, which is copy at four places rather than a missing memory.
-Items 0, 1, 7, 9 and 10 were not re-audited in that pass, so treat their prose as _unverified_ rather
-than open: 7 in particular says its own fix is usually "queue 2 or queue 4 again", and both of those
-have now landed, which probably retires 7 too. Confirm before taking it.
+**Item 0 is also SHIPPED, which matters most of all**, because its own text says "nothing else in
+this file is verifiable until this exists": the harness is `apps/web/test/officeVisitTrace.mjs`,
+whose header cites this queue item by number. A rung that read item 0 as open would spend its whole
+budget re-building the instrument every other item depends on. Run it via the recipe in that file's
+header (`npm ci`, `npm run build`, then `OFFICE_VISIT_PLAYWRIGHT=… node
+apps/web/test/officeVisitTrace.mjs --out trace.json`) rather than writing a new one.
+
+| 0 visit harness + baseline trace | **SHIPPED** | `apps/web/test/officeVisitTrace.mjs`; `mode.askedTheModel` is what its trace records, and the ledger rows already consume it |
+
+**So the verified-open list is short: 6, 7, 11 and 13.**
+
+- **6** — `officeFloorProps.js` still types `verb: 'coffee' | null`; the printer and the whiteboard
+  remain read-and-go. The cheapest real gap on the board.
+- **7** — **still open, but check the condition before calling it a defect.** `officeImReplyTemplates()`
+  (`officeCast.js`) still serves a template for a message the user typed. If that path only fires when
+  the model is unavailable, it is `degrade in-fiction` working as designed, not a tell that nobody is
+  home — read the call site's trigger condition first.
+- **11** — open, and it is a wire change (see its own note), not the cheap filter claimed at first.
+- **13** — premise **half wrong**: a decline persists as `declined` in `officeMomentStore.js` and
+  `isUnattendedScene()` reads that flag to keep offering you a way back in. The room does remember a
+  refusal; only the spoken reaction is missing, which is copy at four places, not a missing memory.
+
+Items 1, 9 and 10 were not re-audited, so treat their prose as _unverified_: 1 is a procedure rather
+than a build, 9 needs the owner's yes because it spends money, and 10 is explicitly a design decision
+that needs a collision model before it is code.
 
 ### 0. Build the visit harness, and record its baseline trace
 
