@@ -70,7 +70,7 @@ encodings — map a channel to a field name ("x": "Month"), or to an object when
 Rules:
 - Data lives in flint.data.values as an array of plain objects. Keep rows ≤ 50 unless the user gave you a real dataset. Never use a data "url".
 - Every field named in encodings must exist in every data row.
-- Field names are the labels readers see on axes and legends: write them in the user's language, human-readable ("Revenue", not "rev_usd").
+- Field names are the labels readers see on axes and legends: make them human-readable ("Revenue", not "rev_usd").
 - Write chart_spec.title as the headline (what the chart says) and chart_spec.subtitle as what is measured, of whom, in what units.
 - Pick the chart type that matches the data story; do not default to a bar chart for everything. Pie/Donut only for ≤ 6 slices when part-to-whole is the story.
 - When fabricating data, make the numbers proportionally plausible so the story reads (do not generate uniform or random-looking rows).
@@ -86,7 +86,7 @@ Mode notes:
 
 Language:
 - ${MATCH_USER_LANGUAGE_RULE}
-- chart_spec.title, chart_spec.subtitle, and field names must use the same language as the user's request.
+- chart_spec.title, chart_spec.subtitle, field names, and category values use the language the user's request is written in — an English request gets English labels, a German request German labels. The subject of the data (a country, a market) never decides the language.
 
 Always call apply_chart_patch with the full wrapper JSON as a string (except for Critique / Explain, which respond in prose).
 `;

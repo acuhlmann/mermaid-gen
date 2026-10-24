@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { parseJsonTrimmingSurplusClosers } from './jsonSurplusClosers.js';
 
 export const CHART_THEMES = ['whiteboard', 'noir', 'arcade', 'blueprint'] as const;
 export const ChartThemeSchema = z.enum(CHART_THEMES).default('whiteboard');
@@ -56,7 +57,7 @@ export function parseChartDsl(source: unknown): ParseChartDslResult {
 
   let raw: unknown;
   try {
-    raw = JSON.parse(text);
+    raw = parseJsonTrimmingSurplusClosers(text);
   } catch (err) {
     return {
       ok: false,

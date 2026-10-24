@@ -21,6 +21,7 @@ export * from './metaphorPartialParse.js';
 export * from './metaphorUsda.js';
 export * from './metaphorUsdaParse.js';
 export * from './chartSchema.js';
+export * from './jsonSurplusClosers.js';
 export * from './anythingSchema.js';
 export * from './anythingPolicyLint.js';
 export * from './anythingQualityLint.js';

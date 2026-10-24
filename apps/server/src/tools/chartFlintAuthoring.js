@@ -1,5 +1,6 @@
 import { assembleVegaLite } from 'flint-chart/vegalite';
 import { stripPrivateKeys, validateChart } from 'flint-chart/validate';
+import { parseJsonTrimmingSurplusClosers } from '@archislop/shared';
 import { listFlintChartTypes } from '../prompts/chartFlintSystemPrompt.js';
 
 /**
@@ -53,6 +54,43 @@ function releaseCategoricalSchemes(node) {
   if (node.spec) releaseCategoricalSchemes(node.spec);
 }
 
+const ENGLISH_CALENDAR_NAMES = new Set(
+  [
+    'january february march april may june july august september october november december',
+    'jan feb mar apr jun jul aug sep sept oct nov dec',
+    'monday tuesday wednesday thursday friday saturday sunday',
+    'mon tue tues wed thu thur thurs fri sat sun'
+  ]
+    .join(' ')
+    .split(' ')
+);
+
+const isEnglishCalendarName = (value) =>
+  typeof value === 'string' &&
+  ENGLISH_CALENDAR_NAMES.has(value.trim().replace(/\.$/, '').toLowerCase());
+
+/**
+ * Flint (1.0.1) orders month and weekday names it recognises — English ones — and pushes
+ * the rest to the end, so German "Mär, Mai, Okt, Dez" land after "Dez"'s neighbours.
+ * When a channel's computed sort contains a name Flint cannot know, the model's own row
+ * order is the better signal: use first-appearance order instead.
+ */
+function keepDataOrderForLocalizedCalendarNames(spec) {
+  const rows = spec?.data?.values;
+  if (!Array.isArray(rows) || !spec.encoding) return;
+  for (const channel of Object.values(spec.encoding)) {
+    if (!channel || !Array.isArray(channel.sort) || typeof channel.field !== 'string') continue;
+    if (channel.sort.every(isEnglishCalendarName)) continue;
+    if (!channel.sort.some(isEnglishCalendarName)) continue;
+    const seen = [];
+    for (const row of rows) {
+      const value = row?.[channel.field];
+      if (value !== undefined && !seen.includes(value)) seen.push(value);
+    }
+    if (seen.length === channel.sort.length) channel.sort = seen;
+  }
+}
+
 function describeErrors(errors, chartType) {
   const lines = errors.map((e) => e.message || e.code || 'unknown error');
   if (lines.some((line) => /Unknown chart type/i.test(line))) {
@@ -69,7 +107,7 @@ function parseFlintWrapper(source) {
   if (typeof source !== 'string') return null;
   let raw;
   try {
-    raw = JSON.parse(stripJsonCodeFence(source));
+    raw = parseJsonTrimmingSurplusClosers(stripJsonCodeFence(source));
   } catch {
     return null;
   }
@@ -111,6 +149,7 @@ function assembleFlint(input) {
   try {
     const spec = stripPrivateKeys(assembleVegaLite(input));
     releaseCategoricalSchemes(spec);
+    keepDataOrderForLocalizedCalendarNames(spec);
     return { spec, validation };
   } catch (err) {
     return {

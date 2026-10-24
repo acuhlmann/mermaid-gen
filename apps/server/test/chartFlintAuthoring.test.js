@@ -156,3 +156,48 @@ test('every chart type in the Flint prompt compiles from the installed library',
   assert.ok(!types.includes('Choropleth'));
   for (const chart of types) assert.ok(CHART_FLINT_SYSTEM_PROMPT.includes(`- ${chart}:`), chart);
 });
+
+test('compileFlintChartWrapper keeps the row order for non-English month names', () => {
+  const monate = [
+    'Jan',
+    'Feb',
+    'Mär',
+    'Apr',
+    'Mai',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Okt',
+    'Nov',
+    'Dez'
+  ];
+  const wrapper = {
+    theme: 'whiteboard',
+    flint: {
+      data: { values: monate.map((Monat, i) => ({ Monat, Kosten: 80 + i })) },
+      semantic_types: { Monat: 'Month', Kosten: 'Amount' },
+      chart_spec: { chartType: 'Bar Chart', encodings: { x: 'Monat', y: 'Kosten' } }
+    }
+  };
+  const { text } = compileFlintChartWrapper(JSON.stringify(wrapper));
+  assert.deepEqual(JSON.parse(text).spec.encoding.x.sort, monate);
+});
+
+test('compileFlintChartWrapper leaves Flint ordering for English month names', () => {
+  const months = ['Mar', 'Jan', 'Feb'];
+  const wrapper = {
+    flint: {
+      data: { values: months.map((Month, i) => ({ Month, Cost: 80 + i })) },
+      semantic_types: { Month: 'Month', Cost: 'Amount' },
+      chart_spec: { chartType: 'Bar Chart', encodings: { x: 'Month', y: 'Cost' } }
+    }
+  };
+  const { text } = compileFlintChartWrapper(JSON.stringify(wrapper));
+  assert.deepEqual(JSON.parse(text).spec.encoding.x.sort, ['Jan', 'Feb', 'Mar']);
+});
+
+test('compileFlintChartWrapper rescues one surplus closing brace', () => {
+  const result = compileFlintChartWrapper(`${JSON.stringify(GROUPED_BAR)}}`);
+  assert.equal(result.ok, true);
+});
